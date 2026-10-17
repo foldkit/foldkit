@@ -31,8 +31,8 @@ export type Slots<DemoName extends string> = Readonly<{
   renderFaq?: RenderFaq
   /**
    * Controls the page does not own but its markdown renders: the SnippetCopy
-   * Submodel button and the heading copy-link. The boundary that owns those
-   * behaviors constructs the renderers. A page embedded with `h.submodel`
+   * Block button and the heading copy-link. The boundary that owns those
+   * behaviors constructs the renderers. A page embedded with `h.block`
    * receives them from its parent through `viewInputs`, so each control keeps
    * dispatching through its actual owner rather than the page's boundary.
    */

@@ -10,7 +10,7 @@
     "noPropertyAccessFromIndexSignature": false
   },
   "include": [
-    "test/integration/fixtures/no-direct-submodel-state-update/**/*.ts",
+    "test/integration/fixtures/no-direct-block-state-update/**/*.ts",
     "test/integration/fixtures/require-fold-for-child-update-result/**/*.ts"
   ]
 }

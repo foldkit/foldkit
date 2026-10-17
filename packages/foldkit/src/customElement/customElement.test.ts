@@ -3,6 +3,7 @@ import { expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
+import { block as blockImpl, defineView } from '../html/block.js'
 import { beginRender, createBoundaryRegistry } from '../html/boundary.js'
 import { type ChildAttribute, childAttributes } from '../html/childAttribute.js'
 import {
@@ -11,7 +12,6 @@ import {
   __clearRuntime as clearHtmlRuntime,
   __setRuntime as setHtmlRuntime,
 } from '../html/index.js'
-import { defineView, submodel as submodelImpl } from '../html/submodel.js'
 import { defineMessageUnion } from '../message/index.js'
 import { MountTracker } from '../mount/index.js'
 import { propsModule } from '../propsModule.js'
@@ -307,13 +307,13 @@ describe('ElementBuilder ChildAttribute support', () => {
     ...args,
   })
 
-  it('routes a published ChildAttribute OnClick through the Submodel boundary when spread into a custom element', () => {
-    // Mirrors the childAttributes scenario: a Submodel publishes an
+  it('routes a published ChildAttribute OnClick through the Block boundary when spread into a custom element', () => {
+    // Mirrors the childAttributes scenario: a Block publishes an
     // attribute group and the consumer spreads it into an element built
     // in the parent's boundary. Here the consumer's element is a defined
     // custom element rather than an html builder element, so this locks
     // in both halves: the ElementBuilder signature accepts the union,
-    // and the runtime routes the handler through the Submodel's wrap.
+    // and the runtime routes the handler through the Block's wrap.
     const registry = createBoundaryRegistry()
     const { dispatch, dispatched } = createCapturingDispatch()
     const testContext = Context.make(Dispatch, dispatch).pipe(
@@ -341,7 +341,7 @@ describe('ElementBuilder ChildAttribute support', () => {
         })
       })
 
-      const result = submodelImpl(
+      const result = blockImpl(
         {
           slotId: 'fake-control',
           model: {},
@@ -357,7 +357,7 @@ describe('ElementBuilder ChildAttribute support', () => {
         __htmlBuilder(),
       )
       if (result === null) {
-        throw new Error('submodel returned null Html')
+        throw new Error('block returned null Html')
       }
 
       const element = patchInto(result)

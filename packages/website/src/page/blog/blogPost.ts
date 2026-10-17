@@ -7,8 +7,6 @@ import { type PostCover, maybePostCover } from './frontmatter'
 import { BLOG_AUTHOR } from './meta'
 import { type BlogPost, formatPostDate } from './posts'
 
-// VIEW
-
 const backToBlogLink: Html = ih.a(
   [
     ih.Href(blogRouter()),

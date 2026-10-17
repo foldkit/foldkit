@@ -40,7 +40,7 @@ OpenCode reads the `SKILL.md` frontmatter directly and ignores `agents/openai.ya
 
 ::Snippet{name="aiSkillsFoldkitInvocations" label="Foldkit skill invocations"}
 
-Loads the architectural framing for work in a Foldkit codebase. It directs the agent to the vendored source and examples, treats the Elm Architecture as a constraint, distinguishes stateful Submodels from stateless UI helpers, and checks the Foldkit and Effect stack before introducing another library.
+Loads the architectural framing for work in a Foldkit codebase. It directs the agent to the vendored source and examples, treats the Elm Architecture as a constraint, distinguishes stateful Blocks from stateless UI helpers, and checks the Foldkit and Effect stack before introducing another library.
 
 Hosts that support implicit skill invocation can select it when the project or prompt contains Foldkit context.
 

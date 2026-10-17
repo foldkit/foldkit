@@ -135,10 +135,19 @@ describe('real-oxlint rule fixtures', () => {
     ).toBe(5)
   })
 
-  it('traces direct and named data-last combine Steps', () => {
-    expect(countDiagnostics('no-direct-submodel-state-update', 'invalid')).toBe(
-      8,
+  it('traces direct, named, and automatically routed child updates', () => {
+    expect(countDiagnostics('no-direct-block-state-update', 'invalid')).toBe(11)
+  })
+
+  it('tracks registered child Bindings in Composition update callbacks', () => {
+    const diagnostics = diagnosticsFor(
+      'no-direct-block-state-update',
+      'invalid',
+    ).filter(diagnostic =>
+      diagnostic.filename.endsWith('composition-update.ts'),
     )
+
+    expect(diagnostics).toHaveLength(1)
   })
 
   it('reports direct child Message construction and local constructor aliases', () => {
@@ -149,35 +158,54 @@ describe('real-oxlint rule fixtures', () => {
 
     expect(diagnostics.map(reportedCalleeLabel).sort()).toEqual(
       [
+        'ApplicationComposition.Message.ClickedFromShadowedParameters',
         'Child.Message.ClickedAliasSave',
         'Child.Message.ClickedBarrelSave',
         'Child.Message.ClickedDirectBarrelSave',
+        'Child.Message.ClickedFromElementCompletion',
+        'Child.Message.ClickedFromImportedViewBuilder',
+        'Child.Message.ClickedFromLocalViewBuilder',
+        'Child.Message.ClickedFromRootCompletion',
+        'Child.Message.ClickedFromRootViewHelper',
         'Child.Message.ClickedNestedSave',
         'Child.Message.ClickedNamespaceAliasSave',
+        'Child.Message.ClickedImportedParentViewSave',
+        'Child.Message.ClickedParentStepSave',
         'Child.Message.ClickedParentViewSave',
+        'Child.Message.ClickedTypedParentViewSave',
         'Child.Message.ClickedWorkspaceSave',
         'Child.Message.ClickedWorkspaceAliasSave',
         'Child.server.Message.ClickedServerChildSave',
         'CommandPalette.Message.OpenedCommandPalette',
         'DirectChild.Message.ClickedDirectChildSave',
+        'Definition.Message.ClickedChildSave',
+        'Definition.Message.ClickedEntrySave',
+        'Definition.Message.ClickedEntryFromForeignBuilder',
+        'Definition.Message.ClickedFromLocalDefinitionAlias',
+        'Definition.Message.CompletedChildWork',
+        'Definition.Message.GotChildMessage',
+        'Definition.Message.UpdatedEntry',
+        'Definition.Message.UpdatedAncestor',
         'Feature.Message.ClickedFeatureSave',
         'Profile.Message.ClickedProfileSave',
         'Search.Message.ClickedSearchResult',
+        'picker.Message.SelectedValue',
       ].sort(),
     )
   })
 
   it('resolves aliased constructors and helpers to their imported APIs', () => {
+    expect(countDiagnostics('block-name-matches-variable', 'invalid')).toBe(11)
     expect(countDiagnostics('no-hardcoded-route-strings', 'invalid')).toBe(2)
     expect(countDiagnostics('keyed-required-for-mapped-rows', 'invalid')).toBe(
       3,
     )
     expect(
-      countDiagnostics('got-prefix-requires-submodel-payload', 'invalid'),
-    ).toBe(4)
+      countDiagnostics('got-prefix-requires-block-payload', 'invalid'),
+    ).toBe(8)
     expect(
       countDiagnostics('wrap-child-output-in-got-message', 'invalid'),
-    ).toBe(2)
+    ).toBe(3)
     expect(
       countDiagnostics('got-wrapper-carries-only-routing', 'invalid'),
     ).toBe(2)
@@ -212,15 +240,15 @@ describe('real-oxlint rule fixtures', () => {
     expect(countDiagnostics('no-empty-object-tagged-call', 'invalid')).toBe(3)
   })
 
-  it('derives child fields from the fold read and write functions', () => {
+  it('derives child fields from folds and completed Block connections', () => {
     expect(
       countDiagnostics('require-fold-for-child-update-result', 'invalid'),
-    ).toBe(7)
+    ).toBe(10)
   })
 
   it('resolves namespace and aliased Update subpath imports', () => {
     for (const rule of [
-      'no-direct-submodel-state-update',
+      'no-direct-block-state-update',
       'require-fold-for-child-update-result',
     ]) {
       const diagnostics = diagnosticsFor(rule, 'invalid').filter(diagnostic =>

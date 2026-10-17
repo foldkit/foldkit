@@ -1,12 +1,21 @@
 import { Option } from 'effect'
-import type { Mount } from 'foldkit'
-import type { Html, HtmlBuilder } from 'foldkit/html'
+import type { Html } from 'foldkit/html'
 
 import { Combobox, Dialog } from '@foldkit/ui'
+import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
+import type { UiViewBuilder } from '../composition'
+import {
+  DialogAnimatedDemoBinding,
+  DialogDemoBinding,
+  NestedDialogChildDemoBinding,
+  NestedDialogParentDemoBinding,
+  OverlayComboboxDemoBinding,
+  OverlayDialogDemoBinding,
+} from '../composition'
 import { Message } from '../message'
 import type { City } from '../model'
-import { CityCombobox, comboboxViewInputs } from './combobox'
+import { comboboxViewInputs } from './combobox'
 
 // DEMO CONTENT
 
@@ -54,18 +63,18 @@ const OVERLAY_COMBOBOX_ANCHOR = {
 
 // PANEL CONTENT
 
-const trigger = (label: string, message: Message, h: HtmlBuilder<Message>) =>
+const trigger = (label: string, message: Message, h: UiViewBuilder) =>
   h.div(
     [h.Class('flex gap-3')],
     [h.button([h.Class(triggerClassName), h.OnClick(message)], [label])],
   )
 
 const confirmContent = (
-  title: Dialog.RenderInfo['title'],
-  description: Dialog.RenderInfo['description'],
-  closeButton: Dialog.RenderInfo['closeButton'],
+  title: DialogRenderInfo['title'],
+  description: DialogRenderInfo['description'],
+  closeButton: DialogRenderInfo['closeButton'],
   descriptionText: string,
-  h: HtmlBuilder<Message>,
+  h: UiViewBuilder,
 ): Html =>
   h.div(
     [],
@@ -89,11 +98,11 @@ const confirmContent = (
   )
 
 const editFiltersContent = (
-  title: Dialog.RenderInfo['title'],
-  description: Dialog.RenderInfo['description'],
-  comboboxModel: Combobox.Model,
+  title: DialogRenderInfo['title'],
+  description: DialogRenderInfo['description'],
+  comboboxModel: typeof Combobox.Model.Type,
   maybeSelectedCity: Option.Option<City>,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Combobox.mounts>>,
+  h: UiViewBuilder,
 ): Html =>
   h.div(
     [],
@@ -105,30 +114,29 @@ const editFiltersContent = (
           'The combobox panel portals into the dialog, so it renders above the dialog content.',
         ],
       ),
-      h.submodel({
-        slotId: comboboxModel.id,
-        model: comboboxModel,
-        view: CityCombobox.view,
-        viewInputs: {
-          ...comboboxViewInputs({
-            inputValue: comboboxModel.inputValue,
-            restingInputValue: Option.getOrElse(maybeSelectedCity, () => ''),
-            anchor: OVERLAY_COMBOBOX_ANCHOR,
-            wrapperClass: 'relative w-full',
-          }),
-          maybeSelectedValue: maybeSelectedCity,
-        },
-        toParentMessage: message =>
-          Message.GotOverlayComboboxDemoMessage({ message }),
-      }),
+      h.block(
+        OverlayComboboxDemoBinding.embedView({
+          slotId: comboboxModel.id,
+          model: comboboxModel,
+          viewInputs: {
+            ...comboboxViewInputs({
+              inputValue: comboboxModel.inputValue,
+              restingInputValue: Option.getOrElse(maybeSelectedCity, () => ''),
+              anchor: OVERLAY_COMBOBOX_ANCHOR,
+              wrapperClass: 'relative w-full',
+            }),
+            maybeSelectedValue: maybeSelectedCity,
+          },
+        }),
+      ),
     ],
   )
 
 const projectSettingsContent = (
-  title: Dialog.RenderInfo['title'],
-  description: Dialog.RenderInfo['description'],
-  closeButton: Dialog.RenderInfo['closeButton'],
-  h: HtmlBuilder<Message>,
+  title: DialogRenderInfo['title'],
+  description: DialogRenderInfo['description'],
+  closeButton: DialogRenderInfo['closeButton'],
+  h: UiViewBuilder,
 ): Html =>
   h.div(
     [],
@@ -157,10 +165,10 @@ const projectSettingsContent = (
   )
 
 const deleteProjectContent = (
-  title: Dialog.RenderInfo['title'],
-  description: Dialog.RenderInfo['description'],
-  closeButton: Dialog.RenderInfo['closeButton'],
-  h: HtmlBuilder<Message>,
+  title: DialogRenderInfo['title'],
+  description: DialogRenderInfo['description'],
+  closeButton: DialogRenderInfo['closeButton'],
+  h: UiViewBuilder,
 ): Html =>
   h.div(
     [],
@@ -188,223 +196,228 @@ const deleteProjectContent = (
     ],
   )
 
-// VIEW
-
 export const view = (
-  dialogModel: Dialog.Model,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Dialog.mounts>>,
+  dialogModel: typeof Dialog.Model.Type,
+  h: UiViewBuilder,
 ) => {
   return [
     trigger('Open Dialog', Message.ClickedOpenDialog(), h),
-    h.submodel({
-      slotId: dialogModel.id,
-      model: dialogModel,
-      view: Dialog.view,
-      viewInputs: {
-        hasDescription: true,
-        toView: ({
-          dialog,
-          backdrop,
-          panel,
-          title,
-          description,
-          closeButton,
-          isVisible,
-        }) =>
-          h.dialog(
-            [...dialog, h.Class(dialogClassName)],
-            isVisible
-              ? [
-                  h.div([...backdrop, h.Class(backdropClassName)]),
-                  h.div(
-                    [...panel, h.Class(panelClassName)],
-                    [
-                      confirmContent(
-                        title,
-                        description,
-                        closeButton,
-                        'Are you sure you want to proceed? This action demonstrates the Dialog component with focus trapping, backdrop click, and Escape key handling.',
-                        h,
-                      ),
-                    ],
-                  ),
-                ]
-              : [],
-          ),
-      },
-      toParentMessage: message => Message.GotDialogDemoMessage({ message }),
-    }),
+    h.block(
+      DialogDemoBinding.embedView({
+        slotId: dialogModel.id,
+        model: dialogModel,
+        viewInputs: {
+          hasDescription: true,
+          toView: ({
+            dialog,
+            backdrop,
+            panel,
+            title,
+            description,
+            closeButton,
+            isVisible,
+          }) =>
+            h.dialog(
+              [...dialog, h.Class(dialogClassName)],
+              isVisible
+                ? [
+                    h.div([...backdrop, h.Class(backdropClassName)]),
+                    h.div(
+                      [...panel, h.Class(panelClassName)],
+                      [
+                        confirmContent(
+                          title,
+                          description,
+                          closeButton,
+                          'Are you sure you want to proceed? This action demonstrates the Dialog component with focus trapping, backdrop click, and Escape key handling.',
+                          h,
+                        ),
+                      ],
+                    ),
+                  ]
+                : [],
+            ),
+        },
+      }),
+    ),
   ]
 }
 
 export const overlayDialogDemo = (
-  dialogModel: Dialog.Model,
-  comboboxModel: Combobox.Model,
+  dialogModel: typeof Dialog.Model.Type,
+  comboboxModel: typeof Combobox.Model.Type,
   maybeSelectedCity: Option.Option<City>,
-  h: HtmlBuilder<
-    Message,
-    Mount.RequirementsOf<typeof Dialog.mounts | typeof Combobox.mounts>
-  >,
+  h: UiViewBuilder,
 ) => {
   return [
     trigger('Edit filters', Message.ClickedEditFilters(), h),
-    h.submodel({
-      slotId: dialogModel.id,
-      model: dialogModel,
-      view: Dialog.view,
-      viewInputs: {
-        hasDescription: true,
-        toView: ({ dialog, backdrop, panel, title, description, isVisible }) =>
-          h.dialog(
-            [...dialog, h.Class(dialogClassName)],
-            isVisible
-              ? [
-                  h.div([...backdrop, h.Class(backdropClassName)]),
-                  h.div(
-                    [...panel, h.Class(panelClassName)],
-                    [
-                      editFiltersContent(
-                        title,
-                        description,
-                        comboboxModel,
-                        maybeSelectedCity,
-                        h,
-                      ),
-                    ],
-                  ),
-                ]
-              : [],
-          ),
-      },
-      toParentMessage: message =>
-        Message.GotOverlayDialogDemoMessage({ message }),
-    }),
+    h.block(
+      OverlayDialogDemoBinding.embedView({
+        slotId: dialogModel.id,
+        model: dialogModel,
+        viewInputs: {
+          hasDescription: true,
+          toView: ({
+            dialog,
+            backdrop,
+            panel,
+            title,
+            description,
+            isVisible,
+          }) =>
+            h.dialog(
+              [...dialog, h.Class(dialogClassName)],
+              isVisible
+                ? [
+                    h.div([...backdrop, h.Class(backdropClassName)]),
+                    h.div(
+                      [...panel, h.Class(panelClassName)],
+                      [
+                        editFiltersContent(
+                          title,
+                          description,
+                          comboboxModel,
+                          maybeSelectedCity,
+                          h,
+                        ),
+                      ],
+                    ),
+                  ]
+                : [],
+            ),
+        },
+      }),
+    ),
   ]
 }
 
 export const nestedDialogDemo = (
-  parentDialogModel: Dialog.Model,
-  childDialogModel: Dialog.Model,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Dialog.mounts>>,
+  parentDialogModel: typeof Dialog.Model.Type,
+  childDialogModel: typeof Dialog.Model.Type,
+  h: UiViewBuilder,
 ) => {
   return [
     trigger('Open project settings', Message.ClickedOpenProjectSettings(), h),
-    h.submodel({
-      slotId: parentDialogModel.id,
-      model: parentDialogModel,
-      view: Dialog.view,
-      viewInputs: {
-        hasDescription: true,
-        toView: ({
-          dialog,
-          backdrop,
-          panel,
-          title,
-          description,
-          closeButton,
-          isVisible,
-        }) =>
-          h.dialog(
-            [...dialog, h.Class(dialogClassName)],
-            isVisible
-              ? [
-                  h.div([...backdrop, h.Class(backdropClassName)]),
-                  h.div(
-                    [...panel, h.Class(settingsPanelClassName)],
-                    [
-                      projectSettingsContent(
-                        title,
-                        description,
-                        closeButton,
-                        h,
-                      ),
-                    ],
-                  ),
-                ]
-              : [],
-          ),
-      },
-      toParentMessage: message =>
-        Message.GotNestedDialogParentDemoMessage({ message }),
-    }),
-    h.submodel({
-      slotId: childDialogModel.id,
-      model: childDialogModel,
-      view: Dialog.view,
-      viewInputs: {
-        hasDescription: true,
-        toView: ({
-          dialog,
-          backdrop,
-          panel,
-          title,
-          description,
-          closeButton,
-          isVisible,
-        }) =>
-          h.dialog(
-            [...dialog, h.Class(dialogClassName)],
-            isVisible
-              ? [
-                  h.div([...backdrop, h.Class(backdropClassName)]),
-                  h.div(
-                    [...panel, h.Class(confirmPanelClassName)],
-                    [deleteProjectContent(title, description, closeButton, h)],
-                  ),
-                ]
-              : [],
-          ),
-      },
-      toParentMessage: message =>
-        Message.GotNestedDialogChildDemoMessage({ message }),
-    }),
+    h.block(
+      NestedDialogParentDemoBinding.embedView({
+        slotId: parentDialogModel.id,
+        model: parentDialogModel,
+        viewInputs: {
+          hasDescription: true,
+          toView: ({
+            dialog,
+            backdrop,
+            panel,
+            title,
+            description,
+            closeButton,
+            isVisible,
+          }) =>
+            h.dialog(
+              [...dialog, h.Class(dialogClassName)],
+              isVisible
+                ? [
+                    h.div([...backdrop, h.Class(backdropClassName)]),
+                    h.div(
+                      [...panel, h.Class(settingsPanelClassName)],
+                      [
+                        projectSettingsContent(
+                          title,
+                          description,
+                          closeButton,
+                          h,
+                        ),
+                      ],
+                    ),
+                  ]
+                : [],
+            ),
+        },
+      }),
+    ),
+    h.block(
+      NestedDialogChildDemoBinding.embedView({
+        slotId: childDialogModel.id,
+        model: childDialogModel,
+        viewInputs: {
+          hasDescription: true,
+          toView: ({
+            dialog,
+            backdrop,
+            panel,
+            title,
+            description,
+            closeButton,
+            isVisible,
+          }) =>
+            h.dialog(
+              [...dialog, h.Class(dialogClassName)],
+              isVisible
+                ? [
+                    h.div([...backdrop, h.Class(backdropClassName)]),
+                    h.div(
+                      [...panel, h.Class(confirmPanelClassName)],
+                      [
+                        deleteProjectContent(
+                          title,
+                          description,
+                          closeButton,
+                          h,
+                        ),
+                      ],
+                    ),
+                  ]
+                : [],
+            ),
+        },
+      }),
+    ),
   ]
 }
 
 export const dialogAnimatedDemo = (
-  dialogModel: Dialog.Model,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Dialog.mounts>>,
+  dialogModel: typeof Dialog.Model.Type,
+  h: UiViewBuilder,
 ) => {
   return [
     trigger('Open Animated Dialog', Message.ClickedOpenAnimatedDialog(), h),
-    h.submodel({
-      slotId: dialogModel.id,
-      model: dialogModel,
-      view: Dialog.view,
-      viewInputs: {
-        hasDescription: true,
-        toView: ({
-          dialog,
-          backdrop,
-          panel,
-          title,
-          description,
-          closeButton,
-          isVisible,
-        }) =>
-          h.dialog(
-            [...dialog, h.Class(dialogClassName)],
-            isVisible
-              ? [
-                  h.div([...backdrop, h.Class(animatedBackdropClassName)]),
-                  h.div(
-                    [...panel, h.Class(animatedPanelClassName)],
-                    [
-                      confirmContent(
-                        title,
-                        description,
-                        closeButton,
-                        'This dialog uses CSS transitions coordinated by the TransitionState machine: a fade on the backdrop and a scale-up on the panel. Content stays mounted during exit so both enter and leave transitions play smoothly.',
-                        h,
-                      ),
-                    ],
-                  ),
-                ]
-              : [],
-          ),
-      },
-      toParentMessage: message =>
-        Message.GotDialogAnimatedDemoMessage({ message }),
-    }),
+    h.block(
+      DialogAnimatedDemoBinding.embedView({
+        slotId: dialogModel.id,
+        model: dialogModel,
+        viewInputs: {
+          hasDescription: true,
+          toView: ({
+            dialog,
+            backdrop,
+            panel,
+            title,
+            description,
+            closeButton,
+            isVisible,
+          }) =>
+            h.dialog(
+              [...dialog, h.Class(dialogClassName)],
+              isVisible
+                ? [
+                    h.div([...backdrop, h.Class(animatedBackdropClassName)]),
+                    h.div(
+                      [...panel, h.Class(animatedPanelClassName)],
+                      [
+                        confirmContent(
+                          title,
+                          description,
+                          closeButton,
+                          'This dialog uses CSS transitions coordinated by the TransitionState machine: a fade on the backdrop and a scale-up on the panel. Content stays mounted during exit so both enter and leave transitions play smoothly.',
+                          h,
+                        ),
+                      ],
+                    ),
+                  ]
+                : [],
+            ),
+        },
+      }),
+    ),
   ]
 }

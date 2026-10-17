@@ -28,7 +28,7 @@ State is distributed by design, and that is the point. A feature can own its ato
 
 ### Foldkit Model and Messages
 
-Foldkit centralizes state in the [Model](/core/model). The [Message](/core/messages) union lists the facts the application handles, and [update](/core/update) defines how those facts change the Model. Those are framework constraints, not conventions a team maintains by discipline. [Submodels](/core/submodel) split a large application into smaller state machines while preserving the same parent-to-child Message flow.
+Foldkit centralizes state in the [Model](/core/model). The [Message](/core/messages) union lists the facts the application handles, and [update](/core/update) defines how those facts change the Model. Those are framework constraints, not conventions a team maintains by discipline. [Blocks](/core/block) split a large application into smaller state machines while preserving the same parent-to-child Message flow.
 
 ## How State Changes
 
@@ -154,7 +154,7 @@ An Effect Atom application grows a graph of atoms. Adding an independent atom is
 
 ### Foldkit State Machine
 
-A Foldkit application grows its Model, Message union, and update logic. Exhaustive matching keeps the transition catalog complete, but a large update function eventually needs to be divided into [Submodels](/core/submodel). Submodel composition adds explicit parent-child wiring.
+A Foldkit application grows its Model, Message union, and update logic. Exhaustive matching keeps the transition catalog complete, but a large update function eventually needs to be divided into [Blocks](/core/block). Block composition adds explicit parent-child wiring.
 
 The trade-off is locality versus a central index. Effect Atom favors independently composable reactive cells. Foldkit favors an explicit state machine whose transitions share one runtime path.
 

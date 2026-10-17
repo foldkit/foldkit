@@ -1,10 +1,27 @@
-import { Command as ChildCommand } from 'foldkit'
+import { Layer, Option } from 'effect'
+import { Block, Command as ChildCommand, defineApplication } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { Child } from './child'
 import { ForwardedChildMessage } from './message'
 import { Model } from './model'
 
 const GotLocallyShadowedMessage = (input: { message: Child.Message }) => input
+
+const InlineChild = Block.define('InlineChild', {
+  Model: Child.Model,
+  Message: Child.Message,
+})
+  .makeComposition({})
+  .makeBlock({
+    init: Child.init,
+    update: Child.update,
+    EffectsLayer: Layer.empty,
+  })
+
+const Application = defineApplication({ Model, Message })
+export const InlineChildBinding = Application.bindChild(InlineChild, {read: (model: Model) => Option.some(model.child),
+write: (model, child) => modifyFields(model, { child: () => child }),
+toParentMessage: message => ForwardedChildMessage({ message })})
 
 // UPDATE
 

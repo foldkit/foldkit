@@ -141,8 +141,8 @@ describe('require-fold-for-child-update-result', () => {
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain('settingsReset.model')
     expect(result[0]?.diagnostic.message).toContain('Settings.setTheme')
-    expect(result[0]?.diagnostic.message).toContain('Update.foldChild')
-    expect(result[0]?.diagnostic.message).toContain('Update.foldChildAt')
+    expect(result[0]?.diagnostic.message).toContain('registered binding')
+    expect(result[0]?.diagnostic.message).toContain('registered binding')
   })
 
   it('flags a direct-field child result established by foldChildAt', () => {
@@ -276,7 +276,7 @@ describe('require-fold-for-child-update-result', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('allows init assembly without a current child Model argument', () => {
+  it('allows init completion without a current child Model argument', () => {
     const result = resultFor(
       'Settings',
       'settings',
@@ -426,4 +426,89 @@ describe('require-fold-for-child-update-result', () => {
 
     expect(result).toHaveLength(0)
   })
+})
+
+it('detects copied child results using completed Block binding evidence', () => {
+  const binding = {
+    type: 'CallExpression',
+    callee: {
+      type: 'MemberExpression',
+      object: Testing.id('Application'),
+      property: Testing.id('bindChild'),
+      computed: false,
+    },
+    arguments: [
+      Testing.id('Settings'),
+      objectExpression([
+        property('read', readChild('settings')),
+        property('write', writeChild('settings')),
+        property('toParentMessage', Testing.arrowFn(Testing.id('message'))),
+      ]),
+    ],
+  }
+  const result = resultFor(
+    'Settings',
+    'settings',
+    childReturn('settingsReset', childCall('Settings', 'setTheme', 'settings')),
+    modifyFieldsCall('settings', 'settingsReset'),
+    [Testing.varDecl('const', 'settings', binding)],
+  )
+
+  expect(result).toHaveLength(1)
+})
+
+it('detects copied child results using direct field Binding shorthand', () => {
+  const binding = Testing.callOfMember('Application', 'bindChild', [
+    Testing.id('Settings'),
+    objectExpression([
+      property('field', Testing.strLiteral('settings')),
+      property(
+        'parentMessage',
+        Testing.memberExpr('Message', 'GotSettingsMessage'),
+      ),
+    ]),
+  ])
+  const result = resultFor(
+    'Settings',
+    'settings',
+    childReturn('settingsReset', childCall('Settings', 'setTheme', 'settings')),
+    modifyFieldsCall('settings', 'settingsReset'),
+    [Testing.varDecl('const', 'settings', binding)],
+  )
+
+  expect(result).toHaveLength(1)
+})
+
+it('detects copied child results using keyed Binding evidence', () => {
+  const readAll = Testing.arrowFn(
+    {
+      type: 'ArrayExpression',
+      elements: [Testing.memberExpr('model', 'settings')],
+    },
+    [Testing.id('model')],
+  )
+  const binding = Testing.callOfMember('Application', 'bindChild', [
+    Testing.id('Settings'),
+    objectExpression([
+      property('readAll', readAll),
+      property(
+        'key',
+        Testing.arrowFn(Testing.memberExpr('settings', 'id'), [
+          Testing.id('settings'),
+        ]),
+      ),
+      property('read', Testing.arrowFn(Testing.id('settings'))),
+      property('writeAt', writeChildAt('settings')),
+      property('toParentMessage', Testing.arrowFn(Testing.id('message'))),
+    ]),
+  ])
+  const result = resultFor(
+    'Settings',
+    'settings',
+    childReturn('settingsReset', childCall('Settings', 'setTheme', 'settings')),
+    modifyFieldsCall('settings', 'settingsReset'),
+    [Testing.varDecl('const', 'settings', binding)],
+  )
+
+  expect(result).toHaveLength(1)
 })

@@ -135,6 +135,7 @@
   "scripts": {
     "clean": "rimraf dist *.tsbuildinfo",
     "build": "pnpm run clean && tsc -b tsconfig.build.json && node scripts/brand-dist.mjs",
+    "check:emitted-declarations": "node scripts/check-emitted-declarations.ts",
     "watch": "tsc -b tsconfig.build.json --watch",
     "lint": "pnpm --filter @foldkit/oxlint-plugin build && oxlint src",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -142,7 +143,7 @@
   },
   "peerDependencies": {
     "effect": "4.0.0",
-    "foldkit": ">=0.167.0"
+    "foldkit": ">=0.169.0"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.8.0"

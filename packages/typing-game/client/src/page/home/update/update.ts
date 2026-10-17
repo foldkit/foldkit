@@ -1,5 +1,4 @@
 import { Array, Match, Option, String } from 'effect'
-import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { optionWhen } from '../../../optionWhen'
@@ -8,11 +7,12 @@ import {
   FocusUsernameInput,
   JoinRoomFromHome,
 } from '../command'
+import { HomeComposition } from '../definition'
 import { Message, OutMessage } from '../message'
-import { HomeStep, Model } from '../model'
+import { HomeStep } from '../model'
 import { handleKeyPressed } from './handleKeyPressed'
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = HomeComposition.makeUpdate((model, message) =>
   Message.match(message, {
     CompletedFocusUsernameInput: () => ({ model }),
 
@@ -115,5 +115,3 @@ export const update = Update.define((model: Model, message: Message) =>
     }),
   }),
 )
-
-export type UpdateRequirements = Update.RequirementsOf<typeof update>

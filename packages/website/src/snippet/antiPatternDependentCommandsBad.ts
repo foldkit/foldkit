@@ -1,8 +1,6 @@
 // ❌ Bad: both Commands start independently.
 
-import { Update } from 'foldkit'
-
-const update = Update.define((model: Model, message: Message) =>
+const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedSave: () => ({
       model,

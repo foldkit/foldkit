@@ -1,9 +1,9 @@
 import { Number, Schema } from 'effect'
 
+import { defineView } from '../../html/block.js'
 import type { Html } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
-import { defineView } from '../../submodel/public.js'
 import type * as Update from '../../update/index.js'
 
 // MODEL

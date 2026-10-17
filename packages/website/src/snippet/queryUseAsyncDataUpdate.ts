@@ -3,11 +3,11 @@ const OrderData = AsyncData.Schema(Order, Schema.String)
 const Model = Schema.Struct({
   orderDraft: OrderDraft,
   order: OrderData.schema,
-  route: AppRoute,
+  route: ApplicationRoute,
 })
 type Model = typeof Model.Type
 
-const update = Update.define((model: Model, message: Message) =>
+const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedPlaceOrder: () => ({
       model: modifyFields(model, {
@@ -19,7 +19,7 @@ const update = Update.define((model: Model, message: Message) =>
     SucceededSubmitOrder: ({ order }) => ({
       model: modifyFields(model, {
         order: () => OrderData.Success({ data: order }),
-        route: () => AppRoute.OrderConfirmation({ orderId: order.id }),
+        route: () => ApplicationRoute.OrderConfirmation({ orderId: order.id }),
       }),
     }),
     // Failure stays in checkout with the domain error available to the view.

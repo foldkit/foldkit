@@ -1,16 +1,16 @@
 import clsx from 'clsx'
 import { Equal, HashSet, Match, Number, flow } from 'effect'
-import type { Mount } from 'foldkit'
-import type { Html, HtmlBuilder } from 'foldkit/html'
+import type { Html } from 'foldkit/html'
 
-import { Menu, Tabs } from '@foldkit/ui'
+import type { TabInfo } from '@foldkit/ui/tabs'
 
+import {
+  type ApplicationViewBuilder,
+  StepMenuBinding as StepMenuBinding,
+} from '../composition'
 import { Step } from '../domain'
-import type { Message } from '../message'
 import { type Model } from '../model'
 import * as Icon from './icon'
-
-const StepMenu = Menu.create<Step.Step>()
 
 type StepStatus = 'Current' | 'Completed' | 'Upcoming'
 
@@ -43,7 +43,7 @@ const stepMarker = (
   status: StepStatus,
   index: number,
   needsAttention: boolean,
-  h: HtmlBuilder<Message>,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.span(
     [
@@ -86,10 +86,10 @@ const stepButtonClass = (status: StepStatus, needsAttention: boolean): string =>
   )
 
 export const stepTabButton = (
-  tab: Tabs.TabInfo<Step.Step>,
+  tab: TabInfo<Step.Step>,
   currentStep: Step.Step,
   stepsNeedingAttention: HashSet.HashSet<Step.Step>,
-  h: HtmlBuilder<Message>,
+  h: ApplicationViewBuilder,
 ): Html => {
   const status = stepToStatus(tab.value, currentStep)
   const needsAttention = HashSet.has(stepsNeedingAttention, tab.value)
@@ -104,10 +104,7 @@ export const stepTabButton = (
   )
 }
 
-const stepMenuTrigger = (
-  currentStep: Step.Step,
-  h: HtmlBuilder<Message>,
-): Html =>
+const stepMenuTrigger = (currentStep: Step.Step, h: ApplicationViewBuilder) =>
   h.div(
     [h.Class('flex items-center justify-between w-full gap-3')],
     [
@@ -133,50 +130,52 @@ const stepMenuTrigger = (
 export const stepMenu = (
   model: Model,
   stepsNeedingAttention: HashSet.HashSet<Step.Step>,
-  toParentMessage: (message: Menu.Message) => Message,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Menu.mounts>>,
+  h: ApplicationViewBuilder,
 ): Html =>
-  h.submodel({
-    slotId: model.stepMenu.id,
-    model: model.stepMenu,
-    view: StepMenu.view,
-    viewInputs: {
-      items: Step.all,
-      buttonContent: stepMenuTrigger(model.currentStep, h),
-      buttonClassName:
-        'flex items-center w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-gray-300 cursor-pointer',
-      itemsClassName:
-        'rounded-lg border border-gray-200 bg-white shadow-lg py-1 w-(--button-width)',
-      itemToConfig: (step, { isActive }) => {
-        const status = stepToStatus(step, model.currentStep)
-        const needsAttention = HashSet.has(stepsNeedingAttention, step)
-        const index = Step.indexOf(step)
-        return {
-          className: clsx(
-            'flex items-center gap-3 px-4 py-2.5 text-sm',
-            isActive && 'bg-gray-50',
-            'cursor-pointer',
-            needsAttention
-              ? 'text-red-700 font-semibold'
-              : Match.value(status).pipe(
-                  Match.withReturnType<string>(),
-                  Match.when('Current', () => 'text-indigo-700 font-semibold'),
-                  Match.when('Completed', () => 'text-gray-700'),
-                  Match.when('Upcoming', () => 'text-gray-600'),
-                  Match.exhaustive,
-                ),
-          ),
-          content: h.div(
-            [h.Class('flex items-center gap-3')],
-            [
-              stepMarker(status, index, needsAttention, h),
-              h.span([], [Step.show(step)]),
-            ],
-          ),
-        }
+  h.block(
+    StepMenuBinding.embedView({
+      slotId: model.stepMenu.id,
+      model: model.stepMenu,
+      viewInputs: {
+        items: Step.all,
+        buttonContent: stepMenuTrigger(model.currentStep, h),
+        buttonClassName:
+          'flex items-center w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-gray-300 cursor-pointer',
+        itemsClassName:
+          'rounded-lg border border-gray-200 bg-white shadow-lg py-1 w-(--button-width)',
+        itemToConfig: (step, { isActive }) => {
+          const status = stepToStatus(step, model.currentStep)
+          const needsAttention = HashSet.has(stepsNeedingAttention, step)
+          const index = Step.indexOf(step)
+          return {
+            className: clsx(
+              'flex items-center gap-3 px-4 py-2.5 text-sm',
+              isActive && 'bg-gray-50',
+              'cursor-pointer',
+              needsAttention
+                ? 'text-red-700 font-semibold'
+                : Match.value(status).pipe(
+                    Match.withReturnType<string>(),
+                    Match.when(
+                      'Current',
+                      () => 'text-indigo-700 font-semibold',
+                    ),
+                    Match.when('Completed', () => 'text-gray-700'),
+                    Match.when('Upcoming', () => 'text-gray-600'),
+                    Match.exhaustive,
+                  ),
+            ),
+            content: h.div(
+              [h.Class('flex items-center gap-3')],
+              [
+                stepMarker(status, index, needsAttention, h),
+                h.span([], [Step.show(step)]),
+              ],
+            ),
+          }
+        },
+        backdropClassName: 'fixed inset-0',
+        anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
       },
-      backdropClassName: 'fixed inset-0',
-      anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
-    },
-    toParentMessage,
-  })
+    }),
+  )

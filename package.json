@@ -9,7 +9,7 @@
     "prepare": "test -z \"$CI\" && simple-git-hooks || true",
     "build": "pnpm -r --if-present build",
     "build:packages": "node scripts/build-public-packages.mjs",
-    "check": "pnpm -F foldkit -F @foldkit/node -F @foldkit/vite-plugin -F @typing-game/shared build && pnpm typecheck:scripts && pnpm -r typecheck && pnpm lint && pnpm check:dead-code && pnpm check:effect-prebundle && pnpm check:ui-subpath-exports",
+    "check": "pnpm -F foldkit -F @foldkit/node -F @foldkit/vite-plugin -F @typing-game/shared build && pnpm check:emitted-declarations && pnpm check:block-type-performance && pnpm typecheck:scripts && pnpm -r typecheck && pnpm lint && pnpm check:dead-code && pnpm check:effect-prebundle && pnpm check:ui-subpath-exports",
     "lint": "pnpm build:packages && pnpm --filter @typing-game/shared build && pnpm lint:ci",
     "lint:ci": "oxlint --disable-nested-config && pnpm lint:applications && pnpm lint:effect",
     "lint:applications": "oxlint --config .oxlintrc.app.json --disable-nested-config examples packages/website/src packages/typing-game/client/src",
@@ -36,7 +36,7 @@
     "check:playground-ssg-build": "node scripts/check-playground-ssg-build.ts",
     "check:website-release-inputs": "node scripts/check-website-release-inputs.mjs",
     "check:prerender-repeatable": "node scripts/check-prerender-repeatable.ts",
-    "pre-push": "pnpm check:no-claude-comments && pnpm check:commit-message-line-length && pnpm check:changeset-unwrapped && pnpm format:check && pnpm check:skill-version && pnpm check:no-major-changesets && pnpm check:changeset-ignore && pnpm changeset status --since=origin/main && pnpm lint && pnpm check:dead-code && pnpm typecheck:scripts && pnpm test:scripts && pnpm check:effect-prebundle && pnpm check:ui-subpath-exports && pnpm check:circular-deps && pnpm build && pnpm -r typecheck && pnpm test && bash scripts/run-website-e2e.sh",
+    "pre-push": "pnpm check:no-claude-comments && pnpm check:commit-message-line-length && pnpm check:changeset-unwrapped && pnpm format:check && pnpm check:skill-version && pnpm check:no-major-changesets && pnpm check:changeset-ignore && pnpm changeset status --since=origin/main && pnpm lint && pnpm check:dead-code && pnpm typecheck:scripts && pnpm test:scripts && pnpm check:effect-prebundle && pnpm check:ui-subpath-exports && pnpm check:circular-deps && pnpm build && pnpm check:emitted-declarations && pnpm check:block-type-performance && pnpm -r typecheck && pnpm test && bash scripts/run-website-e2e.sh",
     "test": "pnpm -r --filter './examples/*' --filter './packages/*' run --if-present test",
     "typecheck:scripts": "tsc -p scripts/tsconfig.json --noEmit",
     "test:scripts": "bash scripts/run-script-tests.sh",
@@ -96,7 +96,10 @@
     "release:promote": "node scripts/coherent-release.mjs promote",
     "release:verify-latest": "node scripts/coherent-release.mjs verify-latest",
     "check:dom-state-parity": "node scripts/check-dom-state-parity.mts",
-    "check:published-versions": "node scripts/check-published-versions.ts"
+    "check:published-versions": "node scripts/check-published-versions.ts",
+    "check:emitted-declarations": "pnpm --filter foldkit --filter @foldkit/ui check:emitted-declarations",
+    "check:block-type-performance": "pnpm --filter foldkit check:block-type-performance",
+    "update:block-type-performance": "pnpm --filter foldkit update:block-type-performance"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^1.0.1",
@@ -118,7 +121,7 @@
     "vite": "^8.3.1"
   },
   "simple-git-hooks": {
-    "commit-msg": "if grep -q 'Co-Authored-By.*[Cc]laude' \"$1\"; then echo '\\n❌ Commit message contains a Claude Co-Authored-By line. Remove it and try again.' && exit 1; fi",
+    "commit-msg": "if grep -q 'Co-Authored-By.*[Cc]laude' \"$1\"; then echo '\\n\u274c Commit message contains a Claude Co-Authored-By line. Remove it and try again.' && exit 1; fi",
     "pre-push": "bash scripts/run-pre-push.sh"
   },
   "engines": {

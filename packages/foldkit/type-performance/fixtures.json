@@ -1,0 +1,16 @@
+{
+  "fixtures": [
+    {
+      "name": "deep-composition-8",
+      "file": "deep-composition-8.ts"
+    },
+    {
+      "name": "wide-composition-100",
+      "file": "wide-composition-100.ts"
+    },
+    {
+      "name": "command-requirements-200",
+      "file": "command-requirements-200.ts"
+    }
+  ]
+}

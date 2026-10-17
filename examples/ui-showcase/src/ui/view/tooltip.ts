@@ -1,17 +1,16 @@
-import { Submodel } from 'foldkit'
-import type { HtmlBuilder as FoldkitHtmlBuilder, Html } from 'foldkit/html'
-import type * as Mount from 'foldkit/mount'
+import type { Html } from 'foldkit/html'
 
-import { Tooltip } from '@foldkit/ui'
-import type { AnchorConfig } from '@foldkit/ui/tooltip'
+import {
+  type AnchorConfig,
+  type RenderInfo,
+  triggerId,
+} from '@foldkit/ui/tooltip'
 
-import { Message as UiMessage } from '../message'
-import type { UiModel } from '../model'
-
-type HtmlBuilder = FoldkitHtmlBuilder<
-  UiMessage,
-  Mount.RequirementsOf<typeof Tooltip.mounts>
->
+import {
+  TooltipBasicDemoBinding,
+  TooltipNoDelayDemoBinding,
+  UiComposition,
+} from '../composition'
 
 const triggerClassName =
   'inline-flex items-center gap-1.5 px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
@@ -27,115 +26,107 @@ const TOOLTIP_ANCHOR: AnchorConfig = {
   padding: 8,
 }
 
-export const view = Submodel.defineView(
-  (model: UiModel, h: HtmlBuilder): Html => {
-    const basicTooltipView = ({
-      trigger,
-      panel,
-      isVisible,
-    }: Tooltip.RenderInfo): Html =>
-      h.div(
-        [h.Class(wrapperClassName)],
-        [
-          h.button(
-            [...trigger, h.Class(triggerClassName)],
-            [h.span([], ['Hover or focus me'])],
-          ),
-          ...(isVisible
-            ? [
-                h.div(
-                  [...panel, h.Class(panelClassName)],
-                  [h.span([], ['This is a tooltip'])],
-                ),
-              ]
-            : []),
-        ],
-      )
-
-    const noDelayTooltipView = ({
-      trigger,
-      panel,
-      isVisible,
-    }: Tooltip.RenderInfo): Html =>
-      h.div(
-        [h.Class(wrapperClassName)],
-        [
-          h.button(
-            [...trigger, h.Class(triggerClassName)],
-            [h.span([], ['No delay'])],
-          ),
-          ...(isVisible
-            ? [
-                h.div(
-                  [...panel, h.Class(panelClassName)],
-                  [h.span([], ['Shows immediately'])],
-                ),
-              ]
-            : []),
-        ],
-      )
-
-    return h.div(
-      [],
+export const view = UiComposition.makeView((model, h) => {
+  const basicTooltipView = ({ trigger, panel, isVisible }: RenderInfo): Html =>
+    h.div(
+      [h.Class(wrapperClassName)],
       [
-        h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Tooltip']),
+        h.button(
+          [...trigger, h.Class(triggerClassName)],
+          [h.span([], ['Hover or focus me'])],
+        ),
+        ...(isVisible
+          ? [
+              h.div(
+                [...panel, h.Class(panelClassName)],
+                [h.span([], ['This is a tooltip'])],
+              ),
+            ]
+          : []),
+      ],
+    )
 
-        h.h3(
-          [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
-          ['Basic'],
+  const noDelayTooltipView = ({
+    trigger,
+    panel,
+    isVisible,
+  }: RenderInfo): Html =>
+    h.div(
+      [h.Class(wrapperClassName)],
+      [
+        h.button(
+          [...trigger, h.Class(triggerClassName)],
+          [h.span([], ['No delay'])],
         ),
-        h.label(
-          [
-            h.For(Tooltip.triggerId(model.tooltipBasicDemo.id)),
-            h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
-          ],
-          ['Tooltip trigger'],
-        ),
-        h.div(
-          [h.Class('relative')],
-          [
-            h.submodel({
+        ...(isVisible
+          ? [
+              h.div(
+                [...panel, h.Class(panelClassName)],
+                [h.span([], ['Shows immediately'])],
+              ),
+            ]
+          : []),
+      ],
+    )
+
+  return h.div(
+    [],
+    [
+      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Tooltip']),
+
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+        ['Basic'],
+      ),
+      h.label(
+        [
+          h.For(triggerId(model.tooltipBasicDemo.id)),
+          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+        ],
+        ['Tooltip trigger'],
+      ),
+      h.div(
+        [h.Class('relative')],
+        [
+          h.block(
+            TooltipBasicDemoBinding.embedView({
               slotId: model.tooltipBasicDemo.id,
               model: model.tooltipBasicDemo,
-              view: Tooltip.view,
               viewInputs: {
                 anchor: TOOLTIP_ANCHOR,
                 toView: basicTooltipView,
               },
-              toParentMessage: message =>
-                UiMessage.GotTooltipBasicDemoMessage({ message }),
             }),
-          ],
-        ),
+          ),
+        ],
+      ),
 
-        h.h3(
-          [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
-          ['No delay'],
-        ),
-        h.label(
-          [
-            h.For(Tooltip.triggerId(model.tooltipNoDelayDemo.id)),
-            h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
-          ],
-          ['Tooltip trigger'],
-        ),
-        h.div(
-          [h.Class('relative')],
-          [
-            h.submodel({
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+        ['No delay'],
+      ),
+      h.label(
+        [
+          h.For(triggerId(model.tooltipNoDelayDemo.id)),
+          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+        ],
+        ['Tooltip trigger'],
+      ),
+      h.div(
+        [h.Class('relative')],
+        [
+          h.block(
+            TooltipNoDelayDemoBinding.embedView({
               slotId: model.tooltipNoDelayDemo.id,
               model: model.tooltipNoDelayDemo,
-              view: Tooltip.view,
               viewInputs: {
                 anchor: TOOLTIP_ANCHOR,
                 toView: noDelayTooltipView,
               },
-              toParentMessage: message =>
-                UiMessage.GotTooltipNoDelayDemoMessage({ message }),
             }),
-          ],
-        ),
-      ],
-    )
-  },
-)
+          ),
+        ],
+      ),
+    ],
+  )
+})

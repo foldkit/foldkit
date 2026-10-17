@@ -29,9 +29,10 @@
       "error",
       { "ignoreDeclarationSort": true, "ignoreCase": false }
     ],
+    "foldkit/block-name-matches-variable": "error",
     "foldkit/no-noop-message": "error",
-    "foldkit/got-submodel-message-name": "error",
-    "foldkit/got-prefix-requires-submodel-payload": "error",
+    "foldkit/got-block-message-name": "error",
+    "foldkit/got-prefix-requires-block-payload": "error",
     "foldkit/no-empty-children-array": "error",
     "foldkit/no-empty-commands-array": "error",
     "foldkit/no-empty-to-parent-out-message": "error",

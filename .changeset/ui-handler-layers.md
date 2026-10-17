@@ -2,52 +2,21 @@
 '@foldkit/ui': minor
 ---
 
-Provide each Foldkit UI component's handler Layers and register its Mount definitions. The application module that owns a component composes that component's `EffectsLayer`; when the component exports `mounts`, the same module carries those registrations to `Application.make`.
+Expose each stateful Foldkit UI component as a completed Block. The owning parent creates Bindings with `bindChild` and includes them under its Composition's `childBindings`. Composition carries handler Layers, Mounts, Subscriptions, and ManagedResources to the application root.
 
-The following migration is for an application that renders `Menu` and `Tabs`. `Menu` owns Commands and Mounts. `Tabs` owns Commands but no Mounts.
-
-**Before**
+Before:
 
 ```ts
-const application = Runtime.makeApplication({
-  Model,
-  init,
-  update,
-  view,
-  container,
-})
+import { Menu } from '@foldkit/ui'
+import { Submodel } from 'foldkit'
 
-Runtime.run(application)
-```
+import { Message } from './message'
+import { Model } from './model'
+import { menuViewInputs } from './viewInputs'
 
-**After**
-
-```ts
-const application = Application.make({
-  Model,
-  init,
-  update,
-  view,
-  container,
-  // Menu's mounted views require these registrations; Tabs has none.
-  mounts: Menu.mounts,
-})
-
-// Compose only the components owned by this application module.
-const EffectsLayer = Layer.mergeAll(Menu.EffectsLayer, Tabs.EffectsLayer)
-const AppLayer = EffectsLayer
-
-pipe(application, Application.provide(AppLayer), Runtime.run)
-```
-
-Import `Layer` and `pipe` from `effect`, `Application` and `Runtime` from `foldkit`, and `Menu` and `Tabs` from `@foldkit/ui`. Building the Layers installs no event listeners or DOM behavior. A Command invocation or registered lifecycle starts the work. When a child Submodel renders a component, compose that component's `EffectsLayer` and export its `mounts` from the child boundary; the root combines the child exports rather than maintaining a package-wide component list.
-
-Mounted UI views now preserve their Mount requirements through `h.submodel` and their attribute slots. An owning Submodel must carry those requirements in its exported view as well as register the definitions:
-
-**Before**
-
-```ts
 const AppMenu = Menu.create<string>()
+
+export const mounts = Menu.mounts
 
 export const view = Submodel.defineView<Model, Message>((model, h) =>
   h.submodel({
@@ -60,158 +29,103 @@ export const view = Submodel.defineView<Model, Message>((model, h) =>
 )
 ```
 
-**After**
+After:
 
 ```ts
-const AppMenu = Menu.create<string>()
+import { Menu, Tabs } from '@foldkit/ui'
+import { Block } from 'foldkit'
 
-export const mounts = Menu.mounts
-export const EffectsLayer = Menu.EffectsLayer
+import { foldMenuOutMessage, foldTabsOutMessage } from './outMessage'
+import { Message } from './message'
+import { Model, type Tab } from './model'
+import { menuViewInputs } from './viewInputs'
 
-export const view = Submodel.defineView<
-  Model,
-  Message,
-  void,
-  // Carry Menu's Mount requirements through this exported parent view.
-  Mount.RequirementsOf<typeof mounts>
->((model, h) =>
-  h.submodel({
-    slotId: model.menu.id,
-    model: model.menu,
-    view: AppMenu.view,
-    viewInputs: menuViewInputs,
-    toParentMessage: message => Message.GotMenuMessage({ message }),
-  }),
-)
-```
+const AppMenu = Menu.create()
+const AppTabs = Tabs.create<Tab>()
 
-Import `Mount` and `Submodel` from `foldkit`. This pair assumes the module already declares the Menu's `menuViewInputs` and parent Message wrapper. Keep `void` when the owning view has no inputs, or use its `ViewInputs` type there. TypeScript rejects the parent application if these Mount registrations are missing. Pure UI views retain their existing signatures. For explicit slot annotations, use the component's attribute types, such as `Dialog.RenderInfo['dialog']`, so mounted slots retain their requirements.
+const Panel = Block.define('Panel', { Model, Message })
 
-Give factory instances stable names. Replace `Toast.make(payloadSchema)` with `Toast.make(name, payloadSchema)` and `Slider.subscriptionsForRoot(getTrackRoot)` with `Slider.forRoot(name, getTrackRoot)`. Compose each returned instance's `EffectsLayer` and register its `subscriptions` where that instance is owned. Instance names must be distinct within an application. Scene swipe events use `Subscription.emit(toast.subscriptions.swipePointer, message)` with the factory instance's registration.
-
-For a Toast instance, keep its lifted Subscriptions in the owning Submodel's registration graph and add its returned effect bundle. This example assumes the Model stores the Toast Model in `model.toast`, the Message union declares `GotToastMessage`, and `App` exports the module's other Subscriptions and `EffectsLayer`.
-
-**Before**
-
-```ts
-const toast = Toast.make(ToastPayload)
-
-const toastSubscriptions = Subscription.lift(toast.subscriptions)<
-  Model,
-  Message
->({
-  read: model => Option.some(model.toast),
-  toParentMessage: message => Message.GotToastMessage({ message }),
+const MenuBinding = Panel.bindChild(AppMenu, {
+  field: 'menu',
+  parentMessage: Message.GotMenuMessage,
+  outMessage: { fold: foldMenuOutMessage },
 })
 
-const subscriptions = Subscription.aggregate(
-  App.subscriptions,
-  toastSubscriptions,
-)
-```
-
-**After**
-
-```ts
-// Stable instance names distinguish factory-owned handler requirements.
-const toast = Toast.make('AppToast', ToastPayload)
-
-const toastSubscriptions = Subscription.lift(toast.subscriptions)<
-  Model,
-  Message
->({
-  read: model => Option.some(model.toast),
-  toParentMessage: message => Message.GotToastMessage({ message }),
+const TabsBinding = Panel.bindChild(AppTabs, {
+  field: 'tabs',
+  parentMessage: Message.GotTabsMessage,
+  outMessage: { fold: foldTabsOutMessage },
 })
 
-const subscriptions = Subscription.aggregate(
-  App.subscriptions,
-  toastSubscriptions,
-)
-
-// Lift registrations as before, and carry the instance's handler bundle upward.
-const EffectsLayer = Layer.mergeAll(App.EffectsLayer, toast.EffectsLayer)
-```
-
-`Slider.forRoot` returns the same pair for a custom track root. This example assumes the Model stores the Slider Model in `model.settingsSlider` and the Message union declares `GotSettingsSliderMessage`.
-
-**Before**
-
-```ts
-const sliderSubscriptions = Slider.subscriptionsForRoot(getTrackRoot)
-
-const settingsSliderSubscriptions = Subscription.lift({
-  settingsSliderPointer: sliderSubscriptions.dragPointer,
-  settingsSliderEscape: sliderSubscriptions.dragEscape,
-})<Model, Message>({
-  read: model => Option.some(model.settingsSlider),
-  toParentMessage: message => Message.GotSettingsSliderMessage({ message }),
+const PanelComposition = Panel.makeComposition({
+  childBindings: [MenuBinding, TabsBinding],
 })
 
-const subscriptions = Subscription.aggregate(
-  App.subscriptions,
-  settingsSliderSubscriptions,
+export const view = PanelComposition.makeView((model, h) =>
+  h.block(
+    MenuBinding.embedView({
+      slotId: model.menu.id,
+      model: model.menu,
+      viewInputs: menuViewInputs,
+    }),
+  ),
 )
 ```
 
-**After**
+Register only the components the owner embeds. A Binding makes the parent-child relationship explicit once: the Composition routes received wrapper Messages through the Binding automatically, update uses exposed operations such as `binding.open()` for parent-driven changes, and view uses `binding.embedView`.
+
+Factories live on the component namespace: `Combobox.create`, `Combobox.Multi.create`, `Listbox.create`, `Listbox.Multi.create`, `Menu.create`, `Tabs.create`, `RadioGroup.create`, `VirtualList.create`, and `Toast.make`. Factory instances retain stable local names; Binding placement and keys distinguish occurrences. Schema-taking factories such as `Combobox.create(City)` preserve decoded Item payloads. Type-only factories such as `Tabs.create<Tab>()` preserve selected value types. Import ViewInputs and domain helpers from component subpaths; the completed value carries its Model, Message, and declared OutMessage matcher.
 
 ```ts
-// The named instance packages the custom-root Subscriptions and their handlers.
-const slider = Slider.forRoot('SettingsSlider', getTrackRoot)
+import { Toast } from '@foldkit/ui'
+import { Option, Schema } from 'effect'
+import { defineApplication } from 'foldkit'
 
-const settingsSliderSubscriptions = Subscription.lift({
-  settingsSliderPointer: slider.subscriptions.dragPointer,
-  settingsSliderEscape: slider.subscriptions.dragEscape,
-})<Model, Message>({
-  read: model => Option.some(model.settingsSlider),
-  toParentMessage: message => Message.GotSettingsSliderMessage({ message }),
+import { foldToastOutMessage } from './outMessage'
+import { Message } from './message'
+import { Model } from './model'
+
+const ToastPayload = Schema.Struct({ message: Schema.String })
+const AppToast = Toast.make(ToastPayload)
+
+const Application = defineApplication({ Model, Message })
+
+const ToastBinding = Application.bindChild(AppToast, {
+  field: 'toast',
+  parentMessage: Message.GotToastMessage,
+  outMessage: { fold: foldToastOutMessage },
 })
-
-const subscriptions = Subscription.aggregate(
-  App.subscriptions,
-  settingsSliderSubscriptions,
-)
-
-const EffectsLayer = Layer.mergeAll(App.EffectsLayer, slider.EffectsLayer)
 ```
 
-Update direct Command references using this table. Corresponding `Message.Completed*` variants include the same component name; for example, `Menu.Message.CompletedLockScroll` becomes `Menu.Message.CompletedLockMenuScroll`. Shared result facts such as `EndedAnimation` keep their names.
+The Binding contributes Toast's swipe Subscription and handler recipe automatically. Scene swipe events continue to use `Subscription.emit` with the registration carried by the completed Block.
 
-| Previous Command                        | New Command                                     |
-| --------------------------------------- | ----------------------------------------------- |
-| `Menu.LockScroll`                       | `Menu.LockMenuScroll`                           |
-| `Menu.UnlockScroll`                     | `Menu.UnlockMenuScroll`                         |
-| `Menu.InertOthers`                      | `Menu.InertMenuOthers`                          |
-| `Menu.RestoreInert`                     | `Menu.RestoreMenuInert`                         |
-| `Menu.FocusItems`                       | `Menu.FocusMenuItems`                           |
-| `Menu.FocusButton`                      | `Menu.FocusMenuButton`                          |
-| `Menu.ScrollIntoView`                   | `Menu.ScrollMenuItemIntoView`                   |
-| `Menu.ClickItem`                        | `Menu.ClickMenuItem`                            |
-| `Menu.DelayClearSearch`                 | `Menu.DelayClearMenuSearch`                     |
-| `Menu.DetectMovementOrAnimationEnd`     | `Menu.DetectMenuMovementOrAnimationEnd`         |
-| `Listbox.LockScroll`                    | `Listbox.LockListboxScroll`                     |
-| `Listbox.UnlockScroll`                  | `Listbox.UnlockListboxScroll`                   |
-| `Listbox.InertOthers`                   | `Listbox.InertListboxOthers`                    |
-| `Listbox.RestoreInert`                  | `Listbox.RestoreListboxInert`                   |
-| `Listbox.FocusButton`                   | `Listbox.FocusListboxButton`                    |
-| `Listbox.FocusItems`                    | `Listbox.FocusListboxItems`                     |
-| `Listbox.ScrollIntoView`                | `Listbox.ScrollListboxItemIntoView`             |
-| `Listbox.ClickItem`                     | `Listbox.ClickListboxItem`                      |
-| `Listbox.DelayClearSearch`              | `Listbox.DelayClearListboxSearch`               |
-| `Listbox.DetectMovementOrAnimationEnd`  | `Listbox.DetectListboxMovementOrAnimationEnd`   |
-| `Combobox.LockScroll`                   | `Combobox.LockComboboxScroll`                   |
-| `Combobox.UnlockScroll`                 | `Combobox.UnlockComboboxScroll`                 |
-| `Combobox.InertOthers`                  | `Combobox.InertComboboxOthers`                  |
-| `Combobox.RestoreInert`                 | `Combobox.RestoreComboboxInert`                 |
-| `Combobox.FocusInput`                   | `Combobox.FocusComboboxInput`                   |
-| `Combobox.ScrollIntoView`               | `Combobox.ScrollComboboxItemIntoView`           |
-| `Combobox.ClickItem`                    | `Combobox.ClickComboboxItem`                    |
-| `Combobox.DetectMovementOrAnimationEnd` | `Combobox.DetectComboboxMovementOrAnimationEnd` |
-| `Popover.LockScroll`                    | `Popover.LockPopoverScroll`                     |
-| `Popover.UnlockScroll`                  | `Popover.UnlockPopoverScroll`                   |
-| `Popover.InertOthers`                   | `Popover.InertPopoverOthers`                    |
-| `Popover.RestoreInert`                  | `Popover.RestorePopoverInert`                   |
-| `Popover.FocusPanel`                    | `Popover.FocusPopoverPanel`                     |
-| `Popover.FocusButton`                   | `Popover.FocusPopoverButton`                    |
-| `Popover.DetectMovementOrAnimationEnd`  | `Popover.DetectPopoverMovementOrAnimationEnd`   |
+For dynamic keyed component collections, use the keyed `bindChild` shape. Every rendered occurrence needs a stable string or finite number key.
+
+```ts
+import { Dialog } from '@foldkit/ui'
+import { defineApplication } from 'foldkit'
+
+import { replaceDialog } from './dialog'
+import { foldDialogOutMessage } from './outMessage'
+import { Message } from './message'
+import { Model } from './model'
+
+const Application = defineApplication({ Model, Message })
+
+const DialogsBinding = Application.bindChild(Dialog.block, {
+  readAll: model => model.dialogs,
+  key: dialog => dialog.id,
+  read: dialog => dialog.model,
+  writeAt: (model, dialogId, nextDialog) =>
+    replaceDialog(model, dialogId, nextDialog),
+  toParentMessage: (dialogId, message) =>
+    Message.GotDialogMessage({ dialogId, message }),
+  fromParentMessage: {
+    parentMessage: Message.GotDialogMessage,
+    args: (_model, { dialogId, message }) => Option.some([dialogId, message]),
+  },
+  outMessage: { fold: foldDialogOutMessage },
+})
+```
+
+Stateless render helpers such as Button, Input, Textarea, Select, Fieldset, Checkbox, Switch, Disclosure, and Nav remain direct view functions. They own no Model or lifecycle graph and need no Binding.

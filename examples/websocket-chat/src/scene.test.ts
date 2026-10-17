@@ -16,17 +16,16 @@ import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import {
-  ConnectionState,
-  Message,
-  Model,
   SendMessage,
   TimestampReceivedMessage,
   TimestampSentMessage,
-  managedResources,
-  subscriptions,
-  update,
-  view,
-} from './main'
+} from './command'
+import { managedResources } from './managedResource'
+import { Message } from './message'
+import { ConnectionState, Model } from './model'
+import { subscriptions } from './subscription'
+import { update } from './update'
+import { view } from './view'
 
 const idleModel = Model.make({
   connection: ConnectionState.Disconnected(),

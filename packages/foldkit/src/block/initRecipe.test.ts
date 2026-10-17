@@ -1,0 +1,150 @@
+import { Effect, Option, Schema } from 'effect'
+import { expect, it, vi } from 'vitest'
+
+import { defineMessageUnion } from '../message/index.js'
+import { define } from './define.js'
+
+const Config = Schema.Struct({ count: Schema.Number })
+const ChildModel = Schema.Struct({ count: Schema.Number })
+const ChildMessage = defineMessageUnion({ CompletedChildInit: {} })
+const Child = define('InitRecipeSnapshotChild', {
+  Model: ChildModel,
+  Message: ChildMessage,
+})
+const ChildComposition = Child.makeComposition()
+const childInitialized = vi.fn((config: typeof Config.Type) => config.count)
+const CompleteChildInit = Child.command('CompleteChildInit', {
+  messages: [ChildMessage.CompletedChildInit],
+  handler: function* () {
+    return () => Effect.succeed(ChildMessage.CompletedChildInit())
+  },
+})
+const childBlock = ChildComposition.makeBlock({
+  init: ChildComposition.makeInit((config: typeof Config.Type) => ({
+    model: ChildModel.make({ count: childInitialized(config) }),
+    commands: [CompleteChildInit()],
+  })),
+  update: ChildComposition.makeUpdate(model => ({ model })),
+  EffectsLayer: CompleteChildInit.layer,
+})
+
+const ParentModel = Schema.Struct({ child: Schema.Option(ChildModel) })
+const ParentMessage = defineMessageUnion({
+  GotChildMessage: { message: ChildMessage },
+  CompletedParentInit: { label: Schema.String },
+})
+const Parent = define('InitRecipeSnapshotParent', {
+  Model: ParentModel,
+  Message: ParentMessage,
+})
+const CompleteParentInit = Parent.command('CompleteParentInit', {
+  args: { label: Schema.String },
+  messages: [ParentMessage.CompletedParentInit],
+  handler: function* () {
+    return ({ label }) =>
+      Effect.succeed(ParentMessage.CompletedParentInit({ label }))
+  },
+})
+const ChildBinding = Parent.bindChild(childBlock, {
+  field: 'child',
+  parentMessage: ParentMessage.GotChildMessage,
+  init: false,
+})
+const ParentComposition = Parent.makeComposition({
+  childBindings: [ChildBinding],
+})
+
+it('snapshots a passive child init recipe without cloning its argument values', () => {
+  childInitialized.mockClear()
+  const config = Config.make({ count: 3 })
+  const args: [typeof Config.Type] = [config]
+  const originalCommand = CompleteParentInit({ label: 'original' })
+  const replacementCommand = CompleteParentInit({ label: 'replacement' })
+  const commands = [originalCommand]
+  const toParentModel = vi.fn((child: typeof ChildModel.Type) =>
+    ParentModel.make({ child: Option.some(child) }),
+  )
+  const initial = { args, commands, toParentModel }
+  const recipe = ChildBinding.init(initial)
+
+  expect(childInitialized).not.toHaveBeenCalled()
+  expect(Object.isFrozen(recipe)).toBe(true)
+  expect(Object.getPrototypeOf(recipe)).toBeNull()
+  expect(Reflect.ownKeys(recipe)).toEqual([])
+
+  args.splice(0, 1, Config.make({ count: 8 }))
+  commands.splice(0, 1, replacementCommand)
+  initial.args = [Config.make({ count: 9 })]
+  initial.commands = [replacementCommand]
+  initial.toParentModel = vi.fn(() =>
+    ParentModel.make({ child: Option.none() }),
+  )
+
+  const init = ParentComposition.makeInit(() => recipe)
+  const parentInit = init()
+
+  expect(parentInit.model).toEqual(
+    ParentModel.make({ child: Option.some(ChildModel.make({ count: 3 })) }),
+  )
+  expect(childInitialized).toHaveBeenCalledExactlyOnceWith(config)
+  expect(childInitialized.mock.calls.at(0)?.at(0)).toBe(config)
+  expect(toParentModel).toHaveBeenCalledOnce()
+  expect(parentInit.commands).toHaveLength(2)
+  expect(parentInit.commands?.at(1)).toBe(originalCommand)
+})
+
+const Item = Schema.Struct({ id: Schema.String, child: ChildModel })
+const KeyedModel = Schema.Struct({ items: Schema.Array(Item) })
+const KeyedMessage = defineMessageUnion({
+  GotChildMessage: { id: Schema.String, message: ChildMessage },
+})
+const Keyed = define('InitRecipeSnapshotKeyedParent', {
+  Model: KeyedModel,
+  Message: KeyedMessage,
+})
+const KeyedBinding = Keyed.bindChild(childBlock, {
+  field: 'items',
+  key: 'id',
+  childField: 'child',
+  toParentMessage: (id, message) =>
+    KeyedMessage.GotChildMessage({ id, message }),
+  fromParentMessage: false,
+})
+const KeyedComposition = Keyed.makeComposition({
+  childBindings: [KeyedBinding],
+})
+
+it('snapshots the keyed identity and mapper before deferred child initialization', () => {
+  childInitialized.mockClear()
+  const config = Config.make({ count: 5 })
+  const args: [typeof Config.Type] = [config]
+  const toParentModel = vi.fn((child: typeof ChildModel.Type) =>
+    KeyedModel.make({ items: [Item.make({ id: 'original', child })] }),
+  )
+  const initial = { key: 'original', args, toParentModel }
+  const recipe = KeyedBinding.init(initial)
+
+  expect(childInitialized).not.toHaveBeenCalled()
+
+  args.splice(0, 1, Config.make({ count: 7 }))
+  initial.key = 'replacement'
+  initial.args = [Config.make({ count: 9 })]
+  initial.toParentModel = vi.fn((child: typeof ChildModel.Type) =>
+    KeyedModel.make({ items: [Item.make({ id: 'replacement', child })] }),
+  )
+
+  const init = KeyedComposition.makeInit(() => recipe)
+  const parentInit = init()
+
+  expect(parentInit.model).toEqual(
+    KeyedModel.make({
+      items: [
+        Item.make({ id: 'original', child: ChildModel.make({ count: 5 }) }),
+      ],
+    }),
+  )
+  expect(childInitialized).toHaveBeenCalledExactlyOnceWith(config)
+  expect(childInitialized.mock.calls.at(0)?.at(0)).toBe(config)
+  expect(toParentModel).toHaveBeenCalledOnce()
+  expect(parentInit.commands).toHaveLength(1)
+})

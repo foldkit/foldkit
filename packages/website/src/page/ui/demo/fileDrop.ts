@@ -1,9 +1,9 @@
 import { Array } from 'effect'
 import { File } from 'foldkit'
-import type { Html, HtmlBuilder } from 'foldkit/html'
+import type { Html } from 'foldkit/html'
 
-import { FileDrop } from '@foldkit/ui'
-
+import type { UiViewBuilder } from '../composition'
+import { FileDropBasicDemoBinding } from '../composition'
 import { Message } from '../message'
 import type { Model } from '../model'
 
@@ -41,41 +41,38 @@ const formatFileSize = (bytes: number): string => {
   return `${(bytes / BYTES_PER_MB).toFixed(1)} MB`
 }
 
-// VIEW
-
 export const basicDemo = (
   model: Model,
-  h: HtmlBuilder<Message>,
+  h: UiViewBuilder,
 ): ReadonlyArray<Html> => {
   return [
     h.div(
       [h.Class('flex flex-col gap-3 w-full max-w-md')],
       [
-        h.submodel({
-          slotId: model.fileDropBasicDemo.id,
-          model: model.fileDropBasicDemo,
-          view: FileDrop.view,
-          viewInputs: {
-            multiple: true,
-            toView: attributes =>
-              h.label(
-                [...attributes.root, h.Class(dropZoneClassName)],
-                [
-                  h.p(
-                    [h.Class(primaryTextClassName)],
-                    ['Drop files or click to browse'],
-                  ),
-                  h.p(
-                    [h.Class(secondaryTextClassName)],
-                    ['Any file type. This demo just lists them.'],
-                  ),
-                  h.input(attributes.input),
-                ],
-              ),
-          },
-          toParentMessage: message =>
-            Message.GotFileDropBasicDemoMessage({ message }),
-        }),
+        h.block(
+          FileDropBasicDemoBinding.embedView({
+            slotId: model.fileDropBasicDemo.id,
+            model: model.fileDropBasicDemo,
+            viewInputs: {
+              multiple: true,
+              toView: attributes =>
+                h.label(
+                  [...attributes.root, h.Class(dropZoneClassName)],
+                  [
+                    h.p(
+                      [h.Class(primaryTextClassName)],
+                      ['Drop files or click to browse'],
+                    ),
+                    h.p(
+                      [h.Class(secondaryTextClassName)],
+                      ['Any file type. This demo just lists them.'],
+                    ),
+                    h.input(attributes.input),
+                  ],
+                ),
+            },
+          }),
+        ),
         ...Array.match(model.fileDropBasicDemoFiles, {
           onEmpty: () => [],
           onNonEmpty: files =>

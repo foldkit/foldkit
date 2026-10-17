@@ -110,7 +110,7 @@ describe('toSerializedEntry', () => {
   const baseEntry: HistoryEntry = {
     tag: 'ClickedButton',
     message: { _tag: 'ClickedButton', label: 'Submit' },
-    commands: [{ id: 0, name: 'SubmitForm', maybeSubmodelPath: Option.none() }],
+    commands: [{ id: 0, name: 'SubmitForm', maybeBlockPath: Option.none() }],
     mountStarts: [],
     mountEnds: [],
     timestamp: 1700000000000,
@@ -129,7 +129,7 @@ describe('toSerializedEntry', () => {
       {
         name: 'SubmitForm',
         args: Option.none(),
-        maybeSubmodelPath: Option.none(),
+        maybeBlockPath: Option.none(),
       },
     ])
     expect(result.timestamp).toBe(1700000000000)
@@ -144,12 +144,12 @@ describe('toSerializedEntry', () => {
           id: 1,
           name: 'FetchWeather',
           args: { zipCode: '90210' },
-          maybeSubmodelPath: Option.some(['GotForecastMessage']),
+          maybeBlockPath: Option.some(['GotForecastMessage']),
         },
         {
           id: 2,
           name: 'LockScroll',
-          maybeSubmodelPath: Option.some([]),
+          maybeBlockPath: Option.some([]),
         },
       ],
     }
@@ -158,12 +158,12 @@ describe('toSerializedEntry', () => {
       {
         name: 'FetchWeather',
         args: Option.some({ zipCode: '90210' }),
-        maybeSubmodelPath: Option.some(['GotForecastMessage']),
+        maybeBlockPath: Option.some(['GotForecastMessage']),
       },
       {
         name: 'LockScroll',
         args: Option.none(),
-        maybeSubmodelPath: Option.some([]),
+        maybeBlockPath: Option.some([]),
       },
     ])
   })
@@ -196,7 +196,7 @@ describe('toSerializedEntry', () => {
           id: 1,
           name: 'Connect',
           args: { apiKey: Redacted.make(apiKey, { label: 'demo-api-key' }) },
-          maybeSubmodelPath: Option.none(),
+          maybeBlockPath: Option.none(),
         },
       ],
       mountStarts: [
@@ -213,7 +213,7 @@ describe('toSerializedEntry', () => {
       {
         name: 'Connect',
         args: Option.some({ apiKey: '<redacted:demo-api-key>' }),
-        maybeSubmodelPath: Option.none(),
+        maybeBlockPath: Option.none(),
       },
     ])
     expect(result.mountStarts).toEqual([
@@ -316,13 +316,13 @@ describe('toSerializedEntry', () => {
     expect(result.isModelChanged).toBe(false)
   })
 
-  it('leaves submodelPath empty and maybeLeafTag None for top-level Messages', () => {
+  it('leaves blockPath empty and maybeLeafTag None for top-level Messages', () => {
     const result = toSerializedEntry(baseEntry, 0)
-    expect(result.submodelPath).toEqual([])
+    expect(result.blockPath).toEqual([])
     expect(result.maybeLeafTag).toEqual(Option.none())
   })
 
-  it('extracts the submodel chain and leaf tag for Got*Message entries', () => {
+  it('extracts the block chain and leaf tag for Got*Message entries', () => {
     const entry: HistoryEntry = {
       ...baseEntry,
       tag: 'GotProductsMessage',
@@ -332,7 +332,7 @@ describe('toSerializedEntry', () => {
       },
     }
     const result = toSerializedEntry(entry, 0)
-    expect(result.submodelPath).toEqual(['GotProductsMessage'])
+    expect(result.blockPath).toEqual(['GotProductsMessage'])
     expect(result.maybeLeafTag).toEqual(Option.some('ClickedRow'))
   })
 })

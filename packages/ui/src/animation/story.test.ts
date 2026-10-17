@@ -8,10 +8,8 @@ import {
   OutMessage,
   WaitForAnimationSettled,
   WaitForPaint,
-  hide,
+  block,
   init,
-  show,
-  toggle,
   update,
 } from './index.js'
 
@@ -357,7 +355,7 @@ describe('Animation', () => {
 
   describe('toggle', () => {
     it('shows a hidden animation', () => {
-      const animationToggle = toggle(init({ id: 'test' }))
+      const animationToggle = block.expose.toggle(init({ id: 'test' }))
 
       expect(animationToggle.model.isShowing).toBe(true)
       expect(animationToggle.model.transitionState).toBe('EnterStart')
@@ -365,7 +363,9 @@ describe('Animation', () => {
     })
 
     it('hides a shown animation', () => {
-      const animationToggle = toggle(init({ id: 'test', isShowing: true }))
+      const animationToggle = block.expose.toggle(
+        init({ id: 'test', isShowing: true }),
+      )
 
       expect(animationToggle.model.isShowing).toBe(false)
       expect(animationToggle.model.transitionState).toBe('LeaveStart')
@@ -375,7 +375,7 @@ describe('Animation', () => {
 
   describe('programmatic capabilities', () => {
     it('shows a hidden Animation', () => {
-      const animationShow = show(init({ id: 'test' }))
+      const animationShow = block.expose.show(init({ id: 'test' }))
 
       expect(animationShow.model.isShowing).toBe(true)
       expect(animationShow.model.transitionState).toBe('EnterStart')
@@ -383,7 +383,9 @@ describe('Animation', () => {
     })
 
     it('hides a showing Animation', () => {
-      const animationHide = hide(init({ id: 'test', isShowing: true }))
+      const animationHide = block.expose.hide(
+        init({ id: 'test', isShowing: true }),
+      )
 
       expect(animationHide.model.isShowing).toBe(false)
       expect(animationHide.model.transitionState).toBe('LeaveStart')

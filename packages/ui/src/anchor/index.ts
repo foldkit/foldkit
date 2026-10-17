@@ -1,1 +1,9 @@
-export * from './anchor.js'
+export {
+  Placement,
+  Padding,
+  AnchorConfig,
+  portalToContainingRoot,
+  portalBackdrop,
+  anchorSetup,
+  type SetupConfig,
+} from './anchor.js'

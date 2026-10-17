@@ -1,7 +1,7 @@
 import { Context, Effect, Fiber, Layer, Option, Schema } from 'effect'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { renderToString } from '../experimental/server/server.js'
+import { __renderFromConfig as renderToString } from '../experimental/server/server.js'
 import type { Document } from '../html/index.js'
 import { __htmlBuilder } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
@@ -771,7 +771,7 @@ describe('hydrating boot', () => {
       'HydrationStartupService',
     ) {}
 
-    const application = Application.make({
+    const application = Application.__makeFromConfig({
       Model,
       Flags,
       init,
@@ -779,8 +779,7 @@ describe('hydrating boot', () => {
       view,
       container: nullContainer(),
     })
-    const provided = Application.provide(
-      application,
+    const provided = application.provide(
       Layer.effect(
         StartupService,
         Effect.sync(() => {
@@ -809,7 +808,7 @@ describe('hydrating boot', () => {
       'HydrationStartupService',
     ) {}
 
-    const application = Application.make({
+    const application = Application.__makeFromConfig({
       Model,
       Flags,
       init,
@@ -817,8 +816,7 @@ describe('hydrating boot', () => {
       view,
       container: nullContainer(),
     })
-    const provided = Application.provide(
-      application,
+    const provided = application.provide(
       Layer.effect(
         StartupService,
         Effect.acquireRelease(

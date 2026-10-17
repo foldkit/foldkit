@@ -2,9 +2,9 @@
 
 ## Overview
 
-A stack of transient notifications positioned along an edge of the viewport. Each entry has its own enter and leave animation and hover state. Non-sticky entries have independent auto-dismiss timers that pause on hover. Swipe-to-dismiss is opt-in for the container. Keep the container at the app root and add entries with `Toast.show`.
+A stack of transient notifications positioned along an edge of the viewport. Each entry has its own enter and leave animation and hover state. Non-sticky entries have independent auto-dismiss timers that pause on hover. Swipe-to-dismiss is opt-in for the container. Keep the container at the app root and add entries with the Binding’s `show` operation.
 
-Toast is parameterized on a stable instance name and a payload Schema that you provide. The component owns entry IDs, variants, animations, optional dismiss timers, hover state, and swipe state. Your payload holds the content rendered by `entryToView`. `Toast.make('AppToast', PayloadSchema)` returns a module whose Model, helpers, view, Subscriptions, and `EffectsLayer` are bound to that instance.
+Toast is parameterized on a payload Schema that you provide. The component owns entry IDs, variants, animations, optional dismiss timers, hover state, and swipe state. Your payload holds the content rendered by `entryToView`. `Toast.make(PayloadSchema)` returns a completed Block whose Model, programmatic API, view, Subscriptions, and handler recipes are bound to that payload type. Each parent Binding supplies its occurrence identity.
 
 :::Info{label="See it in an app"}
 Check out how Toast is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/toast.ts).
@@ -28,11 +28,11 @@ Each entry’s enter and leave phases flow through [Animation](/ui/animation). S
 
 ### Enable Swipe to Dismiss
 
-Swipe is pointer-driven and opt-in. Pass `swipeToDismiss` to `Toast.init`. For example: `{}` enables a rightward swipe with a 40px threshold, `{ threshold: 120 }` requires a longer swipe, and `{ direction: 'Left' }` enables a leftward swipe. Without it, `Toast.view` attaches no `pointerdown` handler or `touch-action` restriction. Direction is independent of `position`, so configure it explicitly for a left-anchored stack.
+Swipe is pointer-driven and opt-in. Pass `swipeToDismiss` to the Toast Binding’s `init`. For example: `{}` enables a rightward swipe with a 40px threshold, `{ threshold: 120 }` requires a longer swipe, and `{ direction: 'Left' }` enables a leftward swipe. Without it, the Toast view attaches no `pointerdown` handler or `touch-action` restriction. Direction is independent of `position`, so configure it explicitly for a left-anchored stack.
 
 ### Track the Pointer
 
-With swipe enabled, `Toast.view` handles `pointerdown` on each entry. Lift `Toast.subscriptions` into the Model and Message types of the Submodel that owns the Toast instance, and merge `Toast.EffectsLayer` into that feature's effect bundle. Carry both bundles through parent composition to application assembly. The Subscriptions track `pointermove`, `pointerup`, and `pointercancel` even when the pointer leaves the entry. Without those registrations, a drag cannot finish. Escape cancels active drags. While dragging, Toast prevents text selection and shows the grabbing cursor. The example above includes the lift; see also [Toast subscriptions in the demo app](https://github.com/foldkit/foldkit/blob/main/packages/website/src/page/ui/subscriptions.ts).
+With swipe enabled, Toast handles `pointerdown` on each entry. Connect the completed Block returned by `Toast.make` and include the Binding in the owning Composition’s `childBindings`; that one relationship carries the Toast instance’s pointer Subscriptions and handler recipes through application composition. The Subscriptions track `pointermove`, `pointerup`, and `pointercancel` even when the pointer leaves the entry. Without the Binding, the parent cannot embed the Toast view. Escape cancels active drags. While dragging, Toast prevents text selection and shows the grabbing cursor. The example above shows the Binding.
 
 ### Preserve Nested Interactions
 
@@ -40,7 +40,7 @@ Presses on buttons, links, form controls, and editable elements do not start a s
 
 ### Complete or Cancel a Swipe
 
-While dragging, the entry follows the pointer only in the configured direction; movement in the opposite direction is clamped to zero. `Toast.view` sets `data-swipe="move"` and the entry's inline `translate` offset. The `translate` property composes with any `transform` animation you apply. Dismissal depends on release distance, not velocity. Releasing more than the threshold sets `data-swipe="end"`, holds the release offset until leave animation starts, then targets `100vw` or `-100vw` to carry the entry off-screen before `DismissedToast` fires.
+While dragging, the entry follows the pointer only in the configured direction; movement in the opposite direction is clamped to zero. The Toast view sets `data-swipe="move"` and the entry's inline `translate` offset. The `translate` property composes with any `transform` animation you apply. Dismissal depends on release distance, not velocity. Releasing more than the threshold sets `data-swipe="end"`, holds the release offset until leave animation starts, then targets `100vw` or `-100vw` to carry the entry off-screen before `DismissedToast` fires.
 
 Releasing at or below the threshold, or cancelling with Escape, returns the entry to zero offset and resumes auto-dismiss when applicable. Toast holds `data-swipe="settling"` for 150ms (`SWIPE_SETTLE_DURATION`) after either case. Add a `translate` transition for the snap-back and exit, as the demos do:
 
@@ -63,67 +63,71 @@ While an entry is translated, the view exposes its drag or release offset as `--
 
 The container has `role="region"` and `aria-live="polite"`. It stays in the DOM when empty so screen readers can observe notifications added later. Each entry has `aria-atomic="true"` and receives `role="status"` for Info and Success or `role="alert"` for Warning and Error. Auto-dismiss pauses on pointer hover and while dragging. Swipe and close-button dismissal both use the leave animation and emit `DismissedToast` when the entry is removed.
 
+## Testing
+
+Use `Toast.test.drainEntry({ entryId })` in a [Story test](/testing/story) to resolve the animation and timer Commands for a newly shown toast that auto-dismisses. The entry is removed from the Model and the `DismissedToast` OutMessage is emitted.
+
 ## API Reference
 
 ### InitConfig {#init-config}
 
-Configuration object passed to `Toast.init()`.
+Configuration object passed to the Toast Binding’s `init()`.
 
 | Name              | Type                                                    | Default               | Description                                                                                                                                                                                                                        |
 | ----------------- | ------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `id`              | `string`                                                | —                     | Unique ID for the toast container.                                                                                                                                                                                                 |
-| `defaultDuration` | `Duration.Input`                                        | `Duration.seconds(4)` | Auto-dismiss duration for a `Toast.show` call without its own `duration` or `sticky: true`. Accepts any Effect Duration input; a bare number means milliseconds.                                                                   |
+| `defaultDuration` | `Duration.Input`                                        | `Duration.seconds(4)` | Auto-dismiss duration for a `show` call without its own `duration` or `sticky: true`. Accepts any Effect Duration input; a bare number means milliseconds.                                                                         |
 | `swipeToDismiss`  | `{ threshold?: number; direction?: 'Left' \| 'Right' }` | —                     | Opts the container into swipe-to-dismiss. Omit it to leave swipe disabled. Defaults to a rightward 40px threshold. Set `threshold` for the dismissal distance and `direction: 'Left'` for a leftward swipe. Applies per container. |
 
 ### ShowInput {#show-input}
 
-Input shape for `Toast.show(model, input)`.
+Input shape for `toast.show(input)`.
 
 | Name       | Type                                          | Default  | Description                                                                                                                                                                                                                 |
 | ---------- | --------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `payload`  | `A (your payload type)`                       | —        | Content for this entry, in the shape you supplied to `Toast.make`. Toast passes it to your `entryToView` callback without reading it.                                                                                       |
 | `variant`  | `'Info' \| 'Success' \| 'Warning' \| 'Error'` | `'Info'` | Semantic category. Maps to data-variant for styling and to role=status (Info, Success) or role=alert (Warning, Error) for accessibility. The only content-adjacent field the component owns. Everything else is in payload. |
 | `duration` | `Duration.Input`                              | —        | Overrides the container's defaultDuration for this entry. No auto-dismiss timer is scheduled when `sticky: true`.                                                                                                           |
-| `sticky`   | `boolean`                                     | `false`  | When true, the entry does not auto-dismiss. It can still be closed with the close button, an enabled swipe, or `Toast.dismiss`.                                                                                             |
+| `sticky`   | `boolean`                                     | `false`  | When true, the entry does not auto-dismiss. It can still be closed with the close button, an enabled swipe, or `toast.dismiss`.                                                                                             |
 
 ### ViewInputs {#view-config}
 
-Pass these fields in the `viewInputs` of `h.submodel({ view: Toast.view, ... })`. Pass the Toast Model and `toParentMessage` to `h.submodel` itself, as shown in the example above.
+Pass the child Model as `model` and these fields as `viewInputs` to the Toast Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep `entryToView` at the top level, and spread `handlers.dismiss` unchanged; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
 
 | Name                 | Type                                                                                        | Default           | Description                                                                                                                                                                                            |
 | -------------------- | ------------------------------------------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `position`           | `'TopLeft' \| 'TopCenter' \| 'TopRight' \| 'BottomLeft' \| 'BottomCenter' \| 'BottomRight'` | —                 | Where the toast viewport is anchored on the screen.                                                                                                                                                    |
-| `entryToView`        | `(entry: typeof Toast.Entry.Type, handlers: EntryHandlers) => Html`                         | —                 | Renders content inside the entry `<div>`, which Toast owns along with its role, lifecycle handlers, and data attributes. Spread `handlers.dismiss` onto a close button to let users dismiss the entry. |
+| `entryToView`        | `(entry, handlers: EntryHandlers) => Html`                                                  | —                 | Renders content inside the entry `<div>`, which Toast owns along with its role, lifecycle handlers, and data attributes. Spread `handlers.dismiss` onto a close button to let users dismiss the entry. |
 | `ariaLabel`          | `string`                                                                                    | `'Notifications'` | aria-label on the container region.                                                                                                                                                                    |
 | `containerClassName` | `string`                                                                                    | —                 | CSS class for the container `<div>`.                                                                                                                                                                   |
 | `entryClassName`     | `string`                                                                                    | —                 | CSS class applied to every entry `<div>`.                                                                                                                                                              |
 
 ### Programmatic Helpers
 
-Toast helpers are child entry points. Fold `show` and `dismiss` with `Update.foldChild` because they take additional input. Fold `dismissAll` with `Update.foldChildStep`.
+Toast operations are public parent Steps. Call the Binding’s `show`, `dismiss`, and `dismissAll` operations from the parent.
 
-| Name         | Type                                                                                          | Default | Description                                                                                                                                                                                  |
-| ------------ | --------------------------------------------------------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `show`       | `(model: Model, input: ShowInput) => Update.ReturnWithOutMessage<Model, Message, OutMessage>` | —       | Adds a new toast entry. Fold it from any parent handler that needs to surface a notification. Returns the next Model plus Commands for the enter animation and, unless sticky, auto-dismiss. |
-| `dismiss`    | `(model: Model, entryId: string) => Update.ReturnWithOutMessage<Model, Message, OutMessage>`  | —       | Begins dismissing a specific entry. Calling it for an entry that is already leaving or has been removed is a no-op.                                                                          |
-| `dismissAll` | `(model: Model) => Update.ReturnWithOutMessage<Model, Message, OutMessage>`                   | —       | Begins dismissing every currently-visible entry.                                                                                                                                             |
+| Name         | Type                                | Default | Description                                                                                                                                                                                  |
+| ------------ | ----------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `show`       | `(input: ShowInput) => parent Step` | —       | Adds a new toast entry. Fold it from any parent handler that needs to surface a notification. Returns the next Model plus Commands for the enter animation and, unless sticky, auto-dismiss. |
+| `dismiss`    | `(entryId: string) => parent Step`  | —       | Begins dismissing a specific entry. Calling it for an entry that is already leaving or has been removed is a no-op.                                                                          |
+| `dismissAll` | `() => parent Step`                 | —       | Begins dismissing every currently-visible entry.                                                                                                                                             |
 
 ### Effects and Subscriptions
 
 #### Lift Pointer Subscriptions
 
-Each module returned by `Toast.make` exposes `Toast.EffectsLayer` and `Toast.subscriptions` with `swipePointer` and `swipeEscape`. Merge the Layer into the feature's `EffectsLayer`, and lift the Subscriptions into the owning Submodel and carry its registration bundle to application assembly so pointer tracking continues even when the pointer leaves the entry. The stable factory name keeps the handlers for separate Toast instances distinct. The [example above](#examples) shows the lift alongside the Toast Model and Message, and the [demo app](https://github.com/foldkit/foldkit/blob/main/packages/website/src/page/ui/subscriptions.ts) shows it in context.
+Each completed Block returned by `Toast.make` can be bound once and included in the owner’s `childBindings`; composition carries `swipePointer`, `swipeEscape`, and their handler recipes automatically. The source `subscriptions` registry remains available when a Scene test needs to call `Subscription.emit` for one of those entries. The stable factory name keeps separate Toast instances distinct. The [example above](#examples) shows the Binding alongside the Toast Model and Message.
 
-Without the lift the view still renders `data-swipe="move"` for the initial `pointerdown`, but `pointermove` and `pointerup` never reach the update and the gesture cannot complete.
+The composed Binding ensures `pointermove` and `pointerup` reach the Toast update after the initial `pointerdown`, even when the pointer leaves the entry.
 
 #### Render Toasts Without `Toast.view`
 
-If you render the Toast Model without `Toast.view`, you own the entry markup, accessibility roles, `pointerdown` handler, and swipe styling. Read the pointer offset with `Toast.swipeOffset(entry.swipeState)` and apply the `translate` property yourself. Mirror the `data-swipe` phases: `move` while the entry is `Dragging`, `settling` while it is `Settling`, and `end` while it is `Dismissing`. In the `end` phase, retain the offset at `LeaveStart`, then move toward `100vw` or `-100vw` at `LeaveAnimating` according to the swipe direction. By contrast, `entryToView` only renders content inside the `<div>` wrapper owned by `Toast.view`.
+If you render the Toast Model without `Toast.view`, you own the entry markup, accessibility roles, `pointerdown` handler, and swipe styling. Import the ordinary `swipeOffset` helper from `@foldkit/ui/toast` and call `swipeOffset(entry.swipeState)`, then apply the `translate` property yourself. Mirror the `data-swipe` phases: `move` while the entry is `Dragging`, `settling` while it is `Settling`, and `end` while it is `Dismissing`. In the `end` phase, retain the offset at `LeaveStart`, then move toward `100vw` or `-100vw` at `LeaveAnimating` according to the swipe direction. By contrast, `entryToView` only renders content inside the `<div>` wrapper owned by `Toast.view`.
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the optional `outMessage` field. Fold the OutMessage in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config.
+Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s `outMessage.fold` policy.
 
-| Name             | Type                   | Default | Description                                                                                                                                                                                                                                                                    |
-| ---------------- | ---------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `DismissedToast` | `{ payload: Payload }` | —       | Emitted when an entry finishes its leave animation and is removed from the Model. It carries the payload from your `Payload` Schema. Handle it in `foldOutMessage` to update domain state or return an analytics Command. It reports removal, not the initial dismiss request. |
+| Name             | Type                   | Default | Description                                                                                                                                                                                                                                                                                          |
+| ---------------- | ---------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DismissedToast` | `{ payload: Payload }` | —       | Emitted when an entry finishes its leave animation and is removed from the Model. It carries the payload from your `Payload` Schema. Handle it in the Binding's `outMessage.fold` policy to update domain state or return an analytics Command. It reports removal, not the initial dismiss request. |

@@ -1,18 +1,20 @@
-import { Effect, Stream } from 'effect'
-import { Port, Subscription } from 'foldkit'
+import { Stream } from 'effect'
+import { Port } from 'foldkit'
 
+import { widget } from './definition'
+import { Message } from './message'
 import { ports } from './ports'
 
 // An inbound Port is a Subscription source. The handler maps every decoded
 // value the host sends into a Message, so host input enters update the same way
 // any other external event does.
-export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+export const subscriptions = widget.subscriptions(entry => ({
   hostStepChanges: entry('HostStepChanges', {
-    messages: [ChangedStep],
+    messages: [Message.ChangedStep],
     handler: function* () {
       return () =>
         Port.stream(ports.inbound.stepChanged).pipe(
-          Stream.map(step => ChangedStep({ step })),
+          Stream.map(step => Message.ChangedStep({ step })),
         )
     },
   }),

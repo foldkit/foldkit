@@ -13,8 +13,6 @@ const wrapperClassName = 'flex items-center gap-3'
 const buttonClassName =
   'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer bg-gray-300 dark:bg-gray-600 data-[checked]:bg-accent-600 data-[checked]:dark:bg-accent-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:focus-visible:outline-accent-400 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50'
 
-// VIEW
-
 export const basicDemo = (
   isSwitchDemoChecked: boolean,
   h: HtmlBuilder<Message>,

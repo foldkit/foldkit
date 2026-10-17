@@ -1,3 +1,5 @@
+import { defineApplication } from 'foldkit'
+
 const Model = Schema.Struct({
   posts: postsQuery.Model,
 })
@@ -9,24 +11,26 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-// Lift the Query's operations into the parent Model and Message types.
-const posts = postsQuery.lift<Model, Message>({
-  parentField: 'posts',
-  toParentMessage: message => Message.GotPostsMessage({ message }),
+const Application = defineApplication({ Model, Message })
+
+const PostsBinding = Application.bindChild(postsQuery, {
+  field: 'posts',
+  parentMessage: Message.GotPostsMessage,
 })
 
-const init = () => {
-  const model = Model.make({ posts: postsQuery.init() })
+const ApplicationComposition = Application.makeComposition({
+  childBindings: [PostsBinding],
+})
 
-  // Return the Loading Model state and the first FetchPosts Command.
-  return posts.loadIfMissing(model)
-}
+const init = ApplicationComposition.makeInit(() => ({
+  model: {},
+  // Start loading after the Query Model is stored in its parent.
+  steps: [PostsBinding.loadIfMissing()],
+}))
 
-const update = Update.define((model: Model, message: Message) =>
+const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
-    // Run Query's update, then write its Model back into the parent.
-    GotPostsMessage: ({ message }) => posts.fold(model, message),
     // Return the transition and Command for either missing or retained data.
-    ClickedRefreshPosts: () => posts.revalidateOrLoad(model),
+    ClickedRefreshPosts: () => PostsBinding.revalidateOrLoad()(model),
   }),
 )

@@ -1,18 +1,16 @@
-import { Effect, Option, Schema, pipe } from 'effect'
-import { Application, Mount, Runtime } from 'foldkit'
-import type { Document, HtmlBuilder } from 'foldkit/html'
+import { Effect, Option, Schema } from 'effect'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 const Model = Schema.Struct({ panelHeight: Schema.Option(Schema.Number) })
-type Model = typeof Model.Type
-
 const Message = defineMessageUnion({
   CompletedMeasurePanel: { height: Schema.Number },
 })
-type Message = typeof Message.Type
 
-const MeasurePanel = Mount.define('MeasurePanel', {
+const Panel = Block.define('Panel', { Model, Message })
+
+const MeasurePanel = Panel.mount('MeasurePanel', {
   messages: [Message.CompletedMeasurePanel],
   handler: function* () {
     return ({ element }) =>
@@ -24,21 +22,21 @@ const MeasurePanel = Mount.define('MeasurePanel', {
   },
 })
 
-const init = () => ({ model: Model.make({ panelHeight: Option.none() }) })
+const PanelComposition = Panel.makeComposition({
+  mounts: [MeasurePanel],
+})
 
-const update = (model: Model, message: Message) =>
+const update = PanelComposition.makeUpdate((model, message) =>
   Message.match(message, {
     CompletedMeasurePanel: ({ height }) => ({
       model: modifyFields(model, {
         panelHeight: () => Option.some(height),
       }),
     }),
-  })
+  }),
+)
 
-const view = (
-  model: Model,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof MeasurePanel>>,
-): Document => ({
+const view = PanelComposition.makeView((model, h) => ({
   title: 'Measured panel',
   body: h.div(
     [h.OnMount(MeasurePanel())],
@@ -49,15 +47,15 @@ const view = (
       }),
     ],
   ),
-})
+}))
 
-const application = Application.make({
-  Model,
+const init = PanelComposition.makeInit(() => ({
+  model: Model.make({ panelHeight: Option.none() }),
+}))
+
+export const block = PanelComposition.makeBlock({
   init,
   update,
   view,
-  mounts: [MeasurePanel],
-  container: document.getElementById('root'),
+  EffectsLayer: MeasurePanel.layer,
 })
-
-pipe(application, Application.provide(MeasurePanel.layer), Runtime.run)

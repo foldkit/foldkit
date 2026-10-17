@@ -1,10 +1,8 @@
 export {
   init,
-  show,
-  hide,
   update,
-  toggle,
   view,
+  block,
   defaultLeaveCommand,
   Model,
   Message,
@@ -14,7 +12,6 @@ export {
   TransitionState,
   WaitForPaint,
   WaitForAnimationSettled,
-  EffectsLayer,
 } from './index.js'
 
 export type { InitConfig, ViewInputs } from './index.js'

@@ -4,7 +4,6 @@ import { defineMessageUnion } from 'foldkit/message'
 import {
   Animation,
   Calendar,
-  Combobox,
   DatePicker,
   Dialog,
   DragAndDrop,
@@ -20,6 +19,7 @@ import {
   VirtualList,
 } from '@foldkit/ui'
 
+import { CityCombobox, CityMultiCombobox } from './combobox'
 import { Toast } from './demo/toastModule'
 
 export const Message = defineMessageUnion({
@@ -35,15 +35,15 @@ export const Message = defineMessageUnion({
   ToggledCheckboxAllDemo: { isChecked: Schema.Boolean },
   ToggledCheckboxOptionADemo: { isChecked: Schema.Boolean },
   ToggledCheckboxOptionBDemo: { isChecked: Schema.Boolean },
-  GotComboboxDemoMessage: { message: Combobox.Message },
-  GotComboboxPlacementLockDemoMessage: { message: Combobox.Message },
-  GotComboboxNullableDemoMessage: { message: Combobox.Message },
-  GotComboboxMultiDemoMessage: { message: Combobox.Message },
-  GotComboboxSelectOnFocusDemoMessage: { message: Combobox.Message },
+  GotComboboxDemoMessage: { message: CityCombobox.Message },
+  GotComboboxPlacementLockDemoMessage: { message: CityCombobox.Message },
+  GotComboboxNullableDemoMessage: { message: CityCombobox.Message },
+  GotComboboxMultiDemoMessage: { message: CityMultiCombobox.Message },
+  GotComboboxSelectOnFocusDemoMessage: { message: CityCombobox.Message },
   GotDialogDemoMessage: { message: Dialog.Message },
   GotDialogAnimatedDemoMessage: { message: Dialog.Message },
   GotOverlayDialogDemoMessage: { message: Dialog.Message },
-  GotOverlayComboboxDemoMessage: { message: Combobox.Message },
+  GotOverlayComboboxDemoMessage: { message: CityCombobox.Message },
   GotNestedDialogParentDemoMessage: { message: Dialog.Message },
   GotNestedDialogChildDemoMessage: { message: Dialog.Message },
   ClickedDeleteProject: {},

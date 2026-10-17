@@ -1,9 +1,9 @@
 import { Array, Option, pipe } from 'effect'
-import { type Document, HtmlBuilder } from 'foldkit/html'
 
-import { DragAndDrop } from '@foldkit/ui'
+import { ghostStyle, maybeDraggedItemId } from '@foldkit/ui/dragAndDrop'
 
-import { Message } from '../message'
+import { ApplicationComposition } from '../composition'
+import type { ApplicationViewBuilder } from '../composition'
 import type { Model } from '../model'
 import { ghostCardView } from './card'
 import { columnView } from './column'
@@ -11,7 +11,7 @@ import { columnView } from './column'
 const findDraggedCard = (model: Model) =>
   pipe(
     model.dragAndDrop,
-    DragAndDrop.maybeDraggedItemId,
+    maybeDraggedItemId,
     Option.flatMap(cardId =>
       pipe(
         model.columns,
@@ -21,9 +21,9 @@ const findDraggedCard = (model: Model) =>
     ),
   )
 
-const ghostElement = (model: Model, h: HtmlBuilder<Message>) =>
+const ghostElement = (model: Model, h: ApplicationViewBuilder) =>
   pipe(
-    DragAndDrop.ghostStyle(model.dragAndDrop),
+    ghostStyle(model.dragAndDrop),
     Option.flatMap(ghostStyle =>
       Option.map(findDraggedCard(model), card => ({ ghostStyle, card })),
     ),
@@ -37,7 +37,7 @@ const ghostElement = (model: Model, h: HtmlBuilder<Message>) =>
     }),
   )
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: 'Kanban Board',
   body: h.div(
     [h.Class('flex flex-col min-h-screen bg-gray-100')],
@@ -68,4 +68,4 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
       ),
     ],
   ),
-})
+}))

@@ -23,7 +23,7 @@ Name each file for the boundary it tests:
 - `story.test.ts` drives update.
 - `scene.test.ts` drives the rendered view.
 - When one folder has several tests of the same kind, prefix the subject: `login.story.test.ts`.
-- Keep root-level Scene tests for flows that cross pages. Colocate page and Submodel tests with the code they exercise.
+- Keep root-level Scene tests for flows that cross pages. Colocate page and Block tests with the code they exercise.
 
 The names stay accurate whether update and view live together or in separate files. See [Project Organization](/patterns/project-organization) for the full layout.
 
@@ -43,9 +43,9 @@ Story can test a root update or a child update in isolation. The update function
 
 ### Test at the Owning Level
 
-Scene can also start at the root or at a child Submodel. `withViewInputs` adapts a Submodel view that needs ViewInputs, and `expectOutMessage` checks a child's OutMessage directly.
+Scene can also start at the root or at a child Block. `withViewInputs` adapts a Block view that needs ViewInputs, and `expectOutMessage` checks a child's OutMessage directly.
 
-Choose the level by ownership. Test a Submodel's rendering, interactions, Commands, and OutMessages at the Submodel. Test parent folding, lifted Commands, route changes, and parent-computed ViewInputs at the root. Those behaviors cross the boundary and cannot be observed from the child.
+Choose the level by ownership. Test a Block's rendering, interactions, Commands, and OutMessages at the Block. Test parent folding, lifted Commands, route changes, and parent-computed ViewInputs at the root. Those behaviors cross the boundary and cannot be observed from the child.
 
 ::Snippet{name="sceneWeatherFlow" label="Weather search Scene test"}
 

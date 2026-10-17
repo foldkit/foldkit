@@ -6,7 +6,7 @@ type Commands = ReadonlyArray<Command.Command<Message>>
 
 // Leaving a route is a fact too: one-shot Commands on the way out...
 const commandsOnExit = (
-  transition: Transition.Transition<AppRoute>,
+  transition: Transition.Transition<ApplicationRoute>,
 ): Commands =>
   Option.match(Transition.exited(transition, 'Person'), {
     onNone: () => [],
@@ -15,7 +15,7 @@ const commandsOnExit = (
 
 // ...and stayed hands you both sides of a within-route change:
 const commandsOnPersonChange = (
-  transition: Transition.Transition<AppRoute>,
+  transition: Transition.Transition<ApplicationRoute>,
 ): Commands =>
   Option.match(Transition.stayed(transition, 'Person'), {
     onNone: () => [],
@@ -27,7 +27,7 @@ const commandsOnPersonChange = (
 
 // Transition helpers compose by concatenation
 const commandsForTransition = (
-  transition: Transition.Transition<AppRoute>,
+  transition: Transition.Transition<ApplicationRoute>,
 ): Commands =>
   Array.flatten([
     commandsOnExit(transition),

@@ -6,7 +6,7 @@ With it attached, agents can:
 
 - Read the current Model, or any historical Model by history index
 - Narrow reads with dot-string paths and summarized payloads to fit token budgets
-- List and inspect the Message history, with Command and Mount lifecycle, diffs, and Submodel chains
+- List and inspect the Message history, with Command and Mount lifecycle, diffs, and Block chains
 - Query history server-side: filter entries by changed Model paths, count Messages by tag, tail the latest entries, and diff the Models at two indices
 - Read the recorded init Model, the Commands returned from `init`, and the Mounts that fired during the first render
 - Inspect Runtime state: current index, retained history bounds, pause status
@@ -36,10 +36,10 @@ pnpm add -D @foldkit/devtools-mcp
 yarn add -D @foldkit/devtools-mcp
 ```
 
-Pass your `Message` Schema to `Application.make` to let the agent dispatch Messages. The Runtime rejects a payload that does not match the Schema before it reaches update:
+Pass your `Message` Schema as `devTools.Message` when calling the Application Composition's owned `makeApplication` method to let the agent dispatch Messages. The Runtime rejects a payload that does not match the Schema before it reaches update:
 
 ```typescript
-Application.make({
+ApplicationComposition.makeApplication({
   devTools: {
     // Rest of your DevTools config
     Message,
@@ -70,7 +70,7 @@ Each tool accepts an optional `runtime_id`. When omitted, the most recently conn
 | `foldkit_get_model_at`          | Snapshots a historical Model after a given history entry. Pass `index: N - 1` to read the Model just before Message `N`. Same `path`/`expand` semantics as `foldkit_get_model`. Indices outside the readable range (older entries are evicted past the rolling buffer) are rejected with the valid bounds. For the initial Model (and the init Commands and Mounts), use `foldkit_get_init`.                                                                                                              |
 | `foldkit_get_init`              | Reads the recorded initial Model, the Commands returned from the application's `init` function, and the Mounts that fired during the first render. Each Command and Mount carries its declared args. Equivalent to selecting the synthetic "init" row in the DevTools panel.                                                                                                                                                                                                                              |
 | `foldkit_get_runtime_state`     | Snapshots the Runtime's DevTools state: history bounds, current paused/live status, and whether init is recorded. Useful for understanding what `foldkit_list_messages` and `foldkit_get_message` will see and detecting whether the Runtime is paused.                                                                                                                                                                                                                                                   |
-| `foldkit_list_messages`         | Lists Message history entries. Each entry carries the Message body, Commands triggered (with args), Mounts that started or ended during the resulting render (with args), timestamp, an `isModelChanged` flag, the diff path lists (`changedPaths` / `affectedPaths`), and any extracted Submodel chain. Filter server-side with `changed_paths_match`, read the latest entries with `from_end`, and paginate forward with `since_index`.                                                                 |
+| `foldkit_list_messages`         | Lists Message history entries. Each entry carries the Message body, Commands triggered (with args), Mounts that started or ended during the resulting render (with args), timestamp, an `isModelChanged` flag, the diff path lists (`changedPaths` / `affectedPaths`), and any extracted Block chain. Filter server-side with `changed_paths_match`, read the latest entries with `from_end`, and paginate forward with `since_index`.                                                                    |
 | `foldkit_count_messages_by_tag` | Counts retained history entries by Message tag, without payloads, sorted by count descending. A cheap reconnaissance call before paging through history: it surfaces the high-frequency Messages worth filtering out, and with `changed_paths_match` it answers which Message tags touch a Model subtree.                                                                                                                                                                                                 |
 | `foldkit_diff_models`           | Diffs the Models at two history indices server-side, returning path-level changes `{ path, before, after }` with summarized values. Each side is `{ _tag: 'Present', value }`, or `{ _tag: 'Absent' }` when the path does not exist on that side. Pass `changed_paths_match` to narrow the diff to a subtree.                                                                                                                                                                                             |
 | `foldkit_get_message`           | Reads one entry at a given index. The response carries the SerializedEntry only; to inspect the Model around the entry, call `foldkit_get_model_at` with `index - 1` (before) and `index` (after). Use `foldkit_get_init` for the synthetic init entry.                                                                                                                                                                                                                                                   |

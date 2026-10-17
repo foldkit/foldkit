@@ -17,6 +17,7 @@ import {
   parseFragment,
 } from 'parse5'
 
+import { lowerBlock } from '../../block/lowering.js'
 import {
   HYDRATION_BUILD_ATTRIBUTE,
   buildIdOrInjected,
@@ -48,10 +49,16 @@ import {
 } from '../../hydrationMarkers.js'
 import type { AnyMountHandler } from '../../mount/index.js'
 import { hasTrustedInnerHtml } from '../../propertyProvenance.js'
+import type { ValidateRoot } from '../../runtime/application.js'
+import {
+  type AnyComposition,
+  complete,
+} from '../../runtime/applicationAuthoring.js'
 import type { VNode } from '../../snabbdom/vnode.js'
 import { tagNameFromSelector } from '../../tagName.js'
 import type { Return as UpdateReturn } from '../../update/index.js'
 import { Url, fromString } from '../../url/index.js'
+import { type ParsedFragmentModes, parseFragmentModes } from './fragment.js'
 import {
   controlledValueContent,
   escapeAttributeValue,
@@ -506,14 +513,8 @@ const assertInnerHtmlContextMatches = (
   )
 }
 
-const assertNoscriptModesAgree = (html: string): void => {
-  const scripted = parseFragment(DIV_FRAGMENT_CONTEXT, html, {
-    scriptingEnabled: true,
-  })
-  const unscripted = parseFragment(DIV_FRAGMENT_CONTEXT, html, {
-    scriptingEnabled: false,
-  })
-  if (parsedChildrenAgree(scripted, unscripted)) {
+const assertNoscriptModesAgree = (fragments: ParsedFragmentModes): void => {
+  if (parsedChildrenAgree(fragments.scripted, fragments.unscripted)) {
     return
   }
   throw new Error(
@@ -566,12 +567,13 @@ const hasDeclarativeShadowRoot = (
         hasDeclarativeShadowRoot(traversableContent(child))),
   )
 
-export const __assertNoDeclarativeShadowRoot = (html: string): void => {
-  const declaresInEitherMode = [true, false].some(scriptingEnabled =>
-    hasDeclarativeShadowRoot(
-      parseFragment(DIV_FRAGMENT_CONTEXT, html, { scriptingEnabled }),
-    ),
-  )
+export const __assertNoDeclarativeShadowRoot = (
+  fragments: ParsedFragmentModes,
+): void => {
+  const declaresInEitherMode =
+    hasDeclarativeShadowRoot(fragments.scripted) ||
+    hasDeclarativeShadowRoot(fragments.unscripted)
+
   if (!declaresInEitherMode) {
     return
   }
@@ -611,12 +613,13 @@ const hasLiveBaseElement = (
   return false
 }
 
-export const __assertNoLiveBaseElement = (html: string): void => {
-  const hasBaseInEitherMode = [true, false].some(scriptingEnabled =>
-    hasLiveBaseElement(
-      parseFragment(DIV_FRAGMENT_CONTEXT, html, { scriptingEnabled }),
-    ),
-  )
+export const __assertNoLiveBaseElement = (
+  fragments: ParsedFragmentModes,
+): void => {
+  const hasBaseInEitherMode =
+    hasLiveBaseElement(fragments.scripted) ||
+    hasLiveBaseElement(fragments.unscripted)
+
   if (!hasBaseInEitherMode) {
     return
   }
@@ -909,10 +912,9 @@ const assertNoReservedHandoffMarkers = (root: Parse5Element): void => {
 // The single element the served markup parses back to, or a refusal naming what
 // the parser did to it instead.
 const parsedRootOf = (
-  html: string,
+  fragment: DefaultTreeAdapterMap['documentFragment'],
   root: NonNullable<Document['body']>,
 ): Parse5Element => {
-  const fragment = parseFragment(DIV_FRAGMENT_CONTEXT, html, {})
   const significant = fragment.childNodes.filter(node => !isIgnorableText(node))
   const only = significant[0]
   if (
@@ -960,21 +962,21 @@ const parsedRootOf = (
 // left to notice. What stays conditional is the marker check below: only a
 // hydratable render emits a stamp for the parser to move.
 const assertParsedRootMatchesView = (
-  html: string,
+  fragment: DefaultTreeAdapterMap['documentFragment'],
   root: NonNullable<Document['body']>,
 ): void => {
-  const parsed = parsedRootOf(html, root)
+  const parsed = parsedRootOf(fragment, root)
   assertNoReservedHandoffMarkers(parsed)
   assertStructureMatches(parsed, root)
 }
 
 const assertSingleStampedRoot = (
-  html: string,
+  fragment: DefaultTreeAdapterMap['documentFragment'],
   runtimeId: string,
   buildId: string,
   root: NonNullable<Document['body']>,
 ): void => {
-  const only = parsedRootOf(html, root)
+  const only = parsedRootOf(fragment, root)
   const applicationMarkers = elementsCarrying(only, FOLDKIT_APP_ATTRIBUTE)
   const buildMarkers = elementsCarrying(only, HYDRATION_BUILD_ATTRIBUTE)
   const flagsMarkers = elementsCarrying(only, FOLDKIT_FLAGS_ATTRIBUTE)
@@ -1097,48 +1099,113 @@ export type RenderError =
 
 type InitReturn<Model, Message> = UpdateReturn<Model, Message, any>
 
-/** Server-side subset of a routing `makeApplication` config with Flags. The
+/** Server-side subset of a routing Application config with Flags. The
  *  full application config is structurally assignable; `container`, `update`,
  *  and `subscriptions` play no part in a server render.
  *
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
  */
-export type RoutingApplicationConfigWithFlags<Model, Message, Flags> =
-  Readonly<{
-    Flags: Schema.Codec<Flags, any, never, never>
-    routing: unknown
-    init: (flags: Flags, url: Url) => InitReturn<Model, Message>
-    view: (model: Model, h: HtmlBuilder<Message, AnyMountHandler>) => Document
-  }>
+type NativeRoutingApplicationConfigWithFlags<Model, Message, Flags> = Readonly<{
+  Flags: Schema.Codec<Flags, any, never, never>
+  routing: unknown
+  init: (flags: Flags, url: Url) => InitReturn<Model, Message>
+  view: (model: Model, h: HtmlBuilder<Message, AnyMountHandler>) => Document
+}>
 
-/** Server-side subset of a routing `makeApplication` config without Flags.
+/** Server-side subset of a routing Application config without Flags.
  *
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
  */
-export type RoutingApplicationConfig<Model, Message> = Readonly<{
+type NativeRoutingApplicationConfig<Model, Message> = Readonly<{
   routing: unknown
   init: (url: Url) => InitReturn<Model, Message>
   view: (model: Model, h: HtmlBuilder<Message, AnyMountHandler>) => Document
 }>
 
-/** Server-side subset of a non-routing `makeApplication` config with Flags.
+/** Server-side subset of a non-routing Application config with Flags.
  *
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
  */
-export type ApplicationConfigWithFlags<Model, Message, Flags> = Readonly<{
+type NativeApplicationConfigWithFlags<Model, Message, Flags> = Readonly<{
   Flags: Schema.Codec<Flags, any, never, never>
   init: (flags: Flags) => InitReturn<Model, Message>
   view: (model: Model, h: HtmlBuilder<Message, AnyMountHandler>) => Document
 }>
 
-/** Server-side subset of a non-routing `makeApplication` config.
+/** Server-side subset of a non-routing Application config.
  *
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
  */
-export type ApplicationConfig<Model, Message> = Readonly<{
+type NativeApplicationConfig<Model, Message> = Readonly<{
   init: () => InitReturn<Model, Message>
   view: (model: Model, h: HtmlBuilder<Message, AnyMountHandler>) => Document
 }>
+
+type ServerImplementation = Readonly<{
+  init: (...args: ReadonlyArray<any>) => any
+  update: (...args: ReadonlyArray<any>) => any
+  view: (...args: ReadonlyArray<any>) => any
+}>
+
+type ServerConfigKeys = Readonly<{
+  init: unknown
+  update: unknown
+  view: unknown
+  EffectsLayer?: unknown
+  subscriptions?: unknown
+  managedResources?: unknown
+  Flags?: unknown
+  routing?: unknown
+}>
+
+type ExactServerConfig<Config> = Readonly<{
+  [Key in Exclude<keyof Config, keyof ServerConfigKeys>]: never
+}>
+
+/** A checked server Application config with routing and Flags. */
+export type RoutingApplicationConfigWithFlags<
+  CompositionValue extends AnyComposition,
+  Config extends ServerImplementation,
+  Flags,
+> = Config &
+  Readonly<{
+    Flags: Schema.Codec<Flags, any, never, never>
+    routing: unknown
+  }> &
+  NoInfer<
+    ValidateRoot<CompositionValue, Config, readonly [Flags, Url], 'Document'>
+  > &
+  ExactServerConfig<Config>
+
+/** A checked server Application config with routing and no Flags. */
+export type RoutingApplicationConfig<
+  CompositionValue extends AnyComposition,
+  Config extends ServerImplementation,
+> = Config &
+  Readonly<{ routing: unknown; Flags?: never }> &
+  NoInfer<ValidateRoot<CompositionValue, Config, readonly [Url], 'Document'>> &
+  ExactServerConfig<Config>
+
+/** A checked server Application config with Flags and no routing. */
+export type ApplicationConfigWithFlags<
+  CompositionValue extends AnyComposition,
+  Config extends ServerImplementation,
+  Flags,
+> = Config &
+  Readonly<{ Flags: Schema.Codec<Flags, any, never, never>; routing?: never }> &
+  NoInfer<
+    ValidateRoot<CompositionValue, Config, readonly [Flags], 'Document'>
+  > &
+  ExactServerConfig<Config>
+
+/** A checked server Application config with no routing or Flags. */
+export type ApplicationConfig<
+  CompositionValue extends AnyComposition,
+  Config extends ServerImplementation,
+> = Config &
+  Readonly<{ Flags?: never; routing?: never }> &
+  NoInfer<ValidateRoot<CompositionValue, Config, readonly [], 'Document'>> &
+  ExactServerConfig<Config>
 
 // Shared by both render shapes. `runtimeId` names the application in the root
 // stamp and Flags payload; it defaults to `'app'` and must be non-empty. It
@@ -1332,7 +1399,7 @@ const validateHydrationRoot = (
 }
 
 /**
- * Renders a `makeApplication`-shaped config to an HTML string on the server.
+ * Renders an Application implementation to an HTML string on the server.
  *
  * Resolves `init` for the request (with the given Flags and URL when the
  * config declares them), runs the pure `view` under a no-op dispatch frame,
@@ -1361,31 +1428,95 @@ const validateHydrationRoot = (
  *
  * @example
  * ```typescript
- * const renderedApplication = yield* Server.renderToString(config, {
- *   url: request.url,
- *   flags: { theme },
- * })
+ * const renderedApplication = yield* Server.renderToString(
+ *   Application,
+ *   { ...implementation, Flags, routing: {} },
+ *   { url: request.url, flags: { theme } },
+ * )
  * ```
  *
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
  */
-export function renderToString<Model, Message, Flags>(
-  config: RoutingApplicationConfigWithFlags<Model, Message, Flags>,
-  options: RenderUrlFlagsOptions<Flags>,
+export function renderToString<
+  const CompositionValue extends AnyComposition,
+  const Config extends ServerImplementation,
+  Flags,
+>(
+  composition: CompositionValue,
+  config: RoutingApplicationConfigWithFlags<CompositionValue, Config, Flags>,
+  options: RenderUrlFlagsOptions<NoInfer<Flags>>,
 ): Effect.Effect<RenderedApplication, RenderError>
-export function renderToString<Model, Message>(
-  config: RoutingApplicationConfig<Model, Message>,
+export function renderToString<
+  const CompositionValue extends AnyComposition,
+  const Config extends ServerImplementation,
+>(
+  composition: CompositionValue,
+  config: RoutingApplicationConfig<CompositionValue, Config>,
   options: RenderUrlOptions,
 ): Effect.Effect<RenderedApplication, RenderError>
-export function renderToString<Model, Message, Flags>(
-  config: ApplicationConfigWithFlags<Model, Message, Flags>,
-  options: RenderFlagsOptions<Flags>,
+export function renderToString<
+  const CompositionValue extends AnyComposition,
+  const Config extends ServerImplementation,
+  Flags,
+>(
+  composition: CompositionValue,
+  config: ApplicationConfigWithFlags<CompositionValue, Config, Flags>,
+  options: RenderFlagsOptions<NoInfer<Flags>>,
 ): Effect.Effect<RenderedApplication, RenderError>
-export function renderToString<Model, Message>(
-  config: ApplicationConfig<Model, Message>,
+export function renderToString<
+  const CompositionValue extends AnyComposition,
+  const Config extends ServerImplementation,
+>(
+  composition: CompositionValue,
+  config: ApplicationConfig<CompositionValue, Config>,
   options?: RenderOptions,
 ): Effect.Effect<RenderedApplication, RenderError>
 export function renderToString(
+  composition: AnyComposition,
+  config: ServerImplementation &
+    Readonly<{
+      Flags?: Schema.Codec<any, any, never, never>
+      routing?: unknown
+    }>,
+  options?: RenderOptions & Readonly<{ url?: string; flags?: unknown }>,
+): Effect.Effect<RenderedApplication, RenderError> {
+  const { Flags, routing, ...implementation } = config
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const block = complete(composition, implementation as never)
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const { init, view } = lowerBlock(block as never)
+
+  return __renderFromConfig(
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    {
+      ...(Flags === undefined ? {} : { Flags }),
+      ...(routing === undefined ? {} : { routing }),
+      init,
+      view,
+    } as never,
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    options as never,
+  )
+}
+
+/** @internal Renders pure init/view fixtures without constructing a runtime. */
+export function __renderFromConfig<Model, Message, Flags>(
+  config: NativeRoutingApplicationConfigWithFlags<Model, Message, Flags>,
+  options: RenderUrlFlagsOptions<Flags>,
+): Effect.Effect<RenderedApplication, RenderError>
+export function __renderFromConfig<Model, Message>(
+  config: NativeRoutingApplicationConfig<Model, Message>,
+  options: RenderUrlOptions,
+): Effect.Effect<RenderedApplication, RenderError>
+export function __renderFromConfig<Model, Message, Flags>(
+  config: NativeApplicationConfigWithFlags<Model, Message, Flags>,
+  options: RenderFlagsOptions<Flags>,
+): Effect.Effect<RenderedApplication, RenderError>
+export function __renderFromConfig<Model, Message>(
+  config: NativeApplicationConfig<Model, Message>,
+  options?: RenderOptions,
+): Effect.Effect<RenderedApplication, RenderError>
+export function __renderFromConfig(
   config: Readonly<{
     Flags?: Schema.Codec<unknown, any, never, never>
     routing?: unknown
@@ -1477,15 +1608,21 @@ export function renderToString(
         // is placed into a document the same way, so a root that does not close
         // cleanly swallows whatever the host writes after it either way.
         assertRootClosesCleanly(html)
-        assertNoscriptModesAgree(html)
-        __assertNoDeclarativeShadowRoot(html)
+        const fragments = parseFragmentModes(DIV_FRAGMENT_CONTEXT, html)
+        assertNoscriptModesAgree(fragments)
+        __assertNoDeclarativeShadowRoot(fragments)
         __assertNoDocumentStructureEscape(html)
-        __assertNoLiveBaseElement(html)
+        __assertNoLiveBaseElement(fragments)
         if (nextDocument.body !== null) {
           if (isHydratable) {
-            assertSingleStampedRoot(html, runtimeId, buildId, nextDocument.body)
+            assertSingleStampedRoot(
+              fragments.scripted,
+              runtimeId,
+              buildId,
+              nextDocument.body,
+            )
           } else {
-            assertParsedRootMatchesView(html, nextDocument.body)
+            assertParsedRootMatchesView(fragments.scripted, nextDocument.body)
           }
         }
         return html

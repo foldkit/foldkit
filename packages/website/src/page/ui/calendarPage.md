@@ -20,7 +20,7 @@ Calendar owns navigation state, including the visible month, active grid, and ke
 
 ## Wire Calendar into a Parent
 
-Initialize the Calendar with `Calendar.init()`, store its Model in your parent Model, and delegate its Messages with [`Update.foldChild`](/core/submodel#fold-child). Render it through `h.submodel` with `Calendar.view`.
+Bind `Calendar.block` in the parent. Declare its startup arguments with the Binding's `init` policy and let the parent Composition assemble its Model. Registered Calendar wrapper Messages route through the Binding automatically. Render it through `h.block(CalendarBinding.embedView(...))`.
 
 Pass the parent-owned selection into `viewInputs.maybeSelectedDate` on every render. When Calendar emits `SelectedDate`, fold that OutMessage into the parent's selected-date field. `Calendar.update` returns `Update.ReturnWithOutMessage<Model, Message, OutMessage>`, so the same fold can handle `ChangedViewMonth` when your application needs month-scoped data.
 
@@ -30,7 +30,7 @@ See the complete Calendar integration in the [UI Showcase](https://github.com/fo
 
 ## Try It {#examples}
 
-This Calendar highlights today and lets the parent store a selected date. Click a day, or tab into the grid and navigate with the keyboard. The snippet shows the parent Model, `Update.foldChild`, OutMessage handling, and all three view modes.
+This Calendar highlights today and lets the parent store a selected date. Click a day, or tab into the grid and navigate with the keyboard. The snippet shows the parent Model, the Calendar Binding, OutMessage handling, and all three view modes.
 
 ::Demo{name="basic"}
 
@@ -135,7 +135,7 @@ Store the Calendar Model as a field in the parent Model. It contains interaction
 
 ### ViewInputs {#view-config}
 
-Pass these fields under `viewInputs` when `h.submodel` renders `Calendar.view`. The surrounding `h.submodel` configuration separately receives `slotId`, `model`, `view`, and `toParentMessage`.
+Pass the child Model as `model` and these fields as `viewInputs` to the Calendar Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the top level; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
 
 | Name                       | Type                                             | Default                    | Description                                                                                                    |
 | -------------------------- | ------------------------------------------------ | -------------------------- | -------------------------------------------------------------------------------------------------------------- |
@@ -197,7 +197,7 @@ Month cells expose `isSelected`, `isFocused`, `isCurrentMonth`, and `isDisabled`
 
 ### OutMessage {#out-message}
 
-Calendar returns an optional OutMessage in the `outMessage` field. Match on its tag in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) configuration.
+Calendar returns an optional OutMessage in the `outMessage` field. Match on its tag in the Binding’s `outMessage.fold` policy.
 
 | Name               | Payload                           | Emitted when                                                                                                                                                                       |
 | ------------------ | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -208,7 +208,7 @@ Use `SelectedDate` to update the parent-owned selection. Use `ChangedViewMonth` 
 
 ### Programmatic Helpers
 
-`selectDate` is a child entry point. Fold it into the parent with `Update.foldChild` because it takes a date as input. The Model-only helpers make silent state adjustments and can be used as point-free `modifyFields` setters.
+`selectDate` is a public API operation. Call `calendar.selectDate(date)` to produce a parent Step. The Model-only helpers make silent state adjustments and can be used as point-free `modifyFields` setters.
 
 | Name         | Type                                                                                            | Behavior                                                                                                                  |
 | ------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |

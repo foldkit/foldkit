@@ -1,35 +1,23 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Option, Schema } from 'effect'
-import { Update } from 'foldkit'
-import type { HtmlBuilder } from 'foldkit/html'
+import { Schema, Tuple } from 'effect'
+import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import type * as Mount from 'foldkit/mount'
-import { modifyFields } from 'foldkit/struct'
 
 import { Dialog } from '@foldkit/ui'
+import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
-type MountRequirements = Mount.RequirementsOf<typeof Dialog.mounts>
-
-// Add a field to your Model for the Dialog Submodel:
+// Add a field to your Model for the Dialog Block:
 const Model = Schema.Struct({
   dialog: Dialog.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
 
-// In your init function, set isAnimated: true to coordinate CSS transitions:
-const init = () => ({
-  model: {
-    dialog: Dialog.init({ id: 'confirm', isAnimated: true }),
-    // ...your other fields
-  },
-})
-
 // Embed the Dialog Message in your parent Message and delegate to
-// Dialog.update (open from a trigger with a fact and Dialog.open, as in
-// the basic Dialog example):
+// the Dialog update (open from a trigger with a fact and
+// `DialogBinding.open()`, as in the basic Dialog example):
 const Message = defineMessageUnion({
   GotDialogMessage: { message: Dialog.Message },
 })
@@ -42,20 +30,36 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const foldDialog = Update.foldChild({
-  update: Dialog.update,
-  read: (model: Model) => Option.some(model.dialog),
-  write: (model, nextDialog) =>
-    modifyFields(model, { dialog: () => nextDialog }),
-  toParentMessage: message => Message.GotDialogMessage({ message }),
-  foldOutMessage: foldDialogOutMessage,
+const AnimatedDialogExample = Block.define('AnimatedDialogExample', {
+  Model,
+  Message,
 })
 
-GotDialogMessage: ({ message }) => foldDialog(model, message)
+const DialogBinding = AnimatedDialogExample.bindChild(Dialog.block, {
+  field: 'dialog',
+  parentMessage: Message.GotDialogMessage,
+  init: {
+    args: () => Tuple.make({ id: 'confirm', isAnimated: true }),
+  },
+  outMessage: { fold: foldDialogOutMessage },
+})
+
+const AnimatedDialogExampleComposition = AnimatedDialogExample.makeComposition({
+  childBindings: [DialogBinding],
+})
+
+// In your init function, set isAnimated: true to coordinate CSS transitions:
+const init = AnimatedDialogExampleComposition.makeInit(() => ({
+  model: {
+    // ...your other fields
+  },
+}))
+
+const update = AnimatedDialogExampleComposition.makeUpdate()
 
 // Inside your view function, use data-[closed] for enter/leave transitions and
 // spread the `closeButton` bundle onto your dismiss buttons:
-const view = (model: Model, h: HtmlBuilder<Message, MountRequirements>) => {
+const view = AnimatedDialogExampleComposition.makeView((model, h) => {
   const dialogView = ({
     dialog,
     backdrop,
@@ -64,7 +68,7 @@ const view = (model: Model, h: HtmlBuilder<Message, MountRequirements>) => {
     description,
     closeButton,
     isVisible,
-  }: Dialog.RenderInfo) =>
+  }: DialogRenderInfo) =>
     h.dialog(
       [
         ...dialog,
@@ -110,14 +114,14 @@ const view = (model: Model, h: HtmlBuilder<Message, MountRequirements>) => {
         : [],
     )
 
-  return h.submodel({
-    slotId: model.dialog.id,
-    model: model.dialog,
-    view: Dialog.view,
-    viewInputs: {
-      hasDescription: true,
-      toView: dialogView,
-    },
-    toParentMessage: message => Message.GotDialogMessage({ message }),
-  })
-}
+  return h.block(
+    DialogBinding.embedView({
+      slotId: model.dialog.id,
+      model: model.dialog,
+      viewInputs: {
+        hasDescription: true,
+        toView: dialogView,
+      },
+    }),
+  )
+})

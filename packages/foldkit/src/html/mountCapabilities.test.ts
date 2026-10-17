@@ -6,6 +6,7 @@ import * as Mount from '../mount/index.js'
 import * as Application from '../runtime/application.js'
 import * as Scene from '../test/scene.js'
 import type { VNode } from '../vdom.js'
+import { type BlockView, defineView } from './block.js'
 import {
   type Attribute,
   type ChildAttribute,
@@ -16,7 +17,6 @@ import {
   createKeyedLazy,
   createLazy,
 } from './index.js'
-import { type SubmodelView, defineView } from './submodel.js'
 
 const Message = defineMessageUnion({
   CompletedMeasurePanel: { width: Schema.Number },
@@ -98,14 +98,14 @@ const inferredViewRejectingForeignMessage = defineView(
     ]),
 )
 
-const inferredMountedChildViewExact: SubmodelView<
+const inferredMountedChildViewExact: BlockView<
   Model,
   Message,
   void,
   MeasurePanelRequirements
 > = inferredMountedChildView
 
-const inferredMountedChildViewWithInputsExact: SubmodelView<
+const inferredMountedChildViewWithInputsExact: BlockView<
   Model,
   Message,
   SlotInputs,
@@ -113,9 +113,9 @@ const inferredMountedChildViewWithInputsExact: SubmodelView<
 > = inferredMountedChildViewWithInputs
 
 describe('Mount capability types', () => {
-  it('propagates registered requirements through helpers, lazy views, and Submodel slots', () => {
+  it('propagates registered requirements through helpers, lazy views, and Block slots', () => {
     const renderRegistered = () =>
-      Application.make({
+      Application.__makeFromConfig({
         Model,
         init: () => ({ model: { isVisible: true } }),
         update,
@@ -127,7 +127,7 @@ describe('Mount capability types', () => {
               mountedPanel(model.isVisible, h),
               lazyPanel(mountedPanel, [model.isVisible, h]),
               keyedLazyPanel('panel', mountedPanel, [model.isVisible, h]),
-              h.submodel({
+              h.block({
                 slotId: 'mounted-child',
                 model,
                 view: mountedChildView,
@@ -144,7 +144,7 @@ describe('Mount capability types', () => {
       })
 
     const renderWithExtraRegistration = () =>
-      Application.make({
+      Application.__makeFromConfig({
         Model,
         init: () => ({ model: { isVisible: true } }),
         update,
@@ -162,7 +162,7 @@ describe('Mount capability types', () => {
 
   it('rejects layered Mounts omitted from the application registry', () => {
     const renderMissingRegistration = () =>
-      Application.make({
+      Application.__makeFromConfig({
         Model,
         init: () => ({ model: { isVisible: true } }),
         update,
@@ -176,7 +176,7 @@ describe('Mount capability types', () => {
 
     const mountlessBuilder = __htmlBuilder<Message>()
     const renderMissingChildRegistration = () =>
-      mountlessBuilder.submodel(
+      mountlessBuilder.block(
         // @ts-expect-error The child view requires MeasurePanel registration.
         {
           slotId: 'missing-child-registration',
@@ -186,7 +186,7 @@ describe('Mount capability types', () => {
         },
       )
     const renderMissingChildInputsRegistration = () =>
-      mountlessBuilder.submodel(
+      mountlessBuilder.block(
         // @ts-expect-error The child view with inputs requires MeasurePanel registration.
         {
           slotId: 'missing-child-inputs-registration',
@@ -202,7 +202,7 @@ describe('Mount capability types', () => {
     expect(renderMissingChildInputsRegistration).toBeTypeOf('function')
   })
 
-  it('infers exact Submodel view contracts from annotated parameters', () => {
+  it('infers exact Block view contracts from annotated parameters', () => {
     const registeredBuilder = __htmlBuilder<Message, MeasurePanelRequirements>()
     const foreignBuilder = __htmlBuilder<
       ForeignMessage,
@@ -355,7 +355,7 @@ describe('Mount capability types', () => {
 
     const renderWidenedRegistry = () =>
       // @ts-expect-error A broad registry cannot prove which Mounts are registered.
-      Application.make({
+      Application.__makeFromConfig({
         Model,
         init: () => ({ model: { isVisible: true } }),
         update,
@@ -369,7 +369,7 @@ describe('Mount capability types', () => {
 
     const renderContractWidenedRegistry = () =>
       // @ts-expect-error A registry must preserve the Mount's args contract.
-      Application.make({
+      Application.__makeFromConfig({
         Model,
         init: () => ({ model: { isVisible: true } }),
         update,

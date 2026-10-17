@@ -50,8 +50,6 @@ export const SavedCanvasJsonString = Schema.fromJsonString(
   Schema.toCodecJson(SavedCanvas),
 )
 
-// MODEL
-
 export const Model = Schema.Struct({
   grid: Grid,
   undoStack: Schema.Array(Grid),

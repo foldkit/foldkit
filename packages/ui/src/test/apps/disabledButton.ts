@@ -1,7 +1,7 @@
-import { Option, Schema } from 'effect'
+import { Layer, Schema } from 'effect'
+import { Block } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
 
@@ -24,17 +24,10 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-type DialogHtmlBuilder = HtmlBuilder<
+const DisabledButtonTest = Block.define('DisabledButtonTest', {
+  Model,
   Message,
-  Mount.RequirementsOf<typeof Dialog.mounts>
->
-
-// INIT
-
-export const initialModel: Model = {
-  isEnabled: false,
-  dialog: Dialog.boot({ id: 'test-dialog' }).model,
-}
+})
 
 // UPDATE
 
@@ -45,24 +38,41 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const foldDialog = Update.foldChild({
-  update: Dialog.update,
-  read: (model: Model) => Option.some(model.dialog),
-  write: (model, nextDialog) =>
-    modifyFields(model, { dialog: () => nextDialog }),
-  toParentMessage: message => Message.GotDialogMessage({ message }),
-  foldOutMessage: foldDialogOutMessage,
+const DialogBinding = DisabledButtonTest.bindChild(Dialog.block, {
+  field: 'dialog',
+  parentMessage: Message.GotDialogMessage,
+  outMessage: { fold: foldDialogOutMessage },
+  init: { args: () => [{ id: 'test-dialog' }] },
 })
 
-export const update = Update.define((model: Model, message: Message) =>
-  Message.match(message, {
-    ClickedToggle: () => ({
-      model: modifyFields(model, { isEnabled: isEnabled => !isEnabled }),
+const DisabledButtonTestComposition = DisabledButtonTest.makeComposition({
+  childBindings: [DialogBinding],
+})
+
+// INIT
+
+const makeInitialModel = (): Model => ({
+  isEnabled: false,
+  dialog: Dialog.init({ id: 'test-dialog' }),
+})
+
+const init = DisabledButtonTestComposition.makeInit(() => ({
+  model: { isEnabled: false },
+  steps: [DialogBinding.open()],
+}))
+
+export const initialModel = modifyFields(makeInitialModel(), {
+  dialog: dialog => modifyFields(dialog, { isOpen: () => true }),
+})
+
+export const update = DisabledButtonTestComposition.makeUpdate(
+  (model, message) =>
+    Message.match(message, {
+      ClickedToggle: () => ({
+        model: modifyFields(model, { isEnabled: isEnabled => !isEnabled }),
+      }),
+      ClickedSubmit: () => ({ model }),
     }),
-    ClickedSubmit: () => ({ model }),
-    GotDialogMessage: ({ message: dialogMessage }) =>
-      foldDialog(model, dialogMessage),
-  }),
 )
 
 // VIEW
@@ -93,29 +103,38 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
 }
 
 /** View with submit button inside a dialog's panel. */
-export const viewWithDialog = (model: Model, h: DialogHtmlBuilder): Html => {
-  return h.div(
-    [],
-    [
-      h.button([h.OnClick(Message.ClickedToggle())], ['Toggle']),
-      h.submodel({
-        slotId: model.dialog.id,
-        model: model.dialog,
-        view: Dialog.view,
-        viewInputs: {
-          toView: ({ dialog, backdrop, panel, isVisible }) =>
-            h.dialog(
-              [...dialog],
-              isVisible
-                ? [
-                    h.div([...backdrop]),
-                    h.div([...panel], [submitButton(model.isEnabled, h)]),
-                  ]
-                : [],
-            ),
-        },
-        toParentMessage: message => Message.GotDialogMessage({ message }),
-      }),
-    ],
-  )
-}
+export const viewWithDialog = DisabledButtonTestComposition.makeView(
+  (model, h) => {
+    return h.div(
+      [],
+      [
+        h.button([h.OnClick(Message.ClickedToggle())], ['Toggle']),
+        h.block(
+          DialogBinding.embedView({
+            slotId: model.dialog.id,
+            model: model.dialog,
+            viewInputs: {
+              toView: ({ dialog, backdrop, panel, isVisible }) =>
+                h.dialog(
+                  [...dialog],
+                  isVisible
+                    ? [
+                        h.div([...backdrop]),
+                        h.div([...panel], [submitButton(model.isEnabled, h)]),
+                      ]
+                    : [],
+                ),
+            },
+          }),
+        ),
+      ],
+    )
+  },
+)
+
+export const block = DisabledButtonTestComposition.makeBlock({
+  init,
+  update,
+  view: viewWithDialog,
+  EffectsLayer: Layer.empty,
+})

@@ -1,19 +1,28 @@
-import { Effect, Schema, Stream } from 'effect'
-import { Canvas, Dom, Subscription } from 'foldkit'
-import type { Html, HtmlBuilder } from 'foldkit/html'
+import { Schema, Stream } from 'effect'
+import { Block, Canvas, Dom } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
 
-const subscriptions = Subscription.make<Model, Message>()(entry => ({
+const Model = Schema.Struct({ isPlaying: Schema.Boolean, angle: Schema.Number })
+const Message = defineMessageUnion({
+  TickedFrame: { deltaTime: Schema.Number },
+  ClickedCanvas: { x: Schema.Number, y: Schema.Number },
+})
+
+const CanvasApp = Block.define('CanvasApp', { Model, Message })
+const CanvasAppComposition = CanvasApp.makeComposition()
+
+const subscriptions = CanvasApp.subscriptions(entry => ({
   animationFrameTicks: entry(
     'AnimationFrameTicks',
     { isActive: Schema.Boolean },
     {
-      messages: [TickedFrame],
+      messages: [Message.TickedFrame],
       modelToDependencies: model => ({ isActive: model.isPlaying }),
       handler: function* () {
         return ({ isActive }) =>
           isActive
             ? Dom.animationFrameTicks.pipe(
-                Stream.map(deltaTime => TickedFrame({ deltaTime })),
+                Stream.map(deltaTime => Message.TickedFrame({ deltaTime })),
               )
             : Stream.empty
       },
@@ -21,7 +30,7 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-const view = (model: Model, h: HtmlBuilder<Message>): Html =>
+const view = CanvasAppComposition.makeView((model, h) =>
   Canvas.view(
     {
       width: 600,
@@ -45,7 +54,8 @@ const view = (model: Model, h: HtmlBuilder<Message>): Html =>
           ],
         }),
       ],
-      onPointerDown: ({ x, y }) => ClickedCanvas({ x, y }),
+      onPointerDown: ({ x, y }) => Message.ClickedCanvas({ x, y }),
     },
     h,
-  )
+  ),
+)

@@ -2569,16 +2569,9 @@ describe('edge command requirements', () => {
     )
     expect(submitClick.model).toStrictEqual(SubmitState.Presigning())
 
-    expectTypeOf(submitClick.commands).toEqualTypeOf<
-      | ReadonlyArray<
-          Command.Command<
-            SubmitMessage,
-            never,
-            Command.HandlerOf<typeof Presign>
-          >
-        >
-      | undefined
-    >()
+    expectTypeOf<
+      Update.RequirementsOf<() => typeof submitClick>
+    >().toEqualTypeOf<Command.HandlerOf<typeof Presign>>()
     expect(submitClick.commands ?? []).toHaveLength(1)
 
     const uploads: UploadsShape = { presign: Effect.succeed(PRESIGNED_URL) }
@@ -2605,16 +2598,9 @@ describe('edge command requirements', () => {
     )
     expect(submitClick.model).toStrictEqual(SubmitState.Presigning())
 
-    expectTypeOf(submitClick.commands).toEqualTypeOf<
-      | ReadonlyArray<
-          Command.Command<
-            SubmitMessage,
-            never,
-            Command.HandlerOf<typeof Presign>
-          >
-        >
-      | undefined
-    >()
+    expectTypeOf<
+      Update.RequirementsOf<() => typeof submitClick>
+    >().toEqualTypeOf<Command.HandlerOf<typeof Presign>>()
     expect(submitClick.commands ?? []).toHaveLength(1)
   })
 
@@ -2625,16 +2611,9 @@ describe('edge command requirements', () => {
       { shouldSubmit: true },
     )
 
-    expectTypeOf(submitClick.commands).toEqualTypeOf<
-      | ReadonlyArray<
-          Command.Command<
-            SubmitMessage,
-            never,
-            Command.HandlerOf<typeof Presign>
-          >
-        >
-      | undefined
-    >()
+    expectTypeOf<
+      Update.RequirementsOf<() => typeof submitClick>
+    >().toEqualTypeOf<Command.HandlerOf<typeof Presign>>()
     expect(submitClick.commands ?? []).toHaveLength(1)
   })
 
@@ -2645,16 +2624,9 @@ describe('edge command requirements', () => {
     )
     expect(submitClick.model).toStrictEqual(SubmitState.Presigning())
 
-    expectTypeOf(submitClick.commands).toEqualTypeOf<
-      | ReadonlyArray<
-          Command.Command<
-            SubmitMessage,
-            never,
-            Command.HandlerOf<typeof Presign>
-          >
-        >
-      | undefined
-    >()
+    expectTypeOf<
+      Update.RequirementsOf<() => typeof submitClick>
+    >().toEqualTypeOf<Command.HandlerOf<typeof Presign>>()
     expect(submitClick.commands ?? []).toHaveLength(1)
 
     const uploads: UploadsShape = { presign: Effect.succeed(PRESIGNED_URL) }
@@ -2681,16 +2653,9 @@ describe('edge command requirements', () => {
       { shouldSubmit: true },
     )
 
-    expectTypeOf(submitClick.commands).toEqualTypeOf<
-      | ReadonlyArray<
-          Command.Command<
-            SubmitMessage,
-            never,
-            Command.HandlerOf<typeof Presign>
-          >
-        >
-      | undefined
-    >()
+    expectTypeOf<
+      Update.RequirementsOf<() => typeof submitClick>
+    >().toEqualTypeOf<Command.HandlerOf<typeof Presign>>()
     expect(submitClick.commands ?? []).toHaveLength(1)
   })
 
@@ -2701,16 +2666,9 @@ describe('edge command requirements', () => {
     )
     expect(submitClick.model).toStrictEqual(SubmitState.Presigning())
 
-    expectTypeOf(submitClick.commands).toEqualTypeOf<
-      | ReadonlyArray<
-          Command.Command<
-            SubmitMessage,
-            never,
-            Command.HandlerOf<typeof Presign>
-          >
-        >
-      | undefined
-    >()
+    expectTypeOf<
+      Update.RequirementsOf<() => typeof submitClick>
+    >().toEqualTypeOf<Command.HandlerOf<typeof Presign>>()
     expect(submitClick.commands ?? []).toHaveLength(1)
 
     const uploads: UploadsShape = { presign: Effect.succeed(PRESIGNED_URL) }
@@ -2736,10 +2694,9 @@ describe('edge command requirements', () => {
       RemoteDataMessage.ClickedFetch(),
     )
 
-    expectTypeOf(fetchClick.commands).toEqualTypeOf<
-      | ReadonlyArray<Command.Command<RemoteDataMessage, never, never>>
-      | undefined
-    >()
+    expectTypeOf<
+      Update.RequirementsOf<() => typeof fetchClick>
+    >().toEqualTypeOf<never>()
     expect(fetchClick.commands ?? []).toEqual([])
   })
 
@@ -2766,12 +2723,9 @@ describe('edge command requirements', () => {
     )
     expect(submitClick.model).toStrictEqual(SubmitState.Presigning())
 
-    expectTypeOf(submitClick.commands).toEqualTypeOf<
-      | ReadonlyArray<
-          Command.Command<SubmitMessage, never, SubmitHandlerRequirements>
-        >
-      | undefined
-    >()
+    expectTypeOf<
+      Update.RequirementsOf<() => typeof submitClick>
+    >().toEqualTypeOf<SubmitHandlerRequirements>()
     expect(submitClick.commands ?? []).toHaveLength(1)
 
     const presignMessages = (submitClick.commands ?? []).map(command =>
@@ -2824,12 +2778,9 @@ describe('edge command requirements', () => {
       { shouldSubmit: true },
     )
 
-    expectTypeOf(submitClick.commands).toEqualTypeOf<
-      | ReadonlyArray<
-          Command.Command<SubmitMessage, never, SubmitHandlerRequirements>
-        >
-      | undefined
-    >()
+    expectTypeOf<
+      Update.RequirementsOf<() => typeof submitClick>
+    >().toEqualTypeOf<SubmitHandlerRequirements>()
     expect(submitClick.commands ?? []).toHaveLength(1)
   })
 })

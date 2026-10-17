@@ -2,6 +2,7 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
 import { Tabs } from '@foldkit/ui'
+import { FocusTab } from '@foldkit/ui/tabs'
 
 import { init } from './init'
 import { Message } from './message'
@@ -27,21 +28,21 @@ describe('home', () => {
         expect(model.asyncCounterDemo).toBe(initialModel.asyncCounterDemo)
         expect(model.notePlayerDemo).toBe(initialModel.notePlayerDemo)
       }),
-      Command.resolve(Tabs.FocusTab, Tabs.Message.CompletedFocusTab()),
+      Command.resolve(FocusTab, Tabs.Message.CompletedFocusTab()),
       message(
         Message.GotDemoTabsMessage({
           message: Tabs.Message.SelectedTab({
             index: 0,
-            value: 'Architecture',
+            value: 'AsyncCounter',
           }),
         }),
       ),
       model(model => {
-        expect(model.activeDemoTab).toBe('Architecture')
+        expect(model.activeDemoTab).toBe('AsyncCounter')
         expect(model.asyncCounterDemo).toBe(initialModel.asyncCounterDemo)
         expect(model.notePlayerDemo).toBe(initialModel.notePlayerDemo)
       }),
-      Command.resolve(Tabs.FocusTab, Tabs.Message.CompletedFocusTab()),
+      Command.resolve(FocusTab, Tabs.Message.CompletedFocusTab()),
     )
   })
 })

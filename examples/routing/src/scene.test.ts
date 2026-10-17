@@ -2,53 +2,56 @@ import { Array, Option, String } from 'effect'
 import { expect, given, role, scene, text } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import { AppRoute, Model, update, view } from './main'
-import { People } from './page'
+import { Model } from './model'
+import { People, SearchResults, searchPeople } from './page'
+import { ApplicationRoute } from './route'
+import { update } from './update'
+import { view } from './view'
 
 const peoplePageWith = (searchInput: string) =>
   People.Model.make({
     searchInput,
     searchHistory: Array.liftPredicate(String.isNonEmpty)(searchInput),
-    results: People.SearchResults.Loaded({
+    results: SearchResults.Loaded({
       query: searchInput,
-      people: People.searchPeople(searchInput),
+      people: searchPeople(searchInput),
     }),
   })
 
 const initialPeoplePage = peoplePageWith('')
 
 const home = Model.make({
-  route: AppRoute.Home(),
+  route: ApplicationRoute.Home(),
   peoplePage: initialPeoplePage,
 })
 const people = (searchInput: string) =>
   Model.make({
-    route: AppRoute.People({
+    route: ApplicationRoute.People({
       searchText: Option.liftPredicate(String.isNonEmpty)(searchInput),
     }),
     peoplePage: peoplePageWith(searchInput),
   })
 const person = (personId: number) =>
   Model.make({
-    route: AppRoute.Person({ personId }),
+    route: ApplicationRoute.Person({ personId }),
     peoplePage: initialPeoplePage,
   })
 const nested = Model.make({
-  route: AppRoute.Nested(),
+  route: ApplicationRoute.Nested(),
   peoplePage: initialPeoplePage,
 })
 const filesIndex = Model.make({
-  route: AppRoute.FilesIndex(),
+  route: ApplicationRoute.FilesIndex(),
   peoplePage: initialPeoplePage,
 })
 const files = (path: Array.NonEmptyReadonlyArray<string>) =>
   Model.make({
-    route: AppRoute.Files({ path }),
+    route: ApplicationRoute.Files({ path }),
     peoplePage: initialPeoplePage,
   })
 const notFound = (path: string) =>
   Model.make({
-    route: AppRoute.NotFound({ path }),
+    route: ApplicationRoute.NotFound({ path }),
     peoplePage: initialPeoplePage,
   })
 

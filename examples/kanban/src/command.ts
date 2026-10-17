@@ -1,13 +1,14 @@
-import { Crypto, Effect, Schema } from 'effect'
+import { Crypto, Effect, Layer, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
-import { Command, Dom } from 'foldkit'
+import { Dom } from 'foldkit'
 
 import { ADD_CARD_INPUT_ID, STORAGE_KEY } from './constant'
+import { Application } from './definition'
 import { Column } from './domain'
 import { Message } from './message'
 import { SavedBoardJsonString } from './model'
 
-export const GenerateCardId = Command.define('GenerateCardId', {
+export const GenerateCardId = Application.command('GenerateCardId', {
   args: { columnId: Schema.String, title: Schema.String },
   messages: [Message.CompletedGenerateCardId],
   handler: function* () {
@@ -22,7 +23,7 @@ export const GenerateCardId = Command.define('GenerateCardId', {
   },
 })
 
-export const SaveBoard = Command.define('SaveBoard', {
+export const SaveBoard = Application.command('SaveBoard', {
   args: { columns: Schema.Array(Column.Column) },
   messages: [Message.CompletedSaveBoard],
   handler: function* () {
@@ -39,7 +40,7 @@ export const SaveBoard = Command.define('SaveBoard', {
   },
 })
 
-export const FocusAddCardInput = Command.define('FocusAddCardInput', {
+export const FocusAddCardInput = Application.command('FocusAddCardInput', {
   messages: [Message.CompletedFocusAddCardInput],
   handler: function* () {
     return () =>
@@ -49,3 +50,9 @@ export const FocusAddCardInput = Command.define('FocusAddCardInput', {
       )
   },
 })
+
+export const EffectsLayer = Layer.mergeAll(
+  GenerateCardId.layer,
+  SaveBoard.layer,
+  FocusAddCardInput.layer,
+)

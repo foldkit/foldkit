@@ -2,7 +2,7 @@ import { Schema, pipe } from 'effect'
 import { Route } from 'foldkit'
 import { defineRouteUnion, int, literal, rest, slash } from 'foldkit/route'
 
-export const AppRoute = defineRouteUnion({
+export const ApplicationRoute = defineRouteUnion({
   Home: {},
   Nested: {},
   People: { searchText: Schema.Option(Schema.String) },
@@ -12,10 +12,10 @@ export const AppRoute = defineRouteUnion({
   NotFound: { path: Schema.String },
 })
 
-export type AppRoute = typeof AppRoute.Type
-export type PeopleRoute = typeof AppRoute.People.Type
+export type ApplicationRoute = typeof ApplicationRoute.Type
+export type PeopleRoute = typeof ApplicationRoute.People.Type
 
-export const homeRouter = pipe(Route.root, Route.mapTo(AppRoute.Home))
+export const homeRouter = pipe(Route.root, Route.mapTo(ApplicationRoute.Home))
 
 export const nestedRouter = pipe(
   literal('nested'),
@@ -23,7 +23,7 @@ export const nestedRouter = pipe(
   slash(literal('is')),
   slash(literal('very')),
   slash(literal('nested')),
-  Route.mapTo(AppRoute.Nested),
+  Route.mapTo(ApplicationRoute.Nested),
 )
 
 export const peopleRouter = pipe(
@@ -33,24 +33,24 @@ export const peopleRouter = pipe(
       searchText: Schema.OptionFromOptional(Schema.String),
     }),
   ),
-  Route.mapTo(AppRoute.People),
+  Route.mapTo(ApplicationRoute.People),
 )
 
 export const personRouter = pipe(
   literal('people'),
   slash(int('personId')),
-  Route.mapTo(AppRoute.Person),
+  Route.mapTo(ApplicationRoute.Person),
 )
 
 export const filesIndexRouter = pipe(
   literal('files'),
-  Route.mapTo(AppRoute.FilesIndex),
+  Route.mapTo(ApplicationRoute.FilesIndex),
 )
 
 export const filesRouter = pipe(
   literal('files'),
   slash(rest('path')),
-  Route.mapTo(AppRoute.Files),
+  Route.mapTo(ApplicationRoute.Files),
 )
 
 const routeParser = Route.oneOf(
@@ -62,7 +62,7 @@ const routeParser = Route.oneOf(
   homeRouter,
 )
 
-export const urlToAppRoute = Route.parseUrlWithFallback(
+export const urlToApplicationRoute = Route.parseUrlWithFallback(
   routeParser,
-  AppRoute.NotFound,
+  ApplicationRoute.NotFound,
 )

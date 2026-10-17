@@ -3,14 +3,10 @@ import { Interruptible } from 'foldkit/command'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
-import {
-  CancelUploadFile,
-  FAKE_FILES,
-  Message,
-  UploadFile,
-  initialModel,
-  update,
-} from './main'
+import { CancelUploadFile, UploadFile } from './command'
+import { initialModel } from './init'
+import { Message } from './message'
+import { FAKE_FILES, update } from './update'
 
 const firstFile = Array.headNonEmpty(FAKE_FILES)
 const secondFile = Option.getOrThrow(Array.get(FAKE_FILES, 1))

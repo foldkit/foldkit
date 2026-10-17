@@ -2,7 +2,7 @@
 
 ## Overview
 
-An accessible text input that links a label and an optional description to the input element via ARIA attributes. Input is a stateless render helper: call it directly with a ViewConfig in your own view; no Model, update, or `h.submodel` wrapping. It provides three attribute groups (`input`, `label`, and `description`) that you spread onto your own elements to get correct accessibility wiring.
+An accessible text input that links a label and an optional description to the input element via ARIA attributes. Input is a stateless render helper: call it directly with a ViewConfig in your own view; no Model, update, or `h.block` wrapping. It provides three attribute groups (`input`, `label`, and `description`) that you spread onto your own elements to get correct accessibility wiring.
 
 :::Info{label="See it in an app"}
 Check out how Input is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/input.ts).

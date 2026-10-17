@@ -1,33 +1,32 @@
 import { Effect, Schema, pipe } from 'effect'
-import { Command, Navigation, Route, Update, Url } from 'foldkit'
+import { Navigation, Route, Url, defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineRouteUnion, int, literal, slash } from 'foldkit/route'
 import { modifyFields } from 'foldkit/struct'
 
 // ROUTE
 
-const AppRoute = defineRouteUnion({
+const ApplicationRoute = defineRouteUnion({
   Home: {},
   Person: { personId: Schema.Number },
   NotFound: { path: Schema.String },
 })
-type AppRoute = typeof AppRoute.Type
+type ApplicationRoute = typeof ApplicationRoute.Type
 
-const homeRouter = pipe(Route.root, Route.mapTo(AppRoute.Home))
+const homeRouter = pipe(Route.root, Route.mapTo(ApplicationRoute.Home))
 const personRouter = pipe(
   literal('people'),
   slash(int('personId')),
-  Route.mapTo(AppRoute.Person),
+  Route.mapTo(ApplicationRoute.Person),
 )
 const routeParser = Route.oneOf(personRouter, homeRouter)
-const urlToAppRoute = Route.parseUrlWithFallback(routeParser, AppRoute.NotFound)
+const urlToApplicationRoute = Route.parseUrlWithFallback(
+  routeParser,
+  ApplicationRoute.NotFound,
+)
 
-// MODEL
-
-const Model = Schema.Struct({ route: AppRoute })
+const Model = Schema.Struct({ route: ApplicationRoute })
 type Model = typeof Model.Type
-
-// MESSAGE
 
 const Message = defineMessageUnion({
   CompletedNavigateInternal: {},
@@ -37,9 +36,10 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-// COMMAND
+const Application = defineApplication({ Model, Message })
+const ApplicationComposition = Application.makeComposition()
 
-const NavigateInternal = Command.define('NavigateInternal', {
+const NavigateInternal = Application.command('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
   handler: function* () {
@@ -50,7 +50,7 @@ const NavigateInternal = Command.define('NavigateInternal', {
   },
 })
 
-const LoadExternal = Command.define('LoadExternal', {
+const LoadExternal = Application.command('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {
@@ -59,9 +59,7 @@ const LoadExternal = Command.define('LoadExternal', {
   },
 })
 
-// UPDATE
-
-const update = Update.define((model: Model, message: Message) =>
+const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
@@ -80,7 +78,7 @@ const update = Update.define((model: Model, message: Message) =>
 
     ChangedUrl: ({ url }) => ({
       model: modifyFields(model, {
-        route: () => urlToAppRoute(url),
+        route: () => urlToApplicationRoute(url),
       }),
     }),
   }),

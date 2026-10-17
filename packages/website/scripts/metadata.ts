@@ -6,7 +6,7 @@ import {
   BLOG_TITLE,
 } from '../src/page/blog/meta'
 import { findBySlug } from '../src/page/example/meta'
-import { type AppRoute } from '../src/route'
+import { type ApplicationRoute } from '../src/route'
 import { blogPosts } from './blogPosts'
 
 // PAGE METADATA
@@ -45,7 +45,7 @@ const tooling = (title: string, description: string): PageMetadata =>
   docs(title, description, 'Tooling')
 
 type StaticRouteTag = Exclude<
-  AppRoute['_tag'],
+  ApplicationRoute['_tag'],
   'ApiModule' | 'BlogPost' | 'ExampleDetail' | 'Playground'
 >
 
@@ -77,7 +77,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   ComingFromReact: docs(
     'Coming from React',
-    'See how Foldkit replaces component-owned state and Effects with one Model, Messages, update, Commands, Subscriptions, and Submodels.',
+    'See how Foldkit replaces component-owned state and Effects with one Model, Messages, update, Commands, Subscriptions, and Blocks.',
     'Docs',
   ),
   ComingFromTanStackQuery: docs(
@@ -157,7 +157,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   ProjectOrganization: docs(
     'Project Organization',
-    'Start with one main module, then separate Messages, Commands, Submodels, and Subscriptions when ownership or file size makes the split useful.',
+    'Start with one app module, then separate Messages, Commands, Blocks, and Subscriptions when ownership or file size makes the split useful.',
     'Docs',
   ),
   ToolingLinting: tooling(
@@ -178,7 +178,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreMessages: core(
     'Messages',
-    'Define the facts update can handle as a Schema-backed Message union, with naming conventions for user actions, Command results, and Submodel wrappers.',
+    'Define the facts update can handle as a Schema-backed Message union, with naming conventions for user actions, Command results, and Block wrappers.',
   ),
   CoreUpdate: core(
     'Update',
@@ -202,7 +202,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreSubscriptions: core(
     'Subscriptions',
-    'Run ongoing Streams whose lifetime follows Model-derived dependencies. Covers restart behavior, timers, animation frames, live dependency reads, and Submodel lifting.',
+    'Run ongoing Streams whose lifetime follows Model-derived dependencies. Covers restart behavior, timers, animation frames, live dependency reads, and Block lifting.',
   ),
   CoreInitAndFlags: core(
     'Init & Flags',
@@ -226,7 +226,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreQuery: core(
     'Query',
-    'Fetch, cache, and refresh remote data with reusable Submodels and less boilerplate.',
+    'Fetch, cache, and refresh remote data with reusable Blocks and less boilerplate.',
   ),
   CoreCanvas: core(
     'Canvas',
@@ -234,7 +234,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreRuntime: core(
     'Runtime',
-    'Configure a page-owning application with Application.make, or mount a reusable widget with Application.makeElement and Runtime.embed.',
+    'Configure a page-owning application with ApplicationComposition.makeApplication, or mount a reusable widget with ApplicationComposition.makeElement and Runtime.embed.',
   ),
   CoreServerRendering: core(
     'Server Rendering',
@@ -246,7 +246,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreManagedResources: core(
     'Managed Resources',
-    'Acquire a stateful handle while a Model condition holds, expose it to Commands, and release it when dependencies change. Covers Layers and Submodel lifting.',
+    'Acquire a stateful handle while a Model condition holds, expose it to Commands, and release it when dependencies change. Covers Layers and Block lifting.',
   ),
   CoreDevTools: core(
     'DevTools',
@@ -280,9 +280,9 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Embedding',
     'Embed a Foldkit widget in another application through a Schema-typed handle. Covers initial Flags, inbound and outbound Ports, disposal, and React integration.',
   ),
-  CoreSubmodel: core(
-    'Submodel',
-    'Split a large application into child state machines while preserving parent-to-child Message flow. Covers Update.foldChild, h.submodel, OutMessages, reflection, testing, and DevTools.',
+  CoreBlock: core(
+    'Block',
+    'Split a large application into child state machines while preserving parent-to-child Message flow. Covers checked bindings, public api operations, lifecycle composition, view embedding, OutMessages, and DevTools.',
   ),
   CoreMachine: core(
     'Machine',
@@ -294,11 +294,11 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   PatternsAntiPatterns: pattern(
     'Anti-patterns',
-    'Architectural warning signs in Foldkit apps, with idiomatic replacements for ambiguous state, leaky Submodel boundaries, misplaced side effects, stale async results, Command ordering, and live handles.',
+    'Architectural warning signs in Foldkit apps, with idiomatic replacements for ambiguous state, leaky Block boundaries, misplaced side effects, stale async results, Command ordering, and live handles.',
   ),
-  PatternsInformingSubmodels: pattern(
-    'Informing Submodels',
-    'Relay a change a Submodel does not own (a URL, a server push, an auth change) through a helper it exposes, so it can update its own state in response.',
+  PatternsInformingBlocks: pattern(
+    'Informing Blocks',
+    'Relay a change a Block does not own (a URL, a server push, an auth change) through a helper it exposes, so it can update its own state in response.',
   ),
   PatternsSubscriptionOrganization: pattern(
     'Subscription Organization',
@@ -306,11 +306,11 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   UiOverview: ui(
     'Foldkit UI',
-    'Choose between stateful Submodels and stateless render helpers in Foldkit’s headless UI package. Covers accessibility, styling, installation, and the component catalog.',
+    'Choose between stateful Blocks and stateless render helpers in Foldkit’s headless UI package. Covers accessibility, styling, installation, and the component catalog.',
   ),
-  UiSelectionSubmodels: ui(
-    'Selection Submodels',
-    'Use create<Item>() factories to keep one item type across a selection Submodel’s view, update, programmatic helpers, and OutMessages.',
+  UiSelectionBlocks: ui(
+    'Selection Blocks',
+    'Use create<Item>() factories to keep one item type across a selection Block’s view, update, programmatic helpers, and OutMessages.',
   ),
   UiAnchor: ui(
     'Anchor',
@@ -334,7 +334,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   UiTabs: ui(
     'Tabs',
-    'A selection Submodel for tab panels, with roving tabindex, horizontal and vertical orientation, and automatic or manual activation.',
+    'A selection Block for tab panels, with roving tabindex, horizontal and vertical orientation, and automatic or manual activation.',
   ),
   UiNav: ui(
     'Nav',
@@ -350,7 +350,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   UiMenu: ui(
     'Menu',
-    'An anchored action-menu Submodel with keyboard navigation, typeahead, dismissal, and optional modal behavior.',
+    'An anchored action-menu Block with keyboard navigation, typeahead, dismissal, and optional modal behavior.',
   ),
   UiPopover: ui(
     'Popover',
@@ -366,15 +366,15 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   UiHoverIntent: ui(
     'Hover Intent',
-    'Behavior-only Submodel for delayed hover and focus reveal across a trigger and panel.',
+    'Behavior-only Block for delayed hover and focus reveal across a trigger and panel.',
   ),
   UiListbox: ui(
     'Listbox',
-    'A selection Submodel with single-select and multi-select modes, keyboard navigation, typeahead, and anchored positioning.',
+    'A selection Block with single-select and multi-select modes, keyboard navigation, typeahead, and anchored positioning.',
   ),
   UiRadioGroup: ui(
     'Radio Group',
-    'A selection Submodel for radio options, with roving tabindex, keyboard navigation, and read-only behavior.',
+    'A selection Block for radio options, with roving tabindex, keyboard navigation, and read-only behavior.',
   ),
   UiSelect: ui(
     'Select',
@@ -382,7 +382,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   UiSlider: ui(
     'Slider',
-    'A numeric range Submodel with pointer dragging, keyboard navigation, constraints, steps, and ARIA slider semantics.',
+    'A numeric range Block with pointer dragging, keyboard navigation, constraints, steps, and ARIA slider semantics.',
   ),
   UiMeter: ui(
     'Meter',
@@ -398,7 +398,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   UiCombobox: ui(
     'Combobox',
-    'A searchable selection Submodel with parent-controlled filtering, single-select and multi-select modes, and anchored positioning.',
+    'A searchable selection Block with parent-controlled filtering, single-select and multi-select modes, and anchored positioning.',
   ),
   UiInput: ui(
     'Input',
@@ -478,7 +478,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
 }
 
 export const routeToMetadata = (
-  route: AppRoute,
+  route: ApplicationRoute,
   resolveApiModuleName: ApiModuleNameResolver,
 ): PageMetadata =>
   Match.value(route).pipe(

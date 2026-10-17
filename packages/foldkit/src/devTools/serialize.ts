@@ -8,13 +8,13 @@ import {
   Redacted,
 } from 'effect'
 
+import { extractBlockInfo } from './blockPath.js'
 import type {
   SerializedCommand,
   SerializedEntry,
   SerializedMount,
 } from './protocol.js'
 import type { CommandRecord, HistoryEntry, MountRecord } from './store.js'
-import { extractSubmodelInfo } from './submodelPath.js'
 
 const inspectableCache = new WeakMap<object, unknown>()
 
@@ -83,7 +83,7 @@ export const toSerializedCommand = (
     Option.fromNullishOr(command.args),
     Record.map(toInspectableValue),
   ),
-  maybeSubmodelPath: command.maybeSubmodelPath,
+  maybeBlockPath: command.maybeBlockPath,
 })
 
 /**
@@ -111,10 +111,7 @@ export const toSerializedEntry = (
   entry: HistoryEntry,
   index: number,
 ): SerializedEntry => {
-  const { submodelPath, maybeLeafTag } = extractSubmodelInfo(
-    entry.tag,
-    entry.message,
-  )
+  const { blockPath, maybeLeafTag } = extractBlockInfo(entry.tag, entry.message)
 
   return {
     index,
@@ -127,7 +124,7 @@ export const toSerializedEntry = (
     isModelChanged: entry.isModelChanged,
     changedPaths: Array.fromIterable(entry.diff.changedPaths),
     affectedPaths: Array.fromIterable(entry.diff.affectedPaths),
-    submodelPath,
+    blockPath,
     maybeLeafTag,
   }
 }

@@ -1,24 +1,23 @@
-import { Effect, Schema } from 'effect'
-import { Dom, Subscription } from 'foldkit'
+import { Schema } from 'effect'
+import { Block, Dom } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-
-// MESSAGE
 
 const Message = defineMessageUnion({
   ChangedReducedMotion: { isReducedMotion: Schema.Boolean },
 })
 type Message = typeof Message.Type
 
-// MODEL
-
 const Model = Schema.Struct({
   isReducedMotion: Schema.Boolean,
 })
 type Model = typeof Model.Type
 
-// SUBSCRIPTION
+const MotionPreferences = Block.define('MotionPreferences', {
+  Model,
+  Message,
+})
 
-const subscriptions = Subscription.make<Model, Message>()(entry => ({
+const subscriptions = MotionPreferences.subscriptions(entry => ({
   reducedMotionChanges: entry('ReducedMotionChanges', {
     messages: [Message.ChangedReducedMotion],
     handler: function* () {

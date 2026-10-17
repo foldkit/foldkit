@@ -1,1 +1,1 @@
-export { Model, Message, init, update, view } from './coverLetter'
+export { Model, Message, init, block } from './block'

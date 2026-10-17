@@ -1,9 +1,7 @@
-import { Update } from 'foldkit'
-
+import { LoggedInComposition } from './definition'
 import { Message, OutMessage } from './message'
-import { Model } from './model'
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = LoggedInComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedLogout: () => ({
       model,

@@ -1,12 +1,7 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": ["./node_modules/@foldkit/oxlint-plugin/recommended.json"],
   "plugins": ["typescript"],
-  "jsPlugins": [
-    {
-      "name": "foldkit",
-      "specifier": "@foldkit/oxlint-plugin"
-    }
-  ],
   "categories": {
     "correctness": "off"
   },
@@ -23,19 +18,12 @@
     "typescript/no-explicit-any": "error",
     "typescript/consistent-type-assertions": [
       "error",
-      {
-        "assertionStyle": "never"
-      }
+      { "assertionStyle": "never" }
     ],
-    "foldkit/no-noop-message": "error",
-    "foldkit/got-submodel-message-name": "error",
-    "foldkit/got-prefix-requires-submodel-payload": "error",
-    "foldkit/no-empty-commands-array": "error",
-    "foldkit/no-empty-to-parent-out-message": "error",
-    "foldkit/no-empty-object-tagged-call": "error",
-    "foldkit/prefer-callable-message-constructor": "error",
-    "foldkit/command-binding-matches-name": "error",
-    "foldkit/no-module-level-mutable-state": "error"
+    "sort-imports": [
+      "error",
+      { "ignoreDeclarationSort": true, "ignoreCase": false }
+    ]
   },
   "ignorePatterns": [
     "dist/",

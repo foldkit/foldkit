@@ -1,11 +1,16 @@
 import clsx from 'clsx'
 import { Array, Match, Number, Option } from 'effect'
-import { File, Submodel } from 'foldkit'
+import { File } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 
-import { Button, FileDrop } from '@foldkit/ui'
+import { Button } from '@foldkit/ui'
 
-import { Message, type Model } from './attachments'
+import {
+  AdditionalFilesDropBinding,
+  AttachmentsComposition,
+  ResumeDropBinding,
+} from './composition'
+import { Message } from './definition'
 
 const BYTES_PER_KB = 1024
 const BYTES_PER_MB = BYTES_PER_KB * BYTES_PER_KB
@@ -115,9 +120,8 @@ const additionalFileView = (
     ],
   )
 
-export const view = Submodel.defineView<Model, Message>((model, h): Html => {
-  const { resumeDrop, maybeResume, additionalFilesDrop, additionalFiles } =
-    model
+export const view = AttachmentsComposition.makeView((model, h) => {
+  const { maybeResume, additionalFiles } = model
 
   const resumeSection = h.div(
     [h.Class('space-y-2')],
@@ -125,34 +129,33 @@ export const view = Submodel.defineView<Model, Message>((model, h): Html => {
       h.h3([h.Class('text-sm font-medium text-gray-700')], ['Resume (PDF)']),
       Option.match(maybeResume, {
         onNone: () =>
-          h.submodel({
-            slotId: resumeDrop.id,
-            model: resumeDrop,
-            view: FileDrop.view,
-            viewInputs: {
-              accept: ['application/pdf', '.doc', '.docx'],
-              toView: attributes =>
-                h.label(
-                  [
-                    ...attributes.root,
-                    h.Class(clsx(dropZoneClassName, 'py-6')),
-                  ],
-                  [
-                    h.p(
-                      [h.Class('text-sm text-gray-600')],
-                      ['Drop your resume or click to upload'],
-                    ),
-                    h.p(
-                      [h.Class('text-xs text-gray-400 mt-1')],
-                      ['PDF, DOC, or DOCX up to 10MB'],
-                    ),
-                    h.input(attributes.input),
-                  ],
-                ),
-            },
-            toParentMessage: message =>
-              Message.GotResumeDropMessage({ message }),
-          }),
+          h.block(
+            ResumeDropBinding.embedView({
+              slotId: model.resumeDrop.id,
+              model: model.resumeDrop,
+              viewInputs: {
+                accept: ['application/pdf', '.doc', '.docx'],
+                toView: attributes =>
+                  h.label(
+                    [
+                      ...attributes.root,
+                      h.Class(clsx(dropZoneClassName, 'py-6')),
+                    ],
+                    [
+                      h.p(
+                        [h.Class('text-sm text-gray-600')],
+                        ['Drop your resume or click to upload'],
+                      ),
+                      h.p(
+                        [h.Class('text-xs text-gray-400 mt-1')],
+                        ['PDF, DOC, or DOCX up to 10MB'],
+                      ),
+                      h.input(attributes.input),
+                    ],
+                  ),
+              },
+            }),
+          ),
         onSome: resume => resumeView(resume, h),
       }),
     ],
@@ -165,31 +168,30 @@ export const view = Submodel.defineView<Model, Message>((model, h): Html => {
         [h.Class('text-sm font-medium text-gray-700')],
         ['Additional Files (optional)'],
       ),
-      h.submodel({
-        slotId: additionalFilesDrop.id,
-        model: additionalFilesDrop,
-        view: FileDrop.view,
-        viewInputs: {
-          multiple: true,
-          toView: attributes =>
-            h.label(
-              [...attributes.root, h.Class(clsx(dropZoneClassName, 'py-8'))],
-              [
-                h.p(
-                  [h.Class('text-sm text-gray-500')],
-                  ['Drag and drop files here, or click to browse'],
-                ),
-                h.p(
-                  [h.Class('text-xs text-gray-400 mt-1')],
-                  ['Cover letters, certifications, portfolios, etc.'],
-                ),
-                h.input(attributes.input),
-              ],
-            ),
-        },
-        toParentMessage: message =>
-          Message.GotAdditionalFilesDropMessage({ message }),
-      }),
+      h.block(
+        AdditionalFilesDropBinding.embedView({
+          slotId: model.additionalFilesDrop.id,
+          model: model.additionalFilesDrop,
+          viewInputs: {
+            multiple: true,
+            toView: attributes =>
+              h.label(
+                [...attributes.root, h.Class(clsx(dropZoneClassName, 'py-8'))],
+                [
+                  h.p(
+                    [h.Class('text-sm text-gray-500')],
+                    ['Drag and drop files here, or click to browse'],
+                  ),
+                  h.p(
+                    [h.Class('text-xs text-gray-400 mt-1')],
+                    ['Cover letters, certifications, portfolios, etc.'],
+                  ),
+                  h.input(attributes.input),
+                ],
+              ),
+          },
+        }),
+      ),
       ...Array.match(additionalFiles, {
         onEmpty: () => [],
         onNonEmpty: files => [

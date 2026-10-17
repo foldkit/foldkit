@@ -13,8 +13,6 @@ const selectWrapperClassName = 'relative w-full'
 const chevronClassName =
   'pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-500'
 
-// VIEW
-
 export const basicDemo = (model: Model, h: HtmlBuilder<Message>) => {
   return [
     h.div(

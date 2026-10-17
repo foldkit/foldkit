@@ -1,5 +1,4 @@
 import { Number } from 'effect'
-import { Update } from 'foldkit'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
@@ -9,7 +8,7 @@ const SearchState = defineTaggedUnion({
   Cancelling: {},
 })
 
-const update = Update.define((model: Model, message: Message) =>
+const update = SearchComposition.makeUpdate((model, message) =>
   Message.match(message, {
     UpdatedQuery: ({ query }) =>
       SearchState.match(model.searchState, {

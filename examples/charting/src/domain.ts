@@ -1,7 +1,5 @@
 import { Array, Option, Schema, pipe } from 'effect'
 
-// MODEL
-
 export const ChartMode = Schema.Literals(['Adoption', 'Velocity', 'Ecosystem'])
 export type ChartMode = typeof ChartMode.Type
 export const chartModes: ReadonlyArray<ChartMode> = ChartMode.literals

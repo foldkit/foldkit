@@ -13,8 +13,6 @@ import {
 } from './meta'
 import { type BlogPost, formatPostDate, posts } from './posts'
 
-// VIEW
-
 // NOTE: the cover renders with an empty alt here because it sits inside the
 // link the title names. The post page announces the full coverImageAlt.
 const entryCoverImageView = (cover: PostCover, isFirstEntry: boolean): Html =>

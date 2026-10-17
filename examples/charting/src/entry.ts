@@ -1,26 +1,23 @@
-import { pipe } from 'effect'
-import { Application, Runtime } from 'foldkit'
+import { Runtime } from 'foldkit'
 
+import { ApplicationComposition } from './composition'
 import { registerEcharts } from './echarts'
 import { init } from './init'
-import { AppLayer, mounts } from './layer'
+import { EffectsLayer } from './layer'
 import { Message } from './message'
-import { Model } from './model'
+import { ApplicationLayer } from './services'
 import { update } from './update'
 import { view } from './view'
 
 registerEcharts()
 
-const application = Application.make({
-  Model,
+const application = ApplicationComposition.makeApplication({
   init,
   update,
   view,
-  mounts,
+  EffectsLayer,
   container: document.getElementById('root'),
-  devTools: {
-    Message,
-  },
+  devTools: { Message },
 })
 
-pipe(application, Application.provide(AppLayer), Runtime.run)
+Runtime.run(application.provide(ApplicationLayer))

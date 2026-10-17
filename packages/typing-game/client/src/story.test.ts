@@ -8,9 +8,11 @@ import { Message } from './message'
 import { Model } from './model'
 import { Home, Room } from './page'
 import { Message as HomeMessage } from './page/home/message'
+import { HomeStep } from './page/home/model'
 import { StartGame } from './page/room/command'
 import { Message as RoomMessage } from './page/room/message'
-import { AppRoute } from './route'
+import { RoomAsyncData } from './page/room/model'
+import { ApplicationRoute } from './route'
 import { update } from './update'
 
 const alice = { id: 'p1', username: 'alice' }
@@ -26,16 +28,16 @@ const waitingRoom: Shared.Room = {
   usedGameTexts: [],
 }
 
-const selectActionHome: Home.Model.Model = {
-  homeStep: Home.Model.HomeStep.SelectAction({
+const selectActionHome: typeof Home.Model.Type = {
+  homeStep: HomeStep.SelectAction({
     username: 'alice',
     selectedAction: 'CreateRoom',
   }),
   formError: Option.none(),
 }
 
-const joinedRoom: Room.Model.Model = {
-  roomAsyncData: Room.Model.RoomAsyncData.Success({ data: waitingRoom }),
+const joinedRoom: typeof Room.Model.Type = {
+  roomAsyncData: RoomAsyncData.Success({ data: waitingRoom }),
   maybeSession: Option.some({ roomId: 'r1', player: alice }),
   userGameText: '',
   charsTyped: 0,
@@ -44,25 +46,23 @@ const joinedRoom: Room.Model.Model = {
   exitCountdownSecondsLeft: 0,
 }
 
-const givenHomeRoute = () =>
-  given<Model>({
-    route: AppRoute.Home(),
-    home: selectActionHome,
-    room: joinedRoom,
-  })
+const givenHomeRoute = given<Model>({
+  route: ApplicationRoute.Home(),
+  home: selectActionHome,
+  maybeRoomInstance: Option.none(),
+})
 
-const givenRoomRoute = () =>
-  given<Model>({
-    route: AppRoute.Room({ roomId: 'r1' }),
-    home: selectActionHome,
-    room: joinedRoom,
-  })
+const givenRoomRoute = given<Model>({
+  route: ApplicationRoute.Room({ roomId: 'r1' }),
+  home: selectActionHome,
+  maybeRoomInstance: Option.some({ roomId: 'r1', model: joinedRoom }),
+})
 
 describe('key presses on the Home route', () => {
   test('a Home key press moves the home selection and leaves the room alone', () => {
     story(
       update,
-      givenHomeRoute(),
+      givenHomeRoute,
       message(
         Message.GotHomeMessage({
           message: HomeMessage.PressedKey({ key: 'ArrowDown' }),
@@ -73,7 +73,7 @@ describe('key presses on the Home route', () => {
           _tag: 'SelectAction',
           selectedAction: 'JoinRoom',
         })
-        expect(model.room).toEqual(joinedRoom)
+        expect(model.maybeRoomInstance).toEqual(Option.none())
       }),
       Command.expectNone(),
     )
@@ -82,14 +82,15 @@ describe('key presses on the Home route', () => {
   test('a Room key press does nothing', () => {
     story(
       update,
-      givenHomeRoute(),
+      givenHomeRoute,
       message(
         Message.GotRoomMessage({
+          roomId: 'r1',
           message: RoomMessage.PressedKey({ key: 'Enter' }),
         }),
       ),
       model(model => {
-        expect(model.room).toEqual(joinedRoom)
+        expect(model.maybeRoomInstance).toEqual(Option.none())
       }),
       Command.expectNone(),
     )
@@ -100,9 +101,10 @@ describe('key presses on the Room route', () => {
   test('a Room key press starts the game and leaves home alone', () => {
     story(
       update,
-      givenRoomRoute(),
+      givenRoomRoute,
       message(
         Message.GotRoomMessage({
+          roomId: 'r1',
           message: RoomMessage.PressedKey({ key: 'Enter' }),
         }),
       ),

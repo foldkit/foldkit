@@ -1,6 +1,7 @@
 export {
   init,
   update,
+  block,
   draggable,
   droppable,
   sortable,
@@ -15,7 +16,9 @@ export {
   OutMessage,
   FocusItem,
   ResolveKeyboardMove,
-  EffectsLayer,
 } from './index.js'
 
+export * as test from './test.js'
+
 export type { InitConfig, DraggableConfig, DraggableMessage } from './index.js'
+export type { SettleFocusInput, ResolveKeyboardMoveInput } from './test.js'

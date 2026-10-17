@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".."
+  },
+  "include": [
+    "../src/vite-env.d.ts",
+    "parent-owned-binding.rejected.ts",
+    "query-block.rejected.ts"
+  ]
+}

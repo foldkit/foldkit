@@ -1,12 +1,4 @@
-export {
-  Model,
-  Message,
-  OutMessage,
-  init,
-  EffectsLayer,
-  update,
-  hasErrors,
-  isComplete,
-  revealErrors,
-} from './entry'
-export { view } from './view'
+export { Model, Message, OutMessage } from './definition'
+export { init } from './init'
+export { hasErrors, isComplete, revealErrors } from './update'
+export { block } from './block'

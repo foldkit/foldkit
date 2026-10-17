@@ -1,34 +1,24 @@
-import { Layer, pipe } from 'effect'
-import { Socket } from 'effect/socket'
-import { Application, Runtime } from 'foldkit'
+import { Runtime } from 'foldkit'
 
-import {
+import { ApplicationComposition } from './composition'
+import { init } from './init'
+import { EffectsLayer } from './layer'
+import { managedResources } from './managedResource'
+import { Message } from './message'
+import { ApplicationLayer } from './services'
+import { subscriptions } from './subscription'
+import { update } from './update'
+import { view } from './view'
+
+const application = ApplicationComposition.makeApplication({
+  init,
+  update,
+  view,
+  subscriptions,
+  managedResources,
   EffectsLayer,
-  Message,
-  Model,
-  init,
-  managedResources,
-  subscriptions,
-  update,
-  view,
-} from './main'
-
-const application = Application.make({
-  Model,
-  init,
-  update,
-  view,
-  subscriptions,
-  managedResources,
   container: document.getElementById('root'),
-  devTools: {
-    Message,
-  },
+  devTools: { Message },
 })
 
-const AppLayer = Layer.provide(
-  EffectsLayer,
-  Socket.layerWebSocketConstructorGlobal,
-)
-
-pipe(application, Application.provide(AppLayer), Runtime.run)
+Runtime.run(application.provide(ApplicationLayer))

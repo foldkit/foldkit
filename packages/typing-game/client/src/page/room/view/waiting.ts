@@ -1,9 +1,9 @@
 import { Array, Match, Option, flow, pipe } from 'effect'
-import { Html, HtmlBuilder } from 'foldkit/html'
+import { Html } from 'foldkit/html'
 
 import * as Shared from '@typing-game/shared'
 
-import type { Message } from '../message'
+import type { RoomViewBuilder } from '../definition'
 import { RoomPlayerSession } from '../model'
 
 type Badge = 'Host' | 'You'
@@ -24,7 +24,7 @@ const player = (
   players: ReadonlyArray<Shared.Player>,
   hostId: string,
   maybeSession: Option.Option<RoomPlayerSession>,
-  h: HtmlBuilder<Message>,
+  h: RoomViewBuilder,
 ): Array<Html> =>
   Array.map(players, player => {
     const badges = pipe(
@@ -53,7 +53,7 @@ export const waiting = (
   players: ReadonlyArray<Shared.Player>,
   hostId: string,
   maybeSession: Option.Option<RoomPlayerSession>,
-  h: HtmlBuilder<Message>,
+  h: RoomViewBuilder,
 ): Html => {
   const isLocalPlayerHost = Option.exists(
     maybeSession,

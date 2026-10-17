@@ -1,11 +1,10 @@
 // page/settings/themeMenu/subscription.ts
 import { Effect, Schema, Stream } from 'effect'
-import { Subscription } from 'foldkit'
 
+import { themeMenu } from './definition'
 import { Message } from './message'
-import type { Model } from './model'
 
-export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+export const subscriptions = themeMenu.subscriptions(entry => ({
   themeMenuEscapePresses: entry(
     'ThemeMenuEscapePresses',
     { isOpen: Schema.Boolean },

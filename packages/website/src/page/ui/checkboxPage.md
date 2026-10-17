@@ -2,7 +2,7 @@
 
 ## Overview
 
-A toggle with checked, unchecked, and indeterminate states. Checkbox is a stateless controlled render helper. Call it directly with a ViewConfig in your own view, with no Model, update, or `h.submodel` wrapping of its own. Your Model owns the value passed as `isChecked`, and `onToggle` turns an interaction into a Message for update to store. For an on/off toggle that represents an immediate action, such as a light switch, use Switch instead.
+A toggle with checked, unchecked, and indeterminate states. Checkbox is a stateless controlled render helper. Call it directly with a ViewConfig in your own view, with no Model, update, or `h.block` wrapping of its own. Your Model owns the value passed as `isChecked`, and `onToggle` turns an interaction into a Message for update to store. For an on/off toggle that represents an immediate action, such as a light switch, use Switch instead.
 
 :::Info{label="See it in an app"}
 Check out how Checkbox is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/checkbox.ts).

@@ -1,9 +1,8 @@
 export {
-  EffectsLayer,
   init,
   update,
   view,
-  selectDate,
+  block,
   focusDate,
   reflectMinDate,
   reflectMaxDate,

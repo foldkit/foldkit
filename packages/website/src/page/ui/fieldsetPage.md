@@ -2,7 +2,7 @@
 
 ## Overview
 
-A semantic form section that groups related controls with a legend and description. Fieldset is a stateless render helper that wraps the native `<fieldset>` element: call it directly with a ViewConfig in your own view; no Model, update, or `h.submodel` wrapping. When disabled, the browser propagates the disabled state to all child form controls automatically.
+A semantic form section that groups related controls with a legend and description. Fieldset is a stateless render helper that wraps the native `<fieldset>` element: call it directly with a ViewConfig in your own view; no Model, update, or `h.block` wrapping. When disabled, the browser propagates the disabled state to all child form controls automatically.
 
 :::Info{label="See it in an app"}
 Check out how Fieldset is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/fieldset.ts).

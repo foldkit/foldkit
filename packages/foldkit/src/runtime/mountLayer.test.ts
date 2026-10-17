@@ -41,7 +41,7 @@ afterEach(() => {
 const makeApplication = (
   mounts: readonly [typeof AnchorPanel, ...ReadonlyArray<typeof AnchorPanel>],
 ) =>
-  Application.make({
+  Application.__makeFromConfig({
     Model,
     init: () => ({ model: { status: 'ready' } }),
     update,
@@ -59,8 +59,7 @@ const makeApplication = (
 describe('Layer-backed Mount runtime', () => {
   it('runs a registered Mount through its application Layer', async () => {
     const application = makeApplication([AnchorPanel])
-    const provided = Application.provide(
-      application,
+    const provided = application.provide(
       AnchorPanel.toLayer(
         Effect.succeed(({ label }) =>
           Effect.succeed(Message.CompletedAnchorPanel({ label })),
@@ -80,7 +79,7 @@ describe('Layer-backed Mount runtime', () => {
 
   it('crashes before patching an unregistered Layer-backed Mount', async () => {
     let reportedError: Error | undefined
-    const application = Application.make({
+    const application = Application.__makeFromConfig({
       Model,
       init: () => ({ model: { status: 'ready' } }),
       update,
@@ -126,7 +125,7 @@ describe('Layer-backed Mount runtime', () => {
       messages: [Message.CompletedAnchorPanel],
     })
     let reportedError: Error | undefined
-    const application = Application.make({
+    const application = Application.__makeFromConfig({
       Model,
       init: () => ({ model: { status: 'ready' } }),
       update,
@@ -145,8 +144,7 @@ describe('Layer-backed Mount runtime', () => {
       },
       container,
     })
-    const provided = Application.provide(
-      application,
+    const provided = application.provide(
       AnchorPanel.toLayer(
         Effect.succeed(({ label }) =>
           Effect.succeed(Message.CompletedAnchorPanel({ label })),
@@ -172,7 +170,7 @@ describe('Layer-backed Mount runtime', () => {
 
   it('checks a Layer-backed Mount revealed by a later Model state', async () => {
     let reportedError: Error | undefined
-    const application = Application.make({
+    const application = Application.__makeFromConfig({
       Model,
       init: () => ({ model: { status: 'ready' } }),
       update,
@@ -226,7 +224,7 @@ describe('Layer-backed Mount runtime', () => {
 
   it('allows a registered Mount Definition that the view does not render', async () => {
     let executions = 0
-    const application = Application.make({
+    const application = Application.__makeFromConfig({
       Model,
       init: () => ({ model: { status: 'ready' } }),
       update,
@@ -237,8 +235,7 @@ describe('Layer-backed Mount runtime', () => {
       mounts: [AnchorPanel],
       container,
     })
-    const provided = Application.provide(
-      application,
+    const provided = application.provide(
       AnchorPanel.toLayer(
         Effect.succeed(({ label }) => {
           executions += 1
@@ -258,15 +255,13 @@ describe('Layer-backed Mount runtime', () => {
     }
   })
 
-  it('rejects distinct registered definitions with the same name', () => {
+  it('does not globally reject distinct registered definitions with the same name', () => {
     const otherAnchorPanel = Mount.define('AnchorPanel', {
       args: { label: Schema.String },
       messages: [Message.CompletedAnchorPanel],
     })
 
-    expect(() => makeApplication([AnchorPanel, otherAnchorPanel])).toThrow(
-      'same name "AnchorPanel" but different definitions',
-    )
+    expect(() => makeApplication([AnchorPanel, otherAnchorPanel])).not.toThrow()
   })
 
   it('allows repeated registration of one definition', () => {
@@ -301,7 +296,7 @@ describe('Layer-backed Mount runtime', () => {
           }),
       ),
     )
-    const provided = Application.provide(application, handlerLayer)
+    const provided = application.provide(handlerLayer)
     const fiber = Effect.runFork(__startProgram(provided, undefined, 'Fresh'))
 
     await vi.waitFor(() => {
@@ -325,8 +320,7 @@ const checkApplicationTypes = (): void => {
   run(application)
 
   run(
-    Application.provide(
-      application,
+    application.provide(
       AnchorPanel.toLayer(
         Effect.succeed(({ label }) =>
           Effect.succeed(Message.CompletedAnchorPanel({ label })),

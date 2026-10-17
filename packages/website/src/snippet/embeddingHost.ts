@@ -1,6 +1,6 @@
 import { Runtime } from 'foldkit'
 
-import { makeElement } from './widget'
+import { createElement } from './widget'
 
 const container = document.getElementById('widget-slot')
 if (container === null) {
@@ -8,7 +8,7 @@ if (container === null) {
 }
 
 // Flags seed the widget's initial state at mount.
-const element = makeElement(container, { initialCount: 10 })
+const element = createElement(container, { initialCount: 10 })
 
 // embed starts the runtime and returns the handle. The handle is the whole
 // boundary: the host never reads the Model or dispatches Messages.

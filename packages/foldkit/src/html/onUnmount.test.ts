@@ -463,7 +463,7 @@ type ChildViewInputs = Readonly<{
   toView: (dialog: ReadonlyArray<ChildAttribute>) => VNode | null
 }>
 
-// A Submodel that publishes an OnUnmount attribute through its boundary,
+// A Block that publishes an OnUnmount attribute through its boundary,
 // mirroring how Ui.Dialog publishes `dialog` attributes carrying OnUnmount.
 const childView = defineView<
   Readonly<{ id: string }>,
@@ -480,7 +480,7 @@ const childView = defineView<
 })
 
 // Renders with a persistent boundary registry shared across renders and a
-// `beginRender` call each pass, matching how the runtime drives Submodel
+// `beginRender` call each pass, matching how the runtime drives Block
 // boundaries. The plain `renderView` above creates a fresh registry per call,
 // which is fine for boundary-free elements but would break boundary continuity.
 const renderViewWithRegistry = (
@@ -509,14 +509,14 @@ const renderViewWithRegistry = (
   return vnode
 }
 
-describe('OnUnmount across a Submodel boundary', () => {
+describe('OnUnmount across a Block boundary', () => {
   it('composes child and parent callbacks on the same element', () => {
     const h = __htmlBuilder<ParentMessage>()
     const { dispatch, dispatched } = createCapturingDispatch()
     const registry = createHtmlBoundaryRegistry()
 
-    // The OnUnmount-bearing element lives inside the Submodel, which is
-    // removed entirely on the second render. The Submodel's own destroy hook
+    // The OnUnmount-bearing element lives inside the Block, which is
+    // removed entirely on the second render. The Block's own destroy hook
     // deregisters its boundary wrap during the same patch, so a fire-time
     // boundary lookup in OnUnmount would crash with `dispatchAcrossBoundary
     // missing wrap`. Eager resolution at build time must avoid that race.
@@ -524,7 +524,7 @@ describe('OnUnmount across a Submodel boundary', () => {
       h.div(
         [],
         [
-          h.submodel({
+          h.block({
             slotId: 'child-dialog',
             model: { id: 'child-dialog' },
             view: childView,

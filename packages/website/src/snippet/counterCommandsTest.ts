@@ -1,7 +1,7 @@
 import { Command, given, message, model, story } from 'foldkit/story'
 import { expect, test } from 'vitest'
 
-import { Message, Model, WaitBeforeReset, update } from './main'
+import { Message, Model, WaitBeforeReset, update } from './application'
 
 test('resets the count after waiting', () => {
   story(

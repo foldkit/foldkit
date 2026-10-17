@@ -371,7 +371,7 @@ const formatUnknownVariantError = (
       )
       const failingTag = Option.getOrElse(failingSegment, () => '')
       const reason = failingIsKnownTag
-        ? `No further structure to drill into at path '${variantPath}'. The variant '${failingTag}' at ${prefixLabel} does not carry exactly one tagged-union payload field, which is what the walker steps through. Idiomatic Foldkit Messages have at most one tagged-union field per variant (the 'message' field on Submodel wrappers, or a single value-type union); state surrounding a Submodel call belongs as an argument to the child's update/view, not as a sibling field on the parent Message.`
+        ? `No further structure to drill into at path '${variantPath}'. The variant '${failingTag}' at ${prefixLabel} does not carry exactly one tagged-union payload field, which is what the walker steps through. Idiomatic Foldkit Messages have at most one tagged-union field per variant (the 'message' field on Block wrappers, or a single value-type union); state surrounding a Block call belongs as an argument to the child's update/view, not as a sibling field on the parent Message.`
         : `No Message variant at path '${variantPath}'. Available variants at ${prefixLabel}: ${available.join(', ')}.`
       return Response.ResponseError({ reason })
     },

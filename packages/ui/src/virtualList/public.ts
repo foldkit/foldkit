@@ -1,13 +1,9 @@
 export {
   init,
+  create,
   update,
-  informItemsChanged,
-  scrollTo,
-  scrollToEnd,
-  scrollToIndex,
-  scrollToKey,
-  scrollToOffset,
   view,
+  block,
   Model,
   Message,
   ContentAlignment,
@@ -15,11 +11,11 @@ export {
   ScrollTarget,
   ApplyScroll,
   ObserveVirtualList,
-  EffectsLayer,
   mounts,
 } from './index.js'
 
 export type {
+  Completed,
   InitConfig,
   RowHeightInputs,
   ScrollToOptions,

@@ -5,7 +5,7 @@ import { Transition } from 'foldkit/route'
 type Commands = ReadonlyArray<Command.Command<Message>>
 
 const commandsForTransition = (
-  transition: Transition.Transition<AppRoute>,
+  transition: Transition.Transition<ApplicationRoute>,
 ): Commands =>
   Option.match(Transition.entered(transition, 'Person'), {
     onNone: () => [],

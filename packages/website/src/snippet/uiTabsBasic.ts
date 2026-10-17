@@ -1,45 +1,34 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Option, Schema } from 'effect'
-import { Update } from 'foldkit'
-import type { HtmlBuilder } from 'foldkit/html'
+import { Schema, Tuple } from 'effect'
+import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 import { Tabs } from '@foldkit/ui'
+import type { RenderInfo as TabsRenderInfo } from '@foldkit/ui/tabs'
 
 const Framework = Schema.Literals(['Foldkit', 'React', 'Elm'])
 type Framework = typeof Framework.Type
 
-// Add fields to your Model for the Tabs Submodel and the active tab. The
-// Submodel keeps private keyboard-focus state; the parent owns the active
+const FrameworkTabs = Tabs.create<Framework>()
+
+// Add fields to your Model for the Tabs Block and the active tab. The
+// Block keeps private keyboard-focus state; the parent owns the active
 // tab value and passes it back in as selectedValue.
 const Model = Schema.Struct({
-  tabs: Tabs.Model,
+  tabs: FrameworkTabs.Model,
   activeFramework: Framework,
   // ...your other fields
 })
-
-// In your init function, initialize the Tabs Submodel with a unique id and
-// pick the starting active tab:
-const init = () => ({
-  model: {
-    tabs: Tabs.init({ id: 'framework-tabs' }),
-    activeFramework: 'Foldkit',
-    // ...your other fields
-  },
-})
+type Model = typeof Model.Type
 
 // Embed the Tabs Message in your parent Message:
 const Message = defineMessageUnion({
-  GotTabsMessage: { message: Tabs.Message },
+  GotTabsMessage: { message: FrameworkTabs.Message },
 })
-
-// Declare a typed Tabs factory once at module scope. The Value generic
-// types tab.value in toView so the consumer can switch on it without
-// casting:
-const FrameworkTabs = Tabs.create<Framework>()
+type Message = typeof Message.Type
 
 const frameworks: ReadonlyArray<Framework> = ['Foldkit', 'React', 'Elm']
 
@@ -54,9 +43,8 @@ const descriptions: Record<Framework, string> = {
 // value into your own Model so it flows back in as selectedValue. The arm
 // returns an Update.Step over the parent Model, which already has the next
 // Tabs Model written back:
-const foldTabsOutMessage = Tabs.OutMessage.match<
-  Update.Step<Model, Message>,
-  Tabs.OutMessage<Framework>
+const foldTabsOutMessage = FrameworkTabs.OutMessage.match<
+  Update.Step<Model, Message>
 >({
   // The child has emitted `Selected`. Store the selected value as the new
   // active tab. In this arm the parent can also update its own state or
@@ -67,29 +55,45 @@ const foldTabsOutMessage = Tabs.OutMessage.match<
     model => ({ model: modifyFields(model, { activeFramework: () => value }) }),
 })
 
-// Update.foldChild wires the child into the parent: it runs
-// FrameworkTabs.update, writes the next Tabs Model back, maps the Submodel's
+// The Binding wires the completed child Block into the parent: it runs
+// FrameworkTabs.update, writes the next Tabs Model back, maps the Block's
 // Commands into your Message type, and hands any OutMessage to
-// foldOutMessage.
-const foldTabs = Update.foldChild({
-  update: FrameworkTabs.update,
-  read: (model: Model) => Option.some(model.tabs),
-  write: (model, nextTabs) => modifyFields(model, { tabs: () => nextTabs }),
-  toParentMessage: message => Message.GotTabsMessage({ message }),
-  foldOutMessage: foldTabsOutMessage,
+// the OutMessage fold.
+const TabsExample = Block.define('TabsExample', {
+  Model,
+  Message,
 })
 
-// In the corresponding Message.match handler, call the fold:
-GotTabsMessage: ({ message }) => foldTabs(model, message)
+const TabsBinding = TabsExample.bindChild(FrameworkTabs, {
+  field: 'tabs',
+  parentMessage: Message.GotTabsMessage,
+  init: { args: () => Tuple.make({ id: 'framework-tabs' }) },
+  outMessage: { fold: foldTabsOutMessage },
+})
 
-// Inside your view function, embed the tabs via h.submodel and pass the
+const TabsExampleComposition = TabsExample.makeComposition({
+  childBindings: [TabsBinding],
+})
+
+// In your init function, initialize the Tabs Block with a unique id and
+// pick the starting active tab:
+const init = TabsExampleComposition.makeInit(() => ({
+  model: {
+    activeFramework: 'Foldkit',
+    // ...your other fields
+  },
+}))
+
+const update = TabsExampleComposition.makeUpdate()
+
+// Inside your view function, embed the tabs via h.block and pass the
 // parent-owned active tab as selectedValue:
-const view = (model: Model, h: HtmlBuilder<Message>) => {
+const view = TabsExampleComposition.makeView((model, h) => {
   const tabsView = ({
     tablist,
     tabs,
     activeIndex,
-  }: Tabs.RenderInfo<Framework>) =>
+  }: TabsRenderInfo<Framework>) =>
     h.div(
       [],
       [
@@ -118,16 +122,16 @@ const view = (model: Model, h: HtmlBuilder<Message>) => {
       ],
     )
 
-  return h.submodel({
-    slotId: 'framework-tabs',
-    model: model.tabs,
-    view: FrameworkTabs.view,
-    viewInputs: {
-      tabs: frameworks,
-      selectedValue: model.activeFramework,
-      ariaLabel: 'Framework comparison',
-      toView: tabsView,
-    },
-    toParentMessage: message => Message.GotTabsMessage({ message }),
-  })
-}
+  return h.block(
+    TabsBinding.embedView({
+      slotId: 'framework-tabs',
+      model: model.tabs,
+      viewInputs: {
+        tabs: frameworks,
+        selectedValue: model.activeFramework,
+        ariaLabel: 'Framework comparison',
+        toView: tabsView,
+      },
+    }),
+  )
+})

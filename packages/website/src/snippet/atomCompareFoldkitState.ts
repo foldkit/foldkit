@@ -1,8 +1,6 @@
 import { Array, Schema } from 'effect'
-import { type Update } from 'foldkit'
+import { defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-
-// MODEL
 
 const Filter = Schema.Literals(['All', 'Active', 'Done'])
 
@@ -12,8 +10,6 @@ export const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// MESSAGE
-
 const Message = defineMessageUnion({
   AddedTodo: {},
   ClearedDoneTodos: {},
@@ -21,10 +17,10 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-// UPDATE
+const Application = defineApplication({ Model, Message })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = ApplicationComposition.makeUpdate((model, message) =>
+  Message.match(message, {
     AddedTodo: () => ({
       model: modifyFields(model, { todos: Array.append(emptyTodo()) }),
     }),
@@ -34,4 +30,5 @@ export const update = (model: Model, message: Message) =>
     SelectedFilter: ({ filter }) => ({
       model: modifyFields(model, { filter: () => filter }),
     }),
-  })
+  }),
+)

@@ -8,7 +8,7 @@ When an unrecoverable error escapes update, view, or a Command, Foldkit stops th
 
 #### Crash Context
 
-The default crash view shows the error message and a reload button. To replace it, pass `crash.view` to `Application.make`. The function receives a `CrashContext`, followed by `h`. The context has three fields:
+The default crash view shows the error message and a reload button. To replace it, pass `crash.view` to `ApplicationComposition.makeApplication`. The function receives a `CrashContext`, followed by `h`. The context has three fields:
 
 - `error` is the error that stopped the application.
 - `model` is the Model at the time of the crash.

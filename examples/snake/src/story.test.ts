@@ -2,8 +2,13 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
+import {
+  GenerateApplePosition,
+  Message,
+  type Model,
+  update,
+} from './application'
 import { Snake } from './domain'
-import { GenerateApplePosition, Message, type Model, update } from './main'
 
 const initialSnake = Snake.create({ x: 10, y: 10 })
 

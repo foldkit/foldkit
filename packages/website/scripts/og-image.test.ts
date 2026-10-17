@@ -2,7 +2,11 @@ import { Array, Option } from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import { maybePostCover } from '../src/page/blog/frontmatter'
-import { AppRoute, routeToCanonicalUrl, routeToUrlPath } from '../src/route'
+import {
+  ApplicationRoute,
+  routeToCanonicalUrl,
+  routeToUrlPath,
+} from '../src/route'
 import { blogPosts } from './blogPosts'
 import { ORGANIZATION_SCHEMA, injectMetaTags } from './og-image'
 
@@ -43,7 +47,7 @@ const coverlessPost = Option.getOrThrowWith(
 
 describe('injectMetaTags', () => {
   describe('a blog post with a cover', () => {
-    const route = AppRoute.BlogPost({ postSlug: coverPost.slug })
+    const route = ApplicationRoute.BlogPost({ postSlug: coverPost.slug })
     const urlPath = `/blog/${coverPost.slug}`
     const ogSlug = `blog-${coverPost.slug}`
 
@@ -87,7 +91,7 @@ describe('injectMetaTags', () => {
   })
 
   describe('a blog post without a cover', () => {
-    const route = AppRoute.BlogPost({ postSlug: coverlessPost.slug })
+    const route = ApplicationRoute.BlogPost({ postSlug: coverlessPost.slug })
     const urlPath = `/blog/${coverlessPost.slug}`
 
     const html = injectMetaTags(baseHtml, route, urlPath, resolveApiModuleName)
@@ -105,7 +109,7 @@ describe('injectMetaTags', () => {
   describe('a documentation route', () => {
     const html = injectMetaTags(
       baseHtml,
-      AppRoute.Examples(),
+      ApplicationRoute.Examples(),
       '/example-apps',
       resolveApiModuleName,
     )
@@ -131,7 +135,7 @@ describe('injectMetaTags', () => {
   describe('a Playground route', () => {
     const html = injectMetaTags(
       baseHtml,
-      AppRoute.Playground({ exampleSlug: 'counter' }),
+      ApplicationRoute.Playground({ exampleSlug: 'counter' }),
       '/playground/counter',
       resolveApiModuleName,
     )
@@ -153,7 +157,7 @@ describe('injectMetaTags', () => {
   describe('a route outside the blog', () => {
     const html = injectMetaTags(
       baseHtml,
-      AppRoute.Home(),
+      ApplicationRoute.Home(),
       '/',
       resolveApiModuleName,
     )
@@ -219,7 +223,7 @@ describe('injectMetaTags', () => {
     it('marks up About, Contact, and Privacy as their schema.org page types', () => {
       const aboutHtml = injectMetaTags(
         baseHtml,
-        AppRoute.About(),
+        ApplicationRoute.About(),
         '/about',
         resolveApiModuleName,
       )
@@ -229,7 +233,7 @@ describe('injectMetaTags', () => {
 
       const contactHtml = injectMetaTags(
         baseHtml,
-        AppRoute.Contact(),
+        ApplicationRoute.Contact(),
         '/contact',
         resolveApiModuleName,
       )
@@ -237,7 +241,7 @@ describe('injectMetaTags', () => {
 
       const privacyHtml = injectMetaTags(
         baseHtml,
-        AppRoute.Privacy(),
+        ApplicationRoute.Privacy(),
         '/privacy',
         resolveApiModuleName,
       )
@@ -248,7 +252,7 @@ describe('injectMetaTags', () => {
     it('leaves ordinary documentation pages without a page-level schema', () => {
       const docsHtml = injectMetaTags(
         baseHtml,
-        AppRoute.CoreModel(),
+        ApplicationRoute.CoreModel(),
         '/core/model',
         resolveApiModuleName,
       )
@@ -264,31 +268,29 @@ describe('injectMetaTags', () => {
       () => new Error('expected at least one blog post'),
     )
 
-    it.each([AppRoute.Home(), AppRoute.BlogPost({ postSlug: firstPost.slug })])(
-      'writes canonical and og:url for %o',
-      route => {
-        const canonicalUrl = routeToCanonicalUrl(route)
-        const html = injectMetaTags(
-          baseHtml,
-          route,
-          routeToUrlPath(route),
-          resolveApiModuleName,
-        )
+    it.each([
+      ApplicationRoute.Home(),
+      ApplicationRoute.BlogPost({ postSlug: firstPost.slug }),
+    ])('writes canonical and og:url for %o', route => {
+      const canonicalUrl = routeToCanonicalUrl(route)
+      const html = injectMetaTags(
+        baseHtml,
+        route,
+        routeToUrlPath(route),
+        resolveApiModuleName,
+      )
 
-        expect(html).toContain(
-          `<link rel="canonical" href="${canonicalUrl}" />`,
-        )
-        expect(html).toContain(
-          `<meta property="og:url" content="${canonicalUrl}" />`,
-        )
-      },
-    )
+      expect(html).toContain(`<link rel="canonical" href="${canonicalUrl}" />`)
+      expect(html).toContain(
+        `<meta property="og:url" content="${canonicalUrl}" />`,
+      )
+    })
   })
 
   describe('the prerendered 404 page', () => {
     const html = injectMetaTags(
       baseHtml,
-      AppRoute.NotFound({ path: '/404' }),
+      ApplicationRoute.NotFound({ path: '/404' }),
       '/404',
       resolveApiModuleName,
     )

@@ -4,11 +4,11 @@ import { defineTaggedUnion } from '../schema/index.js'
 
 // SHARED
 
-/** A serialized Command produced during a Message dispatch (or `init`). `args` is `Some` when the Command declared an args record. `maybeSubmodelPath` is `None` until the result Message resolves, `Some([])` for a top-level result, and `Some(tags)` for a Submodel-routed result. */
+/** A serialized Command produced during a Message dispatch (or `init`). `args` is `Some` when the Command declared an args record. `maybeBlockPath` is `None` until the result Message resolves, `Some([])` for a top-level result, and `Some(tags)` for a Block-routed result. */
 export const SerializedCommand = Schema.Struct({
   name: Schema.String,
   args: Schema.OptionFromNullOr(Schema.Record(Schema.String, Schema.Unknown)),
-  maybeSubmodelPath: Schema.OptionFromNullOr(Schema.Array(Schema.String)),
+  maybeBlockPath: Schema.OptionFromNullOr(Schema.Array(Schema.String)),
 })
 /** A serialized Command suitable for transmission over the WS protocol. */
 export type SerializedCommand = typeof SerializedCommand.Type
@@ -21,7 +21,7 @@ export const SerializedMount = Schema.Struct({
 /** A serialized Mount lifecycle event suitable for transmission over the WS protocol. */
 export type SerializedMount = typeof SerializedMount.Type
 
-/** A serialized history entry as it appears on the wire. `submodelPath` lists `Got<Child>Message` wrapper tags from outer to inner when the entry came up through a Submodel chain; `maybeLeafTag` is `Some` with the innermost child Message tag when one exists. `mountStarts` lists Mounts that fired during the render after this Message; `mountEnds` lists Mounts whose elements were unmounted during that render. The Messages dispatched by mount Effects appear as their own entries elsewhere in history. */
+/** A serialized history entry as it appears on the wire. `blockPath` lists `Got<Child>Message` wrapper tags from outer to inner when the entry came up through a Block chain; `maybeLeafTag` is `Some` with the innermost child Message tag when one exists. `mountStarts` lists Mounts that fired during the render after this Message; `mountEnds` lists Mounts whose elements were unmounted during that render. The Messages dispatched by mount Effects appear as their own entries elsewhere in history. */
 export const SerializedEntry = Schema.Struct({
   index: Schema.Number,
   tag: Schema.String,
@@ -33,7 +33,7 @@ export const SerializedEntry = Schema.Struct({
   isModelChanged: Schema.Boolean,
   changedPaths: Schema.Array(Schema.String),
   affectedPaths: Schema.Array(Schema.String),
-  submodelPath: Schema.Array(Schema.String),
+  blockPath: Schema.Array(Schema.String),
   maybeLeafTag: Schema.OptionFromNullOr(Schema.String),
 })
 /** A serialized history entry suitable for transmission over the WS protocol. */
@@ -141,7 +141,7 @@ export const ModelDiffChange = Schema.Struct({
 /** One changed path in a Model diff. */
 export type ModelDiffChange = typeof ModelDiffChange.Type
 
-/** One variant entry in a `MessageSchemaIndex`. `payloadFields` lists the variant's payload property names (excluding `_tag`); `unionFields` lists the subset of those properties whose schemas are themselves `_tag`-discriminated unions. A Submodel-wrapper variant always shows up with `unionFields: ['message']`, but the same flag also catches plain tagged-union value types like `UrlRequest = Internal | External`. Either way, the agent will need to pick a variant when filling these fields. */
+/** One variant entry in a `MessageSchemaIndex`. `payloadFields` lists the variant's payload property names (excluding `_tag`); `unionFields` lists the subset of those properties whose schemas are themselves `_tag`-discriminated unions. A Block-wrapper variant always shows up with `unionFields: ['message']`, but the same flag also catches plain tagged-union value types like `UrlRequest = Internal | External`. Either way, the agent will need to pick a variant when filling these fields. */
 export const MessageSchemaIndexEntry = Schema.Struct({
   tag: Schema.String,
   payloadFields: Schema.Array(Schema.String),

@@ -946,6 +946,38 @@ describe("resolve applies the Command's own message mapping", () => {
   })
 })
 
+describe('child Block Command guidance', () => {
+  const submittedChildForm = Story.message(
+    ParentMessage.GotChildMessage({
+      message: FormChildJsChildMessage.SubmittedForm(),
+    }),
+  )
+
+  test('points at component test helpers when a child Block Command is left unresolved', () => {
+    expect(() =>
+      Story.story(
+        parentUpdate,
+        Story.given(initialParentModel),
+        submittedChildForm,
+      ),
+    ).toThrow('check its test namespace for a helper')
+  })
+
+  test('leaves the hint out when no leftover Command comes from a child', () => {
+    expect(() =>
+      Story.story(
+        update,
+        Story.given({ count: 0, log: [] }),
+        Story.message(CounterMessage.ClickedFetch()),
+      ),
+    ).toThrow(
+      expect.objectContaining({
+        message: expect.not.stringContaining('test namespace'),
+      }),
+    )
+  })
+})
+
 describe("resolveAll applies each Command's own message mapping", () => {
   test('parent resolves mapped child Commands with the raw result Messages', () => {
     Story.story(

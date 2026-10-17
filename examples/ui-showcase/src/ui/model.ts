@@ -64,7 +64,7 @@ export const DemoColumn = Schema.Struct({
 })
 export type DemoColumn = typeof DemoColumn.Type
 
-export const UiModel = Schema.Struct({
+export const Model = Schema.Struct({
   mobileMenuDialog: Dialog.Model,
   buttonClickCount: Schema.Number,
   inputDemoValue: Schema.String,
@@ -141,4 +141,4 @@ export const UiModel = Schema.Struct({
   virtualListDemo: VirtualList.Model,
   virtualListVariableDemo: VirtualList.Model,
 })
-export type UiModel = typeof UiModel.Type
+export type Model = typeof Model.Type

@@ -189,7 +189,7 @@ export const makeResourceProvider = <
       )
 
     return {
-      applicationContext,
+      applicationContext: providedContext,
       managedResourceRefs,
       provideAllResources,
       provideApplicationServices,

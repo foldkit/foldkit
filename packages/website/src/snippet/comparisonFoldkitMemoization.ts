@@ -1,14 +1,8 @@
 import { Array, Option, pipe } from 'effect'
-import {
-  type Document,
-  type HtmlBuilder,
-  createKeyedLazy,
-  createLazy,
-} from 'foldkit/html'
+import { createKeyedLazy, createLazy } from 'foldkit/html'
 
+import { ApplicationComposition } from './composition'
 import { isGridEmpty } from './grid'
-import type { Message } from './message'
-import type { Model } from './model'
 import { currentPaletteTheme } from './palette'
 import { canvasView } from './view/canvas'
 import { historyPanelView } from './view/history'
@@ -23,7 +17,7 @@ const lazyRow = createKeyedLazy()
 // modifyFields() preserves references for unchanged Model fields, so the check just
 // works, and the builder is the same object every render, so passing it
 // through the args never invalidates the cache.
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+export const view = ApplicationComposition.makeView((model, h) => {
   const theme = currentPaletteTheme(model)
   const currentGrid = model.isDrawing
     ? pipe(
@@ -63,4 +57,4 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
       ],
     ),
   }
-}
+})

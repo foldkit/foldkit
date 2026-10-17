@@ -1,21 +1,24 @@
 import { Option } from 'effect'
 import { Calendar } from 'foldkit'
 import { Command, given, message, model, story } from 'foldkit/story'
-import { modifyFields } from 'foldkit/struct'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
 import { Dialog } from '@foldkit/ui'
+import { CloseDialog, ShowDialog } from '@foldkit/ui/dialog'
 
-import { AppRoute, Message, type Model, update } from './main'
-import { uiInit } from './ui/init'
+import { Message } from './message'
+import { type Model } from './model'
+import { ApplicationRoute } from './route'
+import { init } from './ui/init'
+import { update } from './update'
 
 const today = Calendar.make(2026, 4, 16)
-const uiInit_ = uiInit(today)
+const init_ = init(today)
 
 const initialModel: Model = {
-  route: AppRoute.Home(),
-  uiModel: uiInit_.model,
+  route: ApplicationRoute.Home(),
+  uiModel: init_.model,
 }
 
 const urlOrThrow = (raw: string) =>
@@ -98,25 +101,15 @@ describe('update', () => {
 
   describe('mobile menu', () => {
     test('navigating to a new URL closes the mobile menu dialog', () => {
-      const modelWithOpenMenu: Model = modifyFields(initialModel, {
-        uiModel: modifyFields({
-          mobileMenuDialog: () =>
-            Dialog.boot({
-              id: 'mobile-menu',
-            }).model,
-        }),
-      })
-
       story(
         update,
-        given(modelWithOpenMenu),
+        given(initialModel),
+        message(Message.ClickedOpenMobileMenu()),
+        Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
         message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/button') }),
         ),
-        Command.resolve(
-          Dialog.CloseDialog,
-          Dialog.Message.CompletedCloseDialog(),
-        ),
+        Command.resolve(CloseDialog, Dialog.Message.CompletedCloseDialog()),
         model(model => {
           expect(model.uiModel.mobileMenuDialog.isOpen).toBe(false)
         }),

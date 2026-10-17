@@ -14,7 +14,7 @@ import type { VNode } from '../../vdom.js'
 import {
   FOLDKIT_APP_ATTRIBUTE,
   FOLDKIT_FLAGS_ATTRIBUTE,
-  renderToString as renderToStringWithOptions,
+  __renderFromConfig as renderToStringWithOptions,
 } from './server.js'
 
 const h = __htmlBuilder<never>()

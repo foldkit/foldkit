@@ -89,6 +89,13 @@ interface TypeDocRestType<Self> {
   readonly elementType: Self
 }
 
+interface TypeDocNamedTupleMemberType<Self> {
+  readonly type: 'namedTupleMember'
+  readonly name: string
+  readonly isOptional: boolean
+  readonly element: Self
+}
+
 interface TypeDocTupleType<Self> {
   readonly type: 'tuple'
   readonly elements: ReadonlyArray<Self>
@@ -172,6 +179,7 @@ export type TypeDocType =
   | TypeDocReferenceType<TypeDocType>
   | TypeDocArrayType<TypeDocType>
   | TypeDocRestType<TypeDocType>
+  | TypeDocNamedTupleMemberType<TypeDocType>
   | TypeDocTupleType<TypeDocType>
   | TypeDocUnionType<TypeDocType>
   | TypeDocIntersectionType<TypeDocType>
@@ -194,6 +202,7 @@ type TypeDocTypeEncoded =
   | TypeDocReferenceType<TypeDocTypeEncoded>
   | TypeDocArrayType<TypeDocTypeEncoded>
   | TypeDocRestType<TypeDocTypeEncoded>
+  | TypeDocNamedTupleMemberType<TypeDocTypeEncoded>
   | TypeDocTupleTypeEncoded<TypeDocTypeEncoded>
   | TypeDocUnionType<TypeDocTypeEncoded>
   | TypeDocIntersectionType<TypeDocTypeEncoded>
@@ -236,6 +245,12 @@ export const TypeDocTypeSchema = Schema.suspend(() =>
     Schema.Struct({
       type: Schema.Literal('rest'),
       elementType: TypeDocTypeSchema,
+    }),
+    Schema.Struct({
+      type: Schema.Literal('namedTupleMember'),
+      name: Schema.String,
+      isOptional: Schema.Boolean,
+      element: TypeDocTypeSchema,
     }),
     Schema.Struct({
       type: Schema.Literal('tuple'),

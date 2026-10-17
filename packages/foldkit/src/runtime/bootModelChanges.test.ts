@@ -129,23 +129,22 @@ afterEach(() => {
 
 describe('boot Model changes', () => {
   it('reaches Subscription and ManagedResource fibers when an OnMount Message changes the Model during the init render', async () => {
-    const element = Application.provide(
-      Application.makeElement({
-        Model,
-        init: (): Update.Return<Model, Message> => ({
-          model: {
-            activation: 'Inactive',
-            resourceStatus: 'Idle',
-            pulseStatus: 'Waiting',
-          },
-        }),
-        update,
-        view,
-        container,
-        managedResources,
-        subscriptions,
-        mounts: [ActivateApplication],
+    const element = Application.__makeElementFromConfig({
+      Model,
+      init: (): Update.Return<Model, Message> => ({
+        model: {
+          activation: 'Inactive',
+          resourceStatus: 'Idle',
+          pulseStatus: 'Waiting',
+        },
       }),
+      update,
+      view,
+      container,
+      managedResources,
+      subscriptions,
+      mounts: [ActivateApplication],
+    }).provide(
       Layer.mergeAll(
         BootResourceLayer,
         BootPulseLayer,

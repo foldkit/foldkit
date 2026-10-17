@@ -1,4 +1,4 @@
-Server.renderToString(config, {
+Server.renderToString(Application, config, {
   url: request.url,
   flags,
 })

@@ -1,14 +1,11 @@
 import { Match } from 'effect'
-import { Submodel } from 'foldkit'
 
 import { notFoundView } from '../../notFoundView'
 import { homeRouter } from '../../route'
-import { Message } from './message'
-import { Model } from './model'
+import { LoggedOutComposition, LoginBinding } from './composition'
 import * as Home from './page/home'
-import * as Login from './page/login'
 
-export const view = Submodel.defineView<Model, Message>((model, h) =>
+export const view = LoggedOutComposition.makeView((model, h) =>
   h.div(
     [h.Class('py-8')],
     [
@@ -16,12 +13,12 @@ export const view = Submodel.defineView<Model, Message>((model, h) =>
         Match.tagsExhaustive({
           Home: () => Home.view(h),
           Login: () =>
-            h.submodel({
-              slotId: 'login',
-              model: model.loginModel,
-              view: Login.view,
-              toParentMessage: message => Message.GotLoginMessage({ message }),
-            }),
+            h.block(
+              LoginBinding.embedView({
+                slotId: 'login',
+                model: model.loginModel,
+              }),
+            ),
           NotFound: ({ path }) =>
             notFoundView(path, homeRouter(), 'Go Home', h),
         }),

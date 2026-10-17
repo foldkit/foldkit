@@ -144,7 +144,7 @@ export const forkSubscriptionFibers = <Model, Message, Services>({
               Effect.catchCause(cause => crashWith(cause, Option.none())),
             ),
           )
-        }),
+        }).pipe(Effect.catchCause(cause => crashWith(cause, Option.none()))),
       {
         concurrency: 'unbounded',
         discard: true,

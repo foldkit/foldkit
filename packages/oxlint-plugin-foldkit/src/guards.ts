@@ -278,6 +278,7 @@ export const resolveImportedPath = (
   })
 
 const foldkitNamespaceBySource: Readonly<Record<string, string>> = {
+  'foldkit/application': 'Application',
   'foldkit/command': 'Command',
   'foldkit/experimental': 'Experimental',
   'foldkit/experimental/query': 'Query',
@@ -290,7 +291,7 @@ const foldkitNamespaceBySource: Readonly<Record<string, string>> = {
   'foldkit/runtime': 'Runtime',
   'foldkit/schema': 'Schema',
   'foldkit/struct': 'Struct',
-  'foldkit/submodel': 'Submodel',
+  'foldkit/block': 'Block',
   'foldkit/subscription': 'Subscription',
   'foldkit/update': 'Update',
 }
@@ -327,7 +328,7 @@ const isFunctionWithParameters = (
     node.type === 'FunctionDeclaration' ||
     node.type === 'FunctionExpression')
 
-const isFoldkitDefineViewCallback = (
+const isFoldkitDefinitionViewCallback = (
   references: WeakMap<ESTree.Node, Reference>,
   functionNode: ESTree.ArrowFunctionExpression | ESTree.Function,
 ): boolean => {
@@ -336,18 +337,7 @@ const isFoldkitDefineViewCallback = (
     return false
   }
 
-  return Option.exists(
-    resolveFoldkitApiPath(references, parent.callee),
-    path => {
-      const [namespace, helperName, extraMember] = path
-
-      return (
-        namespace === 'Submodel' &&
-        helperName === 'defineView' &&
-        extraMember === undefined
-      )
-    },
-  )
+  return isOwnedDefinitionCall(parent, 'makeView', references)
 }
 
 const hasHtmlBuilderTypeAnnotation = (
@@ -401,7 +391,7 @@ const isHtmlBuilderParameter = (
         Option.exists(
           Array.last(definition.node.params),
           parameter => parameter === definition.name,
-        ) && isFoldkitDefineViewCallback(references, definition.node)
+        ) && isFoldkitDefinitionViewCallback(references, definition.node)
       )
     }),
   )
@@ -485,3 +475,209 @@ export const firstStringArgument = (
   const [first] = node.arguments
   return isStringLiteral(first) ? first : undefined
 }
+
+export const firstCommandNameArgument = (
+  node: ESTree.CallExpression,
+): ESTree.StringLiteral | undefined => {
+  const [first] = node.arguments
+  if (isStringLiteral(first)) {
+    return first
+  }
+
+  if (!isCallExpression(first) || !isMemberExpression(first.callee)) {
+    return undefined
+  }
+
+  if (first.callee.computed || !isIdentifier(first.callee.property, 'name')) {
+    return undefined
+  }
+
+  const [name] = first.arguments
+  return isStringLiteral(name) ? name : undefined
+}
+
+const bindingConfigHasProperties = (
+  node: ESTree.CallExpression,
+  names: ReadonlyArray<string>,
+): boolean => {
+  const config = blockBindingConfiguration(node)
+  if (!isObjectExpression(config)) {
+    return false
+  }
+
+  const properties = new Set(
+    config.properties.flatMap(property =>
+      isObjectProperty(property)
+        ? Option.match(staticPropertyName(property), {
+            onNone: () => [],
+            onSome: name => [name],
+          })
+        : [],
+    ),
+  )
+  return names.every(name => properties.has(name))
+}
+
+const bindingConfigHasStaticStringProperty = (
+  node: ESTree.CallExpression,
+  name: string,
+): boolean => {
+  const config = blockBindingConfiguration(node)
+  if (!isObjectExpression(config)) {
+    return false
+  }
+
+  return config.properties.some(
+    property =>
+      isObjectProperty(property) &&
+      Option.contains(staticPropertyName(property), name) &&
+      Option.isSome(staticStringValue(property.value)),
+  )
+}
+
+/** Returns a parent-owned Binding configuration, or a standalone fold configuration. */
+export const blockBindingConfiguration = (
+  node: ESTree.CallExpression,
+): ESTree.CallExpression['arguments'][number] | undefined =>
+  Option.getOrUndefined(
+    Array.get(
+      node.arguments,
+      Option.exists(staticMemberPath(node.callee), path =>
+        Option.contains(Array.last(path.members), 'bindChild'),
+      )
+        ? 1
+        : 0,
+    ),
+  )
+
+/** Recognizes static and keyed parent-owned child Bindings from their configuration. */
+export const blockBindingMethod = (
+  node: ESTree.CallExpression,
+  references?: WeakMap<ESTree.Node, Reference>,
+): Option.Option<'Static' | 'Keyed'> => {
+  if (!isOwnedDefinitionCall(node, 'bindChild', references)) {
+    return Option.none()
+  }
+
+  if (
+    bindingConfigHasProperties(node, ['field', 'key', 'toParentMessage']) &&
+    bindingConfigHasStaticStringProperty(node, 'key')
+  ) {
+    return Option.some('Keyed')
+  }
+
+  if (
+    bindingConfigHasProperties(node, [
+      'readAll',
+      'key',
+      'read',
+      'writeAt',
+      'toParentMessage',
+    ])
+  ) {
+    return Option.some('Keyed')
+  }
+
+  const hasMessageMapping =
+    bindingConfigHasProperties(node, ['parentMessage']) ||
+    bindingConfigHasProperties(node, ['toParentMessage'])
+
+  if (
+    hasMessageMapping &&
+    (bindingConfigHasProperties(node, ['read', 'write']) ||
+      bindingConfigHasProperties(node, ['field']))
+  ) {
+    return Option.some('Static')
+  }
+
+  return Option.none()
+}
+
+/** Recognizes a definition method on a Block, Application, or imported feature owner. */
+export const isOwnedDefinitionCall = (
+  node: ESTree.CallExpression,
+  method: string,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean =>
+  Option.exists(staticMemberPath(node.callee), path => {
+    if (!Option.contains(Array.last(path.members), method)) {
+      return false
+    }
+
+    if (references === undefined) {
+      return true
+    }
+
+    const importedOwner = resolveImportedPath(references, path.root)
+    if (Option.isSome(importedOwner)) {
+      const { source } = importedOwner.value
+      return (
+        source.startsWith('.') ||
+        source.startsWith('@/') ||
+        source.startsWith('~/')
+      )
+    }
+
+    const isOwnedVariable = (
+      variable: Variable,
+      visited: ReadonlySet<Variable> = new Set(),
+    ): boolean => {
+      if (visited.has(variable)) {
+        return false
+      }
+
+      const isOwnedStage = (call: ESTree.CallExpression): boolean => {
+        if (
+          Option.exists(
+            resolveFoldkitApiPath(references, call.callee),
+            apiPath => {
+              const path = Array.join(apiPath, '.')
+              return (
+                path === 'Block.define' ||
+                path === 'Application.define' ||
+                path === 'defineApplication'
+              )
+            },
+          )
+        ) {
+          return true
+        }
+
+        if (
+          isMemberExpression(call.callee) &&
+          Option.exists(staticMemberName(call.callee), member =>
+            Array.contains(['define', 'makeComposition'], member),
+          ) &&
+          isCallExpression(call.callee.object)
+        ) {
+          return isOwnedStage(call.callee.object)
+        }
+
+        return Option.exists(
+          staticMemberPath(call.callee),
+          definePath =>
+            Option.exists(Array.last(definePath.members), methodName =>
+              Array.contains(['define', 'makeComposition'], methodName),
+            ) &&
+            Option.exists(
+              resolvedVariable(references, definePath.root),
+              ownerVariable =>
+                isOwnedVariable(ownerVariable, new Set([...visited, variable])),
+            ),
+        )
+      }
+
+      return variable.defs.some(
+        definition =>
+          definition.type === 'Variable' &&
+          isVariableDeclarator(definition.node) &&
+          isCallExpression(definition.node.init) &&
+          isOwnedStage(definition.node.init),
+      )
+    }
+
+    return Option.exists(
+      resolvedVariable(references, path.root),
+      isOwnedVariable,
+    )
+  })

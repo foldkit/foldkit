@@ -13,14 +13,11 @@ import {
 import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
-import {
-  Message,
-  SubmitForm,
-  ValidateEmail,
-  initialModel,
-  update,
-  view,
-} from './main'
+import { SubmitForm, ValidateEmail } from './command'
+import { initialModel } from './init'
+import { Message } from './message'
+import { update } from './update'
+import { view } from './view'
 
 describe('view', () => {
   test('initial view shows all fields and a disabled submit button', () => {

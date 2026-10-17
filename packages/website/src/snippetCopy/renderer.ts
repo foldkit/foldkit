@@ -1,21 +1,22 @@
-import { type HtmlBuilder } from 'foldkit/html'
+import { type Html } from 'foldkit/html'
 
 import { type CodeBlock } from '../component'
-import { type Message } from './message'
 import { type Model } from './model'
-import { view } from './view'
+import { type ViewInputs } from './view'
+
+type Render = (
+  config: Readonly<{
+    slotId: string
+    model: Model
+    viewInputs: ViewInputs
+  }>,
+) => Html
 
 export const renderer =
-  <ParentMessage>(
-    model: Model,
-    toParentMessage: (message: Message) => ParentMessage,
-    h: HtmlBuilder<ParentMessage>,
-  ): CodeBlock.RenderCopyButton =>
+  (model: Model, render: Render): CodeBlock.RenderCopyButton =>
   ({ id, text, ariaLabel, positionClass, variant }) =>
-    h.submodel({
+    render({
       slotId: `snippet-copy-${id}`,
       model,
-      view,
       viewInputs: { snippetId: id, text, ariaLabel, positionClass, variant },
-      toParentMessage,
     })

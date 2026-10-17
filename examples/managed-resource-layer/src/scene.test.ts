@@ -19,7 +19,7 @@ import {
   managedResources,
   update,
   view,
-} from './main'
+} from './application'
 
 const offModel = Model.make({
   engine: EngineState.Off(),

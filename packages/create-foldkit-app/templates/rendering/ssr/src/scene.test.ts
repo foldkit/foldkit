@@ -1,7 +1,7 @@
 import { Command, click, expect, given, role, scene, text } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import { Message, Model, PersistCount, update, view } from './main'
+import { Message, Model, PersistCount, update, view } from './application'
 
 const initialModel = Model.make({
   count: 3,

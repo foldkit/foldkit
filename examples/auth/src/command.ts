@@ -1,14 +1,14 @@
-import { Console, Effect, Schema } from 'effect'
+import { Console, Effect, Layer, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
-import { Command } from 'foldkit'
 import { load, pushUrl, replaceUrl } from 'foldkit/navigation'
 
 import { SESSION_STORAGE_KEY } from './constant'
+import { Application } from './definition'
 import { Session, SessionJsonString } from './domain/session'
 import { Message } from './message'
 import { dashboardRouter, homeRouter, loginRouter } from './route'
 
-export const SaveSession = Command.define('SaveSession', {
+export const SaveSession = Application.command('SaveSession', {
   args: { session: Session },
   messages: [Message.SucceededSaveSession, Message.FailedSaveSession],
   handler: function* () {
@@ -28,7 +28,7 @@ export const SaveSession = Command.define('SaveSession', {
   },
 })
 
-export const ClearSession = Command.define('ClearSession', {
+export const ClearSession = Application.command('ClearSession', {
   messages: [Message.SucceededClearSession, Message.FailedClearSession],
   handler: function* () {
     const store = yield* KeyValueStore.KeyValueStore
@@ -43,7 +43,7 @@ export const ClearSession = Command.define('ClearSession', {
   },
 })
 
-export const LogError = Command.define('LogError', {
+export const LogError = Application.command('LogError', {
   args: { entries: Schema.Array(Schema.Unknown) },
   messages: [Message.CompletedLogError],
   handler: function* () {
@@ -52,7 +52,7 @@ export const LogError = Command.define('LogError', {
   },
 })
 
-export const NavigateInternal = Command.define('NavigateInternal', {
+export const NavigateInternal = Application.command('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
   handler: function* () {
@@ -61,7 +61,7 @@ export const NavigateInternal = Command.define('NavigateInternal', {
   },
 })
 
-export const LoadExternal = Command.define('LoadExternal', {
+export const LoadExternal = Application.command('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {
@@ -70,7 +70,7 @@ export const LoadExternal = Command.define('LoadExternal', {
   },
 })
 
-export const RedirectToLogin = Command.define('RedirectToLogin', {
+export const RedirectToLogin = Application.command('RedirectToLogin', {
   messages: [Message.CompletedRedirectToLogin],
   handler: function* () {
     return () =>
@@ -80,7 +80,7 @@ export const RedirectToLogin = Command.define('RedirectToLogin', {
   },
 })
 
-export const RedirectToDashboard = Command.define('RedirectToDashboard', {
+export const RedirectToDashboard = Application.command('RedirectToDashboard', {
   messages: [Message.CompletedRedirectToDashboard],
   handler: function* () {
     return () =>
@@ -90,7 +90,7 @@ export const RedirectToDashboard = Command.define('RedirectToDashboard', {
   },
 })
 
-export const RedirectToHome = Command.define('RedirectToHome', {
+export const RedirectToHome = Application.command('RedirectToHome', {
   messages: [Message.CompletedRedirectToHome],
   handler: function* () {
     return () =>
@@ -99,3 +99,14 @@ export const RedirectToHome = Command.define('RedirectToHome', {
       )
   },
 })
+
+export const EffectsLayer = Layer.mergeAll(
+  SaveSession.layer,
+  ClearSession.layer,
+  LogError.layer,
+  NavigateInternal.layer,
+  LoadExternal.layer,
+  RedirectToLogin.layer,
+  RedirectToDashboard.layer,
+  RedirectToHome.layer,
+)

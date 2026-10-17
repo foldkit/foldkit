@@ -10,13 +10,13 @@ import {
   SubscriptionRef,
 } from 'effect'
 
+import { extractBlockInfo, isTagged } from '../devTools/blockPath.js'
 import {
   type CommandRecord,
   type DevToolsStore,
   type MountRecord,
   createDevToolsStore,
 } from '../devTools/store.js'
-import { extractSubmodelInfo, isTagged } from '../devTools/submodelPath.js'
 import { startWebSocketBridge } from '../devTools/webSocketBridge.js'
 import {
   MountRuntime,
@@ -94,9 +94,9 @@ const toCommandRecord = ({ id, command }: RecordableCommand): CommandRecord =>
         id,
         name: command.name,
         args: command.args,
-        maybeSubmodelPath: Option.none(),
+        maybeBlockPath: Option.none(),
       }
-    : { id, name: command.name, maybeSubmodelPath: Option.none() }
+    : { id, name: command.name, maybeBlockPath: Option.none() }
 
 /**
  * Builds the DevTools integration for one runtime from the `devTools`
@@ -340,11 +340,11 @@ export const makeDevToolsIntegration = <Model, Message>({
         return
       }
 
-      const submodelPath = isTagged(message)
-        ? extractSubmodelInfo(message._tag, message).submodelPath
+      const blockPath = isTagged(message)
+        ? extractBlockInfo(message._tag, message).blockPath
         : []
 
-      Effect.runFork(devToolsStore.recordResolvedCommand(id, submodelPath))
+      Effect.runFork(devToolsStore.recordResolvedCommand(id, blockPath))
     }
 
     const resumeDevTools = Effect.suspend(() =>

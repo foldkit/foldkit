@@ -201,14 +201,14 @@ When update returns Commands, Scene keeps them pending until the test supplies t
 
 ::Snippet{name="sceneCommandAssertions" label="Command assertions"}
 
-| Step                                                 | Effect                                                                                                                                                                                                                                       |
-| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Command.resolve(Def, ResultMessage)`                | Resolves the first pending Command with the given name by feeding `ResultMessage` through update. For a child Submodel Command, pass the child’s raw result Message; resolve replays the Command’s own `mapMessages` wrapping automatically. |
-| `Command.resolveAll([Def, ResultMessage], ...)`      | Resolves a batch of pending Commands, walking cascades. Each entry resolves exactly one matching dispatch in declaration order and unmatched entries carry forward; compose with Array.makeBy for N identical responses.                     |
-| `Command.resolveAllExact([Def, ResultMessage], ...)` | Resolves a batch and throws unless every listed resolver matches within the call and no actual Commands remain unresolved. Repeated Definition entries consume repeated dispatches in declaration order.                                     |
-| `Command.expectExact(A, B)`                          | The pending Commands are exactly A and B (order-independent).                                                                                                                                                                                |
-| `Command.expectHas(A)`                               | A is among the pending Commands (subset check).                                                                                                                                                                                              |
-| `Command.expectNone()`                               | There are no pending Commands.                                                                                                                                                                                                               |
+| Step                                                 | Effect                                                                                                                                                                                                                                    |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Command.resolve(Def, ResultMessage)`                | Resolves the first pending Command with the given name by feeding `ResultMessage` through update. For a child Block Command, pass the child’s raw result Message; resolve replays the Command’s own `mapMessages` wrapping automatically. |
+| `Command.resolveAll([Def, ResultMessage], ...)`      | Resolves a batch of pending Commands, walking cascades. Each entry resolves exactly one matching dispatch in declaration order and unmatched entries carry forward; compose with Array.makeBy for N identical responses.                  |
+| `Command.resolveAllExact([Def, ResultMessage], ...)` | Resolves a batch and throws unless every listed resolver matches within the call and no actual Commands remain unresolved. Repeated Definition entries consume repeated dispatches in declaration order.                                  |
+| `Command.expectExact(A, B)`                          | The pending Commands are exactly A and B (order-independent).                                                                                                                                                                             |
+| `Command.expectHas(A)`                               | A is among the pending Commands (subset check).                                                                                                                                                                                           |
+| `Command.expectNone()`                               | There are no pending Commands.                                                                                                                                                                                                            |
 
 ### Match Command Names and Arguments
 
@@ -234,14 +234,14 @@ This applies to Mounts declared inside `@foldkit/ui` components too. Popovers, d
 
 ::Snippet{name="sceneMountAssertions" label="Mount assertions"}
 
-| Step                                          | Effect                                                                                                                                                                                                                            |
-| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Mount.resolve(Def, ResultMessage)`           | Resolves the first pending mount with the given name by feeding `ResultMessage` through update. For a mount inside a child Submodel, resolve replays the boundary lift automatically, so you pass the child’s raw result Message. |
-| `Mount.resolveAll([Def, ResultMessage], ...)` | Resolves a batch of pending mounts in order.                                                                                                                                                                                      |
-| `Mount.expectExact(A, B)`                     | The pending mounts are exactly A and B (order-independent, by name).                                                                                                                                                              |
-| `Mount.expectHas(A)`                          | A is among the pending mounts (subset check).                                                                                                                                                                                     |
-| `Mount.expectNone()`                          | There are no pending mounts.                                                                                                                                                                                                      |
-| `Mount.expectEnded(A)`                        | A has disappeared from the rendered tree. Required for every Mount that fires and then unmounts during the scene, regardless of whether it was resolved first; otherwise the scene throws at the end.                             |
+| Step                                          | Effect                                                                                                                                                                                                                         |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Mount.resolve(Def, ResultMessage)`           | Resolves the first pending mount with the given name by feeding `ResultMessage` through update. For a mount inside a child Block, resolve replays the boundary lift automatically, so you pass the child’s raw result Message. |
+| `Mount.resolveAll([Def, ResultMessage], ...)` | Resolves a batch of pending mounts in order.                                                                                                                                                                                   |
+| `Mount.expectExact(A, B)`                     | The pending mounts are exactly A and B (order-independent, by name).                                                                                                                                                           |
+| `Mount.expectHas(A)`                          | A is among the pending mounts (subset check).                                                                                                                                                                                  |
+| `Mount.expectNone()`                          | There are no pending mounts.                                                                                                                                                                                                   |
+| `Mount.expectEnded(A)`                        | A has disappeared from the rendered tree. Required for every Mount that fires and then unmounts during the scene, regardless of whether it was resolved first; otherwise the scene throws at the end.                          |
 
 UI components export their Mount definitions (`Popover.AnchorPopover`, `Listbox.AnchorListbox`, and so on) so consumer tests can name them in `Mount.resolve`.
 
@@ -301,9 +301,9 @@ A single interaction can drive several updates. A click may invoke a target hand
 
 Scene replaces the tracked sequence after every step that drives update. A step whose updates omit `outMessage` clears the previous sequence, so `expectNoOutMessage()` describes the current transition instead of inheriting an earlier result. Assertions and other steps that do not drive update leave the sequence in place.
 
-## Submodels with ViewInputs
+## Blocks with ViewInputs
 
-A Submodel with ViewInputs has a `(model, viewInputs, h)` view. Scene expects `(model, h)`. `withViewInputs(view, defaults)` adapts the view once and returns a factory for Scene views.
+A Block with ViewInputs has a `(model, viewInputs, h)` view. Scene expects `(model, h)`. `withViewInputs(view, defaults)` adapts the view once and returns a factory for Scene views.
 
 ::Snippet{name="sceneWithViewInputs" label="Using withViewInputs"}
 

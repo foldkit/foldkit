@@ -1,7 +1,6 @@
-import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-const update = Update.define((model: Model, message: Message) =>
+const update = CounterComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedIncrement: () => {
       const nextCount = model.count + 1

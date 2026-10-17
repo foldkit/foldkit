@@ -3,10 +3,6 @@ export {
   update,
   view,
   triggerId,
-  open,
-  close,
-  selectDate,
-  clear,
   focusDate,
   reflectMinDate,
   reflectMaxDate,
@@ -18,7 +14,7 @@ export {
   type SelectedDate,
   type ClearedDate,
   type ChangedViewMonth,
-  EffectsLayer,
+  block,
   mounts,
 } from './index.js'
 

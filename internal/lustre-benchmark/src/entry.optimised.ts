@@ -1,13 +1,12 @@
 import { Runtime } from 'foldkit'
 
-import { Model, init, update } from './main'
-import { view } from './main.optimised'
+import { ApplicationComposition, init, update } from './application'
+import { view } from './view.optimised'
 
-const application = Runtime.makeApplication({
-  Model,
+const application = ApplicationComposition.makeApplication({
   init,
   update,
-  view,
+  view: ApplicationComposition.makeView(view),
   container: document.getElementById('root'),
   devTools: false,
 })

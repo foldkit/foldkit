@@ -2,6 +2,7 @@ import { Array, Equivalence, Number, Option, Schema, pipe } from 'effect'
 import { describe, expect, expectTypeOf, test, vi } from 'vitest'
 
 import * as CustomElement from '../customElement/index.js'
+import { defineView } from '../html/block.js'
 import {
   type HtmlBuilder,
   __htmlBuilder as attributeHtml,
@@ -13,7 +14,6 @@ import * as PublicScene from '../scene/public.js'
 import { h } from '../snabbdom/index.js'
 import type { VNode } from '../snabbdom/index.js'
 import { modifyFields } from '../struct/index.js'
-import { defineView } from '../submodel/public.js'
 import * as SubscriptionDefinition from '../subscription/subscription.js'
 import type * as Update from '../update/index.js'
 import {
@@ -5604,8 +5604,10 @@ describe('scene mounts', () => {
       Scene.given(mountInitialModel),
       Scene.tap(({ mounts }) => {
         expect(mounts).toHaveLength(2)
-        expect(mounts[0]).toEqual({ name: 'MeasurePanel', occurrence: 0 })
-        expect(mounts[1]).toEqual({ name: 'MeasurePanel', occurrence: 1 })
+        expect(mounts).toMatchObject([
+          { name: 'MeasurePanel', occurrence: 0 },
+          { name: 'MeasurePanel', occurrence: 1 },
+        ])
       }),
       Scene.Mount.resolve(
         MeasurePanel,
@@ -5618,8 +5620,8 @@ describe('scene mounts', () => {
     )
   })
 
-  test('resolveMount replays a Submodel-embedded mount boundary lift', () => {
-    // A mount that lives inside an h.submodel boundary has its result lifted
+  test('resolveMount replays a Block-embedded mount boundary lift', () => {
+    // A mount that lives inside an h.block boundary has its result lifted
     // into the parent's Message space by the boundary at dispatch time (via
     // ctx.dispatch) in production. resolveMount replays that lift from the
     // chain snapshotted onto the mount marker, so the test resolves the mount
@@ -5655,7 +5657,7 @@ describe('scene mounts', () => {
       return h.div(
         [],
         [
-          h.submodel({
+          h.block({
             slotId: 'child',
             model: model.child,
             view: childView,
@@ -5679,7 +5681,7 @@ describe('scene mounts', () => {
     )
 
     // The child's raw CompletedFocusButton arrived at parent update wrapped as
-    // GotChildMessage by the recovered Submodel-boundary lift.
+    // GotChildMessage by the recovered Block-boundary lift.
     expect(seen).toEqual([
       { _tag: 'GotChildMessage', message: { _tag: 'CompletedFocusButton' } },
     ])

@@ -1,17 +1,15 @@
-import type { Document, HtmlBuilder } from 'foldkit/html'
-
-import { ClickedIncrement, type Message } from './message'
-import type { Model } from './model'
+import { ApplicationComposition } from './composition'
+import { Message } from './message'
 
 // ✅ Keep view pure
-const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
+const view = ApplicationComposition.makeView((model, h) => ({
   title: model.title,
   body: h.div(
     [h.Class('container')],
     [
       h.h1([], [model.title]),
       h.p([], [`Count: ${model.count}`]),
-      h.button([h.OnClick(ClickedIncrement())], ['+']),
+      h.button([h.OnClick(Message.ClickedIncrement())], ['+']),
     ],
   ),
-})
+}))

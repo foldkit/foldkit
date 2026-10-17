@@ -10,6 +10,8 @@ import {
 } from 'effect'
 import { describe, expect, expectTypeOf, it } from 'vitest'
 
+import type { ValidateConstructionRequirements } from '../block/scope.js'
+import * as Command from '../command/index.js'
 import {
   type Handler,
   type HandlerOf,
@@ -23,7 +25,7 @@ import {
   tag,
 } from './managedResource.js'
 
-// A child Submodel owns a session resource and mounts/unmounts.
+// A child Block owns a session resource and mounts/unmounts.
 
 type ChildModel = Readonly<{ maybeToken: Option.Option<string> }>
 
@@ -32,6 +34,11 @@ type ChildMessage = Readonly<{
 }>
 
 const childMessage = (tag: ChildMessage['tag']): ChildMessage => ({ tag })
+
+const ConstructionManagedResourceCommand = Command.define(
+  'ConstructionManagedResourceCommand',
+  { messages: [Schema.String] },
+)
 
 const SessionResource = tag<Readonly<{ token: string }>>()('SessionResource')
 
@@ -201,6 +208,36 @@ const attachedManagedResources = make<ChildModel, ChildMessage>()(entry => ({
 }))
 
 if (false) {
+  childManagedResources.session.toLayer(
+    // @ts-expect-error Command handlers are unavailable while constructing a ManagedResource handler.
+    Effect.gen(function* () {
+      yield* ConstructionManagedResourceCommand().effect
+      return {
+        acquire: ({ token }) => Effect.succeed({ token }),
+        release: () => Effect.void,
+      }
+    }),
+  )
+
+  make<ChildModel, ChildMessage>()(entry => ({
+    guarded: entry('AttachedConstructionManagedResource', sessionSchema, {
+      resource: SessionResource,
+      modelToMaybeRequirements: model =>
+        Option.map(model.maybeToken, token => ({ token })),
+      onAcquired: () => childMessage('AcquiredSession'),
+      onReleased: () => childMessage('ReleasedSession'),
+      onAcquireError: () => childMessage('FailedSession'),
+      // @ts-expect-error Attached ManagedResource handlers have the same construction requirement guard.
+      handler: function* () {
+        yield* ConstructionManagedResourceCommand().effect
+        return {
+          acquire: ({ token }) => Effect.succeed({ token }),
+          release: () => Effect.void,
+        }
+      },
+    }),
+  }))
+
   const schemaFallbackEntries = make<ChildModel, ChildMessage>()(entry => ({
     annotatedHost: entry('AnnotatedSessionHost', annotatedSessionSchema, {
       resource: LayeredSessionResource,
@@ -420,7 +457,7 @@ if (false) {
       fields: Fields,
       resource: Resource,
       modelToRequirements: (model: ChildModel) => Schema.Struct.Type<Fields>,
-      handler: () => Generator<
+      handler: (() => Generator<
         Yielded,
         Readonly<{
           acquire: (
@@ -431,7 +468,8 @@ if (false) {
           ) => Effect.Effect<void, unknown, ReleaseRequirements>
         }>,
         unknown
-      >,
+      >) &
+        ValidateConstructionRequirements<Effect.Services<Yielded>>,
     ) =>
       entry('GenericManagedResource', Schema.Struct(fields), {
         resource,

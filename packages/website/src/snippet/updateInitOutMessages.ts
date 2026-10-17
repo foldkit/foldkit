@@ -1,59 +1,49 @@
-const OutMessage = defineMessageUnion({
-  RestoredSearch: { query: Schema.String },
-  RestoredEditor: { documentId: Schema.String },
-  RestoredWorkspace: {
-    maybeQuery: Schema.Option(Schema.String),
-    maybeDocumentId: Schema.Option(Schema.String),
-  },
-})
+import { Application } from './definition'
 
-const toParentSearchOutMessage = Search.OutMessage.match({
-  RestoredQuery: ({ query }) => OutMessage.RestoredSearch({ query }),
-})
-
-const toParentEditorOutMessage = Editor.OutMessage.match({
-  RestoredDraft: ({ documentId }) => OutMessage.RestoredEditor({ documentId }),
-})
-
-return Update.foldChildInits(
-  {
-    search: Search.boot(),
-    editor: Editor.boot(),
-  },
-  {
-    toParentModel: ({ search, editor }) => Model.make({ search, editor }),
-    folds: {
-      search: {
-        toParentMessage: message => Message.GotSearchMessage({ message }),
-        toParentOutMessage: toParentSearchOutMessage,
-      },
-      editor: {
-        toParentMessage: message => Message.GotEditorMessage({ message }),
-        toParentOutMessage: toParentEditorOutMessage,
-      },
-    },
-    resolveOutMessage: ({ search, editor }) =>
-      OutMessage.RestoredWorkspace({
-        maybeQuery: pipe(
-          Option.fromNullishOr(search),
-          Option.map(outMessage =>
-            Match.value(outMessage).pipe(
-              Match.tagsExhaustive({
-                RestoredSearch: ({ query }) => query,
-              }),
-            ),
-          ),
-        ),
-        maybeDocumentId: pipe(
-          Option.fromNullishOr(editor),
-          Option.map(outMessage =>
-            Match.value(outMessage).pipe(
-              Match.tagsExhaustive({
-                RestoredEditor: ({ documentId }) => documentId,
-              }),
-            ),
-          ),
-        ),
+const foldSearchOutMessage = Search.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  RestoredQuery:
+    ({ query }) =>
+    model => ({
+      model: modifyFields(model, {
+        maybeRestoredQuery: () => Option.some(query),
       }),
+    }),
+})
+
+const foldEditorOutMessage = Editor.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  RestoredDraft:
+    ({ documentId }) =>
+    model => ({
+      model: modifyFields(model, {
+        maybeRestoredDocumentId: () => Option.some(documentId),
+      }),
+    }),
+})
+
+const SearchBinding = Application.bindChild(Search.block, {
+  field: 'search',
+  parentMessage: Message.GotSearchMessage,
+  outMessage: { fold: foldSearchOutMessage },
+})
+
+const EditorBinding = Application.bindChild(Editor.block, {
+  field: 'editor',
+  parentMessage: Message.GotEditorMessage,
+  outMessage: { fold: foldEditorOutMessage },
+})
+
+const ApplicationComposition = Application.makeComposition({
+  childBindings: [SearchBinding, EditorBinding],
+})
+
+const init = ApplicationComposition.makeInit(() => ({
+  model: {
+    maybeRestoredQuery: Option.none(),
+    maybeRestoredDocumentId: Option.none(),
   },
-)
+  steps: [SearchBinding.restore(), EditorBinding.restore()],
+}))

@@ -1,47 +1,42 @@
-import { Schema } from 'effect'
-import { Runtime, type Update } from 'foldkit'
-import type { Document, Html, HtmlBuilder } from 'foldkit/html'
+import { Layer, Schema } from 'effect'
+import { defineApplication } from 'foldkit'
+import type { Document } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
-const InferredModel = Schema.Struct({ count: Schema.Number })
-type InferredModel = typeof InferredModel.Type
-
+const Model = Schema.Struct({ count: Schema.Number })
 const Message = defineMessageUnion({ Ticked: {} })
-type InferredMessage = typeof Message.Type
+const Application = defineApplication({ Model, Message })
 
-type InferredStep = Update.Return<InferredModel, InferredMessage>
+const ApplicationComposition = Application.makeComposition()
 
-const init = (): InferredStep => ({ model: { count: 0 } })
+const init = () => ({ model: Model.make({ count: 0 }) })
+const update = ApplicationComposition.makeUpdate(model => ({ model }))
+const elementView = ApplicationComposition.makeView((model, h) =>
+  h.div([], [String(model.count)]),
+)
+const applicationView = ApplicationComposition.makeView(
+  (model, h): Document => ({
+    title: `Count ${model.count}`,
+    body: h.div([], [String(model.count)]),
+  }),
+)
 
-const update = (model: InferredModel): InferredStep => ({ model })
-
-const elementView = (
-  model: InferredModel,
-  h: HtmlBuilder<InferredMessage>,
-): Html => h.div([], [String(model.count)])
-
-const applicationView = (
-  model: InferredModel,
-  h: HtmlBuilder<InferredMessage>,
-): Document => ({
-  title: `Count ${model.count}`,
-  body: h.div([], [String(model.count)]),
-})
+const EffectsLayer = Layer.empty
 
 export const makeInferredElement = (container: HTMLElement) =>
-  Runtime.makeElement({
-    Model: InferredModel,
+  ApplicationComposition.makeElement({
     init,
     update,
+    EffectsLayer,
     view: elementView,
     container,
   })
 
 export const makeInferredApplication = (container: HTMLElement | null) =>
-  Runtime.makeApplication({
-    Model: InferredModel,
+  ApplicationComposition.makeApplication({
     init,
     update,
+    EffectsLayer,
     view: applicationView,
     container,
   })

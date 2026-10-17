@@ -1,11 +1,13 @@
 import { clsx } from 'clsx'
 import { Array, Match, Option, String, pipe } from 'effect'
-import { type Mount, Submodel } from 'foldkit'
-import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
-
-import { Dialog } from '@foldkit/ui'
+import { Html, inertHtml as ih } from 'foldkit/html'
 
 import { Icon } from '../icon'
+import {
+  DialogBinding,
+  SearchComposition,
+  type SearchViewBuilder,
+} from './composition'
 import { Message, type SearchResult } from './message'
 import type { Model } from './model'
 import { SearchState, resultsFromState } from './model'
@@ -45,7 +47,7 @@ const handleSearchInputKeyDown = (
     Match.orElse(() => Option.none()),
   )
 
-const searchInputView = (model: Model, h: HtmlBuilder<Message>): Html => {
+const searchInputView = (model: Model, h: SearchViewBuilder): Html => {
   const isListboxVisible =
     model.searchState._tag === 'Ok' || model.searchState._tag === 'Loading'
 
@@ -105,7 +107,7 @@ const resultItemView = (
   result: typeof SearchResult.Type,
   index: number,
   isActive: boolean,
-  h: HtmlBuilder<Message>,
+  h: SearchViewBuilder,
 ): Html =>
   h.a(
     [
@@ -177,7 +179,7 @@ const noResultsView = (query: string): Html =>
 const resultListView = (
   results: ReadonlyArray<typeof SearchResult.Type>,
   activeResultIndex: number,
-  h: HtmlBuilder<Message>,
+  h: SearchViewBuilder,
 ): Html =>
   Array.match(results, {
     onEmpty: () => h.empty,
@@ -195,7 +197,7 @@ const resultListView = (
       ),
   })
 
-const resultsListView = (model: Model, h: HtmlBuilder<Message>): Html =>
+const resultsListView = (model: Model, h: SearchViewBuilder): Html =>
   SearchState.match<Html>(model.searchState, {
     Idle: () => emptyPrompt,
     Loading: ({ results }) =>
@@ -237,64 +239,59 @@ const keyboardWarmupInput: Html = ih.input([
   ih.Class('fixed top-0 left-0 w-px h-px opacity-0 pointer-events-none -z-10'),
 ])
 
-export const view = Submodel.defineView<
-  Model,
-  Message,
-  void,
-  Mount.RequirementsOf<typeof Dialog.mounts>
->((model, h): Html =>
+export const view = SearchComposition.makeView((model, h) =>
   h.div(
     [],
     [
       keyboardWarmupInput,
-      h.submodel({
-        slotId: model.dialog.id,
-        model: model.dialog,
-        view: Dialog.view,
-        viewInputs: {
-          toView: ({ dialog, backdrop, panel, title, isVisible }) =>
-            h.dialog(
-              [...dialog],
-              isVisible
-                ? [
-                    h.div([
-                      ...backdrop,
-                      h.Class(
-                        'fixed inset-0 z-[59] bg-black/50 dark:bg-black/70',
-                      ),
-                    ]),
-                    h.div(
-                      [
-                        ...panel,
+      h.block(
+        DialogBinding.embedView({
+          slotId: model.dialog.id,
+          model: model.dialog,
+          viewInputs: {
+            toView: ({ dialog, backdrop, panel, title, isVisible }) =>
+              h.dialog(
+                [...dialog],
+                isVisible
+                  ? [
+                      h.div([
+                        ...backdrop,
                         h.Class(
-                          'fixed inset-0 z-[60] overflow-y-auto px-4 sm:px-6 pointer-events-none [&>*]:pointer-events-auto',
+                          'fixed inset-0 z-[59] bg-black/50 dark:bg-black/70',
                         ),
-                      ],
-                      [
-                        h.div(
-                          [
-                            h.Class(
-                              'w-full max-w-xl mx-auto mt-[15vh] bg-white dark:bg-gray-900 rounded-xl shadow-2xl dark:shadow-black/50 border border-gray-200 dark:border-gray-700 overflow-hidden',
-                            ),
-                          ],
-                          [
-                            h.span(
-                              [...title, h.Class('sr-only')],
-                              ['Search documentation'],
-                            ),
-                            searchInputView(model, h),
-                            resultsListView(model, h),
-                            resultCountAnnouncement(model),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ]
-                : [],
-            ),
-        },
-        toParentMessage: message => Message.GotSearchDialogMessage({ message }),
-      }),
+                      ]),
+                      h.div(
+                        [
+                          ...panel,
+                          h.Class(
+                            'fixed inset-0 z-[60] overflow-y-auto px-4 sm:px-6 pointer-events-none [&>*]:pointer-events-auto',
+                          ),
+                        ],
+                        [
+                          h.div(
+                            [
+                              h.Class(
+                                'w-full max-w-xl mx-auto mt-[15vh] bg-white dark:bg-gray-900 rounded-xl shadow-2xl dark:shadow-black/50 border border-gray-200 dark:border-gray-700 overflow-hidden',
+                              ),
+                            ],
+                            [
+                              h.span(
+                                [...title, h.Class('sr-only')],
+                                ['Search documentation'],
+                              ),
+                              searchInputView(model, h),
+                              resultsListView(model, h),
+                              resultCountAnnouncement(model),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ]
+                  : [],
+              ),
+          },
+        }),
+      ),
     ],
   ),
 )

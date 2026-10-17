@@ -1,6 +1,8 @@
-// src/main.ts
+// src/init.ts
 
-export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
+import { ApplicationComposition } from './composition'
+
+export const init = ApplicationComposition.makeInit((flags: Flags) => ({
   model: {
     grid: Option.match(flags.maybeSavedCanvas, {
       onNone: () => createEmptyGrid(DEFAULT_GRID_SIZE),
@@ -12,21 +14,24 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
     mirrorMode: 'None',
     isDrawing: false,
     maybeHoveredCell: Option.none(),
-    errorDialog: Dialog.init({ id: 'export-error-dialog' }),
-    themeListbox: Listbox.init({ id: 'theme-picker' }),
     // remaining fields elided for brevity
   },
-})
+}))
 
-// src/entry.ts (imports Model, Flags, flags, init, update, view, subscriptions from ./main)
+// src/entry.ts
 
-const application = Application.make({
-  Model,
-  Flags,
+import { Runtime } from 'foldkit'
+
+import { Flags, flags } from './flags'
+import { init } from './init'
+import { update } from './update'
+import { view } from './view'
+
+const application = ApplicationComposition.makeApplication({
   init,
   update,
   view,
-  subscriptions,
+  Flags,
   container: document.getElementById('root'),
 })
 

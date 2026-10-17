@@ -1,13 +1,13 @@
-import { Array, Effect, Match, Number, Option, Schema, String } from 'effect'
-import { Command, Update } from 'foldkit'
+import { Array, Effect, Match, Number, Schema, String } from 'effect'
+import { Update } from 'foldkit'
 import * as Dom from 'foldkit/dom'
 import { pushUrl } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 
-import { Dialog } from '@foldkit/ui'
-
+import { SearchComposition } from './composition'
+import { DialogBinding } from './composition'
+import { Search } from './definition'
 import { Message, SearchResult } from './message'
-import type { Model } from './model'
 import { SearchState, resultsFromState } from './model'
 import { PagefindService } from './pagefind'
 
@@ -18,7 +18,7 @@ export const KEYBOARD_WARMUP_INPUT_ID = 'search-keyboard-warmup'
 
 const SEARCH_RESULT_SELECTOR = '[data-search-result-index='
 
-export const FetchSearchResults = Command.define('FetchSearchResults', {
+export const FetchSearchResults = Search.command('FetchSearchResults', {
   args: { query: Schema.String },
   messages: [Message.CompletedFetchSearchResults],
   handler: function* () {
@@ -59,7 +59,7 @@ export const FetchSearchResults = Command.define('FetchSearchResults', {
   },
 })
 
-export const ScrollToResult = Command.define('ScrollToResult', {
+export const ScrollToResult = Search.command('ScrollToResult', {
   args: { index: Schema.Number },
   messages: [Message.CompletedScrollToResult],
   handler: function* () {
@@ -71,7 +71,7 @@ export const ScrollToResult = Command.define('ScrollToResult', {
   },
 })
 
-export const NavigateToResult = Command.define('NavigateToResult', {
+export const NavigateToResult = Search.command('NavigateToResult', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateToResult],
   handler: function* () {
@@ -80,7 +80,7 @@ export const NavigateToResult = Command.define('NavigateToResult', {
   },
 })
 
-export const FocusSearchInput = Command.define('FocusSearchInput', {
+export const FocusSearchInput = Search.command('FocusSearchInput', {
   messages: [Message.CompletedFocusSearchInput],
   handler: function* () {
     return () =>
@@ -91,50 +91,16 @@ export const FocusSearchInput = Command.define('FocusSearchInput', {
   },
 })
 
-const foldSearchDialogOutMessage = Dialog.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Opened: () => model => ({ model }),
-  Closed: () => model => ({ model }),
-})
+const focusSearchInput = Search.step(model => ({
+  model,
+  commands: [FocusSearchInput()],
+}))
 
-const foldSearchDialog = Update.foldChild({
-  update: Dialog.update,
-  read: (model: Model) => Option.some(model.dialog),
-  write: (model, nextDialog) =>
-    modifyFields(model, { dialog: () => nextDialog }),
-  toParentMessage: message => Message.GotSearchDialogMessage({ message }),
-  foldOutMessage: foldSearchDialogOutMessage,
-})
+export const open = Search.step(() =>
+  Update.combine([DialogBinding.open(), focusSearchInput]),
+)
 
-const foldSearchDialogOpen = Update.foldChildStep({
-  update: Dialog.open,
-  read: (model: Model) => Option.some(model.dialog),
-  write: (model, nextDialog) =>
-    modifyFields(model, { dialog: () => nextDialog }),
-  toParentMessage: message => Message.GotSearchDialogMessage({ message }),
-  foldOutMessage: foldSearchDialogOutMessage,
-})
-
-const foldSearchDialogClose = Update.foldChildStep({
-  update: Dialog.close,
-  read: (model: Model) => Option.some(model.dialog),
-  write: (model, nextDialog) =>
-    modifyFields(model, { dialog: () => nextDialog }),
-  toParentMessage: message => Message.GotSearchDialogMessage({ message }),
-  foldOutMessage: foldSearchDialogOutMessage,
-})
-
-export const open = (model: Model) =>
-  Update.combine(model, [
-    foldSearchDialogOpen,
-    stepModel => ({
-      model: stepModel,
-      commands: [FocusSearchInput()],
-    }),
-  ])
-
-export const update = Update.define((model: Model, message: Message) =>
+export const update = SearchComposition.makeUpdate((model, message) =>
   Message.match(message, {
     UpdatedSearchQuery: ({ query }) => {
       if (query === model.query) {
@@ -187,7 +153,7 @@ export const update = Update.define((model: Model, message: Message) =>
 
     GotSearchDialogMessage: ({ message }) =>
       Update.combine(model, [
-        foldSearchDialog(message),
+        stepModel => DialogBinding.fold(stepModel, message),
         stepModel =>
           message._tag === 'CompletedCloseDialog'
             ? {
@@ -238,8 +204,10 @@ export const update = Update.define((model: Model, message: Message) =>
   }),
 )
 
-export const informRouteChanged = (model: Model) =>
-  Update.combine(model, [
-    stepModel => update(stepModel, Message.ClearedSearchQuery()),
-    foldSearchDialogClose,
-  ])
+const clearSearchQuery = Search.step(model =>
+  update(model, Message.ClearedSearchQuery()),
+)
+
+export const informRouteChanged = Search.step(() =>
+  Update.combine([clearSearchQuery, DialogBinding.close()]),
+)

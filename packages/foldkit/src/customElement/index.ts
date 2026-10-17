@@ -66,7 +66,7 @@ type EventFactories<
  *  itself is callable; each declared property gets a PascalCase factory
  *  method, and each declared event gets an `On{PascalCase}` factory method.
  *  The attribute array accepts {@link ChildAttribute} alongside
- *  `Attribute<Message>`, like every html element builder, so a Submodel's
+ *  `Attribute<Message>`, like every html element builder, so a Block's
  *  published attribute groups can be spread into a custom element. */
 export type ElementBuilder<
   Message,

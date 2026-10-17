@@ -27,7 +27,7 @@ export const renderedAt = Date.now()
   'patterns/src/entry.server.tsx': `
 export const hasWindow = typeof window !== 'undefined'
 `,
-  'patterns/server/main.ts': `
+  'patterns/server/application.ts': `
 export const title = globalThis.document.title
 export const generatedAt = Date.now()
 `,

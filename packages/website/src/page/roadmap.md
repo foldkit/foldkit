@@ -22,7 +22,7 @@ There is not a neat linear checklist between here and there, but the remaining w
 
 ### Build More Ambitious Applications
 
-This is the big one. We have 30-something example applications built as I'm writing this. [foldkit.dev](https://foldkit.dev) and [Typing Terminal](/example-apps/typing-terminal) have exposed problems that isolated examples never would. I've also built a few closed-source projects that have pushed the boundaries of the framework. The next applications need to push on deep Submodel trees, complicated forms, async state, data-heavy interaction, performance, browser APIs, routing, Mount integrations, server handoffs, and all the unknown unknowns you can only discover by just plain building things.
+This is the big one. We have 30-something example applications built as I'm writing this. [foldkit.dev](https://foldkit.dev) and [Typing Terminal](/example-apps/typing-terminal) have exposed problems that isolated examples never would. I've also built a few closed-source projects that have pushed the boundaries of the framework. The next applications need to push on deep Block trees, complicated forms, async state, data-heavy interaction, performance, browser APIs, routing, Mount integrations, server handoffs, and all the unknown unknowns you can only discover by just plain building things.
 
 When an application finds a missing primitive, an awkward API, or an unreasonable performance cost, that work goes back into Foldkit. No application should have to paper over a framework problem with a private convention.
 
@@ -40,7 +40,7 @@ Foldkit can be faster. It's already fast enough for most applications, but there
 
 ### Documentation
 
-Documentation is hard and time-consuming, mostly because it's the thing agents are worst at producing. It's also really important that it's good. Foldkit introduces a new programming model for the frontend. Yes, it's The Elm Architecture, but it adds significant surface area outside classic TEA: first-class Submodels, Mount, ManagedResources, Story and Scene testing, SSR, Machine, to name a few. All of these need to be documented and communicated clearly. I plan on taking at least a month to just read through and edit all of the existing documentation.
+Documentation is hard and time-consuming, mostly because it's the thing agents are worst at producing. It's also really important that it's good. Foldkit introduces a new programming model for the frontend. Yes, it's The Elm Architecture, but it adds significant surface area outside classic TEA: first-class Blocks, Mount, ManagedResources, Story and Scene testing, SSR, Machine, to name a few. All of these need to be documented and communicated clearly. I plan on taking at least a month to just read through and edit all of the existing documentation.
 
 ### Freeze It and Let It Sit
 
@@ -61,7 +61,7 @@ The project has come a long way.
 - **October 2025:** foldkit.dev went live, and I started the multiplayer typing game that became Typing Terminal.
 - **February 2026:** regular 0.x releases replaced canaries. Foldkit UI began, and Subscriptions and ManagedResources gave external streams and stateful services explicit lifecycles.
 - **March–April 2026:** DevTools made the running architecture visible. Scene joined Story so applications could be tested through either update or the rendered view. The Runtime also became inspectable by agents through the Model Context Protocol (MCP).
-- **May 2026:** first-class Submodels and a rendering overhaul made large applications easier to divide without giving up one-way data flow or predictable performance.
+- **May 2026:** first-class Blocks and a rendering overhaul made large applications easier to divide without giving up one-way data flow or predictable performance.
 - **June–July 2026:** Foldkit UI and DevTools became their own packages, the Oxlint plugin began enforcing Foldkit architecture, `@foldkit/markdown` shipped, and the rendering benchmark became reproducible from the repository.
 - **August 2026:** build-time SSG and request-time SSR shipped behind an experimental boundary. This site moved onto Foldkit's own SSG path, and the documentation became available as Markdown and through a versioned JSON API for agents.
 

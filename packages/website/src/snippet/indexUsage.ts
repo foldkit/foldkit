@@ -1,14 +1,11 @@
 import { Cart, Item } from './domain'
 import { Products } from './page'
 
-// Access page modules
+// Access a feature namespace
 Products.Model
-Products.view
-Products.update
-Products.EffectsLayer
-Products.subscriptions
-Products.managedResources
-Products.mounts
+Products.Message
+Products.block
+Products.OutMessage.match
 
 // Access domain modules
 Cart.addItem(item)(cart)

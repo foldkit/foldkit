@@ -2,12 +2,14 @@ import {
   Array,
   Context,
   Data,
+  DateTime,
   Effect,
   Layer,
   Number,
   Option,
   Schedule,
   Schema,
+  pipe,
 } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/http'
 
@@ -17,8 +19,7 @@ import { fetchJson, isSuccessfulStatus, makeUrl } from './http'
 
 const GITHUB_REPOSITORY_API = 'https://api.github.com/repos/foldkit/foldkit'
 const HTTP_ACCEPTED = 202
-const STARGAZER_PAGE_SIZE = 100
-const MAX_STARGAZER_PAGES = 10
+const STAR_HISTORY_PAGE_SIZE = 30
 const STAT_MAX_RETRIES = 1
 const STAT_RETRY_DELAY = '2 seconds' as const
 const RELEASE_PAGE_SIZE = 100
@@ -53,8 +54,10 @@ export const GitHubReleaseResponse = Schema.Struct({
   published_at: Schema.OptionFromOptional(Schema.String),
 })
 
-export const GitHubStargazerResponse = Schema.Struct({
-  starred_at: Schema.String,
+export const GitHubStarHistoryResponse = Schema.Struct({
+  week: Schema.Number,
+  total: Schema.Number,
+  days: Schema.Array(Schema.Number),
 })
 
 export const GitHubCommitActivityResponse = Schema.Struct({
@@ -84,11 +87,14 @@ type GitHubApiShape = Readonly<{
     Error
   >
   fetchReleases: (
-    yearCutoffMilliseconds: number,
+    yearCutoff: DateTime.Utc,
   ) => Effect.Effect<ReadonlyArray<typeof GitHubReleaseResponse.Type>, Error>
-  fetchStargazers: (
-    stargazerCount: number,
-  ) => Effect.Effect<ReadonlyArray<typeof GitHubStargazerResponse.Type>, Error>
+  fetchStarHistory: (
+    yearCutoff: DateTime.Utc,
+  ) => Effect.Effect<
+    ReadonlyArray<typeof GitHubStarHistoryResponse.Type>,
+    Error
+  >
   fetchCommitActivity: Effect.Effect<
     GitHubStatResult<ReadonlyArray<typeof GitHubCommitActivityResponse.Type>>,
     never
@@ -196,7 +202,7 @@ export const GitHubApiLayer: Layer.Layer<
           per_page: '100',
         }),
       ),
-      fetchReleases: (yearCutoffMilliseconds: number) => {
+      fetchReleases: (yearCutoff: DateTime.Utc) => {
         const fetchPage = (page: number) =>
           fetch_(Schema.Array(GitHubReleaseResponse))(
             makeUrl(`${GITHUB_REPOSITORY_API}/releases`, {
@@ -218,10 +224,12 @@ export const GitHubApiLayer: Layer.Layer<
                 onEmpty: () => Effect.succeed(accumulated),
                 onNonEmpty: releases => {
                   const withinYear = Array.filter(releases, release =>
-                    Option.exists(
+                    pipe(
                       release.published_at,
-                      publishedAt =>
-                        Date.parse(publishedAt) >= yearCutoffMilliseconds,
+                      Option.flatMap(DateTime.make),
+                      Option.exists(
+                        DateTime.isGreaterThanOrEqualTo(yearCutoff),
+                      ),
                     ),
                   )
 
@@ -244,23 +252,39 @@ export const GitHubApiLayer: Layer.Layer<
 
         return fetchFrom(1, [])
       },
-      fetchStargazers: (stargazerCount: number) => {
-        const pageCount = Math.min(
-          MAX_STARGAZER_PAGES,
-          Math.ceil(stargazerCount / STARGAZER_PAGE_SIZE),
-        )
-        return Effect.forEach(
-          Array.range(1, Math.max(1, pageCount)),
-          page =>
-            fetch_(Schema.Array(GitHubStargazerResponse))(
-              makeUrl(`${GITHUB_REPOSITORY_API}/stargazers`, {
-                per_page: `${STARGAZER_PAGE_SIZE}`,
-                page: `${page}`,
-              }),
-              { Accept: 'application/vnd.github.star+json' },
-            ),
-          { concurrency: 'unbounded' },
-        ).pipe(Effect.map(Array.flatten))
+      fetchStarHistory: (yearCutoff: DateTime.Utc) => {
+        const fetchFrom = (
+          page: number,
+          accumulated: ReadonlyArray<typeof GitHubStarHistoryResponse.Type>,
+        ): Effect.Effect<
+          ReadonlyArray<typeof GitHubStarHistoryResponse.Type>,
+          Error
+        > =>
+          fetch_(Schema.Array(GitHubStarHistoryResponse))(
+            makeUrl(`${GITHUB_REPOSITORY_API}/stargazers/history`, {
+              per_page: `${STAR_HISTORY_PAGE_SIZE}`,
+              page: `${page}`,
+            }),
+          ).pipe(
+            Effect.flatMap(history => {
+              const nextAccumulated = Array.appendAll(accumulated, history)
+              const isLastPage = Array.length(history) < STAR_HISTORY_PAGE_SIZE
+              const isCutoffReached = Array.some(history, ({ week }) =>
+                DateTime.isLessThanOrEqualTo(
+                  DateTime.fromEpochSeconds(week),
+                  yearCutoff,
+                ),
+              )
+
+              if (isLastPage || isCutoffReached) {
+                return Effect.succeed(nextAccumulated)
+              } else {
+                return fetchFrom(Number.increment(page), nextAccumulated)
+              }
+            }),
+          )
+
+        return fetchFrom(1, [])
       },
       fetchCommitActivity: fetchStat_(
         Schema.Array(GitHubCommitActivityResponse),

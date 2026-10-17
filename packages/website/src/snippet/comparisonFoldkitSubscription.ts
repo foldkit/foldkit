@@ -1,6 +1,13 @@
-export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+import { Effect, Schema, Stream } from 'effect'
+import { Dom } from 'foldkit'
+
+import { toToolMessage, toUndoRedoMessage } from './keyboard'
+import { Message } from './message'
+import { pixelArt } from './update'
+
+export const subscriptions = pixelArt.subscriptions(entry => ({
   undoRedoKeyPresses: entry('UndoRedoKeyPresses', {
-    messages: [ClickedUndo, ClickedRedo],
+    messages: [Message.ClickedUndo, Message.ClickedRedo],
     handler: function* () {
       return () =>
         Dom.streamFromEventFilterMapPreventDefault({
@@ -12,7 +19,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   }),
 
   toolKeyPresses: entry('ToolKeyPresses', {
-    messages: [SelectedTool],
+    messages: [Message.SelectedTool],
     handler: function* () {
       return () =>
         Dom.streamFromEventFilterMap({
@@ -27,13 +34,13 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     'MouseReleases',
     { isDrawing: Schema.Boolean },
     {
-      messages: [ReleasedMouse],
+      messages: [Message.ReleasedMouse],
       modelToDependencies: model => ({ isDrawing: model.isDrawing }),
       handler: function* () {
         return ({ isDrawing }) =>
           Stream.when(
             Stream.fromEventListener(document, 'mouseup').pipe(
-              Stream.map(() => ReleasedMouse()),
+              Stream.map(() => Message.ReleasedMouse()),
             ),
             Effect.succeed(isDrawing),
           )

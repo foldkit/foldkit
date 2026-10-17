@@ -107,6 +107,8 @@ const optionalContextUpdate = define(
 
 const modelOnlyUpdate = define((model: Model) => ({ model }))
 
+const noMessageUpdate = define((model: Model, _message: never) => ({ model }))
+
 const loadProfileStep = defineStep(
   (model: Model, _context?: DispatchContext) => ({
     model,
@@ -193,6 +195,10 @@ describe('define', () => {
 
     expectTypeOf(modelOnlyUpdate).toEqualTypeOf<
       (model: Model) => Return<Model, undefined>
+    >()
+
+    expectTypeOf(noMessageUpdate).toEqualTypeOf<
+      (model: Model, message: never) => Return<Model, never>
     >()
 
     expectTypeOf(restContextUpdate).toEqualTypeOf<

@@ -103,6 +103,12 @@ jobs:
       - name: Build reusable packages
         run: pnpm build:packages && pnpm --filter @typing-game/shared build
 
+      - name: Check emitted Foldkit declarations
+        run: pnpm check:emitted-declarations
+
+      - name: Check Block type performance
+        run: pnpm check:block-type-performance
+
       - name: Lint
         run: pnpm lint:ci
 

@@ -6,14 +6,12 @@
 
 This counter puts the core loop from [Architecture](/core/architecture) into one small application. Its Model holds the count. Its Messages record button clicks. Its update function decides the next count, and its view renders the result.
 
-The example uses two files. `src/main.ts` holds the pure application definitions: Model, Messages, update, init, and view. Larger applications can split those definitions into focused modules. `src/entry.ts` remains the runtime boundary, so tests can import the application without starting it as a side effect. When later sections add effects, `main.ts` also exports an `EffectsLayer` built from the handlers attached to its Commands and Subscriptions, and `entry.ts` provides that bundle before starting the Runtime.
-
-::Snippet{name="counter" label="Counter main.ts"}
+The example uses two files. `src/application.ts` defines the typed `Application` with its Model and Message contracts, creates the named graphless `ApplicationComposition`, then authors init, update, and the primary view through that Composition. Each `make*` method returns a function or configured value without calling it. `src/entry.ts` completes the same Composition with init, update, view, and the browser container, producing a passive runtime input for `Runtime.run`. Importing the application pieces in a test does not start the browser application. When a larger root extracts one of these responsibilities, split all of its standard pieces into their named files as described in [Project Organization](/patterns/project-organization#root-application-assembly).
+::Snippet{name="counter" label="Counter Application"}
 
 ### Runtime Entry
 
-The entry passes those definitions to `Application.make`. `Runtime.run` then starts the application in the selected container.
-
+The entry imports `ApplicationComposition` and the implementation pieces, then calls the Composition's owned `makeApplication` method. The returned lowercase `application` is passive configuration. `Runtime.run` constructs its Layers and starts the application.
 ::Snippet{name="counterEntry" label="Counter entry.ts"}
 
 ### Where to Go Next

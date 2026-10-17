@@ -4,11 +4,13 @@
 
 A dropdown menu for actions, like a macOS context menu. Menu is fire-and-forget: each activation is an action, not a choice that persists (use Listbox for selection, where the parent owns the selected value). It supports typeahead search, drag-to-select, keyboard navigation, grouped items, and anchor positioning.
 
-### Programmatic Helpers and Bundle Type
+### Programmatic API and Completed Type
 
-Programmatic helpers are child entry points. Fold the factory's `open` and `close` helpers with `Update.foldChildStep`. Fold `selectItem` with `Update.foldChild` because it takes the selected item and index as input.
+Programmatic operations are exposed through the Binding. Call `menu.open()` and `menu.close()`. Call `menu.selectItem(item, index)` with the selected item and index.
 
-What `Menu.create<Item>()` returns is typed [`Menu.Bundle<Item>`](/ui/selection-submodels#bundle-type), for the cases where a created bundle has to be named rather than called directly.
+What `Menu.create<Item>()` returns is typed [`Completed<Item>` from `@foldkit/ui/menu`](/ui/selection-blocks#completed-type), for the cases where a created Block has to be named rather than called directly.
+
+Use `Menu.block` for plain strings. Connect the completed Block returned by `Menu.create<Item>()` when the item type is narrower.
 
 :::Info{label="See it in an app"}
 Check out how Menu is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/menu.ts).
@@ -71,9 +73,9 @@ The button receives `aria-haspopup="menu"` and `aria-expanded`. The items contai
 
 ### Naming the Trigger
 
-Give the trigger an accessible name. For a visible label, wire a native `<label for>` that targets the trigger id with `Menu.buttonId(id)` rather than hardcoding the `-button` convention. The `for` association makes the trigger properly labeled: assistive technology announces it by the visible label text, and clicking the label opens the menu. That is why it is the recommended pattern.
+Give the trigger an accessible name. For a visible label, wire a native `<label for>` that targets the trigger id with `buttonId(id)` imported from `@foldkit/ui/menu` rather than hardcoding the `-button` convention. The `for` association makes the trigger properly labeled: assistive technology announces it by the visible label text, and clicking the label opens the menu. That is why it is the recommended pattern.
 
-Two ViewConfig fields cover the cases a `<label for>` does not. Pass `ariaLabel` for an icon-only trigger with no visible label, or `ariaLabelledBy` when the element that names the trigger is not a `<label>` you can point `for` at.
+Two ViewInputs fields cover the cases a `<label for>` does not. Pass `ariaLabel` for an icon-only trigger with no visible label, or `ariaLabelledBy` when the element that names the trigger is not a `<label>` you can point `for` at.
 
 ## API Reference
 
@@ -87,14 +89,12 @@ Configuration object passed to `Menu.init()`.
 | `isAnimated` | `boolean` | `false` | Enables animation coordination.                             |
 | `isModal`    | `boolean` | `false` | Locks page scroll and marks other elements inert when open. |
 
-### ViewConfig {#view-config}
+### ViewInputs {#view-config}
 
-Configuration object passed to `Menu.view()`.
+Pass the child Model as `model` and these fields as `viewInputs` to the Menu Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep callback fields at the top level, and use `childAttributes` for handler-bearing attribute inputs; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
 
 | Name                    | Type                                                     | Default | Description                                                                                                                                                                                                                                                                                                                          |
 | ----------------------- | -------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `model`                 | `Menu.Model`                                             | —       | The menu state from your parent Model.                                                                                                                                                                                                                                                                                               |
-| `toParentMessage`       | `(childMessage: Menu.Message) => ParentMessage`          | —       | Wraps Menu Messages in your parent Message type for Submodel delegation.                                                                                                                                                                                                                                                             |
 | `items`                 | `ReadonlyArray<Item>`                                    | —       | The list of menu items.                                                                                                                                                                                                                                                                                                              |
 | `itemToConfig`          | `(item, context) => ItemConfig`                          | —       | Maps each item to its className and content. The context provides isActive and isDisabled.                                                                                                                                                                                                                                           |
 | `buttonContent`         | `Html`                                                   | —       | Content rendered inside the trigger button.                                                                                                                                                                                                                                                                                          |
@@ -123,8 +123,8 @@ Configuration object passed to `Menu.view()`.
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the optional `outMessage` field. Fold the OutMessage in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config.
+Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s `outMessage.fold` policy.
 
-| Name       | Type                             | Default | Description                                                                                                                                                                                                                                                                                                                                                    |
-| ---------- | -------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Selected` | `{ value: Item; index: number }` | —       | Emitted when a menu item is selected. Carries both the value (typed as your `Item` union via `Menu.create<Item>()`) and its index into the items array supplied at view time. Menu closes itself on selection; the parent does not need to dispatch Menu.close. Fold it in the `foldOutMessage` of your Menu fold to dispatch the corresponding domain action. |
+| Name       | Type                             | Default | Description                                                                                                                                                                                                                                                                                                                                                      |
+| ---------- | -------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Selected` | `{ value: Item; index: number }` | —       | Emitted when a menu item is selected. Carries both the value (typed as your `Item` union via `Menu.create<Item>()`) and its index into the items array supplied at view time. Menu closes itself on selection; the parent does not need to call `menu.close()`. Handle it in the Binding's `outMessage.fold` policy to dispatch the corresponding domain action. |

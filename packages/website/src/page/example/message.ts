@@ -9,7 +9,6 @@ export const Message = defineMessageUnion({
   GotSourceFileTabsMessage: { message: Tabs.Message },
   ChangedExampleUrl: { url: Schema.String },
   ToggledLivePreview: { isOpen: Schema.Boolean },
-  RequestedExampleSources: { slug: Schema.String },
   SucceededLoadExampleSources: { sources: ExampleSources },
   FailedLoadExampleSources: { error: Schema.String },
 })

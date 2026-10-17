@@ -1,7 +1,13 @@
-import type { Html, HtmlBuilder } from 'foldkit/html'
+import type { Html } from 'foldkit/html'
 
 import { HoverIntent } from '@foldkit/ui'
+import type { RenderInfo as HoverIntentRenderInfo } from '@foldkit/ui/hoverIntent'
 
+import type { UiViewBuilder } from '../composition'
+import {
+  HoverIntentCardDemoBinding,
+  HoverIntentMenuDemoBinding,
+} from '../composition'
 import { Message } from '../message'
 
 const triggerClassName =
@@ -22,8 +28,8 @@ const MENU_TRIGGER_ID = 'hover-intent-menu-trigger'
 const MENU_PANEL_ID = 'hover-intent-menu-panel'
 
 const hoverCard = (
-  { trigger, panel, isVisible }: HoverIntent.RenderInfo,
-  h: HtmlBuilder<Message>,
+  { trigger, panel, isVisible }: HoverIntentRenderInfo,
+  h: UiViewBuilder,
 ): Html =>
   h.div(
     [h.Class('relative')],
@@ -68,30 +74,29 @@ const hoverCard = (
   )
 
 export const hoverCardDemo = (
-  hoverIntentCardDemo: HoverIntent.Model,
-  h: HtmlBuilder<Message>,
+  hoverIntentCardDemo: typeof HoverIntent.Model.Type,
+  h: UiViewBuilder,
 ): ReadonlyArray<Html> => [
   h.div(
     [h.Class('flex min-h-32 w-full items-center justify-center')],
     [
-      h.submodel({
-        slotId: 'hover-intent-card-demo',
-        model: hoverIntentCardDemo,
-        view: HoverIntent.view,
-        viewInputs: {
-          focusTriggerSelector: `#${CARD_TRIGGER_ID}`,
-          toView: renderInfo => hoverCard(renderInfo, h),
-        },
-        toParentMessage: message =>
-          Message.GotHoverIntentCardDemoMessage({ message }),
-      }),
+      h.block(
+        HoverIntentCardDemoBinding.embedView({
+          slotId: 'hover-intent-card-demo',
+          model: hoverIntentCardDemo,
+          viewInputs: {
+            focusTriggerSelector: `#${CARD_TRIGGER_ID}`,
+            toView: renderInfo => hoverCard(renderInfo, h),
+          },
+        }),
+      ),
     ],
   ),
 ]
 
 const hoverMenu = (
-  { trigger, panel, isVisible }: HoverIntent.RenderInfo,
-  h: HtmlBuilder<Message>,
+  { trigger, panel, isVisible }: HoverIntentRenderInfo,
+  h: UiViewBuilder,
 ): Html =>
   h.div(
     [h.Class('relative')],
@@ -144,23 +149,22 @@ const hoverMenu = (
   )
 
 export const hoverMenuDemo = (
-  hoverIntentMenuDemo: HoverIntent.Model,
-  h: HtmlBuilder<Message>,
+  hoverIntentMenuDemo: typeof HoverIntent.Model.Type,
+  h: UiViewBuilder,
 ): ReadonlyArray<Html> => [
   h.div(
     [h.Class('flex min-h-32 w-full items-center justify-center')],
     [
-      h.submodel({
-        slotId: 'hover-intent-menu-demo',
-        model: hoverIntentMenuDemo,
-        view: HoverIntent.view,
-        viewInputs: {
-          focusTriggerSelector: `#${MENU_TRIGGER_ID}`,
-          toView: renderInfo => hoverMenu(renderInfo, h),
-        },
-        toParentMessage: message =>
-          Message.GotHoverIntentMenuDemoMessage({ message }),
-      }),
+      h.block(
+        HoverIntentMenuDemoBinding.embedView({
+          slotId: 'hover-intent-menu-demo',
+          model: hoverIntentMenuDemo,
+          viewInputs: {
+            focusTriggerSelector: `#${MENU_TRIGGER_ID}`,
+            toView: renderInfo => hoverMenu(renderInfo, h),
+          },
+        }),
+      ),
     ],
   ),
 ]

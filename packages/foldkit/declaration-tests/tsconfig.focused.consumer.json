@@ -1,0 +1,7 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["parent-owned-binding.consume.ts", "query-block.consume.ts"]
+}

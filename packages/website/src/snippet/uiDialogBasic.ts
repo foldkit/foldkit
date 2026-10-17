@@ -1,34 +1,22 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Option, Schema } from 'effect'
-import { Update } from 'foldkit'
-import type { HtmlBuilder } from 'foldkit/html'
+import { Schema, Tuple } from 'effect'
+import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import type * as Mount from 'foldkit/mount'
-import { modifyFields } from 'foldkit/struct'
 
 import { Dialog } from '@foldkit/ui'
+import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
-type MountRequirements = Mount.RequirementsOf<typeof Dialog.mounts>
-
-// Add a field to your Model for the Dialog Submodel:
+// Add a field to your Model for the Dialog Block:
 const Model = Schema.Struct({
   dialog: Dialog.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
 
-// In your init function, initialize the Dialog Submodel with a unique id:
-const init = () => ({
-  model: {
-    dialog: Dialog.init({ id: 'confirm' }),
-    // ...your other fields
-  },
-})
-
 // A fact for the trigger, plus the Dialog Message embedded in your parent
-// Message for the submodel delegation:
+// Message for the block delegation:
 const Message = defineMessageUnion({
   ClickedOpenDialog: {},
   GotDialogMessage: { message: Dialog.Message },
@@ -44,35 +32,38 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
   Closed: () => model => ({ model }),
 })
 
-const readDialog = (model: Model) => Option.some(model.dialog)
-const writeDialog = (model: Model, dialog: Dialog.Model): Model =>
-  modifyFields(model, { dialog: () => dialog })
-const toGotDialogMessage = (message: Dialog.Message): Message =>
-  Message.GotDialogMessage({ message })
-
-const foldDialog = Update.foldChild({
-  update: Dialog.update,
-  read: readDialog,
-  write: writeDialog,
-  toParentMessage: toGotDialogMessage,
-  foldOutMessage: foldDialogOutMessage,
+const DialogExample = Block.define('DialogExample', {
+  Model,
+  Message,
 })
 
-const foldDialogOpen = Update.foldChildStep({
-  update: Dialog.open,
-  read: readDialog,
-  write: writeDialog,
-  toParentMessage: toGotDialogMessage,
-  foldOutMessage: foldDialogOutMessage,
+const DialogBinding = DialogExample.bindChild(Dialog.block, {
+  field: 'dialog',
+  parentMessage: Message.GotDialogMessage,
+  init: { args: () => Tuple.make({ id: 'confirm' }) },
+  outMessage: { fold: foldDialogOutMessage },
 })
 
-// In the corresponding Message.match handler:
-ClickedOpenDialog: () => foldDialogOpen(model)
-GotDialogMessage: ({ message }) => foldDialog(model, message)
+const DialogExampleComposition = DialogExample.makeComposition({
+  childBindings: [DialogBinding],
+})
+
+// In your init function, initialize the Dialog Block with a unique id:
+const init = DialogExampleComposition.makeInit(() => ({
+  model: {
+    // ...your other fields
+  },
+}))
+
+const update = DialogExampleComposition.makeUpdate((model, message) =>
+  Message.match(message, {
+    ClickedOpenDialog: () => DialogBinding.open()(model),
+  }),
+)
 
 // In your view, open from a trigger with the fact, and dismiss from a Cancel
 // button by spreading the `closeButton` bundle, no parent message needed:
-const view = (h: HtmlBuilder<Message, MountRequirements>) => {
+const view = DialogExampleComposition.makeView((model, h) => {
   const dialogView = ({
     dialog,
     backdrop,
@@ -81,7 +72,7 @@ const view = (h: HtmlBuilder<Message, MountRequirements>) => {
     description,
     closeButton,
     isVisible,
-  }: Dialog.RenderInfo) =>
+  }: DialogRenderInfo) =>
     h.dialog(
       [...dialog],
       isVisible
@@ -106,16 +97,16 @@ const view = (h: HtmlBuilder<Message, MountRequirements>) => {
     [],
     [
       h.button([h.OnClick(Message.ClickedOpenDialog())], ['Open Dialog']),
-      h.submodel({
-        slotId: model.dialog.id,
-        model: model.dialog,
-        view: Dialog.view,
-        viewInputs: {
-          hasDescription: true,
-          toView: dialogView,
-        },
-        toParentMessage: message => Message.GotDialogMessage({ message }),
-      }),
+      h.block(
+        DialogBinding.embedView({
+          slotId: model.dialog.id,
+          model: model.dialog,
+          viewInputs: {
+            hasDescription: true,
+            toView: dialogView,
+          },
+        }),
+      ),
     ],
   )
-}
+})

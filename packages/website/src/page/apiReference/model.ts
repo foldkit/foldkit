@@ -1,10 +1,13 @@
-import { Option, Record, Schema } from 'effect'
+import { Array, Option, Record, Schema, pipe } from 'effect'
 import { AsyncData } from 'foldkit'
 
 import {
   ParsedApiReference,
+  SIGNATURE_COLLAPSE_THRESHOLD,
   resolveModule,
+  scopedId,
   scopedIdBelongsToModule,
+  signaturesLength,
 } from './domain'
 
 export const ApiData = Schema.Struct({
@@ -17,8 +20,8 @@ export type ApiData = typeof ApiData.Type
  * Narrows a full ApiData to what one module's page renders: that module plus
  * only the highlight entries whose scoped ids belong to it. A prerendered
  * module page embeds this slice in its hydration Flags instead of the full
- * reference; the boot Command then loads the full data after hydration so
- * cross-module navigation keeps working.
+ * reference. The loadInitialData Step returns a Command that loads the full data after
+ * hydration, allowing navigation to other modules.
  */
 export const sliceApiDataToModule = (
   apiData: ApiData,
@@ -42,3 +45,22 @@ export const Model = Schema.Struct({
   disclosures: Disclosures,
 })
 export type Model = typeof Model.Type
+
+/** Initial collapsed disclosure state for signatures exceeding the display limit. */
+export const disclosuresForApiData = (apiData: ApiData): Disclosures =>
+  pipe(
+    apiData.parsedApi.modules,
+    Array.flatMap(module =>
+      pipe(
+        module.functions,
+        Array.filter(
+          apiFunction =>
+            signaturesLength(apiFunction) > SIGNATURE_COLLAPSE_THRESHOLD,
+        ),
+        Array.map(apiFunction =>
+          scopedId('function', module.name, apiFunction.name),
+        ),
+      ),
+    ),
+    Record.fromIterableWith(id => [id, false]),
+  )

@@ -1,6 +1,11 @@
 import { Effect, Option, Predicate, Schema, type Scope, Stream } from 'effect'
 
-import { Document, Html, type HtmlBuilder } from '../html/index.js'
+import {
+  Document,
+  Html,
+  type NativeHtmlBuilder as HtmlBuilder,
+  type HtmlBuilder as InertHtmlBuilder,
+} from '../html/index.js'
 import type {
   ServicesOf as ManagedResourceServicesOf,
   ManagedResources,
@@ -88,10 +93,10 @@ export type ElementConfigWithFlags<
   Readonly<{
     /**
      * Resolves the Flags once at startup, before `init` runs. Define an
-     * Element with `Application.makeElement` to supply shared Flags services
-     * through `Application.provide`. The error channel is `never`, so this
-     * Effect handles its own failures with `Effect.catch`, the same contract
-     * a Command's Effect has.
+     * Element with `ApplicationComposition.makeElement` to supply shared Flags services
+     * through the completed Element's `provide` method. The error channel is
+     * `never`, so this Effect handles its own failures with `Effect.catch`,
+     * the same contract a Command's Effect has.
      */
     flags: Effect.Effect<Flags, never, NoInfer<Resources>>
     init: (
@@ -190,7 +195,7 @@ type ReturnRequirements<Return> =
     : never
 
 type FunctionReturn<Fn> = Fn extends (
-  ...args: ReadonlyArray<any>
+  ...args: ReadonlyArray<never>
 ) => infer Return
   ? Return
   : never
@@ -312,7 +317,7 @@ const toCrashConfig = <Model, Message>(
     ...(Predicate.isNotUndefined(elementCrashView) && {
       view: (
         context: CrashContext<Model, Message>,
-        h: HtmlBuilder<never>,
+        h: InertHtmlBuilder<never>,
       ): Document => ({
         title: '',
         body: elementCrashView(context, h),
@@ -335,7 +340,7 @@ const toCrashConfig = <Model, Message>(
  * `makeApplication` when the app owns the page and should manage those tags, and
  * `makeElement` when it is one component among others on a page it does not
  * control. Embedded apps do not own the URL bar, so `makeElement` has no
- * `routing` config. Use `Application.makeElement` when Commands, Flags,
+ * `routing` config. Use `ApplicationComposition.makeElement` when Commands, Flags,
  * Subscriptions, Mounts, or ManagedResources need services.
  */
 export function makeElement<

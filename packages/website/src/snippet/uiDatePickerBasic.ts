@@ -1,18 +1,23 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Effect, Match, Option, Schema } from 'effect'
-import { Calendar, Update } from 'foldkit'
-import type { ChildAttribute, Html, HtmlBuilder } from 'foldkit/html'
+import { Effect, Match, Option, Schema, Tuple } from 'effect'
+import { Block, Calendar, Update } from 'foldkit'
+import type { ChildAttribute, Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 
-import { DatePicker, Calendar as UiCalendar } from '@foldkit/ui'
+import { DatePicker } from '@foldkit/ui'
+import type {
+  CalendarAttributes as UiCalendarCalendarAttributes,
+  DaysModeAttributes as UiCalendarDaysModeAttributes,
+  MonthsModeAttributes as UiCalendarMonthsModeAttributes,
+  Week as UiCalendarWeek,
+  YearsModeAttributes as UiCalendarYearsModeAttributes,
+} from '@foldkit/ui/calendar'
+import { triggerId as DatePickerTriggerId } from '@foldkit/ui/datePicker'
 
-type MountRequirements = Mount.RequirementsOf<typeof DatePicker.mounts>
-
-// Add a field to your Model for the DatePicker Submodel, plus a field the
+// Add a field to your Model for the DatePicker Block, plus a field the
 // parent owns for the selected date. The picker no longer stores the
 // selection; the parent holds it and passes it back in as `maybeSelectedDate`.
 const Model = Schema.Struct({
@@ -32,21 +37,6 @@ type Flags = typeof Flags.Type
 const flags = Effect.gen(function* () {
   const today = yield* Calendar.today.local
   return { today /* ...your other flags */ }
-})
-
-// In your init function, pass the flags-resolved today into DatePicker.init.
-// Optional: constrain the selectable range with minDate / maxDate.
-const init = (flags: Flags) => ({
-  model: {
-    datePickerDemo: DatePicker.init({
-      id: 'date-picker-demo',
-      today: flags.today,
-      minDate: flags.today,
-      maxDate: Calendar.addMonths(flags.today, 3),
-    }),
-    maybeSelectedDate: Option.none(),
-    // ...your other fields
-  },
 })
 
 // Embed the DatePicker Message in your parent Message. DatePicker handles
@@ -87,21 +77,48 @@ const foldDatePickerOutMessage = DatePicker.OutMessage.match<
   ChangedViewMonth: () => model => ({ model }),
 })
 
-// Update.foldChild wires the child into the parent: it delegates navigation,
+// The Binding wires the completed child Block into the parent: it delegates navigation,
 // focus, and popover messages to DatePicker.update, writes the next DatePicker
-// Model back, maps the Submodel's Commands into your Message type, and hands
-// any OutMessage to foldOutMessage.
-const foldDatePicker = Update.foldChild({
-  update: DatePicker.update,
-  read: (model: Model) => Option.some(model.datePickerDemo),
-  write: (model, nextDatePickerDemo) =>
-    modifyFields(model, { datePickerDemo: () => nextDatePickerDemo }),
-  toParentMessage: message => Message.GotDatePickerMessage({ message }),
-  foldOutMessage: foldDatePickerOutMessage,
+// Model back, maps the Block's Commands into your Message type, and hands
+// any OutMessage to the OutMessage fold.
+const DatePickerExample = Block.define('DatePickerExample', {
+  Model,
+  Message,
 })
 
-// In the corresponding Message.match handler, call the fold:
-GotDatePickerMessage: ({ message }) => foldDatePicker(model, message)
+const DatePickerBinding = DatePickerExample.bindChild(DatePicker.block, {
+  field: 'datePickerDemo',
+  parentMessage: Message.GotDatePickerMessage,
+  init: {
+    args: (flags: Flags) =>
+      Tuple.make({
+        id: 'date-picker-demo',
+        today: flags.today,
+        minDate: flags.today,
+        maxDate: Calendar.addMonths(flags.today, 3),
+      }),
+  },
+  outMessage: { fold: foldDatePickerOutMessage },
+})
+
+const DatePickerExampleComposition = DatePickerExample.makeComposition({
+  childBindings: [DatePickerBinding],
+})
+type DatePickerExampleViewBuilder = Block.ViewBuilderFor<
+  typeof DatePickerExampleComposition
+>
+
+// Pass the flags-resolved date through the startup input. The Composition
+// supplies it to DatePickerBinding and initializes the bound Model.
+const init = DatePickerExampleComposition.makeInit((flags: Flags) => ({
+  startup: flags,
+  model: {
+    maybeSelectedDate: Option.none(),
+    // ...your other fields
+  },
+}))
+
+const update = DatePickerExampleComposition.makeUpdate()
 
 // Class names live at module scope, and each view mode gets its own view
 // function below. The calendar panel has no border of its own: the
@@ -134,21 +151,21 @@ const monthYearGridClassName = 'grid grid-cols-3 gap-1 outline-none'
 const monthYearButtonClassName =
   'h-12 w-full rounded-md text-sm group-data-[selected]:bg-accent-600 group-data-[selected]:text-white group-data-[disabled]:opacity-40'
 
-// `ChildAttribute` is the type of the attributes a Submodel publishes to its
+// `ChildAttribute` is the type of the attributes a Block publishes to its
 // consumer. Spread them onto whichever element you want to carry them.
-const navButton = <AllowedMountRequirements>(
+const navButton = (
   attributes: ReadonlyArray<ChildAttribute>,
   label: string,
-  h: HtmlBuilder<Message, AllowedMountRequirements>,
+  h: DatePickerExampleViewBuilder,
 ): Html => h.button([...attributes, h.Class(navButtonClassName)], [label])
 
 // The heading is a button: clicking it drills one level deeper (Days into
 // Months, Months into Years). Pair the text with a chevron so the button reads
 // as interactive at rest.
-const headingButton = <AllowedMountRequirements>(
-  heading: UiCalendar.DaysModeAttributes['heading'],
+const headingButton = (
+  heading: UiCalendarDaysModeAttributes['heading'],
   attributes: ReadonlyArray<ChildAttribute>,
-  h: HtmlBuilder<Message, AllowedMountRequirements>,
+  h: DatePickerExampleViewBuilder,
 ): Html =>
   h.button(
     [h.Id(heading.id), ...attributes, h.Class(headingButtonClassName)],
@@ -157,10 +174,7 @@ const headingButton = <AllowedMountRequirements>(
 
 // Each Week carries its own row attributes and seven day cells, and each cell
 // is a gridcell wrapping a button.
-const weekRow = <AllowedMountRequirements>(
-  week: UiCalendar.Week,
-  h: HtmlBuilder<Message, AllowedMountRequirements>,
-): Html =>
+const weekRow = (week: UiCalendarWeek, h: DatePickerExampleViewBuilder): Html =>
   h.div(
     [...week.attributes, h.Class(rowClassName)],
     week.cells.map(cell =>
@@ -178,9 +192,9 @@ const weekRow = <AllowedMountRequirements>(
 
 // One view function per view mode. Each receives the attribute group for its
 // own grid, so the fields it reads are exactly the fields that exist.
-const daysView = <AllowedMountRequirements>(
-  days: UiCalendar.DaysModeAttributes,
-  h: HtmlBuilder<Message, AllowedMountRequirements>,
+const daysView = (
+  days: UiCalendarDaysModeAttributes,
+  h: DatePickerExampleViewBuilder,
 ): Html =>
   h.div(
     [...days.root, h.Class(panelClassName)],
@@ -213,9 +227,9 @@ const daysView = <AllowedMountRequirements>(
 
 // The months grid renders 12 cells (one per month). Clicking the heading again
 // drills further into the years grid.
-const monthsView = <AllowedMountRequirements>(
-  months: UiCalendar.MonthsModeAttributes,
-  h: HtmlBuilder<Message, AllowedMountRequirements>,
+const monthsView = (
+  months: UiCalendarMonthsModeAttributes,
+  h: DatePickerExampleViewBuilder,
 ): Html =>
   h.div(
     [...months.root, h.Class(panelClassName)],
@@ -244,9 +258,9 @@ const monthsView = <AllowedMountRequirements>(
 // The years grid renders 12 cells (one paged window). Prev/next page through
 // 12-year windows; clicking a year drills back to the months grid for that
 // year. Years is terminal, so its heading is text rather than a button.
-const yearsView = <AllowedMountRequirements>(
-  years: UiCalendar.YearsModeAttributes,
-  h: HtmlBuilder<Message, AllowedMountRequirements>,
+const yearsView = (
+  years: UiCalendarYearsModeAttributes,
+  h: DatePickerExampleViewBuilder,
 ): Html =>
   h.div(
     [...years.root, h.Class(panelClassName)],
@@ -279,7 +293,7 @@ const yearsView = <AllowedMountRequirements>(
     ],
   )
 
-// Inside your view function, embed the DatePicker via h.submodel. The
+// Inside your view function, embed the DatePicker via h.block. The
 // `toCalendarView` callback receives a discriminated `CalendarAttributes`
 // whose variant matches the calendar's current `viewMode`, so the match hands
 // each grid to its own view function.
@@ -287,47 +301,47 @@ const yearsView = <AllowedMountRequirements>(
 // The trigger is a form field, so give it an accessible name. Pass
 // `ariaLabelledBy` with the id of a visible label element, and render that
 // label targeting the trigger id with
-// `DatePicker.triggerId('date-picker-demo')` for a native `<label for>`. The
+// `triggerId('date-picker-demo')` from `@foldkit/ui/datePicker` for a native `<label for>`. The
 // attribute is only emitted when provided, so the trigger never carries a
 // dangling `aria-labelledby`.
-const view = (model: Model, h: HtmlBuilder<Message, MountRequirements>) => {
+const view = DatePickerExampleComposition.makeView((model, h) => {
   const labelId = 'date-picker-label'
 
   return h.div(
     [h.Class('flex flex-col gap-1.5')],
     [
       h.label(
-        [h.Id(labelId), h.For(DatePicker.triggerId('date-picker-demo'))],
+        [h.Id(labelId), h.For(DatePickerTriggerId('date-picker-demo'))],
         ['Date'],
       ),
-      h.submodel({
-        slotId: 'date-picker-demo',
-        model: model.datePickerDemo,
-        view: DatePicker.view,
-        viewInputs: {
-          ariaLabelledBy: labelId,
-          anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
-          // The parent-owned selection. The trigger content, the calendar's
-          // selected-day marker, and the hidden form input all derive from it.
-          maybeSelectedDate: model.maybeSelectedDate,
-          triggerContent: maybeDate =>
-            Option.match(maybeDate, {
-              onNone: () => h.span([], ['Pick a date']),
-              onSome: date =>
-                h.span([], [`${date.year}-${date.month}-${date.day}`]),
-            }),
-          toCalendarView: Match.type<UiCalendar.CalendarAttributes>().pipe(
-            Match.tagsExhaustive({
-              Days: days => daysView(days, h),
-              Months: months => monthsView(months, h),
-              Years: years => yearsView(years, h),
-            }),
-          ),
-          // Optional: enable hidden form input for native <form> submission:
-          name: 'appointment-date',
-        },
-        toParentMessage: message => Message.GotDatePickerMessage({ message }),
-      }),
+      h.block(
+        DatePickerBinding.embedView({
+          slotId: 'date-picker-demo',
+          model: model.datePickerDemo,
+          viewInputs: {
+            ariaLabelledBy: labelId,
+            anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+            // The parent-owned selection. The trigger content, the calendar's
+            // selected-day marker, and the hidden form input all derive from it.
+            maybeSelectedDate: model.maybeSelectedDate,
+            triggerContent: maybeDate =>
+              Option.match(maybeDate, {
+                onNone: () => h.span([], ['Pick a date']),
+                onSome: date =>
+                  h.span([], [`${date.year}-${date.month}-${date.day}`]),
+              }),
+            toCalendarView: Match.type<UiCalendarCalendarAttributes>().pipe(
+              Match.tagsExhaustive({
+                Days: days => daysView(days, h),
+                Months: months => monthsView(months, h),
+                Years: years => yearsView(years, h),
+              }),
+            ),
+            // Optional: enable hidden form input for native <form> submission:
+            name: 'appointment-date',
+          },
+        }),
+      ),
     ],
   )
-}
+})

@@ -180,8 +180,8 @@ const pendingCommand = (
   args?: Record<string, unknown>,
 ): CommandRecord =>
   args === undefined
-    ? { id, name, maybeSubmodelPath: Option.none() }
-    : { id, name, args, maybeSubmodelPath: Option.none() }
+    ? { id, name, maybeBlockPath: Option.none() }
+    : { id, name, args, maybeBlockPath: Option.none() }
 
 const makeStore = (
   overrides?: Partial<Bridge>,
@@ -318,7 +318,7 @@ describe('DevToolsStore', () => {
           id: 4,
           name: 'FetchData',
           args: { id: 7 },
-          maybeSubmodelPath: Option.some(['GotEditorMessage']),
+          maybeBlockPath: Option.some(['GotEditorMessage']),
         },
       ])
     })
@@ -339,12 +339,12 @@ describe('DevToolsStore', () => {
         {
           id: 5,
           name: 'FetchData',
-          maybeSubmodelPath: Option.some(['GotPanelMessage']),
+          maybeBlockPath: Option.some(['GotPanelMessage']),
         },
         {
           id: 6,
           name: 'LockScroll',
-          maybeSubmodelPath: Option.some([]),
+          maybeBlockPath: Option.some([]),
         },
       ])
     })

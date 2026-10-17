@@ -9,12 +9,22 @@ import {
   type Scope,
 } from 'effect'
 
+import {
+  InvocationIdentityTypeId,
+  InvocationNameTypeId,
+  registerIdentity,
+} from '../block/identity.js'
+import type { ValidateConstructionRequirements } from '../block/scope.js'
 import { CommandDefinitionTypeId, brandAsDefinition } from './brand.js'
 import { type Handler, type ToLayer, makeHandler } from './handler.js'
 import * as Interruptible from './interruptible/index.js'
 
 export { CommandDefinitionTypeId }
 export type { Handler, HandlerOf, ToLayer } from './handler.js'
+
+type ValidateHandlerConstruction<
+  Yielded extends Effect.Effect<unknown, unknown, unknown>,
+> = ValidateConstructionRequirements<Effect.Services<Yielded>>
 
 /** A named Effect that produces a message, optionally carrying the args used
  *  to construct it. `key` is present on Commands built by
@@ -275,7 +285,7 @@ export function define<
   config: Readonly<{
     args: Fields
     messages: Messages
-    handler: () => Generator<
+    handler: (() => Generator<
       Yielded,
       (
         args: HandlerArgs<Fields>,
@@ -285,7 +295,8 @@ export function define<
         HandlerRequirements
       >,
       unknown
-    >
+    >) &
+      ValidateHandlerConstruction<Yielded>
     execute?: never
     interrupt: Readonly<{
       keyFields: Array.NonEmptyReadonlyArray<KeyField>
@@ -382,7 +393,7 @@ export function define<
   config: Readonly<{
     args: Fields
     messages: Messages
-    handler: () => Generator<
+    handler: (() => Generator<
       Yielded,
       (
         args: HandlerArgs<Fields>,
@@ -392,7 +403,8 @@ export function define<
         HandlerRequirements
       >,
       unknown
-    >
+    >) &
+      ValidateHandlerConstruction<Yielded>
     execute?: never
     interrupt: true
   }>,
@@ -475,7 +487,7 @@ export function define<
   config: Readonly<{
     args: Fields
     messages: Messages
-    handler: () => Generator<
+    handler: (() => Generator<
       Yielded,
       (
         args: HandlerArgs<Fields>,
@@ -485,7 +497,8 @@ export function define<
         HandlerRequirements
       >,
       unknown
-    >
+    >) &
+      ValidateHandlerConstruction<Yielded>
     execute?: never
     interrupt?: never
   }>,
@@ -539,7 +552,7 @@ export function define<
   config: Readonly<{
     args?: never
     messages: Messages
-    handler: () => Generator<
+    handler: (() => Generator<
       Yielded,
       () => Effect.Effect<
         NoInfer<Schema.Schema.Type<Messages[number]>>,
@@ -547,7 +560,8 @@ export function define<
         HandlerRequirements
       >,
       unknown
-    >
+    >) &
+      ValidateHandlerConstruction<Yielded>
     execute?: never
     interrupt: true
   }>,
@@ -606,7 +620,7 @@ export function define<
   config: Readonly<{
     args?: never
     messages: Messages
-    handler: () => Generator<
+    handler: (() => Generator<
       Yielded,
       () => Effect.Effect<
         NoInfer<Schema.Schema.Type<Messages[number]>>,
@@ -614,7 +628,8 @@ export function define<
         HandlerRequirements
       >,
       unknown
-    >
+    >) &
+      ValidateHandlerConstruction<Yielded>
     execute?: never
     interrupt?: never
   }>,
@@ -646,11 +661,13 @@ export function define(name: string, config: DefineConfig): unknown {
   const handler = makeHandler<string, any, any>(name)
   const makeEffect = (args: any): Effect.Effect<any, any, any> =>
     handler.execute(args)
-  const attachHandler = (definition: unknown): void => {
+  const attachHandler = (definition: object): void => {
+    registerIdentity(definition, handler.identity)
     Object.defineProperty(definition, 'toLayer', { value: handler.toLayer })
     if (Predicate.isNotUndefined(config.handler)) {
       Object.defineProperty(definition, 'layer', {
-        value: handler.toLayer(Effect.gen(config.handler)),
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        value: handler.toLayer(Effect.gen(config.handler) as never),
       })
     }
   }
@@ -661,6 +678,8 @@ export function define(name: string, config: DefineConfig): unknown {
         name,
         args,
         effect: makeEffect(args),
+        [InvocationIdentityTypeId]: handler.identity,
+        [InvocationNameTypeId]: name,
         messageMappers: [],
       })
       brandAsDefinition(definition, name)
@@ -670,6 +689,8 @@ export function define(name: string, config: DefineConfig): unknown {
       const definition = () => ({
         name,
         effect: makeEffect(undefined),
+        [InvocationIdentityTypeId]: handler.identity,
+        [InvocationNameTypeId]: name,
         messageMappers: [],
       })
       brandAsDefinition(definition, name)
@@ -694,12 +715,18 @@ export function define(name: string, config: DefineConfig): unknown {
         name,
         makeEffect(undefined),
       ),
+      [InvocationIdentityTypeId]: handler.identity,
+      [InvocationNameTypeId]: name,
       messageMappers: [],
     })
     brandAsDefinition(definition, name)
     attachHandler(definition)
     Object.defineProperty(definition, 'Interrupt', {
-      value: Interruptible.__makeInterruptDefinitionNoArgs(name, name),
+      value: Interruptible.__makeInterruptDefinitionNoArgs(
+        name,
+        name,
+        handler.identity,
+      ),
     })
     return definition
   }
@@ -710,12 +737,18 @@ export function define(name: string, config: DefineConfig): unknown {
       args,
       key: name,
       effect: Interruptible.__registerKeyWhileRunning(name, makeEffect(args)),
+      [InvocationIdentityTypeId]: handler.identity,
+      [InvocationNameTypeId]: name,
       messageMappers: [],
     })
     brandAsDefinition(definition, name)
     attachHandler(definition)
     Object.defineProperty(definition, 'Interrupt', {
-      value: Interruptible.__makeInterruptDefinitionNoArgs(name, name),
+      value: Interruptible.__makeInterruptDefinitionNoArgs(
+        name,
+        name,
+        handler.identity,
+      ),
     })
     return definition
   }
@@ -730,13 +763,19 @@ export function define(name: string, config: DefineConfig): unknown {
       args,
       key,
       effect: Interruptible.__registerKeyWhileRunning(key, makeEffect(args)),
+      [InvocationIdentityTypeId]: handler.identity,
+      [InvocationNameTypeId]: name,
       messageMappers: [],
     }
   }
   brandAsDefinition(definition, name)
   attachHandler(definition)
   Object.defineProperty(definition, 'Interrupt', {
-    value: Interruptible.__makeInterruptDefinitionWithArgs(name, toFullKey),
+    value: Interruptible.__makeInterruptDefinitionWithArgs(
+      name,
+      toFullKey,
+      handler.identity,
+    ),
   })
   return definition
 }
@@ -790,7 +829,7 @@ export const mapEffect: {
  *  never restates the wrapping by hand.
  *
  *  Preserves the Command's `name` and `args` so traces still attribute
- *  it to the originating Submodel. When you need to transform the
+ *  it to the originating Block. When you need to transform the
  *  Effect itself (not just the result Message), reach for
  *  {@link mapEffect} instead.
  *
@@ -836,13 +875,22 @@ export const mapMessage: {
   },
 )
 
+type CollectionMetadataKeys<Collection extends ReadonlyArray<unknown>> =
+  Exclude<keyof Collection, keyof ReadonlyArray<unknown> | `${number}`>
+
+type CollectionMetadata<Collection extends ReadonlyArray<unknown>> = [
+  CollectionMetadataKeys<Collection>,
+] extends [never]
+  ? unknown
+  : Partial<Pick<Collection, CollectionMetadataKeys<Collection>>>
+
 /** Lifts every Command in a list through `f`, transforming the result
  *  Message type from `FromMessage` to `ToMessage`. When `commands` is
- *  `undefined`, it returns an empty array. `Update.foldChild`,
- *  `Update.foldChildStep`, `Update.foldChildInit`, `Update.foldChildInits`,
- *  and `Update.foldChildAt` handle this mapping for application Submodels.
- *  Use `mapMessages` for a standalone batch of Commands or when route-gated
- *  initialization includes only the active child's Commands:
+ *  `undefined`, it returns an empty array. Registered Block bindings handle
+ *  this mapping through their `init`, `fold`, and projected exposed
+ *  operations. An OutMessage policy uses its `FoldContext.liftCommand` for a
+ *  child Command. Use `mapMessages` for a standalone batch outside Block
+ *  composition:
  *
  *  ```ts
  *  const commands = Command.mapMessages(
@@ -856,7 +904,7 @@ export const mapMessage: {
  *  `Story.Command.resolve` / `Scene.Command.resolve` can recover the mapping
  *  from the matched Command.
  *  Preserves each Command's `name` and `args` so traces still attribute the
- *  Command to the originating Submodel. When you need to transform the Effect
+ *  Command to the originating Block. When you need to transform the Effect
  *  itself (not just the result Message), reach for {@link mapEffect} instead.
  *
  *  Typed against {@link Command} in argument and result positions, so a
@@ -872,11 +920,21 @@ export const mapMessages: {
       Effect.Error<Commands[number]['effect']>,
       Effect.Services<Commands[number]['effect']>
     >
-  >
-  <FromMessage, ToMessage, E = never, R = never>(
-    commands: ReadonlyArray<Command<FromMessage, E, R>> | undefined,
+  > &
+    CollectionMetadata<Commands>
+  <
+    FromMessage,
+    ToMessage,
+    E = never,
+    R = never,
+    const Commands extends ReadonlyArray<Command<FromMessage, E, R>> =
+      ReadonlyArray<Command<FromMessage, E, R>>,
+  >(
+    commands:
+      | (ReadonlyArray<Command<FromMessage, E, R>> & Commands)
+      | undefined,
     f: (message: FromMessage) => ToMessage,
-  ): ReadonlyArray<Command<ToMessage, E, R>>
+  ): ReadonlyArray<Command<ToMessage, E, R>> & CollectionMetadata<Commands>
   <FromMessage, ToMessage>(
     f: (message: FromMessage) => ToMessage,
   ): {
@@ -888,10 +946,18 @@ export const mapMessages: {
         Effect.Error<Commands[number]['effect']>,
         Effect.Services<Commands[number]['effect']>
       >
-    >
-    <E = never, R = never>(
-      commands: ReadonlyArray<Command<FromMessage, E, R>> | undefined,
-    ): ReadonlyArray<Command<ToMessage, E, R>>
+    > &
+      CollectionMetadata<Commands>
+    <
+      E = never,
+      R = never,
+      const Commands extends ReadonlyArray<Command<FromMessage, E, R>> =
+        ReadonlyArray<Command<FromMessage, E, R>>,
+    >(
+      commands:
+        | (ReadonlyArray<Command<FromMessage, E, R>> & Commands)
+        | undefined,
+    ): ReadonlyArray<Command<ToMessage, E, R>> & CollectionMetadata<Commands>
   }
 } = Function.dual(
   2,

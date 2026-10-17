@@ -64,7 +64,7 @@ test('a documentation-only change selects no examples', () => {
 
 test('an example change selects only that example', () => {
   const { exampleCount, shardedSlugs } = planExamplesForFile(
-    'examples/counter/src/main.ts',
+    'examples/counter/src/app.ts',
   )
 
   assert.equal(exampleCount, 1)
@@ -171,8 +171,8 @@ test('fewer examples than the cap produce one shard each', () => {
   const { matrix } = planExamples(
     'base',
     'head',
-    'examples/counter/src/main.ts',
-    'examples/snake/src/main.ts',
+    'examples/counter/src/app.ts',
+    'examples/snake/src/app.ts',
   )
 
   assert.equal(matrix.include.length, 2)

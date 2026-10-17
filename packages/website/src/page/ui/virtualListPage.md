@@ -6,13 +6,15 @@ A virtualization component for large lists. Only items inside the viewport plus 
 
 VirtualList supports fixed, known-variable, and measured row heights. Logical scroll targets can address an index, stable item key, pixel offset, or the end. End following and stable-key anchoring cover chat, logs, and reverse infinite feeds without reversing DOM order or browser scroll coordinates.
 
+Create a typed completed Block once at module scope with `VirtualList.create<Item>()`, then connect it in the parent.
+
 :::Info{label="See it in an app"}
 Check out how VirtualList is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/virtualList.ts).
 :::
 
 ## Example
 
-Items live in your Model and pass through `ViewConfig.items` on each render. Each item must have a stable `itemToKey`; VirtualList uses that identity for VDOM reconciliation, key-based scrolling, measurement caching, and viewport anchoring.
+Items live in your Model and pass through `ViewInputs.items` on each render. Each item must have a stable `itemToKey`; VirtualList uses that identity for VDOM reconciliation, key-based scrolling, measurement caching, and viewport anchoring.
 
 ### Basic
 
@@ -115,7 +117,9 @@ End anchoring never uses `flex-direction: column-reverse`; visual, DOM, keyboard
 | `initialScrollTop` | `number`                                                | `0`     | Compatibility alias for an initial pixel-offset target. `initialScroll` takes precedence when both are given.                            |
 | `followEnd`        | `{ thresholdPx?: number }`                              | —       | Keeps an End anchor while the viewport remains within the threshold. The default threshold is `1`.                                       |
 
-### ViewConfig {#view-config}
+### ViewInputs {#view-config}
+
+Pass the child Model as `model` and these fields as `viewInputs` to the VirtualList Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep callback fields at the top level, and use `childAttributes` for handler-bearing `containerAttributes`; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
 
 | Name                         | Type                                    | Default   | Description                                                                 |
 | ---------------------------- | --------------------------------------- | --------- | --------------------------------------------------------------------------- |

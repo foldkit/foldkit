@@ -3,35 +3,39 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
-import { AppRoute, Message, Model, NavigateInternal, update } from './main'
-import { People } from './page'
+import { NavigateInternal } from './command'
+import { Message } from './message'
+import { Model } from './model'
+import { FetchPeople, People, SearchResults, searchPeople } from './page'
 import {
+  ApplicationRoute,
   filesIndexRouter,
   homeRouter,
   nestedRouter,
   peopleRouter,
 } from './route'
+import { update } from './update'
 
 const peoplePageWith = (searchInput: string) =>
   People.Model.make({
     searchInput,
     searchHistory: Array.liftPredicate(String.isNonEmpty)(searchInput),
-    results: People.SearchResults.Loaded({
+    results: SearchResults.Loaded({
       query: searchInput,
-      people: People.searchPeople(searchInput),
+      people: searchPeople(searchInput),
     }),
   })
 
 const initialPeoplePage = peoplePageWith('')
 
 const home = Model.make({
-  route: AppRoute.Home(),
+  route: ApplicationRoute.Home(),
   peoplePage: initialPeoplePage,
 })
 
 const onPeople = (searchInput: string) =>
   Model.make({
-    route: AppRoute.People({
+    route: ApplicationRoute.People({
       searchText: Option.liftPredicate(String.isNonEmpty)(searchInput),
     }),
     peoplePage: peoplePageWith(searchInput),
@@ -45,10 +49,10 @@ const urlOrThrow = (raw: string) =>
 
 const resolveFetch = (searchText: string) =>
   Command.resolve(
-    People.FetchPeople,
+    FetchPeople,
     People.Message.CompletedFetchPeople({
       query: searchText,
-      people: People.searchPeople(searchText),
+      people: searchPeople(searchText),
     }),
   )
 
@@ -233,7 +237,7 @@ describe('update', () => {
           expect(model.peoplePage.searchHistory).toStrictEqual(['designer'])
           expect(model.peoplePage.results._tag).toBe('Loading')
         }),
-        Command.expectHas(People.FetchPeople),
+        Command.expectHas(FetchPeople),
         resolveFetch('designer'),
         model(model => {
           if (model.peoplePage.results._tag === 'Loaded') {

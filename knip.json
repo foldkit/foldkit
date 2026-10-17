@@ -32,11 +32,13 @@
         "src/scene/public.ts",
         "src/story/public.ts",
         "src/test/public.ts",
-        "src/test/apps/**/*.ts"
+        "src/test/apps/**/*.ts",
+        "declaration-tests/**/*.ts",
+        "type-performance/*.ts"
       ]
     },
     "packages/ui": {
-      "entry": ["typedoc-entry.ts", "src/index.ts"]
+      "entry": ["typedoc-entry.ts", "src/index.ts", "declaration-tests/**/*.ts"]
     },
     "packages/devtools": {
       "entry": ["src/vite.ts"]
@@ -59,7 +61,6 @@
     },
     "packages/website": {
       "entry": [
-        "src/main.ts",
         "src/entry.server.ts",
         "src/**/*.test.ts",
         "scripts/**/*.test.ts",
@@ -106,13 +107,12 @@
       "ignoreDependencies": ["tailwindcss"]
     },
     "internal/lustre-benchmark": {
-      "entry": ["src/main.ts", "src/entry.optimised.ts", "bench/*.mjs"]
+      "entry": ["src/entry.optimised.ts", "bench/*.mjs"]
     },
     "internal/api-reference-generator": {
       "ignoreDependencies": ["@foldkit/ui", "foldkit"]
     },
     "internal/performance-harness": {
-      "entry": ["src/main.ts"],
       "ignoreDependencies": ["tailwindcss"]
     }
   },

@@ -8,27 +8,27 @@ Most routers make you define routes twice: once for matching URLs, and again for
 
 Foldkit’s routing is based on biparsers: parsers that work in both directions. A single route definition handles:
 
-- `/people/42` → `AppRoute.Person { personId: 42 }` (parsing)
-- `AppRoute.Person { personId: 42 }` → `/people/42` (building)
+- `/people/42` → `ApplicationRoute.Person { personId: 42 }` (parsing)
+- `ApplicationRoute.Person { personId: 42 }` → `/people/42` (building)
 
 This symmetry means if you can parse a URL into data, you can always build that data back into the same URL.
 
 ## Defining Routes
 
-`defineRouteUnion` declares every application Route together. Each key is a tag, and its value lists the fields parsed from the URL. `AppRoute` is also an [Effect Schema](https://effect.website/docs/schema/introduction/), so it can be stored in the Model and used to decode unknown values.
+`defineRouteUnion` declares every application Route together. Each key is a tag, and its value lists the fields parsed from the URL. `ApplicationRoute` is also an [Effect Schema](https://effect.website/docs/schema/introduction/), so it can be stored in the Model and used to decode unknown values.
 
 ::Snippet{name="routingDefineRoutes" label="Route definitions"}
 
-- `AppRoute.Home`: no parameters
-- `AppRoute.Person`: holds a `personId: number`
-- `AppRoute.People`: holds an optional `searchText: Option<string>`
-- `AppRoute.NotFound`: holds the unmatched `path: string`
+- `ApplicationRoute.Home`: no parameters
+- `ApplicationRoute.Person`: holds a `personId: number`
+- `ApplicationRoute.People`: holds an optional `searchText: Option<string>`
+- `ApplicationRoute.NotFound`: holds the unmatched `path: string`
 
 ### Construct and Match Routes
 
-Keep each variant on `AppRoute`, just as Message variants stay on `Message`. `AppRoute.Person({ personId: 42 })` constructs a Route, while `Route.mapTo(AppRoute.Person)` uses the same variant as a Schema.
+Keep each variant on `ApplicationRoute`, just as Message variants stay on `Message`. `ApplicationRoute.Person({ personId: 42 })` constructs a Route, while `Route.mapTo(ApplicationRoute.Person)` uses the same variant as a Schema.
 
-Use `AppRoute.match` when every Route needs a branch. Use `AppRoute.isAnyOf(['Blog', 'BlogPost'])` when one check accepts several tags.
+Use `ApplicationRoute.match` when every Route needs a branch. Use `ApplicationRoute.isAnyOf(['Blog', 'BlogPost'])` when one check accepts several tags.
 
 ### Accept a Subset of Routes
 
@@ -36,9 +36,9 @@ If a Model or Schema accepts only some application Routes, create that Schema wi
 
 ::Snippet{name="routingSubset" label="Route subset"}
 
-`subset` includes only the tags you name. If you add a Route to `AppRoute` later, `TopLevelRoute` will not accept it until you add its tag. There is no `omit`: an exclusion list would silently accept every Route added later.
+`subset` includes only the tags you name. If you add a Route to `ApplicationRoute` later, `TopLevelRoute` will not accept it until you add its tag. There is no `omit`: an exclusion list would silently accept every Route added later.
 
-If a module needs to name one variant's type, add an alias beside `AppRoute`: `export type NewsletterRoute = typeof AppRoute.Newsletter.Type`.
+If a module needs to name one variant's type, add an alias beside `ApplicationRoute`: `export type NewsletterRoute = typeof ApplicationRoute.Newsletter.Type`.
 
 ## Building Routers
 
@@ -56,7 +56,7 @@ The primitives:
 - `restString('path')`: captures all remaining segments as one path string
 - `slash(...)`: chains path segments together
 - `Route.query(Schema)`: adds query parameter parsing
-- `Route.mapTo(AppRoute.Person)`: converts parsed data into a typed route
+- `Route.mapTo(ApplicationRoute.Person)`: converts parsed data into a typed route
 
 ## Parsing URLs
 
@@ -112,7 +112,7 @@ Some routes carry a whole path as data: a file tree, a documentation page, a bre
 
 ### Match and Order Rest Routes
 
-`rest` requires at least one segment, so the bare prefix `/files` does not match the rest route. Give the prefix its own route, like `AppRoute.FilesIndex` above. The two never overlap: one matches exactly `/files`, the other matches anything beneath it.
+`rest` requires at least one segment, so the bare prefix `/files` does not match the rest route. Give the prefix its own route, like `ApplicationRoute.FilesIndex` above. The two never overlap: one matches exactly `/files`, the other matches anything beneath it.
 
 A specific route under the same prefix is different. The rest route also matches every URL that `literal('files'), slash(literal('shared'))` accepts, so in `oneOf` the specific route must come first.
 
@@ -172,9 +172,9 @@ Both code paths resolve a URL into a route, and both should produce the same rou
 
 ::Snippet{name="routingColdLoad" label="Cold load"}
 
-### Preserve the Submodel Boundary
+### Preserve the Block Boundary
 
-When the route-driven state lives in a Submodel, the same factoring follows the Submodel boundary instead of a shared helper: the Submodel’s `init(route)` seeds its state and returns the boot Commands for the cold load, and its `informRouteChanged` helper covers later transitions. [Informing Submodels](/patterns/informing-submodels) shows that shape, and the [Routing example](/example-apps/routing) runs on it.
+When the route-driven state lives in a Block, the same factoring follows the Block boundary instead of a shared helper: the Block Composition's `init(route)` seeds its state and returns the startup Commands for the cold load, and its exposed `informRouteChanged` Step covers later transitions. [Informing Blocks](/patterns/informing-blocks) shows that shape, and the [Routing example](/example-apps/routing) runs on it.
 
 ## Route Transitions
 

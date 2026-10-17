@@ -327,3 +327,70 @@ describe('no-empty-to-parent-out-message', () => {
     expect(dynamicComputedResult[0]?.diagnostic.fix).toBeUndefined()
   })
 })
+
+it('rejects an empty forward policy on a completed Block binding', () => {
+  const forward = property({ key: Testing.id('forward') })
+  const policy = objectExpression([forward])
+  const outMessage = property({ key: Testing.id('outMessage'), value: policy })
+  const configuration = objectExpression([
+    property({ key: Testing.id('read'), value: Testing.id('read') }),
+    property({ key: Testing.id('write'), value: Testing.id('write') }),
+    property({
+      key: Testing.id('toParentMessage'),
+      value: Testing.id('toParentMessage'),
+    }),
+    outMessage,
+  ])
+  const binding = {
+    type: 'CallExpression',
+    callee: {
+      type: 'MemberExpression',
+      object: Testing.id('Application'),
+      property: Testing.id('bindChild'),
+      computed: false,
+    },
+    arguments: [Testing.id('Settings'), configuration],
+  }
+
+  Object.assign(forward, { parent: policy })
+  Object.assign(policy, { parent: outMessage })
+  Object.assign(outMessage, { parent: configuration })
+  Object.assign(configuration, { parent: binding })
+
+  const result = run(policy)
+
+  expect(result).toHaveLength(1)
+  expect(result[0]?.diagnostic.message).toContain('outMessage.forward')
+})
+
+it('ignores ordinary Function.bind calls', () => {
+  const forward = property({ key: Testing.id('forward') })
+  const policy = objectExpression([forward])
+  const outMessage = property({ key: Testing.id('outMessage'), value: policy })
+  const configuration = objectExpression([
+    property({ key: Testing.id('read'), value: Testing.id('read') }),
+    property({ key: Testing.id('write'), value: Testing.id('write') }),
+    property({
+      key: Testing.id('toParentMessage'),
+      value: Testing.id('toParentMessage'),
+    }),
+    outMessage,
+  ])
+  const binding = {
+    type: 'CallExpression',
+    callee: {
+      type: 'MemberExpression',
+      object: Testing.id('callback'),
+      property: Testing.id('bind'),
+      computed: false,
+    },
+    arguments: [configuration],
+  }
+
+  Object.assign(forward, { parent: policy })
+  Object.assign(policy, { parent: outMessage })
+  Object.assign(outMessage, { parent: configuration })
+  Object.assign(configuration, { parent: binding })
+
+  expect(run(policy)).toHaveLength(0)
+})

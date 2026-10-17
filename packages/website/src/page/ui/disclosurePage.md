@@ -2,7 +2,7 @@
 
 ## Overview
 
-A toggle for showing and hiding content inline. Disclosure is a stateless controlled render helper. Call it directly with a ViewConfig in your own view, with no Model, update, or `h.submodel` wrapping of its own. Your Model owns the value passed as `isOpen`, and `onToggle` turns an interaction into a Message for update to store. Use it for FAQs, accordions, and collapsible sections. For content in a floating panel, use Dialog or Popover instead.
+A toggle for showing and hiding content inline. Disclosure is a stateless controlled render helper. Call it directly with a ViewConfig in your own view, with no Model, update, or `h.block` wrapping of its own. Your Model owns the value passed as `isOpen`, and `onToggle` turns an interaction into a Message for update to store. Use it for FAQs, accordions, and collapsible sections. For content in a floating panel, use Dialog or Popover instead.
 
 :::Info{label="See it in an app"}
 Check out how Disclosure is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/disclosure.ts).

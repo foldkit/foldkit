@@ -1,5 +1,8 @@
 import { Context, Effect, Layer, type Scope, Stream } from 'effect'
 
+import type { DefinitionIdentity } from '../block/identity.js'
+import type { ValidateConstructionRequirements } from '../block/scope.js'
+
 declare const HandlerTypeId: unique symbol
 
 /** @internal The capability shared by all Layer-backed Mount handlers. */
@@ -55,7 +58,8 @@ export interface ToEffectLayer<Name extends string, Input, Message> {
       EffectHandler<Input, Message, ExecuteRequirements>,
       E,
       BuildRequirements
-    >,
+    > &
+      ValidateConstructionRequirements<BuildRequirements>,
   ): Layer.Layer<
     Handler<Name, Input, Message>,
     E,
@@ -78,7 +82,8 @@ export interface ToStreamLayer<Name extends string, Input, Message> {
       StreamHandler<Input, Message, StreamRequirements>,
       E,
       BuildRequirements
-    >,
+    > &
+      ValidateConstructionRequirements<BuildRequirements>,
   ): Layer.Layer<
     Handler<Name, Input, Message>,
     E,
@@ -144,7 +149,14 @@ export const makeEffectHandler = <Name extends string, Input, Message>(
       }),
     )
 
-  return { execute, toLayer }
+  const definitionIdentity: DefinitionIdentity = {
+    kind: 'Mount',
+    name,
+    token: identity,
+    service,
+  }
+
+  return { execute, toLayer, identity: definitionIdentity }
 }
 
 /** @internal Builds service-backed execution for a streaming Mount definition. */
@@ -204,5 +216,12 @@ export const makeStreamHandler = <Name extends string, Input, Message>(
       }),
     )
 
-  return { execute, toLayer }
+  const definitionIdentity: DefinitionIdentity = {
+    kind: 'Mount',
+    name,
+    token: identity,
+    service,
+  }
+
+  return { execute, toLayer, identity: definitionIdentity }
 }

@@ -1,31 +1,19 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Option, Schema } from 'effect'
-import { Update } from 'foldkit'
-import type { HtmlBuilder } from 'foldkit/html'
+import { Schema, Tuple } from 'effect'
+import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import type * as Mount from 'foldkit/mount'
-import { modifyFields } from 'foldkit/struct'
 
 import { Tooltip } from '@foldkit/ui'
+import type { RenderInfo as TooltipRenderInfo } from '@foldkit/ui/tooltip'
 
-type MountRequirements = Mount.RequirementsOf<typeof Tooltip.mounts>
-
-// Add a field to your Model for the Tooltip Submodel:
+// Add a field to your Model for the Tooltip Block:
 const Model = Schema.Struct({
   tooltip: Tooltip.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
-
-// In your init function, initialize the Tooltip Submodel with a unique id:
-const init = () => ({
-  model: {
-    tooltip: Tooltip.init({ id: 'save-button' }),
-    // ...your other fields
-  },
-})
 
 // Embed the Tooltip Message in your parent Message:
 const Message = defineMessageUnion({
@@ -50,28 +38,41 @@ const foldTooltipOutMessage = Tooltip.OutMessage.match<
   Hidden: () => model => ({ model }),
 })
 
-// Update.foldChild wires the child into the parent: it runs Tooltip.update,
-// writes the next Tooltip Model back, maps the Submodel's Commands into your
-// Message type, and hands any OutMessage to foldOutMessage.
-const foldTooltip = Update.foldChild({
-  update: Tooltip.update,
-  read: (model: Model) => Option.some(model.tooltip),
-  write: (model, nextTooltip) =>
-    modifyFields(model, { tooltip: () => nextTooltip }),
-  toParentMessage: message => Message.GotTooltipMessage({ message }),
-  foldOutMessage: foldTooltipOutMessage,
+// The Binding wires the completed child Block into the parent: it runs Tooltip.update,
+// writes the next Tooltip Model back, maps the Block's Commands into your
+// Message type, and hands any OutMessage to the OutMessage fold.
+const TooltipExample = Block.define('TooltipExample', {
+  Model,
+  Message,
 })
 
-// In the corresponding Message.match handler, call the fold:
-GotTooltipMessage: ({ message }) => foldTooltip(model, message)
+const TooltipBinding = TooltipExample.bindChild(Tooltip.block, {
+  field: 'tooltip',
+  parentMessage: Message.GotTooltipMessage,
+  init: { args: () => Tuple.make({ id: 'save-button' }) },
+  outMessage: { fold: foldTooltipOutMessage },
+})
 
-// Inside your view function, embed the tooltip via h.submodel. The tooltip
+const TooltipExampleComposition = TooltipExample.makeComposition({
+  childBindings: [TooltipBinding],
+})
+
+// In your init function, initialize the Tooltip Block with a unique id:
+const init = TooltipExampleComposition.makeInit(() => ({
+  model: {
+    // ...your other fields
+  },
+}))
+
+const update = TooltipExampleComposition.makeUpdate()
+
+// Inside your view function, embed the tooltip via h.block. The tooltip
 // describes the trigger but does not name it, so give an icon-only trigger
 // an accessible name with `ariaLabel`. (Point `ariaLabelledBy` at a visible
 // label element instead when one exists.) The attribute is only emitted when
 // provided, so the trigger never carries a dangling `aria-labelledby`.
-const view = (h: HtmlBuilder<Message, MountRequirements>) => {
-  const tooltipView = ({ trigger, panel, isVisible }: Tooltip.RenderInfo) =>
+const view = TooltipExampleComposition.makeView((model, h) => {
+  const tooltipView = ({ trigger, panel, isVisible }: TooltipRenderInfo) =>
     h.div(
       [h.Class('relative inline-block')],
       [
@@ -96,15 +97,15 @@ const view = (h: HtmlBuilder<Message, MountRequirements>) => {
       ],
     )
 
-  return h.submodel({
-    slotId: 'save-button',
-    model: model.tooltip,
-    view: Tooltip.view,
-    viewInputs: {
-      ariaLabel: 'Save',
-      anchor: { placement: 'top', gap: 6, padding: 8 },
-      toView: tooltipView,
-    },
-    toParentMessage: message => Message.GotTooltipMessage({ message }),
-  })
-}
+  return h.block(
+    TooltipBinding.embedView({
+      slotId: 'save-button',
+      model: model.tooltip,
+      viewInputs: {
+        ariaLabel: 'Save',
+        anchor: { placement: 'top', gap: 6, padding: 8 },
+        toView: tooltipView,
+      },
+    }),
+  )
+})

@@ -17,7 +17,7 @@ const makeWorkspace = context => {
   mkdirSync(source, { recursive: true })
   mkdirSync(plugin, { recursive: true })
 
-  copyFileSync(join(FIXTURES, 'production.ts'), join(source, 'main.ts'))
+  copyFileSync(join(FIXTURES, 'production.ts'), join(source, 'app.ts'))
   copyFileSync(join(FIXTURES, 'plugin.ts'), join(plugin, 'index.ts'))
 
   return { workspace, source }

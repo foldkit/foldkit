@@ -11,8 +11,6 @@ const trackClassName =
 
 const indicatorClassName = 'h-full rounded-full bg-blue-600 transition-all'
 
-// VIEW
-
 export const basicDemo = (h: HtmlBuilder<Message>) => {
   return [
     Progress.view(

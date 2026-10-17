@@ -47,7 +47,7 @@ import { FetchHttpClient, HttpClient } from 'effect/http'
  *  }},
  * )
  *
- * const AppLayer = FetchCount.layer.pipe(Layer.provide(Http.layer))
+ * const ApplicationLayer = FetchCount.layer.pipe(Layer.provide(Http.layer))
  * ```
  */
 export const layer: Layer.Layer<HttpClient.HttpClient> = Layer.provide(

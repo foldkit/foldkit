@@ -13,7 +13,7 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const init = (): Model => ({
+const initialModel = (): Model => ({
   editorMode: EditorMode.Browsing(),
 })
 

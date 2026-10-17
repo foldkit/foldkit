@@ -1,32 +1,24 @@
 import { Effect, Option, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 
-const Todo = Schema.Struct({
-  id: Schema.String,
-  text: Schema.String,
-  completed: Schema.Boolean,
+export const Flags = Schema.Struct({
+  savedCount: Schema.Option(Schema.Number),
 })
+export type Flags = typeof Flags.Type
 
-const Todos = Schema.Array(Todo)
+const COUNTER_STORAGE_KEY = 'count'
 
-const TodosJsonString = Schema.fromJsonString(Schema.toCodecJson(Todos))
+export const flags = Effect.gen(function* () {
+  const store = yield* KeyValueStore.KeyValueStore
 
-const Flags = Schema.Struct({
-  todos: Schema.Option(Todos),
-})
-type Flags = typeof Flags.Type
-
-const flags: Effect.Effect<Flags, never, KeyValueStore.KeyValueStore> =
-  Effect.gen(function* () {
-    const store = yield* KeyValueStore.KeyValueStore
-    const todosJson = yield* Effect.fromOption(
-      Option.fromNullishOr(yield* store.get('todos')),
-    )
-
-    const decodeTodos = Schema.decodeEffect(TodosJsonString)
-    const todos = yield* decodeTodos(todosJson)
-
-    return Flags.make({ todos: Option.some(todos) })
-  }).pipe(
-    Effect.catch(() => Effect.succeed(Flags.make({ todos: Option.none() }))),
+  const storedCount = yield* Effect.fromOption(
+    Option.fromNullishOr(yield* store.get(COUNTER_STORAGE_KEY)),
   )
+  const savedCount = yield* Schema.decodeEffect(Schema.FiniteFromString)(
+    storedCount,
+  )
+
+  return Flags.make({ savedCount: Option.some(savedCount) })
+}).pipe(
+  Effect.catch(() => Effect.succeed(Flags.make({ savedCount: Option.none() }))),
+)

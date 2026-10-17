@@ -10,10 +10,10 @@ import {
   Stream,
   pipe,
 } from 'effect'
-import { AsyncData, Render, Subscription } from 'foldkit'
+import { AsyncData, Render } from 'foldkit'
 
+import { Application } from '../definition'
 import { Message } from '../message'
-import { type Model } from '../model'
 import {
   About,
   AiMcp,
@@ -47,7 +47,7 @@ import {
   WhyFoldkit,
 } from '../page'
 
-export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+export const subscriptions = Application.subscriptions(entry => ({
   activeSectionChanges: entry(
     'ActiveSectionChanges',
     {
@@ -121,12 +121,12 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             CoreFreezeModel: () => Core.FreezeModel.tableOfContents,
             CorePreserveScroll: () => Core.PreserveScroll.tableOfContents,
             CoreDevTools: () => Core.DevTools.tableOfContents,
-            CoreSubmodel: () => Core.SubmodelPage.tableOfContents,
+            CoreBlock: () => Core.BlockPage.tableOfContents,
             CoreMachine: () => Core.Machine.tableOfContents,
             AsyncData: () => AsyncDataPage.tableOfContents,
             PatternsAntiPatterns: () => Patterns.AntiPatterns.tableOfContents,
-            PatternsInformingSubmodels: () =>
-              Patterns.InformingSubmodels.tableOfContents,
+            PatternsInformingBlocks: () =>
+              Patterns.InformingBlocks.tableOfContents,
             PatternsSubscriptionOrganization: () =>
               Patterns.SubscriptionOrganization.tableOfContents,
             CoreViewMemoization: () => Core.ViewMemoization.tableOfContents,
@@ -161,8 +161,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             UiHoverIntent: () => Ui.HoverIntentPage.tableOfContents,
             UiVirtualList: () => Ui.VirtualListPage.tableOfContents,
             UiOverview: () => Ui.OverviewPage.tableOfContents,
-            UiSelectionSubmodels: () =>
-              Ui.SelectionSubmodelsPage.tableOfContents,
+            UiSelectionBlocks: () => Ui.SelectionBlocksPage.tableOfContents,
             AiOverview: () => AiOverview.tableOfContents,
             AiSkills: () => AiSkills.tableOfContents,
             AiMcp: () => AiMcp.tableOfContents,

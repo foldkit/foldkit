@@ -1,27 +1,29 @@
 import { Schema } from 'effect'
 import { Url } from 'foldkit/url'
 
-import { Dialog, Menu } from '@foldkit/ui'
+import { Dialog } from '@foldkit/ui'
 
 import { Deployment } from './deployment'
-import { ResolvedTheme, ThemePreference } from './message'
+import { ResolvedTheme } from './message'
 import {
   ApiReference,
   ComingFromReact,
-  Core,
-  Example,
+  CoreBlockPage,
+  ExampleDetail,
   Home,
   Playground,
   Ui,
 } from './page'
-import { AppRoute } from './route'
+import { ApplicationRoute } from './route'
 import * as Search from './search'
 import { SidebarGroups } from './sidebarStorage'
 import * as SnippetCopy from './snippetCopy'
 import * as SnippetDisclosure from './snippetDisclosure'
+import { ThemePreference } from './themePreference'
+import { ThemeMenu } from './view/themeMenu'
 
 export const Model = Schema.Struct({
-  route: AppRoute,
+  route: ApplicationRoute,
   url: Url,
   deployment: Deployment,
   snippetCopy: SnippetCopy.Model,
@@ -35,16 +37,16 @@ export const Model = Schema.Struct({
   maybeIsPlaygroundSupported: Schema.Option(Schema.Boolean),
   playground: Schema.Option(Playground.Model),
   sidebarGroups: SidebarGroups,
-  coreSubmodelPage: Core.SubmodelPage.Model,
+  coreBlockPage: CoreBlockPage.Model,
   maybeHome: Schema.Option(Home.Model),
-  themeMenu: Menu.Model,
+  themeMenu: ThemeMenu.Model,
   maybeThemePreference: Schema.Option(ThemePreference),
   systemTheme: ResolvedTheme,
   resolvedTheme: ResolvedTheme,
   uiPages: Ui.Model,
   comingFromReact: ComingFromReact.Model,
   apiReference: ApiReference.Model,
-  exampleDetail: Example.ExampleDetail.Model,
+  exampleDetail: ExampleDetail.Model,
   search: Search.Model,
 })
 export type Model = typeof Model.Type

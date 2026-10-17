@@ -1,14 +1,17 @@
 // ✅ Good: Model state controls the WebSocket's lifetime.
 
 import { Effect, Layer, Schema } from 'effect'
-import { Command, ManagedResource } from 'foldkit'
+import { Block } from 'foldkit'
 
 import { Message } from './message'
+import { Model } from './model'
 
-const ChatSocket = ManagedResource.tag<WebSocket>()('ChatSocket')
+const Chat = Block.define('Chat', { Model, Message })
+const ChatSocket = Chat.resource<WebSocket>()('ChatSocket')
+
 const RoomRequirements = Schema.Struct({ roomId: Schema.String })
 
-const managedResources = ManagedResource.make<Model, Message>()(entry => ({
+const managedResources = Chat.managedResources(entry => ({
   chatSocket: entry('ManageChatSocket', Schema.Option(RoomRequirements), {
     resource: ChatSocket,
     modelToMaybeRequirements: model => model.maybeRoomRequirements,
@@ -26,7 +29,7 @@ const managedResources = ManagedResource.make<Model, Message>()(entry => ({
   }),
 }))
 
-const SendChatMessage = Command.define('SendChatMessage', {
+const SendChatMessage = Chat.command('SendChatMessage', {
   args: { text: Schema.String },
   messages: [Message.SucceededSendChatMessage, Message.FailedSendChatMessage],
   handler: function* () {

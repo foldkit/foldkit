@@ -1,33 +1,45 @@
-import { Document, Html, HtmlBuilder } from 'foldkit/html'
+import { Option } from 'effect'
+import { Html } from 'foldkit/html'
 
-import { Message } from '../message'
+import {
+  ApplicationComposition,
+  type ApplicationViewBuilder,
+  HomeBinding,
+  RoomBinding,
+} from '../composition'
 import { Model } from '../model'
-import { Home, Room } from '../page'
-import { AppRoute } from '../route'
+import { ApplicationRoute } from '../route'
 
 const routeTitle = (route: Model['route']): string =>
-  AppRoute.match(route, {
+  ApplicationRoute.match(route, {
     Home: () => 'Typing Game',
     Room: ({ roomId }) => `Room ${roomId} | Typing Game`,
     NotFound: () => 'Not Found | Typing Game',
   })
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
-  const content = AppRoute.match(model.route, {
+export const view = ApplicationComposition.makeView((model, h) => {
+  const content = ApplicationRoute.match(model.route, {
     Home: () =>
-      h.submodel({
-        slotId: 'home',
-        model: model.home,
-        view: Home.view,
-        toParentMessage: message => Message.GotHomeMessage({ message }),
-      }),
+      h.block(
+        HomeBinding.embedView({
+          slotId: 'home',
+          model: model.home,
+        }),
+      ),
     Room: ({ roomId }) =>
-      h.submodel({
-        slotId: 'room',
-        model: model.room,
-        view: Room.view,
-        viewInputs: { roomId },
-        toParentMessage: message => Message.GotRoomMessage({ message }),
+      Option.match(model.maybeRoomInstance, {
+        onNone: () => h.empty,
+        onSome: roomInstance =>
+          roomInstance.roomId === roomId
+            ? h.block(
+                RoomBinding.embedView({
+                  key: roomId,
+                  slotId: 'room',
+                  model: roomInstance.model,
+                  viewInputs: { roomId },
+                }),
+              )
+            : h.empty,
       }),
     NotFound: route => notFound(route, h),
   })
@@ -58,11 +70,11 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
       [h.main([h.Class('flex-1 flex flex-col')], [content]), footerElement],
     ),
   }
-}
+})
 
 const notFound = (
-  { path }: typeof AppRoute.NotFound.Type,
-  h: HtmlBuilder<Message>,
+  { path }: typeof ApplicationRoute.NotFound.Type,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.section(
     [h.Class('max-w-4xl')],

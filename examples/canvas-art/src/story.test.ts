@@ -2,7 +2,7 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
-import { GenerateBall, Message, type Model, update } from './main'
+import { GenerateBall, Message, type Model, update } from './application'
 
 const emptyModel: Model = {
   balls: [],

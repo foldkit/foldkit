@@ -1,20 +1,15 @@
 // Pseudocode walkthrough of what an arrow adds to a Popover you already have.
 // Popover positions the arrow. The CSS below the demo draws it.
-import type { HtmlBuilder } from 'foldkit/html'
-import type * as Mount from 'foldkit/mount'
+import type { RenderInfo as PopoverRenderInfo } from '@foldkit/ui/popover'
 
-import { Popover } from '@foldkit/ui'
-
-type MountRequirements = Mount.RequirementsOf<typeof Popover.mounts>
-
-const view = (h: HtmlBuilder<Message, MountRequirements>) => {
+const view = PopoverExampleComposition.makeView((model, h) => {
   const popoverView = ({
     button,
     panel,
     backdrop,
     arrow,
     isVisible,
-  }: Popover.RenderInfo) =>
+  }: PopoverRenderInfo) =>
     h.div(
       [h.Class('relative inline-block')],
       [
@@ -77,18 +72,18 @@ const view = (h: HtmlBuilder<Message, MountRequirements>) => {
       ],
     )
 
-  return h.submodel({
-    slotId: 'info',
-    model: model.popover,
-    view: Popover.view,
-    viewInputs: {
-      // Leave room for the arrow tip, which reaches 8px past the panel:
-      anchor: { placement: 'bottom-start', gap: 10, padding: 8 },
-      // Keep the arrow clear of the panel's rounded corners:
-      arrowPadding: 12,
-      // Take the arrow bundle from the render payload:
-      toView: popoverView,
-    },
-    toParentMessage: message => Message.GotPopoverMessage({ message }),
-  })
-}
+  return h.block(
+    PopoverBinding.embedView({
+      slotId: 'info',
+      model: model.popover,
+      viewInputs: {
+        // Leave room for the arrow tip, which reaches 8px past the panel:
+        anchor: { placement: 'bottom-start', gap: 10, padding: 8 },
+        // Keep the arrow clear of the panel's rounded corners:
+        arrowPadding: 12,
+        // Take the arrow bundle from the render payload:
+        toView: popoverView,
+      },
+    }),
+  )
+})

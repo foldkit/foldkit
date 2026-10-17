@@ -1,15 +1,13 @@
 import { Match, Option } from 'effect'
-import type { Mount } from 'foldkit'
-import {
-  Html,
-  type HtmlBuilder,
-  createKeyedLazy,
-  inertHtml as ih,
-} from 'foldkit/html'
-
-import { Dialog, Menu } from '@foldkit/ui'
+import { Html, createKeyedLazy, inertHtml as ih } from 'foldkit/html'
 
 import { Shared } from '../component'
+import type { ApplicationViewBuilder } from '../composition'
+import {
+  SnippetCopyBinding,
+  SnippetDisclosureBinding,
+  UiPagesBinding,
+} from '../composition'
 import { Docs } from '../layout'
 import { docPage } from '../markdown'
 import { Message } from '../message'
@@ -30,28 +28,17 @@ const postView = (
   post: Blog.BlogPost,
   snippetCopy: SnippetCopy.Model,
   snippetDisclosure: SnippetDisclosure.Model,
-  uiPages: Ui.Model,
-  h: HtmlBuilder<
-    Message,
-    Mount.RequirementsOf<
-      | typeof Dialog.mounts
-      | typeof Menu.mounts
-      | typeof Ui.mounts
-      | typeof SnippetDisclosure.mounts
-    >
-  >,
+  uiPages: typeof Ui.Model.Type,
+  h: ApplicationViewBuilder,
 ): Html => {
-  const renderCopyButton = SnippetCopy.renderer(
-    snippetCopy,
-    message => Message.GotSnippetCopyMessage({ message }),
-    h,
+  const renderCopyButton = SnippetCopy.renderer(snippetCopy, config =>
+    h.block(SnippetCopyBinding.embedView(config)),
   )
 
   const renderSnippet = SnippetDisclosure.renderer(
     snippetDisclosure,
-    message => Message.GotSnippetDisclosureMessage({ message }),
     renderCopyButton,
-    h,
+    config => h.block(SnippetDisclosureBinding.embedView(config)),
   )
   const renderHeadingLink = Prose.renderHeadingLink(
     hash => Message.ClickedCopyLink({ hash }),
@@ -60,13 +47,14 @@ const postView = (
 
   const content =
     post.slug === 'foldkit-0-167-0'
-      ? h.submodel({
-          slotId: 'blog-release-0167',
-          model: uiPages,
-          view: Release0167.view,
-          viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
-          toParentMessage: message => Message.GotUiPageMessage({ message }),
-        })
+      ? h.block(
+          UiPagesBinding.embedView({
+            slotId: 'blog-release-0167',
+            model: uiPages,
+            view: Release0167.view,
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
+          }),
+        )
       : docPage(post.document, post.slug).view(
           renderCopyButton,
           renderSnippet,
@@ -78,20 +66,10 @@ const postView = (
 
 const lazyPostView = createKeyedLazy()
 
-// VIEW
-
 export const view = (
   model: Model,
   blogRoute: BlogRoute | BlogPostRoute,
-  h: HtmlBuilder<
-    Message,
-    Mount.RequirementsOf<
-      | typeof Dialog.mounts
-      | typeof Menu.mounts
-      | typeof Ui.mounts
-      | typeof SnippetDisclosure.mounts
-    >
-  >,
+  h: ApplicationViewBuilder,
 ): Html => {
   const content = Match.value(blogRoute).pipe(
     Match.withReturnType<Html>(),

@@ -2,7 +2,7 @@ import { Command, click, expect, given, role, scene, text } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
-import { Message, type Model, ReportCount, update, view } from './main'
+import { Message, type Model, ReportCount, update, view } from './application'
 
 const initialModel: Model = { count: 10, step: 1 }
 

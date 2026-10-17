@@ -1,10 +1,10 @@
 // ✅ Good: update returns a Command and the Runtime performs the effect.
 
 import { Effect } from 'effect'
-import { Command, Dom, Update } from 'foldkit'
+import { Dom } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-const FocusSearchInput = Command.define('FocusSearchInput', {
+const FocusSearchInput = Application.command('FocusSearchInput', {
   messages: [Message.CompletedFocusSearchInput],
   handler: function* () {
     return () =>
@@ -15,7 +15,7 @@ const FocusSearchInput = Command.define('FocusSearchInput', {
   },
 })
 
-const update = Update.define((model: Model, message: Message) =>
+const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedOpenDialog: () => ({
       model: modifyFields(model, { dialogState: () => 'Open' }),

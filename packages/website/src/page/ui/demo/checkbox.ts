@@ -16,8 +16,6 @@ const wrapperClassName = 'flex flex-col gap-1'
 
 const topRowClassName = 'flex items-center gap-2'
 
-// VIEW
-
 export const basicDemo = (model: Model, h: HtmlBuilder<Message>) => {
   const checkmark = h.span([h.Class('demo-checkbox-mark')], ['✓'])
 

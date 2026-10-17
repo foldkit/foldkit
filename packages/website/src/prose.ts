@@ -8,7 +8,7 @@ import { type TableOfContentsEntry } from './tableOfContentsEntry'
 /**
  * Builds the copy-link control beside a section heading.
  *
- * A page rendered through `h.submodel` receives one of these from the boundary
+ * A page rendered through `h.block` receives one of these from the boundary
  * that owns the heading-link Message. An element dispatches through the frame
  * where it is built, so the renderer keeps that ownership explicit.
  */
@@ -138,7 +138,7 @@ export const subPara = (...content: ReadonlyArray<string | Html>): Html =>
 
 /**
  * The heading helpers bound to a page-supplied copy-link renderer, for a page
- * rendered inside a Submodel. Bind once at the top of the view and the call
+ * rendered inside a Block. Bind once at the top of the view and the call
  * sites below it are unchanged.
  */
 export const headingsFor = (renderHeadingLink: RenderHeadingLink) => ({

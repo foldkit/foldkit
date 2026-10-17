@@ -3,6 +3,7 @@ import { Option, String } from 'effect'
 import { Html, HtmlBuilder } from 'foldkit/html'
 
 import { DragAndDrop } from '@foldkit/ui'
+import { draggable, maybeDraggedItemId } from '@foldkit/ui/dragAndDrop'
 
 import { Card } from '../domain'
 import type { Message } from '../message'
@@ -28,11 +29,11 @@ export const cardView = (
   card: Card.Card,
   columnId: string,
   index: number,
-  toParentMessage: (message: DragAndDrop.Message) => Message,
+  toParentMessage: (message: typeof DragAndDrop.Message.Type) => Message,
   h: HtmlBuilder<Message>,
 ): Html => {
   const isThisCardBeingDragged = Option.exists(
-    DragAndDrop.maybeDraggedItemId(model.dragAndDrop),
+    maybeDraggedItemId(model.dragAndDrop),
     id => id === card.id,
   )
   const isPointerDragged =
@@ -53,7 +54,7 @@ export const cardView = (
             !isPointerDragged && !isKeyboardDragged,
         }),
       ),
-      ...DragAndDrop.draggable(
+      ...draggable(
         {
           model: model.dragAndDrop,
           toParentMessage,

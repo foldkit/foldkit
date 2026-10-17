@@ -10,8 +10,6 @@ import type { Model } from '../model'
 const buttonClassName =
   'button-accent inline-flex items-center gap-2 rounded-lg px-3 py-2 text-base shadow-sm cursor-pointer data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50'
 
-// VIEW
-
 export const basicDemo = (model: Model, h: HtmlBuilder<Message>) => {
   return [
     h.div(

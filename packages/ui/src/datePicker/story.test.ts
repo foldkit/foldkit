@@ -10,16 +10,13 @@ import * as Popover from '../popover/index.js'
 import {
   Message,
   OutMessage,
-  clear,
-  close,
+  block,
   focusDate,
   init,
-  open,
   reflectDisabledDates,
   reflectDisabledDaysOfWeek,
   reflectMaxDate,
   reflectMinDate,
-  selectDate,
   update,
 } from './index.js'
 
@@ -50,12 +47,12 @@ describe('DatePicker', () => {
       expect(model.calendar.viewMonth).toBe(5)
     })
 
-    it('propagates isAnimated to the popover submodel', () => {
+    it('propagates isAnimated to the popover block', () => {
       const model = init({ id: 'picker', today, isAnimated: true })
       expect(model.popover.isAnimated).toBe(true)
     })
 
-    it('propagates min/max and disabled config to the calendar submodel', () => {
+    it('propagates min/max and disabled config to the calendar block', () => {
       const minDate = Calendar.make(2026, 1, 1)
       const maxDate = Calendar.make(2026, 12, 31)
       const model = init({
@@ -353,21 +350,21 @@ describe('DatePicker', () => {
   describe('programmatic helpers', () => {
     it('open(model) behaves like dispatching Opened', () => {
       const model = init({ id: 'picker', today })
-      const pickerOpen = open(model)
+      const pickerOpen = block.expose.open(model)
       expect(pickerOpen.model.popover.isOpen).toBe(true)
     })
 
     it('close(model) behaves like dispatching Closed', () => {
-      const pickerOpen = open(init({ id: 'picker', today }))
-      const pickerClose = close(pickerOpen.model)
+      const pickerOpen = block.expose.open(init({ id: 'picker', today }))
+      const pickerClose = block.expose.close(pickerOpen.model)
       expect(pickerClose.model.popover.isOpen).toBe(false)
       expect((pickerClose.commands ?? []).length).toBeGreaterThan(0)
     })
 
     it('selectDate(model, date) commits the date, closes the popover, and emits SelectedDate', () => {
       const target = Calendar.make(2026, 4, 20)
-      const pickerOpen = open(init({ id: 'picker', today }))
-      const dateSelection = selectDate(pickerOpen.model, target)
+      const pickerOpen = block.expose.open(init({ id: 'picker', today }))
+      const dateSelection = block.expose.selectDate(pickerOpen.model, target)
       expect(dateSelection.model.popover.isOpen).toBe(false)
       expect(dateSelection.outMessage).toStrictEqual(
         OutMessage.SelectedDate({ date: target }),
@@ -380,7 +377,7 @@ describe('DatePicker', () => {
         today,
         initialViewDate: Calendar.make(2026, 4, 20),
       })
-      const selectionClear = clear(seeded)
+      const selectionClear = block.expose.clear(seeded)
       expect(selectionClear.outMessage).toStrictEqual(OutMessage.ClearedDate())
     })
 

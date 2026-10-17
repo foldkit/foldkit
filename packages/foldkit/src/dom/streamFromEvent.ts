@@ -143,17 +143,23 @@ type PreventDefaultEventListenerOptions = Omit<
  * those events, or reach for `streamFromEventFilterMapPreventDefault`, which does
  * so for you.
  *
- * The output type is inferred from the mapper; `Subscription.make` checks
- * that the final Stream emits the application's Message type.
+ * The output type is inferred from the mapper. A Block definition's
+ * `subscriptions` method checks that the final Stream emits the Block's
+ * Message type.
  */
 export type StreamFromEventConfig<
   Target extends EventTarget,
   Type extends EventTypeOf<Target>,
   Output,
 > = Readonly<{
+  /** Event source, or a thunk resolved when the Stream's scope opens. */
   target: Target | (() => Target)
+  /** Event name accepted by the target's declared or native event map. */
   type: Type
+  /** Maps each event synchronously to the value emitted by the Stream. */
   mapEvent: (event: EventOf<Target, Type>) => Output
+  /** Native listener options passed to both `addEventListener` and
+   * `removeEventListener`. */
   options?: AddEventListenerOptions
 }>
 
@@ -179,17 +185,24 @@ export type StreamFromEventConfig<
  * `options: { passive: false }` explicitly when cancelling those events, or
  * reach for `streamFromEventFilterMapPreventDefault`, which does so for you.
  *
- * The output type is inferred from the mapper; `Subscription.make` checks
- * that the final Stream emits the application's Message type.
+ * The output type is inferred from the mapper. A Block definition's
+ * `subscriptions` method checks that the final Stream emits the Block's
+ * Message type.
  */
 export type StreamFromEventFilterMapConfig<
   Target extends EventTarget,
   Type extends EventTypeOf<Target>,
   Output,
 > = Readonly<{
+  /** Event source, or a thunk resolved when the Stream's scope opens. */
   target: Target | (() => Target)
+  /** Event name accepted by the target's declared or native event map. */
   type: Type
+  /** Maps an event to `Some(value)` to emit it, or `None` to ignore it. The
+   * mapper runs synchronously during event dispatch. */
   filterMapEvent: (event: EventOf<Target, Type>) => Option.Option<Output>
+  /** Native listener options passed to both `addEventListener` and
+   * `removeEventListener`. */
   options?: AddEventListenerOptions
 }>
 
@@ -254,17 +267,24 @@ const listen = <EventType extends Event, Output>(
  * rejects `passive: true`; the runtime guard also throws for unchecked
  * JavaScript inputs.
  *
- * The output type is inferred from the mapper; `Subscription.make` checks
- * that the final Stream emits the application's Message type.
+ * The output type is inferred from the mapper. A Block definition's
+ * `subscriptions` method checks that the final Stream emits the Block's
+ * Message type.
  */
 export type StreamFromEventFilterMapPreventDefaultConfig<
   Target extends EventTarget,
   Type extends EventTypeOf<Target>,
   Output,
 > = Readonly<{
+  /** Event source, or a thunk resolved when the Stream's scope opens. */
   target: Target | (() => Target)
+  /** Event name accepted by the target's declared or native event map. */
   type: Type
+  /** Maps an event to `Some(value)` to emit and cancel its default action, or
+   * `None` to ignore it. */
   filterMapEvent: (event: EventOf<Target, Type>) => Option.Option<Output>
+  /** Native listener options. `passive` defaults to `false` and cannot be
+   * `true`, because handled events call `preventDefault()`. */
   options?: PreventDefaultEventListenerOptions
 }>
 
@@ -308,7 +328,9 @@ export type StreamFromEventFilterMapPreventDefaultConfig<
  *
  * @example
  * ```typescript
- * const subscriptions = Subscription.make<Model, Message>()(entry => ({
+ * const App = Block.define('App')
+ * const app = App.define({ Model, Message })
+ * const subscriptions = app.subscriptions(entry => ({
  *   escapeKey: entry(
  *     'EscapeKey',
  *     { isListening: Schema.Boolean },
@@ -374,7 +396,9 @@ export const streamFromEventFilterMap = <
  *
  * @example
  * ```typescript
- * const subscriptions = Subscription.make<Model, Message>()(entry => ({
+ * const App = Block.define('App')
+ * const app = App.define({ Model, Message })
+ * const subscriptions = app.subscriptions(entry => ({
  *   shortcut: entry(
  *     'KeyboardShortcut',
  *     { isListening: Schema.Boolean },
@@ -449,7 +473,9 @@ export const streamFromEvent = <
  *
  * @example
  * ```typescript
- * const subscriptions = Subscription.make<Model, Message>()(entry => ({
+ * const App = Block.define('App')
+ * const app = App.define({ Model, Message })
+ * const subscriptions = app.subscriptions(entry => ({
  *   wheelLock: entry(
  *     'WheelLock',
  *     { isModalOpen: Schema.Boolean },

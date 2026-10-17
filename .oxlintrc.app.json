@@ -25,14 +25,6 @@
       { "ignoreDeclarationSort": true, "ignoreCase": false }
     ]
   },
-  "overrides": [
-    {
-      "files": ["examples/slow-warnings/src/main.ts"],
-      "rules": {
-        "foldkit/no-impure-call-at-decision-time": "off"
-      }
-    }
-  ],
   "ignorePatterns": [
     "**/*.d.ts",
     "**/vite.config.ts",

@@ -13,6 +13,8 @@ import {
   pipe,
 } from 'effect'
 
+import { copyIdentity, registerIdentity } from '../block/identity.js'
+import type { ValidateConstructionRequirements } from '../block/scope.js'
 import {
   type Handler,
   type ToLayerWithKeepAlive,
@@ -30,6 +32,10 @@ export type {
 type SubscriptionBrand = {
   readonly __subscription: never
 }
+
+type ValidateHandlerConstruction<
+  Yielded extends Effect.Effect<unknown, unknown, unknown>,
+> = ValidateConstructionRequirements<Effect.Services<Yielded>>
 
 type DependenciesSchema<Dependencies> = Schema.Schema<Dependencies> & {
   readonly fields: Schema.Struct.Fields
@@ -219,7 +225,7 @@ export interface EntryBuilder<Model> {
         Schema.Struct.Type<NoInfer<Fields>>
       >
       dependenciesToStream?: never
-      handler: () => Generator<
+      handler: (() => Generator<
         Yielded,
         (
           dependencies: Schema.Struct.Type<NoInfer<Fields>>,
@@ -230,7 +236,8 @@ export interface EntryBuilder<Model> {
           StreamRequirements
         >,
         unknown
-      >
+      >) &
+        ValidateHandlerConstruction<Yielded>
     }>,
   ): LayeredEntryWithKeepAlive<
     Name,
@@ -265,7 +272,7 @@ export interface EntryBuilder<Model> {
       modelToDependencies: (model: Model) => Schema.Struct.Type<NoInfer<Fields>>
       keepAliveEquivalence?: never
       dependenciesToStream?: never
-      handler: () => Generator<
+      handler: (() => Generator<
         Yielded,
         (
           dependencies: Schema.Struct.Type<NoInfer<Fields>>,
@@ -275,7 +282,8 @@ export interface EntryBuilder<Model> {
           StreamRequirements
         >,
         unknown
-      >
+      >) &
+        ValidateHandlerConstruction<Yielded>
     }>,
   ): LayeredEntryWithoutKeepAlive<
     Name,
@@ -306,7 +314,7 @@ export interface EntryBuilder<Model> {
     config: Readonly<{
       messages: Messages
       dependenciesToStream?: never
-      handler: () => Generator<
+      handler: (() => Generator<
         Yielded,
         (
           dependencies: Record<string, never>,
@@ -316,7 +324,8 @@ export interface EntryBuilder<Model> {
           StreamRequirements
         >,
         unknown
-      >
+      >) &
+        ValidateHandlerConstruction<Yielded>
     }>,
   ): LayeredEntryWithoutKeepAlive<
     Name,
@@ -396,13 +405,14 @@ type RuntimeHandlerGenerator = () => Generator<
 >
 
 /**
- * Declares a Subscriptions record. The Model and Message generics are provided
- * up front; the entries record follows, built from
- * calls to the `entry` builder passed into the inner function.
+ * Low-level builder for a Subscription registry. The Model and Message
+ * generics are provided up front; the callback builds a record with `entry`.
  *
- * Reach for `Subscription.aggregate` to combine multiple records, and
- * `Subscription.lift` to translate a child Submodel's record into a parent
- * context.
+ * Application features use their Block definition's `subscriptions`
+ * helper, which also qualifies the handler identities. Pass the resulting
+ * registry as `subscriptions` and its local handler recipes through
+ * `EffectsLayer` when calling `Composition.makeBlock`. Registered child bindings
+ * collect their own registries automatically.
  *
  * @example
  * ```ts
@@ -458,14 +468,17 @@ export const make =
           dependenciesToStream: handler.toStream,
           toLayer: handler.toLayer,
         }
+        registerIdentity(entry, handler.identity)
 
         if (Predicate.isUndefined(config.handler)) {
           return entry
         } else {
+          // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context, typescript/consistent-type-assertions
+          const layer = handler.toLayer(Effect.gen(config.handler) as never)
           // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
-          const layer = handler.toLayer(Effect.gen(config.handler))
-          // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
-          return { ...entry, layer }
+          const implemented = { ...entry, layer }
+          registerIdentity(implemented, handler.identity)
+          return implemented
         }
       }
 
@@ -484,14 +497,17 @@ export const make =
         dependenciesToStream: handler.toStream,
         toLayer: handler.toLayer,
       }
+      registerIdentity(entry, handler.identity)
 
       if (Predicate.isUndefined(configuredHandler)) {
         return entry
       } else {
+        // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context, typescript/consistent-type-assertions
+        const layer = handler.toLayer(Effect.gen(configuredHandler) as never)
         // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
-        const layer = handler.toLayer(Effect.gen(configuredHandler))
-        // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
-        return { ...entry, layer }
+        const implemented = { ...entry, layer }
+        registerIdentity(implemented, handler.identity)
+        return implemented
       }
     }) as unknown as EntryBuilder<Model>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -768,6 +784,12 @@ const SubscriptionMessageMappersTypeId = Symbol(
   'foldkit/SubscriptionMessageMappers',
 )
 
+/** @internal Reads the wrapper chain retained by a lifted declaration. */
+export const __messageMappers = (
+  entry: object,
+): ReadonlyArray<(message: unknown) => unknown> =>
+  Reflect.get(entry, SubscriptionMessageMappersTypeId) ?? []
+
 type SubscriptionWithMessageMetadata = Readonly<{
   messages?: ReadonlyArray<Schema.Top>
   [SubscriptionMessageMappersTypeId]?: ReadonlyArray<
@@ -775,7 +797,7 @@ type SubscriptionWithMessageMetadata = Readonly<{
   >
 }>
 
-const toLiftedEntry = (
+const makeLiftedEntry = (
   subscription: Subscription<any, any, any, any>,
   config: AnyLiftConfig,
   when: (parentModel: any) => boolean,
@@ -856,10 +878,23 @@ const toLiftedEntry = (
   }
 }
 
+const toLiftedEntry = (
+  subscription: Subscription<any, any, any, any>,
+  config: AnyLiftConfig,
+  when: (parentModel: any) => boolean,
+) => {
+  const lifted = makeLiftedEntry(subscription, config, when)
+  copyIdentity(subscription, lifted)
+  return lifted
+}
+
 /**
- * Lifts child Subscriptions into a parent's Model and Message context.
+ * Low-level transformation of a Subscription record into another Model and
+ * Message context. Application Blocks use registered `bind` or `bindEach`
+ * placements, which also compose their handler recipes and other lifecycles.
+ *
  * `read` returns `Some(childModel)` while the child exists and `None` while
- * it is absent, matching `Update.foldChild` and `ManagedResource.lift`.
+ * it is absent.
  * An absent child tears down every entry's Stream without reading the
  * child's dependencies. Use `Option.some` for a child that is always present.
  *

@@ -1,6 +1,15 @@
 import { Array, Equal, Option, Order, Predicate, pipe } from 'effect'
 import type { Effect } from 'effect'
 
+import {
+  type DefinitionIdentity,
+  InvocationIdentityTypeId,
+  InvocationNameTypeId,
+  identityOf,
+  invocationIdentity,
+  invocationName,
+} from '../block/identity.js'
+import { isScopedInvocation } from '../block/scope.js'
 import { CommandDefinitionTypeId } from '../command/index.js'
 import { type MountDefinition, MountDefinitionTypeId } from '../mount/index.js'
 
@@ -8,7 +17,7 @@ import { type MountDefinition, MountDefinitionTypeId } from '../mount/index.js'
  *  the runtime captured at construction. Instance matchers (Command values
  *  produced by calling a Definition) are matched against this shape; the
  *  `effect` field on a real Command is irrelevant for matching, so we only
- *  retain `name + args`.
+ *  retain the definition identity, displayed name, and args.
  *
  *  `messageMappers` is the Command's message-mapping chain (from
  *  `Command.mapMessage`/`mapMessages`). It rides along on pending Commands so
@@ -22,6 +31,10 @@ import { type MountDefinition, MountDefinitionTypeId } from '../mount/index.js'
  *  drops every pending Command holding that key, mirroring the runtime
  *  guarantee that an interrupted Command's result Message never dispatches. */
 export type AnyCommand = Readonly<{
+  /** @internal Exact source identity preserved through composition. */
+  [InvocationIdentityTypeId]?: DefinitionIdentity | undefined
+  /** @internal Original name distinguishes an Interrupt from its operation. */
+  [InvocationNameTypeId]?: string | undefined
   name: string
   args?: Record<string, unknown>
   key?: string
@@ -30,12 +43,12 @@ export type AnyCommand = Readonly<{
 }>
 
 /** Pattern for matching a Command in test assertions. A Definition matches
- *  by name only ("a Command with this identity was dispatched"); an Instance
- *  matches by name AND structural-equal args ("a Command with this identity
- *  AND these args was dispatched"). Choose the form per assertion based on
+ *  by originating definition ("this Command was dispatched"); an Instance
+ *  also matches structural-equal args. A bound Instance selects its
+ *  composition path. Choose the form per assertion based on
  *  whether the test cares about the args value.
  *
- *  Two modes only: name-only or name + full args. Partial-args matching is
+ *  Two modes only: definition identity or identity + full args. Partial-args matching is
  *  intentionally unsupported. If a subset of args carries the meaning the
  *  test is verifying, the right assertion is usually against the Model that
  *  the Command's result fed through update, not a partial Command shape. */
@@ -82,14 +95,29 @@ const isCommandDefinitionMatcher = (
 ): matcher is ResolvableCommandDefinition<string, unknown> =>
   Predicate.hasProperty(matcher, CommandDefinitionTypeId)
 
-/** Whether a `matcher` matches a pending Command. Definition matchers match
- *  by name. Instance matchers (with declared args) match by name + structural
- *  args equality; instance matchers without args match by name. */
+/** Compares source identity and an explicitly bound path before args matching. */
+const sameOperation = (
+  matcher: Readonly<{ name: string }>,
+  operation: Readonly<{ name: string }>,
+): boolean => {
+  const expected = identityOf(matcher) ?? invocationIdentity(matcher)
+  const actual = invocationIdentity(operation)
+  if (expected !== undefined && actual !== undefined) {
+    return (
+      expected.token === actual.token &&
+      (invocationName(matcher) ?? matcher.name) ===
+        (invocationName(operation) ?? operation.name) &&
+      (!isScopedInvocation(matcher) || matcher.name === operation.name)
+    )
+  }
+  return matcher.name === operation.name
+}
+
 const commandMatches = (
   matcher: CommandMatcher,
   command: AnyCommand,
 ): boolean =>
-  matcher.name === command.name &&
+  sameOperation(matcher, command) &&
   (isCommandDefinitionMatcher(matcher) ||
     matcher.args === undefined ||
     Equal.equals(matcher.args, command.args))
@@ -116,6 +144,10 @@ export const formatCommand = (command: AnyCommand): string =>
  *  tree-traversal order. `args` carries the runtime values used to construct
  *  the MountAction when its definition declared an args record. */
 export type PendingMount = Readonly<{
+  /** @internal The originating Mount declaration. */
+  [InvocationIdentityTypeId]?: DefinitionIdentity | undefined
+  /** @internal The original Mount name before placement prefixes. */
+  [InvocationNameTypeId]?: string | undefined
   name: string
   args?: Record<string, unknown>
   occurrence: number
@@ -131,12 +163,11 @@ export type AnyMount = Readonly<{
 }>
 
 /** Pattern for matching a pending Mount in test assertions. A Definition
- *  matches by name only ("a Mount with this identity is in the rendered
- *  tree"); an Instance matches by name AND structural-equal args ("a Mount
- *  with this identity AND these args"). Choose the form per assertion based
+ *  matches by originating definition; an Instance also matches structural-equal
+ *  args. A bound Instance selects its composition path. Choose the form per assertion based
  *  on whether the test cares about the args value.
  *
- *  Two modes only: name-only or name + full args. Partial-args matching is
+ *  Two modes only: definition identity or identity + full args. Partial-args matching is
  *  intentionally unsupported, mirroring `CommandMatcher`. */
 export type MountMatcher = MountDefinition<string, unknown> | AnyMount
 
@@ -145,11 +176,9 @@ const isMountDefinitionMatcher = (
 ): matcher is MountDefinition<string, unknown> =>
   Predicate.hasProperty(matcher, MountDefinitionTypeId)
 
-/** Whether a `matcher` matches a pending Mount. Definition matchers match by
- *  name. Instance matchers (with declared args) match by name + structural
- *  args equality; instance matchers without args match by name. */
+/** Matches a pending Mount by source identity, bound path, and declared args. */
 export const mountMatches = (matcher: MountMatcher, mount: AnyMount): boolean =>
-  matcher.name === mount.name &&
+  sameOperation(matcher, mount) &&
   (isMountDefinitionMatcher(matcher) ||
     matcher.args === undefined ||
     Equal.equals(matcher.args, mount.args))
@@ -171,19 +200,18 @@ export const formatMountMatcher = (matcher: MountMatcher): string =>
 export type SimulationUpdateReturn<Model, OutMessage> =
   | Readonly<{
       model: Model
-      commands?: ReadonlyArray<AnyCommand>
+      commands?: ReadonlyArray<AnyCommand> | undefined
       outMessage?: never
     }>
   | Readonly<{
       model: Model
-      commands?: ReadonlyArray<AnyCommand>
+      commands?: ReadonlyArray<AnyCommand> | undefined
       outMessage?: OutMessage
     }>
 
 /** A Command matcher (Definition or Instance) paired with the raw result
  *  Message to resolve a pending Command with. Definition matchers resolve by
- *  name; an Instance matcher resolves only the pending Command whose name AND
- *  args match. The matched Command's own message-mapping chain is applied to
+ *  source identity; an Instance also selects its bound path and declared args. The matched Command's own message-mapping chain is applied to
  *  the result, so pass the child's raw result Message, not a parent-wrapped
  *  one. The result Message must belong to the matched Command. */
 export type Resolver<
@@ -192,7 +220,7 @@ export type Resolver<
 
 /** A Mount matcher (Definition or Instance) paired with the raw result Message
  *  to resolve it with. Mirrors `Resolver` for Commands. When the mount lives
- *  inside a Submodel, the boundary's own `toParentMessage` chain (snapshotted at
+ *  inside a Block, the boundary's own `toParentMessage` chain (snapshotted at
  *  render time) is applied to the result, so pass the child's raw result
  *  Message, not a parent-wrapped one. */
 export type MountResolver<ResultMessage = unknown> = readonly [
@@ -248,7 +276,7 @@ const dropInterruptedCommands = (
 /** Folds a recorded message-mapping chain over `resultMessage`, reproducing the
  *  wrapping a resolved Command or mounted child's result travels through in
  *  production: the parent's `Command.mapMessages` for a Command, or the
- *  Submodel-boundary lift for a mount. A root or scene test can then resolve
+ *  Block-boundary lift for a mount. A root or scene test can then resolve
  *  with the child's raw result. An absent chain is the identity. */
 const foldMessageMappers = (
   messageMappers: ReadonlyArray<(message: unknown) => unknown> | undefined,
@@ -261,8 +289,8 @@ const foldMessageMappers = (
 /** Resolves the first pending Command that matches the given matcher and feeds
  *  its result through update, applying the matched Command's own message-mapping
  *  chain to `resultMessage` first. Returns `undefined` when no pending Command
- *  matches. Definition matchers match by name; Instance matchers match by
- *  name + args. */
+ *  matches. Definition matchers select the source; Instance matchers also
+ *  select their bound path and args. */
 export const resolveByMatcher = <Model, Message, OutMessage>(
   internal: BaseInternal<Model, Message, OutMessage>,
   matcher: CommandMatcher,
@@ -309,10 +337,21 @@ const MAX_CASCADE_DEPTH = 100
 
 /** A fingerprint identifying a matcher's match space. Two matchers with the
  *  same fingerprint resolve the same set of Commands; the newer one wins. */
-const matcherFingerprint = (matcher: CommandMatcher): string =>
-  isCommandDefinitionMatcher(matcher)
-    ? `def:${matcher.name}`
-    : `inst:${matcher.name}:${JSON.stringify(matcher.args ?? null)}`
+const matcherIdentities = new WeakMap<DefinitionIdentity, number>()
+let nextMatcherIdentity = 0
+
+const matcherFingerprint = (matcher: CommandMatcher): string => {
+  const identity = identityOf(matcher) ?? invocationIdentity(matcher)
+  let source = matcher.name
+  if (identity !== undefined) {
+    const identityId = matcherIdentities.get(identity) ?? nextMatcherIdentity++
+    matcherIdentities.set(identity, identityId)
+    source = `${identityId}:${invocationName(matcher) ?? matcher.name}:${isScopedInvocation(matcher) ? matcher.name : ''}`
+  }
+  return isCommandDefinitionMatcher(matcher)
+    ? `def:${source}`
+    : `inst:${source}:${JSON.stringify(matcher.args ?? null)}`
+}
 
 const findNextMatch = (
   commands: ReadonlyArray<AnyCommand>,
@@ -494,7 +533,7 @@ export const assertResolveUnambiguous = (
 }
 
 /** Throws if any of the given matchers fail to match a pending Command.
- *  Definition matchers match by name; Instance matchers match by name + args. */
+ *  Definition matchers select the source; Instance matchers also select args. */
 export const assertHasCommands = (
   commands: ReadonlyArray<AnyCommand>,
   matchers: ReadonlyArray<CommandMatcher>,
@@ -512,7 +551,7 @@ export const assertHasCommands = (
 }
 
 /** Throws if the pending Commands don't match the given matchers exactly
- *  (order-independent). Definition matchers compare by name; Instance
+ *  (order-independent). Definition matchers compare by source identity; Instance
  *  matchers compare by name + args. Each matcher must consume exactly one
  *  pending Command. */
 export const assertExactCommands = (
@@ -547,7 +586,7 @@ export const assertExactCommands = (
         matchers,
         Array.map(matcher => formatMatcher(matcher)),
         Array.sort(Order.String),
-        Array.map((line): CommandMatcher => ({ name: line })),
+        Array.map(line => ({ name: line })),
       ),
     )
     const actual = formatCommandList(
@@ -555,7 +594,7 @@ export const assertExactCommands = (
         commands,
         Array.map(command => formatCommand(command)),
         Array.sort(Order.String),
-        Array.map((line): AnyCommand => ({ name: line })),
+        Array.map(line => ({ name: line })),
       ),
     )
 
@@ -575,6 +614,17 @@ export const assertZeroCommands = (
     )
   }
 }
+
+const formatChildBlockCommandHint = (
+  commands: ReadonlyArray<AnyCommand>,
+): string =>
+  Array.some(commands, command =>
+    Array.isReadonlyArrayNonEmpty(command.messageMappers ?? []),
+  )
+    ? '\n\nSome Commands came from a child Block. If the child is an\n' +
+      '@foldkit/ui component, check its test namespace for a helper\n' +
+      '(for example, Toast.test.drainEntry).'
+    : ''
 
 /** Throws when trying to send a message with unresolved Commands. Keyed
  *  Commands (built with an interruptible `Command.define`) and Interrupt
@@ -598,7 +648,8 @@ export const assertNoUnresolvedCommands = (
       `I found unresolved Commands ${context}:\n\n${formatCommandList(unresolvable)}\n\n` +
         'Resolve all Commands before sending the next Message.\n' +
         'Use resolve(Definition | instance, ResultMessage) for each one,\n' +
-        'or resolveAll(...resolvers) to resolve them all at once.',
+        'or resolveAll(...resolvers) to resolve them all at once.' +
+        formatChildBlockCommandHint(unresolvable),
     )
   }
 }
@@ -612,7 +663,8 @@ export const assertAllCommandsResolved = (
       `I found Commands without resolvers:\n\n${formatCommandList(commands)}\n\n` +
         'Every Command produced by update needs to be resolved.\n' +
         'Use resolve(Definition | instance, ResultMessage) for each one,\n' +
-        'or resolveAll(...resolvers) to resolve them all at once.',
+        'or resolveAll(...resolvers) to resolve them all at once.' +
+        formatChildBlockCommandHint(commands),
     )
   }
 }
@@ -641,10 +693,10 @@ export const formatMountList = (mounts: ReadonlyArray<PendingMount>): string =>
   })
 
 /** Resolves the first pending Mount that matches the given matcher and feeds
- *  its result through update, folding the matched Mount's Submodel-boundary
+ *  its result through update, folding the matched Mount's Block-boundary
  *  chain over `resultMessage` first. Returns `undefined` when no pending Mount
- *  matches. Definition matchers match by name; Instance matchers match by
- *  name + args. */
+ *  matches. Definition matchers select the source; Instance matchers also
+ *  select their bound path and args. */
 export const resolveMountByMatcher = <Model, Message>(
   internal: BaseInternal<Model, Message, unknown>,
   pendingMounts: ReadonlyArray<PendingMount>,
@@ -694,8 +746,8 @@ export const resolveMountByMatcher = <Model, Message>(
   )
 
 /** Throws if any of the given matchers are missing from the pending mount
- *  list. Definition matchers match by name; Instance matchers match by
- *  name + structural-equal args. */
+ *  list. Definition matchers select the source; Instance matchers also
+ *  select their bound path and structural-equal args. */
 export const assertHasMounts = (
   pendingMounts: ReadonlyArray<PendingMount>,
   matchers: ReadonlyArray<MountMatcher>,

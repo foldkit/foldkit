@@ -34,7 +34,7 @@ export const canaryBanner = (commit: string): Html => {
   )
 }
 
-export const betaTag: Html = ih.span(
+export const betaTag = ih.span(
   [
     ih.Class(
       'hidden sm:inline-block -rotate-6 rounded-xs bg-accent-700 dark:bg-accent-500 px-1 py-0.5 text-[10px] font-semibold uppercase leading-none tracking-wider text-white dark:text-accent-900 select-none',

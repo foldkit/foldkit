@@ -1,11 +1,11 @@
 import clsx from 'clsx'
-import { Submodel } from 'foldkit'
-import type { Html, HtmlBuilder } from 'foldkit/html'
+import type { Html } from 'foldkit/html'
 
 import { Switch } from '@foldkit/ui'
 
-import { Message as UiMessage } from '../message'
-import type { UiModel } from '../model'
+import { UiComposition } from '../composition'
+import type { UiViewBuilder } from '../composition'
+import { Message } from '../message'
 
 const SWITCH_DEMO_ID = 'switch-demo'
 
@@ -19,7 +19,7 @@ const labelClassName =
 
 const descriptionClassName = 'text-sm text-gray-500'
 
-const knob = (isChecked: boolean, h: HtmlBuilder<UiMessage>): Html => {
+const knob = (isChecked: boolean, h: UiViewBuilder) => {
   return h.span([
     h.Class(
       clsx(
@@ -30,53 +30,50 @@ const knob = (isChecked: boolean, h: HtmlBuilder<UiMessage>): Html => {
   ])
 }
 
-export const view = Submodel.defineView<UiModel, UiMessage>(
-  (model, h): Html => {
-    const switchView = (attributes: Switch.SwitchAttributes<UiMessage>): Html =>
-      h.div(
-        [h.Class(wrapperClassName)],
-        [
-          h.button(
-            [...attributes.button, h.Class(buttonClassName)],
-            [knob(model.isSwitchDemoChecked, h)],
-          ),
-          h.div(
-            [],
-            [
-              h.label(
-                [...attributes.label, h.Class(labelClassName)],
-                ['Enable notifications'],
-              ),
-              h.p(
-                [...attributes.description, h.Class(descriptionClassName)],
-                ['Get notified when something important happens.'],
-              ),
-            ],
-          ),
-        ],
-      )
-
-    return h.div(
-      [],
+export const view = UiComposition.makeView((model, h) => {
+  const switchView = (attributes: Switch.SwitchAttributes<Message>): Html =>
+    h.div(
+      [h.Class(wrapperClassName)],
       [
-        h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Switch']),
+        h.button(
+          [...attributes.button, h.Class(buttonClassName)],
+          [knob(model.isSwitchDemoChecked, h)],
+        ),
         h.div(
-          [h.Class('mt-4')],
+          [],
           [
-            Switch.view(
-              {
-                id: SWITCH_DEMO_ID,
-                isChecked: model.isSwitchDemoChecked,
-                hasDescription: true,
-                onToggle: isChecked =>
-                  UiMessage.ToggledSwitchDemo({ isChecked }),
-                toView: switchView,
-              },
-              h,
+            h.label(
+              [...attributes.label, h.Class(labelClassName)],
+              ['Enable notifications'],
+            ),
+            h.p(
+              [...attributes.description, h.Class(descriptionClassName)],
+              ['Get notified when something important happens.'],
             ),
           ],
         ),
       ],
     )
-  },
-)
+
+  return h.div(
+    [],
+    [
+      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Switch']),
+      h.div(
+        [h.Class('mt-4')],
+        [
+          Switch.view(
+            {
+              id: SWITCH_DEMO_ID,
+              isChecked: model.isSwitchDemoChecked,
+              hasDescription: true,
+              onToggle: isChecked => Message.ToggledSwitchDemo({ isChecked }),
+              toView: switchView,
+            },
+            h,
+          ),
+        ],
+      ),
+    ],
+  )
+})

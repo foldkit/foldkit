@@ -36,7 +36,7 @@ export type InlineContent = ReadonlyArray<Html | string>
  * rendered nested blocks (empty for leaf directives), and the zero-based
  * occurrence of this island name in the document, in document order. Use the
  * occurrence index to derive identifiers that must be unique per instance,
- * such as an `h.submodel` slotId.
+ * such as an `h.block` slotId.
  */
 export type IslandView = (
   attributes: Readonly<globalThis.Record<string, string>>,

@@ -1,11 +1,11 @@
 import { Effect, Schema, Stream } from 'effect'
-import { Subscription } from 'foldkit'
 
 import { capturedKeyDownStream } from '../../keyboard'
+import { Home } from './definition'
 import { Message } from './message'
-import { Model, capturesKeyboard } from './model'
+import { capturesKeyboard } from './model'
 
-export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+export const subscriptions = Home.subscriptions(entry => ({
   homeKeyPresses: entry(
     'HomeKeyPresses',
     { shouldCaptureKeyboard: Schema.Boolean },

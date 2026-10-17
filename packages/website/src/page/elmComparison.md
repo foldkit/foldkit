@@ -27,7 +27,7 @@ Most concepts translate directly:
 | Event streams | `Sub Msg`                                     | Subscription backed by an Effect Stream                          |
 | Boot data     | Flags decoded or accepted by `init`           | [Flags](/core/init-and-flags) Schema supplied at boot            |
 | JS interop    | Flags, ports, and custom elements             | Direct JavaScript APIs, [Mount](/core/mount), and CustomElement  |
-| Nested state  | Nested Elm Architecture composition           | [Submodel](/core/submodel) helpers for the same pattern          |
+| Nested state  | Nested Elm Architecture composition           | [Block](/core/block) helpers for the same pattern                |
 
 ### Elm Msg
 
@@ -43,7 +43,7 @@ The current Foldkit application has 25 parent Messages:
 
 The count differs because the component and effect boundaries differ. Foldkit has `SucceededExportPng` and `CompletedSaveCanvas` for Command completion, plus six `Got*Message` wrappers for two Dialogs, one Listbox, and three RadioGroups. The Elm version hand-rolls those controls and represents their application-facing events with four direct Msgs: `ToggledThemePicker`, `SelectedPaletteTheme`, `DismissedErrorDialog`, and `DismissedGridSizeDialog`.
 
-Both unions are the total input domain of their application update functions. Foldkit’s child wrapper Messages lead to another Message union and update function inside each Submodel.
+Both unions are the total input domain of their application update functions. Foldkit’s child wrapper Messages lead to another Message union and update function inside each Block.
 
 Elm custom-type values and Foldkit Schema values both have runtime tags. Schema also supplies runtime decoding and encoding when a Message is deliberately used at an external boundary. That does not make an application Message union a wire protocol automatically. A network boundary still needs an explicit Schema and compatibility policy.
 
@@ -185,19 +185,19 @@ Neither view needs a component instance or a memoized event-handler closure for 
 
 The Elm version implements its Dialogs, RadioGroups, switches, and theme picker in the application. That keeps their state and events visible, but the application also owns their ARIA attributes, keyboard behavior, focus behavior, and transitions.
 
-### Foldkit UI Submodels
+### Foldkit UI Blocks
 
-The Foldkit version uses [Foldkit UI](/ui/overview). Its Dialogs, RadioGroups, and Listbox are Submodels, while Switch is a controlled render helper. Selected values remain in the parent Model. Each stateful component reports changes through OutMessages that the parent folds into its own update.
+The Foldkit version uses [Foldkit UI](/ui/overview). Its Dialogs, RadioGroups, and Listbox are Blocks, while Switch is a controlled render helper. Selected values remain in the parent Model. Each stateful component reports changes through OutMessages that the parent folds into its own update.
 
 ### State and Behavior Ownership
 
-|                                     | Elm application                           | Foldkit application                                                    |
-| ----------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------- |
-| Dialog, RadioGroup, Switch, Listbox | Implemented in the application            | Dialog, Listbox, and RadioGroup Submodels; controlled Switch helper    |
-| Accessibility behavior              | Implemented and tested by the application | Implemented and tested by Foldkit UI                                   |
-| Selected values                     | Parent Model                              | Parent Model                                                           |
-| Transient interaction state         | Parent Model and view logic               | Child Models in the application Model                                  |
-| Composition                         | Nested architecture written by the app    | [Submodel](/core/submodel) helpers standardize parent-child delegation |
+|                                     | Elm application                           | Foldkit application                                              |
+| ----------------------------------- | ----------------------------------------- | ---------------------------------------------------------------- |
+| Dialog, RadioGroup, Switch, Listbox | Implemented in the application            | Dialog, Listbox, and RadioGroup Blocks; controlled Switch helper |
+| Accessibility behavior              | Implemented and tested by the application | Implemented and tested by Foldkit UI                             |
+| Selected values                     | Parent Model                              | Parent Model                                                     |
+| Transient interaction state         | Parent Model and view logic               | Child Models in the application Model                            |
+| Composition                         | Nested architecture written by the app    | [Block](/core/block) helpers standardize parent-child delegation |
 
 The comparison is between the two checked-in applications, not the entire Elm package ecosystem. An Elm application can use community UI packages or organize nested state differently.
 
@@ -265,7 +265,7 @@ Foldkit DevTools records named Commands beside the Messages that produced them, 
 
 Commands can compose retries, timeouts, concurrency, resources, Layers, and typed failures from Effect.
 
-### First-party UI Submodels
+### First-party UI Blocks
 
 Foldkit UI supplies accessible components built with the same Model, Message, and update architecture as the application.
 
@@ -275,6 +275,6 @@ Elm and Foldkit share the application model, so the choice turns on the host env
 
 Choose Elm when its language, compiler, package constraints, and interop model fit the application. Those constraints provide purity and refactoring guarantees that a TypeScript framework cannot reproduce.
 
-Choose Foldkit when the application needs to remain in TypeScript, integrate directly with JavaScript libraries, or use Effect services while retaining the Elm Architecture. Foldkit standardizes that architecture and adds Schema, inspectable Commands, Submodels, DevTools, and testing tools around it.
+Choose Foldkit when the application needs to remain in TypeScript, integrate directly with JavaScript libraries, or use Effect services while retaining the Elm Architecture. Foldkit standardizes that architecture and adds Schema, inspectable Commands, Blocks, DevTools, and testing tools around it.
 
 The [Elm source](https://github.com/foldkit/foldkit/tree/main/comparisons/pixel-art-elm) and [Foldkit source](https://github.com/foldkit/foldkit/tree/main/examples/pixel-art) remain recognizably the same kind of program. Their differences show which guarantees come from Elm the language and which structures Foldkit recreates in TypeScript.

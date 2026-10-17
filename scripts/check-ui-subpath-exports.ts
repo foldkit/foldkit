@@ -24,13 +24,29 @@ const subpaths = Object.keys(manifest.exports)
   .filter(key => key !== '.')
   .map(key => key.slice('./'.length))
 
-const namespaces = new Map(
-  [
-    ...readFileSync(UI_INDEX, 'utf8').matchAll(
-      /^export \* as (\w+) from '\.\/(\w+)\/public\.js'$/gm,
-    ),
-  ].map(([, name, component]) => [component, name]),
-)
+const rootExports = new Map<string, Set<string>>()
+for (const match of readFileSync(UI_INDEX, 'utf8').matchAll(
+  /^export (?:\* as (\w+)|\{([^}]+)\}) from '\.\/(\w+)\/public\.js'$/gm,
+)) {
+  const [, namespace, members, component] = match
+  if (component === undefined) {
+    continue
+  }
+  const exportedNames = namespace
+    ? [namespace]
+    : (members ?? '').split(',').map(
+        member =>
+          member
+            .trim()
+            .split(/\s+as\s+/)
+            .pop() ?? '',
+      )
+  const existing = rootExports.get(component) ?? new Set<string>()
+  for (const name of exportedNames) {
+    existing.add(name)
+  }
+  rootExports.set(component, existing)
+}
 
 const aliases = new Map(
   Object.entries(
@@ -53,11 +69,10 @@ for (const component of components) {
       `"./${component}" in ${UI_PACKAGE} must point at ${expectedTypes} and ${expectedImport}`,
     )
   }
-  const expectedNamespace =
-    component.charAt(0).toUpperCase() + component.slice(1)
-  if (namespaces.get(component) !== expectedNamespace) {
+  const expectedExport = component.charAt(0).toUpperCase() + component.slice(1)
+  if (!rootExports.get(component)?.has(expectedExport)) {
     problems.push(
-      `${UI_INDEX} must export ${expectedNamespace} from ./${component}/public.js`,
+      `${UI_INDEX} must export ${expectedExport} from ./${component}/public.js`,
     )
   }
   const alias = `@foldkit/ui/${component}`
@@ -103,7 +118,7 @@ if (problems.length > 0) {
     `Every directory under ${UI_SRC} with a public.ts needs an exports entry in`,
   )
   console.error(
-    `${UI_PACKAGE} pointing at its dist/<component>/public files, a namespace in`,
+    `${UI_PACKAGE} pointing at its dist/<component>/public files, a root API export in`,
   )
   console.error(
     `${UI_INDEX}, and an alias in ${ALIASES_FILE} pointing at its source.`,
@@ -112,5 +127,5 @@ if (problems.length > 0) {
 }
 
 console.log(
-  `OK: ${components.length} @foldkit/ui components have a subpath export, a namespace and an example alias.`,
+  `OK: ${components.length} @foldkit/ui components have a subpath export, a root API export and an example alias.`,
 )

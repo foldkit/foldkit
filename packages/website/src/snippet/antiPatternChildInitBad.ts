@@ -1,20 +1,27 @@
-// ❌ Bad: copying the Model and Commands drops the RestoredTheme OutMessage.
+// ❌ Bad: running the child Step directly and copying selected fields drops
+// the RestoredTheme OutMessage.
 
-// main.ts
+// init.ts
 
-const init = (username: string, savedTheme: Settings.Theme) => {
-  const settingsBoot = Settings.boot({ theme: savedTheme })
-  const commands = Command.mapMessages(settingsBoot.commands, message =>
-    Message.GotSettingsMessage({ message }),
-  )
+import { ApplicationComposition } from './composition'
 
-  // ❌ The parent keeps the Model and Commands but drops settingsBoot.outMessage.
-  return {
-    model: Model.make({
-      username,
-      settings: settingsBoot.model,
-      maybeRestoredTheme: Option.none(),
-    }),
-    commands,
-  }
-}
+const init = ApplicationComposition.makeInit(
+  (username: string, savedTheme: Settings.Theme) => {
+    const settingsInit = Settings.init()
+    const settingsRestore = Settings.restore(settingsInit.model, savedTheme)
+    const commands = Command.mapMessages(settingsRestore.commands, message =>
+      Message.GotSettingsMessage({ message }),
+    )
+
+    // ❌ The parent keeps the Model and Commands but drops
+    // settingsRestore.outMessage.
+    return {
+      model: Model.make({
+        username,
+        settings: settingsRestore.model,
+        maybeRestoredTheme: Option.none(),
+      }),
+      commands,
+    }
+  },
+)

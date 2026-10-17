@@ -153,6 +153,15 @@ const formatType = (
       'rest',
       ({ elementType }) => `...${formatType(elementType, depth, namedSchemas)}`,
     ),
+    whenType('namedTupleMember', ({ name, isOptional, element }) => {
+      const optionalSuffix = isOptional ? '?' : ''
+
+      if (element.type === 'rest') {
+        return `...${name}: ${formatType(element.elementType, depth, namedSchemas)}`
+      } else {
+        return `${name}${optionalSuffix}: ${formatType(element, depth, namedSchemas)}`
+      }
+    }),
     whenType('tuple', ({ elements }) => {
       const formatted = Array.map(elements, element =>
         formatType(element, depth, namedSchemas),

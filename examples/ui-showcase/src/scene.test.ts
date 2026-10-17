@@ -2,18 +2,21 @@ import { Calendar } from 'foldkit'
 import { click, expect, given, role, scene, text } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import { AppRoute, type Model, update, view } from './main'
-import { uiInit } from './ui/init'
+import { type Model } from './model'
+import { ApplicationRoute } from './route'
+import { init as initUi } from './ui/init'
+import { update } from './update'
+import { view } from './view'
 
 const today = Calendar.make(2026, 4, 16)
-const uiInit_ = uiInit(today)
+const uiInit = initUi(today)
 
 const modelForRoute = (route: Model['route']): Model => ({
   route,
-  uiModel: uiInit_.model,
+  uiModel: uiInit.model,
 })
 
-const homeModel = modelForRoute(AppRoute.Home())
+const homeModel = modelForRoute(ApplicationRoute.Home())
 
 describe('view', () => {
   test('the sidebar nav lists a sample of every component link', () => {
@@ -46,19 +49,19 @@ describe('view', () => {
 
   test('simple component routes render the sidebar nav', () => {
     const routes: ReadonlyArray<Model['route']> = [
-      AppRoute.Button(),
-      AppRoute.Checkbox(),
-      AppRoute.Disclosure(),
-      AppRoute.Fieldset(),
-      AppRoute.HoverIntent(),
-      AppRoute.Input(),
-      AppRoute.Meter(),
-      AppRoute.Progress(),
-      AppRoute.RadioGroup(),
-      AppRoute.Select(),
-      AppRoute.Switch(),
-      AppRoute.Textarea(),
-      AppRoute.Animation(),
+      ApplicationRoute.Button(),
+      ApplicationRoute.Checkbox(),
+      ApplicationRoute.Disclosure(),
+      ApplicationRoute.Fieldset(),
+      ApplicationRoute.HoverIntent(),
+      ApplicationRoute.Input(),
+      ApplicationRoute.Meter(),
+      ApplicationRoute.Progress(),
+      ApplicationRoute.RadioGroup(),
+      ApplicationRoute.Select(),
+      ApplicationRoute.Switch(),
+      ApplicationRoute.Textarea(),
+      ApplicationRoute.Animation(),
     ]
 
     routes.forEach(route => {
@@ -73,7 +76,7 @@ describe('view', () => {
   test('the Hover Intent route renders its interactive trigger', () => {
     scene(
       { update, view },
-      given(modelForRoute(AppRoute.HoverIntent())),
+      given(modelForRoute(ApplicationRoute.HoverIntent())),
       expect(role('heading', { name: 'Hover Intent' })).toExist(),
       expect(role('button', { name: 'More information' })).toExist(),
     )
@@ -82,7 +85,7 @@ describe('view', () => {
   test('the Disclosure panel stays mounted while collapsed so it can animate', () => {
     scene(
       { update, view },
-      given(modelForRoute(AppRoute.Disclosure())),
+      given(modelForRoute(ApplicationRoute.Disclosure())),
       expect(
         text('Foldkit is an Elm-inspired UI framework', { exact: false }),
       ).toExist(),
@@ -92,7 +95,7 @@ describe('view', () => {
   test('the Disclosure collapsed preview expands from its own control', () => {
     scene(
       { update, view },
-      given(modelForRoute(AppRoute.Disclosure())),
+      given(modelForRoute(ApplicationRoute.Disclosure())),
       expect(role('heading', { name: 'Basic' })).toExist(),
       expect(role('heading', { name: 'Animated' })).toExist(),
       expect(role('heading', { name: 'Collapsed preview' })).toExist(),
@@ -104,7 +107,7 @@ describe('view', () => {
   test('the NotFound route renders the 404 panel and a Go Home link', () => {
     scene(
       { update, view },
-      given(modelForRoute(AppRoute.NotFound({ path: '/oops' }))),
+      given(modelForRoute(ApplicationRoute.NotFound({ path: '/oops' }))),
       expect(role('heading', { name: '404 — Page Not Found' })).toExist(),
       expect(text('The path "/oops" was not found.')).toExist(),
       expect(role('link', { name: 'Go Home' })).toExist(),

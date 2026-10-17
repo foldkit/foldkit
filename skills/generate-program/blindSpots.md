@@ -65,19 +65,21 @@ const update = (model: Model, message: Message) =>
   })
 ```
 
-Create an `UpdateReturn` alias when another matcher, helper, or exported signature reuses the type. `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is the Submodel counterpart.
+Create an `UpdateReturn` alias when another matcher, helper, or exported signature reuses the type. `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is the Block counterpart.
 
 **Flag needless scaffolding, repeated types, and a missing guard.** Use `Update.Return<Model, Message>` when an update cannot emit an OutMessage. A missing `outMessage` field means that update emitted nothing. The `outMessage?: never` guard also prevents a result containing an OutMessage from entering code that would keep only its Model and Commands. Code expecting `Update.ReturnWithOutMessage<Model, Message, OutMessage>` can accept either outcome. A hand-written plain-return alias must preserve the same guard. Also flag a full record repeated at the update signature and again inside `Message.match<UpdateReturn>(message, handlers)`, or `: UpdateReturn` repeated on an update already constrained by that match.
 
 ### `manual-update-return-unpacking`
 
-Do not destructure or rename `model`, `commands`, or `outMessage` from an update-like result. Bind the whole result to an operation-named value and access its fields through that value. For example, pass `homeInit.commands` directly to `Command.mapMessages` instead of extracting or renaming it. Use `result.commands ?? []` only when the next operation requires a concrete array.
+Do not destructure or rename `model`, `commands`, or `outMessage` from an ordinary update-like result that already contains those fields. Bind the whole result to an operation-named value and access its fields through that value. For example, pass `homeInit.commands` directly to `Command.mapMessages` instead of extracting or renaming it. Use `result.commands ?? []` only when the next operation requires a concrete array.
 
-Dot access does not prevent someone from ignoring `outMessage`; it keeps the operation and all of its returned fields visible together. When the result belongs to a child Submodel, manual unpacking is usually the deeper problem. Use `Update.foldChildInit` for one init or boot result, or `Update.foldChildInits` when several child results enter one parent Model. Use `Update.foldChild` for a child update that receives input or `Update.foldChildStep` for a child helper that receives only its Model, so the child Model, lifted Commands, and OutMessage remain part of one fold.
+Dot access does not prevent someone from ignoring `outMessage`; it keeps the operation and all of its returned fields visible together. When the result belongs to a child Block, manual unpacking is usually the deeper problem. Use the child Binding's `fold` or named operation so the child Model, mapped Commands, and OutMessage policy remain part of one boundary. `Binding.init` returns a passive recipe with no result fields. Return it intact from `Composition.makeInit` or `Composition.makeUpdate`, or preserve it through a Definition-owned Step, and flag any `.model` or `.commands` projection from it.
+
+A Binding fold or named operation returns a connected Step whose Model input requires the exact graph. Flag typed raw-Model calls, useful `{ model }` narrowing, and `.model` or `.commands` access on its opaque result. Return or compose that result intact for `Composition.makeUpdate`, `Composition.makeInit`, or a completed exposed operation to consume. The completed exposed operation accepts its raw Block Model and returns the readable executed result; ordinary pure Steps also remain callable. Do not claim every structural erasure fails compilation: TypeScript may accept a connected function as a method returning `void`, but calling it outside the graph only constructs and discards passive configuration and executes no child work.
 
 When the OutMessage is already known while constructing a new result, include it directly. Use `Update.withOutMessage` when attaching an OutMessage to an existing plain return or when the value has the type `OutMessage | undefined`. Pipe an existing return into the helper, and pass a new result literal first. Flag local attachment helpers and conditional object spreads that duplicate it.
 
-A child fold needs `toParentOutMessage` only when at least one child OutMessage should continue to the current Submodel's parent. For partial forwarding, match every child variant and return `undefined` for the variants that stop here. Omit `toParentOutMessage` when every variant stops here. `foldOutMessage` still handles each variant locally, including variants that continue upward. Flag `toParentOutMessage: () => undefined`.
+A child fold needs `outMessage.forward` only when at least one child OutMessage should continue to the current Block's parent. For partial forwarding, match every child variant and return `undefined` for the variants that stop here. Omit `outMessage.forward` when every variant stops here. `outMessage.fold` still handles each variant locally, including variants that continue upward. Flag `outMessage.forward: () => undefined`.
 
 Bind a child union's exhaustive matcher directly as `fold<Child>OutMessage`
 when the fold needs only the OutMessage. Flag a forwarding function that takes
@@ -85,13 +87,13 @@ an OutMessage only to pass it to `Child.OutMessage.match`. Keep a function or
 factory when matcher branches consume other per-dispatch context, including a
 collection key, previous Model state, an entry payload, or `FoldContext`
 lifters. Every matcher names every variant, including a singleton union. A
-`toParentOutMessage` mapper that needs only the OutMessage uses the same direct
+`outMessage.forward` mapper that needs only the OutMessage uses the same direct
 matcher form. A generic child with a refined payload passes its refined
 OutMessage type as the second matcher generic. A Command-producing branch uses
-`Update.defineStep` and keeps its inferred requirements instead of forcing the
+`Feature.step` and keeps its inferred requirements instead of forcing the
 whole matcher to a requirement-free `Update.Step`.
 
-When several operations update the same Model in sequence, use `Update.combine`. Use `Update.foldChildInits` when several child init or boot results enter that Model together.
+When several operations update the same Model in sequence, use `Update.combine`. Initialize each child through its registered Binding recipe so Composition assembles the parent Model and mapped Commands.
 
 ### `functions-doing-two-things`
 
@@ -141,7 +143,7 @@ No-field tagged structs called with `({})`: `Idle({})`, `Work({})`, `Message.Cli
 
 ### `hand-rolled-async-state`
 
-A hand-written `Idle | Loading | Error | Ok` union for remote data, when `AsyncData` ships it: `AsyncData.Schema(DataSchema, ErrorSchema)` yields the schema plus constructors for `Idle`, `Loading`, `Refreshing`, `Failure`, `Stale`, and `Success`, with `isPending`, `hasData`, `match`, `revalidate`, and the rest of the module's operations. `repos/foldkit/examples/weather/src/main.ts` is the canonical use.
+A hand-written `Idle | Loading | Error | Ok` union for remote data, when `AsyncData` ships it: `AsyncData.Schema(DataSchema, ErrorSchema)` yields the schema plus constructors for `Idle`, `Loading`, `Refreshing`, `Failure`, `Stale`, and `Success`, with `isPending`, `hasData`, `match`, `revalidate`, and the rest of the module's operations. `repos/foldkit/examples/weather/src/model.ts` declares the AsyncData contract; its `update.ts` demonstrates state transitions.
 
 The two states a hand-rolled union usually lacks are the ones that matter: `Refreshing` (data on screen while a reload runs) and `Stale` (data on screen after a reload failed). A union without them forces a refetch to blank the screen or an error to discard good data. Flag a hand-rolled union unless the states genuinely aren't remote-data states.
 
@@ -169,7 +171,7 @@ A `keyed(...)` whose key is built from displayed data (concatenated booleans, a 
 
 ### `flat-parent-message-union`
 
-Flattening a child's Message variants into the parent's `defineMessageUnion()` record makes every parent handler know the child's tag names, and the child can't grow its vocabulary without leaking into the parent. The canonical Submodel pattern adds `GotChildMessage: { message: Child.Message }` to the parent Message and handles that one variant with `Message.match`, delegating to `Child.update(model.child, message)`. Flat unions work for trivial cases but don't isolate child concerns. Suggest `Got*` wrapping for any Submodel likely to grow, or any child that needs an OutMessage.
+Flattening a child's Message variants into the parent's `defineMessageUnion()` record makes every parent handler know the child's tag names, and the child can't grow its vocabulary without leaking into the parent. The canonical Block pattern adds `GotChildMessage: { message: Child.Message }` to the parent Message and declares that constructor as the Binding's `parentMessage`. The parent Composition then routes that wrapper through the child Binding automatically. Flat unions work for trivial cases but don't isolate child concerns. Suggest `Got*` wrapping for any Block likely to grow, or any child that needs an OutMessage.
 
 ## Accessibility
 

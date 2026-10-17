@@ -8,11 +8,15 @@ import {
   Option,
   Predicate,
   Schema,
+  type Stream,
   String,
   pipe,
 } from 'effect'
 import { dual } from 'effect/Function'
 
+import type { BindingRequirement } from '../block/binding.js'
+import { identityOf } from '../block/identity.js'
+import { isScopedEntry } from '../block/scope.js'
 import { kebabToPascal } from '../customElement/index.js'
 import type { CustomElementSpec, EventSchema } from '../customElement/index.js'
 import { serializedStylePropertyName } from '../domReflection.js'
@@ -33,12 +37,17 @@ import type {
 } from '../html/index.js'
 import type { Entry as ManagedResourceEntry } from '../managedResource/index.js'
 import { MountTracker } from '../mount/index.js'
-import type { AnyMountHandler, MountDefinition } from '../mount/index.js'
+import type {
+  AnyMountHandler,
+  LayeredMountDefinition,
+  MountDefinition,
+} from '../mount/index.js'
 import { Dispatch } from '../runtime/dispatch.js'
 import {
   type Subscription as RuntimeSubscription,
   type MessageDeclaration as SubscriptionMessageDeclaration,
   __messageDeclarations as subscriptionMessageDeclarations,
+  __messageMappers as subscriptionMessageMappers,
 } from '../subscription/subscription.js'
 import { tagNameFromSelector } from '../tagName.js'
 import type { VNode } from '../vdom.js'
@@ -222,6 +231,25 @@ type RegisteredSubscriptions<Model, Message> = Readonly<
   Record<string, RuntimeSubscription<Model, Message, any, any>>
 >
 
+type TestBindingDefinition = Readonly<{
+  mounts: ReadonlyArray<LayeredMountDefinition>
+}>
+
+type TestMountRequirements =
+  | AnyMountHandler
+  | BindingRequirement<string, TestBindingDefinition>
+
+type TestHtmlBuilder<Message> = HtmlBuilder<Message, TestMountRequirements>
+
+type SubscriptionEmissionSource<Entry> =
+  Entry extends Readonly<{
+    dependenciesToStream: (
+      ...args: ReadonlyArray<any>
+    ) => Stream.Stream<any, never, infer Requirements>
+  }>
+    ? RuntimeSubscription<any, any, any, Requirements>
+    : never
+
 /** A single step in a scene: a `given` step, typed Message or OutMessage step,
  *  or scene simulation transform. */
 export type SceneStep<Model, Message, OutMessage, Subscriptions = undefined> =
@@ -237,7 +265,7 @@ export type SceneStep<Model, Message, OutMessage, Subscriptions = undefined> =
           }>
             ? SubscriptionMessageStep<
                 Schema.Schema.Type<Messages[number]>,
-                NoInfer<Subscriptions>[Key]
+                SubscriptionEmissionSource<NoInfer<Subscriptions>[Key]>
               >
             : never
         }[keyof NoInfer<Subscriptions>]
@@ -328,10 +356,7 @@ type InternalSceneSimulation<
       message: Message,
     ) => SimulationUpdateReturn<Model, OutMessage>
     resolvers: ReadonlyArray<ResolverEntry>
-    viewFn: (
-      model: Model,
-      h: HtmlBuilder<Message, AnyMountHandler>,
-    ) => Html | Document
+    viewFn: (model: Model, h: TestHtmlBuilder<Message>) => Html | Document
     capturingDispatch: CapturingDispatch
     scope: Option.Option<Locator>
     mountSlots: ReadonlyArray<MountSlotState>
@@ -358,8 +383,8 @@ const collectRenderedSlots = (vnode: VNode): ReadonlyArray<PendingMount> => {
       counts.set(marker.name, occurrence + 1)
       const slotWithArgs: PendingMount =
         marker.args === undefined
-          ? { name: marker.name, occurrence }
-          : { name: marker.name, args: marker.args, occurrence }
+          ? { ...marker, occurrence }
+          : { ...marker, args: marker.args, occurrence }
       slots.push(
         marker.messageMappers === undefined
           ? slotWithArgs
@@ -562,10 +587,7 @@ const createCapturingDispatch = (): CapturingDispatch => {
 // RENDERING
 
 const renderView = <Model, Message>(
-  viewFn: (
-    model: Model,
-    h: HtmlBuilder<Message, AnyMountHandler>,
-  ) => Html | Document,
+  viewFn: (model: Model, h: TestHtmlBuilder<Message>) => Html | Document,
   model: Model,
   dispatch: DispatchService,
 ): VNode => {
@@ -579,7 +601,7 @@ const renderView = <Model, Message>(
   setHtmlRuntime(dispatch.dispatchSync, sceneContext)
   let result: Html | Document
   try {
-    result = viewFn(model, htmlBuilderFor<Message, AnyMountHandler>())
+    result = viewFn(model, htmlBuilderFor<Message, TestMountRequirements>())
   } finally {
     clearHtmlRuntime()
   }
@@ -744,13 +766,44 @@ const resolveSubscriptionMessage = (
   entry: unknown,
   message: unknown,
 ): unknown => {
-  const matchingDeclarations = pipe(
+  const exactDeclarations = Array.filter(
     declarations,
-    Array.filter(
-      declaration =>
-        declaration.entry === entry &&
-        Array.some(declaration.schemas, schema => Schema.is(schema)(message)),
-    ),
+    declaration => declaration.entry === entry,
+  )
+  const sourceDeclarations = Array.isArrayNonEmpty(exactDeclarations)
+    ? exactDeclarations
+    : Array.filter(declarations, declaration => {
+        if (!Predicate.isObject(entry)) {
+          return false
+        }
+        const expected = identityOf(entry)
+        const actual = identityOf(declaration.entry)
+        if (expected === undefined || actual?.token !== expected.token) {
+          return false
+        }
+        const sourceMappers = subscriptionMessageMappers(entry)
+        if (
+          !sourceMappers.every(
+            (mapper, index) =>
+              Option.getOrUndefined(
+                Array.get(declaration.messageMappers, index),
+              ) === mapper,
+          )
+        ) {
+          return false
+        }
+        const name = Reflect.get(entry, 'name')
+        const declarationName = Reflect.get(declaration.entry, 'name')
+        return (
+          !isScopedEntry(entry) ||
+          declarationName === name ||
+          (Predicate.isString(name) &&
+            Predicate.isString(declarationName) &&
+            declarationName.endsWith(`/${name}`))
+        )
+      })
+  const matchingDeclarations = Array.filter(sourceDeclarations, declaration =>
+    Array.some(declaration.schemas, schema => Schema.is(schema)(message)),
   )
 
   return Array.matchLeft(matchingDeclarations, {
@@ -771,7 +824,7 @@ const resolveSubscriptionMessage = (
         throw new Error(
           'Scene.Subscription.emit selected a Subscription entry ' +
             `registered under multiple keys: ${entryKeys}.\n\n` +
-            'Register a distinct Subscription entry object for each key.',
+            'Select the bound Subscription entry for the intended child placement.',
         )
       }
 
@@ -1188,7 +1241,7 @@ const expectNoCommandsStep =
  *  either a Mount Definition (matches by name) or a Mount instance produced
  *  by calling a Definition (matches by name + structural-equal args). The
  *  first pending mount that matches is resolved. Mirrors `resolve` for
- *  Commands: when the mount lives inside a Submodel, the boundary's own
+ *  Commands: when the mount lives inside a Block, the boundary's own
  *  `toParentMessage` lift (snapshotted at render time) is applied to
  *  `resultMessage`, so pass the child's raw lifecycle result Message. */
 const resolveMount: {
@@ -1235,7 +1288,7 @@ const resolveMount: {
         const key = slotKey(state.slot)
         return resolvedKeys.has(key)
           ? state
-          : state.slot.name === matcher.name
+          : mountMatches(matcher, state.slot)
             ? { slot: state.slot, status: RESOLVED }
             : state
       },
@@ -1620,8 +1673,9 @@ export const Subscription = {
   /**
    * Feeds a Message declared by the Scene's registered Subscriptions through
    *  update, then re-renders. Pass the raw child Message for a lifted
-   *  Subscription; Scene applies its `toParentMessage` chain. The selected
-   *  entry must be registered in the Scene config and declare the Message.
+   *  Subscription; Scene applies its `toParentMessage` chain. The originating
+   *  definition must have one matching registration in the Scene config and
+   *  declare the Message. When reused across placements, select its bound entry.
    *  Silent Subscriptions accept no Messages. Use this only for Messages whose
    *  real cause is a Subscription;
    *  interact with the rendered DOM for DOM Messages.
@@ -3132,7 +3186,7 @@ export const expectAll = (locatorAll: LocatorAll) => ({
 
 // VIEW ADAPTERS
 
-/** Adapts a Submodel view that declares `ViewInputs` to the `(model, h)`
+/** Adapts a Block view that declares `ViewInputs` to the `(model, h)`
  *  shape `Scene.scene` takes. `defaults` supplies the full `ViewInputs`
  *  once; the returned factory accepts per-test overrides for everything
  *  except `toView`, so tests vary value inputs while the renderer stays
@@ -3153,12 +3207,12 @@ export const withViewInputs =
     view: (
       model: Model,
       viewInputs: ViewInputs,
-      h: HtmlBuilder<Message, AnyMountHandler>,
+      h: TestHtmlBuilder<Message>,
     ) => Html,
     defaults: NoInfer<ViewInputs>,
   ) =>
   (overrides?: Omit<Partial<NoInfer<ViewInputs>>, 'toView'>) =>
-  (model: Model, h: HtmlBuilder<Message, AnyMountHandler>): Html =>
+  (model: Model, h: TestHtmlBuilder<Message>): Html =>
     view(model, { ...defaults, ...overrides }, h)
 
 // SCENE
@@ -3187,13 +3241,10 @@ export const scene: {
         message: Message,
       ) => Readonly<{
         model: Model
-        commands?: ReadonlyArray<AnyCommand>
+        commands?: ReadonlyArray<AnyCommand> | undefined
         outMessage?: OutMessage
       }>
-      view: (
-        model: Model,
-        h: HtmlBuilder<Message, AnyMountHandler>,
-      ) => Html | Document
+      view: (model: Model, h: TestHtmlBuilder<Message>) => Html | Document
       subscriptions?: Subscriptions
     }>,
     ...steps: ReadonlyArray<
@@ -3218,13 +3269,10 @@ export const scene: {
         message: Message,
       ) => Readonly<{
         model: Model
-        commands?: ReadonlyArray<AnyCommand>
+        commands?: ReadonlyArray<AnyCommand> | undefined
         outMessage?: never
       }>
-      view: (
-        model: Model,
-        h: HtmlBuilder<Message, AnyMountHandler>,
-      ) => Html | Document
+      view: (model: Model, h: TestHtmlBuilder<Message>) => Html | Document
       subscriptions?: Subscriptions
     }>,
     ...steps: ReadonlyArray<
@@ -3247,10 +3295,7 @@ export const scene: {
       model: Model,
       message: Message,
     ) => SimulationUpdateReturn<Model, OutMessage>
-    view: (
-      model: Model,
-      h: HtmlBuilder<Message, AnyMountHandler>,
-    ) => Html | Document
+    view: (model: Model, h: TestHtmlBuilder<Message>) => Html | Document
     subscriptions?: Subscriptions
   }>,
   ...steps: ReadonlyArray<SceneStep<Model, Message, OutMessage, Subscriptions>>

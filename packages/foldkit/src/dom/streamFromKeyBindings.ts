@@ -19,10 +19,16 @@ export type WhileTyping = 'Suppress' | 'Allow'
 export type KeySequence = string | Readonly<[string, string, ...Array<string>]>
 
 type BindingBase<Output> = Readonly<{
+  /** Key press or multi-press sequence that selects this binding. */
   keys: KeySequence
+  /** Maps the completing keyboard event to the emitted value. */
   mapEvent: (event: KeyboardEvent) => Output
+  /** Whether this binding participates. Defaults to `true`. */
   isEnabled?: boolean
+  /** Whether events from editable elements may match. Defaults to
+   * `'Suppress'`. */
   whileTyping?: WhileTyping
+  /** Whether each matched press calls `preventDefault()`. Defaults to `true`. */
   preventDefault?: boolean
 }>
 
@@ -37,6 +43,7 @@ export type KeyBinding<Output> = BindingBase<Output> &
   (
     | Readonly<{
         keys: string
+        /** Whether a repeated keydown may emit. Defaults to `'Ignore'`. */
         whenRepeated?: 'Ignore' | 'Allow'
       }>
     | Readonly<{
@@ -49,9 +56,16 @@ type ModKey = 'Control' | 'Meta'
 
 /** Configuration for the {@link streamFromKeyBindings} Stream helper. */
 export type StreamFromKeyBindingsConfig<Output> = Readonly<{
+  /** Bindings evaluated for every keydown. Disabled entries are ignored. */
   bindings: ReadonlyArray<KeyBinding<Output>>
+  /** Event source, or a thunk resolved when the Stream starts. Defaults to the
+   * current `document`. */
   target?: EventTarget | (() => EventTarget)
+  /** Physical modifier represented by `Mod`. Foldkit detects Meta on Apple
+   * platforms and Control elsewhere by default. */
   modKey?: ModKey
+  /** Maximum delay between presses in a sequence. Defaults to one second and
+   * must resolve to a finite positive duration. */
   sequenceTimeout?: Duration.Input
 }>
 
@@ -879,8 +893,9 @@ const keyBindingStream = <Message>(
 
 /**
  * Build a Stream that maps declarative key bindings to values. The output is
- * inferred from each binding's `mapEvent` callback; `Subscription.make`
- * checks that the final Stream emits the application's Message type.
+ * inferred from each binding's `mapEvent` callback. A Block definition's
+ * `subscriptions` method checks that the final Stream emits the Block's
+ * Message type.
  *
  * A string describes one key press. Modifiers are joined with `+`:
  * `'Mod+K'`, `'Control+Shift+P'`, or `'Alt+ArrowDown'`. The supported modifiers
@@ -914,14 +929,17 @@ const keyBindingStream = <Message>(
  * dependency change opens a new Stream scope and resets any sequence in
  * progress. If a parent owns a condition for a lifted child, declare the table
  * at that parent or put bindings with different parent-owned lifetimes in
- * separate child entries so `Subscription.lift` can gate them individually.
+ * separate child entries so each registered child's binding subscriptions can
+ * apply its own `when` gate individually.
  * If the meaning of a key depends on the Model, dispatch a factual key Message
  * and decide what it means in update instead of reading the Model from
  * `mapEvent`.
  *
  * @example
  * ```typescript
- * const subscriptions = Subscription.make<Model, Message>()(entry => ({
+ * const App = Block.define('App')
+ * const app = App.define({ Model, Message })
+ * const subscriptions = app.subscriptions(entry => ({
  *   keyBindings: entry(
  *     'KeyBindings',
  *     { isPaletteOpen: Schema.Boolean },

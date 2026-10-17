@@ -5,8 +5,6 @@ import { Input } from '@foldkit/ui'
 import { Message } from '../message'
 import type { Model } from '../model'
 
-// VIEW
-
 export const basicDemo = (model: Model, h: HtmlBuilder<Message>) => {
   return [
     h.div(

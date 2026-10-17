@@ -1,6 +1,4 @@
-import { Update } from 'foldkit'
-
-export const update = Update.define((model: Model, message: Message) =>
+export const update = LoginComposition.makeUpdate((model, message) =>
   Message.match(message, {
     SubmittedLoginForm: () => ({
       model,

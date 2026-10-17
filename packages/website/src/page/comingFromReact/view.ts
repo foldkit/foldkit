@@ -1,5 +1,4 @@
 import { Option, Record } from 'effect'
-import { Submodel } from 'foldkit'
 import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 
 import { Disclosure } from '@foldkit/ui'
@@ -9,6 +8,7 @@ import { Icon } from '../../icon'
 import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink } from '../../prose'
 import raw from './comingFromReact.md'
+import { ComingFromReactComposition } from './definition'
 import { Message } from './message'
 import type { Model } from './model'
 
@@ -95,8 +95,8 @@ type ViewInputs = Readonly<{
   renderHeadingLink: RenderHeadingLink
 }>
 
-export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h): Html =>
+export const view = ComingFromReactComposition.makeView.withInputs<ViewInputs>(
+  (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h) =>
     renderPage({
       demos: {},
       renderFaq: (id, question, content) =>

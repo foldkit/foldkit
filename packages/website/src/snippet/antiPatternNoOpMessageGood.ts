@@ -1,6 +1,5 @@
 // ✅ Good: IgnoredMouseClick records the event even when the Model stays unchanged.
 
-import type { Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Message = defineMessageUnion({
@@ -10,7 +9,8 @@ type Message = typeof Message.Type
 
 const handleMouseClick = () => Message.IgnoredMouseClick()
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+const update = ApplicationComposition.makeUpdate((model, message) =>
+  Message.match(message, {
     IgnoredMouseClick: () => ({ model }),
-  })
+  }),
+)

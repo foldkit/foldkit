@@ -1,5 +1,5 @@
 import { Duration, Option, Schema } from 'effect'
-import { type Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
+import { type Html, inertHtml as ih } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
 
@@ -10,19 +10,20 @@ import {
   type EntryHandlers,
   SwipeState,
   type Variant,
-  WaitBeforeDismissal,
-  WaitForSwipeSettled,
-  make,
+  test as toastTest,
 } from './index.js'
+import { makeFixture } from './toast.js'
 
 const TestPayload = Schema.Struct({ body: Schema.String })
 type TestPayload = typeof TestPayload.Type
 
-const Toast = make('TestToast', TestPayload)
+const ToastFixture = makeFixture(TestPayload)
+const block = ToastFixture.block
+const toastInit = ToastFixture.init
 
-type Message = typeof Toast.Message.Type
-type Model = typeof Toast.Model.Type
-type Entry = typeof Toast.Entry.Type
+type Model = typeof block.Model.Type
+type Entry = typeof ToastFixture.Entry.Type
+type TestHtmlBuilder = Parameters<typeof ToastFixture.view>[2]
 
 const ENTER_TRANSITION_GENERATION = 1
 const LEAVE_TRANSITION_GENERATION = 2
@@ -55,8 +56,8 @@ type ViewOverrides = {
 
 const sceneView =
   (overrides: ViewOverrides = {}) =>
-  (model: Model, h: HtmlBuilder<Message>) =>
-    Toast.view(
+  (model: Model, h: TestHtmlBuilder) =>
+    ToastFixture.view(
       model,
       {
         entryToView: defaultRenderEntry,
@@ -74,13 +75,13 @@ const POINTER_ID = 0
 const SETTLING_SWIPE_VERSION = 2
 
 const withEntry = (overrides: Partial<Entry> = {}): Model =>
-  modifyFields(Toast.init({ id: 'test', swipeToDismiss: {} }), {
+  modifyFields(toastInit({ id: 'test', swipeToDismiss: {} }), {
     entries: () => [makeSettledEntry(overrides)],
     nextEntryKey: () => 1,
   })
 
 const withDisabledEntry = (overrides: Partial<Entry> = {}): Model =>
-  modifyFields(Toast.init({ id: 'test' }), {
+  modifyFields(toastInit({ id: 'test' }), {
     entries: () => [makeSettledEntry(overrides)],
     nextEntryKey: () => 1,
   })
@@ -89,8 +90,8 @@ describe('Toast', () => {
   describe('view', () => {
     it('renders the container with role=region and aria-live=polite', () => {
       Scene.scene(
-        { update: Toast.update, view: sceneView() },
-        Scene.given(Toast.init({ id: 'test' })),
+        { update: block.update, view: sceneView() },
+        Scene.given(toastInit({ id: 'test' })),
         Scene.expect(container).toExist(),
         Scene.expect(container).toHaveAttr('role', 'region'),
         Scene.expect(container).toHaveAttr('aria-live', 'polite'),
@@ -99,15 +100,15 @@ describe('Toast', () => {
 
     it('renders the container even when empty, for a11y live-region setup', () => {
       Scene.scene(
-        { update: Toast.update, view: sceneView() },
-        Scene.given(Toast.init({ id: 'test' })),
+        { update: block.update, view: sceneView() },
+        Scene.given(toastInit({ id: 'test' })),
         Scene.expect(container).toExist(),
       )
     })
 
     it('renders an Info entry with role=status', () => {
       Scene.scene(
-        { update: Toast.update, view: sceneView() },
+        { update: block.update, view: sceneView() },
         Scene.given(withEntry({ variant: 'Info' })),
         Scene.expect(entryZero).toExist(),
         Scene.expect(entryZero).toHaveAttr('role', 'status'),
@@ -116,7 +117,7 @@ describe('Toast', () => {
 
     it('renders an Error entry with role=alert', () => {
       Scene.scene(
-        { update: Toast.update, view: sceneView() },
+        { update: block.update, view: sceneView() },
         Scene.given(withEntry({ variant: 'Error' })),
         Scene.expect(entryZero).toHaveAttr('role', 'alert'),
       )
@@ -124,7 +125,7 @@ describe('Toast', () => {
 
     it('surfaces the entry variant via data-variant', () => {
       Scene.scene(
-        { update: Toast.update, view: sceneView() },
+        { update: block.update, view: sceneView() },
         Scene.given(withEntry({ variant: 'Warning' })),
         Scene.expect(entryZero).toHaveAttr('data-variant', 'Warning'),
       )
@@ -140,12 +141,12 @@ describe('Toast', () => {
             },
           ),
       })
-      const model: Model = modifyFields(Toast.init({ id: 'test' }), {
+      const model: Model = modifyFields(toastInit({ id: 'test' }), {
         entries: () => [enteringEntry],
         nextEntryKey: () => 1,
       })
       Scene.scene(
-        { update: Toast.update, view: sceneView() },
+        { update: block.update, view: sceneView() },
         Scene.given(model),
         Scene.expect(entryZero).toHaveAttr('data-enter', ''),
         Scene.expect(entryZero).toHaveAttr('data-transition', ''),
@@ -162,12 +163,12 @@ describe('Toast', () => {
             },
           ),
       })
-      const model: Model = modifyFields(Toast.init({ id: 'test' }), {
+      const model: Model = modifyFields(toastInit({ id: 'test' }), {
         entries: () => [leavingEntry],
         nextEntryKey: () => 1,
       })
       Scene.scene(
-        { update: Toast.update, view: sceneView() },
+        { update: block.update, view: sceneView() },
         Scene.given(model),
         Scene.expect(entryZero).toHaveAttr('data-leave', ''),
         Scene.expect(entryZero).toHaveAttr('data-closed', ''),
@@ -176,7 +177,7 @@ describe('Toast', () => {
 
     it('attaches mouse enter and leave handlers for pause-on-hover', () => {
       Scene.scene(
-        { update: Toast.update, view: sceneView() },
+        { update: block.update, view: sceneView() },
         Scene.given(withEntry()),
         Scene.expect(entryZero).toHaveHandler('mouseenter'),
         Scene.expect(entryZero).toHaveHandler('mouseleave'),
@@ -185,23 +186,23 @@ describe('Toast', () => {
 
     it('uses a custom aria-label when provided', () => {
       Scene.scene(
-        { update: Toast.update, view: sceneView({ ariaLabel: 'Toasts' }) },
-        Scene.given(Toast.init({ id: 'test' })),
+        { update: block.update, view: sceneView({ ariaLabel: 'Toasts' }) },
+        Scene.given(toastInit({ id: 'test' })),
         Scene.expect(container).toHaveAttr('aria-label', 'Toasts'),
       )
     })
 
     it('attaches a pointerdown handler when swipe is enabled', () => {
       Scene.scene(
-        { update: Toast.update, view: sceneView() },
+        { update: block.update, view: sceneView() },
         Scene.given(withEntry()),
         Scene.expect(entryZero).toHaveHandler('pointerdown'),
       )
     })
 
     it('does not start a mouse swipe from controls or text marked to ignore swipes', () => {
-      const view = (model: Model, h: HtmlBuilder<Message>) =>
-        Toast.view(
+      const view = (model: Model, h: TestHtmlBuilder) =>
+        ToastFixture.view(
           model,
           {
             position: 'BottomRight',
@@ -222,7 +223,7 @@ describe('Toast', () => {
         )
 
       Scene.scene(
-        { update: Toast.update, view },
+        { update: block.update, view },
         Scene.given(withEntry()),
         Scene.pointerDown(Scene.label('Close')),
         Scene.expectIgnored(),
@@ -244,7 +245,7 @@ describe('Toast', () => {
         }),
       })
       Scene.scene(
-        { update: Toast.update, view: sceneView() },
+        { update: block.update, view: sceneView() },
         Scene.given(model),
         Scene.expect(entryZero).toHaveAttr('data-swipe', 'move'),
         Scene.expect(entryZero).toHaveStyle('translate', '80px'),
@@ -256,7 +257,7 @@ describe('Toast', () => {
 
     it('omits data-swipe while idle', () => {
       Scene.scene(
-        { update: Toast.update, view: sceneView() },
+        { update: block.update, view: sceneView() },
         Scene.given(withEntry()),
         Scene.expect(entryZero).not.toHaveAttr('data-swipe'),
       )
@@ -264,7 +265,7 @@ describe('Toast', () => {
 
     it('attaches no pointerdown handler when swipe is disabled', () => {
       Scene.scene(
-        { update: Toast.update, view: sceneView() },
+        { update: block.update, view: sceneView() },
         Scene.given(withDisabledEntry()),
         Scene.expect(entryZero).not.toHaveHandler('pointerdown'),
       )
@@ -272,7 +273,7 @@ describe('Toast', () => {
 
     it('does not restrict touch behavior when swipe is disabled', () => {
       Scene.scene(
-        { update: Toast.update, view: sceneView() },
+        { update: block.update, view: sceneView() },
         Scene.given(withDisabledEntry()),
         Scene.expect(entryZero).not.toHaveStyle('touchAction'),
       )
@@ -280,7 +281,7 @@ describe('Toast', () => {
 
     it('allows vertical panning when swipe is enabled', () => {
       Scene.scene(
-        { update: Toast.update, view: sceneView() },
+        { update: block.update, view: sceneView() },
         Scene.given(withEntry()),
         Scene.expect(entryZero).toHaveStyle('touchAction', 'pan-y'),
       )
@@ -289,24 +290,24 @@ describe('Toast', () => {
     it('holds the release offset until the leave animation starts', () => {
       Scene.scene(
         {
-          update: Toast.update,
+          update: block.update,
           view: sceneView(),
-          subscriptions: Toast.subscriptions,
+          subscriptions: block.subscriptions,
         },
         Scene.given(withEntry()),
         Scene.pointerDown(entryZero, { clientX: 100 }),
         Scene.expect(entryZero).toHaveAttr('data-swipe', 'move'),
         Scene.Subscription.emit(
-          Toast.subscriptions.swipePointer,
-          Toast.Message.MovedSwipePointer({
+          block.subscriptions.swipePointer,
+          block.Message.MovedSwipePointer({
             pointerId: POINTER_ID,
             clientX: 200,
           }),
         ),
         Scene.expect(entryZero).toHaveStyle('translate', '100px'),
         Scene.Subscription.emit(
-          Toast.subscriptions.swipePointer,
-          Toast.Message.ReleasedSwipePointer({
+          block.subscriptions.swipePointer,
+          block.Message.ReleasedSwipePointer({
             pointerId: POINTER_ID,
             clientX: 200,
           }),
@@ -316,14 +317,20 @@ describe('Toast', () => {
         Scene.expect(entryZero).not.toHaveStyle('transform'),
         Scene.expect(entryZero).toHaveAttr('data-leave', ''),
         Scene.Command.resolve(
-          Animation.WaitForPaint,
+          toastTest.matchWaitForPaint(
+            'test-entry-0',
+            LEAVE_TRANSITION_GENERATION,
+          ),
           Animation.Message.CompletedWaitForPaint({
             generation: LEAVE_TRANSITION_GENERATION,
           }),
         ),
         Scene.expect(entryZero).toHaveStyle('translate', '100vw'),
         Scene.Command.resolve(
-          Animation.WaitForAnimationSettled,
+          toastTest.matchWaitForAnimationSettled(
+            'test-entry-0',
+            LEAVE_TRANSITION_GENERATION,
+          ),
           Animation.Message.EndedAnimation({
             generation: LEAVE_TRANSITION_GENERATION,
           }),
@@ -335,22 +342,22 @@ describe('Toast', () => {
     it('returns a short swipe to zero while settling', () => {
       Scene.scene(
         {
-          update: Toast.update,
+          update: block.update,
           view: sceneView(),
-          subscriptions: Toast.subscriptions,
+          subscriptions: block.subscriptions,
         },
         Scene.given(withEntry()),
         Scene.pointerDown(entryZero, { clientX: 100 }),
         Scene.Subscription.emit(
-          Toast.subscriptions.swipePointer,
-          Toast.Message.MovedSwipePointer({
+          block.subscriptions.swipePointer,
+          block.Message.MovedSwipePointer({
             pointerId: POINTER_ID,
             clientX: 130,
           }),
         ),
         Scene.Subscription.emit(
-          Toast.subscriptions.swipePointer,
-          Toast.Message.ReleasedSwipePointer({
+          block.subscriptions.swipePointer,
+          block.Message.ReleasedSwipePointer({
             pointerId: POINTER_ID,
             clientX: 130,
           }),
@@ -359,16 +366,16 @@ describe('Toast', () => {
         Scene.expect(entryZero).not.toHaveStyle('translate'),
         Scene.expect(entryZero).not.toHaveAttr('data-leave'),
         Scene.Command.resolve(
-          WaitForSwipeSettled,
-          Toast.Message.CompletedWaitForSwipeSettled({
+          ToastFixture.WaitForSwipeSettled,
+          block.Message.CompletedWaitForSwipeSettled({
             entryId: 'test-entry-0',
             version: SETTLING_SWIPE_VERSION,
           }),
         ),
         Scene.expect(entryZero).not.toHaveAttr('data-swipe'),
         Scene.Command.resolve(
-          WaitBeforeDismissal,
-          Toast.Message.CompletedWaitBeforeDismissal({
+          ToastFixture.WaitBeforeDismissal,
+          block.Message.CompletedWaitBeforeDismissal({
             entryId: 'test-entry-0',
             version: STALE_VERSION,
           }),
@@ -388,7 +395,7 @@ describe('Toast', () => {
         },
       })
       Scene.scene(
-        { update: Toast.update, view: sceneView() },
+        { update: block.update, view: sceneView() },
         Scene.given(withEntry(entry)),
         Scene.expect(entryZero).toHaveAttr('data-swipe', 'end'),
         Scene.expect(entryZero).toHaveStyle('translate', '100vw'),
@@ -406,7 +413,7 @@ describe('Toast', () => {
         },
       })
       Scene.scene(
-        { update: Toast.update, view: sceneView() },
+        { update: block.update, view: sceneView() },
         Scene.given(withEntry(entry)),
         Scene.expect(entryZero).toHaveAttr('data-swipe', 'end'),
         Scene.expect(entryZero).toHaveStyle('translate', '-100vw'),
@@ -424,7 +431,7 @@ describe('Toast', () => {
     cases.forEach(([variant, expectedRole]) => {
       it(`maps ${variant} to role=${expectedRole}`, () => {
         Scene.scene(
-          { update: Toast.update, view: sceneView() },
+          { update: block.update, view: sceneView() },
           Scene.given(withEntry({ variant })),
           Scene.expect(entryZero).toHaveAttr('role', expectedRole),
         )

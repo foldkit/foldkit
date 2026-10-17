@@ -30,11 +30,34 @@ const coherentReleaseCli = readFileSync(
   'utf8',
 )
 
-const job = (name, nextName) =>
-  workflow.slice(
-    workflow.indexOf(`\n  ${name}:`),
-    workflow.indexOf(`\n  ${nextName}:`),
-  )
+const job = (name, nextName) => {
+  const start = workflow.indexOf(`\n  ${name}:`)
+  const end = nextName ? workflow.indexOf(`\n  ${nextName}:`) : workflow.length
+
+  return workflow.slice(start, end)
+}
+
+const jobCondition = (name, nextName) => {
+  const body = job(name, nextName)
+  const blockCondition = body.match(/\n    if: >-\n((?:      .+\n)+)/)?.at(1)
+
+  if (blockCondition) {
+    return blockCondition
+      .split('\n')
+      .map(line => line.trim())
+      .filter(Boolean)
+      .join(' ')
+  }
+
+  const lineCondition = body.match(/\n    if: (.+)\n/)?.at(1)
+
+  assert.ok(lineCondition, `${name} must have an explicit condition`)
+
+  return lineCondition.replace(/^\$\{\{\s*/, '').replace(/\s*\}\}$/, '')
+}
+
+const evaluateJobCondition = (name, nextName, context) =>
+  runInNewContext(jobCondition(name, nextName), context)
 
 test('package changelogs credit pull request authors', () => {
   assert.deepEqual(changesetConfig.changelog, [
@@ -106,10 +129,6 @@ test('Changesets only versions packages and cannot parse publisher output', () =
     /- name: Start Version Packages required checks\n\s+if: steps\.changesets\.outputs\['has-changesets'\] == 'true'\n\s+env:\n\s+GH_TOKEN: \$\{\{ github\.token \}\}\n\s+run: \|\n\s+gh workflow run ci\.yml --ref changeset-release\/main\n\s+gh workflow run examples-e2e\.yml --ref changeset-release\/main/,
   )
 
-  assert.match(
-    stableJob,
-    /if: github\.event_name == 'push' && needs\.version\.outputs\.has_changesets == 'false'/,
-  )
   assert.match(stableJob, /\n    needs: version\n/)
   assert.match(stableJob, /permissions:\n\s+contents: read\n\s+id-token: write/)
   assert.doesNotMatch(stableJob, /contents: write/)
@@ -178,13 +197,16 @@ test('canaries publish from the trusted release workflow and use exact snapshots
 test('website canaries deploy only after their package snapshot is verified', () => {
   const packageCanary = workflow.indexOf('\n  canary:')
   const websiteCanary = workflow.indexOf('\n  deploy-website-canary:')
+  const websiteCanaryJob = job('deploy-website-canary', 'finalize')
 
   assert.ok(packageCanary > 0)
   assert.ok(websiteCanary > packageCanary)
+  assert.match(websiteCanaryJob, /\n    needs: canary\n/)
   assert.match(
-    workflow,
-    /deploy-website-canary:\n\s+needs: canary\n\s+uses: \.\/\.github\/workflows\/deploy-website-canary\.yml\n\s+with:\n\s+target: \$\{\{ github\.sha \}\}/,
+    websiteCanaryJob,
+    /uses: \.\/\.github\/workflows\/deploy-website-canary\.yml/,
   )
+  assert.match(websiteCanaryJob, /target: \$\{\{ github\.sha \}\}/)
   assert.match(canaryWorkflow, /workflow_call:/)
   assert.doesNotMatch(canaryWorkflow, /\n  push:/)
 
@@ -274,6 +296,7 @@ test('finalization accepts successful promotions and explicit recovery runs', ()
   const cases = [
     {
       event: 'push',
+      ref: 'refs/heads/main',
       result: 'success',
       commit: 'release-commit',
       isCancelled: false,
@@ -281,6 +304,7 @@ test('finalization accepts successful promotions and explicit recovery runs', ()
     },
     {
       event: 'push',
+      ref: 'refs/heads/main',
       result: 'success',
       commit: '',
       isCancelled: false,
@@ -288,6 +312,7 @@ test('finalization accepts successful promotions and explicit recovery runs', ()
     },
     {
       event: 'push',
+      ref: 'refs/heads/main',
       result: 'failure',
       commit: 'release-commit',
       isCancelled: false,
@@ -295,6 +320,7 @@ test('finalization accepts successful promotions and explicit recovery runs', ()
     },
     {
       event: 'push',
+      ref: 'refs/heads/main',
       result: 'skipped',
       commit: '',
       isCancelled: false,
@@ -302,6 +328,7 @@ test('finalization accepts successful promotions and explicit recovery runs', ()
     },
     {
       event: 'workflow_dispatch',
+      ref: 'refs/heads/main',
       result: 'skipped',
       commit: '',
       isCancelled: false,
@@ -309,9 +336,26 @@ test('finalization accepts successful promotions and explicit recovery runs', ()
     },
     {
       event: 'workflow_dispatch',
+      ref: 'refs/heads/main',
       result: 'skipped',
       commit: '',
       isCancelled: true,
+      expected: false,
+    },
+    {
+      event: 'workflow_dispatch',
+      ref: 'refs/heads/main',
+      result: 'success',
+      commit: '',
+      isCancelled: false,
+      expected: false,
+    },
+    {
+      event: 'workflow_dispatch',
+      ref: 'refs/heads/codex/layers-and-submodels',
+      result: 'skipped',
+      commit: '',
+      isCancelled: false,
       expected: false,
     },
   ]
@@ -320,7 +364,7 @@ test('finalization accepts successful promotions and explicit recovery runs', ()
     assert.equal(
       runInNewContext(condition, {
         cancelled: () => scenario.isCancelled,
-        github: { event_name: scenario.event },
+        github: { event_name: scenario.event, ref: scenario.ref },
         needs: {
           stable: {
             result: scenario.result,
@@ -338,10 +382,6 @@ test('finalization accepts successful promotions and explicit recovery runs', ()
   assert.match(deploymentJob, /needs: finalize/)
   assert.match(
     deploymentJob,
-    /!cancelled\(\) && needs\.finalize\.result == 'success'/,
-  )
-  assert.match(
-    deploymentJob,
     /published_commit: \$\{\{ needs\.finalize\.outputs\.published_commit \}\}/,
   )
   assert.match(
@@ -352,4 +392,119 @@ test('finalization accepts successful promotions and explicit recovery runs', ()
     finalizeJob,
     /echo "published_commit=\$\{resolved\}" >> "\$\{GITHUB_OUTPUT\}"/,
   )
+})
+
+test('release jobs route main and integration runs by event, ref, and prerequisite state', () => {
+  assert.match(
+    workflow,
+    /push:\n\s+branches:\n\s+- main\n\s+- codex\/layers-and-submodels/,
+  )
+
+  const context = ({
+    event,
+    ref,
+    hasChangesets = 'false',
+    canaryResult = 'success',
+    stableResult = 'success',
+    publishedCommit = 'release-commit',
+    finalizeResult = 'success',
+  }) => ({
+    cancelled: () => false,
+    github: { event_name: event, ref },
+    needs: {
+      canary: { result: canaryResult },
+      finalize: { result: finalizeResult },
+      stable: {
+        result: stableResult,
+        outputs: { published_commit: publishedCommit },
+      },
+      version: { outputs: { has_changesets: hasChangesets } },
+    },
+  })
+  const runs = (name, nextName, scenario) =>
+    evaluateJobCondition(name, nextName, context(scenario))
+  const main = 'refs/heads/main'
+  const integration = 'refs/heads/codex/layers-and-submodels'
+  const jobs = [
+    ['version', 'stable'],
+    ['stable', 'canary'],
+    ['canary', 'deploy-website-canary'],
+    ['deploy-website-canary', 'finalize'],
+    ['finalize', 'deploy-website'],
+    ['deploy-website', undefined],
+  ]
+  const scenarios = [
+    {
+      name: 'main push with a stable release',
+      context: { event: 'push', ref: main },
+      expected: [true, true, true, true, true, true],
+    },
+    {
+      name: 'main push with pending changesets',
+      context: {
+        event: 'push',
+        ref: main,
+        hasChangesets: 'true',
+        stableResult: 'skipped',
+        publishedCommit: '',
+        finalizeResult: 'skipped',
+      },
+      expected: [true, false, true, true, false, false],
+    },
+    {
+      name: 'main push with a failed package canary',
+      context: { event: 'push', ref: main, canaryResult: 'failure' },
+      expected: [true, true, true, false, true, true],
+    },
+    {
+      name: 'integration push',
+      context: {
+        event: 'push',
+        ref: integration,
+        stableResult: 'skipped',
+        publishedCommit: '',
+        finalizeResult: 'skipped',
+      },
+      expected: [false, false, true, false, false, false],
+    },
+    {
+      name: 'main recovery dispatch',
+      context: {
+        event: 'workflow_dispatch',
+        ref: main,
+        stableResult: 'skipped',
+      },
+      expected: [false, false, false, false, true, true],
+    },
+    {
+      name: 'integration recovery dispatch',
+      context: {
+        event: 'workflow_dispatch',
+        ref: integration,
+        stableResult: 'skipped',
+        finalizeResult: 'skipped',
+      },
+      expected: [false, false, false, false, false, false],
+    },
+    {
+      name: 'main recovery with failed finalization',
+      context: {
+        event: 'workflow_dispatch',
+        ref: main,
+        stableResult: 'skipped',
+        finalizeResult: 'failure',
+      },
+      expected: [false, false, false, false, true, false],
+    },
+  ]
+
+  for (const scenario of scenarios) {
+    for (const [index, [name, nextName]] of jobs.entries()) {
+      assert.equal(
+        runs(name, nextName, scenario.context),
+        scenario.expected.at(index),
+        `${scenario.name}: ${name}`,
+      )
+    }
+  }
 })

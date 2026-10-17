@@ -5,14 +5,17 @@ import { expect, vi } from 'vitest'
 import { describe, it } from '@effect/vitest'
 
 import * as Animation from '../animation/index.js'
-import { Message, SwipeState, make } from './index.js'
+import { Message, SwipeState } from './index.js'
+import { makeFixture } from './toast.js'
 
 const TestPayload = Schema.Struct({ body: Schema.String })
-const Toast = make('TestToast', TestPayload)
+const ToastFixture = makeFixture(TestPayload)
+const block = ToastFixture.block
+const toastInit = ToastFixture.init
 
-type Model = typeof Toast.Model.Type
-type Entry = typeof Toast.Entry.Type
-type ToastMessage = typeof Toast.Message.Type
+type Model = typeof block.Model.Type
+type Entry = typeof ToastFixture.Entry.Type
+type ToastMessage = typeof block.Message.Type
 
 const POINTER_ID = 1
 const OTHER_POINTER_ID = 2
@@ -34,7 +37,7 @@ const makeDraggingEntry = (
 })
 
 const withDraggingEntries = (entries: ReadonlyArray<Entry>): Model =>
-  modifyFields(Toast.init({ id: 'test', swipeToDismiss: {} }), {
+  modifyFields(toastInit({ id: 'test', swipeToDismiss: {} }), {
     entries: () => entries,
     nextEntryKey: () => entries.length,
   })
@@ -49,16 +52,16 @@ describe('Toast Subscriptions', () => {
       makeDraggingEntry('test-entry-1', OTHER_POINTER_ID, 200),
     ])
     const dependencies =
-      Toast.subscriptions.swipeEscape.modelToDependencies(model)
+      block.subscriptions.swipeEscape.modelToDependencies(model)
     const stream =
-      Toast.subscriptions.swipeEscape.dependenciesToStream(dependencies)
+      block.subscriptions.swipeEscape.dependenciesToStream(dependencies)
     const received: Array<ToastMessage> = []
     const fiber = Effect.runFork(
       Stream.runForEach(stream, message =>
         Effect.sync(() => {
           received.push(message)
         }),
-      ).pipe(Effect.provide(Toast.EffectsLayer)),
+      ).pipe(Effect.provide(block.EffectsLayer)),
     )
 
     try {
@@ -89,12 +92,12 @@ describe('Toast Subscriptions', () => {
       makeDraggingEntry('test-entry-0', POINTER_ID, 100),
     ])
     const dependencies =
-      Toast.subscriptions.swipePointer.modelToDependencies(model)
+      block.subscriptions.swipePointer.modelToDependencies(model)
     expect(dependencies.isAnyDragging).toBe(true)
     const stream =
-      Toast.subscriptions.swipePointer.dependenciesToStream(dependencies)
+      block.subscriptions.swipePointer.dependenciesToStream(dependencies)
     const fiber = Effect.runFork(
-      Stream.runDrain(stream).pipe(Effect.provide(Toast.EffectsLayer)),
+      Stream.runDrain(stream).pipe(Effect.provide(block.EffectsLayer)),
     )
 
     try {

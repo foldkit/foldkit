@@ -1,14 +1,5 @@
-export {
-  Model,
-  Message,
-  init,
-  update,
-  GenerateEducationEntryId,
-  EffectsLayer,
-  mounts,
-  hasErrors,
-  isComplete,
-  revealErrors,
-} from './education'
+export { Model, Message } from './definition'
+export { init } from './init'
+export { hasErrors, isComplete, revealErrors } from './update'
 export * as Entry from './entry'
-export { view } from './view'
+export { block } from './block'

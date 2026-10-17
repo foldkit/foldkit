@@ -1,11 +1,9 @@
 import { Array, Effect, Option } from 'effect'
-import { Command, ManagedResource } from 'foldkit'
 
 import { Message } from './message'
+import { Camera, CameraStream } from './resource'
 
-const CameraStream = ManagedResource.tag<MediaStream>()('CameraStream')
-
-const TakePhoto = Command.define('TakePhoto', {
+export const TakePhoto = Camera.command('TakePhoto', {
   messages: [Message.SucceededTakePhoto, Message.FailedTakePhoto],
   handler: function* () {
     return () =>
@@ -13,18 +11,23 @@ const TakePhoto = Command.define('TakePhoto', {
         const stream = yield* CameraStream.get
 
         const maybeTrack = Array.head(stream.getVideoTracks())
-        const bitmap = yield* Option.match(maybeTrack, {
-          onNone: () => Effect.fail(new Error('No video track available')),
-          onSome: track => {
-            const imageCapture = new ImageCapture(track)
-            return Effect.tryPromise(() => imageCapture.grabFrame())
-          },
-        })
-
-        return Message.SucceededTakePhoto({
-          width: bitmap.width,
-          height: bitmap.height,
-        })
+        return yield* Effect.acquireUseRelease(
+          Option.match(maybeTrack, {
+            onNone: () => Effect.fail(new Error('No video track available')),
+            onSome: track => {
+              const imageCapture = new ImageCapture(track)
+              return Effect.tryPromise(() => imageCapture.grabFrame())
+            },
+          }),
+          bitmap =>
+            Effect.succeed(
+              Message.SucceededTakePhoto({
+                width: bitmap.width,
+                height: bitmap.height,
+              }),
+            ),
+          bitmap => Effect.sync(() => bitmap.close()),
+        )
       }).pipe(Effect.catch(() => Effect.succeed(Message.FailedTakePhoto())))
   },
 })

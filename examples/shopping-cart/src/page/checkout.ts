@@ -4,10 +4,8 @@ import { Html, HtmlBuilder } from 'foldkit/html'
 import { Button, Textarea } from '@foldkit/ui'
 
 import { Cart } from '../domain'
-import { Message } from '../main'
+import { Message } from '../message'
 import { cartRouter, productsRouter } from '../route'
-
-// VIEW
 
 export const view = (
   cart: Cart.Cart,

@@ -1,5 +1,8 @@
 import { Context, Effect, Layer, type Scope } from 'effect'
 
+import type { DefinitionIdentity } from '../block/identity.js'
+import type { ValidateConstructionRequirements } from '../block/scope.js'
+
 declare const HandlerTypeId: unique symbol
 
 type Invariant<Value> = (value: Value) => Value
@@ -52,7 +55,8 @@ export interface ToLayer<Name extends string, Args, Message> {
       (args: Args) => Effect.Effect<Message, never, ExecuteRequirements>,
       E,
       BuildRequirements
-    >,
+    > &
+      ValidateConstructionRequirements<BuildRequirements>,
   ): Layer.Layer<
     Handler<Name, Args, Message>,
     E,
@@ -112,5 +116,12 @@ export const makeHandler = <Name extends string, Args, Message>(name: Name) => {
       }),
     )
 
-  return { execute, toLayer }
+  const definitionIdentity: DefinitionIdentity = {
+    kind: 'Command',
+    name,
+    token: identity,
+    service,
+  }
+
+  return { execute, toLayer, identity: definitionIdentity }
 }

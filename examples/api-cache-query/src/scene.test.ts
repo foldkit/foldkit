@@ -11,22 +11,26 @@ import {
 } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import { Tabs } from '@foldkit/ui'
+import * as Tabs from '@foldkit/ui/tabs'
+import { FocusTab } from '@foldkit/ui/tabs'
 
-import { postQuery, statsQuery, update, view } from './main'
 import {
   FETCHED_AT,
+  FIRST_POST_REQUEST_KEY,
   cachedFirstPostModel,
   firstPostDetail,
   fixtureStats,
   loadedPostsModel,
   loadingPostsModel,
-} from './main.fixture'
+} from './model.fixture'
+import { postQuery, statsQuery } from './query'
+import { update } from './update'
+import { view } from './view'
 
 const FIRST_REQUEST_GENERATION = 1
 
 const resolveFocusTab = Command.resolve(
-  Tabs.FocusTab,
+  FocusTab,
   Tabs.Message.CompletedFocusTab(),
 )
 
@@ -54,6 +58,7 @@ describe('view', () => {
         postQuery.Message.CompletedFetch({
           args: { postId: 'first-post' },
           generation: FIRST_REQUEST_GENERATION,
+          requestKey: FIRST_POST_REQUEST_KEY,
           result: Result.succeed({
             post: firstPostDetail,
             fetchedAt: FETCHED_AT,
@@ -90,6 +95,7 @@ describe('view', () => {
         postQuery.Message.CompletedFetch({
           args: { postId: 'first-post' },
           generation: FIRST_REQUEST_GENERATION,
+          requestKey: FIRST_POST_REQUEST_KEY,
           result: Result.fail('The connection dropped.'),
         }),
       ),

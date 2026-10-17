@@ -2,7 +2,7 @@
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Schema } from 'effect'
-import type { HtmlBuilder } from 'foldkit/html'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -14,26 +14,39 @@ const Model = Schema.Struct({
   // ...your other fields
 })
 
-// In your init function, start it closed:
-const init = () => ({
-  model: {
-    isFaqOpen: false,
-    // ...your other fields
-  },
-})
-
 // A verb-first, past-tense Message carries the new open state:
 
 const Message = defineMessageUnion({
   ToggledFaq: { isOpen: Schema.Boolean },
 })
 
-// In the corresponding Message.match handler, store the value.
-// This is the moment to persist the open state, lazy-load panel content, or
-// log analytics.
-ToggledFaq: ({ isOpen }) => ({
-  model: modifyFields(model, { isFaqOpen: () => isOpen }),
+type Message = typeof Message.Type
+
+const FrequentlyAskedQuestions = Block.define('FrequentlyAskedQuestions', {
+  Model,
+  Message,
 })
+const FrequentlyAskedQuestionsComposition =
+  FrequentlyAskedQuestions.makeComposition()
+
+// In your init function, start it closed:
+const init = FrequentlyAskedQuestionsComposition.makeInit(() => ({
+  model: {
+    isFaqOpen: false,
+    // ...your other fields
+  },
+}))
+
+// In the corresponding Message.match handler, store the value. Return Commands
+// to persist the open state, load panel content, or record analytics.
+const update = FrequentlyAskedQuestionsComposition.makeUpdate(
+  (model, message) =>
+    Message.match(message, {
+      ToggledFaq: ({ isOpen }) => ({
+        model: modifyFields(model, { isFaqOpen: () => isOpen }),
+      }),
+    }),
+)
 
 // Inside your view function, render the disclosure with Disclosure.view.
 // Render the panel unconditionally and pass it through animatePanel: the
@@ -44,7 +57,7 @@ ToggledFaq: ({ isOpen }) => ({
 // `Disclosure.buttonId('faq-1')` for a native `<label for>`). Either
 // attribute is only emitted when provided, so the toggle never carries a
 // dangling `aria-labelledby`.
-const view = (model, h: HtmlBuilder<Message>) => {
+const view = FrequentlyAskedQuestionsComposition.makeView((model, h) => {
   const disclosureView = ({
     button,
     panel,
@@ -75,4 +88,4 @@ const view = (model, h: HtmlBuilder<Message>) => {
     },
     h,
   )
-}
+})

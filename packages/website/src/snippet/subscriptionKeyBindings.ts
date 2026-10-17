@@ -1,5 +1,5 @@
-import { Effect, Schema } from 'effect'
-import { Dom, Subscription } from 'foldkit'
+import { Schema } from 'effect'
+import { Block, Dom } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 
@@ -20,7 +20,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const subscriptions = Subscription.make<Model, Message>()(entry => ({
+const Search = Block.define('Search', { Model, Message })
+
+const subscriptions = Search.subscriptions(entry => ({
   keyBindings: entry(
     'KeyBindings',
     { searchState: SearchState },
@@ -33,7 +35,7 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
       modelToDependencies: model => ({ searchState: model.searchState }),
       handler: function* () {
         return ({ searchState }) =>
-          Dom.streamFromKeyBindings({
+          Dom.streamFromKeyBindings<Message>({
             bindings: [
               {
                 keys: 'Mod+K',

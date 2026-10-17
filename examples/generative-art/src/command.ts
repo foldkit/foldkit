@@ -1,5 +1,4 @@
 import { Effect, Option, Random, Schema } from 'effect'
-import { Command } from 'foldkit'
 
 import {
   CANVAS_HEIGHT,
@@ -14,9 +13,10 @@ import {
   PARTICLE_SPEED_MIN,
   SETTLE_BAND_PX,
 } from './constant'
+import { Application } from './definition'
 import { Message } from './message'
 
-export const GenerateAmbientParticle = Command.define(
+export const GenerateAmbientParticle = Application.command(
   'GenerateAmbientParticle',
   {
     messages: [Message.CompletedGenerateAmbientParticle],
@@ -65,55 +65,58 @@ const BURST_INITIAL_SPEED_SCALE_MIN = 1.4
 const BURST_INITIAL_SPEED_SCALE_MAX = 2.2
 const BURST_HUE_JITTER_DEGREES = 30
 
-export const GenerateBurstParticle = Command.define('GenerateBurstParticle', {
-  args: {
-    x: Schema.Number,
-    y: Schema.Number,
-    angle: Schema.Number,
-    hueAnchor: Schema.Number,
-  },
-  messages: [Message.CompletedGenerateBurstParticle],
-  handler: function* () {
-    return ({ x, y, angle, hueAnchor }) =>
-      Effect.gen(function* () {
-        const jitterX = yield* Random.nextBetween(
-          -BURST_POSITION_JITTER_PX,
-          BURST_POSITION_JITTER_PX,
-        )
-        const jitterY = yield* Random.nextBetween(
-          -BURST_POSITION_JITTER_PX,
-          BURST_POSITION_JITTER_PX,
-        )
-        const hueOffset = yield* Random.nextBetween(
-          -BURST_HUE_JITTER_DEGREES,
-          BURST_HUE_JITTER_DEGREES,
-        )
-        const hueDriftPerSecond = yield* Random.nextBetween(
-          HUE_DRIFT_MIN,
-          HUE_DRIFT_MAX,
-        )
-        const lifespanMs = yield* Random.nextBetween(
-          PARTICLE_LIFESPAN_MIN_MS * BURST_LIFESPAN_FACTOR,
-          PARTICLE_LIFESPAN_MAX_MS * BURST_LIFESPAN_FACTOR,
-        )
-        const speed = yield* Random.nextBetween(
-          PARTICLE_SPEED_MIN,
-          PARTICLE_SPEED_MAX,
-        )
-        const initialSpeedScale = yield* Random.nextBetween(
-          BURST_INITIAL_SPEED_SCALE_MIN,
-          BURST_INITIAL_SPEED_SCALE_MAX,
-        )
-        return Message.CompletedGenerateBurstParticle({
-          x: x + jitterX,
-          y: y + jitterY,
-          baseHue: (hueAnchor + hueOffset + HUE_MAX) % HUE_MAX,
-          hueDriftPerSecond,
-          lifespanMs,
-          speed,
-          initialAngle: Option.some(angle),
-          initialSpeedScale,
+export const GenerateBurstParticle = Application.command(
+  'GenerateBurstParticle',
+  {
+    args: {
+      x: Schema.Number,
+      y: Schema.Number,
+      angle: Schema.Number,
+      hueAnchor: Schema.Number,
+    },
+    messages: [Message.CompletedGenerateBurstParticle],
+    handler: function* () {
+      return ({ x, y, angle, hueAnchor }) =>
+        Effect.gen(function* () {
+          const jitterX = yield* Random.nextBetween(
+            -BURST_POSITION_JITTER_PX,
+            BURST_POSITION_JITTER_PX,
+          )
+          const jitterY = yield* Random.nextBetween(
+            -BURST_POSITION_JITTER_PX,
+            BURST_POSITION_JITTER_PX,
+          )
+          const hueOffset = yield* Random.nextBetween(
+            -BURST_HUE_JITTER_DEGREES,
+            BURST_HUE_JITTER_DEGREES,
+          )
+          const hueDriftPerSecond = yield* Random.nextBetween(
+            HUE_DRIFT_MIN,
+            HUE_DRIFT_MAX,
+          )
+          const lifespanMs = yield* Random.nextBetween(
+            PARTICLE_LIFESPAN_MIN_MS * BURST_LIFESPAN_FACTOR,
+            PARTICLE_LIFESPAN_MAX_MS * BURST_LIFESPAN_FACTOR,
+          )
+          const speed = yield* Random.nextBetween(
+            PARTICLE_SPEED_MIN,
+            PARTICLE_SPEED_MAX,
+          )
+          const initialSpeedScale = yield* Random.nextBetween(
+            BURST_INITIAL_SPEED_SCALE_MIN,
+            BURST_INITIAL_SPEED_SCALE_MAX,
+          )
+          return Message.CompletedGenerateBurstParticle({
+            x: x + jitterX,
+            y: y + jitterY,
+            baseHue: (hueAnchor + hueOffset + HUE_MAX) % HUE_MAX,
+            hueDriftPerSecond,
+            lifespanMs,
+            speed,
+            initialAngle: Option.some(angle),
+            initialSpeedScale,
+          })
         })
-      })
+    },
   },
-})
+)

@@ -28,7 +28,7 @@ describe('slugify', () => {
   test('lowercases and dashes non-alphanumeric runs', () => {
     expect(slugify('HTTP Requests')).toBe('http-requests')
     expect(slugify('Commands with Args')).toBe('commands-with-args')
-    expect(slugify('h.submodel')).toBe('h-submodel')
+    expect(slugify('h.block')).toBe('h-block')
     expect(slugify('Build Your Product, Not Your Architecture')).toBe(
       'build-your-product-not-your-architecture',
     )
@@ -296,7 +296,7 @@ const REDUNDANT_SNIPPET_TITLE_SUFFIX_PATTERN =
 const SNIPPET_TITLE_START_PATTERN = /^(?:[A-Z]|[❌✅] [A-Z])/u
 const SNIPPET_TITLE_ENDING_PUNCTUATION_PATTERN = /[.!?:;]$/
 const LOWERCASE_ARCHITECTURE_TYPE_PATTERN =
-  /\b(?:model|models|message|messages|command|commands|subscription|subscriptions|mount|mounts|submodel|submodels|outmessage|outmessages)\b/
+  /\b(?:model|models|message|messages|command|commands|subscription|subscriptions|mount|mounts|block|blocks|outmessage|outmessages)\b/
 const UNSPECIFIC_SNIPPET_TITLES = [
   'Bad',
   'Code',

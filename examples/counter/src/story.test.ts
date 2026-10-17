@@ -1,9 +1,9 @@
 import { Command, given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
-import { Message, type Model, update } from './main'
+import { Message, Model, update } from './application'
 
-const initialModel: Model = { count: 0 }
+const initialModel = Model.make({ count: 0 })
 
 describe('update', () => {
   test('ClickedIncrement adds one to the count', () => {

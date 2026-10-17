@@ -1,11 +1,9 @@
-import type { HtmlBuilder } from 'foldkit/html'
-
-import { RadioGroup } from '@foldkit/ui'
-
-import { Message } from '../message'
+import type { UiViewBuilder } from '../composition'
+import {
+  HorizontalRadioGroupDemoBinding,
+  VerticalRadioGroupDemoBinding,
+} from '../composition'
 import { type Model, type Plan } from '../model'
-
-export const PlanRadioGroup = RadioGroup.create<Plan>()
 
 // DEMO CONTENT
 
@@ -40,9 +38,7 @@ const descriptionClassName = 'text-sm text-gray-700 dark:text-gray-300'
 const priceClassName =
   'text-sm font-semibold text-accent-700 dark:text-accent-400'
 
-// VIEW
-
-export const verticalDemo = (model: Model, h: HtmlBuilder<Message>) => {
+export const verticalDemo = (model: Model, h: UiViewBuilder) => {
   const checkIcon = h.svg(
     [
       h.ViewBox('0 0 24 24'),
@@ -63,63 +59,65 @@ export const verticalDemo = (model: Model, h: HtmlBuilder<Message>) => {
   const checkPlaceholder = h.div([h.Class('size-5')])
 
   return [
-    h.submodel({
-      slotId: model.verticalRadioGroupDemo.id,
-      model: model.verticalRadioGroupDemo,
-      view: PlanRadioGroup.view,
-      viewInputs: {
-        selectedValue: model.verticalRadioGroupDemoValue,
-        options: plans,
-        ariaLabel: 'Server plan',
-        hasOptionDescription: () => true,
-        toView: ({ group, options }) =>
-          h.div(
-            [...group, h.Class(verticalGroupClassName)],
-            options.map(option => {
-              const plan = option.value
-              return h.div(
-                [...option.option, h.Class(verticalOptionClassName)],
-                [
-                  h.div(
-                    [h.Class('flex w-full items-center justify-between')],
-                    [
-                      h.div(
-                        [],
-                        [
-                          h.span(
-                            [...option.label, h.Class(labelClassName)],
-                            [plan],
-                          ),
-                          h.p(
-                            [
-                              ...option.description,
-                              h.Class(descriptionClassName),
-                            ],
-                            [planDescriptions[plan]],
-                          ),
-                        ],
-                      ),
-                      h.div(
-                        [h.Class('flex items-center gap-3')],
-                        [
-                          h.span([h.Class(priceClassName)], [planPrices[plan]]),
-                          option.isSelected ? checkIcon : checkPlaceholder,
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
-              )
-            }),
-          ),
-      },
-      toParentMessage: message =>
-        Message.GotVerticalRadioGroupDemoMessage({ message }),
-    }),
+    h.block(
+      VerticalRadioGroupDemoBinding.embedView({
+        slotId: model.verticalRadioGroupDemo.id,
+        model: model.verticalRadioGroupDemo,
+        viewInputs: {
+          selectedValue: model.verticalRadioGroupDemoValue,
+          options: plans,
+          ariaLabel: 'Server plan',
+          hasOptionDescription: () => true,
+          toView: ({ group, options }) =>
+            h.div(
+              [...group, h.Class(verticalGroupClassName)],
+              options.map(option => {
+                const plan = option.value
+                return h.div(
+                  [...option.option, h.Class(verticalOptionClassName)],
+                  [
+                    h.div(
+                      [h.Class('flex w-full items-center justify-between')],
+                      [
+                        h.div(
+                          [],
+                          [
+                            h.span(
+                              [...option.label, h.Class(labelClassName)],
+                              [plan],
+                            ),
+                            h.p(
+                              [
+                                ...option.description,
+                                h.Class(descriptionClassName),
+                              ],
+                              [planDescriptions[plan]],
+                            ),
+                          ],
+                        ),
+                        h.div(
+                          [h.Class('flex items-center gap-3')],
+                          [
+                            h.span(
+                              [h.Class(priceClassName)],
+                              [planPrices[plan]],
+                            ),
+                            option.isSelected ? checkIcon : checkPlaceholder,
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                )
+              }),
+            ),
+        },
+      }),
+    ),
   ]
 }
 
-export const horizontalDemo = (model: Model, h: HtmlBuilder<Message>) => {
+export const horizontalDemo = (model: Model, h: UiViewBuilder) => {
   const checkIcon = h.svg(
     [
       h.ViewBox('0 0 24 24'),
@@ -140,49 +138,52 @@ export const horizontalDemo = (model: Model, h: HtmlBuilder<Message>) => {
   const checkPlaceholder = h.div([h.Class('size-5')])
 
   return [
-    h.submodel({
-      slotId: model.horizontalRadioGroupDemo.id,
-      model: model.horizontalRadioGroupDemo,
-      view: PlanRadioGroup.view,
-      viewInputs: {
-        selectedValue: model.horizontalRadioGroupDemoValue,
-        options: plans,
-        ariaLabel: 'Server plan',
-        orientation: 'Horizontal',
-        hasOptionDescription: () => true,
-        toView: ({ group, options }) =>
-          h.div(
-            [...group, h.Class(horizontalGroupClassName)],
-            options.map(option => {
-              const plan = option.value
-              return h.div(
-                [...option.option, h.Class(horizontalOptionClassName)],
-                [
-                  h.div(
-                    [h.Class('flex w-full items-start justify-between gap-2')],
-                    [
-                      h.span(
-                        [...option.label, h.Class(labelClassName)],
-                        [plan],
-                      ),
-                      h.span([h.Class(priceClassName)], [planPrices[plan]]),
-                    ],
-                  ),
-                  h.p(
-                    [...option.description, h.Class(descriptionClassName)],
-                    [planDescriptions[plan]],
-                  ),
-                  h.div(
-                    [h.Class('mt-auto flex justify-end pt-2')],
-                    [option.isSelected ? checkIcon : checkPlaceholder],
-                  ),
-                ],
-              )
-            }),
-          ),
-      },
-      toParentMessage: message =>
-        Message.GotHorizontalRadioGroupDemoMessage({ message }),
-    }),
+    h.block(
+      HorizontalRadioGroupDemoBinding.embedView({
+        slotId: model.horizontalRadioGroupDemo.id,
+        model: model.horizontalRadioGroupDemo,
+        viewInputs: {
+          selectedValue: model.horizontalRadioGroupDemoValue,
+          options: plans,
+          ariaLabel: 'Server plan',
+          orientation: 'Horizontal',
+          hasOptionDescription: () => true,
+          toView: ({ group, options }) =>
+            h.div(
+              [...group, h.Class(horizontalGroupClassName)],
+              options.map(option => {
+                const plan = option.value
+                return h.div(
+                  [...option.option, h.Class(horizontalOptionClassName)],
+                  [
+                    h.div(
+                      [
+                        h.Class(
+                          'flex w-full items-start justify-between gap-2',
+                        ),
+                      ],
+                      [
+                        h.span(
+                          [...option.label, h.Class(labelClassName)],
+                          [plan],
+                        ),
+                        h.span([h.Class(priceClassName)], [planPrices[plan]]),
+                      ],
+                    ),
+                    h.p(
+                      [...option.description, h.Class(descriptionClassName)],
+                      [planDescriptions[plan]],
+                    ),
+                    h.div(
+                      [h.Class('mt-auto flex justify-end pt-2')],
+                      [option.isSelected ? checkIcon : checkPlaceholder],
+                    ),
+                  ],
+                )
+              }),
+            ),
+        },
+      }),
+    ),
   ]
 }

@@ -1,4 +1,8 @@
-return Update.foldChildInit(Home.init(), {
-  toParentModel: home => ({ home }),
-  toParentMessage: message => Message.GotHomeMessage({ message }),
-})
+import { ApplicationComposition, HomeBinding } from './composition'
+
+const init = ApplicationComposition.makeInit(() =>
+  HomeBinding.init({
+    args: [],
+    toParentModel: home => ({ home }),
+  }),
+)

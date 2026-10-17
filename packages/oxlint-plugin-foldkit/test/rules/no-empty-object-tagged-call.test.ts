@@ -30,11 +30,13 @@ describe('no-empty-object-tagged-call', () => {
     const result = Testing.runRule(
       noEmptyObjectTaggedCall,
       'CallExpression',
-      Testing.callOfMember('AppRoute', 'Home', [Testing.objectExpr([])]),
+      Testing.callOfMember('ApplicationRoute', 'Home', [
+        Testing.objectExpr([]),
+      ]),
     )
 
     expect(result).toHaveLength(1)
-    expect(result[0]?.diagnostic.message).toContain('AppRoute.Home()')
+    expect(result[0]?.diagnostic.message).toContain('ApplicationRoute.Home()')
   })
 
   it('flags empty object calls through a domain union namespace', () => {

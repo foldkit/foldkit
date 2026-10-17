@@ -12,7 +12,7 @@ Common prefixes make the source of a fact visible:
 | `Updated*`             | An input value changed.                                   | `UpdatedSearchInput`        |
 | `Succeeded*`/`Failed*` | A Command completed with a meaningful success or failure. | `SucceededFetchUser`        |
 | `Completed*`           | Any other Command result.                                 | `CompletedFocusSearchInput` |
-| `Got*`                 | A parent received a child Submodel result.                | `GotSearchMessage`          |
+| `Got*`                 | A parent received a child Block result.                   | `GotSearchMessage`          |
 
 Avoid imperative names such as `SetCartItems`, `UpdateSearchText`, and `MutateUserState`. Those names prescribe a transition before update has seen the current Model. A fact leaves the decision where it belongs: in update.
 

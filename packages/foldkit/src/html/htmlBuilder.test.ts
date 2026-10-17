@@ -7,6 +7,7 @@ import { isClientOnlyProperty } from '../propertyProvenance.js'
 import { Dispatch, embed, makeElement } from '../runtime/index.js'
 import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
+import { defineView } from './block.js'
 import { beginRender, createBoundaryRegistry } from './boundary.js'
 import * as HtmlModule from './index.js'
 import {
@@ -22,7 +23,6 @@ import {
   clearRuntime,
   setRuntime,
 } from './runtimeSingleton.js'
-import { defineView } from './submodel.js'
 
 type ChildModel = Readonly<{ value: number }>
 
@@ -97,7 +97,7 @@ describe('HtmlBuilder type guarantees', () => {
     // Never invoked: the assertion is the directive below. Calling it would
     // hit the very failure this rejects, the builder arriving as viewInputs.
     const embedOmittingViewInputs = () =>
-      parentBuilder.submodel(
+      parentBuilder.block(
         // @ts-expect-error omitting them would call a three-parameter view with
         // two arguments, landing the builder in the viewInputs slot
         {
@@ -117,7 +117,7 @@ describe('HtmlBuilder type guarantees', () => {
       (_model, h) =>
         h.button(
           [
-            // @ts-expect-error an app-level Message is not part of this Submodel's union
+            // @ts-expect-error an app-level Message is not part of this Block's union
             h.OnClick(AppMessage.ClickedApp()),
           ],
           ['x'],
@@ -141,7 +141,7 @@ describe('HtmlBuilder type guarantees', () => {
   it('rejects a toParentMessage lift that lands outside the embedding Message union', () => {
     const parentH = __htmlBuilder<ParentMessage>()
     const embedWithForeignLift = (): Html =>
-      parentH.submodel({
+      parentH.block({
         slotId: 'child',
         model: { value: 1 },
         view: childView,
@@ -229,7 +229,7 @@ describe('HtmlBuilder runtime guarantees', () => {
     expect<unknown>(inertHtml).toBe(parentBuilder)
   })
 
-  it('passes the child-typed builder to a Submodel view and routes its handlers through the boundary', () => {
+  it('passes the child-typed builder to a Block view and routes its handlers through the boundary', () => {
     const registry = createBoundaryRegistry()
     const dispatched: Array<unknown> = []
     const dispatchSync: DispatchSync = message => {
@@ -239,7 +239,7 @@ describe('HtmlBuilder runtime guarantees', () => {
     try {
       beginRender(registry)
       const parentH = __htmlBuilder<ParentMessage>()
-      const result = parentH.submodel({
+      const result = parentH.block({
         slotId: 'child',
         model: { value: 7 },
         view: childView,
@@ -378,7 +378,7 @@ describe('HtmlBuilder runtime guarantees', () => {
         _message: Message,
       ): Update.Return<Model, Message> => ({ model }),
       view: (_model, h) =>
-        h.submodel({
+        h.block({
           slotId: 'child',
           model: { id: 'child' },
           view: childView,

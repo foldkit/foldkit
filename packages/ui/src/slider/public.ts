@@ -5,7 +5,7 @@ export {
   view,
   subscriptions,
   forRoot,
-  EffectsLayer,
+  block,
   fractionOfValue,
   snapAndClamp,
   valueFromPointer,

@@ -1,4 +1,8 @@
-import { AppRoute } from '../route'
+import { ApplicationRoute } from '../route'
 
-export const TopLevelRoute = AppRoute.subset(['Home', 'Newsletter', 'NotFound'])
+export const TopLevelRoute = ApplicationRoute.subset([
+  'Home',
+  'Newsletter',
+  'NotFound',
+])
 export type TopLevelRoute = typeof TopLevelRoute.Type

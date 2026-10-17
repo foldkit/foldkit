@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import type { Runtime } from 'foldkit'
+import { defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Model = Schema.Struct({
@@ -13,6 +13,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const init: Runtime.ApplicationInit<Model, Message> = () => ({
+const Application = defineApplication({ Model, Message })
+const ApplicationComposition = Application.makeComposition()
+
+const init = ApplicationComposition.makeInit(() => ({
   model: { count: 0 },
-})
+}))

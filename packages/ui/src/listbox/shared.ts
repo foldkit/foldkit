@@ -2,6 +2,7 @@ import {
   Array,
   Effect,
   Equal,
+  Function,
   Layer,
   Match,
   Number,
@@ -11,26 +12,16 @@ import {
   String,
   pipe,
 } from 'effect'
-import * as Command from 'foldkit/command'
+import * as Block from 'foldkit/block'
 import * as Dom from 'foldkit/dom'
-import type { ChildAttribute, Html } from 'foldkit/html'
-import { defineMessageUnion } from 'foldkit/message'
-import * as Mount from 'foldkit/mount'
+import type { ChildAttribute, Html, HtmlBuilder } from 'foldkit/html'
+import { type MessageUnion, defineMessageUnion } from 'foldkit/message'
+import type * as Mount from 'foldkit/mount'
 import { makeModifyFieldsFor } from 'foldkit/struct'
-import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 import * as Update from 'foldkit/update'
 
 import { AnchorConfig, anchorSetup, portalBackdrop } from '../anchor/index.js'
-// NOTE: Animation imports are split across schema + update to avoid a circular
-// dependency: animation → html → runtime → devtools → listbox → animation.
-// The barrel (../animation) imports from html, which starts the cycle.
-import * as Animation from '../animation/schema.js'
-import {
-  EffectsLayer as AnimationEffectsLayer,
-  hide as animationHide,
-  show as animationShow,
-  update as animationUpdate,
-} from '../animation/update.js'
+import * as Animation from '../animation/index.js'
 import { groupContiguous } from '../group.js'
 import * as OptionExt from '../internal/optionExtensions.js'
 import { idSelector } from '../internal/selectors.js'
@@ -42,6 +33,9 @@ import {
 import { resolveTypeaheadMatch } from '../typeahead.js'
 
 export { resolveTypeaheadMatch }
+
+/** Shared named component handle for both Listbox selection variants. */
+export const Listbox = Block.define('Listbox')
 
 // MODEL
 
@@ -133,6 +127,7 @@ export const Message = defineMessageUnion({
   SuppressedItemCommit: {},
   CompletedAnchorListbox: {},
   CompletedPortalListboxBackdrop: {},
+  CompletedDetectListboxMovementOrAnimationEnd: { generation: Schema.Number },
   GotAnimationMessage: { message: Animation.Message },
   PressedPointerOnButton: {
     pointerType: Schema.String,
@@ -169,6 +164,19 @@ export type Selected<Value extends string = string> = Readonly<{
 export const OutMessage = defineMessageUnion({
   Selected: { value: Schema.String },
 })
+
+/** The OutMessage union interface on a completed Listbox, refined to its
+ * selected Value type. */
+export type OutMessageSchema<Value extends string = string> =
+  typeof OutMessage extends MessageUnion<infer Cases>
+    ? MessageUnion<
+        Omit<Cases, 'Selected'> &
+          Readonly<{
+            Selected: Omit<Cases['Selected'], 'value'> &
+              Readonly<{ value: Schema.Schema<Value> }>
+          }>
+      >
+    : never
 
 /** Generic over `Value extends string` so consumers who create the listbox
  *  via `Listbox.create<MyUnion>()` receive `value: MyUnion` in the
@@ -220,7 +228,7 @@ type HandlerReturn<Model> = Readonly<{
 }>
 
 /** Prevents page scrolling while the listbox is open in modal mode. */
-export const LockListboxScroll = Command.define('LockListboxScroll', {
+export const LockListboxScroll = Listbox.command('LockListboxScroll', {
   messages: [Message.CompletedLockListboxScroll],
   handler: function* () {
     return () =>
@@ -228,7 +236,7 @@ export const LockListboxScroll = Command.define('LockListboxScroll', {
   },
 })
 /** Re-enables page scrolling after the listbox closes. */
-export const UnlockListboxScroll = Command.define('UnlockListboxScroll', {
+export const UnlockListboxScroll = Listbox.command('UnlockListboxScroll', {
   messages: [Message.CompletedUnlockListboxScroll],
   handler: function* () {
     return () =>
@@ -236,7 +244,7 @@ export const UnlockListboxScroll = Command.define('UnlockListboxScroll', {
   },
 })
 /** Marks all elements outside the listbox as inert for modal behavior. */
-export const InertListboxOthers = Command.define('InertListboxOthers', {
+export const InertListboxOthers = Listbox.command('InertListboxOthers', {
   args: { id: Schema.String },
   messages: [Message.CompletedInertListboxOthers],
   handler: function* () {
@@ -247,7 +255,7 @@ export const InertListboxOthers = Command.define('InertListboxOthers', {
   },
 })
 /** Removes the inert attribute from elements outside the listbox. */
-export const RestoreListboxInert = Command.define('RestoreListboxInert', {
+export const RestoreListboxInert = Listbox.command('RestoreListboxInert', {
   args: { id: Schema.String },
   messages: [Message.CompletedRestoreListboxInert],
   handler: function* () {
@@ -258,7 +266,7 @@ export const RestoreListboxInert = Command.define('RestoreListboxInert', {
   },
 })
 /** Moves focus back to the listbox button after closing. */
-export const FocusListboxButton = Command.define('FocusListboxButton', {
+export const FocusListboxButton = Listbox.command('FocusListboxButton', {
   args: { id: Schema.String },
   messages: [Message.CompletedFocusListboxButton],
   handler: function* () {
@@ -270,7 +278,7 @@ export const FocusListboxButton = Command.define('FocusListboxButton', {
   },
 })
 /** Moves focus to the listbox items container after opening. */
-export const FocusListboxItems = Command.define('FocusListboxItems', {
+export const FocusListboxItems = Listbox.command('FocusListboxItems', {
   args: { id: Schema.String },
   messages: [Message.CompletedFocusListboxItems],
   handler: function* () {
@@ -282,7 +290,7 @@ export const FocusListboxItems = Command.define('FocusListboxItems', {
   },
 })
 /** Scrolls the active listbox item into view after keyboard navigation. */
-export const ScrollListboxItemIntoView = Command.define(
+export const ScrollListboxItemIntoView = Listbox.command(
   'ScrollListboxItemIntoView',
   {
     args: { id: Schema.String, index: Schema.Number },
@@ -297,7 +305,7 @@ export const ScrollListboxItemIntoView = Command.define(
   },
 )
 /** Programmatically clicks the active listbox item's DOM element. */
-export const ClickListboxItem = Command.define('ClickListboxItem', {
+export const ClickListboxItem = Listbox.command('ClickListboxItem', {
   args: { id: Schema.String, index: Schema.Number },
   messages: [Message.CompletedClickListboxItem],
   handler: function* () {
@@ -309,7 +317,7 @@ export const ClickListboxItem = Command.define('ClickListboxItem', {
   },
 })
 /** Waits for the typeahead search debounce period before clearing the query. */
-export const DelayClearListboxSearch = Command.define(
+export const DelayClearListboxSearch = Listbox.command(
   'DelayClearListboxSearch',
   {
     args: { version: Schema.Number },
@@ -322,26 +330,26 @@ export const DelayClearListboxSearch = Command.define(
     },
   },
 )
-/** Detects whether the listbox button moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation submodel that leave is complete. */
-export const DetectListboxMovementOrAnimationEnd = Command.define(
+/** Detects whether the listbox button moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation block that leave is complete. */
+export const DetectListboxMovementOrAnimationEnd = Listbox.command(
   'DetectListboxMovementOrAnimationEnd',
   {
     args: { id: Schema.String, generation: Schema.Number },
-    messages: [Message.GotAnimationMessage],
+    messages: [Message.CompletedDetectListboxMovementOrAnimationEnd],
     handler: function* () {
       return ({ id, generation }) =>
         Effect.raceFirst(
           Dom.detectElementMovement(buttonSelector(id)).pipe(
             Effect.as(
-              Message.GotAnimationMessage({
-                message: Animation.Message.EndedAnimation({ generation }),
+              Message.CompletedDetectListboxMovementOrAnimationEnd({
+                generation,
               }),
             ),
           ),
           Dom.waitForAnimationSettled(itemsSelector(id)).pipe(
             Effect.as(
-              Message.GotAnimationMessage({
-                message: Animation.Message.EndedAnimation({ generation }),
+              Message.CompletedDetectListboxMovementOrAnimationEnd({
+                generation,
               }),
             ),
           ),
@@ -350,87 +358,74 @@ export const DetectListboxMovementOrAnimationEnd = Command.define(
   },
 )
 
-export const makeUpdate = <Model extends BaseModel>(
+export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
+  bindChild: Block.BindChild<
+    typeof BaseModel,
+    typeof Message,
+    ParentOutMessageSchema
+  >,
+  step: Block.DefineStep<BaseModel, Message, OutMessage>,
   selectionBehavior: 'CloseWithFocus' | 'KeepOpen',
-  handleSelectedItem: (model: Model, item: string) => HandlerReturn<Model>,
+  handleSelectedItem: (
+    model: BaseModel,
+    item: string,
+  ) => HandlerReturn<BaseModel>,
 ) => {
-  const foldAnimationOutMessage = Animation.OutMessage.match({
+  type Model = BaseModel
+  type RoutedMessage = Exclude<Message, typeof Message.GotAnimationMessage.Type>
+
+  const detectListboxMovementOrAnimationEnd = (generation: number) =>
+    step(model => ({
+      model,
+      commands: [
+        DetectListboxMovementOrAnimationEnd({ id: model.id, generation }),
+      ],
+    }))
+
+  type AnimationOutMessageStep = ReturnType<
+    typeof detectListboxMovementOrAnimationEnd
+  >
+
+  const ignoreTransitionedOut = step(model => ({ model }))
+
+  const foldAnimationOutMessage = Animation.OutMessage.match<
+    AnimationOutMessageStep | typeof ignoreTransitionedOut
+  >({
     StartedLeaveAnimating: ({ generation }) =>
-      Update.defineStep((model: Model) => ({
-        model,
-        commands: [
-          DetectListboxMovementOrAnimationEnd({ id: model.id, generation }),
-        ],
-      })),
-    TransitionedOut: () => Update.defineStep((model: Model) => ({ model })),
+      detectListboxMovementOrAnimationEnd(generation),
+    TransitionedOut: () => ignoreTransitionedOut,
   })
 
-  const foldAnimation = Update.foldChild({
-    update: animationUpdate,
-    read: (model: Model) => Option.some(model.animation),
-    write: (model, nextAnimation) =>
-      modifyBaseFields(model, { animation: () => nextAnimation }),
-    toParentMessage: message => Message.GotAnimationMessage({ message }),
-    foldOutMessage: foldAnimationOutMessage,
+  const AnimationBinding = bindChild(Animation.block, {
+    field: 'animation',
+    parentMessage: Message.GotAnimationMessage,
+    init: false,
+    outMessage: { fold: foldAnimationOutMessage },
   })
 
-  const foldAnimationShow = Update.foldChildStep({
-    update: animationShow,
-    read: (model: Model) => Option.some(model.animation),
-    write: (model, nextAnimation) =>
-      modifyBaseFields(model, { animation: () => nextAnimation }),
-    toParentMessage: message => Message.GotAnimationMessage({ message }),
-  })
-
-  const foldAnimationHide = Update.foldChildStep({
-    update: animationHide,
-    read: (model: Model) => Option.some(model.animation),
-    write: (model, nextAnimation) =>
-      modifyBaseFields(model, { animation: () => nextAnimation }),
-    toParentMessage: message => Message.GotAnimationMessage({ message }),
-  })
-
-  const internalUpdate = Update.define((model: Model, message: Message) => {
-    const maybeLockScroll = OptionExt.when(model.isModal, LockListboxScroll())
-    const maybeUnlockScroll = OptionExt.when(
-      model.isModal,
-      UnlockListboxScroll(),
+  const internalUpdate = (model: Model, message: RoutedMessage) => {
+    const modalOpenCommands = Array.filter(
+      [LockListboxScroll(), InertListboxOthers({ id: model.id })],
+      () => model.isModal,
     )
-    const maybeInertOthers = OptionExt.when(
-      model.isModal,
-      InertListboxOthers({ id: model.id }),
-    )
-    const maybeRestoreInert = OptionExt.when(
-      model.isModal,
-      RestoreListboxInert({ id: model.id }),
+
+    const closeWithoutFocusCommands = Array.filter(
+      [UnlockListboxScroll(), RestoreListboxInert({ id: model.id })],
+      () => model.isModal,
     )
 
     const focusButton = FocusListboxButton({ id: model.id })
     const focusItems = FocusListboxItems({ id: model.id })
 
-    const openCommands = [
-      ...Array.getSomes([maybeLockScroll, maybeInertOthers]),
-      focusItems,
-    ]
+    const openCommands = [...modalOpenCommands, focusItems]
 
-    const closeWithFocusCommands = [
-      focusButton,
-      ...Array.getSomes([maybeUnlockScroll, maybeRestoreInert]),
-    ]
-
-    const closeWithoutFocusCommands = Array.getSomes([
-      maybeUnlockScroll,
-      maybeRestoreInert,
-    ])
+    const closeWithFocusCommands = [focusButton, ...closeWithoutFocusCommands]
 
     const openListbox = (baseModel: Model) => {
       if (baseModel.isAnimated) {
-        return Update.combine(baseModel, [
-          stepModel => ({
-            model: stepModel,
-            commands: openCommands,
-          }),
-          foldAnimationShow,
+        return Update.combine([
+          () => ({ model: baseModel, commands: openCommands }),
+          AnimationBinding.show(),
           stepModel => ({
             model: modifyBaseFields(stepModel, { isOpen: () => true }),
           }),
@@ -446,21 +441,27 @@ export const makeUpdate = <Model extends BaseModel>(
     const closeListbox = (
       baseModel: Model,
       commands: typeof closeWithFocusCommands,
+      outMessage?: OutMessage,
     ) => {
       if (!baseModel.isOpen) {
-        return { model: baseModel }
+        return Update.withOutMessage({ model: baseModel }, outMessage)
       }
 
       const closed = closedModel(baseModel)
 
       if (baseModel.isAnimated) {
-        return Update.combine(closed, [
-          stepModel => ({ model: stepModel, commands }),
-          foldAnimationHide,
-        ])
+        return step(() =>
+          Function.compose(
+            Update.combine([
+              () => ({ model: closed, commands }),
+              AnimationBinding.hide(),
+            ]),
+            Update.withOutMessage(outMessage),
+          ),
+        )
       }
 
-      return { model: closed, commands }
+      return Update.withOutMessage({ model: closed, commands }, outMessage)
     }
 
     return Message.match(message, {
@@ -508,10 +509,10 @@ export const makeUpdate = <Model extends BaseModel>(
           maybeActiveItemIndex: () => Option.some(index),
           activationTrigger: () => activationTrigger,
         }),
-        commands:
-          activationTrigger === 'Keyboard'
-            ? [ScrollListboxItemIntoView({ id: model.id, index })]
-            : [],
+        commands: Array.filter(
+          [ScrollListboxItemIntoView({ id: model.id, index })],
+          () => activationTrigger === 'Keyboard',
+        ),
       }),
 
       MovedPointerOverItem: ({ index, screenX, screenY }) => {
@@ -546,9 +547,10 @@ export const makeUpdate = <Model extends BaseModel>(
       SelectedItem: ({ item }) => {
         const selection = handleSelectedItem(model, item)
         if (selectionBehavior === 'CloseWithFocus') {
-          return pipe(
-            closeListbox(selection.model, closeWithFocusCommands),
-            Update.withOutMessage(selection.outMessage),
+          return closeListbox(
+            selection.model,
+            closeWithFocusCommands,
+            selection.outMessage,
           )
         } else {
           return selection
@@ -585,8 +587,8 @@ export const makeUpdate = <Model extends BaseModel>(
         }
       },
 
-      GotAnimationMessage: ({ message: animationMessage }) =>
-        foldAnimation(model, animationMessage),
+      CompletedDetectListboxMovementOrAnimationEnd: ({ generation }) =>
+        AnimationBinding.finish(generation),
 
       PressedPointerOnButton: ({ pointerType, button }) => {
         const withPointerType = modifyBaseFields(model, {
@@ -598,14 +600,18 @@ export const makeUpdate = <Model extends BaseModel>(
         }
 
         if (model.isOpen) {
-          return Update.combine(withPointerType, [
-            stepModel => closeListbox(stepModel, closeWithFocusCommands),
-            stepModel => ({
-              model: modifyBaseFields(stepModel, {
-                maybeLastButtonPointerType: () => Option.some(pointerType),
-              }),
-            }),
-          ])
+          const closed = modifyBaseFields(closedModel(withPointerType), {
+            maybeLastButtonPointerType: () => Option.some(pointerType),
+          })
+
+          if (model.isAnimated) {
+            return Update.combine([
+              () => ({ model: closed, commands: closeWithFocusCommands }),
+              AnimationBinding.hide(),
+            ])
+          }
+
+          return { model: closed, commands: closeWithFocusCommands }
         }
 
         return openListbox(
@@ -625,9 +631,9 @@ export const makeUpdate = <Model extends BaseModel>(
         }),
       }),
     })
-  })
+  }
 
-  return internalUpdate
+  return { update: internalUpdate, AnimationBinding }
 }
 
 /**
@@ -647,7 +653,7 @@ export const makeUpdate = <Model extends BaseModel>(
  *  Exposed so Scene tests can call
  *  `Scene.Mount.resolve(AnchorListbox, CompletedAnchorListbox())`.
  */
-export const AnchorListbox = Mount.define('AnchorListbox', {
+export const AnchorListbox = Listbox.mount('AnchorListbox', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
   messages: [Message.CompletedAnchorListbox],
   handler: function* () {
@@ -671,7 +677,7 @@ export const AnchorListbox = Mount.define('AnchorListbox', {
 /** The backdrop-portaling Mount this Listbox renders. Exposed so Scene tests can
  *  call `Scene.Mount.resolve(PortalListboxBackdrop, CompletedPortalListboxBackdrop())` to
  *  acknowledge the mount produced by the rendered backdrop. */
-export const PortalListboxBackdrop = Mount.define('PortalListboxBackdrop', {
+export const PortalListboxBackdrop = Listbox.mount('PortalListboxBackdrop', {
   messages: [Message.CompletedPortalListboxBackdrop],
   handler: function* () {
     return ({ element }) =>
@@ -690,7 +696,7 @@ export const mounts = [AnchorListbox, PortalListboxBackdrop]
 
 type MountRequirements = Mount.RequirementsOf<typeof mounts>
 
-/** Provides Listbox's Command and Mount handlers. */
+/** Provides Listbox's local Command and Mount handlers. */
 export const EffectsLayer = Layer.mergeAll(
   LockListboxScroll.layer,
   UnlockListboxScroll.layer,
@@ -704,7 +710,6 @@ export const EffectsLayer = Layer.mergeAll(
   DetectListboxMovementOrAnimationEnd.layer,
   AnchorListbox.layer,
   PortalListboxBackdrop.layer,
-  AnimationEffectsLayer,
 )
 
 // VIEW TYPES
@@ -721,10 +726,10 @@ export type GroupHeading = Readonly<{
   className?: string
 }>
 
-/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
+/** Per-render view inputs passed to a Listbox connection's `embedView` method.
  *
  *  The Listbox emits a `Selected({ value })` OutMessage on commit.
- *  Fold it in the Listbox's `Update.foldChild` config: single-select stores
+ *  Fold it through the Listbox connection: single-select stores
  *  the value, while multi-select toggles its membership. */
 export type BaseViewInputsCommon<Item> = Readonly<{
   items: ReadonlyArray<Item>
@@ -816,537 +821,534 @@ type ViewBehavior = Readonly<{
 type InternalInputs = BaseViewInputs<unknown, string>
 
 export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
-  const impl = defineView<Model, Message, InternalInputs, MountRequirements>(
-    (model, viewInputs, h) => {
-      const {
-        id,
-        isOpen,
-        orientation,
-        animation: { transitionState },
-        maybeActiveItemIndex,
-        searchQuery,
-        maybeLastButtonPointerType,
-      } = model
+  const impl = (
+    model: Model,
+    viewInputs: InternalInputs,
+    h: HtmlBuilder<Message, MountRequirements>,
+  ): Html => {
+    const {
+      id,
+      isOpen,
+      orientation,
+      animation: { transitionState },
+      maybeActiveItemIndex,
+      searchQuery,
+      maybeLastButtonPointerType,
+    } = model
 
-      const {
+    const {
+      items,
+      itemToConfig,
+      isItemDisabled,
+      isButtonDisabled,
+      buttonContent,
+      buttonClassName,
+      buttonAttributes = [],
+      itemsClassName,
+      itemsAttributes = [],
+      itemsScrollClassName,
+      itemsScrollAttributes = [],
+      backdropClassName,
+      backdropAttributes = [],
+      className,
+      attributes = [],
+      itemGroupKey,
+      groupToHeading,
+      groupClassName,
+      groupAttributes = [],
+      separatorClassName,
+      separatorAttributes = [],
+      anchor = {},
+      name,
+      form,
+      isDisabled,
+      isReadOnly = false,
+      isInvalid,
+      ariaLabel,
+      ariaLabelledBy,
+      selectedValues,
+    } = viewInputs
+
+    const itemToValue =
+      viewInputs.itemToValue ?? (item => globalThis.String(item))
+    const isValueSelected = (itemValue: string): boolean =>
+      Array.contains(selectedValues, itemValue)
+    const itemToSearchText =
+      viewInputs.itemToSearchText ?? ((item: unknown) => itemToValue(item))
+
+    const isLeaving =
+      transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
+    const isVisible = isOpen || isLeaving
+
+    const animationAttributes: ReadonlyArray<
+      ReturnType<typeof h.DataAttribute>
+    > = Match.value(transitionState).pipe(
+      Match.when('EnterStart', () => [
+        h.DataAttribute('closed', ''),
+        h.DataAttribute('enter', ''),
+        h.DataAttribute('transition', ''),
+      ]),
+      Match.when('EnterAnimating', () => [
+        h.DataAttribute('enter', ''),
+        h.DataAttribute('transition', ''),
+      ]),
+      Match.when('LeaveStart', () => [
+        h.DataAttribute('leave', ''),
+        h.DataAttribute('transition', ''),
+      ]),
+      Match.when('LeaveAnimating', () => [
+        h.DataAttribute('closed', ''),
+        h.DataAttribute('leave', ''),
+        h.DataAttribute('transition', ''),
+      ]),
+      Match.orElse(() => []),
+    )
+
+    const isItemDisabledByIndex = (index: number): boolean =>
+      Predicate.isNotUndefined(isItemDisabled) &&
+      pipe(
         items,
-        itemToConfig,
-        isItemDisabled,
-        isButtonDisabled,
-        buttonContent,
-        buttonClassName,
-        buttonAttributes = [],
-        itemsClassName,
-        itemsAttributes = [],
-        itemsScrollClassName,
-        itemsScrollAttributes = [],
-        backdropClassName,
-        backdropAttributes = [],
-        className,
-        attributes = [],
-        itemGroupKey,
-        groupToHeading,
-        groupClassName,
-        groupAttributes = [],
-        separatorClassName,
-        separatorAttributes = [],
-        anchor = {},
-        name,
-        form,
-        isDisabled,
-        isReadOnly = false,
-        isInvalid,
-        ariaLabel,
-        ariaLabelledBy,
-        selectedValues,
-      } = viewInputs
-
-      const itemToValue =
-        viewInputs.itemToValue ?? ((item: unknown) => globalThis.String(item))
-      const isValueSelected = (itemValue: string): boolean =>
-        Array.contains(selectedValues, itemValue)
-      const itemToSearchText =
-        viewInputs.itemToSearchText ?? ((item: unknown) => itemToValue(item))
-
-      const isLeaving =
-        transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
-      const isVisible = isOpen || isLeaving
-
-      const animationAttributes: ReadonlyArray<
-        ReturnType<typeof h.DataAttribute>
-      > = Match.value(transitionState).pipe(
-        Match.when('EnterStart', () => [
-          h.DataAttribute('closed', ''),
-          h.DataAttribute('enter', ''),
-          h.DataAttribute('transition', ''),
-        ]),
-        Match.when('EnterAnimating', () => [
-          h.DataAttribute('enter', ''),
-          h.DataAttribute('transition', ''),
-        ]),
-        Match.when('LeaveStart', () => [
-          h.DataAttribute('leave', ''),
-          h.DataAttribute('transition', ''),
-        ]),
-        Match.when('LeaveAnimating', () => [
-          h.DataAttribute('closed', ''),
-          h.DataAttribute('leave', ''),
-          h.DataAttribute('transition', ''),
-        ]),
-        Match.orElse(() => []),
+        Array.get(index),
+        Option.exists(item => isItemDisabled(item, index)),
       )
 
-      const isItemDisabledByIndex = (index: number): boolean =>
-        Predicate.isNotUndefined(isItemDisabled) &&
-        pipe(
+    const isButtonEffectivelyDisabled = isDisabled || isButtonDisabled
+
+    const nextKey = orientation === 'Horizontal' ? 'ArrowRight' : 'ArrowDown'
+    const previousKey = orientation === 'Horizontal' ? 'ArrowLeft' : 'ArrowUp'
+
+    const navigationKeys = [
+      nextKey,
+      previousKey,
+      'Home',
+      'End',
+      'PageUp',
+      'PageDown',
+    ]
+    const isNavigationKey = (key: string): boolean =>
+      Array.contains(navigationKeys, key)
+
+    const firstEnabledIndex = findFirstEnabledIndex(
+      items.length,
+      0,
+      isItemDisabledByIndex,
+    )(0, 1)
+
+    const lastEnabledIndex = findFirstEnabledIndex(
+      items.length,
+      0,
+      isItemDisabledByIndex,
+    )(items.length - 1, -1)
+
+    const selectedItemIndex = pipe(
+      selectedValues,
+      Array.head,
+      Option.flatMap(selectedValue =>
+        Array.findFirstIndex(
           items,
-          Array.get(index),
-          Option.exists(item => isItemDisabled(item, index)),
-        )
-
-      const isButtonEffectivelyDisabled = isDisabled || isButtonDisabled
-
-      const nextKey = orientation === 'Horizontal' ? 'ArrowRight' : 'ArrowDown'
-      const previousKey = orientation === 'Horizontal' ? 'ArrowLeft' : 'ArrowUp'
-
-      const navigationKeys = [
-        nextKey,
-        previousKey,
-        'Home',
-        'End',
-        'PageUp',
-        'PageDown',
-      ]
-      const isNavigationKey = (key: string): boolean =>
-        Array.contains(navigationKeys, key)
-
-      const firstEnabledIndex = findFirstEnabledIndex(
-        items.length,
-        0,
-        isItemDisabledByIndex,
-      )(0, 1)
-
-      const lastEnabledIndex = findFirstEnabledIndex(
-        items.length,
-        0,
-        isItemDisabledByIndex,
-      )(items.length - 1, -1)
-
-      const selectedItemIndex = pipe(
-        selectedValues,
-        Array.head,
-        Option.flatMap(selectedValue =>
-          Array.findFirstIndex(
-            items,
-            item => itemToValue(item) === selectedValue,
-          ),
+          item => itemToValue(item) === selectedValue,
         ),
-      )
+      ),
+    )
 
-      const handleButtonKeyDown = (key: string): Option.Option<Message> => {
-        if (isOpen) {
-          return handleItemsKeyDown(key)
-        }
-
-        return Match.value(key).pipe(
-          Match.whenOr('Enter', ' ', 'ArrowDown', () =>
-            Option.some(
-              Message.Opened({
-                maybeActiveItemIndex: Option.orElse(selectedItemIndex, () =>
-                  Option.some(firstEnabledIndex),
-                ),
-              }),
-            ),
-          ),
-          Match.when('ArrowUp', () =>
-            Option.some(
-              Message.Opened({
-                maybeActiveItemIndex: Option.orElse(selectedItemIndex, () =>
-                  Option.some(lastEnabledIndex),
-                ),
-              }),
-            ),
-          ),
-          Match.orElse(() => Option.none()),
-        )
+    const handleButtonKeyDown = (key: string): Option.Option<Message> => {
+      if (isOpen) {
+        return handleItemsKeyDown(key)
       }
 
-      const handleButtonPointerDown = (
-        pointerType: string,
-        button: number,
-      ): Option.Option<Message> =>
-        Option.some(Message.PressedPointerOnButton({ pointerType, button }))
-
-      const handleButtonClick = (): Message => {
-        const isMouse = Option.exists(
-          maybeLastButtonPointerType,
-          type => type === 'mouse',
-        )
-
-        if (isMouse) {
-          return Message.IgnoredMouseClick()
-        } else if (isOpen) {
-          return Message.Closed()
-        } else {
-          return Message.Opened({ maybeActiveItemIndex: Option.none() })
-        }
-      }
-
-      const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
-        OptionExt.when(key === ' ', Message.SuppressedSpaceScroll())
-
-      const resolveActiveIndex = (key: string): number =>
-        Option.match(maybeActiveItemIndex, {
-          onNone: () =>
-            Match.value(key).pipe(
-              Match.whenOr(
-                previousKey,
-                'End',
-                'PageDown',
-                () => lastEnabledIndex,
+      return Match.value(key).pipe(
+        Match.whenOr('Enter', ' ', 'ArrowDown', () =>
+          Option.some(
+            Message.Opened({
+              maybeActiveItemIndex: Option.orElse(selectedItemIndex, () =>
+                Option.some(firstEnabledIndex),
               ),
-              Match.orElse(() => firstEnabledIndex),
-            ),
-          onSome: activeIndex =>
-            keyToIndex(
-              nextKey,
-              previousKey,
-              items.length,
-              activeIndex,
-              isItemDisabledByIndex,
-            )(key),
-        })
-
-      const searchForKey = (key: string): Option.Option<Message> => {
-        const nextQuery = searchQuery + key
-        const maybeTargetIndex = resolveTypeaheadMatch(
-          items,
-          nextQuery,
-          maybeActiveItemIndex,
-          isItemDisabledByIndex,
-          itemToSearchText,
-          String.isNonEmpty(searchQuery),
-        )
-        return Option.some(Message.Searched({ key, maybeTargetIndex }))
-      }
-
-      const resolveCommitMessage = (): Option.Option<Message> => {
-        if (isReadOnly) {
-          return Option.as(maybeActiveItemIndex, Message.SuppressedItemCommit())
-        } else {
-          return Option.map(maybeActiveItemIndex, index =>
-            Message.RequestedItemClick({ index }),
-          )
-        }
-      }
-
-      const handleItemsKeyDown = (key: string): Option.Option<Message> =>
-        Match.value(key).pipe(
-          Match.when('Escape', () => Option.some(Message.Closed())),
-          Match.when('Enter', resolveCommitMessage),
-          Match.when(' ', () =>
-            String.isNonEmpty(searchQuery)
-              ? searchForKey(' ')
-              : resolveCommitMessage(),
-          ),
-          Match.when(isNavigationKey, () =>
-            Option.some(
-              Message.ActivatedItem({
-                index: resolveActiveIndex(key),
-                activationTrigger: 'Keyboard',
-              }),
-            ),
-          ),
-          Match.when(isPrintableKey, () => searchForKey(key)),
-          Match.orElse(() => Option.none()),
-        )
-
-      const resolveButtonLabel = () => {
-        if (Predicate.isNotUndefined(ariaLabel)) {
-          return [h.AriaLabel(ariaLabel)]
-        } else if (Predicate.isNotUndefined(ariaLabelledBy)) {
-          return [h.AriaLabelledBy(ariaLabelledBy)]
-        } else {
-          return []
-        }
-      }
-
-      const buttonLabelAttributes = resolveButtonLabel()
-
-      const resolvedButtonAttributes = [
-        h.Id(`${id}-button`),
-        h.Type('button'),
-        h.AriaHasPopup('listbox'),
-        h.AriaExpanded(isVisible),
-        ...(isVisible ? [h.AriaControls(`${id}-items`)] : []),
-        ...buttonLabelAttributes,
-        ...(isButtonEffectivelyDisabled
-          ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
-          : [
-              h.OnPointerDown(handleButtonPointerDown),
-              h.OnKeyDownPreventDefault(handleButtonKeyDown),
-              h.OnKeyUpPreventDefault(handleSpaceKeyUp),
-              h.OnClick(handleButtonClick()),
-            ]),
-        ...(isVisible
-          ? [
-              h.DataAttribute('open', ''),
-              h.Style({ position: 'relative', zIndex: '1' }),
-            ]
-          : []),
-        ...(isReadOnly ? [h.DataAttribute('readonly', '')] : []),
-        ...(isInvalid ? [h.DataAttribute('invalid', '')] : []),
-        ...(buttonClassName ? [h.Class(buttonClassName)] : []),
-        ...buttonAttributes,
-      ]
-
-      const maybeActiveDescendant = Option.match(maybeActiveItemIndex, {
-        onNone: () => [],
-        onSome: index => [h.AriaActiveDescendant(itemId(id, index))],
-      })
-
-      const anchorAttributes = [
-        h.Style({
-          position: 'absolute',
-          margin: '0',
-          visibility: 'hidden',
-        }),
-        h.OnMount(AnchorListbox({ buttonId: `${id}-button`, anchor })),
-      ]
-
-      const itemsContainerAttributes = [
-        h.Id(`${id}-items`),
-        h.Role('listbox'),
-        h.AriaOrientation(String.toLowerCase(orientation)),
-        ...(behavior.ariaMultiSelectable ? [h.AriaMultiSelectable(true)] : []),
-        ...(isReadOnly
-          ? [h.AriaReadonly(true), h.DataAttribute('readonly', '')]
-          : []),
-        h.AriaLabelledBy(`${id}-button`),
-        ...maybeActiveDescendant,
-        h.Tabindex(-1),
-        ...anchorAttributes,
-        ...animationAttributes,
-        ...(isLeaving
-          ? []
-          : [
-              h.OnKeyDownPreventDefault(handleItemsKeyDown),
-              h.OnKeyUpPreventDefault(handleSpaceKeyUp),
-              h.OnBlur(Message.BlurredItems()),
-            ]),
-        ...(itemsClassName ? [h.Class(itemsClassName)] : []),
-        ...itemsAttributes,
-      ]
-
-      const listboxItems = Array.map(items, (item, index) => {
-        const isActiveItem = Option.exists(
-          maybeActiveItemIndex,
-          activeIndex => activeIndex === index,
-        )
-        const isDisabledItem = isItemDisabledByIndex(index)
-        const isSelectedItem = isValueSelected(itemToValue(item))
-        const itemConfig = itemToConfig(item, {
-          isActive: isActiveItem,
-          isDisabled: isDisabledItem,
-          isReadOnly,
-          isSelected: isSelectedItem,
-        })
-
-        const isHoverable = !isDisabledItem && !isLeaving
-        const isClickable = isHoverable && !isReadOnly
-
-        return h.keyed('div')(
-          itemId(id, index),
-          [
-            h.Id(itemId(id, index)),
-            h.Role('option'),
-            h.AriaSelected(isSelectedItem),
-            ...(isActiveItem ? [h.DataAttribute('active', '')] : []),
-            ...(isSelectedItem ? [h.DataAttribute('selected', '')] : []),
-            ...(isDisabledItem
-              ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
-              : []),
-            ...(isReadOnly ? [h.DataAttribute('readonly', '')] : []),
-            ...(isClickable
-              ? [h.OnClick(Message.SelectedItem({ item: itemToValue(item) }))]
-              : []),
-            ...(isHoverable
-              ? [
-                  ...(isActiveItem
-                    ? []
-                    : [
-                        h.OnPointerMove((screenX, screenY, pointerType) =>
-                          OptionExt.when(
-                            pointerType !== 'touch',
-                            Message.MovedPointerOverItem({
-                              index,
-                              screenX,
-                              screenY,
-                            }),
-                          ),
-                        ),
-                      ]),
-                  h.OnPointerLeave(pointerType =>
-                    OptionExt.when(
-                      pointerType !== 'touch',
-                      Message.DeactivatedItem(),
-                    ),
-                  ),
-                ]
-              : []),
-            ...(itemConfig.className ? [h.Class(itemConfig.className)] : []),
-          ],
-          [itemConfig.content],
-        )
-      })
-
-      const renderGroupedItems = (): ReadonlyArray<Html> => {
-        if (!itemGroupKey) {
-          return listboxItems
-        }
-
-        const segments = groupContiguous(listboxItems, (_, index) =>
-          Array.get(items, index).pipe(
-            Option.match({
-              onNone: () => '',
-              onSome: item => itemGroupKey(item, index),
             }),
           ),
-        )
-
-        return Array.flatMap(segments, (segment, segmentIndex) => {
-          const maybeHeading = Option.fromNullishOr(
-            groupToHeading?.(segment.key),
-          )
-
-          const headingId = `${id}-heading-${segment.key}`
-
-          const headingElement = Option.match(maybeHeading, {
-            onNone: () => [],
-            onSome: heading => [
-              h.keyed('div')(
-                headingId,
-                [
-                  h.Id(headingId),
-                  h.Role('presentation'),
-                  ...(heading.className ? [h.Class(heading.className)] : []),
-                ],
-                [heading.content],
+        ),
+        Match.when('ArrowUp', () =>
+          Option.some(
+            Message.Opened({
+              maybeActiveItemIndex: Option.orElse(selectedItemIndex, () =>
+                Option.some(lastEnabledIndex),
               ),
-            ],
-          })
+            }),
+          ),
+        ),
+        Match.orElse(() => Option.none()),
+      )
+    }
 
-          const groupContent = [...headingElement, ...segment.items]
+    const handleButtonPointerDown = (
+      pointerType: string,
+      button: number,
+    ): Option.Option<Message> =>
+      Option.some(Message.PressedPointerOnButton({ pointerType, button }))
 
-          const groupElement = h.keyed('div')(
-            `${id}-group-${segment.key}`,
-            [
-              h.Role('group'),
-              ...(Option.isSome(maybeHeading)
-                ? [h.AriaLabelledBy(headingId)]
-                : []),
-              ...(groupClassName ? [h.Class(groupClassName)] : []),
-              ...groupAttributes,
-            ],
-            groupContent,
-          )
+    const handleButtonClick = (): Message => {
+      const isMouse = Option.exists(
+        maybeLastButtonPointerType,
+        type => type === 'mouse',
+      )
 
-          const separator =
-            segmentIndex > 0 &&
-            (separatorClassName ||
-              Array.isReadonlyArrayNonEmpty(separatorAttributes))
-              ? [
-                  h.keyed('div')(`${id}-separator-${segmentIndex}`, [
-                    h.Role('separator'),
-                    ...(separatorClassName
-                      ? [h.Class(separatorClassName)]
-                      : []),
-                    ...separatorAttributes,
-                  ]),
-                ]
-              : []
+      if (isMouse) {
+        return Message.IgnoredMouseClick()
+      } else if (isOpen) {
+        return Message.Closed()
+      } else {
+        return Message.Opened({ maybeActiveItemIndex: Option.none() })
+      }
+    }
 
-          return [...separator, groupElement]
-        })
+    const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
+      OptionExt.when(key === ' ', Message.SuppressedSpaceScroll())
+
+    const resolveActiveIndex = (key: string): number =>
+      Option.match(maybeActiveItemIndex, {
+        onNone: () =>
+          Match.value(key).pipe(
+            Match.whenOr(
+              previousKey,
+              'End',
+              'PageDown',
+              () => lastEnabledIndex,
+            ),
+            Match.orElse(() => firstEnabledIndex),
+          ),
+        onSome: activeIndex =>
+          keyToIndex(
+            nextKey,
+            previousKey,
+            items.length,
+            activeIndex,
+            isItemDisabledByIndex,
+          )(key),
+      })
+
+    const searchForKey = (key: string): Option.Option<Message> => {
+      const nextQuery = searchQuery + key
+      const maybeTargetIndex = resolveTypeaheadMatch(
+        items,
+        nextQuery,
+        maybeActiveItemIndex,
+        isItemDisabledByIndex,
+        itemToSearchText,
+        String.isNonEmpty(searchQuery),
+      )
+      return Option.some(Message.Searched({ key, maybeTargetIndex }))
+    }
+
+    const resolveCommitMessage = (): Option.Option<Message> => {
+      if (isReadOnly) {
+        return Option.as(maybeActiveItemIndex, Message.SuppressedItemCommit())
+      } else {
+        return Option.map(maybeActiveItemIndex, index =>
+          Message.RequestedItemClick({ index }),
+        )
+      }
+    }
+
+    const handleItemsKeyDown = (key: string): Option.Option<Message> =>
+      Match.value(key).pipe(
+        Match.when('Escape', () => Option.some(Message.Closed())),
+        Match.when('Enter', resolveCommitMessage),
+        Match.when(' ', () =>
+          String.isNonEmpty(searchQuery)
+            ? searchForKey(' ')
+            : resolveCommitMessage(),
+        ),
+        Match.when(isNavigationKey, () =>
+          Option.some(
+            Message.ActivatedItem({
+              index: resolveActiveIndex(key),
+              activationTrigger: 'Keyboard',
+            }),
+          ),
+        ),
+        Match.when(isPrintableKey, () => searchForKey(key)),
+        Match.orElse(() => Option.none()),
+      )
+
+    const resolveButtonLabel = () => {
+      if (Predicate.isNotUndefined(ariaLabel)) {
+        return [h.AriaLabel(ariaLabel)]
+      } else if (Predicate.isNotUndefined(ariaLabelledBy)) {
+        return [h.AriaLabelledBy(ariaLabelledBy)]
+      } else {
+        return []
+      }
+    }
+
+    const buttonLabelAttributes = resolveButtonLabel()
+
+    const resolvedButtonAttributes = [
+      h.Id(`${id}-button`),
+      h.Type('button'),
+      h.AriaHasPopup('listbox'),
+      h.AriaExpanded(isVisible),
+      ...(isVisible ? [h.AriaControls(`${id}-items`)] : []),
+      ...buttonLabelAttributes,
+      ...(isButtonEffectivelyDisabled
+        ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
+        : [
+            h.OnPointerDown(handleButtonPointerDown),
+            h.OnKeyDownPreventDefault(handleButtonKeyDown),
+            h.OnKeyUpPreventDefault(handleSpaceKeyUp),
+            h.OnClick(handleButtonClick()),
+          ]),
+      ...(isVisible
+        ? [
+            h.DataAttribute('open', ''),
+            h.Style({ position: 'relative', zIndex: '1' }),
+          ]
+        : []),
+      ...(isReadOnly ? [h.DataAttribute('readonly', '')] : []),
+      ...(isInvalid ? [h.DataAttribute('invalid', '')] : []),
+      ...(buttonClassName ? [h.Class(buttonClassName)] : []),
+      ...buttonAttributes,
+    ]
+
+    const maybeActiveDescendant = Option.match(maybeActiveItemIndex, {
+      onNone: () => [],
+      onSome: index => [h.AriaActiveDescendant(itemId(id, index))],
+    })
+
+    const anchorAttributes = [
+      h.Style({
+        position: 'absolute',
+        margin: '0',
+        visibility: 'hidden',
+      }),
+      h.OnMount(AnchorListbox({ buttonId: `${id}-button`, anchor })),
+    ]
+
+    const itemsContainerAttributes = [
+      h.Id(`${id}-items`),
+      h.Role('listbox'),
+      h.AriaOrientation(String.toLowerCase(orientation)),
+      ...(behavior.ariaMultiSelectable ? [h.AriaMultiSelectable(true)] : []),
+      ...(isReadOnly
+        ? [h.AriaReadonly(true), h.DataAttribute('readonly', '')]
+        : []),
+      h.AriaLabelledBy(`${id}-button`),
+      ...maybeActiveDescendant,
+      h.Tabindex(-1),
+      ...anchorAttributes,
+      ...animationAttributes,
+      ...(isLeaving
+        ? []
+        : [
+            h.OnKeyDownPreventDefault(handleItemsKeyDown),
+            h.OnKeyUpPreventDefault(handleSpaceKeyUp),
+            h.OnBlur(Message.BlurredItems()),
+          ]),
+      ...(itemsClassName ? [h.Class(itemsClassName)] : []),
+      ...itemsAttributes,
+    ]
+
+    const listboxItems = Array.map(items, (item, index) => {
+      const isActiveItem = Option.exists(
+        maybeActiveItemIndex,
+        activeIndex => activeIndex === index,
+      )
+      const isDisabledItem = isItemDisabledByIndex(index)
+      const isSelectedItem = isValueSelected(itemToValue(item))
+      const itemConfig = itemToConfig(item, {
+        isActive: isActiveItem,
+        isDisabled: isDisabledItem,
+        isReadOnly,
+        isSelected: isSelectedItem,
+      })
+
+      const isHoverable = !isDisabledItem && !isLeaving
+      const isClickable = isHoverable && !isReadOnly
+
+      return h.keyed('div')(
+        itemId(id, index),
+        [
+          h.Id(itemId(id, index)),
+          h.Role('option'),
+          h.AriaSelected(isSelectedItem),
+          ...(isActiveItem ? [h.DataAttribute('active', '')] : []),
+          ...(isSelectedItem ? [h.DataAttribute('selected', '')] : []),
+          ...(isDisabledItem
+            ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
+            : []),
+          ...(isReadOnly ? [h.DataAttribute('readonly', '')] : []),
+          ...(isClickable
+            ? [h.OnClick(Message.SelectedItem({ item: itemToValue(item) }))]
+            : []),
+          ...(isHoverable
+            ? [
+                ...(isActiveItem
+                  ? []
+                  : [
+                      h.OnPointerMove((screenX, screenY, pointerType) =>
+                        OptionExt.when(
+                          pointerType !== 'touch',
+                          Message.MovedPointerOverItem({
+                            index,
+                            screenX,
+                            screenY,
+                          }),
+                        ),
+                      ),
+                    ]),
+                h.OnPointerLeave(pointerType =>
+                  OptionExt.when(
+                    pointerType !== 'touch',
+                    Message.DeactivatedItem(),
+                  ),
+                ),
+              ]
+            : []),
+          ...(itemConfig.className ? [h.Class(itemConfig.className)] : []),
+        ],
+        [itemConfig.content],
+      )
+    })
+
+    const renderGroupedItems = (): ReadonlyArray<Html> => {
+      if (!itemGroupKey) {
+        return listboxItems
       }
 
-      const backdrop = h.keyed('div')(`${id}-backdrop`, [
-        h.OnMount(PortalListboxBackdrop()),
-        ...(isLeaving ? [] : [h.OnClick(Message.Closed())]),
-        ...(backdropClassName ? [h.Class(backdropClassName)] : []),
-        ...backdropAttributes,
-      ])
-
-      const renderedItems = renderGroupedItems()
-
-      const scrollableItems =
-        itemsScrollClassName ||
-        Array.isReadonlyArrayNonEmpty(itemsScrollAttributes)
-          ? [
-              h.div(
-                [
-                  ...(itemsScrollClassName
-                    ? [h.Class(itemsScrollClassName)]
-                    : []),
-                  ...itemsScrollAttributes,
-                ],
-                renderedItems,
-              ),
-            ]
-          : renderedItems
-
-      const visibleContent = [
-        backdrop,
-        h.keyed('div')(
-          `${id}-items-container`,
-          itemsContainerAttributes,
-          scrollableItems,
+      const segments = groupContiguous(listboxItems, (_, index) =>
+        Array.get(items, index).pipe(
+          Option.match({
+            onNone: () => '',
+            onSome: item => itemGroupKey(item, index),
+          }),
         ),
-      ]
+      )
 
-      const formAttribute = form ? [h.Attribute('form', form)] : []
+      return Array.flatMap(segments, (segment, segmentIndex) => {
+        const maybeHeading = Option.fromNullishOr(groupToHeading?.(segment.key))
 
-      const hiddenInputs = name
-        ? Array.match(selectedValues, {
-            onEmpty: () => [
-              h.input([h.Type('hidden'), h.Name(name), ...formAttribute]),
-            ],
-            onNonEmpty: Array.map(selectedValue =>
-              h.input([
-                h.Type('hidden'),
-                h.Name(name),
-                h.Value(selectedValue),
-                ...formAttribute,
-              ]),
+        const headingId = `${id}-heading-${segment.key}`
+
+        const headingElement = Option.match(maybeHeading, {
+          onNone: () => [],
+          onSome: heading => [
+            h.keyed('div')(
+              headingId,
+              [
+                h.Id(headingId),
+                h.Role('presentation'),
+                ...(heading.className ? [h.Class(heading.className)] : []),
+              ],
+              [heading.content],
             ),
-          })
-        : []
+          ],
+        })
 
-      const wrapperAttributes = [
-        ...(className ? [h.Class(className)] : []),
-        ...attributes,
-        ...(isVisible ? [h.DataAttribute('open', '')] : []),
-        ...(isDisabled ? [h.DataAttribute('disabled', '')] : []),
-        ...(isReadOnly ? [h.DataAttribute('readonly', '')] : []),
-        ...(isInvalid ? [h.DataAttribute('invalid', '')] : []),
-      ]
+        const groupContent = [...headingElement, ...segment.items]
 
-      return h.div(wrapperAttributes, [
-        h.keyed('button')(`${id}-button`, resolvedButtonAttributes, [
-          buttonContent,
-        ]),
-        ...hiddenInputs,
-        ...(isVisible ? visibleContent : []),
-      ])
-    },
-  )
+        const groupElement = h.keyed('div')(
+          `${id}-group-${segment.key}`,
+          [
+            h.Role('group'),
+            ...(Option.isSome(maybeHeading)
+              ? [h.AriaLabelledBy(headingId)]
+              : []),
+            ...(groupClassName ? [h.Class(groupClassName)] : []),
+            ...groupAttributes,
+          ],
+          groupContent,
+        )
+
+        const separator =
+          segmentIndex > 0 &&
+          (separatorClassName ||
+            Array.isReadonlyArrayNonEmpty(separatorAttributes))
+            ? [
+                h.keyed('div')(`${id}-separator-${segmentIndex}`, [
+                  h.Role('separator'),
+                  ...(separatorClassName ? [h.Class(separatorClassName)] : []),
+                  ...separatorAttributes,
+                ]),
+              ]
+            : []
+
+        return [...separator, groupElement]
+      })
+    }
+
+    const backdrop = h.keyed('div')(`${id}-backdrop`, [
+      h.OnMount(PortalListboxBackdrop()),
+      ...(isLeaving ? [] : [h.OnClick(Message.Closed())]),
+      ...(backdropClassName ? [h.Class(backdropClassName)] : []),
+      ...backdropAttributes,
+    ])
+
+    const renderedItems = renderGroupedItems()
+
+    const scrollableItems =
+      itemsScrollClassName ||
+      Array.isReadonlyArrayNonEmpty(itemsScrollAttributes)
+        ? [
+            h.div(
+              [
+                ...(itemsScrollClassName
+                  ? [h.Class(itemsScrollClassName)]
+                  : []),
+                ...itemsScrollAttributes,
+              ],
+              renderedItems,
+            ),
+          ]
+        : renderedItems
+
+    const visibleContent = [
+      backdrop,
+      h.keyed('div')(
+        `${id}-items-container`,
+        itemsContainerAttributes,
+        scrollableItems,
+      ),
+    ]
+
+    const formAttribute = form ? [h.Attribute('form', form)] : []
+
+    const hiddenInputs = name
+      ? Array.match(selectedValues, {
+          onEmpty: () => [
+            h.input([h.Type('hidden'), h.Name(name), ...formAttribute]),
+          ],
+          onNonEmpty: Array.map(selectedValue =>
+            h.input([
+              h.Type('hidden'),
+              h.Name(name),
+              h.Value(selectedValue),
+              ...formAttribute,
+            ]),
+          ),
+        })
+      : []
+
+    const wrapperAttributes = [
+      ...(className ? [h.Class(className)] : []),
+      ...attributes,
+      ...(isVisible ? [h.DataAttribute('open', '')] : []),
+      ...(isDisabled ? [h.DataAttribute('disabled', '')] : []),
+      ...(isReadOnly ? [h.DataAttribute('readonly', '')] : []),
+      ...(isInvalid ? [h.DataAttribute('invalid', '')] : []),
+    ]
+
+    return h.div(wrapperAttributes, [
+      h.keyed('button')(`${id}-button`, resolvedButtonAttributes, [
+        buttonContent,
+      ]),
+      ...hiddenInputs,
+      ...(isVisible ? visibleContent : []),
+    ])
+  }
 
   return <Item, Value extends string = string>() =>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    impl as unknown as SubmodelView<
-      Model,
-      Message,
-      BaseViewInputs<Item, Value>,
-      MountRequirements
-    >
+    impl as unknown as (
+      model: Model,
+      viewInputs: BaseViewInputs<Item, Value>,
+      h: HtmlBuilder<Message, MountRequirements>,
+    ) => Html
 }

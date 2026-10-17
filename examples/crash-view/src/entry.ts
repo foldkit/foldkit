@@ -1,14 +1,20 @@
 import { Option } from 'effect'
-import { Application, Runtime } from 'foldkit'
+import { Runtime } from 'foldkit'
 
-import { Message, Model, crashView, init, update, view } from './main'
-
-const application = Application.make({
-  Model,
+import {
+  ApplicationComposition,
+  Message,
+  crashView,
   init,
   update,
   view,
-  // Remove me to see the default crash view
+} from './application'
+
+const application = ApplicationComposition.makeApplication({
+  init,
+  update,
+  view,
+  container: document.getElementById('root'),
   crash: {
     view: crashView,
     report: ({ error, model, message }) => {
@@ -19,10 +25,7 @@ const application = Application.make({
       })
     },
   },
-  container: document.getElementById('root'),
-  devTools: {
-    Message,
-  },
+  devTools: { Message },
 })
 
 Runtime.run(application)

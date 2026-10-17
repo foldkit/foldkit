@@ -12,6 +12,11 @@ import {
   type Scope,
 } from 'effect'
 
+import { registerIdentity, registerResource } from '../block/identity.js'
+import {
+  IsConstructingHandler,
+  type ValidateConstructionRequirements,
+} from '../block/scope.js'
 import { type Handler, type ToLayer, makeHandler } from './handler.js'
 
 export type { Handler, HandlerOf, ToLayer } from './handler.js'
@@ -28,6 +33,10 @@ const ManagedResourceTypeId: unique symbol = Symbol.for(
 )
 
 type ManagedResourceTypeId = typeof ManagedResourceTypeId
+
+type ValidateHandlerConstruction<
+  Yielded extends Effect.Effect<unknown, unknown, unknown>,
+> = ValidateConstructionRequirements<Effect.Services<Yielded>>
 
 declare const ManagedResourceBrand: unique symbol
 
@@ -61,8 +70,18 @@ export const tag =
       ManagedResourceService<Key>,
       Ref.Ref<Option.Option<Value>>
     >(`@foldkit/ManagedResource/${key}`)
+    registerResource(serviceTag.key)
 
     const get = Effect.gen(function* () {
+      const isConstructingHandler = yield* IsConstructingHandler
+      if (isConstructingHandler) {
+        return yield* Effect.die(
+          new Error(
+            `[foldkit] ManagedResource "${key}" cannot be read while constructing a handler. Read its value inside the returned operation.`,
+          ),
+        )
+      }
+
       const ref = yield* serviceTag
       const maybeValue = yield* Ref.get(ref)
       return yield* Effect.fromOption(maybeValue)
@@ -86,19 +105,29 @@ export type Value<T> = T extends ManagedResource<infer V, any> ? V : never
 /** Type-level utility to extract the service identity type from a ManagedResource. */
 export type ServiceOf<T> = T extends ManagedResource<any, infer S> ? S : never
 
-/** Internal configuration for a single ManagedResource, used by the runtime. */
+/** Runtime-ready contract for one ManagedResource lifecycle. Applications
+ * normally create this through {@link make}; custom integrations may inspect
+ * the completed entry. */
 export type ManagedResourceConfig<Model, Message, LifecycleServices = never> = {
+  /** Requirements Schema used to compare consecutive lifecycle inputs. */
   readonly schema: Schema.Schema<any>
+  /** Resource identity and Effect accessor installed while acquired. */
   readonly resource: ManagedResource<any>
+  /** Derives the current optional acquisition requirements from the Model. */
   readonly modelToMaybeRequirements: (model: Model) => any
+  /** Acquires one resource value for the current requirements. */
   readonly acquire: (
     params: any,
   ) => Effect.Effect<any, unknown, Scope.Scope | LifecycleServices>
+  /** Releases a previously acquired value when its lifecycle ends. */
   readonly release: (
     value: any,
   ) => Effect.Effect<void, unknown, Scope.Scope | LifecycleServices>
+  /** Maps a successful acquisition to an application Message. */
   readonly onAcquired: (value: any) => Message
+  /** Produces the Message dispatched after release completes. */
   readonly onReleased: () => Message
+  /** Maps an acquisition failure to an application Message. */
   readonly onAcquireError: (error: unknown) => Message
 }
 
@@ -262,7 +291,7 @@ export interface EntryBuilder<Model, Message> {
       OnAcquired
     > &
       Readonly<{
-        handler: () => Generator<
+        handler: (() => Generator<
           Yielded,
           Readonly<{
             acquire: (
@@ -277,7 +306,8 @@ export interface EntryBuilder<Model, Message> {
             ) => Effect.Effect<void, unknown, ReleaseRequirements>
           }>,
           unknown
-        >
+        >) &
+          ValidateHandlerConstruction<Yielded>
       }>,
   ): LayeredEntry<
     Name,
@@ -333,19 +363,24 @@ export interface EntryBuilder<Model, Message> {
 }
 
 /**
- * Declares a ManagedResources record. The Model and Message generics are
- * provided up front; the entries record follows, built from calls to the
- * `entry` builder passed into the inner function.
+ * Low-level builder for a ManagedResource registry. The Model and Message
+ * generics are provided up front; the callback builds a record with `entry`.
+ *
+ * Application features create accessors through their named Block's
+ * `resource` and registries through their definition's `managedResources`.
+ * Pass the registry as `managedResources` and its local handler recipes through
+ * `EffectsLayer` when calling `Composition.makeBlock`; registered child bindings
+ * collect their own registries and derive independent occurrence lifetimes.
  *
  * Use this when a resource is expensive or stateful and should only exist while
  * the model is in a particular state: a camera stream during a video call, a
  * WebSocket connection while on a chat page, or a Web Worker pool during a
  * computation. For services that live for the entire application lifetime,
- * supply a Layer through `Application.provide` instead.
+ * supply a Layer through the completed application's `provide` method instead.
  *
- * Reach for `ManagedResource.aggregate` to combine multiple records, and
- * `ManagedResource.lift` to translate a child Submodel's record into a parent
- * context.
+ * `aggregate` and `lift` transform standalone records. Application Blocks
+ * use registered `bind` or `bindEach` placements to collect their resources,
+ * handler recipes, and other lifecycle registrations together.
  *
  * Pass a handler name before the requirements schema. An attached lifecycle
  * handler supplies both functions and exposes its Layer as `layer`. The
@@ -474,14 +509,17 @@ export const make =
         release: handler.release,
         toLayer: handler.toLayer,
       }
+      registerIdentity(resource, handler.identity)
 
       if (Predicate.isUndefined(configuredHandler)) {
         return resource
       } else {
+        // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context, typescript/consistent-type-assertions
+        const layer = handler.toLayer(Effect.gen(configuredHandler) as never)
         // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
-        const layer = handler.toLayer(Effect.gen(configuredHandler))
-        // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
-        return { ...resource, layer }
+        const implemented = { ...resource, layer }
+        registerIdentity(implemented, handler.identity)
+        return implemented
       }
     }) as unknown as EntryBuilder<Model, Message>
     return build(entry)
@@ -516,9 +554,12 @@ type ChildMessageOf<Resources> =
     : never
 
 /**
- * Lifts a record of child ManagedResources into a parent's Model and Message
- * context, applying a Model accessor and a Message wrapper uniformly to every
- * entry. Per-entry requirements schemas and resource services are preserved.
+ * Low-level transformation of a ManagedResource record into another Model and
+ * Message context. It applies a Model accessor and Message wrapper to every
+ * entry, preserving requirements Schemas and resource services.
+ *
+ * Application Blocks use registered `bind` or `bindEach` placements, which
+ * also compose their handler recipes and derive occurrence-owned handle slots.
  *
  * `read` returns `Some(childModel)` while the child exists and `None` while
  * it is absent.

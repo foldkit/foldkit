@@ -96,10 +96,19 @@ After local promotion, use the manual finalization recovery run above.
 
 ## Package canaries
 
-The Release workflow also builds a canary for every package-affecting push to
-`main`. Every public package receives a prerelease version containing the
-commit SHA, for example `0.148.2-canary.0123456789ab`. Internal package
-references are rewritten to those exact versions before packing.
+The Release workflow builds a canary for every package-affecting push to `main`
+or `codex/layers-and-submodels`. Every public package receives a prerelease
+version containing the commit SHA, for example
+`0.148.2-canary.0123456789ab`. Internal package references are rewritten to
+those exact versions before packing.
+
+Merge reviewed and approved candidate changes into
+`codex/layers-and-submodels` for integration testing. A push to that branch runs
+the package canary job. It does not create or update the Version Packages pull
+request, publish or promote a stable release, finalize release metadata, or
+deploy either website. After the package canary job succeeds, copy the exact
+package versions and the `create-foldkit-app` scaffold command from its workflow
+summary. Use that commit-addressed snapshot for integration testing.
 
 Canaries use a commit-specific non-consumer tag such as
 `foldkit-canary-upload-0123456789ab` only for upload. The workflow does not

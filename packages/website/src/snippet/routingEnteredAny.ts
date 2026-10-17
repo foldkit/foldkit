@@ -5,11 +5,11 @@ import { Transition } from 'foldkit/route'
 type Commands = ReadonlyArray<Command.Command<Message>>
 
 const commandsForTransition = (
-  transition: Transition.Transition<AppRoute>,
+  transition: Transition.Transition<ApplicationRoute>,
 ): Commands =>
   Option.match(Transition.enteredAny(transition), {
     onNone: () => [],
-    onSome: Match.type<AppRoute>().pipe(
+    onSome: Match.type<ApplicationRoute>().pipe(
       Match.withReturnType<Commands>(),
       Match.tag('People', () => [FetchPeopleFilters()]),
       Match.tag('Person', ({ personId }) => [FetchPerson({ personId })]),

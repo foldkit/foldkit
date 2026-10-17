@@ -1,13 +1,13 @@
-import { Effect, Option, Schema, pipe } from 'effect'
-import { Application, ManagedResource, Runtime } from 'foldkit'
+import { Effect, Layer, Option, Schema, pipe } from 'effect'
 
+import { TakePhoto } from './command'
+import { init } from './init'
 import { Message } from './message'
+import { Camera, CameraComposition, CameraStream } from './resource'
+import { update } from './update'
+import { view } from './view'
 
-// 1. Define a Managed Resource identity
-const CameraStream = ManagedResource.tag<MediaStream>()('CameraStream')
-
-// 2. Wire the lifecycle with make. Option.some = active; Option.none = inactive.
-const managedResources = ManagedResource.make<Model, Message>()(entry => ({
+const managedResources = Camera.managedResources(entry => ({
   camera: entry(
     'ManageCamera',
     Schema.Option(Schema.Struct({ facingMode: Schema.String })),
@@ -16,18 +16,13 @@ const managedResources = ManagedResource.make<Model, Message>()(entry => ({
       modelToMaybeRequirements: model =>
         pipe(
           model.callState,
-          Option.liftPredicate(
-            (callState): callState is typeof InCall.Type =>
-              callState._tag === 'InCall',
-          ),
-          Option.map(callState => ({
-            facingMode: callState.facingMode,
-          })),
+          Option.liftPredicate(callState => callState._tag === 'InCall'),
+          Option.map(callState => ({ facingMode: callState.facingMode })),
         ),
       onAcquired: () => Message.AcquiredCamera(),
       onReleased: () => Message.ReleasedCamera(),
       onAcquireError: error =>
-        Message.FailedAcquireCamera({ error: String(error) }),
+        Message.FailedAcquireCamera({ error: globalThis.String(error) }),
       handler: function* () {
         return {
           acquire: ({ facingMode }) =>
@@ -44,17 +39,10 @@ const managedResources = ManagedResource.make<Model, Message>()(entry => ({
   ),
 }))
 
-const application = Application.make({
-  Model,
+export const block = CameraComposition.makeBlock({
   init,
   update,
   view,
-  container: document.getElementById('root'),
   managedResources,
+  EffectsLayer: Layer.mergeAll(TakePhoto.layer, managedResources.camera.layer),
 })
-
-pipe(
-  application,
-  Application.provide(managedResources.camera.layer),
-  Runtime.run,
-)

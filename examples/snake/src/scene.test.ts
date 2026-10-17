@@ -2,8 +2,8 @@ import { expect, given, role, scene, text } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
+import { type Model, update, view } from './application'
 import { Snake } from './domain'
-import { type Model, update, view } from './main'
 
 const baseModel: Model = {
   snake: Snake.create({ x: 10, y: 10 }),

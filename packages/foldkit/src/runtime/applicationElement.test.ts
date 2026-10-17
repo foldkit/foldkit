@@ -65,7 +65,7 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-describe('Application.makeElement', () => {
+describe('ApplicationComposition.makeElement', () => {
   it('shares provided services with Flags and Commands for one embedded lifetime', async () => {
     let databaseBuildCount = 0
     let databaseReleaseCount = 0
@@ -101,7 +101,7 @@ describe('Application.makeElement', () => {
           }),
       ),
     )
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       Flags,
       flags: Effect.map(Database, database => ({
@@ -116,8 +116,8 @@ describe('Application.makeElement', () => {
       ports,
       container,
     })
-    const withHandler = Application.provide(element, SendLayer)
-    const provided = Application.provide(withHandler, DatabaseLayer)
+    const withHandler = element.provide(SendLayer)
+    const provided = withHandler.provide(DatabaseLayer)
     const handle = embed(provided)
 
     try {
@@ -156,7 +156,7 @@ describe('Application.makeElement', () => {
         onAcquireError: () => Message.ChangedStatus({ status: 'failed' }),
       }),
     }))
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       Flags,
       flags: Token.get.pipe(
@@ -173,8 +173,7 @@ describe('Application.makeElement', () => {
       managedResources,
       container,
     })
-    const provided = Application.provide(
-      element,
+    const provided = element.provide(
       managedResources.token.toLayer(
         Effect.succeed({
           acquire: () => Effect.succeed('token'),
@@ -204,7 +203,7 @@ describe('Application.makeElement', () => {
         ],
       }),
     }))
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: Model.make({ status: 'ready' }) }),
       update,
@@ -221,8 +220,7 @@ describe('Application.makeElement', () => {
         ),
       ),
     )
-    const provided = Application.provide(
-      element,
+    const provided = element.provide(
       Layer.mergeAll(
         HostStatusLayer,
         Send.toLayer(
@@ -250,7 +248,7 @@ describe('Application.makeElement', () => {
   })
 
   it('runs a registered Mount through its provided Layer', async () => {
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: Model.make({ status: 'ready' }) }),
       update: (model: Model, message: Message) =>
@@ -266,8 +264,7 @@ describe('Application.makeElement', () => {
       mounts: [AnchorPanel],
       container,
     })
-    const provided = Application.provide(
-      element,
+    const provided = element.provide(
       AnchorPanel.toLayer(
         Effect.succeed(() =>
           Effect.succeed(Message.CompletedAnchorPanel({ status: 'anchored' })),
@@ -285,13 +282,13 @@ describe('Application.makeElement', () => {
     }
   })
 
-  it('rejects distinct registered Mount definitions with the same name', () => {
+  it('does not globally reject distinct registered Mount definitions with the same name', () => {
     const otherAnchorPanel = Mount.define('AnchorPanel', {
       messages: [Message.CompletedAnchorPanel],
     })
 
     expect(() =>
-      Application.makeElement({
+      Application.__makeElementFromConfig({
         Model,
         init: () => ({ model: Model.make({ status: 'ready' }) }),
         update: (model: Model) => ({ model }),
@@ -299,12 +296,12 @@ describe('Application.makeElement', () => {
         mounts: [AnchorPanel, otherAnchorPanel],
         container,
       }),
-    ).toThrow('same name "AnchorPanel" but different definitions')
+    ).not.toThrow()
   })
 })
 
 const checkElementTypes = (): void => {
-  Application.makeElement({
+  Application.__makeElementFromConfig({
     Model,
     // @ts-expect-error A configured Flags Effect requires its Schema.
     flags: Effect.succeed({ initialStatus: 'configured' }),
@@ -314,7 +311,7 @@ const checkElementTypes = (): void => {
     container,
   })
 
-  const element = Application.makeElement({
+  const element = Application.__makeElementFromConfig({
     Model,
     Flags,
     flags: Effect.map(Database, database => ({
@@ -331,8 +328,7 @@ const checkElementTypes = (): void => {
   // @ts-expect-error The Flags Effect and Command require their services.
   embed(element)
 
-  const withHandler = Application.provide(
-    element,
+  const withHandler = element.provide(
     Send.toLayer(
       Effect.succeed(({ text }) =>
         Effect.succeed(Message.CompletedSend({ status: text })),
@@ -344,8 +340,7 @@ const checkElementTypes = (): void => {
   run(withHandler)
 
   run(
-    Application.provide(
-      withHandler,
+    withHandler.provide(
       Layer.succeed(Database, {
         store: text => text,
       }),
@@ -362,7 +357,7 @@ const checkElementTypes = (): void => {
       },
     ),
   }))
-  const subscriptionElement = Application.makeElement({
+  const subscriptionElement = Application.__makeElementFromConfig({
     Model,
     init: () => ({ model: Model.make({ status: 'ready' }) }),
     update: (model: Model) => ({ model }),
@@ -375,13 +370,12 @@ const checkElementTypes = (): void => {
   embed(subscriptionElement)
 
   embed(
-    Application.provide(
-      subscriptionElement,
+    subscriptionElement.provide(
       subscriptions.status.toLayer(Effect.succeed(() => Stream.empty)),
     ),
   )
 
-  const mountElement = Application.makeElement({
+  const mountElement = Application.__makeElementFromConfig({
     Model,
     init: () => ({ model: Model.make({ status: 'ready' }) }),
     update: (model: Model) => ({ model }),
@@ -394,8 +388,7 @@ const checkElementTypes = (): void => {
   embed(mountElement)
 
   embed(
-    Application.provide(
-      mountElement,
+    mountElement.provide(
       AnchorPanel.toLayer(
         Effect.succeed(() =>
           Effect.succeed(Message.CompletedAnchorPanel({ status: 'anchored' })),
@@ -414,7 +407,7 @@ const checkElementTypes = (): void => {
       onAcquireError: () => Message.ChangedStatus({ status: 'failed' }),
     }),
   }))
-  const managedElement = Application.makeElement({
+  const managedElement = Application.__makeElementFromConfig({
     Model,
     init: () => ({ model: Model.make({ status: 'ready' }) }),
     update: (model: Model) => ({ model }),
@@ -427,8 +420,7 @@ const checkElementTypes = (): void => {
   embed(managedElement)
 
   embed(
-    Application.provide(
-      managedElement,
+    managedElement.provide(
       managedResources.token.toLayer(
         Effect.succeed({
           acquire: () => Effect.succeed('token'),

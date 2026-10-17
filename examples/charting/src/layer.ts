@@ -1,23 +1,10 @@
 import { Layer } from 'effect'
-import { Http } from 'foldkit'
 
-import { RadioGroup } from '@foldkit/ui'
-
-import { ChartRegistryLayer } from './chartRegistry'
 import { FetchTelemetry, SyncChart } from './command'
-import { GitHubApiLayer } from './githubApi'
-import { NpmApiLayer } from './npmApi'
-import { MountChart } from './view'
-
-export { mounts } from './view'
-
-const TelemetryApisLayer = Layer.mergeAll(GitHubApiLayer, NpmApiLayer)
+import { MountChart } from './mount'
 
 export const EffectsLayer = Layer.mergeAll(
-  RadioGroup.EffectsLayer,
-  FetchTelemetry.layer.pipe(Layer.provide(TelemetryApisLayer)),
+  FetchTelemetry.layer,
   SyncChart.layer,
   MountChart.layer,
-).pipe(Layer.provide(ChartRegistryLayer))
-
-export const AppLayer = Layer.provide(EffectsLayer, Http.layer)
+)

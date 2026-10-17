@@ -1,5 +1,4 @@
+export { block } from './block'
 export { Model } from './model'
 export { Message } from './message'
-export { init } from './init'
-export { update } from './update'
-export { tableOfContents, view } from './view'
+export { tableOfContents } from './view'

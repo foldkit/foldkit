@@ -10,7 +10,7 @@ Server data in a Model is never just data or nothing. Between “we have it” a
 
 ### When to Use AsyncData
 
-Use `AsyncData` directly when the request belongs to an application-specific transition and the application should own its Messages, Commands, and `AsyncData` Model field. The experimental [Query](/core/query) Submodel packages the fetch Command, completion Message, stale-response protection, and retained `AsyncData` state when the result is one resource or a collection keyed by arguments.
+Use `AsyncData` directly when the request belongs to an application-specific transition and the application should own its Messages, Commands, and `AsyncData` Model field. The experimental [Query](/core/query) Block packages the fetch Command, completion Message, stale-response protection, and retained `AsyncData` state when the result is one resource or a collection keyed by arguments.
 
 Throughout this page, the running example is a Notes app: a `Note` belongs to an optional `Notebook`, and the Model holds several `AsyncData` fields for the notebook list, the cross-notebook feed, and the per-entity caches.
 

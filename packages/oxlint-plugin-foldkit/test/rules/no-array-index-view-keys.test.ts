@@ -108,8 +108,8 @@ describe('no-array-index-view-keys', () => {
     expect(result[0]?.diagnostic.message).toContain('`i`')
   })
 
-  it('flags an index key in a Submodel slotId', () => {
-    const sink = Testing.callOfMember('h', 'submodel', [
+  it('flags an index key in a Block slotId', () => {
+    const sink = Testing.callOfMember('h', 'block', [
       Testing.objectExpr([{ key: 'slotId', value: Testing.id('i') }]),
     ])
 
@@ -262,7 +262,7 @@ describe('no-array-index-view-keys', () => {
   })
 
   it('allows a static object key that collides with the index name', () => {
-    const sink = Testing.callOfMember('h', 'submodel', [
+    const sink = Testing.callOfMember('h', 'block', [
       Testing.objectExpr([
         { key: 'slotId', value: Testing.memberExpr('item', 'id') },
         { key: 'i', value: Testing.strLiteral('extra') },
@@ -299,8 +299,8 @@ describe('no-array-index-view-keys', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('skips submodel calls whose first argument is not an object literal', () => {
-    const sink = Testing.callOfMember('h', 'submodel', [Testing.id('config')])
+  it('skips block calls whose first argument is not an object literal', () => {
+    const sink = Testing.callOfMember('h', 'block', [Testing.id('config')])
 
     const result = runMapScenario(methodMapArrow(itemAndIndexParameters), sink)
 

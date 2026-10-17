@@ -1,4 +1,3 @@
-import { Update } from 'foldkit'
 import {
   type Field,
   Invalid,
@@ -29,8 +28,8 @@ const validateConfirmPassword = (
   return result
 }
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+const update = ApplicationComposition.makeUpdate((model, message) =>
+  Message.match(message, {
     ChangedPassword: ({ value }) => ({
       model: modifyFields(model, {
         password: () => validatePassword(value),
@@ -47,4 +46,5 @@ const update = (model: Model, message: Message) =>
           validateConfirmPassword(model.password.value, value),
       }),
     }),
-  })
+  }),
+)

@@ -17,8 +17,8 @@ import { init } from './init'
 import { Message } from './message'
 import { type Model, SnippetSize } from './model'
 import { MeasureSnippetHeight } from './mount'
-import { renderer } from './renderer'
 import { update } from './update'
+import { view } from './view'
 
 const snippetId = 'counter-example'
 const shortCode = 'const count = 0'
@@ -36,18 +36,18 @@ const testView =
       MountDefinition.RequirementsOf<typeof MeasureSnippetHeight>
     >,
   ) =>
-    renderer(
+    view(
       model,
-      message => message,
-      () => h.empty,
+      {
+        id: snippetId,
+        title: 'Counter state',
+        content: h.pre([], [rawCode]),
+        rawCode,
+        copyAriaLabel: 'Copy counter state',
+        renderCopyButton: () => h.empty,
+      },
       h,
-    )({
-      id: snippetId,
-      title: 'Counter state',
-      content: h.pre([], [rawCode]),
-      rawCode,
-      copyAriaLabel: 'Copy counter state',
-    })
+    )
 
 const groupedView = (
   model: Model,
@@ -56,32 +56,35 @@ const groupedView = (
     MountDefinition.RequirementsOf<typeof MeasureSnippetHeight>
   >,
 ) => {
-  const renderSnippet = renderer(
-    model,
-    message => message,
-    () => h.empty,
-    h,
-  )
-
   return h.div(
     [],
     [
-      renderSnippet({
-        id: 'main-source',
-        disclosureGroupId: 'example-source',
-        title: 'Main source',
-        content: h.pre([], [longCode]),
-        rawCode: longCode,
-        copyAriaLabel: 'Copy main source',
-      }),
-      renderSnippet({
-        id: 'server-source',
-        disclosureGroupId: 'example-source',
-        title: 'Server source',
-        content: h.pre([], [longCode]),
-        rawCode: longCode,
-        copyAriaLabel: 'Copy server source',
-      }),
+      view(
+        model,
+        {
+          id: 'main-source',
+          disclosureGroupId: 'example-source',
+          title: 'Main source',
+          content: h.pre([], [longCode]),
+          rawCode: longCode,
+          copyAriaLabel: 'Copy main source',
+          renderCopyButton: () => h.empty,
+        },
+        h,
+      ),
+      view(
+        model,
+        {
+          id: 'server-source',
+          disclosureGroupId: 'example-source',
+          title: 'Server source',
+          content: h.pre([], [longCode]),
+          rawCode: longCode,
+          copyAriaLabel: 'Copy server source',
+          renderCopyButton: () => h.empty,
+        },
+        h,
+      ),
     ],
   )
 }

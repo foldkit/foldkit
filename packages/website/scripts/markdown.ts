@@ -1,6 +1,6 @@
 import { Array, Option, Order, String, pipe } from 'effect'
 
-import { type AppRoute, SITE_URL } from '../src/route'
+import { type ApplicationRoute, SITE_URL } from '../src/route'
 import { type PageMetadata } from './metadata'
 
 // EXTRACTION
@@ -306,13 +306,13 @@ export const urlPathToMarkdownPath = (urlPath: string): string =>
 
 // SKIP
 
-const SKIPPED_ROUTE_TAGS: ReadonlySet<AppRoute['_tag']> = new Set([
+const SKIPPED_ROUTE_TAGS: ReadonlySet<ApplicationRoute['_tag']> = new Set([
   'Playground',
   'NotFound',
   'Newsletter',
 ])
 
-export const shouldExportMarkdown = (route: AppRoute): boolean =>
+export const shouldExportMarkdown = (route: ApplicationRoute): boolean =>
   !SKIPPED_ROUTE_TAGS.has(route._tag)
 
 // INDEX

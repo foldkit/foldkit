@@ -1,12 +1,4 @@
-export {
-  SlowPhase,
-  defaultSlowCallback,
-  embed,
-  hydrate,
-  makeApplication,
-  makeElement,
-  run,
-} from './index.js'
+export { SlowPhase, defaultSlowCallback, embed, hydrate, run } from './index.js'
 
 export type {
   RoutingConfig,

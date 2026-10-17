@@ -160,7 +160,7 @@ const keySinkExpression = (
   if (isFoldkitHtmlBuilderMember(node.callee, 'Key', references)) {
     return firstNonSpreadArgument(node)
   }
-  if (isFoldkitHtmlBuilderMember(node.callee, 'submodel', references)) {
+  if (isFoldkitHtmlBuilderMember(node.callee, 'block', references)) {
     const [configArgument] = node.arguments
     if (isObjectExpression(configArgument)) {
       return slotIdValue(configArgument)
@@ -255,7 +255,7 @@ const referencesIndexBindingAcrossFields = (
 
 /**
  * Disallows using a map callback's array index parameter as the key fed into
- * a keyed element, a Key attribute, a Submodel slotId, or a createKeyedLazy
+ * a keyed element, a Key attribute, a Block slotId, or a createKeyedLazy
  * slot call. Array positions shift when a list mutates, so view keys must
  * come from stable Model identifiers.
  */
@@ -264,7 +264,7 @@ export const noArrayIndexViewKeys = Rule.define({
   meta: Rule.meta({
     type: 'suggestion',
     description:
-      'Key rows and Submodels by stable Model identifiers instead of map callback array indexes.',
+      'Key rows and Blocks by stable Model identifiers instead of map callback array indexes.',
   }),
   create: function* () {
     const ctx = yield* RuleContext
@@ -336,7 +336,7 @@ export const noArrayIndexViewKeys = Rule.define({
           yield* ctx.report(
             Diagnostic.make({
               node: keyExpression,
-              message: `The array index parameter \`${maybeIndexBinding.value.name}\` is used as a view key. Positions shift when the list reorders or loses an item, so the runtime patches the wrong rows. Key this row or Submodel by a stable Model identifier such as \`item.id\` instead.`,
+              message: `The array index parameter \`${maybeIndexBinding.value.name}\` is used as a view key. Positions shift when the list reorders or loses an item, so the runtime patches the wrong rows. Key this row or Block by a stable Model identifier such as \`item.id\` instead.`,
             }),
           )
         })

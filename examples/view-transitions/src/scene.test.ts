@@ -3,13 +3,23 @@ import { Scene } from 'foldkit'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
-import { AppRoute, Message, Model, update, view, viewTransition } from './main'
+import {
+  ApplicationRoute,
+  Message,
+  Model,
+  update,
+  view,
+  viewTransition,
+} from './application'
 
-const gallery = Model.make({ route: AppRoute.Gallery(), filterText: '' })
+const gallery = Model.make({
+  route: ApplicationRoute.Gallery(),
+  filterText: '',
+})
 const artworkDetail = (artworkId: number) =>
-  Model.make({ route: AppRoute.Artwork({ artworkId }), filterText: '' })
+  Model.make({ route: ApplicationRoute.Artwork({ artworkId }), filterText: '' })
 const notFound = Model.make({
-  route: AppRoute.NotFound({ path: '/nowhere' }),
+  route: ApplicationRoute.NotFound({ path: '/nowhere' }),
   filterText: '',
 })
 

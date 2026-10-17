@@ -10,6 +10,8 @@ import {
 
 import {
   indexReferences,
+  blockBindingMethod,
+  blockBindingConfiguration,
   isCallExpression,
   isIdentifier,
   isMemberExpression,
@@ -132,15 +134,19 @@ const subscriptionLiftMapperArrow = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): Option.Option<ESTree.ArrowFunctionExpression> => {
   const innerCall = unwrapExpression(node.callee)
-  if (!isCallExpression(innerCall)) {
-    return Option.none()
-  }
+  const isBinding = Option.isSome(blockBindingMethod(node, references))
+  const maybeLift = isCallExpression(innerCall)
+    ? pipe(
+        foldkitApiPath(innerCall.callee, references),
+        Option.map(Array.join('.')),
+        Option.filter(calleePath => calleePath === 'Subscription.lift'),
+      )
+    : Option.none()
+
   return pipe(
-    foldkitApiPath(innerCall.callee, references),
-    Option.map(Array.join('.')),
-    Option.filter(calleePath => calleePath === 'Subscription.lift'),
+    isBinding ? Option.some('bindChild') : maybeLift,
     Option.flatMap(() => {
-      const [configArgument] = node.arguments
+      const configArgument = blockBindingConfiguration(node)
       if (!isObjectExpression(configArgument)) {
         return Option.none()
       }
@@ -158,6 +164,31 @@ const subscriptionLiftMapperArrow = (
     Option.flatMap(mapperValue =>
       isArrowFunctionExpression(mapperValue)
         ? Option.some(mapperValue)
+        : Option.none(),
+    ),
+  )
+}
+
+const bindingParentMessageReference = (
+  node: ESTree.CallExpression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): Option.Option<ESTree.Expression> => {
+  if (Option.isNone(blockBindingMethod(node, references))) {
+    return Option.none()
+  }
+
+  const configArgument = blockBindingConfiguration(node)
+  if (!isObjectExpression(configArgument)) {
+    return Option.none()
+  }
+
+  return pipe(
+    configArgument.properties,
+    Array.findFirst(property =>
+      property.type === 'Property' &&
+      !property.computed &&
+      isPropertyKeyNamed(property.key, 'parentMessage')
+        ? Option.some(property.value)
         : Option.none(),
     ),
   )
@@ -197,7 +228,7 @@ const analyzableMapperCall = (
 }
 
 type MapperOffense = Readonly<{
-  call: ESTree.CallExpression
+  node: ESTree.Node
   calleeLabel: string
 }>
 
@@ -261,7 +292,7 @@ const nonGotMapperOffense = (
       }
 
       return Option.some({
-        call,
+        node: call,
         calleeLabel: Option.match(maybeCalleePath, {
           onNone: () => dynamicCalleeLabel,
           onSome: calleePath => `${Array.join(calleePath, '.')}(...)`,
@@ -270,15 +301,61 @@ const nonGotMapperOffense = (
     }),
   )
 
+const nonGotParentMessageOffense = (
+  reference: ESTree.Expression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): Option.Option<MapperOffense> => {
+  const maybeCalleePath = resolveMemberPath(reference)
+  const isGotWrapper =
+    references === undefined
+      ? Option.exists(maybeCalleePath, calleePath =>
+          gotMessagePattern.test(Array.lastNonEmpty(calleePath)),
+        )
+      : Option.exists(
+          resolveImportedPath(references, reference),
+          importedPath => {
+            const [constructorName] = importedPath.members.slice(-1)
+            return (
+              constructorName !== undefined &&
+              gotMessagePattern.test(constructorName)
+            )
+          },
+        ) ||
+        Option.exists(staticMemberPath(reference), calleePath => {
+          const [constructorName, extraMember] = calleePath.members
+          return (
+            constructorName !== undefined &&
+            extraMember === undefined &&
+            gotMessagePattern.test(constructorName) &&
+            Option.exists(
+              resolvedVariable(references, calleePath.root),
+              variable => isFoldkitMessageUnionVariable(variable, references),
+            )
+          )
+        })
+
+  if (isGotWrapper || Option.isNone(maybeCalleePath)) {
+    return Option.none()
+  }
+
+  return Option.some({
+    node: reference,
+    calleeLabel: Array.join(maybeCalleePath.value, '.'),
+  })
+}
+
 const commandMapperMessage = (calleeLabel: string): string =>
-  `This Command mapper must wrap child output in a Got*Message constructor. \`${calleeLabel}\` is not a Got wrapper, so this Submodel level never wraps its child's Messages. Route the child Message through the parent's Got*Message wrapper.`
+  `This Command mapper must wrap child output in a Got*Message constructor. \`${calleeLabel}\` is not a Got wrapper, so this Block level never wraps its child's Messages. Route the child Message through the parent's Got*Message wrapper.`
 
 const subscriptionMapperMessage = (calleeLabel: string): string =>
-  `The toParentMessage mapper in Subscription.lift must wrap child output in a Got*Message constructor. \`${calleeLabel}\` is not a Got wrapper. Return the parent's Got*Message wrapper so each Submodel level wraps exactly once.`
+  `The toParentMessage mapper must wrap child output in a Got*Message constructor. \`${calleeLabel}\` is not a Got wrapper. Return the parent's Got*Message wrapper so each Block level wraps exactly once.`
+
+const parentMessageMessage = (calleeLabel: string): string =>
+  `The parentMessage constructor must be a Got*Message wrapper. \`${calleeLabel}\` is not a Got wrapper. Select the parent's Got*Message constructor so each Block level wraps exactly once.`
 
 /**
  * Requires inline Command mappers and Subscription.lift toParentMessage
- * mappers to wrap child Submodel output in a Got*Message constructor.
+ * mappers to wrap child Block output in a Got*Message constructor.
  *
  * NOTE: only inline arrow mappers are analyzed. A mapper extracted to a named
  * helper is out of scope and passes, so this catches the common inline mistake
@@ -289,7 +366,7 @@ export const wrapChildOutputInGotMessage = Rule.define({
   meta: Rule.meta({
     type: 'suggestion',
     description:
-      'Wrap child Submodel output in a Got*Message constructor inside Command and Subscription mappers.',
+      'Wrap child Block output in a Got*Message constructor inside Command and Subscription mappers.',
   }),
   create: function* () {
     const ctx = yield* RuleContext
@@ -303,7 +380,7 @@ export const wrapChildOutputInGotMessage = Rule.define({
     ) =>
       ctx.report(
         Diagnostic.make({
-          node: offense.call,
+          node: offense.node,
           message: renderMessage(offense.calleeLabel),
         }),
       )
@@ -313,18 +390,31 @@ export const wrapChildOutputInGotMessage = Rule.define({
           return Effect.void
         }
         return pipe(
-          commandMapperArrow(node, references),
-          Option.flatMap(arrow => nonGotMapperOffense(arrow, references)),
+          bindingParentMessageReference(node, references),
+          Option.flatMap(reference =>
+            nonGotParentMessageOffense(reference, references),
+          ),
           Option.match({
-            onSome: offense => reportOffense(offense, commandMapperMessage),
+            onSome: offense => reportOffense(offense, parentMessageMessage),
             onNone: () =>
               pipe(
-                subscriptionLiftMapperArrow(node, references),
+                commandMapperArrow(node, references),
                 Option.flatMap(arrow => nonGotMapperOffense(arrow, references)),
                 Option.match({
                   onSome: offense =>
-                    reportOffense(offense, subscriptionMapperMessage),
-                  onNone: () => Effect.void,
+                    reportOffense(offense, commandMapperMessage),
+                  onNone: () =>
+                    pipe(
+                      subscriptionLiftMapperArrow(node, references),
+                      Option.flatMap(arrow =>
+                        nonGotMapperOffense(arrow, references),
+                      ),
+                      Option.match({
+                        onSome: offense =>
+                          reportOffense(offense, subscriptionMapperMessage),
+                        onNone: () => Effect.void,
+                      }),
+                    ),
                 }),
               ),
           }),

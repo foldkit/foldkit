@@ -1,15 +1,16 @@
 import { clsx } from 'clsx'
 import { Array, Number, Option, Order, String, pipe } from 'effect'
-import { Html, HtmlBuilder } from 'foldkit/html'
+import { Html } from 'foldkit/html'
 
 import { USER_GAME_TEXT_INPUT_ID } from '../../../constant'
+import type { RoomViewBuilder } from '../definition'
 import { Message } from '../message'
 
 const typing = (
   gameText: string,
   userGameText: string,
   maybeWrongCharIndex: Option.Option<number>,
-  h: HtmlBuilder<Message>,
+  h: RoomViewBuilder,
 ): Html =>
   h.div(
     [h.Class('relative')],
@@ -31,7 +32,7 @@ const gameTextWithProgress = (
   gameText: string,
   userGameText: string,
   maybeWrongCharIndex: Option.Option<number>,
-  h: HtmlBuilder<Message>,
+  h: RoomViewBuilder,
 ): Html =>
   h.div(
     [h.Class('whitespace-pre-wrap')],
@@ -46,7 +47,7 @@ const char =
   (
     userGameText: string,
     maybeWrongCharIndex: Option.Option<number>,
-    h: HtmlBuilder<Message>,
+    h: RoomViewBuilder,
   ) =>
   (char: string, index: number): Html => {
     const userGameTextLength = String.length(userGameText)
@@ -84,7 +85,7 @@ export const playing = (
   maybeGameText: Option.Option<string>,
   userGameText: string,
   maybeWrongCharIndex: Option.Option<number>,
-  h: HtmlBuilder<Message>,
+  h: RoomViewBuilder,
 ): Html =>
   h.div(
     [h.Class('space-y-6')],

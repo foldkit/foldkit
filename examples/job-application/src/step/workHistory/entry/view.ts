@@ -1,48 +1,45 @@
-import { type Mount, Submodel } from 'foldkit'
-import type { Html } from 'foldkit/html'
-
-import { Button, DatePicker as UiDatePicker } from '@foldkit/ui'
+import { Button } from '@foldkit/ui'
 
 import { DatePicker, Field } from '../../../view'
-import { Message, type Model, mounts } from './entry'
+import {
+  EndDatePickerBinding,
+  StartDatePickerBinding,
+  WorkHistoryEntryComposition,
+} from './composition'
+import { Message } from './definition'
 
 const ANCHOR = { placement: 'bottom-start' as const, gap: 4, padding: 8 }
 
-export const view = Submodel.defineView<
-  Model,
-  Message,
-  void,
-  Mount.RequirementsOf<typeof mounts>
->((model, h): Html => {
+export const view = WorkHistoryEntryComposition.makeView((model, h) => {
   const showEndDate = !model.isCurrentlyEmployed
 
-  const startDatePicker = h.div(
+  const startDatePickerView = h.div(
     [h.Class('space-y-1')],
     [
       h.label(
         [h.Class('block text-sm font-medium text-gray-700')],
         ['Start Date'],
       ),
-      h.submodel({
-        slotId: model.startDate.id,
-        model: model.startDate,
-        view: UiDatePicker.view,
-        viewInputs: {
-          anchor: ANCHOR,
-          maybeSelectedDate: model.maybeStartDate,
-          triggerContent: maybeDate =>
-            DatePicker.triggerContent(maybeDate, 'Select start date'),
-          toCalendarView: DatePicker.calendarView,
-          triggerClassName: DatePicker.triggerClassName,
-          panelClassName: DatePicker.panelClassName,
-          backdropClassName: DatePicker.backdropClassName,
-        },
-        toParentMessage: message => Message.GotStartDateMessage({ message }),
-      }),
+      h.block(
+        StartDatePickerBinding.embedView({
+          slotId: model.startDate.id,
+          model: model.startDate,
+          viewInputs: {
+            anchor: ANCHOR,
+            maybeSelectedDate: model.maybeStartDate,
+            triggerContent: maybeDate =>
+              DatePicker.triggerContent(maybeDate, 'Select start date'),
+            toCalendarView: DatePicker.calendarView,
+            triggerClassName: DatePicker.triggerClassName,
+            panelClassName: DatePicker.panelClassName,
+            backdropClassName: DatePicker.backdropClassName,
+          },
+        }),
+      ),
     ],
   )
 
-  const endDatePicker = h.keyed('div')(
+  const endDatePickerView = h.keyed('div')(
     `${model.id}-end-date`,
     [h.Class('space-y-1')],
     [
@@ -50,22 +47,22 @@ export const view = Submodel.defineView<
         [h.Class('block text-sm font-medium text-gray-700')],
         ['End Date'],
       ),
-      h.submodel({
-        slotId: model.endDate.id,
-        model: model.endDate,
-        view: UiDatePicker.view,
-        viewInputs: {
-          anchor: ANCHOR,
-          maybeSelectedDate: model.maybeEndDate,
-          triggerContent: maybeDate =>
-            DatePicker.triggerContent(maybeDate, 'Select end date'),
-          toCalendarView: DatePicker.calendarView,
-          triggerClassName: DatePicker.triggerClassName,
-          panelClassName: DatePicker.panelClassName,
-          backdropClassName: DatePicker.backdropClassName,
-        },
-        toParentMessage: message => Message.GotEndDateMessage({ message }),
-      }),
+      h.block(
+        EndDatePickerBinding.embedView({
+          slotId: model.endDate.id,
+          model: model.endDate,
+          viewInputs: {
+            anchor: ANCHOR,
+            maybeSelectedDate: model.maybeEndDate,
+            triggerContent: maybeDate =>
+              DatePicker.triggerContent(maybeDate, 'Select end date'),
+            toCalendarView: DatePicker.calendarView,
+            triggerClassName: DatePicker.triggerClassName,
+            panelClassName: DatePicker.panelClassName,
+            backdropClassName: DatePicker.backdropClassName,
+          },
+        }),
+      ),
     ],
   )
 
@@ -100,7 +97,7 @@ export const view = Submodel.defineView<
       ),
       h.div(
         [h.Class('grid grid-cols-2 gap-3')],
-        [startDatePicker, ...(showEndDate ? [endDatePicker] : [])],
+        [startDatePickerView, ...(showEndDate ? [endDatePickerView] : [])],
       ),
       Field.checkbox(
         {

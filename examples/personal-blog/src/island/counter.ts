@@ -1,18 +1,12 @@
 import { Schema } from 'effect'
-import { Submodel, Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 import { Button } from '@foldkit/ui'
 
-// MODEL
-
 export const Model = Schema.Struct({ count: Schema.Number })
 export type Model = typeof Model.Type
-
-export const init: Model = { count: 0 }
-
-// MESSAGE
 
 export const Message = defineMessageUnion({
   ClickedDecrement: {},
@@ -21,9 +15,14 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-// UPDATE
+const Counter = Block.define('Counter', { Model, Message })
+const CounterComposition = Counter.makeComposition()
 
-export const update = Update.define((model: Model, message: Message) =>
+export const init = CounterComposition.makeInit(() => ({
+  model: Model.make({ count: 0 }),
+}))
+
+export const update = CounterComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedDecrement: () => ({
       model: modifyFields(model, { count: count => count - 1 }),
@@ -34,12 +33,10 @@ export const update = Update.define((model: Model, message: Message) =>
   }),
 )
 
-// VIEW
-
 const buttonStyle =
   'h-9 w-9 rounded-full border border-stone-300 text-lg leading-none text-stone-700 hover:bg-stone-100 transition cursor-pointer'
 
-export const view = Submodel.defineView<Model, Message>((model, h) =>
+export const view = CounterComposition.makeView((model, h) =>
   h.div(
     [h.Class('flex items-center gap-4')],
     [
@@ -66,3 +63,9 @@ export const view = Submodel.defineView<Model, Message>((model, h) =>
     ],
   ),
 )
+
+export const block = CounterComposition.makeBlock({
+  init,
+  update,
+  view,
+})

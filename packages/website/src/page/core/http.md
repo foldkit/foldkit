@@ -22,7 +22,7 @@ Local observability remains intact. The `http.client` span still records request
 
 ## Providing It to the Application
 
-Leave `HttpClient.HttpClient` in each handler constructor's Effect requirements. Compose each feature's handlers into its `EffectsLayer`, then provide `Http.layer` beneath those Layers at the application root. The root owns the concrete browser transport, and a whole-application test can provide a deterministic HTTP client beneath the same handlers. See [Layers](/core/layers) for service and handler composition.
+Leave `HttpClient.HttpClient` in each handler constructor's Effect requirements. Compose each feature's handlers into its local `EffectsLayer` and complete the Block with it, then supply `Http.layer` through the root `ApplicationLayer`. The root owns the concrete browser transport, and a whole-application test can provide a deterministic HTTP client beneath the same handlers. See [Layers](/core/layers) for service and handler composition.
 
 The Command remains responsible for status checks, response decoding, and converting failures into declared Messages.
 

@@ -1,8 +1,6 @@
 export {
   init,
   update,
-  open,
-  close,
   view,
   buttonId,
   arrowId,
@@ -22,7 +20,7 @@ export {
   FocusPopoverPanel,
   FocusPopoverButton,
   DetectPopoverMovementOrAnimationEnd,
-  EffectsLayer,
+  block,
   mounts,
   type BlurredPanel,
   type PressedPointerOnButton,
@@ -30,6 +28,6 @@ export {
   type SuppressedSpaceScroll,
 } from './index.js'
 
-export type { InitConfig, ViewInputs, RenderInfo } from './index.js'
+export type { Completed, InitConfig, ViewInputs, RenderInfo } from './index.js'
 
 export type { AnchorConfig } from '../anchor/index.js'

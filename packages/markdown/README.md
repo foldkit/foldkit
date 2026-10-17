@@ -111,21 +111,45 @@ import { islandAttributes } from './src/islands'
 markdown({ islands: islandAttributes })
 ```
 
-`islandsFor` pairs the same definitions with typed views: attributes arrive decoded through each island's schema, and the record must cover every declared name. State stays in your Model; the markdown only decides placement. The third argument is the zero-based occurrence of that island name in the document, for identifiers that must be unique per instance, like an `h.submodel` slotId:
+`islandsFor` pairs the same definitions with typed views: attributes arrive decoded through each island's schema, and the record must cover every declared name. State stays in your Model; the markdown only decides placement. The third argument is the zero-based occurrence of that island name in the document, for identifiers that must be unique per instance, like an `h.block` slotId:
 
 ```typescript
-import { Html, type HtmlBuilder } from 'foldkit/html'
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
+import { defineApplication } from 'foldkit'
+import type { Html } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 
 import * as Markdown from '@foldkit/markdown'
 
-import { Counter } from './counter'
+import * as Counter from './counter'
 import { islandAttributes } from './islands'
-import { GotCounterMessage, type Message, type Model } from './message'
+
+const Model = Schema.Struct({ counter: Counter.Model })
+type Model = typeof Model.Type
+
+const Message = defineMessageUnion({
+  GotCounterMessage: { message: Counter.Message },
+})
+
+export const Application = defineApplication({ Model, Message })
+
+const CounterBinding = Application.bindChild(Counter.block, {
+  field: 'counter',
+  parentMessage: Message.GotCounterMessage,
+})
+
+export const ApplicationComposition = Application.makeComposition({
+  childBindings: [CounterBinding],
+})
+type ApplicationViewBuilder = Block.ViewBuilderFor<
+  typeof ApplicationComposition
+>
 
 const postView = (
   model: Model,
   post: Markdown.MarkdownDocument,
-  h: HtmlBuilder<Message>,
+  h: ApplicationViewBuilder,
 ): Html =>
   Markdown.view(post, {
     islands: Markdown.islandsFor(islandAttributes, {
@@ -134,12 +158,12 @@ const postView = (
           [],
           [
             h.span([], [label ?? 'Counter']),
-            h.submodel({
-              slotId: `counter-${occurrenceIndex}`,
-              model: model.counter,
-              view: Counter.view,
-              toParentMessage: message => GotCounterMessage({ message }),
-            }),
+            h.block(
+              counter.embedView({
+                slotId: `counter-${occurrenceIndex}`,
+                model: model.counter,
+              }),
+            ),
           ],
         ),
       Note: (_attributes, content) =>

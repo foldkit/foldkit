@@ -1,32 +1,27 @@
-import { Command, Url } from 'foldkit'
+import { Option } from 'effect'
+import { Url } from 'foldkit'
 
-import { Message } from './message'
-import { Model } from './model'
-import { Home, Room } from './page'
-import { AppRoute, urlToAppRoute } from './route'
+import { ApplicationComposition } from './composition'
+import { Application } from './definition'
+import { ApplicationRoute, urlToApplicationRoute } from './route'
+import { initRoom } from './update/changeRoute'
 
-export const init = (url: Url.Url) => {
-  const route = urlToAppRoute(url)
+export const init = ApplicationComposition.makeInit((url: Url.Url) => {
+  const route = urlToApplicationRoute(url)
 
-  const homeInit = Home.init()
-  const roomInit = Room.init(route)
-
-  const commands = AppRoute.match(route, {
-    Home: () =>
-      Command.mapMessages(homeInit.commands, message =>
-        Message.GotHomeMessage({ message }),
-      ),
-    Room: () =>
-      Command.mapMessages(roomInit.commands, message =>
-        Message.GotRoomMessage({ message }),
-      ),
-    NotFound: () => [],
-  })
-
-  const model = Model.make({
-    route,
-    home: homeInit.model,
-    room: roomInit.model,
-  })
-  return { model, commands }
-}
+  return {
+    model: {
+      route,
+      maybeRoomInstance: Option.none(),
+    },
+    steps: ApplicationRoute.matchOrElse(
+      route,
+      {
+        Room: ({ roomId }) => [
+          Application.step(model => initRoom(model, roomId)),
+        ],
+      },
+      () => [],
+    ),
+  }
+})

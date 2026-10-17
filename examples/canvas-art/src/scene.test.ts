@@ -2,7 +2,7 @@ import { click, expect, given, role, scene, text } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
-import { type Model, update, view } from './main'
+import { type Model, update, view } from './application'
 
 const emptyModel: Model = {
   balls: [],

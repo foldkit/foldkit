@@ -1,13 +1,12 @@
 import { clsx } from 'clsx'
 import { Match } from 'effect'
-import { Submodel } from 'foldkit'
 import { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Session } from '../../domain/session'
 import { notFoundView } from '../../notFoundView'
 import { dashboardRouter, settingsRouter } from '../../route'
+import { LoggedInComposition } from './definition'
 import { Message } from './message'
-import { Model } from './model'
 import * as Dashboard from './page/dashboard'
 import * as Settings from './page/settings'
 
@@ -64,7 +63,7 @@ const navigationView = (
     ],
   )
 
-export const view = Submodel.defineView<Model, Message>((model, h) =>
+export const view = LoggedInComposition.makeView((model, h) =>
   h.div(
     [h.Class('min-h-screen')],
     [

@@ -1,4 +1,4 @@
-import { Update } from 'foldkit'
+import type { Update } from 'foldkit'
 
 const foldLoginOutMessage = (
   outMessage: Login.OutMessage,
@@ -6,7 +6,7 @@ const foldLoginOutMessage = (
 ) =>
   Login.OutMessage.match(outMessage, {
     RequestedMagicLink: ({ email }) =>
-      Update.defineStep((model: Model) => ({
+      Application.step(model => ({
         model,
         commands: [
           liftCommand(

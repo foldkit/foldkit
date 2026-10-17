@@ -72,9 +72,9 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     slug: 'counters',
     title: 'Counters',
     description:
-      'Add and remove independent Counter Submodels in a dynamic list. Each row is embedded through h.submodel and routed through a wrapper Message.',
+      'Add and remove independent Counter Blocks in a dynamic list. Each row is embedded through h.block and routed through a wrapper Message.',
     difficulty: 'Beginner',
-    tags: ['Submodels'],
+    tags: ['Blocks'],
     hasRouting: false,
     livePreview: 'Spa',
   },
@@ -152,7 +152,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     slug: 'api-cache-query',
     title: 'API Cache Query',
     description:
-      'The API Cache app rewritten with experimental Query.define. Fetching and retained entries live in Query Submodels. The parent folds Got* Messages.',
+      'The API Cache app rewritten with experimental Query.define. Fetching and retained entries live in Query Blocks. The parent folds Got* Messages.',
     difficulty: 'Intermediate',
     tags: [
       'Query',
@@ -238,9 +238,9 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     slug: 'auth',
     title: 'Auth',
     description:
-      'An authentication flow with Submodels, OutMessage, protected routes, and session management.',
+      'An authentication flow with Blocks, OutMessage, protected routes, and session management.',
     difficulty: 'Advanced',
-    tags: ['Auth', 'Routing', 'Submodels', 'OutMessage'],
+    tags: ['Auth', 'Routing', 'Blocks', 'OutMessage'],
     hasRouting: true,
     livePreview: 'Spa',
   },
@@ -310,7 +310,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     description:
       'A drag-and-drop kanban board with cross-column reordering, keyboard navigation, fractional indexing, and screen reader announcements.',
     difficulty: 'Advanced',
-    tags: ['Drag & Drop', 'Submodels', 'OutMessage', 'Storage'],
+    tags: ['Drag & Drop', 'Blocks', 'OutMessage', 'Storage'],
     hasRouting: false,
     livePreview: 'Spa',
   },
@@ -388,7 +388,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     slug: 'ui-showcase',
     title: 'UI Showcase',
     description:
-      'An interactive showcase of every Foldkit UI component, with styled routed demos and their parent and Submodel wiring.',
+      'An interactive showcase of every Foldkit UI component, with styled routed demos and their parent and Block wiring.',
     difficulty: 'Advanced',
     tags: ['UI Components', 'Routing'],
     hasRouting: true,
@@ -398,9 +398,9 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     slug: 'personal-blog',
     title: 'Personal Blog',
     description:
-      'A blog whose prose lives in Markdown files. The @foldkit/markdown Vite plugin compiles each file into a typed document, per-node view overrides style the result, and directive islands place a live Counter Submodel and Note callout between paragraphs.',
+      'A blog whose prose lives in Markdown files. The @foldkit/markdown Vite plugin compiles each file into a typed document, per-node view overrides style the result, and directive islands place a live Counter Block and Note callout between paragraphs.',
     difficulty: 'Advanced',
-    tags: ['Markdown', 'Islands', 'Submodels', 'Routing'],
+    tags: ['Markdown', 'Islands', 'Blocks', 'Routing'],
     hasRouting: true,
     livePreview: 'Spa',
   },

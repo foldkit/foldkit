@@ -5,19 +5,21 @@ import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
 import { products } from './data/products'
-import { Message, type Model, update } from './main'
+import { Message } from './message'
+import type { Model } from './model'
 import { Products } from './page'
-import { AppRoute } from './route'
+import { ApplicationRoute } from './route'
+import { update } from './update'
 
 const apple = { id: '1', name: 'Apple', price: 1.5 }
 const banana = { id: '2', name: 'Banana', price: 0.75 }
 
 const baseModel: Model = {
-  route: AppRoute.Products({ searchText: Option.none() }),
+  route: ApplicationRoute.Products({ searchText: Option.none() }),
   cart: [],
   deliveryInstructions: '',
   orderPlaced: false,
-  productsPage: Products.init(products),
+  productsPage: Products.init(products).model,
 }
 
 const urlOrThrow = (raw: string) =>

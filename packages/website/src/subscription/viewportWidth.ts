@@ -1,10 +1,10 @@
-import { Dom, Subscription } from 'foldkit'
+import { Dom } from 'foldkit'
 
+import { Application } from '../definition'
 import { Message } from '../message'
-import { type Model } from '../model'
 import { NARROW_VIEWPORT_QUERY } from '../viewport'
 
-export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+export const subscriptions = Application.subscriptions(entry => ({
   viewportWidthChanges: entry('ViewportWidthChanges', {
     messages: [Message.ChangedViewportWidth],
     handler: function* () {

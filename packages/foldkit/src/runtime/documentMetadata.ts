@@ -14,7 +14,7 @@ type HeadField = 'canonical' | 'ogUrl'
 
 type DocumentMetadataElements = Partial<Record<HeadField, OwnedElement>>
 
-type HeadElementDescriptor = Readonly<{
+type HeadElementBlock = Readonly<{
   field: HeadField
   tagName: 'link' | 'meta'
   identityAttribute: string
@@ -22,7 +22,7 @@ type HeadElementDescriptor = Readonly<{
   valueAttribute: string
 }>
 
-const CANONICAL_ELEMENT: HeadElementDescriptor = {
+const CANONICAL_ELEMENT: HeadElementBlock = {
   field: 'canonical',
   tagName: 'link',
   identityAttribute: 'rel',
@@ -30,7 +30,7 @@ const CANONICAL_ELEMENT: HeadElementDescriptor = {
   valueAttribute: 'href',
 }
 
-const OG_URL_ELEMENT: HeadElementDescriptor = {
+const OG_URL_ELEMENT: HeadElementBlock = {
   field: 'ogUrl',
   tagName: 'meta',
   identityAttribute: 'property',
@@ -101,38 +101,38 @@ const getOrCreateDocumentMetadataState = (): DocumentMetadataState => {
 
 const findOrCreateHeadElement = (
   metadataState: DocumentMetadataState,
-  descriptor: HeadElementDescriptor,
+  block: HeadElementBlock,
 ): HTMLElement => {
   const { elements } = metadataState
-  const owned = elements[descriptor.field]
+  const owned = elements[block.field]
   if (owned !== undefined && owned.element.parentNode === document.head) {
     return owned.element
   }
 
   const found = document.head.querySelector<HTMLElement>(
-    `${descriptor.tagName}[${descriptor.identityAttribute}="${descriptor.identityValue}"]`,
+    `${block.tagName}[${block.identityAttribute}="${block.identityValue}"]`,
   )
   if (found !== null) {
-    elements[descriptor.field] = {
+    elements[block.field] = {
       _tag: 'Found',
       element: found,
-      servedValue: found.getAttribute(descriptor.valueAttribute) ?? undefined,
+      servedValue: found.getAttribute(block.valueAttribute) ?? undefined,
     }
     return found
   }
 
   const created = document.head.appendChild(
-    document.createElement(descriptor.tagName),
+    document.createElement(block.tagName),
   )
-  elements[descriptor.field] = { _tag: 'Created', element: created }
+  elements[block.field] = { _tag: 'Created', element: created }
   return created
 }
 
 const restoreOwnedElement = (
   metadataState: DocumentMetadataState,
-  descriptor: HeadElementDescriptor,
+  block: HeadElementBlock,
 ): void => {
-  const owned = metadataState.elements[descriptor.field]
+  const owned = metadataState.elements[block.field]
 
   // NOTE: If another script removes a tracked element, an omitted field must
   // not recreate the element just to restore its earlier value.
@@ -145,7 +145,7 @@ const restoreOwnedElement = (
     return
   }
 
-  const { valueAttribute } = descriptor
+  const { valueAttribute } = block
 
   if (owned.servedValue === undefined) {
     owned.element.removeAttribute(valueAttribute)
@@ -159,26 +159,23 @@ const restoreOwnedElement = (
 
 const syncHeadElement = (
   metadataState: DocumentMetadataState,
-  descriptor: HeadElementDescriptor,
+  block: HeadElementBlock,
   value: string | undefined,
 ): void => {
   if (value === undefined) {
-    restoreOwnedElement(metadataState, descriptor)
-    delete metadataState.elements[descriptor.field]
+    restoreOwnedElement(metadataState, block)
+    delete metadataState.elements[block.field]
     return
   }
 
-  const element = findOrCreateHeadElement(metadataState, descriptor)
+  const element = findOrCreateHeadElement(metadataState, block)
 
-  if (
-    element.getAttribute(descriptor.identityAttribute) !==
-    descriptor.identityValue
-  ) {
-    element.setAttribute(descriptor.identityAttribute, descriptor.identityValue)
+  if (element.getAttribute(block.identityAttribute) !== block.identityValue) {
+    element.setAttribute(block.identityAttribute, block.identityValue)
   }
 
-  if (element.getAttribute(descriptor.valueAttribute) !== value) {
-    element.setAttribute(descriptor.valueAttribute, value)
+  if (element.getAttribute(block.valueAttribute) !== value) {
+    element.setAttribute(block.valueAttribute, value)
   }
 }
 

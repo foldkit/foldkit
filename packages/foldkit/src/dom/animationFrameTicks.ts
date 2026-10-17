@@ -11,7 +11,9 @@ import { Effect, Queue, Stream } from 'effect'
  *
  * @example
  * ```ts
- * const subscriptions = Subscription.make<Model, Message>()(entry => ({
+ * const App = Block.define('App')
+ * const app = App.define({ Model, Message })
+ * const subscriptions = app.subscriptions(entry => ({
  *   frame: entry(
  *     'AnimationFrameTicks',
  *     { isActive: Schema.Boolean },

@@ -109,15 +109,15 @@ describe('Application Layers', () => {
     vi.spyOn(ModelPreservationBridge, 'resolvePreservedModel').mockReturnValue(
       Effect.succeed(undefined),
     )
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { label: 'ready' } }),
       update: (model: Model) => ({ model }),
       view: (model, h) => h.div([], [model.label]),
       container,
     })
-    const first = Application.provide(element, Layer.empty)
-    const second = Application.provide(element, Layer.empty)
+    const first = element.provide(Layer.empty)
+    const second = element.provide(Layer.empty)
     const firstHandle = embed(first)
     let secondHandle: ReturnType<typeof embed> | undefined
 
@@ -162,15 +162,15 @@ describe('Application Layers', () => {
       events.push('second acquired')
       return { value: 'second' }
     })
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { label: 'ready' } }),
       update: (model: Model) => ({ model }),
       view: (model, h) => h.div([], [model.label]),
       container,
     })
-    const first = Application.provide(element, FirstLayer)
-    const second = Application.provide(element, SecondLayer)
+    const first = element.provide(FirstLayer)
+    const second = element.provide(SecondLayer)
     const firstHandle = embed(first)
 
     await awaitBodyText('ready')
@@ -201,7 +201,7 @@ describe('Application Layers', () => {
     }
   })
 
-  it('builds sequential handler Layers with later service providers', async () => {
+  it('binds each provide call to the current application variant', async () => {
     let valueBuilds = 0
     let derivedBuilds = 0
 
@@ -216,7 +216,7 @@ describe('Application Layers', () => {
         return { value: `${value}-derived` }
       }),
     )
-    const application = Application.make({
+    const application = Application.__makeFromConfig({
       Model,
       Flags,
       init: ({ initialLabel }) => ({
@@ -226,8 +226,15 @@ describe('Application Layers', () => {
       view: documentView,
       container,
     })
-    const withDerived = Application.provide(application, DerivedLayer)
-    const provided = Application.provide(withDerived, ValueLayer)
+    const withDerived = application.provide(DerivedLayer)
+    const provideValue = withDerived.provide
+    const provided = provideValue(ValueLayer)
+
+    expect(withDerived).not.toBe(application)
+    expect(provided).not.toBe(withDerived)
+    expect(valueBuilds).toBe(0)
+    expect(derivedBuilds).toBe(0)
+
     const handle = embed(provided, {
       flags: Effect.gen(function* () {
         const value = yield* ValueService
@@ -262,7 +269,7 @@ describe('Application Layers', () => {
           }),
       ),
     )
-    const application = Application.make({
+    const application = Application.__makeFromConfig({
       Model,
       Flags,
       init: ({ initialLabel }) => ({
@@ -272,7 +279,7 @@ describe('Application Layers', () => {
       view: documentView,
       container,
     })
-    const provided = Application.provide(application, ValueLayer)
+    const provided = application.provide(ValueLayer)
     const handle = embed(provided, {
       flags: Effect.map(ValueService, ({ value }) => ({
         initialLabel: value,
@@ -309,14 +316,14 @@ describe('Application Layers', () => {
           }),
       ),
     )
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       init: () => ({ model: { label: 'ready' } }),
       update: (model: Model) => ({ model }),
       view: (model, h) => h.div([], [model.label]),
       container,
     })
-    const provided = Application.provide(element, ValueLayer)
+    const provided = element.provide(ValueLayer)
     const fiber = Effect.runFork(provided.start())
 
     try {
@@ -347,7 +354,7 @@ describe('Application Layers', () => {
           }),
       ),
     )
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       Flags,
       flags: Effect.map(ValueService, ({ value }) => ({
@@ -361,10 +368,7 @@ describe('Application Layers', () => {
       view: (model, h) => h.div([], [model.label]),
       container,
     })
-    const provided = Application.provide(
-      Application.provide(element, ReadValueLayer),
-      ValueLayer,
-    )
+    const provided = element.provide(ReadValueLayer).provide(ValueLayer)
     const fiber = Effect.runFork(provided.start())
 
     try {
@@ -507,7 +511,7 @@ describe('Application Layers', () => {
           },
         }),
     )
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model: LifecycleModel,
       Flags,
       flags: Effect.map(ValueService, ({ value }) => ({
@@ -531,8 +535,7 @@ describe('Application Layers', () => {
       ChangePhaseLayer,
       TrackApplicationPhaseLayer,
     )
-    const provided = Application.provide(
-      element,
+    const provided = element.provide(
       Layer.provideMerge(HandlersLayer, ValueLayer),
     )
     const fiber = Effect.runFork(provided.start())
@@ -580,7 +583,7 @@ describe('Application Layers', () => {
           }),
       ),
     )
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       Flags,
       flags: Effect.gen(function* () {
@@ -596,7 +599,7 @@ describe('Application Layers', () => {
       view: (model, h) => h.div([], [model.label]),
       container,
     })
-    const provided = Application.provide(element, ValueLayer)
+    const provided = element.provide(ValueLayer)
     const fiber = Effect.runFork(provided.start({ label: 'restored' }))
 
     try {
@@ -620,7 +623,7 @@ describe('Application Layers', () => {
       buildCount += 1
       return { value: `build-${buildCount}` }
     })
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       Flags,
       flags: Effect.gen(function* () {
@@ -636,7 +639,7 @@ describe('Application Layers', () => {
       view: (model, h) => h.div([], [model.label]),
       container,
     })
-    const provided = Application.provide(element, ValueLayer)
+    const provided = element.provide(ValueLayer)
     const fiber = Effect.runFork(provided.start({ notALabel: 0 }))
 
     try {
@@ -657,7 +660,7 @@ describe('Application Layers', () => {
       ValueService,
       Effect.fail(new Error(LAYER_BUILD_ERROR)),
     )
-    const element = Application.makeElement({
+    const element = Application.__makeElementFromConfig({
       Model,
       Flags,
       flags: Effect.gen(function* () {
@@ -674,7 +677,7 @@ describe('Application Layers', () => {
       },
       container,
     })
-    const provided = Application.provide(element, FailingApplicationLayer)
+    const provided = element.provide(FailingApplicationLayer)
     const exit = await Effect.runPromiseExit(provided.start())
 
     expect(Exit.isFailure(exit)).toBe(true)
@@ -690,7 +693,7 @@ const checkApplicationLayerTypes = (): void => {
   const flagsNeedingService: Effect.Effect<Flags, never, ValueService> =
     Effect.map(ValueService, ({ value }) => ({ initialLabel: value }))
 
-  const flagsOnlyApplication = Application.make({
+  const flagsOnlyApplication = Application.__makeFromConfig({
     Model,
     Flags,
     init: ({ initialLabel }) => ({
@@ -700,8 +703,7 @@ const checkApplicationLayerTypes = (): void => {
     view: documentView,
     container,
   })
-  const flagsOnlyProvided = Application.provide(
-    flagsOnlyApplication,
+  const flagsOnlyProvided = flagsOnlyApplication.provide(
     Layer.succeed(ValueService, { value: 'provided' }),
   )
   run(flagsOnlyProvided, { flags: flagsNeedingService })
@@ -712,9 +714,8 @@ const checkApplicationLayerTypes = (): void => {
       value: `${value}-derived`,
     })),
   )
-  const withDerived = Application.provide(flagsOnlyApplication, DerivedLayer)
-  const withBoth = Application.provide(
-    withDerived,
+  const withDerived = flagsOnlyApplication.provide(DerivedLayer)
+  const withBoth = withDerived.provide(
     Layer.succeed(ValueService, { value: 'provided' }),
   )
   run(withBoth, {
@@ -725,8 +726,7 @@ const checkApplicationLayerTypes = (): void => {
     }),
   })
 
-  const withUnresolvedLaterDependency = Application.provide(
-    flagsOnlyProvided,
+  const withUnresolvedLaterDependency = flagsOnlyProvided.provide(
     Layer.effect(
       DerivedService,
       Effect.map(ValueService, ({ value }): ValueShape => ({
@@ -753,7 +753,7 @@ const checkApplicationLayerTypes = (): void => {
       onAcquireError: () => Message.ClickedReadValue(),
     }),
   }))
-  const managedApplication = Application.make({
+  const managedApplication = Application.__makeFromConfig({
     Model,
     Flags,
     init: ({ initialLabel }) => ({
@@ -764,8 +764,7 @@ const checkApplicationLayerTypes = (): void => {
     managedResources,
     container,
   })
-  const runnableManagedApplication = Application.provide(
-    managedApplication,
+  const runnableManagedApplication = managedApplication.provide(
     managedResources.engine.toLayer(
       Effect.succeed({
         acquire: () => Effect.succeed(1),
@@ -794,8 +793,8 @@ const checkApplicationLayerTypes = (): void => {
     container,
     resources: Layer.empty,
   }
-  // @ts-expect-error Application.make rejects removed configuration fields.
-  Application.make(staleResourcesConfig)
+  // @ts-expect-error Root completion rejects removed configuration fields.
+  Application.__makeFromConfig(staleResourcesConfig)
 
   const misspelledSubscriptionsConfig = {
     Model,
@@ -805,19 +804,19 @@ const checkApplicationLayerTypes = (): void => {
     container,
     subsriptions: {},
   }
-  // @ts-expect-error Application.makeElement rejects unknown configuration fields.
-  Application.makeElement(misspelledSubscriptionsConfig)
+  // @ts-expect-error ApplicationComposition.makeElement rejects unknown configuration fields.
+  Application.__makeElementFromConfig(misspelledSubscriptionsConfig)
 
-  Application.make({
+  Application.__makeFromConfig({
     Model,
     init: () => ({ model: Model.make({ label: 'ready' }) }),
-    // @ts-expect-error Application.make requires tagged Messages when update accepts a Message.
+    // @ts-expect-error ApplicationComposition.makeApplication requires tagged Messages when update accepts a Message.
     update: (model: Model, _message: number) => ({ model }),
     view: (model, h) => ({ title: '', body: h.div([], [model.label]) }),
     container,
   })
 
-  const element = Application.makeElement({
+  const element = Application.__makeElementFromConfig({
     Model,
     Flags,
     flags: flagsNeedingService,
@@ -829,12 +828,7 @@ const checkApplicationLayerTypes = (): void => {
 
   // @ts-expect-error ValueService has not been provided.
   run(element)
-  run(
-    Application.provide(
-      element,
-      Layer.succeed(ValueService, { value: 'provided' }),
-    ),
-  )
+  run(element.provide(Layer.succeed(ValueService, { value: 'provided' })))
 
   const pureRawApplication = makeApplication({
     Model,

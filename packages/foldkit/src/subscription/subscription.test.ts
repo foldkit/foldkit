@@ -12,6 +12,7 @@ import {
 } from 'effect'
 import { describe, expect, expectTypeOf, it } from 'vitest'
 
+import * as Command from '../command/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import { defineTaggedUnion } from '../schema/index.js'
 import {
@@ -760,6 +761,11 @@ describe('Layer-backed entries', () => {
   })
   type HandlerMessage = typeof HandlerMessage.Type
 
+  const ConstructionSubscriptionCommand = Command.define(
+    'ConstructionSubscriptionCommand',
+    { messages: [HandlerMessage.ObservedTick] },
+  )
+
   const contracted = make<ChildModel, HandlerMessage>()(entry => ({
     observed: entry('ObservedTicks', {
       messages: [HandlerMessage.ObservedTick],
@@ -819,6 +825,24 @@ describe('Layer-backed entries', () => {
       // @ts-expect-error toLayer accepts an Effect that constructs the handler.
       () => Stream.succeed(HandlerMessage.ObservedTick()),
     )
+    contracted.observed.toLayer(
+      // @ts-expect-error Command handlers are unavailable while constructing a Subscription handler.
+      Effect.gen(function* () {
+        yield* ConstructionSubscriptionCommand().effect
+        return () => Stream.succeed(HandlerMessage.ObservedTick())
+      }),
+    )
+    make<ChildModel, HandlerMessage>()(entry => ({
+      // @ts-expect-error The invalid attached handler cannot form a Subscription entry.
+      guarded: entry('AttachedConstructionSubscription', {
+        messages: [HandlerMessage.ObservedTick],
+        // @ts-expect-error Attached Subscription handlers have the same construction requirement guard.
+        handler: function* () {
+          yield* ConstructionSubscriptionCommand().effect
+          return () => Stream.succeed(HandlerMessage.ObservedTick())
+        },
+      }),
+    }))
 
     contracted.observed.toLayer(
       // @ts-expect-error An undeclared Message cannot be emitted by this Subscription.

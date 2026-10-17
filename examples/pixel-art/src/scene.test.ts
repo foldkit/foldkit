@@ -13,6 +13,8 @@ import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
+import { AcquireResources, CloseDialog, ShowDialog } from '@foldkit/ui/dialog'
+import { FocusOption } from '@foldkit/ui/radioGroup'
 
 import { ExportPng, SaveCanvas } from './command'
 import { createEmptyGrid } from './grid'
@@ -22,12 +24,12 @@ import { update } from './update'
 import { view } from './view'
 
 const resolveFocusOption = Command.resolve(
-  RadioGroup.FocusOption,
+  FocusOption,
   RadioGroup.Message.CompletedFocusOption(),
 )
 
 const resolveDialogResources = Mount.resolve(
-  Dialog.AcquireResources,
+  AcquireResources,
   Dialog.Message.SucceededAcquireResources(),
 )
 
@@ -83,7 +85,7 @@ describe('export workflow', () => {
         ExportPng,
         Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
-      Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+      Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
       resolveDialogResources,
       expect(text('Export Failed')).toExist(),
       expect(text('Canvas 2D context not available')).toExist(),
@@ -100,15 +102,12 @@ describe('export workflow', () => {
         ExportPng,
         Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
-      Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+      Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
       resolveDialogResources,
       expect(text('Export Failed')).toExist(),
       click(role('button', { name: 'Dismiss' })),
-      Command.resolve(
-        Dialog.CloseDialog,
-        Dialog.Message.CompletedCloseDialog(),
-      ),
-      Mount.expectEnded(Dialog.AcquireResources),
+      Command.resolve(CloseDialog, Dialog.Message.CompletedCloseDialog()),
+      Mount.expectEnded(AcquireResources),
       expect(text('Export Failed')).toBeAbsent(),
     )
   })
@@ -216,7 +215,7 @@ describe('grid size change', () => {
       given(createPaintedModel()),
       click(role('radio', { name: '8' })),
       resolveFocusOption,
-      Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+      Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
       resolveDialogResources,
       expect(text('Change to 8\u00d78?')).toExist(),
       expect(
@@ -228,51 +227,38 @@ describe('grid size change', () => {
   })
 
   test('confirming grid size change closes dialog and saves canvas', () => {
-    const modelWithPendingResize: Model = modifyFields(createTestModel(), {
-      maybePendingGridSize: () => Option.some(8),
-      gridSizeConfirmDialog: () =>
-        Dialog.boot({
-          id: 'grid-size-confirm-dialog',
-        }).model,
+    const paintedModel = modifyFields(createPaintedModel(), {
       undoStack: () => [createEmptyGrid(4)],
     })
 
     scene(
       { update, view },
-      given(modelWithPendingResize),
+      given(paintedModel),
+      click(role('radio', { name: '8' })),
+      resolveFocusOption,
+      Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
       resolveDialogResources,
       expect(text('Change to 8\u00d78?')).toExist(),
       click(role('button', { name: 'Clear and Resize' })),
-      Command.resolve(
-        Dialog.CloseDialog,
-        Dialog.Message.CompletedCloseDialog(),
-      ),
-      Mount.expectEnded(Dialog.AcquireResources),
+      Command.resolve(CloseDialog, Dialog.Message.CompletedCloseDialog()),
+      Mount.expectEnded(AcquireResources),
       Command.resolve(SaveCanvas, Message.CompletedSaveCanvas()),
       expect(text('Change to 8\u00d78?')).toBeAbsent(),
     )
   })
 
   test('cancelling grid size change keeps current size', () => {
-    const modelWithPendingResize: Model = modifyFields(createTestModel(), {
-      maybePendingGridSize: () => Option.some(8),
-      gridSizeConfirmDialog: () =>
-        Dialog.boot({
-          id: 'grid-size-confirm-dialog',
-        }).model,
-    })
-
     scene(
       { update, view },
-      given(modelWithPendingResize),
+      given(createPaintedModel()),
+      click(role('radio', { name: '8' })),
+      resolveFocusOption,
+      Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
       resolveDialogResources,
       expect(text('Change to 8\u00d78?')).toExist(),
       click(role('button', { name: 'Cancel' })),
-      Command.resolve(
-        Dialog.CloseDialog,
-        Dialog.Message.CompletedCloseDialog(),
-      ),
-      Mount.expectEnded(Dialog.AcquireResources),
+      Command.resolve(CloseDialog, Dialog.Message.CompletedCloseDialog()),
+      Mount.expectEnded(AcquireResources),
       expect(text('Change to 8\u00d78?')).toBeAbsent(),
     )
   })

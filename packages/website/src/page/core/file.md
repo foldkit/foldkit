@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `File` module brings browser file APIs into the Foldkit architecture. It opens the native picker through Commands, reads contents through Effects, and exposes synchronous metadata helpers. Inline inputs and drop zones use the typed file handlers in `foldkit/html` or the FileDrop Submodel.
+The `File` module brings browser file APIs into the Foldkit architecture. It opens the native picker through Commands, reads contents through Effects, and exposes synchronous metadata helpers. Inline inputs and drop zones use the typed file handlers in `foldkit/html` or the FileDrop Block.
 
 `File.File` is both a direct alias for the browser's native `File` type and a Schema that accepts native File instances. A Model can hold one with `Schema.Option(File.File)`. The Schema treats the value as an opaque browser object; it validates the instance but does not turn file contents into serializable Model data.
 
@@ -30,7 +30,7 @@ Cancellation is a normal result, not an Effect failure. `File.select` returns `O
 
 ## Components
 
-Use [FileDrop](/ui/file-drop) for a headless drop zone with a hidden `<input type="file">`. Its Submodel resets the input so the same file can be selected twice, prevents the browser's default drop behavior, and tracks real drag entry and exit.
+Use [FileDrop](/ui/file-drop) for a headless drop zone with a hidden `<input type="file">`. Its Block resets the input so the same file can be selected twice, prevents the browser's default drop behavior, and tracks real drag entry and exit.
 
 FileDrop emits a `ReceivedFiles` OutMessage with a guaranteed non-empty file list. It emits `RejectedNonFiles` when a drop or change contains no files. Fold both variants in the parent update. When FileDrop does not fit the interaction, build directly with the `OnFileChange` and `OnDropFiles` attributes from `foldkit/html`.
 

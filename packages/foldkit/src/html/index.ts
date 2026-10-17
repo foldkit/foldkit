@@ -13,6 +13,21 @@ import {
 } from 'effect'
 
 import {
+  type DefinitionIdentity,
+  InvocationIdentityTypeId,
+  InvocationNameTypeId,
+  type ViewScope,
+  ViewScopeTypeId,
+  identityOf,
+  invocationIdentity,
+  invocationName,
+  ownerOfInvocation,
+} from '../block/identity.js'
+import {
+  type ActiveInstance,
+  CurrentInstance,
+} from '../block/instanceContext.js'
+import {
   restoreUncontrolledContent,
   synchronizeControlledDefault,
 } from '../controlledDomState.js'
@@ -56,6 +71,12 @@ import {
 } from '../snabbdom/index.js'
 import { tagNameFromSelector } from '../tagName.js'
 import { VNode } from '../vdom.js'
+import {
+  type AnyBlockView,
+  type BlockConfig,
+  type ViewMountRequirementsOf,
+  block,
+} from './block.js'
 import { type ChildAttribute, isChildAttribute } from './childAttribute.js'
 import {
   checkScheduledLeave,
@@ -70,6 +91,8 @@ import {
   type MountRenderOwner,
   type UnmountResolver,
   clearRuntime,
+  currentEffectPath,
+  currentViewIdentity,
   requireBoundaryMappers,
   requireDispatch,
   requireMountDispatchResolver,
@@ -77,12 +100,6 @@ import {
   requireUnmountResolver,
   setRuntime,
 } from './runtimeSingleton.js'
-import {
-  type AnySubmodelView,
-  type SubmodelConfig,
-  type ViewMountRequirementsOf,
-  submodel,
-} from './submodel.js'
 
 export { createKeyedLazy, createLazy } from './lazy.js'
 export {
@@ -92,12 +109,16 @@ export {
 export type { BoundaryRegistry } from './boundary.js'
 export { childAttributes } from './childAttribute.js'
 export type { ChildAttribute } from './childAttribute.js'
-export { defineView } from './submodel.js'
+export { defineView } from './block.js'
 export type {
-  AnySubmodelView,
-  SubmodelConfig,
-  SubmodelView,
-} from './submodel.js'
+  AnyAuthoredView,
+  AnyDocumentView,
+  AnyBlockView,
+  DocumentView,
+  BlockConfig,
+  BoundBlockConfig,
+  BlockView,
+} from './block.js'
 
 /** Pushes a dispatch and runtime context frame for the duration of a render.
  *  The runtime calls this immediately before invoking a user `view` and
@@ -520,6 +541,7 @@ type OnMountState = {
   lifecycle: OnMountLifecycle
   notifyEnded: () => void
   owner: MountRenderOwner
+  instance?: ActiveInstance
 }
 
 const onMountStates = new WeakMap<Element, OnMountState>()
@@ -559,12 +581,16 @@ export const FOLDKIT_MOUNT_KEY = 'foldkitMount' as const
 /** Marker stamped on `VNodeData[FOLDKIT_MOUNT_KEY]` for any element with an
  *  `OnMount` attribute. Carries the Mount Definition's name (and args) so test
  *  introspection can identify pending mounts. When the mount lives inside a
- *  Submodel boundary, it also carries that boundary's `toParentMessage` chain
+ *  Block boundary, it also carries that boundary's `toParentMessage` chain
  *  (innermost first), snapshotted at render time, so `Scene.Mount.resolve` can
  *  replay the lift the result travels through in production. Production keeps
  *  the Mount bound to the dispatcher owned by its acquiring render, then
  *  resolves that owner's latest chain when the Mount emits. */
 export type FoldkitMountMarker = Readonly<{
+  /** @internal Preserves the originating Mount independently of its path. */
+  [InvocationIdentityTypeId]?: DefinitionIdentity | undefined
+  /** @internal Preserves the originating Mount's declaration name. */
+  [InvocationNameTypeId]?: string | undefined
   name: string
   args?: Record<string, unknown>
   messageMappers?: ReadonlyArray<(message: unknown) => unknown>
@@ -573,9 +599,9 @@ export type FoldkitMountMarker = Readonly<{
 
 /** Union of all HTML, SVG, and MathML attributes a virtual DOM element can carry.
  *
- *  When a Submodel publishes attribute groups to a consumer's `toView`
+ *  When a Block publishes attribute groups to a consumer's `toView`
  *  slot, those attributes are wrapped via {@link childAttributes} into
- *  {@link ChildAttribute}, a distinct type that carries the Submodel's
+ *  {@link ChildAttribute}, a distinct type that carries the Block's
  *  own dispatcher. Element constructors accept the union
  *  `ReadonlyArray<Attribute<Message> | ChildAttribute>`, so consumers
  *  can spread published bundles directly into their own attribute
@@ -1308,7 +1334,19 @@ export { Prop, OnCustomEvent }
 // BUILD CONTEXT: per-VNode bag of mutable VNode data plus the dispatchers this
 // VNode's events and Mount results route through. Allocated once per unique
 // dispatcher in `buildVNodeData`, typically once total (a second time when
-// ChildAttribute items route through a child Submodel's own dispatch).
+// ChildAttribute items route through a child Block's own dispatch).
+/** @internal Mount capabilities supplied by registered child bindings. */
+export type ChildAttributeRequirements<Requirements> =
+  Requirements extends Readonly<{
+    __blockBindingRequirement: Readonly<{
+      block: Readonly<{
+        mountRequirements: () => infer MountRequirements
+      }>
+    }>
+  }>
+    ? MountRequirements
+    : Requirements
+
 type BuildContext = Readonly<{
   data: VNodeData
   getPostpatchProps: () => Array<Readonly<{ propName: string; value: unknown }>>
@@ -2496,8 +2534,10 @@ const attributeHandlers: AttributeHandlers = {
         }
       },
     }),
-  OnMount: ({ action }, ctx: BuildContext) => {
+  OnMount: ({ action }, ctx) => {
     const capturedContext = ctx.getCapturedContext()
+    const instance = Context.get(capturedContext, CurrentInstance)?.node
+    const startBarrier = instance?.startBarrier
     const maybeTracker = Context.getOption(capturedContext, MountTracker)
     const maybeMountRuntime = Context.getOption(capturedContext, MountRuntime)
     const resolveMountDispatch =
@@ -2511,6 +2551,8 @@ const attributeHandlers: AttributeHandlers = {
     const registration = action[MountRegistrationTypeId]
     const markerWithArgs: FoldkitMountMarker = {
       name: action.name,
+      [InvocationIdentityTypeId]: invocationIdentity(action),
+      [InvocationNameTypeId]: invocationName(action),
       ...(action.args !== undefined && { args: action.args }),
       ...(registration !== undefined && {
         [MountRegistrationTypeId]: registration,
@@ -2535,8 +2577,9 @@ const attributeHandlers: AttributeHandlers = {
         if (vnode.elm instanceof Element) {
           const state = onMountStates.get(vnode.elm)
           if (
-            state?.owner === 'Replay' &&
-            resolveMountDispatch.owner === 'Live'
+            state !== undefined &&
+            resolveMountDispatch.owner === 'Live' &&
+            (state.owner === 'Replay' || state.instance !== instance)
           ) {
             releaseMount(state)
             acquireMount(vnode.elm, state.fiber)
@@ -2574,22 +2617,33 @@ const attributeHandlers: AttributeHandlers = {
     ): void {
       const lifecycle: OnMountLifecycle = {
         isActive: true,
-        isStarted: true,
+        isStarted: startBarrier === undefined,
       }
       const mountDispatch = resolveMountDispatch.resolve()
       const viewStateChanges = Option.match(maybeMountRuntime, {
         onNone: () => liveViewStateChanges,
         onSome: mountRuntime => mountRuntime.captureViewStateChanges(),
       })
-      notifyStarted()
-      const runMount = Effect.suspend(() => {
-        if (!lifecycle.isActive) {
+      if (lifecycle.isStarted) {
+        notifyStarted()
+      }
+      const startMount = Effect.suspend(() => {
+        if (
+          !lifecycle.isActive ||
+          (startBarrier !== undefined && instance?.isActive !== true)
+        ) {
           return Effect.void
+        }
+        if (!lifecycle.isStarted) {
+          lifecycle.isStarted = true
+          notifyStarted()
         }
         return Stream.runForEach(action.f(element, viewStateChanges), message =>
           Effect.sync(() => mountDispatch(message)),
         )
-      }).pipe(
+      })
+      const runMount = (startBarrier ?? Effect.void).pipe(
+        Effect.andThen(startMount),
         Effect.catchCause(cause =>
           Effect.sync(() => {
             console.error(`[OnMount ${action.name}] unhandled failure`, cause)
@@ -2607,18 +2661,25 @@ const attributeHandlers: AttributeHandlers = {
       if (Option.isSome(maybeMountRuntime)) {
         maybeMountRuntime.value.registerFiber(fiber)
       }
+      if (instance !== undefined) {
+        instance.mounts.add(fiber)
+        fiber.addObserver(() => {
+          instance.mounts.delete(fiber)
+        })
+      }
       onMountStates.set(element, {
         fiber,
         lifecycle,
         notifyEnded,
         owner: resolveMountDispatch.owner,
+        ...(instance === undefined ? {} : { instance }),
       })
     }
   },
   OnUnmount: ({ message }, ctx: BuildContext) => {
     // NOTE: resolve the boundary wrapping chain eagerly, while the boundary
     // is still live this render. The destroy hook fires during the patch
-    // that removes the element, after the Submodel's own destroy hook has
+    // that removes the element, after the Block's own destroy hook has
     // deregistered the wrap, so a fire-time lookup would throw; the
     // precomputed thunk sidesteps that teardown race.
     const dispatchUnmount = ctx.resolveUnmount(message)
@@ -2773,7 +2834,7 @@ const attachControlledContentOwnershipHook = (data: VNodeData): void => {
 const buildVNodeData = <Message, AllowedMountRequirements>(
   attributes: ReadonlyArray<
     | Attribute<Message, AllowedMountRequirements>
-    | ChildAttribute<AllowedMountRequirements>
+    | ChildAttribute<ChildAttributeRequirements<AllowedMountRequirements>>
   >,
 ): VNodeData => {
   const data: VNodeData = { [vnodeDataMaskKey]: 0 }
@@ -2783,7 +2844,7 @@ const buildVNodeData = <Message, AllowedMountRequirements>(
 
   // NOTE: most attributes route through the current frame's dispatch.
   // ChildAttribute items carry a different dispatcher (captured by
-  // `childAttributes` in a Submodel's own boundary), so they need their own
+  // `childAttributes` in a Block's own boundary), so they need their own
   // BuildContext closed over that dispatch. The handler record itself is
   // module-level and shared. The main ctx is built lazily. Static-only
   // attribute arrays (Class, Id, etc. with no event handlers) skip
@@ -2806,7 +2867,9 @@ const buildVNodeData = <Message, AllowedMountRequirements>(
       if (
         ctx === undefined ||
         (item.resolveMountDispatch !== undefined &&
-          ctx.resolveMountDispatch !== item.resolveMountDispatch)
+          ctx.resolveMountDispatch !== item.resolveMountDispatch) ||
+        (item.mountContext !== undefined &&
+          ctx.getCapturedContext() !== item.mountContext)
       ) {
         ctx = {
           data,
@@ -2817,7 +2880,10 @@ const buildVNodeData = <Message, AllowedMountRequirements>(
           ...(item.resolveMountDispatch !== undefined && {
             resolveMountDispatch: item.resolveMountDispatch,
           }),
-          getCapturedContext: capturedContextOrEmpty,
+          getCapturedContext:
+            item.mountContext === undefined
+              ? capturedContextOrEmpty
+              : () => item.mountContext!,
         }
         boundaryCtxByDispatch.set(item.dispatch, ctx)
       }
@@ -3230,7 +3296,7 @@ const createElement = <Message, AllowedMountRequirements>(
   tagName: string,
   attributes: ReadonlyArray<
     | Attribute<Message, AllowedMountRequirements>
-    | ChildAttribute<AllowedMountRequirements>
+    | ChildAttribute<ChildAttributeRequirements<AllowedMountRequirements>>
   > = [],
   children: ReadonlyArray<Child> = [],
 ): Html => buildElement(tagName, buildVNodeData(attributes), children)
@@ -3241,7 +3307,7 @@ const element =
   (
     attributes: ReadonlyArray<
       | Attribute<Message, AllowedMountRequirements>
-      | ChildAttribute<AllowedMountRequirements>
+      | ChildAttribute<ChildAttributeRequirements<AllowedMountRequirements>>
     > = [],
     children: ReadonlyArray<Child> = [],
   ): Html =>
@@ -3253,7 +3319,7 @@ export const customElement =
   (
     attributes: ReadonlyArray<
       | Attribute<Message, AllowedMountRequirements>
-      | ChildAttribute<AllowedMountRequirements>
+      | ChildAttribute<ChildAttributeRequirements<AllowedMountRequirements>>
     > = [],
     children: ReadonlyArray<Child> = [],
   ): Html =>
@@ -3265,7 +3331,7 @@ const voidElement =
   (
     attributes: ReadonlyArray<
       | Attribute<Message, AllowedMountRequirements>
-      | ChildAttribute<AllowedMountRequirements>
+      | ChildAttribute<ChildAttributeRequirements<AllowedMountRequirements>>
     > = [],
   ): Html =>
     createElement(tagName, attributes, [])
@@ -3280,7 +3346,7 @@ const keyed =
     key: PropertyKey,
     attributes: ReadonlyArray<
       | Attribute<Message, AllowedMountRequirements>
-      | ChildAttribute<AllowedMountRequirements>
+      | ChildAttribute<ChildAttributeRequirements<AllowedMountRequirements>>
     > = [],
     children: ReadonlyArray<Child> = [],
   ): Html => {
@@ -3292,7 +3358,7 @@ const keyed =
 type ElementFunction<Message, AllowedMountRequirements> = (
   attributes: ReadonlyArray<
     | Attribute<Message, AllowedMountRequirements>
-    | ChildAttribute<AllowedMountRequirements>
+    | ChildAttribute<ChildAttributeRequirements<AllowedMountRequirements>>
   >,
   children?: ReadonlyArray<Child>,
 ) => Html
@@ -3300,7 +3366,7 @@ type ElementFunction<Message, AllowedMountRequirements> = (
 type VoidElementFunction<Message, AllowedMountRequirements> = (
   attributes: ReadonlyArray<
     | Attribute<Message, AllowedMountRequirements>
-    | ChildAttribute<AllowedMountRequirements>
+    | ChildAttribute<ChildAttributeRequirements<AllowedMountRequirements>>
   >,
 ) => Html
 
@@ -3318,7 +3384,7 @@ export type TextareaAttribute<
 type TextValueElementFunction<Message, AllowedMountRequirements> = (
   attributes: ReadonlyArray<
     | TextareaAttribute<Message, AllowedMountRequirements>
-    | ChildAttribute<AllowedMountRequirements>
+    | ChildAttribute<ChildAttributeRequirements<AllowedMountRequirements>>
   >,
 ) => Html
 
@@ -3326,7 +3392,7 @@ type KeyedElementFunction<Message, AllowedMountRequirements> = (
   key: PropertyKey,
   attributes?: ReadonlyArray<
     | Attribute<Message, AllowedMountRequirements>
-    | ChildAttribute<AllowedMountRequirements>
+    | ChildAttribute<ChildAttributeRequirements<AllowedMountRequirements>>
   >,
   children?: ReadonlyArray<Child>,
 ) => Html
@@ -3335,7 +3401,7 @@ type KeyedTextValueElementFunction<Message, AllowedMountRequirements> = (
   key: PropertyKey,
   attributes?: ReadonlyArray<
     | TextareaAttribute<Message, AllowedMountRequirements>
-    | ChildAttribute<AllowedMountRequirements>
+    | ChildAttribute<ChildAttributeRequirements<AllowedMountRequirements>>
   >,
 ) => Html
 
@@ -5533,7 +5599,34 @@ const htmlAttributes = <Message, AllowedMountRequirements>(): HtmlAttributes<
   RefY: (value: string) => RefY({ value }),
   Orient: (value: string) => Orient({ value }),
   PreserveAspectRatio: (value: string) => PreserveAspectRatio({ value }),
-  OnMount: action => ({ _tag: 'OnMount', action }),
+  OnMount: action => {
+    const path = currentEffectPath()
+    const owned = ownerOfInvocation(action)
+    const viewIdentity = currentViewIdentity()
+    if (
+      owned !== undefined &&
+      viewIdentity !== undefined &&
+      owned.owner !== viewIdentity.owner
+    ) {
+      throw new Error(
+        `[foldkit] Mount "${action.name}" belongs to a different Block. Render it through that Block's binding.`,
+      )
+    }
+    if (
+      owned !== undefined &&
+      viewIdentity !== undefined &&
+      !viewIdentity.mounts.some(mount => identityOf(mount) === owned.identity)
+    ) {
+      throw new Error(
+        `[foldkit] Mount "${action.name}" is not registered in this view's Mounts.`,
+      )
+    }
+    const name =
+      owned === undefined || Array.isReadonlyArrayEmpty(path)
+        ? action.name
+        : `${path.join('/')}/${action.name.slice(owned.owner.id.length + 1)}`
+    return { _tag: 'OnMount', action: { ...action, name } }
+  },
   /**
    * Dispatches `message` when this element is removed from the DOM by a
    * structural patch (a key change, a parent re-render that drops it, route
@@ -5547,8 +5640,8 @@ const htmlAttributes = <Message, AllowedMountRequirements>(): HtmlAttributes<
    * the close Command that would release the scroll lock and focus trap never
    * runs. An `OnUnmount` Message lets `update` release those resources.
    *
-   * Works across Submodel boundaries. The destroy hook fires during the patch
-   * that removes the element, after the Submodel's own teardown has
+   * Works across Block boundaries. The destroy hook fires during the patch
+   * that removes the element, after the Block's own teardown has
    * deregistered its boundary wrap, so the wrapping chain is resolved eagerly
    * at render time into a dispatch that still reaches the parent.
    *
@@ -5588,33 +5681,73 @@ type MountRequirementsUniverse<AllowedMountRequirements> = Readonly<{
   [allowedMountRequirements]: (requirements: AllowedMountRequirements) => void
 }>
 
-type CheckedSubmodelConfig<
-  View extends AnySubmodelView,
+type AnyBoundBlockConfig = Readonly<{
+  [ViewScopeTypeId]: ViewScope &
+    Readonly<{
+      __blockConfigEvidence: Readonly<{
+        config: object
+        parentMessage: unknown
+        mountRequirements: unknown
+      }>
+    }>
+}>
+
+type BoundConfigEvidenceOf<Config extends AnyBoundBlockConfig> =
+  Config[typeof ViewScopeTypeId]['__blockConfigEvidence']['config']
+
+type BoundParentMessageOf<Config extends AnyBoundBlockConfig> =
+  Config[typeof ViewScopeTypeId]['__blockConfigEvidence']['parentMessage']
+
+type BoundMountRequirementsOf<Config extends AnyBoundBlockConfig> =
+  Config[typeof ViewScopeTypeId]['__blockConfigEvidence']['mountRequirements']
+
+type IsAnyBoundParentMessage<Config extends AnyBoundBlockConfig> = 0 extends 1 &
+  BoundParentMessageOf<Config>
+  ? true
+  : false
+
+type CheckedBlockConfig<
+  Config extends AnyBoundBlockConfig,
   ParentMessage,
   AllowedMountRequirements,
-> = SubmodelConfig<View, ParentMessage> &
-  ([Exclude<ViewMountRequirementsOf<View>, AllowedMountRequirements>] extends [
-    never,
-  ]
+> = Config &
+  (Config extends BoundConfigEvidenceOf<Config>
     ? unknown
     : Readonly<{
-        'Submodel view requires Mounts that are not registered by this application': never
+        'Block render config must preserve its bound view, Model, Message mapper, and viewInputs': never
+      }>) &
+  (IsAnyBoundParentMessage<Config> extends true
+    ? Readonly<{
+        'Block binding cannot erase the parent Message with any': never
+      }>
+    : [BoundParentMessageOf<Config>] extends [ParentMessage]
+      ? unknown
+      : Readonly<{
+          'Block binding must use the parent Message': never
+        }>) &
+  ([
+    Exclude<BoundMountRequirementsOf<Config>, AllowedMountRequirements>,
+  ] extends [never]
+    ? unknown
+    : Readonly<{
+        'Block view requires Mounts that are not registered by this application': never
       }>)
 
 /**
  * The typed Html builder a view builds DOM with: all HTML, SVG, and MathML
  * element constructors, attribute constructors, a `keyed` helper for keyed
- * elements, `empty` for rendering nothing, and `submodel` for embedding a
- * child Submodel.
+ * elements, `empty` for rendering nothing, and `block` for embedding a
+ * child Block.
  *
  * A builder cannot be constructed by application code. The runtime supplies
  * it to each view alongside the model, typed by the Message universe of the
  * frame that view renders in: the app's Message for the root view, the
- * Submodel's own Message inside a `Submodel.defineView`. Used in the frame
- * that supplied it, a handler built with it carries exactly the Messages that
- * frame's dispatcher can route, so a Message from another universe (the
- * classic case: a shared helper building an app-level Message inside a
- * Submodel) is a compile error at the handler call site.
+ * Block's own Message inside a view authored through its Composition's
+ * `view` method. Used in the frame that supplied it, a handler built with it
+ * carries exactly the Messages that frame's dispatcher can route, so a Message
+ * from another universe (the classic case: a shared helper building an
+ * app-level Message inside a Block) is a compile error at the handler call
+ * site.
  *
  * The type scopes where a builder is obtained, not where it is used. Carrying
  * one into another frame, by storing it or handing the builder itself to a
@@ -5638,8 +5771,8 @@ export type HtmlBuilder<
   Readonly<{
     empty: null
     keyed: KeyedFunction<Message, AllowedMountRequirements>
-    submodel: <View extends AnySubmodelView>(
-      config: CheckedSubmodelConfig<View, Message, AllowedMountRequirements>,
+    block: <const Config extends AnyBoundBlockConfig>(
+      config: CheckedBlockConfig<Config, Message, AllowedMountRequirements>,
     ) => Html
   }>
 
@@ -5651,9 +5784,14 @@ const buildHtmlFactory = <Message, AllowedMountRequirements>(): Omit<
   ...htmlAttributes<Message, AllowedMountRequirements>(),
   empty: null,
   keyed: keyed<Message, AllowedMountRequirements>(),
-  submodel: <View extends AnySubmodelView>(
-    config: CheckedSubmodelConfig<View, Message, AllowedMountRequirements>,
-  ) => submodel(config, cachedHtmlBuilder),
+  block: <const Config extends AnyBoundBlockConfig>(
+    config: CheckedBlockConfig<Config, Message, AllowedMountRequirements>,
+  ) =>
+    block(
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      config as unknown as BlockConfig<AnyBlockView, unknown>,
+      cachedHtmlBuilder,
+    ),
 })
 
 // NOTE: the Message type parameter is erased at runtime and the element and
@@ -5671,19 +5809,40 @@ const cachedHtmlBuilder: HtmlBuilder<unknown, AnyMountHandler> =
     AnyMountHandler
   >
 
+/** @internal Allows isolated renderer fixtures to supply native boundary configurations. */
+export type NativeHtmlBuilder<
+  Message,
+  AllowedMountRequirements = never,
+> = HtmlBuilder<Message, AllowedMountRequirements> &
+  Readonly<{
+    block: <View extends AnyBlockView>(
+      config: BlockConfig<View, Message> &
+        ([
+          Exclude<ViewMountRequirementsOf<View>, AllowedMountRequirements>,
+        ] extends [never]
+          ? unknown
+          : Readonly<{
+              'Block view requires Mounts that are not registered by this application': never
+            }>),
+    ) => Html
+  }>
+
 /** @internal Returns the process-wide builder singleton retyped to a frame's
  *  Message. Only the runtime, the Scene test harness, and the framework's own
  *  tests call this, each immediately before invoking a view under the frame
- *  that Message belongs to. `h.submodel` does not: it receives the singleton
- *  as a parameter, which is what keeps `index.ts` and `submodel.ts` free of a
+ *  that Message belongs to. `h.block` does not: it receives the singleton
+ *  as a parameter, which is what keeps `index.ts` and `block.ts` free of a
  *  runtime import cycle. Application code receives builders exclusively as
  *  view parameters. */
 export const __htmlBuilder = <
   Message,
   AllowedMountRequirements = never,
->(): HtmlBuilder<Message, AllowedMountRequirements> =>
+>(): NativeHtmlBuilder<Message, AllowedMountRequirements> =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  cachedHtmlBuilder as unknown as HtmlBuilder<Message, AllowedMountRequirements>
+  cachedHtmlBuilder as unknown as NativeHtmlBuilder<
+    Message,
+    AllowedMountRequirements
+  >
 
 /**
  * Builder whose Message universe is empty. Its Message type is `never`, so

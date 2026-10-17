@@ -1,19 +1,19 @@
 // Pseudocode walkthrough using the same Model, init, Message, and update
 // as the basic tabs; only the view config changes to set orientation and
 // use flex + flex-col for layout.
-import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
 import { Tabs } from '@foldkit/ui'
-
-const Message = defineMessageUnion({
-  GotTabsMessage: { message: Tabs.Message },
-})
+import type { RenderInfo as TabsRenderInfo } from '@foldkit/ui/tabs'
 
 const Framework = Schema.Literals(['Foldkit', 'React', 'Elm'])
 type Framework = typeof Framework.Type
 
 const FrameworkTabs = Tabs.create<Framework>()
+
+const Message = defineMessageUnion({
+  GotTabsMessage: { message: FrameworkTabs.Message },
+})
 const frameworks: ReadonlyArray<Framework> = ['Foldkit', 'React', 'Elm']
 
 const descriptions: Record<Framework, string> = {
@@ -22,14 +22,15 @@ const descriptions: Record<Framework, string> = {
   Elm: 'The original MVU architecture.',
 }
 
+// The parent Composition and child Binding below come from the basic walkthrough.
 // Inside your view function, set orientation to 'Vertical' and use flex +
 // flex-col for layout:
-const view = (model: Model, h: HtmlBuilder<Message>) => {
+const view = TabsExampleComposition.makeView((model, h) => {
   const tabsView = ({
     tablist,
     tabs,
     activeIndex,
-  }: Tabs.RenderInfo<Framework>) =>
+  }: TabsRenderInfo<Framework>) =>
     h.div(
       [h.Class('flex')],
       [
@@ -58,17 +59,17 @@ const view = (model: Model, h: HtmlBuilder<Message>) => {
       ],
     )
 
-  return h.submodel({
-    slotId: 'framework-tabs',
-    model: model.tabs,
-    view: FrameworkTabs.view,
-    viewInputs: {
-      tabs: frameworks,
-      selectedValue: model.activeFramework,
-      ariaLabel: 'Framework comparison',
-      orientation: 'Vertical',
-      toView: tabsView,
-    },
-    toParentMessage: message => Message.GotTabsMessage({ message }),
-  })
-}
+  return h.block(
+    TabsBinding.embedView({
+      slotId: 'framework-tabs',
+      model: model.tabs,
+      viewInputs: {
+        tabs: frameworks,
+        selectedValue: model.activeFramework,
+        ariaLabel: 'Framework comparison',
+        orientation: 'Vertical',
+        toView: tabsView,
+      },
+    }),
+  )
+})

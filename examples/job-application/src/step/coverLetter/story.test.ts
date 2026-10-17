@@ -1,7 +1,7 @@
 import { given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
-import { Message, init, update } from './coverLetter'
+import { Message, init, update } from './block'
 
 describe('coverLetter', () => {
   test('UpdatedContent replaces the letter text', () => {

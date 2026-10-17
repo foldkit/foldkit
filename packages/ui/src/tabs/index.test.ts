@@ -1,7 +1,7 @@
 import { Array, Option, pipe } from 'effect'
-import { Scene, Story } from 'foldkit'
-import type { HtmlBuilder } from 'foldkit/html'
+import { Block, Scene, Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
+import type * as Update from 'foldkit/update'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
@@ -9,9 +9,9 @@ import { describe, it } from '@effect/vitest'
 import {
   FocusTab,
   Message,
-  type Model,
+  Model,
   OutMessage,
-  create,
+  block,
   findFirstEnabledIndex,
   init,
   keyToIndex,
@@ -26,59 +26,81 @@ const disabledAt =
   (index: number) =>
     indices.includes(index)
 
-const TestTabs = create<string>()
+const TabsScene = Block.define('TabsScene', { Model, Message })
 
-const sceneView = (model: Model, h: HtmlBuilder<Message>) =>
-  TestTabs.view(
-    model,
-    {
-      tabs: ['First', 'Second'],
-      selectedValue: 'First',
-      ariaLabel: 'Test tabs',
-      toView: ({ tablist, tabs, activeIndex }) =>
-        h.div(
-          [],
-          [
-            h.div(
-              tablist,
-              Array.map(tabs, tab => h.button(tab.tab, [tab.value])),
-            ),
-            pipe(
-              tabs,
-              Array.get(activeIndex),
-              Option.match({
-                onNone: () => h.empty,
-                onSome: tab => h.div(tab.panel),
-              }),
-            ),
-          ],
-        ),
-    },
-    h,
-  )
+const foldTabsOutMessage = OutMessage.match<Update.Step<Model, Message>>({
+  Selected: () => TabsScene.step(model => ({ model })),
+})
 
-const allPanelsView = (model: Model, h: HtmlBuilder<Message>) =>
-  TestTabs.view(
-    model,
-    {
-      tabs: ['First', 'Second'],
-      selectedValue: 'First',
-      ariaLabel: 'Test tabs',
-      panelMount: 'All',
-      toView: ({ tablist, tabs }) =>
-        h.div(
-          [],
-          [
-            h.div(
-              tablist,
-              Array.map(tabs, tab => h.button(tab.tab, [tab.value])),
-            ),
-            ...Array.map(tabs, tab => h.div(tab.panel)),
-          ],
-        ),
-    },
-    h,
-  )
+const TabsBinding = TabsScene.bindChild(block, {
+  read: model => Option.some(model),
+  write: (_model, nextTabs) => nextTabs,
+  toParentMessage: message => message,
+  fromParentMessage: false,
+  outMessage: { fold: foldTabsOutMessage },
+})
+
+const TabsSceneComposition = TabsScene.makeComposition({
+  childBindings: [TabsBinding],
+})
+
+const sceneView = TabsSceneComposition.makeView((model, h) =>
+  h.block(
+    TabsBinding.embedView({
+      slotId: 'tabs',
+      model,
+      viewInputs: {
+        tabs: ['First', 'Second'],
+        selectedValue: 'First',
+        ariaLabel: 'Test tabs',
+        toView: ({ tablist, tabs, activeIndex }) =>
+          h.div(
+            [],
+            [
+              h.div(
+                tablist,
+                Array.map(tabs, tab => h.button(tab.tab, [tab.value])),
+              ),
+              pipe(
+                tabs,
+                Array.get(activeIndex),
+                Option.match({
+                  onNone: () => h.empty,
+                  onSome: tab => h.div(tab.panel),
+                }),
+              ),
+            ],
+          ),
+      },
+    }),
+  ),
+)
+
+const allPanelsView = TabsSceneComposition.makeView((model, h) =>
+  h.block(
+    TabsBinding.embedView({
+      slotId: 'tabs',
+      model,
+      viewInputs: {
+        tabs: ['First', 'Second'],
+        selectedValue: 'First',
+        ariaLabel: 'Test tabs',
+        panelMount: 'All',
+        toView: ({ tablist, tabs }) =>
+          h.div(
+            [],
+            [
+              h.div(
+                tablist,
+                Array.map(tabs, tab => h.button(tab.tab, [tab.value])),
+              ),
+              ...Array.map(tabs, tab => h.div(tab.panel)),
+            ],
+          ),
+      },
+    }),
+  ),
+)
 
 describe('Tabs', () => {
   describe('view', () => {

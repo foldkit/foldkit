@@ -2,11 +2,11 @@
 'foldkit': minor
 ---
 
-Subscriptions declare the Message Schemas their Streams can emit. Use `entry('HeartbeatTicks', { messages: [Message.Ticked], handler: function* () { return () => stream } })` when there are no local Model dependencies, or put the same `handler` field in the callbacks config for a dependency-bearing entry. Foldkit applies `Effect.gen` internally. The entry exposes the attached recipe as `.layer`; `toLayer` remains available for an external alternative.
+Subscriptions declare the Message Schemas their Streams can emit. Create them through the owning definition's `subscriptions`. Use `entry('HeartbeatTicks', { messages: [Message.Ticked], handler: function* () { return () => stream } })` when there are no local Model dependencies, or put the same `handler` field in the callbacks config for a dependency-bearing entry. Foldkit applies `Effect.gen` internally. The entry exposes the attached recipe as `.layer`; `toLayer` remains available for an external alternative.
 
 The handler name identifies the Layer requirement that application assembly must satisfy. The record key identifies the runtime registration whose Stream Foldkit starts and stops. Several lifted registrations can share one definition and handler Layer while keeping separate Stream scopes. Subscription lifecycle display in DevTools remains follow-up work.
 
-The declared Message Schemas constrain the attached handler and external `toLayer` implementations. An undeclared output is a type error; an empty declaration constrains a silent Subscription to `Stream<never>`. Scene uses the declarations to validate an emitted Message against its registered Subscription source, including Message mappings through parent Submodels. The declarations and handler Layer remain available after `Subscription.lift` and direct `Subscription.aggregate(records...)`.
+The declared Message Schemas constrain the attached handler and external `toLayer` implementations. An undeclared output is a type error; an empty declaration constrains a silent Subscription to `Stream<never>`. Scene uses the declarations to validate an emitted Message against its registered Subscription source, including Message mappings through parent Block Bindings. The declarations and handler Layer remain available after completed Block composition.
 
 Remove uses of `Subscription.persistentEntry`, `Subscription.animationFrameEntry`, and `Port.subscriptionEntry`. Define ordinary named entries instead. Replace `Subscription.persistentEntry(stream)` with `entry(name, { messages, handler: function* () { return () => stream } })`, then provide the entry's `.layer`.
 
@@ -26,7 +26,7 @@ const subscriptions = Subscription.make<Model, Message>()(_entry => ({
 **After**
 
 ```ts
-const subscriptions = Subscription.make<Model, Message>()(entry => ({
+const subscriptions = Feature.subscriptions(entry => ({
   animationFrameTicks: entry(
     // A named handler replaces the anonymous animation-frame helper.
     'AnimationFrameTicks',
@@ -48,9 +48,18 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
 }))
 
 const EffectsLayer = subscriptions.animationFrameTicks.layer
+const FeatureComposition = Feature.makeComposition()
+
+export const block = FeatureComposition.makeBlock({
+  init,
+  update,
+  view,
+  subscriptions,
+  EffectsLayer,
+})
 ```
 
-Build inbound Port handlers from `Port.stream(port)`. This example assumes `ports.inbound.stepChanged` is an inbound Port and `appSubscriptions` is the application's existing Subscription record.
+Build inbound Port handlers from `Port.stream(port)`. This example assumes `ports.inbound.stepChanged` is an inbound Port and `Feature` is the owning Block definition.
 
 **Before**
 
@@ -70,7 +79,7 @@ const subscriptions = Subscription.aggregate(
 **After**
 
 ```ts
-const portSubscriptions = Subscription.make<Model, Message>()(entry => ({
+const subscriptions = Feature.subscriptions(entry => ({
   hostStep: entry('HostStepChanges', {
     messages: [Message.ChangedStep],
     handler: function* () {
@@ -83,10 +92,14 @@ const portSubscriptions = Subscription.make<Model, Message>()(entry => ({
   }),
 }))
 
-const subscriptions = Subscription.aggregate(
-  appSubscriptions,
-  portSubscriptions,
-)
-// Registering the Subscription and supplying its handler are separate steps.
-const EffectsLayer = portSubscriptions.hostStep.layer
+const EffectsLayer = subscriptions.hostStep.layer
+const FeatureComposition = Feature.makeComposition()
+
+export const block = FeatureComposition.makeBlock({
+  init,
+  update,
+  view,
+  subscriptions,
+  EffectsLayer,
+})
 ```

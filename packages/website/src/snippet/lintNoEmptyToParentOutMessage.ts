@@ -1,29 +1,21 @@
-import { Option } from 'effect'
-import { Update } from 'foldkit'
-import { modifyFields } from 'foldkit/struct'
-
+import { Application } from './definition'
+import { Message } from './message'
+import { Model } from './model'
 import * as Settings from './settings'
 
-// ❌ Bad
-const badFoldSettings = Update.foldChild({
-  update: Settings.setTheme,
-  read: (model: Model) => Option.some(model.settings),
-  write: (model, nextSettings) =>
-    modifyFields(model, { settings: () => nextSettings }),
-  toParentMessage: message => Message.GotSettingsMessage({ message }),
-  foldOutMessage: foldSettingsOutMessage,
-  // This mapper directly returns undefined, so it forwards no OutMessage.
-  toParentOutMessage: () => undefined,
+// ❌ Bad: this forwarder can never forward an OutMessage.
+const BadSettingsBinding = Application.bindChild(Settings.block, {
+  field: 'settings',
+  parentMessage: Message.GotSettingsMessage,
+  outMessage: {
+    fold: foldSettingsOutMessage,
+    forward: () => undefined,
+  },
 })
 
-// ✅ Good
-// This fold emits no parent OutMessage. Other branches in the same update may
-// still emit an OutMessage.
-const foldSettings = Update.foldChild({
-  update: Settings.setTheme,
-  read: (model: Model) => Option.some(model.settings),
-  write: (model, nextSettings) =>
-    modifyFields(model, { settings: () => nextSettings }),
-  toParentMessage: message => Message.GotSettingsMessage({ message }),
-  foldOutMessage: foldSettingsOutMessage,
+// ✅ Good: omit `forward` when every child OutMessage stops here.
+const SettingsBinding = Application.bindChild(Settings.block, {
+  field: 'settings',
+  parentMessage: Message.GotSettingsMessage,
+  outMessage: { fold: foldSettingsOutMessage },
 })

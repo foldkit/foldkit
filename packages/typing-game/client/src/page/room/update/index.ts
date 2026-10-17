@@ -1,2 +1,2 @@
-export * from './update'
-export * from './handleRoomUpdates'
+export { NavigateHome, informJoined, update } from './update'
+export type { Context } from './update'

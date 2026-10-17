@@ -12,7 +12,7 @@ import {
 } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import { Model, hexColorPicker, update, view } from './main'
+import { Model, hexColorPicker, update, view } from './application'
 
 const initialModel = Model.make({
   content: 'https://foldkit.dev',

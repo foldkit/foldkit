@@ -1,6 +1,5 @@
 import { clsx } from 'clsx'
 import { Array, Option, Record, Result, pipe } from 'effect'
-import { Submodel } from 'foldkit'
 import {
   Html,
   type HtmlBuilder,
@@ -16,6 +15,7 @@ import {
   headingWithContent,
   pageTitle,
 } from '../../prose'
+import { ApiReferenceComposition } from './definition'
 import {
   type ApiFunction,
   type ApiInterface,
@@ -27,7 +27,7 @@ import {
   sectionId,
 } from './domain'
 import { Message } from './message'
-import type { ApiData, Model } from './model'
+import type { ApiData } from './model'
 
 type Highlights = ApiData['highlights']
 
@@ -604,14 +604,14 @@ type ViewInputs = Readonly<{
  * Renders one API module: its sections and every function, type, interface, and
  * constant it exports.
  *
- * The page is dispatched through `h.submodel`, so it takes `renderHeadingLink`
+ * The page is dispatched through `h.block`, so it takes `renderHeadingLink`
  * from its parent rather than building the copy-link itself. The control carries
  * an app-level Message, and a handler's dispatcher comes from the frame the
- * element is built in, so one built here would be rejected by this Submodel's
+ * element is built in, so one built here would be rejected by this Block's
  * `toParentMessage`.
  */
-export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, { module, highlights, renderHeadingLink }, h): Html =>
+export const view = ApiReferenceComposition.makeView.withInputs<ViewInputs>(
+  (model, { module, highlights, renderHeadingLink }, h) =>
     h.div(
       [h.DataAttribute('pagefind-meta', 'kind:API Reference')],
       [

@@ -1,10 +1,8 @@
 import { Array, Number, Option, Result } from 'effect'
-import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { Slider } from '@foldkit/ui'
-
 import { GenerateAmbientParticle, GenerateBurstParticle } from './command'
+import { ApplicationComposition } from './composition'
 import {
   BURST_BOOST_DURATION_MS,
   BURST_HUE_ANCHOR_DRIFT_DEG_PER_SECOND,
@@ -215,45 +213,7 @@ const appendGeneratedParticle =
     }
   }
 
-const foldFlowStrengthSliderOutMessage = Slider.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ChangedValue:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { flowStrength: () => value }),
-    }),
-})
-
-const foldFlowStrengthSlider = Update.foldChild({
-  update: Slider.update,
-  read: (model: Model) => Option.some(model.flowStrengthSlider),
-  write: (model, nextFlowStrengthSlider) =>
-    modifyFields(model, { flowStrengthSlider: () => nextFlowStrengthSlider }),
-  toParentMessage: message => Message.GotFlowStrengthSliderMessage({ message }),
-  foldOutMessage: foldFlowStrengthSliderOutMessage,
-})
-
-const foldNoiseScaleSliderOutMessage = Slider.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ChangedValue:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { noiseScale: () => value }),
-    }),
-})
-
-const foldNoiseScaleSlider = Update.foldChild({
-  update: Slider.update,
-  read: (model: Model) => Option.some(model.noiseScaleSlider),
-  write: (model, nextNoiseScaleSlider) =>
-    modifyFields(model, { noiseScaleSlider: () => nextNoiseScaleSlider }),
-  toParentMessage: message => Message.GotNoiseScaleSliderMessage({ message }),
-  foldOutMessage: foldNoiseScaleSliderOutMessage,
-})
-
-export const update = Update.define((model: Model, message: Message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     TickedFrame: ({ deltaTimeMs }) => {
       const deltaSeconds = cappedDeltaSeconds(deltaTimeMs)
@@ -307,11 +267,5 @@ export const update = Update.define((model: Model, message: Message) =>
         maybeMousePosition: () => Option.none(),
       }),
     }),
-
-    GotFlowStrengthSliderMessage: ({ message }) =>
-      foldFlowStrengthSlider(model, message),
-
-    GotNoiseScaleSliderMessage: ({ message }) =>
-      foldNoiseScaleSlider(model, message),
   }),
 )

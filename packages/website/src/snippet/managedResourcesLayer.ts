@@ -1,7 +1,8 @@
 import { Context, Effect, Layer, Option, Predicate, Schema } from 'effect'
-import { ManagedResource } from 'foldkit'
+import { Block } from 'foldkit'
 
 import { Message } from './message'
+import { Model } from './model'
 
 // A FEN string is a text description of a chess position.
 interface ChessEngine {
@@ -45,13 +46,10 @@ const ChessEngineLayer: Layer.Layer<ChessEngineService> = Layer.effect(
   }),
 )
 
-// 1. The Managed Resource holds the bare service value, with no wrapper.
-const Engine = ManagedResource.tag<ChessEngine>()('ChessEngine')
+const Chess = Block.define('Chess', { Model, Message })
+const Engine = Chess.resource<ChessEngine>()('ChessEngine')
 
-// 2. acquire runs with the resource-lifetime Scope in its context, so
-//    Layer.build registers the Layer's finalizers on it. They tear down when
-//    the resource is released or re-acquired.
-const managedResources = ManagedResource.make<Model, Message>()(entry => ({
+const managedResources = Chess.managedResources(entry => ({
   engine: entry('ManageEngine', Schema.Option(Schema.Null), {
     resource: Engine,
     modelToMaybeRequirements: model => Option.as(model.maybeAnalysisSlug, null),

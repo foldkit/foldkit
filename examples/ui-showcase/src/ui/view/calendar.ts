@@ -1,12 +1,17 @@
 import { Match } from 'effect'
-import { Submodel } from 'foldkit'
-import type { ChildAttribute, Html, HtmlBuilder } from 'foldkit/html'
+import type { ChildAttribute, Html } from 'foldkit/html'
 
-import { Calendar } from '@foldkit/ui'
+import type {
+  CalendarAttributes,
+  DaysModeAttributes,
+  MonthsModeAttributes,
+  Week,
+  YearsModeAttributes,
+} from '@foldkit/ui/calendar'
 
 import * as Icon from '../../icon'
-import { Message as UiMessage } from '../message'
-import type { UiModel } from '../model'
+import { CalendarBasicDemoBinding, UiComposition } from '../composition'
+import type { UiViewBuilder } from '../composition'
 
 const containerClassName =
   'inline-flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm select-none min-w-[304px] min-h-[324px]'
@@ -44,20 +49,20 @@ const monthYearButtonClassName =
 const navButton = (
   attributes: ReadonlyArray<ChildAttribute>,
   icon: Html,
-  h: HtmlBuilder<UiMessage>,
+  h: UiViewBuilder,
 ): Html => h.button([...attributes, h.Class(navButtonClassName)], [icon])
 
 const headingButton = (
-  heading: Calendar.DaysModeAttributes['heading'],
+  heading: DaysModeAttributes['heading'],
   attributes: ReadonlyArray<ChildAttribute>,
-  h: HtmlBuilder<UiMessage>,
+  h: UiViewBuilder,
 ): Html =>
   h.button(
     [h.Id(heading.id), ...attributes, h.Class(headingButtonClassName)],
     [heading.text, Icon.chevronDown('w-3 h-3')],
   )
 
-const weekRow = (week: Calendar.Week, h: HtmlBuilder<UiMessage>): Html =>
+const weekRow = (week: Week, h: UiViewBuilder) =>
   h.div(
     [...week.attributes, h.Class(rowClassName)],
     week.cells.map(cell =>
@@ -75,10 +80,7 @@ const weekRow = (week: Calendar.Week, h: HtmlBuilder<UiMessage>): Html =>
 
 // MODES
 
-const daysView = (
-  days: Calendar.DaysModeAttributes,
-  h: HtmlBuilder<UiMessage>,
-): Html =>
+const daysView = (days: DaysModeAttributes, h: UiViewBuilder) =>
   h.div(
     [...days.root, h.Class(containerClassName)],
     [
@@ -108,10 +110,7 @@ const daysView = (
     ],
   )
 
-const monthsView = (
-  months: Calendar.MonthsModeAttributes,
-  h: HtmlBuilder<UiMessage>,
-): Html =>
+const monthsView = (months: MonthsModeAttributes, h: UiViewBuilder) =>
   h.div(
     [...months.root, h.Class(containerClassName)],
     [
@@ -136,10 +135,7 @@ const monthsView = (
     ],
   )
 
-const yearsView = (
-  years: Calendar.YearsModeAttributes,
-  h: HtmlBuilder<UiMessage>,
-): Html =>
+const yearsView = (years: YearsModeAttributes, h: UiViewBuilder) =>
   h.div(
     [...years.root, h.Class(containerClassName)],
     [
@@ -171,34 +167,29 @@ const yearsView = (
     ],
   )
 
-// VIEW
+export const view = UiComposition.makeView((model, h) => {
+  const calendarView = Match.type<CalendarAttributes>().pipe(
+    Match.tagsExhaustive({
+      Days: days => daysView(days, h),
+      Months: months => monthsView(months, h),
+      Years: years => yearsView(years, h),
+    }),
+  )
 
-export const view = Submodel.defineView<UiModel, UiMessage>(
-  (model, h): Html => {
-    const calendarView = Match.type<Calendar.CalendarAttributes>().pipe(
-      Match.tagsExhaustive({
-        Days: days => daysView(days, h),
-        Months: months => monthsView(months, h),
-        Years: years => yearsView(years, h),
-      }),
-    )
-
-    return h.div(
-      [],
-      [
-        h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Calendar']),
-        h.submodel({
+  return h.div(
+    [],
+    [
+      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Calendar']),
+      h.block(
+        CalendarBasicDemoBinding.embedView({
           slotId: model.calendarBasicDemo.id,
           model: model.calendarBasicDemo,
-          view: Calendar.view,
           viewInputs: {
             maybeSelectedDate: model.maybeCalendarBasicDemoSelectedDate,
             toView: calendarView,
           },
-          toParentMessage: message =>
-            UiMessage.GotCalendarBasicDemoMessage({ message }),
         }),
-      ],
-    )
-  },
-)
+      ),
+    ],
+  )
+})

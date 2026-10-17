@@ -4,7 +4,7 @@
 
 This comparison uses the same [pixel art editor](/example-apps/pixel-art) in Foldkit and React. Both versions include grid editing, undo and redo, brush, fill, and eraser tools, mirror modes, localStorage persistence, PNG export, keyboard shortcuts, accessible controls, and a 32×32 grid that makes rendering work visible.
 
-The React version uses React 19.2, `useReducer`, [Headless UI](https://headlessui.com), custom Hooks, and manual memoization. The Foldkit version uses a Model, Messages, update, Commands, Subscriptions, Foldkit UI Submodels, and view memoization.
+The React version uses React 19.2, `useReducer`, [Headless UI](https://headlessui.com), custom Hooks, and manual memoization. The Foldkit version uses a Model, Messages, update, Commands, Subscriptions, Foldkit UI Blocks, and view memoization.
 
 ### What This Comparison Covers
 
@@ -26,7 +26,7 @@ The Foldkit application currently has 25 parent Messages:
 
 ::Snippet{name="comparisonFoldkitMessage" label="Foldkit Messages"}
 
-This union is the complete input type for the parent update function. User events, Command results, and child Submodel Messages all enter through it. A `Got*Message` variant marks a child boundary; the child’s own Message union provides the detailed input domain one level down.
+This union is the complete input type for the parent update function. User events, Command results, and child Block Messages all enter through it. A `Got*Message` variant marks a child boundary; the child’s own Message union provides the detailed input domain one level down.
 
 Messages such as `SucceededExportPng` and `CompletedSaveCanvas` do not have to change the Model. They still record that a Command finished, and update must handle them.
 
@@ -66,7 +66,7 @@ The Foldkit entry point supplies the Runtime with the application definitions:
 
 ::Snippet{name="comparisonFoldkitProgram" label="Foldkit program"}
 
-`init` constructs the first Model and startup Commands. `Application.make` receives the Model and Flags Schemas, init, update, view, Subscriptions, and container. The Runtime dispatches Messages and executes lifecycle primitives.
+`init` constructs the first Model and startup Commands. The typed `Application` establishes the Model and Message Schemas. `ApplicationComposition` collects child Bindings, and its owned `makeApplication` method receives init, update, view, local lifecycle declarations and handler recipes, the Flags Schema, and the container. The Runtime dispatches Messages and executes lifecycle primitives.
 
 The Foldkit view still passes Model data to smaller view functions as parameters. Those functions do not own Hook state or lifecycle, so the Runtime assembly stays separate from the view tree.
 
@@ -90,7 +90,7 @@ This React implementation uses plain TypeScript types and `null` for absence:
 
 The reducer owns grid state, selected values, export errors, and the controlled open state for both Dialogs. Headless UI owns its transient focus, keyboard, and transition state. That state exists at runtime but is intentionally encapsulated behind the component API.
 
-React does not require this boundary. An application could use Schema, put more state in the reducer, or divide it among component Hooks, context, and external stores. Foldkit requires application and Submodel state to remain in the Model tree.
+React does not require this boundary. An application could use Schema, put more state in the reducer, or divide it among component Hooks, context, and external stores. Foldkit requires application and Block state to remain in the Model tree.
 
 ## The Complete Answer
 
@@ -292,7 +292,7 @@ Within a Foldkit application, the framework enforces several properties that Rea
 
 ### The Message union as total input domain {#message-union-index}
 
-The parent Message union is the total input domain of parent update. A child Submodel repeats that property behind its `Got*Message` wrapper. Every Runtime-driven Model transition therefore enters through a typed value from one of those unions.
+The parent Message union is the total input domain of parent update. A child Block repeats that property behind its `Got*Message` wrapper. Every Runtime-driven Model transition therefore enters through a typed value from one of those unions.
 
 React’s Action union provides the same property for this reducer. It does not cover state internal to Headless UI or work begun directly in handlers and Effects, because those paths do not use the reducer.
 
@@ -308,7 +308,7 @@ A Command has a name, arguments, result Messages, and identity in DevTools and t
 
 ### Time-travel that covers UI internals {#time-travel}
 
-Foldkit DevTools records Messages and Model snapshots. Because Foldkit UI Submodels live in the Model, their interaction state participates in that history.
+Foldkit DevTools records Messages and Model snapshots. Because Foldkit UI Blocks live in the Model, their interaction state participates in that history.
 
 React DevTools inspects component state, and reducer-oriented tools can add action history for application state. Headless UI’s internal Hook state is not part of the pixel editor reducer, so it does not appear in a reducer replay.
 
@@ -342,7 +342,7 @@ Foldkit keeps the decision to start a Command beside the Model transition. React
 
 ### Multiplayer editing {#multiplayer}
 
-A multiplayer feature should define a wire protocol rather than send the entire UI Model. Foldkit can validate remote Messages or domain events with Schema and route accepted values through update. Local UI Submodels can remain local.
+A multiplayer feature should define a wire protocol rather than send the entire UI Model. Foldkit can validate remote Messages or domain events with Schema and route accepted values through update. Local UI Blocks can remain local.
 
 The React version can validate the same protocol and dispatch reducer Actions for accepted events. Foldkit supplies the single Message pipeline as a framework constraint; React requires the application to choose and maintain that boundary.
 
@@ -360,7 +360,7 @@ Both versions need versioning, decoding, and failure behavior for stored data. F
 
 ### How the Structures Grow
 
-Both applications can grow to support these features. The difference is whether each feature has to join an existing pipeline. Foldkit grows through the same named categories: Model fields, Messages, update handlers, Commands, Subscriptions, and Submodels. React grows through components, Hooks, reducer Actions, and any additional state or effect libraries the team chooses.
+Both applications can grow to support these features. The difference is whether each feature has to join an existing pipeline. Foldkit grows through the same named categories: Model fields, Messages, update handlers, Commands, Subscriptions, and Blocks. React grows through components, Hooks, reducer Actions, and any additional state or effect libraries the team chooses.
 
 Foldkit’s constraint keeps paying the same dividend: a new behavior has a defined home and joins the same timeline. React preserves more freedom to choose that home, which is valuable until those choices become coordination work.
 
@@ -368,6 +368,6 @@ Foldkit’s constraint keeps paying the same dividend: a new behavior has a defi
 
 The pixel editor makes the trade concrete. React keeps rendering and lifecycle close to components and can adopt an enormous ecosystem around them. Its reducer provides a strong state core, while handlers, custom Hooks, and Headless UI complete the application around that core.
 
-Foldkit puts the application Model, state transitions, and event-driven Commands behind one Runtime channel. Subscriptions and Submodels follow the same typed-data approach, and Story, Scene, and DevTools operate on those values directly.
+Foldkit puts the application Model, state transitions, and event-driven Commands behind one Runtime channel. Subscriptions and Blocks follow the same typed-data approach, and Story, Scene, and DevTools operate on those values directly.
 
 Choose React when its ecosystem and freedom to select an application architecture matter more than having one imposed by the framework. Choose Foldkit when you want the framework to enforce where state transitions, effects, and lifecycles belong instead of relying on each application to establish those boundaries. That constraint is not something Foldkit asks you to tolerate. It is what the framework is for.

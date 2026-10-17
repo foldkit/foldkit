@@ -1,15 +1,9 @@
-import { type Mount, Submodel } from 'foldkit'
-import type { Html } from 'foldkit/html'
-
-import { Combobox as UiCombobox, Dialog as UiDialog } from '@foldkit/ui'
-
 import { type CodeBlock } from '../../component'
 import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
+import { UiComposition } from './composition'
 import * as Dialog from './demo/dialog'
 import raw from './dialogPage.md'
-import type { Message } from './message'
-import type { Model } from './model'
 
 const { tableOfContents, view: renderPage } = slotDocPage<
   'dialog' | 'animated' | 'overlay' | 'nested'
@@ -23,36 +17,32 @@ type ViewInputs = Readonly<{
   renderHeadingLink: RenderHeadingLink
 }>
 
-export const view = Submodel.defineView<
-  Model,
-  Message,
-  ViewInputs,
-  Mount.RequirementsOf<typeof UiDialog.mounts | typeof UiCombobox.mounts>
->((model, { renderCopyButton, renderSnippet, renderHeadingLink }, h): Html =>
-  renderPage({
-    demos: {
-      dialog: demoContainer(...Dialog.view(model.dialogDemo, h)),
-      animated: demoContainer(
-        ...Dialog.dialogAnimatedDemo(model.dialogAnimatedDemo, h),
-      ),
-      overlay: demoContainer(
-        ...Dialog.overlayDialogDemo(
-          model.overlayDialogDemo,
-          model.overlayComboboxDemo,
-          model.maybeOverlayComboboxDemoSelectedCity,
-          h,
+export const view = UiComposition.makeView.withInputs<ViewInputs>(
+  (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h) =>
+    renderPage({
+      demos: {
+        dialog: demoContainer(...Dialog.view(model.dialogDemo, h)),
+        animated: demoContainer(
+          ...Dialog.dialogAnimatedDemo(model.dialogAnimatedDemo, h),
         ),
-      ),
-      nested: demoContainer(
-        ...Dialog.nestedDialogDemo(
-          model.nestedDialogParentDemo,
-          model.nestedDialogChildDemo,
-          h,
+        overlay: demoContainer(
+          ...Dialog.overlayDialogDemo(
+            model.overlayDialogDemo,
+            model.overlayComboboxDemo,
+            model.maybeOverlayComboboxDemoSelectedCity,
+            h,
+          ),
         ),
-      ),
-    },
-    renderCopyButton,
-    renderSnippet,
-    renderHeadingLink,
-  }),
+        nested: demoContainer(
+          ...Dialog.nestedDialogDemo(
+            model.nestedDialogParentDemo,
+            model.nestedDialogChildDemo,
+            h,
+          ),
+        ),
+      },
+      renderCopyButton,
+      renderSnippet,
+      renderHeadingLink,
+    }),
 )

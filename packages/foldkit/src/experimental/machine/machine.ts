@@ -28,6 +28,13 @@ export type Variant<Union extends Tagged, Tag extends TagOf<Union>> = Extract<
   Readonly<{ _tag: Tag }>
 >
 
+/** The Foldkit update record returned by a Machine Edge or transition. */
+export type MachineReturn<State, Message, R = never> = Update.Return<
+  State,
+  Message,
+  R
+>
+
 declare const NoMachineContextTypeId: unique symbol
 type NoMachineContext = typeof NoMachineContextTypeId
 
@@ -113,7 +120,7 @@ export type Edge<
   target: TagOf<State>
   handler: (
     input: EdgeInput<SourceState, TriggerMessage, unknown, Context>,
-  ) => Update.Return<State, Message, R>
+  ) => MachineReturn<State, Message, R>
   readonly '~foldkit/EdgeGuardValue'?: GuardValue
 }>
 
@@ -437,7 +444,7 @@ export const to = <
   target: TargetTag,
   handler: (
     input: NoInfer<EdgeInput<SourceState, TriggerMessage, void, Context>>,
-  ) => Update.Return<NoInfer<Variant<State, TargetTag>>, NoInfer<Message>, R>,
+  ) => MachineReturn<NoInfer<Variant<State, TargetTag>>, NoInfer<Message>, R>,
 ): Edge<State, Message, SourceState, TriggerMessage, void, R, Context> =>
   makeEdge<
     State,
@@ -485,7 +492,7 @@ export const when = <
     input: NoInfer<
       EdgeInput<SourceState, TriggerMessage, GuardValueOf<GuardResult>, Context>
     >,
-  ) => Update.Return<NoInfer<Variant<State, TargetTag>>, NoInfer<Message>, R>,
+  ) => MachineReturn<NoInfer<Variant<State, TargetTag>>, NoInfer<Message>, R>,
 ): When<
   State,
   Message,
@@ -678,7 +685,7 @@ export type Machine<
     state: State,
     message: Message,
     ...context: MachineContextArguments<Context>
-  ) => Update.Return<State, Message, R>
+  ) => MachineReturn<State, Message, R>
   step: (
     state: State,
     message: Message,

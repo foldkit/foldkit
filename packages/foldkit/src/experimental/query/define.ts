@@ -1,13 +1,15 @@
-import { Effect, Layer, Predicate, type Schema, type Scope } from 'effect'
+import { Effect, Predicate, type Schema } from 'effect'
 
-import type { HandlerOf } from '../../command/handler.js'
+import type { ValidateConstructionRequirements } from '../../block/scope.js'
 import {
+  type CanonicalKeyedQuery,
   type KeyedQueryConfig,
   type LayeredKeyedQuery,
   type SyncFields,
   defineKeyedQuery,
 } from './keyedQuery.js'
 import { type LayeredQuery, type QueryConfig, defineQuery } from './query.js'
+import type { CanonicalQuery } from './query.js'
 
 type UnkeyedDefinitionFields<
   A,
@@ -108,13 +110,13 @@ const isKeyedQueryConfig = <
 > => Predicate.hasProperty(config, 'args')
 
 /**
- * Defines a Submodel that fetches data and retains it in the application
+ * Defines a Block that fetches data and retains it in the application
  * Model. Add `args` to define a {@link KeyedQuery}; omit them to define a
  * {@link Query}.
  *
  * Set `handler` to a generator function that constructs the fetch function.
- * The Query's `layer` supplies that implementation when included in the
- * application Layer. The constructor runs during application startup; the
+ * The Query Block includes that implementation in its Effects Layer. The
+ * constructor runs during application startup; the
  * returned fetch runs for each Query operation. A KeyedQuery fetch receives
  * the declared args, while an unkeyed fetch receives no arguments. Tests can
  * provide different services to the same Layer to exercise the application's
@@ -143,22 +145,26 @@ export function define<
   config: KeyedQueryConfig<Name, A, AI, E, EI, Fields> &
     Readonly<{
       /** Constructs the canonical fetch handler when the Query Layer is built. */
-      handler: () => Generator<
+      handler: (() => Generator<
         Yielded,
         (
           args: Schema.Struct.Type<NoInfer<Fields>>,
         ) => Effect.Effect<NoInfer<A>, NoInfer<E>, HandlerRequirements>,
         unknown
-      >
+      >) &
+        ValidateConstructionRequirements<Effect.Services<Yielded>>
     }>,
-): LayeredKeyedQuery<Name, A, AI, E, EI, Fields> &
-  Readonly<{
-    layer: Layer.Layer<
-      HandlerOf<LayeredKeyedQuery<Name, A, AI, E, EI, Fields>['Fetch']>,
-      Effect.Error<Yielded>,
-      Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
-    >
-  }>
+): CanonicalKeyedQuery<
+  Name,
+  A,
+  AI,
+  E,
+  EI,
+  Fields,
+  HandlerRequirements,
+  Effect.Error<Yielded>,
+  Effect.Services<Yielded>
+>
 export function define<
   Name extends string,
   A,
@@ -177,20 +183,23 @@ export function define<
       args?: never
       toKey?: never
       /** Constructs the canonical fetch handler when the Query Layer is built. */
-      handler: () => Generator<
+      handler: (() => Generator<
         Yielded,
         () => Effect.Effect<NoInfer<A>, NoInfer<E>, HandlerRequirements>,
         unknown
-      >
+      >) &
+        ValidateConstructionRequirements<Effect.Services<Yielded>>
     }>,
-): LayeredQuery<Name, A, AI, E, EI> &
-  Readonly<{
-    layer: Layer.Layer<
-      HandlerOf<LayeredQuery<Name, A, AI, E, EI>['Fetch']>,
-      Effect.Error<Yielded>,
-      Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
-    >
-  }>
+): CanonicalQuery<
+  Name,
+  A,
+  AI,
+  E,
+  EI,
+  HandlerRequirements,
+  Effect.Error<Yielded>,
+  Effect.Services<Yielded>
+>
 export function define<
   Name extends string,
   A,
@@ -233,13 +242,15 @@ export function define<
 ): unknown {
   if (isKeyedQueryConfig(config)) {
     if (Predicate.isNotUndefined(config.handler)) {
-      return defineKeyedQuery(config, Effect.gen(config.handler))
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      return defineKeyedQuery(config, Effect.gen(config.handler) as never)
     } else {
       return defineKeyedQuery(config)
     }
   } else {
     if (Predicate.isNotUndefined(config.handler)) {
-      return defineQuery(config, Effect.gen(config.handler))
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      return defineQuery(config, Effect.gen(config.handler) as never)
     } else {
       return defineQuery(config)
     }

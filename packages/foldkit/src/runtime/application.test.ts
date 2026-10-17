@@ -93,7 +93,7 @@ afterEach(() => {
 })
 
 const makeTestApplication = () =>
-  Application.make({
+  Application.__makeFromConfig({
     Model,
     init: () => ({ model: { status: 'ready' } }),
     update,
@@ -126,7 +126,7 @@ describe('Application', () => {
     }))
 
     expect(() =>
-      Application.make({
+      Application.__makeFromConfig({
         Model,
         init: () => ({ model: { status: 'ready' } }),
         update: updateWithoutRequirements,
@@ -157,7 +157,7 @@ describe('Application', () => {
     }
 
     expect(() =>
-      Application.make({
+      Application.__makeFromConfig({
         Model,
         init: () => ({ model: { status: 'ready' } }),
         update: updateWithoutRequirements,
@@ -192,7 +192,7 @@ describe('Application', () => {
     }))
 
     expect(() =>
-      Application.make({
+      Application.__makeFromConfig({
         Model,
         init: () => ({ model: { status: 'ready' } }),
         update: updateWithoutRequirements,
@@ -241,11 +241,7 @@ describe('Application', () => {
           }),
       ),
     )
-    const provided = pipe(
-      application,
-      Application.provide(handlerLayer),
-      Application.provide(databaseLayer),
-    )
+    const provided = application.provide(handlerLayer).provide(databaseLayer)
     const fiber = Effect.runFork(__startProgram(provided, undefined, 'Fresh'))
 
     try {
@@ -279,7 +275,7 @@ describe('Application', () => {
         },
       ),
     }))
-    const application = Application.make({
+    const application = Application.__makeFromConfig({
       Model,
       init: () => ({ model: { status: 'ready' } }),
       update: (model: Model, message: Message) =>
@@ -294,8 +290,7 @@ describe('Application', () => {
       subscriptions,
       container,
     })
-    const provided = Application.provide(
-      application,
+    const provided = application.provide(
       subscriptions.ready.toLayer(
         Effect.succeed(() =>
           Stream.fromEffect(
@@ -316,7 +311,7 @@ describe('Application', () => {
   })
 
   it('preserves Flags and routing through Layer provision', async () => {
-    const application = Application.make({
+    const application = Application.__makeFromConfig({
       Model,
       Flags,
       init: (flags, url) => ({
@@ -333,8 +328,7 @@ describe('Application', () => {
       },
       container,
     })
-    const provided = Application.provide(
-      application,
+    const provided = application.provide(
       Send.toLayer(
         Effect.succeed(({ text }) =>
           Effect.succeed(Message.CompletedSend({ text })),
@@ -363,7 +357,7 @@ describe('Application', () => {
 })
 
 const checkApplicationTypes = (): void => {
-  const applicationWithoutRequirements = Application.make({
+  const applicationWithoutRequirements = Application.__makeFromConfig({
     Model,
     init: () => ({ model: { status: 'ready' } }),
     update: updateWithoutRequirements,
@@ -390,7 +384,7 @@ const checkApplicationTypes = (): void => {
   )
 
   // @ts-expect-error A different Command handler leaves Send unsatisfied.
-  run(Application.provide(application, otherLayer))
+  run(application.provide(otherLayer))
 
   const sameNameDifferentArgsLayer = SendWithOptionalTextArgs.toLayer(
     Effect.succeed(({ text }) =>
@@ -399,7 +393,7 @@ const checkApplicationTypes = (): void => {
   )
 
   // @ts-expect-error A same-name handler with different args leaves Send unsatisfied.
-  run(Application.provide(application, sameNameDifferentArgsLayer))
+  run(application.provide(sameNameDifferentArgsLayer))
 
   const sameNameDifferentResultLayer = SendWithOptionalTextResult.toLayer(
     Effect.succeed(({ text }) =>
@@ -408,7 +402,7 @@ const checkApplicationTypes = (): void => {
   )
 
   // @ts-expect-error A same-name handler with a different result leaves Send unsatisfied.
-  run(Application.provide(application, sameNameDifferentResultLayer))
+  run(application.provide(sameNameDifferentResultLayer))
 
   const combinedLayer = Layer.mergeAll(
     Send.toLayer(
@@ -419,10 +413,10 @@ const checkApplicationTypes = (): void => {
     otherLayer,
     DatabaseLayer,
   )
-  run(Application.provide(application, combinedLayer))
-  pipe(application, Application.provide(combinedLayer), run)
+  run(application.provide(combinedLayer))
+  run(application.provide(combinedLayer))
 
-  const applicationWithTwoHandlers = Application.make({
+  const applicationWithTwoHandlers = Application.__makeFromConfig({
     Model,
     init: () => ({ model: { status: 'ready' } }),
     update: (model: Model, message: Message) =>
@@ -439,8 +433,7 @@ const checkApplicationTypes = (): void => {
     }),
     container,
   })
-  const withOneHandler = Application.provide(
-    applicationWithTwoHandlers,
+  const withOneHandler = applicationWithTwoHandlers.provide(
     Send.toLayer(
       Effect.succeed(({ text }) =>
         Effect.succeed(Message.CompletedSend({ text })),
@@ -450,9 +443,9 @@ const checkApplicationTypes = (): void => {
 
   // @ts-expect-error The Other handler is still required.
   run(withOneHandler)
-  run(Application.provide(withOneHandler, otherLayer))
+  run(withOneHandler.provide(otherLayer))
 
-  const applicationWithInitCommand = Application.make({
+  const applicationWithInitCommand = Application.__makeFromConfig({
     Model,
     init: () => ({
       model: { status: 'starting' },
@@ -469,8 +462,7 @@ const checkApplicationTypes = (): void => {
   // @ts-expect-error The init Command needs its handler.
   run(applicationWithInitCommand)
   run(
-    Application.provide(
-      applicationWithInitCommand,
+    applicationWithInitCommand.provide(
       Send.toLayer(
         Effect.succeed(({ text }) =>
           Effect.succeed(Message.CompletedSend({ text })),
@@ -486,10 +478,7 @@ const checkApplicationTypes = (): void => {
       ),
     ),
   )
-  const withHandler = pipe(
-    application,
-    Application.provide(handlerNeedingDatabase),
-  )
+  const withHandler = application.provide(handlerNeedingDatabase)
 
   // @ts-expect-error Database remains after the Command handler is provided.
   run(withHandler)
@@ -497,9 +486,9 @@ const checkApplicationTypes = (): void => {
   // @ts-expect-error Database remains after the Command handler is provided.
   pipe(withHandler, run)
 
-  const provided = pipe(withHandler, Application.provide(DatabaseLayer))
+  const provided = withHandler.provide(DatabaseLayer)
   run(provided)
-  pipe(withHandler, Application.provide(DatabaseLayer), run)
+  run(withHandler.provide(DatabaseLayer))
 
   const subscriptions = Subscription.make<Model, Message>()(entry => ({
     storedValue: entry('StoredValue', {
@@ -516,7 +505,7 @@ const checkApplicationTypes = (): void => {
       ),
     ),
   )
-  const applicationWithSubscription = Application.make({
+  const applicationWithSubscription = Application.__makeFromConfig({
     Model,
     init: () => ({ model: { status: 'ready' } }),
     update: updateWithoutRequirements,
@@ -530,14 +519,12 @@ const checkApplicationTypes = (): void => {
 
   // @ts-expect-error The Subscription handler is unsatisfied.
   run(applicationWithSubscription)
-  const withSubscriptionHandler = Application.provide(
-    applicationWithSubscription,
-    StoredValueLayer,
-  )
+  const withSubscriptionHandler =
+    applicationWithSubscription.provide(StoredValueLayer)
 
   // @ts-expect-error Database remains after the Subscription handler is provided.
   run(withSubscriptionHandler)
-  run(Application.provide(withSubscriptionHandler, DatabaseLayer))
+  run(withSubscriptionHandler.provide(DatabaseLayer))
 
   const layeredSubscriptions = Subscription.make<Model, Message>()(entry => ({
     storedValue: entry(
@@ -549,7 +536,7 @@ const checkApplicationTypes = (): void => {
       },
     ),
   }))
-  const applicationWithLayeredSubscription = Application.make({
+  const applicationWithLayeredSubscription = Application.__makeFromConfig({
     Model,
     init: () => ({ model: { status: 'ready' } }),
     update: updateWithoutRequirements,
@@ -564,15 +551,14 @@ const checkApplicationTypes = (): void => {
   // @ts-expect-error The named Subscription handler is unsatisfied.
   run(applicationWithLayeredSubscription)
   run(
-    Application.provide(
-      applicationWithLayeredSubscription,
+    applicationWithLayeredSubscription.provide(
       layeredSubscriptions.storedValue.toLayer(
         Effect.succeed(() => Stream.empty),
       ),
     ),
   )
 
-  const routingApplication = Application.make({
+  const routingApplication = Application.__makeFromConfig({
     Model,
     init: url => ({
       model: { status: url.pathname },
@@ -593,8 +579,7 @@ const checkApplicationTypes = (): void => {
   // @ts-expect-error The routing init Command needs its handler.
   run(routingApplication)
   run(
-    Application.provide(
-      routingApplication,
+    routingApplication.provide(
       Send.toLayer(
         Effect.succeed(({ text }) =>
           Effect.succeed(Message.CompletedSend({ text })),
@@ -603,7 +588,7 @@ const checkApplicationTypes = (): void => {
     ),
   )
 
-  const flagsApplication = Application.make({
+  const flagsApplication = Application.__makeFromConfig({
     Model,
     Flags,
     init: flags => ({
@@ -622,8 +607,7 @@ const checkApplicationTypes = (): void => {
   run(flagsApplication, {
     flags: Effect.succeed({ initialStatus: 'configured' }),
   })
-  const providedFlagsApplication = Application.provide(
-    flagsApplication,
+  const providedFlagsApplication = flagsApplication.provide(
     Send.toLayer(
       Effect.succeed(({ text }) =>
         Effect.succeed(Message.CompletedSend({ text })),
@@ -656,7 +640,7 @@ const checkApplicationTypes = (): void => {
       ),
     }),
   )
-  const routingFlagsApplication = Application.make({
+  const routingFlagsApplication = Application.__makeFromConfig({
     Model,
     Flags,
     init: (flags, url) => ({
@@ -680,8 +664,7 @@ const checkApplicationTypes = (): void => {
   run(routingFlagsApplication, {
     flags: Effect.succeed({ initialStatus: 'configured' }),
   })
-  const withRoutingFlagsCommand = Application.provide(
-    routingFlagsApplication,
+  const withRoutingFlagsCommand = routingFlagsApplication.provide(
     Send.toLayer(
       Effect.succeed(({ text }) =>
         Effect.succeed(Message.CompletedSend({ text })),
@@ -694,8 +677,7 @@ const checkApplicationTypes = (): void => {
     flags: Effect.succeed({ initialStatus: 'configured' }),
   })
   run(
-    Application.provide(
-      withRoutingFlagsCommand,
+    withRoutingFlagsCommand.provide(
       routingFlagsSubscriptions.location.toLayer(
         Effect.succeed(() => Stream.empty),
       ),
@@ -703,7 +685,7 @@ const checkApplicationTypes = (): void => {
     { flags: Effect.succeed({ initialStatus: 'configured' }) },
   )
 
-  Application.make({
+  Application.__makeFromConfig({
     Model,
     init: () => ({ model: { status: 'ready' } }),
     // @ts-expect-error update must return an Update.Return.
@@ -715,7 +697,7 @@ const checkApplicationTypes = (): void => {
     container,
   })
 
-  Application.make({
+  Application.__makeFromConfig({
     Model,
     // @ts-expect-error init must return an Update.Return.
     init: () => 42,
@@ -727,7 +709,7 @@ const checkApplicationTypes = (): void => {
     container,
   })
 
-  Application.make({
+  Application.__makeFromConfig({
     Model,
     // @ts-expect-error Application init cannot emit an OutMessage.
     init: () => ({ model: { status: 'ready' }, outMessage: 'invalid' }),

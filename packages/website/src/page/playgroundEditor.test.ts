@@ -80,7 +80,7 @@ describe('MountPlaygroundEditor', () => {
           })
           yield* PubSub.publish(viewStates, Mount.ViewState.make('Live'))
           yield* MountPlaygroundEditor({
-            path: 'src/main.ts',
+            path: 'src/application.ts',
             initialContent: 'initial content',
             files: {},
           })

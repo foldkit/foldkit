@@ -11,17 +11,14 @@ const boot = (initialModel: App.Model): void => {
   container.id = 'app'
   document.body.appendChild(container)
 
-  const application = Application.provide(
-    Application.make({
-      Model: App.Model,
-      init: () => ({ model: initialModel }),
-      update: App.update,
-      view: App.view,
-      container,
-      devTools: false,
-    }),
-    App.EffectsLayer,
-  )
+  const application = Application.__makeFromConfig({
+    Model: App.Model,
+    init: () => ({ model: initialModel }),
+    update: App.update,
+    view: App.view,
+    container,
+    devTools: false,
+  }).provide(App.EffectsLayer)
 
   runningFiber = Effect.runFork(application.start())
 }

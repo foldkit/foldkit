@@ -1,20 +1,39 @@
 import { Option, Schema } from 'effect'
-import { type Update } from 'foldkit'
-import type * as Mount from 'foldkit/mount'
-import { type View as SubmodelView, defineView } from 'foldkit/submodel'
+import type * as Block from 'foldkit/block'
+import type { Html, HtmlBuilder } from 'foldkit/html'
+import * as Mount from 'foldkit/mount'
+import type * as Update from 'foldkit/update'
 
 import {
   type BaseInitConfig,
   BaseModel,
   type BaseViewInputsCommon,
+  EffectsLayer,
   type ItemToValueInput,
   Message,
   OutMessage,
+  type OutMessageSchema,
+  Listbox as SharedListbox,
   baseInit,
   makeUpdate,
   makeView,
-  type mounts,
+  mounts,
 } from './shared.js'
+
+type RefineOutMessage<Return, OutMessage> =
+  Return extends Update.ResultRecipe<
+    infer Model,
+    infer Message,
+    unknown,
+    infer R,
+    infer Evidence
+  >
+    ? Update.ResultRecipe<Model, Message, OutMessage, R, Evidence>
+    : Return extends (...args: infer Args) => infer Output
+      ? (...args: Args) => RefineOutMessage<Output, OutMessage>
+      : Return extends unknown
+        ? Omit<Return, 'outMessage'> & Readonly<{ outMessage?: OutMessage }>
+        : never
 
 // MODEL
 
@@ -33,37 +52,9 @@ export type InitConfig = BaseInitConfig
 /** Creates an initial single-select listbox model from a config. Defaults to closed with no active item. */
 export const init = (config: InitConfig): Model => baseInit(config)
 
-// UPDATE
-
-/** Processes a Listbox Message and returns the next Model, optional Commands,
- *  and an optional OutMessage. Selection closes the Listbox and emits
- *  `Selected({ value })` for the parent to store. */
-export const update = makeUpdate<Model>('CloseWithFocus', (model, item) => ({
-  model,
-  outMessage: OutMessage.Selected({ value: item }),
-}))
-
-type UpdateReturn = ReturnType<typeof update>
-
-/** Programmatically opens the Listbox, updating the Model and returning focus
- *  and modal Commands. Use this in domain-event handlers. */
-export const open = (model: Model): UpdateReturn =>
-  update(model, Message.Opened({ maybeActiveItemIndex: Option.none() }))
-
-/** Programmatically closes the listbox. If it is open, returns the closed Model
- *  with focus and modal Commands. If it is already closed, returns the Model
- *  unchanged with no Commands. Use this in domain-event handlers to close the
- *  listbox. */
-export const close = (model: Model): UpdateReturn =>
-  update(model, Message.Closed())
-
-/** Programmatically selects an item in the single-select listbox, closing the listbox and emitting a `Selected({ value })` OutMessage. */
-export const selectItem = (model: Model, item: string): UpdateReturn =>
-  update(model, Message.SelectedItem({ item }))
-
 // VIEW
 
-/** Per-render view inputs passed to the view via `h.submodel`'s `viewInputs` field. */
+/** Per-render view inputs passed to the view through a Listbox connection. */
 export type ViewInputs<
   Item,
   Value extends string = string,
@@ -79,19 +70,13 @@ export type ViewInputs<
   ItemToValueInput<Item, Value>
 
 const internalView = makeView<Model>({ ariaMultiSelectable: false })
-
-type MountRequirements = Mount.RequirementsOf<typeof mounts>
-
 const arrayBasedView = internalView<unknown, string>()
 
-type InternalInputs = ViewInputs<unknown, string>
-
-const singleViewImpl = defineView<
-  Model,
-  Message,
-  InternalInputs,
-  MountRequirements
->((model, { maybeSelectedValue, ...baseInputs }, h) =>
+const singleViewImpl = (
+  model: Model,
+  { maybeSelectedValue, ...baseInputs }: ViewInputs<unknown, string>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>,
+): Html =>
   arrayBasedView(
     model,
     {
@@ -99,86 +84,127 @@ const singleViewImpl = defineView<
       selectedValues: Option.toArray(maybeSelectedValue),
     },
     h,
-  ),
-)
+  )
 
-type BundleUpdateReturn<Value extends string> = Update.ReturnWithOutMessage<
-  Model,
-  Message,
-  OutMessage<Value>,
-  Update.RequirementsOf<typeof update>
->
-
-/** The `view`, `update`, and programmatic helpers that `Listbox.create`
- *  returns, bound to one `Item` and `Value` pair. Name it to annotate a
- *  value that holds a created bundle, such as a field on a config object
- *  or a function parameter that takes the bundle rather than calling
- *  `create` itself. */
-export type Bundle<
-  Item = string,
-  Value extends string = Item extends string ? Item : string,
-> = Readonly<{
-  view: SubmodelView<
+const makeBlockParts = <Item, Value extends string>() => {
+  const RefinedOutMessage =
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    OutMessage as unknown as OutMessageSchema<Value>
+  const Listbox = SharedListbox.define({
     Model,
     Message,
-    ViewInputs<Item, Value>,
-    Mount.RequirementsOf<typeof mounts>
+    OutMessage: RefinedOutMessage,
+  })
+  const itemUpdate = makeUpdate(
+    Listbox.bindChild,
+    Listbox.step,
+    'CloseWithFocus',
+    (model, item) => ({
+      model,
+      outMessage: OutMessage.Selected({ value: item }),
+    }),
+  )
+  type RefinedOutMessage = OutMessage<Value>
+  type RefinedReturn = RefineOutMessage<
+    ReturnType<typeof itemUpdate.update>,
+    RefinedOutMessage
   >
-  update: (model: Model, message: Message) => BundleUpdateReturn<Value>
-  selectItem: (model: Model, item: Value) => BundleUpdateReturn<Value>
-  open: (model: Model) => BundleUpdateReturn<Value>
-  close: (model: Model) => BundleUpdateReturn<Value>
-}>
 
-/** Pairs the single-select listbox's `view` and `update` (and programmatic
- *  helpers) behind a single Item-typed entry point. Declaring the listbox
- *  once at module scope ensures the view's `Item` type and the update's
- *  OutMessage `item` type can't drift:
- *
- *  ```ts
- *  const ColorListbox = Listbox.create<Color>()
- *
- *  // In view:
- *  h.submodel({ view: ColorListbox.view, ... })
- *
- *  // In the parent update, pass ColorListbox.update to Update.foldChild and
- *  // handle Listbox.OutMessage<Color> in foldOutMessage.
- *  ```
- *
- *  Two type params support object-typed items with an `itemToValue`
- *  extractor: pass `<Person, string>` when items are objects whose
- *  extracted value is a plain string. `Value` defaults to `Item` when
- *  `Item extends string`, else defaults to `string`. */
+  const castReturn = (result: ReturnType<typeof itemUpdate.update>) =>
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    result as unknown as RefinedReturn
+  const ListboxComposition = Listbox.makeComposition({
+    mounts,
+    childBindings: [itemUpdate.AnimationBinding],
+  })
+  const authoredUpdate = Listbox.step(
+    (model, message: Parameters<typeof itemUpdate.update>[1]) =>
+      castReturn(itemUpdate.update(model, message)),
+  )
+  const update = ListboxComposition.makeUpdate((model, message) =>
+    authoredUpdate(model, message),
+  )
+  const refinedView =
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    singleViewImpl as unknown as (
+      model: Model,
+      viewInputs: ViewInputs<Item, Value>,
+      h: Parameters<typeof singleViewImpl>[2],
+    ) => Html
+  const view = ListboxComposition.makeView.withInputs<ViewInputs<Item, Value>>(
+    (model, viewInputs, h) => refinedView(model, viewInputs, h),
+  )
+  const open = Listbox.step(model =>
+    update(model, Message.Opened({ maybeActiveItemIndex: Option.none() })),
+  )
+  const close = Listbox.step(model => update(model, Message.Closed()))
+  const selectItem = Listbox.step((model, item: Value) =>
+    update(model, Message.SelectedItem({ item })),
+  )
+  const expose = { open, close, selectItem }
+  return {
+    composition: ListboxComposition,
+    implementation: {
+      init: ListboxComposition.makeInit((config: InitConfig) => ({
+        model: init(config),
+      })),
+      update,
+      view,
+      expose,
+      EffectsLayer,
+    },
+  }
+}
+
+type BlockParts<Item, Value extends string> = ReturnType<
+  typeof makeBlockParts<Item, Value>
+>
+
+/** A completed single-select Listbox Block refined to one Item and Value pair. */
+export interface Completed<
+  Item = string,
+  Value extends string = Item extends string ? Item : string,
+> extends Block.CompletedWithViewAndOutMessage<
+  BlockParts<Item, Value>['composition'],
+  BlockParts<Item, Value>['implementation']
+> {}
+
+const makeBlock = <Item, Value extends string>(): Completed<Item, Value> => {
+  const { composition, implementation } = makeBlockParts<Item, Value>()
+
+  return composition.makeBlock(implementation)
+}
+
+/** Creates a complete single-select Listbox Block refined to one Item and
+ * Value pair. `Value` defaults to `Item` for string items and to `string` for
+ * object items. */
 export const create = <
   Item = string,
   Value extends string = Item extends string ? Item : string,
->(): Bundle<Item, Value> => {
-  type UpdateReturn = Update.ReturnWithOutMessage<
-    Model,
-    Message,
-    OutMessage<Value>,
-    Update.RequirementsOf<typeof update>
-  >
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const typedUpdate = update as (model: Model, message: Message) => UpdateReturn
-  const view =
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    singleViewImpl as unknown as SubmodelView<
-      Model,
-      Message,
-      ViewInputs<Item, Value>,
-      MountRequirements
-    >
-  return {
-    view,
-    update: typedUpdate,
-    selectItem: (model, item) =>
-      typedUpdate(model, Message.SelectedItem({ item })),
-    open: model =>
-      typedUpdate(
-        model,
-        Message.Opened({ maybeActiveItemIndex: Option.none() }),
-      ),
-    close: model => typedUpdate(model, Message.Closed()),
-  }
-}
+>(): Completed<Item, Value> => makeBlock<Item, Value>()
+
+/** Complete default single-select Listbox Block definition. */
+export const block = makeBlock<string, string>()
+
+// UPDATE
+
+/** Processes a Listbox Message and returns the next Model, optional Commands,
+ *  and an optional OutMessage. Selection closes the Listbox and emits
+ *  `Selected({ value })` for the parent to store. */
+export const update = block.update
+
+type UpdateReturn = ReturnType<typeof update>
+
+/** Programmatically opens the Listbox, updating the Model and returning focus
+ *  and modal Commands. Use this in domain-event handlers. */
+export const open = (model: Model): UpdateReturn => block.expose.open(model)
+
+/** Programmatically closes the listbox. If it is open, returns the closed Model
+ *  with focus and modal Commands. If it is already closed, returns the Model
+ *  unchanged with no Commands. Use this in domain-event handlers to close the
+ *  listbox. */
+export const close = (model: Model): UpdateReturn => block.expose.close(model)
+
+/** Programmatically selects an item in the single-select listbox, closing the listbox and emitting a `Selected({ value })` OutMessage. */
+export const selectItem = (model: Model, item: string): UpdateReturn =>
+  block.expose.selectItem(model, item)

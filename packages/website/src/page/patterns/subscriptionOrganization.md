@@ -1,117 +1,73 @@
 # Subscription Organization
 
-## Lifting Child Subscriptions {#overview}
+## Overview
 
-A Submodel owns the Subscriptions that produce its Messages. Its parent lifts those Subscriptions into the parent Model and Message types, then aggregates them with other Subscription records at that level.
+A Block owns the Subscriptions that produce its Messages. Its completed Block carries those registrations and their handler recipes. A parent Binding lifts them through the same Model accessor and Message wrapper used for update and view.
 
-This mirrors the other halves of the boundary. `Update.foldChild` lifts child update, `h.submodel` lifts child view, and `Subscription.lift` lifts child Streams.
+This keeps one parent-child relationship in one place. The parent does not separately lift and aggregate a child's Subscription record, and the application entry does not import leaf Subscription handlers.
 
-Each feature also exports `EffectsLayer` for its Subscription handlers. The parent combines that bundle with its own handlers, so the application entry provides feature Layers without importing every Subscription definition.
+## Declare Local Subscriptions
 
-## The Composition Levels {#composition-levels}
+Use the Block definition's `subscriptions` helper. It fixes the Model and Message types while each entry keeps its named handler identity, dependency Schema, declared Messages, and attached Layer recipe.
 
-Each level declares local entries with `Subscription.make` and lifts child records with `Subscription.lift`. By the time a Stream reaches the root, it emits root Messages that the Runtime can dispatch through update. This diagram follows one leaf record through those lifts:
+::Snippet{name="subscriptionOrganizationChild" label="Block Subscription definitions"}
 
-```diagram
-+-------------------------------+
-| ThemeMenu                     |
-| Stream<ThemeMenu.Message>     |
-+-------------------------------+
-  |
-  | Subscription.lift
-  | wraps with GotThemeMenuMessage
-  v
-+-------------------------------+
-| Settings                      |
-| Stream<Settings.Message>      |
-+-------------------------------+
-  |
-  | Subscription.lift
-  | wraps with GotSettingsMessage
-  v
-+-------------------------------+
-| Root                          |
-| Stream<Message>               |
-+-------------------------------+
-  |
-  v
-Runtime
-```
+Compose the attached entry recipes in the feature's local `EffectsLayer`. Pass that bundle to `FeatureComposition.makeBlock`. A parent Binding contributes it automatically.
 
-## The Composition Verbs {#composition-verbs}
+## Connect the Child Once
 
-Three functions build the hierarchy.
+The parent binds the completed child and includes the Binding in its Composition:
 
-| Verb                     | What it does                                                                                           | When to reach for it                              |
-| ------------------------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
-| `Subscription.make`      | Declares local named entries from dependency Schemas and `modelToDependencies`.                        | The current level owns a Subscription.            |
-| `Subscription.lift`      | Reads a child Model and wraps each emitted child Message. An optional `when` adds a parent-owned gate. | A child exports a Subscriptions record.           |
-| `Subscription.aggregate` | Combines records, infers their shared types, and rejects duplicate keys at startup.                    | A level has more than one local or lifted record. |
+::Snippet{name="subscriptionOrganizationComposing" label="Composing child Subscriptions through a Binding"}
 
-Each entry attaches its Stream constructor in `config.handler` and exposes the recipe as `.layer`. `Layer.mergeAll` combines the local handler Layer with each child's `EffectsLayer` export. This Layer composition follows the same feature hierarchy as the Subscription records.
+The Binding derives three things from the same policy:
 
-## Organization Principles
+- `read` locates the child Model for update and every lifecycle.
+- `parentMessage` wraps update, Command, Subscription, Mount, and ManagedResource Messages, and supplies the canonical unkeyed route back through the Binding.
+- `placement` qualifies the child's runtime identities and registration keys.
 
-### Submodel Cohesion
+Nested Blocks repeat the same pattern. By the time a Stream reaches the root, every emitted Message has been wrapped through each parent boundary.
 
-A Subscription that emits child Messages belongs inside that child's folder. The child exports it without knowing which parent will lift it.
+## Install the Root
 
-### One Wrap Per Level
+The Application Composition already contains the Subscription and handler graph. Its owned `makeApplication` method completes the browser program with the implementation:
 
-Each `subscription.ts` produces only the Message type for its level. Every `Subscription.lift` adds one wrapper, just as one `h.submodel` boundary does for view handlers.
+::Snippet{name="subscriptionOrganizationRoot" label="Installing the root Subscription graph"}
 
-### Uniform Interface
-
-Export one `subscriptions` record from the child. The parent decides whether to lift every entry, gate the whole record, or gate named entries. The child does not split its exports around parent-owned conditions.
-
-## Putting It Together
-
-The next three snippets trace one record from a leaf, through a composing Submodel, to the root.
-
-### The Leaf Submodel {#leaf-submodel}
-
-A leaf declares its entries with `Subscription.make`, attaches each named handler, and exports the resulting `.layer` recipes through `EffectsLayer`.
-
-::Snippet{name="subscriptionOrganizationChild" label="Leaf Submodel Subscription file"}
-
-### The Composing Submodel {#composing-submodel}
-
-A composing Submodel lifts child records, declares any local entries, and aggregates the results. It combines its local handler Layer with the child's `EffectsLayer` export. Each lift supplies a `read` that returns an `Option` of the child Model. An always-present child is wrapped in `Option.some`.
-
-::Snippet{name="subscriptionOrganizationComposing" label="Composing Submodel Subscription file"}
-
-### The Root {#root}
-
-The root uses the same shape. Its lifts target the root Model and Message. The entry point passes `AppLayer` to `Application.provide` before starting the Runtime.
-
-::Snippet{name="subscriptionOrganizationRoot" label="Root Subscription file"}
+The root `ApplicationLayer` supplies ordinary services required by the handlers. It does not merge the feature `EffectsLayer` bundles again.
 
 ## Optional Children
 
-Return `Some(child)` from `read` when the child is present, or `None` when it is absent. Foldkit stops the child's Subscriptions and skips its dependency functions while `read` returns `None`.
+Return `Some(child)` from `read` while the child exists and `None` while it is absent. Foldkit stops every Stream for the absent occurrence and skips its dependency functions.
 
 ::Snippet{name="subscriptionOrganizationOptional" label="Reading an optional child Model"}
 
-## Gating a Lifted Record {#gating}
+When that child reappears, its Streams start in a new occurrence scope.
 
-A child can express conditions from its own Model in its dependencies and Stream construction. It cannot see parent-owned state such as the active Route.
+## Parent-owned Gates {#gating}
 
-### Gate from Parent State
+A child expresses conditions from its own Model through `modelToDependencies` and its Stream. It cannot see parent-owned state such as the active Route. Put that policy on the Binding.
 
-Put a parent-owned condition in `when` on the lift. The predicate receives the parent Model. The gated entries run only while it returns `true` and `read` returns a child. A closed gate skips `read` and the child’s dependency functions.
+### Gate the whole child record
 
-::Snippet{name="subscriptionOrganizationGate" label="Route-gated lift"}
+::Snippet{name="subscriptionOrganizationGate" label="Route-gated child Subscriptions"}
 
-Closing a gate tears down the Stream. Foldkit also stops calling the child's `modelToDependencies` until the gate reopens, so hidden child changes do not restart it.
+The gate controls Stream lifetime only. It does not make the child Model absent and does not prevent `binding.fold` from running.
 
-### Gate Named Entries
+### Gate named entries
 
-`when` accepts either one predicate for the whole record or a map of predicates by entry name. An omitted entry has no additional activity condition, but still stops when `read` returns `None`. For example: a Room page can keep its WebSocket alive across navigation while gating its keyboard listener to the active Room Route.
+Use a record when some entries remain active. This Room keeps its Binding Stream alive while gating only its keyboard listener:
 
-::Snippet{name="subscriptionOrganizationEntryGate" label="Per-entry gated lift"}
+::Snippet{name="subscriptionOrganizationEntryGate" label="Per-entry Subscription gate"}
 
-### Compose Gates Across Levels
+An omitted entry has no additional parent gate. It still stops when `read` returns `None`.
 
-The parent owns `when`. The child keeps its child-owned conditions in its own Subscription definition.
+## Keyed Children
 
-Attach each gate at the level that owns its condition. When a record passes through several levels, all gates compose. The entry runs only while every gate above it is open.
+For an array storing child Models directly, use `Parent.bindChild` with `field`, a string-valued `key`, and `toParentMessage`. The child Schema must expose its declared Struct fields. An exact array of closed Struct wrappers adds `childField`, whose required Schema has exactly the same decoded shape as the child Model; its distinct required `key` belongs to the wrapper. Custom writes, opaque, union, or open/index-signature wrappers, and non-array enumeration use `readAll`, function-valued `key`, `read`, and `writeAt`. The Binding declares storage, stable identity, and parent Message routing once. Every active key receives independent Stream scopes and its own gate evaluation.
+
+Removing a key stops those Streams. Reusing the key later creates a fresh occurrence, so callbacks captured by the old occurrence cannot dispatch into the replacement.
+
+## Ownership Rule
+
+Put a Subscription in the lowest Block whose Messages it emits and whose Model controls its dependencies. Parent route policy belongs on the Binding. Shared event-source services belong in Effect Layers supplied at application assembly.

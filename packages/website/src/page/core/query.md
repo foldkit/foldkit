@@ -14,7 +14,7 @@ To see how Query is used in a complete Foldkit application, visit [API Cache Que
 
 Fetching data in a Foldkit application usually takes the same pieces: an [AsyncData](/core/async-data) value in the Model, a Command that performs the request, a Message carrying the result, and update branches that begin and settle the request. That explicit loop is useful when a request belongs to a larger workflow. It becomes repetitive when the application only needs to retain a resource and refresh it later.
 
-Think of Query as that standard request loop packaged around an `AsyncData` value. Query is a viewless Submodel: it owns the `AsyncData` state, fetch Command, completion Message, update logic, and protection against late responses. The parent stores the Query Model, delegates its Messages, and reads the retained `AsyncData` value for rendering.
+Think of Query as that standard request loop packaged around an `AsyncData` value. Query is a viewless Block: it owns the `AsyncData` state, fetch Command, completion Message, update logic, and protection against late responses. The parent stores the Query Model, delegates its Messages, and reads the retained `AsyncData` value for rendering.
 
 ### Query and KeyedQuery
 
@@ -43,44 +43,42 @@ Import the `Query` namespace from `foldkit/experimental`. Define the data and er
 With no `args`, `Query.define` returns a Query that retains one value. In this definition:
 
 - `data` and `error` determine the `AsyncData` and Message Schemas.
-- The `handler` generator constructs the fetch function, and `.layer` supplies it for the generated Command.
-- `name: 'Posts'` gives the generated Command the name `FetchPosts` in DevTools and tests.
+- The `handler` generator constructs the fetch function. The completed Query carries its handler recipe in `EffectsLayer`.
+- `name: 'Posts'` names the Query Block. Its local `Fetch` Command is qualified by the Block and its parent placement.
 
-Choose Query names so their generated Fetch Command names are distinct from all other Command definitions in the application. For example, `name: 'Posts'` generates `FetchPosts` and must not share that handler name with a separately declared `FetchPosts` Command. TypeScript rejects a same-named provider with an incompatible handler protocol. Definitions with identical names and protocols remain structurally indistinguishable to TypeScript, so Foldkit checks their private identity before the generated Fetch handler runs. Create alternate implementations with the original Query's `toLayer`.
+Bind the completed Query through the parent Definition and include the Binding in the parent's Composition `childBindings`. The Binding carries the Query's handler recipe automatically; do not add it to the parent's local `EffectsLayer`. The entry supplies ordinary service providers through `ApplicationLayer`. The handler generator captures stable services when the Runtime builds its Layer, and the fetch function uses those services for each request.
 
-Add the resulting Layer to the owning feature's `EffectsLayer` export and pass the root `AppLayer` to `Application.provide` at the entry point. Loading operations carry `FetchPosts` as a handler requirement, so an application that starts this Query cannot run without a Layer for it. The handler generator can capture stable services while the application Layer is built; those services are available when the fetch Command executes later.
-
-Omit `handler` when an external host supplies the fetch implementation. That definition has no `.layer`; the host constructs its provider with `toLayer`, which accepts the implementation Effect constructor. The method also constructs an alternative to an attached handler. Ordinary execution tests keep `.layer` and replace the services required by its handler.
+Omit `handler` when an external host supplies the fetch implementation. Complete that Query with `query.provideHandlers(query.toLayer(constructor))` before binding it into a runnable application. `toLayer` accepts an Effect constructor and can also provide an alternative to an attached handler. For direct `query.run` outside application composition, provide `query.EffectsLayer` to the Effect. Ordinary execution tests retain the handler and replace its underlying services.
 
 The `data` and `error` values must be Schema Codecs that require no encoding or decoding services. Query uses them to build its Model and completion Message Schemas.
 
 #### Returned Definition
 
-The returned `postsQuery` owns a Model Schema, a Message union, and operations over that Model. Put `postsQuery.Model` in the parent Model Schema and use `postsQuery.init()` only when constructing the initial parent Model. The initial value is `Idle`.
+The returned `postsQuery` is a completed viewless Block with a Model Schema, a Message union, and exposed operations. Put `postsQuery.Model` in the parent Model Schema and bind it through the parent Definition. Its zero-argument initializer starts the required direct field automatically. Put `PostsBinding.loadIfMissing()` in the Composition init plan's `steps` array to begin the first request after the Query Model exists.
 
-### Connect the Query to Its Parent
+### Bind the Query to Its Parent
 
-The parent wraps the Query's Message and routes that wrapper back through a lifted fold. `lift` also adapts the loading operations so they read and write the Query field inside the parent Model:
+The parent wraps the Query's Message, and the Composition routes that wrapper back through its Binding. `bindChild` also projects the loading operations so they read and write the Query field inside the parent Model:
 
-::Snippet{name="queryLift" label="Connecting Query to its parent"}
+::Snippet{name="queryLift" label="Binding Query to its parent"}
 
-#### Lift Configuration
+#### Binding Configuration
 
-The `parentField` form tells `lift` which field contains an always-present Query Model. `toParentMessage` wraps the result Message produced by the Query's fetch Command in the parent's `Got*Message` variant. `lift` returns the child fold and Query operations expressed in the parent Model and Message types. These functions return ordinary update results; they do not perform Effects.
+The `field` form tells `bindChild` which exact field contains the Query Model or `Option<QueryModel>`. `parentMessage` supplies the parent's `Got*Message` constructor, which wraps the result Message produced by the Query's fetch Command. The Binding returns the child fold and Query operations expressed in the parent Model and Message types. Its projected operations return connected Steps whose Model input requires the registering Composition's graph. Apply them inside `makeUpdate`, include them in `makeInit` startup, or preserve them through a Definition-owned Step. Return or compose their opaque results intact; the Composition consumes them during checked execution. They do not perform Effects.
 
-#### Lifted Operations
+#### Bound Operations
 
-- `posts.fold(model, message)` delegates the child Message to Query's update and writes the returned Query Model back to `model.posts`.
-- `posts.loadIfMissing`, `posts.revalidate`, and `posts.revalidateOrLoad` apply their loading rule to the current `AsyncData`. When the rule calls for a request, the update result contains the next parent Model and a `FetchPosts` Command. Otherwise it contains only the unchanged Model.
-- `posts.reset(model)` returns an update result whose parent Model contains an `Idle` Query value while preserving the Query's request identity.
+- The parent Composition delegates `GotPostsMessage` to the Binding and writes the returned Query Model back to `model.posts`.
+- `PostsBinding.loadIfMissing()`, `PostsBinding.revalidate()`, and `PostsBinding.revalidateOrLoad()` return connected parent Steps that apply their loading rule to the current `AsyncData`. Their connected results expose no `.model` or `.commands` before the Composition consumes them. After checked execution, a requested load produces the readable next parent Model and the Query's `Fetch` Command; otherwise the readable result contains only the unchanged Model.
+- `PostsBinding.reset()` returns a connected parent Step. After checked execution, the Query value is `Idle` and retains its request identity.
 
 #### Optional and Nested Queries
 
-Use the full lens form of `lift` when the Query is nested or exists only in some parent variants. Supply `read`, `write`, and `toParentMessage`, following the same contract as [`Update.foldChild`](/core/submodel#fold-child). When `read` returns `None`, the fold and lifted operations return the parent Model unchanged and no Commands.
+Use `field` when an optional Query occupies an exact Option field. After checked execution, its bound operations produce the unchanged parent Model and no Commands while the field is `None`; they never insert a missing Query Model. Add `presentWhen` when a parent condition governs the whole direct child while retaining its stored Model. Use explicit `read` and `write` when the Query is nested, spans tagged parent variants, or needs a custom write. When `read` returns `None`, it has the same absent behavior.
 
 #### Starting a Load
 
-Call a loading operation from init or a parent Message handler. In the example, init constructs the complete parent Model and passes it to `posts.loadIfMissing`. A route-change handler can return the same operation when a screen becomes active. Rendering the screen does not return a fetch Command or cause a request.
+Call a loading operation from init or a parent Message handler. In the example, `loadIfMissing` is a startup Step. A route-change handler can return the same operation when a screen becomes active. Rendering the screen does not return a fetch Command or cause a request.
 
 ### Read and Render Query Data
 
@@ -88,7 +86,7 @@ Use `read` to access the Query's retained `AsyncData` value:
 
 ::Snippet{name="queryReadAndRender" label="Reading and rendering Query data"}
 
-The parent passes the Query Model to a child-owned accessor; it does not inspect the Query Model's fields. `read` returns an ordinary `AsyncData`, and the parent decides how to render it with `AsyncData.match`, `matchData`, `getData`, `getError`, or another Async Data helper. A viewless Submodel preserves the state and update boundary without creating an `h.submodel` view boundary.
+The parent passes the Query Model to a child-owned accessor; it does not inspect the Query Model's fields. `read` returns an ordinary `AsyncData`, and the parent decides how to render it with `AsyncData.match`, `matchData`, `getData`, `getError`, or another Async Data helper. A viewless Block preserves the state and update boundary without creating an `h.block` view boundary.
 
 ## Load and Refresh Query Data
 
@@ -158,15 +156,21 @@ Add a non-empty `args` record to `Query.define` when one definition should retai
 Adding `args` makes `Query.define` return a KeyedQuery. Each distinct argument key has its own `AsyncData` entry. The operations now receive the arguments they should act on:
 
 - `postQuery.read(model.postDetails, { postId })` returns that entry's `AsyncData`, or `Idle` when the entry does not exist.
-- `postDetails.loadIfMissing(model, { postId })` changes a missing entry to `Loading` and includes its fetch Command in the update result. An entry that already has data is unchanged.
-- `postDetails.revalidate(model, { postId })` changes a data-bearing entry to `Refreshing` and includes its fetch Command. An entry without data is unchanged.
-- `postDetails.revalidateOrLoad(model, { postId })` chooses the loading or refreshing transition from that entry's current state.
+- `postDetails.loadIfMissing({ postId })(model)` changes a missing entry to `Loading` and includes its fetch Command in the update result. An entry that already has data is unchanged.
+- `postDetails.revalidate({ postId })(model)` changes a data-bearing entry to `Refreshing` and includes its fetch Command. An entry without data is unchanged.
+- `postDetails.revalidateOrLoad({ postId })(model)` chooses the loading or refreshing transition from that entry's current state.
 
 ### Default Keys
 
 By default, KeyedQuery encodes the complete args value as the key. Object field order does not change the key; array order does. Two argument records with different values retain different entries.
 
 Each `args` field has the same restriction as `data` and `error`: its Schema Codec must require no encoding or decoding services. KeyedQuery encodes args when it derives the default key.
+
+### Request Identity
+
+KeyedQuery snapshots args through their declared Codec before storing them or returning a Fetch Command. It captures the canonical cache key for that request once. The completion Message carries that key, so settling the request does not recompute `toKey` from args that may have changed.
+
+The stored args and the handler's args are separate decoded values. This protects fields reconstructed by the declared Codec; an opaque value accepted by a Schema such as `Schema.Unknown` can retain its original identity. Keep opaque argument values immutable for the duration of the request.
 
 ### Custom Keys
 
@@ -180,7 +184,7 @@ A KeyedQuery retains entries until `reset` clears all of them. It does not curre
 
 The generated `Fetch` definition is public so Story and Scene tests can match and resolve the Command. Obtain application fetch Commands through `loadIfMissing`, `revalidate`, or `revalidateOrLoad`; calling `Fetch` directly would skip the Model transition and generation update that make completion handling safe.
 
-The [API Cache Query example](/example-apps/api-cache-query) includes Story and Scene tests that resolve Query Commands without running their Effects.
+KeyedQuery's generated Fetch args and `CompletedFetch` Message include `requestKey` alongside `args` and `generation`. Loading operations supply it automatically. When manually resolving a Fetch Command, copy its `requestKey` into the completion Message; do not recompute the key. The [API Cache Query example](/example-apps/api-cache-query) includes Story and Scene tests that resolve Query Commands without running their Effects.
 
 ## When to Use AsyncData Directly
 
@@ -202,4 +206,4 @@ The Model owns the `AsyncData` field, and update handles each result as part of 
 
 The [Async Data guide](/core/async-data) covers the state type, transitions, and rendering helpers used when the application owns this wiring.
 
-The [Query API reference](/api-reference/experimental-query) lists the exact Query, KeyedQuery, `define`, `lift`, `read`, `reset`, and `run` signatures.
+The [Query API reference](/api-reference/experimental-query) lists the exact Query, KeyedQuery, `define`, Block, `read`, exposed operation, and `run` signatures.

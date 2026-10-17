@@ -18,7 +18,7 @@ import {
   subscriptions,
   update,
   view,
-} from './main'
+} from './application'
 
 const initialModel = Model.make({
   elapsedMs: 0,

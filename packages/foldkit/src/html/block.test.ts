@@ -1,0 +1,1161 @@
+import { Context, Option } from 'effect'
+import { afterEach, beforeEach, expect } from 'vitest'
+
+import { describe, it } from '@effect/vitest'
+
+import { MountTracker } from '../mount/index.js'
+import { Dispatch } from '../runtime/index.js'
+import { h } from '../snabbdom/index.js'
+import { type VNode, dedupeSharedVNodes, memoizedVNodes } from '../vdom.js'
+import {
+  type AnyBlockView,
+  type BlockConfig,
+  block as blockImpl,
+  defineView,
+} from './block.js'
+import {
+  type BoundaryRegistry,
+  beginRender,
+  createBoundaryRegistry,
+  registerBoundaryWrap,
+  resolveMountBoundaryDispatch,
+} from './boundary.js'
+import { type HtmlBuilder, __htmlBuilder } from './index.js'
+import { createKeyedLazy, createLazy } from './lazy.js'
+import {
+  type DispatchSync,
+  clearRuntime,
+  pushBoundary,
+  requireDispatch,
+  requireMountDispatch,
+  setRuntime,
+} from './runtimeSingleton.js'
+
+const block = <View extends AnyBlockView>(
+  config: BlockConfig<View, unknown>,
+): VNode | null => blockImpl(config, __htmlBuilder())
+
+const asVNode = (child: VNode | string | undefined): VNode => {
+  if (child === undefined || typeof child === 'string') {
+    throw new Error('expected a VNode')
+  }
+  return child
+}
+
+const setUpRuntime = (
+  registry: BoundaryRegistry,
+  dispatched: Array<unknown>,
+): void => {
+  const dispatchSync: DispatchSync = message => {
+    dispatched.push(message)
+  }
+  const dispatchService = Dispatch.of({
+    dispatchAsync: () =>
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      Promise.resolve() as unknown as ReturnType<
+        typeof Dispatch.Service.dispatchAsync
+      >,
+    dispatchSync,
+  })
+  const context = Context.make(Dispatch, dispatchService).pipe(
+    Context.add(MountTracker, {
+      started: () => {},
+      ended: () => {},
+    }),
+  )
+  setRuntime(dispatchSync, context, registry)
+}
+
+type ChildMessage = Readonly<{ _tag: 'ChildClicked'; value: number }>
+type ParentMessage = Readonly<{
+  _tag: 'GotChild'
+  entryId: string
+  message: ChildMessage
+}>
+
+const GotChild = (args: { entryId: string; message: ChildMessage }) =>
+  ({ _tag: 'GotChild', ...args }) satisfies ParentMessage
+
+// NOTE: mirrors how `h.OnClick` captures dispatch in the html factory:
+// at VNode-construction time, while the current boundary is still the
+// Block's boundary. Calling `requireDispatch()` inside the click
+// handler would resolve at fire time when the boundary has already
+// been popped.
+const childView = defineView<{ value: number }, ChildMessage>(model => {
+  const dispatch = requireDispatch()
+  return h('button', {
+    on: {
+      click: () =>
+        dispatch({
+          _tag: 'ChildClicked',
+          value: model.value,
+        } satisfies ChildMessage),
+    },
+  })
+})
+
+describe('h.block', () => {
+  let registry: BoundaryRegistry
+  let dispatched: Array<unknown>
+
+  beforeEach(() => {
+    registry = createBoundaryRegistry()
+    dispatched = []
+    setUpRuntime(registry, dispatched)
+    beginRender(registry)
+  })
+
+  afterEach(() => {
+    clearRuntime()
+  })
+
+  it('returns an inferred view function unchanged', () => {
+    const view = (_model: { value: number }, _h: HtmlBuilder<ChildMessage>) =>
+      null
+
+    expect(defineView(view)).toBe(view)
+  })
+
+  it('renders the child view and returns the VNode', () => {
+    const result = block({
+      slotId: 'child-1',
+      model: { value: 42 },
+      view: childView,
+      toParentMessage: message => GotChild({ entryId: 'child-1', message }),
+    })
+
+    expect(result).not.toBeNull()
+    expect(result?.sel).toBe('button')
+  })
+
+  it('wraps child messages dispatched inside the Block', () => {
+    const result = block({
+      slotId: 'child-1',
+      model: { value: 7 },
+      view: childView,
+      toParentMessage: message => GotChild({ entryId: 'child-1', message }),
+    })
+
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const onClick = result?.data?.on?.click as () => void
+    onClick()
+
+    expect(dispatched).toEqual([
+      {
+        _tag: 'GotChild',
+        entryId: 'child-1',
+        message: { _tag: 'ChildClicked', value: 7 },
+      },
+    ])
+  })
+
+  it('composes wrapping across nested Block boundaries', () => {
+    type GrandparentMessage = Readonly<{
+      _tag: 'GotParent'
+      message: ParentMessage
+    }>
+    const GotParent = (args: {
+      message: ParentMessage
+    }): GrandparentMessage => ({ _tag: 'GotParent', ...args })
+
+    const innerResult = block({
+      slotId: 'parent',
+      model: {},
+      view: defineView<object, ParentMessage>(() =>
+        block({
+          slotId: 'child-1',
+          model: { value: 99 },
+          view: childView,
+          toParentMessage: message => GotChild({ entryId: 'child-1', message }),
+        }),
+      ),
+      toParentMessage: message => GotParent({ message }),
+    })
+
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const onClick = innerResult?.data?.on?.click as () => void
+    onClick()
+
+    expect(dispatched).toEqual([
+      {
+        _tag: 'GotParent',
+        message: {
+          _tag: 'GotChild',
+          entryId: 'child-1',
+          message: { _tag: 'ChildClicked', value: 99 },
+        },
+      },
+    ])
+  })
+
+  it('passes viewInputs as the second view argument when provided', () => {
+    const viewWithInputs = defineView<
+      { value: number },
+      ChildMessage,
+      { label: string }
+    >((model, viewInputs) => h('div', `${viewInputs.label}: ${model.value}`))
+
+    const result = block({
+      slotId: 'with-viewInputs',
+      model: { value: 3 },
+      view: viewWithInputs,
+      viewInputs: { label: 'count' },
+      toParentMessage: message =>
+        GotChild({ entryId: 'with-viewInputs', message }),
+    })
+
+    expect(result?.text).toBe('count: 3')
+  })
+
+  it('preserves outer boundary after the Block call returns', () => {
+    // NOTE: register a wrap for the outer boundary the way h.block
+    // pairs registerBoundaryWrap with pushBoundary in real code. A
+    // boundary pushed without a registered wrap is undefined behavior;
+    // `dispatchAcrossBoundary` throws if a chain wrap is missing, since
+    // a missing wrap implies a corrupted registry (e.g. a Block
+    // unmounted between event scheduling and dispatch).
+    registerBoundaryWrap(
+      registry,
+      'outer',
+      {
+        toParentMessage: message => ({ _tag: 'GotOuter', inner: message }),
+      },
+      requireMountDispatch(),
+    )
+    pushBoundary('outer')
+    try {
+      block({
+        slotId: 'inner',
+        model: {},
+        view: defineView<object, ChildMessage>(() => h('span')),
+        toParentMessage: message => GotChild({ entryId: 'inner', message }),
+      })
+
+      const dispatchSyncAfter = requireDispatch()
+      dispatchSyncAfter({ _tag: 'AfterReturn' })
+
+      // After Block returns, the dispatch returned by requireDispatch
+      // is the outer boundary's dispatch (not the inner Block's), so
+      // the message routes through the outer wrap only.
+      expect(dispatched).toEqual([
+        { _tag: 'GotOuter', inner: { _tag: 'AfterReturn' } },
+      ])
+    } finally {
+      clearRuntime()
+    }
+  })
+
+  it('keeps wraps registered across renders when the Block is not re-called (createKeyedLazy cache hit)', () => {
+    // NOTE: simulates what happens when a createKeyedLazy cache-hits a
+    // row: the entry view is not called, so h.block inside is not
+    // called, so registerBoundaryWrap is not invoked. The wrap from the
+    // previous render must remain so dispatches from the cached vnode
+    // continue
+    // to route correctly.
+    block({
+      slotId: 'cached-row',
+      model: { value: 1 },
+      view: childView,
+      toParentMessage: message => GotChild({ entryId: 'cached-row', message }),
+    })
+
+    expect(registry.wraps.has('cached-row')).toBe(true)
+
+    // Begin a new render but never re-call block for this boundary.
+    beginRender(registry)
+
+    // The wrap must persist. The cached vnode in the DOM still needs it.
+    expect(registry.wraps.has('cached-row')).toBe(true)
+  })
+
+  it.each([
+    {
+      kind: 'createLazy',
+      makeLazy: () => {
+        const lazy = createLazy()
+        return (view: () => VNode | null) => lazy(view, [])
+      },
+    },
+    {
+      kind: 'createKeyedLazy',
+      makeLazy: () => {
+        const lazy = createKeyedLazy()
+        return (view: () => VNode | null) => lazy('cached-row', view, [])
+      },
+    },
+  ])(
+    'restores $kind Block wraps when a cached subtree is reinserted',
+    ({ makeLazy }) => {
+      const lazy = makeLazy()
+      let renderCount = 0
+      const renderChild = () => {
+        renderCount += 1
+        return block({
+          slotId: 'cached-row',
+          model: { value: 7 },
+          view: childView,
+          toParentMessage: message =>
+            GotChild({ entryId: 'cached-row', message }),
+        })
+      }
+
+      const first = lazy(renderChild)
+      expect(first).not.toBeNull()
+
+      beginRender(registry)
+      first?.data?.hook?.destroy?.(first)
+      expect(registry.wraps.has('cached-row')).toBe(false)
+
+      beginRender(registry)
+      const reinserted = lazy(renderChild)
+      expect(reinserted).toBe(first)
+      expect(renderCount).toBe(1)
+
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      const onClick = reinserted?.data?.on?.click as () => void
+      onClick()
+      const mountDispatch = resolveMountBoundaryDispatch(
+        registry,
+        requireMountDispatch(),
+        'cached-row',
+      )
+      mountDispatch({ _tag: 'ChildClicked', value: 8 })
+
+      expect(dispatched).toEqual([
+        GotChild({
+          entryId: 'cached-row',
+          message: { _tag: 'ChildClicked', value: 7 },
+        }),
+        GotChild({
+          entryId: 'cached-row',
+          message: { _tag: 'ChildClicked', value: 8 },
+        }),
+      ])
+    },
+  )
+
+  it('rolls back wraps restored by a lazy hit when its outer Block fails', () => {
+    const lazy = createLazy()
+    const nestedHtml = __htmlBuilder<ChildMessage>()
+    let isOuterViewFailing = false
+    let isNestedVisible = true
+    let nestedRenderCount = 0
+    const renderNested = () => {
+      nestedRenderCount += 1
+      return nestedHtml.block({
+        slotId: 'nested',
+        model: { value: 4 },
+        view: childView,
+        toParentMessage: message => ({
+          ...message,
+          value: message.value + 10,
+        }),
+      })
+    }
+    const outerView = defineView<object, ChildMessage>(() => {
+      if (!isNestedVisible) {
+        return h('div', {}, ['placeholder'])
+      }
+
+      const nested = lazy(renderNested, [])
+      if (isOuterViewFailing) {
+        throw new Error('Outer view failed after the lazy hit')
+      }
+      return nested
+    })
+    const renderOuter = () =>
+      block({
+        slotId: 'outer',
+        model: {},
+        view: outerView,
+        toParentMessage: message => GotChild({ entryId: 'outer', message }),
+      })
+
+    const first = renderOuter()
+    expect(first).not.toBeNull()
+
+    beginRender(registry)
+    isNestedVisible = false
+    expect(renderOuter()).not.toBeNull()
+    first?.data?.hook?.destroy?.(first)
+    expect(registry.wraps.has('outer')).toBe(true)
+    expect(registry.wraps.has('outer|nested')).toBe(false)
+
+    beginRender(registry)
+    isNestedVisible = true
+    isOuterViewFailing = true
+    expect(renderOuter).toThrow('Outer view failed after the lazy hit')
+    expect(registry.wraps.has('outer')).toBe(true)
+    expect(registry.wraps.has('outer|nested')).toBe(false)
+    expect(nestedRenderCount).toBe(1)
+
+    beginRender(registry)
+    isOuterViewFailing = false
+    expect(renderOuter()).not.toBeNull()
+    resolveMountBoundaryDispatch(
+      registry,
+      requireMountDispatch(),
+      'outer|nested',
+    )({ _tag: 'ChildClicked', value: 4 })
+
+    expect(nestedRenderCount).toBe(1)
+    expect(dispatched).toEqual([
+      GotChild({
+        entryId: 'outer',
+        message: { _tag: 'ChildClicked', value: 14 },
+      }),
+    ])
+  })
+
+  it('deregisters the wrap when the returned vnode is destroyed by snabbdom', () => {
+    const result = block({
+      slotId: 'destroyable',
+      model: { value: 1 },
+      view: childView,
+      toParentMessage: message => GotChild({ entryId: 'destroyable', message }),
+    })
+
+    expect(registry.wraps.has('destroyable')).toBe(true)
+
+    // A genuine unmount: a later render does not re-register the boundary,
+    // so `beginRender` clears it from `seenThisRender` before snabbdom
+    // removes the vnode and fires destroy.
+    beginRender(registry)
+    const destroyHook = result?.data?.hook?.destroy
+    expect(destroyHook).toBeDefined()
+    destroyHook!(result!)
+
+    expect(registry.wraps.has('destroyable')).toBe(false)
+  })
+
+  it('preserves the wrap when the old root vnode is destroyed after the boundary was re-registered the same cycle', () => {
+    const render = () =>
+      block({
+        slotId: 'remounted',
+        model: { value: 1 },
+        view: childView,
+        toParentMessage: message => GotChild({ entryId: 'remounted', message }),
+      })
+
+    // Render N: the keyed root is registered and produces a vnode whose
+    // destroy hook fires when snabbdom swaps the root on the next render.
+    const first = render()
+    const firstDestroy = first?.data?.hook?.destroy
+    expect(firstDestroy).toBeDefined()
+
+    // Render N+1: the keyed root's key changed, so the parent re-renders the
+    // same boundary, re-registering it before snabbdom patches.
+    beginRender(registry)
+    render()
+    expect(registry.wraps.has('remounted')).toBe(true)
+
+    // Patch N+1: snabbdom removes the OLD root vnode and fires its destroy
+    // hook. The wrap from the re-render must survive.
+    firstDestroy!(first!)
+    expect(registry.wraps.has('remounted')).toBe(true)
+  })
+
+  it('composes the user-supplied destroy hook with the boundary cleanup hook', () => {
+    let userDestroyCalled = false
+    const viewWithDestroy = defineView<{ value: number }, ChildMessage>(_ => {
+      const dispatch = requireDispatch()
+      return h('button', {
+        on: {
+          click: () =>
+            dispatch({
+              _tag: 'ChildClicked',
+              value: 0,
+            } satisfies ChildMessage),
+        },
+        hook: {
+          destroy: () => {
+            userDestroyCalled = true
+          },
+        },
+      })
+    })
+
+    const result = block({
+      slotId: 'with-user-destroy',
+      model: { value: 0 },
+      view: viewWithDestroy,
+      toParentMessage: message =>
+        GotChild({ entryId: 'with-user-destroy', message }),
+    })
+
+    // Genuine unmount: the boundary is not re-registered this render.
+    beginRender(registry)
+    const destroyHook = result?.data?.hook?.destroy
+    destroyHook!(result!)
+
+    expect(userDestroyCalled).toBe(true)
+    expect(registry.wraps.has('with-user-destroy')).toBe(false)
+  })
+
+  it('returns a stable dispatch reference for the same boundary', () => {
+    block({
+      slotId: 'child-1',
+      model: {},
+      view: defineView<object, ChildMessage>(() => {
+        const first = requireDispatch()
+        const second = requireDispatch()
+        expect(first).toBe(second)
+        return h('div')
+      }),
+      toParentMessage: message => GotChild({ entryId: 'child-1', message }),
+    })
+  })
+
+  it('throws when two h.block calls share the same slotId in the same parent boundary', () => {
+    block({
+      slotId: 'shared',
+      model: { value: 1 },
+      view: childView,
+      toParentMessage: message => GotChild({ entryId: 'shared', message }),
+    })
+
+    expect(() =>
+      block({
+        slotId: 'shared',
+        model: { value: 2 },
+        view: childView,
+        toParentMessage: message => GotChild({ entryId: 'shared', message }),
+      }),
+    ).toThrow(/duplicate h\.block slotId "shared"/)
+    expect(() =>
+      block({
+        slotId: 'shared',
+        model: { value: 2 },
+        view: childView,
+        toParentMessage: message => GotChild({ entryId: 'shared', message }),
+      }),
+    ).toThrow(/Second registration: (?!.*assertBoundaryNotSeen)/)
+  })
+
+  it('runs slot callbacks in the parent boundary so handlers dispatch unwrapped', () => {
+    // The slot callback constructs a VNode with a handler that dispatches
+    // a parent-level Message directly. With slot-boundary wrapping, that
+    // handler captures the OUTER (root) boundary's dispatch, so the Message
+    // reaches outerDispatch unwrapped, NOT wrapped by the block's
+    // GotChild constructor.
+    type ParentDirect = Readonly<{ _tag: 'ParentDirect' }>
+
+    type CheckboxLikeInputs = Readonly<{
+      toView: (
+        attributes: ReadonlyArray<{
+          readonly _tag: string
+          readonly [key: string]: unknown
+        }>,
+      ) => unknown
+    }>
+
+    const fakeCheckboxView = defineView<
+      object,
+      ChildMessage,
+      CheckboxLikeInputs
+    >((_model, viewInputs) => {
+      // Inside the Block boundary: dispatch captured here goes through
+      // the Block's toParentMessage.
+      const childDispatch = requireDispatch()
+      const internalButton = h('button', {
+        on: {
+          click: () =>
+            childDispatch({
+              _tag: 'ChildClicked',
+              value: 1,
+            } satisfies ChildMessage),
+        },
+      })
+      // Hand the inner button to the consumer's slot callback. The slot
+      // callback runs in the PARENT boundary; any dispatch it constructs
+      // should reach outerDispatch unwrapped.
+      viewInputs.toView([])
+      return internalButton
+    })
+
+    let parentHandlerCalledDispatch: DispatchSync | null = null
+    block({
+      slotId: 'fake-checkbox',
+      model: {},
+      view: fakeCheckboxView,
+      viewInputs: {
+        toView: () => {
+          // This callback runs inside `view` but the runtime should have
+          // swapped back to the parent boundary. Snapshot the dispatch the
+          // parent would use right here.
+          parentHandlerCalledDispatch = requireDispatch()
+          return undefined
+        },
+      },
+      toParentMessage: message =>
+        GotChild({ entryId: 'fake-checkbox', message }),
+    })
+
+    expect(parentHandlerCalledDispatch).not.toBeNull()
+    // Dispatch a parent-level Message through the snapshot. It should
+    // reach `dispatched` without being wrapped by GotChild.
+    parentHandlerCalledDispatch!({
+      _tag: 'ParentDirect',
+    } satisfies ParentDirect)
+    expect(dispatched).toEqual([{ _tag: 'ParentDirect' }])
+  })
+
+  it('infers ChildMessage from the view brand so toParentMessage destructures without annotation', () => {
+    // Compile-time check: by passing `selectingView` (which is branded
+    // with `Selected`), TS infers ChildMessage = Selected, so the
+    // toParentMessage handler receives `{ value }` directly and TS knows
+    // `value` is a number.
+    type Selected = Readonly<{ _tag: 'Selected'; value: number }>
+    type SelectedOnly = Selected
+
+    const selectingView = defineView<{ value: number }, SelectedOnly>(model => {
+      const dispatch = requireDispatch()
+      return h('button', {
+        on: {
+          click: () =>
+            dispatch({
+              _tag: 'Selected',
+              value: model.value,
+            } satisfies Selected),
+        },
+      })
+    })
+
+    const result = block({
+      slotId: 'inference-check',
+      model: { value: 11 },
+      view: selectingView,
+      // No annotation on `{ message }`:
+      toParentMessage: message => ({
+        _tag: 'GotSelected' as const,
+        // TS sees `message.value` as number because ChildMessage is
+        // inferred as `Selected`.
+        plusOne: message.value + 1,
+      }),
+    })
+
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const onClick = result?.data?.on?.click as () => void
+    onClick()
+
+    expect(dispatched).toEqual([{ _tag: 'GotSelected', plusOne: 12 }])
+  })
+
+  it('returns null and deregisters the wrap when the view returns null', () => {
+    const nullView = defineView<{ value: number }, ChildMessage>(() => null)
+
+    const result = block({
+      slotId: 'null-view',
+      model: { value: 1 },
+      view: nullView,
+      toParentMessage: message => GotChild({ entryId: 'null-view', message }),
+    })
+
+    expect(result).toBeNull()
+    // No vnode means no destroy hook will ever fire, so the wrap must be
+    // deregistered eagerly to avoid a leak.
+    expect(registry.wraps.has('null-view')).toBe(false)
+  })
+
+  it.each(['throws', 'returns null'])(
+    'restores surviving nested live Mount wraps when a replay view %s',
+    outcome => {
+      const childMessage: ChildMessage = { _tag: 'ChildClicked', value: 1 }
+      const liveView = defineView<{ value: number }, ChildMessage>((model, h) =>
+        h.block({
+          slotId: 'nested',
+          model,
+          view: childView,
+          toParentMessage: message => ({
+            ...message,
+            value: message.value + 10,
+          }),
+        }),
+      )
+      block({
+        slotId: 'rollback',
+        model: { value: 1 },
+        view: liveView,
+        toParentMessage: message => GotChild({ entryId: 'live', message }),
+      })
+      const liveMountOuterDispatch = requireMountDispatch()
+      const liveMountDispatch = resolveMountBoundaryDispatch(
+        registry,
+        liveMountOuterDispatch,
+        'rollback|nested',
+      )
+
+      clearRuntime()
+      const replayDispatched: Array<unknown> = []
+      setUpRuntime(registry, replayDispatched)
+      const replayMountOuterDispatch = requireMountDispatch()
+      beginRender(registry)
+      const replayView = defineView<{ value: number }, ChildMessage>(
+        (model, h) => {
+          h.block({
+            slotId: 'nested',
+            model,
+            view: childView,
+            toParentMessage: message => ({
+              ...message,
+              value: message.value + 100,
+            }),
+          })
+          if (outcome === 'throws') {
+            throw new Error('Replay child view failed')
+          }
+          return null
+        },
+      )
+      const renderReplay = () =>
+        block({
+          slotId: 'rollback',
+          model: { value: 2 },
+          view: replayView,
+          toParentMessage: message => GotChild({ entryId: 'replay', message }),
+        })
+
+      if (outcome === 'throws') {
+        expect(renderReplay).toThrow('Replay child view failed')
+      } else {
+        expect(renderReplay()).toBeNull()
+      }
+      liveMountDispatch(childMessage)
+
+      expect(dispatched).toEqual([
+        GotChild({
+          entryId: 'live',
+          message: { ...childMessage, value: 11 },
+        }),
+      ])
+      expect(replayDispatched).toEqual([])
+      expect(
+        registry.wraps.get('rollback')?.toParentMessage(childMessage),
+      ).toEqual(GotChild({ entryId: 'live', message: childMessage }))
+      expect(
+        registry.mountWraps.get(replayMountOuterDispatch)?.has('rollback'),
+      ).toBe(false)
+      expect(
+        registry.mountWraps
+          .get(replayMountOuterDispatch)
+          ?.has('rollback|nested'),
+      ).toBe(false)
+      expect(registry.mountWrapOwners.get('rollback')).toEqual(
+        new Set([liveMountOuterDispatch]),
+      )
+      expect(registry.mountWrapOwners.get('rollback|nested')).toEqual(
+        new Set([liveMountOuterDispatch]),
+      )
+    },
+  )
+
+  it.each([
+    {
+      kind: 'createLazy',
+      makeLazy: () => {
+        const lazy = createLazy()
+        return (view: () => VNode | null) => lazy(view, [])
+      },
+    },
+    {
+      kind: 'createKeyedLazy',
+      makeLazy: () => {
+        const lazy = createKeyedLazy()
+        return (view: () => VNode | null) => lazy('nested', view, [])
+      },
+    },
+  ])(
+    'invalidates a $kind nested Block cached by a failed outer view',
+    ({ makeLazy }) => {
+      const lazy = makeLazy()
+      const nestedHtml = __htmlBuilder<ChildMessage>()
+      const nestedModel = { value: 1 }
+      let renderCount = 0
+      const renderNested = () => {
+        renderCount += 1
+        return nestedHtml.block({
+          slotId: 'nested',
+          model: nestedModel,
+          view: childView,
+          toParentMessage: message => ({
+            ...message,
+            value: message.value + 10,
+          }),
+        })
+      }
+      const failedView = defineView<object, ChildMessage>(() => {
+        lazy(renderNested)
+        throw new Error('Outer view failed after caching its child')
+      })
+
+      expect(() =>
+        block({
+          slotId: 'lazy-rollback',
+          model: {},
+          view: failedView,
+          toParentMessage: message => GotChild({ entryId: 'failed', message }),
+        }),
+      ).toThrow('Outer view failed after caching its child')
+      expect(registry.wraps.has('lazy-rollback')).toBe(false)
+      expect(registry.wraps.has('lazy-rollback|nested')).toBe(false)
+
+      beginRender(registry)
+      const successfulView = defineView<object, ChildMessage>(() =>
+        lazy(renderNested),
+      )
+      const result = block({
+        slotId: 'lazy-rollback',
+        model: {},
+        view: successfulView,
+        toParentMessage: message => GotChild({ entryId: 'live', message }),
+      })
+      const mountDispatch = resolveMountBoundaryDispatch(
+        registry,
+        requireMountDispatch(),
+        'lazy-rollback|nested',
+      )
+      mountDispatch({ _tag: 'ChildClicked', value: 1 })
+
+      expect(result).not.toBeNull()
+      expect(renderCount).toBe(2)
+      expect(dispatched).toEqual([
+        GotChild({
+          entryId: 'live',
+          message: { _tag: 'ChildClicked', value: 11 },
+        }),
+      ])
+    },
+  )
+
+  it('allows the same slotId under different parent boundaries without throwing', () => {
+    // Two h.block calls share the literal slotId "child" but live under
+    // different parent boundaries, so their composed boundary ids differ. This
+    // must not trip the duplicate-slotId guard, which is intentionally per
+    // parent boundary, not global.
+    expect(() => {
+      block({
+        slotId: 'parent-a',
+        model: {},
+        view: defineView<object, ParentMessage>(() =>
+          block({
+            slotId: 'child',
+            model: { value: 1 },
+            view: childView,
+            toParentMessage: message => GotChild({ entryId: 'a', message }),
+          }),
+        ),
+        toParentMessage: message => ({ _tag: 'GotA' as const, message }),
+      })
+
+      block({
+        slotId: 'parent-b',
+        model: {},
+        view: defineView<object, ParentMessage>(() =>
+          block({
+            slotId: 'child',
+            model: { value: 2 },
+            view: childView,
+            toParentMessage: message => GotChild({ entryId: 'b', message }),
+          }),
+        ),
+        toParentMessage: message => ({ _tag: 'GotB' as const, message }),
+      })
+    }).not.toThrow()
+
+    expect(registry.wraps.has('parent-a|child')).toBe(true)
+    expect(registry.wraps.has('parent-b|child')).toBe(true)
+  })
+
+  it('throws when a colliding slotId is added across a createKeyedLazy cache hit', () => {
+    // NOTE: when a row is behind a createKeyedLazy cache hit its
+    // h.block does not run, so the boundaryId is not freshly added
+    // to seenThisRender this frame. The lazy helpers replay captured
+    // ids on cache hit so the duplicate-slotId guard catches a sibling
+    // collision against the cached entry instead of silently
+    // overwriting its wrap.
+    // NOTE: the key parameter exists only to match the `[key]` args tuple
+    // handed to createKeyedLazy below; the row itself does not use it.
+    const rowView = (_key: string): VNode | null =>
+      block({
+        slotId: 'shared',
+        model: { value: 1 },
+        view: childView,
+        toParentMessage: message => GotChild({ entryId: 'shared', message }),
+      })
+
+    const lazyRow = createKeyedLazy()
+    const renderRow = (key: string): VNode | null =>
+      lazyRow(key, rowView, [key])
+
+    renderRow('row')
+    expect(registry.wraps.has('shared')).toBe(true)
+
+    beginRender(registry)
+    renderRow('row')
+
+    expect(() =>
+      block({
+        slotId: 'shared',
+        model: { value: 2 },
+        view: childView,
+        toParentMessage: message => GotChild({ entryId: 'shared', message }),
+      }),
+    ).toThrow(/duplicate h\.block slotId "shared"/)
+  })
+
+  it('throws when a createKeyedLazy cache hit collides with an earlier slotId', () => {
+    const rowView = (_key: string): VNode | null =>
+      block({
+        slotId: 'shared',
+        model: { value: 1 },
+        view: childView,
+        toParentMessage: message => GotChild({ entryId: 'shared', message }),
+      })
+
+    const lazyRow = createKeyedLazy()
+    const renderRow = (key: string): VNode | null =>
+      lazyRow(key, rowView, [key])
+
+    renderRow('row')
+    expect(registry.wraps.has('shared')).toBe(true)
+
+    beginRender(registry)
+    block({
+      slotId: 'shared',
+      model: { value: 2 },
+      view: childView,
+      toParentMessage: message => GotChild({ entryId: 'shared', message }),
+    })
+
+    expect(() => renderRow('row')).toThrow(/duplicate h\.block slotId "shared"/)
+    expect(() => renderRow('row')).toThrow(/Second registration: at renderRow /)
+  })
+
+  it('survives createKeyedLazy reorder: cached entries keep their wraps registered', () => {
+    // Build a row view that calls h.block for an inner child.
+    // createKeyedLazy memoizes per key, so reordering the items array
+    // reuses the same vnodes (and therefore the same registered wraps).
+    // The row view is not re-invoked, and the inner block is not
+    // re-called.
+    type Item = Readonly<{ id: string; value: number }>
+
+    const rowView = (item: Item): VNode | null =>
+      block({
+        slotId: item.id,
+        model: { value: item.value },
+        view: childView,
+        toParentMessage: message => GotChild({ entryId: item.id, message }),
+      })
+
+    const lazyRow = createKeyedLazy()
+    const renderRow = (item: Item): VNode | null => {
+      const vnode = lazyRow(item.id, rowView, [item])
+      if (vnode !== null && vnode.key !== item.id) {
+        vnode.key = item.id
+      }
+      return vnode
+    }
+
+    const itemsForward: ReadonlyArray<Item> = [
+      { id: 'row-1', value: 10 },
+      { id: 'row-2', value: 20 },
+      { id: 'row-3', value: 30 },
+    ]
+
+    const firstRender = itemsForward.map(renderRow)
+    expect(firstRender).toHaveLength(3)
+    expect(registry.wraps.has('row-1')).toBe(true)
+    expect(registry.wraps.has('row-2')).toBe(true)
+    expect(registry.wraps.has('row-3')).toBe(true)
+
+    // Start a new render and reverse the order. createKeyedLazy cache-hits
+    // each row by key, so rowView is not called and block does not
+    // re-run.
+    beginRender(registry)
+    const itemsReversed: ReadonlyArray<Item> = [
+      itemsForward[2]!,
+      itemsForward[1]!,
+      itemsForward[0]!,
+    ]
+    const secondRender = itemsReversed.map(renderRow)
+
+    expect(secondRender.map(vnode => vnode?.key)).toEqual([
+      'row-3',
+      'row-2',
+      'row-1',
+    ])
+    expect(registry.wraps.has('row-1')).toBe(true)
+    expect(registry.wraps.has('row-2')).toBe(true)
+    expect(registry.wraps.has('row-3')).toBe(true)
+
+    // Cached vnodes still dispatch through the live wraps.
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const onClickRow1 = secondRender[2]?.data?.on?.click as () => void
+    onClickRow1()
+    expect(dispatched).toEqual([
+      {
+        _tag: 'GotChild',
+        entryId: 'row-1',
+        message: { _tag: 'ChildClicked', value: 10 },
+      },
+    ])
+  })
+
+  it('keeps a memoized child view opaque through the boundary wrapper so dedupe preserves its cached subtree', () => {
+    // A child view memoized by createLazy returns the same VNode object each
+    // render. h.block re-wraps it in a fresh boundary vnode every render;
+    // withBoundaryCleanup propagates memoizedVNodes membership onto that
+    // wrapper so dedupeSharedVNodes keeps it opaque and never walks into the
+    // cached subtree, which carries the .elm snabbdom recorded on a prior
+    // patch. Without that propagation the wrapper looks like ordinary view
+    // output and dedupe clones the cached child, defeating memoization.
+    const lazy = createLazy()
+    const buildChild = (value: number) =>
+      h('div', {}, [h('span', {}, [`value: ${value}`])])
+    const memoizedChildView = defineView<{ value: number }, ChildMessage>(
+      model => lazy(buildChild, [model.value]),
+    )
+
+    const wrapper = block({
+      slotId: 'memoized-child',
+      model: { value: 1 },
+      view: memoizedChildView,
+      toParentMessage: message =>
+        GotChild({ entryId: 'memoized-child', message }),
+    })
+
+    expect(wrapper).not.toBeNull()
+    expect(memoizedVNodes.has(wrapper!)).toBe(true)
+
+    // Simulate a prior patch recording a live DOM node on the cached subtree.
+    const cachedSpan = asVNode(wrapper!.children?.[0])
+    cachedSpan.elm = document.createElement('span')
+
+    const result = dedupeSharedVNodes(h('section', {}, [wrapper!]))
+
+    expect(asVNode(result.children?.[0])).toBe(wrapper)
+    expect(asVNode(asVNode(result.children?.[0]).children?.[0])).toBe(
+      cachedSpan,
+    )
+  })
+
+  it('nests h.block calls made inside a slot callback under the parent boundary', () => {
+    // A consumer's slot callback can itself embed a Block via
+    // h.block. The slot runs in the PARENT boundary (per
+    // wrapViewInputsForOuterBoundary), so the inner block's composed
+    // boundary should hang off the parent, not the outer Block; and its
+    // dispatches should NOT be wrapped by the outer Block's toParentMessage.
+    type ParentSlotMessage = Readonly<{
+      _tag: 'GotSlotChild'
+      message: ChildMessage
+    }>
+    const GotSlotChild = (args: {
+      message: ChildMessage
+    }): ParentSlotMessage => ({ _tag: 'GotSlotChild', ...args })
+
+    type ShellInputs = Readonly<{ slot: () => VNode | null }>
+    const shellView = defineView<object, ChildMessage, ShellInputs>(
+      (_, viewInputs) => {
+        const slotVNode = viewInputs.slot()
+        return h('div', {}, [slotVNode ?? h('span')])
+      },
+    )
+
+    block({
+      slotId: 'shell',
+      model: {},
+      view: shellView,
+      viewInputs: {
+        slot: () =>
+          block({
+            slotId: 'slot-child',
+            model: { value: 5 },
+            view: childView,
+            toParentMessage: message => GotSlotChild({ message }),
+          }),
+      },
+      toParentMessage: message => GotChild({ entryId: 'shell', message }),
+    })
+
+    // The slot's block registers under the parent (root) boundary, NOT
+    // under "shell|slot-child", because the slot callback ran in the
+    // outer boundary.
+    expect(registry.wraps.has('slot-child')).toBe(true)
+    expect(registry.wraps.has('shell|slot-child')).toBe(false)
+  })
+
+  it('throws when a function value is nested inside `viewInputs` below the top level', () => {
+    // Top-level functions in `viewInputs` get auto-scoped to the parent
+    // boundary so handlers built inside them dispatch through the
+    // parent's wrapping chain. A function nested inside an object value
+    // would silently capture the child's boundary instead, almost
+    // never what the consumer intended. Fail loud at view-build time.
+    type NestedInputs = Readonly<{
+      config: Readonly<{ onSubmit: () => unknown }>
+    }>
+    const viewWithNested = defineView<object, ChildMessage, NestedInputs>(
+      (_model, _viewInputs) => h('div'),
+    )
+
+    expect(() =>
+      block({
+        slotId: 'nested-fn',
+        model: {},
+        view: viewWithNested,
+        viewInputs: {
+          config: {
+            onSubmit: () => undefined,
+          },
+        },
+        toParentMessage: message => GotChild({ entryId: 'nested-fn', message }),
+      }),
+    ).toThrow(/viewInputs\.config\.onSubmit/)
+  })
+
+  it('throws when a function value is nested inside an array element of `viewInputs`', () => {
+    // A natural list-shaped API (`viewInputs: { items: [{ onSelect: ... }] }`)
+    // is the most common way to accidentally smuggle a function below the
+    // top level. The walker iterates arrays and descends into element
+    // objects, so the error surfaces at view-build time.
+    type ItemsInputs = Readonly<{
+      items: ReadonlyArray<Readonly<{ onSelect: () => unknown }>>
+    }>
+    const viewWithItems = defineView<object, ChildMessage, ItemsInputs>(
+      (_model, _viewInputs) => h('div'),
+    )
+
+    expect(() =>
+      block({
+        slotId: 'items-fn',
+        model: {},
+        view: viewWithItems,
+        viewInputs: {
+          items: [{ onSelect: () => undefined }],
+        },
+        toParentMessage: message => GotChild({ entryId: 'items-fn', message }),
+      }),
+    ).toThrow(/viewInputs\.items\.\[0\]\.onSelect/)
+  })
+
+  it('accepts Effect data types like Option as top-level input fields', () => {
+    // The runtime walker uses `Object.keys` (own properties only), so
+    // values whose prototype carries function members like `pipe` are
+    // accepted. Models lean on `Option`, `Either`, and similar data
+    // types heavily; threading them through `viewInputs` is a common idiom.
+    type OptionInputs = Readonly<{ maybeValue: Option.Option<string> }>
+    const viewWithOption = defineView<object, ChildMessage, OptionInputs>(
+      (_model, _viewInputs) => h('div'),
+    )
+
+    expect(() =>
+      block({
+        slotId: 'option-input',
+        model: {},
+        view: viewWithOption,
+        viewInputs: { maybeValue: Option.some('hello') },
+        toParentMessage: message =>
+          GotChild({ entryId: 'option-input', message }),
+      }),
+    ).not.toThrow()
+  })
+})

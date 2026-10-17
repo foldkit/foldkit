@@ -1,14 +1,15 @@
 import { Effect, Schema } from 'effect'
-import { Command, Port, Update } from 'foldkit'
+import { Port } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
+import { Widget, widget } from './definition'
 import { Message } from './message'
 import { ports } from './ports'
 
 // An outbound Port is written from a Command. Port.emit encodes the value
 // and delivers it to every host listener; the Command acknowledges with a
 // Completed* Message like any other fire-and-forget Command.
-export const ReportCount = Command.define('ReportCount', {
+export const ReportCount = Widget.command('ReportCount', {
   args: { count: Schema.Number },
   messages: [Message.CompletedReportCount],
   handler: function* () {
@@ -22,7 +23,7 @@ export const ReportCount = Command.define('ReportCount', {
 export const EffectsLayer = ReportCount.layer
 
 // In update, emitting is just returning the Command:
-const handleAdvance = Update.defineStep((model: Model) => {
+const handleAdvance = widget.step(model => {
   const count = model.count + model.step
   return {
     model: modifyFields(model, { count: () => count }),

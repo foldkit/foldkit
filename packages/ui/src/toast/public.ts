@@ -21,9 +21,6 @@ export {
   type CancelledSwipe,
   type PressedEscape,
   type CompletedWaitForSwipeSettled,
-  WaitBeforeDismissal,
-  WaitForSwipeSettled,
-  EffectsLayer,
 } from './index.js'
 
 export * as test from './test.js'

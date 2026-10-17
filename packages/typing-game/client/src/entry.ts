@@ -1,29 +1,24 @@
-import { pipe } from 'effect'
-import { Application, Runtime } from 'foldkit'
+import { Runtime } from 'foldkit'
 
+import { ApplicationComposition } from './composition'
 import { init } from './init'
-import { AppLayer } from './layer'
+import { EffectsLayer } from './layer'
 import { Message } from './message'
-import { Model } from './model'
-import { subscriptions } from './subscription'
+import { ApplicationLayer } from './services'
 import { update } from './update'
 import { view } from './view'
 
-const application = Application.make({
-  Model,
+const application = ApplicationComposition.makeApplication({
   init,
   update,
   view,
-  subscriptions,
+  EffectsLayer,
   container: document.getElementById('root'),
-  devTools: {
-    Message,
-    mode: 'TimeTravel',
-  },
+  devTools: { Message, mode: 'TimeTravel' },
   routing: {
     onUrlRequest: request => Message.ClickedLink({ request }),
     onUrlChange: url => Message.ChangedUrl({ url }),
   },
 })
 
-pipe(application, Application.provide(AppLayer), Runtime.run)
+Runtime.run(application.provide(ApplicationLayer))

@@ -3,6 +3,7 @@ import { modifyFields } from 'foldkit/struct'
 import { expect, test } from 'vitest'
 
 import { RadioGroup } from '@foldkit/ui'
+import { FocusOption } from '@foldkit/ui/radioGroup'
 
 import { FetchTelemetry, SyncChart } from './command'
 import {
@@ -11,9 +12,9 @@ import {
   chartModes,
   packageIds,
 } from './domain'
-import { loadingModel, readyModel, sampleTelemetry } from './main.fixture'
 import { Message } from './message'
 import { TelemetryAsyncData } from './model'
+import { loadingModel, readyModel, sampleTelemetry } from './model.fixture'
 import { update } from './update'
 
 const selectedChartMode = (chartMode: ChartMode) =>
@@ -33,7 +34,7 @@ const selectedPackage = (packageId: PackageId) =>
   })
 
 const resolveChartModeFocus = Command.resolve(
-  RadioGroup.FocusOption,
+  FocusOption,
   RadioGroup.Message.CompletedFocusOption(),
 )
 

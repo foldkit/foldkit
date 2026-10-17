@@ -1,5 +1,3 @@
-import type { HtmlBuilder } from 'foldkit/html'
-import type * as Mount from 'foldkit/mount'
 import * as Scene from 'foldkit/scene'
 import { expect } from 'vitest'
 
@@ -13,12 +11,11 @@ import {
   arrowId,
   buttonId,
   init,
-  mounts,
   update,
   view,
 } from './public.js'
 
-type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
+type TestHtmlBuilder = Parameters<typeof view>[2]
 
 const acknowledgeAnchor = Scene.Mount.resolve(
   AnchorPopover,

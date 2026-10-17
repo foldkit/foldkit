@@ -6,13 +6,13 @@ An accessible date picker that wraps `Calendar` in a `Popover`. Consumers provid
 
 ### State Ownership
 
-DatePicker is a Submodel. Initialize it with `DatePicker.init()`, store its Model in the parent, wire its Messages through [`Update.foldChild`](/core/submodel#fold-child), and render it with `DatePicker.view()`.
+`DatePicker.block` is a completed Block. Declare its startup arguments on the Binding, register that Binding in the parent Composition, and render it through `Binding.embedView`. The Composition update routes the wrapper Message through the Binding automatically.
 
-The parent owns the selected date. Store it in the parent Model, pass it to the view as `maybeSelectedDate`, and handle `SelectedDate` and `ClearedDate` in the fold's `foldOutMessage`. DatePicker can also emit `ChangedViewMonth` when navigation changes the visible month.
+The parent owns the selected date. Store it in the parent Model, pass it to the view as `maybeSelectedDate`, and handle `SelectedDate` and `ClearedDate` in the Binding's `outMessage.fold` policy. DatePicker can also emit `ChangedViewMonth` when navigation changes the visible month.
 
 ### Programmatic Control
 
-For programmatic control in a parent update, fold `DatePicker.open` and `DatePicker.close` with `Update.foldChildStep`. Both helpers can emit an OutMessage that reports whether the DatePicker opened or closed.
+For programmatic control in a parent update, call the Binding’s `open()` and `close()` operations. Both can emit an OutMessage that reports whether the DatePicker opened or closed.
 
 ### Calendar Views
 
@@ -65,7 +65,7 @@ The trigger button uses `aria-expanded` and `aria-controls` to announce the popo
 
 ### Naming the Trigger
 
-Give the trigger an accessible name. For a visible label, wire a native `<label for>` that targets the trigger id with `DatePicker.triggerId(id)` rather than hardcoding the `-popover-button` convention. The `for` association makes the trigger properly labeled: assistive technology announces it by the visible label text, and clicking the label opens the date picker. That is why it is the recommended pattern.
+Give the trigger an accessible name. For a visible label, wire a native `<label for>` that targets the trigger id with `triggerId(id)` imported from `@foldkit/ui/datePicker` rather than hardcoding the `-popover-button` convention. The `for` association makes the trigger properly labeled: assistive technology announces it by the visible label text, and clicking the label opens the date picker. That is why it is the recommended pattern.
 
 Two ViewInputs fields cover the cases a `<label for>` does not. Pass `ariaLabel` for an icon-only trigger with no visible label, or `ariaLabelledBy` when the element that names the trigger is not a `<label>` you can point `for` at.
 
@@ -73,7 +73,7 @@ Two ViewInputs fields cover the cases a `<label for>` does not. Pass `ariaLabel`
 
 ### InitConfig {#init-config}
 
-Configuration object passed to `DatePicker.init()`. Calendar constraints (min/max, disabled dates) are forwarded to the embedded Calendar submodel.
+Configuration object passed to `DatePicker.init()`. Calendar constraints (min/max, disabled dates) are forwarded to the embedded Calendar block.
 
 | Name                 | Type                          | Default                | Description                                                                                                                                                                                      |
 | -------------------- | ----------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -91,15 +91,15 @@ Configuration object passed to `DatePicker.init()`. Calendar constraints (min/ma
 
 The DatePicker Model. Stored on your parent Model and threaded through `DatePicker.update()` and `DatePicker.view()`.
 
-| Name       | Type             | Default | Description                                                                                                                                                                                                      |
-| ---------- | ---------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`       | `string`         | —       | The date picker instance ID.                                                                                                                                                                                     |
-| `calendar` | `Calendar.Model` | —       | The embedded Calendar submodel. Forwards navigation, focus, locale, and disabled-cell state. The picker delegates Calendar messages and resets the calendar to Days mode every time the popover opens or closes. |
-| `popover`  | `Popover.Model`  | —       | The embedded Popover submodel. Tracks open/close state, animation phase, and focus choreography (opening focuses the calendar grid, closing returns focus to the trigger).                                       |
+| Name       | Type             | Default | Description                                                                                                                                                                                                   |
+| ---------- | ---------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`       | `string`         | —       | The date picker instance ID.                                                                                                                                                                                  |
+| `calendar` | `Calendar.Model` | —       | The embedded Calendar block. Forwards navigation, focus, locale, and disabled-cell state. The picker delegates Calendar messages and resets the calendar to Days mode every time the popover opens or closes. |
+| `popover`  | `Popover.Model`  | —       | The embedded Popover block. Tracks open/close state, animation phase, and focus choreography (opening focuses the calendar grid, closing returns focus to the trigger).                                       |
 
 ### ViewInputs {#view-config}
 
-Pass these fields under `viewInputs` when `h.submodel` renders `DatePicker.view`. The surrounding `h.submodel` configuration separately receives `slotId`, `model`, `view`, and `toParentMessage`.
+Pass the child Model as `model` and these fields as `viewInputs` to the DatePicker Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep `triggerContent` and `toCalendarView` at the top level, and use `childAttributes` for handler-bearing attribute inputs; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
 
 | Name                                                | Type                                             | Default | Description                                                                                                                                                                                                                                                                                     |
 | --------------------------------------------------- | ------------------------------------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -109,7 +109,8 @@ Pass these fields under `viewInputs` when `h.submodel` renders `DatePicker.view`
 | `toCalendarView`                                    | `(attributes: CalendarAttributes) => Html`       | —       | Renders the calendar grid layout inside the popover panel. Same callback shape as Calendar.view toView. Lay out the attribute groups (for example grid, header, weeks, or cells) however you like.                                                                                              |
 | `isDisabled`                                        | `boolean`                                        | `false` | Disables the trigger button, preventing the popover from opening.                                                                                                                                                                                                                               |
 | `name`                                              | `string`                                         | —       | When provided, renders a hidden `<input>` with this name and the selected date encoded as an ISO string (YYYY-MM-DD) for native form submission.                                                                                                                                                |
-| `triggerClassName / triggerAttributes`              | `string / ReadonlyArray<Attribute<Message>>`     | —       | Class name and additional attributes spread onto the trigger button.                                                                                                                                                                                                                            |
+| `className / attributes`                            | `string / ReadonlyArray<ChildAttribute>`         | —       | Class name and additional attributes spread onto the outer DatePicker wrapper.                                                                                                                                                                                                                  |
+| `triggerClassName / triggerAttributes`              | `string / ReadonlyArray<ChildAttribute>`         | —       | Class name and additional attributes spread onto the trigger button.                                                                                                                                                                                                                            |
 | `ariaLabel`                                         | `string`                                         | —       | Accessible name for the trigger button. Use for an icon-only trigger with no visible label. Applied as aria-label, and takes precedence over ariaLabelledBy.                                                                                                                                    |
 | `ariaLabelledBy`                                    | `string`                                         | —       | Id of an external element that labels the trigger button, applied as aria-labelledby. Pair with a visible label element.                                                                                                                                                                        |
 | `previousMonthLabel / nextMonthLabel`               | `string / string`                                | English | Accessible labels for the Calendar's previous- and next-month buttons.                                                                                                                                                                                                                          |
@@ -119,8 +120,8 @@ Pass these fields under `viewInputs` when `h.submodel` renders `DatePicker.view`
 | `toWeekLabel`                                       | `(weekStart: CalendarDate) => string`            | English | Builds each week-row label from its first date.                                                                                                                                                                                                                                                 |
 | `toMonthsGridLabel`                                 | `(year: number) => string`                       | English | Builds the Months grid label from its displayed year.                                                                                                                                                                                                                                           |
 | `toYearsGridLabel`                                  | `(startYear: number, endYear: number) => string` | English | Builds the Years grid label from the bounds of its displayed window.                                                                                                                                                                                                                            |
-| `panelClassName / panelAttributes`                  | `string / ReadonlyArray<Attribute<Message>>`     | —       | Class name and additional attributes spread onto the popover panel.                                                                                                                                                                                                                             |
-| `backdropClassName / backdropAttributes`            | `string / ReadonlyArray<Attribute<Message>>`     | —       | Class name and additional attributes spread onto the click-outside backdrop.                                                                                                                                                                                                                    |
+| `panelClassName / panelAttributes`                  | `string / ReadonlyArray<ChildAttribute>`         | —       | Class name and additional attributes spread onto the popover panel.                                                                                                                                                                                                                             |
+| `backdropClassName / backdropAttributes`            | `string / ReadonlyArray<ChildAttribute>`         | —       | Class name and additional attributes spread onto the click-outside backdrop.                                                                                                                                                                                                                    |
 
 ### CalendarAttributes {#calendar-attributes}
 
@@ -128,13 +129,13 @@ The discriminated union passed to `toCalendarView`. Pattern-match on `_tag` (`'D
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the optional `outMessage` field. Fold the OutMessage in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config.
+Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s `outMessage.fold` policy.
 
-| Name               | Type                              | Default | Description                                                                                                                                                                                 |
-| ------------------ | --------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SelectedDate`     | `{ date: CalendarDate }`          | —       | Emitted when the user commits a date (click / Enter / Space). Fold it in the `foldOutMessage` of your DatePicker fold to lift the date into domain state.                                   |
-| `ClearedDate`      | `{}`                              | —       | Emitted when the user clears the selected date (via Cleared or DatePicker.clear). The popover stays open. Fold it into the parent-owned selected-date field by setting it to Option.none(). |
-| `ChangedViewMonth` | `{ year: number; month: number }` | —       | Emitted when navigation changes the visible month inside the calendar grid.                                                                                                                 |
+| Name               | Type                              | Default | Description                                                                                                                                                                                          |
+| ------------------ | --------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SelectedDate`     | `{ date: CalendarDate }`          | —       | Emitted when the user commits a date (click / Enter / Space). Handle it in the Binding's `outMessage.fold` policy to lift the date into domain state.                                                |
+| `ClearedDate`      | `{}`                              | —       | Emitted when the user clears the selected date (via `Cleared` or the Binding’s `clear()`). The popover stays open. Fold it into the parent-owned selected-date field by setting it to Option.none(). |
+| `ChangedViewMonth` | `{ year: number; month: number }` | —       | Emitted when navigation changes the visible month inside the calendar grid.                                                                                                                          |
 
 ### Programmatic Helpers
 

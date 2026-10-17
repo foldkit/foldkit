@@ -5,9 +5,15 @@ import { describe, expect, test } from 'vitest'
 
 import { Counter } from './island'
 import { Message as CounterMessage } from './island/counter'
-import { AppRoute, Message, Model, update } from './main'
+import { Message } from './message'
+import { Model } from './model'
+import { ApplicationRoute } from './route'
+import { update } from './update'
 
-const home = Model.make({ route: AppRoute.Home(), counter: Counter.init })
+const home = Model.make({
+  route: ApplicationRoute.Home(),
+  counter: Counter.init().model,
+})
 
 const urlOrThrow = (raw: string) =>
   Option.getOrThrowWith(
@@ -79,7 +85,7 @@ describe('update', () => {
   })
 
   describe('GotCounterMessage', () => {
-    test('increments route through the Counter submodel without commands', () => {
+    test('increments route through the Counter Block without commands', () => {
       story(
         update,
         given(home),

@@ -20,8 +20,6 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-// OUT MESSAGE
-
 export const OutMessage = defineMessageUnion({
   CreatedRoom: { roomId: Schema.String, player: Shared.Player },
   JoinedRoom: { roomId: Schema.String, player: Shared.Player },

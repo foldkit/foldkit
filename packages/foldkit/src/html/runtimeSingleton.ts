@@ -1,5 +1,12 @@
 import type { Context } from 'effect'
 
+import type { ViewIdentity } from '../block/identity.js'
+import {
+  type InstanceFrame,
+  enterHistoricalInstanceTree,
+  guardInstanceDispatch,
+} from '../block/instanceContext.js'
+import { invocationContext } from '../block/scope.js'
 import {
   type BoundaryId,
   type BoundaryRegistry,
@@ -11,10 +18,13 @@ import {
   resolveMountBoundaryDispatch,
 } from './boundary.js'
 
-/** Synchronous message dispatcher provided to view-time element constructors. */
-export type DispatchSync = (message: unknown) => void
+/** Synchronous Message dispatcher provided to view-time element constructors.
+ * The optional guard suppresses dispatch after its captured occurrence is no
+ * longer current. */
+export type DispatchSync = (message: unknown, isCurrent?: () => boolean) => void
 
-/** Identifies which kind of render acquired a Mount. */
+/** Identifies whether a Mount was acquired by the live view or a historical
+ * test replay. */
 export type MountRenderOwner = 'Live' | 'Replay'
 
 /** Resolves the render-owned dispatcher for a Mount at insertion time. */
@@ -30,6 +40,8 @@ export type Frame = Readonly<{
   runtimeContext: Context.Context<never>
   boundaryRegistry: BoundaryRegistry
   boundaryId: BoundaryId
+  effectPath?: ReadonlyArray<string>
+  viewIdentity?: ViewIdentity
 }>
 
 const stack: Array<Frame> = []
@@ -54,8 +66,8 @@ const requireFrame = (): Frame => {
  *  paired {@link clearRuntime} so the previous frame is restored.
  *
  *  Optionally accepts a {@link BoundaryRegistry}; the runtime supplies the
- *  same registry across renders so Submodel wrap descriptors persist. When
- *  omitted (e.g. crash views, test helpers that don't use Submodels), a
+ *  same registry across renders so Block wrap blocks persist. When
+ *  omitted (e.g. crash views, test helpers that don't use Blocks), a
  *  fresh empty registry is created. The frame starts in the root
  *  boundary. */
 export const setRuntime = (
@@ -68,17 +80,25 @@ export const setRuntime = (
     outerDispatch: dispatch,
     mountOuterDispatch: dispatch,
     mountRenderOwner,
-    runtimeContext,
+    runtimeContext:
+      mountRenderOwner === 'Replay'
+        ? enterHistoricalInstanceTree(runtimeContext)
+        : runtimeContext,
     boundaryRegistry,
     boundaryId: ROOT_BOUNDARY,
   })
 }
 
 /** Pushes a new frame that inherits the current frame's dispatch, context,
- *  and registry, but uses a different boundary. Used by `h.submodel` to
- *  enter a child Submodel's wrapping context. Must be paired with
+ *  and registry, but uses a different boundary. Used by `h.block` to
+ *  enter a child Block's wrapping context. Must be paired with
  *  {@link clearRuntime}. */
-export const pushBoundary = (boundaryId: BoundaryId): void => {
+export const pushBoundary = (
+  boundaryId: BoundaryId,
+  effectScope?: string,
+  viewIdentity?: ViewIdentity,
+  instance?: InstanceFrame,
+): void => {
   const parent = stack[stack.length - 1]
   if (parent === undefined) {
     throw new Error(
@@ -86,18 +106,29 @@ export const pushBoundary = (boundaryId: BoundaryId): void => {
     )
   }
   stack.push({
-    outerDispatch: parent.outerDispatch,
-    mountOuterDispatch: parent.mountOuterDispatch,
-    mountRenderOwner: parent.mountRenderOwner,
-    runtimeContext: parent.runtimeContext,
-    boundaryRegistry: parent.boundaryRegistry,
+    ...parent,
     boundaryId,
+    ...(viewIdentity === undefined ? {} : { viewIdentity }),
+    ...(effectScope === undefined
+      ? {}
+      : {
+          runtimeContext: invocationContext(
+            effectScope,
+            parent.runtimeContext,
+            instance,
+            parent.mountRenderOwner === 'Replay',
+          ),
+          effectPath: [
+            ...(parent.effectPath ?? []),
+            `${effectScope}${instance?.key === undefined ? '' : `[${JSON.stringify(instance.key)}]`}`,
+          ],
+        }),
   })
 }
 
 /** Pushes a fully-specified frame, ignoring whatever is currently on the
- *  stack. Used by `h.submodel`'s slot-callback wrapping so the wrapped
- *  callback runs in the OUTER (parent) Submodel's context, regardless of
+ *  stack. Used by `h.block`'s slot-callback wrapping so the wrapped
+ *  callback runs in the OUTER (parent) Block's context, regardless of
  *  what frame is active at the time the callback is invoked.
  *
  *  Unlike {@link pushBoundary} (which inherits dispatch/registry/context
@@ -124,7 +155,7 @@ export const clearRuntime = (): void => {
     throw new Error(
       'Foldkit: clearRuntime called on an empty runtime stack. This means ' +
         'a `pushBoundary` or `setRuntime` was not paired with `clearRuntime` ' +
-        '(or vice versa) upstream. Likely a bug in a custom Submodel ' +
+        '(or vice versa) upstream. Likely a bug in a custom Block ' +
         'integration or view-time helper.',
     )
   }
@@ -132,15 +163,18 @@ export const clearRuntime = (): void => {
 }
 
 /** Returns the current dispatcher. For frames in the root boundary, this
- *  is the runtime's actual dispatch; for nested Submodel boundaries, this
+ *  is the runtime's actual dispatch; for nested Block boundaries, this
  *  is a cached per-boundary dispatcher that applies the wrapping chain at
  *  event-fire time. Throws when called outside of a runtime frame. */
 export const requireDispatch = (): DispatchSync => {
   const frame = requireFrame()
-  return getOrCreateBoundaryDispatch(
-    frame.boundaryRegistry,
-    frame.outerDispatch,
-    frame.boundaryId,
+  return guardInstanceDispatch(
+    frame.runtimeContext,
+    getOrCreateBoundaryDispatch(
+      frame.boundaryRegistry,
+      frame.outerDispatch,
+      frame.boundaryId,
+    ),
   )
 }
 
@@ -170,13 +204,13 @@ export const requireUnmountResolver = (): UnmountResolver => {
   return message =>
     resolveBoundaryDispatchThunk(
       frame.boundaryRegistry,
-      frame.outerDispatch,
+      guardInstanceDispatch(frame.runtimeContext, frame.outerDispatch),
       frame.boundaryId,
       message,
     )
 }
 
-/** Returns the current frame's Submodel wrapping chain (innermost first), or an
+/** Returns the current frame's Block wrapping chain (innermost first), or an
  *  empty array at the root boundary. `OnMount` records this build-time snapshot
  *  for the Scene test harness, which replays the chain when the Mount is
  *  resolved. Production Mount dispatch uses the ownership-aware resolver below.
@@ -192,7 +226,7 @@ export const requireBoundaryMappers = (): ReadonlyArray<
   return boundaryMappers(frame.boundaryRegistry, frame.boundaryId)
 }
 
-/** Returns a resolver bound to the current frame's render owner and Submodel
+/** Returns a resolver bound to the current frame's render owner and Block
  *  boundary. Mounts invoke it from their insert hook, so a cached VNode uses
  *  the dispatcher for the render that acquires it. That dispatcher follows
  *  later wrapper registrations from the same owner without crossing between
@@ -202,10 +236,13 @@ export const requireMountDispatchResolver = (): MountDispatchResolver => {
   return {
     owner: frame.mountRenderOwner,
     resolve: () =>
-      resolveMountBoundaryDispatch(
-        frame.boundaryRegistry,
-        frame.mountOuterDispatch,
-        frame.boundaryId,
+      guardInstanceDispatch(
+        frame.runtimeContext,
+        resolveMountBoundaryDispatch(
+          frame.boundaryRegistry,
+          frame.mountOuterDispatch,
+          frame.boundaryId,
+        ),
       ),
   }
 }
@@ -217,7 +254,7 @@ export const requireRuntimeContext = (): Context.Context<never> => {
 }
 
 /** Returns the current frame's boundary registry and boundary id. Used by
- *  `h.submodel` to register wrapping descriptors and compute child
+ *  `h.block` to register wrapping blocks and compute child
  *  boundary ids. Throws when called outside of a runtime frame. */
 export const requireBoundary = (): Readonly<{
   registry: BoundaryRegistry
@@ -226,13 +263,13 @@ export const requireBoundary = (): Readonly<{
   const frame = stack[stack.length - 1]
   if (frame === undefined) {
     throw new Error(
-      'Foldkit: h.submodel must be called inside a runtime-driven render',
+      'Foldkit: h.block must be called inside a runtime-driven render',
     )
   }
   return { registry: frame.boundaryRegistry, boundaryId: frame.boundaryId }
 }
 
-/** Returns the full current frame, used by `h.submodel` to snapshot the
+/** Returns the full current frame, used by `h.block` to snapshot the
  *  parent's context before pushing a child boundary. The snapshot is
  *  captured into slot-callback closures so they can replay the parent's
  *  full frame via {@link pushFrame} when invoked, instead of inheriting
@@ -247,3 +284,11 @@ export const getCurrentFrame = (): Frame => {
   }
   return frame
 }
+
+/** @internal Reads the composition path without requiring an active render. */
+export const currentEffectPath = (): ReadonlyArray<string> =>
+  stack[stack.length - 1]?.effectPath ?? []
+
+/** @internal Reads a view's owner without requiring an active render. */
+export const currentViewIdentity = (): ViewIdentity | undefined =>
+  stack[stack.length - 1]?.viewIdentity

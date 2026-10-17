@@ -5,8 +5,6 @@ import { Button } from '@foldkit/ui'
 import { Session } from '../../../domain/session'
 import { Message } from '../message'
 
-// VIEW
-
 const infoRow = (label: string, value: string, h: HtmlBuilder<Message>): Html =>
   h.div(
     [

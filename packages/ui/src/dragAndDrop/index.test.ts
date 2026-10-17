@@ -1,15 +1,16 @@
-import { Effect, Fiber, Option, Stream } from 'effect'
+import { Array, Effect, Fiber, Option, Stream } from 'effect'
 import * as Story from 'foldkit/story'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
 import {
-  EffectsLayer,
   FocusItem,
   Message,
+  type Model,
   OutMessage,
   ResolveKeyboardMove,
+  block,
   ghostStyle,
   init,
   isDragging,
@@ -18,6 +19,7 @@ import {
   subscriptions,
   update,
 } from './index.js'
+import * as DragAndDropTest from './test.js'
 
 const defaultInit = () => init({ id: 'test' })
 
@@ -507,7 +509,7 @@ describe('DragAndDrop', () => {
           Effect.sync(() => {
             received.push(message)
           }),
-        ).pipe(Effect.provide(EffectsLayer)),
+        ).pipe(Effect.provide(block.EffectsLayer)),
       )
 
       await waitForNextTurn()
@@ -674,6 +676,104 @@ describe('DragAndDrop', () => {
           expect(ghostStyle(model)).toStrictEqual(Option.none())
         }),
       )
+    })
+  })
+
+  describe('test helpers', () => {
+    it('settleFocus resolves focus after a keyboard drop', () => {
+      Story.story(
+        update,
+        Story.given(defaultInit()),
+        Story.message(activatedKeyboardDrag),
+        Story.message(Message.ConfirmedKeyboardDrop()),
+        Story.expectOutMessage(
+          OutMessage.Reordered({
+            itemId: 'item-1',
+            fromContainerId: 'list-1',
+            fromIndex: 0,
+            toContainerId: 'list-1',
+            toIndex: 0,
+          }),
+        ),
+        DragAndDropTest.settleFocus({ itemId: 'item-1' }),
+        Story.model(model => {
+          expect(isDragging(model)).toBe(false)
+        }),
+      )
+    })
+
+    it('resolveKeyboardMove supplies the target and resolves focus', () => {
+      Story.story(
+        update,
+        Story.given(defaultInit()),
+        Story.message(activatedKeyboardDrag),
+        Story.message(Message.PressedArrowKey({ direction: 'NextContainer' })),
+        DragAndDropTest.resolveKeyboardMove({
+          itemId: 'item-1',
+          targetContainerId: 'list-2',
+          targetIndex: 3,
+        }),
+        Story.model(model => {
+          expect(maybeDropTarget(model)).toEqual(
+            Option.some({ containerId: 'list-2', index: 3 }),
+          )
+        }),
+      )
+    })
+
+    it('settleFocus rejects a missing focus Command', () => {
+      expect(() =>
+        Story.story(
+          update,
+          Story.given(defaultInit()),
+          DragAndDropTest.settleFocus({ itemId: 'item-1' }),
+        ),
+      ).toThrow('no matching pending Command was found')
+    })
+
+    it('resolveKeyboardMove rejects a missing move Command', () => {
+      expect(() =>
+        Story.story(
+          update,
+          Story.given(defaultInit()),
+          Story.message(activatedKeyboardDrag),
+          DragAndDropTest.resolveKeyboardMove({
+            itemId: 'item-1',
+            targetContainerId: 'list-2',
+            targetIndex: 3,
+          }),
+        ),
+      ).toThrow('no matching pending Command was found')
+    })
+
+    it('resolveKeyboardMove rejects a move that omits its focus Command', () => {
+      const updateWithoutFocus = (model: Model, message: Message) => {
+        const dragAndDropUpdate = update(model, message)
+
+        return {
+          ...dragAndDropUpdate,
+          commands: Array.filter(
+            dragAndDropUpdate.commands ?? [],
+            command => command.name !== FocusItem.name,
+          ),
+        }
+      }
+
+      expect(() =>
+        Story.story(
+          updateWithoutFocus,
+          Story.given(defaultInit()),
+          Story.message(activatedKeyboardDrag),
+          Story.message(
+            Message.PressedArrowKey({ direction: 'NextContainer' }),
+          ),
+          DragAndDropTest.resolveKeyboardMove({
+            itemId: 'item-1',
+            targetContainerId: 'list-2',
+            targetIndex: 3,
+          }),
+        ),
+      ).toThrow('no matching pending Command was found')
     })
   })
 })

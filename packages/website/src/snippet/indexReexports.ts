@@ -1,13 +1,7 @@
 // page/products/index.ts
+export { block } from './block'
 export { Model } from './model'
-export { Message } from './message'
-export { EffectsLayer } from './layer'
-export { subscriptions } from './subscription'
-export { managedResources } from './managedResource'
-export { mounts } from './mount'
-export { init } from './init'
-export { update } from './update'
-export { view } from './view'
+export { Message, OutMessage } from './message'
 
 // page/index.ts
 export * as Home from './home'

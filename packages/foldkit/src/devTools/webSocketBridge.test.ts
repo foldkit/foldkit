@@ -324,7 +324,7 @@ describe('dispatchRequest', () => {
                 label: 'command-api-key',
               }),
             },
-            maybeSubmodelPath: Option.none(),
+            maybeBlockPath: Option.none(),
           },
         ],
         [
@@ -351,7 +351,7 @@ describe('dispatchRequest', () => {
                 label: 'command-api-key',
               }),
             },
-            maybeSubmodelPath: Option.none(),
+            maybeBlockPath: Option.none(),
           },
         ],
         true,
@@ -420,7 +420,7 @@ describe('dispatchRequest', () => {
       {
         name: 'Reconnect',
         args: Option.some({ apiKey: '<redacted:command-api-key>' }),
-        maybeSubmodelPath: Option.none(),
+        maybeBlockPath: Option.none(),
       },
     ])
     expect(message.entry.mountStarts).toEqual([
@@ -438,7 +438,7 @@ describe('dispatchRequest', () => {
       {
         name: 'Connect',
         args: Option.some({ apiKey: '<redacted:command-api-key>' }),
-        maybeSubmodelPath: Option.none(),
+        maybeBlockPath: Option.none(),
       },
     ])
     expect(init.mountStarts).toEqual([

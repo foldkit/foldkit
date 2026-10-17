@@ -1,4 +1,4 @@
-import { Schema, String, pipe } from 'effect'
+import { Option, Schema, String, pipe } from 'effect'
 import {
   defineRouteUnion,
   literal,
@@ -14,7 +14,7 @@ import type { CallableTaggedStruct } from 'foldkit/schema'
 
 // ROUTE SCHEMAS
 
-export const AppRoute = defineRouteUnion({
+export const ApplicationRoute = defineRouteUnion({
   Home: {},
   WhyFoldkit: {},
   Performance: {},
@@ -70,14 +70,14 @@ export const AppRoute = defineRouteUnion({
   CorePreserveScroll: {},
   CoreViewMemoization: {},
   CoreEmbedding: {},
-  CoreSubmodel: {},
+  CoreBlock: {},
   CoreMachine: {},
   AsyncData: {},
   PatternsAntiPatterns: {},
-  PatternsInformingSubmodels: {},
+  PatternsInformingBlocks: {},
   PatternsSubscriptionOrganization: {},
   UiOverview: {},
-  UiSelectionSubmodels: {},
+  UiSelectionBlocks: {},
   UiButton: {},
   UiCalendar: {},
   UiDatePicker: {},
@@ -119,9 +119,16 @@ export const AppRoute = defineRouteUnion({
   BlogPost: { postSlug: Schema.String },
   NotFound: { path: Schema.String },
 })
-export type AppRoute = typeof AppRoute.Type
+export type ApplicationRoute = typeof ApplicationRoute.Type
 
-export const DocsRoute = AppRoute.subset([
+export const maybeExampleSlugForRoute = (
+  route: ApplicationRoute,
+): Option.Option<string> =>
+  route._tag === 'ExampleDetail'
+    ? Option.some(route.exampleSlug)
+    : Option.none()
+
+export const DocsRoute = ApplicationRoute.subset([
   'WhyFoldkit',
   'Performance',
   'ComingFromReact',
@@ -175,14 +182,14 @@ export const DocsRoute = AppRoute.subset([
   'CorePreserveScroll',
   'CoreViewMemoization',
   'CoreEmbedding',
-  'CoreSubmodel',
+  'CoreBlock',
   'CoreMachine',
   'AsyncData',
   'PatternsAntiPatterns',
-  'PatternsInformingSubmodels',
+  'PatternsInformingBlocks',
   'PatternsSubscriptionOrganization',
   'UiOverview',
-  'UiSelectionSubmodels',
+  'UiSelectionBlocks',
   'UiButton',
   'UiCalendar',
   'UiDatePicker',
@@ -223,19 +230,19 @@ export const DocsRoute = AppRoute.subset([
 ])
 export type DocsRoute = typeof DocsRoute.Type
 
-export type BlogRoute = typeof AppRoute.Blog.Type
-export type BlogPostRoute = typeof AppRoute.BlogPost.Type
-export type PlaygroundRoute = typeof AppRoute.Playground.Type
+export type BlogRoute = typeof ApplicationRoute.Blog.Type
+export type BlogPostRoute = typeof ApplicationRoute.BlogPost.Type
+export type PlaygroundRoute = typeof ApplicationRoute.Playground.Type
 
-export const isPlaygroundRoute = AppRoute.isAnyOf(['Playground'])
+export const isPlaygroundRoute = ApplicationRoute.isAnyOf(['Playground'])
 
-export const isBlogRoute = AppRoute.isAnyOf(['Blog', 'BlogPost'])
+export const isBlogRoute = ApplicationRoute.isAnyOf(['Blog', 'BlogPost'])
 
-const isMarketingRoute = AppRoute.isAnyOf(['Home', 'Newsletter'])
+const isMarketingRoute = ApplicationRoute.isAnyOf(['Home', 'Newsletter'])
 
 const isDocsUnionRoute = Schema.is(DocsRoute)
 
-export const isSearchRoute = (route: AppRoute): boolean =>
+export const isSearchRoute = (route: ApplicationRoute): boolean =>
   isDocsUnionRoute(route) || isBlogRoute(route) || isMarketingRoute(route)
 
 /**
@@ -244,7 +251,7 @@ export const isSearchRoute = (route: AppRoute): boolean =>
  * top-level route cannot silently join the section. `NotFound` is a member of
  * the union so 404s render in the docs shell, but it belongs to no section.
  */
-export const isDocsSectionRoute = (route: AppRoute): boolean =>
+export const isDocsSectionRoute = (route: ApplicationRoute): boolean =>
   isDocsUnionRoute(route) && route._tag !== 'NotFound'
 
 // ROUTERS
@@ -274,228 +281,294 @@ const bestPractices = section('best-practices')
 const ui = section('ui')
 const ai = section('ai')
 
-export const homeRouter = pipe(root, mapTo(AppRoute.Home))
+export const homeRouter = pipe(root, mapTo(ApplicationRoute.Home))
 
-export const whyFoldkitRouter = introduction('why-foldkit', AppRoute.WhyFoldkit)
-export const getStartedRouter = staticPage('get-started', AppRoute.GetStarted)
+export const whyFoldkitRouter = introduction(
+  'why-foldkit',
+  ApplicationRoute.WhyFoldkit,
+)
+export const getStartedRouter = staticPage(
+  'get-started',
+  ApplicationRoute.GetStarted,
+)
 
-export const roadmapRouter = introduction('roadmap', AppRoute.Roadmap)
+export const roadmapRouter = introduction('roadmap', ApplicationRoute.Roadmap)
 
-const whyFoldkitFromGetStarted = getStarted('why-foldkit', AppRoute.WhyFoldkit)
-const getStartedFromNested = getStarted('getting-started', AppRoute.GetStarted)
-const roadmapFromRoot = staticPage('roadmap', AppRoute.Roadmap)
+const whyFoldkitFromGetStarted = getStarted(
+  'why-foldkit',
+  ApplicationRoute.WhyFoldkit,
+)
+const getStartedFromNested = getStarted(
+  'getting-started',
+  ApplicationRoute.GetStarted,
+)
+const roadmapFromRoot = staticPage('roadmap', ApplicationRoute.Roadmap)
 
-export const performanceRouter = faq('performance', AppRoute.Performance)
+export const performanceRouter = faq(
+  'performance',
+  ApplicationRoute.Performance,
+)
 
 export const comingFromReactRouter = react(
   'coming-from-react',
-  AppRoute.ComingFromReact,
+  ApplicationRoute.ComingFromReact,
 )
 export const comingFromTanStackQueryRouter = react(
   'coming-from-tanstack-query',
-  AppRoute.ComingFromTanStackQuery,
+  ApplicationRoute.ComingFromTanStackQuery,
 )
 export const reactComparisonRouter = react(
   'foldkit-vs-react-side-by-side',
-  AppRoute.ReactComparison,
+  ApplicationRoute.ReactComparison,
 )
 export const effectAtomComparisonRouter = react(
   'foldkit-vs-react-effect-atom',
-  AppRoute.EffectAtomComparison,
+  ApplicationRoute.EffectAtomComparison,
 )
 export const elmComparisonRouter = elm(
   'foldkit-vs-elm-side-by-side',
-  AppRoute.ElmComparison,
+  ApplicationRoute.ElmComparison,
 )
 
 export const routingAndNavigationRouter = core(
   'routing-and-navigation',
-  AppRoute.RoutingAndNavigation,
+  ApplicationRoute.RoutingAndNavigation,
 )
 export const fieldValidationRouter = core(
   'field-validation',
-  AppRoute.FieldValidation,
+  ApplicationRoute.FieldValidation,
 )
 
-export const testingRouter = staticPage('testing', AppRoute.Testing)
-export const testingStoryRouter = testing('story', AppRoute.TestingStory)
-export const testingSceneRouter = testing('scene', AppRoute.TestingScene)
+export const testingRouter = staticPage('testing', ApplicationRoute.Testing)
+export const testingStoryRouter = testing(
+  'story',
+  ApplicationRoute.TestingStory,
+)
+export const testingSceneRouter = testing(
+  'scene',
+  ApplicationRoute.TestingScene,
+)
 
-export const examplesRouter = staticPage('example-apps', AppRoute.Examples)
+export const examplesRouter = staticPage(
+  'example-apps',
+  ApplicationRoute.Examples,
+)
 export const exampleDetailRouter = pipe(
   literal('example-apps'),
   slash(string('exampleSlug')),
-  mapTo(AppRoute.ExampleDetail),
+  mapTo(ApplicationRoute.ExampleDetail),
 )
 export const typingTerminalRouter = pipe(
   literal('example-apps'),
   slash(literal('typing-terminal')),
-  mapTo(AppRoute.TypingTerminal),
+  mapTo(ApplicationRoute.TypingTerminal),
 )
 
 export const playgroundRouter = pipe(
   literal('playground'),
   slash(string('exampleSlug')),
-  mapTo(AppRoute.Playground),
+  mapTo(ApplicationRoute.Playground),
 )
 
 export const bestPracticesSideEffectsRouter = bestPractices(
   'side-effects-and-purity',
-  AppRoute.BestPracticesSideEffects,
+  ApplicationRoute.BestPracticesSideEffects,
 )
 export const bestPracticesMessagesRouter = bestPractices(
   'messages',
-  AppRoute.BestPracticesMessages,
+  ApplicationRoute.BestPracticesMessages,
 )
 export const bestPracticesKeyingRouter = bestPractices(
   'keying',
-  AppRoute.BestPracticesKeying,
+  ApplicationRoute.BestPracticesKeying,
 )
 export const bestPracticesImmutabilityRouter = bestPractices(
   'immutability',
-  AppRoute.BestPracticesImmutability,
+  ApplicationRoute.BestPracticesImmutability,
 )
 
 export const projectOrganizationRouter = patterns(
   'project-organization',
-  AppRoute.ProjectOrganization,
+  ApplicationRoute.ProjectOrganization,
 )
 export const toolingLintingRouter = tooling(
   'oxlint-plugin',
-  AppRoute.ToolingLinting,
+  ApplicationRoute.ToolingLinting,
 )
 
 export const apiModuleRouter = pipe(
   literal('api-reference'),
   slash(string('moduleSlug')),
-  mapTo(AppRoute.ApiModule),
+  mapTo(ApplicationRoute.ApiModule),
 )
 
 export const coreArchitectureRouter = core(
   'architecture',
-  AppRoute.CoreArchitecture,
+  ApplicationRoute.CoreArchitecture,
 )
 export const coreCounterExampleRouter = core(
   'counter-example',
-  AppRoute.CoreCounterExample,
+  ApplicationRoute.CoreCounterExample,
 )
-export const coreModelRouter = core('model', AppRoute.CoreModel)
-export const coreMessagesRouter = core('messages', AppRoute.CoreMessages)
-export const coreUpdateRouter = core('update', AppRoute.CoreUpdate)
-export const coreViewRouter = core('view', AppRoute.CoreView)
-export const coreCommandsRouter = core('commands', AppRoute.CoreCommands)
-export const coreMountRouter = core('mount', AppRoute.CoreMount)
+export const coreModelRouter = core('model', ApplicationRoute.CoreModel)
+export const coreMessagesRouter = core(
+  'messages',
+  ApplicationRoute.CoreMessages,
+)
+export const coreUpdateRouter = core('update', ApplicationRoute.CoreUpdate)
+export const coreViewRouter = core('view', ApplicationRoute.CoreView)
+export const coreCommandsRouter = core(
+  'commands',
+  ApplicationRoute.CoreCommands,
+)
+export const coreMountRouter = core('mount', ApplicationRoute.CoreMount)
 export const coreCustomElementRouter = core(
   'custom-element',
-  AppRoute.CoreCustomElement,
+  ApplicationRoute.CoreCustomElement,
 )
 export const coreSubscriptionsRouter = core(
   'subscriptions',
-  AppRoute.CoreSubscriptions,
+  ApplicationRoute.CoreSubscriptions,
 )
 export const coreInitAndFlagsRouter = core(
   'init-and-flags',
-  AppRoute.CoreInitAndFlags,
+  ApplicationRoute.CoreInitAndFlags,
 )
-export const coreDomRouter = core('dom', AppRoute.CoreDom)
-export const coreRenderRouter = core('render', AppRoute.CoreRender)
-export const coreFileRouter = core('file', AppRoute.CoreFile)
-export const coreHttpRouter = core('http', AppRoute.CoreHttp)
-export const coreQueryRouter = core('query', AppRoute.CoreQuery)
-export const coreCanvasRouter = core('canvas', AppRoute.CoreCanvas)
-export const coreRuntimeRouter = core('runtime', AppRoute.CoreRuntime)
+export const coreDomRouter = core('dom', ApplicationRoute.CoreDom)
+export const coreRenderRouter = core('render', ApplicationRoute.CoreRender)
+export const coreFileRouter = core('file', ApplicationRoute.CoreFile)
+export const coreHttpRouter = core('http', ApplicationRoute.CoreHttp)
+export const coreQueryRouter = core('query', ApplicationRoute.CoreQuery)
+export const coreCanvasRouter = core('canvas', ApplicationRoute.CoreCanvas)
+export const coreRuntimeRouter = core('runtime', ApplicationRoute.CoreRuntime)
 export const coreServerRenderingRouter = core(
   'server-rendering',
-  AppRoute.CoreServerRendering,
+  ApplicationRoute.CoreServerRendering,
 )
-export const coreLayersRouter = core('layers', AppRoute.CoreLayers)
-const coreResourcesParser = core('resources', AppRoute.CoreLayers)
+export const coreLayersRouter = core('layers', ApplicationRoute.CoreLayers)
+const coreResourcesParser = core('resources', ApplicationRoute.CoreLayers)
 export const coreManagedResourcesRouter = core(
   'managed-resources',
-  AppRoute.CoreManagedResources,
+  ApplicationRoute.CoreManagedResources,
 )
-export const coreDevToolsRouter = core('devtools', AppRoute.CoreDevTools)
-export const coreCrashViewRouter = core('crash-view', AppRoute.CoreCrashView)
+export const coreDevToolsRouter = core(
+  'devtools',
+  ApplicationRoute.CoreDevTools,
+)
+export const coreCrashViewRouter = core(
+  'crash-view',
+  ApplicationRoute.CoreCrashView,
+)
 export const coreViewTransitionsRouter = core(
   'view-transitions',
-  AppRoute.CoreViewTransitions,
+  ApplicationRoute.CoreViewTransitions,
 )
 export const coreSlowWarningsRouter = core(
   'slow-warnings',
-  AppRoute.CoreSlowWarnings,
+  ApplicationRoute.CoreSlowWarnings,
 )
 export const coreFreezeModelRouter = core(
   'freeze-model',
-  AppRoute.CoreFreezeModel,
+  ApplicationRoute.CoreFreezeModel,
 )
 export const corePreserveScrollRouter = core(
   'preserve-scroll',
-  AppRoute.CorePreserveScroll,
+  ApplicationRoute.CorePreserveScroll,
 )
 export const coreViewMemoizationRouter = core(
   'view-memoization',
-  AppRoute.CoreViewMemoization,
+  ApplicationRoute.CoreViewMemoization,
 )
-export const coreEmbeddingRouter = core('embedding', AppRoute.CoreEmbedding)
-export const coreSubmodelRouter = core('submodel', AppRoute.CoreSubmodel)
-export const coreMachineRouter = core('machine', AppRoute.CoreMachine)
-export const asyncDataRouter = core('async-data', AppRoute.AsyncData)
+export const coreEmbeddingRouter = core(
+  'embedding',
+  ApplicationRoute.CoreEmbedding,
+)
+export const coreBlockRouter = core('block', ApplicationRoute.CoreBlock)
+const legacyCoreBlockParser = core('submodel', ApplicationRoute.CoreBlock)
+export const coreMachineRouter = core('machine', ApplicationRoute.CoreMachine)
+export const asyncDataRouter = core('async-data', ApplicationRoute.AsyncData)
 
 export const patternsAntiPatternsRouter = patterns(
   'anti-patterns',
-  AppRoute.PatternsAntiPatterns,
+  ApplicationRoute.PatternsAntiPatterns,
 )
-export const patternsInformingSubmodelsRouter = patterns(
+export const patternsInformingBlocksRouter = patterns(
+  'informing-blocks',
+  ApplicationRoute.PatternsInformingBlocks,
+)
+const legacyPatternsInformingBlocksParser = patterns(
   'informing-submodels',
-  AppRoute.PatternsInformingSubmodels,
+  ApplicationRoute.PatternsInformingBlocks,
 )
 export const patternsSubscriptionOrganizationRouter = patterns(
   'subscription-organization',
-  AppRoute.PatternsSubscriptionOrganization,
+  ApplicationRoute.PatternsSubscriptionOrganization,
 )
-export const uiOverviewRouter = ui('overview', AppRoute.UiOverview)
-export const uiSelectionSubmodelsRouter = ui(
+export const uiOverviewRouter = ui('overview', ApplicationRoute.UiOverview)
+export const uiSelectionBlocksRouter = ui(
+  'selection-blocks',
+  ApplicationRoute.UiSelectionBlocks,
+)
+const legacyUiSelectionBlocksParser = ui(
   'selection-submodels',
-  AppRoute.UiSelectionSubmodels,
+  ApplicationRoute.UiSelectionBlocks,
 )
-export const uiButtonRouter = ui('button', AppRoute.UiButton)
-export const uiCalendarRouter = ui('calendar', AppRoute.UiCalendar)
-export const uiDatePickerRouter = ui('date-picker', AppRoute.UiDatePicker)
-export const uiCheckboxRouter = ui('checkbox', AppRoute.UiCheckbox)
-export const uiTabsRouter = ui('tabs', AppRoute.UiTabs)
-export const uiNavRouter = ui('nav', AppRoute.UiNav)
-export const uiDisclosureRouter = ui('disclosure', AppRoute.UiDisclosure)
-export const uiDialogRouter = ui('dialog', AppRoute.UiDialog)
-export const uiMenuRouter = ui('menu', AppRoute.UiMenu)
-export const uiPopoverRouter = ui('popover', AppRoute.UiPopover)
-export const uiListboxRouter = ui('listbox', AppRoute.UiListbox)
-export const uiRadioGroupRouter = ui('radio-group', AppRoute.UiRadioGroup)
-export const uiSelectRouter = ui('select', AppRoute.UiSelect)
-export const uiSliderRouter = ui('slider', AppRoute.UiSlider)
-export const uiMeterRouter = ui('meter', AppRoute.UiMeter)
-export const uiProgressRouter = ui('progress', AppRoute.UiProgress)
-export const uiSwitchRouter = ui('switch', AppRoute.UiSwitch)
-export const uiComboboxRouter = ui('combobox', AppRoute.UiCombobox)
-export const uiInputRouter = ui('input', AppRoute.UiInput)
-export const uiTextareaRouter = ui('textarea', AppRoute.UiTextarea)
-export const uiFieldsetRouter = ui('fieldset', AppRoute.UiFieldset)
-export const uiDragAndDropRouter = ui('drag-and-drop', AppRoute.UiDragAndDrop)
-export const uiFileDropRouter = ui('file-drop', AppRoute.UiFileDrop)
-export const uiHoverIntentRouter = ui('hover-intent', AppRoute.UiHoverIntent)
-export const uiToastRouter = ui('toast', AppRoute.UiToast)
-export const uiTooltipRouter = ui('tooltip', AppRoute.UiTooltip)
-export const uiAnimationRouter = ui('animation', AppRoute.UiAnimation)
-export const uiAnchorRouter = ui('anchor', AppRoute.UiAnchor)
-export const uiVirtualListRouter = ui('virtual-list', AppRoute.UiVirtualList)
+export const uiButtonRouter = ui('button', ApplicationRoute.UiButton)
+export const uiCalendarRouter = ui('calendar', ApplicationRoute.UiCalendar)
+export const uiDatePickerRouter = ui(
+  'date-picker',
+  ApplicationRoute.UiDatePicker,
+)
+export const uiCheckboxRouter = ui('checkbox', ApplicationRoute.UiCheckbox)
+export const uiTabsRouter = ui('tabs', ApplicationRoute.UiTabs)
+export const uiNavRouter = ui('nav', ApplicationRoute.UiNav)
+export const uiDisclosureRouter = ui(
+  'disclosure',
+  ApplicationRoute.UiDisclosure,
+)
+export const uiDialogRouter = ui('dialog', ApplicationRoute.UiDialog)
+export const uiMenuRouter = ui('menu', ApplicationRoute.UiMenu)
+export const uiPopoverRouter = ui('popover', ApplicationRoute.UiPopover)
+export const uiListboxRouter = ui('listbox', ApplicationRoute.UiListbox)
+export const uiRadioGroupRouter = ui(
+  'radio-group',
+  ApplicationRoute.UiRadioGroup,
+)
+export const uiSelectRouter = ui('select', ApplicationRoute.UiSelect)
+export const uiSliderRouter = ui('slider', ApplicationRoute.UiSlider)
+export const uiMeterRouter = ui('meter', ApplicationRoute.UiMeter)
+export const uiProgressRouter = ui('progress', ApplicationRoute.UiProgress)
+export const uiSwitchRouter = ui('switch', ApplicationRoute.UiSwitch)
+export const uiComboboxRouter = ui('combobox', ApplicationRoute.UiCombobox)
+export const uiInputRouter = ui('input', ApplicationRoute.UiInput)
+export const uiTextareaRouter = ui('textarea', ApplicationRoute.UiTextarea)
+export const uiFieldsetRouter = ui('fieldset', ApplicationRoute.UiFieldset)
+export const uiDragAndDropRouter = ui(
+  'drag-and-drop',
+  ApplicationRoute.UiDragAndDrop,
+)
+export const uiFileDropRouter = ui('file-drop', ApplicationRoute.UiFileDrop)
+export const uiHoverIntentRouter = ui(
+  'hover-intent',
+  ApplicationRoute.UiHoverIntent,
+)
+export const uiToastRouter = ui('toast', ApplicationRoute.UiToast)
+export const uiTooltipRouter = ui('tooltip', ApplicationRoute.UiTooltip)
+export const uiAnimationRouter = ui('animation', ApplicationRoute.UiAnimation)
+export const uiAnchorRouter = ui('anchor', ApplicationRoute.UiAnchor)
+export const uiVirtualListRouter = ui(
+  'virtual-list',
+  ApplicationRoute.UiVirtualList,
+)
 
-export const aboutRouter = staticPage('about', AppRoute.About)
-export const contactRouter = staticPage('contact', AppRoute.Contact)
-export const privacyRouter = staticPage('privacy', AppRoute.Privacy)
-export const contentApiRouter = staticPage('api', AppRoute.ContentApi)
+export const aboutRouter = staticPage('about', ApplicationRoute.About)
+export const contactRouter = staticPage('contact', ApplicationRoute.Contact)
+export const privacyRouter = staticPage('privacy', ApplicationRoute.Privacy)
+export const contentApiRouter = staticPage('api', ApplicationRoute.ContentApi)
 
-export const aiOverviewRouter = ai('overview', AppRoute.AiOverview)
-export const aiSkillsRouter = ai('skills', AppRoute.AiSkills)
-export const aiMcpRouter = ai('mcp', AppRoute.AiMcp)
+export const aiOverviewRouter = ai('overview', ApplicationRoute.AiOverview)
+export const aiSkillsRouter = ai('skills', ApplicationRoute.AiSkills)
+export const aiMcpRouter = ai('mcp', ApplicationRoute.AiMcp)
 
 // PARSER
 
@@ -560,7 +633,8 @@ const coreParser = oneOf(
   corePreserveScrollRouter,
   coreViewMemoizationRouter,
   coreEmbeddingRouter,
-  coreSubmodelRouter,
+  coreBlockRouter,
+  legacyCoreBlockParser,
   coreMachineRouter,
   routingAndNavigationRouter,
   fieldValidationRouter,
@@ -569,7 +643,8 @@ const coreParser = oneOf(
 
 const patternsParser = oneOf(
   patternsAntiPatternsRouter,
-  patternsInformingSubmodelsRouter,
+  patternsInformingBlocksRouter,
+  legacyPatternsInformingBlocksParser,
   patternsSubscriptionOrganizationRouter,
   projectOrganizationRouter,
 )
@@ -585,7 +660,8 @@ const bestPracticesParser = oneOf(
 
 const uiParser = oneOf(
   uiOverviewRouter,
-  uiSelectionSubmodelsRouter,
+  uiSelectionBlocksRouter,
+  legacyUiSelectionBlocksParser,
   uiButtonRouter,
   uiCalendarRouter,
   uiDatePickerRouter,
@@ -645,9 +721,12 @@ const docsParser = oneOf(
   siteParser,
 )
 
-export const newsletterRouter = staticPage('newsletter', AppRoute.Newsletter)
+export const newsletterRouter = staticPage(
+  'newsletter',
+  ApplicationRoute.Newsletter,
+)
 
-export const blogRouter = staticPage('blog', AppRoute.Blog)
+export const blogRouter = staticPage('blog', ApplicationRoute.Blog)
 
 // NOTE: post slugs come from markdown filenames and stay kebab-case.
 // Constraining the segment keeps sibling static files like `/blog/rss.xml`
@@ -664,7 +743,7 @@ export const blogPostRouter = pipe(
       Schema.String.check(Schema.isPattern(BLOG_POST_SLUG_PATTERN)),
     ),
   ),
-  mapTo(AppRoute.BlogPost),
+  mapTo(ApplicationRoute.BlogPost),
 )
 
 const blogParser = oneOf(blogPostRouter, blogRouter)
@@ -678,17 +757,17 @@ export const routeParser = oneOf(
   homeRouter,
 )
 
-export const urlToAppRoute = parseUrlWithFallback(
+export const urlToApplicationRoute = parseUrlWithFallback(
   routeParser,
-  AppRoute.NotFound,
+  ApplicationRoute.NotFound,
 )
 
 // URLS
 
 export const SITE_URL = 'https://foldkit.dev'
 
-export const routeToUrlPath = (route: AppRoute): string =>
-  AppRoute.match(route, {
+export const routeToUrlPath = (route: ApplicationRoute): string =>
+  ApplicationRoute.match(route, {
     Home: () => homeRouter(),
     WhyFoldkit: () => whyFoldkitRouter(),
     Performance: () => performanceRouter(),
@@ -740,17 +819,17 @@ export const routeToUrlPath = (route: AppRoute): string =>
     CoreSlowWarnings: () => coreSlowWarningsRouter(),
     CoreFreezeModel: () => coreFreezeModelRouter(),
     CorePreserveScroll: () => corePreserveScrollRouter(),
-    CoreSubmodel: () => coreSubmodelRouter(),
+    CoreBlock: () => coreBlockRouter(),
     CoreMachine: () => coreMachineRouter(),
     AsyncData: () => asyncDataRouter(),
     PatternsAntiPatterns: () => patternsAntiPatternsRouter(),
-    PatternsInformingSubmodels: () => patternsInformingSubmodelsRouter(),
+    PatternsInformingBlocks: () => patternsInformingBlocksRouter(),
     PatternsSubscriptionOrganization: () =>
       patternsSubscriptionOrganizationRouter(),
     CoreViewMemoization: () => coreViewMemoizationRouter(),
     CoreEmbedding: () => coreEmbeddingRouter(),
     UiOverview: () => uiOverviewRouter(),
-    UiSelectionSubmodels: () => uiSelectionSubmodelsRouter(),
+    UiSelectionBlocks: () => uiSelectionBlocksRouter(),
     UiTabs: () => uiTabsRouter(),
     UiNav: () => uiNavRouter(),
     UiDisclosure: () => uiDisclosureRouter(),
@@ -795,5 +874,5 @@ export const routeToUrlPath = (route: AppRoute): string =>
     NotFound: ({ path }) => path,
   })
 
-export const routeToCanonicalUrl = (route: AppRoute): string =>
+export const routeToCanonicalUrl = (route: ApplicationRoute): string =>
   String.concat(SITE_URL, routeToUrlPath(route))

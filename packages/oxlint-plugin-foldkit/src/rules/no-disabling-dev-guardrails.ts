@@ -11,6 +11,7 @@ import {
 import {
   indexReferences,
   isCallExpression,
+  isOwnedDefinitionCall,
   resolveFoldkitApiPath,
 } from '../guards.ts'
 
@@ -23,15 +24,24 @@ const SLOW_MESSAGE =
   "`slow: false` turns off Foldkit's dev performance warnings, which flag update, view, and patch phases that blow their budgets. Tune instead of disabling: pass an object with thresholdOverrides, measuredPhases, show, or onSlow. A deliberate disable belongs behind an oxlint-disable comment at this line."
 
 const isFactoryCallee = (
-  callee: ESTree.Expression,
+  node: ESTree.CallExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): boolean => {
+  if (
+    isOwnedDefinitionCall(node, 'makeApplication', references) ||
+    isOwnedDefinitionCall(node, 'makeElement', references)
+  ) {
+    return true
+  }
+
+  const { callee } = node
+
   if (references !== undefined) {
     return Option.exists(resolveFoldkitApiPath(references, callee), path => {
       const [namespace, factoryName, extraMember] = path
 
       return (
-        namespace === 'Runtime' &&
+        (namespace === 'Runtime' || namespace === 'Application') &&
         factoryName !== undefined &&
         FACTORY_NAMES.includes(factoryName) &&
         extraMember === undefined
@@ -85,7 +95,7 @@ const disabledGuardrailMessage = (
   return pipe(staticKeyName(property), Option.flatMap(guardrailMessageForKey))
 }
 
-/** Flags `freezeModel: false` and `slow: false` in config objects passed directly to `makeApplication` or `makeElement`. Disabling a dev guardrail hides the problem it would have surfaced; a deliberate disable belongs behind an oxlint-disable comment. */
+/** Flags `freezeModel: false` and `slow: false` in config objects passed directly to Application completion. Disabling a dev guardrail hides the problem it would have surfaced; a deliberate disable belongs behind an oxlint-disable comment. */
 export const noDisablingDevGuardrails = Rule.define({
   name: 'no-disabling-dev-guardrails',
   meta: Rule.meta({
@@ -100,10 +110,7 @@ export const noDisablingDevGuardrails = Rule.define({
       scopes === undefined ? undefined : indexReferences(scopes)
     return {
       CallExpression: (node: ESTree.Node) => {
-        if (
-          !isCallExpression(node) ||
-          !isFactoryCallee(node.callee, references)
-        ) {
+        if (!isCallExpression(node) || !isFactoryCallee(node, references)) {
           return Effect.void
         }
         const disabledGuardrails = node.arguments.flatMap(argument => {

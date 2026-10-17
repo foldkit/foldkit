@@ -2,7 +2,7 @@
 
 ## Overview
 
-A thin wrapper around the native button element that provides consistent accessibility attributes and data-attribute hooks for styling. Button is a stateless render helper: call it directly with a ViewConfig in your own view. No Model, Messages, update, or `h.submodel` wrapping.
+A thin wrapper around the native button element that provides consistent accessibility attributes and data-attribute hooks for styling. Button is a stateless render helper: call it directly with a ViewConfig in your own view. No Model, Messages, update, or `h.block` wrapping.
 
 :::Info{label="See it in an app"}
 Check out how Button is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/button.ts).

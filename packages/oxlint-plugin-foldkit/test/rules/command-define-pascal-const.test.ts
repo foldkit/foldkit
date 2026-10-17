@@ -45,6 +45,24 @@ const declaredCurriedDefine = (
   return Object.assign(defineCall, { parent: application })
 }
 
+const declaredNamedDefine = (
+  constName: string,
+  nameArgument: unknown,
+  kind = 'const',
+) => {
+  const ownerNameCall = {
+    type: 'CallExpression',
+    callee: {
+      type: 'MemberExpression',
+      object: Testing.memberExpr('Block', 'owner'),
+      property: Testing.id('name'),
+      computed: false,
+    },
+    arguments: [nameArgument],
+  }
+  return declaredDirectDefine(constName, [ownerNameCall], kind)
+}
+
 const inlineCurriedDefine = (defineArguments: ReadonlyArray<unknown>) => {
   const defineCall = commandDefineCall(defineArguments)
   const application = {
@@ -204,6 +222,41 @@ describe('command-define-pascal-const', () => {
     )
 
     expect(result).toHaveLength(0)
+  })
+
+  it('allows a named Command owner call with a literal name', () => {
+    const result = run(
+      declaredNamedDefine('CreateRoom', Testing.strLiteral('CreateRoom')),
+    )
+
+    expect(result).toHaveLength(0)
+  })
+
+  it('flags a named Command owner call with a computed name', () => {
+    const result = run(
+      declaredNamedDefine('CreateRoom', Testing.id('roomName')),
+    )
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.diagnostic.message).toContain('literal string name')
+  })
+
+  it('flags a named Command owner call with a non-PascalCase name', () => {
+    const result = run(
+      declaredNamedDefine('createRoom', Testing.strLiteral('createRoom')),
+    )
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.diagnostic.message).toContain('PascalCase')
+  })
+
+  it('flags a named Command owner call whose binding does not match', () => {
+    const result = run(
+      declaredNamedDefine('OpenRoom', Testing.strLiteral('CreateRoom')),
+    )
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.diagnostic.message).toContain('not OpenRoom')
   })
 
   it('allows an unrelated member call', () => {

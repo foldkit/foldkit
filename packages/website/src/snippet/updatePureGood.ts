@@ -1,11 +1,11 @@
 import { Effect } from 'effect'
-import { Command, Dom, Update } from 'foldkit'
+import { Dom } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { Message } from './message'
 import type { Model } from './model'
 
-const FocusSearchInput = Command.define('FocusSearchInput', {
+const FocusSearchInput = Application.command('FocusSearchInput', {
   messages: [Message.CompletedFocusSearchInput],
   handler: function* () {
     return () =>
@@ -17,7 +17,7 @@ const FocusSearchInput = Command.define('FocusSearchInput', {
 })
 
 // ✅ Return the next Model and a Command
-const update = Update.define((model: Model, message: Message) =>
+const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     OpenedDialog: () => ({
       model: modifyFields(model, { dialogState: () => 'Open' }),

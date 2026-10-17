@@ -82,7 +82,7 @@ The mappings below are starting points, not one-to-one replacements:
 | `useReducer`                                     | The update function and Message union                                                                       |
 | Event-driven side effect                         | A Command returned from update                                                                              |
 | External event source tied to state              | A Subscription gated by Model dependencies                                                                  |
-| DOM work tied to an element                      | `Mount.define` or `Mount.defineStream`                                                                      |
+| DOM work tied to an element                      | `Feature.mount` or `Feature.mountStream`                                                                    |
 | Stateful resource shared with Commands           | ManagedResource                                                                                             |
 | Context used for application state               | The Model                                                                                                   |
 | Context used for services                        | Effect services and Layers                                                                                  |
@@ -104,15 +104,15 @@ The Model-View-Update pattern will feel familiar. The Model resembles the store,
 ## FAQ
 
 :::Faq{id="faq-reusable-components" question="How do I make reusable “components”?"}
-Write view functions that take the Model data they need and return Html. They do not own hidden state or lifecycle. A feature that needs its own state machine can be a [Submodel](/core/submodel), with its own Model, Message union, and update. It can also own a view when rendering belongs inside that boundary.
+Write view functions that take the Model data they need and return Html. They do not own hidden state or lifecycle. A feature that needs its own state machine can be a [Block](/core/block), with its own Model, Message union, and update. It can also own a view when rendering belongs inside that boundary.
 :::
 
 :::Faq{id="faq-multiple-instances" question="How do I create multiple components with their own state?"}
 Represent each instance in the Model. Use separate fields for a fixed number of instances or a collection keyed by a stable Model identifier for a dynamic number:
 
-::Snippet{name="multipleInstances" label="Modeling multiple Submodel instances" class="mb-4"}
+::Snippet{name="multipleInstances" label="Modeling multiple Block instances" class="mb-4"}
 
-Each `Accordion.Model` is a Submodel. The parent delegates a child Message to the matching instance and writes the child Model back. See the [Shopping Cart example](/example-apps/shopping-cart) for a larger composition.
+Each `Accordion.Model` is a Block. The parent delegates a child Message to the matching instance and writes the child Model back. See the [Shopping Cart example](/example-apps/shopping-cart) for a larger composition.
 :::
 
 :::Faq{id="faq-routing" question="How does routing work?"}
@@ -124,7 +124,7 @@ Form values and validation state live in the Model. Inputs dispatch Messages, an
 :::
 
 :::Faq{id="faq-ui-components" question="What about Headless UI, Radix, or Shadcn?"}
-[Foldkit UI](/ui/overview) provides headless components including Dialog, Combobox, Listbox, Menu, and Popover. Each component has its own Model, Messages, and update, and the application integrates it as a Submodel. You provide markup and styling; the UI package provides interaction state, keyboard behavior, and accessibility attributes.
+[Foldkit UI](/ui/overview) provides headless components including Dialog, Combobox, Listbox, Menu, and Popover. Each component has its own Model, Messages, and update, and the application integrates it as a Block. You provide markup and styling; the UI package provides interaction state, keyboard behavior, and accessibility attributes.
 :::
 
 :::Faq{id="faq-react-compiler" question="What about React Compiler?"}
@@ -136,7 +136,7 @@ The compiler changes how React optimizes renders. It does not choose the applica
 :::Faq{id="faq-data-fetching" question="How do I fetch data?"}
 Return a Command from the update handler for the Message that starts the request. The runtime executes the Effect and dispatches the Command’s result Message. Update then stores the result in the Model, commonly using [AsyncData](/core/async-data).
 
-Independent requests are not ordered or cancelled automatically. When an earlier response could arrive late, include the request context in its result Message and accept it only if it still matches the current Model. [Coming from TanStack Query](/react/coming-from-tanstack-query#out-of-order-responses) shows the complete pattern. See the [Weather example](https://github.com/foldkit/foldkit/blob/main/examples/weather/src/main.ts#L153-L232) for a working request flow.
+Independent requests are not ordered or cancelled automatically. When an earlier response could arrive late, include the request context in its result Message and accept it only if it still matches the current Model. [Coming from TanStack Query](/react/coming-from-tanstack-query#out-of-order-responses) shows the complete pattern. See the [Weather example](https://github.com/foldkit/foldkit/blob/main/examples/weather/src/command.ts) for a working request flow.
 :::
 
 :::Faq{id="faq-ssr" question="Does Foldkit do SSR like Next.js?"}

@@ -20,6 +20,9 @@ export const VNodeDataMask = {
   OnUnmount: 64,
 }
 
+/** Virtual DOM node rendered by Foldkit's Html builders. Fields are populated
+ * and updated by the renderer; application views normally construct VNodes
+ * through element functions on an Html builder. */
 export interface VNode {
   sel: string | undefined
   data: VNodeData | undefined

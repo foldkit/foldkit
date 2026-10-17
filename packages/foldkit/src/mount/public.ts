@@ -15,6 +15,7 @@ export type {
 } from './index.js'
 export {
   MountDefinitionTypeId,
+  MountRegistrationTypeId,
   MountTracker,
   ViewState,
   define,

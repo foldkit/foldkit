@@ -2,7 +2,7 @@
 
 ## Overview
 
-A wrapper around the native `<select>` element with ARIA label and optional-description linking plus data-attribute hooks. Select is a stateless render helper: call it directly with a ViewConfig in your own view; no Model, update, or `h.submodel` wrapping. For a custom dropdown with keyboard navigation and custom rendering, use Listbox or Combobox instead.
+A wrapper around the native `<select>` element with ARIA label and optional-description linking plus data-attribute hooks. Select is a stateless render helper: call it directly with a ViewConfig in your own view; no Model, update, or `h.block` wrapping. For a custom dropdown with keyboard navigation and custom rendering, use Listbox or Combobox instead.
 
 :::Info{label="See it in an app"}
 Check out how Select is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/select.ts).

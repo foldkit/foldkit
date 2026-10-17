@@ -47,7 +47,7 @@ Five sources report through the Runtime: Commands, the Browser, Mounts, Subscrip
 
 - **Browser:** interactions with the rendered view, such as clicks and keypresses, produce Messages directly.
 - **Commands:** one-shot side effects such as HTTP requests, focus operations, `localStorage` writes, and navigation calls. The runtime executes each Command and sends its declared result back as a Message. Every Command has a name that appears in [DevTools](/core/devtools), [tests](/testing), and tracing.
-- **Mount:** imperative work scoped to the lifetime of an element in the live DOM. For example: portaling an overlay, attaching an observer, or handing an element to a third-party library. `Mount.define` runs an Effect that emits one Message at acquire. `Mount.defineStream` runs a Stream of Messages from listeners or observers. The runtime dispatches those results and runs the paired cleanup when the element unmounts.
+- **Mount:** imperative work scoped to the lifetime of an element in the live DOM. For example: portaling an overlay, attaching an observer, or handing an element to a third-party library. `Feature.mount` runs an Effect that emits one Message at acquire. `Feature.mountStream` runs a Stream of Messages from listeners or observers. The runtime dispatches those results and runs the paired cleanup when the element unmounts.
 - **Subscriptions:** scoped Streams gated by a slice of the Model. The runtime keeps a Subscription alive while that slice holds its value, then starts a fresh scope when the value changes. A Subscription often turns an external source, such as timer ticks, `WebSocket` frames, or system theme changes, into Messages. It can also emit no Messages and maintain DOM state for its lifetime, such as setting `user-select: none` while a drag is active.
 - **ManagedResources:** stateful handles, such as a camera stream, a `WebSocket` connection, or a Web Worker pool, that exist while a slice of the Model holds a particular value. The runtime acquires and releases the handle and dispatches Messages for each lifecycle transition. Commands and Subscriptions can use the typed handle while it is live and receive `ResourceNotAvailable` rather than crashing when it is not.
 
@@ -61,11 +61,15 @@ Commands, browser events, Mounts, Subscriptions, and ManagedResources never muta
 
 ## Application Assembly
 
-Layers supply the handlers for Commands, Subscriptions, Mounts, and ManagedResources, along with shared services such as an `RpcClient` or an analytics client. Application-owned definitions attach their implementations and expose `.layer` recipes. Each feature combines those recipes in `EffectsLayer`, and the root `AppLayer` supplies their services. Include those Layers explicitly; attaching a constructor does not install its handler automatically.
+Each Block owns a part of the Model, its Messages, and the behavior that handles them. A parent Binding says where that child is stored and how its Messages and OutMessages connect to the parent. A Composition establishes the registered children and Mounts and supplies checked helpers for init, update, and view. Completion combines that graph with the local lifecycle declarations and handler recipes.
+
+Layers supply those handlers and their shared dependencies, such as an `RpcClient` or an analytics client. Each feature combines its local handler recipes in `EffectsLayer` and completes its Block with that bundle. Registered child Bindings carry their checked graphs upward; the root `ApplicationLayer` supplies the remaining Services.
 
 An update that returns a Command requires that named operation's handler. The handler Layer requires the services its implementation uses. Adding another service to the implementation changes the Layer's requirements without changing update's handler requirement. TypeScript checks that application assembly supplies the remaining requirements before the Runtime can start. [Handler and service requirements](/core/layers#handler-and-service-requirements) shows how this differs from carrying implementation dependencies through update.
 
 The Runtime builds the application Layer once per start and shares its service instances with effect handlers and startup Flags. A Layer does not produce Messages itself. Command work, Subscription Streams, mounted elements, and ManagedResource handles retain their own lifetimes; [Layers](/core/layers#choosing-the-lifetime) explains which scope owns each.
+
+Defining and completing the Application creates passive configuration. `Runtime.run` starts it. The [Block guide](/core/block) builds a composed feature step by step; the [Layers guide](/core/layers) explains how its implementations and services are supplied.
 
 ## Definitions
 
@@ -80,10 +84,10 @@ Use this table as a reference after you understand the loop:
 | Command         | A description of a one-shot side effect. The runtime executes it and sends the result back as one of its declared Messages.                                                                                 |
 | Mount           | Imperative work scoped to a live DOM element. It emits Messages through an Effect or Stream and cleans up when the element unmounts.                                                                        |
 | Subscription    | A scoped Stream gated by a slice of the Model. The runtime restarts its scope when that slice changes.                                                                                                      |
-| Layer           | A provider of app-lifetime services and effect handlers. Its services can be shared by Commands, Subscriptions, and startup Flags. It is not a Message source.                                              |
+| Layer           | A recipe for constructing services and effect handlers. The Runtime builds the supplied application Layer once per start and releases its scoped resources on stop.                                         |
 | ManagedResource | A stateful handle scoped to a slice of the Model. The runtime manages its lifecycle, and Commands and Subscriptions can use it while it is live.                                                            |
 | Runtime         | The Foldkit engine that executes Commands, runs Subscriptions, manages Mount and resource lifecycles, and routes Messages back into update.                                                                 |
-| Submodel        | A self-contained Model, Message, update, and Commands that a parent embeds and delegates to. A child can surface high-level facts to its parent through the optional `outMessage` field returned by update. |
+| Block           | A self-contained Model, Message, update, and Commands that a parent embeds and delegates to. A child can surface high-level facts to its parent through the optional `outMessage` field returned by update. |
 
 ## The Restaurant Analogy
 

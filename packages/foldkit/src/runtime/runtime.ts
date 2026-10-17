@@ -13,6 +13,9 @@ import {
   pipe,
 } from 'effect'
 
+import type { BindableBlock } from '../block/binding.js'
+import { commandInstances } from '../block/instanceContext.js'
+import { assertComposedHandlers } from '../block/lowering.js'
 import { DialogRuntime } from '../dom/dialogRuntime.js'
 import { releaseDialogResources } from '../dom/dom.js'
 import {
@@ -31,6 +34,11 @@ import {
   type RoutingConfig,
   addNavigationEventListeners,
 } from './browserListeners.js'
+import type { CapturedInvocation } from './compositionRuntime.js'
+import {
+  type CompositionRuntime,
+  makeCompositionRuntime,
+} from './compositionRuntime.js'
 import type { CrashConfig } from './crashUI.js'
 import { deepFreeze } from './deepFreeze.js'
 import type { DevToolsConfig } from './devToolsConfig.js'
@@ -183,11 +191,10 @@ export type RuntimeConfig<
    */
   preserveScroll?: boolean
   /**
-   * Model-driven resources with acquire/release lifecycle. Managed Resources
-   * are acquired and released based on the current model state. Create with
-   * `ManagedResource.make`, compose child Submodels with
-   * `ManagedResource.lift`, and combine records with
-   * `ManagedResource.aggregate`.
+   * Model-driven handle registrations collected from the completed Block
+   * graph. The Runtime acquires and releases handles as their requirements
+   * change. Features declare local registries with `managedResources`;
+   * registered child bindings supply their occurrence-scoped registrations.
    */
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
   devTools?: DevToolsConfig
@@ -249,6 +256,7 @@ type RuntimeInternals = {
     applicationLayer: Layer.Layer<any, any, any>,
   ) => Effect.Effect<void>
   applicationLayer?: Layer.Layer<any, any, any>
+  compositionRoot?: BindableBlock
   kind: 'Application' | 'Element'
   embedLifecycle: EmbedLifecycle
 }
@@ -434,6 +442,12 @@ export const makeRuntime = <
           applicationLayer,
         })
 
+        const declaredComposition =
+          runtimeInternals.get(program)?.compositionRoot
+        if (declaredComposition !== undefined) {
+          assertComposedHandlers(declaredComposition, applicationContext)
+        }
+
         const ModelJsonCodec = Schema.toCodecJson(
           /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
           Model as Schema.Codec<Model>,
@@ -603,10 +617,24 @@ export const makeRuntime = <
         // NOTE: the runtime context for OnMount forking and Command forking
         // is captured once here; it is constant for the lifetime of the
         // runtime.
-        const runtimeContext = Context.merge(
+        const nativeRuntimeContext = Context.merge(
           yield* Effect.context<never>(),
           applicationContext,
         )
+        const compositionRoot = runtimeInternals.get(program)?.compositionRoot
+        let composition: CompositionRuntime<Model> | undefined
+        const runtimeContext: Context.Context<never> =
+          compositionRoot === undefined
+            ? nativeRuntimeContext
+            : (composition = yield* makeCompositionRuntime({
+                block: compositionRoot,
+                initModel,
+                context: nativeRuntimeContext,
+                runtimeScope,
+                enqueueMessage,
+                maybeSlowSubscriptionDependencies,
+                crashWith: (cause, message) => crashWith(cause, message),
+              })).context
 
         const {
           crashWith,
@@ -666,7 +694,12 @@ export const makeRuntime = <
           >,
           message: Option.Option<Message>,
           id?: number,
+          origin?: CapturedInvocation,
         ): void => {
+          const captured = origin ?? composition?.capture(command)
+          if (composition !== undefined && captured === undefined) {
+            return
+          }
           queueMicrotask(() => {
             // NOTE: `isCrashed` as well as `isRuntimeDisposed`. A crash is
             // terminal but does not dispose the runtime, and a Command forked
@@ -679,11 +712,19 @@ export const makeRuntime = <
               return
             }
 
-            const providedCommand = command.effect.pipe(
+            const providedCommand = (
+              captured === undefined
+                ? provideAllResources(command.effect)
+                : Effect.provideContext(
+                    command.effect,
+                    Context.makeUnsafe<Resources | ManagedResourceServices>(
+                      captured.context.mapUnsafe,
+                    ),
+                  )
+            ).pipe(
               Effect.withSpan(command.name, {
                 attributes: command.args ?? {},
               }),
-              provideAllResources,
             )
             const recordedCommand =
               id !== undefined
@@ -695,9 +736,11 @@ export const makeRuntime = <
                 : providedCommand
 
             Effect.runForkWith(runtimeContext)(
-              Effect.forkIn(runtimeScope)(
+              Effect.forkIn(captured?.scope ?? runtimeScope)(
                 recordedCommand.pipe(
-                  Effect.flatMap(enqueueMessageEffect),
+                  Effect.flatMap(result =>
+                    enqueueMessageEffect(result, captured?.isCurrent),
+                  ),
                   Effect.catchCause(cause => crashWith(cause, message)),
                 ),
               ),
@@ -715,6 +758,21 @@ export const makeRuntime = <
           const nextModelRaw = messageUpdate.model
           const commands = messageUpdate.commands ?? []
           const nextModel = maybeFreezeModel(nextModelRaw)
+          const commandOrigins = new Map<object, CapturedInvocation>()
+          if (composition !== undefined) {
+            for (const command of commands) {
+              if (
+                !commandInstances(command).some(
+                  frame => frame.isInitialization === true,
+                )
+              ) {
+                const origin = composition.capture(command)
+                if (origin !== undefined) {
+                  commandOrigins.set(command, origin)
+                }
+              }
+            }
+          }
 
           reportSlowPhase<SlowUpdateContext<Model, Message>>(
             maybeSlowUpdate,
@@ -731,6 +789,7 @@ export const makeRuntime = <
 
           if (currentModel !== nextModel) {
             liveModel = nextModel
+            composition?.synchronize(nextModel)
             setLastDirtyMessage(message)
             PubSub.publishUnsafe(modelPubSub, nextModel)
             if (import.meta.hot) {
@@ -752,6 +811,7 @@ export const makeRuntime = <
                 >,
                 Option.some(message),
                 id,
+                commandOrigins.get(command),
               )
             }
 
@@ -766,6 +826,8 @@ export const makeRuntime = <
                   Resources | ManagedResourceServices
                 >,
                 Option.some(message),
+                undefined,
+                commandOrigins.get(command),
               )
             }
           }
@@ -796,7 +858,23 @@ export const makeRuntime = <
           yield* recordInit(initModel, initCommandInvocations)
         }
 
-        if (subscriptions) {
+        if (composition !== undefined) {
+          yield* composition.start
+        }
+
+        if (composition === undefined) {
+          yield* forkManagedResourceFibers({
+            managedResourceRefs,
+            initModel,
+            modelPubSub,
+            runtimeScope,
+            enqueueMessageEffect,
+            provideAllResources,
+            crashWith,
+          })
+        }
+
+        if (composition === undefined && subscriptions) {
           yield* forkSubscriptionFibers({
             subscriptions,
             initModel,
@@ -808,16 +886,6 @@ export const makeRuntime = <
             crashWith,
           })
         }
-
-        yield* forkManagedResourceFibers({
-          managedResourceRefs,
-          initModel,
-          modelPubSub,
-          runtimeScope,
-          enqueueMessageEffect,
-          provideAllResources,
-          crashWith,
-        })
 
         // NOTE: registered before the boot buffer drains, so an interrupt
         // landing anywhere after this yield tears down with the flag set

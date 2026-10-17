@@ -1,15 +1,9 @@
-import { type Mount, Submodel } from 'foldkit'
-import type { Html } from 'foldkit/html'
-
-import { Listbox as UiListbox } from '@foldkit/ui'
-
 import { type CodeBlock } from '../../component'
 import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
+import { UiComposition } from './composition'
 import * as Listbox from './demo/listbox'
 import raw from './listboxPage.md'
-import type { Message } from './message'
-import type { Model } from './model'
 
 const { tableOfContents, view: renderPage } = slotDocPage<
   'basic' | 'multi-select' | 'grouped'
@@ -23,38 +17,34 @@ type ViewInputs = Readonly<{
   renderHeadingLink: RenderHeadingLink
 }>
 
-export const view = Submodel.defineView<
-  Model,
-  Message,
-  ViewInputs,
-  Mount.RequirementsOf<typeof UiListbox.mounts>
->((model, { renderCopyButton, renderSnippet, renderHeadingLink }, h): Html =>
-  renderPage({
-    demos: {
-      basic: demoContainer(
-        ...Listbox.basicDemo(
-          model.listboxDemo,
-          model.maybeListboxDemoSelectedItem,
-          h,
+export const view = UiComposition.makeView.withInputs<ViewInputs>(
+  (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h) =>
+    renderPage({
+      demos: {
+        basic: demoContainer(
+          ...Listbox.basicDemo(
+            model.listboxDemo,
+            model.maybeListboxDemoSelectedItem,
+            h,
+          ),
         ),
-      ),
-      'multi-select': demoContainer(
-        ...Listbox.multiSelectDemo(
-          model.listboxMultiDemo,
-          model.listboxMultiDemoSelectedItems,
-          h,
+        'multi-select': demoContainer(
+          ...Listbox.multiSelectDemo(
+            model.listboxMultiDemo,
+            model.listboxMultiDemoSelectedItems,
+            h,
+          ),
         ),
-      ),
-      grouped: demoContainer(
-        ...Listbox.groupedDemo(
-          model.listboxGroupedDemo,
-          model.maybeListboxGroupedDemoSelectedItem,
-          h,
+        grouped: demoContainer(
+          ...Listbox.groupedDemo(
+            model.listboxGroupedDemo,
+            model.maybeListboxGroupedDemoSelectedItem,
+            h,
+          ),
         ),
-      ),
-    },
-    renderCopyButton,
-    renderSnippet,
-    renderHeadingLink,
-  }),
+      },
+      renderCopyButton,
+      renderSnippet,
+      renderHeadingLink,
+    }),
 )

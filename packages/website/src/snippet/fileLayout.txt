@@ -1,53 +1,63 @@
 src/
-+-- entry.ts               Runtime bootstrap
-+-- application.ts         Root registrations + application assembly
-+-- layer.ts               EffectsLayer, ServicesLayer, and AppLayer
-+-- init.ts                App-level init
-+-- model.ts               App-level state
-+-- message.ts             App-level messages
-+-- command.ts             App-level Commands
-+-- environment.ts         Concrete HTTP, RPC, and browser provider Layers
-+-- storage.ts             Distinct LocalStorage and SessionStorage service tags
-+-- route.ts               Route definitions
-+-- update.ts              App-level update
-+-- view.ts                App-level view
-+-- story.test.ts          Story tests for the app-level update
-+-- scene.test.ts          Scene tests for flows that cross pages
++-- definition.ts          Early Application contract
++-- composition/
+|   +-- composition.ts     Complete root graph and ApplicationComposition
+|   +-- index.ts            Explicit root Composition barrel
+|   +-- home.ts             Substantial root-owned Home policy, if needed
++-- services.ts            ApplicationLayer service providers
++-- model.ts               Root Model
++-- message.ts             Root Message
++-- flags.ts               Startup Flags, when used
++-- init.ts                Root initialization
++-- command.ts             Root Commands and a small EffectsLayer
++-- layer.ts               Substantial mixed or reused EffectsLayer
++-- route.ts               Route union, URL parsing, and selectors
++-- update/
+|   +-- index.ts            Explicit barrel
+|   +-- update.ts           Root Message matcher
+|   +-- changedUrl.ts       Substantial navigation handler
++-- view/
+|   +-- index.ts
+|   +-- view.ts             Primary Application view
++-- entry.ts                Browser completion, container, and Runtime.run
++-- story.test.ts
++-- scene.test.ts
 |
 +-- page/
-|   +-- index.ts           Re-exports all pages
-|   +-- home/
-|   |   +-- index.ts       Re-exports Home module
-|   |   +-- layer.ts       Home EffectsLayer
-|   |   +-- init.ts        Home init
-|   |   +-- model.ts       Home state
-|   |   +-- message.ts     Home events
-|   |   +-- command.ts     Home Commands
-|   |   +-- subscription.ts Home Subscriptions
-|   |   +-- update.ts      Home update
-|   |   +-- view.ts        Home view
-|   |   +-- story.test.ts  Story tests for the Home update
-|   |   +-- scene.test.ts  Scene tests for the Home view
-|   +-- products/
+|   +-- index.ts            Feature namespaces
+|   +-- counter/
+|   |   +-- index.ts        Explicit public barrel
+|   |   +-- block.ts        Small graphless feature and completion
+|   +-- dashboard/
+|   |   +-- index.ts
+|   |   +-- definition.ts   Early Model/Message contract and Definition
+|   |   +-- composition.ts  Bindings and complete registrations
+|   |   +-- init.ts
+|   |   +-- update.ts
+|   |   +-- view.ts
+|   |   +-- block.ts        Completed Block and small EffectsLayer
+|   +-- panel/
+|   |   +-- definition.ts
+|   |   +-- mount.ts        Local Mount definitions and handlers
+|   |   +-- composition.ts  Mount-only registration
+|   |   +-- view.ts
+|   |   +-- block.ts
+|   |   +-- index.ts
+|   +-- editor/
 |       +-- index.ts
-|       +-- layer.ts
-|       +-- init.ts
-|       +-- model.ts
-|       +-- message.ts
+|       +-- definition.ts
+|       +-- composition/
+|       |   +-- index.ts       Explicit barrel
+|       |   +-- composition.ts Bindings and complete registrations
+|       |   +-- dialog.ts      Substantial Dialog policy
 |       +-- command.ts
-|       +-- service.ts     ProductCatalog business service + Layer
-|       +-- subscription.ts
 |       +-- mount.ts
-|       +-- managedResource.ts
+|       +-- init.ts
 |       +-- update.ts
 |       +-- view.ts
-|       +-- story.test.ts
-|       +-- scene.test.ts
-|       +-- reviews/
-|           +-- index.ts
-|           +-- layer.ts
+|       +-- layer.ts         Substantial or reused local handler bundle
+|       +-- block.ts
 |
 +-- domain/
-    +-- index.ts           Re-exports domain modules
-    +-- cart.ts            Cart type + operations
-    +-- item.ts            Item type + operations
+    +-- index.ts             Domain namespaces
+    +-- cart.ts              Cart Schema and pure operations

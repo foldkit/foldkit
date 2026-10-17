@@ -1,15 +1,15 @@
-import { Effect } from 'effect'
+import { Runtime } from 'foldkit'
+import { define as defineApplication } from 'foldkit/application'
 import { Document, type HtmlBuilder } from 'foldkit/html'
-import { makeApplication } from 'foldkit/runtime'
 import { describe, it } from 'vitest'
 
 // Internal API not on the public surface but needed by the profile harness
 // to capture the runtime's sync dispatcher.
 import { __requireDispatch } from '../../../packages/foldkit/src/html/index.js'
-import { Message, Model, update as baseUpdate, init } from './main.js'
-import type { Todo } from './main.js'
-import { view as naiveView } from './main.js'
-import { view as optimisedView } from './main.optimised.js'
+import { Message, Model, update as baseUpdate, init } from './todo.js'
+import type { Todo } from './todo.js'
+import { view as naiveView } from './todo.js'
+import { view as optimisedView } from './view.optimised.js'
 
 /**
  * Phase-level profile of the lustre-benchmark optimised TodoMVC runbook.
@@ -117,17 +117,18 @@ const runProfile = async (
     return wrappedView.fn(model, h)
   }
 
-  const application = makeApplication({
-    Model,
+  const Application = defineApplication({ Model, Message })
+  const ApplicationComposition = Application.makeComposition()
+  const application = ApplicationComposition.makeApplication({
     init,
-    update: wrappedUpdate.fn,
-    view: captureView,
+    update: ApplicationComposition.makeUpdate(wrappedUpdate.fn),
+    view: ApplicationComposition.makeView(captureView),
     container,
     devTools: false,
     freezeModel: false,
   })
 
-  Effect.runFork(application.start())
+  Runtime.run(application)
 
   await waitForCondition(() => capturedDispatch !== null)
 

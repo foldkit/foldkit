@@ -11,6 +11,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./application": {
+      "types": "./dist/runtime/applicationPublic.d.ts",
+      "import": "./dist/runtime/applicationPublic.js"
+    },
     "./asyncData": {
       "types": "./dist/asyncData/public.d.ts",
       "import": "./dist/asyncData/public.js"
@@ -123,9 +127,9 @@
       "types": "./dist/struct/public.d.ts",
       "import": "./dist/struct/public.js"
     },
-    "./submodel": {
-      "types": "./dist/submodel/public.d.ts",
-      "import": "./dist/submodel/public.js"
+    "./block": {
+      "types": "./dist/block/public.d.ts",
+      "import": "./dist/block/public.js"
     },
     "./subscription": {
       "types": "./dist/subscription/public.d.ts",
@@ -164,6 +168,9 @@
   "scripts": {
     "clean": "rimraf dist *.tsbuildinfo",
     "build": "pnpm run clean && tsc -b tsconfig.build.json",
+    "check:emitted-declarations": "node scripts/check-emitted-declarations.ts",
+    "check:block-type-performance": "node scripts/check-block-type-performance.ts",
+    "update:block-type-performance": "node scripts/check-block-type-performance.ts --update",
     "watch": "tsc -b tsconfig.build.json --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --coverage"

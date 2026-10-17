@@ -1,17 +1,18 @@
 import { Plugin } from 'effect-oxlint'
 
 import { acquireReleaseConstructsInAcquireBody } from './rules/acquire-release-constructs-in-acquire-body.ts'
+import { blockNameMatchesVariable } from './rules/block-name-matches-variable.ts'
 import { commandBindingMatchesName } from './rules/command-binding-matches-name.ts'
 import { commandDefinePascalConst } from './rules/command-define-pascal-const.ts'
-import { gotPrefixRequiresSubmodelPayload } from './rules/got-prefix-requires-submodel-payload.ts'
-import { gotSubmodelMessageName } from './rules/got-submodel-message-name.ts'
+import { gotBlockMessageName } from './rules/got-block-message-name.ts'
+import { gotPrefixRequiresBlockPayload } from './rules/got-prefix-requires-block-payload.ts'
 import { gotWrapperCarriesOnlyRouting } from './rules/got-wrapper-carries-only-routing.ts'
 import { keyedRequiredForMappedRows } from './rules/keyed-required-for-mapped-rows.ts'
 import { lazyViewStableReferences } from './rules/lazy-view-stable-references.ts'
 import { mountFactoryMustUseElement } from './rules/mount-factory-must-use-element.ts'
 import { noArrayIndexViewKeys } from './rules/no-array-index-view-keys.ts'
 import { noChildMessageConstructionInRoot } from './rules/no-child-message-construction-in-root.ts'
-import { noDirectSubmodelStateUpdate } from './rules/no-direct-submodel-state-update.ts'
+import { noDirectBlockStateUpdate } from './rules/no-direct-block-state-update.ts'
 import { noDisablingDevGuardrails } from './rules/no-disabling-dev-guardrails.ts'
 import { noDuplicateOnmountPerElement } from './rules/no-duplicate-onmount-per-element.ts'
 import { noEmptyChildrenArray } from './rules/no-empty-children-array.ts'
@@ -35,7 +36,7 @@ import { preferEffectModuleNames } from './rules/prefer-effect-module-names.ts'
 import { preferOptionOverNullableInModel } from './rules/prefer-option-over-nullable-in-model.ts'
 import { requireFoldForChildUpdateResult } from './rules/require-fold-for-child-update-result.ts'
 import { requireRelForExternalLink } from './rules/require-rel-for-external-link.ts'
-import { selectionSubmodelFactoryAtModuleScope } from './rules/selection-submodel-factory-at-module-scope.ts'
+import { selectionBlockFactoryAtModuleScope } from './rules/selection-block-factory-at-module-scope.ts'
 import { wrapChildOutputInGotMessage } from './rules/wrap-child-output-in-got-message.ts'
 
 const basePlugin = Plugin.define({
@@ -44,17 +45,18 @@ const basePlugin = Plugin.define({
   rules: {
     'acquire-release-constructs-in-acquire-body':
       acquireReleaseConstructsInAcquireBody,
+    'block-name-matches-variable': blockNameMatchesVariable,
     'command-binding-matches-name': commandBindingMatchesName,
     'command-define-pascal-const': commandDefinePascalConst,
-    'got-prefix-requires-submodel-payload': gotPrefixRequiresSubmodelPayload,
-    'got-submodel-message-name': gotSubmodelMessageName,
+    'got-prefix-requires-block-payload': gotPrefixRequiresBlockPayload,
+    'got-block-message-name': gotBlockMessageName,
     'got-wrapper-carries-only-routing': gotWrapperCarriesOnlyRouting,
     'keyed-required-for-mapped-rows': keyedRequiredForMappedRows,
     'lazy-view-stable-references': lazyViewStableReferences,
     'mount-factory-must-use-element': mountFactoryMustUseElement,
     'no-array-index-view-keys': noArrayIndexViewKeys,
     'no-child-message-construction-in-root': noChildMessageConstructionInRoot,
-    'no-direct-submodel-state-update': noDirectSubmodelStateUpdate,
+    'no-direct-block-state-update': noDirectBlockStateUpdate,
     'no-disabling-dev-guardrails': noDisablingDevGuardrails,
     'no-duplicate-onmount-per-element': noDuplicateOnmountPerElement,
     'no-empty-children-array': noEmptyChildrenArray,
@@ -78,8 +80,8 @@ const basePlugin = Plugin.define({
     'prefer-option-over-nullable-in-model': preferOptionOverNullableInModel,
     'require-fold-for-child-update-result': requireFoldForChildUpdateResult,
     'require-rel-for-external-link': requireRelForExternalLink,
-    'selection-submodel-factory-at-module-scope':
-      selectionSubmodelFactoryAtModuleScope,
+    'selection-block-factory-at-module-scope':
+      selectionBlockFactoryAtModuleScope,
     'wrap-child-output-in-got-message': wrapChildOutputInGotMessage,
   },
 })
@@ -99,6 +101,16 @@ const testFilePatterns = [
   '**/*.test.tsx',
   '**/*.spec.ts',
   '**/*.spec.tsx',
+  '**/*.fixture.ts',
+  '**/*.fixture.tsx',
+  '**/test.ts',
+  '**/test.tsx',
+  '**/test/**/*.ts',
+  '**/test/**/*.tsx',
+  '**/tests/**/*.ts',
+  '**/tests/**/*.tsx',
+  '**/fixtures/**/*.ts',
+  '**/fixtures/**/*.tsx',
 ]
 
 const serverFilePatterns = [

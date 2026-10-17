@@ -1,5 +1,5 @@
-import { Duration, Effect, Schema, Stream } from 'effect'
-import { Subscription } from 'foldkit'
+import { Duration, Schema, Stream } from 'effect'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Model = Schema.Struct({})
@@ -10,7 +10,9 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+const Heartbeat = Block.define('Heartbeat', { Model, Message })
+
+export const subscriptions = Heartbeat.subscriptions(entry => ({
   heartbeatTicks: entry('HeartbeatTicks', {
     messages: [Message.TickedHeartbeat],
     handler: function* () {

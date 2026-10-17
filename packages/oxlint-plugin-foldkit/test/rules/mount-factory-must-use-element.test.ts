@@ -1039,3 +1039,23 @@ describe('mount-factory-must-use-element', () => {
     expect(result[0]?.diagnostic.message).toContain('never referenced')
   })
 })
+
+it('checks the element input of a named Block Mount', () => {
+  const definition = Testing.callOfMember('Editor', 'mount', [
+    Testing.strLiteral('MountEditor'),
+    Testing.objectExpr([
+      { key: 'messages', value: Testing.id('CompletedMountEditor') },
+      {
+        key: 'handler',
+        value: generatorConstructor(Testing.arrowFn(Testing.id('effect'), [])),
+      },
+    ]),
+  ])
+  const result = Testing.runRule(
+    mountFactoryMustUseElement,
+    'CallExpression',
+    definition,
+  )
+
+  expect(result).toHaveLength(1)
+})

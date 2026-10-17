@@ -172,10 +172,10 @@ const findVariantByTag = (
 
 /**
  * Idiomatic Foldkit Messages carry at most one tagged-union payload field per
- * variant: either a `Got<Child>Message { message }` Submodel wrapper or a
+ * variant: either a `Got<Child>Message { message }` Block wrapper or a
  * regular Message with one tagged-union value-type payload (e.g. `ClickedLink {
  * request: UrlRequest }`). Multi-union-field variants are non-idiomatic;
- * surrounding state that a child Submodel needs belongs as an argument to
+ * surrounding state that a child Block needs belongs as an argument to
  * the child's `update`/`view`, not as a sibling field on the parent Message.
  * Returns `None` when zero or multiple union fields exist so the path walker
  * can produce an actionable error rather than silently picking one.
@@ -361,7 +361,7 @@ export const diagnoseVariantPath = (
  * `"GotChildMessage.Opened"` walks into the wrapper's nested union and narrows
  * to the inner variant. Any deeper discriminated unions inside the deepest
  * variant's payload are collapsed to `{ _summary: 'union', variants: [...] }`
- * placeholders so the response stays small even for deeply-nested Submodel
+ * placeholders so the response stays small even for deeply-nested Block
  * trees; agents drill further by extending the path.
  *
  * The `definitions` block is kept (any `$ref` targets the narrowed variant
@@ -377,7 +377,7 @@ export const diagnoseVariantPath = (
  * path is empty, a segment names no variant in the current union, or an
  * intermediate variant lacks exactly one tagged-union payload field to step
  * into (zero or multiple union fields are both ambiguous). The "exactly one"
- * rule encodes the Foldkit idiom (`Got<Child>Message { message }` Submodel
+ * rule encodes the Foldkit idiom (`Got<Child>Message { message }` Block
  * wrappers, single-union value-type fields); apps whose Message variants need
  * additional surrounding state should pass it as an argument to the child's
  * `update`/`view` rather than as a sibling field on the parent Message.

@@ -10,6 +10,7 @@ on:
   push:
     branches:
       - main
+      - codex/layers-and-submodels
     paths:
       - '.changeset/**'
       - 'packages/**'
@@ -50,7 +51,7 @@ permissions:
 jobs:
   version:
     name: Create or update the Version Packages pull request
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       actions: write
@@ -102,7 +103,7 @@ jobs:
 
   stable:
     name: Upload, verify, and promote stable packages
-    if: github.event_name == 'push' && needs.version.outputs.has_changesets == 'false'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.version.outputs.has_changesets == 'false'
     needs: version
     outputs:
       published_commit: ${{ steps.promote.outputs.published_commit }}
@@ -198,6 +199,7 @@ jobs:
 
   deploy-website-canary:
     needs: canary
+    if: ${{ !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.canary.result == 'success' }}
     uses: ./.github/workflows/deploy-website-canary.yml
     with:
       target: ${{ github.sha }}
@@ -208,8 +210,9 @@ jobs:
     needs: stable
     if: >-
       !cancelled() &&
+      github.ref == 'refs/heads/main' &&
       ((github.event_name == 'push' && needs.stable.result == 'success' && needs.stable.outputs.published_commit != '') ||
-       github.event_name == 'workflow_dispatch')
+       (github.event_name == 'workflow_dispatch' && needs.stable.result == 'skipped'))
     runs-on: ubuntu-latest
     env:
       PUBLISHED_COMMIT: ${{ needs.stable.outputs.published_commit || inputs.published_commit }}
@@ -271,7 +274,7 @@ jobs:
   deploy-website:
     name: Deploy the promoted website
     needs: finalize
-    if: ${{ !cancelled() && needs.finalize.result == 'success' }}
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && needs.finalize.result == 'success' }}
     uses: ./.github/workflows/deploy-website.yml
     with:
       published_commit: ${{ needs.finalize.outputs.published_commit }}

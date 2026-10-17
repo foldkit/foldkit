@@ -26,6 +26,12 @@ const commandDefineCall = (name: string) =>
     Testing.id('config'),
   ])
 
+const namedCommandDefineCall = (name: string) =>
+  Testing.callOfMember('Command', 'define', [
+    Testing.callOfMember('owner', 'name', [Testing.strLiteral(name)]),
+    Testing.id('config'),
+  ])
+
 describe('command-binding-matches-name', () => {
   it('flags command bindings that do not match Command.define names', () => {
     const result = Testing.runRule(
@@ -68,4 +74,41 @@ describe('command-binding-matches-name', () => {
 
     expect(result).toHaveLength(0)
   })
+
+  it('flags a mismatched binding on a named owner form', () => {
+    const result = Testing.runRule(
+      commandBindingMatchesName,
+      'VariableDeclarator',
+      variableDeclarator('SaveUser', namedCommandDefineCall('FetchUser')),
+    )
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.diagnostic.message).toContain('does not match')
+  })
+
+  it('allows a matching binding on a named owner form', () => {
+    const result = Testing.runRule(
+      commandBindingMatchesName,
+      'VariableDeclarator',
+      variableDeclarator('FetchUser', namedCommandDefineCall('FetchUser')),
+    )
+
+    expect(result).toHaveLength(0)
+  })
+})
+
+it('checks Command bindings declared by a named Block', () => {
+  const result = Testing.runRule(
+    commandBindingMatchesName,
+    'VariableDeclarator',
+    variableDeclarator(
+      'SaveUser',
+      Testing.callOfMember('User', 'command', [
+        Testing.strLiteral('FetchUser'),
+        Testing.id('config'),
+      ]),
+    ),
+  )
+
+  expect(result).toHaveLength(1)
 })

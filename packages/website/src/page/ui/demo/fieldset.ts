@@ -179,8 +179,6 @@ const disabledTermsCheckbox = (h: HtmlBuilder<Message>): Html =>
     h,
   )
 
-// VIEW
-
 export const basicDemo = (model: Model, h: HtmlBuilder<Message>) => {
   return [
     Fieldset.view(

@@ -1,36 +1,18 @@
-import { Context, Effect, Layer, Option, Schema, pipe } from 'effect'
-import { Application, Runtime } from 'foldkit'
+import { Effect, Option, Schema } from 'effect'
 
-class ApiClientService extends Context.Service<ApiClientService, ApiClient>()(
-  'ApiClientService',
-) {}
+import { ApiClientService, Session } from './services'
 
-const ApiClientLayer = Layer.effect(ApiClientService, makeApiClient)
-
-const Flags = Schema.Struct({
+export const Flags = Schema.Struct({
   maybeSession: Schema.Option(Session),
 })
-type Flags = typeof Flags.Type
+export type Flags = typeof Flags.Type
 
-const flags: Effect.Effect<Flags, never, ApiClientService> = Effect.gen(
-  function* () {
-    const apiClient = yield* ApiClientService
-    const session = yield* apiClient.restoreSession
-    return Flags.make({ maybeSession: Option.some(session) })
-  },
-).pipe(
+export const flags = Effect.gen(function* () {
+  const apiClient = yield* ApiClientService
+  const session = yield* apiClient.restoreSession
+  return Flags.make({ maybeSession: Option.some(session) })
+}).pipe(
   Effect.catch(() =>
     Effect.succeed(Flags.make({ maybeSession: Option.none() })),
   ),
 )
-
-const application = Application.make({
-  Model,
-  Flags,
-  init,
-  update,
-  view,
-  container: document.getElementById('root'),
-})
-
-pipe(application, Application.provide(ApiClientLayer), Runtime.run({ flags }))

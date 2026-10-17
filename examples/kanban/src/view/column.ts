@@ -2,7 +2,13 @@ import clsx from 'clsx'
 import { Array, Equal, Option, flow, pipe } from 'effect'
 import { Html, HtmlBuilder } from 'foldkit/html'
 
-import { Button, DragAndDrop, Input } from '@foldkit/ui'
+import { Button, Input } from '@foldkit/ui'
+import {
+  droppable,
+  isDragging,
+  maybeDraggedItemId,
+  maybeDropTarget,
+} from '@foldkit/ui/dragAndDrop'
 
 import { ADD_CARD_INPUT_ID } from '../constant'
 import { Card, Column } from '../domain'
@@ -155,14 +161,14 @@ const previewCardElements = (
   toParentMessage: (message: Message) => Message,
   h: HtmlBuilder<Message>,
 ): ReadonlyArray<Html> => {
-  if (!DragAndDrop.isDragging(model.dragAndDrop)) {
+  if (!isDragging(model.dragAndDrop)) {
     return defaultCardElements(model, column, toParentMessage, h)
   }
 
-  return Option.match(DragAndDrop.maybeDraggedItemId(model.dragAndDrop), {
+  return Option.match(maybeDraggedItemId(model.dragAndDrop), {
     onNone: () => defaultCardElements(model, column, toParentMessage, h),
     onSome: draggedId => {
-      const maybeTarget = DragAndDrop.maybeDropTarget(model.dragAndDrop)
+      const maybeTarget = maybeDropTarget(model.dragAndDrop)
       const visibleCards = Array.filter(
         column.cards,
         ({ id }) => id !== draggedId,
@@ -225,9 +231,9 @@ export const columnView = (
   toParentMessage: (message: Message) => Message,
   h: HtmlBuilder<Message>,
 ): Html => {
-  const maybeCurrentDropTarget = DragAndDrop.maybeDropTarget(model.dragAndDrop)
+  const maybeCurrentDropTarget = maybeDropTarget(model.dragAndDrop)
   const isDropTarget =
-    DragAndDrop.isDragging(model.dragAndDrop) &&
+    isDragging(model.dragAndDrop) &&
     Option.exists(
       maybeCurrentDropTarget,
       target => target.containerId === column.id,
@@ -270,7 +276,7 @@ export const columnView = (
       h.ul(
         [
           h.Class('flex flex-col gap-2 flex-1 overflow-y-auto min-h-0'),
-          ...DragAndDrop.droppable(column.id, column.name),
+          ...droppable(column.id, column.name),
         ],
         previewCardElements(model, column, toParentMessage, h),
       ),

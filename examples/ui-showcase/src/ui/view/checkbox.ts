@@ -1,10 +1,11 @@
-import { Submodel } from 'foldkit'
-import type { Html, HtmlBuilder } from 'foldkit/html'
+import type { Html } from 'foldkit/html'
 
 import { Checkbox } from '@foldkit/ui'
 
-import { Message as UiMessage } from '../message'
-import type { UiModel } from '../model'
+import { UiComposition } from '../composition'
+import type { UiViewBuilder } from '../composition'
+import { Message } from '../message'
+import type { Model } from '../model'
 
 const CHECKBOX_BASIC_DEMO_ID = 'checkbox-basic-demo'
 const CHECKBOX_ALL_DEMO_ID = 'checkbox-all-demo'
@@ -21,70 +22,65 @@ const labelClassName =
 
 const descriptionClassName = 'text-sm text-gray-500'
 
-export const view = Submodel.defineView<UiModel, UiMessage>(
-  (model, h): Html => {
-    const checkmark = h.span([h.Class('text-white text-xs')], ['✓'])
-    const basicCheckboxView = (
-      attributes: Checkbox.CheckboxAttributes<UiMessage>,
-    ): Html =>
-      h.div(
-        [h.Class('flex flex-col gap-1')],
-        [
-          h.div(
-            [h.Class(topRowClassName)],
-            [
-              h.button(
-                [...attributes.checkbox, h.Class(checkboxClassName)],
-                model.isCheckboxBasicDemoChecked ? [checkmark] : [],
-              ),
-              h.label(
-                [...attributes.label, h.Class(labelClassName)],
-                ['Accept terms and conditions'],
-              ),
-            ],
-          ),
-          h.p(
-            [...attributes.description, h.Class(descriptionClassName)],
-            ['You agree to our Terms of Service and Privacy Policy.'],
-          ),
-        ],
-      )
-
-    return h.div(
-      [],
+export const view = UiComposition.makeView((model, h) => {
+  const checkmark = h.span([h.Class('text-white text-xs')], ['✓'])
+  const basicCheckboxView = (
+    attributes: Checkbox.CheckboxAttributes<Message>,
+  ): Html =>
+    h.div(
+      [h.Class('flex flex-col gap-1')],
       [
-        h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Checkbox']),
-
-        h.h3(
-          [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
-          ['Basic'],
+        h.div(
+          [h.Class(topRowClassName)],
+          [
+            h.button(
+              [...attributes.checkbox, h.Class(checkboxClassName)],
+              model.isCheckboxBasicDemoChecked ? [checkmark] : [],
+            ),
+            h.label(
+              [...attributes.label, h.Class(labelClassName)],
+              ['Accept terms and conditions'],
+            ),
+          ],
         ),
-        Checkbox.view(
-          {
-            id: CHECKBOX_BASIC_DEMO_ID,
-            isChecked: model.isCheckboxBasicDemoChecked,
-            hasDescription: true,
-            onToggle: isChecked =>
-              UiMessage.ToggledCheckboxBasicDemo({ isChecked }),
-            toView: basicCheckboxView,
-          },
-          h,
+        h.p(
+          [...attributes.description, h.Class(descriptionClassName)],
+          ['You agree to our Terms of Service and Privacy Policy.'],
         ),
-
-        h.h3(
-          [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
-          ['Indeterminate'],
-        ),
-        ...indeterminateDemo(model, h),
       ],
     )
-  },
-)
 
-const indeterminateDemo = (
-  model: UiModel,
-  h: HtmlBuilder<UiMessage>,
-): ReadonlyArray<Html> => {
+  return h.div(
+    [],
+    [
+      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Checkbox']),
+
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+        ['Basic'],
+      ),
+      Checkbox.view(
+        {
+          id: CHECKBOX_BASIC_DEMO_ID,
+          isChecked: model.isCheckboxBasicDemoChecked,
+          hasDescription: true,
+          onToggle: isChecked =>
+            Message.ToggledCheckboxBasicDemo({ isChecked }),
+          toView: basicCheckboxView,
+        },
+        h,
+      ),
+
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+        ['Indeterminate'],
+      ),
+      ...indeterminateDemo(model, h),
+    ],
+  )
+})
+
+const indeterminateDemo = (model: Model, h: UiViewBuilder) => {
   const checkmark = h.span([h.Class('text-white text-xs')], ['✓'])
   const indeterminateMark = h.span([h.Class('text-white text-xs')], ['—'])
 
@@ -105,7 +101,7 @@ const indeterminateDemo = (
   }
 
   const selectAllView = (
-    attributes: Checkbox.CheckboxAttributes<UiMessage>,
+    attributes: Checkbox.CheckboxAttributes<Message>,
   ): Html =>
     h.div(
       [h.Class(topRowClassName)],
@@ -122,7 +118,7 @@ const indeterminateDemo = (
     )
 
   const emailNotificationsView = (
-    attributes: Checkbox.CheckboxAttributes<UiMessage>,
+    attributes: Checkbox.CheckboxAttributes<Message>,
   ): Html =>
     notificationOptionView(
       attributes,
@@ -131,7 +127,7 @@ const indeterminateDemo = (
     )
 
   const pushNotificationsView = (
-    attributes: Checkbox.CheckboxAttributes<UiMessage>,
+    attributes: Checkbox.CheckboxAttributes<Message>,
   ): Html =>
     notificationOptionView(
       attributes,
@@ -140,7 +136,7 @@ const indeterminateDemo = (
     )
 
   const notificationOptionView = (
-    attributes: Checkbox.CheckboxAttributes<UiMessage>,
+    attributes: Checkbox.CheckboxAttributes<Message>,
     isChecked: boolean,
     label: string,
   ): Html =>
@@ -165,7 +161,7 @@ const indeterminateDemo = (
             isChecked: isAllChecked,
             isIndeterminate,
             onToggle: isChecked =>
-              UiMessage.ToggledCheckboxAllDemo({ isChecked }),
+              Message.ToggledCheckboxAllDemo({ isChecked }),
             toView: selectAllView,
           },
           h,
@@ -178,7 +174,7 @@ const indeterminateDemo = (
                 id: CHECKBOX_OPTION_A_DEMO_ID,
                 isChecked: model.isCheckboxOptionADemoChecked,
                 onToggle: isChecked =>
-                  UiMessage.ToggledCheckboxOptionADemo({ isChecked }),
+                  Message.ToggledCheckboxOptionADemo({ isChecked }),
                 toView: emailNotificationsView,
               },
               h,
@@ -188,7 +184,7 @@ const indeterminateDemo = (
                 id: CHECKBOX_OPTION_B_DEMO_ID,
                 isChecked: model.isCheckboxOptionBDemoChecked,
                 onToggle: isChecked =>
-                  UiMessage.ToggledCheckboxOptionBDemo({ isChecked }),
+                  Message.ToggledCheckboxOptionBDemo({ isChecked }),
                 toView: pushNotificationsView,
               },
               h,

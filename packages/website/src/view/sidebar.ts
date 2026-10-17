@@ -1,12 +1,14 @@
 import { clsx } from 'clsx'
-import { Array, Equal, Option, pipe } from 'effect'
-import type { Mount } from 'foldkit'
-import { Html, type HtmlBuilder, createKeyedLazy } from 'foldkit/html'
+import { Array, Equal, Option } from 'effect'
+import { Html, createKeyedLazy } from 'foldkit/html'
 import apiModuleIndex from 'virtual:api-module-index'
 
-import { Dialog, Disclosure } from '@foldkit/ui'
+import { Disclosure } from '@foldkit/ui'
+import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
 import { Shared } from '../component'
+import type { ApplicationViewBuilder } from '../composition'
+import { MobileMenuDialogBinding } from '../composition'
 import {
   DOCS_SIDEBAR_NAV_ID,
   MOBILE_MENU_NAV_ID,
@@ -21,11 +23,11 @@ import { Link } from '../link'
 import { Message } from '../message'
 import { type Model } from '../model'
 import {
-  AppRoute,
   apiModuleRouter,
   blogRouter,
   homeRouter,
   isBlogRoute,
+  maybeExampleSlugForRoute,
 } from '../route'
 import { type GroupKey, type SidebarGroups } from '../sidebarStorage'
 
@@ -54,7 +56,7 @@ const sidebarGroup = (
     children: Html
     isLocked: boolean
   }>,
-  h: HtmlBuilder<Message>,
+  h: ApplicationViewBuilder,
 ): Html => {
   const buttonClassName = clsx(
     'w-full flex items-center justify-between transition',
@@ -134,7 +136,7 @@ const navLink = (
   href: string,
   isActive: boolean,
   label: string,
-  h: HtmlBuilder<Message>,
+  h: ApplicationViewBuilder,
 ) =>
   h.li(
     [],
@@ -161,7 +163,7 @@ const getStartedClass = (isActive: boolean) =>
 const getStartedNavItem = (
   route: Model['route'],
   maybeExampleSlug: Option.Option<string>,
-  h: HtmlBuilder<Message>,
+  h: ApplicationViewBuilder,
 ): Html => {
   const isActive = isNavPageActive(
     route._tag,
@@ -191,17 +193,10 @@ const computeNavLinks = (
   idPrefix: string,
   route: Model['route'],
   sidebarGroups: SidebarGroups,
-  h: HtmlBuilder<Message>,
+  h: ApplicationViewBuilder,
 ): Html => {
   const isOnApiModulePage = route._tag === 'ApiModule'
-  const maybeExampleSlug = pipe(
-    route,
-    Option.liftPredicate(
-      (route): route is typeof AppRoute.ExampleDetail.Type =>
-        route._tag === 'ExampleDetail',
-    ),
-    Option.map(route => route.exampleSlug),
-  )
+  const maybeExampleSlug = maybeExampleSlugForRoute(route)
   const maybeActiveSectionKey = findActiveSectionKey(
     route._tag,
     maybeExampleSlug,
@@ -297,7 +292,7 @@ const computeNavLinks = (
 
 const lazyNavLinks = createKeyedLazy()
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
+export const view = (model: Model, h: ApplicationViewBuilder): Html => {
   const desktopNavLinks = lazyNavLinks(DESKTOP_ID_PREFIX, computeNavLinks, [
     DESKTOP_ID_PREFIX,
     model.route,
@@ -325,10 +320,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-export const mobileView = (
-  model: Model,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Dialog.mounts>>,
-): Html => {
+export const mobileView = (model: Model, h: ApplicationViewBuilder): Html => {
   const mobileNavLinks = lazyNavLinks(MOBILE_ID_PREFIX, computeNavLinks, [
     MOBILE_ID_PREFIX,
     model.route,
@@ -341,7 +333,7 @@ export const mobileView = (
     description,
     initialFocus,
     title,
-  }: Dialog.RenderInfo): Html =>
+  }: DialogRenderInfo): Html =>
     h.div(
       [h.Class('flex flex-col h-full')],
       [
@@ -418,34 +410,34 @@ export const mobileView = (
       ],
     )
 
-  return h.submodel({
-    slotId: model.mobileMenuDialog.id,
-    model: model.mobileMenuDialog,
-    view: Dialog.view,
-    viewInputs: {
-      hasDescription: true,
-      toView: renderInfo =>
-        h.dialog(
-          [...renderInfo.dialog, h.Class('md:hidden')],
-          renderInfo.isVisible
-            ? [
-                h.div([
-                  ...renderInfo.backdrop,
-                  h.Class('fixed inset-0 z-[59]'),
-                ]),
-                h.div(
-                  [
-                    ...renderInfo.panel,
-                    h.Class(
-                      'fixed inset-0 z-[60] bg-cream dark:bg-gray-900 flex flex-col',
-                    ),
-                  ],
-                  [mobileMenuContent(renderInfo)],
-                ),
-              ]
-            : [],
-        ),
-    },
-    toParentMessage: message => Message.GotMobileMenuDialogMessage({ message }),
-  })
+  return h.block(
+    MobileMenuDialogBinding.embedView({
+      slotId: model.mobileMenuDialog.id,
+      model: model.mobileMenuDialog,
+      viewInputs: {
+        hasDescription: true,
+        toView: renderInfo =>
+          h.dialog(
+            [...renderInfo.dialog, h.Class('md:hidden')],
+            renderInfo.isVisible
+              ? [
+                  h.div([
+                    ...renderInfo.backdrop,
+                    h.Class('fixed inset-0 z-[59]'),
+                  ]),
+                  h.div(
+                    [
+                      ...renderInfo.panel,
+                      h.Class(
+                        'fixed inset-0 z-[60] bg-cream dark:bg-gray-900 flex flex-col',
+                      ),
+                    ],
+                    [mobileMenuContent(renderInfo)],
+                  ),
+                ]
+              : [],
+          ),
+      },
+    }),
+  )
 }

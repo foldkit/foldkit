@@ -17,4 +17,9 @@ export {
   mapMessage,
   mapMessages,
 } from './index.js'
+export type {
+  DefinitionNoArgs,
+  DefinitionWithArgs,
+  DefinitionWithArgsNameKeyed,
+} from './interruptible/index.js'
 export * as Interruptible from './interruptible/public.js'

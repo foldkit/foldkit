@@ -1,15 +1,25 @@
 import { Context, Effect, Layer, Schema } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/http'
-import { Command, Http } from 'foldkit'
+import { Http, defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
+import { defineTaggedUnion } from 'foldkit/schema'
 
 const User = Schema.Struct({ id: Schema.String, name: Schema.String })
 type User = typeof User.Type
 
-const Message = defineMessageUnion({
+export const Message = defineMessageUnion({
   SucceededLoadUser: { user: User },
   FailedLoadUser: { error: Schema.String },
 })
+
+export const UserState = defineTaggedUnion({
+  Loading: {},
+  Loaded: { user: User },
+  Failed: { error: Schema.String },
+})
+
+export const Model = Schema.Struct({ user: UserState })
+export const Application = defineApplication({ Model, Message })
 
 type ApiClient = Readonly<{
   getUser: (userId: string) => Effect.Effect<User, unknown>
@@ -19,7 +29,7 @@ class ApiClientService extends Context.Service<ApiClientService, ApiClient>()(
   'ApiClientService',
 ) {}
 
-const LoadUser = Command.define('LoadUser', {
+export const LoadUser = Application.command('LoadUser', {
   args: { userId: Schema.String },
   messages: [Message.SucceededLoadUser, Message.FailedLoadUser],
   handler: function* () {
@@ -59,5 +69,5 @@ export const EffectsLayer = LoadUser.layer
 export const ServicesLayer = Layer.provide(ApiLayer, Http.layer)
 const ServicesTestLayer = ApiTestLayer
 
-export const AppLayer = Layer.provide(EffectsLayer, ServicesLayer)
-export const AppTestLayer = Layer.provide(EffectsLayer, ServicesTestLayer)
+export const ApplicationLayer = ServicesLayer
+export const ApplicationTestLayer = ServicesTestLayer

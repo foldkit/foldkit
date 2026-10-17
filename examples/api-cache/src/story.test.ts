@@ -3,19 +3,11 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { expect, test } from 'vitest'
 
-import { Tabs } from '@foldkit/ui'
+import * as Tabs from '@foldkit/ui/tabs'
 
-import {
-  FetchPostDetail,
-  FetchPosts,
-  FetchStats,
-  Message,
-  type Model,
-  PostDetailData,
-  PostsData,
-  StatsData,
-  update,
-} from './main'
+import { FetchPostDetail, FetchPosts, FetchStats } from './command'
+import { Message } from './message'
+import { type Model, PostDetailData, PostsData, StatsData } from './model'
 import {
   FETCHED_AT,
   firstPostDetail,
@@ -23,7 +15,8 @@ import {
   fixtureStats,
   loadedPostsModel,
   loadedStatsModel,
-} from './main.fixture'
+} from './model.fixture'
+import { update } from './update'
 
 const postDetailTag = (model: Model, postId: string): string =>
   HashMap.get(model.postDetailById, postId).pipe(

@@ -47,8 +47,6 @@ const navClassName =
 const linkClassName =
   'flex-1 text-center px-2 sm:px-4 py-2 text-sm font-normal rounded-lg cursor-pointer transition text-gray-700 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300 hover:bg-gray-500/10 dark:hover:bg-gray-400/10 data-[current]:bg-cream data-[current]:dark:bg-gray-800 data-[current]:hover:bg-cream data-[current]:dark:hover:bg-gray-800 data-[current]:text-gray-900 data-[current]:dark:text-white data-[current]:shadow-sm'
 
-// VIEW
-
 const urlBar = (currentSection: NavDemoSection): Html =>
   ih.div(
     [

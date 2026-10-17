@@ -1,7 +1,7 @@
 import { Runtime } from 'foldkit'
 import { useEffect, useRef, useState } from 'react'
 
-import { makeElement } from './widget'
+import { createElement } from './widget'
 
 function WidgetPanel() {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -15,7 +15,7 @@ function WidgetPanel() {
     // Mount on effect setup, dispose on cleanup. dispose restores the
     // container element, so the ref stays valid across remounts (including
     // strict mode's setup/cleanup/setup sequence).
-    const element = makeElement(containerRef.current, { initialCount: 10 })
+    const element = createElement(containerRef.current, { initialCount: 10 })
     const handle = Runtime.embed(element)
     const unsubscribe = handle.ports.countChanged.subscribe(setCount)
 

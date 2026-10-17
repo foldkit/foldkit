@@ -22,7 +22,7 @@ const hexFor = (source: string, pattern: RegExp): string =>
 describe('theme-color', () => {
   const styles = readWebsiteFile('src/styles.css')
   const themeInit = readWebsiteFile('public/theme-init.js')
-  const main = readWebsiteFile('src/main.ts')
+  const theme = readWebsiteFile('src/theme.ts')
   const indexHtml = readWebsiteFile('index.html')
 
   const creamHex = hexFor(styles, /--color-cream:\s*(#[0-9a-fA-F]{6})/)
@@ -34,10 +34,10 @@ describe('theme-color', () => {
   })
 
   test('the ApplyTheme constants match the palette backgrounds', () => {
-    expect(hexFor(main, /LIGHT_THEME_COLOR = '(#[0-9a-fA-F]{6})'/)).toBe(
+    expect(hexFor(theme, /LIGHT_THEME_COLOR = '(#[0-9a-fA-F]{6})'/)).toBe(
       creamHex,
     )
-    expect(hexFor(main, /DARK_THEME_COLOR = '(#[0-9a-fA-F]{6})'/)).toBe(
+    expect(hexFor(theme, /DARK_THEME_COLOR = '(#[0-9a-fA-F]{6})'/)).toBe(
       gray900Hex,
     )
   })

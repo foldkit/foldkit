@@ -6,7 +6,7 @@ Foldkit keeps view and update pure. They describe the next UI and any work to pe
 
 ### View and Update Outputs
 
-`view` returns a `Document` or `Html` value. Its event handlers construct Messages. `update` returns the next Model, Commands, and, for a Submodel, an optional OutMessage. Given the same inputs, both functions make the same decisions without reading or changing the outside world.
+`view` returns a `Document` or `Html` value. Its event handlers construct Messages. `update` returns the next Model, Commands, and, for a Block, an optional OutMessage. Given the same inputs, both functions make the same decisions without reading or changing the outside world.
 
 ### Runtime Effect Boundaries
 
@@ -21,7 +21,7 @@ Effectful work lives at boundaries managed by the Runtime. Depending on the boun
 
 ### Synchronous DOM Event Work
 
-Effects, Streams, and Layers do nothing until the Runtime starts them. One narrow exception stays inside its boundary: a DOM-event mapper may need to perform synchronous browser work before returning a value. Use [`Dom.streamFromEventFilterMapPreventDefault`](/core/dom#filtered-events-and-synchronous-cancellation) when handling an event should also cancel its default action. The helper runs `filterMapEvent` and calls `preventDefault()` inside the browser's dispatch, while a downstream `Stream` operator runs too late to cancel the event. `Subscription.make` checks that the final Stream emits Messages.
+Effects, Streams, and Layers do nothing until the Runtime starts them. One narrow exception stays inside its boundary: a DOM-event mapper may need to perform synchronous browser work before returning a value. Use [`Dom.streamFromEventFilterMapPreventDefault`](/core/dom#filtered-events-and-synchronous-cancellation) when handling an event should also cancel its default action. The helper runs `filterMapEvent` and calls `preventDefault()` inside the browser's dispatch, while a downstream `Stream` operator runs too late to cancel the event. `Feature.subscriptions` checks that the final Stream emits Messages.
 
 ### CustomElement Boundaries
 
@@ -80,4 +80,4 @@ The pure version returns `GenerateApplePosition`. Its Effect generates the coord
 
 `RequestedApple` now returns the same Model and Command every time. Only the result handler writes the generated position into the Model.
 
-See the [Snake example](https://github.com/foldkit/foldkit/blob/main/examples/snake/src/main.ts#L220-L245) for a complete implementation of this pattern.
+See the [Snake example](https://github.com/foldkit/foldkit/blob/main/examples/snake/src/application.ts#L220-L245) for a complete implementation of this pattern.

@@ -1,7 +1,14 @@
 import { Match } from 'effect'
-import { Application, Runtime } from 'foldkit'
+import { Runtime } from 'foldkit'
 
 import * as Sentry from '@sentry/browser'
+
+import { ApplicationComposition } from './composition'
+import { init } from './init'
+import type { Message } from './message'
+import type { Model } from './model'
+import { update } from './update'
+import { view } from './view'
 
 const handleSlow = (context: Runtime.SlowContext<Model, Message>): void => {
   const summary = Match.value(context).pipe(
@@ -24,8 +31,7 @@ const handleSlow = (context: Runtime.SlowContext<Model, Message>): void => {
   Sentry.captureMessage(`[foldkit slow] ${summary}`)
 }
 
-const application = Application.make({
-  Model,
+const application = ApplicationComposition.makeApplication({
   init,
   update,
   view,

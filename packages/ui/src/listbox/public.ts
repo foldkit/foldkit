@@ -1,4 +1,4 @@
-export { init, create, Model } from './single.js'
+export { init, create, Model, block } from './single.js'
 
 export { buttonId } from './shared.js'
 
@@ -21,7 +21,6 @@ export {
   ClickListboxItem,
   DelayClearListboxSearch,
   DetectListboxMovementOrAnimationEnd,
-  EffectsLayer,
   mounts,
   type Opened,
   type Closed,
@@ -45,7 +44,7 @@ export type {
   ItemToValueInput,
 } from './shared.js'
 
-export type { Bundle, InitConfig, ViewInputs } from './single.js'
+export type { Completed, InitConfig, ViewInputs } from './single.js'
 
 export type { AnchorConfig } from '../anchor/index.js'
 

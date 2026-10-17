@@ -41,7 +41,7 @@ The exact files depend on the rendering mode and starter example. The small brow
 
 The Counter starter begins with these files:
 
-- `src/main.ts`: pure application definitions
+- `src/application.ts`: the typed Application and its implementation pieces
 - `src/entry.ts`: runtime bootstrap referenced by `index.html`
 - `src/styles.css`: Tailwind CSS entry point
 - `index.html`: HTML entry point
@@ -53,11 +53,11 @@ The Counter starter begins with these files:
 - `AGENTS.md`: your instructions for AI coding assistants working on the project
 - `FOLDKIT.md`: Foldkit's own conventions for those assistants, [replaced from the current template when you upgrade Foldkit](/ai/overview)
 
-In a small starter, `src/main.ts` holds the Model, Messages, update, init, and view. When it owns Commands, Subscriptions, Mounts, or ManagedResources, it also exports their attached handler recipes as `EffectsLayer`. Larger examples move those definitions and feature bundles into focused modules as the application grows.
+In a small starter, `src/application.ts` calls `defineApplication({ Model, Message })` and creates a named `ApplicationComposition`. The Definition authors Commands, Steps, lifecycle behavior, and Bindings; the Composition owns init, update, and the primary view after its child and Mount graph is fixed. Commands, Subscriptions, Mounts, ManagedResources, and their handler recipes stay at that Application boundary. Larger examples move substantial pieces into focused files as the application grows.
 
 ### Runtime Entry
 
-For the Counter starter, `src/entry.ts` imports the application definitions and starts the runtime with `Application.make` and `Runtime.run`. A starter whose attached handlers need no additional providers supplies its root `EffectsLayer` through `Application.provide`. When the root also composes a `ServicesLayer`, it supplies the resulting `AppLayer`. Other starters may compose the application from several modules or start a different host, but they keep runtime startup separate from the definitions. That separation lets tests import the application without starting a runtime as a side effect.
+For the Counter starter, `src/entry.ts` imports `ApplicationComposition`, init, update, and view, then completes that same Composition with `makeApplication`. The returned lowercase `application` is a passive runtime input. A starter whose handlers need application Services defines `ApplicationLayer` in `services.ts`, then the entry calls `application.provide(ApplicationLayer)`. Importing the authoring Definition, completing the runtime input, and providing a Layer remain passive; startup happens only when the Runtime starts the program.
 
 ### Project Scripts
 

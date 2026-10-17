@@ -13,15 +13,11 @@ import {
 import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
-import {
-  EditingState,
-  GenerateTodo,
-  Message,
-  type Model,
-  SaveTodos,
-  update,
-  view,
-} from './main'
+import { GenerateTodo, SaveTodos } from './command'
+import { Message } from './message'
+import { EditingState, type Model } from './model'
+import { update } from './update'
+import { view } from './view'
 
 const emptyModel: Model = {
   todos: [],

@@ -1,6 +1,6 @@
 import { Effect, Schema } from 'effect'
 import { HttpClient, HttpClientRequest, HttpClientResponse } from 'effect/http'
-import { Command } from 'foldkit'
+import { Block, Command } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 export const Message = defineMessageUnion({
@@ -13,7 +13,10 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const UploadFile = Command.define('UploadFile', {
+const Model = Schema.Struct({})
+const Uploads = Block.define('Uploads', { Model, Message })
+
+export const UploadFile = Uploads.command('UploadFile', {
   args: {
     uploadId: Schema.Int,
     file: Schema.instanceOf(File),

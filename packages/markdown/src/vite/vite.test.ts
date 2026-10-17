@@ -112,14 +112,14 @@ describe('parseMarkdown', () => {
 
   it('captures code block language and meta from the opening fence', () => {
     const document = parseMarkdown(
-      lines('~~~ts filename=main.ts', 'const count = 1', '~~~'),
+      lines('~~~ts filename=app.ts', 'const count = 1', '~~~'),
     )
 
     expect(document.blocks).toStrictEqual([
       {
         _tag: 'CodeBlock',
         maybeLanguage: Option.some('ts'),
-        maybeMeta: Option.some('filename=main.ts'),
+        maybeMeta: Option.some('filename=app.ts'),
         value: 'const count = 1',
       },
     ])
@@ -610,7 +610,7 @@ describe('markdown', () => {
   })
 
   it('leaves non-markdown modules untouched', () => {
-    expect(runTransform('# Title', '/site/src/main.ts')).toBeUndefined()
+    expect(runTransform('# Title', '/site/src/app.ts')).toBeUndefined()
     expect(
       runTransform('# Title', '/site/src/content/about.md.bak'),
     ).toBeUndefined()

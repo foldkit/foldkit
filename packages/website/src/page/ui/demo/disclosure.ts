@@ -12,8 +12,6 @@ export const DISCLOSURE_COLLAPSED_PREVIEW_DEMO_ID =
 
 const COLLAPSED_PREVIEW_HEIGHT = '6rem'
 
-// VIEW
-
 export const basicDemo = (
   isDisclosureDemoOpen: boolean,
   h: HtmlBuilder<Message>,

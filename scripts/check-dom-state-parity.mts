@@ -1,4 +1,5 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
+import { defineApplication } from 'foldkit'
 import * as CustomElement from 'foldkit/customElement'
 import { Server } from 'foldkit/experimental'
 import { type Html, type HtmlBuilder } from 'foldkit/html'
@@ -13,6 +14,23 @@ import {
   isHtmlPropertyRepresentable,
   reflectedAttributeName,
 } from '../packages/foldkit/dist/domReflection.js'
+
+const Application = defineApplication({
+  Model: Schema.Null,
+  Message: Schema.Never,
+})
+const ApplicationComposition = Application.makeComposition()
+const makeParityImplementation = (
+  view: (
+    model: null,
+    h: HtmlBuilder<never>,
+  ) => Readonly<{ title: string; body: Html }>,
+) => ({
+  init: () => ({ model: null }),
+  update: ApplicationComposition.makeUpdate(),
+  view: ApplicationComposition.makeView(view),
+  EffectsLayer: Layer.empty,
+})
 
 // The state a served element is in, compared against the state the client puts
 // the same element in.
@@ -844,17 +862,15 @@ const renderCase = async (parityCase: ParityCase): Promise<RenderedCase> => {
   let captured: CapturedData = {}
   const rendered = await Effect.runPromise(
     Server.renderToString(
-      {
-        init: () => ({ model: null }),
-        view: (_model: null, h: HtmlBuilder<never>) => {
-          const element = parityCase.build(h)
-          captured = element?.data ?? {}
-          return {
-            title: 'dom state parity',
-            body: containedBy(h, parityCase.container ?? 'Block', element),
-          }
-        },
-      },
+      ApplicationComposition,
+      makeParityImplementation((_model: null, h: HtmlBuilder<never>) => {
+        const element = parityCase.build(h)
+        captured = element?.data ?? {}
+        return {
+          title: 'dom state parity',
+          body: containedBy(h, parityCase.container ?? 'Block', element),
+        }
+      }),
       { isHydratable: false },
     ),
   )
@@ -1098,13 +1114,11 @@ const runSerializeRefusals = async (): Promise<void> => {
     const outcome = await Effect.runPromise(
       Effect.result(
         Server.renderToString(
-          {
-            init: () => ({ model: null }),
-            view: (_model: null, h: HtmlBuilder<never>) => ({
-              title: 'dom state parity',
-              body: h.div([], [refusal.build(h)]),
-            }),
-          },
+          ApplicationComposition,
+          makeParityImplementation((_model: null, h: HtmlBuilder<never>) => ({
+            title: 'dom state parity',
+            body: h.div([], [refusal.build(h)]),
+          })),
           { isHydratable: false },
         ),
       ),
@@ -1128,13 +1142,11 @@ const main = async (): Promise<void> => {
   let builder: HtmlBuilder<never> | undefined
   await Effect.runPromise(
     Server.renderToString(
-      {
-        init: () => ({ model: null }),
-        view: (_model: null, h: HtmlBuilder<never>) => {
-          builder = h
-          return { title: 'dom state parity', body: h.div([], ['x']) }
-        },
-      },
+      ApplicationComposition,
+      makeParityImplementation((_model: null, h: HtmlBuilder<never>) => {
+        builder = h
+        return { title: 'dom state parity', body: h.div([], ['x']) }
+      }),
       { isHydratable: false },
     ),
   )

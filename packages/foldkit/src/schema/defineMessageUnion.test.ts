@@ -93,6 +93,34 @@ describe('defineMessageUnion', () => {
     expect(describeMessage(Message.ChangedCount({ count: 4 }))).toBe('count 4')
   })
 
+  it('accepts never, unknown, and any as explicit output types', () => {
+    const failMessage = Message.match<never>({
+      ClickedReset: () => {
+        throw new Error('reset')
+      },
+      ChangedCount: () => {
+        throw new Error('count')
+      },
+      SelectedItem: () => {
+        throw new Error('item')
+      },
+    })
+    const eraseMessage = Message.match<unknown>({
+      ClickedReset: () => 'reset',
+      ChangedCount: ({ count }) => count,
+      SelectedItem: ({ id }) => ({ id }),
+    })
+    const uncheckedMessage = Message.match<any>({
+      ClickedReset: () => 'reset',
+      ChangedCount: ({ count }) => count,
+      SelectedItem: ({ id }) => ({ id }),
+    })
+
+    expectTypeOf(failMessage).toEqualTypeOf<(message: Message) => never>()
+    expectTypeOf(eraseMessage(Message.ClickedReset())).toEqualTypeOf<unknown>()
+    expectTypeOf(uncheckedMessage(Message.ClickedReset())).toBeAny()
+  })
+
   it('infers a union from every handler return', () => {
     const Result = defineMessageUnion({
       Reset: {},
@@ -156,6 +184,63 @@ describe('defineMessageUnion', () => {
     })
 
     expect(description).toBe('selected second: Second')
+  })
+
+  it('requires exactly the handlers present in a narrowed Message union', () => {
+    type CountMessage = Extract<Message, { readonly _tag: 'ChangedCount' }>
+
+    const describeCount = (message: CountMessage) =>
+      Message.match(message, {
+        ChangedCount: ({ count }) => `count ${count}`,
+      })
+
+    expect(describeCount(Message.ChangedCount({ count: 3 }))).toBe('count 3')
+
+    if (false) {
+      Message.match(messageForFullUnion(), {
+        ClickedReset: () => 'reset',
+        ChangedCount: ({ count }) => `count ${count}`,
+        SelectedItem: ({ label }) => label,
+      })
+
+      // @ts-expect-error A handler outside the narrowed union is rejected.
+      Message.match(messageForStrictSubset(), {
+        ChangedCount: () => 'count',
+        SelectedItem: () => 'selected',
+      })
+
+      // @ts-expect-error Every variant in the narrowed union remains required.
+      Message.match(messageForStrictSubset(), {})
+
+      // @ts-expect-error An inferred data-first match rejects unknown handlers.
+      Message.match(messageForStrictSubset(), {
+        ChangedCount: () => 'count',
+        Unknown: () => 'unknown',
+      })
+
+      const namedCasesWithUnknown = {
+        ClickedReset: () => ({ value: 'reset' }),
+        ChangedCount: ({ count }: { count: number }) => ({
+          value: `count ${count}`,
+        }),
+        SelectedItem: ({ label }: { label: string }) => ({ value: label }),
+        Unknown: () => ({ value: 'unknown' }),
+      }
+
+      const contextualResult: Readonly<{ value: string }> = Message.match(
+        messageForFullUnion(),
+        // @ts-expect-error Contextual output inference cannot admit unknown handlers.
+        namedCasesWithUnknown,
+      )
+      void contextualResult
+
+      // @ts-expect-error An explicit Return cannot narrow the declared output.
+      Message.match<string, Message, 'reset'>({
+        ClickedReset: () => 'reset',
+        ChangedCount: () => 'count',
+        SelectedItem: () => 'selected',
+      })
+    }
   })
 
   it('rejects names that conflict with the tagged union surface', () => {
@@ -251,3 +336,10 @@ describe('defineMessageUnion', () => {
     expect(describeMessage(Message.ClickedReset())).toBe('other')
   })
 })
+
+const messageForStrictSubset = (): Extract<
+  Message,
+  { readonly _tag: 'ChangedCount' }
+> => Message.ChangedCount({ count: 1 })
+
+const messageForFullUnion = (): Message => Message.ChangedCount({ count: 1 })

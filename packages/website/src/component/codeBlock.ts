@@ -101,7 +101,7 @@ export const highlightedView = (
 
 /**
  * `highlightedView` bound to a page-supplied snippet renderer, for a page
- * rendered inside a Submodel. Bind once at the top of the view and the call
+ * rendered inside a Block. Bind once at the top of the view and the call
  * sites below it are unchanged.
  */
 export const highlightedViewFor =

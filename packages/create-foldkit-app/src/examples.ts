@@ -48,7 +48,7 @@ export const examples: ReadonlyArray<{
     value: 'counters',
     title: 'counters',
     description:
-      'A dynamic list of Counter Submodels with per-instance routing via a wrapper Message',
+      'A dynamic list of Counter Blocks with per-instance routing via a wrapper Message',
   },
   {
     value: 'todo',
@@ -97,7 +97,7 @@ export const examples: ReadonlyArray<{
     value: 'api-cache-query',
     title: 'api-cache-query',
     description:
-      'The API Cache app rewritten with experimental Query.define. Fetching and retained entries live in Query Submodels',
+      'The API Cache app rewritten with experimental Query.define. Fetching and retained entries live in Query Blocks',
   },
   {
     value: 'charting',
@@ -154,8 +154,7 @@ export const examples: ReadonlyArray<{
   {
     value: 'auth',
     title: 'auth',
-    description:
-      'Authentication with Submodels, OutMessage, and protected routes',
+    description: 'Authentication with Blocks, OutMessage, and protected routes',
   },
   {
     value: 'shopping-cart',
@@ -211,6 +210,6 @@ export const examples: ReadonlyArray<{
   {
     value: 'ui-showcase',
     title: 'ui-showcase',
-    description: 'Every Foldkit UI component with routing and Submodels',
+    description: 'Every Foldkit UI component with routing and Blocks',
   },
 ]

@@ -15,6 +15,7 @@ import {
 } from '../effect-constructor.ts'
 import {
   indexReferences,
+  isOwnedDefinitionCall,
   isCallExpression,
   isIdentifier,
   isIdentifierReference,
@@ -34,6 +35,13 @@ const isMountDefinitionCall = (
   node: ESTree.CallExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): boolean => {
+  if (
+    isOwnedDefinitionCall(node, 'mount', references) ||
+    isOwnedDefinitionCall(node, 'mountStream', references)
+  ) {
+    return true
+  }
+
   if (references === undefined) {
     return AST.isCallOf(node, 'Mount', MOUNT_DEFINITION_METHODS)
   }

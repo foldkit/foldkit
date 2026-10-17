@@ -59,7 +59,7 @@ Catch a meaningful failure with `Effect.catch` and turn it into a Message. Use `
 
 ## Using Dom Streams
 
-Each Dom Stream helper returns a composable Stream, not a complete Subscription entry. Compose the Stream with Effect Stream operators, then give it to a Subscription or Mount. For a listener attached to one rendered element, `Mount.defineStream` starts it when the element appears and stops it when the element leaves the view:
+Each Dom Stream helper returns a composable Stream, not a complete Subscription entry. Compose the Stream with Effect Stream operators, then give it to a Subscription or Mount. For a listener attached to one rendered element, `Feature.mountStream` starts it when the element appears and stops it when the element leaves the view:
 
 ::Snippet{name="domMountEvent" label="Element pointer Stream owned by a Mount"}
 

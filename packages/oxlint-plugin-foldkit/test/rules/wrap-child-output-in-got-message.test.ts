@@ -30,6 +30,7 @@ const liftConfig = (mapper: unknown) =>
         Testing.id('model'),
       ]),
     },
+    { key: 'write', value: Testing.id('write') },
     { key: 'toParentMessage', value: mapper },
   ])
 
@@ -96,7 +97,7 @@ describe('wrap-child-output-in-got-message', () => {
     )
 
     expect(result).toHaveLength(1)
-    expect(result[0]?.diagnostic.message).toContain('Subscription.lift')
+    expect(result[0]?.diagnostic.message).toContain('toParentMessage')
     expect(result[0]?.diagnostic.message).toContain('toParentMessage')
     expect(result[0]?.diagnostic.message).toContain('Msg.ReceivedChatEvent')
   })
@@ -116,7 +117,7 @@ describe('wrap-child-output-in-got-message', () => {
     )
 
     expect(result).toHaveLength(1)
-    expect(result[0]?.diagnostic.message).toContain('Subscription.lift')
+    expect(result[0]?.diagnostic.message).toContain('toParentMessage')
   })
 
   it('flags a dynamic callee inside a Command mapper with a placeholder label', () => {
@@ -242,4 +243,73 @@ describe('wrap-child-output-in-got-message', () => {
 
     expect(result).toHaveLength(0)
   })
+})
+
+it('checks the Message wrapper in a completed Block binding', () => {
+  const node = callWithCallee(
+    {
+      type: 'MemberExpression',
+      object: Testing.id('Application'),
+      property: Testing.id('bindChild'),
+      computed: false,
+    },
+    [
+      Testing.id('Chat'),
+      liftConfig(
+        Testing.arrowFn(
+          memberConstructorCall('Msg', 'ReceivedChatEvent'),
+          messageParameter(),
+        ),
+      ),
+    ],
+  )
+  const result = Testing.runRule(
+    wrapChildOutputInGotMessage,
+    'CallExpression',
+    node,
+  )
+
+  expect(result).toHaveLength(1)
+})
+
+const directConnectionCall = (constructorName: string) =>
+  callWithCallee(
+    {
+      type: 'MemberExpression',
+      object: Testing.id('Application'),
+      property: Testing.id('bindChild'),
+      computed: false,
+    },
+    [
+      Testing.id('Chat'),
+      Testing.objectExpr([
+        { key: 'field', value: { type: 'Literal', value: 'chat' } },
+        {
+          key: 'parentMessage',
+          value: Testing.memberExpr('Message', constructorName),
+        },
+      ]),
+    ],
+  )
+
+it('allows a Got parentMessage constructor in a direct connection', () => {
+  const result = Testing.runRule(
+    wrapChildOutputInGotMessage,
+    'CallExpression',
+    directConnectionCall('GotChatMessage'),
+  )
+
+  expect(result).toHaveLength(0)
+})
+
+it('checks the parentMessage constructor in a direct connection', () => {
+  const result = Testing.runRule(
+    wrapChildOutputInGotMessage,
+    'CallExpression',
+    directConnectionCall('ReceivedChatEvent'),
+  )
+
+  expect(result).toHaveLength(1)
+  expect(result[0]?.diagnostic.message).toContain('parentMessage')
+  expect(result[0]?.diagnostic.message).toContain('Message.ReceivedChatEvent')
 })

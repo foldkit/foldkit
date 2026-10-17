@@ -785,6 +785,13 @@ const buildPackages = (packages, env) => {
   const filters = packages.flatMap(pkg => ['--filter', pkg.packageJson.name])
 
   runRequired('pnpm', [...filters, 'build'], { env, inherit: true })
+
+  if (packages.some(pkg => pkg.packageJson.name === 'foldkit')) {
+    runRequired('pnpm', ['--filter', 'foldkit', 'check:emitted-declarations'], {
+      env,
+      inherit: true,
+    })
+  }
 }
 
 const publishArtifact = (artifact, uploadTag) => {

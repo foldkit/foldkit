@@ -306,3 +306,22 @@ describe('no-disabling-dev-guardrails', () => {
     expect(result).toHaveLength(0)
   })
 })
+
+it('checks guards at the Application completion boundary', () => {
+  const node = Testing.callOfMember(
+    'ApplicationComposition',
+    'makeApplication',
+    [
+      Testing.objectExpr([
+        { key: 'freezeModel', value: { type: 'Literal', value: false } },
+      ]),
+    ],
+  )
+  const result = Testing.runRule(
+    noDisablingDevGuardrails,
+    'CallExpression',
+    node,
+  )
+
+  expect(result).toHaveLength(1)
+})

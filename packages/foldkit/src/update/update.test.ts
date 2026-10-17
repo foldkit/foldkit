@@ -1,4 +1,13 @@
-import { Array, Effect, HashMap, Match, Number, Option, Schema } from 'effect'
+import {
+  Array,
+  Context,
+  Effect,
+  HashMap,
+  Match,
+  Number,
+  Option,
+  Schema,
+} from 'effect'
 import type { KeyValueStore } from 'effect/persistence/KeyValueStore'
 import { expect, expectTypeOf, vi } from 'vitest'
 
@@ -16,11 +25,15 @@ import {
   type FoldAtWithOutMessage,
   type FoldContext,
   type FoldWithOutMessage,
+  type RegistrationEvidenceOf,
+  RegistrationEvidenceTypeId,
+  type RequirementsOf,
   type Return,
   type ReturnWithOutMessage,
   type Step,
   type StepWithOutMessage,
   combine,
+  defineStep,
   foldChild,
   foldChildAt,
   foldChildStep,
@@ -96,6 +109,89 @@ describe('combine', () => {
       loadTags,
       loadFolders,
     ])
+  })
+
+  it('infers every requirement while preserving registered Step evidence', () => {
+    class FirstRequirement extends Context.Service<FirstRequirement, void>()(
+      'UpdateTest/FirstRequirement',
+    ) {}
+    class SecondRequirement extends Context.Service<SecondRequirement, void>()(
+      'UpdateTest/SecondRequirement',
+    ) {}
+    const firstCommand = {
+      name: 'First',
+      effect: Effect.gen(function* () {
+        yield* FirstRequirement
+        return Message.CompletedLoad()
+      }),
+    }
+    const secondCommand = {
+      name: 'Second',
+      effect: Effect.gen(function* () {
+        yield* SecondRequirement
+        return Message.CompletedLoad()
+      }),
+    }
+    const childEvidence = (): 'Child' => 'Child'
+    const localStep = defineStep((model: TestModel) => ({
+      model,
+      commands: [firstCommand],
+    }))
+    const registeredStep = (model: TestModel) => ({
+      model,
+      commands: [secondCommand],
+      [RegistrationEvidenceTypeId]: childEvidence,
+    })
+
+    const result = combine({ count: 0 }, [
+      localStep,
+      registeredStep,
+      defineStep((model: TestModel) => ({ model })),
+    ])
+
+    expectTypeOf<RequirementsOf<() => typeof result>>().toEqualTypeOf<
+      FirstRequirement | SecondRequirement
+    >()
+    expectTypeOf<
+      RegistrationEvidenceOf<typeof result>
+    >().toEqualTypeOf<'Child'>()
+    expect(result.commands).toEqual([firstCommand, secondCommand])
+
+    const rawTupleResult = combine({ count: 0 }, [
+      model => ({ model, commands: [firstCommand] }),
+      registeredStep,
+      model => ({ model }),
+    ])
+
+    expectTypeOf<RequirementsOf<() => typeof rawTupleResult>>().toEqualTypeOf<
+      FirstRequirement | SecondRequirement
+    >()
+    expectTypeOf<
+      RegistrationEvidenceOf<typeof rawTupleResult>
+    >().toEqualTypeOf<'Child'>()
+
+    const dynamicRegisteredSteps: ReadonlyArray<typeof registeredStep> = [
+      registeredStep,
+    ]
+    const dynamicResult = combine({ count: 0 }, dynamicRegisteredSteps)
+
+    expectTypeOf<
+      RequirementsOf<() => typeof dynamicResult>
+    >().toEqualTypeOf<SecondRequirement>()
+    expectTypeOf<
+      RegistrationEvidenceOf<typeof dynamicResult>
+    >().toEqualTypeOf<'Child'>()
+    expect(dynamicResult.commands).toEqual([secondCommand])
+
+    const dynamicCombinedStep = combine(dynamicRegisteredSteps)
+    const dynamicStepResult = dynamicCombinedStep({ count: 0 })
+
+    expectTypeOf<
+      RequirementsOf<() => typeof dynamicStepResult>
+    >().toEqualTypeOf<SecondRequirement>()
+    expectTypeOf<
+      RegistrationEvidenceOf<typeof dynamicStepResult>
+    >().toEqualTypeOf<'Child'>()
   })
 
   it('returns the model unchanged with no commands for an empty step list', () => {
@@ -218,7 +314,8 @@ describe('withOutMessage', () => {
       TestOutMessage,
       TestServices
     > = {
-      ...updateReturn,
+      model: updateReturn.model,
+      commands: updateReturn.commands,
       outMessage: { _tag: 'ClosedEditor' },
     }
 
@@ -542,11 +639,11 @@ describe('foldChild', () => {
     expect(ignoredKeyFold.model.counter).toBe(dashboardModel.counter)
   })
 
-  it('lifts the child OutMessage into a Submodel parent through toParentOutMessage', () => {
+  it('lifts the child OutMessage into a Block parent through toParentOutMessage', () => {
     type ReportedValue = Readonly<{ _tag: 'ReportedValue' }>
     const ReportedValue = (): ReportedValue => ({ _tag: 'ReportedValue' })
 
-    const foldCounterInSubmodel = foldChild({
+    const foldCounterInBlock = foldChild({
       update: counterUpdateWithOutMessage,
       read: (model: DashboardModel) => Option.some(model.counter),
       write: (model, nextCounter) =>
@@ -555,7 +652,7 @@ describe('foldChild', () => {
       toParentOutMessage: () => ReportedValue(),
     })
 
-    expectTypeOf(foldCounterInSubmodel).toEqualTypeOf<
+    expectTypeOf(foldCounterInBlock).toEqualTypeOf<
       FoldWithOutMessage<
         DashboardModel,
         GotCounterMessage,
@@ -564,17 +661,17 @@ describe('foldChild', () => {
       >
     >()
 
-    const counterSubmodelFold = foldCounterInSubmodel(
+    const counterBlockFold = foldCounterInBlock(
       dashboardModel,
       Message.BumpedValue(),
     )
-    expect(counterSubmodelFold.model.counter).toEqual({ value: 4 })
+    expect(counterBlockFold.model.counter).toEqual({ value: 4 })
     expect(
-      (counterSubmodelFold.commands ?? []).map(command => command.name),
+      (counterBlockFold.commands ?? []).map(command => command.name),
     ).toEqual(['SaveCount'])
-    expect(counterSubmodelFold.outMessage).toEqual(ReportedValue())
+    expect(counterBlockFold.outMessage).toEqual(ReportedValue())
 
-    const noOutMessageFold = foldCounterInSubmodel(
+    const noOutMessageFold = foldCounterInBlock(
       dashboardModel,
       Message.CompletedSaveCount(),
     )
@@ -582,7 +679,7 @@ describe('foldChild', () => {
   })
 
   it('lets a local OutMessage fold flow into an OutMessage-aware parent without an adapter', () => {
-    const foldReportingCounterInSubmodel = foldChild({
+    const foldReportingCounterInBlock = foldChild({
       update: counterUpdateWithOutMessage,
       read: (model: DashboardModel) => Option.some(model.counter),
       write: (model, nextCounter) =>
@@ -596,18 +693,16 @@ describe('foldChild', () => {
       }),
     })
 
-    const reportingCounterSubmodelFold: ReturnWithOutMessage<
+    const reportingCounterBlockFold: ReturnWithOutMessage<
       DashboardModel,
       DashboardMessage,
       NotifiedValueChanged
-    > = foldReportingCounterInSubmodel(dashboardModel, Message.BumpedValue())
-    expect(reportingCounterSubmodelFold.model.lastReportedValue).toBe(4)
+    > = foldReportingCounterInBlock(dashboardModel, Message.BumpedValue())
+    expect(reportingCounterBlockFold.model.lastReportedValue).toBe(4)
     expect(
-      (reportingCounterSubmodelFold.commands ?? []).map(
-        command => command.name,
-      ),
+      (reportingCounterBlockFold.commands ?? []).map(command => command.name),
     ).toEqual(['SaveCount', 'NotifyValueChanged'])
-    expect(reportingCounterSubmodelFold.outMessage).toBeUndefined()
+    expect(reportingCounterBlockFold.outMessage).toBeUndefined()
   })
 
   it('prefers a derived OutMessage over the toParentOutMessage lift', () => {
@@ -1282,11 +1377,11 @@ describe('foldChildStep', () => {
     ).toEqual(['SaveCount'])
   })
 
-  it('lifts the child OutMessage into a Submodel parent through toParentOutMessage', () => {
+  it('lifts the child OutMessage into a Block parent through toParentOutMessage', () => {
     type ReportedValue = Readonly<{ _tag: 'ReportedValue' }>
     const ReportedValue = (): ReportedValue => ({ _tag: 'ReportedValue' })
 
-    const foldCounterResetInSubmodel = foldChildStep({
+    const foldCounterResetInBlock = foldChildStep({
       update: resetCounterWithOutMessage,
       read: (model: DashboardModel) => Option.some(model.counter),
       write: (model, nextCounter) =>
@@ -1295,17 +1390,17 @@ describe('foldChildStep', () => {
       toParentOutMessage: () => ReportedValue(),
     })
 
-    expectTypeOf(foldCounterResetInSubmodel).toEqualTypeOf<
+    expectTypeOf(foldCounterResetInBlock).toEqualTypeOf<
       StepWithOutMessage<DashboardModel, GotCounterMessage, ReportedValue>
     >()
 
-    const counterResetSubmodelFold = foldCounterResetInSubmodel(dashboardModel)
+    const counterResetBlockFold = foldCounterResetInBlock(dashboardModel)
 
-    expect(counterResetSubmodelFold.model.counter).toEqual({ value: 0 })
+    expect(counterResetBlockFold.model.counter).toEqual({ value: 0 })
     expect(
-      (counterResetSubmodelFold.commands ?? []).map(command => command.name),
+      (counterResetBlockFold.commands ?? []).map(command => command.name),
     ).toEqual(['SaveCount'])
-    expect(counterResetSubmodelFold.outMessage).toEqual(ReportedValue())
+    expect(counterResetBlockFold.outMessage).toEqual(ReportedValue())
   })
 
   it('infers lifted and derived parent OutMessages independently', () => {
@@ -1347,7 +1442,7 @@ describe('foldChildStep', () => {
   })
 
   it('lets a local child Step flow into an OutMessage-aware parent without an adapter', () => {
-    const foldReportingCounterResetInSubmodel = foldChildStep({
+    const foldReportingCounterResetInBlock = foldChildStep({
       update: resetCounterWithOutMessage,
       read: (model: DashboardModel) => Option.some(model.counter),
       write: (model, nextCounter) =>
@@ -1364,7 +1459,7 @@ describe('foldChildStep', () => {
       DashboardModel,
       GotCounterMessage,
       NotifiedValueChanged
-    > = foldReportingCounterResetInSubmodel
+    > = foldReportingCounterResetInBlock
 
     const reportingCounterResetFold = parentStep(
       modifyFields(dashboardModel, { lastReportedValue: () => 9 }),
@@ -1564,9 +1659,13 @@ describe('types', () => {
     expectTypeOf<Return<TestModel, TestMessage>>().toEqualTypeOf<
       Readonly<{
         model: TestModel
-        commands?: Commands<TestMessage>
+        commands?:
+          | (Commands<TestMessage> &
+              Readonly<{ [RegistrationEvidenceTypeId]?: never }>)
+          | undefined
         outMessage?: never
-      }>
+      }> &
+        Readonly<{ [RegistrationEvidenceTypeId]?: never }>
     >()
   })
 
@@ -1593,9 +1692,13 @@ describe('types', () => {
     >().toEqualTypeOf<
       Readonly<{
         model: TestModel
-        commands?: Commands<TestMessage>
+        commands?:
+          | (Commands<TestMessage> &
+              Readonly<{ [RegistrationEvidenceTypeId]?: never }>)
+          | undefined
         outMessage?: TestOutMessage
-      }>
+      }> &
+        Readonly<{ [RegistrationEvidenceTypeId]?: never }>
     >()
   })
 
@@ -1626,16 +1729,60 @@ describe('types', () => {
     expect(outMessageAwareReturn.model).toBe(baseModel)
   })
 
-  it('rejects explicitly undefined Commands', () => {
-    const commands: Commands<TestMessage> | undefined = undefined
-
-    // @ts-expect-error exactOptionalPropertyTypes requires omitting commands or normalizing it.
-    const updateReturn: Return<TestModel, TestMessage> = {
+  it('accepts directly forwarded optional Commands', () => {
+    const forwardCommands = (
+      commands: Commands<TestMessage, TestServices> | undefined,
+    ): Return<TestModel, TestMessage, TestServices> => ({
       model: baseModel,
       commands,
+    })
+
+    const updateReturn = forwardCommands(undefined)
+
+    expectTypeOf(forwardCommands)
+      .parameter(0)
+      .toEqualTypeOf<Commands<TestMessage, TestServices> | undefined>()
+    expect(updateReturn.model).toBe(baseModel)
+  })
+
+  it('accepts directly forwarded optional Commands with OutMessages', () => {
+    const forwardCommands = (
+      commands: Commands<TestMessage, TestServices> | undefined,
+    ): ReturnWithOutMessage<
+      TestModel,
+      TestMessage,
+      TestOutMessage,
+      TestServices
+    > => ({
+      model: baseModel,
+      commands,
+      outMessage: { _tag: 'ClosedEditor' },
+    })
+
+    expectTypeOf(forwardCommands).returns.toEqualTypeOf<
+      ReturnWithOutMessage<TestModel, TestMessage, TestOutMessage, TestServices>
+    >()
+  })
+
+  it('rejects null and Commands for another Message', () => {
+    const wrongMessageCommand: Command<typeof Message.BumpedValue.Type> = {
+      name: 'BumpValue',
+      effect: Effect.succeed(Message.BumpedValue()),
     }
 
-    expect(updateReturn.model).toBe(baseModel)
+    const nullCommands: Return<TestModel, TestMessage> = {
+      model: baseModel,
+      // @ts-expect-error Commands may be absent or undefined, but never null.
+      commands: null,
+    }
+    const wrongMessageCommands: Return<TestModel, TestMessage> = {
+      model: baseModel,
+      // @ts-expect-error Forwarded Commands must produce the declared Message.
+      commands: [wrongMessageCommand],
+    }
+
+    expect(nullCommands.model).toBe(baseModel)
+    expect(wrongMessageCommands.model).toBe(baseModel)
   })
 
   it('prevents an OutMessage Step from flowing into combine', () => {

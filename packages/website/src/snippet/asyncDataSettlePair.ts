@@ -1,4 +1,4 @@
-const LoadAllNotes = Command.define('LoadAllNotes', {
+const LoadAllNotes = Application.command('LoadAllNotes', {
   messages: [SucceededLoadAllNotes, FailedLoadAllNotes],
   handler: function* () {
     return () =>
@@ -12,7 +12,7 @@ const LoadAllNotes = Command.define('LoadAllNotes', {
   },
 })
 
-const update = Update.define((model: Model, message: Message) =>
+const update = ApplicationComposition.makeUpdate((model, message) =>
   Match.value(message).pipe(
     Match.tagsExhaustive({
       SucceededLoadAllNotes: ({ notes }) => ({

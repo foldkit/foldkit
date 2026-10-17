@@ -1,35 +1,31 @@
 import { Schema } from 'effect'
-import { type Update } from 'foldkit'
-import type { Document, HtmlBuilder } from 'foldkit/html'
+import { defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
-
-// MODEL - Your entire application state
 
 const Model = Schema.Struct({
   count: Schema.Number,
 })
 type Model = typeof Model.Type
 
-// MESSAGE - Events that can happen in your app
-
 const Message = defineMessageUnion({
   ClickedIncrement: {},
 })
 type Message = typeof Message.Type
 
-// UPDATE - How Messages change the Model
+const Application = defineApplication({ Model, Message })
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+const ApplicationComposition = Application.makeComposition()
+
+const update = ApplicationComposition.makeUpdate((model, message) =>
+  Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: count => count + 1 }),
     }),
-  })
+  }),
+)
 
-// VIEW - A pure function from Model to a Document
-
-const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
+const view = ApplicationComposition.makeView((model, h) => ({
   title: `Count: ${model.count}`,
   body: h.div(
     [],
@@ -38,4 +34,4 @@ const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
       h.button([h.OnClick(Message.ClickedIncrement())], ['Increment']),
     ],
   ),
-})
+}))

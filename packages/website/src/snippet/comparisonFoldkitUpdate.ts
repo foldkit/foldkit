@@ -1,6 +1,6 @@
-import { Update } from 'foldkit'
+import { ApplicationComposition } from './composition'
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     PressedCell: ({ x, y }) =>
       Match.value(model.tool).pipe(

@@ -10,9 +10,10 @@ import {
 
 import {
   indexReferences,
+  isOwnedDefinitionCall,
+  firstCommandNameArgument,
   isCallExpression,
   isIdentifier,
-  isStringLiteral,
   isVariableDeclaration,
   isVariableDeclarator,
   resolveFoldkitApiPath,
@@ -45,6 +46,10 @@ const isCommandDefineCall = (
   node: ESTree.CallExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): boolean => {
+  if (isOwnedDefinitionCall(node, 'command', references)) {
+    return true
+  }
+
   if (references === undefined) {
     return AST.isCallOf(node, 'Command', 'define')
   }
@@ -92,11 +97,11 @@ const diagnosticMessage = (
   node: ESTree.CallExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): Option.Option<string> => {
-  const [firstArgument] = node.arguments
-  if (!isStringLiteral(firstArgument)) {
+  const nameArgument = firstCommandNameArgument(node)
+  if (nameArgument === undefined) {
     return Option.some(missingLiteralNameMessage)
   }
-  const name = firstArgument.value
+  const name = nameArgument.value
   if (!PASCAL_CASE_NAME.test(name)) {
     return Option.some(nonPascalCaseMessage(name))
   }

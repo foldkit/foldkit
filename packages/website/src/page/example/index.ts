@@ -1,5 +1,7 @@
-export * as ExampleDetail from './exampleDetail'
-export { EffectsLayer, mounts } from './exampleDetail'
+export * as ExampleDetail from './block'
+export { block } from './block'
+export { Message } from './message'
+export { Model } from './model'
 export {
   ExampleSlug,
   exampleSlugs,

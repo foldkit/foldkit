@@ -1,6 +1,5 @@
 // ✅ Good: the Message records the click. The Command names the work.
 
-import { Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Message = defineMessageUnion({
@@ -8,7 +7,7 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const update = Update.define((model: Model, message: Message) =>
+const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedRefresh: () => ({ model, commands: [FetchWeather()] }),
   }),

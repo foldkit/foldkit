@@ -1,11 +1,9 @@
 import { Duration, Effect } from 'effect'
-import { Command } from 'foldkit'
 
+import { Application } from './definition'
 import { Message } from './message'
 
-// COMMAND
-
-export const SubmitApplication = Command.define('SubmitApplication', {
+export const SubmitApplication = Application.command('SubmitApplication', {
   messages: [
     Message.SucceededSubmitApplication,
     Message.FailedSubmitApplication,
@@ -18,3 +16,5 @@ export const SubmitApplication = Command.define('SubmitApplication', {
       })
   },
 })
+
+export const EffectsLayer = SubmitApplication.layer

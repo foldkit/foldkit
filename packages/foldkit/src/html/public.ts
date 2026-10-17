@@ -19,3 +19,11 @@ export type {
   TagName,
   TextareaAttribute,
 } from './index.js'
+export type { VNode } from '../vdom.js'
+export type { DispatchSync, MountRenderOwner } from './runtimeSingleton.js'
+
+export type {
+  BoundBlockConfig,
+  BoundBlockConfigEvidence,
+  BoundBlockFields,
+} from './block.js'

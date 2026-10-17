@@ -11,8 +11,6 @@ const trackClassName =
 
 const fillClassName = 'h-full rounded-full bg-emerald-600 transition-all'
 
-// VIEW
-
 export const basicDemo = (h: HtmlBuilder<Message>) => {
   return [
     Meter.view(

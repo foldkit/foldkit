@@ -8,7 +8,7 @@ export {
   type SelectedTab,
   type FocusedTab,
   FocusTab,
-  EffectsLayer,
+  block,
   Orientation,
   PanelMount,
 } from './index.js'
@@ -19,5 +19,5 @@ export type {
   ViewInputs,
   RenderInfo,
   TabInfo,
-  Bundle,
+  Completed,
 } from './index.js'

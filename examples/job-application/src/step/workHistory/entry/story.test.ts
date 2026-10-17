@@ -2,7 +2,9 @@ import { Calendar } from 'foldkit'
 import { expectOutMessage, given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
-import { Message, OutMessage, init, update } from './entry'
+import { Message, OutMessage } from './definition'
+import { init } from './init'
+import { update } from './update'
 
 const today = Calendar.make(2026, 4, 16)
 

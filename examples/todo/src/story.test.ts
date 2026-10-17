@@ -3,14 +3,10 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
-import {
-  EditingState,
-  GenerateTodo,
-  Message,
-  type Model,
-  SaveTodos,
-  update,
-} from './main'
+import { GenerateTodo, SaveTodos } from './command'
+import { Message } from './message'
+import { EditingState, type Model } from './model'
+import { update } from './update'
 
 const emptyModel: Model = {
   todos: [],

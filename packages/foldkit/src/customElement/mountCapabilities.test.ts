@@ -44,7 +44,7 @@ describe('CustomElement Mount capabilities', () => {
   it('preserves registered requirements through the builder and ChildAttributes', () => {
     const acceptsMountedBuilder = (_builder: MountedWidgetBuilder): void => {}
     const renderRegistered = () =>
-      Application.make({
+      Application.__makeFromConfig({
         Model,
         init: () => ({ model: Model.make({}) }),
         update,
@@ -71,7 +71,7 @@ describe('CustomElement Mount capabilities', () => {
 
   it('rejects Mount attributes when the registry omits their definition', () => {
     const renderMissingRegistration = () =>
-      Application.make({
+      Application.__makeFromConfig({
         Model,
         init: () => ({ model: Model.make({}) }),
         update,
@@ -93,7 +93,7 @@ describe('CustomElement Mount capabilities', () => {
       })
 
     const renderMissingChildRegistration = () =>
-      Application.make({
+      Application.__makeFromConfig({
         Model,
         init: () => ({ model: Model.make({}) }),
         update,

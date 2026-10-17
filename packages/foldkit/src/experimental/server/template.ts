@@ -1,16 +1,12 @@
 import type { DefaultTreeAdapterMap } from 'parse5'
-import {
-  html as Parse5Html,
-  defaultTreeAdapter,
-  parse,
-  parseFragment,
-} from 'parse5'
+import { html as Parse5Html, defaultTreeAdapter, parse } from 'parse5'
 
 import { HYDRATION_BUILD_ATTRIBUTE } from '../../buildToken.js'
 import {
   FOLDKIT_APP_ATTRIBUTE,
   FOLDKIT_FLAGS_ATTRIBUTE,
 } from '../../hydrationMarker.js'
+import { type ParsedFragmentModes, parseFragmentModes } from './fragment.js'
 import { escapeAttributeValue, escapeText } from './serialize.js'
 import {
   type RenderedApplication,
@@ -358,14 +354,11 @@ const shapesAround = (
 
 const assertInjectionIsFaithful = (
   page: string,
-  template: string,
+  parsedTemplate: DefaultTreeAdapterMap['document'],
   renderedHtml: string,
   containerId: string,
   isScriptingEnabled: boolean,
 ): void => {
-  const parsedTemplate = parse(template, {
-    scriptingEnabled: isScriptingEnabled,
-  })
   const container = firstMatching(parsedTemplate, element =>
     isContainerPlaceholder(element, containerId),
   )
@@ -556,12 +549,8 @@ const assertRenderedSourceIsPreserved = (
 // carries no stamp (a render that nothing will hydrate).
 const runtimeIdInMode = (
   renderedHtml: string,
-  isScriptingEnabled: boolean,
+  parsed: DefaultTreeAdapterMap['documentFragment'],
 ): string | undefined => {
-  const parsed = parseFragment(RENDERED_FRAGMENT_CONTEXT, renderedHtml, {
-    scriptingEnabled: isScriptingEnabled,
-    sourceCodeLocationInfo: true,
-  })
   assertRenderedSourceIsPreserved(renderedHtml, parsed)
   const applicationMarkers = collectMatchingIncludingTemplateContent(
     parsed,
@@ -648,9 +637,12 @@ const runtimeIdInMode = (
   return runtimeId
 }
 
-const runtimeIdOf = (renderedHtml: string): string | undefined => {
-  const enabled = runtimeIdInMode(renderedHtml, true)
-  const disabled = runtimeIdInMode(renderedHtml, false)
+const runtimeIdOf = (
+  renderedHtml: string,
+  fragments: ParsedFragmentModes,
+): string | undefined => {
+  const enabled = runtimeIdInMode(renderedHtml, fragments.scripted)
+  const disabled = runtimeIdInMode(renderedHtml, fragments.unscripted)
   if (enabled !== disabled) {
     throw new Error(
       '[foldkit] injectIntoTemplate received rendered markup whose root and ' +
@@ -759,7 +751,15 @@ export const injectIntoTemplate = (
   // Distinct ids are not a licence to hydrate two applications on one page.
   // Each page-owning application rewrites the document's metadata and installs
   // its own navigation listeners, which no id divides between them.
-  const renderedRuntimeId = runtimeIdOf(rendered.html)
+  const { html: renderedHtml } = rendered
+  const fragments = parseFragmentModes(
+    RENDERED_FRAGMENT_CONTEXT,
+    renderedHtml,
+    {
+      sourceCodeLocationInfo: true,
+    },
+  )
+  const renderedRuntimeId = runtimeIdOf(renderedHtml, fragments)
   if (renderedRuntimeId !== undefined) {
     const existing = collectMatching(
       document,
@@ -840,15 +840,15 @@ export const injectIntoTemplate = (
 
   const container = containers[0]!
   assertNeutralInsertionContext(container, containerId)
-  __assertNoDeclarativeShadowRoot(rendered.html)
-  __assertNoDocumentStructureEscape(rendered.html)
-  __assertNoLiveBaseElement(rendered.html)
+  __assertNoDeclarativeShadowRoot(fragments)
+  __assertNoDocumentStructureEscape(renderedHtml)
+  __assertNoLiveBaseElement(fragments)
   const containerLocation = container.sourceCodeLocation
   if (containerLocation != null) {
     mutations.push({
       start: containerLocation.startOffset,
       end: containerLocation.endOffset,
-      replacement: rendered.html,
+      replacement: renderedHtml,
     })
   }
 
@@ -934,10 +934,13 @@ export const injectIntoTemplate = (
   // document the same way, and markup the parser drops is lost with no
   // hydration to rebuild it.
   for (const isScriptingEnabled of [true, false]) {
+    const parsedTemplate = isScriptingEnabled
+      ? document
+      : parse(template, { scriptingEnabled: false })
     assertInjectionIsFaithful(
       page,
-      template,
-      rendered.html,
+      parsedTemplate,
+      renderedHtml,
       containerId,
       isScriptingEnabled,
     )

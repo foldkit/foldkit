@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": false,
+    "emitDeclarationOnly": true,
+    "noEmitOnError": true,
+    "rootDir": "."
+  },
+  "include": ["accepted.ts"]
+}

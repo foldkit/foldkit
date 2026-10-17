@@ -1,29 +1,22 @@
-import { pipe } from 'effect'
-import { Application, Runtime } from 'foldkit'
+import { Runtime } from 'foldkit'
 
-import { AppLayer } from './layer'
-import {
-  Flags,
-  Message,
-  Model,
-  flags,
-  init,
-  subscriptions,
-  update,
-  view,
-} from './main'
+import { EffectsLayer } from './command'
+import { ApplicationComposition } from './composition'
+import { Flags, flags } from './flags'
+import { init } from './init'
+import { Message } from './message'
+import { ApplicationLayer } from './services'
+import { update } from './update'
+import { view } from './view'
 
-const application = Application.make({
-  Model,
-  Flags,
+const application = ApplicationComposition.makeApplication({
   init,
   update,
   view,
-  subscriptions,
+  EffectsLayer,
+  Flags,
   container: document.getElementById('root'),
-  devTools: {
-    Message,
-  },
+  devTools: { Message },
 })
 
-pipe(application, Application.provide(AppLayer), Runtime.run({ flags }))
+Runtime.run(application.provide(ApplicationLayer), { flags })

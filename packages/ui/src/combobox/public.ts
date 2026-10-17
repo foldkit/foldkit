@@ -1,4 +1,4 @@
-export { init, create, Model } from './single.js'
+export { init, create, Model, block } from './single.js'
 
 export { inputId } from './shared.js'
 
@@ -7,27 +7,28 @@ export {
   OutMessage,
   type Selected,
   type ClearedSelection,
+  type MessageSchema,
+  type OutMessageSchema,
   type SelectedItem,
-  type CompletedLockComboboxScroll,
-  type CompletedUnlockComboboxScroll,
-  type CompletedInertComboboxOthers,
-  type CompletedRestoreComboboxInert,
-  type CompletedFocusComboboxInput,
-  type CompletedScrollComboboxItemIntoView,
-  type CompletedClickComboboxItem,
-  AnchorCombobox,
-  AttachComboboxPreventBlur,
-  AttachComboboxSelectOnFocus,
-  PortalComboboxBackdrop,
-  LockComboboxScroll,
-  UnlockComboboxScroll,
-  InertComboboxOthers,
-  RestoreComboboxInert,
-  FocusComboboxInput,
-  ScrollComboboxItemIntoView,
-  ClickComboboxItem,
-  DetectComboboxMovementOrAnimationEnd,
-  EffectsLayer,
+  type CompletedLockScroll,
+  type CompletedUnlockScroll,
+  type CompletedInertOthers,
+  type CompletedRestoreInert,
+  type CompletedFocusInput,
+  type CompletedScrollItemIntoView,
+  type CompletedClickItem,
+  Anchor,
+  AttachPreventBlur,
+  AttachSelectOnFocus,
+  PortalBackdrop,
+  LockScroll,
+  UnlockScroll,
+  InertOthers,
+  RestoreInert,
+  FocusInput,
+  ScrollItemIntoView,
+  ClickItem,
+  DetectMovementOrAnimationEnd,
   mounts,
   type Opened,
   type Closed,
@@ -49,7 +50,7 @@ export type {
   BaseViewInputsCommon,
 } from './shared.js'
 
-export type { Bundle, InitConfig, ViewInputs } from './single.js'
+export type { Completed, InitConfig, ViewInputs } from './single.js'
 
 export type { AnchorConfig } from '../anchor/index.js'
 

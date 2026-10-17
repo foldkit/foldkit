@@ -23,11 +23,11 @@ export const Link = {
   foldkitVdom:
     'https://github.com/foldkit/foldkit/blob/main/packages/foldkit/src/vdom.ts',
   foldkitExamples: exampleBase,
-  exampleAuthLogin: `${exampleBase}/auth/src/page/loggedOut/page/login.ts`,
+  exampleAuthLogin: `${exampleBase}/auth/src/page/loggedOut/page/login/login.ts`,
   exampleSnakeRequestPattern:
-    'https://github.com/foldkit/foldkit/blob/main/examples/snake/src/main.ts#L220-L234',
+    'https://github.com/foldkit/foldkit/blob/main/examples/snake/src/application.ts#L229',
   exampleWeatherFetch:
-    'https://github.com/foldkit/foldkit/blob/main/examples/weather/src/main.ts#L153-L232',
+    'https://github.com/foldkit/foldkit/blob/main/examples/weather/src/command.ts',
   typingTerminal: 'https://typingterminal.com',
   typingTerminalSource:
     'https://github.com/foldkit/foldkit/tree/main/packages/typing-game',

@@ -7,6 +7,16 @@ const testFilePatterns = [
   '**/*.test.tsx',
   '**/*.spec.ts',
   '**/*.spec.tsx',
+  '**/*.fixture.ts',
+  '**/*.fixture.tsx',
+  '**/test.ts',
+  '**/test.tsx',
+  '**/test/**/*.ts',
+  '**/test/**/*.tsx',
+  '**/tests/**/*.ts',
+  '**/tests/**/*.tsx',
+  '**/fixtures/**/*.ts',
+  '**/fixtures/**/*.tsx',
 ]
 
 const serverFilePatterns = [
@@ -44,10 +54,13 @@ describe('configs', () => {
   for (const { name, config } of presets) {
     describe(name, () => {
       it('enables foldkit rules at error severity', () => {
+        expect(config.rules['foldkit/block-name-matches-variable']).toBe(
+          'error',
+        )
         expect(
           config.rules['foldkit/no-child-message-construction-in-root'],
         ).toBe('error')
-        expect(config.rules['foldkit/no-direct-submodel-state-update']).toBe(
+        expect(config.rules['foldkit/no-direct-block-state-update']).toBe(
           'error',
         )
         expect(
@@ -58,7 +71,7 @@ describe('configs', () => {
         expect(config.rules['foldkit/no-empty-to-parent-out-message']).toBe(
           'error',
         )
-        expect(config.rules['foldkit/got-submodel-message-name']).toBe('error')
+        expect(config.rules['foldkit/got-block-message-name']).toBe('error')
         expect(config.rules[decisionTimeRuleId]).toBe('error')
         expect(config.rules['foldkit/prefer-effect-module-names']).toBe('error')
       })

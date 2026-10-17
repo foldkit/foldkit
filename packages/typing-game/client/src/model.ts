@@ -1,11 +1,17 @@
 import { Schema } from 'effect'
 
 import { Home, Room } from './page'
-import { AppRoute } from './route'
+import { ApplicationRoute } from './route'
+
+export const RoomInstance = Schema.Struct({
+  roomId: Schema.String,
+  model: Room.Model,
+})
+export type RoomInstance = typeof RoomInstance.Type
 
 export const Model = Schema.Struct({
-  route: AppRoute,
-  home: Home.Model.Model,
-  room: Room.Model.Model,
+  route: ApplicationRoute,
+  home: Home.Model,
+  maybeRoomInstance: Schema.Option(RoomInstance),
 })
 export type Model = typeof Model.Type

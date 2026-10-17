@@ -1,5 +1,8 @@
 import { Context, Effect, Layer, type Scope, Stream } from 'effect'
 
+import type { DefinitionIdentity } from '../block/identity.js'
+import type { ValidateConstructionRequirements } from '../block/scope.js'
+
 declare const HandlerTypeId: unique symbol
 
 type Invariant<Value> = (value: Value) => Value
@@ -67,7 +70,8 @@ export interface ToLayerWithoutKeepAlive<
       StreamHandlerWithoutKeepAlive<Dependencies, Message, StreamRequirements>,
       E,
       BuildRequirements
-    >,
+    > &
+      ValidateConstructionRequirements<BuildRequirements>,
   ): Layer.Layer<
     Handler<Name, Dependencies, Message>,
     E,
@@ -95,7 +99,8 @@ export interface ToLayerWithKeepAlive<
       StreamHandlerWithKeepAlive<Dependencies, Message, StreamRequirements>,
       E,
       BuildRequirements
-    >,
+    > &
+      ValidateConstructionRequirements<BuildRequirements>,
   ): Layer.Layer<
     Handler<Name, Dependencies, Message>,
     E,
@@ -161,5 +166,12 @@ export const makeHandler = <Name extends string, Dependencies, Message>(
       }),
     )
 
-  return { toLayer, toStream }
+  const definitionIdentity: DefinitionIdentity = {
+    kind: 'Subscription',
+    name,
+    token: identity,
+    service,
+  }
+
+  return { toLayer, toStream, identity: definitionIdentity }
 }

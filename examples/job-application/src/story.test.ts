@@ -5,11 +5,13 @@ import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import { FileDrop, Menu, Tabs } from '@foldkit/ui'
+import { FocusMenuButton, FocusMenuItems } from '@foldkit/ui/menu'
+import { FocusTab } from '@foldkit/ui/tabs'
 
 import { SubmitApplication } from './command'
-import { completeModel, initialModel } from './main.fixture'
 import { Message } from './message'
 import { Submission } from './model'
+import { completeModel, initialModel } from './model.fixture'
 import {
   Attachments,
   CoverLetter,
@@ -23,12 +25,12 @@ import { update } from './update'
 const givenInitial = given(initialModel)
 
 const resolveFocusTab = Command.resolve(
-  Tabs.FocusTab,
+  FocusTab,
   Tabs.Message.CompletedFocusTab(),
 )
 
 const resolveFocusMenuButton = Command.resolve(
-  Menu.FocusMenuButton,
+  FocusMenuButton,
   Menu.Message.CompletedFocusMenuButton(),
 )
 
@@ -106,10 +108,7 @@ describe('update', () => {
             }),
           }),
         ),
-        Command.resolve(
-          Menu.FocusMenuItems,
-          Menu.Message.CompletedFocusMenuItems(),
-        ),
+        Command.resolve(FocusMenuItems, Menu.Message.CompletedFocusMenuItems()),
         message(
           Message.GotStepMenuMessage({
             message: Menu.Message.SelectedItem({

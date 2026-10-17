@@ -176,24 +176,23 @@ describe('Render.afterCommit inside a View Transition', () => {
 
   const startElement = () =>
     Effect.runFork(
-      Application.provide(
-        Application.makeElement({
-          Model,
-          init: () => ({ model: { label: 'initial' } }),
-          update,
-          view: model =>
-            h.div(
-              [],
-              [
-                h.button([h.OnClick(Message.ClickedTransition())], ['go']),
-                h.div([h.Id(LABEL_ELEMENT_ID)], [model.label]),
-              ],
-            ),
-          container,
-          viewTransition: ({ message }) => message._tag === 'ClickedTransition',
-        }),
-        ProbeCommittedDomLayer,
-      ).start(),
+      Application.__makeElementFromConfig({
+        Model,
+        init: () => ({ model: { label: 'initial' } }),
+        update,
+        view: model =>
+          h.div(
+            [],
+            [
+              h.button([h.OnClick(Message.ClickedTransition())], ['go']),
+              h.div([h.Id(LABEL_ELEMENT_ID)], [model.label]),
+            ],
+          ),
+        container,
+        viewTransition: ({ message }) => message._tag === 'ClickedTransition',
+      })
+        .provide(ProbeCommittedDomLayer)
+        .start(),
     )
 
   const nextFrames = (count: number): Promise<void> =>
@@ -287,23 +286,22 @@ describe('Render.afterCommit inside a View Transition', () => {
 
   it('resumes a waiter on a plain render with no transition configured', async () => {
     const fiber = Effect.runFork(
-      Application.provide(
-        Application.makeElement({
-          Model,
-          init: () => ({ model: { label: 'initial' } }),
-          update,
-          view: model =>
-            h.div(
-              [],
-              [
-                h.button([h.OnClick(Message.ClickedTransition())], ['go']),
-                h.div([h.Id(LABEL_ELEMENT_ID)], [model.label]),
-              ],
-            ),
-          container,
-        }),
-        ProbeCommittedDomLayer,
-      ).start(),
+      Application.__makeElementFromConfig({
+        Model,
+        init: () => ({ model: { label: 'initial' } }),
+        update,
+        view: model =>
+          h.div(
+            [],
+            [
+              h.button([h.OnClick(Message.ClickedTransition())], ['go']),
+              h.div([h.Id(LABEL_ELEMENT_ID)], [model.label]),
+            ],
+          ),
+        container,
+      })
+        .provide(ProbeCommittedDomLayer)
+        .start(),
     )
 
     try {
@@ -346,28 +344,27 @@ describe('a frame that abandons its render', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const fiber = Effect.runFork(
-      Application.provide(
-        Application.makeElement({
-          Model,
-          init: () => ({ model: { label: 'initial' } }),
-          update,
-          view: model => {
-            if (model.label === 'transitioned') {
-              throw new Error('boom from view')
-            }
-            return h.div(
-              [],
-              [
-                h.button([h.OnClick(Message.ClickedTransition())], ['go']),
-                h.div([h.Id(LABEL_ELEMENT_ID)], [model.label]),
-              ],
-            )
-          },
-          container,
-          crash: { view: () => h.div([], ['Crashed']) },
-        }),
-        ProbeCommittedDomLayer,
-      ).start(),
+      Application.__makeElementFromConfig({
+        Model,
+        init: () => ({ model: { label: 'initial' } }),
+        update,
+        view: model => {
+          if (model.label === 'transitioned') {
+            throw new Error('boom from view')
+          }
+          return h.div(
+            [],
+            [
+              h.button([h.OnClick(Message.ClickedTransition())], ['go']),
+              h.div([h.Id(LABEL_ELEMENT_ID)], [model.label]),
+            ],
+          )
+        },
+        container,
+        crash: { view: () => h.div([], ['Crashed']) },
+      })
+        .provide(ProbeCommittedDomLayer)
+        .start(),
     )
 
     try {
@@ -395,23 +392,22 @@ describe('a frame that abandons its render', () => {
 
   it('does not patch a frame scheduled before the runtime was disposed', async () => {
     const fiber = Effect.runFork(
-      Application.provide(
-        Application.makeElement({
-          Model,
-          init: () => ({ model: { label: 'initial' } }),
-          update,
-          view: model =>
-            h.div(
-              [],
-              [
-                h.button([h.OnClick(Message.ClickedTransition())], ['go']),
-                h.div([h.Id(LABEL_ELEMENT_ID)], [model.label]),
-              ],
-            ),
-          container,
-        }),
-        ProbeCommittedDomLayer,
-      ).start(),
+      Application.__makeElementFromConfig({
+        Model,
+        init: () => ({ model: { label: 'initial' } }),
+        update,
+        view: model =>
+          h.div(
+            [],
+            [
+              h.button([h.OnClick(Message.ClickedTransition())], ['go']),
+              h.div([h.Id(LABEL_ELEMENT_ID)], [model.label]),
+            ],
+          ),
+        container,
+      })
+        .provide(ProbeCommittedDomLayer)
+        .start(),
     )
 
     await vi.waitFor(() => {

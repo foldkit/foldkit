@@ -1,7 +1,13 @@
 import { Match } from 'effect'
 import type { ChildAttribute, Html, HtmlBuilder } from 'foldkit/html'
 
-import type { Calendar } from '@foldkit/ui'
+import type {
+  CalendarAttributes,
+  DaysModeAttributes,
+  MonthsModeAttributes,
+  Week,
+  YearsModeAttributes,
+} from '@foldkit/ui/calendar'
 
 import { Icon } from '../../../icon'
 
@@ -41,7 +47,7 @@ const navButton = <Message>(
 ): Html => h.button([...attributes, h.Class(navButtonClassName)], [icon])
 
 const headingButton = <Message>(
-  heading: Calendar.DaysModeAttributes['heading'],
+  heading: DaysModeAttributes['heading'],
   attributes: ReadonlyArray<ChildAttribute>,
   h: HtmlBuilder<Message>,
 ): Html =>
@@ -50,7 +56,7 @@ const headingButton = <Message>(
     [heading.text, Icon.chevronDown('w-3 h-3')],
   )
 
-const weekRow = <Message>(week: Calendar.Week, h: HtmlBuilder<Message>): Html =>
+const weekRow = <Message>(week: Week, h: HtmlBuilder<Message>): Html =>
   h.div(
     [...week.attributes, h.Class(rowClassName)],
     week.cells.map(cell =>
@@ -67,7 +73,7 @@ const weekRow = <Message>(week: Calendar.Week, h: HtmlBuilder<Message>): Html =>
   )
 
 const daysView = <Message>(
-  days: Calendar.DaysModeAttributes,
+  days: DaysModeAttributes,
   rootClassName: string,
   h: HtmlBuilder<Message>,
 ): Html =>
@@ -101,7 +107,7 @@ const daysView = <Message>(
   )
 
 const monthsView = <Message>(
-  months: Calendar.MonthsModeAttributes,
+  months: MonthsModeAttributes,
   rootClassName: string,
   h: HtmlBuilder<Message>,
 ): Html =>
@@ -130,7 +136,7 @@ const monthsView = <Message>(
   )
 
 const yearsView = <Message>(
-  years: Calendar.YearsModeAttributes,
+  years: YearsModeAttributes,
   rootClassName: string,
   h: HtmlBuilder<Message>,
 ): Html =>
@@ -169,7 +175,7 @@ export const calendarView = <Message>(
   rootClassName: string,
   h: HtmlBuilder<Message>,
 ) =>
-  Match.type<Calendar.CalendarAttributes>().pipe(
+  Match.type<CalendarAttributes>().pipe(
     Match.tagsExhaustive({
       Days: days => daysView(days, rootClassName, h),
       Months: months => monthsView(months, rootClassName, h),

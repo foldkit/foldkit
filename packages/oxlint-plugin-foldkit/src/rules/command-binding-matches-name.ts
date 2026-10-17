@@ -9,8 +9,9 @@ import {
 } from 'effect-oxlint'
 
 import {
-  firstStringArgument,
+  firstCommandNameArgument,
   indexReferences,
+  isOwnedDefinitionCall,
   isCallExpression,
   isIdentifier,
   isVariableDeclarator,
@@ -21,6 +22,10 @@ const isCommandDefineCall = (
   node: ESTree.CallExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): boolean => {
+  if (isOwnedDefinitionCall(node, 'command', references)) {
+    return true
+  }
+
   if (references === undefined) {
     return AST.isCallOf(node, 'Command', 'define')
   }
@@ -73,7 +78,7 @@ export const commandBindingMatchesName = Rule.define({
         if (init === null || init === undefined) return Effect.void
         const innerCall = innerCommandDefineCall(init, references)
         if (innerCall === undefined) return Effect.void
-        const nameArgument = firstStringArgument(innerCall)
+        const nameArgument = firstCommandNameArgument(innerCall)
         if (
           nameArgument === undefined ||
           !isIdentifier(node.id) ||

@@ -13,7 +13,7 @@ When reviewing an application, ask:
 - Does every Message name the event that DevTools should show?
 - Does a Command result Message carry enough context for update to decide whether it still applies to the current Model?
 - Does dependent or replacement work begin only after the result it depends on?
-- Does each Submodel own its state transitions?
+- Does each Block own its state transitions?
 
 The sections below show how each problem appears in code and the Foldkit design that avoids it.
 
@@ -186,56 +186,56 @@ On the first query change, move the search from `Running` to `Cancelling`, incre
 
 The old `FetchSuggestions` Command may finish just before the Interrupt runs, leaving `SucceededFetchSuggestions` already queued. Incrementing the generation before interruption makes that completion stale. The result handler must still compare the result's generation with the current Model before accepting it. See [Include Enough Context in Command Result Messages](#reject-stale-async-results) and [Sequencing Replacement Work](/core/commands#sequencing-replacement-work) for both parts of the protocol.
 
-## Preserve Submodel Boundaries
+## Preserve Block Boundaries
 
 ### Keep Transitions Inside the Child
 
-A parent stores a Submodel's Model, but the child owns every transition of that state. If the parent changes a child field directly, the child's update function does not run.
+A parent stores a Block's Model, but the child owns every transition of that state. If the parent changes a child field directly, the child's update function does not run.
 
-::Snippet{name="antiPatternSubmodelMutationBad" label="❌ The parent changes a child field directly" class="mb-4"}
+::Snippet{name="antiPatternBlockMutationBad" label="❌ The parent changes a child field directly" class="mb-4"}
 
 The direct change may skip validation, Commands, or OutMessages that the child needs. Importing an internal child Message does not fix the boundary: it turns that private event into an API the parent depends on.
 
-::Snippet{name="antiPatternSubmodelMessageBad" label="❌ The parent constructs an internal child Message" class="mb-4"}
+::Snippet{name="antiPatternBlockMessageBad" label="❌ The parent constructs an internal child Message" class="mb-4"}
 
 ### Keep the Complete Child Result
 
 Manually copying the child Model from a helper result causes a separate problem. The parent can keep the next child Model while silently discarding Commands returned with it.
 
-::Snippet{name="antiPatternSubmodelResultBad" label="❌ The parent keeps only the child Model" class="mb-4"}
+::Snippet{name="antiPatternBlockResultBad" label="❌ The parent keeps only the child Model" class="mb-4"}
 
-Export a helper from the child for transitions the parent is allowed to request. The helper constructs the internal Message and immediately passes it through the child's update function. The parent calls the helper without importing the child's Message constructor.
+Declare parent-driven transitions under `expose: { operation }` in the completed Block. The parent calls `binding.operation(...)`, which returns a connected parent Update.Step and preserves the child's full result. Apply it to the contextual Model inside the owning Composition, or return it from the parent's `step` producer for deferred application.
 
-::Snippet{name="antiPatternSubmodelBoundaryGood" label="✅ A public helper preserves the child's update boundary"}
+::Snippet{name="antiPatternBlockBoundaryGood" label="✅ A public helper preserves the child's update boundary"}
 
-`Update.foldChild` and `Update.foldChildStep` write the returned child Model into the parent and lift the child's Commands. When the child can emit OutMessages, pass `foldOutMessage` so the parent handles every variant instead of accidentally omitting one. The [Submodel guide](/core/submodel) explains child Messages and OutMessages. [Informing Submodels](/patterns/informing-submodels) covers parent-owned facts that a child needs to hear about.
+The Binding writes the returned child Model into the parent, maps its Commands, and applies the required `outMessage.fold` or `outMessage.forward` policy. The [Block guide](/core/block) explains child Messages and OutMessages. [Informing Blocks](/patterns/informing-blocks) covers parent-owned facts that a child needs to hear about.
 
-## Fold Child Initialization Results Completely
+## Initialize Children Through Their Connections
 
-### Fold One Child Result
+### Initialize One Child
 
-A child `init` or `boot` can return a Model, Commands, and an OutMessage. Here, `Settings.boot` applies a Message through `update` and returns all three:
+A child's `init` can return a Model and Commands. A public restoration operation that can also emit an OutMessage belongs in a named Step, because the parent Model must exist before the parent can handle that fact.
 
-::Snippet{name="antiPatternChildInitSettings" label="Settings.boot emits RestoredTheme" class="mb-4"}
+::Snippet{name="antiPatternChildInitSettings" label="The restoration Step emits RestoredTheme" class="mb-4"}
 
-Both parent examples below use this same Settings Submodel. Copying its Model and mapping its Commands by hand can silently drop the OutMessage:
+Copying the child Model from an update result can silently drop its Commands and OutMessage:
 
 ::Snippet{name="antiPatternChildInitBad" label="❌ Manual assembly loses an initialization OutMessage" class="mb-4"}
 
-`Update.foldChildInit` keeps the three parts together. Give it a `toParentModel` that installs the child Model and an exhaustive, named OutMessage fold. Keep separate parent-owned setup in its own Step rather than hiding it in `toParentModel`:
+Store Settings in a required direct field and omit `init`, then list the exposed restoration Step in the Composition init plan. The Composition calls its zero-argument initializer, assembles the complete parent Model, and retains init Commands; the Binding maps restoration Commands and applies the exhaustive OutMessage policy declared at the composition boundary:
 
-::Snippet{name="antiPatternChildInitGood" label="✅ Fold the child result and compose parent-owned Steps"}
+::Snippet{name="antiPatternChildInitGood" label="✅ Initialize and restore through the Binding"}
 
-The helper lifts the child's Commands, then runs the OutMessage fold against the completed parent Model. Its returned Command array puts lifted child Commands before Commands from the fold; the Runtime starts those Commands independently, so array order does not sequence their execution or completion. See [Folding Update](/core/submodel#fold-child) and [Composing Update Steps](/core/update#composing-update-steps).
+The restoration Step runs against the completed parent Model. The Runtime starts returned Commands independently, so array order does not sequence their execution or completion. See [Connecting a child](/core/block#embedding) and [Composing Update Steps](/core/update#composing-update-steps).
 
-### Fold Several Independent Child Results
+### Initialize Several Children
 
-Assembling one complete parent Model from several independent child init results is valid. Use `Update.foldChildInits` to construct that Model once and handle each child's OutMessage against it. Each local fold receives the Model produced by the preceding fold, so later folds preserve earlier changes:
+Store Search and Editor in required direct fields and omit `init`. Return the parent's own fields from Composition init and list both public restoration operations in `steps`. Each Step receives the Model produced by the preceding Step, so later operations preserve earlier changes:
 
-::Snippet{name="updateIndependentInits" label="✅ Fold independent child initialization results together"}
+::Snippet{name="updateIndependentInits" label="✅ Initialize independent child Bindings together"}
 
-If any child fold can emit a parent OutMessage, `resolveOutMessage` must decide which single parent OutMessage, if any, to emit from those results. [Combining Child Initialization Results](/core/update#combining-independent-results) explains the local folds, and [Initializing Children with OutMessages](/core/update#initializing-children-with-outmessages) shows `resolveOutMessage`.
+Each Binding declares whether a child OutMessage is handled locally, forwarded upward, or both. If several restoration Steps emit parent OutMessages during one `Update.combine`, the last emitted parent OutMessage wins; split the operations when each fact must be observed independently.
 
 ## Know What Linting Can Catch {#what-linting-can-catch}
 
-The [Foldkit linter](/tooling/oxlint-plugin) can recognize code shapes such as a module-level `let`, `Date.now()` inside update, a parent constructing a child Message, or a Mount handler that never uses its element. It also flags direct child Model edits and manual child Return copies when an in-file fold establishes the Submodel boundary. It cannot decide whether two domain states may coexist, whether an async result can become stale, or which part of an application should own a value without that boundary evidence. Those questions still require design review.
+The [Foldkit linter](/tooling/oxlint-plugin) can recognize code shapes such as a module-level `let`, `Date.now()` inside update, a parent constructing a child Message, or a Mount handler that never uses its element. It also flags direct child Model edits and manual child Return copies when an in-file Binding establishes the Block boundary. It cannot decide whether two domain states may coexist, whether an async result can become stale, or which part of an application should own a value without that boundary evidence. Those questions still require design review.

@@ -1,10 +1,13 @@
 import { click, expect, given, role, scene, text } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import { Model, update, view } from './main'
-import { AppRoute } from './route'
+import { Model, update, view } from './application'
+import { ApplicationRoute } from './route'
 
-const initialModel = Model.make({ route: AppRoute.Home(), count: 0 })
+const initialModel = Model.make({
+  route: ApplicationRoute.Home(),
+  count: 0,
+})
 
 describe('view', () => {
   test('renders the statically generated home page', () => {

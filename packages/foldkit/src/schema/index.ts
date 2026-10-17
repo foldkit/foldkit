@@ -1,4 +1,12 @@
-import { Array, Cause, Match, Schema, SchemaAST, Types } from 'effect'
+import {
+  Array,
+  Cause,
+  Match,
+  Predicate,
+  Schema,
+  SchemaAST,
+  Types,
+} from 'effect'
 
 /** A `TaggedStruct` schema that can be called directly as a constructor: `Foo({ count: 1 })` instead of `Foo.make({ count: 1 })`. */
 export type CallableTaggedStruct<
@@ -98,6 +106,12 @@ const getDirectPropertyNames = (
   return names
 }
 
+const callableTaggedStructs = new WeakSet<object>()
+
+/** @internal Recognizes callable tagged constructors created by Foldkit. */
+export const isCallableTaggedStruct = (value: unknown): boolean =>
+  Predicate.isFunction(value) && callableTaggedStructs.has(value)
+
 const makeCallable = <Tag extends string, Fields extends Schema.Struct.Fields>(
   tag: Tag,
   fields: Fields,
@@ -151,7 +165,7 @@ const makeCallable = <Tag extends string, Fields extends Schema.Struct.Fields>(
       : make
 
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  return new Proxy(function () {} as unknown as object, {
+  const callable = new Proxy(function () {} as unknown as object, {
     apply(_target, _thisArg, argumentsList) {
       return construct(argumentsList[0])
     },
@@ -165,6 +179,9 @@ const makeCallable = <Tag extends string, Fields extends Schema.Struct.Fields>(
       return Reflect.getPrototypeOf(schema)
     },
   }) as unknown as CallableTaggedStruct<Tag, Fields>
+
+  callableTaggedStructs.add(callable)
+  return callable
 }
 
 type TaggedUnionProperty = keyof Schema.TaggedUnion<{}>
@@ -219,9 +236,23 @@ type TaggedUnionMatchCases<
   Input extends TaggedUnionType<CasesByTag>,
   Output,
 > = {
-  readonly [Tag in keyof CasesByTag & string]: (
-    value: Extract<Input, { readonly _tag: Tag }>,
-  ) => Output
+  readonly [
+    Tag in keyof CasesByTag & string as Extract<
+      Input,
+      { readonly _tag: Tag }
+    > extends never
+      ? never
+      : Tag
+  ]-?: (value: Extract<Input, { readonly _tag: Tag }>) => Output
+} & {
+  readonly [
+    Tag in keyof CasesByTag & string as Extract<
+      Input,
+      { readonly _tag: Tag }
+    > extends never
+      ? Tag
+      : never
+  ]?: never
 }
 
 type TaggedUnionMatchOrElseCases<
@@ -233,6 +264,60 @@ type TaggedUnionMatchOrElseCases<
     value: Extract<Input, { readonly _tag: Tag }>,
   ) => Output
 }
+
+type TaggedUnionExplicitMatchCases<
+  CasesByTag extends Record<string, Schema.Struct.Fields>,
+  Input extends TaggedUnionType<CasesByTag>,
+  Output,
+> = {
+  readonly [Tag in keyof CasesByTag & string]: (
+    value: Extract<Input, { readonly _tag: Tag }>,
+  ) => Output
+}
+
+declare const OmittedMatchOutputTypeId: unique symbol
+
+type OmittedMatchOutput = Readonly<{
+  [OmittedMatchOutputTypeId]: true
+}>
+
+type IsAny<Value> = 0 extends 1 & Value ? true : false
+
+type IsOmittedMatchOutput<Output> =
+  IsAny<Output> extends true
+    ? false
+    : [Output, OmittedMatchOutput] extends [OmittedMatchOutput, Output]
+      ? true
+      : false
+
+type ValidateExplicitMatchOutput<Output, Return> =
+  IsAny<Output> extends true
+    ? IsAny<Return> extends true
+      ? unknown
+      : never
+    : IsAny<Return> extends true
+      ? never
+      : [Output, Return] extends [Return, Output]
+        ? unknown
+        : never
+
+type TaggedUnionExplicitCases<
+  CasesByTag extends Record<string, Schema.Struct.Fields>,
+  Input extends TaggedUnionType<CasesByTag>,
+  Output,
+> =
+  IsOmittedMatchOutput<Output> extends true
+    ? never
+    : TaggedUnionExplicitMatchCases<CasesByTag, Input, NoInfer<Output>>
+
+type TaggedUnionExplicitMatchOrElseCases<
+  CasesByTag extends Record<string, Schema.Struct.Fields>,
+  Input extends TaggedUnionType<CasesByTag>,
+  Output,
+> =
+  IsOmittedMatchOutput<Output> extends true
+    ? never
+    : TaggedUnionMatchOrElseCases<CasesByTag, Input, NoInfer<Output>>
 
 type TaggedUnionCaseReturns<Cases> = {
   [Tag in keyof Cases]-?: NonNullable<Cases[Tag]> extends (
@@ -267,7 +352,7 @@ type TaggedUnionMatch<CasesByTag extends Record<string, Schema.Struct.Fields>> =
   {
     <
       Input extends TaggedUnionType<CasesByTag>,
-      const Cases extends TaggedUnionMatchCases<CasesByTag, Input, unknown>,
+      const Cases extends TaggedUnionMatchCases<CasesByTag, Input, any>,
     >(
       value: Input,
       cases: Cases & ValidateTaggedUnionCases<CasesByTag, Cases>,
@@ -276,24 +361,30 @@ type TaggedUnionMatch<CasesByTag extends Record<string, Schema.Struct.Fields>> =
       const Cases extends TaggedUnionMatchCases<
         CasesByTag,
         TaggedUnionType<CasesByTag>,
-        unknown
+        any
       >,
     >(
-      cases: Cases & ValidateTaggedUnionCases<CasesByTag, Cases>,
+      cases: Cases &
+        ValidateTaggedUnionCases<CasesByTag, Cases> &
+        (IsAny<Cases> extends true ? never : unknown),
     ): (value: TaggedUnionType<CasesByTag>) => TaggedUnionCaseReturns<Cases>
     <
-      Output,
+      Output = OmittedMatchOutput,
       Input extends TaggedUnionType<CasesByTag> = TaggedUnionType<CasesByTag>,
+      Return extends NoInfer<Output> = Output,
     >(
-      cases: TaggedUnionMatchCases<CasesByTag, Input, Output>,
-    ): (value: Input) => Output
+      cases: TaggedUnionExplicitCases<CasesByTag, Input, Output> &
+        ValidateExplicitMatchOutput<Output, Return>,
+    ): (value: Input) => Return
     <
-      Output,
+      Output = OmittedMatchOutput,
       Input extends TaggedUnionType<CasesByTag> = TaggedUnionType<CasesByTag>,
+      Return extends NoInfer<Output> = Output,
     >(
       value: Input,
-      cases: TaggedUnionMatchCases<CasesByTag, Input, Output>,
-    ): Output
+      cases: TaggedUnionExplicitCases<CasesByTag, Input, Output> &
+        ValidateExplicitMatchOutput<Output, Return>,
+    ): Return
   }
 
 type TaggedUnionMatchOrElse<
@@ -336,20 +427,24 @@ type TaggedUnionMatchOrElse<
     value: TaggedUnionType<CasesByTag>,
   ) => TaggedUnionMatchOrElseOutput<Cases, OrElse>
   <
-    Output,
+    Output = OmittedMatchOutput,
     Input extends TaggedUnionType<CasesByTag> = TaggedUnionType<CasesByTag>,
+    Return extends NoInfer<Output> = Output,
   >(
-    cases: TaggedUnionMatchOrElseCases<CasesByTag, Input, Output>,
-    orElse: (value: Input) => Output,
-  ): (value: Input) => Output
+    cases: TaggedUnionExplicitMatchOrElseCases<CasesByTag, Input, Output> &
+      ValidateExplicitMatchOutput<Output, Return>,
+    orElse: (value: Input) => NoInfer<Output>,
+  ): (value: Input) => Return
   <
-    Output,
+    Output = OmittedMatchOutput,
     Input extends TaggedUnionType<CasesByTag> = TaggedUnionType<CasesByTag>,
+    Return extends NoInfer<Output> = Output,
   >(
     value: Input,
-    cases: TaggedUnionMatchOrElseCases<CasesByTag, Input, Output>,
-    orElse: (value: Input) => Output,
-  ): Output
+    cases: TaggedUnionExplicitMatchOrElseCases<CasesByTag, Input, Output> &
+      ValidateExplicitMatchOutput<Output, Return>,
+    orElse: (value: Input) => NoInfer<Output>,
+  ): Return
 }
 
 interface UnionSchema<
@@ -510,8 +605,8 @@ const defineUnion = <CasesByTag extends Record<string, Schema.Struct.Fields>>(
  * `match`. Use Effect `Match` when only some tags need handling or several tags
  * share one handler.
  *
- * Declare a Submodel's OutMessages in their own `defineMessageUnion`. Messages
- * are facts the Submodel handles; OutMessages are facts it reports to its
+ * Declare a Block's OutMessages in their own `defineMessageUnion`. Messages
+ * are facts the Block handles; OutMessages are facts it reports to its
  * parent. Keep the two unions separate even when two variants carry the same
  * fields.
  *
@@ -586,16 +681,16 @@ export function defineTaggedUnion<
  * Declares every application Route in one object. Each key is a tag, and its
  * value lists the fields parsed from the URL.
  *
- * The result is both a Schema and the `AppRoute` namespace. Each variant is a
- * callable Schema, so `AppRoute.Person` works with `mapTo` and
- * `parseUrlWithFallback`, while `AppRoute.Person({ personId: 42 })` constructs
- * a value.
+ * The result is both a Schema and the `ApplicationRoute` namespace. Each
+ * variant is a callable Schema, so `ApplicationRoute.Person` works with
+ * `mapTo` and `parseUrlWithFallback`, while
+ * `ApplicationRoute.Person({ personId: 42 })` constructs a value.
  *
  * Use `match` to handle every Route, `matchOrElse` to handle selected Routes
  * with a fallback, `guards` or `isAnyOf` to check selected tags, and `subset`
  * when another Schema accepts only some Routes. A subset includes only the
- * tags named in the call. Adding a Route to `AppRoute` does not change an
- * existing subset.
+ * tags named in the call. Adding a Route to `ApplicationRoute` does not change
+ * an existing subset.
  *
  * Routers remain separate. A Route is the parsed value; a Router describes the
  * URL that produces it.
@@ -606,23 +701,23 @@ export function defineTaggedUnion<
  *
  * @example
  * ```typescript
- * export const AppRoute = defineRouteUnion({
+ * export const ApplicationRoute = defineRouteUnion({
  *   Home: {},
  *   Person: { personId: Schema.Number },
  *   NotFound: { path: Schema.String },
  * })
- * export type AppRoute = typeof AppRoute.Type
+ * export type ApplicationRoute = typeof ApplicationRoute.Type
  *
- * export const homeRouter = pipe(root, mapTo(AppRoute.Home))
+ * export const homeRouter = pipe(root, mapTo(ApplicationRoute.Home))
  * export const personRouter = pipe(
  *   literal('people'),
  *   slash(int('personId')),
- *   mapTo(AppRoute.Person),
+ *   mapTo(ApplicationRoute.Person),
  * )
  *
- * export const urlToAppRoute = parseUrlWithFallback(
+ * export const urlToApplicationRoute = parseUrlWithFallback(
  *   oneOf(personRouter, homeRouter),
- *   AppRoute.NotFound,
+ *   ApplicationRoute.NotFound,
  * )
  * ```
  */

@@ -6,8 +6,11 @@ const DRAIN_BUDGET_MS = 5
 
 /** The plain functions the runtime uses to buffer, drain, and gate Messages. */
 export type MessageQueue<Message> = Readonly<{
-  enqueueMessage: (message: Message) => void
-  enqueueMessageEffect: (message: Message) => Effect.Effect<void>
+  enqueueMessage: (message: Message, isCurrent?: () => boolean) => void
+  enqueueMessageEffect: (
+    message: Message,
+    isCurrent?: () => boolean,
+  ) => Effect.Effect<void>
   drainPendingMessages: () => void
   resetDrainBudget: () => void
   completeBoot: () => void
@@ -37,7 +40,9 @@ export const makeMessageQueue = <Message>({
   ) => Effect.Effect<void>
 }>): Effect.Effect<MessageQueue<Message>, never, Scope.Scope> =>
   Effect.gen(function* () {
-    let pendingMessages: Array<Message> = []
+    let pendingMessages: Array<
+      Readonly<{ message: Message; isCurrent?: () => boolean }>
+    > = []
     let isProcessingMessages = false
     // NOTE: a Message arriving before boot completes, say a navigation
     // event during an async boot step, is buffered, not processed.
@@ -46,19 +51,27 @@ export const makeMessageQueue = <Message>({
     // which then drains the buffer.
     let isBootComplete = false
 
-    const enqueueMessage = (message: Message): void => {
+    const enqueueMessage = (
+      message: Message,
+      isCurrent?: () => boolean,
+    ): void => {
       if (status.isRuntimeDisposed || status.isCrashed) {
         return
       }
-      pendingMessages.push(message)
+      pendingMessages.push({
+        message,
+        ...(isCurrent === undefined ? {} : { isCurrent }),
+      })
       if (!isBootComplete || status.isRenderingFrame) {
         return
       }
       drainPendingMessages()
     }
 
-    const enqueueMessageEffect = (message: Message) =>
-      Effect.sync(() => enqueueMessage(message))
+    const enqueueMessageEffect = (
+      message: Message,
+      isCurrent?: () => boolean,
+    ) => Effect.sync(() => enqueueMessage(message, isCurrent))
 
     let currentMessage = Option.none<Message>()
 
@@ -126,9 +139,11 @@ export const makeMessageQueue = <Message>({
           const batch = pendingMessages
           pendingMessages = []
           for (let index = 0; index < batch.length; index++) {
-            const message = batch[index]!
-            currentMessage = Option.some(message)
-            processMessage(message)
+            const { message, isCurrent } = batch[index]!
+            if (isCurrent === undefined || isCurrent()) {
+              currentMessage = Option.some(message)
+              processMessage(message)
+            }
 
             const hasRemainingWork =
               index + 1 < batch.length || pendingMessages.length > 0

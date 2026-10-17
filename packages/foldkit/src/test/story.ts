@@ -426,7 +426,7 @@ export const story: {
       message: Message,
     ) => Readonly<{
       model: Model
-      commands?: ReadonlyArray<AnyCommand>
+      commands?: ReadonlyArray<AnyCommand> | undefined
       outMessage?: OutMessage
     }>,
     ...steps: ReadonlyArray<
@@ -439,7 +439,7 @@ export const story: {
       message: Message,
     ) => Readonly<{
       model: Model
-      commands?: ReadonlyArray<AnyCommand>
+      commands?: ReadonlyArray<AnyCommand> | undefined
       outMessage?: never
     }>,
     ...steps: ReadonlyArray<

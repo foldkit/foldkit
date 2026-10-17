@@ -1,13 +1,5 @@
-export { Model, SearchState } from './model'
+export { block } from './block'
+export { Model, SearchState, resultsFromState } from './model'
 export { Message } from './message'
 export { PagefindLayer, PagefindService } from './pagefind'
-export { init } from './init'
-export { EffectsLayer, mounts } from './layer'
-export {
-  FocusSearchInput,
-  KEYBOARD_WARMUP_INPUT_ID,
-  informRouteChanged,
-  open,
-  update,
-} from './update'
-export { view } from './view'
+export { KEYBOARD_WARMUP_INPUT_ID } from './update'

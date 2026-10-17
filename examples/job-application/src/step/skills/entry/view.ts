@@ -1,15 +1,17 @@
 import clsx from 'clsx'
 import { Option } from 'effect'
-import { Submodel } from 'foldkit'
-import type { Html } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
 import { ProficiencyLevel } from '../../../domain'
 import { Field } from '../../../view'
-import { Message, type Model, ProficiencyRadioGroup } from './entry'
+import {
+  ProficiencyRadioGroupBinding,
+  SkillsEntryComposition,
+} from './composition'
+import { Message } from './definition'
 
-export const view = Submodel.defineView<Model, Message>((model, h): Html => {
+export const view = SkillsEntryComposition.makeView((model, h) => {
   const nameView = Field.input(
     {
       id: `${model.id}-name`,
@@ -21,42 +23,41 @@ export const view = Submodel.defineView<Model, Message>((model, h): Html => {
     h,
   )
 
-  const proficiencyView = h.submodel({
-    slotId: model.proficiencyRadioGroup.id,
-    model: model.proficiencyRadioGroup,
-    view: ProficiencyRadioGroup.view,
-    viewInputs: {
-      selectedValue: Option.some(model.proficiency),
-      options: ProficiencyLevel.all,
-      orientation: 'Horizontal',
-      ariaLabel: 'Proficiency level',
-      toView: attributes =>
-        h.div(
-          [...attributes.group, h.Class('inline-flex flex-wrap gap-2')],
-          attributes.options.map(option =>
-            h.div(
-              [
-                ...option.option,
-                h.Class(
-                  clsx(
-                    'cursor-pointer rounded-full border px-3 py-1 text-sm transition select-none',
-                    option.isSelected
-                      ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                      : 'border-gray-300 text-gray-600 hover:border-gray-400',
+  const proficiencyView = h.block(
+    ProficiencyRadioGroupBinding.embedView({
+      slotId: model.proficiencyRadioGroup.id,
+      model: model.proficiencyRadioGroup,
+      viewInputs: {
+        selectedValue: Option.some(model.proficiency),
+        options: ProficiencyLevel.all,
+        orientation: 'Horizontal',
+        ariaLabel: 'Proficiency level',
+        toView: attributes =>
+          h.div(
+            [...attributes.group, h.Class('inline-flex flex-wrap gap-2')],
+            attributes.options.map(option =>
+              h.div(
+                [
+                  ...option.option,
+                  h.Class(
+                    clsx(
+                      'cursor-pointer rounded-full border px-3 py-1 text-sm transition select-none',
+                      option.isSelected
+                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                        : 'border-gray-300 text-gray-600 hover:border-gray-400',
+                    ),
                   ),
-                ),
-              ],
-              [
-                h.input([...option.label, h.Class('sr-only')]),
-                h.span([], [option.value]),
-              ],
+                ],
+                [
+                  h.input([...option.label, h.Class('sr-only')]),
+                  h.span([], [option.value]),
+                ],
+              ),
             ),
           ),
-        ),
-    },
-    toParentMessage: message =>
-      Message.GotProficiencyRadioGroupMessage({ message }),
-  })
+      },
+    }),
+  )
 
   return h.keyed('div')(
     model.id,

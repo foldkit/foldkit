@@ -4,14 +4,14 @@ import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest } from 'foldkit/navigation'
 import { Url } from 'foldkit/url'
 
-import { Dialog, Menu } from '@foldkit/ui'
+import { Dialog } from '@foldkit/ui'
 
 import { ResolvedTheme } from './colorScheme'
 import {
   ApiReference,
   ComingFromReact,
-  Core,
-  Example,
+  CoreBlockPage,
+  ExampleDetail,
   Home,
   Playground,
   Ui,
@@ -20,15 +20,13 @@ import * as Search from './search'
 import { GroupKey, SidebarState } from './sidebarStorage'
 import * as SnippetCopy from './snippetCopy'
 import * as SnippetDisclosure from './snippetDisclosure'
+import { ThemePreference } from './themePreference'
+import { ThemeMenu } from './view/themeMenu'
 
 // THEME
 
-export const ThemePreference = Schema.Literals(['Dark', 'Light', 'System'])
-export type ThemePreference = typeof ThemePreference.Type
-
 export { ResolvedTheme } from './colorScheme'
-
-// MESSAGE
+export { ThemePreference } from './themePreference'
 
 export const Message = defineMessageUnion({
   CompletedNavigateInternal: {},
@@ -63,19 +61,19 @@ export const Message = defineMessageUnion({
   ToggledMobileTableOfContents: { isOpen: Schema.Boolean },
   ClickedMobileTableOfContentsLink: { sectionId: Schema.String },
   ChangedActiveSection: { sectionId: Schema.String },
-  GotThemeMenuMessage: { message: Menu.Message },
+  GotThemeMenuMessage: { message: ThemeMenu.Message },
   ChangedSystemTheme: { theme: ResolvedTheme },
   ChangedViewportWidth: { isNarrow: Schema.Boolean },
   GotHomeMessage: { message: Home.Message },
   GotSnippetCopyMessage: { message: SnippetCopy.Message },
   GotSnippetDisclosureMessage: { message: SnippetDisclosure.Message },
-  GotCoreSubmodelPageMessage: { message: Core.SubmodelPage.Message },
+  GotCoreBlockPageMessage: { message: CoreBlockPage.Message },
   GotPlaygroundMessage: { message: Playground.Message },
   GotComingFromReactMessage: { message: ComingFromReact.Message },
   GotApiReferenceMessage: { message: ApiReference.Message },
   GotUiPageMessage: { message: Ui.Message },
   ToggledSidebarGroup: { key: GroupKey, isOpen: Schema.Boolean },
-  GotExampleDetailMessage: { message: Example.ExampleDetail.Message },
+  GotExampleDetailMessage: { message: ExampleDetail.Message },
   GotSearchMessage: { message: Search.Message },
 })
 export type Message = typeof Message.Type

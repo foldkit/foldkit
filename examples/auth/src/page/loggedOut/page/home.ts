@@ -17,7 +17,7 @@ export const view = (h: HtmlBuilder<Message>): Html =>
           h.p(
             [h.Class('text-xl text-gray-600 mb-8')],
             [
-              'A demonstration of authentication with Submodels and OutMessage in Foldkit.',
+              'A demonstration of authentication with Blocks and OutMessage in Foldkit.',
             ],
           ),
           h.a(

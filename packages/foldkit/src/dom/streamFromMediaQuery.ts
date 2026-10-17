@@ -13,11 +13,12 @@ import { Effect, Queue, Stream } from 'effect'
  * emits.
  *
  * The return type of `mapMatches` determines the Stream's output type.
- * `Subscription.make` checks that output against the application's Message
- * type.
+ * The entry's declared Message Schemas constrain the final Stream output.
  */
 export type StreamFromMediaQueryConfig<Output> = Readonly<{
+  /** CSS media query passed to `window.matchMedia` when the Stream starts. */
   query: string
+  /** Maps the current and subsequent `matches` values to emitted values. */
   mapMatches: (isMatching: boolean) => Output
 }>
 
@@ -44,7 +45,9 @@ export type StreamFromMediaQueryConfig<Output> = Readonly<{
  *
  * @example
  * ```typescript
- * const subscriptions = Subscription.make<Model, Message>()(entry => ({
+ * const App = Block.define('App')
+ * const app = App.define({ Model, Message })
+ * const subscriptions = app.subscriptions(entry => ({
  *   reducedMotion: entry('ReducedMotion', {
  *     messages: [Message.ChangedReducedMotion],
  *     handler: function* () {

@@ -8,7 +8,7 @@ export {
   type SelectedOption,
   type FocusedOption,
   FocusOption,
-  EffectsLayer,
+  block,
   Orientation,
 } from './index.js'
 
@@ -17,5 +17,5 @@ export type {
   ViewInputs,
   RenderInfo,
   OptionInfo,
-  Bundle,
+  Completed,
 } from './index.js'

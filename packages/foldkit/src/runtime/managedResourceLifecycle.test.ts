@@ -1,4 +1,13 @@
-import { Context, Effect, Exit, Fiber, Layer, Option, Schema } from 'effect'
+import {
+  Context,
+  Effect,
+  Exit,
+  Fiber,
+  Layer,
+  Option,
+  Schema,
+  Stream,
+} from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as Command from '../command/index.js'
@@ -7,6 +16,7 @@ import * as ManagedResource from '../managedResource/index.js'
 import { make } from '../managedResource/managedResource.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
+import * as Subscription from '../subscription/subscription.js'
 import * as Update from '../update/index.js'
 import * as Application from './application.js'
 
@@ -220,6 +230,28 @@ const EngineLayer = managedResources.engine.toLayer(
   }),
 )
 
+const cleanupSubscriptions = Subscription.make<Model, Message>()(entry => ({
+  engine: entry('ObserveEngineCleanup', {
+    messages: [],
+    handler: function* () {
+      return () =>
+        Stream.never.pipe(
+          Stream.ensuring(
+            Engine.get.pipe(
+              Effect.orDie,
+              Effect.tap(({ id }) =>
+                Effect.sync(() => {
+                  log.push(`subscription-finalize:${id}`)
+                }),
+              ),
+              Effect.asVoid,
+            ),
+          ),
+        )
+    },
+  }),
+}))
+
 const h = __htmlBuilder<Message>()
 
 const view = (model: Model) =>
@@ -267,7 +299,7 @@ const startEngineApp = (
   initialId: string,
   resources: typeof managedResources = managedResources,
 ) =>
-  Application.makeElement({
+  Application.__makeElementFromConfig({
     Model,
     init: () => ({
       model: {
@@ -302,13 +334,51 @@ const clickButton = (label: string): void => {
 }
 
 describe('managed resource lifecycle with a Layer-built resource', () => {
+  it('keeps the resource available while Subscription finalizers run', async () => {
+    const element = Application.__makeElementFromConfig({
+      Model,
+      init: () => ({
+        model: {
+          requested: Option.some('a'),
+          status: 'idle',
+          readValue: 'none',
+        },
+      }),
+      update,
+      view,
+      crash,
+      container,
+      managedResources,
+      subscriptions: cleanupSubscriptions,
+    })
+    const fiber = Effect.runFork(
+      element
+        .provide(
+          Layer.mergeAll(
+            ReadEngineLayer,
+            EngineLayer,
+            cleanupSubscriptions.engine.layer,
+          ),
+        )
+        .start(),
+    )
+
+    try {
+      await awaitBodyText('status:acquired')
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+
+    expect(log).toContain('subscription-finalize:a')
+    expect(log.indexOf('subscription-finalize:a')).toBeLessThan(
+      log.indexOf('release'),
+    )
+  })
+
   it('acquires and exposes the bare service value via the resource ref', async () => {
     const element = startEngineApp('a')
     const fiber = Effect.runFork(
-      Application.provide(
-        element,
-        Layer.mergeAll(ReadEngineLayer, EngineLayer),
-      ).start(),
+      element.provide(Layer.mergeAll(ReadEngineLayer, EngineLayer)).start(),
     )
 
     try {
@@ -325,10 +395,7 @@ describe('managed resource lifecycle with a Layer-built resource', () => {
   it('runs the Layer finalizer when the resource is released', async () => {
     const element = startEngineApp('a')
     const fiber = Effect.runFork(
-      Application.provide(
-        element,
-        Layer.mergeAll(ReadEngineLayer, EngineLayer),
-      ).start(),
+      element.provide(Layer.mergeAll(ReadEngineLayer, EngineLayer)).start(),
     )
 
     try {
@@ -345,10 +412,7 @@ describe('managed resource lifecycle with a Layer-built resource', () => {
   it('closes the old scope before building the new one on a param change', async () => {
     const element = startEngineApp('a')
     const fiber = Effect.runFork(
-      Application.provide(
-        element,
-        Layer.mergeAll(ReadEngineLayer, EngineLayer),
-      ).start(),
+      element.provide(Layer.mergeAll(ReadEngineLayer, EngineLayer)).start(),
     )
 
     try {
@@ -372,10 +436,7 @@ describe('managed resource lifecycle with a Layer-built resource', () => {
   it('dispatches onAcquireError and leaves the ref empty when acquire fails', async () => {
     const element = startEngineApp(ACQUIRE_FAILURE_ID)
     const fiber = Effect.runFork(
-      Application.provide(
-        element,
-        Layer.mergeAll(ReadEngineLayer, EngineLayer),
-      ).start(),
+      element.provide(Layer.mergeAll(ReadEngineLayer, EngineLayer)).start(),
     )
 
     try {
@@ -394,10 +455,7 @@ describe('managed resource lifecycle with a Layer-built resource', () => {
   it('closes a partially acquired scope before dispatching onAcquireError', async () => {
     const element = startEngineApp(PARTIAL_ACQUIRE_FAILURE_ID)
     const fiber = Effect.runFork(
-      Application.provide(
-        element,
-        Layer.mergeAll(ReadEngineLayer, EngineLayer),
-      ).start(),
+      element.provide(Layer.mergeAll(ReadEngineLayer, EngineLayer)).start(),
     )
 
     try {
@@ -418,10 +476,7 @@ describe('managed resource lifecycle with a Layer-built resource', () => {
   it('surfaces a thrown acquire callback through crash handling', async () => {
     const element = startEngineApp('a', acquireCallbackThrowManagedResources)
     const fiber = Effect.runFork(
-      Application.provide(
-        element,
-        Layer.mergeAll(ReadEngineLayer, EngineLayer),
-      ).start(),
+      element.provide(Layer.mergeAll(ReadEngineLayer, EngineLayer)).start(),
     )
 
     try {
@@ -437,10 +492,7 @@ describe('managed resource lifecycle with a Layer-built resource', () => {
   it('runs the explicit release before the Layer finalizer on teardown', async () => {
     const element = startEngineApp('a')
     const fiber = Effect.runFork(
-      Application.provide(
-        element,
-        Layer.mergeAll(ReadEngineLayer, EngineLayer),
-      ).start(),
+      element.provide(Layer.mergeAll(ReadEngineLayer, EngineLayer)).start(),
     )
 
     try {
@@ -458,10 +510,7 @@ describe('managed resource lifecycle with a Layer-built resource', () => {
   it('clears the ref and dispatches onReleased after a release defect', async () => {
     const element = startEngineApp(RELEASE_DEFECT_ID)
     const fiber = Effect.runFork(
-      Application.provide(
-        element,
-        Layer.mergeAll(ReadEngineLayer, EngineLayer),
-      ).start(),
+      element.provide(Layer.mergeAll(ReadEngineLayer, EngineLayer)).start(),
     )
 
     try {
@@ -482,10 +531,7 @@ describe('managed resource lifecycle with a Layer-built resource', () => {
   it('finishes cleanup when the release callback throws', async () => {
     const element = startEngineApp('a', releaseCallbackThrowManagedResources)
     const fiber = Effect.runFork(
-      Application.provide(
-        element,
-        Layer.mergeAll(ReadEngineLayer, EngineLayer),
-      ).start(),
+      element.provide(Layer.mergeAll(ReadEngineLayer, EngineLayer)).start(),
     )
 
     try {
@@ -507,10 +553,7 @@ describe('managed resource lifecycle with a Layer-built resource', () => {
   it('clears the ref and dispatches onReleased after a finalizer defect', async () => {
     const element = startEngineApp(FINALIZER_DEFECT_ID)
     const fiber = Effect.runFork(
-      Application.provide(
-        element,
-        Layer.mergeAll(ReadEngineLayer, EngineLayer),
-      ).start(),
+      element.provide(Layer.mergeAll(ReadEngineLayer, EngineLayer)).start(),
     )
 
     try {
@@ -536,10 +579,7 @@ describe('managed resource lifecycle with a Layer-built resource', () => {
   it('releases the live activation when the application shuts down', async () => {
     const element = startEngineApp('a')
     const fiber = Effect.runFork(
-      Application.provide(
-        element,
-        Layer.mergeAll(ReadEngineLayer, EngineLayer),
-      ).start(),
+      element.provide(Layer.mergeAll(ReadEngineLayer, EngineLayer)).start(),
     )
 
     await awaitBodyText('status:acquired')
@@ -551,10 +591,7 @@ describe('managed resource lifecycle with a Layer-built resource', () => {
   it('closes a partial activation when acquisition is interrupted', async () => {
     const element = startEngineApp(INTERRUPTED_ACQUIRE_ID)
     const fiber = Effect.runFork(
-      Application.provide(
-        element,
-        Layer.mergeAll(ReadEngineLayer, EngineLayer),
-      ).start(),
+      element.provide(Layer.mergeAll(ReadEngineLayer, EngineLayer)).start(),
     )
 
     await awaitLogEntry(`acquiring:${INTERRUPTED_ACQUIRE_ID}`)
@@ -569,10 +606,7 @@ describe('managed resource lifecycle with a Layer-built resource', () => {
   it('waits for async finalizers before clearing the ref and dispatching onReleased', async () => {
     const element = startEngineApp(ASYNC_FINALIZER_ID)
     const fiber = Effect.runFork(
-      Application.provide(
-        element,
-        Layer.mergeAll(ReadEngineLayer, EngineLayer),
-      ).start(),
+      element.provide(Layer.mergeAll(ReadEngineLayer, EngineLayer)).start(),
     )
 
     try {

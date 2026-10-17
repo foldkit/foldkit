@@ -13,14 +13,15 @@ import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { Tabs } from '@foldkit/ui'
+import { FocusTab } from '@foldkit/ui/tabs'
 
-import { completeModel, initialModel } from './main.fixture'
 import { Submission } from './model'
+import { completeModel, initialModel } from './model.fixture'
 import { update } from './update'
 import { view } from './view/view'
 
 const resolveFocusTab = Command.resolve(
-  Tabs.FocusTab,
+  FocusTab,
   Tabs.Message.CompletedFocusTab(),
 )
 

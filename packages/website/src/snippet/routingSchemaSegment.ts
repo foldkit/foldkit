@@ -7,18 +7,18 @@ import { defineRouteUnion, literal, schemaSegment, slash } from 'foldkit/route'
 const PersonId = Schema.FiniteFromString.pipe(Schema.brand('PersonId'))
 type PersonId = typeof PersonId.Type
 
-const AppRoute = defineRouteUnion({
+const ApplicationRoute = defineRouteUnion({
   Person: { personId: PersonId },
 })
 
 // int('personId') captures a bare number. schemaSegment decodes the segment
 // through the schema, so the route carries a PersonId instead.
 //
-// Parses: /people/42  →  AppRoute.Person { personId: PersonId(42) }
+// Parses: /people/42  →  ApplicationRoute.Person { personId: PersonId(42) }
 const personRouter = pipe(
   literal('people'),
   slash(schemaSegment('personId', PersonId)),
-  Route.mapTo(AppRoute.Person),
+  Route.mapTo(ApplicationRoute.Person),
 )
 
 // Builds: /people/42. The brand is required, so a bare number or a different

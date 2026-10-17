@@ -13,8 +13,6 @@ import {
   WorkHistory,
 } from './step'
 
-// SUBMISSION
-
 export const Submission = defineTaggedUnion({
   NotSubmitted: {},
   Submitting: {},
@@ -22,8 +20,6 @@ export const Submission = defineTaggedUnion({
   SubmitError: { error: Schema.String },
 })
 export type Submission = typeof Submission.Type
-
-// MODEL
 
 export const Model = Schema.Struct({
   currentStep: Step.Step,

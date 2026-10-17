@@ -164,19 +164,16 @@ const makeWidget = (
     Command.Command<Message, never, Command.HandlerOf<typeof ReportCount>>
   > = [],
 ) =>
-  Application.provide(
-    Application.makeElement({
-      Model,
-      init: () => ({ model: { count: 0, step: 1 }, commands: initCommands }),
-      update,
-      view,
-      subscriptions,
-      mounts: [TrackHost],
-      ports,
-      container,
-    }),
-    EffectsLayer,
-  )
+  Application.__makeElementFromConfig({
+    Model,
+    init: () => ({ model: { count: 0, step: 1 }, commands: initCommands }),
+    update,
+    view,
+    subscriptions,
+    mounts: [TrackHost],
+    ports,
+    container,
+  }).provide(EffectsLayer)
 
 beforeEach(() => {
   isTickStreamActive = false
@@ -333,21 +330,18 @@ describe('embed', () => {
     const Flags = Schema.Struct({ initialCount: Schema.Number })
 
     const handle = embed(
-      Application.provide(
-        Application.makeElement({
-          Model,
-          Flags,
-          flags: Effect.succeed({ initialCount: 41 }),
-          init: flags => ({ model: { count: flags.initialCount, step: 1 } }),
-          update,
-          view,
-          subscriptions,
-          mounts: [TrackHost],
-          ports,
-          container,
-        }),
-        EffectsLayer,
-      ),
+      Application.__makeElementFromConfig({
+        Model,
+        Flags,
+        flags: Effect.succeed({ initialCount: 41 }),
+        init: flags => ({ model: { count: flags.initialCount, step: 1 } }),
+        update,
+        view,
+        subscriptions,
+        mounts: [TrackHost],
+        ports,
+        container,
+      }).provide(EffectsLayer),
     )
 
     try {
@@ -365,23 +359,20 @@ describe('embed', () => {
       .mockImplementation(() => {})
 
     const handle = embed(
-      Application.provide(
-        Application.makeElement({
-          Model,
-          Flags,
-          flags: Effect.sync((): { initialCount: number } => {
-            throw new Error(FLAGS_STARTUP_FAILURE)
-          }),
-          init: flags => ({ model: { count: flags.initialCount, step: 1 } }),
-          update,
-          view,
-          subscriptions,
-          mounts: [TrackHost],
-          ports,
-          container,
+      Application.__makeElementFromConfig({
+        Model,
+        Flags,
+        flags: Effect.sync((): { initialCount: number } => {
+          throw new Error(FLAGS_STARTUP_FAILURE)
         }),
-        EffectsLayer,
-      ),
+        init: flags => ({ model: { count: flags.initialCount, step: 1 } }),
+        update,
+        view,
+        subscriptions,
+        mounts: [TrackHost],
+        ports,
+        container,
+      }).provide(EffectsLayer),
     )
 
     try {
@@ -486,19 +477,16 @@ describe('embed', () => {
 
   it('works with a makeApplication program', async () => {
     const handle = embed(
-      Application.provide(
-        Application.make({
-          Model,
-          init: () => ({ model: { count: 0, step: 1 } }),
-          update,
-          view: model => ({ title: 'Widget', body: view(model) }),
-          subscriptions,
-          mounts: [TrackHost],
-          ports,
-          container,
-        }),
-        EffectsLayer,
-      ),
+      Application.__makeFromConfig({
+        Model,
+        init: () => ({ model: { count: 0, step: 1 } }),
+        update,
+        view: model => ({ title: 'Widget', body: view(model) }),
+        subscriptions,
+        mounts: [TrackHost],
+        ports,
+        container,
+      }).provide(EffectsLayer),
     )
     const received: Array<number> = []
 

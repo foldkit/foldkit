@@ -1,17 +1,12 @@
 import { Schema } from 'effect'
-import { Runtime, type Update } from 'foldkit'
-import type { Document, HtmlBuilder } from 'foldkit/html'
+import { defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
-
-// MODEL
 
 export const Model = Schema.Struct({
   count: Schema.Number,
 })
 export type Model = typeof Model.Type
-
-// MESSAGE
 
 export const Message = defineMessageUnion({
   ClickedDecrement: {},
@@ -20,10 +15,11 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-// UPDATE
+export const Application = defineApplication({ Model, Message })
+export const ApplicationComposition = Application.makeComposition()
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = ApplicationComposition.makeUpdate((model, message) =>
+  Message.match(message, {
     ClickedDecrement: () => ({
       model: modifyFields(model, { count: count => count - 1 }),
     }),
@@ -31,17 +27,14 @@ export const update = (model: Model, message: Message) =>
       model: modifyFields(model, { count: count => count + 1 }),
     }),
     ClickedReset: () => ({ model: modifyFields(model, { count: () => 0 }) }),
-  })
+  }),
+)
 
-// INIT
-
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+export const init = ApplicationComposition.makeInit(() => ({
   model: { count: 0 },
-})
+}))
 
-// VIEW
-
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
+export const view = ApplicationComposition.makeView((model, h) => ({
   title: `Counter: ${model.count}`,
   body: h.div(
     [
@@ -73,8 +66,6 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
       ),
     ],
   ),
-})
-
-// STYLE
+}))
 
 const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'

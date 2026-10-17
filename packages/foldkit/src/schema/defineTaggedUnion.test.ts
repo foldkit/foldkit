@@ -10,7 +10,7 @@ const Submission = defineTaggedUnion({
 })
 type Submission = typeof Submission.Type
 
-const AppRoute = defineRouteUnion({
+const ApplicationRoute = defineRouteUnion({
   Home: {},
   Person: { personId: Schema.Number },
   NotFound: { path: Schema.String },
@@ -188,6 +188,35 @@ describe('defineTaggedUnion', () => {
     expect(isFailed(Submission.NotSubmitted())).toBe(false)
   })
 
+  it('accepts never, unknown, and any as explicit partial outputs', () => {
+    const failSubmission = Submission.matchOrElse<never>(
+      {
+        Failed: () => {
+          throw new Error('failed')
+        },
+      },
+      () => {
+        throw new Error('pending')
+      },
+    )
+    const eraseSubmission = Submission.matchOrElse<unknown>(
+      { Failed: ({ error }) => error },
+      ({ _tag }) => _tag,
+    )
+    const uncheckedSubmission = Submission.matchOrElse<any>(
+      { Failed: ({ error }) => error },
+      ({ _tag }) => _tag,
+    )
+
+    expectTypeOf(failSubmission).toEqualTypeOf<
+      (submission: Submission) => never
+    >()
+    expectTypeOf(
+      eraseSubmission(Submission.NotSubmitted()),
+    ).toEqualTypeOf<unknown>()
+    expectTypeOf(uncheckedSubmission(Submission.NotSubmitted())).toBeAny()
+  })
+
   it('keeps possibly absent case handlers in the fallback type', () => {
     const maybeCases: Readonly<{
       Failed?: (submission: typeof Submission.Failed.Type) => string
@@ -292,15 +321,36 @@ describe('defineTaggedUnion', () => {
       Failed: () => 1,
     })
 
+    const namedPartialCasesWithUnknown = {
+      Failed: ({ error }: typeof Submission.Failed.Type) => `failed: ${error}`,
+      Unknown: () => 'unknown',
+    }
+
+    const contextualPartialResult: string = Submission.matchOrElse(
+      submissionForFullUnion(),
+      // @ts-expect-error Contextual output inference cannot admit unknown handlers.
+      namedPartialCasesWithUnknown,
+      () => 'pending',
+    )
+    void contextualPartialResult
+
+    Submission.matchOrElse<string, Submission, 'failed'>(
+      // @ts-expect-error An explicit Return cannot narrow the declared output.
+      { Failed: () => 'failed' },
+      () => 'pending',
+    )
+
+    // @ts-expect-error An exhaustive match accepts only declared variants
     Submission.match({
       NotSubmitted: () => 'not submitted',
       Submitting: () => 'submitting',
       Failed: () => 'failed',
-      // @ts-expect-error An exhaustive match accepts only declared variants
       Unknown: () => 'unknown',
     })
   }
 })
+
+const submissionForFullUnion = (): Submission => Submission.NotSubmitted()
 
 describe('subsets', () => {
   const Settled = Submission.subset(['NotSubmitted', 'Failed'])
@@ -340,15 +390,15 @@ describe('subsets', () => {
 
 describe('defineRouteUnion', () => {
   it('builds route values that decode as members of the union', () => {
-    const person = AppRoute.Person({ personId: 42 })
+    const person = ApplicationRoute.Person({ personId: 42 })
 
     expect(person).toStrictEqual({ _tag: 'Person', personId: 42 })
-    expect(Schema.is(AppRoute)(person)).toBe(true)
+    expect(Schema.is(ApplicationRoute)(person)).toBe(true)
   })
 
   it('exposes each variant as a schema in its own right', () => {
     expect(
-      Schema.decodeUnknownSync(AppRoute.NotFound)({
+      Schema.decodeUnknownSync(ApplicationRoute.NotFound)({
         _tag: 'NotFound',
         path: '/missing',
       }),
@@ -356,32 +406,35 @@ describe('defineRouteUnion', () => {
   })
 
   it('builds a Route subset Schema', () => {
-    const PublicRoute = AppRoute.subset(['Home', 'NotFound'])
+    const PublicRoute = ApplicationRoute.subset(['Home', 'NotFound'])
 
-    expect(Schema.is(PublicRoute)(AppRoute.Home())).toBe(true)
-    expect(Schema.is(PublicRoute)(AppRoute.Person({ personId: 42 }))).toBe(
-      false,
-    )
+    expect(Schema.is(PublicRoute)(ApplicationRoute.Home())).toBe(true)
+    expect(
+      Schema.is(PublicRoute)(ApplicationRoute.Person({ personId: 42 })),
+    ).toBe(false)
     expectTypeOf(PublicRoute.Type).toEqualTypeOf<
-      typeof AppRoute.Home.Type | typeof AppRoute.NotFound.Type
+      typeof ApplicationRoute.Home.Type | typeof ApplicationRoute.NotFound.Type
     >()
   })
 
   it('partially matches Routes', () => {
-    const routeTitle = AppRoute.matchOrElse(
+    const routeTitle = ApplicationRoute.matchOrElse(
       {
         Home: () => 'Home',
       },
       route => {
         expectTypeOf(route).toEqualTypeOf<
-          typeof AppRoute.Person.Type | typeof AppRoute.NotFound.Type
+          | typeof ApplicationRoute.Person.Type
+          | typeof ApplicationRoute.NotFound.Type
         >()
         return route._tag
       },
     )
 
-    expect(routeTitle(AppRoute.Home())).toBe('Home')
-    expect(routeTitle(AppRoute.NotFound({ path: '/missing' }))).toBe('NotFound')
+    expect(routeTitle(ApplicationRoute.Home())).toBe('Home')
+    expect(routeTitle(ApplicationRoute.NotFound({ path: '/missing' }))).toBe(
+      'NotFound',
+    )
   })
 
   it('rejects a variant name that conflicts with a union property', () => {

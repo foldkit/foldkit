@@ -31,7 +31,7 @@ The starter examples apply to `spa` rendering. The `ssg` and `ssr` modes scaffol
 | Example                  | Description                                                                                            |
 | ------------------------ | ------------------------------------------------------------------------------------------------------ |
 | `counter`                | Simple increment/decrement with reset                                                                  |
-| `counters`               | A dynamic list of Counter Submodels with per-instance routing via a wrapper Message                    |
+| `counters`               | A dynamic list of Counter Blocks with per-instance routing via a wrapper Message                       |
 | `todo`                   | CRUD operations with localStorage persistence                                                          |
 | `stopwatch`              | Timer with start/stop/reset                                                                            |
 | `crash-view`             | Custom crash fallback UI with crash.view and crash.report                                              |
@@ -48,7 +48,7 @@ The starter examples apply to `spa` rendering. The `ssg` and `ssr` modes scaffol
 | `snake`                  | Classic game built with Subscriptions                                                                  |
 | `canvas-art`             | Declarative 2D canvas with shapes, animation-frame Subscriptions, and pointer events                   |
 | `generative-art`         | Perlin-noise flow field with evolving particle trails, mouse vortex, and high-frequency Messages       |
-| `auth`                   | Authentication with Submodels, OutMessage, and protected routes                                        |
+| `auth`                   | Authentication with Blocks, OutMessage, and protected routes                                           |
 | `shopping-cart`          | Complex state management with nested Models and routing                                                |
 | `state-machine`          | Experimental state machine checkout with guarded branches and edge Commands                            |
 | `pixel-art`              | Pixel editor with undo/redo, UI components, and localStorage persistence                               |
@@ -58,7 +58,7 @@ The starter examples apply to `spa` rendering. The `ssg` and `ssr` modes scaffol
 | `map`                    | Interactive MapLibre GL map with Mount and Subscriptions                                               |
 | `web-components`         | QR code designer wiring third-party web components into Foldkit with CustomElement.define              |
 | `embedding`              | A Foldkit widget embedded in a plain TypeScript host page with Ports and dispose                       |
-| `ui-showcase`            | Every Foldkit UI component with routing and Submodels                                                  |
+| `ui-showcase`            | Every Foldkit UI component with routing and Blocks                                                     |
 
 ## License
 

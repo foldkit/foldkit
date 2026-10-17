@@ -1,15 +1,15 @@
 import { Array, Effect, Predicate, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
-import { Command } from 'foldkit'
 
 import { CANVAS_SIZE_PX, EXPORT_SCALE, STORAGE_KEY } from './constant'
+import { Application } from './definition'
 import { Message } from './message'
 import type { Model, SavedCanvas } from './model'
 import { Grid, PaletteIndex } from './model'
 import { SavedCanvasJsonString } from './model'
 import { PALETTE_THEMES, resolveColor } from './palette'
 
-export const SaveCanvas = Command.define('SaveCanvas', {
+export const SaveCanvas = Application.command('SaveCanvas', {
   args: {
     grid: Grid,
     gridSize: Schema.Number,
@@ -45,7 +45,7 @@ export const saveCanvas = (model: Model) =>
     selectedColorIndex: model.selectedColorIndex,
   })
 
-export const ExportPng = Command.define('ExportPng', {
+export const ExportPng = Application.command('ExportPng', {
   args: {
     grid: Grid,
     gridSize: Schema.Number,

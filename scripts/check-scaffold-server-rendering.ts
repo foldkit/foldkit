@@ -16,6 +16,11 @@ import { createServer as createNetServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { delimiter, extname, join } from 'node:path'
 
+import {
+  type PackedScaffoldPackage,
+  selectScaffoldTarballs,
+} from './scaffold-dependencies.ts'
+
 // A freshly generated SSR and SSG application, built through the command its
 // own README documents, with every Foldkit dependency installed from the
 // tarballs in this release snapshot.
@@ -620,7 +625,7 @@ const assertBuildIdReachesBothSides = (
 
 type Tarballs = Readonly<{
   cli: string
-  packages: ReadonlyArray<string>
+  packages: ReadonlyArray<PackedScaffoldPackage>
 }>
 
 type DependencyMap = Readonly<Record<string, string>>
@@ -628,6 +633,7 @@ type DependencyMap = Readonly<Record<string, string>>
 type PackageManifest = Readonly<{
   dependencies?: DependencyMap
   devDependencies?: DependencyMap
+  peerDependencies?: DependencyMap
 }>
 
 const readJson = <T>(path: string): T => JSON.parse(readFileSync(path, 'utf8'))
@@ -788,14 +794,23 @@ const generateProject = (
     cliReleaseManifest,
   )
 
+  const projectManifest = readManifest(join(projectDir, 'package.json'))
+  const projectTarballs = selectScaffoldTarballs(
+    projectManifest,
+    tarballs.packages,
+    Object.keys(cliReleaseManifest.packages),
+  )
+
   // NOTE: the packed CLI records exact versions that do not exist in npm until
   // its Version Packages PR merges. Generation uses the shim above to prove it
   // reaches installation without asking the registry for packages that cannot
-  // be published yet. This install exercises the same manifest with the full
-  // local release snapshot.
+  // be published yet. Install its declared local packages and their local
+  // peers from the release snapshot. Adding unrelated packages changes npm's
+  // dependency placement and can introduce incompatible transitive versions.
   // `--legacy-peer-deps` is needed only because the plugin's peer floor names a
   // version `changeset version` has not produced yet; `check-peer-floors.ts`
-  // asserts that floor separately.
+  // asserts that floor separately. The selection includes local peers because
+  // this flag suppresses npm's automatic peer installation.
   runRequired(
     `Installing this workspace's packages into the ${rendering.toUpperCase()} project...`,
     'npm',
@@ -805,7 +820,7 @@ const generateProject = (
       '--no-fund',
       '--no-save',
       '--legacy-peer-deps',
-      ...tarballs.packages,
+      ...projectTarballs,
     ],
     { cwd: projectDir },
   )
@@ -1095,11 +1110,22 @@ const main = async (): Promise<void> => {
 
     const tarballs: Tarballs = {
       cli: packPackage('Packing create-foldkit-app...', CLI_DIR),
-      packages: SCAFFOLD_PACKAGES.map(({ directory, name }) =>
-        packPackage(`Packing ${name}...`, directory),
-      ),
+      packages: SCAFFOLD_PACKAGES.map(({ directory, name }) => {
+        const manifest = readManifest(
+          join(REPO_ROOT, directory, 'package.json'),
+        )
+
+        return {
+          name,
+          tarballPath: packPackage(`Packing ${name}...`, directory),
+          peerDependencies: Object.keys(manifest.peerDependencies ?? {}),
+        }
+      }),
     }
-    tarballPaths.push(tarballs.cli, ...tarballs.packages)
+    tarballPaths.push(
+      tarballs.cli,
+      ...tarballs.packages.map(({ tarballPath }) => tarballPath),
+    )
 
     runRequired(
       'Preparing the generation workspace...',

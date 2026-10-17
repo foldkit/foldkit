@@ -1,4 +1,13 @@
-import { Array, Clock, Effect, Option, Order, Record, pipe } from 'effect'
+import {
+  Array,
+  Clock,
+  DateTime,
+  Effect,
+  Option,
+  Order,
+  Record,
+  pipe,
+} from 'effect'
 
 import {
   ContributorSummary,
@@ -18,7 +27,7 @@ import type {
   GitHubPullRequestResponse,
   GitHubReleaseResponse,
   GitHubRepositoryResponse,
-  GitHubStargazerResponse,
+  GitHubStarHistoryResponse,
   GitHubStatResult,
 } from './githubApi'
 import { GitHubApi } from './githubApi'
@@ -29,24 +38,19 @@ import type {
 } from './npmApi'
 import { NpmApi } from './npmApi'
 import {
+  LAST_YEAR_WEEKS,
   type WeeklyCount,
   countByWeek,
   countForWeek,
-  dateStringToMilliseconds,
   sumByWeek,
   valueForWeek,
-  weekStartForMilliseconds,
+  weekStartForDateTime,
   weekStartsForLastYear,
 } from './weeks'
 
 // CONSTANT
 
-const MILLISECONDS_PER_SECOND = 1_000
-const MILLISECONDS_PER_WEEK = 7 * 24 * 60 * 60 * MILLISECONDS_PER_SECOND
-const LAST_YEAR_MILLISECONDS = 52 * MILLISECONDS_PER_WEEK
 const TOP_CONTRIBUTOR_COUNT = 6
-
-// MODEL
 
 export type RawPackageData = Readonly<{
   spec: PackageSpec
@@ -61,7 +65,7 @@ export type RawTelemetry = Readonly<{
   issues: ReadonlyArray<typeof GitHubIssueResponse.Type>
   pullRequests: ReadonlyArray<typeof GitHubPullRequestResponse.Type>
   releases: ReadonlyArray<typeof GitHubReleaseResponse.Type>
-  stargazers: ReadonlyArray<typeof GitHubStargazerResponse.Type>
+  starHistory: ReadonlyArray<typeof GitHubStarHistoryResponse.Type>
   commitActivity: GitHubStatResult<
     ReadonlyArray<typeof GitHubCommitActivityResponse.Type>
   >
@@ -77,7 +81,7 @@ const weeklyDownloads = (
   const weeklySums = sumByWeek(
     downloads.downloads,
     weekStarts,
-    ({ day }) => weekStartForMilliseconds(dateStringToMilliseconds(day)),
+    ({ day }) => weekStartForDateTime(DateTime.makeUnsafe(day)),
     ({ downloads: dayDownloads }) => dayDownloads,
   )
 
@@ -200,20 +204,34 @@ export const packageSnapshotFromResponses = (
 }
 
 export const weeklyStars = (
-  stargazers: ReadonlyArray<typeof GitHubStargazerResponse.Type>,
+  starHistory: ReadonlyArray<typeof GitHubStarHistoryResponse.Type>,
   weekStarts: ReadonlyArray<string>,
 ): ReadonlyArray<WeeklyCount> =>
-  countByWeek(stargazers, weekStarts, ({ starred_at }) =>
-    pipe(
-      Date.parse(starred_at),
-      Option.liftPredicate(Number.isFinite),
-      Option.map(weekStartForMilliseconds),
+  pipe(
+    sumByWeek(
+      Array.flatMap(starHistory, ({ week, days }) => {
+        const sunday = pipe(
+          DateTime.fromEpochSeconds(week),
+          DateTime.nearest('week', { weekStartsOn: 0 }),
+        )
+
+        return Array.map(days, (count, dayIndex) => ({
+          weekStart: weekStartForDateTime(
+            DateTime.add(sunday, { days: dayIndex }),
+          ),
+          count,
+        }))
+      }),
+      weekStarts,
+      ({ weekStart }) => weekStart,
+      ({ count }) => count,
     ),
+    Array.map(({ weekStart, amount }) => ({ weekStart, count: amount })),
   )
 
 export const cumulativeStarsByWeek = (
   currentStars: number,
-  stargazers: ReadonlyArray<typeof GitHubStargazerResponse.Type>,
+  starHistory: ReadonlyArray<typeof GitHubStarHistoryResponse.Type>,
   weekStarts: ReadonlyArray<string>,
 ): ReadonlyArray<WeeklyCount> => {
   const emptyWeeks: ReadonlyArray<WeeklyCount> = []
@@ -221,7 +239,7 @@ export const cumulativeStarsByWeek = (
     weekStart,
     count: 0,
   }))
-  const weekly = weeklyStars(stargazers, weekStarts)
+  const weekly = weeklyStars(starHistory, weekStarts)
   const fetchedStars = Array.reduce(
     weekly,
     0,
@@ -252,7 +270,7 @@ const commitCountForWeek =
       activity,
       Array.findFirst(
         item =>
-          weekStartForMilliseconds(item.week * MILLISECONDS_PER_SECOND) ===
+          weekStartForDateTime(DateTime.fromEpochSeconds(item.week)) ===
           weekStart,
       ),
       Option.match({
@@ -279,13 +297,12 @@ export const weeklyReleaseTotals = (
   releases: ReadonlyArray<typeof GitHubReleaseResponse.Type>,
   weekStarts: ReadonlyArray<string>,
 ): ReadonlyArray<WeeklyCount> =>
-  countByWeek(
-    Array.filter(releases, release => Option.isSome(release.published_at)),
-    weekStarts,
-    release =>
-      Option.map(release.published_at, publishedAt =>
-        weekStartForMilliseconds(Date.parse(publishedAt)),
-      ),
+  countByWeek(releases, weekStarts, release =>
+    pipe(
+      release.published_at,
+      Option.flatMap(DateTime.make),
+      Option.map(weekStartForDateTime),
+    ),
   )
 
 export const makeWeeklyTelemetry = (
@@ -324,10 +341,12 @@ export const fetchRawTelemetry = ({
   clock: typeof Clock.Clock.Service
 }>): Effect.Effect<RawTelemetry, Error> =>
   Effect.gen(function* () {
-    const fetchedAt = yield* clock.currentTimeMillis
+    const fetchedAt = DateTime.makeUnsafe(yield* clock.currentTimeMillis)
 
     const repository = yield* github.fetchRepository
-    const yearCutoff = fetchedAt - LAST_YEAR_MILLISECONDS
+    const yearCutoff = DateTime.subtract(fetchedAt, {
+      weeks: LAST_YEAR_WEEKS,
+    })
     const [contributors, issues, pullRequests, releases] = yield* Effect.all(
       [
         github.fetchContributors,
@@ -337,9 +356,7 @@ export const fetchRawTelemetry = ({
       ],
       { concurrency: 'unbounded' },
     )
-    const stargazers = yield* github.fetchStargazers(
-      repository.stargazers_count,
-    )
+    const starHistory = yield* github.fetchStarHistory(yearCutoff)
     const commitActivity = yield* github.fetchCommitActivity
     const packageData = yield* Effect.forEach(
       packageSpecs,
@@ -355,13 +372,13 @@ export const fetchRawTelemetry = ({
     )
 
     return {
-      fetchedAt,
+      fetchedAt: DateTime.toEpochMillis(fetchedAt),
       repository,
       contributors,
       issues,
       pullRequests,
       releases,
-      stargazers,
+      starHistory,
       commitActivity,
       packageData,
     }
@@ -370,7 +387,7 @@ export const fetchRawTelemetry = ({
 export const transformTelemetry = (
   raw: RawTelemetry,
 ): typeof Telemetry.Type => {
-  const weekStarts = weekStartsForLastYear(raw.fetchedAt)
+  const weekStarts = weekStartsForLastYear(DateTime.makeUnsafe(raw.fetchedAt))
 
   const packageResults = Array.map(
     raw.packageData,
@@ -395,7 +412,7 @@ export const transformTelemetry = (
   )
   const cumulativeStars = cumulativeStarsByWeek(
     raw.repository.stargazers_count,
-    raw.stargazers,
+    raw.starHistory,
     weekStarts,
   )
   const warnings = raw.commitActivity.warnings

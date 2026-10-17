@@ -1,16 +1,24 @@
-import { Application } from 'foldkit'
+import { ApplicationComposition } from './composition'
+import { init } from './init'
+import { update } from './update'
+import { view } from './view'
 
 // ❌ Bad
 // Turning off freezeModel silences the dev warning instead of fixing the
 // mutation it caught.
-const badApp = Application.make({
-  Model,
+const badApplication = ApplicationComposition.makeApplication({
   init,
   update,
   view,
+  container: document.getElementById('root'),
   freezeModel: false,
 })
 
 // ✅ Good
 // Leave the guardrail on and fix the in-place mutation it flags.
-const goodApp = Application.make({ Model, init, update, view })
+const goodApplication = ApplicationComposition.makeApplication({
+  init,
+  update,
+  view,
+  container: document.getElementById('root'),
+})

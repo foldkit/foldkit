@@ -1,10 +1,10 @@
-import { Option } from 'effect'
-import { type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
-import type * as Mount from 'foldkit/mount'
+import { Option, Schema } from 'effect'
+import { inertHtml as ih } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
 import * as Story from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
-import { expect } from 'vitest'
+import type * as Update from 'foldkit/update'
+import { expect, expectTypeOf } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
@@ -12,37 +12,40 @@ import * as Animation from '../animation/index.js'
 import { create, init, update } from './multi.js'
 import type { Model, ViewInputs } from './multi.js'
 import {
-  AnchorCombobox,
-  AttachComboboxPreventBlur,
-  FocusComboboxInput,
-  InertComboboxOthers,
-  LockComboboxScroll,
+  Anchor,
+  AttachPreventBlur,
+  FocusInput,
+  InertOthers,
+  LockScroll,
   Message,
   OutMessage,
-  PortalComboboxBackdrop,
-  RestoreComboboxInert,
-  ScrollComboboxItemIntoView,
-  UnlockComboboxScroll,
+  PortalBackdrop,
+  RestoreInert,
+  ScrollItemIntoView,
+  UnlockScroll,
   inputId,
+  makeView,
   mounts,
 } from './shared.js'
 
-const TestCombobox = create<string>()
-const view = TestCombobox.view
+const TestCombobox = create()
+const view = makeView<Model, string>({ ariaMultiSelectable: true }, Message)
 
-type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
+const Fruit = Schema.Literals(['Apple', 'Pear'])
+type Fruit = typeof Fruit.Type
 
-const acknowledgeAnchor = Scene.Mount.resolve(
-  AnchorCombobox,
-  Message.CompletedAnchorCombobox(),
-)
+const FruitCombobox = create(Fruit)
+
+type TestHtmlBuilder = Parameters<typeof view>[2]
+
+const acknowledgeAnchor = Scene.Mount.resolve(Anchor, Message.CompletedAnchor())
 const acknowledgeBackdrop = Scene.Mount.resolve(
-  PortalComboboxBackdrop,
-  Message.CompletedPortalComboboxBackdrop(),
+  PortalBackdrop,
+  Message.CompletedPortalBackdrop(),
 )
 const acknowledgePreventBlur = Scene.Mount.resolve(
-  AttachComboboxPreventBlur,
-  Message.CompletedAttachComboboxPreventBlur(),
+  AttachPreventBlur,
+  Message.CompletedAttachPreventBlur(),
 )
 
 const givenClosed = Story.given(init({ id: 'test' }))
@@ -53,6 +56,74 @@ const givenOpenMulti = Story.steps(
 )
 
 describe('Combobox.Multi', () => {
+  describe('completed Block', () => {
+    it('preserves refined payloads and registered Steps', () => {
+      expectTypeOf<typeof FruitCombobox.Message.Type>().toEqualTypeOf<
+        Message<Fruit>
+      >()
+      expectTypeOf<typeof FruitCombobox.OutMessage.Type>().toEqualTypeOf<
+        OutMessage<Fruit>
+      >()
+      FruitCombobox.Message.SelectedItem({
+        item: 'Apple',
+        displayText: 'Apple',
+        wasSelected: false,
+      })
+      FruitCombobox.OutMessage.Selected({ value: 'Apple' })
+      FruitCombobox.Message.SelectedItem({
+        // @ts-expect-error The completed factory preserves the refined Message constructor.
+        item: 'Banana',
+        displayText: 'Banana',
+        wasSelected: false,
+      })
+      // @ts-expect-error The completed factory preserves the refined OutMessage constructor.
+      FruitCombobox.OutMessage.Selected({ value: 'Banana' })
+      expectTypeOf<
+        Update.RequirementsOf<typeof FruitCombobox.update>
+      >().toEqualTypeOf<Update.RequirementsOf<typeof update>>()
+      expect(FruitCombobox.owner).toBe(TestCombobox.owner)
+      expect(FruitCombobox.mounts).toEqual(mounts)
+
+      const selected = FruitCombobox.expose.selectItem(
+        init({ id: 'fruit-multi' }),
+        'Apple',
+      )
+      const closed = FruitCombobox.expose.close(selected.model)
+
+      expect(selected.outMessage).toStrictEqual(
+        FruitCombobox.OutMessage.Selected({ value: 'Apple' }),
+      )
+      expect(closed.model.isOpen).toBe(false)
+    })
+
+    it('routes Animation Messages for a generic multi Combobox', () => {
+      Story.story(
+        FruitCombobox.update,
+        Story.given(
+          FruitCombobox.init({ id: 'fruit-combobox', isAnimated: true }).model,
+        ),
+        Story.message(
+          FruitCombobox.Message.Opened({
+            maybeActiveItemIndex: Option.some(0),
+          }),
+        ),
+        Story.Command.resolveAll(
+          [
+            Animation.WaitForPaint,
+            Animation.Message.CompletedWaitForPaint({ generation: 1 }),
+          ],
+          [
+            Animation.WaitForAnimationSettled,
+            Animation.Message.EndedAnimation({ generation: 1 }),
+          ],
+        ),
+        Story.model(model => {
+          expect(model.animation.transitionState).toBe('Idle')
+        }),
+      )
+    })
+  })
+
   describe('init', () => {
     it('defaults to closed with no active item and an empty input', () => {
       expect(init({ id: 'test' })).toStrictEqual({
@@ -164,8 +235,8 @@ describe('Combobox.Multi', () => {
             }),
           ),
           Story.Command.resolve(
-            ScrollComboboxItemIntoView,
-            Message.CompletedScrollComboboxItemIntoView(),
+            ScrollItemIntoView,
+            Message.CompletedScrollItemIntoView(),
           ),
           Story.message(
             Message.SelectedItem({
@@ -194,10 +265,7 @@ describe('Combobox.Multi', () => {
           Story.message(
             Message.Closed({ restingInputValue: 'Apple', isClearable: true }),
           ),
-          Story.Command.resolve(
-            FocusComboboxInput,
-            Message.CompletedFocusComboboxInput(),
-          ),
+          Story.Command.resolve(FocusInput, Message.CompletedFocusInput()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.inputValue).toBe('')
@@ -216,10 +284,7 @@ describe('Combobox.Multi', () => {
             Message.Closed({ restingInputValue: '', isClearable: true }),
           ),
           Story.expectNoOutMessage(),
-          Story.Command.resolve(
-            FocusComboboxInput,
-            Message.CompletedFocusComboboxInput(),
-          ),
+          Story.Command.resolve(FocusInput, Message.CompletedFocusInput()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
           }),
@@ -266,8 +331,8 @@ describe('Combobox.Multi', () => {
           ),
           Story.expectOutMessage(OutMessage.Selected({ value: 'apple' })),
           Story.Command.resolve(
-            ScrollComboboxItemIntoView,
-            Message.CompletedScrollComboboxItemIntoView(),
+            ScrollItemIntoView,
+            Message.CompletedScrollItemIntoView(),
           ),
           Story.message(
             Message.ActivatedItem({
@@ -280,8 +345,8 @@ describe('Combobox.Multi', () => {
           ),
           Story.expectOutMessage(OutMessage.Selected({ value: 'apple' })),
           Story.Command.resolve(
-            ScrollComboboxItemIntoView,
-            Message.CompletedScrollComboboxItemIntoView(),
+            ScrollItemIntoView,
+            Message.CompletedScrollItemIntoView(),
           ),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
@@ -296,8 +361,8 @@ describe('Combobox.Multi', () => {
       Story.given(init({ id: 'test', isModal: true })),
       Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
       Story.Command.resolveAllExact(
-        [LockComboboxScroll, Message.CompletedLockComboboxScroll()],
-        [InertComboboxOthers, Message.CompletedInertComboboxOthers()],
+        [LockScroll, Message.CompletedLockScroll()],
+        [InertOthers, Message.CompletedInertOthers()],
       ),
     )
 
@@ -309,9 +374,9 @@ describe('Combobox.Multi', () => {
           Message.Closed({ restingInputValue: '', isClearable: true }),
         ),
         Story.Command.resolveAllExact(
-          [FocusComboboxInput, Message.CompletedFocusComboboxInput()],
-          [UnlockComboboxScroll, Message.CompletedUnlockComboboxScroll()],
-          [RestoreComboboxInert, Message.CompletedRestoreComboboxInert()],
+          [FocusInput, Message.CompletedFocusInput()],
+          [UnlockScroll, Message.CompletedUnlockScroll()],
+          [RestoreInert, Message.CompletedRestoreInert()],
         ),
         Story.model(model => {
           expect(model.isOpen).toBe(false)
@@ -661,8 +726,8 @@ describe('Combobox.Multi', () => {
           Scene.expect(item(1)).toHaveAttr('data-active', ''),
           Scene.expectNoOutMessage(),
           Scene.Command.resolve(
-            ScrollComboboxItemIntoView,
-            Message.CompletedScrollComboboxItemIntoView(),
+            ScrollItemIntoView,
+            Message.CompletedScrollItemIntoView(),
           ),
         )
       })
@@ -687,8 +752,8 @@ describe('Combobox.Multi', () => {
           Scene.expect(item(1)).not.toHaveAttr('data-selected'),
           Scene.expectNoOutMessage(),
           Scene.Command.resolve(
-            ScrollComboboxItemIntoView,
-            Message.CompletedScrollComboboxItemIntoView(),
+            ScrollItemIntoView,
+            Message.CompletedScrollItemIntoView(),
           ),
         )
       })
@@ -729,11 +794,8 @@ describe('Combobox.Multi', () => {
           acknowledgeBackdrop,
           Scene.keydown(input, 'Escape'),
           Scene.expectNoOutMessage(),
-          Scene.Command.resolve(
-            FocusComboboxInput,
-            Message.CompletedFocusComboboxInput(),
-          ),
-          Scene.Mount.expectEnded(AnchorCombobox, PortalComboboxBackdrop),
+          Scene.Command.resolve(FocusInput, Message.CompletedFocusInput()),
+          Scene.Mount.expectEnded(Anchor, PortalBackdrop),
         )
       })
 
@@ -753,11 +815,8 @@ describe('Combobox.Multi', () => {
           acknowledgeBackdrop,
           Scene.keydown(input, 'Escape'),
           Scene.expectNoOutMessage(),
-          Scene.Command.resolve(
-            FocusComboboxInput,
-            Message.CompletedFocusComboboxInput(),
-          ),
-          Scene.Mount.expectEnded(AnchorCombobox, PortalComboboxBackdrop),
+          Scene.Command.resolve(FocusInput, Message.CompletedFocusInput()),
+          Scene.Mount.expectEnded(Anchor, PortalBackdrop),
         )
       })
     })

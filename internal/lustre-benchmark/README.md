@@ -15,9 +15,9 @@ The package builds two implementation slots, mirroring the harness convention
 used by Lustre, Elm, React, Gren, and Svelte. The `view` differs; the model and
 update are shared.
 
-- **`foldkit-<version>`**: naive view from `src/main.ts`. No memoization. Every
+- **`foldkit-<version>`**: naive view from `src/todo.ts`. No memoization. Every
   Message rebuilds the entire VNode tree.
-- **`foldkit-<version>-optimised`**: optimised view from `src/main.optimised.ts`.
+- **`foldkit-<version>-optimised`**: optimised view from `src/view.optimised.ts`.
   Uses `createLazy` slots for the header, the footer, the footer's filters
   list, and the toggle-all controls, and `createKeyedLazy` per todo item (a
   todo's VNode is reused when its `Todo` is referentially unchanged and it is

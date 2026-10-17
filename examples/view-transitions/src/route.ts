@@ -2,25 +2,28 @@ import { Schema, pipe } from 'effect'
 import { Route } from 'foldkit'
 import { defineRouteUnion, int, literal, slash } from 'foldkit/route'
 
-export const AppRoute = defineRouteUnion({
+export const ApplicationRoute = defineRouteUnion({
   Gallery: {},
   Artwork: { artworkId: Schema.Number },
   NotFound: { path: Schema.String },
 })
 
-export type AppRoute = typeof AppRoute.Type
+export type ApplicationRoute = typeof ApplicationRoute.Type
 
-export const galleryRouter = pipe(Route.root, Route.mapTo(AppRoute.Gallery))
+export const galleryRouter = pipe(
+  Route.root,
+  Route.mapTo(ApplicationRoute.Gallery),
+)
 
 export const artworkRouter = pipe(
   literal('artwork'),
   slash(int('artworkId')),
-  Route.mapTo(AppRoute.Artwork),
+  Route.mapTo(ApplicationRoute.Artwork),
 )
 
 const routeParser = Route.oneOf(artworkRouter, galleryRouter)
 
-export const urlToAppRoute = Route.parseUrlWithFallback(
+export const urlToApplicationRoute = Route.parseUrlWithFallback(
   routeParser,
-  AppRoute.NotFound,
+  ApplicationRoute.NotFound,
 )

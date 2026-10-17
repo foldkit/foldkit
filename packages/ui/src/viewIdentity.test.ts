@@ -1,4 +1,4 @@
-import type { Html, HtmlBuilder } from 'foldkit/html'
+import type { Html } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
 import { describe, expect, it } from 'vitest'
 
@@ -12,10 +12,7 @@ describe('view identity branding', () => {
     Scene.scene(
       {
         update: Animation.update,
-        view: (
-          currentModel: Animation.Model,
-          h: HtmlBuilder<Animation.Message>,
-        ) => {
+        view: (currentModel, h) => {
           renderedVNode = Animation.view(
             currentModel,
             { content: h.div([]) },
@@ -27,6 +24,6 @@ describe('view identity branding', () => {
       Scene.given(model),
     )
 
-    expect(renderedVNode?.identity).toMatch(/^src\/animation\/index\.ts#/)
+    expect(renderedVNode?.identity).toMatch(/^src\/animation\/block\.ts#/)
   })
 })

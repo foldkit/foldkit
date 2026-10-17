@@ -3,14 +3,21 @@ import { Calendar } from 'foldkit'
 import { Server } from 'foldkit/experimental'
 import { fromString as urlFromString } from 'foldkit/url'
 
+import { ApplicationComposition } from './composition'
 import { deployment } from './deployment'
-import { Flags, init, view } from './main'
-import { ApiReference, Example } from './page'
-import { urlToAppRoute } from './route'
+import { Flags } from './flags'
+import { init } from './init'
+import { EffectsLayer } from './layer'
+import { ApiReference, ExampleDetail } from './page'
+import { ApplicationRoute, urlToApplicationRoute } from './route'
+import { update } from './update'
+import { view } from './view/view'
 
-type SourcesBySlug = Readonly<globalThis.Record<string, Example.ExampleSources>>
+type SourcesBySlug = Readonly<
+  globalThis.Record<string, ExampleDetail.ExampleSources>
+>
 
-const baseFlags: Effect.Effect<typeof Flags.Type> = Effect.gen(function* () {
+const baseFlags = Effect.gen(function* () {
   const currentYear = yield* DateTime.now.pipe(
     Effect.map(DateTime.getPartUtc('year')),
   )
@@ -46,10 +53,12 @@ const loadApiData: Effect.Effect<ApiReference.ApiData> = Effect.map(
 const loadAllExampleSources: Effect.Effect<SourcesBySlug> = Effect.map(
   Effect.promise(() =>
     Promise.all(
-      Example.runnableExampleSlugs.map(
-        async (slug): Promise<readonly [string, Example.ExampleSources]> => [
+      ExampleDetail.runnableExampleSlugs.map(
+        async (
           slug,
-          await Example.loadSourcesForSlug(slug),
+        ): Promise<readonly [string, ExampleDetail.ExampleSources]> => [
+          slug,
+          await ExampleDetail.loadSourcesForSlug(slug),
         ],
       ),
     ),
@@ -67,14 +76,14 @@ const flagsForRequest = (
     onNone: () => {
       throw new Error(`Cannot render the invalid URL "${request.url}".`)
     },
-    onSome: urlToAppRoute,
+    onSome: urlToApplicationRoute,
   })
 
   return Flags.make({
     ...baseFlags,
     maybeApiData: Option.liftPredicate(
       route,
-      candidate => candidate._tag === 'ApiModule',
+      ApplicationRoute.guards.ApiModule,
     ).pipe(
       Option.flatMap(({ moduleSlug }) =>
         ApiReference.sliceApiDataToModule(apiData, moduleSlug),
@@ -82,7 +91,7 @@ const flagsForRequest = (
     ),
     maybeExampleSources: Option.liftPredicate(
       route,
-      candidate => candidate._tag === 'ExampleDetail',
+      ApplicationRoute.guards.ExampleDetail,
     ).pipe(
       Option.flatMap(({ exampleSlug }) =>
         Record.get(sourcesBySlug, exampleSlug),
@@ -133,7 +142,8 @@ export const renderPage = (request: Request): Promise<Server.EntryResult> =>
     )
     return Effect.runPromise(
       Server.renderToString(
-        { Flags, routing: {}, init, view },
+        ApplicationComposition,
+        { init, update, view, EffectsLayer, Flags, routing: {} },
         {
           url: request.url,
           flags: requestFlags,

@@ -1,17 +1,14 @@
 import { Schema } from 'effect'
 
-import { Menu, Tabs } from '@foldkit/ui'
-
 import * as AsyncCounterDemo from './asyncCounterDemo'
 import * as DemoTab from './demoTab'
 import * as NotePlayerDemo from './notePlayerDemo'
-
-// MODEL
+import { PlaygroundMenu } from './playgroundMenu'
 
 export const Model = Schema.Struct({
-  demoTabs: Tabs.Model,
+  demoTabs: DemoTab.DemoTabs.Model,
   activeDemoTab: DemoTab.Tab,
-  playgroundMenu: Menu.Model,
+  playgroundMenu: PlaygroundMenu.Model,
   asyncCounterDemo: AsyncCounterDemo.Model,
   notePlayerDemo: NotePlayerDemo.Model,
 })

@@ -13,6 +13,7 @@ import { expect, expectTypeOf } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
+import * as Command from '../command/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import * as Mount from './public.js'
 
@@ -21,6 +22,10 @@ const Message = defineMessageUnion({
   ScrolledPanel: { scroll: Schema.Number },
 })
 type Message = typeof Message.Type
+
+const ConstructionMountCommand = Command.define('ConstructionMountCommand', {
+  messages: [Message.CompletedMeasurePanel],
+})
 
 const PANEL_WIDTH = 320
 
@@ -85,6 +90,19 @@ if (false) {
         }),
       ),
   )
+  LayerOnly.toLayer(
+    // @ts-expect-error Command handlers are unavailable while constructing a Mount handler.
+    Effect.gen(function* () {
+      yield* ConstructionMountCommand().effect
+      return ({ element }) =>
+        Effect.succeed(
+          Message.CompletedMeasurePanel({
+            panelId: 'guarded',
+            width: measuredWidth(element),
+          }),
+        )
+    }),
+  )
   // @ts-expect-error A host contract has no default handler Layer.
   void LayerOnly.layer
 
@@ -98,6 +116,21 @@ if (false) {
           width: measuredWidth(element),
         }),
       ),
+  })
+
+  Mount.define('AttachedConstructionMount', {
+    messages: [Message.CompletedMeasurePanel],
+    // @ts-expect-error Attached Mount handlers have the same construction requirement guard.
+    handler: function* () {
+      yield* ConstructionMountCommand().effect
+      return ({ element }) =>
+        Effect.succeed(
+          Message.CompletedMeasurePanel({
+            panelId: 'guarded',
+            width: measuredWidth(element),
+          }),
+        )
+    },
   })
 
   const EmptyArgs = Mount.define('EmptyArgs', {

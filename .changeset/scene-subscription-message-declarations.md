@@ -2,7 +2,7 @@
 'foldkit': minor
 ---
 
-Restrict Scene's `Subscription.emit` to Messages declared by the Scene's registered Subscriptions. Pass the Subscription record into `scene({ update, view, subscriptions }, ...steps)`. Named entries declare their emitted Message Schemas. Scenes without registered Subscriptions cannot use `Subscription.emit`.
+Restrict Scene's `Subscription.emit` to Messages declared by the Scene's registered Subscriptions. Pass the Subscription record into `scene({ update, view, subscriptions }, ...api)`. Named entries declare their emitted Message Schemas. Scenes without registered Subscriptions cannot use `Subscription.emit`.
 
 Use `Subscription.emit(subscriptions.ticks, message)` to identify both the registered source and its Message. Runtime validation checks the full declared Schema before dispatch, including payloads, and rejects an entry that is not registered with the Scene.
 

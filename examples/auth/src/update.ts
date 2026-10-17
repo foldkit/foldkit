@@ -1,69 +1,20 @@
-import { Match, Option } from 'effect'
-import { Update } from 'foldkit'
+import { Match } from 'effect'
 import { UrlRequest } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 import { toString as urlToString } from 'foldkit/url'
 
 import {
-  ClearSession,
   LoadExternal,
   LogError,
   NavigateInternal,
   RedirectToDashboard,
-  RedirectToHome,
   RedirectToLogin,
-  SaveSession,
 } from './command'
+import { ApplicationComposition } from './composition'
 import { Message } from './message'
-import { Model } from './model'
-import { LoggedIn, LoggedOut } from './page'
-import { AppRoute, urlToAppRoute } from './route'
+import { urlToApplicationRoute } from './route'
 
-const foldLoggedOutOutMessage = LoggedOut.OutMessage.match({
-  SucceededLogin: ({ session }) =>
-    Update.defineStep((_model: Model) => ({
-      model: LoggedIn.init(AppRoute.Dashboard(), session),
-      commands: [SaveSession({ session }), RedirectToDashboard()],
-    })),
-})
-
-const foldLoggedOut = Update.foldChild({
-  update: LoggedOut.update,
-  read: (model: Model) =>
-    Match.value(model).pipe(
-      Match.tagsExhaustive({
-        LoggedOut: loggedOutModel => Option.some(loggedOutModel),
-        LoggedIn: () => Option.none(),
-      }),
-    ),
-  write: (_model, nextLoggedOut) => nextLoggedOut,
-  toParentMessage: message => Message.GotLoggedOutMessage({ message }),
-  foldOutMessage: foldLoggedOutOutMessage,
-})
-
-const foldLoggedInOutMessage = LoggedIn.OutMessage.match({
-  RequestedLogout: () =>
-    Update.defineStep((_model: Model) => ({
-      model: LoggedOut.init(AppRoute.Home()),
-      commands: [ClearSession(), RedirectToHome()],
-    })),
-})
-
-const foldLoggedIn = Update.foldChild({
-  update: LoggedIn.update,
-  read: (model: Model) =>
-    Match.value(model).pipe(
-      Match.tagsExhaustive({
-        LoggedOut: () => Option.none(),
-        LoggedIn: loggedInModel => Option.some(loggedInModel),
-      }),
-    ),
-  write: (_model, nextLoggedIn) => nextLoggedIn,
-  toParentMessage: message => Message.GotLoggedInMessage({ message }),
-  foldOutMessage: foldLoggedInOutMessage,
-})
-
-export const update = Update.define((model: Model, message: Message) =>
+export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedLink: ({ request }) =>
       UrlRequest.match(request, {
@@ -78,7 +29,7 @@ export const update = Update.define((model: Model, message: Message) =>
       }),
 
     ChangedUrl: ({ url }) => {
-      const route = urlToAppRoute(url)
+      const route = urlToApplicationRoute(url)
 
       return Match.value(model).pipe(
         Match.tagsExhaustive({
@@ -114,9 +65,6 @@ export const update = Update.define((model: Model, message: Message) =>
       commands: [LogError({ entries: ['Failed to clear session:', error] })],
     }),
 
-    GotLoggedOutMessage: ({ message }) => foldLoggedOut(model, message),
-
-    GotLoggedInMessage: ({ message }) => foldLoggedIn(model, message),
     CompletedNavigateInternal: () => ({ model }),
     CompletedRedirectToLogin: () => ({ model }),
     CompletedRedirectToDashboard: () => ({ model }),

@@ -35,7 +35,7 @@ import {
   runnableExampleSlugs,
 } from '../src/page/example/meta'
 import {
-  AppRoute,
+  ApplicationRoute,
   SITE_URL,
   blogPostRouter,
   blogRouter,
@@ -61,118 +61,120 @@ import { generateOgImages, injectMetaTags } from './og-image'
 
 // ROUTES
 
-export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
-  AppRoute.Home(),
-  AppRoute.Newsletter(),
-  AppRoute.WhyFoldkit(),
-  AppRoute.Performance(),
-  AppRoute.GetStarted(),
-  AppRoute.Roadmap(),
-  AppRoute.ComingFromReact(),
-  AppRoute.ComingFromTanStackQuery(),
-  AppRoute.ReactComparison(),
-  AppRoute.EffectAtomComparison(),
-  AppRoute.ElmComparison(),
-  AppRoute.RoutingAndNavigation(),
-  AppRoute.FieldValidation(),
-  AppRoute.Testing(),
-  AppRoute.TestingStory(),
-  AppRoute.TestingScene(),
-  AppRoute.Examples(),
+export const STATIC_ROUTES: ReadonlyArray<ApplicationRoute> = [
+  ApplicationRoute.Home(),
+  ApplicationRoute.Newsletter(),
+  ApplicationRoute.WhyFoldkit(),
+  ApplicationRoute.Performance(),
+  ApplicationRoute.GetStarted(),
+  ApplicationRoute.Roadmap(),
+  ApplicationRoute.ComingFromReact(),
+  ApplicationRoute.ComingFromTanStackQuery(),
+  ApplicationRoute.ReactComparison(),
+  ApplicationRoute.EffectAtomComparison(),
+  ApplicationRoute.ElmComparison(),
+  ApplicationRoute.RoutingAndNavigation(),
+  ApplicationRoute.FieldValidation(),
+  ApplicationRoute.Testing(),
+  ApplicationRoute.TestingStory(),
+  ApplicationRoute.TestingScene(),
+  ApplicationRoute.Examples(),
   ...Array.map(exampleSlugs, slug =>
-    AppRoute.ExampleDetail({ exampleSlug: slug }),
+    ApplicationRoute.ExampleDetail({ exampleSlug: slug }),
   ),
-  AppRoute.TypingTerminal(),
-  AppRoute.BestPracticesSideEffects(),
-  AppRoute.BestPracticesMessages(),
-  AppRoute.BestPracticesKeying(),
-  AppRoute.BestPracticesImmutability(),
-  AppRoute.ProjectOrganization(),
-  AppRoute.ToolingLinting(),
-  AppRoute.CoreArchitecture(),
-  AppRoute.CoreCounterExample(),
-  AppRoute.CoreModel(),
-  AppRoute.CoreMessages(),
-  AppRoute.CoreUpdate(),
-  AppRoute.CoreView(),
-  AppRoute.CoreCommands(),
-  AppRoute.CoreMount(),
-  AppRoute.CoreCustomElement(),
-  AppRoute.CoreSubscriptions(),
-  AppRoute.CoreInitAndFlags(),
-  AppRoute.CoreDom(),
-  AppRoute.CoreRender(),
-  AppRoute.CoreFile(),
-  AppRoute.CoreHttp(),
-  AppRoute.CoreQuery(),
-  AppRoute.CoreCanvas(),
-  AppRoute.CoreRuntime(),
-  AppRoute.CoreServerRendering(),
-  AppRoute.CoreLayers(),
-  AppRoute.CoreManagedResources(),
-  AppRoute.CoreDevTools(),
-  AppRoute.CoreCrashView(),
-  AppRoute.CoreViewTransitions(),
-  AppRoute.CoreSlowWarnings(),
-  AppRoute.CoreFreezeModel(),
-  AppRoute.CorePreserveScroll(),
-  AppRoute.CoreSubmodel(),
-  AppRoute.CoreMachine(),
-  AppRoute.AsyncData(),
-  AppRoute.PatternsAntiPatterns(),
-  AppRoute.PatternsInformingSubmodels(),
-  AppRoute.PatternsSubscriptionOrganization(),
-  AppRoute.CoreViewMemoization(),
-  AppRoute.CoreEmbedding(),
-  AppRoute.UiOverview(),
-  AppRoute.UiSelectionSubmodels(),
-  AppRoute.UiTabs(),
-  AppRoute.UiNav(),
-  AppRoute.UiDisclosure(),
-  AppRoute.UiDialog(),
-  AppRoute.UiMenu(),
-  AppRoute.UiPopover(),
-  AppRoute.UiListbox(),
-  AppRoute.UiRadioGroup(),
-  AppRoute.UiSelect(),
-  AppRoute.UiSlider(),
-  AppRoute.UiMeter(),
-  AppRoute.UiProgress(),
-  AppRoute.UiSwitch(),
-  AppRoute.UiButton(),
-  AppRoute.UiCalendar(),
-  AppRoute.UiDatePicker(),
-  AppRoute.UiCheckbox(),
-  AppRoute.UiCombobox(),
-  AppRoute.UiInput(),
-  AppRoute.UiTextarea(),
-  AppRoute.UiFieldset(),
-  AppRoute.UiDragAndDrop(),
-  AppRoute.UiFileDrop(),
-  AppRoute.UiHoverIntent(),
-  AppRoute.UiToast(),
-  AppRoute.UiTooltip(),
-  AppRoute.UiAnimation(),
-  AppRoute.UiAnchor(),
-  AppRoute.UiVirtualList(),
-  AppRoute.AiOverview(),
-  AppRoute.AiSkills(),
-  AppRoute.AiMcp(),
-  AppRoute.ContentApi(),
-  AppRoute.About(),
-  AppRoute.Contact(),
-  AppRoute.Privacy(),
-  AppRoute.Blog(),
-  ...Array.map(blogPostSlugs, slug => AppRoute.BlogPost({ postSlug: slug })),
+  ApplicationRoute.TypingTerminal(),
+  ApplicationRoute.BestPracticesSideEffects(),
+  ApplicationRoute.BestPracticesMessages(),
+  ApplicationRoute.BestPracticesKeying(),
+  ApplicationRoute.BestPracticesImmutability(),
+  ApplicationRoute.ProjectOrganization(),
+  ApplicationRoute.ToolingLinting(),
+  ApplicationRoute.CoreArchitecture(),
+  ApplicationRoute.CoreCounterExample(),
+  ApplicationRoute.CoreModel(),
+  ApplicationRoute.CoreMessages(),
+  ApplicationRoute.CoreUpdate(),
+  ApplicationRoute.CoreView(),
+  ApplicationRoute.CoreCommands(),
+  ApplicationRoute.CoreMount(),
+  ApplicationRoute.CoreCustomElement(),
+  ApplicationRoute.CoreSubscriptions(),
+  ApplicationRoute.CoreInitAndFlags(),
+  ApplicationRoute.CoreDom(),
+  ApplicationRoute.CoreRender(),
+  ApplicationRoute.CoreFile(),
+  ApplicationRoute.CoreHttp(),
+  ApplicationRoute.CoreQuery(),
+  ApplicationRoute.CoreCanvas(),
+  ApplicationRoute.CoreRuntime(),
+  ApplicationRoute.CoreServerRendering(),
+  ApplicationRoute.CoreLayers(),
+  ApplicationRoute.CoreManagedResources(),
+  ApplicationRoute.CoreDevTools(),
+  ApplicationRoute.CoreCrashView(),
+  ApplicationRoute.CoreViewTransitions(),
+  ApplicationRoute.CoreSlowWarnings(),
+  ApplicationRoute.CoreFreezeModel(),
+  ApplicationRoute.CorePreserveScroll(),
+  ApplicationRoute.CoreBlock(),
+  ApplicationRoute.CoreMachine(),
+  ApplicationRoute.AsyncData(),
+  ApplicationRoute.PatternsAntiPatterns(),
+  ApplicationRoute.PatternsInformingBlocks(),
+  ApplicationRoute.PatternsSubscriptionOrganization(),
+  ApplicationRoute.CoreViewMemoization(),
+  ApplicationRoute.CoreEmbedding(),
+  ApplicationRoute.UiOverview(),
+  ApplicationRoute.UiSelectionBlocks(),
+  ApplicationRoute.UiTabs(),
+  ApplicationRoute.UiNav(),
+  ApplicationRoute.UiDisclosure(),
+  ApplicationRoute.UiDialog(),
+  ApplicationRoute.UiMenu(),
+  ApplicationRoute.UiPopover(),
+  ApplicationRoute.UiListbox(),
+  ApplicationRoute.UiRadioGroup(),
+  ApplicationRoute.UiSelect(),
+  ApplicationRoute.UiSlider(),
+  ApplicationRoute.UiMeter(),
+  ApplicationRoute.UiProgress(),
+  ApplicationRoute.UiSwitch(),
+  ApplicationRoute.UiButton(),
+  ApplicationRoute.UiCalendar(),
+  ApplicationRoute.UiDatePicker(),
+  ApplicationRoute.UiCheckbox(),
+  ApplicationRoute.UiCombobox(),
+  ApplicationRoute.UiInput(),
+  ApplicationRoute.UiTextarea(),
+  ApplicationRoute.UiFieldset(),
+  ApplicationRoute.UiDragAndDrop(),
+  ApplicationRoute.UiFileDrop(),
+  ApplicationRoute.UiHoverIntent(),
+  ApplicationRoute.UiToast(),
+  ApplicationRoute.UiTooltip(),
+  ApplicationRoute.UiAnimation(),
+  ApplicationRoute.UiAnchor(),
+  ApplicationRoute.UiVirtualList(),
+  ApplicationRoute.AiOverview(),
+  ApplicationRoute.AiSkills(),
+  ApplicationRoute.AiMcp(),
+  ApplicationRoute.ContentApi(),
+  ApplicationRoute.About(),
+  ApplicationRoute.Contact(),
+  ApplicationRoute.Privacy(),
+  ApplicationRoute.Blog(),
+  ...Array.map(blogPostSlugs, slug =>
+    ApplicationRoute.BlogPost({ postSlug: slug }),
+  ),
 ]
 
-const PLAYGROUND_ROUTES: ReadonlyArray<AppRoute> = Array.map(
+const PLAYGROUND_ROUTES: ReadonlyArray<ApplicationRoute> = Array.map(
   runnableExampleSlugs,
-  exampleSlug => AppRoute.Playground({ exampleSlug }),
+  exampleSlug => ApplicationRoute.Playground({ exampleSlug }),
 )
 export const INDEX_OUTPUT_PATH = 'index.html'
 
-export const routeToOutputPath = (route: AppRoute): string => {
+export const routeToOutputPath = (route: ApplicationRoute): string => {
   const urlPath = routeToUrlPath(route)
   return urlPath === '/'
     ? INDEX_OUTPUT_PATH
@@ -181,12 +183,12 @@ export const routeToOutputPath = (route: AppRoute): string => {
 
 export const enumerateRoutes = (
   apiModuleSlugs: ReadonlyArray<string>,
-): ReadonlyArray<AppRoute> =>
+): ReadonlyArray<ApplicationRoute> =>
   pipe(
     STATIC_ROUTES,
     Array.appendAll(
       Array.map(apiModuleSlugs, moduleSlug =>
-        AppRoute.ApiModule({ moduleSlug }),
+        ApplicationRoute.ApiModule({ moduleSlug }),
       ),
     ),
   )
@@ -239,7 +241,10 @@ const extractMarkdownFromHtml = (html: string): Effect.Effect<string> =>
     window => Effect.promise(() => window.happyDOM.close()),
   )
 
-const renderRoutePage = (serverEntry: typeof ServerEntry, route: AppRoute) =>
+const renderRoutePage = (
+  serverEntry: typeof ServerEntry,
+  route: ApplicationRoute,
+) =>
   Effect.gen(function* () {
     const urlPath = routeToUrlPath(route)
     const result = yield* Effect.promise(() =>
@@ -314,7 +319,7 @@ const readApiModules = Effect.gen(function* () {
 })
 
 type PrerenderResult = Readonly<{
-  route: AppRoute
+  route: ApplicationRoute
   urlPath: string
   markdown: string
   html: string
@@ -341,7 +346,7 @@ const prerenderRoute =
     baseHtml: string,
     resolveApiModuleName: ApiModuleNameResolver,
   ) =>
-  (route: AppRoute) =>
+  (route: ApplicationRoute) =>
     Effect.gen(function* () {
       const urlPath = routeToUrlPath(route)
       const outputPath = routeToOutputPath(route)
@@ -407,7 +412,9 @@ const prerenderRoute =
 // hydration fallback. The canonical Counter copy at `/playground/index.html`
 // remains the fallback for unknown slugs (see deploy-website.yml and the
 // preview fallback in vite.config.ts).
-const PLAYGROUND_SHELL_ROUTE = AppRoute.Playground({ exampleSlug: 'counter' })
+const PLAYGROUND_SHELL_ROUTE = ApplicationRoute.Playground({
+  exampleSlug: 'counter',
+})
 
 const PLAYGROUND_SHELL_OUTPUT_PATH = 'playground/index.html'
 
@@ -425,7 +432,7 @@ const prerenderPlaygroundShells = (
     )
 
     const fs = yield* FileSystem.FileSystem
-    const writeShell = (route: AppRoute, outputPath: string) => {
+    const writeShell = (route: ApplicationRoute, outputPath: string) => {
       const urlPath = routeToUrlPath(route)
       const outputHtml = injectMetaTags(
         shellHtml,
@@ -458,7 +465,7 @@ const prerenderPlaygroundShells = (
 // NOTE: the static host serves this file with a real 404 status for every
 // unknown path (see scripts/website-vercel-config.mjs). Without it, unknown
 // paths answer 200 with the app shell and agents conclude every path exists.
-export const NOT_FOUND_ROUTE = AppRoute.NotFound({ path: '/404' })
+export const NOT_FOUND_ROUTE = ApplicationRoute.NotFound({ path: '/404' })
 
 export const NOT_FOUND_OUTPUT_PATH = '404.html'
 
@@ -500,16 +507,17 @@ const formatDateIso = (dateTime: DateTime.DateTime): string => {
   )
 }
 
-const routeToSitemapEntry = (lastModification: string) => (route: AppRoute) => {
-  const urlPath = routeToUrlPath(route)
-  return `<url>
+const routeToSitemapEntry =
+  (lastModification: string) => (route: ApplicationRoute) => {
+    const urlPath = routeToUrlPath(route)
+    return `<url>
   <loc>${SITE_URL}${urlPath}</loc>
   <lastmod>${lastModification}</lastmod>
 </url>`
-}
+  }
 
 const buildSitemap = (
-  routes: ReadonlyArray<AppRoute>,
+  routes: ReadonlyArray<ApplicationRoute>,
   lastModification: string,
 ): string => {
   const entries = pipe(

@@ -1,10 +1,9 @@
 // settings.ts
 
+import { Settings } from './definition'
+
 export const Theme = Schema.Literals(['Light', 'Dark'])
 export type Theme = typeof Theme.Type
-
-const BootArgs = Schema.Struct({ theme: Theme })
-type BootArgs = typeof BootArgs.Type
 
 export const Message = defineMessageUnion({
   RestoredTheme: { theme: Theme },
@@ -15,9 +14,13 @@ export const OutMessage = defineMessageUnion({
   RestoredTheme: { theme: Theme },
 })
 
-export const init = () => ({ model: Model.make({ theme: 'Light' }) })
+const SettingsComposition = Settings.makeComposition()
 
-export const update = Update.define((model: Model, message: Message) =>
+export const init = SettingsComposition.makeInit(() => ({
+  model: Model.make({ theme: 'Light' }),
+}))
+
+export const update = SettingsComposition.makeUpdate((model, message) =>
   Message.match(message, {
     RestoredTheme: ({ theme }) => ({
       model: modifyFields(model, { theme: () => theme }),
@@ -28,5 +31,13 @@ export const update = Update.define((model: Model, message: Message) =>
   }),
 )
 
-export const boot = ({ theme }: BootArgs) =>
-  update(init().model, Message.RestoredTheme({ theme }))
+export const restore = Settings.step((model, theme: Theme) =>
+  update(model, Message.RestoredTheme({ theme })),
+)
+
+export const block = SettingsComposition.makeBlock({
+  init,
+  update,
+  expose: { restore },
+  EffectsLayer,
+})

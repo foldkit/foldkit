@@ -1,15 +1,18 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit each into your own Model, init, Message,
 // update, subscriptions, and view definitions.
-import { Option, Schema } from 'effect'
-import { Subscription, Update } from 'foldkit'
-import type { HtmlBuilder } from 'foldkit/html'
+import { Schema, Tuple } from 'effect'
+import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 import { DragAndDrop } from '@foldkit/ui'
+import {
+  draggable as DragAndDropDraggable,
+  droppable as DragAndDropDroppable,
+} from '@foldkit/ui/dragAndDrop'
 
-// Add a field to your Model for the DragAndDrop Submodel plus the items being sorted:
+// Add a field to your Model for the DragAndDrop Block plus the items being sorted:
 const Model = Schema.Struct({
   items: Schema.Array(
     Schema.Struct({ id: Schema.String, label: Schema.String }),
@@ -17,24 +20,20 @@ const Model = Schema.Struct({
   dragAndDrop: DragAndDrop.Model,
   // ...your other fields
 })
-
-// In your init function, initialize the DragAndDrop Submodel with a unique id:
-const init = () => ({
-  model: {
-    items: [
-      { id: '1', label: 'First' },
-      { id: '2', label: 'Second' },
-      { id: '3', label: 'Third' },
-    ],
-    dragAndDrop: DragAndDrop.init({ id: 'sortable-list' }),
-    // ...your other fields
-  },
-})
+type Model = typeof Model.Type
 
 // Embed the DragAndDrop Message in your parent Message:
 const Message = defineMessageUnion({
   GotDragAndDropMessage: { message: DragAndDrop.Message },
 })
+type Message = typeof Message.Type
+
+declare const reorder: (
+  items: Model['items'],
+  itemId: string,
+  fromIndex: number,
+  toIndex: number,
+) => Model['items']
 
 // At module scope, fold the OutMessage into your own Model. `Reordered`
 // carries the move so you can apply it to your own list. Each arm returns an
@@ -57,51 +56,53 @@ const foldDragAndDropOutMessage = DragAndDrop.OutMessage.match<
   Cancelled: () => model => ({ model }),
 })
 
-// Update.foldChild wires the child into the parent: it runs
-// DragAndDrop.update, writes the next DragAndDrop Model back, maps the
-// Submodel's Commands into your Message type, and hands any OutMessage to
-// foldOutMessage.
-const foldDragAndDrop = Update.foldChild({
-  update: DragAndDrop.update,
-  read: (model: Model) => Option.some(model.dragAndDrop),
-  write: (model, nextDragAndDrop) =>
-    modifyFields(model, { dragAndDrop: () => nextDragAndDrop }),
-  toParentMessage: message => Message.GotDragAndDropMessage({ message }),
-  foldOutMessage: foldDragAndDropOutMessage,
+// The Binding delegates the child update, writes the next DragAndDrop Model,
+// maps its Commands, handles OutMessages, and collects its Subscriptions.
+const SortableList = Block.define('SortableList', {
+  Model,
+  Message,
 })
 
-// In the corresponding Message.match handler, call the fold:
-GotDragAndDropMessage: ({ message }) => foldDragAndDrop(model, message)
-
-// In your subscriptions, lift all four document-level listeners through
-// Subscription.lift in one shot:
-const dragAndDropSubscriptions = Subscription.lift({
-  dragPointer: DragAndDrop.subscriptions.documentPointer,
-  dragEscape: DragAndDrop.subscriptions.documentEscape,
-  dragKeyboard: DragAndDrop.subscriptions.documentKeyboard,
-  autoScroll: DragAndDrop.subscriptions.autoScroll,
-})<Model, Message>({
-  read: model => Option.some(model.dragAndDrop),
-  toParentMessage: message => Message.GotDragAndDropMessage({ message }),
+const DragAndDropBinding = SortableList.bindChild(DragAndDrop.block, {
+  field: 'dragAndDrop',
+  parentMessage: Message.GotDragAndDropMessage,
+  init: { args: () => Tuple.make({ id: 'sortable-list' }) },
+  outMessage: { fold: foldDragAndDropOutMessage },
 })
 
-const subscriptions = Subscription.aggregate(
-  dragAndDropSubscriptions,
-  // ...your other subscription records
-)
+const SortableListComposition = SortableList.makeComposition({
+  childBindings: [DragAndDropBinding],
+})
+
+// Initialize the fields the parent owns. The Composition initializes the
+// bound DragAndDrop Model with the Binding's unique id.
+const init = SortableListComposition.makeInit(() => ({
+  model: {
+    items: [
+      { id: '1', label: 'First' },
+      { id: '2', label: 'Second' },
+      { id: '3', label: 'Third' },
+    ],
+    // ...your other fields
+  },
+}))
+
+const update = SortableListComposition.makeUpdate()
+
+// Registering `DragAndDropBinding` in `childBindings` collects its document-level Subscriptions.
 
 // Inside your view function, spread draggable() onto items and droppable()
 // onto containers:
-const view = (model: Model, h: HtmlBuilder<Message>) =>
+const view = SortableListComposition.makeView((model, h) =>
   h.ul(
     [
-      ...DragAndDrop.droppable('list', 'Sortable items'),
+      ...DragAndDropDroppable('list', 'Sortable items'),
       h.Class('flex flex-col gap-2'),
     ],
     model.items.map((item, index) =>
       h.li(
         [
-          ...DragAndDrop.draggable(
+          ...DragAndDropDraggable(
             {
               model: model.dragAndDrop,
               toParentMessage: message =>
@@ -117,4 +118,5 @@ const view = (model: Model, h: HtmlBuilder<Message>) =>
         [h.span([], [item.label])],
       ),
     ),
-  )
+  ),
+)

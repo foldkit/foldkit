@@ -2,9 +2,9 @@
 
 ## Overview
 
-Animation coordinates CSS enter and leave phases with a state machine and data attributes. A parent invokes the child-owned `show`, `hide`, or `toggle` update capability through `Update.foldChildStep`; Animation applies its internal `Showed` or `Hid` fact, records each lifecycle phase in its Model, and exposes the resulting Commands through the fold. The transitions stay visible in DevTools and can be tested through update without waiting for a browser animation.
+Animation coordinates CSS enter and leave phases with a state machine and data attributes. Bind `Animation.block` in the parent. Its Binding projects the child-owned `show`, `hide`, and `toggle` operations into connected parent Steps; Animation applies its internal `Showed` or `Hid` fact, records each lifecycle phase in its Model, and exposes the resulting Commands through the fold. The transitions stay visible in DevTools and can be tested through update without waiting for a browser animation.
 
-Animation uses the [OutMessage](/core/submodel#surfacing-facts) pattern. The `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config handles `StartedLeaveAnimating` by providing a Command that detects settlement, then handles `TransitionedOut` when post-animation cleanup can begin. Dialog, Menu, Popover, Listbox, and Combobox use the same Submodel internally when `isAnimated` is true.
+Animation uses the [OutMessage](/core/block#surfacing-facts) pattern. The Binding’s `outMessage.fold` policy handles `StartedLeaveAnimating` by providing a Command that detects settlement, then handles `TransitionedOut` when post-animation cleanup can begin. Dialog, Menu, Popover, Listbox, and Combobox use the same Block internally when `isAnimated` is true.
 
 ## Lifecycle Coordination {#why}
 
@@ -32,7 +32,7 @@ Check out how Animation is wired up in a [real Foldkit app](https://github.com/f
 
 ## Examples
 
-Fold `Animation.show` with `Update.foldChildStep` to start the enter animation and fold `Animation.hide` to start the leave animation. Style with Tailwind data-attribute selectors like `data-[closed]:opacity-0`.
+Call the Binding’s `show()` operation to start the enter animation and `hide()` to start the leave animation. Style with Tailwind data-attribute selectors like `data-[closed]:opacity-0`.
 
 ::Demo{name="animation"}
 
@@ -113,7 +113,7 @@ The `animateSize` option uses CSS grid (`grid-template-rows: 0fr` → `1fr`) for
 
 ### toggle
 
-`Animation.toggle(model)` returns the Animation update result that starts the enter or leave lifecycle according to `model.isShowing`. Use it as the `update` entry point of `Update.foldChildStep` when the parent does not need to choose a directional capability.
+Call the bound `AnimationBinding.toggle()` operation to start the enter or leave lifecycle according to the child Model's `isShowing` value. It returns a connected parent Step that reads and writes the child Model through the Binding. Apply it to the contextual Model and return or compose its opaque result inside the registered Composition.
 
 ### InitConfig {#init-config}
 
@@ -126,26 +126,29 @@ Configuration object passed to `Animation.init()`.
 
 ### show and hide
 
-`Animation.show(model)` and `Animation.hide(model)` return the next Animation Model and any Commands. Fold these child entry points into the parent with `Update.foldChildStep`; do not construct `Animation.Message.Showed()` or `Animation.Message.Hid()` from the parent.
+Call the bound `AnimationBinding.show()` and `AnimationBinding.hide()` operations from the parent. Apply these connected parent Steps to the contextual Model and return or compose their opaque results inside the registered Composition. Checked execution produces the readable next Animation Model and any Commands. Do not construct `Animation.Message.Showed()` or `Animation.Message.Hid()` from the parent.
 
-### ViewConfig {#view-config}
+### finish
 
-Configuration object passed to `Animation.view()`.
+Call the Binding-projected `AnimationBinding.finish(generation)` operation when a parent observes that the current animation has ended. It returns a connected parent Step and preserves the Animation's generation check: a result from an older transition does not finish a newer one. A parent-owned Command reports its own completion Message; the parent handles that result by invoking this operation inside its Composition-authored update.
 
-| Name          | Type                                | Default | Description                                                                                                                                        |
-| ------------- | ----------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `model`       | `Animation.Model`                   | —       | The animation state from your parent Model.                                                                                                        |
-| `content`     | `Html`                              | —       | The content to animate in and out.                                                                                                                 |
-| `animateSize` | `boolean`                           | `false` | Animates height collapse/expand using CSS grid. When true, the element stays in the DOM with grid-template-rows transitioning between 0fr and 1fr. |
-| `className`   | `string`                            | —       | CSS class for the animation wrapper.                                                                                                               |
-| `attributes`  | `ReadonlyArray<Attribute<Message>>` | —       | Additional attributes for the wrapper.                                                                                                             |
-| `element`     | `Exclude<TagName, 'textarea'>`      | `'div'` | The HTML element for the wrapper. Textarea is excluded because the wrapper renders children.                                                       |
+### ViewInputs {#view-config}
+
+Pass the child Model as `model` and these fields as `viewInputs` to the Animation Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Use `childAttributes` for handler-bearing attribute inputs; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+
+| Name          | Type                            | Default | Description                                                                                                                                        |
+| ------------- | ------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `content`     | `Html`                          | —       | The content to animate in and out.                                                                                                                 |
+| `animateSize` | `boolean`                       | `false` | Animates height collapse/expand using CSS grid. When true, the element stays in the DOM with grid-template-rows transitioning between 0fr and 1fr. |
+| `className`   | `string`                        | —       | CSS class for the animation wrapper.                                                                                                               |
+| `attributes`  | `ReadonlyArray<ChildAttribute>` | —       | Additional attributes for the wrapper.                                                                                                             |
+| `element`     | `Exclude<TagName, 'textarea'>`  | `'div'` | The HTML element for the wrapper. Textarea is excluded because the wrapper renders children.                                                       |
 
 ### OutMessage
 
-Messages emitted to the parent through the optional `outMessage` field. Fold the OutMessage in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config.
+Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s `outMessage.fold` policy.
 
-| Name                    | Type         | Default | Description                                                                                                                                                                                                                                                                                                  |
-| ----------------------- | ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `StartedLeaveAnimating` | `OutMessage` | —       | Emitted when the leave animation begins. Its `generation` identifies the leave. Return Animation.defaultLeaveCommand(model) from the fold, lifted with the fold context's liftCommand, to detect animation settlement. A custom leave Command returns `EndedAnimation({ generation })` with this generation. |
-| `TransitionedOut`       | `OutMessage` | —       | Emitted when the leave animation finishes. Use this to unmount content or update your Model.                                                                                                                                                                                                                 |
+| Name                    | Type         | Default | Description                                                                                                                                                                                                                                                                                                                                  |
+| ----------------------- | ------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `StartedLeaveAnimating` | `OutMessage` | —       | Emitted when the leave animation begins. Its `generation` identifies the leave. Return `defaultLeaveCommand(model)`, imported from `@foldkit/ui/animation`, from the fold, lifted with the fold context's liftCommand, to detect animation settlement. A custom leave Command returns `EndedAnimation({ generation })` with this generation. |
+| `TransitionedOut`       | `OutMessage` | —       | Emitted when the leave animation finishes. Use this to unmount content or update your Model.                                                                                                                                                                                                                                                 |

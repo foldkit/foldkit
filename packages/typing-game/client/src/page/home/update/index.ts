@@ -1,2 +1,1 @@
-export * from './update'
-export * from './handleKeyPressed'
+export { update } from './update'

@@ -18,7 +18,7 @@ yarn add @foldkit/ui
 
 ## Usage
 
-Import a component by name. Each import is a namespace that groups the component's `view` and, for stateful components, its `Model`, `Message`, `init`, and `update`.
+Import a component namespace by name. Stateful components are completed Blocks: `Application.bindChild(Dialog.block, config)` connects their state, Messages, public operations, view, and lifecycle effects to the parent. Stateless render helpers such as Button expose a view function.
 
 ```typescript
 import type { HtmlBuilder } from 'foldkit/html'
@@ -28,7 +28,7 @@ import { Button } from '@foldkit/ui'
 const view = (h: HtmlBuilder<Message>) =>
   Button.view(
     {
-      onClick: ClickedSave(), // your Message
+      onClick: Message.ClickedSave(),
       toView: attributes =>
         h.button(
           [...attributes.button, h.Class('px-4 py-2 rounded-lg')],
@@ -42,12 +42,14 @@ const view = (h: HtmlBuilder<Message>) =>
 Components come in two shapes:
 
 - **Render helpers** (Button, Input, Textarea, Select, Checkbox, Switch, Disclosure, Fieldset) are stateless. Call their `view` directly with a typed config. The controlled helpers (Checkbox, Switch, Disclosure) take the current value in through their config and dispatch a parent Message when the user changes it; you store that value in your own Model.
-- **Submodels** (Combobox, Dialog, Listbox, Menu, Popover, RadioGroup, and the like) own a Model. Embed them with `h.submodel`, drive them through their `update`, and consume their `OutMessage` in the parent.
+- **Blocks** (Combobox, Dialog, Listbox, Menu, Popover, RadioGroup, and the like) own a Model. Create a Binding through the parent authoring value, such as `const DialogBinding = Application.bindChild(Dialog.block, config)`, include it in the Composition's `childBindings`, and render its `embedView(...)` descriptor with `h.block`. The Binding also folds the child's Messages and OutMessages into the parent.
 
-Every component is also available as a subpath import:
+Component subpaths also expose domain helpers and types. Generic factories are separate exports: `Combobox.create(City)` returns a completed Block with Schema-refined payloads, and `Tabs.create<Tab>()` refines a type-only tab value. Import component ViewInputs and other helper types from their subpaths.
+
+Stateless render helpers are also available as subpath namespaces:
 
 ```typescript
-import { Button } from '@foldkit/ui/button'
+import * as Button from '@foldkit/ui/button'
 ```
 
 When a component name collides with another import (for example core's `Calendar`), alias it:
@@ -64,7 +66,7 @@ See the [component documentation](https://foldkit.dev/ui/overview) for the full 
 
 ## Anchor
 
-`Anchor` is the positioning runtime the floating components share, exported at `@foldkit/ui/anchor`. It is neither a render helper nor a Submodel, so it is not in the list above. Reach for it when you need to anchor and portal a panel of your own from a Mount, and none of Listbox, Combobox, Menu, Popover, Tooltip, or DatePicker fits. See the [Anchor documentation](https://foldkit.dev/ui/anchor).
+`Anchor` is the positioning runtime the floating components share, exported at `@foldkit/ui/anchor`. It is neither a render helper nor a Block, so it is not in the list above. Reach for it when you need to anchor and portal a panel of your own from a Mount, and none of Listbox, Combobox, Menu, Popover, Tooltip, or DatePicker fits. See the [Anchor documentation](https://foldkit.dev/ui/anchor).
 
 ## License
 

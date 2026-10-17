@@ -1,31 +1,29 @@
 import { Equal, Option } from 'effect'
-import { type Mount, Submodel } from 'foldkit'
 import { type CalendarDate } from 'foldkit/calendar'
 import { Valid } from 'foldkit/fieldValidation'
-import { type Html, type HtmlBuilder, childAttributes } from 'foldkit/html'
+import { type Html, childAttributes } from 'foldkit/html'
 
 import { DatePicker as UiDatePicker } from '@foldkit/ui'
 
 import { PronounOption } from '../../domain'
 import { DatePicker, Field, Icon } from '../../view'
-import { Message, type Model, PronounsListbox, mounts } from './personalInfo'
+import {
+  AvailableDatePickerBinding,
+  PersonalInfoComposition,
+  type PersonalInfoViewBuilder,
+  PronounsListboxBinding,
+} from './composition'
+import { Message } from './definition'
 
-export const view = Submodel.defineView<
-  Model,
-  Message,
-  void,
-  Mount.RequirementsOf<typeof mounts>
->((model, h): Html => {
+export const view = PersonalInfoComposition.makeView((model, h) => {
   const {
     firstName,
     lastName,
     email,
     phone,
-    pronouns,
     maybeSelectedPronoun,
     customPronouns,
     portfolioUrl,
-    availableDate,
   } = model
 
   const isOtherSelected = Option.exists(
@@ -95,66 +93,66 @@ export const view = Submodel.defineView<
             [h.Class('block text-sm font-medium text-gray-700')],
             ['Pronouns (optional)'],
           ),
-          h.submodel({
-            slotId: pronouns.id,
-            model: pronouns,
-            view: PronounsListbox.view,
-            viewInputs: {
-              anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
-              items: PronounOption.all,
-              maybeSelectedValue: maybeSelectedPronoun,
-              itemToConfig: (pronoun, { isSelected }) => ({
-                className:
-                  'px-3 py-2 text-sm cursor-pointer hover:bg-indigo-50 data-[active]:bg-indigo-50',
-                content: h.div(
-                  [h.Class('flex items-center gap-2')],
+          h.block(
+            PronounsListboxBinding.embedView({
+              slotId: model.pronouns.id,
+              model: model.pronouns,
+              viewInputs: {
+                anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+                items: PronounOption.all,
+                maybeSelectedValue: maybeSelectedPronoun,
+                itemToConfig: (pronoun, { isSelected }) => ({
+                  className:
+                    'px-3 py-2 text-sm cursor-pointer hover:bg-indigo-50 data-[active]:bg-indigo-50',
+                  content: h.div(
+                    [h.Class('flex items-center gap-2')],
+                    [
+                      h.span(
+                        [
+                          h.Class(
+                            `w-4 text-indigo-600 ${isSelected ? 'visible' : 'invisible'}`,
+                          ),
+                        ],
+                        ['✓'],
+                      ),
+                      h.span([], [pronoun]),
+                    ],
+                  ),
+                }),
+                buttonContent: h.div(
+                  [h.Class('flex w-full items-center justify-between gap-2')],
                   [
                     h.span(
                       [
                         h.Class(
-                          `w-4 text-indigo-600 ${isSelected ? 'visible' : 'invisible'}`,
+                          Option.match(maybeSelectedPronoun, {
+                            onNone: () => 'text-gray-400',
+                            onSome: () => 'text-gray-900',
+                          }),
                         ),
                       ],
-                      ['✓'],
+                      [selectedPronounLabel],
                     ),
-                    h.span([], [pronoun]),
+                    h.span(
+                      [h.Class('text-gray-400')],
+                      [Icon.chevronDown('w-4 h-4')],
+                    ),
                   ],
                 ),
-              }),
-              buttonContent: h.div(
-                [h.Class('flex w-full items-center justify-between gap-2')],
-                [
-                  h.span(
-                    [
-                      h.Class(
-                        Option.match(maybeSelectedPronoun, {
-                          onNone: () => 'text-gray-400',
-                          onSome: () => 'text-gray-900',
-                        }),
-                      ),
-                    ],
-                    [selectedPronounLabel],
+                buttonAttributes: childAttributes([
+                  h.Class(
+                    'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-indigo-500',
                   ),
-                  h.span(
-                    [h.Class('text-gray-400')],
-                    [Icon.chevronDown('w-4 h-4')],
+                ]),
+                itemsAttributes: childAttributes([
+                  h.Class(
+                    'w-(--button-width) rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden',
                   ),
-                ],
-              ),
-              buttonAttributes: childAttributes([
-                h.Class(
-                  'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-indigo-500',
-                ),
-              ]),
-              itemsAttributes: childAttributes([
-                h.Class(
-                  'w-(--button-width) rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden',
-                ),
-              ]),
-              backdropAttributes: childAttributes([h.Class('fixed inset-0')]),
-            },
-            toParentMessage: message => Message.GotPronounsMessage({ message }),
-          }),
+                ]),
+                backdropAttributes: childAttributes([h.Class('fixed inset-0')]),
+              },
+            }),
+          ),
         ],
       ),
       ...(isOtherSelected
@@ -181,15 +179,15 @@ export const view = Submodel.defineView<
         },
         h,
       ),
-      availableDatePickerView(availableDate, model.maybeAvailableDate, h),
+      availableDatePickerView(model.availableDate, model.maybeAvailableDate, h),
     ],
   )
 })
 
 const availableDatePickerView = (
-  model: UiDatePicker.Model,
+  model: typeof UiDatePicker.Model.Type,
   maybeSelectedDate: Option.Option<CalendarDate>,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof UiDatePicker.mounts>>,
+  h: PersonalInfoViewBuilder,
 ): Html =>
   h.div(
     [h.Class('space-y-1')],
@@ -198,22 +196,21 @@ const availableDatePickerView = (
         [h.Class('block text-sm font-medium text-gray-700')],
         ['Available Start Date (optional)'],
       ),
-      h.submodel({
-        slotId: model.id,
-        model,
-        view: UiDatePicker.view,
-        viewInputs: {
-          anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
-          maybeSelectedDate,
-          triggerContent: maybeDate =>
-            DatePicker.triggerContent(maybeDate, 'Pick a date'),
-          triggerClassName: DatePicker.triggerClassName,
-          panelClassName: DatePicker.panelClassName,
-          backdropClassName: DatePicker.backdropClassName,
-          toCalendarView: DatePicker.calendarView,
-        },
-        toParentMessage: message =>
-          Message.GotAvailableDateMessage({ message }),
-      }),
+      h.block(
+        AvailableDatePickerBinding.embedView({
+          slotId: model.id,
+          model,
+          viewInputs: {
+            anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+            maybeSelectedDate,
+            triggerContent: maybeDate =>
+              DatePicker.triggerContent(maybeDate, 'Pick a date'),
+            triggerClassName: DatePicker.triggerClassName,
+            panelClassName: DatePicker.panelClassName,
+            backdropClassName: DatePicker.backdropClassName,
+            toCalendarView: DatePicker.calendarView,
+          },
+        }),
+      ),
     ],
   )

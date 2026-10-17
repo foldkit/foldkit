@@ -1,22 +1,19 @@
 import { Array, Option } from 'effect'
-import { Submodel } from 'foldkit'
-import {
-  type HtmlBuilder as FoldkitHtmlBuilder,
-  type Html,
-  childAttributes,
-} from 'foldkit/html'
-import type * as Mount from 'foldkit/mount'
+import { type Html, childAttributes } from 'foldkit/html'
 
 import { Listbox } from '@foldkit/ui'
+import { buttonId } from '@foldkit/ui/listbox'
 
 import * as Icon from '../../icon'
-import { Message as UiMessage } from '../message'
-import type { ListboxItem, UiModel } from '../model'
-
-type HtmlBuilder = FoldkitHtmlBuilder<
-  UiMessage,
-  Mount.RequirementsOf<typeof Listbox.mounts>
->
+import {
+  ListboxDemoBinding,
+  ListboxGroupedDemoBinding,
+  ListboxMultiDemoBinding,
+  UiComposition,
+} from '../composition'
+import type { UiViewBuilder } from '../composition'
+import type { Character } from '../listbox'
+import type { ListboxItem } from '../model'
 
 const LISTBOX_ITEMS: ReadonlyArray<ListboxItem> = [
   'Michael Bluth',
@@ -28,15 +25,6 @@ const LISTBOX_ITEMS: ReadonlyArray<ListboxItem> = [
   'Tobias Funke',
   'Lucille Bluth',
 ]
-
-type Character = Readonly<{
-  firstName: string
-  lastName: string
-}>
-
-export const ItemListbox = Listbox.create<ListboxItem>()
-export const ItemMultiListbox = Listbox.Multi.create<ListboxItem>()
-export const CharacterListbox = Listbox.create<Character>()
 
 const characterName = (character: Character): string =>
   `${character.firstName} ${character.lastName}`
@@ -89,19 +77,19 @@ const LISTBOX_ANCHOR = {
 
 // PIECES
 
-const itemContent = (label: string, h: FoldkitHtmlBuilder<UiMessage>): Html =>
+const itemContent = (label: string, h: UiViewBuilder) =>
   h.div(
     [h.Class('flex items-center gap-2')],
     [Icon.check(checkIconClassName), h.span([], [label])],
   )
 
-const buttonContent = (label: string, h: FoldkitHtmlBuilder<UiMessage>): Html =>
+const buttonContent = (label: string, h: UiViewBuilder) =>
   h.div(
     [h.Class(buttonContentClassName)],
     [h.span([], [label]), Icon.chevronDown('w-4 h-4')],
   )
 
-const chromeAttributes = (h: FoldkitHtmlBuilder<UiMessage>) => ({
+const chromeAttributes = (h: UiViewBuilder) => ({
   buttonAttributes: childAttributes([h.Class(triggerClassName)]),
   itemsAttributes: childAttributes([h.Class(itemsClassName)]),
   backdropAttributes: childAttributes([h.Class(backdropClassName)]),
@@ -112,7 +100,7 @@ const field = (
   buttonId: string,
   label: string,
   listbox: Html,
-  h: FoldkitHtmlBuilder<UiMessage>,
+  h: UiViewBuilder,
 ): Html =>
   h.div(
     [h.Class(fieldClassName)],
@@ -125,9 +113,9 @@ const field = (
 // DEMOS
 
 const singleSelectDemo = (
-  listboxModel: Listbox.Model,
+  listboxModel: typeof Listbox.Model.Type,
   maybeSelectedItem: Option.Option<ListboxItem>,
-  h: HtmlBuilder,
+  h: UiViewBuilder,
 ): Html => {
   const buttonLabel = Option.getOrElse(
     maybeSelectedItem,
@@ -135,33 +123,33 @@ const singleSelectDemo = (
   )
 
   return field(
-    Listbox.buttonId(listboxModel.id),
+    buttonId(listboxModel.id),
     'Family member',
-    h.submodel({
-      slotId: 'listbox-single',
-      model: listboxModel,
-      view: ItemListbox.view,
-      viewInputs: {
-        anchor: LISTBOX_ANCHOR,
-        items: LISTBOX_ITEMS,
-        maybeSelectedValue: maybeSelectedItem,
-        itemToConfig: item => ({
-          className: itemClassName,
-          content: itemContent(item, h),
-        }),
-        buttonContent: buttonContent(buttonLabel, h),
-        ...chromeAttributes(h),
-      },
-      toParentMessage: message => UiMessage.GotListboxDemoMessage({ message }),
-    }),
+    h.block(
+      ListboxDemoBinding.embedView({
+        slotId: 'listbox-single',
+        model: listboxModel,
+        viewInputs: {
+          anchor: LISTBOX_ANCHOR,
+          items: LISTBOX_ITEMS,
+          maybeSelectedValue: maybeSelectedItem,
+          itemToConfig: item => ({
+            className: itemClassName,
+            content: itemContent(item, h),
+          }),
+          buttonContent: buttonContent(buttonLabel, h),
+          ...chromeAttributes(h),
+        },
+      }),
+    ),
     h,
   )
 }
 
 const multiSelectDemo = (
-  listboxModel: Listbox.Multi.Model,
+  listboxModel: typeof Listbox.Multi.Model.Type,
   selectedItems: ReadonlyArray<ListboxItem>,
-  h: HtmlBuilder,
+  h: UiViewBuilder,
 ): Html => {
   const buttonLabel = Array.match(selectedItems, {
     onEmpty: () => 'Select Bluths',
@@ -172,34 +160,33 @@ const multiSelectDemo = (
   })
 
   return field(
-    Listbox.Multi.buttonId(listboxModel.id),
+    buttonId(listboxModel.id),
     'Family members',
-    h.submodel({
-      slotId: 'listbox-multi',
-      model: listboxModel,
-      view: ItemMultiListbox.view,
-      viewInputs: {
-        anchor: LISTBOX_ANCHOR,
-        items: LISTBOX_ITEMS,
-        selectedValues: selectedItems,
-        itemToConfig: item => ({
-          className: itemClassName,
-          content: itemContent(item, h),
-        }),
-        buttonContent: buttonContent(buttonLabel, h),
-        ...chromeAttributes(h),
-      },
-      toParentMessage: message =>
-        UiMessage.GotListboxMultiDemoMessage({ message }),
-    }),
+    h.block(
+      ListboxMultiDemoBinding.embedView({
+        slotId: 'listbox-multi',
+        model: listboxModel,
+        viewInputs: {
+          anchor: LISTBOX_ANCHOR,
+          items: LISTBOX_ITEMS,
+          selectedValues: selectedItems,
+          itemToConfig: item => ({
+            className: itemClassName,
+            content: itemContent(item, h),
+          }),
+          buttonContent: buttonContent(buttonLabel, h),
+          ...chromeAttributes(h),
+        },
+      }),
+    ),
     h,
   )
 }
 
 const groupedDemo = (
-  listboxModel: Listbox.Model,
+  listboxModel: typeof Listbox.Model.Type,
   maybeSelectedItem: Option.Option<string>,
-  h: HtmlBuilder,
+  h: UiViewBuilder,
 ): Html => {
   const buttonLabel = Option.getOrElse(
     maybeSelectedItem,
@@ -207,67 +194,62 @@ const groupedDemo = (
   )
 
   return field(
-    Listbox.buttonId(listboxModel.id),
+    buttonId(listboxModel.id),
     'Character',
-    h.submodel({
-      slotId: 'listbox-grouped',
-      model: listboxModel,
-      view: CharacterListbox.view,
-      viewInputs: {
-        anchor: LISTBOX_ANCHOR,
-        items: GROUPED_CHARACTERS,
-        maybeSelectedValue: maybeSelectedItem,
-        itemToValue: characterName,
-        itemGroupKey: character => character.lastName,
-        groupToHeading: lastName => ({
-          content: h.span([], [`${lastName}s`]),
-          className: groupHeadingClassName,
-        }),
-        separatorAttributes: childAttributes([h.Class(separatorClassName)]),
-        itemToConfig: character => ({
-          className: itemClassName,
-          content: itemContent(characterName(character), h),
-        }),
-        buttonContent: buttonContent(buttonLabel, h),
-        ...chromeAttributes(h),
-      },
-      toParentMessage: message =>
-        UiMessage.GotListboxGroupedDemoMessage({ message }),
-    }),
+    h.block(
+      ListboxGroupedDemoBinding.embedView({
+        slotId: 'listbox-grouped',
+        model: listboxModel,
+        viewInputs: {
+          anchor: LISTBOX_ANCHOR,
+          items: GROUPED_CHARACTERS,
+          maybeSelectedValue: maybeSelectedItem,
+          itemToValue: characterName,
+          itemGroupKey: character => character.lastName,
+          groupToHeading: lastName => ({
+            content: h.span([], [`${lastName}s`]),
+            className: groupHeadingClassName,
+          }),
+          separatorAttributes: childAttributes([h.Class(separatorClassName)]),
+          itemToConfig: character => ({
+            className: itemClassName,
+            content: itemContent(characterName(character), h),
+          }),
+          buttonContent: buttonContent(buttonLabel, h),
+          ...chromeAttributes(h),
+        },
+      }),
+    ),
     h,
   )
 }
 
-// VIEW
+export const view = UiComposition.makeView((model, h) => {
+  return h.div(
+    [],
+    [
+      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Listbox']),
 
-export const view = Submodel.defineView(
-  (model: UiModel, h: HtmlBuilder): Html => {
-    return h.div(
-      [],
-      [
-        h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Listbox']),
+      h.h3([h.Class(sectionHeadingClassName)], ['Single-Select']),
+      singleSelectDemo(
+        model.listboxDemo,
+        model.maybeListboxDemoSelectedItem,
+        h,
+      ),
 
-        h.h3([h.Class(sectionHeadingClassName)], ['Single-Select']),
-        singleSelectDemo(
-          model.listboxDemo,
-          model.maybeListboxDemoSelectedItem,
-          h,
-        ),
+      h.h3([h.Class(sectionHeadingClassName)], ['Multi-Select']),
+      multiSelectDemo(
+        model.listboxMultiDemo,
+        model.listboxMultiDemoSelectedItems,
+        h,
+      ),
 
-        h.h3([h.Class(sectionHeadingClassName)], ['Multi-Select']),
-        multiSelectDemo(
-          model.listboxMultiDemo,
-          model.listboxMultiDemoSelectedItems,
-          h,
-        ),
-
-        h.h3([h.Class(sectionHeadingClassName)], ['Grouped']),
-        groupedDemo(
-          model.listboxGroupedDemo,
-          model.maybeListboxGroupedDemoSelectedItem,
-          h,
-        ),
-      ],
-    )
-  },
-)
+      h.h3([h.Class(sectionHeadingClassName)], ['Grouped']),
+      groupedDemo(
+        model.listboxGroupedDemo,
+        model.maybeListboxGroupedDemoSelectedItem,
+        h,
+      ),
+    ],
+  )
+})

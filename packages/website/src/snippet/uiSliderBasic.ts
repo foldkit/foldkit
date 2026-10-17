@@ -1,41 +1,29 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit each into your own Model, init, Message,
 // update, view, and subscription definitions.
-import { Option, Schema } from 'effect'
-import { Subscription, Update } from 'foldkit'
-import type { HtmlBuilder } from 'foldkit/html'
+import { Schema, Tuple } from 'effect'
+import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 import { Slider } from '@foldkit/ui'
+import { snapAndClamp as SliderSnapAndClamp } from '@foldkit/ui/slider'
+import type { SliderAttributes as SliderSliderAttributes } from '@foldkit/ui/slider'
 
-// Add two fields to your Model: the value you own, and the Slider Submodel's
+// Add two fields to your Model: the value you own, and the Slider Block's
 // interaction state:
 const Model = Schema.Struct({
   ratingValue: Schema.Number,
   ratingDemo: Slider.Model,
   // ...your other fields
 })
-
-// In your init function, seed the value (snapped to the range) and initialize
-// the Slider Submodel with min / max / step and a unique id:
-const init = () => ({
-  model: {
-    ratingValue: Slider.snapAndClamp(3, 0, 10, 1),
-    ratingDemo: Slider.init({
-      id: 'rating',
-      min: 0,
-      max: 10,
-      step: 1,
-    }),
-    // ...your other fields
-  },
-})
+type Model = typeof Model.Type
 
 // Embed the Slider Message in your parent Message:
 const Message = defineMessageUnion({
   GotSliderMessage: { message: Slider.Message },
 })
+type Message = typeof Message.Type
 
 // At module scope, fold the OutMessage into your own Model. `ChangedValue`
 // carries the new number. Lift it to domain state, validate, or persist on
@@ -52,42 +40,45 @@ const foldSliderOutMessage = Slider.OutMessage.match<
     model => ({ model: modifyFields(model, { ratingValue: () => value }) }),
 })
 
-// Update.foldChild wires the child into the parent: it runs Slider.update,
-// writes the next Slider Model back, maps the Submodel's Commands into your
-// Message type, and hands any OutMessage to foldOutMessage.
-const foldSlider = Update.foldChild({
-  update: Slider.update,
-  read: (model: Model) => Option.some(model.ratingDemo),
-  write: (model, nextRatingDemo) =>
-    modifyFields(model, { ratingDemo: () => nextRatingDemo }),
-  toParentMessage: message => Message.GotSliderMessage({ message }),
-  foldOutMessage: foldSliderOutMessage,
+// The Binding wires the completed child Block into the parent: it runs Slider.update,
+// writes the next Slider Model back, maps the Block's Commands into your
+// Message type, and hands any OutMessage to the OutMessage fold.
+const VolumeSlider = Block.define('VolumeSlider', {
+  Model,
+  Message,
 })
 
-// In the corresponding Message.match handler, call the fold:
-GotSliderMessage: ({ message }) => foldSlider(model, message)
-
-// NOTE: wire BOTH dragPointer and dragEscape. Without dragEscape, pressing
-// Escape during a drag won't cancel back to the origin value, but every
-// other drag mechanic still works. Silent partial breakage.
-const sliderSubscriptions = Subscription.lift({
-  sliderPointer: Slider.subscriptions.dragPointer,
-  sliderEscape: Slider.subscriptions.dragEscape,
-})<Model, Message>({
-  read: model => Option.some(model.ratingDemo),
-  toParentMessage: message => Message.GotSliderMessage({ message }),
+const SliderBinding = VolumeSlider.bindChild(Slider.block, {
+  field: 'ratingDemo',
+  parentMessage: Message.GotSliderMessage,
+  init: {
+    args: () => Tuple.make({ id: 'rating', min: 0, max: 10, step: 1 }),
+  },
+  outMessage: { fold: foldSliderOutMessage },
 })
 
-const subscriptions = Subscription.aggregate(
-  sliderSubscriptions,
-  // ...your other subscription records
-)
+const VolumeSliderComposition = VolumeSlider.makeComposition({
+  childBindings: [SliderBinding],
+})
+
+// In your init function, seed the value (snapped to the range) and initialize
+// the Slider Block with min / max / step and a unique id:
+const init = VolumeSliderComposition.makeInit(() => ({
+  model: {
+    ratingValue: SliderSnapAndClamp(3, 0, 10, 1),
+    // ...your other fields
+  },
+}))
+
+const update = VolumeSliderComposition.makeUpdate()
+
+// Registering `SliderBinding` in `childBindings` also collects both drag Subscriptions.
 
 // Inside your view function, render the slider. You control every element's
 // markup and classes through the `toView` callback. The `attributes` groups
 // provide ARIA, pointer, and keyboard wiring:
-const view = (model: Model, h: HtmlBuilder<Message>) => {
-  const sliderView = (attributes: Slider.SliderAttributes) =>
+const view = VolumeSliderComposition.makeView((model, h) => {
+  const sliderView = (attributes: SliderSliderAttributes) =>
     h.div(
       [h.Class('flex flex-col gap-2 w-full max-w-sm')],
       [
@@ -130,15 +121,15 @@ const view = (model: Model, h: HtmlBuilder<Message>) => {
       ],
     )
 
-  return h.submodel({
-    slotId: 'rating',
-    model: model.ratingDemo,
-    view: Slider.view,
-    viewInputs: {
-      value: model.ratingValue,
-      formatValue: value => `${String(value)} of 10`,
-      toView: sliderView,
-    },
-    toParentMessage: message => Message.GotSliderMessage({ message }),
-  })
-}
+  return h.block(
+    SliderBinding.embedView({
+      slotId: 'rating',
+      model: model.ratingDemo,
+      viewInputs: {
+        value: model.ratingValue,
+        formatValue: value => `${String(value)} of 10`,
+        toView: sliderView,
+      },
+    }),
+  )
+})

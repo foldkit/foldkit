@@ -8,7 +8,7 @@ import {
   Message,
   type Model,
   update,
-} from './main'
+} from './application'
 
 const idleModel: Model = {
   elapsedMs: 0,

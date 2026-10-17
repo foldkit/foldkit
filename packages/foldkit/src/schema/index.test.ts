@@ -414,21 +414,21 @@ describe('makeCallable', () => {
   it('matches make for data-property Proxies without duplicate reads', () => {
     const makeInput = () => {
       const log: Array<string> = []
-      let idDescriptorCount = 0
+      let idBlockCount = 0
       const input = new Proxy(
         { id: 'item-1' },
         {
           get: (target, name, receiver) => {
             log.push(`get:${String(name)}`)
-            if (name === 'id' && idDescriptorCount > 1) {
+            if (name === 'id' && idBlockCount > 1) {
               return 'item-2'
             }
             return Reflect.get(target, name, receiver)
           },
           getOwnPropertyDescriptor: (target, name) => {
-            log.push(`descriptor:${String(name)}`)
+            log.push(`block:${String(name)}`)
             if (name === 'id') {
-              idDescriptorCount += 1
+              idBlockCount += 1
             }
             return Reflect.getOwnPropertyDescriptor(target, name)
           },

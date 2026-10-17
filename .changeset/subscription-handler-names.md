@@ -2,4 +2,4 @@
 'foldkit': patch
 ---
 
-Clarify Subscription handler naming in the `Subscription.make` API example.
+Clarify Subscription handler naming in the owning Block definition's `subscriptions` API example.

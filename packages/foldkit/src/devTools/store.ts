@@ -135,7 +135,7 @@ export type CommandRecord = Readonly<{
   id: number
   name: string
   args?: Record<string, unknown>
-  maybeSubmodelPath: Option.Option<ReadonlyArray<string>>
+  maybeBlockPath: Option.Option<ReadonlyArray<string>>
 }>
 
 export type MountRecord = Readonly<{
@@ -345,7 +345,7 @@ export const createDevToolsStore = (
 
     const recordResolvedCommand = (
       id: number,
-      submodelPath: ReadonlyArray<string>,
+      blockPath: ReadonlyArray<string>,
     ) =>
       SubscriptionRef.update(stateRef, state => {
         const updateCommands = (
@@ -357,7 +357,7 @@ export const createDevToolsStore = (
             Option.flatMap(index =>
               Array.modify(commands, index, command =>
                 modifyFields(command, {
-                  maybeSubmodelPath: () => Option.some(submodelPath),
+                  maybeBlockPath: () => Option.some(blockPath),
                 }),
               ),
             ),
@@ -589,7 +589,7 @@ export type DevToolsStore = Readonly<{
   ) => Effect.Effect<void>
   recordResolvedCommand: (
     id: number,
-    submodelPath: ReadonlyArray<string>,
+    blockPath: ReadonlyArray<string>,
   ) => Effect.Effect<void>
   updateLatestModel: (model: unknown) => Effect.Effect<void>
   attachRenderedMounts: (

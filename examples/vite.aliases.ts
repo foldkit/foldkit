@@ -2,6 +2,10 @@ import path from 'path'
 
 /** Vite resolve aliases that point foldkit subpath imports at the local source. */
 export const foldkitAliases = (dirname: string) => ({
+  'foldkit/application': path.resolve(
+    dirname,
+    '../../packages/foldkit/src/runtime/applicationPublic',
+  ),
   'foldkit/asyncData': path.resolve(
     dirname,
     '../../packages/foldkit/src/asyncData/public',
@@ -77,9 +81,9 @@ export const foldkitAliases = (dirname: string) => ({
     '../../packages/foldkit/src/test/story',
   ),
   'foldkit/struct': path.resolve(dirname, '../../packages/foldkit/src/struct'),
-  'foldkit/submodel': path.resolve(
+  'foldkit/block': path.resolve(
     dirname,
-    '../../packages/foldkit/src/submodel/public',
+    '../../packages/foldkit/src/block/public',
   ),
   'foldkit/subscription': path.resolve(
     dirname,

@@ -27,7 +27,7 @@ const proseView = (
 
 ## Proof that it is alive
 
-Markdown is data here, so a post can reserve space for something that lives in the Model. This counter is a real Submodel nestled between two paragraphs:
+Markdown is data here, so a post can reserve space for something that lives in the Model. This counter is a real Block nestled between two paragraphs:
 
 ::Counter{label="Clicks while reading this post"}
 

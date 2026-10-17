@@ -41,11 +41,13 @@ const mockTelemetryApis = async (page: PlaywrightPage) => {
       ]),
     }),
   )
-  await page.route('**/repos/foldkit/foldkit/stargazers**', route =>
+  await page.route('**/repos/foldkit/foldkit/stargazers/history?**', route =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify([{ starred_at: '2026-06-15T12:00:00Z' }]),
+      body: JSON.stringify([
+        { week: 1781395200, total: 1, days: [0, 1, 0, 0, 0, 0, 0] },
+      ]),
     }),
   )
   await page.route('**/repos/foldkit/foldkit/stats/commit_activity**', route =>
@@ -117,7 +119,9 @@ const mockTelemetryApis = async (page: PlaywrightPage) => {
 test.describe('charting example', () => {
   test('loads cleanly', async ({ page }) => {
     await mockTelemetryApis(page)
-    await Page.assertLoadedCleanly(page)
+    await Page.assertLoadedCleanly(page, {
+      readyLocator: page.getByText('Chart ready', { exact: true }),
+    })
   })
 
   test('switches chart modes', async ({ page }) => {

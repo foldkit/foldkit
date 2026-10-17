@@ -52,7 +52,7 @@ CompletedItemsFocus
 
 ```ts
 // RIGHT: the Message is named from the Command that caused it
-const DetermineStartTime = Command.define('DetermineStartTime', {
+const DetermineStartTime = Feature.command('DetermineStartTime', {
   args: { elapsedMs: Schema.Number },
   messages: [Message.CompletedDetermineStartTime],
 
@@ -65,7 +65,7 @@ const DetermineStartTime = Command.define('DetermineStartTime', {
       )
   },
 })
-const GenerateCardId = Command.define('GenerateCardId', {
+const GenerateCardId = Feature.command('GenerateCardId', {
   args: { columnId: Schema.String },
   messages: [Message.CompletedGenerateCardId],
 
@@ -79,7 +79,7 @@ const GenerateCardId = Command.define('GenerateCardId', {
       })
   },
 })
-const SaveTodos = Command.define('SaveTodos', {
+const SaveTodos = Feature.command('SaveTodos', {
   args: { todos: Todos },
   messages: [Message.SucceededSaveTodos, Message.FailedSaveTodos],
 
@@ -171,12 +171,13 @@ Option.match(model.maybeError, {
   onSome: error => h.div([h.Class('text-red-500')], [error]),
 })
 
-// Conditional values
+// Conditional values with a meaningful predicate over the value
 Option.liftPredicate(value, predicate) // not condition ? Option.some(value) : Option.none()
-Option.liftPredicate(value, () => condition) // constant predicate when the check doesn't use the value
 
 // Conditional commands
 Array.fromOption(maybeCommand) // 0 or 1 command based on Option
+Array.filter([command], () => condition) // Boolean-conditioned singleton
+Array.filter(commands, () => condition) // Boolean-conditioned group
 ```
 
 ### Match (never switch)
@@ -364,15 +365,17 @@ Never mutate the model directly. **Never use spread syntax for updates.** `modif
 
 ## Update Results
 
-Update, init, boot, and component helper producers return `{ model }` when they statically create no Commands. When they compute a Commands collection, return it directly without checking whether it is empty. Never write the literal `commands: []`.
+Update, init, Step, and component helper producers return `{ model }` when they statically create no Commands. When they compute a Commands collection, return it directly without checking whether it is empty. Never write the literal `commands: []`.
 
-Fold a child `init` or `boot` result into the parent instead of unpacking its Model and Commands:
+Init constructs the baseline Model and may return initial Commands. Author it through the named Composition with `FeatureComposition.makeInit(fn)`. The Composition checks parent-owned Model fields, assembles registered child startup, and preserves exact arguments, Command requirements, and child evidence for completion. Optional `boot` helpers are ordinary initial Steps called through a Binding after the child Model exists; Foldkit has no special Runtime boot phase, and a feature need not define both init and `boot` helpers. When an existing domain operation such as `open` or `restore` already describes the transition, expose that Step instead. Do not manufacture a Message only to trigger startup behavior.
+
+For a required exact direct field, omit `init` when the child's initializer can be called without arguments. A required-argument initializer uses `init: { args }`; `init: false` makes the parent supply the initial field. Optional, keyed, and accessor storage remains parent-owned when `init` is omitted. Use explicit `init.args` or `init.occurrences` for automatic presence, with plain tuple literals for the contextual child parameters. Add an optional `Startup` Schema to the parent Definition when selectors share input. Return only parent-owned fields from Composition-owned init; use `startup` for that decoded value and `steps` for ordered transitions after the complete Model exists:
 
 ```ts
-return Update.foldChildInit(Home.init(), {
-  toParentModel: home => ({ home }),
-  toParentMessage: message => Message.GotHomeMessage({ message }),
-})
+const init = ApplicationComposition.makeInit(() => ({
+  model: { username: '' },
+  steps: [SettingsBinding.restore()],
+}))
 ```
 
 For another update-shaped result, keep it together when composing it into another update. Name the result after the operation and use dot access. The same rule applies when a test consumes an update result:
@@ -384,13 +387,19 @@ expect(formSubmit.model.status).toBe('Submitting')
 expect(formSubmit.commands ?? []).toHaveLength(1)
 ```
 
-When the operation name collides with the function, use a trailing underscore such as `init_`. Do not destructure or rename `model`, `commands`, or `outMessage` from update-like results. Dot access does not prevent someone from ignoring `outMessage`; it keeps the operation and all of its returned fields visible together. Name a child fold's `write` parameter after the next child Model, such as `nextSettings`. Pass optional Commands directly to APIs that accept them, including `Command.mapMessages`. Use `result.commands ?? []` only when the next operation requires a concrete array for spreading, concatenating, execution, or an assertion.
+When the operation name collides with the function, use a trailing underscore such as `init_`. Do not destructure or rename `model`, `commands`, or `outMessage` from an ordinary update-like result that already contains those fields. Dot access does not prevent someone from ignoring `outMessage`; it keeps the operation and all of its returned fields visible together. Name a child fold's `write` parameter after the next child Model, such as `nextSettings`. Pass optional Commands directly to APIs that accept them, including `Command.mapMessages`. Use `result.commands ?? []` only when the next operation requires a concrete array for spreading, concatenating, execution, or an assertion.
 
-Use `Update.foldChildInit` when one child `init` or `boot` result enters a parent Model. Use `Update.foldChildInits` when several child results enter one parent Model. Use `Update.foldChild` for a child update that receives input or `Update.foldChildStep` for a no-argument child entry point. These helpers keep the child Model, lifted Commands, and OutMessage in one fold.
+Author an ordinary Block through `const Child = Block.define('Child', { Model, Message, OutMessage? })`. The Definition owns Commands, Steps, Subscriptions, ManagedResources, and Bindings. Use one-argument `Block.define('Child')` followed by `.define(...)` only to establish shared early identity for a generic API that specializes several typed contracts; that identity may live outside the specialization factory. Create `ChildComposition = Child.makeComposition({ childBindings?, mounts? })`, author init, update, and the primary view through that Composition, and complete the same value through `ChildComposition.makeBlock(...)`. Export the completed value as `block`, and export `* as Child` from the parent barrel. Parent code imports that namespace, creates a Binding with `Parent.bindChild(Child.block, config)`, and includes it under `childBindings` in `Parent.makeComposition(...)`. The parent Composition routes claimed wrapper Messages into the Binding's native fold; parent-driven changes use named operations selected under `expose`. The completed Block aggregates child registrations and handler Layers; the Binding supplies the canonical view and Message wrapper through `binding.embedView`.
 
-Use `Update.combine` when a later Step should receive the Model produced by an earlier Step. It takes two or more Steps. Do not wrap one Step in `Update.combine`; call that operation directly. Name an inline Step parameter `stepModel` when combining several; it receives the Model from the preceding Step. Use `Update.foldChildInits` when several child init or boot results enter the same parent Model. Keep route-gated initialization or Model-only child construction separate when there is no shared set of child results to fold.
+Select an alternate whole local handler bundle through `block.replaceEffectsLayer(localRecipe)` before binding the child. The selected Block keeps its child recipes. Ordinary application tests usually retain its handlers and replace their service providers instead.
 
-When the OutMessage is already known while constructing a new result, include it directly: `{ model, commands, outMessage }`. Use `Update.withOutMessage` when attaching an OutMessage to an existing plain return or when the value has the type `OutMessage | undefined`. Pipe an existing return into the helper: `pipe(dialogClose, Update.withOutMessage(outMessage))`. When constructing the plain return in the same expression, pass it first: `Update.withOutMessage({ model, commands }, outMessage)`. Add `toParentOutMessage` only when at least one child OutMessage should continue to the current Submodel's parent. For partial forwarding, match every child variant and return `undefined` for the variants that stop here. Omit `toParentOutMessage` when every variant stops here. `foldOutMessage` still handles each variant locally, including variants that continue upward. Never write `toParentOutMessage: () => undefined`.
+For a child stored in an exact `Schema.Struct` field as `ChildModel` or `Option<ChildModel>`, use `Parent.bindChild(Child.block, { field, parentMessage })`; the field is the default placement and the Composition routes the wrapper automatically when child update has no context parameters. Optional or defaulted context also needs explicit `fromParentMessage.args`. A direct Option field is absent while `None`, and folds never create it. Reuse the child Model Schema instance for an opaque declaration whose decoded shape cannot be compared. Add `presentWhen` only when parent policy gates the entire direct child. Use explicit `read` and `write` for nested, tagged, or custom storage, and `toParentMessage` when the outgoing wrapper is custom. Keyed, custom, and contextful mappings declare `fromParentMessage: { parentMessage, args }`; return `Option.some` of the Binding's native fold arguments, or `Option.none()` to ignore a stale or inactive delivery. Use `fromParentMessage: false` when no incoming wrapper route exists. Placement identifies the Binding in the parent composition graph; a keyed occurrence's key is nested under that placement. The Binding projects `init`, `fold`, named operations, and `embedView`. Declare eligible startup with `init` and let `Composition.makeInit` assemble it. Custom storage, deliberate Command interleaving, and dynamic creation use the exact registered `ChildBinding.init({ key?, args, toParentModel, commands? })`. It returns a passive recipe with no `.model` or `.commands`. Return it directly from `Composition.makeInit` or `Composition.makeUpdate`, or preserve it through the parent's `step` producer. The Composition callbacks interpret it directly; a completed exposed operation interprets a recipe preserved by its Step. The compiler checks exact key, args, parent Model, requirements, and Binding requirement, while runtime validation during checked execution checks the active composition frame, schema-equivalent child placement, and exactly one requested keyed occurrence. Ordinary Model construction remains available.
+
+`ChildBinding.fold` and exposed operations are connected Steps whose Model input requires the exact registered graph. Typed calls with the raw domain Model fail. Apply them to the contextual Model inside the owning `Composition.makeUpdate`, include them in `Composition.makeInit` startup, or preserve them through the parent's `step` producer. Return or compose their opaque results intact; no `.model` or `.commands` fields are available before checked execution, and the result cannot narrow to a useful `{ model }` return. A completed `block.expose.operation(model, ...args)` is a checked raw-Model executor and returns the readable executed result. Ordinary pure Steps remain directly callable. TypeScript may erase the result through a method returning `void`; outside the graph, that invocation only constructs and discards passive configuration and executes no child work.
+
+Use `Update.combine` when a later Step should receive the Model produced by an earlier Step. It takes two or more Steps. Do not wrap one Step in `Update.combine`; call that operation directly. Name an inline Step parameter `stepModel` when combining several; it receives the Model from the preceding Step.
+
+When the OutMessage is already known while constructing a new result, include it directly: `{ model, commands, outMessage }`. Use `Update.withOutMessage` when attaching an OutMessage to an existing plain return or when the value has the type `OutMessage | undefined`. Pipe an existing return into the helper: `pipe(dialogClose, Update.withOutMessage(outMessage))`. When constructing the plain return in the same expression, pass it first: `Update.withOutMessage({ model, commands }, outMessage)`. Add `outMessage.forward` only when at least one child OutMessage should continue to the current Block's parent. For partial forwarding, match every child variant and return `undefined` for the variants that stop here. Omit `outMessage.forward` when every variant stops here. `outMessage.fold` still handles each variant locally, including variants that continue upward. Never write `outMessage.forward: () => undefined`.
 
 Bind an exhaustive child OutMessage matcher directly as
 `fold<Child>OutMessage` when it needs only the OutMessage. Do not wrap it in a
@@ -398,17 +407,24 @@ function that only forwards its argument to `Child.OutMessage.match`. Keep a
 function or factory when matcher branches consume other per-dispatch context,
 including a collection key, previous Model state, an entry payload, or
 `FoldContext` lifters. Use the same direct matcher form for a
-`toParentOutMessage` mapper that needs only the OutMessage. Name every variant,
+`outMessage.forward` mapper that needs only the OutMessage. Name every variant,
 including a singleton union. Pass a generic child's refined OutMessage type as
 the matcher's second generic. When a branch returns a Command-producing
-`Update.defineStep`, preserve its inferred Command requirements instead of
+`Feature.step`, preserve its inferred Command requirements instead of
 constraining the matcher to a requirement-free `Update.Step`.
 
-When an `Update.foldChildInits` entry can derive or forward an OutMessage, use `resolveOutMessage` to construct one parent OutMessage from the named OutMessages after every local fold completes. Combine their information when both results matter; choosing one discards the other. The callback also receives the final Model. If that Model alone contains everything needed, use local folds and attach a parent OutMessage afterward with `Update.withOutMessage`.
+When a Binding handles an OutMessage locally, put the exhaustive matcher in `outMessage.fold`. Add `outMessage.forward` only for variants that continue upward. A derived parent OutMessage takes precedence over direct forwarding for that dispatch.
 
 ## Schema Constructors
 
-Use callable constructors, never cast:
+Construct Schema values through their actual constructors, never casts.
+Foldkit union variants are callable. When explicitly constructing a complete
+Effect `Schema.Struct` value, use `.make`. Contextually checked records, such as
+the parent-owned fields returned to Composition init, can remain plain records.
+Keyed `init.toItem` wrappers must remain plain records containing the exact
+initialized child object; a wrapper Schema constructor can reconstruct that
+child and fail runtime validation. Composition constructs the full parent Model
+after collecting those wrappers.
 
 ```ts
 // WRONG: manual object with cast
@@ -421,10 +437,13 @@ Message.ClickedSubmit()
 { _tag: 'Loading' } as DataState
 
 // RIGHT: callable constructor
-Loading()
+DataState.Loading()
 
 // With fields
 Message.SucceededFetch({ data: response })
+
+// A Struct Schema uses .make, not Model(...).
+Model.make({ count: 0 })
 ```
 
 Keep Message and OutMessage constructors on their owning namespace. Never
@@ -533,7 +552,7 @@ Use `taggedStruct` when the variants cannot be declared together:
 ## Code Style
 
 - No inline or block comments. If code needs explanation, use better names
-- Section headers are allowed: `// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`, `// COMMAND`, `// EFFECTS LAYER`, `// VIEW`
+- A short section header is allowed when a long file has a substantial group that benefits from wayfinding. Do not add routine architecture headers to small application or example files.
 - TSDoc (`/** ... */`) on public exports
 - Always use braces for control flow: `if (foo) { return true }` not `if (foo) return true`
 - Use `const` exclusively. `let` only when mutation is truly unavoidable
@@ -649,6 +668,6 @@ Notes:
 - Import Effect modules by their PascalCase names. When an Effect module name collides with a JavaScript or TypeScript global, qualify the global through `globalThis`, such as `globalThis.String`, `globalThis.Array`, or `globalThis.Record`. When an existing local or public binding must retain the module name, give the Effect import an explicit `Effect` prefix, such as `Order as EffectOrder`.
 - `Message.match` is the exhaustive matcher on a union returned by `defineMessageUnion()`. A `defineTaggedUnion` or `defineRouteUnion` namespace owns exhaustive `match` and partial `matchOrElse`. `Match` is Effect's Match module for partial Message matching, handlers shared by several tags, and unions without their own matcher.
 - **UI components live in a separate package.** Import them by name from `@foldkit/ui`: `import { Dialog, DatePicker, FileDrop, Toast, Tooltip } from '@foldkit/ui'`. Deep imports (`@foldkit/ui/dialog`) work too. There is no `Ui` export on the `foldkit` package, so `Ui.Dialog.view` does not resolve.
-- **`empty` and `keyed` are properties on `h`**, the builder every view receives as its last parameter. They are not top-level exports of `foldkit/html`, so they never belong in that import list. Same for `h.submodel`.
+- **`empty` and `keyed` are properties on `h`**, the builder every view receives as its last parameter. They are not top-level exports of `foldkit/html`, so they never belong in that import list. Same for `h.block`.
 - `AsyncData` for remote data state, `Update` for the update return type and the `combine` / `refresh` combinators, `Http` for the `layer` that provides `HttpClient` to a Command.
 - HTTP types come from `effect/http`, not `@effect/platform`. `@effect/platform-browser` is a separate package used for `BrowserKeyValueStore` and `BrowserCrypto`.

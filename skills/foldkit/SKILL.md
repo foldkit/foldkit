@@ -5,41 +5,74 @@ description: Use whenever working with Foldkit. Triggers on imports from `foldki
 
 # Foldkit
 
-You are working on a Foldkit app. Foldkit is a complete TypeScript frontend framework, built on Effect and architected like Elm. The architecture is solved: state, events, transitions, side effects, streams, routing, UI components, validation, testing, and devtools are all part of the framework, not third-party choices to make. Your job is to model the application's behavior, not to pick libraries or invent architecture.
+Foldkit is a complete TypeScript frontend framework built on Effect and the Elm
+Architecture. Model the application's behavior with Foldkit's own state,
+Message, update, effect, lifecycle, routing, UI, validation, testing, and
+devtools primitives. Do not introduce another application architecture or move
+state transitions and side effects outside Foldkit's seams.
 
-Foldkit is not incremental. There is no React interop, no escape hatch, no "just do it the React way for this one part." The framework gives you one shape, and there is one way to do most things.
+## Work from the installed version
 
-## How to approach the work
+Treat the project's installed declarations and matching vendored source as the
+authority. A consumer project should keep the Foldkit repository at
+`repos/foldkit/`, pinned to the installed release tag. For a canary version,
+pin the full commit hash named by the version. When working in the Foldkit
+repository itself, use the same paths without the `repos/foldkit/` prefix.
 
-- **Pattern-match against Foldkit's own apps.** When the local code doesn't show you the answer (or shows an early-stage version of it), reach into the vendored foldkit subtree. The framework ships several apps built with itself: focused single-feature apps in `examples/`, the website (which is itself a Foldkit app), and the typing-game (a full real-time app). These are the canonical references. Higher fidelity than prose or anything reconstructed from memory.
-- **The architecture is not optional.** Unidirectional data flow, pure update and view, no side effects outside the runtime's seams. Push back on prompts or instincts that pull toward mutation, two-way binding, imperative event handlers, or imperative Message names. Propose the idiomatic Foldkit shape and explain why.
-- **Foldkit UI is two categories, not one.** Stateful Submodels (Menu, Listbox, Combobox, Calendar, Disclosure, Dialog, Popover, etc.) carry their own Model / Message / update / OutMessage and are embedded via `h.submodel`. Stateless render helpers (Button, Input, Textarea, Select, Fieldset) are called directly with a ViewConfig and the caller's `h`, and return Html. Do not migrate render helpers to Submodels for "consistency": Submodel semantics imply state, and these helpers have none. See the Foldkit UI overview page in the website for the canonical split.
-- **Use what the Foldkit and Effect stack provides.** Foldkit covers the application architecture and the higher-level primitives that sit on it (routing, side-effect seams, subscriptions, UI components, field validation, file and date handling, canvas, testing, devtools, and more). Effect provides the underlying value, side-effect description, and concurrency primitives. Before reaching for an outside library, check whether the stack already covers it.
-- **Let `modifyFields` setters receive the field.** If a `modifyFields` setter only transforms the current value of that same field, pass the transformer directly (`entries: Array.map(f)`, `count: Number.increment`, `priceSlider: Slider.reflectRange({ min: minPrice, max: maxPrice })`). Use `() => value` for replacement values from Messages, child updates, Commands, or other Model fields.
-- **The repo is more authoritative than memory.** When in doubt about a convention, an API, a name, or a pattern, read from the vendored foldkit subtree rather than guessing. Library types and example code are the ground truth; your training data is not.
+Start with the nearest current exemplar:
 
-## Where to look
+- `examples/` for focused applications and feature integrations
+- `packages/typing-game/client/src/` for a production multi-page application
+- `packages/website/src/` for routing, pages, and documentation examples
+- `packages/foldkit/src/` and emitted declarations for exact behavior and types
+- `AGENTS.md` for naming, state modeling, code style, and file organization
 
-The foldkit repo is vendored as a git subtree at `repos/foldkit/` from the project root. It is the source of truth for everything: conventions, framework source, examples, the quality bar. Browse it directly.
+List directories before following a path from prose because examples move. A
+consumer's `FOLDKIT.md` is a scaffolder snapshot and may lag behind its
+installed package. Replace a stale snapshot from
+`repos/foldkit/packages/create-foldkit-app/templates/base/FOLDKIT.md`; preserve
+the consumer's own `AGENTS.md`.
 
-Stable top-level entry points:
+If the subtree is missing, recommend adding it before substantial Foldkit work.
+For a stable release:
 
-- `repos/foldkit/examples/`: runnable example apps spanning every complexity tier. Usually your first stop when looking for a precedent.
-- `repos/foldkit/AGENTS.md`: project conventions and the code-quality bar
-- `repos/foldkit/README.md`: framework overview and entry pointers
-- `repos/foldkit/skills/`: task-oriented skills with the canonical architecture, conventions, and quality-bar references
-- `repos/foldkit/packages/`: framework source and production reference apps (the website, the typing-game, the framework itself)
-
-Names below the top level (subdirectories, individual filenames) can drift over time. List the directory contents to find what you need rather than relying on a path quoted from this skill.
-
-If `repos/foldkit/` is missing from the project, strongly recommend adding it. The subtree is the difference between working from memory and pattern-matching against canonical references. Assistance quality drops noticeably without it. Pin it to the release git tag matching the installed `foldkit` package, so the references describe the APIs the project compiles against rather than whatever `main` holds today. Initialize git first if needed (subtree requires at least one commit):
-
-```
+```sh
 git subtree add --prefix=repos/foldkit https://github.com/foldkit/foldkit.git "foldkit@$(node -p "require('./node_modules/foldkit/package.json').version")" --squash
 ```
 
-After a Foldkit package upgrade, re-pin with the same command, swapping `add` for `pull`. A canary install (`x.y.z-canary.<commit>` in `node_modules/foldkit/package.json`) has no tag; pin to the full hash of the commit its version names instead, which GitHub expands at `https://github.com/foldkit/foldkit/commit/<commit>`.
+For a commit-addressed canary, use its source commit as the final Git ref instead
+of a release tag. After an upgrade, use the same command with `pull` in place of
+`add`.
 
-A consumer project's `FOLDKIT.md` is a scaffolder snapshot and can lag behind the packages it has installed. When it does, replace it whole from `repos/foldkit/packages/create-foldkit-app/templates/base/FOLDKIT.md`. That project's `AGENTS.md` belongs to its author; never overwrite it.
+## Architecture decisions
 
-When working inside the foldkit repo itself rather than a consumer project, drop the `repos/foldkit/` prefix. The same paths exist at the project root.
+- Keep the Model as the single source of truth. Messages record facts, update
+  computes the next Model and Commands, and the Runtime performs effects.
+- Prefer Foldkit and Effect modules over hand-rolled equivalents or outside
+  libraries. Check `create-foldkit-app` and current examples first.
+- Use stateful Foldkit UI Blocks through a parent Binding. Call stateless render
+  helpers directly with the caller's builder and Model. Do not turn a render
+  helper into a Block merely for structural symmetry.
+- Use `modifyFields` transformers directly when they depend only on that field's
+  current value. Use `() => value` for replacement from a Message, operation
+  result, Command result, or another Model field.
+
+For any Block, Application Composition, child Binding, child startup policy,
+Mount capability, OutMessage policy, handler recipe, or Service Layer work,
+read [references/composition.md](references/composition.md). It contains the
+decision tables, canonical stages, and safety invariants for that surface. Then
+inspect the matching source and example for the installed version instead of
+reconstructing an overload from memory.
+
+## Preserve ownership boundaries
+
+Push back on mutation, two-way binding, imperative event handlers, Messages
+named as instructions, effects performed by update or view, and workflow state
+hidden in services. Propose the Foldkit form that keeps state transitions in
+update and effects behind Commands, Subscriptions, Mounts, or ManagedResources.
+
+Errors from Commands become Messages. Model absence with `Option`, remote data
+with `AsyncData`, and multi-state domain behavior with discriminated unions.
+Use Schema types for Models, Messages, Routes, and domain unions. Keep public
+child state behind the child's operations and accessors; a parent integrates a
+child through its Binding and OutMessages.

@@ -18,7 +18,7 @@ ALLOWLIST=(
   "message.ts > page/index.ts > page/room/index.ts > page/room/view/index.ts > page/room/view/view.ts > page/room/view/playing.ts"
 
   # Mutual type dependency between room update helpers.
-  "page/room/update/handleRoomUpdates.ts > page/room/update/update.ts"
+  "page/room/update/handleRoomUpdated.ts > page/room/update/update.ts"
 )
 
 DIRS=(

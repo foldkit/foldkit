@@ -1,14 +1,17 @@
 import { Schema } from 'effect'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { RadioGroup } from '@foldkit/ui'
-
 import { Telemetry } from './domain'
+import {
+  ChartModeRadioGroup,
+  PackageRadioGroup,
+  PeriodRadioGroup,
+} from './radioGroups'
 
 export const Message = defineMessageUnion({
-  GotChartModeRadioGroupMessage: { message: RadioGroup.Message },
-  GotPackageRadioGroupMessage: { message: RadioGroup.Message },
-  GotPeriodRadioGroupMessage: { message: RadioGroup.Message },
+  GotChartModeRadioGroupMessage: { message: ChartModeRadioGroup.Message },
+  GotPackageRadioGroupMessage: { message: PackageRadioGroup.Message },
+  GotPeriodRadioGroupMessage: { message: PeriodRadioGroup.Message },
   ClickedRefresh: {},
   ClickedRetry: {},
   ClickedChartDatum: { datumId: Schema.String },

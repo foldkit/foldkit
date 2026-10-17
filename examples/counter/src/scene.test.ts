@@ -1,9 +1,9 @@
 import { click, expect, given, role, scene, text } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import { type Model, update, view } from './main'
+import { Model, update, view } from './application'
 
-const initialModel: Model = { count: 0 }
+const initialModel = Model.make({ count: 0 })
 
 describe('view', () => {
   test('renders the initial count and three buttons', () => {

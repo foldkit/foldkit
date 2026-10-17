@@ -6,12 +6,12 @@ import { describe, expect, it } from 'vitest'
 import {
   ApplyScroll,
   ApplyScrollOutcome,
-  EffectsLayer,
   Message,
   type Model,
   ObserveVirtualList,
   type ScrollAlignment,
   ScrollTarget,
+  block,
   informItemsChanged,
   init,
   scrollToEnd,
@@ -105,7 +105,7 @@ const runMountedScroll = (
 
         return element.scrollTop
       }),
-    ).pipe(Effect.provide(EffectsLayer)),
+    ).pipe(Effect.provide(block.EffectsLayer)),
   )
 
 const executeScroll = async (
@@ -859,7 +859,7 @@ describe('VirtualList', () => {
 
               return yield* maybeCommand.value.effect
             }),
-          ).pipe(Effect.provide(EffectsLayer)),
+          ).pipe(Effect.provide(block.EffectsLayer)),
         )
 
         if (outcome._tag !== 'CompletedApplyScroll') {
@@ -907,7 +907,7 @@ describe('VirtualList', () => {
 
               return yield* maybeCommand.value.effect
             }),
-          ).pipe(Effect.provide(EffectsLayer)),
+          ).pipe(Effect.provide(block.EffectsLayer)),
         )
 
         if (outcome._tag !== 'CompletedApplyScroll') {

@@ -1,5 +1,5 @@
 import { Effect, Schema } from 'effect'
-import { Command, Update } from 'foldkit'
+import { defineApplication } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
@@ -12,15 +12,11 @@ const UserState = defineTaggedUnion({
   Failure: { error: Schema.String },
 })
 
-// MODEL
-
 const Model = Schema.Struct({
   userId: Schema.String,
   user: UserState,
 })
 type Model = typeof Model.Type
-
-// MESSAGE
 
 const Message = defineMessageUnion({
   ClickedFetchUser: { userId: Schema.String },
@@ -29,9 +25,10 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-// COMMAND
+const Application = defineApplication({ Model, Message })
+const ApplicationComposition = Application.makeComposition()
 
-const FetchUser = Command.define('FetchUser', {
+const FetchUser = Application.command('FetchUser', {
   args: { userId: Schema.String },
   messages: [Message.SucceededFetchUser, Message.FailedFetchUser],
   handler: function* () {
@@ -50,9 +47,7 @@ const FetchUser = Command.define('FetchUser', {
   },
 })
 
-// UPDATE
-
-const update = Update.define((model: Model, message: Message) =>
+const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ClickedFetchUser: ({ userId }) => ({
       model: modifyFields(model, { user: () => UserState.Loading() }),

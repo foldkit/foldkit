@@ -41,9 +41,20 @@ type CacheEntry = Readonly<{
   vnode: VNode | null
   // NOTE: boundary registrations captured during the wrapped function's run.
   // A cache hit restores evicted wraps and replays their ids into the
-  // duplicate-slotId guard even though `h.submodel` did not run.
+  // duplicate-slotId guard even though `h.block` did not run.
   trackedBoundaries: ReadonlyMap<BoundaryId, TrackedBoundaryWrap>
 }>
+
+const trackedBoundaryOccurrencesAreCurrent = (
+  trackedBoundaries: ReadonlyMap<BoundaryId, TrackedBoundaryWrap>,
+): boolean => {
+  for (const { block } of trackedBoundaries.values()) {
+    if (block.isCurrent?.() === false) {
+      return false
+    }
+  }
+  return true
+}
 
 const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
   previousEntry: CacheEntry | undefined,
@@ -69,6 +80,7 @@ const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
     previousEntry.dispatch === dispatch &&
     previousEntry.mountDispatch === mountDispatch &&
     previousEntry.mountRenderOwner === mountRenderOwner &&
+    trackedBoundaryOccurrencesAreCurrent(previousEntry.trackedBoundaries) &&
     argsEqual(previousEntry.args, args)
   ) {
     restoreBoundaryWrapsForLazyHit(registry, previousEntry.trackedBoundaries)
@@ -107,7 +119,8 @@ const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
 
 /** Creates a memoization slot for a view function. On each render, if the
  *  function reference, dispatchers, Mount render owner, and all arguments are
- *  equal to the previous call, the cached VNode is returned without
+ *  equal to the previous call and any tracked Block occurrences remain
+ *  active, the cached VNode is returned without
  *  re-running the view function. Snabbdom's `patchVnode` short-circuits when
  *  it sees the same VNode reference, so both VNode construction and subtree
  *  diffing are skipped.

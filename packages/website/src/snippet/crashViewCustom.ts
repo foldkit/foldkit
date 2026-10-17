@@ -1,5 +1,12 @@
-import { Application, Runtime } from 'foldkit'
+import { Runtime } from 'foldkit'
 import { Document, HtmlBuilder } from 'foldkit/html'
+
+import { ApplicationComposition } from './composition'
+import { init } from './init'
+import type { Message } from './message'
+import type { Model } from './model'
+import { update } from './update'
+import { view } from './view'
 
 const crashView = (
   { error }: Runtime.CrashContext<Model, Message>,
@@ -36,8 +43,7 @@ const crashView = (
   ),
 })
 
-const application = Application.make({
-  Model,
+const application = ApplicationComposition.makeApplication({
   init,
   update,
   view,

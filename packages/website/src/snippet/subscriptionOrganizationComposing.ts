@@ -1,52 +1,27 @@
-// page/settings/subscription.ts
-import { Effect, Layer, Option, Schema, Stream } from 'effect'
-import { Dom, Subscription } from 'foldkit'
+import { Block } from 'foldkit'
+import type * as Update from 'foldkit/update'
 
 import { Message } from './message'
-import type { Model } from './model'
+import { Model } from './model'
 import * as ThemeMenu from './themeMenu'
 
-const themeMenuSubscriptions = Subscription.lift(ThemeMenu.subscriptions)<
-  Model,
-  Message
+const foldThemeMenuOutMessage = ThemeMenu.OutMessage.match<
+  Update.Step<Model, Message>
 >({
-  read: model => Option.some(model.themeMenu),
-  toParentMessage: message => Message.GotThemeMenuMessage({ message }),
+  Selected: () => model => ({ model }),
 })
 
-const localSubscriptions = Subscription.make<Model, Message>()(entry => ({
-  unsavedChangesNavigationWarnings: entry(
-    'UnsavedChangesNavigationWarnings',
-    { hasUnsavedChanges: Schema.Boolean },
-    {
-      messages: [Message.StartedNavigationAway],
-      modelToDependencies: model => ({
-        hasUnsavedChanges: model.hasUnsavedChanges,
-      }),
-      handler: function* () {
-        return ({ hasUnsavedChanges }) =>
-          Stream.when(
-            Dom.streamFromEventFilterMapPreventDefault({
-              target: window,
-              type: 'beforeunload',
-              filterMapEvent: event => {
-                event.returnValue = true
-                return Option.some(Message.StartedNavigationAway())
-              },
-            }),
-            Effect.sync(() => hasUnsavedChanges),
-          )
-      },
-    },
-  ),
-}))
+export const Settings = Block.define('Settings', {
+  Model,
+  Message,
+})
 
-export const subscriptions = Subscription.aggregate(
-  themeMenuSubscriptions,
-  localSubscriptions,
-)
+const ThemeMenuBinding = Settings.bindChild(ThemeMenu.block, {
+  field: 'themeMenu',
+  parentMessage: Message.GotThemeMenuMessage,
+  outMessage: { fold: foldThemeMenuOutMessage },
+})
 
-export const EffectsLayer = Layer.mergeAll(
-  ThemeMenu.EffectsLayer,
-  localSubscriptions.unsavedChangesNavigationWarnings.layer,
-)
+export const SettingsComposition = Settings.makeComposition({
+  childBindings: [ThemeMenuBinding],
+})

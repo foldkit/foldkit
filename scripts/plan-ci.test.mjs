@@ -179,8 +179,6 @@ test('a packed consumer fixture change selects only its focused gate', () => {
 })
 
 test('a scaffold or framework change selects the generated-app build gate', () => {
-  // The gate installs every Foldkit package in a generated app, then runs the
-  // scaffold's build command where the build id contract is kept or lost.
   for (const file of [
     'examples/ssg/package.json',
     'examples/ssr/package.json',
@@ -193,6 +191,8 @@ test('a scaffold or framework change selects the generated-app build gate', () =
     'packages/oxlint-plugin-foldkit/src/index.ts',
     'packages/ui/src/button/index.ts',
     'packages/vite-plugin-foldkit/src/buildToken.ts',
+    'scripts/scaffold-dependencies.ts',
+    'scripts/scaffold-dependencies.test.mjs',
   ]) {
     assert.equal(
       planCiForFile(file)['scaffold_server_rendering'],
@@ -227,7 +227,7 @@ test('a host parity fixture change selects only its focused gate', () => {
 })
 
 test('a typing game change stays out of the website scope', () => {
-  const scopes = planCiForFile('packages/typing-game/client/src/main.ts')
+  const scopes = planCiForFile('packages/typing-game/client/src/app.ts')
 
   assert.equal(scopes['typing_game'], 'true')
   assert.equal(scopes['website'], 'false')

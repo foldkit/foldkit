@@ -1,11 +1,10 @@
 import { Effect, Match, Number, Schema } from 'effect'
-import { Command, Update } from 'foldkit'
 import { Invalid, Valid, Validating, validate } from 'foldkit/fieldValidation'
 import { modifyFields } from 'foldkit/struct'
 
 const validateEmail = validate(emailRules)
 
-const CheckEmailAvailable = Command.define('CheckEmailAvailable', {
+const CheckEmailAvailable = Application.command('CheckEmailAvailable', {
   args: { email: Schema.String, validationId: Schema.Number },
   messages: [CompletedCheckEmailAvailable],
   handler: function* () {
@@ -37,7 +36,7 @@ const CheckEmailAvailable = Command.define('CheckEmailAvailable', {
   },
 })
 
-const update = Update.define((model: Model, message: Message) =>
+const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
     ChangedEmail: ({ value }) => {
       const syncResult = validateEmail(value)

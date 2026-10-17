@@ -12,6 +12,8 @@ Event attributes complete the loop. They produce Messages for the runtime to dis
 
 In the [restaurant analogy](/core/architecture#the-restaurant-analogy), view is the meal on the table. The Model records the current facts; view presents them.
 
+The Counter's named `ApplicationComposition` supplies the primary view builder, so the view's Model, Message, child, and Mount capabilities come from the same Composition that the entry completes. This excerpt remains in the compact Counter's `application.ts` after the Application and Composition declarations.
+
 ::Snippet{name="counterView" label="Using view"}
 
 :::Info{label="No hook rules"}
@@ -22,7 +24,7 @@ React functional components can hold local state and run effects through hooks, 
 
 ### Document Fields
 
-An `Application.make` view returns a `Document`, not bare HTML. The Document contains the body to patch into the application container and the document-level state that should track the Model.
+An `ApplicationComposition.makeApplication` view returns a `Document`, not bare HTML. The Document contains the body to patch into the application container and the document-level state that should track the Model.
 
 | Field       | Type                       | Required | What the runtime does with it                                                                                                                  |
 | ----------- | -------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -37,7 +39,7 @@ Every field is a function of the Model, just like `body`. There is no imperative
 
 ### Document Ownership
 
-An `Application.makeElement` view returns `Html` directly. An embedded app does not own the page, so it cannot declare the title or document metadata. Everything outside this section applies to both kinds of view. See [Runtime](/core/runtime#make-element) for when to use each one.
+An `ApplicationComposition.makeElement` view returns `Html` directly. An embedded app does not own the page, so it cannot declare the title or document metadata. Everything outside this section applies to both kinds of view. See [Runtime](/core/runtime#to-element) for when to use each one.
 
 ### Language and Direction
 
@@ -59,7 +61,7 @@ The runtime can only synchronize these fields after the first render. Served HTM
 
 The application must decide its canonical URL. Foldkit does not derive `canonical` from the address bar on the client or from `Request.url` during server rendering. Only the application knows which values identify a page. For example: `?page=2` may identify a separate page, while `?utm_source=newsletter` usually does not. Derive the canonical from the typed route in the Model, just as the view derives `title` from the Model.
 
-::Snippet{name="documentCanonical" label="Derive a canonical URL from an AppRoute"}
+::Snippet{name="documentCanonical" label="Derive a canonical URL from an ApplicationRoute"}
 
 #### Restoring Served Metadata
 
@@ -85,9 +87,9 @@ Every view receives `h`, an `HtmlBuilder` typed to the application's Message uni
 
 ::Snippet{name="htmlHelpers" label="HTML helpers"}
 
-The Message type follows the builder. If `h.OnClick` receives a Message outside the application union, TypeScript rejects it. The root runtime supplies its builder, and `Submodel.defineView` supplies one for each child view.
+The Message type follows the builder. If `h.OnClick` receives a Message outside the application union, TypeScript rejects it. The root Runtime supplies its builder, and each Block Composition's `makeView` supplies one for its child view.
 
-The builder also carries the Mount definitions the view may render. `Application.make` infers them from its `mounts` registrations. An exported mounted view preserves them in the optional second parameter, `HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>`. Ordinary views keep `HtmlBuilder<Message>`. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for child views and attribute slots.
+The builder also carries the Mount definitions and child Blocks the view may render. A Composition infers them from its local Mounts and child Bindings, and `ApplicationComposition.makeApplication` installs the root Composition's complete registry. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for child views and attribute slots.
 
 #### Element Builder Arity
 
@@ -95,7 +97,15 @@ Element builders that accept children take attributes first and optional childre
 
 #### Builder Ownership
 
-Application code cannot construct a builder. It only enters through a view parameter, which keeps its Message type aligned with the boundary that dispatches its handlers. Extracted view helpers take the builder as their last parameter. A helper that attaches a Mount or embeds a mounted child must retain the required Mounts as the second type parameter, such as `HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>`. Pure helpers can keep `HtmlBuilder<Message>`. A helper that forwards attributes or a view callback can introduce an `AllowedMountRequirements` generic to preserve the caller's capability. Introduce a `ParentMessage` generic when the helper accepts any parent Message universe.
+Application code cannot construct a builder. The canonical owned view enters through `Composition.makeView` or `makeView.withInputs`, which checks the complete view contract when the Block or Application is completed. Let that primary view's `h` parameter infer. A completed Block retains `block.makeView` for authoring an alternate embed view against that already fixed graph; it cannot change the graph or complete another Block.
+
+Ordinary feature-local helpers remain plain functions. After establishing `FeatureComposition`, declare `type FeatureViewBuilder = Block.ViewBuilderFor<typeof FeatureComposition>` on the next line with no blank line and use that alias for each helper's `h` parameter. Export it only when another file uses it. The alias carries the owner's Message type and its registered child and Mount capabilities; it creates no runtime value.
+
+The owner prefix identifies the specific Composition at a plain type import site. Structural contracts keep the standard names `Model`, `Message`, and `OutMessage` because consumers normally qualify them through the feature namespace. Give a helper only the other parameters it uses: a heading helper can take only `h`, a card helper can take its domain value and `h`, and a list helper can take the Model and `h`. Let TypeScript infer whether the helper returns one `Html` value or an array.
+
+::Snippet{name="featureViewHelpers" label="View helpers within a feature"}
+
+Rendering functions that are genuinely shared across owners should keep taking the caller's general `HtmlBuilder<Message>`. A shared helper that forwards attributes, a view callback, child embeddings, or Mounts can introduce an `AllowedMountRequirements` generic to preserve the caller's capability. Introduce a `ParentMessage` generic when the helper accepts any parent Message universe.
 
 ### Inert HTML
 

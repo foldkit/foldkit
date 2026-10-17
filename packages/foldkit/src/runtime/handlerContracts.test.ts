@@ -1,6 +1,7 @@
-import { Context, Effect, Layer, Schema, pipe } from 'effect'
+import { Context, Effect, Layer, Schema } from 'effect'
 import { expectTypeOf, it } from 'vitest'
 
+import type { Scoped } from '../block/scope.js'
 import * as Command from '../command/index.js'
 import type { Handler as ManagedResourceHandler } from '../managedResource/handler.js'
 import { defineMessageUnion } from '../message/index.js'
@@ -38,6 +39,60 @@ class Cache extends Context.Service<Cache, Readonly<{ value: string }>>()(
 ) {}
 
 const CacheLayer = Layer.succeed(Cache, { value: 'cached' })
+
+type ScaleKey =
+  | '01'
+  | '02'
+  | '03'
+  | '04'
+  | '05'
+  | '06'
+  | '07'
+  | '08'
+  | '09'
+  | '10'
+  | '11'
+  | '12'
+  | '13'
+  | '14'
+  | '15'
+  | '16'
+  | '17'
+  | '18'
+  | '19'
+  | '20'
+  | '21'
+  | '22'
+  | '23'
+  | '24'
+  | '25'
+  | '26'
+  | '27'
+  | '28'
+  | '29'
+  | '30'
+  | '31'
+  | '32'
+
+type ScaledHandlerContracts = {
+  readonly [Key in ScaleKey]:
+    | Scoped<
+        `child-${Key}`,
+        Command.Handler<'Load', Readonly<{ id: Key }>, Message>
+      >
+    | Scoped<
+        `child-${Key}`,
+        SubscriptionHandler<'Observe', Readonly<{ id: Key }>, Message>
+      >
+    | Scoped<
+        `child-${Key}`,
+        MountHandler<'Attach', Readonly<{ id: Key }>, Message>
+      >
+    | Scoped<
+        `child-${Key}`,
+        ManagedResourceHandler<'Open', Readonly<{ id: Key }>, Key>
+      >
+}[ScaleKey]
 
 it('groups exact handler contracts by primitive and name', () => {
   expectTypeOf<
@@ -84,12 +139,58 @@ it('groups exact handler contracts by primitive and name', () => {
       | ManagedResourceHandler<'Read', number, string>
     >
   >().toEqualTypeOf<unknown>()
+  expectTypeOf<
+    ValidHandlerContracts<ScaledHandlerContracts>
+  >().toEqualTypeOf<unknown>()
+})
+
+it('retains exact collision checks within literal and generic handler keys', () => {
+  expectTypeOf<
+    ValidHandlerContracts<
+      | Command.Handler<'Read', string | number, string>
+      | Command.Handler<'Read', string, string>
+    >
+  >().toEqualTypeOf<
+    Readonly<{ 'Conflicting Foldkit handler contracts': 'Command/Read' }>
+  >()
+  expectTypeOf<
+    ValidHandlerContracts<
+      | Command.Handler<string, string, string>
+      | Command.Handler<string, number, string>
+    >
+  >().toEqualTypeOf<
+    Readonly<{ 'Conflicting Foldkit handler contracts': `Command/${string}` }>
+  >()
+  expectTypeOf<
+    ValidHandlerContracts<
+      | Command.Handler<'Read' | 'Write', string, string>
+      | Command.Handler<'Read' | 'Write', number, string>
+    >
+  >().toEqualTypeOf<
+    Readonly<{
+      'Conflicting Foldkit handler contracts': 'Command/Read' | 'Command/Write'
+    }>
+  >()
+  expectTypeOf<
+    ValidHandlerContracts<
+      | Scoped<'First', Command.Handler<'Read', string, string>>
+      | Scoped<'Second', Command.Handler<'Read', number, string>>
+    >
+  >().toEqualTypeOf<unknown>()
+  expectTypeOf<
+    ValidHandlerContracts<
+      | Scoped<'First', Command.Handler<'Read', string, string>>
+      | Scoped<'First', Command.Handler<'Read', number, string>>
+    >
+  >().toEqualTypeOf<
+    Readonly<{ 'Conflicting Foldkit handler contracts': 'First/Command/Read' }>
+  >()
 })
 
 const checkAssemblyTypes = (): void => {
   const Model = Schema.Struct({ text: Schema.String })
 
-  const application = Application.make({
+  const application = Application.__makeFromConfig({
     Model,
     init: () => ({
       model: Model.make({ text: '' }),
@@ -101,16 +202,9 @@ const checkAssemblyTypes = (): void => {
   })
 
   const independentLayers = Layer.mergeAll(Send.layer, CacheLayer)
-  Application.provide(application, Layer.empty)
-  pipe(application, Application.provide(Layer.empty))
-  run(Application.provide(application, independentLayers))
-  pipe(application, Application.provide(independentLayers), run)
-  pipe(
-    application,
-    Application.provide(Send.layer),
-    Application.provide(CacheLayer),
-    run,
-  )
+  application.provide(Layer.empty)
+  run(application.provide(independentLayers))
+  run(application.provide(Send.layer).provide(CacheLayer))
 
   const conflictingLayers = Layer.mergeAll(
     Send.layer,
@@ -118,24 +212,15 @@ const checkAssemblyTypes = (): void => {
   )
 
   // @ts-expect-error Two contracts cannot occupy the same Command Context key.
-  Application.provide(application, conflictingLayers)
-
-  // @ts-expect-error A conflicting Layer bundle cannot enter an application pipe.
-  Application.provide(conflictingLayers)
+  application.provide(conflictingLayers)
 
   // @ts-expect-error The provider conflicts with the required Command contract.
-  Application.provide(application, SendWithOptionalText.layer)
+  application.provide(SendWithOptionalText.layer)
 
-  // @ts-expect-error Conflicting data-last provision cannot produce a runnable app.
-  pipe(application, Application.provide(SendWithOptionalText.layer), run)
-
-  const provided = Application.provide(application, Send.layer)
+  const provided = application.provide(Send.layer)
 
   // @ts-expect-error Subsequent providers cannot overwrite a different contract.
-  Application.provide(provided, SendWithOptionalText.layer)
-
-  // @ts-expect-error A pipeline retains contracts supplied by earlier providers.
-  pipe(provided, Application.provide(SendWithOptionalText.layer), run)
+  provided.provide(SendWithOptionalText.layer)
 
   const requiresOtherContract = Layer.effect(
     Cache,
@@ -151,7 +236,7 @@ const checkAssemblyTypes = (): void => {
   )
 
   // @ts-expect-error Layer dependencies also cannot use a conflicting handler contract.
-  Application.provide(application, outputAndInputConflict)
+  application.provide(outputAndInputConflict)
 }
 
 void checkAssemblyTypes

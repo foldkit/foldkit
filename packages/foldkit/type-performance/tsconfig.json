@@ -1,0 +1,17 @@
+{
+  "files": ["baseline.ts"],
+  "include": [],
+  "compilerOptions": {
+    "strict": true,
+    "skipLibCheck": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2022",
+    "lib": ["ESNext", "DOM"],
+    "types": [],
+    "verbatimModuleSyntax": true,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false
+  }
+}
