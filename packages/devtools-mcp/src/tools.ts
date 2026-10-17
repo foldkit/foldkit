@@ -1,14 +1,18 @@
-import { Array, Effect, Match, Option, Schema } from 'effect'
+import { Array, Effect, Option, Schema } from 'effect'
 import {
   MAX_DISPATCH_BATCH_SIZE,
   Request,
   Response,
 } from 'foldkit/devtools-protocol'
 
-import type { WebSocketClient } from './webSocketClient.js'
+import {
+  type ListedRuntime,
+  type RelayClient,
+  errorReason,
+} from './relayClient.js'
 
 const RUNTIME_ID_DESCRIPTION =
-  'Optional connection id of a specific Foldkit runtime. Defaults to the most recently connected runtime.'
+  'Optional connection id of a specific Foldkit runtime. Defaults to the most recently connected runtime of the most recently started dev server. Call `foldkit_list_runtimes` to find runtimes in other applications, each with its `projectRoot`.'
 
 const DEFAULT_LIST_MESSAGES_LIMIT = 50
 
@@ -214,14 +218,6 @@ const formatError = (reason: string): ToolResult => ({
 })
 
 /**
- * Read a display string from a caught error. Effect's `TimeoutError` carries no
- * `message`, so `error.message` is `undefined` on a relay timeout; fall back to
- * the error's string form (its tag) rather than surfacing `Error: undefined`.
- */
-const errorReason = (error: Error): string =>
-  error.message ? error.message : String(error)
-
-/**
  * Decode a tool's raw input against its Effect Schema. Failure surfaces as an
  * `Error` for the outer handler's `catchAll` to convert into a `ToolResult`.
  */
@@ -233,48 +229,11 @@ const decodeInput = <Input>(
     Effect.mapError(error => new Error(`Invalid input: ${error.message}`)),
   )
 
-/**
- * Resolve a runtime id, defaulting to the most recently connected runtime when
- * the caller did not specify one. Failures (no runtimes connected, relay
- * error) surface as `Error` for the outer handler's `catchAll` to convert.
- */
-const resolveRuntimeId = (
-  wsClient: WebSocketClient,
-  explicit: string | undefined,
-): Effect.Effect<string, Error> => {
-  if (explicit !== undefined) {
-    return Effect.succeed(explicit)
-  }
-  return Effect.gen(function* () {
-    const response = yield* wsClient.sendRequest(
-      Request.RequestListRuntimes(),
-      Option.none(),
-    )
-    return yield* Match.value(response).pipe(
-      Match.tag('ResponseRuntimes', ({ runtimes }) =>
-        Array.last(runtimes).pipe(
-          Option.match({
-            onNone: () =>
-              Effect.fail(
-                new Error(
-                  'No connected Foldkit runtimes. Open a Foldkit dev page and try again.',
-                ),
-              ),
-            onSome: runtime => Effect.succeed(runtime.connectionId),
-          }),
-        ),
-      ),
-      Match.tag('ResponseError', ({ reason }) =>
-        Effect.fail(new Error(reason)),
-      ),
-      Match.orElse(({ _tag }) =>
-        Effect.fail(
-          new Error(`Unexpected response from RequestListRuntimes: ${_tag}`),
-        ),
-      ),
-    )
+const listedRuntimeOutput = ({ runtime, maybeProjectRoot }: ListedRuntime) =>
+  Option.match(maybeProjectRoot, {
+    onNone: () => runtime,
+    onSome: projectRoot => ({ ...runtime, projectRoot }),
   })
-}
 
 const responseToToolResult = (response: typeof Response.Type): ToolResult =>
   response._tag === 'ResponseError'
@@ -282,15 +241,14 @@ const responseToToolResult = (response: typeof Response.Type): ToolResult =>
     : formatResult(response)
 
 const callRuntimeRequest = (
-  wsClient: WebSocketClient,
+  relayClient: RelayClient,
   explicitRuntimeId: string | undefined,
   buildRequest: () => typeof Request.Type,
 ): Effect.Effect<ToolResult> =>
   Effect.gen(function* () {
-    const runtimeId = yield* resolveRuntimeId(wsClient, explicitRuntimeId)
-    const response = yield* wsClient.sendRequest(
+    const response = yield* relayClient.sendRequest(
       buildRequest(),
-      Option.some(runtimeId),
+      Option.fromNullishOr(explicitRuntimeId),
     )
     return responseToToolResult(response)
   }).pipe(
@@ -308,12 +266,13 @@ const runRuntimeTool =
   <Input extends RuntimeToolInput>(
     inputSchema: Schema.Codec<Input>,
     buildRequest: (input: Input) => typeof Request.Type,
-    wsClient: WebSocketClient,
+    relayClient: RelayClient,
   ) =>
   (rawInput: unknown): Effect.Effect<ToolResult> =>
     Effect.gen(function* () {
       const input = yield* decodeInput(inputSchema, rawInput)
-      return yield* callRuntimeRequest(wsClient, input.runtime_id, () =>
+
+      return yield* callRuntimeRequest(relayClient, input.runtime_id, () =>
         buildRequest(input),
       )
     }).pipe(
@@ -326,7 +285,7 @@ const runRuntimeTool =
  * relay, and formats the typed `Response` as MCP tool content.
  */
 export const buildTools = (
-  wsClient: WebSocketClient,
+  relayClient: RelayClient,
 ): ReadonlyArray<ToolDefinition> => [
   {
     name: 'foldkit_get_model',
@@ -340,7 +299,7 @@ export const buildTools = (
           maybePath: Option.fromNullishOr(path),
           expand: expand ?? false,
         }),
-      wsClient,
+      relayClient,
     ),
   },
   {
@@ -356,7 +315,7 @@ export const buildTools = (
           maybePath: Option.fromNullishOr(path),
           expand: expand ?? false,
         }),
-      wsClient,
+      relayClient,
     ),
   },
   {
@@ -373,7 +332,7 @@ export const buildTools = (
           maybeChangedPathsMatch: Option.fromNullishOr(changed_paths_match),
           fromEnd: from_end ?? false,
         }),
-      wsClient,
+      relayClient,
     ),
   },
   {
@@ -388,7 +347,7 @@ export const buildTools = (
           maybeSinceIndex: Option.fromNullishOr(since_index),
           maybeChangedPathsMatch: Option.fromNullishOr(changed_paths_match),
         }),
-      wsClient,
+      relayClient,
     ),
   },
   {
@@ -404,7 +363,7 @@ export const buildTools = (
           toIndex: to_index,
           maybeChangedPathsMatch: Option.fromNullishOr(changed_paths_match),
         }),
-      wsClient,
+      relayClient,
     ),
   },
   {
@@ -415,7 +374,7 @@ export const buildTools = (
     handle: runRuntimeTool(
       GetMessageInput,
       ({ index }) => Request.RequestGetMessage({ index }),
-      wsClient,
+      relayClient,
     ),
   },
   {
@@ -426,7 +385,7 @@ export const buildTools = (
     handle: runRuntimeTool(
       GetInitInput,
       () => Request.RequestGetInit(),
-      wsClient,
+      relayClient,
     ),
   },
   {
@@ -437,7 +396,7 @@ export const buildTools = (
     handle: runRuntimeTool(
       GetRuntimeStateInput,
       () => Request.RequestGetRuntimeState(),
-      wsClient,
+      relayClient,
     ),
   },
   {
@@ -448,7 +407,7 @@ export const buildTools = (
     handle: runRuntimeTool(
       ListKeyframesInput,
       () => Request.RequestListKeyframes(),
-      wsClient,
+      relayClient,
     ),
   },
   {
@@ -460,7 +419,7 @@ export const buildTools = (
       ReplayToKeyframeInput,
       ({ keyframe_index }) =>
         Request.RequestReplayToKeyframe({ keyframeIndex: keyframe_index }),
-      wsClient,
+      relayClient,
     ),
   },
   {
@@ -471,7 +430,7 @@ export const buildTools = (
     handle: runRuntimeTool(
       ResumeInput,
       () => Request.RequestResume(),
-      wsClient,
+      relayClient,
     ),
   },
   {
@@ -485,7 +444,7 @@ export const buildTools = (
         Request.RequestGetMessageSchema({
           maybeVariantTag: Option.fromNullishOr(variant_tag),
         }),
-      wsClient,
+      relayClient,
     ),
   },
   {
@@ -496,7 +455,7 @@ export const buildTools = (
     handle: runRuntimeTool(
       DispatchMessageInput,
       ({ message }) => Request.RequestDispatchMessage({ message }),
-      wsClient,
+      relayClient,
     ),
   },
   {
@@ -506,22 +465,22 @@ export const buildTools = (
     handle: runRuntimeTool(
       DispatchMessagesInput,
       ({ messages }) => Request.RequestDispatchMessages({ messages }),
-      wsClient,
+      relayClient,
     ),
   },
   {
     name: 'foldkit_list_runtimes',
     description:
-      'List Foldkit runtimes (browser tabs) currently connected to the dev server.',
+      'List Foldkit runtimes (browser tabs) connected to every Foldkit dev server under the project root, or else to every dev server at the nearest root that encloses the project root, oldest dev server first. Each runtime carries `projectRoot`, the root of the dev server it belongs to, unless the MCP server uses a fixed relay address.',
     inputSchema: NO_INPUT_SCHEMA,
     handle: () =>
-      Effect.gen(function* () {
-        const response = yield* wsClient.sendRequest(
-          Request.RequestListRuntimes(),
-          Option.none(),
-        )
-        return responseToToolResult(response)
-      }).pipe(
+      relayClient.listRuntimes.pipe(
+        Effect.map(listed =>
+          formatResult({
+            _tag: 'ResponseRuntimes',
+            runtimes: Array.map(listed, listedRuntimeOutput),
+          }),
+        ),
         Effect.catch(error => Effect.succeed(formatError(errorReason(error)))),
       ),
   },

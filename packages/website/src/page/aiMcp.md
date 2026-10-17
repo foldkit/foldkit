@@ -48,13 +48,15 @@ Install the server as a development dependency when you want to avoid an `npx` l
 
 ::Snippet{name="aiMcpInstall" label="Install the DevTools MCP server"}
 
-No Vite config change is needed. The Foldkit plugin serves the relay at `/__foldkit/devtools-mcp` on the dev server, and the MCP server finds it by project.
+No Vite config change is needed. The Foldkit plugin serves the relay at `/__foldkit/devtools-mcp` on a loopback port of its own, and the MCP server finds it by project.
 
 #### Configure a Fixed Port
 
-If automatic discovery is unavailable, set a fixed `devToolsMcpPort` in `vite.config.ts` and give the MCP server the same value in `FOLDKIT_DEVTOOLS_MCP_PORT`. This is required on Windows:
+If automatic discovery is unavailable, or the agent runs on another host, set a fixed `devToolsMcpPort` in `vite.config.ts` and give the MCP server the same value in `FOLDKIT_DEVTOOLS_MCP_PORT`:
 
 ::Snippet{name="aiMcpViteConfig" label="Vite configuration for a fixed port"}
+
+When the agent runs on another host, also set `FOLDKIT_DEVTOOLS_MCP_HOST` to the dev server's host. The fixed port opens a separate socket on every interface without a token. Do not use a fixed port on a shared or untrusted network.
 
 #### Enable Message Dispatch
 
@@ -72,11 +74,11 @@ The application must be open in a browser tab. Its browser bridge connects the r
 
 ## Tools
 
-Every tool except `foldkit_list_runtimes` accepts an optional `runtime_id`. Without one, the tool targets the most recently connected Runtime.
+Every tool except `foldkit_list_runtimes` accepts an optional `runtime_id`. Without one, the tool targets the most recently connected Runtime of the most recently started dev server.
 
 | Tool                            | Description                                                                                                                                                                                                                                                                     |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `foldkit_list_runtimes`         | Lists every connected browser tab and the metadata needed to select a Runtime.                                                                                                                                                                                                  |
+| `foldkit_list_runtimes`         | Lists every connected browser tab and the metadata needed to select a Runtime. Each tab carries the `projectRoot` of the dev server it belongs to, unless `FOLDKIT_DEVTOOLS_MCP_PORT` or `FOLDKIT_DEVTOOLS_MCP_HOST` is set.                                                    |
 | `foldkit_get_model`             | Reads the current Model. Use `path` to select a subtree and `expand` to control summarization.                                                                                                                                                                                  |
 | `foldkit_get_model_at`          | Reads the Model after a retained history entry. Use `index: N - 1` for the Model before Message `N`, and `foldkit_get_init` for the initial Model.                                                                                                                              |
 | `foldkit_get_init`              | Reads the initial Model, the Commands returned by init, and the Mounts that started during the first render.                                                                                                                                                                    |
@@ -94,21 +96,23 @@ Every tool except `foldkit_list_runtimes` accepts an optional `runtime_id`. With
 
 ## Connection Flow
 
-The browser bridge runs alongside DevTools and subscribes to the DevTools store. The Vite plugin relays requests between browser tabs and MCP clients through a WebSocket endpoint on the dev server. The MCP server runs under your AI agent and finds the relay for the project it runs in. `FOLDKIT_PROJECT_ROOT` selects another project.
+The browser bridge runs alongside DevTools and subscribes to the DevTools store. The Vite plugin relays requests between browser tabs and MCP clients through a WebSocket endpoint on a loopback port of its own, so a plugin or proxy that handles WebSocket upgrades on the dev server never sees the relay's traffic. The MCP server runs under your AI agent and finds the relays for the project it runs in. `FOLDKIT_PROJECT_ROOT` selects another project.
 
 ### Relay Discovery and Access
 
-The plugin publishes the relay's address to a registry private to your user. The address includes a random token that every client must present before inspecting a Model or dispatching a Message. The plugin refuses to publish into a directory owned by another user or readable by other users. The registry lives under `XDG_RUNTIME_DIR` when set, or under the operating system's temporary directory. `FOLDKIT_DEVTOOLS_RELAY_DIRECTORY` selects another directory.
+The plugin publishes the relay's address to a registry private to your user. The address includes a random token that every client must present before inspecting a Model or dispatching a Message. The plugin refuses to publish into a directory owned by another user or readable by other users. On macOS, it also refuses directory ACLs that grant access. The registry lives under `XDG_RUNTIME_DIR` when set, `~/.cache` on macOS and Linux, or the user temporary directory on Windows. `FOLDKIT_DEVTOOLS_RELAY_DIRECTORY` selects another directory; on Windows, that directory must be a direct child of the user's temporary directory.
 
 The token keeps an unapproved relay client from connecting. It does not hide runtime data from the agent that was given the MCP server.
 
-### Fixed-Port Connections on Windows
+### Registry Directory Check on Windows
 
-On Windows, the plugin cannot verify registry directory ownership, so it cannot publish an address. Set `devToolsMcpPort` in the Vite config and pass the same port in `FOLDKIT_DEVTOOLS_MCP_PORT`. This opens a separate socket on every interface without a token. Do not use a fixed port on a shared or untrusted network. `FOLDKIT_DEVTOOLS_MCP_PORT` also skips discovery on other platforms.
+On Windows, the plugin and the MCP server check the registry directory and its ancestors with PowerShell, refusing reparse points and paths another user can replace. The registry must be a direct child of the user's temporary directory and private to your user. If the check refuses the directory or cannot run, set `devToolsMcpPort` in the Vite config and pass the same port in `FOLDKIT_DEVTOOLS_MCP_PORT`. This opens a separate socket on every interface without a token. Do not use a fixed port on a shared or untrusted network.
 
-### Reconnection and Runtime Selection
+### Dev Server Discovery and Runtime Selection
 
-When several relays match the project, the MCP server chooses the most recently started one. If the dev server restarts, the MCP server looks it up again and reconnects with exponential backoff. The agent can also start before the dev server.
+When several dev servers run under the project, the MCP server reaches all of them, and `foldkit_list_runtimes` names the `projectRoot` of each Runtime's dev server. When none runs under it, the MCP server reaches every dev server at the nearest root that encloses the project, so an agent started in `src/` still finds the application. Setting `FOLDKIT_DEVTOOLS_MCP_PORT` or `FOLDKIT_DEVTOOLS_MCP_HOST` skips discovery and connects to that fixed address.
+
+The MCP server connects when a tool is called, not in the background. Each call looks up the registry again, so the agent can start before the dev server, and a restarted dev server is reached on the next call.
 
 More than one browser tab can connect at once. `foldkit_list_runtimes` returns each connection ID, and `runtime_id` selects one explicitly. When a tab closes, the relay removes it from the live Runtime list.
 

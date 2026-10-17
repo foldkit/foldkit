@@ -5,16 +5,20 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import * as NodeServices from '@effect/platform-node/NodeServices'
-
 import {
   type Settings,
   loadSettings,
-  resolveRelayUrl,
+  resolveRelayTargets,
 } from '../src/relayLocation.ts'
+import {
+  RELAY_DIRECTORY_VARIABLE,
+  makeUncheckedRegistryReader,
+  runWithNode,
+} from './relayRegistryFixtures.ts'
 
-const RELAY_DIRECTORY_VARIABLE = 'FOLDKIT_DEVTOOLS_RELAY_DIRECTORY'
 const PROJECT_ROOT = '/workspace/app'
+const PRIVATE_DIRECTORY_MODE = 0o700
+const RELAY_TOKEN = 'a'.repeat(64)
 
 const settings = (overrides: Partial<Settings> = {}): Settings => ({
   maybeConfiguredPort: Option.none(),
@@ -27,29 +31,29 @@ const published: RelayRecord = {
   version: 1,
   id: 'relay',
   root: PROJECT_ROOT,
-  url: 'ws://127.0.0.1:5173/__foldkit/devtools-mcp?token=abc',
+  url: `ws://127.0.0.1:5173/__foldkit/devtools-mcp?token=${RELAY_TOKEN}`,
   pid: process.pid,
   startedAt: 1,
 }
 
-describe('resolveRelayUrl', () => {
+describe('resolveRelayTargets', () => {
   let registryDirectory = ''
   let previousRegistryDirectory: string | undefined
 
   const resolve = (value: Settings) =>
-    Effect.runPromise(
-      resolveRelayUrl(value).pipe(
-        Effect.provideService(
-          ConfigProvider.ConfigProvider,
-          ConfigProvider.fromEnv(),
-        ),
-        Effect.provide(NodeServices.layer),
+    runWithNode(
+      Effect.flatMap(makeUncheckedRegistryReader, registryReader =>
+        resolveRelayTargets(value, registryReader),
       ),
     )
+
+  const resolveUrls = (value: Settings) =>
+    resolve(value).then(targets => targets.map(({ url }) => url))
 
   beforeEach(async () => {
     previousRegistryDirectory = process.env[RELAY_DIRECTORY_VARIABLE]
     registryDirectory = await mkdtemp(join(tmpdir(), 'foldkit-mcp-location-'))
+    await rm(registryDirectory, { recursive: true, force: true })
     process.env[RELAY_DIRECTORY_VARIABLE] = registryDirectory
   })
 
@@ -62,11 +66,14 @@ describe('resolveRelayUrl', () => {
     await rm(registryDirectory, { recursive: true, force: true })
   })
 
-  const publish = async () => {
-    await mkdir(registryDirectory, { recursive: true })
+  const publish = async (record: RelayRecord = published) => {
+    await mkdir(registryDirectory, {
+      recursive: true,
+      mode: PRIVATE_DIRECTORY_MODE,
+    })
     await writeFile(
       join(registryDirectory, 'app.json'),
-      JSON.stringify(published),
+      JSON.stringify(record),
       'utf-8',
     )
   }
@@ -74,35 +81,77 @@ describe('resolveRelayUrl', () => {
   it('uses a configured port instead of a published relay', async () => {
     await publish()
     expect(
-      await resolve(settings({ maybeConfiguredPort: Option.some('4600') })),
-    ).toBe('ws://localhost:4600')
+      await resolveUrls(settings({ maybeConfiguredPort: Option.some('4600') })),
+    ).toStrictEqual(['ws://localhost:4600'])
+  })
+
+  it('uses a configured host instead of a published relay', async () => {
+    await publish()
+    expect(
+      await resolveUrls(
+        settings({ maybeConfiguredHost: Option.some('devbox') }),
+      ),
+    ).toStrictEqual(['ws://devbox:9988'])
   })
 
   it('uses a configured host with a configured port', async () => {
+    await publish()
     expect(
-      await resolve(
+      await resolveUrls(
         settings({
           maybeConfiguredPort: Option.some('4600'),
           maybeConfiguredHost: Option.some('devbox'),
         }),
       ),
-    ).toBe('ws://devbox:4600')
+    ).toStrictEqual(['ws://devbox:4600'])
+  })
+
+  it('brackets a configured IPv6 host', async () => {
+    expect(
+      await resolveUrls(settings({ maybeConfiguredHost: Option.some('::1') })),
+    ).toStrictEqual(['ws://[::1]:9988'])
   })
 
   it('uses a published relay address with its token', async () => {
     await publish()
-    expect(await resolve(settings())).toBe(published.url)
+    expect(await resolve(settings())).toStrictEqual([
+      {
+        key: published.id,
+        url: published.url,
+        maybeProjectRoot: Option.some(PROJECT_ROOT),
+      },
+    ])
   })
 
-  it('replaces only a published relay hostname with a configured host', async () => {
-    await publish()
-    expect(
-      await resolve(settings({ maybeConfiguredHost: Option.some('devbox') })),
-    ).toBe('ws://devbox:5173/__foldkit/devtools-mcp?token=abc')
+  it('ignores a published relay without a token', async () => {
+    const configured = { ...published, url: 'ws://localhost:4600' }
+    await publish(configured)
+
+    expect(await resolveUrls(settings())).toStrictEqual([])
   })
 
-  it('uses the legacy port when no relay is published', async () => {
-    expect(await resolve(settings())).toBe('ws://localhost:9988')
+  it.each([
+    'ws://remote.example:5173/__foldkit/devtools-mcp?token=' + RELAY_TOKEN,
+    'wss://127.0.0.1:5173/__foldkit/devtools-mcp?token=' + RELAY_TOKEN,
+    'ws://127.0.0.1:5173/__foldkit/devtools-mcp?token=short',
+    'ws://127.0.0.1:5173/__foldkit/devtools-mcp?token=' +
+      RELAY_TOKEN +
+      '&extra=value',
+    'ws://user@127.0.0.1:5173/__foldkit/devtools-mcp?token=' + RELAY_TOKEN,
+    'ws://127.0.0.1:5173/__foldkit/devtools-mcp?token=' +
+      RELAY_TOKEN +
+      '#fragment',
+    'ws://127.0.0.1/__foldkit/devtools-mcp?token=' + RELAY_TOKEN,
+    'ws://localhost:4600/other',
+    'ws://localhost:4600?token=' + RELAY_TOKEN,
+  ])('ignores an unsafe published relay address: %s', async url => {
+    await publish({ ...published, url })
+
+    expect(await resolveUrls(settings())).toStrictEqual([])
+  })
+
+  it('returns no targets when no relay is published', async () => {
+    expect(await resolve(settings())).toStrictEqual([])
   })
 })
 
