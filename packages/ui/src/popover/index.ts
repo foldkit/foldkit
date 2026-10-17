@@ -279,6 +279,10 @@ export const update = (model: Model, message: Message) => {
     Array.getSomes([maybeUnlockScroll, maybeRestoreInert])
 
   const openPopover = (baseModel: Model): UpdateReturn => {
+    if (baseModel.isOpen) {
+      return { model: baseModel }
+    }
+
     if (model.isAnimated) {
       const popoverOpen = Update.combine(baseModel, [
         stepModel => ({ model: stepModel, commands: openCommands }),
@@ -446,7 +450,8 @@ export const PortalPopoverBackdrop = Mount.define('PortalPopoverBackdrop', {
 })
 
 /** Programmatically opens the Popover, updating the Model and returning
- *  focus and modal Commands plus an `Opened` OutMessage. */
+ *  focus and modal Commands plus an `Opened` OutMessage. When it is already
+ *  open, it is a no-op: no Commands and no OutMessage. */
 export const open = (model: Model): UpdateReturn =>
   update(model, Message.RequestedOpen())
 

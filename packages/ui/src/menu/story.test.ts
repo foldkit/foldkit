@@ -1471,6 +1471,29 @@ describe('Menu', () => {
       )
     })
 
+    it('emits no Commands on Opened when already open in modal mode', () => {
+      const openModal = modifyFields(init({ id: 'test', isModal: true }), {
+        isOpen: () => true,
+        maybeActiveItemIndex: () => Option.some(1),
+        searchQuery: () => 'ed',
+        searchVersion: () => 2,
+      })
+
+      Story.story(
+        update,
+        Story.given(openModal),
+        Story.message(Message.Opened({ maybeActiveItemIndex: Option.none() })),
+        Story.expectNoOutMessage(),
+        Story.Command.expectNone(),
+        Story.model(model => {
+          expect(model.isOpen).toBe(true)
+          expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(1))
+          expect(model.searchQuery).toBe('ed')
+          expect(model.searchVersion).toBe(2)
+        }),
+      )
+    })
+
     it('emits unlockScroll and restoreInert commands when the items container blurs in modal mode', () => {
       Story.story(
         update,

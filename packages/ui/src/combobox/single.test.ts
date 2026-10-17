@@ -1123,6 +1123,55 @@ describe('Combobox', () => {
       )
     })
 
+    it('emits no Commands on Opened when already open in modal mode', () => {
+      const openModal = modifyFields(init({ id: 'test', isModal: true }), {
+        isOpen: () => true,
+        maybeActiveItemIndex: () => Option.some(1),
+        activationTrigger: () => 'Keyboard',
+        inputValue: () => 'Ap',
+      })
+
+      Story.story(
+        update,
+        Story.given(openModal),
+        Story.message(Message.Opened({ maybeActiveItemIndex: Option.none() })),
+        Story.expectNoOutMessage(),
+        Story.Command.expectNone(),
+        Story.model(model => {
+          expect(model.isOpen).toBe(true)
+          expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(1))
+          expect(model.activationTrigger).toBe('Keyboard')
+          expect(model.inputValue).toBe('Ap')
+        }),
+      )
+    })
+
+    it('emits no Commands when focus opens a modal combobox the toggle already opened', () => {
+      Story.story(
+        update,
+        givenClosedModal,
+        Story.message(
+          Message.PressedToggleButton({
+            restingInputValue: '',
+            isClearable: true,
+          }),
+        ),
+        Story.Command.resolveAllExact(
+          [FocusInput, Message.CompletedFocusInput()],
+          [LockScroll, Message.CompletedLockScroll()],
+          [InertOthers, Message.CompletedInertOthers()],
+        ),
+        Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
+        Story.expectNoOutMessage(),
+        Story.Command.expectNone(),
+        Story.model(model => {
+          expect(model.isOpen).toBe(true)
+          expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
+          expect(model.activationTrigger).toBe('Pointer')
+        }),
+      )
+    })
+
     it('emits unlockScroll and restoreInert commands on Closed when isModal is true', () => {
       Story.story(
         update,

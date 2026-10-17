@@ -43,7 +43,8 @@ export const update = makeUpdate<Model>((model, item, context) =>
 type UpdateReturn = ReturnType<typeof update>
 
 /** Programmatically opens the Listbox, updating the Model and returning focus
- *  and modal Commands. Use this in domain-event handlers. */
+ *  and modal Commands. When it is already open, returns the Model unchanged
+ *  with no Commands. Use this in domain-event handlers. */
 export const open = (model: Model): UpdateReturn =>
   update(model, Message.Opened({ maybeActiveItemIndex: Option.none() }))
 

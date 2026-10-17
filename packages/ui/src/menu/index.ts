@@ -429,8 +429,12 @@ export const update = (model: Model, message: Message) => {
     CompletedAnchorMenu: () => ({ model }),
     CompletedPortalMenuBackdrop: () => ({ model }),
 
-    Opened: ({ maybeActiveItemIndex }) =>
-      openMenu(
+    Opened: ({ maybeActiveItemIndex }) => {
+      if (model.isOpen) {
+        return { model }
+      }
+
+      return openMenu(
         modifyFields(model, {
           maybeActiveItemIndex: () => maybeActiveItemIndex,
           activationTrigger: () =>
@@ -442,7 +446,8 @@ export const update = (model: Model, message: Message) => {
           searchVersion: () => 0,
           maybeLastPointerPosition: () => Option.none(),
         }),
-      ),
+      )
+    },
 
     Closed: () => closeMenu(model, closeWithFocusCommands),
 
@@ -670,7 +675,8 @@ export const PortalMenuBackdrop = Mount.define('PortalMenuBackdrop', {
 })
 
 /** Programmatically opens the Menu, updating the Model and returning focus and
- *  modal Commands. Use this in domain-event handlers. */
+ *  modal Commands. When it is already open, returns the Model unchanged with
+ *  no Commands. Use this in domain-event handlers. */
 export const open = (model: Model): UpdateReturn =>
   update(model, Message.Opened({ maybeActiveItemIndex: Option.none() }))
 

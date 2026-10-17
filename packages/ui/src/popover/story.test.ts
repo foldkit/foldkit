@@ -654,6 +654,19 @@ describe('Popover', () => {
       )
     })
 
+    it('emits no Commands on RequestedOpen when already open in modal mode', () => {
+      Story.story(
+        update,
+        givenOpenModal,
+        Story.message(Message.RequestedOpen()),
+        Story.expectNoOutMessage(),
+        Story.Command.expectNone(),
+        Story.model(model => {
+          expect(model.isOpen).toBe(true)
+        }),
+      )
+    })
+
     it('emits unlockScroll and restoreInert commands when the panel blurs in modal mode', () => {
       Story.story(
         update,
