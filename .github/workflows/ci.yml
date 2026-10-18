@@ -308,15 +308,43 @@ jobs:
             "  '@effect/vitest': 4.0.5",
           ])
           const workspace = readFileSync(workspacePath, 'utf8')
+          const removedOverrides = new Set()
           const floorWorkspace = workspace
             .split('\n')
-            .filter((line) => !floorOverrides.has(line))
+            .filter((line) => {
+              if (!floorOverrides.has(line)) return true
+              removedOverrides.add(line)
+              return false
+            })
             .join('\n')
-            .replace(
-              "  '@types/node': 26.4.0\n",
-              "  '@types/node': 26.4.0\n  '@effect/platform-node@4.0.0>@effect/platform-node-shared': 4.0.0\n",
+          const missingOverrides = [...floorOverrides].filter(
+            (line) => !removedOverrides.has(line),
+          )
+          if (missingOverrides.length > 0) {
+            throw new Error(
+              `Expected Effect overrides not found: ${missingOverrides.join(', ')}`,
             )
-          writeFileSync(workspacePath, floorWorkspace)
+          }
+
+          const anchor = "  '@types/node': 26.4.0\n"
+          if (floorWorkspace.split(anchor).length - 1 !== 1) {
+            throw new Error('Expected exactly one @types/node workspace anchor')
+          }
+          const floorNodeOverride =
+            "  '@effect/platform-node@4.0.0>@effect/platform-node-shared': 4.0.0\n"
+          const configuredWorkspace = floorWorkspace.replace(
+            anchor,
+            `${anchor}${floorNodeOverride}`,
+          )
+          if (configuredWorkspace === floorWorkspace) {
+            throw new Error('Failed to add the Effect 4.0.0 platform-node override')
+          }
+          if (!configuredWorkspace.includes(anchor + floorNodeOverride)) {
+            throw new Error(
+              'Failed to insert the Effect 4.0.0 platform-node override after @types/node',
+            )
+          }
+          writeFileSync(workspacePath, configuredWorkspace)
 
           const foldkitPath = 'packages/foldkit/package.json'
           const foldkit = JSON.parse(readFileSync(foldkitPath, 'utf8'))
@@ -353,3 +381,18 @@ jobs:
           pnpm --filter @foldkit/devtools test &&
           pnpm --filter @foldkit/markdown test &&
           pnpm --filter @foldkit/node test
+
+      - name: Verify Effect 4.0.0 resolution
+        run: |
+          pnpm --filter foldkit why effect
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs'
+
+          const effect = JSON.parse(
+            readFileSync('packages/foldkit/node_modules/effect/package.json', 'utf8'),
+          )
+          if (effect.version !== '4.0.0') {
+            throw new Error(`Expected foldkit to resolve Effect 4.0.0, got ${effect.version}`)
+          }
+          console.log(`foldkit resolves Effect ${effect.version}`)
+          NODE
