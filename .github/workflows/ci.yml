@@ -272,3 +272,41 @@ jobs:
       - name: E2E smoke test
         if: steps.scope.outputs.website == 'true'
         run: pnpm --filter website test:e2e
+  effect-core-peer-floor:
+    name: Effect 4.0.0 compatibility for Foldkit and UI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Pin Effect overrides to 4.0.0
+        run: |
+          node --input-type=module -e '
+            import { readFileSync, writeFileSync } from "node:fs"
+            const path = "pnpm-workspace.yaml"
+            const workspace = readFileSync(path, "utf8")
+            writeFileSync(path, workspace
+              .replace("  effect: 4.0.5", "  effect: 4.0.0")
+              .replace("  " + String.fromCharCode(39) + "@effect/platform-browser" + String.fromCharCode(39) + ": 4.0.5", "  " + String.fromCharCode(39) + "@effect/platform-browser" + String.fromCharCode(39) + ": 4.0.0"))
+          '
+
+      - name: Install Foldkit and UI dependencies
+        run: pnpm install --no-frozen-lockfile --filter foldkit --filter @foldkit/ui
+
+      - name: Build Foldkit and UI
+        run: pnpm --filter foldkit build && pnpm --filter @foldkit/ui build
+
+      - name: Typecheck Foldkit and UI
+        run: pnpm --filter foldkit typecheck && pnpm --filter @foldkit/ui typecheck
+
+      - name: Test Foldkit and UI
+        run: pnpm --filter foldkit test && pnpm --filter @foldkit/ui test
