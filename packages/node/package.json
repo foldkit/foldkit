@@ -27,7 +27,7 @@
     "@effect/platform-node": "4.0.0"
   },
   "peerDependencies": {
-    "effect": "4.0.0",
+    "effect": "^4.0.0",
     "foldkit": ">=0.165.0"
   },
   "devDependencies": {

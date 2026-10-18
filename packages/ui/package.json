@@ -141,7 +141,7 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "effect": "4.0.0",
+    "effect": "^4.0.0",
     "foldkit": ">=0.167.0"
   },
   "dependencies": {

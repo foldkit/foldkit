@@ -30,9 +30,9 @@ export type Flags = typeof Flags.Type
 export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   const today = yield* Calendar.today.local
   const crypto = yield* Crypto.Crypto
-  const initialWorkHistoryEntryId = yield* Effect.orDie(crypto.randomUUIDv4)
-  const initialEducationEntryId = yield* Effect.orDie(crypto.randomUUIDv4)
-  const initialSkillsEntryId = yield* Effect.orDie(crypto.randomUUIDv4)
+  const initialWorkHistoryEntryId = yield* Effect.orDie(crypto.randomUUIDv4())
+  const initialEducationEntryId = yield* Effect.orDie(crypto.randomUUIDv4())
+  const initialSkillsEntryId = yield* Effect.orDie(crypto.randomUUIDv4())
   return {
     today,
     initialWorkHistoryEntryId,

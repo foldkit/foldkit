@@ -708,7 +708,7 @@ type Relay = Readonly<{
 
 const relayId = Effect.gen(function* () {
   const crypto = yield* Crypto.Crypto
-  return yield* crypto.randomUUIDv4.pipe(Effect.orDie)
+  return yield* Effect.orDie(crypto.randomUUIDv4())
 })
 
 const attachRelayHandlers = (
