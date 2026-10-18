@@ -273,7 +273,7 @@ jobs:
         if: steps.scope.outputs.website == 'true'
         run: pnpm --filter website test:e2e
   effect-core-peer-floor:
-    name: Effect 4.0.0 compatibility for Foldkit and UI
+    name: Effect 4.0.0 compatibility for package peers
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -288,25 +288,68 @@ jobs:
           node-version: 22
           cache: 'pnpm'
 
-      - name: Pin Effect overrides to 4.0.0
+      - name: Install latest workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build latest Foldkit and Vite plugin
+        run: pnpm --filter foldkit build && pnpm --filter @foldkit/vite-plugin build
+
+      - name: Configure Effect 4.0.0 floor
         run: |
-          node --input-type=module -e '
-            import { readFileSync, writeFileSync } from "node:fs"
-            const path = "pnpm-workspace.yaml"
-            const workspace = readFileSync(path, "utf8")
-            writeFileSync(path, workspace
-              .replace("  effect: 4.0.5", "  effect: 4.0.0")
-              .replace("  " + String.fromCharCode(39) + "@effect/platform-browser" + String.fromCharCode(39) + ": 4.0.5", "  " + String.fromCharCode(39) + "@effect/platform-browser" + String.fromCharCode(39) + ": 4.0.0"))
-          '
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs'
 
-      - name: Install Foldkit and UI dependencies
-        run: pnpm install --no-frozen-lockfile --filter foldkit --filter @foldkit/ui
+          const workspacePath = 'pnpm-workspace.yaml'
+          const floorOverrides = new Set([
+            '  effect: 4.0.5',
+            "  '@effect/platform-browser': 4.0.5",
+            "  '@effect/platform-node': 4.0.5",
+            "  '@effect/platform-node-shared': 4.0.5",
+            "  '@effect/vitest': 4.0.5",
+          ])
+          const workspace = readFileSync(workspacePath, 'utf8')
+          const floorWorkspace = workspace
+            .split('\n')
+            .filter((line) => !floorOverrides.has(line))
+            .join('\n')
+            .replace(
+              "  '@types/node': 26.4.0\n",
+              "  '@types/node': 26.4.0\n  '@effect/platform-node@4.0.0>@effect/platform-node-shared': 4.0.0\n",
+            )
+          writeFileSync(workspacePath, floorWorkspace)
 
-      - name: Build Foldkit and UI
-        run: pnpm --filter foldkit build && pnpm --filter @foldkit/ui build
+          const foldkitPath = 'packages/foldkit/package.json'
+          const foldkit = JSON.parse(readFileSync(foldkitPath, 'utf8'))
+          foldkit.devDependencies.effect = '4.0.0'
+          foldkit.devDependencies['@effect/platform-browser'] = '4.0.0'
+          foldkit.devDependencies['@effect/vitest'] = '4.0.0'
+          writeFileSync(foldkitPath, `${JSON.stringify(foldkit, null, 2)}\n`)
+          NODE
 
-      - name: Typecheck Foldkit and UI
-        run: pnpm --filter foldkit typecheck && pnpm --filter @foldkit/ui typecheck
+      - name: Install Effect 4.0.0 floor dependencies
+        run: pnpm install --no-frozen-lockfile
 
-      - name: Test Foldkit and UI
-        run: pnpm --filter foldkit test && pnpm --filter @foldkit/ui test
+      # MCP tests exercise the Vite plugin, which requires Effect 4.0.5.
+      - name: Build packages
+        run: |
+          pnpm --filter foldkit build &&
+          pnpm --filter @foldkit/ui build &&
+          pnpm --filter @foldkit/devtools build &&
+          pnpm --filter @foldkit/markdown build &&
+          pnpm --filter @foldkit/node build
+
+      - name: Typecheck packages
+        run: |
+          pnpm --filter foldkit typecheck &&
+          pnpm --filter @foldkit/ui typecheck &&
+          pnpm --filter @foldkit/devtools typecheck &&
+          pnpm --filter @foldkit/markdown typecheck &&
+          pnpm --filter @foldkit/node typecheck
+
+      - name: Test packages
+        run: |
+          pnpm --filter foldkit test &&
+          pnpm --filter @foldkit/ui test &&
+          pnpm --filter @foldkit/devtools test &&
+          pnpm --filter @foldkit/markdown test &&
+          pnpm --filter @foldkit/node test
