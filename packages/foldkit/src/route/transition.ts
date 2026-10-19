@@ -144,3 +144,106 @@ export const isEntering = <
   transition: Transition<Route>,
   routeTag: Tag,
 ): boolean => Option.isSome(entered(transition, routeTag))
+
+/** Whether this transition left the selected route. A cold load never exits
+ *  a route. Use {@link exited} when the previous payload is needed. */
+export const isExiting = <
+  Route extends Readonly<{ _tag: string }>,
+  Tag extends Route['_tag'],
+>(
+  transition: Transition<Route>,
+  routeTag: Tag,
+): boolean => Option.isSome(exited(transition, routeTag))
+
+/** Whether both routes carry the selected tag, including identical route
+ *  values. A cold load never stays. Use {@link stayed} for both payloads. */
+export const isStaying = <
+  Route extends Readonly<{ _tag: string }>,
+  Tag extends Route['_tag'],
+>(
+  transition: Transition<Route>,
+  routeTag: Tag,
+): boolean => Option.isSome(stayed(transition, routeTag))
+
+type Handlers<Route, Entered, Exited, Stayed, Unrelated> = Readonly<{
+  Entered: (nextRoute: Route) => Entered
+  Exited: (previousRoute: Route) => Exited
+  Stayed: (
+    routes: Readonly<{ previousRoute: Route; nextRoute: Route }>,
+  ) => Stayed
+  Unrelated: () => Unrelated
+}>
+
+/** Selects exactly one handler relative to a route tag. A cold load enters
+ *  the selected route or is unrelated. Both matching tags mean Stayed,
+ *  regardless of payload equality. Handlers receive narrowed route payloads
+ *  and run synchronously; their return types are preserved as a union. */
+export const match = <
+  Route extends Readonly<{ _tag: string }>,
+  Tag extends Route['_tag'],
+  Entered,
+  Exited,
+  Stayed,
+  Unrelated,
+>(
+  transition: Transition<Route>,
+  routeTag: Tag,
+  handlers: Handlers<
+    Extract<Route, { _tag: Tag }>,
+    Entered,
+    Exited,
+    Stayed,
+    Unrelated
+  >,
+): Entered | Exited | Stayed | Unrelated => {
+  const { maybePreviousRoute, nextRoute } = transition
+  const isTagged = hasTag(routeTag)
+
+  if (Option.isSome(maybePreviousRoute) && isTagged(maybePreviousRoute.value)) {
+    const previousRoute = maybePreviousRoute.value
+
+    if (isTagged(nextRoute)) {
+      return handlers.Stayed({ previousRoute, nextRoute })
+    } else {
+      return handlers.Exited(previousRoute)
+    }
+  }
+
+  if (isTagged(nextRoute)) {
+    return handlers.Entered(nextRoute)
+  } else {
+    return handlers.Unrelated()
+  }
+}
+
+/** Like {@link match}, but invokes the fallback when the selected case has
+ *  no handler. Only one callback runs, even when its result is undefined. */
+export const matchOrElse = <
+  Route extends Readonly<{ _tag: string }>,
+  Tag extends Route['_tag'],
+  Entered = never,
+  Exited = never,
+  Stayed = never,
+  Unrelated = never,
+  Fallback = never,
+>(
+  transition: Transition<Route>,
+  routeTag: Tag,
+  handlers: Partial<
+    Handlers<Extract<Route, { _tag: Tag }>, Entered, Exited, Stayed, Unrelated>
+  >,
+  fallback: () => Fallback,
+): Entered | Exited | Stayed | Unrelated | Fallback =>
+  match<
+    Route,
+    Tag,
+    Entered | Fallback,
+    Exited | Fallback,
+    Stayed | Fallback,
+    Unrelated | Fallback
+  >(transition, routeTag, {
+    Entered: handlers.Entered ?? fallback,
+    Exited: handlers.Exited ?? fallback,
+    Stayed: handlers.Stayed ?? fallback,
+    Unrelated: handlers.Unrelated ?? fallback,
+  })
