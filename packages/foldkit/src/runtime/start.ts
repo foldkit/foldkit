@@ -1,14 +1,8 @@
-import {
-  Cause,
-  Effect,
-  Fiber,
-  Function,
-  Option,
-  Predicate,
-  Runtime,
-  pipe,
-} from 'effect'
+import { Cause, Effect, Fiber, Option, Predicate, Runtime, pipe } from 'effect'
 
+import { BrowserRuntime } from '@effect/platform-browser'
+
+import { buildIdOrInjected } from '../buildToken.js'
 import type { Ports } from '../port/index.js'
 import { provideBrowserScheduler } from './browserScheduler.js'
 import {
@@ -71,19 +65,6 @@ export const __startProgram = (
   )
 }
 
-// NOTE: deliberately not `BrowserRuntime.runMain`, which interrupts the
-// runtime on `beforeunload`. `beforeunload` is a question, not a commitment:
-// the browser also fires it for a click on a download link, for a navigation
-// the user cancels, and when freezing the page into the back/forward cache.
-// The document survives all three, but the interrupt finalizer has already
-// put the container element back empty, so the page is left alive with no app
-// in it. A page-owning runtime gains nothing from tearing itself down while
-// the document is on its way out, so it starts with no page-lifecycle
-// interrupt at all and lets the document take the runtime with it. The
-// keep-alive interval still comes from `makeRunMain`; Foldkit owns the shared
-// error-reporting policy used by page-owning and embedded runtimes below.
-const runMainWithoutUnloadInterrupt = Runtime.makeRunMain(Function.constVoid)
-
 /** Reports unhandled non-interrupt Causes using Effect's runtime policy.
  * @internal */
 export const __reportUnhandledCause = <E>(
@@ -108,7 +89,7 @@ const startProgram = (
   flags?: Effect.Effect<unknown, never, any>,
   buildId?: string,
 ): void => {
-  runMainWithoutUnloadInterrupt(
+  BrowserRuntime.runMain(
     withUnhandledCauseReporting(
       provideBrowserScheduler(
         Effect.flatMap(
@@ -154,14 +135,16 @@ export type HydrateOptions = Readonly<{
    * The deployment this client belongs to, compared against the id the server
    * stamped on the root before the Flags payload text is accessed or decoded,
    * so a page from a different deployment stops startup rather than handing its
-   * Flags to this build. Required, and must be non-empty: an absent id would
-   * equal the absent marker on a page served before build ids existed.
+   * Flags to this build. When omitted, Foldkit uses the identity compiled into
+   * this artifact by `@foldkit/vite-plugin`. An explicit id overrides that
+   * value and must be non-empty: an absent id would equal the absent marker on
+   * a page served before build ids existed.
    *
-   * Pass `import.meta.env.FOLDKIT_BUILD_ID`, which `@foldkit/vite-plugin` fills
-   * from its `buildId` option or the `FOLDKIT_BUILD_ID` environment variable,
-   * the same value the server entry passes to `renderToString`.
+   * This explicit option is for integrations that cannot compile the shared
+   * identity into the artifact. Give the server the same public,
+   * deployment-specific value.
    */
-  buildId: string
+  buildId?: string
 }>
 
 /** Starts a Foldkit runtime by adopting a server-rendered DOM in place instead
@@ -190,9 +173,14 @@ export type HydrateOptions = Readonly<{
  * contracts settle. */
 export const hydrate = <P extends Ports | undefined, Flags, Resources>(
   program: MakeRuntimeReturn<P, Flags, Resources, 'Application'>,
-  options: HydrateOptions,
+  options?: HydrateOptions,
 ): void => {
-  startProgram(program, 'Hydrate', undefined, options?.buildId)
+  startProgram(
+    program,
+    'Hydrate',
+    undefined,
+    buildIdOrInjected(options?.buildId),
+  )
 }
 
 /**

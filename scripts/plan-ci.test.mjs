@@ -122,6 +122,13 @@ test('a foldkit change selects the packed consumer externalization gate', () => 
   )
 })
 
+test('a markdown change selects the packed consumer gate', () => {
+  assert.equal(
+    planCiForFile('packages/markdown/src/index.ts')['packed_ssr_consumer'],
+    'true',
+  )
+})
+
 test('a website-only change leaves the packed consumer gate alone', () => {
   assert.equal(
     planCiForFile('packages/website/src/page/landing.ts')[
@@ -143,9 +150,13 @@ test('browser-backed gate manifests select their consumers', () => {
 test('peer floor inputs select their packed-manifest gate', () => {
   for (const fileName of [
     '.changeset/plugin-peer-floor.md',
+    'packages/node/package.json',
+    'packages/ui/package.json',
+    'packages/devtools/package.json',
+    'packages/devtools-mcp/package.json',
+    'packages/markdown/package.json',
     'packages/vite-plugin-foldkit/package.json',
     'scripts/check-peer-floors.ts',
-    'scripts/reset-peer-deps.ts',
   ]) {
     assert.equal(planCiForFile(fileName)['peer_floors'], 'true', fileName)
   }
@@ -168,8 +179,6 @@ test('a packed consumer fixture change selects only its focused gate', () => {
 })
 
 test('a scaffold or framework change selects the generated-app build gate', () => {
-  // The gate installs every Foldkit package in a generated app, then runs the
-  // scaffold's build command where the build id contract is kept or lost.
   for (const file of [
     'examples/ssg/package.json',
     'examples/ssr/package.json',
@@ -178,9 +187,12 @@ test('a scaffold or framework change selects the generated-app build gate', () =
     'packages/devtools/src/index.ts',
     'packages/devtools-mcp/src/index.ts',
     'packages/foldkit/src/experimental/server/server.ts',
+    'packages/node/src/node.ts',
     'packages/oxlint-plugin-foldkit/src/index.ts',
     'packages/ui/src/button/index.ts',
     'packages/vite-plugin-foldkit/src/buildToken.ts',
+    'scripts/scaffold-dependencies.ts',
+    'scripts/scaffold-dependencies.test.mjs',
   ]) {
     assert.equal(
       planCiForFile(file)['scaffold_server_rendering'],
@@ -199,6 +211,7 @@ test('an ssr host or framework change selects the host parity gate', () => {
     'packages/vite-plugin-foldkit/src/ssr.ts',
     'packages/foldkit/src/experimental/server/host.ts',
     'packages/foldkit/src/experimental/server/fetch.ts',
+    'packages/node/src/node.ts',
   ]) {
     assert.equal(planCiForFile(file)['host_parity'], 'true', file)
   }

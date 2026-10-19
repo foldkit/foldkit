@@ -1,13 +1,15 @@
 import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { build as viteBuild } from 'vite'
+import { resolveConfig, build as viteBuild } from 'vite'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { buildIdForCommand, resolveBuildId } from '../src/buildToken.ts'
+import { foldkit } from '../src/index.ts'
 import { foldkitSsr } from '../src/ssr.ts'
 
 const FIXTURE_ROOT = resolve(import.meta.dirname, 'fixtures/ssr')
+const BUILD_CONFIG_ROOT = resolve(import.meta.dirname, 'fixtures/build-config')
 const temporaryDirectories: Array<string> = []
 
 const readBuiltFiles = (directory: string): string => {
@@ -99,6 +101,39 @@ describe('buildIdForCommand', () => {
 })
 
 describe('standalone foldkitSsr builds', () => {
+  for (const base of ['', './']) {
+    it(`keeps relative base ${JSON.stringify(base)} available to client-only builds and preview`, async () => {
+      const outputRoot = mkdtempSync(join(tmpdir(), 'foldkit-client-only-'))
+      temporaryDirectories.push(outputRoot)
+      const config = {
+        root: BUILD_CONFIG_ROOT,
+        configFile: false,
+        base,
+        plugins: foldkit({
+          buildId: 'client-only',
+          ssr: {
+            clientEntry: '/entry.client.ts',
+            serverEntry: '/entry.server.ts',
+          },
+        }),
+        build: { emptyOutDir: true, outDir: outputRoot },
+      } satisfies Parameters<typeof viteBuild>[0]
+
+      await viteBuild({ ...config, logLevel: 'silent' })
+      expect(readFileSync(join(outputRoot, 'index.html'), 'utf8')).toMatch(
+        /src="\.\/assets\//,
+      )
+      const preview = await resolveConfig(
+        config,
+        'serve',
+        'production',
+        'production',
+        true,
+      )
+      expect(preview.appType).toBe('spa')
+    })
+  }
+
   it('compiles the configured id into client and externalized server builds', async () => {
     const outputRoot = mkdtempSync(join(tmpdir(), 'foldkit-ssr-build-token-'))
     temporaryDirectories.push(outputRoot)
@@ -136,5 +171,44 @@ describe('standalone foldkitSsr builds', () => {
     expect(server).toContain(buildId)
     expect(client).not.toContain('development')
     expect(server).not.toContain('development')
+  })
+})
+
+describe('separately invoked aggregate builds', () => {
+  it('compiles the explicit override into Foldkit in both artifacts', async () => {
+    const outputRoot = mkdtempSync(join(tmpdir(), 'foldkit-explicit-token-'))
+    temporaryDirectories.push(outputRoot)
+    const buildId = 'separate-deployment'
+    const plugin = () =>
+      foldkit({
+        buildId,
+        ssr: { serverEntry: '/entry.server.ts' },
+      })
+    const clientOutput = join(outputRoot, 'client')
+    const serverOutput = join(outputRoot, 'server')
+
+    await viteBuild({
+      root: BUILD_CONFIG_ROOT,
+      configFile: false,
+      logLevel: 'silent',
+      plugins: [plugin()],
+      build: { emptyOutDir: true, outDir: clientOutput },
+    })
+    await viteBuild({
+      root: BUILD_CONFIG_ROOT,
+      configFile: false,
+      logLevel: 'silent',
+      plugins: [plugin()],
+      build: {
+        emptyOutDir: true,
+        outDir: serverOutput,
+        ssr: resolve(BUILD_CONFIG_ROOT, 'entry.server.ts'),
+      },
+    })
+
+    const client = readBuiltFiles(clientOutput)
+    const server = readBuiltFiles(serverOutput)
+    expect(client).toContain(buildId)
+    expect(server).toContain(buildId)
   })
 })

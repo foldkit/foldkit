@@ -2,7 +2,7 @@
 
 ## Overview
 
-This page is for people who have already chosen Effect. In Effect 4, [Effect Atom](https://github.com/Effect-TS/effect/tree/main/packages/atom) provides reactive state primitives through `effect/unstable/reactivity`, with view bindings such as `@effect/atom-react`, `@effect/atom-solid`, and `@effect/atom-vue`. The host framework still owns rendering and components.
+This page is for people who have already chosen Effect. In Effect 4, [Effect Atom](https://github.com/Effect-TS/effect/tree/main/packages/atom) provides reactive state primitives through `effect/reactivity`, with view bindings such as `@effect/atom-react`, `@effect/atom-solid`, and `@effect/atom-vue`. The host framework still owns rendering and components.
 
 Foldkit owns the application runtime and view layer. It renders through a virtual DOM built on [Snabbdom](https://github.com/snabbdom/snabbdom), and it includes routing, UI components, DevTools, and Story and Scene testing. Its architecture has one Model, a Message union, and an update function. Side effects return to the runtime as Commands and other lifecycle primitives.
 
@@ -20,9 +20,13 @@ Above that Effect foundation, their responsibilities differ. Effect Atom provide
 
 ## Many Atoms vs One Model
 
+### Effect Atom State
+
 An atom is a reactive container for a value. You can create state with `Atom.make`, derive an atom from other atoms, read it with `useAtomValue`, and write it with `useAtomSet`. The registry tracks dependencies and notifies the components that read a changed atom.
 
 State is distributed by design, and that is the point. A feature can own its atoms, and a component can update any writable atom it imports. The cost of that locality is that no single value represents the state of the application and no single type lists every way it can change.
+
+### Foldkit Model and Messages
 
 Foldkit centralizes state in the [Model](/core/model). The [Message](/core/messages) union lists the facts the application handles, and [update](/core/update) defines how those facts change the Model. Those are framework constraints, not conventions a team maintains by discipline. [Submodels](/core/submodel) split a large application into smaller state machines while preserving the same parent-to-child Message flow.
 
@@ -110,7 +114,11 @@ There is no component Hook state, dependency array, or callback identity to stab
 
 ## One Timeline vs Many Cells
 
+### Foldkit Message Timeline
+
 Every Foldkit state change is a Message processed by update. Foldkit DevTools records those Messages and the resulting Models, so it can replay the application timeline. This site runs on Foldkit; the DEV button in the bottom-right corner opens its DevTools.
+
+### Effect Atom Registry
 
 Effect Atom’s registry holds the current value of many cells and updates their dependents. It does not define one app-wide union of named events, so there is no equivalent built-in Message timeline to replay. An application can add its own event model or logging when that history is useful.
 
@@ -118,13 +126,19 @@ Effect Atom’s registry holds the current value of many cells and updates their
 
 Foldkit’s update function is pure: given a Model and a Message, it returns the next Model and Commands. That shape supports two [testing](/testing) tools.
 
+### Story Tests the State Machine
+
 [Story](/testing/story) sends Messages through update, inspects the Model, and resolves Commands by supplying their result Messages. The test can assert that a Command was returned without executing its Effect.
 
 ::Snippet{name="atomCompareFoldkitStory" label="Foldkit Story test"}
 
+### Scene Tests Through the View
+
 [Scene](/testing/scene) renders the view, finds elements by accessible role or text, dispatches events through update, and resolves Commands inline.
 
 ::Snippet{name="atomCompareFoldkitScene" label="Foldkit Scene test"}
+
+### Effect Atom Uses Its Host Framework’s Tools
 
 An Effect Atom application uses the testing tools of its host framework. In React, a user-facing test commonly renders a component with React Testing Library and jsdom, then waits for the atom’s Effect and React render to finish:
 
@@ -134,7 +148,11 @@ Atom Effects can also be tested below the component boundary. The architectural 
 
 ## Scaling Complexity
 
+### Effect Atom Dependency Graph
+
 An Effect Atom application grows a graph of atoms. Adding an independent atom is local, derived atoms declare their dependencies, and fine-grained subscriptions limit which components update. Understanding a cross-feature change may require following atom reads, writes, and reactivity keys across files.
+
+### Foldkit State Machine
 
 A Foldkit application grows its Model, Message union, and update logic. Exhaustive matching keeps the transition catalog complete, but a large update function eventually needs to be divided into [Submodels](/core/submodel). Submodel composition adds explicit parent-child wiring.
 
@@ -142,7 +160,11 @@ The trade-off is locality versus a central index. Effect Atom favors independent
 
 ## AI-Assisted Development
 
+### Foldkit Message Union
+
 Foldkit’s closed Message unions and exhaustive updates give a coding agent a bounded list of state transitions and compile errors when a new variant is unhandled. The type system turns a new Message into a concrete to-do list. Commands, Subscriptions, and views also have distinct roles, which narrows where related code should live.
+
+### Effect Atom Feature State
 
 Effect Atom favors feature-local atoms, so an agent instead follows imports, derived dependencies, setters, and reactivity keys. That can make a local feature compact while requiring more repository search for changes that cross several atoms. Foldkit’s [AI tools](/ai/overview) document its framework-specific patterns for agents that do not already know them.
 

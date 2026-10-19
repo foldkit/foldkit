@@ -5,7 +5,7 @@ import { defineMessageUnion } from '../message/index.js'
 import { MountTracker } from '../mount/index.js'
 import { isClientOnlyProperty } from '../propertyProvenance.js'
 import { Dispatch, embed, makeElement } from '../runtime/index.js'
-import { evo } from '../struct/index.js'
+import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
 import { beginRender, createBoundaryRegistry } from './boundary.js'
 import * as HtmlModule from './index.js'
@@ -319,7 +319,7 @@ describe('HtmlBuilder runtime guarantees', () => {
         model: Model,
         _message: Message,
       ): Update.Return<Model, Message> => ({
-        model: evo(model, { count: Number.increment }),
+        model: modifyFields(model, { count: Number.increment }),
       }),
       view: (model, h) =>
         h.div(

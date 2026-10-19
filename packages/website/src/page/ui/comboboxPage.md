@@ -4,11 +4,15 @@
 
 A searchable select with input filtering, keyboard navigation, and anchor positioning. Unlike Listbox (which uses a button trigger), Combobox has a text input for searching. You control the filtering logic: read `model.inputValue` and pass the filtered items array. The parent owns the selection: it passes the chosen value in as `maybeSelectedValue` (multi-select passes `selectedValues`) along with `restingInputValue` (the text the input rests at when closed), and folds the `Selected` and `ClearedSelection` OutMessages into its own state (single-select stores the value, multi-select toggles the value in its array).
 
+### Create a Typed Combobox
+
 Embed Combobox via the [`create<Item>()` factory](/ui/selection-submodels) at module scope: `const CityCombobox = Combobox.create<City>()`. The factory binds the view, update, and programmatic helpers to the same `Item` type, so the `Selected` OutMessage carries a `City`. Combobox constrains `Item extends string`.
 
-Programmatic helpers are child entry points. Fold `CityCombobox.open` with `Update.foldChildStep`. Fold `CityCombobox.close` and `CityCombobox.selectItem` with `Update.foldChild` because they take additional input. Single-select `close` takes the resting input text (the selected display text, or empty); `Combobox.Multi.close` takes no additional input and uses `Update.foldChildStep` because the multi-select input always rests empty.
-
 What the factory returns is typed [`Combobox.Bundle<Item>`](/ui/selection-submodels#bundle-type) (`Combobox.Multi.Bundle` for the multi-select variant), for the cases where a created bundle has to be named rather than called directly.
+
+### Programmatic Helpers
+
+Programmatic helpers are child entry points. Fold `CityCombobox.open` with `Update.foldChildStep`. Fold `CityCombobox.close` and `CityCombobox.selectItem` with `Update.foldChild` because they take additional input. Single-select `close` takes the resting input text (the selected display text, or empty); `Combobox.Multi.close` takes no additional input and uses `Update.foldChildStep` because the multi-select input always rests empty.
 
 :::Info{label="See it in an app"}
 Check out how Combobox is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/combobox.ts).
@@ -22,7 +26,7 @@ Pass `itemToValue` and `itemToDisplayText` to control how items map to values an
 
 ::Demo{name="single-select"}
 
-::Snippet{name="uiComboboxBasic" label="combobox example"}
+::Snippet{name="uiComboboxBasic" label="Combobox"}
 
 ### Nullable
 
@@ -52,29 +56,49 @@ Use `Combobox.Multi` for multi-selection. The dropdown stays open on selection a
 
 ::Demo{name="multi"}
 
-::Snippet{name="uiComboboxMulti" label="multi-select combobox example"}
+::Snippet{name="uiComboboxMulti" label="Multi-select combobox"}
 
 ## Read-Only
 
+### Browsing Without Committing
+
 `isReadOnly` keeps the Combobox browsable but not committable. It still opens from `Arrow Down`, `Arrow Up`, the toggle button, and `openOnFocus`, still navigates with `Arrow Down`, `Arrow Up`, `Home`, and `End`, still tracks the active item through `aria-activedescendant` and pointer hover, and still closes on `Escape`, blur, and a backdrop click. The input still takes focus, and its text can still be selected and copied.
+
+#### Commit Paths Are Inert
 
 What a read-only Combobox never does is commit. Its input carries the native `readonly` attribute and no `OnInput` handler, so typing cannot change the value. Items carry no click handler. `Enter` on the active item reports a `SuppressedItemCommit` Message that leaves the Model unchanged. An `immediate` Combobox stops committing as the arrow keys move. No `Selected` OutMessage reaches the parent through any of them.
 
+#### Closing Preserves the Selection
+
 Closing does not change the selection either. A nullable Combobox normally reads an empty input on close as the user clearing it and emits `ClearedSelection`; a read-only one never does, so a user who opens and closes it, by `Escape`, blur, the toggle button, or a backdrop click, leaves the parent's selection exactly as it was. This matters most for multi-select, whose input rests empty by design, and for a single-select whose input was never seeded. The programmatic `close` helper is unaffected and clears as before.
+
+### Typing and Opening
 
 Typing is frozen rather than left to filter, because `model.inputValue` is one field serving two purposes. It is the filter query you read to narrow `items`, and it is the display of the current selection, restored to `restingInputValue` on close and on blur. Letting a read-only Combobox be typed into would give the user a widget whose visible value they can change and which only snaps back on blur.
 
 Freezing typing removes an open path along with it. An interactive Combobox opens on the first keystroke, since `UpdatedInputValue` opens a closed one, which makes clicking into the input feel like it opens the dropdown. A read-only Combobox has no `OnInput` handler, so that path is gone and the toggle button and the arrow keys are what remain. Pass `openOnFocus` when focusing the input should open it; it is unaffected by `isReadOnly`.
 
+### Programmatic Changes
+
 `isReadOnly` describes what the user may do, not what the program may do. `selectItem` and a directly dispatched `SelectedItem` Message still select, because the parent owns the selection.
+
+### Displaying an Existing Selection
 
 A read-only single-select Combobox whose parent holds a preloaded selection renders an empty input until an open and close cycle happens, since `model.inputValue` starts empty and only becomes the selection's display text through a selection or a close. Read-only removes the user's usual recovery path, since they cannot type to surface it. Seed the Model at boot with `selectItem`, which sets `inputValue` to the display text; the `boot()` convention is the idiomatic place for that.
 
 Seeding interacts with filtering. You derive `items` from `model.inputValue`, so a read-only Combobox seeded with its selection opens showing only the items matching that text, often just the one. Filter on a separate field, or skip filtering while read-only, when the full list should stay visible.
 
+### Multi-Select Display
+
 Multi-select needs neither, and needs something else instead. Its `restingInputValue` is an empty string by design, so the input never displays the selection and there is nothing to seed. That leaves the open panel, where `aria-selected` and the `isSelected` context mark the chosen items, as the only place the component shows what is selected. Render the selection yourself from the `selectedValues` you already own, as a tag or chip list beside the Combobox, so a read-only multi-select reads as something other than an empty frozen input.
 
+### Read-Only and Disabled States
+
+#### ARIA Semantics
+
 `isReadOnly` and `isDisabled` both stop the Combobox from committing, and setting both emits both attribute sets. They differ in the semantics exposed to assistive technology, so they are not interchangeable. `aria-disabled="true"`, which `isDisabled` emits on the input and the toggle button, communicates that the Combobox is unavailable, and it removes their handlers so the dropdown cannot be opened at all. `aria-readonly="true"`, which `isReadOnly` emits on the input carrying `role="combobox"` and on the items panel carrying `role="listbox"`, communicates that the value cannot be changed but remains relevant to the user.
+
+#### Choosing a State
 
 Assistive technology support for `aria-readonly` on comboboxes varies. Pair it with a visible read-only treatment or explanatory text when users must distinguish it from disabled, and test the browser and assistive technology combinations your app supports.
 
@@ -84,7 +108,7 @@ Use `isReadOnly` when the selection is still information the user needs, such as
 
 Combobox is headless. The `itemToConfig` callback controls all item markup. Style the input, button, items container, and backdrop through their respective attribute props.
 
-The items panel is portaled to the document body and positioned relative to the input wrapper with Floating UI. Ancestor stacking contexts and overflow clipping no longer apply, so a clipped container or a sibling overlay wrapper cannot hide the open panel. The panel still stacks at the document level: give it a z-index above elevated content like sticky headers or toasts, as the demos on this page do with `z-10`. Pass `anchor: { portal: false }` to keep the panel inside the wrapper instead.
+The items panel is portaled to the document body and positioned relative to the input wrapper with Floating UI. Ancestor stacking contexts and overflow clipping no longer apply, so a clipped container or a sibling overlay wrapper cannot hide the open panel. The panel still stacks at the document level: give it a z-index above elevated content like sticky headers or toasts, as the demos on this page do with `z-10`. Inside a `<dialog>`, the panel is portaled into that dialog, so it renders above the dialog's content and stays interactive. Keep the outer Combobox wrapper positioned, for example with `className: 'relative'`, so the input paints above the click-outside backdrop. Pass `anchor: { portal: false }` to keep the panel inside the wrapper.
 
 | Attribute        | Condition                                                                                                                                                       |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -111,9 +135,19 @@ Focus stays on the input while arrow keys navigate items via `aria-activedescend
 
 Opening, closing, and arrow, `Home`, and `End` navigation are unaffected by `isReadOnly`. See [Read-Only](#read-only).
 
+### Empty Results
+
+When filtering leaves no items, the listbox disappears and navigation keys have no item to activate. The input stays focused. A modal Combobox keeps its backdrop available, so Escape and a backdrop click still close it and release the page. Render a visible and announced "No results" status in your view if users need feedback about the empty search.
+
 ## Accessibility
 
+### Combobox Semantics
+
 The input receives `role="combobox"` with `aria-expanded` and `aria-activedescendant`. The items container receives `role="listbox"` and each item receives `role="option"` with `aria-selected`. The input also receives the native `readonly` attribute and `aria-readonly="true"`, and the items container receives `aria-readonly="true"`, when `isReadOnly` is set. The ARIA attribute is emitted on the input in addition to the native one because the explicit `role="combobox"` overrides the element's native semantics, so the native attribute alone is not exposed to assistive technology. See [Read-Only](#read-only).
+
+When the filtered listbox disappears, the input reports `aria-expanded="false"` and drops `aria-controls` and `aria-activedescendant` rather than pointing at missing elements.
+
+### Naming the Input
 
 The input is a form field, so give it an accessible name. For a visible label, wire a native `<label for>` that targets the input id with `Combobox.inputId(id)` rather than hardcoding the `-input` convention. The `for` association makes the input properly labeled: assistive technology announces it by the visible label text, and clicking the label focuses the input. That is why it is the recommended pattern.
 
@@ -138,26 +172,26 @@ Configuration object passed to `Combobox.init()` or `Combobox.Multi.init()`.
 
 Configuration object passed to `CityCombobox.view`.
 
-| Name                 | Type                                                | Default | Description                                                                                                                                                                                                                                                                                                                       |
-| -------------------- | --------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `model`              | `Combobox.Model`                                    | —       | The combobox state from your parent Model.                                                                                                                                                                                                                                                                                        |
-| `toParentMessage`    | `(childMessage: Combobox.Message) => ParentMessage` | —       | Wraps Combobox Messages in your parent Message type for Submodel delegation.                                                                                                                                                                                                                                                      |
-| `items`              | `ReadonlyArray<Item>`                               | —       | The filtered list of items to display. You control the filtering logic based on model.inputValue.                                                                                                                                                                                                                                 |
-| `maybeSelectedValue` | `Option<Item>`                                      | —       | The selection the parent owns. None when nothing is selected yet. Multi-select takes selectedValues: `ReadonlyArray<Item>` instead. Drives the isSelected context and aria-selected.                                                                                                                                              |
-| `restingInputValue`  | `string`                                            | —       | The text the input returns to when the combobox closes: the selected display text for single-select, an empty string for multi-select.                                                                                                                                                                                            |
-| `itemToConfig`       | `(item, context) => ItemConfig`                     | —       | Maps each item to its className and content. The context provides isActive, isSelected, isDisabled, and isReadOnly.                                                                                                                                                                                                               |
-| `itemToValue`        | `(item: Item, index: number) => Item`               | —       | Extracts the value from an item. Required.                                                                                                                                                                                                                                                                                        |
-| `itemToDisplayText`  | `(item: Item, index: number) => string`             | —       | Text shown in the input when an item is selected. Required.                                                                                                                                                                                                                                                                       |
-| `inputAttributes`    | `ReadonlyArray<Attribute<Message>>`                 | —       | Additional attributes for the text input.                                                                                                                                                                                                                                                                                         |
-| `itemsAttributes`    | `ReadonlyArray<Attribute<Message>>`                 | —       | Additional attributes for the dropdown items container.                                                                                                                                                                                                                                                                           |
-| `backdropAttributes` | `ReadonlyArray<Attribute<Message>>`                 | —       | Additional attributes for the backdrop overlay.                                                                                                                                                                                                                                                                                   |
-| `buttonContent`      | `Html`                                              | —       | Content for the dropdown toggle button (typically a chevron icon).                                                                                                                                                                                                                                                                |
-| `buttonAttributes`   | `ReadonlyArray<Attribute<Message>>`                 | —       | Additional attributes for the toggle button.                                                                                                                                                                                                                                                                                      |
-| `anchor`             | `AnchorConfig`                                      | —       | Floating positioning config: placement, gap, offset, padding, isPlacementLocked, and portal. The items panel is always anchored to the input wrapper; when omitted, the panel uses bottom-start placement. Portaled to the document body by default; pass portal: false to keep the panel inside the wrapper.                     |
-| `isDisabled`         | `boolean`                                           | `false` | Marks the Combobox unavailable, with `aria-disabled="true"` on the input and the toggle button and `data-disabled` on both plus the wrapper, and removes their handlers so the dropdown cannot be opened.                                                                                                                         |
-| `isReadOnly`         | `boolean`                                           | `false` | Keeps the Combobox openable, navigable, and closable while freezing the input and making item clicks, the Enter commit, and the immediate arrow-commit inert. Carries the native readonly attribute and aria-readonly on the input, and aria-readonly on the items panel. Independent of isDisabled. See [Read-Only](#read-only). |
-| `ariaLabel`          | `string`                                            | —       | Accessible name for the input. Use when there is no visible label. Applied as aria-label, and takes precedence over ariaLabelledBy.                                                                                                                                                                                               |
-| `ariaLabelledBy`     | `string`                                            | —       | Id of an external element that labels the input, applied as aria-labelledby. Pair with a visible label element.                                                                                                                                                                                                                   |
+| Name                 | Type                                                | Default | Description                                                                                                                                                                                                                                                                                                                                 |
+| -------------------- | --------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`              | `Combobox.Model`                                    | —       | The combobox state from your parent Model.                                                                                                                                                                                                                                                                                                  |
+| `toParentMessage`    | `(childMessage: Combobox.Message) => ParentMessage` | —       | Wraps Combobox Messages in your parent Message type for Submodel delegation.                                                                                                                                                                                                                                                                |
+| `items`              | `ReadonlyArray<Item>`                               | —       | The filtered list of items to display. You control the filtering logic based on model.inputValue.                                                                                                                                                                                                                                           |
+| `maybeSelectedValue` | `Option<Item>`                                      | —       | The selection the parent owns. None when nothing is selected yet. Multi-select takes selectedValues: `ReadonlyArray<Item>` instead. Drives the isSelected context and aria-selected.                                                                                                                                                        |
+| `restingInputValue`  | `string`                                            | —       | The text the input returns to when the combobox closes: the selected display text for single-select, an empty string for multi-select.                                                                                                                                                                                                      |
+| `itemToConfig`       | `(item, context) => ItemConfig`                     | —       | Maps each item to its className and content. The context provides isActive, isSelected, isDisabled, and isReadOnly.                                                                                                                                                                                                                         |
+| `itemToValue`        | `(item: Item, index: number) => Item`               | —       | Extracts the value from an item. Required.                                                                                                                                                                                                                                                                                                  |
+| `itemToDisplayText`  | `(item: Item, index: number) => string`             | —       | Text shown in the input when an item is selected. Required.                                                                                                                                                                                                                                                                                 |
+| `inputAttributes`    | `ReadonlyArray<Attribute<Message>>`                 | —       | Additional attributes for the text input.                                                                                                                                                                                                                                                                                                   |
+| `itemsAttributes`    | `ReadonlyArray<Attribute<Message>>`                 | —       | Additional attributes for the dropdown items container.                                                                                                                                                                                                                                                                                     |
+| `backdropAttributes` | `ReadonlyArray<Attribute<Message>>`                 | —       | Additional attributes for the backdrop overlay.                                                                                                                                                                                                                                                                                             |
+| `buttonContent`      | `Html`                                              | —       | Content for the dropdown toggle button (typically a chevron icon).                                                                                                                                                                                                                                                                          |
+| `buttonAttributes`   | `ReadonlyArray<Attribute<Message>>`                 | —       | Additional attributes for the toggle button.                                                                                                                                                                                                                                                                                                |
+| `anchor`             | `AnchorConfig`                                      | —       | Floating positioning config: placement, gap, offset, padding, isPlacementLocked, and portal. The items panel is always anchored to the input wrapper; when omitted, the panel uses bottom-start placement. Portaled to the document body, or into an enclosing dialog, by default; pass portal: false to keep the panel inside the wrapper. |
+| `isDisabled`         | `boolean`                                           | `false` | Marks the Combobox unavailable, with `aria-disabled="true"` on the input and the toggle button and `data-disabled` on both plus the wrapper, and removes their handlers so the dropdown cannot be opened.                                                                                                                                   |
+| `isReadOnly`         | `boolean`                                           | `false` | Keeps the Combobox openable, navigable, and closable while freezing the input and making item clicks, the Enter commit, and the immediate arrow-commit inert. Carries the native readonly attribute and aria-readonly on the input, and aria-readonly on the items panel. Independent of isDisabled. See [Read-Only](#read-only).           |
+| `ariaLabel`          | `string`                                            | —       | Accessible name for the input. Use when there is no visible label. Applied as aria-label, and takes precedence over ariaLabelledBy.                                                                                                                                                                                                         |
+| `ariaLabelledBy`     | `string`                                            | —       | Id of an external element that labels the input, applied as aria-labelledby. Pair with a visible label element.                                                                                                                                                                                                                             |
 
 ### OutMessage {#out-message}
 

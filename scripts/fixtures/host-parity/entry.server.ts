@@ -1,7 +1,12 @@
 /// <reference path="../../../examples/ssr/src/vite-env.d.ts" />
 import { Server } from 'foldkit/experimental'
 
-import { renderPage as renderExamplePage } from '../../../examples/ssr/src/entry.server'
+import {
+  renderDocument as renderExampleDocument,
+  renderPage as renderExamplePage,
+} from '../../../examples/ssr/src/entry.server'
+
+export const renderDocument = renderExampleDocument
 
 const ECHO_PATH = '/echo'
 const ENTRY_CORS_PATH = '/entry-cors'

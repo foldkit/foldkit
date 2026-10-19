@@ -1,16 +1,13 @@
-export { aggregate, lift, make, persistent } from './subscription.js'
+export { aggregate, lift, make, persistentEntry } from './subscription.js'
 
 export type {
+  EntryGates,
   EntryWithoutKeepAlive,
   GatedDependencies,
   Subscription,
   Subscriptions,
 } from './subscription.js'
 
-export { animationFrame } from './animationFrame.js'
+export { animationFrameEntry } from './animationFrame.js'
 
 export type { AnimationFrameConfig } from './animationFrame.js'
-
-export { fromEvent, fromEventFilterMap } from './fromEvent.js'
-
-export type { FromEventConfig, FromEventFilterMapConfig } from './fromEvent.js'

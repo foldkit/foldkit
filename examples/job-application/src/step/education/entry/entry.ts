@@ -9,7 +9,7 @@ import {
   validate,
 } from 'foldkit/fieldValidation'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Listbox } from '@foldkit/ui'
 
@@ -93,7 +93,9 @@ const foldGraduationYearListboxOutMessage = Listbox.OutMessage.match<
   Selected:
     ({ value }) =>
     model => ({
-      model: evo(model, { maybeGraduationYear: () => Option.some(value) }),
+      model: modifyFields(model, {
+        maybeGraduationYear: () => Option.some(value),
+      }),
     }),
 })
 
@@ -101,7 +103,9 @@ const foldGraduationYearListbox = Update.foldChild({
   update: GraduationYearListbox.update,
   read: (model: Model) => Option.some(model.graduationYearListbox),
   write: (model, nextGraduationYearListbox) =>
-    evo(model, { graduationYearListbox: () => nextGraduationYearListbox }),
+    modifyFields(model, {
+      graduationYearListbox: () => nextGraduationYearListbox,
+    }),
   toParentMessage: message =>
     Message.GotGraduationYearListboxMessage({ message }),
   foldOutMessage: foldGraduationYearListboxOutMessage,
@@ -112,22 +116,24 @@ export const update = (model: Model, message: Message) =>
     message,
     {
       UpdatedSchool: ({ value }) => ({
-        model: evo(model, { school: () => validateSchool(value) }),
+        model: modifyFields(model, { school: () => validateSchool(value) }),
       }),
 
       UpdatedDegree: ({ value }) => ({
-        model: evo(model, { degree: () => validateDegree(value) }),
+        model: modifyFields(model, { degree: () => validateDegree(value) }),
       }),
 
       UpdatedFieldOfStudy: ({ value }) => ({
-        model: evo(model, { fieldOfStudy: () => validateFieldOfStudy(value) }),
+        model: modifyFields(model, {
+          fieldOfStudy: () => validateFieldOfStudy(value),
+        }),
       }),
 
       GotGraduationYearListboxMessage: ({ message }) =>
         foldGraduationYearListbox(model, message),
 
       ToggledCurrentlyEnrolled: ({ isChecked }) => ({
-        model: evo(model, { isCurrentlyEnrolled: () => isChecked }),
+        model: modifyFields(model, { isCurrentlyEnrolled: () => isChecked }),
       }),
 
       ClickedRemoveSelf: () => ({ model, outMessage: OutMessage.Removed() }),
@@ -147,7 +153,7 @@ export const isComplete = (entry: Model): boolean =>
   ])
 
 export const revealErrors = (entry: Model): Model =>
-  evo(entry, {
+  modifyFields(entry, {
     school: revealFieldErrors(schoolRules),
     degree: revealFieldErrors(degreeRules),
     fieldOfStudy: revealFieldErrors(fieldOfStudyRules),

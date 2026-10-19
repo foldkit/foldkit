@@ -4,13 +4,19 @@
 
 Foldkit tests at two boundaries. Story calls update directly. Scene enters through the rendered view. Neither test runs a browser or executes the Effects inside Commands, so both stay deterministic and fast.
 
+### Compare the Boundaries
+
 |                | Story                                        | Scene                                              |
 | -------------- | -------------------------------------------- | -------------------------------------------------- |
 | Enters through | A Message                                    | An interaction or lifecycle result                 |
 | Observes       | Model changes, Commands, and OutMessages     | Rendered output, Commands, Mounts, and OutMessages |
 | Best suited to | Update logic, edge cases, and Command wiring | User flows, view behavior, and accessibility       |
 
+### Use Both Boundaries
+
 Use both. Story proves the state machine behaves correctly. Scene proves that a person can reach that behavior through the view.
+
+### Name Test Files by Boundary
 
 Name each file for the boundary it tests:
 
@@ -25,16 +31,20 @@ The names stay accurate whether update and view live together or in separate fil
 
 `story` starts from a Model, sends Messages through update, and keeps Commands as data until the test supplies their result Messages. See the [Story](/testing/story) page for the full API.
 
+### Test a Root or Child Update
+
 Story can test a root update or a child update in isolation. The update function is the contract at either level.
 
-::Snippet{name="counterCommandsTest" label="Story example"}
+::Snippet{name="counterCommandsTest" label="Delayed-reset Story test"}
 
 ## Scene
 
 `scene` renders the view after every step. Locators find elements by role, label, placeholder, and visible text. Interactions invoke the view's event handlers, while cause-named steps supply Subscription, ManagedResource, and CustomElement results. Scene also tracks pending Commands and Mounts. See the [Scene](/testing/scene) page for the full API.
 
+### Test at the Owning Level
+
 Scene can also start at the root or at a child Submodel. `withViewInputs` adapts a Submodel view that needs ViewInputs, and `expectOutMessage` checks a child's OutMessage directly.
 
 Choose the level by ownership. Test a Submodel's rendering, interactions, Commands, and OutMessages at the Submodel. Test parent folding, lifted Commands, route changes, and parent-computed ViewInputs at the root. Those behaviors cross the boundary and cannot be observed from the child.
 
-::Snippet{name="sceneWeatherFlow" label="Scene example"}
+::Snippet{name="sceneWeatherFlow" label="Weather search Scene test"}

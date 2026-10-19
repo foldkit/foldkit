@@ -61,7 +61,7 @@ Then replace this file whole. Foldkit's conventions change with its APIs, and a 
 const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedIncrement: () => ({
-      model: evo(model, { count: count => count + 1 }),
+      model: modifyFields(model, { count: count => count + 1 }),
     }),
   })
 ```
@@ -76,7 +76,7 @@ Pass optional Commands directly to APIs that accept them: `Command.mapMessages(h
 
 Use `Update.Return<Model, Message>` when an update cannot emit an OutMessage. It prevents a result containing an OutMessage from entering code that would keep only its Model and Commands. A result with no `outMessage` can still be used where `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is expected. The missing field means that update emitted no OutMessage.
 
-Manual unpacking of a child result usually means the site should use `Update.foldChild` or `Update.foldChildStep`.
+Use `Update.foldChildInit` for one child `init` or `boot` result. Use `Update.foldChildInits` when several child results enter one parent Model. Both lift child Commands and handle child OutMessages. Use `Update.foldChild` for a child update that receives input, or `Update.foldChildStep` for a child helper that receives only its Model. Keep route-gated initialization or Model-only child construction separate when there is no shared set of child results to fold.
 
 Use `Update.combine` when a later Step should receive the Model produced by an earlier Step. It takes two or more Steps. Do not wrap one Step in `Update.combine`; call that operation directly. Name an inline Step parameter `stepModel`; it contains the Model produced by the preceding Step.
 
@@ -84,7 +84,9 @@ When the OutMessage is already known while constructing a new result, include it
 
 Add `toParentOutMessage` only when at least one child OutMessage should continue to the current Submodel's parent. For partial forwarding, match every child variant and return `undefined` for the variants that stop here. Omit `toParentOutMessage` when every variant stops here. `foldOutMessage` still handles each variant locally, including variants that continue upward. Never write `toParentOutMessage: () => undefined`.
 
-Use `evo()` from `foldkit/struct` for immutable model updates. Never spread or `Object.assign`.
+When a `foldChildInits` entry can derive or forward an OutMessage, add `resolveOutMessage` to construct one parent OutMessage from the named OutMessages after every local fold completes. Combine their information when both results matter; choosing one discards the other. The callback also receives the final Model. If that Model alone contains everything needed, use local folds and attach a parent OutMessage afterward with `Update.withOutMessage`.
+
+Use `modifyFields()` from `foldkit/struct` for immutable model updates. Never spread or `Object.assign`.
 
 ### View
 
@@ -106,7 +108,9 @@ For DOM operations (focus, scroll, modals, scroll lock), Foldkit ships a `Dom` m
 
 ### File Organization
 
-The invariant: keep the runtime boot separate from the pure definitions. `src/entry.ts` calls `Runtime.makeApplication` and `Runtime.run`, and `index.html` references it. The definitions (Model, Messages, init, update, view, Commands) never call `Runtime.run`, so they stay importable from tests without booting a runtime as a side effect. Never call `Runtime.run` from `main.ts`.
+Keep the runtime boot separate from the pure definitions. `src/entry.ts` calls `Runtime.makeApplication`, then `Runtime.run` for a client-rendered app or `Runtime.hydrate` for an SSR or SSG app. A client-rendered app references that entry from `index.html`. An SSR or SSG app names it in `ssr.clientEntry` in `vite.config.ts`, imports CSS from it, and exports `renderDocument` from `src/entry.server.ts` to produce the complete document. Its source tree has no `index.html`.
+
+The definitions (Model, Messages, init, update, view, Commands) never call `Runtime.run` or `Runtime.hydrate`, so tests and server entries can import them without booting a browser runtime. Keep both calls out of `main.ts`.
 
 For a small app the definitions all fit in one `src/main.ts`. Split a unit into its own file when it has _both_ a distinct reason to change _and_ a name you'd give it unprompted: the pure domain core into `timer.ts` or `domain.ts`, the view into `view.ts` (or a `components/` directory), a Command's owned resource into its own module. Split on that revealed seam, not on line count alone. A file that has grown large is _evidence_ a seam has formed, so treat its size as a prompt to re-check for one. Two splits are forced: extract Messages to `message.ts` when Commands need the constructors (this breaks the cycle between `command.ts` and `main.ts`), and colocate Commands with the update that returns them. Exemplars: counter and stopwatch are a single `main.ts`; kanban splits `domain` / `command` / `message` / `model`; typing-game splits views by page.
 
@@ -156,6 +160,8 @@ Messages are verb-first past-tense. Common prefixes: `Clicked*`, `Updated*` (inp
 ## Debugging
 
 This project ships with `@foldkit/devtools-mcp` pre-wired. When the dev server is running and the app is open in a browser, `foldkit_*` MCP tools let you inspect Model, Message history, and time-travel. Reach for them before adding `console.log` whenever the question is about state or Message flow.
+
+Treat those tools as privileged access to the application. They can return Models, Message payloads, and Command and Mount arguments to the agent. Keep credentials and private data out of browser state. Use Effect `Redacted` for sensitive values the browser must temporarily hold, and set `devToolsMcpPort: false` in the Foldkit Vite plugin options when an agent should not inspect the running application.
 
 ## Going Deeper
 

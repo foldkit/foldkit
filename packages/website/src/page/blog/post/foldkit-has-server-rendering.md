@@ -30,7 +30,7 @@ A Foldkit app can remain a pure client-side SPA. Server rendering is opt-in.
 
 SSG and SSR are the same thing run at different times. Either a build script calls your server entry once per URL and writes files, or a server calls it once per request and sends the response. The entry is a small module that derives flags from a `Request` and asks Foldkit to render:
 
-::Snippet{name="serverRenderingServerEntry" label="server entry example"}
+::Snippet{name="serverRenderingServerEntry" label="Server entry"}
 
 The `Flags` Schema, `init`, `view`, and `flagsForRequest` are provided by you. The rest is wiring.
 
@@ -65,7 +65,7 @@ There are no server components, no `'use client'` or `'use server'` boundaries, 
 
 Scaffold a Foldkit SSR application:
 
-::Snippet{name="serverRenderingScaffoldSsr" label="create a server-rendered Foldkit project"}
+::Snippet{name="serverRenderingScaffoldSsr" label="Create a server-rendered Foldkit project"}
 
 Check it out and let me know what breaks. And don't be a stranger!
 

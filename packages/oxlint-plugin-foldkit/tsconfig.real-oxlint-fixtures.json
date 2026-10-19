@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "rootDir": ".",
+    "types": ["node"],
+    "noPropertyAccessFromIndexSignature": false
+  },
+  "include": [
+    "test/integration/fixtures/no-direct-submodel-state-update/**/*.ts",
+    "test/integration/fixtures/require-fold-for-child-update-result/**/*.ts"
+  ]
+}

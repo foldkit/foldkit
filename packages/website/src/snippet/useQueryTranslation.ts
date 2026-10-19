@@ -35,12 +35,12 @@ Match.tagsExhaustive({
     Option.match(AsyncData.revalidateOrLoad(model.posts), {
       onNone: () => ({ model }),
       onSome: nextPosts => ({
-        model: evo(model, { posts: () => nextPosts }),
+        model: modifyFields(model, { posts: () => nextPosts }),
         commands: [FetchPosts()],
       }),
     }),
 
   SettledFetchPosts: ({ result }) => ({
-    model: evo(model, { posts: AsyncData.settle(result) }),
+    model: modifyFields(model, { posts: AsyncData.settle(result) }),
   }),
 })

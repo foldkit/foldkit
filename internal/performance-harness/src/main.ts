@@ -2,7 +2,7 @@ import { Array, Effect, Number, Schema } from 'effect'
 import { Command, Runtime, type Update } from 'foldkit'
 import { Document, type HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 // MODEL
 
@@ -62,23 +62,25 @@ const FillHistoryStep = Command.define('FillHistoryStep', {
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedTick: () => ({
-      model: evo(model, { tickCount: tickCount => tickCount + 1 }),
+      model: modifyFields(model, { tickCount: tickCount => tickCount + 1 }),
     }),
     ClickedDispatchLargeMessage: ({ payload }) => ({
-      model: evo(model, { lastReceivedPayloadSize: () => payload.length }),
+      model: modifyFields(model, {
+        lastReceivedPayloadSize: () => payload.length,
+      }),
     }),
     ClickedFillLargeModel: ({ items }) => ({
-      model: evo(model, { largeArray: () => items }),
+      model: modifyFields(model, { largeArray: () => items }),
     }),
     ClickedClearLargeModel: () => ({
-      model: evo(model, { largeArray: () => [] }),
+      model: modifyFields(model, { largeArray: () => [] }),
     }),
     ClickedFillHistory: () => ({
       model,
       commands: [FillHistoryStep({ remaining: HISTORY_FILL_COUNT })],
     }),
     CompletedFillHistoryStep: ({ remaining }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         tickCount: tickCount => Number.increment(tickCount),
       }),
       commands:

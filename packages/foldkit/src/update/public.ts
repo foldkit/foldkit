@@ -1,7 +1,10 @@
 export {
   combine,
   foldChild,
+  foldChildInit,
+  foldChildInits,
   foldChildStep,
+  foldChildAt,
   refresh,
   withOutMessage,
 } from './index.js'
@@ -17,11 +20,17 @@ export type {
   ChildFoldWithDerivedParentOutMessage,
   ChildFoldWithOutMessage,
   ChildFoldWithParentOutMessage,
+  ChildFoldAt,
+  ChildFoldAtWithDerivedParentOutMessage,
+  ChildFoldAtWithOutMessage,
+  ChildFoldAtWithParentOutMessage,
   ChildStepFold,
   ChildStepFoldWithDerivedParentOutMessage,
   ChildStepFoldWithOutMessage,
   ChildStepFoldWithParentOutMessage,
   FoldContext,
   Fold,
+  FoldAt,
+  FoldAtWithOutMessage,
   FoldWithOutMessage,
 } from './index.js'

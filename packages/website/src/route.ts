@@ -1,4 +1,4 @@
-import { Schema, pipe } from 'effect'
+import { Schema, String, pipe } from 'effect'
 import {
   defineRouteUnion,
   literal,
@@ -56,6 +56,7 @@ export const AppRoute = defineRouteUnion({
   CoreRender: {},
   CoreFile: {},
   CoreHttp: {},
+  CoreQuery: {},
   CoreCanvas: {},
   CoreRuntime: {},
   CoreServerRendering: {},
@@ -72,6 +73,7 @@ export const AppRoute = defineRouteUnion({
   CoreSubmodel: {},
   CoreMachine: {},
   AsyncData: {},
+  PatternsAntiPatterns: {},
   PatternsInformingSubmodels: {},
   PatternsSubscriptionOrganization: {},
   UiOverview: {},
@@ -90,6 +92,8 @@ export const AppRoute = defineRouteUnion({
   UiRadioGroup: {},
   UiSelect: {},
   UiSlider: {},
+  UiMeter: {},
+  UiProgress: {},
   UiSwitch: {},
   UiCombobox: {},
   UiInput: {},
@@ -157,6 +161,7 @@ export const DocsRoute = AppRoute.subset([
   'CoreRender',
   'CoreFile',
   'CoreHttp',
+  'CoreQuery',
   'CoreCanvas',
   'CoreRuntime',
   'CoreServerRendering',
@@ -173,6 +178,7 @@ export const DocsRoute = AppRoute.subset([
   'CoreSubmodel',
   'CoreMachine',
   'AsyncData',
+  'PatternsAntiPatterns',
   'PatternsInformingSubmodels',
   'PatternsSubscriptionOrganization',
   'UiOverview',
@@ -191,6 +197,8 @@ export const DocsRoute = AppRoute.subset([
   'UiRadioGroup',
   'UiSelect',
   'UiSlider',
+  'UiMeter',
+  'UiProgress',
   'UiSwitch',
   'UiCombobox',
   'UiInput',
@@ -393,6 +401,7 @@ export const coreDomRouter = core('dom', AppRoute.CoreDom)
 export const coreRenderRouter = core('render', AppRoute.CoreRender)
 export const coreFileRouter = core('file', AppRoute.CoreFile)
 export const coreHttpRouter = core('http', AppRoute.CoreHttp)
+export const coreQueryRouter = core('query', AppRoute.CoreQuery)
 export const coreCanvasRouter = core('canvas', AppRoute.CoreCanvas)
 export const coreRuntimeRouter = core('runtime', AppRoute.CoreRuntime)
 export const coreServerRenderingRouter = core(
@@ -431,6 +440,10 @@ export const coreSubmodelRouter = core('submodel', AppRoute.CoreSubmodel)
 export const coreMachineRouter = core('machine', AppRoute.CoreMachine)
 export const asyncDataRouter = core('async-data', AppRoute.AsyncData)
 
+export const patternsAntiPatternsRouter = patterns(
+  'anti-patterns',
+  AppRoute.PatternsAntiPatterns,
+)
 export const patternsInformingSubmodelsRouter = patterns(
   'informing-submodels',
   AppRoute.PatternsInformingSubmodels,
@@ -458,6 +471,8 @@ export const uiListboxRouter = ui('listbox', AppRoute.UiListbox)
 export const uiRadioGroupRouter = ui('radio-group', AppRoute.UiRadioGroup)
 export const uiSelectRouter = ui('select', AppRoute.UiSelect)
 export const uiSliderRouter = ui('slider', AppRoute.UiSlider)
+export const uiMeterRouter = ui('meter', AppRoute.UiMeter)
+export const uiProgressRouter = ui('progress', AppRoute.UiProgress)
 export const uiSwitchRouter = ui('switch', AppRoute.UiSwitch)
 export const uiComboboxRouter = ui('combobox', AppRoute.UiCombobox)
 export const uiInputRouter = ui('input', AppRoute.UiInput)
@@ -529,6 +544,7 @@ const coreParser = oneOf(
   coreRenderRouter,
   coreFileRouter,
   coreHttpRouter,
+  coreQueryRouter,
   coreCanvasRouter,
   coreRuntimeRouter,
   coreServerRenderingRouter,
@@ -550,6 +566,7 @@ const coreParser = oneOf(
 )
 
 const patternsParser = oneOf(
+  patternsAntiPatternsRouter,
   patternsInformingSubmodelsRouter,
   patternsSubscriptionOrganizationRouter,
   projectOrganizationRouter,
@@ -581,6 +598,8 @@ const uiParser = oneOf(
   uiRadioGroupRouter,
   uiSelectRouter,
   uiSliderRouter,
+  uiMeterRouter,
+  uiProgressRouter,
   uiSwitchRouter,
   uiComboboxRouter,
   uiInputRouter,
@@ -661,3 +680,118 @@ export const urlToAppRoute = parseUrlWithFallback(
   routeParser,
   AppRoute.NotFound,
 )
+
+// URLS
+
+export const SITE_URL = 'https://foldkit.dev'
+
+export const routeToUrlPath = (route: AppRoute): string =>
+  AppRoute.match(route, {
+    Home: () => homeRouter(),
+    WhyFoldkit: () => whyFoldkitRouter(),
+    Performance: () => performanceRouter(),
+    GetStarted: () => getStartedRouter(),
+    Roadmap: () => roadmapRouter(),
+    ComingFromReact: () => comingFromReactRouter(),
+    ComingFromTanStackQuery: () => comingFromTanStackQueryRouter(),
+    ReactComparison: () => reactComparisonRouter(),
+    EffectAtomComparison: () => effectAtomComparisonRouter(),
+    ElmComparison: () => elmComparisonRouter(),
+    RoutingAndNavigation: () => routingAndNavigationRouter(),
+    FieldValidation: () => fieldValidationRouter(),
+    Testing: () => testingRouter(),
+    TestingStory: () => testingStoryRouter(),
+    TestingScene: () => testingSceneRouter(),
+    Examples: () => examplesRouter(),
+    ExampleDetail: ({ exampleSlug }) => exampleDetailRouter({ exampleSlug }),
+    TypingTerminal: () => typingTerminalRouter(),
+    BestPracticesSideEffects: () => bestPracticesSideEffectsRouter(),
+    BestPracticesMessages: () => bestPracticesMessagesRouter(),
+    BestPracticesKeying: () => bestPracticesKeyingRouter(),
+    BestPracticesImmutability: () => bestPracticesImmutabilityRouter(),
+    ProjectOrganization: () => projectOrganizationRouter(),
+    ToolingLinting: () => toolingLintingRouter(),
+    CoreArchitecture: () => coreArchitectureRouter(),
+    CoreCounterExample: () => coreCounterExampleRouter(),
+    CoreModel: () => coreModelRouter(),
+    CoreMessages: () => coreMessagesRouter(),
+    CoreUpdate: () => coreUpdateRouter(),
+    CoreView: () => coreViewRouter(),
+    CoreCommands: () => coreCommandsRouter(),
+    CoreMount: () => coreMountRouter(),
+    CoreCustomElement: () => coreCustomElementRouter(),
+    CoreSubscriptions: () => coreSubscriptionsRouter(),
+    CoreInitAndFlags: () => coreInitAndFlagsRouter(),
+    CoreDom: () => coreDomRouter(),
+    CoreRender: () => coreRenderRouter(),
+    CoreFile: () => coreFileRouter(),
+    CoreHttp: () => coreHttpRouter(),
+    CoreQuery: () => coreQueryRouter(),
+    CoreCanvas: () => coreCanvasRouter(),
+    CoreRuntime: () => coreRuntimeRouter(),
+    CoreServerRendering: () => coreServerRenderingRouter(),
+    CoreResources: () => coreResourcesRouter(),
+    CoreManagedResources: () => coreManagedResourcesRouter(),
+    CoreDevTools: () => coreDevToolsRouter(),
+    CoreCrashView: () => coreCrashViewRouter(),
+    CoreViewTransitions: () => coreViewTransitionsRouter(),
+    CoreSlowWarnings: () => coreSlowWarningsRouter(),
+    CoreFreezeModel: () => coreFreezeModelRouter(),
+    CorePreserveScroll: () => corePreserveScrollRouter(),
+    CoreSubmodel: () => coreSubmodelRouter(),
+    CoreMachine: () => coreMachineRouter(),
+    AsyncData: () => asyncDataRouter(),
+    PatternsAntiPatterns: () => patternsAntiPatternsRouter(),
+    PatternsInformingSubmodels: () => patternsInformingSubmodelsRouter(),
+    PatternsSubscriptionOrganization: () =>
+      patternsSubscriptionOrganizationRouter(),
+    CoreViewMemoization: () => coreViewMemoizationRouter(),
+    CoreEmbedding: () => coreEmbeddingRouter(),
+    UiOverview: () => uiOverviewRouter(),
+    UiSelectionSubmodels: () => uiSelectionSubmodelsRouter(),
+    UiTabs: () => uiTabsRouter(),
+    UiNav: () => uiNavRouter(),
+    UiDisclosure: () => uiDisclosureRouter(),
+    UiDialog: () => uiDialogRouter(),
+    UiMenu: () => uiMenuRouter(),
+    UiPopover: () => uiPopoverRouter(),
+    UiListbox: () => uiListboxRouter(),
+    UiRadioGroup: () => uiRadioGroupRouter(),
+    UiSelect: () => uiSelectRouter(),
+    UiSlider: () => uiSliderRouter(),
+    UiMeter: () => uiMeterRouter(),
+    UiProgress: () => uiProgressRouter(),
+    UiSwitch: () => uiSwitchRouter(),
+    UiButton: () => uiButtonRouter(),
+    UiCalendar: () => uiCalendarRouter(),
+    UiDatePicker: () => uiDatePickerRouter(),
+    UiCheckbox: () => uiCheckboxRouter(),
+    UiCombobox: () => uiComboboxRouter(),
+    UiInput: () => uiInputRouter(),
+    UiTextarea: () => uiTextareaRouter(),
+    UiFieldset: () => uiFieldsetRouter(),
+    UiDragAndDrop: () => uiDragAndDropRouter(),
+    UiFileDrop: () => uiFileDropRouter(),
+    UiHoverIntent: () => uiHoverIntentRouter(),
+    UiToast: () => uiToastRouter(),
+    UiTooltip: () => uiTooltipRouter(),
+    UiAnimation: () => uiAnimationRouter(),
+    UiAnchor: () => uiAnchorRouter(),
+    UiVirtualList: () => uiVirtualListRouter(),
+    AiOverview: () => aiOverviewRouter(),
+    AiSkills: () => aiSkillsRouter(),
+    AiMcp: () => aiMcpRouter(),
+    ApiModule: ({ moduleSlug }) => apiModuleRouter({ moduleSlug }),
+    ContentApi: () => contentApiRouter(),
+    About: () => aboutRouter(),
+    Contact: () => contactRouter(),
+    Privacy: () => privacyRouter(),
+    Playground: ({ exampleSlug }) => playgroundRouter({ exampleSlug }),
+    Newsletter: () => newsletterRouter(),
+    Blog: () => blogRouter(),
+    BlogPost: ({ postSlug }) => blogPostRouter({ postSlug }),
+    NotFound: ({ path }) => path,
+  })
+
+export const routeToCanonicalUrl = (route: AppRoute): string =>
+  String.concat(SITE_URL, routeToUrlPath(route))

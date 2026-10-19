@@ -10,7 +10,7 @@
   <a href="https://www.npmjs.com/package/foldkit"><img src="https://img.shields.io/npm/v/foldkit" alt="npm version"></a>
 </p>
 
-<h3 align="center">The frontend framework for correctness.</h3>
+<h3 align="center">Build faster. Understand what ships.</h3>
 
 <p align="center">
   <a href="https://foldkit.dev"><strong>Documentation</strong></a> · <a href="https://foldkit.dev/introduction/why-foldkit"><strong>Why Foldkit</strong></a> · <a href="https://foldkit.dev/example-apps"><strong>Examples</strong></a> · <a href="https://foldkit.dev/get-started"><strong>Get Started</strong></a> · <a href="https://discord.gg/kav8VNxqGm"><strong>Discord</strong></a>
@@ -45,7 +45,7 @@ import { Schema } from 'effect'
 import { Runtime, Update } from 'foldkit'
 import { Document, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 // MODEL
 
@@ -66,12 +66,12 @@ export type Message = typeof Message.Type
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedDecrement: () => ({
-      model: evo(model, { count: count => count - 1 }),
+      model: modifyFields(model, { count: count => count - 1 }),
     }),
     ClickedIncrement: () => ({
-      model: evo(model, { count: count => count + 1 }),
+      model: modifyFields(model, { count: count => count + 1 }),
     }),
-    ClickedReset: () => ({ model: evo(model, { count: () => 0 }) }),
+    ClickedReset: () => ({ model: modifyFields(model, { count: () => 0 }) }),
   })
 
 // INIT
@@ -153,6 +153,7 @@ Some of what you can build with Foldkit. [See all example apps on foldkit.dev](h
 - **[Job Application](https://foldkit.dev/example-apps/job-application)**: Multi-step form with cross-field validation, file uploads, and per-step error indicators
 - **[Weather](https://foldkit.dev/example-apps/weather)**: HTTP requests with async state handling
 - **[API Cache](https://foldkit.dev/example-apps/api-cache)**: Query caching with stale-while-revalidate, request deduplication, and interval refetching
+- **[API Cache Query](https://foldkit.dev/example-apps/api-cache-query)**: The same app with experimental `Query.define` owning fetch and keyed slots
 - **[Routing](https://foldkit.dev/example-apps/routing)**: URL routing with parser combinators
 - **[Route Transitions](https://foldkit.dev/example-apps/route-transitions)**: Live transition log with entry, exit, and stayed navigation policies
 - **[Query Sync](https://foldkit.dev/example-apps/query-sync)**: URL query parameter sync with filtering and sorting

@@ -3,20 +3,19 @@ import {
   Array,
   Effect,
   Equal,
-  Function,
   Option,
   Queue,
   Schema,
   Stream,
   String,
 } from 'effect'
-import { Command, Mount, Runtime, Subscription, Update } from 'foldkit'
+import { Command, Mount, Runtime, Update } from 'foldkit'
 import * as Dom from 'foldkit/dom'
 import type { Document, Html } from 'foldkit/html'
 import { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import type { Map as MapInstance } from 'maplibre-gl'
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 
@@ -88,6 +87,12 @@ export const Message = defineMessageUnion({
 })
 
 export type Message = typeof Message.Type
+
+type MountMapMessage =
+  | typeof Message.SucceededMountMap.Type
+  | typeof Message.FailedMountMap.Type
+  | typeof Message.MovedMap.Type
+  | typeof Message.ClickedMarker.Type
 
 // COMMAND
 
@@ -210,19 +215,19 @@ const findLocation = (
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     SucceededMountMap: ({ hostId }) => ({
-      model: evo(model, { maybeMapHostId: () => Option.some(hostId) }),
+      model: modifyFields(model, { maybeMapHostId: () => Option.some(hostId) }),
     }),
 
     FailedMountMap: ({ reason }) => ({
-      model: evo(model, { maybeMapError: () => Option.some(reason) }),
+      model: modifyFields(model, { maybeMapError: () => Option.some(reason) }),
     }),
 
     MovedMap: ({ bounds }) => ({
-      model: evo(model, { maybeBounds: () => Option.some(bounds) }),
+      model: modifyFields(model, { maybeBounds: () => Option.some(bounds) }),
     }),
 
     ClickedMarker: ({ locationId }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         maybeSelectedLocationId: () => Option.some(locationId),
       }),
     }),
@@ -231,7 +236,7 @@ export const update = (model: Model, message: Message) =>
       Option.match(findLocation(model, locationId), {
         onNone: () => ({ model }),
         onSome: ({ lng, lat }) => ({
-          model: evo(model, {
+          model: modifyFields(model, {
             maybeSelectedLocationId: () => Option.some(locationId),
           }),
           commands: [
@@ -246,25 +251,25 @@ export const update = (model: Model, message: Message) =>
       }),
 
     UpdatedSearchQuery: ({ value }) => ({
-      model: evo(model, { searchQuery: () => value }),
+      model: modifyFields(model, { searchQuery: () => value }),
     }),
 
     ClickedFindMe: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         geolocateState: () => GeolocateState.Locating(),
       }),
       commands: [LockBodyScroll(), Geolocate()],
     }),
 
     DismissedGeolocate: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         geolocateState: () => GeolocateState.Idle(),
       }),
       commands: [UnlockBodyScroll()],
     }),
 
     SucceededGeolocate: ({ lng, lat }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         maybeUserLocation: () => Option.some({ lng, lat }),
         geolocateState: () => GeolocateState.Idle(),
       }),
@@ -280,7 +285,7 @@ export const update = (model: Model, message: Message) =>
     }),
 
     FailedGeolocate: ({ reason }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         geolocateState: () => GeolocateState.Failed({ reason }),
       }),
     }),
@@ -310,100 +315,139 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 
 // MAP MOUNT
 
-type MountedMap = Readonly<{
-  map: MapInstance
-  markerElements: ReadonlyArray<HTMLButtonElement>
-}>
+const toMapMountError = (error: unknown): Error =>
+  error instanceof Error ? error : new Error(`Failed to mount map: ${error}`)
 
-const applyMapViewState = (
-  { map, markerElements }: MountedMap,
-  viewState: Mount.ViewState,
-): Effect.Effect<void> =>
-  Effect.sync(() => {
-    const isLive = viewState === 'Live'
-
-    if (isLive) {
-      map.keyboard.enable()
-    } else {
-      map.keyboard.disable()
-    }
-
-    Array.forEach(markerElements, markerElement => {
-      markerElement.disabled = !isLive
-    })
+const addLocationMarkers = (
+  map: MapInstance,
+  maplibre: typeof import('maplibre-gl'),
+) =>
+  Effect.try({
+    try: () =>
+      Array.forEach(featuredLocations, ({ id, lng, lat }) => {
+        const markerElement = document.createElement('button')
+        markerElement.setAttribute('data-location-id', id)
+        markerElement.setAttribute('aria-label', `Marker: ${id}`)
+        markerElement.className = markerStyle
+        new maplibre.Marker({ element: markerElement })
+          .setLngLat([lng, lat])
+          .addTo(map)
+      }),
+    catch: toMapMountError,
   })
 
-const mountMap = (
-  element: Element,
-  hostId: string,
-  viewStateChanges: Stream.Stream<Mount.ViewState>,
+const listenToMapMovesAndMarkerClicks = (
+  map: MapInstance,
+  queue: Queue.Enqueue<MountMapMessage>,
 ) =>
-  Effect.gen(function* () {
-    if (!(element instanceof HTMLElement)) {
-      return Message.FailedMountMap({
-        reason: 'Map host is not an HTMLElement.',
-      })
-    }
+  Effect.acquireRelease(
+    Effect.try({
+      try: () => {
+        const container = map.getContainer()
+        const onMoveEnd = () => {
+          Queue.offerUnsafe(
+            queue,
+            Message.MovedMap({ bounds: boundsFromMap(map) }),
+          )
+        }
+        const onContainerClick = (event: MouseEvent) => {
+          const target = event.target
+          if (!(target instanceof Element)) {
+            return
+          }
+          const marker = target.closest('[data-location-id]')
+          if (!(marker instanceof HTMLElement)) {
+            return
+          }
+          const locationId = marker.dataset['locationId']
+          if (locationId !== undefined) {
+            Queue.offerUnsafe(queue, Message.ClickedMarker({ locationId }))
+          }
+        }
 
-    return yield* Effect.gen(function* () {
-      const mountedMap = yield* Effect.acquireRelease(
+        try {
+          map.on('moveend', onMoveEnd)
+          container.addEventListener('click', onContainerClick)
+          return { container, onMoveEnd, onContainerClick }
+        } catch (error) {
+          map.off('moveend', onMoveEnd)
+          container.removeEventListener('click', onContainerClick)
+          throw error
+        }
+      },
+      catch: toMapMountError,
+    }),
+    ({ container, onMoveEnd, onContainerClick }) =>
+      Effect.sync(() => {
+        map.off('moveend', onMoveEnd)
+        container.removeEventListener('click', onContainerClick)
+      }),
+  )
+
+const mountMap = (element: Element, hostId: string) =>
+  Stream.callback<MountMapMessage>(queue =>
+    Effect.gen(function* () {
+      if (!(element instanceof HTMLElement)) {
+        Queue.offerUnsafe(
+          queue,
+          Message.FailedMountMap({
+            reason: 'Map host is not an HTMLElement.',
+          }),
+        )
+        return yield* Effect.never
+      }
+
+      const mapResource = yield* Effect.acquireRelease(
         Effect.gen(function* () {
           const maplibre = yield* Effect.tryPromise(() => import('maplibre-gl'))
-          maplibre.setWorkerUrl(maplibreWorkerUrl)
-          const map = new maplibre.Map({
-            container: element,
-            style: 'https://demotiles.maplibre.org/style.json',
-            center: [0, 20],
-            zoom: INITIAL_MAP_ZOOM,
-          })
-
-          const markerElements = Array.map(
-            featuredLocations,
-            ({ id, lng, lat }) => {
-              const markerElement = document.createElement('button')
-              markerElement.setAttribute('data-location-id', id)
-              markerElement.setAttribute('aria-label', `Marker: ${id}`)
-              markerElement.className = markerStyle
-              new maplibre.Marker({ element: markerElement })
-                .setLngLat([lng, lat])
-                .addTo(map)
-              return markerElement
+          const map = yield* Effect.try({
+            try: () => {
+              maplibre.setWorkerUrl(maplibreWorkerUrl)
+              return new maplibre.Map({
+                container: element,
+                style: 'https://demotiles.maplibre.org/style.json',
+                center: [0, 20],
+                zoom: INITIAL_MAP_ZOOM,
+              })
             },
-          )
-
-          setMap(hostId, map)
-          return { map, markerElements }
+            catch: toMapMountError,
+          })
+          return { map, maplibre }
         }),
-        () => Effect.sync(() => removeMap(hostId)),
+        ({ map }) => Effect.sync(() => removeMap(hostId, map)),
       )
+      const { map, maplibre } = mapResource
 
-      yield* viewStateChanges.pipe(
-        Stream.runForEach(viewState =>
-          applyMapViewState(mountedMap, viewState),
-        ),
-        Effect.forkScoped,
-      )
+      yield* addLocationMarkers(map, maplibre)
+      setMap(hostId, map)
 
-      return Message.SucceededMountMap({ hostId })
+      yield* listenToMapMovesAndMarkerClicks(map, queue)
+
+      Queue.offerUnsafe(queue, Message.SucceededMountMap({ hostId }))
+      Queue.offerUnsafe(queue, Message.MovedMap({ bounds: boundsFromMap(map) }))
+      return yield* Effect.never
     }).pipe(
       Effect.catch(error =>
-        Effect.succeed(
-          Message.FailedMountMap({
-            reason: error instanceof Error ? error.message : `${error}`,
-          }),
+        Effect.sync(() =>
+          Queue.offerUnsafe(
+            queue,
+            Message.FailedMountMap({ reason: toMapMountError(error).message }),
+          ),
         ),
       ),
-    )
-  })
+    ),
+  )
 
-export const MountMap = Mount.define('MountMap', {
+export const MountMap = Mount.defineStream('MountMap', {
   args: { hostId: Schema.String },
-  messages: [Message.SucceededMountMap, Message.FailedMountMap],
-  execute: ({ element, hostId, viewStateChanges }) =>
-    mountMap(element, hostId, viewStateChanges),
+  messages: [
+    Message.SucceededMountMap,
+    Message.FailedMountMap,
+    Message.MovedMap,
+    Message.ClickedMarker,
+  ],
+  execute: ({ element, hostId }) => mountMap(element, hostId),
 })
-
-// SUBSCRIPTIONS
 
 const boundsFromMap = (map: MapInstance): Bounds => {
   const bounds = map.getBounds()
@@ -414,72 +458,6 @@ const boundsFromMap = (map: MapInstance): Bounds => {
     north: bounds.getNorth(),
   }
 }
-
-const streamMapEvents = (hostId: string) =>
-  Stream.callback<Message>(queue =>
-    Effect.acquireRelease(
-      Effect.sync(() =>
-        Option.map(getMap(hostId), map => {
-          const onMoveEnd = () => {
-            Queue.offerUnsafe(
-              queue,
-              Message.MovedMap({ bounds: boundsFromMap(map) }),
-            )
-          }
-
-          const onContainerClick = (event: MouseEvent) => {
-            const target = event.target
-            if (!(target instanceof Element)) {
-              return
-            }
-            const marker = target.closest('[data-location-id]')
-            if (!(marker instanceof HTMLElement)) {
-              return
-            }
-            const locationId = marker.dataset['locationId']
-            if (locationId !== undefined) {
-              Queue.offerUnsafe(queue, Message.ClickedMarker({ locationId }))
-            }
-          }
-
-          map.on('moveend', onMoveEnd)
-          map.getContainer().addEventListener('click', onContainerClick)
-          Queue.offerUnsafe(
-            queue,
-            Message.MovedMap({ bounds: boundsFromMap(map) }),
-          )
-
-          return { map, onMoveEnd, onContainerClick }
-        }),
-      ),
-      maybeHandle =>
-        Effect.sync(() =>
-          Option.match(maybeHandle, {
-            onNone: Function.constVoid,
-            onSome: ({ map, onMoveEnd, onContainerClick }) => {
-              map.off('moveend', onMoveEnd)
-              map.getContainer().removeEventListener('click', onContainerClick)
-            },
-          }),
-        ),
-    ).pipe(Effect.flatMap(() => Effect.never)),
-  )
-
-export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  mapEvents: entry(
-    { maybeMapHostId: Schema.Option(Schema.String) },
-    {
-      modelToDependencies: model => ({
-        maybeMapHostId: model.maybeMapHostId,
-      }),
-      dependenciesToStream: ({ maybeMapHostId }) =>
-        Option.match(maybeMapHostId, {
-          onNone: () => Stream.empty,
-          onSome: streamMapEvents,
-        }),
-    },
-  ),
-}))
 
 // VIEW
 

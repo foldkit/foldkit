@@ -5,7 +5,7 @@ import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Plugin } from 'vite'
 
-import { exampleSlugs } from '../src/page/example/meta'
+import { runnableExampleSlugs } from '../src/page/example/meta.ts'
 
 const SCRIPT_DIRECTORY = resolve(fileURLToPath(import.meta.url), '..')
 const WEBSITE_ROOT = resolve(SCRIPT_DIRECTORY, '..')
@@ -369,7 +369,7 @@ const collectExampleDependencyRoots = async (): Promise<
   ReadonlyArray<readonly [string, string]>
 > => {
   const rootByName = new Map<string, string>()
-  for (const slug of exampleSlugs) {
+  for (const slug of runnableExampleSlugs) {
     const exampleRoot = resolve(REPO_ROOT, 'examples', slug)
     const packageJsonPath = resolve(exampleRoot, 'package.json')
     if (!existsSync(packageJsonPath)) {

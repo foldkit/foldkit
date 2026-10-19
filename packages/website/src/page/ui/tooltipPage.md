@@ -16,7 +16,7 @@ Hover or tab into the trigger to reveal the tooltip. Hover waits for `showDelay`
 
 ::Demo{name="demo"}
 
-::Snippet{name="uiTooltipBasic" label="tooltip example"}
+::Snippet{name="uiTooltipBasic" label="Tooltip"}
 
 ## Styling
 
@@ -36,7 +36,11 @@ Tooltip is headless. The `toView` callback receives attribute bundles for the tr
 
 ## Accessibility
 
+### Tooltip Semantics
+
 The panel has `role="tooltip"` and the trigger is linked via `aria-describedby`. Focus is never moved into the tooltip, so assistive technology announces the panel contents as a description of the trigger.
+
+### Name the Trigger
 
 The tooltip describes the trigger but does not name it, so give the trigger an accessible name. For a visible label, wire a native `<label for>` that targets the trigger id with `Tooltip.triggerId(id)` rather than hardcoding the `-trigger` convention. The `for` association makes the trigger properly labeled: assistive technology announces it by the visible label text, and clicking the label focuses the trigger. That is why it is the recommended pattern.
 
@@ -57,15 +61,15 @@ Configuration object passed to `Tooltip.init()`.
 
 Configuration object passed to `Tooltip.view()`.
 
-| Name              | Type                                               | Default | Description                                                                                                                                                                                               |
-| ----------------- | -------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `model`           | `Tooltip.Model`                                    | —       | The tooltip state from your parent Model.                                                                                                                                                                 |
-| `toParentMessage` | `(childMessage: Tooltip.Message) => ParentMessage` | —       | Wraps Tooltip Messages in your parent Message type for Submodel delegation.                                                                                                                               |
-| `anchor`          | `AnchorConfig`                                     | —       | Floating positioning config: placement, gap, offset, padding, isPlacementLocked, and portal. Required. Portaled to the document body by default; pass portal: false to keep the panel inside its wrapper. |
-| `toView`          | `(render: RenderInfo) => Html`                     | —       | Callback that receives the `trigger` and `panel` attribute bundles plus a derived `isVisible` flag, and returns the composed layout.                                                                      |
-| `isDisabled`      | `boolean`                                          | `false` | Disables the trigger. Hover, focus, and keyboard events are ignored and the tooltip will not open.                                                                                                        |
-| `ariaLabel`       | `string`                                           | —       | Accessible name for the trigger button. Use for an icon-only trigger with no visible label. Applied as aria-label, and takes precedence over ariaLabelledBy.                                              |
-| `ariaLabelledBy`  | `string`                                           | —       | Id of an external element that labels the trigger button, applied as aria-labelledby. Pair with a visible label element.                                                                                  |
+| Name              | Type                                               | Default | Description                                                                                                                                                                                                                             |
+| ----------------- | -------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`           | `Tooltip.Model`                                    | —       | The tooltip state from your parent Model.                                                                                                                                                                                               |
+| `toParentMessage` | `(childMessage: Tooltip.Message) => ParentMessage` | —       | Wraps Tooltip Messages in your parent Message type for Submodel delegation.                                                                                                                                                             |
+| `anchor`          | `AnchorConfig`                                     | —       | Floating positioning config: placement, gap, offset, padding, isPlacementLocked, and portal. Required. Portaled to the document body, or into an enclosing dialog, by default; pass portal: false to keep the panel inside its wrapper. |
+| `toView`          | `(render: RenderInfo) => Html`                     | —       | Callback that receives the `trigger` and `panel` attribute bundles plus a derived `isVisible` flag, and returns the composed layout.                                                                                                    |
+| `isDisabled`      | `boolean`                                          | `false` | Disables the trigger. Hover, focus, and keyboard events are ignored and the tooltip will not open.                                                                                                                                      |
+| `ariaLabel`       | `string`                                           | —       | Accessible name for the trigger button. Use for an icon-only trigger with no visible label. Applied as aria-label, and takes precedence over ariaLabelledBy.                                                                            |
+| `ariaLabelledBy`  | `string`                                           | —       | Id of an external element that labels the trigger button, applied as aria-labelledby. Pair with a visible label element.                                                                                                                |
 
 ### RenderInfo {#render-info}
 
@@ -81,9 +85,9 @@ Payload delivered to the `toView` callback each render.
 
 Use `reflectShowDelay` when parent-owned configuration changes the Tooltip's delay.
 
-| Name               | Type                                                 | Default | Description                                                                                                                                                                                                                                                                                                             |
-| ------------------ | ---------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `reflectShowDelay` | `(model: Model, showDelay: Duration.Input) => Model` | —       | Reflects an externally-sourced hover show-delay onto the Model (a user preference, a restored setting) without emitting an OutMessage. Accepts any Effect Duration input; a bare number is milliseconds. The new delay applies on the next hover. Dual: pass just the delay for a point-free setter in an evo callback. |
+| Name               | Type                                                 | Default | Description                                                                                                                                                                                                                                                                                                                     |
+| ------------------ | ---------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `reflectShowDelay` | `(model: Model, showDelay: Duration.Input) => Model` | —       | Reflects an externally-sourced hover show-delay onto the Model (a user preference, a restored setting) without emitting an OutMessage. Accepts any Effect Duration input; a bare number is milliseconds. The new delay applies on the next hover. Dual: pass just the delay for a point-free setter in a modifyFields callback. |
 
 ### OutMessage {#out-message}
 

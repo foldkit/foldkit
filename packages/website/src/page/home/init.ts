@@ -17,7 +17,6 @@ export const init = (): Update.Return<Model, Message> => {
 
   return {
     model: {
-      aiHeadingToggleCount: 0,
       demoTabs: Tabs.init({ id: 'demo-tabs' }),
       activeDemoTab,
       playgroundMenu: Menu.init({

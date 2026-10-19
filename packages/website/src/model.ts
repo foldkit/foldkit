@@ -18,19 +18,22 @@ import { AppRoute } from './route'
 import * as Search from './search'
 import { SidebarGroups } from './sidebarStorage'
 import * as SnippetCopy from './snippetCopy'
+import * as SnippetDisclosure from './snippetDisclosure'
 
 export const Model = Schema.Struct({
   route: AppRoute,
   url: Url,
   deployment: Deployment,
   snippetCopy: SnippetCopy.Model,
+  snippetDisclosure: SnippetDisclosure.Model,
   maybeGitHubStarCount: Schema.Option(Schema.Number),
   currentYear: Schema.Number,
+  newsletterEmail: Schema.String,
   mobileMenuDialog: Dialog.Model,
   isMobileTableOfContentsOpen: Schema.Boolean,
   activeSection: Schema.Option(Schema.String),
   isNarrowViewport: Schema.Boolean,
-  maybeIsChromium: Schema.Option(Schema.Boolean),
+  maybeIsPlaygroundSupported: Schema.Option(Schema.Boolean),
   playground: Schema.Option(Playground.Model),
   sidebarGroups: SidebarGroups,
   coreSubmodelPage: Core.SubmodelPage.Model,

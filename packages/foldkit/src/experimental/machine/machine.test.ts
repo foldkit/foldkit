@@ -12,7 +12,7 @@ import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 import * as Command from '../../command/public.js'
 import * as ManagedResource from '../../managedResource/public.js'
 import { defineMessageUnion, defineTaggedUnion } from '../../schema/index.js'
-import { evo } from '../../struct/index.js'
+import { modifyFields } from '../../struct/index.js'
 import * as Subscription from '../../subscription/public.js'
 import * as Update from '../../update/index.js'
 import {
@@ -312,7 +312,7 @@ const foldConnection = fold({
   machine: connectionMachine,
   read: (model: AppModel) => Option.some(model.connection),
   write: (model, nextConnection) =>
-    evo(model, { connection: () => nextConnection }),
+    modifyFields(model, { connection: () => nextConnection }),
 })
 
 const update = (model: AppModel, message: ConnectionMessage) =>
@@ -600,7 +600,7 @@ const foldContextualRemoteData = fold({
   machine: contextualRemoteDataMachine,
   read: (model: ContextualAppModel) => Option.some(model.remoteData),
   write: (model, nextRemoteData) =>
-    evo(model, { remoteData: () => nextRemoteData }),
+    modifyFields(model, { remoteData: () => nextRemoteData }),
   context: model => model.remoteDataContext,
 })
 
@@ -1767,7 +1767,7 @@ describe('context', () => {
       machine,
       read: (model: ContextualAppModel) => Option.some(model.remoteData),
       write: (model, nextRemoteData) =>
-        evo(model, { remoteData: () => nextRemoteData }),
+        modifyFields(model, { remoteData: () => nextRemoteData }),
       context: model => model.remoteDataContext,
     })
     const model: ContextualAppModel = {
@@ -1789,7 +1789,7 @@ describe('context', () => {
 
     const result = Update.combine(model, [
       stepModel => ({
-        model: evo(stepModel, {
+        model: modifyFields(stepModel, {
           remoteDataContext: () => succeeds,
         }),
       }),
@@ -2364,7 +2364,7 @@ describe('integration', () => {
       machine,
       read: (model: AppModel) => Option.some(model.connection),
       write: (model, nextConnection) =>
-        evo(model, { connection: () => nextConnection }),
+        modifyFields(model, { connection: () => nextConnection }),
     })
     const model: AppModel = {
       connection: ConnectionState.Disconnected(),
@@ -2410,7 +2410,7 @@ describe('integration', () => {
       machine,
       read: (model: AppModel) => Option.some(model.connection),
       write: (model, nextConnection) =>
-        evo(model, { connection: () => nextConnection }),
+        modifyFields(model, { connection: () => nextConnection }),
     })
     const model: AppModel = {
       connection: ConnectionState.Connecting({ attemptCount: 1 }),
@@ -2447,14 +2447,14 @@ describe('integration', () => {
         machine: contextualRemoteDataMachine,
         read: (model: ContextualAppModel) => Option.some(model.remoteData),
         write: (model, nextRemoteData) =>
-          evo(model, { remoteData: () => nextRemoteData }),
+          modifyFields(model, { remoteData: () => nextRemoteData }),
       })
 
       fold({
         machine: remoteDataMachine,
         read: (model: ContextualAppModel) => Option.some(model.remoteData),
         write: (model, nextRemoteData) =>
-          evo(model, { remoteData: () => nextRemoteData }),
+          modifyFields(model, { remoteData: () => nextRemoteData }),
         // @ts-expect-error a context-free Machine fold rejects a context reader
         context: model => model.remoteDataContext,
       })
@@ -2463,7 +2463,7 @@ describe('integration', () => {
         machine: contextualRemoteDataMachine,
         read: (model: ContextualAppModel) => Option.some(model.remoteData),
         write: (model, nextRemoteData) =>
-          evo(model, { remoteData: () => nextRemoteData }),
+          modifyFields(model, { remoteData: () => nextRemoteData }),
         // @ts-expect-error the context reader must return RemoteDataContext
         context: () => ({ shouldSucceed: true }),
       })
@@ -2472,7 +2472,7 @@ describe('integration', () => {
         machine: voidContextMachine,
         read: (model: ContextualAppModel) => Option.some(model.remoteData),
         write: (model, nextRemoteData) =>
-          evo(model, { remoteData: () => nextRemoteData }),
+          modifyFields(model, { remoteData: () => nextRemoteData }),
         // @ts-expect-error Schema.Void context readers must return undefined
         context: () => 'not void',
       })
@@ -2492,7 +2492,8 @@ describe('edge command requirements', () => {
     const foldSubmit = fold({
       machine: inferredRequirementsMachine,
       read: (model: SubmitAppModel) => Option.some(model.submit),
-      write: (model, nextSubmit) => evo(model, { submit: () => nextSubmit }),
+      write: (model, nextSubmit) =>
+        modifyFields(model, { submit: () => nextSubmit }),
     })
     const submitClick = foldSubmit(
       { submit: SubmitState.Idle() },

@@ -13,7 +13,7 @@ import {
 import * as Command from 'foldkit/command'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import * as Mount from 'foldkit/mount'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { type Reflect, defineView } from 'foldkit/submodel'
 import * as Update from 'foldkit/update'
 
@@ -109,12 +109,12 @@ const computeUpdate = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     EnteredTrigger: () => {
       if (model.isOpen || model.isDismissed) {
-        return { model: evo(model, { isHovered: () => true }) }
+        return { model: modifyFields(model, { isHovered: () => true }) }
       }
 
       const nextVersion = Number.increment(model.pendingShowVersion)
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           isHovered: () => true,
           pendingShowVersion: () => nextVersion,
         }),
@@ -125,7 +125,7 @@ const computeUpdate = (model: Model, message: Message) =>
     },
 
     LeftTrigger: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         isHovered: () => false,
         isOpen: () => model.isFocused && model.isOpen,
         isDismissed: () => false,
@@ -141,7 +141,7 @@ const computeUpdate = (model: Model, message: Message) =>
 
       if (isFromMousePress) {
         return {
-          model: evo(model, {
+          model: modifyFields(model, {
             maybeLastPointerType: () => Option.none(),
           }),
         }
@@ -149,7 +149,7 @@ const computeUpdate = (model: Model, message: Message) =>
 
       if (model.isDismissed) {
         return {
-          model: evo(model, {
+          model: modifyFields(model, {
             isFocused: () => true,
             maybeLastPointerType: () => Option.none(),
           }),
@@ -157,7 +157,7 @@ const computeUpdate = (model: Model, message: Message) =>
       }
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           isFocused: () => true,
           isOpen: () => true,
           pendingShowVersion: Number.increment,
@@ -166,7 +166,7 @@ const computeUpdate = (model: Model, message: Message) =>
     },
 
     BlurredTrigger: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         isFocused: () => false,
         isOpen: () => model.isHovered && model.isOpen,
         isDismissed: () => false,
@@ -176,7 +176,7 @@ const computeUpdate = (model: Model, message: Message) =>
     }),
 
     PressedEscape: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         isOpen: () => false,
         isDismissed: () => true,
         pendingShowVersion: Number.increment,
@@ -184,7 +184,7 @@ const computeUpdate = (model: Model, message: Message) =>
     }),
 
     PressedPointerOnTrigger: ({ pointerType }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         maybeLastPointerType: () => Option.some(pointerType),
       }),
     }),
@@ -198,7 +198,7 @@ const computeUpdate = (model: Model, message: Message) =>
         return { model }
       }
 
-      return { model: evo(model, { isOpen: () => true }) }
+      return { model: modifyFields(model, { isOpen: () => true }) }
     },
 
     CompletedAnchorTooltip: () => ({ model }),
@@ -240,7 +240,9 @@ export const update = (
 export const reflectShowDelay: Reflect<Model, Duration.Input> = Function.dual(
   2,
   (model: Model, showDelay: Duration.Input): Model =>
-    evo(model, { showDelay: () => Duration.fromInputUnsafe(showDelay) }),
+    modifyFields(model, {
+      showDelay: () => Duration.fromInputUnsafe(showDelay),
+    }),
 )
 
 // VIEW

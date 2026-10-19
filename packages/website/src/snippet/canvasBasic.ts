@@ -2,7 +2,7 @@ import { Canvas, Subscription } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 
 const subscriptions = Subscription.make<Model, Message>()(_entry => ({
-  frame: Subscription.animationFrame({
+  frame: Subscription.animationFrameEntry({
     isActive: model => model.isPlaying,
     toMessage: deltaTime => TickedFrame({ deltaTime }),
   }),

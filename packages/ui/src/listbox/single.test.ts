@@ -1,8 +1,7 @@
 import { Option } from 'effect'
+import { Scene, Story } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
-import * as Scene from 'foldkit/scene'
-import * as Story from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
@@ -40,11 +39,14 @@ const acknowledgeBackdrop = Scene.Mount.resolve(
   Message.CompletedPortalListboxBackdrop(),
 )
 
-const animationEndMessage = Message.GotAnimationMessage({
-  message: Animation.Message.EndedAnimation(),
-})
+const animationEndMessage = (generation: number) =>
+  Message.GotAnimationMessage({
+    message: Animation.Message.EndedAnimation({ generation }),
+  })
 
 const STALE_CLEAR_SEARCH_VERSION = 9999
+
+const STALE_ANIMATION_GENERATION = -1
 
 const givenClosed = Story.given(init({ id: 'test' }))
 
@@ -61,9 +63,18 @@ const givenOpenAnimated = Story.steps(
   Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
   Story.Command.resolveAll(
     [FocusItems, Message.CompletedFocusItems()],
-    [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
-    [Animation.WaitForAnimationSettled, Animation.Message.EndedAnimation()],
+    [
+      Animation.WaitForPaint,
+      Animation.Message.CompletedWaitForPaint({ generation: 1 }),
+    ],
+    [
+      Animation.WaitForAnimationSettled,
+      Animation.Message.EndedAnimation({ generation: 1 }),
+    ],
   ),
+  Story.model((model: Model) => {
+    expect(model.animation.transitionState).toBe('Idle')
+  }),
 )
 
 describe('Listbox', () => {
@@ -133,7 +144,7 @@ describe('Listbox', () => {
         Story.story(
           update,
           Story.given(
-            evo(init({ id: 'test' }), {
+            modifyFields(init({ id: 'test' }), {
               searchQuery: () => 'stale',
               searchVersion: () => 1,
             }),
@@ -182,7 +193,7 @@ describe('Listbox', () => {
         Story.story(
           update,
           Story.given(
-            evo(init({ id: 'test' }), {
+            modifyFields(init({ id: 'test' }), {
               maybeLastPointerPosition: () =>
                 Option.some({
                   screenX: 100,
@@ -871,11 +882,11 @@ describe('Listbox', () => {
               [FocusItems, Message.CompletedFocusItems()],
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ generation: 1 }),
               ],
               [
                 Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
+                Animation.Message.EndedAnimation({ generation: 1 }),
               ],
             ),
           )
@@ -890,7 +901,7 @@ describe('Listbox', () => {
             ),
             Story.Command.resolve(
               Animation.WaitForPaint,
-              Animation.Message.CompletedWaitForPaint(),
+              Animation.Message.CompletedWaitForPaint({ generation: 1 }),
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('EnterAnimating')
@@ -899,7 +910,7 @@ describe('Listbox', () => {
               [FocusItems, Message.CompletedFocusItems()],
               [
                 Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
+                Animation.Message.EndedAnimation({ generation: 1 }),
               ],
             ),
           )
@@ -916,11 +927,11 @@ describe('Listbox', () => {
               [FocusItems, Message.CompletedFocusItems()],
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ generation: 1 }),
               ],
               [
                 Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
+                Animation.Message.EndedAnimation({ generation: 1 }),
               ],
             ),
             Story.model(model => {
@@ -958,13 +969,9 @@ describe('Listbox', () => {
               [FocusButton, Message.CompletedFocusButton()],
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ generation: 2 }),
               ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
-              ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
           )
         })
@@ -981,13 +988,9 @@ describe('Listbox', () => {
             Story.Command.resolveAll(
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ generation: 2 }),
               ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
-              ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
           )
         })
@@ -1005,13 +1008,9 @@ describe('Listbox', () => {
               [FocusButton, Message.CompletedFocusButton()],
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ generation: 2 }),
               ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
-              ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
           )
         })
@@ -1023,18 +1022,17 @@ describe('Listbox', () => {
             Story.message(Message.Closed()),
             Story.Command.resolve(
               Animation.WaitForPaint,
-              Animation.Message.CompletedWaitForPaint(),
+              Animation.Message.CompletedWaitForPaint({ generation: 2 }),
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('LeaveAnimating')
             }),
+            Story.Command.expectHas(
+              DetectMovementOrAnimationEnd({ id: 'test', generation: 2 }),
+            ),
             Story.Command.resolveAll(
               [FocusButton, Message.CompletedFocusButton()],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
-              ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
           )
         })
@@ -1048,13 +1046,9 @@ describe('Listbox', () => {
               [FocusButton, Message.CompletedFocusButton()],
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ generation: 2 }),
               ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
-              ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
@@ -1098,7 +1092,9 @@ describe('Listbox', () => {
             givenOpen,
             Story.message(
               Message.GotAnimationMessage({
-                message: Animation.Message.CompletedWaitForPaint(),
+                message: Animation.Message.CompletedWaitForPaint({
+                  generation: 0,
+                }),
               }),
             ),
             Story.model(model => {
@@ -1112,7 +1108,7 @@ describe('Listbox', () => {
           Story.story(
             update,
             givenOpen,
-            Story.message(animationEndMessage),
+            Story.message(animationEndMessage(0)),
             Story.model(model => {
               expect(model.isOpen).toBe(true)
               expect(model.animation.transitionState).toBe('Idle')
@@ -1133,13 +1129,14 @@ describe('Listbox', () => {
               [FocusItems, Message.CompletedFocusItems()],
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
+                Animation.Message.CompletedWaitForPaint({
+                  generation: STALE_ANIMATION_GENERATION,
+                }),
               ],
             ),
+            Story.model(model => {
+              expect(model.animation.transitionState).toBe('EnterStart')
+            }),
             Story.message(Message.Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
@@ -1149,14 +1146,13 @@ describe('Listbox', () => {
               [FocusButton, Message.CompletedFocusButton()],
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ generation: 2 }),
               ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
-              ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
+            Story.model(model => {
+              expect(model.animation.transitionState).toBe('Idle')
+            }),
           )
         })
 
@@ -1171,13 +1167,18 @@ describe('Listbox', () => {
               [FocusItems, Message.CompletedFocusItems()],
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ generation: 1 }),
               ],
               [
                 Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
+                Animation.Message.EndedAnimation({
+                  generation: STALE_ANIMATION_GENERATION,
+                }),
               ],
             ),
+            Story.model(model => {
+              expect(model.animation.transitionState).toBe('EnterAnimating')
+            }),
             Story.message(Message.Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
@@ -1187,14 +1188,13 @@ describe('Listbox', () => {
               [FocusButton, Message.CompletedFocusButton()],
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ generation: 2 }),
               ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
-              ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
+            Story.model(model => {
+              expect(model.animation.transitionState).toBe('Idle')
+            }),
           )
         })
       })
@@ -1351,6 +1351,36 @@ describe('Listbox', () => {
         )
 
     describe('ARIA', () => {
+      it('only points at the items panel while it is rendered', () => {
+        Scene.scene(
+          { update, view: sceneView() },
+          Scene.given(closedModel()),
+          Scene.expect(Scene.selector('[key="test-button"]')).not.toHaveAttr(
+            'aria-controls',
+          ),
+          Scene.given(openModel()),
+          Scene.expect(Scene.selector('[key="test-button"]')).toHaveAttr(
+            'aria-controls',
+            'test-items',
+          ),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+        )
+      })
+
+      it('keeps the items panel out of the Tab order', () => {
+        Scene.scene(
+          { update, view: sceneView() },
+          Scene.given(openModel()),
+          Scene.expect(Scene.selector('#test-items')).toHaveAttr(
+            'tabIndex',
+            '-1',
+          ),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+        )
+      })
+
       it('button has aria-haspopup="listbox"', () => {
         Scene.scene(
           { update, view: sceneView() },
@@ -1967,7 +1997,9 @@ describe('Listbox', () => {
       })
 
       it('items container has aria-orientation="horizontal" when horizontal', () => {
-        const model = evo(openModel(), { orientation: () => 'Horizontal' })
+        const model = modifyFields(openModel(), {
+          orientation: () => 'Horizontal',
+        })
         Scene.scene(
           { update, view: sceneView() },
           Scene.given(model),

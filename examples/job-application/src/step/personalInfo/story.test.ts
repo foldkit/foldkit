@@ -1,7 +1,7 @@
 import { Calendar } from 'foldkit'
 import { Valid, Validating } from 'foldkit/fieldValidation'
 import { Command, given, message, model, story } from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import { Message, ValidateEmailAsync, init, update } from './personalInfo'
@@ -68,7 +68,7 @@ describe('personalInfo', () => {
     story(
       update,
       given(
-        evo(init(today), {
+        modifyFields(init(today), {
           email: () => Validating({ value: 'jane@example.com' }),
           emailValidationId: () => 5,
         }),

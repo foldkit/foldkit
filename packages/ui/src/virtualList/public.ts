@@ -1,16 +1,23 @@
 export {
   init,
   update,
+  informItemsChanged,
+  scrollTo,
+  scrollToEnd,
   scrollToIndex,
-  scrollToIndexVariable,
+  scrollToKey,
+  scrollToOffset,
   view,
-  subscriptions,
-  visibleWindow,
-  visibleWindowVariable,
   Model,
   Message,
-  type ScrolledContainer,
-  type MeasuredContainer,
+  ContentAlignment,
+  ScrollAlignment,
+  ScrollTarget,
 } from './index.js'
 
-export type { InitConfig, ViewInputs, VisibleWindow } from './index.js'
+export type {
+  InitConfig,
+  RowHeightInputs,
+  ScrollToOptions,
+  ViewInputs,
+} from './index.js'

@@ -1,5 +1,5 @@
 import { Crypto, Effect, Schema } from 'effect'
-import { KeyValueStore } from 'effect/unstable/persistence'
+import { KeyValueStore } from 'effect/persistence'
 import { Command, Dom } from 'foldkit'
 
 import { BrowserCrypto, BrowserKeyValueStore } from '@effect/platform-browser'
@@ -26,10 +26,10 @@ export const SaveBoard = Command.define('SaveBoard', {
   execute: ({ columns }) =>
     Effect.gen(function* () {
       const store = yield* KeyValueStore.KeyValueStore
-      yield* store.set(
-        STORAGE_KEY,
-        Schema.encodeSync(SavedBoardJsonString)({ columns }),
-      )
+      const encodedBoard = yield* Schema.encodeEffect(SavedBoardJsonString)({
+        columns,
+      })
+      yield* store.set(STORAGE_KEY, encodedBoard)
       return Message.CompletedSaveBoard()
     }).pipe(
       Effect.catch(() => Effect.succeed(Message.CompletedSaveBoard())),

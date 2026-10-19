@@ -1,6 +1,6 @@
 // subscription.ts
-import { Effect, Schema, Stream } from 'effect'
-import { Subscription } from 'foldkit'
+import { Effect, Option, Schema, Stream } from 'effect'
+import { Dom, Subscription } from 'foldkit'
 
 import { ChangedSystemTheme, GotSettingsMessage, type Message } from './message'
 import type { Model } from './model'
@@ -10,7 +10,7 @@ const settingsSubscriptions = Subscription.lift(Settings.subscriptions)<
   Model,
   Message
 >({
-  toChildModel: model => model.settings,
+  read: model => Option.some(model.settings),
   toParentMessage: message => GotSettingsMessage({ message }),
 })
 
@@ -23,17 +23,18 @@ const localSubscriptions = Subscription.make<Model, Message>()(entry => ({
       }),
       dependenciesToStream: ({ isSystemPreference }) =>
         Stream.when(
-          Stream.fromEventListener<MediaQueryListEvent>(
-            window.matchMedia('(prefers-color-scheme: dark)'),
-            'change',
-          ).pipe(Stream.map(ChangedSystemTheme)),
+          Dom.streamFromMediaQuery({
+            query: '(prefers-color-scheme: dark)',
+            mapMatches: isDark =>
+              ChangedSystemTheme({ theme: isDark ? 'Dark' : 'Light' }),
+          }),
           Effect.sync(() => isSystemPreference),
         ),
     },
   ),
 }))
 
-export const subscriptions = Subscription.aggregate<Model, Message>()(
+export const subscriptions = Subscription.aggregate(
   settingsSubscriptions,
   localSubscriptions,
 )

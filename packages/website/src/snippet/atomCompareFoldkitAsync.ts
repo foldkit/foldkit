@@ -44,13 +44,17 @@ const FetchUser = Command.define('FetchUser', {
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedLoadUser: () => ({
-      model: evo(model, { user: () => UserAsyncData.Loading() }),
+      model: modifyFields(model, { user: () => UserAsyncData.Loading() }),
       commands: [FetchUser()],
     }),
     SucceededLoadUser: ({ user }) => ({
-      model: evo(model, { user: () => UserAsyncData.Success({ data: user }) }),
+      model: modifyFields(model, {
+        user: () => UserAsyncData.Success({ data: user }),
+      }),
     }),
     FailedLoadUser: ({ error }) => ({
-      model: evo(model, { user: () => UserAsyncData.Failure({ error }) }),
+      model: modifyFields(model, {
+        user: () => UserAsyncData.Failure({ error }),
+      }),
     }),
   })

@@ -25,6 +25,7 @@ export {
 export type {
   InitConfig,
   ViewInputs,
+  ViewLabels,
   CalendarAttributes,
   DaysModeAttributes,
   MonthsModeAttributes,

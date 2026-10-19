@@ -24,7 +24,7 @@ import {
 } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import * as Mount from '../mount/index.js'
-import { evo } from '../struct/index.js'
+import { modifyFields } from '../struct/index.js'
 import * as Subscription from '../subscription/subscription.js'
 import type * as Update from '../update/index.js'
 import { __setDevToolsOverlay } from './devToolsConfig.js'
@@ -70,18 +70,18 @@ const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     CompletedMountEditor: () => ({ model }),
     EditedFromMount: () => ({
-      model: evo(model, { mountEditCount: count => count + 1 }),
+      model: modifyFields(model, { mountEditCount: count => count + 1 }),
     }),
     EditedEntityFromMount: () => ({ model }),
     GotChildMountResult: () => ({ model }),
     Ticked: () => ({
-      model: evo(model, { tickCount: count => count + 1 }),
+      model: modifyFields(model, { tickCount: count => count + 1 }),
     }),
     ShowedEditor: () => ({
-      model: evo(model, { isEditorShown: () => true }),
+      model: modifyFields(model, { isEditorShown: () => true }),
     }),
     HidEditor: () => ({
-      model: evo(model, { isEditorShown: () => false }),
+      model: modifyFields(model, { isEditorShown: () => false }),
     }),
   })
 
@@ -162,7 +162,7 @@ describe('Mount view-state awareness', () => {
       PubSub.unbounded<Message>(),
     )
     const subscriptions = Subscription.make<Model, Message>()(() => ({
-      testMessages: Subscription.persistent(
+      testMessages: Subscription.persistentEntry(
         Stream.fromPubSub(subscriptionMessages),
       ),
     }))
@@ -365,7 +365,7 @@ describe('Mount view-state awareness', () => {
       PubSub.unbounded<Message>(),
     )
     const subscriptions = Subscription.make<Model, Message>()(() => ({
-      testMessages: Subscription.persistent(
+      testMessages: Subscription.persistentEntry(
         Stream.fromPubSub(subscriptionMessages),
       ),
     }))
@@ -478,7 +478,7 @@ describe('Mount view-state awareness', () => {
       PubSub.unbounded<Message>(),
     )
     const subscriptions = Subscription.make<Model, Message>()(() => ({
-      testMessages: Subscription.persistent(
+      testMessages: Subscription.persistentEntry(
         Stream.fromPubSub(subscriptionMessages),
       ),
     }))
@@ -654,7 +654,7 @@ describe('Mount view-state awareness', () => {
       PubSub.unbounded<Message>({ replay: 1 }),
     )
     const subscriptions = Subscription.make<Model, Message>()(() => ({
-      testMessages: Subscription.persistent(
+      testMessages: Subscription.persistentEntry(
         Stream.fromPubSub(subscriptionMessages),
       ),
     }))
@@ -776,7 +776,7 @@ describe('Mount view-state awareness', () => {
     )
     const replaySetup = await Effect.runPromise(Queue.unbounded<void>())
     const subscriptions = Subscription.make<Model, Message>()(() => ({
-      testMessages: Subscription.persistent(
+      testMessages: Subscription.persistentEntry(
         Stream.fromPubSub(subscriptionMessages),
       ),
     }))
@@ -882,7 +882,7 @@ describe('Mount view-state awareness', () => {
       PubSub.unbounded<Message>(),
     )
     const subscriptions = Subscription.make<Model, Message>()(() => ({
-      testMessages: Subscription.persistent(
+      testMessages: Subscription.persistentEntry(
         Stream.fromPubSub(subscriptionMessages),
       ),
     }))
@@ -1036,7 +1036,7 @@ describe('Mount view-state awareness', () => {
       PubSub.unbounded<Message>({ replay: 1 }),
     )
     const subscriptions = Subscription.make<Model, Message>()(() => ({
-      testMessages: Subscription.persistent(
+      testMessages: Subscription.persistentEntry(
         Stream.fromPubSub(subscriptionMessages),
       ),
     }))
@@ -1736,20 +1736,20 @@ describe('Mount view-state awareness', () => {
           message,
           {
             CompletedMountPanel: () => ({
-              model: evo(model, { mountCount: count => count + 1 }),
+              model: modifyFields(model, { mountCount: count => count + 1 }),
             }),
             DisabledFailureProperty: () => ({
-              model: evo(model, {
+              model: modifyFields(model, {
                 isFailurePropertyEnabled: () => false,
               }),
             }),
             EnabledFailureProperty: () => ({
-              model: evo(model, {
+              model: modifyFields(model, {
                 isFailurePropertyEnabled: () => true,
               }),
             }),
             UnmountedPanel: () => ({
-              model: evo(model, { unmountCount: count => count + 1 }),
+              model: modifyFields(model, { unmountCount: count => count + 1 }),
             }),
           },
         )
@@ -1964,7 +1964,7 @@ describe('Mount view-state awareness', () => {
       )
       let isSubscriptionReady = false
       const subscriptions = Subscription.make<Model, Message>()(() => ({
-        testMessages: Subscription.persistent(
+        testMessages: Subscription.persistentEntry(
           Stream.fromEffect(
             Effect.sync(() => {
               isSubscriptionReady = true
@@ -2086,7 +2086,7 @@ describe('Mount view-state awareness', () => {
       PubSub.unbounded<Message>(),
     )
     const subscriptions = Subscription.make<Model, Message>()(() => ({
-      testMessages: Subscription.persistent(
+      testMessages: Subscription.persistentEntry(
         Stream.fromPubSub(subscriptionMessages),
       ),
     }))

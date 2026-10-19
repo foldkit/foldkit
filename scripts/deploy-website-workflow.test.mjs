@@ -766,16 +766,6 @@ test('production and canary call the shared deployment with separate projects', 
     canaryWorkflow,
     /vercel_project_id: \$\{\{ secrets\.VERCEL_WEBSITE_CANARY_PROJECT_ID \}\}/,
   )
-  for (const workflow of [productionWorkflow, canaryWorkflow]) {
-    assert.match(
-      workflow,
-      /website_book_font: \$\{\{ secrets\.ABC_FAVORIT_BOOK_WOFF2_BASE64 \}\}/,
-    )
-    assert.match(
-      workflow,
-      /website_light_font: \$\{\{ secrets\.ABC_FAVORIT_LIGHT_WOFF2_BASE64 \}\}/,
-    )
-  }
 })
 
 test('the canary hostname moves only after its staged deployment passes smoke tests', () => {

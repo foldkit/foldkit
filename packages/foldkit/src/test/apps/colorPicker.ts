@@ -3,7 +3,7 @@ import { Schema } from 'effect'
 import * as CustomElement from '../../customElement/index.js'
 import type { Html, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
-import { evo } from '../../struct/index.js'
+import { modifyFields } from '../../struct/index.js'
 import type * as Update from '../../update/index.js'
 
 // CUSTOM ELEMENT
@@ -40,7 +40,7 @@ export const initialModel = Model.make({ color: '#000000' })
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ChangedColor: ({ value }) => ({
-      model: evo(model, { color: () => value }),
+      model: modifyFields(model, { color: () => value }),
     }),
   })
 

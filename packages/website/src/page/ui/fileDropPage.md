@@ -16,7 +16,7 @@ A multi-file drop zone. Drag files on or click to browse. The component exposes 
 
 ::Demo{name="basic"}
 
-::Snippet{name="uiFileDropBasic" label="file drop example"}
+::Snippet{name="uiFileDropBasic" label="File drop"}
 
 ## Styling
 

@@ -16,7 +16,7 @@ Pass an `onChange` handler that receives the selected option’s value as a stri
 
 ::Demo{name="basic"}
 
-::Snippet{name="uiSelectBasic" label="basic select example"}
+::Snippet{name="uiSelectBasic" label="Basic select"}
 
 ### Disabled
 
@@ -24,7 +24,7 @@ Set `isDisabled: true` to disable the select.
 
 ::Demo{name="disabled"}
 
-::Snippet{name="uiSelectDisabled" label="disabled select example"}
+::Snippet{name="uiSelectDisabled" label="Disabled select"}
 
 ## Styling
 

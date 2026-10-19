@@ -1,10 +1,18 @@
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  keyboard: Subscription.persistent(
-    Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
-      Stream.mapEffect(handleKeyboardEvent),
-      Stream.filter(Option.isSome),
-      Stream.map(option => option.value),
-    ),
+  undoRedoKeys: Subscription.persistentEntry(
+    Dom.streamFromEventFilterMapPreventDefault({
+      target: document,
+      type: 'keydown',
+      filterMapEvent: toUndoRedoMessage,
+    }),
+  ),
+
+  toolKeys: Subscription.persistentEntry(
+    Dom.streamFromEventFilterMap({
+      target: document,
+      type: 'keydown',
+      filterMapEvent: toToolMessage,
+    }),
   ),
 
   mouseRelease: entry(

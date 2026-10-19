@@ -3,7 +3,7 @@ import { type Update } from 'foldkit'
 import * as File from 'foldkit/file'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { defineView } from 'foldkit/submodel'
 
 // MODEL
@@ -63,15 +63,17 @@ export const update = (model: Model, message: Message) =>
     message,
     {
       EnteredDragZone: () => ({
-        model: evo(model, { isDragOver: () => true }),
+        model: modifyFields(model, { isDragOver: () => true }),
       }),
-      LeftDragZone: () => ({ model: evo(model, { isDragOver: () => false }) }),
+      LeftDragZone: () => ({
+        model: modifyFields(model, { isDragOver: () => false }),
+      }),
       DroppedFiles: ({ files }) => ({
-        model: evo(model, { isDragOver: () => false }),
+        model: modifyFields(model, { isDragOver: () => false }),
         outMessage: OutMessage.ReceivedFiles({ files }),
       }),
       DroppedNonFiles: () => ({
-        model: evo(model, { isDragOver: () => false }),
+        model: modifyFields(model, { isDragOver: () => false }),
         outMessage: OutMessage.RejectedNonFiles(),
       }),
     },

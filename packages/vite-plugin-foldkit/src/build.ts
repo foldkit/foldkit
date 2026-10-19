@@ -1,12 +1,19 @@
-import { Array, Schema } from 'effect'
-import type { RenderedApplication } from 'foldkit/experimental/server'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { Predicate, Schema } from 'effect'
+import type {
+  DocumentAssets,
+  DocumentRenderer,
+  RenderedApplication,
+} from 'foldkit/experimental/server'
+import { createHash, randomUUID } from 'node:crypto'
+import { existsSync } from 'node:fs'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import nodePath, { dirname, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type {
   BuildEnvironment,
   EnvironmentOptions,
   Plugin,
+  ResolvedConfig,
   ViteBuilder,
 } from 'vite'
 
@@ -18,31 +25,22 @@ export type FoldkitPrerenderOptions = Readonly<{
    */
   paths?: ReadonlyArray<string>
   /**
-   * The origin the entry sees as `Request.url` while generating, such as
-   * `'https://app.example'`. It reaches canonical URLs and Open Graph URLs, so
-   * a deployment that publishes those should set the origin it publishes.
+   * The origin used for `Request.url` while generating, such as
+   * `'https://app.example'`. This option does not set canonical or Open Graph
+   * metadata. It affects those fields only when the server entry derives them
+   * from `Request.url`, in which case it should match the published origin.
    */
   origin?: string
-  /**
-   * The `id` of the placeholder element in `index.html` the rendered markup
-   * replaces. Defaults to `'root'`, and the aggregate plugin passes whatever
-   * `ssr.containerId` names, so a renamed container is renamed once.
-   */
-  containerId?: string
 }>
 
 /** How `vite build` builds a server entry and what it generates from it. */
 export type FoldkitBuildOptions = Readonly<{
+  /** Root-relative browser script entry resolved by Vite, such as `'/src/entry.ts'`. Import stylesheets from this module. */
+  clientEntry: string
   /** Where the browser build is written. */
   clientOutDir?: string
   /** Where the server build is written. */
   serverOutDir?: string
-  /**
-   * The `id` of the empty container in `index.html` the fetch handler
-   * replaces. Defaults to `'root'`. The aggregate plugin copies
-   * `ssr.containerId` here.
-   */
-  containerId?: string
   /**
    * Generate static HTML for a set of URLs after both builds. `true` takes the
    * paths from the entry's `prerenderPaths` export.
@@ -54,15 +52,11 @@ export type FoldkitBuildOptions = Readonly<{
 export const FOLDKIT_FETCH_MODULE_ID = 'virtual:foldkit/fetch'
 
 /**
- * What the build produced, written beside the server bundle for whatever
- * deploys it.
+ * What an `ssr.build` build produced, written beside the server bundle.
  *
- * A host has to decide what the asset layer does with a request that matches no
- * file, and that answer follows from the build rather than from taste: an
- * application with generated pages and no others wants a miss to stay a miss,
- * one with a server wants a miss to reach it, and one with neither wants the
- * template. Reading it here is how a deployment target gets that right without
- * asking its user to configure it twice.
+ * An SSR host serves generated paths as files and sends requests without a
+ * matching file to the server entry. A static-only SSG host serves the files
+ * and leaves other paths as misses.
  */
 export const FoldkitBuildManifest = Schema.Struct({
   /**
@@ -83,29 +77,46 @@ export const FoldkitBuildManifest = Schema.Struct({
   serverEntry: Schema.String,
   /** Every path this build generated a page for, in the order it generated. */
   prerendered: Schema.Array(Schema.String),
-  /**
-   * How a request-time host should run the server entry. Always `'fetch'`:
-   * the entry is a Web `fetch` handler, not a Node process.
-   */
-  host: Schema.optional(Schema.Literals(['fetch'])),
 })
 
 /**
- * What the build produced, written beside the server bundle for whatever
- * deploys it.
+ * The decoded shape of `foldkit.build.json`.
  *
- * A host has to decide what the asset layer does with a request that matches no
- * file, and that answer follows from the build rather than from taste: an
- * application with generated pages and no others wants a miss to stay a miss,
- * one with a server wants a miss to reach it, and one with neither wants the
- * template. Reading it here is how a deployment target gets that right without
- * asking its user to configure it twice.
- *
- * It is a file on disk that something else writes the next time it builds, so a
- * consumer decodes it with this Schema and fails closed rather than trusting
- * the shape it happens to find.
+ * A deployment host decodes the manifest before using it. The Schema rejects
+ * unknown versions rather than letting the host read missing fields.
  */
 export type FoldkitBuildManifest = typeof FoldkitBuildManifest.Type
+
+/** Completed application build data for an in-process deployment integration. */
+export const FoldkitBuildMetadata = Schema.Struct({
+  /** Absolute resolved Vite application root. */
+  root: Schema.String,
+  /** Absolute resolved browser output directory. */
+  clientDirectory: Schema.String,
+  /** Absolute resolved server output directory. */
+  serverDirectory: Schema.String,
+  /** Absolute path to the emitted fetch handler. */
+  serverEntry: Schema.String,
+  /** Portable data also written to `foldkit.build.json`. */
+  manifest: FoldkitBuildManifest,
+})
+
+/** The serializable, frozen snapshot of a completed Foldkit build. */
+export type FoldkitBuildMetadata = typeof FoldkitBuildMetadata.Type
+
+/** The `foldkit:build` plugin's public integration API. */
+export type FoldkitBuildApi = Readonly<{
+  /** Configured application source entry. */
+  serverEntry: string
+  /** Virtual module used to bundle the fetch handler. */
+  fetchModuleId: typeof FOLDKIT_FETCH_MODULE_ID
+  /**
+   * Read after a successful `await builder.buildApp()`. Throws before Foldkit
+   * finalizes or after another client or server build starts. Later plugin failures
+   * still require callers to await the full build successfully.
+   */
+  getBuildMetadata: () => FoldkitBuildMetadata
+}>
 
 const MANIFEST_SCHEMA_VERSION = 1
 
@@ -139,6 +150,10 @@ const DEFAULT_SERVER_OUT_DIR = 'dist/server'
 const DEFAULT_PRERENDER_ORIGIN = 'http://localhost'
 const FETCH_CHUNK_NAME = 'fetch'
 const RESOLVED_FETCH_MODULE_ID = `\0${FOLDKIT_FETCH_MODULE_ID}`
+const CLIENT_MODULE_ID = 'virtual:foldkit/client'
+const RESOLVED_CLIENT_MODULE_ID = `\0${CLIENT_MODULE_ID}`
+const CLIENT_CHUNK_NAME = 'app'
+const VITE_CONSOLIDATED_CSS_ORIGINAL_NAME = 'style.css'
 
 type RenderedResult = {
   readonly _tag: string
@@ -152,6 +167,7 @@ type BuildOutput = Extract<BuildResult, { output: unknown }>['output'][number]
 
 type ServerEntryModule = {
   readonly renderPage: (request: Request) => Promise<RenderedResult>
+  readonly renderDocument: DocumentRenderer
   readonly prerenderPaths?: ReadonlyArray<string>
 }
 
@@ -303,54 +319,132 @@ const prerenderOptionsFrom = (
 }
 
 type Captured = {
-  template?: string
+  assets?: DocumentAssets
   serverEntryFile?: string
+  prerenderedRootHash?: string
 }
 
-// Keyed by Vite root plus the output layout, so concurrent builds of different
-// projects in one process never read each other's output.
-//
-// NOTE: the registry hangs off a global symbol rather than module scope. Vite
-// re-bundles a config file for each environment it resolves, and every bundle
-// is a fresh copy of this module with its own module scope, so what the client
-// build recorded would be invisible to the instance that finalizes. The symbol
-// is one registry for the process no matter how many copies of this module it
-// loads.
-const CAPTURES = Symbol.for('foldkit/vite-plugin:build-captures')
+const documentHash = (document: string): string =>
+  createHash('sha256').update(document).digest('hex')
 
-const captures = ((): Map<string, Captured> => {
-  const registry = globalThis as unknown as Record<symbol, unknown>
-  const existing = registry[CAPTURES]
-  if (existing instanceof Map) {
-    return existing as Map<string, Captured>
+const collectDocumentAssets = (
+  outputs: ReadonlyArray<BuildOutput>,
+  config: ResolvedConfig,
+): DocumentAssets => {
+  const entryFile = serverEntryFile(outputs, CLIENT_CHUNK_NAME)
+  const chunks = new Map(
+    outputs.flatMap(output =>
+      output.type === 'chunk' ? [[output.fileName, output]] : [],
+    ),
+  )
+  const visited = new Set<string>()
+  const stylesheets = new Set<string>()
+  const modulePreloads = new Set<string>()
+  const visit = (fileName: string): void => {
+    if (visited.has(fileName)) {
+      return
+    }
+
+    visited.add(fileName)
+    const chunk = chunks.get(fileName)
+
+    if (chunk === undefined) {
+      return
+    }
+
+    for (const imported of chunk.imports) {
+      visit(imported)
+    }
+
+    for (const stylesheet of chunk.viteMetadata?.importedCss ?? []) {
+      stylesheets.add(stylesheet)
+    }
+
+    if (fileName !== entryFile) {
+      modulePreloads.add(fileName)
+    }
   }
-  const fresh = new Map<string, Captured>()
-  registry[CAPTURES] = fresh
-  return fresh
-})()
+
+  visit(entryFile)
+
+  if (!config.build.cssCodeSplit) {
+    for (const output of outputs) {
+      if (
+        output.type === 'asset' &&
+        output.originalFileNames.includes(VITE_CONSOLIDATED_CSS_ORIGINAL_NAME)
+      ) {
+        stylesheets.add(output.fileName)
+      }
+    }
+  }
+
+  const { modulePreload } = config.build
+  const preloadFiles =
+    modulePreload === false
+      ? []
+      : (modulePreload.resolveDependencies?.(entryFile, [...modulePreloads], {
+          hostId: 'index.html',
+          hostType: 'html',
+        }) ?? [...modulePreloads])
+  const assetUrl = (fileName: string): string => {
+    if (/^([a-z]+:)?\/\//.test(fileName)) {
+      return fileName
+    }
+
+    const builtUrl = config.experimental.renderBuiltUrl?.(fileName, {
+      hostId: 'index.html',
+      hostType: 'html',
+      type: 'asset',
+      ssr: false,
+    })
+
+    if (Predicate.isString(builtUrl)) {
+      if (!builtUrl.startsWith('/') && !/^https?:\/\//.test(builtUrl)) {
+        throw new Error(
+          '[foldkit] renderBuiltUrl must return an absolute URL or root-relative URL for document assets.',
+        )
+      }
+
+      return builtUrl
+    }
+
+    if (builtUrl?.runtime !== undefined || builtUrl?.relative === true) {
+      throw new Error(
+        '[foldkit] document assets cannot use runtime or relative renderBuiltUrl results.',
+      )
+    }
+
+    return `${config.base}${encodeURI(fileName).replace(/[?#]/g, encodeURIComponent)}`
+  }
+
+  return Object.freeze({
+    entryScript: assetUrl(entryFile),
+    stylesheets: Object.freeze([...stylesheets].map(assetUrl)),
+    modulePreloads: Object.freeze(preloadFiles.map(assetUrl)),
+  })
+}
 
 const fetchModuleSource = (
   serverEntry: string,
-  template: string,
-  containerId: string | undefined,
+  assets: DocumentAssets,
 ): string => {
-  const containerLiteral =
-    containerId === undefined ? 'undefined' : JSON.stringify(containerId)
   // NOTE: `export *` re-exports whatever the application entry actually names,
   // so a missing `prerenderPaths` is absent rather than a Vite undefined-import
   // warning.
   return `${[
     `import { handleRequest } from 'foldkit/experimental/server'`,
+    `import { renderDocument } from ${JSON.stringify(serverEntry)}`,
     `import * as server from ${JSON.stringify(serverEntry)}`,
     `export * from ${JSON.stringify(serverEntry)}`,
-    `const template = ${JSON.stringify(template)}`,
-    `const containerId = ${containerLiteral}`,
+    `const assets = ${JSON.stringify(assets)}`,
+    `Object.freeze(assets.stylesheets)`,
+    `Object.freeze(assets.modulePreloads)`,
+    `Object.freeze(assets)`,
     `export default {`,
     `  fetch(request) {`,
     `    return handleRequest(request, {`,
     `      renderPage: server.renderPage,`,
-    `      template,`,
-    `      containerId,`,
+    `      renderDocument: application => renderDocument(application, assets),`,
     `    })`,
     `  },`,
     `}`,
@@ -358,40 +452,37 @@ const fetchModuleSource = (
   ].join('\n')}`
 }
 
-// The template is what the browser build emitted in this same `vite build`,
-// never a file on disk: `dist/client/index.html` could only be the previous
-// build's shell with its old asset hashes, and the source `index.html` still
-// names `/src/entry.ts`. Either would bundle into a handler that serves a
-// page which cannot hydrate, from a build that reported success.
-const templateForFetchModule = (
-  capturedTemplate: string | undefined,
-): string => {
-  if (capturedTemplate === undefined) {
+const assetsForFetchModule = (
+  assets: DocumentAssets | undefined,
+): DocumentAssets => {
+  if (assets === undefined) {
     throw new Error(
-      '[foldkit] the browser build has not emitted index.html, so the fetch handler has no template to render into. Build the "client" environment before "ssr", and give the client an HTML entry.',
+      '[foldkit] the browser build has not emitted its script entry. Build the "client" environment before "ssr" so the document can reference the emitted assets.',
     )
   }
-  return capturedTemplate
+  return assets
 }
 
 /**
  * Builds a Web `fetch` handler alongside the browser build, and generates
  * static HTML from the server entry, inside one `vite build`.
  *
- * Vite drives both environments and every host plugin composes with them, so a
- * deployment target that runs `vite build` gets the whole application rather
- * than the browser half. The generated pages take their template from the
- * browser build's own output, so generating twice over one build produces the
- * same pages. The server bundle's default export is `{ fetch }`.
+ * Vite builds both environments, so a deployment target that runs `vite build`
+ * gets the browser and server bundles. The `fetch` handler and generated pages
+ * use the server entry's `renderDocument` export with the emitted browser assets.
+ * The browser build has a script input and emits no HTML until prerendering.
+ * The server bundle's default export is `{ fetch }`.
  */
 export const foldkitBuild = (
   serverEntry: string,
-  options: FoldkitBuildOptions = {},
-): Plugin => {
+  options: FoldkitBuildOptions,
+): Plugin<FoldkitBuildApi> => {
+  const state: Captured = {}
+  let metadata: FoldkitBuildMetadata | undefined
+
   const clientOutDir = options.clientOutDir ?? DEFAULT_CLIENT_OUT_DIR
   const serverOutDir = options.serverOutDir ?? DEFAULT_SERVER_OUT_DIR
   const prerender = prerenderOptionsFrom(options.prerender ?? false)
-  const containerId = prerender?.containerId ?? options.containerId
 
   // Prerendering imports the server bundle and runs it in the build process,
   // with the build's own privileges. That module is the application's own code
@@ -399,7 +490,7 @@ export const foldkitBuild = (
   // exactly those terms. Nothing here is imported when prerendering is off.
   const generatePages = async (
     builder: ViteBuilder,
-    template: () => string,
+    clientDirectory: string,
     serverDirectory: string,
     entryFileName: string,
   ): Promise<ReadonlyArray<string>> => {
@@ -408,7 +499,6 @@ export const foldkitBuild = (
     }
 
     const origin = prerender.origin ?? DEFAULT_PRERENDER_ORIGIN
-    const clientDirectory = resolve(builder.config.root, clientOutDir)
 
     const entryFile = resolve(serverDirectory, entryFileName)
     const contained = resolve(serverDirectory)
@@ -418,7 +508,9 @@ export const foldkitBuild = (
       )
     }
 
-    const entry: ServerEntryModule = await import(pathToFileURL(entryFile).href)
+    const entryUrl = pathToFileURL(entryFile)
+    entryUrl.searchParams.set('foldkit-build', randomUUID())
+    const entry: ServerEntryModule = await import(entryUrl.href)
     if (typeof entry.renderPage !== 'function') {
       throw new Error(
         `[foldkit] "${entryFileName}" exports no renderPage function, so there is nothing to generate pages with.`,
@@ -432,70 +524,47 @@ export const foldkitBuild = (
       )
     }
 
-    const { injectIntoTemplate } = await import('foldkit/experimental/server')
+    if (!Predicate.isFunction(entry.renderDocument)) {
+      throw new Error(
+        `[foldkit] "${entryFileName}" exports no renderDocument function.`,
+      )
+    }
+
+    const assets = assetsForFetchModule(state.assets)
 
     for (const path of paths) {
       const { url, file } = renderTargetFor(clientDirectory, path, origin)
       const result = await entry.renderPage(new Request(url))
-      const html = injectIntoTemplate(
-        template(),
+      const html = entry.renderDocument(
         renderedApplication(path, result),
-        prerender.containerId === undefined
-          ? undefined
-          : { containerId: prerender.containerId },
+        assets,
       )
 
       await mkdir(dirname(file), { recursive: true })
       await writeFile(file, html)
+      if (path === '/') {
+        state.prerenderedRootHash = documentHash(html)
+      }
+
       builder.config.logger.info(`  generated ${path}`)
     }
 
     return paths
   }
 
-  const writeManifest = async (
-    builder: ViteBuilder,
-    serverDirectory: string,
-    entryFileName: string,
-    prerendered: ReadonlyArray<string>,
-  ): Promise<void> => {
-    const manifest = Schema.encodeSync(FoldkitBuildManifest)({
-      schemaVersion: MANIFEST_SCHEMA_VERSION,
-      client: manifestPath(builder.config.root, clientOutDir),
-      server: manifestPath(builder.config.root, serverOutDir),
-      serverEntry: entryFileName,
-      prerendered,
-      host: 'fetch',
-    })
-    await writeFile(
-      resolve(serverDirectory, MANIFEST_FILE_NAME),
-      `${JSON.stringify(manifest, undefined, 2)}\n`,
-    )
-    builder.config.logger.info(`  wrote ${MANIFEST_FILE_NAME}`)
-  }
-
-  // What each environment emitted, recorded as it is emitted.
-  //
-  // Vite resolves the config once per environment unless `sharedConfigBuild` is
-  // on, so the plugin that finalizes is not necessarily the instance that saw a
-  // given environment build. Keying the record by the output layout it
-  // describes is what lets the finalizing instance read what the others
-  // emitted, and what lets finalization work whether this plugin orchestrates
-  // the environments or a host does.
-  const key = [clientOutDir, serverOutDir, serverEntry].join('\u0000')
-  const captured = (root: string): Captured => {
-    const existing = captures.get(`${root}\u0000${key}`)
-    if (existing !== undefined) {
-      return existing
-    }
-    const fresh: Captured = {}
-    captures.set(`${root}\u0000${key}`, fresh)
-    return fresh
-  }
-
   const finalize = async (builder: ViteBuilder): Promise<void> => {
-    const state = captured(builder.config.root)
-    const serverDirectory = resolve(builder.config.root, serverOutDir)
+    metadata = undefined
+
+    const client = environmentNamed(builder, 'client')
+    const server = environmentNamed(builder, 'ssr')
+    const clientDirectory = resolve(
+      client.config.root,
+      client.config.build.outDir,
+    )
+    const serverDirectory = resolve(
+      server.config.root,
+      server.config.build.outDir,
+    )
 
     if (state.serverEntryFile === undefined) {
       throw new Error(
@@ -503,84 +572,155 @@ export const foldkitBuild = (
       )
     }
 
-    // Read only when a page is actually generated: a build that generates
-    // nothing has no use for an HTML entry and must not require one.
-    const template = (): string => {
-      if (state.template === undefined) {
-        throw new Error(
-          '[foldkit] the browser build emitted no index.html to generate pages from. Prerendering needs an HTML entry.',
-        )
-      }
-      return state.template
+    const rootDocumentPath = resolve(clientDirectory, 'index.html')
+    if (
+      existsSync(rootDocumentPath) &&
+      documentHash(await readFile(rootDocumentPath, 'utf8')) !==
+        state.prerenderedRootHash
+    ) {
+      throw new Error(
+        '[foldkit] the browser output contains index.html before prerendering. Remove it from publicDir or the plugin that emits it, and clear stale output when emptyOutDir is disabled. Only prerendering may generate the root document in an ssr.build output.',
+      )
     }
 
     const prerendered = await generatePages(
       builder,
-      template,
+      clientDirectory,
       serverDirectory,
       state.serverEntryFile,
     )
 
-    await writeManifest(
-      builder,
-      serverDirectory,
-      state.serverEntryFile,
-      prerendered,
+    if (!prerendered.includes('/') && existsSync(rootDocumentPath)) {
+      throw new Error(
+        '[foldkit] index.html remains in the browser output, but this build did not prerender "/". Clear the previous root document before building without it.',
+      )
+    }
+
+    const manifest = FoldkitBuildManifest.make({
+      schemaVersion: MANIFEST_SCHEMA_VERSION,
+      client: manifestPath(builder.config.root, clientDirectory),
+      server: manifestPath(builder.config.root, serverDirectory),
+      serverEntry: state.serverEntryFile,
+      prerendered: [...prerendered],
+    })
+
+    await writeFile(
+      resolve(serverDirectory, MANIFEST_FILE_NAME),
+      `${JSON.stringify(Schema.encodeSync(FoldkitBuildManifest)(manifest), undefined, 2)}\n`,
     )
+    builder.config.logger.info(`  wrote ${MANIFEST_FILE_NAME}`)
+
+    const completedMetadata = FoldkitBuildMetadata.make({
+      root: builder.config.root,
+      clientDirectory,
+      serverDirectory,
+      serverEntry: resolve(serverDirectory, state.serverEntryFile),
+      manifest,
+    })
+    Object.freeze(completedMetadata.manifest.prerendered)
+    Object.freeze(completedMetadata.manifest)
+    metadata = Object.freeze(completedMetadata)
   }
 
   return {
     name: 'foldkit:build',
     apply: 'build',
+    sharedDuringBuild: true,
     api: {
-      host: 'fetch' as const,
       serverEntry,
       fetchModuleId: FOLDKIT_FETCH_MODULE_ID,
+      getBuildMetadata: () => {
+        if (metadata === undefined) {
+          throw new Error(
+            '[foldkit] build metadata is not available. Read it after a successful builder.buildApp().',
+          )
+        }
+
+        return metadata
+      },
+    },
+    buildStart: {
+      order: 'pre',
+      handler() {
+        if (this.environment.name === 'client') {
+          delete state.assets
+          delete state.serverEntryFile
+          metadata = undefined
+
+          const { input } = this.environment.config.build.rolldownOptions
+          const inputs = Predicate.isString(input)
+            ? [input]
+            : Object.values(input ?? {})
+
+          if (
+            !inputs.includes(CLIENT_MODULE_ID) ||
+            inputs.some(entry => /\.html(?:[?#]|$)/.test(entry))
+          ) {
+            throw new Error(
+              '[foldkit] ssr.build owns the browser script input. Configure ssr.clientEntry instead of an HTML input or a replacement client input.',
+            )
+          }
+        } else if (this.environment.name === 'ssr') {
+          delete state.serverEntryFile
+          metadata = undefined
+        }
+      },
     },
     resolveId(id) {
+      if (id === CLIENT_MODULE_ID) {
+        return RESOLVED_CLIENT_MODULE_ID
+      }
       if (id === FOLDKIT_FETCH_MODULE_ID) {
         return RESOLVED_FETCH_MODULE_ID
       }
       return undefined
     },
     load(id) {
+      if (id === RESOLVED_CLIENT_MODULE_ID) {
+        const { modulePreload } = this.environment.config.build
+        const polyfill =
+          modulePreload !== false && modulePreload.polyfill
+            ? "import 'vite/modulepreload-polyfill'\n"
+            : ''
+
+        return `${polyfill}import ${JSON.stringify(options.clientEntry)}\n`
+      }
       if (id !== RESOLVED_FETCH_MODULE_ID) {
         return
       }
-      const state = captured(this.environment.config.root)
-      const template = templateForFetchModule(state.template)
-      return fetchModuleSource(serverEntry, template, containerId)
+      return fetchModuleSource(serverEntry, assetsForFetchModule(state.assets))
     },
-    // NOTE: `writeBundle` rather than `generateBundle`: Vite's own HTML plugin
-    // emits `index.html` from a `generateBundle` hook of its own, and hook
-    // order between plugins decides whether that asset exists yet. By
-    // `writeBundle` the bundle is whatever the environment actually produced.
-    writeBundle(_options, bundle) {
-      const state = captured(this.environment.config.root)
-      const outputs = Object.values(bundle)
-      if (this.environment.name === 'client') {
-        const html = Array.findFirst(
-          outputs,
-          file => file.type === 'asset' && file.fileName === 'index.html',
-        )
-        if (html._tag === 'Some' && html.value.type === 'asset') {
-          state.template = String(html.value.source)
+    generateBundle: {
+      order: 'post',
+      handler(_options, bundle) {
+        if (this.environment.name === 'ssr') {
+          state.serverEntryFile = serverEntryFile(
+            Object.values(bundle),
+            FETCH_CHUNK_NAME,
+          )
+          return
         }
-        return
-      }
-      if (this.environment.name === 'ssr') {
-        state.serverEntryFile = serverEntryFile(outputs, FETCH_CHUNK_NAME)
-      }
+        if (this.environment.name !== 'client') {
+          return
+        }
+        state.assets = collectDocumentAssets(
+          Object.values(bundle),
+          this.environment.config,
+        )
+      },
     },
     config: userConfig => {
       const client: EnvironmentOptions = {
-        build: { outDir: clientOutDir },
+        build: {
+          outDir: clientOutDir,
+          rolldownOptions: { input: { [CLIENT_CHUNK_NAME]: CLIENT_MODULE_ID } },
+        },
       }
       const ssr: EnvironmentOptions = {
         build: {
           ssr: true,
           outDir: serverOutDir,
-          rollupOptions: {
+          rolldownOptions: {
             input: { [FETCH_CHUNK_NAME]: FOLDKIT_FETCH_MODULE_ID },
           },
         },
@@ -605,6 +745,23 @@ export const foldkitBuild = (
             },
           }
         : { environments: { client, ssr } }
+    },
+    configResolved(config) {
+      if (config.base === '' || config.base === './') {
+        throw new Error(
+          '[foldkit] ssr.build requires an absolute URL or root-relative base, such as "/" or "/app/". A relative base cannot locate browser assets consistently across server-rendered routes.',
+        )
+      }
+
+      if (
+        !options.clientEntry?.startsWith('/') ||
+        options.clientEntry.startsWith('//') ||
+        /\.html(?:[?#]|$)/.test(options.clientEntry)
+      ) {
+        throw new Error(
+          "[foldkit] ssr.build requires clientEntry to name a browser script. Move stylesheet imports into that script and document markup into the server entry's renderDocument export.",
+        )
+      }
     },
     // The composable finalization point. `order: 'post'` runs this after the
     // config-level orchestrator — the host's, or the default above — no matter

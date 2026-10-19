@@ -4,6 +4,7 @@
  * the transport boundary for JSON sent to and decoded from the Responses and
  * embeddings endpoints.
  *
+ * @stability unstable
  * @since 4.0.0
  */
 import * as Effect from "effect/Effect"
@@ -34,6 +35,7 @@ const PromptCacheBreakpoint = Schema.Struct({
  * sources. This schema enumerates the include values supported by this client
  * path.
  *
+ * @stability unstable
  * @category schemas
  * @since 4.0.0
  */
@@ -48,6 +50,7 @@ export const IncludeEnum = Schema.Literals([
 /**
  * Type of optional `include` values accepted by OpenAI Responses requests.
  *
+ * @stability unstable
  * @category models
  * @since 4.0.0
  */
@@ -61,6 +64,7 @@ export type IncludeEnum = typeof IncludeEnum.Type
  * Accepted values are `"in_progress"`, `"completed"`, and `"incomplete"`.
  * This item-level status is used by message, reasoning, and tool-call shapes.
  *
+ * @stability unstable
  * @category schemas
  * @since 4.0.0
  */
@@ -73,6 +77,7 @@ export const MessageStatus = Schema.Literals(["in_progress", "completed", "incom
  *
  * Accepted values are `"in_progress"`, `"completed"`, and `"incomplete"`.
  *
+ * @stability unstable
  * @category models
  * @since 4.0.0
  */
@@ -108,6 +113,7 @@ const InputFileContent = Schema.Struct({
  *
  * @see {@link InputItem} for request input item shapes that can contain these content blocks
  *
+ * @stability unstable
  * @category schemas
  * @since 4.0.0
  */
@@ -124,6 +130,7 @@ export const InputContent = Schema.Union([
  *
  * Accepted block variants are `input_text`, `input_image`, and `input_file`.
  *
+ * @stability unstable
  * @category models
  * @since 4.0.0
  */
@@ -139,6 +146,7 @@ export type InputContent = typeof InputContent.Type
  *
  * @see {@link ReasoningItem} for reasoning output items that contain summary text blocks
  *
+ * @stability unstable
  * @category schemas
  * @since 4.0.0
  */
@@ -150,6 +158,7 @@ export const SummaryTextContent = Schema.Struct({
 /**
  * Text content block used for model-provided reasoning summaries.
  *
+ * @stability unstable
  * @category models
  * @since 4.0.0
  */
@@ -214,6 +223,7 @@ const FilePathAnnotation = Schema.Struct({
  * Accepts annotation objects discriminated by `type`: `file_citation`,
  * `url_citation`, `container_file_citation`, or `file_path`.
  *
+ * @stability unstable
  * @category schemas
  * @since 4.0.0
  */
@@ -232,6 +242,7 @@ export const Annotation = Schema.Union([
  * Accepted annotation variants are `file_citation`, `url_citation`,
  * `container_file_citation`, and `file_path`.
  *
+ * @stability unstable
  * @category models
  * @since 4.0.0
  */
@@ -285,6 +296,7 @@ const OutputMessage = Schema.Struct({
  * @see {@link InputItem} for request input items that can carry reasoning items
  * @see {@link IncludeEnum} for requesting encrypted reasoning content
  *
+ * @stability unstable
  * @category schemas
  * @since 4.0.0
  */
@@ -315,6 +327,7 @@ export const ReasoningItem = Schema.Struct({
  * `encrypted_content` is populated only when `reasoning.encrypted_content` is
  * requested through `include`.
  *
+ * @stability unstable
  * @category models
  * @since 4.0.0
  */
@@ -401,6 +414,39 @@ const RequestMessageItem = Schema.Struct({
   ])
 })
 
+const InputCodeInterpreterCall = Schema.Struct({
+  id: Schema.String,
+  type: Schema.Literal("code_interpreter_call"),
+  code: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  container_id: Schema.String,
+  outputs: Schema.optionalKey(Schema.NullOr(Schema.Array(Schema.Unknown))),
+  status: Schema.optionalKey(
+    Schema.Literals(["in_progress", "completed", "incomplete", "interpreting", "failed"])
+  )
+})
+
+const InputFileSearchCall = Schema.Struct({
+  id: Schema.String,
+  type: Schema.Literal("file_search_call"),
+  status: Schema.optionalKey(Schema.String),
+  queries: Schema.optionalKey(Schema.Array(Schema.String)),
+  results: Schema.optionalKey(Schema.NullOr(Schema.Unknown))
+})
+
+const InputImageGenerationCall = Schema.Struct({
+  id: Schema.String,
+  type: Schema.Literal("image_generation_call"),
+  result: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  status: Schema.optionalKey(Schema.Literals(["in_progress", "completed", "generating", "failed"]))
+})
+
+const InputWebSearchCall = Schema.Struct({
+  id: Schema.String,
+  type: Schema.Literal("web_search_call"),
+  action: Schema.optionalKey(Schema.Unknown),
+  status: Schema.optionalKey(Schema.String)
+})
+
 /**
  * Schema for item shapes accepted by an OpenAI Responses request `input` field.
  *
@@ -417,6 +463,7 @@ const RequestMessageItem = Schema.Struct({
  * @see {@link CreateResponse} for the request schema that consumes input items
  * @see {@link InputContent} for content blocks inside message items
  *
+ * @stability unstable
  * @category schemas
  * @since 4.0.0
  */
@@ -432,7 +479,11 @@ export const InputItem = Schema.Union([
   ShellCall,
   ShellCallOutput,
   ApplyPatchCallOutput,
-  McpApprovalResponse
+  McpApprovalResponse,
+  InputCodeInterpreterCall,
+  InputFileSearchCall,
+  InputImageGenerationCall,
+  InputWebSearchCall
 ])
 
 /**
@@ -448,6 +499,7 @@ export const InputItem = Schema.Union([
  * function call output, reasoning items, item references, shell and local shell
  * calls and outputs, apply-patch output, and MCP approval responses.
  *
+ * @stability unstable
  * @category models
  * @since 4.0.0
  */
@@ -509,6 +561,7 @@ const ProviderDefinedTool = Schema.StructWithRest(
  * @see {@link ToolChoice} for selecting whether and which tools the model may call
  * @see {@link CreateResponse} for the request schema that consumes tools
  *
+ * @stability unstable
  * @category schemas
  * @since 4.0.0
  */
@@ -521,6 +574,7 @@ export const Tool = Schema.Union([
 /**
  * Tool definition that can be supplied to an OpenAI Responses request.
  *
+ * @stability unstable
  * @category models
  * @since 4.0.0
  */
@@ -542,6 +596,7 @@ export type Tool = typeof Tool.Type
  * @see {@link Tool} for tool definitions referenced by tool choices
  * @see {@link CreateResponse} for the request schema that consumes `tool_choice`
  *
+ * @stability unstable
  * @category schemas
  * @since 4.0.0
  */
@@ -586,6 +641,7 @@ export const ToolChoice = Schema.Union([
  * Accepted forms are `"none"`, `"auto"`, `"required"`, an allowed-tools set,
  * a named function or custom tool, or a provider-defined tool choice.
  *
+ * @stability unstable
  * @category models
  * @since 4.0.0
  */
@@ -610,6 +666,7 @@ export type ToolChoice = typeof ToolChoice.Type
  *
  * @see {@link CreateResponse} for the request schema that consumes text format configuration
  *
+ * @stability unstable
  * @category schemas
  * @since 4.0.0
  */
@@ -628,6 +685,7 @@ export const TextResponseFormatConfiguration = Schema.Union([
 /**
  * Text output format configuration for plain text, JSON object, or JSON Schema responses.
  *
+ * @stability unstable
  * @category models
  * @since 4.0.0
  */
@@ -655,6 +713,7 @@ export type TextResponseFormatConfiguration = typeof TextResponseFormatConfigura
  * @see {@link Response} for decoded non-streaming response objects
  * @see {@link ResponseStreamEvent} for decoded streaming event objects
  *
+ * @stability unstable
  * @category schemas
  * @since 4.0.0
  */
@@ -708,6 +767,7 @@ export const CreateResponse = Schema.Struct({
 /**
  * Request options used to create an OpenAI Responses API response.
  *
+ * @stability unstable
  * @category options
  * @since 4.0.0
  */
@@ -722,6 +782,7 @@ export type CreateResponse = typeof CreateResponse.Type
  * `total_tokens`. Provider-specific token detail objects are preserved through
  * `input_tokens_details`, `output_tokens_details`, and additional fields.
  *
+ * @stability unstable
  * @category schemas
  * @since 4.0.0
  */
@@ -744,6 +805,7 @@ export const ResponseUsage = Schema.StructWithRest(
  * Includes total input, output, and combined token counts, with provider-specific
  * token detail fields preserved when present.
  *
+ * @stability unstable
  * @category models
  * @since 4.0.0
  */
@@ -766,10 +828,12 @@ const ApplyPatchCall = Schema.Struct({
 const CodeInterpreterCall = Schema.Struct({
   id: Schema.String,
   type: Schema.Literal("code_interpreter_call"),
-  code: Schema.optionalKey(Schema.String),
+  code: Schema.optionalKey(Schema.NullOr(Schema.String)),
   container_id: Schema.String,
-  outputs: Schema.optionalKey(Schema.Array(Schema.Unknown)),
-  status: Schema.optionalKey(MessageStatus)
+  outputs: Schema.optionalKey(Schema.NullOr(Schema.Array(Schema.Unknown))),
+  status: Schema.optionalKey(
+    Schema.Literals(["in_progress", "completed", "incomplete", "interpreting", "failed"])
+  )
 })
 
 const ComputerCall = Schema.Struct({
@@ -862,6 +926,7 @@ const ResponseError = Schema.Struct({
  * @see {@link ResponseUsage} for token accounting on responses
  * @see {@link ResponseStreamEvent} for streaming response events
  *
+ * @stability unstable
  * @category schemas
  * @since 4.0.0
  */
@@ -897,6 +962,7 @@ export const Response = Schema.Struct({
  * Response objects include metadata, output items, optional token usage, and
  * optional incomplete details.
  *
+ * @stability unstable
  * @category models
  * @since 4.0.0
  */
@@ -905,38 +971,38 @@ export type Response = typeof Response.Type
 const ResponseCreatedEvent = Schema.Struct({
   type: Schema.Literal("response.created"),
   response: Response,
-  sequence_number: Schema.Int
+  sequence_number: Schema.optionalKey(Schema.Int)
 })
 
 const ResponseCompletedEvent = Schema.Struct({
   type: Schema.Literal("response.completed"),
   response: Response,
-  sequence_number: Schema.Int
+  sequence_number: Schema.optionalKey(Schema.Int)
 })
 
 const ResponseIncompleteEvent = Schema.Struct({
   type: Schema.Literal("response.incomplete"),
   response: Response,
-  sequence_number: Schema.Int
+  sequence_number: Schema.optionalKey(Schema.Int)
 })
 
 const ResponseFailedEvent = Schema.Struct({
   type: Schema.Literal("response.failed"),
   response: Response,
-  sequence_number: Schema.Int
+  sequence_number: Schema.optionalKey(Schema.Int)
 })
 
 const ResponseOutputItemAddedEvent = Schema.Struct({
   type: Schema.Literal("response.output_item.added"),
   output_index: Schema.Int,
-  sequence_number: Schema.Int,
+  sequence_number: Schema.optionalKey(Schema.Int),
   item: OutputItem
 })
 
 const ResponseOutputItemDoneEvent = Schema.Struct({
   type: Schema.Literal("response.output_item.done"),
   output_index: Schema.Int,
-  sequence_number: Schema.Int,
+  sequence_number: Schema.optionalKey(Schema.Int),
   item: OutputItem
 })
 
@@ -946,7 +1012,7 @@ const ResponseOutputTextDeltaEvent = Schema.Struct({
   output_index: Schema.Int,
   content_index: Schema.Int,
   delta: Schema.String,
-  sequence_number: Schema.Int,
+  sequence_number: Schema.optionalKey(Schema.Int),
   logprobs: Schema.optionalKey(Schema.Array(Schema.Unknown))
 })
 
@@ -956,7 +1022,7 @@ const ResponseOutputTextAnnotationAddedEvent = Schema.Struct({
   output_index: Schema.Int,
   content_index: Schema.Int,
   annotation_index: Schema.Int,
-  sequence_number: Schema.Int,
+  sequence_number: Schema.optionalKey(Schema.Int),
   annotation: Annotation
 })
 
@@ -965,7 +1031,7 @@ const ResponseReasoningSummaryPartAddedEvent = Schema.Struct({
   item_id: Schema.String,
   output_index: Schema.Int,
   summary_index: Schema.Int,
-  sequence_number: Schema.Int,
+  sequence_number: Schema.optionalKey(Schema.Int),
   part: SummaryTextContent
 })
 
@@ -974,7 +1040,7 @@ const ResponseReasoningSummaryPartDoneEvent = Schema.Struct({
   item_id: Schema.String,
   output_index: Schema.Int,
   summary_index: Schema.Int,
-  sequence_number: Schema.Int,
+  sequence_number: Schema.optionalKey(Schema.Int),
   part: SummaryTextContent
 })
 
@@ -984,14 +1050,14 @@ const ResponseReasoningSummaryTextDeltaEvent = Schema.Struct({
   output_index: Schema.Int,
   summary_index: Schema.Int,
   delta: Schema.String,
-  sequence_number: Schema.Int
+  sequence_number: Schema.optionalKey(Schema.Int)
 })
 
 const ResponseFunctionCallArgumentsDeltaEvent = Schema.Struct({
   type: Schema.Literal("response.function_call_arguments.delta"),
   item_id: Schema.String,
   output_index: Schema.Int,
-  sequence_number: Schema.Int,
+  sequence_number: Schema.optionalKey(Schema.Int),
   delta: Schema.String
 })
 
@@ -999,7 +1065,7 @@ const ResponseFunctionCallArgumentsDoneEvent = Schema.Struct({
   type: Schema.Literal("response.function_call_arguments.done"),
   item_id: Schema.String,
   output_index: Schema.Int,
-  sequence_number: Schema.Int,
+  sequence_number: Schema.optionalKey(Schema.Int),
   arguments: Schema.String
 })
 
@@ -1007,7 +1073,7 @@ const ResponseCodeInterpreterCallCodeDeltaEvent = Schema.Struct({
   type: Schema.Literal("response.code_interpreter_call_code.delta"),
   item_id: Schema.String,
   output_index: Schema.Int,
-  sequence_number: Schema.Int,
+  sequence_number: Schema.optionalKey(Schema.Int),
   delta: Schema.String
 })
 
@@ -1015,7 +1081,7 @@ const ResponseCodeInterpreterCallCodeDoneEvent = Schema.Struct({
   type: Schema.Literal("response.code_interpreter_call_code.done"),
   item_id: Schema.String,
   output_index: Schema.Int,
-  sequence_number: Schema.Int,
+  sequence_number: Schema.optionalKey(Schema.Int),
   code: Schema.String
 })
 
@@ -1023,7 +1089,7 @@ const ResponseApplyPatchCallOperationDiffDeltaEvent = Schema.Struct({
   type: Schema.Literal("response.apply_patch_call_operation_diff.delta"),
   item_id: Schema.String,
   output_index: Schema.Int,
-  sequence_number: Schema.Int,
+  sequence_number: Schema.optionalKey(Schema.Int),
   delta: Schema.String
 })
 
@@ -1031,7 +1097,7 @@ const ResponseApplyPatchCallOperationDiffDoneEvent = Schema.Struct({
   type: Schema.Literal("response.apply_patch_call_operation_diff.done"),
   item_id: Schema.String,
   output_index: Schema.Int,
-  sequence_number: Schema.Int,
+  sequence_number: Schema.optionalKey(Schema.Int),
   delta: Schema.optionalKey(Schema.String)
 })
 
@@ -1039,7 +1105,7 @@ const ResponseImageGenerationCallPartialImageEvent = Schema.Struct({
   type: Schema.Literal("response.image_generation_call.partial_image"),
   item_id: Schema.String,
   output_index: Schema.Int,
-  sequence_number: Schema.Int,
+  sequence_number: Schema.optionalKey(Schema.Int),
   partial_image_b64: Schema.String
 })
 
@@ -1048,7 +1114,7 @@ const ResponseErrorEvent = Schema.Struct({
   code: Schema.NullOr(Schema.String),
   message: Schema.String,
   param: Schema.NullOr(Schema.String),
-  sequence_number: Schema.Int,
+  sequence_number: Schema.optionalKey(Schema.Int),
   status: Schema.optionalKey(Schema.Int)
 })
 
@@ -1060,7 +1126,7 @@ const NestedResponseErrorEvent = Schema.Struct({
     message: Schema.String,
     param: Schema.NullOr(Schema.String)
   }),
-  sequence_number: Schema.Int,
+  sequence_number: Schema.optionalKey(Schema.Int),
   status: Schema.optionalKey(Schema.Int)
 }).pipe(
   Schema.decodeTo(
@@ -1097,6 +1163,7 @@ const knownResponseStreamEventTypes = new Set([
 /**
  * Fallback event shape for future or provider-specific response stream events.
  *
+ * @stability unstable
  * @category models
  * @since 4.0.0
  */
@@ -1137,6 +1204,7 @@ const UnknownResponseStreamEvent = Schema.declare<UnknownResponseStreamEvent>(
  * @see {@link Response} for complete response objects carried by lifecycle events
  * @see {@link UnknownResponseStreamEvent} for the fallback shape for future event types
  *
+ * @stability unstable
  * @category schemas
  * @since 4.0.0
  */
@@ -1176,6 +1244,7 @@ export const ResponseStreamEvent = Schema.Union([
  * Includes known response stream events plus a fallback shape for unknown future
  * event types.
  *
+ * @stability unstable
  * @category models
  * @since 4.0.0
  */
@@ -1199,6 +1268,7 @@ export type ResponseStreamEvent = typeof ResponseStreamEvent.Type
  * Callers that need numeric vectors must account for string embeddings, such as
  * base64-encoded embeddings returned for string encoding formats.
  *
+ * @stability unstable
  * @category schemas
  * @since 4.0.0
  */
@@ -1219,6 +1289,7 @@ export const Embedding = Schema.Struct({
  * Contains the item index and embedding payload. The embedding payload may be a
  * numeric vector or a string.
  *
+ * @stability unstable
  * @category models
  * @since 4.0.0
  */
@@ -1244,6 +1315,7 @@ export type Embedding = typeof Embedding.Type
  * provider-side constraints such as non-empty input, integer token ids, input
  * size limits, positive dimensions, and model-specific dimension support.
  *
+ * @stability unstable
  * @category schemas
  * @since 4.0.0
  */
@@ -1263,6 +1335,7 @@ export const CreateEmbeddingRequest = Schema.Struct({
 /**
  * Request payload sent to the OpenAI embeddings endpoint.
  *
+ * @stability unstable
  * @category models
  * @since 4.0.0
  */
@@ -1291,6 +1364,7 @@ export type CreateEmbeddingRequest = typeof CreateEmbeddingRequest.Type
  * @see {@link CreateEmbeddingRequest} for the request schema sent to the embeddings endpoint
  * @see {@link Embedding} for individual embedding items in the response
  *
+ * @stability unstable
  * @category schemas
  * @since 4.0.0
  */
@@ -1318,6 +1392,7 @@ export const CreateEmbeddingResponse = Schema.Struct({
  * Contains embedding items, the model name, optional list marker, and optional
  * token usage counts.
  *
+ * @stability unstable
  * @category models
  * @since 4.0.0
  */

@@ -10,20 +10,20 @@
     "bench": "vitest run --config vitest.bench.config.ts"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.0.0-rc.112",
+    "@effect/platform-browser": "4.0.0",
     "@foldkit/ui": "workspace:*",
     "clsx": "^2.1.1",
-    "effect": "4.0.0-rc.112",
+    "effect": "4.0.0",
     "foldkit": "workspace:*"
   },
   "devDependencies": {
     "@foldkit/devtools": "workspace:*",
     "@foldkit/vite-plugin": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
-    "happy-dom": "^20.11.13",
+    "happy-dom": "^20.14.5",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
-    "vite": "^8.2.2",
-    "vitest": "^4.1.11"
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2"
   }
 }

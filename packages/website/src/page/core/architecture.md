@@ -8,12 +8,16 @@ This pattern is called [The Elm Architecture](https://guide.elm-lang.org/archite
 
 ## The Loop
 
+### The Cycle
+
 Every Foldkit app repeats the same cycle:
 
 1. Something happens, and a `Message` records that fact.
 2. `update` receives the current `Model` and the Message, then returns the next Model and any `Command`s to execute.
 3. `view` renders the next Model as HTML, and the runtime executes the Commands.
 4. User events and effect results produce more Messages, and the cycle begins again.
+
+#### Runtime Flow
 
 The complete cycle looks like this:
 
@@ -47,9 +51,13 @@ Five sources report through the Runtime: Commands, the Browser, Mounts, Subscrip
 - **Subscriptions:** scoped Streams gated by a slice of the Model. The runtime keeps a Subscription alive while that slice holds its value, then starts a fresh scope when the value changes. A Subscription often turns an external source, such as timer ticks, `WebSocket` frames, or system theme changes, into Messages. It can also emit no Messages and maintain DOM state for its lifetime, such as setting `user-select: none` while a drag is active.
 - **ManagedResources:** stateful handles, such as a camera stream, a `WebSocket` connection, or a Web Worker pool, that exist while a slice of the Model holds a particular value. The runtime acquires and releases the handle and dispatches Messages for each lifecycle transition. Commands and Subscriptions can use the typed handle while it is live and receive `ResourceNotAvailable` rather than crashing when it is not.
 
+### Resources
+
 Resources sit beneath the loop instead of feeding it directly. They are app-lifetime dependencies such as an `RpcClient`, an analytics client, or a background compute worker. The runtime shares them with Commands, Subscriptions, and startup Flags, but Resources do not produce Messages themselves.
 
-These sources never mutate the Model. They report what happened with a Message, and only `update` decides the next state. If you want to know how the app reached its current state, follow the Messages.
+### Model Ownership
+
+Commands, browser events, Mounts, Subscriptions, and ManagedResources never mutate the Model. They report what happened with a Message, and only `update` decides the next state. If you want to know how the app reached its current state, follow the Messages.
 
 ## Definitions
 
@@ -71,6 +79,8 @@ Use this table as a reference after you understand the loop:
 
 ## The Restaurant Analogy
 
+### State and Effects
+
 Think of a Foldkit app like a restaurant. The waiter keeps a notebook: a running picture of everything happening right now. Table 3 ordered the salmon. Table 5 is waiting for dessert. When something happens (a customer flags the waiter, the kitchen rings the bell), the waiter hears about it, updates their notebook, and maybe writes a slip for the kitchen. The waiter doesn’t cook the salmon. They hand the slip to the kitchen, and the kitchen reports back when it’s done.
 
 Messages work the same way. “Table 3 asked for the check” is a fact given to the waiter, not an instruction. The waiter decides what to do: maybe bring the check immediately, maybe offer dessert first. The message stays the same either way.
@@ -78,6 +88,8 @@ Messages work the same way. “Table 3 asked for the check” is a fact given to
 :::Info{label="The restaurant analogy"}
 Use the analogy to remember who knows the state and who performs effects. The definitions above remain the literal contracts.
 :::
+
+### Mapping the Concepts
 
 | Foldkit         | Restaurant                                                                                                                  |
 | --------------- | --------------------------------------------------------------------------------------------------------------------------- |

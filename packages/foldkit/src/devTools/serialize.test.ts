@@ -1,4 +1,4 @@
-import { HashSet, Option } from 'effect'
+import { HashSet, Option, Redacted } from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -57,6 +57,24 @@ describe('toInspectableValue', () => {
     })
   })
 
+  it('replaces nested Redacted values with their labeled placeholders', () => {
+    const apiKey = 'sk-live-not-for-devtools'
+    const model = {
+      connection: {
+        apiKey: Redacted.make(apiKey, { label: 'demo-api-key' }),
+      },
+      credentials: [Redacted.make('refresh-token')],
+    }
+
+    const result = toInspectableValue(model)
+
+    expect(result).toEqual({
+      connection: { apiKey: '<redacted:demo-api-key>' },
+      credentials: ['<redacted>'],
+    })
+    expect(JSON.stringify(result)).not.toContain(apiKey)
+  })
+
   it('preserves primitives unchanged', () => {
     expect(toInspectableValue(42)).toBe(42)
     expect(toInspectableValue('hi')).toBe('hi')
@@ -92,7 +110,7 @@ describe('toSerializedEntry', () => {
   const baseEntry: HistoryEntry = {
     tag: 'ClickedButton',
     message: { _tag: 'ClickedButton', label: 'Submit' },
-    commands: [{ name: 'SubmitForm' }],
+    commands: [{ id: 0, name: 'SubmitForm', maybeSubmodelPath: Option.none() }],
     mountStarts: [],
     mountEnds: [],
     timestamp: 1700000000000,
@@ -108,7 +126,11 @@ describe('toSerializedEntry', () => {
     expect(result.index).toBe(7)
     expect(result.tag).toBe('ClickedButton')
     expect(result.commands).toEqual([
-      { name: 'SubmitForm', args: Option.none() },
+      {
+        name: 'SubmitForm',
+        args: Option.none(),
+        maybeSubmodelPath: Option.none(),
+      },
     ])
     expect(result.timestamp).toBe(1700000000000)
     expect(result.isModelChanged).toBe(true)
@@ -118,14 +140,31 @@ describe('toSerializedEntry', () => {
     const entryWithArgs: HistoryEntry = {
       ...baseEntry,
       commands: [
-        { name: 'FetchWeather', args: { zipCode: '90210' } },
-        { name: 'LockScroll' },
+        {
+          id: 1,
+          name: 'FetchWeather',
+          args: { zipCode: '90210' },
+          maybeSubmodelPath: Option.some(['GotForecastMessage']),
+        },
+        {
+          id: 2,
+          name: 'LockScroll',
+          maybeSubmodelPath: Option.some([]),
+        },
       ],
     }
     const result = toSerializedEntry(entryWithArgs, 0)
     expect(result.commands).toEqual([
-      { name: 'FetchWeather', args: Option.some({ zipCode: '90210' }) },
-      { name: 'LockScroll', args: Option.none() },
+      {
+        name: 'FetchWeather',
+        args: Option.some({ zipCode: '90210' }),
+        maybeSubmodelPath: Option.some(['GotForecastMessage']),
+      },
+      {
+        name: 'LockScroll',
+        args: Option.none(),
+        maybeSubmodelPath: Option.some([]),
+      },
     ])
   })
 
@@ -146,6 +185,44 @@ describe('toSerializedEntry', () => {
     expect(result.mountEnds).toEqual([
       { name: 'AnchorPopover', args: Option.some({ buttonId: 'cart-button' }) },
     ])
+  })
+
+  it('replaces Redacted values in Command and Mount args', () => {
+    const apiKey = 'sk-live-not-for-devtools'
+    const entryWithSecretArgs: HistoryEntry = {
+      ...baseEntry,
+      commands: [
+        {
+          id: 1,
+          name: 'Connect',
+          args: { apiKey: Redacted.make(apiKey, { label: 'demo-api-key' }) },
+          maybeSubmodelPath: Option.none(),
+        },
+      ],
+      mountStarts: [
+        {
+          name: 'ConnectForm',
+          args: { apiKey: Redacted.make(apiKey, { label: 'demo-api-key' }) },
+        },
+      ],
+    }
+
+    const result = toSerializedEntry(entryWithSecretArgs, 0)
+
+    expect(result.commands).toEqual([
+      {
+        name: 'Connect',
+        args: Option.some({ apiKey: '<redacted:demo-api-key>' }),
+        maybeSubmodelPath: Option.none(),
+      },
+    ])
+    expect(result.mountStarts).toEqual([
+      {
+        name: 'ConnectForm',
+        args: Option.some({ apiKey: '<redacted:demo-api-key>' }),
+      },
+    ])
+    expect(JSON.stringify(result)).not.toContain(apiKey)
   })
 
   it('flattens the diff HashSets to plain string arrays', () => {
@@ -169,6 +246,27 @@ describe('toSerializedEntry', () => {
       _tag: 'TickedClock',
       at: '2026-04-26T12:00:00.000Z',
     })
+  })
+
+  it('replaces nested Redacted values in Message payloads', () => {
+    const apiKey = 'sk-live-not-for-devtools'
+    const entryWithSecret: HistoryEntry = {
+      ...baseEntry,
+      message: {
+        _tag: 'SubmittedConnection',
+        connection: {
+          apiKey: Redacted.make(apiKey, { label: 'demo-api-key' }),
+        },
+      },
+    }
+
+    const result = toSerializedEntry(entryWithSecret, 0)
+
+    expect(result.message).toEqual({
+      _tag: 'SubmittedConnection',
+      connection: { apiKey: '<redacted:demo-api-key>' },
+    })
+    expect(JSON.stringify(result)).not.toContain(apiKey)
   })
 
   it('serializes Files in the message body to plain objects', () => {

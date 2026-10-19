@@ -4,13 +4,13 @@ import {
   Context,
   Effect,
   Function,
+  HashMap,
   HashSet,
   Match,
   Number,
   Option,
   Order,
   Predicate,
-  Queue,
   Record,
   Schema,
   Stream,
@@ -18,7 +18,7 @@ import {
   SubscriptionRef,
   pipe,
 } from 'effect'
-import { KeyValueStore } from 'effect/unstable/persistence'
+import { KeyValueStore } from 'effect/persistence'
 import { Update } from 'foldkit'
 import * as Command from 'foldkit/command'
 import {
@@ -34,6 +34,7 @@ import {
   latestEntryIndex,
   toInspectableValue,
 } from 'foldkit/devtools-host'
+import * as Dom from 'foldkit/dom'
 import { lockScroll, unlockScroll } from 'foldkit/dom'
 import {
   type Html,
@@ -45,7 +46,7 @@ import { defineMessageUnion } from 'foldkit/message'
 import { makeElement } from 'foldkit/runtime'
 import type { DevToolsMode, DevToolsPosition } from 'foldkit/runtime'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import * as Subscription from 'foldkit/subscription'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
@@ -64,6 +65,7 @@ const SubmodelFilterListbox = Listbox.create<string>()
 const DisplayCommand = Schema.Struct({
   name: Schema.String,
   args: Schema.Option(Schema.Record(Schema.String, Schema.Unknown)),
+  maybeSubmodelPath: Schema.Option(Schema.Array(Schema.String)),
 })
 
 const DisplayMount = Schema.Struct({
@@ -80,6 +82,11 @@ const DisplayEntry = Schema.Struct({
   mountEnds: Schema.Array(DisplayMount),
   timestamp: Schema.Number,
   isModelChanged: Schema.Boolean,
+})
+
+const CopyState = defineTaggedUnion({
+  Copying: { requestId: Schema.Number },
+  Copied: { requestId: Schema.Number },
 })
 
 const INSPECTOR_TABS_ID = 'dt-inspector'
@@ -132,6 +139,8 @@ const Model = Schema.Struct({
   expandedPaths: Schema.HashSet(Schema.String),
   changedPaths: Schema.HashSet(Schema.String),
   affectedPaths: Schema.HashSet(Schema.String),
+  copyStates: Schema.HashMap(Schema.String, CopyState),
+  nextCopyRequestId: Schema.Number,
   maybePendingScrubIndex: Schema.Option(Schema.Number),
   inspectorTabs: Tabs.Model,
   activeInspectorTab: InspectorTab,
@@ -180,7 +189,7 @@ const Message = defineMessageUnion({
   CompletedLockScroll: {},
   CompletedUnlockScroll: {},
   CompletedScrollToTop: {},
-  CrossedMobileBreakpoint: { isMobile: Schema.Boolean },
+  ObservedMobileBreakpoint: { isMobile: Schema.Boolean },
   ReceivedInspectedState: {
     model: Schema.Unknown,
     maybeMessage: Schema.Option(Schema.Unknown),
@@ -188,6 +197,19 @@ const Message = defineMessageUnion({
     affectedPaths: Schema.HashSet(Schema.String),
   },
   ToggledTreeNode: { path: Schema.String },
+  ClickedCopyPayload: { targetId: Schema.String, payload: Schema.Unknown },
+  SucceededCopyPayloadToClipboard: {
+    targetId: Schema.String,
+    requestId: Schema.Number,
+  },
+  FailedCopyPayloadToClipboard: {
+    targetId: Schema.String,
+    requestId: Schema.Number,
+  },
+  CompletedWaitBeforeHidingCopyIndicator: {
+    targetId: Schema.String,
+    requestId: Schema.Number,
+  },
   TickedScrubFrame: {},
   GotInspectorTabsMessage: { message: Tabs.Message },
   ReceivedStoreUpdate: {
@@ -212,6 +234,7 @@ const MOBILE_BREAKPOINT = 767
 const MOBILE_BREAKPOINT_QUERY = `(max-width: ${MOBILE_BREAKPOINT}px)`
 const TREE_INDENT_PX = 12
 const MAX_PREVIEW_KEYS = 3
+const JSON_INDENT = 2
 const ALL_MESSAGES_VALUE = ''
 const DEVTOOLS_STORAGE_KEY = 'foldkit-devtools'
 const NO_COMMANDS: ReadonlyArray<typeof DisplayCommand.Type> = []
@@ -257,11 +280,18 @@ const computeSubmodelTags = (
     Array.sort(Order.String),
   )
 
+const submodelSegmentLabel = (tag: string): string =>
+  pipe(tag, String.replace(/^Got/, ''), String.replace(/Message$/, ''))
+
+const formatSubmodelPath = (submodelPath: ReadonlyArray<string>): string =>
+  pipe(submodelPath, Array.map(submodelSegmentLabel), Array.join(' › '))
+
 const toDisplayCommand = (
   command: CommandRecord,
 ): typeof DisplayCommand.Type => ({
   name: command.name,
   args: Option.fromNullishOr(command.args),
+  maybeSubmodelPath: command.maybeSubmodelPath,
 })
 
 const toDisplayMount = (mount: MountRecord): typeof DisplayMount.Type => ({
@@ -325,6 +355,33 @@ const collapsedPreview = (value: unknown): string =>
     Match.orElse(() => ''),
   )
 
+const serializePayload = (value: unknown): Effect.Effect<string, Error> =>
+  Effect.try({
+    try: () => {
+      const serialized = JSON.stringify(
+        toInspectableValue(value),
+        null,
+        JSON_INDENT,
+      )
+
+      if (serialized === undefined) {
+        throw new Error('Payload cannot be represented as JSON')
+      }
+
+      return serialized
+    },
+    catch: () => new Error('Failed to serialize payload'),
+  })
+
+const taggedPayload = (
+  name: string,
+  args: Option.Option<Record<string, unknown>>,
+): Record<string, unknown> =>
+  Option.match(args, {
+    onNone: () => ({ _tag: name }),
+    onSome: argsValue => ({ ...argsValue, _tag: name }),
+  })
+
 // UPDATE
 
 type UpdateReturn = Update.Return<Model, Message>
@@ -336,7 +393,7 @@ const foldInspectorTabsOutMessage = Tabs.OutMessage.match<
   Selected:
     ({ value }) =>
     model => ({
-      model: evo(model, { activeInspectorTab: () => value }),
+      model: modifyFields(model, { activeInspectorTab: () => value }),
     }),
 })
 
@@ -344,7 +401,7 @@ const foldInspectorTabs = Update.foldChild({
   update: InspectorTabs.update,
   read: (model: Model) => Option.some(model.inspectorTabs),
   write: (model, nextInspectorTabs) =>
-    evo(model, { inspectorTabs: () => nextInspectorTabs }),
+    modifyFields(model, { inspectorTabs: () => nextInspectorTabs }),
   toParentMessage: message => Message.GotInspectorTabsMessage({ message }),
   foldOutMessage: foldInspectorTabsOutMessage,
 })
@@ -356,7 +413,7 @@ const foldSubmodelFilterOutMessage = Listbox.OutMessage.match<
   Selected:
     ({ value }) =>
     model => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         maybeSubmodelFilter: () =>
           Option.liftPredicate(value, String.isNonEmpty),
       }),
@@ -367,7 +424,7 @@ const foldSubmodelFilter = Update.foldChild({
   update: SubmodelFilterListbox.update,
   read: (model: Model) => Option.some(model.submodelFilterListbox),
   write: (model, nextSubmodelFilterListbox) =>
-    evo(model, {
+    modifyFields(model, {
       submodelFilterListbox: () => nextSubmodelFilterListbox,
     }),
   toParentMessage: message => Message.GotSubmodelFilterMessage({ message }),
@@ -383,7 +440,7 @@ const foldScrubberSliderOutMessage = Slider.OutMessage.match<
   ChangedValue:
     ({ value }) =>
     model => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         scrubberValue: () => value,
         maybePendingScrubIndex: () =>
           Option.some(sliderValueToHostIndex(value, model.startIndex)),
@@ -395,7 +452,7 @@ const foldScrubberSlider = Update.foldChild({
   update: Slider.update,
   read: (model: Model) => Option.some(model.scrubberSlider),
   write: (model, nextScrubberSlider) =>
-    evo(model, { scrubberSlider: () => nextScrubberSlider }),
+    modifyFields(model, { scrubberSlider: () => nextScrubberSlider }),
   toParentMessage: message => Message.GotScrubberSliderMessage({ message }),
   foldOutMessage: foldScrubberSliderOutMessage,
 })
@@ -538,6 +595,52 @@ export const Clear = Command.define('Clear', {
   }),
 })
 
+export const CopyPayloadToClipboard = Command.define('CopyPayloadToClipboard', {
+  args: {
+    targetId: Schema.String,
+    requestId: Schema.Number,
+    payload: Schema.Unknown,
+  },
+  messages: [
+    Message.SucceededCopyPayloadToClipboard,
+    Message.FailedCopyPayloadToClipboard,
+  ],
+  execute: ({ targetId, requestId, payload }) =>
+    Effect.gen(function* () {
+      const text = yield* serializePayload(payload)
+      yield* Effect.tryPromise({
+        try: () => navigator.clipboard.writeText(text),
+        catch: () => new Error('Failed to copy payload to clipboard'),
+      })
+      return Message.SucceededCopyPayloadToClipboard({ targetId, requestId })
+    }).pipe(
+      Effect.catch(() =>
+        Effect.succeed(
+          Message.FailedCopyPayloadToClipboard({ targetId, requestId }),
+        ),
+      ),
+    ),
+})
+
+const COPY_INDICATOR_DURATION = '1 second'
+
+export const WaitBeforeHidingCopyIndicator = Command.define(
+  'WaitBeforeHidingCopyIndicator',
+  {
+    args: { targetId: Schema.String, requestId: Schema.Number },
+    messages: [Message.CompletedWaitBeforeHidingCopyIndicator],
+    execute: ({ targetId, requestId }) =>
+      Effect.sleep(COPY_INDICATOR_DURATION).pipe(
+        Effect.as(
+          Message.CompletedWaitBeforeHidingCopyIndicator({
+            targetId,
+            requestId,
+          }),
+        ),
+      ),
+  },
+)
+
 export const ScrollToTop = Command.define('ScrollToTop', {
   messages: [Message.CompletedScrollToTop],
   execute: Effect.gen(function* () {
@@ -578,7 +681,7 @@ const makeUpdate = (
       ClickedToggle: () => {
         const nextIsOpen = !model.isOpen
         return {
-          model: evo(model, { isOpen: () => nextIsOpen }),
+          model: modifyFields(model, { isOpen: () => nextIsOpen }),
           commands: [
             ...Option.toArray(
               maybeToggleScrollLock(model.isMobile, nextIsOpen),
@@ -591,7 +694,7 @@ const makeUpdate = (
         }
       },
       ClickedSettingsToggle: () => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           screen: currentScreen =>
             Match.value(currentScreen).pipe(
               Match.withReturnType<Screen>(),
@@ -602,13 +705,21 @@ const makeUpdate = (
         }),
       }),
       ToggledFlatten: ({ isFlattened }) => ({
-        model: evo(model, { isFlattened: () => isFlattened }),
+        model: modifyFields(model, { isFlattened: () => isFlattened }),
         commands: [PersistDevToolsState({ isOpen: model.isOpen, isFlattened })],
       }),
-      CrossedMobileBreakpoint: ({ isMobile }) => ({
-        model: evo(model, { isMobile: () => isMobile }),
-        commands: Option.toArray(maybeToggleScrollLock(model.isOpen, isMobile)),
-      }),
+      ObservedMobileBreakpoint: ({ isMobile }) => {
+        if (isMobile === model.isMobile) {
+          return { model }
+        }
+
+        return {
+          model: modifyFields(model, { isMobile: () => isMobile }),
+          commands: Option.toArray(
+            maybeToggleScrollLock(model.isOpen, isMobile),
+          ),
+        }
+      },
       ClickedRow: ({ index }) =>
         Match.value(mode).pipe(
           Match.withReturnType<UpdateReturn>(),
@@ -617,7 +728,7 @@ const makeUpdate = (
             commands: [jumpToAndInspect(index)],
           })),
           Match.when('Inspect', () => ({
-            model: evo(model, {
+            model: modifyFields(model, {
               selectedIndex: () => index,
               isFollowingLatest: () => false,
             }),
@@ -626,7 +737,7 @@ const makeUpdate = (
           Match.exhaustive,
         ),
       ClickedResume: () => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           isFollowingTop: () => true,
           expandedPaths: () => HashSet.empty<string>(),
           changedPaths: () => HashSet.empty<string>(),
@@ -635,7 +746,7 @@ const makeUpdate = (
         commands: [resume, inspectLatest, scrollToTop],
       }),
       ClickedClear: () => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           selectedIndex: () => INIT_INDEX,
           isFollowingLatest: () => true,
           isFollowingTop: () => true,
@@ -643,6 +754,7 @@ const makeUpdate = (
           expandedPaths: () => HashSet.empty<string>(),
           changedPaths: () => HashSet.empty<string>(),
           affectedPaths: () => HashSet.empty<string>(),
+          copyStates: () => HashMap.empty(),
         }),
         commands: [clear, inspectLatest, scrollToTop],
       }),
@@ -653,7 +765,7 @@ const makeUpdate = (
         })
 
         return {
-          model: evo(model, {
+          model: modifyFields(model, {
             selectedIndex: () => latestIndex,
             isFollowingLatest: () => true,
             isFollowingTop: () => true,
@@ -665,7 +777,7 @@ const makeUpdate = (
         }
       },
       ClickedScrollToTopPill: () => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           isFollowingTop: () => true,
         }),
         commands: [scrollToTop],
@@ -674,7 +786,7 @@ const makeUpdate = (
         const isAtTop = scrollTop <= SCROLL_FOLLOW_THRESHOLD_PX
         return isAtTop === model.isFollowingTop
           ? { model }
-          : { model: evo(model, { isFollowingTop: () => isAtTop }) }
+          : { model: modifyFields(model, { isFollowingTop: () => isAtTop }) }
       },
       ReceivedInspectedState: ({
         model: inspectedModel,
@@ -682,7 +794,7 @@ const makeUpdate = (
         changedPaths,
         affectedPaths,
       }) => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           maybeInspectedModel: () => Option.some(inspectedModel),
           maybeInspectedMessage: () => maybeMessage,
           changedPaths: () => changedPaths,
@@ -692,13 +804,29 @@ const makeUpdate = (
       GotInspectorTabsMessage: ({ message: tabsMessage }) =>
         foldInspectorTabs(model, tabsMessage),
       ToggledTreeNode: ({ path }) => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           expandedPaths: paths =>
             HashSet.has(paths, path)
               ? HashSet.remove(paths, path)
               : HashSet.add(paths, path),
         }),
       }),
+      ClickedCopyPayload: ({ targetId, payload }) => {
+        if (Option.isSome(HashMap.get(model.copyStates, targetId))) {
+          return { model }
+        }
+
+        const requestId = model.nextCopyRequestId
+
+        return {
+          model: modifyFields(model, {
+            copyStates: states =>
+              HashMap.set(states, targetId, CopyState.Copying({ requestId })),
+            nextCopyRequestId: current => current + 1,
+          }),
+          commands: [CopyPayloadToClipboard({ targetId, requestId, payload })],
+        }
+      },
       ReceivedStoreUpdate: ({
         entries,
         initCommands,
@@ -736,7 +864,7 @@ const makeUpdate = (
           : sliderMax
 
         return {
-          model: evo(model, {
+          model: modifyFields(model, {
             entries: () => entries,
             initCommands: () => initCommands,
             initMountStarts: () => initMountStarts,
@@ -775,7 +903,7 @@ const makeUpdate = (
         Option.match(model.maybePendingScrubIndex, {
           onNone: (): UpdateReturn => ({ model }),
           onSome: (hostIndex): UpdateReturn => ({
-            model: evo(model, {
+            model: modifyFields(model, {
               maybePendingScrubIndex: () => Option.none(),
             }),
             commands: [jumpToAndInspect(hostIndex)],
@@ -787,6 +915,43 @@ const makeUpdate = (
       CompletedLockScroll: () => ({ model }),
       CompletedUnlockScroll: () => ({ model }),
       CompletedScrollToTop: () => ({ model }),
+      SucceededCopyPayloadToClipboard: ({ targetId, requestId }) =>
+        Option.exists(
+          HashMap.get(model.copyStates, targetId),
+          state => state._tag === 'Copying' && state.requestId === requestId,
+        )
+          ? {
+              model: modifyFields(model, {
+                copyStates: states =>
+                  HashMap.set(
+                    states,
+                    targetId,
+                    CopyState.Copied({ requestId }),
+                  ),
+              }),
+              commands: [
+                WaitBeforeHidingCopyIndicator({ targetId, requestId }),
+              ],
+            }
+          : { model },
+      FailedCopyPayloadToClipboard: ({ targetId, requestId }) => ({
+        model: Option.exists(
+          HashMap.get(model.copyStates, targetId),
+          state => state._tag === 'Copying' && state.requestId === requestId,
+        )
+          ? modifyFields(model, { copyStates: HashMap.remove(targetId) })
+          : model,
+      }),
+      CompletedWaitBeforeHidingCopyIndicator: ({ targetId, requestId }) => ({
+        model: Option.exists(
+          HashMap.get(model.copyStates, targetId),
+          state => state._tag === 'Copied' && state.requestId === requestId,
+        )
+          ? modifyFields(model, {
+              copyStates: HashMap.remove(targetId),
+            })
+          : model,
+      }),
     })
 }
 
@@ -799,56 +964,29 @@ const makeOverlaySubscriptions = (store: DevToolsStore, shadow: ShadowRoot) => {
     scrubberPointer: sliderSubscriptions.dragPointer,
     scrubberEscape: sliderSubscriptions.dragEscape,
   })<Model, Message>({
-    toChildModel: model => model.scrubberSlider,
+    read: model => Option.some(model.scrubberSlider),
     toParentMessage: message => Message.GotScrubberSliderMessage({ message }),
   })
 
   const ownSubscriptions = Subscription.make<Model, Message>()(_entry => ({
-    scrubFrame: Subscription.animationFrame<Model, Message>({
+    scrubFrame: Subscription.animationFrameEntry<Model, Message>({
       isActive: model => Option.isSome(model.maybePendingScrubIndex),
       toMessage: () => Message.TickedScrubFrame(),
     }),
-    storeUpdates: Subscription.persistent(
-      Stream.concat(
-        Stream.fromEffect(
-          SubscriptionRef.get(store.stateRef).pipe(
-            Effect.map(state =>
-              Message.ReceivedStoreUpdate(toDisplayState(state)),
-            ),
-          ),
-        ),
-        Stream.map(SubscriptionRef.changes(store.stateRef), state =>
-          Message.ReceivedStoreUpdate(toDisplayState(state)),
-        ),
+    storeUpdates: Subscription.persistentEntry(
+      SubscriptionRef.changes(store.stateRef).pipe(
+        Stream.map(state => Message.ReceivedStoreUpdate(toDisplayState(state))),
       ),
     ),
-    mobileBreakpoint: Subscription.persistent(
-      Stream.callback<Message>(queue =>
-        Effect.acquireRelease(
-          Effect.sync(() => {
-            const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT_QUERY)
-            const handler = (event: MediaQueryListEvent) => {
-              Queue.offerUnsafe(
-                queue,
-                Message.CrossedMobileBreakpoint({ isMobile: event.matches }),
-              )
-            }
-            mediaQuery.addEventListener('change', handler)
-            return { mediaQuery, handler }
-          }),
-          ({ mediaQuery, handler }) =>
-            Effect.sync(() =>
-              mediaQuery.removeEventListener('change', handler),
-            ),
-        ).pipe(Effect.flatMap(() => Effect.never)),
-      ),
+    mobileBreakpoint: Subscription.persistentEntry(
+      Dom.streamFromMediaQuery({
+        query: MOBILE_BREAKPOINT_QUERY,
+        mapMatches: isMobile => Message.ObservedMobileBreakpoint({ isMobile }),
+      }),
     ),
   }))
 
-  return Subscription.aggregate<Model, Message>()(
-    ownSubscriptions,
-    scrubberSubscriptions,
-  )
+  return Subscription.aggregate(ownSubscriptions, scrubberSubscriptions)
 }
 
 // VIEW
@@ -942,6 +1080,9 @@ const buildOverlayView = (
 
   const CHEVRON_RIGHT = 'M8.25 4.5l7.5 7.5-7.5 7.5'
   const CHEVRON_DOWN = 'M19.5 8.25l-7.5 7.5-7.5-7.5'
+  const COPY_ICON =
+    'M8 8h10a2 2 0 012 2v8a2 2 0 01-2 2h-8a2 2 0 01-2-2V8Zm8 0V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2'
+  const COPY_SUCCESS_ICON = 'M4.5 12.75l6 6 9-13.5'
 
   const arrowView = (isExpanded: boolean): Html =>
     h.svg(
@@ -965,6 +1106,72 @@ const buildOverlayView = (
 
   const tagLabelView = (tag: string): Html =>
     h.span([h.Class('json-tag')], [tag])
+
+  const copyPayloadButtonView = (
+    payload: unknown,
+    targetId: string,
+    copyStates: Model['copyStates'],
+    subject: string,
+  ): Html => {
+    const maybeCopyState = HashMap.get(copyStates, targetId)
+    const isCopying = Option.exists(
+      maybeCopyState,
+      state => state._tag === 'Copying',
+    )
+    const isCopied = Option.exists(
+      maybeCopyState,
+      state => state._tag === 'Copied',
+    )
+    const ariaLabel = Option.match(maybeCopyState, {
+      onNone: () => `Copy ${subject} as JSON`,
+      onSome: CopyState.match({
+        Copying: () => `Copying ${subject} as JSON`,
+        Copied: () => `Copied ${subject} as JSON`,
+      }),
+    })
+
+    return h.span(
+      [h.Class('dt-copy-control shrink-0')],
+      [
+        h.button(
+          [
+            h.Class(clsx('dt-copy-button', isCopied && 'dt-copy-success')),
+            h.Type('button'),
+            h.AriaLabel(ariaLabel),
+            h.AriaDisabled(isCopying || isCopied),
+            h.Title(isCopied ? 'Copied' : 'Copy as JSON'),
+            ...(Option.isNone(maybeCopyState)
+              ? [h.OnClick(Message.ClickedCopyPayload({ targetId, payload }))]
+              : []),
+          ],
+          [
+            h.svg(
+              [
+                h.AriaHidden(true),
+                h.Class('dt-copy-icon'),
+                h.Xmlns('http://www.w3.org/2000/svg'),
+                h.Fill('none'),
+                h.ViewBox('0 0 24 24'),
+                h.StrokeWidth(isCopied ? '2' : '1.5'),
+                h.Stroke('currentColor'),
+              ],
+              [
+                h.path([
+                  h.StrokeLinecap('round'),
+                  h.StrokeLinejoin('round'),
+                  h.D(isCopied ? COPY_SUCCESS_ICON : COPY_ICON),
+                ]),
+              ],
+            ),
+          ],
+        ),
+        h.span(
+          [h.Role('status'), h.AriaLive('polite'), h.Class('sr-only')],
+          [isCopied ? 'Copied to clipboard' : ''],
+        ),
+      ],
+    )
+  }
 
   const previewView = (preview: string): Html =>
     h.span([h.Class('json-preview')], [preview])
@@ -1264,20 +1471,56 @@ const buildOverlayView = (
       ['init: no Message'],
     )
 
+  const payloadHeaderView = (
+    label: string,
+    payload: unknown,
+    targetId: string,
+    copyStates: Model['copyStates'],
+  ): Html =>
+    h.div(
+      [
+        h.Class(
+          'flex items-center justify-between px-2 py-1 border-b text-2xs text-dt-muted font-mono shrink-0',
+        ),
+      ],
+      [
+        h.span([], [label]),
+        copyPayloadButtonView(
+          payload,
+          targetId,
+          copyStates,
+          `${label} payload`,
+        ),
+      ],
+    )
+
   const modelTabContent = (
     inspectedModel: unknown,
     expandedPaths: HashSet.HashSet<string>,
     changedPaths: HashSet.HashSet<string>,
     affectedPaths: HashSet.HashSet<string>,
+    selectedIndex: number,
+    copyStates: Model['copyStates'],
   ): Html =>
-    treeView(
-      inspectedModel,
-      'root',
-      expandedPaths,
-      changedPaths,
-      affectedPaths,
-      Option.none(),
-      true,
+    h.div(
+      [h.Class('flex flex-col flex-1 min-h-0 min-w-0')],
+      [
+        payloadHeaderView(
+          'Model',
+          inspectedModel,
+          `Model:${selectedIndex}`,
+          copyStates,
+        ),
+        treeView(
+          inspectedModel,
+          'root',
+          expandedPaths,
+          changedPaths,
+          affectedPaths,
+          Option.none(),
+          true,
+        ),
+      ],
     )
 
   const unwrapToLeaf = (message: unknown): unknown => {
@@ -1328,6 +1571,8 @@ const buildOverlayView = (
     isFlattened: boolean,
     expandedPaths: HashSet.HashSet<string>,
     timestamp: string,
+    selectedIndex: number,
+    copyStates: Model['copyStates'],
   ): Html =>
     Option.match(maybeInspectedMessage, {
       onNone: noMessageView,
@@ -1342,10 +1587,18 @@ const buildOverlayView = (
             h.div(
               [
                 h.Class(
-                  'px-2 py-1 border-b text-2xs text-dt-muted font-mono shrink-0',
+                  'flex items-center justify-between px-2 py-1 border-b text-2xs text-dt-muted font-mono shrink-0',
                 ),
               ],
-              [timestamp],
+              [
+                h.span([], [timestamp]),
+                copyPayloadButtonView(
+                  message,
+                  `Message:${selectedIndex}:${isFlattened}:${Option.getOrElse(maybeSubmodelFilter, () => 'All')}`,
+                  copyStates,
+                  'Message payload',
+                ),
+              ],
             ),
             h.div(
               [h.Class('flex flex-col flex-1 min-h-0 min-w-0 pt-1 pl-1')],
@@ -1403,10 +1656,7 @@ const buildOverlayView = (
     index: number,
     expandedPaths: HashSet.HashSet<string>,
   ): ReadonlyArray<FlatNode> => {
-    const taggedValue = Option.match(command.args, {
-      onNone: () => ({ _tag: command.name }),
-      onSome: argsValue => ({ ...argsValue, _tag: command.name }),
-    })
+    const taggedValue = taggedPayload(command.name, command.args)
     const rootPath = `command-${index}`
     const nodes: globalThis.Array<FlatNode> = []
     flattenTree({
@@ -1427,6 +1677,8 @@ const buildOverlayView = (
   const commandsTabContent = (
     commands: ReadonlyArray<typeof DisplayCommand.Type>,
     expandedPaths: HashSet.HashSet<string>,
+    selectedIndex: number,
+    copyStates: Model['copyStates'],
   ): Html =>
     Array.match(commands, {
       onEmpty: () =>
@@ -1442,7 +1694,7 @@ const buildOverlayView = (
         h.div(
           [
             h.Class(
-              'flex flex-col flex-1 min-h-0 min-w-0 overflow-auto overscroll-none',
+              'dt-payload-list flex flex-col flex-1 min-h-0 min-w-0 overflow-auto overscroll-none',
             ),
           ],
           Array.map(commandList, (command, index) =>
@@ -1452,10 +1704,46 @@ const buildOverlayView = (
                 h.span([h.Class(indexClass)], [globalThis.String(index + 1)]),
                 h.div(
                   [h.Class('flex flex-col flex-1 min-w-0')],
-                  Array.map(
-                    flattenCommand(command, index, expandedPaths),
-                    renderFlatNode,
-                  ),
+                  [
+                    ...Option.match(command.maybeSubmodelPath, {
+                      onNone: () => [
+                        h.div(
+                          [h.Class('text-2xs text-dt-muted font-mono')],
+                          [
+                            h.span([h.AriaHidden(true)], ['…']),
+                            h.span(
+                              [h.Class('sr-only')],
+                              ['Destination pending'],
+                            ),
+                          ],
+                        ),
+                      ],
+                      onSome: submodelPath =>
+                        Array.match(submodelPath, {
+                          onEmpty: () => [],
+                          onNonEmpty: submodelPath => [
+                            h.div(
+                              [
+                                h.Class(
+                                  'text-2xs text-dt-muted font-mono truncate',
+                                ),
+                              ],
+                              [formatSubmodelPath(submodelPath)],
+                            ),
+                          ],
+                        }),
+                    }),
+                    ...Array.map(
+                      flattenCommand(command, index, expandedPaths),
+                      renderFlatNode,
+                    ),
+                  ],
+                ),
+                copyPayloadButtonView(
+                  taggedPayload(command.name, command.args),
+                  `Command:${selectedIndex}:${index}`,
+                  copyStates,
+                  `Command ${index + 1} (${command.name}) payload`,
                 ),
               ],
             ),
@@ -1494,10 +1782,7 @@ const buildOverlayView = (
     index: number,
     expandedPaths: HashSet.HashSet<string>,
   ): ReadonlyArray<FlatNode> => {
-    const taggedValue = Option.match(mount.args, {
-      onNone: () => ({ _tag: mount.name }),
-      onSome: argsValue => ({ ...argsValue, _tag: mount.name }),
-    })
+    const taggedValue = taggedPayload(mount.name, mount.args)
     const rootPath = `mount-${sectionLabel}-${index}`
     const nodes: globalThis.Array<FlatNode> = []
     flattenTree({
@@ -1519,6 +1804,8 @@ const buildOverlayView = (
     label: string,
     mounts: ReadonlyArray<typeof DisplayMount.Type>,
     expandedPaths: HashSet.HashSet<string>,
+    selectedIndex: number,
+    copyStates: Model['copyStates'],
   ): Html =>
     h.div(
       [h.Class('flex flex-col shrink-0')],
@@ -1543,6 +1830,12 @@ const buildOverlayView = (
                   renderFlatNode,
                 ),
               ),
+              copyPayloadButtonView(
+                taggedPayload(mount.name, mount.args),
+                `Mount:${selectedIndex}:${label}:${index}`,
+                copyStates,
+                `${label} Mount ${index + 1} (${mount.name}) payload`,
+              ),
             ],
           ),
         ),
@@ -1553,6 +1846,8 @@ const buildOverlayView = (
     starts: ReadonlyArray<typeof DisplayMount.Type>,
     ends: ReadonlyArray<typeof DisplayMount.Type>,
     expandedPaths: HashSet.HashSet<string>,
+    selectedIndex: number,
+    copyStates: Model['copyStates'],
   ): Html => {
     const hasAny =
       Array.isReadonlyArrayNonEmpty(starts) ||
@@ -1572,15 +1867,31 @@ const buildOverlayView = (
     return h.div(
       [
         h.Class(
-          'flex flex-col flex-1 min-h-0 min-w-0 overflow-auto overscroll-none',
+          'dt-payload-list flex flex-col flex-1 min-h-0 min-w-0 overflow-auto overscroll-none',
         ),
       ],
       [
         ...(Array.isReadonlyArrayNonEmpty(starts)
-          ? [mountListSection('Started', starts, expandedPaths)]
+          ? [
+              mountListSection(
+                'Started',
+                starts,
+                expandedPaths,
+                selectedIndex,
+                copyStates,
+              ),
+            ]
           : []),
         ...(Array.isReadonlyArrayNonEmpty(ends)
-          ? [mountListSection('Ended', ends, expandedPaths)]
+          ? [
+              mountListSection(
+                'Ended',
+                ends,
+                expandedPaths,
+                selectedIndex,
+                copyStates,
+              ),
+            ]
           : []),
       ],
     )
@@ -1590,14 +1901,18 @@ const buildOverlayView = (
     model: Model,
     tab: InspectorTab,
     inspectedModel: unknown,
-  ): Html =>
-    Match.value(tab).pipe(
+  ): Html => {
+    const selectedIndex = selectedHistoryIndex(model)
+
+    return Match.value(tab).pipe(
       Match.when('Model', () =>
         lazyTabContent('Model', modelTabContent, [
           inspectedModel,
           model.expandedPaths,
           model.changedPaths,
           model.affectedPaths,
+          selectedIndex,
+          model.copyStates,
         ]),
       ),
       Match.when('Message', () =>
@@ -1607,12 +1922,16 @@ const buildOverlayView = (
           model.isFlattened,
           model.expandedPaths,
           inspectedTimestamp(model),
+          selectedIndex,
+          model.copyStates,
         ]),
       ),
       Match.when('Commands', () =>
         lazyTabContent('Commands', commandsTabContent, [
           selectedCommands(model),
           model.expandedPaths,
+          selectedIndex,
+          model.copyStates,
         ]),
       ),
       Match.when('Mounts', () => {
@@ -1621,10 +1940,13 @@ const buildOverlayView = (
           starts,
           ends,
           model.expandedPaths,
+          selectedIndex,
+          model.copyStates,
         ])
       }),
       Match.exhaustive,
     )
+  }
 
   const inspectorPaneView = (model: Model): Html =>
     h.div(
@@ -1642,6 +1964,7 @@ const buildOverlayView = (
             tabs: INSPECTOR_TABS,
             selectedValue: model.activeInspectorTab,
             ariaLabel: 'Inspector tabs',
+            panelMount: 'All',
             toView: ({ tablist, tabs, activeIndex }) =>
               h.div(
                 [h.Class('flex flex-col flex-1 min-h-0')],
@@ -1760,9 +2083,6 @@ const buildOverlayView = (
       ['Clear history'],
     )
 
-  const submodelLabel = (tag: string): string =>
-    pipe(tag, String.replace(/^Got/, ''), String.replace(/Message$/, ''))
-
   const CHECK_ICON = 'M4.5 12.75l6 6 9-13.5'
 
   const checkIconView: Html = h.svg(
@@ -1785,7 +2105,7 @@ const buildOverlayView = (
   )
 
   const filterItemLabel = (item: string): string =>
-    String.isNonEmpty(item) ? submodelLabel(item) : 'All Messages'
+    String.isNonEmpty(item) ? submodelSegmentLabel(item) : 'All Messages'
 
   const ARROW_UP = 'M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18'
 
@@ -1820,7 +2140,7 @@ const buildOverlayView = (
   const submodelFilterView = (model: Model): Html => {
     const buttonLabel = Option.match(model.maybeSubmodelFilter, {
       onNone: () => 'All Messages',
-      onSome: submodelLabel,
+      onSome: submodelSegmentLabel,
     })
 
     return h.submodel({
@@ -2568,6 +2888,8 @@ export const createOverlay = (
           expandedPaths: HashSet.empty(),
           changedPaths: HashSet.empty(),
           affectedPaths: HashSet.empty(),
+          copyStates: HashMap.empty(),
+          nextCopyRequestId: 0,
           maybePendingScrubIndex: Option.none(),
           inspectorTabs: Tabs.init({ id: INSPECTOR_TABS_ID }),
           activeInspectorTab: 'Model',

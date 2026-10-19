@@ -14,7 +14,7 @@
         "command": "npx",
         "args": ["-y", "@foldkit/devtools-mcp"]
       },
-      "setup": "Run `npx @foldkit/devtools-mcp init` in a Foldkit project root to write the .mcp.json entry. Projects scaffolded with create-foldkit-app ship with it pre-wired. Requires the app's dev server running with devToolsMcpPort configured in @foldkit/vite-plugin."
+      "setup": "Run `npx @foldkit/devtools-mcp init` in a Foldkit project root to write the .mcp.json entry. Projects scaffolded with create-foldkit-app ship with it pre-wired. Requires the app's dev server running with @foldkit/vite-plugin, which serves the relay the MCP server finds on its own; devToolsMcpPort is only for a fixed port."
     }
   ]
 }

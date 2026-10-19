@@ -1,0 +1,7 @@
+.toast-entry[data-swipe='settling'] {
+  transition: translate 150ms ease-out;
+}
+
+.toast-entry[data-swipe='end'] {
+  transition: translate 240ms ease-in;
+}

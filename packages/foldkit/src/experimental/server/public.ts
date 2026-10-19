@@ -1,4 +1,5 @@
 export {
+  DocumentAssets,
   FOLDKIT_APP_ATTRIBUTE,
   FOLDKIT_FLAGS_ATTRIBUTE,
   FlagsEncodeError,
@@ -16,6 +17,7 @@ export {
   injectIntoTemplate,
   isHostSettledMethod,
   renderToString,
+  renderDocument,
   resolveRequestUrl,
   resolvesToIndexHtml,
   toResponse,
@@ -24,6 +26,8 @@ export {
 } from './index.js'
 
 export type {
+  DocumentOptions,
+  DocumentRenderer,
   HandleRequestOptions,
   InjectIntoTemplateOptions,
   RequestClassification,
@@ -37,6 +41,7 @@ export type {
   RenderUrlFlagsOptions,
   ApplicationConfig,
   ApplicationConfigWithFlags,
+  DocumentEntryModule,
   EntryModule,
   EntryResult,
   RenderError,

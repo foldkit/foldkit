@@ -1,5 +1,189 @@
 # @foldkit/vite-plugin
 
+## 0.27.1
+
+### Patch Changes
+
+- [#1614](https://github.com/foldkit/foldkit/pull/1614) [`49dc36e`](https://github.com/foldkit/foldkit/commit/49dc36ef672d1caee23f153f88c09d98c8241670) Thanks [@devinjameson](https://github.com/devinjameson)! - Keep the development relay running when a preserved Model or DevTools request cannot be encoded or sent. Report the error as a warning so later messages can still be processed.
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
+## 0.27.0
+
+### Minor Changes
+
+- [#1584](https://github.com/foldkit/foldkit/pull/1584) [`fe2701c`](https://github.com/foldkit/foldkit/commit/fe2701c2fa4bb4370f59548006bcee5cc009575e) Thanks [@devinjameson](https://github.com/devinjameson)! - Render SSR and SSG documents from server-entry code. An `ssr.build` browser build now starts from a script and never emits an unrendered HTML template. The server entry's `renderDocument` receives the rendered application and the browser build's script, stylesheet, and module-preload URLs. Request-time rendering and prerendering use the same document renderer. `Server.renderDocument` supplies a complete document with application metadata, hydration markers, and unambiguous handoff structure.
+
+  **Migration:** add `ssr.clientEntry: '/src/entry.ts'`, import stylesheets from that client entry, and export `renderDocument = Server.renderDocument` from the server entry. Remove the source `index.html` and move additional document tags into a wrapper around `Server.renderDocument(application, assets, { head })`. `head` accepts trusted author-owned HTML, so escape any request-derived values before interpolating them. Remove `containerId` from SSR build and prerender options. Standalone `foldkitBuild` calls must pass `clientEntry` in their options. Build-time `transformIndexHtml` hooks no longer run; dev hooks still transform the rendered document. Use an absolute-path or full-URL Vite `base`; relative bases and relative or runtime `renderBuiltUrl` results are rejected. Upgrade Foldkit to 0.167.0 or newer alongside @foldkit/vite-plugin 0.27.0. The plugin requires the document-rendering APIs introduced in Foldkit 0.167.0.
+
+  An SSR build refuses an `index.html` already in the browser output before prerendering, including files copied from `publicDir`, emitted by another plugin, or left by an earlier build with `emptyOutDir` disabled. Remove those root documents so only a generated page can occupy `/`.
+
+  Custom template-based hosts can use `injectIntoTemplate`, `toResponse`, and `handleRequest` with a template. The template-based Vite dev host is available when `clientEntry` and `ssr.build` are omitted. Separate client-only builds and previews support Vite's relative-base behavior. SSR and SSG scaffolds use code-rendered documents and CSS imports.
+
+### Patch Changes
+
+- [#1593](https://github.com/foldkit/foldkit/pull/1593) [`6bd9ee8`](https://github.com/foldkit/foldkit/commit/6bd9ee8e728c6ddeb5838a2d2dbbde8ccd94d26d) Thanks [@filipfalcon](https://github.com/filipfalcon)! - Mount the DevTools overlay in development when Foldkit is installed from the registry. Since 0.25.0, the overlay never appeared in that setup. The plugin pre-bundled `foldkit/devtools-host` while serving `foldkit` itself from source, so the overlay registered with a separate copy of the DevTools config that the runtime never reads.
+
+  The plugin no longer declares `foldkit/devtools-host` to the dependency optimizer, so it is served from source with the rest of `foldkit`. It still declares `@foldkit/devtools/vite` when `@foldkit/devtools` is installed from the registry. Applications that added `foldkit/devtools-host` to their own `optimizeDeps.include` as a workaround should remove it. See [#1592](https://github.com/foldkit/foldkit/issues/1592).
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
+- [#1591](https://github.com/foldkit/foldkit/pull/1591) [`085b787`](https://github.com/foldkit/foldkit/commit/085b787da0a5d1cefd99267d9a99459466ce89f2) Thanks [@filipfalcon](https://github.com/filipfalcon)! - Apply Foldkit's dependency optimizer and bundling rules in every Vite environment. Before, the plugin excluded `foldkit` from pre-bundling and pre-bundled the Effect entries Foldkit imports only in the client environment, and bundled the Foldkit packages only in the `ssr` environment. A server environment whose optimizer runs dependency discovery, such as every Cloudflare Worker environment whether it is named `ssr` or after the Worker, pre-bundled `foldkit` without the build id transform, so every hydratable render failed with `MissingBuildId`. Applications worked around it with `optimizeDeps.exclude: ['foldkit']`. With that workaround, an application that imports Effect through subpaths still loaded one Effect instance for Foldkit and another for itself. A server environment under another name that did not bundle Foldkit failed with `MissingBuildId` as well.
+
+  The plugin now excludes `foldkit` from pre-bundling in every environment, pre-bundles the Effect entries Foldkit imports in every environment whose optimizer is enabled, and bundles the crawled Foldkit packages in every environment through `resolve.noExternal`. Every server environment of the dev server now renders with the same build id as the client and with one Effect instance.
+
+  The client environment behaves as before, and so do client and `ssr` builds. Vite's default Node `ssr` environment also behaves as before: its optimizer stays disabled, so Effect still loads from the installed package. A build of a server environment under another name now bundles the Foldkit packages. Before, it externalized them, and the build failed the Foldkit singleton externalization check.
+
+  Applications can remove `optimizeDeps.exclude: ['foldkit']` from their Vite config. An application that added a package the crawl misses to `ssr.noExternal` should move it to `resolve.noExternal`. `ssr.noExternal` reaches only the `ssr` environment, so in a server environment under another name that package still loads a second Foldkit copy.
+
+## 0.26.1
+
+### Patch Changes
+
+- [#1564](https://github.com/foldkit/foldkit/pull/1564) [`f493083`](https://github.com/foldkit/foldkit/commit/f493083550289a9cacdb6ab55fdea2cd22d4ccbc) Thanks [@filipfalcon](https://github.com/filipfalcon)! - Bundle installed packages that depend on Foldkit into server builds and the dev server's server render. Since the plugin started bundling `foldkit`, `@foldkit/ui`, and `@foldkit/devtools` into the server artifact, every other installed package that imports Foldkit, such as `@foldkit/markdown` or a component library built on Foldkit, stayed external. Node then loaded a second Foldkit copy from `node_modules` through that package, beside the copy inside the bundle, even when only one copy was installed. A render that sees two Foldkit copies fails.
+
+  Server builds and the dev server's server render now also bundle every installed package whose `dependencies` or `peerDependencies` include `foldkit` or an `@foldkit/*` package. In the dev server, these `ssr.noExternal` packages run through Vite's module runner instead of Node's own import. The plugin finds them by crawling from the application's `package.json`: it follows the application's `dependencies` and `devDependencies`, then the `dependencies` of each package it bundles, plus the `devDependencies` of a bundled package that is a private workspace package. An explicit `ssr.external` entry still keeps a package external. A package the crawl does not reach stays external. For example: a peer the application does not declare, or a package reached only through a package that does not depend on Foldkit. Declare such a package in the application's `package.json`, or add it to `ssr.noExternal`.
+
+  `resolve.dedupe` now lists `foldkit`, `@foldkit/ui`, and `@foldkit/devtools` only when Vite can resolve them from the application root. Before, a package that Node found only through `NODE_PATH`, which pnpm's `.bin` shims set, could join the list even though Vite's resolver cannot find it there. `NODE_PATH` no longer affects the list. The crawl and this lookup start from the root Vite resolves from: its real path, or the path as given when `resolve.preserveSymlinks` is set.
+
+  Vitest copies SSR `noExternal` into `server.deps.inline`. A Vitest config that includes `foldkit()` therefore now also inlines the crawled packages in tests.
+
+  `@foldkit/vite-plugin` now depends on `vitefu`, which performs this `package.json` crawl.
+
+- [#1534](https://github.com/foldkit/foldkit/pull/1534) [`0ec94a1`](https://github.com/foldkit/foldkit/commit/0ec94a178c504827060a5e475200599193b0387e) Thanks [@devinjameson](https://github.com/devinjameson)! - Protect Effect `Redacted` values across DevTools Model, Message, Command, Mount, init, and diff responses, including the Vite prebundle needed by consumers. Document the DevTools MCP trust boundary, the controls that disable dispatch or relay access, and why `excludeFromHistory` does not hide sensitive Model data.
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
+- [#1566](https://github.com/foldkit/foldkit/pull/1566) [`4825937`](https://github.com/foldkit/foldkit/commit/482593707a08de3e6f13dd9b32140ebf1b8345be) Thanks [@birbprophet](https://github.com/birbprophet)! - Pre-bundle the bare `effect` barrel in dev. The `foldkit` distribution imports `effect`, so a consumer that imports only Effect subpaths (`effect/Option`, `effect/Schema`) loaded two Effect instances: route query encoding rejected the app's `Option` ("Query parameter encoding failed: Expected string") and views crashed with "Cannot convert a Symbol value to a string".
+
+## 0.26.0
+
+### Minor Changes
+
+- [#1525](https://github.com/foldkit/foldkit/pull/1525) [`9f851d7`](https://github.com/foldkit/foldkit/commit/9f851d747bdde8fab1e9b7e8c63568f65594cff8) Thanks [@devinjameson](https://github.com/devinjameson)! - Require Effect 4.0.0 stable across Foldkit packages and applications generated by `create-foldkit-app`, including the SPA, SSR, and SSG starters.
+
+  Upgrade Foldkit to `0.165.0` or newer alongside its companion packages. Their Foldkit peer minimum is now `0.165.0`, the first release using Effect 4 stable. DevTools also requires `@foldkit/ui` `0.165.0` or newer.
+
+  Upgrade `effect` and any installed `@effect/platform-browser`, `@effect/platform-node`, `@effect/platform-node-shared`, or `@effect/vitest` packages to `4.0.0` together. These versions replace the previous `4.0.0-rc.117` pins. Update imports from `effect/unstable/http`, `effect/unstable/persistence`, `effect/unstable/rpc`, and `effect/unstable/reactivity` to `effect/http`, `effect/persistence`, `effect/rpc`, and `effect/reactivity`. CLI imports now use `effect/cli`.
+
+### Patch Changes
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
+## 0.25.0
+
+### Minor Changes
+
+- [#1438](https://github.com/foldkit/foldkit/pull/1438) [`607f5a4`](https://github.com/foldkit/foldkit/commit/607f5a4aeb427c634de6e580f45adae93ea0c118) Thanks [@devinjameson](https://github.com/devinjameson)! - Generate one hydration build identity for coordinated client and server builds and compile it into Foldkit, so server-rendered applications no longer need to pass the identity through their entries.
+
+  `@foldkit/vite-plugin` now requires Foldkit 0.164.0 or newer because the automatic path compiles an identity placeholder added in that release.
+
+- [#1368](https://github.com/foldkit/foldkit/pull/1368) [`63949f4`](https://github.com/foldkit/foldkit/commit/63949f4e96600f03818b076cad6a50f1162ffdb4) Thanks [@filipfalcon](https://github.com/filipfalcon)! - The DevTools MCP relay now starts without a configured port. In development, the Vite server serves it at `/__foldkit/devtools-mcp` and publishes its address to a per-user registry. The MCP server finds the most recently started relay for its project and finds it again after a dev server restart. Projects no longer need matching port settings, and two projects can run without competing for a relay port. The relay follows Vite's `server.host` setting.
+
+  Each published address includes a random token. The relay requires that token before allowing Model inspection or Message dispatch, including when the dev server is exposed with `--host`. The plugin will not publish a token into a registry directory owned by another user or readable by other users. It reports the problem in the console; the relay can still be reached through a configured port.
+
+  Middleware mode and HTTPS dev servers use a free loopback port instead of the Vite server's listener. Middleware mode has no HTTP server for the relay to share, and the MCP server cannot verify a dev server's self-signed HTTPS certificate.
+
+  Existing port settings still work. `devToolsMcpPort` opens a separate socket on the specified port and every interface, without a token; set `FOLDKIT_DEVTOOLS_MCP_PORT` to the same value for the MCP server. `devToolsMcpPort: false` disables the relay. When discovery finds no relay and no port is configured, the MCP server tries port 9988 for older plugin versions. `FOLDKIT_DEVTOOLS_MCP_HOST` overrides the hostname of either a discovered address or a configured port.
+
+  The plugin no longer starts a relay during Vitest runs. Previously, a test run using a fixed relay port could conflict with the project's dev server and wait through the four-second bind retry before continuing.
+
+  `foldkit/devtools-protocol` now exports `RelayRecord`, `RELAY_RECORD_VERSION`, and the registry directory and environment variable names alongside the `Request` and `Response` frames. The plugin and MCP server use the same record definition. Because the plugin imports these exports at runtime, `@foldkit/vite-plugin` requires `foldkit` 0.164.0 or later. The plugin also depends on `@effect/platform-node` to read and write the registry.
+
+  The registry lives under `XDG_RUNTIME_DIR` when set and under the operating system's temporary directory otherwise. `FOLDKIT_DEVTOOLS_RELAY_DIRECTORY` selects another directory. On platforms where the plugin cannot verify directory ownership, including Windows, automatic discovery is unavailable. Use `devToolsMcpPort` with the matching `FOLDKIT_DEVTOOLS_MCP_PORT` there.
+
+  `create-foldkit-app` no longer adds `devToolsMcpPort` to generated Vite configs.
+
+- [#1442](https://github.com/foldkit/foldkit/pull/1442) [`5401108`](https://github.com/foldkit/foldkit/commit/5401108272c32b9b06f0175b46eef79bb7f23b43) Thanks [@devinjameson](https://github.com/devinjameson)! - Bump Effect to `4.0.0-rc.117` (from `4.0.0-rc.116`). Foldkit's `effect` peer dependency now requires `4.0.0-rc.117`, and `@foldkit/devtools` pins its `@effect/platform-browser` peer dependency to the same version.
+
+  Pin your Effect packages to `4.0.0-rc.117` to match this release. Use exact pins rather than ranges while Effect v4 is in prerelease:
+
+  ```sh
+  pnpm add effect@4.0.0-rc.117 @effect/platform-browser@4.0.0-rc.117
+  pnpm add -D @effect/vitest@4.0.0-rc.117
+  ```
+
+- [#1433](https://github.com/foldkit/foldkit/pull/1433) [`eb11872`](https://github.com/foldkit/foldkit/commit/eb11872b6977508a9afdaa96450fada4ec7f0f4c) Thanks [@filipfalcon](https://github.com/filipfalcon)! - Expose completed build metadata through the `foldkit:build` plugin's `api.getBuildMetadata()`. Deployment integrations can read the resolved output directories, emitted fetch-handler path, and successfully prerendered routes after `await builder.buildApp()` succeeds, without locating and reading `foldkit.build.json` themselves. `FoldkitBuildApi` types the plugin API, and `FoldkitBuildMetadata` exports the serializable result's Schema and inferred type.
+
+  Use Vite's `sharedDuringBuild` to keep captures in the build plugin instance instead of a process-global registry. Starting another client or server build invalidates the previous result. Metadata is published only after prerendering and manifest writing succeed, and output paths follow the resolved environment configurations, including host overrides.
+
+  The portable version-1 disk manifest, existing plugin API fields, and generated fetch-handler contract remain available. Create a fresh plugin set for each independent builder and read metadata only after the full build resolves successfully.
+
+### Patch Changes
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
+- [#1519](https://github.com/foldkit/foldkit/pull/1519) [`ff73466`](https://github.com/foldkit/foldkit/commit/ff73466cfc55d2896ba14198592167ef612b07a6) Thanks [@devinjameson](https://github.com/devinjameson)! - Pin `@effect/platform-node-shared` to `4.0.0-rc.117` alongside `@effect/platform-node`. Fresh npm installs could otherwise select the stable `4.0.0` shared package, whose Effect peer dependency conflicts with Foldkit's RC117 pin, and stall with repeated peer dependency warnings. The plugin now supplies the compatible version for consuming apps, including the SSG playground.
+
+- [#1467](https://github.com/foldkit/foldkit/pull/1467) [`1a3dd68`](https://github.com/foldkit/foldkit/commit/1a3dd68616dcc00e8070f817f84510e69eeca24a) Thanks [@devinjameson](https://github.com/devinjameson)! - Upgrade compatible runtime, build, and test dependencies across the workspace.
+
+## 0.24.0
+
+### Minor Changes
+
+- [#1388](https://github.com/foldkit/foldkit/pull/1388) [`01d0205`](https://github.com/foldkit/foldkit/commit/01d0205a4e2b3b0000c1e9f94c6d87d92be909dd) Thanks [@filipfalcon](https://github.com/filipfalcon)! - A build with `ssr.build` no longer publishes the browser build's unrendered `index.html`. A static host could serve that template as an empty page at `/` with status 200. A host that fell back to `index.html` could serve the same empty page at every missing deep link. The template now stays inside the server bundle's `fetch` handler. The browser output contains `index.html` only when `prerender` generates `/`.
+
+  An SSR host obtains documents by calling the server bundle's `fetch` handler. A custom generation loop can call it once per path and write responses that its static host can reproduce. Client-only builds are unchanged: their `index.html` is the page.
+
+  The build manifest, its `FoldkitBuildManifest` type, and the plugin's `api` object no longer include `host`. Its only value was `'fetch'`, which the server entry already implements.
+
+  **Migration:** Do not expect `dist/client/index.html` in an `ssr.build` output unless `prerender` generated `/`. Stop using that path as an unrendered template or fallback page. An SSR host must send requests that match no static file to `fetch`; a static-only SSG host serves generated files and leaves other paths as misses. Remove reads of `host` from `foldkit.build.json`, `FoldkitBuildManifest`, and the plugin's `api` object. A custom generation loop that read `dist/client/index.html` as its template must request each page through `fetch` instead.
+
+- [#1413](https://github.com/foldkit/foldkit/pull/1413) [`3b1d5ba`](https://github.com/foldkit/foldkit/commit/3b1d5ba8f2c5e9ee6ab4cb57ad5ce49744334314) Thanks [@devinjameson](https://github.com/devinjameson)! - Upgrade Effect and its platform and test packages to `4.0.0-rc.116`. Foldkit packages with exact Effect peer dependencies now require rc.116. Pin your application's `effect` and `@effect/platform-browser` dependencies to `4.0.0-rc.116` when upgrading Foldkit. New applications generated by `create-foldkit-app` also use rc.116. The Oxlint plugin recognizes the renamed `Stream.mapBoth` callbacks, `onElement` and `onError`.
+
+### Patch Changes
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
+- [#1387](https://github.com/foldkit/foldkit/pull/1387) [`67af362`](https://github.com/foldkit/foldkit/commit/67af362a488c7f5376a3b7a0e655351171411fd2) Thanks [@filipfalcon](https://github.com/filipfalcon)! - `FoldkitPrerenderOptions.origin` now documents that it sets the origin of `Request.url` during generation. Canonical and Open Graph metadata change only when the server entry derives those fields from that request URL.
+
+## 0.23.0
+
+### Minor Changes
+
+- [#1370](https://github.com/foldkit/foldkit/pull/1370) [`a5f7ce8`](https://github.com/foldkit/foldkit/commit/a5f7ce8dd039a9dac587ee5edaffc4d6514f1f48) Thanks [@filipfalcon](https://github.com/filipfalcon)! - Drop Vite 7 from the `vite` peer range. Both packages now require Vite ^8.0.0, and the Vite plugin's tests run against the one installed major. The plugin's `transformViewIdentity` returns magic-string's source map unchanged, since Rolldown accepts it as generated; the normalization Rollup needed under Vite 7 is gone, and `map.file` in `ViewIdentityTransformResult` is typed `string | undefined`.
+
+### Patch Changes
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
+## 0.22.0
+
+### Minor Changes
+
+- [#1383](https://github.com/foldkit/foldkit/pull/1383) [`b6d0a9b`](https://github.com/foldkit/foldkit/commit/b6d0a9bb32979c08c2ddfee9ffbf5c19d9f5594c) Thanks [@devinjameson](https://github.com/devinjameson)! - Bump Effect to `4.0.0-rc.115` (from `4.0.0-rc.112`). Foldkit's `effect` peer dependency now requires `4.0.0-rc.115`, and `@foldkit/devtools` pins its `@effect/platform-browser` peer dependency to the same version.
+
+  Pin your Effect packages to `4.0.0-rc.115` to match this release. While Effect v4 is in prerelease, use exact pins rather than ranges:
+
+  ```sh
+  pnpm add effect@4.0.0-rc.115 @effect/platform-browser@4.0.0-rc.115
+  pnpm add -D vitest@^5.0.0 @effect/vitest@4.0.0-rc.115
+  ```
+
+  `@effect/vitest@4.0.0-rc.115` requires Vitest 5. Upgrade `vitest` and any `@vitest/*` packages together.
+
+### Patch Changes
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
+## 0.21.0
+
+### Minor Changes
+
+- [#1377](https://github.com/foldkit/foldkit/pull/1377) [`2ff8b86`](https://github.com/foldkit/foldkit/commit/2ff8b867fde5914b4ad4729127efef15f3dec786) Thanks [@devinjameson](https://github.com/devinjameson)! - Make the Foldkit server a Web `fetch` handler.
+
+  `ssr.build` no longer takes `entry` pointing at a Node HTTP process or a custom Worker. One `vite build` emits `dist/server/fetch.js` whose default export is `{ fetch }`. Node and Workers both run that module. `handleRequest` in `foldkit/experimental/server` is the shared implementation.
+
+  When another plugin owns the `ssr` environment (workerd), Foldkit still stands down in dev. With `ssr.build` set it stays quiet, because production still needs `ssr.serverEntry`.
+
+  **Migration:** drop `ssr.build.entry` and keep `ssr.serverEntry`. Your Node host is no longer built by `vite build`. Replace it with a script that serves `dist/client` and falls through to `dist/server/fetch.js`, using the SSR example's `scripts/serve.ts` as the reference, and start with `node scripts/serve.ts` instead of `node dist/server/main.js`. A host that imported `dist/server/entry.server.js` now imports `dist/server/fetch.js`, which still exports `renderPage`. A Cloudflare Worker can default-export `fetch.js` directly. `foldkit.build.json` records `fetch.js` as `serverEntry`. The handler trusts `Request.url` as the platform constructed it; a Node adapter resolves the raw request target against its configured origin before calling `fetch`, as `scripts/serve.ts` does.
+
+- [#1377](https://github.com/foldkit/foldkit/pull/1377) [`2ff8b86`](https://github.com/foldkit/foldkit/commit/2ff8b867fde5914b4ad4729127efef15f3dec786) Thanks [@devinjameson](https://github.com/devinjameson)! - Describe the plugin as state-preserving live reload rather than hot module reloading. The Vite plugin `name` is now `foldkit`, its log prefixes are `[foldkit:preserve]`, and the npm description and keywords no longer claim HMR. It imports Foldkit's renamed `model-preservation` protocol.
+
+### Patch Changes
+
+- [#1377](https://github.com/foldkit/foldkit/pull/1377) [`2ff8b86`](https://github.com/foldkit/foldkit/commit/2ff8b867fde5914b4ad4729127efef15f3dec786) Thanks [@devinjameson](https://github.com/devinjameson)! - `Runtime.embed` now reports unhandled startup failures in the console, matching `Runtime.run` and `Runtime.hydrate`, while host disposal and other interrupt-only exits stay quiet. A failing Flags or resource Effect no longer leaves an embedded program blank without explaining why.
+
 ## 0.20.2
 
 ### Patch Changes

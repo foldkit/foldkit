@@ -2,11 +2,15 @@ import { Option } from 'effect'
 import { type ESTree, type Reference } from 'effect-oxlint'
 
 import {
+  isCallExpression,
   isIdentifier,
   isObjectExpression,
   isStringLiteral,
+  isVariableDeclarator,
   resolveFoldkitApiPath,
   resolveImportedPath,
+  resolvedVariable,
+  staticMemberPath,
   staticPropertyName,
 } from './guards.ts'
 
@@ -113,7 +117,44 @@ export const hasMessagePayloadProperty = (
         (isStringLiteral(property.key) && property.key.value === 'message')),
   )
 
-const containsImportedMessageReference = (
+const isLocalQueryMessageReference = (
+  node: unknown,
+  references: WeakMap<ESTree.Node, Reference>,
+): boolean =>
+  Option.exists(staticMemberPath(node), memberPath => {
+    const [memberName, extraMember] = memberPath.members
+    if (memberName !== 'Message' || extraMember !== undefined) {
+      return false
+    }
+
+    return Option.exists(
+      resolvedVariable(references, memberPath.root),
+      variable =>
+        variable.defs.some(definition => {
+          if (
+            definition.type !== 'Variable' ||
+            !isVariableDeclarator(definition.node) ||
+            !isCallExpression(definition.node.init)
+          ) {
+            return false
+          }
+
+          return Option.exists(
+            resolveFoldkitApiPath(references, definition.node.init.callee),
+            apiPath => {
+              const apiName = apiPath.join('.')
+
+              return (
+                apiName === 'Query.define' ||
+                apiName === 'Experimental.Query.define'
+              )
+            },
+          )
+        }),
+    )
+  })
+
+const containsMessageReference = (
   node: unknown,
   references: WeakMap<ESTree.Node, Reference>,
   visited: WeakSet<object>,
@@ -123,6 +164,10 @@ const containsImportedMessageReference = (
   }
 
   visited.add(node)
+  if (isLocalQueryMessageReference(node, references)) {
+    return true
+  }
+
   if (
     Option.exists(resolveImportedPath(references, node), path => {
       const [messageName] = path.members.slice(-1)
@@ -138,9 +183,9 @@ const containsImportedMessageReference = (
       key !== 'parent' &&
       (Array.isArray(value)
         ? value.some(element =>
-            containsImportedMessageReference(element, references, visited),
+            containsMessageReference(element, references, visited),
           )
-        : containsImportedMessageReference(value, references, visited)),
+        : containsMessageReference(value, references, visited)),
   )
 }
 
@@ -163,10 +208,6 @@ export const hasSubmodelMessagePayload = (
       return false
     }
 
-    return containsImportedMessageReference(
-      property.value,
-      references,
-      new WeakSet(),
-    )
+    return containsMessageReference(property.value, references, new WeakSet())
   })
 }

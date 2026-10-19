@@ -3,7 +3,7 @@ import { Schema } from 'effect'
 import { Submodel, type Update } from 'foldkit'
 import type { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Textarea } from '@foldkit/ui'
 
@@ -33,7 +33,7 @@ export const init = (): Model => ({
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     UpdatedContent: ({ value }) => ({
-      model: evo(model, { content: () => value }),
+      model: modifyFields(model, { content: () => value }),
     }),
   })
 

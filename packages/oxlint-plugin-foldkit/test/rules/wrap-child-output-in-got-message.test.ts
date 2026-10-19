@@ -25,7 +25,7 @@ const callWithCallee = (
 const liftConfig = (mapper: unknown) =>
   Testing.objectExpr([
     {
-      key: 'toChildModel',
+      key: 'read',
       value: Testing.arrowFn(Testing.memberExpr('model', 'chat'), [
         Testing.id('model'),
       ]),

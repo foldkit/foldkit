@@ -1,5 +1,7 @@
 import { Server } from 'foldkit/experimental'
 
+export const renderDocument = Server.renderDocument
+
 export const prerenderPaths = ['/', '/about']
 
 export const renderPage = async (

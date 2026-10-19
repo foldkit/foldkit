@@ -12,6 +12,8 @@ Elm is the source of this architecture, and its language provides guarantees Typ
 The Foldkit version is in the [examples gallery](/example-apps/pixel-art). The [Elm version source](https://github.com/foldkit/foldkit/tree/main/comparisons/pixel-art-elm) is an Elm 0.19 application with no npm dependencies.
 :::
 
+The Elm snippets and the checked-in app use the two-space indentation shown in [Elm’s official examples](https://elm-lang.org/examples). `elm-format` follows a separate convention with four-space indentation.
+
 ## The Architecture You Already Know {#same-architecture}
 
 Most concepts translate directly:
@@ -37,7 +39,7 @@ The Elm application has 21 `Msg` variants:
 
 The current Foldkit application has 25 parent Messages:
 
-::Snippet{name="comparisonFoldkitMessage" label="Foldkit messages"}
+::Snippet{name="comparisonFoldkitMessage" label="Foldkit Messages"}
 
 The count differs because the component and effect boundaries differ. Foldkit has `SucceededExportPng` and `CompletedSaveCanvas` for Command completion, plus six `Got*Message` wrappers for two Dialogs, one Listbox, and three RadioGroups. The Elm version hand-rolls those controls and represents their application-facing events with four direct Msgs: `ToggledThemePicker`, `SelectedPaletteTheme`, `DismissedErrorDialog`, and `DismissedGridSizeDialog`.
 
@@ -57,11 +59,11 @@ The update functions have the same shape.
 
 ::Snippet{name="comparisonFoldkitUpdate" label="Foldkit update"}
 
-`case msg of` becomes `Message.match`. Elm record updates become `evo` transformations. `( model, Cmd.none )` becomes `{ model }`.
+`case msg of` becomes `Message.match`. Elm record updates become `modifyFields` transformations. `( model, Cmd.none )` becomes `{ model }`.
 
 Elm enforces exhaustive pattern matching as part of the language. Foldkit obtains the same compile-time failure at a match written with `Message.match`. That is the required Foldkit update style, but TypeScript itself does not prevent someone from writing a non-exhaustive alternative.
 
-Elm record updates and `evo` both preserve references to unchanged nested values. The rendering section shows how each application uses that reference stability.
+Elm record updates and `modifyFields` both preserve references to unchanged nested values. The rendering section shows how each application uses that reference stability.
 
 ## The Model: Custom Types vs Schema {#the-model}
 
@@ -69,7 +71,7 @@ Elm record updates and `evo` both preserve references to unchanged nested values
 
 The Elm Model uses custom types and `Maybe`:
 
-::Snippet{name="comparisonElmModel" label="Elm model"}
+::Snippet{name="comparisonElmModel" label="Elm Model"}
 
 This hand-rolled UI stores Dialog visibility through the presence of `exportError` and `pendingGridSize`. The theme picker uses a separate `isThemePickerOpen` field.
 
@@ -77,7 +79,7 @@ This hand-rolled UI stores Dialog visibility through the presence of `exportErro
 
 The Foldkit Model uses Effect Schema, `Option`, and child Models for its stateful Foldkit UI controls:
 
-::Snippet{name="comparisonFoldkitModel" label="Foldkit model"}
+::Snippet{name="comparisonFoldkitModel" label="Foldkit Model"}
 
 A Schema exists at runtime as well as in TypeScript. Foldkit can use it to validate flags and persisted values, encode selected data, and describe Models to framework tooling. The child component Models expose interaction state that the Elm application implements directly in its parent Model and views.
 
@@ -95,7 +97,7 @@ The Elm side declares outgoing and incoming ports:
 
 The JavaScript side subscribes to them in `index.html`:
 
-::Snippet{name="comparisonElmPortsJs" label="port JavaScript"}
+::Snippet{name="comparisonElmPortsJs" label="Port JavaScript"}
 
 The port declaration gives Elm a typed interface. The JavaScript subscriber remains outside the Elm compiler, so a renamed payload field or a missing `send` call is not checked against the Elm source. A JavaScript exception can still affect the host page; the boundary protects Elm code from directly calling arbitrary JavaScript, not the entire page from JavaScript failures.
 
@@ -105,7 +107,7 @@ The export failure needs an incoming port so JavaScript can send `FailedExportPn
 
 Foldkit runs in the JavaScript ecosystem, so its Commands can use browser APIs and JavaScript libraries directly:
 
-::Snippet{name="comparisonFoldkitCommand" label="Foldkit commands"}
+::Snippet{name="comparisonFoldkitCommand" label="Foldkit Commands"}
 
 Each Command declares its arguments and result Messages. Its Effect can use typed failures and recovery operators before returning a Message to update. The application still needs to choose meaningful error behavior. Here `ExportPng` reports failure, while `SaveCanvas` intentionally converts storage failure into the same completion Message as success.
 
@@ -139,11 +141,11 @@ Both frameworks derive external event streams from Model state. The mouse-releas
 
 ### Elm subscriptions
 
-::Snippet{name="comparisonElmSubscriptions" label="Elm subscriptions"}
+::Snippet{name="comparisonElmSubscriptions" label="Elm Subscriptions"}
 
 ### Foldkit Subscriptions
 
-::Snippet{name="comparisonFoldkitSubscription" label="Foldkit subscriptions"}
+::Snippet{name="comparisonFoldkitSubscription" label="Foldkit Subscriptions"}
 
 Elm’s `Sub.batch` and Foldkit’s Subscription registry both describe the active set after each state transition. The runtime handles setup and teardown.
 
@@ -175,9 +177,15 @@ Neither view needs a component instance or a memoized event-handler closure for 
 
 ## UI Components
 
+### Application-Owned Controls
+
 The Elm version implements its Dialogs, RadioGroups, switches, and theme picker in the application. That keeps their state and events visible, but the application also owns their ARIA attributes, keyboard behavior, focus behavior, and transitions.
 
+### Foldkit UI Submodels
+
 The Foldkit version uses [Foldkit UI](/ui/overview). Its Dialogs, RadioGroups, and Listbox are Submodels, while Switch is a controlled render helper. Selected values remain in the parent Model. Each stateful component reports changes through OutMessages that the parent folds into its own update.
+
+### State and Behavior Ownership
 
 |                                     | Elm application                           | Foldkit application                                                    |
 | ----------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------- |
@@ -213,29 +221,49 @@ A [Story](/testing/story) receives the named Commands returned by update. `Comma
 
 Moving from Elm to Foldkit gives up language-level constraints.
 
-**Enforced purity.** Elm code cannot call `Date.now()`, mutate an object, or perform I/O from update. TypeScript can. Foldkit’s architecture, conventions, and tests make the intended boundary visible, but they do not make an impure update impossible to write.
+### Enforced Purity
 
-**Elm’s runtime guarantees.** Elm models failure as data and prevents the ordinary null, undefined, and non-exhaustive failures common in JavaScript. Foldkit uses Schema, Effect, and explicit failure Messages, but TypeScript and npm dependencies can still throw or produce invalid values.
+Elm code cannot call `Date.now()`, mutate an object, or perform I/O from update. TypeScript can. Foldkit’s architecture, conventions, and tests make the intended boundary visible, but they do not make an impure update impossible to write.
 
-**A smaller language and package surface.** Elm has one language, formatter, package manager, and constrained package API. TypeScript plus Effect and browser libraries has a larger set of concepts and more choices.
+### Elm’s Runtime Guarantees
 
-**A smaller default runtime footprint.** Optimized Elm output is often compact. A Foldkit application includes Foldkit and Effect. The actual production size depends on the application and should be measured from the two builds being considered.
+Elm models failure as data and prevents the ordinary null, undefined, and non-exhaustive failures common in JavaScript. Foldkit uses Schema, Effect, and explicit failure Messages, but TypeScript and npm dependencies can still throw or produce invalid values.
+
+### A Smaller Language and Package Surface
+
+Elm has one language, formatter, package manager, and constrained package API. TypeScript plus Effect and browser libraries has a larger set of concepts and more choices.
+
+### A Smaller Default Runtime Footprint
+
+Optimized Elm output is often compact. A Foldkit application includes Foldkit and Effect. The actual production size depends on the application and should be measured from the two builds being considered.
 
 ## What You Gain
 
 Foldkit gains direct access to the host ecosystem and additional framework tools.
 
-**JavaScript and npm access.** Browser APIs and compatible JavaScript packages can be imported into a Command, Mount, Subscription, ManagedResource, or CustomElement without a port layer.
+### JavaScript and npm Access
 
-**TypeScript integration.** An embedded Foldkit program can share modules and types with its TypeScript host. Elm also embeds cleanly, but host communication crosses flags, ports, or custom elements.
+Browser APIs and compatible JavaScript packages can be imported into a Command, Mount, Subscription, ManagedResource, or CustomElement without a port layer.
 
-**Schema codecs.** One definition can provide the TypeScript type, runtime validation, and encoding and decoding for an external boundary.
+### TypeScript Integration
 
-**Inspectable Commands.** Foldkit DevTools records named Commands beside the Messages that produced them, and Story and Scene tests can assert on the same values.
+An embedded Foldkit program can share modules and types with its TypeScript host. Elm also embeds cleanly, but host communication crosses flags, ports, or custom elements.
 
-**Effect services and control flow.** Commands can compose retries, timeouts, concurrency, resources, Layers, and typed failures from Effect.
+### Schema Codecs
 
-**First-party UI Submodels.** Foldkit UI supplies accessible components built with the same Model, Message, and update architecture as the application.
+One definition can provide the TypeScript type, runtime validation, and encoding and decoding for an external boundary.
+
+### Inspectable Commands
+
+Foldkit DevTools records named Commands beside the Messages that produced them, and Story and Scene tests can assert on the same values.
+
+### Effect Services and Control Flow
+
+Commands can compose retries, timeouts, concurrency, resources, Layers, and typed failures from Effect.
+
+### First-party UI Submodels
+
+Foldkit UI supplies accessible components built with the same Model, Message, and update architecture as the application.
 
 ## Conclusion
 

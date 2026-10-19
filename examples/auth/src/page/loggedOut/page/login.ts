@@ -12,7 +12,7 @@ import {
 } from 'foldkit/fieldValidation'
 import { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Button, Input } from '@foldkit/ui'
 
@@ -111,11 +111,11 @@ export const update = (model: Model, message: Message) =>
     message,
     {
       ChangedEmail: ({ value }) => ({
-        model: evo(model, { email: () => validateEmail(value) }),
+        model: modifyFields(model, { email: () => validateEmail(value) }),
       }),
 
       ChangedPassword: ({ value }) => ({
-        model: evo(model, { password: () => validatePassword(value) }),
+        model: modifyFields(model, { password: () => validatePassword(value) }),
       }),
 
       SubmittedForm: () => {
@@ -128,7 +128,7 @@ export const update = (model: Model, message: Message) =>
         }
 
         return {
-          model: evo(model, { isSubmitting: () => true }),
+          model: modifyFields(model, { isSubmitting: () => true }),
           commands: [
             SimulateAuthRequest({
               email: model.email.value,
@@ -144,7 +144,7 @@ export const update = (model: Model, message: Message) =>
       }),
 
       FailedSimulateAuthRequest: ({ error }) => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           password: () =>
             Invalid({
               value: model.password.value,

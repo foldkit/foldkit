@@ -1,4 +1,4 @@
-import { HashSet, Option, Record, pipe } from 'effect'
+import { HashSet, Option, pipe } from 'effect'
 import { Calendar } from 'foldkit'
 import { Command, given, message, model, story } from 'foldkit/story'
 import * as Url from 'foldkit/url'
@@ -13,14 +13,15 @@ import {
   ScrollToTop,
   init,
   managedResources,
-  subscriptions,
   update,
 } from './main'
 import { Message } from './message'
 import { type Model } from './model'
 import { Home } from './page'
+import * as NotePlayerDemo from './page/home/notePlayerDemo'
 import * as Search from './search'
 import * as SnippetCopy from './snippetCopy'
+import * as SnippetDisclosure from './snippetDisclosure'
 
 const parseUrl = (value: string): Url.Url =>
   pipe(Url.fromString(value), Option.getOrThrow)
@@ -38,19 +39,8 @@ const flags = {
 
 const initAt = (url: Url.Url): Model => init(flags, url).model
 
-const aiHeadingSubscription = pipe(
-  subscriptions,
-  Record.get('aiHeading'),
-  Option.getOrThrow,
-)
-
 const expectHomePresent = (model: Model): void => {
   expect(Option.isSome(model.maybeHome)).toBe(true)
-  expect(
-    Option.isSome(
-      aiHeadingSubscription.modelToDependencies(model).maybeDependencies,
-    ),
-  ).toBe(true)
   expect(
     Option.isSome(
       managedResources.audioContext.modelToMaybeRequirements(model),
@@ -62,20 +52,15 @@ const expectHomeAbsent = (model: Model): void => {
   expect(Option.isNone(model.maybeHome)).toBe(true)
   expect(
     Option.isNone(
-      aiHeadingSubscription.modelToDependencies(model).maybeDependencies,
-    ),
-  ).toBe(true)
-  expect(
-    Option.isNone(
       managedResources.audioContext.modelToMaybeRequirements(model),
     ),
   ).toBe(true)
 }
 
 const expectDefaultHome = (home: Home.Model): void => {
-  expect(home.aiHeadingToggleCount).toBe(0)
   expect(home.activeDemoTab).toBe('Architecture')
   expect(home.asyncCounterDemo.count).toBe(0)
+  expect(home.notePlayerDemo.noteInput.value).toBe('CDEFGABC')
   expect(home.notePlayerDemo.playbackState._tag).toBe('Idle')
 }
 
@@ -88,6 +73,37 @@ const resolvePathChangeCommands = () => [
 ]
 
 describe('application', () => {
+  test('newsletter email follows navigation between Home and Newsletter', () => {
+    story(
+      update,
+      given(initAt(homeUrl)),
+      message(
+        Message.GotHomeMessage({
+          message: Home.Message.UpdatedNewsletterEmail({
+            value: 'alice@example.com',
+          }),
+        }),
+      ),
+      model(model => {
+        expect(model.newsletterEmail).toBe('alice@example.com')
+      }),
+      message(Message.ChangedUrl({ url: newsletterUrl })),
+      ...resolvePathChangeCommands(),
+      model(model => {
+        expect(model.newsletterEmail).toBe('alice@example.com')
+      }),
+      message(Message.UpdatedNewsletterEmail({ value: 'bob@example.com' })),
+      model(model => {
+        expect(model.newsletterEmail).toBe('bob@example.com')
+      }),
+      message(Message.ChangedUrl({ url: homeUrl })),
+      ...resolvePathChangeCommands(),
+      model(model => {
+        expect(model.newsletterEmail).toBe('bob@example.com')
+      }),
+    )
+  })
+
   test('entering Home initializes fresh state', () => {
     story(
       update,
@@ -133,11 +149,15 @@ describe('application', () => {
       given(initAt(homeUrl)),
       message(
         Message.GotHomeMessage({
-          message: Home.Message.ToggledAiHeading(),
+          message: Home.Message.GotNotePlayerDemoMessage({
+            message: NotePlayerDemo.Message.ChangedNoteInput({ value: 'ABC' }),
+          }),
         }),
       ),
       model(model => {
-        expect(Option.getOrThrow(model.maybeHome).aiHeadingToggleCount).toBe(1)
+        expect(
+          Option.getOrThrow(model.maybeHome).notePlayerDemo.noteInput.value,
+        ).toBe('ABC')
       }),
       message(Message.ChangedUrl({ url: newsletterUrl })),
       ...resolvePathChangeCommands(),
@@ -156,7 +176,9 @@ describe('application', () => {
       given(initAt(newsletterUrl)),
       message(
         Message.GotHomeMessage({
-          message: Home.Message.ToggledAiHeading(),
+          message: Home.Message.GotNotePlayerDemoMessage({
+            message: NotePlayerDemo.Message.ChangedNoteInput({ value: 'ABC' }),
+          }),
         }),
       ),
       model(model => {
@@ -229,6 +251,28 @@ describe('application', () => {
           snippetId,
         }),
       ),
+    )
+  })
+
+  test('the parent owns each snippet disclosure state', () => {
+    const disclosureId = 'root-story-snippet'
+
+    story(
+      update,
+      given(initAt(homeUrl)),
+      message(
+        Message.GotSnippetDisclosureMessage({
+          message: SnippetDisclosure.Message.ToggledCodeDisclosure({
+            disclosureId,
+            isOpen: true,
+          }),
+        }),
+      ),
+      model(model => {
+        expect(
+          HashSet.has(model.snippetDisclosure.openDisclosureIds, disclosureId),
+        ).toBe(true)
+      }),
     )
   })
 })

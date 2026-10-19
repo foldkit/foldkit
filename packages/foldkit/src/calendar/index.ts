@@ -48,9 +48,14 @@ export {
 export { today } from './today.js'
 
 export {
+  DateFormat,
+  DatePart,
   defaultEnglishLocale,
+  format,
   formatAriaLabel,
   formatLong,
+  formatMonthYear,
   formatShort,
   LocaleConfig,
+  MonthYearFormat,
 } from './locale.js'

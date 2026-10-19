@@ -4,6 +4,7 @@ import { all, filter, first, last, nth, role } from 'foldkit/scene'
 // Multi-match locators return every match.
 all.role('row')
 all.text('Delete')
+all.text(/^Delete \d+ items$/)
 all.label('Email')
 
 // Pick one element from the set.

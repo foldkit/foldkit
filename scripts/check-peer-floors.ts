@@ -5,45 +5,59 @@ import { join } from 'node:path'
 
 // A peer range that names a real minimum, checked against the manifest npm will
 // actually publish rather than the one in the repository. `changeset version`
-// runs `reset-peer-deps`, and `pnpm pack` rewrites `workspace:` ranges, so a
+// updates dependency ranges, and `pnpm pack` rewrites `workspace:` ranges, so a
 // floor can be correct in the source tree and gone from the tarball. That is how
 // `@foldkit/vite-plugin@0.15.0` shipped a `^0` peer that accepts a foldkit
 // without the `foldkit/experimental/server` export the plugin imports.
 const FLOORS = [
   {
+    packageDir: 'packages/node',
+    packageName: '@foldkit/node',
+    dependency: 'foldkit',
+    minimum: '0.165.0',
+    safePackageVersion: '0.1.0',
+  },
+  {
     packageDir: 'packages/ui',
     packageName: '@foldkit/ui',
     dependency: 'foldkit',
-    minimum: '0.155.0',
-    safePackageVersion: '0.155.0',
+    minimum: '0.167.0',
+    safePackageVersion: '0.167.0',
   },
   {
     packageDir: 'packages/devtools',
     packageName: '@foldkit/devtools',
     dependency: 'foldkit',
-    minimum: '0.153.0',
-    safePackageVersion: '0.153.0',
+    minimum: '0.167.0',
+    safePackageVersion: '0.167.0',
+  },
+  {
+    packageDir: 'packages/devtools',
+    packageName: '@foldkit/devtools',
+    dependency: '@foldkit/ui',
+    minimum: '0.167.0',
+    safePackageVersion: '0.167.0',
   },
   {
     packageDir: 'packages/devtools-mcp',
     packageName: '@foldkit/devtools-mcp',
     dependency: 'foldkit',
-    minimum: '0.153.0',
-    safePackageVersion: '0.19.0',
+    minimum: '0.165.0',
+    safePackageVersion: '0.24.0',
   },
   {
     packageDir: 'packages/markdown',
     packageName: '@foldkit/markdown',
     dependency: 'foldkit',
-    minimum: '0.153.0',
-    safePackageVersion: '0.8.0',
+    minimum: '0.165.0',
+    safePackageVersion: '0.14.0',
   },
   {
     packageDir: 'packages/vite-plugin-foldkit',
     packageName: '@foldkit/vite-plugin',
     dependency: 'foldkit',
-    minimum: '0.153.0',
-    safePackageVersion: '0.19.0',
+    minimum: '0.167.0',
+    safePackageVersion: '0.27.0',
   },
 ] as const
 
@@ -152,9 +166,9 @@ if (failures.length > 0) {
     console.error(`  ${failure}`)
   }
   console.error(
-    '\nCheck the pending changeset and scripts/reset-peer-deps.ts before publishing.',
+    '\nCheck the package peer dependencies and pending changesets before publishing.',
   )
   process.exit(1)
 }
 
-console.log(`Packed peer dependency floors hold for ${FLOORS.length} packages.`)
+console.log(`Packed peer dependency floors hold for ${FLOORS.length} peers.`)

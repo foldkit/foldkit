@@ -1,0 +1,47 @@
+name: MCP Windows
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/mcp-windows.yml
+      - packages/devtools-mcp/**
+      - packages/vite-plugin-foldkit/**
+      - pnpm-lock.yaml
+  workflow_dispatch:
+
+jobs:
+  registry:
+    name: Registry trust and discovery
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Foldkit
+        run: pnpm --filter foldkit exec tsc -b tsconfig.build.json
+
+      - name: Build Vite plugin
+        run: pnpm --filter @foldkit/vite-plugin exec tsc -b
+
+      - name: Test Vite plugin registry trust
+        run: pnpm --filter @foldkit/vite-plugin exec vitest run test/relayRegistryTrust.test.ts
+
+      - name: Test Vite plugin Windows registry publication
+        run: pnpm --filter @foldkit/vite-plugin exec vitest run test/mcpRelay.test.ts -t "Windows registry"
+
+      - name: Test MCP registry trust and discovery
+        run: pnpm --filter @foldkit/devtools-mcp exec vitest run test/relayRegistryTrust.test.ts test/windowsRegistry.test.ts

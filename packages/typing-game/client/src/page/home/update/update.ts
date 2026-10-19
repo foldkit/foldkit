@@ -1,6 +1,6 @@
 import { Array, Match, Option, String } from 'effect'
 import { type Update } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { optionWhen } from '../../../optionWhen'
 import { RoomsClient } from '../../../rpc'
@@ -28,7 +28,7 @@ export const update = (model: Model, message: Message) =>
         withUpdateReturn,
         Match.tag('EnterUsername', ({ username }) => {
           const nextModel = String.isNonEmpty(username)
-            ? evo(model, {
+            ? modifyFields(model, {
                 homeStep: () =>
                   HomeStep.SelectAction({
                     username,
@@ -48,7 +48,7 @@ export const update = (model: Model, message: Message) =>
       Match.value(model.homeStep).pipe(
         withUpdateReturn,
         Match.tag('EnterUsername', () => ({
-          model: evo(model, {
+          model: modifyFields(model, {
             homeStep: () => HomeStep.EnterUsername({ username: value }),
             formError: () => Option.none(),
           }),
@@ -64,7 +64,7 @@ export const update = (model: Model, message: Message) =>
       Match.value(model.homeStep).pipe(
         withUpdateReturn,
         Match.tag('EnterRoomId', ({ username }) => ({
-          model: evo(model, {
+          model: modifyFields(model, {
             homeStep: () =>
               HomeStep.EnterRoomId({
                 username,
@@ -82,7 +82,7 @@ export const update = (model: Model, message: Message) =>
         Match.tag('EnterRoomId', ({ username, roomId }) => {
           if (roomId === 'exit') {
             return {
-              model: evo(model, {
+              model: modifyFields(model, {
                 homeStep: () =>
                   HomeStep.SelectAction({
                     username,
@@ -112,13 +112,13 @@ export const update = (model: Model, message: Message) =>
     }),
 
     FailedCreateRoom: ({ error }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         formError: () => Option.some(error),
       }),
     }),
 
     FailedJoinRoom: ({ error }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         formError: () => Option.some(error),
       }),
     }),

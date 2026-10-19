@@ -66,6 +66,14 @@ const routingConfig = {
   view,
 }
 
+const nestedInDivs = (leaf: Html, levels: number): Html => {
+  let node = leaf
+  for (let level = 0; level < levels; level += 1) {
+    node = h.div([], [node])
+  }
+  return node
+}
+
 describe('renderToString', () => {
   it.effect('renders a routing application with flags', () =>
     Effect.gen(function* () {
@@ -240,7 +248,7 @@ describe('renderToString', () => {
         const PrefixedTheme = Schema.String.pipe(
           Schema.decodeTo(
             Schema.String,
-            SchemaTransformation.transformOrFail({
+            SchemaTransformation.transformEffect({
               decode: raw =>
                 raw.startsWith('theme:')
                   ? Effect.succeed(raw.slice('theme:'.length))
@@ -291,21 +299,14 @@ describe('renderToString', () => {
     view,
   }
 
-  it('requires render options at the type boundary', () => {
-    // Hydration compares the id on the served root with the client's own to
-    // refuse a page from another deployment. A render that carries none has no
-    // such protection, and nothing here could invent one that both builds of a
-    // deployment would agree on. Since a render is hydratable by default, a
-    // call with no options could only ever fail, so the compiler rejects it
-    // rather than the Effect.
+  it('accepts the build identity compiled into the server artifact', () => {
     if (false) {
-      // @ts-expect-error a render must say which deployment it belongs to
       renderToStringWithOptions(configWithoutFlags)
       renderToStringWithOptions(configWithoutFlags, { buildId: 'build-one' })
       renderToStringWithOptions(configWithoutFlags, { isHydratable: false })
-      // @ts-expect-error static output has no deployment to name
       renderToStringWithOptions(configWithoutFlags, {
         isHydratable: false,
+        // @ts-expect-error static output has no deployment to name
         buildId: 'build-one',
       })
     }
@@ -896,7 +897,7 @@ describe('renderToString', () => {
         const AsyncTheme = Schema.String.pipe(
           Schema.decodeTo(
             Schema.String,
-            SchemaTransformation.transformOrFail({
+            SchemaTransformation.transformEffect({
               decode: raw => Effect.promise(() => Promise.resolve(raw)),
               encode: theme => Effect.succeed(theme),
             }),
@@ -913,25 +914,23 @@ describe('renderToString', () => {
       }),
   )
 
-  it.effect(
-    'defaults canonical and ogUrl to the request url for a routing render',
-    () =>
-      Effect.gen(function* () {
-        const plainView = (model: Model): Document => ({
-          title: `Page ${model.pathname}`,
-          body: h.div([], [h.h1([], [model.pathname])]),
-        })
-        const rendered = yield* renderToString(
-          { ...routingConfig, view: plainView },
-          {
-            url: 'https://example.com/deep/link?q=1',
-            flags: { theme: 'dark' },
-          },
-        )
+  it.effect('omits canonical and ogUrl when a routing view omits them', () =>
+    Effect.gen(function* () {
+      const plainView = (model: Model): Document => ({
+        title: `Page ${model.pathname}`,
+        body: h.div([], [h.h1([], [model.pathname])]),
+      })
+      const rendered = yield* renderToString(
+        { ...routingConfig, view: plainView },
+        {
+          url: 'https://example.com/deep/link?utm_source=newsletter',
+          flags: { theme: 'dark' },
+        },
+      )
 
-        expect(rendered.canonical).toBe('https://example.com/deep/link?q=1')
-        expect(rendered.ogUrl).toBe('https://example.com/deep/link?q=1')
-      }),
+      expect(rendered.canonical).toBeUndefined()
+      expect(rendered.ogUrl).toBeUndefined()
+    }),
   )
 
   it.effect('defaults ogUrl to an explicitly set canonical', () =>
@@ -951,8 +950,25 @@ describe('renderToString', () => {
     }),
   )
 
+  it.effect('returns an explicit ogUrl without canonical', () =>
+    Effect.gen(function* () {
+      const ogUrlView = (model: Model): Document => ({
+        title: `Page ${model.pathname}`,
+        ogUrl: 'https://example.com/social',
+        body: h.div([], [h.h1([], [model.pathname])]),
+      })
+      const rendered = yield* renderToString(
+        { ...routingConfig, view: ogUrlView },
+        { url: 'https://example.com/other', flags: { theme: 'dark' } },
+      )
+
+      expect(rendered.canonical).toBeUndefined()
+      expect(rendered.ogUrl).toBe('https://example.com/social')
+    }),
+  )
+
   it.effect(
-    'does not default canonical or ogUrl for a non-routing render',
+    'omits canonical and ogUrl when a non-routing view omits them',
     () =>
       Effect.gen(function* () {
         const rendered = yield* renderToString({
@@ -964,29 +980,6 @@ describe('renderToString', () => {
 
         expect(rendered.canonical).toBeUndefined()
         expect(rendered.ogUrl).toBeUndefined()
-      }),
-  )
-
-  it.effect(
-    'normalizes the default canonical to match the client location',
-    () =>
-      Effect.gen(function* () {
-        const plainView = (model: Model): Document => ({
-          title: `Page ${model.pathname}`,
-          body: h.div([], [h.h1([], [model.pathname])]),
-        })
-        const rendered = yield* renderToString(
-          { ...routingConfig, view: plainView },
-          {
-            url: 'https://EXAMPLE.com:443/a?q=1#frag',
-            flags: { theme: 'dark' },
-          },
-        )
-
-        // origin lowercases the host and drops the default port, and a canonical
-        // URL carries no fragment, matching the client's currentLocationUrl.
-        expect(rendered.canonical).toBe('https://example.com/a?q=1')
-        expect(rendered.ogUrl).toBe('https://example.com/a?q=1')
       }),
   )
 
@@ -1707,5 +1700,141 @@ describe('renderToString', () => {
       h.noscript([h.InnerHTML('<p>Enable JavaScript to continue.</p>')]),
       '<p>Enable JavaScript to continue.</p></noscript>',
     ),
+  )
+})
+
+describe('renderToString render depth', () => {
+  const renderDocumentBody = (
+    body: Html,
+    options?: Readonly<{ isHydratable: false }>,
+  ) =>
+    renderToString(
+      {
+        init: (): InitReturn<null> => ({ model: null }),
+        view: () => ({ title: 'Deep', body }),
+      },
+      options,
+    )
+
+  const expectRenderFailureCause = (
+    body: Html,
+    cause: string,
+    options?: Readonly<{ isHydratable: false }>,
+  ) =>
+    Effect.gen(function* () {
+      const error = yield* Effect.flip(renderDocumentBody(body, options))
+
+      expect(error).toMatchObject({ _tag: 'SerializationError' })
+      expect(String(error.cause)).toContain(cause)
+    })
+
+  it.effect('renders a hydratable view nested exactly to the limit', () =>
+    Effect.gen(function* () {
+      const rendered = yield* renderDocumentBody(
+        nestedInDivs(h.span([], ['leaf']), 999),
+      )
+
+      expect(rendered.html).toContain('<span>leaf</span>')
+    }),
+  )
+
+  it.effect('renders a static view nested exactly to the limit', () =>
+    Effect.gen(function* () {
+      const rendered = yield* renderDocumentBody(
+        nestedInDivs(h.span([], ['leaf']), 999),
+        { isHydratable: false },
+      )
+
+      expect(rendered.html).toContain('<span>leaf</span>')
+    }),
+  )
+
+  it.effect('refuses a view nested one level past the limit', () =>
+    Effect.gen(function* () {
+      const body = nestedInDivs(h.span([], ['leaf']), 1000)
+
+      yield* expectRenderFailureCause(body, 'maximum render depth of 1000')
+      yield* expectRenderFailureCause(body, 'maximum render depth of 1000', {
+        isHydratable: false,
+      })
+    }),
+  )
+
+  it.effect('refuses a view nested far past the limit', () =>
+    Effect.gen(function* () {
+      for (const levels of [20_000, 100_000]) {
+        const body = nestedInDivs(h.span([], ['leaf']), levels)
+
+        yield* expectRenderFailureCause(body, 'maximum render depth of 1000')
+        yield* expectRenderFailureCause(body, 'maximum render depth of 1000', {
+          isHydratable: false,
+        })
+      }
+    }),
+  )
+
+  it.effect(
+    'refuses a controlled select whose subtree nests past the limit',
+    () =>
+      expectRenderFailureCause(
+        h.select(
+          [h.Value('b')],
+          [nestedInDivs(h.option([h.Value('a')], ['a']), 20_000)],
+        ),
+        'maximum render depth of 1000',
+      ),
+  )
+
+  it.effect(
+    'reports the depth limit before an earlier controlled-select error',
+    () =>
+      expectRenderFailureCause(
+        h.div(
+          [],
+          [
+            h.select([h.Value('missing')], [h.option([h.Value('a')], ['a'])]),
+            nestedInDivs(h.span([], ['leaf']), 1500),
+          ],
+        ),
+        'maximum render depth of 1000',
+      ),
+  )
+
+  it.effect('reports the first reserved attribute in document order', () =>
+    expectRenderFailureCause(
+      h.div(
+        [],
+        [
+          h.div([], [h.span([h.Attribute('data-foldkit-key', 'first')])]),
+          h.div([h.Attribute('data-foldkit-build', 'second')]),
+        ],
+      ),
+      'The view authored data-foldkit-key,',
+    ),
+  )
+
+  it.effect(
+    'reports a controlled-select error before a later invalid-tag error',
+    () => {
+      const invalidTag: VNode = {
+        sel: '1invalid',
+        data: {},
+        children: [],
+        elm: undefined,
+        text: undefined,
+        key: undefined,
+      }
+
+      return expectRenderFailureCause(
+        h.div(
+          [],
+          [
+            h.select([h.Value('missing')], [h.option([h.Value('a')], ['a'])]),
+            invalidTag,
+          ],
+        ),
+        'has the controlled value "missing" but no option carries it',
+      )
+    },
   )
 })

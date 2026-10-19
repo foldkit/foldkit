@@ -1,6 +1,6 @@
 import { HashMap, Option, Result } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { expect, test } from 'vitest'
 
 import { Tabs } from '@foldkit/ui'
@@ -97,7 +97,7 @@ test('a revalidation tick keeps stale stats on screen while refetching', () => {
       FetchStats,
       Message.SettledFetchStats({
         result: Result.succeed({
-          stats: evo(fixtureStats, { activeUsers: () => 99 }),
+          stats: modifyFields(fixtureStats, { activeUsers: () => 99 }),
           fetchedAt: FETCHED_AT + 5000,
         }),
       }),
@@ -135,7 +135,7 @@ test('a failed refresh keeps the stale stats on screen with the error', () => {
 test('refresh clicks during an in-flight fetch are deduplicated', () => {
   story(
     update,
-    given(evo(loadedStatsModel, { stats: () => StatsData.Loading() })),
+    given(modifyFields(loadedStatsModel, { stats: () => StatsData.Loading() })),
     message(Message.ClickedRefreshStats()),
     Command.expectNone(),
   )
@@ -145,7 +145,7 @@ test('a revalidation tick during a refresh is deduplicated', () => {
   story(
     update,
     given(
-      evo(loadedStatsModel, {
+      modifyFields(loadedStatsModel, {
         stats: () =>
           StatsData.Refreshing({
             data: { stats: fixtureStats, fetchedAt: FETCHED_AT },
@@ -187,7 +187,7 @@ test('retrying failed posts shows the loading state and refetches', () => {
   story(
     update,
     given(
-      evo(loadedPostsModel, {
+      modifyFields(loadedPostsModel, {
         posts: () => PostsData.Failure({ error: 'The server is down.' }),
       }),
     ),
@@ -274,7 +274,7 @@ test('revisiting a post with a cached failure shows it without refetching', () =
   story(
     update,
     given(
-      evo(loadedPostsModel, {
+      modifyFields(loadedPostsModel, {
         postDetailById: () =>
           HashMap.set(
             HashMap.empty(),

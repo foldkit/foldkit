@@ -3,7 +3,7 @@ import { Effect, Match, Schema } from 'effect'
 import * as Command from '../../command/index.js'
 import type { Html, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
-import { evo } from '../../struct/index.js'
+import { modifyFields } from '../../struct/index.js'
 import type * as Update from '../../update/index.js'
 
 // MODEL
@@ -55,26 +55,26 @@ export const initialModel: Model = {
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     UpdatedEmail: ({ value }) => ({
-      model: evo(model, { email: () => value }),
+      model: modifyFields(model, { email: () => value }),
     }),
     UpdatedPassword: ({ value }) => ({
-      model: evo(model, { password: () => value }),
+      model: modifyFields(model, { password: () => value }),
     }),
     SubmittedLogin: () => ({
-      model: evo(model, { status: () => 'Submitting' }),
+      model: modifyFields(model, { status: () => 'Submitting' }),
       commands: [Authenticate()],
     }),
     SucceededAuthenticate: ({ username }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         status: () => 'LoggedIn',
         username: () => username,
       }),
     }),
     FailedAuthenticate: ({ error }) => ({
-      model: evo(model, { status: () => 'Error', error: () => error }),
+      model: modifyFields(model, { status: () => 'Error', error: () => error }),
     }),
     ClickedLogout: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         status: () => 'Idle',
         username: () => '',
         email: () => '',

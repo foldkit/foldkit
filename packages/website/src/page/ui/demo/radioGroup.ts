@@ -35,10 +35,10 @@ const horizontalOptionClassName =
 
 const labelClassName = 'text-sm font-medium text-gray-900 dark:text-white'
 
-const descriptionClassName = 'text-sm text-gray-600 dark:text-gray-300'
+const descriptionClassName = 'text-sm text-gray-700 dark:text-gray-300'
 
 const priceClassName =
-  'text-sm font-semibold text-accent-600 dark:text-accent-400'
+  'text-sm font-semibold text-accent-700 dark:text-accent-400'
 
 // VIEW
 
@@ -47,7 +47,7 @@ export const verticalDemo = (model: Model, h: HtmlBuilder<Message>) => {
     [
       h.ViewBox('0 0 24 24'),
       h.Fill('none'),
-      h.Class('size-5 text-accent-600 dark:text-accent-400'),
+      h.Class('size-5 text-accent-700 dark:text-accent-400'),
     ],
     [
       h.path([
@@ -124,7 +124,7 @@ export const horizontalDemo = (model: Model, h: HtmlBuilder<Message>) => {
     [
       h.ViewBox('0 0 24 24'),
       h.Fill('none'),
-      h.Class('size-5 text-accent-600 dark:text-accent-400'),
+      h.Class('size-5 text-accent-700 dark:text-accent-400'),
     ],
     [
       h.path([

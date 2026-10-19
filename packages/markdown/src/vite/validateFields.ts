@@ -66,7 +66,7 @@ export const validateFields = (
   }
 
   try {
-    Schema.decodeUnknownSync(config.schema)(config.values)
+    Schema.decodeSync(config.schema)(config.values)
   } catch (error) {
     throw new Error(
       config.invalidValues(

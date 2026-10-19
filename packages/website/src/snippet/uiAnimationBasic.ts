@@ -5,7 +5,7 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Animation } from '@foldkit/ui'
 
@@ -72,7 +72,7 @@ const foldAnimation = Update.foldChild({
   update: Animation.update,
   read: (model: Model) => Option.some(model.animation),
   write: (model, nextAnimation) =>
-    evo(model, { animation: () => nextAnimation }),
+    modifyFields(model, { animation: () => nextAnimation }),
   toParentMessage: message => Message.GotAnimationMessage({ message }),
   foldOutMessage: foldAnimationOutMessage,
 })
@@ -84,7 +84,7 @@ const foldAnimationShow = Update.foldChildStep({
   update: Animation.show,
   read: (model: Model) => Option.some(model.animation),
   write: (model, nextAnimation) =>
-    evo(model, { animation: () => nextAnimation }),
+    modifyFields(model, { animation: () => nextAnimation }),
   toParentMessage: message => Message.GotAnimationMessage({ message }),
 })
 
@@ -92,7 +92,7 @@ const foldAnimationHide = Update.foldChildStep({
   update: Animation.hide,
   read: (model: Model) => Option.some(model.animation),
   write: (model, nextAnimation) =>
-    evo(model, { animation: () => nextAnimation }),
+    modifyFields(model, { animation: () => nextAnimation }),
   toParentMessage: message => Message.GotAnimationMessage({ message }),
 })
 

@@ -5,7 +5,7 @@ import { Array, Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Listbox } from '@foldkit/ui'
 
@@ -54,7 +54,7 @@ const foldListboxMultiOutMessage = Listbox.OutMessage.match<
   Selected:
     ({ value }) =>
     model => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         selectedPeople: selectedPeople =>
           Array.contains(selectedPeople, value)
             ? Array.filter(selectedPeople, person => person !== value)
@@ -71,7 +71,7 @@ const foldListboxMulti = Update.foldChild({
   update: PeopleListbox.update,
   read: (model: Model) => Option.some(model.listboxMulti),
   write: (model, nextListboxMulti) =>
-    evo(model, { listboxMulti: () => nextListboxMulti }),
+    modifyFields(model, { listboxMulti: () => nextListboxMulti }),
   toParentMessage: message => Message.GotListboxMultiMessage({ message }),
   foldOutMessage: foldListboxMultiOutMessage,
 })

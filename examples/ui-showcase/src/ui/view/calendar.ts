@@ -175,6 +175,14 @@ const yearsView = (
 
 export const view = Submodel.defineView<UiModel, UiMessage>(
   (model, h): Html => {
+    const calendarView = Match.type<Calendar.CalendarAttributes>().pipe(
+      Match.tagsExhaustive({
+        Days: days => daysView(days, h),
+        Months: months => monthsView(months, h),
+        Years: years => yearsView(years, h),
+      }),
+    )
+
     return h.div(
       [],
       [
@@ -185,13 +193,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
           view: Calendar.view,
           viewInputs: {
             maybeSelectedDate: model.maybeCalendarBasicDemoSelectedDate,
-            toView: Match.type<Calendar.CalendarAttributes>().pipe(
-              Match.tagsExhaustive({
-                Days: days => daysView(days, h),
-                Months: months => monthsView(months, h),
-                Years: years => yearsView(years, h),
-              }),
-            ),
+            toView: calendarView,
           },
           toParentMessage: message =>
             UiMessage.GotCalendarBasicDemoMessage({ message }),

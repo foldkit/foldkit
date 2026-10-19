@@ -555,12 +555,52 @@ const leadingTextOf = (node: VNode): string | undefined => {
   return undefined
 }
 
-// NOTE: the serializer recurses per element, so a tree nested thousands of
-// elements deep, typically from mapping untrusted hierarchical data straight
-// to markup, would exhaust the call stack. The depth is bounded well above any
-// real view and refused past the limit, so a hostile input becomes a typed
-// SerializationError rather than a stack overflow.
+// NOTE: a view nested thousands of elements deep, typically from mapping
+// untrusted hierarchical data straight to markup, is refused. The depth limit
+// sits well above any real view, so a hostile input becomes a typed
+// SerializationError. The limit is enforced by a pass that does not recurse,
+// before the serializer walks the tree, so the refusal does not depend on how
+// much call stack the runtime has or the caller has already used. Walks that
+// still recurse, such as `hasOptionDescendant` and the parse5 checks in
+// `server.ts`, are bounded by it for elements the view builds. Content inside a
+// trusted `h.InnerHTML` is not counted.
 const MAX_RENDER_DEPTH = 1000
+
+type RenderDepthEntry = Readonly<{ node: VNode | string; depth: number }>
+
+const assertWithinRenderDepth = (root: VNode): void => {
+  const pendingEntries: globalThis.Array<RenderDepthEntry> = [
+    { node: root, depth: 0 },
+  ]
+  for (
+    let entry = pendingEntries.pop();
+    entry !== undefined;
+    entry = pendingEntries.pop()
+  ) {
+    const { depth, node } = entry
+
+    if (depth > MAX_RENDER_DEPTH) {
+      throw new Error(
+        `[foldkit] renderToString exceeded the maximum render depth of ${MAX_RENDER_DEPTH}. ` +
+          'A view nesting elements this deeply, often from mapping untrusted ' +
+          'hierarchical data straight to markup, is refused to protect the ' +
+          'render stack.',
+      )
+    }
+
+    if (typeof node === 'string') {
+      continue
+    }
+
+    const { children } = node
+    if (children !== undefined) {
+      const childDepth = depth + 1
+      for (const child of children) {
+        pendingEntries.push({ node: child, depth: childDepth })
+      }
+    }
+  }
+}
 
 // A controlled `<select>`'s value plus whether an option has already claimed the
 // selection. The DOM `value` setter selects only the first option whose value
@@ -573,20 +613,49 @@ type SelectSelection = {
   allowsNoSelection: boolean
 }
 
-const serializeChildren = (
+// NOTE: the serializer walks the tree with its own work stack rather than the
+// call stack. An element's close step is pushed beneath its children, so it runs
+// once every descendant has been written, in document order. The controlled
+// `<select>` check in `closeElement` depends on that timing.
+type VisitNodeStep = Readonly<{
+  _tag: 'VisitNode'
+  node: VNode | string
+  selectValue: SelectSelection | undefined
+  extraAttributes?: Readonly<Record<string, string>> | undefined
+}>
+
+type CloseElementStep = Readonly<{
+  _tag: 'CloseElement'
+  tagName: string
+  childSelectValue: SelectSelection | undefined
+  selectValue: SelectSelection | undefined
+}>
+
+type SerializationStep = VisitNodeStep | CloseElementStep
+
+const scheduleContent = (
   output: globalThis.Array<string>,
-  context: SerializeContext,
+  workStack: globalThis.Array<SerializationStep>,
   node: VNode,
-  depth: number,
-  selectValue?: SelectSelection,
+  closeElementStep: CloseElementStep,
 ): void => {
-  const children = node.children
+  const { childSelectValue } = closeElementStep
+  const { children } = node
+
   if (children !== undefined) {
-    for (const child of children) {
-      serializeNode(output, context, child, depth + 1, undefined, selectValue)
+    workStack.push(closeElementStep)
+    for (let index = children.length - 1; index >= 0; index--) {
+      workStack.push({
+        _tag: 'VisitNode',
+        node: Array.getUnsafe(children, index),
+        selectValue: childSelectValue,
+      })
     }
-  } else if (node.text !== undefined) {
-    output.push(escapeText(node.text))
+  } else {
+    if (node.text !== undefined) {
+      output.push(escapeText(node.text))
+    }
+    workStack.push(closeElementStep)
   }
 }
 
@@ -744,12 +813,12 @@ const selectValueForChildren = (
   return undefined
 }
 
-const serializeElement = (
+const openElement = (
   output: globalThis.Array<string>,
   context: SerializeContext,
+  workStack: globalThis.Array<SerializationStep>,
   node: VNode,
   selector: string,
-  depth: number,
   extraAttributes?: Readonly<Record<string, string>>,
   selectValue?: SelectSelection,
 ): void => {
@@ -894,6 +963,12 @@ const serializeElement = (
   const childSelectValue = isForeignNamespace
     ? undefined
     : selectValueForChildren(tagName, node, selectValue)
+  const closeElementStep: CloseElementStep = {
+    _tag: 'CloseElement',
+    tagName,
+    childSelectValue,
+    selectValue,
+  }
 
   const isHtmlRawText = !isForeignNamespace && RAW_TEXT_ELEMENTS.has(tagName)
   const isHtmlRcdata = !isForeignNamespace && RCDATA_ELEMENTS.has(tagName)
@@ -922,6 +997,7 @@ const serializeElement = (
       output.push('\n')
     }
     output.push(innerHtml)
+    workStack.push(closeElementStep)
   } else if (!isForeignNamespace && tagName === 'textarea') {
     const content = controlledValueContent(data?.props)
     if (content !== undefined) {
@@ -929,11 +1005,12 @@ const serializeElement = (
         output.push('\n')
       }
       output.push(escapeText(content))
+      workStack.push(closeElementStep)
     } else {
       if (leadingTextOf(node)?.startsWith('\n')) {
         output.push('\n')
       }
-      serializeChildren(output, context, node, depth, childSelectValue)
+      scheduleContent(output, workStack, node, closeElementStep)
     }
   } else if (!isForeignNamespace && tagName === 'output') {
     // A controlled <output> reflects its value prop as text content the same
@@ -942,14 +1019,15 @@ const serializeElement = (
     const content = controlledValueContent(data?.props)
     if (content !== undefined) {
       output.push(escapeText(content))
+      workStack.push(closeElementStep)
     } else {
-      serializeChildren(output, context, node, depth, childSelectValue)
+      scheduleContent(output, workStack, node, closeElementStep)
     }
   } else if (!isForeignNamespace && NEWLINE_DROPPING_ELEMENTS.has(tagName)) {
     if (leadingTextOf(node)?.startsWith('\n')) {
       output.push('\n')
     }
-    serializeChildren(output, context, node, depth, childSelectValue)
+    scheduleContent(output, workStack, node, closeElementStep)
   } else if (isHtmlRawText) {
     const rawText = collectRawText(node)
     assertRawTextIsSafe(tagName, rawText)
@@ -957,9 +1035,17 @@ const serializeElement = (
       assertNoscriptTextIsSafe(rawText)
     }
     output.push(rawText)
+    workStack.push(closeElementStep)
   } else {
-    serializeChildren(output, context, node, depth, childSelectValue)
+    scheduleContent(output, workStack, node, closeElementStep)
   }
+}
+
+const closeElement = (
+  output: globalThis.Array<string>,
+  closeElementStep: CloseElementStep,
+): void => {
+  const { childSelectValue, selectValue, tagName } = closeElementStep
 
   if (
     childSelectValue !== undefined &&
@@ -980,25 +1066,14 @@ const serializeElement = (
   output.push(`</${tagName}>`)
 }
 
-const serializeNode = (
+const visitNode = (
   output: globalThis.Array<string>,
   context: SerializeContext,
-  node: VNode | string | null,
-  depth: number,
+  workStack: globalThis.Array<SerializationStep>,
+  node: VNode | string,
   extraAttributes?: Readonly<Record<string, string>>,
   selectValue?: SelectSelection,
 ): void => {
-  if (depth > MAX_RENDER_DEPTH) {
-    throw new Error(
-      `[foldkit] renderToString exceeded the maximum render depth of ${MAX_RENDER_DEPTH}. ` +
-        'A view nesting elements this deeply, often from mapping untrusted ' +
-        'hierarchical data straight to markup, is refused to protect the ' +
-        'render stack.',
-    )
-  }
-  if (node === null) {
-    return
-  }
   if (typeof node === 'string') {
     output.push(escapeText(node))
     return
@@ -1016,12 +1091,12 @@ const serializeNode = (
     output.push(`<!--${commentText}-->`)
     return
   }
-  serializeElement(
+  openElement(
     output,
     context,
+    workStack,
     node,
     selector,
-    depth,
     extraAttributes,
     selectValue,
   )
@@ -1047,10 +1122,27 @@ export const serializeHtml = (
   if (root === null) {
     return '<!---->'
   }
+  assertWithinRenderDepth(root)
   const context: SerializeContext = {
     emitHydrationMarkers: options?.emitHydrationMarkers ?? false,
   }
   const output: globalThis.Array<string> = []
-  serializeNode(output, context, root, 0, options?.rootAttributes)
+  const workStack: globalThis.Array<SerializationStep> = [
+    {
+      _tag: 'VisitNode',
+      node: root,
+      selectValue: undefined,
+      extraAttributes: options?.rootAttributes,
+    },
+  ]
+  for (let step = workStack.pop(); step !== undefined; step = workStack.pop()) {
+    if (step._tag === 'VisitNode') {
+      const { node, extraAttributes, selectValue } = step
+
+      visitNode(output, context, workStack, node, extraAttributes, selectValue)
+    } else {
+      closeElement(output, step)
+    }
+  }
   return output.join('')
 }

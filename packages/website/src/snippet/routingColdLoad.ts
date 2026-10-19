@@ -1,6 +1,6 @@
 import { Match, Option } from 'effect'
 import { Command, Runtime } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { Url } from 'foldkit/url'
 
 // Route-driven Commands live in one helper...
@@ -25,7 +25,7 @@ const init: Runtime.RoutingApplicationInit<Model, Message> = (url: Url) => {
 ChangedUrl: ({ url }) => {
   const route = urlToAppRoute(url)
   return {
-    model: evo(model, { route: () => route }),
+    model: modifyFields(model, { route: () => route }),
     commands: commandsForRoute(route),
   }
 }

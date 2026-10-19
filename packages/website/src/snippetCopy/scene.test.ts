@@ -20,8 +20,9 @@ const snippetId = 'counter-example'
 const sceneView = withViewInputs(view, {
   snippetId,
   text: 'const count = 0',
-  ariaLabel: 'Copy counter example',
+  ariaLabel: 'Copy counter state',
   positionClass: 'top-2 right-2',
+  variant: 'Header',
 })
 
 describe('snippet copy', () => {
@@ -30,7 +31,11 @@ describe('snippet copy', () => {
       { update, view: sceneView() },
       given(init().model),
       expect(text('Copied')).not.toExist(),
-      click(role('button', { name: 'Copy counter example' })),
+      expect(role('button', { name: 'Copy counter state' })).toHaveAttr(
+        'type',
+        'button',
+      ),
+      click(role('button', { name: 'Copy counter state' })),
       Command.resolve(CopySnippet, Message.SucceededCopySnippet({ snippetId })),
       expect(text('Copied')).toExist(),
       Command.resolve(

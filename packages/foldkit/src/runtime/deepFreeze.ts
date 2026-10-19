@@ -19,7 +19,7 @@ import { Array, Option, Predicate, Record } from 'effect'
  *
  * Idempotent: already-frozen values are returned as-is. This also serves as
  * the cycle-safety bailout and ensures amortized cost is O(diff) per update
- * when combined with `evo()` which preserves unchanged branches by reference.
+ * when combined with `modifyFields()` which preserves unchanged branches by reference.
  */
 export const deepFreeze = <T>(value: T): T => {
   if (value === null || typeof value !== 'object') {

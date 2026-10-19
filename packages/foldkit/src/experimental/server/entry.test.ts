@@ -45,9 +45,24 @@ describe('server entry results', () => {
     expect(response.headers.get('content-type')).toBe('application/xhtml+xml')
   })
 
-  it('passes a complete response through unchanged', () => {
+  it('turns rendered markup into a document through a renderer', async () => {
+    const seen: Array<typeof renderedApplication> = []
+    const response = toResponse(application => {
+      seen.push(application)
+      return `<!doctype html><title>${application.title}</title>${application.html}`
+    }, Rendered(renderedApplication))
+
+    expect(seen).toEqual([renderedApplication])
+    expect(await response.text()).toBe(
+      '<!doctype html><title>New</title><main data-foldkit-app="app" data-foldkit-build="fixture">Hello</main>',
+    )
+  })
+
+  it('passes a complete response through unchanged without rendering a document', () => {
     const redirect = Response.redirect('https://example.com/login', 307)
-    const response = toResponse(TEMPLATE, Responded(redirect))
+    const response = toResponse(() => {
+      throw new Error('rendered a document for a complete response')
+    }, Responded(redirect))
 
     expect(response).toBe(redirect)
   })

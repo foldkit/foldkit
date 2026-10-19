@@ -1,11 +1,11 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
-// update, view, and subscription definitions.
+// update and view definitions.
 import { Option, Schema } from 'effect'
-import { Subscription, Update } from 'foldkit'
+import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { VirtualList } from '@foldkit/ui'
 
@@ -41,7 +41,7 @@ const foldActivityList = Update.foldChild({
   update: VirtualList.update,
   read: (model: Model) => Option.some(model.activityList),
   write: (model, nextActivityList) =>
-    evo(model, { activityList: () => nextActivityList }),
+    modifyFields(model, { activityList: () => nextActivityList }),
   toParentMessage: message => Message.GotActivityListMessage({ message }),
 })
 
@@ -49,7 +49,7 @@ const foldActivityListScrollToIndex = Update.foldChild({
   update: VirtualList.scrollToIndex,
   read: (model: Model) => Option.some(model.activityList),
   write: (model, nextActivityList) =>
-    evo(model, { activityList: () => nextActivityList }),
+    modifyFields(model, { activityList: () => nextActivityList }),
   toParentMessage: message => Message.GotActivityListMessage({ message }),
 })
 
@@ -57,21 +57,6 @@ const foldActivityListScrollToIndex = Update.foldChild({
 GotActivityListMessage: ({ message }) => foldActivityList(model, message)
 ClickedScrollActivityListToMiddle: () =>
   foldActivityListScrollToIndex(model, 500)
-
-// Wire the VirtualList container subscription into your app's
-// subscriptions. This powers scroll tracking and container resize
-// observation:
-const activityListSubscriptions = Subscription.lift({
-  activityListEvents: VirtualList.subscriptions.containerEvents,
-})<Model, Message>({
-  toChildModel: model => model.activityList,
-  toParentMessage: message => Message.GotActivityListMessage({ message }),
-})
-
-const subscriptions = Subscription.aggregate<Model, Message>()(
-  activityListSubscriptions,
-  // ...your other subscription records
-)
 
 // Inside your view, render the list. Pass `items` from your Model, key
 // each row by a stable identifier (the data id, not its array position),
@@ -113,6 +98,6 @@ const view = (model: Model, h: HtmlBuilder<Message>) =>
   })
 
 // The programmatic scroll uses the same child fold as ordinary Messages. Its
-// completion Command stays inside the VirtualList Message boundary. Stale
-// completions are version-cancelled, so rapid successive calls do not fight
-// each other.
+// completion Command stays inside the VirtualList Message boundary. The
+// component's container Mount owns scroll and resize observation, so no
+// Subscription wiring is required.

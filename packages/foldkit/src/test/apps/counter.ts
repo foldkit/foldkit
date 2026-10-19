@@ -3,7 +3,7 @@ import { Array, Effect, Number, Schema } from 'effect'
 import * as Command from '../../command/index.js'
 import type { Html, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
-import { evo } from '../../struct/index.js'
+import { modifyFields } from '../../struct/index.js'
 import type * as Update from '../../update/index.js'
 
 // MODEL
@@ -55,17 +55,17 @@ export const initialModel: Model = { count: 0, log: [] }
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedIncrement: () => ({
-      model: evo(model, { count: Number.increment }),
+      model: modifyFields(model, { count: Number.increment }),
     }),
     ClickedDecrement: () => ({
-      model: evo(model, { count: Number.decrement }),
+      model: modifyFields(model, { count: Number.decrement }),
     }),
     ClickedFetch: () => ({ model, commands: [FetchCount()] }),
     ClickedFetchById: ({ id }) => ({
       model,
       commands: [FetchCountById({ id })],
     }),
-    Ticked: () => ({ model: evo(model, { count: Number.increment }) }),
+    Ticked: () => ({ model: modifyFields(model, { count: Number.increment }) }),
     PolledCount: () => ({ model, commands: [FetchCount()] }),
     StartedThreeFetches: () => ({
       model,
@@ -85,7 +85,10 @@ export const update = (model: Model, message: Message) =>
       ],
     }),
     SucceededFetchCount: ({ count }) => ({
-      model: evo(model, { count: () => count, log: Array.append(count) }),
+      model: modifyFields(model, {
+        count: () => count,
+        log: Array.append(count),
+      }),
     }),
     FailedFetchCount: () => ({ model }),
   })

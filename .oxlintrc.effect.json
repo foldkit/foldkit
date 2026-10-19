@@ -1,0 +1,94 @@
+{
+  "$schema": "./node_modules/@effect/tsgo/oxlint-schema.json",
+  "extends": ["./node_modules/@effect/tsgo/oxlint-presets/correctness.json"],
+  "categories": {
+    "correctness": "off"
+  },
+  "rules": {
+    "effecttsgo/catch-unfailable-effect": "warn",
+    "effecttsgo/effect-fn-iife": "warn",
+    "effecttsgo/effect-gen-uses-adapter": "warn",
+    "effecttsgo/effect-in-failure": "warn",
+    "effecttsgo/effect-in-void-success": "warn",
+    "effecttsgo/layer-merge-all-with-dependencies": "warn",
+    "effecttsgo/lazy-promise-in-effect-sync": "warn",
+    "effecttsgo/leaking-requirements": "warn",
+    "effecttsgo/multiple-effect-provide": "warn",
+    "effecttsgo/prefer-typed-schema-decoder": "warn",
+    "effecttsgo/prefer-unsafe-constructor": "warn",
+    "effecttsgo/return-effect-in-gen": "warn",
+    "effecttsgo/schema-sync-in-effect": "warn",
+    "effecttsgo/scope-in-layer-effect": "warn",
+    "effecttsgo/try-catch-in-effect-gen": "warn",
+    "effecttsgo/unstable-api-usage": "off",
+    "effecttsgo/unknown-in-effect-catch": "warn"
+  },
+  "overrides": [
+    {
+      "files": [
+        "packages/foldkit/src/command/index.ts",
+        "packages/foldkit/src/html/index.ts",
+        "packages/foldkit/src/route/parser.ts",
+        "packages/foldkit/src/runtime/hydrationHandoff.ts",
+        "packages/foldkit/src/runtime/managedResourceFibers.ts"
+      ],
+      "rules": {
+        "effecttsgo/any-unknown-in-error-context": "off"
+      }
+    },
+    {
+      "files": ["packages/foldkit/src/runtime/resourceProvider.ts"],
+      "rules": {
+        "effecttsgo/unsafe-effect-type-assertion": "off"
+      }
+    },
+    {
+      "files": ["examples/ssr/scripts/serve.ts", "packages/node/src/node.ts"],
+      "rules": {
+        "effecttsgo/return-effect-in-gen": "off"
+      }
+    },
+    {
+      "files": [
+        "packages/foldkit/src/devTools/webSocketBridge.ts",
+        "packages/foldkit/src/runtime/runtime.ts",
+        "packages/foldkit/src/experimental/server/server.ts"
+      ],
+      "rules": {
+        "effecttsgo/schema-sync-in-effect": "off"
+      }
+    },
+    {
+      "files": [
+        "packages/foldkit/src/dom/streamFromEvent.test.ts",
+        "packages/foldkit/src/experimental/server/server.test.ts"
+      ],
+      "rules": {
+        "effecttsgo/floating-effect": "off"
+      }
+    },
+    {
+      "files": ["packages/foldkit/src/experimental/machine/machine.test.ts"],
+      "rules": {
+        "effecttsgo/missing-effect-context": "off"
+      }
+    },
+    {
+      "files": [
+        "packages/foldkit/src/experimental/query/query.test.ts",
+        "packages/foldkit/src/fieldValidation/fieldValidation.test.ts",
+        "packages/foldkit/src/runtime/modelPreservation.test.ts",
+        "packages/foldkit/src/schema/defineMessageUnion.test.ts",
+        "packages/foldkit/src/schema/defineTaggedUnion.test.ts"
+      ],
+      "rules": {
+        "effecttsgo/prefer-typed-schema-decoder": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "packages/create-foldkit-app/templates/",
+    "packages/oxlint-plugin-foldkit/test/integration/fixtures/",
+    "packages/website/src/snippet/"
+  ]
+}

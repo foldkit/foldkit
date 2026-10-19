@@ -5,7 +5,7 @@ import {
   PubSub,
   Ref,
   Schema,
-  type Scope,
+  Scope,
   Stream,
   pipe,
 } from 'effect'
@@ -89,9 +89,12 @@ export const forkManagedResourceFibers = <Model, Message>({
     ref: resourceRef,
   }: ManagedResourceRef<Model, Message>) =>
     Effect.gen(function* () {
+      const modelSubscription = yield* PubSub.subscribe(modelPubSub).pipe(
+        Effect.provideService(Scope.Scope, runtimeScope),
+      )
       const modelStream = Stream.concat(
         Stream.make(initModel),
-        Stream.fromPubSub(modelPubSub),
+        Stream.fromSubscription(modelSubscription),
       )
 
       const equivalence = Schema.toEquivalence(config.schema)

@@ -1,14 +1,16 @@
+import { Array } from 'effect'
 import { appendFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import {
   NpmRegistry,
-  promoteAndFinalizeCurrentWorkspace,
+  promoteStableRelease,
   runCoherentUpload,
   verifyRegistrySnapshot,
   waitForTaggedSnapshot,
 } from './lib/coherent-release.mjs'
+import { releasePackagesForCommit } from './lib/github-release.mjs'
 import {
   publicWorkspacePackages,
   readWorkspacePackages,
@@ -30,8 +32,31 @@ const commit = () => {
   return value
 }
 
+const writeOutput = (name, value) => {
+  const output = `${name}=${String(value)}\n`
+  const outputPath = process.env['GITHUB_OUTPUT']
+
+  if (outputPath === undefined) {
+    process.stdout.write(output)
+  } else {
+    appendFileSync(outputPath, output)
+  }
+}
+
 const main = async () => {
   const command = process.argv.at(2)
+
+  if (command === 'plan-stable') {
+    const release = releasePackagesForCommit({
+      root: REPO_ROOT,
+      publishedCommit: commit(),
+      isEmptyAllowed: true,
+    })
+
+    writeOutput('has_release', Array.isArrayNonEmpty(release.packages))
+
+    return
+  }
 
   if (command === 'stable' || command === 'canary') {
     const result = await runCoherentUpload({
@@ -40,9 +65,9 @@ const main = async () => {
       commit: commit(),
     })
 
-    if (command === 'stable' && result.packages.length > 0) {
+    if (command === 'stable' && Array.isArrayNonEmpty(result.packages)) {
       console.log(
-        'All stable versions are uploaded and verified. Run `pnpm release:promote` with an interactive npm session to advance latest.',
+        'All stable versions are uploaded and verified for promotion.',
       )
     }
 
@@ -79,12 +104,12 @@ const main = async () => {
   }
 
   if (command === 'promote') {
-    const result = await promoteAndFinalizeCurrentWorkspace({ root: REPO_ROOT })
+    const result = await promoteStableRelease({ root: REPO_ROOT })
 
     console.log(
       `Promoted ${String(result.promoted.length)} packages; ${String(result.alreadyPromoted.length)} were already current.`,
     )
-    console.log(`Dispatched stable finalization for ${result.publishedCommit}.`)
+    writeOutput('published_commit', result.publishedCommit)
 
     return
   }
@@ -108,7 +133,7 @@ const main = async () => {
   }
 
   return fail(
-    'Usage: node scripts/coherent-release.mjs stable|canary|promote|verify-latest',
+    'Usage: node scripts/coherent-release.mjs plan-stable|stable|canary|promote|verify-latest',
   )
 }
 

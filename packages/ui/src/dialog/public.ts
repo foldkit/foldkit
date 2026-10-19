@@ -1,5 +1,6 @@
 export {
   init,
+  boot,
   update,
   open,
   close,
@@ -15,10 +16,13 @@ export {
   type RequestedClose,
   type SucceededShowDialog,
   type FailedShowDialog,
+  type SucceededAcquireResources,
+  type FailedAcquireResources,
   type CompletedCloseDialog,
   type Unmounted,
   type CompletedReleaseDialogResources,
   ShowDialog,
+  AcquireResources,
   CloseDialog,
   ReleaseDialogResources,
 } from './index.js'

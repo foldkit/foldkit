@@ -2,6 +2,7 @@ import { Array, Order } from 'effect'
 import { describe, expect, test } from 'vitest'
 
 import * as PublicMachine from './src/experimental/machine/public.js'
+import * as PublicQuery from './src/experimental/query/public.js'
 import * as PublicServer from './src/experimental/server/public.js'
 import { Experimental } from './typedoc-entry.js'
 
@@ -13,6 +14,7 @@ describe('TypeDoc entry', () => {
     expect(exportNames(Experimental.Machine)).toEqual(
       exportNames(PublicMachine),
     )
+    expect(exportNames(Experimental.Query)).toEqual(exportNames(PublicQuery))
     expect(exportNames(Experimental.Server)).toEqual(exportNames(PublicServer))
   })
 })

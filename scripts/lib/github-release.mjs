@@ -1,3 +1,4 @@
+import { Array } from 'effect'
 import { spawnSync } from 'node:child_process'
 import { relative, resolve } from 'node:path'
 
@@ -102,6 +103,7 @@ export const releasePackagesForCommit = ({
   publishedCommit,
   git = new GitRepository(root),
   workspacePackages = readWorkspacePackages(root),
+  isEmptyAllowed = false,
 }) => {
   const commit = git.resolveCommit(publishedCommit)
   const head = git.resolveCommit('HEAD')
@@ -165,7 +167,7 @@ export const releasePackagesForCommit = ({
     })
   }
 
-  if (packages.at(0) === undefined) {
+  if (!isEmptyAllowed && Array.isArrayEmpty(packages)) {
     return fail(`${commit} did not version any public packages`)
   }
 

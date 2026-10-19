@@ -9,6 +9,6 @@
     "typecheck": "tsc --noEmit",
     "format": "oxfmt",
     "test": "vitest run",
-    "lint": "oxlint src"
+    "lint": "oxlint src && effect-tsgo patch --no-typescript --oxlint && oxlint --config .oxlintrc.effect.json --deny-warnings src"
   }
 }

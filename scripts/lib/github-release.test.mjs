@@ -174,6 +174,30 @@ test('release packages come only from versions changed by the exact commit', () 
   ])
 })
 
+test('release planning can skip commits with unchanged package versions', () => {
+  const pkg = workspacePackage('foldkit', '1.0.0', 'packages/foldkit')
+  const manifest = JSON.stringify(pkg.packageJson)
+  const files = new Map([
+    [`${COMMIT}:packages/foldkit/package.json`, manifest],
+    [`${PARENT}:packages/foldkit/package.json`, manifest],
+  ])
+  const options = {
+    root: ROOT,
+    publishedCommit: 'release-input',
+    git: new FakeGit(files),
+    workspacePackages: [pkg],
+  }
+
+  assert.deepEqual(
+    releasePackagesForCommit({ ...options, isEmptyAllowed: true }),
+    { commit: COMMIT, packages: [] },
+  )
+  assert.throws(
+    () => releasePackagesForCommit(options),
+    /did not version any public packages/,
+  )
+})
+
 test('release package discovery rejects a different checked-out commit', () => {
   assert.throws(
     () =>

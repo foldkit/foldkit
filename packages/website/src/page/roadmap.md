@@ -8,7 +8,11 @@ Foldkit is pre-1.0, and the current goal is a production-ready 1.0. All work in 
 
 Foldkit is a fairly ambitious framework. There is a lot of surface area to build and battle-test: the core Runtime, Foldkit UI, DevTools, Story and Scene testing, server rendering, and everything around them. The path to 1.0 is therefore less concrete than it would be for a UI rendering library that hands you a few rendering primitives and calls it done.
 
+### Build and Learn Through Applications
+
 That said, there is a formula: build progressively more ambitious and feature-rich applications, fill in the gaps we find, and repeat. That is the path development has followed since I started working on Foldkit in June 2025, and every week the framework has improved. The path to 1.0 is essentially to continue doing that in a focused and structured way.
+
+### What 1.0 Guarantees
 
 The 1.0 stamp means that you can build production-grade web applications in Foldkit. The framework needs to be feature-complete, and it needs to have been thoroughly tested by people building production-grade software with it. So 1.0 means people are _already_ building production-grade applications in Foldkit without having to fight the framework along the way.
 
@@ -24,7 +28,7 @@ When an application finds a missing primitive, an awkward API, or an unreasonabl
 
 ### Promoting Experimental Surfaces
 
-Server rendering and Machine are the two largest public surfaces still behind an experimental boundary. Server rendering needs more production use across different hosts. Machine needs to prove that it makes complicated state easier to understand. They will both graduate out of experimental before 1.0.
+Server rendering, Machine, and Query are the largest public surfaces still behind an experimental boundary. Server rendering needs more production use across different hosts. Machine needs to prove that it makes complicated state easier to understand. Query needs production use to settle its cache lifecycle and composition API. They will graduate out of experimental before 1.0.
 
 ### Foldkit UI
 
@@ -63,7 +67,11 @@ The project has come a long way.
 
 ## What's Locked
 
+### Core Architecture
+
 Names and API signatures can still change before 1.0, but the architecture is locked. The Model remains the source of truth for application state. Messages are facts about what happened. After init, every Model change passes through update. Side effects happen through explicit boundaries, not inside update or view. That part isn't going anywhere.
+
+### One Application Model
 
 Server rendering will not create a second kind of Foldkit application. It uses the same Model, init, and view as the browser, not a parallel server-side programming model. Foldkit will not add `'use client'` and `'use server'` style annotations.
 

@@ -3,7 +3,7 @@ import { Array, Duration, Effect, Match, Number, Schema, pipe } from 'effect'
 import { Command, Submodel, type Update } from 'foldkit'
 import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import demoCodeHtml from 'virtual:counter-demo-code'
 
 import { Button } from '@foldkit/ui'
@@ -98,7 +98,7 @@ const prependToLog =
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     ClickedDemoIncrement: () => {
-      const nextModel = evo(model, {
+      const nextModel = modifyFields(model, {
         count: Number.increment,
         phase: () => 'IncrementMessage',
         generation: Number.increment,
@@ -116,7 +116,7 @@ export const update = (model: Model, message: Message) =>
     },
 
     ChangedDemoResetDuration: ({ seconds }) => {
-      const nextModel = evo(model, {
+      const nextModel = modifyFields(model, {
         resetDuration: () => clampResetSeconds(seconds),
         phase: () => 'DurationMessage',
         generation: Number.increment,
@@ -136,7 +136,7 @@ export const update = (model: Model, message: Message) =>
     },
 
     ClickedDemoReset: () => {
-      const nextModel = evo(model, {
+      const nextModel = modifyFields(model, {
         isResetting: () => true,
         phase: () => 'ResetMessage',
         generation: Number.increment,
@@ -160,7 +160,7 @@ export const update = (model: Model, message: Message) =>
         return Match.value(model.phase).pipe(
           withUpdateReturn,
           Match.when('IncrementMessage', () => ({
-            model: evo(model, { phase: () => 'IncrementUpdate' }),
+            model: modifyFields(model, { phase: () => 'IncrementUpdate' }),
             commands: [
               DelayAdvancePhase({
                 generation,
@@ -169,7 +169,7 @@ export const update = (model: Model, message: Message) =>
             ],
           })),
           Match.when('IncrementUpdate', () => ({
-            model: evo(model, { phase: () => 'IncrementModel' }),
+            model: modifyFields(model, { phase: () => 'IncrementModel' }),
             commands: [
               DelayAdvancePhase({
                 generation,
@@ -178,10 +178,10 @@ export const update = (model: Model, message: Message) =>
             ],
           })),
           Match.when('IncrementModel', () => ({
-            model: evo(model, { phase: () => 'Idle' }),
+            model: modifyFields(model, { phase: () => 'Idle' }),
           })),
           Match.when('DurationMessage', () => ({
-            model: evo(model, { phase: () => 'DurationUpdate' }),
+            model: modifyFields(model, { phase: () => 'DurationUpdate' }),
             commands: [
               DelayAdvancePhase({
                 generation,
@@ -190,7 +190,7 @@ export const update = (model: Model, message: Message) =>
             ],
           })),
           Match.when('DurationUpdate', () => ({
-            model: evo(model, { phase: () => 'DurationModel' }),
+            model: modifyFields(model, { phase: () => 'DurationModel' }),
             commands: [
               DelayAdvancePhase({
                 generation,
@@ -199,10 +199,10 @@ export const update = (model: Model, message: Message) =>
             ],
           })),
           Match.when('DurationModel', () => ({
-            model: evo(model, { phase: () => 'Idle' }),
+            model: modifyFields(model, { phase: () => 'Idle' }),
           })),
           Match.when('ResetMessage', () => ({
-            model: evo(model, { phase: () => 'ResetUpdate' }),
+            model: modifyFields(model, { phase: () => 'ResetUpdate' }),
             commands: [
               DelayAdvancePhase({
                 generation,
@@ -211,7 +211,7 @@ export const update = (model: Model, message: Message) =>
             ],
           })),
           Match.when('ResetUpdate', () => ({
-            model: evo(model, { phase: () => 'ResetCommand' }),
+            model: modifyFields(model, { phase: () => 'ResetCommand' }),
             commands: [
               DelayAdvancePhase({
                 generation,
@@ -222,7 +222,7 @@ export const update = (model: Model, message: Message) =>
             ],
           })),
           Match.when('ResetCommand', () => ({
-            model: evo(model, { phase: () => 'ResetCommandMessage' }),
+            model: modifyFields(model, { phase: () => 'ResetCommandMessage' }),
             commands: [
               DelayAdvancePhase({
                 generation,
@@ -231,7 +231,7 @@ export const update = (model: Model, message: Message) =>
             ],
           })),
           Match.when('ResetCommandMessage', () => ({
-            model: evo(model, {
+            model: modifyFields(model, {
               phase: () => 'ResetCommandUpdate',
               messageLog: prependToLog('CompletedDelayReset'),
             }),
@@ -243,7 +243,7 @@ export const update = (model: Model, message: Message) =>
             ],
           })),
           Match.when('ResetCommandUpdate', () => ({
-            model: evo(model, {
+            model: modifyFields(model, {
               count: () => 0,
               isResetting: () => false,
               phase: () => 'ResetModel',
@@ -256,7 +256,7 @@ export const update = (model: Model, message: Message) =>
             ],
           })),
           Match.when('ResetModel', () => ({
-            model: evo(model, { phase: () => 'Idle' }),
+            model: modifyFields(model, { phase: () => 'Idle' }),
           })),
           Match.when('Idle', () => ({ model })),
           Match.exhaustive,
@@ -296,7 +296,7 @@ const phaseLabel = (phase: AnimationPhase): string =>
 
 const phaseColorClass = (phase: AnimationPhase): string =>
   Match.value(phase).pipe(
-    Match.when('Idle', () => 'text-gray-500 dark:text-gray-400'),
+    Match.when('Idle', () => 'text-gray-600 dark:text-gray-400'),
     Match.whenOr(
       'IncrementMessage',
       'DurationMessage',
@@ -315,7 +315,7 @@ const phaseColorClass = (phase: AnimationPhase): string =>
       'IncrementModel',
       'DurationModel',
       'ResetModel',
-      () => 'text-accent-600 dark:text-accent-400',
+      () => 'text-accent-700 dark:text-accent-400',
     ),
     Match.when('ResetCommand', () => 'text-violet-600 dark:text-violet-400'),
     Match.exhaustive,
@@ -358,7 +358,7 @@ const appPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
 
 const actionButtonClass = (isDisabled: boolean): string =>
   clsx('px-4 py-2 rounded-lg text-sm font-normal transition', {
-    'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed': isDisabled,
+    'bg-gray-200 dark:bg-gray-700 text-gray-500 cursor-not-allowed': isDisabled,
     'button-accent cursor-pointer': !isDisabled,
   })
 
@@ -366,7 +366,7 @@ const stepperButtonClass = (isDisabled: boolean): string =>
   clsx('px-2.5 rounded-lg border text-sm font-normal transition', {
     'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-300 dark:text-gray-600 cursor-not-allowed':
       isDisabled,
-    'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer':
+    'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer':
       !isDisabled,
   })
 
@@ -456,7 +456,7 @@ const viewAndControlsView = (model: Model, h: HtmlBuilder<Message>): Html =>
           h.p(
             [
               h.Id(RESET_DELAY_LABEL_ID),
-              h.Class('text-xs text-gray-500 dark:text-gray-400'),
+              h.Class('text-xs text-gray-600 dark:text-gray-400'),
             ],
             ['Reset Delay (seconds)'],
           ),
@@ -475,7 +475,7 @@ const viewAndControlsView = (model: Model, h: HtmlBuilder<Message>): Html =>
                     clsx(
                       'flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-sm font-mono text-center',
                       {
-                        'text-gray-400 dark:text-gray-600': model.isResetting,
+                        'text-gray-500 dark:text-gray-600': model.isResetting,
                         'text-gray-800 dark:text-gray-200': !model.isResetting,
                       },
                     ),

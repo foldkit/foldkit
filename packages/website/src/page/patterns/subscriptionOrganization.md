@@ -44,7 +44,7 @@ Three functions build the hierarchy.
 | ------------------------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
 | `Subscription.make`      | Declares local entries from dependency Schemas, `modelToDependencies`, and `dependenciesToStream`.     | The current level owns a Subscription.            |
 | `Subscription.lift`      | Reads a child Model and wraps each emitted child Message. An optional `when` adds a parent-owned gate. | A child exports a Subscriptions record.           |
-| `Subscription.aggregate` | Combines records and throws at startup when two entries use the same key.                              | A level has more than one local or lifted record. |
+| `Subscription.aggregate` | Combines records, infers their shared types, and rejects duplicate keys at startup.                    | A level has more than one local or lifted record. |
 
 ## Organization Principles
 
@@ -68,33 +68,45 @@ The next three snippets trace one record from a leaf, through a composing Submod
 
 A leaf declares its entries with `Subscription.make`.
 
-::Snippet{name="subscriptionOrganizationChild" label="leaf Submodel Subscription file"}
+::Snippet{name="subscriptionOrganizationChild" label="Leaf Submodel Subscription file"}
 
 ### The Composing Submodel {#composing-submodel}
 
-A composing Submodel lifts child records, declares any local entries, and aggregates the results.
+A composing Submodel lifts child records, declares any local entries, and aggregates the results. Each lift supplies a `read` that returns an `Option` of the child Model. An always-present child is wrapped in `Option.some`.
 
-::Snippet{name="subscriptionOrganizationComposing" label="composing Submodel Subscription file"}
+::Snippet{name="subscriptionOrganizationComposing" label="Composing Submodel Subscription file"}
 
 ### The Root {#root}
 
 The root uses the same shape. Its lifts target the root Model and Message.
 
-::Snippet{name="subscriptionOrganizationRoot" label="root Subscription file"}
+::Snippet{name="subscriptionOrganizationRoot" label="Root Subscription file"}
+
+## Optional Children
+
+Return `Some(child)` from `read` when the child is present, or `None` when it is absent. Foldkit stops the child's Subscriptions and skips its dependency functions while `read` returns `None`.
+
+::Snippet{name="subscriptionOrganizationOptional" label="Reading an optional child Model"}
 
 ## Gating a Lifted Record {#gating}
 
 A child can express conditions from its own Model in its dependencies and Stream construction. It cannot see parent-owned state such as the active Route.
 
-Put a parent-owned condition in `when` on the lift. The predicate receives the parent Model. The gated entries run only while it returns `true`.
+### Gate from Parent State
 
-::Snippet{name="subscriptionOrganizationGate" label="route-gated lift"}
+Put a parent-owned condition in `when` on the lift. The predicate receives the parent Model. The gated entries run only while it returns `true` and `read` returns a child. A closed gate skips `read` and the child’s dependency functions.
+
+::Snippet{name="subscriptionOrganizationGate" label="Route-gated lift"}
 
 Closing a gate tears down the Stream. Foldkit also stops calling the child's `modelToDependencies` until the gate reopens, so hidden child changes do not restart it.
 
-`when` accepts either one predicate for the whole record or a map of predicates by entry name. An omitted entry remains ungated. For example: a Room page can keep its WebSocket alive across navigation while gating its keyboard listener to the active Room Route.
+### Gate Named Entries
 
-::Snippet{name="subscriptionOrganizationEntryGate" label="per-entry gated lift"}
+`when` accepts either one predicate for the whole record or a map of predicates by entry name. An omitted entry has no additional activity condition, but still stops when `read` returns `None`. For example: a Room page can keep its WebSocket alive across navigation while gating its keyboard listener to the active Room Route.
+
+::Snippet{name="subscriptionOrganizationEntryGate" label="Per-entry gated lift"}
+
+### Compose Gates Across Levels
 
 The parent owns `when`. The child keeps its child-owned conditions in its own Subscription definition.
 

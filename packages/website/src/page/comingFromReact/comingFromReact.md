@@ -6,9 +6,13 @@ Foldkit does not compete with React on the brevity of a small component, and it 
 
 ## A Simple Counter
 
+### State in the React Component
+
 Here is a counter in React:
 
 ::Snippet{name="reactCounter" label="React counter" class="mb-4"}
+
+### Foldkit State Machine
 
 The Foldkit version separates state, events, transitions, and rendering:
 
@@ -20,11 +24,15 @@ For one number and one button, React is more compact. Foldkit’s structure star
 
 The next requirement is a play/pause button that increments the counter every second.
 
+### React Interval Effect
+
 React uses an Effect to synchronize an interval with `isAutoCounting`:
 
 ::Snippet{name="reactCounterAutoCount" label="React counter with auto-count" class="mb-4"}
 
 The Effect starts the interval when auto-counting is active and returns the cleanup that stops it. React runs the cleanup before the Effect starts again and when the component unmounts. The functional state updater keeps the interval from depending on a captured `count`.
+
+### Foldkit Subscription
 
 Foldkit adds a Subscription and a `Ticked` Message:
 
@@ -36,15 +44,21 @@ The Subscription emits `Ticked` while `isAutoCounting` is true. Foldkit scopes t
 
 Now the user can choose how much each manual click and timer tick adds.
 
+### React Effect Dependencies and Current Values
+
 A naive React interval that reads `step` from its original closure keeps using that old value. Adding `step` to the Effect dependencies gives the interval the latest value, but also restarts the interval whenever the input changes. If the interval should keep its rhythm, React 19.2’s `useEffectEvent` lets the tick read the latest committed `step` without making `step` a synchronization dependency:
 
 ::Snippet{name="reactCounterStepSize" label="React counter with step size" class="mb-4"}
 
 The distinction is meaningful in React. `isAutoCounting` controls whether the external interval exists, so it is an Effect dependency. `step` is data read when the interval fires, so the Effect Event reads its current value without restarting the interval. The Hooks linter enforces where an Effect Event may be called and keeps it out of the dependency array.
 
+### Foldkit Model Reads
+
 The Foldkit version adds `step` to the Model and handles `ChangedStep`:
 
 ::Snippet{name="foldkitCounterStepSize" label="Foldkit counter with step size" class="mb-6"}
+
+#### Read Current Values in Update
 
 Each `Ticked` Message is handled with the current Model, so `model.step` is current when update calculates the next count. The Subscription still depends only on whether auto-counting is active. There is no closure decision to make and no second mechanism for reading the latest value.
 
@@ -53,6 +67,8 @@ React synchronizes an external resource from component state, so the Effect must
 :::
 
 `useEffectEvent` is a good answer to the React problem. Foldkit does not create that problem. The timer emits a fact, and update decides what that fact means using the current Model.
+
+#### Test Without a Timer
 
 The Foldkit example can be tested below the view by passing Models and Messages directly to update. A view-level Scene test can exercise the same flow through the buttons and input. Neither test needs to wait for a real interval because `Ticked` is already a value the test can dispatch.
 
@@ -88,13 +104,13 @@ The Model-View-Update pattern will feel familiar. The Model resembles the store,
 ## FAQ
 
 :::Faq{id="faq-reusable-components" question="How do I make reusable “components”?"}
-Write view functions that take the Model data they need and return Html. They do not own hidden state or lifecycle. A feature that needs its own state machine can be a [Submodel](/core/submodel), with its own Model, Message union, update, and view.
+Write view functions that take the Model data they need and return Html. They do not own hidden state or lifecycle. A feature that needs its own state machine can be a [Submodel](/core/submodel), with its own Model, Message union, and update. It can also own a view when rendering belongs inside that boundary.
 :::
 
 :::Faq{id="faq-multiple-instances" question="How do I create multiple components with their own state?"}
 Represent each instance in the Model. Use separate fields for a fixed number of instances or a collection keyed by a stable Model identifier for a dynamic number:
 
-::Snippet{name="multipleInstances" label="Model example" class="mb-4"}
+::Snippet{name="multipleInstances" label="Modeling multiple Submodel instances" class="mb-4"}
 
 Each `Accordion.Model` is a Submodel. The parent delegates a child Message to the matching instance and writes the child Model back. See the [Shopping Cart example](/example-apps/shopping-cart) for a larger composition.
 :::

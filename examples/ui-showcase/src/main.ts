@@ -13,7 +13,7 @@ import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
 import { defineRouteUnion, literal } from 'foldkit/route'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
 import { Dialog, Nav } from '@foldkit/ui'
@@ -44,7 +44,9 @@ export const AppRoute = defineRouteUnion({
   Input: {},
   Listbox: {},
   Menu: {},
+  Meter: {},
   Popover: {},
+  Progress: {},
   RadioGroup: {},
   Select: {},
   Slider: {},
@@ -90,7 +92,9 @@ const hoverIntentRouter = pipe(
 const inputRouter = pipe(literal('input'), Route.mapTo(AppRoute.Input))
 const listboxRouter = pipe(literal('listbox'), Route.mapTo(AppRoute.Listbox))
 const menuRouter = pipe(literal('menu'), Route.mapTo(AppRoute.Menu))
+const meterRouter = pipe(literal('meter'), Route.mapTo(AppRoute.Meter))
 const popoverRouter = pipe(literal('popover'), Route.mapTo(AppRoute.Popover))
+const progressRouter = pipe(literal('progress'), Route.mapTo(AppRoute.Progress))
 const radioGroupRouter = pipe(
   literal('radio-group'),
   Route.mapTo(AppRoute.RadioGroup),
@@ -126,7 +130,9 @@ const routeParser = Route.oneOf(
   inputRouter,
   listboxRouter,
   menuRouter,
+  meterRouter,
   popoverRouter,
+  progressRouter,
   radioGroupRouter,
   selectRouter,
   sliderRouter,
@@ -197,17 +203,10 @@ export const init: Runtime.RoutingApplicationInit<Model, Message, Flags> = (
   flags: Flags,
   url: Url,
 ) => {
-  const uiInit_ = uiInit(flags.today)
-
-  return {
-    model: {
-      route: urlToAppRoute(url),
-      uiModel: uiInit_.model,
-    },
-    commands: Command.mapMessages(uiInit_.commands, message =>
-      Message.GotUiMessage({ message }),
-    ),
-  }
+  return Update.foldChildInit(uiInit(flags.today), {
+    toParentModel: uiModel => ({ route: urlToAppRoute(url), uiModel }),
+    toParentMessage: message => Message.GotUiMessage({ message }),
+  })
 }
 
 // UPDATE
@@ -218,21 +217,24 @@ const toUiMessage = (message: UiMessage): Message =>
 const foldUi = Update.foldChild({
   update: uiUpdate,
   read: (model: Model) => Option.some(model.uiModel),
-  write: (model, nextUiModel) => evo(model, { uiModel: () => nextUiModel }),
+  write: (model, nextUiModel) =>
+    modifyFields(model, { uiModel: () => nextUiModel }),
   toParentMessage: toUiMessage,
 })
 
 const foldUiOpenMobileMenu = Update.foldChildStep({
   update: openMobileMenu,
   read: (model: Model) => Option.some(model.uiModel),
-  write: (model, nextUiModel) => evo(model, { uiModel: () => nextUiModel }),
+  write: (model, nextUiModel) =>
+    modifyFields(model, { uiModel: () => nextUiModel }),
   toParentMessage: toUiMessage,
 })
 
 const foldUiCloseMobileMenu = Update.foldChildStep({
   update: closeMobileMenu,
   read: (model: Model) => Option.some(model.uiModel),
-  write: (model, nextUiModel) => evo(model, { uiModel: () => nextUiModel }),
+  write: (model, nextUiModel) =>
+    modifyFields(model, { uiModel: () => nextUiModel }),
   toParentMessage: toUiMessage,
 })
 
@@ -258,7 +260,7 @@ export const update = (model: Model, message: Message) =>
     ChangedUrl: ({ url }) =>
       Update.combine(model, [
         stepModel => ({
-          model: evo(stepModel, { route: () => urlToAppRoute(url) }),
+          model: modifyFields(stepModel, { route: () => urlToAppRoute(url) }),
         }),
         foldUiCloseMobileMenu,
       ]),
@@ -300,7 +302,9 @@ const NAV_ITEMS: ReadonlyArray<NavItem> = [
   { label: 'Input', routeTag: 'Input', href: inputRouter() },
   { label: 'Listbox', routeTag: 'Listbox', href: listboxRouter() },
   { label: 'Menu', routeTag: 'Menu', href: menuRouter() },
+  { label: 'Meter', routeTag: 'Meter', href: meterRouter() },
   { label: 'Popover', routeTag: 'Popover', href: popoverRouter() },
+  { label: 'Progress', routeTag: 'Progress', href: progressRouter() },
   { label: 'Radio Group', routeTag: 'RadioGroup', href: radioGroupRouter() },
   { label: 'Select', routeTag: 'Select', href: selectRouter() },
   { label: 'Slider', routeTag: 'Slider', href: sliderRouter() },
@@ -381,8 +385,8 @@ const mobileNavLinkClassName = (isActive: boolean): string =>
       : 'text-gray-700 hover:bg-gray-200',
   )
 
-const sidebarView = (currentRoute: AppRoute, h: HtmlBuilder<Message>): Html =>
-  componentNav(currentRoute, ({ nav, items }) =>
+const sidebarView = (currentRoute: AppRoute, h: HtmlBuilder<Message>): Html => {
+  const sidebarNavView = ({ nav, items }: Nav.RenderInfo): Html =>
     h.nav(
       [
         ...nav,
@@ -408,15 +412,28 @@ const sidebarView = (currentRoute: AppRoute, h: HtmlBuilder<Message>): Html =>
         ),
         navListView(items, navLinkClassName, h),
       ],
-    ),
-  )
+    )
+
+  return componentNav(currentRoute, sidebarNavView)
+}
 
 const mobileMenuContent = (
   currentRoute: AppRoute,
   closeButton: Dialog.RenderInfo['closeButton'],
   h: HtmlBuilder<UiMessage>,
-): Html =>
-  h.div(
+): Html => {
+  const mobileNavView = ({ nav, items }: Nav.RenderInfo): Html =>
+    h.nav(
+      [
+        ...nav,
+        h.Class('flex-1 overflow-y-auto min-h-0 p-4'),
+        h.Tabindex(-1),
+        h.Autofocus(true),
+      ],
+      [navListView(items, mobileNavLinkClassName, h)],
+    )
+
+  return h.div(
     [h.Class('flex flex-col h-full')],
     [
       h.div(
@@ -456,19 +473,10 @@ const mobileMenuContent = (
           ),
         ],
       ),
-      componentNav(currentRoute, ({ nav, items }) =>
-        h.nav(
-          [
-            ...nav,
-            h.Class('flex-1 overflow-y-auto min-h-0 p-4'),
-            h.Tabindex(-1),
-            h.Autofocus(true),
-          ],
-          [navListView(items, mobileNavLinkClassName, h)],
-        ),
-      ),
+      componentNav(currentRoute, mobileNavView),
     ],
   )
+}
 
 const mobileHeaderView = (model: Model, h: HtmlBuilder<Message>): Html =>
   h.header(
@@ -518,33 +526,41 @@ const mobileMenuDialogView = Submodel.defineView<
   UiModel,
   UiMessage,
   MobileMenuViewInputs
->((model, { currentRoute }, h): Html =>
-  h.submodel({
+>((model, { currentRoute }, h): Html => {
+  const mobileMenuDialogContent = ({
+    dialog,
+    backdrop,
+    panel,
+    closeButton,
+    isVisible,
+  }: Dialog.RenderInfo): Html =>
+    h.dialog(
+      [...dialog, h.Class('md:hidden')],
+      isVisible
+        ? [
+            h.div([...backdrop, h.Class('fixed inset-0 z-[59]')]),
+            h.div(
+              [
+                ...panel,
+                h.Class('fixed inset-0 z-[60] bg-white flex flex-col'),
+              ],
+              [mobileMenuContent(currentRoute, closeButton, h)],
+            ),
+          ]
+        : [],
+    )
+
+  return h.submodel({
     slotId: model.mobileMenuDialog.id,
     model: model.mobileMenuDialog,
     view: Dialog.view,
     viewInputs: {
-      toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
-        h.dialog(
-          [...dialog, h.Class('md:hidden')],
-          isVisible
-            ? [
-                h.div([...backdrop, h.Class('fixed inset-0 z-[59]')]),
-                h.div(
-                  [
-                    ...panel,
-                    h.Class('fixed inset-0 z-[60] bg-white flex flex-col'),
-                  ],
-                  [mobileMenuContent(currentRoute, closeButton, h)],
-                ),
-              ]
-            : [],
-        ),
+      toView: mobileMenuDialogContent,
     },
     toParentMessage: message =>
       UiMessage.GotMobileMenuDialogMessage({ message }),
-  }),
-)
+  })
+})
 
 const mobileMenuView = (model: Model, h: HtmlBuilder<Message>): Html =>
   h.submodel({
@@ -622,7 +638,9 @@ const contentView = (model: Model, h: HtmlBuilder<Message>): Html => {
     Input: () => embedUi('ui-input', View.input),
     Listbox: () => embedUi('ui-listbox', View.listbox),
     Menu: () => embedUi('ui-menu', View.menu),
+    Meter: () => embedUi('ui-meter', View.meter),
     Popover: () => embedUi('ui-popover', View.popover),
+    Progress: () => embedUi('ui-progress', View.progress),
     RadioGroup: () => embedUi('ui-radio-group', View.radioGroup),
     Select: () => embedUi('ui-select', View.select),
     Slider: () => embedUi('ui-slider', View.slider),
@@ -665,6 +683,6 @@ export const subscriptions = Subscription.lift(UiSubscriptions.subscriptions)<
   Model,
   Message
 >({
-  toChildModel: model => model.uiModel,
+  read: model => Option.some(model.uiModel),
   toParentMessage: message => Message.GotUiMessage({ message }),
 })

@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 import { Submodel, Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Child } from './child'
 import { Message as NestedMainMessage } from './child/main'
@@ -15,7 +15,7 @@ import { Message as AliasMessage } from '@/message'
 const foldChildSave = Update.foldChildStep({
   update: Child.save,
   read: (model: Model) => Option.some(model.child),
-  write: (model, child) => evo(model, { child: () => child }),
+  write: (model, child) => modifyFields(model, { child: () => child }),
   toParentMessage: message => GotChildMessage({ message }),
 })
 

@@ -5,6 +5,7 @@ import {
   Function,
   Number,
   Option,
+  Redacted,
   Schema,
   Scope,
   SubscriptionRef,
@@ -12,7 +13,7 @@ import {
 import { describe, expect, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
-import { evo } from '../struct/index.js'
+import { modifyFields } from '../struct/index.js'
 import { EventFrame, MAX_DISPATCH_BATCH_SIZE, Request } from './protocol.js'
 import {
   type Bridge,
@@ -41,8 +42,8 @@ const clickedDecrement = CounterMessage.ClickedDecrement()
 
 const update = (model: CounterModel, message: CounterMessage): CounterModel =>
   CounterMessage.match<CounterModel>(message, {
-    ClickedIncrement: () => evo(model, { count: Number.increment }),
-    ClickedDecrement: () => evo(model, { count: Number.decrement }),
+    ClickedIncrement: () => modifyFields(model, { count: Number.increment }),
+    ClickedDecrement: () => modifyFields(model, { count: Number.decrement }),
   })
 
 const decodeCounterMessage = Schema.decodeUnknownSync(CounterMessage)
@@ -287,6 +288,185 @@ describe('dispatchRequest', () => {
       expect(dispatched).toEqual([])
       expect(recordedTags()).toEqual(['ClickedIncrement', 'ClickedIncrement'])
     })
+  })
+
+  it('replaces Redacted values in Models, Messages, diffs, Command args, and Mount args', () => {
+    const initialApiKey = 'sk-live-initial-not-for-devtools'
+    const currentApiKey = 'sk-live-current-not-for-devtools'
+    const messageApiKey = 'sk-live-message-not-for-devtools'
+    const commandApiKey = 'sk-live-command-not-for-devtools'
+    const mountApiKey = 'sk-live-mount-not-for-devtools'
+    const initialModel = {
+      connection: {
+        apiKey: Redacted.make(initialApiKey, { label: 'initial-api-key' }),
+      },
+    }
+    const currentModel = {
+      connection: {
+        apiKey: Redacted.make(currentApiKey, { label: 'current-api-key' }),
+      },
+    }
+    const submittedConnection = {
+      _tag: 'SubmittedConnection',
+      apiKey: Redacted.make(messageApiKey, { label: 'message-api-key' }),
+    }
+    const store = run(createDevToolsStore(makeBridge()))
+
+    run(
+      store.recordInit(
+        initialModel,
+        [
+          {
+            id: 0,
+            name: 'Connect',
+            args: {
+              apiKey: Redacted.make(commandApiKey, {
+                label: 'command-api-key',
+              }),
+            },
+            maybeSubmodelPath: Option.none(),
+          },
+        ],
+        [
+          {
+            name: 'ConnectForm',
+            args: {
+              apiKey: Redacted.make(mountApiKey, { label: 'mount-api-key' }),
+            },
+          },
+        ],
+      ),
+    )
+    run(
+      store.recordMessage(
+        submittedConnection,
+        initialModel,
+        currentModel,
+        [
+          {
+            id: 1,
+            name: 'Reconnect',
+            args: {
+              apiKey: Redacted.make(commandApiKey, {
+                label: 'command-api-key',
+              }),
+            },
+            maybeSubmodelPath: Option.none(),
+          },
+        ],
+        true,
+      ),
+    )
+    run(
+      store.attachRenderedMounts(
+        [
+          {
+            name: 'ConnectionStatus',
+            args: {
+              apiKey: Redacted.make(mountApiKey, {
+                label: 'mount-api-key',
+              }),
+            },
+          },
+        ],
+        [],
+      ),
+    )
+
+    const callBridge = (request: Request) =>
+      run(
+        dispatchRequest(
+          store,
+          () => Effect.void,
+          Option.none(),
+          Option.none(),
+          request,
+        ),
+      )
+    const model = callBridge(
+      Request.RequestGetModel({ maybePath: Option.none(), expand: true }),
+    )
+    const message = callBridge(Request.RequestGetMessage({ index: 0 }))
+    const init = callBridge(Request.RequestGetInit())
+    const diff = callBridge(
+      Request.RequestDiffModels({
+        fromIndex: -1,
+        toIndex: 0,
+        maybeChangedPathsMatch: Option.none(),
+      }),
+    )
+
+    if (model._tag !== 'ResponseModel') {
+      throw new Error(`Expected Response.ResponseModel, got ${model._tag}`)
+    }
+    if (message._tag !== 'ResponseMessage') {
+      throw new Error(`Expected Response.ResponseMessage, got ${message._tag}`)
+    }
+    if (init._tag !== 'ResponseInit') {
+      throw new Error(`Expected Response.ResponseInit, got ${init._tag}`)
+    }
+    if (diff._tag !== 'ResponseModelDiff') {
+      throw new Error(`Expected Response.ResponseModelDiff, got ${diff._tag}`)
+    }
+
+    expect(model.value).toEqual({
+      connection: { apiKey: '<redacted:current-api-key>' },
+    })
+    expect(message.entry.message).toEqual({
+      _tag: 'SubmittedConnection',
+      apiKey: '<redacted:message-api-key>',
+    })
+    expect(message.entry.commands).toEqual([
+      {
+        name: 'Reconnect',
+        args: Option.some({ apiKey: '<redacted:command-api-key>' }),
+        maybeSubmodelPath: Option.none(),
+      },
+    ])
+    expect(message.entry.mountStarts).toEqual([
+      {
+        name: 'ConnectionStatus',
+        args: Option.some({ apiKey: '<redacted:mount-api-key>' }),
+      },
+    ])
+    expect(init.maybeModel).toEqual(
+      Option.some({
+        connection: { apiKey: '<redacted:initial-api-key>' },
+      }),
+    )
+    expect(init.commands).toEqual([
+      {
+        name: 'Connect',
+        args: Option.some({ apiKey: '<redacted:command-api-key>' }),
+        maybeSubmodelPath: Option.none(),
+      },
+    ])
+    expect(init.mountStarts).toEqual([
+      {
+        name: 'ConnectForm',
+        args: Option.some({ apiKey: '<redacted:mount-api-key>' }),
+      },
+    ])
+    expect(diff.changes).toEqual([
+      {
+        path: 'root.connection.apiKey',
+        before: {
+          _tag: 'Present',
+          value: '<redacted:initial-api-key>',
+        },
+        after: {
+          _tag: 'Present',
+          value: '<redacted:current-api-key>',
+        },
+      },
+    ])
+
+    const serializedResponses = JSON.stringify({ model, message, init, diff })
+    expect(serializedResponses).not.toContain(initialApiKey)
+    expect(serializedResponses).not.toContain(currentApiKey)
+    expect(serializedResponses).not.toContain(messageApiKey)
+    expect(serializedResponses).not.toContain(commandApiKey)
+    expect(serializedResponses).not.toContain(mountApiKey)
   })
 })
 

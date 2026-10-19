@@ -28,6 +28,10 @@ export const foldkitAliases = (dirname: string) => ({
     dirname,
     '../../packages/foldkit/src/experimental/machine',
   ),
+  'foldkit/experimental/query': path.resolve(
+    dirname,
+    '../../packages/foldkit/src/experimental/query/public',
+  ),
   'foldkit/experimental/server': path.resolve(
     dirname,
     '../../packages/foldkit/src/experimental/server/public',
@@ -56,6 +60,7 @@ export const foldkitAliases = (dirname: string) => ({
     dirname,
     '../../packages/foldkit/src/navigation',
   ),
+  'foldkit/port': path.resolve(dirname, '../../packages/foldkit/src/port'),
   'foldkit/render': path.resolve(dirname, '../../packages/foldkit/src/render'),
   'foldkit/route': path.resolve(dirname, '../../packages/foldkit/src/route'),
   'foldkit/runtime': path.resolve(
@@ -137,6 +142,10 @@ export const foldkitAliases = (dirname: string) => ({
     dirname,
     '../../packages/ui/src/fileDrop/public',
   ),
+  '@foldkit/ui/hoverIntent': path.resolve(
+    dirname,
+    '../../packages/ui/src/hoverIntent/public',
+  ),
   '@foldkit/ui/input': path.resolve(
     dirname,
     '../../packages/ui/src/input/public',
@@ -149,9 +158,18 @@ export const foldkitAliases = (dirname: string) => ({
     dirname,
     '../../packages/ui/src/menu/public',
   ),
+  '@foldkit/ui/meter': path.resolve(
+    dirname,
+    '../../packages/ui/src/meter/public',
+  ),
+  '@foldkit/ui/nav': path.resolve(dirname, '../../packages/ui/src/nav/public'),
   '@foldkit/ui/popover': path.resolve(
     dirname,
     '../../packages/ui/src/popover/public',
+  ),
+  '@foldkit/ui/progress': path.resolve(
+    dirname,
+    '../../packages/ui/src/progress/public',
   ),
   '@foldkit/ui/radioGroup': path.resolve(
     dirname,

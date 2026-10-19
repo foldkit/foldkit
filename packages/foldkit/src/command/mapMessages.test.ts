@@ -117,4 +117,18 @@ describe('Command.mapEffect', () => {
       CompletedFetchNotes.make({ noteCount: 3 }),
     )
   })
+
+  it('does not transform the result Message type', () => {
+    // @ts-expect-error mapEffect preserves the result Message
+    Command.mapEffect(FetchNotes(), Effect.map(toGotNotesMessage))
+
+    // @ts-expect-error mapEffect preserves the result Message
+    Command.mapEffect(Effect.map(toGotNotesMessage))(FetchNotes())
+  })
+
+  it('preserves the result Message type in the curried form', () => {
+    const mappedCommand = Command.mapEffect(Effect.orDie)(FetchNotes())
+
+    expectTypeOf(mappedCommand).toEqualTypeOf<Command.Command<ChildMessage>>()
+  })
 })

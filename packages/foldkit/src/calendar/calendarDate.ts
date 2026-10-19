@@ -113,7 +113,7 @@ export const isCalendarDate: (value: unknown) => value is CalendarDate =
  * ```
  */
 export const make = (year: number, month: number, day: number): CalendarDate =>
-  Schema.decodeUnknownSync(CalendarDate)({ year, month, day })
+  Schema.decodeSync(CalendarDate)({ year, month, day })
 
 /**
  * Constructs a `CalendarDate` without Schema validation. Only for inputs the
@@ -211,7 +211,7 @@ const isoPattern = /^(\d{4})-(\d{2})-(\d{2})$/
 export const CalendarDateFromIsoString = Schema.String.pipe(
   Schema.decodeTo(
     CalendarDate,
-    SchemaTransformation.transformOrFail({
+    SchemaTransformation.transformEffect({
       decode: input => {
         const match = input.match(isoPattern)
         if (match === null) {

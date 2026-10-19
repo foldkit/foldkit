@@ -5,7 +5,7 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Popover } from '@foldkit/ui'
 
@@ -48,7 +48,7 @@ const foldAccountPopover = Update.foldChild({
   update: Popover.update,
   read: (model: Model) => Option.some(model.accountPopover),
   write: (model, nextAccountPopover) =>
-    evo(model, { accountPopover: () => nextAccountPopover }),
+    modifyFields(model, { accountPopover: () => nextAccountPopover }),
   toParentMessage: message => Message.GotAccountPopoverMessage({ message }),
   foldOutMessage: foldPopoverOutMessage,
 })
@@ -57,7 +57,9 @@ const foldAccountDetailsPopover = Update.foldChild({
   update: Popover.update,
   read: (model: Model) => Option.some(model.accountDetailsPopover),
   write: (model, nextAccountDetailsPopover) =>
-    evo(model, { accountDetailsPopover: () => nextAccountDetailsPopover }),
+    modifyFields(model, {
+      accountDetailsPopover: () => nextAccountDetailsPopover,
+    }),
   toParentMessage: message =>
     Message.GotAccountDetailsPopoverMessage({ message }),
   foldOutMessage: foldPopoverOutMessage,
@@ -74,46 +76,78 @@ GotAccountDetailsPopoverMessage: ({ message }) =>
 // panel. `focusSelector` points at the child trigger, which Popover derives
 // from the child id as `${id}-button`.
 const view = (h: HtmlBuilder<Message>) => {
+  const accountDetailsPopoverView = ({
+    button,
+    panel,
+    backdrop,
+    isVisible,
+  }: Popover.RenderInfo) =>
+    h.div(
+      [h.Class('relative inline-block')],
+      [
+        h.button(
+          [...button, h.Class('rounded-lg border px-3 py-2 cursor-pointer')],
+          [h.span([], ['Advanced settings'])],
+        ),
+        ...(isVisible
+          ? [
+              h.div([...backdrop, h.Class('fixed inset-0')]),
+              h.div(
+                [...panel, h.Class('rounded-lg border shadow-lg p-4 w-64')],
+                [
+                  h.p([h.Class('font-medium')], ['Permissions']),
+                  h.p(
+                    [h.Class('text-sm text-gray-500')],
+                    [
+                      'Review who can change billing, members, and integrations.',
+                    ],
+                  ),
+                ],
+              ),
+            ]
+          : []),
+      ],
+    )
+
   const detailsPopover = h.submodel({
     slotId: 'account-details-popover',
     model: model.accountDetailsPopover,
     view: Popover.view,
     viewInputs: {
       anchor: { placement: 'right-start', gap: 8, padding: 8 },
-      toView: ({ button, panel, backdrop, isVisible }) =>
-        h.div(
-          [h.Class('relative inline-block')],
-          [
-            h.button(
-              [
-                ...button,
-                h.Class('rounded-lg border px-3 py-2 cursor-pointer'),
-              ],
-              [h.span([], ['Advanced settings'])],
-            ),
-            ...(isVisible
-              ? [
-                  h.div([...backdrop, h.Class('fixed inset-0')]),
-                  h.div(
-                    [...panel, h.Class('rounded-lg border shadow-lg p-4 w-64')],
-                    [
-                      h.p([h.Class('font-medium')], ['Permissions']),
-                      h.p(
-                        [h.Class('text-sm text-gray-500')],
-                        [
-                          'Review who can change billing, members, and integrations.',
-                        ],
-                      ),
-                    ],
-                  ),
-                ]
-              : []),
-          ],
-        ),
+      toView: accountDetailsPopoverView,
     },
     toParentMessage: message =>
       Message.GotAccountDetailsPopoverMessage({ message }),
   })
+
+  const accountPopoverView = ({
+    button,
+    panel,
+    backdrop,
+    isVisible,
+  }: Popover.RenderInfo) =>
+    h.div(
+      [h.Class('relative inline-block')],
+      [
+        h.button(
+          [...button, h.Class('rounded-lg border px-3 py-2 cursor-pointer')],
+          [h.span([], ['Account'])],
+        ),
+        ...(isVisible
+          ? [
+              h.div([...backdrop, h.Class('fixed inset-0')]),
+              h.div(
+                [...panel, h.Class('rounded-lg border shadow-lg p-4 w-72')],
+                [
+                  h.p([], ['Manage account settings from this panel.']),
+                  detailsPopover,
+                ],
+              ),
+            ]
+          : []),
+      ],
+    )
 
   return h.submodel({
     slotId: 'account-popover',
@@ -122,31 +156,7 @@ const view = (h: HtmlBuilder<Message>) => {
     viewInputs: {
       anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
       focusSelector: '#account-details-popover-button',
-      toView: ({ button, panel, backdrop, isVisible }) =>
-        h.div(
-          [h.Class('relative inline-block')],
-          [
-            h.button(
-              [
-                ...button,
-                h.Class('rounded-lg border px-3 py-2 cursor-pointer'),
-              ],
-              [h.span([], ['Account'])],
-            ),
-            ...(isVisible
-              ? [
-                  h.div([...backdrop, h.Class('fixed inset-0')]),
-                  h.div(
-                    [...panel, h.Class('rounded-lg border shadow-lg p-4 w-72')],
-                    [
-                      h.p([], ['Manage account settings from this panel.']),
-                      detailsPopover,
-                    ],
-                  ),
-                ]
-              : []),
-          ],
-        ),
+      toView: accountPopoverView,
     },
     toParentMessage: message => Message.GotAccountPopoverMessage({ message }),
   })

@@ -23,7 +23,8 @@ const variantClassName = (variant: Variant): string =>
     Match.exhaustive,
   )
 
-const entryClassName = 'w-80'
+const entryClassName =
+  'w-80 motion-safe:data-[swipe=settling]:transition-[translate] motion-safe:data-[swipe=settling]:duration-150 motion-safe:data-[swipe=settling]:ease-out motion-safe:data-[swipe=end]:transition-[translate] motion-safe:data-[swipe=end]:duration-[240ms] motion-safe:data-[swipe=end]:ease-in'
 
 const renderToastEntry = (
   entry: Entry,
@@ -37,11 +38,27 @@ const renderToastEntry = (
       ),
     ],
     [
-      h.p([h.Class('font-semibold text-sm')], [entry.payload.title]),
+      h.p(
+        [h.Class('font-semibold text-sm')],
+        [
+          h.span(
+            [h.DataAttribute('toast-swipe-ignore', '')],
+            [entry.payload.title],
+          ),
+        ],
+      ),
       ...Option.match(entry.payload.maybeDescription, {
         onNone: () => [],
         onSome: description => [
-          h.p([h.Class('text-sm text-gray-700 mt-0.5')], [description]),
+          h.p(
+            [h.Class('text-sm text-gray-700 mt-0.5')],
+            [
+              h.span(
+                [h.DataAttribute('toast-swipe-ignore', '')],
+                [description],
+              ),
+            ],
+          ),
         ],
       }),
       h.button(

@@ -15,6 +15,34 @@ import {
   update,
 } from './index.js'
 
+const INITIAL_TRANSITION_GENERATION = 0
+const FIRST_TRANSITION_GENERATION = 1
+const SECOND_TRANSITION_GENERATION = 2
+const STALE_TRANSITION_GENERATION = -1
+
+const resolveStaleSettle = Story.Command.resolve(
+  WaitForAnimationSettled,
+  Message.EndedAnimation({ generation: STALE_TRANSITION_GENERATION }),
+)
+
+const givenEnterAnimating = Story.steps(
+  Story.given(init({ id: 'test' })),
+  Story.message(Message.Showed()),
+  Story.Command.resolve(
+    WaitForPaint,
+    Message.CompletedWaitForPaint({ generation: FIRST_TRANSITION_GENERATION }),
+  ),
+)
+
+const givenLeaveAnimating = Story.steps(
+  Story.given(init({ id: 'test', isShowing: true })),
+  Story.message(Message.Hid()),
+  Story.Command.resolve(
+    WaitForPaint,
+    Message.CompletedWaitForPaint({ generation: FIRST_TRANSITION_GENERATION }),
+  ),
+)
+
 describe('Animation', () => {
   describe('init', () => {
     it('defaults isShowing to false', () => {
@@ -22,6 +50,7 @@ describe('Animation', () => {
         id: 'test',
         isShowing: false,
         transitionState: 'Idle',
+        transitionGeneration: INITIAL_TRANSITION_GENERATION,
       })
     })
 
@@ -30,6 +59,7 @@ describe('Animation', () => {
         id: 'test',
         isShowing: true,
         transitionState: 'Idle',
+        transitionGeneration: INITIAL_TRANSITION_GENERATION,
       })
     })
   })
@@ -44,15 +74,29 @@ describe('Animation', () => {
           Story.model(model => {
             expect(model.isShowing).toBe(true)
             expect(model.transitionState).toBe('EnterStart')
+            expect(model.transitionGeneration).toBe(FIRST_TRANSITION_GENERATION)
           }),
-          Story.Command.expectHas(WaitForPaint),
-          Story.Command.resolve(WaitForPaint, Message.CompletedWaitForPaint()),
+          Story.Command.expectHas(
+            WaitForPaint({ generation: FIRST_TRANSITION_GENERATION }),
+          ),
+          Story.Command.resolve(
+            WaitForPaint,
+            Message.CompletedWaitForPaint({
+              generation: FIRST_TRANSITION_GENERATION,
+            }),
+          ),
           Story.model(model => {
             expect(model.transitionState).toBe('EnterAnimating')
           }),
+          Story.Command.expectHas(
+            WaitForAnimationSettled({
+              id: 'test',
+              generation: FIRST_TRANSITION_GENERATION,
+            }),
+          ),
           Story.Command.resolve(
             WaitForAnimationSettled,
-            Message.EndedAnimation(),
+            Message.EndedAnimation({ generation: FIRST_TRANSITION_GENERATION }),
           ),
           Story.model(model => {
             expect(model.transitionState).toBe('Idle')
@@ -85,15 +129,29 @@ describe('Animation', () => {
           Story.model(model => {
             expect(model.isShowing).toBe(false)
             expect(model.transitionState).toBe('LeaveStart')
+            expect(model.transitionGeneration).toBe(FIRST_TRANSITION_GENERATION)
           }),
-          Story.Command.expectHas(WaitForPaint),
-          Story.Command.resolve(WaitForPaint, Message.CompletedWaitForPaint()),
+          Story.Command.expectHas(
+            WaitForPaint({ generation: FIRST_TRANSITION_GENERATION }),
+          ),
+          Story.Command.resolve(
+            WaitForPaint,
+            Message.CompletedWaitForPaint({
+              generation: FIRST_TRANSITION_GENERATION,
+            }),
+          ),
           Story.model(model => {
             expect(model.transitionState).toBe('LeaveAnimating')
           }),
           Story.Command.expectNone(),
-          Story.expectOutMessage(OutMessage.StartedLeaveAnimating()),
-          Story.message(Message.EndedAnimation()),
+          Story.expectOutMessage(
+            OutMessage.StartedLeaveAnimating({
+              generation: FIRST_TRANSITION_GENERATION,
+            }),
+          ),
+          Story.message(
+            Message.EndedAnimation({ generation: FIRST_TRANSITION_GENERATION }),
+          ),
           Story.model(model => {
             expect(model.transitionState).toBe('Idle')
           }),
@@ -120,12 +178,21 @@ describe('Animation', () => {
           Story.given(init({ id: 'test', isShowing: true })),
           Story.message(Message.Hid()),
           Story.Command.expectHas(WaitForPaint),
-          Story.Command.resolve(WaitForPaint, Message.CompletedWaitForPaint()),
+          Story.Command.resolve(
+            WaitForPaint,
+            Message.CompletedWaitForPaint({
+              generation: FIRST_TRANSITION_GENERATION,
+            }),
+          ),
           Story.model(model => {
             expect(model.transitionState).toBe('LeaveAnimating')
           }),
           Story.Command.expectNone(),
-          Story.expectOutMessage(OutMessage.StartedLeaveAnimating()),
+          Story.expectOutMessage(
+            OutMessage.StartedLeaveAnimating({
+              generation: FIRST_TRANSITION_GENERATION,
+            }),
+          ),
           Story.message(Message.Hid()),
           Story.model(model => {
             expect(model.transitionState).toBe('LeaveAnimating')
@@ -141,7 +208,11 @@ describe('Animation', () => {
         Story.story(
           update,
           Story.given(init({ id: 'test' })),
-          Story.message(Message.CompletedWaitForPaint()),
+          Story.message(
+            Message.CompletedWaitForPaint({
+              generation: INITIAL_TRANSITION_GENERATION,
+            }),
+          ),
           Story.model(model => {
             expect(model.transitionState).toBe('Idle')
           }),
@@ -155,11 +226,130 @@ describe('Animation', () => {
         Story.story(
           update,
           Story.given(init({ id: 'test' })),
-          Story.message(Message.EndedAnimation()),
+          Story.message(
+            Message.EndedAnimation({
+              generation: INITIAL_TRANSITION_GENERATION,
+            }),
+          ),
           Story.model(model => {
             expect(model.transitionState).toBe('Idle')
           }),
           Story.Command.expectNone(),
+        )
+      })
+    })
+
+    describe('stale results', () => {
+      it('ignores an enter settlement after a leave starts', () => {
+        Story.story(
+          update,
+          givenEnterAnimating,
+          resolveStaleSettle,
+          Story.message(Message.Hid()),
+          Story.Command.resolve(
+            WaitForPaint,
+            Message.CompletedWaitForPaint({
+              generation: SECOND_TRANSITION_GENERATION,
+            }),
+          ),
+          Story.expectOutMessage(
+            OutMessage.StartedLeaveAnimating({
+              generation: SECOND_TRANSITION_GENERATION,
+            }),
+          ),
+          Story.message(
+            Message.EndedAnimation({ generation: FIRST_TRANSITION_GENERATION }),
+          ),
+          Story.model(model => {
+            expect(model.transitionState).toBe('LeaveAnimating')
+          }),
+          Story.expectNoOutMessage(),
+          Story.message(
+            Message.EndedAnimation({
+              generation: SECOND_TRANSITION_GENERATION,
+            }),
+          ),
+          Story.model(model => {
+            expect(model.transitionState).toBe('Idle')
+          }),
+          Story.expectOutMessage(OutMessage.TransitionedOut()),
+        )
+      })
+
+      it('ignores a leave settlement after an enter starts', () => {
+        Story.story(
+          update,
+          givenLeaveAnimating,
+          Story.message(Message.Showed()),
+          Story.Command.resolve(
+            WaitForPaint,
+            Message.CompletedWaitForPaint({
+              generation: SECOND_TRANSITION_GENERATION,
+            }),
+          ),
+          Story.model(model => {
+            expect(model.transitionState).toBe('EnterAnimating')
+          }),
+          resolveStaleSettle,
+          Story.message(
+            Message.EndedAnimation({ generation: FIRST_TRANSITION_GENERATION }),
+          ),
+          Story.model(model => {
+            expect(model.transitionState).toBe('EnterAnimating')
+          }),
+          Story.expectNoOutMessage(),
+          Story.message(
+            Message.EndedAnimation({
+              generation: SECOND_TRANSITION_GENERATION,
+            }),
+          ),
+          Story.model(model => {
+            expect(model.transitionState).toBe('Idle')
+          }),
+          Story.expectNoOutMessage(),
+        )
+      })
+
+      it('ignores an enter paint after a leave starts', () => {
+        Story.story(
+          update,
+          Story.given(init({ id: 'test' })),
+          Story.message(Message.Showed()),
+          Story.Command.resolve(
+            WaitForPaint,
+            Message.CompletedWaitForPaint({
+              generation: STALE_TRANSITION_GENERATION,
+            }),
+          ),
+          Story.message(Message.Hid()),
+          Story.Command.resolve(
+            WaitForPaint,
+            Message.CompletedWaitForPaint({
+              generation: STALE_TRANSITION_GENERATION,
+            }),
+          ),
+          Story.message(
+            Message.CompletedWaitForPaint({
+              generation: FIRST_TRANSITION_GENERATION,
+            }),
+          ),
+          Story.model(model => {
+            expect(model.transitionState).toBe('LeaveStart')
+          }),
+          Story.expectNoOutMessage(),
+          Story.message(
+            Message.CompletedWaitForPaint({
+              generation: SECOND_TRANSITION_GENERATION,
+            }),
+          ),
+          Story.model(model => {
+            expect(model.transitionState).toBe('LeaveAnimating')
+          }),
+          Story.expectOutMessage(
+            OutMessage.StartedLeaveAnimating({
+              generation: SECOND_TRANSITION_GENERATION,
+            }),
+          ),
         )
       })
     })

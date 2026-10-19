@@ -53,7 +53,7 @@ const postEntry = (post: BlogPost, isFirstEntry: boolean): Html =>
           ih.h2(
             [
               ih.Class(
-                'font-heading font-book text-2xl mb-1 text-gray-900 dark:text-white group-hover:text-accent-600 dark:group-hover:text-accent-400 transition',
+                'font-sans font-medium text-2xl mb-1 text-gray-900 dark:text-white group-hover:text-accent-700 dark:group-hover:text-accent-400 transition',
               ),
             ],
             [post.frontmatter.title],
@@ -61,18 +61,18 @@ const postEntry = (post: BlogPost, isFirstEntry: boolean): Html =>
         ],
       ),
       ih.p(
-        [ih.Class('text-sm text-gray-500 dark:text-gray-400 mb-2')],
+        [ih.Class('text-sm text-gray-600 dark:text-gray-400 mb-2')],
         [`${formatPostDate(post.frontmatter.date)} · ${BLOG_AUTHOR}`],
       ),
       ih.p(
-        [ih.Class('text-gray-600 dark:text-gray-300 leading-7')],
+        [ih.Class('text-gray-700 dark:text-gray-300 leading-7')],
         [post.frontmatter.description],
       ),
       ih.a(
         [
           ih.Href(blogPostRouter({ postSlug: post.slug })),
           ih.Class(
-            'inline-block mt-3 text-sm font-medium text-accent-600 dark:text-accent-400 hover:underline',
+            'inline-block mt-3 text-sm font-medium text-accent-700 dark:text-accent-400 hover:underline',
           ),
         ],
         ['Read more →'],
@@ -88,7 +88,7 @@ const rssLink: Html = ih.a(
     ih.AriaLabel('RSS feed'),
     ih.Title('RSS feed'),
     ih.Class(
-      'text-gray-500 dark:text-gray-400 hover:text-accent-600 dark:hover:text-accent-400 transition',
+      'text-gray-600 dark:text-gray-400 hover:text-accent-700 dark:hover:text-accent-400 transition',
     ),
   ],
   [Icon.rss('w-5 h-5')],

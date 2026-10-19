@@ -196,13 +196,25 @@ describe('openapi.json', () => {
     }
   })
 
-  it('documents the two deprecation headers as separate value formats', () => {
+  it('documents the two deprecation headers as separate value formats and dates', () => {
     const { Deprecation, Sunset } = spec.components.headers
+
+    const deprecationTime = Number(Deprecation.example.slice(1))
+    const sunsetTime = Date.parse(Sunset.example) / 1000
+    const serviceIndex = JSON.stringify(
+      buildServiceIndex(
+        { pageCount: 1, exampleCount: 1, postCount: 1 },
+        '2026-01-01',
+      ),
+    )
 
     expect(Deprecation.example).toMatch(/^@\d+$/)
     expect(Sunset.example).toMatch(/GMT$/)
     expect(Deprecation.description).toContain('9745')
     expect(Sunset.description).toContain('8594')
+    expect(sunsetTime - deprecationTime).toBeGreaterThanOrEqual(180 * 86400)
+    expect(serviceIndex).toContain(`Deprecation: ${Deprecation.example}`)
+    expect(serviceIndex).toContain(`Sunset: ${Sunset.example}`)
   })
 
   it('models errors as RFC 9457 problem documents with a stable code', () => {

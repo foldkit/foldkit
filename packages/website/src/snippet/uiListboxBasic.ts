@@ -5,7 +5,7 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Listbox } from '@foldkit/ui'
 
@@ -50,7 +50,9 @@ const foldListboxOutMessage = Listbox.OutMessage.match<
 >({
   Selected:
     ({ value }) =>
-    model => ({ model: evo(model, { maybePlan: () => Option.some(value) }) }),
+    model => ({
+      model: modifyFields(model, { maybePlan: () => Option.some(value) }),
+    }),
 })
 
 // Update.foldChild wires the child into the parent: it delegates keyboard
@@ -60,7 +62,8 @@ const foldListboxOutMessage = Listbox.OutMessage.match<
 const foldListbox = Update.foldChild({
   update: PlanListbox.update,
   read: (model: Model) => Option.some(model.listbox),
-  write: (model, nextListbox) => evo(model, { listbox: () => nextListbox }),
+  write: (model, nextListbox) =>
+    modifyFields(model, { listbox: () => nextListbox }),
   toParentMessage: message => Message.GotListboxMessage({ message }),
   foldOutMessage: foldListboxOutMessage,
 })

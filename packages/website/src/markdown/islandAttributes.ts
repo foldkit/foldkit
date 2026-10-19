@@ -15,7 +15,7 @@ import { Schema } from 'effect'
 export const islandAttributes = {
   Snippet: Schema.Struct({
     name: Schema.String,
-    label: Schema.optionalKey(Schema.String),
+    label: Schema.String,
     class: Schema.optionalKey(Schema.String),
   }),
   Info: Schema.Struct({ label: Schema.String }),

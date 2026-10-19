@@ -11,7 +11,8 @@
       "project": ["scripts/**"],
       "ignoreFiles": [
         "scripts/fixtures/packed-ssr-consumer/**",
-        "scripts/lib/package-version.d.mts"
+        "scripts/lib/package-version.d.mts",
+        "scripts/lib/workspace-packages.d.mts"
       ]
     },
     "packages/foldkit": {
@@ -21,6 +22,7 @@
         "src/brand/public.ts",
         "src/experimental/public.ts",
         "src/experimental/machine/public.ts",
+        "src/experimental/query/public.ts",
         "src/experimental/server/public.ts",
         "src/html/public.ts",
         "src/devTools/public.ts",
@@ -39,7 +41,8 @@
       "entry": ["src/vite.ts"]
     },
     "packages/vite-plugin-foldkit": {
-      "ignoreFiles": ["test/fixtures/**"]
+      "ignoreFiles": ["test/fixtures/**"],
+      "ignoreDependencies": ["@effect/platform-node-shared"]
     },
     "packages/markdown": {
       "entry": ["src/index.ts", "src/vite/public.ts"]
@@ -61,7 +64,7 @@
         "scripts/**/*.test.ts",
         "e2e/livePlaygrounds.ts"
       ],
-      "ignore": ["src/snippet/**", "public/**"],
+      "ignore": ["src/snippet/**"],
       "ignoreDependencies": [
         "@foldkit/api-reference-generator",
         "@foldkit/devtools"
@@ -81,18 +84,17 @@
       "ignoreDependencies": ["@foldkit/devtools", "tailwindcss"]
     },
     "examples/ssr": {
-      "entry": ["src/entry.server.ts"],
+      "entry": ["src/entry.ts", "src/entry.server.ts"],
       "ignoreFiles": ["vite.config.playground.ts"],
       "ignoreDependencies": [
         "@effect/platform-node-shared",
-        "@foldkit/devtools",
-        "tailwindcss"
+        "@foldkit/devtools"
       ]
     },
     "examples/ssg": {
-      "entry": ["src/entry.server.ts"],
+      "entry": ["src/entry.ts", "src/entry.server.ts"],
       "ignoreFiles": ["vite.config.playground.ts"],
-      "ignoreDependencies": ["@foldkit/devtools", "tailwindcss"]
+      "ignoreDependencies": ["@foldkit/devtools"]
     },
     "examples/personal-blog": {
       "entry": ["src/**/*.test.ts", "src/vitest-*.ts"],
@@ -113,12 +115,7 @@
       "ignoreDependencies": ["tailwindcss"]
     }
   },
-  "ignore": ["**/*.css", "packages/website/public/**"],
-  "ignoreDependencies": [
-    "@effect/platform-browser",
-    "@foldkit/oxlint-plugin",
-    "tailwindcss",
-    "madge"
-  ],
+  "ignore": ["**/*.css"],
+  "ignoreDependencies": ["@foldkit/oxlint-plugin", "tailwindcss", "madge"],
   "ignoreBinaries": ["typecheck"]
 }

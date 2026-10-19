@@ -2,7 +2,7 @@ import { Duration, Effect, Schema, Stream } from 'effect'
 import { Command, Port, Runtime, Subscription, type Update } from 'foldkit'
 import { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Button } from '@foldkit/ui'
 
@@ -59,7 +59,7 @@ type UpdateReturn = Update.Return<Model, Message>
 const advance = (model: Model): UpdateReturn => {
   const count = model.count + model.step
   return {
-    model: evo(model, { count: () => count }),
+    model: modifyFields(model, { count: () => count }),
     commands: [ReportCount({ count })],
   }
 }
@@ -68,7 +68,9 @@ export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     Ticked: () => advance(model),
     ClickedAdvance: () => advance(model),
-    ChangedStep: ({ step }) => ({ model: evo(model, { step: () => step }) }),
+    ChangedStep: ({ step }) => ({
+      model: modifyFields(model, { step: () => step }),
+    }),
     CompletedReportCount: () => ({ model }),
   })
 
@@ -77,10 +79,10 @@ export const update = (model: Model, message: Message) =>
 const TICK_INTERVAL = Duration.seconds(1)
 
 export const subscriptions = Subscription.make<Model, Message>()(_entry => ({
-  tick: Subscription.persistent(
-    Stream.tick(TICK_INTERVAL).pipe(Stream.map(Message.Ticked)),
+  tick: Subscription.persistentEntry(
+    Stream.tick(TICK_INTERVAL).pipe(Stream.drop(1), Stream.map(Message.Ticked)),
   ),
-  hostStep: Port.subscription(ports.inbound.stepChanged, step =>
+  hostStep: Port.subscriptionEntry(ports.inbound.stepChanged, step =>
     Message.ChangedStep({ step }),
   ),
 }))

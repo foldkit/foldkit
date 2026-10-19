@@ -13,7 +13,7 @@ import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 
 import { idSelector } from '../internal/selectors.js'
@@ -121,12 +121,14 @@ type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     SelectedOption: ({ index, value }) => ({
-      model: evo(model, { maybeFocusedIndex: () => Option.none() }),
+      model: modifyFields(model, { maybeFocusedIndex: () => Option.none() }),
       commands: [FocusOption({ id: model.id, index })],
       outMessage: OutMessage.Selected({ value, index }),
     }),
     FocusedOption: ({ index }) => ({
-      model: evo(model, { maybeFocusedIndex: () => Option.some(index) }),
+      model: modifyFields(model, {
+        maybeFocusedIndex: () => Option.some(index),
+      }),
       commands: [FocusOption({ id: model.id, index })],
     }),
     CompletedFocusOption: () => ({ model }),

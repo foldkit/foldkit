@@ -45,31 +45,38 @@ const popoverDemo = (
   panelClassNameValue: string,
   h: HtmlBuilder<UiMessage>,
 ): Html => {
+  const popoverView = ({
+    button,
+    panel,
+    backdrop,
+    isVisible,
+  }: Popover.RenderInfo): Html =>
+    h.div(
+      [h.Class(wrapperClassName)],
+      [
+        h.button(
+          [...button, h.Class(triggerClassName)],
+          [h.span([], ['Solutions'])],
+        ),
+        ...(isVisible
+          ? [
+              h.div([...backdrop, h.Class(backdropClassName)]),
+              h.div(
+                [...panel, h.Class(panelClassNameValue)],
+                [popoverPanelContent(h)],
+              ),
+            ]
+          : []),
+      ],
+    )
+
   return h.submodel({
     slotId: id,
     model: popoverModel,
     view: Popover.view,
     viewInputs: {
       anchor: POPOVER_ANCHOR,
-      toView: ({ button, panel, backdrop, isVisible }) =>
-        h.div(
-          [h.Class(wrapperClassName)],
-          [
-            h.button(
-              [...button, h.Class(triggerClassName)],
-              [h.span([], ['Solutions'])],
-            ),
-            ...(isVisible
-              ? [
-                  h.div([...backdrop, h.Class(backdropClassName)]),
-                  h.div(
-                    [...panel, h.Class(panelClassNameValue)],
-                    [popoverPanelContent(h)],
-                  ),
-                ]
-              : []),
-          ],
-        ),
+      toView: popoverView,
     },
     toParentMessage,
   })
@@ -87,6 +94,42 @@ const nestedChildPopover = (
   childPopoverModel: Popover.Model,
   h: HtmlBuilder<UiMessage>,
 ): Html => {
+  const childPopoverView = ({
+    button,
+    panel,
+    backdrop,
+    isVisible,
+  }: Popover.RenderInfo): Html =>
+    h.div(
+      [h.Class(wrapperClassName)],
+      [
+        h.button(
+          [...button, h.Class(triggerClassName)],
+          [h.span([], ['Advanced settings'])],
+        ),
+        ...(isVisible
+          ? [
+              h.div([...backdrop, h.Class(backdropClassName)]),
+              h.div(
+                [...panel, h.Class(basicPanelClassName)],
+                [
+                  h.p(
+                    [h.Class('text-sm font-semibold text-gray-900 mb-2')],
+                    ['Permissions'],
+                  ),
+                  h.p(
+                    [h.Class('text-sm text-gray-600')],
+                    [
+                      'Review who can change billing, members, and integrations.',
+                    ],
+                  ),
+                ],
+              ),
+            ]
+          : []),
+      ],
+    )
+
   return h.submodel({
     slotId: childPopoverModel.id,
     model: childPopoverModel,
@@ -94,36 +137,7 @@ const nestedChildPopover = (
     viewInputs: {
       ariaLabel: 'Advanced settings',
       anchor: NESTED_POPOVER_ANCHOR,
-      toView: ({ button, panel, backdrop, isVisible }) =>
-        h.div(
-          [h.Class(wrapperClassName)],
-          [
-            h.button(
-              [...button, h.Class(triggerClassName)],
-              [h.span([], ['Advanced settings'])],
-            ),
-            ...(isVisible
-              ? [
-                  h.div([...backdrop, h.Class(backdropClassName)]),
-                  h.div(
-                    [...panel, h.Class(basicPanelClassName)],
-                    [
-                      h.p(
-                        [h.Class('text-sm font-semibold text-gray-900 mb-2')],
-                        ['Permissions'],
-                      ),
-                      h.p(
-                        [h.Class('text-sm text-gray-600')],
-                        [
-                          'Review who can change billing, members, and integrations.',
-                        ],
-                      ),
-                    ],
-                  ),
-                ]
-              : []),
-          ],
-        ),
+      toView: childPopoverView,
     },
     toParentMessage: message =>
       UiMessage.GotPopoverNestedChildDemoMessage({ message }),
@@ -135,6 +149,42 @@ const nestedDemo = (
   childPopoverModel: Popover.Model,
   h: HtmlBuilder<UiMessage>,
 ): Html => {
+  const parentPopoverView = ({
+    button,
+    panel,
+    backdrop,
+    isVisible,
+  }: Popover.RenderInfo): Html =>
+    h.div(
+      [h.Class(wrapperClassName)],
+      [
+        h.button(
+          [...button, h.Class(triggerClassName)],
+          [h.span([], ['Account'])],
+        ),
+        ...(isVisible
+          ? [
+              h.div([...backdrop, h.Class(backdropClassName)]),
+              h.div(
+                [...panel, h.Class(basicPanelClassName)],
+                [
+                  h.div(
+                    [h.Class('flex flex-col gap-4')],
+                    [
+                      h.p(
+                        [h.Class('text-sm text-gray-600')],
+                        ['Manage account settings without leaving this panel.'],
+                      ),
+                      nestedChildPopover(childPopoverModel, h),
+                    ],
+                  ),
+                ],
+              ),
+            ]
+          : []),
+      ],
+    )
+
   return h.div(
     [h.Class('relative')],
     [
@@ -145,38 +195,7 @@ const nestedDemo = (
         viewInputs: {
           anchor: POPOVER_ANCHOR,
           focusSelector: nestedChildButtonSelector,
-          toView: ({ button, panel, backdrop, isVisible }) =>
-            h.div(
-              [h.Class(wrapperClassName)],
-              [
-                h.button(
-                  [...button, h.Class(triggerClassName)],
-                  [h.span([], ['Account'])],
-                ),
-                ...(isVisible
-                  ? [
-                      h.div([...backdrop, h.Class(backdropClassName)]),
-                      h.div(
-                        [...panel, h.Class(basicPanelClassName)],
-                        [
-                          h.div(
-                            [h.Class('flex flex-col gap-4')],
-                            [
-                              h.p(
-                                [h.Class('text-sm text-gray-600')],
-                                [
-                                  'Manage account settings without leaving this panel.',
-                                ],
-                              ),
-                              nestedChildPopover(childPopoverModel, h),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ]
-                  : []),
-              ],
-            ),
+          toView: parentPopoverView,
         },
         toParentMessage: message =>
           UiMessage.GotPopoverNestedParentDemoMessage({ message }),

@@ -16,7 +16,7 @@ The checkbox element is typically a `<button>`. Spread `attributes.checkbox` ont
 
 ::Demo{name="basic"}
 
-::Snippet{name="uiCheckboxBasic" label="basic checkbox example"}
+::Snippet{name="uiCheckboxBasic" label="Basic checkbox"}
 
 ### Indeterminate
 
@@ -24,7 +24,7 @@ Pass `isIndeterminate: true` to show a mixed state. This is typically computed f
 
 ::Demo{name="indeterminate"}
 
-::Snippet{name="uiCheckboxIndeterminate" label="indeterminate checkbox example"}
+::Snippet{name="uiCheckboxIndeterminate" label="Indeterminate checkbox"}
 
 ## Styling
 
@@ -49,13 +49,21 @@ The checkbox element receives `role="checkbox"` and `aria-checked` which is set 
 
 The `label` attribute group includes an id (accessible via `Checkbox.labelId(id)`) and the `description` group includes an id (accessible via `Checkbox.descriptionId(id)`), so a consumer can reference either element without re-declaring the naming convention.
 
+### Read-Only and Disabled States
+
 `isReadOnly` and `isDisabled` both stop the Checkbox from reacting to clicks and Space. They differ in the semantics exposed to assistive technology, so they are not interchangeable.
 
+#### ARIA Semantics
+
 `aria-disabled="true"`, which `isDisabled` emits, communicates that the Checkbox is unavailable. `aria-readonly="true"`, which `isReadOnly` emits, communicates that its value cannot be changed but remains relevant to the user. Both states keep `tabindex="0"`, following Foldkit's convention that unavailable controls remain discoverable by keyboard and assistive technology.
+
+#### Choosing a State
 
 Assistive technology support for `aria-readonly` on checkboxes varies. Pair it with a visible read-only treatment or explanatory text when users must distinguish it from disabled, and test the browser and assistive technology combinations your app supports.
 
 Use `isReadOnly` when the checked state is still information the user needs, such as a decision that was already made, and `isDisabled` when the Checkbox is unavailable.
+
+#### Combining States
 
 The two flags are independent. Setting both emits both sets of attributes, and either one on its own removes the click and Space handlers.
 

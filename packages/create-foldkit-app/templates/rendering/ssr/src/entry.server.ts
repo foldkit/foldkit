@@ -4,6 +4,8 @@ import { Server } from 'foldkit/experimental'
 import { readCountCookie } from './cookie'
 import { Flags, init, view } from './main'
 
+export const renderDocument = Server.renderDocument
+
 const flagsForRequest = (cookieHeader: string): Flags => ({
   initialCount: readCountCookie(cookieHeader),
   renderedAt: new Date().toISOString(),
@@ -35,7 +37,6 @@ export const renderPage = (request: Request): Promise<Server.EntryResult> =>
         { Flags, init, view },
         {
           flags: flagsForRequest(request.headers.get('cookie') ?? ''),
-          buildId: import.meta.env.FOLDKIT_BUILD_ID,
         },
       )
 

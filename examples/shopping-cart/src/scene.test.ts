@@ -1,6 +1,6 @@
 import { Option } from 'effect'
 import { click, expect, given, role, scene, text } from 'foldkit/scene'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { products } from './data/products'
@@ -34,7 +34,7 @@ describe('view', () => {
     scene(
       { update, view },
       given(
-        evo(baseModel, {
+        modifyFields(baseModel, {
           cart: () => [
             { item: apple, quantity: 2 },
             { item: banana, quantity: 3 },
@@ -56,7 +56,7 @@ describe('view', () => {
   test('the Cart route shows the empty state when no items have been added', () => {
     scene(
       { update, view },
-      given(evo(baseModel, { route: () => AppRoute.Cart() })),
+      given(modifyFields(baseModel, { route: () => AppRoute.Cart() })),
       expect(role('heading', { name: 'Shopping Cart' })).toExist(),
       expect(text('Your cart is empty')).toExist(),
     )
@@ -66,7 +66,7 @@ describe('view', () => {
     scene(
       { update, view },
       given(
-        evo(baseModel, {
+        modifyFields(baseModel, {
           cart: () => [{ item: apple, quantity: 2 }],
           route: () => AppRoute.Cart(),
         }),
@@ -82,7 +82,7 @@ describe('view', () => {
   test('the Checkout route shows the empty state when the cart is empty', () => {
     scene(
       { update, view },
-      given(evo(baseModel, { route: () => AppRoute.Checkout() })),
+      given(modifyFields(baseModel, { route: () => AppRoute.Checkout() })),
       expect(role('heading', { name: 'Checkout' })).toExist(),
       expect(text('Your cart is empty')).toExist(),
     )
@@ -92,7 +92,7 @@ describe('view', () => {
     scene(
       { update, view },
       given(
-        evo(baseModel, {
+        modifyFields(baseModel, {
           cart: () => [{ item: apple, quantity: 2 }],
           route: () => AppRoute.Checkout(),
         }),
@@ -108,7 +108,7 @@ describe('view', () => {
     scene(
       { update, view },
       given(
-        evo(baseModel, {
+        modifyFields(baseModel, {
           cart: () => [{ item: apple, quantity: 1 }],
           route: () => AppRoute.Checkout(),
         }),
@@ -122,7 +122,9 @@ describe('view', () => {
     scene(
       { update, view },
       given(
-        evo(baseModel, { route: () => AppRoute.NotFound({ path: '/oops' }) }),
+        modifyFields(baseModel, {
+          route: () => AppRoute.NotFound({ path: '/oops' }),
+        }),
       ),
       expect(role('heading', { name: '404 - Page Not Found' })).toExist(),
       expect(text('The path "/oops" was not found.')).toExist(),

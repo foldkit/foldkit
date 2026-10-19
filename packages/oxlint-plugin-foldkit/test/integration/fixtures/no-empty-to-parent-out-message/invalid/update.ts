@@ -24,6 +24,11 @@ export const blockMapper = {
   },
 }
 
+export const keyedMapper = {
+  update,
+  toParentOutMessage: (_key: string) => () => undefined,
+}
+
 export const functionMapper = {
   update,
   toParentOutMessage: function () {

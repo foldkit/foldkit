@@ -10,7 +10,7 @@ import {
   submit,
   type,
 } from 'foldkit/scene'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import {
@@ -58,7 +58,7 @@ describe('view', () => {
   })
 
   test('typing a well-formed email triggers async validation', () => {
-    const modelWithValidName = evo(initialModel, {
+    const modelWithValidName = modifyFields(initialModel, {
       name: () => FieldValidation.Valid({ value: 'Alice' }),
     })
 
@@ -101,7 +101,7 @@ describe('view', () => {
   })
 
   test('submit becomes enabled once name and email are valid', () => {
-    const validModel = evo(initialModel, {
+    const validModel = modifyFields(initialModel, {
       name: () => FieldValidation.Valid({ value: 'Alice' }),
       email: () => FieldValidation.Valid({ value: 'alice@example.com' }),
     })
@@ -114,7 +114,7 @@ describe('view', () => {
   })
 
   test('submitting a valid form shows the loading label then a success banner', () => {
-    const validModel = evo(initialModel, {
+    const validModel = modifyFields(initialModel, {
       name: () => FieldValidation.Valid({ value: 'Alice' }),
       email: () => FieldValidation.Valid({ value: 'alice@example.com' }),
     })
@@ -135,7 +135,7 @@ describe('view', () => {
   })
 
   test('a failed submission renders an error banner', () => {
-    const validModel = evo(initialModel, {
+    const validModel = modifyFields(initialModel, {
       name: () => FieldValidation.Valid({ value: 'Alice' }),
       email: () => FieldValidation.Valid({ value: 'alice@example.com' }),
     })

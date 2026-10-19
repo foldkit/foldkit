@@ -93,8 +93,9 @@ const readPostEntry = (fileName: string): BlogPostEntry => {
 /**
  * Every blog post's slug and frontmatter, newest first, read from the post
  * markdown sources. This is the node-side mirror of the app's post registry:
- * prerender and metadata run under tsx, which cannot import compiled `.md`
- * modules, so they read the same files the Vite plugin compiles.
+ * prerender and metadata read the markdown files directly rather than the
+ * app's `posts.ts` registry, which keeps the build scripts off the
+ * application's Vite module graph.
  */
 export const blogPosts: ReadonlyArray<BlogPostEntry> = pipe(
   readdirSync(POST_DIR),

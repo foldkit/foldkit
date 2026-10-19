@@ -12,9 +12,19 @@ Check out how Slider is wired up in a [real Foldkit app](https://github.com/fold
 
 Slider is headless. Your `toView` callback controls all markup and styling. The component hands back attribute groups for the root, track, filled track, thumb, label, and an optional hidden input for form submission.
 
-::Demo{name="slider"}
+### Horizontal
 
-::Snippet{name="uiSliderBasic" label="slider example"}
+Horizontal is the default orientation. The thumb's center sits on the value point and may extend beyond the track at either end.
+
+::Demo{name="horizontal"}
+
+::Snippet{name="uiSliderBasic" label="Slider"}
+
+### Vertical
+
+Pass `orientation: 'Vertical'` to map pointer movement along the Y axis, with `min` at the bottom and `max` at the top. This example also uses `thumbAlignment: 'Edge'` and provides the rendered `thumbSize` so the thumb remains inside the track.
+
+::Demo{name="vertical"}
 
 ## Subscriptions
 
@@ -22,14 +32,25 @@ Pointer drag needs document-level `pointermove` / `pointerup` tracking (the curs
 
 ## Styling
 
-Slider exposes `data-dragging` while the user is actively dragging, `data-disabled` when disabled, `data-readonly` when read-only, and `data-orientation` on the root. The `filledTrack` attribute group carries an inline width so the filled portion always matches the current value.
+Slider exposes its state and geometry through data attributes. The root and track carry `data-orientation` plus either `data-horizontal` or `data-vertical`. The track also carries `data-thumb-alignment`. `data-dragging`, `data-disabled`, and `data-readonly` identify the current interaction state.
 
-| Attribute          | Condition                                                                                |
-| ------------------ | ---------------------------------------------------------------------------------------- |
-| `data-dragging`    | Present on the root, track, filled track, and thumb while the user is actively dragging. |
-| `data-disabled`    | Present on all groups when isDisabled is true.                                           |
-| `data-readonly`    | Present on all groups when isReadOnly is true.                                           |
-| `data-orientation` | Present on the root. Always "horizontal"; vertical orientation is not supported.         |
+### Center the Thumb on the Value
+
+The filled track uses inline `width` for a horizontal Slider and `height` for a vertical one. By default, the thumb's center sits on the value point and may extend beyond the track at either end.
+
+### Keep the Thumb Inside the Track
+
+Set `thumbAlignment` to `Edge` and provide the rendered `thumbSize` to keep the thumb inside the track. Click-to-jump and drag then use the same inset range as the thumb, so the pointer position and rendered value remain aligned.
+
+| Attribute              | Condition                                                                                |
+| ---------------------- | ---------------------------------------------------------------------------------------- |
+| `data-dragging`        | Present on the root, track, filled track, and thumb while the user is actively dragging. |
+| `data-disabled`        | Present on all groups when `isDisabled` is `true`.                                       |
+| `data-readonly`        | Present on all groups when `isReadOnly` is `true`.                                       |
+| `data-orientation`     | Present on the root and track. `"horizontal"` or `"vertical"`, matching `orientation`.   |
+| `data-horizontal`      | Present on the root and track when `orientation` is `"Horizontal"`.                      |
+| `data-vertical`        | Present on the root and track when `orientation` is `"Vertical"`.                        |
+| `data-thumb-alignment` | Present on the track. `"center"` or `"edge"`, matching `thumbAlignment`.                 |
 
 ## Keyboard Interaction
 
@@ -49,13 +70,21 @@ Every key in this table is inert when `isDisabled` or `isReadOnly` is true, beca
 
 The thumb receives `role="slider"`, `aria-valuemin`, `aria-valuemax`, `aria-valuenow`, and `aria-orientation`. When `formatValue` is provided, the formatted string is announced via `aria-valuetext`. By default the thumb is labeled via `aria-labelledby` pointing at the id carried on the `label` attribute group; you can override this with an explicit `ariaLabel` or `ariaLabelledBy`.
 
+### Read-Only and Disabled States
+
 `isReadOnly` and `isDisabled` both stop the Slider from reacting to pointer drags and keys. They differ in the semantics exposed to assistive technology, so they are not interchangeable.
 
+#### ARIA Semantics
+
 `aria-disabled="true"`, which `isDisabled` emits, communicates that the Slider is unavailable. `aria-readonly="true"`, which `isReadOnly` emits, communicates that its value cannot be changed but remains relevant to the user. It sits on the thumb, the element carrying `role="slider"`. Both states keep `tabindex="0"`, following Foldkit's convention that unavailable controls remain discoverable by keyboard and assistive technology.
+
+#### Choosing a State
 
 Assistive technology support for `aria-readonly` on sliders varies. Pair it with a visible read-only treatment or explanatory text when users must distinguish it from disabled, and test the browser and assistive technology combinations your app supports.
 
 Use `isReadOnly` when the value is still information the user needs, such as a level set by another control, and `isDisabled` when the Slider is unavailable.
+
+#### Combining States
 
 The two flags are independent. Setting both emits both sets of attributes, and either one on its own removes the pointer and keyboard handlers.
 
@@ -67,7 +96,7 @@ Configuration object passed to `Slider.init()`.
 
 | Name   | Type     | Default | Description                                                                                                                   |
 | ------ | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `id`   | `string` | —       | Unique ID for the slider instance.                                                                                            |
+| `id`   | `string` | —       | Unique ID for the Slider instance.                                                                                            |
 | `min`  | `number` | —       | Minimum value.                                                                                                                |
 | `max`  | `number` | —       | Maximum value.                                                                                                                |
 | `step` | `number` | —       | Increment between allowed values. Fractional steps are rounded to the step’s decimal precision to avoid floating-point drift. |
@@ -76,32 +105,35 @@ Configuration object passed to `Slider.init()`.
 
 Configuration object passed to `Slider.view()`.
 
-| Name              | Type                                              | Default | Description                                                                                                                                                                                                                  |
-| ----------------- | ------------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `model`           | `Slider.Model`                                    | —       | The slider state from your parent Model.                                                                                                                                                                                     |
-| `toParentMessage` | `(childMessage: Slider.Message) => ParentMessage` | —       | Wraps Slider Messages in your parent Message type for Submodel delegation.                                                                                                                                                   |
-| `value`           | `number`                                          | —       | The current value, read from your parent Model. The thumb position, aria-valuenow, and filled track derive from it. Fold the ChangedValue OutMessage into this field in your update.                                         |
-| `toView`          | `(attributes: SliderAttributes) => Html`          | —       | Callback that receives attribute groups for the root, track, filled track, thumb, label, and hidden input elements.                                                                                                          |
-| `ariaLabel`       | `string`                                          | —       | Accessible name for screen readers when there is no visible label.                                                                                                                                                           |
-| `ariaLabelledBy`  | `string`                                          | —       | ID of an external element whose text serves as the slider’s accessible name.                                                                                                                                                 |
-| `formatValue`     | `(value: number) => string`                       | —       | Produces the aria-valuetext announced to screen readers. Use it when the numeric value needs a natural-language form (e.g. "3 of 10" or "50 percent").                                                                       |
-| `isDisabled`      | `boolean`                                         | `false` | Whether the slider is disabled. Removes pointer and keyboard interactivity while preserving focusability.                                                                                                                    |
-| `isReadOnly`      | `boolean`                                         | `false` | Whether the slider is readable but not adjustable. Carries `aria-readonly` rather than `aria-disabled`. Independent of `isDisabled`. Removes pointer and keyboard interactivity while preserving focusability.               |
-| `name`            | `string`                                          | —       | Form field name. When provided, a hidden input carrying the current numeric value is included for native form submission.                                                                                                    |
-| `getTrackRoot`    | `(() => Document \| ShadowRoot) \| undefined`     | —       | Optional accessor returning the DOM root that contains the slider track. Defaults to `document`. Override when rendering inside a Shadow DOM so the drag subscription can find the track element to measure cursor position. |
+| Name              | Type                                              | Default        | Description                                                                                                                                                                                                                            |
+| ----------------- | ------------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`           | `Slider.Model`                                    | —              | The Slider state from your parent Model.                                                                                                                                                                                               |
+| `toParentMessage` | `(childMessage: Slider.Message) => ParentMessage` | —              | Wraps Slider Messages in your parent Message type for Submodel delegation.                                                                                                                                                             |
+| `value`           | `number`                                          | —              | The current value, read from your parent Model. The thumb position, aria-valuenow, and filled track derive from it. Fold the ChangedValue OutMessage into this field in your update.                                                   |
+| `orientation`     | `"Horizontal" \| "Vertical"`                      | `"Horizontal"` | Layout axis for the track, filled track, and thumb. `Vertical` places `min` at the bottom and `max` at the top and maps pointer movement along the Y axis.                                                                             |
+| `thumbAlignment`  | `"Center" \| "Edge"`                              | `"Center"`     | How the thumb aligns within the track. `Center` keeps the thumb's center on the value point and lets it overflow by half its size at the extremes. `Edge` insets the thumb's travel by `thumbSize` so it stays fully inside the track. |
+| `thumbSize`       | `string`                                          | `"0.75rem"`    | CSS length of the thumb along the track axis, used only with `Edge` alignment. Set it to the size your `toView` callback styles the thumb with so the fill meets the thumb's center.                                                   |
+| `toView`          | `(attributes: SliderAttributes) => Html`          | —              | Callback that receives attribute groups for the root, track, filled track, thumb, label, and hidden input elements.                                                                                                                    |
+| `ariaLabel`       | `string`                                          | —              | Accessible name for screen readers when there is no visible label.                                                                                                                                                                     |
+| `ariaLabelledBy`  | `string`                                          | —              | ID of an external element whose text serves as the Slider's accessible name.                                                                                                                                                           |
+| `formatValue`     | `(value: number) => string`                       | —              | Produces the aria-valuetext announced to screen readers. Use it when the numeric value needs a natural-language form (e.g. "3 of 10" or "50 percent").                                                                                 |
+| `isDisabled`      | `boolean`                                         | `false`        | Whether the Slider is disabled. Removes pointer and keyboard interactivity while preserving focusability.                                                                                                                              |
+| `isReadOnly`      | `boolean`                                         | `false`        | Whether the Slider is readable but not adjustable. Carries `aria-readonly` rather than `aria-disabled`. Independent of `isDisabled`. Removes pointer and keyboard interactivity while preserving focusability.                         |
+| `name`            | `string`                                          | —              | Form field name. When provided, a hidden input carrying the current numeric value is included for native form submission.                                                                                                              |
+| `getTrackRoot`    | `(() => Document \| ShadowRoot) \| undefined`     | —              | Optional accessor returning the DOM root that contains the Slider track. Defaults to `document`. Override it inside a Shadow DOM so the drag Subscription can find and measure the track.                                              |
 
 ### SliderAttributes {#slider-attributes}
 
 Attribute groups provided to the `toView` callback.
 
-| Name          | Type                                | Default | Description                                                                                                                                                                                          |
-| ------------- | ----------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `root`        | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the outer wrapper. Carries data-slider-id, data-orientation, and state data attributes.                                                                                                  |
-| `track`       | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the track element (the bar). Carries data-slider-track-id (used by the drag subscription to measure cursor position), positioning styles, and the pointerdown handler for click-to-jump. |
-| `filledTrack` | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto an element nested inside the track. Its inline width reflects the current value as a percentage of the range.                                                                            |
-| `thumb`       | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the draggable handle. Carries role="slider", tabindex, aria-value\*, the pointerdown handler, the keyboard handler, and positioning.                                                     |
-| `label`       | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the visible label element. Carries the id the thumb’s aria-labelledby points to by default.                                                                                              |
-| `hiddenInput` | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto a hidden `<input>` for form submission. Only populated when the name prop is set.                                                                                                        |
+| Name          | Type                                | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------- | ----------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `root`        | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the outer wrapper. Carries `data-slider-id`, `data-orientation` (`horizontal` or `vertical`), boolean `data-horizontal` / `data-vertical`, and state data attributes.                                                                                                                                                                                                                              |
+| `track`       | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the track element. Carries the data attributes used to find and measure the track, inline positioning styles, and the pointerdown handler for click-to-jump. With `Edge` alignment, pointer input uses the rendered thumb to calculate the inset range.                                                                                                                                            |
+| `filledTrack` | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto an element nested inside the track. Its inline size reflects the current value as a percentage of the range: `width` for horizontal, `height` for vertical. `Edge` alignment insets the size by `thumbSize` so the fill stays aligned with the inset thumb's center.                                                                                                                               |
+| `thumb`       | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the draggable handle. Carries `role="slider"`, `tabindex`, `aria-valuemin` / `aria-valuemax` / `aria-valuenow`, `aria-orientation` (matching `orientation`, lowercased), the pointerdown handler, the keyboard handler, and positioning. `Center` positions with `left: N% + translateX(-50%)` (horizontal) or `bottom: N% + translateY(50%)` (vertical); `Edge` insets the travel by `thumbSize`. |
+| `label`       | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the visible label element. Carries the id the thumb’s aria-labelledby points to by default.                                                                                                                                                                                                                                                                                                        |
+| `hiddenInput` | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto a hidden `<input>` for form submission. Only populated when the name prop is set.                                                                                                                                                                                                                                                                                                                  |
 
 ### OutMessage {#out-message}
 
@@ -109,4 +141,4 @@ Messages emitted to the parent through the optional `outMessage` field. Parents 
 
 | Name           | Type                | Default | Description                                                                                                                                                                                                                         |
 | -------------- | ------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ChangedValue` | `{ value: number }` | —       | Emitted whenever the slider value changes via drag, click-to-jump, or keyboard navigation. Fold it in the `foldOutMessage` of your Slider fold to react, for example: persist the value, validate, or trigger a downstream Command. |
+| `ChangedValue` | `{ value: number }` | —       | Emitted whenever the Slider value changes via drag, click-to-jump, or keyboard navigation. Fold it in the `foldOutMessage` of your Slider fold to react, for example: persist the value, validate, or trigger a downstream Command. |

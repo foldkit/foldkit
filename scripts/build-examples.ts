@@ -14,7 +14,7 @@ import {
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { examples } from '../packages/website/src/page/example/meta'
+import { examples } from '../packages/website/src/page/example/meta.ts'
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = resolve(SCRIPT_DIR, '..')
@@ -170,7 +170,8 @@ const main = async (): Promise<void> => {
     ): example is (typeof examples)[number] & {
       livePreview: 'Spa' | 'Prerendered'
     } =>
-      example.livePreview !== 'PlaygroundOnly' &&
+      (example.livePreview === 'Spa' ||
+        example.livePreview === 'Prerendered') &&
       (only.size === 0 || only.has(example.slug)),
   )
   const skippedSlugs = examples

@@ -32,6 +32,7 @@ import {
   coreModelRouter,
   coreMountRouter,
   corePreserveScrollRouter,
+  coreQueryRouter,
   coreRenderRouter,
   coreResourcesRouter,
   coreRuntimeRouter,
@@ -49,6 +50,7 @@ import {
   examplesRouter,
   fieldValidationRouter,
   getStartedRouter,
+  patternsAntiPatternsRouter,
   patternsInformingSubmodelsRouter,
   patternsSubscriptionOrganizationRouter,
   performanceRouter,
@@ -77,9 +79,11 @@ import {
   uiInputRouter,
   uiListboxRouter,
   uiMenuRouter,
+  uiMeterRouter,
   uiNavRouter,
   uiOverviewRouter,
   uiPopoverRouter,
+  uiProgressRouter,
   uiRadioGroupRouter,
   uiSelectRouter,
   uiSelectionSubmodelsRouter,
@@ -282,6 +286,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           label: 'Http',
         },
         {
+          _tag: 'CoreQuery',
+          href: coreQueryRouter(),
+          label: 'Query',
+        },
+        {
           _tag: 'FieldValidation',
           href: fieldValidationRouter(),
           label: 'Field Validation',
@@ -388,6 +397,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     pageGroups: [
       [
         {
+          _tag: 'PatternsAntiPatterns',
+          href: patternsAntiPatternsRouter(),
+          label: 'Anti-patterns',
+        },
+        {
           _tag: 'ProjectOrganization',
           href: projectOrganizationRouter(),
           label: 'Project Organization',
@@ -449,130 +463,9 @@ export const docsSections: ReadonlyArray<DocsSection> = [
       ],
       [
         {
-          _tag: 'UiButton',
-          href: uiButtonRouter(),
-          label: 'Button',
-        },
-        {
-          _tag: 'UiInput',
-          href: uiInputRouter(),
-          label: 'Input',
-        },
-        {
-          _tag: 'UiTextarea',
-          href: uiTextareaRouter(),
-          label: 'Textarea',
-        },
-        {
-          _tag: 'UiCheckbox',
-          href: uiCheckboxRouter(),
-          label: 'Checkbox',
-        },
-        {
-          _tag: 'UiFieldset',
-          href: uiFieldsetRouter(),
-          label: 'Fieldset',
-        },
-      ],
-      [
-        {
-          _tag: 'UiRadioGroup',
-          href: uiRadioGroupRouter(),
-          label: 'Radio Group',
-        },
-        {
-          _tag: 'UiSwitch',
-          href: uiSwitchRouter(),
-          label: 'Switch',
-        },
-        {
-          _tag: 'UiSlider',
-          href: uiSliderRouter(),
-          label: 'Slider',
-        },
-        {
-          _tag: 'UiSelect',
-          href: uiSelectRouter(),
-          label: 'Select',
-        },
-        {
-          _tag: 'UiListbox',
-          href: uiListboxRouter(),
-          label: 'Listbox',
-        },
-        {
-          _tag: 'UiCombobox',
-          href: uiComboboxRouter(),
-          label: 'Combobox',
-        },
-      ],
-      [
-        {
-          _tag: 'UiDialog',
-          href: uiDialogRouter(),
-          label: 'Dialog',
-        },
-        {
-          _tag: 'UiMenu',
-          href: uiMenuRouter(),
-          label: 'Menu',
-        },
-        {
-          _tag: 'UiPopover',
-          href: uiPopoverRouter(),
-          label: 'Popover',
-        },
-        {
-          _tag: 'UiTooltip',
-          href: uiTooltipRouter(),
-          label: 'Tooltip',
-        },
-        {
-          _tag: 'UiHoverIntent',
-          href: uiHoverIntentRouter(),
-          label: 'Hover Intent',
-        },
-        {
-          _tag: 'UiToast',
-          href: uiToastRouter(),
-          label: 'Toast',
-        },
-        {
-          _tag: 'UiDisclosure',
-          href: uiDisclosureRouter(),
-          label: 'Disclosure',
-        },
-        {
-          _tag: 'UiTabs',
-          href: uiTabsRouter(),
-          label: 'Tabs',
-        },
-        {
-          _tag: 'UiNav',
-          href: uiNavRouter(),
-          label: 'Nav',
-        },
-      ],
-      [
-        {
-          _tag: 'UiDragAndDrop',
-          href: uiDragAndDropRouter(),
-          label: 'Drag and Drop',
-        },
-        {
-          _tag: 'UiFileDrop',
-          href: uiFileDropRouter(),
-          label: 'File Drop',
-        },
-        {
-          _tag: 'UiCalendar',
-          href: uiCalendarRouter(),
-          label: 'Calendar',
-        },
-        {
-          _tag: 'UiDatePicker',
-          href: uiDatePickerRouter(),
-          label: 'Date Picker',
+          _tag: 'UiAnchor',
+          href: uiAnchorRouter(),
+          label: 'Anchor',
         },
         {
           _tag: 'UiAnimation',
@@ -580,9 +473,134 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           label: 'Animation',
         },
         {
-          _tag: 'UiAnchor',
-          href: uiAnchorRouter(),
-          label: 'Anchor',
+          _tag: 'UiButton',
+          href: uiButtonRouter(),
+          label: 'Button',
+        },
+        {
+          _tag: 'UiCalendar',
+          href: uiCalendarRouter(),
+          label: 'Calendar',
+        },
+        {
+          _tag: 'UiCheckbox',
+          href: uiCheckboxRouter(),
+          label: 'Checkbox',
+        },
+        {
+          _tag: 'UiCombobox',
+          href: uiComboboxRouter(),
+          label: 'Combobox',
+        },
+        {
+          _tag: 'UiDatePicker',
+          href: uiDatePickerRouter(),
+          label: 'Date Picker',
+        },
+        {
+          _tag: 'UiDialog',
+          href: uiDialogRouter(),
+          label: 'Dialog',
+        },
+        {
+          _tag: 'UiDisclosure',
+          href: uiDisclosureRouter(),
+          label: 'Disclosure',
+        },
+        {
+          _tag: 'UiDragAndDrop',
+          href: uiDragAndDropRouter(),
+          label: 'Drag and Drop',
+        },
+        {
+          _tag: 'UiFieldset',
+          href: uiFieldsetRouter(),
+          label: 'Fieldset',
+        },
+        {
+          _tag: 'UiFileDrop',
+          href: uiFileDropRouter(),
+          label: 'File Drop',
+        },
+        {
+          _tag: 'UiHoverIntent',
+          href: uiHoverIntentRouter(),
+          label: 'Hover Intent',
+        },
+        {
+          _tag: 'UiInput',
+          href: uiInputRouter(),
+          label: 'Input',
+        },
+        {
+          _tag: 'UiListbox',
+          href: uiListboxRouter(),
+          label: 'Listbox',
+        },
+        {
+          _tag: 'UiMenu',
+          href: uiMenuRouter(),
+          label: 'Menu',
+        },
+        {
+          _tag: 'UiMeter',
+          href: uiMeterRouter(),
+          label: 'Meter',
+        },
+        {
+          _tag: 'UiNav',
+          href: uiNavRouter(),
+          label: 'Nav',
+        },
+        {
+          _tag: 'UiPopover',
+          href: uiPopoverRouter(),
+          label: 'Popover',
+        },
+        {
+          _tag: 'UiProgress',
+          href: uiProgressRouter(),
+          label: 'Progress',
+        },
+        {
+          _tag: 'UiRadioGroup',
+          href: uiRadioGroupRouter(),
+          label: 'Radio Group',
+        },
+        {
+          _tag: 'UiSelect',
+          href: uiSelectRouter(),
+          label: 'Select',
+        },
+        {
+          _tag: 'UiSlider',
+          href: uiSliderRouter(),
+          label: 'Slider',
+        },
+        {
+          _tag: 'UiSwitch',
+          href: uiSwitchRouter(),
+          label: 'Switch',
+        },
+        {
+          _tag: 'UiTabs',
+          href: uiTabsRouter(),
+          label: 'Tabs',
+        },
+        {
+          _tag: 'UiTextarea',
+          href: uiTextareaRouter(),
+          label: 'Textarea',
+        },
+        {
+          _tag: 'UiToast',
+          href: uiToastRouter(),
+          label: 'Toast',
+        },
+        {
+          _tag: 'UiTooltip',
+          href: uiTooltipRouter(),
+          label: 'Tooltip',
         },
         {
           _tag: 'UiVirtualList',

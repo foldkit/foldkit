@@ -1,8 +1,17 @@
-import { Array, Duration, Effect, Match, Schema, Stream, pipe } from 'effect'
-import { Command, Runtime, Subscription, type Update } from 'foldkit'
+import {
+  Array,
+  Duration,
+  Effect,
+  Match,
+  Option,
+  Schema,
+  Stream,
+  pipe,
+} from 'effect'
+import { Command, Dom, Runtime, Subscription, type Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { GAME, GAME_SPEED } from './constants'
 import { Apple, Direction, Position, Snake } from './domain'
@@ -89,7 +98,7 @@ export const update = (model: Model, message: Message) =>
 
             if (model.gameState === 'Playing') {
               return {
-                model: evo(model, {
+                model: modifyFields(model, {
                   nextDirection: () => nextDirection,
                 }),
               }
@@ -108,7 +117,7 @@ export const update = (model: Model, message: Message) =>
             Match.exhaustive,
           )
           return {
-            model: evo(model, {
+            model: modifyFields(model, {
               gameState: () => nextGameState,
             }),
           }
@@ -117,7 +126,7 @@ export const update = (model: Model, message: Message) =>
           const nextSnake = Snake.create(GAME.INITIAL_POSITION)
 
           return {
-            model: evo(model, {
+            model: modifyFields(model, {
               snake: () => nextSnake,
               direction: () => GAME.INITIAL_DIRECTION,
               nextDirection: () => GAME.INITIAL_DIRECTION,
@@ -151,7 +160,7 @@ export const update = (model: Model, message: Message) =>
 
       if (Snake.hasCollision(nextSnake)) {
         return {
-          model: evo(model, {
+          model: modifyFields(model, {
             gameState: () => 'GameOver',
             highScore: highScore => Math.max(model.points, highScore),
           }),
@@ -163,7 +172,7 @@ export const update = (model: Model, message: Message) =>
         : []
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           snake: () => nextSnake,
           direction: () => currentDirection,
           points: points =>
@@ -174,7 +183,7 @@ export const update = (model: Model, message: Message) =>
     },
 
     PausedGame: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         gameState: gameState =>
           gameState === 'Playing' ? 'Paused' : 'Playing',
       }),
@@ -185,7 +194,7 @@ export const update = (model: Model, message: Message) =>
       const nextSnake = Snake.create(startPosition)
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           snake: () => nextSnake,
           direction: () => 'Right',
           nextDirection: () => 'Right',
@@ -197,7 +206,7 @@ export const update = (model: Model, message: Message) =>
     },
 
     CompletedGenerateApplePosition: ({ position }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         apple: () => position,
       }),
     }),
@@ -235,6 +244,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       dependenciesToStream: ({ isPlaying, interval }) =>
         Stream.when(
           Stream.tick(Duration.millis(interval)).pipe(
+            Stream.drop(1),
             Stream.map(Message.TickedClock),
           ),
           Effect.sync(() => isPlaying),
@@ -242,14 +252,13 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     },
   ),
 
-  keyboard: Subscription.persistent(
-    Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
-      Stream.mapEffect(keyboardEvent =>
-        Effect.sync(() => keyboardEvent.preventDefault()).pipe(
-          Effect.as(Message.PressedKey({ key: keyboardEvent.key })),
-        ),
-      ),
-    ),
+  keyboard: Subscription.persistentEntry(
+    Dom.streamFromEventFilterMapPreventDefault({
+      target: document,
+      type: 'keydown',
+      filterMapEvent: keyboardEvent =>
+        Option.some(Message.PressedKey({ key: keyboardEvent.key })),
+    }),
   ),
 }))
 

@@ -52,6 +52,7 @@ export const Message = defineMessageUnion({
   ClickedEditFilters: {},
   ClickedOpenProjectSettings: {},
   ToggledDisclosureDemo: { isOpen: Schema.Boolean },
+  ToggledDisclosureCollapsedPreviewDemo: { isOpen: Schema.Boolean },
   GotListboxDemoMessage: { message: Listbox.Message },
   GotListboxMultiDemoMessage: { message: Listbox.Message },
   GotListboxGroupedDemoMessage: { message: Listbox.Message },
@@ -89,5 +90,10 @@ export const Message = defineMessageUnion({
   ClickedVirtualListScrollToMiddle: {},
   GotVirtualListVariableDemoMessage: { message: VirtualList.Message },
   ClickedVirtualListVariableScrollToMiddle: {},
+  GotVirtualListChatDemoMessage: { message: VirtualList.Message },
+  ClickedVirtualListChatPrepend: {},
+  ClickedVirtualListChatScrollToMessage: {},
+  ClickedVirtualListChatAppend: {},
+  ClickedVirtualListChatToggleMessage: { messageId: Schema.Number },
 })
 export type Message = typeof Message.Type

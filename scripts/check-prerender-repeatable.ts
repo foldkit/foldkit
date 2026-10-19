@@ -1,5 +1,11 @@
 import { spawnSync } from 'node:child_process'
-import { readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 
 const REPO_DIR = resolve(import.meta.dirname, '..')
@@ -77,14 +83,18 @@ const readClientFiles = (): Readonly<Record<string, Buffer>> => {
   return files
 }
 
-// The generated `/` replaces the template the browser build emits, so an
-// `index.html` still holding a placeholder means nothing was generated and the
-// comparisons below would be comparing untouched output with itself.
+// NOTE: without a generated `/`, two unchanged client outputs could compare
+// equal while this gate tested no prerendered page.
 const assertGenerated = (): void => {
+  if (!existsSync(INDEX_PATH)) {
+    return fail(
+      `"${INDEX_PATH}" does not exist, so the build generated no page at "/"`,
+    )
+  }
   const index = readFileSync(INDEX_PATH, 'utf8')
   if (!index.includes(HYDRATION_STAMP_PREFIX)) {
     return fail(
-      `"${INDEX_PATH}" carries no ${HYDRATION_STAMP_PREFIX} attribute, so the build generated no page over the template`,
+      `"${INDEX_PATH}" carries no ${HYDRATION_STAMP_PREFIX} attribute, so the build generated no page at "/"`,
     )
   }
 }

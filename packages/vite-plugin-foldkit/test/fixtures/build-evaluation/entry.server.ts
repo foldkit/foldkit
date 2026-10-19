@@ -1,4 +1,6 @@
 import { Server } from 'foldkit/experimental'
+
+export const renderDocument = Server.renderDocument
 import { appendFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 

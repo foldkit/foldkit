@@ -1,6 +1,6 @@
 import { Array, Match, Option, Order, Predicate, pipe } from 'effect'
 
-import type { TypeDocItem, TypeDocSignature, TypeDocType } from './typedoc'
+import type { TypeDocItem, TypeDocSignature, TypeDocType } from './typedoc.ts'
 
 const indent = (depth: number): string => '  '.repeat(depth)
 

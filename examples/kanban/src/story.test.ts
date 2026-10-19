@@ -260,19 +260,13 @@ describe('update', () => {
             }),
           }),
         ),
-        Command.resolve(
-          DragAndDrop.FocusItem({ itemId: firstCardId }),
-          DragAndDrop.Message.CompletedFocusItem(),
-        ),
+        DragAndDrop.test.settleFocus({ itemId: firstCardId }),
         message(
           Message.GotDragAndDropMessage({
             message: DragAndDrop.Message.ConfirmedKeyboardDrop(),
           }),
         ),
-        Command.resolve(
-          DragAndDrop.FocusItem,
-          DragAndDrop.Message.CompletedFocusItem(),
-        ),
+        DragAndDrop.test.settleFocus({ itemId: firstCardId }),
         Command.resolve(SaveBoard, Message.CompletedSaveBoard()),
         model(model => {
           const todoColumn = model.columns.find(column => column.id === 'todo')
@@ -304,19 +298,13 @@ describe('update', () => {
             }),
           }),
         ),
-        Command.resolve(
-          DragAndDrop.FocusItem({ itemId: cardId }),
-          DragAndDrop.Message.CompletedFocusItem(),
-        ),
+        DragAndDrop.test.settleFocus({ itemId: cardId }),
         message(
           Message.GotDragAndDropMessage({
             message: DragAndDrop.Message.ConfirmedKeyboardDrop(),
           }),
         ),
-        Command.resolve(
-          DragAndDrop.FocusItem,
-          DragAndDrop.Message.CompletedFocusItem(),
-        ),
+        DragAndDrop.test.settleFocus({ itemId: cardId }),
         Command.resolve(SaveBoard, Message.CompletedSaveBoard()),
         model(model => {
           const todoCards = model.columns
@@ -332,13 +320,15 @@ describe('update', () => {
     })
 
     test('cancelled keyboard drag does not change columns', () => {
+      const cardId = 'card-1'
+
       story(
         update,
         given(emptyModel),
         message(
           Message.GotDragAndDropMessage({
             message: DragAndDrop.Message.ActivatedKeyboardDrag({
-              itemId: emptyModel.columns[0]!.cards[0]!.id,
+              itemId: cardId,
               containerId: 'todo',
               index: 0,
             }),
@@ -349,10 +339,7 @@ describe('update', () => {
             message: DragAndDrop.Message.CancelledDrag(),
           }),
         ),
-        Command.resolve(
-          DragAndDrop.FocusItem,
-          DragAndDrop.Message.CompletedFocusItem(),
-        ),
+        DragAndDrop.test.settleFocus({ itemId: cardId }),
         model(model => {
           expect(model.columns).toStrictEqual(emptyModel.columns)
         }),

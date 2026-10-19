@@ -29,6 +29,24 @@ describe('injectIntoTemplate', () => {
     )
   })
 
+  it('injects the same rendered markup it validates', () => {
+    const initialHtml = rendered().html
+    const source = { html: initialHtml }
+    const application = {
+      get html() {
+        const { html } = source
+        source.html =
+          '<div data-foldkit-app="app" data-foldkit-build="build-one"><base href="https://example.com/"></div>'
+        return html
+      },
+      title: 'New Title',
+    }
+
+    const result = injectIntoTemplate(TEMPLATE, application)
+
+    expect(result).toContain(`<body>${initialHtml}</body>`)
+  })
+
   it('rejects a template with a duplicate container id', () => {
     const template =
       '<!doctype html><html lang="en"><head><title>old</title></head>' +

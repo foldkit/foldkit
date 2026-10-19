@@ -1,6 +1,6 @@
 import { Effect, Random } from 'effect'
 import { Command, type Update } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { GRID_SIZE } from './constants'
 import { Message } from './message'
@@ -20,6 +20,6 @@ const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     RequestedApple: () => ({ model, commands: [GenerateApplePosition()] }),
     CompletedGenerateApplePosition: ({ position }) => ({
-      model: evo(model, { apple: () => position }),
+      model: modifyFields(model, { apple: () => position }),
     }),
   })

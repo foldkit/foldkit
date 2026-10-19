@@ -1,5 +1,5 @@
 import { Layer } from 'effect'
-import { FetchHttpClient, HttpClient } from 'effect/unstable/http'
+import { FetchHttpClient, HttpClient } from 'effect/http'
 
 /**
  * A Fetch-backed `HttpClient` Layer with trace header propagation disabled by

@@ -15,10 +15,11 @@ import * as Dom from 'foldkit/dom'
 import { type Attribute, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import * as Subscription from 'foldkit/subscription'
 import * as Update from 'foldkit/update'
 
+import { documentDragStyles } from '../internal/documentDragStyles.js'
 import { attributeSelector } from '../internal/selectors.js'
 
 // MODEL
@@ -40,7 +41,8 @@ const DropTarget = Schema.Struct({
   index: Schema.Number,
 })
 
-const DragState = defineTaggedUnion({
+/** Schema for the current pointer or keyboard drag phase. */
+export const DragState = defineTaggedUnion({
   Idle: {},
   Pending: {
     itemId: Schema.String,
@@ -64,6 +66,8 @@ const DragState = defineTaggedUnion({
     targetIndex: Schema.Number,
   },
 })
+/** Current pointer or keyboard drag phase. */
+export type DragState = typeof DragState.Type
 
 /** Schema for the drag-and-drop component's state, tracking its unique ID, orientation, and current drag phase. */
 export const Model = Schema.Struct({
@@ -309,7 +313,7 @@ const withUpdateReturn = Match.withReturnType<UpdateReturn>()
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     PressedDraggable: ({ itemId, containerId, index, screenX, screenY }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         dragState: () =>
           DragState.Pending({
             itemId,
@@ -333,7 +337,7 @@ export const update = (model: Model, message: Message) =>
           }
 
           return {
-            model: evo(model, {
+            model: modifyFields(model, {
               dragState: () =>
                 DragState.Dragging({
                   itemId: pending.itemId,
@@ -347,7 +351,7 @@ export const update = (model: Model, message: Message) =>
           }
         }),
         Match.tag('Dragging', dragging => ({
-          model: evo(model, {
+          model: modifyFields(model, {
             dragState: () =>
               DragState.Dragging({
                 ...dragging,
@@ -363,16 +367,16 @@ export const update = (model: Model, message: Message) =>
       Match.value(model.dragState).pipe(
         withUpdateReturn,
         Match.tag('Pending', () => ({
-          model: evo(model, { dragState: () => DragState.Idle() }),
+          model: modifyFields(model, { dragState: () => DragState.Idle() }),
         })),
         Match.tag('Dragging', dragging =>
           Option.match(dragging.maybeDropTarget, {
             onNone: () => ({
-              model: evo(model, { dragState: () => DragState.Idle() }),
+              model: modifyFields(model, { dragState: () => DragState.Idle() }),
               outMessage: OutMessage.Cancelled(),
             }),
             onSome: dropTarget => ({
-              model: evo(model, { dragState: () => DragState.Idle() }),
+              model: modifyFields(model, { dragState: () => DragState.Idle() }),
               outMessage: OutMessage.Reordered({
                 itemId: dragging.itemId,
                 fromContainerId: dragging.sourceContainerId,
@@ -398,7 +402,7 @@ export const update = (model: Model, message: Message) =>
       ).pipe(Option.map(() => OutMessage.Cancelled()))
 
       const dragCancellation: Update.Return<Model, Message> = {
-        model: evo(model, { dragState: () => DragState.Idle() }),
+        model: modifyFields(model, { dragState: () => DragState.Idle() }),
         commands: Option.toArray(maybeFocusCommand),
       }
       return pipe(
@@ -408,7 +412,7 @@ export const update = (model: Model, message: Message) =>
     },
 
     ActivatedKeyboardDrag: ({ itemId, containerId, index }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         dragState: () =>
           DragState.KeyboardDragging({
             itemId,
@@ -424,7 +428,7 @@ export const update = (model: Model, message: Message) =>
       Match.value(model.dragState).pipe(
         withUpdateReturn,
         Match.tag('KeyboardDragging', keyboardDragging => ({
-          model: evo(model, {
+          model: modifyFields(model, {
             dragState: () =>
               DragState.KeyboardDragging({
                 ...keyboardDragging,
@@ -441,7 +445,7 @@ export const update = (model: Model, message: Message) =>
       Match.value(model.dragState).pipe(
         withUpdateReturn,
         Match.tag('KeyboardDragging', keyboardDragging => ({
-          model: evo(model, { dragState: () => DragState.Idle() }),
+          model: modifyFields(model, { dragState: () => DragState.Idle() }),
           commands: [FocusItem({ itemId: keyboardDragging.itemId })],
           outMessage: OutMessage.Reordered({
             itemId: keyboardDragging.itemId,
@@ -602,33 +606,6 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
           ),
         )
 
-        // NOTE: prevents text selection and locks cursor to grabbing during
-        // pointer drag. Uses a <style> element for cursor because inline styles
-        // on <html> don't override descendant elements' cursor values.
-        const documentDragStyles = Stream.callback<never>(() =>
-          Effect.acquireRelease(
-            Effect.sync(() => {
-              document.documentElement.style.setProperty('user-select', 'none')
-              document.documentElement.style.setProperty(
-                '-webkit-user-select',
-                'none',
-              )
-              const cursorStyle = document.createElement('style')
-              cursorStyle.textContent = '* { cursor: grabbing !important; }'
-              document.head.appendChild(cursorStyle)
-              return cursorStyle
-            }),
-            cursorStyle =>
-              Effect.sync(() => {
-                document.documentElement.style.removeProperty('user-select')
-                document.documentElement.style.removeProperty(
-                  '-webkit-user-select',
-                )
-                cursorStyle.remove()
-              }),
-          ).pipe(Effect.flatMap(() => Effect.never)),
-        )
-
         return Stream.when(
           Stream.merge(pointerEvents, documentDragStyles),
           Effect.sync(() => dragActivity === 'Active'),
@@ -662,38 +639,38 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       }),
       dependenciesToStream: ({ dragActivity }) =>
         Stream.when(
-          Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
-            Stream.mapEffect((event): Effect.Effect<Option.Option<Message>> =>
-              Effect.sync(() => {
-                // NOTE: the draggable's OnKeyDownPreventDefault calls preventDefault on
-                // the Space that activates keyboard drag. Skip it here so the same
-                // keypress doesn't also confirm the drop in the same tick.
-                if (event.defaultPrevented) {
-                  return Option.none()
-                }
-                if (event.key === 'Tab') {
-                  event.preventDefault()
-                  return Option.some(
+          Dom.streamFromEventFilterMapPreventDefault({
+            target: document,
+            type: 'keydown',
+            filterMapEvent: event => {
+              // NOTE: the draggable's OnKeyDownPreventDefault calls preventDefault on
+              // the Space that activates keyboard drag. Skip it here so the same
+              // keypress doesn't also confirm the drop in the same tick.
+              if (event.defaultPrevented) {
+                return Option.none()
+              }
+              return Match.value(event.key).pipe(
+                Match.withReturnType<Option.Option<Message>>(),
+                Match.when('Tab', () =>
+                  Option.some(
                     Message.PressedArrowKey({
                       direction: event.shiftKey
                         ? 'PreviousContainer'
                         : 'NextContainer',
                     }),
-                  )
-                }
-                if (event.key === ' ' || event.key === 'Enter') {
-                  event.preventDefault()
-                  return Option.some(Message.ConfirmedKeyboardDrop())
-                }
-                return Option.map(arrowKeyToDirection(event.key), direction => {
-                  event.preventDefault()
-                  return Message.PressedArrowKey({ direction })
-                })
-              }),
-            ),
-            Stream.filter(Option.isSome),
-            Stream.map(option => option.value),
-          ),
+                  ),
+                ),
+                Match.whenOr(' ', 'Enter', () =>
+                  Option.some(Message.ConfirmedKeyboardDrop()),
+                ),
+                Match.orElse(key =>
+                  Option.map(arrowKeyToDirection(key), direction =>
+                    Message.PressedArrowKey({ direction }),
+                  ),
+                ),
+              )
+            },
+          }),
           Effect.sync(() => dragActivity === 'Active'),
         ),
     },

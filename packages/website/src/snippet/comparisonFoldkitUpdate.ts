@@ -6,7 +6,7 @@ export const update = (model: Model, message: Message) =>
       Match.value(model.tool).pipe(
         withUpdateReturn,
         Match.when('Brush', () => ({
-          model: evo(model, {
+          model: modifyFields(model, {
             grid: () => applyBrush(model, x, y),
             undoStack: () => pushHistory(model.undoStack, model.grid),
             redoStack: () => [],
@@ -14,7 +14,7 @@ export const update = (model: Model, message: Message) =>
           }),
         })),
         Match.when('Fill', () => {
-          const nextModel = evo(model, {
+          const nextModel = modifyFields(model, {
             grid: () => applyFill(model, x, y),
             undoStack: () => pushHistory(model.undoStack, model.grid),
             redoStack: () => [],
@@ -27,7 +27,7 @@ export const update = (model: Model, message: Message) =>
       Array.match(model.undoStack, {
         onEmpty: () => ({ model }),
         onNonEmpty: nonEmptyUndoStack => {
-          const nextModel = evo(model, {
+          const nextModel = modifyFields(model, {
             grid: () => Array.lastNonEmpty(nonEmptyUndoStack),
             undoStack: () => Array.initNonEmpty(nonEmptyUndoStack),
             redoStack: Array.append(model.grid),

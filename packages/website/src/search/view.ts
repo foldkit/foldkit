@@ -56,7 +56,7 @@ const searchInputView = (model: Model, h: HtmlBuilder<Message>): Html => {
       ),
     ],
     [
-      Icon.magnifyingGlass('w-5 h-5 text-gray-400 dark:text-gray-500 shrink-0'),
+      Icon.magnifyingGlass('w-5 h-5 text-gray-500 dark:text-gray-500 shrink-0'),
       h.input([
         h.Id(SEARCH_INPUT_ID),
         h.Type('text'),
@@ -82,7 +82,7 @@ const searchInputView = (model: Model, h: HtmlBuilder<Message>): Html => {
 }
 
 const labelPillClassName =
-  'text-xs text-gray-500 dark:text-gray-400 bg-gray-200/70 dark:bg-gray-700/50 px-1.5 py-px rounded'
+  'text-xs text-gray-600 dark:text-gray-400 bg-gray-200/70 dark:bg-gray-700/50 px-1.5 py-px rounded'
 
 const resultLabelText = (
   result: typeof SearchResult.Type,
@@ -136,7 +136,7 @@ const resultItemView = (
       ),
       h.div([
         h.Class(
-          'text-xs text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-2 [&_mark]:bg-accent-200/60 [&_mark]:dark:bg-accent-800/40 [&_mark]:text-inherit [&_mark]:rounded-sm',
+          'text-xs text-gray-700 dark:text-gray-400 leading-relaxed line-clamp-2 [&_mark]:bg-accent-200/60 [&_mark]:dark:bg-accent-800/40 [&_mark]:text-inherit [&_mark]:rounded-sm',
         ),
         h.InnerHTML(result.excerpt),
       ]),
@@ -147,7 +147,7 @@ const emptyPrompt: Html = ih.div(
   [ih.Class('px-4 py-12 text-center')],
   [
     ih.p(
-      [ih.Class('text-sm text-gray-500 dark:text-gray-400')],
+      [ih.Class('text-sm text-gray-600 dark:text-gray-400')],
       ['Type to search the documentation...'],
     ),
   ],
@@ -157,7 +157,7 @@ const searchingIndicator: Html = ih.div(
   [ih.Class('px-4 py-12 text-center'), ih.AriaLive('polite')],
   [
     ih.p(
-      [ih.Class('text-sm text-gray-500 dark:text-gray-400')],
+      [ih.Class('text-sm text-gray-600 dark:text-gray-400')],
       ['Searching...'],
     ),
   ],
@@ -168,7 +168,7 @@ const noResultsView = (query: string): Html =>
     [ih.Class('px-4 py-12 text-center'), ih.AriaLive('polite')],
     [
       ih.p(
-        [ih.Class('text-sm text-gray-500 dark:text-gray-400')],
+        [ih.Class('text-sm text-gray-600 dark:text-gray-400')],
         [`No results for “${query}”`],
       ),
     ],

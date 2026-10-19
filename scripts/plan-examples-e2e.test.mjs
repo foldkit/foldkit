@@ -80,6 +80,15 @@ test('a spec change selects only that example', () => {
   assert.deepEqual(shardedSlugs, ['snake'])
 })
 
+test('a Node adapter change selects only the SSR example', () => {
+  const { exampleCount, shardedSlugs } = planExamplesForFile(
+    'packages/node/src/node.ts',
+  )
+
+  assert.equal(exampleCount, 1)
+  assert.deepEqual(shardedSlugs, ['ssr'])
+})
+
 test('a foldkit change selects every example', () => {
   const { exampleCount, shardedSlugs } = planExamplesForFile(
     'packages/foldkit/src/runtime/runtime.ts',

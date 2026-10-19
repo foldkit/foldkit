@@ -11,9 +11,13 @@ const LoadAllNotes = Command.define('LoadAllNotes', {
 
 Match.tagsExhaustive({
   SucceededLoadAllNotes: ({ notes }) => ({
-    model: evo(model, { allNotes: () => AsyncData.Success({ data: notes }) }),
+    model: modifyFields(model, {
+      allNotes: () => AsyncData.Success({ data: notes }),
+    }),
   }),
   FailedLoadAllNotes: ({ error }) => ({
-    model: evo(model, { allNotes: () => AsyncData.Failure({ error }) }),
+    model: modifyFields(model, {
+      allNotes: () => AsyncData.Failure({ error }),
+    }),
   }),
 })

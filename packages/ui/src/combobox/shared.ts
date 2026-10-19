@@ -4,15 +4,11 @@ import * as Dom from 'foldkit/dom'
 import type { ChildAttribute, Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Mount from 'foldkit/mount'
-import { makeConstrainedEvo } from 'foldkit/struct'
+import { makeModifyFieldsFor } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 import * as Update from 'foldkit/update'
 
-import {
-  AnchorConfig,
-  anchorSetup,
-  portalToContainingRoot,
-} from '../anchor/index.js'
+import { AnchorConfig, anchorSetup, portalBackdrop } from '../anchor/index.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → combobox → animation.
 // The barrel (../animation) imports from html, which starts the cycle.
@@ -118,6 +114,7 @@ export const Message = defineMessageUnion({
   },
   RequestedItemClick: { index: Schema.Number },
   SuppressedItemCommit: {},
+  SuppressedEmptyItemNavigation: {},
   CompletedLockScroll: {},
   CompletedUnlockScroll: {},
   CompletedInertOthers: {},
@@ -146,6 +143,8 @@ export type SelectedItem = typeof Message.SelectedItem.Type
 export type MovedPointerOverItem = typeof Message.MovedPointerOverItem.Type
 export type RequestedItemClick = typeof Message.RequestedItemClick.Type
 export type SuppressedItemCommit = typeof Message.SuppressedItemCommit.Type
+export type SuppressedEmptyItemNavigation =
+  typeof Message.SuppressedEmptyItemNavigation.Type
 export type CompletedLockScroll = typeof Message.CompletedLockScroll.Type
 export type CompletedUnlockScroll = typeof Message.CompletedUnlockScroll.Type
 export type CompletedInertOthers = typeof Message.CompletedInertOthers.Type
@@ -195,6 +194,7 @@ export const inputSelector = (id: string): string => idSelector(`${id}-input`)
 export const inputWrapperSelector = (id: string): string =>
   idSelector(`${id}-input-wrapper`)
 export const itemsSelector = (id: string): string => idSelector(`${id}-items`)
+const backdropSelector = (id: string): string => idSelector(`${id}-backdrop`)
 export const itemSelector = (id: string, index: number): string =>
   idSelector(`${id}-item-${index}`)
 export const itemId = (id: string, index: number): string =>
@@ -202,11 +202,11 @@ export const itemId = (id: string, index: number): string =>
 
 // HELPERS
 
-const constrainedEvo = makeConstrainedEvo<BaseModel>()
+const modifyBaseFields = makeModifyFieldsFor<BaseModel>()
 
 /** Resets only shared base fields to their closed state. Does not touch inputValue. That is variant-specific. */
 export const closedBaseModel = <Model extends BaseModel>(model: Model): Model =>
-  constrainedEvo(model, {
+  modifyBaseFields(model, {
     isOpen: () => false,
     maybeActiveItemIndex: () => Option.none(),
     activationTrigger: () => 'Keyboard' as const,
@@ -242,9 +242,11 @@ export const InertOthers = Command.define('InertOthers', {
   args: { id: Schema.String },
   messages: [Message.CompletedInertOthers],
   execute: ({ id }) =>
-    Dom.inertOthers(id, [inputWrapperSelector(id), itemsSelector(id)]).pipe(
-      Effect.as(Message.CompletedInertOthers()),
-    ),
+    Dom.inertOthers(id, [
+      inputWrapperSelector(id),
+      itemsSelector(id),
+      backdropSelector(id),
+    ]).pipe(Effect.as(Message.CompletedInertOthers())),
 })
 /** Removes the inert attribute from elements outside the combobox. */
 export const RestoreInert = Command.define('RestoreInert', {
@@ -287,21 +289,21 @@ export const ClickItem = Command.define('ClickItem', {
 export const DetectMovementOrAnimationEnd = Command.define(
   'DetectMovementOrAnimationEnd',
   {
-    args: { id: Schema.String },
+    args: { id: Schema.String, generation: Schema.Number },
     messages: [Message.GotAnimationMessage],
-    execute: ({ id }) =>
+    execute: ({ id, generation }) =>
       Effect.raceFirst(
         Dom.detectElementMovement(inputWrapperSelector(id)).pipe(
           Effect.as(
             Message.GotAnimationMessage({
-              message: Animation.Message.EndedAnimation(),
+              message: Animation.Message.EndedAnimation({ generation }),
             }),
           ),
         ),
         Dom.waitForAnimationSettled(itemsSelector(id)).pipe(
           Effect.as(
             Message.GotAnimationMessage({
-              message: Animation.Message.EndedAnimation(),
+              message: Animation.Message.EndedAnimation({ generation }),
             }),
           ),
         ),
@@ -336,10 +338,12 @@ export const makeUpdate = <Model extends BaseModel>(
   const foldAnimationOutMessage = Animation.OutMessage.match<
     Update.Step<Model, Message>
   >({
-    StartedLeaveAnimating: () => model => ({
-      model,
-      commands: [DetectMovementOrAnimationEnd({ id: model.id })],
-    }),
+    StartedLeaveAnimating:
+      ({ generation }) =>
+      model => ({
+        model,
+        commands: [DetectMovementOrAnimationEnd({ id: model.id, generation })],
+      }),
     TransitionedOut: () => model => ({ model }),
   })
 
@@ -347,7 +351,7 @@ export const makeUpdate = <Model extends BaseModel>(
     update: animationUpdate,
     read: (model: Model) => Option.some(model.animation),
     write: (model, nextAnimation) =>
-      constrainedEvo(model, { animation: () => nextAnimation }),
+      modifyBaseFields(model, { animation: () => nextAnimation }),
     toParentMessage: message => Message.GotAnimationMessage({ message }),
     foldOutMessage: foldAnimationOutMessage,
   })
@@ -356,7 +360,7 @@ export const makeUpdate = <Model extends BaseModel>(
     update: animationShow,
     read: (model: Model) => Option.some(model.animation),
     write: (model, nextAnimation) =>
-      constrainedEvo(model, { animation: () => nextAnimation }),
+      modifyBaseFields(model, { animation: () => nextAnimation }),
     toParentMessage: message => Message.GotAnimationMessage({ message }),
   })
 
@@ -364,7 +368,7 @@ export const makeUpdate = <Model extends BaseModel>(
     update: animationHide,
     read: (model: Model) => Option.some(model.animation),
     write: (model, nextAnimation) =>
-      constrainedEvo(model, { animation: () => nextAnimation }),
+      modifyBaseFields(model, { animation: () => nextAnimation }),
     toParentMessage: message => Message.GotAnimationMessage({ message }),
   })
 
@@ -422,13 +426,13 @@ export const makeUpdate = <Model extends BaseModel>(
           }),
           foldAnimationShow,
           stepModel => ({
-            model: constrainedEvo(stepModel, { isOpen: () => true }),
+            model: modifyBaseFields(stepModel, { isOpen: () => true }),
           }),
         ])
       }
 
       return {
-        model: constrainedEvo(baseModel, { isOpen: () => true }),
+        model: modifyBaseFields(baseModel, { isOpen: () => true }),
         commands: Array.getSomes([maybeLockScroll, maybeInertOthers]),
       }
     }
@@ -471,13 +475,14 @@ export const makeUpdate = <Model extends BaseModel>(
       CompletedScrollIntoView: () => ({ model }),
       CompletedClickItem: () => ({ model }),
       SuppressedItemCommit: () => ({ model }),
+      SuppressedEmptyItemNavigation: () => ({ model }),
       CompletedAnchorCombobox: () => ({ model }),
       CompletedAttachComboboxPreventBlur: () => ({ model }),
       CompletedAttachComboboxSelectOnFocus: () => ({ model }),
       CompletedPortalComboboxBackdrop: () => ({ model }),
       Opened: ({ maybeActiveItemIndex }) =>
         openCombobox(
-          constrainedEvo(model, {
+          modifyBaseFields(model, {
             maybeActiveItemIndex: () => maybeActiveItemIndex,
             activationTrigger: () =>
               Option.match(maybeActiveItemIndex, {
@@ -516,7 +521,7 @@ export const makeUpdate = <Model extends BaseModel>(
         activationTrigger,
         maybeImmediateSelection,
       }) => {
-        const highlightedModel = constrainedEvo(model, {
+        const highlightedModel = modifyBaseFields(model, {
           maybeActiveItemIndex: () => Option.some(index),
           activationTrigger: () => activationTrigger,
         })
@@ -556,7 +561,7 @@ export const makeUpdate = <Model extends BaseModel>(
         }
 
         return {
-          model: constrainedEvo(model, {
+          model: modifyBaseFields(model, {
             maybeActiveItemIndex: () => Option.some(index),
             activationTrigger: () => 'Pointer' as const,
             maybeLastPointerPosition: () => Option.some({ screenX, screenY }),
@@ -567,7 +572,7 @@ export const makeUpdate = <Model extends BaseModel>(
       DeactivatedItem: () =>
         model.activationTrigger === 'Pointer'
           ? {
-              model: constrainedEvo(model, {
+              model: modifyBaseFields(model, {
                 maybeActiveItemIndex: () => Option.none(),
               }),
             }
@@ -586,7 +591,7 @@ export const makeUpdate = <Model extends BaseModel>(
       UpdatedInputValue: ({ value }) => {
         if (model.isOpen) {
           return {
-            model: constrainedEvo(model, {
+            model: modifyBaseFields(model, {
               inputValue: () => value,
               maybeActiveItemIndex: () => Option.some(0),
               activationTrigger: () => 'Keyboard' as const,
@@ -595,7 +600,7 @@ export const makeUpdate = <Model extends BaseModel>(
         }
 
         return openCombobox(
-          constrainedEvo(model, {
+          modifyBaseFields(model, {
             inputValue: () => value,
             maybeActiveItemIndex: () => Option.some(0),
             activationTrigger: () => 'Keyboard' as const,
@@ -615,7 +620,7 @@ export const makeUpdate = <Model extends BaseModel>(
         }
 
         return Update.combine(
-          constrainedEvo(model, {
+          modifyBaseFields(model, {
             maybeActiveItemIndex: () => Option.none(),
             activationTrigger: () => 'Pointer' as const,
             maybeLastPointerPosition: () => Option.none(),
@@ -640,11 +645,11 @@ export const makeUpdate = <Model extends BaseModel>(
 
 /** The anchor-positioning Mount this Combobox renders on its items panel.
  *  The panel is always anchored to the input wrapper via Floating UI and
- *  portaled to the document body (opt out of portaling with
- *  `anchor.portal: false`), so it escapes ancestor stacking contexts and
- *  overflow clipping. The Mount also installs the `pointerdown`-cancelling
- *  capture listener that prevents input blur on item presses. Exposed so
- *  Scene tests can call
+ *  portaled to the document body, or into the enclosing `<dialog>` when
+ *  there is one (opt out of portaling with `anchor.portal: false`), so it
+ *  escapes ancestor stacking contexts and overflow clipping. The Mount also
+ *  installs the `pointerdown`-cancelling capture listener that prevents
+ *  input blur on item presses. Exposed so Scene tests can call
  *  `Scene.Mount.resolve(AnchorCombobox, CompletedAnchorCombobox())`. */
 export const AnchorCombobox = Mount.define('AnchorCombobox', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
@@ -742,7 +747,7 @@ export const PortalComboboxBackdrop = Mount.define('PortalComboboxBackdrop', {
   execute: ({ element }) =>
     Effect.gen(function* () {
       yield* Effect.acquireRelease(
-        Effect.sync(() => portalToContainingRoot(element)),
+        Effect.sync(() => portalBackdrop(element)),
         cleanup => Effect.sync(cleanup),
       )
       return Message.CompletedPortalComboboxBackdrop()
@@ -800,6 +805,8 @@ export type BaseViewInputsCommon<Item extends string> = Readonly<{
   itemsScrollAttributes?: ReadonlyArray<ChildAttribute>
   backdropClassName?: string
   backdropAttributes?: ReadonlyArray<ChildAttribute>
+  /** CSS class for the outer wrapper. Keep the wrapper positioned when the
+   *  Combobox renders a backdrop, so the input paints above it. */
   className?: string
   attributes?: ReadonlyArray<ChildAttribute>
   buttonContent?: Html
@@ -923,6 +930,10 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
       const isLeaving =
         transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
       const isVisible = isOpen || isLeaving
+      const isItemsPanelVisible =
+        isVisible && Array.isReadonlyArrayNonEmpty(items)
+      const isBackdropVisible =
+        isItemsPanelVisible || (isVisible && model.isModal)
 
       const animationAttributes: ReadonlyArray<
         ReturnType<typeof h.DataAttribute>
@@ -992,11 +1003,19 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
         }
       }
 
+      const maybeValidActiveItemIndex = Option.flatMap(
+        maybeActiveItemIndex,
+        index => Option.as(Array.get(items, index), index),
+      )
+
       const resolveCommitMessage = (): Option.Option<Message> => {
         if (isReadOnly) {
-          return Option.as(maybeActiveItemIndex, Message.SuppressedItemCommit())
+          return Option.as(
+            maybeValidActiveItemIndex,
+            Message.SuppressedItemCommit(),
+          )
         } else {
-          return Option.map(maybeActiveItemIndex, index =>
+          return Option.map(maybeValidActiveItemIndex, index =>
             Message.RequestedItemClick({ index }),
           )
         }
@@ -1005,6 +1024,10 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
       const handleInputKeyDown = (key: string): Option.Option<Message> =>
         Match.value(key).pipe(
           Match.when('ArrowDown', () => {
+            if (Array.isReadonlyArrayEmpty(items)) {
+              return Option.some(Message.SuppressedEmptyItemNavigation())
+            }
+
             if (!isOpen) {
               return Option.some(
                 Message.Opened({
@@ -1022,6 +1045,10 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
             )
           }),
           Match.when('ArrowUp', () => {
+            if (Array.isReadonlyArrayEmpty(items)) {
+              return Option.some(Message.SuppressedEmptyItemNavigation())
+            }
+
             if (!isOpen) {
               return Option.some(
                 Message.Opened({
@@ -1056,6 +1083,11 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
             if (!isOpen) {
               return Option.none()
             }
+
+            if (Array.isReadonlyArrayEmpty(items)) {
+              return Option.some(Message.SuppressedEmptyItemNavigation())
+            }
+
             const targetIndex = resolveActiveIndex(key)
             return Option.some(
               Message.ActivatedItem({
@@ -1068,7 +1100,7 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
           Match.orElse(() => Option.none()),
         )
 
-      const maybeActiveDescendant = Option.match(maybeActiveItemIndex, {
+      const maybeActiveDescendant = Option.match(maybeValidActiveItemIndex, {
         onNone: () => [],
         onSome: index => [h.AriaActiveDescendant(itemId(id, index))],
       })
@@ -1080,14 +1112,14 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
       const resolvedInputAttributes = [
         h.Id(`${id}-input`),
         h.Role('combobox'),
-        h.AriaExpanded(isVisible),
-        h.AriaControls(`${id}-items`),
+        h.AriaExpanded(isItemsPanelVisible),
+        ...(isItemsPanelVisible ? [h.AriaControls(`${id}-items`)] : []),
         h.Attribute('aria-autocomplete', 'list'),
         h.Attribute('aria-haspopup', 'listbox'),
         ...inputLabelAttributes,
         h.Autocomplete('off'),
         h.Value(model.inputValue),
-        ...maybeActiveDescendant,
+        ...(isItemsPanelVisible ? maybeActiveDescendant : []),
         ...(inputPlaceholder ? [h.Placeholder(inputPlaceholder)] : []),
         ...(isDisabled
           ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
@@ -1296,6 +1328,7 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
       }
 
       const backdrop = h.keyed('div')(`${id}-backdrop`, [
+        h.Id(`${id}-backdrop`),
         h.OnMount(PortalComboboxBackdrop()),
         ...(isLeaving
           ? []
@@ -1326,14 +1359,11 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
             ]
           : renderedItems
 
-      const visibleContent = [
-        backdrop,
-        h.keyed('div')(
-          `${id}-items-container`,
-          itemsContainerAttributes,
-          scrollableItems,
-        ),
-      ]
+      const itemsPanel = h.keyed('div')(
+        `${id}-items-container`,
+        itemsContainerAttributes,
+        scrollableItems,
+      )
 
       const resolvedInputWrapperAttributes = [
         h.Id(`${id}-input-wrapper`),
@@ -1349,8 +1379,8 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
                 h.Id(`${id}-button`),
                 h.Type('button'),
                 h.Tabindex(-1),
-                h.AriaControls(`${id}-items`),
-                h.AriaExpanded(isVisible),
+                ...(isItemsPanelVisible ? [h.AriaControls(`${id}-items`)] : []),
+                h.AriaExpanded(isItemsPanelVisible),
                 h.Attribute('aria-haspopup', 'listbox'),
                 ...(isDisabled
                   ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
@@ -1399,9 +1429,8 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
           h.input(resolvedInputAttributes),
           ...toggleButton,
         ]),
-        ...(isVisible && Array.isReadonlyArrayNonEmpty(items)
-          ? visibleContent
-          : []),
+        ...(isBackdropVisible ? [backdrop] : []),
+        ...(isItemsPanelVisible ? [itemsPanel] : []),
         ...hiddenInputs,
       ])
     },

@@ -16,7 +16,7 @@ The `toView` callback receives three attribute groups: `fieldset` for the wrappe
 
 ::Demo{name="basic"}
 
-::Snippet{name="uiFieldsetBasic" label="basic fieldset example"}
+::Snippet{name="uiFieldsetBasic" label="Basic fieldset"}
 
 ### Disabled
 
@@ -24,7 +24,7 @@ Set `isDisabled: true` to disable the entire group. The native `<fieldset disabl
 
 ::Demo{name="disabled"}
 
-::Snippet{name="uiFieldsetDisabled" label="disabled fieldset example"}
+::Snippet{name="uiFieldsetDisabled" label="Disabled fieldset"}
 
 ## Styling
 

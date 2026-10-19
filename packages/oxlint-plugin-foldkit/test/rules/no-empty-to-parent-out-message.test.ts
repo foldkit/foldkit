@@ -89,8 +89,45 @@ describe('no-empty-to-parent-out-message', () => {
     expect(block).toHaveLength(1)
     expect(functionResult).toHaveLength(1)
     expect(expression[0]?.diagnostic.message).toBe(
-      'Omit toParentOutMessage. This mapper directly returns undefined, so it forwards nothing to the parent.',
+      'Omit toParentOutMessage. Its inline mapper returns undefined for every child OutMessage, so it forwards nothing to the parent.',
     )
+  })
+
+  it('flags keyed mapper factories whose returned mapper is empty', () => {
+    const expression = run(
+      objectExpression([
+        property({
+          value: Testing.arrowFn(
+            Testing.arrowFn(Testing.id('undefined'), [
+              Testing.id('outMessage'),
+            ]),
+            [Testing.id('key')],
+          ),
+        }),
+      ]),
+    )
+    const block = run(
+      objectExpression([
+        property({
+          value: Testing.arrowFn(
+            Testing.blockStmt([
+              Testing.returnStmt(
+                Testing.arrowFn(
+                  Testing.blockStmt([
+                    Testing.returnStmt(Testing.id('undefined')),
+                  ]),
+                  [Testing.id('outMessage')],
+                ),
+              ),
+            ]),
+            [Testing.id('key')],
+          ),
+        }),
+      ]),
+    )
+
+    expect(expression).toHaveLength(1)
+    expect(block).toHaveLength(1)
   })
 
   it('flags quoted and statically computed property names', () => {
@@ -132,10 +169,21 @@ describe('no-empty-to-parent-out-message', () => {
         }),
       ]),
     )
+    const keyedNamed = run(
+      objectExpression([
+        property({
+          value: Testing.arrowFn(
+            Testing.callExpr('toParentOutMessage', [Testing.id('key')]),
+            [Testing.id('key')],
+          ),
+        }),
+      ]),
+    )
 
     expect(named).toHaveLength(0)
     expect(forwarded).toHaveLength(0)
     expect(matched).toHaveLength(0)
+    expect(keyedNamed).toHaveLength(0)
   })
 
   it('allows non-single-return bodies and other property names', () => {

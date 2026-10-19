@@ -1,0 +1,3 @@
+Deprecation: @1735689600
+Sunset: Wed, 31 Dec 2025 23:59:59 GMT
+Link: </api/v2>; rel="deprecation"

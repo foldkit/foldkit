@@ -33,7 +33,7 @@ const docs = (
 })
 
 const core = (title: string, description: string): PageMetadata =>
-  docs(title, description, 'Core Concepts')
+  docs(title, description, 'Core')
 
 const ui = (title: string, description: string): PageMetadata =>
   docs(title, description, 'Foldkit UI')
@@ -152,7 +152,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   BestPracticesImmutability: docs(
     'Immutability',
-    'Update Models immutably with evo, preserving references for unchanged branches and keeping state transitions predictable.',
+    'Update Models immutably with modifyFields, preserving references for unchanged branches and keeping state transitions predictable.',
     'Best Practices',
   ),
   ProjectOrganization: docs(
@@ -182,7 +182,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreUpdate: core(
     'Update',
-    'Handle every Message with a pure update function that returns the next Model and Commands. Use Match and evo to keep transitions exhaustive and immutable.',
+    'Handle every Message with a pure update function that returns the next Model and Commands. Use Match and modifyFields to keep transitions exhaustive and immutable.',
   ),
   CoreView: core(
     'View',
@@ -202,7 +202,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreSubscriptions: core(
     'Subscriptions',
-    'Run ongoing Streams whose lifetime follows Model-derived dependencies. Covers restart behavior, timers, browser events, live dependency reads, and Submodel lifting.',
+    'Run ongoing Streams whose lifetime follows Model-derived dependencies. Covers restart behavior, timers, animation frames, live dependency reads, and Submodel lifting.',
   ),
   CoreInitAndFlags: core(
     'Init & Flags',
@@ -210,7 +210,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreDom: core(
     'Dom',
-    'Use Effects for common DOM work such as focus, dialog control, scrolling, scroll locks, and inert isolation.',
+    'Use Effects for one-time DOM work and composable Streams for events, media queries, and key bindings.',
   ),
   CoreRender: core(
     'Render',
@@ -223,6 +223,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   CoreHttp: core(
     'Http',
     'Provide a Fetch-backed HttpClient to Commands while keeping browser requests CORS-simple by disabling trace header propagation unless it is required.',
+  ),
+  CoreQuery: core(
+    'Query',
+    'Fetch, cache, and refresh remote data with reusable Submodels and less boilerplate.',
   ),
   CoreCanvas: core(
     'Canvas',
@@ -287,6 +291,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   AsyncData: core(
     'Async Data',
     'A six-state value type for asynchronously loaded data in the Model: Idle, Loading, Refreshing, Failure, Stale, and Success, with stale-while-revalidate and keep-stale-on-failure built in.',
+  ),
+  PatternsAntiPatterns: pattern(
+    'Anti-patterns',
+    'Architectural warning signs in Foldkit apps, with idiomatic replacements for ambiguous state, leaky Submodel boundaries, misplaced side effects, stale async results, Command ordering, and live handles.',
   ),
   PatternsInformingSubmodels: pattern(
     'Informing Submodels',
@@ -375,6 +383,14 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   UiSlider: ui(
     'Slider',
     'A numeric range Submodel with pointer dragging, keyboard navigation, constraints, steps, and ARIA slider semantics.',
+  ),
+  UiMeter: ui(
+    'Meter',
+    'A scalar value in a known range with meter semantics, clamped aria-valuenow, and threshold data attributes.',
+  ),
+  UiProgress: ui(
+    'Progress',
+    'Task progress with determinate and indeterminate states, progressbar semantics, and data-state styling hooks.',
   ),
   UiSwitch: ui(
     'Switch',

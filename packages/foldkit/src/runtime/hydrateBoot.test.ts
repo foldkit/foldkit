@@ -186,6 +186,68 @@ describe('hydrating boot', () => {
     }
   })
 
+  it('restores initial server metadata when a hydrated view omits it', async () => {
+    const initialCanonical = 'https://example.com/initial'
+    const metadataView = (model: Model): Document => {
+      if (model.count === 5) {
+        return { ...view(model), canonical: initialCanonical }
+      } else {
+        return view(model)
+      }
+    }
+    const rendered = await Effect.runPromise(
+      renderToString(
+        { Flags, init, view: metadataView },
+        { flags: { start: 5 }, buildId: BUILD_ID },
+      ),
+    )
+    expect(rendered.canonical).toBe(initialCanonical)
+    expect(rendered.ogUrl).toBe(initialCanonical)
+    if (rendered.canonical === undefined || rendered.ogUrl === undefined) {
+      throw new Error('server metadata is missing')
+    }
+    document.body.innerHTML = rendered.html
+
+    const canonicalElement = document.head.appendChild(
+      document.createElement('link'),
+    )
+    canonicalElement.setAttribute('rel', 'canonical')
+    canonicalElement.setAttribute('href', rendered.canonical)
+    const ogUrlElement = document.head.appendChild(
+      document.createElement('meta'),
+    )
+    ogUrlElement.setAttribute('property', 'og:url')
+    ogUrlElement.setAttribute('content', rendered.ogUrl)
+
+    const application = makeApplication({
+      Model,
+      Flags,
+      init,
+      update,
+      view: metadataView,
+      container: nullContainer(),
+    })
+    const fiber = Effect.runFork(
+      __startProgram(application, undefined, 'Hydrate', undefined, BUILD_ID),
+    )
+
+    try {
+      await awaitBodyText('5')
+
+      document
+        .getElementById('bump')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+
+      await awaitBodyText('6')
+      expect(canonicalElement.getAttribute('href')).toBe(initialCanonical)
+      expect(ogUrlElement.getAttribute('content')).toBe(initialCanonical)
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+      canonicalElement.remove()
+      ogUrlElement.remove()
+    }
+  })
+
   it('round-trips non-JSON-native Schema values through the flags payload', async () => {
     const OptionalFlags = Schema.Struct({
       maybeStart: Schema.Option(Schema.Number),
@@ -559,7 +621,6 @@ describe('hydrating boot', () => {
       // @ts-expect-error a fresh boot of a Flags application requires a Flags Effect
       run(application)
       run(application, { flags: Effect.succeed({ start: 1 }) })
-      // @ts-expect-error hydration requires the client's build id
       hydrate(application)
       hydrate(application, {
         buildId: BUILD_ID,
@@ -587,7 +648,7 @@ describe('hydrating boot', () => {
     ).rejects.toThrow('no known deployment')
   })
 
-  it('refuses a hydration given no build id', async () => {
+  it('refuses a hydration with no build id', async () => {
     await renderServerPage({ start: 5 })
     const application = makeClientApplication()
 
@@ -595,7 +656,7 @@ describe('hydrating boot', () => {
       Effect.runPromise(
         __startProgram(application, undefined, 'Hydrate', undefined, undefined),
       ),
-    ).rejects.toThrow('was given no build id')
+    ).rejects.toThrow('has no build id')
   })
 
   it('refuses a hydration given an empty build id', async () => {
@@ -609,7 +670,7 @@ describe('hydrating boot', () => {
       Effect.runPromise(
         __startProgram(application, undefined, 'Hydrate', undefined, ''),
       ),
-    ).rejects.toThrow('was given no build id')
+    ).rejects.toThrow('has no build id')
   })
 
   it('refuses build skew before decoding the served Flags', async () => {
@@ -738,7 +799,7 @@ describe('hydrating boot', () => {
 
     await expect(
       Effect.runPromise(startHydrationUnchecked(application, buildId)),
-    ).rejects.toThrow('was given no build id')
+    ).rejects.toThrow('has no build id')
     expectContained(servedRoot)
   })
 

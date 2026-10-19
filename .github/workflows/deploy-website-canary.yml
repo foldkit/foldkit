@@ -14,10 +14,6 @@ on:
         required: true
       VERCEL_WEBSITE_CANARY_PROJECT_ID:
         required: true
-      ABC_FAVORIT_BOOK_WOFF2_BASE64:
-        required: true
-      ABC_FAVORIT_LIGHT_WOFF2_BASE64:
-        required: true
 
 concurrency:
   group: deploy-website-canary
@@ -37,5 +33,3 @@ jobs:
       vercel_token: ${{ secrets.VERCEL_TOKEN }}
       vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
       vercel_project_id: ${{ secrets.VERCEL_WEBSITE_CANARY_PROJECT_ID }}
-      website_book_font: ${{ secrets.ABC_FAVORIT_BOOK_WOFF2_BASE64 }}
-      website_light_font: ${{ secrets.ABC_FAVORIT_LIGHT_WOFF2_BASE64 }}

@@ -11,12 +11,12 @@ import {
   type,
   within,
 } from 'foldkit/scene'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { Message, SimulateAuthRequest, initModel, update, view } from './login'
 
-const validModel = evo(initModel(), {
+const validModel = modifyFields(initModel(), {
   email: () => Valid({ value: 'alice@example.com' }),
   password: () => Valid({ value: 'password' }),
 })

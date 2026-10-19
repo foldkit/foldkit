@@ -3,7 +3,7 @@ import { Effect, Schema } from 'effect'
 import * as Command from '../../command/index.js'
 import type { Document, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
-import { evo } from '../../struct/index.js'
+import { modifyFields } from '../../struct/index.js'
 import type * as Update from '../../update/index.js'
 
 // MODEL
@@ -48,11 +48,11 @@ export const initialModel: Model = { revision: 0, status: 'Editing' }
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedSaveDraft: () => ({
-      model: evo(model, { status: () => 'Saving' }),
+      model: modifyFields(model, { status: () => 'Saving' }),
       commands: [SaveDraft({ revision: model.revision })],
     }),
     SucceededSaveDraft: () => ({
-      model: evo(model, { status: () => 'Saved' }),
+      model: modifyFields(model, { status: () => 'Saved' }),
     }),
   })
 

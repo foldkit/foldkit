@@ -96,6 +96,62 @@ const panelFor = (tab: DemoTab, h: HtmlBuilder<UiMessage>): Html =>
 
 export const view = Submodel.defineView<UiModel, UiMessage>(
   (model, h): Html => {
+    const horizontalTabsView = ({
+      tablist,
+      tabs,
+      activeIndex,
+    }: Tabs.RenderInfo<DemoTab>): Html =>
+      h.div(
+        [],
+        [
+          h.div(
+            [...tablist, h.Class('flex')],
+            tabs.map(tab =>
+              h.button(
+                [...tab.tab, h.Class(horizontalButtonClassName)],
+                [h.span([], [tab.value])],
+              ),
+            ),
+          ),
+          ...Array.map(
+            Array.filter(tabs, tab => tab.index === activeIndex),
+            tab =>
+              h.div(
+                [...tab.panel, h.Class(horizontalPanelClassName)],
+                [panelFor(tab.value, h)],
+              ),
+          ),
+        ],
+      )
+
+    const verticalTabsView = ({
+      tablist,
+      tabs,
+      activeIndex,
+    }: Tabs.RenderInfo<DemoTab>): Html =>
+      h.div(
+        [h.Class('flex')],
+        [
+          h.div(
+            [...tablist, h.Class('flex flex-col')],
+            tabs.map(tab =>
+              h.button(
+                [...tab.tab, h.Class(verticalButtonClassName)],
+                [h.span([], [tab.value])],
+              ),
+            ),
+          ),
+          ...Array.map(
+            Array.filter(tabs, tab => tab.index === activeIndex),
+            tab =>
+              h.div(
+                [...tab.panel, h.Class(verticalPanelClassName)],
+                [panelFor(tab.value, h)],
+              ),
+          ),
+        ],
+      )
+
     return h.div(
       [],
       [
@@ -113,29 +169,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
             tabs: demoTabs,
             selectedValue: model.horizontalTabsDemoTab,
             ariaLabel: 'Framework comparison tabs',
-            toView: ({ tablist, tabs, activeIndex }) =>
-              h.div(
-                [],
-                [
-                  h.div(
-                    [...tablist, h.Class('flex')],
-                    tabs.map(tab =>
-                      h.button(
-                        [...tab.tab, h.Class(horizontalButtonClassName)],
-                        [h.span([], [tab.value])],
-                      ),
-                    ),
-                  ),
-                  ...Array.map(
-                    Array.filter(tabs, tab => tab.index === activeIndex),
-                    tab =>
-                      h.div(
-                        [...tab.panel, h.Class(horizontalPanelClassName)],
-                        [panelFor(tab.value, h)],
-                      ),
-                  ),
-                ],
-              ),
+            toView: horizontalTabsView,
           },
           toParentMessage: message =>
             UiMessage.GotHorizontalTabsDemoMessage({ message }),
@@ -154,29 +188,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
             selectedValue: model.verticalTabsDemoTab,
             ariaLabel: 'Framework comparison tabs',
             orientation: 'Vertical',
-            toView: ({ tablist, tabs, activeIndex }) =>
-              h.div(
-                [h.Class('flex')],
-                [
-                  h.div(
-                    [...tablist, h.Class('flex flex-col')],
-                    tabs.map(tab =>
-                      h.button(
-                        [...tab.tab, h.Class(verticalButtonClassName)],
-                        [h.span([], [tab.value])],
-                      ),
-                    ),
-                  ),
-                  ...Array.map(
-                    Array.filter(tabs, tab => tab.index === activeIndex),
-                    tab =>
-                      h.div(
-                        [...tab.panel, h.Class(verticalPanelClassName)],
-                        [panelFor(tab.value, h)],
-                      ),
-                  ),
-                ],
-              ),
+            toView: verticalTabsView,
           },
           toParentMessage: message =>
             UiMessage.GotVerticalTabsDemoMessage({ message }),

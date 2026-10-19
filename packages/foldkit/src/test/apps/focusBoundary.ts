@@ -2,7 +2,7 @@ import { Schema } from 'effect'
 
 import type { Html, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
-import { evo } from '../../struct/index.js'
+import { modifyFields } from '../../struct/index.js'
 import type * as Update from '../../update/index.js'
 
 // MODEL
@@ -33,10 +33,10 @@ export const initialModel: Model = {
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     EnteredFocusRegion: () => ({
-      model: evo(model, { focusState: () => 'Within' }),
+      model: modifyFields(model, { focusState: () => 'Within' }),
     }),
     LeftFocusRegion: () => ({
-      model: evo(model, { focusState: () => 'Outside' }),
+      model: modifyFields(model, { focusState: () => 'Outside' }),
     }),
   })
 

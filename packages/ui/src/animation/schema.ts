@@ -15,11 +15,13 @@ export type TransitionState = typeof TransitionState.Type
 
 // MODEL
 
-/** Schema for the animation component's state, tracking its unique ID, visibility intent, and lifecycle phase. */
+/** Schema for Animation state, including the transition generation used to reject
+ *  stale Command results. */
 export const Model = Schema.Struct({
   id: Schema.String,
   isShowing: Schema.Boolean,
   transitionState: TransitionState,
+  transitionGeneration: Schema.Number,
 })
 
 export type Model = typeof Model.Type
@@ -30,8 +32,8 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({
   Showed: {},
   Hid: {},
-  CompletedWaitForPaint: {},
-  EndedAnimation: {},
+  CompletedWaitForPaint: { generation: Schema.Number },
+  EndedAnimation: { generation: Schema.Number },
 })
 export type Message = typeof Message.Type
 
@@ -40,8 +42,9 @@ export type Hid = typeof Message.Hid.Type
 
 // OUT MESSAGE
 
+/** Union of the facts Animation reports to its parent. */
 export const OutMessage = defineMessageUnion({
-  StartedLeaveAnimating: {},
+  StartedLeaveAnimating: { generation: Schema.Number },
   TransitionedOut: {},
 })
 export type OutMessage = typeof OutMessage.Type
@@ -59,4 +62,5 @@ export const init = (config: InitConfig): Model => ({
   id: config.id,
   isShowing: config.isShowing ?? false,
   transitionState: 'Idle',
+  transitionGeneration: 0,
 })

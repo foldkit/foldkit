@@ -11,11 +11,11 @@ export const renderer =
     toParentMessage: (message: Message) => ParentMessage,
     h: HtmlBuilder<ParentMessage>,
   ): CodeBlock.RenderCopyButton =>
-  ({ id, text, ariaLabel, positionClass }) =>
+  ({ id, text, ariaLabel, positionClass, variant }) =>
     h.submodel({
       slotId: `snippet-copy-${id}`,
       model,
       view,
-      viewInputs: { snippetId: id, text, ariaLabel, positionClass },
+      viewInputs: { snippetId: id, text, ariaLabel, positionClass, variant },
       toParentMessage,
     })

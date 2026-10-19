@@ -1,6 +1,6 @@
 import { Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
@@ -104,7 +104,7 @@ describe('update', () => {
       story(
         update,
         given(
-          evo(browseModel, {
+          modifyFields(browseModel, {
             route: () =>
               AppRoute.Browse({
                 search: Option.some('foo'),

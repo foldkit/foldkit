@@ -23,6 +23,52 @@ const TOOLTIP_ANCHOR: AnchorConfig = {
 
 export const view = Submodel.defineView<UiModel, UiMessage>(
   (model, h): Html => {
+    const basicTooltipView = ({
+      trigger,
+      panel,
+      isVisible,
+    }: Tooltip.RenderInfo): Html =>
+      h.div(
+        [h.Class(wrapperClassName)],
+        [
+          h.button(
+            [...trigger, h.Class(triggerClassName)],
+            [h.span([], ['Hover or focus me'])],
+          ),
+          ...(isVisible
+            ? [
+                h.div(
+                  [...panel, h.Class(panelClassName)],
+                  [h.span([], ['This is a tooltip'])],
+                ),
+              ]
+            : []),
+        ],
+      )
+
+    const noDelayTooltipView = ({
+      trigger,
+      panel,
+      isVisible,
+    }: Tooltip.RenderInfo): Html =>
+      h.div(
+        [h.Class(wrapperClassName)],
+        [
+          h.button(
+            [...trigger, h.Class(triggerClassName)],
+            [h.span([], ['No delay'])],
+          ),
+          ...(isVisible
+            ? [
+                h.div(
+                  [...panel, h.Class(panelClassName)],
+                  [h.span([], ['Shows immediately'])],
+                ),
+              ]
+            : []),
+        ],
+      )
+
     return h.div(
       [],
       [
@@ -48,24 +94,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
               view: Tooltip.view,
               viewInputs: {
                 anchor: TOOLTIP_ANCHOR,
-                toView: ({ trigger, panel, isVisible }) =>
-                  h.div(
-                    [h.Class(wrapperClassName)],
-                    [
-                      h.button(
-                        [...trigger, h.Class(triggerClassName)],
-                        [h.span([], ['Hover or focus me'])],
-                      ),
-                      ...(isVisible
-                        ? [
-                            h.div(
-                              [...panel, h.Class(panelClassName)],
-                              [h.span([], ['This is a tooltip'])],
-                            ),
-                          ]
-                        : []),
-                    ],
-                  ),
+                toView: basicTooltipView,
               },
               toParentMessage: message =>
                 UiMessage.GotTooltipBasicDemoMessage({ message }),
@@ -93,24 +122,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
               view: Tooltip.view,
               viewInputs: {
                 anchor: TOOLTIP_ANCHOR,
-                toView: ({ trigger, panel, isVisible }) =>
-                  h.div(
-                    [h.Class(wrapperClassName)],
-                    [
-                      h.button(
-                        [...trigger, h.Class(triggerClassName)],
-                        [h.span([], ['No delay'])],
-                      ),
-                      ...(isVisible
-                        ? [
-                            h.div(
-                              [...panel, h.Class(panelClassName)],
-                              [h.span([], ['Shows immediately'])],
-                            ),
-                          ]
-                        : []),
-                    ],
-                  ),
+                toView: noDelayTooltipView,
               },
               toParentMessage: message =>
                 UiMessage.GotTooltipNoDelayDemoMessage({ message }),

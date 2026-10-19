@@ -5,7 +5,7 @@ import { Array, Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import { type HtmlBuilder, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Combobox } from '@foldkit/ui'
 
@@ -51,7 +51,7 @@ const foldComboboxMultiOutMessage = Combobox.OutMessage.match<
   Selected:
     ({ value }) =>
     model => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         selectedCities: selectedCities =>
           Array.contains(selectedCities, value)
             ? Array.filter(selectedCities, city => city !== value)
@@ -69,7 +69,7 @@ const foldComboboxMulti = Update.foldChild({
   update: CitiesCombobox.update,
   read: (model: Model) => Option.some(model.comboboxMulti),
   write: (model, nextComboboxMulti) =>
-    evo(model, { comboboxMulti: () => nextComboboxMulti }),
+    modifyFields(model, { comboboxMulti: () => nextComboboxMulti }),
   toParentMessage: message => Message.GotComboboxMultiMessage({ message }),
   foldOutMessage: foldComboboxMultiOutMessage,
 })

@@ -162,7 +162,7 @@ const modelPage: ApiPageEntry = {
   metadata: {
     title: 'Model',
     description: 'One Schema-defined Model.',
-    section: 'Core Concepts',
+    section: 'Core',
   },
   markdown: '# Model\n\nThe Model holds state.',
 }
@@ -213,7 +213,7 @@ describe('page documents', () => {
       markdownUrl: 'https://foldkit.dev/core/model.md',
       apiUrl: 'https://foldkit.dev/api/v1/page.json?path=core%2Fmodel',
       title: 'Model',
-      section: 'Core Concepts',
+      section: 'Core',
       markdown: '# Model\n\nThe Model holds state.',
     })
     expectMatchesSchema('PageDocument', document)
@@ -247,7 +247,7 @@ describe('collection documents', () => {
 
     expect(Array.map(document.sections, ({ section }) => section)).toEqual([
       'Docs',
-      'Core Concepts',
+      'Core',
     ])
     expect(
       pipe(
@@ -264,6 +264,18 @@ describe('collection documents', () => {
 
     expect(document).toMatchObject({ count: examples.length })
     expectMatchesSchema('ExamplesIndex', document)
+  })
+
+  it('identifies paused examples', () => {
+    const document = buildExamplesIndex(examples, GENERATED)
+
+    expect(document).toEqual(
+      expect.objectContaining({
+        examples: expect.arrayContaining([
+          expect.objectContaining({ slug: 'livestore', status: 'Paused' }),
+        ]),
+      }),
+    )
   })
 
   it('list every blog post against the published schema', () => {

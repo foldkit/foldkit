@@ -1,6 +1,6 @@
 return Update.combine(model, [
   openDialog,
   stepModel => ({
-    model: evo(stepModel, { isSubmitting: () => false }),
+    model: modifyFields(stepModel, { isSubmitting: () => false }),
   }),
 ])

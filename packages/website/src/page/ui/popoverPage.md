@@ -18,7 +18,7 @@ Pass `anchor` to position the panel relative to the button. The panel can hold a
 
 ::Demo{name="basic"}
 
-::Snippet{name="uiPopoverBasic" label="popover example"}
+::Snippet{name="uiPopoverBasic" label="Popover"}
 
 ### Arrow
 
@@ -26,7 +26,7 @@ Popover does not draw an arrow. It positions one. Spread the `arrow` bundle onto
 
 ::Demo{name="arrow"}
 
-::Snippet{name="uiPopoverArrow" label="popover arrow example"}
+::Snippet{name="uiPopoverArrow" label="Popover arrow"}
 
 ### Animated
 
@@ -40,7 +40,7 @@ Use a separate Popover Model for each level. For a parent panel that opens onto 
 
 ::Demo{name="nested"}
 
-::Snippet{name="uiPopoverNested" label="nested popovers example"}
+::Snippet{name="uiPopoverNested" label="Nested popovers"}
 
 ## Styling
 
@@ -59,11 +59,17 @@ When `isAnimated` is true, enter/leave animations flow through the [Animation](/
 
 `toView` receives an `arrow` bundle carrying the element's id. Popover does not draw the arrow. Spread the bundle onto your own element, a direct child of the panel, and place it with the custom properties Anchor publishes:
 
-::Snippet{name="uiPopoverArrowStyles" label="popover arrow styles"}
+::Snippet{name="uiPopoverArrowStyles" label="Popover arrow styles"}
+
+#### Position the Arrow
 
 `--arrow-x` and `--arrow-y` position the arrow along the panel edge. Anchor sets one of them for each placement, while the matching `data-placement` rule pins the arrow to the correct side.
 
+#### Support Placement Flips
+
 Write a rule for every side the panel can use because a `bottom` placement can flip to `top`, and a `left` placement can flip to `right`. The direct-child selector keeps a nested popover tied to its own panel. Pass `arrowPadding` to keep the arrow clear of rounded corners.
+
+#### Size and Border the Arrow
 
 The square SVG keeps its measurements stable when the placement flips. Its fill extends 2px into the panel to mask the border beneath it, while a separate path outlines only the two outward-facing edges. The 16px arrow reaches 8px past the panel, so the demo uses `gap: 10` to keep it clear of the trigger. Anchor centers the arrow on the trigger along the panel's edge.
 
@@ -71,9 +77,13 @@ The square SVG keeps its measurements stable when the placement flips. Its fill 
 
 An arrow sits outside the panel, so scrolling the panel itself would clip it. Anchor leaves the panel unclipped when an arrow resolves and still writes its `max-height`. If the content can outgrow that height, make the panel a flex column and scroll an inner container:
 
-::Snippet{name="uiPopoverScrollablePanel" label="scrollable popover panel styles"}
+::Snippet{name="uiPopoverScrollablePanel" label="Scrollable popover panel styles"}
+
+#### Keep Height Inside the Panel
 
 `min-height: 0` lets the child shrink below its content height so it can scroll. `box-sizing: border-box` keeps the panel's padding and border within the height Anchor measured.
+
+#### Avoid Inherited Maximum Height
 
 Do not put `max-height: inherit` on the child. That copies the panel's full measured height without accounting for the panel's padding and border. The flex layout avoids that arithmetic.
 
@@ -89,7 +99,11 @@ By default, the panel receives `tabindex="0"` so it can receive focus. Tab navig
 
 ## Accessibility
 
+### Disclosure Semantics
+
 The button receives `aria-expanded` and `aria-controls` linking to the panel. The panel has no role. Popover uses the disclosure pattern, not the menu pattern.
+
+### Name the Trigger
 
 Give the trigger an accessible name. For a visible label, wire a native `<label for>` that targets the trigger id with `Popover.buttonId(id)` rather than hardcoding the `-button` convention. The `for` association makes the trigger properly labeled: assistive technology announces it by the visible label text, and clicking the label opens the popover. That is why it is the recommended pattern.
 
@@ -116,29 +130,29 @@ Configuration object passed to `Popover.init()`.
 
 Configuration object passed to `Popover.view()`.
 
-| Name              | Type                                               | Default | Description                                                                                                                                                                                               |
-| ----------------- | -------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `model`           | `Popover.Model`                                    | —       | The popover state from your parent Model.                                                                                                                                                                 |
-| `toParentMessage` | `(childMessage: Popover.Message) => ParentMessage` | —       | Wraps Popover Messages in your parent Message type for Submodel delegation.                                                                                                                               |
-| `anchor`          | `AnchorConfig`                                     | —       | Floating positioning config: placement, gap, offset, padding, isPlacementLocked, and portal. Required. Portaled to the document body by default; pass portal: false to keep the panel inside its wrapper. |
-| `toView`          | `(render: RenderInfo) => Html`                     | —       | Callback that receives the button, panel, backdrop, and arrow attribute bundles plus a derived `isVisible` flag, and returns the composed layout.                                                         |
-| `isDisabled`      | `boolean`                                          | `false` | Disables the trigger button.                                                                                                                                                                              |
-| `focusSelector`   | `string`                                           | —       | CSS selector for the element to focus after the panel is positioned. Defaults to the panel itself.                                                                                                        |
-| `arrowPadding`    | `number`                                           | `0`     | Distance in pixels the arrow keeps from the panel's corners.                                                                                                                                              |
-| `ariaLabel`       | `string`                                           | —       | Accessible name for the trigger button. Use for an icon-only trigger with no visible label. Applied as aria-label, and takes precedence over ariaLabelledBy.                                              |
-| `ariaLabelledBy`  | `string`                                           | —       | Id of an external element that labels the trigger button, applied as aria-labelledby. Pair with a visible label element.                                                                                  |
+| Name              | Type                                               | Default | Description                                                                                                                                                                                                                             |
+| ----------------- | -------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`           | `Popover.Model`                                    | —       | The popover state from your parent Model.                                                                                                                                                                                               |
+| `toParentMessage` | `(childMessage: Popover.Message) => ParentMessage` | —       | Wraps Popover Messages in your parent Message type for Submodel delegation.                                                                                                                                                             |
+| `anchor`          | `AnchorConfig`                                     | —       | Floating positioning config: placement, gap, offset, padding, isPlacementLocked, and portal. Required. Portaled to the document body, or into an enclosing dialog, by default; pass portal: false to keep the panel inside its wrapper. |
+| `toView`          | `(render: RenderInfo) => Html`                     | —       | Callback that receives the button, panel, backdrop, and arrow attribute bundles plus a derived `isVisible` flag, and returns the composed layout.                                                                                       |
+| `isDisabled`      | `boolean`                                          | `false` | Disables the trigger button.                                                                                                                                                                                                            |
+| `focusSelector`   | `string`                                           | —       | CSS selector for the element to focus after the panel is positioned. Defaults to the panel itself.                                                                                                                                      |
+| `arrowPadding`    | `number`                                           | `0`     | Distance in pixels the arrow keeps from the panel's corners.                                                                                                                                                                            |
+| `ariaLabel`       | `string`                                           | —       | Accessible name for the trigger button. Use for an icon-only trigger with no visible label. Applied as aria-label, and takes precedence over ariaLabelledBy.                                                                            |
+| `ariaLabelledBy`  | `string`                                           | —       | Id of an external element that labels the trigger button, applied as aria-labelledby. Pair with a visible label element.                                                                                                                |
 
 ### RenderInfo {#render-info}
 
 Payload delivered to the `toView` callback each render.
 
-| Name        | Type                            | Default | Description                                                                                                                                                               |
-| ----------- | ------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `button`    | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the trigger button. Includes the button id, `aria-expanded`, `aria-controls`, and pointer/keyboard handlers.                                                  |
-| `panel`     | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the floating panel. Includes the anchor Mount that positions the panel via Floating UI, ARIA linkage to the button, and panel keydown/blur handlers.          |
-| `backdrop`  | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the modal backdrop element. Includes the portal Mount that moves the backdrop to `document.body`. The backdrop's click handler dispatches `RequestedClose`.   |
-| `arrow`     | `ReadonlyArray<ChildAttribute>` | —       | Spread onto your arrow element inside the panel. Carries the id the anchor Mount resolves and `aria-hidden`. Nothing renders until you add the element and the CSS above. |
-| `isVisible` | `boolean`                       | —       | Derived from `isOpen` and the Animation `transitionState`. Render the panel and backdrop only while this is true.                                                         |
+| Name        | Type                            | Default | Description                                                                                                                                                                                                                                                                                                                        |
+| ----------- | ------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `button`    | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the trigger button. Includes the button id, `aria-expanded`, `aria-controls`, and pointer/keyboard handlers.                                                                                                                                                                                                           |
+| `panel`     | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the floating panel. Includes the anchor Mount that positions the panel via Floating UI, ARIA linkage to the button, and panel keydown/blur handlers.                                                                                                                                                                   |
+| `backdrop`  | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the modal backdrop element. Includes the portal Mount that moves the backdrop to `document.body`. Inside a dialog, it moves the backdrop to directly before the element it is rendered in, so render it inside the positioned wrapper that holds the button. The backdrop's click handler dispatches `RequestedClose`. |
+| `arrow`     | `ReadonlyArray<ChildAttribute>` | —       | Spread onto your arrow element inside the panel. Carries the id the anchor Mount resolves and `aria-hidden`. Nothing renders until you add the element and the CSS above.                                                                                                                                                          |
+| `isVisible` | `boolean`                       | —       | Derived from `isOpen` and the Animation `transitionState`. Render the panel and backdrop only while this is true.                                                                                                                                                                                                                  |
 
 ### OutMessage {#out-message}
 

@@ -40,7 +40,7 @@ A checkout may allow cancellation from Cart, Shipping, Payment, and Review. Repe
 
 `Machine.forStates(...).on(...)` now lets you declare the cancellation once in the Machine's `shared` array:
 
-::Snippet{name="release0158SharedTransitions" label="shared checkout cancellation"}
+::Snippet{name="release0158SharedTransitions" label="Shared checkout cancellation"}
 
 The handler's `state` narrows to the selected variants, so it can read their common fields. A state-local transition overrides the shared default for the same Message. Overlapping shared declarations throw when the Machine is defined.
 
@@ -50,7 +50,7 @@ Shared transitions also appear in the Machine's graph analysis and Mermaid outpu
 
 `Machine.fold` handles the work of reading a Machine state from the enclosing Model, running a transition, writing the next state back, and returning its Commands:
 
-::Snippet{name="release0158MachineFold" label="folding checkout into the application Model"}
+::Snippet{name="release0158MachineFold" label="Folding checkout into the application Model"}
 
 Call `foldCheckout(model, message)` from update, or use `foldCheckout(message)` as a Step in `Update.combine`. If the Machine exists only in some Model variants, `read` can return `Option.none()` elsewhere and the fold leaves the Model unchanged.
 

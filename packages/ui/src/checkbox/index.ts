@@ -85,7 +85,7 @@ export const descriptionId = (id: string): string => `${id}-description`
  *
  *  // In update:
  *  ToggledTerms: ({ isChecked }) => ({
- *    model: evo(model, { acceptedTerms: () => isChecked }),
+ *    model: modifyFields(model, { acceptedTerms: () => isChecked }),
  *  }),
  *  ``` */
 export const view = <Message>(

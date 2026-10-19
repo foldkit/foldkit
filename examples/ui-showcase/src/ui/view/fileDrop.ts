@@ -42,6 +42,22 @@ const fileKey = (file: File.File): string =>
 
 export const view = Submodel.defineView<UiModel, UiMessage>(
   (model, h): Html => {
+    const fileDropView = (attributes: FileDrop.FileDropAttributes): Html =>
+      h.label(
+        [...attributes.root, h.Class(dropZoneClassName)],
+        [
+          h.p(
+            [h.Class(primaryTextClassName)],
+            ['Drop files or click to browse'],
+          ),
+          h.p(
+            [h.Class(secondaryTextClassName)],
+            ['Any file type. This demo just lists them.'],
+          ),
+          h.input(attributes.input),
+        ],
+      )
+
     return h.div(
       [],
       [
@@ -55,21 +71,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
               view: FileDrop.view,
               viewInputs: {
                 multiple: true,
-                toView: attributes =>
-                  h.label(
-                    [...attributes.root, h.Class(dropZoneClassName)],
-                    [
-                      h.p(
-                        [h.Class(primaryTextClassName)],
-                        ['Drop files or click to browse'],
-                      ),
-                      h.p(
-                        [h.Class(secondaryTextClassName)],
-                        ['Any file type. This demo just lists them.'],
-                      ),
-                      h.input(attributes.input),
-                    ],
-                  ),
+                toView: fileDropView,
               },
               toParentMessage: message =>
                 UiMessage.GotFileDropBasicDemoMessage({ message }),

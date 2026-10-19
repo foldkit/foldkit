@@ -1,8 +1,8 @@
 import { Effect, Schema } from 'effect'
-import { HttpClient, HttpClientRequest } from 'effect/unstable/http'
+import { HttpClient, HttpClientRequest } from 'effect/http'
 import { Command, Http, type Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 const Message = defineMessageUnion({
   SubmittedWeatherForm: {},
@@ -42,7 +42,7 @@ const update = (model: Model, message: Message) =>
       commands: [FetchWeather({ zipCode: model.zipCodeInput })],
     }),
     SucceededFetchWeather: ({ weather }) => ({
-      model: evo(model, { weather: () => weather }),
+      model: modifyFields(model, { weather: () => weather }),
     }),
     FailedFetchWeather: () => ({ model }),
   })

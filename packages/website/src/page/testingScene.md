@@ -10,49 +10,77 @@ Import the steps you need from `foldkit/scene`. Use named imports when the file 
 
 ## Locators
 
+### Locator Factories
+
 Locators find elements by role, label, visible text, and other user-facing properties. A `Locator` resolves to one match. Interactions and assertions also accept a raw CSS selector when no accessible query fits.
 
-::Snippet{name="sceneLocators" label="locator examples"}
+::Snippet{name="sceneLocators" label="Locator API"}
 
-| Locator                | Finds                                                                                           | Example                            |
-| ---------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------- |
-| `role(role, options?)` | Elements by ARIA role (explicit or implicit). Options narrow by accessible name and ARIA state. | `role('button', { name: 'Save' })` |
-| `label(text)`          | Form controls by their aria-label or associated \<label> text.                                  | `label('Email')`                   |
-| `placeholder(text)`    | Inputs by their placeholder attribute.                                                          | `placeholder('Search...')`         |
-| `text(text)`           | Elements by visible text content.                                                               | `text('Welcome back')`             |
-| `altText(text)`        | Images and similar elements by their alt attribute.                                             | `altText('Profile photo')`         |
-| `title(text)`          | Elements by their title attribute (tooltip text).                                               | `title('Delete')`                  |
-| `testId(id)`           | Elements by data-testid: the escape hatch for tests.                                            | `testId('cart-item-3')`            |
-| `displayValue(value)`  | Form controls by their current value.                                                           | `displayValue('US')`               |
-| `selector(css)`        | Elements by CSS selector. Use when no accessible query fits.                                    | `selector('.chart-legend')`        |
+| Locator                  | Finds                                                                                           | Example                            |
+| ------------------------ | ----------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `role(role, options?)`   | Elements by ARIA role (explicit or implicit). Options narrow by accessible name and ARIA state. | `role('button', { name: 'Save' })` |
+| `label(text)`            | Form controls by their aria-label or associated \<label> text.                                  | `label('Email')`                   |
+| `placeholder(text)`      | Inputs by their placeholder attribute.                                                          | `placeholder('Search...')`         |
+| `text(target, options?)` | Elements whose rendered text matches a string or `RegExp`.                                      | `text('Welcome back')`             |
+| `altText(text)`          | Images and similar elements by their alt attribute.                                             | `altText('Profile photo')`         |
+| `title(text)`            | Elements by their title attribute (tooltip text).                                               | `title('Delete')`                  |
+| `testId(id)`             | Elements by data-testid: the escape hatch for tests.                                            | `testId('cart-item-3')`            |
+| `displayValue(value)`    | Form controls by their current value.                                                           | `displayValue('US')`               |
+| `selector(css)`          | Elements by CSS selector. Use when no accessible query fits.                                    | `selector('.chart-legend')`        |
+
+### Text locators
+
+#### String and Regular Expression Matching
+
+`text` accepts a string or `RegExp`. By default, a string matches either the element's full text or one of its direct text nodes. Pass `{ exact: false }` to find the string anywhere in the element's full text.
+
+A `RegExp` always tests the element's full text, including text from nested elements. The `exact` option has no effect on a `RegExp`. Scene does not trim or normalize the text, and text from hidden descendants still counts.
+
+Scene starts every regular expression match at index zero and leaves the expression's `lastIndex` unchanged. Global and sticky expressions therefore produce the same results every time a query runs.
+
+#### Ancestor and Descendant Matches
+
+When an ancestor and one of its descendants both match, `text` returns the descendant. `all.text` returns both in traversal order. Neither query returns text VNodes.
 
 ### The role Locator
 
 `role` is the usual starting point. Its optional second argument narrows the match by accessible name or ARIA state.
 
-::Snippet{name="sceneRole" label="role examples"}
+::Snippet{name="sceneRole" label="Role locators"}
 
-| Option     | Type                 | Matches                                                                                                                                             |
-| ---------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`     | `string \| RegExp`   | Accessible name (aria-label, aria-labelledby, label[for], or text content). Strings match exactly; regular expressions match against the full name. |
-| `level`    | `number`             | Heading level (for role: "heading")                                                                                                                 |
-| `checked`  | `boolean \| 'mixed'` | aria-checked or the checked attribute                                                                                                               |
-| `selected` | `boolean`            | aria-selected                                                                                                                                       |
-| `pressed`  | `boolean \| 'mixed'` | aria-pressed                                                                                                                                        |
-| `expanded` | `boolean`            | aria-expanded                                                                                                                                       |
-| `disabled` | `boolean`            | aria-disabled or the disabled attribute                                                                                                             |
+| Option     | Type                                                            | Matches                                                                                                                                             |
+| ---------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`     | `string \| RegExp`                                              | Accessible name (aria-label, aria-labelledby, label[for], or text content). Strings match exactly; regular expressions match against the full name. |
+| `level`    | `number`                                                        | Heading level (for role: "heading")                                                                                                                 |
+| `checked`  | `boolean \| 'mixed'`                                            | aria-checked or the checked attribute                                                                                                               |
+| `selected` | `boolean`                                                       | aria-selected                                                                                                                                       |
+| `pressed`  | `boolean \| 'mixed'`                                            | aria-pressed                                                                                                                                        |
+| `expanded` | `boolean`                                                       | aria-expanded                                                                                                                                       |
+| `disabled` | `boolean`                                                       | aria-disabled or the disabled attribute                                                                                                             |
+| `current`  | `boolean \| 'page' \| 'step' \| 'location' \| 'date' \| 'time'` | aria-current. `true` matches `"true"` only, `false` matches a missing attribute or `"false"`, and a token matches itself.                           |
+
+### Selector locators
+
+`selector`, `all.selector`, and the selector strings accepted by interactions and assertions query the rendered view rather than a browser DOM. They support this CSS subset:
+
+- A tag name, `#id`, or `.class` matches an element with that tag, id, or class. Tag names are case-sensitive.
+- `[attr]`, `[attr="value"]`, and `[attr^="prefix"]` match attributes. Values may use double or single quotes and may contain whitespace.
+- `:not(...)` excludes elements matching one compound selector, such as `path[d]:not([d=""])`. Its argument cannot contain a descendant combinator or a selector list. `:not()` can be nested or repeated.
+- Whitespace between compound selectors matches descendants, as in `header a`.
+
+Anything else, such as `>`, `,`, or `:first-child`, throws an error that lists this syntax.
 
 ### Scoping
 
 `within(parent, child)` scopes a single locator to a parent element. `inside(parent, ...steps)` scopes a whole block of steps. Every assertion or interaction inside the block resolves within the parent’s subtree. Use `within` for one-off scoped queries; use `inside` when several steps share the same scope. Nested `inside` calls compose.
 
-::Snippet{name="sceneScoping" label="scoping examples"}
+::Snippet{name="sceneScoping" label="Scoped locators"}
 
 ### Multi-Match
 
 For lists and repeated elements, the `all.*` factories return every match. Pick one with `first`, `last`, or `nth(index)`, or narrow the set with `filter`.
 
-::Snippet{name="sceneMultiMatch" label="multi-match examples"}
+::Snippet{name="sceneMultiMatch" label="Multiple matches"}
 
 | Filter option | Keeps matches where                                            |
 | ------------- | -------------------------------------------------------------- |
@@ -63,42 +91,50 @@ For lists and repeated elements, the `all.*` factories return every match. Pick 
 
 ## Interactions
 
+### Interaction Steps
+
 An interaction invokes the matched element's event handler. If the handler produces a Message, Scene feeds it through update and renders the next view.
 
-::Snippet{name="sceneInteractions" label="interaction examples"}
+::Snippet{name="sceneInteractions" label="Interactions"}
 
-| Step                                   | Invokes                                                                                          |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `click(target)`                        | `OnClick` (runs target and ancestor handlers until propagation stops)                            |
-| `doubleClick(target)`                  | `OnDoubleClick` (bubbles to ancestors)                                                           |
-| `contextMenu(target)`                  | `OnContextMenu` (bubbles to ancestors)                                                           |
-| `pointerDown(target, options?)`        | `OnPointerDown` with optional `{ pointerType, button, screenX, screenY }` (bubbles to ancestors) |
-| `pointerUp(target, options?)`          | `OnPointerUp` with optional `{ pointerType, screenX, screenY }` (bubbles to ancestors)           |
-| `hover(target)`                        | `OnMouseEnter` (falls back to `OnMouseOver`)                                                     |
-| `focus(target)`                        | `OnFocus`                                                                                        |
-| `blur(target)`                         | `OnBlur`                                                                                         |
-| `focusEnter(target)`                   | `OnFocusEnter`                                                                                   |
-| `focusLeave(target)`                   | `OnFocusLeave`                                                                                   |
-| `type(target, text)`                   | `OnInput` with the given text                                                                    |
-| `typeContentEditable(target, text)`    | `OnInput` on a `Contenteditable` host, with the given rendered text                              |
-| `change(target, value)`                | `OnChange` with the given value, for `<select>` and similar                                      |
-| `beforeInput(target, inputType, data)` | `OnBeforeInput` or `OnBeforeInputPreventDefault`, with the given `inputType` and `Option` data   |
-| `keydown(target, key, modifiers?)`     | `OnKeyDown` or `OnKeyDownPreventDefault` with optional `{ shiftKey, ctrlKey, altKey, metaKey }`  |
-| `submit(target)`                       | `OnSubmit`                                                                                       |
+| Step                                   | Invokes                                                                                                                       |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `click(target)`                        | `OnClick` (runs target and ancestor handlers until propagation stops)                                                         |
+| `doubleClick(target)`                  | `OnDoubleClick` (bubbles to ancestors)                                                                                        |
+| `contextMenu(target)`                  | `OnContextMenu` (bubbles to ancestors)                                                                                        |
+| `pointerDown(target, options?)`        | `OnPointerDown` with optional `{ pointerType, button, screenX, screenY, clientX, clientY, pointerId }` (bubbles to ancestors) |
+| `pointerUp(target, options?)`          | `OnPointerUp` with optional `{ pointerType, screenX, screenY }` (bubbles to ancestors)                                        |
+| `hover(target)`                        | `OnMouseEnter` (falls back to `OnMouseOver`)                                                                                  |
+| `focus(target)`                        | `OnFocus`                                                                                                                     |
+| `blur(target)`                         | `OnBlur`                                                                                                                      |
+| `focusEnter(target)`                   | `OnFocusEnter`                                                                                                                |
+| `focusLeave(target)`                   | `OnFocusLeave`                                                                                                                |
+| `type(target, text)`                   | `OnInput` with the given text                                                                                                 |
+| `typeContentEditable(target, text)`    | `OnInput` on a `Contenteditable` host, with the given rendered text                                                           |
+| `change(target, value)`                | `OnChange` with the given value, for `<select>` and similar                                                                   |
+| `beforeInput(target, inputType, data)` | `OnBeforeInput` or `OnBeforeInputPreventDefault`, with the given `inputType` and `Option` data                                |
+| `keydown(target, key, modifiers?)`     | `OnKeyDown` or `OnKeyDownPreventDefault` with optional `{ shiftKey, ctrlKey, altKey, metaKey }`                               |
+| `submit(target)`                       | `OnSubmit`                                                                                                                    |
+
+### Input and Inspection Steps
 
 Pass `Option.some(text)` to `beforeInput` for an edit that carries text and `Option.none()` for one that does not, such as a backward deletion.
 
 `tap(fn)` runs a function for side effects (like ad-hoc assertions on raw VNodes or accumulated Commands) without breaking the step chain.
 
+### Click Propagation and Default Actions
+
 `click` keeps default action and propagation separate, like the browser. A target `OnClick` with `propagation: 'Stop'` skips ancestor click handlers but still submits a surrounding form when the clicked element is a submit button. Add `defaultAction: 'Prevent'` to suppress that submission. When neither control is present, Scene dispatches every click Message from the target through its ancestor chain, then dispatches the form's submit Message when applicable.
 
 ## Assertions
+
+### Single-Element Assertions
 
 `expect(locator)` creates an inline assertion step against a single element. Every matcher has a `.not` variant that inverts the assertion.
 
 Property, state, and accessibility matchers require the Locator to match an element, including their `.not` variants. Use `.toBeAbsent()` or `.not.toExist()` when the intended assertion is that no element matches.
 
-::Snippet{name="sceneAssertions" label="assertion examples"}
+::Snippet{name="sceneAssertions" label="Assertions"}
 
 | Matcher                                     | Asserts that the element                                                                                                                           |
 | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -119,7 +155,11 @@ Property, state, and accessibility matchers require the Locator to match an elem
 | `.toHaveClass(name)`                        | Has the given CSS class                                                                                                                            |
 | `.toHaveStyle(name, value)`                 | Has the given inline style property                                                                                                                |
 
+### Accessible Names and Descriptions
+
 Accessible-name and accessible-description matching excludes hidden descendant content. A hidden node directly referenced by `aria-labelledby` or `aria-describedby` contributes its full subtree text.
+
+### Collection Assertions
 
 For `LocatorAll` (from `all.*`), use `expectAll(locatorAll)` for count-based assertions:
 
@@ -130,9 +170,15 @@ For `LocatorAll` (from `all.*`), use `expectAll(locatorAll)` for count-based ass
 
 ## Handled and Ignored Interactions
 
+### Acknowledge Handler Outcomes
+
 Scene makes every fall-through interaction explicit. When a handler runs and returns `Option.none()`, follow the interaction with `expectIgnored()`. When it produces a Message, `expectHandled()` verifies that outcome. If another interaction starts or the scene ends before a fall-through is acknowledged, Scene fails and names the event and target. Each acknowledgement covers one interaction.
 
+### Missing and Ignored Handlers
+
 An element with no handler for that event throws immediately. That is different from a handler that deliberately returns `Option.none()`. For example: a read-only widget may keep its input handler but ignore edits. `expectIgnored()` proves the handler is still present and deliberately inert. `Command.expectNone()` or `expectNoOutMessage()` cannot distinguish that from a deleted handler.
+
+### Prevented Default Actions
 
 Use `expectHandled()` to prove that `h.OnKeyDownPreventDefault` consumed a key. A handled `Space` does not scroll the page, and a handled `Enter` does not submit a surrounding form. This checks the user-facing contract without depending on the Message name.
 
@@ -142,6 +188,8 @@ The outcome belongs to the most recent interaction. `Command.resolve`, `Mount.re
 
 When update returns Commands, Scene keeps them pending until the test supplies their result Messages. Update declares the work. The test declares what happened.
 
+### Pending Command Rules
+
 - Pending Commands accumulate in the order `update` returns them, across as many steps as the test takes.
 - Resolving a Command feeds its result Message through `update`; new Commands produced by that update join the pending list.
 - `Command.resolveAll` walks cascades within the batch. If resolving Command A produces Command B and B’s resolver is in the same call, B resolves without a separate step.
@@ -149,7 +197,9 @@ When update returns Commands, Scene keeps them pending until the test supplies t
 - Interactions throw if there are unresolved Commands when they try to dispatch a Message.
 - `scene` throws at the end if any Command remains unresolved.
 
-::Snippet{name="sceneCommandAssertions" label="command assertions example"}
+### Resolve and Inspect Commands
+
+::Snippet{name="sceneCommandAssertions" label="Command assertions"}
 
 | Step                                                 | Effect                                                                                                                                                                                                                                       |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -159,6 +209,8 @@ When update returns Commands, Scene keeps them pending until the test supplies t
 | `Command.expectExact(A, B)`                          | The pending Commands are exactly A and B (order-independent).                                                                                                                                                                                |
 | `Command.expectHas(A)`                               | A is among the pending Commands (subset check).                                                                                                                                                                                              |
 | `Command.expectNone()`                               | There are no pending Commands.                                                                                                                                                                                                               |
+
+### Match Command Names and Arguments
 
 Prefer `Command.expectExact` as the default. It catches bugs where an interaction produces unexpected Commands. Use `Command.expectHas` when you only care about a subset of the pending Commands.
 
@@ -170,13 +222,17 @@ When a rendered view contains an `OnMount` attribute, Scene keeps that Mount pen
 
 This applies to Mounts declared inside `@foldkit/ui` components too. Popovers, dialogs, and other components export their Mount Definitions so a consumer test can name and resolve them.
 
+### Mount Lifecycle Rules
+
 - Pending mounts persist across re-renders. Resolving a mount does not re-pend it on the next render.
 - Every mount that fires and unmounts during a scene must be acknowledged with `Mount.expectEnded`, even if it was already resolved. `resolve` handles a mount’s result Message; `expectEnded` handles its unmount. Unacknowledged unmounts throw at the end of the scene.
 - Same-named mounts in the tree are disambiguated by occurrence. `Mount.resolve` resolves the first pending occurrence; a second call resolves the next.
 - Interactions throw if there are unresolved mounts or unacknowledged unmounts when they try to dispatch a Message. Same contract as Commands.
 - `scene` throws at the end if any mount remains unresolved.
 
-::Snippet{name="sceneMountAssertions" label="mount assertions example"}
+### Resolve and Inspect Mounts
+
+::Snippet{name="sceneMountAssertions" label="Mount assertions"}
 
 | Step                                          | Effect                                                                                                                                                                                                                            |
 | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -193,7 +249,7 @@ UI components export their Mount definitions (`Popover.AnchorPopover`, `Listbox.
 
 A Subscription Message has no element to interact with. `Subscription.emit(message)` feeds a timer tick, WebSocket frame, global listener result, or other Subscription output through update and renders the next view.
 
-::Snippet{name="sceneSubscriptionEmit" label="Subscription emit example"}
+::Snippet{name="sceneSubscriptionEmit" label="Emitting a Subscription value"}
 
 Use it only when the Message's cause lives outside the rendered tree. If the Message comes from a button, click the button. That interaction verifies the handler wiring that `emit` would skip. `emit` throws while Commands, Mounts, or unacknowledged unmounts are pending.
 
@@ -201,13 +257,17 @@ Use it only when the Message's cause lives outside the rendered tree. If the Mes
 
 A [ManagedResource](/core/managed-resources) reports three lifecycle outcomes: acquisition succeeded, acquisition failed, or release completed. The `ManagedResource` steps feed the corresponding hook Message through update.
 
+### Match the Model's Resource State
+
 Drive the Model into the matching state before declaring an outcome. `acquire` and `failAcquire` throw unless `modelToMaybeRequirements` returns `Some`. `release` throws until it returns `None`.
 
 These steps dispatch immediately and leave nothing pending. They are optional because Scene sees update and view, not the application's ManagedResources record. A scene may end while the Model still requests a resource, just as the runtime can wait for its acquire Effect to finish. If a lifecycle step contradicts the Model, it throws immediately.
 
+### Supply Lifecycle Results
+
 Pass `acquire` exactly the arguments that `onAcquired` accepts. If `onAcquired` reads the acquired value, the test supplies it. If the hook ignores the value, the test supplies nothing.
 
-::Snippet{name="sceneManagedResourceSteps" label="ManagedResource steps example"}
+::Snippet{name="sceneManagedResourceSteps" label="ManagedResource steps"}
 
 | Step                                        | Effect                                                                              |
 | ------------------------------------------- | ----------------------------------------------------------------------------------- |
@@ -223,13 +283,13 @@ A [CustomElement](/core/custom-element) maps declared CustomEvents to Messages t
 
 The target must be in the rendered tree with that event handler attached. A missing element or handler throws.
 
-::Snippet{name="sceneCustomElementEmit" label="CustomElement emit example"}
+::Snippet{name="sceneCustomElementEmit" label="Emitting from a CustomElement"}
 
 ## OutMessages
 
 When the update under test can return an OutMessage, Scene tracks every OutMessage produced by the latest update-producing step. `expectOutMessage(expected)` asserts that the step emitted exactly one. `expectOutMessages(first, second, ...rest)` asserts several in runtime order. `expectNoOutMessage()` asserts that it emitted none.
 
-::Snippet{name="sceneOutMessageAssertions" label="OutMessage assertions example"}
+::Snippet{name="sceneOutMessageAssertions" label="OutMessage assertions"}
 
 A single interaction can drive several updates. A click may invoke a target handler, ancestor handlers, and then a form's submit handler. Scene collects their OutMessages in that same order.
 
@@ -239,7 +299,7 @@ Scene replaces the tracked sequence after every step that drives update. A step 
 
 A Submodel with ViewInputs has a `(model, viewInputs, h)` view. Scene expects `(model, h)`. `withViewInputs(view, defaults)` adapts the view once and returns a factory for Scene views.
 
-::Snippet{name="sceneWithViewInputs" label="withViewInputs example"}
+::Snippet{name="sceneWithViewInputs" label="Using withViewInputs"}
 
 Each test can override any ViewInputs field except `toView`, so values vary while the renderer stays fixed. See `packages/ui/src/slider/scene.test.ts` for a complete example.
 
@@ -247,7 +307,7 @@ Each test can override any ViewInputs field except `toView`, so values vary whil
 
 Here’s a Scene test for a weather app. The user types a zip code, requests the weather, sees the loading state, and then sees the forecast.
 
-::Snippet{name="sceneWeatherFlow" label="Scene weather example"}
+::Snippet{name="sceneWeatherFlow" label="Weather search Scene test"}
 
 The interactions use a label, a role, and a placeholder. The Command result stays beside the interaction that produced it.
 

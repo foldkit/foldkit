@@ -1,5 +1,5 @@
 import { click, expect, given, role, scene, text } from 'foldkit/scene'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { type Model, update, view } from './main'
@@ -38,7 +38,7 @@ describe('view', () => {
     scene(
       { update, view },
       given(
-        evo(initialModel, {
+        modifyFields(initialModel, {
           warnings: () => [
             {
               id: 1,

@@ -15,7 +15,7 @@ import { Machine } from 'foldkit/experimental'
 import { otherwise, to, when } from 'foldkit/experimental/machine'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { RadioGroup } from '@foldkit/ui'
 
@@ -181,7 +181,7 @@ export const checkoutMachine = Machine.define({
     Cart: {
       on: {
         SelectedEdition: to('Cart', ({ state, message }) => ({
-          model: evo(state, {
+          model: modifyFields(state, {
             isShippingRequired: () => message.isShippingRequired,
           }),
         })),
@@ -224,7 +224,7 @@ export const checkoutMachine = Machine.define({
     Payment: {
       on: {
         ToggledPaymentMethod: to('Payment', ({ state, message }) => ({
-          model: evo(state, {
+          model: modifyFields(state, {
             isPaymentMethodSelected: () => message.isSelected,
           }),
         })),
@@ -260,15 +260,17 @@ export const checkoutMachine = Machine.define({
     Review: {
       on: {
         ToggledPaymentMethod: to('Review', ({ state, message }) => ({
-          model: evo(state, {
+          model: modifyFields(state, {
             isPaymentMethodSelected: () => message.isSelected,
           }),
         })),
         ToggledTermsAccepted: to('Review', ({ state, message }) => ({
-          model: evo(state, { isTermsAccepted: () => message.isAccepted }),
+          model: modifyFields(state, {
+            isTermsAccepted: () => message.isAccepted,
+          }),
         })),
         UpdatedPromoCode: to('Review', ({ state, message }) => ({
-          model: evo(state, {
+          model: modifyFields(state, {
             promoCodeInput: () => message.value,
             promo: currentPromo =>
               currentPromo._tag === 'RejectedPromo'
@@ -281,14 +283,16 @@ export const checkoutMachine = Machine.define({
             reviewToMaybeDiscount,
             'Review',
             ({ state, guardValue: discount }) => ({
-              model: evo(state, {
+              model: modifyFields(state, {
                 promo: () => Promo.AppliedPromo({ discount }),
               }),
             }),
           ),
           otherwise(
             to('Review', ({ state }) => ({
-              model: evo(state, { promo: () => Promo.RejectedPromo() }),
+              model: modifyFields(state, {
+                promo: () => Promo.RejectedPromo(),
+              }),
             })),
           ),
         ],
@@ -376,7 +380,7 @@ const stepMachine =
     }
 
     return {
-      model: evo(model, {
+      model: modifyFields(model, {
         checkout: () => nextCheckout,
         transitionLog: flow(
           Array.prepend(transitionLogEntry),
@@ -403,7 +407,7 @@ const foldEditionRadioGroup = Update.foldChild({
   update: EditionRadioGroup.update,
   read: (model: Model) => Option.some(model.editionRadioGroup),
   write: (model, nextEditionRadioGroup) =>
-    evo(model, { editionRadioGroup: () => nextEditionRadioGroup }),
+    modifyFields(model, { editionRadioGroup: () => nextEditionRadioGroup }),
   toParentMessage: message => Message.GotEditionRadioGroupMessage({ message }),
   foldOutMessage: foldEditionRadioGroupOutMessage,
 })

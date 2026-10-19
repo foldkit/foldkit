@@ -13,7 +13,23 @@ export {
   scrollIntoViewAfterPaint,
   scrollIntoViewIfNotVisible,
   showDialog,
+  streamFromEvent,
+  streamFromEventFilterMap,
+  streamFromEventFilterMapPreventDefault,
+  streamFromKeyBindings,
+  streamFromMediaQuery,
   unlockScroll,
   waitForAnimationSettled,
 } from './index.js'
-export type { FocusDirection } from './index.js'
+export type {
+  FocusDirection,
+  KeyBinding,
+  KeySequence,
+  StreamFromEventConfig,
+  StreamFromEventFilterMapConfig,
+  StreamFromEventFilterMapPreventDefaultConfig,
+  StreamFromKeyBindingsConfig,
+  StreamFromMediaQueryConfig,
+  TypedEventTarget,
+  WhileTyping,
+} from './index.js'

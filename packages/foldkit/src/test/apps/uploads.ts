@@ -4,7 +4,7 @@ import * as Command from '../../command/index.js'
 import * as Interruptible from '../../command/interruptible/index.js'
 import type { Document, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
-import { evo } from '../../struct/index.js'
+import { modifyFields } from '../../struct/index.js'
 import type * as Update from '../../update/index.js'
 
 // MODEL
@@ -74,7 +74,9 @@ export const initialModel: Model = { uploadId: 0, uploads: [] }
 
 const setStatusById = (uploadId: number, status: UploadStatus) =>
   Array.map((upload: Upload) =>
-    upload.id === uploadId ? evo(upload, { status: () => status }) : upload,
+    upload.id === uploadId
+      ? modifyFields(upload, { status: () => status })
+      : upload,
   )
 
 type UpdateReturn = Update.Return<Model, Message>
@@ -87,7 +89,7 @@ export const update = (model: Model, message: Message) =>
         status: 'Uploading',
       }
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           uploadId: Number.increment,
           uploads: Array.append(startedUpload),
         }),
@@ -95,7 +97,9 @@ export const update = (model: Model, message: Message) =>
       }
     },
     ClickedRetryUpload: ({ uploadId }) => ({
-      model: evo(model, { uploads: setStatusById(uploadId, 'Uploading') }),
+      model: modifyFields(model, {
+        uploads: setStatusById(uploadId, 'Uploading'),
+      }),
       commands: [UploadFile({ uploadId })],
     }),
     ClickedCancelUpload: ({ uploadId }) => ({
@@ -103,15 +107,17 @@ export const update = (model: Model, message: Message) =>
       commands: [CancelUploadFile({ uploadId })],
     }),
     SucceededUploadFile: ({ uploadId }) => ({
-      model: evo(model, { uploads: setStatusById(uploadId, 'Done') }),
+      model: modifyFields(model, { uploads: setStatusById(uploadId, 'Done') }),
     }),
     FailedUploadFile: ({ uploadId }) => ({
-      model: evo(model, { uploads: setStatusById(uploadId, 'Failed') }),
+      model: modifyFields(model, {
+        uploads: setStatusById(uploadId, 'Failed'),
+      }),
     }),
     CompletedCancelUploadFile: ({ uploadId, outcome }) =>
       Interruptible.Outcome.match<UpdateReturn>(outcome, {
         Interrupted: () => ({
-          model: evo(model, {
+          model: modifyFields(model, {
             uploads: setStatusById(uploadId, 'Cancelled'),
           }),
         }),

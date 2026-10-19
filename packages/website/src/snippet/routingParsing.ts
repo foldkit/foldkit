@@ -1,5 +1,5 @@
 import { Route, Runtime } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { Url } from 'foldkit/url'
 
 // Combine routers. A route matches only when it consumes the whole URL.
@@ -19,7 +19,7 @@ const init: Runtime.RoutingApplicationInit<Model, Message> = (url: Url) => {
 
 // In your update function, handle URL changes:
 ChangedUrl: ({ url }) => ({
-  model: evo(model, {
+  model: modifyFields(model, {
     route: () => urlToAppRoute(url),
   }),
 })

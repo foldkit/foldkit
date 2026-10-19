@@ -1,6 +1,6 @@
 import { Array, Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import {
@@ -40,7 +40,7 @@ const doneTask = {
   createdAt: 3000,
 }
 
-const modelWithTodos: Model = evo(emptyModel, {
+const modelWithTodos: Model = modifyFields(emptyModel, {
   todos: () => [buyMilk, walkDog, doneTask],
 })
 
@@ -49,7 +49,7 @@ describe('update', () => {
     test('AddedTodo with text produces a GenerateTodo Command', () => {
       story(
         update,
-        given(evo(emptyModel, { newTodoText: () => 'Buy milk' })),
+        given(modifyFields(emptyModel, { newTodoText: () => 'Buy milk' })),
         message(Message.AddedTodo()),
         Command.expectHas(GenerateTodo),
         Command.resolve(
@@ -85,7 +85,7 @@ describe('update', () => {
     test('AddedTodo with empty text is ignored', () => {
       story(
         update,
-        given(evo(emptyModel, { newTodoText: () => '' })),
+        given(modifyFields(emptyModel, { newTodoText: () => '' })),
         message(Message.AddedTodo()),
         Command.expectNone(),
       )
@@ -94,7 +94,7 @@ describe('update', () => {
     test('AddedTodo with whitespace-only text is ignored', () => {
       story(
         update,
-        given(evo(emptyModel, { newTodoText: () => '   ' })),
+        given(modifyFields(emptyModel, { newTodoText: () => '   ' })),
         message(Message.AddedTodo()),
         Command.expectNone(),
       )
@@ -115,7 +115,9 @@ describe('update', () => {
   describe('toggle and delete', () => {
     test('ToggledTodo flips the completed state', () => {
       const toggledTodos = modelWithTodos.todos.map(todo =>
-        todo.id === 'abc' ? evo(todo, { completed: () => true }) : todo,
+        todo.id === 'abc'
+          ? modifyFields(todo, { completed: () => true })
+          : todo,
       )
 
       story(
@@ -137,7 +139,9 @@ describe('update', () => {
 
     test('ToggledTodo on completed todo marks it active', () => {
       const toggledTodos = modelWithTodos.todos.map(todo =>
-        todo.id === 'ghi' ? evo(todo, { completed: () => false }) : todo,
+        todo.id === 'ghi'
+          ? modifyFields(todo, { completed: () => false })
+          : todo,
       )
 
       story(
@@ -195,7 +199,7 @@ describe('update', () => {
     })
 
     test('UpdatedEditingTodo updates the editing text', () => {
-      const editingModel: Model = evo(modelWithTodos, {
+      const editingModel: Model = modifyFields(modelWithTodos, {
         editing: () => EditingState.Editing({ id: 'abc', text: 'Buy milk' }),
       })
 
@@ -212,13 +216,15 @@ describe('update', () => {
     })
 
     test('SavedEdit updates the todo text and exits editing', () => {
-      const editingModel: Model = evo(modelWithTodos, {
+      const editingModel: Model = modifyFields(modelWithTodos, {
         editing: () =>
           EditingState.Editing({ id: 'abc', text: 'Buy oat milk' }),
       })
 
       const editedTodos = modelWithTodos.todos.map(todo =>
-        todo.id === 'abc' ? evo(todo, { text: () => 'Buy oat milk' }) : todo,
+        todo.id === 'abc'
+          ? modifyFields(todo, { text: () => 'Buy oat milk' })
+          : todo,
       )
 
       story(
@@ -240,7 +246,7 @@ describe('update', () => {
     })
 
     test('SavedEdit with empty text exits editing without saving', () => {
-      const editingModel: Model = evo(modelWithTodos, {
+      const editingModel: Model = modifyFields(modelWithTodos, {
         editing: () => EditingState.Editing({ id: 'abc', text: '   ' }),
       })
 
@@ -260,7 +266,7 @@ describe('update', () => {
     })
 
     test('CancelledEdit exits editing without changes', () => {
-      const editingModel: Model = evo(modelWithTodos, {
+      const editingModel: Model = modifyFields(modelWithTodos, {
         editing: () =>
           EditingState.Editing({ id: 'abc', text: 'Changed text' }),
       })
@@ -283,7 +289,7 @@ describe('update', () => {
   describe('bulk operations', () => {
     test('ToggledAll marks all todos completed when some are active', () => {
       const allCompletedTodos = modelWithTodos.todos.map(todo =>
-        evo(todo, { completed: () => true }),
+        modifyFields(todo, { completed: () => true }),
       )
 
       story(
@@ -303,15 +309,15 @@ describe('update', () => {
     })
 
     test('ToggledAll marks all todos active when all are completed', () => {
-      const allCompletedModel: Model = evo(emptyModel, {
+      const allCompletedModel: Model = modifyFields(emptyModel, {
         todos: () =>
           modelWithTodos.todos.map(todo =>
-            evo(todo, { completed: () => true }),
+            modifyFields(todo, { completed: () => true }),
           ),
       })
 
       const allActiveTodos = allCompletedModel.todos.map(todo =>
-        evo(todo, { completed: () => false }),
+        modifyFields(todo, { completed: () => false }),
       )
 
       story(

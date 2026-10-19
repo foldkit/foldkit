@@ -17,11 +17,12 @@ export { tableOfContents }
 
 type ViewInputs = Readonly<{
   renderCopyButton: CodeBlock.RenderCopyButton
+  renderSnippet: CodeBlock.RenderSnippet
   renderHeadingLink: RenderHeadingLink
 }>
 
 export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, { renderCopyButton, renderHeadingLink }, h): Html =>
+  (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h): Html =>
     renderPage({
       demos: {
         dialog: demoContainer(...Dialog.view(model.dialogDemo, h)),
@@ -45,6 +46,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         ),
       },
       renderCopyButton,
+      renderSnippet,
       renderHeadingLink,
     }),
 )

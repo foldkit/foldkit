@@ -1,6 +1,6 @@
 import { Array, Effect, Option, Record, Schema, pipe } from 'effect'
 import { AsyncData, Command, type Update } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import {
   ParsedApiReference,
@@ -29,7 +29,7 @@ const LoadApiData = Command.define('LoadApiData', {
         error instanceof Error ? error.message : 'Unknown error',
     })
 
-    const parsedApi = Schema.decodeUnknownSync(ParsedApiReference)(
+    const parsedApi = yield* Schema.decodeUnknownEffect(ParsedApiReference)(
       parsedApiModule.default,
     )
 
@@ -77,26 +77,26 @@ export const update = (model: Model, message: Message) =>
       Option.match(AsyncData.loadIfMissing(model.apiData), {
         onNone: () => ({ model }),
         onSome: apiData => ({
-          model: evo(model, { apiData: () => apiData }),
+          model: modifyFields(model, { apiData: () => apiData }),
           commands: [LoadApiData()],
         }),
       }),
 
     SucceededLoadApiData: ({ apiData }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         apiData: () => ApiDataAsyncData.Success({ data: apiData }),
         disclosures: () => disclosuresForApiData(apiData),
       }),
     }),
 
     FailedLoadApiData: ({ error }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         apiData: () => ApiDataAsyncData.Failure({ error }),
       }),
     }),
 
     ToggledSignature: ({ id, isOpen }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         disclosures: disclosures => Record.set(disclosures, id, isOpen),
       }),
     }),

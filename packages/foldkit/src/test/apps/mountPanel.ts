@@ -3,7 +3,7 @@ import { Effect, Number, Option, Schema } from 'effect'
 import type { Html, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import * as Mount from '../../mount/index.js'
-import { evo } from '../../struct/index.js'
+import { modifyFields } from '../../struct/index.js'
 import type * as Update from '../../update/index.js'
 
 // MODEL
@@ -73,15 +73,15 @@ export const initialModel: Model = {
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedToggle: () => ({
-      model: evo(model, { isOpen: isOpen => !isOpen }),
+      model: modifyFields(model, { isOpen: isOpen => !isOpen }),
     }),
     MeasuredPanel: ({ width }) => ({
-      model: evo(model, { measuredWidth: () => Option.some(width) }),
+      model: modifyFields(model, { measuredWidth: () => Option.some(width) }),
     }),
     CompletedFocusButton: () => ({ model }),
     FailedMountSidebar: () => ({ model }),
     ClickedIncrement: () => ({
-      model: evo(model, { count: Number.increment }),
+      model: modifyFields(model, { count: Number.increment }),
     }),
     ScrolledTo: () => ({ model }),
   })

@@ -1,9 +1,9 @@
-import { Effect, Match, Schema } from 'effect'
+import { Effect, Match, Number, Schema } from 'effect'
 import { type Update } from 'foldkit'
 import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
 import * as Render from 'foldkit/render'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { idSelector } from '../internal/selectors.js'
 import {
@@ -21,20 +21,26 @@ const elementSelector = (id: string): string => idSelector(id)
 type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
 const withUpdateReturn = Match.withReturnType<UpdateReturn>()
 
-/** Waits for paint via double-rAF before the enter/leave lifecycle advances. */
+/** Waits for paint via double-rAF, then reports the transition generation that
+ *  scheduled the wait. */
 export const WaitForPaint = Command.define('WaitForPaint', {
+  args: { generation: Schema.Number },
   messages: [Message.CompletedWaitForPaint],
-  execute: Render.afterPaint.pipe(Effect.as(Message.CompletedWaitForPaint())),
+  execute: ({ generation }) =>
+    Render.afterPaint.pipe(
+      Effect.as(Message.CompletedWaitForPaint({ generation })),
+    ),
 })
-/** Waits for all CSS animations on the element to settle. Covers both CSS transitions and CSS keyframe animations. */
+/** Waits for all CSS transitions and keyframe animations on the element to
+ *  settle, then reports the transition generation that scheduled the wait. */
 export const WaitForAnimationSettled = Command.define(
   'WaitForAnimationSettled',
   {
-    args: { id: Schema.String },
+    args: { id: Schema.String, generation: Schema.Number },
     messages: [Message.EndedAnimation],
-    execute: ({ id }) =>
+    execute: ({ id, generation }) =>
       Dom.waitForAnimationSettled(elementSelector(id)).pipe(
-        Effect.as(Message.EndedAnimation()),
+        Effect.as(Message.EndedAnimation({ generation })),
       ),
   },
 )
@@ -42,27 +48,31 @@ export const WaitForAnimationSettled = Command.define(
 /** Processes an Animation Message and returns the next Model, optional
  *  Commands, and an optional OutMessage. `Showed` and `Hid` start a transition
  *  but cannot finish one, so direct calls with either Message return a plain
- *  update result. */
+ *  update result. Results from an earlier transition generation leave the Model
+ *  unchanged. */
 export function update(
   model: Model,
   message: Showed | Hid,
 ): Update.Return<Model, Message>
 export function update(model: Model, message: Message): UpdateReturn
 export function update(model: Model, message: Message): UpdateReturn {
-  const maybeNextFrame = WaitForPaint()
-
   return Message.match<UpdateReturn>(message, {
     Showed: () => {
       if (model.isShowing) {
         return { model }
       }
 
+      const nextTransitionGeneration = Number.increment(
+        model.transitionGeneration,
+      )
+
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           isShowing: () => true,
           transitionState: () => 'EnterStart',
+          transitionGeneration: () => nextTransitionGeneration,
         }),
-        commands: [maybeNextFrame],
+        commands: [WaitForPaint({ generation: nextTransitionGeneration })],
       }
     },
 
@@ -75,41 +85,67 @@ export function update(model: Model, message: Message): UpdateReturn {
         return { model }
       }
 
+      const nextTransitionGeneration = Number.increment(
+        model.transitionGeneration,
+      )
+
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           isShowing: () => false,
           transitionState: () => 'LeaveStart',
+          transitionGeneration: () => nextTransitionGeneration,
         }),
-        commands: [maybeNextFrame],
+        commands: [WaitForPaint({ generation: nextTransitionGeneration })],
       }
     },
 
-    CompletedWaitForPaint: () =>
-      Match.value(model.transitionState).pipe(
+    CompletedWaitForPaint: ({ generation }) => {
+      if (generation !== model.transitionGeneration) {
+        return { model }
+      }
+
+      return Match.value(model.transitionState).pipe(
         withUpdateReturn,
         Match.when('EnterStart', () => ({
-          model: evo(model, { transitionState: () => 'EnterAnimating' }),
-          commands: [WaitForAnimationSettled({ id: model.id })],
+          model: modifyFields(model, {
+            transitionState: () => 'EnterAnimating',
+          }),
+          commands: [
+            WaitForAnimationSettled({
+              id: model.id,
+              generation: model.transitionGeneration,
+            }),
+          ],
         })),
         Match.when('LeaveStart', () => ({
-          model: evo(model, { transitionState: () => 'LeaveAnimating' }),
-          outMessage: OutMessage.StartedLeaveAnimating(),
+          model: modifyFields(model, {
+            transitionState: () => 'LeaveAnimating',
+          }),
+          outMessage: OutMessage.StartedLeaveAnimating({
+            generation: model.transitionGeneration,
+          }),
         })),
         Match.orElse(() => ({ model })),
-      ),
+      )
+    },
 
-    EndedAnimation: () =>
-      Match.value(model.transitionState).pipe(
+    EndedAnimation: ({ generation }) => {
+      if (generation !== model.transitionGeneration) {
+        return { model }
+      }
+
+      return Match.value(model.transitionState).pipe(
         withUpdateReturn,
         Match.when('EnterAnimating', () => ({
-          model: evo(model, { transitionState: () => 'Idle' }),
+          model: modifyFields(model, { transitionState: () => 'Idle' }),
         })),
         Match.when('LeaveAnimating', () => ({
-          model: evo(model, { transitionState: () => 'Idle' }),
+          model: modifyFields(model, { transitionState: () => 'Idle' }),
           outMessage: OutMessage.TransitionedOut(),
         })),
         Match.orElse(() => ({ model })),
-      ),
+      )
+    },
   })
 }
 
@@ -130,6 +166,11 @@ export const toggle = (model: Model): Update.Return<Model, Message> => {
   }
 }
 
-/** Creates the standard leave-phase command that waits for CSS animations on the element to settle. Use this when handling the `StartedLeaveAnimating` OutMessage for components that don't need custom leave behavior. */
+/** Creates the standard leave Command for the Model's current transition. Use
+ *  this when handling `StartedLeaveAnimating` unless the component needs its
+ *  own settlement strategy. */
 export const defaultLeaveCommand = (model: Model): Command.Command<Message> =>
-  WaitForAnimationSettled({ id: model.id })
+  WaitForAnimationSettled({
+    id: model.id,
+    generation: model.transitionGeneration,
+  })

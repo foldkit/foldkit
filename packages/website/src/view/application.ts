@@ -7,8 +7,10 @@ import { Docs, Marketing } from '../layout'
 import { Message } from '../message'
 import { type Model } from '../model'
 import { Home, Newsletter, Playground } from '../page'
+import { routeToCanonicalUrl } from '../route'
 import { routeTitle } from '../routeTitle'
 import * as SnippetCopy from '../snippetCopy'
+import * as SnippetDisclosure from '../snippetDisclosure'
 import * as Blog from './blog'
 
 const homeView = (
@@ -16,19 +18,28 @@ const homeView = (
   homeModel: Home.Model,
   h: HtmlBuilder<Message>,
 ) => {
+  const renderCopyButton = SnippetCopy.renderer(
+    model.snippetCopy,
+    message => Message.GotSnippetCopyMessage({ message }),
+    h,
+  )
   const content = h.submodel({
     slotId: 'home',
     model: homeModel,
     view: Home.view,
     viewInputs: {
-      renderCopyButton: SnippetCopy.renderer(
-        model.snippetCopy,
-        message => Message.GotSnippetCopyMessage({ message }),
+      renderCopyButton,
+      renderSnippet: SnippetDisclosure.renderer(
+        model.snippetDisclosure,
+        message => Message.GotSnippetDisclosureMessage({ message }),
+        renderCopyButton,
         h,
       ),
       isNarrowViewport: model.isNarrowViewport,
-      maybeIsChromium: model.maybeIsChromium,
       maybeGitHubStarCount: model.maybeGitHubStarCount,
+      resolvedTheme: model.resolvedTheme,
+      isBrowserEnvironmentLoaded: Option.isSome(model.maybeThemePreference),
+      newsletterEmail: model.newsletterEmail,
     },
     toParentMessage: message => Message.GotHomeMessage({ message }),
   })
@@ -48,7 +59,11 @@ const newsletterView = (model: Model, h: HtmlBuilder<Message>) =>
   Marketing.view(
     model,
     {
-      content: Newsletter.content,
+      content: Newsletter.content(
+        model.newsletterEmail,
+        value => Message.UpdatedNewsletterEmail({ value }),
+        h,
+      ),
       mainClassName:
         'flex-1 flex items-center justify-center px-6 pb-20 pt-[calc(var(--header-height)+5rem)] md:px-12 lg:px-20',
       isPagefindBody: false,
@@ -74,7 +89,9 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
             slotId: `playground-${playgroundModel.slug}`,
             model: playgroundModel,
             view: Playground.view,
-            viewInputs: { maybeIsChromium: model.maybeIsChromium },
+            viewInputs: {
+              maybeIsPlaygroundSupported: model.maybeIsPlaygroundSupported,
+            },
             toParentMessage: message =>
               Message.GotPlaygroundMessage({ message }),
           }),
@@ -85,6 +102,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
 
   return {
     title: routeTitle(model.route, model.apiReference.apiData),
+    canonical: routeToCanonicalUrl(model.route),
     body: Deployment.match(model.deployment, {
       Production: () => body,
       Canary: ({ commit }) => h.div([], [body, Shared.canaryBanner(commit)]),

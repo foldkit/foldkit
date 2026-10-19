@@ -1,5 +1,5 @@
 import { Command, given, message, model, story } from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import { Message, type Model, ReportCount, update } from './main'
@@ -11,7 +11,7 @@ describe('update', () => {
     test('Ticked advances the count by the step and reports it on the outbound port', () => {
       story(
         update,
-        given(evo(initialModel, { step: () => 3 })),
+        given(modifyFields(initialModel, { step: () => 3 })),
         message(Message.Ticked()),
         model(model => {
           expect(model.count).toBe(13)

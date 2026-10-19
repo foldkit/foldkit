@@ -15,6 +15,7 @@ import {
   type MountRecord,
   createDevToolsStore,
 } from '../devTools/store.js'
+import { extractSubmodelInfo, isTagged } from '../devTools/submodelPath.js'
 import { startWebSocketBridge } from '../devTools/webSocketBridge.js'
 import {
   MountRuntime,
@@ -36,10 +37,13 @@ export type MountEvents = Readonly<{
   ends: ReadonlyArray<MountRecord>
 }>
 
-/** What the DevTools history keeps about a Command: its name and arguments. */
+/** A Command invocation and its runtime-local identity for DevTools history. */
 export type RecordableCommand = Readonly<{
-  name: string
-  args?: Record<string, unknown>
+  id: number
+  command: Readonly<{
+    name: string
+    args?: Record<string, unknown>
+  }>
 }>
 
 /** The replay bridge the render side hands the store when it is installed. */
@@ -58,6 +62,7 @@ export type DevToolsRenderBridge = Readonly<{
  * helpers no-op until the store exists.
  */
 export type DevToolsIntegration<Model, Message> = Readonly<{
+  isRecordingCommands: boolean
   mountTracker: typeof MountTracker.Service
   mountRuntime: typeof MountRuntime.Service
   drainMountEvents: () => MountEvents
@@ -78,13 +83,19 @@ export type DevToolsIntegration<Model, Message> = Readonly<{
     nextModel: Model,
     commands: ReadonlyArray<RecordableCommand>,
   ) => void
+  recordCommandResult: (id: number, message: Message) => void
   attachRenderedMounts: () => void
 }>
 
-const toCommandRecord = (command: RecordableCommand): CommandRecord =>
+const toCommandRecord = ({ id, command }: RecordableCommand): CommandRecord =>
   command.args !== undefined
-    ? { name: command.name, args: command.args }
-    : { name: command.name }
+    ? {
+        id,
+        name: command.name,
+        args: command.args,
+        maybeSubmodelPath: Option.none(),
+      }
+    : { id, name: command.name, maybeSubmodelPath: Option.none() }
 
 /**
  * Builds the DevTools integration for one runtime from the `devTools`
@@ -316,11 +327,24 @@ export const makeDevToolsIntegration = <Model, Message>({
       }
     }
 
+    const recordCommandResult = (id: number, message: Message): void => {
+      if (devToolsStore === null) {
+        return
+      }
+
+      const submodelPath = isTagged(message)
+        ? extractSubmodelInfo(message._tag, message).submodelPath
+        : []
+
+      Effect.runFork(devToolsStore.recordResolvedCommand(id, submodelPath))
+    }
+
     const resumeDevTools = Effect.suspend(() =>
       devToolsStore !== null ? devToolsStore.resume : Effect.void,
     )
 
     return {
+      isRecordingCommands: Option.isSome(resolvedDevTools),
       mountTracker,
       mountRuntime,
       drainMountEvents,
@@ -331,6 +355,7 @@ export const makeDevToolsIntegration = <Model, Message>({
       resumeDevTools,
       recordInit,
       recordMessage,
+      recordCommandResult,
       attachRenderedMounts,
     }
   })

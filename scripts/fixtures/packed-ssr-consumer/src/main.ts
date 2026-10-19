@@ -2,7 +2,10 @@ import { Schema } from 'effect'
 import { CustomElement, type Runtime, type Update } from 'foldkit'
 import { type Document, type HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
+
+import * as Markdown from '@foldkit/markdown'
+import { Nav } from '@foldkit/ui'
 
 export const Model = Schema.Struct({
   count: Schema.Number,
@@ -26,10 +29,10 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedIncrement: () => ({
-      model: evo(model, { count: count => count + 1 }),
+      model: modifyFields(model, { count: count => count + 1 }),
     }),
     ClickedRelease: () => ({
-      model: evo(model, { formState: () => 'Released' }),
+      model: modifyFields(model, { formState: () => 'Released' }),
     }),
   })
 
@@ -54,11 +57,27 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const observedIdElement = observedId.withMessage(h)
   const parserOwnedElement = parserOwned.withMessage(h)
   const parserChildElement = parserChild.withMessage(h)
+  const navigation = Nav.view({
+    items: [],
+    ariaLabel: 'Packed navigation',
+    toHref: () => '/',
+    isItemCurrent: () => false,
+    toView: ({ nav }) => h.nav([...nav]),
+  })
+  const markdown = Markdown.view({
+    blocks: [
+      Markdown.Paragraph({
+        content: [Markdown.Text({ value: '{{PACKED_MARKDOWN_TEXT}}' })],
+      }),
+    ],
+  })
   return {
     title: `Count ${model.count}`,
     body: h.main(
       [h.Id('app-root')],
       [
+        navigation,
+        markdown,
         h.h1(
           [h.Id('heading')],
           [serverOnlyPin === '' ? 'Packed consumer' : 'Packed consumer'],

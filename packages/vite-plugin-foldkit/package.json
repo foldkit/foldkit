@@ -1,6 +1,6 @@
 {
   "name": "@foldkit/vite-plugin",
-  "version": "0.20.2",
+  "version": "0.27.1",
   "description": "Vite plugin for Foldkit with state-preserving live reload",
   "type": "module",
   "main": "./dist/index.js",
@@ -23,24 +23,28 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "effect": "4.0.0-rc.112",
-    "foldkit": ">=0.159.0",
-    "vite": "^7.0.0 || ^8.0.0"
+    "effect": "4.0.0",
+    "foldkit": ">=0.167.0",
+    "vite": "^8.0.0"
   },
   "dependencies": {
-    "magic-string": "^1.2.3",
+    "@effect/platform-node": "4.0.0",
+    "@effect/platform-node-shared": "4.0.0",
+    "magic-string": "^1.4.2",
+    "vitefu": "^1.1.3",
     "ws": "^8.21.3"
   },
   "devDependencies": {
-    "@types/node": "^26.4.0",
+    "@types/node": "26.4.0",
     "@types/ws": "^8.18.1",
-    "effect": "4.0.0-rc.112",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "effect": "4.0.0",
     "foldkit": "workspace:*",
-    "happy-dom": "^20.11.13",
+    "happy-dom": "^20.14.5",
     "rimraf": "^6.1.3",
     "typescript": "^7.0.2",
-    "vite": "^8.2.2",
-    "vite7": "npm:vite@^7.3.6",
+    "vite": "^8.3.1",
+    "vite-host": "npm:vite@8.2.1",
     "vitest": "^4.1.11"
   },
   "keywords": [

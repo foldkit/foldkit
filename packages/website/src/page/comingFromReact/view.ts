@@ -18,7 +18,7 @@ const chevron = (isOpen: boolean): Html =>
   ih.span(
     [
       ih.Class(
-        `text-gray-600 dark:text-gray-300 transition-transform ${isOpen ? 'rotate-180' : ''}`,
+        `text-gray-700 dark:text-gray-300 transition-transform ${isOpen ? 'rotate-180' : ''}`,
       ),
     ],
     [Icon.chevronDown('w-4 h-4')],
@@ -85,22 +85,24 @@ const { tableOfContents, view: renderPage } = slotDocPage(
 
 export { tableOfContents }
 
-// NOTE: `renderCopyButton` and `renderHeadingLink` arrive as slot callbacks
-// rather than being built here. The first establishes a SnippetCopy child and
-// the second dispatches the parent's heading-link Message. As top-level
-// `viewInputs` functions they both run in the parent's boundary.
+// NOTE: the code and heading-link renderers arrive as slot callbacks rather
+// than being built here. They establish the shared snippet controls and
+// dispatch the parent's heading-link Message. As top-level `viewInputs`
+// functions they run in the parent's boundary.
 type ViewInputs = Readonly<{
   renderCopyButton: CodeBlock.RenderCopyButton
+  renderSnippet: CodeBlock.RenderSnippet
   renderHeadingLink: RenderHeadingLink
 }>
 
 export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, { renderCopyButton, renderHeadingLink }, h): Html =>
+  (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h): Html =>
     renderPage({
       demos: {},
       renderFaq: (id, question, content) =>
         faqItem(id, question, content, model, h),
       renderCopyButton,
+      renderSnippet,
       renderHeadingLink,
     }),
 )

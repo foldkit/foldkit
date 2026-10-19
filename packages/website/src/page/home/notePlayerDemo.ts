@@ -21,7 +21,7 @@ import {
 import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import notePlayerDemoCodeHtml from 'virtual:note-player-demo-code'
 
 import { Button, Input, RadioGroup } from '@foldkit/ui'
@@ -198,7 +198,7 @@ const enterNoteCommandPhase = (
   noteSequence: ReadonlyArray<Note>,
   noteIndex: number,
 ): UpdateReturn => ({
-  model: evo(model, {
+  model: modifyFields(model, {
     playbackState: () =>
       PlaybackState.Playing({
         noteSequence,
@@ -222,7 +222,7 @@ const foldNoteDurationRadioGroupOutMessage = RadioGroup.OutMessage.match<
   Selected:
     ({ value }) =>
     model => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         noteDuration: () => value,
         messageLog: prependToLog(`Selected(${value})`),
       }),
@@ -233,7 +233,9 @@ const foldNoteDurationRadioGroup = Update.foldChild({
   update: NoteDurationRadioGroup.update,
   read: (model: Model) => Option.some(model.noteDurationRadioGroup),
   write: (model, nextNoteDurationRadioGroup) =>
-    evo(model, { noteDurationRadioGroup: () => nextNoteDurationRadioGroup }),
+    modifyFields(model, {
+      noteDurationRadioGroup: () => nextNoteDurationRadioGroup,
+    }),
   toParentMessage: message => Message.GotNoteDurationMessage({ message }),
   foldOutMessage: foldNoteDurationRadioGroupOutMessage,
 })
@@ -247,7 +249,7 @@ export const update = (model: Model, message: Message) =>
         : validateNoteInput(uppercased)
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           noteInput: () => fieldState,
           playbackState: () => PlaybackState.Idle(),
           highlightPhase: () => 'Idle',
@@ -266,7 +268,7 @@ export const update = (model: Model, message: Message) =>
 
           if (resumeIndex >= noteSequence.length) {
             return {
-              model: evo(model, {
+              model: modifyFields(model, {
                 playbackState: () => PlaybackState.Idle(),
                 highlightPhase: () => 'Idle',
                 messageLog: prependToLog('ClickedPlay'),
@@ -277,7 +279,7 @@ export const update = (model: Model, message: Message) =>
           const nextGeneration = model.generation + 1
 
           return {
-            model: evo(model, {
+            model: modifyFields(model, {
               playbackState: () =>
                 PlaybackState.Playing({
                   noteSequence,
@@ -303,7 +305,7 @@ export const update = (model: Model, message: Message) =>
           const nextGeneration = model.generation + 1
 
           return {
-            model: evo(model, {
+            model: modifyFields(model, {
               playbackState: () =>
                 PlaybackState.Playing({
                   noteSequence,
@@ -325,7 +327,7 @@ export const update = (model: Model, message: Message) =>
           const nextGeneration = model.generation + 1
 
           return {
-            model: evo(model, {
+            model: modifyFields(model, {
               playbackState: () =>
                 PlaybackState.Paused({
                   noteSequence,
@@ -342,7 +344,7 @@ export const update = (model: Model, message: Message) =>
       ),
 
     ClickedStop: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         playbackState: () => PlaybackState.Idle(),
         highlightPhase: () => 'Idle',
         messageLog: prependToLog('ClickedStop'),
@@ -360,7 +362,7 @@ export const update = (model: Model, message: Message) =>
       const nextGeneration = model.generation + 1
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           highlightPhase: () => 'NoteMessage',
           generation: () => nextGeneration,
           messageLog: prependToLog(`CompletedPlayNote(${noteIndex})`),
@@ -377,19 +379,21 @@ export const update = (model: Model, message: Message) =>
       return Match.value(model.highlightPhase).pipe(
         withUpdateReturn,
         Match.when('PlayMessage', () => ({
-          model: evo(model, { highlightPhase: () => 'PlayUpdate' }),
+          model: modifyFields(model, { highlightPhase: () => 'PlayUpdate' }),
           commands: [DelayAdvancePhase({ generation: generation })],
         })),
         Match.when('PauseMessage', () => ({
-          model: evo(model, { highlightPhase: () => 'Idle' }),
+          model: modifyFields(model, { highlightPhase: () => 'Idle' }),
         })),
         Match.when('PlayUpdate', () => ({
-          model: evo(model, { highlightPhase: () => 'PlayModel' }),
+          model: modifyFields(model, { highlightPhase: () => 'PlayModel' }),
           commands: [DelayAdvancePhase({ generation: generation })],
         })),
         Match.when('PlayModel', () => {
           if (model.playbackState._tag !== 'Playing') {
-            return { model: evo(model, { highlightPhase: () => 'Idle' }) }
+            return {
+              model: modifyFields(model, { highlightPhase: () => 'Idle' }),
+            }
           }
 
           const { noteSequence, currentNoteIndex } = model.playbackState
@@ -397,16 +401,18 @@ export const update = (model: Model, message: Message) =>
           return enterNoteCommandPhase(model, noteSequence, currentNoteIndex)
         }),
         Match.when('NoteMessage', () => ({
-          model: evo(model, { highlightPhase: () => 'NoteUpdate' }),
+          model: modifyFields(model, { highlightPhase: () => 'NoteUpdate' }),
           commands: [DelayAdvancePhase({ generation: generation })],
         })),
         Match.when('NoteUpdate', () => ({
-          model: evo(model, { highlightPhase: () => 'NoteModel' }),
+          model: modifyFields(model, { highlightPhase: () => 'NoteModel' }),
           commands: [DelayAdvancePhase({ generation: generation })],
         })),
         Match.when('NoteModel', () => {
           if (model.playbackState._tag !== 'Playing') {
-            return { model: evo(model, { highlightPhase: () => 'Idle' }) }
+            return {
+              model: modifyFields(model, { highlightPhase: () => 'Idle' }),
+            }
           }
 
           const { noteSequence, currentNoteIndex } = model.playbackState
@@ -414,7 +420,7 @@ export const update = (model: Model, message: Message) =>
 
           if (nextIndex >= noteSequence.length) {
             return {
-              model: evo(model, {
+              model: modifyFields(model, {
                 playbackState: () => PlaybackState.Idle(),
                 highlightPhase: () => 'Idle',
               }),
@@ -429,11 +435,11 @@ export const update = (model: Model, message: Message) =>
     },
 
     SucceededAcquireAudioContext: () => ({
-      model: evo(model, { audio: () => AudioState.Ready() }),
+      model: modifyFields(model, { audio: () => AudioState.Ready() }),
     }),
 
     FailedAcquireAudioContext: () => ({
-      model: evo(model, { audio: () => AudioState.Unavailable() }),
+      model: modifyFields(model, { audio: () => AudioState.Unavailable() }),
     }),
 
     ReleasedAudioContext: () => ({ model }),
@@ -543,7 +549,7 @@ const durationButtonClass = (
 ): string =>
   clsx('flex-1 px-3 py-1.5 text-sm font-normal transition text-center', {
     'bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900': isSelected,
-    'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 cursor-pointer':
+    'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 cursor-pointer':
       !isSelected && !isDisabled,
     'text-gray-300 dark:text-gray-600 cursor-not-allowed':
       !isSelected && isDisabled,
@@ -626,7 +632,7 @@ const noteInputView = (
               [
                 ...attributes.label,
                 h.For('note-input'),
-                h.Class('text-xs text-gray-500 dark:text-gray-400'),
+                h.Class('text-xs text-gray-600 dark:text-gray-400'),
               ],
               ['Note Sequence'],
             ),
@@ -644,17 +650,17 @@ const noteInputView = (
             FieldValidation.match(model.noteInput, {
               onNotValidated: () =>
                 h.p(
-                  [h.Class('text-xs text-gray-400 dark:text-gray-500')],
+                  [h.Class('text-xs text-gray-500 dark:text-gray-500')],
                   [`${MIN_NOTES}–${MAX_NOTES} notes, A through G`],
                 ),
               onValidating: () =>
                 h.p(
-                  [h.Class('text-xs text-gray-400 dark:text-gray-500')],
+                  [h.Class('text-xs text-gray-500 dark:text-gray-500')],
                   [''],
                 ),
               onValid: value =>
                 h.p(
-                  [h.Class('text-xs text-gray-500 dark:text-gray-400')],
+                  [h.Class('text-xs text-gray-600 dark:text-gray-400')],
                   [`${parseNotes(value).length} notes`],
                 ),
               onInvalid: ({ errors }) =>
@@ -680,7 +686,7 @@ const durationSelectorView = (
     [h.Class('flex flex-col gap-1.5')],
     [
       h.label(
-        [h.Class('text-xs text-gray-500 dark:text-gray-400')],
+        [h.Class('text-xs text-gray-600 dark:text-gray-400')],
         ['Note Length'],
       ),
       h.submodel({
@@ -764,7 +770,7 @@ const playbackControlView = (
                             'flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-normal transition',
                             {
                               'button-accent cursor-pointer': canPlay,
-                              'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed':
+                              'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-500 cursor-not-allowed':
                                 !canPlay,
                             },
                           ),
@@ -790,7 +796,7 @@ const playbackControlView = (
                         {
                           'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-pointer':
                             isActive,
-                          'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed':
+                          'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-500 cursor-not-allowed':
                             !isActive,
                         },
                       ),
@@ -882,7 +888,7 @@ const noteVisualizerView = (model: Model, notes: ReadonlyArray<Note>): Html => {
               {
                 'bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900':
                   isCurrentNote,
-                'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300':
+                'bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300':
                   !isCurrentNote,
               },
             ),
@@ -923,7 +929,7 @@ const phaseLabel = (phase: NoteHighlightPhase): string =>
 
 const phaseColorClass = (phase: NoteHighlightPhase): string =>
   Match.value(phase).pipe(
-    Match.when('Idle', () => 'text-gray-500 dark:text-gray-400'),
+    Match.when('Idle', () => 'text-gray-600 dark:text-gray-400'),
     Match.whenOr(
       'PlayMessage',
       'PauseMessage',
@@ -938,7 +944,7 @@ const phaseColorClass = (phase: NoteHighlightPhase): string =>
     Match.whenOr(
       'PlayModel',
       'NoteModel',
-      () => 'text-accent-600 dark:text-accent-400',
+      () => 'text-accent-700 dark:text-accent-400',
     ),
     Match.when('NoteCommand', () => 'text-violet-600 dark:text-violet-400'),
     Match.exhaustive,

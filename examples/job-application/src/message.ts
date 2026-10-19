@@ -3,7 +3,6 @@ import { defineMessageUnion } from 'foldkit/message'
 
 import { Menu, Tabs } from '@foldkit/ui'
 
-import { Step } from './domain'
 import {
   Attachments,
   CoverLetter,
@@ -12,16 +11,6 @@ import {
   Skills,
   WorkHistory,
 } from './step'
-
-// STEP SUBMODELS
-
-// NAVIGATION
-
-// PREVIEW
-
-// SUBMISSION
-
-// UNION
 
 export const Message = defineMessageUnion({
   GotPersonalInfoMessage: { message: PersonalInfo.Message },
@@ -32,7 +21,6 @@ export const Message = defineMessageUnion({
   GotAttachmentsMessage: { message: Attachments.Message },
   GotStepMenuMessage: { message: Menu.Message },
   GotStepTabsMessage: { message: Tabs.Message },
-  NavigatedToStep: { step: Step.Step },
   ClickedNext: {},
   ClickedPrevious: {},
   ToggledPreview: {},

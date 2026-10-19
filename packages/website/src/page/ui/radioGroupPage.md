@@ -4,6 +4,8 @@
 
 A single-selection component with roving tabindex keyboard navigation. Arrow keys simultaneously move focus and select the option. There is no separate focus-then-select step.
 
+### State Ownership and Bundle Type
+
 RadioGroup is a Submodel that keeps its own keyboard-focus state, but the parent owns the selection. Store the selected value in your Model, pass it in as `selectedValue`, and fold the `Selected` OutMessage back into that field through [`Update.foldChild`](/core/submodel#fold-child). Both vertical and horizontal orientation are supported.
 
 What `RadioGroup.create<Value>()` returns is typed [`RadioGroup.Bundle<Value>`](/ui/selection-submodels#bundle-type), for the cases where a created bundle has to be named rather than called directly.
@@ -22,7 +24,7 @@ Pass the bundle's `update` to `Update.foldChild`, then store the value from the 
 
 ::Demo{name="vertical"}
 
-::Snippet{name="uiRadioGroupBasic" label="radio group example"}
+::Snippet{name="uiRadioGroupBasic" label="Radio group"}
 
 ### Horizontal
 
@@ -32,11 +34,19 @@ Pass `orientation: 'Horizontal'` in the view inputs to switch to left/right arro
 
 ## Read-Only
 
+### Focus and Selection
+
 `isReadOnly` keeps the group navigable but not selectable. Arrow, `Home`, `End`, `PageUp`, and `PageDown` still move focus, and the group reports each move as a `FocusedOption` Message, so the focused option is stored in the RadioGroup Model rather than left as an untracked DOM detail. `data-active`, `isActive`, and `tabindex` all follow that modeled focus, which means a read-only group's focus ring lands where the keyboard actually is instead of staying pinned to the selection. Space and clicking do nothing, and no `Selected` OutMessage ever reaches the parent.
+
+### Read-Only and Disabled States
+
+#### ARIA Semantics
 
 `isReadOnly` and `isDisabled` both stop the group from committing a selection. They differ in the semantics exposed to assistive technology, so they are not interchangeable. `aria-disabled="true"`, which `isDisabled` emits on each option, communicates that the option is unavailable. `aria-readonly="true"`, which `isReadOnly` emits on the group, communicates that the selection cannot be changed but remains relevant to the user, and keyboard navigation stays intact so the user can read through the options.
 
 Set both and disabled wins for interaction: a disabled option carries no click handler and no keydown handler, so nothing navigates. Both markers still render.
+
+#### Choosing a State
 
 Use `isReadOnly` when the selection is still information the user needs, such as a plan chosen earlier in a flow, and `isDisabled` when the group is unavailable.
 

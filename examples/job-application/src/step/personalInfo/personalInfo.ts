@@ -14,7 +14,7 @@ import {
   validate,
 } from 'foldkit/fieldValidation'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { DatePicker, Listbox } from '@foldkit/ui'
 
@@ -162,14 +162,17 @@ const foldPronounsOutMessage = Listbox.OutMessage.match<
   Selected:
     ({ value }) =>
     model => ({
-      model: evo(model, { maybeSelectedPronoun: () => Option.some(value) }),
+      model: modifyFields(model, {
+        maybeSelectedPronoun: () => Option.some(value),
+      }),
     }),
 })
 
 const foldPronouns = Update.foldChild({
   update: PronounsListbox.update,
   read: (model: Model) => Option.some(model.pronouns),
-  write: (model, nextPronouns) => evo(model, { pronouns: () => nextPronouns }),
+  write: (model, nextPronouns) =>
+    modifyFields(model, { pronouns: () => nextPronouns }),
   toParentMessage: message => Message.GotPronounsMessage({ message }),
   foldOutMessage: foldPronounsOutMessage,
 })
@@ -180,10 +183,12 @@ const foldAvailableDateOutMessage = DatePicker.OutMessage.match<
   SelectedDate:
     ({ date }) =>
     model => ({
-      model: evo(model, { maybeAvailableDate: () => Option.some(date) }),
+      model: modifyFields(model, {
+        maybeAvailableDate: () => Option.some(date),
+      }),
     }),
   ClearedDate: () => model => ({
-    model: evo(model, { maybeAvailableDate: () => Option.none() }),
+    model: modifyFields(model, { maybeAvailableDate: () => Option.none() }),
   }),
   ChangedViewMonth: () => model => ({ model }),
 })
@@ -192,7 +197,7 @@ const foldAvailableDate = Update.foldChild({
   update: DatePicker.update,
   read: (model: Model) => Option.some(model.availableDate),
   write: (model, nextAvailableDate) =>
-    evo(model, { availableDate: () => nextAvailableDate }),
+    modifyFields(model, { availableDate: () => nextAvailableDate }),
   toParentMessage: message => Message.GotAvailableDateMessage({ message }),
   foldOutMessage: foldAvailableDateOutMessage,
 })
@@ -200,11 +205,11 @@ const foldAvailableDate = Update.foldChild({
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     UpdatedFirstName: ({ value }) => ({
-      model: evo(model, { firstName: () => validateFirstName(value) }),
+      model: modifyFields(model, { firstName: () => validateFirstName(value) }),
     }),
 
     UpdatedLastName: ({ value }) => ({
-      model: evo(model, { lastName: () => validateLastName(value) }),
+      model: modifyFields(model, { lastName: () => validateLastName(value) }),
     }),
 
     UpdatedEmail: ({ value }) => {
@@ -212,14 +217,14 @@ export const update = (model: Model, message: Message) =>
       return Match.value(validateEmail(value)).pipe(
         Match.withReturnType<UpdateReturn>(),
         Match.tag('Valid', () => ({
-          model: evo(model, {
+          model: modifyFields(model, {
             email: () => Validating({ value }),
             emailValidationId: () => validationId,
           }),
           commands: [ValidateEmailAsync({ emailInput: value, validationId })],
         })),
         Match.orElse(syncResult => ({
-          model: evo(model, {
+          model: modifyFields(model, {
             email: () => syncResult,
             emailValidationId: () => validationId,
           }),
@@ -229,24 +234,24 @@ export const update = (model: Model, message: Message) =>
 
     CompletedValidateEmailAsync: ({ validationId, field }) => {
       if (validationId === model.emailValidationId) {
-        return { model: evo(model, { email: () => field }) }
+        return { model: modifyFields(model, { email: () => field }) }
       } else {
         return { model }
       }
     },
 
     UpdatedPhone: ({ value }) => ({
-      model: evo(model, { phone: () => validatePhone(value) }),
+      model: modifyFields(model, { phone: () => validatePhone(value) }),
     }),
 
     GotPronounsMessage: ({ message }) => foldPronouns(model, message),
 
     UpdatedCustomPronouns: ({ value }) => ({
-      model: evo(model, { customPronouns: () => value }),
+      model: modifyFields(model, { customPronouns: () => value }),
     }),
 
     UpdatedPortfolioUrl: ({ value }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         portfolioUrl: () => validatePortfolioUrl(value),
       }),
     }),
@@ -277,7 +282,7 @@ export const isComplete = (model: Model): boolean =>
   ])
 
 export const revealErrors = (model: Model): Model =>
-  evo(model, {
+  modifyFields(model, {
     firstName: revealFieldErrors(firstNameRules),
     lastName: revealFieldErrors(lastNameRules),
     email: revealFieldErrors(emailRules),

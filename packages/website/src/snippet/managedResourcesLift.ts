@@ -19,7 +19,7 @@ const SignalingSocket = ManagedResource.tag<WebSocket>()('SignalingSocket')
 const videoCallManagedResources = ManagedResource.lift(
   VideoCall.managedResources,
 )<Model, Message>({
-  toChildModel: model => model.videoCall,
+  read: model => model.videoCall,
   toParentMessage: message => GotVideoCallMessage({ message }),
 })
 
@@ -35,7 +35,7 @@ const localManagedResources = ManagedResource.make<Model, Message>()(entry => ({
   }),
 }))
 
-export const managedResources = ManagedResource.aggregate<Model, Message>()(
+export const managedResources = ManagedResource.aggregate(
   videoCallManagedResources,
   localManagedResources,
 )

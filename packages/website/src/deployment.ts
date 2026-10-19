@@ -14,7 +14,7 @@ export const deploymentFromCanaryCommit = (
     return Deployment.Production()
   } else {
     return Deployment.Canary({
-      commit: Schema.decodeUnknownSync(Schema.NonEmptyString)(canaryCommit),
+      commit: Schema.decodeSync(Schema.NonEmptyString)(canaryCommit),
     })
   }
 }

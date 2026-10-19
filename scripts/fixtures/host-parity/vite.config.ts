@@ -25,6 +25,7 @@ export default defineConfig(async () => {
       foldkit({
         ssr: {
           serverEntry: `/@fs/${SERVER_ENTRY}`,
+          clientEntry: '/src/entry.ts',
           build: true,
         },
       }),

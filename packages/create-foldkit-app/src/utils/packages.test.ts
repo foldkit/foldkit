@@ -17,8 +17,8 @@ import {
 describe('buildUnresolvedDeps', () => {
   it('keeps third-party versions and defers every workspace package to the CLI release manifest', () => {
     const result = buildUnresolvedDeps({
-      effect: '4.0.0-beta.106',
-      '@effect/platform-browser': '4.0.0-beta.106',
+      effect: '4.0.0',
+      '@effect/platform-browser': '4.0.0',
       foldkit: 'workspace:*',
       '@foldkit/ui': 'workspace:*',
       tailwindcss: '^4.3.1',
@@ -26,8 +26,8 @@ describe('buildUnresolvedDeps', () => {
     })
 
     expect(result).toEqual({
-      effect: { _tag: 'Keep', version: '4.0.0-beta.106' },
-      '@effect/platform-browser': { _tag: 'Keep', version: '4.0.0-beta.106' },
+      effect: { _tag: 'Keep', version: '4.0.0' },
+      '@effect/platform-browser': { _tag: 'Keep', version: '4.0.0' },
       foldkit: { _tag: 'Workspace' },
       '@foldkit/ui': { _tag: 'Workspace' },
       tailwindcss: { _tag: 'Keep', version: '^4.3.1' },
@@ -49,6 +49,7 @@ describe('buildUnresolvedDevDeps', () => {
     )
 
     expect(result).toEqual({
+      '@effect/tsgo': { _tag: 'Release' },
       '@foldkit/devtools': { _tag: 'Release' },
       '@foldkit/vite-plugin': { _tag: 'Release' },
       '@foldkit/devtools-mcp': { _tag: 'Release' },
@@ -56,6 +57,7 @@ describe('buildUnresolvedDevDeps', () => {
       'happy-dom': { _tag: 'Release' },
       oxfmt: { _tag: 'Keep', version: '^0.65.0' },
       oxlint: { _tag: 'Release' },
+      'oxlint-tsgolint': { _tag: 'Release' },
       vitest: { _tag: 'Release' },
       typescript: { _tag: 'Keep', version: '^6.0.3' },
       vite: { _tag: 'Keep', version: '^8.0.16' },
@@ -100,7 +102,7 @@ describe('foldkitSubtreeRef', () => {
         channel: 'stable',
         sourceCommit,
         packages: { foldkit: '0.156.0', '@foldkit/ui': '0.42.0' },
-        dependencies: { effect: '4.0.0-beta.106' },
+        dependencies: { effect: '4.0.0' },
       }),
     ).toBe('foldkit@0.156.0')
   })
@@ -180,4 +182,15 @@ describe('server-rendered example manifests', () => {
       )
     })
   }
+
+  it('pins the SSR Node platform packages to one Effect version', () => {
+    const manifest = readManifest('ssr')
+    const effectVersion = manifest.dependencies?.['effect']
+
+    expect(effectVersion).toBeDefined()
+    expect(manifest.dependencies?.['@effect/platform-node']).toBe(effectVersion)
+    expect(manifest.dependencies?.['@effect/platform-node-shared']).toBe(
+      effectVersion,
+    )
+  })
 })

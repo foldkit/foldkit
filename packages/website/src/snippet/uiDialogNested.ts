@@ -5,7 +5,7 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Dialog } from '@foldkit/ui'
 
@@ -44,7 +44,7 @@ const foldConfirmDialogOutMessage = Dialog.OutMessage.match<
 
 const readConfirmDialog = (model: Model) => Option.some(model.confirmDialog)
 const writeConfirmDialog = (model: Model, confirmDialog: Dialog.Model): Model =>
-  evo(model, { confirmDialog: () => confirmDialog })
+  modifyFields(model, { confirmDialog: () => confirmDialog })
 const toGotConfirmDialogMessage = (message: Dialog.Message): Message =>
   Message.GotConfirmDialogMessage({ message })
 
@@ -81,34 +81,66 @@ ConfirmedDeleteProject: () => foldConfirmDialogClose(model)
 // it. Cancel dismisses the confirmation through the `closeButton` bundle.
 // Delete dispatches a fact that runs the work and closes through Dialog.close.
 const view = (h: HtmlBuilder<Message>) => {
+  const confirmDialogView = ({
+    dialog,
+    backdrop,
+    panel,
+    title,
+    closeButton,
+    isVisible,
+  }: Dialog.RenderInfo) =>
+    h.dialog(
+      [...dialog],
+      isVisible
+        ? [
+            h.div([...backdrop, h.Class('fixed inset-0 bg-black/50')]),
+            h.div(
+              [...panel, h.Class('rounded-lg p-6 max-w-sm mx-auto shadow-xl')],
+              [
+                h.h2([...title], ['Delete project?']),
+                h.button([...closeButton], ['Cancel']),
+                h.button(
+                  [h.OnClick(Message.ConfirmedDeleteProject())],
+                  ['Delete'],
+                ),
+              ],
+            ),
+          ]
+        : [],
+    )
+
+  const settingsDialogView = ({
+    dialog,
+    backdrop,
+    panel,
+    title,
+    isVisible,
+  }: Dialog.RenderInfo) =>
+    h.dialog(
+      [...dialog],
+      isVisible
+        ? [
+            h.div([...backdrop, h.Class('fixed inset-0 bg-black/50')]),
+            h.div(
+              [...panel, h.Class('rounded-lg p-6 max-w-lg mx-auto shadow-xl')],
+              [
+                h.h2([...title], ['Project settings']),
+                h.button(
+                  [h.OnClick(Message.ClickedDeleteProject())],
+                  ['Delete project'],
+                ),
+              ],
+            ),
+          ]
+        : [],
+    )
+
   const confirmDialog = h.submodel({
     slotId: model.confirmDialog.id,
     model: model.confirmDialog,
     view: Dialog.view,
     viewInputs: {
-      toView: ({ dialog, backdrop, panel, title, closeButton, isVisible }) =>
-        h.dialog(
-          [...dialog],
-          isVisible
-            ? [
-                h.div([...backdrop, h.Class('fixed inset-0 bg-black/50')]),
-                h.div(
-                  [
-                    ...panel,
-                    h.Class('rounded-lg p-6 max-w-sm mx-auto shadow-xl'),
-                  ],
-                  [
-                    h.h2([...title], ['Delete project?']),
-                    h.button([...closeButton], ['Cancel']),
-                    h.button(
-                      [h.OnClick(Message.ConfirmedDeleteProject())],
-                      ['Delete'],
-                    ),
-                  ],
-                ),
-              ]
-            : [],
-        ),
+      toView: confirmDialogView,
     },
     toParentMessage: message => Message.GotConfirmDialogMessage({ message }),
   })
@@ -118,28 +150,7 @@ const view = (h: HtmlBuilder<Message>) => {
     model: model.settingsDialog,
     view: Dialog.view,
     viewInputs: {
-      toView: ({ dialog, backdrop, panel, title, isVisible }) =>
-        h.dialog(
-          [...dialog],
-          isVisible
-            ? [
-                h.div([...backdrop, h.Class('fixed inset-0 bg-black/50')]),
-                h.div(
-                  [
-                    ...panel,
-                    h.Class('rounded-lg p-6 max-w-lg mx-auto shadow-xl'),
-                  ],
-                  [
-                    h.h2([...title], ['Project settings']),
-                    h.button(
-                      [h.OnClick(Message.ClickedDeleteProject())],
-                      ['Delete project'],
-                    ),
-                  ],
-                ),
-              ]
-            : [],
-        ),
+      toView: settingsDialogView,
     },
     toParentMessage: message => Message.GotSettingsDialogMessage({ message }),
   })

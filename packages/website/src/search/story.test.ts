@@ -1,5 +1,5 @@
 import { Command, given, message, model, story } from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import { init } from './init'
@@ -62,7 +62,7 @@ describe('search', () => {
   test('clearing the query resets to Idle', () => {
     story(
       update,
-      given(evo(init_.model, { query: () => 'routing' })),
+      given(modifyFields(init_.model, { query: () => 'routing' })),
       message(Message.UpdatedSearchQuery({ query: '' })),
       model(model => {
         expect(model.query).toBe('')
@@ -76,7 +76,7 @@ describe('search', () => {
   test('same query is ignored', () => {
     story(
       update,
-      given(evo(init_.model, { query: () => 'routing' })),
+      given(modifyFields(init_.model, { query: () => 'routing' })),
       message(Message.UpdatedSearchQuery({ query: 'routing' })),
       model(model => {
         expect(model.searchState._tag).toBe('Idle')
@@ -89,7 +89,7 @@ describe('search', () => {
     story(
       update,
       given(
-        evo(init_.model, {
+        modifyFields(init_.model, {
           query: () => 'routing',
           searchState: () => SearchState.Ok({ results: searchResults }),
         }),
@@ -113,7 +113,7 @@ describe('search', () => {
   test('stale results are ignored', () => {
     story(
       update,
-      given(evo(init_.model, { query: () => 'testing' })),
+      given(modifyFields(init_.model, { query: () => 'testing' })),
       message(
         Message.CompletedFetchSearchResults({
           results: searchResults,
@@ -144,7 +144,7 @@ describe('search', () => {
   })
 
   test('arrow keys cycle through results', () => {
-    const modelWithResults = evo(init_.model, {
+    const modelWithResults = modifyFields(init_.model, {
       searchState: () => SearchState.Ok({ results: searchResults }),
       activeResultIndex: () => 0,
     })
@@ -175,7 +175,7 @@ describe('search', () => {
     story(
       update,
       given(
-        evo(init_.model, {
+        modifyFields(init_.model, {
           query: () => 'routing',
           searchState: () => SearchState.Ok({ results: searchResults }),
           activeResultIndex: () => 1,

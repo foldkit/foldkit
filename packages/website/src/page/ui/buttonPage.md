@@ -16,7 +16,7 @@ Pass an `onClick` Message and a `toView` callback that spreads the provided attr
 
 ::Demo{name="basic"}
 
-::Snippet{name="uiButtonBasic" label="basic button example"}
+::Snippet{name="uiButtonBasic" label="Basic button"}
 
 ### Disabled
 
@@ -24,7 +24,7 @@ Set `isDisabled: true` to disable the button. Foldkit uses `aria-disabled` inste
 
 ::Demo{name="disabled"}
 
-::Snippet{name="uiButtonDisabled" label="disabled button example"}
+::Snippet{name="uiButtonDisabled" label="Disabled button"}
 
 ## Styling
 
@@ -47,15 +47,17 @@ Button uses the native `<button>` element, so keyboard interaction is handled by
 
 ## Accessibility
 
+### Disabled Buttons
+
 Button sets `aria-disabled="true"` when disabled instead of the native `disabled` attribute. This ensures the button remains in the tab order and is announced by screen readers, while preventing click handlers from firing.
 
 `tabindex="0"` is always set to ensure focusability. The `type` attribute defaults to `"button"` to prevent accidental form submissions.
 
+### Custom Attributes and Live Regions
+
 Add your own attributes after the `button` bundle. A later attribute wins, so `h.Type('submit')` after the bundle replaces the default. A button that changes its own text, such as one cycling through values on a tap, announces each change by carrying a live region: spread `h.AriaLive('polite')` and `h.AriaAtomic(true)` after the bundle. Button does not add `aria-live` or `aria-atomic` for you.
 
-```ts
-h.button([...button, h.AriaLive('polite'), h.AriaAtomic(true)], [label])
-```
+::Snippet{name="uiButtonLiveRegion" label="Button with a live region"}
 
 ## API Reference
 

@@ -1,4 +1,4 @@
-import { Array, Effect, Option, Predicate, Schema, pipe } from 'effect'
+import { Array, Data, Effect, Option, Predicate, Schema, pipe } from 'effect'
 
 import { HYDRATION_BUILD_ATTRIBUTE } from '../buildToken.js'
 import {
@@ -19,6 +19,10 @@ export type HydrationConfig = Readonly<{
   flagsScripts: ReadonlyArray<HTMLScriptElement>
   isFlagsRequired: boolean
 }>
+
+class FlagsPayloadDecodeFailed extends Data.TaggedError(
+  'FlagsPayloadDecodeFailed',
+)<Readonly<{ cause: unknown }>> {}
 
 const hydrationForRoot = (
   root: HTMLElement,
@@ -127,12 +131,12 @@ export const buildSkew = (
 ): Error | undefined => {
   if (!Predicate.isString(buildId) || buildId === '') {
     return new Error(
-      '[foldkit] Runtime.hydrate was given no build id. Hydration compares ' +
+      '[foldkit] Runtime.hydrate has no build id. Hydration compares ' +
         'the id the server stamped on the root with this client’s own before ' +
         'it adopts any DOM, and without one a page from any deployment would ' +
-        'be adopted as this one. Pass ' +
-        '`buildId: import.meta.env.FOLDKIT_BUILD_ID`, the same value the ' +
-        'server entry passes to `renderToString`.',
+        'be adopted as this one. Build the client with @foldkit/vite-plugin, ' +
+        'or pass the same nonempty `buildId` explicitly to `Runtime.hydrate` ' +
+        'and `renderToString`.',
     )
   }
   const servedBuild = root.getAttribute(HYDRATION_BUILD_ATTRIBUTE)
@@ -476,7 +480,7 @@ export const resolveHydrationHandoff = <Flags, Resources>({
             decode => decode(parsedPayload),
           )
         },
-        catch: cause => cause,
+        catch: cause => new FlagsPayloadDecodeFailed({ cause }),
       }).pipe(
         Effect.catch(cause =>
           refuseHydration<Flags>(

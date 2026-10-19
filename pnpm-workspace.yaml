@@ -7,23 +7,30 @@ packages:
 
 allowBuilds:
   '@parcel/watcher': true
-  esbuild: true
   msgpackr-extract: true
   simple-git-hooks: true
 
 minimumReleaseAgeExclude:
-  - '@effect/platform-browser@4.0.0-rc.112'
-  - '@effect/platform-node-shared@4.0.0-rc.112'
-  - '@effect/platform-node@4.0.0-rc.112'
-  - '@effect/vitest@4.0.0-rc.112'
-  - effect@4.0.0-rc.112
+  - '@effect/platform-browser@4.0.0'
+  - '@effect/platform-node-shared@4.0.0'
+  - '@effect/platform-node@4.0.0'
+  - '@effect/vitest@4.0.0'
+  - effect@4.0.0
+  - '@effect/tsgo-darwin-arm64@0.50.0'
+  - '@effect/tsgo-darwin-x64@0.50.0'
+  - '@effect/tsgo-linux-arm64@0.50.0'
+  - '@effect/tsgo-linux-arm@0.50.0'
+  - '@effect/tsgo-linux-x64@0.50.0'
+  - '@effect/tsgo-win32-arm64@0.50.0'
+  - '@effect/tsgo-win32-x64@0.50.0'
+  - '@effect/tsgo@0.50.0'
 
 overrides:
   '@mapbox/jsonlint-lines-primitives': 2.0.2
   '@types/node': 26.4.0
-  effect: 4.0.0-rc.112
-  '@effect/platform-browser': 4.0.0-rc.112
-  '@effect/platform-node': 4.0.0-rc.112
-  '@effect/platform-node-shared': 4.0.0-rc.112
-  '@effect/vitest': 4.0.0-rc.112
+  effect: 4.0.0
+  '@effect/platform-browser': 4.0.0
+  '@effect/platform-node': 4.0.0
+  '@effect/platform-node-shared': 4.0.0
+  '@effect/vitest': 4.0.0
   'monaco-editor>dompurify': 3.4.14

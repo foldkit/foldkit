@@ -8,13 +8,17 @@ Foldkit UI is a set of headless, accessible UI components. You provide markup an
 
 `@foldkit/ui` is a separate package from `foldkit`. Projects scaffolded by `create-foldkit-app` from an example that uses UI components already include it. Its peer dependencies are `foldkit` and `effect`, which every Foldkit project already has. Add it to any other project with:
 
-::Snippet{name="uiOverviewInstall" label="install Foldkit UI"}
+::Snippet{name="uiOverviewInstall" label="Install Foldkit UI"}
 
 ## Component Categories
 
 Components are either stateful Submodels or stateless render helpers.
 
+### Stateful Submodels
+
 Stateful [Submodels](/core/submodel), including Menu, Listbox, Combobox, Calendar, Dialog, and Popover, have their own Model, Message union, update, and OutMessage. Embed them with `h.submodel` and fold their OutMessages into the parent update.
+
+### Stateless Render Helpers
 
 Stateless render helpers, including Button, Input, Textarea, Select, Checkbox, Switch, Disclosure, Fieldset, and Nav, take a `ViewConfig` and your builder and return Html. They bundle ARIA, data, and event attributes for DOM elements that you render. They need no child Model or `h.submodel` wiring. The builder determines the Message type returned by their callbacks, so you do not provide a Message type argument.
 
@@ -32,6 +36,8 @@ The Kind column below identifies each component category.
 | [Radio Group](/ui/radio-group)     | Submodel | Radio options with roving tabindex, keyboard navigation, read-only navigation, and per-option label/description linking.                                                                             |
 | [Switch](/ui/switch)               | Helper   | On/off toggle with accessible labeling, keyboard support, and optional form integration.                                                                                                             |
 | [Slider](/ui/slider)               | Submodel | Numeric range input with pointer drag, keyboard step / page / home / end navigation, and ARIA slider semantics.                                                                                      |
+| [Meter](/ui/meter)                 | Helper   | Scalar value in a known range with `role="meter"`, clamped `aria-valuenow`, and threshold data attributes.                                                                                           |
+| [Progress](/ui/progress)           | Helper   | Task progress with `role="progressbar"`, determinate and indeterminate states, and `data-state` styling hooks.                                                                                       |
 | [Select](/ui/select)               | Helper   | Native select wrapper with ARIA label/description linking and data-attribute hooks.                                                                                                                  |
 | [Listbox](/ui/listbox)             | Submodel | Custom select dropdown with persistent selection, keyboard navigation, typeahead search, and read-only browsing.                                                                                     |
 | [Combobox](/ui/combobox)           | Submodel | Autocomplete input with filtering, keyboard navigation, custom rendering, and read-only browsing.                                                                                                    |

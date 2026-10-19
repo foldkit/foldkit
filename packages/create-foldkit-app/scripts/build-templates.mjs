@@ -19,6 +19,7 @@ const PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const REPO_ROOT = resolve(PACKAGE_ROOT, '..', '..')
 const DIST_TEMPLATE_ROOT = resolve(PACKAGE_ROOT, 'dist/templates')
 const TOOL_DEPENDENCIES = [
+  '@effect/tsgo',
   '@foldkit/devtools',
   '@foldkit/vite-plugin',
   '@foldkit/devtools-mcp',
@@ -27,6 +28,7 @@ const TOOL_DEPENDENCIES = [
   'happy-dom',
   'oxfmt',
   'oxlint',
+  'oxlint-tsgolint',
   'vitest',
 ]
 

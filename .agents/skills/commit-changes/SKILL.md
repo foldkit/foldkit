@@ -34,12 +34,13 @@ Use an empty changeset, a file holding only the two frontmatter delimiters, for 
 
 For breaking changes, include a brief migration note in the changeset description.
 
-6. Run `pnpm format`. Inspect formatting changes and stage only files that belong to the requested commit.
-7. Stage relevant files with `git add`.
-8. Create one Conventional Commit with `git commit`.
-9. Verify the final commit message with `git log -1 --format=%B`. If any
-   body line is longer than 80 characters, amend the commit before stopping.
-   Re-check the subject, scope, author, and branch shape after every amend.
+6. Run `pnpm format` and require a successful exit. If the command times out or does not report an exit status, do not assume it succeeded. Inspect formatting changes and stage only files that belong to the requested commit. For a targeted run, `./node_modules/.bin/oxfmt <paths>` writes the files; do not add a `--write` flag.
+7. Run `pnpm format:check` and require a successful exit. A targeted `./node_modules/.bin/oxfmt --check <paths>` is also valid when only those files are in scope.
+8. Stage relevant files with `git add`.
+9. Create one Conventional Commit with `git commit`.
+10. Verify the final commit message with `git log -1 --format=%B`. If any
+    body line is longer than 80 characters, amend the commit before stopping.
+    Re-check the subject, scope, author, and branch shape after every amend.
 
 ## Commit Message Rules
 
@@ -75,4 +76,5 @@ Before stopping after a commit or amend, verify:
 - Do not run the release process. Releases are automated.
 - Do not edit changelogs manually.
 - Do not push unless the user explicitly asks.
+- A request to push with `--no-verify` skips the Git hook only. It does not skip the explicit formatting and verification steps above.
 - If the worktree contains unrelated changes that make staging ambiguous, stop and ask which files belong in the commit.

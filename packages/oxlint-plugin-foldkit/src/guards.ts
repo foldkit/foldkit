@@ -87,6 +87,14 @@ export const isSpreadElement = (node: unknown): boolean =>
   'type' in node &&
   node.type === 'SpreadElement'
 
+export const isArrowFunction = (
+  node: unknown,
+): node is ESTree.ArrowFunctionExpression =>
+  typeof node === 'object' &&
+  node !== null &&
+  'type' in node &&
+  node.type === 'ArrowFunctionExpression'
+
 export const helperCalleeName = (callee: unknown): Option.Option<string> => {
   if (isIdentifier(callee)) {
     return Option.some(callee.name)
@@ -271,6 +279,8 @@ export const resolveImportedPath = (
 
 const foldkitNamespaceBySource: Readonly<Record<string, string>> = {
   'foldkit/command': 'Command',
+  'foldkit/experimental': 'Experimental',
+  'foldkit/experimental/query': 'Query',
   'foldkit/html': 'Html',
   'foldkit/managedResource': 'ManagedResource',
   'foldkit/message': 'Message',
@@ -282,6 +292,7 @@ const foldkitNamespaceBySource: Readonly<Record<string, string>> = {
   'foldkit/struct': 'Struct',
   'foldkit/submodel': 'Submodel',
   'foldkit/subscription': 'Subscription',
+  'foldkit/update': 'Update',
 }
 
 export const resolveFoldkitApiPath = (

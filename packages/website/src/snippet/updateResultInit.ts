@@ -1,8 +1,4 @@
-const homeInit = Home.init()
-
-return {
-  model: { home: homeInit.model },
-  commands: Command.mapMessages(homeInit.commands, message =>
-    Message.GotHomeMessage({ message }),
-  ),
-}
+return Update.foldChildInit(Home.init(), {
+  toParentModel: home => ({ home }),
+  toParentMessage: message => Message.GotHomeMessage({ message }),
+})

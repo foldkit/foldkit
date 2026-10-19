@@ -42,6 +42,7 @@ test('closes the hover-intent menu without navigating', async ({ page }) => {
 test('names the mobile menu and moves focus into it', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 })
   await page.goto('/ui/dialog')
+  await expect(page.locator('[data-foldkit-build]')).toHaveCount(0)
 
   const trigger = page.getByRole('button', { name: 'Toggle menu' })
   await trigger.click()

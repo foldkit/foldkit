@@ -32,6 +32,30 @@ const knob = (isChecked: boolean, h: HtmlBuilder<UiMessage>): Html => {
 
 export const view = Submodel.defineView<UiModel, UiMessage>(
   (model, h): Html => {
+    const switchView = (attributes: Switch.SwitchAttributes<UiMessage>): Html =>
+      h.div(
+        [h.Class(wrapperClassName)],
+        [
+          h.button(
+            [...attributes.button, h.Class(buttonClassName)],
+            [knob(model.isSwitchDemoChecked, h)],
+          ),
+          h.div(
+            [],
+            [
+              h.label(
+                [...attributes.label, h.Class(labelClassName)],
+                ['Enable notifications'],
+              ),
+              h.p(
+                [...attributes.description, h.Class(descriptionClassName)],
+                ['Get notified when something important happens.'],
+              ),
+            ],
+          ),
+        ],
+      )
+
     return h.div(
       [],
       [
@@ -46,32 +70,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
                 hasDescription: true,
                 onToggle: isChecked =>
                   UiMessage.ToggledSwitchDemo({ isChecked }),
-                toView: attributes =>
-                  h.div(
-                    [h.Class(wrapperClassName)],
-                    [
-                      h.button(
-                        [...attributes.button, h.Class(buttonClassName)],
-                        [knob(model.isSwitchDemoChecked, h)],
-                      ),
-                      h.div(
-                        [],
-                        [
-                          h.label(
-                            [...attributes.label, h.Class(labelClassName)],
-                            ['Enable notifications'],
-                          ),
-                          h.p(
-                            [
-                              ...attributes.description,
-                              h.Class(descriptionClassName),
-                            ],
-                            ['Get notified when something important happens.'],
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                toView: switchView,
               },
               h,
             ),

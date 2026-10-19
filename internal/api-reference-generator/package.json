@@ -11,7 +11,7 @@
   },
   "devDependencies": {
     "@foldkit/ui": "workspace:*",
-    "@types/node": "^26.4.0",
+    "@types/node": "26.4.0",
     "foldkit": "workspace:*",
     "typedoc": "^0.28.20",
     "typescript": "6.0.3"

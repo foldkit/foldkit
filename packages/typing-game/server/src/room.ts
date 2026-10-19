@@ -8,7 +8,7 @@ import {
   pipe,
 } from 'effect'
 
-import { RoomByIdStore } from './store.js'
+import { RoomByIdStore } from './store.ts'
 
 const NUM_WORDS_IN_ID = 3
 const DELIMITER = '-'

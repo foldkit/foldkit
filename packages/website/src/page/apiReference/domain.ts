@@ -16,7 +16,7 @@ import {
   reflectionFingerprint,
   typeDefFromChildren,
   typeToString,
-} from './typeToString'
+} from './typeToString.ts'
 import {
   Kind,
   TypeDocCommentPart,
@@ -25,7 +25,7 @@ import {
   type TypeDocModule,
   type TypeDocParam,
   type TypeDocType,
-} from './typedoc'
+} from './typedoc.ts'
 
 // SCHEMA
 

@@ -8,17 +8,27 @@ Machine ships from `foldkit/experimental`. Its core model is usable today, but n
 
 Use a Machine when the same [Message](/core/messages) should change a [Model](/core/model) field differently depending on that field's current state, and you want those rules collected in one transition table. In a checkout, `ClickedContinue` may move Cart to Shipping, Shipping to Payment, and Payment to Review. Reading the table shows every allowed source, Message, and target together.
 
+### When a Tagged Union Is Enough
+
 A Machine is not necessary just because a Model field is a discriminated union. It earns its extra structure when the application has to define and trace the legal transitions: a checkout, onboarding sequence, approval process, connection lifecycle, or another flow whose legal moves take real tracing to answer. A discriminated union and an exhaustive Message match remain the default for smaller flows.
+
+### Existing State APIs
 
 [AsyncData](/core/async-data) has several states, but it should not be rebuilt as a Machine. Helpers such as `revalidateOrLoad`, `revalidate`, `loadIfMissing`, and `settle` already decide its legal transitions. Callers state the operation they want instead of defining Edges and guards themselves. Rebuilding that policy as a Machine would replace a focused `AsyncData` API with the lower-level transition table that the API already saves you from writing.
 
 ## Define a Machine
+
+### State, Messages, and Imports
+
+#### Definition Shape
 
 A Machine starts with Schema-backed state and Message unions. The state union describes the possible phases. The Message union describes the facts that may move the flow between them.
 
 ::Snippet{name="machineDefinition" label="Machine definition"}
 
 `Machine.define` has two calls on purpose. The first fixes the state and Message types. The second checks the initial state and transition table after those types are known. That ordering lets TypeScript narrow `state` and `message` from an Edge's position: inside `Cart.on.SelectedEdition`, they are the `Cart` and `SelectedEdition` variants rather than their full unions.
+
+#### Imports
 
 Import the Machine namespace from `foldkit/experimental` and its Edge constructors from `foldkit/experimental/machine`:
 
@@ -32,6 +42,8 @@ Import the Machine namespace from `foldkit/experimental` and its Edge constructo
 
 `'Placing'` has to be explicit because the Machine needs to know an Edge's target without running its handler. That is what makes graph analysis possible. The target tag also tells TypeScript that the handler must return the `Placing` state variant.
 
+#### Handler Inputs
+
 The handler receives one record. Destructure only what the Edge needs:
 
 - `state` is the source-state variant.
@@ -39,17 +51,23 @@ The handler receives one record. Destructure only what the Edge needs:
 - `guardValue` is the value produced by an `Option` guard.
 - `context` is present when the Machine declares a context Schema.
 
+#### Returning Commands
+
 [Commands](/core/commands) returned by an Edge are ordinary Foldkit Commands. `transition`, `step`, and `Machine.fold` carry them back to the Runtime through update.
 
 ### Ordered Guards
 
 Use an array when one state and Message pair has more than one possible outcome. The Machine checks entries from top to bottom and stops at the first `when` that passes, `otherwise`, or `ignore`.
 
+#### Boolean and Option Guards
+
 A boolean guard answers only whether its Edge can fire. An `Option` guard can validate or look up a value once and pass that value to the handler:
 
 ::Snippet{name="machineOptionGuard" label="Option guard"}
 
 Here `findDiscount` returns `Option<Discount>`. The handler runs only for `Some`, and `guardValue` is the unwrapped `Discount`. Use `otherwise(to(...))` for an unconditional transition fallback. Use `ignore()` when falling through is intentional and should be distinguishable from a missing table entry through `step`.
+
+#### Guard Fallthrough
 
 If a guard list has no fallback and every guard declines, no transition occurs. `step` reports that case as `GuardsFellThrough`.
 
@@ -59,7 +77,11 @@ Use `Machine.forStates(...).on(...)` for a transition that is genuinely the same
 
 Inside a shared handler, `state` narrows to the union of the selected variants. The handler can read fields those variants have in common without losing the Message narrowing from the `on` key.
 
+#### Overrides and Conflicts
+
 Shared Edges are defaults. A state-local Edge for the same state and Message replaces the shared one, which lets one state specialize a broadly shared rule. Two shared groups cannot define the same state and Message pair; `Machine.define` throws instead of choosing by array order.
+
+#### Behavioral Sharing
 
 Keep shared groups about behavior, not visual tidiness. If the handlers differ, leave the Edges beside their source states.
 
@@ -69,26 +91,42 @@ Add a context Schema when transition decisions need current parent-owned data th
 
 ::Snippet{name="machineContext" label="Machine context"}
 
+#### Supplying Context
+
 Guards receive context as their third argument, and Edge handlers receive it in their input record. A contextual Machine requires that value on every `transition` and `step`. `Machine.fold` reads it from the enclosing Model for each Message.
+
+#### Machine-Owned State
 
 Context is a read-only input to the current transition. State that the Machine owns still belongs in its state union.
 
 ## Use a Machine in Update
 
+### Folding Machine State
+
 The Machine state lives in a field of the application Model. `Machine.fold` reads that field, runs the transition, writes the next state back, and preserves any Commands returned by the Edge.
 
 ::Snippet{name="machineFold" label="Machine fold"}
 
+#### Delegating Messages
+
 Most update functions also handle Messages that do not belong to the transition table. Match those Messages normally and send only the Messages handled by the table through the fold. In this example, `ToggledHelp` updates another Model field while the checkout Messages go through `foldCheckout`.
+
+#### Optional Machine State
 
 `read` returns an `Option` because the Machine may exist only in some parent Model variants. An always-present field returns `Option.some(model.checkout)`. When `read` returns `None`, the fold leaves the parent Model unchanged.
 
+#### Step Form
+
 The fold is dual. Call `foldCheckout(model, message)` directly, or call `foldCheckout(message)` to produce a Step for `Update.combine`. A contextual Machine also supplies `context: model => ...` in the fold configuration.
+
+### Inspecting a Transition
 
 Use `machine.transition(state, message)` when code already has the Machine state and wants a plain `Update.Return`. An unmatched Message returns the original state and no Commands. Use `machine.step(state, message)` when the caller needs to observe what happened. Its result is either:
 
 - `Transitioned`, with the source, target, Message tag, next state, and Commands;
 - `Ignored`, with the unchanged state and a reason.
+
+#### Ignored Reasons
 
 The four ignored reasons answer different questions:
 
@@ -97,9 +135,13 @@ The four ignored reasons answer different questions:
 - `GuardsFellThrough`: the state has an Edge list for the Message, but every `when` declined and the list has no fallback.
 - `ExplicitlyIgnored`: evaluation reached `ignore()`.
 
+#### Runtime Integration
+
 The Foldkit [Runtime](/core/runtime) needs no Machine configuration. Update calls a pure value and returns the resulting Model and Commands through the normal application loop.
 
 ## Analyze the Transition Graph
+
+### Graph Data
 
 The transition table is enumerable data, so a Machine can answer structural questions without running the application:
 
@@ -111,9 +153,15 @@ The transition table is enumerable data, so a Machine can answer structural ques
 
 A state-local Edge replaces its shared default before this graph is built, so transition selection and analysis see the same Edge.
 
+### External Entry States and Analysis Limits
+
 Pass restored, deep-linked, hydrated, or otherwise external entry states as `extraRoots`. The analysis sees only declared Edges, so it cannot discover a state that application code enters outside the Machine.
 
+#### Structural Limits
+
 The analysis is structural. It knows that an Edge after `otherwise` can never run, but it does not prove that a `when` predicate is always false. Business conditions inside guards still need behavioral tests.
+
+#### API Reference
 
 The [Machine API reference](/api-reference/experimental-machine) lists the exact signatures for the transition, folding, and analysis APIs.
 
@@ -127,7 +175,11 @@ Test the Machine rather than exporting guards or handlers solely to test them in
 
 ## Keep the Transition Skeleton Together
 
+### What Stays in the Table
+
 Extract leaves when they have meaningful names: guards, target-state builders, and Command callbacks. Keep source state tags, `on` keys, guard order, and target tags in the table. Those are the skeleton a reader scans to understand the flow.
+
+### Extracted Types
 
 When an extracted Edge handler needs an explicit parameter type, use `Machine.EdgeInput<SourceState, TriggerMessage, GuardValue, Context>`. It preserves the source-state, Message, guard-value, and context types that the table position would otherwise infer.
 
@@ -135,9 +187,13 @@ When one state entry is substantial enough to deserve its own binding, preserve 
 
 ::Snippet{name="machineStateTransitions" label="Extracted state transitions"}
 
+### Module Boundaries
+
 Avoid splitting every state into a separate module. That turns one readable graph back into control flow spread across files.
 
 ## Compose Larger Flows
+
+### Parallel and Nested State
 
 Parallel state is ordinary Model composition: store two Machine states in two fields and fold each where its Messages belong.
 
@@ -147,6 +203,10 @@ A nested Machine is ordinary state composition too. Say an order flow has Browsi
 
 The order update sends checkout Messages to `checkoutMachine` only while the order is CheckingOut, then writes the returned checkout state back into that variant. Use this shape when the inner flow exists only during one phase of the outer flow.
 
+### Splitting Large Machines
+
 When one table grows beyond a few screens, prefer composed Machines with explicit update delegation over a directory of per-state fragments. Each Machine keeps a coherent transition graph, and the enclosing Model shows how the regions relate.
+
+### Hierarchical Statecharts
 
 Machine does not implement hierarchical statecharts. Nesting one Machine's state inside another state does not add inherited Edges or automatic Message forwarding. Use `forStates` for one Edge shared by a known set of source states. The complete [state machine example app](/example-apps/state-machine) shows a checkout with guards, extracted guard values, transition-time Commands, shared Edges, ignored outcomes, graph analysis, and an on-page inspector.

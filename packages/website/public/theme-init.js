@@ -10,6 +10,6 @@
   // src/themeColor.test.ts fails when these drift.
   var themeColorMeta = document.querySelector('meta[name="theme-color"]')
   if (themeColorMeta) {
-    themeColorMeta.setAttribute('content', isDark ? '#1e1c21' : '#f8f7fb')
+    themeColorMeta.setAttribute('content', isDark ? '#17151b' : '#f8f7fb')
   }
 })()

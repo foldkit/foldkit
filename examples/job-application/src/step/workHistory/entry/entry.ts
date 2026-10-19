@@ -10,7 +10,7 @@ import {
   validate,
 } from 'foldkit/fieldValidation'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { DatePicker } from '@foldkit/ui'
 
@@ -91,13 +91,13 @@ const foldStartDateOutMessage = DatePicker.OutMessage.match<
   SelectedDate:
     ({ date }) =>
     model => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         maybeStartDate: () => Option.some(date),
         endDate: DatePicker.reflectMinDate(Option.some(date)),
       }),
     }),
   ClearedDate: () => model => ({
-    model: evo(model, {
+    model: modifyFields(model, {
       maybeStartDate: () => Option.none(),
       endDate: DatePicker.reflectMinDate(Option.none()),
     }),
@@ -108,7 +108,7 @@ const foldStartDate = Update.foldChild({
   update: DatePicker.update,
   read: (model: Model) => Option.some(model.startDate),
   write: (model, nextStartDate) =>
-    evo(model, { startDate: () => nextStartDate }),
+    modifyFields(model, { startDate: () => nextStartDate }),
   toParentMessage: message => Message.GotStartDateMessage({ message }),
   foldOutMessage: foldStartDateOutMessage,
 })
@@ -120,13 +120,13 @@ const foldEndDateOutMessage = DatePicker.OutMessage.match<
   SelectedDate:
     ({ date }) =>
     model => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         maybeEndDate: () => Option.some(date),
         startDate: DatePicker.reflectMaxDate(Option.some(date)),
       }),
     }),
   ClearedDate: () => model => ({
-    model: evo(model, {
+    model: modifyFields(model, {
       maybeEndDate: () => Option.none(),
       startDate: DatePicker.reflectMaxDate(Option.none()),
     }),
@@ -136,7 +136,8 @@ const foldEndDateOutMessage = DatePicker.OutMessage.match<
 const foldEndDate = Update.foldChild({
   update: DatePicker.update,
   read: (model: Model) => Option.some(model.endDate),
-  write: (model, nextEndDate) => evo(model, { endDate: () => nextEndDate }),
+  write: (model, nextEndDate) =>
+    modifyFields(model, { endDate: () => nextEndDate }),
   toParentMessage: message => Message.GotEndDateMessage({ message }),
   foldOutMessage: foldEndDateOutMessage,
 })
@@ -146,11 +147,11 @@ export const update = (model: Model, message: Message) =>
     message,
     {
       UpdatedCompany: ({ value }) => ({
-        model: evo(model, { company: () => validateCompany(value) }),
+        model: modifyFields(model, { company: () => validateCompany(value) }),
       }),
 
       UpdatedTitle: ({ value }) => ({
-        model: evo(model, { title: () => validateTitle(value) }),
+        model: modifyFields(model, { title: () => validateTitle(value) }),
       }),
 
       GotStartDateMessage: ({ message }) => foldStartDate(model, message),
@@ -158,11 +159,11 @@ export const update = (model: Model, message: Message) =>
       GotEndDateMessage: ({ message }) => foldEndDate(model, message),
 
       ToggledCurrentlyEmployed: ({ isChecked }) => ({
-        model: evo(model, { isCurrentlyEmployed: () => isChecked }),
+        model: modifyFields(model, { isCurrentlyEmployed: () => isChecked }),
       }),
 
       UpdatedDescription: ({ value }) => ({
-        model: evo(model, { description: () => value }),
+        model: modifyFields(model, { description: () => value }),
       }),
 
       ClickedRemoveSelf: () => ({ model, outMessage: OutMessage.Removed() }),
@@ -181,7 +182,7 @@ export const isComplete = (entry: Model): boolean =>
   ])
 
 export const revealErrors = (entry: Model): Model =>
-  evo(entry, {
+  modifyFields(entry, {
     company: revealFieldErrors(companyRules),
     title: revealFieldErrors(titleRules),
   })

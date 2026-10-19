@@ -4,7 +4,7 @@ import { sceneMatchers } from './matchers.js'
 
 declare module 'vitest' {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface Assertion<T> {
+  interface Assertion<R, T> {
     toHaveText(expected: string | RegExp): this
     toContainText(expected: string | RegExp): this
     toHaveClass(expected: string): this
@@ -33,7 +33,7 @@ declare module 'vitest' {
  *  setup()
  *  ```
  *
- *  Importing this module also augments `Assertion<T>` with the Scene
+ *  Importing this module also augments `Assertion<R, T>` with the Scene
  *  matcher types — no manual `declare module 'vitest'` block needed. */
 export const setup = (): void => {
   expect.extend(sceneMatchers)

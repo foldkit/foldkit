@@ -10,7 +10,7 @@ The framework ships routing, server rendering, a headless accessible component l
 
 Foldkit is built by Devin Jameson and developed in the open at [github.com/foldkit/foldkit](https://github.com/foldkit/foldkit). It is a community project, not a company product. There is no paid tier, no hosted service, and nothing to sign up for.
 
-Everything is released under the MIT license. The published packages are `foldkit`, `@foldkit/ui`, `@foldkit/devtools`, `@foldkit/devtools-mcp`, `@foldkit/vite-plugin`, `@foldkit/markdown`, `@foldkit/oxlint-plugin`, and `create-foldkit-app`.
+Everything is released under the MIT license. The published packages are `foldkit`, `@foldkit/ui`, `@foldkit/node`, `@foldkit/devtools`, `@foldkit/devtools-mcp`, `@foldkit/vite-plugin`, `@foldkit/markdown`, `@foldkit/oxlint-plugin`, and `create-foldkit-app`.
 
 ## How It Is Built
 

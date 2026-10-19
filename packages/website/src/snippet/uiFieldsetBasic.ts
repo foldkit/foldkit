@@ -4,34 +4,34 @@ import type { HtmlBuilder } from 'foldkit/html'
 
 import { Fieldset } from '@foldkit/ui'
 
-const view = (h: HtmlBuilder<Message>) =>
-  Fieldset.view(
+const view = (h: HtmlBuilder<Message>) => {
+  const fieldsetView = (attributes: Fieldset.FieldsetAttributes<Message>) =>
+    h.fieldset(
+      [...attributes.fieldset, h.Class('rounded-lg border p-6')],
+      [
+        h.legend(
+          [...attributes.legend, h.Class('text-base font-semibold')],
+          ['Personal Information'],
+        ),
+        h.span(
+          [...attributes.description, h.Class('text-sm text-gray-500 mt-1')],
+          ['We just need a few details.'],
+        ),
+        h.div(
+          [h.Class('mt-4 flex flex-col gap-4')],
+          [
+            // Nest Input, Textarea, Checkbox, etc. here
+          ],
+        ),
+      ],
+    )
+
+  return Fieldset.view(
     {
       id: 'personal-info',
       hasDescription: true,
-      toView: attributes =>
-        h.fieldset(
-          [...attributes.fieldset, h.Class('rounded-lg border p-6')],
-          [
-            h.legend(
-              [...attributes.legend, h.Class('text-base font-semibold')],
-              ['Personal Information'],
-            ),
-            h.span(
-              [
-                ...attributes.description,
-                h.Class('text-sm text-gray-500 mt-1'),
-              ],
-              ['We just need a few details.'],
-            ),
-            h.div(
-              [h.Class('mt-4 flex flex-col gap-4')],
-              [
-                // Nest Input, Textarea, Checkbox, etc. here
-              ],
-            ),
-          ],
-        ),
+      toView: fieldsetView,
     },
     h,
   )
+}

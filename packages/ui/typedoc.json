@@ -10,8 +10,8 @@
   "intentionallyNotExported": [
     "BaseInitConfig",
     "BaseViewInputs",
-    "Entry",
-    "Model",
+    "BundleUpdateReturn",
+    "ScrollReturn",
     "UpdateReturn",
     "ViewForItem"
   ]

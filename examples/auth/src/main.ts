@@ -1,5 +1,5 @@
 import { Effect, Match, Option, Schema } from 'effect'
-import { KeyValueStore } from 'effect/unstable/persistence'
+import { KeyValueStore } from 'effect/persistence'
 import { Runtime, type Update } from 'foldkit'
 import { Url } from 'foldkit/url'
 

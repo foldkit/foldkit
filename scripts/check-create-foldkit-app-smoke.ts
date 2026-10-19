@@ -12,7 +12,7 @@ import {
 import { tmpdir } from 'node:os'
 import { join, relative, sep } from 'node:path'
 
-import { EXAMPLE_VALUES } from '../packages/create-foldkit-app/src/examples.js'
+import { EXAMPLE_VALUES } from '../packages/create-foldkit-app/src/examples.ts'
 
 const PACKAGE_DIR = 'packages/create-foldkit-app'
 const OXLINT_PLUGIN_DIR = 'packages/oxlint-plugin-foldkit'
@@ -27,7 +27,6 @@ const PNPM_WORKSPACE_POLICY_PATH = join(
   'pnpm-workspace.yaml',
 )
 const PNPM_WORKSPACE_POLICY = `allowBuilds:
-  esbuild: true
   msgpackr-extract: false
 `
 const pnpmExecutable = process.env['FOLDKIT_PNPM_EXECUTABLE'] ?? 'pnpm'
@@ -45,6 +44,10 @@ const Message = defineMessageUnion({
 const SaveUser = Command.define('SaveUser')()
 
 console.log(Message, SaveUser)
+`
+const EFFECT_LINT_SMOKE_SOURCE = `import { Effect } from 'effect'
+
+Effect.succeed(1)
 `
 
 type RunOptions = {
@@ -306,6 +309,16 @@ const assertPackedReleaseInputs = (tarballPath: string): void => {
     'packed CLI release metadata does not cover the complete public workspace package set',
   )
 
+  const effectLintPackages = ['@effect/tsgo', 'oxlint', 'oxlint-tsgolint']
+  assertSmoke(
+    effectLintPackages.every(name =>
+      /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(
+        releaseManifest.dependencies[name] ?? '',
+      ),
+    ),
+    'packed CLI must pin compatible Effect and Oxlint integration versions',
+  )
+
   assertPackedScaffoldSources(tarballPath)
 
   const packageRuntime = readTarballFile(tarballPath, 'dist/utils/packages.js')
@@ -364,12 +377,22 @@ const assertTemplateTooling = (): void => {
     join(TEMPLATE_DIR, 'package.json'),
   )
   assertSmoke(
-    packageJson.scripts?.lint === 'oxlint src',
-    'template package.json lint script must be scoped to src (oxlint src)',
+    packageJson.scripts?.lint?.includes('oxlint src') === true &&
+      packageJson.scripts.lint.includes(
+        'effect-tsgo patch --no-typescript --oxlint',
+      ) &&
+      packageJson.scripts.lint.includes(
+        'oxlint --config .oxlintrc.effect.json --deny-warnings src',
+      ),
+    'template lint script must run Foldkit and Effect linting on src',
   )
   assertSmoke(
     existsSync(join(TEMPLATE_DIR, '.oxlintrc.json')),
     'template must include .oxlintrc.json',
+  )
+  assertSmoke(
+    existsSync(join(TEMPLATE_DIR, '.oxlintrc.effect.json')),
+    'template must include .oxlintrc.effect.json',
   )
   assertSmoke(
     !existsSync(join(TEMPLATE_DIR, 'eslint.config.mjs')),
@@ -417,7 +440,7 @@ const assertPnpmWorkspacePolicy = (): void => {
   )
   assertSmoke(
     readFileSync(PNPM_WORKSPACE_POLICY_PATH, 'utf-8') === PNPM_WORKSPACE_POLICY,
-    'pnpm package manager template must allow esbuild and deny msgpackr-extract builds through allowBuilds',
+    'pnpm package manager template must deny msgpackr-extract builds through allowBuilds',
   )
 }
 
@@ -478,25 +501,54 @@ const assertScaffoldLintWorks = (
   cpSync(TEMPLATE_DIR, lintProjectPath, { recursive: true })
   writeFileSync(join(lintProjectPath, 'src/lint-smoke.ts'), LINT_SMOKE_SOURCE)
 
+  const { devDependencies } = readJson<{
+    readonly devDependencies: Readonly<Record<string, string>>
+  }>('package.json')
+  const { effect, oxlint } = devDependencies
+  const effectTsgo = devDependencies['@effect/tsgo']
+  const oxlintTsgolint = devDependencies['oxlint-tsgolint']
+  assertSmoke(
+    effect !== undefined &&
+      effectTsgo !== undefined &&
+      oxlint !== undefined &&
+      oxlintTsgolint !== undefined,
+    'workspace must declare the Effect lint dependencies',
+  )
+
   runRequired(
-    'Installing local oxlint plugin tarball into scaffold lint smoke app...',
+    'Installing scaffold lint dependencies into smoke app...',
     'npm',
     [
       'install',
       '--no-audit',
       '--no-fund',
       '--save-dev',
-      'oxlint',
+      `oxlint@${oxlint}`,
+      `effect@${effect}`,
+      `@effect/tsgo@${effectTsgo}`,
+      `oxlint-tsgolint@${oxlintTsgolint}`,
       pluginTarballPath,
     ],
     { cwd: lintProjectPath, inherit: true },
   )
 
   runRequired(
-    'Running scaffold lint script with @foldkit/oxlint-plugin...',
+    'Running scaffold lint script with Foldkit and Effect rules...',
     'npm',
     ['run', 'lint'],
     { cwd: lintProjectPath, inherit: true },
+  )
+
+  writeFileSync(
+    join(lintProjectPath, 'src/effect-lint-smoke.ts'),
+    EFFECT_LINT_SMOKE_SOURCE,
+  )
+  const invalidLint = run('npm', ['run', 'lint'], { cwd: lintProjectPath })
+  const invalidLintOutput = `${invalidLint.stdout}${invalidLint.stderr}`
+  assertSmoke(
+    invalidLint.status !== 0 &&
+      invalidLintOutput.includes('effecttsgo(floating-effect)'),
+    `scaffold lint must report a floating Effect:\n${invalidLintOutput}`,
   )
 }
 

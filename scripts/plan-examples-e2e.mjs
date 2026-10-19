@@ -50,14 +50,21 @@ const isAllExamplesAffected =
       ALL_EXAMPLES_PREFIXES.some(prefix => fileName.startsWith(prefix)),
   )
 
+const isNodeAdapterAffected = changedFiles.some(fileName =>
+  fileName.startsWith('packages/node/'),
+)
+
 const affectedExampleSlugs = isAllExamplesAffected
   ? exampleSlugs
-  : exampleSlugs.filter(exampleSlug =>
-      changedFiles.some(
-        fileName =>
-          fileName.startsWith(`examples/${exampleSlug}/`) ||
-          fileName === `packages/examples-e2e/e2e/${exampleSlug}${SPEC_SUFFIX}`,
-      ),
+  : exampleSlugs.filter(
+      exampleSlug =>
+        (exampleSlug === 'ssr' && isNodeAdapterAffected) ||
+        changedFiles.some(
+          fileName =>
+            fileName.startsWith(`examples/${exampleSlug}/`) ||
+            fileName ===
+              `packages/examples-e2e/e2e/${exampleSlug}${SPEC_SUFFIX}`,
+        ),
     )
 
 const shardCount = Math.max(

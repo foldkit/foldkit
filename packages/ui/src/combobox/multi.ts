@@ -1,6 +1,6 @@
 import { Option, Schema } from 'effect'
 import { type Update } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import type { View as SubmodelView } from 'foldkit/submodel'
 
 import {
@@ -42,7 +42,7 @@ export const init = (config: InitConfig): Model => baseInit(config)
  *  design. Clear the selection by toggling each value off. */
 export const update = makeUpdate<Model>({
   handleClose: model => ({
-    model: evo(closedBaseModel(model), { inputValue: () => '' }),
+    model: modifyFields(closedBaseModel(model), { inputValue: () => '' }),
   }),
 
   handleSelectedItem: (model, item) => ({

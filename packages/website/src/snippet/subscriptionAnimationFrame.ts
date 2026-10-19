@@ -21,7 +21,7 @@ type Model = typeof Model.Type
 // SUBSCRIPTION
 
 const subscriptions = Subscription.make<Model, Message>()(_entry => ({
-  frame: Subscription.animationFrame({
+  frame: Subscription.animationFrameEntry({
     isActive: model => model.isPlaying,
     toMessage: deltaTime => Message.TickedFrame({ deltaTime }),
   }),

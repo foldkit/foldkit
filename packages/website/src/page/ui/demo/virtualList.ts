@@ -1,9 +1,10 @@
 import { Array, Match, Option, pipe } from 'effect'
-import type { HtmlBuilder } from 'foldkit/html'
+import { type HtmlBuilder, childAttributes } from 'foldkit/html'
 
 import { VirtualList } from '@foldkit/ui'
 
 import { Message } from '../message'
+import type { VirtualListChatMessage } from '../model'
 
 // SAMPLE DATA
 
@@ -135,13 +136,16 @@ const actorClassName = 'font-semibold text-gray-900 dark:text-white'
 const targetClassName = 'font-mono text-gray-900 dark:text-gray-100'
 
 const timeAgoClassName =
-  'text-right text-xs text-gray-500 dark:text-gray-400 tabular-nums'
+  'text-right text-xs text-gray-600 dark:text-gray-400 tabular-nums'
 
 const buttonClassName =
   'button-accent rounded cursor-pointer px-3 py-1.5 text-sm shadow-sm'
 
+const secondaryButtonClassName =
+  'inline-flex h-9 cursor-pointer items-center justify-center rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-normal text-gray-700 shadow-sm hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800 dark:focus-visible:outline-accent-400'
+
 const headerClassName =
-  'flex items-end justify-between text-sm text-gray-600 dark:text-gray-400'
+  'flex flex-wrap items-center justify-between gap-3 text-sm text-gray-700 dark:text-gray-400'
 
 export const view = (model: VirtualList.Model, h: HtmlBuilder<Message>) => {
   return [
@@ -190,6 +194,10 @@ export const view = (model: VirtualList.Model, h: HtmlBuilder<Message>) => {
                 ],
               ),
             containerClassName,
+            containerAttributes: childAttributes([
+              h.AriaLabel('Activity events'),
+              h.Tabindex(0),
+            ]),
           },
           toParentMessage: message =>
             Message.GotVirtualListDemoMessage({ message }),
@@ -263,10 +271,10 @@ const variableSummaryTitleClassName =
   'mt-0.5 text-xs font-semibold text-gray-700 dark:text-gray-200'
 
 const variableSummaryBodyClassName =
-  'mt-0.5 text-xs text-gray-500 dark:text-gray-400 leading-tight line-clamp-1'
+  'mt-0.5 text-xs text-gray-600 dark:text-gray-400 leading-tight line-clamp-1'
 
 const variableArtifactClassName =
-  'mt-1 inline-flex w-fit rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 font-mono text-[10px] text-gray-600 dark:text-gray-300'
+  'mt-1 inline-flex w-fit rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 font-mono text-[10px] text-gray-700 dark:text-gray-300'
 
 export const virtualListVariableDemo = (
   model: VirtualList.Model,
@@ -353,6 +361,10 @@ export const virtualListVariableDemo = (
                 ? variableTallRow(row, summaryFor(index))
                 : variableShortRow(row),
             containerClassName,
+            containerAttributes: childAttributes([
+              h.AriaLabel('Variable-height activity events'),
+              h.Tabindex(0),
+            ]),
           },
           toParentMessage: message =>
             Message.GotVirtualListVariableDemoMessage({ message }),
@@ -361,3 +373,163 @@ export const virtualListVariableDemo = (
     ),
   ]
 }
+
+// CHAT DEMO
+
+const chatMessageClassName =
+  'grid max-w-[88%] sm:max-w-[78%] cursor-pointer gap-1 rounded-2xl px-4 py-2 text-left text-sm leading-5 shadow-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:focus-visible:outline-accent-400'
+
+const receivedChatMessageClassName =
+  'rounded-bl-md bg-white text-gray-800 ring-1 ring-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-100 dark:ring-gray-700 dark:hover:bg-gray-800/80'
+
+const sentChatMessageClassName =
+  'rounded-br-md bg-accent-100 text-gray-900 ring-1 ring-accent-200 hover:bg-accent-200/45 dark:bg-accent-900/40 dark:text-gray-100 dark:ring-accent-800 dark:hover:bg-accent-900/50'
+
+const chatMessageDetailClassName =
+  'text-xs leading-relaxed text-gray-600 dark:text-gray-400'
+
+const COLLAPSED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX = 48
+const EXPANDED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX = 80
+
+const chatMessageView = (
+  message: VirtualListChatMessage,
+  h: HtmlBuilder<Message>,
+) => {
+  const isSentMessage = message.id % 2 !== 0
+
+  return h.div(
+    [
+      h.Class(
+        `flex w-full px-3 sm:px-4 py-1.5 ${isSentMessage ? 'justify-end' : 'justify-start'}`,
+      ),
+    ],
+    [
+      h.button(
+        [
+          h.Class(
+            `${chatMessageClassName} ${isSentMessage ? sentChatMessageClassName : receivedChatMessageClassName}`,
+          ),
+          h.DataAttribute(
+            'virtual-list-chat-message-id',
+            globalThis.String(message.id),
+          ),
+          h.OnClick(
+            Message.ClickedVirtualListChatToggleMessage({
+              messageId: message.id,
+            }),
+          ),
+        ],
+        [
+          h.span([], [message.body]),
+          ...(message.isExpanded
+            ? [
+                h.span(
+                  [h.Class(chatMessageDetailClassName)],
+                  [
+                    'There are a few more details in the PR, including the focus and keyboard checks.',
+                  ],
+                ),
+              ]
+            : []),
+        ],
+      ),
+    ],
+  )
+}
+
+export const virtualListChatDemo = (
+  model: VirtualList.Model,
+  messages: ReadonlyArray<VirtualListChatMessage>,
+  h: HtmlBuilder<Message>,
+) => [
+  h.div(
+    [h.Class('flex w-full flex-col gap-4')],
+    [
+      h.div(
+        [h.Class('flex flex-wrap items-center justify-between gap-3')],
+        [
+          h.div(
+            [h.Class('flex flex-col gap-0.5')],
+            [
+              h.span(
+                [
+                  h.Class(
+                    'text-sm font-semibold text-gray-900 dark:text-gray-100',
+                  ),
+                ],
+                ['Conversation'],
+              ),
+              h.span(
+                [h.Class('text-xs text-gray-500 dark:text-gray-400')],
+                [`${messages.length} messages · Click to expand a message`],
+              ),
+            ],
+          ),
+          h.div(
+            [h.Class('flex w-full items-center sm:ml-auto sm:w-auto')],
+            [
+              h.button(
+                [
+                  h.Class(secondaryButtonClassName),
+                  h.DataAttribute('virtual-list-chat-prepend', 'true'),
+                  h.OnClick(Message.ClickedVirtualListChatPrepend()),
+                ],
+                ['Load older'],
+              ),
+            ],
+          ),
+        ],
+      ),
+      h.submodel({
+        slotId: model.id,
+        model,
+        view: VirtualList.view<VirtualListChatMessage>(),
+        viewInputs: {
+          items: messages,
+          itemToKey: message => globalThis.String(message.id),
+          itemToView: message => chatMessageView(message, h),
+          dynamicRowHeights: true,
+          itemToEstimatedRowHeightPx: message =>
+            message.isExpanded
+              ? EXPANDED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX
+              : COLLAPSED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX,
+          contentAlignment: 'End',
+          containerClassName:
+            'h-96 sm:h-80 w-full rounded-lg bg-gray-100/70 dark:bg-gray-950/40 ring-1 ring-gray-200 dark:ring-gray-800 overscroll-none',
+          containerAttributes: childAttributes([
+            h.AriaLabel('End-anchored chat messages'),
+            h.Tabindex(0),
+          ]),
+        },
+        toParentMessage: message =>
+          Message.GotVirtualListChatDemoMessage({ message }),
+      }),
+      h.div(
+        [h.Class('flex w-full items-center justify-between gap-2')],
+        [
+          h.button(
+            [
+              h.Class(secondaryButtonClassName),
+              h.DataAttribute('virtual-list-chat-scroll-to-message', 'true'),
+              h.OnClick(Message.ClickedVirtualListChatScrollToMessage()),
+            ],
+            [
+              h.span([h.Class('sm:hidden')], ['Jump to #7']),
+              h.span([h.Class('hidden sm:inline')], ['Jump to message 7']),
+            ],
+          ),
+          h.button(
+            [
+              h.Class(
+                `${buttonClassName} inline-flex h-9 items-center justify-center`,
+              ),
+              h.DataAttribute('virtual-list-chat-append', 'true'),
+              h.OnClick(Message.ClickedVirtualListChatAppend()),
+            ],
+            ['Add message'],
+          ),
+        ],
+      ),
+    ],
+  ),
+]

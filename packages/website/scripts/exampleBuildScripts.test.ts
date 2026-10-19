@@ -7,6 +7,7 @@ import { canaryVersion } from '../../../scripts/lib/package-version.mjs'
 import { EXAMPLE_FILE_EXTENSIONS, EXAMPLE_ROOT_FILES } from '../vite.config'
 import {
   INCLUDED_EXTENSIONS,
+  PLAYGROUND_DEPENDENCY_OVERRIDES,
   loadPlaygroundFiles,
   loadPlaygroundWorkspacePackageVersions,
 } from './playgroundFilesPlugin'
@@ -27,13 +28,9 @@ const buildScriptOf = (slug: string): string => {
   return manifest.scripts['build'] ?? ''
 }
 
-const exampleFile = (slug: string, fileName: string): string =>
-  readFileSync(resolve(REPO_ROOT, 'examples', slug, fileName), 'utf8')
-
 // The playground and the example source tabs both publish what an example is
 // made of. `vite build` reads the config rather than a script, so the config is
-// the file that has to reach both: without it the published command cannot run,
-// and the build id contract it implements is invisible to a reader.
+// the file that has to reach both.
 describe('server-rendered example build scripts', () => {
   for (const slug of SERVER_RENDERED_EXAMPLES) {
     it(`ships the config the ${slug} build command reads`, () => {
@@ -46,20 +43,6 @@ describe('server-rendered example build scripts', () => {
       expect(EXAMPLE_ROOT_FILES).toContain(configFileName)
       expect(EXAMPLE_FILE_EXTENSIONS.has(extname(configFileName))).toBe(true)
       expect(INCLUDED_EXTENSIONS.has(extname(configFileName))).toBe(true)
-    })
-
-    it(`computes a build id in every ${slug} config it publishes`, () => {
-      // The playground runs a config of its own, written against published
-      // packages. A build id missing there is a playground whose pages refuse
-      // to hydrate, with nothing in the example's own source to explain it.
-      for (const fileName of ['vite.config.ts', 'vite.config.playground.ts']) {
-        const config = exampleFile(slug, fileName)
-        expect(config, fileName).toContain('FOLDKIT_BUILD_ID')
-        expect(config, fileName).toContain(
-          "process.env['FOLDKIT_BUILD_ID'] ||= randomUUID()",
-        )
-        expect(config, fileName).toContain('buildId,')
-      }
     })
   }
 
@@ -99,16 +82,38 @@ describe('server-rendered example build scripts', () => {
       const manifest: Readonly<{
         dependencies?: Readonly<Record<string, string>>
         devDependencies?: Readonly<Record<string, string>>
+        optionalDependencies?: Readonly<Record<string, string>>
+        peerDependencies?: Readonly<Record<string, string>>
       }> = JSON.parse(source)
       const dependencies = {
         ...(manifest.dependencies ?? {}),
         ...(manifest.devDependencies ?? {}),
+        ...(manifest.optionalDependencies ?? {}),
+        ...(manifest.peerDependencies ?? {}),
+      }
+      for (const [name, specifier] of Object.entries(dependencies)) {
+        expect(specifier, `${slug}: ${name}`).not.toMatch(/^workspace:/)
       }
       for (const [name, version] of Object.entries(versions)) {
         if (dependencies[name] !== undefined) {
           expect(dependencies[name], `${slug}: ${name}`).toBe(version)
         }
       }
+    }
+  })
+
+  it('pins WebContainer dependency overrides', async () => {
+    const bySlug = await loadPlaygroundFiles()
+
+    for (const [slug, { files }] of Object.entries(bySlug)) {
+      const source = files['package.json']
+      if (source === undefined) {
+        throw new Error(`the ${slug} playground omits package.json`)
+      }
+      const manifest: Readonly<{
+        overrides?: Readonly<Record<string, string>>
+      }> = JSON.parse(source)
+      expect(manifest.overrides, slug).toEqual(PLAYGROUND_DEPENDENCY_OVERRIDES)
     }
   })
 
@@ -131,10 +136,18 @@ describe('server-rendered example build scripts', () => {
         const manifest: Readonly<{
           dependencies?: Readonly<Record<string, string>>
           devDependencies?: Readonly<Record<string, string>>
+          optionalDependencies?: Readonly<Record<string, string>>
+          peerDependencies?: Readonly<Record<string, string>>
         }> = JSON.parse(source)
         const dependencies = {
           ...(manifest.dependencies ?? {}),
           ...(manifest.devDependencies ?? {}),
+          ...(manifest.optionalDependencies ?? {}),
+          ...(manifest.peerDependencies ?? {}),
+        }
+
+        for (const [name, specifier] of Object.entries(dependencies)) {
+          expect(specifier, `${slug}: ${name}`).not.toMatch(/^workspace:/)
         }
 
         for (const [name, stableVersion] of Object.entries(stableVersions)) {

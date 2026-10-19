@@ -64,6 +64,41 @@ noun instead.
 The implementation names three attributes. Vagueness here is usually a failure to
 go and look them up.
 
+Once the prose establishes a precise technical noun, keep using it. Technical
+writing does not benefit from synonym variation when the replacement changes
+the architecture the reader sees.
+
+**Before.** "The job-application example stores applicant entries in an array,
+each with its own child Model."
+
+**After.** "The job-application example stores Applicant Submodels in an array."
+
+The sentence explains the architecture, so it needs the architecture's name.
+"Child Model" narrows the claim to stored state and loses the fact that each
+entry is updated as a Submodel.
+
+## Attach modifiers to the right thing
+
+**Before.** "`Update.foldChildAt` folds one keyed Submodel."
+
+**After.** "`Update.foldChildAt` folds one Submodel selected by key."
+
+The key belongs to the parent's selection operation. It is not an intrinsic
+property of the Submodel. A compressed modifier can move ownership or identity
+to the wrong noun even when every word sounds technical. Expand the modifier
+until the relationship is explicit.
+
+## Name the condition, not a story about it
+
+**Before.** "The fold ignores late child Messages."
+
+**After.** "When `readAt` returns `None` for the key, the fold leaves the parent
+Model unchanged."
+
+The behavior depends on whether the lookup finds a Submodel. It does not depend
+on when the Message arrives. Timing, ordering, and causal language belong only
+when they change the result.
+
 ## One concrete example beats three abstract clauses
 
 **Before.** "An input the old page meant one way is reused for whatever now sits
@@ -72,11 +107,87 @@ in that position."
 **After.** "Imagine the old page has an `<input name="email">` exactly where the
 new build puts an `<input name="ssn">`."
 
-## Say when you are describing a scenario
+## Introduce examples before listing them
 
-A colon leaves the reader working out whether what follows is a definition, a
-restatement, or a hypothetical. "Imagine", "Say", or "Picture" removes the
-ambiguity in one word.
+**Before.** "A Boolean can model an independent fact, an async result needs
+extra identity only when it can become stale, and a public Submodel helper is
+correct when it preserves the child's update boundary."
+
+This sentence packs three unrelated conclusions into one line. Each conclusion
+needs context: what the Boolean tracks, which async result could become stale,
+or which boundary a Submodel helper might cross. The conclusions are meant to
+support a larger claim, but without that setup they read as disconnected
+assertions. "Judge behavior, not syntax" has the same problem if the reader has
+not yet seen the syntax or the behaviors being compared.
+
+**After.** "Start with the states the application needs to represent. Say the
+Model tracks a network request. It needs to distinguish four cases: idle,
+loading, success, and failure. One Boolean cannot do that. Use a Boolean for an
+independent yes-or-no fact."
+
+The rewrite states the rule first, then puts the Boolean in a concrete
+situation. The async result and Submodel examples need different setup, so they
+belong in sections that introduce those situations.
+
+## Explain the result instead of announcing a verdict
+
+**Before.** "The name `NoOp` fails for a different reason: it hides the fact that
+caused the Message."
+
+"Fails", "different reason", and "the fact" all make the reader look elsewhere
+for the explanation. Similar verdicts include "works", "correct", "idiomatic",
+and "the intended way". None says what the application does.
+
+**After.** "DevTools history records only `NoOp`, so a reader cannot tell that a
+mouse click occurred."
+
+State the consequence first. A verdict can summarize an explanation the reader
+already understands, but it cannot replace one.
+
+## Give technical nouns accurate agency
+
+**Before.** "A Message requires one-shot work."
+
+A Message is a value that records a fact. It does not require or perform work.
+The update function decides how the application responds to the Message, and a
+Command describes work for the Runtime to perform.
+
+**After.** "Have update return a Command when the Runtime should perform
+one-time work in response to a Message."
+
+Check every sentence for its actor. The Model describes state. A Message records
+what happened. The update function returns the next Model and any Commands. The
+Runtime performs those Commands.
+
+## Show both sides in code
+
+When a section teaches an anti-pattern, prose alone makes the reader imagine
+both the broken and corrected code. Show both versions when code makes the
+difference concrete.
+
+Mark the bad example's rendered snippet label with ❌ and the good example's
+label with ✅. When the snippet's language supports comments, repeat the marker
+in its first source comment using that language's comment syntax. The source
+comment keeps the distinction visible when someone copies the snippet or reads
+its file outside the documentation page. For a commentless format such as JSON,
+use the rendered label alone.
+
+Do not reuse one snippet for different explanations. If a snippet is bad in one
+section, good in another, or needs a different explanation in its label, make
+page-specific copies so each example says exactly what it demonstrates.
+
+## State API behavior directly
+
+**Before.** "When a user signs out, the app removes the signed-in Submodel. Its
+Subscriptions should stop too."
+
+**After.** "Return `Some(child)` from `read` when the child is present, or `None`
+when it is absent. Foldkit stops the child's Subscriptions and skips its
+dependency functions while `read` returns `None`."
+
+State what the caller provides, what the function returns, and what Foldkit does.
+Do not lead with a hypothetical application or user story. Add an example only
+when it makes the stated behavior easier to understand.
 
 ## Do not assert that something matters
 
@@ -191,6 +302,114 @@ and in isolation it does not. Check headings on their own. Check callouts
 without the paragraph above them. Check bullets without their siblings. "One
 application using both" survived several passes of sentence-level review and
 failed the moment anyone read the heading by itself.
+
+## Meet the reader before introducing the API
+
+**Before.** "`Query.define` creates a Submodel for fetched data. A Query retains
+one `AsyncData` value. A KeyedQuery retains one entry for each argument key."
+
+The opening names the API and its generated state before the reader knows what
+problem Query solves. It is accurate, but it makes a new reader reverse-engineer
+the reason for the abstraction.
+
+**After.** "Fetching data in a Foldkit application usually takes the same
+pieces: an `AsyncData` value in the Model, a Command that performs the request,
+a Message carrying the result, and update branches that begin and settle the
+request. Think of Query as that standard request loop packaged around an
+`AsyncData` value."
+
+Start from the pattern the reader already recognizes. Give the abstraction a
+short mental model, then introduce its API. A conceptual page should have an
+Overview for this job instead of turning its first section into a list of names.
+
+## Separate ownership from execution
+
+**Before.** "The loading helpers start work according to the current state."
+
+That sentence makes a pure update operation sound imperative. It also leaves
+the parent and Runtime out of the explanation.
+
+**After.** "The parent calls a loading operation in response to one of its
+Messages. The operation returns the next Model and, when a request is needed, a
+fetch Command. The Runtime performs that Command after it receives the update
+result."
+
+Name each actor and give it only the agency it has. The parent decides when and
+why. The operation returns data. The Runtime performs the effect.
+
+## Use heading hierarchy to reveal the page
+
+**Before.** A guide presented `Define a Query`, `Connect the Query to Its
+Parent`, `Read and Render the Value`, `Load and Refresh`, `Choose When to Load`,
+and `Reset a Query` as six consecutive `##` headings.
+
+Every heading looked equally important, so the table of contents exposed no
+path through the guide.
+
+**After.** `Connect the Query to Its Parent` and `Read and Render Query Data`
+became `###` subsections of `## Define a Query`. `Choose When the Parent Loads
+or Refreshes` and `Reset a Query` became `###` subsections of `## Load and
+Refresh Query Data`.
+
+Use heading levels to encode the relationships a reader should see while
+skimming. Then read each heading beside its first sentence. Renaming "What the
+Parent Decides" to "The Parent Controls Loading and Refreshing" required the
+paragraph to begin with that same responsibility, not the old "decides when and
+why to consider" framing.
+
+## State a category once
+
+**Before.** "A viewless Query exposes its retained value through `read`."
+
+Every Query is viewless, so the adjective sounds like a subtype. It makes the
+reader wonder whether a viewed Query also exists.
+
+**After.** Establish the category once: "Query is a viewless Submodel." At the
+use site, state the operation directly: "Use `read` to access the Query's
+retained `AsyncData` value."
+
+An architectural trait can be important without becoming a repeated qualifier.
+State it where it explains the mental model, then write later sections against
+the established category.
+
+## Explain a boundary through its public interface
+
+**Before.** "The parent reads the child state and renders it."
+
+That sentence makes a supported read sound like the parent owns the child's
+representation. It does not say whether the parent calls an accessor or reaches
+into fields the child owns.
+
+**After.** "The parent passes the Query Model to `Query.read`. The child-owned
+accessor returns the public `AsyncData` value, which the parent renders without
+inspecting the Query Model's fields."
+
+A state boundary does not forbid every value from crossing it. It determines
+who owns the representation and transitions. Name the accessor when it preserves
+that boundary, and name the fields when code bypasses it.
+
+## Make a large snippet point to its lesson
+
+A short snippet should explain itself through names and structure. A larger
+wiring example can contain several equally plausible places to look. Use sparse
+comments to point at the architectural handoff, such as the line that lifts a
+child Message or returns the initial Command. Do not narrate syntax the reader
+can already see.
+
+Keep the important operation visible. If `execute: fetchPosts` is the concept
+being introduced, define `fetchPosts` in the snippet or inline its Effect. If an
+init example teaches the transition from initial Model to loading Model, name
+the Model first and then pass it to the loading operation. Nesting both phases in
+one expression saves lines and hides the lesson.
+
+## Link the complete application early
+
+When a complete example application exists, a reader should not need to reach
+the bottom of the guide to discover it. Put a callout near the top and say what
+the application demonstrates. "See API Cache Query for a full app" is too terse.
+"API Cache Query shows a Query loaded during init, a KeyedQuery loaded by id,
+Subscription-driven refreshes, and Story and Scene tests" tells the reader why
+to follow the link.
 
 ## The test
 

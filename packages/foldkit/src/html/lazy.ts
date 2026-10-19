@@ -1,4 +1,4 @@
-import { Predicate } from 'effect'
+import { Array, Data, Predicate, Result } from 'effect'
 
 import { type VNode, dedupeMemoizedResult, memoizedVNodes } from '../vdom.js'
 import {
@@ -11,11 +11,54 @@ import {
 } from './boundary.js'
 import {
   type DispatchSync,
+  type MountRenderOwner,
   requireBoundary,
   requireDispatch,
   requireMountDispatch,
   requireMountRenderOwner,
 } from './runtimeSingleton.js'
+
+/** Why a lazy call ran its view instead of reusing the cached result. */
+export type LazyMissReason = Data.TaggedEnum<{
+  NoCachedEntry: {}
+  FunctionChanged: {}
+  FrameChanged: {}
+  ArgumentCountChanged: Readonly<{
+    previousCount: number
+    currentCount: number
+  }>
+  ArgumentsChanged: Readonly<{ indices: ReadonlyArray<number> }>
+}>
+
+/** @internal Constructors and matching for lazy cache miss reasons. */
+export const LazyMissReason = Data.taggedEnum<LazyMissReason>()
+
+/** The result of a lazy cache lookup. `slot` identifies the `createLazy` or
+ *  `createKeyedLazy` instance. `key` is undefined for unkeyed calls, and
+ *  `missReason` is undefined when the cached result is reused. */
+export type LazyResolution = Readonly<{
+  slot: object
+  key: PropertyKey | undefined
+  missReason: LazyMissReason | undefined
+}>
+
+let resolutionObserver: ((resolution: LazyResolution) => void) | undefined
+
+/** @internal Reports lazy cache hits and misses while `run` executes.
+ *  Restores the previous observer when `run` returns or throws. */
+export const observeLazyResolutions = <A>(
+  observer: (resolution: LazyResolution) => void,
+  run: () => A,
+): A => {
+  const previousObserver = resolutionObserver
+  resolutionObserver = observer
+
+  try {
+    return run()
+  } finally {
+    resolutionObserver = previousObserver
+  }
+}
 
 const argsEqual = (
   previous: ReadonlyArray<unknown>,
@@ -37,7 +80,7 @@ type CacheEntry = Readonly<{
   args: ReadonlyArray<unknown>
   dispatch: DispatchSync
   mountDispatch: DispatchSync
-  mountRenderOwner: ReturnType<typeof requireMountRenderOwner>
+  mountRenderOwner: MountRenderOwner
   vnode: VNode | null
   // NOTE: boundary registrations captured during the wrapped function's run.
   // A cache hit restores evicted wraps and replays their ids into the
@@ -45,7 +88,49 @@ type CacheEntry = Readonly<{
   trackedBoundaries: ReadonlyMap<BoundaryId, TrackedBoundaryWrap>
 }>
 
+const findMissReason = (
+  previousEntry: CacheEntry | undefined,
+  fn: Function,
+  args: ReadonlyArray<unknown>,
+  dispatch: DispatchSync,
+  mountDispatch: DispatchSync,
+  mountRenderOwner: MountRenderOwner,
+): LazyMissReason => {
+  if (previousEntry === undefined) {
+    return LazyMissReason.NoCachedEntry()
+  }
+
+  if (previousEntry.fn !== fn) {
+    return LazyMissReason.FunctionChanged()
+  }
+
+  if (
+    previousEntry.dispatch !== dispatch ||
+    previousEntry.mountDispatch !== mountDispatch ||
+    previousEntry.mountRenderOwner !== mountRenderOwner
+  ) {
+    return LazyMissReason.FrameChanged()
+  }
+
+  if (previousEntry.args.length !== args.length) {
+    return LazyMissReason.ArgumentCountChanged({
+      previousCount: previousEntry.args.length,
+      currentCount: args.length,
+    })
+  }
+
+  const indices = Array.filterMap(
+    Array.zip(previousEntry.args, args),
+    ([previousArg, arg], index) =>
+      previousArg === arg ? Result.failVoid : Result.succeed(index),
+  )
+
+  return LazyMissReason.ArgumentsChanged({ indices })
+}
+
 const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
+  slot: object,
+  key: PropertyKey | undefined,
   previousEntry: CacheEntry | undefined,
   fn: (...args: Args) => VNode | null,
   args: Args,
@@ -63,14 +148,32 @@ const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
   // future renderer that separates them from retaining stale handler or Mount
   // lifecycle closures. Custom renderers can also use one dispatcher for both
   // owners, so the owner remains a separate key member.
-  if (
+  const isHit =
     Predicate.isNotUndefined(previousEntry) &&
     previousEntry.fn === fn &&
     previousEntry.dispatch === dispatch &&
     previousEntry.mountDispatch === mountDispatch &&
     previousEntry.mountRenderOwner === mountRenderOwner &&
     argsEqual(previousEntry.args, args)
-  ) {
+
+  if (resolutionObserver !== undefined) {
+    resolutionObserver({
+      slot,
+      key,
+      missReason: isHit
+        ? undefined
+        : findMissReason(
+            previousEntry,
+            fn,
+            args,
+            dispatch,
+            mountDispatch,
+            mountRenderOwner,
+          ),
+    })
+  }
+
+  if (isHit) {
     restoreBoundaryWrapsForLazyHit(registry, previousEntry.trackedBoundaries)
     return previousEntry.vnode
   }
@@ -128,12 +231,13 @@ export const createLazy = (): (<Args extends ReadonlyArray<unknown>>(
   args: Args,
 ) => VNode | null) => {
   let cached: CacheEntry | undefined
+  const slot = {}
 
   return <Args extends ReadonlyArray<unknown>>(
     fn: (...args: Args) => VNode | null,
     args: Args,
   ): VNode | null =>
-    resolveOrCache(cached, fn, args, entry => {
+    resolveOrCache(slot, undefined, cached, fn, args, entry => {
       cached = entry
     })
 }
@@ -167,13 +271,14 @@ export const createKeyedLazy = (): (<Args extends ReadonlyArray<unknown>>(
   args: Args,
 ) => VNode | null) => {
   const cache = new Map<PropertyKey, CacheEntry>()
+  const slot = {}
 
   return <Args extends ReadonlyArray<unknown>>(
     key: PropertyKey,
     fn: (...args: Args) => VNode | null,
     args: Args,
   ): VNode | null =>
-    resolveOrCache(cache.get(key), fn, args, entry => {
+    resolveOrCache(slot, key, cache.get(key), fn, args, entry => {
       if (entry === undefined) {
         cache.delete(key)
       } else {

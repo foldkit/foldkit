@@ -1,53 +1,99 @@
-import { inertHtml as ih } from 'foldkit/html'
-import { given, scene, withViewInputs } from 'foldkit/scene'
-import { describe, expect, test } from 'vitest'
+import { Array, Option, pipe } from 'effect'
+import { Calendar, Url } from 'foldkit'
+import {
+  Command,
+  Mount,
+  click,
+  expect,
+  given,
+  role,
+  scene,
+  within,
+} from 'foldkit/scene'
+import { describe, test } from 'vitest'
 
-import { type CodeBlock } from '../../component'
-import { Message, init, update, view } from './exampleDetail'
+import { Tabs } from '@foldkit/ui'
+
+import { Deployment } from '../../deployment'
+import { init, update, view } from '../../main'
+import { Message } from '../../message'
+import * as SnippetDisclosure from '../../snippetDisclosure'
 import { type ExampleSources } from './sources'
+
+const longCode = pipe(
+  Array.makeBy(16, index => `const value${index} = ${index}`),
+  Array.join('\n'),
+)
+const mainCode = `const main = true\n${longCode}`
+const serverCode = `const entryServer = true\n${longCode}`
 
 const sources: ExampleSources = {
   files: [
     {
       path: 'src/main.ts',
-      highlightedHtml: '<code>const count = 0</code>',
-      rawCode: 'const count = 0',
+      highlightedHtml: `<pre><code>${mainCode}</code></pre>`,
+      rawCode: mainCode,
+    },
+    {
+      path: 'src/entry.server.ts',
+      highlightedHtml: `<pre><code>${serverCode}</code></pre>`,
+      rawCode: serverCode,
     },
   ],
 }
 
-const { model } = update(
-  init().model,
-  Message.SucceededLoadExampleSources({ sources }),
+const url = pipe(
+  Url.fromString('https://foldkit.dev/example-apps/ssr'),
+  Option.getOrThrow,
 )
-
-const renderedCopyButtonIds = (slug: string): ReadonlyArray<string> => {
-  const ids: Array<string> = []
-  const renderCopyButton: CodeBlock.RenderCopyButton = config => {
-    ids.push(config.id)
-    return ih.empty
-  }
-
-  scene(
-    {
-      update,
-      view: withViewInputs(view, {
-        slug,
-        isNarrowViewport: false,
-        isShowingChromeHint: false,
-        renderCopyButton,
-      })(),
-    },
-    given(model),
-  )
-
-  return ids
+const flags = {
+  currentYear: 2026,
+  today: Calendar.make(2026, 8, 30),
+  deployment: Deployment.Production(),
+  maybeApiData: Option.none(),
+  maybeExampleSources: Option.some(sources),
 }
 
 describe('example detail', () => {
-  test('source copy controls include the example slug in their identity', () => {
-    expect(renderedCopyButtonIds('ssr')).toEqual([
-      'example-ssr-source-src/main.ts',
-    ])
+  test('source files share their code disclosure state', () => {
+    scene(
+      { update, view },
+      given(init(flags, url).model),
+      Mount.resolve(
+        SnippetDisclosure.MeasureSnippetHeight({
+          snippetId: 'example-ssr-source-src/main.ts',
+        }),
+        Message.GotSnippetDisclosureMessage({
+          message: SnippetDisclosure.Message.CompletedMeasureSnippetHeight({
+            snippetId: 'example-ssr-source-src/main.ts',
+            snippetSize: SnippetDisclosure.SnippetSize.Overflows(),
+          }),
+        }),
+      ),
+      click(
+        within(
+          role('tabpanel', { name: /main\.ts$/ }),
+          role('button', { name: 'Show code' }),
+        ),
+      ),
+      expect(
+        within(
+          role('tabpanel', { name: /main\.ts$/ }),
+          role('button', { name: 'Hide code' }),
+        ),
+      ).toExist(),
+      click(role('tab', { name: /entry\.server\.ts$/ })),
+      expect(role('tab', { name: /entry\.server\.ts$/ })).toHaveAttr(
+        'aria-selected',
+        'true',
+      ),
+      Command.resolve(Tabs.FocusTab, Tabs.Message.CompletedFocusTab()),
+      expect(
+        within(
+          role('tabpanel', { name: /entry\.server\.ts$/ }),
+          role('button', { name: 'Hide code' }),
+        ),
+      ).toExist(),
+    )
   })
 })

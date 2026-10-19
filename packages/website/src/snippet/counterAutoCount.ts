@@ -30,7 +30,10 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
       }),
       dependenciesToStream: ({ isAutoCounting }) =>
         Stream.when(
-          Stream.tick(Duration.seconds(1)).pipe(Stream.map(Message.Ticked)),
+          Stream.tick(Duration.seconds(1)).pipe(
+            Stream.drop(1),
+            Stream.map(Message.Ticked),
+          ),
           Effect.sync(() => isAutoCounting),
         ),
     },

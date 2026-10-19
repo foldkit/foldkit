@@ -93,6 +93,26 @@ describe('defineMessageUnion', () => {
     expect(describeMessage(Message.ChangedCount({ count: 4 }))).toBe('count 4')
   })
 
+  it('infers a union from every handler return', () => {
+    const Result = defineMessageUnion({
+      Reset: {},
+      Count: { count: Schema.Number },
+    })
+    type Result = typeof Result.Type
+
+    const toResult = (message: Message) =>
+      Message.match(message, {
+        ClickedReset: () => Result.Reset(),
+        ChangedCount: ({ count }) => Result.Count({ count }),
+        SelectedItem: () => Result.Reset(),
+      })
+
+    expectTypeOf(toResult).toEqualTypeOf<(message: Message) => Result>()
+    expect(toResult(Message.ChangedCount({ count: 4 }))).toStrictEqual(
+      Result.Count({ count: 4 }),
+    )
+  })
+
   it('preserves refined input types in exhaustive tag matching', () => {
     expectTypeOf<
       Parameters<typeof Message.match>['length']
@@ -144,6 +164,11 @@ describe('defineMessageUnion', () => {
     ).toThrowError(
       'Message variant names conflict with union properties: match',
     )
+    expect(() =>
+      Reflect.apply(defineMessageUnion, undefined, [{ matchOrElse: {} }]),
+    ).toThrowError(
+      'Message variant names conflict with union properties: matchOrElse',
+    )
   })
 
   it('rejects names inherited from the tagged union prototype', () => {
@@ -183,10 +208,14 @@ describe('defineMessageUnion', () => {
     Message.guards
     // @ts-expect-error TaggedUnion isAnyOf is not part of the Message API
     Message.isAnyOf
+    // @ts-expect-error Partial matching is not part of the Message API
+    Message.matchOrElse
     // @ts-expect-error TaggedUnion subset is not part of the Message API
     Message.subset
     // @ts-expect-error Message variant names cannot shadow tagged union properties
     defineMessageUnion({ match: {} })
+    // @ts-expect-error Message variant names cannot shadow tagged union properties
+    defineMessageUnion({ matchOrElse: {} })
     // @ts-expect-error The collision check follows additions to the tagged union surface
     defineMessageUnion({ annotateKey: {} })
     // @ts-expect-error Type-only tagged union properties are also reserved

@@ -1,5 +1,5 @@
 import { type Update } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { GRID_SIZE } from './constants'
 import { Message } from './message'
@@ -11,6 +11,6 @@ const update = (model: Model, message: Message) =>
     RequestedApple: () => {
       const x = Math.floor(Math.random() * GRID_SIZE)
       const y = Math.floor(Math.random() * GRID_SIZE)
-      return { model: evo(model, { apple: () => ({ x, y }) }) }
+      return { model: modifyFields(model, { apple: () => ({ x, y }) }) }
     },
   })

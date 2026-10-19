@@ -12,46 +12,9 @@ Add `story.test.ts` and `scene.test.ts` beside it. The [Counter example](/exampl
 
 When one file becomes hard to navigate, separate the root pieces and give each [Submodel](/core/submodel) its own feature folder.
 
-```text
-src/
-+-- entry.ts               Runtime bootstrap
-+-- main.ts                App-level init
-+-- model.ts               App-level state
-+-- message.ts             App-level messages
-+-- command.ts             App-level Commands
-+-- route.ts               Route definitions
-+-- update.ts              App-level update
-+-- view.ts                App-level view
-+-- subscription.ts        App-level subscriptions
-+-- story.test.ts          Story tests for the app-level update
-+-- scene.test.ts          Scene tests for flows that cross pages
-|
-+-- page/
-|   +-- index.ts           Re-exports all pages
-|   +-- home/
-|   |   +-- index.ts       Re-exports Home module
-|   |   +-- model.ts       Home state
-|   |   +-- message.ts     Home events
-|   |   +-- command.ts     Home Commands
-|   |   +-- update.ts      Home update
-|   |   +-- view.ts        Home view
-|   |   +-- story.test.ts  Story tests for the Home update
-|   |   +-- scene.test.ts  Scene tests for the Home view
-|   +-- products/
-|       +-- index.ts
-|       +-- model.ts
-|       +-- message.ts
-|       +-- command.ts
-|       +-- update.ts
-|       +-- view.ts
-|       +-- story.test.ts
-|       +-- scene.test.ts
-|
-+-- domain/
-    +-- index.ts           Re-exports domain modules
-    +-- cart.ts            Cart type + operations
-    +-- item.ts            Item type + operations
-```
+::Snippet{name="fileLayout" label="Recommended application structure"}
+
+### Give Each Feature Its Own Files
 
 Each feature folder owns its Model, Messages, update, view, Commands, Subscriptions, and tests. Do not create empty files only to match the diagram. Add a file when the feature has that concern.
 
@@ -59,13 +22,19 @@ Keep Commands beside the update that returns them. A feature that fetches its ow
 
 A feature that declares Subscriptions owns `subscription.ts`. The parent lifts that record into its own Model and Message types. See [Subscription Organization](/patterns/subscription-organization).
 
+### Split a Feature When It Grows
+
 Split a large feature again only when its own files become difficult to navigate. The [Typing Terminal room source](https://github.com/foldkit/foldkit/tree/main/packages/typing-game/client/src/page/room) has `view/` and `update/` subfolders inside one Room feature.
 
 ## Where Tests Live
 
+### Test Within the Owning Feature
+
 Colocate tests with the boundary they exercise. A feature's `story.test.ts` drives its update. Its `scene.test.ts` drives its view, using `withViewInputs` when the view requires them.
 
 Test rendering, interactions, Commands, and OutMessages inside the feature that owns them. Test at the parent when the contract involves parent-computed ViewInputs, wrapper routing, a lifted Command, or the parent's response to an OutMessage.
+
+### Test Cross-Feature Flows at the Root
 
 Keep root Scene tests for flows that cross features or pages. Split several root flows by subject, such as `checkout.scene.test.ts` and `cart.scene.test.ts`.
 
@@ -77,7 +46,7 @@ See the [Testing](/testing) page for the full Story and Scene reference.
 
 Put shared business concepts in `domain/`. Each module owns its Schema and pure operations.
 
-::Snippet{name="domainModule" label="domain module"}
+::Snippet{name="domainModule" label="Domain module"}
 
 Import the module as a namespace and call operations such as `Cart.addItem` and `Cart.removeItem`.
 
@@ -85,11 +54,11 @@ Import the module as a namespace and call operations such as `Cart.addItem` and 
 
 Use `index.ts` only as a barrel. Re-export the feature's modules from it.
 
-::Snippet{name="indexReexports" label="index re-exports"}
+::Snippet{name="indexReexports" label="Index re-exports"}
 
 Consumers can then import the feature as a namespace.
 
-::Snippet{name="indexUsage" label="namespace usage"}
+::Snippet{name="indexUsage" label="Namespace usage"}
 
 `Home.` exposes the feature's public surface without revealing its internal file layout.
 

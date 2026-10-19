@@ -5,7 +5,7 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Tabs } from '@foldkit/ui'
 
@@ -64,7 +64,7 @@ const foldTabsOutMessage = Tabs.OutMessage.match<
   // selection, or trigger a panel content fetch.
   Selected:
     ({ value }) =>
-    model => ({ model: evo(model, { activeFramework: () => value }) }),
+    model => ({ model: modifyFields(model, { activeFramework: () => value }) }),
 })
 
 // Update.foldChild wires the child into the parent: it runs
@@ -74,7 +74,7 @@ const foldTabsOutMessage = Tabs.OutMessage.match<
 const foldTabs = Update.foldChild({
   update: FrameworkTabs.update,
   read: (model: Model) => Option.some(model.tabs),
-  write: (model, nextTabs) => evo(model, { tabs: () => nextTabs }),
+  write: (model, nextTabs) => modifyFields(model, { tabs: () => nextTabs }),
   toParentMessage: message => Message.GotTabsMessage({ message }),
   foldOutMessage: foldTabsOutMessage,
 })
@@ -84,8 +84,41 @@ GotTabsMessage: ({ message }) => foldTabs(model, message)
 
 // Inside your view function, embed the tabs via h.submodel and pass the
 // parent-owned active tab as selectedValue:
-const view = (model: Model, h: HtmlBuilder<Message>) =>
-  h.submodel({
+const view = (model: Model, h: HtmlBuilder<Message>) => {
+  const tabsView = ({
+    tablist,
+    tabs,
+    activeIndex,
+  }: Tabs.RenderInfo<Framework>) =>
+    h.div(
+      [],
+      [
+        h.div(
+          [...tablist, h.Class('flex')],
+          tabs.map(tab =>
+            h.button(
+              [
+                ...tab.tab,
+                h.Class(
+                  'px-4 py-2 rounded-t-lg border data-[selected]:bg-white data-[selected]:border-b-0',
+                ),
+              ],
+              [h.span([], [tab.value])],
+            ),
+          ),
+        ),
+        ...tabs
+          .filter(tab => tab.index === activeIndex)
+          .map(tab =>
+            h.div(
+              [...tab.panel, h.Class('p-6 border rounded-b-lg')],
+              [h.p([], [descriptions[tab.value]])],
+            ),
+          ),
+      ],
+    )
+
+  return h.submodel({
     slotId: 'framework-tabs',
     model: model.tabs,
     view: FrameworkTabs.view,
@@ -93,34 +126,8 @@ const view = (model: Model, h: HtmlBuilder<Message>) =>
       tabs: frameworks,
       selectedValue: model.activeFramework,
       ariaLabel: 'Framework comparison',
-      toView: ({ tablist, tabs, activeIndex }) =>
-        h.div(
-          [],
-          [
-            h.div(
-              [...tablist, h.Class('flex')],
-              tabs.map(tab =>
-                h.button(
-                  [
-                    ...tab.tab,
-                    h.Class(
-                      'px-4 py-2 rounded-t-lg border data-[selected]:bg-white data-[selected]:border-b-0',
-                    ),
-                  ],
-                  [h.span([], [tab.value])],
-                ),
-              ),
-            ),
-            ...tabs
-              .filter(tab => tab.index === activeIndex)
-              .map(tab =>
-                h.div(
-                  [...tab.panel, h.Class('p-6 border rounded-b-lg')],
-                  [h.p([], [descriptions[tab.value]])],
-                ),
-              ),
-          ],
-        ),
+      toView: tabsView,
     },
     toParentMessage: message => Message.GotTabsMessage({ message }),
   })
+}

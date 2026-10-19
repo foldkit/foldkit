@@ -59,6 +59,7 @@ pnpm install --frozen-lockfile
 # the typing game server, stay out: they are built by the tasks that need them.
 prerequisite_packages=(
   'foldkit:packages/foldkit'
+  '@foldkit/node:packages/node'
   '@foldkit/markdown:packages/markdown'
   '@foldkit/ui:packages/ui'
   '@foldkit/devtools:packages/devtools'

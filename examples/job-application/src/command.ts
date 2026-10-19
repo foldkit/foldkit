@@ -13,11 +13,5 @@ export const SubmitApplication = Command.define('SubmitApplication', {
   execute: Effect.gen(function* () {
     yield* Effect.sleep(Duration.millis(1500))
     return Message.SucceededSubmitApplication()
-  }).pipe(
-    Effect.catch(() =>
-      Effect.succeed(
-        Message.FailedSubmitApplication({ error: 'Submission failed' }),
-      ),
-    ),
-  ),
+  }),
 })

@@ -1,5 +1,5 @@
 import { Command as ChildCommand } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { Child } from './child'
 import { ForwardedChildMessage } from './message'
 import { Model } from './model'
@@ -19,7 +19,7 @@ export const update = (model: Model, message: Child.Message) => {
     childMessage => GotLocallyShadowedMessage({ message: childMessage }),
   )
   return {
-    model: evo(model, { child: () => childUpdate.model }),
+    model: modifyFields(model, { child: () => childUpdate.model }),
     commands: [...commands, ...shadowedCommands],
   }
 }

@@ -19,6 +19,25 @@ Node `^22.22.2 || ^24.15.0 || >=26.0.0` and pnpm `>=11`. The repository pins `pn
 - **commit-msg** rejects a `Co-Authored-By` line naming Claude.
 - **pre-push** runs the full check suite described below.
 
+To run the Counter example while changing library code, build the libraries in watch mode, then start the example in another terminal:
+
+```sh
+pnpm dev:libs
+```
+
+```sh
+pnpm dev:example:counter
+```
+
+## Vendored Reference Source
+
+The repository includes reference source under `repos/` as git subtrees, so it comes down with the clone. Each snapshot is pinned to the release tag matching the dependency in `package.json`. Re-pin `repos/effect` whenever the Effect dependency changes:
+
+```sh
+EFFECT_VERSION=$(node -p "require('./packages/foldkit/package.json').devDependencies.effect")
+git subtree pull --prefix=repos/effect https://github.com/Effect-TS/effect.git "effect@${EFFECT_VERSION}" --squash
+```
+
 ## Before You Push
 
 The pre-push hook runs `pnpm pre-push`, which is the same suite CI runs. You can run it yourself at any point:
@@ -50,6 +69,7 @@ Beyond the usual lint, typecheck, and test steps, the suite enforces a few repos
 | `check:changeset-unwrapped`        | Changeset prose is not hard-wrapped. Write each paragraph as one line.                                                                                             |
 | `changeset status`                 | Every change to a publishable package has a changeset.                                                                                                             |
 | `check:dead-code`                  | No unused files, exports, or dependencies.                                                                                                                         |
+| `check:ui-subpath-exports`         | Every `packages/ui/src` component with a `public.ts` has an exports entry, a matching main-entry namespace and an example alias pointing at its source.            |
 
 ## Commits
 

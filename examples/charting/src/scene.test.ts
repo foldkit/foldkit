@@ -9,7 +9,7 @@ import {
   scene,
   text,
 } from 'foldkit/scene'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { RadioGroup } from '@foldkit/ui'
@@ -79,7 +79,7 @@ describe('view', () => {
     scene(
       { update, view },
       given(
-        evo(readyModel, {
+        modifyFields(readyModel, {
           telemetry: () =>
             TelemetryAsyncData.Refreshing({ data: sampleTelemetry }),
         }),
@@ -95,7 +95,7 @@ describe('view', () => {
     scene(
       { update, view },
       given(
-        evo(loadingModel, {
+        modifyFields(loadingModel, {
           telemetry: () => TelemetryAsyncData.Failure({ error: 'offline' }),
         }),
       ),

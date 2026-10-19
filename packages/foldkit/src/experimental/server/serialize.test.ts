@@ -47,6 +47,23 @@ const elementWithTrustedInnerHtml = (
   return snabbdomH(tagName, { props })
 }
 
+const nestedInDivs = (leaf: Html, levels: number): Html => {
+  let node = leaf
+  for (let level = 0; level < levels; level += 1) {
+    node = h.div([], [node])
+  }
+  return node
+}
+
+const spanWithRawStringChild = (text: string): VNode => ({
+  sel: 'span',
+  data: {},
+  children: [text],
+  elm: undefined,
+  text: undefined,
+  key: undefined,
+})
+
 describe('serializeHtml', () => {
   let registry: BoundaryRegistry
 
@@ -477,19 +494,28 @@ describe('serializeHtml', () => {
     )
   })
 
-  it('serializes a moderately deep tree without exhausting the stack', () => {
-    let node: Html = h.span([], ['leaf'])
-    for (let level = 0; level < 200; level += 1) {
-      node = h.div([], [node])
-    }
+  it('serializes a tree nested exactly to the maximum render depth', () => {
+    const node = nestedInDivs(h.span([], ['leaf']), 999)
     expect(serializeHtml(node)).toContain('<span>leaf</span>')
   })
 
-  it('refuses a tree nested past the maximum render depth', () => {
-    let node: Html = h.span([], ['leaf'])
-    for (let level = 0; level < 1500; level += 1) {
-      node = h.div([], [node])
-    }
+  it('refuses a tree nested one level past the maximum render depth', () => {
+    const node = nestedInDivs(h.span([], ['leaf']), 1000)
+    expect(() => serializeHtml(node)).toThrow('maximum render depth')
+  })
+
+  it('refuses a tree nested far past the maximum render depth', () => {
+    const node = nestedInDivs(h.span([], ['leaf']), 100_000)
+    expect(() => serializeHtml(node)).toThrow('maximum render depth')
+  })
+
+  it('serializes a raw string child nested exactly to the maximum render depth', () => {
+    const node = nestedInDivs(spanWithRawStringChild('leaf'), 999)
+    expect(serializeHtml(node)).toContain('<span>leaf</span>')
+  })
+
+  it('refuses a raw string child nested one level past the maximum render depth', () => {
+    const node = nestedInDivs(spanWithRawStringChild('leaf'), 1000)
     expect(() => serializeHtml(node)).toThrow('maximum render depth')
   })
 

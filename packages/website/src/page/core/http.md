@@ -4,13 +4,19 @@
 
 The `Http` module has one export: `Http.layer`, a Fetch-backed Effect `HttpClient` Layer with trace-header propagation disabled by default. Provide it to an HTTP [Command](/core/commands), then yield `HttpClient.HttpClient` inside that Command.
 
-The examples import client modules from `effect/unstable/http`. Foldkit currently pins an Effect v4 release candidate, where these modules live under the unstable namespace. That import path is expected.
+Import client modules from `effect/http`, their path in Effect 4 stable.
 
 ## Why Propagation Is Off
 
+### Server Default
+
 Effect records an `http.client` span for each request. Its standard Fetch client also propagates the span context through `traceparent` and `b3` request headers. That default suits a server calling downstream services that participate in the same distributed trace.
 
+### Browser CORS
+
 In a browser, those extra headers can turn an otherwise CORS-simple cross-origin request into a preflighted request. `Http.layer` disables propagation so tracing alone does not change the request's CORS behavior.
+
+### Local Spans
 
 Local observability remains intact. The `http.client` span still records request method, URL, and status, and a Foldkit app nests it under the Command span. Only the outgoing trace-context headers are removed.
 
@@ -20,7 +26,7 @@ Provide `Http.layer` at the edge of the Command's Effect with `Effect.provide`. 
 
 The Command remains responsible for status checks, response decoding, and converting failures into declared Messages.
 
-::Snippet{name="counterHttpCommand" label="HTTP Command example"}
+::Snippet{name="counterHttpCommand" label="HTTP Command"}
 
 ## Customizing the Client
 

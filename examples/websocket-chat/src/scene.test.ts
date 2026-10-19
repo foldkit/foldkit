@@ -12,7 +12,7 @@ import {
   text,
   type,
 } from 'foldkit/scene'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import {
@@ -51,7 +51,11 @@ describe('view', () => {
   test('connecting state renders the Connecting message', () => {
     scene(
       { update, view },
-      given(evo(idleModel, { connection: () => ConnectionState.Connecting() })),
+      given(
+        modifyFields(idleModel, {
+          connection: () => ConnectionState.Connecting(),
+        }),
+      ),
       expect(text('Connecting...')).toExist(),
     )
   })
@@ -59,7 +63,11 @@ describe('view', () => {
   test('connected state shows the message input and Send button', () => {
     scene(
       { update, view },
-      given(evo(idleModel, { connection: () => ConnectionState.Connected() })),
+      given(
+        modifyFields(idleModel, {
+          connection: () => ConnectionState.Connected(),
+        }),
+      ),
       expect(placeholder('Type a message...')).toExist(),
       expect(role('button', { name: 'Send' })).toBeDisabled(),
       type(placeholder('Type a message...'), 'hi'),
@@ -71,7 +79,7 @@ describe('view', () => {
     scene(
       { update, view },
       given(
-        evo(idleModel, {
+        modifyFields(idleModel, {
           connection: () =>
             ConnectionState.Error({
               error: 'Connection refused',
@@ -88,7 +96,7 @@ describe('view', () => {
     scene(
       { update, view },
       given(
-        evo(idleModel, {
+        modifyFields(idleModel, {
           connection: () => ConnectionState.Connected(),
           messages: () => [
             { text: 'Hello there', zoned: zonedAt(0), isSent: true },
@@ -149,7 +157,11 @@ describe('view', () => {
   test('a message arriving on the socket Subscription lands in the conversation', () => {
     scene(
       { update, view },
-      given(evo(idleModel, { connection: () => ConnectionState.Connected() })),
+      given(
+        modifyFields(idleModel, {
+          connection: () => ConnectionState.Connected(),
+        }),
+      ),
       Subscription.emit(Message.ReceivedMessage({ text: 'hello from echo' })),
       Command.expectExact(
         TimestampReceivedMessage({ text: 'hello from echo' }),

@@ -9,7 +9,6 @@ import * as NotePlayerDemo from './notePlayerDemo'
 // MODEL
 
 export const Model = Schema.Struct({
-  aiHeadingToggleCount: Schema.Number,
   demoTabs: Tabs.Model,
   activeDemoTab: DemoTab.Tab,
   playgroundMenu: Menu.Model,

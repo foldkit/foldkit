@@ -1,4 +1,13 @@
 import assert from 'node:assert/strict'
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { PassThrough } from 'node:stream'
 import { test } from 'node:test'
 
@@ -8,13 +17,15 @@ import {
   assertPackagesAlreadyExist,
   canaryVersion,
   createNpmTagger,
-  dispatchReleaseFinalization,
+  packPackage,
+  packageJsonsForPacking,
   packagesForChannel,
   packagesToUpload,
-  promoteAndFinalizeCurrentWorkspace,
+  promoteStableRelease,
   promoteSnapshot,
   promptForNpmOtp,
   resolveReleaseCommit,
+  runCoherentUpload,
   uploadArtifacts,
   uploadPlannedArtifacts,
   uploadTag,
@@ -33,6 +44,34 @@ const artifactFor = (name, version) => ({
   version,
   integrity: `sha512-${name}-${version}`,
 })
+
+const writePackingWorkspace = (root, packages, packageOrder) => {
+  mkdirSync(root, { recursive: true })
+  writeFileSync(
+    join(root, 'package.json'),
+    `${JSON.stringify({ name: 'packing-workspace', private: true }, null, 2)}\n`,
+  )
+  writeFileSync(
+    join(root, 'pnpm-workspace.yaml'),
+    'packages:\n  - packages/*\n',
+  )
+
+  const packagesByName = new Map(
+    packages.map(pkg => [pkg.packageJson.name, pkg]),
+  )
+
+  for (const name of packageOrder) {
+    const pkg = packagesByName.get(name)
+    const dir = join(root, 'packages', name.replace('@fixture/', ''))
+    const manifestPath = join(dir, 'package.json')
+
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(manifestPath, `${JSON.stringify(pkg.packageJson, null, 2)}\n`)
+    packagesByName.set(name, { ...pkg, dir, manifestPath })
+  }
+
+  return packageOrder.map(name => packagesByName.get(name))
+}
 
 class FakeRegistry {
   constructor(packages) {
@@ -418,10 +457,12 @@ test('canary versions and internal references are commit-addressed', () => {
     'canary',
     commit,
   )
+  const ui = packages.find(pkg => pkg.packageJson.name === '@foldkit/ui')
 
+  assert.ok(ui)
   assert.equal(canaryVersion('1.2.3', commit), '1.2.3-canary.0123456789ab')
   assert.equal(
-    packages[1].packageJson.peerDependencies.foldkit,
+    ui.packageJson.peerDependencies.foldkit,
     '1.2.3-canary.0123456789ab',
   )
   assert.equal(
@@ -437,6 +478,315 @@ test('canary versions and internal references are commit-addressed', () => {
     }),
     packages,
   )
+})
+
+test('canary manifests resolve internal devDependencies before packing', () => {
+  const commit = '0123456789abcdef0123456789abcdef01234567'
+  const packages = packagesForChannel(
+    [
+      packageFor('foldkit', '1.2.3'),
+      packageFor('@foldkit/ui', '1.2.3', {
+        devDependencies: {
+          foldkit: 'workspace:*',
+          effect: '4.0.0',
+        },
+      }),
+    ],
+    'canary',
+    commit,
+  )
+  const ui = packages.find(pkg => pkg.packageJson.name === '@foldkit/ui')
+
+  assert.ok(ui)
+  assert.deepEqual(Object.entries(ui.packageJson.devDependencies), [
+    ['foldkit', '1.2.3-canary.0123456789ab'],
+    ['effect', '4.0.0'],
+  ])
+})
+
+test('packing manifests resolve workspace dependencies without reordering', () => {
+  const packages = packageJsonsForPacking([
+    packageFor('foldkit', '1.2.3'),
+    packageFor('@foldkit/ui', '1.2.3', {
+      peerDependencies: { foldkit: 'workspace:^' },
+      devDependencies: {
+        foldkit: 'workspace:*',
+        effect: '4.0.0',
+      },
+    }),
+  ])
+  const ui = packages.find(pkg => pkg.packageJson.name === '@foldkit/ui')
+
+  assert.ok(ui)
+  assert.deepEqual(ui.packageJson.peerDependencies, {
+    foldkit: '^1.2.3',
+  })
+  assert.deepEqual(Object.entries(ui.packageJson.devDependencies), [
+    ['foldkit', '1.2.3'],
+    ['effect', '4.0.0'],
+  ])
+})
+
+test('stable and canary manifests pack identically across workspace orders', () => {
+  const commit = '0123456789abcdef0123456789abcdef01234567'
+  const sourcePackages = [
+    packageFor('@fixture/core-a', '1.2.3'),
+    packageFor('@fixture/core-b', '2.3.4'),
+    packageFor('@fixture/consumer', '3.4.5', {
+      devDependencies: {
+        '@fixture/core-b': 'workspace:*',
+        effect: '4.0.0',
+        '@fixture/core-a': 'workspace:^',
+      },
+    }),
+  ]
+  const firstOrder = ['@fixture/consumer', '@fixture/core-a', '@fixture/core-b']
+  const secondOrder = [
+    '@fixture/core-b',
+    '@fixture/core-a',
+    '@fixture/consumer',
+  ]
+  const testDirectory = mkdtempSync(join(tmpdir(), 'foldkit-pack-order-'))
+
+  try {
+    for (const channel of ['stable', 'canary']) {
+      const releasePackages = packagesForChannel(
+        sourcePackages,
+        channel,
+        commit,
+      )
+      const packingPackages = packageJsonsForPacking(releasePackages)
+      const firstWorkspace = writePackingWorkspace(
+        join(testDirectory, `${channel}-first`),
+        packingPackages,
+        firstOrder,
+      )
+      const secondWorkspace = writePackingWorkspace(
+        join(testDirectory, `${channel}-second`),
+        packingPackages,
+        secondOrder,
+      )
+      const firstOutput = join(testDirectory, `${channel}-first-output`)
+      const secondOutput = join(testDirectory, `${channel}-second-output`)
+
+      mkdirSync(firstOutput)
+      mkdirSync(secondOutput)
+
+      const firstConsumer = firstWorkspace.find(
+        pkg => pkg.packageJson.name === '@fixture/consumer',
+      )
+      const secondConsumer = secondWorkspace.find(
+        pkg => pkg.packageJson.name === '@fixture/consumer',
+      )
+      const plannedConsumer = releasePackages.find(
+        pkg => pkg.packageJson.name === '@fixture/consumer',
+      )
+      const firstArtifact = packPackage(firstConsumer, firstOutput)
+      const secondArtifact = packPackage(secondConsumer, secondOutput)
+
+      assert.equal(firstArtifact.integrity, secondArtifact.integrity)
+      assert.doesNotThrow(() =>
+        assertArtifactsMatchPackages({
+          artifacts: [firstArtifact],
+          packages: [plannedConsumer],
+          releasePackages,
+        }),
+      )
+    }
+  } finally {
+    rmSync(testDirectory, { recursive: true, force: true })
+  }
+})
+
+test('coherent upload builds workspace manifests and packs resolved manifests', async () => {
+  const commit = '0123456789abcdef0123456789abcdef01234567'
+  const sourcePackages = [
+    packageFor('@fixture/core-a', '1.2.3'),
+    packageFor('@fixture/core-b', '2.3.4'),
+    packageFor('@fixture/consumer', '3.4.5', {
+      dependencies: {
+        '@fixture/core-a': 'workspace:*',
+        'external-dependency': '^4.5.6',
+      },
+      optionalDependencies: {
+        '@fixture/core-b': 'workspace:^',
+      },
+      peerDependencies: {
+        '@fixture/core-a': 'workspace:^',
+      },
+      devDependencies: {
+        '@fixture/core-b': 'workspace:*',
+        effect: '4.0.0',
+      },
+    }),
+  ]
+  const packageOrder = [
+    '@fixture/consumer',
+    '@fixture/core-a',
+    '@fixture/core-b',
+  ]
+  const testDirectory = mkdtempSync(join(tmpdir(), 'foldkit-upload-stage-'))
+
+  try {
+    for (const channel of ['stable', 'canary']) {
+      const root = join(testDirectory, channel)
+      const workspacePackages = writePackingWorkspace(
+        root,
+        sourcePackages,
+        packageOrder,
+      )
+      const registry = new FakeRegistry(workspacePackages)
+      const consumer = workspacePackages.find(
+        pkg => pkg.packageJson.name === '@fixture/consumer',
+      )
+
+      assert.ok(consumer)
+      const originalManifests = new Map()
+
+      for (const pkg of workspacePackages) {
+        const originalManifest = `${readFileSync(pkg.manifestPath, 'utf8')}\n`
+
+        originalManifests.set(pkg.manifestPath, originalManifest)
+        writeFileSync(pkg.manifestPath, originalManifest)
+      }
+
+      const expectedConsumerVersion =
+        channel === 'canary'
+          ? canaryVersion(consumer.packageJson.version, commit)
+          : consumer.packageJson.version
+      const coreAVersion =
+        channel === 'canary' ? canaryVersion('1.2.3', commit) : '1.2.3'
+      const coreBVersion =
+        channel === 'canary' ? canaryVersion('2.3.4', commit) : '2.3.4'
+      const expectedPackedManifest = {
+        ...consumer.packageJson,
+        version: expectedConsumerVersion,
+        dependencies: {
+          ...consumer.packageJson.dependencies,
+          '@fixture/core-a': coreAVersion,
+        },
+        optionalDependencies: {
+          ...consumer.packageJson.optionalDependencies,
+          '@fixture/core-b':
+            channel === 'canary' ? coreBVersion : `^${coreBVersion}`,
+        },
+        peerDependencies: {
+          ...consumer.packageJson.peerDependencies,
+          '@fixture/core-a':
+            channel === 'canary' ? coreAVersion : `^${coreAVersion}`,
+        },
+        devDependencies: {
+          ...consumer.packageJson.devDependencies,
+          '@fixture/core-b': coreBVersion,
+        },
+      }
+
+      await runCoherentUpload({
+        root,
+        channel,
+        commit,
+        registry,
+        tags: new Set(),
+        workspacePackages,
+        build: () => {
+          const packageJson = JSON.parse(
+            readFileSync(consumer.manifestPath, 'utf8'),
+          )
+
+          assert.deepEqual(packageJson, {
+            ...consumer.packageJson,
+            version: expectedConsumerVersion,
+          })
+        },
+        pack: pkg => {
+          const packageJson = JSON.parse(readFileSync(pkg.manifestPath, 'utf8'))
+
+          if (packageJson.name === '@fixture/consumer') {
+            assert.deepEqual(packageJson, expectedPackedManifest)
+          }
+
+          return {
+            ...artifactFor(packageJson.name, packageJson.version),
+            path: pkg.manifestPath,
+            packageJson,
+          }
+        },
+        publish: async artifact => {
+          registry.add(artifact, artifact.packageJson)
+        },
+        log: () => {},
+      })
+
+      for (const [manifestPath, originalManifest] of originalManifests) {
+        assert.equal(readFileSync(manifestPath, 'utf8'), originalManifest)
+      }
+    }
+  } finally {
+    rmSync(testDirectory, { recursive: true, force: true })
+  }
+})
+
+test('coherent upload restores original manifests after build and pack failures', async () => {
+  const commit = '0123456789abcdef0123456789abcdef01234567'
+  const sourcePackages = [
+    packageFor('@fixture/core', '1.2.3'),
+    packageFor('@fixture/consumer', '3.4.5', {
+      dependencies: { '@fixture/core': 'workspace:*' },
+    }),
+  ]
+  const testDirectory = mkdtempSync(join(tmpdir(), 'foldkit-upload-restore-'))
+
+  try {
+    for (const channel of ['stable', 'canary']) {
+      for (const failedStage of ['build', 'pack']) {
+        const root = join(testDirectory, channel, failedStage)
+        const workspacePackages = writePackingWorkspace(root, sourcePackages, [
+          '@fixture/core',
+          '@fixture/consumer',
+        ])
+        const originalManifests = new Map()
+
+        for (const pkg of workspacePackages) {
+          const originalManifest = `${readFileSync(pkg.manifestPath, 'utf8')}\n`
+
+          originalManifests.set(pkg.manifestPath, originalManifest)
+          writeFileSync(pkg.manifestPath, originalManifest)
+        }
+
+        await assert.rejects(
+          runCoherentUpload({
+            root,
+            channel,
+            commit,
+            registry: new FakeRegistry(workspacePackages),
+            tags: new Set(),
+            workspacePackages,
+            build: () => {
+              if (failedStage === 'build') {
+                throw new Error('simulated build failure')
+              }
+            },
+            pack: () => {
+              if (failedStage === 'pack') {
+                throw new Error('simulated pack failure')
+              }
+
+              assert.fail('pack should not run after a build failure')
+            },
+            publish: assert.fail,
+            log: () => {},
+          }),
+          new RegExp(`simulated ${failedStage} failure`),
+        )
+
+        for (const [manifestPath, originalManifest] of originalManifests) {
+          assert.equal(readFileSync(manifestPath, 'utf8'), originalManifest)
+        }
+      }
+    }
+  } finally {
+    rmSync(testDirectory, { recursive: true, force: true })
+  }
 })
 
 test('stable upload output does not use Changesets reserved tag protocol', () => {
@@ -855,6 +1205,52 @@ test('npm tag changes honor a supplied OTP without prompting', async () => {
   })
 })
 
+test('GitHub Actions tag changes use npm OIDC without an OTP', async () => {
+  let prompts = 0
+  let receivedEnvironment
+  const tagPackage = createNpmTagger({
+    env: {
+      ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'oidc-request-token',
+      ACTIONS_ID_TOKEN_REQUEST_URL:
+        'https://token.actions.githubusercontent.com',
+      GITHUB_ACTIONS: 'true',
+      NPM_CONFIG_OTP: 'inherited-otp',
+      npm_config_otp: 'lowercase-inherited-otp',
+      PATH: '/usr/bin',
+    },
+    promptForOtp: async () => {
+      prompts += 1
+
+      return 'unexpected'
+    },
+    run: (_command, _args, options) => {
+      receivedEnvironment = options.env
+    },
+  })
+
+  await tagPackage(packageFor('foldkit', '1.2.3'), 'latest')
+
+  assert.equal(prompts, 0)
+  assert.deepEqual(receivedEnvironment, {
+    ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'oidc-request-token',
+    ACTIONS_ID_TOKEN_REQUEST_URL: 'https://token.actions.githubusercontent.com',
+    GITHUB_ACTIONS: 'true',
+    PATH: '/usr/bin',
+  })
+})
+
+test('GitHub Actions tag changes require an OIDC token permission', () => {
+  assert.throws(
+    () =>
+      createNpmTagger({
+        env: { GITHUB_ACTIONS: 'true', PATH: '/usr/bin' },
+        promptForOtp: assert.fail,
+        run: assert.fail,
+      }),
+    /Add `id-token: write` to the promoting job permissions/,
+  )
+})
+
 test('interactive npm OTP input is not echoed', async () => {
   const input = new PassThrough()
   const output = new PassThrough()
@@ -999,51 +1395,10 @@ test('stable promotion validates the release commit on current main', () => {
   )
 })
 
-test('release finalization targets the exact published commit', () => {
-  const commit = '0123456789abcdef0123456789abcdef01234567'
-  const calls = []
-  const environment = {
-    NPM_CONFIG_OTP: 'uppercase-secret',
-    npm_config_otp: 'lowercase-secret',
-    PATH: '/usr/bin',
-  }
-
-  dispatchReleaseFinalization(
-    '/repo',
-    commit,
-    (command, args, options) => {
-      calls.push({ command, args, options })
-    },
-    environment,
-  )
-
-  assert.deepEqual(calls, [
-    {
-      command: 'gh',
-      args: [
-        'workflow',
-        'run',
-        'release.yml',
-        '-f',
-        `published_commit=${commit}`,
-      ],
-      options: {
-        cwd: '/repo',
-        inherit: true,
-        env: { PATH: '/usr/bin' },
-      },
-    },
-  ])
-  assert.throws(
-    () => dispatchReleaseFinalization('/repo', 'HEAD', assert.fail),
-    /requires a full lowercase Git commit/,
-  )
-})
-
-test('stable finalization starts only after verified promotion', async () => {
+test('stable promotion starts only after verified release commit', async () => {
   const commit = '0123456789abcdef0123456789abcdef01234567'
   const events = []
-  const result = await promoteAndFinalizeCurrentWorkspace({
+  const result = await promoteStableRelease({
     root: '/repo',
     resolveCommit: () => {
       events.push('resolved commit')
@@ -1058,23 +1413,23 @@ test('stable finalization starts only after verified promotion', async () => {
 
       return { promoted: ['foldkit'], alreadyPromoted: [] }
     },
-    dispatch: async publishedCommit => {
-      events.push(`dispatched ${publishedCommit}`)
-    },
   })
 
   assert.deepEqual(events, [
     'resolved commit',
     `verified ${commit}`,
     'verified promotion',
-    `dispatched ${commit}`,
   ])
-  assert.equal(result.publishedCommit, commit)
+  assert.deepEqual(result, {
+    publishedCommit: commit,
+    promoted: ['foldkit'],
+    alreadyPromoted: [],
+  })
 
   events.length = 0
 
   await assert.rejects(
-    promoteAndFinalizeCurrentWorkspace({
+    promoteStableRelease({
       root: '/repo',
       resolveCommit: () => commit,
       verifyCommit: () => {},
@@ -1082,9 +1437,6 @@ test('stable finalization starts only after verified promotion', async () => {
         events.push('failed promotion')
 
         throw new Error('registry verification failed')
-      },
-      dispatch: async () => {
-        events.push('unexpected dispatch')
       },
     }),
     /registry verification failed/,
@@ -1094,7 +1446,7 @@ test('stable finalization starts only after verified promotion', async () => {
   events.length = 0
 
   await assert.rejects(
-    promoteAndFinalizeCurrentWorkspace({
+    promoteStableRelease({
       root: '/repo',
       resolveCommit: () => commit,
       verifyCommit: () => {
@@ -1105,43 +1457,8 @@ test('stable finalization starts only after verified promotion', async () => {
       promote: async () => {
         events.push('unexpected promotion')
       },
-      dispatch: async () => {
-        events.push('unexpected dispatch')
-      },
     }),
     /commit did not version public packages/,
   )
   assert.deepEqual(events, ['rejected release commit'])
-})
-
-test('stable finalization can retry after a dispatch failure', async () => {
-  const commit = '0123456789abcdef0123456789abcdef01234567'
-  let promotions = 0
-  let dispatches = 0
-  const options = {
-    root: '/repo',
-    resolveCommit: () => commit,
-    verifyCommit: () => {},
-    promote: async () => {
-      promotions += 1
-
-      return { promoted: [], alreadyPromoted: ['foldkit'] }
-    },
-    dispatch: async () => {
-      dispatches += 1
-
-      if (dispatches === 1) {
-        throw new Error('GitHub dispatch failed')
-      }
-    },
-  }
-
-  await assert.rejects(
-    promoteAndFinalizeCurrentWorkspace(options),
-    /GitHub dispatch failed/,
-  )
-  await promoteAndFinalizeCurrentWorkspace(options)
-
-  assert.equal(promotions, 2)
-  assert.equal(dispatches, 2)
 })

@@ -2,7 +2,7 @@ import { Array, Effect, Option, Schema } from 'effect'
 import { Command, Submodel, type Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { replaceUrl } from 'foldkit/navigation'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Button, Input } from '@foldkit/ui'
 
@@ -68,7 +68,7 @@ export const update = (model: Model, message: Message) =>
       CompletedReplaceSearchUrl: () => ({ model }),
 
       ChangedSearchInput: ({ value }) => ({
-        model: evo(model, { searchText: () => value }),
+        model: modifyFields(model, { searchText: () => value }),
         commands: [
           ReplaceSearchUrl({
             url: productsRouter({

@@ -1,7 +1,5 @@
-import type { SourceMap } from 'magic-string'
 import { parseAst } from 'vite'
-import type { Plugin as Vite7Plugin } from 'vite7'
-import { describe, expect, expectTypeOf, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { transformViewIdentity } from '../src/viewIdentity.ts'
 
@@ -376,18 +374,6 @@ const view = () => 1
 })
 
 describe('output stability', () => {
-  it('returns a Vite 7 compatible source map', () => {
-    const result = requireTransform('const view = () => 1\n')
-    const plugin: Vite7Plugin = {
-      name: 'vite7-source-map-compatibility',
-      transform: (code, id) => transformViewIdentity(code, id, ROOT),
-    }
-
-    expectTypeOf(result.map.file).toEqualTypeOf<string>()
-    expectTypeOf(result.map).toMatchTypeOf<SourceMap>()
-    expect(plugin.name).toBe('vite7-source-map-compatibility')
-  })
-
   it('produces identical output across runs', () => {
     const source = `const view = () => 1
 const panel = () => {

@@ -6,6 +6,7 @@ import { Url } from 'foldkit/url'
 
 import { Dialog, Menu } from '@foldkit/ui'
 
+import { ResolvedTheme } from './colorScheme'
 import {
   ApiReference,
   ComingFromReact,
@@ -18,14 +19,14 @@ import {
 import * as Search from './search'
 import { GroupKey, SidebarState } from './sidebarStorage'
 import * as SnippetCopy from './snippetCopy'
+import * as SnippetDisclosure from './snippetDisclosure'
 
 // THEME
 
 export const ThemePreference = Schema.Literals(['Dark', 'Light', 'System'])
 export type ThemePreference = typeof ThemePreference.Type
 
-export const ResolvedTheme = Schema.Literals(['Dark', 'Light'])
-export type ResolvedTheme = typeof ResolvedTheme.Type
+export { ResolvedTheme } from './colorScheme'
 
 // MESSAGE
 
@@ -44,8 +45,7 @@ export const Message = defineMessageUnion({
     maybeThemePreference: Schema.Option(ThemePreference),
     maybeSidebarState: Schema.Option(SidebarState),
     systemTheme: ResolvedTheme,
-    isNarrowViewport: Schema.Boolean,
-    isChromium: Schema.Boolean,
+    isPlaygroundSupported: Schema.Boolean,
     currentYear: Schema.Number,
     today: Calendar.CalendarDate,
   },
@@ -63,11 +63,13 @@ export const Message = defineMessageUnion({
   ToggledMobileTableOfContents: { isOpen: Schema.Boolean },
   ClickedMobileTableOfContentsLink: { sectionId: Schema.String },
   ChangedActiveSection: { sectionId: Schema.String },
+  UpdatedNewsletterEmail: { value: Schema.String },
   GotThemeMenuMessage: { message: Menu.Message },
   ChangedSystemTheme: { theme: ResolvedTheme },
   ChangedViewportWidth: { isNarrow: Schema.Boolean },
   GotHomeMessage: { message: Home.Message },
   GotSnippetCopyMessage: { message: SnippetCopy.Message },
+  GotSnippetDisclosureMessage: { message: SnippetDisclosure.Message },
   GotCoreSubmodelPageMessage: { message: Core.SubmodelPage.Message },
   GotPlaygroundMessage: { message: Playground.Message },
   GotComingFromReactMessage: { message: ComingFromReact.Message },

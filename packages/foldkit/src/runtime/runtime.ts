@@ -12,6 +12,8 @@ import {
   pipe,
 } from 'effect'
 
+import { DialogRuntime } from '../dom/dialogRuntime.js'
+import { releaseDialogResources } from '../dom/dom.js'
 import {
   Document,
   type HtmlBuilder,
@@ -380,6 +382,7 @@ export const makeRuntime = <
     // the same signal. A commit in one embedded application must never wake a
     // `Render.afterCommit` awaiting inside another.
     const commitNotifier = createCommitNotifier()
+    const dialogIds = new Set<string>()
 
     return Effect.scoped(
       Effect.gen(function* () {
@@ -567,8 +570,27 @@ export const makeRuntime = <
           maybeFreezeModel,
           enqueueMessageEffect,
         })
-        const { installDevToolsStore, recordInit, recordMessage } =
-          devToolsIntegration
+        const {
+          isRecordingCommands,
+          installDevToolsStore,
+          recordInit,
+          recordMessage,
+          recordCommandResult,
+        } = devToolsIntegration
+
+        let nextCommandId = 0
+        const assignCommandIds = <
+          CommandType extends Readonly<{
+            name: string
+            args?: Record<string, unknown>
+          }>,
+        >(
+          commands: ReadonlyArray<CommandType>,
+        ) =>
+          Array.map(commands, command => ({
+            id: nextCommandId++,
+            command,
+          }))
 
         if (import.meta.hot) {
           yield* Effect.addFinalizer(() =>
@@ -625,6 +647,14 @@ export const makeRuntime = <
           devToolsIntegration,
         })
 
+        yield* Effect.addFinalizer(() =>
+          Effect.forEach(
+            pipe(dialogIds, Array.fromIterable, Array.reverse),
+            releaseDialogResources,
+            { discard: true },
+          ),
+        )
+
         // NOTE: the fork is deferred one microtask so a Command's Effect
         // never begins on the dispatching stack. Commands are facts from
         // outside the update loop; their results always arrive
@@ -645,6 +675,7 @@ export const makeRuntime = <
             Resources | ManagedResourceServices
           >,
           message: Option.Option<Message>,
+          id?: number,
         ): void => {
           queueMicrotask(() => {
             // NOTE: `isCrashed` as well as `isRuntimeDisposed`. A crash is
@@ -657,13 +688,25 @@ export const makeRuntime = <
             if (status.isRuntimeDisposed || status.isCrashed) {
               return
             }
+
+            const providedCommand = command.effect.pipe(
+              Effect.withSpan(command.name, {
+                attributes: command.args ?? {},
+              }),
+              provideAllResources,
+            )
+            const recordedCommand =
+              id !== undefined
+                ? providedCommand.pipe(
+                    Effect.tap(result =>
+                      Effect.sync(() => recordCommandResult(id, result)),
+                    ),
+                  )
+                : providedCommand
+
             Effect.runForkWith(runtimeContext)(
               Effect.forkIn(runtimeScope)(
-                command.effect.pipe(
-                  Effect.withSpan(command.name, {
-                    attributes: command.args ?? {},
-                  }),
-                  provideAllResources,
+                recordedCommand.pipe(
                   Effect.flatMap(enqueueMessageEffect),
                   Effect.catchCause(cause => crashWith(cause, message)),
                 ),
@@ -706,7 +749,24 @@ export const makeRuntime = <
             scheduleRenderFrame()
           }
 
-          if (!Array.isReadonlyArrayEmpty(commands)) {
+          if (isRecordingCommands) {
+            const commandInvocations = assignCommandIds(commands)
+
+            for (const { command, id } of commandInvocations) {
+              forkCommand(
+                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                command as AnyCommand<
+                  Message,
+                  never,
+                  Resources | ManagedResourceServices
+                >,
+                Option.some(message),
+                id,
+              )
+            }
+
+            recordMessage(message, currentModel, nextModel, commandInvocations)
+          } else {
             for (const command of commands) {
               forkCommand(
                 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -719,8 +779,6 @@ export const makeRuntime = <
               )
             }
           }
-
-          recordMessage(message, currentModel, nextModel, commands)
         }
 
         yield* installDevToolsStore(devToolsRenderBridge)
@@ -741,7 +799,12 @@ export const makeRuntime = <
           yield* restorePreservedScrollPosition(runtimeId)
         }
 
-        yield* recordInit(initModel, initCommands)
+        const initCommandInvocations = isRecordingCommands
+          ? assignCommandIds(initCommands)
+          : []
+        if (isRecordingCommands) {
+          yield* recordInit(initModel, initCommandInvocations)
+        }
 
         if (subscriptions) {
           yield* forkSubscriptionFibers({
@@ -790,16 +853,31 @@ export const makeRuntime = <
         // ManagedResources, ports) is attached. forkCommand also defers each
         // start by a microtask, so a fully synchronous init Command still
         // delivers its result asynchronously.
-        for (const command of initCommands) {
-          forkCommand(
-            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            command as AnyCommand<
-              Message,
-              never,
-              Resources | ManagedResourceServices
-            >,
-            Option.none(),
-          )
+        if (isRecordingCommands) {
+          for (const { command, id } of initCommandInvocations) {
+            forkCommand(
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              command as AnyCommand<
+                Message,
+                never,
+                Resources | ManagedResourceServices
+              >,
+              Option.none(),
+              id,
+            )
+          }
+        } else {
+          for (const command of initCommands) {
+            forkCommand(
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              command as AnyCommand<
+                Message,
+                never,
+                Resources | ManagedResourceServices
+              >,
+              Option.none(),
+            )
+          }
         }
 
         completeBoot()
@@ -809,9 +887,19 @@ export const makeRuntime = <
         // callbacks, so this fiber's only remaining job is keeping the
         // runtime scope open until interruption (an embedded app's dispose)
         // or the document goes away.
-        yield* Effect.never
+        return yield* Effect.never
       }),
-    ).pipe(Effect.provideService(RenderCommit, commitNotifier.service))
+    ).pipe(
+      Effect.provideService(RenderCommit, commitNotifier.service),
+      Effect.provideService(DialogRuntime, {
+        register: id => {
+          dialogIds.add(id)
+        },
+        unregister: id => {
+          dialogIds.delete(id)
+        },
+      }),
+    )
   }
 
   const start = (preservedModel?: unknown): Effect.Effect<void> =>

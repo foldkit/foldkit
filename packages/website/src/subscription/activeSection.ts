@@ -108,6 +108,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             CoreRender: () => Core.CoreRender.tableOfContents,
             CoreFile: () => Core.CoreFile.tableOfContents,
             CoreHttp: () => Core.CoreHttp.tableOfContents,
+            CoreQuery: () => Core.CoreQuery.tableOfContents,
             CoreCanvas: () => Core.CoreCanvas.tableOfContents,
             CoreRuntime: () => Core.Runtime.tableOfContents,
             CoreServerRendering: () => Core.CoreServerRendering.tableOfContents,
@@ -122,6 +123,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             CoreSubmodel: () => Core.SubmodelPage.tableOfContents,
             CoreMachine: () => Core.Machine.tableOfContents,
             AsyncData: () => AsyncDataPage.tableOfContents,
+            PatternsAntiPatterns: () => Patterns.AntiPatterns.tableOfContents,
             PatternsInformingSubmodels: () =>
               Patterns.InformingSubmodels.tableOfContents,
             PatternsSubscriptionOrganization: () =>
@@ -136,6 +138,8 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             UiCheckbox: () => Ui.CheckboxPage.tableOfContents,
             UiRadioGroup: () => Ui.RadioGroupPage.tableOfContents,
             UiSlider: () => Ui.SliderPage.tableOfContents,
+            UiMeter: () => Ui.MeterPage.tableOfContents,
+            UiProgress: () => Ui.ProgressPage.tableOfContents,
             UiSwitch: () => Ui.SwitchPage.tableOfContents,
             UiListbox: () => Ui.ListboxPage.tableOfContents,
             UiCombobox: () => Ui.ComboboxPage.tableOfContents,

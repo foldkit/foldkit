@@ -1,4 +1,13 @@
-import { type Equivalence, Option, Record, Schema, Stream, pipe } from 'effect'
+import {
+  Array,
+  type Equivalence,
+  Function,
+  Option,
+  Record,
+  Schema,
+  Stream,
+  pipe,
+} from 'effect'
 
 type SubscriptionBrand = {
   readonly __subscription: never
@@ -9,8 +18,8 @@ type DependenciesSchema<Dependencies> = Schema.Schema<Dependencies> & {
 }
 
 /**
- * The entry shape produced by helpers like `Subscription.persistent` and
- * `Port.subscription` before branding. Pass values of this shape into
+ * The entry shape produced by helpers like `Subscription.persistentEntry` and
+ * `Port.subscriptionEntry` before branding. Pass values of this shape into
  * `Subscription.make` as entry values.
  */
 export type EntryWithoutKeepAlive<Model, Message, Dependencies, Services> = {
@@ -41,7 +50,7 @@ type Entry<Model, Message, Dependencies, Services = never> =
  * `Subscription.lift`, or `Subscription.aggregate`. The brand field is
  * `never`, so application code cannot manually construct a `Subscription`
  * value: it must go through one of those constructors (or a helper like
- * `Subscription.persistent` that returns an entry shape, then through
+ * `Subscription.persistentEntry` that returns an entry shape, then through
  * `make`).
  *
  * Two variants by `keepAliveEquivalence` presence:
@@ -186,44 +195,175 @@ export const make =
     return build(entryBuilder) as any
   }
 
+type AnySubscriptions = Readonly<
+  Record<string, Subscription<any, any, any, any>>
+>
+
+// NOTE: requiring one record keeps `aggregate()` unambiguously curried.
+type AnySubscriptionsList = readonly [
+  AnySubscriptions,
+  ...ReadonlyArray<AnySubscriptions>,
+]
+
+type EntriesOfRecord<SubscriptionsRecord> = SubscriptionsRecord extends unknown
+  ? SubscriptionsRecord[keyof SubscriptionsRecord]
+  : never
+
+type EntriesOf<Records extends AnySubscriptionsList> = EntriesOfRecord<
+  Records[number]
+>
+
+// NOTE: Model-independent entries use `unknown` because they belong to every Model
+// universe, so they must not collapse the inferred reference Model.
+type ModelOfEntry<AnyEntry> = [AnyEntry] extends [
+  Subscription<infer Model, any, any, any>,
+]
+  ? unknown extends Model
+    ? never
+    : Model
+  : never
+
+type MessageOfEntry<AnyEntry> =
+  AnyEntry extends Subscription<any, infer Message, any, any> ? Message : never
+
+type ServicesOfEntry<AnyEntry> =
+  AnyEntry extends Subscription<any, any, any, infer Services>
+    ? Services
+    : never
+
+type MessageOf<Records extends AnySubscriptionsList> = MessageOfEntry<
+  EntriesOf<Records>
+>
+
+type ServicesOf<Records extends AnySubscriptionsList> = ServicesOfEntry<
+  EntriesOf<Records>
+>
+
+// NOTE: anchoring compatibility to the first Model-reading record makes an
+// incompatible later record produce the error at its own argument position.
+type ReferenceModel<Records extends ReadonlyArray<AnySubscriptions>> =
+  Records extends readonly [
+    infer Head extends AnySubscriptions,
+    ...infer Rest extends ReadonlyArray<AnySubscriptions>,
+  ]
+    ? [ModelOfEntry<EntriesOfRecord<Head>>] extends [never]
+      ? ReferenceModel<Rest>
+      : ModelOfEntry<EntriesOfRecord<Head>>
+    : never
+
+type CompatibleSubscriptions<Records extends AnySubscriptionsList> = {
+  readonly [Index in keyof Records]: Records[Index] &
+    Subscriptions<
+      ReferenceModel<Records>,
+      MessageOf<Records>,
+      ServicesOf<Records>
+    >
+}
+
+type RuntimeKey<Key> = Key extends string
+  ? Key
+  : Key extends number
+    ? `${Key}`
+    : never
+
+type RuntimeEntries<RecordType> = {
+  readonly [Key in keyof RecordType as RuntimeKey<Key>]: RecordType[Key]
+}
+
+type MergeSubscriptions<Records extends ReadonlyArray<unknown>> =
+  Records extends readonly [infer Head, ...infer Rest]
+    ? RuntimeEntries<Head> &
+        (Rest extends ReadonlyArray<unknown> ? MergeSubscriptions<Rest> : {})
+    : {}
+
+const mergeSubscriptions = (
+  records: ReadonlyArray<AnySubscriptions>,
+): Record<string, Subscription<any, any, any, any>> => {
+  const result: Record<string, Subscription<any, any, any, any>> = {}
+  for (const record of records) {
+    for (const key of Object.keys(record)) {
+      if (Object.hasOwn(result, key)) {
+        throw new Error(
+          `Subscription.aggregate: duplicate key "${key}" across records`,
+        )
+      }
+      Object.defineProperty(result, key, {
+        configurable: true,
+        enumerable: true,
+        value: record[key],
+        writable: true,
+      })
+    }
+  }
+  return result
+}
+
 /**
  * Combines multiple Subscriptions records into one. Throws on duplicate
  * keys so a misconfigured aggregate fails loudly at startup rather than
  * silently overriding.
+ *
+ * Pass the records directly and the Model, Message, and Services are read
+ * off them. The Model of the first record with a Model dependency is the one
+ * every later record is checked against, so a record from another Model
+ * universe fails at its own argument position. Message and Services widen to
+ * the union across all records, which is what lets a record that needs an
+ * Effect service sit beside records that need none.
+ *
+ * The result keeps each record's keys and each entry's exact dependency type,
+ * schema, and `keepAliveEquivalence` variant, so a lifted entry's
+ * {@link GatedDependencies} survives aggregation.
+ *
+ * The curried form remains available for a record that has to be typed before
+ * its entries exist, such as a value annotated as
+ * `Subscriptions<Model, Message>` at a module boundary. It erases keys and
+ * per-entry dependency types, so reach for it only when the explicit contract
+ * is the point.
+ *
+ * @example
+ * ```ts
+ * const subscriptions = Subscription.aggregate(
+ *   homeSubscriptions,
+ *   roomSubscriptions,
+ * )
+ * ```
+ *
+ * @example Curried, when the record is typed before its entries exist:
+ * ```ts
+ * export const subscriptions: Subscription.Subscriptions<Model, Message> =
+ *   Subscription.aggregate<Model, Message>()(...records)
+ * ```
  */
-export const aggregate =
-  <Model, Message, Services = never>() =>
-  (
+export const aggregate: {
+  <Model, Message, Services = never>(): (
     ...records: ReadonlyArray<Subscriptions<Model, Message, Services>>
-  ): Subscriptions<Model, Message, Services> => {
-    const result: Record<
-      string,
-      Subscription<Model, Message, any, Services>
-    > = {}
-    for (const record of records) {
-      for (const key of Object.keys(record)) {
-        if (Object.hasOwn(result, key)) {
-          throw new Error(
-            `Subscription.aggregate: duplicate key "${key}" across records`,
-          )
-        }
-        result[key] = record[key]!
-      }
-    }
-    return result
-  }
+  ) => Subscriptions<Model, Message, Services>
+  <Records extends AnySubscriptionsList>(
+    ...records: CompatibleSubscriptions<Records>
+  ): MergeSubscriptions<Records>
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+} = ((...records: ReadonlyArray<AnySubscriptions>) => {
+  return Array.match(records, {
+    onEmpty:
+      () =>
+      (...curriedRecords: ReadonlyArray<AnySubscriptions>) =>
+        mergeSubscriptions(curriedRecords),
+    onNonEmpty: mergeSubscriptions,
+  })
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+}) as any
 
 /**
- * Wraps a Stream as a Subscription entry whose lifecycle is independent of
- * the Model. The Stream runs for the lifetime of the Subscriptions record;
- * no Model change tears it down or restarts it. Use for any Stream whose
- * work doesn't depend on Model state, such as system theme listeners,
- * viewport width observers, or route-independent timers.
+ * Wraps a Stream as a Subscription entry with no dependencies on its own
+ * Model. Local Model changes do not restart the Stream. A parent can still
+ * gate the entry when lifting it, so the Stream starts and stops with that
+ * parent condition. Use for work such as system theme listeners, viewport
+ * width observers, or route-independent timers.
  *
  * Returns an entry shape, not a branded Subscription. Pass it into `make`
  * as an entry value.
  */
-export const persistent = <Message, Services = never>(
+export const persistentEntry = <Message, Services = never>(
   stream: Stream.Stream<Message, never, Services>,
 ): EntryWithoutKeepAlive<
   unknown,
@@ -257,14 +397,10 @@ type ChildMessageOf<ChildSubscriptions> =
     : never
 
 /**
- * The dependencies of a Subscription lifted through a parent's `when` gate:
- * the child entry's own dependencies under `maybeDependencies`, and `None`
- * for as long as the parent holds the gate closed.
- *
- * A closed gate is a real teardown rather than a paused Stream. The entry's
- * Stream is torn down, and the child's `modelToDependencies` does not run
- * again until the parent reopens the gate, so child state that changes behind
- * a closed gate causes no restarts.
+ * The dependencies of a lifted Subscription. `maybeDependencies` holds the
+ * child's dependencies while `read` returns `Some` and its `when` gate is
+ * open. Otherwise it holds `None`, which tears down the entry's Stream and
+ * skips the child's `modelToDependencies`.
  */
 export type GatedDependencies<Dependencies> = Readonly<{
   maybeDependencies: Option.Option<Dependencies>
@@ -273,46 +409,20 @@ export type GatedDependencies<Dependencies> = Readonly<{
 type WhenPredicate<ParentModel> = (parentModel: ParentModel) => boolean
 
 /**
- * The per-entry form of a lift's `when`: a partial map from entry name to
- * gate. Entries the map names are gated, and entries it omits are lifted
- * ungated.
+ * Additional parent conditions for named entries in a lift's `when` map.
+ * Entries omitted from the map run whenever `read` returns a child Model.
  */
 export type EntryGates<ParentModel, Subscriptions> = Readonly<
   Partial<Record<keyof Subscriptions, WhenPredicate<ParentModel>>>
 >
 
 type LiftConfig<ParentModel, ParentMessage, Subscriptions> = Readonly<{
-  toChildModel: (parentModel: ParentModel) => ChildModelOf<Subscriptions>
+  read: (parentModel: ParentModel) => Option.Option<ChildModelOf<Subscriptions>>
   toParentMessage: (message: ChildMessageOf<Subscriptions>) => ParentMessage
+  when?: WhenPredicate<ParentModel> | EntryGates<ParentModel, Subscriptions>
 }>
 
-type GatedLiftConfig<ParentModel, ParentMessage, Subscriptions> = LiftConfig<
-  ParentModel,
-  ParentMessage,
-  Subscriptions
-> &
-  Readonly<{
-    when: WhenPredicate<ParentModel>
-  }>
-
-type PerEntryGatedLiftConfig<ParentModel, ParentMessage, Subscriptions, Gates> =
-  LiftConfig<ParentModel, ParentMessage, Subscriptions> &
-    Readonly<{
-      when: Gates
-    }>
-
 type LiftedSubscriptions<ParentModel, ParentMessage, Subscriptions> = {
-  readonly [K in keyof Subscriptions]: Subscriptions[K] extends Subscription<
-    any,
-    any,
-    infer Dependencies,
-    infer Services
-  >
-    ? Subscription<ParentModel, ParentMessage, Dependencies, Services>
-    : never
-}
-
-type GatedLiftedSubscriptions<ParentModel, ParentMessage, Subscriptions> = {
   readonly [K in keyof Subscriptions]: Subscriptions[K] extends Subscription<
     any,
     any,
@@ -328,48 +438,10 @@ type GatedLiftedSubscriptions<ParentModel, ParentMessage, Subscriptions> = {
     : never
 }
 
-/**
- * The lifted record for a per-entry `when`. An entry the gate map names
- * carries {@link GatedDependencies}; an entry it omits keeps the child's own
- * dependencies. When the gate map's own type is not precise enough to say
- * which is which, because the call passed explicit `ParentModel` and
- * `ParentMessage` type arguments and so suppressed inference on it, the entry
- * carries both possibilities.
- */
-type PerEntryGatedLiftedSubscriptions<
-  ParentModel,
-  ParentMessage,
-  Subscriptions,
-  Gates,
-> = {
-  readonly [K in keyof Subscriptions]: Subscriptions[K] extends Subscription<
-    any,
-    any,
-    infer Dependencies,
-    infer Services
-  >
-    ? K extends keyof Gates
-      ? undefined extends Gates[K]
-        ? Subscription<
-            ParentModel,
-            ParentMessage,
-            Dependencies | GatedDependencies<Dependencies>,
-            Services
-          >
-        : Subscription<
-            ParentModel,
-            ParentMessage,
-            GatedDependencies<Dependencies>,
-            Services
-          >
-      : Subscription<ParentModel, ParentMessage, Dependencies, Services>
-    : never
-}
-
 type AnyWhen = WhenPredicate<any> | EntryGates<any, any>
 
 type AnyLiftConfig = Readonly<{
-  toChildModel: (parentModel: any) => any
+  read: (parentModel: any) => Option.Option<any>
   toParentMessage: (message: any) => any
   when?: AnyWhen
 }>
@@ -377,13 +449,17 @@ type AnyLiftConfig = Readonly<{
 const toEntryWhen = (
   when: AnyWhen | undefined,
   key: string,
-): Option.Option<WhenPredicate<any>> => {
+): WhenPredicate<any> => {
   if (when === undefined) {
-    return Option.none()
+    return Function.constTrue
   } else if (typeof when === 'function') {
-    return Option.some(when)
+    return when
   } else {
-    return pipe(Record.get(when, key), Option.flatMap(Option.fromNullishOr))
+    return pipe(
+      Record.get(when, key),
+      Option.flatMap(Option.fromNullishOr),
+      Option.getOrElse(() => Function.constTrue),
+    )
   }
 }
 
@@ -393,34 +469,6 @@ const toParentStream = (
 ) => Stream.map(stream, config.toParentMessage)
 
 const toLiftedEntry = (
-  subscription: Subscription<any, any, any, any>,
-  config: AnyLiftConfig,
-) => {
-  const modelToDependencies = (parentModel: any) =>
-    subscription.modelToDependencies(config.toChildModel(parentModel))
-
-  if (subscription.keepAliveEquivalence !== undefined) {
-    return {
-      dependenciesSchema: subscription.dependenciesSchema,
-      modelToDependencies,
-      keepAliveEquivalence: subscription.keepAliveEquivalence,
-      dependenciesToStream: (dependencies: any, readDependencies: () => any) =>
-        toParentStream(
-          config,
-          subscription.dependenciesToStream(dependencies, readDependencies),
-        ),
-    }
-  }
-
-  return {
-    dependenciesSchema: subscription.dependenciesSchema,
-    modelToDependencies,
-    dependenciesToStream: (dependencies: any) =>
-      toParentStream(config, subscription.dependenciesToStream(dependencies)),
-  }
-}
-
-const toGatedEntry = (
   subscription: Subscription<any, any, any, any>,
   config: AnyLiftConfig,
   when: (parentModel: any) => boolean,
@@ -433,7 +481,7 @@ const toGatedEntry = (
     maybeDependencies: pipe(
       parentModel,
       Option.liftPredicate(when),
-      Option.map(config.toChildModel),
+      Option.flatMap(config.read),
       Option.map(subscription.modelToDependencies),
     ),
   })
@@ -490,36 +538,24 @@ const toGatedEntry = (
 }
 
 /**
- * Lifts a record of child Subscriptions into a parent's Model and Message
- * context, applying a Model accessor and a Message wrapper uniformly to
- * every entry. Per-entry dependency types, schemas, and `keepAliveEquivalence`
- * settings are preserved; each lifted entry's variant (with or without
- * `readDependencies`) matches its source entry's.
+ * Lifts child Subscriptions into a parent's Model and Message context.
+ * `read` returns `Some(childModel)` while the child exists and `None` while
+ * it is absent, matching `Update.foldChild` and `ManagedResource.lift`.
+ * An absent child tears down every entry's Stream without reading the
+ * child's dependencies. Use `Option.some` for a child that is always present.
  *
- * The optional `when` is the parent's own gate. The parent writes it here on
- * its `lift` call and answers it from the parent Model, which is what makes
- * it useful: it carries the half of a condition the child cannot see, such as
- * the route a page Submodel sits behind. The child neither declares nor sees
- * the gate, and keeps holding its own half in `modelToDependencies`. A gated
- * entry runs only while its gate returns `true`, and a closed gate tears it
- * down.
+ * The optional `when` adds conditions from the parent Model. One predicate
+ * gates every entry; an {@link EntryGates} map adds a gate only to its named
+ * entries. An entry runs only while its gate is open and `read` returns
+ * `Some`. A closed gate skips `read` as well as the child's dependency
+ * projection. Entries omitted from a gate map still stop when the child
+ * is absent.
  *
- * `when` takes either shape:
- *
- * - One predicate gates every entry in the record, for the common case where
- *   the whole child answers to one parent condition.
- * - An {@link EntryGates} map gates entries by name, for a child whose
- *   Subscriptions answer to different parent conditions. Entries the map
- *   omits are lifted ungated. A child never has to organize its records
- *   around its parent's gating.
- *
- * Gating rewrites a gated entry's dependencies to {@link GatedDependencies},
- * so its `readDependencies` returns the last dependencies seen through an
- * open gate. Ungated entries keep the child's dependencies untouched. Passing
- * `ParentModel` and `ParentMessage` explicitly suppresses inference on the
- * gate map, which leaves each named entry's dependencies as either shape; let
- * both infer from an annotated `toChildModel` when you want the exact per
- * entry types.
+ * Every lifted entry wraps its dependencies in {@link GatedDependencies}.
+ * The child's dependency Schema, service requirements, and
+ * `keepAliveEquivalence` are preserved inside that wrapper. A running child
+ * Stream's `readDependencies` receives current child dependencies while
+ * active, with its starting dependencies as a fallback during teardown.
  *
  * @example
  * ```ts
@@ -527,15 +563,16 @@ const toGatedEntry = (
  *   Model,
  *   Message
  * >({
- *   toChildModel: model => model.home,
- *   toParentMessage: message => GotHomeMessage({ message }),
- *   when: ({ route }) => route._tag === 'Home',
+ *   read: model => model.maybeHome,
+ *   toParentMessage: message => Message.GotHomeMessage({ message }),
  * })
  *
- * const roomSubscriptions = Subscription.lift(Room.subscriptions)({
- *   toChildModel: (model: Model) => model.room,
- *   toParentMessage: (message: Room.Message): Message =>
- *     GotRoomMessage({ message }),
+ * const roomSubscriptions = Subscription.lift(Room.subscriptions)<
+ *   Model,
+ *   Message
+ * >({
+ *   read: model => Option.some(model.room),
+ *   toParentMessage: message => Message.GotRoomMessage({ message }),
  *   when: { roomKeyboard: ({ route }) => route._tag === 'Room' },
  * })
  * ```
@@ -547,39 +584,11 @@ export const lift =
     >,
   >(
     subscriptions: Subscriptions,
-  ): {
-    <ParentModel, ParentMessage>(
-      config: GatedLiftConfig<ParentModel, ParentMessage, Subscriptions>,
-    ): GatedLiftedSubscriptions<ParentModel, ParentMessage, Subscriptions>
-    <
-      ParentModel,
-      ParentMessage,
-      Gates extends EntryGates<ParentModel, Subscriptions> = EntryGates<
-        ParentModel,
-        Subscriptions
-      >,
-    >(
-      config: PerEntryGatedLiftConfig<
-        ParentModel,
-        ParentMessage,
-        Subscriptions,
-        Gates
-      >,
-    ): PerEntryGatedLiftedSubscriptions<
-      ParentModel,
-      ParentMessage,
-      Subscriptions,
-      Gates
-    >
-    <ParentModel, ParentMessage>(
-      config: LiftConfig<ParentModel, ParentMessage, Subscriptions>,
-    ): LiftedSubscriptions<ParentModel, ParentMessage, Subscriptions>
-  } =>
-  (config: AnyLiftConfig) =>
+  ) =>
+  <ParentModel, ParentMessage>(
+    config: LiftConfig<ParentModel, ParentMessage, Subscriptions>,
+  ): LiftedSubscriptions<ParentModel, ParentMessage, Subscriptions> =>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     Record.map(subscriptions, (subscription, key) =>
-      Option.match(toEntryWhen(config.when, key), {
-        onNone: () => toLiftedEntry(subscription, config),
-        onSome: entryWhen => toGatedEntry(subscription, config, entryWhen),
-      }),
+      toLiftedEntry(subscription, config, toEntryWhen(config.when, key)),
     ) as any

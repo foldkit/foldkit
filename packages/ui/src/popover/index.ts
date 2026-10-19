@@ -13,15 +13,11 @@ import * as Dom from 'foldkit/dom'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Mount from 'foldkit/mount'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { defineView } from 'foldkit/submodel'
 import * as Update from 'foldkit/update'
 
-import {
-  AnchorConfig,
-  anchorSetup,
-  portalToContainingRoot,
-} from '../anchor/index.js'
+import { AnchorConfig, anchorSetup, portalBackdrop } from '../anchor/index.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → popover → animation.
 // The barrel (../animation) imports from html, which starts the cycle.
@@ -122,7 +118,7 @@ export const init = (config: InitConfig): Model => ({
 // UPDATE
 
 const closedModel = (model: Model): Model =>
-  evo(model, {
+  modifyFields(model, {
     isOpen: () => false,
     maybeLastButtonPointerType: () => Option.none(),
   })
@@ -194,21 +190,21 @@ export const FocusButton = Command.define('FocusButton', {
 export const DetectMovementOrAnimationEnd = Command.define(
   'DetectMovementOrAnimationEnd',
   {
-    args: { id: Schema.String },
+    args: { id: Schema.String, generation: Schema.Number },
     messages: [Message.GotAnimationMessage],
-    execute: ({ id }) =>
+    execute: ({ id, generation }) =>
       Effect.raceFirst(
         Dom.detectElementMovement(buttonSelector(id)).pipe(
           Effect.as(
             Message.GotAnimationMessage({
-              message: Animation.Message.EndedAnimation(),
+              message: Animation.Message.EndedAnimation({ generation }),
             }),
           ),
         ),
         Dom.waitForAnimationSettled(panelSelector(id)).pipe(
           Effect.as(
             Message.GotAnimationMessage({
-              message: Animation.Message.EndedAnimation(),
+              message: Animation.Message.EndedAnimation({ generation }),
             }),
           ),
         ),
@@ -219,10 +215,12 @@ export const DetectMovementOrAnimationEnd = Command.define(
 const foldAnimationOutMessage = Animation.OutMessage.match<
   Update.Step<Model, Message>
 >({
-  StartedLeaveAnimating: () => model => ({
-    model,
-    commands: [DetectMovementOrAnimationEnd({ id: model.id })],
-  }),
+  StartedLeaveAnimating:
+    ({ generation }) =>
+    model => ({
+      model,
+      commands: [DetectMovementOrAnimationEnd({ id: model.id, generation })],
+    }),
   TransitionedOut: () => model => ({ model }),
 })
 
@@ -230,7 +228,7 @@ const foldAnimation = Update.foldChild({
   update: animationUpdate,
   read: (model: Model) => Option.some(model.animation),
   write: (model, nextAnimation) =>
-    evo(model, { animation: () => nextAnimation }),
+    modifyFields(model, { animation: () => nextAnimation }),
   toParentMessage: message => Message.GotAnimationMessage({ message }),
   foldOutMessage: foldAnimationOutMessage,
 })
@@ -239,7 +237,7 @@ const foldAnimationShow = Update.foldChildStep({
   update: animationShow,
   read: (model: Model) => Option.some(model.animation),
   write: (model, nextAnimation) =>
-    evo(model, { animation: () => nextAnimation }),
+    modifyFields(model, { animation: () => nextAnimation }),
   toParentMessage: message => Message.GotAnimationMessage({ message }),
 })
 
@@ -247,7 +245,7 @@ const foldAnimationHide = Update.foldChildStep({
   update: animationHide,
   read: (model: Model) => Option.some(model.animation),
   write: (model, nextAnimation) =>
-    evo(model, { animation: () => nextAnimation }),
+    modifyFields(model, { animation: () => nextAnimation }),
   toParentMessage: message => Message.GotAnimationMessage({ message }),
 })
 
@@ -286,7 +284,7 @@ export const update = (model: Model, message: Message) => {
         stepModel => ({ model: stepModel, commands: openCommands }),
         foldAnimationShow,
         stepModel => ({
-          model: evo(stepModel, { isOpen: () => true }),
+          model: modifyFields(stepModel, { isOpen: () => true }),
         }),
       ])
 
@@ -294,7 +292,7 @@ export const update = (model: Model, message: Message) => {
     }
 
     return {
-      model: evo(baseModel, { isOpen: () => true }),
+      model: modifyFields(baseModel, { isOpen: () => true }),
       commands: openCommands,
       outMessage: OutMessage.Opened(),
     }
@@ -349,7 +347,7 @@ export const update = (model: Model, message: Message) => {
     },
 
     PressedPointerOnButton: ({ pointerType, button }) => {
-      const withPointerType = evo(model, {
+      const withPointerType = modifyFields(model, {
         maybeLastButtonPointerType: () => Option.some(pointerType),
       })
 
@@ -361,7 +359,7 @@ export const update = (model: Model, message: Message) => {
         const popoverClose = Update.combine(withPointerType, [
           stepModel => closePopoverModel(stepModel, closeWithFocusCommands),
           stepModel => ({
-            model: evo(stepModel, {
+            model: modifyFields(stepModel, {
               maybeLastButtonPointerType: () => Option.some(pointerType),
             }),
           }),
@@ -383,7 +381,9 @@ export const update = (model: Model, message: Message) => {
     CompletedInertOthers: () => ({ model }),
     CompletedRestoreInert: () => ({ model }),
     IgnoredMouseClick: () => ({
-      model: evo(model, { maybeLastButtonPointerType: () => Option.none() }),
+      model: modifyFields(model, {
+        maybeLastButtonPointerType: () => Option.none(),
+      }),
     }),
     SuppressedSpaceScroll: () => ({ model }),
     CompletedAnchorPopover: () => ({ model }),
@@ -438,7 +438,7 @@ export const PortalPopoverBackdrop = Mount.define('PortalPopoverBackdrop', {
   execute: ({ element }) =>
     Effect.gen(function* () {
       yield* Effect.acquireRelease(
-        Effect.sync(() => portalToContainingRoot(element)),
+        Effect.sync(() => portalBackdrop(element)),
         cleanup => Effect.sync(cleanup),
       )
       return Message.CompletedPortalPopoverBackdrop()
@@ -465,8 +465,10 @@ export const close = (model: Model): UpdateReturn =>
  *    anchor Mount that positions the panel via Floating UI, ARIA
  *    linkage to the button, and panel keydown/blur handlers.
  *  - `backdrop`: attribute bundle for the modal backdrop. Includes the
- *    portal Mount that moves the backdrop to document.body. The
- *    backdrop's OnClick closes the popover.
+ *    portal Mount that moves the backdrop to document.body. Inside a
+ *    `<dialog>`, it moves the backdrop to directly before the element it
+ *    is rendered in, so render it inside the positioned wrapper that holds
+ *    the button. The backdrop's OnClick closes the popover.
  *  - `arrow`: attribute bundle for an arrow element inside the panel.
  *    Carries the id the anchor Mount resolves and hides the element from
  *    assistive technology. Spread it onto your own element and place it
@@ -606,7 +608,7 @@ export const view = defineView<Model, Message, ViewInputs>(
       h.Id(`${id}-button`),
       h.Type('button'),
       h.AriaExpanded(isVisible),
-      h.AriaControls(`${id}-panel`),
+      ...(isVisible ? [h.AriaControls(`${id}-panel`)] : []),
       ...buttonLabelAttributes,
       ...(isDisabled
         ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]

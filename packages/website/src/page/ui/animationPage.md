@@ -10,11 +10,19 @@ Animation uses the [OutMessage](/core/submodel#surfacing-facts) pattern. The `fo
 
 CSS can animate between two rendered styles, but an application still has to stage those styles across paints and keep a leaving element mounted until its animations finish. Animation coordinates three parts of that lifecycle.
 
+### Entering Content
+
 First, an entering element renders with `data-closed`. Animation waits for paint before removing that attribute, so the browser sees the change and starts the CSS animation.
+
+### Leaving Content
 
 Second, browser animation settlement does not enter update on its own. `defaultLeaveCommand` waits for every transition and keyframe animation reported by the element's Web Animations API to settle, then returns `EndedAnimation`. Animation responds with `TransitionedOut`, which tells the parent that it can unmount content or perform other cleanup.
 
+### Animating Size
+
 Third, `animateSize: true` supplies the nested CSS grid structure needed to animate content between collapsed and expanded rows without measuring its height in JavaScript. It keeps the hidden content mounted at zero height instead of removing it.
+
+### When to Use Animation Directly
 
 Use Animation directly when your own content needs the same lifecycle. Components such as Dialog, Menu, Popover, Listbox, and Combobox already provide it through their `isAnimated` option.
 
@@ -28,9 +36,11 @@ Fold `Animation.show` with `Update.foldChildStep` to start the enter animation a
 
 ::Demo{name="animation"}
 
-::Snippet{name="uiAnimationBasic" label="animation example"}
+::Snippet{name="uiAnimationBasic" label="Animation"}
 
 ## Lifecycle
+
+### Enter and Leave Responsibilities
 
 Animation drives the enter phase to completion on its own. The leave phase hands control back to the parent halfway through so the parent can decide how settlement is detected. For example, Foldkit's [Dialog](/ui/dialog) just waits for CSS, while its [Popover](/ui/popover) races CSS against the anchor button scrolling off-screen. The asymmetry exists because leave detection varies by consumer, while enter detection does not.
 
@@ -60,13 +70,35 @@ EnterAnimating                       LeaveAnimating
 
 The double-rAF timing (one frame to set the start state, another to trigger the animation) ensures browsers flush layout between phases so the CSS animation actually plays.
 
+### Interrupted Transitions
+
+Say a user closes a panel while it is still sliding in. `hide` starts the leave, and the browser reverses the running transition. Reversing cancels the enter transition, so the Command waiting for the enter to settle resolves and returns `EndedAnimation` while Animation is already leaving.
+
+#### Ignore Stale Settlement
+
+Animation ignores that late result. Each time `show` or `hide` starts an enter or leave transition, Animation increases `transitionGeneration` in its Model. Every paint and settlement Command reports the transition generation that scheduled it, and update ignores a result whose generation is no longer current. The leave keeps running until its own settlement result arrives. The same holds when `show` interrupts a leave.
+
+#### Build a Custom Leave Command
+
+`defaultLeaveCommand(model)` reads the generation from the Model. A custom leave Command gets it from `StartedLeaveAnimating` and returns it in `EndedAnimation({ generation })`:
+
+::Snippet{name="uiAnimationCustomLeave" label="Custom leave Command"}
+
 ## Styling
 
 Animation is headless. You style its lifecycle with CSS transitions or CSS keyframe animations, and the state machine advances after every animation returned by `element.getAnimations()` has settled. With `animateSize: true`, Animation also adds a fixed 200ms CSS grid-row transition and the wrappers it requires.
 
 For CSS transitions, use data-attribute selectors like `data-[closed]:opacity-0 data-[closed]:scale-95` together with a `transition` property on the element. For CSS keyframe animations, apply an `animation` shorthand scoped to `data-[enter]` or `data-[leave]`. The state machine waits for every animation returned by the element's `getAnimations()` call to settle.
 
+### Animate the Wrapper
+
+Animation waits on the element with its `id`, which is the wrapper it renders. It does not look at descendants. If the transition is on a child instead, the wait finds no running animations and resolves on the next frame, so the phase ends before the child has moved. Put the animated styles on the wrapper through `className`. A custom leave Command can wait on the child during the leave, but the enter always waits on the wrapper.
+
+### Keep Leave Animations Finite
+
 Leave animations must be finite. `animation-iteration-count: infinite` never fires `animationend`, which leaves the state machine in `LeaveAnimating` forever and the element in the DOM. Reserve infinite animations for decorative or ambient effects that don’t gate a leave phase.
+
+### Size Animation
 
 The `animateSize` option uses CSS grid (`grid-template-rows: 0fr` → `1fr`) for smooth height animation without JavaScript measurement.
 
@@ -113,7 +145,7 @@ Configuration object passed to `Animation.view()`.
 
 Messages emitted to the parent through the optional `outMessage` field. Fold the OutMessage in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config.
 
-| Name                    | Type         | Default | Description                                                                                                                                                                     |
-| ----------------------- | ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `StartedLeaveAnimating` | `OutMessage` | —       | Emitted when the leave animation begins. Return Animation.defaultLeaveCommand(model) from the fold, lifted with the fold context's liftCommand, to detect animation settlement. |
-| `TransitionedOut`       | `OutMessage` | —       | Emitted when the leave animation finishes. Use this to unmount content or update your Model.                                                                                    |
+| Name                    | Type         | Default | Description                                                                                                                                                                                                                                                                                                  |
+| ----------------------- | ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `StartedLeaveAnimating` | `OutMessage` | —       | Emitted when the leave animation begins. Its `generation` identifies the leave. Return Animation.defaultLeaveCommand(model) from the fold, lifted with the fold context's liftCommand, to detect animation settlement. A custom leave Command returns `EndedAnimation({ generation })` with this generation. |
+| `TransitionedOut`       | `OutMessage` | —       | Emitted when the leave animation finishes. Use this to unmount content or update your Model.                                                                                                                                                                                                                 |

@@ -1,6 +1,6 @@
 import { Option } from 'effect'
 import { expect, given, placeholder, role, scene, text } from 'foldkit/scene'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { Listbox } from '@foldkit/ui'
@@ -40,7 +40,7 @@ describe('view', () => {
     scene(
       { update, view },
       given(
-        evo(browseModel, {
+        modifyFields(browseModel, {
           route: () =>
             AppRoute.Browse({
               search: Option.some('Tyranno'),
@@ -58,7 +58,7 @@ describe('view', () => {
     scene(
       { update, view },
       given(
-        evo(browseModel, {
+        modifyFields(browseModel, {
           route: () =>
             AppRoute.Browse({
               search: Option.some('zzzNoMatch'),
@@ -76,7 +76,7 @@ describe('view', () => {
     scene(
       { update, view },
       given(
-        evo(browseModel, {
+        modifyFields(browseModel, {
           route: () => AppRoute.NotFound({ path: '/oops' }),
         }),
       ),

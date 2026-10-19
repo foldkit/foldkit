@@ -72,6 +72,7 @@ const ReleaseManifest = Schema.Struct({
 })
 
 const TEMPLATE_DEV_DEPENDENCIES = [
+  '@effect/tsgo',
   '@foldkit/devtools',
   '@foldkit/vite-plugin',
   '@foldkit/devtools-mcp',
@@ -79,6 +80,7 @@ const TEMPLATE_DEV_DEPENDENCIES = [
   'happy-dom',
   'oxfmt',
   'oxlint',
+  'oxlint-tsgolint',
   'vitest',
 ]
 

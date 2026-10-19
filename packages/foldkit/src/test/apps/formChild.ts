@@ -2,7 +2,7 @@ import { Array, Effect, Option, Schema } from 'effect'
 
 import * as Command from '../../command/index.js'
 import { defineMessageUnion } from '../../message/index.js'
-import { evo } from '../../struct/index.js'
+import { modifyFields } from '../../struct/index.js'
 import * as Update from '../../update/index.js'
 
 // CHILD MODEL
@@ -101,17 +101,17 @@ const foldChildOutMessage = ChildOutMessage.match<
   RequestedSave:
     ({ id }) =>
     model => ({
-      model: evo(model, { savedIds: Array.append(id) }),
+      model: modifyFields(model, { savedIds: Array.append(id) }),
     }),
   RequestedCancel: () => model => ({
-    model: evo(model, { cancelled: () => true }),
+    model: modifyFields(model, { cancelled: () => true }),
   }),
 })
 
 const foldChildUpdate = Update.foldChild({
   update: childUpdate,
   read: (model: ParentModel) => Option.some(model.child),
-  write: (model, nextChild) => evo(model, { child: () => nextChild }),
+  write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
   toParentMessage: message => ParentMessage.GotChildMessage({ message }),
   foldOutMessage: foldChildOutMessage,
 })

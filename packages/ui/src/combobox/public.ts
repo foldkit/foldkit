@@ -35,6 +35,7 @@ export {
   type MovedPointerOverItem,
   type RequestedItemClick,
   type SuppressedItemCommit,
+  type SuppressedEmptyItemNavigation,
   type UpdatedInputValue,
   type PressedToggleButton,
 } from './shared.js'

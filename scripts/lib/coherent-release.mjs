@@ -1,4 +1,4 @@
-import { Array } from 'effect'
+import { Array, Predicate, String } from 'effect'
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -63,7 +63,8 @@ export class NpmRegistry {
         return fail(`registry request timed out for ${description}`)
       }
 
-      const detail = error instanceof Error ? error.message : String(error)
+      const detail =
+        error instanceof Error ? error.message : globalThis.String(error)
 
       return fail(`registry request failed for ${description}: ${detail}`)
     }
@@ -77,7 +78,9 @@ export class NpmRegistry {
     }
 
     if (!response.ok) {
-      return fail(`registry answered ${String(response.status)} for ${name}`)
+      return fail(
+        `registry answered ${globalThis.String(response.status)} for ${name}`,
+      )
     }
 
     return response.json()
@@ -95,7 +98,7 @@ export class NpmRegistry {
 
     if (!response.ok) {
       return fail(
-        `registry answered ${String(response.status)} for ${name}@${version}`,
+        `registry answered ${globalThis.String(response.status)} for ${name}@${version}`,
       )
     }
 
@@ -109,6 +112,8 @@ const internalDependencyFields = [
   'peerDependencies',
 ]
 
+const packedDependencyFields = [...internalDependencyFields, 'devDependencies']
+
 export const canaryPackageJsons = (packages, commit) => {
   const versions = new Map(
     packages.map(pkg => [
@@ -121,7 +126,7 @@ export const canaryPackageJsons = (packages, commit) => {
     const packageJson = structuredClone(pkg.packageJson)
     packageJson.version = versions.get(packageJson.name)
 
-    for (const field of internalDependencyFields) {
+    for (const field of packedDependencyFields) {
       const dependencies = packageJson[field]
 
       if (typeof dependencies !== 'object' || dependencies === null) {
@@ -179,6 +184,9 @@ const environmentWithoutNpmOtp = env => {
   return childEnvironment
 }
 
+const isNonEmptyEnvironmentValue = value =>
+  Predicate.isString(value) && String.isNonEmpty(String.trim(value))
+
 export const promptForNpmOtp = async ({
   input = process.stdin,
   output = process.stderr,
@@ -223,10 +231,23 @@ export const createNpmTagger = ({
   run = runRequired,
 } = {}) => {
   const childEnvironment = environmentWithoutNpmOtp(env)
+  const isGitHubActions = env['GITHUB_ACTIONS'] === 'true'
+  const actionsIdTokenRequestUrl = env['ACTIONS_ID_TOKEN_REQUEST_URL']
+  const actionsIdTokenRequestToken = env['ACTIONS_ID_TOKEN_REQUEST_TOKEN']
   let otp = env['NPM_CONFIG_OTP'] ?? env['npm_config_otp']
 
+  if (
+    isGitHubActions &&
+    (!isNonEmptyEnvironmentValue(actionsIdTokenRequestUrl) ||
+      !isNonEmptyEnvironmentValue(actionsIdTokenRequestToken))
+  ) {
+    return fail(
+      'npm dist-tag promotion in GitHub Actions requires an OIDC token. Add `id-token: write` to the promoting job permissions and configure npm trusted publishing for this repository.',
+    )
+  }
+
   return async (pkg, tag) => {
-    if (otp === undefined || otp === '') {
+    if (!isGitHubActions && (otp === undefined || otp === '')) {
       otp = await promptForOtp()
     }
 
@@ -240,7 +261,9 @@ export const createNpmTagger = ({
       ],
       {
         inherit: true,
-        env: { ...childEnvironment, NPM_CONFIG_OTP: otp },
+        env: isGitHubActions
+          ? childEnvironment
+          : { ...childEnvironment, NPM_CONFIG_OTP: otp },
       },
     )
   }
@@ -312,27 +335,6 @@ export const verifyStableReleaseCommit = ({
     git: repository,
     workspacePackages: packages,
   })
-}
-
-export const dispatchReleaseFinalization = (
-  root,
-  commit,
-  run = runRequired,
-  env = process.env,
-) => {
-  if (!FULL_GIT_COMMIT_PATTERN.test(commit)) {
-    return fail('release finalization requires a full lowercase Git commit')
-  }
-
-  run(
-    'gh',
-    ['workflow', 'run', 'release.yml', '-f', `published_commit=${commit}`],
-    {
-      cwd: root,
-      inherit: true,
-      env: environmentWithoutNpmOtp(env),
-    },
-  )
 }
 
 const parsePackFilename = output => {
@@ -414,6 +416,35 @@ const expectedPackedInternalSpec = (plannedSpec, version) => {
   return fail(`cannot verify unsupported workspace dependency ${plannedSpec}`)
 }
 
+export const packageJsonsForPacking = packages => {
+  const versions = expectedVersions(packages)
+
+  return packages.map(pkg => {
+    const packageJson = structuredClone(pkg.packageJson)
+
+    for (const field of packedDependencyFields) {
+      const dependencies = packageJson[field]
+
+      if (typeof dependencies !== 'object' || dependencies === null) {
+        continue
+      }
+
+      for (const name of Object.keys(dependencies)) {
+        const version = versions.get(name)
+
+        if (version !== undefined) {
+          dependencies[name] = expectedPackedInternalSpec(
+            dependencies[name],
+            version,
+          )
+        }
+      }
+    }
+
+    return { ...pkg, packageJson }
+  })
+}
+
 const validateInternalDependencies = (
   metadata,
   versions,
@@ -441,7 +472,7 @@ const validateInternalDependencies = (
 
       if (expected.includes('-canary.') && spec !== expected) {
         return fail(
-          `${metadata.name}@${metadata.version} has ${field}.${name}=${String(spec)}, which is not the exact canary version ${expected}`,
+          `${metadata.name}@${metadata.version} has ${field}.${name}=${globalThis.String(spec)}, which is not the exact canary version ${expected}`,
         )
       }
 
@@ -450,7 +481,7 @@ const validateInternalDependencies = (
         !semver.satisfies(expected, spec, { includePrerelease: true })
       ) {
         return fail(
-          `${metadata.name}@${metadata.version} has ${field}.${name}=${String(spec)}, which does not accept ${expected}`,
+          `${metadata.name}@${metadata.version} has ${field}.${name}=${globalThis.String(spec)}, which does not accept ${expected}`,
         )
       }
     }
@@ -592,7 +623,7 @@ export const assertArtifactsMatchPackages = ({
       )
     }
 
-    for (const field of internalDependencyFields) {
+    for (const field of packedDependencyFields) {
       const plannedDependencies = plannedPackageJson[field]
       const packedDependencies = artifact.packageJson[field]
 
@@ -623,7 +654,7 @@ export const assertArtifactsMatchPackages = ({
 
         if (packedDependencies[name] !== expectedSpec) {
           return fail(
-            `${artifact.name}@${artifact.version} packed ${field}.${name}=${String(packedDependencies[name])}, expected ${String(expectedSpec)} from ${String(plannedSpec)}`,
+            `${artifact.name}@${artifact.version} packed ${field}.${name}=${globalThis.String(packedDependencies[name])}, expected ${globalThis.String(expectedSpec)} from ${globalThis.String(plannedSpec)}`,
           )
         }
       }
@@ -778,18 +809,17 @@ const restoreManifests = originals => {
   }
 }
 
-const writePackageJsons = packages => {
-  const originals = new Map()
-
+const writePackageJsons = (packages, originals) => {
   for (const pkg of packages) {
-    originals.set(pkg.manifestPath, readFileSync(pkg.manifestPath, 'utf8'))
+    if (!originals.has(pkg.manifestPath)) {
+      originals.set(pkg.manifestPath, readFileSync(pkg.manifestPath, 'utf8'))
+    }
+
     writeFileSync(
       pkg.manifestPath,
       `${JSON.stringify(pkg.packageJson, null, 2)}\n`,
     )
   }
-
-  return originals
 }
 
 export const runCoherentUpload = async ({
@@ -800,8 +830,12 @@ export const runCoherentUpload = async ({
   tags,
   publish,
   log = console.log,
+  workspacePackages: suppliedWorkspacePackages,
+  build = buildPackages,
+  pack = packPackage,
 }) => {
-  const workspacePackages = readWorkspacePackages(root)
+  const workspacePackages =
+    suppliedWorkspacePackages ?? readWorkspacePackages(root)
   const workspacePackageNames = new Set(
     workspacePackages.map(pkg => pkg.packageJson.name),
   )
@@ -811,6 +845,7 @@ export const runCoherentUpload = async ({
     channel,
     commit,
   )
+  const packingPackages = packageJsonsForPacking(releasePackages)
 
   assertCompleteReleaseSet(discoveredPublicPackages, releasePackages)
 
@@ -838,9 +873,15 @@ export const runCoherentUpload = async ({
 
   try {
     if (channel === 'canary') {
-      for (const [path, content] of writePackageJsons(releasePackages)) {
-        originals.set(path, content)
-      }
+      const canaryBuildPackages = discoveredPublicPackages.map(pkg => ({
+        ...pkg,
+        packageJson: {
+          ...pkg.packageJson,
+          version: canaryVersion(pkg.packageJson.version, commit),
+        },
+      }))
+
+      writePackageJsons(canaryBuildPackages, originals)
     }
 
     const releaseManifestPath = join(stagingDirectory, 'release.json')
@@ -851,13 +892,12 @@ export const runCoherentUpload = async ({
       FOLDKIT_RELEASE_MANIFEST: releaseManifestPath,
     }
 
-    buildPackages(
-      Array.isArrayEmpty(packagesToPack) ? [] : releasePackages,
-      env,
-    )
+    build(Array.isArrayEmpty(packagesToPack) ? [] : releasePackages, env)
+
+    writePackageJsons(packingPackages, originals)
 
     const artifacts = packagesToPack.map(pkg =>
-      packPackage(pkg, stagingDirectory, env),
+      pack(pkg, stagingDirectory, env),
     )
     const temporaryTag = uploadTag(channel, commit)
 
@@ -913,7 +953,7 @@ const validateSnapshotMetadata = (
       metadata.version !== version
     ) {
       return fail(
-        `registry metadata does not match the active snapshot for ${name}@${String(version)}`,
+        `registry metadata does not match the active snapshot for ${name}@${globalThis.String(version)}`,
       )
     }
 
@@ -1068,11 +1108,12 @@ export const waitForTaggedSnapshot = async ({
 
         if (actual !== version) {
           mismatches.push(
-            `${name}@${tag} is ${String(actual)}, expected ${version}`,
+            `${name}@${tag} is ${globalThis.String(actual)}, expected ${version}`,
           )
         }
       } catch (error) {
-        const detail = error instanceof Error ? error.message : String(error)
+        const detail =
+          error instanceof Error ? error.message : globalThis.String(error)
 
         mismatches.push(`${name}@${tag} could not be read: ${detail}`)
       }
@@ -1168,7 +1209,7 @@ export const promoteSnapshot = async ({
 
     if (currentTag !== plannedCurrent) {
       return fail(
-        `${name}@${tag} changed from ${String(plannedCurrent)} to ${String(currentTag)} during promotion`,
+        `${name}@${tag} changed from ${globalThis.String(plannedCurrent)} to ${globalThis.String(currentTag)} during promotion`,
       )
     }
 
@@ -1228,20 +1269,17 @@ export const promoteCurrentWorkspace = async ({
   return { packages, ...result }
 }
 
-export const promoteAndFinalizeCurrentWorkspace = async ({
+export const promoteStableRelease = async ({
   root,
   resolveCommit = () => resolveReleaseCommit(root),
   verifyCommit = commit => verifyStableReleaseCommit({ root, commit }),
   promote = () => promoteCurrentWorkspace({ root }),
-  dispatch = commit => dispatchReleaseFinalization(root, commit),
 }) => {
   const publishedCommit = resolveCommit()
 
   verifyCommit(publishedCommit)
 
   const result = await promote()
-
-  await dispatch(publishedCommit)
 
   return { ...result, publishedCommit }
 }

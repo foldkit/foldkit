@@ -1,15 +1,20 @@
 import {
   Array,
+  Clock,
+  ConfigProvider,
   Console,
+  Crypto,
   Data,
   Duration,
   Effect,
   Exit,
   Fiber,
   HashMap,
-  HashSet,
+  Layer,
   Match,
+  Number,
   Option,
+  Order,
   Predicate,
   Queue,
   Ref,
@@ -21,6 +26,7 @@ import {
 import {
   Event as DevToolsEvent,
   EventFrame,
+  RELAY_RECORD_VERSION,
   RequestFrame,
   Response,
   ResponseFrame,
@@ -31,9 +37,17 @@ import {
   RequestModelMessage,
   RestoreModelMessage,
 } from 'foldkit/model-preservation'
-import { createRequire } from 'node:module'
-import { resolve } from 'node:path'
+import { createHmac, timingSafeEqual } from 'node:crypto'
+import {
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+  createServer as createHttpServer,
+} from 'node:http'
+import type { AddressInfo } from 'node:net'
+import type { Duplex } from 'node:stream'
 import type {
+  EnvironmentOptions,
   Plugin,
   ResolvedConfig,
   ViteDevServer,
@@ -41,9 +55,17 @@ import type {
 } from 'vite'
 import { type WebSocket, WebSocketServer } from 'ws'
 
+import * as NodeChildProcessSpawner from '@effect/platform-node/NodeChildProcessSpawner'
+import * as NodeCrypto from '@effect/platform-node/NodeCrypto'
+import * as NodeFileSystem from '@effect/platform-node/NodeFileSystem'
+import * as NodePath from '@effect/platform-node/NodePath'
+
 import { type FoldkitBuildOptions, foldkitBuild } from './build.js'
 import { foldkitBuildToken } from './buildToken.js'
 import { devToolsOverlayPlugin } from './devToolsOverlay.js'
+import { crawlFoldkitPackages } from './foldkitPackages.js'
+import { publishRelayRecord, retireRelayRecord } from './relayRegistry.js'
+import { relayRegistryTrust } from './relayRegistryTrust.js'
 import { type FoldkitSsrOptions, foldkitSsr } from './ssr.js'
 import { foldkitViewIdentity } from './viewIdentity.js'
 
@@ -51,6 +73,8 @@ export { type BrandDistResult, brandDistDirectory } from './brandDist.js'
 export {
   FOLDKIT_FETCH_MODULE_ID,
   FoldkitBuildManifest,
+  FoldkitBuildMetadata,
+  type FoldkitBuildApi,
   type FoldkitBuildOptions,
   type FoldkitPrerenderOptions,
   foldkitBuild,
@@ -65,12 +89,16 @@ export {
 /** Options for the `foldkit` Vite plugin. */
 export type FoldkitPluginOptions = Readonly<{
   /**
-   * Port for the WebSocket server that exposes the DevTools relay to an
-   * external MCP server. When `undefined` (the default), no MCP relay is
-   * started. When set, the plugin listens on this port for connections from
-   * the Foldkit DevTools MCP server.
+   * By default, the DevTools MCP relay listens on a loopback port of its own
+   * and publishes its address for the MCP server to find. Automatically
+   * discovered addresses carry an access token.
+   *
+   * A number starts an unauthenticated listener on that port on every
+   * interface; set `FOLDKIT_DEVTOOLS_MCP_PORT` in the MCP server to match.
+   * Do not use a fixed port on a shared or untrusted network. `false`
+   * disables the relay. Vitest never starts it.
    */
-  devToolsMcpPort?: number
+  devToolsMcpPort?: number | false
   /**
    * Serve server-rendered pages from the Vite dev server, and, with
    * `ssr.build`, emit a Web `fetch` handler as the server bundle. When
@@ -79,53 +107,62 @@ export type FoldkitPluginOptions = Readonly<{
    * `ssr.serverEntry`. When `undefined` (the default), the dev server
    * serves the client entry only.
    */
-  ssr?: Omit<FoldkitSsrOptions, 'buildId' | 'quietStandDown'> &
-    Readonly<{
-      /**
-       * Build a Web `fetch` handler alongside the browser build, and generate
-       * static HTML from the server entry, inside this project's own
-       * `vite build`. The handler is the server bundle: Node and Workers
-       * both run it. `true` builds it with the default output directories
-       * and generates nothing.
-       *
-       * When this is absent, `vite build` builds the browser bundle only.
-       */
-      build?: boolean | FoldkitBuildOptions
-    }>
+  ssr?: Omit<
+    FoldkitSsrOptions,
+    'buildId' | 'quietStandDown' | 'clientEntry' | 'containerId'
+  > &
+    (
+      | Readonly<{
+          /** Root-relative browser script for the server entry's code-rendered document. */
+          clientEntry: string
+          containerId?: never
+          /**
+           * Build a Web `fetch` handler alongside the browser build, and generate
+           * static HTML from the server entry, inside this project's own
+           * `vite build`. The handler is the server bundle: Node and Workers
+           * both run it. `true` builds it with the default output directories
+           * and generates nothing.
+           *
+           * When this is absent, `vite build` builds the browser bundle only.
+           */
+          build?: boolean | Omit<FoldkitBuildOptions, 'clientEntry'>
+        }>
+      | Readonly<{
+          /** Use a custom template-based development and build pipeline. */
+          clientEntry?: never
+          containerId?: string
+          build?: false
+        }>
+    )
   /**
-   * The deployment this build belongs to, compiled into application code as
-   * `import.meta.env.FOLDKIT_BUILD_ID` for the entries to pass to
-   * `renderToString` and `Runtime.hydrate`. Hydration compares it against the id
-   * the server stamped and refuses a page from another deployment rather than
-   * adopting it: startup stops and the page is contained, with the document's
-   * body marked `inert`.
+   * An explicit identity for the deployment this build belongs to. Foldkit
+   * normally generates an opaque identity when one Vite app build coordinates
+   * the client and server artifacts, then compiles it into the framework in
+   * both. Hydration compares that value against the id the server stamped and
+   * refuses a page from another deployment before adopting its DOM.
    *
-   * Defaults to the `FOLDKIT_BUILD_ID` environment variable. Use a value the
-   * deployment already has, such as a commit or a release tag, and give the
-   * client build and the server build the same one. It is published in the
-   * page, so it must not be a secret.
+   * Set this when the client and server are built separately, or when the id
+   * should name a deployment in another system. The `FOLDKIT_BUILD_ID`
+   * environment variable supplies the same override when this option is
+   * absent. Give every artifact the same value. It is published in the page,
+   * so it must not be a secret.
    *
-   * Whatever supplies it has to answer with the same value every time it is
-   * asked, because Vite reads a config file once per environment it builds. A
-   * config that computes a fresh value on each read — `randomUUID()`, a
-   * timestamp — gives the browser bundle and the server bundle different ids
-   * within one build, and every page of that deployment is then refused at
-   * hydration. Read it from the environment, or store a generated fallback
-   * back into the environment so later reads resolve the same id.
+   * Reusing an override across deployments makes stale pages appear current.
+   * Use a value that changes whenever the deployment's rendering inputs can
+   * change.
    */
   buildId?: string
 }>
 
-// NOTE: Vite's dep optimizer scans the consumer's source for `effect`
-// imports and pre-bundles only those exports into a single `effect.js`
-// blob. It does not follow imports through workspace/node_modules
-// packages, so any `effect` namespace foldkit's compiled dist references
-// that the consumer does not mention by name is missing from the blob
-// and crashes at runtime in dev. The list below covers every top-level
-// namespace foldkit imports from bare `'effect'`. Over-inclusion is
-// harmless; under-inclusion is the bug. Kept in sync with foldkit's
-// source by `scripts/check-effect-prebundle.ts` (runs in `pnpm check`).
-const FORCE_INCLUDED_EFFECT_NAMESPACES: ReadonlyArray<string> = [
+// NOTE: Vite does not scan imports through `foldkit` because the plugin
+// excludes the package from optimization in every environment. A consumer can
+// import only Effect subpaths while Foldkit's compiled distribution imports the
+// bare barrel, so include both the barrel and every top-level namespace Foldkit
+// imports. This keeps them in one optimized dependency graph. Over-inclusion is
+// harmless; under-inclusion is the bug. `scripts/check-effect-prebundle.ts`
+// keeps the entries in sync with Foldkit's source and runs in `pnpm check`.
+const FORCE_INCLUDED_EFFECT_ENTRIES: ReadonlyArray<string> = [
+  'effect',
   'effect/Array',
   'effect/Boolean',
   'effect/Cause',
@@ -153,6 +190,7 @@ const FORCE_INCLUDED_EFFECT_NAMESPACES: ReadonlyArray<string> = [
   'effect/PubSub',
   'effect/Queue',
   'effect/Record',
+  'effect/Redacted',
   'effect/Ref',
   'effect/Result',
   'effect/Runtime',
@@ -169,38 +207,23 @@ const FORCE_INCLUDED_EFFECT_NAMESPACES: ReadonlyArray<string> = [
   'effect/Types',
 ]
 
-// NOTE: a duplicate `foldkit` instance is its own hazard. If a bundler
-// resolves `foldkit` (or a foldkit-consuming package like `@foldkit/ui`) to
-// more than one copy, the copies get distinct Schema and tagged-message
-// identities (decode and tag matching fail across the boundary) and separate
-// module-level singleton state. `resolve.dedupe` (below) collapses every
-// installed Foldkit package to one resolved copy.
-const FOLDKIT_SINGLETON_PACKAGES: ReadonlyArray<string> = [
-  'foldkit',
-  '@foldkit/ui',
-  '@foldkit/devtools',
-]
+// NOTE: Adding includes to an environment whose optimizer is otherwise disabled
+// turns on Vite's explicit optimizer, which would pre-bundle Effect in Vite's
+// default Node `ssr` environment.
+const shouldForceEffectEntries = (
+  name: string,
+  config: EnvironmentOptions,
+): boolean => {
+  const consumer = config.consumer ?? (name === 'client' ? 'client' : 'server')
+  const isClientEnvironment = consumer === 'client'
+  const isDiscoveryEnabled = config.optimizeDeps?.noDiscovery === false
+  const isExplicitOptimizationEnabled = Array.isArrayNonEmpty(
+    config.optimizeDeps?.include ?? [],
+  )
 
-// NOTE: `@foldkit/ui` and `@foldkit/devtools` are optional, so dedupe only
-// the ones the consumer installed. An installed ESM package resolves to
-// ERR_PACKAGE_PATH_NOT_EXPORTED rather than succeeding, so a missing package
-// is signalled only by MODULE_NOT_FOUND.
-const resolveInstalledFoldkitPackages = (root: string): Array<string> => {
-  // NOTE: `root` (Vite's `config.root`) can be relative at config-hook time,
-  // and createRequire requires an absolute path; `resolve` normalizes it.
-  const requireFromRoot = createRequire(resolve(root, 'noop.js'))
-  return Array.filter(FOLDKIT_SINGLETON_PACKAGES, packageName => {
-    try {
-      requireFromRoot.resolve(packageName)
-      return true
-    } catch (error) {
-      return !(
-        error instanceof Error &&
-        Predicate.hasProperty(error, 'code') &&
-        error.code === 'MODULE_NOT_FOUND'
-      )
-    }
-  })
+  return (
+    isClientEnvironment || isDiscoveryEnabled || isExplicitOptimizationEnabled
+  )
 }
 
 // EVENTS
@@ -225,14 +248,21 @@ type PreservedEntry = Readonly<{
   isReloadFlush: boolean
 }>
 
+type ConnectedRuntime = Readonly<{
+  runtime: typeof RuntimeInfo.Type
+  sequence: number
+  client: WebSocketClient
+}>
+
+// NOTE: Sockets are kept in native collections, which compare identity.
+// Effect's HashMap and HashSet hash a socket by its fields, which change while
+// it runs, so they cannot find the same socket again.
 type State = Readonly<{
   preservedModels: Ref.Ref<HashMap.HashMap<string, PreservedEntry>>
-  connectedRuntimes: Ref.Ref<HashMap.HashMap<string, typeof RuntimeInfo.Type>>
-  mcpClients: Ref.Ref<HashSet.HashSet<WebSocket>>
-  clientConnections: Ref.Ref<
-    HashMap.HashMap<WebSocketClient, HashSet.HashSet<string>>
-  >
-  trackedClients: Ref.Ref<HashSet.HashSet<WebSocketClient>>
+  connectedRuntimes: Ref.Ref<HashMap.HashMap<string, ConnectedRuntime>>
+  nextSequence: Ref.Ref<number>
+  mcpClients: Set<WebSocket>
+  trackedClients: WeakSet<WebSocketClient>
 }>
 
 const makeState = Effect.gen(function* () {
@@ -240,29 +270,30 @@ const makeState = Effect.gen(function* () {
     HashMap.HashMap<string, PreservedEntry>
   >(HashMap.empty())
   const connectedRuntimes = yield* Ref.make<
-    HashMap.HashMap<string, typeof RuntimeInfo.Type>
+    HashMap.HashMap<string, ConnectedRuntime>
   >(HashMap.empty())
-  const mcpClients = yield* Ref.make<HashSet.HashSet<WebSocket>>(
-    HashSet.empty(),
-  )
-  const clientConnections = yield* Ref.make<
-    HashMap.HashMap<WebSocketClient, HashSet.HashSet<string>>
-  >(HashMap.empty())
-  const trackedClients = yield* Ref.make<HashSet.HashSet<WebSocketClient>>(
-    HashSet.empty(),
-  )
+  const nextSequence = yield* Ref.make(0)
   const state: State = {
     preservedModels,
     connectedRuntimes,
-    mcpClients,
-    clientConnections,
-    trackedClients,
+    nextSequence,
+    mcpClients: new Set(),
+    trackedClients: new WeakSet(),
   }
   return state
 })
 
 const encodeResponseFrameJson = Schema.encodeUnknownSync(
   Schema.fromJsonString(ResponseFrame),
+)
+
+class WebSocketSendFailed extends Data.TaggedError('WebSocketSendFailed')<
+  Readonly<{ cause: unknown }>
+> {}
+
+const byConnectionOrder: Order.Order<ConnectedRuntime> = Order.mapInput(
+  Order.Number,
+  ({ sequence }) => sequence,
 )
 
 // HANDLERS
@@ -303,11 +334,19 @@ const handleRequestModelReceived = (
       Effect.gen(function* () {
         const current = yield* Ref.get(state.preservedModels)
         const sendRestore = (model: unknown) =>
-          Effect.sync(() =>
-            server.ws.send(
-              'foldkit:restore-model',
-              Schema.encodeUnknownSync(RestoreModelMessage)(
-                RestoreModelMessage.make({ id, model }),
+          Effect.gen(function* () {
+            const frame = RestoreModelMessage.make({ id, model })
+            const encoded =
+              yield* Schema.encodeEffect(RestoreModelMessage)(frame)
+            yield* Effect.try({
+              try: () => server.ws.send('foldkit:restore-model', encoded),
+              catch: cause => new WebSocketSendFailed({ cause }),
+            })
+          }).pipe(
+            Effect.catch(error =>
+              Console.warn(
+                '[foldkit:preserve] failed to send restore-model payload',
+                error,
               ),
             ),
           )
@@ -358,20 +397,19 @@ const handleConnectedEvent = (
   client: WebSocketClient,
 ) =>
   Effect.gen(function* () {
+    const sequence = yield* Ref.getAndUpdate(
+      state.nextSequence,
+      Number.increment,
+    )
+    const connectedRuntime: ConnectedRuntime = {
+      runtime: event.runtime,
+      sequence,
+      client,
+    }
     yield* Ref.update(
       state.connectedRuntimes,
-      HashMap.set(event.runtime.connectionId, event.runtime),
+      HashMap.set(event.runtime.connectionId, connectedRuntime),
     )
-    yield* Ref.update(state.clientConnections, currentMap => {
-      const existing = HashMap.get(currentMap, client).pipe(
-        Option.getOrElse(() => HashSet.empty<string>()),
-      )
-      return HashMap.set(
-        currentMap,
-        client,
-        HashSet.add(existing, event.runtime.connectionId),
-      )
-    })
     yield* Console.log(
       `[foldkit:devTools] runtime connected: ${event.runtime.connectionId} (${event.runtime.title})`,
     )
@@ -391,33 +429,33 @@ const handleDisconnectedEvent = (
     )
   })
 
-const pruneRuntime = (state: State, connectionId: string) =>
-  Effect.gen(function* () {
-    yield* Ref.update(state.connectedRuntimes, HashMap.remove(connectionId))
-    yield* Console.log(
-      `[foldkit:devTools] runtime pruned (socket close): ${connectionId}`,
-    )
-  })
-
-const pruneRuntimesForClient = (
-  state: State,
-  connectionIds: HashSet.HashSet<string>,
-) =>
-  Effect.forEach(
-    Array.fromIterable(connectionIds),
-    connectionId => pruneRuntime(state, connectionId),
-    { discard: true },
-  )
-
 const handleViteClientClosed = (state: State, client: WebSocketClient) =>
   Effect.gen(function* () {
-    const connections = yield* Ref.get(state.clientConnections)
-    yield* Option.match(HashMap.get(connections, client), {
-      onNone: () => Effect.void,
-      onSome: connectionIds => pruneRuntimesForClient(state, connectionIds),
-    })
-    yield* Ref.update(state.clientConnections, HashMap.remove(client))
-    yield* Ref.update(state.trackedClients, HashSet.remove(client))
+    const prunedConnectionIds = yield* Ref.modify(
+      state.connectedRuntimes,
+      current => [
+        pipe(
+          current,
+          HashMap.filter(
+            connectedRuntime => connectedRuntime.client === client,
+          ),
+          HashMap.keys,
+          Array.fromIterable,
+        ),
+        HashMap.filter(
+          current,
+          connectedRuntime => connectedRuntime.client !== client,
+        ),
+      ],
+    )
+    yield* Effect.forEach(
+      prunedConnectionIds,
+      connectionId =>
+        Console.log(
+          `[foldkit:devTools] runtime pruned (socket close): ${connectionId}`,
+        ),
+      { discard: true },
+    )
   })
 
 const handleBrowserResponseFrameReceived = (state: State, data: unknown) =>
@@ -435,10 +473,9 @@ const broadcastResponseToMcpClients = (
   frame: typeof ResponseFrame.Type,
 ) =>
   Effect.gen(function* () {
-    const clients = yield* Ref.get(state.mcpClients)
     const payload = encodeResponseFrameJson(frame)
     yield* Effect.sync(() => {
-      for (const client of clients) {
+      for (const client of state.mcpClients) {
         if (client.readyState === client.OPEN) {
           client.send(payload)
         }
@@ -448,8 +485,7 @@ const broadcastResponseToMcpClients = (
 
 const handleMcpClientConnected = (state: State, client: WebSocket) =>
   Effect.gen(function* () {
-    yield* Ref.update(state.mcpClients, HashSet.add(client))
-    const total = HashSet.size(yield* Ref.get(state.mcpClients))
+    const total = yield* Effect.sync(() => state.mcpClients.add(client).size)
     yield* Console.log(
       `[foldkit:devTools] MCP client connected (${total} total)`,
     )
@@ -457,8 +493,10 @@ const handleMcpClientConnected = (state: State, client: WebSocket) =>
 
 const handleMcpClientDisconnected = (state: State, client: WebSocket) =>
   Effect.gen(function* () {
-    yield* Ref.update(state.mcpClients, HashSet.remove(client))
-    const remaining = HashSet.size(yield* Ref.get(state.mcpClients))
+    const remaining = yield* Effect.sync(() => {
+      state.mcpClients.delete(client)
+      return state.mcpClients.size
+    })
     yield* Console.log(
       `[foldkit:devTools] MCP client disconnected (${remaining} remaining)`,
     )
@@ -470,23 +508,30 @@ const handleMcpRequestReceived = (
   client: WebSocket,
   raw: string,
 ) =>
-  Exit.match(
-    Schema.decodeUnknownExit(Schema.fromJsonString(RequestFrame))(raw),
-    {
-      onFailure: error =>
-        Console.warn(
-          '[foldkit:devTools] failed to decode MCP request frame',
-          error,
+  Exit.match(Schema.decodeExit(Schema.fromJsonString(RequestFrame))(raw), {
+    onFailure: error =>
+      Console.warn(
+        '[foldkit:devTools] failed to decode MCP request frame',
+        error,
+      ),
+    onSuccess: frame =>
+      Match.value(frame.request).pipe(
+        Match.tag('RequestListRuntimes', () =>
+          replyListRuntimes(state, client, frame.id),
         ),
-      onSuccess: frame =>
-        Match.value(frame.request).pipe(
-          Match.tag('RequestListRuntimes', () =>
-            replyListRuntimes(state, client, frame.id),
-          ),
-          Match.orElse(() => forwardRequestToBrowsers(server, frame)),
-        ),
-    },
-  )
+        Match.orElse(() => routeRequestToRuntime(server, state, client, frame)),
+      ),
+  })
+
+const sendToRequester = (
+  client: WebSocket,
+  responseFrame: typeof ResponseFrame.Type,
+) =>
+  Effect.sync(() => {
+    if (client.readyState === client.OPEN) {
+      client.send(encodeResponseFrameJson(responseFrame))
+    }
+  })
 
 const replyListRuntimes = (
   state: State,
@@ -498,26 +543,53 @@ const replyListRuntimes = (
       yield* Ref.get(state.connectedRuntimes),
       HashMap.values,
       Array.fromIterable,
+      Array.sort(byConnectionOrder),
+      Array.map(({ runtime }) => runtime),
     )
-    const responseFrame = {
+    yield* sendToRequester(client, {
       id: requestId,
       response: Response.ResponseRuntimes({ runtimes }),
-    }
-    yield* Effect.sync(() => {
-      if (client.readyState === client.OPEN) {
-        client.send(encodeResponseFrameJson(responseFrame))
-      }
     })
+  })
+
+const routeRequestToRuntime = (
+  server: ViteDevServer,
+  state: State,
+  client: WebSocket,
+  frame: typeof RequestFrame.Type,
+) =>
+  Effect.gen(function* () {
+    const connectedRuntimes = yield* Ref.get(state.connectedRuntimes)
+    const maybeUnknownConnectionId = Option.filter(
+      frame.maybeConnectionId,
+      connectionId => !HashMap.has(connectedRuntimes, connectionId),
+    )
+
+    if (Option.isSome(maybeUnknownConnectionId)) {
+      yield* sendToRequester(client, {
+        id: frame.id,
+        response: Response.ResponseError({
+          reason: `No connected Foldkit Runtime has the id ${maybeUnknownConnectionId.value}. Call foldkit_list_runtimes for the current ids.`,
+        }),
+      })
+    } else {
+      yield* forwardRequestToBrowsers(server, frame)
+    }
   })
 
 const forwardRequestToBrowsers = (
   server: ViteDevServer,
   frame: typeof RequestFrame.Type,
 ) =>
-  Effect.sync(() =>
-    server.ws.send(
-      'foldkit:devTools:request',
-      Schema.encodeUnknownSync(RequestFrame)(frame),
+  Effect.gen(function* () {
+    const encoded = yield* Schema.encodeEffect(RequestFrame)(frame)
+    yield* Effect.try({
+      try: () => server.ws.send('foldkit:devTools:request', encoded),
+      catch: cause => new WebSocketSendFailed({ cause }),
+    })
+  }).pipe(
+    Effect.catch(error =>
+      Console.warn('[foldkit:devTools] failed to send request frame', error),
     ),
   )
 
@@ -547,23 +619,18 @@ const dispatchEvent = (server: ViteDevServer, state: State, event: Event) =>
 
 // VITE WS BRIDGE
 
-const ensureClientTracked = (
+const trackClientClose = (
   state: State,
   client: WebSocketClient,
   enqueue: (event: Event) => void,
-) =>
-  Effect.gen(function* () {
-    const tracked = yield* Ref.get(state.trackedClients)
-    if (HashSet.has(tracked, client)) {
-      return
-    }
-    yield* Ref.update(state.trackedClients, HashSet.add(client))
-    yield* Effect.sync(() =>
-      client.socket.on('close', () =>
-        enqueue(Event.ViteClientClosed({ client })),
-      ),
-    )
-  })
+): void => {
+  if (state.trackedClients.has(client)) {
+    return
+  }
+
+  state.trackedClients.add(client)
+  client.socket.on('close', () => enqueue(Event.ViteClientClosed({ client })))
+}
 
 const registerViteWsHandlers = (
   server: ViteDevServer,
@@ -580,7 +647,7 @@ const registerViteWsHandlers = (
     server.ws.on(
       'foldkit:devTools:event',
       (data: unknown, client: WebSocketClient) => {
-        Effect.runFork(ensureClientTracked(state, client, enqueue))
+        trackClientClose(state, client, enqueue)
         enqueue(Event.BrowserEventFrameReceived({ data, client }))
       },
     )
@@ -591,92 +658,465 @@ const registerViteWsHandlers = (
 
 // MCP RELAY
 
-// NOTE: Restarting a dev server briefly leaves two of them alive. Vite builds
-// the replacement, which binds its relay, before closing the server it
-// replaces, which still owns the port. The bind loses that race and has to
-// wait for the outgoing server to release the port, so it retries for four
-// seconds before reporting the port as taken.
+// NOTE: Vite starts a replacement server before closing the old one. A
+// configured relay port can stay occupied during the overlap, so binding
+// retries for four seconds.
 const RELAY_BIND_RETRY_DELAY = Duration.millis(100)
 const RELAY_BIND_RETRY_COUNT = 40
+const RELAY_PATH = '/__foldkit/devtools-mcp'
+const RELAY_LOOPBACK_HOST = '127.0.0.1'
+const RELAY_CONFIGURED_PORT_HOST = 'localhost'
+const RELAY_TOKEN_PARAMETER = 'token'
+const RELAY_TOKEN_BYTES = 32
+const RELAY_CHALLENGE_HEADER = 'x-foldkit-relay-challenge'
+const RELAY_CLIENT_PROOF_HEADER = 'x-foldkit-relay-client-proof'
+const RELAY_SERVER_PROOF_HEADER = 'X-Foldkit-Relay-Server-Proof'
+const RELAY_CHALLENGE_PATTERN = /^[0-9a-f]{64}$/
+const RELAY_PROOF_PATTERN = /^[0-9a-f]{64}$/
+const BAD_REQUEST = 400
+const UNAUTHORIZED = 401
+const NOT_FOUND = 404
+const UPGRADE_REQUIRED = 426
+const UPGRADE_REQUIRED_BODY = 'Upgrade Required'
+
+type RefusedUpgradeStatus =
+  | typeof BAD_REQUEST
+  | typeof UNAUTHORIZED
+  | typeof NOT_FOUND
+
+const REFUSED_UPGRADE_REASONS: Readonly<Record<RefusedUpgradeStatus, string>> =
+  {
+    [BAD_REQUEST]: 'Bad Request',
+    [UNAUTHORIZED]: 'Unauthorized',
+    [NOT_FOUND]: 'Not Found',
+  }
 
 class RelayBindFailed extends Data.TaggedError('RelayBindFailed')<{
+  readonly maybePort: Option.Option<number>
   readonly cause: Error
 }> {}
 
 const isPortInUse = (error: Error) =>
   Predicate.hasProperty(error, 'code') && error.code === 'EADDRINUSE'
 
-const bindMcpRelay = (port: number, enqueue: (event: Event) => void) =>
-  Effect.callback<WebSocketServer, RelayBindFailed>(resume => {
-    const wss = new WebSocketServer({ port })
+type Relay = Readonly<{
+  id: string
+  wss: WebSocketServer
+  url: string
+  closeListener: () => void
+}>
 
-    wss.on('connection', client => {
-      enqueue(Event.McpClientConnected({ client }))
-      client.on('message', raw =>
-        enqueue(Event.McpRequestReceived({ client, raw: raw.toString() })),
-      )
-      client.on('close', () => enqueue(Event.McpClientDisconnected({ client })))
-      client.on('error', error => {
-        console.error('[foldkit:devTools] MCP client error', error)
+const relayId = Effect.gen(function* () {
+  const crypto = yield* Crypto.Crypto
+  return yield* crypto.randomUUIDv4.pipe(Effect.orDie)
+})
+
+const attachRelayHandlers = (
+  wss: WebSocketServer,
+  enqueue: (event: Event) => void,
+): void => {
+  wss.on('connection', client => {
+    enqueue(Event.McpClientConnected({ client }))
+    client.on('message', raw =>
+      enqueue(Event.McpRequestReceived({ client, raw: raw.toString() })),
+    )
+    client.on('close', () => enqueue(Event.McpClientDisconnected({ client })))
+    client.on('error', error => {
+      console.error('[foldkit:devTools] MCP client error', error)
+    })
+  })
+}
+
+const parseRequestUrl = Option.liftThrowable(
+  (request: IncomingMessage) => new URL(request.url ?? '/', 'http://relay'),
+)
+
+const boundPort = (
+  address: AddressInfo | string | null,
+): Option.Option<number> =>
+  address === null || Predicate.isString(address)
+    ? Option.none()
+    : Option.some(address.port)
+
+const relayHasNoBoundPort = () =>
+  new Error('[foldkit:devTools] the MCP relay listener has no bound port')
+
+const relayToken = Effect.gen(function* () {
+  const crypto = yield* Crypto.Crypto
+  const bytes = yield* crypto.randomBytes(RELAY_TOKEN_BYTES).pipe(Effect.orDie)
+  return Buffer.from(bytes).toString('hex')
+})
+
+const relayUrlForLog = (url: string): string => {
+  const parsed = new URL(url)
+  parsed.search = ''
+  return parsed.toString()
+}
+
+const withRelayToken = (url: URL, token: string): string => {
+  url.search = ''
+  url.searchParams.set(RELAY_TOKEN_PARAMETER, token)
+  return url.toString()
+}
+
+const requestPresentsToken = (url: URL, token: string): boolean => {
+  const maybePresented = Option.fromNullishOr(
+    url.searchParams.get(RELAY_TOKEN_PARAMETER),
+  )
+  const expected = Buffer.from(token, 'utf8')
+  return Option.exists(maybePresented, presented => {
+    const actual = Buffer.from(presented, 'utf8')
+    return (
+      expected.length === actual.length && timingSafeEqual(expected, actual)
+    )
+  })
+}
+
+const computeRelayProof = (
+  token: string,
+  role: 'client' | 'server',
+  challenge: string,
+): string =>
+  createHmac('sha256', token).update(`${role}:${challenge}`).digest('hex')
+
+const requestPresentsProof = (
+  request: IncomingMessage,
+  token: string,
+): boolean => {
+  const challenge = request.headers[RELAY_CHALLENGE_HEADER]
+  const presented = request.headers[RELAY_CLIENT_PROOF_HEADER]
+
+  if (
+    !Predicate.isString(challenge) ||
+    !RELAY_CHALLENGE_PATTERN.test(challenge) ||
+    !Predicate.isString(presented) ||
+    !RELAY_PROOF_PATTERN.test(presented)
+  ) {
+    return false
+  }
+
+  const expected = Buffer.from(
+    computeRelayProof(token, 'client', challenge),
+    'hex',
+  )
+  const actual = Buffer.from(presented, 'hex')
+
+  return timingSafeEqual(expected, actual)
+}
+
+const refuseUpgrade = (socket: Duplex, status: RefusedUpgradeStatus): void => {
+  socket.on('error', () => socket.destroy())
+  socket.once('finish', () => socket.destroy())
+  socket.end(
+    `HTTP/1.1 ${status} ${REFUSED_UPGRADE_REASONS[status]}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`,
+  )
+}
+
+const loopbackRelayUrl = (httpServer: Server, token: string): string => {
+  const port = Option.getOrThrowWith(
+    boundPort(httpServer.address()),
+    relayHasNoBoundPort,
+  )
+  const url = new URL(`ws://${RELAY_LOOPBACK_HOST}:${port}${RELAY_PATH}`)
+
+  return withRelayToken(url, token)
+}
+
+const acceptRelayUpgrades = (
+  httpServer: Server,
+  id: string,
+  token: string,
+  enqueue: (event: Event) => void,
+) =>
+  Effect.sync((): Relay => {
+    const wss = new WebSocketServer({ noServer: true })
+    attachRelayHandlers(wss, enqueue)
+    wss.on('headers', (headers, request) => {
+      const challenge = request.headers[RELAY_CHALLENGE_HEADER]
+
+      if (
+        Predicate.isString(challenge) &&
+        RELAY_CHALLENGE_PATTERN.test(challenge)
+      ) {
+        headers.push(
+          `${RELAY_SERVER_PROOF_HEADER}: ${computeRelayProof(token, 'server', challenge)}`,
+        )
+      }
+    })
+
+    httpServer.on('upgrade', (request, socket, head) => {
+      const maybeUrl = parseRequestUrl(request)
+      if (Option.isNone(maybeUrl)) {
+        refuseUpgrade(socket, BAD_REQUEST)
+        return
+      }
+
+      const url = maybeUrl.value
+      if (url.pathname !== RELAY_PATH) {
+        refuseUpgrade(socket, NOT_FOUND)
+        return
+      }
+
+      if (
+        !requestPresentsToken(url, token) &&
+        !requestPresentsProof(request, token)
+      ) {
+        refuseUpgrade(socket, UNAUTHORIZED)
+        return
+      }
+
+      wss.handleUpgrade(request, socket, head, client => {
+        wss.emit('connection', client, request)
       })
     })
+
+    return {
+      id,
+      wss,
+      url: loopbackRelayUrl(httpServer, token),
+      closeListener: () => {
+        httpServer.close()
+      },
+    }
+  })
+
+const answerPlainRequest = (
+  _request: IncomingMessage,
+  response: ServerResponse,
+): void => {
+  response
+    .writeHead(UPGRADE_REQUIRED, {
+      Connection: 'Upgrade',
+      Upgrade: 'websocket',
+      'Content-Type': 'text/plain',
+      'Content-Length': Buffer.byteLength(UPGRADE_REQUIRED_BODY),
+    })
+    .end(UPGRADE_REQUIRED_BODY)
+}
+
+const bindLoopbackHttpServer = Effect.callback<Server, RelayBindFailed>(
+  resume => {
+    const httpServer = createHttpServer(answerPlainRequest)
+    const onBindFailed = (cause: Error) => {
+      httpServer.close()
+
+      resume(
+        Effect.fail(new RelayBindFailed({ maybePort: Option.none(), cause })),
+      )
+    }
+
+    httpServer.once('error', onBindFailed)
+
+    httpServer.listen(0, RELAY_LOOPBACK_HOST, () => {
+      httpServer.off('error', onBindFailed)
+
+      httpServer.on('error', error => {
+        console.error('[foldkit:devTools] MCP relay error', error)
+      })
+
+      resume(Effect.succeed(httpServer))
+    })
+
+    return Effect.sync(() => {
+      httpServer.close()
+    })
+  },
+)
+
+const bindLoopbackRelay = (
+  id: string,
+  token: string,
+  enqueue: (event: Event) => void,
+) =>
+  Effect.flatMap(bindLoopbackHttpServer, httpServer =>
+    acceptRelayUpgrades(httpServer, id, token, enqueue),
+  )
+
+const bindStandaloneRelay = (
+  port: number,
+  id: string,
+  enqueue: (event: Event) => void,
+) =>
+  Effect.callback<Relay, RelayBindFailed>(resume => {
+    const wss = new WebSocketServer({ port })
+    attachRelayHandlers(wss, enqueue)
 
     const onListening = () => {
       wss.off('error', onBindFailed)
       wss.on('error', error => {
         console.error('[foldkit:devTools] MCP relay error', error)
       })
-      console.log(
-        `[foldkit:devTools] MCP relay listening on ws://localhost:${port}`,
+      const listeningPort = Option.getOrThrowWith(
+        boundPort(wss.address()),
+        relayHasNoBoundPort,
       )
-      resume(Effect.succeed(wss))
+      resume(
+        Effect.succeed({
+          id,
+          wss,
+          url: `ws://${RELAY_CONFIGURED_PORT_HOST}:${listeningPort}`,
+          closeListener: () => undefined,
+        }),
+      )
     }
 
     const onBindFailed = (cause: Error) => {
       wss.off('listening', onListening)
       wss.close()
-      resume(Effect.fail(new RelayBindFailed({ cause })))
+      resume(
+        Effect.fail(
+          new RelayBindFailed({ maybePort: Option.some(port), cause }),
+        ),
+      )
     }
 
     wss.once('listening', onListening)
     wss.once('error', onBindFailed)
   })
 
-const reportRelayBindFailed = (port: number, cause: Error) => {
-  if (isPortInUse(cause)) {
+const reportRelayBindFailed = (
+  maybePort: Option.Option<number>,
+  cause: Error,
+) => {
+  const where = Option.match(maybePort, {
+    onNone: () => 'an assigned loopback port',
+    onSome: port => `port ${port}`,
+  })
+  if (Option.isSome(maybePort) && isPortInUse(cause)) {
+    const port = maybePort.value
     return Console.error(
-      `\n[foldkit:devTools] Port ${port} is already in use, so the DevTools MCP relay could not start.\n` +
-        `[foldkit:devTools] This usually means another Foldkit project is already running and bound to this port.\n` +
-        `[foldkit:devTools] Until the port is freed, agents will not be able to connect to this app via the Foldkit DevTools MCP server.\n` +
-        `[foldkit:devTools] Stop the other project, or set a different \`devToolsMcpPort\` in this project's vite config.\n` +
-        `[foldkit:devTools] If you change \`devToolsMcpPort\`, also set \`FOLDKIT_DEVTOOLS_MCP_PORT\` to the same value for your MCP server.\n`,
+      `\n[foldkit:devTools] Port ${port} is in use; the MCP relay did not start.\n` +
+        `[foldkit:devTools] Stop the process using that port, or remove \`devToolsMcpPort\` from your Vite config to use automatic discovery.\n` +
+        `[foldkit:devTools] If you choose another fixed port, set \`FOLDKIT_DEVTOOLS_MCP_PORT\` to match.\n`,
     )
   } else {
     return Console.error(
-      `[foldkit:devTools] MCP relay failed to start on port ${port}; continuing without the relay`,
+      `[foldkit:devTools] MCP relay failed to start on ${where}; continuing without the relay`,
       cause,
     )
   }
 }
 
-const startMcpRelay = (port: number, enqueue: (event: Event) => void) =>
-  Effect.acquireRelease(bindMcpRelay(port, enqueue), wss =>
-    Effect.gen(function* () {
-      for (const client of wss.clients) {
-        client.terminate()
-      }
-      wss.close()
-      yield* Console.log('[foldkit:devTools] MCP relay stopped')
-    }),
-  ).pipe(
-    Effect.retry({
-      while: ({ cause }) => isPortInUse(cause),
-      times: RELAY_BIND_RETRY_COUNT,
-      schedule: Schedule.spaced(RELAY_BIND_RETRY_DELAY),
-    }),
-    Effect.catchTag('RelayBindFailed', ({ cause }) =>
-      reportRelayBindFailed(port, cause),
+const unpublishedRelayMessage = (reason: string): string =>
+  `[foldkit:devTools] Cannot publish the MCP relay address: ${reason}. Set matching devToolsMcpPort and FOLDKIT_DEVTOOLS_MCP_PORT values for MCP access on a trusted network, or set FOLDKIT_DEVTOOLS_RELAY_DIRECTORY to a directory private to your user.`
+
+const publishRelay = (root: string, relay: Relay) =>
+  Effect.gen(function* () {
+    const startedAt = yield* Clock.currentTimeMillis
+    const directory = yield* publishRelayRecord(
+      {
+        version: RELAY_RECORD_VERSION,
+        id: relay.id,
+        root,
+        url: relay.url,
+        pid: process.pid,
+        startedAt,
+      },
+      relayRegistryTrust,
+    )
+
+    return Option.some(directory)
+  }).pipe(
+    Effect.catchTag('RelayRegistryDirectoryRefused', ({ directory, reason }) =>
+      Effect.as(
+        Console.error(
+          unpublishedRelayMessage(
+            `the registry directory ${directory} ${reason}`,
+          ),
+        ),
+        Option.none<string>(),
+      ),
     ),
+    Effect.catch(error =>
+      Effect.as(
+        Console.error(
+          unpublishedRelayMessage('the registry could not be written'),
+          error,
+        ),
+        Option.none<string>(),
+      ),
+    ),
+  )
+
+const startMcpRelay = (
+  server: ViteDevServer,
+  devToolsMcpPort: number | undefined,
+  enqueue: (event: Event) => void,
+) => {
+  const root = server.config.root
+  return Effect.gen(function* () {
+    const publishedDirectory = yield* Ref.make<Option.Option<string>>(
+      Option.none(),
+    )
+    // NOTE: A configured port accepts unauthenticated connections on every
+    // interface. An assigned port binds to loopback and requires discovery.
+    const acquire: Effect.Effect<Relay, RelayBindFailed, Crypto.Crypto> =
+      Effect.gen(function* () {
+        const id = yield* relayId
+        if (devToolsMcpPort !== undefined) {
+          return yield* bindStandaloneRelay(devToolsMcpPort, id, enqueue)
+        }
+
+        const token = yield* relayToken
+
+        return yield* bindLoopbackRelay(id, token, enqueue)
+      })
+
+    return yield* Effect.acquireRelease(acquire, relay =>
+      Effect.gen(function* () {
+        const maybeDirectory = yield* Ref.get(publishedDirectory)
+
+        if (Option.isSome(maybeDirectory)) {
+          yield* retireRelayRecord(relay.id, maybeDirectory.value).pipe(
+            Effect.catch(error =>
+              Console.error(
+                '[foldkit:devTools] could not remove the MCP relay registry record',
+                error,
+              ),
+            ),
+          )
+        }
+
+        relay.closeListener()
+        for (const client of relay.wss.clients) {
+          client.terminate()
+        }
+        relay.wss.close()
+        yield* Console.log('[foldkit:devTools] MCP relay stopped')
+      }),
+    ).pipe(
+      Effect.retry({
+        while: ({ cause }) => isPortInUse(cause),
+        times: RELAY_BIND_RETRY_COUNT,
+        schedule: Schedule.spaced(RELAY_BIND_RETRY_DELAY),
+      }),
+      Effect.tap(relay =>
+        Console.log(
+          `[foldkit:devTools] MCP relay listening at ${relayUrlForLog(relay.url)}`,
+        ),
+      ),
+      Effect.tap(relay =>
+        Effect.uninterruptible(
+          publishRelay(root, relay).pipe(
+            Effect.flatMap(maybeDirectory =>
+              Ref.set(publishedDirectory, maybeDirectory),
+            ),
+          ),
+        ),
+      ),
+      Effect.catchTag('RelayBindFailed', ({ maybePort, cause }) =>
+        reportRelayBindFailed(maybePort, cause),
+      ),
+    )
+  })
+}
+
+// NOTE: A Vitest run can override its mode, but still carries Vitest plugins.
+// Starting a relay there can contend with the project's dev server.
+const isTestRun = (server: ViteDevServer): boolean =>
+  server.config.mode === 'test' ||
+  server.config.plugins.some(
+    plugin => plugin.name === 'vitest' || plugin.name.startsWith('vitest:'),
   )
 
 // PROGRAM
@@ -699,8 +1139,10 @@ const main = (
     // gives up on its boot-time model request in well under a second, so
     // sequencing the dispatch loop behind the bind would cost model
     // preservation whenever the port is contended.
-    if (options.devToolsMcpPort !== undefined) {
-      yield* Effect.forkScoped(startMcpRelay(options.devToolsMcpPort, enqueue))
+    if (options.devToolsMcpPort !== false && !isTestRun(server)) {
+      yield* Effect.forkScoped(
+        startMcpRelay(server, options.devToolsMcpPort, enqueue),
+      )
     }
 
     yield* Stream.fromQueue(events).pipe(
@@ -717,72 +1159,62 @@ const main = (
  * an array; Vite flattens nested plugin arrays, so `plugins: [foldkit()]`
  * keeps working.
  */
-// The container is named once, on `ssr`, and reaches both the dev host and the
-// build from there. A `build.prerender` that names its own wins, so a project
-// that needs them to differ still can.
-const withContainerId = (
-  build: FoldkitBuildOptions | true,
-  containerId: string | undefined,
-): FoldkitBuildOptions => {
-  const options: FoldkitBuildOptions = build === true ? {} : build
-  if (containerId === undefined) {
-    return options
-  }
-  const withContainer: FoldkitBuildOptions = { ...options, containerId }
-  if (options.prerender === undefined) {
-    return withContainer
-  }
-  const prerender = options.prerender === true ? {} : options.prerender
-  if (prerender === false) {
-    return withContainer
-  }
-  return {
-    ...withContainer,
-    prerender: { containerId, ...prerender },
-  }
-}
+const relayRegistryLayer = Layer.provideMerge(
+  NodeChildProcessSpawner.layer,
+  Layer.mergeAll(NodeFileSystem.layer, NodePath.layer, NodeCrypto.layer),
+)
+
+type MainRun = Readonly<{
+  events: Queue.Queue<Event>
+  fiber: Fiber.Fiber<void, never>
+}>
 
 export const foldkit = (options: FoldkitPluginOptions = {}): Array<Plugin> => {
-  const events = Effect.runSync(Queue.unbounded<Event>())
-
-  // NOTE: One plugin instance can serve more than one dev server, and on
-  // restart Vite builds the replacement, running `configureServer` again,
-  // before closing the server being replaced. Keying by resolved config keeps
-  // each server's shutdown pointed at its own fiber.
-  const mainFibers = new WeakMap<ResolvedConfig, Fiber.Fiber<void, never>>()
+  // NOTE: During a Vite restart, old and new servers overlap. Separate queues
+  // and fibers keep their events and shutdowns attached to the right server.
+  const mainRuns = new WeakMap<ResolvedConfig, MainRun>()
 
   const stopMain = (config: ResolvedConfig) =>
     Effect.suspend(() => {
-      const fiber = mainFibers.get(config)
-      mainFibers.delete(config)
-      if (fiber === undefined) {
+      const run = mainRuns.get(config)
+      mainRuns.delete(config)
+      if (run === undefined) {
         return Effect.void
       } else {
-        return Fiber.interrupt(fiber)
+        return Fiber.interrupt(run.fiber)
       }
     })
 
   const reloadPlugin: Plugin = {
     name: 'foldkit',
     apply: 'serve',
-    config: userConfig => ({
-      optimizeDeps: {
-        include: [...FORCE_INCLUDED_EFFECT_NAMESPACES],
-      },
-      resolve: {
-        dedupe: resolveInstalledFoldkitPackages(
-          userConfig.root ?? process.cwd(),
-        ),
-      },
-    }),
-    configureServer: server => {
-      const fiber = Effect.runFork(Effect.scoped(main(server, events, options)))
-      mainFibers.set(server.config, fiber)
+    // NOTE: The `post` order runs this hook after every default-order
+    // `configEnvironment` hook, so the predicate sees discovery or includes
+    // that another plugin turns on there.
+    configEnvironment: {
+      order: 'post',
+      handler: (name, config) =>
+        shouldForceEffectEntries(name, config)
+          ? { optimizeDeps: { include: [...FORCE_INCLUDED_EFFECT_ENTRIES] } }
+          : undefined,
     },
-    // NOTE: Vite awaits `closeBundle` when the dev server closes, once per
-    // environment plugin container. Hanging shutdown off `server.httpServer`
-    // instead would never run in middleware mode, which is how Vitest and
-    // other embedders run Vite, and the relay would outlive the server.
+    configureServer: server => {
+      const events = Effect.runSync(Queue.unbounded<Event>())
+      // NOTE: The default ConfigProvider snapshots the environment. Create a
+      // fresh one so a restarted server sees current values.
+      const fiber = Effect.runFork(
+        Effect.scoped(main(server, events, options)).pipe(
+          Effect.provide(relayRegistryLayer),
+          Effect.provideService(
+            ConfigProvider.ConfigProvider,
+            ConfigProvider.fromEnv(),
+          ),
+        ),
+      )
+      mainRuns.set(server.config, { events, fiber })
+    },
+    // NOTE: Middleware mode has no HTTP server to close. Vite still calls
+    // `closeBundle`, so relay cleanup belongs here.
     closeBundle() {
       return Effect.runPromise(stopMain(this.environment.getTopLevelConfig()))
     },
@@ -797,13 +1229,50 @@ export const foldkit = (options: FoldkitPluginOptions = {}): Array<Plugin> => {
         return
       }
       server.ws.send({ type: 'full-reload' })
-      Queue.offerUnsafe(events, Event.HotUpdateFired())
+      const run = mainRuns.get(server.config)
+      if (run !== undefined) {
+        Queue.offerUnsafe(run.events, Event.HotUpdateFired())
+      }
       return []
     },
   }
 
+  const resolutionPlugin: Plugin = {
+    name: 'foldkit:resolution',
+    config: async (userConfig, { command }) => {
+      const foldkitPackages = await crawlFoldkitPackages(
+        userConfig.root ?? process.cwd(),
+        command === 'build',
+        userConfig,
+      )
+
+      return {
+        resolve: {
+          dedupe: foldkitPackages.dedupe,
+          noExternal: foldkitPackages.noExternal,
+        },
+        ssr: {
+          noExternal: foldkitPackages.noExternal,
+        },
+        environments: {
+          ssr: {
+            resolve: {
+              noExternal: foldkitPackages.noExternal,
+            },
+          },
+        },
+      }
+    },
+    configEnvironment: () => ({
+      optimizeDeps: {
+        exclude: ['foldkit'],
+      },
+    }),
+  }
+
   const shared = [
-    foldkitBuildToken(options.buildId),
+    resolutionPlugin,
+    ...foldkitBuildToken(options.buildId),
     foldkitViewIdentity(),
     devToolsOverlayPlugin(),
     reloadPlugin,
@@ -814,6 +1283,11 @@ export const foldkit = (options: FoldkitPluginOptions = {}): Array<Plugin> => {
   }
 
   const { build, ...ssr } = options.ssr
+  if (ssr.clientEntry !== undefined && ssr.containerId !== undefined) {
+    throw new Error(
+      '[foldkit] containerId belongs to an HTML template. A clientEntry build takes its complete document from renderDocument instead.',
+    )
+  }
   const servePages = foldkitSsr({
     ...ssr,
     ...(options.buildId === undefined ? {} : { buildId: options.buildId }),
@@ -824,9 +1298,18 @@ export const foldkit = (options: FoldkitPluginOptions = {}): Array<Plugin> => {
     return [...shared, servePages]
   }
 
+  if (ssr.clientEntry === undefined) {
+    throw new Error(
+      '[foldkit] ssr.build requires ssr.clientEntry to name the browser script and the server entry to export renderDocument.',
+    )
+  }
+
   return [
     ...shared,
     servePages,
-    foldkitBuild(ssr.serverEntry, withContainerId(build, ssr.containerId)),
+    foldkitBuild(ssr.serverEntry, {
+      ...(build === true ? {} : build),
+      clientEntry: ssr.clientEntry,
+    }),
   ]
 }

@@ -6,6 +6,8 @@ This comparison uses the same [pixel art editor](/example-apps/pixel-art) in Fol
 
 The React version uses React 19.2, `useReducer`, [Headless UI](https://headlessui.com), custom Hooks, and manual memoization. The Foldkit version uses a Model, Messages, update, Commands, Subscriptions, Foldkit UI Submodels, and view memoization.
 
+### What This Comparison Covers
+
 This is a comparison of those two implementations. React applications can choose other state and effect architectures, and Foldkit applications can still be structured well or poorly within the framework’s constraints. The useful question is what each implementation makes explicit and what each framework makes unavoidable.
 
 React can recreate many of Foldkit’s boundaries with libraries and conventions. Foldkit begins with those boundaries and builds its Runtime, DevTools, and tests around them. That is the argument this page puts under pressure.
@@ -22,7 +24,7 @@ Start with the input domain for application state. Both versions define a discri
 
 The Foldkit application currently has 25 parent Messages:
 
-::Snippet{name="comparisonFoldkitMessage" label="Foldkit messages"}
+::Snippet{name="comparisonFoldkitMessage" label="Foldkit Messages"}
 
 This union is the complete input type for the parent update function. User events, Command results, and child Submodel Messages all enter through it. A `Got*Message` variant marks a child boundary; the child’s own Message union provides the detailed input domain one level down.
 
@@ -76,7 +78,7 @@ The two versions draw their application-state boundary differently.
 
 The Foldkit Model describes application state with Effect Schema and uses `Option` for absent values. It also contains the Models for two Dialogs, one Listbox, and three RadioGroups:
 
-::Snippet{name="comparisonFoldkitModel" label="Foldkit model"}
+::Snippet{name="comparisonFoldkitModel" label="Foldkit Model"}
 
 Those child Models expose transient interaction state such as whether a Listbox is open, its highlighted item, and its transition phase. The parent still owns selected values such as `paletteThemeIndex`; it passes the selected value into the child view and folds the child’s `Selected` OutMessage into parent state.
 
@@ -100,7 +102,7 @@ The return type is `Update.Return<Model, Message>`:
 
 ::Snippet{name="comparisonFoldkitUpdate" label="Foldkit update"}
 
-`Message.match` requires a handler for every Message variant. `evo` preserves references for unchanged fields, which supports view memoization. A handler such as `ClickedUndo` returns the next Model and a `SaveCanvas` Command together.
+`Message.match` requires a handler for every Message variant. `modifyFields` preserves references for unchanged fields, which supports view memoization. A handler such as `ClickedUndo` returns the next Model and a `SaveCanvas` Command together.
 
 :::Info{label="What update answers"}
 For any parent Message, update shows the next parent Model and the Commands caused immediately by that Message. Subscriptions and Mounts have their own declarations because their lifetimes are not caused by a single update transition.
@@ -124,7 +126,7 @@ Commands make event-driven side effects inspectable before they run. The pixel e
 
 Both Commands are named definitions with Schema-checked arguments and declared result Messages:
 
-::Snippet{name="comparisonFoldkitCommand" label="Foldkit command"}
+::Snippet{name="comparisonFoldkitCommand" label="Foldkit Commands"}
 
 Update returns a Command value. The Runtime executes its Effect and dispatches the resulting Message. Foldkit DevTools can associate the Command with the Message and Model transition that produced it, and Story or Scene tests can inspect or resolve the same value.
 
@@ -218,7 +220,7 @@ Both applications listen for keyboard shortcuts and mouse release. The mouse-rel
 
 The Subscription declares that lifetime from Model dependencies:
 
-::Snippet{name="comparisonFoldkitSubscription" label="Foldkit subscription"}
+::Snippet{name="comparisonFoldkitSubscription" label="Foldkit Subscriptions"}
 
 The keyboard stream is persistent. The mouse-release stream is active only when `isDrawing` is true. The Runtime compares Subscription dependencies after each update and scopes each Stream accordingly.
 
@@ -234,6 +236,8 @@ The React custom Hooks express the same lifetime with Effects:
 
 Both applications use controlled values for selections and Dialog visibility. They differ in where transient component interaction state lives.
 
+### State Ownership Comparison
+
 |                              | Foldkit UI                                                  | React + Headless UI                                 |
 | ---------------------------- | ----------------------------------------------------------- | --------------------------------------------------- |
 | Selected values / open state | Parent Model                                                | Reducer state passed through controlled props       |
@@ -241,6 +245,8 @@ Both applications use controlled values for selections and Dialog visibility. Th
 | Events                       | Child Messages and OutMessages folded through parent update | Callback props such as `onChange` and `onClose`     |
 | Accessibility behavior       | Implemented by Foldkit UI                                   | Implemented by Headless UI                          |
 | Debugging                    | Parent and child Models appear in Foldkit DevTools          | App state and component internals use React’s tools |
+
+### Visible and Encapsulated State
 
 Foldkit exposes more of the component state as application data. Headless UI deliberately hides more implementation state behind its component API. Neither choice changes who owns the selected palette theme or whether a Dialog is open in these two applications.
 
@@ -254,7 +260,7 @@ Foldkit memoizes view functions from arrays of Model-derived arguments:
 
 ::Snippet{name="comparisonFoldkitMemoization" label="Foldkit memoization"}
 
-`createLazy` and `createKeyedLazy` compare arguments element by element. `evo` preserves references for unchanged Model fields, so panels whose inputs remain referentially equal can reuse their previous virtual DOM.
+`createLazy` and `createKeyedLazy` compare arguments element by element. `modifyFields` preserves references for unchanged Model fields, so panels whose inputs remain referentially equal can reuse their previous virtual DOM.
 
 ### React memoization (closures at the boundary) {#react-memoization}
 
@@ -349,6 +355,8 @@ The difference remains placement. Foldkit sends each tick through update. React 
 Foldkit can persist undo history with a Command and restore it through init or an initialization Command. The React version can extend `useLocalStorage` or add an IndexedDB Hook and initialize reducer state from the stored value.
 
 Both versions need versioning, decoding, and failure behavior for stored data. Foldkit’s Schema and Command result Messages provide built-in places for those concerns; React can use the validation and effect libraries the application selects.
+
+### How the Structures Grow
 
 Both applications can grow to support these features. The difference is whether each feature has to join an existing pipeline. Foldkit grows through the same named categories: Model fields, Messages, update handlers, Commands, Subscriptions, and Submodels. React grows through components, Hooks, reducer Actions, and any additional state or effect libraries the team chooses.
 

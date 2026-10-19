@@ -83,8 +83,8 @@ export const triedEffect = Effect.try({
 
 export const stream = Stream.make(1).pipe(Stream.map(() => performance.now()))
 export const mappedStream = Stream.mapBoth(Stream.make(1), {
-  onFailure: () => Date.now(),
-  onSuccess: () => Date.now(),
+  onError: () => Date.now(),
+  onElement: () => Date.now(),
 })
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({

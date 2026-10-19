@@ -514,7 +514,10 @@ const deferredCallbackByApi = new Map<string, DeferredCallbackMetadata>([
   ],
   ['Stream.mapArray', unaryDualCallback],
   ['Stream.mapArrayEffect', unaryDualCallback],
-  ['Stream.mapBoth', successAndFailureProperties],
+  [
+    'Stream.mapBoth',
+    properties([1, 0, 'onElement', 'onError'], [2, 1, 'onElement', 'onError']),
+  ],
   ['Stream.mapEffect', unaryDualCallbackWithOptions],
   ['Stream.mapError', unaryDualCallback],
   ['Stream.let', binaryDualCallback],

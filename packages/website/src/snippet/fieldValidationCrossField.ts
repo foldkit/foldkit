@@ -6,7 +6,7 @@ import {
   makeRules,
   validate,
 } from 'foldkit/fieldValidation'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 const passwordRules = makeRules({
   required: 'Password is required',
@@ -32,7 +32,7 @@ const validateConfirmPassword = (
 const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ChangedPassword: ({ value }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         password: () => validatePassword(value),
         confirmPassword: confirmPassword =>
           confirmPassword._tag === 'NotValidated'
@@ -42,7 +42,7 @@ const update = (model: Model, message: Message) =>
     }),
 
     ChangedConfirmPassword: ({ value }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         confirmPassword: () =>
           validateConfirmPassword(model.password.value, value),
       }),

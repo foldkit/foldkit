@@ -13,7 +13,7 @@ import {
 import { AsyncData, Command, Runtime, Subscription, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Button, Tabs } from '@foldkit/ui'
 
@@ -102,7 +102,7 @@ const applyPostsTransition = (
   Option.match(maybeNextPosts, {
     onNone: () => ({ model }),
     onSome: nextPosts => ({
-      model: evo(model, { posts: () => nextPosts }),
+      model: modifyFields(model, { posts: () => nextPosts }),
       commands: [FetchPosts()],
     }),
   })
@@ -114,7 +114,7 @@ const applyStatsTransition = (
   Option.match(maybeNextStats, {
     onNone: () => ({ model }),
     onSome: nextStats => ({
-      model: evo(model, { stats: () => nextStats }),
+      model: modifyFields(model, { stats: () => nextStats }),
       commands: [FetchStats()],
     }),
   })
@@ -123,7 +123,7 @@ const setPostDetail = (postId: string, postDetail: PostDetailData) =>
   HashMap.set(postId, postDetail)
 
 const activateTab = (model: Model, tab: Tab): UpdateReturn => {
-  const modelWithActiveTab = evo(model, { activeTab: () => tab })
+  const modelWithActiveTab = modifyFields(model, { activeTab: () => tab })
 
   return Match.value(tab).pipe(
     Match.withReturnType<UpdateReturn>(),
@@ -156,7 +156,7 @@ const foldTabsOutMessage = Tabs.OutMessage.match<
 const foldTabs = Update.foldChild({
   update: AppTabs.update,
   read: (model: Model) => Option.some(model.tabs),
-  write: (model, nextTabs) => evo(model, { tabs: () => nextTabs }),
+  write: (model, nextTabs) => modifyFields(model, { tabs: () => nextTabs }),
   toParentMessage: message => Message.GotTabsMessage({ message }),
   foldOutMessage: foldTabsOutMessage,
 })
@@ -166,13 +166,13 @@ export const update = (model: Model, message: Message) =>
     GotTabsMessage: ({ message }) => foldTabs(model, message),
 
     ClickedPost: ({ postId }) => {
-      const selectedModel = evo(model, {
+      const selectedModel = modifyFields(model, {
         maybeSelectedPostId: () => Option.some(postId),
       })
 
       return Option.match(HashMap.get(model.postDetailById, postId), {
         onNone: () => ({
-          model: evo(selectedModel, {
+          model: modifyFields(selectedModel, {
             postDetailById: setPostDetail(postId, PostDetailData.Loading()),
           }),
           commands: [FetchPostDetail({ postId })],
@@ -182,7 +182,7 @@ export const update = (model: Model, message: Message) =>
     },
 
     ClickedBackToPosts: () => ({
-      model: evo(model, { maybeSelectedPostId: () => Option.none() }),
+      model: modifyFields(model, { maybeSelectedPostId: () => Option.none() }),
     }),
 
     ClickedInvalidatePosts: () =>
@@ -192,7 +192,7 @@ export const update = (model: Model, message: Message) =>
       applyPostsTransition(model, AsyncData.revalidateOrLoad(model.posts)),
 
     ClickedRetryPostDetail: ({ postId }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         postDetailById: setPostDetail(postId, PostDetailData.Loading()),
       }),
       commands: [FetchPostDetail({ postId })],
@@ -208,17 +208,17 @@ export const update = (model: Model, message: Message) =>
       applyStatsTransition(model, AsyncData.revalidate(model.stats)),
 
     SettledFetchPosts: ({ result }) => ({
-      model: evo(model, { posts: AsyncData.settle(result) }),
+      model: modifyFields(model, { posts: AsyncData.settle(result) }),
     }),
 
     SettledFetchPostDetail: ({ postId, result }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         postDetailById: HashMap.modify(postId, AsyncData.settle(result)),
       }),
     }),
 
     SettledFetchStats: ({ result }) => ({
-      model: evo(model, { stats: AsyncData.settle(result) }),
+      model: modifyFields(model, { stats: AsyncData.settle(result) }),
     }),
   })
 

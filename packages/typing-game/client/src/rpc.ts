@@ -1,10 +1,6 @@
 import { Context, Effect, Layer } from 'effect'
-import { FetchHttpClient } from 'effect/unstable/http'
-import {
-  RpcClient,
-  RpcClientError,
-  RpcSerialization,
-} from 'effect/unstable/rpc'
+import { FetchHttpClient } from 'effect/http'
+import { RpcClient, RpcClientError, RpcSerialization } from 'effect/rpc'
 
 import { RoomRpcs } from '@typing-game/shared'
 

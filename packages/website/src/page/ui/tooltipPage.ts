@@ -18,16 +18,18 @@ export { tableOfContents }
 
 type ViewInputs = Readonly<{
   renderCopyButton: CodeBlock.RenderCopyButton
+  renderSnippet: CodeBlock.RenderSnippet
   renderHeadingLink: RenderHeadingLink
 }>
 
 export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, { renderCopyButton, renderHeadingLink }, h): Html =>
+  (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h): Html =>
     renderPage({
       demos: {
         demo: demoContainer(...Tooltip.demo(model.tooltipDemo, h)),
       },
       renderCopyButton,
+      renderSnippet,
       renderHeadingLink,
     }),
 )

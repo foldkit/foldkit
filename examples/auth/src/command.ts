@@ -1,5 +1,5 @@
 import { Console, Effect, Schema } from 'effect'
-import { KeyValueStore } from 'effect/unstable/persistence'
+import { KeyValueStore } from 'effect/persistence'
 import { Command } from 'foldkit'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
@@ -14,10 +14,9 @@ export const SaveSession = Command.define('SaveSession', {
   execute: ({ session }) =>
     Effect.gen(function* () {
       const store = yield* KeyValueStore.KeyValueStore
-      yield* store.set(
-        SESSION_STORAGE_KEY,
-        Schema.encodeSync(SessionJsonString)(session),
-      )
+      const encodedSession =
+        yield* Schema.encodeEffect(SessionJsonString)(session)
+      yield* store.set(SESSION_STORAGE_KEY, encodedSession)
       return Message.SucceededSaveSession()
     }).pipe(
       Effect.catch(error =>

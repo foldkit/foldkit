@@ -9,7 +9,7 @@ import {
   validate,
 } from 'foldkit/fieldValidation'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { RadioGroup } from '@foldkit/ui'
 
@@ -79,14 +79,16 @@ const foldProficiencyRadioGroupOutMessage = RadioGroup.OutMessage.match<
 >({
   Selected:
     ({ value }) =>
-    model => ({ model: evo(model, { proficiency: () => value }) }),
+    model => ({ model: modifyFields(model, { proficiency: () => value }) }),
 })
 
 const foldProficiencyRadioGroup = Update.foldChild({
   update: ProficiencyRadioGroup.update,
   read: (model: Model) => Option.some(model.proficiencyRadioGroup),
   write: (model, nextProficiencyRadioGroup) =>
-    evo(model, { proficiencyRadioGroup: () => nextProficiencyRadioGroup }),
+    modifyFields(model, {
+      proficiencyRadioGroup: () => nextProficiencyRadioGroup,
+    }),
   toParentMessage: message =>
     Message.GotProficiencyRadioGroupMessage({ message }),
   foldOutMessage: foldProficiencyRadioGroupOutMessage,
@@ -97,7 +99,7 @@ export const update = (model: Model, message: Message) =>
     message,
     {
       UpdatedName: ({ value }) => ({
-        model: evo(model, { name: () => validateName(value) }),
+        model: modifyFields(model, { name: () => validateName(value) }),
       }),
 
       GotProficiencyRadioGroupMessage: ({ message }) =>
@@ -115,4 +117,4 @@ export const isComplete = (entry: Model): boolean =>
   allValid([[entry.name, nameRules]])
 
 export const revealErrors = (entry: Model): Model =>
-  evo(entry, { name: revealFieldErrors(nameRules) })
+  modifyFields(entry, { name: revealFieldErrors(nameRules) })

@@ -33,50 +33,61 @@ const Message = defineMessageUnion({
   GotComboboxMessage: { message: Combobox.Message },
 })
 
-// Render the overlay inside the dialog panel. The key is `portal: false` on
-// the overlay's anchor. By default the panel portals to the document body,
-// where the dialog's high stacking order hides it. With portal: false the
-// panel stays inside the dialog and renders above the panel content.
-const view = (model: Model, h: HtmlBuilder<Message>) =>
-  h.submodel({
+// Render the overlay inside the dialog panel. Its panel portals into the
+// dialog, so it renders above the dialog content with no extra anchor config.
+// Give the panel `relative` so it paints above the Dialog backdrop, and the
+// Combobox wrapper `relative` so the input stays above the Combobox backdrop,
+// which goes directly before that wrapper.
+const view = (model: Model, h: HtmlBuilder<Message>) => {
+  const dialogView = ({
+    dialog,
+    backdrop,
+    panel,
+    title,
+    isVisible,
+  }: Dialog.RenderInfo) =>
+    h.dialog(
+      [...dialog],
+      isVisible
+        ? [
+            h.div([...backdrop, h.Class('fixed inset-0 bg-black/50')]),
+            h.div(
+              [
+                ...panel,
+                h.Class('relative rounded-lg p-6 max-w-md mx-auto shadow-xl'),
+              ],
+              [
+                h.h2([...title], ['Edit filters']),
+                h.submodel({
+                  slotId: model.combobox.id,
+                  model: model.combobox,
+                  view: CityCombobox.view,
+                  viewInputs: {
+                    // ...items, itemToConfig, itemToValue, etc.
+                    className: 'relative w-full',
+                    maybeSelectedValue: model.maybeCity,
+                    restingInputValue: Option.getOrElse(
+                      model.maybeCity,
+                      () => '',
+                    ),
+                    anchor: { placement: 'bottom-start' },
+                  },
+                  toParentMessage: message =>
+                    Message.GotComboboxMessage({ message }),
+                }),
+              ],
+            ),
+          ]
+        : [],
+    )
+
+  return h.submodel({
     slotId: model.dialog.id,
     model: model.dialog,
     view: Dialog.view,
     viewInputs: {
-      toView: ({ dialog, backdrop, panel, title, isVisible }) =>
-        h.dialog(
-          [...dialog],
-          isVisible
-            ? [
-                h.div([...backdrop, h.Class('fixed inset-0 bg-black/50')]),
-                h.div(
-                  [
-                    ...panel,
-                    h.Class('rounded-lg p-6 max-w-md mx-auto shadow-xl'),
-                  ],
-                  [
-                    h.h2([...title], ['Edit filters']),
-                    h.submodel({
-                      slotId: model.combobox.id,
-                      model: model.combobox,
-                      view: CityCombobox.view,
-                      viewInputs: {
-                        // ...items, itemToConfig, itemToValue, etc.
-                        maybeSelectedValue: model.maybeCity,
-                        restingInputValue: Option.getOrElse(
-                          model.maybeCity,
-                          () => '',
-                        ),
-                        anchor: { placement: 'bottom-start', portal: false },
-                      },
-                      toParentMessage: message =>
-                        Message.GotComboboxMessage({ message }),
-                    }),
-                  ],
-                ),
-              ]
-            : [],
-        ),
+      toView: dialogView,
     },
     toParentMessage: message => Message.GotDialogMessage({ message }),
   })
+}

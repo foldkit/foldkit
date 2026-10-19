@@ -16,6 +16,7 @@ describe('findActiveSectionKey', () => {
     ['ComingFromTanStackQuery', 'comparisons'],
     ['ElmComparison', 'comparisons'],
     ['ProjectOrganization', 'patterns'],
+    ['PatternsAntiPatterns', 'patterns'],
     ['ToolingLinting', 'tooling'],
     ['Performance', 'faq'],
     ['UiButton', 'foldkitUi'],

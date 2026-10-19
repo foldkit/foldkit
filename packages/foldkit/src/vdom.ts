@@ -110,18 +110,34 @@ export const dedupeSharedVNodes = (
 /** Dedupes the freshly built subtree of a memoized view (a
  *  createLazy/createKeyedLazy result) so a const shared inside it, or across
  *  memoized siblings sharing `seen`, is cloned even though the top-level pass
- *  leaves memoized subtrees opaque. The result root itself is left untracked, so
- *  the top-level pass still exempts it by membership rather than treating it as
- *  a duplicate. */
+ *  leaves memoized subtrees opaque. A root owned by an earlier tree or lazy slot
+ *  is cloned before this slot caches it. The result root stays untracked so the
+ *  top-level pass exempts it rather than treating it as a duplicate. */
 export const dedupeMemoizedResult = (
   root: VNode,
   seen: Set<object> = new Set(),
 ): VNode => {
-  if (root.children === undefined) {
-    return root
+  const base: VNode =
+    seen.has(root) || root.elm != null || memoizedVNodes.has(root)
+      ? { ...root, elm: undefined }
+      : root
+
+  if (base.children === undefined) {
+    return base
   }
-  const nextChildren = dedupeChildList(root.children, seen)
-  return nextChildren === undefined ? root : { ...root, children: nextChildren }
+
+  const nextChildren = dedupeChildList(base.children, seen)
+
+  if (nextChildren === undefined) {
+    return base
+  }
+
+  if (base === root) {
+    return { ...root, children: nextChildren }
+  }
+
+  base.children = nextChildren
+  return base
 }
 
 // NOTE: a fresh boot builds the whole tree so snabbdom fires every insert hook,

@@ -1,6 +1,7 @@
 import { Runtime } from 'foldkit'
 
 import { Message, Model, init, update, view } from './main'
+import './styles.css'
 
 const application = Runtime.makeApplication({
   Model,
@@ -17,4 +18,4 @@ const application = Runtime.makeApplication({
   },
 })
 
-Runtime.hydrate(application, { buildId: import.meta.env.FOLDKIT_BUILD_ID })
+Runtime.hydrate(application)

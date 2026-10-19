@@ -1,4 +1,4 @@
-import { Array, Option, Schema } from 'effect'
+import { Array, Option, Schema, pipe } from 'effect'
 
 type Difficulty = 'Beginner' | 'Intermediate' | 'Advanced'
 
@@ -13,6 +13,7 @@ export const ExampleSlug = Schema.Literals([
   'job-application',
   'weather',
   'api-cache',
+  'api-cache-query',
   'charting',
   'routing',
   'route-transitions',
@@ -36,10 +37,15 @@ export const ExampleSlug = Schema.Literals([
   'ssr',
   'ui-showcase',
   'personal-blog',
+  'livestore',
 ])
 export type ExampleSlug = typeof ExampleSlug.Type
 
-export type LivePreview = 'Spa' | 'Prerendered' | 'PlaygroundOnly'
+export type LivePreview =
+  | 'Spa'
+  | 'Prerendered'
+  | 'PlaygroundOnly'
+  | 'Unavailable'
 
 export type ExampleMeta = Readonly<{
   slug: ExampleSlug
@@ -139,6 +145,22 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'Query caching without a query client. Demonstrates stale-while-revalidate, request deduplication, invalidation, and interval refetching.',
     difficulty: 'Intermediate',
     tags: ['Caching', 'Subscriptions', 'UI Components'],
+    hasRouting: false,
+    livePreview: 'Spa',
+  },
+  {
+    slug: 'api-cache-query',
+    title: 'API Cache Query',
+    description:
+      'The API Cache app rewritten with experimental Query.define. Fetching and retained entries live in Query Submodels. The parent folds Got* Messages.',
+    difficulty: 'Intermediate',
+    tags: [
+      'Query',
+      'Experimental',
+      'Caching',
+      'Subscriptions',
+      'UI Components',
+    ],
     hasRouting: false,
     livePreview: 'Spa',
   },
@@ -382,11 +404,27 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     hasRouting: true,
     livePreview: 'Spa',
   },
+  {
+    slug: 'livestore',
+    title: 'LiveStore',
+    description:
+      'This example is paused while we update and verify LiveStore compatibility with Effect 4 stable.',
+    difficulty: 'Advanced',
+    tags: ['Storage', 'Subscriptions', 'Commands', 'Third-Party Library'],
+    hasRouting: false,
+    livePreview: 'Unavailable',
+  },
 ]
 
 export const exampleSlugs: ReadonlyArray<ExampleSlug> = Array.map(
   examples,
   ({ slug }) => slug,
+)
+
+export const runnableExampleSlugs: ReadonlyArray<ExampleSlug> = pipe(
+  examples,
+  Array.filter(example => example.livePreview !== 'Unavailable'),
+  Array.map(({ slug }) => slug),
 )
 
 export const findBySlug = (slug: string): Option.Option<ExampleMeta> =>

@@ -4,7 +4,7 @@ import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
 import { Transition } from 'foldkit/route'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
 import { Artwork, artworks, findArtwork } from './artwork'
@@ -76,11 +76,11 @@ export const update = (model: Model, message: Message) =>
       }),
 
     ChangedUrl: ({ url }) => ({
-      model: evo(model, { route: () => urlToAppRoute(url) }),
+      model: modifyFields(model, { route: () => urlToAppRoute(url) }),
     }),
 
     UpdatedFilterText: ({ filterText }) => ({
-      model: evo(model, { filterText: () => filterText }),
+      model: modifyFields(model, { filterText: () => filterText }),
     }),
   })
 

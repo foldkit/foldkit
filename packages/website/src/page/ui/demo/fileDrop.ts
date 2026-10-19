@@ -15,7 +15,7 @@ const dropZoneClassName =
 const primaryTextClassName =
   'text-base font-medium text-gray-900 dark:text-white'
 
-const secondaryTextClassName = 'text-sm text-gray-500 dark:text-gray-400'
+const secondaryTextClassName = 'text-sm text-gray-600 dark:text-gray-400'
 
 const fileRowClassName =
   'flex items-center justify-between gap-3 rounded-lg border border-gray-200 dark:border-gray-800 px-3 py-2 bg-cream dark:bg-gray-800'
@@ -23,10 +23,10 @@ const fileRowClassName =
 const fileNameClassName =
   'text-sm font-medium text-gray-900 dark:text-white truncate'
 
-const fileSizeClassName = 'text-xs text-gray-500 dark:text-gray-400'
+const fileSizeClassName = 'text-xs text-gray-600 dark:text-gray-400'
 
 const removeButtonClassName =
-  'text-sm text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 cursor-pointer'
+  'text-sm text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 cursor-pointer'
 
 const BYTES_PER_KB = 1024
 const BYTES_PER_MB = BYTES_PER_KB * BYTES_PER_KB

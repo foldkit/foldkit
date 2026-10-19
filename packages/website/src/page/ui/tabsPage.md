@@ -4,6 +4,8 @@
 
 Tab panel navigation with roving tabindex keyboard support, horizontal and vertical orientation, and automatic or manual activation modes. Tabs renders a tab list with buttons and corresponding panels. Only the active panel is visible.
 
+### State Ownership and Bundle Type
+
 Tabs is a Submodel that keeps its own keyboard-focus state, but the parent owns the active tab. Store the active value in your Model, pass it in as `selectedValue`, and fold the `Selected` OutMessage back into that field through [`Update.foldChild`](/core/submodel#fold-child).
 
 What `Tabs.create<Value>()` returns is typed [`Tabs.Bundle<Value>`](/ui/selection-submodels#bundle-type), for the cases where a created bundle has to be named rather than called directly.
@@ -24,7 +26,7 @@ Declare the tabs component once at module scope with `Tabs.create<Value>()` to l
 
 ::Demo{name="horizontal"}
 
-::Snippet{name="uiTabsBasic" label="tabs example"}
+::Snippet{name="uiTabsBasic" label="Tabs"}
 
 ### Vertical
 
@@ -32,7 +34,7 @@ Pass `orientation: 'Vertical'` to switch to up/down arrow navigation.
 
 ::Demo{name="vertical"}
 
-::Snippet{name="uiTabsVertical" label="vertical tabs example"}
+::Snippet{name="uiTabsVertical" label="Vertical tabs"}
 
 ## Styling
 
@@ -57,7 +59,7 @@ Tabs uses roving tabindex: only the focused tab is in the tab order. Arrow direc
 
 ## Accessibility
 
-The tab list receives `role="tablist"` with `aria-orientation` and `aria-label`. Each tab button gets `role="tab"` with `aria-selected` and `aria-controls` linking to its panel. Panels receive `role="tabpanel"` with `aria-labelledby` pointing back to the tab.
+The tab list receives `role="tablist"` with `aria-orientation` and `aria-label`. Each tab button gets `role="tab"` with `aria-selected`. It receives `aria-controls` when its panel is mounted, so the relationship never points at a missing panel. Panels receive `role="tabpanel"` with `aria-labelledby` pointing back to the tab. The default `panelMount: 'ActiveOnly'` fits views that render only the active panel. Set `panelMount: 'All'` when your view keeps every panel mounted and hides inactive ones.
 
 ## API Reference
 
@@ -84,6 +86,7 @@ Configuration object passed to the view returned by `Tabs.create<Value>()`.
 | `toView`          | `(render: RenderInfo<Value>) => Html`           | —              | Callback that receives the `tablist` attribute bundle, one `TabInfo<Value>` per tab, and the current `activeIndex`. Returns the composed layout.                                                                                                  |
 | `isTabDisabled`   | `(value: Value, index: number) => boolean`      | —              | Disables individual tabs.                                                                                                                                                                                                                         |
 | `orientation`     | `'Horizontal' \| 'Vertical'`                    | `'Horizontal'` | Controls arrow key direction and `aria-orientation`. Horizontal uses left/right, vertical uses up/down.                                                                                                                                           |
+| `panelMount`      | `'ActiveOnly' \| 'All'`                         | `'ActiveOnly'` | Describes whether `toView` renders only the active panel or keeps every panel mounted. With `All`, every tab receives `aria-controls` for its mounted panel.                                                                                      |
 
 ### RenderInfo {#render-info}
 
@@ -99,15 +102,15 @@ Payload delivered to the `toView` callback each render.
 
 Each entry in `RenderInfo.tabs`. Carries the value, derived state flags, and attribute bundles for the tab button and its panel.
 
-| Name         | Type                            | Default | Description                                                                                                                                                            |
-| ------------ | ------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `value`      | `Value`                         | —       | The tab value. Typed as your `Value` union when the tabs component is declared via `Tabs.create<Value>()`.                                                             |
-| `index`      | `number`                        | —       | Position in the `tabs` array.                                                                                                                                          |
-| `isActive`   | `boolean`                       | —       | Whether this tab is currently active.                                                                                                                                  |
-| `isFocused`  | `boolean`                       | —       | Whether this tab owns the roving tabindex (the one in the tab order).                                                                                                  |
-| `isDisabled` | `boolean`                       | —       | Whether this tab is disabled via `isTabDisabled`.                                                                                                                      |
-| `tab`        | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the tab button element. Includes `role="tab"`, `type="button"`, `aria-selected`, `aria-controls`, `tabindex`, the click handler, and the keyboard handler. |
-| `panel`      | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the tab panel element. Includes `role="tabpanel"`, `aria-labelledby` pointing back to the tab, and `tabindex`.                                             |
+| Name         | Type                            | Default | Description                                                                                                                                                                                 |
+| ------------ | ------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `value`      | `Value`                         | —       | The tab value. Typed as your `Value` union when the tabs component is declared via `Tabs.create<Value>()`.                                                                                  |
+| `index`      | `number`                        | —       | Position in the `tabs` array.                                                                                                                                                               |
+| `isActive`   | `boolean`                       | —       | Whether this tab is currently active.                                                                                                                                                       |
+| `isFocused`  | `boolean`                       | —       | Whether this tab owns the roving tabindex (the one in the tab order).                                                                                                                       |
+| `isDisabled` | `boolean`                       | —       | Whether this tab is disabled via `isTabDisabled`.                                                                                                                                           |
+| `tab`        | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the tab button element. Includes `role="tab"`, `type="button"`, `aria-selected`, `tabindex`, the click handler, and the keyboard handler. `aria-controls` follows `panelMount`. |
+| `panel`      | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the tab panel element. Includes `role="tabpanel"`, `aria-labelledby` pointing back to the tab, and `tabindex`.                                                                  |
 
 ### OutMessage {#out-message}
 

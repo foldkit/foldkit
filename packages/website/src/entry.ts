@@ -45,9 +45,9 @@ const application = Runtime.makeApplication<
     show: 'Always',
     mode: { development: 'TimeTravel', production: 'Inspect' },
     banner:
-      'Welcome to Foldkit DevTools. This site runs on Foldkit. Navigate around or interact with the page and every action appears here as a Message. Click any row to see the Model state it produced.',
+      'Welcome to Foldkit DevTools. This site runs on Foldkit. Select a recorded Message to inspect its payload, Model changes, returned Commands, and Mount activity. Browse earlier states in the timeline. In development, you can pause and resume the view, and AI agents can inspect the history through MCP.',
     Message,
   },
 })
 
-Runtime.hydrate(application, { buildId: import.meta.env.FOLDKIT_BUILD_ID })
+Runtime.hydrate(application)

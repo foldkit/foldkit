@@ -21,8 +21,8 @@ type Evolved<O, T> = {
     : O[K]
 }
 
-/** Immutably updates fields of a struct by applying transform functions. Wraps Effect's `Struct.evolve` with stricter key checking. */
-export const evo: {
+/** Immutably modifies fields of a struct by applying transform functions. Each transformer must return its field's existing type. Wraps Effect's `Struct.evolve` with stricter key checking. */
+export const modifyFields: {
   <O, const T extends EvolveTransform<O>>(
     t: StrictKeys<O, T>,
   ): (obj: O) => Evolved<O, T>
@@ -32,12 +32,12 @@ export const evo: {
   ): Evolved<O, T>
 } = Struct.evolve
 
-/** Creates a variant of `evo` whose transforms are checked against a supertype. Useful in generic contexts where `evo`'s `StrictKeys` can't resolve `keyof` on an open type parameter. The returned function evolves a subtype model, preserving all fields not in the transform, and returns the subtype. */
-export const makeConstrainedEvo =
-  <Constraint extends Record<string, unknown>>() =>
-  <Model extends Constraint>(
+/** Creates a field modifier for a base shape. Use in generic helpers whose Model extends that shape. Transformers are checked against the base shape, and the returned function preserves the Model's subtype and all fields not in the transform. */
+export const makeModifyFieldsFor =
+  <Base extends Record<string, unknown>>() =>
+  <Model extends Base>(
     model: Model,
-    transforms: EvolveTransform<Constraint>,
+    transforms: EvolveTransform<Base>,
   ): Model =>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     Struct.evolve(model, transforms as any) as Model

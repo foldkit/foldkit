@@ -1,5 +1,6 @@
 export {
   anchorSetup,
+  portalBackdrop,
   portalToContainingRoot,
   AnchorConfig,
   Placement,

@@ -1,51 +1,30 @@
-import { Array, Option } from 'effect'
+import { Array, DateTime, Option, pipe } from 'effect'
 
 // CONSTANT
 
-const DAYS_PER_WEEK = 7
-const HOURS_PER_DAY = 24
-const MINUTES_PER_HOUR = 60
-const SECONDS_PER_MINUTE = 60
-const MILLISECONDS_PER_SECOND = 1_000
-const MILLISECONDS_PER_DAY =
-  HOURS_PER_DAY *
-  MINUTES_PER_HOUR *
-  SECONDS_PER_MINUTE *
-  MILLISECONDS_PER_SECOND
-const MILLISECONDS_PER_WEEK = DAYS_PER_WEEK * MILLISECONDS_PER_DAY
-const ISO_DATE_LENGTH = 10
-
-const LAST_YEAR_WEEKS = 52
+export const LAST_YEAR_WEEKS = 52
 
 // WEEKS
 
 export type WeeklyCount = Readonly<{ weekStart: string; count: number }>
 
-export const toIsoDate = (milliseconds: number): string =>
-  new Date(milliseconds).toISOString().slice(0, ISO_DATE_LENGTH)
-
-export const dateStringToMilliseconds = (dateString: string): number =>
-  new Date(`${dateString}T00:00:00.000Z`).getTime()
-
-export const utcWeekStartMilliseconds = (milliseconds: number): number => {
-  const date = new Date(milliseconds)
-  const dayOffset = (date.getUTCDay() + DAYS_PER_WEEK - 1) % DAYS_PER_WEEK
-  return Date.UTC(
-    date.getUTCFullYear(),
-    date.getUTCMonth(),
-    date.getUTCDate() - dayOffset,
+export const weekStartForDateTime = (dateTime: DateTime.Utc): string =>
+  pipe(
+    dateTime,
+    DateTime.startOf('week', { weekStartsOn: 1 }),
+    DateTime.formatIsoDateUtc,
   )
-}
 
-export const weekStartForMilliseconds = (milliseconds: number): string =>
-  toIsoDate(utcWeekStartMilliseconds(milliseconds))
+export const weekStartsForLastYear = (
+  now: DateTime.Utc,
+): ReadonlyArray<string> => {
+  const currentWeekStart = DateTime.startOf(now, 'week', { weekStartsOn: 1 })
 
-export const weekStartsForLastYear = (now: number): ReadonlyArray<string> => {
-  const currentWeekStart = utcWeekStartMilliseconds(now)
   return Array.makeBy(LAST_YEAR_WEEKS, weekIndex =>
-    toIsoDate(
-      currentWeekStart -
-        (LAST_YEAR_WEEKS - weekIndex - 1) * MILLISECONDS_PER_WEEK,
+    pipe(
+      currentWeekStart,
+      DateTime.subtract({ weeks: LAST_YEAR_WEEKS - weekIndex - 1 }),
+      DateTime.formatIsoDateUtc,
     ),
   )
 }

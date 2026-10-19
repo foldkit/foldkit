@@ -14,7 +14,7 @@ The switch renders as a `<button>` with `role="switch"`. The typical visual is a
 
 ::Demo{name="basic"}
 
-::Snippet{name="uiSwitchBasic" label="switch example"}
+::Snippet{name="uiSwitchBasic" label="Switch"}
 
 ## Styling
 
@@ -38,13 +38,21 @@ The switch button receives `role="switch"` and `aria-checked`. The label is link
 
 The `label` attribute group includes an id (accessible via `Switch.labelId(id)`) and the `description` group includes an id (accessible via `Switch.descriptionId(id)`), so a consumer can reference either element without re-declaring the naming convention.
 
+### Read-Only and Disabled States
+
 `isReadOnly` and `isDisabled` both stop the Switch from reacting to clicks and Space. They differ in the semantics exposed to assistive technology, so they are not interchangeable.
 
+#### ARIA Semantics
+
 `aria-disabled="true"`, which `isDisabled` emits, communicates that the Switch is unavailable. `aria-readonly="true"`, which `isReadOnly` emits, communicates that its value cannot be changed but remains relevant to the user. Both states keep `tabindex="0"`, following Foldkit's convention that unavailable controls remain discoverable by keyboard and assistive technology.
+
+#### Choosing a State
 
 Assistive technology support for `aria-readonly` on switches varies. Pair it with a visible read-only treatment or explanatory text when users must distinguish it from disabled, and test the browser and assistive technology combinations your app supports.
 
 Use `isReadOnly` when the on/off state is still information the user needs, such as a setting controlled elsewhere, and `isDisabled` when the Switch is unavailable.
+
+#### Combining States
 
 The two flags are independent. Setting both emits both sets of attributes, and either one on its own removes the click and Space handlers.
 

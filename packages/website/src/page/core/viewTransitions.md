@@ -10,7 +10,7 @@ The API expects the DOM update to happen inside `document.startViewTransition(ca
 
 Pass a predicate. Before each render it decides whether that render should animate. It is a total function over your Message union, so animation is opted into one Message at a time. Returning `true` only for `ChangedUrl` animates navigation and leaves every other Message, whatever your application has, rendering plainly:
 
-::Snippet{name="viewTransitionRouteChanges" label="viewTransition on makeApplication"}
+::Snippet{name="viewTransitionRouteChanges" label="Using viewTransition on makeApplication"}
 
 Return `false` for a plain render, exactly as cheap as before. Return `true` to wrap the render in a transition. With no extra CSS, the browser cross-fades the whole page.
 
@@ -46,7 +46,13 @@ The predicate decides which renders animate, and the runtime falls through to a 
 - The predicate returns `false`.
 - `document.startViewTransition` refuses to start, which some browsers do for a document that is not fully active. The frame renders plainly rather than losing its patch.
 
+## Transition Scheduling
+
+### Overlapping Transitions
+
 A transition already running is skipped when a later qualifying render supersedes it, so a second navigation landing mid-animation cuts to the new one instead of queueing behind it. Its DOM update still happens, so nothing is lost. A render the predicate declines does not skip a running transition; it simply paints underneath.
+
+### Render Scheduling
 
 Two scheduling details are worth knowing. First, the runtime coalesces a burst of Messages into one render frame, so the predicate sees the last dirtying Message before the frame. That is the right Message for navigation, which is what transitions are for. Second, the runtime never blocks on the transition, so follow-up renders paint immediately. The render runs inside the transition’s DOM update phase, and renders that land mid-animation are picked up live by the new-state snapshot.
 

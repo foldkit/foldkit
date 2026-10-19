@@ -5,7 +5,7 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Menu } from '@foldkit/ui'
 
@@ -58,7 +58,7 @@ const foldMenuOutMessage = Menu.OutMessage.match<
 const foldMenu = Update.foldChild({
   update: ActionMenu.update,
   read: (model: Model) => Option.some(model.menu),
-  write: (model, nextMenu) => evo(model, { menu: () => nextMenu }),
+  write: (model, nextMenu) => modifyFields(model, { menu: () => nextMenu }),
   toParentMessage: message => Message.GotMenuMessage({ message }),
   foldOutMessage: foldMenuOutMessage,
 })

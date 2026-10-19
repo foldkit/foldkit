@@ -24,6 +24,31 @@ const descriptionClassName = 'text-sm text-gray-500'
 export const view = Submodel.defineView<UiModel, UiMessage>(
   (model, h): Html => {
     const checkmark = h.span([h.Class('text-white text-xs')], ['✓'])
+    const basicCheckboxView = (
+      attributes: Checkbox.CheckboxAttributes<UiMessage>,
+    ): Html =>
+      h.div(
+        [h.Class('flex flex-col gap-1')],
+        [
+          h.div(
+            [h.Class(topRowClassName)],
+            [
+              h.button(
+                [...attributes.checkbox, h.Class(checkboxClassName)],
+                model.isCheckboxBasicDemoChecked ? [checkmark] : [],
+              ),
+              h.label(
+                [...attributes.label, h.Class(labelClassName)],
+                ['Accept terms and conditions'],
+              ),
+            ],
+          ),
+          h.p(
+            [...attributes.description, h.Class(descriptionClassName)],
+            ['You agree to our Terms of Service and Privacy Policy.'],
+          ),
+        ],
+      )
 
     return h.div(
       [],
@@ -41,29 +66,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
             hasDescription: true,
             onToggle: isChecked =>
               UiMessage.ToggledCheckboxBasicDemo({ isChecked }),
-            toView: attributes =>
-              h.div(
-                [h.Class('flex flex-col gap-1')],
-                [
-                  h.div(
-                    [h.Class(topRowClassName)],
-                    [
-                      h.button(
-                        [...attributes.checkbox, h.Class(checkboxClassName)],
-                        model.isCheckboxBasicDemoChecked ? [checkmark] : [],
-                      ),
-                      h.label(
-                        [...attributes.label, h.Class(labelClassName)],
-                        ['Accept terms and conditions'],
-                      ),
-                    ],
-                  ),
-                  h.p(
-                    [...attributes.description, h.Class(descriptionClassName)],
-                    ['You agree to our Terms of Service and Privacy Policy.'],
-                  ),
-                ],
-              ),
+            toView: basicCheckboxView,
           },
           h,
         ),
@@ -101,6 +104,57 @@ const indeterminateDemo = (
     }
   }
 
+  const selectAllView = (
+    attributes: Checkbox.CheckboxAttributes<UiMessage>,
+  ): Html =>
+    h.div(
+      [h.Class(topRowClassName)],
+      [
+        h.button(
+          [...attributes.checkbox, h.Class(checkboxClassName)],
+          resolveSelectAllMark(),
+        ),
+        h.label(
+          [...attributes.label, h.Class(labelClassName)],
+          ['All notifications'],
+        ),
+      ],
+    )
+
+  const emailNotificationsView = (
+    attributes: Checkbox.CheckboxAttributes<UiMessage>,
+  ): Html =>
+    notificationOptionView(
+      attributes,
+      model.isCheckboxOptionADemoChecked,
+      'Email notifications',
+    )
+
+  const pushNotificationsView = (
+    attributes: Checkbox.CheckboxAttributes<UiMessage>,
+  ): Html =>
+    notificationOptionView(
+      attributes,
+      model.isCheckboxOptionBDemoChecked,
+      'Push notifications',
+    )
+
+  const notificationOptionView = (
+    attributes: Checkbox.CheckboxAttributes<UiMessage>,
+    isChecked: boolean,
+    label: string,
+  ): Html =>
+    h.div(
+      [h.Class(topRowClassName)],
+      [
+        h.button(
+          [...attributes.checkbox, h.Class(checkboxClassName)],
+          isChecked ? [checkmark] : [],
+        ),
+        h.label([...attributes.label, h.Class(labelClassName)], [label]),
+      ],
+    )
+
   return [
     h.div(
       [h.Class('flex flex-col gap-3')],
@@ -112,20 +166,7 @@ const indeterminateDemo = (
             isIndeterminate,
             onToggle: isChecked =>
               UiMessage.ToggledCheckboxAllDemo({ isChecked }),
-            toView: attributes =>
-              h.div(
-                [h.Class(topRowClassName)],
-                [
-                  h.button(
-                    [...attributes.checkbox, h.Class(checkboxClassName)],
-                    resolveSelectAllMark(),
-                  ),
-                  h.label(
-                    [...attributes.label, h.Class(labelClassName)],
-                    ['All notifications'],
-                  ),
-                ],
-              ),
+            toView: selectAllView,
           },
           h,
         ),
@@ -138,20 +179,7 @@ const indeterminateDemo = (
                 isChecked: model.isCheckboxOptionADemoChecked,
                 onToggle: isChecked =>
                   UiMessage.ToggledCheckboxOptionADemo({ isChecked }),
-                toView: attributes =>
-                  h.div(
-                    [h.Class(topRowClassName)],
-                    [
-                      h.button(
-                        [...attributes.checkbox, h.Class(checkboxClassName)],
-                        model.isCheckboxOptionADemoChecked ? [checkmark] : [],
-                      ),
-                      h.label(
-                        [...attributes.label, h.Class(labelClassName)],
-                        ['Email notifications'],
-                      ),
-                    ],
-                  ),
+                toView: emailNotificationsView,
               },
               h,
             ),
@@ -161,20 +189,7 @@ const indeterminateDemo = (
                 isChecked: model.isCheckboxOptionBDemoChecked,
                 onToggle: isChecked =>
                   UiMessage.ToggledCheckboxOptionBDemo({ isChecked }),
-                toView: attributes =>
-                  h.div(
-                    [h.Class(topRowClassName)],
-                    [
-                      h.button(
-                        [...attributes.checkbox, h.Class(checkboxClassName)],
-                        model.isCheckboxOptionBDemoChecked ? [checkmark] : [],
-                      ),
-                      h.label(
-                        [...attributes.label, h.Class(labelClassName)],
-                        ['Push notifications'],
-                      ),
-                    ],
-                  ),
+                toView: pushNotificationsView,
               },
               h,
             ),

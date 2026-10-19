@@ -8,6 +8,8 @@ The entire test is one `story` call. Start from a Model, send a Message, resolve
 
 ## The API
 
+### Import Story Steps
+
 Import the steps you need from `foldkit/story`.
 
 - Top-level steps start the test, group reusable setup, send Messages, and inspect results: `story`, `steps`, `given`, `message`, `model`, `expectOutMessage`, and `expectNoOutMessage`.
@@ -16,6 +18,8 @@ Import the steps you need from `foldkit/story`.
 Use named imports when the file contains only Story tests. If a file contains both Story and Scene tests, import the namespaces from `foldkit` so `Story.given` and `Scene.given` stay distinct.
 
 ::Snippet{name="testingApi" label="API reference"}
+
+### Match Commands by Definition or Instance
 
 A Command matcher accepts either a Definition or an instance. A Definition matches by name. An instance also checks structurally equal arguments.
 
@@ -29,15 +33,17 @@ Story does not render the view, so the OnMount lifecycle is not observable from 
 
 Here’s a test for the delayed reset from the [Commands](/core/commands) page. Clicking reset starts a one-second delay. When the delay completes, the count returns to zero.
 
-::Snippet{name="counterCommandsTest" label="simple test example"}
+::Snippet{name="counterCommandsTest" label="Delayed-reset Story test"}
 
 Read it from top to bottom. The Model starts at 5. `ClickedResetAfterDelay()` returns `DelayReset`. The test resolves that Command with `CompletedDelayReset()`, which update handles by setting the count to 0.
 
 ## Multi-Step Flows
 
+### Resolve Commands in Order
+
 Keep each Command result next to the Message that caused it. `Command.resolve`, `Command.resolveAll`, and `Command.resolveAllExact` let a longer test stay chronological:
 
-::Snippet{name="testingWeatherFlow" label="multi-step test example"}
+::Snippet{name="testingWeatherFlow" label="Multi-step test"}
 
 The test does not run an HTTP request. It declares that `FetchWeather` succeeded, feeds the resulting Message through update, and checks the Model that the view will render.
 
@@ -55,11 +61,19 @@ Use `resolveAllExact` when the resolver list is also a claim about which Command
 `message` throws if there are pending Commands from a previous step. Resolve all Commands before sending the next Message. `story` throws at the end if any Commands remain unresolved. Every Command your update function produces must be accounted for.
 :::
 
+### Resolve Child Commands
+
+When resolving a Command from a [child Submodel](/core/submodel), pass the child's result Message. Story applies the parent Message mapping automatically.
+
+### UI Component Test Helpers
+
+Before writing resolvers for an `@foldkit/ui` component, check its `test` namespace for helpers. For example, [`Toast.test.drainEntry`](/ui/toast#testing) handles the animation and timer Commands for a newly shown toast that auto-dismisses.
+
 ## Reusable Step Groups
 
 Use `steps` when several stories share the same setup or Message sequence. The group preserves the Model, Message, and OutMessage constraints of every step inside it, so the update passed to `story` still rejects a group built for a different program.
 
-::Snippet{name="testingReusableSteps" label="reusable Story steps"}
+::Snippet{name="testingReusableSteps" label="Reusable Story steps"}
 
 A group can contain any step accepted by `story`, including `given`, `message`, Model assertions, Command steps, OutMessage assertions, and another `steps` group. `story` runs the group in declaration order at the position where it appears.
 
@@ -67,10 +81,14 @@ Do not use Effect's `flow` to group Story steps. Message and OutMessage steps ar
 
 ## Testing Side Effects
 
+### Test Returned Commands
+
 Story tests the state machine. It does not run the Effect inside a Command.
+
+### Test Command Effects
 
 To test that a Command’s Effect works correctly (for example, that an HTTP request parses the response right), test it separately with `Effect.provide` and a mock service layer:
 
-::Snippet{name="testingCommandEffect" label="Command Effect test example"}
+::Snippet{name="testingCommandEffect" label="Command Effect test"}
 
 The two tests cover different contracts. Story checks which Command update returns and what update does with its result Message. The Effect test checks the work the Command executes.

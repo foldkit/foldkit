@@ -16,9 +16,9 @@ export default defineConfig({
   build: {
     outDir: isOptimised ? 'dist/optimised' : 'dist/naive',
     target: 'es2022',
-    minify: 'esbuild',
+    minify: 'oxc',
     sourcemap: false,
-    rollupOptions: {
+    rolldownOptions: {
       input: isOptimised ? 'index.optimised.html' : 'index.html',
       output: {
         entryFileNames: 'assets/[name]-[hash].js',

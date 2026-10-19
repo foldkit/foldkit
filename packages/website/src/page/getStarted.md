@@ -6,9 +6,13 @@ Built on Effect. Architected like Elm. Written in TypeScript. Let’s get your f
 
 Before you begin, install Node.js 22.22.2 or newer and make sure the package manager you want to use is available. The [create-foldkit-app](https://github.com/foldkit/foldkit/tree/main/packages/create-foldkit-app) scaffolder is the recommended way to start.
 
+### Run the Scaffolder
+
 Run the scaffolder:
 
-::Snippet{name="getStartedCreateProject" label="create a Foldkit project"}
+::Snippet{name="getStartedCreateProject" label="Create a Foldkit project"}
+
+### Choose a Rendering Mode
 
 The CLI asks for a project name, a rendering mode, and a package manager. If you choose a browser-only SPA, it also asks which [example](/example-apps) you want to start from. The other rendering modes create their own starter applications:
 
@@ -16,9 +20,11 @@ The CLI asks for a project name, a rendering mode, and a package manager. If you
 - **[Static generation](/core/server-rendering#build-time-ssg):** prerenders routes to static HTML, then hydrates them in the browser.
 - **[Server rendering](/core/server-rendering):** renders each request on a Node server, then hydrates it in the browser.
 
+### Start the Development Server
+
 The scaffolder creates the project and installs its dependencies. Move into the new directory, then start the development server with the package manager you selected:
 
-::Snippet{name="getStartedChangeDirectory" label="enter the project directory"}
+::Snippet{name="getStartedChangeDirectory" label="Enter the project directory"}
 
 - pnpm: `pnpm dev`
 - npm: `npm run dev`
@@ -29,7 +35,11 @@ Vite prints a local URL when the server is ready. Open it in your browser, and y
 
 ## Find Your Way Around {#project-structure}
 
-The exact files depend on the rendering mode and starter example. A small browser-only SPA such as Counter begins with these pieces:
+The exact files depend on the rendering mode and starter example. The small browser-only Counter SPA shows the usual split.
+
+### Application Files
+
+The Counter starter begins with these files:
 
 - `src/main.ts`: pure application definitions
 - `src/entry.ts`: runtime bootstrap referenced by `index.html`
@@ -38,29 +48,30 @@ The exact files depend on the rendering mode and starter example. A small browse
 - `vite.config.ts`: Vite configuration with `@foldkit/vite-plugin`
 - `tsconfig.json`: TypeScript configuration
 - `.oxlintrc.json`: Oxlint configuration
+- `.oxlintrc.effect.json`: Effect type-aware lint configuration
 - `.oxfmtrc.json`: Oxfmt configuration
 - `AGENTS.md`: your instructions for AI coding assistants working on the project
 - `FOLDKIT.md`: Foldkit's own conventions for those assistants, [replaced from the current template when you upgrade Foldkit](/ai/overview)
 
 In a small starter, `src/main.ts` holds the Model, Messages, update, init, and view. Larger examples move those definitions into focused modules as the application grows.
 
+### Runtime Entry
+
 For the Counter starter, `src/entry.ts` imports the application definitions and starts the runtime with `Runtime.makeApplication` and `Runtime.run`. Other starters may compose the application from several modules or start a different host, but they keep runtime startup separate from the pure definitions. That separation lets tests import the application without starting a runtime as a side effect.
 
-The generated project also includes `lint` and `format` scripts. Run them with your selected package manager. For example: `pnpm lint` and `pnpm format`. See [Oxlint Plugin](/tooling/oxlint-plugin) for the Foldkit-specific rules.
+### Project Scripts
+
+The generated project also includes `lint` and `format` scripts. Run them with your selected package manager. For example: `pnpm lint` and `pnpm format`. The `lint` script checks Foldkit conventions and Effect usage. See [Oxlint Plugin](/tooling/oxlint-plugin) for the Foldkit-specific rules.
 
 ## Add Foldkit to an Existing Project {#requirements}
 
 Skip this section if you used `create-foldkit-app`. Scaffolded projects already receive compatible package versions.
 
-Foldkit currently uses the Effect v4 release candidate and pins its `effect` peer dependency to an exact version: `effect@4.0.0-rc.112`. Stable Effect v3 does not satisfy that pin. Adding Foldkit to an Effect v3 project produces peer dependency conflicts. When Foldkit moves to a new release candidate, an existing project may need to upgrade Effect at the same time.
+Foldkit uses Effect 4 stable and pins its peer dependencies to exact versions: `effect@4.0.0` and `@effect/platform-browser@4.0.0`. Install those versions together. When upgrading an existing app, update every Effect package to the same version. Use the stable import paths, such as `effect/http` and `effect/persistence`, in place of their `effect/unstable` paths.
 
-Install Foldkit together with its pinned peer dependency:
+Install Foldkit together with its pinned peer dependencies:
 
-::Snippet{name="getStartedInstallFoldkit" label="install Foldkit and Effect"}
-
-`@effect/platform-browser` is a separate package pinned to the same version. Install it when you use `@foldkit/devtools`, which declares it as a peer dependency, or when you need Effect browser services such as `BrowserKeyValueStore` and `BrowserCrypto`:
-
-::Snippet{name="getStartedInstallPlatformBrowser" label="install Effect platform browser"}
+::Snippet{name="getStartedInstallFoldkit" label="Install Foldkit and Effect"}
 
 ## Where to Go Next
 

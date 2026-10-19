@@ -1,7 +1,7 @@
 import { Array, Crypto, Effect, Schema } from 'effect'
 import { Command, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { BrowserCrypto } from '@effect/platform-browser'
 
@@ -51,36 +51,34 @@ export const GenerateEntryId = Command.define('GenerateEntryId', {
 
 // UPDATE
 
-const foldEntryOutMessage: (
-  entryId: string,
-) => (outMessage: Entry.OutMessage) => Update.Step<Model, Message> = entryId =>
+const foldEntryOutMessage = (entryId: string) =>
   Entry.OutMessage.match<Update.Step<Model, Message>>({
     Removed: () => model => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         entries: Array.filter(entry => entry.id !== entryId),
       }),
     }),
   })
 
-const foldEntry = (entryId: string) =>
-  Update.foldChild({
-    update: Entry.update,
-    read: (model: Model) =>
-      Array.findFirst(model.entries, entry => entry.id === entryId),
-    write: (model, nextEntry) =>
-      evo(model, {
-        entries: Array.map(entry => (entry.id === entryId ? nextEntry : entry)),
-      }),
-    toParentMessage: message => Message.GotEntryMessage({ entryId, message }),
-    foldOutMessage: foldEntryOutMessage(entryId),
-  })
+const foldEntry = Update.foldChildAt({
+  update: Entry.update,
+  readAt: (model: Model, entryId: string) =>
+    Array.findFirst(model.entries, entry => entry.id === entryId),
+  writeAt: (model, entryId, nextEntry) =>
+    modifyFields(model, {
+      entries: Array.map(entry => (entry.id === entryId ? nextEntry : entry)),
+    }),
+  toParentMessage: (entryId, message) =>
+    Message.GotEntryMessage({ entryId, message }),
+  foldOutMessage: foldEntryOutMessage,
+})
 
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedAddEntry: () => ({ model, commands: [GenerateEntryId()] }),
 
     SucceededGenerateEntryId: ({ entryId }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         entries: Array.append(Entry.init(entryId)),
       }),
     }),
@@ -88,13 +86,13 @@ export const update = (model: Model, message: Message) =>
     FailedGenerateEntryId: () => ({ model }),
 
     RemovedEntry: ({ entryId }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         entries: Array.filter(entry => entry.id !== entryId),
       }),
     }),
 
     GotEntryMessage: ({ entryId, message }) =>
-      foldEntry(entryId)(model, message),
+      foldEntry(model, entryId, message),
   })
 
 // VALIDATION SUMMARY
@@ -107,4 +105,4 @@ export const isComplete = (model: Model): boolean =>
   Array.every(model.entries, Entry.isComplete)
 
 export const revealErrors = (model: Model): Model =>
-  evo(model, { entries: Array.map(Entry.revealErrors) })
+  modifyFields(model, { entries: Array.map(Entry.revealErrors) })

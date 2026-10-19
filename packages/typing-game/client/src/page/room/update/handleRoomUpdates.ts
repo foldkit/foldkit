@@ -1,6 +1,6 @@
 import { Array, Data, Option, String } from 'effect'
 import { AsyncData } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import * as Shared from '@typing-game/shared'
 
@@ -71,7 +71,7 @@ export const handleRoomUpdated =
     )
 
     return {
-      model: evo(model, {
+      model: modifyFields(model, {
         roomAsyncData: () => RoomAsyncData.Success({ data: room }),
         userGameText: () => nextUserGameText,
         charsTyped: () => nextCharsTyped,

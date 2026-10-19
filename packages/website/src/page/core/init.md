@@ -6,7 +6,7 @@
 
 The counter starts at zero and has no startup work:
 
-::Snippet{name="initSimple" label="init example"}
+::Snippet{name="initSimple" label="Using init"}
 
 A non-routing application or element calls `init` with no arguments. A routing application passes the current URL, so its first Model can reflect the route. When the application declares Flags, they become the first argument in either form.
 
@@ -20,7 +20,7 @@ Define the boundary with a Flags Schema. For a fresh client boot, also define an
 
 `init` receives the decoded Flags value and folds it into the first Model:
 
-::Snippet{name="initWithFlags" label="init with Flags"}
+::Snippet{name="initWithFlags" label="Using init with Flags"}
 
 ### Fresh Client Boot
 
@@ -32,8 +32,14 @@ The example provides `KeyValueStore` inside the Flags Effect because that servic
 
 ### Server Rendering and Hydration
 
+#### Server-Supplied Flags
+
 Server rendering provides Flags from the request or build instead of running a client Flags Effect. `renderToString` uses that value to call `init`, encodes it through the Schema, and embeds the result in the HTML. `Runtime.hydrate` decodes the same value and calls the same `init`, so the client reconstructs the Model that produced the server HTML.
 
+#### Handoff Validation
+
 A hydrating entry does not provide a client Flags Effect. Missing or invalid handoff data fails startup instead of silently booting a different Model. The [Server Rendering](/core/server-rendering#flags-and-what-only-the-browser-knows) guide explains which data is safe and reproducible across that boundary.
+
+#### Submodel Decomposition
 
 Once one Model, Message union, and update function become too large to reason about as a unit, decompose the state machine into [Submodels](/core/submodel). Each child owns its own Model, Messages, update, and Commands behind an explicit parent boundary.

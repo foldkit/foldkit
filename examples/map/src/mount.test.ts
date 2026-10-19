@@ -1,11 +1,11 @@
-import { Deferred, Effect, PubSub, Stream } from 'effect'
-import { Mount } from 'foldkit'
+import { Deferred, Effect, Stream } from 'effect'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-import { MountMap } from './main'
+import { Message, MountMap } from './main'
 
 const maplibre = vi.hoisted(() => {
   let container: HTMLElement | undefined
+  let onMoveEnd: (() => void) | undefined
 
   return {
     get container(): HTMLElement | undefined {
@@ -14,8 +14,15 @@ const maplibre = vi.hoisted(() => {
     set container(nextContainer: HTMLElement | undefined) {
       container = nextContainer
     },
-    disableKeyboard: vi.fn(),
-    enableKeyboard: vi.fn(),
+    clearEventHandlers: (): void => {
+      onMoveEnd = undefined
+    },
+    emitMoveEnd: (): void => {
+      onMoveEnd?.()
+    },
+    setMoveEndListener: (listener: () => void): void => {
+      onMoveEnd = listener
+    },
     makeMap: vi.fn(),
     removeMap: vi.fn(),
   }
@@ -23,11 +30,6 @@ const maplibre = vi.hoisted(() => {
 
 vi.mock('maplibre-gl', () => {
   class Map {
-    readonly keyboard = {
-      disable: maplibre.disableKeyboard,
-      enable: maplibre.enableKeyboard,
-    }
-
     constructor({ container }: { container: HTMLElement }) {
       maplibre.container = container
       maplibre.makeMap()
@@ -35,6 +37,31 @@ vi.mock('maplibre-gl', () => {
 
     remove(): void {
       maplibre.removeMap()
+    }
+
+    on(eventName: string, listener: () => void): this {
+      if (eventName === 'moveend') {
+        maplibre.setMoveEndListener(listener)
+      }
+      return this
+    }
+
+    off(): this {
+      maplibre.clearEventHandlers()
+      return this
+    }
+
+    getContainer(): HTMLElement {
+      return maplibre.container ?? document.createElement('div')
+    }
+
+    getBounds() {
+      return {
+        getWest: () => -180,
+        getSouth: () => -85,
+        getEast: () => 180,
+        getNorth: () => 85,
+      }
     }
   }
 
@@ -58,70 +85,68 @@ vi.mock('maplibre-gl', () => {
   return { Map, Marker, setWorkerUrl: vi.fn() }
 })
 
+const mountAndInteract = (host: HTMLElement): Effect.Effect<Array<Message>> =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const received: Array<Message> = []
+      const mounted = yield* Deferred.make<void>()
+
+      yield* MountMap({ hostId: 'test-map-host' })
+        .f(host, Stream.empty)
+        .pipe(
+          Stream.runForEach(message =>
+            Effect.sync(() => {
+              received.push(message)
+              if (message._tag === 'MovedMap') {
+                Effect.runSync(Deferred.succeed(mounted, undefined))
+              }
+            }),
+          ),
+          Effect.forkScoped,
+        )
+
+      yield* Deferred.await(mounted)
+      const marker = host.querySelector('[data-location-id]')
+      if (marker === null) {
+        throw new Error('Expected a mounted marker')
+      }
+
+      marker.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      maplibre.emitMoveEnd()
+      yield* Effect.yieldNow
+
+      expect(received.map(message => message._tag)).toEqual([
+        'SucceededMountMap',
+        'MovedMap',
+        'ClickedMarker',
+        'MovedMap',
+      ])
+      return received
+    }),
+  )
+
 describe('MountMap', () => {
   beforeEach(() => {
     maplibre.container = undefined
+    maplibre.clearEventHandlers()
     vi.clearAllMocks()
   })
 
-  test('makes the surviving map read-only while its view is paused', async () => {
-    const host = document.createElement('div')
-
-    await Effect.runPromise(
-      Effect.scoped(
-        Effect.gen(function* () {
-          const observedInitialLive = yield* Deferred.make<void>()
-          const observedPaused = yield* Deferred.make<void>()
-          const observedResumed = yield* Deferred.make<void>()
-          maplibre.enableKeyboard.mockImplementation(() => {
-            if (maplibre.enableKeyboard.mock.calls.length === 1) {
-              Effect.runSync(Deferred.succeed(observedInitialLive, undefined))
-            } else if (maplibre.enableKeyboard.mock.calls.length === 2) {
-              Effect.runSync(Deferred.succeed(observedResumed, undefined))
-            }
-          })
-          maplibre.disableKeyboard.mockImplementation(() => {
-            Effect.runSync(Deferred.succeed(observedPaused, undefined))
-          })
-
-          const viewStates = yield* PubSub.unbounded<Mount.ViewState>({
-            replay: 1,
-          })
-          yield* PubSub.publish(viewStates, Mount.ViewState.make('Live'))
-          yield* MountMap({ hostId: 'test-map-host' })
-            .f(host, Stream.fromPubSub(viewStates))
-            .pipe(Stream.runDrain, Effect.forkScoped)
-
-          yield* Deferred.await(observedInitialLive)
-          yield* Effect.yieldNow
-          expect(maplibre.makeMap).toHaveBeenCalledOnce()
-          const markers = host.querySelectorAll('button[data-location-id]')
-          expect(markers.length).toBeGreaterThan(0)
-          for (const marker of markers) {
-            expect(marker).toHaveProperty('disabled', false)
-          }
-
-          yield* PubSub.publish(viewStates, Mount.ViewState.make('Paused'))
-          yield* Deferred.await(observedPaused)
-          yield* Effect.yieldNow
-          expect(maplibre.makeMap).toHaveBeenCalledOnce()
-          for (const marker of markers) {
-            expect(marker).toHaveProperty('disabled', true)
-          }
-
-          yield* PubSub.publish(viewStates, Mount.ViewState.make('Live'))
-          yield* Deferred.await(observedResumed)
-          yield* Effect.yieldNow
-          expect(maplibre.makeMap).toHaveBeenCalledOnce()
-          for (const marker of markers) {
-            expect(marker).toHaveProperty('disabled', false)
-          }
-        }),
-      ),
-    )
-
-    expect(maplibre.disableKeyboard).toHaveBeenCalledOnce()
-    expect(maplibre.enableKeyboard).toHaveBeenCalledTimes(2)
+  test('rebinds map events when the same host id remounts', async () => {
+    const firstHost = document.createElement('div')
+    const firstMessages = await Effect.runPromise(mountAndInteract(firstHost))
     expect(maplibre.removeMap).toHaveBeenCalledOnce()
+
+    maplibre.emitMoveEnd()
+    firstHost
+      .querySelector('[data-location-id]')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    expect(firstMessages).toHaveLength(4)
+
+    const secondHost = document.createElement('div')
+    await Effect.runPromise(mountAndInteract(secondHost))
+
+    expect(maplibre.makeMap).toHaveBeenCalledTimes(2)
+    expect(maplibre.removeMap).toHaveBeenCalledTimes(2)
   })
 })
