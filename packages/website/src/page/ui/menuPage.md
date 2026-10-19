@@ -34,7 +34,7 @@ Pass `isAnimated: true` at init for animation coordination.
 
 ## Styling
 
-Menu is headless. The `itemToConfig` callback controls all item markup. Group items with `itemGroupKey` and `groupToHeading`.
+Menu is headless. The `itemToConfig` callback controls each item's class, attributes, and content; its context provides `isActive` and `isDisabled`, which you can use to set state attributes such as `data-highlighted`. Group items with `itemGroupKey` and `groupToHeading`.
 
 ### Portaled Panels
 
@@ -96,7 +96,7 @@ Configuration object passed to `Menu.view()`.
 | `model`                 | `Menu.Model`                                             | —       | The menu state from your parent Model.                                                                                                                                                                                                                                                                                               |
 | `toParentMessage`       | `(childMessage: Menu.Message) => ParentMessage`          | —       | Wraps Menu Messages in your parent Message type for Submodel delegation.                                                                                                                                                                                                                                                             |
 | `items`                 | `ReadonlyArray<Item>`                                    | —       | The list of menu items.                                                                                                                                                                                                                                                                                                              |
-| `itemToConfig`          | `(item, context) => ItemConfig`                          | —       | Maps each item to its className and content. The context provides isActive and isDisabled.                                                                                                                                                                                                                                           |
+| `itemToConfig`          | `(item, context) => ItemConfig`                          | —       | Maps each item to its className, attributes, and content. The context provides isActive and isDisabled.                                                                                                                                                                                                                              |
 | `buttonContent`         | `Html`                                                   | —       | Content rendered inside the trigger button.                                                                                                                                                                                                                                                                                          |
 | `isItemDisabled`        | `((item, index) => boolean) \| undefined`                | —       | Disables individual menu items.                                                                                                                                                                                                                                                                                                      |
 | `itemToSearchText`      | `((item, index) => string) \| undefined`                 | —       | Optional override for the string typeahead matches against. Defaults to the item itself; override when items carry searchable text distinct from their display content.                                                                                                                                                              |
@@ -120,6 +120,16 @@ Configuration object passed to `Menu.view()`.
 | `attributes`            | `ReadonlyArray<ChildAttribute> \| undefined`             | —       | Extra attributes spread onto the outer Menu root element.                                                                                                                                                                                                                                                                            |
 | `ariaLabel`             | `string`                                                 | —       | Accessible name for the trigger button. Use for an icon-only trigger with no visible label. Applied as aria-label, and takes precedence over ariaLabelledBy.                                                                                                                                                                         |
 | `ariaLabelledBy`        | `string`                                                 | —       | Id of an external element that labels the trigger button, applied as aria-labelledby. Pair with a visible label element.                                                                                                                                                                                                             |
+
+### ItemConfig {#item-config}
+
+Returned by `itemToConfig` for each item.
+
+| Name         | Type                                         | Default | Description                                                                                                                                        |
+| ------------ | -------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `className`  | `string \| undefined`                        | —       | CSS class applied to the item element.                                                                                                             |
+| `attributes` | `ReadonlyArray<ChildAttribute> \| undefined` | —       | Extra attributes for the item. Built-in `id`, `role`, `aria-disabled`, `data-active`, and `data-disabled` attributes take precedence on conflicts. |
+| `content`    | `Html`                                       | —       | Content rendered inside the item element.                                                                                                          |
 
 ### OutMessage {#out-message}
 
