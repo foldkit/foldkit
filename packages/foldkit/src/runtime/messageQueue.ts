@@ -10,6 +10,7 @@ export type MessageQueue<Message> = Readonly<{
   enqueueMessageEffect: (message: Message) => Effect.Effect<void>
   drainPendingMessages: () => void
   resetDrainBudget: () => void
+  isAnyMessageDeferred: () => boolean
   completeBoot: () => void
 }>
 
@@ -160,6 +161,9 @@ export const makeMessageQueue = <Message>({
       syncWorkMsSinceYield = 0
     }
 
+    const isAnyMessageDeferred = (): boolean =>
+      isDrainDeferredToNextTask && pendingMessages.length > 0
+
     const completeBoot = (): void => {
       isBootComplete = true
       drainPendingMessages()
@@ -170,6 +174,7 @@ export const makeMessageQueue = <Message>({
       enqueueMessageEffect,
       drainPendingMessages,
       resetDrainBudget,
+      isAnyMessageDeferred,
       completeBoot,
     }
   })

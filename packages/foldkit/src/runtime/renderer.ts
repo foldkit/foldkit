@@ -158,6 +158,7 @@ export const makeRenderer = <Model, Message>({
       enqueueMessageEffect,
       drainPendingMessages,
       resetDrainBudget,
+      isAnyMessageDeferred,
     } = messageQueue
     const {
       mountTracker,
@@ -531,6 +532,14 @@ export const makeRenderer = <Model, Message>({
       mountRuntime,
     )
 
+    // NOTE: a drain that ran past its budget leaves Messages waiting for
+    // the next task, so the live Model is behind the queue. Painting it would
+    // write stale values into controlled inputs and erase what the user just
+    // typed, so frames wait until the drain has caught up. A disposed or
+    // crashed runtime falls through to the frame's own guards instead.
+    const isLiveModelBehindQueue = (): boolean =>
+      isAnyMessageDeferred() && !status.isRuntimeDisposed && !status.isCrashed
+
     // NOTE: the render, Mount drain, DevTools attribution, and
     // patch-time-buffer flush. Shared by the plain path (called directly)
     // and the View Transition path (called from the transition's update
@@ -630,6 +639,14 @@ export const makeRenderer = <Model, Message>({
             return
           }
           update.didRun = true
+          // NOTE: the browser calls this in a later frame, and a drain may
+          // have been deferred since `renderFramePlain` checked. Skip the
+          // transition with the DOM unchanged; the next frame paints.
+          if (isLiveModelBehindQueue()) {
+            skipPendingViewTransition()
+            scheduleRenderFrame()
+            return
+          }
           // NOTE: the view state closes the resume window after the
           // store is live but before its plain frame has restored the live
           // DOM. A transition invalidated by jumpTo stays invalid forever,
@@ -662,6 +679,12 @@ export const makeRenderer = <Model, Message>({
     // would strand any `Render.afterCommit` registered against it, and
     // the Dom helpers that gate on it would never run their DOM work.
     const renderFramePlain = (): void => {
+      // NOTE: before `isRenderFrameScheduled` clears, so this frame stays
+      // the one scheduled frame and keeps its pending commit.
+      if (isLiveModelBehindQueue()) {
+        requestAnimationFrame(renderFramePlain)
+        return
+      }
       isRenderFrameScheduled = false
       const isRestoringLiveView = isLiveViewRestorePending
       isLiveViewRestorePending = false

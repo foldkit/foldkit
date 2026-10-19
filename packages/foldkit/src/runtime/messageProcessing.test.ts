@@ -232,6 +232,160 @@ describe('message processing', () => {
     }
   })
 
+  // NOTE: holds every requested animation frame so a test can run one at
+  // the moment it chooses: after an over-budget burst has deferred its
+  // remainder, before the MessageChannel tick that would drain it.
+  const startBurnElementWithHeldFrames = async (
+    viewTransition?: (context: Readonly<{ message: Message }>) => boolean,
+  ) => {
+    const processedLog: Array<string> = []
+    let capturedDispatch: ((message: Message) => void) | null = null
+    let fakeNow = 0
+    const nowSpy = vi
+      .spyOn(performance, 'now')
+      .mockImplementation(() => fakeNow)
+
+    const update = (model: Model, message: Message): UpdateReturn => {
+      if (message._tag !== 'BurnedBudget') {
+        return { model: { log: [...model.log, message._tag] } }
+      }
+      processedLog.push(message.label)
+      fakeNow += BURN_MS
+      return { model: { log: [...model.log, message.label] } }
+    }
+
+    const element = makeElement({
+      Model,
+      init: () => ({ model: { log: [] } }),
+      update,
+      view: model => {
+        capturedDispatch = __requireDispatch()
+        return view(model)
+      },
+      container,
+      ...(viewTransition === undefined ? {} : { viewTransition }),
+    })
+
+    const fiber = Effect.runFork(element.start())
+    await vi.waitFor(() => {
+      expect(capturedDispatch).not.toBeNull()
+    })
+
+    const heldFrames: Array<FrameRequestCallback> = []
+    const frameSpy = vi
+      .spyOn(window, 'requestAnimationFrame')
+      .mockImplementation(callback => {
+        heldFrames.push(callback)
+        return heldFrames.length
+      })
+
+    const runHeldFrame = () => {
+      const frame = heldFrames.shift()
+      expect(frame).toBeDefined()
+      frame!(performance.now())
+    }
+
+    const dispatchBurns = (labels: ReadonlyArray<string>) => {
+      for (const label of labels) {
+        capturedDispatch!(Message.BurnedBudget({ label }))
+      }
+    }
+
+    const stop = async () => {
+      frameSpy.mockRestore()
+      nowSpy.mockRestore()
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+
+    return {
+      processedLog,
+      heldFrames,
+      runHeldFrame,
+      dispatch: (message: Message) => capturedDispatch!(message),
+      dispatchBurns,
+      stop,
+    }
+  }
+
+  it('does not paint a frame while a deferred drain leaves the Model behind the queue, and paints every Message once it has drained', async () => {
+    const { processedLog, heldFrames, runHeldFrame, dispatchBurns, stop } =
+      await startBurnElementWithHeldFrames()
+
+    try {
+      const labels = ['burn-1', 'burn-2', 'burn-3', 'burn-4']
+      dispatchBurns(labels)
+      expect(processedLog).toEqual(['burn-1', 'burn-2'])
+
+      runHeldFrame()
+
+      expect(document.body.textContent).toBe('')
+      expect(heldFrames).toHaveLength(1)
+
+      await vi.waitFor(() => {
+        expect(processedLog).toEqual(labels)
+      })
+      runHeldFrame()
+
+      expect(document.body.textContent).toBe(labels.join(','))
+    } finally {
+      await stop()
+    }
+  })
+
+  it('skips a View Transition while a deferred drain leaves the Model behind the queue, and paints in the next frame', async () => {
+    let maybeTransitionUpdate: (() => void) | null = null
+    const skipTransition = vi.fn()
+    Object.defineProperty(document, 'startViewTransition', {
+      configurable: true,
+      value: (update: () => void) => {
+        maybeTransitionUpdate = update
+        return {
+          updateCallbackDone: Promise.resolve(),
+          skipTransition,
+        }
+      },
+    })
+    const {
+      processedLog,
+      heldFrames,
+      runHeldFrame,
+      dispatch,
+      dispatchBurns,
+      stop,
+    } = await startBurnElementWithHeldFrames(
+      ({ message }) => message._tag === 'AppendedFirst',
+    )
+
+    try {
+      dispatch(Message.AppendedFirst())
+      runHeldFrame()
+      expect(maybeTransitionUpdate).not.toBeNull()
+
+      // The browser runs the update callback in a later frame. A burst
+      // that arrives before then defers its remainder.
+      const labels = ['burn-1', 'burn-2', 'burn-3', 'burn-4']
+      dispatchBurns(labels)
+      expect(processedLog).toEqual(['burn-1', 'burn-2'])
+      maybeTransitionUpdate!()
+
+      expect(document.body.textContent).toBe('')
+      expect(skipTransition).toHaveBeenCalledTimes(1)
+      expect(heldFrames).toHaveLength(1)
+
+      await vi.waitFor(() => {
+        expect(processedLog).toEqual(labels)
+      })
+      runHeldFrame()
+
+      expect(document.body.textContent).toBe(
+        ['AppendedFirst', ...labels].join(','),
+      )
+    } finally {
+      Reflect.deleteProperty(document, 'startViewTransition')
+      await stop()
+    }
+  })
+
   it('processes init Command results after boot, painting the init Model first, and runs Commands chained from them', async () => {
     const processedLog: Array<string> = []
     const seenViewModels: Array<Model> = []
