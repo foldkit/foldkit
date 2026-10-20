@@ -1,8 +1,11 @@
-import { Match, Option } from 'effect'
+import { Option } from 'effect'
 import { Update } from 'foldkit'
+import { Transition } from 'foldkit/route'
 import { modifyFields } from 'foldkit/struct'
 
 import { People } from './page'
+
+type Step = Update.Step<Model, Message>
 
 const foldPeople = Update.foldChild({
   update: People.update,
@@ -21,23 +24,28 @@ const foldPeopleRouteChanged = Update.foldChild({
 })
 
 const setRoute =
-  (nextRoute: AppRoute): Update.Step<Model, Message> =>
+  (nextRoute: AppRoute): Step =>
   model => ({ model: modifyFields(model, { route: () => nextRoute }) })
+
+const keepModel: Step = model => ({ model })
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     ChangedUrl: ({ url }) => {
       const nextRoute = urlToAppRoute(url)
 
-      const routeSteps = Match.value(nextRoute).pipe(
-        Match.withReturnType<ReadonlyArray<Update.Step<Model, Message>>>(),
-        Match.tag('People', peopleRoute => [
-          foldPeopleRouteChanged(peopleRoute),
-        ]),
-        Match.orElse(() => []),
+      const transition = Transition.make(model.route, nextRoute)
+      const informPeopleRoute = Transition.matchOrElse<Step>()(
+        transition,
+        'People',
+        {
+          Entered: peopleRoute => foldPeopleRouteChanged(peopleRoute),
+          Stayed: ({ nextRoute }) => foldPeopleRouteChanged(nextRoute),
+        },
+        () => keepModel,
       )
 
-      return Update.combine(model, [setRoute(nextRoute), ...routeSteps])
+      return Update.combine(model, [setRoute(nextRoute), informPeopleRoute])
     },
 
     GotPeopleMessage: ({ message }) => foldPeople(model, message),

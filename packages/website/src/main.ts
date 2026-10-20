@@ -19,6 +19,7 @@ import {
   Update,
 } from 'foldkit'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
+import { Transition } from 'foldkit/route'
 import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 import { githubStarCount } from 'virtual:landing-data'
@@ -478,22 +479,26 @@ const foldHome = Update.foldChild({
   foldOutMessage: foldHomeOutMessage,
 })
 
-const reconcileHomePresence =
-  (route: AppRoute): UpdateStep =>
-  model =>
-    Match.value(route).pipe(
-      Match.withReturnType<ReturnType<UpdateStep>>(),
-      Match.tag('Home', () => {
-        const nextHome = Option.orElse(model.maybeHome, () =>
-          Option.some(Home.init().model),
-        )
+const keepModel: UpdateStep = model => ({ model })
 
-        return { model: modifyFields(model, { maybeHome: () => nextHome }) }
+const reconcileHomePresence = (
+  transition: Transition.Transition<AppRoute>,
+): UpdateStep =>
+  Transition.matchOrElse<UpdateStep>()(
+    transition,
+    'Home',
+    {
+      Entered: () => model => ({
+        model: modifyFields(model, {
+          maybeHome: () => Option.some(Home.init().model),
+        }),
       }),
-      Match.orElse(() => ({
+      Exited: () => model => ({
         model: modifyFields(model, { maybeHome: () => Option.none() }),
-      })),
-    )
+      }),
+    },
+    () => keepModel,
+  )
 
 const foldComingFromReact = Update.foldChild({
   update: ComingFromReact.update,
@@ -638,6 +643,7 @@ export const update = (model: Model, message: Message) =>
 
     ChangedUrl: ({ url }) => {
       const nextRoute = urlToAppRoute(url)
+      const transition = Transition.make(model.route, nextRoute)
 
       const maybeNextExampleSlug = pipe(
         nextRoute,
@@ -705,7 +711,7 @@ export const update = (model: Model, message: Message) =>
 
       return Update.combine(model, [
         writeRouteFields,
-        reconcileHomePresence(nextRoute),
+        reconcileHomePresence(transition),
         foldMobileMenuDialogClose,
         foldThemeMenuClose,
         foldSearchRouteChanged,
