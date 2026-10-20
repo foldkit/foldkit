@@ -532,11 +532,8 @@ export const makeRenderer = <Model, Message>({
       mountRuntime,
     )
 
-    // NOTE: a drain that ran past its budget leaves Messages waiting for
-    // the next task, so the live Model is behind the queue. Painting it would
-    // write stale values into controlled inputs and erase what the user just
-    // typed, so frames wait until the drain has caught up. A disposed or
-    // crashed runtime falls through to the frame's own guards instead.
+    // NOTE: rendering before a deferred drain resumes would restore stale
+    // controlled input values. Disposed or crashed runtimes use the frame guards.
     const isLiveModelBehindQueue = (): boolean =>
       isAnyMessageDeferred() && !status.isRuntimeDisposed && !status.isCrashed
 
@@ -639,9 +636,9 @@ export const makeRenderer = <Model, Message>({
             return
           }
           update.didRun = true
-          // NOTE: the browser calls this in a later frame, and a drain may
-          // have been deferred since `renderFramePlain` checked. Skip the
-          // transition with the DOM unchanged; the next frame paints.
+
+          // NOTE: a drain may have been deferred since the preceding frame
+          // started the transition. Leave the DOM unchanged until it catches up.
           if (isLiveModelBehindQueue()) {
             skipPendingViewTransition()
             scheduleRenderFrame()
@@ -679,8 +676,7 @@ export const makeRenderer = <Model, Message>({
     // would strand any `Render.afterCommit` registered against it, and
     // the Dom helpers that gate on it would never run their DOM work.
     const renderFramePlain = (): void => {
-      // NOTE: before `isRenderFrameScheduled` clears, so this frame stays
-      // the one scheduled frame and keeps its pending commit.
+      // NOTE: retain the scheduled frame's pending commit while the drain waits.
       if (isLiveModelBehindQueue()) {
         requestAnimationFrame(renderFramePlain)
         return

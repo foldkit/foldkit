@@ -1,9 +1,10 @@
-import { Effect, Fiber, Schema } from 'effect'
+import { Effect, Array as EffectArray, Fiber, Schema } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Command } from '../command/index.js'
 import { __htmlBuilder, __requireDispatch } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
+import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
 import { makeElement } from './makeElement.js'
 
@@ -232,14 +233,13 @@ describe('message processing', () => {
     }
   })
 
-  // NOTE: holds every requested animation frame so a test can run one at
-  // the moment it chooses: after an over-budget burst has deferred its
-  // remainder, before the MessageChannel tick that would drain it.
+  // NOTE: held frames let tests run a frame between the budget yield and
+  // the MessageChannel task that resumes the drain.
   const startBurnElementWithHeldFrames = async (
     viewTransition?: (context: Readonly<{ message: Message }>) => boolean,
   ) => {
     const processedLog: Array<string> = []
-    let capturedDispatch: ((message: Message) => void) | null = null
+    let capturedDispatch: ((message: Message) => void) | undefined
     let fakeNow = 0
     const nowSpy = vi
       .spyOn(performance, 'now')
@@ -247,11 +247,21 @@ describe('message processing', () => {
 
     const update = (model: Model, message: Message): UpdateReturn => {
       if (message._tag !== 'BurnedBudget') {
-        return { model: { log: [...model.log, message._tag] } }
+        return {
+          model: modifyFields(model, {
+            log: EffectArray.append(message._tag),
+          }),
+        }
       }
+
       processedLog.push(message.label)
       fakeNow += BURN_MS
-      return { model: { log: [...model.log, message.label] } }
+
+      return {
+        model: modifyFields(model, {
+          log: EffectArray.append(message.label),
+        }),
+      }
     }
 
     const element = makeElement({
@@ -268,7 +278,7 @@ describe('message processing', () => {
 
     const fiber = Effect.runFork(element.start())
     await vi.waitFor(() => {
-      expect(capturedDispatch).not.toBeNull()
+      expect(capturedDispatch).toBeDefined()
     })
 
     const heldFrames: Array<FrameRequestCallback> = []
@@ -282,12 +292,24 @@ describe('message processing', () => {
     const runHeldFrame = () => {
       const frame = heldFrames.shift()
       expect(frame).toBeDefined()
-      frame!(performance.now())
+      if (frame === undefined) {
+        throw new Error('No animation frame is being held')
+      }
+
+      frame(performance.now())
+    }
+
+    const dispatch = (message: Message): void => {
+      if (capturedDispatch === undefined) {
+        throw new Error('Runtime dispatch is not available')
+      }
+
+      capturedDispatch(message)
     }
 
     const dispatchBurns = (labels: ReadonlyArray<string>) => {
       for (const label of labels) {
-        capturedDispatch!(Message.BurnedBudget({ label }))
+        dispatch(Message.BurnedBudget({ label }))
       }
     }
 
@@ -301,13 +323,13 @@ describe('message processing', () => {
       processedLog,
       heldFrames,
       runHeldFrame,
-      dispatch: (message: Message) => capturedDispatch!(message),
+      dispatch,
       dispatchBurns,
       stop,
     }
   }
 
-  it('does not paint a frame while a deferred drain leaves the Model behind the queue, and paints every Message once it has drained', async () => {
+  it('skips rendering until a deferred Message drain completes', async () => {
     const { processedLog, heldFrames, runHeldFrame, dispatchBurns, stop } =
       await startBurnElementWithHeldFrames()
 
@@ -332,13 +354,13 @@ describe('message processing', () => {
     }
   })
 
-  it('skips a View Transition while a deferred drain leaves the Model behind the queue, and paints in the next frame', async () => {
-    let maybeTransitionUpdate: (() => void) | null = null
+  it('skips a View Transition while a Message drain is deferred', async () => {
+    let transitionUpdate: (() => void) | undefined
     const skipTransition = vi.fn()
     Object.defineProperty(document, 'startViewTransition', {
       configurable: true,
       value: (update: () => void) => {
-        maybeTransitionUpdate = update
+        transitionUpdate = update
         return {
           updateCallbackDone: Promise.resolve(),
           skipTransition,
@@ -359,14 +381,19 @@ describe('message processing', () => {
     try {
       dispatch(Message.AppendedFirst())
       runHeldFrame()
-      expect(maybeTransitionUpdate).not.toBeNull()
+      expect(transitionUpdate).toBeDefined()
 
-      // The browser runs the update callback in a later frame. A burst
-      // that arrives before then defers its remainder.
+      const update = transitionUpdate
+      if (update === undefined) {
+        throw new Error('The View Transition update is not available')
+      }
+
+      // NOTE: the browser runs the update callback in a later frame, after
+      // another burst may have exhausted the drain budget.
       const labels = ['burn-1', 'burn-2', 'burn-3', 'burn-4']
       dispatchBurns(labels)
       expect(processedLog).toEqual(['burn-1', 'burn-2'])
-      maybeTransitionUpdate!()
+      update()
 
       expect(document.body.textContent).toBe('')
       expect(skipTransition).toHaveBeenCalledTimes(1)

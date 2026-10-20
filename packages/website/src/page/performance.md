@@ -13,7 +13,7 @@ Every state change in a Foldkit app flows through one pipeline, so the cost mode
 - A dispatched Message runs `update` synchronously, right on the dispatching stack, in arrival order. The runtime compares the returned Model to the previous one by reference. If nothing changed, nothing renders.
 - Renders coalesce. Any number of Messages arriving between frames mark at most one pending frame; the next animation frame renders once with the latest Model. A burst of two hundred Messages inside one frame costs two hundred update calls and a single render.
 - A render is `view` plus diff plus patch: build the new virtual tree, diff it against the previous one, and touch only the DOM that changed.
-- Command results always arrive asynchronously, and a synchronous burst that holds the stack past a small budget defers its remaining Messages to a new task so the page keeps painting. Frames skip rendering while those Messages wait, so a controlled input is never painted from a Model older than what was typed.
+- Command results always arrive asynchronously. A synchronous burst that exhausts its time budget defers its remaining Messages to a new task, yielding to the browser. Rendering waits for the deferred drain to finish so it does not restore older controlled input values.
 
 ### Model Size and Change Detection
 
