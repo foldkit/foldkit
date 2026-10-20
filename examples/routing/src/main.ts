@@ -3,6 +3,7 @@ import { Command, Dom, Runtime, Subscription, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
+import { Transition } from 'foldkit/route'
 import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
@@ -88,6 +89,7 @@ const LoadExternal = Command.define('LoadExternal', {
 // UPDATE
 
 type UpdateReturn = Update.Return<Model, Message>
+type Step = Update.Step<Model, Message>
 
 const navigationUrlByShortcut: Readonly<
   Record<NavigationShortcut, () => string>
@@ -114,8 +116,10 @@ const foldPeople = foldPeopleEntry(People.update)
 const foldPeopleRouteChanged = foldPeopleEntry(People.informRouteChanged)
 
 const setRoute =
-  (nextRoute: AppRoute): Update.Step<Model, Message> =>
+  (nextRoute: AppRoute): Step =>
   model => ({ model: modifyFields(model, { route: () => nextRoute }) })
+
+const keepModel: Step = model => ({ model })
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
@@ -137,15 +141,18 @@ export const update = (model: Model, message: Message) =>
     ChangedUrl: ({ url }) => {
       const nextRoute = urlToAppRoute(url)
 
-      const routeSteps = Match.value(nextRoute).pipe(
-        Match.withReturnType<ReadonlyArray<Update.Step<Model, Message>>>(),
-        Match.tag('People', peopleRoute => [
-          foldPeopleRouteChanged(peopleRoute),
-        ]),
-        Match.orElse(() => []),
+      const transition = Transition.make(model.route, nextRoute)
+      const informPeopleRoute = Transition.matchOrElse<Step>()(
+        transition,
+        'People',
+        {
+          Entered: peopleRoute => foldPeopleRouteChanged(peopleRoute),
+          Stayed: ({ nextRoute }) => foldPeopleRouteChanged(nextRoute),
+        },
+        () => keepModel,
       )
 
-      return Update.combine(model, [setRoute(nextRoute), ...routeSteps])
+      return Update.combine(model, [setRoute(nextRoute), informPeopleRoute])
     },
 
     EnteredNavigationShortcut: ({ shortcut }) => {
