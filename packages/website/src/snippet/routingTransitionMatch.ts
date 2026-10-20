@@ -21,12 +21,15 @@ const keepModel: RouteStep = model => ({ model })
 const reconcilePeopleRoute = (
   transition: Transition.Transition<AppRoute>,
 ): RouteStep =>
-  Transition.match<RouteStep>()(transition, 'People', {
-    Entered: loadPeople,
-    Exited: () => keepModel,
-    Stayed: ({ previousRoute, nextRoute }) =>
-      Equal.equals(previousRoute.searchText, nextRoute.searchText)
-        ? keepModel
-        : loadPeople(nextRoute),
-    Unrelated: () => keepModel,
-  })
+  Transition.matchOrElse<RouteStep>()(
+    transition,
+    'People',
+    {
+      Entered: loadPeople,
+      Stayed: ({ previousRoute, nextRoute }) =>
+        Equal.equals(previousRoute.searchText, nextRoute.searchText)
+          ? keepModel
+          : loadPeople(nextRoute),
+    },
+    () => keepModel,
+  )

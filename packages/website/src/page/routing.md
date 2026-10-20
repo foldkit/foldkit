@@ -202,21 +202,19 @@ Every helper that takes a tag answers for one named route. When several routes h
 
 ### Match Route Transition Cases
 
-`Transition.match` classifies a transition as `Entered`, `Exited`, `Stayed`, or `Unrelated` for one route tag. Handler payloads are narrowed to that Route variant. Use `Transition.match<RouteStep>()(...)` to require every handler to return the same Step type while inferring the Route and tag:
+`Transition.match` requires handlers for `Entered`, `Exited`, `Stayed`, and `Unrelated`; use it when each case has its own policy. `Transition.matchOrElse` accepts selected handlers and uses one fallback for the omitted cases. Both narrow handler payloads to the selected Route tag. Their `<RouteStep>()(...)` form requires every handler and fallback to return the same Step type while inferring the Route and tag:
 
 `Transition` uses parsed Route values; it does not inspect the raw URL. The `People.searchText` field below comes from `Route.query`, so changing it produces `Stayed`. The handler compares both values and fetches only when they differ. Query parameters omitted from the Route Schema are unavailable to a Transition. The snippet reuses `AppRoute`, `Model`, `Message`, and `FetchPeople` from the cold-load policy above.
 
 ::Snippet{name="routingTransitionMatch" label="Route transition policy"}
 
-`Transition.matchOrElse<RouteStep>()(...)` accepts selected cases and uses one fallback for the rest.
-
 ### Detect Route Exits
 
-`Transition.exited(transition, tag)` returns the route the transition left, narrowed to the tag, and `Transition.exitedAny` is its whichever-route form. Exits are for one-shot Commands on the way out, saving a draft, recording that a visit ended. They are not for tearing down things that live while a route is active: listeners, timers, and handles belong to a [Subscription](/core/subscriptions) or [ManagedResource](/core/managed-resources) condition on the Model, which also ends them when the route state disappears for reasons other than navigation.
+`Transition.exited(transition, tag)` returns the route the transition left, narrowed to the tag, and `Transition.exitedAny` is its whichever-route form. Use `Transition.isExiting` when the payload is unnecessary. Exits are for one-shot Commands on the way out, saving a draft, recording that a visit ended. They are not for tearing down things that live while a route is active: listeners, timers, and handles belong to a [Subscription](/core/subscriptions) or [ManagedResource](/core/managed-resources) condition on the Model, which also ends them when the route state disappears for reasons other than navigation.
 
 ### Compare Within-Route Changes
 
-`Transition.stayed(transition, tag)` returns both sides of a within-route navigation, narrowed to the tag: `Some({ previousRoute, nextRoute })` when the transition stayed on that route, `Option.none()` when it entered it, left it, or never touched it. A cold load stays nowhere. Reach for it when the previous payload matters, comparing a detail id or diffing query parameters; when only the next value matters, the `ChangedUrl` handler already has the next route. Staying has no whichever-route form: without a tag the two sides could not narrow to the same route variant together, so matching on one would leave the other typed as the whole union.
+`Transition.stayed(transition, tag)` returns both sides of a within-route navigation, narrowed to the tag: `Some({ previousRoute, nextRoute })` when the transition stayed on that route, `Option.none()` when it entered it, left it, or never touched it. Use `Transition.isStaying` when both payloads are unnecessary. A cold load stays nowhere. Reach for `stayed` when the previous payload matters, comparing a detail id or diffing query parameters; when only the next value matters, the `ChangedUrl` handler already has the next route. Staying has no whichever-route form: without a tag the two sides could not narrow to the same route variant together, so matching on one would leave the other typed as the whole union.
 
 ::Snippet{name="routingExitedStayed" label="Exited and stayed"}
 
