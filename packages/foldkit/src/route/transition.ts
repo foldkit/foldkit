@@ -145,8 +145,8 @@ export const isEntering = <
   routeTag: Tag,
 ): boolean => Option.isSome(entered(transition, routeTag))
 
-/** Whether this transition left the selected route. A cold load never exits
- *  a route. Use {@link exited} when the previous payload is needed. */
+/** Whether the transition left the selected route. A cold load never exits.
+ *  Use {@link exited} when its payload is needed. */
 export const isExiting = <
   Route extends Readonly<{ _tag: string }>,
   Tag extends Route['_tag'],
@@ -155,8 +155,8 @@ export const isExiting = <
   routeTag: Tag,
 ): boolean => Option.isSome(exited(transition, routeTag))
 
-/** Whether both routes carry the selected tag, including identical route
- *  values. A cold load never stays. Use {@link stayed} for both payloads. */
+/** Whether both routes have the selected tag. A cold load never stays. Use
+ *  {@link stayed} for both payloads. */
 export const isStaying = <
   Route extends Readonly<{ _tag: string }>,
   Tag extends Route['_tag'],
@@ -165,20 +165,18 @@ export const isStaying = <
   routeTag: Tag,
 ): boolean => Option.isSome(stayed(transition, routeTag))
 
-type Handlers<Route, Entered, Exited, Stayed, Unrelated> = Readonly<{
-  Entered: (nextRoute: Route) => Entered
-  Exited: (previousRoute: Route) => Exited
-  Stayed: (
-    routes: Readonly<{ previousRoute: Route; nextRoute: Route }>,
-  ) => Stayed
-  Unrelated: () => Unrelated
-}>
+/** Handlers for {@link match}, with Route narrowed to the selected tag. */
+export type MatchHandlers<Route, Entered, Exited, Stayed, Unrelated> =
+  Readonly<{
+    Entered: (nextRoute: Route) => Entered
+    Exited: (previousRoute: Route) => Exited
+    Stayed: (
+      routes: Readonly<{ previousRoute: Route; nextRoute: Route }>,
+    ) => Stayed
+    Unrelated: () => Unrelated
+  }>
 
-/** Selects exactly one handler relative to a route tag. A cold load enters
- *  the selected route or is unrelated. Both matching tags mean Stayed,
- *  regardless of payload equality. Handlers receive narrowed route payloads
- *  and run synchronously; their return types are preserved as a union. */
-export const match = <
+const matchTransition = <
   Route extends Readonly<{ _tag: string }>,
   Tag extends Route['_tag'],
   Entered,
@@ -188,7 +186,7 @@ export const match = <
 >(
   transition: Transition<Route>,
   routeTag: Tag,
-  handlers: Handlers<
+  handlers: MatchHandlers<
     Extract<Route, { _tag: Tag }>,
     Entered,
     Exited,
@@ -216,9 +214,74 @@ export const match = <
   }
 }
 
-/** Like {@link match}, but invokes the fallback when the selected case has
- *  no handler. Only one callback runs, even when its result is undefined. */
-export const matchOrElse = <
+/** Runs exactly one handler for the selected route tag. A cold load is
+ *  `Entered` or `Unrelated`. When both routes have the selected tag, the case
+ *  is `Stayed`, even when their payloads differ. Handler routes are narrowed
+ *  to the tag. The direct form infers a union of handler returns.
+ *  `match<Output>()(...)` constrains every handler to `Output` while inferring
+ *  the Route and tag. */
+export function match<Output>(): <
+  Route extends Readonly<{ _tag: string }>,
+  Tag extends Route['_tag'],
+>(
+  transition: Transition<Route>,
+  routeTag: Tag,
+  handlers: MatchHandlers<
+    Extract<Route, { _tag: Tag }>,
+    Output,
+    Output,
+    Output,
+    Output
+  >,
+) => Output
+export function match<
+  Route extends Readonly<{ _tag: string }>,
+  Tag extends Route['_tag'],
+  Entered,
+  Exited,
+  Stayed,
+  Unrelated,
+>(
+  transition: Transition<Route>,
+  routeTag: Tag,
+  handlers: MatchHandlers<
+    Extract<Route, { _tag: Tag }>,
+    Entered,
+    Exited,
+    Stayed,
+    Unrelated
+  >,
+): Entered | Exited | Stayed | Unrelated
+export function match<
+  Route extends Readonly<{ _tag: string }>,
+  Tag extends Route['_tag'],
+  Entered,
+  Exited,
+  Stayed,
+  Unrelated,
+>(
+  transition?: Transition<Route>,
+  routeTag?: Tag,
+  handlers?: MatchHandlers<
+    Extract<Route, { _tag: Tag }>,
+    Entered,
+    Exited,
+    Stayed,
+    Unrelated
+  >,
+): typeof match | Entered | Exited | Stayed | Unrelated {
+  if (
+    transition === undefined ||
+    routeTag === undefined ||
+    handlers === undefined
+  ) {
+    return match
+  }
+
+  return matchTransition(transition, routeTag, handlers)
+}
+
+const matchOrElseTransition = <
   Route extends Readonly<{ _tag: string }>,
   Tag extends Route['_tag'],
   Entered = never,
@@ -230,11 +293,17 @@ export const matchOrElse = <
   transition: Transition<Route>,
   routeTag: Tag,
   handlers: Partial<
-    Handlers<Extract<Route, { _tag: Tag }>, Entered, Exited, Stayed, Unrelated>
+    MatchHandlers<
+      Extract<Route, { _tag: Tag }>,
+      Entered,
+      Exited,
+      Stayed,
+      Unrelated
+    >
   >,
   fallback: () => Fallback,
 ): Entered | Exited | Stayed | Unrelated | Fallback =>
-  match<
+  matchTransition<
     Route,
     Tag,
     Entered | Fallback,
@@ -247,3 +316,74 @@ export const matchOrElse = <
     Stayed: handlers.Stayed ?? fallback,
     Unrelated: handlers.Unrelated ?? fallback,
   })
+
+/** Runs the matching handler, or the fallback when that handler is omitted.
+ *  A handler that returns `undefined` has handled the case. The direct form
+ *  infers a union of callback returns. `matchOrElse<Output>()(...)` constrains
+ *  every callback to `Output` while inferring the Route and tag. */
+export function matchOrElse<Output>(): <
+  Route extends Readonly<{ _tag: string }>,
+  Tag extends Route['_tag'],
+>(
+  transition: Transition<Route>,
+  routeTag: Tag,
+  handlers: Partial<
+    MatchHandlers<Extract<Route, { _tag: Tag }>, Output, Output, Output, Output>
+  >,
+  fallback: () => Output,
+) => Output
+export function matchOrElse<
+  Route extends Readonly<{ _tag: string }>,
+  Tag extends Route['_tag'],
+  Entered = never,
+  Exited = never,
+  Stayed = never,
+  Unrelated = never,
+  Fallback = never,
+>(
+  transition: Transition<Route>,
+  routeTag: Tag,
+  handlers: Partial<
+    MatchHandlers<
+      Extract<Route, { _tag: Tag }>,
+      Entered,
+      Exited,
+      Stayed,
+      Unrelated
+    >
+  >,
+  fallback: () => Fallback,
+): Entered | Exited | Stayed | Unrelated | Fallback
+export function matchOrElse<
+  Route extends Readonly<{ _tag: string }>,
+  Tag extends Route['_tag'],
+  Entered,
+  Exited,
+  Stayed,
+  Unrelated,
+  Fallback,
+>(
+  transition?: Transition<Route>,
+  routeTag?: Tag,
+  handlers?: Partial<
+    MatchHandlers<
+      Extract<Route, { _tag: Tag }>,
+      Entered,
+      Exited,
+      Stayed,
+      Unrelated
+    >
+  >,
+  fallback?: () => Fallback,
+): typeof matchOrElse | Entered | Exited | Stayed | Unrelated | Fallback {
+  if (
+    transition === undefined ||
+    routeTag === undefined ||
+    handlers === undefined ||
+    fallback === undefined
+  ) {
+    return matchOrElse
+  }
+
+  return matchOrElseTransition(transition, routeTag, handlers, fallback)
+}
