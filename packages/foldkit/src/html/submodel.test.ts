@@ -505,7 +505,9 @@ describe('h.submodel', () => {
         view: childView,
         toParentMessage: message => GotChild({ entryId: 'shared', message }),
       }),
-    ).toThrow(/duplicate h\.submodel slotId "shared"/)
+    ).toThrow(
+      /duplicate h\.submodel slotId "shared".*First registration:.*submodel\.test\.ts:\d+:\d+\n  Second registration:.*submodel\.test\.ts:\d+:\d+/s,
+    )
     expect(() =>
       submodel({
         slotId: 'shared',

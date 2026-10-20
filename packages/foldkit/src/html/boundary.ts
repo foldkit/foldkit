@@ -39,7 +39,7 @@ type BoundaryWrapTransaction = Readonly<{
 
 /** @internal Registration metadata retained by a lazy VNode cache entry. */
 export type TrackedBoundaryWrap = Readonly<{
-  callSite: string
+  callSite: Error
   descriptor: WrapDescriptor
   mountOuterDispatch: DispatchSync
 }>
@@ -92,9 +92,9 @@ const splitBoundary = (boundaryId: BoundaryId): ReadonlyArray<string> =>
  *  `seenThisRender` tracks boundaries marked alive during the current
  *  render for duplicate-slotId detection: two `h.submodel` calls
  *  inside the same parent boundary must use different `slotId`s.
- *  Values are the call site captured at register time, surfaced when a
- *  second register collides so both locations land in the throw
- *  message. The map is cleared at the start of each render via
+ *  Values are captured Errors, formatted only when a second registration
+ *  collides so both locations land in the throw message. The map is cleared at
+ *  the start of each render via
  *  `beginRender`. Boundaries behind a `createLazy`/`createKeyedLazy`
  *  cache hit are replayed into this map via
  *  {@link restoreBoundaryWrapsForLazyHit} so the duplicate-slotId guard
@@ -127,7 +127,7 @@ export type BoundaryRegistry = {
   >
   readonly mountWraps: WeakMap<DispatchSync, Map<BoundaryId, WrapDescriptor>>
   readonly mountWrapOwners: Map<BoundaryId, Set<DispatchSync>>
-  readonly seenThisRender: Map<BoundaryId, string>
+  readonly seenThisRender: Map<BoundaryId, Error>
   readonly lazyTrackingStack: Array<Map<BoundaryId, TrackedBoundaryWrap>>
   readonly boundaryWrapTransactionLog: Array<BoundaryWrapTransactionEntry>
   activeBoundaryWrapTransaction: BoundaryWrapTransaction | undefined
@@ -149,9 +149,10 @@ export const createBoundaryRegistry = (): BoundaryRegistry => ({
   dedupeSeen: new Set(),
 })
 
-const captureCallSite = (): string => {
-  const stack = new Error().stack ?? ''
-  const lines = stack.split('\n')
+const captureCallSite = (): Error => new Error()
+
+const formatCallSite = (error: Error): string => {
+  const lines = error.stack?.split('\n') ?? []
   for (const line of lines) {
     const trimmed = line.trim()
     const isLazyInternalFrame = /[/\\]html[/\\]lazy\.[cm]?[jt]s/.test(trimmed)
@@ -159,6 +160,7 @@ const captureCallSite = (): string => {
       trimmed.length === 0 ||
       trimmed.startsWith('Error') ||
       trimmed.includes('captureCallSite') ||
+      trimmed.includes('formatCallSite') ||
       trimmed.includes('assertBoundaryNotSeen') ||
       trimmed.includes('registerBoundaryWrap') ||
       trimmed.includes('restoreBoundaryWrapsForLazyHit') ||
@@ -184,8 +186,8 @@ const assertBoundaryNotSeen = (
     const newCallSite = captureCallSite()
     throw new Error(
       `Foldkit: duplicate h.submodel slotId "${ownSlotId}" at boundary "${boundaryId}".\n` +
-        `  First registration: ${existingCallSite}\n` +
-        `  Second registration: ${newCallSite}\n` +
+        `  First registration: ${formatCallSite(existingCallSite)}\n` +
+        `  Second registration: ${formatCallSite(newCallSite)}\n` +
         `Each h.submodel call inside the same parent boundary must use a unique \`slotId\`. ` +
         `The slotId is DOM-slot identity, not model identity. If the same model is ` +
         `rendered in two locations (desktop + mobile, master + detail), each slot ` +
@@ -203,11 +205,11 @@ export const registerBoundaryWrap = (
 ): void => {
   assertBoundaryNotSeen(registry, boundaryId)
 
-  // NOTE: compute the call site before writing either map. If
-  // captureCallSite throws (e.g. hardened runtime without
-  // Error.stack), neither map is mutated, so a later registration
-  // with the same slotId throws the duplicate error correctly instead
-  // of silently overwriting after a half-finished prior write.
+  // NOTE: construct the Error before writing either map. If construction
+  // throws, neither map is mutated, so a later registration with the same
+  // slotId throws the duplicate error correctly instead of silently
+  // overwriting after a half-finished prior write. Its stack is formatted
+  // only if a later duplicate registration reports a diagnostic.
   const callSite = captureCallSite()
   writeBoundaryWrap(
     registry,
@@ -223,7 +225,7 @@ const writeBoundaryWrap = (
   boundaryId: BoundaryId,
   descriptor: WrapDescriptor,
   mountOuterDispatch: DispatchSync,
-  callSite: string,
+  callSite: Error,
 ): void => {
   const previousDescriptor = registry.wraps.get(boundaryId)
   const existingMountWraps = registry.mountWraps.get(mountOuterDispatch)
