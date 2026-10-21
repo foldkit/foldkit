@@ -1,10 +1,41 @@
 import { assert, describe, it } from "@effect/vitest"
+import * as Clock from "effect/Clock"
 import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
+import * as Fiber from "effect/Fiber"
+import * as Scheduler from "effect/Scheduler"
 import * as TestClock from "effect/testing/TestClock"
 
 describe("TestClock", () => {
+  for (const cancellation of ["interrupted sleep", "successful timeout"] as const) {
+    it.effect(`adjust - skips the cancelled deadline (${cancellation})`, () =>
+      Effect.gen(function*() {
+        const testClock = yield* TestClock.make()
+        if (cancellation === "interrupted sleep") {
+          const sleeper = yield* testClock.sleep(Duration.minutes(1)).pipe(
+            Effect.forkChild({ startImmediately: true })
+          )
+          yield* Effect.yieldNow
+          yield* Fiber.interrupt(sleeper)
+        } else {
+          yield* Effect.timeout(Effect.yieldNow, "1 minute").pipe(
+            Effect.provideService(Clock.Clock, testClock)
+          )
+        }
+
+        // Record the clock whenever adjustment yields to other fibers
+        const observed = new Set<number>()
+        yield* Effect.sync(() => observed.add(testClock.currentTimeMillisUnsafe())).pipe(
+          Effect.andThen(Effect.yieldNow),
+          Effect.forever,
+          Effect.forkChild
+        )
+        yield* testClock.adjust("2 minutes")
+        assert.isFalse(observed.has(60_000))
+      }))
+  }
+
   it.effect("sleep - does not require passage of wall time", () =>
     Effect.gen(function*() {
       let elapsed = false
@@ -130,6 +161,72 @@ describe("TestClock", () => {
       assert.strictEqual(observed, 1_000_000_000n)
       assert.strictEqual(testClock.monotonicTimeNanosUnsafe(), 2_000_000_000n)
     }))
+
+  it.effect("adjust - runs sleeps registered after a yield", () =>
+    Effect.gen(function*() {
+      let ticks = 0
+      const fiber = yield* Effect.sleep("1 second").pipe(
+        Effect.andThen(Effect.sync(() => {
+          ticks++
+        })),
+        Effect.andThen(Effect.yieldNow),
+        Effect.forever,
+        Effect.forkChild
+      )
+      yield* TestClock.adjust("5 seconds")
+      yield* Fiber.interrupt(fiber)
+      assert.strictEqual(ticks, 5)
+    }))
+
+  it.effect("setTime - runs sleeps registered after a fork and join", () =>
+    Effect.gen(function*() {
+      let ticks = 0
+      const fiber = yield* Effect.sleep("1 second").pipe(
+        Effect.andThen(Effect.sync(() => {
+          ticks++
+        })),
+        Effect.andThen(Effect.forkChild(Effect.yieldNow).pipe(Effect.flatMap(Fiber.join))),
+        Effect.forever,
+        Effect.forkChild
+      )
+      yield* TestClock.setTime(5_000)
+      yield* Fiber.interrupt(fiber)
+      assert.strictEqual(ticks, 5)
+    }))
+
+  it.effect("adjust - completes when a nested clock wakes a busy fiber", () =>
+    Effect.gen(function*() {
+      let later = false
+      yield* Effect.sleep("1 second").pipe(
+        Effect.andThen(Effect.forever(Effect.yieldNow)),
+        Effect.forkChild
+      )
+      yield* Effect.sleep("2 seconds").pipe(
+        Effect.andThen(Effect.sync(() => {
+          later = true
+        })),
+        Effect.forkChild
+      )
+      yield* TestClock.adjust("5 seconds")
+      assert.isTrue(later)
+    }).pipe(Effect.provide(TestClock.layer({ warningDelay: "10 millis" }))))
+
+  it.effect("adjust - waits for woken fibers when the advancing fiber yields on its operation budget", () =>
+    Effect.gen(function*() {
+      let done = false
+      yield* Effect.sleep("1 second").pipe(
+        Effect.andThen(Effect.yieldNow),
+        Effect.andThen(Effect.sync(() => {
+          done = true
+        })),
+        Effect.forkChild
+      )
+      yield* TestClock.adjust("1 second")
+      assert.isTrue(done)
+    }).pipe(
+      Effect.provide(TestClock.layer({ warningDelay: Duration.infinity })),
+      Effect.provideService(Scheduler.MaxOpsBeforeYield, 4)
+    ))
 
   // `it.effect` and `it.live` provide an ambient Scope, defeating the #2244 regression guard.
   it("layer - can adjust when provided without an ambient Scope", () =>

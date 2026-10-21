@@ -4,12 +4,14 @@
  * Provides OpenAI-specific metadata fields for AI error types through module
  * augmentation, enabling typed access to OpenAI error details.
  *
+ * @stability unstable
  * @since 4.0.0
  */
 
 /**
  * OpenAI-specific error metadata fields.
  *
+ * @stability unstable
  * @category models
  * @since 4.0.0
  */
@@ -29,6 +31,25 @@ export type OpenAiErrorMetadata = {
 }
 
 /**
+ * OpenAI-specific content policy metadata fields.
+ *
+ * **Details**
+ *
+ * Extends base error metadata with the names of decisions that OpenAI refused
+ * to answer.
+ *
+ * @stability unstable
+ * @category models
+ * @since 4.0.5
+ */
+export type OpenAiContentPolicyMetadata = OpenAiErrorMetadata & {
+  /**
+   * Names of the decisions that came back as refusals.
+   */
+  readonly refusedDecisions?: Array<string>
+}
+
+/**
  * OpenAI-specific rate limit metadata fields.
  *
  * **Details**
@@ -36,6 +57,7 @@ export type OpenAiErrorMetadata = {
  * Extends base error metadata with rate limit specific information from
  * OpenAI's rate limit headers.
  *
+ * @stability unstable
  * @category models
  * @since 4.0.0
  */
@@ -129,7 +151,7 @@ declare module "effect/ai/AiError" {
     /**
      * OpenAI-specific details for the content policy response.
      */
-    readonly openai?: OpenAiErrorMetadata | null
+    readonly openai?: OpenAiContentPolicyMetadata | null
   }
 
   /**

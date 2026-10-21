@@ -7,6 +7,7 @@
  * from common input shapes, unit conversions, comparisons, arithmetic,
  * formatting, and reusable reducer or combiner helpers.
  *
+ * @stability stable
  * @since 2.0.0
  */
 import * as Combiner from "./Combiner.ts"
@@ -35,10 +36,12 @@ const bigint1e3 = BigInt(1_000)
 const bigint1e6 = BigInt(1_000_000)
 const bigint1e9 = BigInt(1_000_000_000)
 
-const roundTiesAwayFromZero = (input: number): bigint =>
-  BigInt(input < 0 ? Math.ceil(input - 0.5) : Math.floor(input + 0.5))
+const roundTiesAwayFromZero = (input: number): bigint => BigInt(Math.sign(input) * Math.round(Math.abs(input)))
 
-const roundMillisToNanos = (millis: number): bigint => roundTiesAwayFromZero(millis * 1_000_000)
+const roundMillisToNanos = (millis: number): bigint =>
+  Number.isInteger(millis) ? BigInt(millis) * bigint1e6 : roundTiesAwayFromZero(millis * 1_000_000)
+
+const fromNanosNumber = (nanos: number): Duration => make(Number.isFinite(nanos) ? roundTiesAwayFromZero(nanos) : nanos)
 
 const parseNanos = (input: string, scale: bigint): bigint => {
   const decimalIndex = input.indexOf(".")
@@ -50,9 +53,13 @@ const parseNanos = (input: string, scale: bigint): bigint => {
   const scaled = (
     BigInt(input.slice(isNegative ? 1 : 0, decimalIndex)) * fractionalScale + BigInt(fractional)
   ) * scale
-  const rounded = scaled / fractionalScale +
-    (scaled % fractionalScale * bigint2 >= fractionalScale ? bigint1 : bigint0)
-  return isNegative ? -rounded : rounded
+  return divideTiesAwayFromZero(isNegative ? -scaled : scaled, fractionalScale)
+}
+
+const divideTiesAwayFromZero = (numerator: bigint, denominator: bigint): bigint => {
+  const absolute = numerator < bigint0 ? -numerator : numerator
+  const rounded = absolute / denominator + (absolute % denominator * bigint2 >= denominator ? bigint1 : bigint0)
+  return numerator < bigint0 ? -rounded : rounded
 }
 
 const nanosToHrTime = (nanos: bigint): [seconds: number, nanos: number] => {
@@ -78,6 +85,7 @@ const nanosToHrTime = (nanos: bigint): [seconds: number, nanos: number] => {
  * @see {@link DurationValue} for the tagged representation exposed by the
  * `value` field
  *
+ * @stability stable
  * @category models
  * @since 2.0.0
  */
@@ -104,6 +112,7 @@ export interface Duration extends Equal.Equal, Pipeable, Inspectable.Inspectable
  * representation
  * @see {@link match} for pattern matching without reading `value` directly
  *
+ * @stability stable
  * @category models
  * @since 2.0.0
  */
@@ -123,6 +132,7 @@ export type DurationValue =
  *
  * @see {@link Input} for the full duration input union
  *
+ * @stability stable
  * @category models
  * @since 2.0.0
  */
@@ -166,6 +176,7 @@ export type Unit =
  * @see {@link DurationObject} for object-shaped duration input
  * @see {@link Unit} for supported string units
  *
+ * @stability stable
  * @category models
  * @since 4.0.0
  */
@@ -197,6 +208,7 @@ export type Input =
  * Duration.fromInputUnsafe({ seconds: 1, nanoseconds: 500 }) // => Duration.nanos(1_000_000_500n)
  * ```
  *
+ * @stability stable
  * @category models
  * @since 4.0.0
  */
@@ -236,6 +248,7 @@ const DURATION_REGEXP = /^(-?\d+(?:\.\d+)?)\s+(nanos?|micros?|millis?|seconds?|m
  * Duration.fromInputUnsafe([2, 500_000_000]) // => Duration.nanos(2_500_000_000n)
  * ```
  *
+ * @stability stable
  * @category constructors
  * @since 4.0.0
  */
@@ -300,7 +313,7 @@ export const fromInputUnsafe = (input: Input): Duration => {
         if (input[0] === Infinity || input[1] === Infinity) {
           return infinity
         }
-        return make(roundTiesAwayFromZero(input[0] * 1_000_000_000 + input[1]))
+        return fromNanosNumber(input[0] * 1_000_000_000 + input[1])
       }
       const obj = input as DurationObject
       let millis = 0
@@ -312,9 +325,7 @@ export const fromInputUnsafe = (input: Input): Duration => {
       if (obj.seconds) millis += obj.seconds * 1_000
       if (obj.milliseconds) millis += obj.milliseconds
       if (!obj.microseconds && !obj.nanoseconds) return make(millis)
-      return make(roundTiesAwayFromZero(
-        millis * 1_000_000 + (obj.microseconds ?? 0) * 1_000 + (obj.nanoseconds ?? 0)
-      ))
+      return fromNanosNumber(millis * 1_000_000 + (obj.microseconds ?? 0) * 1_000 + (obj.nanoseconds ?? 0))
     }
   }
   return invalid(input)
@@ -337,6 +348,7 @@ const invalid = (input: unknown): never => {
  * Duration.fromInput("invalid" as any) // => Option.none()
  * ```
  *
+ * @stability stable
  * @category constructors
  * @since 4.0.0
  */
@@ -354,10 +366,8 @@ const DurationProto: Omit<Duration, "value"> = {
     // Hash equal finite durations using the same canonical nanoseconds
     // representation used by `equals`.
     switch (this.value._tag) {
-      case "Millis": {
-        const nanos = this.value.millis * 1_000_000
-        return Number.isFinite(nanos) ? Hash.hash(roundTiesAwayFromZero(nanos)) : Hash.number(this.value.millis)
-      }
+      case "Millis":
+        return Hash.hash(roundMillisToNanos(this.value.millis))
       case "Nanos":
         return Hash.hash(this.value.nanos)
       default:
@@ -431,6 +441,7 @@ const make = (input: number | bigint): Duration => {
  * Duration.isDuration(1000) // => false
  * ```
  *
+ * @stability stable
  * @category guards
  * @since 2.0.0
  */
@@ -448,6 +459,7 @@ export const isDuration = (u: unknown): u is Duration => hasProperty(u, TypeId)
  * Duration.isFinite(Duration.infinity) // => false
  * ```
  *
+ * @stability stable
  * @category predicates
  * @since 2.0.0
  */
@@ -466,6 +478,7 @@ export const isFinite = (self: Duration): boolean =>
  * Duration.isZero(Duration.seconds(1)) // => false
  * ```
  *
+ * @stability stable
  * @category predicates
  * @since 3.5.0
  */
@@ -494,6 +507,7 @@ export const isZero = (self: Duration): boolean => {
  * Duration.isNegative(Duration.negativeInfinity) // => true
  * ```
  *
+ * @stability stable
  * @category predicates
  * @since 4.0.0
  */
@@ -523,6 +537,7 @@ export const isNegative = (self: Duration): boolean => {
  * Duration.isPositive(Duration.infinity) // => true
  * ```
  *
+ * @stability stable
  * @category predicates
  * @since 4.0.0
  */
@@ -551,6 +566,7 @@ export const isPositive = (self: Duration): boolean => {
  * Duration.abs(Duration.negativeInfinity) // => Duration.infinity
  * ```
  *
+ * @stability stable
  * @category math
  * @since 4.0.0
  */
@@ -578,6 +594,7 @@ export const abs = (self: Duration): Duration => {
  * Duration.negate(Duration.infinity) // => Duration.negativeInfinity
  * ```
  *
+ * @stability stable
  * @category math
  * @since 4.0.0
  */
@@ -605,6 +622,7 @@ export const negate = (self: Duration): Duration => {
  * Duration.toMillis(Duration.zero) // => 0
  * ```
  *
+ * @stability stable
  * @category constructors
  * @since 2.0.0
  */
@@ -621,6 +639,7 @@ export const zero: Duration = make(0)
  * Duration.toMillis(Duration.infinity) // => Infinity
  * ```
  *
+ * @stability stable
  * @category constructors
  * @since 2.0.0
  */
@@ -637,6 +656,7 @@ export const infinity: Duration = make(Infinity)
  * Duration.toMillis(Duration.negativeInfinity) // => -Infinity
  * ```
  *
+ * @stability stable
  * @category constructors
  * @since 4.0.0
  */
@@ -653,6 +673,7 @@ export const negativeInfinity: Duration = make(-Infinity)
  * Duration.nanos(500_000_000n) // => Duration.nanos(500_000_000n)
  * ```
  *
+ * @stability stable
  * @category constructors
  * @since 2.0.0
  */
@@ -669,6 +690,7 @@ export const nanos = (nanos: bigint): Duration => make(nanos)
  * Duration.micros(500_000n) // => Duration.nanos(500_000_000n)
  * ```
  *
+ * @stability stable
  * @category constructors
  * @since 2.0.0
  */
@@ -685,6 +707,7 @@ export const micros = (micros: bigint): Duration => make(micros * bigint1e3)
  * Duration.toMillis(Duration.millis(1000)) // => 1000
  * ```
  *
+ * @stability stable
  * @category constructors
  * @since 2.0.0
  */
@@ -701,6 +724,7 @@ export const millis = (millis: number): Duration => make(millis)
  * Duration.toMillis(Duration.seconds(30)) // => 30_000
  * ```
  *
+ * @stability stable
  * @category constructors
  * @since 2.0.0
  */
@@ -717,6 +741,7 @@ export const seconds = (seconds: number): Duration => make(seconds * 1000)
  * Duration.toMillis(Duration.minutes(5)) // => 300_000
  * ```
  *
+ * @stability stable
  * @category constructors
  * @since 2.0.0
  */
@@ -733,6 +758,7 @@ export const minutes = (minutes: number): Duration => make(minutes * 60_000)
  * Duration.toMillis(Duration.hours(2)) // => 7_200_000
  * ```
  *
+ * @stability stable
  * @category constructors
  * @since 2.0.0
  */
@@ -749,6 +775,7 @@ export const hours = (hours: number): Duration => make(hours * 3_600_000)
  * Duration.toMillis(Duration.days(1)) // => 86_400_000
  * ```
  *
+ * @stability stable
  * @category constructors
  * @since 2.0.0
  */
@@ -765,6 +792,7 @@ export const days = (days: number): Duration => make(days * 86_400_000)
  * Duration.toMillis(Duration.weeks(1)) // => 604_800_000
  * ```
  *
+ * @stability stable
  * @category constructors
  * @since 2.0.0
  */
@@ -782,6 +810,7 @@ export const weeks = (weeks: number): Duration => make(weeks * 604_800_000)
  * Duration.toMillis(Duration.minutes(2)) // => 120_000
  * ```
  *
+ * @stability stable
  * @category getters
  * @since 2.0.0
  */
@@ -805,6 +834,7 @@ export const toMillis = (self: Input): number =>
  * Duration.toSeconds(Duration.minutes(2)) // => 120
  * ```
  *
+ * @stability stable
  * @category getters
  * @since 2.0.0
  */
@@ -828,6 +858,7 @@ export const toSeconds = (self: Input): number =>
  * Duration.toMinutes(Duration.hours(1)) // => 60
  * ```
  *
+ * @stability stable
  * @category getters
  * @since 3.8.0
  */
@@ -851,6 +882,7 @@ export const toMinutes = (self: Input): number =>
  * Duration.toHours(Duration.days(1)) // => 24
  * ```
  *
+ * @stability stable
  * @category getters
  * @since 3.8.0
  */
@@ -874,6 +906,7 @@ export const toHours = (self: Input): number =>
  * Duration.toDays(Duration.weeks(1)) // => 7
  * ```
  *
+ * @stability stable
  * @category getters
  * @since 3.8.0
  */
@@ -897,6 +930,7 @@ export const toDays = (self: Input): number =>
  * Duration.toWeeks(Duration.days(7)) // => 1
  * ```
  *
+ * @stability stable
  * @category getters
  * @since 3.8.0
  */
@@ -936,6 +970,7 @@ export const toWeeks = (self: Input): number =>
  * // throws Error: "Cannot convert infinite duration to nanos"
  * ```
  *
+ * @stability stable
  * @category getters
  * @since 4.0.0
  */
@@ -968,6 +1003,7 @@ export const toNanosUnsafe = (input: Input): bigint => {
  * Duration.toNanos(Duration.infinity) // => Option.none()
  * ```
  *
+ * @stability stable
  * @category getters
  * @since 2.0.0
  */
@@ -984,6 +1020,7 @@ export const toNanos: (self: Input) => Option.Option<bigint> = Option.liftThrowa
  * Duration.toHrTime(Duration.millis(1500)) // => [1, 500_000_000]
  * ```
  *
+ * @stability stable
  * @category getters
  * @since 2.0.0
  */
@@ -1022,6 +1059,7 @@ export const toHrTime = (input: Input): [seconds: number, nanos: number] => {
  * }) // => "5000 milliseconds"
  * ```
  *
+ * @stability stable
  * @category pattern matching
  * @since 2.0.0
  */
@@ -1079,6 +1117,7 @@ export const match: {
  * }) // => 5000
  * ```
  *
+ * @stability stable
  * @category pattern matching
  * @since 4.0.0
  */
@@ -1142,6 +1181,7 @@ export const matchPair: {
  * durations.sort((a, b) => Duration.Order(a, b)).map(Duration.toSeconds) // => [1, 2, 3]
  * ```
  *
+ * @stability stable
  * @category instances
  * @since 2.0.0
  */
@@ -1193,6 +1233,7 @@ export const Order: order.Order<Duration> = order.make((self, that) =>
  * @see {@link isGreaterThanOrEqualTo} for checking only the lower bound
  * @see {@link isLessThanOrEqualTo} for checking only the upper bound
  *
+ * @stability stable
  * @category predicates
  * @since 2.0.0
  */
@@ -1212,6 +1253,7 @@ export const between: {
  * Duration.Equivalence(Duration.seconds(5), Duration.millis(5000)) // => true
  * ```
  *
+ * @stability stable
  * @category instances
  * @since 2.0.0
  */
@@ -1233,6 +1275,7 @@ export const Equivalence: Equ.Equivalence<Duration> = (self, that) =>
  * Duration.min(Duration.seconds(5), Duration.seconds(3)) // => Duration.seconds(3)
  * ```
  *
+ * @stability stable
  * @category ordering
  * @since 2.0.0
  */
@@ -1252,6 +1295,7 @@ export const min: {
  * Duration.max(Duration.seconds(5), Duration.seconds(3)) // => Duration.seconds(5)
  * ```
  *
+ * @stability stable
  * @category ordering
  * @since 2.0.0
  */
@@ -1274,6 +1318,7 @@ export const max: {
  * }) // => Duration.seconds(5)
  * ```
  *
+ * @stability stable
  * @category ordering
  * @since 2.0.0
  */
@@ -1300,6 +1345,7 @@ export const clamp: {
  * Duration.divide(Duration.seconds(10), 0) // => Option.none()
  * ```
  *
+ * @stability stable
  * @category math
  * @since 2.4.19
  */
@@ -1352,6 +1398,7 @@ export const divide: {
  * Duration.divideUnsafe(Duration.seconds(10), 0) // => Duration.infinity
  * ```
  *
+ * @stability stable
  * @category math
  * @since 4.0.0
  */
@@ -1389,8 +1436,8 @@ export const divideUnsafe: {
  *
  * **Details**
  *
- * For nanosecond-backed durations, the multiplier must be convertible to a
- * `bigint`; fractional or non-finite multipliers can throw. Infinite
+ * Fractional multipliers on nanosecond-backed durations round the result to
+ * the nearest nanosecond, with ties rounding away from zero. Infinite
  * durations return positive infinity, negative infinity, or zero depending on
  * the multiplier sign.
  *
@@ -1402,6 +1449,7 @@ export const divideUnsafe: {
  * Duration.times(Duration.seconds(5), 2) // => Duration.seconds(10)
  * ```
  *
+ * @stability stable
  * @category math
  * @since 2.0.0
  */
@@ -1413,7 +1461,24 @@ export const times: {
   (self: Duration, times: number): Duration =>
     match(self, {
       onMillis: (millis) => make(millis * times),
-      onNanos: (nanos) => make(nanos * BigInt(times)),
+      onNanos: (nanos) => {
+        if (Number.isInteger(times)) return make(nanos * BigInt(times))
+        const nanosNumber = Number(nanos)
+        const scaled = nanosNumber * times
+        if (
+          !Number.isFinite(times) ||
+          (Number.isSafeInteger(nanosNumber) && Math.abs(scaled) <= Number.MAX_SAFE_INTEGER)
+        ) {
+          return fromNanosNumber(scaled)
+        }
+        let numerator = times
+        let denominator = bigint1
+        while (!Number.isInteger(numerator)) {
+          numerator *= 2
+          denominator *= bigint2
+        }
+        return make(divideTiesAwayFromZero(nanos * BigInt(numerator), denominator))
+      },
       onInfinity: () => times > 0 ? infinity : times < 0 ? negativeInfinity : zero,
       onNegativeInfinity: () => times > 0 ? negativeInfinity : times < 0 ? infinity : zero
     })
@@ -1439,6 +1504,7 @@ export const times: {
  * Duration.subtract(Duration.seconds(10), Duration.seconds(3)) // => Duration.seconds(7)
  * ```
  *
+ * @stability stable
  * @category math
  * @since 2.0.0
  */
@@ -1482,6 +1548,7 @@ export const subtract: {
  * Duration.sum(Duration.seconds(5), Duration.seconds(3)) // => Duration.seconds(8)
  * ```
  *
+ * @stability stable
  * @category math
  * @since 2.0.0
  */
@@ -1518,6 +1585,7 @@ export const sum: {
  * Duration.isLessThan(Duration.seconds(3), Duration.seconds(5)) // => true
  * ```
  *
+ * @stability stable
  * @category predicates
  * @since 4.0.0
  */
@@ -1540,6 +1608,7 @@ export const isLessThan: {
  * ) // => true
  * ```
  *
+ * @stability stable
  * @category predicates
  * @since 4.0.0
  */
@@ -1559,6 +1628,7 @@ export const isLessThanOrEqualTo: {
  * Duration.isGreaterThan(Duration.seconds(5), Duration.seconds(3)) // => true
  * ```
  *
+ * @stability stable
  * @category predicates
  * @since 4.0.0
  */
@@ -1581,6 +1651,7 @@ export const isGreaterThan: {
  * ) // => true
  * ```
  *
+ * @stability stable
  * @category predicates
  * @since 4.0.0
  */
@@ -1600,6 +1671,7 @@ export const isGreaterThanOrEqualTo: {
  * Duration.equals(Duration.seconds(5), Duration.millis(5000)) // => true
  * ```
  *
+ * @stability stable
  * @category predicates
  * @since 2.0.0
  */
@@ -1636,6 +1708,7 @@ export const equals: {
  * Duration.parts(complex) // => ({ days: 1, hours: 2, minutes: 30, seconds: 0, millis: 0, nanos: 0 })
  * ```
  *
+ * @stability stable
  * @category converting
  * @since 3.8.0
  */
@@ -1700,6 +1773,7 @@ export const parts = (self: Duration): {
  * Duration.format(Duration.millis(1001)) // => "1s 1ms"
  * ```
  *
+ * @stability stable
  * @category converting
  * @since 2.0.0
  */
@@ -1762,6 +1836,7 @@ export const format = (self: Duration): string => {
  * @see {@link CombinerMax} for keeping the longest duration instead of summing
  * @see {@link CombinerMin} for keeping the shortest duration instead of summing
  *
+ * @stability stable
  * @category math
  * @since 4.0.0
  */
@@ -1777,6 +1852,7 @@ export const ReducerSum: Reducer.Reducer<Duration> = Reducer.make(sum, zero)
  * @see {@link CombinerMin} for keeping the shortest `Duration`
  * @see {@link max} for comparing two `Duration` values directly
  *
+ * @stability stable
  * @category math
  * @since 4.0.0
  */
@@ -1792,6 +1868,7 @@ export const CombinerMax: Combiner.Combiner<Duration> = Combiner.max(Order)
  * @see {@link CombinerMax} for keeping the longest `Duration`
  * @see {@link min} for comparing two `Duration` values directly
  *
+ * @stability stable
  * @category math
  * @since 4.0.0
  */

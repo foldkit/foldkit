@@ -272,3 +272,127 @@ jobs:
       - name: E2E smoke test
         if: steps.scope.outputs.website == 'true'
         run: pnpm --filter website test:e2e
+  effect-core-peer-floor:
+    name: Effect 4.0.0 compatibility for package peers
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install latest workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build latest Foldkit and Vite plugin
+        run: pnpm --filter foldkit build && pnpm --filter @foldkit/vite-plugin build
+
+      - name: Configure Effect 4.0.0 floor
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs'
+
+          const workspacePath = 'pnpm-workspace.yaml'
+          const floorOverrides = new Set([
+            '  effect: 4.0.5',
+            "  '@effect/platform-browser': 4.0.5",
+            "  '@effect/platform-node': 4.0.5",
+            "  '@effect/platform-node-shared': 4.0.5",
+            "  '@effect/vitest': 4.0.5",
+          ])
+          const workspace = readFileSync(workspacePath, 'utf8')
+          const removedOverrides = new Set()
+          const floorWorkspace = workspace
+            .split('\n')
+            .filter((line) => {
+              if (!floorOverrides.has(line)) return true
+              removedOverrides.add(line)
+              return false
+            })
+            .join('\n')
+          const missingOverrides = [...floorOverrides].filter(
+            (line) => !removedOverrides.has(line),
+          )
+          if (missingOverrides.length > 0) {
+            throw new Error(
+              `Expected Effect overrides not found: ${missingOverrides.join(', ')}`,
+            )
+          }
+
+          const anchor = "  '@types/node': 26.4.0\n"
+          if (floorWorkspace.split(anchor).length - 1 !== 1) {
+            throw new Error('Expected exactly one @types/node workspace anchor')
+          }
+          const floorNodeOverride =
+            "  '@effect/platform-node@4.0.0>@effect/platform-node-shared': 4.0.0\n"
+          const configuredWorkspace = floorWorkspace.replace(
+            anchor,
+            `${anchor}${floorNodeOverride}`,
+          )
+          if (configuredWorkspace === floorWorkspace) {
+            throw new Error('Failed to add the Effect 4.0.0 platform-node override')
+          }
+          if (!configuredWorkspace.includes(anchor + floorNodeOverride)) {
+            throw new Error(
+              'Failed to insert the Effect 4.0.0 platform-node override after @types/node',
+            )
+          }
+          writeFileSync(workspacePath, configuredWorkspace)
+
+          const foldkitPath = 'packages/foldkit/package.json'
+          const foldkit = JSON.parse(readFileSync(foldkitPath, 'utf8'))
+          foldkit.devDependencies.effect = '4.0.0'
+          foldkit.devDependencies['@effect/platform-browser'] = '4.0.0'
+          foldkit.devDependencies['@effect/vitest'] = '4.0.0'
+          writeFileSync(foldkitPath, `${JSON.stringify(foldkit, null, 2)}\n`)
+          NODE
+
+      - name: Install Effect 4.0.0 floor dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      # MCP tests exercise the Vite plugin, which requires Effect 4.0.5.
+      - name: Build packages
+        run: |
+          pnpm --filter foldkit build &&
+          pnpm --filter @foldkit/ui build &&
+          pnpm --filter @foldkit/devtools build &&
+          pnpm --filter @foldkit/markdown build &&
+          pnpm --filter @foldkit/node build
+
+      - name: Typecheck packages
+        run: |
+          pnpm --filter foldkit typecheck &&
+          pnpm --filter @foldkit/ui typecheck &&
+          pnpm --filter @foldkit/devtools typecheck &&
+          pnpm --filter @foldkit/markdown typecheck &&
+          pnpm --filter @foldkit/node typecheck
+
+      - name: Test packages
+        run: |
+          pnpm --filter foldkit test &&
+          pnpm --filter @foldkit/ui test &&
+          pnpm --filter @foldkit/devtools test &&
+          pnpm --filter @foldkit/markdown test &&
+          pnpm --filter @foldkit/node test
+
+      - name: Verify Effect 4.0.0 resolution
+        run: |
+          pnpm --filter foldkit why effect
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs'
+
+          const effect = JSON.parse(
+            readFileSync('packages/foldkit/node_modules/effect/package.json', 'utf8'),
+          )
+          if (effect.version !== '4.0.0') {
+            throw new Error(`Expected foldkit to resolve Effect 4.0.0, got ${effect.version}`)
+          }
+          console.log(`foldkit resolves Effect ${effect.version}`)
+          NODE

@@ -34,7 +34,7 @@ const engineLayer: Layer.Layer<ComputeEngineService> = Layer.effect(
   Effect.acquireRelease(
     Effect.gen(function* () {
       const crypto = yield* Crypto.Crypto
-      const id = yield* Effect.orDie(crypto.randomUUIDv4)
+      const id = yield* Effect.orDie(crypto.randomUUIDv4())
       const engineId = `engine-${id.slice(0, 8)}`
       return { engineId, square: (value: number) => value * value }
     }).pipe(Effect.provide(BrowserCrypto.layer)),

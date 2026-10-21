@@ -4,10 +4,10 @@ import { describe, expect, test } from 'vitest'
 import foldkitPackageJson from '../../../foldkit/package.json?raw'
 import getStartedSource from './getStarted.md?raw'
 
-// NOTE: The install instructions pin an exact Effect release. The nightly
-// Effect-bump job rewrites package.json and pnpm-workspace.yaml but not prose,
-// so without this guard the getting-started version silently drifts from what
-// Foldkit ships.
+// NOTE: The install instructions name the minimum stable Effect release in the
+// supported range. The nightly Effect-bump job rewrites package.json and
+// pnpm-workspace.yaml but not prose, so without this guard the getting-started
+// version silently drifts from what Foldkit supports.
 const FoldkitPackageJson = Schema.Struct({
   peerDependencies: Schema.Struct({ effect: Schema.String }),
 })
@@ -17,10 +17,10 @@ const { peerDependencies } = Schema.decodeUnknownSync(FoldkitPackageJson)(
 )
 
 const EFFECT_VERSION_PATTERN =
-  /(?<=effect@|@effect\/platform-browser@)\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?/g
+  /(?<=effect@|@effect\/platform-browser@)\^?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?/g
 
 describe('getting started install instructions', () => {
-  test('pin the exact Effect release that Foldkit depends on', () => {
+  test('name the minimum Effect release that Foldkit supports', () => {
     const mentionedVersions =
       getStartedSource.match(EFFECT_VERSION_PATTERN) ?? []
     const distinctVersions = [...new Set(mentionedVersions)]

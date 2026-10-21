@@ -41,7 +41,7 @@ export const GenerateEntryId = Command.define('GenerateEntryId', {
   messages: [Message.SucceededGenerateEntryId, Message.FailedGenerateEntryId],
   execute: Effect.gen(function* () {
     const crypto = yield* Crypto.Crypto
-    const entryId = yield* crypto.randomUUIDv4
+    const entryId = yield* crypto.randomUUIDv4()
     return Message.SucceededGenerateEntryId({ entryId })
   }).pipe(
     Effect.provide(BrowserCrypto.layer),

@@ -46,7 +46,7 @@ const startWatch = <E, R>(
   })
 
 describe("FileSystem", { concurrent: false }, () => {
-  testLayer(NodeFileSystem.layer)
+  testLayer(NodeFileSystem.layer, { noFollow: process.platform !== "win32" })
 
   it.effect("writeAll accepts an empty buffer", () =>
     Effect.gen(function*() {
@@ -111,6 +111,42 @@ describe("FileSystem", { concurrent: false }, () => {
       assert.strictEqual(event.path, "direct.txt")
     }).pipe(
       Effect.provide(NodeFileSystem.layer)
+    ))
+
+  it.live("watch uses a WatchBackend provided after the layer is built", () =>
+    Effect.gen(function*() {
+      const fs = yield* FileSystem.FileSystem
+      const root = yield* fs.makeTempDirectoryScoped()
+      const backendEvent: FileSystem.WatchEvent = { _tag: "Create", path: "from-backend" }
+      const event = yield* fs.watch(root).pipe(
+        Stream.runHead,
+        Effect.provideService(FileSystem.WatchBackend, {
+          register: () => Option.some(Stream.make(backendEvent))
+        }),
+        Effect.timeout("1 second")
+      )
+      assert.deepStrictEqual(event, Option.some(backendEvent))
+    }).pipe(
+      Effect.provide(NodeFileSystem.layer)
+    ))
+
+  it.effect("watch prefers the caller WatchBackend over the construction backend", () =>
+    Effect.gen(function*() {
+      const fs = yield* FileSystem.FileSystem
+      const root = yield* fs.makeTempDirectoryScoped()
+      const callerEvent: FileSystem.WatchEvent = { _tag: "Create", path: "from-caller" }
+      const event = yield* fs.watch(root).pipe(
+        Stream.runHead,
+        Effect.provideService(FileSystem.WatchBackend, {
+          register: () => Option.some(Stream.make(callerEvent))
+        })
+      )
+      assert.deepStrictEqual(event, Option.some(callerEvent))
+    }).pipe(
+      Effect.provide(NodeFileSystem.layer),
+      Effect.provideService(FileSystem.WatchBackend, {
+        register: () => Option.some(Stream.make({ _tag: "Create" as const, path: "from-construction" }))
+      })
     ))
 
   it.effect("watch reports nested changes when recursive is true", () =>
@@ -247,59 +283,52 @@ describe("NodeFileSystem precision", { concurrent: false }, () => {
         assert.strictEqual(Option.getOrThrow(info.blksize), ByteSize.bytes(oversized))
       }).pipe(Effect.provide(NodeFileSystem.layer)))
 
-    for (const field of ["dev", "mode"] as const) {
-      it.effect(`${method} rejects unsafe ${field} metadata`, () =>
-        Effect.gen(function*() {
-          state.values[field] = maxSafe + 1n
-          const error = yield* Effect.flip(getInfo)
-          assert.strictEqual(error.reason._tag, "BadArgument")
-        }).pipe(Effect.provide(NodeFileSystem.layer)))
-    }
-
-    it.effect(`${method} omits only the overflowing optional field`, () =>
+    it.effect(`${method} rejects unsafe mode metadata`, () =>
       Effect.gen(function*() {
-        Object.assign(state.values, { ino: maxSafe + 1n, nlink: 3n, uid: 1000n, gid: 1001n, rdev: 0n, blocks: 8n })
-        const info = yield* getInfo
-        assert.deepStrictEqual(info.ino, Option.none())
-        assert.deepStrictEqual(info.nlink, Option.some(3))
-        assert.deepStrictEqual(info.uid, Option.some(1000))
-        assert.deepStrictEqual(info.gid, Option.some(1001))
-        assert.deepStrictEqual(info.rdev, Option.some(0))
-        assert.deepStrictEqual(info.blocks, Option.some(8))
-        assert.strictEqual(info.type, "File")
-        assert.strictEqual(info.size, ByteSize.bytes(4n))
-        assert.deepStrictEqual(info.mtime, Option.some(new Date(0)))
+        state.values.mode = maxSafe + 1n
+        const error = yield* Effect.flip(getInfo)
+        assert.strictEqual(error.reason._tag, "BadArgument")
       }).pipe(Effect.provide(NodeFileSystem.layer)))
 
     for (
       const { expected, name, value } of [
-        {
-          name: "preserves optional metadata at MAX_SAFE_INTEGER",
-          value: maxSafe,
-          expected: Option.some(Number.MAX_SAFE_INTEGER)
-        },
-        { name: "omits optional metadata above MAX_SAFE_INTEGER", value: maxSafe + 1n, expected: Option.none() },
-        { name: "omits missing optional metadata", value: undefined, expected: Option.none() }
+        { name: "preserves metadata above MAX_SAFE_INTEGER", value: maxSafe + 1n, expected: 9007199254740992n },
+        { name: "interprets signed identifiers as unsigned 64-bit", value: -2n, expected: 18446744073709551614n }
       ]
     ) {
       it.effect(`${method} ${name}`, () =>
         Effect.gen(function*() {
-          const fields = ["ino", "nlink", "uid", "gid", "rdev", "blocks"] as const
-          for (const field of fields) {
-            if (value === undefined) {
-              delete state.values[field]
-            } else {
-              state.values[field] = value
-            }
-          }
+          Object.assign(state.values, { dev: value, ino: value, rdev: value, nlink: value, blocks: value })
           const info = yield* getInfo
-          for (const field of fields) {
-            assert.deepStrictEqual(info[field], expected, field)
+          assert.strictEqual(info.dev, expected)
+          for (const field of ["ino", "rdev", "nlink"] as const) {
+            assert.deepStrictEqual(info[field], Option.some(expected), field)
           }
-          assert.strictEqual(info.type, "File")
-          assert.strictEqual(info.size, ByteSize.bytes(4n))
-          assert.deepStrictEqual(info.mtime, Option.some(new Date(0)))
+          assert.deepStrictEqual(info.blocks, Option.some(value))
         }).pipe(Effect.provide(NodeFileSystem.layer)))
     }
+
+    it.effect(`${method} preserves numeric ownership metadata`, () =>
+      Effect.gen(function*() {
+        Object.assign(state.values, { uid: 1000n, gid: 1001n })
+        const info = yield* getInfo
+        assert.deepStrictEqual(info.uid, Option.some(1000))
+        assert.deepStrictEqual(info.gid, Option.some(1001))
+      }).pipe(Effect.provide(NodeFileSystem.layer)))
+
+    it.effect(`${method} omits missing optional metadata`, () =>
+      Effect.gen(function*() {
+        const fields = ["ino", "nlink", "uid", "gid", "rdev", "blocks"] as const
+        for (const field of fields) {
+          delete state.values[field]
+        }
+        const info = yield* getInfo
+        for (const field of fields) {
+          assert.deepStrictEqual(info[field], Option.none(), field)
+        }
+        assert.strictEqual(info.type, "File")
+        assert.strictEqual(info.size, ByteSize.bytes(4n))
+        assert.deepStrictEqual(info.mtime, Option.some(new Date(0)))
+      }).pipe(Effect.provide(NodeFileSystem.layer)))
   }
 })

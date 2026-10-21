@@ -105,7 +105,11 @@ describe("Decision", () => {
       technical: "bugs",
       sales: "pricing"
     })
-    assert.deepStrictEqual(TicketTriage.decisions.frustration.criteria, ["calm", "frustrated", "angry"])
+    assert.deepStrictEqual(TicketTriage.decisions.frustration.criteria, [
+      { label: "calm", description: "calm" },
+      { label: "frustrated", description: "frustrated" },
+      { label: "angry", description: "angry" }
+    ])
     assert.deepStrictEqual(TicketTriage.decisions.urgent.criteria, {
       false: "No time pressure",
       true: "Needs action now"
@@ -345,6 +349,70 @@ describe("DecisionModel", () => {
       )
     )
   })
+
+  it.effect("forwards images to an image-capable provider", () => {
+    const images: ReadonlyArray<DecisionModel.Image> = [
+      { mediaType: "image/png", data: new Uint8Array([137, 80, 78, 71]) },
+      { mediaType: "image/jpeg", data: "/9j/4AAQ" },
+      { mediaType: "image/webp", data: new URL("https://example.com/image.webp") }
+    ]
+
+    return Effect.gen(function*() {
+      const { answers } = yield* DecisionModel.decide(TicketTriage, { input: ticket, images })
+
+      assert.strictEqual(answers.urgent.probability, 0.9)
+    }).pipe(
+      Effect.provide(Layer.effect(
+        DecisionModel.DecisionModel,
+        DecisionModel.make({
+          supportsImages: true,
+          decide: (options) => {
+            assert.deepStrictEqual(options.images, images)
+            return Effect.succeed({
+              answers: triageAnswers,
+              usage: { inputTokens: undefined, outputTokens: undefined }
+            })
+          }
+        })
+      ))
+    )
+  })
+
+  for (const supportsImages of [undefined, false]) {
+    it.effect(
+      `rejects images with InvalidUserInputError when supportsImages is ${supportsImages}`,
+      () =>
+        Effect.gen(function*() {
+          const error = yield* failureOf(
+            DecisionModel.decide(TicketTriage, {
+              input: ticket,
+              images: [{ mediaType: "image/png", data: "iVBORw0KGgo=" }]
+            })
+          )
+
+          assert.isTrue(AiError.isAiError(error))
+          assert.strictEqual(error?.reason._tag, "InvalidUserInputError")
+        }).pipe(Effect.provide(Layer.effect(
+          DecisionModel.DecisionModel,
+          DecisionModel.make({
+            supportsImages,
+            decide: () => Effect.die("A text-only provider must not be called with images")
+          })
+        )))
+    )
+  }
+
+  for (const images of [undefined, []]) {
+    it.effect(`allows ${images === undefined ? "omitted" : "empty"} images for a text-only provider`, () =>
+      Effect.gen(function*() {
+        const { answers } = yield* DecisionModel.decide(TicketTriage, { input: ticket, images })
+
+        assert.strictEqual(answers.urgent.probability, 0.9)
+      }).pipe(Effect.provide(makeLayer((options) => {
+        assert.strictEqual(options.images, undefined)
+        return Effect.succeed({ answers: triageAnswers, usage: { inputTokens: undefined, outputTokens: undefined } })
+      }))))
+  }
 
   it.effect("a string input is passed to the provider as a string state", () => {
     const states: Array<unknown> = []
@@ -608,6 +676,30 @@ describe("Decision validation contracts", () => {
 
   it("rate rejects duplicate levels", () => {
     assert.throws(() => Decision.rate({ instructions: "Rate", criteria: ["low", "high", "low"] }))
+    assert.throws(() =>
+      Decision.rate({ instructions: "Rate", criteria: ["low", { label: "low", description: { what: "Also low" } }] })
+    )
+  })
+
+  it.effect("rate validates and labels answers by the labels of structured levels", () => {
+    const definition = Decision.make({
+      input: Schema.String,
+      decisions: {
+        severity: Decision.rate({
+          instructions: { question: "How severe?" },
+          criteria: ["low", { label: "high", description: { impact: "outage" } }]
+        })
+      }
+    })
+
+    return Effect.gen(function*() {
+      const { answers } = yield* DecisionModel.decide(definition, { input: "Export fails" })
+
+      assert.strictEqual(answers.severity.label, "high")
+      assert.deepStrictEqual(answers.severity.probabilities, { low: 0.1, high: 0.9 })
+    }).pipe(Effect.provide(succeedWith({
+      severity: { _tag: "Rate", rating: 0.9, probabilities: { low: 0.1, high: 0.9 } }
+    })))
   })
 
   it.effect("rate derives the argmax label without a provider label", () =>
