@@ -1,6 +1,6 @@
 # Block type performance
 
-This harness measures deterministic TypeScript diagnostics for completed Block
+This harness measures TypeScript compiler diagnostics for completed Block
 composition through Foldkit's published declarations. Each checked-in fixture
 imports public `foldkit` package entry points, completes its Block graph, and
 finishes with an Application update, `ApplicationComposition.assembleBlock`,
@@ -25,8 +25,12 @@ pnpm check:block-type-performance
 ```
 
 Pass a fixture name to measure only that fixture. Threshold updates are a
-separate, explicit command and write the exact observed deltas without adding a
-tolerance:
+separate, explicit command and write the deltas observed in that one run
+without adding a tolerance. The native compiler's instantiation counts vary by
+up to about 1% between identical runs, so after an intentional change run the
+check several times and keep the highest count as the ceiling, either by
+repeating the update until it has written the highest run or by editing
+`budgets.json` to that value:
 
 ```sh
 pnpm check:block-type-performance deep-composition-8
@@ -36,7 +40,8 @@ pnpm update:block-type-performance command-requirements-200
 
 Only update budgets after reviewing an intentional type-level change. The
 ordinary check never changes them and fails when either gated metric exceeds
-its stored maximum.
+its stored maximum. Repeat a check that exceeds a ceiling by less than that
+run-to-run variance before treating it as a regression.
 
 ## Language service latency
 
@@ -161,8 +166,8 @@ Baseline `11e8ca60e6dd` versus staged Composition check times were 0.429s versus
 deep composition, 1.266s versus 1.294s for wide composition, and 0.948s versus
 0.926s for Command requirements. Peak reported memory changed from 142,236K to
 146,147K, 280,586K to 283,343K, and 293,411K to 296,906K respectively. The
-checked-in ceilings continue to gate deterministic instantiation and type
-counts rather than timing or memory, which vary with host and cache state.
+checked-in ceilings gate instantiation and type counts rather than timing or
+memory, which vary with host and cache state.
 
 ## Exact child Binding adapters
 
@@ -227,3 +232,63 @@ Codec channels, Service requirements, operation arguments, and registration
 checks through the public barrel, then emits and relocates the consumer. The actual-file editor benchmark above
 measures the source dependency. A full-program count does not establish that an
 editor demand boundary is cheap: the compiler must still validate the producer.
+
+## Assembly validation attribution
+
+A Website root completion (`ApplicationBlock.` in `packages/website/src/block.ts`)
+takes several seconds because the native language server creates a fresh checker
+for every program version, so a post-edit request recomputes the full demand
+closure, and that closure is the entire application graph. Attribution needs the
+native checker itself. Go profiles on macOS place about 40% of samples on
+`madvise` although the process spends about 1 s of 16 s in the kernel, and the
+JS TypeScript 6 trace ranks call sites that cost nothing natively. The numbers
+below came from a typescript-go build of the pinned 7.0.2 revision with a counter
+on instantiation-cache misses in `getConditionalTypeInstantiation` and
+`getObjectTypeInstantiation`, keyed by declaration site, with inclusive and self
+time per checker and optional Go stack capture per alias.
+
+One cold root request on that build spent 4.45 s of 5.69 s inside those misses,
+4.04 s of it in Foldkit aliases, spread across the assembly validations, the
+requirement and delivery checks, and the update-result evidence channels. Three
+encodings repeated work the checker only needs once per call:
+
+- `ValidHandlerContracts` compared every handler entry with every entry sharing
+  its key, including the singleton groups, through two `Equal` checks per pair,
+  and resolved the index's key set once per entry. The check now resolves the
+  key set once and runs the pairwise comparison only where the key's group is
+  not identical to the entry itself. Per request this alias went from 0.48 s
+  to under 0.1 s.
+- Six `assembleBlock` overloads carried their composition validation as a
+  top-level intersection constituent. The checker resolves each candidate's
+  parameter type while checking arity, before inference, and again while
+  checking applicability, so those validations ran on generic placeholders and
+  then on the concrete implementation for candidates that failed on
+  `view?: never` or a missing `EffectsLayer`. Each now sits behind a
+  conditional on the overload's own type parameter. The check type is a tuple
+  so the conditional does not distribute over a union or `never`
+  implementation, and the shapes include the always-present `init` so they are
+  not weak types; the checker rejects any object that shares no property with
+  a weak type. The selected overload runs the full validation.
+- `ConflictingDeliveryTags` recomputed `keyof OutgoingIndexes` for every
+  incoming tag. The tag set is now a defaulted type parameter computed once per
+  Composition.
+
+The fixtures keep their widths. The ceilings move from 1,152,618, 3,132,298,
+and 2,659,415 instantiations to the highest counts seen over six runs. The
+before column holds the higher of two runs at `9a5f9307c`, the commit this
+change builds on:
+
+| Fixture                    | Before instantiations | After instantiations | Before types | After types |
+| -------------------------- | --------------------: | -------------------: | -----------: | ----------: |
+| `deep-composition-8`       |               878,121 |              859,410 |       45,901 |      46,030 |
+| `wide-composition-100`     |             1,975,974 |            1,609,445 |       74,682 |      73,107 |
+| `command-requirements-200` |               911,507 |              386,770 |       67,274 |      60,899 |
+
+Serial native measurements of the root workload on one idle macOS host with
+TypeScript 7.0.2 (four root completions and two diagnostics runs per arm,
+interleaved in two blocks, medians): cold completion 5842 ms to
+4947 ms, post-edit completion 5736 ms to 4872 ms, diagnostics error appearance
+5487 ms to 4722 ms. Garbage collector settings and push diagnostics do not change these
+numbers. The remaining cost is spread across the update-result
+evidence channels, requirement satisfaction, deferred policy resolution, and the
+child Binding graph, each a few percent of a request.

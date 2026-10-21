@@ -2528,6 +2528,107 @@ type PublicAssembleBlockImplementation<
   CheckedImplementationValue<ImplementationValue>
 >
 
+type ValidateHeadlessAssembly<
+  OwnerValue extends Owner<string>,
+  ModelSchema extends AnySchema,
+  MessageSchema extends AnySchema,
+  OutMessageSchema extends AnySchema | undefined,
+  Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
+  Children extends ReadonlyArray<AnyBinding>,
+  ImplementationValue,
+> = [ImplementationValue] extends [
+  Readonly<{ init: AnyFunction; view?: never }>,
+]
+  ? ValidateAssembleBlockComposition<
+      OwnerValue,
+      ModelSchema,
+      MessageSchema,
+      OutMessageSchema,
+      Mounts,
+      Children,
+      ImplementationValue
+    >
+  : unknown
+
+type ValidateDefaultEffectsAssembly<
+  OwnerValue extends Owner<string>,
+  ModelSchema extends AnySchema,
+  MessageSchema extends AnySchema,
+  OutMessageSchema extends AnySchema | undefined,
+  Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
+  Children extends ReadonlyArray<AnyBinding>,
+  ImplementationValue,
+> = [ImplementationValue] extends [
+  Readonly<{ init: AnyFunction; EffectsLayer?: never }>,
+]
+  ? ValidateInit<ImplementationValue> &
+      ValidateView<
+        ImplementationValue,
+        OwnerValue,
+        ModelSchema['Type'],
+        MessageSchema['Type'],
+        DefinitionViewRequirements<Mounts, Children>
+      > &
+      ValidateAssembleBlockComposition<
+        OwnerValue,
+        ModelSchema,
+        MessageSchema,
+        OutMessageSchema,
+        Mounts,
+        Children,
+        DefaultEffectsImplementation<ImplementationValue>
+      >
+  : unknown
+
+type ValidateInferredAssembly<
+  OwnerValue extends Owner<string>,
+  ModelSchema extends AnySchema,
+  MessageSchema extends AnySchema,
+  OutMessageSchema extends AnySchema | undefined,
+  Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
+  Children extends ReadonlyArray<AnyBinding>,
+  ImplementationValue extends object,
+> = [ImplementationValue] extends [unknown]
+  ? ValidateInit<ImplementationValue> &
+      ValidateView<
+        ImplementationValue,
+        OwnerValue,
+        ModelSchema['Type'],
+        MessageSchema['Type'],
+        DefinitionViewRequirements<Mounts, Children>
+      > &
+      ValidateAssembleBlockComposition<
+        OwnerValue,
+        ModelSchema,
+        MessageSchema,
+        OutMessageSchema,
+        Mounts,
+        Children,
+        ImplementationValue
+      >
+  : unknown
+
+type ValidateShapedAssembly<
+  Init,
+  OwnerValue extends Owner<string>,
+  ModelSchema extends AnySchema,
+  MessageSchema extends AnySchema,
+  OutMessageSchema extends AnySchema | undefined,
+  Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
+  Children extends ReadonlyArray<AnyBinding>,
+  ImplementationValue,
+> = [Init] extends [unknown]
+  ? ValidateAssembleBlockComposition<
+      OwnerValue,
+      ModelSchema,
+      MessageSchema,
+      OutMessageSchema,
+      Mounts,
+      Children,
+      ImplementationValue
+    >
+  : unknown
+
 /** Completes a Composition with its implementation channels and returns a
  * passive Block. `init` and `update` are required. At an inferred concrete
  * call, an omitted `EffectsLayer` defaults to `Layer.empty`. Omitted local view,
@@ -2557,7 +2658,7 @@ export interface AssembleBlock<
     implementation: ImplementationValue &
       Readonly<{ view?: never }> &
       ExactImplementationKeys<ImplementationValue> &
-      ValidateAssembleBlockComposition<
+      ValidateHeadlessAssembly<
         OwnerValue,
         ModelSchema,
         MessageSchema,
@@ -2836,22 +2937,14 @@ export interface AssembleBlock<
           Readonly<{ EffectsLayer?: never }>
       > &
       ExactImplementationKeys<ImplementationValue> &
-      ValidateInit<ImplementationValue> &
-      ValidateView<
-        ImplementationValue,
-        OwnerValue,
-        ModelSchema['Type'],
-        MessageSchema['Type'],
-        DefinitionViewRequirements<Mounts, Children>
-      > &
-      ValidateAssembleBlockComposition<
+      ValidateDefaultEffectsAssembly<
         OwnerValue,
         ModelSchema,
         MessageSchema,
         OutMessageSchema,
         Mounts,
         Children,
-        DefaultEffectsImplementation<ImplementationValue>
+        ImplementationValue
       >,
   ): CompletedWithView<
     CompositionValue,
@@ -2871,22 +2964,14 @@ export interface AssembleBlock<
           Readonly<{ EffectsLayer?: never }>
       > &
       ExactImplementationKeys<ImplementationValue> &
-      ValidateInit<ImplementationValue> &
-      ValidateView<
-        ImplementationValue,
-        OwnerValue,
-        ModelSchema['Type'],
-        MessageSchema['Type'],
-        DefinitionViewRequirements<Mounts, Children>
-      > &
-      ValidateAssembleBlockComposition<
+      ValidateDefaultEffectsAssembly<
         OwnerValue,
         ModelSchema,
         MessageSchema,
         OutMessageSchema,
         Mounts,
         Children,
-        DefaultEffectsImplementation<ImplementationValue>
+        ImplementationValue
       >,
   ): CompletedBlock<
     OwnerValue,
@@ -2927,15 +3012,7 @@ export interface AssembleBlock<
         DefinitionImplementation<ModelSchema, MessageSchema, OutMessageSchema>
       > &
       ExactImplementationKeys<ImplementationValue> &
-      ValidateInit<ImplementationValue> &
-      ValidateView<
-        ImplementationValue,
-        OwnerValue,
-        ModelSchema['Type'],
-        MessageSchema['Type'],
-        DefinitionViewRequirements<Mounts, Children>
-      > &
-      ValidateAssembleBlockComposition<
+      ValidateInferredAssembly<
         OwnerValue,
         ModelSchema,
         MessageSchema,
@@ -2992,7 +3069,8 @@ export interface AssembleBlock<
       EffectsLayer: EffectsLayer
     }> &
       NoInfer<
-        ValidateAssembleBlockComposition<
+        ValidateShapedAssembly<
+          Init,
           OwnerValue,
           ModelSchema,
           MessageSchema,
@@ -3239,7 +3317,8 @@ export interface AssembleBlock<
       EffectsLayer: EffectsLayer
     }> &
       NoInfer<
-        ValidateAssembleBlockComposition<
+        ValidateShapedAssembly<
+          Init,
           OwnerValue,
           ModelSchema,
           MessageSchema,
