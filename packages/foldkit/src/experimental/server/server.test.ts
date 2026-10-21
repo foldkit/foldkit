@@ -1154,6 +1154,47 @@ describe('renderToString', () => {
       }),
   )
 
+  it.effect(
+    'rejects an InnerHTML fragment that writes the trailing boundary comment',
+    () =>
+      Effect.gen(function* () {
+        // Each fragment closes the root early, writes the boundary comment
+        // itself, and then leaves a quoted attribute open (the first only with
+        // scripting disabled, where noscript content parses as HTML). The
+        // parser drops the unfinished tag together with the appended comment,
+        // so the fragment's own copy is the last node. The render still fails
+        // for what the markup does to the page.
+        for (const { fragment, reason } of [
+          {
+            fragment:
+              '<noscript></div><!--foldkit-trailing-boundary--><a title="</noscript>',
+            reason: '<noscript> content changes the rest of the page',
+          },
+          {
+            fragment: '</div><!--foldkit-trailing-boundary--><a title="',
+            reason: 'splits into more than one top-level node',
+          },
+        ]) {
+          const error = yield* Effect.flip(
+            renderToString({
+              init: (): InitReturn<Model> => ({
+                model: Model.make({ theme: 'plain', pathname: '/' }),
+              }),
+              view: () => ({
+                title: 'Boundary',
+                body: h.div([h.InnerHTML(fragment)]),
+              }),
+            }),
+          )
+
+          expect(error).toMatchObject({ _tag: 'SerializationError' })
+          if (error._tag === 'SerializationError') {
+            expect(String(error.cause)).toContain(reason)
+          }
+        }
+      }),
+  )
+
   it.effect('validates the parsed shape of a static render too', () =>
     Effect.gen(function* () {
       // Nothing will hydrate this markup, which is the reason to check it
@@ -1601,10 +1642,13 @@ describe('renderToString', () => {
         // the view's own children can see it. With scripting enabled the
         // paragraph is a sibling after the noscript; with scripting disabled
         // the open form pulls it inside, and the root still closes cleanly.
+        // Tag names match in any letter case, so `<NOSCRIPT>` is the same
+        // element.
         for (const fragment of [
           '<noscript><form></noscript><p id="after">After</p>',
           '<noscript><table><tr><td>cell</noscript><p id="after">After</p>',
           '<noscript><select><option>one</noscript><p id="after">After</p>',
+          '<NOSCRIPT><form></NOSCRIPT><p id="after">After</p>',
         ]) {
           const error = yield* Effect.flip(
             renderToString({
