@@ -15,6 +15,7 @@ import {
   requireDispatch,
   setRuntime,
 } from '../html/runtimeSingleton.js'
+import { modifyFields } from '../struct/index.js'
 import * as Lazy from './lazy.js'
 
 const Row = Schema.Struct({ id: Schema.String, label: Schema.String })
@@ -38,9 +39,11 @@ const titleView = (title: string): Html => ih.h1([], [title])
 const rowView = (row: Row, selection: ReadonlyArray<string>): Html =>
   ih.li([], [row.label, selection.join(',')])
 
-const failureMessage = (view: View): string => {
+const failureMessage = (view: View, nextModel?: Model): string => {
   try {
-    Lazy.expectAllReused({ view, model })
+    Lazy.expectAllReused(
+      nextModel === undefined ? { view, model } : { view, model, nextModel },
+    )
   } catch (error) {
     if (error instanceof Error) {
       return error.message
@@ -68,6 +71,77 @@ describe('Lazy.expectAllReused', () => {
       )
 
     expect(() => Lazy.expectAllReused({ view, model })).not.toThrow()
+  })
+
+  test('reuses keyed rows across an unrelated Model change', () => {
+    const lazyRows = createKeyedLazy()
+    const renderedModels: Array<Model> = []
+    const view: View = (model, h) => {
+      renderedModels.push(model)
+
+      return h.div(
+        [],
+        [
+          h.h1([], [model.title]),
+          h.ul(
+            [],
+            model.rows.map(row =>
+              lazyRows(row.id, rowView, [row, EMPTY_SELECTION]),
+            ),
+          ),
+        ],
+      )
+    }
+    const nextModel = modifyFields(model, { title: () => 'Updated rows' })
+
+    expect(() => Lazy.expectAllReused({ view, model, nextModel })).not.toThrow()
+    expect(renderedModels).toEqual([model, nextModel])
+  })
+
+  test('reports changed arguments across a Model transition', () => {
+    const lazyRows = createKeyedLazy()
+    const view: View = (model, h) =>
+      h.ul(
+        [],
+        model.rows.map(row =>
+          lazyRows(row.id, rowView, [row, EMPTY_SELECTION]),
+        ),
+      )
+    const nextModel = modifyFields(model, {
+      rows: rows =>
+        rows.map(row =>
+          row.id === 'row-2'
+            ? modifyFields(row, { label: () => 'Updated two' })
+            : row,
+        ),
+    })
+
+    expect(failureMessage(view, nextModel)).toBe(
+      [
+        '1 lazy cache miss on the second render with nextModel:',
+        '',
+        '  slot 1, key "row-2": ArgumentsChanged at index 0',
+        '',
+        '  ArgumentsChanged: Reuse the same objects, arrays, and functions when their values have not changed.',
+      ].join('\n'),
+    )
+  })
+
+  test('throws when nextModel renders no lazy content', () => {
+    const lazyRows = createKeyedLazy()
+    const view: View = (model, h) =>
+      h.ul(
+        [],
+        model.rows.map(row =>
+          lazyRows(row.id, rowView, [row, EMPTY_SELECTION]),
+        ),
+      )
+    const nextModel = modifyFields(model, { rows: () => [] })
+
+    expect(failureMessage(view, nextModel)).toBe(
+      'The second render made no lazy calls. Choose a Model that renders ' +
+        'the memoized content you want to test.',
+    )
   })
 
   test('reports a slot created during the view as NoCachedEntry', () => {

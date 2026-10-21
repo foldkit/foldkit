@@ -69,13 +69,21 @@ The active dispatch is also part of the internal cache key because event handler
 
 ## Testing Cache Reuse
 
-Use `Lazy.expectAllReused` from `foldkit/test` to check that lazy views reuse their cached results. It renders the view twice with the same Model and throws if any lazy call misses its cache on the second render.
+Use `Lazy.expectAllReused` from `foldkit/test` to check that lazy views reuse their cached results. It renders the view with `model`, then with `nextModel` if supplied, and throws if any lazy call misses its cache on the second render. Without `nextModel`, both renders use `model`.
 
 ::Snippet{name="lazyExpectAllReused" label="Checking lazy cache reuse"}
 
 The error identifies each cache miss by slot number, includes the key for keyed calls, and gives a hint for each kind of miss. For `ArgumentsChanged`, it lists the changed argument indices, starting at zero.
 
 Slot numbers follow the order in which lazy instances are first called on the second render. All keys from one `createKeyedLazy` instance share a slot number.
+
+### Testing a Model Transition
+
+Pass `nextModel` to check reuse across a Model change. For example, a view that renders a title directly and memoizes its rows should reuse those rows when only the title changes:
+
+::Snippet{name="lazyExpectAllReusedTransition" label="Checking row reuse after a title change"}
+
+Every lazy call made on the second render must hit its cache. A changed argument causes the assertion to throw even when the view should rebuild that subtree. Test a child view directly when only that child's arguments should stay unchanged. A transition failure names `nextModel` in the error and lists the misses.
 
 ### Choosing Models to Test
 
