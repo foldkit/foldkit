@@ -201,7 +201,7 @@ A hydratable render carries these markers:
 
 The application root has `data-foldkit-app`. Its value is the `runtimeId`.
 
-The root also has `data-foldkit-build`. Its value identifies the deployment that rendered the page. The client removes it as it takes the root over, so its absence is the signal that the client runtime owns the page; a browser test can wait for `[data-foldkit-build]` to disappear. A refused handoff keeps the stamp and adds `data-foldkit-refused`.
+The root also has `data-foldkit-build`, exported as `FOLDKIT_BUILD_ATTRIBUTE` from `foldkit/experimental/server`. Its value identifies the deployment that rendered the page. The client removes it as it takes the root over, so its absence is the signal that the client runtime owns the page; a browser test can wait for `[data-foldkit-build]` to disappear. A refused handoff keeps the stamp and adds `data-foldkit-refused`.
 
 #### Flags payload
 

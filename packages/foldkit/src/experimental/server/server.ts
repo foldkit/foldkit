@@ -17,10 +17,7 @@ import {
   parseFragment,
 } from 'parse5'
 
-import {
-  HYDRATION_BUILD_ATTRIBUTE,
-  buildIdOrInjected,
-} from '../../buildToken.js'
+import { buildIdOrInjected } from '../../buildToken.js'
 import {
   MATHML_NAMESPACE,
   SVG_NAMESPACE,
@@ -40,6 +37,7 @@ import {
 } from '../../html/runtimeSingleton.js'
 import {
   FOLDKIT_APP_ATTRIBUTE,
+  FOLDKIT_BUILD_ATTRIBUTE,
   FOLDKIT_FLAGS_ATTRIBUTE,
 } from '../../hydrationMarker.js'
 import {
@@ -746,7 +744,7 @@ const assertRootIsNotDocumentStructure = (
 
 const RESERVED_HANDOFF_ATTRIBUTES: ReadonlySet<string> = new Set([
   FOLDKIT_APP_ATTRIBUTE,
-  HYDRATION_BUILD_ATTRIBUTE,
+  FOLDKIT_BUILD_ATTRIBUTE,
   FOLDKIT_FLAGS_ATTRIBUTE,
   HYDRATION_KEY_ATTRIBUTE,
   HYDRATION_IDENTITY_ATTRIBUTE,
@@ -971,13 +969,13 @@ const assertSingleStampedRoot = (
 ): void => {
   const only = parsedRootOf(fragment, root)
   const applicationMarkers = elementsCarrying(only, FOLDKIT_APP_ATTRIBUTE)
-  const buildMarkers = elementsCarrying(only, HYDRATION_BUILD_ATTRIBUTE)
+  const buildMarkers = elementsCarrying(only, FOLDKIT_BUILD_ATTRIBUTE)
   const flagsMarkers = elementsCarrying(only, FOLDKIT_FLAGS_ATTRIBUTE)
   const stamp = only.attrs.find(
     attribute => attribute.name === FOLDKIT_APP_ATTRIBUTE,
   )
   const buildStamp = only.attrs.find(
-    attribute => attribute.name === HYDRATION_BUILD_ATTRIBUTE,
+    attribute => attribute.name === FOLDKIT_BUILD_ATTRIBUTE,
   )
   if (
     applicationMarkers.length !== 1 ||
@@ -999,7 +997,11 @@ const assertSingleStampedRoot = (
   assertStructureMatches(only, root)
 }
 
-export { FOLDKIT_APP_ATTRIBUTE, FOLDKIT_FLAGS_ATTRIBUTE }
+export {
+  FOLDKIT_APP_ATTRIBUTE,
+  FOLDKIT_BUILD_ATTRIBUTE,
+  FOLDKIT_FLAGS_ATTRIBUTE,
+}
 
 const DEFAULT_RUNTIME_ID = 'app'
 
@@ -1462,7 +1464,7 @@ export function renderToString(
             ? {
                 rootAttributes: {
                   [FOLDKIT_APP_ATTRIBUTE]: runtimeId,
-                  [HYDRATION_BUILD_ATTRIBUTE]: buildId,
+                  [FOLDKIT_BUILD_ATTRIBUTE]: buildId,
                 },
                 emitHydrationMarkers: true,
               }

@@ -1,7 +1,10 @@
 import { Effect, Fiber, Option, Schema } from 'effect'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { renderToString } from '../experimental/server/server.js'
+import {
+  FOLDKIT_BUILD_ATTRIBUTE,
+  renderToString,
+} from '../experimental/server/public.js'
 import type { Document } from '../html/index.js'
 import { __htmlBuilder } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
@@ -158,6 +161,7 @@ describe('hydrating boot', () => {
     const serverRoot = document.querySelector('[data-foldkit-app]')
     const serverCount = document.getElementById('count')
     expect(serverRoot).not.toBeNull()
+    expect(serverRoot?.getAttribute(FOLDKIT_BUILD_ATTRIBUTE)).toBe(BUILD_ID)
     expect(serverCount?.textContent).toBe('5')
 
     const application = makeClientApplication()
@@ -170,6 +174,7 @@ describe('hydrating boot', () => {
       await awaitBodyText('5')
       expect(document.getElementById('count')).toBe(serverCount)
       expect(serverRoot?.isConnected).toBe(true)
+      expect(serverRoot?.hasAttribute(FOLDKIT_BUILD_ATTRIBUTE)).toBe(false)
       expect(document.querySelector('[data-foldkit-app]')).toBeNull()
       await vi.waitFor(() => {
         expect(document.title).toBe('Count 5')
@@ -638,7 +643,7 @@ describe('hydrating boot', () => {
     // exists to refuse.
     await renderServerPage({ start: 5 })
     const servedRoot = document.querySelector('[data-foldkit-app]')
-    servedRoot?.removeAttribute('data-foldkit-build')
+    servedRoot?.removeAttribute(FOLDKIT_BUILD_ATTRIBUTE)
     const application = makeClientApplication()
 
     await expect(
@@ -679,7 +684,7 @@ describe('hydrating boot', () => {
     // else, so the comparison has to settle before the payload is read at all.
     await renderServerPage({ start: 5 })
     const servedRoot = document.querySelector('[data-foldkit-app]')
-    servedRoot?.setAttribute('data-foldkit-build', 'other-deployment')
+    servedRoot?.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, 'other-deployment')
     const payloadScript = document.querySelector('script[data-foldkit-flags]')
     if (payloadScript === null) {
       throw new Error('expected a served Flags payload')
@@ -700,6 +705,9 @@ describe('hydrating boot', () => {
       ),
     ).rejects.toThrow('this client belongs to deployment')
     expect(decodeAttempts).toEqual([])
+    expect(servedRoot?.getAttribute(FOLDKIT_BUILD_ATTRIBUTE)).toBe(
+      'other-deployment',
+    )
   })
 
   it('runs no init Command for a page from another deployment', async () => {
@@ -713,7 +721,7 @@ describe('hydrating boot', () => {
     }
     await renderServerPage({ start: 5 })
     const servedRoot = document.querySelector('[data-foldkit-app]')
-    servedRoot?.setAttribute('data-foldkit-build', 'other-deployment')
+    servedRoot?.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, 'other-deployment')
 
     const application = makeApplication({
       Model,
@@ -806,7 +814,7 @@ describe('hydrating boot', () => {
   it('refuses a null build id before adopting an unstamped root', async () => {
     await renderServerPage({ start: 5 })
     const servedRoot = document.querySelector('[data-foldkit-app]')
-    servedRoot?.removeAttribute('data-foldkit-build')
+    servedRoot?.removeAttribute(FOLDKIT_BUILD_ATTRIBUTE)
     const initAttempts: Array<number> = []
     const application = makeApplication({
       Model,
@@ -839,7 +847,7 @@ describe('hydrating boot', () => {
     // page no running code understands.
     await renderServerPage({ start: 5 })
     const servedRoot = document.querySelector('[data-foldkit-app]')
-    servedRoot?.setAttribute('data-foldkit-build', 'other-deployment')
+    servedRoot?.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, 'other-deployment')
     const application = makeClientApplication()
 
     await expect(
@@ -1001,7 +1009,7 @@ describe('hydrating boot', () => {
     dialog.addEventListener('cancel', () => closed.push('cancel'))
     dialog.addEventListener('close', () => closed.push('close'))
     servedRoot?.appendChild(dialog)
-    servedRoot?.setAttribute('data-foldkit-build', 'other-deployment')
+    servedRoot?.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, 'other-deployment')
     const application = makeClientApplication()
 
     await expect(
@@ -1045,7 +1053,7 @@ describe('hydrating boot', () => {
     authored.setAttribute('data-foldkit-refused', '')
     authored.setAttribute('open', '')
     servedRoot?.appendChild(authored)
-    servedRoot?.setAttribute('data-foldkit-build', 'other-deployment')
+    servedRoot?.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, 'other-deployment')
     const application = makeClientApplication()
 
     await expect(
@@ -1077,7 +1085,7 @@ describe('hydrating boot', () => {
       dialog.addEventListener('cancel', () => closed.push('cancel'))
       dialog.addEventListener('close', () => closed.push('close'))
       shadowRoot.appendChild(dialog)
-      servedRoot?.setAttribute('data-foldkit-build', 'other-deployment')
+      servedRoot?.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, 'other-deployment')
       const application = makeClientApplication()
 
       await expect(
@@ -1120,7 +1128,7 @@ describe('hydrating boot', () => {
     await renderServerPage({ start: 5 })
     const servedRoot = document.querySelector('[data-foldkit-app]')
     servedRoot?.appendChild(document.createElement('refusal-probe'))
-    servedRoot?.setAttribute('data-foldkit-build', 'other-deployment')
+    servedRoot?.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, 'other-deployment')
     const application = makeClientApplication()
 
     await expect(
@@ -1414,7 +1422,7 @@ describe('hydrating boot', () => {
     // deployment mismatch that caused it.
     await renderServerPage({ start: 5 })
     const servedRoot = document.querySelector('[data-foldkit-app]')
-    servedRoot?.setAttribute('data-foldkit-build', 'other-deployment')
+    servedRoot?.setAttribute(FOLDKIT_BUILD_ATTRIBUTE, 'other-deployment')
     const payloadScript = document.querySelector('script[data-foldkit-flags]')
     if (payloadScript === null) {
       throw new Error('expected a served Flags payload')

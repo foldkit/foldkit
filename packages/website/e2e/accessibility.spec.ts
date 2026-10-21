@@ -1,3 +1,5 @@
+import { FOLDKIT_BUILD_ATTRIBUTE } from 'foldkit/experimental/server'
+
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import type { Locator, Page } from '@playwright/test'
@@ -41,7 +43,7 @@ const expectFullyVisible = async (locator: Locator) => {
 }
 
 const waitForClientRuntime = async (page: Page) => {
-  await expect(page.locator('[data-foldkit-build]')).toHaveCount(0)
+  await expect(page.locator(`[${FOLDKIT_BUILD_ATTRIBUTE}]`)).toHaveCount(0)
   await expect(page.locator('[data-browser-environment-loaded]')).toHaveCount(1)
 }
 
