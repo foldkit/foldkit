@@ -2990,6 +2990,131 @@ describe('scene with expectAll', () => {
       ],
     )
 
+  const collectionView = (_model: Model, h: HtmlBuilder<LoginMessage>) =>
+    h.div(
+      [],
+      [
+        h.ul(
+          [h.AriaLabel('Tasks')],
+          [
+            h.li([], [h.span([], ['First']), ' task']),
+            h.li([], [h.span([], ['Second task'])]),
+            h.li([], ['Second task']),
+            h.li([]),
+          ],
+        ),
+        h.p([], [h.span([], ['Outside'])]),
+      ],
+    )
+
+  test('toHaveTexts compares descendant text in traversal order', () => {
+    const expected: ReadonlyArray<string> = [
+      'First task',
+      'Second task',
+      'Second task',
+      '',
+    ]
+
+    Scene.scene(
+      { update, view: collectionView },
+      Scene.given(initialModel),
+      PublicScene.expectAll(PublicScene.all.role('listitem')).toHaveTexts(
+        expected,
+      ),
+      Scene.expectAll(Scene.all.selector('span')).toHaveTexts([
+        'First',
+        'Second task',
+        'Outside',
+      ]),
+    )
+  })
+
+  test.each([
+    {
+      difference: 'order',
+      expected: ['Second task', 'First task', 'Second task', ''],
+    },
+    {
+      difference: 'missing element',
+      expected: ['First task', 'Second task', ''],
+    },
+    {
+      difference: 'extra element',
+      expected: ['First task', 'Second task', 'Second task', '', 'Extra'],
+    },
+    {
+      difference: 'text',
+      expected: ['First', 'Second task', 'Second task', ''],
+    },
+  ])('toHaveTexts reports a $difference mismatch', ({ expected }) => {
+    expect(() =>
+      Scene.scene(
+        { update, view: collectionView },
+        Scene.given(initialModel),
+        Scene.expectAll(Scene.all.role('listitem')).toHaveTexts(expected),
+      ),
+    ).toThrow(
+      `Expected elements matching all listitem to have texts in order.\n\nExpected:\n${JSON.stringify(expected, null, 2)}\n\nActual:\n${JSON.stringify(['First task', 'Second task', 'Second task', ''], null, 2)}`,
+    )
+  })
+
+  test('toHaveTexts matches an empty array only when no elements match', () => {
+    Scene.scene(
+      { update, view: collectionView },
+      Scene.given(initialModel),
+      Scene.expectAll(Scene.all.role('button')).toHaveTexts([]),
+      Scene.expectAll(Scene.all.role('listitem')).not.toHaveTexts([]),
+      Scene.expectAll(Scene.all.role('button')).not.toHaveTexts(['Missing']),
+    )
+
+    expect(() =>
+      Scene.scene(
+        { update, view: collectionView },
+        Scene.given(initialModel),
+        Scene.expectAll(Scene.all.role('button')).toHaveTexts(['Missing']),
+      ),
+    ).toThrow('Actual:\n[]')
+  })
+
+  test('not.toHaveTexts rejects an equal collection', () => {
+    expect(() =>
+      Scene.scene(
+        { update, view },
+        Scene.given(initialModel),
+        Scene.expectAll(Scene.all.role('button')).not.toHaveTexts(['Sign in']),
+      ),
+    ).toThrow(
+      'Expected elements matching all button not to have texts in order.\n\nExpected:\n[\n  "Sign in"\n]\n\nActual:\n[\n  "Sign in"\n]',
+    )
+  })
+
+  test('not.toHaveTexts accepts a different collection', () => {
+    Scene.scene(
+      { update, view },
+      Scene.given(initialModel),
+      Scene.expectAll(Scene.all.role('button')).not.toHaveTexts(['Log in']),
+    )
+  })
+
+  test('toHaveTexts uses the current Scene.inside scope', () => {
+    Scene.scene(
+      { update, view: collectionView },
+      Scene.given(initialModel),
+      Scene.inside(
+        Scene.role('list', { name: 'Tasks' }),
+        Scene.expectAll(Scene.all.selector('span')).toHaveTexts([
+          'First',
+          'Second task',
+        ]),
+      ),
+      Scene.expectAll(Scene.all.selector('span')).toHaveTexts([
+        'First',
+        'Second task',
+        'Outside',
+      ]),
+    )
+  })
+
   test('toHaveCount matches the number of elements', () => {
     Scene.scene(
       { update, view },
