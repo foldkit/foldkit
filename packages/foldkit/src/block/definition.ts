@@ -2518,6 +2518,34 @@ type ValidateAssembleBlockComposition<
       >
     : unknown)
 
+type ValidateAssembleBlockOperations<
+  _OwnerValue extends Owner<string>,
+  _ModelSchema extends AnySchema,
+  MessageSchema extends AnySchema,
+  _OutMessageSchema extends AnySchema | undefined,
+  _Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
+  Children extends ReadonlyArray<AnyBinding>,
+  ImplementationValue,
+> = ValidateBindingOperationNames<
+  ImplementationExposedOperations<ImplementationValue>
+> &
+  ('operations' extends keyof ImplementationValue
+    ? ValidateExposedOperations<
+        ImplementationValue,
+        AuthoredMessage<MessageSchema['Type'], Children>
+      >
+    : unknown)
+
+type ValidateAssembleBlockGraph<
+  OwnerValue extends Owner<string>,
+  Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
+  Children extends ReadonlyArray<AnyBinding>,
+  ImplementationValue,
+> = ValidateImplementationComposition<
+  AssembleBlockDefinition<OwnerValue>,
+  AssembleBlockCompositionForValidation<Mounts, Children, ImplementationValue>
+>
+
 type PublicAssembleBlockImplementation<
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
@@ -2527,6 +2555,984 @@ type PublicAssembleBlockImplementation<
   MessageSchema['Type'],
   CheckedImplementationValue<ImplementationValue>
 >
+
+/** Key under which `implement` retains the captured implementation. */
+export const ImplementationTypeId = Symbol('foldkit/Block/Implementation')
+
+/**
+ * An implementation captured by a Composition's `implement` method.
+ *
+ * `assembleBlock()` returns the same completed Block as
+ * `Composition.assembleBlock` for the same implementation. Its only signature is
+ * not generic, so TypeScript types
+ * `const SomeBlock = SomeComposition.implement({ ... }).assembleBlock()` from
+ * the declared return type without checking the `this` argument, which carries
+ * the graph check: local and descendant handler, Layer, host handler, lifecycle
+ * registration and requirement validation. Files that import `SomeBlock`
+ * resolve the `implement` call and its other assembly checks, but not the graph
+ * check.
+ *
+ * The graph check runs when the file that calls `assembleBlock()` is checked
+ * and reports on the `implement({ ... })` receiver. When `implement` rejects an
+ * implementation, `assembleBlock()` can report a second error for the same
+ * expression.
+ *
+ * Capturing an implementation is passive: it builds no Layer, runs no init, and
+ * starts no lifecycle work.
+ */
+export interface ImplementedBlock<
+  CompletedValue,
+  ImplementationValue,
+  Validation extends () => unknown,
+> {
+  /** The captured implementation channels. */
+  readonly [ImplementationTypeId]: ImplementationValue
+  /** Applies the graph check to the captured implementation and returns the
+   * completed Block. */
+  readonly assembleBlock: (
+    this: Readonly<{
+      [ImplementationTypeId]: ReturnType<Validation>
+    }>,
+  ) => CompletedValue
+}
+
+/**
+ * Captures a Composition's implementation channels for `assembleBlock()`.
+ *
+ * Each signature repeats the corresponding `AssembleBlock` signature: the same
+ * type parameters, constraints, parameter checks and contextual types. Only the
+ * graph check moves into the returned `assembleBlock()` method, where it applies
+ * to the same inferred channels. `implement` therefore selects the signature
+ * that `AssembleBlock` selects whenever that signature's graph check passes.
+ * When the graph check fails, `assembleBlock()` reports it instead of trying a
+ * later signature.
+ */
+export interface ImplementBlock<
+  OwnerValue extends Owner<string>,
+  ModelSchema extends Schema.Codec<any, any, any, any>,
+  MessageSchema extends Schema.Codec<any, any, any, any>,
+  OutMessageSchema extends Schema.Codec<any, any, any, any> | undefined,
+  Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
+  Children extends ReadonlyArray<AnyBinding>,
+> {
+  <
+    const ImplementationValue extends DefinitionImplementation<
+      ModelSchema,
+      MessageSchema,
+      OutMessageSchema
+    >,
+  >(
+    implementation: ImplementationValue &
+      Readonly<{ view?: never }> &
+      ExactImplementationKeys<ImplementationValue> &
+      ValidateAssembleBlockOperations<
+        OwnerValue,
+        ModelSchema,
+        MessageSchema,
+        OutMessageSchema,
+        Mounts,
+        Children,
+        ImplementationValue
+      >,
+  ): ImplementedBlock<
+    CompletedBlock<
+      OwnerValue,
+      ModelSchema,
+      MessageSchema,
+      OutMessageSchema,
+      Mounts,
+      Children,
+      PublicAssembleBlockImplementation<
+        ModelSchema,
+        MessageSchema,
+        ImplementationValue
+      >
+    >,
+    ImplementationValue,
+    () => ValidateAssembleBlockGraph<
+      OwnerValue,
+      Mounts,
+      Children,
+      ImplementationValue
+    >
+  >
+  <
+    const Init,
+    const UpdateFunction,
+    const View extends DefinitionView<
+      OwnerValue,
+      ModelSchema,
+      MessageSchema,
+      Mounts,
+      Children
+    >,
+    const EffectsLayer,
+  >(
+    implementation: Readonly<{
+      init: Init &
+        NoInfer<
+          ValidateInit<
+            ViewImplementation<Init, UpdateFunction, View, EffectsLayer>
+          >
+        >
+      update: UpdateFunction
+      view: View
+      subscriptions?: never
+      managedResources?: never
+      operations?: never
+      hostHandlers?: never
+      EffectsLayer: EffectsLayer &
+        NoInfer<
+          ValidateAssembleBlockOperations<
+            OwnerValue,
+            ModelSchema,
+            MessageSchema,
+            OutMessageSchema,
+            Mounts,
+            Children,
+            ViewImplementation<Init, UpdateFunction, View, EffectsLayer>
+          >
+        >
+    }> &
+      NoInfer<
+        ValidateViewForDefinition<
+          View,
+          OwnerValue,
+          ModelSchema,
+          MessageSchema,
+          Mounts,
+          Children
+        >
+      > &
+      NoInfer<
+        DefinitionImplementation<ModelSchema, MessageSchema, OutMessageSchema>
+      >,
+  ): ImplementedBlock<
+    CompletedBlock<
+      OwnerValue,
+      ModelSchema,
+      MessageSchema,
+      OutMessageSchema,
+      Mounts,
+      Children,
+      PublicAssembleBlockImplementation<
+        ModelSchema,
+        MessageSchema,
+        ViewImplementation<Init, UpdateFunction, View, EffectsLayer>
+      >
+    >,
+    ViewImplementation<Init, UpdateFunction, View, EffectsLayer>,
+    () => ValidateAssembleBlockGraph<
+      OwnerValue,
+      Mounts,
+      Children,
+      ViewImplementation<Init, UpdateFunction, View, EffectsLayer>
+    >
+  >
+  <
+    const Init,
+    const UpdateFunction,
+    const View extends DefinitionView<
+      OwnerValue,
+      ModelSchema,
+      MessageSchema,
+      Mounts,
+      Children
+    >,
+    const Subscriptions,
+    const EffectsLayer,
+  >(
+    implementation: Readonly<{
+      init: Init &
+        NoInfer<
+          ValidateInit<
+            ViewSubscriptionsImplementation<
+              Init,
+              UpdateFunction,
+              View,
+              Subscriptions,
+              EffectsLayer
+            >
+          >
+        >
+      update: UpdateFunction
+      view: View
+      subscriptions: Subscriptions
+      managedResources?: never
+      operations?: never
+      hostHandlers?: never
+      EffectsLayer: EffectsLayer &
+        NoInfer<
+          ValidateAssembleBlockOperations<
+            OwnerValue,
+            ModelSchema,
+            MessageSchema,
+            OutMessageSchema,
+            Mounts,
+            Children,
+            ViewSubscriptionsImplementation<
+              Init,
+              UpdateFunction,
+              View,
+              Subscriptions,
+              EffectsLayer
+            >
+          >
+        >
+    }> &
+      NoInfer<
+        ValidateViewForDefinition<
+          View,
+          OwnerValue,
+          ModelSchema,
+          MessageSchema,
+          Mounts,
+          Children
+        >
+      > &
+      NoInfer<
+        DefinitionImplementation<ModelSchema, MessageSchema, OutMessageSchema>
+      >,
+  ): ImplementedBlock<
+    CompletedBlock<
+      OwnerValue,
+      ModelSchema,
+      MessageSchema,
+      OutMessageSchema,
+      Mounts,
+      Children,
+      PublicAssembleBlockImplementation<
+        ModelSchema,
+        MessageSchema,
+        ViewSubscriptionsImplementation<
+          Init,
+          UpdateFunction,
+          View,
+          Subscriptions,
+          EffectsLayer
+        >
+      >
+    >,
+    ViewSubscriptionsImplementation<
+      Init,
+      UpdateFunction,
+      View,
+      Subscriptions,
+      EffectsLayer
+    >,
+    () => ValidateAssembleBlockGraph<
+      OwnerValue,
+      Mounts,
+      Children,
+      ViewSubscriptionsImplementation<
+        Init,
+        UpdateFunction,
+        View,
+        Subscriptions,
+        EffectsLayer
+      >
+    >
+  >
+  <
+    const Init,
+    const UpdateFunction,
+    const View extends DefinitionView<
+      OwnerValue,
+      ModelSchema,
+      MessageSchema,
+      Mounts,
+      Children
+    >,
+    const Subscriptions,
+    const EffectsLayer,
+    const AdditionalImplementation extends object,
+  >(
+    implementation: AdditionalImplementation &
+      Readonly<{
+        init: Init &
+          NoInfer<
+            ValidateInit<
+              ViewSubscriptionImplementation<
+                Init,
+                UpdateFunction,
+                View,
+                Subscriptions,
+                EffectsLayer,
+                AdditionalImplementation
+              >
+            >
+          >
+        update: UpdateFunction
+        view: View
+        subscriptions: Subscriptions
+        EffectsLayer: EffectsLayer &
+          NoInfer<
+            ValidateAssembleBlockOperations<
+              OwnerValue,
+              ModelSchema,
+              MessageSchema,
+              OutMessageSchema,
+              Mounts,
+              Children,
+              ViewSubscriptionImplementation<
+                Init,
+                UpdateFunction,
+                View,
+                Subscriptions,
+                EffectsLayer,
+                AdditionalImplementation
+              >
+            >
+          >
+      }> &
+      NoInfer<
+        ValidateViewForDefinition<
+          View,
+          OwnerValue,
+          ModelSchema,
+          MessageSchema,
+          Mounts,
+          Children
+        >
+      > &
+      NoInfer<
+        DefinitionImplementation<ModelSchema, MessageSchema, OutMessageSchema>
+      >,
+  ): ImplementedBlock<
+    CompletedBlock<
+      OwnerValue,
+      ModelSchema,
+      MessageSchema,
+      OutMessageSchema,
+      Mounts,
+      Children,
+      PublicAssembleBlockImplementation<
+        ModelSchema,
+        MessageSchema,
+        ViewSubscriptionImplementation<
+          Init,
+          UpdateFunction,
+          View,
+          Subscriptions,
+          EffectsLayer,
+          AdditionalImplementation
+        >
+      >
+    >,
+    ViewSubscriptionImplementation<
+      Init,
+      UpdateFunction,
+      View,
+      Subscriptions,
+      EffectsLayer,
+      AdditionalImplementation
+    >,
+    () => ValidateAssembleBlockGraph<
+      OwnerValue,
+      Mounts,
+      Children,
+      ViewSubscriptionImplementation<
+        Init,
+        UpdateFunction,
+        View,
+        Subscriptions,
+        EffectsLayer,
+        AdditionalImplementation
+      >
+    >
+  >
+  <
+    const CompositionValue extends AssembleBlockComposition<
+      OwnerValue,
+      ModelSchema,
+      MessageSchema,
+      undefined,
+      Mounts,
+      Children
+    >,
+    const ImplementationValue extends Readonly<{ view: AnyAuthoredView }>,
+  >(
+    this: CompositionValue,
+    implementation: ImplementationValue &
+      NoInfer<
+        Omit<
+          DefinitionImplementation<
+            ModelSchema,
+            MessageSchema,
+            OutMessageSchema
+          >,
+          'EffectsLayer'
+        > &
+          Readonly<{ EffectsLayer?: never }>
+      > &
+      ExactImplementationKeys<ImplementationValue> &
+      ValidateInit<ImplementationValue> &
+      ValidateView<
+        ImplementationValue,
+        OwnerValue,
+        ModelSchema['Type'],
+        MessageSchema['Type'],
+        DefinitionViewRequirements<Mounts, Children>
+      > &
+      ValidateAssembleBlockOperations<
+        OwnerValue,
+        ModelSchema,
+        MessageSchema,
+        OutMessageSchema,
+        Mounts,
+        Children,
+        DefaultEffectsImplementation<ImplementationValue>
+      >,
+  ): ImplementedBlock<
+    CompletedWithView<
+      CompositionValue,
+      DefaultEffectsImplementation<ImplementationValue>
+    >,
+    DefaultEffectsImplementation<ImplementationValue>,
+    () => ValidateAssembleBlockGraph<
+      OwnerValue,
+      Mounts,
+      Children,
+      DefaultEffectsImplementation<ImplementationValue>
+    >
+  >
+  <const ImplementationValue extends object>(
+    implementation: ImplementationValue &
+      NoInfer<
+        Omit<
+          DefinitionImplementation<
+            ModelSchema,
+            MessageSchema,
+            OutMessageSchema
+          >,
+          'EffectsLayer'
+        > &
+          Readonly<{ EffectsLayer?: never }>
+      > &
+      ExactImplementationKeys<ImplementationValue> &
+      ValidateInit<ImplementationValue> &
+      ValidateView<
+        ImplementationValue,
+        OwnerValue,
+        ModelSchema['Type'],
+        MessageSchema['Type'],
+        DefinitionViewRequirements<Mounts, Children>
+      > &
+      ValidateAssembleBlockOperations<
+        OwnerValue,
+        ModelSchema,
+        MessageSchema,
+        OutMessageSchema,
+        Mounts,
+        Children,
+        DefaultEffectsImplementation<ImplementationValue>
+      >,
+  ): ImplementedBlock<
+    CompletedBlock<
+      OwnerValue,
+      ModelSchema,
+      MessageSchema,
+      OutMessageSchema,
+      Mounts,
+      Children,
+      PublicAssembleBlockImplementation<
+        ModelSchema,
+        MessageSchema,
+        DefaultEffectsImplementation<ImplementationValue>
+      >
+    >,
+    DefaultEffectsImplementation<ImplementationValue>,
+    () => ValidateAssembleBlockGraph<
+      OwnerValue,
+      Mounts,
+      Children,
+      DefaultEffectsImplementation<ImplementationValue>
+    >
+  >
+  <
+    const ErasedImplementation extends Omit<
+      DefinitionImplementation<ModelSchema, MessageSchema, OutMessageSchema>,
+      'operations'
+    >,
+  >(
+    implementation: ErasedImplementation &
+      (Omit<
+        Implementation<
+          ModelSchema['Type'],
+          MessageSchema['Type'],
+          OutMessageSchema extends Schema.Codec<any, any, any, any>
+            ? OutMessageSchema['Type']
+            : never
+        >,
+        'operations'
+      > extends ErasedImplementation
+        ? unknown
+        : never),
+  ): ImplementedBlock<never, ErasedImplementation, () => unknown>
+  <const ImplementationValue extends object>(
+    implementation: ImplementationValue &
+      NoInfer<
+        DefinitionImplementation<ModelSchema, MessageSchema, OutMessageSchema>
+      > &
+      ExactImplementationKeys<ImplementationValue> &
+      ValidateInit<ImplementationValue> &
+      ValidateView<
+        ImplementationValue,
+        OwnerValue,
+        ModelSchema['Type'],
+        MessageSchema['Type'],
+        DefinitionViewRequirements<Mounts, Children>
+      > &
+      ValidateAssembleBlockOperations<
+        OwnerValue,
+        ModelSchema,
+        MessageSchema,
+        OutMessageSchema,
+        Mounts,
+        Children,
+        ImplementationValue
+      >,
+  ): ImplementedBlock<
+    CompletedBlock<
+      OwnerValue,
+      ModelSchema,
+      MessageSchema,
+      OutMessageSchema,
+      Mounts,
+      Children,
+      PublicAssembleBlockImplementation<
+        ModelSchema,
+        MessageSchema,
+        ImplementationValue
+      >
+    >,
+    ImplementationValue,
+    () => ValidateAssembleBlockGraph<
+      OwnerValue,
+      Mounts,
+      Children,
+      ImplementationValue
+    >
+  >
+  <
+    const Init,
+    const UpdateFunction,
+    const View extends DefinitionView<
+      OwnerValue,
+      ModelSchema,
+      MessageSchema,
+      Mounts,
+      Children
+    >,
+    const ManagedResources,
+    const ExposedOperations,
+    const EffectsLayer,
+  >(
+    implementation: Readonly<{
+      init: Init &
+        NoInfer<
+          ValidateInit<
+            ManagedExposedOperationsImplementation<
+              Init,
+              UpdateFunction,
+              View,
+              ManagedResources,
+              ExposedOperations,
+              EffectsLayer
+            >
+          >
+        >
+      update: UpdateFunction
+      view: View
+      managedResources: ManagedResources
+      operations: ExposedOperations
+      EffectsLayer: EffectsLayer
+    }> &
+      NoInfer<
+        ValidateAssembleBlockOperations<
+          OwnerValue,
+          ModelSchema,
+          MessageSchema,
+          OutMessageSchema,
+          Mounts,
+          Children,
+          ManagedExposedOperationsImplementation<
+            Init,
+            UpdateFunction,
+            View,
+            ManagedResources,
+            ExposedOperations,
+            EffectsLayer
+          >
+        >
+      > &
+      NoInfer<
+        ValidateViewForDefinition<
+          View,
+          OwnerValue,
+          ModelSchema,
+          MessageSchema,
+          Mounts,
+          Children
+        >
+      > &
+      NoInfer<
+        DefinitionImplementation<ModelSchema, MessageSchema, OutMessageSchema>
+      >,
+  ): ImplementedBlock<
+    CompletedBlock<
+      OwnerValue,
+      ModelSchema,
+      MessageSchema,
+      OutMessageSchema,
+      Mounts,
+      Children,
+      PublicAssembleBlockImplementation<
+        ModelSchema,
+        MessageSchema,
+        ManagedExposedOperationsImplementation<
+          Init,
+          UpdateFunction,
+          View,
+          ManagedResources,
+          ExposedOperations,
+          EffectsLayer
+        >
+      >
+    >,
+    ManagedExposedOperationsImplementation<
+      Init,
+      UpdateFunction,
+      View,
+      ManagedResources,
+      ExposedOperations,
+      EffectsLayer
+    >,
+    () => ValidateAssembleBlockGraph<
+      OwnerValue,
+      Mounts,
+      Children,
+      ManagedExposedOperationsImplementation<
+        Init,
+        UpdateFunction,
+        View,
+        ManagedResources,
+        ExposedOperations,
+        EffectsLayer
+      >
+    >
+  >
+  <
+    const Init,
+    const UpdateFunction,
+    const View extends DefinitionView<
+      OwnerValue,
+      ModelSchema,
+      MessageSchema,
+      Mounts,
+      Children
+    >,
+    const ManagedResources,
+    const EffectsLayer,
+  >(
+    implementation: Readonly<{
+      init: Init &
+        NoInfer<
+          ValidateInit<
+            ManagedImplementation<
+              Init,
+              UpdateFunction,
+              View,
+              ManagedResources,
+              EffectsLayer
+            >
+          >
+        >
+      update: UpdateFunction
+      view: View
+      managedResources: ManagedResources
+      EffectsLayer: EffectsLayer &
+        NoInfer<
+          ValidateAssembleBlockOperations<
+            OwnerValue,
+            ModelSchema,
+            MessageSchema,
+            OutMessageSchema,
+            Mounts,
+            Children,
+            ManagedImplementation<
+              Init,
+              UpdateFunction,
+              View,
+              ManagedResources,
+              EffectsLayer
+            >
+          >
+        >
+    }> &
+      NoInfer<
+        ValidateViewForDefinition<
+          View,
+          OwnerValue,
+          ModelSchema,
+          MessageSchema,
+          Mounts,
+          Children
+        >
+      > &
+      NoInfer<
+        DefinitionImplementation<ModelSchema, MessageSchema, OutMessageSchema>
+      >,
+  ): ImplementedBlock<
+    CompletedBlock<
+      OwnerValue,
+      ModelSchema,
+      MessageSchema,
+      OutMessageSchema,
+      Mounts,
+      Children,
+      PublicAssembleBlockImplementation<
+        ModelSchema,
+        MessageSchema,
+        ManagedImplementation<
+          Init,
+          UpdateFunction,
+          View,
+          ManagedResources,
+          EffectsLayer
+        >
+      >
+    >,
+    ManagedImplementation<
+      Init,
+      UpdateFunction,
+      View,
+      ManagedResources,
+      EffectsLayer
+    >,
+    () => ValidateAssembleBlockGraph<
+      OwnerValue,
+      Mounts,
+      Children,
+      ManagedImplementation<
+        Init,
+        UpdateFunction,
+        View,
+        ManagedResources,
+        EffectsLayer
+      >
+    >
+  >
+  <
+    const Init,
+    const UpdateFunction,
+    const View extends DefinitionView<
+      OwnerValue,
+      ModelSchema,
+      MessageSchema,
+      Mounts,
+      Children
+    >,
+    const Subscriptions,
+    const ManagedResources,
+    const EffectsLayer,
+  >(
+    implementation: Readonly<{
+      init: Init &
+        NoInfer<
+          ValidateInit<
+            ManagedSubscriptionImplementation<
+              Init,
+              UpdateFunction,
+              View,
+              Subscriptions,
+              ManagedResources,
+              EffectsLayer
+            >
+          >
+        >
+      update: UpdateFunction
+      view: View
+      subscriptions: Subscriptions
+      managedResources: ManagedResources
+      EffectsLayer: EffectsLayer &
+        NoInfer<
+          ValidateAssembleBlockOperations<
+            OwnerValue,
+            ModelSchema,
+            MessageSchema,
+            OutMessageSchema,
+            Mounts,
+            Children,
+            ManagedSubscriptionImplementation<
+              Init,
+              UpdateFunction,
+              View,
+              Subscriptions,
+              ManagedResources,
+              EffectsLayer
+            >
+          >
+        >
+    }> &
+      NoInfer<
+        ValidateViewForDefinition<
+          View,
+          OwnerValue,
+          ModelSchema,
+          MessageSchema,
+          Mounts,
+          Children
+        >
+      > &
+      NoInfer<
+        DefinitionImplementation<ModelSchema, MessageSchema, OutMessageSchema>
+      >,
+  ): ImplementedBlock<
+    CompletedBlock<
+      OwnerValue,
+      ModelSchema,
+      MessageSchema,
+      OutMessageSchema,
+      Mounts,
+      Children,
+      PublicAssembleBlockImplementation<
+        ModelSchema,
+        MessageSchema,
+        ManagedSubscriptionImplementation<
+          Init,
+          UpdateFunction,
+          View,
+          Subscriptions,
+          ManagedResources,
+          EffectsLayer
+        >
+      >
+    >,
+    ManagedSubscriptionImplementation<
+      Init,
+      UpdateFunction,
+      View,
+      Subscriptions,
+      ManagedResources,
+      EffectsLayer
+    >,
+    () => ValidateAssembleBlockGraph<
+      OwnerValue,
+      Mounts,
+      Children,
+      ManagedSubscriptionImplementation<
+        Init,
+        UpdateFunction,
+        View,
+        Subscriptions,
+        ManagedResources,
+        EffectsLayer
+      >
+    >
+  >
+  <
+    const Init,
+    const UpdateFunction,
+    const View extends DefinitionView<
+      OwnerValue,
+      ModelSchema,
+      MessageSchema,
+      Mounts,
+      Children
+    >,
+    const ExposedOperations,
+    const EffectsLayer,
+  >(
+    implementation: Readonly<{
+      init: Init &
+        NoInfer<
+          ValidateInit<
+            ViewExposedOperationsImplementation<
+              Init,
+              UpdateFunction,
+              View,
+              ExposedOperations,
+              EffectsLayer
+            >
+          >
+        >
+      update: UpdateFunction
+      view: View
+      operations: ExposedOperations
+      EffectsLayer: EffectsLayer
+    }> &
+      NoInfer<
+        ValidateAssembleBlockOperations<
+          OwnerValue,
+          ModelSchema,
+          MessageSchema,
+          OutMessageSchema,
+          Mounts,
+          Children,
+          ViewExposedOperationsImplementation<
+            Init,
+            UpdateFunction,
+            View,
+            ExposedOperations,
+            EffectsLayer
+          >
+        >
+      > &
+      NoInfer<
+        ValidateViewForDefinition<
+          View,
+          OwnerValue,
+          ModelSchema,
+          MessageSchema,
+          Mounts,
+          Children
+        >
+      > &
+      NoInfer<
+        DefinitionImplementation<ModelSchema, MessageSchema, OutMessageSchema>
+      >,
+  ): ImplementedBlock<
+    CompletedBlock<
+      OwnerValue,
+      ModelSchema,
+      MessageSchema,
+      OutMessageSchema,
+      Mounts,
+      Children,
+      PublicAssembleBlockImplementation<
+        ModelSchema,
+        MessageSchema,
+        ViewExposedOperationsImplementation<
+          Init,
+          UpdateFunction,
+          View,
+          ExposedOperations,
+          EffectsLayer
+        >
+      >
+    >,
+    ViewExposedOperationsImplementation<
+      Init,
+      UpdateFunction,
+      View,
+      ExposedOperations,
+      EffectsLayer
+    >,
+    () => ValidateAssembleBlockGraph<
+      OwnerValue,
+      Mounts,
+      Children,
+      ViewExposedOperationsImplementation<
+        Init,
+        UpdateFunction,
+        View,
+        ExposedOperations,
+        EffectsLayer
+      >
+    >
+  >
+}
 
 /** Completes a Composition with its implementation channels and returns a
  * passive Block. `init` and `update` are required. At an inferred concrete
@@ -3483,6 +4489,19 @@ export type Composition<
     Mounts,
     Children
   >
+  /** Captures this Composition's implementation channels. Call
+   * `assembleBlock()` on the result to return the same passive Block as
+   * `assembleBlock`. A Block exported as
+   * `Composition.implement({ ... }).assembleBlock()` gives importing files its
+   * completed type without repeating the assembly graph check. */
+  readonly implement: ImplementBlock<
+    OwnerValue,
+    ModelSchema,
+    DispatchSchemaFor<MessageSchema, Children>,
+    OutMessageSchema,
+    Mounts,
+    Children
+  >
 }
 
 /** Registers the child and Mount graph after the Block's typed operations are
@@ -4334,6 +5353,10 @@ export const makeBaseDefinition = (
       makeUpdate: composition.makeUpdate,
       makeView: composition.makeView,
       assembleBlock: composition.assembleBlock,
+      implement: (implementation: object) => ({
+        [ImplementationTypeId]: implementation,
+        assembleBlock: () => composition.assembleBlock(implementation),
+      }),
     }
 
     compositions.add(publicComposition)

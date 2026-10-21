@@ -5,10 +5,10 @@ import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view/view'
 
-export const ApplicationBlock = ApplicationComposition.assembleBlock({
+export const ApplicationBlock = ApplicationComposition.implement({
   init,
   update,
   view,
   subscriptions,
   EffectsLayer,
-})
+}).assembleBlock()
