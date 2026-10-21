@@ -1163,6 +1163,46 @@ describe('showDialog', () => {
     }),
   )
 
+  it.effect.each([
+    { name: 'isComposing', isComposing: true, keyCode: 0 },
+    { name: 'keyCode 229', isComposing: false, keyCode: 229 },
+  ])(
+    'ignores Escape during IME composition ($name)',
+    ({ isComposing, keyCode }) =>
+      Effect.gen(function* () {
+        const dialog = makeDialog('solo')
+        const onCancel = vi.fn(() => dialog.close())
+        dialog.addEventListener('cancel', onCancel)
+
+        yield* showDialog('#solo')
+
+        const event = new KeyboardEvent('keydown', {
+          key: 'Escape',
+          bubbles: true,
+          cancelable: true,
+          isComposing,
+          keyCode,
+        })
+        dialog.dispatchEvent(event)
+
+        expect(onCancel).not.toHaveBeenCalled()
+        expect(dialog.open).toBe(true)
+        expect(event.defaultPrevented).toBe(false)
+
+        pressEscape()
+
+        expect(onCancel).toHaveBeenCalledOnce()
+        expect(dialog.open).toBe(false)
+      }).pipe(
+        Effect.ensuring(
+          Effect.gen(function* () {
+            yield* closeDialog('#solo').pipe(Effect.orDie)
+            document.body.innerHTML = ''
+          }),
+        ),
+      ),
+  )
+
   it.effect(
     'routes Escape to the topmost dialog when dialogs are stacked',
     () =>
