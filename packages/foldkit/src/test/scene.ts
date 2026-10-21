@@ -201,8 +201,20 @@ export type OutMessagesStep<OutMessage> = Readonly<{
   expected: readonly [OutMessage, OutMessage, ...ReadonlyArray<OutMessage>]
 }>
 
+/** A grouped sequence of Scene steps produced by {@link steps}. */
+export type SceneStepsStep<GivenModel, Message, OutMessage> = Readonly<{
+  _tag: 'SceneStepsStep'
+  /** @internal Carries the produced Model type through a reusable step group. */
+  _phantomGivenModel?: GivenModel
+  /** @internal Carries the Message type through a reusable step group. */
+  _phantomMessage?: Message
+  /** @internal Carries the OutMessage type through a reusable step group. */
+  _phantomOutMessage?: OutMessage
+  steps: ReadonlyArray<SceneStep<any, any, any>>
+}>
+
 /** A single step in a scene: a `given` step, typed Message or OutMessage step,
- *  or scene simulation transform. */
+ *  grouped sequence, or scene simulation transform. */
 export type SceneStep<Model, Message, OutMessage> =
   | GivenStep<NoInfer<Model>>
   | Readonly<{
@@ -221,6 +233,7 @@ export type SceneStep<Model, Message, OutMessage> =
         ...ReadonlyArray<NoInfer<OutMessage>>,
       ]
     }>
+  | SceneStepsStep<NoInfer<Model>, NoInfer<Message>, NoInfer<OutMessage>>
   | ((
       simulation: SceneSimulation<any, any, any>,
     ) => SceneSimulation<any, any, any>)
@@ -1720,6 +1733,40 @@ export const tap =
     return simulation
   }
 
+/** Groups Scene steps for reuse while preserving their Model, Message, and
+ *  OutMessage constraints. Nested groups run in declaration order, rendering
+ *  the view after each child step. */
+export const steps = <Steps extends ReadonlyArray<SceneStep<any, any, any>>>(
+  ...sceneSteps: Steps
+): SceneStepsStep<
+  Steps[number] extends infer Step
+    ? Step extends GivenStep<infer Model>
+      ? Model
+      : Step extends SceneStepsStep<infer Model, any, any>
+        ? Model
+        : never
+    : never,
+  Steps[number] extends infer Step
+    ? Step extends SubscriptionMessageStep<infer Message>
+      ? Message
+      : Step extends SceneStepsStep<any, infer Message, any>
+        ? Message
+        : never
+    : never,
+  Steps[number] extends infer Step
+    ? Step extends OutMessageStep<infer OutMessage>
+      ? OutMessage
+      : Step extends OutMessagesStep<infer OutMessage>
+        ? OutMessage
+        : Step extends SceneStepsStep<any, any, infer OutMessage>
+          ? OutMessage
+          : never
+    : never
+> => ({
+  _tag: 'SceneStepsStep',
+  steps: sceneSteps,
+})
+
 const applySceneStep = <Model, Message, OutMessage>(
   simulation: SceneSimulation<Model, Message, OutMessage>,
   step: SceneStep<Model, Message, OutMessage>,
@@ -1736,6 +1783,10 @@ const applySceneStep = <Model, Message, OutMessage>(
   if (Predicate.isTagged(step, 'OutMessagesStep')) {
     assertOutMessages(simulation, step.expected)
     return simulation
+  }
+
+  if (Predicate.isTagged(step, 'SceneStepsStep')) {
+    return runSteps(simulation, step.steps)
   }
 
   if (Predicate.isFunction(step)) {

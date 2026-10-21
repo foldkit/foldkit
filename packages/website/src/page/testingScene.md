@@ -8,6 +8,18 @@ Scene operates on VNodes directly. It needs no DOM, jsdom, or browser.
 
 Import the steps you need from `foldkit/scene`. Use named imports when the file contains only Scene tests. If a file contains both Story and Scene tests, import the namespaces from `foldkit` so `Story.given` and `Scene.given` stay distinct.
 
+## Reusable Step Groups
+
+Use `steps` to group a shared setup or interaction sequence. Pass the group directly to `scene` or `inside`, without an array or spread. Groups can nest and run in declaration order where they appear. Scene renders the view after each child step.
+
+The example uses a counter whose initial count is zero, with Increment and Decrement buttons:
+
+::Snippet{name="sceneReusableSteps" label="Reusable Scene steps"}
+
+A group accepts every Scene step, including Command and Mount steps, Subscription Messages, and OutMessage assertions. It preserves the Model, Message, and OutMessage constraints of its children, so `scene` rejects groups built for an incompatible program. An empty group changes no simulation state.
+
+Commands and Mounts can be produced in one group and resolved after it. OutMessage assertions after a group see the sequence from its latest update-producing child step.
+
 ## Locators
 
 ### Locator Factories
