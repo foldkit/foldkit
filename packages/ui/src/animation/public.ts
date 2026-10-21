@@ -17,3 +17,5 @@ export {
 } from './index.js'
 
 export type { InitConfig, ViewInputs } from './index.js'
+
+export * as test from './test.js'
