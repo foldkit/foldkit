@@ -76,6 +76,11 @@ import {
   resolveByMatcher,
   resolveMountByMatcher,
 } from './internal.js'
+import {
+  attributeMismatches,
+  describeAttributes,
+  refuseEmptyAttributes,
+} from './matchers.js'
 import type { Locator, LocatorAll } from './query.js'
 import {
   accessibleDescription,
@@ -2739,6 +2744,20 @@ const assertHasAttr = (
       : `have attribute ${name}="${value}"`,
   )
 
+const assertHasAttrs = (
+  expected: Readonly<Record<string, string>>,
+): SceneAssertion =>
+  assertOnElement(
+    vnode => {
+      const mismatches = attributeMismatches(vnode, expected)
+      return {
+        pass: Array.isArrayEmpty(mismatches),
+        actual: Array.join(mismatches, '; '),
+      }
+    },
+    `have attributes ${describeAttributes(expected)}`,
+  )
+
 const assertHasClass = (expected: string): SceneAssertion =>
   assertOnElement(
     vnode => ({
@@ -2907,6 +2926,10 @@ const buildExpectChain = (locator: Locator, isNot: boolean) => ({
     wrapAssertion(locator, assertContainsText(expected), isNot),
   toHaveAttr: (name: string, value?: string) =>
     wrapAssertion(locator, assertHasAttr(name, value), isNot),
+  toHaveAttrs: (expected: Readonly<Record<string, string>>) => {
+    refuseEmptyAttributes(expected)
+    return wrapAssertion(locator, assertHasAttrs(expected), isNot)
+  },
   toHaveClass: (expected: string) =>
     wrapAssertion(locator, assertHasClass(expected), isNot),
   toHaveStyle: (name: string, value?: string) =>
