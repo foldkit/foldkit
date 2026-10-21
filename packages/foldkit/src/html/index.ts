@@ -1760,6 +1760,10 @@ const attributeHandlers: AttributeHandlers = {
   OnKeyDownPreventDefault: ({ f: toMaybeMessage }, ctx: BuildContext) =>
     updateDataOn(ctx, {
       keydown: skipImeCompositionKeydown(event => {
+        if (event.defaultPrevented) {
+          return
+        }
+
         const maybeMessage = toMaybeMessage(event.key, keyboardModifiers(event))
         if (Option.isSome(maybeMessage)) {
           event.preventDefault()
@@ -1778,7 +1782,7 @@ const attributeHandlers: AttributeHandlers = {
   OnKeyDownSelfPreventDefault: ({ f: toMaybeMessage }, ctx: BuildContext) =>
     updateDataOn(ctx, {
       keydown: skipImeCompositionKeydown(event => {
-        if (!isEventTargetCurrentTarget(event)) {
+        if (event.defaultPrevented || !isEventTargetCurrentTarget(event)) {
           return
         }
 
@@ -1792,6 +1796,10 @@ const attributeHandlers: AttributeHandlers = {
   OnKeyDownFocus: ({ f: toMaybeFocusAndMessage }, ctx: BuildContext) =>
     updateDataOn(ctx, {
       keydown: skipImeCompositionKeydown(event => {
+        if (event.defaultPrevented) {
+          return
+        }
+
         const maybeResult = toMaybeFocusAndMessage(
           event.key,
           keyboardModifiers(event),
@@ -5008,6 +5016,22 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   OnKeyDown: (
     toMessage: (key: string, modifiers: KeyboardModifiers) => Message,
   ) => OnKeyDown({ f: toMessage }),
+  /**
+   * Keydown handler that claims a key when the translator returns `Some`:
+   * it prevents the browser's default action and dispatches the Message.
+   * Returning `None` leaves the key to the browser.
+   *
+   * A keydown whose default is already prevented is left alone, and the
+   * translator is not called. That is the case when a handler on a descendant,
+   * or an earlier attribute on the same element, returned `Some` for the key.
+   *
+   * @example
+   * ```typescript
+   * h.OnKeyDownPreventDefault(key =>
+   *   key === 'Escape' ? Option.some(Message.RequestedClose()) : Option.none(),
+   * )
+   * ```
+   */
   OnKeyDownPreventDefault: (
     toMaybeMessage: (
       key: string,
@@ -5033,7 +5057,8 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
    * Like `OnKeyDownPreventDefault`, but handles only keydowns that target this
    * element itself rather than bubbling from a descendant. Returning `Some`
    * prevents the browser's default action and dispatches the Message;
-   * returning `None` leaves the key to the browser.
+   * returning `None` leaves the key to the browser. A keydown whose default is
+   * already prevented is left alone.
    *
    * @example
    * ```typescript
@@ -5055,7 +5080,8 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
    * matching `focusSelector` and dispatches `message`, both inside the
    * originating event handler. Returns `Option.none()` for keys it does not
    * handle, leaving default behavior intact; a `Some` result also
-   * `preventDefault`s.
+   * `preventDefault`s. A keydown whose default is already prevented is left
+   * alone.
    *
    * Use this for roving-tabindex widgets (radio groups, toolbars) where an
    * arrow key must move DOM focus to the newly-active option. Because the focus
