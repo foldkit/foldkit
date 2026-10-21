@@ -44,6 +44,7 @@ export const loadingPostsModel = Model.make({
   posts: loadingPostsQueryModel,
   postDetails: postQuery.init(),
   maybeSelectedPostId: Option.none(),
+  recentPostIds: [],
   stats: statsQuery.init(),
 })
 
@@ -90,6 +91,7 @@ const loadedFirstPostQueryModel = postQuery.update(
 
 export const cachedFirstPostModel = modifyFields(loadedPostsModel, {
   postDetails: () => loadedFirstPostQueryModel,
+  recentPostIds: () => ['first-post'],
 })
 
 const failedFirstPostQueryModel = postQuery.update(
@@ -103,6 +105,7 @@ const failedFirstPostQueryModel = postQuery.update(
 
 export const failedFirstPostModel = modifyFields(loadedPostsModel, {
   postDetails: () => failedFirstPostQueryModel,
+  recentPostIds: () => ['first-post'],
 })
 
 const loadingStatsQueryModel = statsQuery.revalidateOrLoad(

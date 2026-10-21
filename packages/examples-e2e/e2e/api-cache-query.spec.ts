@@ -2,14 +2,14 @@ import { expect, test } from '@playwright/test'
 
 import * as Page from '../page'
 
+const CACHED_DETAIL_TIMEOUT_MS = 300
+
 test.describe('api-cache-query example', () => {
   test('loads cleanly', async ({ page }) => {
     await Page.assertLoadedCleanly(page)
   })
 
-  test('fetches posts, forgets details on Back, and renders stats', async ({
-    page,
-  }) => {
+  test('fetches posts, caches details, and renders stats', async ({ page }) => {
     await page.goto('/')
 
     const firstPost = page.getByRole('button', {
@@ -21,11 +21,12 @@ test.describe('api-cache-query example', () => {
     await expect(page.getByText('Fetched at')).toBeVisible()
 
     await page.getByRole('button', { name: 'Back to posts' }).click()
-    await expect(page.getByText('Cached')).toHaveCount(0)
+    await expect(page.getByText('Cached')).toBeVisible()
 
     await firstPost.click()
-    await expect(page.getByText('Loading post…')).toBeVisible()
-    await expect(page.getByText('Fetched at')).toBeVisible()
+    await expect(page.getByText('Fetched at')).toBeVisible({
+      timeout: CACHED_DETAIL_TIMEOUT_MS,
+    })
 
     await page.getByRole('button', { name: 'Back to posts' }).click()
     await page.getByRole('tab', { name: 'Stats' }).click()
