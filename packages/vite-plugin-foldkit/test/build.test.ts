@@ -15,13 +15,17 @@ import {
   manifestPath,
   renderTargetFor,
 } from '../src/build.ts'
-import { foldkitBuildToken } from '../src/buildToken.ts'
+import {
+  RESOLVED_DEVELOPMENT_BUILD_ID_MODULE_ID,
+  foldkitBuildToken,
+} from '../src/buildToken.ts'
 import {
   type FoldkitBuildApi,
   FoldkitBuildManifest,
   FoldkitBuildMetadata,
   foldkit,
 } from '../src/index.ts'
+import { isFoldkitBuildTokenModuleId, recordModuleIds } from './moduleIds.ts'
 
 const FIXTURE_ROOT = resolve(import.meta.dirname, 'fixtures/build')
 const SERVER_ENTRY = '/entry.server.ts'
@@ -1091,6 +1095,7 @@ describe('the build id across environments', () => {
     })
 
     const buildOnce = async (): Promise<string> => {
+      const moduleIds: Array<string> = []
       const builder = await createBuilder({
         root: CONFIG_ROOT,
         configFile: false,
@@ -1107,6 +1112,7 @@ describe('the build id across environments', () => {
               },
             },
           }),
+          recordModuleIds(moduleIds),
         ],
       })
       await builder.buildApp()
@@ -1136,6 +1142,8 @@ describe('the build id across environments', () => {
       )
       expect(clientBundle).toContain(buildId)
       expect(serverBundle).toContain(buildId)
+      expect(moduleIds.some(isFoldkitBuildTokenModuleId)).toBe(true)
+      expect(moduleIds).not.toContain(RESOLVED_DEVELOPMENT_BUILD_ID_MODULE_ID)
       return buildId ?? ''
     }
 
