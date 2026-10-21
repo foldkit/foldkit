@@ -41,38 +41,38 @@ const completeKeyedNote = (
   })
 
 describe('Query lifecycle', () => {
-  it('replaces a pending refresh while keeping its retained data', () => {
+  it('refetches during a pending refresh while keeping its retained data', () => {
     const loaded = note.loadIfMissing(note.init())
     const settled = note.update(
       loaded.model,
       completeNote(loaded.model.generation, 'retained'),
     )
     const refreshing = note.revalidate(settled.model)
-    const replacement = note.replace(refreshing.model)
+    const refetched = note.refetch(refreshing.model)
     const stale = note.update(
-      replacement.model,
+      refetched.model,
       completeNote(refreshing.model.generation, 'old'),
     )
 
-    expect(replacement.commands).toHaveLength(1)
-    expect(note.read(replacement.model)).toEqual(
+    expect(refetched.commands).toHaveLength(1)
+    expect(note.read(refetched.model)).toEqual(
       AsyncData.Refreshing({ data: 'retained' }),
     )
-    expect(stale.model).toBe(replacement.model)
+    expect(stale.model).toBe(refetched.model)
     expect(
       note.read(
         note.update(
-          replacement.model,
-          completeNote(replacement.model.generation, 'new'),
+          refetched.model,
+          completeNote(refetched.model.generation, 'new'),
         ).model,
       ),
     ).toEqual(AsyncData.Success({ data: 'new' }))
   })
 
-  it('loads an idle Query through replace', () => {
-    const replacement = note.replace(note.init())
-    expect(note.read(replacement.model)).toEqual(AsyncData.Loading())
-    expect(replacement.commands).toHaveLength(1)
+  it('loads an idle Query through refetch', () => {
+    const refetched = note.refetch(note.init())
+    expect(note.read(refetched.model)).toEqual(AsyncData.Loading())
+    expect(refetched.commands).toHaveLength(1)
   })
 })
 
@@ -101,28 +101,24 @@ describe('KeyedQuery lifecycle', () => {
     )
   })
 
-  it('replaces pending work for a key without superseding a sibling request', () => {
+  it('refetches a pending key without superseding a sibling request', () => {
     const first = noteById.loadIfMissing(noteById.init(), firstArgs)
     const sibling = noteById.loadIfMissing(first.model, secondArgs)
-    const replacementArgs = { noteId: '1', preview: false }
-    const replacement = noteById.replace(sibling.model, replacementArgs)
+    const refetchArgs = { noteId: '1', preview: false }
+    const refetched = noteById.refetch(sibling.model, refetchArgs)
     const stale = noteById.update(
-      replacement.model,
+      refetched.model,
       completeKeyedNote(firstArgs, first.model.generation, 'old'),
     )
     const settled = noteById.update(
       stale.model,
-      completeKeyedNote(
-        replacementArgs,
-        replacement.model.generation,
-        'replacement',
-      ),
+      completeKeyedNote(refetchArgs, refetched.model.generation, 'refetched'),
     )
 
-    expect(replacement.commands).toHaveLength(1)
-    expect(stale.model).toBe(replacement.model)
+    expect(refetched.commands).toHaveLength(1)
+    expect(stale.model).toBe(refetched.model)
     expect(noteById.read(settled.model, firstArgs)).toEqual(
-      AsyncData.Success({ data: 'replacement' }),
+      AsyncData.Success({ data: 'refetched' }),
     )
     expect(noteById.read(settled.model, secondArgs)).toEqual(
       AsyncData.Loading(),

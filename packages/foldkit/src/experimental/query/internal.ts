@@ -158,7 +158,7 @@ export const applyTransition = <Model, Args, A, E, Message, R>(
     },
   })
 
-export const replaceEntry = <Model, Args, A, E, Message, R>(
+export const refetchEntry = <Model, Args, A, E, Message, R>(
   store: QueryStore<Model, Args, A, E, Message, R>,
   model: Model,
   args: Args,
@@ -193,7 +193,7 @@ type LiftedQuery<ParentModel, ParentMessage, ChildMessage, R> = Readonly<{
   revalidate: Update.Step<ParentModel, ParentMessage, R>
   revalidateOrLoad: Update.Step<ParentModel, ParentMessage, R>
   loadIfMissing: Update.Step<ParentModel, ParentMessage, R>
-  replace: Update.Step<ParentModel, ParentMessage, R>
+  refetch: Update.Step<ParentModel, ParentMessage, R>
 }>
 
 type LiftedKeyedQuery<ParentModel, ParentMessage, ChildMessage, Args, R> =
@@ -203,7 +203,7 @@ type LiftedKeyedQuery<ParentModel, ParentMessage, ChildMessage, Args, R> =
     revalidate: Update.Fold<ParentModel, ParentMessage, Args, R>
     revalidateOrLoad: Update.Fold<ParentModel, ParentMessage, Args, R>
     loadIfMissing: Update.Fold<ParentModel, ParentMessage, Args, R>
-    replace: Update.Fold<ParentModel, ParentMessage, Args, R>
+    refetch: Update.Fold<ParentModel, ParentMessage, Args, R>
     forget: Update.Fold<ParentModel, ParentMessage, Args>
     retainOnly: Update.Fold<ParentModel, ParentMessage, ReadonlyArray<Args>>
   }>

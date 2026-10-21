@@ -28,6 +28,7 @@ import {
 } from './data'
 
 const STATS_REFETCH_INTERVAL = Duration.seconds(5)
+const RECENT_POST_LIMIT = 2
 
 export const TABS_ID = 'api-cache-query-tabs'
 
@@ -89,6 +90,7 @@ export const Model = Schema.Struct({
   posts: postsQuery.Model,
   postDetails: postQuery.Model,
   maybeSelectedPostId: Schema.Option(Schema.String),
+  recentPostIds: Schema.Array(Schema.String),
   stats: statsQuery.Model,
 })
 export type Model = typeof Model.Type
@@ -161,20 +163,32 @@ export const update = (model: Model, message: Message) =>
     GotPostsMessage: ({ message }) => posts.fold(model, message),
     GotStatsMessage: ({ message }) => stats.fold(model, message),
     GotPostMessage: ({ message }) => postDetails.fold(model, message),
-    ClickedPost: ({ postId }) =>
-      Update.combine(
+    ClickedPost: ({ postId }) => {
+      const nextRecentPostIds = pipe(
+        model.recentPostIds,
+        Array.filter(recentPostId => recentPostId !== postId),
+        Array.prepend(postId),
+        Array.take(RECENT_POST_LIMIT),
+      )
+
+      return Update.combine(
         modifyFields(model, {
           maybeSelectedPostId: () => Option.some(postId),
+          recentPostIds: () => nextRecentPostIds,
         }),
         [
-          postDetails.retainOnly([{ postId }]),
+          postDetails.retainOnly(
+            Array.map(nextRecentPostIds, recentPostId => ({
+              postId: recentPostId,
+            })),
+          ),
           postDetails.loadIfMissing({ postId }),
         ],
-      ),
-    ClickedBackToPosts: () =>
-      postDetails.reset(
-        modifyFields(model, { maybeSelectedPostId: () => Option.none() }),
-      ),
+      )
+    },
+    ClickedBackToPosts: () => ({
+      model: modifyFields(model, { maybeSelectedPostId: () => Option.none() }),
+    }),
     ClickedRefreshPosts: () => posts.revalidateOrLoad(model),
     ClickedRetryPosts: () => posts.revalidateOrLoad(model),
     ClickedRetryPost: ({ postId }) =>
@@ -191,6 +205,7 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => {
     posts: postsQuery.init(),
     postDetails: postQuery.init(),
     maybeSelectedPostId: Option.none(),
+    recentPostIds: [],
     stats: statsQuery.init(),
   })
 
@@ -358,7 +373,7 @@ const postsListView = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.p(
         [h.Class('text-sm text-slate-500')],
         [
-          'Open a post, then go back. Returning to the list clears its detail entry. Opening it again fetches a fresh value.',
+          'Open a post, then go back. The Query keeps the details of the two most recently opened posts. Opening a third evicts the oldest.',
         ],
       ),
       AsyncData.matchData(postsAsyncData, {
@@ -506,7 +521,7 @@ const postCard = (
       h.p(
         [h.Class('text-xs text-slate-400')],
         [
-          `Fetched at ${formatFetchedAt(fetchedAt)}. Leaving this screen forgets the entry.`,
+          `Fetched at ${formatFetchedAt(fetchedAt)}. The Query keeps the two most recently opened posts.`,
         ],
       ),
     ],
