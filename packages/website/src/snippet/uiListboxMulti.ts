@@ -47,9 +47,8 @@ const Message = defineMessageUnion({
 // means: for multi-select, toggle the value in and out of its array. The arm
 // returns an Update.Step over the parent Model, which already has the next
 // Listbox Model written back:
-const foldListboxMultiOutMessage = Listbox.OutMessage.match<
-  Update.Step<Model, Message>,
-  Listbox.OutMessage<Person>
+const foldListboxMultiOutMessage = PeopleListbox.OutMessage.match<
+  Update.Step<Model, Message>
 >({
   Selected:
     ({ value }) =>
