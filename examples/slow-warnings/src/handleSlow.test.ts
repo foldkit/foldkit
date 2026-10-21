@@ -12,7 +12,7 @@ const initialModel: Model = {
 }
 
 describe('handleSlow', () => {
-  test('logs the warning to the console', () => {
+  test('logs a compact warning to the console', () => {
     const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
     try {
@@ -27,14 +27,11 @@ describe('handleSlow', () => {
         message: Message.ClickedRunUpdateWork(),
       })
 
+      expect(consoleWarn).toHaveBeenCalledOnce()
       expect(consoleWarn).toHaveBeenCalledWith(
-        expect.stringContaining('[foldkit] Slow update: 12.0ms'),
-        expect.objectContaining({
-          _tag: 'Update',
-          durationMs: 12,
-          thresholdMs: 4,
-        }),
-        expect.objectContaining({ _tag: 'ClickedRunUpdateWork' }),
+        expect.stringMatching(
+          /^\[foldkit\] Slow update: 12\.0ms .* triggered by ClickedRunUpdateWork\./,
+        ),
       )
     } finally {
       consoleWarn.mockRestore()
