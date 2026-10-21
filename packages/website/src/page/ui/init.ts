@@ -139,11 +139,11 @@ export const init = (today: Calendar.CalendarDate): InitReturn => ({
     verticalRadioGroupDemo: RadioGroup.init({
       id: 'vertical-radio-group-demo',
     }),
-    verticalRadioGroupDemoValue: Option.none(),
+    maybeVerticalRadioGroupDemoValue: Option.none(),
     horizontalRadioGroupDemo: RadioGroup.init({
       id: 'horizontal-radio-group-demo',
     }),
-    horizontalRadioGroupDemoValue: Option.none(),
+    maybeHorizontalRadioGroupDemoValue: Option.none(),
     selectDemoValue: 'us',
     sliderRatingDemo: Slider.init({
       id: 'slider-rating-demo',

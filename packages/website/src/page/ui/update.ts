@@ -1172,7 +1172,7 @@ const foldVerticalRadioGroupDemoOutMessage = RadioGroup.OutMessage.match<
     ({ value }) =>
     model => ({
       model: modifyFields(model, {
-        verticalRadioGroupDemoValue: () => Option.some(value),
+        maybeVerticalRadioGroupDemoValue: () => Option.some(value),
       }),
     }),
 })
@@ -1197,7 +1197,7 @@ const foldHorizontalRadioGroupDemoOutMessage = RadioGroup.OutMessage.match<
     ({ value }) =>
     model => ({
       model: modifyFields(model, {
-        horizontalRadioGroupDemoValue: () => Option.some(value),
+        maybeHorizontalRadioGroupDemoValue: () => Option.some(value),
       }),
     }),
 })
