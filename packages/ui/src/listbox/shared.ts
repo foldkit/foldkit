@@ -137,6 +137,7 @@ export const Message = defineMessageUnion({
     pointerType: Schema.String,
     button: Schema.Number,
   },
+  MovedPointerOffButton: {},
 })
 
 export type Opened = typeof Message.Opened.Type
@@ -156,6 +157,7 @@ export type IgnoredMouseClick = typeof Message.IgnoredMouseClick.Type
 export type SuppressedSpaceScroll = typeof Message.SuppressedSpaceScroll.Type
 export type SuppressedItemCommit = typeof Message.SuppressedItemCommit.Type
 export type PressedPointerOnButton = typeof Message.PressedPointerOnButton.Type
+export type MovedPointerOffButton = typeof Message.MovedPointerOffButton.Type
 
 export type Message = typeof Message.Type
 
@@ -583,8 +585,12 @@ export const makeUpdate = <Model extends BaseModel>(
           maybeLastButtonPointerType: () => Option.some(pointerType),
         })
 
-        if (pointerType !== 'mouse' || button !== LEFT_MOUSE_BUTTON) {
+        if (pointerType !== 'mouse') {
           return { model: withPointerType }
+        }
+
+        if (button !== LEFT_MOUSE_BUTTON) {
+          return { model }
         }
 
         if (model.isOpen) {
@@ -609,6 +615,12 @@ export const makeUpdate = <Model extends BaseModel>(
           openCommands,
         )
       },
+
+      MovedPointerOffButton: () => ({
+        model: modifyBaseFields(model, {
+          maybeLastButtonPointerType: () => Option.none(),
+        }),
+      }),
 
       IgnoredMouseClick: () => ({
         model: modifyBaseFields(model, {
@@ -1054,6 +1066,12 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
         ...(isButtonEffectivelyDisabled
           ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
           : [
+              h.OnPointerLeave(pointerType =>
+                OptionExt.when(
+                  pointerType === 'mouse',
+                  Message.MovedPointerOffButton(),
+                ),
+              ),
               h.OnPointerDown(handleButtonPointerDown),
               h.OnKeyDownPreventDefault(handleButtonKeyDown),
               h.OnKeyUpPreventDefault(handleSpaceKeyUp),
