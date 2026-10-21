@@ -1,5 +1,10 @@
 import { Effect, Queue, Schema, Stream } from 'effect'
 
+import {
+  beginAnimationFrameCallbackPhase,
+  endAnimationFrameCallbackPhase,
+} from '../runtime/animationFramePhase.js'
+
 /**
  * Configuration for the `animationFrameEntry` Subscription helper.
  *
@@ -20,28 +25,50 @@ const makeAnimationFrameStream = <Message>(
   Stream.callback<Message>(queue =>
     Effect.acquireRelease(
       Effect.sync(() => {
+        const endPhaseChannel = new MessageChannel()
         const state = {
           frameId: 0,
           lastTime: performance.now(),
+          endPhaseChannel,
+          isPhaseEndReleased: false,
+        }
+        endPhaseChannel.port2.onmessage = () => {
+          if (state.isPhaseEndReleased) {
+            return
+          }
+          endAnimationFrameCallbackPhase()
         }
 
         const tick = (now: number): void => {
-          const deltaTime = now - state.lastTime
-          state.lastTime = now
-          Queue.offerUnsafe(queue, toMessage(deltaTime))
-          state.frameId = requestAnimationFrame(tick)
+          beginAnimationFrameCallbackPhase()
+          try {
+            const deltaTime = now - state.lastTime
+            state.lastTime = now
+            Queue.offerUnsafe(queue, toMessage(deltaTime))
+            state.frameId = requestAnimationFrame(tick)
+          } finally {
+            endPhaseChannel.port1.postMessage(null)
+          }
         }
 
         state.frameId = requestAnimationFrame(tick)
         return state
       }),
-      state => Effect.sync(() => cancelAnimationFrame(state.frameId)),
+      state =>
+        Effect.sync(() => {
+          state.isPhaseEndReleased = true
+          cancelAnimationFrame(state.frameId)
+          state.endPhaseChannel.port1.close()
+          state.endPhaseChannel.port2.close()
+        }),
     ).pipe(Effect.flatMap(() => Effect.never)),
   )
 
 /**
  * Build a Subscription entry that emits a Message on every
  * `requestAnimationFrame` tick, with the inter-frame delta in milliseconds.
+ * The runtime renders the Model that tick produced before the browser
+ * paints the frame, so the view keeps up with the display.
  *
  * @example
  * ```typescript
