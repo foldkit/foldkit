@@ -1,4 +1,5 @@
-import { Option, Result } from 'effect'
+import { Option } from 'effect'
+import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { Tabs } from '@foldkit/ui'
@@ -34,103 +35,60 @@ export const fixtureStats: Stats = {
   cacheHitRatePercent: 97,
 }
 
-const loadingPostsQueryModel = postsQuery.revalidateOrLoad(
-  postsQuery.init(),
-).model
+const fetchedPosts = { posts: fixturePosts, fetchedAt: FETCHED_AT }
+const fetchedStats = { stats: fixtureStats, fetchedAt: FETCHED_AT }
+const firstPostArgs = { postId: 'first-post' }
 
 export const loadingPostsModel = Model.make({
   tabs: Tabs.init({ id: TABS_ID }),
   activeTab: 'Posts',
-  posts: loadingPostsQueryModel,
+  posts: postsQuery.seed(AsyncData.Loading()),
   postDetails: postQuery.init(),
   maybeSelectedPostId: Option.none(),
   stats: statsQuery.init(),
 })
 
-const loadedPostsQueryModel = postsQuery.update(
-  loadingPostsQueryModel,
-  postsQuery.Message.CompletedFetch({
-    generation: loadingPostsQueryModel.generation,
-    result: Result.succeed({ posts: fixturePosts, fetchedAt: FETCHED_AT }),
-  }),
-).model
-
 export const loadedPostsModel = modifyFields(loadingPostsModel, {
-  posts: () => loadedPostsQueryModel,
+  posts: () => postsQuery.seed(AsyncData.Success({ data: fetchedPosts })),
 })
-
-const failedPostsQueryModel = postsQuery.update(
-  loadingPostsQueryModel,
-  postsQuery.Message.CompletedFetch({
-    generation: loadingPostsQueryModel.generation,
-    result: Result.fail('The server is down.'),
-  }),
-).model
 
 export const failedPostsModel = modifyFields(loadingPostsModel, {
-  posts: () => failedPostsQueryModel,
+  posts: () =>
+    postsQuery.seed(AsyncData.Failure({ error: 'The server is down.' })),
 })
-
-const firstPostArgs = { postId: 'first-post' }
-const loadingFirstPostQueryModel = postQuery.loadIfMissing(
-  postQuery.init(),
-  firstPostArgs,
-).model
-const loadedFirstPostQueryModel = postQuery.update(
-  loadingFirstPostQueryModel,
-  postQuery.Message.CompletedFetch({
-    args: firstPostArgs,
-    generation: loadingFirstPostQueryModel.generation,
-    result: Result.succeed({
-      post: firstPostDetail,
-      fetchedAt: FETCHED_AT,
-    }),
-  }),
-).model
 
 export const cachedFirstPostModel = modifyFields(loadedPostsModel, {
-  postDetails: () => loadedFirstPostQueryModel,
+  postDetails: () =>
+    postQuery.seed([
+      {
+        args: firstPostArgs,
+        data: AsyncData.Success({
+          data: { post: firstPostDetail, fetchedAt: FETCHED_AT },
+        }),
+      },
+    ]),
 })
-
-const failedFirstPostQueryModel = postQuery.update(
-  loadingFirstPostQueryModel,
-  postQuery.Message.CompletedFetch({
-    args: firstPostArgs,
-    generation: loadingFirstPostQueryModel.generation,
-    result: Result.fail('The connection dropped.'),
-  }),
-).model
 
 export const failedFirstPostModel = modifyFields(loadedPostsModel, {
-  postDetails: () => failedFirstPostQueryModel,
+  postDetails: () =>
+    postQuery.seed([
+      {
+        args: firstPostArgs,
+        data: AsyncData.Failure({ error: 'The connection dropped.' }),
+      },
+    ]),
 })
-
-const loadingStatsQueryModel = statsQuery.revalidateOrLoad(
-  statsQuery.init(),
-).model
 
 export const loadingStatsModel = modifyFields(loadedPostsModel, {
   activeTab: () => 'Stats',
-  stats: () => loadingStatsQueryModel,
+  stats: () => statsQuery.seed(AsyncData.Loading()),
 })
-
-const loadedStatsQueryModel = statsQuery.update(
-  loadingStatsQueryModel,
-  statsQuery.Message.CompletedFetch({
-    generation: loadingStatsQueryModel.generation,
-    result: Result.succeed({ stats: fixtureStats, fetchedAt: FETCHED_AT }),
-  }),
-).model
 
 export const loadedStatsModel = modifyFields(loadedPostsModel, {
   activeTab: () => 'Stats',
-  stats: () => loadedStatsQueryModel,
+  stats: () => statsQuery.seed(AsyncData.Success({ data: fetchedStats })),
 })
 
-const refreshingStatsQueryModel = statsQuery.revalidate(
-  loadedStatsQueryModel,
-).model
-
 export const refreshingStatsModel = modifyFields(loadedStatsModel, {
-  stats: () => refreshingStatsQueryModel,
+  stats: () => statsQuery.seed(AsyncData.Refreshing({ data: fetchedStats })),
 })

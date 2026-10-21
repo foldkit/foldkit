@@ -33,49 +33,152 @@ export type ParentFieldConfig<
   toParentMessage: (message: ChildMessage) => ParentMessage
 }>
 
-export type LiftConfig<ParentModel, ParentMessage, ChildModel, ChildMessage> =
-  | ParentFieldConfig<ParentModel, ParentMessage, ChildModel, ChildMessage>
-  | FoldLens<ParentModel, ParentMessage, ChildModel, ChildMessage>
+export type FoldOutMessage<
+  ParentModel,
+  ParentMessage,
+  ChildMessage,
+  ChildOutMessage,
+  OutMessageRequirements,
+> = (
+  outMessage: ChildOutMessage,
+  context: Update.FoldContext<ChildMessage, ParentMessage>,
+) => Update.Step<NoInfer<ParentModel>, ParentMessage, OutMessageRequirements>
 
-export type LiftQuery<ChildModel, ChildMessage, R> = {
-  <ParentModel, ParentMessage>(
-    config: ParentFieldConfig<
-      ParentModel,
-      ParentMessage,
-      ChildModel,
-      ChildMessage
-    >,
-  ): LiftedQuery<ParentModel, ParentMessage, ChildMessage, R>
-  <ParentModel, ParentMessage>(
-    config: FoldLens<ParentModel, ParentMessage, ChildModel, ChildMessage>,
-  ): LiftedQuery<ParentModel, ParentMessage, ChildMessage, R>
-}
+export type AnyFoldOutMessage<ParentMessage, ChildMessage, ChildOutMessage> =
+  FoldOutMessage<any, ParentMessage, ChildMessage, ChildOutMessage, any>
 
-export type LiftKeyedQuery<ChildModel, ChildMessage, Args, R> = {
-  <ParentModel, ParentMessage>(
-    config: ParentFieldConfig<
-      ParentModel,
-      ParentMessage,
-      ChildModel,
-      ChildMessage
-    >,
-  ): LiftedKeyedQuery<ParentModel, ParentMessage, ChildMessage, Args, R>
-  <ParentModel, ParentMessage>(
-    config: FoldLens<ParentModel, ParentMessage, ChildModel, ChildMessage>,
-  ): LiftedKeyedQuery<ParentModel, ParentMessage, ChildMessage, Args, R>
-}
+export type FoldOutMessageConfig<
+  ParentModel,
+  ParentMessage,
+  ChildMessage,
+  ChildOutMessage,
+  OutMessageRequirements,
+> = Readonly<{
+  foldOutMessage?: FoldOutMessage<
+    ParentModel,
+    ParentMessage,
+    ChildMessage,
+    ChildOutMessage,
+    OutMessageRequirements
+  >
+}>
 
-export const isParentFieldConfig = <
+export type LiftConfig<
   ParentModel,
   ParentMessage,
   ChildModel,
   ChildMessage,
->(
-  config: LiftConfig<ParentModel, ParentMessage, ChildModel, ChildMessage>,
-): config is Extract<
-  LiftConfig<ParentModel, ParentMessage, ChildModel, ChildMessage>,
-  { readonly parentField: string }
-> => Predicate.hasProperty(config, 'parentField')
+  ChildOutMessage = never,
+  OutMessageRequirements = never,
+> = (
+  | ParentFieldConfig<ParentModel, ParentMessage, ChildModel, ChildMessage>
+  | FoldLens<ParentModel, ParentMessage, ChildModel, ChildMessage>
+) &
+  FoldOutMessageConfig<
+    ParentModel,
+    ParentMessage,
+    ChildMessage,
+    ChildOutMessage,
+    OutMessageRequirements
+  >
+
+export type LiftQuery<ChildModel, ChildMessage, ChildOutMessage, Data, R> = {
+  <ParentModel, ParentMessage, OutMessageRequirements = never>(
+    config: ParentFieldConfig<
+      ParentModel,
+      ParentMessage,
+      ChildModel,
+      ChildMessage
+    > &
+      FoldOutMessageConfig<
+        ParentModel,
+        ParentMessage,
+        ChildMessage,
+        ChildOutMessage,
+        OutMessageRequirements
+      >,
+  ): LiftedQuery<
+    ParentModel,
+    ParentMessage,
+    ChildMessage,
+    Data,
+    R,
+    OutMessageRequirements
+  >
+  <ParentModel, ParentMessage, OutMessageRequirements = never>(
+    config: FoldLens<ParentModel, ParentMessage, ChildModel, ChildMessage> &
+      FoldOutMessageConfig<
+        ParentModel,
+        ParentMessage,
+        ChildMessage,
+        ChildOutMessage,
+        OutMessageRequirements
+      >,
+  ): LiftedQuery<
+    ParentModel,
+    ParentMessage,
+    ChildMessage,
+    Data,
+    R,
+    OutMessageRequirements
+  >
+}
+
+export type LiftKeyedQuery<
+  ChildModel,
+  ChildMessage,
+  ChildOutMessage,
+  Args,
+  Data,
+  R,
+> = {
+  <ParentModel, ParentMessage, OutMessageRequirements = never>(
+    config: ParentFieldConfig<
+      ParentModel,
+      ParentMessage,
+      ChildModel,
+      ChildMessage
+    > &
+      FoldOutMessageConfig<
+        ParentModel,
+        ParentMessage,
+        ChildMessage,
+        ChildOutMessage,
+        OutMessageRequirements
+      >,
+  ): LiftedKeyedQuery<
+    ParentModel,
+    ParentMessage,
+    ChildMessage,
+    Args,
+    Data,
+    R,
+    OutMessageRequirements
+  >
+  <ParentModel, ParentMessage, OutMessageRequirements = never>(
+    config: FoldLens<ParentModel, ParentMessage, ChildModel, ChildMessage> &
+      FoldOutMessageConfig<
+        ParentModel,
+        ParentMessage,
+        ChildMessage,
+        ChildOutMessage,
+        OutMessageRequirements
+      >,
+  ): LiftedKeyedQuery<
+    ParentModel,
+    ParentMessage,
+    ChildMessage,
+    Args,
+    Data,
+    R,
+    OutMessageRequirements
+  >
+}
+
+export const isParentFieldConfig = <Config extends object>(
+  config: Config,
+): config is Extract<Config, { readonly parentField: string }> =>
+  Predicate.hasProperty(config, 'parentField')
 
 const setField = <
   Field extends string,
@@ -176,19 +279,58 @@ export type KeyedArgs<Fields extends Schema.Struct.Fields> = Schema.Schema.Type<
   Schema.Struct<Fields>
 >
 
-type LiftedQuery<ParentModel, ParentMessage, ChildMessage, R> = Readonly<{
-  fold: Update.Fold<ParentModel, ParentMessage, ChildMessage>
+export type KeyedDataWrite<Args, Data> = Readonly<{ args: Args; data: Data }>
+
+export type KeyedDataTransform<Args, Data> = Readonly<{
+  args: Args
+  toNextData: (data: Data) => Data
+}>
+
+export type LiftedQuery<
+  ParentModel,
+  ParentMessage,
+  ChildMessage,
+  Data,
+  R,
+  OutMessageRequirements = never,
+> = Readonly<{
+  fold: Update.Fold<
+    ParentModel,
+    ParentMessage,
+    ChildMessage,
+    OutMessageRequirements
+  >
+  setData: Update.Fold<ParentModel, ParentMessage, Data>
+  updateData: Update.Fold<ParentModel, ParentMessage, (data: Data) => Data>
   reset: Update.Step<ParentModel, ParentMessage>
   revalidate: Update.Step<ParentModel, ParentMessage, R>
   revalidateOrLoad: Update.Step<ParentModel, ParentMessage, R>
   loadIfMissing: Update.Step<ParentModel, ParentMessage, R>
 }>
 
-type LiftedKeyedQuery<ParentModel, ParentMessage, ChildMessage, Args, R> =
-  Readonly<{
-    fold: Update.Fold<ParentModel, ParentMessage, ChildMessage>
-    reset: Update.Step<ParentModel, ParentMessage>
-    revalidate: Update.Fold<ParentModel, ParentMessage, Args, R>
-    revalidateOrLoad: Update.Fold<ParentModel, ParentMessage, Args, R>
-    loadIfMissing: Update.Fold<ParentModel, ParentMessage, Args, R>
-  }>
+export type LiftedKeyedQuery<
+  ParentModel,
+  ParentMessage,
+  ChildMessage,
+  Args,
+  Data,
+  R,
+  OutMessageRequirements = never,
+> = Readonly<{
+  fold: Update.Fold<
+    ParentModel,
+    ParentMessage,
+    ChildMessage,
+    OutMessageRequirements
+  >
+  setData: Update.Fold<ParentModel, ParentMessage, KeyedDataWrite<Args, Data>>
+  updateData: Update.Fold<
+    ParentModel,
+    ParentMessage,
+    KeyedDataTransform<Args, Data>
+  >
+  reset: Update.Step<ParentModel, ParentMessage>
+  revalidate: Update.Fold<ParentModel, ParentMessage, Args, R>
+  revalidateOrLoad: Update.Fold<ParentModel, ParentMessage, Args, R>
+  loadIfMissing: Update.Fold<ParentModel, ParentMessage, Args, R>
+}>
