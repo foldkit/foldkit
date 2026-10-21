@@ -668,6 +668,12 @@ const checks: ReadonlyArray<
     rejected: ['startup-defaults.rejected.ts'],
     consumers: ['startup-defaults.consume.ts'],
   },
+  {
+    name: 'implemented-block',
+    accepted: ['implemented-block.accepted.ts'],
+    rejected: ['implemented-block.rejected.ts'],
+    consumers: ['implemented-block.consume.ts'],
+  },
 ]
 
 const main = async (): Promise<void> => {

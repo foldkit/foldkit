@@ -46,7 +46,7 @@ export type {
   InitializationPlan,
   InitializationStep,
 } from './initialization.js'
-export { LocalMountsTypeId } from './definition.js'
+export { ImplementationTypeId, LocalMountsTypeId } from './definition.js'
 export type {
   AnyBlock,
   Base,
@@ -78,6 +78,8 @@ export type {
   OwnedAuthoredView,
   AssembleBlock,
   AuthoredViewInputs,
+  ImplementBlock,
+  ImplementedBlock,
   OwnedManagedResourceEntryBuilder,
   OwnedSubscriptionEntryBuilder,
   OwnedSubscriptionRegistry,
