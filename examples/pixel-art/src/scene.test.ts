@@ -84,7 +84,6 @@ describe('export workflow', () => {
         Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
       Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
-      resolveDialogResources,
       expect(text('Export Failed')).toExist(),
       expect(text('Canvas 2D context not available')).toExist(),
       expect(role('button', { name: 'Dismiss' })).toExist(),
@@ -101,14 +100,12 @@ describe('export workflow', () => {
         Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
       Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
-      resolveDialogResources,
       expect(text('Export Failed')).toExist(),
       click(role('button', { name: 'Dismiss' })),
       Command.resolve(
         Dialog.CloseDialog,
         Dialog.Message.CompletedCloseDialog(),
       ),
-      Mount.expectEnded(Dialog.AcquireResources),
       expect(text('Export Failed')).toBeAbsent(),
     )
   })
@@ -217,7 +214,6 @@ describe('grid size change', () => {
       click(role('radio', { name: '8' })),
       resolveFocusOption,
       Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
-      resolveDialogResources,
       expect(text('Change to 8\u00d78?')).toExist(),
       expect(
         text('This will clear your canvas and reset undo history.'),

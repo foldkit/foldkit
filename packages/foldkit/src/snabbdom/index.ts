@@ -14,6 +14,7 @@ export { toVNode } from './tovnode.js'
 export {
   VNodeDataMask,
   vnodeDataMaskKey,
+  type FoldkitMountMarker,
   type Key,
   type VNode,
   type VNodeData,
