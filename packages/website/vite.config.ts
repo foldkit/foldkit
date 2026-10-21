@@ -65,6 +65,9 @@ const highlightLanguage = (filePath: string): string => {
   if (filePath.endsWith('.txt')) {
     return 'text'
   }
+  if (filePath.endsWith('.toml')) {
+    return 'toml'
+  }
   return 'typescript'
 }
 

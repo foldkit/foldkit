@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "dist"
+  },
+  "include": [],
+  "files": ["src/test/bun.ts"],
+  "references": [{ "path": "./tsconfig.build.json" }]
+}

@@ -5,7 +5,7 @@ import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import { applyPackageManager } from './files.js'
+import { applyPackageManager, applyTestRunner } from './files.js'
 
 const templatePath = (relativePath: string): string =>
   fileURLToPath(new URL(`../../templates/${relativePath}`, import.meta.url))
@@ -59,6 +59,67 @@ describe('applyPackageManager', () => {
     expect(pnpm).toContain('pnpm install')
     expect(pnpm).toContain('pnpm dev')
     expect(pnpm).not.toContain('{{')
+  })
+})
+
+describe('applyTestRunner', () => {
+  const sourceLines = (...lines: ReadonlyArray<string>): string =>
+    lines.map(line => `${line}\n`).join('')
+
+  const files = {
+    'package.json': '{}',
+    'README.md': "Tests import from 'vitest'.",
+    'vitest.config.ts': "import { defineConfig } from 'vitest/config'\n",
+    'src/vitest-setup.ts': "import { setup } from 'foldkit/test/vitest'\n",
+    'src/scene.test.ts': sourceLines(
+      "import { Option } from 'effect'",
+      "import { expect, scene } from 'foldkit/scene'",
+      'import {',
+      '  afterEach,',
+      '  beforeEach,',
+      '  describe,',
+      '  test,',
+      "} from 'vitest'",
+      '',
+      "import { Ui } from '@foldkit/ui'",
+      '',
+      "import { view } from './main'",
+    ),
+    'src/assert.test.ts': sourceLines(
+      "import assert from 'assert'",
+      "import { test } from 'vitest'",
+    ),
+    'src/main.ts': sourceLines("import { Runtime } from 'foldkit'"),
+  }
+
+  it('keeps every file as it is for the vitest runner', () => {
+    expect(applyTestRunner(files, 'vitest')).toEqual(files)
+  })
+
+  it('drops the Vitest config and setup and imports bun:test in TypeScript sources for the bun runner', () => {
+    expect(applyTestRunner(files, 'bun')).toEqual({
+      'package.json': '{}',
+      'README.md': "Tests import from 'vitest'.",
+      'src/scene.test.ts': sourceLines(
+        'import {',
+        '  afterEach,',
+        '  beforeEach,',
+        '  describe,',
+        '  test,',
+        "} from 'bun:test'",
+        "import { Option } from 'effect'",
+        "import { expect, scene } from 'foldkit/scene'",
+        '',
+        "import { Ui } from '@foldkit/ui'",
+        '',
+        "import { view } from './main'",
+      ),
+      'src/assert.test.ts': sourceLines(
+        "import assert from 'assert'",
+        "import { test } from 'bun:test'",
+      ),
+      'src/main.ts': sourceLines("import { Runtime } from 'foldkit'"),
+    })
   })
 })
 

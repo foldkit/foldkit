@@ -290,7 +290,7 @@ describe('demo island registration', () => {
 const SNIPPET_ISLAND_PATTERN = /::Snippet\{[^}]*name="([^"]+)"/g
 const SNIPPET_TITLE_PATTERN = /::Snippet\{[^}]*label="([^"]+)"/g
 
-const SNIPPET_EXTENSION_PATTERN = /\.(?:ts|tsx|elm|json|css|html|sh|txt)$/
+const SNIPPET_EXTENSION_PATTERN = /\.(?:ts|tsx|elm|json|css|html|sh|txt|toml)$/
 const REDUNDANT_SNIPPET_TITLE_SUFFIX_PATTERN =
   /\s(?:example|examples|code|snippet)$/i
 const SNIPPET_TITLE_START_PATTERN = /^(?:[A-Z]|[❌✅] [A-Z])/u
@@ -335,7 +335,7 @@ describe('snippet island registration', () => {
   const snippetFileNames = new Set(
     Array.filterMap(
       Object.keys(
-        import.meta.glob('../snippet/*.{ts,tsx,elm,json,css,html,sh,txt}'),
+        import.meta.glob('../snippet/*.{ts,tsx,elm,json,css,html,sh,txt,toml}'),
       ),
       path =>
         Result.fromOption(

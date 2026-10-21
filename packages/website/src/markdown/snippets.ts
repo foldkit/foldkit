@@ -16,7 +16,7 @@ export type Snippet = Readonly<{
 type SnippetEntry = readonly [string, Snippet]
 
 const rawByPath = import.meta.glob<string>(
-  '../snippet/*.{ts,tsx,elm,json,html,sh,txt}',
+  '../snippet/*.{ts,tsx,elm,json,html,sh,txt,toml}',
   {
     query: '?raw',
     import: 'default',
@@ -25,14 +25,14 @@ const rawByPath = import.meta.glob<string>(
 )
 
 const highlightedByPath = import.meta.glob<string>(
-  '../snippet/*.{ts,tsx,elm,json,html,sh,txt}',
+  '../snippet/*.{ts,tsx,elm,json,html,sh,txt,toml}',
   { query: '?highlighted', import: 'default', eager: true },
 )
 
 const snippetName = (path: string): Option.Option<string> =>
   pipe(
     Array.last(String.split(path, '/')),
-    Option.map(String.replace(/\.(?:ts|tsx|elm|json|html|sh|txt)$/, '')),
+    Option.map(String.replace(/\.(?:ts|tsx|elm|json|html|sh|txt|toml)$/, '')),
   )
 
 const snippetLanguage = (path: string): string =>
@@ -44,6 +44,7 @@ const snippetLanguage = (path: string): string =>
     Match.when(String.endsWith('.html'), () => 'html'),
     Match.when(String.endsWith('.sh'), () => 'bash'),
     Match.when(String.endsWith('.txt'), () => 'text'),
+    Match.when(String.endsWith('.toml'), () => 'toml'),
     Match.orElse(() => 'text'),
   )
 
