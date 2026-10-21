@@ -997,6 +997,12 @@ const reportRelayBindFailed = (
   }
 }
 
+const reportRelayDefect = (defect: unknown) =>
+  Console.error(
+    '[foldkit:devTools] MCP relay failed with an unexpected error',
+    defect,
+  )
+
 const unpublishedRelayMessage = (reason: string): string =>
   `[foldkit:devTools] Cannot publish the MCP relay address: ${reason}. Set matching devToolsMcpPort and FOLDKIT_DEVTOOLS_MCP_PORT values for MCP access on a trusted network, or set FOLDKIT_DEVTOOLS_RELAY_DIRECTORY to a directory private to your user.`
 
@@ -1141,7 +1147,9 @@ const main = (
     // preservation whenever the port is contended.
     if (options.devToolsMcpPort !== false && !isTestRun(server)) {
       yield* Effect.forkScoped(
-        startMcpRelay(server, options.devToolsMcpPort, enqueue),
+        startMcpRelay(server, options.devToolsMcpPort, enqueue).pipe(
+          Effect.tapDefect(reportRelayDefect),
+        ),
       )
     }
 
