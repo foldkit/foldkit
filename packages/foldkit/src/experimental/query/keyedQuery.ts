@@ -31,7 +31,7 @@ import {
   isParentFieldConfig,
   liftChildFold,
   parentFieldToLens,
-  replaceEntry,
+  refetchEntry,
   runExecute,
 } from './internal.js'
 
@@ -243,7 +243,7 @@ export interface KeyedQuery<
     R
   >
   /** Starts a new Fetch for an entry even when one is pending, retaining available data. */
-  readonly replace: KeyedQuery<Name, A, AI, E, EI, Fields, R>['loadIfMissing']
+  readonly refetch: KeyedQuery<Name, A, AI, E, EI, Fields, R>['loadIfMissing']
   /** Removes one entry while preserving request identity. */
   readonly forget: Update.Fold<
     KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
@@ -363,10 +363,10 @@ export function defineKeyedQuery<
   const revalidateOrLoad = liftTransition(AsyncData.revalidateOrLoad)
   const loadIfMissing = liftTransition(AsyncData.loadIfMissing)
 
-  const replace: Update.Fold<Model, Message, Args, R> = Function.dual(
+  const refetch: Update.Fold<Model, Message, Args, R> = Function.dual(
     2,
     (model: Model, args: Args): UpdateReturn =>
-      replaceEntry(store, model, args),
+      refetchEntry(store, model, args),
   )
   const forget: Update.Fold<Model, Message, Args> = Function.dual(
     2,
@@ -380,9 +380,9 @@ export function defineKeyedQuery<
     ReadonlyArray<Args>
   > = Function.dual(
     2,
-    (model: Model, args: ReadonlyArray<Args>): PureUpdateReturn => {
+    (model: Model, argsList: ReadonlyArray<Args>): PureUpdateReturn => {
       const retainedKeys = HashSet.fromIterable(
-        Array.map(args, args => argsToKey(args)),
+        Array.map(argsList, retainedArgs => argsToKey(retainedArgs)),
       )
 
       return {
@@ -438,7 +438,7 @@ export function defineKeyedQuery<
     revalidate: liftChildFold(revalidate, lens),
     revalidateOrLoad: liftChildFold(revalidateOrLoad, lens),
     loadIfMissing: liftChildFold(loadIfMissing, lens),
-    replace: liftChildFold(replace, lens),
+    refetch: liftChildFold(refetch, lens),
     forget: liftChildFold(forget, lens),
     retainOnly: liftChildFold(retainOnly, lens),
   })
@@ -473,7 +473,7 @@ export function defineKeyedQuery<
     revalidate,
     revalidateOrLoad,
     loadIfMissing,
-    replace,
+    refetch,
     forget,
     retainOnly,
     lift,

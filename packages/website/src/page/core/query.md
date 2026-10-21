@@ -172,9 +172,11 @@ A KeyedQuery retains entries until `forget` removes a key, `retainOnly` changes 
 
 ## Control Query Lifecycles
 
-### Replace a Pending Fetch
+### Refetch While a Fetch Is Pending
 
-`replace` starts a new Fetch even when one is pending. It keeps available data on screen and advances the request generation, so the earlier Fetch cannot overwrite the replacement. On a settled Query, it uses the same transition as `revalidateOrLoad`.
+`refetch` starts a new Fetch even when one is pending. It keeps available data on screen and advances the request generation, so the earlier Fetch cannot overwrite the new one. On a settled Query, it uses the same transition as `revalidateOrLoad`.
+
+With a custom `toKey`, different argument values can share one KeyedQuery entry. If the arguments for that entry change while its Fetch is pending, `loadIfMissing` and `revalidateOrLoad` leave the entry unchanged, and the pending Fetch completes with data for the old arguments. `refetch` stores the new arguments and starts a Fetch with them.
 
 ### Forget One Entry
 
@@ -186,11 +188,11 @@ A KeyedQuery retains entries until `forget` removes a key, `retainOnly` changes 
 
 When the retained set follows parent Model state, apply `retainOnly` in the update handler that changes that state. Compose it with `loadIfMissing` to fetch the selected entry explicitly:
 
-::Snippet{name="queryRetainOnly" label="Retaining the selected post"}
+::Snippet{name="queryRetainOnly" label="Retaining recently opened posts"}
 
-### Running Commands
+### Superseded and Forgotten Fetches
 
-These operations do not interrupt running Commands. A completion for a forgotten entry is ignored, and a later Fetch uses a new generation. The [API Cache Query example](/example-apps/api-cache-query) retains the selected post and clears its detail when the user returns to the list.
+These operations do not interrupt a Fetch that is already running. Query ignores the result of a Fetch that `refetch` superseded and of a Fetch for a forgotten entry, and a later Fetch for that key uses a new generation. The [API Cache Query example](/example-apps/api-cache-query) keeps the two most recently opened posts and evicts older ones with `retainOnly`.
 
 ## Test Query Commands
 
