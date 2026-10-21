@@ -348,8 +348,10 @@ describe('embed', () => {
     const handle = embed(makeWidget())
 
     await awaitBodyText('count:0')
-    expect(isTickStreamActive).toBe(true)
-    expect(isMountActive).toBe(true)
+    await vi.waitFor(() => {
+      expect(isTickStreamActive).toBe(true)
+      expect(isMountActive).toBe(true)
+    })
 
     handle.dispose()
 
