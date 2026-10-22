@@ -19,7 +19,7 @@ import { SnippetCopyBlock } from '../snippetCopy'
 import { SnippetDisclosureBlock } from '../snippetDisclosure'
 import { ApplyTheme, SaveThemePreference, resolveTheme } from '../theme'
 import { type ThemePreference } from '../themePreference'
-import { ThemeMenu } from '../view'
+import { ThemeMenuBlock } from '../view/themeMenu'
 import { HomeBinding } from './home'
 
 export const SearchBinding = ApplicationDefinition.makeBinding(SearchBlock, {
@@ -126,13 +126,13 @@ const applyThemePreference = (preference: typeof ThemePreference.Type) =>
   })
 
 export const ThemeMenuBinding = ApplicationDefinition.makeBinding(
-  ThemeMenu.ThemeMenuBlock,
+  ThemeMenuBlock,
   {
     field: 'themeMenu',
     init: { contextToArgs: () => [{ id: 'theme-menu' }] },
   },
 ).withOutMessagePolicy({
-  fold: ApplicationDefinition.makeOutMessageFold(ThemeMenu.ThemeMenuBlock, {
+  fold: ApplicationDefinition.makeOutMessageFold(ThemeMenuBlock, {
     Selected: ({ value }) => applyThemePreference(value),
     Closed: ApplicationDefinition.makeNoopStep,
   }),

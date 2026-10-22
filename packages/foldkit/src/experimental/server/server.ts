@@ -17,7 +17,7 @@ import {
   parseFragment,
 } from 'parse5'
 
-import type { AnyBlock } from '../../block/definition.js'
+import type { AnyProgramBlock } from '../../block/definition.js'
 import { lowerBlock } from '../../block/lowering.js'
 import {
   HYDRATION_BUILD_ATTRIBUTE,
@@ -1143,9 +1143,9 @@ type NativeApplicationConfig<Model, Message> = Readonly<{
 }>
 
 type InvalidServerInit<
-  BlockValue extends AnyBlock,
+  BlockValue extends AnyProgramBlock,
   Args extends ReadonlyArray<unknown>,
-> = BlockValue extends AnyBlock
+> = BlockValue extends AnyProgramBlock
   ? Readonly<Parameters<BlockValue['init']>> extends Args
     ? Args extends Readonly<Parameters<BlockValue['init']>>
       ? never
@@ -1154,7 +1154,7 @@ type InvalidServerInit<
   : never
 
 type ValidateServerInit<
-  BlockValue extends AnyBlock,
+  BlockValue extends AnyProgramBlock,
   Args extends ReadonlyArray<unknown>,
 > = [InvalidServerInit<BlockValue, Args>] extends [never]
   ? unknown
@@ -1174,7 +1174,7 @@ type ExactServerHostConfig<Config> = Readonly<{
 /** Server host configuration for a root Block initialized with Flags and a URL.
  * The Block already contains its init, update, view, and handler recipes. */
 export type RoutingApplicationConfigWithFlags<
-  BlockValue extends AnyBlock,
+  BlockValue extends AnyProgramBlock,
   Flags,
 > = Readonly<{
   /** Encodes the request's Flags for the browser hydration handoff. */
@@ -1185,16 +1185,17 @@ export type RoutingApplicationConfigWithFlags<
   NoInfer<ValidateServerInit<BlockValue, readonly [Flags, Url]>>
 
 /** Server host configuration for a root Block initialized with a URL. */
-export type RoutingApplicationConfig<BlockValue extends AnyBlock> = Readonly<{
-  /** Enables URL initialization. Pass an empty object when callbacks are unnecessary. */
-  routing: object
-  Flags?: never
-}> &
-  NoInfer<ValidateServerInit<BlockValue, readonly [Url]>>
+export type RoutingApplicationConfig<BlockValue extends AnyProgramBlock> =
+  Readonly<{
+    /** Enables URL initialization. Pass an empty object when callbacks are unnecessary. */
+    routing: object
+    Flags?: never
+  }> &
+    NoInfer<ValidateServerInit<BlockValue, readonly [Url]>>
 
 /** Server host configuration for a root Block initialized with Flags. */
 export type ApplicationConfigWithFlags<
-  BlockValue extends AnyBlock,
+  BlockValue extends AnyProgramBlock,
   Flags,
 > = Readonly<{
   /** Encodes the request's Flags for the browser hydration handoff. */
@@ -1204,7 +1205,7 @@ export type ApplicationConfigWithFlags<
   NoInfer<ValidateServerInit<BlockValue, readonly [Flags]>>
 
 /** Server host configuration for a root Block whose init takes no arguments. */
-export type ApplicationConfig<BlockValue extends AnyBlock> = Readonly<{
+export type ApplicationConfig<BlockValue extends AnyProgramBlock> = Readonly<{
   Flags?: never
   routing?: never
 }> &
@@ -1441,7 +1442,7 @@ const validateHydrationRoot = (
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
  */
 export function renderToString<
-  const BlockValue extends AnyBlock,
+  const BlockValue extends AnyProgramBlock,
   const Config extends Readonly<{
     Flags: ServerFlagsSchema
     routing: object
@@ -1456,7 +1457,7 @@ export function renderToString<
   options: RenderUrlFlagsOptions<NoInfer<Config['Flags']['Type']>>,
 ): Effect.Effect<RenderedApplication, RenderError>
 export function renderToString<
-  const BlockValue extends AnyBlock,
+  const BlockValue extends AnyProgramBlock,
   const Config extends Readonly<{ routing: object; Flags?: never }>,
 >(
   block: BlockValue & NoInfer<ValidateProgramBlock<BlockValue, 'Document'>>,
@@ -1466,7 +1467,7 @@ export function renderToString<
   options: RenderUrlOptions,
 ): Effect.Effect<RenderedApplication, RenderError>
 export function renderToString<
-  const BlockValue extends AnyBlock,
+  const BlockValue extends AnyProgramBlock,
   const Config extends Readonly<{
     Flags: ServerFlagsSchema
     routing?: never
@@ -1479,7 +1480,7 @@ export function renderToString<
   options: RenderFlagsOptions<NoInfer<Config['Flags']['Type']>>,
 ): Effect.Effect<RenderedApplication, RenderError>
 export function renderToString<
-  const BlockValue extends AnyBlock,
+  const BlockValue extends AnyProgramBlock,
   const Config extends object,
 >(
   block: BlockValue & NoInfer<ValidateProgramBlock<BlockValue, 'Document'>>,
@@ -1489,14 +1490,15 @@ export function renderToString<
   options?: RenderOptions,
 ): Effect.Effect<RenderedApplication, RenderError>
 export function renderToString(
-  block: AnyBlock,
+  block: AnyProgramBlock,
   config: Readonly<{
     Flags?: Schema.Codec<any, any, never, never>
     routing?: unknown
   }>,
   options?: RenderOptions & Readonly<{ url?: string; flags?: unknown }>,
 ): Effect.Effect<RenderedApplication, RenderError> {
-  assertProgramConfig({ block, container: null }, 'Document')
+  const programConfig = { block, container: null }
+  assertProgramConfig(programConfig, 'Document')
 
   if (!Predicate.isObject(config)) {
     throw new Error('[foldkit] Server host configuration must be an object.')
@@ -1521,7 +1523,7 @@ export function renderToString(
     )
   }
 
-  const { init, view: blockView } = lowerBlock(block)
+  const { init, view: blockView } = lowerBlock(programConfig.block)
   const view = (...args: ReadonlyArray<any>) => {
     const output = Reflect.apply(blockView, undefined, args)
     assertDocument(output)

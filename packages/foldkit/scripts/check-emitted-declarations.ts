@@ -483,6 +483,12 @@ const checks: ReadonlyArray<
     ],
   },
   {
+    name: 'root-boundary',
+    accepted: ['root-boundary.accepted.ts'],
+    rejected: ['root-boundary.rejected.ts'],
+    consumers: ['root-boundary.consume.ts'],
+  },
+  {
     name: 'optional-wrapped-keyed',
     accepted: ['optional-wrapped-keyed.accepted.ts'],
     rejected: ['optional-wrapped-keyed.rejected.ts'],

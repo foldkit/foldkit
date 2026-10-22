@@ -49,6 +49,12 @@ export type {
 export { LocalMountsTypeId } from './definition.js'
 export type {
   AnyBlock,
+  AnyRoot,
+  Root,
+  RootSurface,
+  RootEvidence,
+  RootChannelsFor,
+  AssembleRoot,
   Base,
   MakeComposition,
   Composition,

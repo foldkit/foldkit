@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "files": [
+    "root-boundary.accepted.ts",
+    "root-boundary.rejected.ts",
+    "root-boundary.consume.ts"
+  ]
+}

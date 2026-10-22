@@ -16,7 +16,12 @@ import type {
   RequirementsOfBindings,
   ValidateBindingOperationNames,
 } from './binding.js'
-import type { LocalMountsTypeId } from './definition.js'
+import type { DefaultViewOf } from './defaultView.js'
+import type {
+  AnyRoot,
+  LocalMountsTypeId,
+  RootChannelsOf,
+} from './definition.js'
 import type { IsConcreteOwner, Owner } from './owner.js'
 import type { Qualify, Scoped } from './scope.js'
 
@@ -176,13 +181,42 @@ export type HandlerEvidence<EffectsLayer, HostDefinitions, Children> =
     >
   | ChildHandlerEvidence<Children>
 
+/** @internal Reads the exact Layer recipe selected when a block was completed. */
+export type EffectsLayerOfBlock<Block> = Block extends AnyRoot
+  ? RootChannelsOf<Block>['EffectsLayer']
+  : Block extends Readonly<{ EffectsLayer: infer LayerRecipe }>
+    ? LayerRecipe
+    : never
+
 /** @internal Reads compact unresolved handler evidence from a block. */
-export type HandlerEvidenceOfBlock<Block> =
-  Block extends Readonly<{
-    __blockHandlerRequirements: infer Evidence
-  }>
+export type HandlerEvidenceOfBlock<Block> = Block extends AnyRoot
+  ? RootChannelsOf<Block>['handlerRequirements']
+  : Block extends Readonly<{
+        __blockHandlerRequirements: infer Evidence
+      }>
     ? Evidence
     : unknown
+
+/** @internal Reads exact host handler declarations retained by a block. */
+export type HostHandlersOfBlock<Block> = Block extends AnyRoot
+  ? RootChannelsOf<Block>['hostHandlers']
+  : Block extends Readonly<{
+        hostHandlers: infer HostHandlers extends ReadonlyArray<unknown>
+      }>
+    ? HostHandlers
+    : readonly []
+
+/** @internal Reads the exact default view retained by a completed block. */
+export type DefaultViewEvidenceOfBlock<Block> = Block extends AnyRoot
+  ? RootChannelsOf<Block>['defaultView']
+  : DefaultViewOf<Block>
+
+/** @internal Reads an OutMessage declaration hidden by terminal application roots. */
+export type OutMessageOfBlock<Block> = Block extends AnyRoot
+  ? Exclude<RootChannelsOf<Block>['outMessage'], undefined>
+  : Block extends Readonly<{ OutMessage: infer OutMessage }>
+    ? OutMessage
+    : never
 
 /** @internal Rejects application roots with unresolved handler contracts. */
 export type ValidateRootHandlerAssembly<Block> =
@@ -335,21 +369,13 @@ export type HandlerOfHostDefinition<Definition> = HandlerRequirements<
   HostDefinitionRequirements<Definition>
 >
 
-type HostDefinitions<Block> =
-  Block extends Readonly<{
-    hostHandlers: infer Definitions extends ReadonlyArray<unknown>
-  }>
-    ? Definitions[number]
-    : never
+type HostDefinitions<Block> = HostHandlersOfBlock<Block>[number]
 
 type DeclaredHostHandlers<Block> = HandlerOfHostDefinition<
   HostDefinitions<Block>
 >
 
-type BlockLayer<Block> =
-  Block extends Readonly<{ EffectsLayer: infer LayerRecipe }>
-    ? LayerRecipe
-    : never
+type BlockLayer<Block> = EffectsLayerOfBlock<Block>
 
 type BlockManagedResources<Block> =
   Block extends Readonly<{ managedResources: infer ManagedResources }>
@@ -370,13 +396,33 @@ type ChildRuntimeServices<Block> =
     ? BindingRuntimeServices<Binding>
     : never
 
+type RuntimeServicesOfBlockMember<Block> = Block extends AnyRoot
+  ? RootChannelsOf<Block>['runtimeServices']
+  :
+      | ManagedResourceRuntimeServices<BlockManagedResources<Block>>
+      | ChildRuntimeServices<Block>
+
+type BlocksMissingRuntimeService<Block, Service> = Block extends unknown
+  ? [Service] extends [RuntimeServicesOfBlockMember<Block>]
+    ? never
+    : Block
+  : never
+
+type RuntimeServiceProvidedByEveryBlock<Block, Service> =
+  Service extends unknown
+    ? [BlocksMissingRuntimeService<Block, Service>] extends [never]
+      ? Service
+      : never
+    : never
+
 /**
- * @internal Extracts every ManagedResource service installed by a block
- * graph, including keyed child placements whose channels are not flattened.
+ * @internal Extracts ManagedResource services installed by every alternative
+ * of a block graph, retaining complete keyed child placement capabilities.
  */
-export type RuntimeServicesOfBlock<Block> =
-  | ManagedResourceRuntimeServices<BlockManagedResources<Block>>
-  | ChildRuntimeServices<Block>
+export type RuntimeServicesOfBlock<Block> = RuntimeServiceProvidedByEveryBlock<
+  Block,
+  RuntimeServicesOfBlockMember<Block>
+>
 
 type BlockLocalMounts<Block> =
   Block extends Readonly<{ [LocalMountsTypeId]: infer Mounts }>
@@ -457,9 +503,9 @@ type ChildOperationRequirements<Block> =
  * operations of its owned child bindings. Selected Layers and runtime-managed
  * handles do not alter this contract.
  */
-export type OperationRequirementsOfBlock<Block> =
-  | LocalOperationRequirements<Block>
-  | ChildOperationRequirements<Block>
+export type OperationRequirementsOfBlock<Block> = Block extends AnyRoot
+  ? RootChannelsOf<Block>['operationRequirements']
+  : LocalOperationRequirements<Block> | ChildOperationRequirements<Block>
 
 type CompletionOperationRequirements<Block> =
   | LocalOperationRequirements<Block>
@@ -482,7 +528,96 @@ type ResidualRequirements<Block> =
  * requirements after startup. The selected Layer graph satisfies matching
  * operation services; unrelated Layer construction inputs remain requirements.
  */
-export type RequirementsOfBlock<Block> = ResidualRequirements<Block>
+export type RequirementsOfBlock<Block> = Block extends AnyRoot
+  ? RootChannelsOf<Block>['requirements']
+  : ResidualRequirements<Block>
+
+type RootPrecisionFailures<Block extends AnyRoot> =
+  | ErasedRequirement<
+      'root operation requirements',
+      RootChannelsOf<Block>['operationRequirements']
+    >
+  | ErasedRequirement<
+      'root residual requirements',
+      RootChannelsOf<Block>['requirements']
+    >
+  | ErasedRequirement<
+      'root runtime services',
+      RootChannelsOf<Block>['runtimeServices']
+    >
+  | ErasedRequirement<
+      'root handler requirements',
+      RootChannelsOf<Block>['handlerRequirements']
+    >
+  | ErasedRequirement<
+      'root operation registrations',
+      RootChannelsOf<Block>['registrationEvidence']
+    >
+  | ErasedRequirement<
+      'root registered child evidence',
+      RootChannelsOf<Block>['registeredChildEvidence']
+    >
+  | ErasedRequirement<
+      'root EffectsLayer outputs',
+      LayerOutputs<RootChannelsOf<Block>['EffectsLayer']>
+    >
+  | ErasedRequirement<
+      'root EffectsLayer inputs',
+      LayerInputs<RootChannelsOf<Block>['EffectsLayer']>
+    >
+  | ErasedRequirement<
+      'root EffectsLayer errors',
+      Layer.Error<RootChannelsOf<Block>['EffectsLayer']>
+    >
+
+type ValidateOneRootRequirementEvidence<Block extends AnyRoot> = [
+  RootChannelsOf<Block>,
+] extends [never]
+  ? Readonly<{ 'Application root must retain exact assembly channels': Block }>
+  : ([RootPrecisionFailures<Block>] extends [never]
+      ? unknown
+      : Readonly<{
+          'Application root channels must preserve exact types': RootPrecisionFailures<Block>
+        }>) &
+      ([
+        Exclude<
+          RootChannelsOf<Block>['registrationEvidence'],
+          RootChannelsOf<Block>['registeredChildEvidence']
+        >,
+      ] extends [never]
+        ? unknown
+        : Readonly<{
+            'Block operations may use only registered child bindings': Exclude<
+              RootChannelsOf<Block>['registrationEvidence'],
+              RootChannelsOf<Block>['registeredChildEvidence']
+            >
+          }>) &
+      (IsAny<
+        RootChannelsOf<Block>['concreteCompositionValidation']
+      > extends true
+        ? Readonly<{
+            'Application root must retain concrete composition validation': Block
+          }>
+        : [RootChannelsOf<Block>['concreteCompositionValidation']] extends [
+              never,
+            ]
+          ? Readonly<{
+              'Application root must retain concrete composition validation': Block
+            }>
+          : RootChannelsOf<Block>['concreteCompositionValidation'])
+
+type RootRequirementEvidenceFailures<Block> = Block extends AnyRoot
+  ? unknown extends ValidateOneRootRequirementEvidence<Block>
+    ? never
+    : ValidateOneRootRequirementEvidence<Block>
+  : never
+
+/** @internal Checks captured raw registrations and concrete root validation. */
+export type ValidateRootRequirementEvidence<Block> = [
+  RootRequirementEvidenceFailures<Block>,
+] extends [never]
+  ? unknown
+  : RootRequirementEvidenceFailures<Block>
 
 type ResidualHandlers<Block> = HandlerRequirements<ResidualRequirements<Block>>
 

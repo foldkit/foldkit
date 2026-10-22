@@ -24,6 +24,7 @@ import {
 import type { ValidViewInputs } from '../html/viewInputs.js'
 import * as ManagedResource from '../managedResource/index.js'
 import * as Mount from '../mount/index.js'
+import type { ValidateProgramBlock } from '../runtime/programRoot.js'
 import * as Subscription from '../subscription/subscription.js'
 import type * as Update from '../update/index.js'
 import {
@@ -117,7 +118,11 @@ import type {
   HandlerEvidence,
   HandlerOfHostDefinition,
   HandlerRequirements,
+  OperationRequirementsOfBlock,
+  RequirementsOfBlock,
+  RuntimeServicesOfBlock,
   ValidateComposition,
+  ValidateConcreteComposition,
   ValidateImplementationComposition,
   ValidateUniqueChildPlacements,
 } from './requirements.js'
@@ -2422,6 +2427,293 @@ export type CompletedForValidation<DefinitionValue, ImplementationValue> =
       : never
     : never
 
+declare class RootIdentity {
+  protected readonly rootIdentity: void
+}
+
+declare class RootChannelsIdentity<Channels> extends RootIdentity {
+  protected readonly rootChannels: Channels
+  protected readonly rootChannelsInvariant: (channels: Channels) => Channels
+}
+
+/**
+ * Carries a terminal root's exact assembly channels without declaring its
+ * public fields. Consumer interfaces can extend this proof while projecting
+ * their fields from a complete Root contract. RootChannelsOf checks the public
+ * fields against the canonical assembly surface before extracting Channels.
+ */
+export interface RootEvidence<
+  Channels,
+> extends RootChannelsIdentity<Channels> {}
+
+type InvalidRootSurfaceMember<Value> =
+  IsAny<Value> extends true ? true : [Value] extends [never] ? true : false
+
+type RootSurfaceMemberRepresentation<Value> = Value extends AnyFunction
+  ? Value
+  : Value extends object
+    ? readonly [
+        properties: { [Key in keyof Value]: Value[Key] },
+        constructor: Value extends abstract new (
+          ...args: infer Args
+        ) => infer Instance
+          ? readonly [Args, Instance]
+          : never,
+      ]
+    : Value
+
+type EqualRootSurfaceMember<Actual, Expected> =
+  InvalidRootSurfaceMember<Actual> extends true
+    ? false
+    : [Actual] extends [Expected]
+      ? [Expected] extends [Actual]
+        ? (<Value>() => Value extends RootSurfaceMemberRepresentation<Actual>
+            ? 1
+            : 2) extends <
+            Value,
+          >() => Value extends RootSurfaceMemberRepresentation<Expected> ? 1 : 2
+          ? (<
+              Value,
+            >() => Value extends RootSurfaceMemberRepresentation<Expected>
+              ? 1
+              : 2) extends <
+              Value,
+            >() => Value extends RootSurfaceMemberRepresentation<Actual> ? 1 : 2
+            ? true
+            : false
+          : false
+        : false
+      : false
+
+type RootSurfaceMemberMatches<
+  Block extends AnyRoot,
+  Surface extends AnyRoot,
+> = {
+  [Key in keyof AnyRoot]: EqualRootSurfaceMember<Block[Key], Surface[Key]>
+}[keyof AnyRoot]
+
+/** @internal Extracts assembly channels only from their exact public surface. */
+export type RootChannelsOf<Block> =
+  Block extends RootChannelsIdentity<infer Channels extends RootChannelsShape>
+    ? InvalidRootSurfaceMember<Channels> extends true
+      ? never
+      : Block extends AnyRoot
+        ? false extends RootSurfaceMemberMatches<Block, Channels['surface']>
+          ? never
+          : Channels
+        : never
+    : never
+
+interface RootSurfaceImplementation {
+  readonly init: AnyFunction
+  readonly update: AnyFunction
+}
+
+interface RootImplementation extends RootSurfaceImplementation {
+  readonly view: AnyAuthoredView
+}
+
+type DefaultedRootImplementationKey =
+  | 'EffectsLayer'
+  | 'operations'
+  | 'subscriptions'
+  | 'managedResources'
+  | 'hostHandlers'
+
+type UnretainedRootImplementationKeys<ImplementationValue> =
+  ImplementationValue extends unknown
+    ? {
+        [
+          Key in DefaultedRootImplementationKey
+        ]: Key extends keyof ImplementationValue
+          ? [Exclude<ImplementationValue[Key], undefined>] extends [never]
+            ? never
+            : [ImplementationValue] extends [Readonly<Record<Key, unknown>>]
+              ? Key extends 'EffectsLayer'
+                ? [ImplementationValue] extends [
+                    Readonly<{ EffectsLayer: AnyLayer }>,
+                  ]
+                  ? never
+                  : Key
+                : never
+              : Key
+          : never
+      }[DefaultedRootImplementationKey]
+    : never
+
+/** Optional inhabited channels must not normalize to empty defaults. Collect
+ * rejected keys across every union member before constructing the guard, so a
+ * valid member cannot hide another member's unretained channels. Absent keys
+ * remain forbidden, and retained values must match the selected implementation
+ * type even when an explicit type argument could otherwise hide extra fields. */
+type ValidateRootImplementationChannels<ImplementationValue> = Readonly<{
+  [
+    Key in DefaultedRootImplementationKey
+  ]?: Key extends UnretainedRootImplementationKeys<ImplementationValue>
+    ? never
+    : ImplementationValue extends unknown
+      ? Key extends keyof ImplementationValue
+        ? ImplementationValue[Key]
+        : never
+      : never
+}>
+
+interface RootChannelsShape {
+  readonly surface: AnyRoot
+  readonly mounts: ReadonlyArray<Mount.LayeredMountDefinition>
+  readonly subscriptions: AnySubscriptions
+  readonly managedResources: AnyManagedResources
+  readonly EffectsLayer: AnyLayer
+  readonly viewRequirements: unknown
+  readonly operationRequirements: unknown
+  readonly requirements: unknown
+  readonly runtimeServices: unknown
+  readonly handlerRequirements: unknown
+  readonly hostHandlers: ReadonlyArray<unknown>
+  readonly defaultView: AnyAuthoredView
+  readonly outMessage: AnySchema | undefined
+  readonly registrationEvidence: unknown
+  readonly registeredChildEvidence: unknown
+  readonly concreteCompositionValidation: unknown
+}
+
+/** Structural bound for a nominal, terminal application root. */
+export interface AnyRoot extends RootIdentity {
+  readonly owner: Owner<string>
+  readonly Model: AnySchema
+  readonly Message: AnySchema
+  readonly init: AnyFunction
+  readonly update: AnyFunction
+  readonly operations: unknown
+}
+
+/** @internal Canonical public fields retained in terminal root assembly evidence. */
+export interface RootSurface<
+  OwnerValue extends Owner<string>,
+  ModelSchema extends AnySchema,
+  MessageSchema extends AnySchema,
+  ImplementationValue extends RootSurfaceImplementation,
+> extends AnyRoot {
+  readonly owner: OwnerValue
+  readonly Model: ModelSchema
+  readonly Message: MessageSchema
+  readonly init: PublicProducer<
+    ImplementationValue['init'],
+    ModelSchema['Type'],
+    MessageSchema['Type']
+  >
+  readonly update: PublicUpdateProducer<
+    ImplementationValue['update'],
+    ModelSchema['Type'],
+    MessageSchema['Type']
+  >
+  readonly operations: ImplementationExposedOperations<
+    PublicImplementationValue<
+      ModelSchema['Type'],
+      MessageSchema['Type'],
+      ImplementationValue
+    >
+  >
+}
+
+/**
+ * A terminal application root with exact Schemas and local implementation.
+ * Its six public fields expose owner, Model, Message, init, update, and
+ * operations; their canonical assembly surface and exact channels remain in
+ * nominal evidence for Program and Server projections. Child graph, lifecycle,
+ * view reauthoring, Layer, and handler inspection remain on completed Blocks.
+ */
+export interface Root<
+  OwnerValue extends Owner<string>,
+  ModelSchema extends AnySchema,
+  MessageSchema extends AnySchema,
+  ImplementationValue extends RootSurfaceImplementation,
+  Channels,
+>
+  extends
+    RootSurface<OwnerValue, ModelSchema, MessageSchema, ImplementationValue>,
+    RootEvidence<Channels> {}
+
+/**
+ * Captures exact root channels from a Composition and its local implementation
+ * without deriving the root's public contract from an inferred assembly call.
+ */
+export type RootChannelsFor<CompositionValue, ImplementationValue> =
+  CompositionValue extends Readonly<{
+    owner: infer OwnerValue extends Owner<string>
+    Model: infer ModelSchema extends AnySchema
+    Message: infer MessageSchema extends AnySchema
+    [LocalMountsTypeId]: infer Mounts extends
+      ReadonlyArray<Mount.LayeredMountDefinition>
+    bindings: infer Children extends ReadonlyArray<AnyBinding>
+  }>
+    ? CompletedImplementationValue<ImplementationValue> extends infer CompleteImplementation extends
+        RootImplementation &
+          Readonly<{
+            init: AnyFunction
+            update: AnyFunction
+            EffectsLayer: AnyLayer
+          }>
+      ? BlockContractFields<
+          OwnerValue,
+          ModelSchema,
+          MessageSchema,
+          Mounts,
+          Children,
+          PublicAssembleBlockImplementation<
+            ModelSchema,
+            MessageSchema,
+            CompleteImplementation
+          >
+        > extends infer Fields extends Readonly<{
+          mounts: ReadonlyArray<Mount.LayeredMountDefinition>
+          subscriptions: AnySubscriptions
+          managedResources: AnyManagedResources
+          EffectsLayer: AnyLayer
+          __blockHandlerRequirements: unknown
+        }>
+        ? Readonly<{
+            surface: RootSurface<
+              OwnerValue,
+              ModelSchema,
+              MessageSchema,
+              CompleteImplementation
+            >
+            mounts: Fields['mounts']
+            subscriptions: Fields['subscriptions']
+            managedResources: Fields['managedResources']
+            EffectsLayer: Fields['EffectsLayer']
+            viewRequirements: DefinitionViewRequirements<Mounts, Children>
+            operationRequirements: OperationRequirementsOfBlock<Fields>
+            requirements: RequirementsOfBlock<Fields>
+            runtimeServices: RuntimeServicesOfBlock<Fields>
+            handlerRequirements: Fields['__blockHandlerRequirements']
+            hostHandlers: ImplementationHostHandlers<CompleteImplementation>
+            defaultView: CompleteImplementation['view']
+            outMessage: CompositionValue extends Readonly<{
+              OutMessage: infer OutMessageSchema extends AnySchema
+            }>
+              ? OutMessageSchema
+              : never
+            registrationEvidence:
+              | Update.RegistrationEvidenceOf<
+                  ReturnOf<CompleteImplementation['init']>
+                >
+              | Update.RegistrationEvidenceOf<
+                  ReturnOf<CompleteImplementation['update']>
+                >
+            registeredChildEvidence: RequirementsOfBindings<Children>
+            concreteCompositionValidation: ValidateConcreteComposition<
+              CompletedForValidation<CompositionValue, ImplementationValue>
+            >
+          }>
+        : never
+      : never
+    : never
+
+/** @internal Root inputs accepted by Program and Server construction. */
+export type AnyProgramBlock = AnyBlock | AnyRoot
+
 /**
  * Structural bound for any completed Block.
  */
@@ -3289,6 +3581,87 @@ export interface AssembleBlock<
   >
 }
 
+/** Completes a terminal application root using the ordinary Block assembly
+ * checks and the complete raw root validation before exposing its public view.
+ * The returned value is the original assembled object; construction is passive
+ * and preserves every runtime registration and identity. */
+export interface AssembleRoot<
+  OwnerValue extends Owner<string>,
+  ModelSchema extends AnySchema,
+  MessageSchema extends AnySchema,
+  OutMessageSchema extends AnySchema | undefined,
+  Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
+  Children extends ReadonlyArray<AnyBinding>,
+> {
+  <const ImplementationValue extends RootImplementation>(
+    implementation: ImplementationValue &
+      NoInfer<ValidateRootImplementationChannels<ImplementationValue>> &
+      NoInfer<
+        Omit<
+          DefinitionImplementation<
+            ModelSchema,
+            MessageSchema,
+            OutMessageSchema
+          >,
+          'EffectsLayer'
+        > &
+          Readonly<{ EffectsLayer?: AnyLayer }>
+      > &
+      ExactImplementationKeys<ImplementationValue> &
+      ValidateInit<ImplementationValue> &
+      ValidateView<
+        ImplementationValue,
+        OwnerValue,
+        ModelSchema['Type'],
+        MessageSchema['Type'],
+        DefinitionViewRequirements<Mounts, Children>
+      > &
+      ValidateAssembleBlockComposition<
+        OwnerValue,
+        ModelSchema,
+        MessageSchema,
+        OutMessageSchema,
+        Mounts,
+        Children,
+        CompletedImplementationValue<ImplementationValue>
+      > &
+      NoInfer<
+        ValidateProgramBlock<
+          CompletedForValidation<
+            AssembleBlockComposition<
+              OwnerValue,
+              ModelSchema,
+              MessageSchema,
+              OutMessageSchema,
+              Mounts,
+              Children
+            >,
+            ImplementationValue
+          >,
+          'Document' | 'Element'
+        >
+      >,
+  ): [ImplementationValue] extends [never]
+    ? never
+    : Root<
+        OwnerValue,
+        ModelSchema,
+        MessageSchema,
+        ImplementationValue,
+        RootChannelsFor<
+          AssembleBlockComposition<
+            OwnerValue,
+            ModelSchema,
+            MessageSchema,
+            OutMessageSchema,
+            Mounts,
+            Children
+          >,
+          ImplementationValue
+        >
+      >
+}
+
 /**
  * The `HtmlBuilder` type supplied by a Block or Application Composition.
  * Pass `typeof SearchComposition` to retain that Composition's Message,
@@ -3476,6 +3849,15 @@ export type Composition<
   /** Completes this Composition with its implementation channels and returns
    * a passive Block. */
   readonly assembleBlock: AssembleBlock<
+    OwnerValue,
+    ModelSchema,
+    DispatchSchemaFor<MessageSchema, Children>,
+    OutMessageSchema,
+    Mounts,
+    Children
+  >
+  /** Completes a terminal root for Program or Server construction. */
+  readonly assembleRoot: AssembleRoot<
     OwnerValue,
     ModelSchema,
     DispatchSchemaFor<MessageSchema, Children>,
@@ -4238,6 +4620,7 @@ export const makeDefinition = (
     makeManagedResources: defineManagedResources,
     makeBinding: bindChild,
     assembleBlock,
+    assembleRoot: assembleBlock,
   }
 }
 type RuntimeCompositionGraph = Readonly<{
@@ -4334,6 +4717,7 @@ export const makeBaseDefinition = (
       makeUpdate: composition.makeUpdate,
       makeView: composition.makeView,
       assembleBlock: composition.assembleBlock,
+      assembleRoot: composition.assembleRoot,
     }
 
     compositions.add(publicComposition)

@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
 const PORT = Number(process.env['FOLDKIT_WEBSITE_E2E_PORT'] ?? 4173)
+const workers = process.env['FOLDKIT_WEBSITE_E2E_WORKERS']
 export const BASE_URL = `http://localhost:${PORT}`
 const liveWebsiteUrl = process.env['FOLDKIT_LIVE_WEBSITE_URL']
 const isLivePlaygroundSmoke = liveWebsiteUrl !== undefined
@@ -28,6 +29,7 @@ export default defineConfig({
   ...(isLivePlaygroundSmoke
     ? { testMatch: 'livePlaygrounds.ts', workers: 1 }
     : {
+        ...(workers !== undefined && { workers: Number(workers) }),
         globalSetup: './e2e/globalSetup.ts',
         webServer: {
           command: `pnpm dev --port ${PORT} --strictPort`,

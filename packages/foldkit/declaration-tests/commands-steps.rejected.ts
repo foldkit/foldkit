@@ -45,7 +45,7 @@ declare const widenedCommands: Update.Commands<typeof Message.Type> &
 // @ts-expect-error Unknown registration evidence cannot be hidden in a Command collection.
 CommandsDefinition.makeCommandsStep(widenedCommands)
 
-const outMessageStep: typeof save = model => ({
+const _outMessageStep: typeof save = model => ({
   model,
   commands,
   // @ts-expect-error A Command-only Step contract cannot hide an emitted OutMessage.

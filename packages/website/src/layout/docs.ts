@@ -612,7 +612,7 @@ export const view = (
           h,
         ]),
         tableOfContents: ApiReference.tableOfContentsFor(
-          model.apiReference,
+          model.apiReference.apiData,
           moduleSlug,
         ),
       }),

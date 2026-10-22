@@ -530,10 +530,10 @@ export const sliceApiDataToModule = (
 export const ApiDataAsyncData = AsyncData.Schema(ApiData, Schema.String)
 
 export const tableOfContentsFor = (
-  model: typeof import('./model').Model.Type,
+  apiData: typeof ApiDataAsyncData.schema.Type,
   moduleSlug: string,
 ): Option.Option<ReadonlyArray<TableOfContentsEntry>> =>
-  AsyncData.matchData(model.apiData, {
+  AsyncData.matchData(apiData, {
     onData: data =>
       Option.map(
         resolveModule(data.parsedApi, moduleSlug),

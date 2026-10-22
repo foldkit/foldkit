@@ -1,16 +1,24 @@
 import { Array, Effect, Predicate, Schema } from 'effect'
 
-import { type DefaultViewOf, defaultViewOf } from '../block/defaultView.js'
-import type { AnyBlock } from '../block/definition.js'
-import type { ValidateConcreteComposition } from '../block/requirements.js'
+import { defaultViewOf } from '../block/defaultView.js'
+import type { AnyBlock, AnyProgramBlock, AnyRoot } from '../block/definition.js'
+import type {
+  DefaultViewEvidenceOfBlock,
+  HandlerEvidenceOfBlock,
+  HostHandlersOfBlock,
+  OutMessageOfBlock,
+  ValidateConcreteComposition,
+  ValidateRootRequirementEvidence,
+} from '../block/requirements.js'
 import { requiresViewInputs } from '../block/viewScope.js'
 import type { Document } from '../html/index.js'
 import type { DevToolsConfig } from './devToolsConfig.js'
 
 type AnyFunction = (...args: ReadonlyArray<any>) => any
 
-type BlockUpdate<BlockValue extends AnyBlock> = BlockValue['update']
-type BlockView<BlockValue extends AnyBlock> = DefaultViewOf<BlockValue>
+type BlockUpdate<BlockValue extends AnyProgramBlock> = BlockValue['update']
+type BlockView<BlockValue extends AnyProgramBlock> =
+  DefaultViewEvidenceOfBlock<BlockValue>
 
 type RequiredUpdateContext<UpdateFunction extends AnyFunction> =
   UpdateFunction extends unknown
@@ -25,7 +33,7 @@ type RequiredUpdateContext<UpdateFunction extends AnyFunction> =
       : never
     : never
 
-type ValidateRootChannels<BlockValue extends AnyBlock> =
+type ValidateRootChannels<BlockValue extends AnyProgramBlock> =
   RequiredUpdateContext<BlockUpdate<BlockValue>> extends infer Context
     ? [Context] extends [never]
       ? unknown
@@ -34,12 +42,10 @@ type ValidateRootChannels<BlockValue extends AnyBlock> =
         }>
     : never
 
-type RootOutMessage<BlockValue extends AnyBlock> =
-  BlockValue extends Readonly<{ OutMessage: infer OutMessage }>
-    ? OutMessage
-    : never
+type RootOutMessage<BlockValue extends AnyProgramBlock> =
+  OutMessageOfBlock<BlockValue>
 
-type ValidateNoRootOutMessage<BlockValue extends AnyBlock> = [
+type ValidateNoRootOutMessage<BlockValue extends AnyProgramBlock> = [
   RootOutMessage<BlockValue>,
 ] extends [never]
   ? unknown
@@ -47,8 +53,8 @@ type ValidateNoRootOutMessage<BlockValue extends AnyBlock> = [
       'Program root Block must not declare an OutMessage': RootOutMessage<BlockValue>
     }>
 
-type ValidateNoHostHandlers<BlockValue extends AnyBlock> =
-  BlockValue['hostHandlers'][number] extends infer HostHandler
+type ValidateNoHostHandlers<BlockValue extends AnyProgramBlock> =
+  HostHandlersOfBlock<BlockValue>[number] extends infer HostHandler
     ? [HostHandler] extends [never]
       ? unknown
       : Readonly<{
@@ -56,14 +62,10 @@ type ValidateNoHostHandlers<BlockValue extends AnyBlock> =
         }>
     : never
 
-type RootHandlerEvidence<BlockValue extends AnyBlock> =
-  BlockValue extends Readonly<{
-    __blockHandlerRequirements: infer Requirements
-  }>
-    ? Requirements
-    : unknown
+type RootHandlerEvidence<BlockValue extends AnyProgramBlock> =
+  HandlerEvidenceOfBlock<BlockValue>
 
-type ValidateRootHandlerEvidence<BlockValue extends AnyBlock> =
+type ValidateRootHandlerEvidence<BlockValue extends AnyProgramBlock> =
   RootHandlerEvidence<BlockValue> extends infer Requirements
     ? unknown extends Requirements
       ? Readonly<{
@@ -78,14 +80,18 @@ type ValidateRootHandlerEvidence<BlockValue extends AnyBlock> =
         'Program root Block must retain exact handler evidence': BlockValue
       }>
 
-type ConcreteCompositionFailures<BlockValue extends AnyBlock> =
+type ConcreteCompositionFailures<BlockValue extends AnyProgramBlock> =
   BlockValue extends unknown
-    ? unknown extends ValidateConcreteComposition<BlockValue>
+    ? BlockValue extends AnyRoot
       ? never
-      : ValidateConcreteComposition<BlockValue>
+      : BlockValue extends AnyBlock
+        ? unknown extends ValidateConcreteComposition<BlockValue>
+          ? never
+          : ValidateConcreteComposition<BlockValue>
+        : never
     : never
 
-type ValidateDeferredComposition<BlockValue extends AnyBlock> = [
+type ValidateDeferredComposition<BlockValue extends AnyProgramBlock> = [
   ConcreteCompositionFailures<BlockValue>,
 ] extends [never]
   ? unknown
@@ -122,7 +128,7 @@ type ViewMemberFailures<View, Kind extends RootViewKind> = View extends unknown
   : never
 
 type ValidateOneRootView<
-  BlockValue extends AnyBlock,
+  BlockValue extends AnyProgramBlock,
   Kind extends RootViewKind,
 > =
   BlockView<BlockValue> extends infer View
@@ -136,7 +142,7 @@ type ValidateOneRootView<
     : never
 
 type RootViewFailures<
-  BlockValue extends AnyBlock,
+  BlockValue extends AnyProgramBlock,
   Kind extends RootViewKind,
 > = BlockValue extends unknown
   ? unknown extends ValidateOneRootView<BlockValue, Kind>
@@ -145,13 +151,13 @@ type RootViewFailures<
   : never
 
 type ValidateRootView<
-  BlockValue extends AnyBlock,
+  BlockValue extends AnyProgramBlock,
   Kind extends RootViewKind,
 > = [RootViewFailures<BlockValue, Kind>] extends [never]
   ? unknown
   : RootViewFailures<BlockValue, Kind>
 
-type ValidatePresentProgramBlock<BlockValue extends AnyBlock> = [
+type ValidatePresentProgramBlock<BlockValue extends AnyProgramBlock> = [
   BlockValue,
 ] extends [never]
   ? Readonly<{
@@ -161,9 +167,10 @@ type ValidatePresentProgramBlock<BlockValue extends AnyBlock> = [
 
 /** @internal Validates the completed Block contract at a Program boundary. */
 export type ValidateProgramBlock<
-  BlockValue extends AnyBlock,
+  BlockValue extends AnyProgramBlock,
   Kind extends RootViewKind,
 > = ValidateRootHandlerEvidence<BlockValue> &
+  ValidateRootRequirementEvidence<BlockValue> &
   ValidatePresentProgramBlock<BlockValue> &
   ValidateDeferredComposition<BlockValue> &
   ValidateNoHostHandlers<BlockValue> &

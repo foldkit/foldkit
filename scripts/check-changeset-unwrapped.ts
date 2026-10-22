@@ -37,7 +37,7 @@ const committedChangesetFiles = (): ReadonlyArray<string> => {
       '--diff-filter=AM',
       '--name-only',
       '--no-relative',
-      BASE_REF,
+      mergeBase(),
       'HEAD',
       '--',
       '.changeset',

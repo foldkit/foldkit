@@ -6,12 +6,12 @@ import * as Toast from '@foldkit/ui/toast'
 import * as Tooltip from '@foldkit/ui/tooltip'
 
 import {
-  ApplicationDefinition,
   AnimationBinding,
+  ApplicationDefinition,
   DialogBinding,
   DragAndDropBinding,
-  KeyedDragAndDropBinding,
   KeyedAnimationBinding,
+  KeyedDragAndDropBinding,
   KeyedToastBinding,
   MenuFoldFixtureDefinition,
   MenuPicker,

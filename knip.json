@@ -35,7 +35,8 @@
         "src/test/public.ts",
         "src/test/apps/**/*.ts",
         "declaration-tests/**/*.ts",
-        "type-performance/*.ts"
+        "type-performance/*.ts",
+        "scripts/profile-block-language-service.ts"
       ]
     },
     "packages/ui": {

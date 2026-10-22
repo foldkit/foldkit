@@ -1,0 +1,1624 @@
+{
+  "formatVersion": 1,
+  "issue": "https://github.com/foldkit/foldkit/issues/1737",
+  "baselineCommit": "9a5f9307cb4af2aca8a1e28bbf7b21cf64e5f87c",
+  "candidateCommitSource": "checked-out draft PR head; record exact hash with git rev-parse HEAD when measuring",
+  "node": "v22.23.3",
+  "pnpm": "11.8.0 via corepack",
+  "nativeTypeScript": "7.0.2 darwin-arm64",
+  "finalReportPattern": "final-(baseline|candidate)-(root-incomplete|root-valid|root-hover|root-diagnostics)-[1-3].json",
+  "archives": [
+    {
+      "path": "probe-tools.tar.gz",
+      "bytes": 27776,
+      "sha256": "5a37f827559d29cd33bbe1137dc539fc5a3d3b4b57fc7105b1826bdb6b9a52e3"
+    },
+    {
+      "path": "exploratory-reports.tar.gz",
+      "bytes": 25974242,
+      "sha256": "0a4cb90e9c64d289471620107dd52187c742b71fa46d755aa872c9c3e96588a2"
+    },
+    {
+      "path": "prior-format-reports.tar.gz",
+      "bytes": 20802401,
+      "sha256": "91b52e94f961348ecb905022277bc45097a9e3daa3c80c8b21c889455c1fe2ed",
+      "role": "excluded-prior-format-recording"
+    },
+    {
+      "path": "prior-surface-proof-reports.tar.gz",
+      "bytes": 20806624,
+      "sha256": "ba8ba33d453fcf544c0d51c081d19500bf32e39c84151ab8f1461aa783db17d6",
+      "role": "excluded-prior-surface-recording"
+    },
+    {
+      "path": "prior-union-proof-reports.tar.gz",
+      "bytes": 21081951,
+      "sha256": "50f6d446e6c30d32f5a0a1259ec40cc3abacaf1629a69c3fa3ae9ac2444e06e2",
+      "role": "excluded-prior-union-recording"
+    },
+    {
+      "path": "prior-cycle-proof-reports.tar.gz",
+      "bytes": 21085283,
+      "sha256": "94826e1f1be4f9ab48a9db7c191e136ea89d1d39390c71ea5d6f1f909af9e460",
+      "role": "excluded-prior-cycle-recording"
+    },
+    {
+      "path": "final-reports.tar.gz",
+      "bytes": 21168494,
+      "sha256": "85e04a0fbab531841d587da3490252914482170f0d27586b75fcc30d257ba71c",
+      "role": "exact-source-final-aggregate-inputs"
+    }
+  ],
+  "toolMembers": [
+    {
+      "path": "scripts/scope-root-editor-probe.mjs",
+      "sourceFile": "scope-root-editor-probe.mjs",
+      "bytes": 23734,
+      "sha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751",
+      "role": "probe-tool"
+    },
+    {
+      "path": "scripts/candidate-root-editor-probe.mjs",
+      "sourceFile": "candidate-root-editor-probe.mjs",
+      "bytes": 23534,
+      "sha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139",
+      "role": "probe-tool"
+    },
+    {
+      "path": "scripts/lazy-hover-probe.mjs",
+      "sourceFile": "lazy-hover-probe.mjs",
+      "bytes": 26161,
+      "sha256": "5c690ddfbb7c3eae0b824867a98a7aa69bb5285291567759308a876bb5e76bc8",
+      "role": "probe-tool"
+    },
+    {
+      "path": "scripts/memory-guard.py",
+      "sourceFile": "memory-guard.py",
+      "bytes": 4419,
+      "sha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "role": "probe-tool"
+    },
+    {
+      "path": "scripts/summarize-final.mjs",
+      "sourceFile": "summarize-final.mjs",
+      "bytes": 12927,
+      "sha256": "91ba497aa4efffb5fbf2a1bea110202646b3fc9bc59eb51e83a819ef0b63edb8",
+      "role": "probe-tool"
+    },
+    {
+      "path": "scripts/write-hash-manifest.mjs",
+      "sourceFile": "write-hash-manifest.mjs",
+      "bytes": 2261,
+      "sha256": "120202e9fe3c4ef9a4682b327eb26c4469b0e9d4e82acd8cdbfd09de385b8f1b",
+      "role": "probe-tool"
+    },
+    {
+      "path": "scripts/root-runtime-smoke.mjs",
+      "sourceFile": "root-runtime-smoke.mjs",
+      "bytes": 15009,
+      "sha256": "1869031ea11d077f4c11fa317cab0239c8461b6f71bfc62395a1b271acdd6c73",
+      "role": "probe-tool"
+    },
+    {
+      "path": "scripts/root-runtime-smoke-registration-mutation.mjs",
+      "sourceFile": "root-runtime-smoke-registration-mutation.mjs",
+      "bytes": 15016,
+      "sha256": "c253ea34a8b9ae7e2b76edc8e57451f9155651c080b0f86626d55904d3aef2da",
+      "role": "probe-tool"
+    },
+    {
+      "path": "scripts/hover-wrong-target-mutation.mjs",
+      "sourceFile": "hover-wrong-target-mutation.mjs",
+      "bytes": 26165,
+      "sha256": "ac86a25e0713ed64bf8e1495114d6ee82a269c5b2932545df847e66d412d4f4b",
+      "role": "probe-tool"
+    },
+    {
+      "path": "scripts/diagnostic-Message-probe.mjs",
+      "sourceFile": "diagnostic-Message-probe.mjs",
+      "bytes": 23583,
+      "sha256": "bd3818d9b45b6dd187f7e4b2566ba566eb60ec7d89d96c7bc212a56ffa2da817",
+      "role": "probe-tool"
+    },
+    {
+      "path": "scripts/diagnostic-Model-probe.mjs",
+      "sourceFile": "diagnostic-Model-probe.mjs",
+      "bytes": 23579,
+      "sha256": "2cc1df4d2c85bb49ab8a0286e9f125d69415e0233ab95fb999556145616d3e62",
+      "role": "probe-tool"
+    },
+    {
+      "path": "scripts/diagnostic-init-probe.mjs",
+      "sourceFile": "diagnostic-init-probe.mjs",
+      "bytes": 23577,
+      "sha256": "85e3b9226bdc0958188ef125c49addd78319fdeb3c0a46cbc419edb104264a7b",
+      "role": "probe-tool"
+    },
+    {
+      "path": "scripts/diagnostic-operations-probe.mjs",
+      "sourceFile": "diagnostic-operations-probe.mjs",
+      "bytes": 23589,
+      "sha256": "6e94e780ccda9f206fcbc3009d58eaac936a4090f486083f47dcdd1600e74dda",
+      "role": "probe-tool"
+    },
+    {
+      "path": "scripts/diagnostic-owner-probe.mjs",
+      "sourceFile": "diagnostic-owner-probe.mjs",
+      "bytes": 23579,
+      "sha256": "323673b835e69dec80257dc9831de3d5fef4d699ac0e2fb1da1bd183b4518b76",
+      "role": "probe-tool"
+    },
+    {
+      "path": "scripts/diagnostic-public-only-probe.mjs",
+      "sourceFile": "diagnostic-public-only-probe.mjs",
+      "bytes": 23645,
+      "sha256": "e33e09040b5c569a3cd75db4b4cc90978d2fa2a8426dfa46b32da7928ec0a028",
+      "role": "probe-tool"
+    },
+    {
+      "path": "scripts/diagnostic-update-probe.mjs",
+      "sourceFile": "diagnostic-update-probe.mjs",
+      "bytes": 23581,
+      "sha256": "509c27c2ecebd62a34ef49c0545ab34e78678f517b7805e45c38ab6ffa014258",
+      "role": "probe-tool"
+    }
+  ],
+  "exploratoryMembers": [
+    {
+      "path": "raw/baseline-diagnostics-1.json",
+      "sourceFile": "baseline-diagnostics-1.json",
+      "bytes": 2283253,
+      "sha256": "e0958f29e694b7d13076f94a599877f276eb8080c54f4748a27952fec9535038",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-diagnostics",
+      "status": "Passed",
+      "elapsedMs": 21076.805708,
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/baseline-root-1.json",
+      "sourceFile": "baseline-root-1.json",
+      "bytes": 2291679,
+      "sha256": "4f28744eaa5ba33621a241473348583792b4b9f37f0cc9653886596911716c3f",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "elapsedMs": 13915.938415999999,
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/baseline-root-2.json",
+      "sourceFile": "baseline-root-2.json",
+      "bytes": 2292124,
+      "sha256": "bcea82b3decebcb29ccde9e1e536d4f7b7808dacffb88a62608c921904bc5924",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "elapsedMs": 14230.002375,
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/candidate-diagnostics-1.json",
+      "sourceFile": "candidate-diagnostics-1.json",
+      "bytes": 2294554,
+      "sha256": "c1bb42fc6cdf44a84d478fc8d419b473e33cc78844bc057300abf3959f097700",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-diagnostics",
+      "status": "Failed",
+      "failure": "Error: 22-second process wall limit",
+      "aborted": "22-second process wall limit",
+      "elapsedMs": 22050.620082999998,
+      "sourceSha256": "83b8322365f481f451154e765bcc5e0bb5f939380c56be9f5268ccef757d32ff",
+      "probeSha256": "0205a2427aa84f452461eb8225b20a752c05ecbc6d131d405a2e66435437fcfa",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/candidate-root-1.json",
+      "sourceFile": "candidate-root-1.json",
+      "bytes": 2271109,
+      "sha256": "0064a92d9248064a759a3bbe44af2c7bd4e1a5427a15bd0e41000e192a753561",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-incomplete",
+      "status": "Failed",
+      "failure": "Error: Terminal root completion did not return exactly the reviewed expected 15 members",
+      "elapsedMs": 5617.222124999999,
+      "sourceSha256": "83b8322365f481f451154e765bcc5e0bb5f939380c56be9f5268ccef757d32ff",
+      "probeSha256": "2e0c0c57c97c4da51ad25ee697133f435deb4afb2175f1a7ca1ae70e02c0a1b2",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/candidate-root-2.json",
+      "sourceFile": "candidate-root-2.json",
+      "bytes": 2295972,
+      "sha256": "c09be455cf662a9f25a461e649815a85f9538ad75ddfad78203189b893928cbb",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "elapsedMs": 11240.114459,
+      "sourceSha256": "83b8322365f481f451154e765bcc5e0bb5f939380c56be9f5268ccef757d32ff",
+      "probeSha256": "0205a2427aa84f452461eb8225b20a752c05ecbc6d131d405a2e66435437fcfa",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/deferred-all-params-hover-1.json",
+      "sourceFile": "deferred-all-params-hover-1.json",
+      "bytes": 2379960,
+      "sha256": "0f8931617f37d04d158609609f6fe6017ad8b73907e8978ea331bec821e6d20e",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-hover",
+      "status": "Passed",
+      "elapsedMs": 11784.082457999999,
+      "sourceSha256": "4d78a9ab3ce438f74e2f1754e3867a294cb7b268f491045c69a6d9237fe79f99",
+      "probeSha256": "5c690ddfbb7c3eae0b824867a98a7aa69bb5285291567759308a876bb5e76bc8",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/deferred-all-params-root-1.json",
+      "sourceFile": "deferred-all-params-root-1.json",
+      "bytes": 2380472,
+      "sha256": "e54534572fcd28714729172168bcf5576e183a6c8fddc04de7cc8643c7c0aac3",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "elapsedMs": 11776.049042,
+      "sourceSha256": "4d78a9ab3ce438f74e2f1754e3867a294cb7b268f491045c69a6d9237fe79f99",
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/deferred-diagnostics-1.json",
+      "sourceFile": "deferred-diagnostics-1.json",
+      "bytes": 2344946,
+      "sha256": "b72eaf0c2c6f7d2c48356f871988dac5d451ef6886beb94dbfd4cf104cd5c0f3",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-diagnostics",
+      "status": "Passed",
+      "elapsedMs": 261.45266599999997,
+      "sourceSha256": "4d78a9ab3ce438f74e2f1754e3867a294cb7b268f491045c69a6d9237fe79f99",
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/deferred-root-1.json",
+      "sourceFile": "deferred-root-1.json",
+      "bytes": 2367432,
+      "sha256": "7e2a736e92b2edd190d30b5b627e4fe8ddacd6bd0c778e7c915d5274822d91e7",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "elapsedMs": 10619.3195,
+      "sourceSha256": "4d78a9ab3ce438f74e2f1754e3867a294cb7b268f491045c69a6d9237fe79f99",
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/deferred-root-2.json",
+      "sourceFile": "deferred-root-2.json",
+      "bytes": 2367762,
+      "sha256": "a1dbdb404772cddb95d83c05590cb22f8c7a7f05299d8331d842f463ff0d39c5",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "elapsedMs": 10726.093625,
+      "sourceSha256": "4d78a9ab3ce438f74e2f1754e3867a294cb7b268f491045c69a6d9237fe79f99",
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/diagnostic-owner-1.json",
+      "sourceFile": "diagnostic-owner-1.json",
+      "bytes": 2373286,
+      "sha256": "aba98fc09d95e2d1e193fe6b0437ef465d856f1a4ac7f209038de7148ac8835e",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "elapsedMs": 11070.080875,
+      "sourceSha256": "4d78a9ab3ce438f74e2f1754e3867a294cb7b268f491045c69a6d9237fe79f99",
+      "probeSha256": "323673b835e69dec80257dc9831de3d5fef4d699ac0e2fb1da1bd183b4518b76",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/diagnostic-public-only-1.json",
+      "sourceFile": "diagnostic-public-only-1.json",
+      "bytes": 2378961,
+      "sha256": "bca9aafebaf0c291dab9ed92d9e5d15101442494fcf3b48d0d437d4bbe52afc2",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "elapsedMs": 11616.938542,
+      "sourceSha256": "4d78a9ab3ce438f74e2f1754e3867a294cb7b268f491045c69a6d9237fe79f99",
+      "probeSha256": "e33e09040b5c569a3cd75db4b4cc90978d2fa2a8426dfa46b32da7928ec0a028",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/direct-model-hover-1.json",
+      "sourceFile": "direct-model-hover-1.json",
+      "bytes": 2362067,
+      "sha256": "83edc3fc5f1ff2c053fb7ee2df31cfd1e514e6ecfe6670a88c4848ff62dffd6a",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-hover",
+      "status": "Passed",
+      "elapsedMs": 1206.178292,
+      "sourceSha256": "4d78a9ab3ce438f74e2f1754e3867a294cb7b268f491045c69a6d9237fe79f99",
+      "probeSha256": "df7fd32217253314a099d5bba24755235cc1d7e0dfe8ab6fcba9772f86e2ac79",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/direct-model-root-1.json",
+      "sourceFile": "direct-model-root-1.json",
+      "bytes": 2362363,
+      "sha256": "392d0a8902a6387350bf1c3baba9af156fcaf1f9edbd6b2954fcfcbd79f52a89",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "elapsedMs": 343.81220799999994,
+      "sourceSha256": "4d78a9ab3ce438f74e2f1754e3867a294cb7b268f491045c69a6d9237fe79f99",
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/lazy-members-hover-1.json",
+      "sourceFile": "lazy-members-hover-1.json",
+      "bytes": 2363955,
+      "sha256": "6cbc03fed43a9b7494fc343a5ae99ad5f7b24a97f1e4d9e45a7fca51d5c087ae",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-hover",
+      "status": "Failed",
+      "failure": "Error: Root hover did not show the canonical Application Model signature: {\"contents\":{\"kind\":\"markdown\",\"value\":\"```typescript\\n(property) ApplicationRoot.Model: Struct<{\\n    readonly route: RouteUnion<{\\n        readonly Home: {};\\n        readonly WhyFoldkit: {};\\n        readonly Performance: {};\\n        readonly ComingFromReact: {};\\n        readonly ComingFromTanStackQuery: {};\\n        readonly ReactComparison: {};\\n        readonly EffectAtomComparison: {};\\n        readonly ElmComparison: {};\\n        readonly GetStarted: {};\\n        readonly Roadmap: {};\\n        readonly RoutingAndNavigation: {};\\n        readonly FieldValidation: {};\\n        readonly Testing: {};\\n        readonly TestingStory: {};\\n        readonly TestingScene: {};\\n        readonly Examples: {};\\n        readonly ExampleDetail: {\\n            exampleSlug: String;\\n        };\\n        readonly TypingTerminal: {};\\n        readonly Playground: {\\n            exampleSlug: String;\\n        };\\n        readonly BestPracticesSideEffects: {};\\n        ... 84 more ...;\\n        readonly NotFound: {\\n            path: String;\\n        };\\n    }>;\\n    ... 24 more ...;\\n    readonly search: Struct<...>;\\n}>\\n```\\n\"},\"range\":{\"start\":{\"line\":7,\"character\":42},\"end\":{\"line\":7,\"character\":47}}}",
+      "elapsedMs": 5943.0460410000005,
+      "sourceSha256": "4d78a9ab3ce438f74e2f1754e3867a294cb7b268f491045c69a6d9237fe79f99",
+      "probeSha256": "759a8c65910bb5241d9bd71614ede3b04a5e06c56711c3c0f09483450fad9af3",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/lazy-members-root-1.json",
+      "sourceFile": "lazy-members-root-1.json",
+      "bytes": 2362291,
+      "sha256": "692e718e3c7a903aa03519536c032f1829679e2258ea45678ab3c9c6a689b312",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "elapsedMs": 331.21675000000005,
+      "sourceSha256": "4d78a9ab3ce438f74e2f1754e3867a294cb7b268f491045c69a6d9237fe79f99",
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/minimal-root-1.json",
+      "sourceFile": "minimal-root-1.json",
+      "bytes": 2368120,
+      "sha256": "32e8c9a8c9fe44085a26e2540377066e0137edd4bb6f3f597ce92e148008d962",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "elapsedMs": 11236.3555,
+      "sourceSha256": "4d78a9ab3ce438f74e2f1754e3867a294cb7b268f491045c69a6d9237fe79f99",
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/named-channels-root-1.json",
+      "sourceFile": "named-channels-root-1.json",
+      "bytes": 2377334,
+      "sha256": "208d75d6d937016a542862a463616827ce8fa036dfc40ed1fe5a657510052403",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "elapsedMs": 10667.732125,
+      "sourceSha256": "4d78a9ab3ce438f74e2f1754e3867a294cb7b268f491045c69a6d9237fe79f99",
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/named-implementation-diagnostics-1.json",
+      "sourceFile": "named-implementation-diagnostics-1.json",
+      "bytes": 2356503,
+      "sha256": "3bbb9dfc00904e2cace30d0745a62106f63039e05ee41528ff283942e07da3e7",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-diagnostics",
+      "status": "Passed",
+      "elapsedMs": 354.070417,
+      "sourceSha256": "4d78a9ab3ce438f74e2f1754e3867a294cb7b268f491045c69a6d9237fe79f99",
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/named-implementation-hover-1.json",
+      "sourceFile": "named-implementation-hover-1.json",
+      "bytes": 2364008,
+      "sha256": "f8bc06cdf9935443071b91f1c7f59f34f774d56e3d32f4cef9ca18a8cbd0da6e",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-hover",
+      "status": "Passed",
+      "elapsedMs": 1317.977625,
+      "sourceSha256": "4d78a9ab3ce438f74e2f1754e3867a294cb7b268f491045c69a6d9237fe79f99",
+      "probeSha256": "5c690ddfbb7c3eae0b824867a98a7aa69bb5285291567759308a876bb5e76bc8",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/named-implementation-root-1.json",
+      "sourceFile": "named-implementation-root-1.json",
+      "bytes": 2364897,
+      "sha256": "95ac6e6700a71bab07764bf1d579942937a5adfdef28582fa659df8300199b18",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "elapsedMs": 1441.7498340000002,
+      "sourceSha256": "4d78a9ab3ce438f74e2f1754e3867a294cb7b268f491045c69a6d9237fe79f99",
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/named-message-root-1.json",
+      "sourceFile": "named-message-root-1.json",
+      "bytes": 2377396,
+      "sha256": "07421aefebeb76f494459e1b528036609ae1d44b06517474853ed4f53f4581cf",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "elapsedMs": 10634.203,
+      "sourceSha256": "4d78a9ab3ce438f74e2f1754e3867a294cb7b268f491045c69a6d9237fe79f99",
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/protected-root-1.json",
+      "sourceFile": "protected-root-1.json",
+      "bytes": 2296054,
+      "sha256": "ec366557c81b6ebaac76b955f34f0bc0447acc246f095956c6c842ff80555ced",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "elapsedMs": 10910.609292,
+      "sourceSha256": "4d78a9ab3ce438f74e2f1754e3867a294cb7b268f491045c69a6d9237fe79f99",
+      "probeSha256": "2e0c0c57c97c4da51ad25ee697133f435deb4afb2175f1a7ca1ae70e02c0a1b2",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/session-metadata.json",
+      "sourceFile": "session-metadata.json",
+      "bytes": 968,
+      "sha256": "f258c8a190566daa46432f9e56fd4a6ff4df290207b9290fdcb2a2eb893f8729",
+      "role": "session-metadata",
+      "probeSha256": null,
+      "memoryGuardSha256": null,
+      "compilerVersion": null,
+      "serverVersion": null
+    },
+    {
+      "path": "raw/split-diagnostics-1.json",
+      "sourceFile": "split-diagnostics-1.json",
+      "bytes": 2263867,
+      "sha256": "5c97e9219a59709d73471ddc25a4e6c754d062a4eff72bc4a959e9b945abe8ab",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-diagnostics",
+      "status": "Passed",
+      "elapsedMs": 319.73008300000004,
+      "sourceSha256": "4d78a9ab3ce438f74e2f1754e3867a294cb7b268f491045c69a6d9237fe79f99",
+      "probeSha256": "0205a2427aa84f452461eb8225b20a752c05ecbc6d131d405a2e66435437fcfa",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/split-root-1.json",
+      "sourceFile": "split-root-1.json",
+      "bytes": 2298654,
+      "sha256": "8394bd216ece9a9eedc98bd0fe3554ca6d06f2a40656d29d574d51b71c32578f",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "elapsedMs": 11752.679875,
+      "sourceSha256": "4d78a9ab3ce438f74e2f1754e3867a294cb7b268f491045c69a6d9237fe79f99",
+      "probeSha256": "0205a2427aa84f452461eb8225b20a752c05ecbc6d131d405a2e66435437fcfa",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/strict-named-implementation-hover-1.json",
+      "sourceFile": "strict-named-implementation-hover-1.json",
+      "bytes": 2364005,
+      "sha256": "1a86417f14ba734d1f4bab4c8dc61a9eb561198904748383303e7ff96b78f867",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-hover",
+      "status": "Passed",
+      "elapsedMs": 1163.9843329999999,
+      "sourceSha256": "4d78a9ab3ce438f74e2f1754e3867a294cb7b268f491045c69a6d9237fe79f99",
+      "probeSha256": "5c690ddfbb7c3eae0b824867a98a7aa69bb5285291567759308a876bb5e76bc8",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/strict-named-implementation-root-1.json",
+      "sourceFile": "strict-named-implementation-root-1.json",
+      "bytes": 2364523,
+      "sha256": "43a7ee6eef1ad27969cdba704f52d4c314e30cece48e74c4ad98df87db269fe8",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "elapsedMs": 1191.875833,
+      "sourceSha256": "4d78a9ab3ce438f74e2f1754e3867a294cb7b268f491045c69a6d9237fe79f99",
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/verified-baseline-diagnostics-1.json",
+      "sourceFile": "verified-baseline-diagnostics-1.json",
+      "bytes": 2388560,
+      "sha256": "f53579536be5ed85188a72b335ad0b529411372a23fc54e4ba3d4588f287cbf9",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-diagnostics",
+      "status": "Passed",
+      "elapsedMs": 21849.540875,
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/verified-baseline-hover-1.json",
+      "sourceFile": "verified-baseline-hover-1.json",
+      "bytes": 2384206,
+      "sha256": "0e07857eaaf7166c9f87c0df1a02f8a0a553837f7ad141d1ec70104a65230d64",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-hover",
+      "status": "Passed",
+      "elapsedMs": 14606.833791,
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "probeSha256": "5c690ddfbb7c3eae0b824867a98a7aa69bb5285291567759308a876bb5e76bc8",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/verified-baseline-root-1.json",
+      "sourceFile": "verified-baseline-root-1.json",
+      "bytes": 2397738,
+      "sha256": "17b242f0617b035a35876c2d89fecf811e38a2eebd57fc99bc81d33535f0ac6d",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "elapsedMs": 14580.741708,
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/verified-baseline-valid-1.json",
+      "sourceFile": "verified-baseline-valid-1.json",
+      "bytes": 2397440,
+      "sha256": "50fbd784f4829f6ad905d6656654ccabd2a8d27c76e6e41d0791bc8c0527c1fc",
+      "role": "exploratory-report",
+      "formatVersion": 1,
+      "mode": "root-valid",
+      "status": "Passed",
+      "elapsedMs": 14465.592332999999,
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751",
+      "memoryGuardSha256": "f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf",
+      "compilerVersion": "7.0.2",
+      "serverVersion": "7.0.2"
+    },
+    {
+      "path": "raw/covariance-before-build.txt",
+      "sourceFile": "covariance-before-build.txt",
+      "bytes": 1788,
+      "sha256": "c4795bd21d4f0b2fdd40f2d8cb106cf06581970e24ac4868da3d68acabc41bd6",
+      "role": "failed-or-control-text"
+    },
+    {
+      "path": "raw/optional-before-build.txt",
+      "sourceFile": "optional-before-build.txt",
+      "bytes": 879,
+      "sha256": "18b004ab1a079020cdf81481f17067817cdc6f9fce4d833cd8461f796678a681",
+      "role": "failed-or-control-text"
+    }
+  ],
+  "finalSummary": {
+    "path": "final-summary.json",
+    "bytes": 59420,
+    "sha256": "e863b1e0f58ef151c4a544b7696470776b3be1fb33bed52ab7e4a9eaa9b5673c",
+    "reportCount": 24,
+    "source": "cycle-proof-final"
+  },
+  "notes": [
+    "probe-tools.tar.gz preserves evidence script bytes outside formatter/linter reach",
+    "exploratory-reports.tar.gz excludes final-* reports and package caches",
+    "exploratory timings are not final before/after results",
+    "All four prior-format, prior-surface, prior-union, and prior-cycle report archives are excluded from the final aggregate",
+    "Final native reports, summary, fresh runtime smoke, and source snapshots use cycle-proof-final inputs; archived controls retain their historical provenance"
+  ],
+  "finalMembers": [
+    {
+      "path": "reports/final-baseline-root-incomplete-1.json",
+      "sourceFile": "final-baseline-root-incomplete-1.json",
+      "bytes": 2395588,
+      "sha256": "bba8c11068a5a7b8b33d7afbe765a21af0cfd39b355c0bc65e445a66d60c1e84",
+      "role": "final-native-report",
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751"
+    },
+    {
+      "path": "reports/final-baseline-root-incomplete-1.stdout.txt",
+      "sourceFile": "final-baseline-root-incomplete-1.stdout.txt",
+      "bytes": 810,
+      "sha256": "67d21d1f905155061585adf92d9f59574bae749af126cc686af05d8392c46cf7",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-baseline-root-incomplete-1.stderr.txt",
+      "sourceFile": "final-baseline-root-incomplete-1.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "reports/final-baseline-root-incomplete-2.json",
+      "sourceFile": "final-baseline-root-incomplete-2.json",
+      "bytes": 2395228,
+      "sha256": "43a1997b8077ac1a71d4bef1559aa3350fb15f1dc10433a769949596e80a39e5",
+      "role": "final-native-report",
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751"
+    },
+    {
+      "path": "reports/final-baseline-root-incomplete-2.stdout.txt",
+      "sourceFile": "final-baseline-root-incomplete-2.stdout.txt",
+      "bytes": 808,
+      "sha256": "679010c5eb55d996f13efafb912cd3532d3113944d1a121456180780557255a2",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-baseline-root-incomplete-2.stderr.txt",
+      "sourceFile": "final-baseline-root-incomplete-2.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "reports/final-baseline-root-incomplete-3.json",
+      "sourceFile": "final-baseline-root-incomplete-3.json",
+      "bytes": 2396387,
+      "sha256": "c8d7442f29883425487a1fda71e5c12c4db0fb88dbb736847cbb2957af13b8ed",
+      "role": "final-native-report",
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751"
+    },
+    {
+      "path": "reports/final-baseline-root-incomplete-3.stdout.txt",
+      "sourceFile": "final-baseline-root-incomplete-3.stdout.txt",
+      "bytes": 825,
+      "sha256": "3847934adf4cd6addf309cd61ca56e687d11cb32f46b02cdce77afbfa6128f2c",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-baseline-root-incomplete-3.stderr.txt",
+      "sourceFile": "final-baseline-root-incomplete-3.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "reports/final-baseline-root-valid-1.json",
+      "sourceFile": "final-baseline-root-valid-1.json",
+      "bytes": 2395229,
+      "sha256": "595d5e91734fb12a45fd647c22f6e1c27ad7c684fb360c23c7d6ab93b89e72e7",
+      "role": "final-native-report",
+      "mode": "root-valid",
+      "status": "Passed",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751"
+    },
+    {
+      "path": "reports/final-baseline-root-valid-1.stdout.txt",
+      "sourceFile": "final-baseline-root-valid-1.stdout.txt",
+      "bytes": 808,
+      "sha256": "900b0ac85265509b406d60289dd31ea33db45c7a01b186bc9fad587d46e3da17",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-baseline-root-valid-1.stderr.txt",
+      "sourceFile": "final-baseline-root-valid-1.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "reports/final-baseline-root-valid-2.json",
+      "sourceFile": "final-baseline-root-valid-2.json",
+      "bytes": 2395192,
+      "sha256": "22a919e9b2e3c1bdb41a09cbc373201248500624c4ddf9a2ef94c676f4707d77",
+      "role": "final-native-report",
+      "mode": "root-valid",
+      "status": "Passed",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751"
+    },
+    {
+      "path": "reports/final-baseline-root-valid-2.stdout.txt",
+      "sourceFile": "final-baseline-root-valid-2.stdout.txt",
+      "bytes": 809,
+      "sha256": "76b8ba0d7c4f982cc4c61b5187319be68ec3a33da1777a83e6b8c7ac5b458442",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-baseline-root-valid-2.stderr.txt",
+      "sourceFile": "final-baseline-root-valid-2.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "reports/final-baseline-root-valid-3.json",
+      "sourceFile": "final-baseline-root-valid-3.json",
+      "bytes": 2396795,
+      "sha256": "86ef99b0628abb9b12eff2feb287ff2320325030e2b4c52f210c01d0edde480c",
+      "role": "final-native-report",
+      "mode": "root-valid",
+      "status": "Passed",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751"
+    },
+    {
+      "path": "reports/final-baseline-root-valid-3.stdout.txt",
+      "sourceFile": "final-baseline-root-valid-3.stdout.txt",
+      "bytes": 812,
+      "sha256": "40f2eca4bd2c6522d7b726a39313ce928d77010049e5073271f1d310d4da34c6",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-baseline-root-valid-3.stderr.txt",
+      "sourceFile": "final-baseline-root-valid-3.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "reports/final-baseline-root-hover-1.json",
+      "sourceFile": "final-baseline-root-hover-1.json",
+      "bytes": 2382006,
+      "sha256": "94660ae759c11bc1c66678344a2ec00ea2ff8e772adb4109ec084abc5a51ebad",
+      "role": "final-native-report",
+      "mode": "root-hover",
+      "status": "Passed",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "5c690ddfbb7c3eae0b824867a98a7aa69bb5285291567759308a876bb5e76bc8"
+    },
+    {
+      "path": "reports/final-baseline-root-hover-1.stdout.txt",
+      "sourceFile": "final-baseline-root-hover-1.stdout.txt",
+      "bytes": 803,
+      "sha256": "ff0ece23a5af85137a39933705c739ec17d878d8c009bdc5c04e9ecd9933a269",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-baseline-root-hover-1.stderr.txt",
+      "sourceFile": "final-baseline-root-hover-1.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "reports/final-baseline-root-hover-2.json",
+      "sourceFile": "final-baseline-root-hover-2.json",
+      "bytes": 2381989,
+      "sha256": "529e1e73893b5de2f64d886c4a91451f333ff17b645c8155f8cc61633f37b1cf",
+      "role": "final-native-report",
+      "mode": "root-hover",
+      "status": "Passed",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "5c690ddfbb7c3eae0b824867a98a7aa69bb5285291567759308a876bb5e76bc8"
+    },
+    {
+      "path": "reports/final-baseline-root-hover-2.stdout.txt",
+      "sourceFile": "final-baseline-root-hover-2.stdout.txt",
+      "bytes": 796,
+      "sha256": "52ebfdbdab699de8538d5b32d56cd2dcc971d27e750c0a9ede45902a5bfd6a53",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-baseline-root-hover-2.stderr.txt",
+      "sourceFile": "final-baseline-root-hover-2.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "reports/final-baseline-root-hover-3.json",
+      "sourceFile": "final-baseline-root-hover-3.json",
+      "bytes": 2382731,
+      "sha256": "76002e39734471ccc2efcac04ad4808ddf6323cfebb4115d49f53273740af9d4",
+      "role": "final-native-report",
+      "mode": "root-hover",
+      "status": "Passed",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "5c690ddfbb7c3eae0b824867a98a7aa69bb5285291567759308a876bb5e76bc8"
+    },
+    {
+      "path": "reports/final-baseline-root-hover-3.stdout.txt",
+      "sourceFile": "final-baseline-root-hover-3.stdout.txt",
+      "bytes": 796,
+      "sha256": "38ffba94694572a291d5938edc790dc0f036ee4b119b227c3e66e18955ba6ce5",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-baseline-root-hover-3.stderr.txt",
+      "sourceFile": "final-baseline-root-hover-3.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "reports/final-baseline-root-diagnostics-1.json",
+      "sourceFile": "final-baseline-root-diagnostics-1.json",
+      "bytes": 2384793,
+      "sha256": "91e00a676a0ca43a8367e08c830508583d440374a84ee0c88d45b1c23f4d6256",
+      "role": "final-native-report",
+      "mode": "root-diagnostics",
+      "status": "Passed",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751"
+    },
+    {
+      "path": "reports/final-baseline-root-diagnostics-1.stdout.txt",
+      "sourceFile": "final-baseline-root-diagnostics-1.stdout.txt",
+      "bytes": 712,
+      "sha256": "fce5fc72fe1bac8318cd27a5381910492c715963c82d2e4d0c71ce4af86bb44d",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-baseline-root-diagnostics-1.stderr.txt",
+      "sourceFile": "final-baseline-root-diagnostics-1.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "reports/final-baseline-root-diagnostics-2.json",
+      "sourceFile": "final-baseline-root-diagnostics-2.json",
+      "bytes": 2385208,
+      "sha256": "294c3aded662c2b20d827f706d63352daed11c9fb4165c0488bf0cf7f4d3302a",
+      "role": "final-native-report",
+      "mode": "root-diagnostics",
+      "status": "Passed",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751"
+    },
+    {
+      "path": "reports/final-baseline-root-diagnostics-2.stdout.txt",
+      "sourceFile": "final-baseline-root-diagnostics-2.stdout.txt",
+      "bytes": 719,
+      "sha256": "9c0c1631359fcccade8a665f01d864f68cfe65bab648b9ab0221c77c5abf8240",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-baseline-root-diagnostics-2.stderr.txt",
+      "sourceFile": "final-baseline-root-diagnostics-2.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "reports/final-baseline-root-diagnostics-3.json",
+      "sourceFile": "final-baseline-root-diagnostics-3.json",
+      "bytes": 2385994,
+      "sha256": "99c952fbc89a78891015e005f51226b9ece7c4cd98a5bff5f482aecce0192058",
+      "role": "final-native-report",
+      "mode": "root-diagnostics",
+      "status": "Passed",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751"
+    },
+    {
+      "path": "reports/final-baseline-root-diagnostics-3.stdout.txt",
+      "sourceFile": "final-baseline-root-diagnostics-3.stdout.txt",
+      "bytes": 733,
+      "sha256": "d40c9d914317b8e5964e4b7da3844103b36b4dbe594b607ddf41e735383342b6",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-baseline-root-diagnostics-3.stderr.txt",
+      "sourceFile": "final-baseline-root-diagnostics-3.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "reports/final-candidate-root-incomplete-1.json",
+      "sourceFile": "final-candidate-root-incomplete-1.json",
+      "bytes": 2429344,
+      "sha256": "c8ad5ea7f1bec0bb39469d9824b606a46426b68b34b7edc529bc39b8e74b7da5",
+      "role": "final-native-report",
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139"
+    },
+    {
+      "path": "reports/final-candidate-root-incomplete-1.stdout.txt",
+      "sourceFile": "final-candidate-root-incomplete-1.stdout.txt",
+      "bytes": 819,
+      "sha256": "41c4a74c607bf833bcc4a32909bf9a5813338d4a1a9a496e8dffd8802b98fc65",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-candidate-root-incomplete-1.stderr.txt",
+      "sourceFile": "final-candidate-root-incomplete-1.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "reports/final-candidate-root-incomplete-2.json",
+      "sourceFile": "final-candidate-root-incomplete-2.json",
+      "bytes": 2429340,
+      "sha256": "7638c136db409d25ab0d4995dabcf1aeda5ec3e24a4d1f3a7ce2edc6dd15489c",
+      "role": "final-native-report",
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139"
+    },
+    {
+      "path": "reports/final-candidate-root-incomplete-2.stdout.txt",
+      "sourceFile": "final-candidate-root-incomplete-2.stdout.txt",
+      "bytes": 818,
+      "sha256": "68ab41aa755e5097cf2a14a20b962a3c013c6692c7b7c98a3eadbb55555652cd",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-candidate-root-incomplete-2.stderr.txt",
+      "sourceFile": "final-candidate-root-incomplete-2.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "reports/final-candidate-root-incomplete-3.json",
+      "sourceFile": "final-candidate-root-incomplete-3.json",
+      "bytes": 2429756,
+      "sha256": "bc39857816a870b670a6fb176ef318201f4bc9d4fc30034d16a8a6f27cad383d",
+      "role": "final-native-report",
+      "mode": "root-incomplete",
+      "status": "Passed",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139"
+    },
+    {
+      "path": "reports/final-candidate-root-incomplete-3.stdout.txt",
+      "sourceFile": "final-candidate-root-incomplete-3.stdout.txt",
+      "bytes": 826,
+      "sha256": "6cadefdd81df35dfcc12c94586ac5ed5bcd367fd700db54d57dfabebd9410097",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-candidate-root-incomplete-3.stderr.txt",
+      "sourceFile": "final-candidate-root-incomplete-3.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "reports/final-candidate-root-valid-1.json",
+      "sourceFile": "final-candidate-root-valid-1.json",
+      "bytes": 2429333,
+      "sha256": "f3beb915b5d82979005c4be88baa75bc271f2efa24a2494b37b41d85980ae329",
+      "role": "final-native-report",
+      "mode": "root-valid",
+      "status": "Passed",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139"
+    },
+    {
+      "path": "reports/final-candidate-root-valid-1.stdout.txt",
+      "sourceFile": "final-candidate-root-valid-1.stdout.txt",
+      "bytes": 813,
+      "sha256": "c3fa44e7895c7dee841bb452a0c9c3ead14b9e9d0610749a4898690d85ada8c7",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-candidate-root-valid-1.stderr.txt",
+      "sourceFile": "final-candidate-root-valid-1.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "reports/final-candidate-root-valid-2.json",
+      "sourceFile": "final-candidate-root-valid-2.json",
+      "bytes": 2429324,
+      "sha256": "f81b7903a3aeb1c7910c81a0814412f18dda065af704c2d50c8e9f432e7ca21c",
+      "role": "final-native-report",
+      "mode": "root-valid",
+      "status": "Passed",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139"
+    },
+    {
+      "path": "reports/final-candidate-root-valid-2.stdout.txt",
+      "sourceFile": "final-candidate-root-valid-2.stdout.txt",
+      "bytes": 814,
+      "sha256": "132ec9222854e1f091c4a0b667b2d1bb6483945604506f6df03f59a7dbb7998e",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-candidate-root-valid-2.stderr.txt",
+      "sourceFile": "final-candidate-root-valid-2.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "reports/final-candidate-root-valid-3.json",
+      "sourceFile": "final-candidate-root-valid-3.json",
+      "bytes": 2429358,
+      "sha256": "87c33f49fb39bcd975917b5f9ca1073ec183630eb7c1e5d661b9e222e35e2113",
+      "role": "final-native-report",
+      "mode": "root-valid",
+      "status": "Passed",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139"
+    },
+    {
+      "path": "reports/final-candidate-root-valid-3.stdout.txt",
+      "sourceFile": "final-candidate-root-valid-3.stdout.txt",
+      "bytes": 801,
+      "sha256": "a887025af0e5b5d21e4ad832232e9997a58df02f9fb76f42a3310c71da889e81",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-candidate-root-valid-3.stderr.txt",
+      "sourceFile": "final-candidate-root-valid-3.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "reports/final-candidate-root-hover-1.json",
+      "sourceFile": "final-candidate-root-hover-1.json",
+      "bytes": 2428819,
+      "sha256": "34846633476cdf3791d1b6a09f4c4f14e89b9c31e044956ccd560a32dce3e522",
+      "role": "final-native-report",
+      "mode": "root-hover",
+      "status": "Passed",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "5c690ddfbb7c3eae0b824867a98a7aa69bb5285291567759308a876bb5e76bc8"
+    },
+    {
+      "path": "reports/final-candidate-root-hover-1.stdout.txt",
+      "sourceFile": "final-candidate-root-hover-1.stdout.txt",
+      "bytes": 802,
+      "sha256": "27657afcbffab2a70def67ea0bd7096be899024d6baea87a1c4d5bd75d100cd2",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-candidate-root-hover-1.stderr.txt",
+      "sourceFile": "final-candidate-root-hover-1.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "reports/final-candidate-root-hover-2.json",
+      "sourceFile": "final-candidate-root-hover-2.json",
+      "bytes": 2429170,
+      "sha256": "32359ed5c1dd8d7e15ba2cadf154bc1b4499766fc93e897a8857ebd8cf89a6f9",
+      "role": "final-native-report",
+      "mode": "root-hover",
+      "status": "Passed",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "5c690ddfbb7c3eae0b824867a98a7aa69bb5285291567759308a876bb5e76bc8"
+    },
+    {
+      "path": "reports/final-candidate-root-hover-2.stdout.txt",
+      "sourceFile": "final-candidate-root-hover-2.stdout.txt",
+      "bytes": 797,
+      "sha256": "a5f3c8d7d4781371b79c6681d48608d9f908a5b3a4a8461b8b471f13146f2979",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-candidate-root-hover-2.stderr.txt",
+      "sourceFile": "final-candidate-root-hover-2.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "reports/final-candidate-root-hover-3.json",
+      "sourceFile": "final-candidate-root-hover-3.json",
+      "bytes": 2429156,
+      "sha256": "5b2302b2ff6143f02203b9ed97825f4e9aab7f6ece2362a24d13055a6634a8da",
+      "role": "final-native-report",
+      "mode": "root-hover",
+      "status": "Passed",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "5c690ddfbb7c3eae0b824867a98a7aa69bb5285291567759308a876bb5e76bc8"
+    },
+    {
+      "path": "reports/final-candidate-root-hover-3.stdout.txt",
+      "sourceFile": "final-candidate-root-hover-3.stdout.txt",
+      "bytes": 791,
+      "sha256": "d0e55c10bfa8f137d53a75ff7ab5c86f57b4b58c0851c199dfa5b0fb44bf8005",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-candidate-root-hover-3.stderr.txt",
+      "sourceFile": "final-candidate-root-hover-3.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "reports/final-candidate-root-diagnostics-1.json",
+      "sourceFile": "final-candidate-root-diagnostics-1.json",
+      "bytes": 2421338,
+      "sha256": "1cdd67039d7796ef3f9f1c9d52f0d4657c03295c0f531a21bccd40c07f70c4e1",
+      "role": "final-native-report",
+      "mode": "root-diagnostics",
+      "status": "Passed",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139"
+    },
+    {
+      "path": "reports/final-candidate-root-diagnostics-1.stdout.txt",
+      "sourceFile": "final-candidate-root-diagnostics-1.stdout.txt",
+      "bytes": 739,
+      "sha256": "47b288298cb7deac59b08938db31ff53afbfa98cde4137178775ab90303555fd",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-candidate-root-diagnostics-1.stderr.txt",
+      "sourceFile": "final-candidate-root-diagnostics-1.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "reports/final-candidate-root-diagnostics-2.json",
+      "sourceFile": "final-candidate-root-diagnostics-2.json",
+      "bytes": 2421341,
+      "sha256": "e1fc2b556b841f78092e9285960050ba010f3074e4927c3266738e7cf7f4d82b",
+      "role": "final-native-report",
+      "mode": "root-diagnostics",
+      "status": "Passed",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139"
+    },
+    {
+      "path": "reports/final-candidate-root-diagnostics-2.stdout.txt",
+      "sourceFile": "final-candidate-root-diagnostics-2.stdout.txt",
+      "bytes": 731,
+      "sha256": "f77fd289b93cf88e2a165f0023d75f63e79b8f3b0f653bd49bc769893f74b213",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-candidate-root-diagnostics-2.stderr.txt",
+      "sourceFile": "final-candidate-root-diagnostics-2.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "reports/final-candidate-root-diagnostics-3.json",
+      "sourceFile": "final-candidate-root-diagnostics-3.json",
+      "bytes": 2421737,
+      "sha256": "825f67be3257955396746f85315909f1fa4a9b4844e2965839ed4c2b1b31198b",
+      "role": "final-native-report",
+      "mode": "root-diagnostics",
+      "status": "Passed",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139"
+    },
+    {
+      "path": "reports/final-candidate-root-diagnostics-3.stdout.txt",
+      "sourceFile": "final-candidate-root-diagnostics-3.stdout.txt",
+      "bytes": 736,
+      "sha256": "13d281d0b92f8ba521b72634c3d37cf2c288fab3c022d38e8a2adf506a2b05df",
+      "role": "final-native-stdout"
+    },
+    {
+      "path": "reports/final-candidate-root-diagnostics-3.stderr.txt",
+      "sourceFile": "final-candidate-root-diagnostics-3.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "final-native-stderr"
+    },
+    {
+      "path": "final-summary.json",
+      "sourceFile": "final-summary.json",
+      "bytes": 59420,
+      "sha256": "e863b1e0f58ef151c4a544b7696470776b3be1fb33bed52ab7e4a9eaa9b5673c",
+      "role": "validated-final-summary"
+    },
+    {
+      "path": "controls/final-hover-wrong-target-control.json",
+      "sourceFile": "final-hover-wrong-target-control.json",
+      "bytes": 2402776,
+      "sha256": "9766907ea47dc27221e82cc007ca0c46a38cd741d032fc8a63dfd1559544342b",
+      "role": "expected-failed-hover-target-control",
+      "mode": "root-hover",
+      "status": "Failed",
+      "failure": "Error: Root hover targeted Message instead of Model: {\"contents\":{\"kind\":\"markdown\",\"value\":\"```typescript\\n(property) RootSurface<Owner<\\\"Application\\\", true>, Struct<{ readonly route: RouteUnion<{ readonly Home: {}; readonly WhyFoldkit: {}; readonly Performance: {}; readonly ComingFromReact: {}; readonly ComingFromTanStackQuery: {}; ... 99 more ...; readonly NotFound: { path: String; }; }>; ... 24 more ...; readonly search: Struct<...>; }>, ApplicationMessage, ApplicationImplementation>.Message: ApplicationMessage\\n```\\n\"},\"range\":{\"start\":{\"line\":7,\"character\":42},\"end\":{\"line\":7,\"character\":49}}}",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "sourceUnchanged": true,
+      "diskUnchanged": true,
+      "compilerAndHarnessUnchanged": true,
+      "probeSha256": "ac86a25e0713ed64bf8e1495114d6ee82a269c5b2932545df847e66d412d4f4b"
+    },
+    {
+      "path": "controls/final-hover-wrong-target-control-output.txt",
+      "sourceFile": "final-hover-wrong-target-control-output.txt",
+      "bytes": 1306,
+      "sha256": "d9213ac4c935dbab651d7e40840dc2c1dcf05cbebe7a726a26cf1b424fd0ee1a",
+      "role": "expected-failed-hover-target-control-output"
+    },
+    {
+      "path": "runtime/final-runtime-smoke.txt",
+      "sourceFile": "final-runtime-smoke.txt",
+      "bytes": 1093,
+      "sha256": "e2dff56b11c37ad7ce83a708954edc21099e799ee90c37e9a90eb1158adb44a0",
+      "role": "passed-runtime-smoke"
+    },
+    {
+      "path": "controls/final-runtime-registration-control.txt",
+      "sourceFile": "final-runtime-registration-control.txt",
+      "bytes": 893,
+      "sha256": "65d882d6136607e702a5fc86660ce7a8f1aa4c48a3d571f92c558b2f073fb1d4",
+      "role": "expected-failed-registration-control"
+    },
+    {
+      "path": "controls/explicit-channel-before-build.txt",
+      "sourceFile": "explicit-channel-before-build.txt",
+      "bytes": 757,
+      "sha256": "1381d244cee4630a63f822e806c25443136924988d317227490d3db8b1319872",
+      "role": "explicit-channel-erasure-fail-before-and-restored-pass"
+    },
+    {
+      "path": "controls/surface-erasure-before-build.txt",
+      "sourceFile": "surface-erasure-before-build.txt",
+      "bytes": 2757,
+      "sha256": "a784c5aaa6883176a4638f5be05ea5237843cb65c75fd20b1bc2542867453db6",
+      "role": "root-surface-erasure-regression-fail-before"
+    },
+    {
+      "path": "controls/surface-erasure-restored-source-pass.txt",
+      "sourceFile": "surface-erasure-restored-source-pass.txt",
+      "bytes": 402,
+      "sha256": "bd674f389b29e51253131bed04425e65c8f7ee3ca84417c16be85370ae89a22d",
+      "role": "restored-root-surface-regression-and-emitted-declaration-pass"
+    },
+    {
+      "path": "controls/surface-routing-reproduction.txt",
+      "sourceFile": "surface-routing-reproduction.txt",
+      "bytes": 1591,
+      "sha256": "067156034773a4e3030040607a56aa0385fa85c406bbba0d5840cd264c58b52e",
+      "role": "unchecked-javascript-routing-crash-reproduction"
+    },
+    {
+      "path": "controls/root-surface-routing-reproducer.mjs",
+      "sourceFile": "root-surface-routing-reproducer.mjs",
+      "bytes": 4557,
+      "sha256": "fa48b4de13871850059bff35abcbe0177ee0f7b1d7f48021ecee54a9b9f17975",
+      "role": "unchecked-javascript-routing-crash-reproducer-script"
+    },
+    {
+      "path": "controls/union-provision-fail-before.txt",
+      "sourceFile": "union-provision-fail-before.txt",
+      "bytes": 1253,
+      "sha256": "f2db3f81b5c9d2ad154b69977d1885a68e717aba99f6932b1cafbd214a3b9b5f",
+      "role": "union-provisioning-regression-fail-before"
+    },
+    {
+      "path": "controls/union-provision-final-fixture-mutation.txt",
+      "sourceFile": "union-provision-final-fixture-mutation.txt",
+      "bytes": 1805,
+      "sha256": "86a9397974b1b715981db43e8145868dbc4b011c87ab5c76badbd2de8e1623ee",
+      "role": "union-provisioning-final-fixture-mutation-clean-fail-before"
+    },
+    {
+      "path": "controls/union-provision-restored-source-pass.txt",
+      "sourceFile": "union-provision-restored-source-pass.txt",
+      "bytes": 1618,
+      "sha256": "ab70080d3b5b2caafd23841298905f406e6c3302c0672e5de7371b85c1e07769",
+      "role": "restored-union-provisioning-regression-and-emitted-declaration-pass"
+    },
+    {
+      "path": "controls/union-runtime-reproduction.txt",
+      "sourceFile": "union-runtime-reproduction.txt",
+      "bytes": 1654,
+      "sha256": "8a1dcb43fc292904241b979e307ebed3df2c1936bd1e5699a771bbc73227327f",
+      "role": "unchecked-javascript-union-missing-service-reproduction"
+    },
+    {
+      "path": "controls/union-provision-runtime-reproducer.mjs",
+      "sourceFile": "union-provision-runtime-reproducer.mjs",
+      "bytes": 4752,
+      "sha256": "e773f4c392bead968352447e59d5221bcb7b9b54cf904b4474bf39c6232d3f6d",
+      "role": "unchecked-javascript-union-missing-service-reproducer-script"
+    },
+    {
+      "path": "controls/ordinary-union-check.mts",
+      "sourceFile": "ordinary-union-check.mts",
+      "bytes": 1828,
+      "sha256": "291cfb5dc70930d3138e1554e3b30d64d34af82afb28287b0284a605b895ddb2",
+      "role": "cast-free-ordinary-union-baseline-and-candidate-control-source"
+    },
+    {
+      "path": "controls/ordinary-union-baseline-control.txt",
+      "sourceFile": "ordinary-union-baseline-control.txt",
+      "bytes": 48,
+      "sha256": "efe2065e9e6b4ffd30e4eefb5b01f9b0da3c97bc443fc8d723f468c1a20b9ad4",
+      "role": "passed-published-baseline-ordinary-union-rejection-control"
+    },
+    {
+      "path": "controls/ordinary-union-candidate-before-control.txt",
+      "sourceFile": "ordinary-union-candidate-before-control.txt",
+      "bytes": 209,
+      "sha256": "2cbd74968774cc622fead5e65d7f56e1534d8e25a620776e51fb4634738b335c",
+      "role": "failed-pre-repair-candidate-ordinary-union-rejection-control"
+    },
+    {
+      "path": "controls/ordinary-union-candidate-after-control.txt",
+      "sourceFile": "ordinary-union-candidate-after-control.txt",
+      "bytes": 48,
+      "sha256": "efe2065e9e6b4ffd30e4eefb5b01f9b0da3c97bc443fc8d723f468c1a20b9ad4",
+      "role": "passed-restored-candidate-ordinary-union-rejection-control"
+    },
+    {
+      "path": "source-snapshots/package-source-hashes-before.json",
+      "sourceFile": "package-source-hashes-before.json",
+      "bytes": 358135,
+      "sha256": "1382a9c68072b971f1c8a56d897b93b0a7bd62c1c90a2a1a5d276101b3bc5ec8",
+      "role": "pre-measurement-package-source-identity"
+    },
+    {
+      "path": "source-snapshots/package-source-hashes-after.json",
+      "sourceFile": "package-source-hashes-after.json",
+      "bytes": 358135,
+      "sha256": "1382a9c68072b971f1c8a56d897b93b0a7bd62c1c90a2a1a5d276101b3bc5ec8",
+      "role": "post-measurement-package-source-identity"
+    },
+    {
+      "path": "final-source-identity-after-format.json",
+      "sourceFile": "final-source-identity-after-format.json",
+      "bytes": 458,
+      "sha256": "e22c746ce1cba39209d49e1e7fd9dcee0e4cb860aeba5c7f0a52ee012a3671c5",
+      "role": "post-measurement-source-identity"
+    },
+    {
+      "path": "coverage-inventory.json",
+      "bytes": 36783,
+      "sha256": "136660fe17ed61f7a0c52de278ab0842caad6a533d939ab2d48c0a9c357ce948",
+      "role": "generated-final-coverage-inventory"
+    }
+  ],
+  "measurementSnapshot": "Final reports hash the complete measured workspace, including retained prior evidence archives. The source-identity record identifies the number of checked files and records no changed files after measurement. The final PR commit identifies the delivered patch; subsequent archive, summary, manifest, and README updates are evidence-only, not runtime-code changes.",
+  "finalOutcomes": {
+    "nativeReportsPassed": 24,
+    "unionProvisionFinalMutation": "12 TS2578 errors and no other diagnostics when the service filter is mutated to return services on missing branches; restored helper passes full format, core build, root-boundary source module, complete emitted declarations, and unchanged compiler budgets in union-provision-restored-source-pass.txt",
+    "ordinaryUnionBaselineComparison": "Identical 1828-byte strict cast-free control: public 9a5f baseline exitCode 0 consumes expected start rejection; pre-repair branch build 659d exitCode 1 with one TS2578 accepting unsafe start. Branch-introduced regression, not a published-baseline defect. After helper repair, the same strict control exits 0 and consumes the invalid-start rejection.",
+    "unionProvisionFailBefore": "10 TS2578 errors before the union-provisioning repair across five unsafe provider/ordinary-root-mixed cases in source and consumer fixtures",
+    "uncheckedJavaScriptUnionReproduction": "exitCode 0 confirms actual init Read command missing @foldkit/ManagedResource/UnionProvision/Session with selected B and Layer.empty; unchecked JavaScript bypasses static checking, not a runtime fix",
+    "runtimeSmoke": "exitCode 0; ROOT_RUNTIME_SMOKE_OK 10 assertion groups",
+    "wrongTargetHoverControl": "Failed as expected; Message instead of Model rejected",
+    "registrationControl": "exitCode 1 as expected; root without default view rejected",
+    "explicitChannelMutation": "six TS2578 failures with optional-only guard; restored exact-value guard passes",
+    "surfaceErasureFailBefore": "23 TS2578 errors before the complete-root-surface exactness repair; restored full root module, core build, and full emitted-declaration proof passed in surface-erasure-restored-source-pass.txt",
+    "uncheckedJavaScriptRoutingReproduction": "exitCode 0 confirms reproduction, not safe application execution: actual popstate delivered ChangedLocation without query and update raised TypeError reading length. Deliberately unchecked JavaScript bypasses the repaired static contract; runtime behavior is unchanged."
+  },
+  "priorFormatReports": {
+    "path": "prior-format-reports.tar.gz",
+    "bytes": 20802401,
+    "sha256": "91b52e94f961348ecb905022277bc45097a9e3daa3c80c8b21c889455c1fe2ed",
+    "excludedFromFinalAggregate": true,
+    "note": "Earlier first 24-pass recording from prior format iteration. Preserved unchanged for audit only."
+  },
+  "sourceIdentityAfterFormat": {
+    "path": "final-source-identity-after-format.json",
+    "bytes": 458,
+    "sha256": "e22c746ce1cba39209d49e1e7fd9dcee0e4cb860aeba5c7f0a52ee012a3671c5"
+  },
+  "priorSurfaceReports": {
+    "path": "prior-surface-proof-reports.tar.gz",
+    "bytes": 20806624,
+    "sha256": "ba8ba33d453fcf544c0d51c081d19500bf32e39c84151ab8f1461aa783db17d6",
+    "role": "excluded-prior-surface-recording",
+    "excludedFromFinalAggregate": true,
+    "note": "Earlier 24-pass recording before the complete root-surface exactness repair. Preserved byte-for-byte for audit only; not evidence for the repaired source."
+  },
+  "priorUnionReports": {
+    "path": "prior-union-proof-reports.tar.gz",
+    "bytes": 21081951,
+    "sha256": "50f6d446e6c30d32f5a0a1259ec40cc3abacaf1629a69c3fa3ae9ac2444e06e2",
+    "role": "excluded-prior-union-recording",
+    "excludedFromFinalAggregate": true,
+    "note": "Earlier complete-surface recording before the union-provisioning repair. Preserved byte-for-byte unchanged for audit only; not evidence for the repaired source."
+  },
+  "priorCycleReports": {
+    "path": "prior-cycle-proof-reports.tar.gz",
+    "bytes": 21085283,
+    "sha256": "94826e1f1be4f9ab48a9db7c191e136ea89d1d39390c71ea5d6f1f909af9e460",
+    "role": "excluded-prior-cycle-recording",
+    "excludedFromFinalAggregate": true,
+    "note": "Earlier union-repaired recording before the website cycle-import cut and benchmark ambient-type verification prerequisites. Preserved byte-for-byte for audit; not included in the new cycle-proof aggregate."
+  },
+  "verificationObservations": {
+    "workspaceTypecheck": "Parent BG59: pnpm -r typecheck passed all 52 projects.",
+    "workspaceTests": "Parent BG59: pnpm test passed all workspace modules, including website 38 files and 1449 tests.",
+    "websiteBrowserE2E": "Parent BG60 installed Chromium 1243 and its headless shell after the initial missing-browser wrapper skip. Actual browser E2E exited 0 in 3.3 minutes: 17 passed and 1 flaky combobox test passed on retry. Its first attempt observed data-foldkit-build count 1 instead of 0; retry passed. This is not 18 clean first-attempt passes.",
+    "pushHook": "Parent BG58 full pre-push passed through 226 script tests, circular checks, builds, core and UI emitted declarations, and compiler budgets before missing benchmark ambient types blocked typecheck. Ambient types subsequently fixed and all workspace typechecks passed. Full actual final push hook remains pending.",
+    "runtimeSmoke": "Parent: fresh cycle-proof-final/final-runtime-smoke.txt exited 0 with 10 assertion groups.",
+    "controlProvenance": "All controls retain union-proof-final or earlier source paths and historical provenance; they are not fresh cycle-proof runs.",
+    "measurementSequence": "Parent BG61 exited 0 with all 24 fresh reports passed after browser E2E completed. Parent started no owned watchers. Before/after snapshots contain 2824 files, including test-results artifacts covered by the snapshot helper, and are byte-identical; final source identity records changedFiles []."
+  }
+}

@@ -1,0 +1,2056 @@
+{
+  "formatVersion": 1,
+  "reportCount": 24,
+  "baselineCommit": "9a5f9307cb4af2aca8a1e28bbf7b21cf64e5f87c",
+  "identity": {
+    "node": {
+      "version": "v22.23.3",
+      "executable": "/nix/store/wjindr4hjjsgq60l1lnrq2d254dpzfch-nodejs-slim-22.23.3/bin/node",
+      "platform": "darwin",
+      "arch": "arm64"
+    },
+    "compiler": {
+      "name": "typescript",
+      "version": "7.0.2",
+      "gitHead": "2bd066d87f5bafd315be9f40889d0a60b9e58e0b",
+      "sha256": "3722b30210616a13a3213ded11575ba6b2dbab10c32a5ef67afca8513e27017e"
+    },
+    "native": {
+      "name": "@typescript/typescript-darwin-arm64",
+      "version": "7.0.2",
+      "gitHead": "2bd066d87f5bafd315be9f40889d0a60b9e58e0b",
+      "sha256": "e88558e22e3db6c4da920e15a60eb2bbea801732b94aedb67e972be2a7f485b8"
+    },
+    "compilerHashes": {
+      "compilerManifest": "3722b30210616a13a3213ded11575ba6b2dbab10c32a5ef67afca8513e27017e",
+      "compilerLauncher": "2219f428a7e55aaf1f7ad85b9b0f0cf5078aeb76ccc9a7c6036c92d48f492ffd",
+      "compilerLauncherImplementation": "cbdfbf11c26ed00dfc073155e316a42d6d6d8a387be61006b82fa9aa93ac572e",
+      "nativeResolver": "96c10fd3a18e165d7323de8e314ac8d755ad96811f9fbc304a5b3ba4e05285cc",
+      "protocolClient": "bcbe8e0f8693a2e3effb4a890a70c331153b616a4a2f88406dcffd842364a2e6",
+      "nativeManifest": "e88558e22e3db6c4da920e15a60eb2bbea801732b94aedb67e972be2a7f485b8",
+      "executable": "a82f731365ad69d5c4c15f5e18fba4584bf3b7b839960172a76c3462b5114bf2"
+    },
+    "goEnvironment": {
+      "GOMEMLIMIT": null,
+      "GOGC": null,
+      "GOMAXPROCS": null,
+      "GODEBUG": null,
+      "GOEXPERIMENT": null,
+      "GOENV": null
+    },
+    "serverInfo": {
+      "name": "typescript-go",
+      "version": "7.0.2"
+    }
+  },
+  "aggregation": "Three independent fresh-process runs per arm/mode. Median and min/max of request latency in milliseconds; warm and post-edit remain separate. Memory values are sampled process peaks, not continuous maxima.",
+  "limitations": [
+    "No Neovim or live all-day editor proof.",
+    "No claim that all composition costs are improved.",
+    "Unrelated editor servers and Vite were left running; not a fully idle host.",
+    "In-memory newline edits and a separate semantic application guard do not represent arbitrary source edits.",
+    "Native process cleanup may record a nonzero exit after the harness terminates its owned LSP process; Passed requires successful requests and cleanup guards, not exit code zero."
+  ],
+  "groups": [
+    {
+      "arm": "baseline",
+      "mode": "root-incomplete",
+      "metricsMs": {
+        "initialize": {
+          "n": 3,
+          "median": 6.7489590000000135,
+          "min": 6.1165000000000305,
+          "max": 29.690417000000025,
+          "values": [
+            29.690417000000025,
+            6.1165000000000305,
+            6.7489590000000135
+          ]
+        },
+        "cold completion": {
+          "n": 3,
+          "median": 6753.5995,
+          "min": 6610.80625,
+          "max": 6920.143375,
+          "values": [
+            6753.5995,
+            6610.80625,
+            6920.143375
+          ]
+        },
+        "warm completion": {
+          "n": 3,
+          "median": 0.4974160000001575,
+          "min": 0.47933300000113377,
+          "max": 0.5431250000001455,
+          "values": [
+            0.47933300000113377,
+            0.5431250000001455,
+            0.4974160000001575
+          ]
+        },
+        "post-edit completion": {
+          "n": 3,
+          "median": 6516.823,
+          "min": 6450.917,
+          "max": 6849.154917000001,
+          "values": [
+            6516.823,
+            6450.917,
+            6849.154917000001
+          ]
+        },
+        "semantic edit guard": {
+          "n": 3,
+          "median": 3.5358329999999114,
+          "min": 3.036667000000307,
+          "max": 7.638499999999112,
+          "values": [
+            3.5358329999999114,
+            3.036667000000307,
+            7.638499999999112
+          ]
+        }
+      },
+      "maxRssBytes": {
+        "n": 3,
+        "median": 1866383360,
+        "min": 1842708480,
+        "max": 2159919104,
+        "values": [
+          1866383360,
+          1842708480,
+          2159919104
+        ]
+      },
+      "maxFootprintBytes": {
+        "n": 3,
+        "median": 1854509952,
+        "min": 1830851392,
+        "max": 2194478464,
+        "values": [
+          1854509952,
+          1830851392,
+          2194478464
+        ]
+      }
+    },
+    {
+      "arm": "candidate",
+      "mode": "root-incomplete",
+      "metricsMs": {
+        "initialize": {
+          "n": 3,
+          "median": 6.4532500000000255,
+          "min": 6.185500000000047,
+          "max": 8.215458000000126,
+          "values": [
+            8.215458000000126,
+            6.4532500000000255,
+            6.185500000000047
+          ]
+        },
+        "cold completion": {
+          "n": 3,
+          "median": 613.4714999999999,
+          "min": 564.043083,
+          "max": 665.3838750000002,
+          "values": [
+            613.4714999999999,
+            564.043083,
+            665.3838750000002
+          ]
+        },
+        "warm completion": {
+          "n": 3,
+          "median": 0.3745000000001255,
+          "min": 0.3565839999998843,
+          "max": 0.4011249999998654,
+          "values": [
+            0.3745000000001255,
+            0.3565839999998843,
+            0.4011249999998654
+          ]
+        },
+        "post-edit completion": {
+          "n": 3,
+          "median": 404.29370800000015,
+          "min": 388.1282919999999,
+          "max": 417.10641699999996,
+          "values": [
+            404.29370800000015,
+            388.1282919999999,
+            417.10641699999996
+          ]
+        },
+        "semantic edit guard": {
+          "n": 3,
+          "median": 2.959875000000011,
+          "min": 2.95637499999998,
+          "max": 3.197041000000354,
+          "values": [
+            2.959875000000011,
+            2.95637499999998,
+            3.197041000000354
+          ]
+        }
+      },
+      "maxRssBytes": {
+        "n": 3,
+        "median": 731463680,
+        "min": 726908928,
+        "max": 759136256,
+        "values": [
+          731463680,
+          726908928,
+          759136256
+        ]
+      },
+      "maxFootprintBytes": {
+        "n": 3,
+        "median": 719244032,
+        "min": 714721920,
+        "max": 746933120,
+        "values": [
+          719244032,
+          714721920,
+          746933120
+        ]
+      }
+    },
+    {
+      "arm": "baseline",
+      "mode": "root-valid",
+      "metricsMs": {
+        "initialize": {
+          "n": 3,
+          "median": 5.641750000000002,
+          "min": 5.4793750000000045,
+          "max": 5.7350830000000315,
+          "values": [
+            5.7350830000000315,
+            5.4793750000000045,
+            5.641750000000002
+          ]
+        },
+        "cold completion": {
+          "n": 3,
+          "median": 6636.302208,
+          "min": 6577.926,
+          "max": 7110.775584,
+          "values": [
+            6636.302208,
+            6577.926,
+            7110.775584
+          ]
+        },
+        "warm completion": {
+          "n": 3,
+          "median": 0.5338330000004134,
+          "min": 0.44004100000074686,
+          "max": 0.6142919999992955,
+          "values": [
+            0.44004100000074686,
+            0.5338330000004134,
+            0.6142919999992955
+          ]
+        },
+        "post-edit completion": {
+          "n": 3,
+          "median": 6420.233667,
+          "min": 6403.120333000001,
+          "max": 6772.467958,
+          "values": [
+            6420.233667,
+            6403.120333000001,
+            6772.467958
+          ]
+        },
+        "semantic edit guard": {
+          "n": 3,
+          "median": 3.0809579999986454,
+          "min": 2.965165999999954,
+          "max": 3.120875000000524,
+          "values": [
+            3.0809579999986454,
+            2.965165999999954,
+            3.120875000000524
+          ]
+        }
+      },
+      "maxRssBytes": {
+        "n": 3,
+        "median": 2187804672,
+        "min": 1861189632,
+        "max": 2193522688,
+        "values": [
+          2187804672,
+          1861189632,
+          2193522688
+        ]
+      },
+      "maxFootprintBytes": {
+        "n": 3,
+        "median": 2176095744,
+        "min": 1849348864,
+        "max": 2181731776,
+        "values": [
+          2176095744,
+          1849348864,
+          2181731776
+        ]
+      }
+    },
+    {
+      "arm": "candidate",
+      "mode": "root-valid",
+      "metricsMs": {
+        "initialize": {
+          "n": 3,
+          "median": 6.396834000000013,
+          "min": 6.15504199999998,
+          "max": 6.426583000000051,
+          "values": [
+            6.426583000000051,
+            6.396834000000013,
+            6.15504199999998
+          ]
+        },
+        "cold completion": {
+          "n": 3,
+          "median": 625.6469999999999,
+          "min": 564.108167,
+          "max": 636.2265419999999,
+          "values": [
+            636.2265419999999,
+            564.108167,
+            625.6469999999999
+          ]
+        },
+        "warm completion": {
+          "n": 3,
+          "median": 0.4455000000000382,
+          "min": 0.3712080000000242,
+          "max": 0.46479199999998855,
+          "values": [
+            0.4455000000000382,
+            0.46479199999998855,
+            0.3712080000000242
+          ]
+        },
+        "post-edit completion": {
+          "n": 3,
+          "median": 404.35004200000003,
+          "min": 388.6472920000001,
+          "max": 410.647958,
+          "values": [
+            404.35004200000003,
+            388.6472920000001,
+            410.647958
+          ]
+        },
+        "semantic edit guard": {
+          "n": 3,
+          "median": 2.9835840000000644,
+          "min": 2.979541000000154,
+          "max": 3.239417000000003,
+          "values": [
+            2.979541000000154,
+            2.9835840000000644,
+            3.239417000000003
+          ]
+        }
+      },
+      "maxRssBytes": {
+        "n": 3,
+        "median": 724107264,
+        "min": 722436096,
+        "max": 733478912,
+        "values": [
+          724107264,
+          722436096,
+          733478912
+        ]
+      },
+      "maxFootprintBytes": {
+        "n": 3,
+        "median": 711969472,
+        "min": 710281920,
+        "max": 721242944,
+        "values": [
+          711969472,
+          710281920,
+          721242944
+        ]
+      }
+    },
+    {
+      "arm": "baseline",
+      "mode": "root-hover",
+      "metricsMs": {
+        "initialize": {
+          "n": 3,
+          "median": 6.1382919999999785,
+          "min": 6.021832999999958,
+          "max": 6.535042000000033,
+          "values": [
+            6.535042000000033,
+            6.1382919999999785,
+            6.021832999999958
+          ]
+        },
+        "cold root Model hover": {
+          "n": 3,
+          "median": 6769.48825,
+          "min": 6641.671291000001,
+          "max": 6996.742125000001,
+          "values": [
+            6769.48825,
+            6641.671291000001,
+            6996.742125000001
+          ]
+        },
+        "warm root Model hover": {
+          "n": 3,
+          "median": 0.5730830000002243,
+          "min": 0.5432909999999538,
+          "max": 0.7032089999993332,
+          "values": [
+            0.5730830000002243,
+            0.7032089999993332,
+            0.5432909999999538
+          ]
+        },
+        "post-edit root Model hover": {
+          "n": 3,
+          "median": 6466.214166999999,
+          "min": 6449.251625,
+          "max": 6746.644792,
+          "values": [
+            6466.214166999999,
+            6449.251625,
+            6746.644792
+          ]
+        },
+        "semantic edit guard": {
+          "n": 3,
+          "median": 3.0887500000008004,
+          "min": 2.889999999999418,
+          "max": 3.182582999999795,
+          "values": [
+            3.0887500000008004,
+            2.889999999999418,
+            3.182582999999795
+          ]
+        }
+      },
+      "maxRssBytes": {
+        "n": 3,
+        "median": 2150072320,
+        "min": 2120286208,
+        "max": 2204205056,
+        "values": [
+          2204205056,
+          2150072320,
+          2120286208
+        ]
+      },
+      "maxFootprintBytes": {
+        "n": 3,
+        "median": 2138182912,
+        "min": 2108446144,
+        "max": 2192348544,
+        "values": [
+          2192348544,
+          2138182912,
+          2108446144
+        ]
+      }
+    },
+    {
+      "arm": "candidate",
+      "mode": "root-hover",
+      "metricsMs": {
+        "initialize": {
+          "n": 3,
+          "median": 6.0434999999999945,
+          "min": 5.232417000000055,
+          "max": 7.807000000000016,
+          "values": [
+            6.0434999999999945,
+            5.232417000000055,
+            7.807000000000016
+          ]
+        },
+        "cold root Model hover": {
+          "n": 3,
+          "median": 644.785417,
+          "min": 607.443625,
+          "max": 677.57475,
+          "values": [
+            607.443625,
+            644.785417,
+            677.57475
+          ]
+        },
+        "warm root Model hover": {
+          "n": 3,
+          "median": 0.5593329999999241,
+          "min": 0.4860409999998865,
+          "max": 0.6953750000000127,
+          "values": [
+            0.5593329999999241,
+            0.4860409999998865,
+            0.6953750000000127
+          ]
+        },
+        "post-edit root Model hover": {
+          "n": 3,
+          "median": 424.66866700000014,
+          "min": 411.4043750000001,
+          "max": 437.9706669999998,
+          "values": [
+            411.4043750000001,
+            424.66866700000014,
+            437.9706669999998
+          ]
+        },
+        "semantic edit guard": {
+          "n": 3,
+          "median": 2.8646249999999327,
+          "min": 2.6532089999998334,
+          "max": 3.000332999999955,
+          "values": [
+            2.8646249999999327,
+            2.6532089999998334,
+            3.000332999999955
+          ]
+        }
+      },
+      "maxRssBytes": {
+        "n": 3,
+        "median": 765919232,
+        "min": 731709440,
+        "max": 768262144,
+        "values": [
+          731709440,
+          768262144,
+          765919232
+        ]
+      },
+      "maxFootprintBytes": {
+        "n": 3,
+        "median": 753683200,
+        "min": 719555264,
+        "max": 755977088,
+        "values": [
+          719555264,
+          755977088,
+          753683200
+        ]
+      }
+    },
+    {
+      "arm": "baseline",
+      "mode": "root-diagnostics",
+      "metricsMs": {
+        "initialize": {
+          "n": 3,
+          "median": 7.1224580000000515,
+          "min": 6.06091600000002,
+          "max": 7.644874999999956,
+          "values": [
+            6.06091600000002,
+            7.1224580000000515,
+            7.644874999999956
+          ]
+        },
+        "cold clean root diagnostics": {
+          "n": 3,
+          "median": 6684.603709,
+          "min": 6665.408791,
+          "max": 6935.845542,
+          "values": [
+            6684.603709,
+            6665.408791,
+            6935.845542
+          ]
+        },
+        "root error appearance": {
+          "n": 3,
+          "median": 6440.141083,
+          "min": 6402.19875,
+          "max": 6672.374707999999,
+          "values": [
+            6402.19875,
+            6440.141083,
+            6672.374707999999
+          ]
+        },
+        "root error clear": {
+          "n": 3,
+          "median": 6399.437708000001,
+          "min": 6317.853125,
+          "max": 6417.8657920000005,
+          "values": [
+            6317.853125,
+            6399.437708000001,
+            6417.8657920000005
+          ]
+        }
+      },
+      "maxRssBytes": {
+        "n": 3,
+        "median": 2544451584,
+        "min": 2510471168,
+        "max": 2797928448,
+        "values": [
+          2544451584,
+          2797928448,
+          2510471168
+        ]
+      },
+      "maxFootprintBytes": {
+        "n": 3,
+        "median": 2533152896,
+        "min": 2498812096,
+        "max": 2745702976,
+        "values": [
+          2533152896,
+          2745702976,
+          2498812096
+        ]
+      }
+    },
+    {
+      "arm": "candidate",
+      "mode": "root-diagnostics",
+      "metricsMs": {
+        "initialize": {
+          "n": 3,
+          "median": 6.495625000000018,
+          "min": 6.3301250000000095,
+          "max": 6.540458000000058,
+          "values": [
+            6.3301250000000095,
+            6.540458000000058,
+            6.495625000000018
+          ]
+        },
+        "cold clean root diagnostics": {
+          "n": 3,
+          "median": 224.68445799999995,
+          "min": 215.455375,
+          "max": 297.07962499999985,
+          "values": [
+            224.68445799999995,
+            215.455375,
+            297.07962499999985
+          ]
+        },
+        "root error appearance": {
+          "n": 3,
+          "median": 3.476374999999962,
+          "min": 3.2822499999999764,
+          "max": 3.5045000000000073,
+          "values": [
+            3.2822499999999764,
+            3.5045000000000073,
+            3.476374999999962
+          ]
+        },
+        "root error clear": {
+          "n": 3,
+          "median": 3.9066250000000764,
+          "min": 3.1854580000000396,
+          "max": 4.0480420000000095,
+          "values": [
+            3.1854580000000396,
+            4.0480420000000095,
+            3.9066250000000764
+          ]
+        }
+      },
+      "maxRssBytes": {
+        "n": 3,
+        "median": 48545792,
+        "min": 48529408,
+        "max": 493649920,
+        "values": [
+          48529408,
+          48545792,
+          493649920
+        ]
+      },
+      "maxFootprintBytes": {
+        "n": 3,
+        "median": 39454016,
+        "min": 39421248,
+        "max": 482740480,
+        "values": [
+          39454016,
+          39421248,
+          482740480
+        ]
+      }
+    }
+  ],
+  "rawReports": [
+    {
+      "file": "final-baseline-root-incomplete-1.json",
+      "sha256": "bba8c11068a5a7b8b33d7afbe765a21af0cfd39b355c0bc65e445a66d60c1e84",
+      "arm": "baseline",
+      "mode": "root-incomplete",
+      "round": 1,
+      "workspace": "/private/tmp/foldkit-1737-baseline-verified",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 29.690417000000025
+        },
+        {
+          "label": "cold completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 6753.5995
+        },
+        {
+          "label": "warm completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 0.47933300000113377
+        },
+        {
+          "label": "post-edit completion",
+          "method": "textDocument/completion",
+          "documentVersion": 2,
+          "latencyMs": 6516.823
+        },
+        {
+          "label": "semantic edit guard",
+          "method": "textDocument/hover",
+          "documentVersion": 3,
+          "latencyMs": 3.5358329999999114
+        }
+      ],
+      "elapsedMs": 13342.822291,
+      "maxRssBytes": 1866383360,
+      "maxFootprintBytes": 1854509952,
+      "maxSampledCpuNanoseconds": 17652908583,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    },
+    {
+      "file": "final-baseline-root-incomplete-2.json",
+      "sha256": "43a1997b8077ac1a71d4bef1559aa3350fb15f1dc10433a769949596e80a39e5",
+      "arm": "baseline",
+      "mode": "root-incomplete",
+      "round": 2,
+      "workspace": "/private/tmp/foldkit-1737-baseline-verified",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 6.1165000000000305
+        },
+        {
+          "label": "cold completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 6610.80625
+        },
+        {
+          "label": "warm completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 0.5431250000001455
+        },
+        {
+          "label": "post-edit completion",
+          "method": "textDocument/completion",
+          "documentVersion": 2,
+          "latencyMs": 6450.917
+        },
+        {
+          "label": "semantic edit guard",
+          "method": "textDocument/hover",
+          "documentVersion": 3,
+          "latencyMs": 3.036667000000307
+        }
+      ],
+      "elapsedMs": 13102.469125,
+      "maxRssBytes": 1842708480,
+      "maxFootprintBytes": 1830851392,
+      "maxSampledCpuNanoseconds": 17208714250,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    },
+    {
+      "file": "final-baseline-root-incomplete-3.json",
+      "sha256": "c8d7442f29883425487a1fda71e5c12c4db0fb88dbb736847cbb2957af13b8ed",
+      "arm": "baseline",
+      "mode": "root-incomplete",
+      "round": 3,
+      "workspace": "/private/tmp/foldkit-1737-baseline-verified",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 6.7489590000000135
+        },
+        {
+          "label": "cold completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 6920.143375
+        },
+        {
+          "label": "warm completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 0.4974160000001575
+        },
+        {
+          "label": "post-edit completion",
+          "method": "textDocument/completion",
+          "documentVersion": 2,
+          "latencyMs": 6849.154917000001
+        },
+        {
+          "label": "semantic edit guard",
+          "method": "textDocument/hover",
+          "documentVersion": 3,
+          "latencyMs": 7.638499999999112
+        }
+      ],
+      "elapsedMs": 13879.434040999999,
+      "maxRssBytes": 2159919104,
+      "maxFootprintBytes": 2194478464,
+      "maxSampledCpuNanoseconds": 17329006333,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    },
+    {
+      "file": "final-baseline-root-valid-1.json",
+      "sha256": "595d5e91734fb12a45fd647c22f6e1c27ad7c684fb360c23c7d6ab93b89e72e7",
+      "arm": "baseline",
+      "mode": "root-valid",
+      "round": 1,
+      "workspace": "/private/tmp/foldkit-1737-baseline-verified",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 5.7350830000000315
+        },
+        {
+          "label": "cold completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 6636.302208
+        },
+        {
+          "label": "warm completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 0.44004100000074686
+        },
+        {
+          "label": "post-edit completion",
+          "method": "textDocument/completion",
+          "documentVersion": 2,
+          "latencyMs": 6420.233667
+        },
+        {
+          "label": "semantic edit guard",
+          "method": "textDocument/hover",
+          "documentVersion": 3,
+          "latencyMs": 3.0809579999986454
+        }
+      ],
+      "elapsedMs": 13101.816417,
+      "maxRssBytes": 2187804672,
+      "maxFootprintBytes": 2176095744,
+      "maxSampledCpuNanoseconds": 16593063250,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    },
+    {
+      "file": "final-baseline-root-valid-2.json",
+      "sha256": "22a919e9b2e3c1bdb41a09cbc373201248500624c4ddf9a2ef94c676f4707d77",
+      "arm": "baseline",
+      "mode": "root-valid",
+      "round": 2,
+      "workspace": "/private/tmp/foldkit-1737-baseline-verified",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 5.4793750000000045
+        },
+        {
+          "label": "cold completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 6577.926
+        },
+        {
+          "label": "warm completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 0.5338330000004134
+        },
+        {
+          "label": "post-edit completion",
+          "method": "textDocument/completion",
+          "documentVersion": 2,
+          "latencyMs": 6403.120333000001
+        },
+        {
+          "label": "semantic edit guard",
+          "method": "textDocument/hover",
+          "documentVersion": 3,
+          "latencyMs": 2.965165999999954
+        }
+      ],
+      "elapsedMs": 13021.296375,
+      "maxRssBytes": 1861189632,
+      "maxFootprintBytes": 1849348864,
+      "maxSampledCpuNanoseconds": 17094137375,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    },
+    {
+      "file": "final-baseline-root-valid-3.json",
+      "sha256": "86ef99b0628abb9b12eff2feb287ff2320325030e2b4c52f210c01d0edde480c",
+      "arm": "baseline",
+      "mode": "root-valid",
+      "round": 3,
+      "workspace": "/private/tmp/foldkit-1737-baseline-verified",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 5.641750000000002
+        },
+        {
+          "label": "cold completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 7110.775584
+        },
+        {
+          "label": "warm completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 0.6142919999992955
+        },
+        {
+          "label": "post-edit completion",
+          "method": "textDocument/completion",
+          "documentVersion": 2,
+          "latencyMs": 6772.467958
+        },
+        {
+          "label": "semantic edit guard",
+          "method": "textDocument/hover",
+          "documentVersion": 3,
+          "latencyMs": 3.120875000000524
+        }
+      ],
+      "elapsedMs": 13943.086709000001,
+      "maxRssBytes": 2193522688,
+      "maxFootprintBytes": 2181731776,
+      "maxSampledCpuNanoseconds": 17810473416,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    },
+    {
+      "file": "final-baseline-root-hover-1.json",
+      "sha256": "94660ae759c11bc1c66678344a2ec00ea2ff8e772adb4109ec084abc5a51ebad",
+      "arm": "baseline",
+      "mode": "root-hover",
+      "round": 1,
+      "workspace": "/private/tmp/foldkit-1737-baseline-verified",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "probeSha256": "5c690ddfbb7c3eae0b824867a98a7aa69bb5285291567759308a876bb5e76bc8",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 6.535042000000033
+        },
+        {
+          "label": "cold root Model hover",
+          "method": "textDocument/hover",
+          "documentVersion": 1,
+          "latencyMs": 6769.48825
+        },
+        {
+          "label": "warm root Model hover",
+          "method": "textDocument/hover",
+          "documentVersion": 1,
+          "latencyMs": 0.5730830000002243
+        },
+        {
+          "label": "post-edit root Model hover",
+          "method": "textDocument/hover",
+          "documentVersion": 2,
+          "latencyMs": 6466.214166999999
+        },
+        {
+          "label": "semantic edit guard",
+          "method": "textDocument/hover",
+          "documentVersion": 3,
+          "latencyMs": 3.0887500000008004
+        }
+      ],
+      "elapsedMs": 13283.491750000001,
+      "maxRssBytes": 2204205056,
+      "maxFootprintBytes": 2192348544,
+      "maxSampledCpuNanoseconds": 16838641208,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    },
+    {
+      "file": "final-baseline-root-hover-2.json",
+      "sha256": "529e1e73893b5de2f64d886c4a91451f333ff17b645c8155f8cc61633f37b1cf",
+      "arm": "baseline",
+      "mode": "root-hover",
+      "round": 2,
+      "workspace": "/private/tmp/foldkit-1737-baseline-verified",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "probeSha256": "5c690ddfbb7c3eae0b824867a98a7aa69bb5285291567759308a876bb5e76bc8",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 6.1382919999999785
+        },
+        {
+          "label": "cold root Model hover",
+          "method": "textDocument/hover",
+          "documentVersion": 1,
+          "latencyMs": 6641.671291000001
+        },
+        {
+          "label": "warm root Model hover",
+          "method": "textDocument/hover",
+          "documentVersion": 1,
+          "latencyMs": 0.7032089999993332
+        },
+        {
+          "label": "post-edit root Model hover",
+          "method": "textDocument/hover",
+          "documentVersion": 2,
+          "latencyMs": 6449.251625
+        },
+        {
+          "label": "semantic edit guard",
+          "method": "textDocument/hover",
+          "documentVersion": 3,
+          "latencyMs": 2.889999999999418
+        }
+      ],
+      "elapsedMs": 13137.03475,
+      "maxRssBytes": 2150072320,
+      "maxFootprintBytes": 2138182912,
+      "maxSampledCpuNanoseconds": 16798290875,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    },
+    {
+      "file": "final-baseline-root-hover-3.json",
+      "sha256": "76002e39734471ccc2efcac04ad4808ddf6323cfebb4115d49f53273740af9d4",
+      "arm": "baseline",
+      "mode": "root-hover",
+      "round": 3,
+      "workspace": "/private/tmp/foldkit-1737-baseline-verified",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "probeSha256": "5c690ddfbb7c3eae0b824867a98a7aa69bb5285291567759308a876bb5e76bc8",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 6.021832999999958
+        },
+        {
+          "label": "cold root Model hover",
+          "method": "textDocument/hover",
+          "documentVersion": 1,
+          "latencyMs": 6996.742125000001
+        },
+        {
+          "label": "warm root Model hover",
+          "method": "textDocument/hover",
+          "documentVersion": 1,
+          "latencyMs": 0.5432909999999538
+        },
+        {
+          "label": "post-edit root Model hover",
+          "method": "textDocument/hover",
+          "documentVersion": 2,
+          "latencyMs": 6746.644792
+        },
+        {
+          "label": "semantic edit guard",
+          "method": "textDocument/hover",
+          "documentVersion": 3,
+          "latencyMs": 3.182582999999795
+        }
+      ],
+      "elapsedMs": 13796.130125,
+      "maxRssBytes": 2120286208,
+      "maxFootprintBytes": 2108446144,
+      "maxSampledCpuNanoseconds": 18294483833,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    },
+    {
+      "file": "final-baseline-root-diagnostics-1.json",
+      "sha256": "91e00a676a0ca43a8367e08c830508583d440374a84ee0c88d45b1c23f4d6256",
+      "arm": "baseline",
+      "mode": "root-diagnostics",
+      "round": 1,
+      "workspace": "/private/tmp/foldkit-1737-baseline-verified",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 6.06091600000002
+        },
+        {
+          "label": "cold clean root diagnostics",
+          "method": "textDocument/diagnostic",
+          "documentVersion": 1,
+          "latencyMs": 6684.603709
+        },
+        {
+          "label": "root error appearance",
+          "method": "textDocument/diagnostic",
+          "documentVersion": 2,
+          "latencyMs": 6402.19875
+        },
+        {
+          "label": "root error clear",
+          "method": "textDocument/diagnostic",
+          "documentVersion": 3,
+          "latencyMs": 6317.853125
+        }
+      ],
+      "elapsedMs": 19451.219792,
+      "maxRssBytes": 2544451584,
+      "maxFootprintBytes": 2533152896,
+      "maxSampledCpuNanoseconds": 24548170500,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    },
+    {
+      "file": "final-baseline-root-diagnostics-2.json",
+      "sha256": "294c3aded662c2b20d827f706d63352daed11c9fb4165c0488bf0cf7f4d3302a",
+      "arm": "baseline",
+      "mode": "root-diagnostics",
+      "round": 2,
+      "workspace": "/private/tmp/foldkit-1737-baseline-verified",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 7.1224580000000515
+        },
+        {
+          "label": "cold clean root diagnostics",
+          "method": "textDocument/diagnostic",
+          "documentVersion": 1,
+          "latencyMs": 6665.408791
+        },
+        {
+          "label": "root error appearance",
+          "method": "textDocument/diagnostic",
+          "documentVersion": 2,
+          "latencyMs": 6440.141083
+        },
+        {
+          "label": "root error clear",
+          "method": "textDocument/diagnostic",
+          "documentVersion": 3,
+          "latencyMs": 6399.437708000001
+        }
+      ],
+      "elapsedMs": 19557.974167,
+      "maxRssBytes": 2797928448,
+      "maxFootprintBytes": 2745702976,
+      "maxSampledCpuNanoseconds": 24231627958,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    },
+    {
+      "file": "final-baseline-root-diagnostics-3.json",
+      "sha256": "99c952fbc89a78891015e005f51226b9ece7c4cd98a5bff5f482aecce0192058",
+      "arm": "baseline",
+      "mode": "root-diagnostics",
+      "round": 3,
+      "workspace": "/private/tmp/foldkit-1737-baseline-verified",
+      "sourceSha256": "9131ee919aa1a5461f28a9c06101bad24534a80680670d940a217e086483084b",
+      "probeSha256": "1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 7.644874999999956
+        },
+        {
+          "label": "cold clean root diagnostics",
+          "method": "textDocument/diagnostic",
+          "documentVersion": 1,
+          "latencyMs": 6935.845542
+        },
+        {
+          "label": "root error appearance",
+          "method": "textDocument/diagnostic",
+          "documentVersion": 2,
+          "latencyMs": 6672.374707999999
+        },
+        {
+          "label": "root error clear",
+          "method": "textDocument/diagnostic",
+          "documentVersion": 3,
+          "latencyMs": 6417.8657920000005
+        }
+      ],
+      "elapsedMs": 20079.205958000002,
+      "maxRssBytes": 2510471168,
+      "maxFootprintBytes": 2498812096,
+      "maxSampledCpuNanoseconds": 25508012875,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    },
+    {
+      "file": "final-candidate-root-incomplete-1.json",
+      "sha256": "c8ad5ea7f1bec0bb39469d9824b606a46426b68b34b7edc529bc39b8e74b7da5",
+      "arm": "candidate",
+      "mode": "root-incomplete",
+      "round": 1,
+      "workspace": "/Users/samuel/git/playground/foldkit",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 8.215458000000126
+        },
+        {
+          "label": "cold completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 613.4714999999999
+        },
+        {
+          "label": "warm completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 0.3745000000001255
+        },
+        {
+          "label": "post-edit completion",
+          "method": "textDocument/completion",
+          "documentVersion": 2,
+          "latencyMs": 404.29370800000015
+        },
+        {
+          "label": "semantic edit guard",
+          "method": "textDocument/hover",
+          "documentVersion": 3,
+          "latencyMs": 2.959875000000011
+        }
+      ],
+      "elapsedMs": 1045.219834,
+      "maxRssBytes": 731463680,
+      "maxFootprintBytes": 719244032,
+      "maxSampledCpuNanoseconds": 2668722541,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    },
+    {
+      "file": "final-candidate-root-incomplete-2.json",
+      "sha256": "7638c136db409d25ab0d4995dabcf1aeda5ec3e24a4d1f3a7ce2edc6dd15489c",
+      "arm": "candidate",
+      "mode": "root-incomplete",
+      "round": 2,
+      "workspace": "/Users/samuel/git/playground/foldkit",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 6.4532500000000255
+        },
+        {
+          "label": "cold completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 564.043083
+        },
+        {
+          "label": "warm completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 0.3565839999998843
+        },
+        {
+          "label": "post-edit completion",
+          "method": "textDocument/completion",
+          "documentVersion": 2,
+          "latencyMs": 388.1282919999999
+        },
+        {
+          "label": "semantic edit guard",
+          "method": "textDocument/hover",
+          "documentVersion": 3,
+          "latencyMs": 2.95637499999998
+        }
+      ],
+      "elapsedMs": 980.2870419999999,
+      "maxRssBytes": 726908928,
+      "maxFootprintBytes": 714721920,
+      "maxSampledCpuNanoseconds": 2531759000,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    },
+    {
+      "file": "final-candidate-root-incomplete-3.json",
+      "sha256": "bc39857816a870b670a6fb176ef318201f4bc9d4fc30034d16a8a6f27cad383d",
+      "arm": "candidate",
+      "mode": "root-incomplete",
+      "round": 3,
+      "workspace": "/Users/samuel/git/playground/foldkit",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 6.185500000000047
+        },
+        {
+          "label": "cold completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 665.3838750000002
+        },
+        {
+          "label": "warm completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 0.4011249999998654
+        },
+        {
+          "label": "post-edit completion",
+          "method": "textDocument/completion",
+          "documentVersion": 2,
+          "latencyMs": 417.10641699999996
+        },
+        {
+          "label": "semantic edit guard",
+          "method": "textDocument/hover",
+          "documentVersion": 3,
+          "latencyMs": 3.197041000000354
+        }
+      ],
+      "elapsedMs": 1116.6851669999999,
+      "maxRssBytes": 759136256,
+      "maxFootprintBytes": 746933120,
+      "maxSampledCpuNanoseconds": 3004437625,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    },
+    {
+      "file": "final-candidate-root-valid-1.json",
+      "sha256": "f3beb915b5d82979005c4be88baa75bc271f2efa24a2494b37b41d85980ae329",
+      "arm": "candidate",
+      "mode": "root-valid",
+      "round": 1,
+      "workspace": "/Users/samuel/git/playground/foldkit",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 6.426583000000051
+        },
+        {
+          "label": "cold completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 636.2265419999999
+        },
+        {
+          "label": "warm completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 0.4455000000000382
+        },
+        {
+          "label": "post-edit completion",
+          "method": "textDocument/completion",
+          "documentVersion": 2,
+          "latencyMs": 404.35004200000003
+        },
+        {
+          "label": "semantic edit guard",
+          "method": "textDocument/hover",
+          "documentVersion": 3,
+          "latencyMs": 2.979541000000154
+        }
+      ],
+      "elapsedMs": 1065.393208,
+      "maxRssBytes": 724107264,
+      "maxFootprintBytes": 711969472,
+      "maxSampledCpuNanoseconds": 2519244541,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    },
+    {
+      "file": "final-candidate-root-valid-2.json",
+      "sha256": "f81b7903a3aeb1c7910c81a0814412f18dda065af704c2d50c8e9f432e7ca21c",
+      "arm": "candidate",
+      "mode": "root-valid",
+      "round": 2,
+      "workspace": "/Users/samuel/git/playground/foldkit",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 6.396834000000013
+        },
+        {
+          "label": "cold completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 564.108167
+        },
+        {
+          "label": "warm completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 0.46479199999998855
+        },
+        {
+          "label": "post-edit completion",
+          "method": "textDocument/completion",
+          "documentVersion": 2,
+          "latencyMs": 388.6472920000001
+        },
+        {
+          "label": "semantic edit guard",
+          "method": "textDocument/hover",
+          "documentVersion": 3,
+          "latencyMs": 2.9835840000000644
+        }
+      ],
+      "elapsedMs": 977.3711669999999,
+      "maxRssBytes": 722436096,
+      "maxFootprintBytes": 710281920,
+      "maxSampledCpuNanoseconds": 2506512833,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    },
+    {
+      "file": "final-candidate-root-valid-3.json",
+      "sha256": "87c33f49fb39bcd975917b5f9ca1073ec183630eb7c1e5d661b9e222e35e2113",
+      "arm": "candidate",
+      "mode": "root-valid",
+      "round": 3,
+      "workspace": "/Users/samuel/git/playground/foldkit",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 6.15504199999998
+        },
+        {
+          "label": "cold completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 625.6469999999999
+        },
+        {
+          "label": "warm completion",
+          "method": "textDocument/completion",
+          "documentVersion": 1,
+          "latencyMs": 0.3712080000000242
+        },
+        {
+          "label": "post-edit completion",
+          "method": "textDocument/completion",
+          "documentVersion": 2,
+          "latencyMs": 410.647958
+        },
+        {
+          "label": "semantic edit guard",
+          "method": "textDocument/hover",
+          "documentVersion": 3,
+          "latencyMs": 3.239417000000003
+        }
+      ],
+      "elapsedMs": 1062.962375,
+      "maxRssBytes": 733478912,
+      "maxFootprintBytes": 721242944,
+      "maxSampledCpuNanoseconds": 2602916708,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    },
+    {
+      "file": "final-candidate-root-hover-1.json",
+      "sha256": "34846633476cdf3791d1b6a09f4c4f14e89b9c31e044956ccd560a32dce3e522",
+      "arm": "candidate",
+      "mode": "root-hover",
+      "round": 1,
+      "workspace": "/Users/samuel/git/playground/foldkit",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "probeSha256": "5c690ddfbb7c3eae0b824867a98a7aa69bb5285291567759308a876bb5e76bc8",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 6.0434999999999945
+        },
+        {
+          "label": "cold root Model hover",
+          "method": "textDocument/hover",
+          "documentVersion": 1,
+          "latencyMs": 607.443625
+        },
+        {
+          "label": "warm root Model hover",
+          "method": "textDocument/hover",
+          "documentVersion": 1,
+          "latencyMs": 0.5593329999999241
+        },
+        {
+          "label": "post-edit root Model hover",
+          "method": "textDocument/hover",
+          "documentVersion": 2,
+          "latencyMs": 411.4043750000001
+        },
+        {
+          "label": "semantic edit guard",
+          "method": "textDocument/hover",
+          "documentVersion": 3,
+          "latencyMs": 2.8646249999999327
+        }
+      ],
+      "elapsedMs": 1044.4044159999999,
+      "maxRssBytes": 731709440,
+      "maxFootprintBytes": 719555264,
+      "maxSampledCpuNanoseconds": 2575623375,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    },
+    {
+      "file": "final-candidate-root-hover-2.json",
+      "sha256": "32359ed5c1dd8d7e15ba2cadf154bc1b4499766fc93e897a8857ebd8cf89a6f9",
+      "arm": "candidate",
+      "mode": "root-hover",
+      "round": 2,
+      "workspace": "/Users/samuel/git/playground/foldkit",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "probeSha256": "5c690ddfbb7c3eae0b824867a98a7aa69bb5285291567759308a876bb5e76bc8",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 5.232417000000055
+        },
+        {
+          "label": "cold root Model hover",
+          "method": "textDocument/hover",
+          "documentVersion": 1,
+          "latencyMs": 644.785417
+        },
+        {
+          "label": "warm root Model hover",
+          "method": "textDocument/hover",
+          "documentVersion": 1,
+          "latencyMs": 0.4860409999998865
+        },
+        {
+          "label": "post-edit root Model hover",
+          "method": "textDocument/hover",
+          "documentVersion": 2,
+          "latencyMs": 424.66866700000014
+        },
+        {
+          "label": "semantic edit guard",
+          "method": "textDocument/hover",
+          "documentVersion": 3,
+          "latencyMs": 2.6532089999998334
+        }
+      ],
+      "elapsedMs": 1096.766875,
+      "maxRssBytes": 768262144,
+      "maxFootprintBytes": 755977088,
+      "maxSampledCpuNanoseconds": 2782922666,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    },
+    {
+      "file": "final-candidate-root-hover-3.json",
+      "sha256": "5b2302b2ff6143f02203b9ed97825f4e9aab7f6ece2362a24d13055a6634a8da",
+      "arm": "candidate",
+      "mode": "root-hover",
+      "round": 3,
+      "workspace": "/Users/samuel/git/playground/foldkit",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "probeSha256": "5c690ddfbb7c3eae0b824867a98a7aa69bb5285291567759308a876bb5e76bc8",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 7.807000000000016
+        },
+        {
+          "label": "cold root Model hover",
+          "method": "textDocument/hover",
+          "documentVersion": 1,
+          "latencyMs": 677.57475
+        },
+        {
+          "label": "warm root Model hover",
+          "method": "textDocument/hover",
+          "documentVersion": 1,
+          "latencyMs": 0.6953750000000127
+        },
+        {
+          "label": "post-edit root Model hover",
+          "method": "textDocument/hover",
+          "documentVersion": 2,
+          "latencyMs": 437.9706669999998
+        },
+        {
+          "label": "semantic edit guard",
+          "method": "textDocument/hover",
+          "documentVersion": 3,
+          "latencyMs": 3.000332999999955
+        }
+      ],
+      "elapsedMs": 1145.331416,
+      "maxRssBytes": 765919232,
+      "maxFootprintBytes": 753683200,
+      "maxSampledCpuNanoseconds": 3029111625,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    },
+    {
+      "file": "final-candidate-root-diagnostics-1.json",
+      "sha256": "1cdd67039d7796ef3f9f1c9d52f0d4657c03295c0f531a21bccd40c07f70c4e1",
+      "arm": "candidate",
+      "mode": "root-diagnostics",
+      "round": 1,
+      "workspace": "/Users/samuel/git/playground/foldkit",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 6.3301250000000095
+        },
+        {
+          "label": "cold clean root diagnostics",
+          "method": "textDocument/diagnostic",
+          "documentVersion": 1,
+          "latencyMs": 224.68445799999995
+        },
+        {
+          "label": "root error appearance",
+          "method": "textDocument/diagnostic",
+          "documentVersion": 2,
+          "latencyMs": 3.2822499999999764
+        },
+        {
+          "label": "root error clear",
+          "method": "textDocument/diagnostic",
+          "documentVersion": 3,
+          "latencyMs": 3.1854580000000396
+        }
+      ],
+      "elapsedMs": 249.49258300000002,
+      "maxRssBytes": 48529408,
+      "maxFootprintBytes": 39454016,
+      "maxSampledCpuNanoseconds": 108944375,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    },
+    {
+      "file": "final-candidate-root-diagnostics-2.json",
+      "sha256": "e1fc2b556b841f78092e9285960050ba010f3074e4927c3266738e7cf7f4d82b",
+      "arm": "candidate",
+      "mode": "root-diagnostics",
+      "round": 2,
+      "workspace": "/Users/samuel/git/playground/foldkit",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 6.540458000000058
+        },
+        {
+          "label": "cold clean root diagnostics",
+          "method": "textDocument/diagnostic",
+          "documentVersion": 1,
+          "latencyMs": 215.455375
+        },
+        {
+          "label": "root error appearance",
+          "method": "textDocument/diagnostic",
+          "documentVersion": 2,
+          "latencyMs": 3.5045000000000073
+        },
+        {
+          "label": "root error clear",
+          "method": "textDocument/diagnostic",
+          "documentVersion": 3,
+          "latencyMs": 4.0480420000000095
+        }
+      ],
+      "elapsedMs": 241.55054199999995,
+      "maxRssBytes": 48545792,
+      "maxFootprintBytes": 39421248,
+      "maxSampledCpuNanoseconds": 111230375,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    },
+    {
+      "file": "final-candidate-root-diagnostics-3.json",
+      "sha256": "825f67be3257955396746f85315909f1fa4a9b4844e2965839ed4c2b1b31198b",
+      "arm": "candidate",
+      "mode": "root-diagnostics",
+      "round": 3,
+      "workspace": "/Users/samuel/git/playground/foldkit",
+      "sourceSha256": "3c06626280fa08665256dc0f3be5d2dec677b17fed45d3b3f3a2c5a7f8cb1cca",
+      "probeSha256": "f7268c088ee254f69be0cefea43a647bcfd10796a673ae9c67d000e7a55cd139",
+      "measurements": [
+        {
+          "label": "initialize",
+          "method": "initialize",
+          "documentVersion": 1,
+          "latencyMs": 6.495625000000018
+        },
+        {
+          "label": "cold clean root diagnostics",
+          "method": "textDocument/diagnostic",
+          "documentVersion": 1,
+          "latencyMs": 297.07962499999985
+        },
+        {
+          "label": "root error appearance",
+          "method": "textDocument/diagnostic",
+          "documentVersion": 2,
+          "latencyMs": 3.476374999999962
+        },
+        {
+          "label": "root error clear",
+          "method": "textDocument/diagnostic",
+          "documentVersion": 3,
+          "latencyMs": 3.9066250000000764
+        }
+      ],
+      "elapsedMs": 324.9007079999999,
+      "maxRssBytes": 493649920,
+      "maxFootprintBytes": 482740480,
+      "maxSampledCpuNanoseconds": 1623345791,
+      "cleanup": {
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "monitorExit": {
+          "code": null,
+          "signal": "SIGTERM",
+          "stderr": "",
+          "remainder": ""
+        }
+      }
+    }
+  ]
+}

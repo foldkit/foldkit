@@ -236,6 +236,20 @@ The Application Composition carries the child graph. Its completion config suppl
 
 `ApplicationComposition.assembleBlock` validates the concrete composition before the Runtime starts. `Program.make` returns another passive value, and `program.provide(ApplicationLayer)` records ordinary Service providers. The Runtime builds those Layers and the selected handler graph when the Program starts. Missing handlers, incompatible child Bindings, unavailable Mount requirements, and an unhandled root OutMessage fail before a user interaction.
 
+Use `assembleBlock` when a root needs the full Block API. Child Bindings, `Block.inspectBinding`, Layer inspection, `replaceEffectsLayer`, `provideHandlers`, and view-configuration tooling all consume ordinary completed Blocks.
+
+A split application root can opt into a smaller terminal boundary instead. `assembleRoot` returns a root for `Program.make`, `Program.makeElement`, and `Server.renderToString`, with six public fields: `owner`, `Model`, `Message`, `init`, `update`, and `operations`. The implementation file checks the full concrete graph, including registered children, lifecycle declarations, handler recipes, operations, view ownership, required update context, root OutMessages, and Layer requirements. The exported value does not expose child binding or tooling helpers.
+
+::Snippet{name="blockApplicationTerminalRoot" label="Assembling a terminal root"}
+
+The assembly snippet imports the named boundary contracts from the implementation module. Those contracts stay derived from the actual Composition and implementation, so they do not duplicate child or operation bookkeeping:
+
+::Snippet{name="blockApplicationRootContract" label="Deriving root boundary contracts"}
+
+Keeping those expensive arguments behind names lets a thin consumer import one compact contract instead of expanding the whole child graph.
+
+::Snippet{name="blockApplicationRootExport" label="Exporting the root boundary"}
+
 Server rendering uses the same root:
 
 ::Snippet{name="blockServerRender" label="Rendering the Application on the server"}
@@ -455,6 +469,16 @@ For a generic factory that shares definitions, `Block.makeNamespace(id)` supplie
 ### FeatureComposition.assembleBlock
 
 `FeatureComposition.assembleBlock({ init, update, view?, operations?, subscriptions?, managedResources?, EffectsLayer?, hostHandlers? })` checks and returns the passive completed Block. `EffectsLayer` may require ordinary Services supplied by `program.provide(ApplicationLayer)`. `hostHandlers` explicitly declares contracts left to the host. Complete those Blocks with their own `provideHandlers(...)` before binding them into `ApplicationBlock`; Program construction rejects unresolved handlers.
+
+Use this form when a parent will bind the result as a child, when code needs `Block.inspectBinding`, or when tooling needs the completed Block surface for child, lifecycle, view, handler, or Layer inspection.
+
+### FeatureComposition.assembleRoot
+
+`FeatureComposition.assembleRoot({ init, update, view, operations?, subscriptions?, managedResources?, EffectsLayer? })` checks and returns a terminal root for `Program.make`, `Program.makeElement`, and `Server.renderToString`. It has exactly six public fields: `owner`, `Model`, `Message`, `init`, `update`, and `operations`.
+
+A terminal root retains the same inferred checks for Model, Message, init, update, operations, the default view kind, handler requirements, ordinary Service requirements, registered child evidence, and concrete composition validation. It cannot declare `hostHandlers`, require extra update context at the root boundary, leave a root OutMessage, expose child Binding helpers, expose graph inspection, inspect Layers, reconfigure Layers, or serve view-configuration tooling. Use `assembleBlock` when any of those consumers need the full Block API.
+
+For a split root, derive `ApplicationMessage` from the Composition, `ApplicationImplementation` from the implementation object, and `ApplicationRootChannels` from both. Pass these named interfaces to `Block.Root<...>` when annotating the exported root. The interfaces preserve the inferred contracts without listing each child or operation again. Downstream files can read the root's public fields without checking its entire implementation; the implementation file checks the complete graph.
 
 ### ParentDefinition.makeBinding
 

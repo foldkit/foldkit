@@ -280,7 +280,7 @@ const makeKeyedAnimationOutMessageFold = (key: 'Primary') =>
       KeyedAnimationBinding.requestWaitForLeaveSettlement(key),
     TransitionedOut: KeyedAnimationFixtureDefinition.makeNoopStep,
   })
-export const KeyedAnimationComposition =
+export const KeyedAnimationFixtureComposition =
   KeyedAnimationFixtureDefinition.makeComposition({
     bindings: [
       KeyedAnimationBinding.withOutMessagePolicy({

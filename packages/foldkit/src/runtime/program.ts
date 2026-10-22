@@ -1,8 +1,9 @@
 import { Effect, Layer, Schema } from 'effect'
 
-import type { AnyBlock } from '../block/definition.js'
+import type { AnyBlock, AnyProgramBlock } from '../block/definition.js'
 import { lowerBlock } from '../block/lowering.js'
 import type {
+  EffectsLayerOfBlock,
   RequirementsOfBlock,
   RuntimeServicesOfBlock,
 } from '../block/requirements.js'
@@ -34,12 +35,14 @@ import type { ViewTransitionConfig } from './viewTransition.js'
 
 type AnyFlagsSchema = Schema.Codec<any, any, never, never>
 
-type BlockModel<BlockValue extends AnyBlock> = BlockValue['Model']['Type']
-type BlockMessage<BlockValue extends AnyBlock> = BlockValue['Message']['Type']
-type BlockInit<BlockValue extends AnyBlock> = BlockValue['init']
+type BlockModel<BlockValue extends AnyProgramBlock> =
+  BlockValue['Model']['Type']
+type BlockMessage<BlockValue extends AnyProgramBlock> =
+  BlockValue['Message']['Type']
+type BlockInit<BlockValue extends AnyProgramBlock> = BlockValue['init']
 
 type BlocksRejectingMessage<
-  BlockValue extends AnyBlock,
+  BlockValue extends AnyProgramBlock,
   Message,
 > = BlockValue extends unknown
   ? Message extends BlockMessage<BlockValue>
@@ -48,7 +51,7 @@ type BlocksRejectingMessage<
   : never
 
 type MessageAcceptedByEveryBlock<
-  BlockValue extends AnyBlock,
+  BlockValue extends AnyProgramBlock,
   Message,
 > = Message extends unknown
   ? [BlocksRejectingMessage<BlockValue, Message>] extends [never]
@@ -56,7 +59,7 @@ type MessageAcceptedByEveryBlock<
     : never
   : never
 
-type CommonBlockMessage<BlockValue extends AnyBlock> =
+type CommonBlockMessage<BlockValue extends AnyProgramBlock> =
   MessageAcceptedByEveryBlock<BlockValue, BlockMessage<BlockValue>>
 
 type AcceptsExactly<
@@ -67,7 +70,7 @@ type AcceptsExactly<
   : false
 
 type BlocksRejectingInit<
-  BlockValue extends AnyBlock,
+  BlockValue extends AnyProgramBlock,
   Args,
 > = BlockValue extends unknown
   ? AcceptsExactly<BlockInit<BlockValue>, Args> extends true
@@ -75,14 +78,14 @@ type BlocksRejectingInit<
     : BlockValue
   : never
 
-type EveryBlockAcceptsExactly<BlockValue extends AnyBlock, Args> = [
+type EveryBlockAcceptsExactly<BlockValue extends AnyProgramBlock, Args> = [
   BlocksRejectingInit<BlockValue, Args>,
 ] extends [never]
   ? true
   : false
 
 type CommonHostOptions<
-  BlockValue extends AnyBlock,
+  BlockValue extends AnyProgramBlock,
   PortsValue extends Ports | undefined,
 > = Readonly<{
   /** The Model Schema belongs to the completed root Block. */
@@ -119,7 +122,7 @@ type CommonHostOptions<
 }>
 
 type PageHostOptions<
-  BlockValue extends AnyBlock,
+  BlockValue extends AnyProgramBlock,
   PortsValue extends Ports | undefined,
 > = CommonHostOptions<BlockValue, PortsValue> &
   Readonly<{
@@ -130,7 +133,7 @@ type PageHostOptions<
   }>
 
 type ElementHostOptions<
-  BlockValue extends AnyBlock,
+  BlockValue extends AnyProgramBlock,
   PortsValue extends Ports | undefined,
 > = CommonHostOptions<BlockValue, PortsValue> &
   Readonly<{
@@ -139,7 +142,7 @@ type ElementHostOptions<
   }>
 
 type PageWithoutRoutingModeFields<
-  BlockValue extends AnyBlock,
+  BlockValue extends AnyProgramBlock,
   FlagsSchema extends AnyFlagsSchema | undefined,
 > = undefined extends FlagsSchema
   ? EveryBlockAcceptsExactly<BlockValue, []> extends true
@@ -152,7 +155,7 @@ type PageWithoutRoutingModeFields<
     : never
 
 type PageWithRoutingModeFields<
-  BlockValue extends AnyBlock,
+  BlockValue extends AnyProgramBlock,
   FlagsSchema extends AnyFlagsSchema | undefined,
   Routing,
 > = undefined extends FlagsSchema
@@ -195,13 +198,13 @@ type ConstructorUrlRoutingConfig<Message> = Readonly<{
   onUrlChange: RoutingUrlConstructor<Message>
 }>
 
-type ElementWithoutFlagsModeFields<BlockValue extends AnyBlock> =
+type ElementWithoutFlagsModeFields<BlockValue extends AnyProgramBlock> =
   EveryBlockAcceptsExactly<BlockValue, []> extends true
     ? Readonly<{ Flags?: never; flags?: never }>
     : never
 
 type ElementWithFlagsModeFields<
-  BlockValue extends AnyBlock,
+  BlockValue extends AnyProgramBlock,
   FlagsSchema extends AnyFlagsSchema,
   FlagsEffect extends Effect.Effect<FlagsSchema['Type'], never, any>,
 > =
@@ -231,7 +234,7 @@ type DevToolsDispatchValue<Value> = Value extends object
   : never
 
 type ProgramDispatchRequirements<
-  BlockValue extends AnyBlock,
+  BlockValue extends AnyProgramBlock,
   Config,
 > = Config extends unknown
   ? 'devTools' extends keyof Config
@@ -244,17 +247,17 @@ type ProgramDispatchRequirements<
   : never
 
 type ResidualProgramDispatchRequirements<
-  BlockValue extends AnyBlock,
+  BlockValue extends AnyProgramBlock,
   Config,
 > = BlockValue extends unknown
   ? Exclude<
       ProgramDispatchRequirements<BlockValue, Config>,
-      | Layer.Success<BlockValue['EffectsLayer']>
+      | Layer.Success<EffectsLayerOfBlock<BlockValue>>
       | RuntimeServicesOfBlock<BlockValue>
     >
   : never
 
-type ProgramRequirements<BlockValue extends AnyBlock, Config> =
+type ProgramRequirements<BlockValue extends AnyProgramBlock, Config> =
   | RequirementsOfBlock<BlockValue>
   | ResidualProgramDispatchRequirements<BlockValue, Config>
 
@@ -434,7 +437,7 @@ export type Element<
 /** Creates a passive page-owning Program from a completed root Block. */
 export function make<
   const Config extends object,
-  const BlockValue extends AnyBlock,
+  const BlockValue extends AnyProgramBlock,
   const FlagsSchema extends AnyFlagsSchema | undefined,
   const PortsValue extends Ports | undefined = undefined,
 >(
@@ -449,11 +452,11 @@ export function make<
   RootFlags<FlagsSchema>,
   ProgramRequirements<BlockValue, Config>,
   RuntimeServicesOfBlock<BlockValue>,
-  Layer.Success<BlockValue['EffectsLayer']>
+  Layer.Success<EffectsLayerOfBlock<BlockValue>>
 >
 export function make<
   const Config extends object,
-  const BlockValue extends AnyBlock,
+  const BlockValue extends AnyProgramBlock,
   const FlagsSchema extends AnyFlagsSchema | undefined,
   const PortsValue extends Ports | undefined = undefined,
 >(
@@ -472,11 +475,11 @@ export function make<
   RootFlags<FlagsSchema>,
   ProgramRequirements<BlockValue, Config>,
   RuntimeServicesOfBlock<BlockValue>,
-  Layer.Success<BlockValue['EffectsLayer']>
+  Layer.Success<EffectsLayerOfBlock<BlockValue>>
 >
 export function make<
   const Config extends object,
-  const BlockValue extends AnyBlock,
+  const BlockValue extends AnyProgramBlock,
   const FlagsSchema extends AnyFlagsSchema | undefined,
   const PortsValue extends Ports | undefined = undefined,
 >(
@@ -495,11 +498,11 @@ export function make<
   RootFlags<FlagsSchema>,
   ProgramRequirements<BlockValue, Config>,
   RuntimeServicesOfBlock<BlockValue>,
-  Layer.Success<BlockValue['EffectsLayer']>
+  Layer.Success<EffectsLayerOfBlock<BlockValue>>
 >
 export function make<
   const Config extends object,
-  const BlockValue extends AnyBlock,
+  const BlockValue extends AnyProgramBlock,
   const FlagsSchema extends AnyFlagsSchema | undefined,
   const PortsValue extends Ports | undefined = undefined,
 >(
@@ -518,11 +521,11 @@ export function make<
   RootFlags<FlagsSchema>,
   ProgramRequirements<BlockValue, Config>,
   RuntimeServicesOfBlock<BlockValue>,
-  Layer.Success<BlockValue['EffectsLayer']>
+  Layer.Success<EffectsLayerOfBlock<BlockValue>>
 >
 export function make<
   const Config extends object,
-  const BlockValue extends AnyBlock,
+  const BlockValue extends AnyProgramBlock,
   const FlagsSchema extends AnyFlagsSchema | undefined,
   const PortsValue extends Ports | undefined = undefined,
 >(
@@ -541,7 +544,7 @@ export function make<
   RootFlags<FlagsSchema>,
   ProgramRequirements<BlockValue, Config>,
   RuntimeServicesOfBlock<BlockValue>,
-  Layer.Success<BlockValue['EffectsLayer']>
+  Layer.Success<EffectsLayerOfBlock<BlockValue>>
 >
 export function make(config: unknown): unknown {
   assertProgramConfig(config, 'Document')
@@ -576,7 +579,7 @@ export function make(config: unknown): unknown {
 /** Creates a passive container-scoped Program from a completed root Block. */
 export function makeElement<
   const Config extends object,
-  const BlockValue extends AnyBlock,
+  const BlockValue extends AnyProgramBlock,
   const PortsValue extends Ports | undefined = undefined,
 >(
   config: Config &
@@ -589,11 +592,11 @@ export function makeElement<
   RootPorts<PortsValue>,
   ProgramRequirements<BlockValue, Config>,
   RuntimeServicesOfBlock<BlockValue>,
-  Layer.Success<BlockValue['EffectsLayer']>
+  Layer.Success<EffectsLayerOfBlock<BlockValue>>
 >
 export function makeElement<
   const Config extends object,
-  const BlockValue extends AnyBlock,
+  const BlockValue extends AnyProgramBlock,
   const FlagsSchema extends AnyFlagsSchema,
   const FlagsEffect extends Effect.Effect<FlagsSchema['Type'], never, any>,
   const PortsValue extends Ports | undefined = undefined,
@@ -608,7 +611,7 @@ export function makeElement<
   RootPorts<PortsValue>,
   ProgramRequirements<BlockValue, Config> | FlagsRequirements<FlagsEffect>,
   RuntimeServicesOfBlock<BlockValue>,
-  Layer.Success<BlockValue['EffectsLayer']>
+  Layer.Success<EffectsLayerOfBlock<BlockValue>>
 >
 export function makeElement(config: unknown): unknown {
   assertProgramConfig(config, 'Element')
