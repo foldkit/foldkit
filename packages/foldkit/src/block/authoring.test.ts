@@ -960,6 +960,39 @@ if (false) {
     Layer.merge(CreateRoomTestLayer, ConflictingCreateRoom.layer),
   )
 
+  // @ts-expect-error Every local handler must be provided by EffectsLayer or declared in hostHandlers.
+  HomeComposition.assembleBlock({
+    init: homeInit,
+    update: homeUpdate,
+    EffectsLayer: Layer.empty,
+  })
+
+  // @ts-expect-error Same-name handler contracts must agree across the implementation channels.
+  HomeComposition.assembleBlock({
+    init: homeInit,
+    update: homeUpdate,
+    EffectsLayer: Layer.merge(CreateRoomTestLayer, ConflictingCreateRoom.layer),
+  })
+
+  // @ts-expect-error hostHandlers accepts only layered Foldkit definitions.
+  HomeComposition.assembleBlock({
+    init: homeInit,
+    update: homeUpdate,
+    EffectsLayer: CreateRoom.layer,
+    hostHandlers: ['CreateRoom'],
+  })
+
+  const erasedUpdate = (
+    model: HomeModel,
+    _message: HomeMessage,
+  ): Update.Return<HomeModel, HomeMessage, any> => ({ model })
+  // @ts-expect-error An update with erased requirements cannot complete a Block.
+  HomeComposition.assembleBlock({
+    init: homeInit,
+    update: erasedUpdate,
+    EffectsLayer: CreateRoom.layer,
+  })
+
   const CrossKindNamespace = makeNamespace('AuthoringCrossKind')
   const CommandFocus = CrossKindNamespace.makeCommand('Focus', {
     messages: [HomeMessage.CompletedCreateRoom],

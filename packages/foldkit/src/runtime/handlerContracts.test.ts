@@ -173,6 +173,24 @@ it('retains exact collision checks within literal and generic handler keys', () 
   >()
   expectTypeOf<
     ValidHandlerContracts<
+      | Command.Handler<'Read', string, string>
+      | Command.Handler<'Read', number, string>
+      | Command.Handler<string, string, string>
+    >
+  >().toEqualTypeOf<
+    Readonly<{ 'Conflicting Foldkit handler contracts': 'Command/Read' }>
+  >()
+  expectTypeOf<
+    ValidHandlerContracts<
+      | Command.Handler<'Read', Readonly<{ text: string }>, string>
+      | Command.Handler<'Read', { text: string }, string>
+      | Command.Handler<'Write', number, string>
+    >
+  >().toEqualTypeOf<
+    Readonly<{ 'Conflicting Foldkit handler contracts': 'Command/Read' }>
+  >()
+  expectTypeOf<
+    ValidHandlerContracts<
       | Scoped<'First', Command.Handler<'Read', string, string>>
       | Scoped<'Second', Command.Handler<'Read', number, string>>
     >

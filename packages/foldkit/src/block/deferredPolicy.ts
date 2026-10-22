@@ -27,14 +27,55 @@ type FieldOf<Value, Key extends PropertyKey> = Value extends unknown
 
 type ReturnOf<Value> = Value extends AnyFunction ? ReturnType<Value> : never
 
-type BindingAt<
+type IsUnion<Value, Whole = Value> = Value extends unknown
+  ? [Whole] extends [Value]
+    ? false
+    : true
+  : never
+
+type IndexedPlacement<Placement extends string> =
+  {} extends Record<Placement, never>
+    ? never
+    : true extends IsUnion<Placement>
+      ? never
+      : `${Placement}` extends Placement
+        ? Placement
+        : never
+
+declare const UnindexedPlacementKey: unique symbol
+
+type BindingIndex<Children extends ReadonlyArray<AnyBinding>> = {
+  readonly [
+    BindingValue in Children[number] as [
+      IndexedPlacement<BindingValue['placement']>,
+    ] extends [never]
+      ? typeof UnindexedPlacementKey
+      : BindingValue['placement']
+  ]: BindingValue
+}
+
+type UnindexedBindings<
+  Index,
+  Keys extends keyof Index,
+> = typeof UnindexedPlacementKey extends Keys
+  ? Index[typeof UnindexedPlacementKey]
+  : never
+
+type ScanBindingAt<BindingValue, Placement extends string> =
+  BindingValue extends Readonly<{ placement: Placement }> ? BindingValue : never
+
+/** @internal Resolves the registered Bindings whose placement is assignable to
+ * `Placement`. */
+export type BindingAt<
   Children extends ReadonlyArray<AnyBinding>,
   Placement extends string,
-> = Children[number] extends infer BindingValue
-  ? BindingValue extends Readonly<{ placement: Placement }>
-    ? BindingValue
-    : never
-  : never
+  Index = BindingIndex<Children>,
+  Keys extends keyof Index = keyof Index,
+> = [IndexedPlacement<Placement>] extends [never]
+  ? ScanBindingAt<Children[number], Placement>
+  :
+      | (Placement extends Keys ? Index[Placement] : never)
+      | ScanBindingAt<UnindexedBindings<Index, Keys>, Placement>
 
 type PolicyOfBinding<BindingValue> =
   BindingValue extends BindingPolicyEvidence<infer Policy> ? Policy : never

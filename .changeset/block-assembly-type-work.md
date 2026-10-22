@@ -1,0 +1,5 @@
+---
+'foldkit': patch
+---
+
+Reduce the type-level work the TypeScript checker repeats for Block assembly. Handler contract conflicts are found by indexing each entry's key once and comparing contracts only where the key's group is not identical to the entry itself, instead of comparing every entry with every entry sharing its key. Each `assembleBlock` overload evaluates its composition validation only once its type parameter is resolved and its implementation shape can match. Delivery-tag conflict checks compute the outgoing tag set once per Composition. Acceptance and rejection outcomes, emitted declarations, and runtime behavior are unchanged. The checked-in type-performance ceilings drop from 1,152,618, 3,132,298, and 2,659,415 instantiations to 859,410, 1,609,445, and 386,770, the highest counts observed over six runs; the counts measured at the parent commit were 878,121, 1,975,974, and 911,507. On the Website root `ApplicationBlock` member completion with native TypeScript 7.0.2, cold and post-edit requests both fell by about 15% on one macOS host.
