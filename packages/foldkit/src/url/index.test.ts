@@ -62,9 +62,54 @@ describe('fromString', () => {
     }
   })
 
+  it('keeps an empty hash apart from a missing one', () => {
+    const original = 'https://example.com/path#'
+    const result = fromString(original)
+    expect(Option.isSome(result)).toBe(true)
+    if (Option.isSome(result)) {
+      expect(result.value.search).toEqual(Option.none())
+      expect(result.value.hash).toEqual(Option.some(''))
+      expect(toString(result.value)).toBe(original)
+    }
+  })
+
+  it('keeps an empty search apart from a missing one', () => {
+    const original = 'https://example.com/path?'
+    const result = fromString(original)
+    expect(Option.isSome(result)).toBe(true)
+    if (Option.isSome(result)) {
+      expect(result.value.search).toEqual(Option.some(''))
+      expect(result.value.hash).toEqual(Option.none())
+      expect(toString(result.value)).toBe(original)
+    }
+  })
+
+  it('keeps an empty search and an empty hash together', () => {
+    const original = 'https://example.com/path?#'
+    const result = fromString(original)
+    expect(Option.isSome(result)).toBe(true)
+    if (Option.isSome(result)) {
+      expect(result.value.search).toEqual(Option.some(''))
+      expect(result.value.hash).toEqual(Option.some(''))
+      expect(toString(result.value)).toBe(original)
+    }
+  })
+
   it('returns None for invalid strings', () => {
     const result = fromString('not-a-url')
     expect(Option.isNone(result)).toBe(true)
+  })
+
+  it('keeps a second ? in the query and a second # in the fragment', () => {
+    const original =
+      'https://app.example.com/login?next=/units?page=2#section#sub'
+    const result = fromString(original)
+    expect(Option.isSome(result)).toBe(true)
+    if (Option.isSome(result)) {
+      expect(Option.getOrNull(result.value.search)).toBe('next=/units?page=2')
+      expect(Option.getOrNull(result.value.hash)).toBe('section#sub')
+      expect(toString(result.value)).toBe(original)
+    }
   })
 })
 

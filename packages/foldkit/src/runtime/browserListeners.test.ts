@@ -1,10 +1,15 @@
+import { Option } from 'effect'
 import { afterEach, beforeAll, beforeEach, expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
 import { type UrlRequest } from '../navigation/urlRequest.js'
 import { type Url } from '../url/index.js'
-import { type RoutingConfig, addLinkClickListener } from './browserListeners.js'
+import {
+  type RoutingConfig,
+  addLinkClickListener,
+  addNavigationEventListeners,
+} from './browserListeners.js'
 
 declare global {
   interface Window {
@@ -87,6 +92,20 @@ describe('addLinkClickListener', () => {
 
     expect(event.defaultPrevented).toBe(true)
     expect(dispatched).toMatchObject([{ _tag: 'Internal' }])
+  })
+
+  it('reports an empty hash and an empty search on an Internal link', () => {
+    click(makeLink(`${window.location.origin}/about`))
+    click(makeLink(`${window.location.origin}/about#`))
+    click(makeLink(`${window.location.origin}/about?`))
+    click(makeLink(`${window.location.origin}/about?a?b#c#d`))
+
+    expect(dispatched).toMatchObject([
+      { url: { search: Option.none(), hash: Option.none() } },
+      { url: { search: Option.none(), hash: Option.some('') } },
+      { url: { search: Option.some(''), hash: Option.none() } },
+      { url: { search: Option.some('a?b'), hash: Option.some('c#d') } },
+    ])
   })
 
   it('preventDefaults and dispatches External for a plain left-click on a cross-origin link', () => {
@@ -207,5 +226,32 @@ describe('addLinkClickListener', () => {
 
     expect(dispatched).toHaveLength(0)
     expect(event.defaultPrevented).toBe(true)
+  })
+})
+
+describe('addNavigationEventListeners', () => {
+  it('reports an empty hash on popstate', () => {
+    const changedUrls: Array<Url> = []
+    const removeListeners = addNavigationEventListeners(
+      (url: Url) => {
+        changedUrls.push(url)
+      },
+      {
+        onUrlRequest: () => {
+          throw new Error('onUrlRequest should not be called on popstate')
+        },
+        onUrlChange: url => url,
+      },
+    )
+
+    const initialHref = window.location.href
+    window.history.pushState(null, '', '/docs#')
+    window.dispatchEvent(new PopStateEvent('popstate'))
+    removeListeners()
+    window.history.replaceState(null, '', initialHref)
+
+    expect(changedUrls).toMatchObject([
+      { pathname: '/docs', search: Option.none(), hash: Option.some('') },
+    ])
   })
 })
