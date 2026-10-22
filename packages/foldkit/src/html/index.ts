@@ -2584,7 +2584,11 @@ const attributeHandlers: AttributeHandlers = {
           return Effect.void
         }
         return Stream.runForEach(action.f(element, viewStateChanges), message =>
-          Effect.sync(() => mountDispatch(message)),
+          Effect.sync(() => {
+            if (lifecycle.isActive) {
+              mountDispatch(message)
+            }
+          }),
         )
       }).pipe(
         Effect.catchCause(cause =>
