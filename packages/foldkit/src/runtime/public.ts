@@ -1,4 +1,5 @@
 export {
+  CompositionIdentity,
   SlowPhase,
   defaultSlowCallback,
   embed,
@@ -9,6 +10,8 @@ export {
 } from './index.js'
 
 export type {
+  Composition,
+  LazyCompositionConfig,
   RoutingConfig,
   CrashConfig,
   CrashContext,
