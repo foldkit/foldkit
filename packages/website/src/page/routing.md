@@ -208,6 +208,14 @@ Every helper that takes a tag answers for one named route. When several routes h
 
 ::Snippet{name="routingTransitionMatch" label="Route transition policy"}
 
+### Compare selected search fields
+
+Compare only the decoded Route fields that affect the request. In this search policy, `q` and `page` determine the result set, while `sort` does not. Compare those fields directly for one policy. A selector and `Schema.toEquivalence` are application code that can be shared when several policies use the same projection.
+
+The Route Schema decides whether different URLs decode to equivalent values. Give `page` a decoding default if an omitted page and `page=1` should mean the same thing. Query parameter order does not affect the decoded Route. The fragment assumes `Model`, `Message`, and `FetchSearch` are defined by the application.
+
+::Snippet{name="routingSearchPagination" label="Search and pagination policy"}
+
 ### Detect Route Exits
 
 `Transition.exited(transition, tag)` returns the route the transition left, narrowed to the tag, and `Transition.exitedAny` is its whichever-route form. Use `Transition.isExiting` when the payload is unnecessary. Exits are for one-shot Commands on the way out, saving a draft, recording that a visit ended. They are not for tearing down things that live while a route is active: listeners, timers, and handles belong to a [Subscription](/core/subscriptions) or [ManagedResource](/core/managed-resources) condition on the Model, which also ends them when the route state disappears for reasons other than navigation.
