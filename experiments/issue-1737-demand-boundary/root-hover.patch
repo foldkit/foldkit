@@ -1,0 +1,110 @@
+diff --git a/scope-root-editor-probe.mjs b/scope-root-editor-probe.mjs
+index 101149b62..757a9c9bf 100644
+--- a/scope-root-editor-probe.mjs
++++ b/scope-root-editor-probe.mjs
+@@ -6,8 +6,8 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+ import { performance } from 'node:perf_hooks'
+ import { fileURLToPath, pathToFileURL } from 'node:url'
+ 
+-const modes = ['root-incomplete', 'root-valid', 'composition-incomplete', 'definition-incomplete', 'schema-incomplete', 'plain-incomplete', 'root-diagnostics']
+-const usage = 'node root-editor-probe.mjs --workspace /absolute/disposable-checkout --disposable-workspace --output /absolute/new-result.json [--mode root-incomplete]'
++const modes = ['root-incomplete', 'root-valid', 'composition-incomplete', 'definition-incomplete', 'schema-incomplete', 'plain-incomplete', 'root-diagnostics', 'root-hover']
++const usage = 'node scope-root-editor-probe.mjs --workspace /absolute/disposable-checkout --disposable-workspace --output /absolute/new-result.json [--mode root-incomplete|root-hover]'
+ const arguments_ = process.argv.slice(2)
+ const options = {}
+ for (let index = 0; index < arguments_.length; index += 1) {
+@@ -100,18 +100,27 @@ const target = mode.startsWith('root') ? 'ApplicationBlock' : mode.startsWith('c
+ const extraImport = target === 'ApplicationDefinition' ? "import { ApplicationDefinition } from './definition'\n" : target === 'Model' ? "import { Model } from './model'\n" : ''
+ const plain = mode.startsWith('plain') ? '\nconst codexPlainObject = { count: 0, title: "probe" }\n' : ''
+ const member = target === 'codexPlainObject' ? 'count' : target === 'Model' ? 'fields' : 'Model'
+-const expression = mode === 'root-valid' ? `${target}.${member}` : `${target}.`
++const expression = mode === 'root-valid' || mode === 'root-hover' ? `${target}.${member}` : `${target}.`
+ let text = mode === 'root-diagnostics' ? original + '\nexport const CodexDiagnosticGuard: number = 1\n' : extraImport + original + plain + `\nconst codexMemberProbe = ${expression}\n`
+ let version = 1
+ const uri = pathToFileURL(sourcePath).href
+-const offset = text.lastIndexOf(`${target}.`) + target.length + 1
++const offset = mode === 'root-hover' ? text.lastIndexOf('ApplicationBlock.Model') + 'ApplicationBlock.M'.length : text.lastIndexOf(`${target}.`) + target.length + 1
+ const before = text.slice(0, offset).split('\n')
+ const position = { line: before.length - 1, character: before.at(-1).length }
+ const expectedRootLabels = ['OutMessage?', 'makeView', 'replaceEffectsLayer', 'provideHandlers', 'owner', 'Model', 'Message', 'mounts', 'bindings', 'init', 'update', 'operations', 'subscriptions', 'managedResources', 'EffectsLayer', 'LocalEffectsLayerTypeId', '__blockHandlerRequirements', 'hostHandlers'].sort()
++const expectedRootModelHoverSignature = ['BlockContractFields<Owner<"Application", true>', '.Model: Struct<', 'readonly route: RouteUnion<', 'readonly search: Struct', "Schema for this Block's Model."]
+ const goEnvironment = Object.fromEntries(['GOMEMLIMIT', 'GOGC', 'GOMAXPROCS', 'GODEBUG', 'GOEXPERIMENT', 'GOENV'].map(name => [name, process.env[name] ?? null]))
+ const report = {
+  formatVersion: 1, mode, workspace, disposableWorkspaceAcknowledged: true, sourcePath, originalText: original, openedText: text,
+- sourceSha256: hash(original), inMemorySha256: hash(text), position, expectedRootLabels, node: { version: process.version, executable: process.execPath, platform: process.platform, arch: process.arch },
++ sourceSha256: hash(original), inMemorySha256: hash(text), position, expectedRootLabels, expectedRootModelHoverSignature,
++ upstream: {
++  probeUrl: 'https://gist.githubusercontent.com/devinjameson/c56b8fb3da61ec821bb6a1456b2596ee/raw/bb40dabbe5b3a0afe2e4292df52515ee7354a8b1/scope-root-editor-probe.mjs',
++  probeSha256: '1491ea5fe44f546a4adfb74126a42ec866e7235a3c62f25dead66a6b75cc1751',
++  memoryGuardUrl: 'https://gist.githubusercontent.com/devinjameson/c56b8fb3da61ec821bb6a1456b2596ee/raw/bb40dabbe5b3a0afe2e4292df52515ee7354a8b1/memory-guard.py',
++  memoryGuardSha256: 'f82396c66ef418574707f23e1056609be22b492308436d817d0102daefaa9eaf',
++  forkPurpose: 'External issue-1737 demand-boundary probe fork adding root-hover only; original modes, compiler identities, memory guard behavior, request limits, and disk/source guards are retained.',
++ },
++ node: { version: process.version, executable: process.execPath, platform: process.platform, arch: process.arch },
+  compilerManifest: { path: manifestPath, name: compilerManifest.name, version: compilerManifest.version, gitHead: compilerManifest.gitHead, sha256: identitiesBefore.compilerManifest.sha256 },
+  nativeManifest: { path: nativeManifestPath, name: nativeManifest.name, version: nativeManifest.version, gitHead: nativeManifest.gitHead, sha256: identitiesBefore.nativeManifest.sha256 },
+  protocolClient: { path: clientPath, wrapperVersion: compilerManifest.version, wrapperGitHead: compilerManifest.gitHead, sha256: identitiesBefore.protocolClient.sha256 },
+@@ -227,6 +236,27 @@ try {
+  report.serverInfo = initialized.serverInfo
+  await connection.sendNotification('initialized', {})
+  await connection.sendNotification('textDocument/didOpen', { textDocument: { uri, languageId: 'typescript', version, text } })
++ const hoverText = result => {
++  const contents = result?.contents
++  if (typeof contents === 'string') return contents
++  if (Array.isArray(contents)) return contents.map(part => typeof part === 'string' ? part : part?.value ?? '').join('\n')
++  return contents?.value ?? ''
++ }
++ const validateRootModelHover = result => {
++  const text_ = hoverText(result)
++  if (!expectedRootModelHoverSignature.every(token => text_.includes(token))) throw new Error('Root hover did not show the canonical Application Model signature: ' + JSON.stringify(result))
++  return text_.replace(/\r\n/g, '\n').trim()
++ }
++ const semanticEditGuard = async () => {
++  const guardText = 'export const CodexAppliedEditGuard = 1737\n'
++  text = guardText + text
++  version += 1
++  const guardChanges = [{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }, text: guardText }]
++  recordDocument('semantic edit application guard', guardChanges)
++  await connection.sendNotification('textDocument/didChange', { textDocument: { uri, version }, contentChanges: guardChanges })
++  const guard = await request('semantic edit guard', 'textDocument/hover', { textDocument: { uri }, position: { line: 0, character: 17 } })
++  if (!JSON.stringify(guard).includes('1737')) throw new Error('Semantic edit guard missing')
++ }
+  if (mode === 'root-diagnostics') {
+   const diagnostic = async (label, isBad) => {
+    const result = await request(label, 'textDocument/diagnostic', { textDocument: { uri } })
+@@ -254,6 +284,19 @@ try {
+   await diagnostic('root error appearance', true)
+   await change('"bad"', '1')
+   await diagnostic('root error clear', false)
++ } else if (mode === 'root-hover') {
++  const hoverParams = { textDocument: { uri }, position }
++  const coldHover = validateRootModelHover(await request('cold root Model hover', 'textDocument/hover', hoverParams))
++  if (validateRootModelHover(await request('warm root Model hover', 'textDocument/hover', hoverParams)) !== coldHover) throw new Error('Warm root Model hover changed semantic contents')
++  const endLines = text.split('\n')
++  const end = { line: endLines.length - 1, character: endLines.at(-1).length }
++  text += '\n'
++  version += 1
++  const newlineChanges = [{ range: { start: end, end }, text: '\n' }]
++  recordDocument('post-edit newline', newlineChanges)
++  await connection.sendNotification('textDocument/didChange', { textDocument: { uri, version }, contentChanges: newlineChanges })
++  if (validateRootModelHover(await request('post-edit root Model hover', 'textDocument/hover', hoverParams)) !== coldHover) throw new Error('Edited root Model hover changed semantic contents')
++  await semanticEditGuard()
+  } else {
+   const completionParams = { textDocument: { uri }, position, context: { triggerKind: 2, triggerCharacter: '.' } }
+   const expected = target === 'codexPlainObject' ? ['count', 'title'] : target === 'ApplicationComposition' ? ['Model', 'makeView', 'assembleBlock'] : target === 'ApplicationDefinition' ? ['Model', 'makeBinding', 'makeComposition'] : target === 'Model' ? ['make', 'fields'] : ['Model', 'Message', 'EffectsLayer', 'init', 'update', 'makeView']
+@@ -277,14 +320,7 @@ try {
+   recordDocument('post-edit newline', newlineChanges)
+   await connection.sendNotification('textDocument/didChange', { textDocument: { uri, version }, contentChanges: newlineChanges })
+   if (validate(await request('post-edit completion', 'textDocument/completion', completionParams)) !== coldLabels) throw new Error('Edited completion changed labels')
+-  const guardText = 'export const CodexAppliedEditGuard = 1737\n'
+-  text = guardText + text
+-  version += 1
+-  const guardChanges = [{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }, text: guardText }]
+-  recordDocument('semantic edit application guard', guardChanges)
+-  await connection.sendNotification('textDocument/didChange', { textDocument: { uri, version }, contentChanges: guardChanges })
+-  const guard = await request('semantic edit guard', 'textDocument/hover', { textDocument: { uri }, position: { line: 0, character: 17 } })
+-  if (!JSON.stringify(guard).includes('1737')) throw new Error('Semantic edit guard missing')
++  await semanticEditGuard()
+  }
+  report.status = 'Passed'
+ } catch (error) {

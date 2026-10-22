@@ -1,0 +1,13 @@
+diff --git a/packages/website/src/composition/composition.ts b/packages/website/src/composition/composition.ts
+index 3ee563f18..29d2a401e 100644
+--- a/packages/website/src/composition/composition.ts
++++ b/packages/website/src/composition/composition.ts
+@@ -19,7 +19,7 @@ import { SnippetCopyBlock } from '../snippetCopy'
+ import { SnippetDisclosureBlock } from '../snippetDisclosure'
+ import { ApplyTheme, SaveThemePreference, resolveTheme } from '../theme'
+ import { type ThemePreference } from '../themePreference'
+-import { ThemeMenu } from '../view'
++import * as ThemeMenu from '../view/themeMenu'
+ import { HomeBinding } from './home'
+ 
+ export const SearchBinding = ApplicationDefinition.makeBinding(SearchBlock, {
