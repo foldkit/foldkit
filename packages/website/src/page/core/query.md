@@ -60,7 +60,7 @@ The parent wraps the Query's Message and routes that wrapper back through a lift
 
 #### Lift Configuration
 
-The `parentField` form tells `lift` which field contains an always-present Query Model. `toParentMessage` wraps the result Message produced by the Query's fetch Command in the parent's `Got*Message` variant. `lift` returns the child fold and Query operations expressed in the parent Model and Message types. These functions return ordinary update results; they do not perform Effects.
+The `parentField` form tells `lift` which field contains an always-present Query Model. That field's type must match the Query Model exactly; a field with a wider or narrower type needs the [full lens form](#optional-and-nested-queries). `toParentMessage` wraps the result Message produced by the Query's fetch Command in the parent's `Got*Message` variant. `lift` returns the child fold and Query operations expressed in the parent Model and Message types. These functions return ordinary update results; they do not perform Effects.
 
 #### Lifted Operations
 

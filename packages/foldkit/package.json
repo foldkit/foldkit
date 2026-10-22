@@ -43,6 +43,10 @@
       "types": "./dist/experimental/public.d.ts",
       "import": "./dist/experimental/public.js"
     },
+    "./experimental/form": {
+      "types": "./dist/experimental/form/public.d.ts",
+      "import": "./dist/experimental/form/public.js"
+    },
     "./experimental/machine": {
       "types": "./dist/experimental/machine/public.d.ts",
       "import": "./dist/experimental/machine/public.js"
