@@ -3355,7 +3355,7 @@ const keyed =
     return buildElement(tagName, data, children)
   }
 
-type ElementFunction<Message, AllowedMountRequirements> = (
+type ElementFunction<in Message, in AllowedMountRequirements> = (
   attributes: ReadonlyArray<
     | Attribute<Message, AllowedMountRequirements>
     | ChildAttribute<ChildAttributeRequirements<AllowedMountRequirements>>
@@ -3363,7 +3363,7 @@ type ElementFunction<Message, AllowedMountRequirements> = (
   children?: ReadonlyArray<Child>,
 ) => Html
 
-type VoidElementFunction<Message, AllowedMountRequirements> = (
+type VoidElementFunction<in Message, in AllowedMountRequirements> = (
   attributes: ReadonlyArray<
     | Attribute<Message, AllowedMountRequirements>
     | ChildAttribute<ChildAttributeRequirements<AllowedMountRequirements>>
@@ -3381,14 +3381,14 @@ export type TextareaAttribute<
   Readonly<{ _tag: 'InnerHTML' }>
 >
 
-type TextValueElementFunction<Message, AllowedMountRequirements> = (
+type TextValueElementFunction<in Message, in AllowedMountRequirements> = (
   attributes: ReadonlyArray<
     | TextareaAttribute<Message, AllowedMountRequirements>
     | ChildAttribute<ChildAttributeRequirements<AllowedMountRequirements>>
   >,
 ) => Html
 
-type KeyedElementFunction<Message, AllowedMountRequirements> = (
+type KeyedElementFunction<in Message, in AllowedMountRequirements> = (
   key: PropertyKey,
   attributes?: ReadonlyArray<
     | Attribute<Message, AllowedMountRequirements>
@@ -3397,7 +3397,7 @@ type KeyedElementFunction<Message, AllowedMountRequirements> = (
   children?: ReadonlyArray<Child>,
 ) => Html
 
-type KeyedTextValueElementFunction<Message, AllowedMountRequirements> = (
+type KeyedTextValueElementFunction<in Message, in AllowedMountRequirements> = (
   key: PropertyKey,
   attributes?: ReadonlyArray<
     | TextareaAttribute<Message, AllowedMountRequirements>
@@ -3405,13 +3405,15 @@ type KeyedTextValueElementFunction<Message, AllowedMountRequirements> = (
   >,
 ) => Html
 
-type KeyedFunction<Message, AllowedMountRequirements> = <Name extends TagName>(
+type KeyedFunction<in Message, in AllowedMountRequirements> = <
+  Name extends TagName,
+>(
   tagName: Name,
 ) => Name extends 'textarea'
   ? KeyedTextValueElementFunction<Message, AllowedMountRequirements>
   : KeyedElementFunction<Message, AllowedMountRequirements>
 
-type HtmlElements<Message, AllowedMountRequirements> = {
+type HtmlElements<in Message, in AllowedMountRequirements> = {
   a: ElementFunction<Message, AllowedMountRequirements>
   abbr: ElementFunction<Message, AllowedMountRequirements>
   address: ElementFunction<Message, AllowedMountRequirements>

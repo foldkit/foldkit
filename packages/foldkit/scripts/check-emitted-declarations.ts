@@ -573,6 +573,12 @@ const checks: ReadonlyArray<
     consumers: ['message-free-keyed.consume.ts'],
   },
   {
+    name: 'assemble-as',
+    accepted: ['assemble-as.accepted.ts'],
+    rejected: ['assemble-as.rejected.ts'],
+    consumers: ['assemble-as.consume.ts'],
+  },
+  {
     name: 'dual-update',
     accepted: ['dual-update.accepted.ts'],
     rejected: ['dual-update.rejected.ts'],

@@ -65,7 +65,8 @@
         "src/entry.server.ts",
         "src/**/*.test.ts",
         "scripts/**/*.test.ts",
-        "e2e/livePlaygrounds.ts"
+        "e2e/livePlaygrounds.ts",
+        "contract-witnesses/*.ts"
       ],
       "ignore": ["src/snippet/**"],
       "ignoreDependencies": [
