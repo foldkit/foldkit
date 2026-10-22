@@ -187,6 +187,27 @@ it('retains exact collision checks within literal and generic handler keys', () 
   >()
 })
 
+it('retains literal collisions beneath open handler key spaces', () => {
+  expectTypeOf<
+    ValidHandlerContracts<
+      | Command.Handler<string, boolean, boolean>
+      | Command.Handler<'Read', string, string>
+      | Command.Handler<'Read', number, string>
+    >
+  >().toEqualTypeOf<
+    Readonly<{ 'Conflicting Foldkit handler contracts': 'Command/Read' }>
+  >()
+  expectTypeOf<
+    ValidHandlerContracts<
+      | Command.Handler<`Read/${string}`, boolean, boolean>
+      | Command.Handler<'Read/One', string, string>
+      | Command.Handler<'Read/One', number, string>
+    >
+  >().toEqualTypeOf<
+    Readonly<{ 'Conflicting Foldkit handler contracts': 'Command/Read/One' }>
+  >()
+})
+
 const checkAssemblyTypes = (): void => {
   const Model = Schema.Struct({ text: Schema.String })
 

@@ -99,7 +99,9 @@
     "check:published-versions": "node scripts/check-published-versions.ts",
     "check:emitted-declarations": "pnpm --filter foldkit --filter @foldkit/ui check:emitted-declarations",
     "check:block-type-performance": "pnpm --filter foldkit check:block-type-performance",
-    "update:block-type-performance": "pnpm --filter foldkit update:block-type-performance"
+    "update:block-type-performance": "pnpm --filter foldkit update:block-type-performance",
+    "generate:block-contracts": "pnpm --filter website generate:block-contracts",
+    "check:block-contracts": "pnpm --filter website check:block-contracts"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^1.0.1",

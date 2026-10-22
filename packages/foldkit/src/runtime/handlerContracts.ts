@@ -93,7 +93,7 @@ type ConflictingKeysForEntry<
   ? ConflictingPairKey<Left, Right>
   : never
 
-type ConflictingIndexedKeys<
+type OpenKeyConflicts<
   Entries extends HandlerEntryShape,
   Index,
 > = Entries extends infer Left extends HandlerEntryShape
@@ -104,6 +104,31 @@ type ConflictingIndexedKeys<
       >
     : never
   : never
+
+type IsOpenHandlerKey<Key extends string> = Key extends unknown
+  ? {} extends Record<Key, unknown>
+    ? true
+    : false
+  : never
+
+type HasOpenHandlerKey<Entries extends HandlerEntryShape> =
+  Entries extends unknown ? IsOpenHandlerKey<Entries['key']> : never
+
+type ConflictsWithinGroup<
+  Entries extends HandlerEntryShape,
+  Whole = Entries,
+> = Entries extends infer Left extends HandlerEntryShape
+  ? ConflictingKeysForEntry<Left, Extract<Whole, HandlerEntryShape>>
+  : never
+
+type ConflictingIndexedKeys<Entries extends HandlerEntryShape, Index> =
+  true extends HasOpenHandlerKey<Entries>
+    ? OpenKeyConflicts<Entries, Index>
+    : {
+        [Key in keyof Index]: ConflictsWithinGroup<
+          Extract<Index[Key], HandlerEntryShape>
+        >
+      }[keyof Index]
 
 type ValidHandlerKindContracts<
   Requirements,

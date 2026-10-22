@@ -1836,7 +1836,7 @@ type SelectedEffectsImplementation<ImplementationValue, SelectedEffectsLayer> =
       : ImplementationValue[Key]
   }>
 
-interface BlockOperations<
+interface ReplaceEffectsLayer<
   OwnerValue extends Owner<string>,
   ModelSchema extends Schema.Codec<any, any, any, any>,
   MessageSchema extends Schema.Codec<any, any, any, any>,
@@ -1849,21 +1849,7 @@ interface BlockOperations<
     EffectsLayer: AnyLayer
   }>,
 > {
-  /** Authors an alternate embedded view against this completed Block's fixed
-   * child and Mount graph. Parents can select it through a Binding. */
-  readonly makeView: DefineView<
-    OwnerValue,
-    ModelSchema['Type'],
-    MessageSchema['Type'],
-    DefinitionViewRequirements<Mounts, Children>
-  >
-  /**
-   * Selects a replacement local Layer recipe and retains the selected child
-   * graph. The returned block keeps the Owner, operations, lifecycle
-   * registrations, and host handler contract. Selection builds no services
-   * and never constructs the previous local recipe.
-   */
-  readonly replaceEffectsLayer: <
+  <
     const SelectedEffectsLayer extends
       | Layer.Layer<never, any, any>
       | Layer.Layer<any, any, any>,
@@ -1891,7 +1877,7 @@ interface BlockOperations<
           >
         >
       >,
-  ) => Block<
+  ): Block<
     OwnerValue,
     ModelSchema,
     MessageSchema,
@@ -1899,6 +1885,44 @@ interface BlockOperations<
     Mounts,
     Children,
     SelectedEffectsImplementation<ImplementationValue, SelectedEffectsLayer>
+  >
+}
+
+interface BlockOperations<
+  OwnerValue extends Owner<string>,
+  ModelSchema extends Schema.Codec<any, any, any, any>,
+  MessageSchema extends Schema.Codec<any, any, any, any>,
+  OutMessageSchema extends Schema.Codec<any, any, any, any> | undefined,
+  Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
+  Children extends ReadonlyArray<AnyBinding>,
+  ImplementationValue extends Readonly<{
+    init: AnyFunction
+    update: AnyFunction
+    EffectsLayer: AnyLayer
+  }>,
+> {
+  /** Authors an alternate embedded view against this completed Block's fixed
+   * child and Mount graph. Parents can select it through a Binding. */
+  readonly makeView: DefineView<
+    OwnerValue,
+    ModelSchema['Type'],
+    MessageSchema['Type'],
+    DefinitionViewRequirements<Mounts, Children>
+  >
+  /**
+   * Selects a replacement local Layer recipe and retains the selected child
+   * graph. The returned block keeps the Owner, operations, lifecycle
+   * registrations, and host handler contract. Selection builds no services
+   * and never constructs the previous local recipe.
+   */
+  readonly replaceEffectsLayer: ReplaceEffectsLayer<
+    OwnerValue,
+    ModelSchema,
+    MessageSchema,
+    OutMessageSchema,
+    Mounts,
+    Children,
+    ImplementationValue
   >
   /**
    * Supplies the declared host-owned handler services with an ordinary Layer.
@@ -3289,6 +3313,150 @@ export interface AssembleBlock<
   >
 }
 
+type ExactContractChannel<Actual, Contract> =
+  IsAny<Actual> extends true
+    ? false
+    : [Actual] extends [never]
+      ? false
+      : [Actual] extends [Contract]
+        ? [Contract] extends [Actual]
+          ? true
+          : false
+        : false
+
+type MismatchedContractChannels<PublicImplementation, ContractImplementation> =
+  | Exclude<keyof PublicImplementation, keyof ContractImplementation>
+  | Exclude<keyof ContractImplementation, keyof PublicImplementation>
+  | {
+      [
+        Key in keyof ContractImplementation & keyof PublicImplementation
+      ]: ExactContractChannel<
+        PublicImplementation[Key],
+        ContractImplementation[Key]
+      > extends true
+        ? never
+        : Key
+    }[keyof ContractImplementation & keyof PublicImplementation]
+
+type ValidateContractImplementation<
+  ModelSchema extends AnySchema,
+  MessageSchema extends AnySchema,
+  ImplementationValue,
+  ContractImplementation,
+  Mismatched = MismatchedContractChannels<
+    PublicImplementationValue<
+      ModelSchema['Type'],
+      MessageSchema['Type'],
+      ImplementationValue
+    >,
+    PublicImplementationValue<
+      ModelSchema['Type'],
+      MessageSchema['Type'],
+      ContractImplementation
+    >
+  >,
+> = [Mismatched] extends [never]
+  ? unknown
+  : Readonly<{
+      'Block implementation must match its contract exactly': Mismatched
+    }>
+
+/** Completes a Composition whose implementation channels are already declared
+ * by an exact implementation contract. The returned Block is computed from the
+ * contract rather than inferred from the implementation, so a Block checked this
+ * way exposes no implementation-dependent type. Each implementation channel
+ * must equal the contract's channel in both directions, and the same
+ * initialization, view, registration, handler and Layer validation as
+ * `assembleBlock` applies to the supplied implementation. */
+export interface AssembleBlockAs<
+  OwnerValue extends Owner<string>,
+  ModelSchema extends AnySchema,
+  MessageSchema extends AnySchema,
+  OutMessageSchema extends AnySchema | undefined,
+  Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
+  Children extends ReadonlyArray<AnyBinding>,
+  ContractImplementation,
+> {
+  <const ImplementationValue extends object>(
+    implementation: ImplementationValue &
+      NoInfer<
+        Omit<
+          DefinitionImplementation<
+            ModelSchema,
+            MessageSchema,
+            OutMessageSchema
+          >,
+          'EffectsLayer'
+        > &
+          Readonly<{ EffectsLayer?: AnyLayer }> &
+          ExactImplementationKeys<ImplementationValue> &
+          ValidateInit<ImplementationValue> &
+          ValidateView<
+            ImplementationValue,
+            OwnerValue,
+            ModelSchema['Type'],
+            MessageSchema['Type'],
+            DefinitionViewRequirements<Mounts, Children>
+          > &
+          ValidateAssembleBlockComposition<
+            OwnerValue,
+            ModelSchema,
+            MessageSchema,
+            OutMessageSchema,
+            Mounts,
+            Children,
+            CompletedImplementationValue<ImplementationValue>
+          > &
+          ValidateContractImplementation<
+            ModelSchema,
+            MessageSchema,
+            CompletedImplementationValue<ImplementationValue>,
+            ContractImplementation
+          >
+      >,
+  ): CompletedBlock<
+    OwnerValue,
+    ModelSchema,
+    MessageSchema,
+    OutMessageSchema,
+    Mounts,
+    Children,
+    PublicAssembleBlockImplementation<
+      ModelSchema,
+      MessageSchema,
+      ContractImplementation
+    >
+  >
+}
+
+/** Selects an exact implementation contract for a Composition. Call the result
+ * with the implementation: `Composition.assembleAs<Implementation>()({ init,
+ * update, view })`. */
+export interface AssembleAs<
+  OwnerValue extends Owner<string>,
+  ModelSchema extends AnySchema,
+  MessageSchema extends AnySchema,
+  OutMessageSchema extends AnySchema | undefined,
+  Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
+  Children extends ReadonlyArray<AnyBinding>,
+> {
+  <
+    ContractImplementation extends DefinitionImplementation<
+      ModelSchema,
+      MessageSchema,
+      OutMessageSchema
+    >,
+  >(): AssembleBlockAs<
+    OwnerValue,
+    ModelSchema,
+    MessageSchema,
+    OutMessageSchema,
+    Mounts,
+    Children,
+    ContractImplementation
+  >
+}
+
 /**
  * The `HtmlBuilder` type supplied by a Block or Application Composition.
  * Pass `typeof SearchComposition` to retain that Composition's Message,
@@ -3476,6 +3644,16 @@ export type Composition<
   /** Completes this Composition with its implementation channels and returns
    * a passive Block. */
   readonly assembleBlock: AssembleBlock<
+    OwnerValue,
+    ModelSchema,
+    DispatchSchemaFor<MessageSchema, Children>,
+    OutMessageSchema,
+    Mounts,
+    Children
+  >
+  /** Completes this Composition against an exact implementation contract,
+   * checking the implementation instead of inferring the Block from it. */
+  readonly assembleAs: AssembleAs<
     OwnerValue,
     ModelSchema,
     DispatchSchemaFor<MessageSchema, Children>,
@@ -4334,6 +4512,7 @@ export const makeBaseDefinition = (
       makeUpdate: composition.makeUpdate,
       makeView: composition.makeView,
       assembleBlock: composition.assembleBlock,
+      assembleAs: () => composition.assembleBlock,
     }
 
     compositions.add(publicComposition)
