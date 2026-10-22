@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test'
 
 import * as Page from '../page'
 
+const CACHED_DETAIL_TIMEOUT_MS = 300
+
 test.describe('api-cache-query example', () => {
   test('loads cleanly', async ({ page }) => {
     await Page.assertLoadedCleanly(page)
@@ -22,8 +24,9 @@ test.describe('api-cache-query example', () => {
     await expect(page.getByText('Cached')).toBeVisible()
 
     await firstPost.click()
-    await expect(page.getByText('Loading post…')).toHaveCount(0)
-    await expect(page.getByText('Fetched at')).toBeVisible()
+    await expect(page.getByText('Fetched at')).toBeVisible({
+      timeout: CACHED_DETAIL_TIMEOUT_MS,
+    })
 
     await page.getByRole('button', { name: 'Back to posts' }).click()
     await page.getByRole('tab', { name: 'Stats' }).click()
