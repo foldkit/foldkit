@@ -81,6 +81,17 @@ function createKeyToPreviousIndex(
   return map
 }
 
+function createKeySet(children: Array<VNode>): Set<Key> {
+  const keys = new Set<Key>()
+  for (let childIndex = 0; childIndex < children.length; ++childIndex) {
+    const key = children[childIndex]?.key
+    if (key !== undefined) {
+      keys.add(key)
+    }
+  }
+  return keys
+}
+
 const hooks: Array<ModuleHookName> = [
   'create',
   'update',
@@ -558,6 +569,8 @@ export function init(
     let nextStartVnode = nextChildren[nextStartIndex]
     let nextEndVnode = nextChildren[nextEndIndex]
     let previousKeyToIndex: Map<Key, number> | undefined
+    let nextKeys: Set<Key> | undefined
+    let deferredRemovals: Array<VNode> | undefined
     let indexInPreviousChildren: number | undefined
     let vnodeToMove: VNode
 
@@ -630,6 +643,7 @@ export function init(
             previousEndIndex,
             parentElement,
           )
+          nextKeys = createKeySet(nextChildren)
         }
         const nextStartKey = nextStartVnode.key
         indexInPreviousChildren =
@@ -685,6 +699,17 @@ export function init(
               ),
             )
           } else {
+            const previousStartKey = previousStartVnode.key
+            if (
+              previousStartKey !== undefined &&
+              !nextKeys!.has(previousStartKey)
+            ) {
+              deferredRemovals ??= []
+              deferredRemovals.push(previousStartVnode)
+              previousChildren[previousStartIndex] = undefined as any
+              previousStartVnode = previousChildren[++previousStartIndex]
+              continue
+            }
             patchVnode(vnodeToMove, nextStartVnode, insertedVnodeQueue)
             previousChildren[indexInPreviousChildren] = undefined as any
             if (isChildOf(parentElement, vnodeToMove.elm!)) {
@@ -720,6 +745,14 @@ export function init(
         nextStartIndex,
         nextEndIndex,
         insertedVnodeQueue,
+      )
+    }
+    if (deferredRemovals !== undefined) {
+      removeVnodes(
+        parentElement,
+        deferredRemovals,
+        0,
+        deferredRemovals.length - 1,
       )
     }
     if (previousStartIndex <= previousEndIndex) {
