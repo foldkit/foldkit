@@ -15,7 +15,7 @@ import type * as Mount from '../mount/index.js'
 import type * as Subscription from '../subscription/public.js'
 import * as Update from '../update/index.js'
 import type { BindingBlockEvidence } from './binding.js'
-import { LocalMountsTypeId } from './identity.js'
+import type { Owner } from './owner.js'
 import { type OwnedName, makeOwnedName } from './ownerName.js'
 import type {
   HandlerOfHostDefinition,
@@ -27,7 +27,7 @@ import type {
   RequirementsOfBlock,
   SubscriptionRequirements,
   ValidateComposition,
-  ValidateImplementationComposition,
+  ValidateImplementationChannels,
 } from './requirements.js'
 
 const Message = defineMessageUnion({
@@ -78,6 +78,14 @@ const LoadRoom = Command.define(makeOwnedName('Requirements', 'LoadRoom'), {
     return () => ReadHostState().effect
   },
 })
+
+const InitializeWithValue = Command.define(
+  makeOwnedName('Requirements', 'Initialize'),
+  {
+    args: { value: Schema.String },
+    messages: [Message.CompletedWork],
+  },
+)
 
 const model = Model.make({ value: '' })
 
@@ -531,89 +539,200 @@ it('reports policy Commands retained by an exposed operation binding', () => {
   >().toEqualTypeOf<Command.HandlerOf<typeof Refresh>>()
 })
 
-type LocalValidationCompleteA = Readonly<{
-  [LocalMountsTypeId]: readonly []
-  bindings: readonly []
-  init: () => Readonly<{ model: 'A' }>
-  update: () => Readonly<{ model: 'A' }>
-  subscriptions: EmptyRecord
-  managedResources: EmptyRecord
-  EffectsLayer: never
-  hostHandlers: readonly ['InvalidA']
-}>
+type LocalOwner = Owner<'Requirements', true>
+type DeclaredOwner = Owner<'Requirements', false>
+type EmptyLayer = Layer.Layer<never, never, never>
+type PlainInit = () => Readonly<{ model: Model }>
+type PlainUpdate = (
+  model: Model,
+  message: Message,
+) => Update.Return<Model, Message>
 
-type LocalValidationCompleteB = Readonly<{
-  [LocalMountsTypeId]: readonly []
-  bindings: readonly []
-  init: () => Readonly<{ model: 'B' }>
-  update: () => Readonly<{ model: 'B' }>
-  subscriptions: EmptyRecord
-  managedResources: EmptyRecord
-  EffectsLayer: never
-  hostHandlers: readonly ['InvalidB']
-}>
+type EmptyCompositionChannels<
+  OwnerValue,
+  Init,
+  UpdateFunction,
+  EffectsLayer,
+  HostHandlers,
+> = ValidateImplementationChannels<
+  OwnerValue,
+  readonly [],
+  readonly [],
+  Init,
+  UpdateFunction,
+  EmptyRecord,
+  EmptyRecord,
+  EffectsLayer,
+  HostHandlers
+>
 
-type LocalValidationPartial = Readonly<{
-  init: () => Readonly<{ model: 'Partial' }>
-  hostHandlers: readonly ['InvalidPartial']
-}>
-
-type LocalValidationOptional = Omit<
-  LocalValidationCompleteA,
-  'bindings' | 'hostHandlers'
-> &
-  Readonly<{
-    bindings?: readonly []
-    hostHandlers: readonly ['InvalidOptional']
-  }>
-
-type LocalValidationDefinition = Readonly<{ kind: 'Fallback' }>
-
-it('retains validation evidence across complete and partial composition unions', () => {
-  type MixedEvidence = ValidateImplementationComposition<
-    LocalValidationDefinition,
-    LocalValidationCompleteA | LocalValidationPartial
-  >['Block hostHandlers must contain layered Foldkit definitions']
-  type CompleteUnionEvidence = ValidateImplementationComposition<
-    LocalValidationDefinition,
-    LocalValidationCompleteA | LocalValidationCompleteB
-  >['Block hostHandlers must contain layered Foldkit definitions']
-
-  expectTypeOf<MixedEvidence>().toEqualTypeOf<'InvalidA' | 'InvalidPartial'>()
-  expectTypeOf<CompleteUnionEvidence>().toEqualTypeOf<'InvalidA' | 'InvalidB'>()
-})
-
-it('keeps fallback validation exact for optional and top-level types', () => {
-  type OptionalEvidence = ValidateImplementationComposition<
-    LocalValidationDefinition,
-    LocalValidationOptional
-  >['Block hostHandlers must contain layered Foldkit definitions']
-
-  expectTypeOf<OptionalEvidence>().toEqualTypeOf<'InvalidOptional'>()
+it('accepts implementation channels whose handlers are provided locally or declared for the host', () => {
   expectTypeOf<
-    ValidateImplementationComposition<LocalValidationDefinition, any>
-  >().toEqualTypeOf<
-    Readonly<{
-      'Block hostHandlers must contain layered Foldkit definitions': unknown
-    }>
-  >()
-  expectTypeOf<
-    ValidateImplementationComposition<LocalValidationDefinition, unknown>
-  >().toEqualTypeOf<unknown>()
-  expectTypeOf<
-    ValidateImplementationComposition<LocalValidationDefinition, never>
-  >().toEqualTypeOf<never>()
-})
-
-type AcceptedLocalValidation<Composition> = Omit<Composition, 'hostHandlers'> &
-  Readonly<{ hostHandlers: readonly [] }>
-
-it('accepts complete local composition unions', () => {
-  expectTypeOf<
-    ValidateImplementationComposition<
-      LocalValidationDefinition,
-      | AcceptedLocalValidation<LocalValidationCompleteA>
-      | AcceptedLocalValidation<LocalValidationCompleteB>
+    EmptyCompositionChannels<
+      LocalOwner,
+      typeof init,
+      typeof update,
+      typeof LoadRoom.layer,
+      readonly [typeof Initialize, typeof ReadHostState]
     >
   >().toEqualTypeOf<unknown>()
+  expectTypeOf<
+    EmptyCompositionChannels<
+      LocalOwner,
+      PlainInit | typeof init,
+      PlainUpdate,
+      EmptyLayer,
+      readonly [typeof Initialize]
+    >
+  >().toEqualTypeOf<unknown>()
+})
+
+it('reports every handler the implementation channels leave for the host', () => {
+  type Missing = EmptyCompositionChannels<
+    LocalOwner,
+    typeof init,
+    typeof update,
+    typeof LoadRoom.layer,
+    readonly []
+  >['Block handler requirements must be provided locally or listed in hostHandlers']
+  type Expected =
+    | Command.HandlerOf<typeof Initialize>
+    | Command.HandlerOf<typeof ReadHostState>
+
+  expectTypeOf<Exclude<Missing, Expected>>().toEqualTypeOf<never>()
+  expectTypeOf<Exclude<Expected, Missing>>().toEqualTypeOf<never>()
+})
+
+it('reports a declared host handler that no implementation channel requires', () => {
+  expectTypeOf<
+    EmptyCompositionChannels<
+      LocalOwner,
+      PlainInit,
+      PlainUpdate,
+      EmptyLayer,
+      readonly [typeof Initialize]
+    >['Block hostHandlers must match residual handler requirements']
+  >().toEqualTypeOf<Command.HandlerOf<typeof Initialize>>()
+})
+
+it('reports conflicting handler contracts across the implementation channels', () => {
+  type ConflictingUpdate = (
+    model: Model,
+    message: Message,
+  ) => Update.Return<
+    Model,
+    Message,
+    Command.HandlerOf<typeof InitializeWithValue>
+  >
+
+  expectTypeOf<
+    EmptyCompositionChannels<
+      LocalOwner,
+      typeof init,
+      ConflictingUpdate,
+      EmptyLayer,
+      readonly [typeof Initialize, typeof InitializeWithValue]
+    >['Conflicting Foldkit handler contracts']
+  >().toEqualTypeOf<'Command/Requirements/Initialize'>()
+})
+
+it('rejects erased requirements in the implementation channels', () => {
+  type ErasedUpdate = (
+    model: Model,
+    message: Message,
+  ) => Update.Return<Model, Message, any>
+
+  expectTypeOf<
+    EmptyCompositionChannels<
+      LocalOwner,
+      typeof init,
+      ErasedUpdate,
+      typeof LoadRoom.layer,
+      readonly [typeof Initialize, typeof ReadHostState]
+    >['Block requirement sources must preserve exact service types']
+  >().toEqualTypeOf<'init, update, or exposed operations'>()
+})
+
+it('reports every invalid host definition', () => {
+  expectTypeOf<
+    EmptyCompositionChannels<
+      LocalOwner,
+      PlainInit,
+      PlainUpdate,
+      EmptyLayer,
+      readonly ['Invalid']
+    >['Block hostHandlers must contain layered Foldkit definitions']
+  >().toEqualTypeOf<'Invalid'>()
+  expectTypeOf<
+    EmptyCompositionChannels<
+      LocalOwner,
+      PlainInit,
+      PlainUpdate,
+      EmptyLayer,
+      readonly ['InvalidA'] | readonly ['InvalidB']
+    >['Block hostHandlers must contain layered Foldkit definitions']
+  >().toEqualTypeOf<'InvalidA' | 'InvalidB'>()
+  expectTypeOf<
+    EmptyCompositionChannels<
+      LocalOwner,
+      PlainInit,
+      PlainUpdate,
+      EmptyLayer,
+      any
+    >
+  >().toEqualTypeOf<
+    Readonly<{
+      'Block hostHandlers must contain layered Foldkit definitions': any
+    }>
+  >()
+})
+
+it('declares no host handlers when hostHandlers may be undefined', () => {
+  type Missing = EmptyCompositionChannels<
+    LocalOwner,
+    typeof init,
+    typeof update,
+    typeof LoadRoom.layer,
+    readonly [typeof Initialize] | undefined
+  >['Block handler requirements must be provided locally or listed in hostHandlers']
+  type Expected =
+    | Command.HandlerOf<typeof Initialize>
+    | Command.HandlerOf<typeof ReadHostState>
+
+  expectTypeOf<Exclude<Missing, Expected>>().toEqualTypeOf<never>()
+  expectTypeOf<Exclude<Expected, Missing>>().toEqualTypeOf<never>()
+  expectTypeOf<
+    EmptyCompositionChannels<
+      DeclaredOwner,
+      PlainInit,
+      PlainUpdate,
+      EmptyLayer,
+      readonly ['Invalid'] | undefined
+    >
+  >().toEqualTypeOf<unknown>()
+})
+
+it('validates only host definitions for a declared Owner', () => {
+  expectTypeOf<
+    EmptyCompositionChannels<
+      DeclaredOwner,
+      typeof init,
+      typeof update,
+      typeof LoadRoom.layer,
+      readonly []
+    >
+  >().toEqualTypeOf<unknown>()
+  expectTypeOf<
+    EmptyCompositionChannels<
+      DeclaredOwner,
+      PlainInit,
+      PlainUpdate,
+      EmptyLayer,
+      readonly ['Invalid']
+    >
+  >().toEqualTypeOf<
+    Readonly<{
+      'Block hostHandlers must contain layered Foldkit definitions': 'Invalid'
+    }>
+  >()
 })

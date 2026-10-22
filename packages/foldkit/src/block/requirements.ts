@@ -335,11 +335,15 @@ export type HandlerOfHostDefinition<Definition> = HandlerRequirements<
   HostDefinitionRequirements<Definition>
 >
 
+type HostDefinitionsOfHandlers<HostHandlers> = [HostHandlers] extends [
+  ReadonlyArray<unknown>,
+]
+  ? HostHandlers[number]
+  : never
+
 type HostDefinitions<Block> =
-  Block extends Readonly<{
-    hostHandlers: infer Definitions extends ReadonlyArray<unknown>
-  }>
-    ? Definitions[number]
+  Block extends Readonly<{ hostHandlers: infer Definitions }>
+    ? HostDefinitionsOfHandlers<Definitions>
     : never
 
 type DeclaredHostHandlers<Block> = HandlerOfHostDefinition<
@@ -506,14 +510,11 @@ type UnexpectedHostHandlers<Block> = Exclude<
   ResidualHandlers<Block>
 >
 
-type InvalidHostDefinitions<Block> =
-  HostDefinitions<Block> extends infer Definition
-    ? Definition extends unknown
-      ? [HandlerOfHostDefinition<Definition>] extends [never]
-        ? Definition
-        : never
-      : never
+type InvalidHostDefinition<Definition> = Definition extends unknown
+  ? [HandlerOfHostDefinition<Definition>] extends [never]
+    ? Definition
     : never
+  : never
 
 type PrecisionFailures<Block> =
   | ErasedRequirement<
@@ -552,12 +553,12 @@ type ValidatePreciseRequirements<Block> = [PrecisionFailures<Block>] extends [
       'Block requirement sources must preserve exact service types': PrecisionFailures<Block>
     }>
 
-type ValidateHostDefinitions<Block> = [InvalidHostDefinitions<Block>] extends [
-  never,
-]
+type ValidateHostDefinitions<Definitions> = [
+  InvalidHostDefinition<Definitions>,
+] extends [never]
   ? unknown
   : Readonly<{
-      'Block hostHandlers must contain layered Foldkit definitions': InvalidHostDefinitions<Block>
+      'Block hostHandlers must contain layered Foldkit definitions': InvalidHostDefinition<Definitions>
     }>
 
 type ValidateMissingHostHandlers<Block> = [MissingHostHandlers<Block>] extends [
@@ -613,7 +614,7 @@ type ValidateFullComposition<Composition> =
   ValidateBlockOperationNames<Composition> &
     ValidateOperationRegistrations<Composition> &
     ValidatePreciseRequirements<Composition> &
-    ValidateHostDefinitions<Composition> &
+    ValidateHostDefinitions<HostDefinitions<Composition>> &
     ValidateMissingHostHandlers<Composition> &
     ValidateUnexpectedHostHandlers<Composition> &
     ValidHandlerContracts<HandlerContracts<Composition>>
@@ -622,11 +623,6 @@ type SatisfyLocalRequirements<Requirements, Provided> =
   Requirements extends Scoped<any, any>
     ? Exclude<Requirements, Provided>
     : SatisfyRequirements<Requirements, Provided>
-
-type CompositionChildHandlerEvidence<Composition> =
-  Composition extends Readonly<{ bindings: infer Children }>
-    ? ChildHandlerEvidence<Children>
-    : never
 
 type UnscopedHandlerRequirements<Requirements> =
   Requirements extends Scoped<any, any>
@@ -648,94 +644,33 @@ interface LocalCompositionChannelsShape {
   readonly registeredChildEvidence: unknown
 }
 
-type CompleteLocalComposition = Readonly<{
-  [LocalMountsTypeId]: unknown
-  bindings: ReadonlyArray<unknown>
-  init: unknown
-  update: unknown
-  subscriptions: unknown
-  managedResources: unknown
-  EffectsLayer: unknown
-  hostHandlers: ReadonlyArray<unknown>
+type LocalCompositionChannels<
+  Mounts,
+  Children extends ReadonlyArray<unknown>,
+  Init,
+  UpdateFunction,
+  Subscriptions,
+  ManagedResources,
+  EffectsLayer,
+  HostHandlers,
+> = Readonly<{
+  initRequirements: ProducerRequirements<Init>
+  updateRequirements: ProducerRequirements<UpdateFunction>
+  subscriptionRequirements: SubscriptionRequirements<Subscriptions>
+  managedResourceRequirements: ManagedResourceLifecycleRequirements<ManagedResources>
+  managedResourceServices: ManagedResourceRuntimeServices<ManagedResources>
+  mountRequirements: MountRequirements<Mounts>
+  layerOutputs: LayerOutputs<EffectsLayer>
+  layerInputs: LayerInputs<EffectsLayer>
+  hostDefinitions: HostDefinitionsOfHandlers<HostHandlers>
+  childHandlerEvidence: ChildHandlerEvidence<Children>
+  registrationEvidence:
+    | ProducerRegistrationEvidence<Init>
+    | ProducerRegistrationEvidence<UpdateFunction>
+  registeredChildEvidence: RequirementsOfBindings<Children>
 }>
-
-type HasCompleteLocalCompositionShape<Composition> =
-  IsAny<Composition> extends true
-    ? false
-    : [Composition] extends [never]
-      ? false
-      : IsUnknown<Composition> extends true
-        ? false
-        : [Composition] extends [CompleteLocalComposition]
-          ? true
-          : false
-
-type FastLocalCompositionChannels<Composition> = [Composition] extends [
-  Readonly<{
-    [LocalMountsTypeId]: infer Mounts
-    bindings: infer Children extends ReadonlyArray<unknown>
-    init: infer Init
-    update: infer UpdateFunction
-    subscriptions: infer Subscriptions
-    managedResources: infer ManagedResources
-    EffectsLayer: infer EffectsLayer
-    hostHandlers: infer HostHandlers extends ReadonlyArray<unknown>
-  }>,
-]
-  ? Readonly<{
-      initRequirements: ProducerRequirements<Init>
-      updateRequirements: ProducerRequirements<UpdateFunction>
-      subscriptionRequirements: SubscriptionRequirements<Subscriptions>
-      managedResourceRequirements: ManagedResourceLifecycleRequirements<ManagedResources>
-      managedResourceServices: ManagedResourceRuntimeServices<ManagedResources>
-      mountRequirements: MountRequirements<Mounts>
-      layerOutputs: LayerOutputs<EffectsLayer>
-      layerInputs: LayerInputs<EffectsLayer>
-      hostDefinitions: HostHandlers[number]
-      childHandlerEvidence: ChildHandlerEvidence<Children>
-      registrationEvidence:
-        | ProducerRegistrationEvidence<Init>
-        | ProducerRegistrationEvidence<UpdateFunction>
-      registeredChildEvidence: RequirementsOfBindings<Children>
-    }>
-  : never
-
-type FallbackLocalCompositionChannels<Composition> = Readonly<{
-  initRequirements: Composition extends Readonly<{ init: infer Init }>
-    ? ProducerRequirements<Init>
-    : never
-  updateRequirements: Composition extends Readonly<{
-    update: infer UpdateFunction
-  }>
-    ? ProducerRequirements<UpdateFunction>
-    : never
-  subscriptionRequirements: Composition extends Readonly<{
-    subscriptions: infer Subscriptions
-  }>
-    ? SubscriptionRequirements<Subscriptions>
-    : never
-  managedResourceRequirements: ManagedResourceLifecycleRequirements<
-    BlockManagedResources<Composition>
-  >
-  managedResourceServices: ManagedResourceRuntimeServices<
-    BlockManagedResources<Composition>
-  >
-  mountRequirements: MountRequirements<BlockLocalMounts<Composition>>
-  layerOutputs: LayerOutputs<BlockLayer<Composition>>
-  layerInputs: LayerInputs<BlockLayer<Composition>>
-  hostDefinitions: HostDefinitions<Composition>
-  childHandlerEvidence: CompositionChildHandlerEvidence<Composition>
-  registrationEvidence: LocalOperationRegistrationEvidence<Composition>
-  registeredChildEvidence: RegisteredChildEvidence<Composition>
-}>
-
-type LocalCompositionChannels<Composition> =
-  HasCompleteLocalCompositionShape<Composition> extends true
-    ? FastLocalCompositionChannels<Composition>
-    : FallbackLocalCompositionChannels<Composition>
 
 type ValidateLocalCompositionChannels<
-  Composition,
   Channels extends LocalCompositionChannelsShape,
   LocalRequirements =
     | Channels['initRequirements']
@@ -772,13 +707,6 @@ type ValidateLocalCompositionChannels<
     | ErasedRequirement<'EffectsLayer outputs', Channels['layerOutputs']>
     | ErasedRequirement<'EffectsLayer inputs', Channels['layerInputs']>
     | ErasedRequirement<'hostHandlers', DeclaredHostHandlersValue>,
-  InvalidHostDefinition = Channels['hostDefinitions'] extends infer Definition
-    ? Definition extends unknown
-      ? [HandlerOfHostDefinition<Definition>] extends [never]
-        ? Definition
-        : never
-      : never
-    : never,
   MissingRegistration = Exclude<
     Channels['registrationEvidence'],
     Channels['registeredChildEvidence']
@@ -795,22 +723,17 @@ type ValidateLocalCompositionChannels<
         | Channels['layerInputs']
         | DeclaredHostHandlersValue
       >,
-> = ValidateBlockOperationNames<Composition> &
-  ([MissingRegistration] extends [never]
-    ? unknown
-    : Readonly<{
-        'Block operations may use only registered child bindings': MissingRegistration
-      }>) &
+> = ([MissingRegistration] extends [never]
+  ? unknown
+  : Readonly<{
+      'Block operations may use only registered child bindings': MissingRegistration
+    }>) &
   ([PrecisionFailure] extends [never]
     ? unknown
     : Readonly<{
         'Block requirement sources must preserve exact service types': PrecisionFailure
       }>) &
-  ([InvalidHostDefinition] extends [never]
-    ? unknown
-    : Readonly<{
-        'Block hostHandlers must contain layered Foldkit definitions': InvalidHostDefinition
-      }>) &
+  ValidateHostDefinitions<Channels['hostDefinitions']> &
   ([MissingHostHandler] extends [never]
     ? unknown
     : Readonly<{
@@ -823,10 +746,38 @@ type ValidateLocalCompositionChannels<
       }>) &
   ValidHandlerContracts<HandlerContract>
 
-type ValidateLocalComposition<Composition> = ValidateLocalCompositionChannels<
-  Composition,
-  LocalCompositionChannels<Composition>
->
+/**
+ * @internal Validates the implementation channels of one `assembleBlock`
+ * implementation.
+ * The channel values are the type arguments, so overload candidates that
+ * resolve the same channels share one validation, and candidates whose
+ * channels are generic defer it.
+ */
+export type ValidateImplementationChannels<
+  OwnerValue,
+  Mounts,
+  Children extends ReadonlyArray<unknown>,
+  Init,
+  UpdateFunction,
+  Subscriptions,
+  ManagedResources,
+  EffectsLayer,
+  HostHandlers,
+> =
+  IsConcreteOwner<OwnerValue> extends true
+    ? ValidateLocalCompositionChannels<
+        LocalCompositionChannels<
+          Mounts,
+          Children,
+          Init,
+          UpdateFunction,
+          Subscriptions,
+          ManagedResources,
+          EffectsLayer,
+          HostHandlers
+        >
+      >
+    : ValidateHostDefinitions<HostDefinitionsOfHandlers<HostHandlers>>
 
 type HandlerContracts<Block> = HandlerRequirements<
   | OperationRequirementsOfBlock<Block>
@@ -852,7 +803,7 @@ type ValidateDefinitionComposition<Definition, Composition> =
   }>
     ? IsConcreteOwner<OwnerValue> extends true
       ? ValidateFullComposition<Composition>
-      : ValidateHostDefinitions<Composition>
+      : ValidateHostDefinitions<HostDefinitions<Composition>>
     : ValidateFullComposition<Composition>
 
 /**
@@ -860,17 +811,3 @@ type ValidateDefinitionComposition<Definition, Composition> =
  */
 export type ValidateComposition<Definition, Composition> =
   ValidateDefinitionComposition<Definition, Composition>
-
-type ValidateDefinitionImplementation<Definition, Composition> =
-  Definition extends Readonly<{ owner: infer OwnerValue }>
-    ? IsConcreteOwner<OwnerValue> extends true
-      ? ValidateLocalComposition<Composition>
-      : ValidateHostDefinitions<Composition>
-    : ValidateLocalComposition<Composition>
-
-/**
- * @internal Validates implementation-owned channels after child bindings have
- * already validated their block graphs.
- */
-export type ValidateImplementationComposition<Definition, Composition> =
-  ValidateDefinitionImplementation<Definition, Composition>

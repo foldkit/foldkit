@@ -292,3 +292,66 @@ interleaved in two blocks, medians): cold completion 5842 ms to
 numbers. The remaining cost is spread across the update-result
 evidence channels, requirement satisfaction, deferred policy resolution, and the
 child Binding graph, each a few percent of a request.
+
+## Placement lookup index
+
+Deferred policy resolution finds the child Binding registered at a placement.
+`BindingAt` distributed a conditional type over `Children[number]` for every
+lookup, so each lookup cost one structural check per registered Binding, and a
+Composition with many children paid for the whole list on every lookup. On the
+Website root request that was 1,664 instantiation-cache misses and 0.21 s of
+self time, the largest single alias in the request.
+
+`BindingAt` now indexes `BindingIndex<Children>`, a key-remapped mapped type
+keyed by each Binding's placement and built once per Composition. Placements
+that are not a single string literal (`string`, template patterns, unions,
+enum members, `never`, `any`) go into one unindexed bucket that keeps the
+scan, and a lookup key that is not a single string literal scans every Binding
+as before, so the resolved Binding is the same for every input.
+`deferredPolicy.test.ts` pins each placement shape. After the change the
+lookup costs 150 misses and under 0.01 s on the same request; the fixture
+counts move within run-to-run noise.
+
+## Channel-keyed assembly validation
+
+Each `assembleBlock` overload validated its candidate through a `Readonly`
+composition object built from that candidate's inferred implementation.
+Overload resolution builds that object once per candidate, so the local
+requirement validation ran once per candidate even when every candidate had
+resolved the same `init`, `update`, lifecycle registrations, `EffectsLayer`,
+and `hostHandlers`. On the instrumented build's cold Website root completion
+this showed up as the composition channel projection instantiating about
+fourteen times per Block, 0.21 s of a 3.7 s request.
+
+`ValidateImplementationChannels` takes those channel types directly.
+Candidates that resolve the same channels share one cached validation, and
+candidates whose channels are generic defer it. The validation error
+keys, the accepted and rejected fixtures, and the emitted declarations are
+unchanged.
+
+The fixtures keep their widths. The before column holds the ceilings this
+change builds on; the after column holds the highest counts seen over six
+runs:
+
+| Fixture                    | Before instantiations | After instantiations | Before types | After types |
+| -------------------------- | --------------------: | -------------------: | -----------: | ----------: |
+| `deep-composition-8`       |               859,410 |              767,670 |       46,030 |      44,061 |
+| `wide-composition-100`     |             1,609,445 |            1,389,469 |       73,107 |      71,562 |
+| `command-requirements-200` |               386,770 |              354,779 |       60,899 |      59,354 |
+
+On the instrumented TypeScript 7.0.2 build, one cold root completion went
+from 254,263 instantiation-cache misses to 246,357. The per-candidate
+projection no longer appears; `SatisfyLocalRequirements` fell from 634 to 492
+misses and `IsAny` from 3,318 to 2,674. The remaining cost is spread across
+the update-result evidence channels, deferred policy resolution, delivery
+indexes, and the child Binding graph.
+
+Measured together with the placement lookup index on the Website root
+`ApplicationBlock.` member completion with the pinned native TypeScript 7.0.2
+on one idle macOS host (four root completions and two diagnostics runs per
+arm, interleaved in two blocks, foldkit rebuilt per arm, medians): cold
+completion 4600 ms to 4098 ms, post-edit completion 4440 ms to 3974 ms, clean
+root diagnostics 4540 ms to 4098 ms; on 7.1.0-beta, cold completion 3256 ms
+to 2944 ms. The same run measured `9a5f9307c`, the commit the previous
+section built on, at 5627 ms cold, so the two sections' runs are not
+comparable with each other.

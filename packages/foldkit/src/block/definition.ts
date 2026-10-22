@@ -118,7 +118,7 @@ import type {
   HandlerOfHostDefinition,
   HandlerRequirements,
   ValidateComposition,
-  ValidateImplementationComposition,
+  ValidateImplementationChannels,
   ValidateUniqueChildPlacements,
 } from './requirements.js'
 import type { ValidateConstructionRequirements } from './scope.js'
@@ -1749,28 +1749,6 @@ type ValidateViewForDefinition<
   Children extends ReadonlyArray<AnyBinding>,
 > = ValidateDefinitionView<View>
 
-type ImplementationForValidation<
-  Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
-  Children extends ReadonlyArray<AnyBinding>,
-  ImplementationValue extends Readonly<{
-    init: AnyFunction
-    update: AnyFunction
-    EffectsLayer: AnyLayer
-  }>,
-> = Readonly<{
-  [LocalMountsTypeId]: Mounts
-  bindings: Children
-  init: ImplementationValue['init']
-  update: ImplementationValue['update']
-  subscriptions: ImplementationSubscriptions<ImplementationValue>
-  managedResources: ImplementationManagedResources<ImplementationValue>
-  EffectsLayer: CompleteEffectsLayer<
-    ImplementationValue['EffectsLayer'],
-    Children
-  >
-  hostHandlers: ImplementationHostHandlers<ImplementationValue>
-}>
-
 type MergeLayers<Left extends Layer.Any, Right extends Layer.Any> = Layer.Layer<
   Layer.Success<Left | Right>,
   Layer.Error<Left | Right>,
@@ -2464,10 +2442,6 @@ type ManagedExposedOperationsImplementation<
 > &
   Readonly<{ operations: ExposedOperations }>
 
-type AssembleBlockDefinition<OwnerValue extends Owner<string>> = Readonly<{
-  owner: OwnerValue
-}>
-
 type AssembleBlockComposition<
   OwnerValue extends Owner<string>,
   ModelSchema extends AnySchema,
@@ -2486,15 +2460,28 @@ type AssembleBlockComposition<
     ? Readonly<{ OutMessage: OutMessageSchema }>
     : NoOutMessage)
 
-type AssembleBlockCompositionForValidation<
+type ValidateAssembleBlockImplementation<
+  OwnerValue extends Owner<string>,
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
-  ImplementationValue,
-> = ImplementationForValidation<
-  Mounts,
-  Children,
-  CheckedImplementationValue<ImplementationValue>
->
+  CheckedValue extends Readonly<{
+    init: AnyFunction
+    update: AnyFunction
+    EffectsLayer: AnyLayer
+  }>,
+> = [CheckedValue] extends [never]
+  ? unknown
+  : ValidateImplementationChannels<
+      OwnerValue,
+      Mounts,
+      Children,
+      CheckedValue['init'],
+      CheckedValue['update'],
+      ImplementationSubscriptions<CheckedValue>,
+      ImplementationManagedResources<CheckedValue>,
+      CompleteEffectsLayer<CheckedValue['EffectsLayer'], Children>,
+      ImplementationHostHandlers<CheckedValue>
+    >
 
 type ValidateAssembleBlockComposition<
   OwnerValue extends Owner<string>,
@@ -2504,9 +2491,11 @@ type ValidateAssembleBlockComposition<
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
   ImplementationValue,
-> = ValidateImplementationComposition<
-  AssembleBlockDefinition<OwnerValue>,
-  AssembleBlockCompositionForValidation<Mounts, Children, ImplementationValue>
+> = ValidateAssembleBlockImplementation<
+  OwnerValue,
+  Mounts,
+  Children,
+  CheckedImplementationValue<ImplementationValue>
 > &
   ValidateBindingOperationNames<
     ImplementationExposedOperations<ImplementationValue>
