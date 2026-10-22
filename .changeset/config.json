@@ -48,6 +48,7 @@
     "@foldkit/examples-e2e",
     "@foldkit/lustre-benchmark",
     "charting-example",
+    "pokedex-example",
     "state-machine-example",
     "personal-blog-example",
     "interrupting-commands-example",
