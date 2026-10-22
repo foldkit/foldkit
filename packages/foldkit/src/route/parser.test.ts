@@ -677,6 +677,105 @@ describe('mapTo', () => {
     const url = router({ id: 'abc' })
     expect(url).toBe('/users/abc')
   })
+
+  describe('with a route field that has a constructor default', () => {
+    const SearchRoute = defineRouteUnion({
+      Search: {
+        category: Schema.String,
+        searchText: Schema.Option(Schema.String).pipe(
+          Schema.withConstructorDefault(Effect.succeed(Option.none())),
+        ),
+      },
+    })
+
+    const searchRouter = pipe(
+      literal('search'),
+      slash(string('category')),
+      query(
+        Schema.Struct({ searchText: Schema.OptionFromOptional(Schema.String) }),
+      ),
+      mapTo(SearchRoute.Search),
+    )
+
+    it.effect('parses a URL that carries the field', () =>
+      Effect.gen(function* () {
+        const [result] = yield* searchRouter.parse(
+          ['search', 'books'],
+          'searchText=effect',
+        )
+        expect(result).toStrictEqual({
+          _tag: 'Search',
+          category: 'books',
+          searchText: Option.some('effect'),
+        })
+      }),
+    )
+
+    it.effect('parses a URL that omits the field', () =>
+      Effect.gen(function* () {
+        const [result] = yield* searchRouter.parse(['search', 'books'])
+        expect(result).toStrictEqual({
+          _tag: 'Search',
+          category: 'books',
+          searchText: Option.none(),
+        })
+      }),
+    )
+
+    it('builds a URL from route data', () => {
+      expect(
+        searchRouter({ category: 'books', searchText: Option.some('effect') }),
+      ).toBe('/search/books?searchText=effect')
+      expect(
+        searchRouter({ category: 'books', searchText: Option.none() }),
+      ).toBe('/search/books')
+    })
+
+    it('builds a URL for a route whose only field has a default', () => {
+      const FilterRoute = defineRouteUnion({
+        Filter: {
+          searchText: Schema.Option(Schema.String).pipe(
+            Schema.withConstructorDefault(Effect.succeed(Option.none())),
+          ),
+        },
+      })
+
+      const filterRouter = pipe(
+        root,
+        query(
+          Schema.Struct({
+            searchText: Schema.OptionFromOptional(Schema.String),
+          }),
+        ),
+        mapTo(FilterRoute.Filter),
+      )
+
+      expect(filterRouter({ searchText: Option.some('effect') })).toBe(
+        '/?searchText=effect',
+      )
+    })
+
+    it('rejects a parser that does not produce a required field', () => {
+      // @ts-expect-error the parser never produces `category`
+      pipe(literal('search'), mapTo(SearchRoute.Search))
+    })
+
+    it('rejects a parser that prints a field the route does not have', () => {
+      const pagedSearchParser = pipe(
+        literal('search'),
+        slash(string('category')),
+        slash(string('page')),
+        query(
+          Schema.Struct({
+            searchText: Schema.OptionFromOptional(Schema.String),
+          }),
+        ),
+      )
+
+      // @ts-expect-error the route has no `page` for the parser to print
+      mapTo(SearchRoute.Search)(pagedSearchParser)
+    })
+  })
 })
 
 describe('parseUrlWithFallback', () => {

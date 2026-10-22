@@ -83,6 +83,7 @@
     "ResolvableCommandMatcher",
     "ResultMessageForMatcher",
     "RichUnionSchema",
+    "RouteBiparser",
     "SceneManagedResourceEntry",
     "StrictKeys",
     "SyncFields",
