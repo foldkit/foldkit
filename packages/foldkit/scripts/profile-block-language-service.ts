@@ -82,6 +82,7 @@ type ScenarioResult = Readonly<{
 type Options = Readonly<{
   runs: number
   timeoutMs: number
+  scenario: 'all' | 'message-constructors'
 }>
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -178,16 +179,23 @@ const parseOptions = (): Options => {
       help: { type: 'boolean', default: false },
       runs: { type: 'string', default: '3' },
       'timeout-ms': { type: 'string', default: '60000' },
+      scenario: { type: 'string', default: 'all' },
     },
   })
   if (values.help) {
     process.stdout.write(
-      'Usage: node packages/foldkit/scripts/profile-block-language-service.ts [--runs N] [--timeout-ms N]\n',
+      'Usage: node packages/foldkit/scripts/profile-block-language-service.ts [--runs N] [--timeout-ms N] [--scenario all|message-constructors]\n',
     )
     process.exit(0)
   }
 
+  const scenario = values.scenario
+  if (scenario !== 'all' && scenario !== 'message-constructors') {
+    return fail(`--scenario must be all or message-constructors.`)
+  }
+
   return {
+    scenario,
     runs: parsePositiveInteger(values.runs, '--runs'),
     timeoutMs: parsePositiveInteger(values['timeout-ms'], '--timeout-ms'),
   }
@@ -905,6 +913,40 @@ const diagnosticPosition = (value: unknown): Position => {
   return { line: value['line'], character: value['character'] }
 }
 
+const findRouteError = (
+  source: SourceDocument,
+  errors: ReadonlyArray<unknown>,
+): Option.Option<unknown> => {
+  const routeStart = positionAt(
+    source.text,
+    uniqueOccurrence(source.text, 'route: () => '),
+  )
+  const routeEnd = {
+    line: routeStart.line,
+    character: routeStart.character + 'route'.length,
+  }
+  return EffectArray.findFirst(errors, diagnostic => {
+    if (
+      !Predicate.isObject(diagnostic) ||
+      diagnostic['code'] !== routeErrorCode ||
+      !Predicate.isString(diagnostic['message']) ||
+      !/number/.test(diagnostic['message']) ||
+      !/assignable/.test(diagnostic['message']) ||
+      !Predicate.isObject(diagnostic['range'])
+    ) {
+      return false
+    }
+    const start = diagnosticPosition(diagnostic['range']['start'])
+    const end = diagnosticPosition(diagnostic['range']['end'])
+    return (
+      start.line === routeStart.line &&
+      start.character === routeStart.character &&
+      end.line === routeEnd.line &&
+      end.character === routeEnd.character
+    )
+  })
+}
+
 const measureDiagnostic = async (
   client: LspClient,
   timeoutMs: number,
@@ -931,34 +973,8 @@ const measureDiagnostic = async (
       Predicate.isObject(diagnostic) &&
       diagnostic['severity'] === errorSeverity,
   )
-  const routeStart = positionAt(
-    source.text,
-    uniqueOccurrence(source.text, 'route: () => '),
-  )
-  const routeEnd = {
-    line: routeStart.line,
-    character: routeStart.character + 'route'.length,
-  }
-  const maybeRouteError = EffectArray.findFirst(errors, diagnostic => {
-    if (
-      !Predicate.isObject(diagnostic) ||
-      diagnostic['code'] !== routeErrorCode ||
-      !Predicate.isString(diagnostic['message']) ||
-      !/number/.test(diagnostic['message']) ||
-      !/assignable/.test(diagnostic['message']) ||
-      !Predicate.isObject(diagnostic['range'])
-    ) {
-      return false
-    }
-    const start = diagnosticPosition(diagnostic['range']['start'])
-    const end = diagnosticPosition(diagnostic['range']['end'])
-    return (
-      start.line === routeStart.line &&
-      start.character === routeStart.character &&
-      end.line === routeEnd.line &&
-      end.character === routeEnd.character
-    )
-  })
+  const maybeRouteError =
+    expected === 'RouteError' ? findRouteError(source, errors) : Option.none()
   if (expected === 'Clean' && EffectArray.isArrayNonEmpty(errors)) {
     return fail(`${label} retained errors: ${JSON.stringify(errors)}.`)
   }
@@ -1000,6 +1016,44 @@ const measureDiagnostic = async (
     diagnosticEvidence,
   }
 }
+
+type MessageConstructorAccess = 'local' | 'completed'
+
+const messageConstructorSource = (access: MessageConstructorAccess): string => {
+  const expression =
+    access === 'local'
+      ? 'Message.ChangedUrl'
+      : 'ApplicationBlock.Message.ChangedUrl'
+
+  // The source text is the workload: only the member access differs.
+  return [
+    "import { ApplicationBlock } from './block'",
+    "import { Message } from './message'",
+    'void ApplicationBlock',
+    'void Message',
+    `export const onUrlChange = ${expression}`,
+    '',
+  ].join('\n')
+}
+
+const messageConstructorScenario = (
+  timeoutMs: number,
+  access: MessageConstructorAccess,
+): Promise<ScenarioResult> =>
+  runScenario(timeoutMs, async client => {
+    const entry = document('packages/website/src/entry.ts')
+    await openDocument(client, entry, messageConstructorSource(access))
+
+    return [
+      await measureDiagnostic(
+        client,
+        timeoutMs,
+        `messageConstructor.${access}.cold`,
+        entry,
+        'Clean',
+      ),
+    ]
+  })
 
 const changedUrlWorkflowScenario = (
   timeoutMs: number,
@@ -1243,23 +1297,25 @@ const main = async (): Promise<void> => {
   let serverInfo: ServerInfo | undefined
 
   for (let run = 1; run <= options.runs; run += 1) {
-    const hover = await hoverScenario(options.timeoutMs)
-    const definition = await definitionScenario(options.timeoutMs)
-    const completion = await completionScenario(options.timeoutMs)
-    const bindingCompletion = await bindingCompletionScenario(options.timeoutMs)
-    const changedUrlWorkflow = await changedUrlWorkflowScenario(
-      options.timeoutMs,
-    )
-    serverInfo ??= hover.serverInfo
-    const expectedServer = serverInfo
-
-    const scenarioInfos = [
-      hover.serverInfo,
-      definition.serverInfo,
-      completion.serverInfo,
-      bindingCompletion.serverInfo,
-      changedUrlWorkflow.serverInfo,
-    ]
+    const scenarios =
+      options.scenario === 'message-constructors'
+        ? [
+            await messageConstructorScenario(options.timeoutMs, 'local'),
+            await messageConstructorScenario(options.timeoutMs, 'completed'),
+          ]
+        : [
+            await hoverScenario(options.timeoutMs),
+            await definitionScenario(options.timeoutMs),
+            await completionScenario(options.timeoutMs),
+            await bindingCompletionScenario(options.timeoutMs),
+            await changedUrlWorkflowScenario(options.timeoutMs),
+            await messageConstructorScenario(options.timeoutMs, 'local'),
+            await messageConstructorScenario(options.timeoutMs, 'completed'),
+          ]
+    serverInfo ??= scenarios[0]?.serverInfo
+    const expectedServer =
+      serverInfo ?? fail(`No scenario produced server metadata.`)
+    const scenarioInfos = scenarios.map(scenario => scenario.serverInfo)
     if (
       scenarioInfos.some(
         actual =>
@@ -1274,13 +1330,7 @@ const main = async (): Promise<void> => {
 
     runs.push({
       run,
-      measurements: [
-        ...hover.measurements,
-        ...definition.measurements,
-        ...completion.measurements,
-        ...bindingCompletion.measurements,
-        ...changedUrlWorkflow.measurements,
-      ],
+      measurements: scenarios.flatMap(scenario => scenario.measurements),
     })
   }
 
@@ -1293,7 +1343,7 @@ const main = async (): Promise<void> => {
 
   const output = {
     metadata: {
-      formatVersion: 2,
+      formatVersion: 3,
       measuredAt: new Date().toISOString(),
       sourceCommit,
       sourceWorkloadDirty,
@@ -1307,25 +1357,38 @@ const main = async (): Promise<void> => {
       platform: process.platform,
       architecture: process.arch,
       runs: options.runs,
+      scenario: options.scenario,
       timeoutMs: options.timeoutMs,
       completionSnippetSupport: true,
       documentChangeMode:
-        'Incremental ranges for Binding and changed URL workflows',
+        options.scenario === 'message-constructors'
+          ? 'One fresh document per cold constructor scenario; no edits'
+          : 'Incremental ranges for Binding and changed URL workflows',
     },
     workload: {
-      hoverFirst: `${definitionPath}#ApplicationDefinition`,
-      hoverAfterEdit: `${compositionPath}#SearchBinding`,
-      definitionFirst: `${compositionPath}#${bindingFactoryMarker(
-        readFileSync(join(workspaceRoot, compositionPath), 'utf8'),
-      )}`,
-      completion: `${changedUrlPath}#previousRoute.`,
-      bindingCompletion: `${changedUrlPath}#SearchBinding.|informRouteChanged()`,
-      changedUrlHover: `${changedUrlPath}#SearchBinding at informRouteChanged()`,
-      changedUrlDiagnostics: {
-        source: changedUrlPath,
-        edit: 'route: () => nextRoute becomes route: () => 1709, then restores nextRoute',
-        expectedErrorCode: routeErrorCode,
-        mode: 'Full pull diagnostics without previousResultId',
+      ...(options.scenario === 'all'
+        ? {
+            hoverFirst: `${definitionPath}#ApplicationDefinition`,
+            hoverAfterEdit: `${compositionPath}#SearchBinding`,
+            definitionFirst: `${compositionPath}#${bindingFactoryMarker(
+              readFileSync(join(workspaceRoot, compositionPath), 'utf8'),
+            )}`,
+            completion: `${changedUrlPath}#previousRoute.`,
+            bindingCompletion: `${changedUrlPath}#SearchBinding.|informRouteChanged()`,
+            changedUrlHover: `${changedUrlPath}#SearchBinding at informRouteChanged()`,
+            changedUrlDiagnostics: {
+              source: changedUrlPath,
+              edit: 'route: () => nextRoute becomes route: () => 1709, then restores nextRoute',
+              expectedErrorCode: routeErrorCode,
+              mode: 'Full pull diagnostics without previousResultId',
+            },
+          }
+        : {}),
+      messageConstructorDiagnostics: {
+        source: 'packages/website/src/entry.ts',
+        local: messageConstructorSource('local'),
+        completed: messageConstructorSource('completed'),
+        mode: 'One cold full pull diagnostic request per fresh server',
       },
     },
     summary: summarize(runs),

@@ -70,7 +70,7 @@ the source returns to its original text plus the deliberate newline.
 The client advertises snippet support and pull diagnostics, requires incremental
 synchronization and UTF-16 positions, and returns null workspace configuration
 sections to select server defaults. This protocol profile and the moved Binding
-completion site are recorded in format version 2; compare measurements only when
+completion site were introduced in format version 2; compare measurements only when
 these workload settings match. Existing hover and definition scenarios also
 record post-whitespace and post-semantic-edit requests where applicable.
 
@@ -86,6 +86,27 @@ the run. The actual-file Binding hover requires `InitializedBinding` with the `S
 Owner and rejects a direct `any`, `unknown`, or `never` type. Missing route errors
 or errors remaining after restoration fail instead of recording an
 artificially fast response.
+
+### Message constructor access
+
+A completed Block forwards its local Message constructors through its composed
+Message Schema. Reading a constructor through that Schema can demand the child
+graph even when reading the original local constructor is inexpensive. Profile
+these two access paths separately:
+
+```sh
+node packages/foldkit/scripts/profile-block-language-service.ts --scenario message-constructors --runs 3 > /tmp/foldkit-message-constructors.json
+```
+
+Each case opens a minimal document at the Website's `src/entry.ts` URI. Both
+import `ApplicationBlock` and the local `Message`, keep both imports in use, and
+export `onUrlChange`. Only the accessed expression differs:
+`Message.ChangedUrl` or `ApplicationBlock.Message.ChangedUrl`. Each case starts a
+fresh native server and requires a full diagnostic response with no errors.
+These are cold type-checking measurements, not post-edit or application runtime
+measurements. The output records both document texts, their hashes, the selected
+scenario, and compiler and workspace identities. Format version 3 adds this pair
+of cases. The default `all` selection also retains the existing workloads.
 
 The benchmark has no CI latency threshold. Run baseline and candidate samples
 on the same idle host and compare their metadata before comparing medians.
