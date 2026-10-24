@@ -12,6 +12,7 @@ import {
   type SlowSubscriptionDependenciesContext,
   type SlowUpdateContext,
   __resolveSlowConfig,
+  defaultSlowCallback,
 } from './slowPhase.js'
 
 const Message = defineMessageUnion({
@@ -221,6 +222,90 @@ describe('slow warnings', () => {
       expect(subscriptionDependenciesContext?.subscriptionKey).toBe('count')
     } finally {
       await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it.each([
+    ['visible', true],
+    ['hidden', false],
+  ] as const)(
+    'reports whether the document was visible when it is %s',
+    async (visibilityState, isDocumentVisible) => {
+      vi.spyOn(document, 'visibilityState', 'get').mockReturnValue(
+        visibilityState,
+      )
+      const contexts: Array<SlowContext<Model, Message>> = []
+
+      const element = makeElement({
+        Model,
+        init: () => ({ model: { count: 0 } }),
+        update,
+        view,
+        subscriptions,
+        container,
+        slow: {
+          show: 'Always',
+          onSlow: context => {
+            contexts.push(context)
+          },
+          thresholdOverrides: {
+            Update: FORCE_SLOW_WARNING_THRESHOLD_MS,
+            View: FORCE_SLOW_WARNING_THRESHOLD_MS,
+            Patch: FORCE_SLOW_WARNING_THRESHOLD_MS,
+            SubscriptionDependencies: FORCE_SLOW_WARNING_THRESHOLD_MS,
+          },
+        },
+      })
+
+      const fiber = Effect.runFork(element.start())
+
+      try {
+        await awaitBodyText('count:0')
+        clickIncrement()
+        await awaitBodyText('count:1')
+
+        await vi.waitFor(() => {
+          expect(slowTags(contexts)).toEqual(
+            expect.arrayContaining([
+              'View',
+              'Patch',
+              'Update',
+              'SubscriptionDependencies',
+            ]),
+          )
+        })
+        expect(
+          contexts.every(
+            context => context.isDocumentVisible === isDocumentVisible,
+          ),
+        ).toBe(true)
+      } finally {
+        vi.restoreAllMocks()
+        await Effect.runPromise(Fiber.interrupt(fiber))
+      }
+    },
+  )
+
+  it('notes a hidden document in the default warning', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const warnUpdate = (isDocumentVisible: boolean): string => {
+      defaultSlowCallback({
+        _tag: 'Update',
+        previousModel: { count: 0 },
+        nextModel: { count: 1 },
+        message: Message.ClickedIncrement(),
+        durationMs: 12,
+        thresholdMs: 4,
+        isDocumentVisible,
+      })
+      return String(warn.mock.lastCall?.[0])
+    }
+
+    try {
+      expect(warnUpdate(false)).toContain('The document was hidden')
+      expect(warnUpdate(true)).not.toContain('The document was hidden')
+    } finally {
+      warn.mockRestore()
     }
   })
 

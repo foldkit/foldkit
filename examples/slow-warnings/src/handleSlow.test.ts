@@ -20,6 +20,7 @@ describe('handleSlow', () => {
         _tag: 'Update',
         durationMs: 12,
         thresholdMs: 4,
+        isDocumentVisible: true,
         previousModel: initialModel,
         nextModel: modifyFields(initialModel, {
           activeWorkload: () => 'Update',
