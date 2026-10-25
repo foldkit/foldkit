@@ -107,7 +107,7 @@ const init = CalendarExampleComposition.makeInit(
   }),
 )
 
-const update = CalendarExampleComposition.makeUpdate()
+const update = CalendarExampleComposition.makeUpdate({})
 
 // Class names live at module scope, and each view mode gets its own view
 // function below.

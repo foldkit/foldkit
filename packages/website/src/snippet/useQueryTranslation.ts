@@ -1,4 +1,4 @@
-import { Effect, Match, Option, Schema, pipe } from 'effect'
+import { Effect, Option, Schema, pipe } from 'effect'
 import { AsyncData, Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -23,6 +23,8 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
+const ApplicationComposition = ApplicationDefinition.makeComposition()
+
 const FetchPosts = ApplicationDefinition.makeCommand('FetchPosts', {
   messages: [Message.CompletedFetchPosts],
   handler: function* () {
@@ -35,21 +37,17 @@ const FetchPosts = ApplicationDefinition.makeCommand('FetchPosts', {
   },
 })
 
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Match.value(message).pipe(
-    Match.tagsExhaustive({
-      EnteredPostsRoute: () =>
-        Option.match(AsyncData.revalidateOrLoad(model.posts), {
-          onNone: () => ({ model }),
-          onSome: nextPosts => ({
-            model: modifyFields(model, { posts: () => nextPosts }),
-            commands: [FetchPosts()],
-          }),
-        }),
-
-      CompletedFetchPosts: ({ result }) => ({
-        model: modifyFields(model, { posts: AsyncData.settle(result) }),
+const update = ApplicationComposition.makeUpdate({
+  EnteredPostsRoute: model =>
+    Option.match(AsyncData.revalidateOrLoad(model.posts), {
+      onNone: () => ({ model }),
+      onSome: nextPosts => ({
+        model: modifyFields(model, { posts: () => nextPosts }),
+        commands: [FetchPosts()],
       }),
     }),
+
+  CompletedFetchPosts: ApplicationDefinition.makeFieldsStep.fromMessage(
+    ({ result }) => ({ posts: AsyncData.settle(result) }),
   ),
-)
+})

@@ -573,6 +573,19 @@ export function make(config: unknown): unknown {
   return installBlock(application, block)
 }
 
+type ElementFromBlock<
+  BlockValue extends AnyBlock,
+  Config,
+  PortsValue extends Ports | undefined,
+> = [ProgramRequirements<BlockValue, Config>] extends [infer Requirements]
+  ? Element<
+      RootPorts<PortsValue>,
+      Requirements,
+      RuntimeServicesOfBlock<BlockValue>,
+      Layer.Success<BlockValue['EffectsLayer']>
+    >
+  : never
+
 /** Creates a passive container-scoped Program from a completed root Block. */
 export function makeElement<
   const Config extends object,
@@ -585,12 +598,7 @@ export function makeElement<
     ElementWithoutFlagsModeFields<NoInfer<BlockValue>> &
     NoInfer<ValidateProgramBlock<BlockValue, 'Element'>> &
     NoInfer<ExactElementHostConfig<Config>>,
-): Element<
-  RootPorts<PortsValue>,
-  ProgramRequirements<BlockValue, Config>,
-  RuntimeServicesOfBlock<BlockValue>,
-  Layer.Success<BlockValue['EffectsLayer']>
->
+): ElementFromBlock<BlockValue, Config, PortsValue>
 export function makeElement<
   const Config extends object,
   const BlockValue extends AnyBlock,

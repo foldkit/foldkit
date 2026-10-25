@@ -46,15 +46,13 @@ export const SaveCount = CountDefinition.makeCommand('SaveCount', {
 const init = CountComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),
 }))
-const update = CountComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    RequestedSetCount: ({ count }) => ({
-      model: Struct.modifyFields(model, { count: () => count }),
-      commands: [SaveCount({ count })],
-    }),
-    CompletedSaveCount: () => ({ model }),
+const update = CountComposition.makeUpdate({
+  RequestedSetCount: (model, { count }) => ({
+    model: Struct.modifyFields(model, { count: () => count }),
+    commands: [SaveCount({ count })],
   }),
-)
+  CompletedSaveCount: model => ({ model }),
+})
 const view = CountComposition.makeView.withInputs<typeof ViewInputs.Type>(
   (model, { label }, h) =>
     h.div([], [`${label}: ${globalThis.String(model.count)}`]),
@@ -94,15 +92,13 @@ const ReportingComposition = ReportingDefinition.makeComposition()
 const reportingInit = ReportingComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),
 }))
-const reportingUpdate = ReportingComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    RequestedSetCount: ({ count }) => ({
-      model: Struct.modifyFields(model, { count: () => count }),
-      outMessage: OutMessage.ChangedCount({ count }),
-    }),
-    CompletedSaveCount: () => ({ model }),
+const reportingUpdate = ReportingComposition.makeUpdate({
+  RequestedSetCount: (model, { count }) => ({
+    model: Struct.modifyFields(model, { count: () => count }),
+    outMessage: OutMessage.ChangedCount({ count }),
   }),
-)
+  CompletedSaveCount: model => ({ model }),
+})
 const reportingView = ReportingComposition.makeView((model, h) =>
   h.div([], [globalThis.String(model.count)]),
 )
@@ -163,7 +159,9 @@ const prepareHostBlock = () =>
       model: Model.make({ count: 0 }),
       commands: [HostSave()],
     })),
-    update: HostComposition.makeUpdate(model => ({ model })),
+    update: HostComposition.makeUpdate({
+      CompletedHostSave: model => ({ model }),
+    }),
     view: HostComposition.makeView((model, h) =>
       h.div([], [globalThis.String(model.count)]),
     ),
@@ -192,7 +190,7 @@ export const preparePageBlock = () =>
     init: PageComposition.makeInit(() => ({
       model: Model.make({ count: 0 }),
     })),
-    update: PageComposition.makeUpdate(),
+    update: PageComposition.makeUpdate({}),
     view: PageComposition.makeView((model, h) => ({
       title: `Count ${globalThis.String(model.count)}`,
       body: h.main([], [globalThis.String(model.count)]),
@@ -230,9 +228,11 @@ export const makeChoice = <Item, Encoded>(Item: ItemSchema<Item, Encoded>) => {
       init: ChoiceComposition.makeInit((selected: Item) => ({
         model: ChoiceModel.make({ selected }),
       })),
-      update: ChoiceComposition.makeUpdate((model, { selected }) => ({
-        model: Struct.modifyFields(model, { selected: () => selected }),
-      })),
+      update: ChoiceComposition.makeUpdate({
+        RequestedSelect: (model, { selected }) => ({
+          model: Struct.modifyFields(model, { selected: () => selected }),
+        }),
+      }),
       view: ChoiceComposition.makeView.withInputs<
         Readonly<{ format: (item: Item) => string }>
       >((model, { format }, h) => h.div([], [format(model.selected)])),

@@ -117,7 +117,7 @@ const init = DatePickerExampleComposition.makeInit(
   }),
 )
 
-const update = DatePickerExampleComposition.makeUpdate()
+const update = DatePickerExampleComposition.makeUpdate({})
 
 // Class names live at module scope, and each view mode gets its own view
 // function below. The calendar panel has no border of its own: the

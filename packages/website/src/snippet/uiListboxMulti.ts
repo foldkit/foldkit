@@ -74,7 +74,7 @@ const init = PeoplePickerComposition.makeInit(() => ({
   },
 }))
 
-const update = PeoplePickerComposition.makeUpdate()
+const update = PeoplePickerComposition.makeUpdate({})
 
 const people: ReadonlyArray<typeof Person.Type> = [
   'Michael Bluth',

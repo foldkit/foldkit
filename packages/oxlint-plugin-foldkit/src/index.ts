@@ -7,6 +7,7 @@ import { keyedRequiredForMappedRows } from './rules/keyed-required-for-mapped-ro
 import { lazyViewStableReferences } from './rules/lazy-view-stable-references.ts'
 import { mountFactoryMustUseElement } from './rules/mount-factory-must-use-element.ts'
 import { noArrayIndexViewKeys } from './rules/no-array-index-view-keys.ts'
+import { noBindingWriteCoordination } from './rules/no-binding-write-coordination.ts'
 import { noChildMessageConstructionInRoot } from './rules/no-child-message-construction-in-root.ts'
 import { noCompletedBlockModelInSchema } from './rules/no-completed-block-model-in-schema.ts'
 import { noDirectBlockStateUpdate } from './rules/no-direct-block-state-update.ts'
@@ -47,6 +48,7 @@ const basePlugin = Plugin.define({
     'lazy-view-stable-references': lazyViewStableReferences,
     'mount-factory-must-use-element': mountFactoryMustUseElement,
     'no-array-index-view-keys': noArrayIndexViewKeys,
+    'no-binding-write-coordination': noBindingWriteCoordination,
     'no-child-message-construction-in-root': noChildMessageConstructionInRoot,
     'no-completed-block-model-in-schema': noCompletedBlockModelInSchema,
     'no-direct-block-state-update': noDirectBlockStateUpdate,

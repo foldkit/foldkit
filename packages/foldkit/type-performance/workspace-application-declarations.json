@@ -1,0 +1,16 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "files": ["../../../examples/workspace/src/block.ts"],
+  "include": [],
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "noEmitOnError": true,
+    "skipLibCheck": false,
+    "types": [],
+    "rootDir": "../../../examples/workspace/src",
+    "lib": ["ESNext", "DOM"]
+  }
+}

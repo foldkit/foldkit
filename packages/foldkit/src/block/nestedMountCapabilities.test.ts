@@ -26,7 +26,9 @@ const leafView = leafRegistered.makeView((model, h) =>
 const prepareLeafBlock = () =>
   leafRegistered.prepareBlock({
     init: () => ({ model: LeafModel.make({ count: 0 }) }),
-    update: leafRegistered.makeUpdate(model => ({ model })),
+    update: leafRegistered.makeUpdate({
+      CompletedObserveLeaf: model => ({ model }),
+    }),
     view: leafView,
     EffectsLayer: ObserveLeaf.layer,
   })
@@ -67,7 +69,7 @@ const prepareMiddleBlock = () =>
         toParentModel: leaf => MiddleModel.make({ leaf }),
       }),
     ),
-    update: middleRegistered.makeUpdate(),
+    update: middleRegistered.makeUpdate({}),
     view: middleView,
   })
 const middleBlock: Block.FromAssemblyWithView<
@@ -107,7 +109,7 @@ const prepareRootBlock = () =>
         toParentModel: middle => RootModel.make({ middle }),
       }),
     ),
-    update: rootRegistered.makeUpdate(),
+    update: rootRegistered.makeUpdate({}),
     view: rootView,
   })
 const rootBlock: Block.FromAssemblyWithView<

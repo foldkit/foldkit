@@ -2,17 +2,24 @@ import { Effect } from 'effect'
 import { Block, Update } from 'foldkit'
 
 import {
+  ChildBindingWithOutMessagePolicy,
   DefinitionWithoutOutMessage,
   Message,
   Model,
   OutMessage,
   OutMessageStepsComposition,
   OutMessageStepsDefinition,
+  ParentComposition,
   ParentOutMessage,
   PrimitiveDefinition,
   emitClosed,
   emitPrimitive,
 } from './outmessage-steps.accepted.js'
+
+// @ts-expect-error Old callback authoring cannot bypass the registered Binding policy guard.
+ParentComposition.makeUpdate(model =>
+  Update.combineSteps(model, [ChildBindingWithOutMessagePolicy.close()]),
+)
 
 // @ts-expect-error A Definition must declare its OutMessage contract.
 DefinitionWithoutOutMessage.makeOutMessageStep(OutMessage.ClosedPicker())
@@ -20,31 +27,31 @@ DefinitionWithoutOutMessage.makeOutMessageStep(OutMessage.ClosedPicker())
 OutMessageStepsComposition.makeOutMessageStep
 // @ts-expect-error A foreign OutMessage cannot escape the owning contract.
 OutMessageStepsDefinition.makeOutMessageStep(ParentOutMessage.ObservedClosure())
-// @ts-expect-error A selected choice requires its payload.
-OutMessageStepsDefinition.makeOutMessageStep({ _tag: 'SelectedChoice' })
-OutMessageStepsDefinition.makeOutMessageStep({
+// @ts-expect-error A callback's selected choice requires its payload.
+OutMessageStepsDefinition.makeOutMessageStep(() => ({
+  _tag: 'SelectedChoice',
+}))
+OutMessageStepsDefinition.makeOutMessageStep(() => ({
   _tag: 'SelectedChoice',
   // @ts-expect-error A selected choice retains its declared payload type.
   value: 1,
-})
-// @ts-expect-error An OutMessage value cannot be undefined.
+}))
+// @ts-expect-error Step authoring requires a callback.
 OutMessageStepsDefinition.makeOutMessageStep(undefined)
-// @ts-expect-error A callback is not an OutMessage value.
-OutMessageStepsDefinition.makeOutMessageStep(() => OutMessage.ClosedPicker())
-// @ts-expect-error Construction accepts only the OutMessage value.
+// @ts-expect-error Construction accepts only one callback.
 OutMessageStepsDefinition.makeOutMessageStep(OutMessage.ClosedPicker(), 1)
 // @ts-expect-error Primitive OutMessages retain their declared alternatives.
-PrimitiveDefinition.makeOutMessageStep('Foreign')
+PrimitiveDefinition.makeOutMessageStep(() => 'Foreign')
 
 declare const unknownOutMessage: unknown
 declare const erasedOutMessage: any
 declare const maybeOutMessage: typeof OutMessage.Type | undefined
-// @ts-expect-error Unknown values require validation before Step construction.
-OutMessageStepsDefinition.makeOutMessageStep(unknownOutMessage)
-// @ts-expect-error An any value cannot erase the declared OutMessage contract.
-OutMessageStepsDefinition.makeOutMessageStep(erasedOutMessage)
-// @ts-expect-error Optional OutMessages are not definite values.
-OutMessageStepsDefinition.makeOutMessageStep(maybeOutMessage)
+// @ts-expect-error Unknown callback results require validation before Step construction.
+OutMessageStepsDefinition.makeOutMessageStep(() => unknownOutMessage)
+// @ts-expect-error An any callback result cannot erase the declared OutMessage contract.
+OutMessageStepsDefinition.makeOutMessageStep(() => erasedOutMessage)
+// @ts-expect-error Optional callback results are not definite OutMessages.
+OutMessageStepsDefinition.makeOutMessageStep(() => maybeOutMessage)
 // @ts-expect-error The Step checks the owning Model.
 emitClosed({ count: 'invalid', status: 'Idle' })
 // @ts-expect-error The Step accepts only its incoming Model.

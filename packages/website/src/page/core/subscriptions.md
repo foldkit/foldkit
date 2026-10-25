@@ -59,6 +59,10 @@ Choose the lifecycle primitive by what owns the work:
 | [Mount](/core/mount)                       | One rendered element                                | Listeners, observers, or imperative work that needs that element                              |
 | [ManagedResource](/core/managed-resources) | A Model condition, with a typed handle for Commands | A `WebSocket`, camera stream, or third-party instance that other parts of the program consume |
 
+Before choosing a ManagedResource, ask: which Command or other consumer needs to read its handle? Cleanup alone does not require a ManagedResource. A Subscription Scope can install a listener and remove it when the Model no longer needs it. Use `messages: []` and a `Stream<never>` when that work emits no Messages.
+
+For example, an unsaved-draft warning can use a Subscription that installs a `beforeunload` listener while drafts exist. Cancel the event synchronously in the listener; a Message followed by a Command would run too late. This warns before leaving and does not save the draft. There is no shared handle to expose or acquisition result to report.
+
 ## Auto-Counter Example
 
 Commands describe one-shot work that produces one result. Subscriptions describe ongoing work. In the counter, a Subscription emits `Ticked` once per second while `isAutoCounting` is `true` and stops when it becomes `false`.

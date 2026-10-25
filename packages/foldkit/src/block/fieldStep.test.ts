@@ -58,6 +58,48 @@ it('contextually types fields and preserves valid result refinements', () => {
   expect(Object.keys(next)).toEqual(['model'])
 })
 
+it('preserves Model identity for a deferred empty field Step', () => {
+  let evaluations = 0
+  let fieldEvaluations = 0
+  const updateWhenReady = FieldStepsDefinition.makeFieldsStep(model => {
+    evaluations += 1
+    return model.status === 'Ready'
+      ? {
+          count: count => {
+            fieldEvaluations += 1
+            return count + 1
+          },
+        }
+      : {}
+  })
+  const idle = Model.make({ count: 1, label: 'Draft', status: 'Idle' })
+  const ready = Model.make({ count: 1, label: 'Draft', status: 'Ready' })
+
+  expect(evaluations).toBe(0)
+  expect(updateWhenReady(idle).model).toBe(idle)
+  expect(evaluations).toBe(1)
+  expect(fieldEvaluations).toBe(0)
+  expect(updateWhenReady(ready).model.count).toBe(2)
+  expect(evaluations).toBe(2)
+  expect(fieldEvaluations).toBe(1)
+})
+
+it('applies symbol field transformations rather than treating them as empty', () => {
+  const count = Symbol('count')
+  const SymbolModel = Schema.Struct({ [count]: Schema.Number })
+  const SymbolDefinition = makeDefinition('SymbolFields', {
+    Model: SymbolModel,
+    Message: Schema.Never,
+  })
+  const initial = SymbolModel.make({ [count]: 1 })
+  const increment = SymbolDefinition.makeFieldsStep(() => ({
+    [count]: Number.increment,
+  }))
+
+  expect(increment(initial).model[count]).toBe(2)
+  expect(initial[count]).toBe(1)
+})
+
 it('combines ordinary field Steps sequentially for Blocks and Applications', () => {
   const initialModel = Model.make({
     count: 1,
@@ -110,14 +152,12 @@ it('preserves a child transition when an OutMessage policy has no parent transit
   const prepareChildBlock = () =>
     ChildComposition.prepareBlock({
       init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
-      update: ChildComposition.makeUpdate((model, message) =>
-        ChildMessage.match(message, {
-          ClickedIncrement: () => ({
-            model: modifyFields(model, { count: Number.increment }),
-            outMessage: ChildOutMessage.Incremented(),
-          }),
+      update: ChildComposition.makeUpdate({
+        ClickedIncrement: model => ({
+          model: modifyFields(model, { count: Number.increment }),
+          outMessage: ChildOutMessage.Incremented(),
         }),
-      ),
+      }),
     })
   const ChildBlock: Block.FromAssemblyWithOutMessage<
     typeof ChildModel,
@@ -140,7 +180,7 @@ it('preserves a child transition when an OutMessage policy has no parent transit
   const ParentComposition = ParentDefinition.makeComposition({
     bindings: [ChildBinding],
   })
-  const update = ParentComposition.makeUpdate()
+  const update = ParentComposition.makeUpdate({})
   const initialModel = ParentModel.make({
     child: { count: 1 },
     label: 'Parent',

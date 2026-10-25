@@ -89,7 +89,9 @@ const childComposition = ChildDefinition.makeComposition()
 const prepareChildBlock = () =>
   childComposition.prepareBlock({
     init: (id: number) => ({ model: { id } }),
-    update: childComposition.makeUpdate(model => ({ model })),
+    update: childComposition.makeUpdate({
+      EmittedPulse: model => ({ model }),
+    }),
     subscriptions,
     managedResources: childManagedResources,
     EffectsLayer: Layer.merge(
@@ -160,7 +162,9 @@ const initialModel = RootModel.make({
 const prepareBlock = () =>
   root.prepareBlock({
     init: () => ({ model: initialModel }),
-    update: root.makeUpdate(model => ({ model })),
+    update: root.makeUpdate({
+      ChangedRootValueAvailability: model => ({ model }),
+    }),
     managedResources: rootManagedResources,
     EffectsLayer: rootManagedResources.value.layer,
   })
@@ -202,7 +206,7 @@ const prepareNestedParentBlock = () =>
     init: (id: number, entries: ReadonlyArray<typeof ChildModel.Type>) => ({
       model: { id, entries },
     }),
-    update: nestedParent.makeUpdate(),
+    update: nestedParent.makeUpdate({}),
     EffectsLayer: Layer.empty,
   })
 const nestedParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -242,7 +246,7 @@ const nestedInitialModel = NestedRootModel.make({
 const prepareNestedBlock = () =>
   nestedRoot.prepareBlock({
     init: () => ({ model: nestedInitialModel }),
-    update: nestedRoot.makeUpdate(),
+    update: nestedRoot.makeUpdate({}),
     EffectsLayer: Layer.empty,
   })
 const nestedBlock: Block.FromAssemblyWithoutViewOrOutMessage<

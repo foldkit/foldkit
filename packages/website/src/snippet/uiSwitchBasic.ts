@@ -36,15 +36,13 @@ const init = NotificationSettingsComposition.makeInit(() => ({
   },
 }))
 
-// In the corresponding Message.match handler, store the value. Return Commands
+// In the corresponding update handler, store the value. Return Commands
 // to persist the preference, sync to a backend, or record analytics.
-const update = NotificationSettingsComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ToggledNotifications: ({ isChecked }) => ({
-      model: modifyFields(model, { notificationsEnabled: () => isChecked }),
-    }),
+const update = NotificationSettingsComposition.makeUpdate({
+  ToggledNotifications: (model, { isChecked }) => ({
+    model: modifyFields(model, { notificationsEnabled: () => isChecked }),
   }),
-)
+})
 
 // Inside your view function, render the switch with Switch.view. It reads the
 // checked state from your Model and calls onToggle with the new state. The

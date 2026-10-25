@@ -34,50 +34,48 @@ const Save = Counter.makeCommand('Save', {
 })
 const CounterComposition = Counter.makeComposition()
 const changedCount = Message.ChangedCount({ amount: 2 })
-const update = CounterComposition.makeUpdate((model, message) =>
-  Message.match<Update.Return<Model, Message, Command.HandlerOf<typeof Save>>>(
-    message,
-    {
-      ChangedCount: ({ amount }) => ({
-        model: modifyFields(model, { count: count => count + amount }),
-        commands: [Save()],
-      }),
-      CompletedSave: () => ({ model }),
-    },
-  ),
-)
-const reportUpdate = CounterComposition.makeUpdate((model, message) =>
-  Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
-    message,
-    {
-      ChangedCount: ({ amount }) => ({
-        model,
-        outMessage: OutMessage.ReportedCount({ count: model.count + amount }),
-      }),
-      CompletedSave: () => ({ model }),
-    },
-  ),
-)
+const update = CounterComposition.makeUpdate({
+  ChangedCount: (
+    model,
+    { amount },
+  ): Update.Return<Model, Message, Command.HandlerOf<typeof Save>> => ({
+    model: modifyFields(model, { count: count => count + amount }),
+    commands: [Save()],
+  }),
+  CompletedSave: (
+    model,
+  ): Update.Return<Model, Message, Command.HandlerOf<typeof Save>> => ({
+    model,
+  }),
+})
+const reportUpdate = CounterComposition.makeUpdate({
+  ChangedCount: (
+    model,
+    { amount },
+  ): Update.ReturnWithOutMessage<Model, Message, OutMessage> => ({
+    model,
+    outMessage: OutMessage.ReportedCount({ count: model.count + amount }),
+  }),
+  CompletedSave: (
+    model,
+  ): Update.ReturnWithOutMessage<Model, Message, OutMessage> => ({ model }),
+})
 
-const ternaryUpdate = CounterComposition.makeUpdate((model, message) =>
-  message._tag === 'ChangedCount'
-    ? {
-        model,
-        commands: [Save()],
-        outMessage: OutMessage.ReportedCount({ count: model.count }),
-      }
-    : { model },
-)
-const earlyReturnUpdate = CounterComposition.makeUpdate((model, message) => {
-  if (message._tag === 'ChangedCount') {
-    return {
-      model,
-      commands: [Save()],
-      outMessage: OutMessage.ReportedCount({ count: model.count }),
-    }
-  }
-
-  return { model }
+const ternaryUpdate = CounterComposition.makeUpdate({
+  ChangedCount: model => ({
+    model,
+    commands: [Save()],
+    outMessage: OutMessage.ReportedCount({ count: model.count }),
+  }),
+  CompletedSave: model => ({ model }),
+})
+const earlyReturnUpdate = CounterComposition.makeUpdate({
+  ChangedCount: model => ({
+    model,
+    commands: [Save()],
+    outMessage: OutMessage.ReportedCount({ count: model.count }),
+  }),
+  CompletedSave: model => ({ model }),
 })
 const rejectMissingBranchHandlers = () => {
   // @ts-expect-error A Command in one ternary branch still requires its handler.
@@ -104,69 +102,107 @@ const ContextComposition = makeDefinition('DualUpdateRuntimeContextCounter', {
   Model,
   Message,
 }).makeComposition()
-const requiredContextUpdate = ContextComposition.makeUpdate(
-  (model, message, context: DispatchContext) => ({
-    model: modifyFields(model, {
-      count: count =>
-        count +
-        (message._tag === 'ChangedCount' ? message.amount : 0) *
-          context.multiplier,
+const requiredContextUpdate = ContextComposition.makeUpdate.withContext(
+  (context: DispatchContext) => ({
+    ChangedCount: (model, { amount }) => ({
+      model: modifyFields(model, {
+        count: count => count + amount * context.multiplier,
+      }),
+    }),
+    CompletedSave: model => ({ model }),
+  }),
+)
+const optionalContextUpdate = ContextComposition.makeUpdate.withContext(
+  (context?: DispatchContext) => ({
+    ChangedCount: (model, _message) => ({
+      model: modifyFields(model, {
+        count: count => count + (context?.multiplier ?? 1),
+      }),
+    }),
+    CompletedSave: (model, _message) => ({
+      model: modifyFields(model, {
+        count: count => count + (context?.multiplier ?? 1),
+      }),
     }),
   }),
 )
-const optionalContextUpdate = ContextComposition.makeUpdate(
-  (model, _message, context?: DispatchContext) => ({
-    model: modifyFields(model, {
-      count: count => count + (context?.multiplier ?? 1),
+const defaultContextUpdate = ContextComposition.makeUpdate.withContext(
+  (context: DispatchContext = { multiplier: 1 }) => ({
+    ChangedCount: (model, _message) => ({
+      model: modifyFields(model, {
+        count: count => count + context.multiplier,
+      }),
+    }),
+    CompletedSave: (model, _message) => ({
+      model: modifyFields(model, {
+        count: count => count + context.multiplier,
+      }),
     }),
   }),
 )
-const defaultContextUpdate = ContextComposition.makeUpdate(
-  (model, _message, context: DispatchContext = { multiplier: 1 }) => ({
-    model: modifyFields(model, {
-      count: count => count + context.multiplier,
+const restContextUpdate = ContextComposition.makeUpdate.withContext(
+  (...contexts: ReadonlyArray<DispatchContext>) => ({
+    ChangedCount: (model, _message) => ({
+      model: modifyFields(model, {
+        count: count =>
+          count +
+          contexts.reduce((total, context) => total + context.multiplier, 0),
+      }),
+    }),
+    CompletedSave: (model, _message) => ({
+      model: modifyFields(model, {
+        count: count =>
+          count +
+          contexts.reduce((total, context) => total + context.multiplier, 0),
+      }),
     }),
   }),
 )
-const restContextUpdate = ContextComposition.makeUpdate(
-  (model, _message, ...contexts: ReadonlyArray<DispatchContext>) => ({
-    model: modifyFields(model, {
-      count: count =>
-        count +
-        contexts.reduce((total, context) => total + context.multiplier, 0),
-    }),
-  }),
-)
-const requiredRestContextUpdate = ContextComposition.makeUpdate(
+const requiredRestContextUpdate = ContextComposition.makeUpdate.withContext(
   (
-    model,
-    message,
     ...contexts: readonly [DispatchContext, ...ReadonlyArray<DispatchContext>]
   ) => ({
-    model: modifyFields(model, {
-      count: count =>
-        count +
-        (message._tag === 'ChangedCount' ? message.amount : 0) +
-        contexts.reduce((total, context) => total + context.multiplier, 0),
+    ChangedCount: (model, { amount }) => ({
+      model: modifyFields(model, {
+        count: count =>
+          count +
+          amount +
+          contexts.reduce((total, context) => total + context.multiplier, 0),
+      }),
+    }),
+    CompletedSave: model => ({
+      model: modifyFields(model, {
+        count: count =>
+          count +
+          contexts.reduce((total, context) => total + context.multiplier, 0),
+      }),
     }),
   }),
 )
 
-const fullChannelUpdate = CounterComposition.makeUpdate(
-  (model, message, context: DispatchContext) => {
-    const nextModel = modifyFields(model, {
-      count: count =>
-        count +
-        (message._tag === 'ChangedCount' ? message.amount : 0) *
-          context.multiplier,
-    })
-
-    return {
-      model: nextModel,
-      commands: [Save()],
-      outMessage: OutMessage.ReportedCount({ count: nextModel.count }),
-    }
-  },
+const fullChannelUpdate = CounterComposition.makeUpdate.withContext(
+  (context: DispatchContext) => ({
+    ChangedCount: (model, { amount }) => {
+      const nextModel = modifyFields(model, {
+        count: count => count + amount * context.multiplier,
+      })
+      return {
+        model: nextModel,
+        commands: [Save()],
+        outMessage: OutMessage.ReportedCount({ count: nextModel.count }),
+      }
+    },
+    CompletedSave: model => {
+      const nextModel = modifyFields(model, {
+        count: count => count,
+      })
+      return {
+        model: nextModel,
+        commands: [Save()],
+        outMessage: OutMessage.ReportedCount({ count: nextModel.count }),
+      }
+    },
+  }),
 )
 const prepareFullChannelBlock = () =>
   CounterComposition.prepareBlock({
@@ -193,9 +229,11 @@ const ChildComposition = makeDefinition('DualUpdateRuntimeChild', {
 const prepareChildBlock = () =>
   ChildComposition.prepareBlock({
     init: () => ({ model: ChildModel.make({ count: 0 }) }),
-    update: ChildComposition.makeUpdate((model, { amount }) => ({
-      model: modifyFields(model, { count: count => count + amount }),
-    })),
+    update: ChildComposition.makeUpdate({
+      ChangedCount: (model, { amount }) => ({
+        model: modifyFields(model, { count: count => count + amount }),
+      }),
+    }),
   })
 const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
@@ -216,9 +254,11 @@ const ChildBinding = Parent.makeBinding(ChildBlock, {
 const ParentComposition = Parent.makeComposition({
   bindings: [ChildBinding],
 })
-const parentUpdate = ParentComposition.makeUpdate(model => ({
-  model: modifyFields(model, { updates: updates => updates + 1 }),
-}))
+const parentUpdate = ParentComposition.makeUpdate({
+  Advanced: model => ({
+    model: modifyFields(model, { updates: updates => updates + 1 }),
+  }),
+})
 const parentMessage = {
   _tag: 'GotChildMessage',
   placement: 'child',
@@ -299,7 +339,7 @@ it('retains branch Commands and OutMessage beside a pure return', () => {
 
 it('keeps a generic no-op Step and Command Step precise in either order', () => {
   const model = Model.make({ count: 3 })
-  const commandsStep = Counter.makeCommandsStep([Save()])
+  const commandsStep = Counter.makeCommandsStep(() => [Save()])
   const commandsLast = Update.combineSteps(model, [
     Counter.makeNoopStep(),
     commandsStep,

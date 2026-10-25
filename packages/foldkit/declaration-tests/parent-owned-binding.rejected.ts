@@ -252,12 +252,10 @@ DeclarationRejectedParentComposition.prepareBlock({
       namedEntries: [],
     }),
   })),
-  update: DeclarationRejectedParentComposition.makeUpdate((model, message) =>
-    ParentMessage.match(message, {
-      // @ts-expect-error A Composition callback cannot invoke an unregistered child operation.
-      ForeignMessage: () => UnregisteredChildBinding.refresh()(model),
-    }),
-  ),
+  update: DeclarationRejectedParentComposition.makeUpdate({
+    // @ts-expect-error A Composition callback cannot invoke an unregistered child operation.
+    ForeignMessage: model => UnregisteredChildBinding.refresh()(model),
+  }),
   EffectsLayer: Layer.empty,
 })
 

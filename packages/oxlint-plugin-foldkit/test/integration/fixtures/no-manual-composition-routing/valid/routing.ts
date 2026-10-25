@@ -35,22 +35,23 @@ ApplicationDefinition.makeBinding(SharedBlock, { ...sharedMapping })
 
 const ApplicationComposition = ApplicationDefinition.makeComposition()
 
-ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedSave: () => ({ model }),
-  }),
-)
+ApplicationComposition.makeUpdate({
+  ClickedSave: model => ({ model }),
+})
 
-ApplicationComposition.makeUpdate((model, message) =>
-  message._tag === 'ClickedSave' ? { model } : { model },
-)
+ApplicationComposition.makeUpdate({
+  ClickedSave: (model, message) =>
+    message._tag === 'ClickedSave' ? { model } : { model },
+})
 
-ApplicationComposition.makeUpdate((model, message) => {
-  const inspectLocalMessage = (message: { _tag: string }) =>
-    message._tag === 'GotLocalMessage'
-  inspectLocalMessage({ _tag: message._tag })
+ApplicationComposition.makeUpdate({
+  ClickedSave: (model, message) => {
+    const inspectLocalMessage = (message: { _tag: string }) =>
+      message._tag === 'GotLocalMessage'
+    inspectLocalMessage({ _tag: message._tag })
 
-  return { model }
+    return { model }
+  },
 })
 
 DialogBinding.fold(model, message)
@@ -67,3 +68,26 @@ localForeignComposition.makeUpdate((model, message) =>
     GotForeignMessage: () => ({ model }),
   }),
 )
+
+ApplicationComposition.makeUpdate({
+  ClickedSave: (model: unknown) => ({ model }),
+})
+
+ApplicationComposition.makeUpdate.withContext((_context: string) => ({
+  ClickedSave: (model: unknown) => ({ model }),
+}))
+
+const unrelated = {
+  makeUpdate: Object.assign((cases: unknown) => cases, {
+    withContext: (createCases: unknown) => createCases,
+  }),
+}
+
+unrelated.makeUpdate({
+  GotUnrelatedMessage: (model: unknown) => ({ model }),
+})
+
+unrelated.makeUpdate.withContext(() => ({
+  GotUnrelatedMessage: (model: unknown, message: { message: { _tag: string } }) =>
+    message.message._tag === 'ChangedChild' ? { model } : { model },
+}))

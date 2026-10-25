@@ -12,7 +12,6 @@ import {
 } from './composition'
 import { ApplicationDefinition } from './definition'
 import { Step } from './domain'
-import { Message } from './message'
 import { type Model, Submission } from './model'
 import { isComplete as isEducationComplete } from './step/education/update'
 import { isComplete as isPersonalInfoComplete } from './step/personalInfo/update'
@@ -58,40 +57,36 @@ const submitWhenComplete = ApplicationDefinition.makeStep(model => {
   return { model }
 })
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedNext: () => ({
-      model: modifyFields(model, { currentStep: toNextStep }),
-    }),
+export const update = ApplicationComposition.makeUpdate({
+  ClickedNext: ApplicationDefinition.makeFieldsStep(() => ({
+    currentStep: toNextStep,
+  })),
 
-    ClickedPrevious: () => ({
-      model: modifyFields(model, { currentStep: toPreviousStep }),
-    }),
+  ClickedPrevious: ApplicationDefinition.makeFieldsStep(() => ({
+    currentStep: toPreviousStep,
+  })),
 
-    ToggledPreview: () => ({
-      model: modifyFields(model, { isPreviewVisible: isVisible => !isVisible }),
-    }),
+  ToggledPreview: ApplicationDefinition.makeFieldsStep(() => ({
+    isPreviewVisible: isVisible => !isVisible,
+  })),
 
-    ClickedSubmit: () =>
-      Update.combineSteps(model, [
-        markSubmitAttempted,
-        PersonalInfoBinding.requestRevealErrors(),
-        WorkHistoryBinding.requestRevealErrors(),
-        EducationBinding.requestRevealErrors(),
-        SkillsBinding.requestRevealErrors(),
-        submitWhenComplete,
-      ]),
+  ClickedSubmit: model =>
+    Update.combineSteps(model, [
+      markSubmitAttempted,
+      PersonalInfoBinding.requestRevealErrors(),
+      WorkHistoryBinding.requestRevealErrors(),
+      EducationBinding.requestRevealErrors(),
+      SkillsBinding.requestRevealErrors(),
+      submitWhenComplete,
+    ]),
 
-    SucceededSubmitApplication: () => ({
-      model: modifyFields(model, {
-        submission: () => Submission.SubmitSuccess(),
-      }),
-    }),
+  SucceededSubmitApplication: ApplicationDefinition.makeFieldsStep(() => ({
+    submission: () => Submission.SubmitSuccess(),
+  })),
 
-    FailedSubmitApplication: ({ error }) => ({
-      model: modifyFields(model, {
-        submission: () => Submission.SubmitError({ error }),
-      }),
+  FailedSubmitApplication: ApplicationDefinition.makeFieldsStep.fromMessage(
+    ({ error }) => ({
+      submission: () => Submission.SubmitError({ error }),
     }),
-  }),
-)
+  ),
+})

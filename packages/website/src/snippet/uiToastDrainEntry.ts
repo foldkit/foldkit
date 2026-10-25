@@ -31,12 +31,9 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
 })
 
 const init = ApplicationComposition.makeInit(() => ({ model: {} }))
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    RequestedShowToast: () =>
-      ToastBinding.requestShow({ payload: { body: 'Saved' } })(model),
-  }),
-)
+const update = ApplicationComposition.makeUpdate({
+  RequestedShowToast: ToastBinding.requestShow({ payload: { body: 'Saved' } }),
+})
 
 Story.story(
   update,

@@ -1,7 +1,6 @@
 import { Duration, Effect, Schema, Stream } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 
 const TICK_INTERVAL_MS = 1000
 
@@ -44,24 +43,20 @@ const subscriptions = CounterDefinition.makeSubscriptions(entry => ({
   ),
 }))
 
-const update = CounterComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedIncrement: () => ({
-      model: modifyFields(model, { count: count => count + model.step }),
-    }),
-    ClickedToggleAutoCount: () => ({
-      model: modifyFields(model, {
-        isAutoCounting: isAutoCounting => !isAutoCounting,
-      }),
-    }),
-    ChangedStep: ({ step }) => ({
-      model: modifyFields(model, { step: () => step }),
-    }),
-    Ticked: () => ({
-      model: modifyFields(model, { count: count => count + model.step }),
-    }),
-  }),
-)
+const update = CounterComposition.makeUpdate({
+  ClickedIncrement: CounterDefinition.makeFieldsStep(model => ({
+    count: count => count + model.step,
+  })),
+  ClickedToggleAutoCount: CounterDefinition.makeFieldsStep(() => ({
+    isAutoCounting: isAutoCounting => !isAutoCounting,
+  })),
+  ChangedStep: CounterDefinition.makeFieldsStep.fromMessage(({ step }) => ({
+    step: () => step,
+  })),
+  Ticked: CounterDefinition.makeFieldsStep(model => ({
+    count: count => count + model.step,
+  })),
+})
 
 const view = CounterComposition.makeView((model, h) => ({
   title: `Count: ${model.count}`,

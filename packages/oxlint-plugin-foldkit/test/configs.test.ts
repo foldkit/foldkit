@@ -72,6 +72,9 @@ describe('configs', () => {
         expect(config.rules['foldkit/no-completed-block-model-in-schema']).toBe(
           'error',
         )
+        expect(config.rules['foldkit/no-binding-write-coordination']).toBe(
+          'error',
+        )
         expect(config.rules['foldkit/no-noop-message']).toBe('error')
         expect(config.rules['foldkit/no-empty-commands-array']).toBe('error')
         expect(config.rules['foldkit/no-empty-to-parent-out-message']).toBe(

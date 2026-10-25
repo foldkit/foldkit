@@ -24,6 +24,6 @@ const SettingsBinding = ApplicationDefinition.makeBinding(
 const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [SettingsBinding],
 })
-export const updateBinding = ApplicationComposition.makeUpdate(model =>
-  SettingsBinding.informThemeChanged({ theme: 'Light' })(model),
-)
+export const updateBinding = ApplicationComposition.makeUpdate({
+  ClickedApplyTheme: SettingsBinding.informThemeChanged({ theme: 'Light' }),
+})

@@ -2,7 +2,6 @@ import { Effect, Schema, pipe } from 'effect'
 import { Block, Navigation, Route, Url } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineRouteUnion, int, literal, slash } from 'foldkit/route'
-import { modifyFields } from 'foldkit/struct'
 
 // ROUTE
 
@@ -59,27 +58,23 @@ const LoadExternal = ApplicationDefinition.makeCommand('LoadExternal', {
   },
 })
 
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    CompletedNavigateInternal: () => ({ model }),
-    CompletedLoadExternal: () => ({ model }),
+const update = ApplicationComposition.makeUpdate({
+  CompletedNavigateInternal: ApplicationDefinition.makeNoopStep(),
+  CompletedLoadExternal: ApplicationDefinition.makeNoopStep(),
 
-    ClickedLink: ({ request }) =>
-      Navigation.UrlRequest.match(request, {
-        Internal: ({ url }) => ({
-          model,
-          commands: [NavigateInternal({ url: Url.toString(url) })],
-        }),
-        External: ({ href }) => ({
-          model,
-          commands: [LoadExternal({ href })],
-        }),
+  ClickedLink: (model, { request }) =>
+    Navigation.UrlRequest.match(request, {
+      Internal: ({ url }) => ({
+        model,
+        commands: [NavigateInternal({ url: Url.toString(url) })],
       }),
-
-    ChangedUrl: ({ url }) => ({
-      model: modifyFields(model, {
-        route: () => urlToApplicationRoute(url),
+      External: ({ href }) => ({
+        model,
+        commands: [LoadExternal({ href })],
       }),
     }),
-  }),
-)
+
+  ChangedUrl: ApplicationDefinition.makeFieldsStep.fromMessage(({ url }) => ({
+    route: () => urlToApplicationRoute(url),
+  })),
+})

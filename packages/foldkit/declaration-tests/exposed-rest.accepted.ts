@@ -26,35 +26,32 @@ const ChildComposition = Block.makeDefinition('EmittedRestChild', {
   Model: ChildModel,
   Message: ChildMessage,
 }).makeComposition()
-const childUpdate = ChildComposition.makeUpdate((model, message) =>
-  ChildMessage.match(message, {
-    RequestedDefaultIncrement: ({ amount = 1 }) => ({
-      model: Struct.modifyFields(model, { count: count => count + amount }),
-    }),
-    RequestedAddMany: ({ amounts }) => ({
-      model: Struct.modifyFields(model, {
-        count: count =>
-          count + amounts.reduce((sum, amount) => sum + amount, 0),
-      }),
-    }),
-    RequestedRequiredPrefix: ({ first, labels }) => ({
-      model: Struct.modifyFields(model, {
-        count: count => count + first + labels.length,
-      }),
-    }),
-    RequestedOptionalPrefix: ({ first = 0, labels }) => ({
-      model: Struct.modifyFields(model, {
-        count: count => count + first + labels.length,
-      }),
-    }),
-    RequestedMixed: ({ values }) => ({
-      model: Struct.modifyFields(model, {
-        count: count => count + values.length,
-      }),
-    }),
-    RequestedReset: () => ({ model: ChildModel.make({ count: 0 }) }),
+const childUpdate = ChildComposition.makeUpdate({
+  RequestedDefaultIncrement: (model, { amount = 1 }) => ({
+    model: Struct.modifyFields(model, { count: count => count + amount }),
   }),
-)
+  RequestedAddMany: (model, { amounts }) => ({
+    model: Struct.modifyFields(model, {
+      count: count => count + amounts.reduce((sum, amount) => sum + amount, 0),
+    }),
+  }),
+  RequestedRequiredPrefix: (model, { first, labels }) => ({
+    model: Struct.modifyFields(model, {
+      count: count => count + first + labels.length,
+    }),
+  }),
+  RequestedOptionalPrefix: (model, { first = 0, labels }) => ({
+    model: Struct.modifyFields(model, {
+      count: count => count + first + labels.length,
+    }),
+  }),
+  RequestedMixed: (model, { values }) => ({
+    model: Struct.modifyFields(model, {
+      count: count => count + values.length,
+    }),
+  }),
+  RequestedReset: model => ({ model: ChildModel.make({ count: 0 }) }),
+})
 const prepareChildBlock = () =>
   ChildComposition.prepareBlock({
     init: () => ({ model: ChildModel.make({ count: 0 }) }),

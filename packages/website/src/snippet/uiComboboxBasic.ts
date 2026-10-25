@@ -49,7 +49,7 @@ const init = CityPickerComposition.makeInit(() => ({
   model: { maybeCity: Option.none() },
 }))
 
-const update = CityPickerComposition.makeUpdate()
+const update = CityPickerComposition.makeUpdate({})
 
 const cities: ReadonlyArray<typeof City.Type> = [
   'Johannesburg',

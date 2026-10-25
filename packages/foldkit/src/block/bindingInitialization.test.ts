@@ -35,7 +35,9 @@ const prepareChild = () =>
 
       return { model: { count }, commands: [Read({ value: count })] }
     }),
-    update: ChildComposition.makeUpdate(model => ({ model })),
+    update: ChildComposition.makeUpdate({
+      CompletedRead: model => ({ model }),
+    }),
     EffectsLayer: Read.layer,
   })
 const child: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -82,7 +84,12 @@ const init = ParentComposition.makeInit(() =>
 const prepareParent = () =>
   ParentComposition.prepareBlock({
     init,
-    update: ParentComposition.makeUpdate(model => ({ model })),
+    update: ParentComposition.makeUpdate({
+      CompletedRecord: model => ({ model }),
+      RequestedCreateChild: model => ({ model }),
+      RequestedCreateKeyedChild: model => ({ model }),
+      RequestedCreateIncompleteKeyedChild: model => ({ model }),
+    }),
     EffectsLayer: Record.layer,
   })
 const parent: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -207,14 +214,13 @@ describe('connected initialization', () => {
     const prepareCompleted = () =>
       ParentComposition.prepareBlock({
         init: () => ({ model: initialModel }),
-        update: ParentComposition.makeUpdate((model, message) =>
-          ParentMessage.match(message, {
-            RequestedCreateChild: () => createChild(model),
-            CompletedRecord: () => ({ model }),
-            RequestedCreateKeyedChild: () => ({ model }),
-            RequestedCreateIncompleteKeyedChild: () => ({ model }),
-          }),
-        ),
+        update: ParentComposition.makeUpdate({
+          RequestedCreateChild: model => createChild(model),
+          CompletedRecord: model => Parent.makeNoopStep()(model),
+          RequestedCreateKeyedChild: model => Parent.makeNoopStep()(model),
+          RequestedCreateIncompleteKeyedChild: model =>
+            Parent.makeNoopStep()(model),
+        }),
         operations: {
           createChild: () => Tuple.make(ParentMessage.RequestedCreateChild()),
         },
@@ -256,26 +262,24 @@ describe('connected initialization', () => {
     const prepareCompleted = () =>
       ParentComposition.prepareBlock({
         init: () => ({ model: ParentModel.make({ items: [] }) }),
-        update: ParentComposition.makeUpdate((model, message) =>
-          ParentMessage.match(message, {
-            RequestedCreateChild: () => {
-              const nextModel = modifyFields(model, {
-                items: Array.append({
-                  id: 'existing',
-                  child: ChildModel.make({ count: 8 }),
-                }),
-              })
-
-              return Update.combineSteps(nextModel, [
-                initializeFirst,
-                initializeSecond,
-              ])
-            },
-            CompletedRecord: () => ({ model }),
-            RequestedCreateKeyedChild: () => ({ model }),
-            RequestedCreateIncompleteKeyedChild: () => ({ model }),
-          }),
-        ),
+        update: ParentComposition.makeUpdate({
+          RequestedCreateChild: model => {
+            const nextModel = modifyFields(model, {
+              items: Array.append({
+                id: 'existing',
+                child: ChildModel.make({ count: 8 }),
+              }),
+            })
+            return Update.combineSteps(nextModel, [
+              initializeFirst,
+              initializeSecond,
+            ])
+          },
+          CompletedRecord: model => Parent.makeNoopStep()(model),
+          RequestedCreateKeyedChild: model => Parent.makeNoopStep()(model),
+          RequestedCreateIncompleteKeyedChild: model =>
+            Parent.makeNoopStep()(model),
+        }),
         operations: {
           createChildren: () =>
             Tuple.make(ParentMessage.RequestedCreateChild()),
@@ -411,13 +415,12 @@ const prepareDynamicDirect = () =>
     init: DirectComposition.makeInit(() => ({
       model: DirectModel.make({ child: Option.none(), label: 'initial' }),
     })),
-    update: DirectComposition.makeUpdate((model, message) =>
-      DirectMessage.match(message, {
-        RequestedCreateChild: ({ label }) => createDirectChild(model, label),
-        RequestedCreateIncompleteChild: () =>
-          createIncompleteDirectChild(model),
-      }),
-    ),
+    update: DirectComposition.makeUpdate({
+      RequestedCreateChild: (model, { label }) =>
+        createDirectChild(model, label),
+      RequestedCreateIncompleteChild: model =>
+        createIncompleteDirectChild(model),
+    }),
     operations: {
       createDirectChild: (label: string) =>
         Tuple.make(DirectMessage.RequestedCreateChild({ label })),
@@ -585,19 +588,16 @@ const prepareSequencedParent = () =>
     init: SequencedParentComposition.makeInit(() => ({
       model: sequencedInitialModel,
     })),
-    update: SequencedParentComposition.makeUpdate((model, message) =>
-      SequencedParentMessage.match(message, {
-        RequestedOpen: () => {
-          const nextModel = modifyFields(model, { route: () => 'Play' })
-
-          return Update.combineSteps(nextModel, [
-            initializeFirstSequencedChild,
-            initializeSecondSequencedChild,
-          ])
-        },
-        CompletedRecord: () => ({ model }),
-      }),
-    ),
+    update: SequencedParentComposition.makeUpdate({
+      RequestedOpen: model => {
+        const nextModel = modifyFields(model, { route: () => 'Play' })
+        return Update.combineSteps(nextModel, [
+          initializeFirstSequencedChild,
+          initializeSecondSequencedChild,
+        ])
+      },
+      CompletedRecord: model => SequencedParent.makeNoopStep()(model),
+    }),
     operations: {
       open: () => Tuple.make(SequencedParentMessage.RequestedOpen()),
     },
@@ -685,16 +685,14 @@ const prepareDynamicKeyed = () =>
     init: CompleteKeyedComposition.makeInit(() => ({
       model: CompleteKeyedModel.make({ items: [], label: 'initial' }),
     })),
-    update: CompleteKeyedComposition.makeUpdate((model, message) =>
-      ParentMessage.match(message, {
-        RequestedCreateKeyedChild: ({ label }) =>
-          createKeyedChild(model, label),
-        RequestedCreateIncompleteKeyedChild: () =>
-          createIncompleteKeyedChild(model),
-        CompletedRecord: () => ({ model }),
-        RequestedCreateChild: () => ({ model }),
-      }),
-    ),
+    update: CompleteKeyedComposition.makeUpdate({
+      RequestedCreateKeyedChild: (model, { label }) =>
+        createKeyedChild(model, label),
+      RequestedCreateIncompleteKeyedChild: model =>
+        createIncompleteKeyedChild(model),
+      CompletedRecord: model => CompleteKeyed.makeNoopStep()(model),
+      RequestedCreateChild: model => CompleteKeyed.makeNoopStep()(model),
+    }),
     operations: {
       createKeyedChild: (label: string) =>
         Tuple.make(ParentMessage.RequestedCreateKeyedChild({ label })),

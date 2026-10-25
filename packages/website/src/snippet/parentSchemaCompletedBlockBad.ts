@@ -9,7 +9,7 @@ const SettingsComposition = Block.makeDefinition('Settings', {
 const prepare = () =>
   SettingsComposition.prepareBlock({
     init: SettingsComposition.makeInit(() => ({ model: '' })),
-    update: SettingsComposition.makeUpdate(),
+    update: SettingsComposition.makeUpdate({}),
   })
 const SettingsBlock = Block.assemble(prepare)
 

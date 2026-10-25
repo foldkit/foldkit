@@ -86,11 +86,9 @@ const requestShowAll = Update.combineSteps([
   }),
 ])
 
-const update = ToastFixtureParentComposition.makeUpdate((model, message) =>
-  ParentMessage.match(message, {
-    RequestedShowAll: () => requestShowAll(model),
-  }),
-)
+const update = ToastFixtureParentComposition.makeUpdate({
+  RequestedShowAll: model => requestShowAll(model),
+})
 
 const initialModel: ParentModel = {
   left: FirstToast.init({ id: 'toast' }).model,
@@ -152,16 +150,13 @@ FirstToast.test.drainEntry({
   key: 1,
   entryId: 'toast-entry-0',
 })
-const keyedUpdate = KeyedToastFixtureParentComposition.makeUpdate(
-  (model, message) =>
-    KeyedParentMessage.match(message, {
-      RequestedShow: () =>
-        KeyedToastBinding.requestShow('selected', {
-          payload: { body: 'Keyed' },
-          duration: 100,
-        })(model),
-    }),
-)
+const keyedUpdate = KeyedToastFixtureParentComposition.makeUpdate({
+  RequestedShow: model =>
+    KeyedToastBinding.requestShow('selected', {
+      payload: { body: 'Keyed' },
+      duration: 100,
+    })(model),
+})
 const keyedInitialModel: KeyedParentModel = {
   slots: [
     KeyedToastSlot.make({

@@ -315,12 +315,9 @@ export const PortalPopoverBackdrop = PopoverDefinition.makeMount(
 export const mounts = [AnchorPopover, PortalPopoverBackdrop]
 
 const detectPopoverMovementOrAnimationEnd = (generation: number) =>
-  PopoverDefinition.makeStep(model => ({
-    model,
-    commands: [
-      DetectPopoverMovementOrAnimationEnd({ id: model.id, generation }),
-    ],
-  }))
+  PopoverDefinition.makeCommandsStep(model => [
+    DetectPopoverMovementOrAnimationEnd({ id: model.id, generation }),
+  ])
 
 const foldAnimationOutMessage = PopoverDefinition.makeOutMessageFold(
   Animation.AnimationBlock,
@@ -519,9 +516,24 @@ const authoredUpdate = PopoverDefinition.makeStep(
 
 /** Processes a Popover Message and returns the next Model, optional Commands,
  *  and an optional OutMessage. */
-export const update = PopoverComposition.makeUpdate((model, message) =>
-  authoredUpdate(model, message),
-)
+export const update = PopoverComposition.makeUpdate({
+  RequestedOpen: authoredUpdate,
+  RequestedClose: authoredUpdate,
+  BlurredPanel: authoredUpdate,
+  PressedPointerOnButton: authoredUpdate,
+  CompletedFocusPopoverPanel: authoredUpdate,
+  CompletedFocusPopoverButton: authoredUpdate,
+  CompletedLockPopoverScroll: authoredUpdate,
+  CompletedUnlockPopoverScroll: authoredUpdate,
+  CompletedInertPopoverOthers: authoredUpdate,
+  CompletedRestorePopoverInert: authoredUpdate,
+  ClickedButton: authoredUpdate,
+  IgnoredMouseClick: authoredUpdate,
+  SuppressedSpaceScroll: authoredUpdate,
+  CompletedAnchorPopover: authoredUpdate,
+  CompletedPortalPopoverBackdrop: authoredUpdate,
+  CompletedDetectPopoverMovementOrAnimationEnd: authoredUpdate,
+})
 
 /** Provides Popover's Command and Mount handlers. */
 const EffectsLayer = Layer.mergeAll(
@@ -742,8 +754,10 @@ const implementation = {
 }
 
 const prepare = () => PopoverComposition.prepareBlock(implementation)
-/** Complete Popover Block definition. */
-export const PopoverBlock: Block.FromAssemblyWithViewAndOutMessage<
+/** Completed Popover Block contract. */
+export interface PopoverBlock extends Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof prepare
-> = Block.assemble(prepare)
+> {}
+/** Complete Popover Block definition. */
+export const PopoverBlock: PopoverBlock = Block.assemble(prepare)

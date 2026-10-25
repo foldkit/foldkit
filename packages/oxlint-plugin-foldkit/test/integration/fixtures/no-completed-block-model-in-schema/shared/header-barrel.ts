@@ -1,4 +1,5 @@
 export { HeaderChild as PublicHeader, InferredChild as PublicInferred } from './header'
+export { InterfaceHeader as PublicInterfaceHeader } from './header'
 export { WidenedHeader, CastHeader, InferredModel, InferredModelHeader } from './header'
 export { WidenedModelHeader } from './header'
 export { ProvidedHeader, ReplacedHeader, ProvidedInferred, ReplacedInferred } from './header'

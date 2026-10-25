@@ -37,7 +37,9 @@ const prepareChildBlock = () =>
     init: ChildComposition.makeInit(() => ({
       model: ChildModel.make({ value: '' }),
     })),
-    update: ChildComposition.makeUpdate(model => ({ model })),
+    update: ChildComposition.makeUpdate({
+      RequestedReset: model => ({ model }),
+    }),
     view: ChildComposition.makeView((_model, h) => h.div([])),
     operations: {
       reset: () => Tuple.make(ChildMessage.RequestedReset()),
@@ -71,7 +73,9 @@ export const makeRefinedChildBlock = <const Value extends string>(
       init: RefinedChildComposition.makeInit(() => ({
         model: ChildModel.make({ value: '' }),
       })),
-      update: RefinedChildComposition.makeUpdate(model => ({ model })),
+      update: RefinedChildComposition.makeUpdate({
+        RequestedReset: model => ({ model }),
+      }),
       operations: {
         reset: () => Tuple.make(ChildMessage.RequestedReset()),
       },
@@ -186,6 +190,11 @@ export const foldRightOutMessage = ParentDefinition.makeOutMessageFold(
     Closed: () => ParentDefinition.makeNoopStep(),
   },
 )
+export const foldRightReciprocalOutMessage =
+  ParentDefinition.makeOutMessageFold(ChildBlock, {
+    Selected: () => LeftBinding.reset(),
+    Closed: ParentDefinition.makeNoopStep,
+  })
 export const forwardLeftOutMessage = ParentDefinition.makeOutMessageForward(
   ChildBlock,
   {
@@ -224,6 +233,10 @@ export const RightBindingWithOutMessagePolicy =
   RightBinding.withOutMessagePolicy({
     fold: foldRightOutMessage,
   })
+export const LeftBindingWithReciprocalOutMessagePolicy =
+  LeftBinding.withOutMessagePolicy({ fold: foldLeftOutMessage })
+export const RightBindingWithReciprocalOutMessagePolicy =
+  RightBinding.withOutMessagePolicy({ fold: foldRightReciprocalOutMessage })
 export const LeftBindingWithInlineOutMessagePolicy =
   LeftBinding.withOutMessagePolicy({
     fold: ParentDefinition.makeOutMessageFold(ChildBlock, {
@@ -331,6 +344,13 @@ export const InlinePolicyComposition = ParentDefinition.makeComposition({
     EntriesBindingWithOutMessagePolicy,
   ],
 })
+export const ReciprocalPolicyComposition = ParentDefinition.makeComposition({
+  bindings: [
+    LeftBindingWithReciprocalOutMessagePolicy,
+    RightBindingWithReciprocalOutMessagePolicy,
+    EntriesBindingWithOutMessagePolicy,
+  ],
+})
 export const RefinedInlinePolicyComposition = ParentDefinition.makeComposition({
   bindings: [RefinedBindingWithInlineOutMessagePolicy],
 })
@@ -353,6 +373,32 @@ export const leftView = LeftBindingWithOutMessagePolicy.embedView({
   slotId: 'left',
   model: ChildModel.make({ value: '' }),
 })
+
+const prepareInlinePolicyBlock = () =>
+  InlinePolicyComposition.prepareBlock({
+    init: InlinePolicyComposition.makeInit(() => ({ model: { entries: [] } })),
+    update: InlinePolicyComposition.makeUpdate({
+      Reflected: model => ({ model }),
+    }),
+  })
+export const InlinePolicyBlock: Block.FromAssemblyWithOutMessage<
+  typeof ParentModel,
+  typeof prepareInlinePolicyBlock
+> = Block.assemble(prepareInlinePolicyBlock)
+
+const prepareReciprocalPolicyBlock = () =>
+  ReciprocalPolicyComposition.prepareBlock({
+    init: ReciprocalPolicyComposition.makeInit(() => ({
+      model: { entries: [] },
+    })),
+    update: ReciprocalPolicyComposition.makeUpdate({
+      Reflected: model => ({ model }),
+    }),
+  })
+export const ReciprocalPolicyBlock: Block.FromAssemblyWithOutMessage<
+  typeof ParentModel,
+  typeof prepareReciprocalPolicyBlock
+> = Block.assemble(prepareReciprocalPolicyBlock)
 
 type LeftPolicy =
   typeof LeftBindingWithOutMessagePolicy extends Block.BindingPolicyEvidence<

@@ -175,16 +175,16 @@ void emittedGraphfulApplicationView
 
 export const childRefresh = ChildBlock.operations.refresh(childModel)
 export const directRefresh = Direct.operations.refreshDirectValue(directModel)
-const boundRefreshUpdate = ParentComposition.makeUpdate((model, _message) =>
-  ChildBinding.refresh()(model),
-)
+const boundRefreshUpdate = ParentComposition.makeUpdate({
+  RequestedRefresh: (model, _message) => ChildBinding.refresh()(model),
+})
 export const boundRefresh = boundRefreshUpdate(
   parentModel,
   ParentMessage.RequestedRefresh(),
 )
-const directBoundRefreshUpdate = ApplicationComposition.makeUpdate(
-  (model, _message) => DirectChildBinding.refresh()(model),
-)
+const directBoundRefreshUpdate = ApplicationComposition.makeUpdate({
+  RequestedRefresh: (model, _message) => DirectChildBinding.refresh()(model),
+})
 export const directBoundRefresh = directBoundRefreshUpdate(
   parentModel,
   ParentMessage.RequestedRefresh(),

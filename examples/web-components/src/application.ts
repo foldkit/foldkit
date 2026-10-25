@@ -3,7 +3,6 @@ import { Schema } from 'effect'
 import { Block, CustomElement } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 import 'vanilla-colorful/hex-color-picker.js'
 
 import { Button, Input } from '@foldkit/ui'
@@ -21,10 +20,11 @@ export const Message = defineMessageUnion({
   ChangedBackgroundColor: { value: Schema.String },
 })
 
-export const ApplicationComposition = Block.makeDefinition('Application', {
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
-}).makeComposition()
+})
+export const ApplicationComposition = ApplicationDefinition.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
@@ -41,19 +41,17 @@ export const init = ApplicationComposition.makeInit(() => ({
   },
 }))
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    UpdatedContent: ({ value }) => ({
-      model: modifyFields(model, { content: () => value }),
-    }),
-    ChangedFillColor: ({ value }) => ({
-      model: modifyFields(model, { fillColor: () => value }),
-    }),
-    ChangedBackgroundColor: ({ value }) => ({
-      model: modifyFields(model, { backgroundColor: () => value }),
-    }),
-  }),
-)
+export const update = ApplicationComposition.makeUpdate({
+  UpdatedContent: ApplicationDefinition.makeFieldsStep.fromMessage(
+    ({ value }) => ({ content: () => value }),
+  ),
+  ChangedFillColor: ApplicationDefinition.makeFieldsStep.fromMessage(
+    ({ value }) => ({ fillColor: () => value }),
+  ),
+  ChangedBackgroundColor: ApplicationDefinition.makeFieldsStep.fromMessage(
+    ({ value }) => ({ backgroundColor: () => value }),
+  ),
+})
 
 // WEB COMPONENT
 

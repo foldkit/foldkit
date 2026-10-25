@@ -1,3 +1,3 @@
 import { ApplicationComposition } from './composition'
 
-export const update = ApplicationComposition.makeUpdate()
+export const update = ApplicationComposition.makeUpdate({})

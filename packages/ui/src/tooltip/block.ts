@@ -248,11 +248,7 @@ const toVisibilityOutMessage = (
   }
 }
 
-/** Processes a Tooltip Message and returns the next Model, optional Commands,
- *  and an optional OutMessage. `Shown`/`Hidden` fire only on `isOpen`
- *  transitions, so consumers don't get spurious events for messages that
- *  only update hover/focus/delay state without changing visibility. */
-export const update = TooltipComposition.makeUpdate((model, message) => {
+const updateVisibility = (model: Model, message: Message) => {
   const tooltipUpdate = computeUpdate(model, message)
   const outMessage = toVisibilityOutMessage(
     model.isOpen,
@@ -260,6 +256,22 @@ export const update = TooltipComposition.makeUpdate((model, message) => {
   )
 
   return pipe(tooltipUpdate, Update.withOutMessage(outMessage))
+}
+
+/** Processes a Tooltip Message and returns the next Model, optional Commands,
+ *  and an optional OutMessage. `Shown`/`Hidden` fire only on `isOpen`
+ *  transitions, so consumers don't get spurious events for messages that
+ *  only update hover/focus/delay state without changing visibility. */
+export const update = TooltipComposition.makeUpdate({
+  InformedOfShowDelayChange: updateVisibility,
+  EnteredTrigger: updateVisibility,
+  LeftTrigger: updateVisibility,
+  FocusedTrigger: updateVisibility,
+  BlurredTrigger: updateVisibility,
+  PressedEscape: updateVisibility,
+  PressedPointerOnTrigger: updateVisibility,
+  CompletedWaitBeforeShowing: updateVisibility,
+  CompletedAnchorTooltip: updateVisibility,
 })
 
 // VIEW
@@ -379,8 +391,10 @@ const prepare = () =>
     },
     EffectsLayer,
   })
-/** Completed Tooltip Block for binding into a parent. */
-export const TooltipBlock: Block.FromAssemblyWithViewAndOutMessage<
+/** Completed Tooltip Block contract. */
+export interface TooltipBlock extends Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof prepare
-> = Block.assemble(prepare)
+> {}
+/** Completed Tooltip Block for binding into a parent. */
+export const TooltipBlock: TooltipBlock = Block.assemble(prepare)

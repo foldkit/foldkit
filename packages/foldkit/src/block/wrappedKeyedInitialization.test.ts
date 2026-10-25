@@ -51,15 +51,13 @@ const prepareChildBlock = () =>
         commands: [FinishInitialization({ count })],
       }
     }),
-    update: ChildComposition.makeUpdate((model, message) =>
-      ChildMessage.match(message, {
-        RequestedIncrement: () => increment(model),
-        CompletedInitialization: ({ count }) => ({
-          model: modifyFields(model, { count: () => count }),
-        }),
-        CompletedIncrement: () => ({ model }),
+    update: ChildComposition.makeUpdate({
+      RequestedIncrement: model => increment(model),
+      CompletedInitialization: (model, { count }) => ({
+        model: modifyFields(model, { count: () => count }),
       }),
-    ),
+      CompletedIncrement: model => ({ model }),
+    }),
     operations: {
       increment: () => Tuple.make(ChildMessage.RequestedIncrement()),
     },
@@ -172,7 +170,11 @@ const prepareKeyedChildBlock = () =>
     init: KeyedChildComposition.makeInit((id: string, count: number) => ({
       model: KeyedChildModel.make({ id, count }),
     })),
-    update: KeyedChildComposition.makeUpdate(model => ({ model })),
+    update: KeyedChildComposition.makeUpdate({
+      RequestedIncrement: model => ({ model }),
+      CompletedInitialization: model => ({ model }),
+      CompletedIncrement: model => ({ model }),
+    }),
   })
 const KeyedChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof KeyedChildModel,

@@ -26,7 +26,7 @@ const markReady = Silent.makeStep(model => ({
   commands: [WaitForever()],
 }))
 const SilentComposition = Silent.makeComposition()
-const silentUpdate = SilentComposition.makeUpdate()
+const silentUpdate = SilentComposition.makeUpdate({})
 const prepareSilentBlock = () =>
   SilentComposition.prepareBlock({
     view: SilentComposition.makeView((_model, h) => h.empty),
@@ -95,7 +95,7 @@ const prepareParentBlock = () =>
           }),
       }),
     ),
-    update: ParentComposition.makeUpdate(),
+    update: ParentComposition.makeUpdate({}),
     operations: {},
     EffectsLayer: Layer.empty,
   })

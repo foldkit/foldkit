@@ -22,7 +22,7 @@ const SelectionDefinition = Block.makeDefinition('OutMessageStepSelection', {
 it('returns the identical Model and OutMessage without other result channels', () => {
   const model = Model.make({ count: 1 })
   const outMessage = OutMessage.Closed()
-  const close = SelectionDefinition.makeOutMessageStep(outMessage)
+  const close = SelectionDefinition.makeOutMessageStep(() => outMessage)
   const result = close(model)
 
   expect(result).toEqual({ model, outMessage })
@@ -42,10 +42,10 @@ it('returns the identical Model and OutMessage without other result channels', (
 it('retains refined input Models and literal OutMessage payloads', () => {
   const ExtendedModel = Schema.Struct({ ...Model.fields, label: Schema.String })
   const model = ExtendedModel.make({ count: 2, label: 'Selected' })
-  const select = SelectionDefinition.makeOutMessageStep({
+  const select = SelectionDefinition.makeOutMessageStep(() => ({
     _tag: 'Selected',
     value: 'Pear',
-  })
+  }))
   const result = select(model)
 
   expect(result.model).toBe(model)
@@ -61,7 +61,9 @@ it('supports primitive Models without changing their value', () => {
     Message: Schema.Never,
     OutMessage,
   })
-  const result = TextDefinition.makeOutMessageStep(OutMessage.Closed())('ready')
+  const result = TextDefinition.makeOutMessageStep(() => OutMessage.Closed())(
+    'ready',
+  )
 
   expect(result.model).toBe('ready')
   expectTypeOf<typeof result.model>().toEqualTypeOf<'ready'>()
@@ -72,14 +74,12 @@ it('emits a derived OutMessage from an inferred Binding policy', () => {
   const prepareSelection = () =>
     SelectionComposition.prepareBlock({
       init: SelectionComposition.makeInit(() => ({ model: { count: 0 } })),
-      update: SelectionComposition.makeUpdate((model, message) =>
-        Message.match(message, {
-          RequestedSelect: ({ value }) => ({
-            model,
-            outMessage: OutMessage.Selected({ value }),
-          }),
+      update: SelectionComposition.makeUpdate({
+        RequestedSelect: (model, { value }) => ({
+          model,
+          outMessage: OutMessage.Selected({ value }),
         }),
-      ),
+      }),
       operations: { requestSelect: Message.RequestedSelect },
     })
   const SelectionBlock: Block.FromAssemblyWithOutMessage<
@@ -100,19 +100,19 @@ it('emits a derived OutMessage from an inferred Binding policy', () => {
   }).withOutMessagePolicy({
     fold: ParentDefinition.makeOutMessageFold(SelectionBlock, {
       Selected: ({ value }) =>
-        ParentDefinition.makeOutMessageStep(ParentOutMessage.Chose({ value })),
+        ParentDefinition.makeOutMessageStep(() =>
+          ParentOutMessage.Chose({ value }),
+        ),
       Closed: ParentDefinition.makeNoopStep,
     }),
   })
   const ParentComposition = ParentDefinition.makeComposition({
     bindings: [SelectionBinding],
   })
-  const update = ParentComposition.makeUpdate((model, message) =>
-    Message.match(message, {
-      RequestedSelect: ({ value }) =>
-        SelectionBinding.requestSelect({ value })(model),
-    }),
-  )
+  const update = ParentComposition.makeUpdate({
+    RequestedSelect: (model, { value }) =>
+      SelectionBinding.requestSelect({ value })(model),
+  })
   const model = ParentModel.make({ selection: { count: 3 } })
   const result = update(model, Message.RequestedSelect({ value: 'Pear' }))
 
@@ -120,11 +120,70 @@ it('emits a derived OutMessage from an inferred Binding policy', () => {
   expect(result.outMessage).toEqual(ParentOutMessage.Chose({ value: 'Pear' }))
   expectTypeOf<Update.RequirementsOf<typeof update>>().toEqualTypeOf<never>()
 
+  const unsafeUpdate = Reflect.apply(
+    ParentComposition.makeUpdate,
+    ParentComposition,
+    [
+      {
+        RequestedSelect: (parentModel: typeof ParentModel.Type) => {
+          const combined = Reflect.apply(Update.combineSteps, undefined, [
+            [
+              ParentDefinition.makeNoopStep(),
+              SelectionBinding.requestSelect({ value: 'Pear' }),
+            ],
+          ])
+
+          return Reflect.apply(combined, undefined, [parentModel])
+        },
+      },
+    ],
+  )
+  expect(() =>
+    Reflect.apply(unsafeUpdate, undefined, [
+      model,
+      Message.RequestedSelect({ value: 'Pear' }),
+    ]),
+  ).toThrow(
+    '[foldkit] Update.combineSteps cannot combine a Step that emits an OutMessage.',
+  )
+
   if (false) {
-    ParentDefinition.makeComposition().makeUpdate(model =>
-      // @ts-expect-error Emitting an OutMessage cannot erase child registration obligations.
-      SelectionBinding.requestSelect({ value: 'Pear' })(model),
+    const selectAndPreserve = ParentDefinition.makeStep(() =>
+      Update.combineSteps([
+        ParentDefinition.makeNoopStep(),
+        SelectionBinding.requestSelect({ value: 'Pear' }),
+      ]),
     )
+
+    ParentComposition.makeUpdate({
+      // @ts-expect-error combineSteps cannot discard an OutMessage produced by a registered Binding policy.
+      RequestedSelect: model => {
+        const combined = Update.combineSteps(model, [
+          ParentDefinition.makeNoopStep(),
+          SelectionBinding.requestSelect({ value: 'Pear' }),
+        ])
+        return combined
+      },
+    })
+    ParentComposition.makeUpdate({
+      // @ts-expect-error Extracting the combination through makeStep cannot erase the deferred OutMessage.
+      RequestedSelect: model => selectAndPreserve(model),
+    })
+    ParentComposition.makeUpdate({
+      // @ts-expect-error Conditional use cannot erase the deferred OutMessage.
+      RequestedSelect: (model, message) =>
+        message.value === 'Pear' ? selectAndPreserve(model) : { model },
+    })
+    ParentComposition.makeInit(
+      // @ts-expect-error Initializers cannot discard an OutMessage from a deferred combined Step.
+      () => ({ model: {}, steps: [selectAndPreserve] }),
+    )
+
+    ParentDefinition.makeComposition().makeUpdate({
+      RequestedSelect: model =>
+        // @ts-expect-error Emitting an OutMessage cannot erase child registration obligations.
+        SelectionBinding.requestSelect({ value: 'Pear' })(model),
+    })
   }
 })
 
@@ -138,11 +197,12 @@ if (false) {
   // @ts-expect-error Composition does not duplicate Definition-owned Step authoring.
   SelectionDefinition.makeComposition().makeOutMessageStep
   // @ts-expect-error Foreign OutMessages are rejected.
-  SelectionDefinition.makeOutMessageStep({ _tag: 'Foreign' })
-  // @ts-expect-error Payloads must satisfy the declared OutMessage Schema.
-  SelectionDefinition.makeOutMessageStep({ _tag: 'Selected', value: 1 })
-  // @ts-expect-error The helper takes a value, not a Model callback.
-  SelectionDefinition.makeOutMessageStep(_model => OutMessage.Closed())
+  SelectionDefinition.makeOutMessageStep(() => ({ _tag: 'Foreign' }))
+  SelectionDefinition.makeOutMessageStep(() => ({
+    _tag: 'Selected',
+    // @ts-expect-error Payloads must satisfy the declared OutMessage Schema.
+    value: 1,
+  }))
   // @ts-expect-error Optional values use withOutMessage instead.
   SelectionDefinition.makeOutMessageStep(undefined)
   const unknownValue: unknown = OutMessage.Closed()
@@ -151,7 +211,9 @@ if (false) {
   SelectionDefinition.makeOutMessageStep(unknownValue)
   // @ts-expect-error Any values cannot bypass the OutMessage contract.
   SelectionDefinition.makeOutMessageStep(uncheckedValue)
-  const close = SelectionDefinition.makeOutMessageStep(OutMessage.Closed())
+  const close = SelectionDefinition.makeOutMessageStep(() =>
+    OutMessage.Closed(),
+  )
   const noop = SelectionDefinition.makeNoopStep()
   const fields = SelectionDefinition.makeFieldsStep(() => ({}))
   const noopAndClose = [noop, close]
@@ -182,7 +244,9 @@ if (false) {
     Message: Schema.Never,
     OutMessage,
   })
-  const emitUnknown = UnknownDefinition.makeOutMessageStep(OutMessage.Closed())
+  const emitUnknown = UnknownDefinition.makeOutMessageStep(() =>
+    OutMessage.Closed(),
+  )
   const preserveUnknown = UnknownDefinition.makeNoopStep()
   // @ts-expect-error An unconstrained Model still retains its OutMessage channel.
   Update.combineSteps([preserveUnknown, emitUnknown])

@@ -43,19 +43,21 @@ const revealPreferenceErrors = ApplicationDefinition.makeFieldsStep(() => ({
 const revealPreferenceErrorsThroughParentHelper = (model: Model): Model =>
   modifyFields(model, { preferences: Foreign.revealErrors })
 
-export const update = ApplicationComposition.makeUpdate(model => {
-  void modifyFields(model, { child: Foreign.revealErrors })
-  void modifyFields(model, { preferences: Foreign.revealErrors })
-  void revealPreferenceErrorsThroughParentHelper(model)
-  void modifyFields(model, { entries: Array.map(Foreign.revealErrors) })
-  void modifyFields(model, {
-    entries: Array.filter(entry => entry.id !== 'removed'),
-  })
+export const update = ApplicationComposition.makeUpdate({
+  ClickedApplyTheme: model => {
+    void modifyFields(model, { child: Foreign.revealErrors })
+    void modifyFields(model, { preferences: Foreign.revealErrors })
+    void revealPreferenceErrorsThroughParentHelper(model)
+    void modifyFields(model, { entries: Array.map(Foreign.revealErrors) })
+    void modifyFields(model, {
+      entries: Array.filter(entry => entry.id !== 'removed'),
+    })
 
-  return Update.combineSteps(model, [
-    revealPreferenceErrors,
-    ApplicationDefinition.makeNoopStep(),
-    ChildBinding.informThemeChanged({ theme: 'Light' }),
-    EntriesBinding.informThemeChanged('retained', { theme: 'Light' }),
-  ])
+    return Update.combineSteps(model, [
+      revealPreferenceErrors,
+      ApplicationDefinition.makeNoopStep(),
+      ChildBinding.informThemeChanged({ theme: 'Light' }),
+      EntriesBinding.informThemeChanged('retained', { theme: 'Light' }),
+    ])
+  },
 })

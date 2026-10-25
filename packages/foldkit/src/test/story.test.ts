@@ -1,4 +1,4 @@
-import { Array } from 'effect'
+import { Array, Function } from 'effect'
 import { describe, expect, expectTypeOf, test } from 'vitest'
 
 import * as Interruptible from '../command/interruptible/index.js'
@@ -858,6 +858,96 @@ describe('interruptible Commands', () => {
 })
 
 describe('outMessage', () => {
+  const dualChildUpdate = Function.dual(2, childUpdate)
+
+  test('dual updates preserve their complete OutMessage union', () => {
+    Story.story(
+      dualChildUpdate,
+      Story.given({ status: 'Idle' }),
+      Story.message(FormChildJsChildMessage.SubmittedForm()),
+      Story.Command.resolve(
+        SubmitForm,
+        FormChildJsChildMessage.SucceededSubmitForm({ id: 'abc' }),
+      ),
+      Story.expectOutMessage(
+        FormChildJsChildOutMessage.RequestedSave({ id: 'abc' }),
+      ),
+      Story.Command.resolve(
+        ResetForm,
+        FormChildJsChildMessage.CompletedResetForm(),
+      ),
+    )
+
+    const cancelled = dualChildUpdate(FormChildJsChildMessage.CancelledForm())({
+      status: 'Submitting',
+    })
+
+    expect(cancelled.outMessage).toEqual(
+      FormChildJsChildOutMessage.RequestedCancel(),
+    )
+  })
+
+  test('dual updates reject unrelated OutMessages', () => {
+    expectTypeOf(() =>
+      Story.story(
+        dualChildUpdate,
+        Story.given({ status: 'Idle' }),
+        Story.message(FormChildJsChildMessage.CancelledForm()),
+        // @ts-expect-error ClickedIncrement is not a child OutMessage
+        Story.expectOutMessage(CounterMessage.ClickedIncrement()),
+      ),
+    ).toBeFunction()
+  })
+
+  test('validates the data-first update contract', () => {
+    const missingModel = (
+      _model: CounterModel,
+      _message: typeof CounterMessage.Type,
+    ) => ({ status: 'Done' })
+    const wrongModel = (
+      _model: CounterModel,
+      _message: typeof CounterMessage.Type,
+    ) => ({ model: { status: 'Done' } })
+    const requiredContext = (
+      model: CounterModel,
+      _message: typeof CounterMessage.Type,
+      _context: string,
+    ) => ({ model })
+    const optionalContext = (
+      model: CounterModel,
+      _message: typeof CounterMessage.Type,
+      _context?: string,
+    ) => ({ model })
+
+    expectTypeOf(() =>
+      Story.story(
+        // @ts-expect-error an update must return its Model
+        missingModel,
+        Story.given({ count: 0, log: [] }),
+      ),
+    ).toBeFunction()
+    expectTypeOf(() =>
+      Story.story(
+        // @ts-expect-error an update must return the same Model type it accepts
+        wrongModel,
+        Story.given({ count: 0, log: [] }),
+      ),
+    ).toBeFunction()
+    expectTypeOf(() =>
+      Story.story(
+        // @ts-expect-error Story cannot supply required update context
+        requiredContext,
+        Story.given({ count: 0, log: [] }),
+      ),
+    ).toBeFunction()
+
+    Story.story(
+      optionalContext,
+      Story.given({ count: 0, log: [] }),
+      Story.message(CounterMessage.ClickedIncrement()),
+    )
+  })
+
   test('OutMessage updates at each step in the story', () => {
     Story.story(
       childUpdate,
@@ -1007,6 +1097,14 @@ describe("resolveAll applies each Command's own message mapping", () => {
 })
 
 describe('type safety', () => {
+  test('retains the explicit generic call shape', () => {
+    Story.story<CounterModel, typeof CounterMessage.Type>(
+      update,
+      Story.given({ count: 0, log: [] }),
+      Story.message(CounterMessage.ClickedIncrement()),
+    )
+  })
+
   test('given returns a GivenStep', () => {
     const step = Story.given({ count: 0, log: [] })
     expectTypeOf(step).toMatchTypeOf<Story.GivenStep<{ count: number }>>()

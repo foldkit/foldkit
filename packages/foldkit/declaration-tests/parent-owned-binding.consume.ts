@@ -183,7 +183,7 @@ export type DeferredForwardedOutMessage = Expect<
       ParentModel,
       OutgoingMessageOf<typeof ForwardingChildBinding>,
       never,
-      Block.Scoped<'forwardingChild', Command.HandlerOf<typeof ReadChildValue>>,
+      never,
       | Block.RequirementOfBinding<typeof ForwardingChildBinding>
       | Update.DeferredResultEvidence<
           Block.DeferredBindingPolicy<
@@ -213,13 +213,19 @@ export type GenericKeyedPayload = Expect<
     'One' | 'Two'
   >
 >
-export type GenericKeyedPolicyRequirements = Expect<
+export type GenericKeyedDeferredPolicyRequirements = Expect<
   ExactRequirements<
     Update.RequirementsOf<
       ReturnType<typeof genericKeyedBinding.ChildBinding.select>
     >,
+    never
+  >
+>
+export type GenericKeyedCompletedPolicyRequirements = Expect<
+  ExactRequirements<
+    Update.RequirementsOf<typeof genericKeyedBinding.Block.operations.select>,
     Block.Scoped<
-      'DeclarationParentOwnedChild',
+      typeof genericKeyedBinding.ChildBinding.placement,
       Command.HandlerOf<typeof ReadChildValue>
     >
   >

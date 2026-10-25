@@ -14,7 +14,7 @@ const ChildComposition = makeDefinition('ChildPlacementChild', {
 const prepareChildBlock = () =>
   ChildComposition.prepareBlock({
     init: () => ({ model: ChildModel.make({ value: '' }) }),
-    update: ChildComposition.makeUpdate(),
+    update: ChildComposition.makeUpdate({}),
   })
 const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,

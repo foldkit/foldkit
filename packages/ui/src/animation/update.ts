@@ -1,5 +1,4 @@
 import { Effect, Layer, Match, Number, Schema } from 'effect'
-import { Update } from 'foldkit'
 import * as Block from 'foldkit/block'
 import * as Dom from 'foldkit/dom'
 import * as Render from 'foldkit/render'
@@ -7,12 +6,10 @@ import { modifyFields } from 'foldkit/struct'
 
 import { idSelector } from '../internal/selectors.js'
 import {
-  type Hid,
   type InitConfig,
   Message,
   Model,
   OutMessage,
-  type Showed,
   makeInitialModel,
 } from './schema.js'
 
@@ -112,16 +109,18 @@ const finishTransition = (model: Model, generation: number) => {
     return { model }
   }
 
-  return Match.value(model.transitionState).pipe(
-    Match.when('EnterAnimating', () => ({
+  if (model.transitionState === 'EnterAnimating') {
+    return {
       model: modifyFields(model, { transitionState: () => 'Idle' }),
-    })),
-    Match.when('LeaveAnimating', () => ({
+    }
+  } else if (model.transitionState === 'LeaveAnimating') {
+    return {
       model: modifyFields(model, { transitionState: () => 'Idle' }),
       outMessage: OutMessage.TransitionedOut(),
-    })),
-    Match.orElse(() => ({ model })),
-  )
+    }
+  } else {
+    return { model }
+  }
 }
 
 const waitForLeaveSettlement = (model: Model) => {
@@ -167,84 +166,63 @@ const resumeTransition = (model: Model) =>
     Match.exhaustive,
   )
 
-const resetImmediately = (model: Model) => ({
-  model: modifyFields(model, {
-    isShowing: () => false,
-    transitionState: () => 'Idle',
-  }),
-})
+const resetImmediately = AnimationDefinition.makeFieldsStep(() => ({
+  isShowing: () => false,
+  transitionState: () => 'Idle',
+}))
 
 /** Processes an Animation Message and returns the next Model, optional
- *  Commands, and an optional OutMessage. `Showed` and `Hid` start a transition
- *  but cannot finish one, so direct calls with either Message return a plain
- *  update result. Results from an earlier transition generation leave the Model
- *  unchanged. */
-const updateInferred = AnimationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    Showed: () => showTransition(model),
+ *  Commands, and an optional OutMessage. Results from an earlier transition
+ *  generation leave the Model unchanged. */
+export const update = AnimationComposition.makeUpdate({
+  Showed: showTransition,
 
-    Hid: () => hideTransition(model),
+  Hid: hideTransition,
 
-    RequestedShow: () => showTransition(model),
+  RequestedShow: showTransition,
 
-    RequestedHide: () => hideTransition(model),
+  RequestedHide: hideTransition,
 
-    RequestedWaitForLeaveSettlement: () => waitForLeaveSettlement(model),
+  RequestedWaitForLeaveSettlement: waitForLeaveSettlement,
 
-    RequestedFinish: ({ generation }) => finishTransition(model, generation),
+  RequestedFinish: (model, { generation }) =>
+    finishTransition(model, generation),
 
-    RequestedToggle: () => toggleTransition(model),
+  RequestedToggle: toggleTransition,
 
-    RequestedResume: () => resumeTransition(model),
+  RequestedResume: resumeTransition,
 
-    RequestedImmediateReset: () => resetImmediately(model),
+  RequestedImmediateReset: resetImmediately,
 
-    CompletedWaitForPaint: ({ generation }) => {
-      if (generation !== model.transitionGeneration) {
-        return { model }
-      }
+  CompletedWaitForPaint: (model, { generation }) => {
+    if (generation !== model.transitionGeneration) {
+      return { model }
+    }
 
-      return Match.value(model.transitionState).pipe(
-        Match.when('EnterStart', () => ({
-          model: modifyFields(model, {
-            transitionState: () => 'EnterAnimating',
-          }),
-          commands: [
-            WaitForAnimationSettled({
-              id: model.id,
-              generation: model.transitionGeneration,
-            }),
-          ],
-        })),
-        Match.when('LeaveStart', () => ({
-          model: modifyFields(model, {
-            transitionState: () => 'LeaveAnimating',
-          }),
-          outMessage: OutMessage.StartedLeaveAnimating({
+    return Match.value(model.transitionState).pipe(
+      Match.when('EnterStart', () => ({
+        model: modifyFields(model, {
+          transitionState: () => 'EnterAnimating',
+        }),
+        commands: [
+          WaitForAnimationSettled({
+            id: model.id,
             generation: model.transitionGeneration,
           }),
-        })),
-        Match.orElse(() => ({ model })),
-      )
-    },
+        ],
+      })),
+      Match.when('LeaveStart', () => ({
+        model: modifyFields(model, {
+          transitionState: () => 'LeaveAnimating',
+        }),
+        outMessage: OutMessage.StartedLeaveAnimating({
+          generation: model.transitionGeneration,
+        }),
+      })),
+      Match.orElse(() => ({ model })),
+    )
+  },
 
-    EndedAnimation: ({ generation }) => finishTransition(model, generation),
-  }),
-)
-
-type UpdateRequirements = Update.RequirementsOf<typeof updateInferred>
-type UpdateReturn = Update.ReturnWithOutMessage<
-  Model,
-  Message,
-  OutMessage,
-  UpdateRequirements
->
-
-export function update(
-  model: Model,
-  message: Showed | Hid,
-): Update.Return<Model, Message, UpdateRequirements>
-export function update(model: Model, message: Message): UpdateReturn
-export function update(model: Model, message: Message): UpdateReturn {
-  return updateInferred(model, message)
-}
+  EndedAnimation: (model, { generation }) =>
+    finishTransition(model, generation),
+})

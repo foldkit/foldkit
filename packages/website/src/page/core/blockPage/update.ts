@@ -1,12 +1,8 @@
-import { modifyFields } from 'foldkit/struct'
-
 import { BlockPageComposition } from './composition'
-import { Message } from './message'
+import { BlockPageDefinition } from './definition'
 
-export const update = BlockPageComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ToggledMapMessagesUnderHood: ({ isOpen }) => ({
-      model: modifyFields(model, { isMapMessagesUnderHoodOpen: () => isOpen }),
-    }),
-  }),
-)
+export const update = BlockPageComposition.makeUpdate({
+  ToggledMapMessagesUnderHood: BlockPageDefinition.makeFieldsStep.fromMessage(
+    ({ isOpen }) => ({ isMapMessagesUnderHoodOpen: () => isOpen }),
+  ),
+})

@@ -9,16 +9,18 @@ const Model = Schema.Struct({
   refreshCount: Schema.Number,
 })
 const Message = defineMessageUnion({ RequestedRefresh: {} })
-type DispatchContext = Readonly<{ requestId: string }>
+const DispatchContext = Schema.Struct({ requestId: Schema.String })
 const ContextualRefreshDefinition = Block.makeDefinition('ContextualRefresh', {
   Model,
   Message,
 })
 const ContextualRefreshComposition =
   ContextualRefreshDefinition.makeComposition()
-const update = ContextualRefreshComposition.makeUpdate(
-  (model, _message, { requestId }: DispatchContext) => ({
-    model: modifyFields(model, { lastRequestId: () => requestId }),
+const update = ContextualRefreshComposition.makeUpdate.withContext(
+  ({ requestId }: typeof DispatchContext.Type) => ({
+    RequestedRefresh: model => ({
+      model: modifyFields(model, { lastRequestId: () => requestId }),
+    }),
   }),
 )
 

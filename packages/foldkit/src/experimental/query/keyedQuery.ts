@@ -327,40 +327,48 @@ const makeKeyedQueryApi = <
   const revalidate = liftTransition(AsyncData.revalidate)
   const revalidateOrLoad = liftTransition(AsyncData.revalidateOrLoad)
   const loadIfMissing = liftTransition(AsyncData.loadIfMissing)
-  const update = (model: Model, message: Message): UpdateReturn =>
-    Message.match<UpdateReturn>(message, {
-      RequestedReset: () => reset(model),
-      RequestedRevalidation: ({ args }) => revalidate(model, args),
-      RequestedRevalidationOrLoad: ({ args }) => revalidateOrLoad(model, args),
-      RequestedLoadIfMissing: ({ args }) => loadIfMissing(model, args),
-      CompletedFetch({ generation, requestKey, result }) {
-        const maybeEntry = HashMap.get(model.entries, requestKey)
+  const updateHandlers = {
+    RequestedReset: (model: Model) => reset(model),
+    RequestedRevalidation: (
+      model: Model,
+      { args }: typeof Message.RequestedRevalidation.Type,
+    ) => revalidate(model, args),
+    RequestedRevalidationOrLoad: (
+      model: Model,
+      { args }: typeof Message.RequestedRevalidationOrLoad.Type,
+    ) => revalidateOrLoad(model, args),
+    RequestedLoadIfMissing: (
+      model: Model,
+      { args }: typeof Message.RequestedLoadIfMissing.Type,
+    ) => loadIfMissing(model, args),
+    CompletedFetch(
+      model: Model,
+      { generation, requestKey, result }: typeof Message.CompletedFetch.Type,
+    ): UpdateReturn {
+      const maybeEntry = HashMap.get(model.entries, requestKey)
 
-        if (Option.isNone(maybeEntry)) {
-          return { model }
-        }
+      if (Option.isNone(maybeEntry)) {
+        return { model }
+      }
 
-        const entry = maybeEntry.value
+      const entry = maybeEntry.value
 
-        if (
-          !AsyncData.isPending(entry.data) ||
-          generation !== entry.generation
-        ) {
-          return { model }
-        }
+      if (!AsyncData.isPending(entry.data) || generation !== entry.generation) {
+        return { model }
+      }
 
-        return {
-          model: modifyFields(model, {
-            entries: HashMap.set(
-              requestKey,
-              modifyFields(entry, {
-                data: () => AsyncData.settle(entry.data, result),
-              }),
-            ),
-          }),
-        }
-      },
-    })
+      return {
+        model: modifyFields(model, {
+          entries: HashMap.set(
+            requestKey,
+            modifyFields(entry, {
+              data: () => AsyncData.settle(entry.data, result),
+            }),
+          ),
+        }),
+      }
+    },
+  }
   const operations = {
     requestRevalidation: (args: Args) =>
       Tuple.make(Message.RequestedRevalidation({ args })),
@@ -415,7 +423,7 @@ const makeKeyedQueryApi = <
     init,
     reset,
     read,
-    update,
+    updateHandlers,
     operations,
     revalidate,
     revalidateOrLoad,
@@ -761,7 +769,7 @@ const makeHostKeyedQuery = <
   const prepare = () =>
     QueryComposition.prepareBlock({
       init,
-      update: QueryComposition.makeUpdate(api.update),
+      update: QueryComposition.makeUpdate(api.updateHandlers),
       operations: {
         ...api.operations,
         requestReset: Message.RequestedReset,
@@ -848,7 +856,7 @@ const makeCanonicalKeyedQuery = <
   const prepare = () =>
     QueryComposition.prepareBlock({
       init,
-      update: QueryComposition.makeUpdate(api.update),
+      update: QueryComposition.makeUpdate(api.updateHandlers),
       operations: {
         ...api.operations,
         requestReset: Message.RequestedReset,

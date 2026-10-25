@@ -13,7 +13,7 @@ import { Model, RoomAsyncData } from '../model'
 
 const EXIT_COUNTDOWN_SECONDS = 3
 
-export const handleRoomUpdated =
+export const handleUpdatedRoom =
   (model: typeof Model.Type) =>
   ({
     room,

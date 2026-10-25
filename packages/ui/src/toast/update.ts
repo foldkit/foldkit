@@ -358,14 +358,13 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       entries: entries => Array.append(entries, entry),
       nextEntryKey: Number.increment,
     }))
-    const scheduleDismissal = ToastDefinition.makeStep(model => ({
-      model,
-      commands: pipe(
+    const scheduleDismissal = ToastDefinition.makeCommandsStep(model =>
+      pipe(
         Array.findFirst(model.entries, ({ id }) => id === entry.id),
         Option.flatMap(scheduleWaitBeforeDismissal),
         Array.fromOption,
       ),
-    }))
+    )
 
     return Update.combineSteps([
       appendEntry,
@@ -377,11 +376,74 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   const dismissEntries = (entries: ReadonlyArray<Entry>) =>
     Update.combineSteps(Array.map(entries, foldEntryAnimationHide))
 
+  const leaveToastUnchanged = ToastDefinition.makeNoopStep()
+  const dismissEntry = (entryId: string) =>
+    ToastDefinition.makeStep(model => {
+      const dismiss = Option.match(
+        Array.findFirst(model.entries, ({ id }) => id === entryId),
+        {
+          onNone: () => leaveToastUnchanged,
+          onSome: entry =>
+            isEntryLeaving(entry)
+              ? leaveToastUnchanged
+              : foldEntryAnimationHide(entry),
+        },
+      )
+
+      return dismiss
+    })
+
   /** Processes a Toast Message and returns the next Model, optional Commands,
    *  and an optional `DismissedToast` OutMessage emitted once an entry has
    *  finished its leave animation. */
-  const update = ToastComposition.makeUpdate((model, message) => {
-    const dismissEntry = (entryId: string) => {
+  const update = ToastComposition.makeUpdate({
+    RequestedShow: (model, input) => addEntry(createEntry(model, input))(model),
+
+    Added: (model, { entry }) => addEntry(entry)(model),
+
+    RequestedDismiss: (model, { entryId }) => dismissEntry(entryId)(model),
+
+    RequestedDismissAll: model => {
+      const dismissVisibleEntries = pipe(
+        model.entries,
+        Array.filter(entry => !isEntryLeaving(entry)),
+        dismissEntries,
+      )
+
+      return dismissVisibleEntries(model)
+    },
+
+    Dismissed: (model, { entryId }) => dismissEntry(entryId)(model),
+
+    CompletedWaitBeforeDismissal: (model, { entryId, version }) => {
+      const maybeEntry = Array.findFirst(
+        model.entries,
+        ({ id }) => id === entryId,
+      )
+
+      return Option.match(maybeEntry, {
+        onNone: () => leaveToastUnchanged(model),
+        onSome: entry => {
+          const isStale = version !== entry.pendingDismissVersion
+          if (isStale || isEntryLeaving(entry)) {
+            return leaveToastUnchanged(model)
+          } else {
+            return foldEntryAnimationHide(entry)(model)
+          }
+        },
+      })
+    },
+
+    HoveredEntry: (model, { entryId }) => ({
+      model: updateEntry(model, entryId, entry =>
+        modifyFields(entry, {
+          isHovered: () => true,
+          pendingDismissVersion: Number.increment,
+        }),
+      ),
+    }),
+
+    LeftEntry: (model, { entryId }) => {
       const maybeEntry = Array.findFirst(
         model.entries,
         ({ id }) => id === entryId,
@@ -390,228 +452,161 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       return Option.match(maybeEntry, {
         onNone: () => ({ model }),
         onSome: entry => {
-          if (isEntryLeaving(entry)) {
-            return { model }
-          } else {
-            return foldEntryAnimationHide(entry)(model)
+          const nextEntry: Entry = modifyFields(entry, {
+            isHovered: () => false,
+            pendingDismissVersion: Number.increment,
+          })
+          const nextModel = updateEntry(model, entryId, () => nextEntry)
+          return {
+            model: nextModel,
+            commands: Array.fromOption(scheduleWaitBeforeDismissal(nextEntry)),
           }
         },
       })
-    }
+    },
 
-    return MessageSchema.match(message, {
-      RequestedShow: input => addEntry(createEntry(model, input))(model),
-
-      Added: ({ entry }) => addEntry(entry)(model),
-
-      RequestedDismiss: ({ entryId }) => dismissEntry(entryId),
-
-      RequestedDismissAll: () => {
-        const dismissVisibleEntries = pipe(
-          model.entries,
-          Array.filter(entry => !isEntryLeaving(entry)),
-          dismissEntries,
-        )
-
-        return dismissVisibleEntries(model)
-      },
-
-      Dismissed: ({ entryId }) => dismissEntry(entryId),
-
-      CompletedWaitBeforeDismissal: ({ entryId, version }) => {
-        const maybeEntry = Array.findFirst(
-          model.entries,
-          ({ id }) => id === entryId,
-        )
-
-        return Option.match(maybeEntry, {
-          onNone: () => ({ model }),
-          onSome: entry => {
-            const isStale = version !== entry.pendingDismissVersion
-            if (isStale || isEntryLeaving(entry)) {
-              return { model }
-            } else {
-              return foldEntryAnimationHide(entry)(model)
-            }
-          },
-        })
-      },
-
-      HoveredEntry: ({ entryId }) => ({
-        model: updateEntry(model, entryId, entry =>
-          modifyFields(entry, {
-            isHovered: () => true,
-            pendingDismissVersion: Number.increment,
-          }),
-        ),
-      }),
-
-      LeftEntry: ({ entryId }) => {
-        const maybeEntry = Array.findFirst(
-          model.entries,
-          ({ id }) => id === entryId,
-        )
-
-        return Option.match(maybeEntry, {
-          onNone: () => ({ model }),
-          onSome: entry => {
-            const nextEntry: Entry = modifyFields(entry, {
-              isHovered: () => false,
+    PressedEntryPointer: (model, { entryId, pointerId, clientX }) => {
+      if (Option.isNone(model.maybeSwipeConfig)) {
+        return { model }
+      }
+      const maybeEntry = Array.findFirst(
+        model.entries,
+        ({ id }) => id === entryId,
+      )
+      return Option.match(maybeEntry, {
+        onNone: () => ({ model }),
+        onSome: entry => {
+          if (
+            isEntryLeaving(entry) ||
+            SwipeState.guards.Dragging(entry.swipeState) ||
+            isPointerActive(model, pointerId)
+          ) {
+            return { model }
+          } else {
+            const nextEntry = modifyFields(entry, {
               pendingDismissVersion: Number.increment,
+              swipeState: () =>
+                SwipeState.Dragging({
+                  pointerId,
+                  startX: clientX,
+                  currentX: clientX,
+                }),
+              swipeVersion: Number.increment,
             })
-            const nextModel = updateEntry(model, entryId, () => nextEntry)
-            return {
-              model: nextModel,
-              commands: Array.fromOption(
-                scheduleWaitBeforeDismissal(nextEntry),
-              ),
-            }
-          },
-        })
-      },
+            return { model: updateEntry(model, entryId, () => nextEntry) }
+          }
+        },
+      })
+    },
 
-      PressedEntryPointer: ({ entryId, pointerId, clientX }) => {
-        if (Option.isNone(model.maybeSwipeConfig)) {
-          return { model }
-        }
-        const maybeEntry = Array.findFirst(
-          model.entries,
-          ({ id }) => id === entryId,
-        )
-        return Option.match(maybeEntry, {
-          onNone: () => ({ model }),
-          onSome: entry => {
-            if (
-              isEntryLeaving(entry) ||
-              SwipeState.guards.Dragging(entry.swipeState) ||
-              isPointerActive(model, pointerId)
-            ) {
-              return { model }
-            } else {
-              const nextEntry = modifyFields(entry, {
-                pendingDismissVersion: Number.increment,
+    MovedSwipePointer: (model, { pointerId, clientX }) =>
+      Option.match(
+        Option.all({
+          swipeConfig: model.maybeSwipeConfig,
+          draggingEntry: findDraggingEntry(model, pointerId),
+        }),
+        {
+          onNone: () => leaveToastUnchanged(model),
+          onSome: ({ swipeConfig, draggingEntry: { entry, startX } }) => ({
+            model: updateEntry(model, entry.id, currentEntry =>
+              modifyFields(currentEntry, {
                 swipeState: () =>
                   SwipeState.Dragging({
                     pointerId,
-                    startX: clientX,
-                    currentX: clientX,
+                    startX,
+                    currentX: clampSwipeClientX(
+                      startX,
+                      clientX,
+                      swipeConfig.direction,
+                    ),
                   }),
-                swipeVersion: Number.increment,
-              })
-              return { model: updateEntry(model, entryId, () => nextEntry) }
+              }),
+            ),
+          }),
+        },
+      ),
+
+    ReleasedSwipePointer: (model, { pointerId, clientX }) =>
+      Option.match(
+        Option.all({
+          swipeConfig: model.maybeSwipeConfig,
+          draggingEntry: findDraggingEntry(model, pointerId),
+        }),
+        {
+          onNone: () => leaveToastUnchanged(model),
+          onSome: ({ swipeConfig, draggingEntry: { entry, startX } }) => {
+            const offset =
+              clampSwipeClientX(startX, clientX, swipeConfig.direction) - startX
+            const isPastSwipeThreshold =
+              Math.abs(offset) > swipeConfig.threshold
+            if (!isPastSwipeThreshold) {
+              return settleSnapBack(entry)(model)
+            }
+
+            const nextSwipeVersion = Number.increment(entry.swipeVersion)
+            const nextEntry = modifyFields(entry, {
+              swipeState: () =>
+                SwipeState.Dismissing({
+                  offsetX: offset,
+                  direction: swipeConfig.direction,
+                }),
+              swipeVersion: () => nextSwipeVersion,
+            })
+            const nextModel = updateEntry(model, entry.id, () => nextEntry)
+            if (isEntryLeaving(entry)) {
+              return ToastDefinition.makeStep(() => ({ model: nextModel }))(
+                model,
+              )
+            } else {
+              return Update.combineSteps(model, [
+                ToastDefinition.makeStep(() => ({ model: nextModel })),
+                foldEntryAnimationHide(entry),
+              ])
             }
           },
-        })
-      },
+        },
+      ),
 
-      MovedSwipePointer: ({ pointerId, clientX }) =>
-        Option.match(
-          Option.all({
-            swipeConfig: model.maybeSwipeConfig,
-            draggingEntry: findDraggingEntry(model, pointerId),
-          }),
-          {
-            onNone: () => ({ model }),
-            onSome: ({ swipeConfig, draggingEntry: { entry, startX } }) => ({
-              model: updateEntry(model, entry.id, currentEntry =>
-                modifyFields(currentEntry, {
-                  swipeState: () =>
-                    SwipeState.Dragging({
-                      pointerId,
-                      startX,
-                      currentX: clampSwipeClientX(
-                        startX,
-                        clientX,
-                        swipeConfig.direction,
-                      ),
-                    }),
-                }),
-              ),
-            }),
-          },
-        ),
+    CancelledSwipe: (model, { pointerId }) =>
+      Option.match(findDraggingEntry(model, pointerId), {
+        onNone: () => leaveToastUnchanged(model),
+        onSome: ({ entry }) => settleSnapBack(entry)(model),
+      }),
 
-      ReleasedSwipePointer: ({ pointerId, clientX }) =>
-        Option.match(
-          Option.all({
-            swipeConfig: model.maybeSwipeConfig,
-            draggingEntry: findDraggingEntry(model, pointerId),
-          }),
-          {
-            onNone: () => ({ model }),
-            onSome: ({ swipeConfig, draggingEntry: { entry, startX } }) => {
-              const offset =
-                clampSwipeClientX(startX, clientX, swipeConfig.direction) -
-                startX
-              const isPastSwipeThreshold =
-                Math.abs(offset) > swipeConfig.threshold
-              if (!isPastSwipeThreshold) {
-                return settleSnapBack(entry)(model)
-              }
+    PressedEscape: model => {
+      const draggingEntries = Array.filter(model.entries, entry =>
+        SwipeState.guards.Dragging(entry.swipeState),
+      )
 
-              const nextSwipeVersion = Number.increment(entry.swipeVersion)
-              const nextEntry = modifyFields(entry, {
-                swipeState: () =>
-                  SwipeState.Dismissing({
-                    offsetX: offset,
-                    direction: swipeConfig.direction,
-                  }),
-                swipeVersion: () => nextSwipeVersion,
-              })
-              const nextModel = updateEntry(model, entry.id, () => nextEntry)
-              if (isEntryLeaving(entry)) {
-                return { model: nextModel }
-              } else {
-                return Update.combineSteps(model, [
-                  ToastDefinition.makeStep(() => ({ model: nextModel })),
-                  foldEntryAnimationHide(entry),
-                ])
-              }
-            },
-          },
-        ),
+      return Update.combineSteps(
+        model,
+        Array.map(draggingEntries, settleSnapBack),
+      )
+    },
 
-      CancelledSwipe: ({ pointerId }) =>
-        Option.match(findDraggingEntry(model, pointerId), {
+    CompletedWaitForSwipeSettled: (model, { entryId, version }) =>
+      Option.match(
+        Array.findFirst(model.entries, ({ id }) => id === entryId),
+        {
           onNone: () => ({ model }),
-          onSome: ({ entry }) => settleSnapBack(entry)(model),
-        }),
-
-      PressedEscape: () => {
-        const draggingEntries = Array.filter(model.entries, entry =>
-          SwipeState.guards.Dragging(entry.swipeState),
-        )
-
-        return Update.combineSteps(
-          model,
-          Array.map(draggingEntries, settleSnapBack),
-        )
-      },
-
-      CompletedWaitForSwipeSettled: ({ entryId, version }) =>
-        Option.match(
-          Array.findFirst(model.entries, ({ id }) => id === entryId),
-          {
-            onNone: () => ({ model }),
-            onSome: entry => {
-              if (
-                SwipeState.guards.Settling(entry.swipeState) &&
-                entry.swipeVersion === version
-              ) {
-                return {
-                  model: updateEntry(model, entryId, current =>
-                    modifyFields(current, {
-                      swipeState: () => SwipeState.Idle(),
-                    }),
-                  ),
-                }
-              } else {
-                return { model }
+          onSome: entry => {
+            if (
+              SwipeState.guards.Settling(entry.swipeState) &&
+              entry.swipeVersion === version
+            ) {
+              return {
+                model: updateEntry(model, entryId, current =>
+                  modifyFields(current, {
+                    swipeState: () => SwipeState.Idle(),
+                  }),
+                ),
               }
-            },
+            } else {
+              return { model }
+            }
           },
-        ),
-    })
+        },
+      ),
   })
 
   const operations = {

@@ -36,6 +36,8 @@ const DragAndDropTestParentDefinition = Block.makeDefinition(
 
 const foldDragAndDropOutMessage =
   DragAndDropTestParentDefinition.makeOutMessageFold(DragAndDropBlock, {
+    StartedKeyboardDrag: () => model => ({ model }),
+    ChangedKeyboardTarget: () => model => ({ model }),
     Reordered: () => model => ({ model }),
     Cancelled: () => model => ({ model }),
   })
@@ -61,35 +63,33 @@ const DragAndDropTestParentComposition =
     bindings: [LeftBinding, RightBinding],
   })
 
-const update = DragAndDropTestParentComposition.makeUpdate((model, message) =>
-  ParentMessage.match(message, {
-    RequestedLeftMove: () =>
-      LeftBinding.fold(
-        model,
-        DragAndDropBlock.Message.PressedArrowKey({ direction: 'Right' }),
-      ),
-    RequestedRightMove: () =>
-      RightBinding.fold(
-        model,
-        DragAndDropBlock.Message.PressedArrowKey({ direction: 'Right' }),
-      ),
-    RequestedBothMoves: () =>
-      Update.combineSteps(model, [
-        stepModel =>
-          LeftBinding.fold(
-            stepModel,
-            DragAndDropBlock.Message.PressedArrowKey({ direction: 'Right' }),
-          ),
-        stepModel =>
-          RightBinding.fold(
-            stepModel,
-            DragAndDropBlock.Message.PressedArrowKey({ direction: 'Right' }),
-          ),
-      ]),
-    RequestedLeftDrop: () =>
-      LeftBinding.fold(model, DragAndDropBlock.Message.ConfirmedKeyboardDrop()),
-  }),
-)
+const update = DragAndDropTestParentComposition.makeUpdate({
+  RequestedLeftMove: model =>
+    LeftBinding.fold(
+      model,
+      DragAndDropBlock.Message.PressedArrowKey({ direction: 'Right' }),
+    ),
+  RequestedRightMove: model =>
+    RightBinding.fold(
+      model,
+      DragAndDropBlock.Message.PressedArrowKey({ direction: 'Right' }),
+    ),
+  RequestedBothMoves: model =>
+    Update.combineSteps(model, [
+      stepModel =>
+        LeftBinding.fold(
+          stepModel,
+          DragAndDropBlock.Message.PressedArrowKey({ direction: 'Right' }),
+        ),
+      stepModel =>
+        RightBinding.fold(
+          stepModel,
+          DragAndDropBlock.Message.PressedArrowKey({ direction: 'Right' }),
+        ),
+    ]),
+  RequestedLeftDrop: model =>
+    LeftBinding.fold(model, DragAndDropBlock.Message.ConfirmedKeyboardDrop()),
+})
 
 const keyboardDragging = (id: string, itemId: string) => ({
   ...DragAndDropBlock.init({ id }).model,
@@ -285,26 +285,23 @@ const NestedDragAndDropTestParentComposition =
     bindings: [NestedBinding],
   })
 
-const nestedUpdate = NestedDragAndDropTestParentComposition.makeUpdate(
-  (model, message) =>
-    NestedMessage.match(message, {
-      RequestedBothMoves: () =>
-        Update.combineSteps(model, [
-          stepModel =>
-            NestedBinding.fold(
-              stepModel,
-              'first',
-              ParentMessage.RequestedLeftMove(),
-            ),
-          stepModel =>
-            NestedBinding.fold(
-              stepModel,
-              'second',
-              ParentMessage.RequestedLeftMove(),
-            ),
-        ]),
-    }),
-)
+const nestedUpdate = NestedDragAndDropTestParentComposition.makeUpdate({
+  RequestedBothMoves: model =>
+    Update.combineSteps(model, [
+      stepModel =>
+        NestedBinding.fold(
+          stepModel,
+          'first',
+          ParentMessage.RequestedLeftMove(),
+        ),
+      stepModel =>
+        NestedBinding.fold(
+          stepModel,
+          'second',
+          ParentMessage.RequestedLeftMove(),
+        ),
+    ]),
+})
 
 const nestedInitialModel: NestedModel = {
   slots: [
@@ -353,6 +350,8 @@ const KeyedDragAndDropTestParentDefinition = Block.makeDefinition(
 
 const foldKeyedDragAndDropOutMessage =
   KeyedDragAndDropTestParentDefinition.makeOutMessageFold(DragAndDropBlock, {
+    StartedKeyboardDrag: () => model => ({ model }),
+    ChangedKeyboardTarget: () => model => ({ model }),
     Reordered: () => model => ({ model }),
     Cancelled: () => model => ({ model }),
   })
@@ -383,17 +382,14 @@ const KeyedDragAndDropTestParentComposition =
     bindings: [KeyedBinding],
   })
 
-const keyedUpdate = KeyedDragAndDropTestParentComposition.makeUpdate(
-  (model, message) =>
-    KeyedParentMessage.match(message, {
-      RequestedMove: ({ key }) =>
-        KeyedBinding.fold(
-          model,
-          key,
-          DragAndDropBlock.Message.PressedArrowKey({ direction: 'Down' }),
-        ),
-    }),
-)
+const keyedUpdate = KeyedDragAndDropTestParentComposition.makeUpdate({
+  RequestedMove: (model, { key }) =>
+    KeyedBinding.fold(
+      model,
+      key,
+      DragAndDropBlock.Message.PressedArrowKey({ direction: 'Down' }),
+    ),
+})
 
 const keyedInitialModel: KeyedParentModel = {
   slots: [

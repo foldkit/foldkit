@@ -1,7 +1,6 @@
 import { Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 
 import { Button } from '@foldkit/ui'
 
@@ -12,25 +11,24 @@ const Message = defineMessageUnion({
   ClickedIncrement: {},
 })
 
-const CounterComposition = Block.makeDefinition('Counter', {
+const CounterDefinition = Block.makeDefinition('Counter', {
   Model,
   Message,
-}).makeComposition()
+})
+const CounterComposition = CounterDefinition.makeComposition()
 
 const init = CounterComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),
 }))
 
-const update = CounterComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedDecrement: () => ({
-      model: modifyFields(model, { count: count => count - 1 }),
-    }),
-    ClickedIncrement: () => ({
-      model: modifyFields(model, { count: count => count + 1 }),
-    }),
-  }),
-)
+const update = CounterComposition.makeUpdate({
+  ClickedDecrement: CounterDefinition.makeFieldsStep(() => ({
+    count: count => count - 1,
+  })),
+  ClickedIncrement: CounterDefinition.makeFieldsStep(() => ({
+    count: count => count + 1,
+  })),
+})
 
 const buttonStyle =
   'h-9 w-9 rounded-full border border-stone-300 text-lg leading-none text-stone-700 hover:bg-stone-100 transition cursor-pointer'

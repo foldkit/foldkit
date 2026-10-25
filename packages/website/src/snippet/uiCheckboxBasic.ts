@@ -33,15 +33,13 @@ const init = TermsFormComposition.makeInit(() => ({
   },
 }))
 
-// In the corresponding Message.match handler, store the value. Pure form
+// In the corresponding update handler, store the value. Pure form
 // validation can stay in update; return Commands for analytics or backend work.
-const update = TermsFormComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ToggledTerms: ({ isChecked }) => ({
-      model: modifyFields(model, { acceptedTerms: () => isChecked }),
-    }),
+const update = TermsFormComposition.makeUpdate({
+  ToggledTerms: (model, { isChecked }) => ({
+    model: modifyFields(model, { acceptedTerms: () => isChecked }),
   }),
-)
+})
 
 // Inside your view function, render the checkbox with Checkbox.view. It reads
 // the checked state from your Model and calls onToggle with the new state.

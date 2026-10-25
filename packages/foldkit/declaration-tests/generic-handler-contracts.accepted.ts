@@ -32,12 +32,13 @@ export const makeEchoParts = <Item extends string, ItemEncoded>(
   const init = composition.makeInit((id: string) => ({
     model: Model.make({ id }),
   }))
-  const update = composition.makeUpdate((model, message) =>
-    Message.match(message, {
-      RequestedEcho: ({ value }) => ({ model, commands: [Echo({ value })] }),
-      CompletedEcho: () => ({ model }),
+  const update = composition.makeUpdate({
+    RequestedEcho: (model, { value }) => ({
+      model,
+      commands: [Echo({ value })],
     }),
-  )
+    CompletedEcho: model => ({ model }),
+  })
 
   return { composition, init, update, Echo }
 }
@@ -82,9 +83,14 @@ export const OptionalViewBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof prepareOptionalViewBlock
 > = Block.assemble(prepareOptionalViewBlock)
 
-const pureUpdate = optionalShapeParts.composition.makeUpdate(model => ({
-  model,
-}))
+const pureUpdate = optionalShapeParts.composition.makeUpdate({
+  RequestedEcho: model => ({
+    model,
+  }),
+  CompletedEcho: model => ({
+    model,
+  }),
+})
 type OptionalEffectsImplementation = Readonly<{
   init: typeof optionalShapeParts.init
   update: typeof pureUpdate

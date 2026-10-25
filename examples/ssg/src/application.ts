@@ -3,7 +3,6 @@ import { Block } from 'foldkit'
 import { type Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
-import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
 import {
@@ -63,29 +62,27 @@ export const EffectsLayer = Layer.mergeAll(
   LoadExternal.layer,
 )
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedIncrement: () => ({
-      model: modifyFields(model, { count: count => count + 1 }),
-    }),
-    ClickedLink: ({ request }) =>
-      UrlRequest.match(request, {
-        Internal: ({ url }) => ({
-          model,
-          commands: [NavigateInternal({ url: urlToString(url) })],
-        }),
-        External: ({ href }) => ({
-          model,
-          commands: [LoadExternal({ href })],
-        }),
+export const update = ApplicationComposition.makeUpdate({
+  ClickedIncrement: ApplicationDefinition.makeFieldsStep(() => ({
+    count: count => count + 1,
+  })),
+  ClickedLink: (model, { request }) =>
+    UrlRequest.match(request, {
+      Internal: ({ url }) => ({
+        model,
+        commands: [NavigateInternal({ url: urlToString(url) })],
       }),
-    ChangedUrl: ({ url }) => ({
-      model: modifyFields(model, { route: () => urlToApplicationRoute(url) }),
+      External: ({ href }) => ({
+        model,
+        commands: [LoadExternal({ href })],
+      }),
     }),
-    CompletedNavigateInternal: () => ({ model }),
-    CompletedLoadExternal: () => ({ model }),
-  }),
-)
+  ChangedUrl: ApplicationDefinition.makeFieldsStep.fromMessage(({ url }) => ({
+    route: () => urlToApplicationRoute(url),
+  })),
+  CompletedNavigateInternal: ApplicationDefinition.makeNoopStep(),
+  CompletedLoadExternal: ApplicationDefinition.makeNoopStep(),
+})
 
 const routeTitle = (route: typeof ApplicationRoute.Type): string =>
   ApplicationRoute.match(route, {

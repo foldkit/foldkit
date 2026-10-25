@@ -1,4 +1,4 @@
-import { Match, Option, Schema } from 'effect'
+import { Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { Machine } from 'foldkit/experimental'
 import { modifyFields } from 'foldkit/struct'
@@ -26,18 +26,12 @@ export const foldCheckout = Machine.fold({
     modifyFields(model, { checkout: () => nextCheckout }),
 })
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Match.value(message).pipe(
-    Match.tag('ToggledHelp', ({ isOpen }) => ({
-      model: modifyFields(model, { isHelpOpen: () => isOpen }),
-    })),
-    Match.tag(
-      'SelectedEdition',
-      'ClickedContinue',
-      'ClickedBack',
-      'ClickedCancel',
-      () => foldCheckout(model, message),
-    ),
-    Match.exhaustive,
-  ),
-)
+export const update = ApplicationComposition.makeUpdate({
+  ToggledHelp: (model, { isOpen }) => ({
+    model: modifyFields(model, { isHelpOpen: () => isOpen }),
+  }),
+  SelectedEdition: foldCheckout,
+  ClickedContinue: foldCheckout,
+  ClickedBack: foldCheckout,
+  ClickedCancel: foldCheckout,
+})

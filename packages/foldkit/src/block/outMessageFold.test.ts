@@ -35,16 +35,17 @@ const FoldChildComposition = FoldChildDefinition.makeComposition()
 const prepareChildBlock = () =>
   FoldChildComposition.prepareBlock({
     init: () => ({ model: ChildModel.make({ count: 0 }) }),
-    update: FoldChildComposition.makeUpdate((model, message) =>
-      ChildMessage.match(message, {
-        RequestedSelect: ({ value }) => ({
-          model: modifyFields(model, { count: Number.increment }),
-          outMessage: ChildOutMessage.Selected({ value }),
-        }),
-        RequestedClose: () => ({ model, outMessage: ChildOutMessage.Closed() }),
-        CompletedObserveSelection: () => ({ model }),
+    update: FoldChildComposition.makeUpdate({
+      RequestedSelect: (model, { value }) => ({
+        model: modifyFields(model, { count: Number.increment }),
+        outMessage: ChildOutMessage.Selected({ value }),
       }),
-    ),
+      RequestedClose: model => ({
+        model,
+        outMessage: ChildOutMessage.Closed(),
+      }),
+      CompletedObserveSelection: model => ({ model }),
+    }),
     operations: {
       requestSelect: ChildMessage.RequestedSelect,
       requestClose: ChildMessage.RequestedClose,
@@ -130,20 +131,22 @@ it('contextually types literal Model fields in folds and authored updates', () =
     Selected: () => _model => ({ model: { phase: 'Done' } }),
     Closed: () => _model => ({ model: { phase: 'Idle' } }),
   })
-  const update = LiteralFoldComposition.makeUpdate((_model, message) =>
-    message._tag === 'RequestedFinish'
-      ? { model: { phase: 'Done' } }
-      : { model: { phase: 'Idle' } },
-  )
-  const matcherUpdate = LiteralFoldComposition.makeUpdate((_model, message) =>
-    Message.match<Update.Return<typeof Model.Type, typeof Message.Type>>(
-      message,
-      {
-        RequestedFinish: () => ({ model: { phase: 'Done' } }),
-        RequestedReset: () => ({ model: { phase: 'Idle' } }),
-      },
-    ),
-  )
+  const update = LiteralFoldComposition.makeUpdate({
+    RequestedFinish: () => ({ model: { phase: 'Done' } }),
+    RequestedReset: () => ({ model: { phase: 'Idle' } }),
+  })
+  const matcherUpdate = LiteralFoldComposition.makeUpdate({
+    RequestedFinish: (
+      _model,
+    ): Update.Return<typeof Model.Type, typeof Message.Type> => ({
+      model: { phase: 'Done' },
+    }),
+    RequestedReset: (
+      _model,
+    ): Update.Return<typeof Model.Type, typeof Message.Type> => ({
+      model: { phase: 'Idle' },
+    }),
+  })
   const initialModel = Model.make({ phase: 'Idle' })
 
   expect(
@@ -160,10 +163,13 @@ it('contextually types literal Model fields in folds and authored updates', () =
     matcherUpdate(initialModel, Message.RequestedFinish()).model.phase,
   ).toBe('Done')
   if (false) {
-    LiteralFoldComposition.makeUpdate((_model, _message) => ({
+    LiteralFoldComposition.makeUpdate({
       // @ts-expect-error Contextual typing cannot admit an undeclared Model literal.
-      model: { phase: 'Unknown' },
-    }))
+      RequestedFinish: (_model, _message) => ({
+        model: { phase: 'Unknown' },
+      }),
+      RequestedReset: model => ({ model }),
+    })
   }
 })
 
@@ -189,13 +195,11 @@ it('retains Command requirements and derived parent OutMessages beside pure bran
   const FoldParentComposition = FoldParentDefinition.makeComposition({
     bindings: [ChildBinding],
   })
-  const update = FoldParentComposition.makeUpdate((model, message) =>
-    Message.match(message, {
-      RequestedSelect: ({ value }) =>
-        ChildBinding.requestSelect({ value })(model),
-      CompletedRecordChoice: () => ({ model }),
-    }),
-  )
+  const update = FoldParentComposition.makeUpdate({
+    RequestedSelect: (model, { value }) =>
+      ChildBinding.requestSelect({ value })(model),
+    CompletedRecordChoice: model => FoldParentDefinition.makeNoopStep()(model),
+  })
   const prepareParentBlock = () =>
     FoldParentComposition.prepareBlock({
       init: () => ({ model: initialModel }),
@@ -368,13 +372,12 @@ it('keeps sibling registration obligations when an exhaustive fold returns conne
   const prepareParentBlock = () =>
     FoldSiblingComposition.prepareBlock({
       init: () => ({ model: initialModel }),
-      update: FoldSiblingComposition.makeUpdate((model, message) =>
-        Message.match(message, {
-          RequestedSelect: ({ value }) =>
-            ChildBinding.requestSelect({ value })(model),
-          CompletedRecordChoice: () => ({ model }),
-        }),
-      ),
+      update: FoldSiblingComposition.makeUpdate({
+        RequestedSelect: (model, { value }) =>
+          ChildBinding.requestSelect({ value })(model),
+        CompletedRecordChoice: model =>
+          FoldParentDefinition.makeNoopStep()(model),
+      }),
       operations: { requestSelect: Message.RequestedSelect },
     })
   const ParentBlock: Block.FromAssemblyWithOutMessage<
@@ -392,13 +395,12 @@ it('keeps sibling registration obligations when an exhaustive fold returns conne
     // @ts-expect-error The fold's sibling operation still requires its Binding.
     FoldParentDefinition.makeComposition({ bindings: [ChildBinding] })
 
-    FoldSiblingComposition.makeUpdate((model, message) =>
+    FoldSiblingComposition.makeUpdate({
       // @ts-expect-error A pure branch cannot hide an unapplied connected Step in another branch.
-      Message.match(message, {
-        RequestedSelect: ({ value }) => ChildBinding.requestSelect({ value }),
-        CompletedRecordChoice: () => ({ model }),
-      }),
-    )
+      RequestedSelect: (_model, { value }) =>
+        ChildBinding.requestSelect({ value }),
+      CompletedRecordChoice: model => ({ model }),
+    })
   }
 })
 
@@ -470,13 +472,12 @@ it('executes an initialized sibling through an owned Step and retains its graph 
   const prepareParentBlock = () =>
     FoldInitializedSiblingComposition.prepareBlock({
       init: () => ({ model: initialModel }),
-      update: FoldInitializedSiblingComposition.makeUpdate((model, message) =>
-        Message.match(message, {
-          RequestedSelect: ({ value }) =>
-            ChildBinding.requestSelect({ value })(model),
-          CompletedRecordChoice: () => ({ model }),
-        }),
-      ),
+      update: FoldInitializedSiblingComposition.makeUpdate({
+        RequestedSelect: (model, { value }) =>
+          ChildBinding.requestSelect({ value })(model),
+        CompletedRecordChoice: model =>
+          FoldParentDefinition.makeNoopStep()(model),
+      }),
       operations: { requestSelect: Message.RequestedSelect },
     })
   const ParentBlock: Block.FromAssemblyWithOutMessage<
@@ -597,13 +598,12 @@ it('keeps keyed parent policy explicit and ignores operations on removed instanc
   const prepareParentBlock = () =>
     FoldKeyedComposition.prepareBlock({
       init: () => ({ model }),
-      update: FoldKeyedComposition.makeUpdate((model, message) =>
-        KeyedMessage.match(message, {
-          RequestedSelect: ({ id, value }) =>
-            InstancesBinding.requestSelect(id, { value })(model),
-          RequestedRemove: ({ id }) => InstancesBinding.requestClose(id)(model),
-        }),
-      ),
+      update: FoldKeyedComposition.makeUpdate({
+        RequestedSelect: (model, { id, value }) =>
+          InstancesBinding.requestSelect(id, { value })(model),
+        RequestedRemove: (model, { id }) =>
+          InstancesBinding.requestClose(id)(model),
+      }),
       operations: {
         requestSelect: KeyedMessage.RequestedSelect,
         requestRemove: KeyedMessage.RequestedRemove,
@@ -658,13 +658,11 @@ it('keeps configured Bindings usable for operations, initialization, views and e
   const Composition = FoldParentDefinition.makeComposition({
     bindings: [ConfiguredBinding],
   })
-  const update = Composition.makeUpdate((model, message) =>
-    Message.match(message, {
-      RequestedSelect: ({ value }) =>
-        ConfiguredBinding.requestSelect({ value })(model),
-      CompletedRecordChoice: () => ({ model }),
-    }),
-  )
+  const update = Composition.makeUpdate({
+    RequestedSelect: (model, { value }) =>
+      ConfiguredBinding.requestSelect({ value })(model),
+    CompletedRecordChoice: model => FoldParentDefinition.makeNoopStep()(model),
+  })
   const selected = update(
     initialModel,
     Message.RequestedSelect({ value: 'Pear' }),
@@ -746,20 +744,16 @@ it('selects immutable policies per Composition without changing the original Bin
   const PearComposition = FoldParentDefinition.makeComposition({
     bindings: [PearBinding],
   })
-  const appleUpdate = AppleComposition.makeUpdate((model, message) =>
-    Message.match(message, {
-      RequestedSelect: ({ value }) =>
-        ChildBinding.requestSelect({ value })(model),
-      CompletedRecordChoice: () => ({ model }),
-    }),
-  )
-  const pearUpdate = PearComposition.makeUpdate((model, message) =>
-    Message.match(message, {
-      RequestedSelect: ({ value }) =>
-        PearBinding.requestSelect({ value })(model),
-      CompletedRecordChoice: () => ({ model }),
-    }),
-  )
+  const appleUpdate = AppleComposition.makeUpdate({
+    RequestedSelect: (model, { value }) =>
+      ChildBinding.requestSelect({ value })(model),
+    CompletedRecordChoice: model => FoldParentDefinition.makeNoopStep()(model),
+  })
+  const pearUpdate = PearComposition.makeUpdate({
+    RequestedSelect: (model, { value }) =>
+      PearBinding.requestSelect({ value })(model),
+    CompletedRecordChoice: model => FoldParentDefinition.makeNoopStep()(model),
+  })
 
   const prepareAppleBlock = () =>
     AppleComposition.prepareBlock({
@@ -776,21 +770,16 @@ it('selects immutable policies per Composition without changing the original Bin
   const ReusedBlockComposition = FoldParentDefinition.makeComposition({
     bindings: AppleBlock.bindings,
   })
-  const reusedUpdate = ReusedComposition.makeUpdate((model, message) =>
-    Message.match(message, {
-      RequestedSelect: ({ value }) =>
-        ChildBinding.requestSelect({ value })(model),
-      CompletedRecordChoice: () => ({ model }),
-    }),
-  )
-  const reusedBlockUpdate = ReusedBlockComposition.makeUpdate(
-    (model, message) =>
-      Message.match(message, {
-        RequestedSelect: ({ value }) =>
-          ChildBinding.requestSelect({ value })(model),
-        CompletedRecordChoice: () => ({ model }),
-      }),
-  )
+  const reusedUpdate = ReusedComposition.makeUpdate({
+    RequestedSelect: (model, { value }) =>
+      ChildBinding.requestSelect({ value })(model),
+    CompletedRecordChoice: model => FoldParentDefinition.makeNoopStep()(model),
+  })
+  const reusedBlockUpdate = ReusedBlockComposition.makeUpdate({
+    RequestedSelect: (model, { value }) =>
+      ChildBinding.requestSelect({ value })(model),
+    CompletedRecordChoice: model => FoldParentDefinition.makeNoopStep()(model),
+  })
 
   expect(Option.getOrThrow(Array.head(AppleComposition.bindings))).toBe(
     AppleBinding,
@@ -845,13 +834,11 @@ it('resolves reciprocal and self-referencing folds against registered policies',
       SiblingBinding.withOutMessagePolicy({ fold: foldSibling }),
     ],
   })
-  const update = Composition.makeUpdate((model, message) =>
-    Message.match(message, {
-      RequestedSelect: ({ value }) =>
-        ChildBinding.requestSelect({ value })(model),
-      CompletedRecordChoice: () => ({ model }),
-    }),
-  )
+  const update = Composition.makeUpdate({
+    RequestedSelect: (model, { value }) =>
+      ChildBinding.requestSelect({ value })(model),
+    CompletedRecordChoice: model => FoldParentDefinition.makeNoopStep()(model),
+  })
 
   expect(
     update(initialModel, Message.RequestedSelect({ value: 'Pear' })).model.child
@@ -866,13 +853,11 @@ it('resolves reciprocal and self-referencing folds against registered policies',
   const SelfComposition = FoldParentDefinition.makeComposition({
     bindings: [ChildBinding.withOutMessagePolicy({ fold: selfFold })],
   })
-  const selfUpdate = SelfComposition.makeUpdate((model, message) =>
-    Message.match(message, {
-      RequestedSelect: ({ value }) =>
-        ChildBinding.requestSelect({ value })(model),
-      CompletedRecordChoice: () => ({ model }),
-    }),
-  )
+  const selfUpdate = SelfComposition.makeUpdate({
+    RequestedSelect: (model, { value }) =>
+      ChildBinding.requestSelect({ value })(model),
+    CompletedRecordChoice: model => FoldParentDefinition.makeNoopStep()(model),
+  })
 
   expect(
     selfUpdate(initialModel, Message.RequestedSelect({ value: 'Apple' })).model
@@ -1032,13 +1017,11 @@ it('infers inline fold and forward contracts from the explicit child', () => {
   const Composition = FoldParentDefinition.makeComposition({
     bindings: [ChildBinding],
   })
-  const update = Composition.makeUpdate((model, message) =>
-    Message.match(message, {
-      RequestedSelect: ({ value }) =>
-        ChildBinding.requestSelect({ value })(model),
-      CompletedRecordChoice: () => ({ model }),
-    }),
-  )
+  const update = Composition.makeUpdate({
+    RequestedSelect: (model, { value }) =>
+      ChildBinding.requestSelect({ value })(model),
+    CompletedRecordChoice: model => FoldParentDefinition.makeNoopStep()(model),
+  })
 
   expect(handled).toBe(0)
 
@@ -1063,7 +1046,11 @@ it('rejects helper authoring on a child without a tagged-union contract', () => 
       init: PlainChildComposition.makeInit(() => ({
         model: ChildModel.make({ count: 0 }),
       })),
-      update: PlainChildComposition.makeUpdate(model => ({ model })),
+      update: PlainChildComposition.makeUpdate({
+        RequestedSelect: model => ({ model }),
+        RequestedClose: model => ({ model }),
+        CompletedObserveSelection: model => ({ model }),
+      }),
     })
   const PlainChildBlock: Block.FromAssemblyWithOutMessage<
     typeof ChildModel,

@@ -1,9 +1,12 @@
 import { Schema } from 'effect'
 import { Update } from 'foldkit'
+import type { FieldTransforms } from 'foldkit/struct'
 
 import {
   Model,
   combined,
+  editFields,
+  guardedIncrement,
   preserve,
   preserveText,
   ready,
@@ -50,3 +53,21 @@ export type AbsentCommands = Expect<Equal<typeof result.commands, undefined>>
 export type AbsentOutMessage = Expect<
   Equal<typeof result.outMessage, undefined>
 >
+
+const fields: FieldTransforms<typeof Model.Type> = {
+  count: count => count + 1,
+}
+editFields(fields)
+export type GuardedRequirements = Expect<
+  Equal<Update.RequirementsOf<typeof guardedIncrement>, never>
+>
+export type GuardedModel = Expect<
+  Equal<ReturnType<typeof guardedIncrement>['model'], typeof Model.Type>
+>
+// @ts-expect-error Emitted field helpers reject extra record properties.
+editFields({ count: count => count + 1, extra: () => 1 })
+const extra = { count: (count: number) => count + 1, extra: () => 1 }
+// @ts-expect-error Emitted field helpers retain validation for extracted records.
+editFields(extra)
+// @ts-expect-error Emitted field helpers reject an incompatible output.
+editFields({ count: () => 'wrong' })

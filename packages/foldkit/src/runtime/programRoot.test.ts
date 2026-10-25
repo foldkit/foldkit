@@ -65,7 +65,7 @@ describe('completed root Block hosting', () => {
     const prepareProgramPageBlock = () =>
       ProgramPageComposition.prepareBlock({
         init: ProgramPageComposition.makeInit(() => ({ model: { count: 0 } })),
-        update: ProgramPageComposition.makeUpdate(),
+        update: ProgramPageComposition.makeUpdate({}),
         view: ProgramPageComposition.makeView((model, h) => ({
           title: 'Counter',
           body: h.div([], [globalThis.String(model.count)]),
@@ -108,13 +108,11 @@ describe('completed root Block hosting', () => {
     })
     const Composition = Definition.makeComposition()
     const init = Composition.makeInit(() => ({ model: { value: 'ready' } }))
-    const update = Composition.makeUpdate((model, message) =>
-      Message.match(message, {
-        SubmittedValue: ({ value }) => ({
-          model: modifyFields(model, { value: () => value }),
-        }),
+    const update = Composition.makeUpdate({
+      SubmittedValue: (model, { value }) => ({
+        model: modifyFields(model, { value: () => value }),
       }),
-    )
+    })
     const view = Composition.makeView((model, h) => h.div([], [model.value]))
     const decoderValues: Array<string> = []
 
@@ -228,14 +226,12 @@ describe('completed root Block hosting', () => {
 
       return { model: { value: 'Initial' } }
     })
-    const update = ProgramRootComposition.makeUpdate((model, message) =>
-      Message.match(message, {
-        ClickedReadValue: () => ({ model, commands: [ReadValue()] }),
-        CompletedReadValue: ({ value }) => ({
-          model: modifyFields(model, { value: () => value }),
-        }),
+    const update = ProgramRootComposition.makeUpdate({
+      ClickedReadValue: model => ({ model, commands: [ReadValue()] }),
+      CompletedReadValue: (model, { value }) => ({
+        model: modifyFields(model, { value: () => value }),
       }),
-    )
+    })
     const view = ProgramRootComposition.makeView((model, h) =>
       h.button([h.OnClick(Message.ClickedReadValue())], [model.value]),
     )
@@ -330,7 +326,7 @@ describe('completed root Block hosting', () => {
     const prepareErasedRootBlock = () =>
       ErasedRootComposition.prepareBlock({
         init: () => ({ model: { value: 'ready' } }),
-        update: ErasedRootComposition.makeUpdate(),
+        update: ErasedRootComposition.makeUpdate({}),
         view: ErasedRootComposition.makeView((model, h) =>
           h.div([], [model.value]),
         ),

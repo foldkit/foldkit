@@ -2,8 +2,11 @@ import { Context, Effect, Layer, Option, Schema } from 'effect'
 import { Program } from 'foldkit'
 import * as Block from 'foldkit/block'
 import * as Command from 'foldkit/command'
+import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { type Program as ProgramType } from 'foldkit/program'
+import * as Scene from 'foldkit/scene'
+import * as Story from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
 
@@ -32,8 +35,11 @@ type Message = typeof Message.Type
 
 const OutMessage = defineMessageUnion({
   ReportedCount: { count: Schema.Number },
+  RequestedReset: {},
+  ObservedSave: {},
 })
 type OutMessage = typeof OutMessage.Type
+type ReportedCountOutMessage = ReturnType<typeof OutMessage.ReportedCount>
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 const CounterDefinition = Block.makeDefinition('DualUpdatePrototypeCounter', {
@@ -57,51 +63,52 @@ const SaveLayer = Save.toLayer<never, 'SaveConstructorUnavailable', SaveClient>(
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 const CounterComposition = CounterDefinition.makeComposition()
-const update = CounterComposition.makeUpdate((model, message) =>
-  Message.match<Update.Return<Model, Message, Command.HandlerOf<typeof Save>>>(
-    message,
-    {
-      ChangedCount: ({ amount }) => ({
-        model: modifyFields(model, { count: count => count + amount }),
-        commands: [Save()],
-      }),
-      CompletedSave: () => ({ model }),
-    },
-  ),
-)
+const update = CounterComposition.makeUpdate({
+  ChangedCount: (
+    model,
+    { amount },
+  ): Update.Return<Model, Message, Command.HandlerOf<typeof Save>> => ({
+    model: modifyFields(model, { count: count => count + amount }),
+    commands: [Save()],
+  }),
+  CompletedSave: (
+    model,
+  ): Update.Return<Model, Message, Command.HandlerOf<typeof Save>> => ({
+    model,
+  }),
+})
 
-const reportUpdate = CounterComposition.makeUpdate((model, message) =>
-  Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
-    message,
-    {
-      ChangedCount: ({ amount }) => ({
-        model,
-        outMessage: OutMessage.ReportedCount({ count: model.count + amount }),
-      }),
-      CompletedSave: () => ({ model }),
-    },
-  ),
-)
+const reportUpdate = CounterComposition.makeUpdate({
+  ChangedCount: (
+    model,
+    { amount },
+  ): Update.ReturnWithOutMessage<Model, Message, OutMessage> => ({
+    model,
+    outMessage: OutMessage.ReportedCount({ count: model.count + amount }),
+  }),
+  CompletedSave: (
+    model,
+  ): Update.ReturnWithOutMessage<Model, Message, OutMessage> => ({
+    model,
+    outMessage: OutMessage.ObservedSave(),
+  }),
+})
 
-const ternaryUpdate = CounterComposition.makeUpdate((model, message) =>
-  message._tag === 'ChangedCount'
-    ? {
-        model,
-        commands: [Save()],
-        outMessage: OutMessage.ReportedCount({ count: model.count }),
-      }
-    : { model },
-)
-const earlyReturnUpdate = CounterComposition.makeUpdate((model, message) => {
-  if (message._tag === 'ChangedCount') {
-    return {
-      model,
-      commands: [Save()],
-      outMessage: OutMessage.ReportedCount({ count: model.count }),
-    }
-  }
-
-  return { model }
+const ternaryUpdate = CounterComposition.makeUpdate({
+  ChangedCount: model => ({
+    model,
+    commands: [Save()],
+    outMessage: OutMessage.ReportedCount({ count: model.count }),
+  }),
+  CompletedSave: model => ({ model }),
+})
+const earlyReturnUpdate = CounterComposition.makeUpdate({
+  ChangedCount: model => ({
+    model,
+    commands: [Save()],
+    outMessage: OutMessage.ReportedCount({ count: model.count }),
+  }),
+  CompletedSave: model => ({ model }),
 })
 
 type TernaryReturn = Expect<
@@ -110,7 +117,7 @@ type TernaryReturn = Expect<
     Update.ReturnWithOutMessage<
       Model,
       Message,
-      OutMessage,
+      ReportedCountOutMessage,
       Command.HandlerOf<typeof Save>
     >
   >
@@ -280,16 +287,20 @@ type CombinedModel = Expect<Equal<typeof combined.model, Model>>
 
 type DispatchContext = Readonly<{ multiplier: number }>
 
-const fullChannelUpdate = CounterComposition.makeUpdate(
-  (model, message, context: DispatchContext) => ({
-    model: modifyFields(model, {
-      count: count =>
-        count +
-        (message._tag === 'ChangedCount' ? message.amount : 0) *
-          context.multiplier,
+const fullChannelUpdate = CounterComposition.makeUpdate.withContext(
+  (context: DispatchContext) => ({
+    CompletedSave: model => ({
+      model,
+      commands: [Save()],
+      outMessage: OutMessage.ReportedCount({ count: model.count }),
     }),
-    commands: [Save()],
-    outMessage: OutMessage.ReportedCount({ count: model.count }),
+    ChangedCount: (model, message) => ({
+      model: modifyFields(model, {
+        count: count => count + message.amount * context.multiplier,
+      }),
+      commands: [Save()],
+      outMessage: OutMessage.ReportedCount({ count: model.count }),
+    }),
   }),
 )
 const prepareFullChannelBlock = () =>
@@ -324,7 +335,7 @@ type FullChannelReturn = Expect<
     Update.ReturnWithOutMessage<
       Model,
       Message,
-      OutMessage,
+      ReportedCountOutMessage,
       Command.HandlerOf<typeof Save>
     >
   >
@@ -341,13 +352,13 @@ const ContextualComposition = Block.makeDefinition(
   },
 ).makeComposition()
 
-const requiredContextUpdate = ContextualComposition.makeUpdate(
-  (model, message, context: DispatchContext) => ({
-    model: modifyFields(model, {
-      count: count =>
-        count +
-        (message._tag === 'ChangedCount' ? message.amount : 0) *
-          context.multiplier,
+const requiredContextUpdate = ContextualComposition.makeUpdate.withContext(
+  (context: DispatchContext) => ({
+    CompletedSave: model => ({ model }),
+    ChangedCount: (model, message) => ({
+      model: modifyFields(model, {
+        count: count => count + message.amount * context.multiplier,
+      }),
     }),
   }),
 )
@@ -374,43 +385,107 @@ const requiredCombined = Update.combineSteps(Model.make({ count: 0 }), [
   stepModel => incrementAgain(stepModel, 1),
 ])
 
-const optionalContextUpdate = ContextualComposition.makeUpdate(
-  (model, _message, context?: DispatchContext) => ({
-    model: modifyFields(model, {
-      count: count => count + (context?.multiplier ?? 1),
+const optionalContextUpdate = ContextualComposition.makeUpdate.withContext(
+  (context?: DispatchContext) => ({
+    CompletedSave: (model, _message) => ({
+      model: modifyFields(model, {
+        count: count => count + (context?.multiplier ?? 1),
+      }),
+    }),
+    ChangedCount: (model, _message) => ({
+      model: modifyFields(model, {
+        count: count => count + (context?.multiplier ?? 1),
+      }),
     }),
   }),
 )
 
-const defaultContextUpdate = ContextualComposition.makeUpdate(
-  (model, _message, context: DispatchContext = { multiplier: 1 }) => ({
-    model: modifyFields(model, {
-      count: count => count + context.multiplier,
+const defaultContextUpdate = ContextualComposition.makeUpdate.withContext(
+  (context: DispatchContext = { multiplier: 1 }) => ({
+    CompletedSave: (model, _message) => ({
+      model: modifyFields(model, {
+        count: count => count + context.multiplier,
+      }),
+    }),
+    ChangedCount: (model, _message) => ({
+      model: modifyFields(model, {
+        count: count => count + context.multiplier,
+      }),
     }),
   }),
 )
 
-const restContextUpdate = ContextualComposition.makeUpdate(
-  (model, _message, ...contexts: ReadonlyArray<DispatchContext>) => ({
-    model: modifyFields(model, {
-      count: count =>
-        count +
-        contexts.reduce((total, context) => total + context.multiplier, 0),
+const restContextUpdate = ContextualComposition.makeUpdate.withContext(
+  (...contexts: ReadonlyArray<DispatchContext>) => ({
+    CompletedSave: (model, _message) => ({
+      model: modifyFields(model, {
+        count: count =>
+          count +
+          contexts.reduce((total, context) => total + context.multiplier, 0),
+      }),
+    }),
+    ChangedCount: (model, _message) => ({
+      model: modifyFields(model, {
+        count: count =>
+          count +
+          contexts.reduce((total, context) => total + context.multiplier, 0),
+      }),
     }),
   }),
 )
 
-const requiredRestContextUpdate = ContextualComposition.makeUpdate(
+const testView = (model: Model, h: HtmlBuilder<Message>) =>
+  h.button(
+    [h.OnClick(changedCount), h.Type('button')],
+    [globalThis.String(model.count)],
+  )
+
+Story.story(
+  reportUpdate,
+  Story.given(Model.make({ count: 0 })),
+  Story.message(changedCount),
+  Story.expectOutMessage(OutMessage.ReportedCount({ count: 2 })),
+)
+Scene.scene(
+  { update: reportUpdate, view: testView },
+  Scene.given(Model.make({ count: 0 })),
+  Scene.click(Scene.role('button')),
+  Scene.expectOutMessage(OutMessage.ReportedCount({ count: 2 })),
+)
+Story.story(
+  optionalContextUpdate,
+  Story.given(Model.make({ count: 0 })),
+  Story.message(changedCount),
+)
+Story.story(
+  defaultContextUpdate,
+  Story.given(Model.make({ count: 0 })),
+  Story.message(changedCount),
+)
+Story.story(
+  restContextUpdate,
+  Story.given(Model.make({ count: 0 })),
+  Story.message(changedCount),
+)
+
+const requiredRestContextUpdate = ContextualComposition.makeUpdate.withContext(
   (
-    model,
-    message,
     ...contexts: readonly [DispatchContext, ...ReadonlyArray<DispatchContext>]
   ) => ({
-    model: modifyFields(model, {
-      count: count =>
-        count +
-        (message._tag === 'ChangedCount' ? message.amount : 0) +
-        contexts.reduce((total, context) => total + context.multiplier, 0),
+    CompletedSave: model => ({
+      model: modifyFields(model, {
+        count: count =>
+          count +
+          contexts.reduce((total, context) => total + context.multiplier, 0),
+      }),
+    }),
+    ChangedCount: (model, message) => ({
+      model: modifyFields(model, {
+        count: count =>
+          count +
+          message.amount +
+          contexts.reduce((total, context) => total + context.multiplier, 0),
+      }),
     }),
   }),
 )
@@ -467,11 +542,14 @@ const prepareChildBlock = () =>
     init: ChildComposition.makeInit(() => ({
       model: ChildModel.make({ count: 0 }),
     })),
-    update: ChildComposition.makeUpdate((model, message) => ({
-      model: modifyFields(model, {
-        count: count => count + message.amount,
+    update: ChildComposition.makeUpdate({
+      ChangedCount: (model, message) => ({
+        model: modifyFields(model, {
+          count: count => count + message.amount,
+        }),
       }),
-    })),
+    }),
+    operations: { requestChangeCount: ChildMessage.ChangedCount },
   })
 const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
@@ -486,6 +564,7 @@ type GraphFullModel = typeof GraphFullModel.Type
 const GraphFullMessage = defineMessageUnion({
   ChangedCount: { amount: Schema.Number },
   CompletedSave: {},
+  IgnoredRequest: {},
 })
 const GraphFullOutMessage = defineMessageUnion({
   ReportedCount: { count: Schema.Number },
@@ -520,11 +599,10 @@ const GraphFullChildBinding = GraphFullDefinition.makeBinding(ChildBlock, {
 const GraphFullComposition = GraphFullDefinition.makeComposition({
   bindings: [GraphFullChildBinding],
 })
-const graphFullUpdate = GraphFullComposition.makeUpdate(
-  (model, message, context: DispatchContext) => {
-    const amount = message._tag === 'ChangedCount' ? message.amount : 0
+const saveGraphFull = GraphFullDefinition.makeStep(
+  (model, context: DispatchContext) => {
     const nextModel = modifyFields(model, {
-      count: count => count + amount * context.multiplier,
+      count: count => count + context.multiplier,
     })
 
     return {
@@ -535,6 +613,15 @@ const graphFullUpdate = GraphFullComposition.makeUpdate(
       }),
     }
   },
+)
+const ignoreGraphFullRequest = GraphFullDefinition.makeNoopStep()
+const graphFullUpdate = GraphFullComposition.makeUpdate.withContext(
+  (context: DispatchContext) => ({
+    ChangedCount: (model, { amount }) =>
+      GraphFullChildBinding.requestChangeCount({ amount })(model),
+    CompletedSave: model => saveGraphFull(model, context),
+    IgnoredRequest: model => ignoreGraphFullRequest(model),
+  }),
 )
 const prepareGraphFullBlock = () =>
   GraphFullComposition.prepareBlock({
@@ -585,7 +672,7 @@ type GraphFullReturn = Expect<
     Update.ReturnWithOutMessage<
       GraphFullModel,
       typeof GraphFullComposition.Message.Type,
-      GraphFullOutMessage,
+      ReturnType<typeof GraphFullOutMessage.ReportedCount>,
       Command.HandlerOf<typeof GraphFullSave>
     >
   >
@@ -617,14 +704,15 @@ const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
 const ParentComposition = ParentDefinition.makeComposition({
   bindings: [ChildBinding],
 })
-const parentUpdate = ParentComposition.makeUpdate((model, message) => {
-  type RefinedMessage = Expect<
-    Equal<typeof message, ReturnType<typeof ParentMessage.ChangedLabel>>
-  >
-  const refinedMessageProof: RefinedMessage = true
-  void refinedMessageProof
-
-  return { model }
+const parentUpdate = ParentComposition.makeUpdate({
+  ChangedLabel: (model, message) => {
+    type RefinedMessage = Expect<
+      Equal<typeof message, ReturnType<typeof ParentMessage.ChangedLabel>>
+    >
+    const refinedMessageProof: RefinedMessage = true
+    void refinedMessageProof
+    return { model }
+  },
 })
 const parentModel = ParentModel.make({
   child: ChildModel.make({ count: 0 }),
@@ -709,10 +797,10 @@ const RootComposition = RootApplicationDefinition.makeComposition()
 const rootInit = RootComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),
 }))
-const rootUpdate = RootComposition.makeUpdate((model, message) => ({
-  model,
-  commands: message._tag === 'ChangedCount' ? [Persist()] : undefined,
-}))
+const rootUpdate = RootComposition.makeUpdate({
+  CompletedSave: model => ({ model }),
+  ChangedCount: model => ({ model, commands: [Persist()] }),
+})
 const rootView = RootComposition.makeView((model, h) => ({
   title: globalThis.String(model.count),
   body: h.empty,
@@ -804,9 +892,15 @@ export {
   fullChannelStep,
   graphCombined,
   GraphFullBlock,
+  GraphFullChildBinding,
+  GraphFullComposition,
   GraphFullModel,
+  GraphFullMessage,
+  GraphFullOutMessage,
+  GraphFullSave,
   graphFullMessage,
   graphFullStep,
+  graphFullUpdate,
   optionalContextUpdate,
   parentModel,
   parentMessage,

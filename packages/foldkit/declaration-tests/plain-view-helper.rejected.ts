@@ -54,14 +54,16 @@ const helperWithForeignMessage = (h: OmittedParentViewBuilder) =>
 // @ts-expect-error Composition no longer carries a render helper.
 OmittedParentComposition.render
 
+// @ts-expect-error A plain view helper cannot complete a Block as its branded view.
 DeclarationViewHelperChildComposition.prepareBlock({
   init: DeclarationViewHelperChildComposition.makeInit(() => ({
     model: ChildModel.make({ value: 'initial' }),
   })),
-  update: DeclarationViewHelperChildComposition.makeUpdate(model => ({
-    model,
-  })),
-  // @ts-expect-error A plain view helper cannot complete a Block as its branded view.
+  update: DeclarationViewHelperChildComposition.makeUpdate({
+    ClickedChild: model => ({
+      model,
+    }),
+  }),
   view: childViewHelper,
   EffectsLayer: Layer.empty,
 })
@@ -114,14 +116,16 @@ const applicationHelperWithOmittedMount = (h: OmittedApplicationViewBuilder) =>
 // @ts-expect-error Application Composition no longer carries a render helper.
 ApplicationComposition.render
 
+// @ts-expect-error A plain view helper cannot complete a Block as its branded view.
 ApplicationComposition.prepareBlock({
   init: ApplicationComposition.makeInit(() => ({
     model: ParentModel.make({
       child: ChildModel.make({ value: 'initial' }),
     }),
   })),
-  update: ApplicationComposition.makeUpdate(model => ({ model })),
-  // @ts-expect-error A plain view helper cannot complete a Block as its branded view.
+  update: ApplicationComposition.makeUpdate({
+    CompletedObserveParent: model => ({ model }),
+  }),
   view: applicationViewHelper,
 })
 

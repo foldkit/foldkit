@@ -68,7 +68,7 @@ const init = ActionMenuExampleComposition.makeInit(() => ({
   },
 }))
 
-const update = ActionMenuExampleComposition.makeUpdate()
+const update = ActionMenuExampleComposition.makeUpdate({})
 
 // Inside your view function, render the menu via the factory's view. The
 // `buttonContent` below names the trigger. When the trigger is icon-only,

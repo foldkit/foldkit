@@ -71,11 +71,11 @@ Choice.operations.selectPositionally(
 )
 
 const ForeignMessage = defineMessageUnion({ UpdatedForeignValue: {} })
-// @ts-expect-error Operations accept only constructors from the local Message Schema.
 OperationConstructorProofChildComposition.prepareBlock({
   init: () => ({ model }),
   update,
   operations: {
+    // @ts-expect-error Operations accept only constructors from the local Message Schema.
     updateValue: ForeignMessage.UpdatedForeignValue,
   },
   EffectsLayer: Layer.empty,
@@ -95,11 +95,11 @@ OperationConstructorProofParentComposition.prepareBlock({
 const plainTaggedStruct = Schema.TaggedStruct('UpdatedValue', {
   value: Schema.String,
 })
-// @ts-expect-error Operations require a Foldkit callable Message constructor or tuple producer.
 OperationConstructorProofChildComposition.prepareBlock({
   init: () => ({ model }),
   update,
   operations: {
+    // @ts-expect-error Operations require a Foldkit callable Message constructor or tuple producer.
     plainTaggedStruct,
   },
   EffectsLayer: Layer.empty,

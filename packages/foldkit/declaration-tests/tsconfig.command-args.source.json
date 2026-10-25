@@ -1,0 +1,20 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "foldkit/command": ["../src/command/public.ts"],
+      "foldkit/message": ["../src/message/public.ts"],
+      "foldkit/scene": ["../src/test/scene.ts"],
+      "foldkit/story": ["../src/test/story.ts"]
+    },
+    "rootDir": ".."
+  },
+  "include": [
+    "../src/vite-env.d.ts",
+    "command-args.accepted.ts",
+    "command-args.helper.ts",
+    "command-args.consume.ts",
+    "command-args.rejected.ts"
+  ]
+}

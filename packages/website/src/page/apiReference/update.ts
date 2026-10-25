@@ -64,32 +64,30 @@ const refreshApiData = ApiReferenceDefinition.makeStep(model =>
   ),
 )
 
-export const update = ApiReferenceComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    InformedOfRouteChange: () => refreshApiData(model),
+export const update = ApiReferenceComposition.makeUpdate({
+  InformedOfRouteChange: model => refreshApiData(model),
 
-    SucceededLoadApiData: ({ apiData }) => ({
-      model: modifyFields(model, {
-        apiData: () => ApiDataAsyncData.Success({ data: apiData }),
-        disclosures: disclosures =>
-          Record.union(
-            disclosures,
-            disclosuresForApiData(apiData),
-            isOpen => isOpen,
-          ),
-      }),
+  SucceededLoadApiData: ApiReferenceDefinition.makeFieldsStep.fromMessage(
+    ({ apiData }) => ({
+      apiData: () => ApiDataAsyncData.Success({ data: apiData }),
+      disclosures: disclosures =>
+        Record.union(
+          disclosures,
+          disclosuresForApiData(apiData),
+          isOpen => isOpen,
+        ),
     }),
+  ),
 
-    FailedLoadApiData: ({ error }) => ({
-      model: modifyFields(model, {
-        apiData: apiData => AsyncData.settle(apiData, Result.fail(error)),
-      }),
+  FailedLoadApiData: ApiReferenceDefinition.makeFieldsStep.fromMessage(
+    ({ error }) => ({
+      apiData: apiData => AsyncData.settle(apiData, Result.fail(error)),
     }),
+  ),
 
-    ToggledSignature: ({ id, isOpen }) => ({
-      model: modifyFields(model, {
-        disclosures: disclosures => Record.set(disclosures, id, isOpen),
-      }),
+  ToggledSignature: ApiReferenceDefinition.makeFieldsStep.fromMessage(
+    ({ id, isOpen }) => ({
+      disclosures: disclosures => Record.set(disclosures, id, isOpen),
     }),
-  }),
-)
+  ),
+})

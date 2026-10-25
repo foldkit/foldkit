@@ -13,7 +13,7 @@ The entire test is one `story` call. Start from a Model, send a Message, resolve
 Import the steps you need from `foldkit/story`.
 
 - Top-level steps start the test, group reusable setup, send Messages, and inspect results: `story`, `steps`, `given`, `message`, `model`, `expectOutMessage`, and `expectNoOutMessage`.
-- The `Command` namespace handles pending Commands: `resolve`, `resolveAll`, `resolveAllExact`, `expectHas`, `expectExact`, and `expectNone`.
+- The `Command` namespace handles pending Commands: `argsOf`, `resolve`, `resolveAll`, `resolveAllExact`, `expectHas`, `expectExact`, and `expectNone`.
 
 Use named imports when the file contains only Story tests. If a file contains both Story and Scene tests, import the namespaces from `foldkit` so `Story.given` and `Scene.given` stay distinct.
 
@@ -26,6 +26,14 @@ A Command matcher accepts either a Definition or an instance. A Definition match
 Use `FetchWeather` when the test only cares that this Command was dispatched. Use `FetchWeather({ zipCode: '90210' })` when the placement and zip code are part of the contract. Do not compare `command.name` with a string or with `Definition.name`: different owners may declare the same local name, while a bound Command's displayed name includes its placement.
 
 For before-and-after examples covering generated child delivery and completed UI Blocks, see [Migrate an existing test suite](/testing#migrate-an-existing-test-suite).
+
+### Inspect Captured Command Arguments
+
+Use `Command.argsOf(Definition)(pending)` when a test helper needs the args captured on pending Command metadata. It matches the Definition's source identity, including through qualified Binding paths, and returns `Option` of the Definition's exact args type. An argless match returns `Some(undefined)`; `None` means the pending Command came from another source.
+
+Projection does not choose an occurrence. Map it across `simulation.commands`, then state the cardinality your helper requires. It also leaves the pending value's parent Message mapping, Effect channels, qualified name, and keys unchanged. Construct an instance from the projected args when the next step should resolve that exact dispatch.
+
+::Snippet{name="testingCommandArgs" label="Inspect captured Command arguments"}
 
 :::Info{label="Mount lifecycle is a Scene concern"}
 Story does not render the view, so the OnMount lifecycle is not observable from a Story test. Tests that need to acknowledge mounts use Scene's `Mount.resolve` and the related steps; see the [Scene](/testing/scene) page.

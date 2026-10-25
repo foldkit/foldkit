@@ -109,7 +109,17 @@ A rendering helper shared across Compositions takes a generic `ParentMessage` an
 
 ::Snippet{name="viewSharedHelper" label="Sharing a view helper across Compositions"}
 
-The heading uses only ordinary elements and attributes. A helper that forwards Mount attributes, a view callback, or child embeddings may also need an `AllowedMountRequirements` generic to preserve those capabilities. Keep that extra parameter only when the helper needs it. Helpers tied to one feature continue to use that Composition's `FeatureViewBuilder`.
+The heading uses only ordinary elements and attributes. Keep helpers tied to one feature on that Composition's `FeatureViewBuilder`.
+
+For a shared helper that forwards Mount-bearing child Attributes, let the caller render those Attributes through a typed callback. This Dialog helper uses a generic builder for its ordinary content and accepts `renderDialog` for the native element carrying the Dialog Mount:
+
+::Snippet{name="viewSharedDialog" label="Shared Dialog content and renderer contract"}
+
+Each caller registers its own Dialog Binding and supplies the renderer from its inferred view builder:
+
+::Snippet{name="viewSharedDialogCaller" label="Rendering Dialog Attributes with the owning builder"}
+
+The callback keeps the caller's scoped Binding capability. Omitting `DialogBinding` from this Composition makes both the child embedding and the native Attributes fail their checks. Annotating a whole shared builder with a raw Dialog Mount requirement does not describe that capability; keep the native renderer at the owning view instead.
 
 ### Inert HTML
 

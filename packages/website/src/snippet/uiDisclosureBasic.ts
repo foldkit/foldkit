@@ -36,16 +36,13 @@ const init = FrequentlyAskedQuestionsComposition.makeInit(() => ({
   },
 }))
 
-// In the corresponding Message.match handler, store the value. Return Commands
+// In the corresponding update handler, store the value. Return Commands
 // to persist the open state, load panel content, or record analytics.
-const update = FrequentlyAskedQuestionsComposition.makeUpdate(
-  (model, message) =>
-    Message.match(message, {
-      ToggledFaq: ({ isOpen }) => ({
-        model: modifyFields(model, { isFaqOpen: () => isOpen }),
-      }),
-    }),
-)
+const update = FrequentlyAskedQuestionsComposition.makeUpdate({
+  ToggledFaq: (model, { isOpen }) => ({
+    model: modifyFields(model, { isFaqOpen: () => isOpen }),
+  }),
+})
 
 // Inside your view function, render the disclosure with Disclosure.view.
 // Render the panel unconditionally and pass it through animatePanel: the

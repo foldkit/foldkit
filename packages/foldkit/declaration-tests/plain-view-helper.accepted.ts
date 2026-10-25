@@ -26,9 +26,11 @@ const prepareChildBlock = () =>
     init: DeclarationViewHelperChildComposition.makeInit(() => ({
       model: ChildModel.make({ value: 'initial' }),
     })),
-    update: DeclarationViewHelperChildComposition.makeUpdate(model => ({
-      model,
-    })),
+    update: DeclarationViewHelperChildComposition.makeUpdate({
+      ClickedChild: model => ({
+        model,
+      }),
+    }),
     view: childView,
     EffectsLayer: Layer.empty,
   })

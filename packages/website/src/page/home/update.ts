@@ -1,11 +1,9 @@
 import { HomeComposition } from './composition'
-import { Message, OutMessage } from './message'
+import { HomeDefinition } from './definition'
+import { OutMessage } from './message'
 
-export const update = HomeComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    UpdatedNewsletterEmail: ({ value }) => ({
-      model,
-      outMessage: OutMessage.UpdatedNewsletterEmail({ value }),
-    }),
-  }),
-)
+export const update = HomeComposition.makeUpdate({
+  UpdatedNewsletterEmail: HomeDefinition.makeOutMessageStep.fromMessage(
+    ({ value }) => OutMessage.UpdatedNewsletterEmail({ value }),
+  ),
+})

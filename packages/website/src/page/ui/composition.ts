@@ -15,7 +15,6 @@ import {
   SliderBlock,
   TooltipBlock,
 } from '@foldkit/ui'
-import { DragState } from '@foldkit/ui/dragAndDrop'
 
 import { CityComboboxBlock, CityMultiComboboxBlock } from './combobox'
 import { UiDefinition } from './definition'
@@ -30,7 +29,6 @@ import {
 } from './demo/components'
 import { ToastBlock } from './demo/toastModule'
 import { type DemoCard, type DemoColumn } from './domain/domain'
-import { Model } from './model'
 import { VirtualListChatDemoBindingWithOutMessagePolicy } from './virtualListChat'
 
 export { VirtualListChatDemoBinding } from './virtualListChat'
@@ -124,64 +122,6 @@ const dragAndDropDemoAnnouncementToText = DragAndDropDemoAnnouncement.match({
     `Dropped ${label} in position ${position} of ${columnLabel}.`,
   Cancelled: () => 'Drag cancelled.',
 })
-
-const maybeDragAndDropDemoKeyboardAnnouncement = (
-  model: typeof Model.Type,
-  nextDragAndDrop: typeof DragAndDropBlock.Model.Type,
-): Option.Option<typeof DragAndDropDemoAnnouncement.Type> =>
-  DragState.matchOrElse<Option.Option<typeof DragAndDropDemoAnnouncement.Type>>(
-    nextDragAndDrop.dragState,
-    {
-      KeyboardDragging: nextState =>
-        DragState.matchOrElse<
-          Option.Option<typeof DragAndDropDemoAnnouncement.Type>
-        >(
-          model.dragAndDropDemo.dragState,
-          {
-            Idle: () =>
-              Option.some(
-                DragAndDropDemoAnnouncement.PickedUp({
-                  label: findDragAndDropDemoCardLabel(
-                    model.dragAndDropDemoColumns,
-                    nextState.itemId,
-                  ),
-                }),
-              ),
-            KeyboardDragging: previousState => {
-              const columnLabel = findDragAndDropDemoColumnLabel(
-                model.dragAndDropDemoColumns,
-                nextState.targetContainerId,
-              )
-              const position = nextState.targetIndex + 1
-
-              if (
-                previousState.targetContainerId !== nextState.targetContainerId
-              ) {
-                return Option.some(
-                  DragAndDropDemoAnnouncement.MovedToColumn({
-                    columnLabel,
-                    position,
-                  }),
-                )
-              }
-
-              if (previousState.targetIndex !== nextState.targetIndex) {
-                return Option.some(
-                  DragAndDropDemoAnnouncement.MovedWithinColumn({
-                    columnLabel,
-                    position,
-                  }),
-                )
-              }
-
-              return Option.none()
-            },
-          },
-          () => Option.none(),
-        ),
-    },
-    () => Option.none(),
-  )
 
 const foldDialogOutMessage = UiDefinition.makeOutMessageFold(DialogBlock, {
   Opened: UiDefinition.makeNoopStep,
@@ -687,6 +627,35 @@ export const FileDropBasicDemoBinding = UiDefinition.makeBinding(
 const foldDragAndDropDemoOutMessage = UiDefinition.makeOutMessageFold(
   DragAndDropBlock,
   {
+    StartedKeyboardDrag: ({ itemId }) =>
+      UiDefinition.makeFieldsStep(model => ({
+        dragAndDropDemoAnnouncement: () =>
+          dragAndDropDemoAnnouncementToText(
+            DragAndDropDemoAnnouncement.PickedUp({
+              label: findDragAndDropDemoCardLabel(
+                model.dragAndDropDemoColumns,
+                itemId,
+              ),
+            }),
+          ),
+      })),
+    ChangedKeyboardTarget: ({ fromContainerId, toContainerId, toIndex }) =>
+      UiDefinition.makeFieldsStep(model => ({
+        dragAndDropDemoAnnouncement: () => {
+          const args = {
+            columnLabel: findDragAndDropDemoColumnLabel(
+              model.dragAndDropDemoColumns,
+              toContainerId,
+            ),
+            position: toIndex + 1,
+          }
+          return dragAndDropDemoAnnouncementToText(
+            fromContainerId !== toContainerId
+              ? DragAndDropDemoAnnouncement.MovedToColumn(args)
+              : DragAndDropDemoAnnouncement.MovedWithinColumn(args),
+          )
+        },
+      })),
     Reordered: ({ itemId, fromContainerId, toContainerId, toIndex }) =>
       UiDefinition.makeFieldsStep(model => {
         const label = findDragAndDropDemoCardLabel(
@@ -730,26 +699,8 @@ const foldDragAndDropDemoOutMessage = UiDefinition.makeOutMessageFold(
 export const DragAndDropDemoBinding = UiDefinition.makeBinding(
   DragAndDropBlock,
   {
-    read: model => Option.some(model.dragAndDropDemo),
-    write: (model, nextDragAndDropDemo) =>
-      modifyFields(model, {
-        dragAndDropDemo: () => nextDragAndDropDemo,
-        dragAndDropDemoAnnouncement: dragAndDropDemoAnnouncement =>
-          Option.match(
-            maybeDragAndDropDemoKeyboardAnnouncement(
-              model,
-              nextDragAndDropDemo,
-            ),
-            {
-              onNone: () => dragAndDropDemoAnnouncement,
-              onSome: dragAndDropDemoAnnouncementToText,
-            },
-          ),
-      }),
-    init: {
-      contextToArgs: () => [{ id: 'drag-and-drop-demo' }],
-      toParentFields: dragAndDropDemo => ({ dragAndDropDemo }),
-    },
+    field: 'dragAndDropDemo',
+    init: { contextToArgs: () => [{ id: 'drag-and-drop-demo' }] },
   },
 ).withOutMessagePolicy({ fold: foldDragAndDropDemoOutMessage })
 

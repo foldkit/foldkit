@@ -10,14 +10,10 @@ const LoadAllNotes = ApplicationDefinition.makeCommand('LoadAllNotes', {
   },
 })
 
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Match.value(message).pipe(
-    Match.tagsExhaustive({
-      SettledLoadAllNotes: ({ result }) => ({
-        model: modifyFields(model, {
-          allNotes: previous => AsyncData.settle(previous, result),
-        }),
-      }),
+const update = ApplicationComposition.makeUpdate({
+  SettledLoadAllNotes: ApplicationDefinition.makeFieldsStep.fromMessage(
+    ({ result }) => ({
+      allNotes: previous => AsyncData.settle(previous, result),
     }),
   ),
-)
+})

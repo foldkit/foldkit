@@ -15,6 +15,7 @@ export type {
   Commands,
   DefinedStep,
   DefinedUpdate,
+  DeferredCombinedStepsPolicy,
   DeferredResultEvidence,
   GraphCapability,
   RegistrationEvidence,

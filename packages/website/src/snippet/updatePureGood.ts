@@ -17,12 +17,10 @@ const FocusSearchInput = ApplicationDefinition.makeCommand('FocusSearchInput', {
 })
 
 // ✅ Return the next Model and a Command
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    OpenedDialog: () => ({
-      model: modifyFields(model, { dialogState: () => 'Open' }),
-      commands: [FocusSearchInput()],
-    }),
-    CompletedFocusSearchInput: () => ({ model }),
+const update = ApplicationComposition.makeUpdate({
+  OpenedDialog: model => ({
+    model: modifyFields(model, { dialogState: () => 'Open' }),
+    commands: [FocusSearchInput()],
   }),
-)
+  CompletedFocusSearchInput: model => ({ model }),
+})

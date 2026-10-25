@@ -87,7 +87,7 @@ describe('Lazy.expectAllReused', () => {
     const prepareChild = () =>
       ChildComposition.prepareBlock({
         init: ChildComposition.makeInit(() => ({ model })),
-        update: ChildComposition.makeUpdate(),
+        update: ChildComposition.makeUpdate({}),
         view: childView,
       })
     const child: Block.FromAssemblyWithView<typeof Model, typeof prepareChild> =

@@ -28,17 +28,15 @@ const prepareSearchBlock = () =>
       model: { count: 0 },
       commands: [ScheduleIncrement()],
     })),
-    update: SearchComposition.makeUpdate((model, message) =>
-      SearchMessage.match(message, {
-        ClickedIncrement: () => ({
-          model: modifyFields(model, { count: count => count + 1 }),
-          outMessage: SearchOutMessage.Incremented(),
-        }),
-        CompletedScheduleIncrement: () => ({
-          model: modifyFields(model, { count: count => count + 1 }),
-        }),
+    update: SearchComposition.makeUpdate({
+      ClickedIncrement: model => ({
+        model: modifyFields(model, { count: count => count + 1 }),
+        outMessage: SearchOutMessage.Incremented(),
       }),
-    ),
+      CompletedScheduleIncrement: model => ({
+        model: modifyFields(model, { count: count => count + 1 }),
+      }),
+    }),
     view: SearchComposition.makeView((_model, h) => h.div([])),
     hostHandlers: [ScheduleIncrement],
   })
@@ -66,11 +64,9 @@ const SearchBinding = ParentDefinition.makeBinding(SearchBlock, {
 const ParentComposition = ParentDefinition.makeComposition({
   bindings: [SearchBinding],
 })
-const update = ParentComposition.makeUpdate((model, message) =>
-  ParentMessage.match(message, {
-    ClickedParent: () => ({ model }),
-  }),
-)
+const update = ParentComposition.makeUpdate({
+  ClickedParent: model => ({ model }),
+})
 const init = ParentComposition.makeInit(() => ({ model: { label: 'Parent' } }))
 
 const ContextualSearchDefinition = makeDefinition(
@@ -84,12 +80,11 @@ const ContextualSearchComposition = ContextualSearchDefinition.makeComposition()
 const prepareContextualSearchBlock = () =>
   ContextualSearchComposition.prepareBlock({
     init: ContextualSearchComposition.makeInit(() => ({ model: { count: 0 } })),
-    update: ContextualSearchComposition.makeUpdate(
-      (model, message, _source: string) =>
-        SearchMessage.match(message, {
-          ClickedIncrement: () => ({ model }),
-          CompletedScheduleIncrement: () => ({ model }),
-        }),
+    update: ContextualSearchComposition.makeUpdate.withContext(
+      (_source: string) => ({
+        ClickedIncrement: model => ({ model }),
+        CompletedScheduleIncrement: model => ({ model }),
+      }),
     ),
     view: ContextualSearchComposition.makeView((_model, h) => h.div([])),
   })

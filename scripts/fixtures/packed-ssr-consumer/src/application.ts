@@ -30,16 +30,14 @@ export const init = ApplicationComposition.makeInit(
   }),
 )
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedIncrement: () => ({
-      model: modifyFields(model, { count: count => count + 1 }),
-    }),
-    ClickedRelease: () => ({
-      model: modifyFields(model, { formState: () => 'Released' }),
-    }),
+export const update = ApplicationComposition.makeUpdate({
+  ClickedIncrement: model => ({
+    model: modifyFields(model, { count: count => count + 1 }),
   }),
-)
+  ClickedRelease: model => ({
+    model: modifyFields(model, { formState: () => 'Released' }),
+  }),
+})
 
 const serverOnlyPin = import.meta.env.SSR ? '{{SERVER_ONLY_PIN}}' : ''
 const observedId = CustomElement.define({

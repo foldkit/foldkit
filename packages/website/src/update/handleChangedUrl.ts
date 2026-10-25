@@ -16,13 +16,14 @@ import {
 } from '../composition'
 import { ApplicationDefinition } from '../definition'
 import { findActiveSectionKeyForRoute } from '../docsNav'
+import type { Message } from '../message'
 import { type Model } from '../model'
 import { ApplicationRoute, urlToApplicationRoute } from '../route'
 
 type ApplicationTransition = Transition.Transition<typeof ApplicationRoute.Type>
 
-export const handleChangedUrl = (url: Url) =>
-  ApplicationDefinition.makeStep(model => {
+export const handleChangedUrl = ApplicationDefinition.makeStep(
+  (model, { url }: typeof Message.ChangedUrl.Type) => {
     const { route: previousRoute } = model
     const nextRoute = urlToApplicationRoute(url)
     const transition = Transition.make(previousRoute, nextRoute)
@@ -42,7 +43,8 @@ export const handleChangedUrl = (url: Url) =>
       loadRouteData(transition),
       scrollAfterUrlChange(url, isDifferentPathname),
     ])
-  })
+  },
+)
 
 const nextSidebarGroups = (
   model: typeof Model.Type,
@@ -140,8 +142,10 @@ const loadRouteData = (transition: ApplicationTransition) =>
 
 const scrollAfterUrlChange = (url: Url, isChangingPathname: boolean) => {
   if (Option.isSome(url.hash)) {
-    return ApplicationDefinition.makeCommandsStep([
-      Command.ScrollToAnchor({ hash: url.hash.value }),
+    const hash = url.hash.value
+
+    return ApplicationDefinition.makeCommandsStep(() => [
+      Command.ScrollToAnchor({ hash }),
       ...Array.filter(
         [Command.ScrollSidebarActiveLinkIntoView()],
         () => isChangingPathname,
@@ -149,7 +153,7 @@ const scrollAfterUrlChange = (url: Url, isChangingPathname: boolean) => {
     ])
   }
 
-  return ApplicationDefinition.makeCommandsStep(
+  return ApplicationDefinition.makeCommandsStep(() =>
     Array.filter(
       [Command.ScrollToTop(), Command.ScrollSidebarActiveLinkIntoView()],
       () => isChangingPathname,

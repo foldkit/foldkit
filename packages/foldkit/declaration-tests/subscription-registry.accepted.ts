@@ -47,9 +47,14 @@ const prepareRegistryBlock = () =>
     init: DeclarationSubscriptionRegistryComposition.makeInit(() => ({
       model: Model.make({ count: 0 }),
     })),
-    update: DeclarationSubscriptionRegistryComposition.makeUpdate(model => ({
-      model,
-    })),
+    update: DeclarationSubscriptionRegistryComposition.makeUpdate({
+      Ticked: model => ({
+        model,
+      }),
+      Logged: model => ({
+        model,
+      }),
+    }),
     subscriptions,
     EffectsLayer: subscriptions.layer,
   })

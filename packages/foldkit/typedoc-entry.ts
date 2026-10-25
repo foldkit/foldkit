@@ -5,3 +5,6 @@
 
 export * from './src/index.js'
 export * as Experimental from './typedoc-experimental.js'
+
+/** Schema-derived map Bindings, imported from `foldkit/mapBinding`. */
+export * as MapBinding from './src/block/mapBinding.js'

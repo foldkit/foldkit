@@ -1,7 +1,6 @@
 import { Number, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 
 import { Button } from '@foldkit/ui'
 
@@ -15,28 +14,27 @@ export const Message = defineMessageUnion({
   ClickedReset: {},
 })
 
-export const ApplicationComposition = Block.makeDefinition('Application', {
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
-}).makeComposition()
+})
+export const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 export const init = ApplicationComposition.makeInit(() => ({
   model: { count: 0 },
 }))
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedDecrement: () => ({
-      model: modifyFields(model, { count: Number.decrement }),
-    }),
-    ClickedIncrement: () => ({
-      model: modifyFields(model, { count: Number.increment }),
-    }),
-    ClickedReset: () => ({
-      model: modifyFields(model, { count: () => 0 }),
-    }),
-  }),
-)
+export const update = ApplicationComposition.makeUpdate({
+  ClickedDecrement: ApplicationDefinition.makeFieldsStep(() => ({
+    count: Number.decrement,
+  })),
+  ClickedIncrement: ApplicationDefinition.makeFieldsStep(() => ({
+    count: Number.increment,
+  })),
+  ClickedReset: ApplicationDefinition.makeFieldsStep(() => ({
+    count: () => 0,
+  })),
+})
 
 export const view = ApplicationComposition.makeView((model, h) => ({
   title: `Counter: ${model.count}`,

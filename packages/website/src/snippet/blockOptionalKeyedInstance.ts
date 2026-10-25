@@ -14,13 +14,11 @@ const RoomComposition = Block.makeDefinition('Room', {
 const prepare = () =>
   RoomComposition.prepareBlock({
     init: RoomComposition.makeInit((title: string) => ({ model: { title } })),
-    update: RoomComposition.makeUpdate((model, message) =>
-      RoomMessage.match(message, {
-        RequestedRename: ({ title }) => ({
-          model: modifyFields(model, { title: () => title }),
-        }),
+    update: RoomComposition.makeUpdate({
+      RequestedRename: (model, { title }) => ({
+        model: modifyFields(model, { title: () => title }),
       }),
-    ),
+    }),
     operations: { requestRename: RoomMessage.RequestedRename },
   })
 const RoomBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -53,19 +51,17 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [RoomBinding],
 })
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    RequestedOpenRoom: ({ roomId, title }) =>
-      RoomBinding.init({
-        key: roomId,
-        args: [title],
-        toParentModel: room =>
-          modifyFields(model, {
-            maybeRoomInstance: () =>
-              Option.some(
-                RoomInstance.make({ roomId, model: room, access: 'Owner' }),
-              ),
-          }),
-      }),
-  }),
-)
+export const update = ApplicationComposition.makeUpdate({
+  RequestedOpenRoom: (model, { roomId, title }) =>
+    RoomBinding.init({
+      key: roomId,
+      args: [title],
+      toParentModel: room =>
+        modifyFields(model, {
+          maybeRoomInstance: () =>
+            Option.some(
+              RoomInstance.make({ roomId, model: room, access: 'Owner' }),
+            ),
+        }),
+    }),
+})

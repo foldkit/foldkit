@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": { "noEmit": true },
+  "include": [
+    "record-update.accepted.ts",
+    "record-update.rejected.ts",
+    "record-update.consume.ts"
+  ]
+}

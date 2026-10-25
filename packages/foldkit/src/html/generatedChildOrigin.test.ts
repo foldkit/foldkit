@@ -26,7 +26,10 @@ const ChildComposition = ChildDefinition.makeComposition()
 const prepareChildBlock = () =>
   ChildComposition.prepareBlock({
     init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
-    update: ChildComposition.makeUpdate(model => ({ model })),
+    update: ChildComposition.makeUpdate({
+      ClickedIncrement: model => ({ model }),
+      BlurredButton: model => ({ model }),
+    }),
     view: ChildComposition.makeView((_model, h) =>
       h.button([
         h.OnClick(ChildMessage.ClickedIncrement()),

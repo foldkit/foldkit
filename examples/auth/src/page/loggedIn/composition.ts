@@ -3,11 +3,12 @@ import { Block } from 'foldkit'
 import { Message, OutMessage } from './message'
 import { Model } from './model'
 
-export const LoggedInComposition = Block.makeDefinition('LoggedIn', {
+export const LoggedInDefinition = Block.makeDefinition('LoggedIn', {
   Model,
   Message,
   OutMessage,
-}).makeComposition()
+})
+export const LoggedInComposition = LoggedInDefinition.makeComposition()
 export type LoggedInViewBuilder = Block.ViewBuilderFor<
   typeof LoggedInComposition
 >

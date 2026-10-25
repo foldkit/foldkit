@@ -19,9 +19,11 @@ const ChildComposition = makeDefinition('StrictRoutingRuntimeChild', {
 const prepareChildBlock = () =>
   ChildComposition.prepareBlock({
     init: () => ({ model: ChildModel.make({ count: 0 }) }),
-    update: ChildComposition.makeUpdate((model, { amount }) => ({
-      model: modifyFields(model, { count: count => count + amount }),
-    })),
+    update: ChildComposition.makeUpdate({
+      ChangedCount: (model, { amount }) => ({
+        model: modifyFields(model, { count: count => count + amount }),
+      }),
+    }),
   })
 const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
@@ -38,10 +40,16 @@ const ContextChildComposition = makeDefinition(
 const prepareContextChildBlock = () =>
   ContextChildComposition.prepareBlock({
     init: () => ({ model: ChildModel.make({ count: 0 }) }),
-    update: ContextChildComposition.makeUpdate(
-      (model, { amount }, context: Readonly<{ multiplier: number }>) => ({
-        model: modifyFields(model, {
-          count: count => count + amount * context.multiplier,
+    update: ContextChildComposition.makeUpdate.withContext(
+      (
+        context: Readonly<{
+          multiplier: number
+        }>,
+      ) => ({
+        ChangedCount: (model, { amount }) => ({
+          model: modifyFields(model, {
+            count: count => count + amount * context.multiplier,
+          }),
         }),
       }),
     ),
@@ -97,9 +105,11 @@ const EntryBinding = Parent.makeBinding(ChildBlock, {
 const ParentComposition = Parent.makeComposition({
   bindings: [ChildBinding, ContextBinding, EntryBinding],
 })
-const parentUpdate = ParentComposition.makeUpdate(model => ({
-  model: modifyFields(model, { resets: resets => resets + 1 }),
-}))
+const parentUpdate = ParentComposition.makeUpdate({
+  ClickedReset: model => ({
+    model: modifyFields(model, { resets: resets => resets + 1 }),
+  }),
+})
 const parentModel = ParentModel.make({
   child: ChildModel.make({ count: 0 }),
   contextualChild: ChildModel.make({ count: 0 }),
@@ -118,14 +128,12 @@ const rawFullMessageUpdate = (
   }),
 })
 const prepareRawCompletionBlock = () =>
-  ParentComposition.prepareBlock({
-    init: () => ({ model: parentModel }),
-    update: rawFullMessageUpdate,
-  })
-const RawCompletionBlock: Block.FromAssemblyWithoutViewOrOutMessage<
-  typeof ParentModel,
-  typeof prepareRawCompletionBlock
-> = Block.assemble(prepareRawCompletionBlock)
+  Reflect.apply(ParentComposition.prepareBlock, undefined, [
+    {
+      init: () => ({ model: parentModel }),
+      update: rawFullMessageUpdate,
+    },
+  ])
 const prepareGeneratedCompletionBlock = () =>
   ParentComposition.prepareBlock({
     init: () => ({ model: parentModel }),
@@ -173,22 +181,10 @@ it('routes canonical, contextual, and keyed Messages before authored facts', () 
   expect(local.model.resets).toBe(1)
 })
 
-it('installs routing around a raw full-Message completion update', () => {
-  const routed = RawCompletionBlock.update(parentModel, {
-    _tag: 'GotChildMessage',
-    placement: 'child',
-    generation: 0,
-    message: ChildMessage.ChangedCount({ amount: 1 }),
-  })
-  const local = RawCompletionBlock.update(
-    parentModel,
-    ParentMessage.ClickedReset(),
+it('rejects a raw full-Message completion update from an erased caller', () => {
+  expect(prepareRawCompletionBlock).toThrow(
+    'Block update must be authored with this Composition.makeUpdate',
   )
-
-  expect(routed.model.child.count).toBe(1)
-  expect(routed.model.resets).toBe(0)
-  expect(local.model.resets).toBe(1)
-  expect(RawCompletionBlock.update).not.toBe(rawFullMessageUpdate)
 })
 
 it('does not wrap an update authored by the same Composition twice', () => {
@@ -221,9 +217,11 @@ it('blocks an unclaimed Got Message hidden behind an opaque Schema', () => {
     Schema.Unknown,
     [],
     false,
-  )((model: Readonly<{ authored: number }>) => ({
-    model: { authored: model.authored + 1 },
-  }))
+  )({
+    ClickedReset: (model: Readonly<{ authored: number }>) => ({
+      model: { authored: model.authored + 1 },
+    }),
+  })
 
   expect(() =>
     opaqueUpdate(

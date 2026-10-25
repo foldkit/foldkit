@@ -10,6 +10,7 @@
     "noPropertyAccessFromIndexSignature": false
   },
   "include": [
-    "test/integration/fixtures/no-direct-block-state-update/valid/**/*.ts"
+    "test/integration/fixtures/no-direct-block-state-update/valid/**/*.ts",
+    "test/integration/fixtures/no-binding-write-coordination/**/*.ts"
   ]
 }

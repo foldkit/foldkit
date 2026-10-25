@@ -47,7 +47,10 @@ const prepareBlock = () =>
     init: RegistryComposition.makeInit(() => ({
       model: Model.make({ count: 0 }),
     })),
-    update: RegistryComposition.makeUpdate(model => ({ model })),
+    update: RegistryComposition.makeUpdate({
+      Ticked: model => ({ model }),
+      Logged: model => ({ model }),
+    }),
     subscriptions,
     EffectsLayer: subscriptions.layer,
   })

@@ -292,7 +292,7 @@ Within a Foldkit application, the framework enforces several properties that Rea
 
 ### The Message union as total input domain {#message-union-index}
 
-The Composition's complete Message Schema is the total input domain of its update. A child Block contributes its own complete Schema behind generated delivery. Every Runtime-driven Model transition enters through that checked dispatch contract; authored update callbacks handle only local facts.
+The Composition's complete Message Schema is the total input domain of its update. A child Block contributes its own complete Schema behind generated delivery. Every Runtime-driven Model transition enters through that checked dispatch contract; authored update handlers cover only local facts.
 
 React’s Action union provides the same property for this reducer. It does not cover state internal to Headless UI or work begun directly in handlers and Effects, because those paths do not use the reducer.
 

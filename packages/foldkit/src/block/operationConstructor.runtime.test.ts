@@ -49,35 +49,48 @@ const RecordValue = Definition.makeCommand('RecordValue', {
   },
 })
 const Composition = Definition.makeComposition()
-const update = Composition.makeUpdate(
+const update = Composition.makeUpdate.withContext(
   (
-    model,
-    message,
-    required: Readonly<{ prefix: string }>,
+    required: Readonly<{
+      prefix: string
+    }>,
     maybeSuffix?: string,
     separator: string = ':',
     ...indexes: ReadonlyArray<number>
-  ) =>
-    Message.match<
-      Update.ReturnWithOutMessage<
-        Model,
-        Message,
-        OutMessage,
-        Command.HandlerOf<typeof RecordValue>
-      >
-    >(message, {
-      ResetValue: () => ({ model: modifyFields(model, { value: () => '' }) }),
-      UpdatedValue: ({ source, value }) => {
-        const nextValue = `${required.prefix}${separator}${source}${separator}${value}${maybeSuffix ?? ''}${indexes.join('')}`
-
-        return {
-          model: modifyFields(model, { value: () => nextValue }),
-          commands: [RecordValue({ value: nextValue })],
-          outMessage: OutMessage.ChangedValue({ value: nextValue }),
-        }
-      },
-      CompletedRecordValue: () => ({ model }),
-    }),
+  ) => ({
+    ResetValue: (
+      model,
+    ): Update.ReturnWithOutMessage<
+      Model,
+      Message,
+      OutMessage,
+      Command.HandlerOf<typeof RecordValue>
+    > => ({ model: modifyFields(model, { value: () => '' }) }),
+    UpdatedValue: (
+      model,
+      { source, value },
+    ): Update.ReturnWithOutMessage<
+      Model,
+      Message,
+      OutMessage,
+      Command.HandlerOf<typeof RecordValue>
+    > => {
+      const nextValue = `${required.prefix}${separator}${source}${separator}${value}${maybeSuffix ?? ''}${indexes.join('')}`
+      return {
+        model: modifyFields(model, { value: () => nextValue }),
+        commands: [RecordValue({ value: nextValue })],
+        outMessage: OutMessage.ChangedValue({ value: nextValue }),
+      }
+    },
+    CompletedRecordValue: (
+      model,
+    ): Update.ReturnWithOutMessage<
+      Model,
+      Message,
+      OutMessage,
+      Command.HandlerOf<typeof RecordValue>
+    > => ({ model }),
+  }),
 )
 const resetValue = Message.ResetValue
 const updateValue = Message.UpdatedValue
@@ -159,14 +172,12 @@ const prepareParentBlock = () =>
     init: () => ({
       model: ParentModel.make({ maybeChild: Option.none(), entries: [] }),
     }),
-    update: ParentComposition.makeUpdate((model, message) =>
-      ParentMessage.match(message, {
-        RequestedUpdateChild: ({ value }) =>
-          ChildBinding.updateValue({ value }, { prefix: 'binding' })(model),
-        RequestedUpdateEntry: ({ id, value }) =>
-          EntryBinding.updateValue(id, { value }, { prefix: 'binding' })(model),
-      }),
-    ),
+    update: ParentComposition.makeUpdate({
+      RequestedUpdateChild: (model, { value }) =>
+        ChildBinding.updateValue({ value }, { prefix: 'binding' })(model),
+      RequestedUpdateEntry: (model, { id, value }) =>
+        EntryBinding.updateValue(id, { value }, { prefix: 'binding' })(model),
+    }),
     operations: {
       updateChild: ParentMessage.RequestedUpdateChild,
       updateEntry: ParentMessage.RequestedUpdateEntry,
@@ -187,15 +198,22 @@ const initialParent = ParentModel.make({
 describe('Message constructor operations', () => {
   it('completes one operations-update pair once without running constructor defaults', () => {
     const SamePair = makeBlock(update)
-    const secondUpdate = Composition.makeUpdate(
+    const secondUpdate = Composition.makeUpdate.withContext(
       (
-        model,
-        message,
-        required: Readonly<{ prefix: string }>,
+        required: Readonly<{
+          prefix: string
+        }>,
         maybeSuffix?: string,
         separator: string = ':',
         ...indexes: ReadonlyArray<number>
-      ) => update(model, message, required, maybeSuffix, separator, ...indexes),
+      ) => ({
+        UpdatedValue: (model, message) =>
+          update(model, message, required, maybeSuffix, separator, ...indexes),
+        CompletedRecordValue: (model, message) =>
+          update(model, message, required, maybeSuffix, separator, ...indexes),
+        ResetValue: (model, message) =>
+          update(model, message, required, maybeSuffix, separator, ...indexes),
+      }),
     )
     const DifferentUpdate = makeBlock(secondUpdate)
 
@@ -272,13 +290,13 @@ describe('Message constructor operations', () => {
     const prepareSymbolBlock = () =>
       SymbolComposition.prepareBlock({
         init: () => ({ model: SymbolModel.make({ value: '' }) }),
-        update: SymbolComposition.makeUpdate(
-          (model, message, suffix: string) => ({
+        update: SymbolComposition.makeUpdate.withContext((suffix: string) => ({
+          UpdatedValue: (model, message) => ({
             model: modifyFields(model, {
               value: () => `${message[valueField]}${suffix}`,
             }),
           }),
-        ),
+        })),
         operations: { updateValue: SymbolMessage.UpdatedValue },
         EffectsLayer: Layer.empty,
       })
@@ -354,7 +372,9 @@ describe('Message constructor operations', () => {
     expect(() =>
       SingleComposition.prepareBlock({
         init: () => ({ model: initialModel }),
-        update: SingleComposition.makeUpdate(model => ({ model })),
+        update: SingleComposition.makeUpdate({
+          ResetValue: model => ({ model }),
+        }),
         operations: { resetValue: Message.ResetValue },
         EffectsLayer: Layer.empty,
       }),
@@ -362,7 +382,11 @@ describe('Message constructor operations', () => {
     expect(() =>
       NestedComposition.prepareBlock({
         init: () => ({ model: initialModel }),
-        update: NestedComposition.makeUpdate(model => ({ model })),
+        update: NestedComposition.makeUpdate({
+          UpdatedValue: model => ({ model }),
+          CompletedRecordValue: model => ({ model }),
+          ResetValue: model => ({ model }),
+        }),
         operations: { updateValue: Message.UpdatedValue },
         EffectsLayer: Layer.empty,
       }),
@@ -387,7 +411,11 @@ describe('Message constructor operations', () => {
     const prepareFirstBlock = () =>
       FirstComposition.prepareBlock({
         init: () => ({ model: initialModel }),
-        update: FirstComposition.makeUpdate(model => ({ model })),
+        update: FirstComposition.makeUpdate({
+          UpdatedValue: model => ({ model }),
+          CompletedRecordValue: model => ({ model }),
+          ResetValue: model => ({ model }),
+        }),
         operations: { resetValue: Message.ResetValue },
         EffectsLayer: Layer.empty,
       })
@@ -398,7 +426,11 @@ describe('Message constructor operations', () => {
     const prepareSecondBlock = () =>
       SecondComposition.prepareBlock({
         init: () => ({ model: initialModel }),
-        update: SecondComposition.makeUpdate(model => ({ model })),
+        update: SecondComposition.makeUpdate({
+          UpdatedValue: model => ({ model }),
+          CompletedRecordValue: model => ({ model }),
+          ResetValue: model => ({ model }),
+        }),
         operations: { resetValue: Message.ResetValue },
         EffectsLayer: Layer.empty,
       })

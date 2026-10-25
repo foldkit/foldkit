@@ -80,10 +80,9 @@ const LoadParentData = DialogParentTestDefinition.makeCommand(
   },
 )
 
-const loadParentData = DialogParentTestDefinition.makeStep(model => ({
-  model,
-  commands: [LoadParentData()],
-}))
+const loadParentData = DialogParentTestDefinition.makeCommandsStep(() => [
+  LoadParentData(),
+])
 
 const DialogBinding = DialogParentTestDefinition.makeBinding(DialogBlock, {
   field: 'dialog',

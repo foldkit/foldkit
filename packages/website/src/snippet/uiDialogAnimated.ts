@@ -58,7 +58,7 @@ const init = AnimatedDialogExampleComposition.makeInit(() => ({
   },
 }))
 
-const update = AnimatedDialogExampleComposition.makeUpdate()
+const update = AnimatedDialogExampleComposition.makeUpdate({})
 
 // Inside your view function, use data-[closed] for enter/leave transitions and
 // spread the `closeButton` bundle onto your dismiss buttons:

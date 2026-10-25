@@ -651,19 +651,16 @@ import { Update } from 'foldkit'
 
 import { StoreDraft } from './command'
 import { DraftEditorComposition } from './composition'
-import { Message } from './message'
+import { DraftEditorDefinition } from './definition'
 
-// Infer Command requirements from the returned Commands across all branches.
-const update = DraftEditorComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedSaveDraft: () => ({
-      model,
-      commands: [StoreDraft({ contents: model.contents })],
-    }),
-    CompletedStoreDraft: () => ({ model }),
-    FailedStoreDraft: () => ({ model }),
-  }),
-)
+// Infer Command requirements from the returned Commands across all handlers.
+const update = DraftEditorComposition.makeUpdate({
+  ClickedSaveDraft: DraftEditorDefinition.makeCommandsStep(model => [
+    StoreDraft({ contents: model.contents }),
+  ]),
+  CompletedStoreDraft: DraftEditorDefinition.makeNoopStep(),
+  FailedStoreDraft: DraftEditorDefinition.makeNoopStep(),
+})
 
 // This requires StoreDraft's handler, not its underlying storage service.
 type CommandRequirements = Update.RequirementsOf<typeof update>

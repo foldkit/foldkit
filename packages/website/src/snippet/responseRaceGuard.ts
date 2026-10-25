@@ -54,23 +54,21 @@ const Search = ApplicationDefinition.makeCommand('Search', {
   },
 })
 
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    UpdatedQuery: ({ query }) => ({
-      model: modifyFields(model, {
-        queryInput: () => query,
-        searchResults: () => SearchResultsData.Loading(),
-      }),
-      commands: [Search({ query })],
+const update = ApplicationComposition.makeUpdate({
+  UpdatedQuery: (model, { query }) => ({
+    model: modifyFields(model, {
+      queryInput: () => query,
+      searchResults: () => SearchResultsData.Loading(),
     }),
-
-    SettledSearch: ({ query, result }) => {
-      if (query !== model.queryInput) {
-        return { model }
-      }
-      return {
-        model: modifyFields(model, { searchResults: AsyncData.settle(result) }),
-      }
-    },
+    commands: [Search({ query })],
   }),
-)
+
+  SettledSearch: (model, { query, result }) => {
+    if (query !== model.queryInput) {
+      return { model }
+    }
+    return {
+      model: modifyFields(model, { searchResults: AsyncData.settle(result) }),
+    }
+  },
+})

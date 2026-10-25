@@ -54,27 +54,25 @@ type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedAddCounter: () => {
-      const id = `counter-${model.nextCounterId}`
-      return CountersBinding.init({
-        key: id,
-        args: [],
-        toParentModel: counter =>
-          modifyFields(model, {
-            counters: Array.append({ id, counter }),
-            nextCounterId: Number.increment,
-          }),
-      })
-    },
-    ClickedRemoveCounter: ({ id }) => ({
-      model: modifyFields(model, {
-        counters: Array.filter(counterInstance => counterInstance.id !== id),
-      }),
+export const update = ApplicationComposition.makeUpdate({
+  ClickedAddCounter: model => {
+    const id = `counter-${model.nextCounterId}`
+    return CountersBinding.init({
+      key: id,
+      args: [],
+      toParentModel: counter =>
+        modifyFields(model, {
+          counters: Array.append({ id, counter }),
+          nextCounterId: Number.increment,
+        }),
+    })
+  },
+  ClickedRemoveCounter: ApplicationDefinition.makeFieldsStep.fromMessage(
+    ({ id }) => ({
+      counters: Array.filter(counterInstance => counterInstance.id !== id),
     }),
-  }),
-)
+  ),
+})
 
 export const init = ApplicationComposition.makeInit(() => ({
   model: { nextCounterId: INITIAL_COUNTER_COUNT },

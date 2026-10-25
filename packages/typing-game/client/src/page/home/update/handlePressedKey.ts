@@ -4,7 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 import { CreateRoom, FocusRoomIdInput, FocusUsernameInput } from '../command'
 import { HOME_ACTIONS, HomeAction, HomeStep, Model } from '../model'
 
-export const handleKeyPressed =
+export const handlePressedKey =
   (model: typeof Model.Type) =>
   ({ key }: { key: string }) =>
     Match.value(model.homeStep).pipe(

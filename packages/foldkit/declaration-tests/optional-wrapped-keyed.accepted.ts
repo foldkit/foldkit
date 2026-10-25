@@ -25,14 +25,14 @@ const prepareRoomBlock = () =>
         model: RoomModel.make({ count }),
       }),
     ),
-    update: DeclarationOptionalWrappedKeyedRoomComposition.makeUpdate(
-      (model, message, context: typeof RoomContext.Type) =>
-        RoomMessage.match(message, {
-          RequestedSetCount: ({ count }) => ({
+    update:
+      DeclarationOptionalWrappedKeyedRoomComposition.makeUpdate.withContext(
+        (context: typeof RoomContext.Type) => ({
+          RequestedSetCount: (model, { count }) => ({
             model: RoomModel.make({ count: count + context.roomId.length }),
           }),
         }),
-    ),
+      ),
     operations: {
       setCount: (count: number, context: typeof RoomContext.Type) =>
         Tuple.make(RoomMessage.RequestedSetCount({ count }), context),
@@ -57,7 +57,7 @@ const preparePlainRoomBlock = () =>
     init: DeclarationOptionalWrappedKeyedPlainRoomComposition.makeInit(() => ({
       model: RoomModel.make({ count: 0 }),
     })),
-    update: DeclarationOptionalWrappedKeyedPlainRoomComposition.makeUpdate(),
+    update: DeclarationOptionalWrappedKeyedPlainRoomComposition.makeUpdate({}),
     EffectsLayer: Layer.empty,
   })
 const PlainRoomBlock: Block.FromAssemblyWithoutViewOrOutMessage<

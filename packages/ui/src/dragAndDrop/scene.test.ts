@@ -16,6 +16,8 @@ const DragAndDropSceneDefinition = Block.makeDefinition('DragAndDropScene', {
 const foldDragAndDropOutMessage = DragAndDropSceneDefinition.makeOutMessageFold(
   DragAndDropBlock,
   {
+    StartedKeyboardDrag: () => model => ({ model }),
+    ChangedKeyboardTarget: () => model => ({ model }),
     Reordered: () => model => ({ model }),
     Cancelled: () => model => ({ model }),
   },
@@ -33,7 +35,7 @@ const DragAndDropSceneComposition = DragAndDropSceneDefinition.makeComposition({
   bindings: [DragAndDropBinding],
 })
 
-const update = DragAndDropSceneComposition.makeUpdate()
+const update = DragAndDropSceneComposition.makeUpdate({})
 
 const view = DragAndDropSceneComposition.makeView((model, h) =>
   h.div(

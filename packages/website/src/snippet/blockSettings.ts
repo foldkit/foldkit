@@ -19,15 +19,13 @@ const changeTheme = SettingsDefinition.makeStep(
   }),
 )
 
-const update = SettingsComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ChangedTheme: ({ theme }) => changeTheme(model, theme),
-    RequestedThemeChange: ({ theme }) => changeTheme(model, theme),
-    RequestedReset: () => changeTheme(model, 'System'),
-    CompletedSaveTheme: () => ({ model }),
-    FailedSaveTheme: () => ({ model }),
-  }),
-)
+const update = SettingsComposition.makeUpdate({
+  ChangedTheme: (model, { theme }) => changeTheme(model, theme),
+  RequestedThemeChange: (model, { theme }) => changeTheme(model, theme),
+  RequestedReset: model => changeTheme(model, 'System'),
+  CompletedSaveTheme: SettingsDefinition.makeNoopStep(),
+  FailedSaveTheme: SettingsDefinition.makeNoopStep(),
+})
 
 const view = SettingsComposition.makeView((model, h) =>
   h.div(

@@ -24,14 +24,12 @@ const init = ApplicationComposition.makeInit(() => ({
   model: Model.make({ mode: 'Viewing' }),
 }))
 
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedToggle: () => {
-      const nextMode = model.mode === 'Viewing' ? 'Editing' : 'Viewing'
-      return { model: Model.make({ mode: nextMode }) }
-    },
-  }),
-)
+const update = ApplicationComposition.makeUpdate({
+  ClickedToggle: model => {
+    const nextMode = model.mode === 'Viewing' ? 'Editing' : 'Viewing'
+    return { model: Model.make({ mode: nextMode }) }
+  },
+})
 
 const FIXTURE_MODULE_ID = '/app/src/View.js'
 const FIXTURE_ROOT = '/app'

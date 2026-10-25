@@ -25,7 +25,9 @@ const ChildComposition = ChildDefinition.makeComposition()
 const prepareChildBlock = () =>
   ChildComposition.prepareBlock({
     init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
-    update: ChildComposition.makeUpdate(model => ({ model })),
+    update: ChildComposition.makeUpdate({
+      RequestedClose: model => ({ model }),
+    }),
     operations: { requestClose: ChildMessage.RequestedClose },
     EffectsLayer: Layer.empty,
   })

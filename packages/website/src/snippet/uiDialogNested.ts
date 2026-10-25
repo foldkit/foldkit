@@ -66,12 +66,10 @@ const init = ProjectDialogsComposition.makeInit(() => ({
 // The button dispatches ClickedDeleteProject; the update opens the confirmation
 // through `ConfirmDialogBinding.requestOpen()`, keeping Got* for genuine child results.
 
-const update = ProjectDialogsComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedDeleteProject: () => ConfirmDialogBinding.requestOpen()(model),
-    ConfirmedDeleteProject: () => ConfirmDialogBinding.requestClose()(model),
-  }),
-)
+const update = ProjectDialogsComposition.makeUpdate({
+  ClickedDeleteProject: ConfirmDialogBinding.requestOpen(),
+  ConfirmedDeleteProject: ConfirmDialogBinding.requestClose(),
+})
 
 // Each dialog is its own block; the framework stacks them by z-index, traps
 // focus in the topmost, and Escape closes the topmost before the one beneath

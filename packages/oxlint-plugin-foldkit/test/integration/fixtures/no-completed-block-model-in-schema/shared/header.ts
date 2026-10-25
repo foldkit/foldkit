@@ -9,6 +9,14 @@ export const HeaderChild: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof prepareChild
 > = Block.assemble(prepareChild)
 
+const prepareInterface = () => Composition.prepareBlock({})
+export interface InterfaceHeader
+  extends Block.FromAssemblyWithoutViewOrOutMessage<
+    typeof Model,
+    typeof prepareInterface
+  > {}
+export const InterfaceHeader: InterfaceHeader = Block.assemble(prepareInterface)
+
 const prepareInferred = () => Composition.prepareBlock({})
 export const InferredChild = Block.assemble(prepareInferred)
 

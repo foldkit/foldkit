@@ -23,17 +23,14 @@ const foldDietListboxOutMessage = ApplicationDefinition.makeOutMessageFold(
   DietListboxBlock,
   {
     Selected: ({ value }) =>
-      ApplicationDefinition.makeStep(model => {
+      ApplicationDefinition.makeCommandsStep(model => {
         const fields = routeToBrowseFields(model.route)
-        return {
-          model,
-          commands: [
-            ReplaceFilters({
-              ...fields,
-              diet: selectionToParam(Option.some(value), Diet),
-            }),
-          ],
-        }
+        return [
+          ReplaceFilters({
+            ...fields,
+            diet: selectionToParam(Option.some(value), Diet),
+          }),
+        ]
       }),
   },
 )
@@ -50,17 +47,14 @@ const foldPeriodListboxOutMessage = ApplicationDefinition.makeOutMessageFold(
   PeriodListboxBlock,
   {
     Selected: ({ value }) =>
-      ApplicationDefinition.makeStep(model => {
+      ApplicationDefinition.makeCommandsStep(model => {
         const fields = routeToBrowseFields(model.route)
-        return {
-          model,
-          commands: [
-            ReplaceFilters({
-              ...fields,
-              period: selectionToParam(Option.some(value), Period),
-            }),
-          ],
-        }
+        return [
+          ReplaceFilters({
+            ...fields,
+            period: selectionToParam(Option.some(value), Period),
+          }),
+        ]
       }),
   },
 )

@@ -16,11 +16,11 @@ const prepareChildBlock = () =>
     init: DeclarationCanonicalConstructorChildComposition.makeInit(() => ({
       model: ChildModel.make({ value: 0 }),
     })),
-    update: DeclarationCanonicalConstructorChildComposition.makeUpdate(
-      model => ({
+    update: DeclarationCanonicalConstructorChildComposition.makeUpdate({
+      UpdatedValue: model => ({
         model,
       }),
-    ),
+    }),
   })
 export const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,

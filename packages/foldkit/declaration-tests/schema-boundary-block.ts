@@ -23,12 +23,10 @@ export const ChildComposition = ChildDefinition.makeComposition()
 export const init = ChildComposition.makeInit(() => ({
   model: Model.make({ count: Count.make(0) }),
 }))
-export const update = ChildComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    RequestedLoad: ({ key }) => ({ model, commands: [Load({ key })] }),
-    CompletedLoad: ({ count }) => ({ model: Model.make({ count }) }),
-  }),
-)
+export const update = ChildComposition.makeUpdate({
+  RequestedLoad: (model, { key }) => ({ model, commands: [Load({ key })] }),
+  CompletedLoad: (model, { count }) => ({ model: Model.make({ count }) }),
+})
 const prepare = () =>
   ChildComposition.prepareBlock({
     init,

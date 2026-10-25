@@ -267,10 +267,9 @@ const AnimationBinding = DialogDefinition.makeBinding(
   },
 )
 
-const foldTransitionedOut = DialogDefinition.makeStep(model => ({
-  model,
-  commands: [CloseDialog({ id: model.id })],
-}))
+const foldTransitionedOut = DialogDefinition.makeCommandsStep(model => [
+  CloseDialog({ id: model.id }),
+])
 
 const foldAnimationOutMessage = DialogDefinition.makeOutMessageFold(
   Animation.AnimationBlock,
@@ -302,119 +301,125 @@ export const init = DialogComposition.makeInit((config: InitConfig) => ({
   model: makeInitialModel(config),
 }))
 
+const leaveDialogUnchanged = DialogDefinition.makeNoopStep()
+const completeClose = DialogDefinition.makeOutMessageStep(() =>
+  OutMessage.CompletedClose(),
+)
+
 /** Processes a Dialog Message and returns the next Model and optional Commands. */
-export const update = DialogComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    RequestedOpen: () => {
-      const wasClosed = !model.isOpen
-      const commands = Array.filter(
-        [
-          ShowDialog({
-            id: model.id,
-            focusSelector: Option.getOrElse(
-              model.maybeFocusSelector,
-              () => initialFocusMarkerSelector,
-            ),
-          }),
-        ],
-        () => wasClosed,
-      )
-      const dialogOpen = model.isAnimated
-        ? Update.combineSteps(model, [
-            DialogDefinition.makeCommandsStep(commands),
-            AnimationBinding.requestShow(),
-            DialogDefinition.makeFieldsStep(() => ({ isOpen: () => true })),
-          ])
-        : { model: modifyFields(model, { isOpen: () => true }), commands }
-
-      return wasClosed
-        ? pipe(dialogOpen, Update.withOutMessage(OutMessage.Opened()))
-        : dialogOpen
-    },
-
-    RequestedClose: () => {
-      if (isLeaving(model)) {
-        return { model }
-      }
-
-      const wasOpen = model.isOpen
-      if (model.isAnimated) {
-        const dialogClose = Update.combineSteps(model, [
-          closeDialogModel,
-          AnimationBinding.requestHide(),
+export const update = DialogComposition.makeUpdate({
+  RequestedOpen: model => {
+    const wasClosed = !model.isOpen
+    const commands = Array.filter(
+      [
+        ShowDialog({
+          id: model.id,
+          focusSelector: Option.getOrElse(
+            model.maybeFocusSelector,
+            () => initialFocusMarkerSelector,
+          ),
+        }),
+      ],
+      () => wasClosed,
+    )
+    const dialogOpen = model.isAnimated
+      ? Update.combineSteps(model, [
+          DialogDefinition.makeCommandsStep(() => commands),
+          AnimationBinding.requestShow(),
+          DialogDefinition.makeFieldsStep(() => ({ isOpen: () => true })),
         ])
+      : DialogDefinition.makeStep(stepModel => ({
+          model: modifyFields(stepModel, { isOpen: () => true }),
+          commands,
+        }))(model)
 
-        return wasOpen
-          ? pipe(dialogClose, Update.withOutMessage(OutMessage.Closed()))
-          : dialogClose
-      }
+    return wasClosed
+      ? pipe(dialogOpen, Update.withOutMessage(OutMessage.Opened()))
+      : dialogOpen
+  },
 
-      const commands = Array.filter(
-        [CloseDialog({ id: model.id })],
-        () => wasOpen,
-      )
-      const dialogClose = {
-        model: modifyFields(model, { isOpen: () => false }),
-        commands,
-      }
+  RequestedClose: model => {
+    if (isLeaving(model)) {
+      return leaveDialogUnchanged(model)
+    }
+
+    const wasOpen = model.isOpen
+    if (model.isAnimated) {
+      const dialogClose = Update.combineSteps(model, [
+        closeDialogModel,
+        AnimationBinding.requestHide(),
+      ])
+
       return wasOpen
         ? pipe(dialogClose, Update.withOutMessage(OutMessage.Closed()))
         : dialogClose
-    },
+    }
 
-    Unmounted: () => {
-      if (isOpenOrAnimating(model)) {
-        return Update.combineSteps(model, [
-          resetToClosed,
-          DialogDefinition.makeStep(stepModel => ({
-            model: stepModel,
-            commands: [ReleaseDialogResources({ id: stepModel.id })],
-          })),
-        ])
-      } else {
-        return { model }
-      }
-    },
+    const commands = Array.filter(
+      [CloseDialog({ id: model.id })],
+      () => wasOpen,
+    )
+    const dialogClose = DialogDefinition.makeStep(stepModel => ({
+      model: modifyFields(stepModel, { isOpen: () => false }),
+      commands,
+    }))(model)
+    return wasOpen
+      ? pipe(dialogClose, Update.withOutMessage(OutMessage.Closed()))
+      : dialogClose
+  },
 
-    SucceededShowDialog: () => {
-      if (model.isOpen || isLeaving(model)) {
-        return { model }
-      } else {
-        return { model, commands: [CloseDialog({ id: model.id })] }
-      }
-    },
+  Unmounted: model => {
+    if (isOpenOrAnimating(model)) {
+      return Update.combineSteps(model, [
+        resetToClosed,
+        DialogDefinition.makeCommandsStep(stepModel => [
+          ReleaseDialogResources({ id: stepModel.id }),
+        ]),
+      ])
+    } else {
+      return leaveDialogUnchanged(model)
+    }
+  },
 
-    FailedShowDialog: () => {
-      if (isOpenOrAnimating(model)) {
-        return resetToClosed(model)
-      } else {
-        return { model }
-      }
-    },
+  SucceededShowDialog: model => {
+    if (model.isOpen || isLeaving(model)) {
+      return leaveDialogUnchanged(model)
+    } else {
+      return DialogDefinition.makeCommandsStep(stepModel => [
+        CloseDialog({ id: stepModel.id }),
+      ])(model)
+    }
+  },
 
-    SucceededAcquireResources: () => {
-      if (model.isOpen || isLeaving(model)) {
-        return resumeAnimationAfterAcquisition(model)
-      } else {
-        return { model, commands: [CloseDialog({ id: model.id })] }
-      }
-    },
+  FailedShowDialog: model => {
+    if (isOpenOrAnimating(model)) {
+      return resetToClosed(model)
+    } else {
+      return leaveDialogUnchanged(model)
+    }
+  },
 
-    FailedAcquireResources: () => {
-      if (isOpenOrAnimating(model)) {
-        return resetToClosed(model)
-      } else {
-        return { model }
-      }
-    },
+  SucceededAcquireResources: model => {
+    if (model.isOpen || isLeaving(model)) {
+      return resumeAnimationAfterAcquisition(model)
+    } else {
+      return DialogDefinition.makeCommandsStep(stepModel => [
+        CloseDialog({ id: stepModel.id }),
+      ])(model)
+    }
+  },
 
-    CompletedCloseDialog: () => ({
-      model,
-      outMessage: OutMessage.CompletedClose(),
-    }),
-    CompletedReleaseDialogResources: () => ({ model }),
-  }),
-)
+  FailedAcquireResources: model => {
+    if (isOpenOrAnimating(model)) {
+      return resetToClosed(model)
+    } else {
+      return leaveDialogUnchanged(model)
+    }
+  },
+
+  CompletedCloseDialog: completeClose,
+  CompletedReleaseDialogResources: leaveDialogUnchanged,
+})
 
 // VIEW
 
@@ -623,8 +628,10 @@ const implementation = {
 }
 
 const prepare = () => DialogComposition.prepareBlock(implementation)
-/** Complete Dialog Block definition. */
-export const DialogBlock: Block.FromAssemblyWithViewAndOutMessage<
+/** Completed Dialog Block contract. */
+export interface DialogBlock extends Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof prepare
-> = Block.assemble(prepare)
+> {}
+/** Complete Dialog Block definition. */
+export const DialogBlock: DialogBlock = Block.assemble(prepare)

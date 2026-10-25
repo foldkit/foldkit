@@ -7,7 +7,7 @@ import { toString as urlToString } from 'foldkit/url'
 import { LoadExternal, NavigateInternal } from './command'
 import { ApplicationComposition, PeoplePageBinding } from './composition'
 import { ApplicationDefinition } from './definition'
-import { Message, type NavigationShortcut } from './message'
+import { type NavigationShortcut } from './message'
 import {
   ApplicationRoute,
   filesIndexRouter,
@@ -35,49 +35,46 @@ type InformPeopleRouteStep =
   | typeof keepModel
   | ReturnType<typeof PeoplePageBinding.informRouteChanged>
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    CompletedNavigateInternal: () => ({ model }),
-    CompletedLoadExternal: () => ({ model }),
+export const update = ApplicationComposition.makeUpdate({
+  CompletedNavigateInternal: ApplicationDefinition.makeNoopStep(),
+  CompletedLoadExternal: ApplicationDefinition.makeNoopStep(),
 
-    ClickedLink: ({ request }) =>
-      UrlRequest.match(request, {
-        Internal: ({ url }) => ({
-          model,
-          commands: [NavigateInternal({ url: urlToString(url) })],
-        }),
-        External: ({ href }) => ({
-          model,
-          commands: [LoadExternal({ href })],
-        }),
+  ClickedLink: (model, { request }) =>
+    UrlRequest.match(request, {
+      Internal: ({ url }) => ({
+        model,
+        commands: [NavigateInternal({ url: urlToString(url) })],
       }),
+      External: ({ href }) => ({
+        model,
+        commands: [LoadExternal({ href })],
+      }),
+    }),
 
-    ChangedUrl: ({ url }) => {
-      const nextRoute = urlToApplicationRoute(url)
+  ChangedUrl: (model, { url }) => {
+    const nextRoute = urlToApplicationRoute(url)
 
-      const transition = Transition.make(model.route, nextRoute)
-      const informPeopleRoute = Transition.matchOrElse<InformPeopleRouteStep>()(
-        transition,
-        'People',
-        {
-          Entered: peopleRoute =>
-            PeoplePageBinding.informRouteChanged({ route: peopleRoute }),
-          Stayed: ({ nextRoute }) =>
-            PeoplePageBinding.informRouteChanged({ route: nextRoute }),
-        },
-        () => keepModel,
-      )
+    const transition = Transition.make(model.route, nextRoute)
+    const informPeopleRoute = Transition.matchOrElse<InformPeopleRouteStep>()(
+      transition,
+      'People',
+      {
+        Entered: peopleRoute =>
+          PeoplePageBinding.informRouteChanged({ route: peopleRoute }),
+        Stayed: ({ nextRoute }) =>
+          PeoplePageBinding.informRouteChanged({ route: nextRoute }),
+      },
+      () => keepModel,
+    )
 
-      return Update.combineSteps(model, [
-        setRoute(nextRoute),
-        informPeopleRoute,
-      ])
-    },
+    return Update.combineSteps(model, [setRoute(nextRoute), informPeopleRoute])
+  },
 
-    EnteredNavigationShortcut: ({ shortcut }) => {
+  EnteredNavigationShortcut: ApplicationDefinition.makeCommandsStep.fromMessage(
+    ({ shortcut }) => {
       const url = navigationUrlByShortcut[shortcut]()
 
-      return { model, commands: [NavigateInternal({ url })] }
+      return [NavigateInternal({ url })]
     },
-  }),
-)
+  ),
+})

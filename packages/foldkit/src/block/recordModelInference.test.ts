@@ -16,17 +16,21 @@ const DisclosuresComposition = makeDefinition('Disclosures', {
   Model,
   Message,
 }).makeComposition()
-const update = DisclosuresComposition.makeUpdate((model, { id, isOpen }) => ({
-  model: Record.set(model, id, isOpen),
-}))
+const update = DisclosuresComposition.makeUpdate({
+  ToggledDisclosure: (model, { id, isOpen }) => ({
+    model: Record.set(model, id, isOpen),
+  }),
+})
 
 const ApplicationComposition = Block.makeDefinition('Application', {
   Model,
   Message,
 }).makeComposition()
-const updateApplication = ApplicationComposition.makeUpdate(
-  (model, { id, isOpen }) => ({ model: Record.set(model, id, isOpen) }),
-)
+const updateApplication = ApplicationComposition.makeUpdate({
+  ToggledDisclosure: (model, { id, isOpen }) => ({
+    model: Record.set(model, id, isOpen),
+  }),
+})
 
 it('preserves a Record Model through owned graphless Block updates', () => {
   expectTypeOf<ReturnType<typeof update>['model']>().toEqualTypeOf<Model>()

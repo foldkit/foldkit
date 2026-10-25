@@ -24,14 +24,12 @@ export const DialogBinding = EditorDefinition.makeBinding(Dialog.DialogBlock, {
   field: 'dialog',
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
-export const update = EditorComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    SavedProject: ({ project }) =>
-      Update.combineSteps(model, [
-        EditorDefinition.makeFieldsStep(() => ({
-          project: () => project,
-        })),
-        DialogBinding.requestClose(),
-      ]),
-  }),
-)
+export const update = EditorComposition.makeUpdate({
+  SavedProject: (model, { project }) =>
+    Update.combineSteps(model, [
+      EditorDefinition.makeFieldsStep(() => ({
+        project: () => project,
+      })),
+      DialogBinding.requestClose(),
+    ]),
+})

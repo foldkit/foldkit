@@ -61,17 +61,15 @@ export const ApplicationComposition = Block.makeDefinition('Application', {
   Message,
 }).makeComposition()
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedDecrement: () => ({
-      model: modifyFields(model, { count: count => count - 1 }),
-    }),
-    ClickedIncrement: () => ({
-      model: modifyFields(model, { count: count => count + 1 }),
-    }),
-    ClickedReset: () => ({ model: modifyFields(model, { count: () => 0 }) }),
+export const update = ApplicationComposition.makeUpdate({
+  ClickedDecrement: model => ({
+    model: modifyFields(model, { count: count => count - 1 }),
   }),
-)
+  ClickedIncrement: model => ({
+    model: modifyFields(model, { count: count => count + 1 }),
+  }),
+  ClickedReset: model => ({ model: modifyFields(model, { count: () => 0 }) }),
+})
 
 export const init = ApplicationComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),

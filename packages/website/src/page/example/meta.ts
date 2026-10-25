@@ -28,6 +28,7 @@ export const ExampleSlug = Schema.Literals([
   'websocket-chat',
   'managed-resource-layer',
   'kanban',
+  'workspace',
   'map',
   'canvas-art',
   'generative-art',
@@ -311,6 +312,16 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     difficulty: 'Advanced',
     tags: ['Drag & Drop', 'Blocks', 'OutMessage', 'Storage'],
     hasRouting: false,
+    livePreview: 'Spa',
+  },
+  {
+    slug: 'workspace',
+    title: 'Workspace',
+    description:
+      'A project workspace with issue lists, routed editors, an accessible board, comments, saved filters, and a command palette. Blocks own interaction state while an Effect Service stores shared data and supports asynchronous failure and retry.',
+    difficulty: 'Advanced',
+    tags: ['Blocks', 'Routing', 'Commands', 'Effect Services'],
+    hasRouting: true,
     livePreview: 'Spa',
   },
   {

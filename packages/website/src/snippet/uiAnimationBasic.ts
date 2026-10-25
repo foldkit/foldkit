@@ -69,14 +69,12 @@ const init = AnimationExampleComposition.makeInit(() => ({
 // Bound public operations integrate the next child Model and Commands without
 // exposing the internal Showed or Hid Message constructors to the parent.
 
-const update = AnimationExampleComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedToggleAnimation: () =>
-      model.animation.isShowing
-        ? AnimationBinding.requestHide()(model)
-        : AnimationBinding.requestShow()(model),
-  }),
-)
+const update = AnimationExampleComposition.makeUpdate({
+  ClickedToggleAnimation: model =>
+    model.animation.isShowing
+      ? AnimationBinding.requestHide()(model)
+      : AnimationBinding.requestShow()(model),
+})
 
 // Inside your view function, dispatch a parent-owned fact. The parent update
 // invokes the child capability. model.animation.isShowing is your source of

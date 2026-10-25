@@ -10,24 +10,24 @@ import {
   update,
 } from './assembly-view.accepted.js'
 
+// @ts-expect-error An inline view must first be authored with Composition.makeView.
 ApplicationComposition.prepareBlock({
   init,
   update,
-  // @ts-expect-error An inline view must first be authored with Composition.makeView.
   view: () => ({ title: 'Unowned', body: null }),
 })
 
+// @ts-expect-error An inline view must first be authored with Composition.makeView.
 ApplicationComposition.prepareBlock({
   init,
   update,
-  // @ts-expect-error An inline view must first be authored with Composition.makeView.
   view: () => null,
 })
 
+// @ts-expect-error A precisely typed helper still needs Composition ownership.
 ApplicationComposition.prepareBlock({
   init,
   update,
-  // @ts-expect-error A precisely typed helper still needs Composition ownership.
   view: helper,
 })
 

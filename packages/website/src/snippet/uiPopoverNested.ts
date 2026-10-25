@@ -65,7 +65,7 @@ const init = AccountMenuComposition.makeInit(() => ({
   },
 }))
 
-const update = AccountMenuComposition.makeUpdate()
+const update = AccountMenuComposition.makeUpdate({})
 
 // Inside your view function, render the child Popover inside the parent
 // panel. `focusSelector` points at the child trigger, which Popover derives

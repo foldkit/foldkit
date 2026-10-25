@@ -2060,12 +2060,10 @@ const prepareWorker = () =>
     init: TypePerformanceWorkerComposition.makeInit(() => ({
       model: WorkerModel.make({ value: 0 }),
     })),
-    update: TypePerformanceWorkerComposition.makeUpdate((model, message) =>
-      WorkerMessage.match(message, {
-        RequestedRun: () => runAll(model),
-        CompletedRun: () => ({ model }),
-      }),
-    ),
+    update: TypePerformanceWorkerComposition.makeUpdate({
+      RequestedRun: model => runAll(model),
+      CompletedRun: model => ({ model }),
+    }),
     operations: {
       runAll: WorkerMessage.RequestedRun,
     },
@@ -2289,7 +2287,7 @@ const WorkerBinding = ApplicationDefinition.makeBinding(Worker, {
 const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [WorkerBinding],
 })
-const update = ApplicationComposition.makeUpdate()
+const update = ApplicationComposition.makeUpdate({})
 const view = ApplicationComposition.makeView((_model, h) => h.main([]))
 
 const prepareApplicationBlock = () =>

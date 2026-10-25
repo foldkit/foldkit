@@ -17,9 +17,7 @@ export const block: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof prepare
 > = Block.assemble(prepare)
 
-const update = ParentComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedResetSettings: () =>
-      SettingsBinding.requestThemeChange({ theme: 'Light' })(model),
-  }),
-)
+const update = ParentComposition.makeUpdate({
+  ClickedResetSettings: model =>
+    SettingsBinding.requestThemeChange({ theme: 'Light' })(model),
+})

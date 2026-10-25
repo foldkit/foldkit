@@ -20,9 +20,11 @@ const preparePlain = () =>
         model: ChildModel.make({ count: 0 }),
       })),
       update: Reflect.apply(PlainComposition.makeUpdate, undefined, [
-        (model: typeof ChildModel.Type) => ({
-          model: modifyFields(model, { count: count => count + 1 }),
-        }),
+        {
+          Incremented: (model: typeof ChildModel.Type) => ({
+            model: modifyFields(model, { count: count => count + 1 }),
+          }),
+        },
       ]),
       EffectsLayer: Layer.empty,
     },
@@ -41,17 +43,15 @@ const prepareOptionalContext = () =>
       init: OptionalContextComposition.makeInit(() => ({
         model: ChildModel.make({ count: 0 }),
       })),
-      update: Reflect.apply(OptionalContextComposition.makeUpdate, undefined, [
-        (
-          model: typeof ChildModel.Type,
-          _message: typeof ChildMessage.Type,
-          context?: Readonly<{ amount: number }>,
-        ) => ({
-          model: modifyFields(model, {
-            count: count => count + (context?.amount ?? 1),
+      update: OptionalContextComposition.makeUpdate.withContext(
+        (context?: Readonly<{ amount: number }>) => ({
+          Incremented: (model: typeof ChildModel.Type) => ({
+            model: modifyFields(model, {
+              count: count => count + (context?.amount ?? 1),
+            }),
           }),
         }),
-      ]),
+      ),
       EffectsLayer: Layer.empty,
     },
   ])
@@ -79,7 +79,7 @@ describe('Composition safety', () => {
     const composition = Reflect.apply(Parent.makeComposition, undefined, [
       { bindings: [binding] },
     ])
-    const update = Reflect.apply(composition.makeUpdate, undefined, [])
+    const update = Reflect.apply(composition.makeUpdate, undefined, [{}])
     const initial = ParentModel.make({
       child: ChildModel.make({ count: 0 }),
     })
@@ -110,5 +110,13 @@ describe('Composition safety', () => {
         },
       ]),
     ).toThrow('A contextual child update requires delivery.toUpdateContext')
+  })
+
+  it('rejects callback update authoring at runtime', () => {
+    expect(() =>
+      Reflect.apply(PlainComposition.makeUpdate, undefined, [
+        (model: typeof ChildModel.Type) => ({ model }),
+      ]),
+    ).toThrow('requires an exhaustive handler record')
   })
 })

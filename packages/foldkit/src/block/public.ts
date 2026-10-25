@@ -54,6 +54,7 @@ export type {
   MakeComposition,
   Composition,
   Completed,
+  CompletedUpdate,
   CompletedBlock,
   CompletedBlockWithOutMessage,
   CompletedBlockWithView,
@@ -77,9 +78,11 @@ export type {
   InvalidViewInputs,
   ViewBuilderFor,
   OwnedAuthoredView,
+  OwnedDocumentView,
   PrepareBlock,
   AuthoredViewInputs,
   OwnedManagedResourceEntryBuilder,
+  OwnedManagedResourceRegistry,
   OwnedSubscriptionEntryBuilder,
   OwnedSubscriptionRegistry,
   RefineViewInputs,
@@ -105,6 +108,8 @@ export type { KeyedBinding, KeyedOutMessagePolicy } from './keyedBinding.js'
 export type { Owner } from './owner.js'
 export type { Qualify, Scoped } from './scope.js'
 export type { BindingPolicyEvidence } from './policyEvidence.js'
+export type { OperationOutputs } from './operationOutputs.js'
+export type { OperationEmission } from './operationEmission.js'
 export type { DeferredBindingPolicy } from './deferredPolicy.js'
 export type {
   MakeOutMessageFold,

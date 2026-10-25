@@ -19,7 +19,7 @@ const prepareNarrowServerRootBlock = () =>
         model: { status: flags.status },
       }),
     ),
-    update: NarrowServerRootComposition.makeUpdate(),
+    update: NarrowServerRootComposition.makeUpdate({}),
     view: NarrowServerRootComposition.makeView(model => ({
       title: model.status,
       body: null,

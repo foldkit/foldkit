@@ -210,90 +210,76 @@ const withChangedValue = (
  *  Model: the view supplies the current value on the Messages that need it,
  *  and value changes surface as `ChangedValue` rather than mutating this
  *  Model. */
-export const update = SliderComposition.makeUpdate((model, message) =>
-  Message.match<UpdateReturn>(message, {
-    InformedOfRangeChange: ({ min, max }) => ({
-      model: modifyFields(model, { min: () => min, max: () => max }),
-    }),
-
-    PressedThumb: ({ originValue }) =>
-      Match.value(model.dragState).pipe(
-        withUpdateReturn,
-        Match.tag('Dragging', () => ({ model })),
-        Match.orElse(() => ({
-          model: modifyFields(model, {
+export const update = SliderComposition.makeUpdate({
+  InformedOfRangeChange: SliderDefinition.makeFieldsStep.fromMessage(
+    ({ min, max }) => ({ min: () => min, max: () => max }),
+  ),
+  PressedThumb: (model, { originValue }) =>
+    Match.value(model.dragState).pipe(
+      withUpdateReturn,
+      Match.tag('Dragging', () => ({ model })),
+      Match.orElse(() => ({
+        model: modifyFields(model, {
+          dragState: () => DragState.Dragging({ originValue }),
+        }),
+      })),
+    ),
+  // NOTE: the pointerdown event on the thumb bubbles to the track, so a
+  // thumb press also dispatches PressedPointer. Short-circuit when already
+  // Dragging so the bubbled track handler cannot shift the value away
+  // from the thumb's current position. Fine-grained sliders (e.g. step
+  // 0.05) see a visible jump without this guard, because the cursor sits
+  // off-center on a non-zero-width thumb.
+  PressedPointer: (model, { value, originValue }) =>
+    Match.value(model.dragState).pipe(
+      withUpdateReturn,
+      Match.tag('Dragging', () => ({ model })),
+      Match.orElse(() => {
+        const snapped = snapAndClamp(value, model.min, model.max, model.step)
+        return withChangedValue(
+          modifyFields(model, {
             dragState: () => DragState.Dragging({ originValue }),
           }),
-        })),
-      ),
-
-    // NOTE: the pointerdown event on the thumb bubbles to the track, so a
-    // thumb press also dispatches PressedPointer. Short-circuit when already
-    // Dragging so the bubbled track handler cannot shift the value away
-    // from the thumb's current position. Fine-grained sliders (e.g. step
-    // 0.05) see a visible jump without this guard, because the cursor sits
-    // off-center on a non-zero-width thumb.
-    PressedPointer: ({ value, originValue }) =>
-      Match.value(model.dragState).pipe(
-        withUpdateReturn,
-        Match.tag('Dragging', () => ({ model })),
-        Match.orElse(() => {
-          const snapped = snapAndClamp(value, model.min, model.max, model.step)
-          return withChangedValue(
-            modifyFields(model, {
-              dragState: () => DragState.Dragging({ originValue }),
-            }),
-            originValue,
-            snapped,
-          )
-        }),
-      ),
-
-    MovedDragPointer: ({ value }) =>
-      Match.value(model.dragState).pipe(
-        withUpdateReturn,
-        Match.tag('Dragging', () => ({
-          model,
-          outMessage: OutMessage.ChangedValue({
-            value: snapAndClamp(value, model.min, model.max, model.step),
-          }),
-        })),
-        Match.orElse(() => ({ model })),
-      ),
-
-    ReleasedDragPointer: () =>
-      Match.value(model.dragState).pipe(
-        withUpdateReturn,
-        Match.tag('Dragging', () => ({
-          model: modifyFields(model, { dragState: () => DragState.Idle() }),
-        })),
-        Match.orElse(() => ({ model })),
-      ),
-
-    CancelledDrag: () =>
-      Match.value(model.dragState).pipe(
-        withUpdateReturn,
-        Match.tag('Dragging', ({ originValue }) => ({
-          model: modifyFields(model, { dragState: () => DragState.Idle() }),
-          outMessage: OutMessage.ChangedValue({ value: originValue }),
-        })),
-        Match.orElse(() => ({ model })),
-      ),
-
-    PressedKeyboardNavigation: ({ direction, value }) =>
-      withChangedValue(
+          originValue,
+          snapped,
+        )
+      }),
+    ),
+  MovedDragPointer: (model, { value }) =>
+    Match.value(model.dragState).pipe(
+      withUpdateReturn,
+      Match.tag('Dragging', () => ({
         model,
-        value,
-        nextValueForDirection(
-          value,
-          model.min,
-          model.max,
-          model.step,
-          direction,
-        ),
-      ),
-  }),
-)
+        outMessage: OutMessage.ChangedValue({
+          value: snapAndClamp(value, model.min, model.max, model.step),
+        }),
+      })),
+      Match.orElse(() => ({ model })),
+    ),
+  ReleasedDragPointer: model =>
+    Match.value(model.dragState).pipe(
+      withUpdateReturn,
+      Match.tag('Dragging', () => ({
+        model: modifyFields(model, { dragState: () => DragState.Idle() }),
+      })),
+      Match.orElse(() => ({ model })),
+    ),
+  CancelledDrag: model =>
+    Match.value(model.dragState).pipe(
+      withUpdateReturn,
+      Match.tag('Dragging', ({ originValue }) => ({
+        model: modifyFields(model, { dragState: () => DragState.Idle() }),
+        outMessage: OutMessage.ChangedValue({ value: originValue }),
+      })),
+      Match.orElse(() => ({ model })),
+    ),
+  PressedKeyboardNavigation: (model, { direction, value }) =>
+    withChangedValue(
+      model,
+      value,
+      nextValueForDirection(value, model.min, model.max, model.step, direction),
+    ),
+})
 
 // SUBSCRIPTION
 
@@ -848,11 +834,13 @@ const prepareSliderBlock = () =>
     subscriptions,
     EffectsLayer,
   })
-/** Completed Slider Block. */
-export const SliderBlock: Block.FromAssemblyWithViewAndOutMessage<
+/** Completed Slider Block contract. */
+export interface SliderBlock extends Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof prepareSliderBlock
-> = Block.assemble(prepareSliderBlock)
+> {}
+/** Completed Slider Block. */
+export const SliderBlock: SliderBlock = Block.assemble(prepareSliderBlock)
 
 /**
  * Builds a complete Slider Block whose drag Subscriptions resolve tracks from
@@ -868,7 +856,17 @@ export const forRoot = (getTrackRoot: () => Document | ShadowRoot) => {
   const init = SliderComposition.makeInit((config: InitConfig) => ({
     model: makeInitialModel(config),
   }))
-  const rootUpdate = SliderComposition.makeUpdate(update)
+  const rootUpdate = SliderComposition.makeUpdate({
+    InformedOfRangeChange: SliderDefinition.makeFieldsStep.fromMessage(
+      ({ min, max }) => ({ min: () => min, max: () => max }),
+    ),
+    PressedThumb: update,
+    PressedPointer: update,
+    MovedDragPointer: update,
+    ReleasedDragPointer: update,
+    CancelledDrag: update,
+    PressedKeyboardNavigation: update,
+  })
   const rootView = SliderComposition.makeView.withInputs<ViewInputs>(renderView)
   const subscriptions = defineSubscriptionsForRoot(
     SliderDefinition.makeSubscriptions,

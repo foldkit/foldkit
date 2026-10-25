@@ -23,7 +23,7 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [ApplicantsBinding],
 })
 
-export const update = ApplicationComposition.makeUpdate()
+export const update = ApplicationComposition.makeUpdate({})
 
 export const view = ApplicationComposition.makeView((model, h) =>
   h.ul(

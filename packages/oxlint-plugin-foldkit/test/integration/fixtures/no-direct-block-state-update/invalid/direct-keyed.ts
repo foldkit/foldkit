@@ -28,13 +28,15 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [EntriesBinding],
 })
 
-export const updateEntryManually = ApplicationComposition.makeUpdate(model => {
-  const nextModel = modifyFields(model, {
-    entries: Array.map(entry =>
-      modifyFields(entry, { theme: () => 'Dark' }),
-    ),
-  })
-  void nextModel
+export const updateEntryManually = ApplicationComposition.makeUpdate({
+  ClickedUpdateEntryManually: model => {
+    const nextModel = modifyFields(model, {
+      entries: Array.map(entry =>
+        modifyFields(entry, { theme: () => 'Dark' }),
+      ),
+    })
+    void nextModel
 
-  return EntriesBinding.informThemeChanged('initial', 'Light')(model)
+    return EntriesBinding.informThemeChanged('initial', 'Light')(model)
+  },
 })

@@ -54,7 +54,7 @@ const init = CitiesPickerComposition.makeInit(() => ({
   },
 }))
 
-const update = CitiesPickerComposition.makeUpdate()
+const update = CitiesPickerComposition.makeUpdate({})
 
 const cities: ReadonlyArray<typeof City.Type> = [
   'Johannesburg',

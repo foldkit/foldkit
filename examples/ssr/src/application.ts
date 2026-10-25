@@ -36,25 +36,23 @@ type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedDecrement: () => {
-      const nextCount = model.count - 1
-      return {
-        model: modifyFields(model, { count: () => nextCount }),
-        commands: [PersistCount({ count: nextCount })],
-      }
-    },
-    ClickedIncrement: () => {
-      const nextCount = model.count + 1
-      return {
-        model: modifyFields(model, { count: () => nextCount }),
-        commands: [PersistCount({ count: nextCount })],
-      }
-    },
-    CompletedPersistCount: () => ({ model }),
-  }),
-)
+export const update = ApplicationComposition.makeUpdate({
+  ClickedDecrement: model => {
+    const nextCount = model.count - 1
+    return {
+      model: modifyFields(model, { count: () => nextCount }),
+      commands: [PersistCount({ count: nextCount })],
+    }
+  },
+  ClickedIncrement: model => {
+    const nextCount = model.count + 1
+    return {
+      model: modifyFields(model, { count: () => nextCount }),
+      commands: [PersistCount({ count: nextCount })],
+    }
+  },
+  CompletedPersistCount: ApplicationDefinition.makeNoopStep(),
+})
 
 const COUNT_COOKIE_MAX_AGE_SECONDS = 31536000
 

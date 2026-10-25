@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "noEmitOnError": true,
+    "rootDir": ".."
+  },
+  "include": ["../src/vite-env.d.ts", "keyed-map-field.rejected.ts"]
+}

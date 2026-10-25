@@ -27,7 +27,10 @@ export const Save = CommandsDefinition.makeCommand('Save', {
   },
 })
 export const commands = [Save()]
-export const save = CommandsDefinition.makeCommandsStep(commands)
+export const save = CommandsDefinition.makeCommandsStep(() => commands)
+export const saveFromCurrentModel = CommandsDefinition.makeCommandsStep(
+  ({ count }) => (count > 0 ? commands : []),
+)
 export const combined = Update.combineSteps([
   CommandsDefinition.makeFieldsStep(() => ({ count: Number.increment })),
   save,
@@ -36,12 +39,10 @@ export const CommandsComposition = CommandsDefinition.makeComposition()
 export const init = CommandsComposition.makeInit(() => ({
   model: { count: 0 },
 }))
-export const update = CommandsComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    RequestedSave: () => save(model),
-    CompletedSave: () => ({ model }),
-  }),
-)
+export const update = CommandsComposition.makeUpdate({
+  RequestedSave: model => save(model),
+  CompletedSave: model => ({ model }),
+})
 const prepareCommandsBlock = () =>
   CommandsComposition.prepareBlock({
     init,
@@ -83,6 +84,18 @@ export type Requirements = Expect<
 export type CombinedRequirements = Expect<
   Equal<Update.RequirementsOf<typeof combined>, Command.HandlerOf<typeof Save>>
 >
+export type ModelDependentCommands = Expect<
+  Equal<
+    ReturnType<typeof saveFromCurrentModel>['commands'],
+    ReadonlyArray<(typeof commands)[number]>
+  >
+>
+export type ModelDependentRequirements = Expect<
+  Equal<
+    Update.RequirementsOf<typeof saveFromCurrentModel>,
+    Command.HandlerOf<typeof Save>
+  >
+>
 export type NoOutMessage = Expect<
   Equal<ReturnType<typeof save>['outMessage'], undefined>
 >
@@ -94,7 +107,7 @@ export const ChildComposition = Block.makeDefinition('CommandsStepChild', {
 const prepareChildBlock = () =>
   ChildComposition.prepareBlock({
     init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
-    update: ChildComposition.makeUpdate(),
+    update: ChildComposition.makeUpdate({}),
   })
 export const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
@@ -122,11 +135,14 @@ export const withChildCommands = (
       Block.RequirementOfBinding<typeof ChildBinding>
     >['commands']
   >,
-) => ParentDefinition.makeCommandsStep(childCommands)
+) => ParentDefinition.makeCommandsStep(() => childCommands)
 export const updateWithChildCommands = (
   childCommands: Parameters<typeof withChildCommands>[0],
 ) =>
-  ParentComposition.makeUpdate(model => withChildCommands(childCommands)(model))
+  ParentComposition.makeUpdate({
+    RequestedSave: model => withChildCommands(childCommands)(model),
+    CompletedSave: model => withChildCommands(childCommands)(model),
+  })
 export type PreservedRegistration = Expect<
   Equal<
     Update.RegistrationEvidenceOf<

@@ -47,7 +47,7 @@ const prepareSilentBlock = () =>
       model: SilentModel.make({ id, ready: false }),
       commands: [WaitForever()],
     })),
-    update: SilentComposition.makeUpdate(),
+    update: SilentComposition.makeUpdate({}),
     EffectsLayer: WaitForever.layer,
   })
 export const SilentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -126,7 +126,9 @@ export const initializeGeneral = ParentDefinition.makeStep(
 const prepareParentBlock = () =>
   ParentComposition.prepareBlock({
     init: ParentComposition.makeInit(() => ({ model: { entries: [] } })),
-    update: ParentComposition.makeUpdate(model => ({ model })),
+    update: ParentComposition.makeUpdate({
+      ClickedParent: model => ({ model }),
+    }),
   })
 export const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,

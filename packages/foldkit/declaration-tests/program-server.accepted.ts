@@ -14,7 +14,7 @@ const prepareServerRootBlock = () =>
     init: DeclarationServerRootComposition.makeInit(() => ({
       model: { status: 'Ready' },
     })),
-    update: DeclarationServerRootComposition.makeUpdate(),
+    update: DeclarationServerRootComposition.makeUpdate({}),
     view: DeclarationServerRootComposition.makeView((model, h) => ({
       title: model.status,
       body: h.main([], [model.status]),

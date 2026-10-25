@@ -96,15 +96,13 @@ const childView = ChildComposition.makeView((model, h) =>
   h.div([h.OnMount(Measure())], [globalThis.String(model.value)]),
 )
 
-const childUpdate = ChildComposition.makeUpdate((model, message) =>
-  ChildMessage.match(message, {
-    RequestedRead: () => refresh(model),
-    CompletedRead: ({ value }) => ({
-      model: ChildModel.make({ value }),
-    }),
-    CompletedMeasure: () => ({ model }),
+const childUpdate = ChildComposition.makeUpdate({
+  RequestedRead: model => refresh(model),
+  CompletedRead: (model, { value }) => ({
+    model: ChildModel.make({ value }),
   }),
-)
+  CompletedMeasure: model => ({ model }),
+})
 
 const refresh = ChildDefinition.makeStep(model => ({
   model,
@@ -267,15 +265,12 @@ export const StreamDirectValue =
     messages: [DirectMessage.CompletedReadDirectValue],
   })
 
-export const directUpdate = DeclarationTestsDirectComposition.makeUpdate(
-  (model, message) =>
-    DirectMessage.match(message, {
-      RequestedReadDirectValue: () => refreshDirectValue(model),
-      CompletedReadDirectValue: ({ value }) => ({
-        model: DirectModel.make({ value }),
-      }),
-    }),
-)
+export const directUpdate = DeclarationTestsDirectComposition.makeUpdate({
+  RequestedReadDirectValue: model => refreshDirectValue(model),
+  CompletedReadDirectValue: (model, { value }) => ({
+    model: DirectModel.make({ value }),
+  }),
+})
 
 export const refreshDirectValue = DeclarationTestsDirectDefinition.makeStep(
   model => ({
@@ -315,9 +310,14 @@ const pureImplementation = {
   init: DeclarationTestsPureComposition.makeInit(() => ({
     model: DirectModel.make({ value: 0 }),
   })),
-  update: DeclarationTestsPureComposition.makeUpdate((model, _message) => ({
-    model,
-  })),
+  update: DeclarationTestsPureComposition.makeUpdate({
+    RequestedReadDirectValue: (model, _message) => ({
+      model,
+    }),
+    CompletedReadDirectValue: (model, _message) => ({
+      model,
+    }),
+  }),
 }
 
 export type CompletedPure = Block.Completed<
@@ -367,7 +367,7 @@ export const directResultInit = DeclarationTestsDirectInitComposition.makeInit(
       toParentModel: child => child,
     }),
 )
-const directInitUpdate = DeclarationTestsDirectInitComposition.makeUpdate()
+const directInitUpdate = DeclarationTestsDirectInitComposition.makeUpdate({})
 const prepareDirectInitBlock = () =>
   DeclarationTestsDirectInitComposition.prepareBlock({
     init: directResultInit,
@@ -504,11 +504,9 @@ export const parentArrayViewHelper = (
   h: ParentViewBuilder,
 ) => labels.map(label => h.span([], [label]))
 
-export const parentUpdate = ParentComposition.makeUpdate((model, message) =>
-  ParentMessage.match(message, {
-    RequestedRefresh: () => refreshChild(model),
-  }),
-)
+export const parentUpdate = ParentComposition.makeUpdate({
+  RequestedRefresh: model => refreshChild(model),
+})
 
 const refreshChild = DeclarationTestsParentDefinition.makeStep(() =>
   ChildBinding.refresh(),
@@ -589,9 +587,9 @@ const makeChoiceParts = <const Values extends ReadonlyArray<string>>(
         model: Model.make({ value }),
       }),
     ),
-    update: DeclarationTestsChoiceComposition.makeUpdate((model, message) =>
-      finish(model, message.value),
-    ),
+    update: DeclarationTestsChoiceComposition.makeUpdate({
+      SelectedValue: (model, message) => finish(model, message.value),
+    }),
     operations: {
       finish: (value: Values[number]) => Tuple.make(Message.make({ value })),
     },
@@ -663,7 +661,7 @@ const RefinedChoiceParentComposition = ChoiceParent.makeComposition({
   bindings: [RefinedChoiceBinding],
 })
 export const refinedChoiceParentUpdate =
-  RefinedChoiceParentComposition.makeUpdate()
+  RefinedChoiceParentComposition.makeUpdate({})
 
 type RefinedFoldIsOpaque = Expect<
   Equal<
@@ -748,18 +746,18 @@ export const PureApplicationComposition = Block.makeDefinition('Application', {
   Model: ParentModel,
   Message: PureMessage,
 }).makeComposition()
-const preserveFunction = <Args extends ReadonlyArray<unknown>, ReturnValue>(
-  fn: (...args: Args) => ReturnValue,
-) => ({ fn })
-const wrappedPureUpdate = preserveFunction(
-  (
+const preserveRecord = <Cases extends Readonly<Record<string, unknown>>>(
+  cases: Cases,
+) => ({ cases })
+const wrappedPureUpdate = preserveRecord({
+  RequestedRefresh: (
     model: ParentModel,
     message: PureMessage,
   ): Update.Return<ParentModel, PureMessage> => {
     void message
     return { model }
   },
-)
+})
 export const pureInit = PureApplicationComposition.makeInit(() => ({
   model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
 }))
@@ -774,7 +772,7 @@ const pureDocumentView = PureApplicationComposition.makeView((_model, h) => ({
 const prepare = () =>
   PureApplicationComposition.prepareBlock({
     init: pureInit,
-    update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.fn),
+    update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.cases),
     view: pureElementView,
   })
 const completedBlock: Block.FromAssemblyWithView<
@@ -790,7 +788,7 @@ const pureElementProgram: ElementProgram<undefined, never, never, never> =
 const prepare2 = () =>
   PureApplicationComposition.prepareBlock({
     init: pureInit,
-    update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.fn),
+    update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.cases),
     view: pureDocumentView,
   })
 const completedBlock2: Block.FromAssemblyWithView<
@@ -861,11 +859,9 @@ export const applicationInputViewHelper = (
       model: childModel,
     }),
   )
-const applicationUpdate = ApplicationComposition.makeUpdate((model, message) =>
-  ParentMessage.match(message, {
-    RequestedRefresh: () => DirectChildBinding.refresh()(model),
-  }),
-)
+const applicationUpdate = ApplicationComposition.makeUpdate({
+  RequestedRefresh: model => DirectChildBinding.refresh()(model),
+})
 
 const applicationInit = ApplicationComposition.makeInit(() =>
   DirectChildBinding.init({
@@ -904,7 +900,7 @@ const prepare3 = () =>
         }),
       }),
     ),
-    update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.fn),
+    update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.cases),
     view: pureDocumentView,
   })
 const completedBlock3: Block.FromAssemblyWithView<
@@ -943,7 +939,7 @@ export const makeProvisionPageAwaitingDependency: (
 const prepare4 = () =>
   PureApplicationComposition.prepareBlock({
     init: pureInit,
-    update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.fn),
+    update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.cases),
     view: pureElementView,
   })
 const completedBlock4: Block.FromAssemblyWithView<
@@ -1011,7 +1007,7 @@ export const makePageProgram = (container: HTMLElement | null) =>
 const prepare7 = () =>
   PureApplicationComposition.prepareBlock({
     init: provisionRoutingInit,
-    update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.fn),
+    update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.cases),
     view: pureDocumentView,
   })
 const completedBlock7: Block.FromAssemblyWithView<
@@ -1052,9 +1048,11 @@ export const DisclosuresComposition = Block.makeDefinition('Disclosures', {
   Model: RecordModel,
   Message: RecordMessage,
 }).makeComposition()
-export const recordUpdate = DisclosuresComposition.makeUpdate(
-  (model, { id, isOpen }) => ({ model: Record.set(model, id, isOpen) }),
-)
+export const recordUpdate = DisclosuresComposition.makeUpdate({
+  ToggledDisclosure: (model, { id, isOpen }) => ({
+    model: Record.set(model, id, isOpen),
+  }),
+})
 export const RecordApplicationComposition = (() => {
   const ApplicationComposition = Block.makeDefinition('Application', {
     Model: RecordModel,
@@ -1063,9 +1061,11 @@ export const RecordApplicationComposition = (() => {
 
   return ApplicationComposition
 })()
-export const recordApplicationUpdate = RecordApplicationComposition.makeUpdate(
-  (model, { id, isOpen }) => ({ model: Record.set(model, id, isOpen) }),
-)
+export const recordApplicationUpdate = RecordApplicationComposition.makeUpdate({
+  ToggledDisclosure: (model, { id, isOpen }) => ({
+    model: Record.set(model, id, isOpen),
+  }),
+})
 export type ExactRecordBlockModel = Expect<
   Equal<ReturnType<typeof recordUpdate>['model'], typeof RecordModel.Type>
 >

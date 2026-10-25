@@ -44,26 +44,39 @@ export const RecordValue = ChildDefinition.makeCommand('RecordValue', {
 })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 export const ChildComposition = ChildDefinition.makeComposition()
-export const childUpdate = ChildComposition.makeUpdate((model, message) =>
-  ChildMessage.match<
-    Update.ReturnWithOutMessage<
-      ChildModel,
-      ChildMessage,
-      ChildOutMessage,
-      Command.HandlerOf<typeof RecordValue>
-    >
-  >(message, {
-    RequestedReset: () => ({
-      model: modifyFields(model, { value: () => '' }),
-    }),
-    UpdatedValue: ({ value }) => ({
-      model: modifyFields(model, { value: () => value }),
-      commands: [RecordValue({ value })],
-      outMessage: ChildOutMessage.ChangedValue({ value }),
-    }),
-    CompletedRecord: () => ({ model }),
+export const childUpdate = ChildComposition.makeUpdate({
+  RequestedReset: (
+    model,
+  ): Update.ReturnWithOutMessage<
+    ChildModel,
+    ChildMessage,
+    ChildOutMessage,
+    Command.HandlerOf<typeof RecordValue>
+  > => ({
+    model: modifyFields(model, { value: () => '' }),
   }),
-)
+  UpdatedValue: (
+    model,
+    { value },
+  ): Update.ReturnWithOutMessage<
+    ChildModel,
+    ChildMessage,
+    ChildOutMessage,
+    Command.HandlerOf<typeof RecordValue>
+  > => ({
+    model: modifyFields(model, { value: () => value }),
+    commands: [RecordValue({ value })],
+    outMessage: ChildOutMessage.ChangedValue({ value }),
+  }),
+  CompletedRecord: (
+    model,
+  ): Update.ReturnWithOutMessage<
+    ChildModel,
+    ChildMessage,
+    ChildOutMessage,
+    Command.HandlerOf<typeof RecordValue>
+  > => ({ model }),
+})
 
 export const prepareChildBlock = () =>
   ChildComposition.prepareBlock({
@@ -99,18 +112,18 @@ export const ContextChildDefinition = Block.makeDefinition(
 )
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 export const ContextComposition = ContextChildDefinition.makeComposition()
-export const contextUpdate = ContextComposition.makeUpdate(
+export const contextUpdate = ContextComposition.makeUpdate.withContext(
   (
-    model,
-    { value },
     required: RequiredContext,
     maybeCount?: number,
     label = 'default',
     ...flags: ReadonlyArray<boolean>
   ) => ({
-    model: modifyFields(model, {
-      value: () =>
-        `${required.source}:${value}:${maybeCount ?? 0}:${label}:${flags.length}`,
+    UpdatedValue: (model, { value }) => ({
+      model: modifyFields(model, {
+        value: () =>
+          `${required.source}:${value}:${maybeCount ?? 0}:${label}:${flags.length}`,
+      }),
     }),
   }),
 )
@@ -190,14 +203,12 @@ export const EntryBinding = ParentDefinition.makeBinding(ChildBlock, {
 export const ParentComposition = ParentDefinition.makeComposition({
   bindings: [ChildBinding, EntryBinding],
 })
-export const parentUpdate = ParentComposition.makeUpdate((model, message) =>
-  ParentMessage.match(message, {
-    RequestedNoop: () => ({ model }),
-    RequestedSetChild: ({ value }) => ChildBinding.setValue(value)(model),
-    RequestedSetEntry: ({ id, value }) =>
-      EntryBinding.setValue(id, value)(model),
-  }),
-)
+export const parentUpdate = ParentComposition.makeUpdate({
+  RequestedNoop: model => ParentDefinition.makeNoopStep()(model),
+  RequestedSetChild: (model, { value }) => ChildBinding.setValue(value)(model),
+  RequestedSetEntry: (model, { id, value }) =>
+    EntryBinding.setValue(id, value)(model),
+})
 
 export const prepareParentBlock = () =>
   ParentComposition.prepareBlock({
@@ -249,14 +260,13 @@ export function makeChoice<
         [`${label}: ${globalThis.String(model.selected)}`],
       ),
   )
-  const update = Composition.makeUpdate(
-    (model, message, _required: RequiredContext) =>
-      Message.match(message, {
-        UpdatedValue: ({ value }) => ({
-          model: modifyFields(model, { selected: () => value }),
-        }),
-        CompletedObserve: () => ({ model }),
+  const update = Composition.makeUpdate.withContext(
+    (_required: RequiredContext) => ({
+      UpdatedValue: (model, { value }) => ({
+        model: modifyFields(model, { selected: () => value }),
       }),
+      CompletedObserve: model => ({ model }),
+    }),
   )
   const select = (value: Values[number], required: RequiredContext) =>
     Tuple.make(Message.UpdatedValue({ value }), required)
@@ -315,15 +325,12 @@ export const MountedChoiceComposition = MountedChoiceDefinition.makeComposition(
 export const mountedChoiceView = MountedChoiceComposition.makeView((model, h) =>
   h.button([h.OnMount(ObserveSelection())], [model.selected]),
 )
-export const mountedChoiceUpdate = MountedChoiceComposition.makeUpdate(
-  (model, message) =>
-    MountedChoiceMessage.match(message, {
-      UpdatedSelection: ({ value }) => ({
-        model: modifyFields(model, { selected: () => value }),
-      }),
-      CompletedObserveSelection: () => ({ model }),
-    }),
-)
+export const mountedChoiceUpdate = MountedChoiceComposition.makeUpdate({
+  UpdatedSelection: (model, { value }) => ({
+    model: modifyFields(model, { selected: () => value }),
+  }),
+  CompletedObserveSelection: model => ({ model }),
+})
 export const prepareMountedChoiceBlock = () =>
   MountedChoiceComposition.prepareBlock({
     init: (selected: string) => ({

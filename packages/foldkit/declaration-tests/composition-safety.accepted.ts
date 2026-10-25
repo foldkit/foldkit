@@ -159,9 +159,11 @@ const prepareParameterizedBlock = () =>
         commands: [LoadParameterizedChild()],
       }),
     ),
-    update: CompositionSafetyParameterizedComposition.makeUpdate(model => ({
-      model,
-    })),
+    update: CompositionSafetyParameterizedComposition.makeUpdate({
+      CompletedLoad: model => ({
+        model,
+      }),
+    }),
     EffectsLayer: LoadParameterizedChild.layer,
   })
 export const ParameterizedBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -278,13 +280,33 @@ export const initialParentModel = ParentModel.make({
 const foldComposition = CompositionSafetyParentDefinition.makeComposition({
   bindings: [StableProjectedBinding, PlainBinding],
 })
-export const foldStableProjected = foldComposition.makeUpdate(
-  (model, _message, childMessage: typeof ChildMessage.Type) =>
-    StableProjectedBinding.fold(model, childMessage),
+export const foldStableProjected = foldComposition.makeUpdate.withContext(
+  (childMessage: typeof ChildMessage.Type) => ({
+    CompletedParentInitialization: (model, _message) =>
+      StableProjectedBinding.fold(model, childMessage),
+    RequestedInitializeEntry: (model, _message) =>
+      StableProjectedBinding.fold(model, childMessage),
+    RequestedInitializePlain: (model, _message) =>
+      StableProjectedBinding.fold(model, childMessage),
+    RequestedInitializePlainWithOwningParentCommand: (model, _message) =>
+      StableProjectedBinding.fold(model, childMessage),
+    RequestedInitializePlainWithParentCommands: (model, _message) =>
+      StableProjectedBinding.fold(model, childMessage),
+  }),
 )
-export const foldPlain = foldComposition.makeUpdate(
-  (model, _message, childMessage: typeof ChildMessage.Type) =>
-    PlainBinding.fold(model, childMessage),
+export const foldPlain = foldComposition.makeUpdate.withContext(
+  (childMessage: typeof ChildMessage.Type) => ({
+    CompletedParentInitialization: (model, _message) =>
+      PlainBinding.fold(model, childMessage),
+    RequestedInitializeEntry: (model, _message) =>
+      PlainBinding.fold(model, childMessage),
+    RequestedInitializePlain: (model, _message) =>
+      PlainBinding.fold(model, childMessage),
+    RequestedInitializePlainWithOwningParentCommand: (model, _message) =>
+      PlainBinding.fold(model, childMessage),
+    RequestedInitializePlainWithParentCommands: (model, _message) =>
+      PlainBinding.fold(model, childMessage),
+  }),
 )
 
 const plainInitializerDocumentation = PlainBinding.init({
@@ -396,45 +418,130 @@ export const deferredMixedConnectedStep =
     Update.combineSteps(mixedConnectedSteps),
   )
 export const mixedConnectedUpdate =
-  CompositionSafetyParentComposition.makeUpdate(model =>
-    Update.combineSteps(model, [
-      PlainBinding.increment(),
-      CompositionSafetyParentDefinition.makeNoopStep(),
-    ]),
-  )
+  CompositionSafetyParentComposition.makeUpdate({
+    CompletedParentInitialization: model =>
+      Update.combineSteps(model, [
+        PlainBinding.increment(),
+        CompositionSafetyParentDefinition.makeNoopStep(),
+      ]),
+    RequestedInitializeEntry: model =>
+      Update.combineSteps(model, [
+        PlainBinding.increment(),
+        CompositionSafetyParentDefinition.makeNoopStep(),
+      ]),
+    RequestedInitializePlain: model =>
+      Update.combineSteps(model, [
+        PlainBinding.increment(),
+        CompositionSafetyParentDefinition.makeNoopStep(),
+      ]),
+    RequestedInitializePlainWithOwningParentCommand: model =>
+      Update.combineSteps(model, [
+        PlainBinding.increment(),
+        CompositionSafetyParentDefinition.makeNoopStep(),
+      ]),
+    RequestedInitializePlainWithParentCommands: model =>
+      Update.combineSteps(model, [
+        PlainBinding.increment(),
+        CompositionSafetyParentDefinition.makeNoopStep(),
+      ]),
+  })
 export const reversedMixedConnectedUpdate =
-  CompositionSafetyParentComposition.makeUpdate(model =>
-    Update.combineSteps(model, [
-      CompositionSafetyParentDefinition.makeNoopStep(),
-      PlainBinding.increment(),
-    ]),
-  )
+  CompositionSafetyParentComposition.makeUpdate({
+    CompletedParentInitialization: model =>
+      Update.combineSteps(model, [
+        CompositionSafetyParentDefinition.makeNoopStep(),
+        PlainBinding.increment(),
+      ]),
+    RequestedInitializeEntry: model =>
+      Update.combineSteps(model, [
+        CompositionSafetyParentDefinition.makeNoopStep(),
+        PlainBinding.increment(),
+      ]),
+    RequestedInitializePlain: model =>
+      Update.combineSteps(model, [
+        CompositionSafetyParentDefinition.makeNoopStep(),
+        PlainBinding.increment(),
+      ]),
+    RequestedInitializePlainWithOwningParentCommand: model =>
+      Update.combineSteps(model, [
+        CompositionSafetyParentDefinition.makeNoopStep(),
+        PlainBinding.increment(),
+      ]),
+    RequestedInitializePlainWithParentCommands: model =>
+      Update.combineSteps(model, [
+        CompositionSafetyParentDefinition.makeNoopStep(),
+        PlainBinding.increment(),
+      ]),
+  })
 export const tupleMixedConnectedUpdate =
-  CompositionSafetyParentComposition.makeUpdate(model =>
-    Update.combineSteps(model, mixedConnectedSteps),
-  )
+  CompositionSafetyParentComposition.makeUpdate({
+    CompletedParentInitialization: model =>
+      Update.combineSteps(model, mixedConnectedSteps),
+    RequestedInitializeEntry: model =>
+      Update.combineSteps(model, mixedConnectedSteps),
+    RequestedInitializePlain: model =>
+      Update.combineSteps(model, mixedConnectedSteps),
+    RequestedInitializePlainWithOwningParentCommand: model =>
+      Update.combineSteps(model, mixedConnectedSteps),
+    RequestedInitializePlainWithParentCommands: model =>
+      Update.combineSteps(model, mixedConnectedSteps),
+  })
 export const deferredMixedConnectedUpdate =
-  CompositionSafetyParentComposition.makeUpdate(model =>
-    deferredMixedConnectedStep(model),
-  )
+  CompositionSafetyParentComposition.makeUpdate({
+    CompletedParentInitialization: model => deferredMixedConnectedStep(model),
+    RequestedInitializeEntry: model => deferredMixedConnectedStep(model),
+    RequestedInitializePlain: model => deferredMixedConnectedStep(model),
+    RequestedInitializePlainWithOwningParentCommand: model =>
+      deferredMixedConnectedStep(model),
+    RequestedInitializePlainWithParentCommands: model =>
+      deferredMixedConnectedStep(model),
+  })
 export const explicitGenericOrdinaryUpdate =
-  CompositionSafetyParentComposition.makeUpdate(model =>
-    Update.combineSteps<typeof model, typeof ParentMessage.Type, never>(model, [
-      stepModel => ({ model: stepModel }),
-    ]),
-  )
-const parentCommandsStep = CompositionSafetyParentDefinition.makeCommandsStep([
-  CompleteParentInitialization(),
-])
+  CompositionSafetyParentComposition.makeUpdate({
+    CompletedParentInitialization: model =>
+      Update.combineSteps<typeof model, typeof ParentMessage.Type, never>(
+        model,
+        [stepModel => ({ model: stepModel })],
+      ),
+    RequestedInitializeEntry: model =>
+      Update.combineSteps<typeof model, typeof ParentMessage.Type, never>(
+        model,
+        [stepModel => ({ model: stepModel })],
+      ),
+    RequestedInitializePlain: model =>
+      Update.combineSteps<typeof model, typeof ParentMessage.Type, never>(
+        model,
+        [stepModel => ({ model: stepModel })],
+      ),
+    RequestedInitializePlainWithOwningParentCommand: model =>
+      Update.combineSteps<typeof model, typeof ParentMessage.Type, never>(
+        model,
+        [stepModel => ({ model: stepModel })],
+      ),
+    RequestedInitializePlainWithParentCommands: model =>
+      Update.combineSteps<typeof model, typeof ParentMessage.Type, never>(
+        model,
+        [stepModel => ({ model: stepModel })],
+      ),
+  })
+const parentCommandsStep = CompositionSafetyParentDefinition.makeCommandsStep(
+  () => [CompleteParentInitialization()],
+)
 export const mixedConnectedCommandsStep = Update.combineSteps([
   PlainBinding.increment(),
   CompositionSafetyParentDefinition.makeNoopStep(),
   parentCommandsStep,
 ])
 export const mixedConnectedCommandsUpdate =
-  CompositionSafetyParentComposition.makeUpdate(model =>
-    mixedConnectedCommandsStep(model),
-  )
+  CompositionSafetyParentComposition.makeUpdate({
+    CompletedParentInitialization: model => mixedConnectedCommandsStep(model),
+    RequestedInitializeEntry: model => mixedConnectedCommandsStep(model),
+    RequestedInitializePlain: model => mixedConnectedCommandsStep(model),
+    RequestedInitializePlainWithOwningParentCommand: model =>
+      mixedConnectedCommandsStep(model),
+    RequestedInitializePlainWithParentCommands: model =>
+      mixedConnectedCommandsStep(model),
+  })
 export const pureMixedCommandsLast = Update.combineSteps(initialParentModel, [
   CompositionSafetyParentDefinition.makeNoopStep(),
   parentCommandsStep,
@@ -539,31 +646,59 @@ type ReversedPureMixedCommandsAreExact = Expect<
 >
 
 export const initializeDerivedModel =
-  CompositionSafetyParentComposition.makeUpdate((model, _message) => {
-    const nextModel = Struct.modifyFields(model, { route: () => 'Play' })
-
-    return Update.combineSteps(nextModel, [
-      initializeDerivedEntry,
-      initializePlainWithOwningParentCommand,
-    ])
+  CompositionSafetyParentComposition.makeUpdate({
+    CompletedParentInitialization: (model, _message) => {
+      const nextModel = Struct.modifyFields(model, { route: () => 'Play' })
+      return Update.combineSteps(nextModel, [
+        initializeDerivedEntry,
+        initializePlainWithOwningParentCommand,
+      ])
+    },
+    RequestedInitializeEntry: (model, _message) => {
+      const nextModel = Struct.modifyFields(model, { route: () => 'Play' })
+      return Update.combineSteps(nextModel, [
+        initializeDerivedEntry,
+        initializePlainWithOwningParentCommand,
+      ])
+    },
+    RequestedInitializePlain: (model, _message) => {
+      const nextModel = Struct.modifyFields(model, { route: () => 'Play' })
+      return Update.combineSteps(nextModel, [
+        initializeDerivedEntry,
+        initializePlainWithOwningParentCommand,
+      ])
+    },
+    RequestedInitializePlainWithOwningParentCommand: (model, _message) => {
+      const nextModel = Struct.modifyFields(model, { route: () => 'Play' })
+      return Update.combineSteps(nextModel, [
+        initializeDerivedEntry,
+        initializePlainWithOwningParentCommand,
+      ])
+    },
+    RequestedInitializePlainWithParentCommands: (model, _message) => {
+      const nextModel = Struct.modifyFields(model, { route: () => 'Play' })
+      return Update.combineSteps(nextModel, [
+        initializeDerivedEntry,
+        initializePlainWithOwningParentCommand,
+      ])
+    },
   })
 const prepareStrictBlock = () =>
   CompositionSafetyParentComposition.prepareBlock({
     init: CompositionSafetyParentComposition.makeInit(() => ({
       model: initialParentModel,
     })),
-    update: CompositionSafetyParentComposition.makeUpdate((model, message) =>
-      ParentMessage.match(message, {
-        RequestedInitializeEntry: ({ id, count }) =>
-          initializeEntry(model, id, count),
-        RequestedInitializePlain: () => initializePlain(model),
-        RequestedInitializePlainWithOwningParentCommand: () =>
-          initializePlainWithOwningParentCommand(model),
-        RequestedInitializePlainWithParentCommands: () =>
-          initializePlainWithParentCommands(model),
-        CompletedParentInitialization: () => ({ model }),
-      }),
-    ),
+    update: CompositionSafetyParentComposition.makeUpdate({
+      RequestedInitializeEntry: (model, { id, count }) =>
+        initializeEntry(model, id, count),
+      RequestedInitializePlain: model => initializePlain(model),
+      RequestedInitializePlainWithOwningParentCommand: model =>
+        initializePlainWithOwningParentCommand(model),
+      RequestedInitializePlainWithParentCommands: model =>
+        initializePlainWithParentCommands(model),
+      CompletedParentInitialization: model =>
+        CompositionSafetyParentDefinition.makeNoopStep()(model),
+    }),
     operations: {
       initializeEntry: (id: string, count: number) => [
         ParentMessage.RequestedInitializeEntry({ id, count }),

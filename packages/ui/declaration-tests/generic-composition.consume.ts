@@ -47,6 +47,28 @@ export type RelocatedAssertions = [
       false
     >
   >,
+  Expect<
+    Equal<
+      Exclude<
+        ReturnType<
+          typeof Slider.SliderBlock.operations.informRangeChanged
+        >['outMessage'],
+        undefined
+      >,
+      never
+    >
+  >,
+  Expect<
+    Equal<
+      Exclude<
+        ReturnType<
+          typeof RootSlider.operations.informRangeChanged
+        >['outMessage'],
+        undefined
+      >,
+      never
+    >
+  >,
 ]
 
 DialogBinding.requestOpen()
@@ -118,3 +140,17 @@ WithViewOnly.replaceEffectsLayer(WithViewOnly.EffectsLayer)
 WithoutViewOrOutMessage.replaceEffectsLayer(
   WithoutViewOrOutMessage.EffectsLayer,
 )
+
+// @ts-expect-error A keyboard pickup includes its starting position.
+DragAndDrop.DragAndDropBlock.OutMessage.StartedKeyboardDrag({
+  itemId: 'card-1',
+  containerId: 'todo',
+})
+DragAndDrop.DragAndDropBlock.OutMessage.ChangedKeyboardTarget({
+  itemId: 'card-1',
+  fromContainerId: 'todo',
+  fromIndex: 0,
+  toContainerId: 'done',
+  // @ts-expect-error A keyboard target uses a numeric index.
+  toIndex: 'first',
+})

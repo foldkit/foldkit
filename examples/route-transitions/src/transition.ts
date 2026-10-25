@@ -72,10 +72,12 @@ const reconcilePaintingRoute = (transition: AppTransition) =>
   )
 
 const saveDraftOnStudioExit = (transition: AppTransition) =>
-  ApplicationDefinition.makeStep(model =>
-    Transition.isExiting(transition, 'Studio') && model.studioDraft !== ''
-      ? { model, commands: [SaveDraft({ draft: model.studioDraft })] }
-      : { model },
+  ApplicationDefinition.makeCommandsStep(model =>
+    Array.filter(
+      [SaveDraft({ draft: model.studioDraft })],
+      () =>
+        Transition.isExiting(transition, 'Studio') && model.studioDraft !== '',
+    ),
   )
 
 export const handleTransition = (

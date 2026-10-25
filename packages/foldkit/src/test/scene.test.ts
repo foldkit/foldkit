@@ -1,4 +1,12 @@
-import { Array, Equivalence, Number, Option, Schema, pipe } from 'effect'
+import {
+  Array,
+  Equivalence,
+  Function,
+  Number,
+  Option,
+  Schema,
+  pipe,
+} from 'effect'
 import { describe, expect, expectTypeOf, test, vi } from 'vitest'
 
 import * as CustomElement from '../customElement/index.js'
@@ -4297,6 +4305,11 @@ const multipleOutMessagesUpdate = (
     ObservedBackgroundActivity: () => ({ model }),
   })
 
+const dualMultipleOutMessagesUpdate = Function.dual(
+  2,
+  multipleOutMessagesUpdate,
+)
+
 const interactionSubscriptions = SubscriptionDefinition.make<
   LogoutModel,
   InteractionMessage
@@ -4371,6 +4384,104 @@ const multipleMountOutMessagesUpdate = (
 }
 
 describe('Scene OutMessage assertions', () => {
+  test('retains the explicit generic call shape', () => {
+    Scene.scene<CounterModel, typeof CounterMessage.Type>(
+      { update: counterUpdate, view: counterView },
+      Scene.given(counterInitialModel),
+    )
+  })
+
+  test('dual updates preserve their complete OutMessage union', () => {
+    Scene.scene(
+      {
+        update: dualMultipleOutMessagesUpdate,
+        view: multipleOutMessagesView,
+      },
+      Scene.given(interactionInitialModel),
+      Scene.click(Scene.selector('div')),
+      Scene.expectOutMessage(InteractionOutMessage.RequestedSelection()),
+    )
+
+    const selected = dualMultipleOutMessagesUpdate(
+      InteractionMessage.ClickedRow(),
+    )(interactionInitialModel)
+
+    expect(selected.outMessage).toEqual(
+      InteractionOutMessage.RequestedSelection(),
+    )
+  })
+
+  test('dual updates reject unrelated OutMessages', () => {
+    expectTypeOf(() =>
+      Scene.scene(
+        {
+          update: dualMultipleOutMessagesUpdate,
+          view: multipleOutMessagesView,
+        },
+        Scene.given(interactionInitialModel),
+        // @ts-expect-error CompletedAction is not an Interaction OutMessage
+        Scene.expectOutMessage(LogoutButtonMessage.CompletedAction()),
+      ),
+    ).toBeFunction()
+  })
+
+  test('validates the data-first update contract', () => {
+    const missingModel = (
+      _model: CounterModel,
+      _message: typeof CounterMessage.Type,
+    ) => ({ status: 'Done' })
+    const wrongModel = (
+      _model: CounterModel,
+      _message: typeof CounterMessage.Type,
+    ) => ({ model: { status: 'Done' } })
+    const requiredContext = (
+      model: CounterModel,
+      _message: typeof CounterMessage.Type,
+      _context: string,
+    ) => ({ model })
+    const optionalContext = (
+      model: CounterModel,
+      _message: typeof CounterMessage.Type,
+      _context?: string,
+    ) => ({ model })
+
+    expectTypeOf(() =>
+      Scene.scene(
+        {
+          // @ts-expect-error an update must return its Model
+          update: missingModel,
+          view: counterView,
+        },
+        Scene.given(counterInitialModel),
+      ),
+    ).toBeFunction()
+    expectTypeOf(() =>
+      Scene.scene(
+        {
+          // @ts-expect-error an update must return the same Model type it accepts
+          update: wrongModel,
+          view: counterView,
+        },
+        Scene.given(counterInitialModel),
+      ),
+    ).toBeFunction()
+    expectTypeOf(() =>
+      Scene.scene(
+        {
+          // @ts-expect-error Scene cannot supply required update context
+          update: requiredContext,
+          view: counterView,
+        },
+        Scene.given(counterInitialModel),
+      ),
+    ).toBeFunction()
+
+    Scene.scene(
+      { update: optionalContext, view: counterView },
+      Scene.given(counterInitialModel),
+    )
+  })
+
   test('assert the OutMessage across steps', () => {
     Scene.scene(
       {

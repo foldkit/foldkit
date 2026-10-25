@@ -4,7 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 import type { ApplicationRoute } from '../../route'
 import { FetchPeople, PushSearchUrl } from './command'
 import { PeopleComposition } from './composition'
-import { Message } from './message'
+import { PeopleDefinition } from './definition'
 import {
   Model,
   SearchResults,
@@ -25,40 +25,35 @@ export const init = PeopleComposition.makeInit(
     }
   },
 )
-export const update = PeopleComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ChangedSearchInput: ({ value }) => ({
-      model: modifyFields(model, { searchInput: () => value }),
+export const update = PeopleComposition.makeUpdate({
+  ChangedSearchInput: PeopleDefinition.makeFieldsStep.fromMessage(
+    ({ value }) => ({ searchInput: () => value }),
+  ),
+
+  SubmittedSearch: PeopleDefinition.makeCommandsStep(model => [
+    PushSearchUrl({
+      searchText: Option.fromNullishOr(model.searchInput || null),
     }),
+  ]),
 
-    SubmittedSearch: () => ({
-      model,
-      commands: [
-        PushSearchUrl({
-          searchText: Option.fromNullishOr(model.searchInput || null),
-        }),
-      ],
-    }),
-
-    InformedOfRouteChange: ({ route }) => {
-      const searchText = routeSearchText(route)
-      return {
-        model: modifyFields(model, {
-          searchInput: () => searchText,
-          searchHistory: searchHistory =>
-            addSearchToHistory(searchHistory, searchText),
-          results: () => SearchResults.Loading(),
-        }),
-        commands: [FetchPeople({ searchText })],
-      }
-    },
-
-    CompletedFetchPeople: ({ query, people: fetchedPeople }) => ({
+  InformedOfRouteChange: (model, { route }) => {
+    const searchText = routeSearchText(route)
+    return {
       model: modifyFields(model, {
-        results: () => SearchResults.Loaded({ query, people: fetchedPeople }),
+        searchInput: () => searchText,
+        searchHistory: searchHistory =>
+          addSearchToHistory(searchHistory, searchText),
+        results: () => SearchResults.Loading(),
       }),
-    }),
+      commands: [FetchPeople({ searchText })],
+    }
+  },
 
-    CompletedPushSearchUrl: () => ({ model }),
-  }),
-)
+  CompletedFetchPeople: PeopleDefinition.makeFieldsStep.fromMessage(
+    ({ query, people: fetchedPeople }) => ({
+      results: () => SearchResults.Loaded({ query, people: fetchedPeople }),
+    }),
+  ),
+
+  CompletedPushSearchUrl: PeopleDefinition.makeNoopStep(),
+})

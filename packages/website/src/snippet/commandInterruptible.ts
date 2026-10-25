@@ -2,7 +2,6 @@
 import { Effect, Schema } from 'effect'
 import { Block, Command } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 
 const Model = Schema.Struct({ count: Schema.Number })
 
@@ -20,6 +19,8 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
+const ApplicationComposition = ApplicationDefinition.makeComposition()
+
 export const WaitBeforeReset = ApplicationDefinition.makeCommand(
   'WaitBeforeReset',
   {
@@ -36,23 +37,17 @@ export const WaitBeforeReset = ApplicationDefinition.makeCommand(
 
 export const EffectsLayer = WaitBeforeReset.layer
 
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedResetAfterDelay: () => ({
-      model,
-      commands: [WaitBeforeReset()],
-    }),
-    ClickedCancelReset: () => ({
-      model,
-      commands: [
-        WaitBeforeReset.Interrupt(outcome =>
-          Message.CompletedCancelWaitBeforeReset({ outcome }),
-        ),
-      ],
-    }),
-    CompletedWaitBeforeReset: () => ({
-      model: modifyFields(model, { count: () => 0 }),
-    }),
-    CompletedCancelWaitBeforeReset: () => ({ model }),
-  }),
-)
+const update = ApplicationComposition.makeUpdate({
+  ClickedResetAfterDelay: ApplicationDefinition.makeCommandsStep(() => [
+    WaitBeforeReset(),
+  ]),
+  ClickedCancelReset: ApplicationDefinition.makeCommandsStep(() => [
+    WaitBeforeReset.Interrupt(outcome =>
+      Message.CompletedCancelWaitBeforeReset({ outcome }),
+    ),
+  ]),
+  CompletedWaitBeforeReset: ApplicationDefinition.makeFieldsStep(() => ({
+    count: () => 0,
+  })),
+  CompletedCancelWaitBeforeReset: ApplicationDefinition.makeNoopStep(),
+})

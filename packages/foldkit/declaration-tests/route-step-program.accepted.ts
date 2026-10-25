@@ -210,12 +210,10 @@ export const ChildComposition = ChildDefinition.makeComposition()
 const prepareChildBlock = () =>
   ChildComposition.prepareBlock({
     init: ChildComposition.makeInit(() => ({ model: { value: '' } })),
-    update: ChildComposition.makeUpdate((model, message) =>
-      ChildMessage.match(message, {
-        RequestedReadValue: () => ({ model, commands: [ReadValue()] }),
-        CompletedReadValue: ({ value }) => ({ model: { value } }),
-      }),
-    ),
+    update: ChildComposition.makeUpdate({
+      RequestedReadValue: model => ({ model, commands: [ReadValue()] }),
+      CompletedReadValue: (_model, { value }) => ({ model: { value } }),
+    }),
     operations: {
       refresh: () => Tuple.make(ChildMessage.RequestedReadValue()),
     },
@@ -256,11 +254,9 @@ export const selectConnectedStep = (
 export const connectedStep = selectConnectedStep(
   Transition.make<ApplicationRoute>(ApplicationRoute.Home(), note),
 )
-export const parentUpdate = ParentComposition.makeUpdate((model, message) =>
-  ParentMessage.match(message, {
-    RequestedApplyRoutePolicy: () => connectedStep(model),
-  }),
-)
+export const parentUpdate = ParentComposition.makeUpdate({
+  RequestedApplyRoutePolicy: model => connectedStep(model),
+})
 const prepareParentBlock = () =>
   ParentComposition.prepareBlock({
     init: ParentComposition.makeInit(() => ({

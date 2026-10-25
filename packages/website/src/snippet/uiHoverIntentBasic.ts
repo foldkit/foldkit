@@ -56,7 +56,7 @@ const init = HoverIntentExampleComposition.makeInit(() => ({
   },
 }))
 
-const update = HoverIntentExampleComposition.makeUpdate()
+const update = HoverIntentExampleComposition.makeUpdate({})
 
 // Spread each attribute bundle onto the element it names. HoverIntent owns the
 // interaction; this view owns the markup, semantics, positioning, and styles.

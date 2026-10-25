@@ -1,4 +1,4 @@
-import { Equal, Predicate } from 'effect'
+import { Equal, Option, Predicate } from 'effect'
 
 import type { AnyBinding, BindingEvidence } from '../block/binding.js'
 import { blockOf } from '../block/binding.js'
@@ -15,7 +15,9 @@ import { CommandDefinitionTypeId } from '../command/index.js'
 import type {
   AnyCommand,
   AnyCommandInstance,
+  CommandArgs,
   CommandMatcher,
+  ResolvableCommandDefinition,
 } from './internal.js'
 
 type BindingFrame = Readonly<{
@@ -155,3 +157,20 @@ export const commandMatches = (
   (isCommandDefinitionMatcher(matcher) ||
     matcher.args === undefined ||
     Equal.equals(matcher.args, command.args))
+
+/** @internal Projects captured args after proving Command source identity. */
+export function commandArgs<
+  Definition extends ResolvableCommandDefinition<string, unknown>,
+>(
+  definition: Definition,
+): (pending: AnyCommand) => Option.Option<CommandArgs<Definition>>
+export function commandArgs(
+  definition: ResolvableCommandDefinition<string, unknown>,
+): (pending: AnyCommand) => Option.Option<AnyCommand['args']> {
+  return pending =>
+    identityOf(definition) !== undefined &&
+    invocationIdentity(pending) !== undefined &&
+    commandMatches(definition, pending)
+      ? Option.some(pending.args)
+      : Option.none()
+}

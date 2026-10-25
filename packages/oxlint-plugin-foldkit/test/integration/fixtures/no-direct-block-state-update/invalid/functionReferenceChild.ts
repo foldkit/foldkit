@@ -18,13 +18,11 @@ const FunctionReferenceChildComposition =
 const init = FunctionReferenceChildComposition.makeInit((id: string) => ({
   model: Model.make({ id, theme: 'System' }),
 }))
-const update = FunctionReferenceChildComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    InformedOfThemeChange: ({ theme }) => ({
-      model: modifyFields(model, { theme: () => theme }),
-    }),
+const update = FunctionReferenceChildComposition.makeUpdate({
+  InformedOfThemeChange: (model, { theme }) => ({
+    model: modifyFields(model, { theme: () => theme }),
   }),
-)
+})
 
 export const revealErrors = (model: Model): Model =>
   modifyFields(model, { theme: () => 'Error' })

@@ -13,7 +13,9 @@ const ApplicationComposition = Block.makeDefinition('Application', {
 const init = ApplicationComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),
 }))
-const update = ApplicationComposition.makeUpdate(model => ({ model }))
+const update = ApplicationComposition.makeUpdate({
+  Ticked: model => ({ model }),
+})
 const elementView = ApplicationComposition.makeView((model, h) =>
   h.div([], [String(model.count)]),
 )

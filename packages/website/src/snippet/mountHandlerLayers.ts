@@ -1,7 +1,6 @@
 import { Effect, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 
 const Model = Schema.Struct({ panelHeight: Schema.Option(Schema.Number) })
 const Message = defineMessageUnion({
@@ -26,15 +25,13 @@ const PanelComposition = PanelDefinition.makeComposition({
   mounts: [MeasurePanel],
 })
 
-const update = PanelComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    CompletedMeasurePanel: ({ height }) => ({
-      model: modifyFields(model, {
-        panelHeight: () => Option.some(height),
-      }),
+const update = PanelComposition.makeUpdate({
+  CompletedMeasurePanel: PanelDefinition.makeFieldsStep.fromMessage(
+    ({ height }) => ({
+      panelHeight: () => Option.some(height),
     }),
-  }),
-)
+  ),
+})
 
 const view = PanelComposition.makeView((model, h) => ({
   title: 'Measured panel',

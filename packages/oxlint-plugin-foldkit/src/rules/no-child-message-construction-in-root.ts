@@ -1,4 +1,4 @@
-import { Array, Effect, Option, pipe } from 'effect'
+import { Array, Effect, Option } from 'effect'
 import {
   Diagnostic,
   type ESTree,
@@ -11,12 +11,16 @@ import {
 import {
   type ImportedPath,
   type StaticMemberPath,
+  blockBindingParent,
   indexReferences,
+  isBlockBindingCall,
   isCallExpression,
   isIdentifier,
+  isIdentifierReference,
   isMemberExpression,
   isObjectExpression,
   isObjectProperty,
+  isOwnedDefinitionCallee,
   isVariableDeclaration,
   isVariableDeclarator,
   resolveFoldkitApiPath,
@@ -403,6 +407,9 @@ type DefinitionOperation = Readonly<{
   operation:
     | 'makeBinding'
     | 'makeCommand'
+    | 'makeCommandsStep'
+    | 'makeFieldsStep'
+    | 'makeOutMessageStep'
     | 'makeManagedResources'
     | 'makeMount'
     | 'makeMountStream'
@@ -425,15 +432,35 @@ const definitionOperationName = (
   ) {
     return 'view'
   }
+  if (
+    method === 'withContext' &&
+    Option.contains(maybePreviousMethod, 'makeUpdate')
+  ) {
+    return 'update'
+  }
   if (method === 'makeUpdate') {
     return 'update'
   }
   if (method === 'makeView') {
     return 'view'
   }
+  if (method === 'fromMessage') {
+    return Option.getOrUndefined(
+      Option.filter(
+        maybePreviousMethod,
+        previousMethod =>
+          previousMethod === 'makeFieldsStep' ||
+          previousMethod === 'makeCommandsStep' ||
+          previousMethod === 'makeOutMessageStep',
+      ),
+    )
+  }
   if (
     method === 'makeBinding' ||
     method === 'makeCommand' ||
+    method === 'makeCommandsStep' ||
+    method === 'makeFieldsStep' ||
+    method === 'makeOutMessageStep' ||
     method === 'makeManagedResources' ||
     method === 'makeMount' ||
     method === 'makeMountStream' ||
@@ -498,16 +525,37 @@ const compositionDefinitionPath = (
   }).pipe(Option.getOrElse(() => path))
 }
 
-const definitionOperation = (
+const definitionOperationForCall = (
   references: WeakMap<ESTree.Node, Reference>,
-  functionNode: ESTree.ArrowFunctionExpression | ESTree.Function,
+  parent: ESTree.CallExpression,
 ): Option.Option<DefinitionOperation> => {
-  const parent = functionNode.parent
-  if (!isCallExpression(parent) || !parent.arguments.includes(functionNode)) {
-    return Option.none()
-  }
-
   return Option.gen(function* () {
+    if (isBlockBindingCall(parent, references)) {
+      const bindingParent = yield* Option.fromNullishOr(
+        blockBindingParent(parent, references),
+      )
+      const bindingParentPath = compositionDefinitionPath(
+        references,
+        yield* staticMemberPath(bindingParent),
+      )
+      const importedBindingParentPath = Option.map(
+        resolveImportedPathThroughConst(references, bindingParentPath.root),
+        path => ({
+          source: path.source,
+          members: [...path.members, ...bindingParentPath.members],
+        }),
+      )
+
+      return {
+        importedDefinitionPath: Option.getOrUndefined(
+          importedBindingParentPath,
+        ),
+        members: bindingParentPath.members,
+        operation: 'makeBinding',
+        root: bindingParentPath.root,
+      }
+    }
+
     const calleePath = yield* staticMemberPath(parent.callee)
     const method = yield* Array.last(calleePath.members)
     const maybePreviousMethod = Array.get(
@@ -517,12 +565,49 @@ const definitionOperation = (
     const isViewWithInputs =
       method === 'withInputs' &&
       Option.contains(maybePreviousMethod, 'makeView')
+    const isUpdateWithContext =
+      method === 'withContext' &&
+      Option.contains(maybePreviousMethod, 'makeUpdate')
     const operation = definitionOperationName(method, maybePreviousMethod)
     if (operation === undefined) {
       return yield* Option.none()
     }
+    const isFocusedStep =
+      operation === 'makeFieldsStep' ||
+      operation === 'makeCommandsStep' ||
+      operation === 'makeOutMessageStep'
+    if (
+      isFocusedStep &&
+      !isOwnedDefinitionCallee(parent.callee, operation, references)
+    ) {
+      return yield* Option.none()
+    }
 
-    const suffixLength = isViewWithInputs ? 2 : 1
+    if (
+      operation === 'update' &&
+      !isUpdateWithContext &&
+      !isOwnedDefinitionCallee(parent.callee, 'makeUpdate', references)
+    ) {
+      return yield* Option.none()
+    }
+    if (
+      isUpdateWithContext &&
+      (!isMemberExpression(parent.callee) ||
+        !isOwnedDefinitionCallee(
+          parent.callee.object,
+          'makeUpdate',
+          references,
+        ))
+    ) {
+      return yield* Option.none()
+    }
+
+    const suffixLength =
+      isViewWithInputs ||
+      isUpdateWithContext ||
+      (isFocusedStep && method === 'fromMessage')
+        ? 2
+        : 1
     const definitionPath = compositionDefinitionPath(references, {
       root: calleePath.root,
       members: calleePath.members.slice(0, -suffixLength),
@@ -542,6 +627,155 @@ const definitionOperation = (
       root: definitionPath.root,
     }
   })
+}
+
+const resolvedFunctionValue = (
+  value: unknown,
+  references: WeakMap<ESTree.Node, Reference>,
+): ESTree.ArrowFunctionExpression | ESTree.Function | undefined => {
+  if (isFunction(value)) {
+    return value
+  }
+  if (!isIdentifierReference(value)) {
+    return undefined
+  }
+
+  const variable = Option.getOrUndefined(resolvedVariable(references, value))
+  if (variable === undefined) {
+    return undefined
+  }
+
+  for (const definition of variable.defs) {
+    const definitionNode = definition.node
+    if (isVariableDeclarator(definitionNode)) {
+      if (isFunction(definitionNode.init)) {
+        return definitionNode.init
+      }
+    } else if (isFunction(definitionNode)) {
+      return definitionNode
+    }
+  }
+
+  return undefined
+}
+
+const resolvedObjectValue = (
+  value: unknown,
+  references: WeakMap<ESTree.Node, Reference>,
+): ESTree.ObjectExpression | undefined => {
+  if (isObjectExpression(value)) {
+    return value
+  }
+  if (!isIdentifierReference(value)) {
+    return undefined
+  }
+
+  const variable = Option.getOrUndefined(resolvedVariable(references, value))
+  if (variable === undefined) {
+    return undefined
+  }
+
+  for (const definition of variable.defs) {
+    if (
+      isVariableDeclarator(definition.node) &&
+      isObjectExpression(definition.node.init)
+    ) {
+      return definition.node.init
+    }
+  }
+
+  return undefined
+}
+
+const returnedExpressions = (
+  callback: ESTree.ArrowFunctionExpression | ESTree.Function,
+): ReadonlyArray<unknown> => {
+  if (callback.body === null) {
+    return []
+  }
+  if (callback.body.type !== 'BlockStatement') {
+    return [callback.body]
+  }
+
+  return callback.body.body.flatMap(statement =>
+    statement.type === 'ReturnStatement' && statement.argument !== null
+      ? [statement.argument]
+      : [],
+  )
+}
+
+const ownedHandlerFunctions = (
+  node: ESTree.CallExpression,
+  references: WeakMap<ESTree.Node, Reference>,
+): ReadonlyArray<
+  Readonly<{
+    handler: ESTree.ArrowFunctionExpression | ESTree.Function
+    operation: DefinitionOperation
+  }>
+> => {
+  const operation = Option.getOrUndefined(
+    definitionOperationForCall(references, node),
+  )
+  if (
+    operation?.operation === 'makeFieldsStep' ||
+    operation?.operation === 'makeCommandsStep' ||
+    operation?.operation === 'makeOutMessageStep'
+  ) {
+    const [authored] = node.arguments
+    const handler = resolvedFunctionValue(authored, references)
+    return handler === undefined ? [] : [{ handler, operation }]
+  }
+  if (operation?.operation !== 'update') {
+    return []
+  }
+
+  const maybePath = staticMemberPath(node.callee)
+  if (Option.isNone(maybePath)) {
+    return []
+  }
+
+  const [authored] = node.arguments
+  const isWithContext =
+    maybePath.value.members.slice(-2).join('.') === 'makeUpdate.withContext'
+  const handlerObjects: Array<ESTree.ObjectExpression> = []
+  if (isWithContext) {
+    const createHandlers = resolvedFunctionValue(authored, references)
+    if (createHandlers !== undefined) {
+      for (const returned of returnedExpressions(createHandlers)) {
+        const handlers = resolvedObjectValue(returned, references)
+        if (handlers !== undefined) {
+          handlerObjects.push(handlers)
+        }
+      }
+    }
+  } else {
+    const handlers = resolvedObjectValue(authored, references)
+    if (handlers !== undefined) {
+      handlerObjects.push(handlers)
+    }
+  }
+
+  return handlerObjects.flatMap(handlers =>
+    handlers.properties.flatMap(property => {
+      if (property.type !== 'Property') {
+        return []
+      }
+      const handler = resolvedFunctionValue(property.value, references)
+      return handler === undefined ? [] : [{ handler, operation }]
+    }),
+  )
+}
+
+const definitionOperation = (
+  references: WeakMap<ESTree.Node, Reference>,
+  functionNode: ESTree.ArrowFunctionExpression | ESTree.Function,
+): Option.Option<DefinitionOperation> => {
+  const parent = functionNode.parent
+  if (!isCallExpression(parent) || !parent.arguments.includes(functionNode)) {
+    return Option.none()
+  }
+
+  return definitionOperationForCall(references, parent)
 }
 
 const localDefinitionMessagePath = (
@@ -808,31 +1042,54 @@ const importedOwnerOwnsMessage = (
   importedDefinitionOwnsMessage(ownerPath, messagePath) ||
   importedCompositionOwnsDefinitionMessage(ownerPath, messagePath, filename)
 
+const operationOwnsMessage = (
+  references: WeakMap<ESTree.Node, Reference>,
+  operation: DefinitionOperation,
+  messagePath: ImportedMessagePath,
+  filename: string,
+): boolean => {
+  const ownsLocalMessage = Option.exists(
+    localDefinitionMessagePath(references, operation),
+    definitionMessagePath =>
+      sameImportedMessagePath(definitionMessagePath, messagePath),
+  )
+  if (ownsLocalMessage) {
+    return true
+  }
+
+  return (
+    operation.importedDefinitionPath !== undefined &&
+    importedOwnerOwnsMessage(
+      operation.importedDefinitionPath,
+      messagePath,
+      filename,
+    )
+  )
+}
+
 const definitionOperationOwnsMessage = (
   references: WeakMap<ESTree.Node, Reference>,
   functionNode: ESTree.ArrowFunctionExpression | ESTree.Function,
   messagePath: ImportedMessagePath,
   filename: string,
 ): boolean =>
-  Option.exists(definitionOperation(references, functionNode), operation => {
-    const ownsLocalMessage = Option.exists(
-      localDefinitionMessagePath(references, operation),
-      definitionMessagePath =>
-        sameImportedMessagePath(definitionMessagePath, messagePath),
-    )
-    if (ownsLocalMessage) {
-      return true
-    }
+  Option.exists(definitionOperation(references, functionNode), operation =>
+    operationOwnsMessage(references, operation, messagePath, filename),
+  )
 
-    return (
-      operation.importedDefinitionPath !== undefined &&
-      importedOwnerOwnsMessage(
-        operation.importedDefinitionPath,
-        messagePath,
-        filename,
-      )
-    )
-  })
+const definitionOperationCallOwnsMessage = (
+  references: WeakMap<ESTree.Node, Reference>,
+  operationCall: ESTree.CallExpression,
+  messagePath: ImportedMessagePath,
+  filename: string,
+): boolean =>
+  Option.exists(
+    definitionOperationForCall(references, operationCall),
+    operation =>
+      (operation.operation === 'update' ||
+        operation.operation === 'makeBinding') &&
+      operationOwnsMessage(references, operation, messagePath, filename),
+  )
 
 const annotatedBuilderOwnsMessage = (
   references: WeakMap<ESTree.Node, Reference>,
@@ -897,6 +1154,13 @@ const importedOperationOwnsMessage = (
       )
       const isViewWithInputs =
         operation === 'withInputs' && previousOperation === 'makeView'
+      const isUpdateWithContext =
+        operation === 'withContext' && previousOperation === 'makeUpdate'
+      const isFocusedStepFromMessage =
+        operation === 'fromMessage' &&
+        (previousOperation === 'makeFieldsStep' ||
+          previousOperation === 'makeCommandsStep' ||
+          previousOperation === 'makeOutMessageStep')
       const isDefinitionOperation =
         operation !== undefined &&
         definitionOperationName(
@@ -904,11 +1168,19 @@ const importedOperationOwnsMessage = (
           Option.fromNullishOr(previousOperation),
         ) !== undefined
       const isPreparation = operation === 'prepareBlock'
-      if (!isDefinitionOperation && !isViewWithInputs && !isPreparation) {
+      if (
+        !isDefinitionOperation &&
+        !isViewWithInputs &&
+        !isUpdateWithContext &&
+        !isPreparation
+      ) {
         return false
       }
 
-      const suffixLength = isViewWithInputs ? 2 : 1
+      const suffixLength =
+        isViewWithInputs || isUpdateWithContext || isFocusedStepFromMessage
+          ? 2
+          : 1
       const members = path.members.slice(0, -suffixLength)
       return (
         Array.isReadonlyArrayNonEmpty(members) &&
@@ -967,7 +1239,18 @@ const isOwnedByEnclosingOperation = (
           argument === descendant &&
           (isFunction(descendant) || isObjectExpression(descendant)),
       ) &&
-      importedOperationOwnsMessage(references, ancestor, messagePath, filename)
+      (definitionOperationCallOwnsMessage(
+        references,
+        ancestor,
+        messagePath,
+        filename,
+      ) ||
+        importedOperationOwnsMessage(
+          references,
+          ancestor,
+          messagePath,
+          filename,
+        ))
     ) {
       return true
     }
@@ -976,6 +1259,33 @@ const isOwnedByEnclosingOperation = (
   }
 
   return ownsMessage(node.parent, node)
+}
+
+const isWithinOwnedHandler = (
+  node: ESTree.Node,
+  ownedHandlers: WeakMap<ESTree.Node, ReadonlyArray<DefinitionOperation>>,
+  references: WeakMap<ESTree.Node, Reference>,
+  messagePath: ImportedMessagePath,
+  filename: string,
+): boolean => {
+  const parent = node.parent
+  if (parent === null || parent === undefined) {
+    return false
+  }
+  const operations = isFunction(parent) ? ownedHandlers.get(parent) : undefined
+  return (
+    (operations !== undefined &&
+      operations.every(operation =>
+        operationOwnsMessage(references, operation, messagePath, filename),
+      )) ||
+    isWithinOwnedHandler(
+      parent,
+      ownedHandlers,
+      references,
+      messagePath,
+      filename,
+    )
+  )
 }
 
 const hasComputedMember = (node: unknown): boolean =>
@@ -1152,39 +1462,91 @@ export const noChildMessageConstructionInRoot = Rule.define({
     const scopes = ctx.sourceCode.scopeManager?.scopes
     const references =
       scopes === undefined ? undefined : indexReferences(scopes)
+    const ownedHandlers = new WeakMap<
+      ESTree.Node,
+      ReadonlyArray<DefinitionOperation>
+    >()
+    const constructions: Array<
+      Readonly<{
+        node: ESTree.CallExpression
+        construction: ChildMessageConstruction
+      }>
+    > = []
+
     return {
       CallExpression: (node: ESTree.Node) => {
         if (!isCallExpression(node)) {
           return Effect.void
         }
-        return pipe(
+
+        if (references !== undefined) {
+          for (const { handler, operation } of ownedHandlerFunctions(
+            node,
+            references,
+          )) {
+            ownedHandlers.set(handler, [
+              ...(ownedHandlers.get(handler) ?? []),
+              operation,
+            ])
+          }
+        }
+
+        const construction = Option.getOrUndefined(
           childMessageConstruction(node.callee, references),
-          Option.match({
-            onNone: () => Effect.void,
-            onSome: ({ calleeLabel, messagePath }) => {
-              if (
-                references !== undefined &&
-                messagePath !== undefined &&
-                isOwnedByEnclosingOperation(
+        )
+        if (construction === undefined) {
+          return Effect.void
+        }
+        if (references === undefined) {
+          return ctx.report(
+            Diagnostic.make({
+              node,
+              message: childMessageConstructionMessage(
+                construction.calleeLabel,
+              ),
+            }),
+          )
+        }
+
+        constructions.push({ node, construction })
+
+        return Effect.void
+      },
+      'Program:exit': () =>
+        Effect.all(
+          constructions.flatMap(({ node, construction }) => {
+            const { calleeLabel, messagePath } = construction
+            if (
+              references !== undefined &&
+              messagePath !== undefined &&
+              (isOwnedByEnclosingOperation(
+                node,
+                references,
+                messagePath,
+                ctx.filename,
+              ) ||
+                isWithinOwnedHandler(
                   node,
+                  ownedHandlers,
                   references,
                   messagePath,
                   ctx.filename,
-                )
-              ) {
-                return Effect.void
-              }
+                ))
+            ) {
+              return []
+            }
 
-              return ctx.report(
+            return [
+              ctx.report(
                 Diagnostic.make({
                   node,
                   message: childMessageConstructionMessage(calleeLabel),
                 }),
-              )
-            },
+              ),
+            ]
           }),
-        )
-      },
+          { discard: true },
+        ),
     }
   },
 })

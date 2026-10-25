@@ -18,18 +18,16 @@ const init = RouteAwareComposition.makeInit(() => ({
   model: Model.make({ routeChangeCount: 0 }),
 }))
 
-const update = RouteAwareComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    InformedOfRouteChange: () => ({
-      model: modifyFields(model, {
-        routeChangeCount: count => count + 1,
-      }),
-    }),
-    ClickedReset: () => ({
-      model: modifyFields(model, { routeChangeCount: () => 0 }),
+const update = RouteAwareComposition.makeUpdate({
+  InformedOfRouteChange: model => ({
+    model: modifyFields(model, {
+      routeChangeCount: count => count + 1,
     }),
   }),
-)
+  ClickedReset: model => ({
+    model: modifyFields(model, { routeChangeCount: () => 0 }),
+  }),
+})
 
 const prepare = () =>
   RouteAwareComposition.prepareBlock({

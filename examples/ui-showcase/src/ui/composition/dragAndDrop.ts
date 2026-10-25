@@ -64,6 +64,8 @@ export const DragAndDropDemoBinding = UiDefinition.makeBinding(
             toIndex,
           ),
       })),
+    StartedKeyboardDrag: UiDefinition.makeNoopStep,
+    ChangedKeyboardTarget: UiDefinition.makeNoopStep,
     Cancelled: UiDefinition.makeNoopStep,
   }),
 })

@@ -69,7 +69,7 @@ const init = PlanPickerComposition.makeInit(() => ({
 }))
 
 // The Composition routes generated Listbox delivery through the Binding.
-const update = PlanPickerComposition.makeUpdate()
+const update = PlanPickerComposition.makeUpdate({})
 
 const plans: ReadonlyArray<typeof Plan.Type> = ['Free', 'Pro', 'Enterprise']
 

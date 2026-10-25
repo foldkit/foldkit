@@ -56,19 +56,17 @@ const prepareHomeBlock = () =>
     init: HomeComposition.makeInit(() => ({
       model: HomeModel.make({ username: '', resetCount: 0 }),
     })),
-    update: HomeComposition.makeUpdate((model, message) =>
-      HomeMessage.match(message, {
-        RequestedResetJoinForm: ({ username }) =>
-          resetJoinForm(model, username),
-        RequestedJoin: ({ roomId, username }) =>
-          requestJoin(model, roomId, username),
-        SucceededJoinRoom: ({ roomId, username }) => ({
-          model,
-          outMessage: HomeOutMessage.JoinedRoom({ roomId, username }),
-        }),
-        CompletedClearJoinDraft: () => ({ model }),
+    update: HomeComposition.makeUpdate({
+      RequestedResetJoinForm: (model, { username }) =>
+        resetJoinForm(model, username),
+      RequestedJoin: (model, { roomId, username }) =>
+        requestJoin(model, roomId, username),
+      SucceededJoinRoom: (model, { roomId, username }) => ({
+        model,
+        outMessage: HomeOutMessage.JoinedRoom({ roomId, username }),
       }),
-    ),
+      CompletedClearJoinDraft: model => ({ model }),
+    }),
     operations: {
       resetJoinForm: (username: string) =>
         Tuple.make(HomeMessage.RequestedResetJoinForm({ username })),
@@ -107,16 +105,15 @@ const prepareRoomBlock = () =>
     init: RoomComposition.makeInit(() => ({
       model: RoomModel.make({ maybeUsername: Option.none() }),
     })),
-    update: RoomComposition.makeUpdate(
-      (model, message, context: typeof RoomContext.Type) =>
-        RoomMessage.match(message, {
-          RequestedInformJoined: ({ username }) =>
-            informJoined(model, username, context),
-          CompletedLeaveRoom: () => ({
-            model,
-            outMessage: RoomOutMessage.LeftRoom({ roomId: context.roomId }),
-          }),
+    update: RoomComposition.makeUpdate.withContext(
+      (context: typeof RoomContext.Type) => ({
+        RequestedInformJoined: (model, { username }) =>
+          informJoined(model, username, context),
+        CompletedLeaveRoom: model => ({
+          model,
+          outMessage: RoomOutMessage.LeftRoom({ roomId: context.roomId }),
         }),
+      }),
     ),
     operations: {
       informJoined: (username: string, context: typeof RoomContext.Type) =>
@@ -218,14 +215,12 @@ const RoomBinding = Application.makeBinding(RoomBlock, {
 const ApplicationComposition = Application.makeComposition({
   bindings: [HomeBinding, RoomBinding],
 })
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    RequestedJoin: ({ roomId, username }) =>
-      HomeBinding.requestJoin(roomId, username)(model),
-    RequestedResetJoinForm: ({ username }) =>
-      HomeBinding.resetJoinForm(username)(model),
-  }),
-)
+const update = ApplicationComposition.makeUpdate({
+  RequestedJoin: (model, { roomId, username }) =>
+    HomeBinding.requestJoin(roomId, username)(model),
+  RequestedResetJoinForm: (model, { username }) =>
+    HomeBinding.resetJoinForm(username)(model),
+})
 const makeInitialModel = () =>
   Model.make({
     home: HomeModel.make({ username: 'Devin', resetCount: 0 }),

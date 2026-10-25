@@ -22,9 +22,11 @@ const prepareCounterBlock = () =>
     init: GeneratedBindingCounterComposition.makeInit((id: string) => ({
       model: { id, count: 0 },
     })),
-    update: GeneratedBindingCounterComposition.makeUpdate(
-      (model, _message, amount: number) => ({
-        model: modifyFields(model, { count: count => count + amount }),
+    update: GeneratedBindingCounterComposition.makeUpdate.withContext(
+      (amount: number) => ({
+        ClickedIncrement: (model, _message) => ({
+          model: modifyFields(model, { count: count => count + amount }),
+        }),
       }),
     ),
     view: GeneratedBindingCounterComposition.makeView((_model, h) => h.empty),
@@ -50,7 +52,9 @@ const prepareStatusBlock = () =>
     init: GeneratedBindingStatusComposition.makeInit(() => ({
       model: { isReady: false },
     })),
-    update: GeneratedBindingStatusComposition.makeUpdate(model => ({ model })),
+    update: GeneratedBindingStatusComposition.makeUpdate({
+      ToggledReady: model => ({ model }),
+    }),
     view: GeneratedBindingStatusComposition.makeView((_model, h) => h.empty),
     operations: { requestToggle: StatusMessage.ToggledReady },
   })
@@ -192,9 +196,6 @@ export const applyGeneratedOperation =
       StatusBinding.requestToggle(),
     ]),
   )
-export const update = GeneratedBindingParentComposition.makeUpdate(
-  (model, message) =>
-    ParentMessage.match(message, {
-      ClickedParent: () => applyGeneratedOperation(model),
-    }),
-)
+export const update = GeneratedBindingParentComposition.makeUpdate({
+  ClickedParent: model => applyGeneratedOperation(model),
+})

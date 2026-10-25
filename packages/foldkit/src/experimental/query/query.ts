@@ -172,26 +172,28 @@ const makeQueryApi = <
     applyTransition(store, model, undefined, AsyncData.revalidateOrLoad)
   const loadIfMissing = (model: Model): UpdateReturn =>
     applyTransition(store, model, undefined, AsyncData.loadIfMissing)
-  const update = (model: Model, message: Message): UpdateReturn =>
-    Message.match<UpdateReturn>(message, {
-      RequestedReset: () => reset(model),
-      RequestedRevalidation: () => revalidate(model),
-      RequestedRevalidationOrLoad: () => revalidateOrLoad(model),
-      RequestedLoadIfMissing: () => loadIfMissing(model),
-      CompletedFetch({ generation, result }) {
-        const data = read(model)
+  const updateHandlers = {
+    RequestedReset: (model: Model) => reset(model),
+    RequestedRevalidation: (model: Model) => revalidate(model),
+    RequestedRevalidationOrLoad: (model: Model) => revalidateOrLoad(model),
+    RequestedLoadIfMissing: (model: Model) => loadIfMissing(model),
+    CompletedFetch(
+      model: Model,
+      { generation, result }: typeof Message.CompletedFetch.Type,
+    ): UpdateReturn {
+      const data = read(model)
 
-        if (!AsyncData.isPending(data) || generation !== model.generation) {
-          return { model }
-        }
+      if (!AsyncData.isPending(data) || generation !== model.generation) {
+        return { model }
+      }
 
-        return {
-          model: modifyFields(model, {
-            data: () => AsyncData.settle(data, result),
-          }),
-        }
-      },
-    })
+      return {
+        model: modifyFields(model, {
+          data: () => AsyncData.settle(data, result),
+        }),
+      }
+    },
+  }
   const run = pipe(
     Fetch({ generation: 0 }).effect,
     Effect.map(({ result }) => AsyncData.settle(AsyncData.Loading(), result)),
@@ -224,7 +226,7 @@ const makeQueryApi = <
     init,
     reset,
     read,
-    update,
+    updateHandlers,
     revalidate,
     revalidateOrLoad,
     loadIfMissing,
@@ -457,7 +459,7 @@ const makeHostQuery = <Name extends string, A, AI, E, EI>(
   const prepare = () =>
     QueryComposition.prepareBlock({
       init,
-      update: QueryComposition.makeUpdate(api.update),
+      update: QueryComposition.makeUpdate(api.updateHandlers),
       operations: {
         requestReset: Message.RequestedReset,
         requestRevalidation: Message.RequestedRevalidation,
@@ -525,7 +527,7 @@ const makeCanonicalQuery = <
   const prepare = () =>
     QueryComposition.prepareBlock({
       init,
-      update: QueryComposition.makeUpdate(api.update),
+      update: QueryComposition.makeUpdate(api.updateHandlers),
       operations: {
         requestReset: Message.RequestedReset,
         requestRevalidation: Message.RequestedRevalidation,

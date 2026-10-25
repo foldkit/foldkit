@@ -11,6 +11,7 @@ import {
 } from '../block/identity.js'
 import { isScopedInvocation } from '../block/scope.js'
 import { CommandDefinitionTypeId } from '../command/index.js'
+import type { InterruptDefinitionNoArgs } from '../command/interruptible/index.js'
 import { type MountDefinition, MountDefinitionTypeId } from '../mount/index.js'
 import {
   bindingMatcherFingerprint,
@@ -82,6 +83,22 @@ export type ResolvableCommandDefinition<
   ((
     ...args: Array<any>
   ) => Readonly<{ effect: Effect.Effect<ResultMessage, any, any> }>)
+
+/** Captured argument type projected from a resolvable Command Definition. */
+export type CommandArgs<
+  Definition extends ResolvableCommandDefinition<string, unknown>,
+> =
+  Definition extends InterruptDefinitionNoArgs<string>
+    ? undefined
+    : ReturnType<Definition> extends infer Invocation
+      ? Invocation extends unknown
+        ? 'args' extends keyof Invocation
+          ? Invocation['args']
+          : Parameters<Definition> extends readonly []
+            ? undefined
+            : AnyCommand['args']
+        : never
+      : never
 
 /** A Definition or Command instance accepted by Story and Scene resolution
  * APIs. */

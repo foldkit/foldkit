@@ -66,7 +66,7 @@ const init = VolumeSliderComposition.makeInit(() => ({
   },
 }))
 
-const update = VolumeSliderComposition.makeUpdate()
+const update = VolumeSliderComposition.makeUpdate({})
 
 // Registering `SliderBinding` in `bindings` also collects both drag Subscriptions.
 

@@ -64,7 +64,7 @@ const init = PopoverExampleComposition.makeInit(() => ({
   },
 }))
 
-const update = PopoverExampleComposition.makeUpdate()
+const update = PopoverExampleComposition.makeUpdate({})
 
 // Inside your view function, embed the popover via h.block. Give the
 // trigger an accessible name: target the trigger id with

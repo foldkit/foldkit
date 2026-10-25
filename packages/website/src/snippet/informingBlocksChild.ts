@@ -14,27 +14,25 @@ import {
 
 export const informRouteChanged = Message.InformedOfRouteChange
 
-export const update = PeopleComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    InformedOfRouteChange: ({ route }) => {
-      const searchText = routeSearchText(route.searchText)
+export const update = PeopleComposition.makeUpdate({
+  InformedOfRouteChange: (model, { route }) => {
+    const searchText = routeSearchText(route.searchText)
 
-      return {
-        model: modifyFields(model, {
-          searchInput: () => searchText,
-          searchHistory: history => addSearchToHistory(history, searchText),
-          results: () => SearchResults.Loading(),
-        }),
-        commands: [FetchPeople({ searchText })],
-      }
-    },
-    CompletedFetchPeople: ({ query, people }) => ({
+    return {
       model: modifyFields(model, {
-        results: () => SearchResults.Loaded({ query, people }),
+        searchInput: () => searchText,
+        searchHistory: history => addSearchToHistory(history, searchText),
+        results: () => SearchResults.Loading(),
       }),
+      commands: [FetchPeople({ searchText })],
+    }
+  },
+  CompletedFetchPeople: (model, { query, people }) => ({
+    model: modifyFields(model, {
+      results: () => SearchResults.Loaded({ query, people }),
     }),
   }),
-)
+})
 
 const prepare = () =>
   PeopleComposition.prepareBlock({

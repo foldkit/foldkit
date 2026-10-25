@@ -137,12 +137,6 @@ const startLoadingExampleSources = (slug: string) =>
     })
   })
 
-const showExampleSources = (sources: typeof ExampleSources.Type) =>
-  ExampleDetailDefinition.makeFieldsStep(() => ({
-    maybeActiveSourceFilePath: () => maybeFirstSourceFilePath(sources),
-    currentSources: () => CurrentSourcesAsyncData.Success({ data: sources }),
-  }))
-
 const clearExampleSources = ExampleDetailDefinition.makeStep(model => {
   return SourceFileTabsBinding.init({
     args: [{ id: SOURCE_FILE_TABS_ID }],
@@ -156,27 +150,28 @@ const clearExampleSources = ExampleDetailDefinition.makeStep(model => {
   })
 })
 
-export const update = ExampleDetailComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    InformedOfRouteChange: ({ slug }) => changeExampleRoute(model, slug),
+export const update = ExampleDetailComposition.makeUpdate({
+  InformedOfRouteChange: (model, { slug }) => changeExampleRoute(model, slug),
 
-    ChangedExampleUrl: ({ url }) => ({
-      model: modifyFields(model, { maybeExampleUrl: () => Option.some(url) }),
-    }),
-    ToggledLivePreview: ({ isOpen }) => ({
-      model: modifyFields(model, { isLivePreviewOpen: () => isOpen }),
-    }),
+  ChangedExampleUrl: ExampleDetailDefinition.makeFieldsStep.fromMessage(
+    ({ url }) => ({ maybeExampleUrl: () => Option.some(url) }),
+  ),
+  ToggledLivePreview: ExampleDetailDefinition.makeFieldsStep.fromMessage(
+    ({ isOpen }) => ({ isLivePreviewOpen: () => isOpen }),
+  ),
 
-    SucceededLoadExampleSources: ({ sources }) =>
-      showExampleSources(sources)(model),
+  SucceededLoadExampleSources:
+    ExampleDetailDefinition.makeFieldsStep.fromMessage(({ sources }) => ({
+      maybeActiveSourceFilePath: () => maybeFirstSourceFilePath(sources),
+      currentSources: () => CurrentSourcesAsyncData.Success({ data: sources }),
+    })),
 
-    FailedLoadExampleSources: ({ error }) => ({
-      model: modifyFields(model, {
-        currentSources: () => CurrentSourcesAsyncData.Failure({ error }),
-      }),
+  FailedLoadExampleSources: ExampleDetailDefinition.makeFieldsStep.fromMessage(
+    ({ error }) => ({
+      currentSources: () => CurrentSourcesAsyncData.Failure({ error }),
     }),
-  }),
-)
+  ),
+})
 
 const changeExampleRoute = ExampleDetailDefinition.makeStep(
   (_model, slug: string) => {

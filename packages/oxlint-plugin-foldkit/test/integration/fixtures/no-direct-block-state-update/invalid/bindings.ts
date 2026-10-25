@@ -16,15 +16,14 @@ write: (model, nextSettings) => modifyFields(model, { settings: () => nextSettin
 parentMessage: Message.GotSettingsMessage,
 fromParentMessage: false})
 const ApplicationComposition = ApplicationDefinition.makeComposition({ bindings: [SettingsBinding] })
-export const updateBinding = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    GotSettingsMessage: ({ message }) => {
-      const nextModel = modifyFields(model, {
-        settings: currentSettings => modifyFields(currentSettings, { theme: () => 'Light' }),
-      })
-      void nextModel
+export const updateBinding = ApplicationComposition.makeUpdate({
+  GotSettingsMessage: (model, { message }) => {
+    const nextModel = modifyFields(model, {
+      settings: currentSettings =>
+        modifyFields(currentSettings, { theme: () => 'Light' }),
+    })
+    void nextModel
 
-      return SettingsBinding.fold(model, message)
-    },
-  }),
-)
+    return SettingsBinding.fold(model, message)
+  },
+})

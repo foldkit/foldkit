@@ -34,7 +34,9 @@ const MessagefulComposition = Block.makeDefinition(
 const prepareMessagefulBlock = () =>
   MessagefulComposition.prepareBlock({
     init: MessagefulComposition.makeInit(() => ({ model: { ready: false } })),
-    update: MessagefulComposition.makeUpdate(model => ({ model })),
+    update: MessagefulComposition.makeUpdate({
+      ChangedReady: model => ({ model }),
+    }),
   })
 const MessagefulBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof MessagefulComposition.Model,
@@ -58,10 +60,11 @@ const omittedInitialization = ParentDefinition.makeStep((model, key: string) =>
   }),
 )
 const OmittedComposition = ParentDefinition.makeComposition()
-const omittedUpdate = OmittedComposition.makeUpdate((model, _message) =>
-  // @ts-expect-error The omitted Binding's initialization requires graph capability at application.
-  omittedInitialization(model, 'one'),
-)
+const omittedUpdate = OmittedComposition.makeUpdate({
+  ClickedParent: (model, _message) =>
+    // @ts-expect-error The omitted Binding's initialization requires graph capability at application.
+    omittedInitialization(model, 'one'),
+})
 
 // @ts-expect-error Connected initialization requires its message-free Binding to be registered.
 OmittedComposition.prepareBlock({
@@ -80,7 +83,7 @@ SilentComposition.prepareBlock({
   init: SilentComposition.makeInit((id: string) => ({
     model: SilentBlock.Model.make({ id, ready: false }),
   })),
-  update: SilentComposition.makeUpdate(),
+  update: SilentComposition.makeUpdate({}),
   operations: {
     // @ts-expect-error A Message-free Block cannot expose a hidden Model mutation.
     markReady: (model: typeof SilentBlock.Model.Type) => ({ model }),

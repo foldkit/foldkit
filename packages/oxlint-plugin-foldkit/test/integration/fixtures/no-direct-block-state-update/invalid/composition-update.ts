@@ -23,19 +23,46 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [SettingsBinding],
 })
 
-export const update = ApplicationComposition.makeUpdate(model => {
-  const settingsChange = BoundSettings.setTheme(model.settings, 'Light')
+export const update = ApplicationComposition.makeUpdate({
+  ChangedTheme: model => {
+    const settingsChange = BoundSettings.setTheme(model.settings, 'Light')
 
-  return {
-    model: modifyFields(model, {
-      settings: () => settingsChange.model,
-    }),
-  }
+    return {
+      model: modifyFields(model, {
+        settings: () => settingsChange.model,
+      }),
+    }
+  },
 })
 
-export const updateDirectly = ApplicationComposition.makeUpdate(model => ({
-  model: modifyFields(model, {
-    settings: settings =>
-      modifyFields(settings, { theme: () => 'Light' }),
+export const updateDirectly = ApplicationComposition.makeUpdate({
+  ChangedTheme: model => ({
+    model: modifyFields(model, {
+      settings: settings =>
+        modifyFields(settings, { theme: () => 'Light' }),
+    }),
   }),
-}))
+})
+
+const recordCases = {
+  ChangedTheme: (model: typeof Model.Type) => ({
+    model: modifyFields(model, {
+      settings: settings =>
+        modifyFields(settings, { theme: () => 'Light' }),
+    }),
+  }),
+}
+
+export const recordUpdate = ApplicationComposition.makeUpdate(recordCases)
+
+const makeRecordCases = (theme: string) => ({
+  ChangedTheme: (model: typeof Model.Type) => ({
+    model: modifyFields(model, {
+      settings: settings =>
+        modifyFields(settings, { theme: () => theme }),
+    }),
+  }),
+})
+
+export const contextualRecordUpdate =
+  ApplicationComposition.makeUpdate.withContext(makeRecordCases)

@@ -111,16 +111,14 @@ const prepareHomeBlock = () =>
     init: DeclarationReciprocalHomeComposition.makeInit(() => ({
       model: HomeModel.make({ username: '', resetCount: 0 }),
     })),
-    update: DeclarationReciprocalHomeComposition.makeUpdate((model, message) =>
-      HomeMessage.match(message, {
-        SucceededJoinRoom: () => ({ model }),
-        RequestedJoin: ({ roomId, username }) =>
-          requestJoin(model, roomId, username),
-        RequestedResetJoinForm: ({ username }) =>
-          resetJoinForm(model, username),
-        CompletedClearJoinDraft: () => ({ model }),
-      }),
-    ),
+    update: DeclarationReciprocalHomeComposition.makeUpdate({
+      SucceededJoinRoom: model => ({ model }),
+      RequestedJoin: (model, { roomId, username }) =>
+        requestJoin(model, roomId, username),
+      RequestedResetJoinForm: (model, { username }) =>
+        resetJoinForm(model, username),
+      CompletedClearJoinDraft: model => ({ model }),
+    }),
     operations: {
       requestJoin: (roomId: string, username: string) =>
         Tuple.make(HomeMessage.RequestedJoin({ roomId, username })),
@@ -169,16 +167,15 @@ const prepareRoomBlock = () =>
         model: RoomModel.make({ maybeUsername }),
       }),
     ),
-    update: DeclarationReciprocalRoomComposition.makeUpdate(
-      (model, message, context: typeof RoomContext.Type) =>
-        RoomMessage.match(message, {
-          InformedOfJoin: ({ username }) =>
-            informJoined(model, username, context),
-          CompletedLeaveRoom: () => ({
-            model,
-            outMessage: RoomOutMessage.LeftRoom({ roomId: context.roomId }),
-          }),
+    update: DeclarationReciprocalRoomComposition.makeUpdate.withContext(
+      (context: typeof RoomContext.Type) => ({
+        InformedOfJoin: (model, { username }) =>
+          informJoined(model, username, context),
+        CompletedLeaveRoom: model => ({
+          model,
+          outMessage: RoomOutMessage.LeftRoom({ roomId: context.roomId }),
         }),
+      }),
     ),
     operations: {
       informJoined: (username: string, context: typeof RoomContext.Type) =>
@@ -277,7 +274,7 @@ export const RoomBinding = ApplicationDefinition.makeBinding(RoomBlock, {
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [HomeBinding, RoomBinding],
 })
-export const applicationUpdate = ApplicationComposition.makeUpdate()
+export const applicationUpdate = ApplicationComposition.makeUpdate({})
 export const requestJoinStep = HomeBinding.requestJoin('room-1', 'alice')
 
 type HomeReset = ReturnType<typeof HomeBinding.resetJoinForm>
@@ -595,12 +592,10 @@ export const NestedPolicy = (() => {
       init: HomeComposition.makeInit(() => ({
         model: HomeModel.make({ value: '' }),
       })),
-      update: HomeComposition.makeUpdate((model, message) =>
-        HomeMessage.match(message, {
-          CompletedHomeWork: () => ({ model }),
-          RequestedRoomWork: () => requestRoomWork(model),
-        }),
-      ),
+      update: HomeComposition.makeUpdate({
+        CompletedHomeWork: model => ({ model }),
+        RequestedRoomWork: model => requestRoomWork(model),
+      }),
       operations: {
         requestRoomWork: () => Tuple.make(HomeMessage.RequestedRoomWork()),
       },
@@ -638,12 +633,10 @@ export const NestedPolicy = (() => {
       init: RoomComposition.makeInit(() => ({
         model: RoomModel.make({ count: 0 }),
       })),
-      update: RoomComposition.makeUpdate((model, message) =>
-        RoomMessage.match(message, {
-          CompletedRoomWork: () => ({ model }),
-          RequestedRoomWork: () => runRoomWork(model),
-        }),
-      ),
+      update: RoomComposition.makeUpdate({
+        CompletedRoomWork: model => ({ model }),
+        RequestedRoomWork: model => runRoomWork(model),
+      }),
       operations: {
         runRoomWork: () => Tuple.make(RoomMessage.RequestedRoomWork()),
       },
@@ -717,7 +710,7 @@ type NestedPolicyChannels<Recipe> =
 type NestedPolicyRecipe = ReturnType<
   ReturnType<typeof NestedPolicy.HomeBinding.requestRoomWork>
 >
-const nestedPolicyUpdate = NestedPolicy.ParentComposition.makeUpdate()
+const nestedPolicyUpdate = NestedPolicy.ParentComposition.makeUpdate({})
 type NestedPolicyDirectChannelsAreExact = Expect<
   Equal<
     Omit<NestedPolicyChannels<NestedPolicyRecipe>, 'evidence'>,
@@ -783,7 +776,7 @@ export type NestedPolicyAssertions = [
   NestedPolicyCompletedRegistrationIsExact,
 ]
 
-export const directReciprocalUpdate = DirectReciprocalComposition.makeUpdate()
+export const directReciprocalUpdate = DirectReciprocalComposition.makeUpdate({})
 export type DirectReciprocalResolvedRequirements = Expect<
   ExactRequirements<
     Update.RequirementsOf<typeof directReciprocalUpdate>,
@@ -805,7 +798,7 @@ export type DirectReciprocalResolvedRegistration = Expect<
   >
 >
 
-export const keyedReciprocalUpdate = KeyedReciprocalComposition.makeUpdate()
+export const keyedReciprocalUpdate = KeyedReciprocalComposition.makeUpdate({})
 export type KeyedReciprocalResolvedRequirements = Expect<
   ExactRequirements<
     Update.RequirementsOf<typeof keyedReciprocalUpdate>,

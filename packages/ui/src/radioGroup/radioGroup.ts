@@ -128,11 +128,12 @@ export const FocusOption = RadioGroupNamespace.makeCommand('FocusOption', {
 /** Effect providers used by the RadioGroup component. */
 export const EffectsLayer = Layer.mergeAll(FocusOption.layer)
 
-const RadioGroupComposition = RadioGroupNamespace.makeDefinition({
+const RadioGroupDefinition = RadioGroupNamespace.makeDefinition({
   Model,
   Message,
   OutMessage,
-}).makeComposition()
+})
+const RadioGroupComposition = RadioGroupDefinition.makeComposition()
 
 /** Creates an initial RadioGroup Model and Commands from a config. Focus follows the
  *  selected option until the user navigates a read-only group, so
@@ -145,22 +146,20 @@ export const init = RadioGroupComposition.makeInit((config: InitConfig) => ({
  *  Commands, and an optional OutMessage. `Selected` fires when an option is
  *  committed via click or keyboard; the parent stores the new value and passes
  *  it back in as `selectedValue`. */
-export const update = RadioGroupComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    SelectedOption: ({ index, value }) => ({
-      model: modifyFields(model, { maybeFocusedIndex: () => Option.none() }),
-      commands: [FocusOption({ id: model.id, index })],
-      outMessage: OutMessage.Selected({ value, index }),
-    }),
-    FocusedOption: ({ index }) => ({
-      model: modifyFields(model, {
-        maybeFocusedIndex: () => Option.some(index),
-      }),
-      commands: [FocusOption({ id: model.id, index })],
-    }),
-    CompletedFocusOption: () => ({ model }),
+export const update = RadioGroupComposition.makeUpdate({
+  SelectedOption: (model, { index, value }) => ({
+    model: modifyFields(model, { maybeFocusedIndex: () => Option.none() }),
+    commands: [FocusOption({ id: model.id, index })],
+    outMessage: OutMessage.Selected({ value, index }),
   }),
-)
+  FocusedOption: (model, { index }) => ({
+    model: modifyFields(model, {
+      maybeFocusedIndex: () => Option.some(index),
+    }),
+    commands: [FocusOption({ id: model.id, index })],
+  }),
+  CompletedFocusOption: RadioGroupDefinition.makeNoopStep(),
+})
 
 // VIEW
 
@@ -493,9 +492,12 @@ const makeBlockParts = <Value extends string>() => {
   const init = RadioGroupComposition.makeInit((config: InitConfig) => ({
     model: makeInitialModel(config),
   }))
-  const refinedUpdate = RadioGroupComposition.makeUpdate((model, message) =>
-    castReturn(update(model, message)),
-  )
+  const refinedUpdate = RadioGroupComposition.makeUpdate({
+    SelectedOption: (model, message) => castReturn(update(model, message)),
+    FocusedOption: (model, message) => castReturn(update(model, message)),
+    CompletedFocusOption: (model, message) =>
+      castReturn(update(model, message)),
+  })
   const refinedView =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     internalView as unknown as (

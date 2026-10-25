@@ -49,10 +49,10 @@ ChildComposition.prepareBlock({
 
 // oxlint-disable-next-line typescript/no-explicit-any -- This fixture deliberately probes erased any channels or detects any in an inferred public type.
 const erasedAnyProducer = (): any => [ChildMessage.RequestedReset()]
-// @ts-expect-error An any-returning producer cannot bypass tuple validation.
 ChildComposition.prepareBlock({
   init: () => ({ model: ChildModel.make({ value: '' }) }),
   update: childUpdate,
+  // @ts-expect-error An any-returning producer cannot bypass tuple validation.
   operations: { erasedAnyProducer },
   EffectsLayer: Layer.empty,
   hostHandlers: [RecordValue],
@@ -60,10 +60,10 @@ ChildComposition.prepareBlock({
 
 // oxlint-disable-next-line typescript/no-explicit-any -- This fixture deliberately probes erased any channels or detects any in an inferred public type.
 const erasedExpose: any = { reset: () => [ChildMessage.RequestedReset()] }
-// @ts-expect-error An any-typed operations record cannot bypass operation validation.
 ChildComposition.prepareBlock({
   init: () => ({ model: ChildModel.make({ value: '' }) }),
   update: childUpdate,
+  // @ts-expect-error An any-typed operations record cannot bypass operation validation.
   operations: erasedExpose,
   EffectsLayer: Layer.empty,
   hostHandlers: [RecordValue],
@@ -204,12 +204,12 @@ MountedChoiceComposition.prepareBlock({
 
 const GraphlessMountedChoiceComposition =
   MountedChoiceDefinition.makeComposition()
+// @ts-expect-error A Composition cannot complete a view that requires an omitted Mount.
 GraphlessMountedChoiceComposition.prepareBlock({
   init: (selected: string) => ({
     model: MountedChoiceModel.make({ selected }),
   }),
   update: mountedChoiceUpdate,
-  // @ts-expect-error A Composition cannot complete a view that requires an omitted Mount.
   view: mountedChoiceView,
   operations: {
     select: (value: string) =>
@@ -235,12 +235,12 @@ const IncorrectMountedChoiceComposition =
   MountedChoiceDefinition.makeComposition({
     mounts: [ObserveForeignSelection],
   })
+// @ts-expect-error A sibling Mount cannot satisfy the authored view's capability.
 IncorrectMountedChoiceComposition.prepareBlock({
   init: (selected: string) => ({
     model: MountedChoiceModel.make({ selected }),
   }),
   update: mountedChoiceUpdate,
-  // @ts-expect-error A sibling Mount cannot satisfy the authored view's capability.
   view: mountedChoiceView,
   operations: {
     select: (value: string) =>
@@ -271,10 +271,17 @@ const AlternativeChildBinding = ParentDefinition.makeBinding(ChildBlock, {
 const OmittedComposition = ParentDefinition.makeComposition({
   bindings: [AlternativeChildBinding, EntryBinding],
 })
-OmittedComposition.makeUpdate((model, _message) =>
-  // @ts-expect-error Calling a bound exposed operation requires its Binding registration.
-  ChildBinding.setValue('unregistered')(model),
-)
+OmittedComposition.makeUpdate({
+  RequestedNoop: (model, _message) =>
+    // @ts-expect-error Calling a bound exposed operation requires its Binding registration.
+    ChildBinding.setValue('unregistered')(model),
+  RequestedSetChild: (model, _message) =>
+    // @ts-expect-error Calling a bound exposed operation requires its Binding registration.
+    ChildBinding.setValue('unregistered')(model),
+  RequestedSetEntry: (model, _message) =>
+    // @ts-expect-error Calling a bound exposed operation requires its Binding registration.
+    ChildBinding.setValue('unregistered')(model),
+})
 
 void ChildBlock
 

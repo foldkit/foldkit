@@ -12,10 +12,11 @@ import * as Child from './schema-boundary-public.js'
 Child.Model.make({ count: 0 })
 // @ts-expect-error Exposed operation arguments stay exact.
 ChildBinding.load('Other')
-ParentDefinition.makeComposition().makeUpdate(model =>
-  // @ts-expect-error The parent cannot use an unregistered child Step.
-  ChildBinding.load('Primary')(model),
-)
+ParentDefinition.makeComposition().makeUpdate({
+  RequestedLoad: model =>
+    // @ts-expect-error The parent cannot use an unregistered child Step.
+    ChildBinding.load('Primary')(model),
+})
 // @ts-expect-error The completed producer still requires the Command handler.
 ChildComposition.prepareBlock({ init, update })
 

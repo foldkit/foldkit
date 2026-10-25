@@ -278,15 +278,17 @@ The rule fixes straightforward object literals. If removal could disturb a comme
 
 ### foldkit/no-manual-composition-routing {#no-manual-composition-routing}
 
-Keeps generated child delivery out of authored updates. It reports authored `parentMessage`, `toParentMessage`, and `fromParentMessage` fields in recognized Binding configurations, including paired mappings. It also reports `Got*` handlers in an owned `makeUpdate` callback and inspection of internal child Message tags. Composition routes registered Bindings automatically. Use `delivery.when` and `delivery.toUpdateContext` for delivery policy, and the Binding's OutMessage policy for parent coordination.
+Keeps generated child delivery out of authored updates. It reports authored `parentMessage`, `toParentMessage`, and `fromParentMessage` fields in recognized Binding configurations, including paired mappings. It also reports `Got*` handlers in an owned `makeUpdate` record and inspection of internal child Message tags. Composition routes registered Bindings automatically. Use `delivery.when` and `delivery.toUpdateContext` for delivery policy, and the Binding's OutMessage policy for parent coordination.
 
-The rule follows inline and top-level extracted update callbacks and handler records in the same file. It does not perform cross-file type analysis. Standalone `Binding.fold` calls, unrelated `makeUpdate` APIs, and test fixtures remain valid. Runtime and type checks establish the actual graph; lint checks the recognized source patterns.
+The rule follows inline and top-level extracted handler records in the same file. It does not perform cross-file type analysis. Standalone `Binding.fold` calls, unrelated `makeUpdate` APIs, and test fixtures remain valid. Runtime and type checks establish the actual graph; lint checks the recognized source patterns.
 
 ::Snippet{name="lintNoManualCompositionRouting" label="Rule: foldkit/no-manual-composition-routing"}
 
 ### foldkit/no-child-message-construction-in-root {#no-child-message-construction-in-root}
 
 Rejects constructing a child Message variant from a parent, including through a local `const` alias of the child constructor or namespace. Expose a local Message constructor or a Message tuple producer under the child Block’s `operations`, then call the direct Binding method, such as `PeopleBinding.requestClearSelection()`. Forward received child Messages through `PeopleBinding.fold(model, message)` instead. Child-owned authoring helpers may construct that child's Messages. Schema/type references to the completed Block remain valid, and tests may construct local Messages to exercise updates. The rule cannot infer the origin of an arbitrary prebuilt Message value. See [Informing Blocks](/patterns/informing-blocks) for the complete pattern.
+
+Focused Step producers, including `.fromMessage` and named local producers, retain their Definition's Message ownership. A producer shared by parent and child must satisfy both owners.
 
 ::Snippet{name="lintNoChildMessageConstructionInRoot" label="Rule: foldkit/no-child-message-construction-in-root"}
 
@@ -296,7 +298,15 @@ Flags parent transformations that change a known child Block Model without invok
 
 The rule also reports copying only `.model` from a child update or operation result. It leaves initial Model assembly, parent-owned collection insertion and removal, ordinary domain transformations, and Binding writers alone. It derives ownership from recognized Bindings and follows local helper references; arbitrary cross-file transformations or erased ownership information are outside its analysis. This rule includes the former `require-fold-for-child-update-result` checks; replace that retired rule ID in explicit configurations.
 
+Checks also cover `makeFieldsStep` calls used directly or through immutable local aliases as handler-record values. A `.fromMessage` callback receives a Message, so its parameter is not treated as the parent Model. Dynamic helper construction and cross-file Composition graphs remain outside the rule's local provenance checks.
+
 ::Snippet{name="lintNoDirectBlockStateUpdate" label="Rule: foldkit/no-direct-block-state-update"}
+
+### foldkit/no-binding-write-coordination {#no-binding-write-coordination}
+
+Keep Binding writers focused on placing the next child Model into parent storage. Use the Binding's OutMessage policy for announcements, sibling coordination, and other parent reactions.
+
+This rule recognizes proven Foldkit Definitions, including imports and immutable aliases. It reports direct `Option.some(model.child)` readers whose `modifyFields` writer stores the next child but also derives a sibling field from it. Nested/wrapped storage, keyed replacement, absence checks, and preserved wrapper metadata remain supported. Complex accessors, mutations, and indirect dependencies still need review. The rule has no automatic fix because choosing a public child fact and parent reaction requires domain decisions.
 
 ### foldkit/selection-block-factory-at-module-scope {#selection-block-factory-at-module-scope}
 

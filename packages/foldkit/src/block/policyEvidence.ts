@@ -10,11 +10,23 @@ declare const BindingPolicyTypeId: unique symbol
 
 /** @internal Retains exact policy outputs until their Composition validates them. */
 export interface BindingPolicyEvidence<Policy> {
-  readonly [BindingPolicyTypeId]: Readonly<{
-    policy: (policy: Policy) => Policy
-    channels: (channels: PolicyChannels<Policy>) => PolicyChannels<Policy>
-  }>
+  readonly [BindingPolicyTypeId]: {
+    readonly policy: (policy: Policy) => Policy
+    readonly channels: (
+      channels: PolicyChannels<Policy>,
+    ) => PolicyChannels<Policy>
+  }
 }
+
+/** @internal Reads a policy without inferring through its derived channels. */
+export type PolicyOfBinding<BindingValue> =
+  BindingValue extends Readonly<{
+    [BindingPolicyTypeId]: Readonly<{
+      policy: (policy: infer Policy) => unknown
+    }>
+  }>
+    ? Policy
+    : never
 
 type AnyFunction = (...args: ReadonlyArray<any>) => any
 type IsAny<Value> = 0 extends 1 & Value ? true : false
@@ -104,8 +116,8 @@ type HasErasedFields<Output> =
         | ErasedCommands<FieldOf<Output, 'commands'>>
         | IsAny<FieldOf<Output, 'outMessage'>>
         | IsAny<CommandMessage<Output>>
-        | IsAny<Update.RequirementsOf<() => Output>>
-        | IsUnknown<Update.RequirementsOf<() => Output>>
+        | IsAny<Update.RequirementsOfResult<Output>>
+        | IsUnknown<Update.RequirementsOfResult<Output>>
         | IsAny<Update.RegistrationEvidenceOf<Output>>
         | IsUnknown<Update.RegistrationEvidenceOf<Output>>
       ? true

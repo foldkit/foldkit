@@ -63,7 +63,7 @@ const init = TooltipExampleComposition.makeInit(() => ({
   },
 }))
 
-const update = TooltipExampleComposition.makeUpdate()
+const update = TooltipExampleComposition.makeUpdate({})
 
 // Inside your view function, embed the tooltip via h.block. The tooltip
 // describes the trigger but does not name it, so give an icon-only trigger

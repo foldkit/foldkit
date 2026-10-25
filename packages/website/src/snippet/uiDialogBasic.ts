@@ -52,11 +52,9 @@ const init = DialogExampleComposition.makeInit(() => ({
   },
 }))
 
-const update = DialogExampleComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedOpenDialog: () => DialogBinding.requestOpen()(model),
-  }),
-)
+const update = DialogExampleComposition.makeUpdate({
+  ClickedOpenDialog: DialogBinding.requestOpen(),
+})
 
 // In your view, open from a trigger with the fact, and dismiss from a Cancel
 // button by spreading the `closeButton` bundle, no parent message needed:

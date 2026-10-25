@@ -80,7 +80,9 @@ const invalidApplicationImplementation = {
   init: InvalidApplicationComposition.makeInit(() => ({
     model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
   })),
-  update: InvalidApplicationComposition.makeUpdate(model => ({ model })),
+  update: InvalidApplicationComposition.makeUpdate({
+    RequestedRefresh: model => ({ model }),
+  }),
   EffectsLayer: Layer.empty,
 }
 const invalidElementView = InvalidApplicationComposition.makeView((model, h) =>
@@ -321,12 +323,14 @@ const viewHelperWithForeignMessage = (h: ViewHelperViewBuilder) =>
 // @ts-expect-error Composition no longer carries a render helper.
 ViewHelperComposition.render
 
+// @ts-expect-error A plain view helper cannot complete a Block as its branded view.
 ViewHelperComposition.prepareBlock({
   init: ViewHelperComposition.makeInit(() => ({
     model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
   })),
-  update: ViewHelperComposition.makeUpdate(model => ({ model })),
-  // @ts-expect-error A plain view helper cannot complete a Block as its branded view.
+  update: ViewHelperComposition.makeUpdate({
+    RequestedRefresh: model => ({ model }),
+  }),
   view: viewHelper,
   EffectsLayer: Layer.empty,
 })
@@ -358,9 +362,9 @@ Program.makeElement({
 // @ts-expect-error Application Composition no longer carries a render helper.
 InvalidApplicationComposition.render
 
+// @ts-expect-error A plain view helper cannot complete a Block as its branded view.
 InvalidApplicationComposition.prepareBlock({
   ...invalidApplicationImplementation,
-  // @ts-expect-error A plain view helper cannot complete a Block as its branded view.
   view: applicationViewHelper,
 })
 
@@ -468,12 +472,15 @@ Program.makeElement({
   container: null,
 })
 
-const requiredContextUpdate = InvalidApplicationComposition.makeUpdate(
-  (model, _message, requiredContext: string) => {
-    void requiredContext
-    return { model }
-  },
-)
+const requiredContextUpdate =
+  InvalidApplicationComposition.makeUpdate.withContext(
+    (requiredContext: string) => ({
+      RequestedRefresh: (model, _message) => {
+        void requiredContext
+        return { model }
+      },
+    }),
+  )
 
 const prepareRequiredContextBlock = () =>
   InvalidApplicationComposition.prepareBlock({
@@ -504,11 +511,20 @@ const WiderMessageApplication = (() => {
   return ApplicationDefinition
 })()
 const WiderMessageComposition = WiderMessageApplication.makeComposition()
-const widerMessageUpdate = WiderMessageComposition.makeUpdate(
-  (model, _message): Update.Return<ParentModel, typeof WiderMessage.Type> => ({
+const widerMessageUpdate = WiderMessageComposition.makeUpdate({
+  RequestedRefresh: (
+    model,
+    _message,
+  ): Update.Return<ParentModel, typeof WiderMessage.Type> => ({
     model,
   }),
-)
+  RequestedExtraWork: (
+    model,
+    _message,
+  ): Update.Return<ParentModel, typeof WiderMessage.Type> => ({
+    model,
+  }),
+})
 
 InvalidApplicationComposition.prepareBlock({
   ...invalidApplicationImplementation,
@@ -527,11 +543,14 @@ const WiderInputModelApplication = (() => {
   return ApplicationDefinition
 })()
 const WiderInputModelComposition = WiderInputModelApplication.makeComposition()
-const widerModelUpdate = WiderInputModelComposition.makeUpdate(
-  (_model, _message): Update.Return<ParentModel, typeof LocalMessage.Type> => ({
+const widerModelUpdate = WiderInputModelComposition.makeUpdate({
+  RequestedRefresh: (
+    _model,
+    _message,
+  ): Update.Return<ParentModel, typeof LocalMessage.Type> => ({
     model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
   }),
-)
+})
 
 InvalidApplicationComposition.prepareBlock({
   ...invalidApplicationImplementation,
@@ -732,13 +751,10 @@ const DeclarationTestsOmittedChildComposition =
   DeclarationTestsOmittedChildDefinition.makeComposition({
     bindings: [AlternativeChildBinding],
   })
-const omittedChildUpdate = DeclarationTestsOmittedChildComposition.makeUpdate(
-  (model, message) =>
-    ParentMessage.match(message, {
-      // @ts-expect-error A Composition callback cannot invoke an unregistered child operation.
-      RequestedRefresh: () => ChildBinding.refresh()(model),
-    }),
-)
+const omittedChildUpdate = DeclarationTestsOmittedChildComposition.makeUpdate({
+  // @ts-expect-error A Composition callback cannot invoke an unregistered child operation.
+  RequestedRefresh: model => ChildBinding.refresh()(model),
+})
 
 // @ts-expect-error Completion retains evidence from the rejected child operation.
 DeclarationTestsOmittedChildComposition.prepareBlock({
@@ -783,9 +799,11 @@ const omittedChildInit = DeclarationTestsOmittedInitChildComposition.makeInit(
 // @ts-expect-error A Block initializer cannot use an unregistered child Binding.
 DeclarationTestsOmittedInitChildComposition.prepareBlock({
   init: omittedChildInit,
-  update: DeclarationTestsOmittedInitChildComposition.makeUpdate(model => ({
-    model,
-  })),
+  update: DeclarationTestsOmittedInitChildComposition.makeUpdate({
+    RequestedRefresh: model => ({
+      model,
+    }),
+  }),
   EffectsLayer: Layer.empty,
 })
 
@@ -860,14 +878,18 @@ DeclarationTestsInvalidViewComposition.makeView((model, h) => {
   return h.empty
 })
 
-DisclosuresComposition.makeUpdate(
+DisclosuresComposition.makeUpdate({
   // @ts-expect-error A graphless Block still rejects incompatible Record values.
-  (model, { id }) => ({ model: Record.set(model, id, 'invalid') }),
-)
-RecordApplicationComposition.makeUpdate(
+  ToggledDisclosure: (model, { id }) => ({
+    model: Record.set(model, id, 'invalid'),
+  }),
+})
+RecordApplicationComposition.makeUpdate({
   // @ts-expect-error A graphless Application still rejects incompatible Record values.
-  (model, { id }) => ({ model: Record.set(model, id, 'invalid') }),
-)
+  ToggledDisclosure: (model, { id }) => ({
+    model: Record.set(model, id, 'invalid'),
+  }),
+})
 
 Lazy.expectAllReused({
   view: parentView,

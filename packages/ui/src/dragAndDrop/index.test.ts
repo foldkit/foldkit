@@ -548,6 +548,66 @@ describe('DragAndDrop', () => {
       )
     })
 
+    it('emits keyboard facts without announcing an unchanged or inactive target', () => {
+      Story.story(
+        update,
+        Story.given(defaultInit()),
+        Story.message(activatedKeyboardDrag),
+        Story.expectOutMessage(
+          OutMessage.StartedKeyboardDrag({
+            itemId: 'item-1',
+            containerId: 'list-1',
+            index: 0,
+          }),
+        ),
+        Story.message(
+          Message.CompletedResolveKeyboardMove({
+            targetContainerId: 'list-2',
+            targetIndex: 3,
+          }),
+        ),
+        Story.expectOutMessage(
+          OutMessage.ChangedKeyboardTarget({
+            itemId: 'item-1',
+            fromContainerId: 'list-1',
+            fromIndex: 0,
+            toContainerId: 'list-2',
+            toIndex: 3,
+          }),
+        ),
+        Story.Command.resolve(
+          FocusItem({ itemId: 'item-1' }),
+          Message.CompletedFocusItem(),
+        ),
+        Story.expectNoOutMessage(),
+        Story.message(
+          Message.CompletedResolveKeyboardMove({
+            targetContainerId: 'list-2',
+            targetIndex: 3,
+          }),
+        ),
+        Story.expectNoOutMessage(),
+        Story.Command.resolve(
+          FocusItem({ itemId: 'item-1' }),
+          Message.CompletedFocusItem(),
+        ),
+        Story.message(Message.CancelledDrag()),
+        Story.expectOutMessage(OutMessage.Cancelled()),
+        Story.Command.resolve(
+          FocusItem({ itemId: 'item-1' }),
+          Message.CompletedFocusItem(),
+        ),
+        Story.message(
+          Message.CompletedResolveKeyboardMove({
+            targetContainerId: 'list-1',
+            targetIndex: 0,
+          }),
+        ),
+        Story.expectNoOutMessage(),
+        Story.model(model => expect(model.dragState._tag).toBe('Idle')),
+      )
+    })
+
     it('creates ResolveKeyboardMove command on PressedArrowKey and resolves target', () => {
       Story.story(
         update,

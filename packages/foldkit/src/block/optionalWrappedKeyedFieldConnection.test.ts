@@ -226,16 +226,14 @@ const prepareChildBlock = () =>
       model: ChildModel.make({ count }),
       commands: [FinishInitialization({ count })],
     })),
-    update: ChildComposition.makeUpdate((model, message) =>
-      ChildMessage.match(message, {
-        UpdatedCount: ({ count }) => ({
-          model: modifyFields(model, { count: () => count }),
-        }),
-        CompletedInitialization: ({ count }) => ({
-          model: modifyFields(model, { count: () => count }),
-        }),
+    update: ChildComposition.makeUpdate({
+      UpdatedCount: (model, { count }) => ({
+        model: modifyFields(model, { count: () => count }),
       }),
-    ),
+      CompletedInitialization: (model, { count }) => ({
+        model: modifyFields(model, { count: () => count }),
+      }),
+    }),
     operations: {
       setCount: (count: number) =>
         Tuple.make(ChildMessage.UpdatedCount({ count })),
@@ -263,13 +261,11 @@ const ParentComposition = Parent.makeComposition({ bindings: [ChildBinding] })
 const prepareParentBlock = () =>
   ParentComposition.prepareBlock({
     init: ParentComposition.makeInit(() => ({ model: noneModel })),
-    update: ParentComposition.makeUpdate((model, message) =>
-      ParentMessage.match(message, {
-        IgnoredChildMessage: () => ({ model }),
-        RequestedSetCount: ({ id, count }) =>
-          ChildBinding.setCount(id, count)(model),
-      }),
-    ),
+    update: ParentComposition.makeUpdate({
+      IgnoredChildMessage: model => Parent.makeNoopStep()(model),
+      RequestedSetCount: (model, { id, count }) =>
+        ChildBinding.setCount(id, count)(model),
+    }),
     operations: {
       setCount: (id: string, count: number) =>
         Tuple.make(ParentMessage.RequestedSetCount({ id, count })),

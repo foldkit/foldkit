@@ -23,7 +23,9 @@ export const LoadPlayground = ApplicationDefinition.makeCommand(
 
 const foldHomeOutMessage = ApplicationDefinition.makeOutMessageFold(HomeBlock, {
   SelectedPlaygroundExample: ({ exampleSlug }) =>
-    ApplicationDefinition.makeCommandsStep([LoadPlayground({ exampleSlug })]),
+    ApplicationDefinition.makeCommandsStep(() => [
+      LoadPlayground({ exampleSlug }),
+    ]),
   UpdatedNewsletterEmail: ({ value }) =>
     ApplicationDefinition.makeFieldsStep(() => ({
       newsletterEmail: () => value,

@@ -42,28 +42,23 @@ type InformPeopleRouteStep =
   | typeof keepModel
   | ReturnType<typeof PeopleBinding.informRouteChanged>
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ChangedUrl: ({ url }) => {
-      const nextRoute = urlToApplicationRoute(url)
+export const update = ApplicationComposition.makeUpdate({
+  ChangedUrl: (model, { url }) => {
+    const nextRoute = urlToApplicationRoute(url)
 
-      const transition = Transition.make(model.route, nextRoute)
-      const informPeopleRoute = Transition.matchOrElse<InformPeopleRouteStep>()(
-        transition,
-        'People',
-        {
-          Entered: peopleRoute =>
-            PeopleBinding.informRouteChanged({ route: peopleRoute }),
-          Stayed: ({ nextRoute }) =>
-            PeopleBinding.informRouteChanged({ route: nextRoute }),
-        },
-        () => keepModel,
-      )
+    const transition = Transition.make(model.route, nextRoute)
+    const informPeopleRoute = Transition.matchOrElse<InformPeopleRouteStep>()(
+      transition,
+      'People',
+      {
+        Entered: peopleRoute =>
+          PeopleBinding.informRouteChanged({ route: peopleRoute }),
+        Stayed: ({ nextRoute }) =>
+          PeopleBinding.informRouteChanged({ route: nextRoute }),
+      },
+      () => keepModel,
+    )
 
-      return Update.combineSteps(model, [
-        setRoute(nextRoute),
-        informPeopleRoute,
-      ])
-    },
-  }),
-)
+    return Update.combineSteps(model, [setRoute(nextRoute), informPeopleRoute])
+  },
+})

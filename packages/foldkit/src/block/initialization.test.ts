@@ -81,15 +81,13 @@ const prepareChildBlock = () =>
         commands: [FinishChildInitialization({ count })],
       }
     }),
-    update: ChildComposition.makeUpdate((model, message) =>
-      ChildMessage.match(message, {
-        RequestedIncrement: () => increment(model),
-        CompletedInitialization: ({ count }) => ({
-          model: modifyFields(model, { count: () => count }),
-        }),
-        CompletedIncrement: () => ({ model }),
+    update: ChildComposition.makeUpdate({
+      RequestedIncrement: model => increment(model),
+      CompletedInitialization: (model, { count }) => ({
+        model: modifyFields(model, { count: () => count }),
       }),
-    ),
+      CompletedIncrement: model => ({ model }),
+    }),
     operations: {
       increment: () => Tuple.make(ChildMessage.RequestedIncrement()),
     },

@@ -60,16 +60,14 @@ const prepareChildBlock = () =>
     init: ChildComposition.makeInit(() => ({
       model: ChildModel.make({ id: 'initial', count: 0 }),
     })),
-    update: ChildComposition.makeUpdate((model, message) =>
-      ChildMessage.match(message, {
-        UpdatedCount: ({ count }) => ({
-          model: modifyFields(model, { count: () => count }),
-        }),
-        UpdatedId: ({ id }) => ({
-          model: modifyFields(model, { id: () => id }),
-        }),
+    update: ChildComposition.makeUpdate({
+      UpdatedCount: (model, { count }) => ({
+        model: modifyFields(model, { count: () => count }),
       }),
-    ),
+      UpdatedId: (model, { id }) => ({
+        model: modifyFields(model, { id: () => id }),
+      }),
+    }),
     EffectsLayer: Layer.empty,
   })
 const childBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -87,7 +85,9 @@ const prepareArrayChildBlock = () =>
     init: ArrayChildComposition.makeInit(() => ({
       model: ArrayChildModel.make(['initial']),
     })),
-    update: ArrayChildComposition.makeUpdate(model => ({ model })),
+    update: ArrayChildComposition.makeUpdate({
+      IgnoredValue: model => ({ model }),
+    }),
     EffectsLayer: Layer.empty,
   })
 const arrayChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -117,7 +117,7 @@ const ParentComposition = Parent.makeComposition({
   bindings: [ChildrenBinding, ArrayChildBinding],
 })
 
-const update = ParentComposition.makeUpdate()
+const update = ParentComposition.makeUpdate({})
 
 const CallableChildModel = taggedStruct('CallableChild', {
   id: Schema.String,
@@ -136,16 +136,14 @@ const prepareCallableChildBlock = () =>
     init: CallableChildComposition.makeInit(() => ({
       model: CallableChildModel({ id: 'initial', count: 0 }),
     })),
-    update: CallableChildComposition.makeUpdate((model, message) =>
-      ChildMessage.match(message, {
-        UpdatedCount: ({ count }) => ({
-          model: modifyFields(model, { count: () => count }),
-        }),
-        UpdatedId: ({ id }) => ({
-          model: modifyFields(model, { id: () => id }),
-        }),
+    update: CallableChildComposition.makeUpdate({
+      UpdatedCount: (model, { count }) => ({
+        model: modifyFields(model, { count: () => count }),
       }),
-    ),
+      UpdatedId: (model, { id }) => ({
+        model: modifyFields(model, { id: () => id }),
+      }),
+    }),
     EffectsLayer: Layer.empty,
   })
 const callableChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -166,7 +164,7 @@ const CallableChildrenBinding = CallableParent.makeBinding(callableChildBlock, {
 const CallableComposition = CallableParent.makeComposition({
   bindings: [CallableChildrenBinding],
 })
-const updateCallable = CallableComposition.makeUpdate()
+const updateCallable = CallableComposition.makeUpdate({})
 
 const normalize = (overrides: globalThis.Record<string, unknown> = {}) =>
   normalizeKeyedFieldConfig({

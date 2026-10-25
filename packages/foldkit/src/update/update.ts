@@ -88,6 +88,7 @@ declare const GraphCapabilityTypeId: unique symbol
 declare const DeferredUpdateEvidenceTypeId: unique symbol
 
 declare const DeferredResultEvidenceTypeId: unique symbol
+declare const DeferredCombinedStepsPolicyTypeId: unique symbol
 
 type ConcreteGraphRequirement<Requirement> = 0 extends 1 & Requirement
   ? never
@@ -98,11 +99,12 @@ type ConcreteGraphRequirement<Requirement> = 0 extends 1 & Requirement
 /**
  * Carries the exact registered Binding graph available to a Composition callback.
  * Connected Steps require this capability on their Model input.
- * Apply them inside the Composition's `makeUpdate` or `makeInit` callback.
+ * Apply them inside a Composition `makeUpdate` handler or `makeInit` callback.
  * To define a reusable Step before composition, return the connected Step from
  * `Definition.makeStep`, or return `Update.combineSteps(steps)` for several Steps.
  */
 export interface GraphCapability<Model, Requirement> {
+  readonly 'Connected Step requires its registered Composition: apply inside makeUpdate/makeInit, or defer with Definition.makeStep': never
   readonly [GraphCapabilityTypeId]: readonly [
     model: () => Model,
     requirement: (requirement: ConcreteGraphRequirement<Requirement>) => void,
@@ -124,6 +126,12 @@ export interface DeferredUpdateEvidence<Model, Message, R, Evidence> {
 /** @internal Retains an obligation that a completed graph must interpret. */
 export interface DeferredResultEvidence<Evidence> {
   readonly [DeferredResultEvidenceTypeId]: (evidence: Evidence) => Evidence
+}
+
+/** @internal Marks the exact deferred Binding policy evidence whose OutMessage
+ * would be discarded by `combineSteps`. */
+export interface DeferredCombinedStepsPolicy<Evidence> {
+  readonly [DeferredCombinedStepsPolicyTypeId]: (evidence: Evidence) => Evidence
 }
 
 type AnyDeferredResultEvidence = DeferredResultEvidence<any>
@@ -452,6 +460,9 @@ type CommandMessage<Output> = Output extends unknown
 export type RequirementsOf<
   Update extends (...args: ReadonlyArray<any>) => any,
 > = CommandRequirements<ReturnOf<Update>>
+
+/** @internal Extracts Command requirements from an already resolved result. */
+export type RequirementsOfResult<Output> = CommandRequirements<Output>
 
 type OutMessageOf<Output> = Output extends unknown
   ? 'outMessage' extends keyof Output
@@ -840,9 +851,31 @@ type CombinedStepMessage<Steps extends ReadonlyArray<AnyStep>> = CommandMessage<
 type CombinedStepRequirements<Steps extends ReadonlyArray<AnyStep>> =
   CommandRequirements<ResolvedStepReturn<Steps[number]>>
 
+type UnwrapCombinedStepDeferredPolicy<Evidence> =
+  Evidence extends DeferredResultEvidence<infer Marker>
+    ? Marker extends DeferredCombinedStepsPolicy<infer NestedEvidence>
+      ? NestedEvidence
+      : Evidence
+    : never
+
+type CombinedStepDeferredPolicyEvidence<Steps extends ReadonlyArray<AnyStep>> =
+  UnwrapCombinedStepDeferredPolicy<
+    Extract<
+      ConcreteRegistrationEvidence<
+        ResultEvidenceChannelOf<ResolvedStepReturn<Steps[number]>>
+      >,
+      AnyDeferredResultEvidence
+    >
+  >
+
 type CombinedStepRegistrationEvidence<Steps extends ReadonlyArray<AnyStep>> =
   | ResultEvidenceChannelOf<ResolvedStepReturn<Steps[number]>>
   | CombinedGraphRequirement<Steps>
+  | ([CombinedStepDeferredPolicyEvidence<Steps>] extends [never]
+      ? never
+      : DeferredResultEvidence<
+          DeferredCombinedStepsPolicy<CombinedStepDeferredPolicyEvidence<Steps>>
+        >)
 
 type CombinedStepOutputFor<
   Model,
@@ -874,6 +907,11 @@ type CombinedStepRecipe<
  * (`combineSteps(steps)`, for a `pipe` or a nested Step list). Ordinary Steps
  * produce a readable {@link Return}. Connected Steps preserve an opaque
  * {@link ResultRecipe} for execution by a matching registered Composition.
+ * A Composition rejects a connected combination whose registered Binding
+ * policy can emit an OutMessage from update or init, including combinations
+ * extracted through `Definition.makeStep` and combinations returned by a
+ * Binding OutMessage policy. Return an OutMessage-producing bound operation
+ * directly so its caller can observe it.
  *
  * Steps only ever accumulate Commands; a Step cannot cancel or replace
  * another Step's Commands, and no Command runs during the fold. The
@@ -916,7 +954,7 @@ export const combineSteps: {
       StepsForModel<Steps, GraphModelOfValue<ModelInput>> &
       RequireOperationStep<Steps> &
       StepsWithoutOutMessage<NoInfer<Steps>>,
-  ): NoInfer<CombinedStepRecipe<GraphModelOfValue<ModelInput>, Steps>>
+  ): CombinedStepRecipe<GraphModelOfValue<ModelInput>, Steps>
   <StepValue>(
     steps: ReadonlyArray<StepValue> &
       StepsForModel<
@@ -954,7 +992,7 @@ export const combineSteps: {
       > &
       RequireOperationStep<CommonOperationSteps<StepValue>> &
       StepsWithoutOutMessage<ReadonlyArray<StepValue>>,
-  ): NoInfer<
+  ):
     | CombinedStepOutputFor<
         GraphModelOfValue<ModelInput>,
         CommonOperationSteps<StepValue>
@@ -963,7 +1001,6 @@ export const combineSteps: {
         GraphModelOfValue<ModelInput>,
         CommonOperationSteps<StepValue>
       >
-  >
   <const Steps extends NonEmptySteps>(
     steps: Steps &
       StepsForModel<Steps, FirstStepModel<Steps>> &
@@ -1051,7 +1088,7 @@ export const combineSteps: {
   <Model, Message, R = never, Input = Model>(
     model: Input &
       NoInfer<RegisteredCompositionDiagnostic<Input, Model> & Model>,
-    steps: ReadonlyArray<Step<Model, Message, R>>,
+    steps: ReadonlyArray<Step<Input & Model, Message, R>>,
   ): Return<Model, Message, R>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
 } = ((modelOrSteps: unknown, maybeSteps?: ReadonlyArray<AnyStep>) => {
@@ -1088,6 +1125,11 @@ export const combineSteps: {
         : output
       if (!resolvePending) {
         assertResolvedStep(next)
+      }
+      if (next.outMessage !== undefined) {
+        throw new Error(
+          '[foldkit] Update.combineSteps cannot combine a Step that emits an OutMessage. Return the OutMessage-producing Step directly so its caller can observe it.',
+        )
       }
       current = {
         model: next.model,

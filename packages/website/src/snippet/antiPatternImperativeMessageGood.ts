@@ -6,8 +6,6 @@ const Message = defineMessageUnion({
   ClickedRefresh: {},
 })
 
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedRefresh: () => ({ model, commands: [FetchWeather()] }),
-  }),
-)
+const update = ApplicationComposition.makeUpdate({
+  ClickedRefresh: model => ({ model, commands: [FetchWeather()] }),
+})

@@ -83,7 +83,7 @@ const init = TabsExampleComposition.makeInit(() => ({
   },
 }))
 
-const update = TabsExampleComposition.makeUpdate()
+const update = TabsExampleComposition.makeUpdate({})
 
 // Inside your view function, embed the tabs via h.block and pass the
 // parent-owned active tab as selectedValue:

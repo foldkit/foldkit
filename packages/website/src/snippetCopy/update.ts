@@ -5,32 +5,28 @@ import { SnippetCopyComposition } from './composition'
 import { SnippetCopyDefinition } from './definition'
 import { Message } from './message'
 
-export const update = SnippetCopyComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedCopySnippet: ({ snippetId, text }) => ({
-      model,
-      commands: [CopySnippet({ snippetId, text })],
-    }),
+export const update = SnippetCopyComposition.makeUpdate({
+  ClickedCopySnippet: SnippetCopyDefinition.makeCommandsStep.fromMessage(
+    ({ snippetId, text }) => [CopySnippet({ snippetId, text })],
+  ),
 
-    SucceededCopySnippet: ({ snippetId }) =>
-      HashSet.has(model.copiedSnippetIds, snippetId)
-        ? { model }
-        : {
-            model: modifyFields(model, {
-              copiedSnippetIds: HashSet.add(snippetId),
-            }),
-            commands: [WaitBeforeHidingCopiedIndicator({ snippetId })],
-          },
+  SucceededCopySnippet: (model, { snippetId }) =>
+    HashSet.has(model.copiedSnippetIds, snippetId)
+      ? { model }
+      : {
+          model: modifyFields(model, {
+            copiedSnippetIds: HashSet.add(snippetId),
+          }),
+          commands: [WaitBeforeHidingCopiedIndicator({ snippetId })],
+        },
 
-    FailedCopySnippet: () => ({ model }),
+  FailedCopySnippet: SnippetCopyDefinition.makeNoopStep(),
 
-    CompletedWaitBeforeHidingCopiedIndicator: ({ snippetId }) => ({
-      model: modifyFields(model, {
-        copiedSnippetIds: HashSet.remove(snippetId),
-      }),
-    }),
-  }),
-)
+  CompletedWaitBeforeHidingCopiedIndicator:
+    SnippetCopyDefinition.makeFieldsStep.fromMessage(({ snippetId }) => ({
+      copiedSnippetIds: HashSet.remove(snippetId),
+    })),
+})
 
 export const CopySnippet = SnippetCopyDefinition.makeCommand('CopySnippet', {
   args: { snippetId: Schema.String, text: Schema.String },

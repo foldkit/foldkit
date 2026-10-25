@@ -69,13 +69,17 @@ const foldFormMessage = Message.match<Update.Step<Model, Message>>({
 })
 ```
 
-`Update.Return` and `Update.Step` default their Command requirement parameter to `never`, so the inline annotation is safe only when the matcher is pure. It also gives nested literal tags a contextual type before TypeScript can widen them. Inside `Composition.makeUpdate`, `Definition.makeStep`, or `Definition.makeOutMessageFold`, omit the matcher return generic so the owner infers Command requirements, OutMessages, and graph evidence. Wrap a standalone Command-producing update or Step in `Update.define` or `Update.defineStep`; create a named return alias only when another matcher, helper, or exported signature reuses it, and include the complete requirement type.
+`Update.Return` and `Update.Step` default their Command requirement parameter to `never`, so the inline annotation is safe only when the matcher is pure. It also gives nested literal tags a contextual type before TypeScript can widen them. Inside a `Composition.makeUpdate` handler, `Definition.makeStep`, or `Definition.makeOutMessageFold`, omit the matcher return generic so the owner infers Command requirements, OutMessages, and graph evidence. Wrap a standalone Command-producing update or Step in `Update.define` or `Update.defineStep`; create a named return alias only when another matcher, helper, or exported signature reuses it, and include the complete requirement type.
 
 **Flag needless scaffolding, repeated types, fixed `R = never` on a Command-producing owner, and a missing guard.** Use `Update.Return<Model, Message>` when an update cannot emit an OutMessage and has no Command requirements, or provide its actual requirement type at a standalone boundary. A missing `outMessage` field means that update emitted nothing. The `outMessage?: never` guard also prevents a result containing an OutMessage from entering code that would keep only its Model and Commands. Code expecting `Update.ReturnWithOutMessage<Model, Message, OutMessage>` can accept either outcome. A hand-written plain-return alias must preserve the same guard. Also flag a full record repeated at the update signature and again inside `Message.match<UpdateReturn>(message, handlers)`, or `: UpdateReturn` repeated on an update already constrained by that match.
 
 ### `manual-update-return-unpacking`
 
 Do not destructure or rename `model`, `commands`, or `outMessage` from an ordinary update-like result that already contains those fields. Bind the whole result to an operation-named value and access its fields through that value. For example, pass `homeInit.commands` directly to `Command.mapMessages` instead of extracting or renaming it. Use `result.commands ?? []` only when the next operation requires a concrete array.
+
+Author an exhaustive `Composition.makeUpdate({ Tag: (model, message) => result })` record. Each case receives the contextual Model and exact Message payload, and operations retain the selected case's Command requirements and OutMessage contract. Use `makeUpdate.withContext(context => cases)` for additional dispatch arguments; the factory runs for local dispatch, not routed child-only delivery. Generic Step values inside that context factory may need `model => step(model)` for inference. Ordinary handlers return results directly; do not wrap every case with `makeStep`. A Model-preserving no-op record value is `Definition.makeNoopStep()`, not the bare factory.
+
+`Composition.makeUpdate` accepts only an exhaustive handler record; its callback overload is removed. Use `makeUpdate({})` when there are no local Messages. Each handler receives `(model, message)`; name extracted single-Message handlers `handle<MessageTag>` and pass compatible handlers or Steps directly. Keep shared Steps named for their operation. If one handler mixes connected Binding recipes with local results, author its local branches through Definition-owned Steps. A raw `{ model }` beside a connected recipe is rejected; ordinary raw-only handlers can return results directly. Do not hide errors with casts or broad return annotations: a later wrapper cannot recover channels already erased upstream.
 
 Dot access does not prevent someone from ignoring `outMessage`; it keeps the operation and all of its returned fields visible together. When the result belongs to a child Block, manual unpacking is usually the deeper problem. Use the child Binding's `fold` or named operation so the child Model, mapped Commands, and OutMessage policy remain part of one boundary. `Binding.init` returns a passive recipe with no result fields. Return it intact from `Composition.makeInit` or `Composition.makeUpdate`, or preserve it through a Definition-owned Step, and flag any `.model` or `.commands` projection from it.
 
@@ -104,22 +108,13 @@ the declared parent OutMessage union, and a record whose handlers all return
 `undefined`. Register the full policy-selected Binding. Do not add casts,
 annotations, generic argument lists, or a raw matcher as a recursion workaround.
 
-For an actual unary Model-only field Step, use
-`FeatureDefinition.makeFieldsStep(callback)` and return only field transformers. A
-named child OutMessage branch that intentionally preserves the parent Model uses
-`FeatureDefinition.makeNoopStep()`. In a `makeOutMessageFold` case record, pass the
-no-op helper point-free as the handler (`Closed: FeatureDefinition.makeNoopStep`).
-Use `FeatureDefinition.makeCommandsStep(commands)` when a composed Step only
-returns an existing Command collection. Use
-`FeatureDefinition.makeOutMessageStep(outMessage)` when a Step preserves the
-Model and emits one already-known OutMessage declared by that Definition. Keep
-Model-dependent Commands or OutMessages on `FeatureDefinition.makeStep`. Do not put an
-OutMessage-producing Step in `Update.combineSteps`; its result has no OutMessage
-channel. Attach an OutMessage to the combined result with
-`Update.withOutMessage`. Additional arguments, connected Binding, initialization,
-delegated, conditional, and composed results stay on `FeatureDefinition.makeStep`.
-Do not construct and immediately invoke one of these helpers in an ordinary
-update branch.
+Use `FeatureDefinition.makeFieldsStep(producer)` for owning field transformations, `FeatureDefinition.makeCommandsStep(producer)` for Commands with an unchanged Model, and `FeatureDefinition.makeOutMessageStep(producer)` for one declared OutMessage with an unchanged Model.
+
+All three take callbacks, evaluated when the Step or handler is applied. An ordinary producer receives the current Model and, when authored as a Message-dependent handler, its exact Message. Use `.fromMessage(message => value)` for payload-only producers and `() => value` for fixed producers. Commands-only and OutMessage-only helpers preserve the incoming Model identity. `FeatureDefinition.makeNoopStep()` stays unchanged; in an OutMessage fold, pass its factory point-free when appropriate.
+
+Pass compatible Steps directly as handler-record values. Extracted Message-dependent producers need a precise Message variant contract when no surrounding handler record supplies it. Map payloads explicitly when constructing a different Message or OutMessage; do not pass a constructor that could forward the incoming `_tag`. Keep cohesive mixed transitions as direct results, and use `FeatureDefinition.makeStep` for reusable mixed, connected, initialization, delegated, or composed operations. Local branches mixed with connected recipes still need canonical Definition-owned results.
+
+`Update.combineSteps` accepts unary non-emitting Steps and preserves its OutMessage rejection. Use `Update.withOutMessage` for an existing plain result or an optional OutMessage. Do not construct and immediately invoke local Steps solely for uniformity.
 
 When several operations update the same Model in sequence, use `Update.combineSteps`. Initialize each child through its registered Binding recipe so Composition assembles the parent Model and mapped Commands.
 

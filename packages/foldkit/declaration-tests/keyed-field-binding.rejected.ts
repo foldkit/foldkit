@@ -137,9 +137,11 @@ const prepareBooleanKeyBlock = () =>
     init: DeclarationBooleanKeyChildComposition.makeInit(() => ({
       model: BooleanKeyModel.make({ id: false, count: 0 }),
     })),
-    update: DeclarationBooleanKeyChildComposition.makeUpdate(model => ({
-      model,
-    })),
+    update: DeclarationBooleanKeyChildComposition.makeUpdate({
+      UpdatedCount: model => ({
+        model,
+      }),
+    }),
     EffectsLayer: Layer.empty,
   })
 const BooleanKeyBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -184,9 +186,11 @@ const prepareOptionalKeyBlock = () =>
     init: DeclarationOptionalKeyChildComposition.makeInit(() => ({
       model: OptionalKeyModel.make({ count: 0 }),
     })),
-    update: DeclarationOptionalKeyChildComposition.makeUpdate(model => ({
-      model,
-    })),
+    update: DeclarationOptionalKeyChildComposition.makeUpdate({
+      UpdatedCount: model => ({
+        model,
+      }),
+    }),
     EffectsLayer: Layer.empty,
   })
 const OptionalKeyBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -252,9 +256,11 @@ const preparePrimitiveBlock = () =>
     init: DeclarationPrimitiveKeyChildComposition.makeInit(() => ({
       model: 'initial',
     })),
-    update: DeclarationPrimitiveKeyChildComposition.makeUpdate(model => ({
-      model,
-    })),
+    update: DeclarationPrimitiveKeyChildComposition.makeUpdate({
+      UpdatedValue: model => ({
+        model,
+      }),
+    }),
     EffectsLayer: Layer.empty,
   })
 const PrimitiveBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -311,9 +317,11 @@ const prepareUnionKeyBlock = () =>
         count: 0,
       }),
     })),
-    update: DeclarationUnionKeyChildComposition.makeUpdate(model => ({
-      model,
-    })),
+    update: DeclarationUnionKeyChildComposition.makeUpdate({
+      UpdatedCount: model => ({
+        model,
+      }),
+    }),
     EffectsLayer: Layer.empty,
   })
 const UnionKeyBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -382,9 +390,11 @@ const prepareInvalidKeyBlock = () =>
         throw new Error('Uninhabited declaration fixture')
       },
     ),
-    update: DeclarationInvalidKeyChildComposition.makeUpdate(model => ({
-      model,
-    })),
+    update: DeclarationInvalidKeyChildComposition.makeUpdate({
+      UpdatedValue: model => ({
+        model,
+      }),
+    }),
     EffectsLayer: Layer.empty,
   })
 const InvalidKeyBlock: Block.FromAssemblyWithoutViewOrOutMessage<

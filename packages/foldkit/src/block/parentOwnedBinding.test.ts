@@ -45,15 +45,13 @@ const ChildComposition = Child.makeComposition()
 const prepareChildBlock = () =>
   ChildComposition.prepareBlock({
     init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
-    update: ChildComposition.makeUpdate((model, message) =>
-      ChildMessage.match(message, {
-        RequestedSelectValue: () => selectValue(model),
-        RequestedSetPrototypeValue: () => ({ model }),
-        UpdatedValue: ({ value }) => ({
-          model: modifyFields(model, { value: () => value }),
-        }),
+    update: ChildComposition.makeUpdate({
+      RequestedSelectValue: model => selectValue(model),
+      RequestedSetPrototypeValue: model => ({ model }),
+      UpdatedValue: (model, { value }) => ({
+        model: modifyFields(model, { value: () => value }),
       }),
-    ),
+    }),
     operations: {
       selectValue: () => Tuple.make(ChildMessage.RequestedSelectValue()),
     },
@@ -74,16 +72,14 @@ const setPrototypeValue = PlainChild.makeStep((model, value: string) => ({
 const preparePlainChildBlock = () =>
   PlainChildComposition.prepareBlock({
     init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
-    update: PlainChildComposition.makeUpdate((model, message) =>
-      ChildMessage.match(message, {
-        RequestedSelectValue: () => ({ model }),
-        RequestedSetPrototypeValue: ({ value }) =>
-          setPrototypeValue(model, value),
-        UpdatedValue: ({ value }) => ({
-          model: modifyFields(model, { value: () => value }),
-        }),
+    update: PlainChildComposition.makeUpdate({
+      RequestedSelectValue: model => ({ model }),
+      RequestedSetPrototypeValue: (model, { value }) =>
+        setPrototypeValue(model, value),
+      UpdatedValue: (model, { value }) => ({
+        model: modifyFields(model, { value: () => value }),
       }),
-    ),
+    }),
   })
 const PlainChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
@@ -230,7 +226,7 @@ const ParentComposition = Parent.makeComposition({
   ],
 })
 
-const update = ParentComposition.makeUpdate()
+const update = ParentComposition.makeUpdate({})
 
 const prepareParentBlock = () =>
   ParentComposition.prepareBlock({
@@ -271,9 +267,11 @@ const makeGenericChoice = <const Value extends string>(
   const prepareBlock = () =>
     GenericChoiceComposition.prepareBlock({
       init: (value: Value) => ({ model: Model.make({ value }) }),
-      update: GenericChoiceComposition.makeUpdate((model, { value }) => ({
-        model: modifyFields(model, { value: () => value }),
-      })),
+      update: GenericChoiceComposition.makeUpdate({
+        UpdatedChoice: (model, { value }) => ({
+          model: modifyFields(model, { value: () => value }),
+        }),
+      }),
     })
   const block: Block.FromAssemblyWithOutMessage<
     typeof Model,
@@ -348,7 +346,7 @@ const makeKeyedGenericParent = <const Value extends string>(
   }).withOutMessagePolicy({ fold: foldOutMessage })
 
   const composition = Parent.makeComposition({ bindings: [ChildBinding] })
-  const foldChild = composition.makeUpdate()
+  const foldChild = composition.makeUpdate({})
 
   return { ChildBinding, foldChild, Model }
 }
@@ -693,12 +691,12 @@ it('uses only own properties to distinguish Binding config forms', () => {
     SnapshotParent.makeComposition,
     SnapshotParent,
     [{ bindings: [InheritedReadAllBinding] }],
-  ).makeUpdate()
+  ).makeUpdate({})
   const foldInheritedMapper = Reflect.apply(
     SnapshotParent.makeComposition,
     SnapshotParent,
     [{ bindings: [InheritedMapperBinding] }],
-  ).makeUpdate()
+  ).makeUpdate({})
   const model = ParentBlock.init().model
   const message = ChildMessage.UpdatedValue({ value: 'updated' })
 
@@ -746,12 +744,10 @@ it('binds an exposed operation named __proto__ as an own property', () => {
           selected: Option.none(),
         },
       })),
-      update: composition.makeUpdate((model, message) =>
-        SingleParentMessage.match(message, {
-          RequestedInvokePrototypeOperation: ({ value }) =>
-            invokePrototypeOperation(model, value),
-        }),
-      ),
+      update: composition.makeUpdate({
+        RequestedInvokePrototypeOperation: (model, { value }) =>
+          invokePrototypeOperation(model, value),
+      }),
       operations: {
         invokePrototypeOperation: (value: string) =>
           Tuple.make(

@@ -132,41 +132,40 @@ const advanceBall =
     })
   }
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    TickedFrame: ({ deltaTime }) => ({
-      model: modifyFields(model, {
-        balls: Array.map(advanceBall(deltaTime / MS_PER_SECOND)),
+export const update = ApplicationComposition.makeUpdate({
+  TickedFrame: ApplicationDefinition.makeFieldsStep.fromMessage(
+    ({ deltaTime }) => ({
+      balls: Array.map(advanceBall(deltaTime / MS_PER_SECOND)),
+    }),
+  ),
+
+  ClickedCanvas: ApplicationDefinition.makeCommandsStep.fromMessage(
+    ({ x, y }) => [GenerateBall({ x, y })],
+  ),
+
+  CompletedGenerateBall: ApplicationDefinition.makeFieldsStep(
+    (model, { x, y, vx, vy, radius, color }) => ({
+      balls: Array.append({
+        id: model.nextId,
+        x,
+        y,
+        vx,
+        vy,
+        radius,
+        color,
       }),
+      nextId: Number.increment,
     }),
+  ),
 
-    ClickedCanvas: ({ x, y }) => ({
-      model,
-      commands: [GenerateBall({ x, y })],
-    }),
+  ClickedClear: ApplicationDefinition.makeFieldsStep(() => ({
+    balls: () => [],
+  })),
 
-    CompletedGenerateBall: ({ x, y, vx, vy, radius, color }) => ({
-      model: modifyFields(model, {
-        balls: Array.append({
-          id: model.nextId,
-          x,
-          y,
-          vx,
-          vy,
-          radius,
-          color,
-        }),
-        nextId: Number.increment,
-      }),
-    }),
-
-    ClickedClear: () => ({ model: modifyFields(model, { balls: () => [] }) }),
-
-    ClickedTogglePlay: () => ({
-      model: modifyFields(model, { isRunning: running => !running }),
-    }),
-  }),
-)
+  ClickedTogglePlay: ApplicationDefinition.makeFieldsStep(() => ({
+    isRunning: running => !running,
+  })),
+})
 
 export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
   animationFrameTicks: entry(

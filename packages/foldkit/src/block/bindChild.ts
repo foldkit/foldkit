@@ -40,6 +40,11 @@ import {
   normalizeKeyedFieldConfig,
   wrappedKeyedInitialPolicyOf,
 } from './keyedFieldConnection.js'
+import {
+  isKeyedMapBindingConfig,
+  isKeyedMapFieldStorage,
+  normalizeKeyedMapFieldConfig,
+} from './keyedMapFieldConnection.js'
 import type { OutMessageHelperEvidence } from './outMessageHelperEvidence.js'
 import type { ValidateConcreteComposition } from './requirements.js'
 import type { Qualify } from './scope.js'
@@ -1224,7 +1229,9 @@ type KeySchemaForConfig<
   ParentModelSchema extends AnySchema,
   Config,
 > =
-  Config extends Readonly<{ keySchema: infer KeySchema extends Schema.Top }>
+  Config extends Readonly<{
+    keySchema: infer KeySchema extends Schema.Top
+  }>
     ? KeySchema
     : Config extends Readonly<{
           childField: string
@@ -2039,7 +2046,8 @@ export type BindingWithoutOutMessagePolicy<
     >
   }>
 
-type BindChildConstructorResult<
+/** @internal The result of a fully validated child Binding configuration. */
+export type BindChildConstructorResult<
   BlockValue extends BindableBlock,
   ParentModelSchema extends AnySchema,
   ParentMessageSchema extends AnySchema,
@@ -2367,6 +2375,25 @@ const generatedKeySchema = (
       )
     }
     return configuredKeySchema
+  }
+
+  if (isKeyedMapFieldStorage(parentModel, Reflect.get(config, 'field'))) {
+    const parentFields = Reflect.get(parentModel, 'fields')
+    const storageSchema =
+      Predicate.isObject(parentFields) &&
+      Predicate.isString(Reflect.get(config, 'field'))
+        ? Reflect.get(parentFields, Reflect.get(config, 'field'))
+        : undefined
+    const keySchema = Schema.isSchema(storageSchema)
+      ? Reflect.get(storageSchema, 'key')
+      : undefined
+    if (!isInstanceKeySchema(keySchema)) {
+      throw new Error(
+        '[foldkit] A generated keyed map Binding requires a string or finite-number key Schema.',
+      )
+    }
+
+    return keySchema
   }
 
   const key = Reflect.get(config, 'key')
@@ -2913,6 +2940,57 @@ export const makeBindChild = <
               validateSelectedKey: generated.validateSelectedKey,
             }
 
+      const binding = bindEach(
+        block,
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        deliveryConfig as never,
+      )
+      registerBindingParentContract(binding, parentContract)
+      if (generated !== undefined) {
+        registerGeneratedDelivery(binding, generated.envelope)
+      }
+      return finishBinding(binding)
+    }
+
+    if (
+      Predicate.isObject(config) &&
+      Object.hasOwn(config, 'field') &&
+      !Object.hasOwn(config, 'key') &&
+      isKeyedMapBindingConfig(providedConfig)
+    ) {
+      const field = Reflect.get(config, 'field')
+      const placedConfig = Object.hasOwn(config, 'placement')
+        ? config
+        : { ...config, placement: field }
+      const generated = usesGeneratedDelivery(block.Message)
+        ? generatedDelivery(block, parentContract.Model, placedConfig, true)
+        : undefined
+      const sourceConfig =
+        generated?.config ??
+        (isNeverSchema(block.Message)
+          ? {
+              ...placedConfig,
+              toParentMessage: () => {
+                throw new Error(
+                  '[foldkit] A Message-free child cannot emit a parent Message.',
+                )
+              },
+            }
+          : placedConfig)
+      const normalized = normalizeKeyedMapFieldConfig({
+        ...sourceConfig,
+        Model: parentContract.Model,
+        ChildModel: block.Model,
+      })
+      const deliveryConfig =
+        generated === undefined
+          ? normalized
+          : {
+              ...normalized,
+              outgoingParentMessage: generated.envelope,
+              fromParentMessage: generated.fromParentMessage,
+              validateSelectedKey: generated.validateSelectedKey,
+            }
       const binding = bindEach(
         block,
         /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */

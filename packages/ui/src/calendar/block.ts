@@ -495,166 +495,164 @@ const applyYearsFocusShift = (model: Model, yearShift: number) => {
 
 /** Processes a Calendar Message and returns the next Model, optional Commands,
  *  and an optional OutMessage. */
-export const update = CalendarComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedDay: ({ date }) => selectDateTransition(model, date),
+export const update = CalendarComposition.makeUpdate({
+  ClickedDay: (model, { date }) => selectDateTransition(model, date),
 
-    PressedKeyOnGrid: ({ key, isShift }) =>
-      Match.value(model.viewMode).pipe(
-        Match.when('Days', () => {
-          const focused = currentOrFallbackFocus(model)
+  PressedKeyOnGrid: (model, { key, isShift }) =>
+    Match.value(model.viewMode).pipe(
+      Match.when('Days', () => {
+        const focused = currentOrFallbackFocus(model)
 
-          if (isCommitKey(key)) {
-            if (isDateDisabled(model, focused)) {
-              return { model }
-            } else {
-              return commitSelection(model, focused)
-            }
+        if (isCommitKey(key)) {
+          if (isDateDisabled(model, focused)) {
+            return { model }
           } else {
-            return Option.match(
-              resolveNavigationKey(
-                key,
-                isShift,
-                focused,
-                model.locale.firstDayOfWeek,
-              ),
-              {
-                onNone: () => ({ model }),
-                onSome: ([candidate, direction, cap]) =>
-                  applyFocusMove(model, candidate, direction, cap),
-              },
-            )
+            return commitSelection(model, focused)
           }
+        } else {
+          return Option.match(
+            resolveNavigationKey(
+              key,
+              isShift,
+              focused,
+              model.locale.firstDayOfWeek,
+            ),
+            {
+              onNone: () => ({ model }),
+              onSome: ([candidate, direction, cap]) =>
+                applyFocusMove(model, candidate, direction, cap),
+            },
+          )
+        }
+      }),
+      Match.when('Months', () =>
+        Option.match(resolveMonthsKey(key), {
+          onNone: () => ({ model }),
+          onSome: shift => applyMonthsFocusShift(model, shift),
         }),
-        Match.when('Months', () =>
-          Option.match(resolveMonthsKey(key), {
-            onNone: () => ({ model }),
-            onSome: shift => applyMonthsFocusShift(model, shift),
-          }),
-        ),
-        Match.when('Years', () =>
-          Option.match(resolveYearsKey(key), {
-            onNone: () => ({ model }),
-            onSome: shift => applyYearsFocusShift(model, shift),
-          }),
-        ),
-        Match.exhaustive,
       ),
-
-    ClickedPreviousMonthButton: () => {
-      const next = CalendarDomain.subtractMonths(
-        CalendarDomain.make(model.viewYear, model.viewMonth, 1),
-        1,
-      )
-      return applyViewMonthChange(model, next.year, next.month, -1)
-    },
-
-    ClickedNextMonthButton: () => {
-      const next = CalendarDomain.addMonths(
-        CalendarDomain.make(model.viewYear, model.viewMonth, 1),
-        1,
-      )
-      return applyViewMonthChange(model, next.year, next.month, 1)
-    },
-
-    ClickedHeading: () =>
-      Match.value(model.viewMode).pipe(
-        Match.when('Days', () => ({
-          model: modifyFields(model, { viewMode: () => 'Months' }),
-          commands: [FocusGrid({ id: model.id })],
-        })),
-        Match.when('Months', () => ({
-          model: modifyFields(model, { viewMode: () => 'Years' }),
-          commands: [FocusGrid({ id: model.id })],
-        })),
-        Match.when('Years', () => ({ model })),
-        Match.exhaustive,
+      Match.when('Years', () =>
+        Option.match(resolveYearsKey(key), {
+          onNone: () => ({ model }),
+          onSome: shift => applyYearsFocusShift(model, shift),
+        }),
       ),
+      Match.exhaustive,
+    ),
 
-    SelectedMonth: ({ month }) => {
-      if (isMonthDisabled(model, model.viewYear, month)) {
-        return { model }
-      } else {
-        const viewMonthChange = applyViewMonthChange(
-          model,
-          model.viewYear,
-          month,
-          jumpDirection(model, model.viewYear, month),
-        )
-        const monthSelection = {
-          model: modifyFields(viewMonthChange.model, {
-            viewMode: () => 'Days',
-          }),
-          commands: [FocusGrid({ id: model.id })],
-        }
+  ClickedPreviousMonthButton: model => {
+    const next = CalendarDomain.subtractMonths(
+      CalendarDomain.make(model.viewYear, model.viewMonth, 1),
+      1,
+    )
+    return applyViewMonthChange(model, next.year, next.month, -1)
+  },
 
-        return pipe(
-          monthSelection,
-          Update.withOutMessage(viewMonthChange.outMessage),
-        )
+  ClickedNextMonthButton: model => {
+    const next = CalendarDomain.addMonths(
+      CalendarDomain.make(model.viewYear, model.viewMonth, 1),
+      1,
+    )
+    return applyViewMonthChange(model, next.year, next.month, 1)
+  },
+
+  ClickedHeading: model =>
+    Match.value(model.viewMode).pipe(
+      Match.when('Days', () => ({
+        model: modifyFields(model, { viewMode: () => 'Months' }),
+        commands: [FocusGrid({ id: model.id })],
+      })),
+      Match.when('Months', () => ({
+        model: modifyFields(model, { viewMode: () => 'Years' }),
+        commands: [FocusGrid({ id: model.id })],
+      })),
+      Match.when('Years', () => ({ model })),
+      Match.exhaustive,
+    ),
+
+  SelectedMonth: (model, { month }) => {
+    if (isMonthDisabled(model, model.viewYear, month)) {
+      return { model }
+    } else {
+      const viewMonthChange = applyViewMonthChange(
+        model,
+        model.viewYear,
+        month,
+        jumpDirection(model, model.viewYear, month),
+      )
+      const monthSelection = {
+        model: modifyFields(viewMonthChange.model, {
+          viewMode: () => 'Days',
+        }),
+        commands: [FocusGrid({ id: model.id })],
       }
-    },
 
-    SelectedYear: ({ year }) => {
-      if (isYearDisabled(model, year)) {
-        return { model }
-      } else {
-        const yearViewMonthChange = applyViewMonthChange(
-          model,
-          year,
-          model.viewMonth,
-          jumpDirection(model, year, model.viewMonth),
-        )
-        const yearSelection = {
-          model: modifyFields(yearViewMonthChange.model, {
-            viewMode: () => 'Months',
-          }),
-          commands: [FocusGrid({ id: model.id })],
-        }
+      return pipe(
+        monthSelection,
+        Update.withOutMessage(viewMonthChange.outMessage),
+      )
+    }
+  },
 
-        return pipe(
-          yearSelection,
-          Update.withOutMessage(yearViewMonthChange.outMessage),
-        )
+  SelectedYear: (model, { year }) => {
+    if (isYearDisabled(model, year)) {
+      return { model }
+    } else {
+      const yearViewMonthChange = applyViewMonthChange(
+        model,
+        year,
+        model.viewMonth,
+        jumpDirection(model, year, model.viewMonth),
+      )
+      const yearSelection = {
+        model: modifyFields(yearViewMonthChange.model, {
+          viewMode: () => 'Months',
+        }),
+        commands: [FocusGrid({ id: model.id })],
       }
-    },
 
-    PagedYears: ({ direction }) =>
-      applyYearsFocusShift(model, direction * YEARS_PAGE_SIZE),
+      return pipe(
+        yearSelection,
+        Update.withOutMessage(yearViewMonthChange.outMessage),
+      )
+    }
+  },
 
-    FocusedGrid: () => ({
-      model: modifyFields(model, { isGridFocused: () => true }),
-    }),
+  PagedYears: (model, { direction }) =>
+    applyYearsFocusShift(model, direction * YEARS_PAGE_SIZE),
 
-    BlurredGrid: () => ({
-      model: modifyFields(model, { isGridFocused: () => false }),
-    }),
+  FocusedGrid: CalendarDefinition.makeFieldsStep(() => ({
+    isGridFocused: () => true,
+  })),
 
-    RefreshedToday: ({ today }) => ({
-      model: modifyFields(model, { today: () => today }),
-    }),
+  BlurredGrid: CalendarDefinition.makeFieldsStep(() => ({
+    isGridFocused: () => false,
+  })),
 
-    CompletedFocusGrid: () => ({ model }),
+  RefreshedToday: CalendarDefinition.makeFieldsStep.fromMessage(
+    ({ today }) => ({ today: () => today }),
+  ),
 
-    RequestedSelectDate: ({ date }) => selectDateTransition(model, date),
+  CompletedFocusGrid: CalendarDefinition.makeNoopStep(),
 
-    RequestedFocusDate: ({ date }) => focusDateTransition(model, date),
+  RequestedSelectDate: (model, { date }) => selectDateTransition(model, date),
 
-    RequestedDropToDays: () => dropToDaysTransition(model),
+  RequestedFocusDate: (model, { date }) => focusDateTransition(model, date),
 
-    InformedOfMinDateChange: ({ maybeMinDate }) =>
-      informMinDateChangedTransition(model, maybeMinDate),
+  RequestedDropToDays: dropToDaysTransition,
 
-    InformedOfMaxDateChange: ({ maybeMaxDate }) =>
-      informMaxDateChangedTransition(model, maybeMaxDate),
+  InformedOfMinDateChange: (model, { maybeMinDate }) =>
+    informMinDateChangedTransition(model, maybeMinDate),
 
-    InformedOfDisabledDatesChange: ({ disabledDates }) =>
-      informDisabledDatesChangedTransition(model, disabledDates),
+  InformedOfMaxDateChange: (model, { maybeMaxDate }) =>
+    informMaxDateChangedTransition(model, maybeMaxDate),
 
-    InformedOfDisabledDaysOfWeekChange: ({ disabledDaysOfWeek }) =>
-      informDisabledDaysOfWeekChangedTransition(model, disabledDaysOfWeek),
-  }),
-)
+  InformedOfDisabledDatesChange: (model, { disabledDates }) =>
+    informDisabledDatesChangedTransition(model, disabledDates),
+
+  InformedOfDisabledDaysOfWeekChange: (model, { disabledDaysOfWeek }) =>
+    informDisabledDaysOfWeekChangedTransition(model, disabledDaysOfWeek),
+})
 
 // VIEW
 
@@ -1412,11 +1410,13 @@ const prepare = () =>
     },
     EffectsLayer,
   })
-/** Complete Calendar Block definition for connecting to a parent. */
-export const CalendarBlock: Block.FromAssemblyWithViewAndOutMessage<
+/** Completed Calendar Block contract. */
+export interface CalendarBlock extends Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof prepare
-> = Block.assemble(prepare)
+> {}
+/** Complete Calendar Block definition for connecting to a parent. */
+export const CalendarBlock: CalendarBlock = Block.assemble(prepare)
 
 /** Moves the Calendar view and cursor to a date without changing the
  * parent-owned selection. */

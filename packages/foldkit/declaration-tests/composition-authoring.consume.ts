@@ -203,15 +203,14 @@ export const emittedCompositionInit = ParentComposition.makeInit(
   }),
 )
 
-export const emittedCompositionUpdate = ParentComposition.makeUpdate(
-  (model, message) => {
+export const emittedCompositionUpdate = ParentComposition.makeUpdate({
+  OpenedDashboard: (model, message) => {
     const exactMessage: ReturnType<typeof ParentMessage.OpenedDashboard> =
       message
     void exactMessage
-
     return { model }
   },
-)
+})
 
 const authoredMessage = ParentMessage.OpenedDashboard()
 
@@ -340,7 +339,7 @@ type EmittedParentRefreshOutMessageIsExact = Expect<
   Equal<ReturnOutMessage<typeof emittedParentRefreshUpdate>, ParentOutMessage>
 >
 type EmittedExposedRefreshOutMessageIsExact = Expect<
-  Equal<ReturnOutMessage<typeof emittedExposedRefresh>, ParentOutMessage>
+  Equal<ReturnOutMessage<typeof emittedExposedRefresh>, never>
 >
 type EmittedSettingsFoldInputsAreExact = Expect<
   Equal<

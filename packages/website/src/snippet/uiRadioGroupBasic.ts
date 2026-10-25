@@ -76,7 +76,7 @@ const init = PlanPickerComposition.makeInit(() => ({
   },
 }))
 
-const update = PlanPickerComposition.makeUpdate()
+const update = PlanPickerComposition.makeUpdate({})
 
 // Inside your view function, embed the radio group via h.block and pass
 // the parent-owned selection as selectedValue:

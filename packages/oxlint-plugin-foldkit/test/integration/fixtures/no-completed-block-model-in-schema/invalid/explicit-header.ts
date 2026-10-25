@@ -30,6 +30,22 @@ namespace FakeBlock {
   export type FromAssemblyWithView<Model, Producer> = Model & Producer
 }
 const QualifiedFake: FakeBlock.FromAssemblyWithView<typeof Model, typeof prepare> = Block.assemble(prepare)
+export interface WrongInterfaceProducer extends RealHeader<typeof Model, typeof prepareOther> {}
+export const WrongInterfaceProducer: WrongInterfaceProducer = Block.assemble(prepare)
+export interface CompletedInterfaceModel extends RealHeader<typeof Inferred.Model, typeof prepare> {}
+export const CompletedInterfaceModel: CompletedInterfaceModel = Block.assemble(prepare)
+export interface AnyInterfaceModel extends RealHeader<any, typeof prepare> {}
+export const AnyInterfaceModel: AnyInterfaceModel = Block.assemble(prepare)
+export interface MultipleInterfaceHeritage extends RealHeader<typeof Model, typeof prepare>, RealHeader<typeof Model, typeof prepare> {}
+export const MultipleInterfaceHeritage: MultipleInterfaceHeritage = Block.assemble(prepare)
+export interface WidenedInterface extends RealHeader<typeof Model, typeof prepare> { extra: unknown }
+export const WidenedInterface: WidenedInterface = Block.assemble(prepare)
+export interface FakeImportedInterface extends FakeHeader<typeof Model, typeof prepare> {}
+export const FakeImportedInterface: FakeImportedInterface = Block.assemble(prepare)
+export interface QualifiedFakeInterface extends FakeBlock.FromAssemblyWithView<typeof Model, typeof prepare> {}
+export const QualifiedFakeInterface: QualifiedFakeInterface = Block.assemble(prepare)
+export interface InterfaceAlias extends RealHeader<typeof Model, typeof prepare> {}
+export const WrongInterfaceName: InterfaceAlias = Block.assemble(prepare)
 export const Parent = Schema.Struct({
   unified: Unified.Model,
   nonQuery: NonQuery.Model,
@@ -46,6 +62,14 @@ export const Parent = Schema.Struct({
   wrappedProducer: WrappedProducer.Model,
   alias: UnknownAlias.Model,
   qualifiedFake: QualifiedFake.Model,
+  wrongInterfaceProducer: WrongInterfaceProducer.Model,
+  completedInterfaceModel: CompletedInterfaceModel.Model,
+  anyInterfaceModel: AnyInterfaceModel.Model,
+  multipleInterfaceHeritage: MultipleInterfaceHeritage.Model,
+  widenedInterface: WidenedInterface.Model,
+  fakeImportedInterface: FakeImportedInterface.Model,
+  qualifiedFakeInterface: QualifiedFakeInterface.Model,
+  wrongInterfaceName: WrongInterfaceName.Model,
   imported: Schema.Option(Schema.Array(PublicInferred.Model)),
 })
 export const shadowed = <RealHeader>() => {

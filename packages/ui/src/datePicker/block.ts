@@ -194,55 +194,46 @@ export const init = DatePickerComposition.makeInit((config: InitConfig) => ({
 /** Mount Definitions rendered by DatePicker's Popover child. */
 export const mounts = DatePickerComposition.mounts
 
+const openDatePicker = Update.combineSteps([
+  PopoverBinding.requestOpen(),
+  CalendarBinding.requestDropToDays(),
+])
+const closeDatePicker = Update.combineSteps([
+  PopoverBinding.requestClose(),
+  CalendarBinding.requestDropToDays(),
+])
+const clearDatePicker = DatePickerDefinition.makeOutMessageStep(() =>
+  OutMessage.ClearedDate(),
+)
+
 /** Processes a DatePicker Message and returns the next Model, optional
  *  Commands, and an optional OutMessage. */
-export const update = DatePickerComposition.makeUpdate((model, message) => {
-  const openDatePicker = () =>
-    Update.combineSteps(model, [
-      PopoverBinding.requestOpen(),
-      CalendarBinding.requestDropToDays(),
-    ])
+export const update = DatePickerComposition.makeUpdate({
+  RequestedOpen: openDatePicker,
+  RequestedClose: closeDatePicker,
+  RequestedClear: clearDatePicker,
+  Opened: openDatePicker,
+  Closed: closeDatePicker,
 
-  const closeDatePicker = () =>
-    Update.combineSteps(model, [
-      PopoverBinding.requestClose(),
-      CalendarBinding.requestDropToDays(),
-    ])
+  RequestedSelectDate: (model, { date }) =>
+    CalendarBinding.requestSelectDate(date)(model),
 
-  const clearDatePicker = () => ({
-    model,
-    outMessage: OutMessage.ClearedDate(),
-  })
+  Cleared: clearDatePicker,
 
-  return Message.match(message, {
-    RequestedOpen: openDatePicker,
-    RequestedClose: closeDatePicker,
-    RequestedClear: clearDatePicker,
-    Opened: openDatePicker,
-    Closed: closeDatePicker,
+  RequestedFocusDate: (model, { date }) =>
+    CalendarBinding.requestFocusDate(date)(model),
 
-    RequestedSelectDate: ({ date }) =>
-      CalendarBinding.requestSelectDate(date)(model),
+  InformedOfMinDateChange: (model, { maybeMinDate }) =>
+    CalendarBinding.informMinDateChanged(maybeMinDate)(model),
 
-    Cleared: clearDatePicker,
+  InformedOfMaxDateChange: (model, { maybeMaxDate }) =>
+    CalendarBinding.informMaxDateChanged(maybeMaxDate)(model),
 
-    RequestedFocusDate: ({ date }) =>
-      CalendarBinding.requestFocusDate(date)(model),
+  InformedOfDisabledDatesChange: (model, { disabledDates }) =>
+    CalendarBinding.informDisabledDatesChanged(disabledDates)(model),
 
-    InformedOfMinDateChange: ({ maybeMinDate }) =>
-      CalendarBinding.informMinDateChanged(maybeMinDate)(model),
-
-    InformedOfMaxDateChange: ({ maybeMaxDate }) =>
-      CalendarBinding.informMaxDateChanged(maybeMaxDate)(model),
-
-    InformedOfDisabledDatesChange: ({ disabledDates }) =>
-      CalendarBinding.informDisabledDatesChanged(disabledDates)(model),
-
-    InformedOfDisabledDaysOfWeekChange: ({ disabledDaysOfWeek }) =>
-      CalendarBinding.informDisabledDaysOfWeekChanged(disabledDaysOfWeek)(
-        model,
-      ),
-  })
+  InformedOfDisabledDaysOfWeekChange: (model, { disabledDaysOfWeek }) =>
+    CalendarBinding.informDisabledDaysOfWeekChanged(disabledDaysOfWeek)(model),
 })
 
 // SELECTORS
@@ -475,11 +466,13 @@ const implementation = {
 }
 
 const prepare = () => DatePickerComposition.prepareBlock(implementation)
-/** Complete DatePicker Block definition. */
-export const DatePickerBlock: Block.FromAssemblyWithViewAndOutMessage<
+/** Completed DatePicker Block contract. */
+export interface DatePickerBlock extends Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof prepare
-> = Block.assemble(prepare)
+> {}
+/** Complete DatePicker Block definition. */
+export const DatePickerBlock: DatePickerBlock = Block.assemble(prepare)
 
 /** Moves the embedded Calendar view and cursor through DatePicker update. */
 export const focusDate = DatePickerBlock.operations.requestFocusDate

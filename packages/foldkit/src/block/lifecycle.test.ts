@@ -168,13 +168,12 @@ const buildGraph = (
     childComposition.prepareBlock({
       view: childView,
       init: () => ({ model: ChildModel.make({ id: 'one' }) }),
-      update: (model, message) =>
-        ChildMessage.match(message, {
-          AcquiredSession: () => ({ model }),
-          CompletedObservePanel: () => ({ model }),
-          FailedAcquireSession: () => ({ model }),
-          ReleasedSession: () => ({ model }),
-        }),
+      update: childComposition.makeUpdate({
+        AcquiredSession: model => ({ model }),
+        CompletedObservePanel: model => ({ model }),
+        FailedAcquireSession: model => ({ model }),
+        ReleasedSession: model => ({ model }),
+      }),
       subscriptions,
       managedResources,
       EffectsLayer: Layer.mergeAll(
@@ -255,12 +254,14 @@ const buildGraph = (
       route: 'Home',
     }),
   })
-  const update = composition.makeUpdate(model => ({
-    model: modifyFields(model, {
-      maybeChild: current => (mode === 'Option' ? Option.none() : current),
-      route: () => 'Away',
+  const update = composition.makeUpdate({
+    RemovedChild: model => ({
+      model: modifyFields(model, {
+        maybeChild: current => (mode === 'Option' ? Option.none() : current),
+        route: () => 'Away',
+      }),
     }),
-  }))
+  })
 
   return { composition, init, update, view }
 }

@@ -28,7 +28,7 @@ const RootComposition = RootDefinition.makeComposition({
 const prepareRootBlock = () =>
   RootComposition.prepareBlock({
     init: RootComposition.makeInit(() => ({ model: {} })),
-    update: RootComposition.makeUpdate(),
+    update: RootComposition.makeUpdate({}),
     view: RootComposition.makeView((model, h) =>
       h.div([], [globalThis.String(model.feature.history.recordedSelections)]),
     ),

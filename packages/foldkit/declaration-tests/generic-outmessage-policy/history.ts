@@ -17,15 +17,13 @@ const prepareHistoryBlock = () =>
     init: HistoryComposition.makeInit(() => ({
       model: Model.make({ recordedSelections: 0 }),
     })),
-    update: HistoryComposition.makeUpdate((model, message) =>
-      HistoryMessage.match(message, {
-        RequestedRecordSelection: () => ({
-          model: Struct.modifyFields(model, {
-            recordedSelections: Number.increment,
-          }),
+    update: HistoryComposition.makeUpdate({
+      RequestedRecordSelection: model => ({
+        model: Struct.modifyFields(model, {
+          recordedSelections: Number.increment,
         }),
       }),
-    ),
+    }),
     operations: { recordSelection: HistoryMessage.RequestedRecordSelection },
   })
 export const HistoryBlock: Block.FromAssemblyWithoutViewOrOutMessage<

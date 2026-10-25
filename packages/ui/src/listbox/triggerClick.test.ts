@@ -59,7 +59,7 @@ const prepare = () =>
         toParentModel: listbox => ({ listbox }),
       }),
     ),
-    update: ListboxTriggerClickTestComposition.makeUpdate(),
+    update: ListboxTriggerClickTestComposition.makeUpdate({}),
     view,
   })
 const ApplicationBlock: Block.FromAssemblyWithView<

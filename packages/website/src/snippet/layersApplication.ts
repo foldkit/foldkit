@@ -1,5 +1,4 @@
 import { Block } from 'foldkit'
-import { modifyFields } from 'foldkit/struct'
 
 import type { Model } from './layers'
 import {
@@ -17,16 +16,14 @@ export const init = ApplicationComposition.makeInit(() => ({
   commands: [LoadUser({ userId: 'user-1' })],
 }))
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    SucceededLoadUser: ({ user }) => ({
-      model: modifyFields(model, { user: () => UserState.Loaded({ user }) }),
-    }),
-    FailedLoadUser: ({ error }) => ({
-      model: modifyFields(model, { user: () => UserState.Failed({ error }) }),
-    }),
-  }),
-)
+export const update = ApplicationComposition.makeUpdate({
+  SucceededLoadUser: ApplicationDefinition.makeFieldsStep.fromMessage(
+    ({ user }) => ({ user: () => UserState.Loaded({ user }) }),
+  ),
+  FailedLoadUser: ApplicationDefinition.makeFieldsStep.fromMessage(
+    ({ error }) => ({ user: () => UserState.Failed({ error }) }),
+  ),
+})
 
 export const view = ApplicationComposition.makeView((model, h) => ({
   title: 'User profile',

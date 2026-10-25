@@ -12,9 +12,9 @@ export const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
 export const ParentComposition = ParentDefinition.makeComposition({
   bindings: [ChildBinding],
 })
-export const update = ParentComposition.makeUpdate(model =>
-  ChildBinding.load('Primary')(model),
-)
+export const update = ParentComposition.makeUpdate({
+  RequestedLoad: model => ChildBinding.load('Primary')(model),
+})
 const prepare = () =>
   ParentComposition.prepareBlock({
     init: ParentComposition.makeInit(() => ({ model: {} })),

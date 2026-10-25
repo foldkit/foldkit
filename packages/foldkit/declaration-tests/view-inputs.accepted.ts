@@ -1,4 +1,4 @@
-import { Layer, Option, Schema } from 'effect'
+import { type DateTime, Layer, Option, Schema } from 'effect'
 import * as Block from 'foldkit/block'
 import type { ChildAttribute, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -48,6 +48,12 @@ export type DateBearingInputs = Readonly<{
     maybeExpiresAt: Option.Option<Date>
     range: readonly [Date, Date]
     byId: Readonly<Record<string, Readonly<{ at: Date }>>>
+    utc: DateTime.Utc
+    zoned: DateTime.Zoned
+    timeZone: DateTime.TimeZone
+    namedTimeZone: DateTime.TimeZone.Named
+    effectTimeline: ReadonlyArray<Readonly<{ at: DateTime.Utc }>>
+    maybeEffectDeadline: Option.Option<DateTime.Zoned>
   }>
 }>
 
@@ -92,9 +98,11 @@ export const dateBearingView =
 const prepareDateInputBlock = () =>
   DeclarationGenericViewInputsComposition.prepareBlock({
     init: () => ({ model: ViewInputsModel.make({ id: 'date-child' }) }),
-    update: DeclarationGenericViewInputsComposition.makeUpdate(model => ({
-      model,
-    })),
+    update: DeclarationGenericViewInputsComposition.makeUpdate({
+      CompletedObserve: model => ({
+        model,
+      }),
+    }),
     view: dateBearingView,
   })
 export const DateInputBlock: Block.FromAssemblyWithView<
@@ -111,9 +119,11 @@ export const makeGenericBlock = <Item>() => {
   const prepare = () =>
     DeclarationGenericViewInputsComposition.prepareBlock({
       init: () => ({ model: ViewInputsModel.make({ id: 'generic-child' }) }),
-      update: DeclarationGenericViewInputsComposition.makeUpdate(model => ({
-        model,
-      })),
+      update: DeclarationGenericViewInputsComposition.makeUpdate({
+        CompletedObserve: model => ({
+          model,
+        }),
+      }),
       view: genericView,
       EffectsLayer: Layer.empty,
       operations: {},
@@ -144,9 +154,11 @@ type ViewParametersAreExact = Expect<
 const prepareBlock = () =>
   DeclarationGenericViewInputsComposition.prepareBlock({
     init: () => ({ model: ViewInputsModel.make({ id: 'child' }) }),
-    update: DeclarationGenericViewInputsComposition.makeUpdate(model => ({
-      model,
-    })),
+    update: DeclarationGenericViewInputsComposition.makeUpdate({
+      CompletedObserve: model => ({
+        model,
+      }),
+    }),
     view: blockView,
     EffectsLayer: Layer.empty,
     operations: {},

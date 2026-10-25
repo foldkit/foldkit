@@ -47,6 +47,7 @@ import {
 } from './identity.js'
 import { type BindingInitRecipe, makeBindingInitRecipe } from './initRecipe.js'
 import type { InstanceFrame } from './instanceContext.js'
+import type { IsSilentOperation } from './operationEmission.js'
 import {
   assertRegisteredBinding,
   assertRegisteredInitialization,
@@ -630,14 +631,24 @@ export type BindingOperationRecipe<
       Qualify<Placement, Update.RequirementsOf<ChildProducer>>,
       Registration
     >
-  : Update.ResultRecipe<
-      ParentModel,
-      ParentMessage,
-      never,
-      Qualify<Placement, Update.RequirementsOf<ChildProducer>>,
-      | Registration
-      | Update.DeferredResultEvidence<DeferredBindingPolicy<Placement, ChildId>>
-    >
+  : IsSilentOperation<ChildProducer> extends true
+    ? Update.ResultRecipe<
+        ParentModel,
+        ParentMessage,
+        never,
+        Qualify<Placement, Update.RequirementsOf<ChildProducer>>,
+        Registration
+      >
+    : Update.ResultRecipe<
+        ParentModel,
+        ParentMessage,
+        never,
+        Qualify<Placement, Update.RequirementsOf<ChildProducer>>,
+        | Registration
+        | Update.DeferredResultEvidence<
+            DeferredBindingPolicy<Placement, ChildId>
+          >
+      >
 
 /** The readable parent result after applying a child operation and lifting its
  * Commands and OutMessage policy. Operations that cannot emit an OutMessage
@@ -830,7 +841,7 @@ export type BoundExposedOperations<
  * It retains the child init arguments, optional keyed identity, parent Model
  * constructor, appended parent Commands, and their requirements without
  * initializing the child eagerly. Return it intact from a matching Composition
- * `makeInit` or `makeUpdate` callback. A Definition-owned Step preserves or
+ * `makeInit` callback or `makeUpdate` handler. A Definition-owned Step preserves or
  * wraps it. An exposed Message can reach an update branch that returns the
  * recipe, and the completed operation interprets that update result. The recipe
  * exposes no `.model` or `.commands` fields.

@@ -44,9 +44,18 @@ const both = MountRegistration.makeComposition({
 })
 const graphless = MountRegistration.makeComposition()
 const init = () => ({ model: Model.make({ count: 0 }) })
-const update = first.makeUpdate(model => ({ model }))
-const bothUpdate = both.makeUpdate(model => ({ model }))
-const graphlessUpdate = graphless.makeUpdate(model => ({ model }))
+const update = first.makeUpdate({
+  CompletedObserveFirst: model => ({ model }),
+  CompletedObserveSecond: model => ({ model }),
+})
+const bothUpdate = both.makeUpdate({
+  CompletedObserveFirst: model => ({ model }),
+  CompletedObserveSecond: model => ({ model }),
+})
+const graphlessUpdate = graphless.makeUpdate({
+  CompletedObserveFirst: model => ({ model }),
+  CompletedObserveSecond: model => ({ model }),
+})
 const firstView = first.makeView((_model, h) =>
   h.div([h.OnMount(ObserveFirst())]),
 )
@@ -93,7 +102,7 @@ const EntriesBinding = MountParent.makeBinding(firstBlock, {
 const parent = MountParent.makeComposition({
   bindings: [ChildBinding, EntriesBinding],
 })
-const parentUpdate = parent.makeUpdate()
+const parentUpdate = parent.makeUpdate({})
 const parentModel = ParentModel.make({
   child: init().model,
   entries: [Entry.make({ id: 'first', child: init().model })],
@@ -112,10 +121,10 @@ describe('captured local Mount registrations', () => {
 
   it('rejects a view completed against a different local Mount set', () => {
     const prepareBlock = () =>
+      // @ts-expect-error The view requires a different local Mount registration.
       first.prepareBlock({
         init,
         update,
-        // @ts-expect-error The view requires a different local Mount registration.
         view: secondView,
         EffectsLayer: ObserveFirst.layer,
       })
@@ -259,16 +268,19 @@ describe('captured local Mount registrations', () => {
     const secondApplication = ApplicationDefinition.makeComposition({
       mounts: [FocusSecond],
     })
-    const applicationUpdate = firstApplication.makeUpdate(model => ({ model }))
+    const applicationUpdate = firstApplication.makeUpdate({
+      CompletedObserveFirst: model => ({ model }),
+      CompletedObserveSecond: model => ({ model }),
+    })
     const view = secondApplication.makeView((_model, h) => ({
       title: 'Second',
       body: h.main([h.OnMount(FocusSecond())]),
     }))
     const prepareFirstBlock = () =>
+      // @ts-expect-error A completed Block rejects a view with a different Mount graph.
       firstApplication.prepareBlock({
         init,
         update: applicationUpdate,
-        // @ts-expect-error A completed Block rejects a view with a different Mount graph.
         view,
         EffectsLayer: FocusFirst.layer,
       })

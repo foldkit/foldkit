@@ -1,4 +1,4 @@
-import { Array, Match, Option, pipe } from 'effect'
+import { Array, Option, pipe } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import { DragAndDropBlock } from '@foldkit/ui'
@@ -7,7 +7,6 @@ import { maybeDraggedItemId } from '@foldkit/ui/dragAndDrop'
 import { SaveBoard } from '../command'
 import { ApplicationDefinition } from '../definition'
 import { Column } from '../domain'
-import { Model } from '../model'
 
 const findCardTitle = (
   columns: ReadonlyArray<typeof Column.Column.Type>,
@@ -36,64 +35,23 @@ const findColumnName = (
     }),
   )
 
-const announceKeyboardDrag = (
-  model: typeof Model.Type,
-  nextDragAndDrop: typeof DragAndDropBlock.Model.Type,
-): string =>
-  Match.value(nextDragAndDrop.dragState).pipe(
-    Match.withReturnType<string>(),
-    Match.tag('KeyboardDragging', nextState => {
-      const wasIdle = model.dragAndDrop.dragState._tag === 'Idle'
-      if (wasIdle) {
-        const title = findCardTitle(model.columns, nextState.itemId)
-        return `Picked up ${title}. Use arrow keys to move within column, Tab to move between columns, Space to drop, Escape to cancel.`
-      }
-
-      if (model.dragAndDrop.dragState._tag !== 'KeyboardDragging') {
-        return model.announcement
-      }
-
-      const prevState = model.dragAndDrop.dragState
-      const columnName = findColumnName(
-        model.columns,
-        nextState.targetContainerId,
-      )
-
-      if (prevState.targetContainerId !== nextState.targetContainerId) {
-        return `Moved to ${columnName}, position ${nextState.targetIndex + 1}.`
-      }
-      if (prevState.targetIndex !== nextState.targetIndex) {
-        return `Position ${nextState.targetIndex + 1} in ${columnName}.`
-      }
-
-      return model.announcement
-    }),
-    Match.orElse(() => model.announcement),
-  )
-
-const screenReaderTextForDrop = (
-  model: typeof Model.Type,
-  outMessage: typeof DragAndDropBlock.OutMessage.Type,
-): string =>
-  DragAndDropBlock.OutMessage.match<string>(outMessage, {
-    Reordered: ({ itemId, toContainerId, toIndex }) => {
-      const title = findCardTitle(model.columns, itemId)
-      const columnName = findColumnName(model.columns, toContainerId)
-      return `Dropped ${title} in position ${toIndex + 1} of ${columnName}.`
-    },
-    Cancelled: () =>
-      Option.match(maybeDraggedItemId(model.dragAndDrop), {
-        onNone: () => 'Drag cancelled.',
-        onSome: id => {
-          const title = findCardTitle(model.columns, id)
-          return `Drag cancelled, ${title} returned to original position.`
-        },
-      }),
-  })
-
 const foldDragAndDropOutMessage = ApplicationDefinition.makeOutMessageFold(
   DragAndDropBlock,
   {
+    StartedKeyboardDrag: ({ itemId }) =>
+      ApplicationDefinition.makeFieldsStep(model => ({
+        announcement: () =>
+          `Picked up ${findCardTitle(model.columns, itemId)}. Use arrow keys to move within column, Tab to move between columns, Space to drop, Escape to cancel.`,
+      })),
+    ChangedKeyboardTarget: ({ fromContainerId, toContainerId, toIndex }) =>
+      ApplicationDefinition.makeFieldsStep(model => ({
+        announcement: () => {
+          const columnName = findColumnName(model.columns, toContainerId)
+          return fromContainerId !== toContainerId
+            ? `Moved to ${columnName}, position ${toIndex + 1}.`
+            : `Position ${toIndex + 1} in ${columnName}.`
+        },
+      })),
     Reordered: (outMessage, { modelBeforeUpdate }) =>
       ApplicationDefinition.makeStep(model => {
         const { itemId, fromContainerId, toContainerId, toIndex } = outMessage
@@ -108,15 +66,19 @@ const foldDragAndDropOutMessage = ApplicationDefinition.makeOutMessageFold(
           model: modifyFields(model, {
             columns: () => nextColumns,
             announcement: () =>
-              screenReaderTextForDrop(modelBeforeUpdate, outMessage),
+              `Dropped ${findCardTitle(modelBeforeUpdate.columns, itemId)} in position ${toIndex + 1} of ${findColumnName(modelBeforeUpdate.columns, toContainerId)}.`,
           }),
           commands: [SaveBoard({ columns: nextColumns })],
         }
       }),
-    Cancelled: (outMessage, { modelBeforeUpdate }) =>
+    Cancelled: (_outMessage, { modelBeforeUpdate }) =>
       ApplicationDefinition.makeFieldsStep(() => ({
         announcement: () =>
-          screenReaderTextForDrop(modelBeforeUpdate, outMessage),
+          Option.match(maybeDraggedItemId(modelBeforeUpdate.dragAndDrop), {
+            onNone: () => 'Drag cancelled.',
+            onSome: id =>
+              `Drag cancelled, ${findCardTitle(modelBeforeUpdate.columns, id)} returned to original position.`,
+          }),
       })),
   },
 )
@@ -124,15 +86,7 @@ const foldDragAndDropOutMessage = ApplicationDefinition.makeOutMessageFold(
 export const DragAndDropBinding = ApplicationDefinition.makeBinding(
   DragAndDropBlock,
   {
-    read: model => Option.some(model.dragAndDrop),
-    write: (model, nextDragAndDrop) =>
-      modifyFields(model, {
-        dragAndDrop: () => nextDragAndDrop,
-        announcement: () => announceKeyboardDrag(model, nextDragAndDrop),
-      }),
-    init: {
-      contextToArgs: () => [{ id: 'kanban' }],
-      toParentFields: dragAndDrop => ({ dragAndDrop }),
-    },
+    field: 'dragAndDrop',
+    init: { contextToArgs: () => [{ id: 'kanban' }] },
   },
 ).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })

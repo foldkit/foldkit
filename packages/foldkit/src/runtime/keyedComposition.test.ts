@@ -164,23 +164,21 @@ const itemImplementation = {
   init: (id: number, source: string) => ({
     model: { id, source, maybeObserved: Option.none<string>() },
   }),
-  update: item.makeUpdate((model, message) =>
-    ItemMessage.match(message, {
-      ClickedReadValue: () => ({ model, commands: [ReadValue()] }),
-      CompletedReadValue: ({ value }) => ({
-        model: modifyFields(model, { maybeObserved: () => Option.some(value) }),
-      }),
-      FailedReadValue: () => ({ model }),
-      AcquiredValue: () => ({ model }),
-      ReleasedValue: () => ({ model }),
-      FailedAcquireValue: () => ({ model }),
-      EmittedPulse: ({ value }) => ({
-        model: modifyFields(model, {
-          maybeObserved: () => Option.some(value),
-        }),
+  update: item.makeUpdate({
+    ClickedReadValue: model => ({ model, commands: [ReadValue()] }),
+    CompletedReadValue: (model, { value }) => ({
+      model: modifyFields(model, { maybeObserved: () => Option.some(value) }),
+    }),
+    FailedReadValue: model => ({ model }),
+    AcquiredValue: model => ({ model }),
+    ReleasedValue: model => ({ model }),
+    FailedAcquireValue: model => ({ model }),
+    EmittedPulse: (model, { value }) => ({
+      model: modifyFields(model, {
+        maybeObserved: () => Option.some(value),
       }),
     }),
-  ),
+  }),
   view: item.makeView((model, h) => {
     dispatches.set(model.source, requireDispatch())
     return h.keyed('div')(
@@ -231,29 +229,27 @@ const rootInit = () => ({
     entries: [firstEntry, itemBlock.init(2, 'other').model],
   },
 })
-const rootUpdate = root.makeUpdate((model, message) =>
-  RootMessage.match(message, {
-    ClickedRemoveFirst: () => ({
-      model: modifyFields(model, {
-        entries: Array.filter(entry => entry.id !== 1),
+const addReplacement = RootBaseDefinition.makeStep(model =>
+  EntriesBinding.init({
+    key: 1,
+    args: [1, 'new'],
+    toParentModel: entry =>
+      modifyFields(model, {
+        entries: Array.append(entry),
       }),
-    }),
-    ClickedAddReplacement: () =>
-      EntriesBinding.init({
-        key: 1,
-        args: [1, 'new'],
-        toParentModel: entry =>
-          modifyFields(model, {
-            entries: Array.append(entry),
-          }),
-      }),
-    ClickedRestoreFirst: () => ({
-      model: modifyFields(model, {
-        entries: current => [...current, firstEntry],
-      }),
-    }),
   }),
 )
+const restoreFirst = RootBaseDefinition.makeFieldsStep(() => ({
+  entries: current => [...current, firstEntry],
+}))
+const rootUpdate = root.makeUpdate({
+  ClickedRemoveFirst: model =>
+    RootBaseDefinition.makeFieldsStep(() => ({
+      entries: Array.filter(entry => entry.id !== 1),
+    }))(model),
+  ClickedAddReplacement: model => addReplacement(model),
+  ClickedRestoreFirst: model => restoreFirst(model),
+})
 const lazyEntries = createKeyedLazy()
 const entryRenderCounts = new Map<number, number>()
 const renderEntry = (

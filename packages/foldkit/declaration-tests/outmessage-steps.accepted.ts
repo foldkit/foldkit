@@ -26,17 +26,17 @@ export const DefinitionWithoutOutMessage = Block.makeDefinition(
   'StepsWithoutOutMessage',
   { Model, Message },
 )
-export const emitSelected = OutMessageStepsDefinition.makeOutMessageStep(
+export const emitSelected = OutMessageStepsDefinition.makeOutMessageStep(() =>
   OutMessage.SelectedChoice({ value: 'Pear' }),
 )
-export const emitRefined = OutMessageStepsDefinition.makeOutMessageStep(
+export const emitRefined = OutMessageStepsDefinition.makeOutMessageStep(() =>
   RefinedOutMessage.SelectedChoice({ value: 'Apple' }),
 )
-export const emitClosed = OutMessageStepsDefinition.makeOutMessageStep(
+export const emitClosed = OutMessageStepsDefinition.makeOutMessageStep(() =>
   OutMessage.ClosedPicker(),
 )
 export const emitUnion = (outMessage: typeof OutMessage.Type) =>
-  OutMessageStepsDefinition.makeOutMessageStep(outMessage)
+  OutMessageStepsDefinition.makeOutMessageStep(() => outMessage)
 export const applyToGenericModel = <Current extends typeof Model.Type>(
   model: Current,
 ) => emitRefined(model)
@@ -46,7 +46,9 @@ export const PrimitiveDefinition = Block.makeDefinition('PrimitiveSteps', {
   Message: Schema.Never,
   OutMessage: Schema.Literals(['Accepted', 'Cancelled']),
 })
-export const emitPrimitive = PrimitiveDefinition.makeOutMessageStep('Accepted')
+export const emitPrimitive = PrimitiveDefinition.makeOutMessageStep(
+  () => 'Accepted',
+)
 
 export const OutMessageStepsComposition =
   OutMessageStepsDefinition.makeComposition()
@@ -55,16 +57,14 @@ const prepare = () =>
     init: OutMessageStepsComposition.makeInit(() => ({
       model: Model.make({ count: 0, status: 'Idle' }),
     })),
-    update: OutMessageStepsComposition.makeUpdate((model, message) =>
-      Message.match(message, {
-        RequestedSelect: ({ value }) =>
-          OutMessageStepsDefinition.makeOutMessageStep(
-            OutMessage.SelectedChoice({ value }),
-          )(model),
-        RequestedClose: () => emitClosed(model),
-        CompletedObserveSelection: () => ({ model }),
-      }),
-    ),
+    update: OutMessageStepsComposition.makeUpdate({
+      RequestedSelect: (model, { value }) =>
+        OutMessageStepsDefinition.makeOutMessageStep(() =>
+          OutMessage.SelectedChoice({ value }),
+        )(model),
+      RequestedClose: model => emitClosed(model),
+      CompletedObserveSelection: model => ({ model }),
+    }),
     operations: {
       select: Message.RequestedSelect,
       close: Message.RequestedClose,
@@ -93,15 +93,19 @@ export const foldChildOutMessage = ParentDefinition.makeOutMessageFold(
   OutMessageStepsBlock,
   {
     SelectedChoice: ({ value }) =>
-      ParentDefinition.makeOutMessageStep(
+      ParentDefinition.makeOutMessageStep(() =>
         ParentOutMessage.ObservedSelection({ value }),
       ),
     ClosedPicker: () =>
-      ParentDefinition.makeOutMessageStep(ParentOutMessage.ObservedClosure()),
+      ParentDefinition.makeOutMessageStep(() =>
+        ParentOutMessage.ObservedClosure(),
+      ),
   },
 )
+export const ChildBindingWithOutMessagePolicy =
+  ChildBinding.withOutMessagePolicy({ fold: foldChildOutMessage })
 export const ParentComposition = ParentDefinition.makeComposition({
-  bindings: [ChildBinding.withOutMessagePolicy({ fold: foldChildOutMessage })],
+  bindings: [ChildBindingWithOutMessagePolicy],
 })
 export const makeParentBlock = () => {
   const prepare = () =>
@@ -109,7 +113,7 @@ export const makeParentBlock = () => {
       init: ParentComposition.makeInit(() => ({
         model: ParentModel.make({ child: { count: 0, status: 'Idle' } }),
       })),
-      update: ParentComposition.makeUpdate(),
+      update: ParentComposition.makeUpdate({}),
     })
   const ParentBlock: Block.FromAssemblyWithOutMessage<
     typeof ParentModel,

@@ -69,150 +69,144 @@ export const init = ApplicationComposition.makeInit(() => {
   }
 })
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    PressedKey: ({ key }) =>
-      Match.value(key).pipe(
-        Match.whenOr(
-          'ArrowUp',
-          'ArrowDown',
-          'ArrowLeft',
-          'ArrowRight',
-          'w',
-          'a',
-          's',
-          'd',
-          moveKey => {
-            const nextDirection = Match.value(moveKey).pipe(
-              Match.withReturnType<typeof Direction.Direction.Type>(),
-              Match.whenOr('ArrowUp', 'w', () => 'Up'),
-              Match.whenOr('ArrowDown', 's', () => 'Down'),
-              Match.whenOr('ArrowLeft', 'a', () => 'Left'),
-              Match.whenOr('ArrowRight', 'd', () => 'Right'),
-              Match.exhaustive,
-            )
-
-            if (model.gameState === 'Playing') {
-              return {
-                model: modifyFields(model, {
-                  nextDirection: () => nextDirection,
-                }),
-              }
-            } else {
-              return { model }
-            }
-          },
-        ),
-        Match.when(' ', () => {
-          const nextGameState = Match.value(model.gameState).pipe(
-            Match.withReturnType<typeof GameState.Type>(),
-            Match.when('NotStarted', () => 'Playing'),
-            Match.when('Playing', () => 'Paused'),
-            Match.when('Paused', () => 'Playing'),
-            Match.when('GameOver', () => 'GameOver'),
+export const update = ApplicationComposition.makeUpdate({
+  PressedKey: (model, { key }) =>
+    Match.value(key).pipe(
+      Match.whenOr(
+        'ArrowUp',
+        'ArrowDown',
+        'ArrowLeft',
+        'ArrowRight',
+        'w',
+        'a',
+        's',
+        'd',
+        moveKey => {
+          const nextDirection = Match.value(moveKey).pipe(
+            Match.withReturnType<typeof Direction.Direction.Type>(),
+            Match.whenOr('ArrowUp', 'w', () => 'Up'),
+            Match.whenOr('ArrowDown', 's', () => 'Down'),
+            Match.whenOr('ArrowLeft', 'a', () => 'Left'),
+            Match.whenOr('ArrowRight', 'd', () => 'Right'),
             Match.exhaustive,
           )
-          return {
-            model: modifyFields(model, {
-              gameState: () => nextGameState,
-            }),
-          }
-        }),
-        Match.when('r', () => {
-          const nextSnake = Snake.create(GAME.INITIAL_POSITION)
 
-          return {
-            model: modifyFields(model, {
-              snake: () => nextSnake,
-              direction: () => GAME.INITIAL_DIRECTION,
-              nextDirection: () => GAME.INITIAL_DIRECTION,
-              gameState: () => 'NotStarted',
-              points: () => 0,
-            }),
-            commands: [GenerateApplePosition({ snake: nextSnake })],
+          if (model.gameState === 'Playing') {
+            return {
+              model: modifyFields(model, {
+                nextDirection: () => nextDirection,
+              }),
+            }
+          } else {
+            return { model }
           }
-        }),
-        Match.orElse(() => ({ model })),
+        },
       ),
-
-    TickedClock: () => {
-      if (model.gameState !== 'Playing') {
-        return { model }
-      }
-
-      const currentDirection = Direction.isOpposite(
-        model.direction,
-        model.nextDirection,
-      )
-        ? model.direction
-        : model.nextDirection
-
-      const newHead = Position.move(
-        Array.headNonEmpty(model.snake),
-        currentDirection,
-      )
-      const willEatApple = Position.equivalence(newHead, model.apple)
-
-      const nextSnake = willEatApple
-        ? Snake.grow(model.snake, currentDirection)
-        : Snake.move(model.snake, currentDirection)
-
-      if (Snake.hasCollision(nextSnake)) {
+      Match.when(' ', () => {
+        const nextGameState = Match.value(model.gameState).pipe(
+          Match.withReturnType<typeof GameState.Type>(),
+          Match.when('NotStarted', () => 'Playing'),
+          Match.when('Playing', () => 'Paused'),
+          Match.when('Paused', () => 'Playing'),
+          Match.when('GameOver', () => 'GameOver'),
+          Match.exhaustive,
+        )
         return {
           model: modifyFields(model, {
-            gameState: () => 'GameOver',
-            highScore: highScore => Math.max(model.points, highScore),
+            gameState: () => nextGameState,
           }),
         }
-      }
+      }),
+      Match.when('r', () => {
+        const nextSnake = Snake.create(GAME.INITIAL_POSITION)
 
-      const nextModel = modifyFields(model, {
-        snake: () => nextSnake,
-        direction: () => currentDirection,
-        points: points =>
-          willEatApple ? points + GAME.POINTS_PER_APPLE : points,
-      })
-
-      if (willEatApple) {
         return {
-          model: nextModel,
+          model: modifyFields(model, {
+            snake: () => nextSnake,
+            direction: () => GAME.INITIAL_DIRECTION,
+            nextDirection: () => GAME.INITIAL_DIRECTION,
+            gameState: () => 'NotStarted',
+            points: () => 0,
+          }),
           commands: [GenerateApplePosition({ snake: nextSnake })],
         }
-      } else {
-        return { model: nextModel }
-      }
-    },
-
-    PausedGame: () => ({
-      model: modifyFields(model, {
-        gameState: gameState =>
-          gameState === 'Playing' ? 'Paused' : 'Playing',
       }),
-    }),
+      Match.orElse(() => ({ model })),
+    ),
 
-    RestartedGame: () => {
-      const startPosition: typeof Position.Position.Type = { x: 10, y: 10 }
-      const nextSnake = Snake.create(startPosition)
+  TickedClock: model => {
+    if (model.gameState !== 'Playing') {
+      return { model }
+    }
 
+    const currentDirection = Direction.isOpposite(
+      model.direction,
+      model.nextDirection,
+    )
+      ? model.direction
+      : model.nextDirection
+
+    const newHead = Position.move(
+      Array.headNonEmpty(model.snake),
+      currentDirection,
+    )
+    const willEatApple = Position.equivalence(newHead, model.apple)
+
+    const nextSnake = willEatApple
+      ? Snake.grow(model.snake, currentDirection)
+      : Snake.move(model.snake, currentDirection)
+
+    if (Snake.hasCollision(nextSnake)) {
       return {
         model: modifyFields(model, {
-          snake: () => nextSnake,
-          direction: () => 'Right',
-          nextDirection: () => 'Right',
-          gameState: () => 'NotStarted',
-          points: () => 0,
+          gameState: () => 'GameOver',
+          highScore: highScore => Math.max(model.points, highScore),
         }),
+      }
+    }
+
+    const nextModel = modifyFields(model, {
+      snake: () => nextSnake,
+      direction: () => currentDirection,
+      points: points =>
+        willEatApple ? points + GAME.POINTS_PER_APPLE : points,
+    })
+
+    if (willEatApple) {
+      return {
+        model: nextModel,
         commands: [GenerateApplePosition({ snake: nextSnake })],
       }
-    },
+    } else {
+      return { model: nextModel }
+    }
+  },
 
-    CompletedGenerateApplePosition: ({ position }) => ({
+  PausedGame: ApplicationDefinition.makeFieldsStep(() => ({
+    gameState: gameState => (gameState === 'Playing' ? 'Paused' : 'Playing'),
+  })),
+
+  RestartedGame: model => {
+    const startPosition: typeof Position.Position.Type = { x: 10, y: 10 }
+    const nextSnake = Snake.create(startPosition)
+
+    return {
       model: modifyFields(model, {
-        apple: () => position,
+        snake: () => nextSnake,
+        direction: () => 'Right',
+        nextDirection: () => 'Right',
+        gameState: () => 'NotStarted',
+        points: () => 0,
       }),
-    }),
-  }),
-)
+      commands: [GenerateApplePosition({ snake: nextSnake })],
+    }
+  },
+
+  CompletedGenerateApplePosition:
+    ApplicationDefinition.makeFieldsStep.fromMessage(({ position }) => ({
+      apple: () => position,
+    })),
+})
 
 export const GenerateApplePosition = ApplicationDefinition.makeCommand(
   'GenerateApplePosition',

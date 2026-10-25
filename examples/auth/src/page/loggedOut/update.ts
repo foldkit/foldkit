@@ -1,3 +1,3 @@
 import { LoggedOutComposition } from './composition'
 
-export const update = LoggedOutComposition.makeUpdate()
+export const update = LoggedOutComposition.makeUpdate({})

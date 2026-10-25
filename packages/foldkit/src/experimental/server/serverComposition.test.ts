@@ -52,7 +52,11 @@ const child = ChildNamespace.makeDefinition({
 }).makeComposition({ mounts: [Observe] })
 const childImplementation = {
   init: (title: string) => ({ model: { title }, commands: [Prepare()] }),
-  update: child.makeUpdate(model => ({ model })),
+  update: child.makeUpdate({
+    CompletedObserve: model => ({ model }),
+    ClickedPrepare: model => ({ model }),
+    CompletedPrepare: model => ({ model }),
+  }),
   view: child.makeView((model, h) =>
     h.button(
       [h.OnMount(Observe()), h.OnClick(ChildMessage.ClickedPrepare())],
@@ -86,7 +90,7 @@ const rootImplementation = {
       toParentModel: child => child,
     }),
   ),
-  update: RegisteredApplication.makeUpdate(),
+  update: RegisteredApplication.makeUpdate({}),
   view: RegisteredApplication.makeView((model, h) => ({
     title: model.title,
     body: h.div(
@@ -106,7 +110,7 @@ const FlagsComposition = Block.makeDefinition('Application', {
 }).makeComposition()
 const flagsImplementation = {
   init: (flags: ServerFlags) => ({ model: { title: flags.title } }),
-  update: FlagsComposition.makeUpdate(),
+  update: FlagsComposition.makeUpdate({}),
   view: FlagsComposition.makeView((model, h) => ({
     title: model.title,
     body: h.main([], [model.title]),
@@ -120,7 +124,7 @@ const RoutingComposition = Block.makeDefinition('Application', {
 }).makeComposition()
 const routingImplementation = {
   init: (url: Url) => ({ model: { title: url.pathname } }),
-  update: RoutingComposition.makeUpdate(),
+  update: RoutingComposition.makeUpdate({}),
   view: RoutingComposition.makeView((model, h) => ({
     title: model.title,
     body: h.main([], [model.title]),
@@ -136,7 +140,7 @@ const routingFlagsImplementation = {
   init: (flags: ServerFlags, url: Url) => ({
     model: { title: `${flags.title}${url.pathname}` },
   }),
-  update: RoutingFlagsComposition.makeUpdate(),
+  update: RoutingFlagsComposition.makeUpdate({}),
   view: RoutingFlagsComposition.makeView((model, h) => ({
     title: model.title,
     body: h.main([], [model.title]),
@@ -150,7 +154,7 @@ const DataComposition = Block.makeDefinition('Application', {
 }).makeComposition()
 const dataImplementation = {
   init: () => ({ model: { title: 'data' } }),
-  update: DataComposition.makeUpdate(),
+  update: DataComposition.makeUpdate({}),
   EffectsLayer: Layer.empty,
 }
 
@@ -160,7 +164,7 @@ const HtmlComposition = Block.makeDefinition('Application', {
 }).makeComposition()
 const htmlImplementation = {
   init: () => ({ model: { title: 'html' } }),
-  update: HtmlComposition.makeUpdate(),
+  update: HtmlComposition.makeUpdate({}),
   view: HtmlComposition.makeView((model, h) => h.main([], [model.title])),
   EffectsLayer: Layer.empty,
 }

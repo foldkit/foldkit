@@ -23,10 +23,12 @@ export const ParentComposition = ParentDefinition.makeComposition({
   bindings: [ChildBinding],
 })
 
-export const update = ParentComposition.makeUpdate(model => ({
-  model,
-  commands: [
-    AliasedEntryMessage.UpdatedEntry(),
-    AncestorMessage.UpdatedAncestor(),
-  ],
-}))
+export const update = ParentComposition.makeUpdate({
+  ClickedSave: model => ({
+    model,
+    commands: [
+      AliasedEntryMessage.UpdatedEntry(),
+      AncestorMessage.UpdatedAncestor(),
+    ],
+  }),
+})

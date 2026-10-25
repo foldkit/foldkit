@@ -1,11 +1,13 @@
 import { Schema } from 'effect'
-import { Block, Message } from 'foldkit'
+import { Block, Message, Update } from 'foldkit'
 
 import {
   ChildBlock,
   ChildModel,
+  ChildMessage,
   ChildOutMessage,
   EntriesBinding,
+  EntriesBindingWithOutMessagePolicy,
   LeftBinding,
   LeftBindingWithOutMessagePolicy,
   ParentDefinition,
@@ -20,6 +22,158 @@ import {
   forwardLeftOutMessage,
   rawFoldWithContext,
 } from './outmessage-policy-selection.accepted.js'
+
+const EmittingChildDefinition = Block.makeDefinition(
+  'PolicySelectionEmittingChild',
+  {
+    Model: ChildModel,
+    Message: ChildMessage,
+    OutMessage: ChildOutMessage,
+  },
+)
+const EmittingChildComposition = EmittingChildDefinition.makeComposition()
+const prepareEmittingChild = () =>
+  EmittingChildComposition.prepareBlock({
+    init: EmittingChildComposition.makeInit(() => ({
+      model: ChildModel.make({ value: '' }),
+    })),
+    update: EmittingChildComposition.makeUpdate({
+      RequestedReset: model => ({
+        model,
+        outMessage: ChildOutMessage.Selected({ value: model.value }),
+      }),
+    }),
+    operations: { reset: ChildMessage.RequestedReset },
+  })
+const EmittingChildBlock: Block.FromAssemblyWithOutMessage<
+  typeof ChildModel,
+  typeof prepareEmittingChild
+> = Block.assemble(prepareEmittingChild)
+const EmittingLeftBinding = ParentDefinition.makeBinding(EmittingChildBlock, {
+  field: 'left',
+}).withOutMessagePolicy({
+  forward: ParentDefinition.makeOutMessageForward(EmittingChildBlock, {
+    Selected: ({ value }) => ParentOutMessage.ForwardedSelection({ value }),
+    Closed: () => undefined,
+  }),
+})
+const EmittingRightBinding = ParentDefinition.makeBinding(EmittingChildBlock, {
+  field: 'right',
+})
+
+const combineForwardingPolicyOperation = ParentDefinition.makeStep(() =>
+  Update.combineSteps([
+    ParentDefinition.makeNoopStep(),
+    EmittingLeftBinding.reset(),
+  ]),
+)
+
+const DirectCombinedPolicyBinding = EmittingRightBinding.withOutMessagePolicy({
+  fold: ParentDefinition.makeOutMessageFold(EmittingChildBlock, {
+    Selected: () =>
+      Update.combineSteps([
+        ParentDefinition.makeNoopStep(),
+        EmittingLeftBinding.reset(),
+      ]),
+    Closed: ParentDefinition.makeNoopStep,
+  }),
+})
+const DirectCombinedPolicyComposition = ParentDefinition.makeComposition({
+  bindings: [
+    EmittingLeftBinding,
+    DirectCombinedPolicyBinding,
+    EntriesBindingWithOutMessagePolicy,
+  ],
+})
+// @ts-expect-error A Binding policy cannot discard a sibling policy's forwarded OutMessage through combineSteps.
+DirectCombinedPolicyComposition.prepareBlock({
+  init: DirectCombinedPolicyComposition.makeInit(() => ({
+    model: { entries: [] },
+  })),
+  update: DirectCombinedPolicyComposition.makeUpdate({
+    Reflected: model => ({ model }),
+  }),
+})
+
+const ExtractedCombinedPolicyBinding =
+  EmittingRightBinding.withOutMessagePolicy({
+    fold: ParentDefinition.makeOutMessageFold(EmittingChildBlock, {
+      Selected: () => combineForwardingPolicyOperation,
+      Closed: ParentDefinition.makeNoopStep,
+    }),
+  })
+const ExtractedCombinedPolicyComposition = ParentDefinition.makeComposition({
+  bindings: [
+    EmittingLeftBinding,
+    ExtractedCombinedPolicyBinding,
+    EntriesBindingWithOutMessagePolicy,
+  ],
+})
+// @ts-expect-error Extracting a nested combination cannot erase the sibling policy's OutMessage.
+ExtractedCombinedPolicyComposition.prepareBlock({
+  init: ExtractedCombinedPolicyComposition.makeInit(() => ({
+    model: { entries: [] },
+  })),
+  update: ExtractedCombinedPolicyComposition.makeUpdate({
+    Reflected: model => ({ model }),
+  }),
+})
+
+const ConditionalCombinedPolicyBinding =
+  EmittingRightBinding.withOutMessagePolicy({
+    fold: ParentDefinition.makeOutMessageFold(EmittingChildBlock, {
+      Selected: ({ value }) =>
+        value === 'Pear'
+          ? combineForwardingPolicyOperation
+          : ParentDefinition.makeNoopStep(),
+      Closed: ParentDefinition.makeNoopStep,
+    }),
+  })
+const ConditionalCombinedPolicyComposition = ParentDefinition.makeComposition({
+  bindings: [
+    EmittingLeftBinding,
+    ConditionalCombinedPolicyBinding,
+    EntriesBindingWithOutMessagePolicy,
+  ],
+})
+// @ts-expect-error A conditional branch cannot erase an OutMessage-producing sibling policy combination.
+ConditionalCombinedPolicyComposition.prepareBlock({
+  init: ConditionalCombinedPolicyComposition.makeInit(() => ({
+    model: { entries: [] },
+  })),
+  update: ConditionalCombinedPolicyComposition.makeUpdate({
+    Reflected: model => ({ model }),
+  }),
+})
+
+const SelfCombinedPolicyBinding = EmittingRightBinding.withOutMessagePolicy({
+  fold: ParentDefinition.makeOutMessageFold(EmittingChildBlock, {
+    Selected: () =>
+      Update.combineSteps([
+        ParentDefinition.makeNoopStep(),
+        EmittingRightBinding.reset(),
+      ]),
+    Closed: () =>
+      ParentDefinition.makeOutMessageStep(() =>
+        ParentOutMessage.ForwardedSelection({ value: 'self' }),
+      ),
+  }),
+})
+const SelfCombinedPolicyComposition = ParentDefinition.makeComposition({
+  bindings: [SelfCombinedPolicyBinding, EntriesBindingWithOutMessagePolicy],
+})
+// @ts-expect-error A self-referencing Binding policy cannot hide its own OutMessage in combineSteps.
+SelfCombinedPolicyComposition.prepareBlock({
+  init: SelfCombinedPolicyComposition.makeInit(() => ({
+    model: {
+      left: ChildModel.make({ value: '' }),
+      entries: [],
+    },
+  })),
+  update: SelfCombinedPolicyComposition.makeUpdate({
+    Reflected: model => ({ model }),
+  }),
+})
 
 // @ts-expect-error A child declaring OutMessages must select a policy before registration.
 ParentDefinition.makeComposition({ bindings: [LeftBinding] })
@@ -103,7 +257,9 @@ const prepareWidenedChildBlock = () =>
     init: WidenedChildComposition.makeInit(() => ({
       model: ChildModel.make({ value: '' }),
     })),
-    update: WidenedChildComposition.makeUpdate(model => ({ model })),
+    update: WidenedChildComposition.makeUpdate({
+      RequestedReset: model => ({ model }),
+    }),
   })
 const WidenedChildBlock: Block.FromAssemblyWithOutMessage<
   typeof ChildModel,
@@ -171,7 +327,9 @@ const prepareSingleBlock = () =>
     init: SingleComposition.makeInit(() => ({
       model: ChildModel.make({ value: '' }),
     })),
-    update: SingleComposition.makeUpdate(model => ({ model })),
+    update: SingleComposition.makeUpdate({
+      RequestedReset: model => ({ model }),
+    }),
   })
 const SingleBlock: Block.FromAssemblyWithOutMessage<
   typeof ChildModel,
@@ -193,7 +351,9 @@ const prepareNeverBlock = () =>
     init: NeverComposition.makeInit(() => ({
       model: ChildModel.make({ value: '' }),
     })),
-    update: NeverComposition.makeUpdate(model => ({ model })),
+    update: NeverComposition.makeUpdate({
+      RequestedReset: model => ({ model }),
+    }),
   })
 const NeverBlock: Block.FromAssemblyWithOutMessage<
   typeof ChildModel,

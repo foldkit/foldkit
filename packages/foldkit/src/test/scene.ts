@@ -61,11 +61,13 @@ import {
 } from '../subscription/subscription.js'
 import { tagNameFromSelector } from '../tagName.js'
 import type { VNode } from '../vdom.js'
+import { commandArgs } from './bindingMatcher.js'
 import type {
   AnyCommand,
   AnyCommandInstance,
   AnyMount,
   BaseInternal,
+  CommandArgs,
   CommandMatcher,
   MountMatcher,
   MountResolver,
@@ -1726,9 +1728,18 @@ const emitCustomElementEvent =
     )
   }
 
-/** Steps that operate on the pending Commands of a scene simulation.
+/** Utilities for inspecting and resolving pending Commands of a scene simulation.
  *  Destructure as `const { Command } = Scene` for concise call sites. */
 export const Command = {
+  /** Projects captured args by reference when the pending Command has this
+   * Definition's source identity, across all Binding and keyed occurrences.
+   * An argless match returns `Some(undefined)`; other sources and name-only
+   * metadata return `None`. This does not decode args, narrow the pending value,
+   * run Effects, or choose among matching occurrences. */
+  argsOf: <Definition extends ResolvableCommandDefinition<string, unknown>>(
+    definition: Definition,
+  ): ((pending: AnyCommand) => Option.Option<CommandArgs<Definition>>) =>
+    commandArgs(definition),
   /** Resolves a specific pending Command with the given result Message. */
   resolve: resolveCommand,
   /** Resolves listed Commands with their result Messages, cascading through any

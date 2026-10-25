@@ -9,10 +9,9 @@ const foldDialogOutMessage = EditorDefinition.makeOutMessageFold(
     Opened: EditorDefinition.makeNoopStep,
     CompletedClose: EditorDefinition.makeNoopStep,
     Closed: () =>
-      EditorDefinition.makeStep(model => ({
-        model,
-        commands: [SaveDraft({ contents: model.contents })],
-      })),
+      EditorDefinition.makeCommandsStep(model => [
+        SaveDraft({ contents: model.contents }),
+      ]),
   },
 )
 

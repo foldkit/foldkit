@@ -172,7 +172,7 @@ export const ReplacedViewedParentComposition = ParentDefinition.makeComposition(
 const prepare = () =>
   ReplacedViewedParentComposition.prepareBlock({
     init: ReplacedViewedParentComposition.makeInit(() => ({ model: {} })),
-    update: ReplacedViewedParentComposition.makeUpdate(),
+    update: ReplacedViewedParentComposition.makeUpdate({}),
     view: ReplacedViewedParentComposition.makeView((model, h) =>
       h.block(
         ReplacedViewedBinding.embedView({

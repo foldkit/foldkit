@@ -129,29 +129,33 @@ const report = ChildBaseDefinition.makeStep(model => ({
   outMessage: ChildOutMessage.Reported({ value: model.count }),
 }))
 
-const childUpdate = ChildComposition.makeUpdate(
-  (model, message, context: Readonly<{ roomId: string }>) =>
-    ChildMessage.match(message, {
-      RequestedSave: () => save(model),
-      RequestedReset: () => reset(model),
-      RequestedAddForRoom: ({ amount }) => addForRoom(model, amount, context),
-      RequestedReport: () => report(model),
-      ChangedCount: ({ amount }) => ({
-        model: modifyFields(model, {
-          count: () => model.count + amount + context.roomId.length,
-        }),
+const childUpdate = ChildComposition.makeUpdate.withContext(
+  (
+    context: Readonly<{
+      roomId: string
+    }>,
+  ) => ({
+    RequestedSave: model => save(model),
+    RequestedReset: model => reset(model),
+    RequestedAddForRoom: (model, { amount }) =>
+      addForRoom(model, amount, context),
+    RequestedReport: model => report(model),
+    ChangedCount: (model, { amount }) => ({
+      model: modifyFields(model, {
+        count: () => model.count + amount + context.roomId.length,
       }),
-      ReportedCount: () => ({
-        model,
-        outMessage: ChildOutMessage.Reported({ value: model.count }),
-      }),
-      CompletedSave: () => ({ model }),
-      ObservedTick: () => ({ model }),
-      AcquiredSession: () => ({ model }),
-      ReleasedSession: () => ({ model }),
-      FailedAcquireSession: () => ({ model }),
-      CompletedMeasure: () => ({ model }),
     }),
+    ReportedCount: model => ({
+      model,
+      outMessage: ChildOutMessage.Reported({ value: model.count }),
+    }),
+    CompletedSave: model => ({ model }),
+    ObservedTick: model => ({ model }),
+    AcquiredSession: model => ({ model }),
+    ReleasedSession: model => ({ model }),
+    FailedAcquireSession: model => ({ model }),
+    CompletedMeasure: model => ({ model }),
+  }),
 )
 
 const prepareChild = () =>
@@ -376,16 +380,37 @@ const initialParent: ParentModel = {
 const ParentComposition = Parent.makeComposition({
   bindings: [HomeBinding],
 })
-const foldHome = ParentComposition.makeUpdate(model => ({ model }))
+const foldHome = ParentComposition.makeUpdate({
+  RecordedReport: model => ({ model }),
+  RequestedResetHome: model => ({ model }),
+  RequestedAddHomeForRoom: model => ({ model }),
+  RequestedReportHome: model => ({ model }),
+})
 const foldCommandHome = Parent.makeComposition({
   bindings: [CommandHomeBinding],
-}).makeUpdate(model => ({ model }))
+}).makeUpdate({
+  RecordedReport: model => ({ model }),
+  RequestedResetHome: model => ({ model }),
+  RequestedAddHomeForRoom: model => ({ model }),
+  RequestedReportHome: model => ({ model }),
+})
 const ForwardOnlyComposition = Parent.makeComposition({
   bindings: [ForwardOnlyHomeBinding],
 })
-const foldForwardOnlyHome = ForwardOnlyComposition.makeUpdate(model => ({
-  model,
-}))
+const foldForwardOnlyHome = ForwardOnlyComposition.makeUpdate({
+  RecordedReport: model => ({
+    model,
+  }),
+  RequestedResetHome: model => ({
+    model,
+  }),
+  RequestedAddHomeForRoom: model => ({
+    model,
+  }),
+  RequestedReportHome: model => ({
+    model,
+  }),
+})
 const resetHome = Parent.makeStep(_model => HomeBinding.reset())
 const addHomeForRoom = Parent.makeStep(
   (_model, amount: number, context: Readonly<{ roomId: string }>) =>
@@ -395,15 +420,13 @@ const reportHome = Parent.makeStep(_model => HomeBinding.report())
 const prepareParentRuntime = () =>
   ParentComposition.prepareBlock({
     init: () => ({ model: initialParent }),
-    update: ParentComposition.makeUpdate((model, message) =>
-      ParentMessage.match(message, {
-        RequestedResetHome: () => resetHome(model),
-        RequestedAddHomeForRoom: ({ amount, roomId }) =>
-          addHomeForRoom(model, amount, { roomId }),
-        RequestedReportHome: () => reportHome(model),
-        RecordedReport: () => ({ model }),
-      }),
-    ),
+    update: ParentComposition.makeUpdate({
+      RequestedResetHome: model => resetHome(model),
+      RequestedAddHomeForRoom: (model, { amount, roomId }) =>
+        addHomeForRoom(model, amount, { roomId }),
+      RequestedReportHome: model => reportHome(model),
+      RecordedReport: model => Parent.makeNoopStep()(model),
+    }),
     operations: {
       resetHome: () => Tuple.make(ParentMessage.RequestedResetHome()),
       addHomeForRoom: (amount: number, context: Readonly<{ roomId: string }>) =>
@@ -431,13 +454,11 @@ const resetParentCommandHome = ParentPolicyDefinition.makeStep(_model =>
 const reportParentCommandHome = ParentPolicyDefinition.makeStep(_model =>
   ParentCommandHomeBinding.report(),
 )
-const foldParentPolicy = ParentPolicyComposition.makeUpdate((model, message) =>
-  PolicyMessage.match(message, {
-    RequestedResetHome: () => resetParentCommandHome(model),
-    RequestedReportHome: () => reportParentCommandHome(model),
-    CompletedPolicyWork: () => ({ model }),
-  }),
-)
+const foldParentPolicy = ParentPolicyComposition.makeUpdate({
+  RequestedResetHome: model => resetParentCommandHome(model),
+  RequestedReportHome: model => reportParentCommandHome(model),
+  CompletedPolicyWork: model => ParentPolicyDefinition.makeNoopStep()(model),
+})
 const prepareParentPolicyRuntime = () =>
   ParentPolicyComposition.prepareBlock({
     init: () => ({ model: initialParent }),
@@ -523,40 +544,33 @@ const addMany = WrappedArityDefinition.makeStep(
 const resetArity = WrappedArityDefinition.makeStep((model: ArityModel) => ({
   model: modifyFields(model, { count: () => 0 }),
 }))
-const wrappedArityUpdate = WrappedArityComposition.makeUpdate(
-  (
-    ...[model, message, context]: [
-      model: ArityModel,
-      message: ArityMessage,
-      context: Readonly<{ amount: number }>,
-    ]
-  ) =>
-    ArityMessage.match(message, {
-      RequestedDefaultIncrement: ({ amount }) =>
-        defaultIncrement(model, amount),
-      RequestedAddMany: ({ amounts }) => addMany(model, ...amounts),
-      RequestedAddWithRequiredPrefix: ({ first, labels }) => ({
-        model: modifyFields(model, {
-          count: count => count + first + labels.length,
-        }),
-      }),
-      RequestedAddWithOptionalPrefix: ({ first = 0, labels }) => ({
-        model: modifyFields(model, {
-          count: count => count + first + labels.length,
-        }),
-      }),
-      RequestedAddMixed: ({ values }) => ({
-        model: modifyFields(model, {
-          count: count => count + values.length,
-        }),
-      }),
-      RequestedReset: () => resetArity(model),
-      IncreasedCount: () => ({
-        model: modifyFields(model, {
-          count: count => count + context.amount,
-        }),
+const wrappedArityUpdate = WrappedArityComposition.makeUpdate.withContext(
+  (context: Readonly<{ amount: number }>) => ({
+    RequestedDefaultIncrement: (model, { amount }) =>
+      defaultIncrement(model, amount),
+    RequestedAddMany: (model, { amounts }) => addMany(model, ...amounts),
+    RequestedAddWithRequiredPrefix: (model, { first, labels }) => ({
+      model: modifyFields(model, {
+        count: count => count + first + labels.length,
       }),
     }),
+    RequestedAddWithOptionalPrefix: (model, { first = 0, labels }) => ({
+      model: modifyFields(model, {
+        count: count => count + first + labels.length,
+      }),
+    }),
+    RequestedAddMixed: (model, { values }) => ({
+      model: modifyFields(model, {
+        count: count => count + values.length,
+      }),
+    }),
+    RequestedReset: model => resetArity(model),
+    IncreasedCount: model => ({
+      model: modifyFields(model, {
+        count: count => count + context.amount,
+      }),
+    }),
+  }),
 )
 const prepareWrappedArityBlock = () =>
   WrappedArityComposition.prepareBlock({
@@ -638,10 +652,19 @@ const IgnoredMessageComposition = IgnoredMessageNamespace.makeDefinition({
 const ignoredMessageUpdate = (model: typeof ArityModel.Type) => ({
   model: modifyFields(model, { count: count => count + 1 }),
 })
+const ignoredMessageHandlers = {
+  RequestedReset: ignoredMessageUpdate,
+  RequestedDefaultIncrement: ignoredMessageUpdate,
+  RequestedAddMany: ignoredMessageUpdate,
+  RequestedAddWithRequiredPrefix: ignoredMessageUpdate,
+  RequestedAddWithOptionalPrefix: ignoredMessageUpdate,
+  RequestedAddMixed: ignoredMessageUpdate,
+  IncreasedCount: ignoredMessageUpdate,
+}
 const prepareIgnoredMessage = () =>
   IgnoredMessageComposition.prepareBlock({
     init: IgnoredMessageComposition.makeInit(arityInit),
-    update: IgnoredMessageComposition.makeUpdate(ignoredMessageUpdate),
+    update: IgnoredMessageComposition.makeUpdate(ignoredMessageHandlers),
   })
 const IgnoredMessage: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ArityModel,
@@ -661,13 +684,47 @@ const DefaultContextComposition = DefaultContextNamespace.makeDefinition({
 const prepareDefaultContext = () =>
   DefaultContextComposition.prepareBlock({
     init: DefaultContextComposition.makeInit(arityInit),
-    update: DefaultContextComposition.makeUpdate(
+    update: DefaultContextComposition.makeUpdate.withContext(
       (
-        model,
-        _message,
-        context: Readonly<{ amount: number }> = { amount: 2 },
+        context: Readonly<{
+          amount: number
+        }> = { amount: 2 },
       ) => ({
-        model: modifyFields(model, { count: count => count + context.amount }),
+        RequestedReset: (model, _message) => ({
+          model: modifyFields(model, {
+            count: count => count + context.amount,
+          }),
+        }),
+        RequestedDefaultIncrement: (model, _message) => ({
+          model: modifyFields(model, {
+            count: count => count + context.amount,
+          }),
+        }),
+        RequestedAddMany: (model, _message) => ({
+          model: modifyFields(model, {
+            count: count => count + context.amount,
+          }),
+        }),
+        RequestedAddWithRequiredPrefix: (model, _message) => ({
+          model: modifyFields(model, {
+            count: count => count + context.amount,
+          }),
+        }),
+        RequestedAddWithOptionalPrefix: (model, _message) => ({
+          model: modifyFields(model, {
+            count: count => count + context.amount,
+          }),
+        }),
+        RequestedAddMixed: (model, _message) => ({
+          model: modifyFields(model, {
+            count: count => count + context.amount,
+          }),
+        }),
+        IncreasedCount: (model, _message) => ({
+          model: modifyFields(model, {
+            count: count => count + context.amount,
+          }),
+        }),
       }),
     ),
   })
@@ -690,10 +747,46 @@ const OptionalContextComposition = OptionalContextNamespace.makeDefinition({
 const prepareOptionalContext = () =>
   OptionalContextComposition.prepareBlock({
     init: OptionalContextComposition.makeInit(arityInit),
-    update: OptionalContextComposition.makeUpdate(
-      (model, _message, context?: Readonly<{ amount: number }>) => ({
-        model: modifyFields(model, {
-          count: count => count + (context?.amount ?? 1),
+    update: OptionalContextComposition.makeUpdate.withContext(
+      (
+        context?: Readonly<{
+          amount: number
+        }>,
+      ) => ({
+        RequestedReset: (model, _message) => ({
+          model: modifyFields(model, {
+            count: count => count + (context?.amount ?? 1),
+          }),
+        }),
+        RequestedDefaultIncrement: (model, _message) => ({
+          model: modifyFields(model, {
+            count: count => count + (context?.amount ?? 1),
+          }),
+        }),
+        RequestedAddMany: (model, _message) => ({
+          model: modifyFields(model, {
+            count: count => count + (context?.amount ?? 1),
+          }),
+        }),
+        RequestedAddWithRequiredPrefix: (model, _message) => ({
+          model: modifyFields(model, {
+            count: count => count + (context?.amount ?? 1),
+          }),
+        }),
+        RequestedAddWithOptionalPrefix: (model, _message) => ({
+          model: modifyFields(model, {
+            count: count => count + (context?.amount ?? 1),
+          }),
+        }),
+        RequestedAddMixed: (model, _message) => ({
+          model: modifyFields(model, {
+            count: count => count + (context?.amount ?? 1),
+          }),
+        }),
+        IncreasedCount: (model, _message) => ({
+          model: modifyFields(model, {
+            count: count => count + (context?.amount ?? 1),
+          }),
         }),
       }),
     ),
@@ -717,9 +810,17 @@ const WrappedArityParentComposition = WrappedArityParent.makeComposition({
     OptionalContextBinding,
   ],
 })
-const foldWrappedArity = WrappedArityParentComposition.makeUpdate(model => ({
-  model,
-}))
+const foldWrappedArity = WrappedArityParentComposition.makeUpdate({
+  RequestedReset: model => ({
+    model,
+  }),
+  RequestedDefaultIncrement: model => ({
+    model,
+  }),
+  RequestedAddMany: model => ({
+    model,
+  }),
+})
 const runDefaultIncrement = WrappedArityParent.makeStep(
   (_model, amount?: number) => {
     if (amount === undefined) {
@@ -739,14 +840,12 @@ const runResetArity = WrappedArityParent.makeStep(_model =>
 const prepareWrappedArityRuntime = () =>
   WrappedArityParentComposition.prepareBlock({
     init: () => ({ model: initialArityParent }),
-    update: WrappedArityParentComposition.makeUpdate((model, message) =>
-      ArityParentMessage.match(message, {
-        RequestedDefaultIncrement: ({ amount }) =>
-          runDefaultIncrement(model, amount),
-        RequestedAddMany: ({ amounts }) => runAddMany(model, ...amounts),
-        RequestedReset: () => runResetArity(model),
-      }),
-    ),
+    update: WrappedArityParentComposition.makeUpdate({
+      RequestedDefaultIncrement: (model, { amount }) =>
+        runDefaultIncrement(model, amount),
+      RequestedAddMany: (model, { amounts }) => runAddMany(model, ...amounts),
+      RequestedReset: model => runResetArity(model),
+    }),
     operations: {
       runDefaultIncrement: (amount?: number) =>
         Tuple.make(
@@ -765,15 +864,39 @@ const WrappedArityRuntime: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof prepareWrappedArityRuntime
 > = Block.assemble(prepareWrappedArityRuntime)
 
-const foldIgnoredMessage = WrappedArityParentComposition.makeUpdate(model => ({
-  model,
-}))
-const foldDefaultContext = WrappedArityParentComposition.makeUpdate(model => ({
-  model,
-}))
-const foldOptionalContext = WrappedArityParentComposition.makeUpdate(model => ({
-  model,
-}))
+const foldIgnoredMessage = WrappedArityParentComposition.makeUpdate({
+  RequestedReset: model => ({
+    model,
+  }),
+  RequestedDefaultIncrement: model => ({
+    model,
+  }),
+  RequestedAddMany: model => ({
+    model,
+  }),
+})
+const foldDefaultContext = WrappedArityParentComposition.makeUpdate({
+  RequestedReset: model => ({
+    model,
+  }),
+  RequestedDefaultIncrement: model => ({
+    model,
+  }),
+  RequestedAddMany: model => ({
+    model,
+  }),
+})
+const foldOptionalContext = WrappedArityParentComposition.makeUpdate({
+  RequestedReset: model => ({
+    model,
+  }),
+  RequestedDefaultIncrement: model => ({
+    model,
+  }),
+  RequestedAddMany: model => ({
+    model,
+  }),
+})
 
 describe('Block binding', () => {
   it('preserves contextual update arguments without a deferred update member', () => {
@@ -909,7 +1032,7 @@ describe('Block binding', () => {
     >().toEqualTypeOf<Qualify<'command-home', Command.HandlerOf<typeof Save>>>()
     expectTypeOf<
       Update.RequirementsOf<ReturnType<typeof CommandHomeBinding.report>>
-    >().toEqualTypeOf<Qualify<'command-home', Command.HandlerOf<typeof Save>>>()
+    >().toEqualTypeOf<never>()
   })
 
   it('keeps forward-only policy requirements separate from child producers', () => {
@@ -956,14 +1079,10 @@ describe('Block binding', () => {
     expect(report.commands).toHaveLength(1)
     expectTypeOf<
       Update.RequirementsOf<ReturnType<typeof ParentCommandHomeBinding.reset>>
-    >().toEqualTypeOf<
-      Scoped<'parent-command-home', Command.HandlerOf<typeof Save>>
-    >()
+    >().toEqualTypeOf<never>()
     expectTypeOf<
       Update.RequirementsOf<ReturnType<typeof ParentCommandHomeBinding.report>>
-    >().toEqualTypeOf<
-      Scoped<'parent-command-home', Command.HandlerOf<typeof Save>>
-    >()
+    >().toEqualTypeOf<never>()
     expectTypeOf<
       Update.RequirementsOf<typeof foldParentPolicy>
     >().toEqualTypeOf<
@@ -976,7 +1095,7 @@ describe('Block binding', () => {
     expectTypeOf<
       CommandMessageOfReturn<ReturnType<typeof foldParentPolicy>>
     >().toEqualTypeOf<typeof ParentPolicyComposition.Message.Type>()
-    expectTypeOf(reset.outMessage).toEqualTypeOf<ParentOutMessage | undefined>()
+    expectTypeOf(reset.outMessage).toEqualTypeOf<undefined>()
     expectTypeOf(report.outMessage).toEqualTypeOf<
       ParentOutMessage | undefined
     >()
@@ -1079,7 +1198,7 @@ describe('Block binding', () => {
     const prepareParent = () =>
       parentContract.prepareBlock({
         init: () => ({ model: initialParent }),
-        update: (model, _message) => ({ model }),
+        update: parentContract.makeUpdate({}),
         EffectsLayer: Layer.empty,
       })
     const parent: Block.FromAssemblyWithOutMessage<
@@ -1368,7 +1487,9 @@ describe('Block child registration composition', () => {
       const prepareRepeated = () =>
         RepeatedComposition.prepareBlock({
           init: () => ({ model: ChildModel.make({ count: 0 }) }),
-          update: model => ({ model }),
+          update: RepeatedComposition.makeUpdate({
+            CompletedMount: model => ({ model }),
+          }),
           EffectsLayer,
           hostHandlers: [RepeatedMount],
         })
@@ -1428,17 +1549,13 @@ describe('generic block refinement', () => {
       model,
       commands: [FinishChoice()],
     }))
-    const update = Composition.makeUpdate((model, message) => {
-      if (message._tag === 'RequestedFinish') {
-        return finish(model)
-      } else if (message._tag === 'SelectedValue') {
-        return {
-          model: Model.make({ value: message.value }),
-          outMessage: OutMessage.make({ value: message.value }),
-        }
-      } else {
-        return { model }
-      }
+    const update = Composition.makeUpdate({
+      RequestedFinish: model => finish(model),
+      SelectedValue: (_model, { value }) => ({
+        model: Model.make({ value }),
+        outMessage: OutMessage.make({ value }),
+      }),
+      CompletedChoiceWork: model => ({ model }),
     })
     const prepare = () =>
       Composition.prepareBlock({
@@ -1507,7 +1624,7 @@ describe('generic block refinement', () => {
     const ChoiceComposition = ChoiceParent.makeComposition({
       bindings: [Binding],
     })
-    const foldChoice = ChoiceComposition.makeUpdate()
+    const foldChoice = ChoiceComposition.makeUpdate({})
 
     const result = foldChoice(
       { choice: Choice.Model.make({ value: 'One' }) },

@@ -34,7 +34,9 @@ const panelView = <Builder extends PanelViewBuilder>(
 const init = PanelComposition.makeInit(() => ({
   model: Model.make({ label: 'PanelDefinition' }),
 }))
-const update = PanelComposition.makeUpdate(model => ({ model }))
+const update = PanelComposition.makeUpdate({
+  CompletedMeasurePanel: PanelDefinition.makeNoopStep(),
+})
 const view = PanelComposition.makeView((model, h) => panelView(model, h))
 
 const prepare = () =>

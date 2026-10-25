@@ -65,7 +65,7 @@ const init = FileDropExampleComposition.makeInit(() => ({
   },
 }))
 
-const update = FileDropExampleComposition.makeUpdate()
+const update = FileDropExampleComposition.makeUpdate({})
 
 // Render the drop zone. The `toView` callback receives attribute groups.
 // Spread `root` onto a <label> so clicking opens the picker, and spread

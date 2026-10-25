@@ -29,7 +29,7 @@ export const init = ApplicationComposition.makeInit(() => ({
   },
 }))
 
-export const update = ApplicationComposition.makeUpdate()
+export const update = ApplicationComposition.makeUpdate({})
 
 export const view = ApplicationComposition.makeView((model, h) => ({
   title: `${model.displayName}'s profile`,

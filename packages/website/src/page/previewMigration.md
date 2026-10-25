@@ -57,7 +57,7 @@ The final API separates four responsibilities:
 
 `Block.makeDefinition`, `makeComposition`, `prepareBlock`, `Program.make`, and `Program.makeElement` all return passive values. `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` builds the selected Layers and starts the application.
 
-For ordinary source Blocks, name the single private zero-argument preparation producer `prepare` and put the matching four-shape export header immediately after it with no blank line. Use a descriptive producer name only when one file genuinely contains multiple preparation producers. Keep the feature barrel focused on its completed Block, and compose parent state with `ChildBlock.Model`. The recommended `foldkit/no-completed-block-model-in-schema` rule guards inferred assembly dependencies while accepting the recognized checked boundary. See [Model Schema dependencies](/patterns/project-organization#keep-model-schema-dependencies-small).
+For ordinary source Blocks, name the single private zero-argument preparation producer `prepare` and put the matching four-shape export header immediately after it with no blank line. Use a descriptive producer name only when one file genuinely contains multiple preparation producers. Keep the feature barrel focused on its completed Block, and compose parent state with `ChildBlock.Model`. The recommended `foldkit/no-completed-block-model-in-schema` rule guards inferred assembly dependencies while accepting the recognized checked boundary. See [Model Schema dependencies](/patterns/project-organization#keep-model-schema-dependencies-small). A package shipping declaration files uses a named interface over the same checked header for each public Block and verifies its emitted public entrypoints; a JavaScript-only application can keep the checked value annotation. See [public Block declarations](/patterns/project-organization#declaration-emission).
 
 The completed Block is the boundary that parents consume. It carries its Model Schema, complete Message Codec, optional OutMessage matcher, operations, view contract, lifecycle declarations, handler graph, and child graph together.
 
@@ -148,6 +148,14 @@ Make these changes together:
 Composition derives a private delivery envelope for each registered placement and routes it before the local update callback. Use `ParentComposition.Message` while authoring against the graph, and `ParentBlock.Message` after completion, whenever serialization, replay, DevTools, routing, or crash reporting needs the complete Message Codec. Do not construct generated `Got<Placement>Message` envelopes yourself.
 
 Use `delivery.when` to accept child delivery conditionally and `delivery.toUpdateContext` when the child's update needs parent-supplied dispatch context. Those fields control delivery. They do not recreate an authored wrapper.
+
+### Author Local Update Handlers
+
+Use `FeatureComposition.makeUpdate({ Tag: (model, message) => result })` for an exhaustive record of locally authored facts. Composition routes generated child delivery separately. Each handler retains its own inferred Command requirements and OutMessages, so an operation selecting a silent handler does not acquire another handler's possible OutMessage. Use `makeUpdate.withContext(context => handlers)` when dispatch supplies additional arguments.
+
+::Snippet{name="counterUpdate" label="Authoring exhaustive local Message handlers"}
+
+Normal handlers may return result objects directly. In a handler that mixes local results with connected Binding recipes, use Definition-owned Steps for the local branches. The [Update guide](/core/update#preserving-local-results-beside-connected-operations) explains the enforced boundary and shows a repair. Do not annotate away registration or result-channel requirements.
 
 ### Select the Binding Shape
 
@@ -351,6 +359,7 @@ Treat the first error in an ownership chain as the useful one.
 | `Runtime.makeApplication` or `Runtime.makeElement` is missing              | Complete `ApplicationBlock`, then create the matching page or element Program separately.                                                                                                                                                                     |
 | A view cannot embed a child or use a Mount                                 | Register the exact Binding or Mount in the same Composition that authored the view. Derive helper builders from that Composition.                                                                                                                             |
 | A Binding operation is a Step where an update result is required           | Apply it to the contextual Model, such as `Binding.requestOpen()(model)`. Pass the unapplied Step only to `Update.combineSteps`, a Definition-owned `makeStep`, or Composition startup.                                                                       |
+| An OutMessage-producing Step fails an `Update.combineSteps` overload       | `combineSteps` has no OutMessage channel. Combine the plain Steps, then attach the known OutMessage to their result with `Update.withOutMessage`. See [Step authoring](/core/block).                                                                          |
 | The parent update loses Commands or an OutMessage                          | Return the executed result after applying the Binding operation to the contextual Model. Do not select or copy only `.model`; that discards the other channels.                                                                                               |
 | Child initialization leaves a field missing or loses Commands              | Put startup args and instances on the Binding. Let `makeInit` assemble children, and use `Binding.init` for dynamic occurrences.                                                                                                                              |
 | `Runtime.run` still requires a handler                                     | Include the owning definition's `.layer` in the feature's local `EffectsLayer`, or explicitly complete an intentional host handler contract.                                                                                                                  |

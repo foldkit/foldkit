@@ -284,6 +284,7 @@ const foldkitNamespaceBySource: Readonly<Record<string, string>> = {
   'foldkit/experimental': 'Experimental',
   'foldkit/experimental/query': 'Query',
   'foldkit/html': 'Html',
+  'foldkit/mapBinding': 'MapBinding',
   'foldkit/managedResource': 'ManagedResource',
   'foldkit/message': 'Message',
   'foldkit/mount': 'Mount',
@@ -901,8 +902,9 @@ export const firstCommandNameArgument = (
 const bindingConfigHasProperties = (
   node: ESTree.CallExpression,
   names: ReadonlyArray<string>,
+  references?: WeakMap<ESTree.Node, Reference>,
 ): boolean => {
-  const config = blockBindingConfiguration(node)
+  const config = blockBindingConfiguration(node, references)
   if (!isObjectExpression(config)) {
     return false
   }
@@ -923,8 +925,9 @@ const bindingConfigHasProperties = (
 const bindingConfigHasStaticStringProperty = (
   node: ESTree.CallExpression,
   name: string,
+  references?: WeakMap<ESTree.Node, Reference>,
 ): boolean => {
-  const config = blockBindingConfiguration(node)
+  const config = blockBindingConfiguration(node, references)
   if (!isObjectExpression(config)) {
     return false
   }
@@ -956,22 +959,84 @@ export const blockBindingSourceCall = (
   node: ESTree.CallExpression,
 ): ESTree.CallExpression => directBindingCall(node)
 
+const isMapBindingCall = (
+  node: ESTree.CallExpression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean =>
+  references !== undefined &&
+  Option.exists(resolveFoldkitApiPath(references, node.callee), path => {
+    const [namespace, helperName, extraMember] = path
+    return (
+      namespace === 'MapBinding' &&
+      helperName === 'makeMapBinding' &&
+      extraMember === undefined
+    )
+  })
+
+/** Recognizes a Definition method or dedicated Foldkit helper Binding call. */
+export const isBlockBindingCall = (
+  node: ESTree.CallExpression,
+  references?: WeakMap<ESTree.Node, Reference>,
+): boolean => {
+  const bindingCall = directBindingCall(node)
+  return (
+    isMapBindingCall(bindingCall, references) ||
+    isOwnedDefinitionCall(bindingCall, 'makeBinding', references)
+  )
+}
+
 /** Returns a parent-owned Binding configuration, or a standalone fold configuration. */
 export const blockBindingConfiguration = (
   node: ESTree.CallExpression,
+  references?: WeakMap<ESTree.Node, Reference>,
 ): ESTree.CallExpression['arguments'][number] | undefined => {
   const bindingCall = directBindingCall(node)
 
   return Option.getOrUndefined(
     Array.get(
       bindingCall.arguments,
-      Option.exists(staticMemberPath(bindingCall.callee), path =>
-        Option.contains(Array.last(path.members), 'makeBinding'),
-      )
-        ? 1
-        : 0,
+      isMapBindingCall(bindingCall, references)
+        ? 2
+        : Option.exists(staticMemberPath(bindingCall.callee), path =>
+              Option.contains(Array.last(path.members), 'makeBinding'),
+            )
+          ? 1
+          : 0,
     ),
   )
+}
+
+/** Returns the child Block supplied to a recognized parent-owned Binding call. */
+export const blockBindingChild = (
+  node: ESTree.CallExpression,
+  references?: WeakMap<ESTree.Node, Reference>,
+): unknown => {
+  const bindingCall = directBindingCall(node)
+  if (isMapBindingCall(bindingCall, references)) {
+    return Option.getOrUndefined(Array.get(bindingCall.arguments, 1))
+  }
+  if (!isOwnedDefinitionCall(bindingCall, 'makeBinding', references)) {
+    return undefined
+  }
+  return Option.getOrUndefined(Array.head(bindingCall.arguments))
+}
+
+/** Returns the parent Definition supplied to a recognized Binding call. */
+export const blockBindingParent = (
+  node: ESTree.CallExpression,
+  references?: WeakMap<ESTree.Node, Reference>,
+): unknown => {
+  const bindingCall = directBindingCall(node)
+  if (isMapBindingCall(bindingCall, references)) {
+    return Option.getOrUndefined(Array.head(bindingCall.arguments))
+  }
+  if (
+    !isMemberExpression(bindingCall.callee) ||
+    !Option.contains(staticMemberName(bindingCall.callee), 'makeBinding')
+  ) {
+    return undefined
+  }
+  return bindingCall.callee.object
 }
 
 /** Recognizes static and keyed parent-owned child Bindings from their configuration. */
@@ -980,24 +1045,33 @@ export const blockBindingMethod = (
   references?: WeakMap<ESTree.Node, Reference>,
 ): Option.Option<'Static' | 'Keyed'> => {
   const bindingCall = directBindingCall(node)
+  if (isMapBindingCall(bindingCall, references)) {
+    return Option.some('Keyed')
+  }
   if (!isOwnedDefinitionCall(bindingCall, 'makeBinding', references)) {
     return Option.none()
   }
 
   if (
-    bindingConfigHasProperties(node, ['field', 'key']) &&
-    bindingConfigHasStaticStringProperty(node, 'key')
+    bindingConfigHasProperties(node, ['field', 'key'], references) &&
+    bindingConfigHasStaticStringProperty(node, 'key', references)
   ) {
     return Option.some('Keyed')
   }
 
-  if (bindingConfigHasProperties(node, ['readAll', 'key', 'read', 'writeAt'])) {
+  if (
+    bindingConfigHasProperties(
+      node,
+      ['readAll', 'key', 'read', 'writeAt'],
+      references,
+    )
+  ) {
     return Option.some('Keyed')
   }
 
   if (
-    bindingConfigHasProperties(node, ['read', 'write']) ||
-    bindingConfigHasProperties(node, ['field'])
+    bindingConfigHasProperties(node, ['read', 'write'], references) ||
+    bindingConfigHasProperties(node, ['field'], references)
   ) {
     return Option.some('Static')
   }
@@ -1049,17 +1123,35 @@ export const isBindingPolicyCall = (
   })
 }
 
+/** Finds the owner before an authoring method or its focused Message adapter. */
+export const definitionMethodOwnerPath = (
+  callee: unknown,
+  method: string,
+): Option.Option<StaticMemberPath> =>
+  Option.flatMap(staticMemberPath(callee), path => {
+    if (Option.contains(Array.last(path.members), method)) {
+      return Option.some({ ...path, members: path.members.slice(0, -1) })
+    }
+    if (
+      Array.contains(
+        ['makeFieldsStep', 'makeCommandsStep', 'makeOutMessageStep'],
+        method,
+      ) &&
+      Option.contains(Array.last(path.members), 'fromMessage') &&
+      Option.contains(Array.get(path.members, path.members.length - 2), method)
+    ) {
+      return Option.some({ ...path, members: path.members.slice(0, -2) })
+    }
+    return Option.none()
+  })
+
 /** Recognizes an authoring method on a Block or imported feature owner. */
-const isOwnedDefinitionCallee = (
+export const isOwnedDefinitionCallee = (
   callee: unknown,
   method: string,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): boolean =>
-  Option.exists(staticMemberPath(callee), path => {
-    if (!Option.contains(Array.last(path.members), method)) {
-      return false
-    }
-
+  Option.exists(definitionMethodOwnerPath(callee, method), path => {
     if (references === undefined) {
       return true
     }

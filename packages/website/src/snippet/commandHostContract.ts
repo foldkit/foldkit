@@ -31,20 +31,18 @@ const init = EditorComposition.makeInit((contents: string) => ({
   model: { contents, save: SaveState.Idle() },
 }))
 
-const update = EditorComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedSave: () => ({
-      model: modifyFields(model, { save: () => SaveState.Saving() }),
-      commands: [SaveDocument({ contents: model.contents })],
-    }),
-    SucceededSaveDocument: () => ({
-      model: modifyFields(model, { save: () => SaveState.Saved() }),
-    }),
-    FailedSaveDocument: ({ reason }) => ({
-      model: modifyFields(model, { save: () => SaveState.Failed({ reason }) }),
-    }),
+const update = EditorComposition.makeUpdate({
+  ClickedSave: model => ({
+    model: modifyFields(model, { save: () => SaveState.Saving() }),
+    commands: [SaveDocument({ contents: model.contents })],
   }),
-)
+  SucceededSaveDocument: EditorDefinition.makeFieldsStep(() => ({
+    save: () => SaveState.Saved(),
+  })),
+  FailedSaveDocument: EditorDefinition.makeFieldsStep.fromMessage(
+    ({ reason }) => ({ save: () => SaveState.Failed({ reason }) }),
+  ),
+})
 
 const prepare = () =>
   EditorComposition.prepareBlock({

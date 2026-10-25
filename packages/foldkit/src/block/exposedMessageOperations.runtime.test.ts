@@ -35,26 +35,39 @@ const RecordValue = Child.makeCommand('RecordValue', {
   },
 })
 const ChildComposition = Child.makeComposition()
-const childUpdate = ChildComposition.makeUpdate((model, message) =>
-  ChildMessage.match<
-    Update.ReturnWithOutMessage<
-      ChildModel,
-      ChildMessage,
-      ChildOutMessage,
-      Command.HandlerOf<typeof RecordValue>
-    >
-  >(message, {
-    RequestedReset: () => ({
-      model: modifyFields(model, { value: () => '' }),
-    }),
-    UpdatedValue: ({ value }) => ({
-      model: modifyFields(model, { value: () => value }),
-      commands: [RecordValue({ value })],
-      outMessage: ChildOutMessage.ChangedValue({ value }),
-    }),
-    CompletedRecordValue: () => ({ model }),
+const childUpdate = ChildComposition.makeUpdate({
+  RequestedReset: (
+    model,
+  ): Update.ReturnWithOutMessage<
+    ChildModel,
+    ChildMessage,
+    ChildOutMessage,
+    Command.HandlerOf<typeof RecordValue>
+  > => ({
+    model: modifyFields(model, { value: () => '' }),
   }),
-)
+  UpdatedValue: (
+    model,
+    { value },
+  ): Update.ReturnWithOutMessage<
+    ChildModel,
+    ChildMessage,
+    ChildOutMessage,
+    Command.HandlerOf<typeof RecordValue>
+  > => ({
+    model: modifyFields(model, { value: () => value }),
+    commands: [RecordValue({ value })],
+    outMessage: ChildOutMessage.ChangedValue({ value }),
+  }),
+  CompletedRecordValue: (
+    model,
+  ): Update.ReturnWithOutMessage<
+    ChildModel,
+    ChildMessage,
+    ChildOutMessage,
+    Command.HandlerOf<typeof RecordValue>
+  > => ({ model }),
+})
 const prepareChildBlock = () =>
   ChildComposition.prepareBlock({
     init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
@@ -82,18 +95,18 @@ const ContextComposition = makeDefinition('ExposedMessageRuntimeContextChild', {
   Model: ContextModel,
   Message: ContextMessage,
 }).makeComposition()
-const contextUpdate = ContextComposition.makeUpdate(
+const contextUpdate = ContextComposition.makeUpdate.withContext(
   (
-    model,
-    { value },
     required: DispatchContext,
     maybeCount?: number,
     label = 'default',
     ...flags: ReadonlyArray<boolean>
   ) => ({
-    model: modifyFields(model, {
-      value: () =>
-        `${required.source}:${value}:${maybeCount ?? 0}:${label}:${flags.length}`,
+    UpdatedValue: (model, { value }) => ({
+      model: modifyFields(model, {
+        value: () =>
+          `${required.source}:${value}:${maybeCount ?? 0}:${label}:${flags.length}`,
+      }),
     }),
   }),
 )
@@ -165,14 +178,12 @@ const EntryBinding = Parent.makeBinding(ChildBlock, {
 const ParentComposition = Parent.makeComposition({
   bindings: [ChildBinding, EntryBinding],
 })
-const parentUpdate = ParentComposition.makeUpdate((model, message) =>
-  ParentMessage.match(message, {
-    RequestedNothing: () => ({ model }),
-    RequestedSetChild: ({ value }) => ChildBinding.setValue(value)(model),
-    RequestedSetEntry: ({ id, value }) =>
-      EntryBinding.setValue(id, value)(model),
-  }),
-)
+const parentUpdate = ParentComposition.makeUpdate({
+  RequestedNothing: model => Parent.makeNoopStep()(model),
+  RequestedSetChild: (model, { value }) => ChildBinding.setValue(value)(model),
+  RequestedSetEntry: (model, { id, value }) =>
+    EntryBinding.setValue(id, value)(model),
+})
 const parentModel = ParentModel.make({
   maybeChild: Option.some(ChildModel.make({ value: 'direct' })),
   entries: [
@@ -290,13 +301,33 @@ describe('exposed Message operations', () => {
         return Tuple.make(ParentMessage.RequestedNothing())
       },
     }
-    const firstUpdate = ParentComposition.makeUpdate((model, _message) => {
-      firstUpdateCalls += 1
-      return { model }
+    const firstUpdate = ParentComposition.makeUpdate({
+      RequestedNothing: (model, _message) => {
+        firstUpdateCalls += 1
+        return { model }
+      },
+      RequestedSetChild: (model, _message) => {
+        firstUpdateCalls += 1
+        return { model }
+      },
+      RequestedSetEntry: (model, _message) => {
+        firstUpdateCalls += 1
+        return { model }
+      },
     })
-    const secondUpdate = ParentComposition.makeUpdate((model, _message) => {
-      secondUpdateCalls += 1
-      return { model }
+    const secondUpdate = ParentComposition.makeUpdate({
+      RequestedNothing: (model, _message) => {
+        secondUpdateCalls += 1
+        return { model }
+      },
+      RequestedSetChild: (model, _message) => {
+        secondUpdateCalls += 1
+        return { model }
+      },
+      RequestedSetEntry: (model, _message) => {
+        secondUpdateCalls += 1
+        return { model }
+      },
     })
     const makeBlock = (update: typeof firstUpdate) => {
       const prepare = () =>

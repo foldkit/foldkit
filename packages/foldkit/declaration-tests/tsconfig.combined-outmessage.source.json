@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "foldkit": ["../src/index.ts"],
+      "foldkit/story": ["../src/story/public.ts"]
+    },
+    "rootDir": ".."
+  },
+  "include": [
+    "../src/vite-env.d.ts",
+    "combined-outmessage.accepted.ts",
+    "combined-outmessage.consume.ts",
+    "combined-outmessage.rejected.ts"
+  ]
+}

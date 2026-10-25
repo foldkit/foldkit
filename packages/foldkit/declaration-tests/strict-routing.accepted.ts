@@ -31,11 +31,13 @@ const prepareChildBlock = () =>
     init: ChildComposition.makeInit(() => ({
       model: ChildModel.make({ count: 0 }),
     })),
-    update: ChildComposition.makeUpdate((model, message) => ({
-      model: modifyFields(model, {
-        count: count => count + message.amount,
+    update: ChildComposition.makeUpdate({
+      ChangedCount: (model, message) => ({
+        model: modifyFields(model, {
+          count: count => count + message.amount,
+        }),
       }),
-    })),
+    }),
   })
 export const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
@@ -59,10 +61,12 @@ const prepareContextChildBlock = () =>
     init: ContextChildComposition.makeInit(() => ({
       model: ChildModel.make({ count: 0 }),
     })),
-    update: ContextChildComposition.makeUpdate(
-      (model, message, context: DispatchContext) => ({
-        model: modifyFields(model, {
-          count: count => count + message.amount * context.multiplier,
+    update: ContextChildComposition.makeUpdate.withContext(
+      (context: DispatchContext) => ({
+        ChangedCount: (model, message) => ({
+          model: modifyFields(model, {
+            count: count => count + message.amount * context.multiplier,
+          }),
         }),
       }),
     ),
@@ -118,17 +122,17 @@ export const ParentComposition = ParentDefinition.makeComposition({
   bindings: [CanonicalBinding, ContextBinding, KeyedBinding],
 })
 
-export const parentUpdate = ParentComposition.makeUpdate((model, message) => {
-  type AuthoredMessageIsLocal = Expect<
-    Equal<typeof message, typeof ParentMessage.ClickedReset.Type>
-  >
-
-  const _proof: AuthoredMessageIsLocal = true
-  void _proof
-
-  return {
-    model: modifyFields(model, { resets: resets => resets + 1 }),
-  }
+export const parentUpdate = ParentComposition.makeUpdate({
+  ClickedReset: (model, message) => {
+    type AuthoredMessageIsLocal = Expect<
+      Equal<typeof message, typeof ParentMessage.ClickedReset.Type>
+    >
+    const _proof: AuthoredMessageIsLocal = true
+    void _proof
+    return {
+      model: modifyFields(model, { resets: resets => resets + 1 }),
+    }
+  },
 })
 
 export const parentModel = ParentModel.make({
@@ -206,7 +210,7 @@ const WaitForever = SilentDefinition.makeCommand('WaitForever', {
 })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 const SilentComposition = SilentDefinition.makeComposition()
-export const silentUpdate = SilentComposition.makeUpdate()
+export const silentUpdate = SilentComposition.makeUpdate({})
 const prepareSilentBlock = () =>
   SilentComposition.prepareBlock({
     init: SilentComposition.makeInit(() => ({
@@ -253,7 +257,9 @@ const prepareSilentParentBlock = () =>
     init: SilentParentComposition.makeInit(() => ({
       model: {},
     })),
-    update: SilentParentComposition.makeUpdate(model => ({ model })),
+    update: SilentParentComposition.makeUpdate({
+      ClickedParent: model => ({ model }),
+    }),
   })
 export const SilentParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof SilentParentModel,

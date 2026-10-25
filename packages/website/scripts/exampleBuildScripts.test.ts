@@ -20,11 +20,9 @@ const CANARY_COMMIT = '0123456789abcdef0123456789abcdef01234567'
 
 afterEach(() => vi.unstubAllEnvs())
 
-const previewManifest = async () => {
+const previewManifest = () => {
   vi.stubEnv('VITE_FOLDKIT_CANARY_COMMIT', undefined)
   vi.stubEnv('VITE_FOLDKIT_PREVIEW_RELEASE', undefined)
-
-  const versions = await loadPlaygroundWorkspacePackageVersions()
 
   return {
     schemaVersion: 1,
@@ -32,7 +30,7 @@ const previewManifest = async () => {
     sourceCommit: CANARY_COMMIT,
     uploadTag: previewUploadTag(CANARY_COMMIT),
     packages: Object.fromEntries(
-      Object.entries(versions).map(([name, version]) => [
+      Object.entries(stableWorkspacePackageVersions).map(([name, version]) => [
         name,
         canaryVersion(version, CANARY_COMMIT),
       ]),
@@ -232,7 +230,7 @@ describe('server-rendered example build scripts', () => {
   })
 
   it('pins preview playgrounds to the complete verified package manifest', async () => {
-    const release = await previewManifest()
+    const release = previewManifest()
     vi.stubEnv('VITE_FOLDKIT_PREVIEW_RELEASE', JSON.stringify(release))
     vi.stubEnv('FOLDKIT_BUILD_ID', CANARY_COMMIT)
 
@@ -267,7 +265,7 @@ describe('server-rendered example build scripts', () => {
   })
 
   it('rejects preview package versions from another source commit', async () => {
-    const release = await previewManifest()
+    const release = previewManifest()
     vi.stubEnv('VITE_FOLDKIT_PREVIEW_RELEASE', JSON.stringify(release))
     vi.stubEnv('FOLDKIT_BUILD_ID', 'f'.repeat(40))
 
@@ -277,7 +275,7 @@ describe('server-rendered example build scripts', () => {
   })
 
   it('rejects incomplete or mixed preview package inputs', async () => {
-    const release = await previewManifest()
+    const release = previewManifest()
     vi.stubEnv('FOLDKIT_BUILD_ID', CANARY_COMMIT)
     vi.stubEnv(
       'VITE_FOLDKIT_PREVIEW_RELEASE',

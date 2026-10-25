@@ -55,7 +55,6 @@ import { modifyFields } from 'foldkit/struct'
 export const Model = Schema.Struct({
   count: Schema.Number,
 })
-export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ClickedDecrement: {},
@@ -63,24 +62,20 @@ export const Message = defineMessageUnion({
   ClickedReset: {},
 })
 
-export type Message = typeof Message.Type
-
 export const ApplicationComposition = Block.makeDefinition('Application', {
   Model,
   Message,
 }).makeComposition()
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedDecrement: () => ({
-      model: modifyFields(model, { count: count => count - 1 }),
-    }),
-    ClickedIncrement: () => ({
-      model: modifyFields(model, { count: count => count + 1 }),
-    }),
-    ClickedReset: () => ({ model: modifyFields(model, { count: () => 0 }) }),
+export const update = ApplicationComposition.makeUpdate({
+  ClickedDecrement: model => ({
+    model: modifyFields(model, { count: count => count - 1 }),
   }),
-)
+  ClickedIncrement: model => ({
+    model: modifyFields(model, { count: count => count + 1 }),
+  }),
+  ClickedReset: model => ({ model: modifyFields(model, { count: () => 0 }) }),
+})
 
 export const init = ApplicationComposition.makeInit(() => ({
   model: { count: 0 },

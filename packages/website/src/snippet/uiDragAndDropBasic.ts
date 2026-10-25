@@ -47,6 +47,8 @@ const foldDragAndDropOutMessage = SortableListDefinition.makeOutMessageFold(
     // The child has emitted `Cancelled`. In this arm the parent can update
     // its own state or dispatch its own Commands, for example revert an
     // optimistic UI change, log analytics, or trigger a downstream Command.
+    StartedKeyboardDrag: SortableListDefinition.makeNoopStep,
+    ChangedKeyboardTarget: SortableListDefinition.makeNoopStep,
     Cancelled: SortableListDefinition.makeNoopStep,
   },
 )
@@ -78,7 +80,7 @@ const init = SortableListComposition.makeInit(() => ({
   },
 }))
 
-const update = SortableListComposition.makeUpdate()
+const update = SortableListComposition.makeUpdate({})
 
 // Registering `DragAndDropBinding` in `bindings` collects its document-level Subscriptions.
 

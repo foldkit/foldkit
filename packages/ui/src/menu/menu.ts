@@ -361,10 +361,9 @@ export const DetectMenuMovementOrAnimationEnd = MenuNamespace.makeCommand(
 )
 
 const detectMenuMovementOrAnimationEnd = (generation: number) =>
-  MenuDefinition.makeStep(model => ({
-    model,
-    commands: [DetectMenuMovementOrAnimationEnd({ id: model.id, generation })],
-  }))
+  MenuDefinition.makeCommandsStep(model => [
+    DetectMenuMovementOrAnimationEnd({ id: model.id, generation }),
+  ])
 
 const foldAnimationOutMessage = MenuDefinition.makeOutMessageFold(
   Animation.AnimationBlock,
@@ -784,9 +783,37 @@ const authoredUpdate = MenuDefinition.makeStep(
 
 /** Processes a Menu Message and returns the next Model, optional Commands, and
  *  an optional OutMessage. */
-export const update = MenuComposition.makeUpdate((model, message) =>
-  authoredUpdate(model, message),
-)
+export const update = MenuComposition.makeUpdate({
+  RequestedOpen: authoredUpdate,
+  RequestedClose: authoredUpdate,
+  RequestedSelectItem: authoredUpdate,
+  Opened: authoredUpdate,
+  Closed: authoredUpdate,
+  BlurredItems: authoredUpdate,
+  ActivatedItem: authoredUpdate,
+  DeactivatedItem: authoredUpdate,
+  SelectedItem: authoredUpdate,
+  RequestedItemClick: authoredUpdate,
+  Searched: authoredUpdate,
+  CompletedDelayClearMenuSearch: authoredUpdate,
+  MovedPointerOverItem: authoredUpdate,
+  CompletedFocusMenuItems: authoredUpdate,
+  CompletedFocusMenuButton: authoredUpdate,
+  CompletedLockMenuScroll: authoredUpdate,
+  CompletedUnlockMenuScroll: authoredUpdate,
+  CompletedInertMenuOthers: authoredUpdate,
+  CompletedRestoreMenuInert: authoredUpdate,
+  CompletedScrollMenuItemIntoView: authoredUpdate,
+  CompletedClickMenuItem: authoredUpdate,
+  ClickedButton: authoredUpdate,
+  IgnoredMouseClick: authoredUpdate,
+  SuppressedSpaceScroll: authoredUpdate,
+  CompletedAnchorMenu: authoredUpdate,
+  CompletedPortalMenuBackdrop: authoredUpdate,
+  CompletedDetectMenuMovementOrAnimationEnd: authoredUpdate,
+  PressedPointerOnButton: authoredUpdate,
+  ReleasedPointerOnItems: authoredUpdate,
+})
 
 const EffectsLayer = Layer.mergeAll(
   LockMenuScroll.layer,
@@ -1398,9 +1425,37 @@ const makeBlockParts = <Item extends string>() => {
     (model, message: Parameters<typeof itemUpdate>[1]) =>
       castReturn(itemUpdate(model, message)),
   )
-  const refinedUpdate = MenuComposition.makeUpdate((model, message) =>
-    authoredUpdate(model, message),
-  )
+  const refinedUpdate = MenuComposition.makeUpdate({
+    RequestedOpen: authoredUpdate,
+    RequestedClose: authoredUpdate,
+    RequestedSelectItem: authoredUpdate,
+    Opened: authoredUpdate,
+    Closed: authoredUpdate,
+    BlurredItems: authoredUpdate,
+    ActivatedItem: authoredUpdate,
+    DeactivatedItem: authoredUpdate,
+    SelectedItem: authoredUpdate,
+    RequestedItemClick: authoredUpdate,
+    Searched: authoredUpdate,
+    CompletedDelayClearMenuSearch: authoredUpdate,
+    MovedPointerOverItem: authoredUpdate,
+    CompletedFocusMenuItems: authoredUpdate,
+    CompletedFocusMenuButton: authoredUpdate,
+    CompletedLockMenuScroll: authoredUpdate,
+    CompletedUnlockMenuScroll: authoredUpdate,
+    CompletedInertMenuOthers: authoredUpdate,
+    CompletedRestoreMenuInert: authoredUpdate,
+    CompletedScrollMenuItemIntoView: authoredUpdate,
+    CompletedClickMenuItem: authoredUpdate,
+    ClickedButton: authoredUpdate,
+    IgnoredMouseClick: authoredUpdate,
+    SuppressedSpaceScroll: authoredUpdate,
+    CompletedAnchorMenu: authoredUpdate,
+    CompletedPortalMenuBackdrop: authoredUpdate,
+    CompletedDetectMenuMovementOrAnimationEnd: authoredUpdate,
+    PressedPointerOnButton: authoredUpdate,
+    ReleasedPointerOnItems: authoredUpdate,
+  })
   const refinedView =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     internalView<Item>() as unknown as (

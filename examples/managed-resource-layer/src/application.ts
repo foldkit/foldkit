@@ -97,47 +97,45 @@ export const Compute = ApplicationDefinition.makeCommand('Compute', {
   },
 })
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedStartEngine: () => ({
-      model: modifyFields(model, { engine: () => EngineState.Booting() }),
+export const update = ApplicationComposition.makeUpdate({
+  ClickedStartEngine: ApplicationDefinition.makeFieldsStep(() => ({
+    engine: () => EngineState.Booting(),
+  })),
+
+  ClickedStopEngine: ApplicationDefinition.makeFieldsStep(() => ({
+    engine: () => EngineState.Off(),
+  })),
+
+  StartedEngine: ApplicationDefinition.makeFieldsStep.fromMessage(
+    ({ engineId }) => ({
+      engine: () => EngineState.Ready({ engineId }),
     }),
+  ),
 
-    ClickedStopEngine: () => ({
-      model: modifyFields(model, { engine: () => EngineState.Off() }),
+  StoppedEngine: ApplicationDefinition.makeNoopStep(),
+
+  FailedStartEngine: ApplicationDefinition.makeFieldsStep.fromMessage(
+    ({ reason }) => ({
+      engine: () => EngineState.Failed({ reason }),
     }),
+  ),
 
-    StartedEngine: ({ engineId }) => ({
-      model: modifyFields(model, {
-        engine: () => EngineState.Ready({ engineId }),
-      }),
+  ClickedCompute: model => {
+    const nextComputeCount = Number.increment(model.computeCount)
+    return {
+      model: modifyFields(model, { computeCount: () => nextComputeCount }),
+      commands: [Compute({ value: nextComputeCount })],
+    }
+  },
+
+  SucceededCompute: ApplicationDefinition.makeFieldsStep.fromMessage(
+    ({ result }) => ({
+      maybeSquareResult: () => Option.some(result),
     }),
+  ),
 
-    StoppedEngine: () => ({ model }),
-
-    FailedStartEngine: ({ reason }) => ({
-      model: modifyFields(model, {
-        engine: () => EngineState.Failed({ reason }),
-      }),
-    }),
-
-    ClickedCompute: () => {
-      const nextComputeCount = Number.increment(model.computeCount)
-      return {
-        model: modifyFields(model, { computeCount: () => nextComputeCount }),
-        commands: [Compute({ value: nextComputeCount })],
-      }
-    },
-
-    SucceededCompute: ({ result }) => ({
-      model: modifyFields(model, {
-        maybeSquareResult: () => Option.some(result),
-      }),
-    }),
-
-    FailedCompute: () => ({ model }),
-  }),
-)
+  FailedCompute: ApplicationDefinition.makeNoopStep(),
+})
 
 export const init = ApplicationComposition.makeInit(() => ({
   model: {
@@ -178,7 +176,7 @@ export const managedResources = ApplicationDefinition.makeManagedResources(
 
 export const EffectsLayer = Layer.mergeAll(
   Compute.layer,
-  managedResources.engine.layer,
+  managedResources.layer,
 )
 
 const buttonClassName =

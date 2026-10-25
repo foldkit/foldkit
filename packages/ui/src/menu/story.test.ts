@@ -51,7 +51,7 @@ const MenuBinding = MenuStoryDefinition.makeBinding(TestMenu, {
 const MenuStoryComposition = MenuStoryDefinition.makeComposition({
   bindings: [MenuBinding],
 })
-const sceneUpdate = MenuStoryComposition.makeUpdate()
+const sceneUpdate = MenuStoryComposition.makeUpdate({})
 
 const RefinedMenu = create<'Edit' | 'Duplicate' | 'Delete'>()
 
@@ -73,7 +73,7 @@ const RefinedMenuBinding = RefinedMenuStoryDefinition.makeBinding(RefinedMenu, {
 const RefinedMenuStoryComposition = RefinedMenuStoryDefinition.makeComposition({
   bindings: [RefinedMenuBinding],
 })
-const refinedSceneUpdate = RefinedMenuStoryComposition.makeUpdate()
+const refinedSceneUpdate = RefinedMenuStoryComposition.makeUpdate({})
 
 const gotAnimationMessage = ({
   message,

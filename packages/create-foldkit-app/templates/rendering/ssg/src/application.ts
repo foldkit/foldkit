@@ -63,31 +63,29 @@ export const EffectsLayer = Layer.mergeAll(
   LoadExternal.layer,
 )
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedIncrement: () => ({
-      model: modifyFields(model, { count: count => count + 1 }),
-    }),
-    ClickedLink: ({ request }) =>
-      UrlRequest.match(request, {
-        Internal: ({ url }) => ({
-          model,
-          commands: [NavigateInternal({ url: urlToString(url) })],
-        }),
-        External: ({ href }) => ({
-          model,
-          commands: [LoadExternal({ href })],
-        }),
-      }),
-    ChangedUrl: ({ url }) => ({
-      model: modifyFields(model, {
-        route: () => urlToApplicationRoute(url),
-      }),
-    }),
-    CompletedNavigateInternal: () => ({ model }),
-    CompletedLoadExternal: () => ({ model }),
+export const update = ApplicationComposition.makeUpdate({
+  ClickedIncrement: model => ({
+    model: modifyFields(model, { count: count => count + 1 }),
   }),
-)
+  ClickedLink: (model, { request }) =>
+    UrlRequest.match(request, {
+      Internal: ({ url }) => ({
+        model,
+        commands: [NavigateInternal({ url: urlToString(url) })],
+      }),
+      External: ({ href }) => ({
+        model,
+        commands: [LoadExternal({ href })],
+      }),
+    }),
+  ChangedUrl: (model, { url }) => ({
+    model: modifyFields(model, {
+      route: () => urlToApplicationRoute(url),
+    }),
+  }),
+  CompletedNavigateInternal: model => ({ model }),
+  CompletedLoadExternal: model => ({ model }),
+})
 
 const APP_NAME = 'Foldkit App'
 

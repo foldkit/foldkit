@@ -1,10 +1,17 @@
 import { Command, Update } from 'foldkit'
+import type { RequirementOfBinding } from 'foldkit/block'
+import type { HtmlBuilder } from 'foldkit/html'
+import * as Scene from 'foldkit/scene'
+import * as Story from 'foldkit/story'
 
 import {
   CounterComposition,
   EarlyReturnBlock,
   GraphFullBlock,
+  GraphFullChildBinding,
   GraphFullModel,
+  GraphFullOutMessage,
+  GraphFullSave,
   Message,
   Model,
   OutMessage,
@@ -14,6 +21,8 @@ import {
   combineGenericSteps,
   earlyReturnUpdate,
   graphFullMessage,
+  graphFullUpdate,
+  reportUpdate,
   requiredContextUpdate,
   ternaryUpdate,
   update,
@@ -35,6 +44,24 @@ const contextual = requiredContextUpdate(changedCount)(initial, {
   multiplier: 2,
 })
 const fullStep = GraphFullBlock.update(graphFullMessage)
+const view = (model: typeof Model.Type, h: HtmlBuilder<typeof Message.Type>) =>
+  h.button(
+    [h.OnClick(changedCount), h.Type('button')],
+    [globalThis.String(model.count)],
+  )
+
+Story.story(
+  reportUpdate,
+  Story.given(initial),
+  Story.message(changedCount),
+  Story.expectOutMessage(OutMessage.ReportedCount({ count: 2 })),
+)
+Scene.scene(
+  { update: reportUpdate, view },
+  Scene.given(initial),
+  Scene.click(Scene.role('button')),
+  Scene.expectOutMessage(OutMessage.ReportedCount({ count: 2 })),
+)
 export type ExactModel = Expect<Equal<typeof combined.model, typeof Model.Type>>
 export type ExactGenericRequirements = Expect<
   Equal<
@@ -48,6 +75,28 @@ export type ExactContextualModel = Expect<
 export type ExactCompletedModel = Expect<
   Equal<Parameters<typeof fullStep>[0], typeof GraphFullModel.Type>
 >
+export type ExactMixedRequirements = Expect<
+  Equal<
+    Update.RequirementsOf<typeof graphFullUpdate>,
+    Command.HandlerOf<typeof GraphFullSave>
+  >
+>
+export type ExactMixedOutMessage = Expect<
+  Equal<
+    ReturnType<typeof graphFullUpdate> extends Readonly<{
+      outMessage?: infer OutMessage
+    }>
+      ? Exclude<OutMessage, undefined>
+      : never,
+    ReturnType<typeof GraphFullOutMessage.ReportedCount>
+  >
+>
+export type ExactMixedRegistration = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<ReturnType<typeof graphFullUpdate>>,
+    RequirementOfBinding<typeof GraphFullChildBinding>
+  >
+>
 
 export type ExactTernaryReturn = Expect<
   Equal<
@@ -55,7 +104,7 @@ export type ExactTernaryReturn = Expect<
     Update.ReturnWithOutMessage<
       typeof Model.Type,
       typeof Message.Type,
-      typeof OutMessage.Type,
+      ReturnType<typeof OutMessage.ReportedCount>,
       Command.HandlerOf<typeof Save>
     >
   >

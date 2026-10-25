@@ -29,8 +29,9 @@ import {
   TRAIL_LENGTH,
   TWO_PI,
 } from './constant'
+import { ApplicationDefinition } from './definition'
 import { Message } from './message'
-import { Model, Particle, Point } from './model'
+import { Particle, Point } from './model'
 import { fractalNoise } from './noise'
 
 const computeFieldAngle = (
@@ -186,9 +187,9 @@ const spawnAmbientParticles = (particleCount: number) => {
   return Array.makeBy(clamped, () => GenerateAmbientParticle())
 }
 
-const appendGeneratedParticle =
-  (model: typeof Model.Type) =>
+const appendGeneratedParticle = ApplicationDefinition.makeFieldsStep(
   (
+    model,
     generatedParticle:
       | typeof Message.CompletedGenerateAmbientParticle.Type
       | typeof Message.CompletedGenerateBurstParticle.Type,
@@ -205,67 +206,58 @@ const appendGeneratedParticle =
       initialAngle: generatedParticle.initialAngle,
       initialSpeedScale: generatedParticle.initialSpeedScale,
     }
+
     return {
-      model: modifyFields(model, {
-        particles: Array.append(newParticle),
-        nextId: Number.increment,
-      }),
+      particles: Array.append(newParticle),
+      nextId: Number.increment,
     }
-  }
-
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    TickedFrame: ({ deltaTimeMs }) => {
-      const deltaSeconds = cappedDeltaSeconds(deltaTimeMs)
-      const nextElapsedSeconds = model.elapsedSeconds + deltaSeconds
-      const advancedParticles = Array.filterMap(
-        model.particles,
-        advanceParticle(
-          deltaSeconds,
-          nextElapsedSeconds,
-          model.flowStrength,
-          model.noiseScale,
-          model.maybeMousePosition,
-        ),
-      )
-      const nextModel = modifyFields(model, {
-        particles: () => advancedParticles,
-        elapsedSeconds: () => nextElapsedSeconds,
-      })
-      return {
-        model: nextModel,
-        commands: spawnAmbientParticles(advancedParticles.length),
-      }
-    },
-
-    CompletedGenerateAmbientParticle: appendGeneratedParticle(model),
-
-    CompletedGenerateBurstParticle: appendGeneratedParticle(model),
-
-    PressedCanvas: ({ x, y }) => ({
-      model,
-      commands: spawnBurstParticles(
-        x,
-        y,
-        computeBurstHueAnchor(model.elapsedSeconds),
-      ),
-    }),
-
-    MovedPointer: ({ x, y }) => ({
-      model: modifyFields(model, {
-        maybeMousePosition: () => Option.some(Point.make({ x, y })),
-      }),
-    }),
-
-    ClickedTogglePlay: () => ({
-      model: modifyFields(model, { isRunning: running => !running }),
-    }),
-
-    ClickedReset: () => ({
-      model: modifyFields(model, {
-        particles: () => [],
-        maybeMousePosition: () => Option.none(),
-      }),
-    }),
-  }),
+  },
 )
+
+export const update = ApplicationComposition.makeUpdate({
+  TickedFrame: (model, { deltaTimeMs }) => {
+    const deltaSeconds = cappedDeltaSeconds(deltaTimeMs)
+    const nextElapsedSeconds = model.elapsedSeconds + deltaSeconds
+    const advancedParticles = Array.filterMap(
+      model.particles,
+      advanceParticle(
+        deltaSeconds,
+        nextElapsedSeconds,
+        model.flowStrength,
+        model.noiseScale,
+        model.maybeMousePosition,
+      ),
+    )
+    const nextModel = modifyFields(model, {
+      particles: () => advancedParticles,
+      elapsedSeconds: () => nextElapsedSeconds,
+    })
+    return {
+      model: nextModel,
+      commands: spawnAmbientParticles(advancedParticles.length),
+    }
+  },
+
+  CompletedGenerateAmbientParticle: appendGeneratedParticle,
+
+  CompletedGenerateBurstParticle: appendGeneratedParticle,
+
+  PressedCanvas: ApplicationDefinition.makeCommandsStep((model, { x, y }) =>
+    spawnBurstParticles(x, y, computeBurstHueAnchor(model.elapsedSeconds)),
+  ),
+
+  MovedPointer: ApplicationDefinition.makeFieldsStep.fromMessage(
+    ({ x, y }) => ({
+      maybeMousePosition: () => Option.some(Point.make({ x, y })),
+    }),
+  ),
+
+  ClickedTogglePlay: ApplicationDefinition.makeFieldsStep(() => ({
+    isRunning: running => !running,
+  })),
+
+  ClickedReset: ApplicationDefinition.makeFieldsStep(() => ({
+    particles: () => [],
+    maybeMousePosition: () => Option.none(),
+  })),
+})

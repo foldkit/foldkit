@@ -43,9 +43,15 @@ describe('Composition update delivery', () => {
         init: contextualComposition.makeInit(() => ({
           model: ContextualChildModel.make({ count: 0 }),
         })),
-        update: contextualComposition.makeUpdate(
-          (model, _message, _context: Readonly<{ source: 'Required' }>) => ({
-            model,
+        update: contextualComposition.makeUpdate.withContext(
+          (
+            _context: Readonly<{
+              source: 'Required'
+            }>,
+          ) => ({
+            ChangedCount: (model, _message) => ({
+              model,
+            }),
           }),
         ),
       })
@@ -92,7 +98,7 @@ describe('Composition update delivery', () => {
         args: (_model, message) => Option.some([childMessageOf(message)]),
       },
     })
-    const update = makeCompositionUpdate(Message, [binding], false)()
+    const update = makeCompositionUpdate(Message, [binding], false)({})
     const model = { count: 1 }
     const message = trackedMapper.toParentMessage(changedCount)
 
@@ -114,10 +120,16 @@ describe('Composition update delivery', () => {
         init: CounterComposition.makeInit(() => ({
           model: CounterModel.make({ count: 0 }),
         })),
-        update: CounterComposition.makeUpdate(
-          (model, message, context: Readonly<{ multiplier: number }>) => ({
-            model: modifyFields(model, {
-              count: count => count + message.amount * context.multiplier,
+        update: CounterComposition.makeUpdate.withContext(
+          (
+            context: Readonly<{
+              multiplier: number
+            }>,
+          ) => ({
+            ChangedCount: (model, message) => ({
+              model: modifyFields(model, {
+                count: count => count + message.amount * context.multiplier,
+              }),
             }),
           }),
         ),
@@ -164,7 +176,7 @@ describe('Composition update delivery', () => {
     const ParentComposition = Parent.makeComposition({
       bindings: [CounterBinding],
     })
-    const update = ParentComposition.makeUpdate()
+    const update = ParentComposition.makeUpdate({})
     const model = ParentModel.make({
       counters: [
         CounterInstance.make({
@@ -235,7 +247,7 @@ describe('Composition update delivery', () => {
           },
         },
       ])
-      const update = makeCompositionUpdate(Message, [binding], false)()
+      const update = makeCompositionUpdate(Message, [binding], false)({})
       const message = trackedMapper.toParentMessage(changedCount)
 
       expect(() => update({ count: 1 }, message)).toThrow(error)
@@ -258,7 +270,7 @@ describe('Composition update delivery', () => {
         args: () => Option.none(),
       },
     })
-    const update = makeCompositionUpdate(Message, [binding], false)()
+    const update = makeCompositionUpdate(Message, [binding], false)({})
     const model = { count: 1 }
 
     expect(update(model, trackedMapper.toParentMessage(changedCount))).toEqual({
@@ -289,7 +301,7 @@ describe('Composition update delivery', () => {
     })
 
     expect(
-      makeCompositionUpdate(Message, [binding], false)()(
+      makeCompositionUpdate(Message, [binding], false)({})(
         { count: 1 },
         trackedMapper.toParentMessage(changedCount),
       ),
@@ -316,7 +328,7 @@ describe('Composition update delivery', () => {
       Message,
       [firstBinding, secondBinding],
       false,
-    )()
+    )({})
 
     expect(() =>
       update({ count: 1 }, firstMapper.toParentMessage(changedCount)),
@@ -401,7 +413,7 @@ describe('Composition update delivery', () => {
       Message,
       [routedBinding, otherBinding],
       false,
-    )()
+    )({})
 
     expect(() =>
       update({ count: 1 }, otherMapper.toParentMessage(changedCount)),
@@ -419,7 +431,7 @@ describe('Composition update delivery', () => {
         args: (_model, message) => Option.some([childMessageOf(message)]),
       },
     })
-    const update = makeCompositionUpdate(Message, [binding], false)()
+    const update = makeCompositionUpdate(Message, [binding], false)({})
 
     trackedMapper.toParentMessage()
     trackedMapper.toParentMessage()
@@ -445,7 +457,7 @@ describe('Composition update delivery', () => {
       Message,
       [binding, otherBinding],
       false,
-    )()
+    )({})
 
     trackedMapper.toParentMessage()
     otherMapper.toParentMessage()
@@ -474,10 +486,20 @@ describe('Composition update delivery', () => {
       Message,
       [binding],
       false,
-    )(authoredUpdate)
+    )({ ClickedReset: authoredUpdate })
     const message = Message.ClickedReset()
 
     expect(update({ count: 1 }, message)).toEqual({ model: { count: 2 } })
     expect(authoredUpdate).toHaveBeenCalledWith({ count: 1 }, message)
+  })
+
+  it('rejects callback authoring at runtime', () => {
+    const makeUpdate = makeCompositionUpdate(Message, [], false)
+
+    expect(() =>
+      Reflect.apply(makeUpdate, undefined, [
+        (model: { count: number }) => ({ model }),
+      ]),
+    ).toThrow('requires an exhaustive handler record')
   })
 })

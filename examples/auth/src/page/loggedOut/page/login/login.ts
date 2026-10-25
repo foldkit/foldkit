@@ -75,50 +75,47 @@ export const SimulateAuthRequest = LoginDefinition.makeCommand(
 
 export const EffectsLayer = SimulateAuthRequest.layer
 
-export const update = LoginComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ChangedEmail: ({ value }) => ({
-      model: modifyFields(model, { email: () => validateEmail(value) }),
+export const update = LoginComposition.makeUpdate({
+  ChangedEmail: LoginDefinition.makeFieldsStep.fromMessage(({ value }) => ({
+    email: () => validateEmail(value),
+  })),
+
+  ChangedPassword: LoginDefinition.makeFieldsStep.fromMessage(({ value }) => ({
+    password: () => validatePassword(value),
+  })),
+
+  SubmittedForm: model => {
+    if (model.isSubmitting) {
+      return { model }
+    }
+
+    if (!isFormValid(model)) {
+      return { model }
+    }
+
+    return {
+      model: modifyFields(model, { isSubmitting: () => true }),
+      commands: [
+        SimulateAuthRequest({
+          email: model.email.value,
+          password: model.password.value,
+        }),
+      ],
+    }
+  },
+
+  SucceededSimulateAuthRequest: LoginDefinition.makeOutMessageStep.fromMessage(
+    ({ session }) => OutMessage.SucceededLogin({ session }),
+  ),
+
+  FailedSimulateAuthRequest: LoginDefinition.makeFieldsStep(
+    (model, { error }) => ({
+      password: () =>
+        Invalid({
+          value: model.password.value,
+          errors: [error],
+        }),
+      isSubmitting: () => false,
     }),
-
-    ChangedPassword: ({ value }) => ({
-      model: modifyFields(model, { password: () => validatePassword(value) }),
-    }),
-
-    SubmittedForm: () => {
-      if (model.isSubmitting) {
-        return { model }
-      }
-
-      if (!isFormValid(model)) {
-        return { model }
-      }
-
-      return {
-        model: modifyFields(model, { isSubmitting: () => true }),
-        commands: [
-          SimulateAuthRequest({
-            email: model.email.value,
-            password: model.password.value,
-          }),
-        ],
-      }
-    },
-
-    SucceededSimulateAuthRequest: ({ session }) => ({
-      model,
-      outMessage: OutMessage.SucceededLogin({ session }),
-    }),
-
-    FailedSimulateAuthRequest: ({ error }) => ({
-      model: modifyFields(model, {
-        password: () =>
-          Invalid({
-            value: model.password.value,
-            errors: [error],
-          }),
-        isSubmitting: () => false,
-      }),
-    }),
-  }),
-)
+  ),
+})

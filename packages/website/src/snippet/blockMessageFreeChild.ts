@@ -13,7 +13,7 @@ const previewInit = PreviewComposition.makeInit(() => ({
 const prepare = () =>
   PreviewComposition.prepareBlock({
     init: previewInit,
-    update: PreviewComposition.makeUpdate(),
+    update: PreviewComposition.makeUpdate({}),
   })
 const PreviewBlock = Block.assemble(prepare)
 

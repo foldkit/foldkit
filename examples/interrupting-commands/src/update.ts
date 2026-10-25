@@ -4,7 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { CancelUploadFile, UploadFile } from './command'
 import { ApplicationComposition } from './composition'
-import { Message } from './message'
+import { ApplicationDefinition } from './definition'
 import { Upload, type UploadStatus } from './model'
 
 export const FakeFile = Schema.Struct({
@@ -34,70 +34,66 @@ const setStatusForId = (uploadId: number, status: typeof UploadStatus.Type) =>
       : upload,
   )
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedStartUpload: () => {
-      const fakeFile = fakeFileForUpload(model.uploadId)
-      const startedUpload = Upload.make({
-        id: model.uploadId,
-        fileName: fakeFile.name,
-        sizeMegabytes: fakeFile.sizeMegabytes,
-        status: 'Uploading',
-      })
-      return {
-        model: modifyFields(model, {
-          uploadId: Number.increment,
-          uploads: Array.append(startedUpload),
-        }),
-        commands: [
-          UploadFile({
-            uploadId: startedUpload.id,
-            sizeMegabytes: startedUpload.sizeMegabytes,
-          }),
-        ],
-      }
-    },
-    ClickedCancelUpload: ({ uploadId }) => ({
-      model,
-      commands: [CancelUploadFile({ uploadId })],
-    }),
-    ClickedCancelAllUploads: () => ({
-      model,
-      commands: pipe(
-        model.uploads,
-        Array.filter(upload => upload.status === 'Uploading'),
-        Array.map(upload => CancelUploadFile({ uploadId: upload.id })),
-      ),
-    }),
-    ClickedRestartUpload: ({ uploadId }) =>
-      pipe(
-        model.uploads,
-        Array.findFirst(
-          upload => upload.id === uploadId && upload.status === 'Cancelled',
-        ),
-        Option.match({
-          onNone: () => ({ model }),
-          onSome: upload => ({
-            model: modifyFields(model, {
-              uploads: setStatusForId(uploadId, 'Uploading'),
-            }),
-            commands: [
-              UploadFile({ uploadId, sizeMegabytes: upload.sizeMegabytes }),
-            ],
-          }),
-        }),
-      ),
-    CompletedUploadFile: ({ uploadId }) => ({
-      model: modifyFields(model, { uploads: setStatusForId(uploadId, 'Done') }),
-    }),
-    CompletedCancelUploadFile: ({ uploadId, outcome }) =>
-      Command.Interruptible.Outcome.match(outcome, {
-        Interrupted: () => ({
-          model: modifyFields(model, {
-            uploads: setStatusForId(uploadId, 'Cancelled'),
-          }),
-        }),
-        NotFound: () => ({ model }),
+export const update = ApplicationComposition.makeUpdate({
+  ClickedStartUpload: model => {
+    const fakeFile = fakeFileForUpload(model.uploadId)
+    const startedUpload = Upload.make({
+      id: model.uploadId,
+      fileName: fakeFile.name,
+      sizeMegabytes: fakeFile.sizeMegabytes,
+      status: 'Uploading',
+    })
+    return {
+      model: modifyFields(model, {
+        uploadId: Number.increment,
+        uploads: Array.append(startedUpload),
       }),
-  }),
-)
+      commands: [
+        UploadFile({
+          uploadId: startedUpload.id,
+          sizeMegabytes: startedUpload.sizeMegabytes,
+        }),
+      ],
+    }
+  },
+  ClickedCancelUpload: ApplicationDefinition.makeCommandsStep.fromMessage(
+    ({ uploadId }) => [CancelUploadFile({ uploadId })],
+  ),
+  ClickedCancelAllUploads: ApplicationDefinition.makeCommandsStep(model =>
+    pipe(
+      model.uploads,
+      Array.filter(upload => upload.status === 'Uploading'),
+      Array.map(upload => CancelUploadFile({ uploadId: upload.id })),
+    ),
+  ),
+  ClickedRestartUpload: (model, { uploadId }) =>
+    pipe(
+      model.uploads,
+      Array.findFirst(
+        upload => upload.id === uploadId && upload.status === 'Cancelled',
+      ),
+      Option.match({
+        onNone: () => ({ model }),
+        onSome: upload => ({
+          model: modifyFields(model, {
+            uploads: setStatusForId(uploadId, 'Uploading'),
+          }),
+          commands: [
+            UploadFile({ uploadId, sizeMegabytes: upload.sizeMegabytes }),
+          ],
+        }),
+      }),
+    ),
+  CompletedUploadFile: ApplicationDefinition.makeFieldsStep.fromMessage(
+    ({ uploadId }) => ({ uploads: setStatusForId(uploadId, 'Done') }),
+  ),
+  CompletedCancelUploadFile: (model, { uploadId, outcome }) =>
+    Command.Interruptible.Outcome.match(outcome, {
+      Interrupted: () => ({
+        model: modifyFields(model, {
+          uploads: setStatusForId(uploadId, 'Cancelled'),
+        }),
+      }),
+      NotFound: () => ({ model }),
+    }),
+})

@@ -4,7 +4,6 @@ import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
 import { Transition } from 'foldkit/route'
-import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
 import { Artwork, artworks, findArtwork } from './artwork'
@@ -67,32 +66,30 @@ export const EffectsLayer = Layer.mergeAll(
   LoadExternal.layer,
 )
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    CompletedNavigateInternal: () => ({ model }),
-    CompletedLoadExternal: () => ({ model }),
+export const update = ApplicationComposition.makeUpdate({
+  CompletedNavigateInternal: ApplicationDefinition.makeNoopStep(),
+  CompletedLoadExternal: ApplicationDefinition.makeNoopStep(),
 
-    ClickedLink: ({ request }) =>
-      UrlRequest.match(request, {
-        Internal: ({ url }) => ({
-          model,
-          commands: [NavigateInternal({ url: urlToString(url) })],
-        }),
-        External: ({ href }) => ({
-          model,
-          commands: [LoadExternal({ href })],
-        }),
+  ClickedLink: (model, { request }) =>
+    UrlRequest.match(request, {
+      Internal: ({ url }) => ({
+        model,
+        commands: [NavigateInternal({ url: urlToString(url) })],
       }),
-
-    ChangedUrl: ({ url }) => ({
-      model: modifyFields(model, { route: () => urlToApplicationRoute(url) }),
+      External: ({ href }) => ({
+        model,
+        commands: [LoadExternal({ href })],
+      }),
     }),
 
-    UpdatedFilterText: ({ filterText }) => ({
-      model: modifyFields(model, { filterText: () => filterText }),
-    }),
-  }),
-)
+  ChangedUrl: ApplicationDefinition.makeFieldsStep.fromMessage(({ url }) => ({
+    route: () => urlToApplicationRoute(url),
+  })),
+
+  UpdatedFilterText: ApplicationDefinition.makeFieldsStep.fromMessage(
+    ({ filterText }) => ({ filterText: () => filterText }),
+  ),
+})
 
 // NOTE: every arm past the guard is a navigation, so none return `false`.
 // `true` is "animate, with no direction to declare": the root fade in

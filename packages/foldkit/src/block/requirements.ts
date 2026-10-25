@@ -2,7 +2,10 @@ import type { Effect, Layer, Scope, Stream } from 'effect'
 
 import type { Handler as CommandHandler } from '../command/handler.js'
 import type { Handler as ManagedResourceHandler } from '../managedResource/handler.js'
-import type { ServicesOf as ManagedResourceServicesOf } from '../managedResource/index.js'
+import type {
+  RegistryEntries as ManagedResourceRegistryEntries,
+  ServicesOf as ManagedResourceServicesOf,
+} from '../managedResource/index.js'
 import type { Handler as MountHandler } from '../mount/handler.js'
 import type { MountAction } from '../mount/index.js'
 import type { ValidHandlerContracts } from '../runtime/handlerContracts.js'
@@ -213,7 +216,7 @@ export type ProducerRequirements<Producer> =
           ? unknown
           : ReturnOf<Producer> extends AnyFunction
             ? ProducerRequirements<ReturnOf<Producer>>
-            : Update.RequirementsOf<Producer>
+            : Update.RequirementsOfResult<ReturnOf<Producer>>
       : never
 
 type ProducerRegistrationEvidence<Producer> = Producer extends AnyFunction
@@ -252,7 +255,9 @@ export type MountRequirements<Mounts> =
  * @internal Extracts requirements used while acquiring or releasing resources.
  */
 export type ManagedResourceLifecycleRequirements<ManagedResources> =
-  ManagedResources extends Readonly<Record<string, infer Entry>>
+  ManagedResourceRegistryEntries<ManagedResources> extends Readonly<
+    Record<string, infer Entry>
+  >
     ?
         | (Entry extends Readonly<{
             acquire: (

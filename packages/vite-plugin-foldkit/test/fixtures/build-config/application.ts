@@ -21,13 +21,11 @@ export const init = ApplicationComposition.makeInit((flags: Flags) => ({
   model: Model.make({ count: flags.start }),
 }))
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedIncrement: () => ({
-      model: modifyFields(model, { count: count => count + 1 }),
-    }),
+export const update = ApplicationComposition.makeUpdate({
+  ClickedIncrement: model => ({
+    model: modifyFields(model, { count: count => count + 1 }),
   }),
-)
+})
 
 export const view = ApplicationComposition.makeView((model, h) => ({
   title: `Count ${model.count}`,

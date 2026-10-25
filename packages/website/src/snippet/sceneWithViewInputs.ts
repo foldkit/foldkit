@@ -26,7 +26,7 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [SliderBinding],
 })
 
-const update = ApplicationComposition.makeUpdate()
+const update = ApplicationComposition.makeUpdate({})
 const view = ApplicationComposition.makeView.withInputs<
   Readonly<{ value: number; isDisabled?: boolean }>
 >((model, { value, isDisabled }, h) =>

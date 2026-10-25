@@ -27,7 +27,7 @@ export const NavigateToRoom = ApplicationDefinition.makeCommand(
 )
 
 const navigateToRoom = (roomId: string) =>
-  ApplicationDefinition.makeCommandsStep([NavigateToRoom({ roomId })])
+  ApplicationDefinition.makeCommandsStep(() => [NavigateToRoom({ roomId })])
 
 const initRoomInstance = (roomId: string) =>
   ApplicationDefinition.makeStep(model =>

@@ -193,7 +193,7 @@ Import Effect's module as `Layer`. Use these names to keep local implementations
 
 Compose local recipes directly with `Layer.mergeAll`. Name an individual provider `LoadUserLayer` only when it is intentionally public or independently reused outside that assembly. Name an external test alternative `LoadUserTestLayer`.
 
-Commands and ManagedResources currently have no aggregate Layer. List each local Command's `.layer` and each ManagedResource entry's `.layer` in the merge. An owned Subscription registry supplies `subscriptions.layer` when every entry has an attached handler:
+Commands remain explicit because they have no closed owner registry: list each selected Command's `.layer` in the merge. An owned ManagedResource registry supplies `managedResources.layer` when every entry has an attached handler, matching `subscriptions.layer`. Empty registries supply `Layer.empty`. Both reserve the registry key `layer`. Mixed or host-owned registries require explicit entry providers; use individual entry Layers when selecting a subset:
 
 ::Snippet{name="applicationFeatureLayer" label="Combining local handler recipes"}
 

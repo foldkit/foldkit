@@ -23,6 +23,8 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
+const ApplicationComposition = ApplicationDefinition.makeComposition()
+
 // Api is an Effect service; ApiLayer provides it.
 const FetchUser = ApplicationDefinition.makeCommand('FetchUser', {
   messages: [Message.SucceededLoadUser, Message.FailedLoadUser],
@@ -42,21 +44,19 @@ const FetchUser = ApplicationDefinition.makeCommand('FetchUser', {
 export const EffectsLayer = FetchUser.layer
 export const ServicesLayer = ApiLayer
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedLoadUser: () => ({
-      model: modifyFields(model, { user: () => UserAsyncData.Loading() }),
-      commands: [FetchUser()],
-    }),
-    SucceededLoadUser: ({ user }) => ({
-      model: modifyFields(model, {
-        user: () => UserAsyncData.Success({ data: user }),
-      }),
-    }),
-    FailedLoadUser: ({ error }) => ({
-      model: modifyFields(model, {
-        user: () => UserAsyncData.Failure({ error }),
-      }),
-    }),
+export const update = ApplicationComposition.makeUpdate({
+  ClickedLoadUser: model => ({
+    model: modifyFields(model, { user: () => UserAsyncData.Loading() }),
+    commands: [FetchUser()],
   }),
-)
+  SucceededLoadUser: ApplicationDefinition.makeFieldsStep.fromMessage(
+    ({ user }) => ({
+      user: () => UserAsyncData.Success({ data: user }),
+    }),
+  ),
+  FailedLoadUser: ApplicationDefinition.makeFieldsStep.fromMessage(
+    ({ error }) => ({
+      user: () => UserAsyncData.Failure({ error }),
+    }),
+  ),
+})

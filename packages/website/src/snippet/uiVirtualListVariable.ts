@@ -64,6 +64,6 @@ const view = ActivityListExampleComposition.makeView((model, h) =>
 
 // Programmatic scrolling is sizing-mode independent. The next view resolves
 // the logical index and the Command aligns the live rendered row:
-// In the corresponding Message.match handler:
+// In the corresponding update handler:
 ClickedScrollActivityListToMiddle: () =>
   ActivityListBinding.requestScrollToIndex(500)(model)

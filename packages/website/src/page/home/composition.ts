@@ -25,7 +25,7 @@ const foldPlaygroundMenuOutMessage = HomeDefinition.makeOutMessageFold(
   PlaygroundMenuBlock,
   {
     Selected: ({ value }) =>
-      HomeDefinition.makeOutMessageStep(
+      HomeDefinition.makeOutMessageStep(() =>
         OutMessage.SelectedPlaygroundExample({
           exampleSlug: value,
         }),

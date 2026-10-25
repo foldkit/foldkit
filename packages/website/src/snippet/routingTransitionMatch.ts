@@ -2,7 +2,7 @@ import { Equal, Option } from 'effect'
 import { Transition } from 'foldkit/route'
 
 const loadPeople = (route: typeof ApplicationRoute.People.Type) =>
-  ApplicationDefinition.makeCommandsStep([
+  ApplicationDefinition.makeCommandsStep(() => [
     FetchPeople({
       searchText: Option.getOrElse(route.searchText, () => ''),
     }),

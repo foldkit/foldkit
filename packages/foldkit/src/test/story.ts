@@ -1,8 +1,10 @@
-import { Array, Equal, Predicate, pipe } from 'effect'
+import { Array, Equal, type Option, Predicate, pipe } from 'effect'
 
+import { commandArgs } from './bindingMatcher.js'
 import type {
   AnyCommand,
   AnyCommandInstance,
+  CommandArgs,
   CommandMatcher,
   ResolvableCommandDefinition,
   ResolvableCommandMatcher,
@@ -325,9 +327,18 @@ const expectNoCommandsStep =
     return simulation
   }
 
-/** Steps that operate on the pending Commands of a story simulation.
+/** Utilities for inspecting and resolving pending Commands of a story simulation.
  *  Destructure as `const { Command } = Story` for concise call sites. */
 export const Command = {
+  /** Projects captured args by reference when the pending Command has this
+   * Definition's source identity, across all Binding and keyed occurrences.
+   * An argless match returns `Some(undefined)`; other sources and name-only
+   * metadata return `None`. This does not decode args, narrow the pending value,
+   * run Effects, or choose among matching occurrences. */
+  argsOf: <Definition extends ResolvableCommandDefinition<string, unknown>>(
+    definition: Definition,
+  ): ((pending: AnyCommand) => Option.Option<CommandArgs<Definition>>) =>
+    commandArgs(definition),
   /** Resolves a specific pending Command with the given result Message. */
   resolve: resolveCommand,
   /** Resolves listed Commands with their result Messages, cascading through any

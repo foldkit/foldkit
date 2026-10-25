@@ -76,7 +76,7 @@ const prepare = () =>
         toParentModel: popover => ({ popover }),
       }),
     ),
-    update: PopoverModalReopenTestComposition.makeUpdate(),
+    update: PopoverModalReopenTestComposition.makeUpdate({}),
     view,
   })
 const ApplicationBlock: Block.FromAssemblyWithView<

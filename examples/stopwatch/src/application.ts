@@ -12,7 +12,6 @@ import {
 import { Block } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 
 import { Button } from '@foldkit/ui'
 
@@ -83,46 +82,38 @@ export const DetermineTickTime = ApplicationDefinition.makeCommand(
   },
 )
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedStart: () => ({
-      model,
-      commands: [DetermineStartTime({ elapsedMs: model.elapsedMs })],
-    }),
+export const update = ApplicationComposition.makeUpdate({
+  ClickedStart: ApplicationDefinition.makeCommandsStep(model => [
+    DetermineStartTime({ elapsedMs: model.elapsedMs }),
+  ]),
 
-    CompletedDetermineStartTime: ({ startTime }) => ({
-      model: modifyFields(model, {
-        isRunning: () => true,
-        startTime: () => startTime,
-      }),
+  CompletedDetermineStartTime: ApplicationDefinition.makeFieldsStep.fromMessage(
+    ({ startTime }) => ({
+      isRunning: () => true,
+      startTime: () => startTime,
     }),
+  ),
 
-    ClickedStop: () => ({
-      model: modifyFields(model, {
-        isRunning: () => false,
-      }),
-    }),
+  ClickedStop: ApplicationDefinition.makeFieldsStep(() => ({
+    isRunning: () => false,
+  })),
 
-    ClickedReset: () => ({
-      model: modifyFields(model, {
-        elapsedMs: () => 0,
-        isRunning: () => false,
-        startTime: () => 0,
-      }),
-    }),
+  ClickedReset: ApplicationDefinition.makeFieldsStep(() => ({
+    elapsedMs: () => 0,
+    isRunning: () => false,
+    startTime: () => 0,
+  })),
 
-    Ticked: () => ({
-      model,
-      commands: [DetermineTickTime({ startTime: model.startTime })],
-    }),
+  Ticked: ApplicationDefinition.makeCommandsStep(model => [
+    DetermineTickTime({ startTime: model.startTime }),
+  ]),
 
-    CompletedDetermineTickTime: ({ elapsedMs }) => ({
-      model: modifyFields(model, {
-        elapsedMs: () => elapsedMs,
-      }),
+  CompletedDetermineTickTime: ApplicationDefinition.makeFieldsStep.fromMessage(
+    ({ elapsedMs }) => ({
+      elapsedMs: () => elapsedMs,
     }),
-  }),
-)
+  ),
+})
 
 export const init = ApplicationComposition.makeInit(() => ({
   model: {

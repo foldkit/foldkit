@@ -1,7 +1,14 @@
 import { Struct } from 'effect'
 
-type EvolveTransform<O> = Partial<{
-  [K in keyof O]: (a: O[K]) => O[K]
+/**
+ * Per-field transformations that preserve each declared field's value type.
+ * Useful for authoring helpers that accept field updates instead of a complete
+ * Model transformation. `modifyFields` and `Definition.makeFieldsStep` perform
+ * their own unknown-key and result validation; this structural type alone does
+ * not enforce exact keys or preserve relationships between tagged variants.
+ */
+export type FieldTransforms<Model> = Partial<{
+  [Field in keyof Model]: (value: Model[Field]) => Model[Field]
 }>
 
 type StrictKeys<O, T> =
@@ -23,10 +30,10 @@ type Evolved<O, T> = {
 
 /** Immutably modifies fields of a struct by applying transform functions. Each transformer must return its field's existing type. Wraps Effect's `Struct.evolve` with stricter key checking. */
 export const modifyFields: {
-  <O, const T extends EvolveTransform<O>>(
+  <O, const T extends FieldTransforms<O>>(
     t: StrictKeys<O, T>,
   ): (obj: O) => Evolved<O, T>
-  <O, const T extends EvolveTransform<NoInfer<O>>>(
+  <O, const T extends FieldTransforms<NoInfer<O>>>(
     obj: O,
     t: StrictKeys<NoInfer<O>, T>,
   ): Evolved<O, T>
@@ -37,7 +44,7 @@ export const makeModifyFieldsFor =
   <Base extends Record<string, unknown>>() =>
   <Model extends Base>(
     model: Model,
-    transforms: EvolveTransform<Base>,
+    transforms: FieldTransforms<Base>,
   ): Model =>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     Struct.evolve(model, transforms as any) as Model

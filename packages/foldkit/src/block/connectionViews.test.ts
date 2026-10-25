@@ -27,9 +27,11 @@ const view = ConnectionViewsChildComposition.makeView.withInputs<ViewInputs>(
 const prepareBlock = () =>
   ConnectionViewsChildComposition.prepareBlock({
     init: () => ({ model: Model.make({ count: 0 }) }),
-    update: ConnectionViewsChildComposition.makeUpdate(model => ({
-      model: modifyFields(model, { count: count => count + 1 }),
-    })),
+    update: ConnectionViewsChildComposition.makeUpdate({
+      ClickedIncrement: model => ({
+        model: modifyFields(model, { count: count => count + 1 }),
+      }),
+    }),
     view,
   })
 const block: Block.FromAssemblyWithView<typeof Model, typeof prepareBlock> =
@@ -167,7 +169,7 @@ it('supports explicit tagged-union readers and writers', () => {
   const TaggedComposition = TaggedParent.makeComposition({
     bindings: [TaggedBinding],
   })
-  const update = TaggedComposition.makeUpdate()
+  const update = TaggedComposition.makeUpdate({})
   const message = {
     _tag: 'GotConnectionViewsChildMessage',
     placement: 'ConnectionViewsChild',
@@ -199,7 +201,7 @@ it('lowers required-field shorthand through the shared pure Binding adapter', ()
   const ParentComposition = ConnectionViewsParent.makeComposition({
     bindings: [ConnectedBinding, KeyedBinding],
   })
-  const update = ParentComposition.makeUpdate()
+  const update = ParentComposition.makeUpdate({})
   const message = {
     _tag: 'GotChildMessage',
     placement: 'child',
@@ -229,7 +231,7 @@ it('lowers required-field shorthand through the shared pure Binding adapter', ()
   const OptionalComposition = OptionalParent.makeComposition({
     bindings: [OptionalBinding],
   })
-  const optionalUpdate = OptionalComposition.makeUpdate()
+  const optionalUpdate = OptionalComposition.makeUpdate({})
 
   expect(
     optionalUpdate(optionalModel.make({ maybeChild: Option.none() }), {

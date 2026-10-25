@@ -1,9 +1,10 @@
-import { type Effect } from 'effect'
+import { type Effect, Schema } from 'effect'
 import { Command, Update } from 'foldkit'
 import type * as Block from 'foldkit/block'
 
 import {
   ChildBinding,
+  CommandsDefinition,
   Message,
   Model,
   Save,
@@ -20,6 +21,26 @@ type Equal<Left, Right> =
     ? true
     : false
 type Expect<Value extends true> = Value
+
+const SaveCount = CommandsDefinition.makeCommand('SaveCount', {
+  args: { count: Schema.Number },
+  messages: [Message.CompletedSave],
+})
+export const saveCurrentCount = CommandsDefinition.makeCommandsStep(model => [
+  SaveCount({ count: model.count }),
+])
+export type ModelDependentArgs = Expect<
+  Equal<
+    ReturnType<typeof saveCurrentCount>['commands'][number]['args'],
+    Readonly<{ count: number }>
+  >
+>
+export type ModelDependentRequirements = Expect<
+  Equal<
+    Update.RequirementsOf<typeof saveCurrentCount>,
+    Command.HandlerOf<typeof SaveCount>
+  >
+>
 
 export type ExactCommands = Expect<
   Equal<

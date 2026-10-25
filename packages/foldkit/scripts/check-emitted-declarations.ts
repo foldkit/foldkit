@@ -110,6 +110,89 @@ const assertBindingCompletions = async (): Promise<void> => {
   }
 }
 
+const assertUpdateAuthoringDocs = async (): Promise<void> => {
+  const fixture = join(fixtureRoot, 'record-update.accepted.ts')
+  const config = join(fixtureRoot, 'tsconfig.record-update.json')
+  const api = new API({ cwd: packageRoot })
+
+  try {
+    const snapshot = await api.createSnapshot({
+      openProjects: [config],
+      openFiles: [fixture],
+    })
+    const project = snapshot.getConfiguredProject(config)
+    if (project === undefined) {
+      return fail(`Could not open the update authoring project ${config}.`)
+    }
+    const diagnostics = await project.program.getSemanticDiagnostics(fixture)
+    if (Array.isArrayNonEmpty(Array.fromIterable(diagnostics))) {
+      fail(
+        `The update authoring fixture has ${diagnostics.length} semantic diagnostics.`,
+      )
+    }
+    const source = await project.program.getSourceFile(fixture)
+    if (source === undefined) {
+      return fail(`Could not read the update authoring fixture ${fixture}.`)
+    }
+    const declarations = Array.flatMap(source.statements, statement =>
+      isVariableStatement(statement)
+        ? Array.fromIterable(statement.declarationList.declarations)
+        : [],
+    )
+    for (const name of ['update', 'contextualUpdate']) {
+      const declaration = Array.findFirst(
+        declarations,
+        declaration =>
+          isIdentifier(declaration.name) && declaration.name.text === name,
+      )
+      if (
+        Option.isNone(declaration) ||
+        declaration.value.initializer === undefined ||
+        !isCallExpression(declaration.value.initializer) ||
+        !isPropertyAccessExpression(declaration.value.initializer.expression)
+      ) {
+        return fail(`Could not find the ${name} authoring call.`)
+      }
+      const expression = declaration.value.initializer.expression
+      const symbol = await project.checker.getSymbolAtLocation(expression.name)
+      if (symbol === undefined) {
+        return fail(`Could not find the ${name} authoring method.`)
+      }
+      const documentation = await symbol.getDocumentationComment(
+        project.checker,
+      )
+      const expected =
+        name === 'contextualUpdate'
+          ? ['per-dispatch context', 'unevaluated']
+          : ['exhaustive handler record', 'exact local Message variant']
+      if (!expected.every(fragment => documentation.includes(fragment))) {
+        fail(
+          `The ${name} authoring documentation is missing ${expected.join(', ')}.`,
+        )
+      }
+      const type = await project.checker.getTypeAtLocation(expression)
+      const visibleType = await project.checker.typeToString(type)
+      if (/^(any|unknown|never)$/.test(visibleType)) {
+        fail(`The ${name} authoring method lost its visible call signature.`)
+      }
+    }
+    const marker = 'CounterComposition.makeUpdate.withContext('
+    const input = readFileSync(fixture, 'utf8')
+    const position = Option.getOrElse(String.indexOf(marker)(input), () =>
+      fail(`Could not find the update authoring completion marker ${marker}.`),
+    )
+    const completion = await project.languageService.getCompletionsAtPosition(
+      fixture,
+      position + 'CounterComposition.makeUpdate.'.length,
+    )
+    if (!completion?.entries.some(entry => entry.name === 'withContext')) {
+      fail('The makeUpdate completion list does not include withContext.')
+    }
+  } finally {
+    await api.close()
+  }
+}
+
 const assertBindingConfigurationDocs = async (): Promise<void> => {
   const fixture = join(fixtureRoot, 'composition-authoring.accepted.ts')
   const initializerFixture = join(fixtureRoot, 'composition-safety.accepted.ts')
@@ -495,6 +578,33 @@ const checks: ReadonlyArray<
     ],
   },
   {
+    name: 'named-assembly-header',
+    accepted: [
+      'named-assembly-header.accepted.ts',
+      'named-assembly-header.barrel.ts',
+    ],
+    rejected: ['named-assembly-header.rejected.ts'],
+    consumers: ['named-assembly-header.consume.ts'],
+  },
+  {
+    name: 'combined-outmessage',
+    accepted: ['combined-outmessage.accepted.ts'],
+    rejected: ['combined-outmessage.rejected.ts'],
+    consumers: ['combined-outmessage.consume.ts'],
+  },
+  {
+    name: 'callback-guard',
+    accepted: ['callback-guard.accepted.ts', 'focused-step.limitations.ts'],
+    rejected: ['callback-guard.rejected.ts'],
+    consumers: ['focused-step.limitations.consume.ts'],
+  },
+  {
+    name: 'record-update',
+    accepted: ['record-update.accepted.ts'],
+    rejected: ['record-update.rejected.ts'],
+    consumers: ['record-update.consume.ts'],
+  },
+  {
     name: 'outmessage-policy-selection',
     accepted: ['outmessage-policy-selection.accepted.ts'],
     rejected: ['outmessage-policy-selection.rejected.ts'],
@@ -567,6 +677,30 @@ const checks: ReadonlyArray<
     accepted: ['commands-steps.accepted.ts'],
     rejected: ['commands-steps.rejected.ts'],
     consumers: ['commands-steps.consume.ts'],
+  },
+  {
+    name: 'managed-resource-registry',
+    accepted: ['managed-resource-registry.accepted.ts'],
+    rejected: ['managed-resource-registry.rejected.ts'],
+    consumers: ['managed-resource-registry.consume.ts'],
+  },
+  {
+    name: 'policy-graph',
+    accepted: ['policy-graph.accepted.ts', 'policy-graph.ownership.ts'],
+    rejected: ['policy-graph.rejected.ts'],
+    consumers: ['policy-graph.consume.ts'],
+  },
+  {
+    name: 'keyed-map-field',
+    accepted: ['keyed-map-field.accepted.ts'],
+    rejected: ['keyed-map-field.rejected.ts'],
+    consumers: ['keyed-map-field.consume.ts'],
+  },
+  {
+    name: 'command-args',
+    accepted: ['command-args.accepted.ts', 'command-args.helper.ts'],
+    rejected: ['command-args.rejected.ts'],
+    consumers: ['command-args.consume.ts'],
   },
   {
     name: 'outmessage-steps',
@@ -749,6 +883,18 @@ const main = async (): Promise<void> => {
     fail(`Expected the package TypeScript 7 compiler, received ${version}.`)
   }
 
+  for (const name of [
+    'command-args',
+    'keyed-map-field',
+    'managed-resource-registry',
+    'policy-graph',
+  ]) {
+    runCompiler(`Checking direct source ${name} contracts`, [
+      '-p',
+      join(fixtureRoot, `tsconfig.${name}.source.json`),
+    ])
+  }
+
   const workspace = mkdtempSync(
     join(tmpdir(), 'foldkit-declaration-consumers-'),
   )
@@ -818,6 +964,25 @@ const main = async (): Promise<void> => {
       ])
     }
 
+    runCompiler('Checking conservative operation emission metadata', [
+      '-p',
+      join(fixtureRoot, 'tsconfig.operation-hint.source.json'),
+    ])
+    const diagnostics = spawnSync(
+      process.execPath,
+      [join(packageRoot, 'scripts/check-compiler-diagnostics.ts')],
+      { cwd: packageRoot, encoding: 'utf8', env: process.env },
+    )
+    if (diagnostics.error !== undefined) {
+      throw diagnostics.error
+    }
+    if (diagnostics.status !== 0) {
+      fail(
+        `Compiler diagnostic checks failed:\n${diagnostics.stdout ?? ''}${diagnostics.stderr ?? ''}`,
+      )
+    }
+    process.stdout.write(diagnostics.stdout)
+    await assertUpdateAuthoringDocs()
     await assertBindingCompletions()
     await assertBindingConfigurationDocs()
     process.stdout.write(

@@ -6,6 +6,7 @@ import {
   FieldStepsDefinition,
   TextFieldStepsDefinition,
   VariantFieldStepsDefinition,
+  editFields,
 } from './field-steps.accepted.js'
 
 // @ts-expect-error Unknown field-only records cannot be silently ignored.
@@ -42,3 +43,17 @@ FieldStepsDefinition.makeFieldsStep(() => ({
   count: Number.increment,
   [UnknownField]: () => 1,
 }))
+
+// @ts-expect-error Guarded field helpers reject extra literal keys.
+editFields({ count: Number.increment, extra: () => 1 })
+const extractedExtra = { count: Number.increment, extra: () => 1 }
+// @ts-expect-error Extracting the record cannot conceal extra fields.
+editFields(extractedExtra)
+editFields({
+  // @ts-expect-error Guarded callbacks receive the field's exact type.
+  count: (value: string) => value.length,
+})
+// @ts-expect-error Guarded field transforms preserve the declared output type.
+editFields({ count: () => 'invalid' })
+// @ts-expect-error Extra symbol fields remain invalid through a guarded helper.
+editFields({ count: Number.increment, [UnknownField]: () => 1 })

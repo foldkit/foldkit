@@ -28,9 +28,11 @@ const prepareChild = () =>
       initialized()
       return { model: { count: 0 }, commands: [Read()] }
     }),
-    update: ChildComposition.makeUpdate((model, { value }) => ({
-      model: modifyFields(model, { count: () => value }),
-    })),
+    update: ChildComposition.makeUpdate({
+      CompletedRead: (model, { value }) => ({
+        model: modifyFields(model, { count: () => value }),
+      }),
+    }),
     EffectsLayer: Read.layer,
   })
 const child: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -66,7 +68,7 @@ it('uses one zero identity for connected initialization and later dispatch', asy
   const prepareParent = () =>
     ParentComposition.prepareBlock({
       init,
-      update: ParentComposition.makeUpdate(),
+      update: ParentComposition.makeUpdate({}),
     })
   const parent: Block.FromAssemblyWithoutViewOrOutMessage<
     typeof Model,

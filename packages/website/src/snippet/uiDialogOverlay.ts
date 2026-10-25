@@ -77,7 +77,7 @@ const init = FilterDialogComposition.makeInit(() => ({
   },
 }))
 
-const update = FilterDialogComposition.makeUpdate()
+const update = FilterDialogComposition.makeUpdate({})
 
 // Render the overlay inside the dialog panel. Its panel portals into the
 // dialog, so it renders above the dialog content with no extra anchor config.

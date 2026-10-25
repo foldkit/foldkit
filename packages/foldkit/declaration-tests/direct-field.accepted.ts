@@ -15,9 +15,9 @@ const setCount = ChildDefinition.makeStep((model, count: number) => ({
   model: Struct.modifyFields(model, { count: () => count }),
 }))
 const DeclaredDirectFieldChildComposition = ChildDefinition.makeComposition()
-const childUpdate = DeclaredDirectFieldChildComposition.makeUpdate(
-  (model, { count }) => setCount(model, count),
-)
+const childUpdate = DeclaredDirectFieldChildComposition.makeUpdate({
+  UpdatedCount: (model, { count }) => setCount(model, count),
+})
 const prepareChildBlock = () =>
   DeclaredDirectFieldChildComposition.prepareBlock({
     init: DeclaredDirectFieldChildComposition.makeInit(() => ({
@@ -63,9 +63,11 @@ const prepareNestedOptionChildBlock = () =>
     init: DeclaredNestedOptionChildComposition.makeInit(() => ({
       model: Option.none(),
     })),
-    update: DeclaredNestedOptionChildComposition.makeUpdate(model => ({
-      model,
-    })),
+    update: DeclaredNestedOptionChildComposition.makeUpdate({
+      UpdatedCount: model => ({
+        model,
+      }),
+    }),
     EffectsLayer: Layer.empty,
   })
 export const nestedOptionChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -87,7 +89,9 @@ const prepareArrayChildBlock = () =>
     init: DeclaredArrayChildComposition.makeInit(() => ({
       model: ArrayChildModel.make([]),
     })),
-    update: DeclaredArrayChildComposition.makeUpdate(model => ({ model })),
+    update: DeclaredArrayChildComposition.makeUpdate({
+      UpdatedCount: model => ({ model }),
+    }),
     EffectsLayer: Layer.empty,
   })
 export const arrayChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -236,7 +240,9 @@ export const initialize = initialComposition.makeInit(
 const prepareInitializedBlock = () =>
   initialComposition.prepareBlock({
     init: initialize,
-    update: initialComposition.makeUpdate(model => ({ model })),
+    update: initialComposition.makeUpdate({
+      IgnoredChildMessage: model => ({ model }),
+    }),
     EffectsLayer: Layer.empty,
   })
 export const initializedBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -271,13 +277,20 @@ const DeclaredDirectFieldParentComposition = ParentDefinition.makeComposition({
     CustomIgnoredMessageBinding,
   ],
 })
-export const setOptionalCount = DeclaredDirectFieldParentComposition.makeUpdate(
-  (model, _message, count: number) => OptionalBinding.setCount(count)(model),
-)
-export const foldOptional = DeclaredDirectFieldParentComposition.makeUpdate(
-  (model, _message, childMessage: typeof ChildMessage.Type) =>
-    OptionalBinding.fold(model, childMessage),
-)
+export const setOptionalCount =
+  DeclaredDirectFieldParentComposition.makeUpdate.withContext(
+    (count: number) => ({
+      IgnoredChildMessage: (model, _message) =>
+        OptionalBinding.setCount(count)(model),
+    }),
+  )
+export const foldOptional =
+  DeclaredDirectFieldParentComposition.makeUpdate.withContext(
+    (childMessage: typeof ChildMessage.Type) => ({
+      IgnoredChildMessage: (model, _message) =>
+        OptionalBinding.fold(model, childMessage),
+    }),
+  )
 const result = setOptionalCount(initial, ParentMessage.IgnoredChildMessage(), 2)
 const folded = foldOptional(
   initial,
@@ -314,10 +327,9 @@ export const GeneratedDirectFieldParentComposition =
     bindings: [GeneratedChildBinding],
   })
 export const generatedUpdate = GeneratedDirectFieldParentComposition.makeUpdate(
-  (model, message) =>
-    GeneratedParentMessage.match(message, {
-      ClickedParent: () => ({ model }),
-    }),
+  {
+    ClickedParent: model => ({ model }),
+  },
 )
 
 export const CallableModel = taggedStruct('DeclaredCallableParent', {
@@ -351,7 +363,9 @@ export const CallableOptionalBinding = CallableParentDefinition.makeBinding(
 export const callableComposition = CallableParentDefinition.makeComposition({
   bindings: [CallableRequiredBinding],
 })
-export const setCallableCount = callableComposition.makeUpdate(
-  (model, _message, count: number) =>
-    CallableRequiredBinding.setCount(count)(model),
+export const setCallableCount = callableComposition.makeUpdate.withContext(
+  (count: number) => ({
+    IgnoredChildMessage: (model, _message) =>
+      CallableRequiredBinding.setCount(count)(model),
+  }),
 )

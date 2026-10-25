@@ -62,36 +62,50 @@ export const RecordValue = OperationConstructorProofChildDefinition.makeCommand(
 )
 export const OperationConstructorProofChildComposition =
   OperationConstructorProofChildDefinition.makeComposition()
-export const update = OperationConstructorProofChildComposition.makeUpdate(
-  (
-    model,
-    message,
-    required: Readonly<{ prefix: string }>,
-    maybeSuffix?: string,
-    separator: string = ':',
-    ...indexes: ReadonlyArray<number>
-  ) =>
-    Message.match<
-      Update.ReturnWithOutMessage<
+export const update =
+  OperationConstructorProofChildComposition.makeUpdate.withContext(
+    (
+      required: Readonly<{
+        prefix: string
+      }>,
+      maybeSuffix?: string,
+      separator: string = ':',
+      ...indexes: ReadonlyArray<number>
+    ) => ({
+      ResetValue: (
+        model,
+      ): Update.ReturnWithOutMessage<
         Model,
         Message,
         OutMessage,
         Command.HandlerOf<typeof RecordValue>
-      >
-    >(message, {
-      ResetValue: () => ({ model: modifyFields(model, { value: () => '' }) }),
-      UpdatedValue: ({ source, value }) => {
+      > => ({ model: modifyFields(model, { value: () => '' }) }),
+      UpdatedValue: (
+        model,
+        { source, value },
+      ): Update.ReturnWithOutMessage<
+        Model,
+        Message,
+        OutMessage,
+        Command.HandlerOf<typeof RecordValue>
+      > => {
         const nextValue = `${required.prefix}${separator}${source}${separator}${value}${maybeSuffix ?? ''}${indexes.join('')}`
-
         return {
           model: modifyFields(model, { value: () => nextValue }),
           commands: [RecordValue({ value: nextValue })],
           outMessage: OutMessage.ChangedValue({ value: nextValue }),
         }
       },
-      CompletedRecordValue: () => ({ model }),
+      CompletedRecordValue: (
+        model,
+      ): Update.ReturnWithOutMessage<
+        Model,
+        Message,
+        OutMessage,
+        Command.HandlerOf<typeof RecordValue>
+      > => ({ model }),
     }),
-)
+  )
 
 export const resetValue = Message.ResetValue
 export const updateValue = Message.UpdatedValue
@@ -204,19 +218,12 @@ const prepareParentBlock = () =>
     init: () => ({
       model: ParentModel.make({ maybeChild: Option.none(), entries: [] }),
     }),
-    update: OperationConstructorProofParentComposition.makeUpdate(
-      (model, message) =>
-        ParentMessage.match(message, {
-          RequestedUpdateChild: ({ value }) =>
-            ChildBinding.updateValue({ value }, { prefix: 'parent' })(model),
-          RequestedUpdateEntry: ({ id, value }) =>
-            EntryBinding.updateValue(
-              id,
-              { value },
-              { prefix: 'parent' },
-            )(model),
-        }),
-    ),
+    update: OperationConstructorProofParentComposition.makeUpdate({
+      RequestedUpdateChild: (model, { value }) =>
+        ChildBinding.updateValue({ value }, { prefix: 'parent' })(model),
+      RequestedUpdateEntry: (model, { id, value }) =>
+        EntryBinding.updateValue(id, { value }, { prefix: 'parent' })(model),
+    }),
     operations: {
       updateChild: ParentMessage.RequestedUpdateChild,
       updateEntry: ParentMessage.RequestedUpdateEntry,
@@ -253,11 +260,11 @@ export function makeChoice<
       init: (selected: Values[number]) => ({
         model: ChoiceModel.make({ selected }),
       }),
-      update: OperationConstructorProofChoiceComposition.makeUpdate(
-        (model, { value }) => ({
+      update: OperationConstructorProofChoiceComposition.makeUpdate({
+        SelectedValue: (model, { value }) => ({
           model: modifyFields(model, { selected: () => value }),
         }),
-      ),
+      }),
       operations: {
         select,
         selectPositionally: (value: Values[number]) =>
@@ -342,10 +349,23 @@ type BindingRegistrationRemains = Expect<
     Block.RequirementOfBinding<typeof EntryBinding>
   >
 >
-type ParentCommandRequirementsRemain = Expect<
+type ParentChildCommandRequirementsRemainExact = Expect<
   Equal<
     Update.RequirementsOf<typeof ParentBlock.operations.updateChild>,
-    Update.RequirementsOf<typeof ParentBlock.update>
+    Block.Scoped<'child', Command.HandlerOf<typeof RecordValue>>
+  >
+>
+type ParentEntryCommandRequirementsRemainExact = Expect<
+  Equal<
+    Update.RequirementsOf<typeof ParentBlock.operations.updateEntry>,
+    Block.Scoped<'entries', Command.HandlerOf<typeof RecordValue>>
+  >
+>
+type ParentAggregateCommandRequirementsRemain = Expect<
+  Equal<
+    Update.RequirementsOf<typeof ParentBlock.update>,
+    | Block.Scoped<'child', Command.HandlerOf<typeof RecordValue>>
+    | Block.Scoped<'entries', Command.HandlerOf<typeof RecordValue>>
   >
 >
 type ParentRegistrationIsResolved = Expect<
@@ -395,7 +415,9 @@ export type OperationConstructorAssertions = readonly [
   KeyedBindingStartsWithKey,
   CommandRequirementsRemain,
   BindingRegistrationRemains,
-  ParentCommandRequirementsRemain,
+  ParentChildCommandRequirementsRemainExact,
+  ParentEntryCommandRequirementsRemainExact,
+  ParentAggregateCommandRequirementsRemain,
   ParentRegistrationIsResolved,
   OutMessageRemains,
   LayerErrorRemains,
@@ -416,7 +438,11 @@ export const makeNamed = <const Name extends string>(name: Name) => {
   const prepare = () =>
     NamedComposition.prepareBlock({
       init: () => ({ model: Model.make({ value: '' }) }),
-      update: NamedComposition.makeUpdate(model => ({ model })),
+      update: NamedComposition.makeUpdate({
+        UpdatedValue: model => ({ model }),
+        ResetValue: model => ({ model }),
+        CompletedRecordValue: model => ({ model }),
+      }),
       operations: {
         reset: Message.ResetValue,
       },

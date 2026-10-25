@@ -5,19 +5,18 @@ import {
   readFileSync,
   readdirSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { build } from 'rolldown'
 import { transform } from 'rolldown/experimental'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 const getTypeScriptParseErrors = async (source: string) =>
   (await transform('fixed.ts', source)).errors
 
+import { buildPlugin } from './build-plugin.ts'
 import { type LintDiagnostic, runOxlint } from './run-oxlint.ts'
 
 // Runs every rule through real oxlint against fixtures written in real
@@ -35,17 +34,7 @@ const workDir = mkdtempSync(join(tmpdir(), 'foldkit-oxlint-integration-'))
 const bundlePath = join(workDir, 'plugin.mjs')
 
 beforeAll(async () => {
-  symlinkSync(
-    join(pluginRoot, 'node_modules'),
-    join(workDir, 'node_modules'),
-    'dir',
-  )
-  await build({
-    input: join(pluginRoot, 'src', 'index.ts'),
-    external: ['oxc-parser'],
-    platform: 'node',
-    output: { file: bundlePath, format: 'esm' },
-  })
+  await buildPlugin(bundlePath)
 })
 
 afterAll(() => {
@@ -130,6 +119,21 @@ describe('real-oxlint rule fixtures', () => {
     })
   }
 
+  it('reports sibling coordination through proven Binding writers and aliases', () => {
+    const diagnostics = diagnosticsFor(
+      'no-binding-write-coordination',
+      'invalid',
+    )
+    expect(
+      diagnostics.map(diagnostic => basename(diagnostic.filename)).sort(),
+    ).toEqual(['aliases.ts', 'direct.ts', 'map-binding.ts'])
+    expect(
+      diagnostics.every(diagnostic =>
+        diagnostic.message.includes('OutMessage'),
+      ),
+    ).toBe(true)
+  })
+
   it('reports proven completed Block Models only in Schema inputs', () => {
     const diagnostics = diagnosticsFor(
       'no-completed-block-model-in-schema',
@@ -145,7 +149,7 @@ describe('real-oxlint rule fixtures', () => {
     }
     expect([...diagnosticsByFixture.entries()].sort()).toEqual([
       ['block-returning-methods.ts', 12],
-      ['explicit-header.ts', 17],
+      ['explicit-header.ts', 25],
       ['imports.ts', 4],
       ['inline.ts', 1],
       ['local.ts', 2],
@@ -171,7 +175,21 @@ describe('real-oxlint rule fixtures', () => {
   })
 
   it('traces direct, named, and automatically routed child updates', () => {
-    expect(countDiagnostics('no-direct-block-state-update', 'invalid')).toBe(21)
+    expect(countDiagnostics('no-direct-block-state-update', 'invalid')).toBe(28)
+  })
+
+  it('tracks HashMap child updates across direct, applied, and piped forms', () => {
+    const invalid = diagnosticsFor(
+      'no-direct-block-state-update',
+      'invalid',
+    ).filter(diagnostic => diagnostic.filename.endsWith('map-binding.ts'))
+    const valid = diagnosticsFor(
+      'no-direct-block-state-update',
+      'valid',
+    ).filter(diagnostic => diagnostic.filename.endsWith('map-binding.ts'))
+
+    expect(invalid).toHaveLength(5)
+    expect(valid).toEqual([])
   })
 
   it('tracks provenance-backed child transform references', () => {
@@ -193,11 +211,13 @@ describe('real-oxlint rule fixtures', () => {
       diagnostic.filename.endsWith('composition-update.ts'),
     )
 
-    expect(diagnostics).toHaveLength(2)
+    expect(diagnostics).toHaveLength(4)
   })
 
   it('reports disabled, missing, and manual child routing', () => {
-    expect(countDiagnostics('no-manual-composition-routing', 'invalid')).toBe(8)
+    expect(countDiagnostics('no-manual-composition-routing', 'invalid')).toBe(
+      11,
+    )
   })
 
   it('recognizes root and subpath Program aliases', () => {
@@ -225,7 +245,13 @@ describe('real-oxlint rule fixtures', () => {
         'Child.Message.ClickedNamespaceAliasSave',
         'Child.Message.ClickedImportedParentViewSave',
         'Child.Message.ClickedParentStepSave',
+        'Child.Message.ClickedParentCommandsStepSave',
+        'Child.Message.ClickedParentMapSave',
         'Child.Message.ClickedParentViewSave',
+        'Child.Message.ClickedFromContextRecord',
+        'Child.Message.ClickedFromDirectRecord',
+        'Child.Message.ClickedFromUnrelatedContextRecord',
+        'Child.Message.ClickedFromUnrelatedRecord',
         'Child.Message.ClickedTypedParentViewSave',
         'Child.Message.ClickedWorkspaceSave',
         'Child.Message.ClickedWorkspaceAliasSave',
@@ -246,6 +272,22 @@ describe('real-oxlint rule fixtures', () => {
         'picker.Message.SelectedValue',
       ].sort(),
     )
+  })
+
+  it('tracks Message ownership in Command-only Step callbacks without matching unrelated methods', () => {
+    const invalid = diagnosticsFor(
+      'no-child-message-construction-in-root',
+      'invalid',
+    ).filter(diagnostic => diagnostic.filename.endsWith('commands-step.ts'))
+    const valid = diagnosticsFor(
+      'no-child-message-construction-in-root',
+      'valid',
+    ).filter(diagnostic => diagnostic.filename.endsWith('commands-step.ts'))
+
+    expect(invalid.map(reportedCalleeLabel)).toEqual([
+      'Child.Message.ClickedParentCommandsStepSave',
+    ])
+    expect(valid).toEqual([])
   })
 
   it('resolves aliased constructors and helpers to their imported APIs', () => {

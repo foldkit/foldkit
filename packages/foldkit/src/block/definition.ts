@@ -106,8 +106,10 @@ import type {
 } from './initialization.js'
 import { makeInit } from './initializationRuntime.js'
 import { isOperationMessageConstructor, prepareOperation } from './operation.js'
+import type { OperationEmission } from './operationEmission.js'
 import { withOperationGraph } from './operationGraph.js'
 import { makeOperationMessageValidator } from './operationMessage.js'
+import type { OperationOutputOf } from './operationOutputs.js'
 import {
   type MakeOutMessageFold,
   makeOutMessageFold,
@@ -163,9 +165,13 @@ type AnySubscriptionInput =
   | AnySubscriptionEntries
   | (Subscription.Registry<AnySubscriptionEntries> &
       Readonly<{ layer?: Layer.Any }>)
-type AnyManagedResources = Readonly<
+type AnyManagedResourceEntries = Readonly<
   Record<string, ManagedResource.Entry<any, any, any, any, any, any, any, any>>
 >
+type AnyManagedResources = AnyManagedResourceEntries
+type AnyManagedResourceInput =
+  | AnyManagedResources
+  | ManagedResource.Registry<AnyManagedResourceEntries>
 
 type ValidateHandlerConstruction<
   Yielded extends Effect.Effect<unknown, unknown, unknown>,
@@ -384,6 +390,20 @@ export type OwnedAuthoredView<
 }> &
   View
 
+/** @internal Retains an owned document view in emitted declarations. */
+export interface OwnedDocumentView<
+  OwnerValue,
+  Model,
+  Message,
+  RequiredViewRequirements,
+> extends OwnedAuthoredView<
+  DocumentView<Model, Message, RequiredViewRequirements>,
+  OwnerValue,
+  Model,
+  Message,
+  RequiredViewRequirements
+> {}
+
 /**
  * Refines an authored generic view's per-render inputs while preserving its
  * definition owner, Model, Message, and View requirements.
@@ -425,13 +445,7 @@ export interface DefineView<
       model: Model,
       h: HtmlBuilder<Message, RequiredViewRequirements>,
     ) => Document,
-  ): OwnedAuthoredView<
-    DocumentView<Model, Message, RequiredViewRequirements>,
-    OwnerValue,
-    Model,
-    Message,
-    RequiredViewRequirements
-  >
+  ): OwnedDocumentView<OwnerValue, Model, Message, RequiredViewRequirements>
   (
     view: (
       model: Model,
@@ -955,6 +969,10 @@ type AcquireParams<RequirementsSchema extends Schema.Schema<any>> =
         ? Params
         : RequirementsSchema['Type']
 
+/** An owned ManagedResource registry with an aggregate Layer when every entry has an attached handler. */
+export type OwnedManagedResourceRegistry<Entries> =
+  ManagedResource.OwnedRegistry<Entries>
+
 /** Defines ManagedResource registries against one Block's Model and Message. */
 export interface DefineManagedResources<Id extends string, Model, Message> {
   <
@@ -967,8 +985,14 @@ export interface DefineManagedResources<Id extends string, Model, Message> {
   >(
     build: (
       entry: OwnedManagedResourceEntryBuilder<Id, Model, Message>,
-    ) => Entries,
-  ): Entries
+    ) => Entries &
+      ('layer' extends keyof Entries ? Readonly<{ layer: never }> : unknown) &
+      ([Extract<keyof Entries, symbol>] extends [never]
+        ? unknown
+        : Readonly<{
+            'ManagedResource registration keys must be strings': never
+          }>),
+  ): OwnedManagedResourceRegistry<Entries>
 }
 
 /** Defines locally named ManagedResource entries for one Block. */
@@ -1204,7 +1228,7 @@ type ImplementationSubscriptions<Implementation> =
 
 type ImplementationManagedResources<Implementation> =
   Implementation extends Readonly<{ managedResources: infer ManagedResources }>
-    ? ManagedResources
+    ? ManagedResource.RegistryEntries<ManagedResources>
     : EmptyRecord
 
 type ImplementationHostHandlers<Implementation> =
@@ -1248,12 +1272,21 @@ type ImplementationChannels<Model, Message, OutMessage, Operations> = Readonly<{
     | (Subscription.Registry<Subscription.Subscriptions<Model, Message, any>> &
         Readonly<{ layer?: Layer.Any }>)
   /** ManagedResource entries owned directly by this Block. */
-  managedResources?: Readonly<
-    Record<
-      string,
-      ManagedResource.Entry<Model, Message, any, any, any, any, any, any>
-    >
-  >
+  managedResources?:
+    | Readonly<
+        Record<
+          string,
+          ManagedResource.Entry<Model, Message, any, any, any, any, any, any>
+        >
+      >
+    | ManagedResource.Registry<
+        Readonly<
+          Record<
+            string,
+            ManagedResource.Entry<Model, Message, any, any, any, any, any, any>
+          >
+        >
+      >
   /** The complete local handler recipe for this Block. Child Bindings contribute
    * their recipes automatically. Ordinary Service requirements remain for the
    * application root to provide. This field is explicit on the broad
@@ -1435,6 +1468,17 @@ type PublicProducer<Producer, Model, Message> = Producer extends (
     : (...args: Args) => PublicProducerReturn<Output, Model, Message>
   : never
 
+/** @internal Retains a completed update's two call signatures in emitted declarations. */
+export interface CompletedUpdate<
+  Model,
+  Message,
+  Context extends ReadonlyArray<unknown>,
+  Output,
+> {
+  (message: Message): (model: Model, ...context: Context) => Output
+  (model: Model, message: Message, ...context: Context): Output
+}
+
 type PublicUpdateProducer<Producer, Model, Message> =
   Producer extends AnyFunction
     ? [Update.RegistrationEvidenceOf<ReturnType<Producer>>] extends [never]
@@ -1445,19 +1489,12 @@ type PublicUpdateProducer<Producer, Model, Message> =
             message: infer UpdateMessage,
             ...context: infer Context,
           ]
-          ? {
-              (
-                message: UpdateMessage,
-              ): (
-                model: UpdateModel,
-                ...context: Context
-              ) => PublicProducerReturn<ReturnType<Producer>, Model, Message>
-              (
-                model: UpdateModel,
-                message: UpdateMessage,
-                ...context: Context
-              ): PublicProducerReturn<ReturnType<Producer>, Model, Message>
-            }
+          ? CompletedUpdate<
+              UpdateModel,
+              UpdateMessage,
+              Context,
+              PublicProducerReturn<ReturnType<Producer>, Model, Message>
+            >
           : never
         : PublicProducer<Producer, Model, Message>
     : never
@@ -1472,6 +1509,23 @@ type ExposedProducerParameters<Producer> = Producer extends AnyFunction
     : Parameters<Producer>
   : never
 
+type ProjectedOperation<Args extends ReadonlyArray<unknown>, Output> = ((
+  ...args: Args
+) => PublicExposedUpdateReturn<Output>) &
+  OperationEmission<
+    IsAny<Output> extends true
+      ? true
+      : [Output] extends [never]
+        ? true
+        : unknown extends Output
+          ? true
+          : IsAny<OutMessageOfReturn<Output>> extends true
+            ? true
+            : [OutMessageOfReturn<Output>] extends [never]
+              ? false
+              : true
+  >
+
 type PublicExposedProducer<Producer, UpdateFunction, Model> =
   Producer extends Readonly<{
     fields: Readonly<Record<infer FieldName, unknown>>
@@ -1484,9 +1538,9 @@ type PublicExposedProducer<Producer, UpdateFunction, Model> =
           unknown,
           ...infer Context,
         ]
-        ? (
-            model: Model,
-            ...args: [
+        ? ProjectedOperation<
+            readonly [
+              model: Model,
               ...([FieldName] extends ['_tag']
                 ? readonly []
                 : readonly [
@@ -1496,8 +1550,9 @@ type PublicExposedProducer<Producer, UpdateFunction, Model> =
                           Readonly<{ _tag?: Output['_tag'] }>),
                   ]),
               ...Context,
-            ]
-          ) => PublicExposedUpdateReturn<ReturnType<UpdateFunction>>
+            ],
+            OperationOutputOf<UpdateFunction, Output>
+          >
         : never
       : never
     : Producer extends AnyFunction
@@ -1506,10 +1561,18 @@ type PublicExposedProducer<Producer, UpdateFunction, Model> =
           ...ReadonlyArray<unknown>,
         ]
         ? UpdateFunction extends AnyFunction
-          ? (
-              model: Model,
-              ...args: ExposedProducerParameters<Producer>
-            ) => PublicExposedUpdateReturn<ReturnType<UpdateFunction>>
+          ? ProjectedOperation<
+              readonly [model: Model, ...ExposedProducerParameters<Producer>],
+              OperationOutputOf<
+                UpdateFunction,
+                ReturnType<Producer> extends readonly [
+                  infer Message,
+                  ...ReadonlyArray<unknown>,
+                ]
+                  ? Message
+                  : never
+              >
+            >
           : never
         : Producer
       : never
@@ -1661,15 +1724,15 @@ export type DefinitionAuthoredView<
   Model,
   Message,
   AllowedViewRequirements,
-> = AnyAuthoredView &
-  Readonly<{
-    __blockDefinitionView: Readonly<{
-      owner: (value: OwnerValue) => OwnerValue
-      model: (value: Model) => Model
-      message: (value: Message) => Message
-      mountRequirements: () => AllowedViewRequirements
-    }>
+> = Readonly<{
+  __blockDefinitionView: Readonly<{
+    owner: (value: OwnerValue) => OwnerValue
+    model: (value: Model) => Model
+    message: (value: Message) => Message
+    mountRequirements: () => AllowedViewRequirements
   }>
+}> &
+  AnyAuthoredView
 
 /** The authored-view contract derived from one Block Definition and its
  * registered composition graph. */
@@ -1691,10 +1754,10 @@ type ValidateViewOwner<View, OwnerValue> =
     ? [ViewOwner, OwnerValue] extends [OwnerValue, ViewOwner]
       ? unknown
       : Readonly<{
-          'Block view must be authored by its definition': ViewOwner
+          'Block primary view must be authored with this Composition.makeView': ViewOwner
         }>
     : Readonly<{
-        'Block view must be authored by its definition': View
+        'Block primary view must be authored with this Composition.makeView': View
       }>
 
 type ValidateViewChannels<
@@ -2009,10 +2072,10 @@ interface BlockContractFields<
    * accept a payload object when the Message has fields, followed by update's
    * dispatch Context; empty variants need no payload placeholder. Custom tuple
    * producers retain their own public arguments. Every operation synchronously
-   * enters the completed update with its child graph active and retains that
-   * update's full requirements and OutMessage contract. Binding methods omit
-   * the child Model, prepend a key for keyed occurrences, and return an opaque
-   * parent result for the registering Composition to consume. */
+   * enters the completed update with its child graph active and retains the
+   * selected handler's exact requirements and OutMessage contract. Binding
+   * methods omit the child Model, prepend a key for keyed occurrences, and
+   * return an opaque parent result for the registering Composition to consume. */
   readonly operations: ImplementationExposedOperations<ImplementationValue>
   /** Local and descendant Subscription registrations. A Runtime starts them for
    * active occurrences. */
@@ -3558,6 +3621,31 @@ export interface PrepareBlock<
       >
     >
   >
+  <const ImplementationValue extends object>(
+    implementation: ImplementationValue &
+      NoInfer<
+        Omit<
+          ImplementationInput<ModelSchema, MessageSchema, OutMessageSchema>,
+          'view'
+        > &
+          Readonly<{ view?: AnyFunction }> &
+          ExactImplementationKeys<ImplementationValue> &
+          ValidateImplementationLayerPresence<ImplementationValue> &
+          ValidateInferredAssembly<
+            OwnerValue,
+            ModelSchema,
+            MessageSchema,
+            OutMessageSchema,
+            Mounts,
+            Children,
+            CompletedImplementationValue<ImplementationValue>
+          >
+      >,
+    ...validation: ImplementationRecipeArguments<
+      NoInfer<ImplementationValue>,
+      unknown
+    >
+  ): AssemblyDraft<never>
 }
 
 /**
@@ -3630,11 +3718,12 @@ export type Definition<
       ? OutMessageSchema['Type']
       : never
   >
-  /** Authors a Model-only Step from transformations of this Block's fields. */
-  makeFieldsStep: DefineStepFields<ModelSchema['Type']>
+  /** Authors a Model-only Step from a deferred field-transformation callback. */
+  makeFieldsStep: DefineStepFields<ModelSchema['Type'], MessageSchema['Type']>
   /** Creates a Step preserving the incoming Model, with no Commands or OutMessage. */
   makeNoopStep: DefineStepNoop<ModelSchema['Type']>
-  /** Creates a Model-preserving Step returning the supplied Commands. */
+  /** Creates a Model-preserving Step whose deferred callback produces Commands.
+   * Runtime executes the returned Commands. */
   makeCommandsStep: MakeCommandsStep<ModelSchema['Type'], MessageSchema['Type']>
   /** Defines Subscription entries owned directly by this Block. */
   makeSubscriptions: DefineSubscriptions<
@@ -3680,10 +3769,11 @@ export type Definition<
         /** Builds an exhaustive child OutMessage mapper into this Definition's
          * declared parent OutMessage contract. */
         makeOutMessageForward: MakeOutMessageForward<OutMessageSchema['Type']>
-        /** Creates a Step preserving the incoming Model and emitting the supplied
-         * declared OutMessage, with no Commands. */
+        /** Creates a Step preserving the incoming Model and emitting the
+         * deferred callback's declared OutMessage, with no Commands. */
         makeOutMessageStep: MakeOutMessageStep<
           ModelSchema['Type'],
+          MessageSchema['Type'],
           OutMessageSchema['Type']
         >
       }>
@@ -3733,7 +3823,9 @@ export type Composition<
    * their wrapper Messages through the native Binding folds. Raw Binding
    * operations retain direct child channels plus an opaque policy obligation;
    * this completed update resolves the policy's transitive requirements,
-   * OutMessages, and registration evidence against the full graph. */
+   * OutMessages, and registration evidence against the full graph. The
+   * exhaustive handler record gives each handler its exact local Message variant
+   * and retains that handler's visible result contract. */
   readonly makeUpdate: DefineCompositionUpdate<
     ModelSchema['Type'],
     MessageSchema['Type'],
@@ -3910,13 +4002,7 @@ const makeDefineView = <
       model: Model,
       h: HtmlBuilder<Message, RequiredViewRequirements>,
     ) => Document,
-  ): OwnedAuthoredView<
-    DocumentView<Model, Message, RequiredViewRequirements>,
-    OwnerValue,
-    Model,
-    Message,
-    RequiredViewRequirements
-  >
+  ): OwnedDocumentView<OwnerValue, Model, Message, RequiredViewRequirements>
   function defineView(
     view: (
       model: Model,
@@ -3942,13 +4028,7 @@ const makeDefineView = <
         Message,
         RequiredViewRequirements
       >
-    | OwnedAuthoredView<
-        DocumentView<Model, Message, RequiredViewRequirements>,
-        OwnerValue,
-        Model,
-        Message,
-        RequiredViewRequirements
-      > {
+    | OwnedDocumentView<OwnerValue, Model, Message, RequiredViewRequirements> {
     const ownedView = withViewIdentity(owner, mounts, bindings, view)
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     const authoredView = defineHtmlView(ownedView as any) as
@@ -3959,13 +4039,7 @@ const makeDefineView = <
           Message,
           RequiredViewRequirements
         >
-      | OwnedAuthoredView<
-          DocumentView<Model, Message, RequiredViewRequirements>,
-          OwnerValue,
-          Model,
-          Message,
-          RequiredViewRequirements
-        >
+      | OwnedDocumentView<OwnerValue, Model, Message, RequiredViewRequirements>
 
     registerViewInputs(authoredView, false)
     return authoredView
@@ -4151,12 +4225,15 @@ const makeDefineSubscriptions = <Id extends string, Model, Message>(
     return subscriptions
   }) as never
 
-const makeDefineManagedResources =
-  <Id extends string, Model, Message>(
-    owner: Owner<Id>,
-  ): DefineManagedResources<Id, Model, Message> =>
-  build =>
-    ManagedResource.make<Model, Message>()(entry => {
+const makeDefineManagedResources = <Id extends string, Model, Message>(
+  owner: Owner<Id>,
+): DefineManagedResources<Id, Model, Message> =>
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  ((build: AnyFunction) => {
+    const builtManagedResources: unknown = ManagedResource.make<
+      Model,
+      Message
+    >()(entry => {
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       const ownedEntry = ((
         name: string,
@@ -4174,8 +4251,99 @@ const makeDefineManagedResources =
         return definition
       }) as never
 
-      return build(ownedEntry)
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      return build(ownedEntry) as never
     })
+
+    if (!isSubscriptionEntryRecord(builtManagedResources)) {
+      throw new Error(
+        '[foldkit] Definition.makeManagedResources callback must return a ManagedResource entry record.',
+      )
+    }
+
+    const prototype = Object.getPrototypeOf(builtManagedResources)
+    if (prototype !== null && prototype !== Object.prototype) {
+      throw new Error(
+        '[foldkit] Definition.makeManagedResources expects a record with own resource entries, not inherited entries.',
+      )
+    }
+
+    const entries: Record<string, unknown> = {}
+    const managedResources: Record<string, unknown> = {}
+    const entryKeys = Array.map(Reflect.ownKeys(builtManagedResources), key => {
+      if (!Predicate.isString(key)) {
+        throw new Error(
+          '[foldkit] Definition.makeManagedResources registration keys must be own string properties.',
+        )
+      }
+
+      if (key === 'layer') {
+        throw new Error(
+          '[foldkit] Definition.makeManagedResources reserves "layer" for its aggregate handler Layer.',
+        )
+      }
+
+      const entryProperty = {
+        configurable: true,
+        enumerable: true,
+        value: Reflect.get(builtManagedResources, key),
+        writable: true,
+      }
+      Object.defineProperty(entries, key, entryProperty)
+      Object.defineProperty(managedResources, key, entryProperty)
+      return key
+    })
+
+    Object.freeze(entries)
+
+    Object.defineProperty(
+      managedResources,
+      ManagedResource.RegistryEntriesTypeId,
+      {
+        value: entries,
+      },
+    )
+
+    const maybeLayers = Array.map(entryKeys, key => {
+      const entry = Reflect.get(entries, key)
+      if (
+        !Predicate.isObject(entry) ||
+        identityOf(entry)?.kind !== 'ManagedResource'
+      ) {
+        throw new Error(
+          `[foldkit] Definition.makeManagedResources entry "${key}" is not a ManagedResource entry.`,
+        )
+      }
+
+      if (!Object.hasOwn(entry, 'layer')) {
+        return Option.none()
+      }
+
+      const layer = Reflect.get(entry, 'layer')
+      const isLayer: boolean = Layer.isLayer(layer)
+
+      if (!isLayer) {
+        throw new Error(
+          `[foldkit] Definition.makeManagedResources entry "${key}" has a "layer" value that is not an Effect Layer.`,
+        )
+      }
+
+      return Option.some<unknown>(layer)
+    })
+
+    if (Array.every(maybeLayers, Option.isSome)) {
+      const layers = Array.getSomes(maybeLayers)
+      const layer = Array.match(layers, {
+        onEmpty: () => Layer.empty,
+        onNonEmpty: implementedEntries =>
+          Reflect.apply(Layer.mergeAll, undefined, implementedEntries),
+      })
+      Object.defineProperty(managedResources, 'layer', { value: layer })
+    }
+
+    Object.freeze(managedResources)
+    return managedResources
+  }) as never
 
 const mergeMounts = (
   localMounts: ReadonlyArray<Mount.LayeredMountDefinition>,
@@ -4371,7 +4539,7 @@ export const makeDefinition = (
       readonly update: AnyFunction
       readonly operations?: Readonly<Record<string, OperationSource>>
       readonly subscriptions?: AnySubscriptionInput
-      readonly managedResources?: AnyManagedResources
+      readonly managedResources?: AnyManagedResourceInput
       readonly EffectsLayer?: AnyLayer
       readonly hostHandlers?: ReadonlyArray<unknown>
     },
@@ -4386,16 +4554,17 @@ export const makeDefinition = (
 
     const operationsSource = implementation.operations ?? emptyOperations
     assertValidBindingOperationNames(operationsSource)
-    const completedUpdate = update(implementation.update)
+    const completedUpdate = update.complete(implementation.update)
     const operations = completeOperations(operationsSource, completedUpdate)
     const subscriptions = Subscription.aggregate(
       implementation.subscriptions ?? {},
       childChannels.subscriptions,
     )
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     const managedResources = ManagedResource.aggregate(
       implementation.managedResources ?? {},
       childChannels.managedResources,
-    )
+    ) as AnyManagedResources
     const hostIdentities =
       retainedHostIdentities ??
       (implementation.hostHandlers ?? []).map(definition => {
@@ -4491,7 +4660,10 @@ export const makeDefinition = (
     registerDefaultView(block, implementation.view)
     localChannels.set(block, {
       subscriptions: Subscription.aggregate(implementation.subscriptions ?? {}),
-      managedResources: implementation.managedResources ?? {},
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      managedResources: ManagedResource.aggregate(
+        implementation.managedResources ?? {},
+      ) as AnyManagedResources,
     })
     registerBlockHostIdentities(block, hostIdentities)
 

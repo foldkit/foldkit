@@ -77,7 +77,7 @@ const init = CharacterPickerComposition.makeInit(() => ({
   },
 }))
 
-const update = CharacterPickerComposition.makeUpdate()
+const update = CharacterPickerComposition.makeUpdate({})
 
 const characters: ReadonlyArray<Character> = [
   { firstName: 'Michael', lastName: 'Bluth' },

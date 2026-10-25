@@ -12,9 +12,6 @@ const resetSettings = Parent.ApplicationDefinition.makeStep(() =>
   ]),
 )
 
-export const update = Parent.ApplicationComposition.makeUpdate(
-  (model, message) =>
-    Parent.Message.match(message, {
-      RequestedResetSettings: () => resetSettings(model),
-    }),
-)
+export const update = Parent.ApplicationComposition.makeUpdate({
+  RequestedResetSettings: model => resetSettings(model),
+})

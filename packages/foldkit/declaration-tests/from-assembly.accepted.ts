@@ -58,16 +58,14 @@ export const init = CountComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),
 }))
 
-export const update = CountComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    RequestedSetCount: ({ count }) => ({
-      model: Struct.modifyFields(model, { count: () => count }),
-      commands: [SaveCount({ count })],
-    }),
-    CompletedSaveCount: () => ({ model }),
-    CompletedObservePanel: () => ({ model }),
+export const update = CountComposition.makeUpdate({
+  RequestedSetCount: (model, { count }) => ({
+    model: Struct.modifyFields(model, { count: () => count }),
+    commands: [SaveCount({ count })],
   }),
-)
+  CompletedSaveCount: model => ({ model }),
+  CompletedObservePanel: model => ({ model }),
+})
 
 export const view = CountComposition.makeView.withInputs<
   typeof ViewInputs.Type
@@ -101,16 +99,14 @@ const ReportingComposition = ReportingCountDefinition.makeComposition()
 const reportingInit = ReportingComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),
 }))
-const reportingUpdate = ReportingComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    RequestedSetCount: ({ count }) => ({
-      model: Struct.modifyFields(model, { count: () => count }),
-      outMessage: OutMessage.ChangedCount({ count }),
-    }),
-    CompletedSaveCount: () => ({ model }),
-    CompletedObservePanel: () => ({ model }),
+const reportingUpdate = ReportingComposition.makeUpdate({
+  RequestedSetCount: (model, { count }) => ({
+    model: Struct.modifyFields(model, { count: () => count }),
+    outMessage: OutMessage.ChangedCount({ count }),
   }),
-)
+  CompletedSaveCount: model => ({ model }),
+  CompletedObservePanel: model => ({ model }),
+})
 const reportingView = ReportingComposition.makeView((model, h) =>
   h.div([], [globalThis.String(model.count)]),
 )
@@ -186,7 +182,7 @@ export const RawParentComposition = RawParentDefinition.makeComposition({
 const prepareRawParent = () =>
   RawParentComposition.prepareBlock({
     init: RawParentComposition.makeInit(() => ({ model: {} })),
-    update: RawParentComposition.makeUpdate(),
+    update: RawParentComposition.makeUpdate({}),
     view: RawParentComposition.makeView((model, h) =>
       h.block(
         RawParentBinding.embedView({
@@ -218,7 +214,7 @@ export const ParentComposition = ParentDefinition.makeComposition({
 const prepareParent = () =>
   ParentComposition.prepareBlock({
     init: ParentComposition.makeInit(() => ({ model: {} })),
-    update: ParentComposition.makeUpdate(),
+    update: ParentComposition.makeUpdate({}),
     view: ParentComposition.makeView((model, h) =>
       h.block(
         ParentBinding.embedView({

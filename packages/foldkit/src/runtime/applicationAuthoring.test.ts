@@ -39,9 +39,11 @@ const ChildComposition = ChildOwnerNamespace.makeDefinition({
 const prepareChildBlock = () =>
   ChildComposition.prepareBlock({
     init: () => ({ model: { value: 'child' } }),
-    update: ChildComposition.makeUpdate((model, { value }) => ({
-      model: modifyFields(model, { value: () => value }),
-    })),
+    update: ChildComposition.makeUpdate({
+      UpdatedChildValue: (model, { value }) => ({
+        model: modifyFields(model, { value: () => value }),
+      }),
+    }),
     view: ChildComposition.makeView((model, h) => h.span([], [model.value])),
   })
 const childBlock: Block.FromAssemblyWithView<
@@ -108,17 +110,15 @@ const initSource = () =>
     toParentModel: child => ({ rootValue: 'pending', child }),
   })
 const init = composition.makeInit(initSource)
-const update = composition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedReadRootValue: () => ({
-      model,
-      commands: [ReadRootValue()],
-    }),
-    CompletedReadRootValue: ({ value }) => ({
-      model: modifyFields(model, { rootValue: () => value }),
-    }),
+const update = composition.makeUpdate({
+  ClickedReadRootValue: model => ({
+    model,
+    commands: [ReadRootValue()],
   }),
-)
+  CompletedReadRootValue: (model, { value }) => ({
+    model: modifyFields(model, { rootValue: () => value }),
+  }),
+})
 expectTypeOf<Update.RequirementsOf<typeof update>>().toEqualTypeOf<
   Command.HandlerOf<typeof ReadRootValue>
 >()
@@ -147,7 +147,7 @@ const NoMessageComposition = Block.makeDefinition('Application', {
   Message: Schema.Never,
 }).makeComposition()
 const noMessageInit = () => ({ model: null })
-const noMessageUpdate = NoMessageComposition.makeUpdate()
+const noMessageUpdate = NoMessageComposition.makeUpdate({})
 const noMessageDocumentView = NoMessageComposition.makeView((_model, h) => ({
   title: 'No messages',
   body: h.empty,
@@ -157,18 +157,18 @@ const noMessageElementView = NoMessageComposition.makeView(
 )
 
 const typecheckRootCompletion = (): void => {
+  // @ts-expect-error Inline views still require Composition.makeView ownership.
   NoMessageComposition.prepareBlock({
     init: noMessageInit,
     update: noMessageUpdate,
-    // @ts-expect-error Inline views still require Composition.makeView ownership.
     view: () => ({ title: 'Unowned Document', body: null }),
     EffectsLayer: Layer.empty,
   })
 
+  // @ts-expect-error Inline views still require Composition.makeView ownership.
   NoMessageComposition.prepareBlock({
     init: noMessageInit,
     update: noMessageUpdate,
-    // @ts-expect-error Inline views still require Composition.makeView ownership.
     view: () => null,
     EffectsLayer: Layer.empty,
   })
@@ -203,12 +203,10 @@ const typecheckRootCompletion = (): void => {
   // @ts-expect-error Primitive authoring remains on the Application Definition.
   composition.makeCommand
 
-  composition.makeUpdate((model, message) =>
-    Message.match(message, {
-      ClickedReadRootValue: () => ({ model }),
-      CompletedReadRootValue: () => ({ model }),
-    }),
-  )
+  composition.makeUpdate({
+    ClickedReadRootValue: model => ({ model }),
+    CompletedReadRootValue: model => ({ model }),
+  })
 
   const prepareElementBlock = () =>
     composition.prepareBlock({
@@ -283,26 +281,23 @@ const typecheckRootCompletion = (): void => {
   const unregisteredInit = () => ({
     model: { rootValue: 'pending', child: { value: 'child' } },
   })
-  const unregisteredUpdate = unregisteredComposition.makeUpdate(
-    (model, message) =>
-      Message.match(message, {
-        ClickedReadRootValue: () => ({ model }),
-        CompletedReadRootValue: () => ({ model }),
-      }),
-  )
+  const unregisteredUpdate = unregisteredComposition.makeUpdate({
+    ClickedReadRootValue: model => ({ model }),
+    CompletedReadRootValue: model => ({ model }),
+  })
 
+  // @ts-expect-error The Composition has not registered the child used by this view.
   unregisteredComposition.prepareBlock({
     init: unregisteredInit,
     update: unregisteredUpdate,
-    // @ts-expect-error The Composition has not registered the child used by this view.
     view,
     EffectsLayer: ReadRootValue.layer,
   })
 
+  // @ts-expect-error The Composition has not registered the Mount used by this view.
   unregisteredComposition.prepareBlock({
     init: unregisteredInit,
     update: unregisteredUpdate,
-    // @ts-expect-error The Composition has not registered the Mount used by this view.
     view: mountedView,
     EffectsLayer: Layer.merge(ReadRootValue.layer, ObserveRoot.layer),
   })

@@ -46,7 +46,9 @@ export const init = ComposedInitComposition.makeInit((isReady: boolean) => ({
 export const prepareComposedInitBlock = () =>
   ComposedInitComposition.prepareBlock({
     init,
-    update: ComposedInitComposition.makeUpdate(model => ({ model })),
+    update: ComposedInitComposition.makeUpdate({
+      CompletedPrepare: model => ({ model }),
+    }),
     EffectsLayer: Prepare.layer,
   })
 
