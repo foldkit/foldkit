@@ -635,6 +635,7 @@ Use `taggedStruct` when the variants cannot be declared together:
 - A short section header is allowed when a long file has a substantial group that benefits from wayfinding. Do not add routine architecture headers to small application or example files.
 - TSDoc (`/** ... */`) on public exports
 - Always use braces for control flow: `if (foo) { return true }` not `if (foo) return true`
+- Use direct `value === undefined` and `value !== undefined` comparisons for undefined checks.
 - Use `const` exclusively. `let` only when mutation is truly unavoidable
 - Prefer curried, data-last functions that compose in `pipe` chains
 - No dead code, no empty catch blocks, no placeholder types

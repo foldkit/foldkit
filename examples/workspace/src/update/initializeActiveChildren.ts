@@ -1,4 +1,4 @@
-import { Array, Option } from 'effect'
+import { Array, Option, pipe } from 'effect'
 import { AsyncData, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
@@ -21,11 +21,12 @@ const initializeIssueDetailIfMissing = (issueId: string) =>
       return { model }
     }
 
-    return Option.match(
-      Option.flatMap(AsyncData.getData(model.workspaceAsyncData), snapshot =>
+    return pipe(
+      AsyncData.getData(model.workspaceAsyncData),
+      Option.flatMap(snapshot =>
         Array.findFirst(snapshot.issues, issue => issue.id === issueId),
       ),
-      {
+      Option.match({
         onNone: () => ({ model }),
         onSome: issue =>
           IssueDetailBinding.init({
@@ -45,7 +46,7 @@ const initializeIssueDetailIfMissing = (issueId: string) =>
                 }),
               }),
           }),
-      },
+      }),
     )
   })
 
@@ -60,24 +61,24 @@ const initializeProjectBoardIfMissing = (projectId: string) =>
       return { model }
     }
 
-    const maybeProject = Option.flatMap(
+    return pipe(
       AsyncData.getData(model.workspaceAsyncData),
-      snapshot =>
+      Option.flatMap(snapshot =>
         Array.findFirst(snapshot.projects, project => project.id === projectId),
+      ),
+      Option.match({
+        onNone: () => ({ model }),
+        onSome: () =>
+          IssueBoardBinding.init({
+            key: projectId,
+            args: [],
+            toParentModel: board =>
+              modifyFields(model, {
+                boardInstances: Array.append({ projectId, model: board }),
+              }),
+          }),
+      }),
     )
-
-    return Option.match(maybeProject, {
-      onNone: () => ({ model }),
-      onSome: () =>
-        IssueBoardBinding.init({
-          key: projectId,
-          args: [],
-          toParentModel: board =>
-            modifyFields(model, {
-              boardInstances: Array.append({ projectId, model: board }),
-            }),
-        }),
-    })
   })
 
 const initializeProjectSettingsIfMissing = (projectId: string) =>
@@ -91,11 +92,12 @@ const initializeProjectSettingsIfMissing = (projectId: string) =>
       return { model }
     }
 
-    return Option.match(
-      Option.flatMap(AsyncData.getData(model.workspaceAsyncData), snapshot =>
+    return pipe(
+      AsyncData.getData(model.workspaceAsyncData),
+      Option.flatMap(snapshot =>
         Array.findFirst(snapshot.projects, project => project.id === projectId),
       ),
-      {
+      Option.match({
         onNone: () => ({ model }),
         onSome: project =>
           ProjectSettingsBinding.init({
@@ -109,20 +111,20 @@ const initializeProjectSettingsIfMissing = (projectId: string) =>
                 }),
               }),
           }),
-      },
+      }),
     )
   })
 
 export const initializeActiveChildren = ApplicationDefinition.makeStep(
   model => {
-    const issueDetail = ApplicationRoute.matchOrElse(
+    const initializeIssueDetail = ApplicationRoute.matchOrElse(
       model.route,
       { Issue: ({ issueId }) => initializeIssueDetailIfMissing(issueId) },
       ApplicationDefinition.makeNoopStep,
     )
 
     const route = pageRoute(model.route)
-    const projectChild = ApplicationRoute.matchOrElse(
+    const initializeProjectChild = ApplicationRoute.matchOrElse(
       route,
       {
         Board: ({ projectId }) => initializeProjectBoardIfMissing(projectId),
@@ -132,6 +134,6 @@ export const initializeActiveChildren = ApplicationDefinition.makeStep(
       ApplicationDefinition.makeNoopStep,
     )
 
-    return Update.combineSteps([issueDetail, projectChild])
+    return Update.combineSteps([initializeIssueDetail, initializeProjectChild])
   },
 )

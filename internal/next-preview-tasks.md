@@ -212,6 +212,10 @@ Prototype proposed APIs and verify source/emitted acceptance/rejection, runtime 
 
 ## Workspace simplification
 
+- [x] Complete the remaining interactive feedback: print optional query fields directly, use direct undefined comparisons, convert the five remaining update Option chains to `pipe`, and retain the user's initializer names. Application source/lint and all 153 tests pass.
+
+- [x] Simplify return-page routing to an ordinary optional query field and the existing Foldkit page parsers. Remove the native URL wrapper, duplicate parsing, and return-query canonicalization. Preserve typed internal navigation and valid filtered return links; source and 153 application tests pass. Refresh release-wide artifact/editor evidence after the remaining interactive review edits.
+
 Example apps should meet realistic product requirements and handle reasonable failure and retry behavior. Ordinary feature composition can expose missing abstractions; unusual event interleavings do not by themselves justify framework APIs or application orchestration.
 
 - [x] Consolidate `src/ownership.story.test.ts` into concrete describe groups in the root `src/story.test.ts` update suite and remove the separate file.

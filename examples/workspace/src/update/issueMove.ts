@@ -1,4 +1,4 @@
-import { Array, Option } from 'effect'
+import { Array, Option, pipe } from 'effect'
 import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
@@ -78,14 +78,15 @@ export const rollbackMove = (issueId: string) =>
 
 export const informBoardMoveFailure = (issueId: string) =>
   ApplicationDefinition.makeStep(model =>
-    Option.match(
-      Option.flatMap(AsyncData.getData(model.workspaceAsyncData), snapshot =>
+    pipe(
+      AsyncData.getData(model.workspaceAsyncData),
+      Option.flatMap(snapshot =>
         Array.findFirst(snapshot.issues, issue => issue.id === issueId),
       ),
-      {
+      Option.match({
         onNone: () => ({ model }),
         onSome: issue =>
           IssueBoardBinding.informIssueMoveFailed(issue.projectId),
-      },
+      }),
     ),
   )

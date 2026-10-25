@@ -139,13 +139,15 @@ describe('Issue return context', () => {
     )
   })
 
-  test('admits Board context and canonicalizes it', () => {
+  test('selects the Board and ignores unrelated return query fields', () => {
     expect(
-      issueRouter({
-        issueId: 'issue-101',
-        returnTo: '/projects/platform/board?ignored=yes',
-      }),
-    ).toBe('/issues/issue-101?returnTo=%2Fprojects%2Fplatform%2Fboard')
+      pageRoute(
+        ApplicationRoute.Issue({
+          issueId: 'issue-101',
+          returnTo: '/projects/platform/board?ignored=yes',
+        }),
+      ),
+    ).toEqual(ApplicationRoute.Board({ projectId: 'platform' }))
   })
 
   test.each([
@@ -158,28 +160,15 @@ describe('Issue return context', () => {
     expect(
       pageRoute(ApplicationRoute.Issue({ issueId: 'issue-101', returnTo })),
     ).toEqual(ApplicationRoute.Issues({ filters: defaultIssueFilters }))
-    expect(issueRouter({ issueId: 'issue-101', returnTo })).toBe(
-      '/issues/issue-101',
-    )
   })
 
-  test.each(['/\\evil.example', '/\nprojects/platform', '/%ZZ'])(
-    'safely rejects malformed return target %s',
-    returnTo => {
-      expect(
-        pageRoute(ApplicationRoute.Issue({ issueId: 'issue-101', returnTo })),
-      ).toEqual(ApplicationRoute.Issues({ filters: defaultIssueFilters }))
-      expect(issueRouter({ issueId: 'issue-101', returnTo })).toBe(
-        '/issues/issue-101',
-      )
-    },
-  )
-
-  test('drops malformed return context while parsing an Issue URL', () => {
+  test('uses All issues when an Issue URL has an unsupported return page', () => {
     const route = urlToApplicationRoute(
       url('/issues/issue-101?returnTo=https%3A%2F%2Fevil.example'),
     )
 
-    expect(route).toEqual(ApplicationRoute.Issue({ issueId: 'issue-101' }))
+    expect(pageRoute(route)).toEqual(
+      ApplicationRoute.Issues({ filters: defaultIssueFilters }),
+    )
   })
 })

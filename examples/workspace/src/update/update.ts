@@ -1,4 +1,4 @@
-import { Array, Option, Result } from 'effect'
+import { Array, Option, Result, pipe } from 'effect'
 import { AsyncData, Update } from 'foldkit'
 import { UrlRequest } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
@@ -110,17 +110,20 @@ export const update = ApplicationComposition.makeUpdate({
       })),
     ]),
   SucceededAssignIssue: (model, { issue, actorId, createdAt }) => {
-    const isNewerAssignment = Option.exists(
-      Option.flatMap(AsyncData.getData(model.workspaceAsyncData), snapshot =>
+    const isNewerAssignment = pipe(
+      AsyncData.getData(model.workspaceAsyncData),
+      Option.flatMap(snapshot =>
         Array.findFirst(snapshot.issues, previous => previous.id === issue.id),
       ),
-      previous =>
-        issue.version > previous.version &&
-        Option.exists(
-          issue.maybeAssigneeId,
-          recipientId =>
-            !Option.contains(previous.maybeAssigneeId, recipientId),
-        ),
+      Option.exists(
+        previous =>
+          issue.version > previous.version &&
+          Option.exists(
+            issue.maybeAssigneeId,
+            recipientId =>
+              !Option.contains(previous.maybeAssigneeId, recipientId),
+          ),
+      ),
     )
 
     return Update.combineSteps(model, [

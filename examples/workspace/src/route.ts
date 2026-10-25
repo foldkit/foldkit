@@ -1,4 +1,4 @@
-import { Option, Predicate, Schema, SchemaTransformation, pipe } from 'effect'
+import { Option, Schema, SchemaTransformation, pipe } from 'effect'
 import { Route } from 'foldkit'
 import { defineRouteUnion, literal, slash, string } from 'foldkit/route'
 import * as Url from 'foldkit/url'
@@ -34,24 +34,12 @@ export const ApplicationRoute = defineRouteUnion({
   NotFound: { path: Schema.String },
 })
 
-const IssueCloseRoute = ApplicationRoute.subset([
-  'Issues',
-  'MyIssues',
-  'Project',
-  'ProjectOverview',
-  'ProjectSettings',
-  'Board',
-  'People',
-  'Settings',
-  'SavedView',
-])
-
 const FilterQueryParams = Schema.Struct({
-  search: Schema.optionalKey(Schema.String),
-  status: Schema.optionalKey(Schema.String),
-  sort: Schema.optionalKey(Schema.String),
-  group: Schema.optionalKey(Schema.String),
-  filters: Schema.optionalKey(Schema.String),
+  search: Schema.optional(Schema.String),
+  status: Schema.optional(Schema.String),
+  sort: Schema.optional(Schema.String),
+  group: Schema.optional(Schema.String),
+  filters: Schema.optional(Schema.String),
 })
 
 const decodeStatus = Schema.decodeUnknownOption(IssueStatus)
@@ -64,18 +52,18 @@ const hasNonDefaultFilters = (filters: typeof IssueFilters.Type) =>
   filters.sort !== defaultIssueFilters.sort ||
   filters.groupBy !== defaultIssueFilters.groupBy
 
-const filtersFromQuery = (hasDefaultPresenceMarker: boolean) =>
+const filtersFromQuery = (isSavedView: boolean) =>
   FilterQueryParams.pipe(
     Schema.decodeTo(
       RouteIssueFilters,
       SchemaTransformation.transform({
         decode: params => {
           const hasFilters =
-            Predicate.isNotUndefined(params.search) ||
-            Predicate.isNotUndefined(params.status) ||
-            Predicate.isNotUndefined(params.sort) ||
-            Predicate.isNotUndefined(params.group) ||
-            Predicate.isNotUndefined(params.filters)
+            params.search !== undefined ||
+            params.status !== undefined ||
+            params.sort !== undefined ||
+            params.group !== undefined ||
+            params.filters !== undefined
 
           if (!hasFilters) {
             return {}
@@ -84,45 +72,44 @@ const filtersFromQuery = (hasDefaultPresenceMarker: boolean) =>
           return {
             filters: IssueFilters.make({
               query: params.search ?? defaultIssueFilters.query,
-              maybeStatus: Option.flatMap(
+              maybeStatus: pipe(
                 Option.fromNullishOr(params.status),
-                decodeStatus,
+                Option.flatMap(decodeStatus),
               ),
-              sort: Option.getOrElse(
-                Option.flatMap(Option.fromNullishOr(params.sort), decodeSort),
-                () => defaultIssueFilters.sort,
+              sort: pipe(
+                Option.fromNullishOr(params.sort),
+                Option.flatMap(decodeSort),
+                Option.getOrElse(() => defaultIssueFilters.sort),
               ),
-              groupBy: Option.getOrElse(
-                Option.flatMap(Option.fromNullishOr(params.group), decodeGroup),
-                () => defaultIssueFilters.groupBy,
+              groupBy: pipe(
+                Option.fromNullishOr(params.group),
+                Option.flatMap(decodeGroup),
+                Option.getOrElse(() => defaultIssueFilters.groupBy),
               ),
             }),
           }
         },
         encode: ({ filters }) => {
-          if (Predicate.isUndefined(filters)) {
+          if (filters === undefined) {
             return {}
           }
 
-          const hasNonDefaults = hasNonDefaultFilters(filters)
-
           return {
-            ...(filters.query === defaultIssueFilters.query
-              ? {}
-              : { search: filters.query }),
-            ...Option.match(filters.maybeStatus, {
-              onNone: () => ({}),
-              onSome: status => ({ status }),
-            }),
-            ...(filters.sort === defaultIssueFilters.sort
-              ? {}
-              : { sort: filters.sort }),
-            ...(filters.groupBy === defaultIssueFilters.groupBy
-              ? {}
-              : { group: filters.groupBy }),
-            ...(hasDefaultPresenceMarker && !hasNonDefaults
-              ? { filters: '1' }
-              : {}),
+            search:
+              filters.query === defaultIssueFilters.query
+                ? undefined
+                : filters.query,
+            status: Option.getOrUndefined(filters.maybeStatus),
+            sort:
+              filters.sort === defaultIssueFilters.sort
+                ? undefined
+                : filters.sort,
+            group:
+              filters.groupBy === defaultIssueFilters.groupBy
+                ? undefined
+                : filters.groupBy,
+            filters:
+              isSavedView && !hasNonDefaultFilters(filters) ? '1' : undefined,
           }
         },
       }),
@@ -131,30 +118,6 @@ const filtersFromQuery = (hasDefaultPresenceMarker: boolean) =>
 
 const issueFiltersFromQuery = filtersFromQuery(false)
 const savedViewFiltersFromQuery = filtersFromQuery(true)
-
-const canonicalIssueReturnTo = (returnTo: string): Option.Option<string> =>
-  Option.map(parseIssueCloseRoute(returnTo), routeToPath)
-
-const issueReturnToFromQuery = Schema.Struct({
-  returnTo: Schema.OptionFromOptional(Schema.String),
-}).pipe(
-  Schema.decodeTo(
-    IssueReturnTo,
-    SchemaTransformation.transform({
-      decode: ({ returnTo }) =>
-        Option.match(Option.flatMap(returnTo, canonicalIssueReturnTo), {
-          onNone: () => IssueReturnTo.make({}),
-          onSome: canonical => IssueReturnTo.make({ returnTo: canonical }),
-        }),
-      encode: ({ returnTo }) => ({
-        returnTo: Option.flatMap(
-          Option.fromNullishOr(returnTo),
-          canonicalIssueReturnTo,
-        ),
-      }),
-    }),
-  ),
-)
 
 export const issuesRouter = pipe(
   Route.root,
@@ -172,7 +135,7 @@ export const projectRouter = pipe(
 export const issueRouter = pipe(
   literal('issues'),
   slash(string('issueId')),
-  Route.query(issueReturnToFromQuery),
+  Route.query(IssueReturnTo),
   Route.mapTo(ApplicationRoute.Issue),
 )
 
@@ -277,8 +240,7 @@ export const routeToPath = ApplicationRoute.match({
   NotFound: ({ path }) => path,
 })
 
-const routeParser = Route.oneOf(
-  issueRouter,
+const pageParser = Route.oneOf(
   boardRouter,
   projectOverviewRouter,
   projectSettingsRouter,
@@ -290,54 +252,29 @@ const routeParser = Route.oneOf(
   issuesRouter,
 )
 
-export const urlToApplicationRoute = Route.parseUrlWithFallback(
-  routeParser,
+const urlToPageRoute = Route.parseUrlWithFallback(
+  pageParser,
   ApplicationRoute.NotFound,
 )
 
-const workspaceOrigin = 'https://workspace.invalid'
-
-const parseNativeUrl = (value: string): Option.Option<URL> => {
-  try {
-    return Option.some(new globalThis.URL(value, workspaceOrigin))
-  } catch {
-    return Option.none()
-  }
-}
-
-function parseIssueCloseRoute(
-  returnTo: string,
-): Option.Option<typeof IssueCloseRoute.Type> {
-  if (!returnTo.startsWith('/') || returnTo.startsWith('//')) {
-    return Option.none()
-  }
-
-  return pipe(
-    parseNativeUrl(returnTo),
-    Option.filter(
-      parsedUrl =>
-        parsedUrl.origin === workspaceOrigin &&
-        `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}` ===
-          returnTo &&
-        !parsedUrl.pathname.startsWith('/issues/'),
-    ),
-    Option.flatMap(parsedUrl => Url.fromString(parsedUrl.href)),
-    Option.map(urlToApplicationRoute),
-    Option.flatMap(route =>
-      ApplicationRoute.isAnyOf(['Issue', 'NotFound'])(route)
-        ? Option.none()
-        : Option.some(route),
-    ),
-  )
-}
+export const urlToApplicationRoute = Route.parseUrlWithFallback(
+  Route.oneOf(issueRouter, pageParser),
+  ApplicationRoute.NotFound,
+)
 
 export const pageRoute = (route: typeof ApplicationRoute.Type) => {
   if (!ApplicationRoute.guards.Issue(route)) {
     return route
   }
 
-  return Option.getOrElse(
-    Option.flatMap(Option.fromNullishOr(route.returnTo), parseIssueCloseRoute),
-    () => ApplicationRoute.Issues({ filters: defaultIssueFilters }),
+  return pipe(
+    Option.fromNullishOr(route.returnTo),
+    Option.filter(path => path.startsWith('/') && !path.startsWith('//')),
+    Option.flatMap(path => Url.fromString(`https://workspace.invalid${path}`)),
+    Option.map(urlToPageRoute),
+    Option.filter(route => !ApplicationRoute.guards.NotFound(route)),
+    Option.getOrElse(() =>
+      ApplicationRoute.Issues({ filters: defaultIssueFilters }),
+    ),
   )
 }
