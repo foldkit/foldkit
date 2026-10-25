@@ -481,6 +481,7 @@ Each confirmed miss is a concrete a11y bug a screen reader user would hit.
 - [ ] At least one multi-step test that chains Messages and Command resolutions
 - [ ] Block tests assert `outMessage` when the child signals to parent
 - [ ] Story tests use `Command.resolve(Definition, resultMessage)` and never run Command Effects directly. Whole-application execution tests keep the real handler Layers and replace their dependency providers
+- [ ] Model-derived Story Messages use `messageWith` when their inputs must be read at step execution. Subscription delivery uses `Subscription.from(FeatureBlock.subscriptions).emit` with decoded input and the intended registered entry; no live Stream or occurrence-admission claim is inferred.
 - [ ] Command and Mount matchers use the original Definition's source identity instead of comparing displayed names or `Definition.name`. Child results are supplied as raw child Messages; tests do not fabricate generated `Got*` envelopes. UI matcher Definitions come from the component's public `test` namespace and result Messages from its completed Block
 - [ ] The TypeScript project includes `*.test.ts` and `*.test.tsx`, so Story and Scene API changes fail during the normal typecheck
 - [ ] All tests pass with the project's test script
@@ -495,7 +496,8 @@ For Tier 3+ apps (routing, async Commands, forms), missing `scene.test.ts` is a 
 - [ ] At minimum one test per discriminated-union state that has distinct view output (loading, error, empty, populated)
 - [ ] Uses accessible locators: `role(...)`, `label(...)`, `text(...)`. Not `placeholder` or CSS selectors.
 - [ ] Scoped queries with `within` or `inside` when a parent container contains multiple similar elements
-- [ ] A Scene that uses `Subscription.emit` passes the owning Composition and the registered `subscriptions` in its config, then calls `Subscription.emit(entry, message)` with the exact entry that declares the raw Message. Generated child delivery is derived from that registered source and occurrence. Registrations that need selection use distinct entry objects; create a separate entry for each path instead of reusing one entry object under several keys. Silent entries with `messages: []` are not emitted from.
+- [ ] A Scene that uses `Subscription.emit` passes the owning Composition and the registered `subscriptions` in its config, then calls `Subscription.emit(entry, message)` with the exact entry that declares the raw Message. Generated child delivery is derived from that registered source and occurrence. Select a bound entry for an ambiguous child source. Silent entries with `messages: []` are not emitted from.
+- [ ] Deliberate concurrent Scene interactions use `Command.keepPending` for one exact ordinary invocation. Assertions and resolvers retain that Command, and the Scene resolves it before completion.
 
 ---
 

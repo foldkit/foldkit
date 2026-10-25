@@ -3,6 +3,7 @@ import { AsyncData } from 'foldkit'
 import {
   Command,
   Mount,
+  Subscription,
   click,
   expect,
   given,
@@ -18,6 +19,7 @@ import { describe, expect as expectValue, test } from 'vitest'
 
 import { Listbox } from '@foldkit/ui'
 
+import { ApplicationBlock } from './block'
 import {
   AppendActivity,
   LoadWorkspace,
@@ -164,14 +166,45 @@ describe('workspace application', () => {
       title: () => 'Revised after reloading',
       version: version => version + 1,
     })
+    const pendingSave = SaveIssue({
+      issueId: firstIssue.id,
+      expectedVersion: firstIssue.version,
+      draft: {
+        title: 'Keep this local draft',
+        description: firstIssue.description,
+        status: firstIssue.status,
+        priority: firstIssue.priority,
+        projectId: firstIssue.projectId,
+        maybeAssigneeId: firstIssue.maybeAssigneeId,
+        labelIds: firstIssue.labelIds,
+      },
+    })
 
     scene(
-      { update, view },
+      { update, view, subscriptions: ApplicationBlock.subscriptions },
       given(loadedModel(issueUrl)),
       type(label('Issue title'), 'Keep this local draft'),
       click(role('button', { name: 'Save changes' })),
+      Command.keepPending(pendingSave),
+      Subscription.emit(
+        ApplicationBlock.subscriptions.activity,
+        Message.TickedActivityStream(),
+      ),
+      Command.expectExact(
+        pendingSave,
+        AppendActivity({
+          issueId: firstIssue.id,
+          authorId: 'alex',
+          body: 'I checked the latest changes. This is ready for another look.',
+        }),
+      ),
       Command.resolve(
-        SaveIssue,
+        AppendActivity,
+        Message.SucceededAppendActivity({ issue: latestIssue }),
+      ),
+      expect(text('The conversation stays current while you edit.')).toExist(),
+      Command.resolve(
+        pendingSave,
         IssueDetailBlock.Message.FailedSaveIssue({
           issueId: firstIssue.id,
           expectedVersion: firstIssue.version,
@@ -191,7 +224,6 @@ describe('workspace application', () => {
         }),
       ).toExist(),
       expect(role('alert')).toContainText('Your draft is preserved'),
-      expect(text('The conversation stays current while you edit.')).toExist(),
       click(role('button', { name: 'Reload issue' })),
       expect(label('Issue title')).toHaveValue(latestIssue.title),
       type(label('Issue title'), savedIssue.title),

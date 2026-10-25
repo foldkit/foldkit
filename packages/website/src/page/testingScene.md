@@ -197,6 +197,12 @@ When update returns Commands, Scene keeps them pending until the test supplies t
 - Interactions throw if there are unresolved Commands when they try to dispatch a Message.
 - `scene` throws at the end if any Command remains unresolved.
 
+Use `Command.keepPending(Definition | instance)` when one ordinary Command is still running and the Scene must perform a later interaction or deliver a Subscription Message before its result arrives. The matcher must select one exact pending invocation. An instance can select its args and bound child occurrence.
+
+::Snippet{name="testingKeepPendingCommand" label="Keep a Command pending across later events"}
+
+The kept Command remains visible to `expectHas`, `expectExact`, and every resolver. `resolveAllExact` still requires the complete pending set, and the Scene still fails at the end until the Command is resolved. The exemption applies only to Scene's boundary check for later Messages; Runtime behavior and the Command value are unchanged.
+
 ### Resolve and Inspect Commands
 
 ::Snippet{name="sceneCommandAssertions" label="Command assertions"}
@@ -210,6 +216,7 @@ When update returns Commands, Scene keeps them pending until the test supplies t
 | `Command.expectExact(A, B)`                          | The pending Commands are exactly A and B (order-independent).                                                                                                                                                                                   |
 | `Command.expectHas(A)`                               | A is among the pending Commands (subset check).                                                                                                                                                                                                 |
 | `Command.expectNone()`                               | There are no pending Commands.                                                                                                                                                                                                                  |
+| `Command.keepPending(A)`                             | Lets later Scene Messages arrive while the one exact matching invocation remains pending. Assertions, resolvers, `resolveAllExact`, and final completeness still include it.                                                                    |
 
 ### Match Command Names and Arguments
 

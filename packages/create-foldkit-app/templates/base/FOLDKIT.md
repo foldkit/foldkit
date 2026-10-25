@@ -239,7 +239,11 @@ Name each test file for its test style, beside the code under test: `story.test.
 
 Scene runs at any level, since a page's own `update`/`view` pair drops into `scene` unmodified. Put a `scene.test.ts` in the page folder for behavior that page owns, which covers view states awkward to reach through the root Model, and keep a root-level `scene.test.ts` for flows that cross pages, which covers how the parent folds an OutMessage, a Command the parent lifts, a route change, and view inputs the parent computes. If the `repos/foldkit` subtree is available, study the `story.test.ts` and `scene.test.ts` files in `repos/foldkit/examples/`. `repos/foldkit/examples/auth` is the multi-page shape: a root `src/scene.test.ts` for the cross-page login flow alongside `src/page/loggedOut/page/login.scene.test.ts` and `login.story.test.ts` driving that page's own pair.
 
-When a Scene emits a Subscription Message, include the owning Composition and registered `subscriptions` in its config and call `Subscription.emit(entry, message)` with the exact registered entry. Each entry's `messages` collection declares the raw Messages accepted by that step. Scene derives generated child delivery from the registered source and occurrence. Use distinct entry objects for different placements. Silent `messages: []` entries accept no emissions.
+Story can deliver Messages while Commands are pending. Use `messageWith(model => Message.Variant(...))` when the Message needs the current Model at that step, and `Subscription.from(FeatureBlock.subscriptions).emit(entry, message)` for a decoded Subscription Message through its registered parent mapping.
+
+When a Scene emits a Subscription Message, include the owning Composition and registered `subscriptions` in its config and call `Subscription.emit(entry, message)` with the exact registered entry. Each entry's `messages` collection declares the raw Messages accepted by that step. Select a bound entry when one source appears at multiple child placements. Silent `messages: []` entries accept no emissions. These steps do not start Streams or simulate Runtime activity and stale-generation admission.
+
+Use `Scene.Command.keepPending(Definition | instance)` when a real interaction must occur before one ordinary Command completes. Its matcher must select one invocation; a bound instance selects its occurrence and args. The Command stays visible to assertions and resolvers, and must be resolved before the Scene ends. This changes only the later-Message boundary check.
 
 ## Code Style
 

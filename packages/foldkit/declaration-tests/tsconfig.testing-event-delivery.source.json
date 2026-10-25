@@ -1,0 +1,22 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "foldkit/block": ["../src/block/public.ts"],
+      "foldkit/message": ["../src/message/public.ts"],
+      "foldkit/scene": ["../src/test/scene.ts"],
+      "foldkit/story": ["../src/test/story.ts"],
+      "foldkit/struct": ["../src/struct/public.ts"],
+      "foldkit/subscription": ["../src/subscription/public.ts"],
+      "foldkit/test": ["../src/test/public.ts"]
+    },
+    "rootDir": ".."
+  },
+  "include": [
+    "../src/vite-env.d.ts",
+    "testing-event-delivery.accepted.ts",
+    "testing-event-delivery.consume.ts",
+    "testing-event-delivery.rejected.ts"
+  ]
+}

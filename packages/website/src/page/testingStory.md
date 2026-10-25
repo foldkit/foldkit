@@ -12,8 +12,9 @@ The entire test is one `story` call. Start from a Model, send a Message, resolve
 
 Import the steps you need from `foldkit/story`.
 
-- Top-level steps start the test, group reusable setup, send Messages, and inspect results: `story`, `steps`, `given`, `message`, `model`, `expectOutMessage`, and `expectNoOutMessage`.
+- Top-level steps start the test, group reusable setup, send Messages, and inspect results: `story`, `steps`, `given`, `message`, `messageWith`, `model`, `expectOutMessage`, and `expectNoOutMessage`.
 - The `Command` namespace handles pending Commands: `argsOf`, `resolve`, `resolveAll`, `resolveAllExact`, `expectHas`, `expectExact`, and `expectNone`.
+- `Subscription.from(Block.subscriptions)` creates emission steps from a completed Block's registered Subscription graph.
 
 Use named imports when the file contains only Story tests. If a file contains both Story and Scene tests, import the namespaces from `foldkit` so `Story.given` and `Scene.given` stay distinct.
 
@@ -74,6 +75,22 @@ Use `resolveAllExact` when the resolver list is also a claim about which Command
 ::Snippet{name="testingConcurrentMessages" label="Deliver a Message while a Command is pending"}
 
 The increment arrives before the delayed reset's result. The test checks that the same reset Command is still pending, then supplies its completion. Scene interactions retain their separate pending-Command and Mount checks.
+
+### Build a Message from the Current Model
+
+Use `messageWith(model => Message.Variant(...))` when a Message carries a value produced by an earlier update, such as a request generation or stream session. The callback receives the Model held when that step runs. It follows `message` semantics: existing Commands remain pending and Commands returned by the new update are appended.
+
+::Snippet{name="testingStoryMessageWith" label="Build a Message from the current Model"}
+
+Give an extracted callback its precise Model annotation so a reusable `steps` group retains the same update contract as an inline step.
+
+### Deliver a Subscription Message
+
+Use `Subscription.from(CompletedBlock.subscriptions)` when a Story needs to deliver a fact from a registered Subscription. The emitter accepts a registered entry and that entry's decoded Message. It applies the same generated child delivery used by Scene and the Runtime without starting a Stream or constructing its dependencies.
+
+::Snippet{name="testingStorySubscription" label="Deliver a registered Subscription Message"}
+
+Pass the raw child entry only when it identifies one registration. If a child Subscription appears at multiple placements, select the intended bound entry from the completed Block's `subscriptions` record. A composition-only test can build the same record with `Scene.subscriptions(composition, localSubscriptions?)`; that helper exposes the shared registered graph when no completed Block exists yet.
 
 ### Resolve Child Commands
 

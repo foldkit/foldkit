@@ -762,6 +762,10 @@ Import the steps as named imports from `foldkit/story` or `foldkit/scene`: `impo
 
 **Story tests** (`story.test.ts`) test the update function directly. You send Messages and assert on the Model and Commands. Study these exemplars:
 
+Story permits another Message while Commands are pending. Use `messageWith(model => Message.Variant(...))` for a value read from the current Model when the step runs. Use `Subscription.from(FeatureBlock.subscriptions).emit(entry, message)` to validate a decoded Subscription Message and apply its registered parent mapping. These steps do not start Streams or test Runtime activity and stale-generation admission.
+
+Scene normally requires pending Commands to settle before later Messages. For a deliberate concurrent interaction, `Scene.Command.keepPending(Definition | instance)` selects one exact invocation for that boundary exemption. Assertions and every resolver still see it, and final completeness requires resolution. A bound instance selects a child occurrence and args. Prefer this explicit operation over custom simulation transforms.
+
 - `${CLAUDE_SKILL_DIR}/../../examples/weather/src/story.test.ts`: simple Command resolution (happy path + error path)
 - `${CLAUDE_SKILL_DIR}/../../examples/auth/src/page/loggedOut/page/login.story.test.ts`: Block with OutMessage assertions, field validation
 - `${CLAUDE_SKILL_DIR}/../../packages/website/src/search/story.test.ts`: multi-step interactions (arrow key cycling, stale result handling)

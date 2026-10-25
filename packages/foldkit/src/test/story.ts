@@ -1,5 +1,12 @@
-import { Array, Equal, type Option, Predicate, pipe } from 'effect'
+import { Array, Equal, type Option, Predicate, Schema, pipe } from 'effect'
 
+import {
+  type MessageDeclaration,
+  type Registrations,
+  type RegistryEntries,
+  type Subscription as RuntimeSubscription,
+  __messageDeclarations as subscriptionMessageDeclarations,
+} from '../subscription/subscription.js'
 import { commandArgs } from './bindingMatcher.js'
 import type {
   AnyCommand,
@@ -11,6 +18,7 @@ import type {
   Resolver,
   ResolverEntry,
   SimulationUpdateReturn,
+  SubscriptionEmissionSource,
 } from './internal.js'
 import {
   assertAllCommandsResolved,
@@ -23,6 +31,7 @@ import {
   resolveAllExactInternal,
   resolveAllInternal,
   resolveByMatcher,
+  resolveSubscriptionMessage,
 } from './internal.js'
 
 export type { AnyCommand, CommandMatcher, Resolver }
@@ -54,6 +63,22 @@ export type MessageStep<Message> = Readonly<{
   message: Message
 }>
 
+/** A Message-dispatch step produced by {@link messageWith}. */
+export type MessageWithStep<Model, Message> = Readonly<{
+  _tag: 'MessageWithStep'
+  toMessage: (model: Model) => Message
+}>
+
+/** A Subscription Message step produced by `Subscription.from(...).emit`. */
+export type SubscriptionMessageStep<Message> = Readonly<{
+  _tag: 'SubscriptionMessageStep'
+  /** @internal Carries the registered Subscriptions' Message type. */
+  _phantomMessage?: Message
+  declarations: ReadonlyArray<MessageDeclaration>
+  entry: unknown
+  message: unknown
+}>
+
 /** A typed OutMessage assertion step produced by {@link expectOutMessage}. */
 export type OutMessageStep<OutMessage> = Readonly<{
   _tag: 'OutMessageStep'
@@ -75,13 +100,13 @@ export type StoryStepsStep<GivenModel, ModelAssertion, Message, OutMessage> =
     steps: ReadonlyArray<StoryStep<any, any, any>>
   }>
 
-/** A single step in a story: a {@link GivenStep}, {@link ModelStep},
- *  {@link MessageStep}, {@link OutMessageStep}, {@link StoryStepsStep}, or
- *  simulation transform. */
+/** A single step in a story. */
 export type StoryStep<Model, Message = unknown, OutMessage = unknown> =
   | GivenStep<NoInfer<Model>>
   | ModelStep<NoInfer<Model>>
   | MessageStep<NoInfer<Message>>
+  | MessageWithStep<NoInfer<Model>, NoInfer<Message>>
+  | SubscriptionMessageStep<NoInfer<Message>>
   | OutMessageStep<NoInfer<OutMessage>>
   | StoryStepsStep<
       NoInfer<Model>,
@@ -160,6 +185,97 @@ export const message = <Message>(message_: Message): MessageStep<Message> => ({
   _tag: 'MessageStep',
   message: message_,
 })
+
+/** Sends a Message computed from the Model held when the step runs. Commands
+ *  follow the same pending and append behavior as {@link message}. */
+export const messageWith = <Model, Message>(
+  toMessage: (model: Model) => Message,
+): MessageWithStep<Model, Message> => ({
+  _tag: 'MessageWithStep',
+  toMessage,
+})
+
+type IsAny<Value> = 0 extends 1 & Value ? true : false
+
+type MessageOfSubscriptions<Subscriptions> =
+  IsAny<Subscriptions> extends true
+    ? any
+    : RegistryEntries<Subscriptions>[keyof RegistryEntries<Subscriptions>] extends RuntimeSubscription<
+          any,
+          infer Message,
+          any,
+          any
+        >
+      ? Message
+      : never
+
+type EmissionSourceOf<Subscriptions> =
+  IsAny<Subscriptions> extends true
+    ? any
+    : {
+        readonly [
+          Key in keyof RegistryEntries<Subscriptions>
+        ]: SubscriptionEmissionSource<RegistryEntries<Subscriptions>[Key]>
+      }[keyof RegistryEntries<Subscriptions>]
+
+/** Emission steps for one registered Subscription record. Explicit annotations
+ *  retain the accepted entry source as the second type argument. */
+export type SubscriptionEmitter<Message, EmissionSource> = Readonly<{
+  /** Feeds a decoded Message declared by `entry` through update. For a child
+   *  entry, Story applies the generated delivery in the registered record. */
+  emit: <
+    Entry extends Readonly<{
+      messages: ReadonlyArray<Schema.Top>
+    }> &
+      EmissionSource,
+  >(
+    entry: Entry,
+    message: NoInfer<Schema.Schema.Type<Entry['messages'][number]>>,
+  ) => SubscriptionMessageStep<Message>
+}>
+
+const fromSubscriptions = <
+  const Subscriptions extends Registrations<any, any, any>,
+>(
+  subscriptions: Subscriptions,
+): SubscriptionEmitter<
+  MessageOfSubscriptions<Subscriptions>,
+  EmissionSourceOf<Subscriptions>
+> => {
+  const declarations = subscriptionMessageDeclarations(subscriptions)
+
+  return {
+    emit: (entry, message) => ({
+      _tag: 'SubscriptionMessageStep',
+      declarations,
+      entry,
+      message,
+    }),
+  }
+}
+
+const applySubscriptionMessage = <Model, Message, OutMessage>(
+  simulation: StorySimulation<Model, Message, OutMessage>,
+  step: SubscriptionMessageStep<unknown>,
+): StorySimulation<Model, Message, OutMessage> => {
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const message_ = resolveSubscriptionMessage(
+    'Story.Subscription.emit',
+    step.declarations,
+    step.entry,
+    step.message,
+  ) as Message
+
+  return applyMessage(simulation, message_)
+}
+
+/** Steps that model decoded Messages arriving from a Subscription. */
+export const Subscription = {
+  /** Returns an emitter for a completed Block's registered Subscriptions. The
+   *  entry must belong to that record or be the child entry from which a
+   *  registered entry was lifted. */
+  from: fromSubscriptions,
+} as const
 
 /** Resolves a pending Command with its raw result Message. A Definition matches
  *  its originating identity; an instance also matches its complete args.
@@ -263,16 +379,22 @@ export const steps = <Steps extends ReadonlyArray<StoryStep<any, any, any>>>(
   Steps[number] extends infer Step
     ? Step extends ModelStep<infer Model>
       ? (model: Model) => void
-      : Step extends StoryStepsStep<any, infer ModelAssertion, any, any>
-        ? ModelAssertion
-        : never
+      : Step extends MessageWithStep<infer Model, any>
+        ? (model: Model) => void
+        : Step extends StoryStepsStep<any, infer ModelAssertion, any, any>
+          ? ModelAssertion
+          : never
     : never,
   Steps[number] extends infer Step
     ? Step extends MessageStep<infer Message>
       ? Message
-      : Step extends StoryStepsStep<any, any, infer Message, any>
+      : Step extends MessageWithStep<any, infer Message>
         ? Message
-        : never
+        : Step extends SubscriptionMessageStep<infer Message>
+          ? Message
+          : Step extends StoryStepsStep<any, any, infer Message, any>
+            ? Message
+            : never
     : never,
   Steps[number] extends infer Step
     ? Step extends OutMessageStep<infer OutMessage>
@@ -409,6 +531,14 @@ const applyStoryStep = <Model, Message, OutMessage>(
 
   if (Predicate.isTagged(step, 'MessageStep')) {
     return applyMessage(current, step.message)
+  }
+
+  if (Predicate.isTagged(step, 'MessageWithStep')) {
+    return applyMessage(current, step.toMessage(toInternal(current).model))
+  }
+
+  if (Predicate.isTagged(step, 'SubscriptionMessageStep')) {
+    return applySubscriptionMessage(current, step)
   }
 
   if (Predicate.isTagged(step, 'OutMessageStep')) {

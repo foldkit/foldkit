@@ -592,6 +592,12 @@ const checks: ReadonlyArray<
     consumers: ['generic-handler-contracts.consume.ts'],
   },
   {
+    name: 'testing-event-delivery',
+    accepted: ['testing-event-delivery.accepted.ts'],
+    rejected: ['testing-event-delivery.rejected.ts'],
+    consumers: ['testing-event-delivery.consume.ts'],
+  },
+  {
     name: 'generic-service-factory',
     accepted: ['generic-service-factory.accepted.ts'],
     rejected: ['generic-service-factory.rejected.ts'],
@@ -960,6 +966,7 @@ const main = async (): Promise<void> => {
     'extracted-connected-step',
     'append-initialization',
     'generic-service-factory',
+    'testing-event-delivery',
   ]) {
     runCompiler(`Checking direct source ${name} contracts`, [
       '-p',
