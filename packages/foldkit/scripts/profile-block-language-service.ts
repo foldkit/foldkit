@@ -123,7 +123,7 @@ const workspaceUpdatePath = existsSync(
   : 'examples/workspace/src/update.ts'
 const workspaceEntryPath = 'examples/workspace/src/entry.ts'
 const workspaceDetailUpdatePath = 'examples/workspace/src/issueDetail/update.ts'
-const workspaceBindingCall = 'IssueDetailBinding.init('
+const workspaceBindingProbe = '\nIssueDetailBinding.init\n'
 const workspaceBlockAccess = 'ApplicationBlock.Message.ClickedLink'
 const workspaceTitleWriter = 'title: () => value'
 const workspaceInvalidTitle = 'value.length'
@@ -1462,7 +1462,7 @@ const workspaceRequestScenario = (
     async client => {
       const source = document(sourcePath)
       const target = toTarget(source)
-      await openDocument(client, source)
+      await openDocument(client, source, source.text)
       const measurements = [
         ...(await measurePair(
           client,
@@ -1515,8 +1515,8 @@ export const workspaceBindingCompletionTarget = (
   source,
   position: positionAt(
     source.text,
-    uniqueOccurrence(source.text, workspaceBindingCall) +
-      'IssueDetailBinding.'.length,
+    uniqueOccurrence(source.text, workspaceBindingProbe) +
+      '\nIssueDetailBinding.'.length,
   ),
 })
 
@@ -1527,7 +1527,10 @@ const workspaceBindingCompletionScenario = (
     timeoutMs,
     'workspace.bindingCompletion',
     workspaceUpdatePath,
-    workspaceBindingCompletionTarget,
+    source => {
+      source.text = `${source.text}${workspaceBindingProbe}`
+      return workspaceBindingCompletionTarget(source)
+    },
   )
 
 export const workspaceBlockCompletionTarget = (
@@ -1913,7 +1916,7 @@ const main = async (): Promise<void> => {
             workspace: {
               bindingHover: `${workspaceCompositionPath}#IssueDetailBinding`,
               bindingHoverValidation: workspaceBindingHover,
-              bindingCompletion: `${workspaceUpdatePath}#IssueDetailBinding.|init()`,
+              bindingCompletion: `${workspaceUpdatePath}#appended in-memory IssueDetailBinding.|init probe`,
               expectedBindingMembers: ['requestSave', 'embedView', 'init'],
               blockCompletion: `${workspaceEntryPath}#ApplicationBlock.|Message.ClickedLink`,
               expectedBlockMembers: [
