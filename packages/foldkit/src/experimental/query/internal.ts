@@ -1,4 +1,4 @@
-import { Option, Schema } from 'effect'
+import { Array, Option, Order, Predicate, Record, Schema, pipe } from 'effect'
 
 import * as AsyncData from '../../asyncData/index.js'
 import * as Command from '../../command/index.js'
@@ -44,3 +44,45 @@ export type CompletedFetchOf<Message extends Schema.Top> = Extract<
 export type KeyedArgs<Fields extends Schema.Struct.Fields> = Schema.Schema.Type<
   Schema.Struct<Fields>
 >
+
+const canonicalizeJsonEntry = ([key, value]: readonly [
+  string,
+  Schema.Json,
+]): readonly [string, Schema.Json] => [key, canonicalizeJson(value)]
+
+const jsonEntryOrder = Order.mapInput(
+  Order.String,
+  ([key]: readonly [string, Schema.Json]) => key,
+)
+
+const isJsonObject = (value: Schema.Json): value is Schema.JsonObject =>
+  Predicate.isObject(value) && !globalThis.Array.isArray(value)
+
+const canonicalizeJson = (value: Schema.Json): Schema.Json => {
+  if (globalThis.Array.isArray(value)) {
+    return Array.map(value, canonicalizeJson)
+  }
+
+  if (isJsonObject(value)) {
+    return pipe(
+      value,
+      Record.toEntries,
+      Array.sort(jsonEntryOrder),
+      Array.map(canonicalizeJsonEntry),
+      Record.fromEntries,
+    )
+  }
+
+  return value
+}
+
+const encodeJsonString = Schema.encodeUnknownSync(
+  Schema.fromJsonString(Schema.Json),
+)
+
+export const encodeKey = <A, I>(schema: Schema.Codec<A, I, never, never>) => {
+  const encodeJson = Schema.encodeUnknownSync(Schema.toCodecJson(schema))
+
+  return (value: A): string =>
+    encodeJsonString(canonicalizeJson(encodeJson(value)))
+}

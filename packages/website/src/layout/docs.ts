@@ -696,6 +696,11 @@ export const view = (
           lazyDocsContent(Core.CoreQuery.view, docContentArgs),
           Core.CoreQuery.tableOfContents,
         ),
+      CoreLiveQuery: () =>
+        withTableOfContents(
+          lazyDocsContent(Core.CoreLiveQuery.view, docContentArgs),
+          Core.CoreLiveQuery.tableOfContents,
+        ),
       CoreCanvas: () =>
         withTableOfContents(
           lazyDocsContent(Core.CoreCanvas.view, docContentArgs),

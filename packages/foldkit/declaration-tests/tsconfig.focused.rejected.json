@@ -7,6 +7,7 @@
   "include": [
     "../src/vite-env.d.ts",
     "parent-owned-binding.rejected.ts",
-    "query-block.rejected.ts"
+    "query-block.rejected.ts",
+    "live-query-block.rejected.ts"
   ]
 }

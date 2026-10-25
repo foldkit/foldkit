@@ -648,9 +648,21 @@ const checks: ReadonlyArray<
   },
   {
     name: 'focused',
-    accepted: ['parent-owned-binding.accepted.ts', 'query-block.accepted.ts'],
-    rejected: ['parent-owned-binding.rejected.ts', 'query-block.rejected.ts'],
-    consumers: ['parent-owned-binding.consume.ts', 'query-block.consume.ts'],
+    accepted: [
+      'parent-owned-binding.accepted.ts',
+      'query-block.accepted.ts',
+      'live-query-block.accepted.ts',
+    ],
+    rejected: [
+      'parent-owned-binding.rejected.ts',
+      'query-block.rejected.ts',
+      'live-query-block.rejected.ts',
+    ],
+    consumers: [
+      'parent-owned-binding.consume.ts',
+      'query-block.consume.ts',
+      'live-query-block.consume.ts',
+    ],
   },
   {
     name: 'view-helper',

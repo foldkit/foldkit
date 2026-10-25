@@ -238,6 +238,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Query',
     'Fetch, cache, and refresh remote data with reusable Blocks and less boilerplate.',
   ),
+  CoreLiveQuery: core(
+    'LiveQuery',
+    'Retain the latest state of pushed feeds, resuming after the last applied entry and ignoring repeated entries.',
+  ),
   CoreCanvas: core(
     'Canvas',
     'Declarative 2D rendering with a Schema-defined Shape AST and pointer events translated to canvas-local coordinates.',

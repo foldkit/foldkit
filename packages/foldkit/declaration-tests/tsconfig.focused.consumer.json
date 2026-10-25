@@ -3,5 +3,9 @@
   "compilerOptions": {
     "noEmit": true
   },
-  "include": ["parent-owned-binding.consume.ts", "query-block.consume.ts"]
+  "include": [
+    "parent-owned-binding.consume.ts",
+    "query-block.consume.ts",
+    "live-query-block.consume.ts"
+  ]
 }

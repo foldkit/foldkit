@@ -115,6 +115,7 @@ export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
             CoreFile: () => Core.CoreFile.tableOfContents,
             CoreHttp: () => Core.CoreHttp.tableOfContents,
             CoreQuery: () => Core.CoreQuery.tableOfContents,
+            CoreLiveQuery: () => Core.CoreLiveQuery.tableOfContents,
             CoreCanvas: () => Core.CoreCanvas.tableOfContents,
             CoreRuntime: () => Core.Runtime.tableOfContents,
             CoreServerRendering: () => Core.CoreServerRendering.tableOfContents,

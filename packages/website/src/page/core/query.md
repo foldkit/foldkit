@@ -22,7 +22,7 @@ A Query retains one resource, such as the current account or a list of posts. A 
 
 ### When to Use Query
 
-Use Query when a request produces one retained resource, or one entry in a retained collection, and the standard loading, refreshing, failure, and stale states describe its lifecycle. Use `AsyncData` directly when the result belongs to a larger application-specific transition, such as advancing a checkout or updating several Model fields. [When to Use AsyncData Directly](#when-to-use-asyncdata-directly) develops that distinction with an example.
+Use Query when a request produces one retained resource, or one entry in a retained collection, and the standard loading, refreshing, failure, and stale states describe its lifecycle. Use `AsyncData` directly when the result belongs to a larger application-specific transition, such as advancing a checkout or updating several Model fields. [When to Use AsyncData Directly](#when-to-use-asyncdata-directly) develops that distinction with an example. When the server pushes changes to the data as a numbered stream, use [LiveQuery](/core/live-query) instead.
 
 ### The Parent Controls Loading and Refreshing
 

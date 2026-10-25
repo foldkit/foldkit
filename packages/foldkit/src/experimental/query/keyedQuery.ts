@@ -6,8 +6,6 @@ import {
   Layer,
   Number,
   Option,
-  Order,
-  Predicate,
   Record,
   Schema,
   type Scope,
@@ -26,6 +24,7 @@ import {
   type AsyncDataTransition,
   type CompletedFetchOf,
   type KeyedArgs,
+  encodeKey,
 } from './internal.js'
 
 type AnyLayer =
@@ -35,48 +34,6 @@ type AnyLayer =
 /** Schema fields whose encoding and decoding require no services. */
 export type SyncFields = {
   readonly [x: PropertyKey]: Schema.Codec<unknown, unknown, never, never>
-}
-
-const canonicalizeJsonEntry = ([key, value]: readonly [
-  string,
-  Schema.Json,
-]): readonly [string, Schema.Json] => [key, canonicalizeJson(value)]
-
-const jsonEntryOrder = Order.mapInput(
-  Order.String,
-  ([key]: readonly [string, Schema.Json]) => key,
-)
-
-const isJsonObject = (value: Schema.Json): value is Schema.JsonObject =>
-  Predicate.isObject(value) && !globalThis.Array.isArray(value)
-
-const canonicalizeJson = (value: Schema.Json): Schema.Json => {
-  if (globalThis.Array.isArray(value)) {
-    return Array.map(value, canonicalizeJson)
-  }
-
-  if (isJsonObject(value)) {
-    return pipe(
-      value,
-      Record.toEntries,
-      Array.sort(jsonEntryOrder),
-      Array.map(canonicalizeJsonEntry),
-      Record.fromEntries,
-    )
-  }
-
-  return value
-}
-
-const encodeJsonString = Schema.encodeUnknownSync(
-  Schema.fromJsonString(Schema.Json),
-)
-
-const encodeKey = <A, I>(schema: Schema.Codec<A, I, never, never>) => {
-  const encodeJson = Schema.encodeUnknownSync(Schema.toCodecJson(schema))
-
-  return (value: A): string =>
-    encodeJsonString(canonicalizeJson(encodeJson(value)))
 }
 
 /** Schemas, identity, and cache-key policy used to define a KeyedQuery. */

@@ -11,6 +11,7 @@
   "include": [
     "../src/vite-env.d.ts",
     "parent-owned-binding.accepted.ts",
-    "query-block.accepted.ts"
+    "query-block.accepted.ts",
+    "live-query-block.accepted.ts"
   ]
 }

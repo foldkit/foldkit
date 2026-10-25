@@ -109,6 +109,7 @@ export const STATIC_ROUTES: ReadonlyArray<typeof ApplicationRoute.Type> = [
   ApplicationRoute.CoreFile(),
   ApplicationRoute.CoreHttp(),
   ApplicationRoute.CoreQuery(),
+  ApplicationRoute.CoreLiveQuery(),
   ApplicationRoute.CoreCanvas(),
   ApplicationRoute.CoreRuntime(),
   ApplicationRoute.CoreServerRendering(),

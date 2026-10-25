@@ -29,6 +29,7 @@ import {
   coreHttpRouter,
   coreInitAndFlagsRouter,
   coreLayersRouter,
+  coreLiveQueryRouter,
   coreMachineRouter,
   coreManagedResourcesRouter,
   coreMessagesRouter,
@@ -308,6 +309,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'CoreQuery',
           href: coreQueryRouter(),
           label: 'Query',
+        },
+        {
+          _tag: 'CoreLiveQuery',
+          href: coreLiveQueryRouter(),
+          label: 'LiveQuery',
         },
         {
           _tag: 'FieldValidation',
