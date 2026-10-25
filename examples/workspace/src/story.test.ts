@@ -54,25 +54,25 @@ import { draftFromIssue, revisionFromIssue } from './issueDetail/draft'
 import { IssueListBlock } from './issueList'
 import { WorkspaceListboxBlock } from './listbox'
 import { Message } from './message'
-import { IssueMoveState, type Model } from './model'
 import {
+  IssueMoveState,
+  type Model,
   appliedIssueFilters,
-  backgroundRoute,
-  isActiveBoard,
-  issueHref,
   maybeActiveBoardInstance,
   maybeActiveIssueDetailInstance,
-} from './navigation'
+} from './model'
+import { issueHref } from './navigation'
 import { NotificationCenterBlock } from './notifications'
 import { ProjectSettingsBlock } from './projectSettings'
 import { SaveProject } from './projectSettings/command'
+import { SaveState as ProjectSaveState } from './projectSettings/definition'
 import { RepositoryError } from './repository'
 import {
   ApplicationRoute,
-  boardRouter,
   defaultIssueFilters,
   issueRouter,
   issuesRouter,
+  pageRoute,
   projectRouter,
   routeToPath,
   savedViewRouter,
@@ -111,14 +111,6 @@ const retainedDetailInstance = (model: typeof Model.Type, issueId: string) =>
     ),
   )
 
-const retainedBoardInstance = (model: typeof Model.Type, projectId: string) =>
-  Option.getOrThrow(
-    Array.findFirst(
-      model.boardInstances,
-      instance => instance.projectId === projectId,
-    ),
-  )
-
 const detailMessage = (
   model: typeof Model.Type,
   message: typeof IssueDetailBlock.Message.Type,
@@ -133,15 +125,18 @@ const detailMessageFor = (
   message: typeof IssueDetailBlock.Message.Type,
 ) => toParentMessage(IssueDetailBinding, issueId, message)
 
-const boardDragMessage = (
+const projectSettingsMessage = (
   projectId: string,
-  message: typeof DragAndDropBlock.Message.Type,
-) =>
-  toParentMessage(
-    IssueBoardBinding,
-    projectId,
-    toParentMessage(DragAndDropBinding, message),
-  )
+  message: typeof ProjectSettingsBlock.Message.Type,
+) => toParentMessage(ProjectSettingsBinding, projectId, message)
+
+const projectSettingsModel = (model: typeof Model.Type, projectId: string) =>
+  Option.getOrThrow(
+    Array.findFirst(
+      model.projectSettingsInstances,
+      instance => instance.projectId === projectId,
+    ),
+  ).model
 
 describe('workspace navigation', () => {
   test('navigates to a project and returns there after closing an issue', () => {
@@ -166,7 +161,7 @@ describe('workspace navigation', () => {
         }),
       ),
       model(model => {
-        expect(backgroundRoute(model.route)).toEqual(
+        expect(pageRoute(model.route)).toEqual(
           ApplicationRoute.Project({ projectId: issueB.projectId }),
         )
         expect(detailInstance(model).issueId).toBe(issueB.id)
@@ -239,7 +234,7 @@ describe('workspace navigation', () => {
     )
   })
 
-  test('admits hidden editor results without letting it close the active issue', () => {
+  test('settles a save while another issue is open', () => {
     const initial = loadedModel(issueRouter({ issueId: issueA.id }))
     const savedIssue = modifyFields(issueA, {
       title: () => 'Saved while another issue is open',
@@ -283,10 +278,6 @@ describe('workspace navigation', () => {
           Option.some(`${savedIssue.identifier} saved`),
         )
       }),
-      message(
-        detailMessageFor(issueA.id, IssueDetailBlock.Message.ClickedClose()),
-      ),
-      model(model => expect(detailInstance(model).issueId).toBe(issueB.id)),
       Command.expectNone(),
       message(
         detailMessageFor(issueB.id, IssueDetailBlock.Message.ClickedClose()),
@@ -672,21 +663,239 @@ describe('workspace notifications', () => {
       }),
     )
   })
+
+  test('preserves a foreground notice when background activity succeeds', () => {
+    story(
+      update,
+      given(
+        modifyFields(loadedModel(), {
+          maybeNotice: () => Option.some('Saved view “My work”'),
+        }),
+      ),
+      message(Message.SucceededAppendActivity({ issue: issueA })),
+      model(model => {
+        expect(model.maybeNotice).toEqual(Option.some('Saved view “My work”'))
+      }),
+      Command.expectNone(),
+    )
+  })
+})
+
+describe('workspace project settings', () => {
+  const project = Option.getOrThrow(Array.head(initialSnapshot.projects))
+  const anotherProject = Option.getOrThrow(
+    Array.findFirst(
+      initialSnapshot.projects,
+      candidate => candidate.id !== project.id,
+    ),
+  )
+  const projectSettingsPath = `/projects/${project.id}/settings`
+
+  test('preserves project edits when the current URL is delivered again', () => {
+    const initial = loadedModel(projectSettingsPath)
+
+    story(
+      update,
+      given(initial),
+      message(
+        projectSettingsMessage(
+          project.id,
+          ProjectSettingsBlock.Message.UpdatedProjectName({
+            value: 'Unfinished project name',
+          }),
+        ),
+      ),
+      message(Message.ChangedUrl({ url: url(projectSettingsPath) })),
+      model(model => {
+        expect(projectSettingsModel(model, project.id).draft.name).toBe(
+          'Unfinished project name',
+        )
+      }),
+      Command.expectNone(),
+    )
+  })
+
+  test('keeps separate drafts across project switches and workspace refreshes', () => {
+    const initial = loadedModel(projectSettingsPath)
+
+    story(
+      update,
+      given(initial),
+      message(
+        projectSettingsMessage(
+          project.id,
+          ProjectSettingsBlock.Message.UpdatedProjectName({
+            value: 'Unfinished platform work',
+          }),
+        ),
+      ),
+      message(
+        Message.ChangedUrl({
+          url: url(`/projects/${anotherProject.id}/settings`),
+        }),
+      ),
+      model(model => {
+        expect(projectSettingsModel(model, anotherProject.id).draft.name).toBe(
+          anotherProject.name,
+        )
+      }),
+      message(Message.SucceededLoadWorkspace({ snapshot: initialSnapshot })),
+      message(Message.ChangedUrl({ url: url(projectSettingsPath) })),
+      model(model => {
+        expect(projectSettingsModel(model, project.id).draft.name).toBe(
+          'Unfinished platform work',
+        )
+        expect(model.projectSettingsInstances).toHaveLength(2)
+      }),
+      Command.expectNone(),
+    )
+  })
+
+  test('saves project settings while an unrelated issue move is pending', () => {
+    const savedProject = modifyFields(project, { name: () => 'New name' })
+    const initial = modifyFields(loadedModel(projectSettingsPath), {
+      issueMoveState: () =>
+        IssueMoveState.MovingIssue({
+          issueId: issueA.id,
+          previousStatus: issueA.status,
+          previousIndex: 0,
+          expectedVersion: issueA.version,
+        }),
+    })
+
+    story(
+      update,
+      given(initial),
+      message(
+        projectSettingsMessage(
+          project.id,
+          ProjectSettingsBlock.Message.UpdatedProjectName({
+            value: savedProject.name,
+          }),
+        ),
+      ),
+      message(
+        projectSettingsMessage(
+          project.id,
+          ProjectSettingsBlock.Message.SubmittedProjectSettings(),
+        ),
+      ),
+      Command.expectExact(SaveProject({ project: savedProject })),
+      Command.resolve(
+        SaveProject,
+        ProjectSettingsBlock.Message.SucceededSaveProject({
+          project: savedProject,
+        }),
+      ),
+    )
+  })
+
+  test('settles a project save after navigating away without touching another editor', () => {
+    const savedProject = modifyFields(project, {
+      name: () => 'Saved while away',
+    })
+    const initial = modifyFields(loadedModel(projectSettingsPath), {
+      projectSettingsInstances: Array.map(instance =>
+        modifyFields(instance, {
+          model: model =>
+            modifyFields(model, {
+              draft: () => ({
+                name: savedProject.name,
+                description: savedProject.description,
+              }),
+              saveState: () => ProjectSaveState.Saving(),
+            }),
+        }),
+      ),
+    })
+
+    story(
+      update,
+      given(initial),
+      message(
+        Message.ChangedUrl({
+          url: url(`/projects/${anotherProject.id}/settings`),
+        }),
+      ),
+      message(
+        projectSettingsMessage(
+          project.id,
+          ProjectSettingsBlock.Message.SucceededSaveProject({
+            project: savedProject,
+          }),
+        ),
+      ),
+      model(model => {
+        expect(projectSettingsModel(model, project.id).baseline).toEqual(
+          savedProject,
+        )
+        expect(projectSettingsModel(model, anotherProject.id).draft.name).toBe(
+          anotherProject.name,
+        )
+        expect(model.route).toEqual(
+          ApplicationRoute.ProjectSettings({
+            projectId: anotherProject.id,
+          }),
+        )
+      }),
+      message(Message.SucceededMoveIssue({ snapshot: initialSnapshot })),
+      model(model => {
+        expect(snapshotOf(model).projects).toContainEqual(savedProject)
+      }),
+      Command.expectNone(),
+    )
+  })
+
+  test('publishes only the project returned by a completed save', () => {
+    const initial = loadedModel(projectSettingsPath)
+    const savedProject = modifyFields(project, {
+      name: () => 'Platform engineering',
+    })
+
+    story(
+      update,
+      given(initial),
+      message(
+        projectSettingsMessage(
+          project.id,
+          ProjectSettingsBlock.Message.UpdatedProjectName({
+            value: savedProject.name,
+          }),
+        ),
+      ),
+      message(
+        projectSettingsMessage(
+          project.id,
+          ProjectSettingsBlock.Message.SubmittedProjectSettings(),
+        ),
+      ),
+      Command.expectExact(SaveProject({ project: savedProject })),
+      Command.resolve(
+        SaveProject,
+        ProjectSettingsBlock.Message.SucceededSaveProject({
+          project: savedProject,
+        }),
+      ),
+      model(model => {
+        expect(snapshotOf(model).projects).toContainEqual(savedProject)
+        expect(snapshotOf(model).issues).toEqual(initialSnapshot.issues)
+      }),
+    )
+  })
+
+  test('does not initialize settings for an unknown project', () => {
+    story(
+      update,
+      given(loadedModel('/projects/missing/settings')),
+      model(model => {
+        expect(model.projectSettingsInstances).toEqual([])
+      }),
+      Command.expectNone(),
+    )
+  })
 })
 
 describe('Application child policies', () => {
-  const url = (path: string) =>
-    Option.getOrThrow(Url.fromString(`https://workspace.test${path}`))
-
-  const loadedModel = (path = '/') =>
-    update(
-      init(url(path)).model,
-      Message.SucceededLoadWorkspace({ snapshot: initialSnapshot }),
-    ).model
-
-  const snapshotOf = (model: typeof Model.Type) =>
-    Option.getOrThrow(AsyncData.getData(model.workspaceAsyncData))
-
   const listMessage = (message: typeof IssueListBlock.Message.Type) =>
     toParentMessage(IssueListBinding, message)
 
@@ -740,95 +949,6 @@ describe('Application child policies', () => {
       given(loadedModel('/projects/missing/board')),
       model(model => {
         expect(model.boardInstances).toEqual([])
-      }),
-      Command.expectNone(),
-    )
-  })
-
-  test('keeps a Board interaction under its issue overlay and cancels it when hidden', () => {
-    const projectId = 'platform'
-    const boardPath = boardRouter({ projectId })
-    const issue = Option.getOrThrow(
-      Array.findFirst(
-        initialSnapshot.issues,
-        issue => issue.projectId === projectId,
-      ),
-    )
-    const issuePath = issueRouter({ issueId: issue.id, returnTo: boardPath })
-    const initial = loadedModel(boardPath)
-    const pressedDraggable = DragAndDropBlock.Message.PressedDraggable({
-      itemId: draggableId(issue.id),
-      containerId: containerId(issue.status),
-      index: 0,
-      screenX: 20,
-      screenY: 30,
-    })
-
-    story(
-      update,
-      given(initial),
-      message(boardDragMessage(projectId, pressedDraggable)),
-      model(model => {
-        expect(boardInstance(model).model.dragAndDrop.dragState._tag).toBe(
-          'Pending',
-        )
-      }),
-      message(Message.ChangedUrl({ url: url(issuePath) })),
-      model(model => {
-        expect(isActiveBoard(model, projectId)).toBe(true)
-        expect(
-          retainedBoardInstance(model, projectId).model.dragAndDrop.dragState
-            ._tag,
-        ).toBe('Pending')
-      }),
-      message(Message.ChangedUrl({ url: url(issuePath) })),
-      model(model => {
-        expect(
-          retainedBoardInstance(model, projectId).model.dragAndDrop.dragState
-            ._tag,
-        ).toBe('Pending')
-      }),
-      message(Message.ChangedUrl({ url: url('/people') })),
-      model(model => {
-        expect(isActiveBoard(model, projectId)).toBe(false)
-        expect(
-          retainedBoardInstance(model, projectId).model.dragAndDrop.dragState
-            ._tag,
-        ).toBe('Idle')
-      }),
-      Command.expectNone(),
-    )
-  })
-
-  test('cancels the previous Board interaction when switching projects', () => {
-    const projectId = 'platform'
-    const initial = loadedModel(boardRouter({ projectId }))
-
-    story(
-      update,
-      given(initial),
-      message(
-        boardDragMessage(
-          projectId,
-          DragAndDropBlock.Message.ActivatedKeyboardDrag({
-            itemId: draggableId(issueA.id),
-            containerId: containerId(issueA.status),
-            index: 0,
-          }),
-        ),
-      ),
-      message(
-        Message.ChangedUrl({
-          url: url(boardRouter({ projectId: 'experience' })),
-        }),
-      ),
-      model(model => {
-        expect(
-          retainedBoardInstance(model, projectId).model.dragAndDrop.dragState
-            ._tag,
-        ).toBe('Idle')
-        expect(boardInstance(model).projectId).toBe('experience')
-        expect(model.boardInstances).toHaveLength(2)
       }),
       Command.expectNone(),
     )
@@ -1127,7 +1247,7 @@ describe('Application child policies', () => {
             returnTo: issuesPath,
           }),
         )
-        expect(backgroundRoute(model.route)).toEqual(
+        expect(pageRoute(model.route)).toEqual(
           ApplicationRoute.Issues({ filters: changedFilters }),
         )
         expect(appliedIssueFilters(model)).toEqual(changedFilters)
@@ -1140,62 +1260,6 @@ describe('Application child policies', () => {
       message(detailMessage(initial, IssueDetailBlock.Message.ClickedClose())),
       Command.expectExact(NavigateInternal({ url: issuesPath })),
       Command.resolve(NavigateInternal, Message.CompletedNavigateInternal()),
-    )
-  })
-
-  test('publishes only the project returned by a completed save', () => {
-    const initial = loadedModel('/projects/platform/settings')
-    const project = Option.getOrThrow(
-      Array.findFirst(
-        initialSnapshot.projects,
-        project => project.id === 'platform',
-      ),
-    )
-    const savedProject = modifyFields(project, {
-      name: () => 'Platform engineering',
-    })
-
-    story(
-      update,
-      given(initial),
-      message(
-        toParentMessage(
-          ProjectSettingsBinding,
-          project.id,
-          ProjectSettingsBlock.Message.UpdatedProjectName({
-            value: savedProject.name,
-          }),
-        ),
-      ),
-      message(
-        toParentMessage(
-          ProjectSettingsBinding,
-          project.id,
-          ProjectSettingsBlock.Message.SubmittedProjectSettings(),
-        ),
-      ),
-      Command.expectExact(SaveProject({ project: savedProject })),
-      Command.resolve(
-        SaveProject,
-        ProjectSettingsBlock.Message.SucceededSaveProject({
-          project: savedProject,
-        }),
-      ),
-      model(model => {
-        expect(snapshotOf(model).projects).toContainEqual(savedProject)
-        expect(snapshotOf(model).issues).toEqual(initialSnapshot.issues)
-      }),
-    )
-  })
-
-  test('does not initialize settings for an unknown project', () => {
-    story(
-      update,
-      given(loadedModel('/projects/missing/settings')),
-      model(model => {
-        expect(model.projectSettingsInstances).toEqual([])
-      }),
-      Command.expectNone(),
     )
   })
 

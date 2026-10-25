@@ -22,18 +22,19 @@ import {
 import type { Issue, Project, WorkspaceSnapshot } from '../domain'
 import { listboxViewInputs } from '../listbox'
 import { Message } from '../message'
-import { IssueMoveState, type Model } from '../model'
 import {
+  IssueMoveState,
+  type Model,
   appliedIssueFilters,
-  backgroundRoute,
-  issueHrefs,
   maybeActiveBoardInstance,
   maybeActiveIssueDetailInstance,
-} from '../navigation'
+} from '../model'
+import { issueHrefs } from '../navigation'
 import {
   ApplicationRoute,
   issuesRouter,
   maybeProjectId,
+  pageRoute,
   routeFilters,
 } from '../route'
 import { projectOverview, projectTabs } from './project'
@@ -87,7 +88,7 @@ const pageTitle = (
   model: typeof Model.Type,
   snapshot: typeof WorkspaceSnapshot.Type,
 ): string => {
-  const route = backgroundRoute(model.route)
+  const route = pageRoute(model.route)
   const projectTitle = (projectId: string) =>
     Option.match(
       Array.findFirst(snapshot.projects, project => project.id === projectId),
@@ -167,7 +168,7 @@ const routeContent = (
   snapshot: typeof WorkspaceSnapshot.Type,
   h: ApplicationViewBuilder,
 ): Html => {
-  const route = backgroundRoute(model.route)
+  const route = pageRoute(model.route)
 
   const projectContent = (
     projectId: string,
@@ -341,7 +342,7 @@ const workspaceView = (
   snapshot: typeof WorkspaceSnapshot.Type,
   h: ApplicationViewBuilder,
 ): Html => {
-  const route = backgroundRoute(model.route)
+  const route = pageRoute(model.route)
   const maybeProject = Option.flatMap(maybeProjectId(route), projectId =>
     Array.findFirst(snapshot.projects, project => project.id === projectId),
   )

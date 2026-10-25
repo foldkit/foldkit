@@ -8,12 +8,13 @@ import { Button } from '@foldkit/ui'
 import type { ApplicationViewBuilder } from '../composition'
 import { Message } from '../message'
 import type { Model } from '../model'
-import { backgroundRoute, issueHref } from '../navigation'
+import { issueHref } from '../navigation'
 import {
   ApplicationRoute,
   issuesRouter,
   maybeProjectId,
   myIssuesRouter,
+  pageRoute,
   peopleRouter,
   projectRouter,
   savedViewRouter,
@@ -36,7 +37,7 @@ export const sidebarView = (
   model: typeof Model.Type,
   h: ApplicationViewBuilder,
 ): Html => {
-  const route = backgroundRoute(model.route)
+  const route = pageRoute(model.route)
   const maybeCurrentProjectId = maybeProjectId(route)
 
   return h.aside(

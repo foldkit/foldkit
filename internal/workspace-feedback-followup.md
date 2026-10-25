@@ -3,7 +3,7 @@
 ## Scope
 
 The verification counts below describe the named earlier checkpoints. The
-[transition cleanup](workspace-transition-cleanup-20261025.md) records current
+[application simplification](workspace-simplification-20261025.md) records current
 per-ID editor retention, URL-derived return context, hidden-result delivery,
 and shared control styling. Navigation now reuses retained editors; the earlier
 remove-and-recreate scenarios are not the current navigation contract.
@@ -95,7 +95,7 @@ Browser inspection confirms aligned title positions across different statuses, v
 
 Workspace activity is active after data loads. Every 20 seconds it produces a teammate comment on a relevant issue or an assignment; Settings can request the next event directly. Comments notify assignees and participants except their author. Assignments notify their recipient except the actor. The Notification Center owns recipient-specific read state, deduplicates records, and presents them through a Foldkit UI Popover with an unread count, relative timestamps, read/unread actions, and Mark all as read. Selecting an entry marks it read and asks parent policy to navigate. Incoming activity neither opens the panel nor navigates. Ordinary issue changes do not generate notifications.
 
-Root policy detects new comments before updating canonical data, ignores stale revisions, and informs retained editors through their Binding operations. A hidden editor can settle its own pending save while the current editor stays isolated. The relative-time clock runs while the Popover is open. The Popover shares Listbox layering levels so its trigger remains operable over its backdrop. At 320 CSS pixels, the member label stays accessible while its visual footprint is removed; the header and panel do not overflow. Current retention regressions are recorded in the transition cleanup; the counts below describe the original notification checkpoint.
+Root policy detects new comments before updating canonical data, ignores stale revisions, and informs retained editors through their Binding operations. A hidden editor can settle its own pending save while the current editor stays isolated. The relative-time clock runs while the Popover is open. The Popover shares Listbox layering levels so its trigger remains operable over its backdrop. At 320 CSS pixels, the member label stays accessible while its visual footprint is removed; the header and panel do not overflow. Current retention behavior is recorded in the [application simplification](workspace-simplification-20261025.md); the counts below describe the original notification checkpoint.
 
 Root update Stories, including notification policy, are in `src/story.test.ts`. The child’s update tests are in `notifications/story.test.ts`. Isolated mutations prove that the Stories reject own-comment leakage, unrelated-issue activity selection, and obsolete error retention after assignment success. Browser tests first fail against the prefeature build; a failing open-trigger case also caught the incorrect backdrop layering. The final production suite passes all **29 cases**; application tests pass **149 cases across 24 files**. Source checking, application/Effect lint, and production build pass.
 

@@ -783,7 +783,10 @@ test.describe('workspace example', () => {
     await page
       .getByRole('searchbox', { name: 'Search issues', exact: true })
       .focus()
-    await page.keyboard.press('ControlOrMeta+k')
+    const modifier = await page.evaluate(() =>
+      /Mac|iPhone|iPad|iPod/.test(navigator.userAgent) ? 'Meta' : 'Control',
+    )
+    await page.keyboard.press(`${modifier}+k`)
 
     const dialog = page.getByRole('dialog', { name: 'Go to…', exact: true })
     const search = dialog.getByRole('combobox', {

@@ -21,23 +21,11 @@ import { IssueDetailBlock } from './issueDetail'
 import { IssueListBlock } from './issueList'
 import { WorkspaceListboxBlock } from './listbox'
 import { MemberDirectoryBlock } from './memberDirectory'
-import { IssueMoveState } from './model'
-import {
-  appliedIssueFilters,
-  backgroundRoute,
-  isActiveBoard,
-  issueFiltersHref,
-  issueHref,
-} from './navigation'
+import { IssueMoveState, appliedIssueFilters } from './model'
+import { issueFiltersHref, issueHref } from './navigation'
 import { NotificationCenterBlock } from './notifications'
 import { ProjectSettingsBlock } from './projectSettings'
-import {
-  ApplicationRoute,
-  maybeProjectId,
-  projectRouter,
-  resolveIssueCloseRoute,
-  routeToPath,
-} from './route'
+import { maybeProjectId, pageRoute, projectRouter, routeToPath } from './route'
 
 export const ActiveMemberBinding = ApplicationDefinition.makeBinding(
   WorkspaceListboxBlock,
@@ -167,8 +155,9 @@ const retainIssueDraft = (
     },
   }))
 
-const foldIssueDetailOutMessage = (issueId: string) =>
-  ApplicationDefinition.makeOutMessageFold(IssueDetailBlock, {
+const foldIssueDetailOutMessage = ApplicationDefinition.makeOutMessageFold(
+  IssueDetailBlock,
+  {
     Saved: ({ issue }) =>
       Update.combineSteps([
         applyIssueRevision(issue),
@@ -185,20 +174,11 @@ const foldIssueDetailOutMessage = (issueId: string) =>
     ChangedDraft: ({ issueId, maybeDraft }) =>
       retainIssueDraft(issueId, maybeDraft),
     Closed: () =>
-      ApplicationDefinition.makeStep(model =>
-        ApplicationRoute.guards.Issue(model.route) &&
-        model.route.issueId === issueId
-          ? {
-              model,
-              commands: [
-                NavigateInternal({
-                  url: routeToPath(resolveIssueCloseRoute(model.route)),
-                }),
-              ],
-            }
-          : { model },
-      ),
-  })
+      ApplicationDefinition.makeCommandsStep(model => [
+        NavigateInternal({ url: routeToPath(pageRoute(model.route)) }),
+      ]),
+  },
+)
 
 const navigateIssueFilters = (
   change: (filters: typeof IssueFilters.Type) => typeof IssueFilters.Type,
@@ -261,7 +241,7 @@ export const IssueListBinding = ApplicationDefinition.makeBinding(
         return Option.match(AsyncData.getData(model.workspaceAsyncData), {
           onNone: ApplicationDefinition.makeNoopStep,
           onSome: snapshot => {
-            const route = backgroundRoute(model.route)
+            const route = pageRoute(model.route)
 
             const maybeProject = Option.match(maybeProjectId(route), {
               onNone: () => Array.head(snapshot.projects),
@@ -365,8 +345,6 @@ export const IssueBoardBinding = ApplicationDefinition.makeBinding(
       instances: () => [],
       toItem: ({ key }, board) => ({ projectId: key, model: board }),
     },
-    subscriptions: { when: isActiveBoard },
-    delivery: { when: isActiveBoard },
   },
 )
 
@@ -406,8 +384,7 @@ export const MemberDirectoryBinding = ApplicationDefinition.makeBinding(
 
 const IssueDetailBindingWithOutMessagePolicy =
   IssueDetailBinding.withOutMessagePolicy({
-    fold: (issueId, outMessage) =>
-      foldIssueDetailOutMessage(issueId)(outMessage),
+    fold: (_issueId, outMessage) => foldIssueDetailOutMessage(outMessage),
   })
 
 export const ProjectSettingsBinding = ApplicationDefinition.makeBinding(

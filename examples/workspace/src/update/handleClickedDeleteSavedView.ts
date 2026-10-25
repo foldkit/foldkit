@@ -3,18 +3,16 @@ import { modifyFields } from 'foldkit/struct'
 
 import { NavigateInternal, ReplaceInternalUrl } from '../command'
 import type { Message } from '../message'
-import type { Model } from '../model'
-import { appliedIssueFilters, backgroundRoute } from '../navigation'
-import { ApplicationRoute, routeToPath } from '../route'
+import { type Model, appliedIssueFilters } from '../model'
+import { ApplicationRoute, pageRoute, routeToPath } from '../route'
 
 export const handleClickedDeleteSavedView = (
   model: typeof Model.Type,
   { viewId }: typeof Message.ClickedDeleteSavedView.Type,
 ) => {
-  const routeBehindIssue = backgroundRoute(model.route)
+  const route = pageRoute(model.route)
   const isDeletingDisplayedView =
-    ApplicationRoute.guards.SavedView(routeBehindIssue) &&
-    routeBehindIssue.viewId === viewId
+    ApplicationRoute.guards.SavedView(route) && route.viewId === viewId
   const nextSavedViews = Array.filter(
     model.savedViews,
     saved => saved.id !== viewId,

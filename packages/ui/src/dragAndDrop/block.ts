@@ -107,7 +107,6 @@ export const Message = defineMessageUnion({
   },
   ReleasedPointer: {},
   CancelledDrag: {},
-  RequestedCancelDrag: {},
   ActivatedKeyboardDrag: {
     itemId: Schema.String,
     containerId: Schema.String,
@@ -359,29 +358,6 @@ export const ResolveKeyboardMove = DragAndDropDefinition.makeCommand(
 )
 // UPDATE
 
-const cancelDrag = (
-  model: Model,
-  commands?: ReadonlyArray<ReturnType<typeof FocusItem>>,
-) => {
-  if (DragState.guards.Idle(model.dragState)) {
-    return { model }
-  }
-
-  const dragCancellation = {
-    model: modifyFields(model, { dragState: () => DragState.Idle() }),
-    ...(commands === undefined ? {} : { commands }),
-  }
-  const maybeOutMessage = Option.liftPredicate(
-    model.dragState._tag,
-    _tag => _tag === 'Dragging' || _tag === 'KeyboardDragging',
-  ).pipe(Option.map(() => OutMessage.Cancelled()))
-
-  return pipe(
-    dragCancellation,
-    Update.withOutMessage(Option.getOrUndefined(maybeOutMessage)),
-  )
-}
-
 /** Processes a drag-and-drop Message and returns the next Model, optional
  *  Commands, and an optional OutMessage for the parent. */
 export const update = DragAndDropComposition.makeUpdate({
@@ -469,10 +445,20 @@ export const update = DragAndDropComposition.makeUpdate({
       Array.filter(DragState.guards.KeyboardDragging),
       Array.map(({ itemId }) => FocusItem({ itemId })),
     )
+    const maybeOutMessage = Option.liftPredicate(
+      model.dragState._tag,
+      _tag => _tag === 'Dragging' || _tag === 'KeyboardDragging',
+    ).pipe(Option.map(() => OutMessage.Cancelled()))
+    const dragCancellation = {
+      model: modifyFields(model, { dragState: () => DragState.Idle() }),
+      commands,
+    }
 
-    return cancelDrag(model, commands)
+    return pipe(
+      dragCancellation,
+      Update.withOutMessage(Option.getOrUndefined(maybeOutMessage)),
+    )
   },
-  RequestedCancelDrag: model => cancelDrag(model),
   ActivatedKeyboardDrag: (model, { itemId, containerId, index }) => ({
     model: modifyFields(model, {
       keyboardDragGeneration: generation => generation + 1,
@@ -1010,7 +996,6 @@ const prepare = () =>
     view,
     subscriptions,
     EffectsLayer,
-    operations: { requestCancelDrag: Message.RequestedCancelDrag },
   })
 /** Completed DragAndDrop Block contract. */
 export interface DragAndDropBlock extends Block.FromAssemblyWithViewAndOutMessage<

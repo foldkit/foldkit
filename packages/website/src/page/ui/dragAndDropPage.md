@@ -51,10 +51,6 @@ DragAndDrop supports full keyboard navigation. Space/Enter activates drag mode, 
 
 Draggable items receive `role="option"` with `aria-roledescription="draggable"`. Drop containers receive `role="listbox"`. The parent owns a live region and its announcement text. Handle `StartedKeyboardDrag`, `ChangedKeyboardTarget`, `Reordered`, and `Cancelled` in the Binding OutMessage policy. Keep its writer focused on storing the child Model. `ChangedKeyboardTarget` describes a proposed keyboard position; the parent applies the actual move after `Reordered`. Announce the optimistic placement when the parent accepts it, and announce rollback separately if persistence fails.
 
-## Retained interaction state
-
-When navigation hides a retained Board, call its DragAndDrop Binding's `requestCancelDrag` operation through the owning update. It clears a pending pointer press or active drag without requesting focus on the hidden item. An active pointer or keyboard drag emits `Cancelled`; a pending press emits no OutMessage, and an idle Model is unchanged. Gate route-specific Subscription activity separately from retaining the Model. See [retaining child state](/core/block#retain-state-across-navigation).
-
 ## Testing
 
 In [Story tests](/testing/story), use `DragAndDrop.test` to resolve keyboard drag Commands:
@@ -101,4 +97,4 @@ Messages emitted to the parent through the optional `outMessage` field. Handle t
 | `StartedKeyboardDrag`   | `{ itemId, containerId, index }`                                 | —       | Emitted when keyboard drag mode starts. The parent can announce pickup instructions.                                                                                                                                                                               |
 | `ChangedKeyboardTarget` | `{ itemId, fromContainerId, fromIndex, toContainerId, toIndex }` | —       | Emitted only when the keyboard target changes. The `from` fields describe the previous target. The child Model already contains the new target; item data has not been reordered. Focus Commands retain their existing behavior, including at a movement boundary. |
 | `Reordered`             | `{ itemId, fromContainerId, fromIndex, toContainerId, toIndex }` | —       | Emitted when a drag completes with a valid drop target. The parent uses this to commit the reorder against its own data (move the item in the source array, splice it into the destination). Handle it in the Binding's selected `fold` policy.                    |
-| `Cancelled`             | `{}`                                                             | —       | Emitted when an active drag is cancelled via Escape, a pointer release without a valid drop target, or `requestCancelDrag`. No reorder should be applied.                                                                                                          |
+| `Cancelled`             | `{}`                                                             | —       | Emitted when an active drag is cancelled via Escape or a pointer release without a valid drop target. No reorder should be applied.                                                                                                                                |

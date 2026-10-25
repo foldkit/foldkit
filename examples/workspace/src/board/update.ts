@@ -1,5 +1,5 @@
 import { issueStatusLabel } from '../domain'
-import { DragAndDropBinding, IssueBoardComposition } from './composition'
+import { IssueBoardComposition } from './composition'
 import { IssueBoardDefinition, OutMessage } from './definition'
 
 export const update = IssueBoardComposition.makeUpdate({
@@ -12,7 +12,6 @@ export const update = IssueBoardComposition.makeUpdate({
   InformedOfIssueMoveFailure: IssueBoardDefinition.makeFieldsStep(() => ({
     announcement: () => 'Could not save the move. Issue position restored.',
   })),
-  InformedOfNavigationAway: DragAndDropBinding.requestCancelDrag(),
   ClickedCreateIssue: IssueBoardDefinition.makeOutMessageStep.fromMessage(
     ({ status }) => OutMessage.RequestedCreation({ status }),
   ),

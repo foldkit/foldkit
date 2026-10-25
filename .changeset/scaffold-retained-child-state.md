@@ -7,6 +7,4 @@ Explain child state retention separately from route rendering and Subscription a
 
 Place reusable static Tailwind control recipes in the stylesheet's component layer and reserve `clsx` for conditional classes.
 
-Add a Message-backed DragAndDrop operation for parents to cancel pointer or keyboard interaction when a retained child becomes inactive.
-
 Track keyboard drag generations so a delayed move result cannot change or focus a restarted interaction. Custom `ResolveKeyboardMove` handlers and manually constructed completion Messages must preserve `keyboardDragGeneration`; the public Story helper derives it from the pending Command.

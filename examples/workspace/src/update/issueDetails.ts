@@ -6,24 +6,11 @@ import { ApplicationDefinition } from '../definition'
 import type { Issue } from '../domain'
 
 export const applyIncomingIssue = (issue: typeof Issue.Type) =>
-  ApplicationDefinition.makeStep(model => {
-    const isNewFieldRevision = Option.exists(
-      Option.flatMap(AsyncData.getData(model.workspaceAsyncData), snapshot =>
-        Array.findFirst(snapshot.issues, current => current.id === issue.id),
-      ),
-      current => issue.version > current.version,
-    )
-
-    if (!isNewFieldRevision) {
-      return applyIssueRevision(issue)
-    }
-
-    return Update.combineSteps([
-      applyIssueRevision(issue),
-      IssueDetailBinding.informIssueChanged(issue.id, { issue }),
-      IssueDetailBinding.requestReportDraft(issue.id),
-    ])
-  })
+  Update.combineSteps([
+    applyIssueRevision(issue),
+    IssueDetailBinding.informIssueChanged(issue.id, { issue }),
+    IssueDetailBinding.requestReportDraft(issue.id),
+  ])
 
 export const reconcileRetainedIssueDetails = ApplicationDefinition.makeStep(
   model => {
@@ -48,9 +35,6 @@ export const reconcileRetainedIssueDetails = ApplicationDefinition.makeStep(
       })
     })
 
-    return Array.match(steps, {
-      onEmpty: () => ({ model }),
-      onNonEmpty: steps => Update.combineSteps(steps),
-    })
+    return Update.combineSteps(steps)
   },
 )

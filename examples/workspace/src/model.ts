@@ -1,4 +1,4 @@
-import { Schema } from 'effect'
+import { Array, Option, Schema } from 'effect'
 import { AsyncData } from 'foldkit'
 import { defineTaggedUnion } from 'foldkit/schema'
 
@@ -17,7 +17,12 @@ import { WorkspaceListboxBlock } from './listbox'
 import { MemberDirectoryBlock } from './memberDirectory'
 import { NotificationCenterBlock } from './notifications'
 import { ProjectSettingsBlock } from './projectSettings'
-import { ApplicationRoute } from './route'
+import {
+  ApplicationRoute,
+  defaultIssueFilters,
+  pageRoute,
+  routeFilters,
+} from './route'
 
 export const WorkspaceAsyncData = AsyncData.Schema(
   WorkspaceSnapshot,
@@ -76,3 +81,43 @@ export const Model = Schema.Struct({
   projectSettingsInstances: Schema.Array(ProjectSettingsInstance),
   issueMoveState: IssueMoveState,
 })
+
+export const maybeActiveIssueDetailInstance = (model: typeof Model.Type) => {
+  const route = model.route
+
+  return ApplicationRoute.guards.Issue(route)
+    ? Array.findFirst(
+        model.issueDetailInstances,
+        instance => instance.issueId === route.issueId,
+      )
+    : Option.none()
+}
+
+export const maybeActiveBoardInstance = (model: typeof Model.Type) => {
+  const route = pageRoute(model.route)
+
+  return ApplicationRoute.guards.Board(route)
+    ? Array.findFirst(
+        model.boardInstances,
+        instance => instance.projectId === route.projectId,
+      )
+    : Option.none()
+}
+
+export const appliedIssueFilters = (model: typeof Model.Type) => {
+  const route = pageRoute(model.route)
+
+  return Option.getOrElse(routeFilters(route), () => {
+    if (ApplicationRoute.guards.SavedView(route)) {
+      return Option.match(
+        Array.findFirst(model.savedViews, view => view.id === route.viewId),
+        {
+          onNone: () => defaultIssueFilters,
+          onSome: view => view.filters,
+        },
+      )
+    }
+
+    return defaultIssueFilters
+  })
+}

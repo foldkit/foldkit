@@ -15,7 +15,6 @@ export const Message = defineMessageUnion({
   ClickedCreateIssue: { status: IssueStatus },
   InformedOfIssueMove: { status: IssueStatus, insertionIndex: Schema.Number },
   InformedOfIssueMoveFailure: {},
-  InformedOfNavigationAway: {},
 })
 
 export const OutMessage = defineMessageUnion({

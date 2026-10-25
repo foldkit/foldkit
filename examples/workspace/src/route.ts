@@ -34,7 +34,7 @@ export const ApplicationRoute = defineRouteUnion({
   NotFound: { path: Schema.String },
 })
 
-export const IssueCloseRoute = ApplicationRoute.subset([
+const IssueCloseRoute = ApplicationRoute.subset([
   'Issues',
   'MyIssues',
   'Project',
@@ -305,7 +305,7 @@ const parseNativeUrl = (value: string): Option.Option<URL> => {
   }
 }
 
-export function parseIssueCloseRoute(
+function parseIssueCloseRoute(
   returnTo: string,
 ): Option.Option<typeof IssueCloseRoute.Type> {
   if (!returnTo.startsWith('/') || returnTo.startsWith('//')) {
@@ -331,13 +331,13 @@ export function parseIssueCloseRoute(
   )
 }
 
-export const maybeIssueCloseRoute = (
-  route: typeof ApplicationRoute.Issue.Type,
-) => Option.flatMap(Option.fromNullishOr(route.returnTo), parseIssueCloseRoute)
+export const pageRoute = (route: typeof ApplicationRoute.Type) => {
+  if (!ApplicationRoute.guards.Issue(route)) {
+    return route
+  }
 
-export const resolveIssueCloseRoute = (
-  route: typeof ApplicationRoute.Issue.Type,
-): typeof IssueCloseRoute.Type =>
-  Option.getOrElse(maybeIssueCloseRoute(route), () =>
-    ApplicationRoute.Issues({ filters: defaultIssueFilters }),
+  return Option.getOrElse(
+    Option.flatMap(Option.fromNullishOr(route.returnTo), parseIssueCloseRoute),
+    () => ApplicationRoute.Issues({ filters: defaultIssueFilters }),
   )
+}

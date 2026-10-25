@@ -321,7 +321,7 @@ The gate controls Streams. It does not remove the child or disable its update.
 
 Keep a child Model in parent storage when its state should survive navigation. The current Route determines whether its view is rendered. Keeping a keyed collection of editors lets navigation from Issue A to Issue B and back reuse both Models. Removing an occurrence is an explicit application decision, such as deleting an entity or evicting retained state.
 
-A retained occurrence remains present even when its view is hidden. Its pending Command results can still enter update, and its Subscription Streams remain active unless their activation policy says otherwise. Use `subscriptions.when` for route-specific Streams. Use a child Message-backed operation to cancel a transient interaction when navigation ends that interaction. For example, retaining a Board need not retain an unfinished drag. A `delivery.when` gate that rejects all hidden-child Messages also rejects save completions; use such a gate only when that is the intended behavior.
+A retained occurrence remains present even when its view is hidden. Its pending Command results can still enter update, and its Subscription Streams remain active unless their activation policy says otherwise. Use `subscriptions.when` for route-specific Streams. Use child Message-backed operations when application policy requires a child transition. State retention alone does not require additional navigation orchestration. A `delivery.when` gate that rejects all hidden-child Messages also rejects save completions; use such a gate only when that is the intended behavior.
 
 ### Whole tagged variants
 

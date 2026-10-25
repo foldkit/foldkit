@@ -5,7 +5,7 @@ import { modifyFields } from 'foldkit/struct'
 import { AppendActivity, AssignIssue } from './command'
 import { ApplicationDefinition } from './definition'
 import { IssueDraft } from './domain'
-import { maybeActiveIssueDetailInstance } from './navigation'
+import { maybeActiveIssueDetailInstance } from './model'
 
 const ASSIGNMENT_ACTIVITY_INTERVAL = 3
 const ACTIVITY_COMMENT_BODIES = [

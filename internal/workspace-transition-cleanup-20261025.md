@@ -2,6 +2,11 @@
 
 ## Scope
 
+This report records the `7235df2be5` checkpoint. The subsequent
+[Workspace simplification](workspace-simplification-20261025.md) supersedes its
+Board navigation cancellation and helper organization. The measurements below
+remain scoped to the recorded checkpoint.
+
 This followup addresses retained child state, readable pure transitions, Route
 Transition policy, saved-view deletion, and shared control styling. Publication
 is held for approval. The comparison baseline is

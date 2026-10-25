@@ -247,64 +247,16 @@ describe('DragAndDrop', () => {
     })
   })
 
-  describe('requestCancelDrag', () => {
-    it('keeps an Idle model unchanged', () => {
-      const initial = defaultInit()
-
-      Story.story(
-        update,
-        Story.given(initial),
-        Story.message(Message.RequestedCancelDrag()),
-        Story.model(model => expect(model).toBe(initial)),
-        Story.expectNoOutMessage(),
-        Story.Command.expectNone(),
-      )
-    })
-
-    it('cancels a pending pointer press without an OutMessage', () => {
-      Story.story(
-        update,
-        Story.given(defaultInit()),
-        Story.message(pressedDraggable),
-        Story.message(Message.RequestedCancelDrag()),
-        Story.model(model => expect(model.dragState._tag).toBe('Idle')),
-        Story.expectNoOutMessage(),
-        Story.Command.expectNone(),
-      )
-    })
-
-    it('cancels a pointer drag', () => {
-      Story.story(
-        update,
-        Story.given(defaultInit()),
-        Story.message(pressedDraggable),
-        Story.message(movedPointerAboveThreshold),
-        Story.message(Message.RequestedCancelDrag()),
-        Story.model(model => expect(model.dragState._tag).toBe('Idle')),
-        Story.expectOutMessage(OutMessage.Cancelled()),
-        Story.Command.expectNone(),
-      )
-    })
-
-    it('cancels a keyboard drag without requesting focus', () => {
-      Story.story(
-        update,
-        Story.given(defaultInit()),
-        Story.message(activatedKeyboardDrag),
-        Story.message(Message.RequestedCancelDrag()),
-        Story.model(model => expect(model.dragState._tag).toBe('Idle')),
-        Story.expectOutMessage(OutMessage.Cancelled()),
-        Story.Command.expectNone(),
-      )
-    })
-
+  describe('keyboard drag generations', () => {
     it('ignores a pending keyboard move completion after cancellation', () => {
       Story.story(
         update,
         Story.given(defaultInit()),
         Story.message(activatedKeyboardDrag),
         Story.message(Message.PressedArrowKey({ direction: 'Down' })),
-        Story.message(Message.RequestedCancelDrag()),
+        Story.message(Message.CancelledDrag()),
+        Story.expectOutMessage(OutMessage.Cancelled()),
+        Story.Command.resolve(FocusItem, Message.CompletedFocusItem()),
         Story.Command.resolve(
           ResolveKeyboardMove,
           Message.CompletedResolveKeyboardMove({
@@ -326,7 +278,9 @@ describe('DragAndDrop', () => {
           Story.given(defaultInit()),
           Story.message(activatedKeyboardDrag),
           Story.message(Message.PressedArrowKey({ direction: 'Down' })),
-          Story.message(Message.RequestedCancelDrag()),
+          Story.message(Message.CancelledDrag()),
+          Story.expectOutMessage(OutMessage.Cancelled()),
+          Story.Command.resolve(FocusItem, Message.CompletedFocusItem()),
           Story.message(
             Message.ActivatedKeyboardDrag({
               itemId: restartedItemId,

@@ -203,12 +203,21 @@ Prototype proposed APIs and verify source/emitted acceptance/rejection, runtime 
 
 - [x] Retain Issue Detail and Board Models by entity identity across navigation. Select rendered children from the Route, and verify hidden pending results, retained edits, conflict handling, and child lifecycle behavior separately.
 - [x] Replace vague `sync*` and `observe*` transformation names with precise application behavior. Use `initialize...IfMissing` for conditional creation and `handle<MessageTag>` for dedicated handlers.
-- [x] Express navigation policy with Route Transitions; retain data-arrival initialization and explicit parent-owned retention policy.
+- [x] Apply parsed URL changes and initialize missing children while retaining existing state. The subsequent simplification removes Board drag-exit orchestration; use Route Transitions when actual entry/exit behavior requires them.
 - [x] Simplify saved-view deletion, preserve active filters, and keep an open issue visible while repairing its deleted return destination.
 - [x] Assess declaration-derived dynamic Binding initialization before adoption. The exact keyed-array append prototype passes source/emitted/runtime safety but exceeds unchanged compiler ceilings. Reject this encoding and retain explicit `toParentModel` placement. [Assessment and retained implementation](workspace-transition-cleanup-20261025.md).
 - [x] Compose meaningful application Steps and apply focused producer helpers where they improve clarity. Review the real split-file consumer for dependency direction and unnecessary bookkeeping.
 - [x] After the transition work, assess shared control styling against Tailwind custom utilities and migrate appropriate repeated control recipes.
 - [x] Verify source and emitted declarations, focused Story/Scene/browser flows, affected consumers, unchanged compiler counts, and three alternating native editor pairs. No material editor regression is established. [Final measurements and limits](workspace-transition-cleanup-20261025.md#final-verification). Keep publication held for approval.
+
+## Workspace simplification
+
+Example apps should meet realistic product requirements and handle reasonable failure and retry behavior. Ordinary feature composition can expose missing abstractions; unusual event interleavings do not by themselves justify framework APIs or application orchestration.
+
+- [x] Consolidate `src/ownership.story.test.ts` into concrete describe groups in the root `src/story.test.ts` update suite and remove the separate file.
+- [x] Remove navigation-during-drag orchestration, its Board Message/operation and delivery gates, and the speculative public UI cancellation API. Retain the independent keyboard interaction generation guard.
+- [x] Collapse the background/Close Route helper chain into route-only `pageRoute`, move application selectors beside the Model, and keep Model-aware URL builders in `navigation.ts`. Preserve copied URLs, return context, drafts, save/retry, and optimistic moves.
+- [x] Verify the simplified app, UI contracts, ordinary full-root declarations, unchanged compiler counts, 32 browser scenarios across broad/focused runs, and three paired native editor runs. [Scope and results](workspace-simplification-20261025.md).
 
 ## Migration support
 

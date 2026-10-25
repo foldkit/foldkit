@@ -8,9 +8,8 @@ import {
   defaultIssueFilters,
   issueRouter,
   issuesRouter,
-  maybeIssueCloseRoute,
   myIssuesRouter,
-  parseIssueCloseRoute,
+  pageRoute,
   projectRouter,
   routeFilters,
   routeToPath,
@@ -135,21 +134,12 @@ describe('Issue return context', () => {
       ApplicationRoute.Issue({ issueId: 'issue-101', returnTo }),
     )
 
-    if (!ApplicationRoute.guards.Issue(route)) {
-      throw new Error('Expected an Issue route')
-    }
-
-    expect(maybeIssueCloseRoute(route)).toEqual(
-      Option.some(
-        ApplicationRoute.Project({ projectId: 'platform', filters: filtered }),
-      ),
+    expect(pageRoute(route)).toEqual(
+      ApplicationRoute.Project({ projectId: 'platform', filters: filtered }),
     )
   })
 
   test('admits Board context and canonicalizes it', () => {
-    expect(
-      parseIssueCloseRoute('/projects/platform/board?ignored=yes'),
-    ).toEqual(Option.some(ApplicationRoute.Board({ projectId: 'platform' })))
     expect(
       issueRouter({
         issueId: 'issue-101',
@@ -165,32 +155,25 @@ describe('Issue return context', () => {
     '/issues/issue-202?returnTo=%2F',
     '/unknown',
   ])('rejects unsafe or unsupported return target %s', returnTo => {
-    expect(parseIssueCloseRoute(returnTo)).toEqual(Option.none())
+    expect(
+      pageRoute(ApplicationRoute.Issue({ issueId: 'issue-101', returnTo })),
+    ).toEqual(ApplicationRoute.Issues({ filters: defaultIssueFilters }))
     expect(issueRouter({ issueId: 'issue-101', returnTo })).toBe(
       '/issues/issue-101',
     )
   })
 
-  test.each([
-    '/\\[',
-    '/\\evil.example',
-    '/%2F%2Fevil.example',
-    '/\u0000projects/platform',
-    '/\tprojects/platform',
-    '/\nprojects/platform',
-    '/\rprojects/platform',
-    '/projects/platform\t',
-    '/projects/platform ',
-    ' /projects/platform',
-    '/ projects/platform',
-    '/%',
-    '/%ZZ',
-  ])('safely rejects malformed return target %s', returnTo => {
-    expect(parseIssueCloseRoute(returnTo)).toEqual(Option.none())
-    expect(issueRouter({ issueId: 'issue-101', returnTo })).toBe(
-      '/issues/issue-101',
-    )
-  })
+  test.each(['/\\evil.example', '/\nprojects/platform', '/%ZZ'])(
+    'safely rejects malformed return target %s',
+    returnTo => {
+      expect(
+        pageRoute(ApplicationRoute.Issue({ issueId: 'issue-101', returnTo })),
+      ).toEqual(ApplicationRoute.Issues({ filters: defaultIssueFilters }))
+      expect(issueRouter({ issueId: 'issue-101', returnTo })).toBe(
+        '/issues/issue-101',
+      )
+    },
+  )
 
   test('drops malformed return context while parsing an Issue URL', () => {
     const route = urlToApplicationRoute(

@@ -52,9 +52,6 @@ const applySnapshot = (snapshot: typeof WorkspaceSnapshot.Type) =>
 
 const noop = ApplicationDefinition.makeNoopStep()
 
-const navigateInternal = (url: string) =>
-  ApplicationDefinition.makeCommandsStep(() => [NavigateInternal({ url })])
-
 const handleClickedRetryLoad = ApplicationDefinition.makeStep(model =>
   Option.match(AsyncData.revalidateOrLoad(model.workspaceAsyncData), {
     onNone: () => noop(model),
@@ -68,14 +65,13 @@ const handleClickedRetryLoad = ApplicationDefinition.makeStep(model =>
 )
 
 export const update = ApplicationComposition.makeUpdate({
-  ClickedLink: (model, { request }) =>
-    UrlRequest.match(request, {
-      Internal: ({ url }) => navigateInternal(urlToString(url))(model),
-      External: ({ href }) =>
-        ApplicationDefinition.makeCommandsStep(() => [LoadExternal({ href })])(
-          model,
-        ),
-    }),
+  ClickedLink: ApplicationDefinition.makeCommandsStep.fromMessage(
+    ({ request }) =>
+      UrlRequest.match(request, {
+        Internal: ({ url }) => [NavigateInternal({ url: urlToString(url) })],
+        External: ({ href }) => [LoadExternal({ href })],
+      }),
+  ),
   ChangedUrl: handleChangedUrl,
   CompletedNavigateInternal: noop,
   CompletedLoadExternal: noop,

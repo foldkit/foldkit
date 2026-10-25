@@ -65,6 +65,8 @@ Experimental Query and KeyedQuery values are completed viewless Blocks. Bind the
 
 Keep the canonical domain data with its owner. Give each editor its own baseline, draft, and submission state. A baseline is an intentional historical value; current display data such as comments belongs in view inputs. Use update context (`delivery.toUpdateContext`) for current parent data needed while handling a Message. Use an `inform*` operation when an external event requires the child to transition, return a Command, or emit an OutMessage. Changing inputs or context does not dispatch a Message. Avoid acknowledgement informs that repeat a transition the child already performed.
 
+Build around the application's requirements and normal user workflows, including reasonable failure and retry behavior. Introduce abstractions for concrete repeated responsibilities; unusual event combinations do not by themselves justify additional framework APIs or application orchestration.
+
 Independent interactions need independent pending and failure state. A project save should not block an unrelated issue move or share feedback that a background response can clear. Keep exclusivity explicit when operations really must serialize.
 
 Decide what navigation does to unfinished work. Repeated URL delivery or a refresh should not silently replace a dirty draft. Retaining a keyed editor lets its draft and pending save survive navigation. Removing its occurrence ends its lifecycle and invalidates later delivery; keep the owner present when its result must still update the application. Apply mutation results to the data that operation owns, so a delayed response cannot replace unrelated newer state.

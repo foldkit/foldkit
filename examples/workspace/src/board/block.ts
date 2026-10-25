@@ -14,7 +14,6 @@ const prepare = () =>
     operations: {
       informIssueMoved: Message.InformedOfIssueMove,
       informIssueMoveFailed: Message.InformedOfIssueMoveFailure,
-      informNavigationAway: Message.InformedOfNavigationAway,
     },
   })
 export const IssueBoardBlock: Block.FromAssemblyWithViewAndOutMessage<
