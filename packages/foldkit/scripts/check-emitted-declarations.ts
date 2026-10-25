@@ -592,6 +592,12 @@ const checks: ReadonlyArray<
     consumers: ['generic-handler-contracts.consume.ts'],
   },
   {
+    name: 'generic-service-factory',
+    accepted: ['generic-service-factory.accepted.ts'],
+    rejected: ['generic-service-factory.rejected.ts'],
+    consumers: ['generic-service-factory.consume.ts'],
+  },
+  {
     name: 'generic-outmessage-policy',
     accepted: ['generic-outmessage-policy/accepted.ts'],
     rejected: ['generic-outmessage-policy/rejected.ts'],
@@ -953,6 +959,7 @@ const main = async (): Promise<void> => {
     'test-parent-message',
     'extracted-connected-step',
     'append-initialization',
+    'generic-service-factory',
   ]) {
     runCompiler(`Checking direct source ${name} contracts`, [
       '-p',

@@ -1,0 +1,18 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "foldkit/block": ["../src/block/public.ts"],
+      "foldkit/command": ["../src/command/public.ts"],
+      "foldkit/message": ["../src/message/public.ts"]
+    },
+    "rootDir": ".."
+  },
+  "include": [
+    "../src/vite-env.d.ts",
+    "generic-service-factory.accepted.ts",
+    "generic-service-factory.consume.ts",
+    "generic-service-factory.rejected.ts"
+  ]
+}
