@@ -250,13 +250,23 @@ type ResidualProgramDispatchRequirements<
   ? Exclude<
       ProgramDispatchRequirements<BlockValue, Config>,
       | Layer.Success<BlockValue['EffectsLayer']>
-      | RuntimeServicesOfBlock<BlockValue>
+      | ProgramRuntimeServices<BlockValue>
     >
   : never
 
-type ProgramRequirements<BlockValue extends AnyBlock, Config> =
-  | RequirementsOfBlock<BlockValue>
-  | ResidualProgramDispatchRequirements<BlockValue, Config>
+type ProgramRequirements<BlockValue extends AnyBlock, Config> = [
+  BlockValue,
+] extends [Readonly<{ __blockHandlerRequirements: unknown }>]
+  ?
+      | RequirementsOfBlock<BlockValue>
+      | ResidualProgramDispatchRequirements<BlockValue, Config>
+  : never
+
+type ProgramRuntimeServices<BlockValue extends AnyBlock> = [
+  BlockValue,
+] extends [Readonly<{ __blockHandlerRequirements: unknown }>]
+  ? RuntimeServicesOfBlock<BlockValue>
+  : never
 
 type ExactHostConfig<Config, AllowedKeys extends PropertyKey> = Readonly<{
   [Key in Exclude<keyof Config, AllowedKeys>]: never
@@ -448,7 +458,7 @@ export function make<
   RootPorts<PortsValue>,
   RootFlags<FlagsSchema>,
   ProgramRequirements<BlockValue, Config>,
-  RuntimeServicesOfBlock<BlockValue>,
+  ProgramRuntimeServices<BlockValue>,
   Layer.Success<BlockValue['EffectsLayer']>
 >
 export function make<
@@ -471,7 +481,7 @@ export function make<
   RootPorts<PortsValue>,
   RootFlags<FlagsSchema>,
   ProgramRequirements<BlockValue, Config>,
-  RuntimeServicesOfBlock<BlockValue>,
+  ProgramRuntimeServices<BlockValue>,
   Layer.Success<BlockValue['EffectsLayer']>
 >
 export function make<
@@ -494,7 +504,7 @@ export function make<
   RootPorts<PortsValue>,
   RootFlags<FlagsSchema>,
   ProgramRequirements<BlockValue, Config>,
-  RuntimeServicesOfBlock<BlockValue>,
+  ProgramRuntimeServices<BlockValue>,
   Layer.Success<BlockValue['EffectsLayer']>
 >
 export function make<
@@ -517,7 +527,7 @@ export function make<
   RootPorts<PortsValue>,
   RootFlags<FlagsSchema>,
   ProgramRequirements<BlockValue, Config>,
-  RuntimeServicesOfBlock<BlockValue>,
+  ProgramRuntimeServices<BlockValue>,
   Layer.Success<BlockValue['EffectsLayer']>
 >
 export function make<
@@ -540,7 +550,7 @@ export function make<
   RootPorts<PortsValue>,
   RootFlags<FlagsSchema>,
   ProgramRequirements<BlockValue, Config>,
-  RuntimeServicesOfBlock<BlockValue>,
+  ProgramRuntimeServices<BlockValue>,
   Layer.Success<BlockValue['EffectsLayer']>
 >
 export function make(config: unknown): unknown {
@@ -581,7 +591,7 @@ type ElementFromBlock<
   ? Element<
       RootPorts<PortsValue>,
       Requirements,
-      RuntimeServicesOfBlock<BlockValue>,
+      ProgramRuntimeServices<BlockValue>,
       Layer.Success<BlockValue['EffectsLayer']>
     >
   : never
@@ -615,7 +625,7 @@ export function makeElement<
 ): Element<
   RootPorts<PortsValue>,
   ProgramRequirements<BlockValue, Config> | FlagsRequirements<FlagsEffect>,
-  RuntimeServicesOfBlock<BlockValue>,
+  ProgramRuntimeServices<BlockValue>,
   Layer.Success<BlockValue['EffectsLayer']>
 >
 export function makeElement(config: unknown): unknown {

@@ -62,6 +62,30 @@ const assertBuiltEntry = (path: string): void => {
   }
 }
 
+const assertProgramDiagnosticOrder = async (): Promise<void> => {
+  const api = new API({ cwd: packageRoot })
+
+  try {
+    const config = await api.parseConfigFile(join(packageRoot, 'tsconfig.json'))
+    const program = await api.createProgram(config.fileNames, {
+      ...config.options,
+      checkers: 1,
+    })
+    const diagnostics = await program.getSemanticDiagnostics([
+      join(packageRoot, 'src/block/authoring.test.ts'),
+      join(packageRoot, 'src/mount/define.test.ts'),
+    ])
+
+    if (Array.isArrayNonEmpty(Array.fromIterable(diagnostics))) {
+      fail(
+        `Checking rejected Program roots before Mount contracts produced semantic diagnostics:\n${JSON.stringify(diagnostics, null, 2)}`,
+      )
+    }
+  } finally {
+    await api.close()
+  }
+}
+
 const assertBindingCompletions = async (): Promise<void> => {
   const acceptedFixture = join(fixtureRoot, 'accepted.ts')
   const acceptedConfig = join(fixtureRoot, 'tsconfig.accepted.json')
@@ -910,7 +934,10 @@ const main = async (): Promise<void> => {
     fail(`Expected the package TypeScript 7 compiler, received ${version}.`)
   }
 
+  await assertProgramDiagnosticOrder()
+
   for (const name of [
+    'program',
     'command-args',
     'keyed-map-field',
     'variant-binding',
