@@ -1,6 +1,6 @@
 import { Array } from 'effect'
 import { Update } from 'foldkit'
-import { modifyFields } from 'foldkit/struct'
+import { initAndAppend } from 'foldkit/bindingInit'
 
 import { GenerateWorkHistoryEntryId } from './command'
 import { EntriesBinding, WorkHistoryComposition } from './composition'
@@ -16,11 +16,9 @@ export const update = WorkHistoryComposition.makeUpdate({
   ]),
 
   SucceededGenerateWorkHistoryEntryId: (model, { entryId }) =>
-    EntriesBinding.init({
+    initAndAppend(EntriesBinding, model, {
       key: entryId,
       args: [entryId, model.today],
-      toParentModel: entry =>
-        modifyFields(model, { entries: Array.append(entry) }),
     }),
 
   FailedGenerateWorkHistoryEntryId: WorkHistoryDefinition.makeNoopStep(),

@@ -1,6 +1,6 @@
 import { Array } from 'effect'
 import { Update } from 'foldkit'
-import { modifyFields } from 'foldkit/struct'
+import { initAndAppend } from 'foldkit/bindingInit'
 
 import { GenerateSkillsEntryId } from './command'
 import { EntriesBinding, SkillsComposition } from './composition'
@@ -16,11 +16,9 @@ export const update = SkillsComposition.makeUpdate({
   ]),
 
   SucceededGenerateSkillsEntryId: (model, { entryId }) =>
-    EntriesBinding.init({
+    initAndAppend(EntriesBinding, model, {
       key: entryId,
       args: [entryId],
-      toParentModel: entry =>
-        modifyFields(model, { entries: Array.append(entry) }),
     }),
 
   FailedGenerateSkillsEntryId: SkillsDefinition.makeNoopStep(),

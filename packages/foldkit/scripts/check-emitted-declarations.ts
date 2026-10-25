@@ -673,6 +673,12 @@ const checks: ReadonlyArray<
     consumers: ['optional-wrapped-keyed.consume.ts'],
   },
   {
+    name: 'append-initialization',
+    accepted: ['append-initialization.accepted.ts'],
+    rejected: ['append-initialization.rejected.ts'],
+    consumers: ['append-initialization.consume.ts'],
+  },
+  {
     name: 'view-inputs',
     accepted: ['view-inputs.accepted.ts'],
     rejected: ['view-inputs.rejected.ts'],
@@ -946,6 +952,7 @@ const main = async (): Promise<void> => {
     'story-concurrency',
     'test-parent-message',
     'extracted-connected-step',
+    'append-initialization',
   ]) {
     runCompiler(`Checking direct source ${name} contracts`, [
       '-p',

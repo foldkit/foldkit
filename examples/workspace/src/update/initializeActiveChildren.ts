@@ -1,6 +1,6 @@
 import { Array, Option, pipe } from 'effect'
 import { AsyncData, Update } from 'foldkit'
-import { modifyFields } from 'foldkit/struct'
+import { initAndAppend } from 'foldkit/bindingInit'
 
 import {
   IssueBoardBinding,
@@ -29,7 +29,7 @@ const initializeIssueDetailIfMissing = (issueId: string) =>
       Option.match({
         onNone: () => ({ model }),
         onSome: issue =>
-          IssueDetailBinding.init({
+          initAndAppend(IssueDetailBinding, model, {
             key: issueId,
             args: [
               issue,
@@ -38,13 +38,6 @@ const initializeIssueDetailIfMissing = (issueId: string) =>
                 draft => draft.issueId === issueId,
               ),
             ],
-            toParentModel: issueDetail =>
-              modifyFields(model, {
-                issueDetailInstances: Array.append({
-                  issueId,
-                  model: issueDetail,
-                }),
-              }),
           }),
       }),
     )
@@ -69,13 +62,9 @@ const initializeProjectBoardIfMissing = (projectId: string) =>
       Option.match({
         onNone: () => ({ model }),
         onSome: () =>
-          IssueBoardBinding.init({
+          initAndAppend(IssueBoardBinding, model, {
             key: projectId,
             args: [],
-            toParentModel: board =>
-              modifyFields(model, {
-                boardInstances: Array.append({ projectId, model: board }),
-              }),
           }),
       }),
     )
@@ -100,16 +89,9 @@ const initializeProjectSettingsIfMissing = (projectId: string) =>
       Option.match({
         onNone: () => ({ model }),
         onSome: project =>
-          ProjectSettingsBinding.init({
+          initAndAppend(ProjectSettingsBinding, model, {
             key: project.id,
             args: [project],
-            toParentModel: settings =>
-              modifyFields(model, {
-                projectSettingsInstances: Array.append({
-                  projectId: project.id,
-                  model: settings,
-                }),
-              }),
           }),
       }),
     )

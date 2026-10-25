@@ -98,6 +98,14 @@ The assembler validates the entire occurrence plan before calling child init. Du
 
 This startup adapter applies to exact `field` / `key` keyed arrays, with or without `childField`. General keyed accessors keep explicit initialization so their custom storage and write policy remain visible.
 
+When an array already declares that startup policy, `initAndAppend` from `foldkit/bindingInit` reuses its `init.toItem` for dynamic creation. Pass the Binding, current parent Model, and `{ key, args }`. It returns a passive recipe that initializes and appends one child when the registered Composition interprets it, retaining the child's Commands and preserving the other items and their order. An existing key is rejected. Keep a presence check in an `initialize...IfMissing` Step when an existing occurrence should be retained.
+
+Assume `ProjectSettingsBinding` stores `{ projectId, model }` wrappers in `projectSettingsInstances` and already declares `init.toItem`. This Step keeps an existing project editor and initializes an absent one:
+
+::Snippet{name="initAppendKeyedChild" label="Appending a keyed child"}
+
+Use the explicit `Binding.init` writer for other storage, replacement, changes to additional parent fields, or parent Commands. `initAndAppend` requires an existing startup array policy; do not add an otherwise unnecessary startup policy just to use this helper.
+
 ## Compose Startup Steps {#startup-steps}
 
 Use startup Steps when initial child Models must exist before a parent transition can run. Composition-owned `init` is the startup boundary. Foldkit does not run a special Runtime boot phase after it.

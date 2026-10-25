@@ -166,6 +166,10 @@
     "./variantBinding": {
       "types": "./dist/block/variantBinding.d.ts",
       "import": "./dist/block/variantBinding.js"
+    },
+    "./bindingInit": {
+      "types": "./dist/block/bindingInit.d.ts",
+      "import": "./dist/block/bindingInit.js"
     }
   },
   "sideEffects": false,

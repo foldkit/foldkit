@@ -484,6 +484,15 @@ Choose the helper when authoring a Step. Inside a local `makeStep` callback, ret
 
 When a Binding handles an OutMessage locally, select the callable fold under `withOutMessagePolicy({ fold })`. Add the callable `forward` only for variants that continue upward. A derived parent OutMessage takes precedence over forwarding for that dispatch.
 
+For dynamic append to an exact keyed array with existing `init.instances` and
+`init.toItem`, use `initAndAppend(Binding, model, { key, args })` from
+`foldkit/bindingInit`. It reuses the declared wrapper constructor and retains
+child init Commands and registration requirements. Duplicate keys are rejected;
+an `initialize...IfMissing` Step owns the presence check. Keep explicit
+`Binding.init` for other storage or a cohesive transition that also changes
+parent fields or returns parent Commands. Do not add an unnecessary startup
+policy to enable the helper.
+
 ## Schema Constructors
 
 Use direct Schema type queries for routine application annotations. Inside the

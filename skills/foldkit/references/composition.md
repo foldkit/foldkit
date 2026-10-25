@@ -434,6 +434,14 @@ child placement, and exactly one requested keyed occurrence. The available runti
 metadata cannot reconstruct TypeScript's required, optional, defaulted, and rest
 parameter distinctions.
 
+For a pure append to an exact keyed array with an existing startup policy, use
+`initAndAppend(Binding, model, { key, args })` from `foldkit/bindingInit`. It
+reuses `init.toItem` and returns the same passive initialization recipe with
+child Commands and registration evidence. An existing key is rejected. Keep a
+presence check when an existing occurrence should be retained. Other storage,
+replacement, and mixed parent transitions retain the explicit initializer;
+do not add a startup policy solely to enable the helper.
+
 Prefer a child Message-backed `requestReset` or domain operation for reset
 behavior, composed with the parent's `makeFieldsStep` for parent-owned fields.
 Use `Binding.init({ args, toParentModel })` only for deliberate baseline
@@ -445,9 +453,10 @@ lifecycles; the child operation must define that behavior.
 For a keyed array of wrappers, prefer `init.instances` and `init.toItem` when
 startup creates the complete collection. Each occurrence supplies child init
 args and the parent metadata needed by `toItem`, such as an ID or server
-revision. Use `Binding.init` when an update adds one instance later, or when
-startup needs custom interleaving or writes beyond that collection. Both paths
-retain and lift the child initializer's Commands; never take only its Model.
+revision. Dynamic pure appends can reuse this policy through `initAndAppend`.
+Use explicit `Binding.init` for other storage, replacement, additional parent
+changes or Commands, or custom interleaving. All these paths retain and lift the
+child initializer's Commands; never take only its Model.
 
 `init.instances` accepts keyed arrays only. An Option-wrapped keyed occurrence
 uses `Binding.init({ key, args, toParentModel })`; `toParentModel` chooses

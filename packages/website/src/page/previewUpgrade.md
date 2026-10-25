@@ -91,6 +91,8 @@ For a Popover with the default focus policy, use `Scene.focusLeave(panel)` inste
 
 Optional `makeVariantBinding` from `foldkit/variantBinding` replaces manual accessors when a child occupies one complete tagged member of the parent `Schema.Union`. Include the actual child Model Schema in that union. Parent update still owns variant switches and explicit initialization. See [whole tagged variants](/core/block#whole-tagged-variants).
 
+For a keyed array that already declares `init.instances` and `init.toItem`, optional `initAndAppend` from `foldkit/bindingInit` replaces a repeated append writer. Pass the Binding, current parent Model, and `{ key, args }`. Existing keys are rejected. Keep the explicit initializer when the same transition also changes other parent fields or produces parent Commands. See [keyed child initialization](/core/init#keyed-initial-instances).
+
 ## Update the Application Boundary
 
 This section applies to `c701daa80af1`, `396b19976386`, and `bfd880b1e6ca`.
