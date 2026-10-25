@@ -295,6 +295,14 @@ type HasErasedMountArgs<Definition> = [DeclaredMountArgs<Definition>] extends [
         ? true
         : false
 
+type HasErasedMountRegistryContract<
+  Mounts extends ReadonlyArray<LayeredMountDefinition>,
+> = [true] extends [HasErasedMountContract<RequirementsOf<Mounts>>]
+  ? true
+  : [true] extends [HasErasedMountArgs<Mounts[number]>]
+    ? true
+    : false
+
 type MountNames<Mounts extends ReadonlyArray<LayeredMountDefinition>> =
   Mounts[number] extends Readonly<{ name: infer Name }> ? Name : never
 
@@ -314,9 +322,7 @@ export type PreciseMountRegistry<
       ? Readonly<{
           'Mount registry must preserve each definition name': never
         }>
-      : true extends
-            | HasErasedMountContract<RequirementsOf<Mounts>>
-            | HasErasedMountArgs<Mounts[number]>
+      : [true] extends [HasErasedMountRegistryContract<Mounts>]
         ? Readonly<{
             'Mount registry must preserve each definition contract': never
           }>

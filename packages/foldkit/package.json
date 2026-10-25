@@ -162,6 +162,10 @@
     "./devtools-host": {
       "types": "./dist/devTools/host.d.ts",
       "import": "./dist/devTools/host.js"
+    },
+    "./variantBinding": {
+      "types": "./dist/block/variantBinding.d.ts",
+      "import": "./dist/block/variantBinding.js"
     }
   },
   "sideEffects": false,

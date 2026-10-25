@@ -47,27 +47,32 @@ describe('Project Settings', () => {
     const savedProject = modifyFields(project, {
       name: () => 'A new project name',
     })
-    const pending = modifyFields(initial, {
-      draft: () => ({
-        name: savedProject.name,
-        description: savedProject.description,
-      }),
-      saveState: () => SaveState.Saving(),
-    })
 
     story(
       update,
-      given(pending),
+      given(initial),
+      message(Message.UpdatedProjectName({ value: savedProject.name })),
+      message(Message.SubmittedProjectSettings()),
+      Command.expectExact(SaveProject({ project: savedProject })),
       message(Message.UpdatedProjectName({ value: 'An edit during save' })),
       message(Message.UpdatedProjectDescription({ value: 'Another edit' })),
       message(Message.ClickedDiscardChanges()),
       message(Message.SubmittedProjectSettings()),
       message(Message.ClickedRetrySave()),
       model(model => {
-        expect(model).toBe(pending)
+        expect(model.draft).toEqual({
+          name: savedProject.name,
+          description: savedProject.description,
+        })
+        expect(model.saveState).toEqual(SaveState.Saving())
       }),
-      Command.expectNone(),
+      Command.expectExact(SaveProject({ project: savedProject })),
       expectNoOutMessage(),
+      Command.resolve(
+        SaveProject,
+        Message.SucceededSaveProject({ project: savedProject }),
+      ),
+      expectOutMessage(OutMessage.Saved({ project: savedProject })),
     )
   })
 

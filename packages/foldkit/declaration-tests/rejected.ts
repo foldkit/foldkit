@@ -4,6 +4,7 @@ import * as Block from 'foldkit/block'
 import * as Command from 'foldkit/command'
 import { Server } from 'foldkit/experimental'
 import { defineMessageUnion } from 'foldkit/message'
+import type * as Mount from 'foldkit/mount'
 import type * as ProgramTypes from 'foldkit/program'
 import * as Runtime from 'foldkit/runtime'
 import { Lazy } from 'foldkit/test'
@@ -257,6 +258,13 @@ const ObserveViewHelper = DeclarationTestsViewHelperDefinition.makeMount(
     messages: [ParentMessage.RequestedRefresh],
   },
 )
+declare const broadMountRegistry: ReadonlyArray<Mount.LayeredMountDefinition>
+DeclarationTestsViewHelperDefinition.makeComposition({
+  // @ts-expect-error A Composition Mount registry must preserve each definition name.
+  mounts: broadMountRegistry,
+})
+// @ts-expect-error A no-args Mount rejects invented args.
+ObserveViewHelper({ unexpected: true })
 const AlternativeViewChildBinding =
   DeclarationTestsViewHelperDefinition.makeBinding(ChildBlock, {
     field: 'child',

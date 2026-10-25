@@ -16,7 +16,6 @@ import {
   assertAllCommandsResolved,
   assertExactCommands,
   assertHasCommands,
-  assertNoUnresolvedCommands,
   assertResolveUnambiguous,
   assertZeroCommands,
   formatCommand,
@@ -143,9 +142,6 @@ const applyMessage = <Model, Message, OutMessage>(
   message_: Message,
 ): StorySimulation<Model, Message, OutMessage> => {
   const internal = toInternal(simulation)
-
-  assertNoUnresolvedCommands(internal.commands, 'when you sent a new Message')
-
   const messageUpdate = internal.updateFn(internal.model, message_)
 
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */

@@ -499,7 +499,8 @@ Generate files following the architecture and conventions guides exactly. Write 
 
 ### Model
 
-- Define as `Schema.Struct` with Effect Schema types
+- Define the Model with Effect Schema. Use `Schema.Struct` for a record and a tagged union for distinct states.
+- For one child occupying a complete parent tagged-union variant, use `makeVariantBinding` from `foldkit/variantBinding`. The parent `Schema.Union` directly includes that exact `ChildBlock.Model` Schema; tags are required, literal and distinct. Parent update owns variant switches and dynamic `Binding.init`, including Commands. The helper never creates an absent child. Keep general accessors for nested/wrapped variants and custom writes; use ordinary registered OutMessage policy and exact delivery context.
 - Use discriminated unions for state: `Idle | Loading | Error | Ok`, never booleans for multi-valued state
 - Use `Option` for fields that may be absent. Never empty strings or null
 - Prefix Option-typed fields with `maybe`: `maybeCurrentUser`, `maybeError`
@@ -773,6 +774,10 @@ Write `story` pipelines covering:
 - **Edge cases**: empty states, boundary conditions, ignored inputs (e.g. stale results, duplicate submissions)
 
 Match pending Commands with their original Definitions, not a displayed `command.name` string or `Definition.name`. Source identity survives Binding qualification. Pass an instance for exact args; a bound instance also selects its composition path. Resolve a child Command with its raw child result Message; Story replays the generated delivery chain.
+
+`Story.message` can deliver concurrent facts while Commands remain pending. Keep the real pending Command when testing a delayed result alongside another update; do not replace that interaction with a hand-constructed pending Model. Resolve each Command explicitly before the Story ends. Dispatching another Message does not run stored resolvers. Scene retains its separate pending-Command and Mount checks.
+
+For a parent-owned headless delivery or OutMessage policy test, use `toParentMessage(binding, childMessage)` from `foldkit/test`; a keyed Binding takes its decoded key before the Message. Use the actual Binding and decoded contracts, without fabricated envelopes or irrelevant `embedView` inputs. It wraps one pure replay boundary with generation `0`, not a live occurrence. Production parents continue to use Binding operations, and Command/Subscription results retain their existing source replay paths.
 
 Check a completed `@foldkit/ui` Block's `test` namespace before writing resolvers for its Commands and Mounts. Pair those original Definitions with result Messages from the completed Block. Use a completed Block's published drain helper when one is available for a multi-Command lifecycle. For example, use `ToastBlock.test.drainEntry({ binding: ToastBinding, entryId })` for a newly shown toast that auto-dismisses.
 

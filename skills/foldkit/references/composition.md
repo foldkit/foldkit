@@ -202,7 +202,8 @@ Choose the narrowest storage form that describes the parent Model:
 | Exact `Option` of one closed wrapper around the child Model                          | `field`, string `key`, and distinct `childField`       |
 | Exact `Schema.Record` or `Schema.HashMap` of child Models                            | `makeMapBinding(parent, child, { field })`             |
 | Exact Record/HashMap of closed wrappers around the child Model                       | `makeMapBinding(parent, child, { field, childField })` |
-| Tagged, nested, opaque, union, open, or custom static storage                        | `read` and `write`                                     |
+| One exact tagged member of the parent Schema.Union                                   | `makeVariantBinding(parent, child)`                    |
+| Nested, wrapped, opaque, open, or custom static storage                              | `read` and `write`                                     |
 | Custom keyed storage or enumeration                                                  | `readAll`, function `key`, `read`, and `writeAt`       |
 
 A Binding's `write` or `writeAt` places the next child Model into parent storage. Keep parent reactions to child transitions in its OutMessage policy. Do not compare old and new child state in a writer to generate announcements, trigger sibling changes, or maintain unrelated parent fields. Nested storage, keyed replacement, presence checks, and preservation of wrapper metadata remain legitimate custom writes. If a parent needs a child fact that is not exposed, add a truthful public OutMessage rather than using the writer as an event hook.
@@ -224,6 +225,17 @@ ordered ID list when order matters. Parent-owned wrapper fields survive writes;
 ordinary operations never insert missing entries. Use dynamic `Binding.init`
 for explicit creation and keep general keyed accessors for custom writers or
 separate composite storage keys and primitive occurrence identity.
+
+Import `makeVariantBinding` from `foldkit/variantBinding` only when the child
+occupies one complete tagged member of the parent `Schema.Union`. Include the
+actual `ChildBlock.Model` Schema directly; one required literal `_tag` selects
+presence, and all parent members have distinct tags. The helper accepts only
+optional placement, delivery and Subscription policies. It never creates an
+absent child. Parent update owns variant switches and dynamic
+`Binding.init({ args, toParentModel })`, preserving init Commands. Same-shaped
+reconstructed Schemas cannot satisfy runtime Schema identity. Keep general
+accessors for nested/wrapped variants and custom writers. Use the ordinary
+OutMessage policy and register the selected Binding.
 
 An unkeyed direct field Binding defaults placement to the field name. Every
 array/Option keyed Binding and every static accessor Binding defaults placement
@@ -356,6 +368,19 @@ pending instances retain the generated delivery chain, so the test runner
 replays every parent boundary. Do not construct a generated `Got*` envelope.
 For `@foldkit/ui`, take matcher Definitions from the component's public `test`
 namespace and result Messages from its completed Block.
+
+When a parent Story needs a direct child fact without a view, use
+`toParentMessage(binding, childMessage)` from `foldkit/test`. A keyed Binding
+takes its decoded key before the Message. It validates decoded values and uses
+the Binding's tracked mapper for one synthetic generation-`0` replay boundary.
+It does not select a live occurrence or bypass normal dispatch. Do not obtain
+a mapper through unrelated `embedView` configuration or fabricate generated
+envelopes. Production parents still call Binding operations.
+
+`Story.message` may send another fact while Commands are pending. Pending work
+keeps its captured identity and must still be resolved before the Story ends.
+Use this to test concurrent updates and delayed results without manufacturing
+pending Models. It does not change Scene's pending-Command or Mount checks.
 
 A Scene that emits a Subscription Message registers
 `Scene.subscriptions(ApplicationComposition, localSubscriptions?)`, passes the

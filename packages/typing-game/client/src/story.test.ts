@@ -3,6 +3,7 @@ import { Update, Url } from 'foldkit'
 import type { HandlerOf } from 'foldkit/command'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
+import { toParentMessage } from 'foldkit/test'
 import { describe, expect, expectTypeOf, test } from 'vitest'
 
 import * as Shared from '@typing-game/shared'
@@ -60,24 +61,13 @@ const joinedRoom: typeof RoomBlock.Model.Type = {
   exitCountdownSecondsLeft: 0,
 }
 
-const emptyRoomView = RoomBlock.makeView((_model, h) => h.empty)
-
 const toHomeMessage = (message: typeof HomeBlock.Message.Type) =>
-  HomeBinding.embedView({
-    slotId: 'home',
-    model: selectActionHome,
-  }).toParentMessage(message)
+  toParentMessage(HomeBinding, message)
 
 const toRoomMessage = (
   roomId: string,
   message: typeof RoomBlock.Message.Type,
-) =>
-  RoomBinding.embedView({
-    slotId: roomId,
-    key: roomId,
-    model: joinedRoom,
-    view: emptyRoomView,
-  }).toParentMessage(message)
+) => toParentMessage(RoomBinding, roomId, message)
 
 const givenHomeRoute = given<typeof Model.Type>({
   route: ApplicationRoute.Home(),

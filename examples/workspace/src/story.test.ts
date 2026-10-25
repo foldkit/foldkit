@@ -3,12 +3,12 @@ import { AsyncData } from 'foldkit'
 import { UrlRequest } from 'foldkit/navigation'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
+import { toParentMessage } from 'foldkit/test'
 import * as Url from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
 import { DragAndDrop, DragAndDropBlock } from '@foldkit/ui'
 
-import { IssueBoardBlock } from './board'
 import { DragAndDropBinding } from './board/composition'
 import { containerId, draggableId } from './board/dragAndDrop'
 import {
@@ -52,7 +52,7 @@ import {
 } from './issueDetail/definition'
 import { draftFromIssue, revisionFromIssue } from './issueDetail/draft'
 import { IssueListBlock } from './issueList'
-import { WorkspaceListboxBlock, listboxViewInputs } from './listbox'
+import { WorkspaceListboxBlock } from './listbox'
 import { Message } from './message'
 import { IssueMoveState, type Model } from './model'
 import { appliedIssueFilters, issueHref } from './navigation'
@@ -90,24 +90,7 @@ const detailMessage = (
   message: typeof IssueDetailBlock.Message.Type,
 ) => {
   const instance = detailInstance(model)
-  return IssueDetailBinding.embedView({
-    key: instance.issueId,
-    slotId: instance.issueId,
-    model: instance.model,
-    viewInputs: {
-      issue: Option.getOrThrow(
-        Option.flatMap(AsyncData.getData(model.workspaceAsyncData), snapshot =>
-          Array.findFirst(
-            snapshot.issues,
-            issue => issue.id === instance.issueId,
-          ),
-        ),
-      ),
-      members: initialSnapshot.members,
-      projects: initialSnapshot.projects,
-      authorId: model.activeMemberId,
-    },
-  }).toParentMessage(message)
+  return toParentMessage(IssueDetailBinding, instance.issueId, message)
 }
 describe('workspace navigation', () => {
   test('navigates to a project and returns there after closing an issue', () => {
@@ -183,31 +166,12 @@ const visibleNotifications = (model: typeof Model.Type) =>
   )
 
 const notificationMessage = (
-  model: typeof Model.Type,
   childMessage: typeof NotificationCenterBlock.Message.Type,
-) =>
-  NotificationCenterBinding.embedView({
-    slotId: 'workspace-notifications',
-    model: model.notificationCenter,
-    viewInputs: {
-      activeMemberId: model.activeMemberId,
-      issues: snapshotOf(model).issues,
-      members: snapshotOf(model).members,
-    },
-  }).toParentMessage(childMessage)
+) => toParentMessage(NotificationCenterBinding, childMessage)
 
-const activeMemberMessage = (model: typeof Model.Type, memberId: string) =>
-  ActiveMemberBinding.embedView({
-    slotId: model.activeMemberListbox.id,
-    model: model.activeMemberListbox,
-    viewInputs: listboxViewInputs({
-      value: model.activeMemberId,
-      options: Array.map(initialSnapshot.members, member => ({
-        value: member.id,
-        label: member.name,
-      })),
-    }),
-  }).toParentMessage(
+const activeMemberMessage = (memberId: string) =>
+  toParentMessage(
+    ActiveMemberBinding,
     WorkspaceListboxBlock.Message.RequestedSelectItem({ item: memberId }),
   )
 
@@ -258,7 +222,6 @@ describe('workspace notifications', () => {
       }),
       message(
         notificationMessage(
-          initial,
           NotificationCenterBlock.Message.ClickedNotificationReadState({
             notificationId,
             recipientId: 'maya',
@@ -427,7 +390,6 @@ describe('workspace notifications', () => {
       ),
       message(
         notificationMessage(
-          initial,
           NotificationCenterBlock.Message.ClickedMarkAllAsRead({
             recipientId: 'maya',
           }),
@@ -456,7 +418,7 @@ describe('workspace notifications', () => {
           ),
         ).toBe(false)
       }),
-      message(activeMemberMessage(initial, 'alex')),
+      message(activeMemberMessage('alex')),
       model(model => {
         expect(model.activeMemberId).toBe('alex')
         expect(visibleNotifications(model)).toEqual([
@@ -465,7 +427,6 @@ describe('workspace notifications', () => {
       }),
       message(
         notificationMessage(
-          modifyFields(initial, { activeMemberId: () => 'alex' }),
           NotificationCenterBlock.Message.ClickedNotification({
             notificationId: alexNotificationId,
             recipientId: 'alex',
@@ -498,20 +459,8 @@ describe('Application child policies', () => {
   const snapshotOf = (model: typeof Model.Type) =>
     Option.getOrThrow(AsyncData.getData(model.workspaceAsyncData))
 
-  const listMessage = (
-    model: typeof Model.Type,
-    message: typeof IssueListBlock.Message.Type,
-  ) =>
-    IssueListBinding.embedView({
-      slotId: 'issue-list',
-      model: model.issueList,
-      viewInputs: {
-        ...initialSnapshot,
-        maybeActiveIssueId: Option.none(),
-        filters: appliedIssueFilters(model),
-        issueHrefs: {},
-      },
-    }).toParentMessage(message)
+  const listMessage = (message: typeof IssueListBlock.Message.Type) =>
+    toParentMessage(IssueListBinding, message)
 
   test('keeps one Board instance per active project and removes it when leaving', () => {
     const initial = loadedModel('/projects/platform/board')
@@ -641,10 +590,7 @@ describe('Application child policies', () => {
       update,
       given(initial),
       message(
-        listMessage(
-          initial,
-          IssueListBlock.Message.UpdatedQuery({ value: 'keyboard' }),
-        ),
+        listMessage(IssueListBlock.Message.UpdatedQuery({ value: 'keyboard' })),
       ),
       Command.expectExact(
         ReplaceFilters({ url: issuesRouter({ filters: queriedFilters }) }),
@@ -657,7 +603,6 @@ describe('Application child policies', () => {
       ),
       message(
         listMessage(
-          initial,
           IssueListBlock.Message.UpdatedGrouping({ value: 'Project' }),
         ),
       ),
@@ -672,7 +617,6 @@ describe('Application child policies', () => {
       ),
       message(
         listMessage(
-          initial,
           IssueListBlock.Message.UpdatedSavedViewName({
             value: 'Keyboard work',
           }),
@@ -680,7 +624,6 @@ describe('Application child policies', () => {
       ),
       message(
         listMessage(
-          initial,
           IssueListBlock.Message.SubmittedSavedView({ filters: savedFilters }),
         ),
       ),
@@ -694,9 +637,7 @@ describe('Application child policies', () => {
         ])
         expect(model.nextSavedViewId).toBe(2)
       }),
-      message(
-        listMessage(initial, IssueListBlock.Message.RequestedClearFilters()),
-      ),
+      message(listMessage(IssueListBlock.Message.RequestedClearFilters())),
       Command.expectExact(
         NavigateInternal({ url: issuesRouter({ filters: clearedFilters }) }),
       ),
@@ -816,30 +757,22 @@ describe('Application child policies', () => {
     const savedProject = modifyFields(project, {
       name: () => 'Platform engineering',
     })
-    const instance = Option.getOrThrow(
-      Array.findFirst(
-        initial.projectSettingsInstances,
-        instance => instance.projectId === project.id,
-      ),
-    )
-    const settings = ProjectSettingsBinding.embedView({
-      key: project.id,
-      slotId: `project-settings-${project.id}`,
-      model: instance.model,
-    })
-
     story(
       update,
       given(initial),
       message(
-        settings.toParentMessage(
+        toParentMessage(
+          ProjectSettingsBinding,
+          project.id,
           ProjectSettingsBlock.Message.UpdatedProjectName({
             value: savedProject.name,
           }),
         ),
       ),
       message(
-        settings.toParentMessage(
+        toParentMessage(
+          ProjectSettingsBinding,
+          project.id,
           ProjectSettingsBlock.Message.SubmittedProjectSettings(),
         ),
       ),
@@ -919,33 +852,17 @@ describe('Issue drafts', () => {
   ) => {
     const instance = detailInstance(model)
 
-    return IssueDetailBinding.embedView({
-      key: instance.issueId,
-      slotId: instance.issueId,
-      model: instance.model,
-      viewInputs: {
-        issue: canonicalIssue(model, instance.issueId),
-        members: initialSnapshot.members,
-        projects: initialSnapshot.projects,
-        authorId: model.activeMemberId,
-      },
-    }).toParentMessage(childMessage)
+    return toParentMessage(IssueDetailBinding, instance.issueId, childMessage)
   }
 
   const commentMessage = (
     model: typeof Model.Type,
     childMessage: typeof CommentComposerBlock.Message.Type,
   ) => {
-    const detail = detailInstance(model)
-    const messageForDetail = CommentComposerBinding.embedView({
-      slotId: 'comment-composer',
-      model: detail.model.commentComposer,
-      viewInputs: {
-        members: initialSnapshot.members,
-        comments: canonicalIssue(model, detail.issueId).comments,
-        authorId: model.activeMemberId,
-      },
-    }).toParentMessage(childMessage)
+    const messageForDetail = toParentMessage(
+      CommentComposerBinding,
+      childMessage,
+    )
 
     return detailMessage(model, messageForDetail)
   }
@@ -1554,26 +1471,25 @@ describe('Board moves', () => {
       ),
     })
 
-  test('announces accepted optimistic moves and a later rollback', () => {
+  test('retains a teammate comment between an optimistic move and its rollback', () => {
     const initial = loadedBoard()
     const board = Option.getOrThrow(initial.maybeBoardInstance)
     const issue = issueOf(initial, 'issue-103')
+    const teammateComment = Comment.make({
+      id: 'comment-during-move',
+      authorId: 'maya',
+      body: 'This arrived while the move was being saved.',
+      createdAt: '2026-10-24T16:00:00.000Z',
+    })
+    const commentedIssue = modifyFields(issue, {
+      comments: Array.append(teammateComment),
+    })
     const itemId = draggableId(issue.id)
-    const emptyView = IssueBoardBlock.makeView((_model, h) => h.empty)
-    const boardMessage = IssueBoardBinding.embedView({
-      key: board.projectId,
-      slotId: board.projectId,
-      model: board.model,
-      view: emptyView,
-    }).toParentMessage
-    const dragView = DragAndDropBlock.makeView((_model, h) => h.empty)
     const childMessage = (message: typeof DragAndDropBlock.Message.Type) =>
-      boardMessage(
-        DragAndDropBinding.embedView({
-          slotId: board.model.dragAndDrop.id,
-          model: board.model.dragAndDrop,
-          view: dragView,
-        }).toParentMessage(message),
+      toParentMessage(
+        IssueBoardBinding,
+        board.projectId,
+        toParentMessage(DragAndDropBinding, message),
       )
 
     story(
@@ -1609,6 +1525,29 @@ describe('Board moves', () => {
           Option.getOrThrow(model.maybeBoardInstance).model.announcement,
         ).toBe('Moved to Done, position 1.')
       }),
+      Command.expectExact(
+        MoveIssue({
+          issueId: issue.id,
+          status: 'Done',
+          insertionIndex: 0,
+          expectedVersion: issue.version,
+        }),
+      ),
+      message(Message.SucceededAppendActivity({ issue: commentedIssue })),
+      model(model => {
+        expect(issueOf(model, issue.id).status).toBe('Done')
+        expect(issueOf(model, issue.id).comments).toContainEqual(
+          teammateComment,
+        )
+      }),
+      Command.expectExact(
+        MoveIssue({
+          issueId: issue.id,
+          status: 'Done',
+          insertionIndex: 0,
+          expectedVersion: issue.version,
+        }),
+      ),
       Command.resolve(
         MoveIssue,
         Message.FailedMoveIssue({
@@ -1623,6 +1562,9 @@ describe('Board moves', () => {
       ),
       model(model => {
         expect(issueOf(model, issue.id).status).toBe(issue.status)
+        expect(issueOf(model, issue.id).comments).toContainEqual(
+          teammateComment,
+        )
         expect(
           Option.getOrThrow(model.maybeBoardInstance).model.announcement,
         ).toBe('Could not save the move. Issue position restored.')

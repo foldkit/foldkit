@@ -11,6 +11,31 @@ review of semantic candidates. Counts cover the named repository roots; they are
 not a universal claim about downstream programs. Published historical blog
 material and its dedicated snippets remain unchanged.
 
+## Subsequent testing adoption
+
+Parent Stories now use `toParentMessage` from `foldkit/test` when they need to
+supply a decoded child fact through its actual Binding. The migration removes
+mapper-only `embedView` calls and hand-authored generated envelopes across the
+examples, Typing Game and Website. Nested tests wrap one exact Binding at a time.
+Five UI white-box wrappers remain because their Bindings are private; no
+production exports were added solely for those tests. [Contract and exceptions](test-parent-message-assessment.md).
+
+Workspace's Board rollback, Issue Detail save and Project Settings save Stories
+now deliver concurrent Messages while the original Command remains pending.
+They explicitly resolve that Command afterward. Direct pending-state fixtures
+remain for unsolicited/mismatched completions, the pending state itself, or
+unrelated lifecycle work. [Adoption and semantics](story-concurrency.md).
+
+Extracted own-field edits followed by an emitting connected operation retain a
+purposeful `Parameters<typeof operation>[0]` input annotation. The bounded
+alternatives did not infer that contract; no broader helper was added. [Split-file proof and decision](extracted-step-inference-assessment.md).
+
+Auth's two complete tagged child variants now use `makeVariantBinding` from
+`foldkit/variantBinding`. Their policies, initializer calls, Commands and owner
+placements are unchanged. No other scoped consumer has the helper's exact
+whole-variant shape. Nested/wrapped/custom relationships retain accessors.
+[Assessment and measured optional cost](variant-binding-assessment.md).
+
 ## Composition update records
 
 The current AST inventory finds no callback-taking or no-argument

@@ -148,3 +148,15 @@ There is no independent safety or variance objection to this patch. The expanded
 - Run the requested final performance benchmark after all source changes. Preserve the pre-polish Website cold-constructor regression and the separate control definition until a valid final comparison supersedes them; the interface proof is not performance evidence.
 - Carry the unresolved dependency dispositions into release preparation. Do not claim a clean dependency audit or a patched Monaco sanitizer. Any later dependency or sanitizer change requires refreshed build/asset evidence and a fresh audit before describing it as remediated.
 - Obtain the user's explicit approval before publication. This report authorizes no publish, push, merge, or deployment action.
+
+## October 25 testing and variant followup review
+
+An independent read-only review of the subsequent `679d2d5e7f` delta found no new blocking code vulnerability. It inspected the frozen helper, Story, variant and Mount paths and their acceptance evidence. This is a focused static review, not a new Daybreak run or dependency audit.
+
+`toParentMessage` requires native Binding metadata, invokes its retained tracked mapper and validates decoded child/key Type sides. Its synthetic generation `0` does not select a live occurrence; unchanged Runtime origin and lifecycle admission reject synthetic replay as live delivery. It neither decodes serviceful Codec inputs nor constructs decoding Services. Synchronous Type-side predicates retain their ordinary Schema limitations.
+
+The variant helper checks closed/distinct tags, direct Schema membership, the actual child Schema identity and supported configuration. It lowers storage to existing native Bindings. Registration, contextual delivery, Subscription gating, parent-owned initialization and stale-generation rejection remain native. The Story change appends Commands while retaining earlier invocations and explicit resolution; final completeness remains required.
+
+The extracted input annotation is guidance and proof coverage. The Mount repair is type-only; generic calls can still accept a name-preserving alias after its arguments have been explicitly widened to `any`. The review does not claim recovery of erased contracts.
+
+The lockfile remains `b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47`. All inherited dependency findings and reachability dispositions above remain unresolved. Neither this review nor a development-branch commit authorizes publication.

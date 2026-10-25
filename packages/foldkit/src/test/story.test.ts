@@ -668,15 +668,104 @@ describe('story', () => {
     ).toThrow('I found Commands without resolvers')
   })
 
-  test('throws when sending a Message with pending Commands', () => {
+  test('retains pending Commands while later Messages update the Model', () => {
+    Story.story(
+      update,
+      Story.given({ count: 0, log: [] }),
+      Story.message(CounterMessage.ClickedFetch()),
+      Story.message(CounterMessage.ClickedIncrement()),
+      Story.model(model => {
+        expect(model.count).toBe(1)
+      }),
+      Story.Command.expectExact(FetchCount),
+      Story.Command.resolve(
+        FetchCount,
+        CounterMessage.SucceededFetchCount({ count: 42 }),
+      ),
+      Story.model(model => {
+        expect(model.count).toBe(42)
+        expect(model.log).toEqual([42])
+      }),
+    )
+  })
+
+  test('retains Commands from concurrent Messages in dispatch order', () => {
+    Story.story(
+      update,
+      Story.given({ count: 0, log: [] }),
+      Story.steps(
+        Story.message(CounterMessage.ClickedFetchById({ id: 1 })),
+        Story.steps(
+          Story.message(CounterMessage.ClickedIncrement()),
+          Story.message(CounterMessage.ClickedFetchById({ id: 2 })),
+        ),
+      ),
+      Story.Command.expectExact(
+        FetchCountById({ id: 1 }),
+        FetchCountById({ id: 2 }),
+      ),
+      Story.Command.resolveAll(
+        [
+          FetchCountById({ id: 1 }),
+          CounterMessage.SucceededFetchCount({ count: 10 }),
+        ],
+        [
+          FetchCountById({ id: 2 }),
+          CounterMessage.SucceededFetchCount({ count: 20 }),
+        ],
+      ),
+      Story.model(model => {
+        expect(model.count).toBe(20)
+        expect(model.log).toEqual([10, 20])
+      }),
+    )
+  })
+
+  test('still reports ambiguous definitions after concurrent dispatches', () => {
+    expect(() =>
+      Story.story(
+        update,
+        Story.given({ count: 0, log: [] }),
+        Story.message(CounterMessage.ClickedFetch()),
+        Story.message(CounterMessage.ClickedFetch()),
+        Story.Command.resolve(
+          FetchCount,
+          CounterMessage.SucceededFetchCount({ count: 42 }),
+        ),
+      ),
+    ).toThrow(
+      'I tried to resolve "FetchCount" but multiple pending Commands match',
+    )
+  })
+
+  test('still reports a missing definition while concurrent Commands remain pending', () => {
     expect(() =>
       Story.story(
         update,
         Story.given({ count: 0, log: [] }),
         Story.message(CounterMessage.ClickedFetch()),
         Story.message(CounterMessage.ClickedIncrement()),
+        Story.Command.resolve(
+          SubmitForm,
+          FormChildJsChildMessage.SucceededSubmitForm({ id: 'abc' }),
+        ),
       ),
-    ).toThrow('I found unresolved Commands when you sent a new Message')
+    ).toThrow(
+      'I tried to resolve "SubmitForm" but no matching pending Command was found',
+    )
+  })
+
+  test('still reports all ordinary Commands left pending after concurrent Messages', () => {
+    expect(() =>
+      Story.story(
+        update,
+        Story.given({ count: 0, log: [] }),
+        Story.message(CounterMessage.ClickedFetch()),
+        Story.message(CounterMessage.ClickedFetchById({ id: 1 })),
+      ),
+    ).toThrow(
+      'I found Commands without resolvers:\n\n    FetchCount\n    FetchCountById {"id":1}',
+    )
   })
 
   test('succeeds with a Message that produces no Commands', () => {

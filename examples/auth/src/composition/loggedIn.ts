@@ -1,4 +1,4 @@
-import { Match, Option } from 'effect'
+import { makeVariantBinding } from 'foldkit/variantBinding'
 
 import { ClearSession, RedirectToHome } from '../command'
 import { ApplicationDefinition } from '../definition'
@@ -16,16 +16,7 @@ const foldLoggedInOutMessage = ApplicationDefinition.makeOutMessageFold(
   },
 )
 
-export const LoggedInBinding = ApplicationDefinition.makeBinding(
+export const LoggedInBinding = makeVariantBinding(
+  ApplicationDefinition,
   LoggedInBlock,
-  {
-    read: model =>
-      Match.value(model).pipe(
-        Match.tagsExhaustive({
-          LoggedOut: () => Option.none(),
-          LoggedIn: loggedInModel => Option.some(loggedInModel),
-        }),
-      ),
-    write: (_model, nextLoggedIn) => nextLoggedIn,
-  },
 ).withOutMessagePolicy({ fold: foldLoggedInOutMessage })

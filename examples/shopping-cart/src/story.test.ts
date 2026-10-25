@@ -1,6 +1,7 @@
 import { Option } from 'effect'
 import { given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
+import { toParentMessage } from 'foldkit/test'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
@@ -24,11 +25,7 @@ const baseModel: typeof Model.Type = {
 }
 
 const productsMessage = (message: typeof ProductsBlock.Message.Type) =>
-  ProductsPageBinding.embedView({
-    slotId: 'productsPage',
-    model: baseModel.productsPage,
-    viewInputs: { cart: baseModel.cart },
-  }).toParentMessage(message)
+  toParentMessage(ProductsPageBinding, message)
 
 const urlOrThrow = (raw: string) =>
   Option.getOrThrowWith(

@@ -1,6 +1,7 @@
 import { Option, Result } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
+import { toParentMessage } from 'foldkit/test'
 import { expect, test } from 'vitest'
 
 import { Tabs } from '@foldkit/ui'
@@ -32,21 +33,13 @@ const postAsyncDataTag = (
   postId: string,
 ): string => postQuery.read(model.postDetails, { postId })._tag
 
-const emptyAppTabsView = AppTabsBlock.makeView((_model, h) => h.empty)
-
-const selectedPostsTab = TabsBinding.embedView({
-  slotId: 'tabs',
-  model: loadedPostsModel.tabs,
-  view: emptyAppTabsView,
-}).toParentMessage(
+const selectedPostsTab = toParentMessage(
+  TabsBinding,
   AppTabsBlock.Message.SelectedTab({ index: 0, value: 'Posts' }),
 )
 
-const selectedStatsTab = TabsBinding.embedView({
-  slotId: 'tabs',
-  model: loadedStatsModel.tabs,
-  view: emptyAppTabsView,
-}).toParentMessage(
+const selectedStatsTab = toParentMessage(
+  TabsBinding,
   AppTabsBlock.Message.SelectedTab({ index: 1, value: 'Stats' }),
 )
 

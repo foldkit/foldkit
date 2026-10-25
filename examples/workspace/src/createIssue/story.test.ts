@@ -9,6 +9,7 @@ import {
   story,
 } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
+import { toParentMessage } from 'foldkit/test'
 import { describe, expect, test } from 'vitest'
 
 import { Dialog, DialogBlock } from '@foldkit/ui'
@@ -23,7 +24,6 @@ import {
   PriorityListboxBlock,
   StatusListboxBlock,
   WorkspaceListboxBlock,
-  listboxViewInputs,
 } from '../listbox'
 import { CreateIssueBlock } from './block'
 import { CreateIssue } from './command'
@@ -40,49 +40,29 @@ const initModel = () => CreateIssueBlock.init().model
 const openModel = (projectId = 'experience') =>
   CreateIssueBlock.operations.requestOpen(initModel(), { projectId }).model
 
-const projectSelection = (item: string) => {
-  const model = initModel()
-
-  return ProjectListboxBinding.embedView({
-    slotId: model.projectListbox.id,
-    model: model.projectListbox,
-    viewInputs: listboxViewInputs({ value: model.projectId, options: [] }),
-  }).toParentMessage(
+const projectSelection = (item: string) =>
+  toParentMessage(
+    ProjectListboxBinding,
     WorkspaceListboxBlock.Message.RequestedSelectItem({ item }),
   )
-}
 
-const statusSelection = (item: string) => {
-  const model = initModel()
-
-  return StatusListboxBinding.embedView({
-    slotId: model.statusListbox.id,
-    model: model.statusListbox,
-    viewInputs: listboxViewInputs({ value: model.status, options: [] }),
-  }).toParentMessage(
+const statusSelection = (item: string) =>
+  toParentMessage(
+    StatusListboxBinding,
     WorkspaceListboxBlock.Message.RequestedSelectItem({ item }),
   )
-}
 
-const typedStatusSelection = (item: typeof IssueStatus.Type) => {
-  const model = initModel()
+const typedStatusSelection = (item: typeof IssueStatus.Type) =>
+  toParentMessage(
+    StatusListboxBinding,
+    StatusListboxBlock.Message.RequestedSelectItem({ item }),
+  )
 
-  return StatusListboxBinding.embedView({
-    slotId: model.statusListbox.id,
-    model: model.statusListbox,
-    viewInputs: listboxViewInputs({ value: model.status, options: [] }),
-  }).toParentMessage(StatusListboxBlock.Message.RequestedSelectItem({ item }))
-}
-
-const prioritySelection = (item: typeof IssuePriority.Type) => {
-  const model = initModel()
-
-  return PriorityListboxBinding.embedView({
-    slotId: model.priorityListbox.id,
-    model: model.priorityListbox,
-    viewInputs: listboxViewInputs({ value: model.priority, options: [] }),
-  }).toParentMessage(PriorityListboxBlock.Message.RequestedSelectItem({ item }))
-}
+const prioritySelection = (item: typeof IssuePriority.Type) =>
+  toParentMessage(
+    PriorityListboxBinding,
+    PriorityListboxBlock.Message.RequestedSelectItem({ item }),
+  )
 
 describe('CreateIssueBlock update', () => {
   test('opens a fresh Todo draft or applies an explicit status preset', () => {

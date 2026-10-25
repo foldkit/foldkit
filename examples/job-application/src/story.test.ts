@@ -2,6 +2,7 @@ import { Array, Option } from 'effect'
 import { Validating } from 'foldkit/fieldValidation'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
+import { toParentMessage } from 'foldkit/test'
 import { describe, expect, test } from 'vitest'
 
 import { FileDropBlock } from '@foldkit/ui'
@@ -37,59 +38,30 @@ import { ResumeDropBinding } from './step/attachments/composition'
 import { update } from './update'
 
 const givenInitial = given(initialModel)
-const emptyStepMenuView = StepMenuBlock.makeView((_model, h) => h.empty)
-const emptyStepTabsView = StepTabsBlock.makeView((_model, h) => h.empty)
-const emptyFileDropView = FileDropBlock.makeView((_model, h) => h.empty)
 
 const personalInfoMessage = (message: typeof PersonalInfoBlock.Message.Type) =>
-  PersonalInfoBinding.embedView({
-    slotId: 'personalInfo',
-    model: initialModel.personalInfo,
-  }).toParentMessage(message)
+  toParentMessage(PersonalInfoBinding, message)
 
 const workHistoryMessage = (message: typeof WorkHistoryBlock.Message.Type) =>
-  WorkHistoryBinding.embedView({
-    slotId: 'workHistory',
-    model: initialModel.workHistory,
-  }).toParentMessage(message)
+  toParentMessage(WorkHistoryBinding, message)
 
 const educationMessage = (message: typeof EducationBlock.Message.Type) =>
-  EducationBinding.embedView({
-    slotId: 'education',
-    model: initialModel.education,
-  }).toParentMessage(message)
+  toParentMessage(EducationBinding, message)
 
 const skillsMessage = (message: typeof SkillsBlock.Message.Type) =>
-  SkillsBinding.embedView({
-    slotId: 'skills',
-    model: initialModel.skills,
-  }).toParentMessage(message)
+  toParentMessage(SkillsBinding, message)
 
 const coverLetterMessage = (message: typeof CoverLetterBlock.Message.Type) =>
-  CoverLetterBinding.embedView({
-    slotId: 'coverLetter',
-    model: initialModel.coverLetter,
-  }).toParentMessage(message)
+  toParentMessage(CoverLetterBinding, message)
 
 const attachmentsMessage = (message: typeof AttachmentsBlock.Message.Type) =>
-  AttachmentsBinding.embedView({
-    slotId: 'attachments',
-    model: initialModel.attachments,
-  }).toParentMessage(message)
+  toParentMessage(AttachmentsBinding, message)
 
 const stepMenuMessage = (message: typeof StepMenuBlock.Message.Type) =>
-  StepMenuBinding.embedView({
-    slotId: 'stepMenu',
-    model: initialModel.stepMenu,
-    view: emptyStepMenuView,
-  }).toParentMessage(message)
+  toParentMessage(StepMenuBinding, message)
 
 const stepTabsMessage = (message: typeof StepTabsBlock.Message.Type) =>
-  StepTabsBinding.embedView({
-    slotId: 'stepTabs',
-    model: initialModel.stepTabs,
-    view: emptyStepTabsView,
-  }).toParentMessage(message)
+  toParentMessage(StepTabsBinding, message)
 
 const resolveFocusTab = Command.resolve(
   Tabs.test.FocusTab,
@@ -306,11 +278,8 @@ describe('update', () => {
         givenInitial,
         message(
           attachmentsMessage(
-            ResumeDropBinding.embedView({
-              slotId: 'resumeDrop',
-              model: initialModel.attachments.resumeDrop,
-              view: emptyFileDropView,
-            }).toParentMessage(
+            toParentMessage(
+              ResumeDropBinding,
               FileDropBlock.Message.DroppedFiles({ files: [resume] }),
             ),
           ),

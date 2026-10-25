@@ -7,6 +7,7 @@ import {
   model,
   story,
 } from 'foldkit/story'
+import { toParentMessage } from 'foldkit/test'
 import { describe, expect, test } from 'vitest'
 
 import { DragAndDrop, DragAndDropBlock } from '@foldkit/ui'
@@ -18,13 +19,8 @@ import { containerId, draggableId } from './dragAndDrop'
 import { update } from './update'
 
 const boardInit = IssueBoardBlock.init()
-const emptyDragView = DragAndDropBlock.makeView((_model, h) => h.empty)
 const dragMessage = (message: typeof DragAndDropBlock.Message.Type) =>
-  DragAndDropBinding.embedView({
-    slotId: boardInit.model.dragAndDrop.id,
-    model: boardInit.model.dragAndDrop,
-    view: emptyDragView,
-  }).toParentMessage(message)
+  toParentMessage(DragAndDropBinding, message)
 
 describe('Issue Board update', () => {
   test('folds a keyboard drop into a move request', () => {

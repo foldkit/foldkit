@@ -2,7 +2,7 @@
 
 ## Status
 
-Local preparation and verification are complete. Publication is held for your approval. The current published preview is `1f6776fa7ece`; no replacement has been published, pushed or merged into main.
+The first October 25 candidate is committed and pushed to the development branch `codex/workspace-example` at `679d2d5e7f`. Subsequent testing and storage followups are being verified below. Publication is held for your approval. The current published preview remains `1f6776fa7ece`; release integration and main have not been updated.
 
 ## Public API changes since that preview
 
@@ -13,6 +13,9 @@ Local preparation and verification are complete. Publication is held for your ap
 | ManagedResource aggregation matches Subscriptions | Fully attached owned registries expose `managedResources.layer`; empty registries provide `Layer.empty`. The key `layer` is reserved. Mixed/host-owned entries use explicit providers.                                                                        |
 | Record/HashMap child storage                      | Optional `makeMapBinding` derives storage and occurrence keys from the parent Schema. Ordinary operations preserve membership and ignore absent occurrences.                                                                                                  |
 | Captured Command arguments                        | Optional `Story.Command.argsOf` / `Scene.Command.argsOf` project exact args by Definition identity. Occurrence selection remains explicit.                                                                                                                    |
+| Headless child facts                              | Optional `toParentMessage` from `foldkit/test` replaces mapper-only embeds and manually decoded test envelopes. Supply the actual Binding and decoded Message/key.                                                                                            |
+| Concurrent Story Messages                         | Ordinary `Story.message` retains pending Commands; resolve them explicitly before Story completion. Scene is unchanged.                                                                                                                                       |
+| Whole tagged child variants                       | Optional `makeVariantBinding` from `foldkit/variantBinding` derives exact whole-member storage from the parent Union. Other storage keeps existing accessors.                                                                                                 |
 
 Handle DragAndDrop’s new `StartedKeyboardDrag` and `ChangedKeyboardTarget` OutMessages in exhaustive policies. Keep complete connected results: a handler mixing raw local branches with connected recipes needs Definition-owned local Steps. Ordinary cohesive raw handlers can return results directly. Silent operations now retain their own per-Message channels rather than inheriting unrelated OutMessages.
 
@@ -28,6 +31,8 @@ The checked `prepareBlock` / `Block.assemble` / `FromAssembly*` pattern, complet
 
 ## Verification
 
+The counts in this section describe the verified `679d2d5e7f` checkpoint. The [subsequent followup report](preview-final-followups-20261025.md) identifies its refreshed gates and the inherited explicit Mount-erasure limitation.
+
 All 53 source configurations pass. Core/UI external declaration emission, rejection and strict relocation pass, including 28 independent adversarial channel cases. All five compiler ceilings pass twice unchanged. Runtime checks pass: core 3,700 with coverage, UI 1,298, Website 1,480, lint 622 and Vite 331, with documented intentional skips. Workspace’s 32 browser cases pass.
 
 All nine packages were packed locally. Installed Coverchart and generated SPA/SSG/SSR projects pass source, lint, tests, builds and browser checks. The actual Coverchart repository and your running Workspace server are preserved.
@@ -38,7 +43,9 @@ Official TypeScript Website hover/completion/definition are broadly similar to t
 
 Independent review accepts these disclosed preview tradeoffs. Optional tsrs setup is recommended for trying improved editor responsiveness; official TypeScript remains the checking/CI contract. Native latency, unlimited declaration scaling and long-session memory are not claimed solved. Existing dependency audit findings retain their reviewed reachability limits; this is not a clean audit or new Daybreak review.
 
-The headless test-only child-envelope helper remains an assessed, nonblocking follow-up in #1760; existing Scene and Command/Subscription replay paths remain supported. Other bookmarked ergonomics are listed explicitly in the task board, rather than counted as implemented.
+The subsequent followups add test-only `toParentMessage`, concurrent Story Messages while Commands remain pending and optional whole-variant Bindings. The extracted emitting-Step assessment retains one purposeful operation-derived input annotation. Fresh combined gates pass: 3,720 core tests with coverage, 1,485 Website tests, 13 Auth tests, source and strict relocated declarations, all five unchanged compiler ceilings, nine packed packages, Coverchart's 40 tests and build, all three scaffolds and four installed contract tests. Existing Scene and Command/Subscription replay paths remain supported.
+
+Current Website hover/completion is 239/227 ms and Workspace Block completion is 790 ms. The bounded matched cold-root comparison is 2.95 seconds on exact `679d2d5e7f` versus 2.92 seconds with these followups, with overlapping ranges. It does not demonstrate a material incremental regression or a speedup. The roughly three-second cold root and the documented explicit Mount-argument erasure gap remain limitations. [Final scope, source pin and evidence](preview-final-followups-20261025.md).
 
 ## After approval
 

@@ -95,7 +95,7 @@ A Binding lifts the child's entries through its Model access and generated deliv
 
 ### Optional Child Models
 
-Use an exact `Option<ChildModel>` field for direct optional storage. `None` releases the child's resources without reading their requirements, and `Some` lets the child determine which resources it needs. A direct-field `presentWhen` predicate can also make the whole child absent without clearing its stored Model. Use explicit accessors for nested, tagged, or custom storage; `None` from `read` has the same release behavior. `subscriptions.when` does not gate ManagedResources.
+Use an exact `Option<ChildModel>` field for direct optional storage. `None` releases the child's resources without reading their requirements, and `Some` lets the child determine which resources it needs. A direct-field `presentWhen` predicate can also make the whole child absent without clearing its stored Model. Use [whole-variant Bindings](/core/block#whole-tagged-variants) for one complete tagged child member. Use explicit accessors for nested, wrapped, or custom storage; `None` from `read` has the same release behavior. `subscriptions.when` does not gate ManagedResources.
 
 ::Snippet{name="managedResourcesLift" label="Composing child ManagedResources"}
 

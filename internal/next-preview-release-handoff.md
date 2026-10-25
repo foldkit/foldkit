@@ -1,5 +1,30 @@
 # Next preview release handoff
 
+## Subsequent followups after 679d2d5e7f
+
+The headless `foldkit/test` wrapper, concurrent Story delivery, exact whole-variant
+Binding helper and extracted-input assessment are complete. Auth and eligible
+parent Stories are migrated. The complete current delta and its final evidence
+are recorded in [final followups](preview-final-followups-20261025.md). The
+`679d2d5e7f` tables below remain their earlier checkpoint. The subsequent frozen
+source `d7d06ee6c4d7…` passes fresh nine-package installed acceptance, Coverchart's
+40 tests and build, all three scaffold modes, four installed contract tests and
+current native measurements. Exact artifact identities and limitations are
+linked from the final report. Internal evidence addenda do not alter packaged
+sources. The actual Coverchart repository remains preserved.
+
+Fresh Website Binding hover/completion measures 239/227 ms; Workspace Block
+completion measures 790 ms with sampled server RSS near 578 MiB. A bounded
+same-session cold-root comparison measures 2.95 seconds for exact `679d2d5e7f`
+and 2.92 seconds for the followups, with overlapping ranges. This demonstrates
+no material incremental regression; roughly three-second cold root access
+remains a limitation. No new runtime or browser timing is claimed.
+
+An inherited explicit Mount-argument erasure limit is documented. The direct
+internal registry guard is hardened, while a name-preserving alias with `any`
+args may still pass generic call inference. Keep precise/inferred registries;
+this is not a universal static guarantee after erasure. Publication remains held.
+
 ## October 25 candidate verification
 
 The final framework migration is integrated and independently reviewed. `Composition.makeUpdate` is record-only; all three focused Step helpers take producer callbacks and expose `.fromMessage`; owned all-attached ManagedResource registries expose `.layer`. All examples, Website, Typing Game, UI and scaffolds were inspected for adoption, including working sites eligible for the conveniences. [Adoption and intentional exceptions](preview-api-adoption.md).

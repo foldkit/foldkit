@@ -1,10 +1,10 @@
-import { Schema } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
+import { toParentMessage } from 'foldkit/test'
 import { describe, expect, test } from 'vitest'
 
 import { test as TabsTest } from '@foldkit/ui/tabs'
 
-import { HomeComposition } from './composition'
+import { DemoTabsBinding } from './composition'
 import { DemoTabsBlock } from './demoTab'
 import { init } from './init'
 import { update } from './update'
@@ -15,15 +15,13 @@ describe('home', () => {
       update,
       given(initialModel),
       message(
-        Schema.decodeSync(HomeComposition.Message)({
-          _tag: 'GotDemoTabsMessage',
-          placement: 'demoTabs',
-          generation: 0,
-          message: DemoTabsBlock.Message.SelectedTab({
+        toParentMessage(
+          DemoTabsBinding,
+          DemoTabsBlock.Message.SelectedTab({
             index: 1,
             value: 'Note Player',
           }),
-        }),
+        ),
       ),
       model(model => {
         expect(model.activeDemoTab).toBe('Note Player')
@@ -35,15 +33,13 @@ describe('home', () => {
         DemoTabsBlock.Message.CompletedFocusTab(),
       ),
       message(
-        Schema.decodeSync(HomeComposition.Message)({
-          _tag: 'GotDemoTabsMessage',
-          placement: 'demoTabs',
-          generation: 0,
-          message: DemoTabsBlock.Message.SelectedTab({
+        toParentMessage(
+          DemoTabsBinding,
+          DemoTabsBlock.Message.SelectedTab({
             index: 0,
             value: 'AsyncCounter',
           }),
-        }),
+        ),
       ),
       model(model => {
         expect(model.activeDemoTab).toBe('AsyncCounter')

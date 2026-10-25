@@ -1,0 +1,19 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "noEmit": true,
+    "skipLibCheck": false,
+    "paths": {
+      "foldkit": ["../src/index.ts"],
+      "foldkit/variantBinding": ["../src/block/variantBinding.ts"]
+    },
+    "lib": ["ESNext", "DOM", "DOM.Iterable"]
+  },
+  "include": [
+    "../src/vite-env.d.ts",
+    "variant-binding.accepted.ts",
+    "variant-binding.rejected.ts",
+    "variant-binding.consume.ts"
+  ]
+}

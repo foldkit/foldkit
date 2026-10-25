@@ -68,8 +68,12 @@ Use `resolveAllExact` when the resolver list is also a claim about which Command
 :::
 
 :::Info{label="Unresolved Commands"}
-`message` throws if there are pending Commands from a previous step. Resolve all Commands before sending the next Message. `story` throws at the end if any Commands remain unresolved. Every Command your update function produces must be accounted for.
+`message` can deliver another fact while Commands are pending. Existing Commands remain pending, and any Commands produced by the new Message are appended. Resolve each Command explicitly when its result should arrive; dispatching a Message does not run a stored resolver. `story` throws at the end if any Commands remain unresolved. Every Command your update function produces must be accounted for.
 :::
+
+::Snippet{name="testingConcurrentMessages" label="Deliver a Message while a Command is pending"}
+
+The increment arrives before the delayed reset's result. The test checks that the same reset Command is still pending, then supplies its completion. Scene interactions retain their separate pending-Command and Mount checks.
 
 ### Resolve Child Commands
 

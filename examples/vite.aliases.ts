@@ -75,6 +75,10 @@ export const foldkitAliases = (dirname: string) => ({
     dirname,
     '../../packages/foldkit/src/managedResource/public',
   ),
+  'foldkit/variantBinding': path.resolve(
+    dirname,
+    '../../packages/foldkit/src/block/variantBinding',
+  ),
   'foldkit/mapBinding': path.resolve(
     dirname,
     '../../packages/foldkit/src/block/mapBinding',

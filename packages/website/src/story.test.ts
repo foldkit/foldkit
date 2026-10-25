@@ -1,6 +1,7 @@
-import { HashSet, Option, Schema, pipe } from 'effect'
+import { HashSet, Option, pipe } from 'effect'
 import { Block, Calendar } from 'foldkit'
 import { Command, given, message, model, story } from 'foldkit/story'
+import { toParentMessage } from 'foldkit/test'
 import * as Url from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
@@ -13,9 +14,12 @@ import {
   ScrollToTop,
 } from './command'
 import {
-  ApplicationComposition,
+  ApiReferenceBinding,
+  ExampleDetailBinding,
   HomeBinding,
   LoadPlayground,
+  SnippetCopyBinding,
+  SnippetDisclosureBinding,
 } from './composition'
 import { Deployment } from './deployment'
 import { init } from './init'
@@ -24,6 +28,10 @@ import { type Model } from './model'
 import { ApiReferenceBlock, ExampleDetailBlock } from './page'
 import * as ApiReference from './page/apiReference/domain'
 import { HomeBlock } from './page/home'
+import {
+  NotePlayerDemoBinding,
+  PlaygroundMenuBinding,
+} from './page/home/composition'
 import { NotePlayerDemoBlock } from './page/home/notePlayerDemo'
 import { SearchBlock } from './search'
 import { FocusSearchInput } from './search/update'
@@ -165,14 +173,10 @@ describe('application', () => {
     )
     const failedLoad = update(
       initialization.model,
-      Schema.decodeSync(ApplicationComposition.Message)({
-        _tag: 'GotApiReferenceMessage',
-        placement: 'apiReference',
-        generation: 0,
-        message: ApiReferenceBlock.Message.FailedLoadApiData({
-          error: 'Offline',
-        }),
-      }),
+      toParentMessage(
+        ApiReferenceBinding,
+        ApiReferenceBlock.Message.FailedLoadApiData({ error: 'Offline' }),
+      ),
     )
     const routeChange = update(
       failedLoad.model,
@@ -311,14 +315,10 @@ describe('application', () => {
   test('changing API module slugs retries missing API data', () => {
     const failedLoad = update(
       initAt(commandApiUrl),
-      Schema.decodeSync(ApplicationComposition.Message)({
-        _tag: 'GotApiReferenceMessage',
-        placement: 'apiReference',
-        generation: 0,
-        message: ApiReferenceBlock.Message.FailedLoadApiData({
-          error: 'failed',
-        }),
-      }),
+      toParentMessage(
+        ApiReferenceBinding,
+        ApiReferenceBlock.Message.FailedLoadApiData({ error: 'failed' }),
+      ),
     )
     const routeChange = update(
       failedLoad.model,
@@ -332,14 +332,12 @@ describe('application', () => {
   test('changing example slugs requests the next example sources', () => {
     const failedLoad = update(
       initAt(counterExampleUrl),
-      Schema.decodeSync(ApplicationComposition.Message)({
-        _tag: 'GotExampleDetailMessage',
-        placement: 'exampleDetail',
-        generation: 0,
-        message: ExampleDetailBlock.Message.FailedLoadExampleSources({
+      toParentMessage(
+        ExampleDetailBinding,
+        ExampleDetailBlock.Message.FailedLoadExampleSources({
           error: 'failed',
         }),
-      }),
+      ),
     )
     const routeChange = update(
       failedLoad.model,
@@ -355,14 +353,12 @@ describe('application', () => {
       update,
       given(initAt(homeUrl)),
       message(
-        Schema.decodeSync(ApplicationComposition.Message)({
-          _tag: 'GotMaybeHomeMessage',
-          placement: 'maybeHome',
-          generation: 0,
-          message: HomeBlock.Message.UpdatedNewsletterEmail({
+        toParentMessage(
+          HomeBinding,
+          HomeBlock.Message.UpdatedNewsletterEmail({
             value: 'alice@example.com',
           }),
-        }),
+        ),
       ),
       model(model => {
         expect(model.newsletterEmail).toBe('alice@example.com')
@@ -423,19 +419,13 @@ describe('application', () => {
       update,
       given(initAt(homeUrl)),
       message(
-        Schema.decodeSync(ApplicationComposition.Message)({
-          _tag: 'GotMaybeHomeMessage',
-          placement: 'maybeHome',
-          generation: 0,
-          message: Schema.decodeSync(HomeBlock.Message)({
-            _tag: 'GotNotePlayerDemoMessage',
-            placement: 'notePlayerDemo',
-            generation: 0,
-            message: NotePlayerDemoBlock.Message.ChangedNoteInput({
-              value: 'ABC',
-            }),
-          }),
-        }),
+        toParentMessage(
+          HomeBinding,
+          toParentMessage(
+            NotePlayerDemoBinding,
+            NotePlayerDemoBlock.Message.ChangedNoteInput({ value: 'ABC' }),
+          ),
+        ),
       ),
       model(model => {
         expect(
@@ -457,19 +447,13 @@ describe('application', () => {
       update,
       given(initAt(newsletterUrl)),
       message(
-        Schema.decodeSync(ApplicationComposition.Message)({
-          _tag: 'GotMaybeHomeMessage',
-          placement: 'maybeHome',
-          generation: 0,
-          message: Schema.decodeSync(HomeBlock.Message)({
-            _tag: 'GotNotePlayerDemoMessage',
-            placement: 'notePlayerDemo',
-            generation: 0,
-            message: NotePlayerDemoBlock.Message.ChangedNoteInput({
-              value: 'ABC',
-            }),
-          }),
-        }),
+        toParentMessage(
+          HomeBinding,
+          toParentMessage(
+            NotePlayerDemoBinding,
+            NotePlayerDemoBlock.Message.ChangedNoteInput({ value: 'ABC' }),
+          ),
+        ),
       ),
       model(model => {
         expectHomeAbsent(model)
@@ -482,20 +466,16 @@ describe('application', () => {
       update,
       given(initAt(homeUrl)),
       message(
-        Schema.decodeSync(ApplicationComposition.Message)({
-          _tag: 'GotMaybeHomeMessage',
-          placement: 'maybeHome',
-          generation: 0,
-          message: Schema.decodeSync(HomeBlock.Message)({
-            _tag: 'GotPlaygroundMenuMessage',
-            placement: 'playgroundMenu',
-            generation: 0,
-            message: ThemeMenuBlock.Message.SelectedItem({
+        toParentMessage(
+          HomeBinding,
+          toParentMessage(
+            PlaygroundMenuBinding,
+            ThemeMenuBlock.Message.SelectedItem({
               index: 0,
               item: 'counter',
             }),
-          }),
-        }),
+          ),
+        ),
       ),
       Command.resolve(LoadPlayground, Message.CompletedLoadPlayground()),
     )
@@ -524,15 +504,13 @@ describe('application', () => {
       update,
       given(initAt(homeUrl)),
       message(
-        Schema.decodeSync(ApplicationComposition.Message)({
-          _tag: 'GotSnippetCopyMessage',
-          placement: 'snippetCopy',
-          generation: 0,
-          message: SnippetCopyBlock.Message.ClickedCopySnippet({
+        toParentMessage(
+          SnippetCopyBinding,
+          SnippetCopyBlock.Message.ClickedCopySnippet({
             snippetId,
             text: 'const count = 0',
           }),
-        }),
+        ),
       ),
       Command.resolve(
         CopySnippet,
@@ -557,15 +535,13 @@ describe('application', () => {
       update,
       given(initAt(homeUrl)),
       message(
-        Schema.decodeSync(ApplicationComposition.Message)({
-          _tag: 'GotSnippetDisclosureMessage',
-          placement: 'snippetDisclosure',
-          generation: 0,
-          message: SnippetDisclosureBlock.Message.ToggledCodeDisclosure({
+        toParentMessage(
+          SnippetDisclosureBinding,
+          SnippetDisclosureBlock.Message.ToggledCodeDisclosure({
             disclosureId,
             isOpen: true,
           }),
-        }),
+        ),
       ),
       model(model => {
         expect(

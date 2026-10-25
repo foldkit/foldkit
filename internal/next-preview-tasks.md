@@ -8,6 +8,17 @@ Preserve concurrent edits. Preview integration targets `codex/layers-and-submode
 
 The user has explicitly held publication pending approval. Prepare and verify locally; pushing the integration branch would itself trigger publication and is outside this preparation step. [Release handoff](next-preview-release-handoff.md).
 
+## Followups authorized after the review summary
+
+The reviewed candidate `679d2d5e7fae638f7aa0dbce65440da0ce767331` is pushed only to `codex/workspace-example`. The user authorized the following work after that checkpoint. Its existing verification does not automatically cover this subsequent delta; refresh affected release evidence before presenting another candidate.
+
+- [x] Implement a test-only headless child Message wrapper for #1760 using exact Binding metadata, decoded values and the existing tracked mapper. Preserve generated delivery, keyed identity, pure replay generations, live admission, contextual delivery, lifecycle and passive construction. Verify source/emitted/relocated acceptance and rejection and migrate eligible parent tests.
+- [x] Allow ordinary `Story.message` delivery while Commands remain pending. Retain exact pending identity, explicit resolution, ambiguity rejection and end-of-story completeness. Verify realistic concurrent Workspace Stories and document the difference from Scene's interaction checks.
+- [x] Complete the bounded extracted-handler inference comparison. Retain the existing purposeful derived-input annotation if simpler encodings fail inference or require a broader API; preserve exact channels and wrong-graph rejection and document the consumer contract.
+- [x] Prototype tagged-union child storage against Auth's two actual whole-variant children. Compare the native accessor form with an opt-in Schema-derived helper, preserving variant presence, identity, initialization, Commands and lifecycle. The opt-in `makeVariantBinding` passed source/emitted/runtime and unchanged compiler-budget proofs and independent review; Auth's two eligible Bindings are migrated. [Scope, cost and limits](variant-binding-assessment.md).
+
+All four followups have focused runtime, source/emitted and consumer proofs with independent review. The extracted-input assessment retains its precise annotation. Combined source/declaration/runtime checks, all five unchanged compiler ceilings, nine-package installed rehearsals and fresh native benchmarks pass. The exact committed review remains required before a development-branch push. [Final evidence and limits](preview-final-followups-20261025.md).
+
 ## Queued user feedback
 
 - [x] Standardize focused Step producers before the next preview: `makeFieldsStep`, `makeCommandsStep`, and `makeOutMessageStep` all take callbacks. Ordinary callbacks receive the Model and, for Message-dependent handlers, the exact Message. Add `.fromMessage` to all three for payload-only producers returning Model-first handlers. Keep fixed zero-argument callbacks and `makeNoopStep()`; remove the OutMessage value-taking form without an alias. Prove inline contextual inference, extracted contracts, direct function references, contexts/refined generics, exact channels/errors/registration, deferred evaluation, Model identity, source/relocated emission, and unchanged compiler ceilings in isolation before migration. If inference fails, report the precise limitation and smallest coherent adjustment. Audit every example, Website, and Typing Game for meaningful adoption, including compatible Step references and payload-only `.fromMessage` cases; retain cohesive mixed results and report intentional exceptions. Coordinate UI, scaffolds, active guidance, changesets and migration instructions. Compilation alone does not complete this adoption gate.
@@ -136,9 +147,9 @@ Verified on TypeScript 7.1.0-beta: both core source checks, 3,645 core tests and
 
 The [MyRemotely report](https://github.com/foldkit/foldkit/pull/1655#issuecomment-6325362294) has been assessed against current public packages. [Exact reproductions and dispositions](workspace-consumer-friction.md) separate working APIs from confirmed gaps; the remaining implementation items below are not claimed fixed.
 
-- [ ] Assess Story authoring for concurrent Messages while an ordinary non-keyed Command remains pending. Current Story rejects that sequence; Workspace isolates completion policy with pending-state fixtures and verifies full interaction timing in the browser. Preserve unresolved-Command completeness and original Definition identity when evaluating any framework change. [Current test boundary](workspace-feedback-followup.md#application-test-organization).
+- [x] Support Story authoring for concurrent Messages while ordinary non-keyed Commands remain pending. `Story.message` retains every pending Command, explicit resolution and final completeness; real Workspace concurrent Stories and source/emitted checks pass. Scene retains its separate checks. [Semantics and adoption](story-concurrency.md).
 
-- [ ] Improve contextual graph inference for an extracted own-field transition followed by an OutMessage-producing connected operation. Workspace uses one exact derived input annotation, with source/emitted registration and channel rejection checks. Preserve that sound contract; do not replace it with a plain Model annotation or cast. [Current supported helper and tradeoff](workspace-consumer-friction.md#own-field-changes-before-an-emitting-child-operation).
+- [x] Complete the extracted own-field transition inference assessment. Three simpler composition/Definition encodings lose contextual typing or graph capability. Retain one precise operation-derived input annotation, with split-file source/emitted registration and channel checks and an active guide example. No new API or inference improvement is claimed. [Comparison and decision](extracted-step-inference-assessment.md).
 
 - [x] Add public identity-based pending Command inspection with precise args through `Story.Command.argsOf` and `Scene.Command.argsOf`. The earlier failed compiler encodings remain historical evidence; the retained inline signature passes all five unchanged ceilings. [Current contract and verification](pending-command-inspection.md).
 - [x] Add cross-owner Mount-bearing helper declaration fixtures and guidance. Two real Dialog parents share content through caller-owned renderer callbacks. Source, external emission, and relocated accepted/rejected checks pass, including missing Binding/Mount capabilities and foreign parent Messages. Same-owner ViewBuilderFor remains supported; a new raw Mount-requirement extractor alone is not a fix.
@@ -152,12 +163,17 @@ The [MyRemotely report](https://github.com/foldkit/foldkit/pull/1655#issuecommen
 ## Storage and handler Layer assessments
 
 - [x] [#1706](https://github.com/foldkit/foldkit/issues/1706): adopt `makeMapBinding` for Schema-backed Record/HashMap child storage, including wrapped children and exact primitive occurrence keys. Parent-owned membership/order, dynamic initialization, keyed lifecycle, declaration contracts, and lint provenance are verified. Composite-key boundaries are explicit. [Assessment](record-hashmap-binding-assessment.md).
-- [ ] Tagged-union child storage shorthand.
+- [x] Tagged-union child storage: adopt optional `makeVariantBinding` for an exact complete child Schema directly included in the parent Union. Auth's two eligible Bindings are migrated; nested/wrapped storage retains general accessors. Preserve the disclosed compiler cost and structural Schema-identity limitation. [Assessment](variant-binding-assessment.md).
 - [x] [#1759](https://github.com/foldkit/foldkit/issues/1759): adopt the owned registry’s `managedResources.layer` for closed attached registries, matching Subscriptions. The earlier standalone prototype is superseded without an alias. Reject host-owned/mixed/open registries and ambiguous Layer contracts. Keep explicit Command `.layer` composition; no owner-wide Command inventory is justified. [Assessment and exact-channel checks](aggregate-handler-layer-assessment.md).
 
 Prototype proposed APIs and verify source/emitted acceptance/rejection, runtime behavior, inference, and realistic split-file consumers before broad conversion.
 
 ## Release review checklist
+
+- [x] Refresh the combined source/emitted/runtime, installed-package, compiler and editor gates after the four subsequent followups. Keep the `679d2d5e7f` checkpoint distinct from this new delta. Nine freshly packed packages pass Coverchart, all three scaffolds and four installed contracts. Quiet native workflows and a bounded matched cold-root control pass, with limitations disclosed. [Final evidence](preview-final-followups-20261025.md).
+- [x] Review testing semantics and consumer adoption independently; mutation-check the pending-Command and erased decoded-input regressions and restore exact source.
+- [x] Record the inherited explicit-erasure limit for a name-preserving `LayeredMountDefinition` union alias. It widens args to `any`; generic Composition construction may accept it despite the direct internal guard. Keep precise/inferred registries and public broad-name rejection, without claiming universal static recovery after erasure.
+- [x] Complete independent safety/performance review of the isolated tagged-union prototype before integrating its optional API. The reviewed helper and emitted declaration hashes match the shared integration.
 
 - [x] Focused Step producer callbacks and `.fromMessage` pass contextual source/emitted/runtime/performance proofs; consumer adoption is inspected across every example, Website, and Typing Game, with intentional exceptions recorded.
 

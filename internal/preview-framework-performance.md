@@ -1,5 +1,33 @@
 # Integrated framework performance
 
+## October 25 testing and storage followups
+
+The subsequent frozen source is `d7d06ee6c4d7b9be56a1803985be01bce0ca58a9a6466266df72fee4d47866df`, comprising 6,902 files after excluding generated build/cache outputs and `examples/vite.aliases.d.ts`. It follows committed `679d2d5e7f`; final internal evidence addenda do not alter its package-producing source. The four changes and acceptance results are recorded in [final followups](preview-final-followups-20261025.md).
+
+Three fresh Website runs and three Workspace runs use the unchanged driver `477b7ad3e1ab1c82ad5ef43d5b49cdcfe75669d782b5ae9caa3725bd472ff48e`, official native TypeScript `7.1.0-beta`, Node `24.22.1`, and the existing 60-second request timeout. Agent builds and tests were held during the timing window. Typed hover, nonempty expected completions, definition, deliberate error and restored-clean diagnostic assertions pass. These are native server request measurements, excluding editor UI and tsrs.
+
+| Workflow                                        | Median ms |            Range ms |
+| ----------------------------------------------- | --------: | ------------------: |
+| Website changed-URL Binding hover after edit    |   239.439 |     219.994–256.473 |
+| Website Binding completion after edit           |   226.794 |     204.374–244.362 |
+| Website definition after edit                   |   239.977 |     237.464–248.067 |
+| Website error appearance                        |   616.063 |     604.993–648.285 |
+| Website error clearing                          |   611.157 |     605.674–671.317 |
+| Website completed root Message, cold            | 3,039.088 | 2,959.775–3,044.748 |
+| Workspace Binding hover after edit              |   278.186 |     273.870–285.403 |
+| Workspace Binding completion after edit         |   270.952 |     254.775–272.541 |
+| Workspace completed Block completion after edit |   789.505 |     787.972–824.650 |
+| Workspace error appearance                      |   206.307 |     200.630–209.005 |
+| Workspace error clearing                        |   183.370 |     180.519–183.666 |
+
+The maximum sampled Workspace server RSS is 591,504 KiB, about 578 MiB. These bounded fresh sessions do not establish long-session stability. Cold Website root access remains expensive. Its separate preceding-checkpoint median was 2,796 ms; the new 3,039 ms result cannot by itself establish a causal followup regression across different sessions.
+
+That difference triggered one bounded batch of three alternating cold-constructor pairs against an independently rebuilt exact `679d2d5e7fae638f7aa0dbce65440da0ce767331` control. Both use the identical driver/compiler, snapshot-local package artifacts and the same external dependency realpaths; Website source checking passes for the control. Source and artifact fingerprints remain unchanged across the batch. Completed-root medians are 2,951.890 ms for the control and 2,924.985 ms for the followups, with overlapping ranges of 2,916.281–2,953.648 and 2,917.238–2,940.547 ms. Local constructor medians are 321.115 and 303.136 ms, also with overlapping ranges. This bounded comparison demonstrates no material incremental regression or causal speedup. Investigation stops at this predeclared batch; the roughly three-second cold-root limitation remains.
+
+All five existing compiler ceilings pass without increases: deep 589,591 instantiations / 50,942 Types; wide 1,150,837 / 73,038; Commands 329,540 / 61,630; Workspace four groups 2,509,102 / 205,737; eight groups 4,248,222 / 279,546. The tiny Workspace increases arise from the private Mount guard. The optional variant helper's separate Auth cost and bounded scaling comparison remain disclosed in [its assessment](variant-binding-assessment.md#compiler-and-maintenance-cost).
+
+The earlier runtime/bundle comparison retains its own `679d2d5e7f` scope; it is not presented as a fresh execution of this delta. The current changes add an optional Binding adapter and test APIs, without changing production Runtime scheduling. Raw current native reports, fingerprints and summary are under `/private/tmp/foldkit-followup-native-final-20261025/`; compiler evidence is `/private/tmp/foldkit-followup-budgets-final-20261025.log`. No claim of universal responsiveness or unlimited declaration scaling follows from these gates.
+
 ## October 25 final candidate
 
 All 53 repository source configurations, core/UI emitted-declaration and strict relocation harnesses, independent channel/registration controls, and all five unchanged compiler ceilings pass. The actual expanded Workspace root emits 110 declarations through its measured private boundary. The packed Coverchart and SPA/SSG/SSR rehearsals and 32 Workspace browser cases pass. [Current handoff and artifact scope](next-preview-release-handoff.md).

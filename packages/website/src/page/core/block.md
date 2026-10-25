@@ -303,7 +303,7 @@ Use `presentWhen` with a direct field when parent policy controls the whole chil
 
 ::Snippet{name="blockPresenceGate" label="Gating a child occurrence"}
 
-Use explicit `read` and `write` for nested storage, tagged parent variants, or custom child placement. The accessor's `None` result already determines presence, so accessor Bindings do not also take `presentWhen`.
+Use explicit `read` and `write` for nested storage or custom child placement. For a child occupying one complete tagged parent variant, use the Schema-backed helper below. The accessor's `None` result already determines presence, so accessor Bindings do not also take `presentWhen`.
 
 A Binding's `write` or `writeAt` places the next child Model into parent storage. Keep parent reactions to child transitions in its OutMessage policy. Do not compare old and new child state in a writer to generate announcements, trigger sibling changes, or maintain unrelated parent fields. Nested storage, keyed replacement, presence checks, and preservation of wrapper metadata remain legitimate custom writes. If a parent needs a child fact that is not exposed, add a truthful public OutMessage rather than using the writer as an event hook.
 
@@ -316,6 +316,24 @@ Use `subscriptions.when` when only child Streams need additional activation poli
 ::Snippet{name="blockSubscriptionGate" label="Gating a child Subscription"}
 
 The gate controls Streams. It does not remove the child or disable its update.
+
+### Whole tagged variants
+
+Use `makeVariantBinding` from `foldkit/variantBinding` when a child Model is one complete member of the parent `Schema.Union`. Include the actual `ChildBlock.Model` Schema in that union. The child must have one required literal `_tag`; parent members need distinct tags and closed records.
+
+For example, this child owns the editing state:
+
+::Snippet{name="blockVariantChild" label="The profile editor contract"}
+
+The parent stores either that complete child Model or its own submitted state:
+
+::Snippet{name="blockVariantBinding" label="Binding a whole parent variant"}
+
+The helper derives presence from the child's tag. Folds and operations leave other variants unchanged; they never create the child. A matching write replaces the whole active variant. Parent update owns switching variants and explicit initialization through the existing `Binding.init({ args, toParentModel })` API, including the child's Commands. Switching away and back creates a new occurrence; results from the old occurrence remain stale.
+
+Optional configuration accepts `placement`, `delivery` and `subscriptions`. Delivery context still supplies the child's exact update arguments. Subscription gates control only Streams. Add OutMessage policy with the ordinary `.withOutMessagePolicy` call and register the selected Binding in the Composition.
+
+Use general accessors for nested or wrapped variants, custom writers, or opaque Schemas. TypeScript checks the exact decoded member and its tag; runtime validation also requires the actual child Schema instance in the union. It cannot prove Schema object identity statically. Do not reconstruct a same-shaped member or mix the helper with field/accessor initialization options. The separate import keeps this specialized generic surface out of ordinary authoring.
 
 ## Coordinate Sibling Blocks
 

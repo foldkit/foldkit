@@ -1,5 +1,6 @@
 import { Array, Option } from 'effect'
 import { given, message, model, story } from 'foldkit/story'
+import { toParentMessage } from 'foldkit/test'
 import { describe, expect, test } from 'vitest'
 
 import {
@@ -22,12 +23,7 @@ const initialModel: typeof ModelSchema.Type = {
 const counterMessage = (
   id: string,
   message: typeof CounterBlock.Message.Type,
-) =>
-  CountersBinding.embedView({
-    key: id,
-    slotId: id,
-    model: { count: 0 },
-  }).toParentMessage(message)
+) => toParentMessage(CountersBinding, id, message)
 
 describe('init', () => {
   test('creates distinct parent-owned instances with Counter state', () => {

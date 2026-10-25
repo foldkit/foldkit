@@ -1,12 +1,12 @@
-import { Schema } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
+import { toParentMessage } from 'foldkit/test'
 import { describe, expect, test } from 'vitest'
 
 import { DialogBlock } from '@foldkit/ui'
 
 import { SearchBlock } from './block'
-import { SearchComposition } from './composition'
+import { DialogBinding } from './composition'
 import { SearchState } from './domain'
 import { init } from './init'
 import { Message } from './message'
@@ -186,12 +186,7 @@ describe('search', () => {
   test('close completion clears Search after cleanup, including after a reopen', () => {
     const opened = update(
       init_.model,
-      Schema.decodeSync(SearchComposition.Message)({
-        _tag: 'GotDialogMessage',
-        placement: 'dialog',
-        generation: 0,
-        message: DialogBlock.Message.RequestedOpen(),
-      }),
+      toParentMessage(DialogBinding, DialogBlock.Message.RequestedOpen()),
     )
     const queried = update(
       opened.model,
@@ -199,30 +194,18 @@ describe('search', () => {
     )
     const transitioned = update(
       queried.model,
-      Schema.decodeSync(SearchComposition.Message)({
-        _tag: 'GotDialogMessage',
-        placement: 'dialog',
-        generation: 0,
-        message: DialogBlock.Message.RequestedClose(),
-      }),
+      toParentMessage(DialogBinding, DialogBlock.Message.RequestedClose()),
     )
     const reopened = update(
       transitioned.model,
-      Schema.decodeSync(SearchComposition.Message)({
-        _tag: 'GotDialogMessage',
-        placement: 'dialog',
-        generation: 0,
-        message: DialogBlock.Message.RequestedOpen(),
-      }),
+      toParentMessage(DialogBinding, DialogBlock.Message.RequestedOpen()),
     )
     const completed = update(
       reopened.model,
-      Schema.decodeSync(SearchComposition.Message)({
-        _tag: 'GotDialogMessage',
-        placement: 'dialog',
-        generation: 0,
-        message: DialogBlock.Message.CompletedCloseDialog(),
-      }),
+      toParentMessage(
+        DialogBinding,
+        DialogBlock.Message.CompletedCloseDialog(),
+      ),
     )
     expect(transitioned.model.query).toBe('routing')
     expect(reopened.model.query).toBe('routing')
@@ -234,12 +217,7 @@ describe('search', () => {
   test('route changes clear and close Search while keyboard clearing leaves it open', () => {
     const opened = update(
       init_.model,
-      Schema.decodeSync(SearchComposition.Message)({
-        _tag: 'GotDialogMessage',
-        placement: 'dialog',
-        generation: 0,
-        message: DialogBlock.Message.RequestedOpen(),
-      }),
+      toParentMessage(DialogBinding, DialogBlock.Message.RequestedOpen()),
     )
     const queried = update(
       opened.model,

@@ -346,12 +346,13 @@ describe('Mount capability types', () => {
     const widenedMounts: ReadonlyArray<Mount.LayeredMountDefinition> = [
       MeasurePanel,
     ]
-    const contractWidenedMounts: ReadonlyArray<
-      Mount.LayeredMountDefinition<
+    type ContractWidenedMounts = ReadonlyArray<
+      Mount.LayeredMountDefinitionWithArgs<
         'MeasurePanelCapability',
+        any,
         typeof Message.CompletedMeasurePanel.Type
       >
-    > = [MeasurePanel]
+    >
 
     const renderWidenedRegistry = () =>
       // @ts-expect-error A broad registry cannot prove which Mounts are registered.
@@ -367,20 +368,21 @@ describe('Mount capability types', () => {
         container: document.createElement('div'),
       })
 
-    const renderContractWidenedRegistry = () =>
-      // @ts-expect-error A registry must preserve the Mount's args contract.
-      Application.__makeFromConfig({
-        Model,
-        init: () => ({ model: { isVisible: true } }),
-        update,
-        view: (model, h) => ({
-          title: 'contract-widened registry',
-          body: h.div([], [globalThis.String(model.isVisible)]),
-        }),
-        mounts: contractWidenedMounts,
-        container: document.createElement('div'),
-      })
+    const preserveExactRegistry:
+      | (typeof mounts & Mount.PreciseMountRegistry<typeof mounts>)
+      | undefined = mounts
 
+    const preserveRegistry = <
+      const Registry extends ReadonlyArray<Mount.LayeredMountDefinition>,
+    >(
+      registry: Registry & Mount.PreciseMountRegistry<Registry>,
+    ): Registry => registry
+
+    const renderContractWidenedRegistry = (registry: ContractWidenedMounts) =>
+      // @ts-expect-error The exact registry guard rejects erased Mount args.
+      preserveRegistry<ContractWidenedMounts>(registry)
+
+    expect(preserveExactRegistry).toBe(mounts)
     expect(renderWidenedRegistry).toBeTypeOf('function')
     expect(renderContractWidenedRegistry).toBeTypeOf('function')
   })

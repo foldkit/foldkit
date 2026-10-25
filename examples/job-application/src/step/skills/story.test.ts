@@ -1,5 +1,6 @@
 import { Array, Option, pipe } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
+import { toParentMessage } from 'foldkit/test'
 import { describe, expect, test } from 'vitest'
 
 import { GenerateSkillsEntryId } from './command'
@@ -13,14 +14,8 @@ const givenInitial = given(init('skills-entry-1').model)
 
 const entryMessage = (
   entryId: string,
-  model: typeof SkillsEntryBlock.Model.Type,
   message: typeof SkillsEntryBlock.Message.Type,
-) =>
-  EntriesBinding.embedView({
-    key: entryId,
-    slotId: entryId,
-    model,
-  }).toParentMessage(message)
+) => toParentMessage(EntriesBinding, entryId, message)
 
 describe('skills', () => {
   test('ClickedAddEntry generates an id and appends an entry', () => {
@@ -62,7 +57,6 @@ describe('skills', () => {
       message(
         entryMessage(
           firstEntry.id,
-          firstEntry,
           SkillsEntryBlock.Message.ClickedRemoveSelf(),
         ),
       ),
@@ -83,7 +77,6 @@ describe('skills', () => {
       message(
         entryMessage(
           firstEntry.id,
-          firstEntry,
           SkillsEntryBlock.Message.UpdatedName({ value: 'TypeScript' }),
         ),
       ),

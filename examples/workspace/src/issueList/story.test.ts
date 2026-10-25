@@ -8,15 +8,13 @@ import {
   model,
   story,
 } from 'foldkit/story'
+import { toParentMessage } from 'foldkit/test'
 import { describe, expect, test } from 'vitest'
 
-import { GroupBy, IssueFilters } from '../domain'
 import {
   GroupListboxBlock,
   SortListboxBlock,
   StatusFilterListboxBlock,
-  StatusFilterValue,
-  listboxViewInputs,
 } from '../listbox'
 import {
   GroupListboxBinding,
@@ -25,44 +23,17 @@ import {
 } from './composition'
 import { IssueListBlock } from './issueList'
 import { Message, OutMessage } from './message'
-import type { Model } from './model'
 import { update } from './update'
 
 const statusListboxMessage = (
-  model: typeof Model.Type,
   message: typeof StatusFilterListboxBlock.Message.Type,
-) =>
-  StatusListboxBinding.embedView({
-    slotId: model.statusListbox.id,
-    model: model.statusListbox,
-    viewInputs: listboxViewInputs({
-      value: StatusFilterValue.make('All'),
-      options: [],
-    }),
-  }).toParentMessage(message)
+) => toParentMessage(StatusListboxBinding, message)
 
-const sortListboxMessage = (
-  model: typeof Model.Type,
-  message: typeof SortListboxBlock.Message.Type,
-) =>
-  SortListboxBinding.embedView({
-    slotId: model.sortListbox.id,
-    model: model.sortListbox,
-    viewInputs: listboxViewInputs({
-      value: IssueFilters.fields.sort.make('Identifier'),
-      options: [],
-    }),
-  }).toParentMessage(message)
+const sortListboxMessage = (message: typeof SortListboxBlock.Message.Type) =>
+  toParentMessage(SortListboxBinding, message)
 
-const groupListboxMessage = (
-  model: typeof Model.Type,
-  message: typeof GroupListboxBlock.Message.Type,
-) =>
-  GroupListboxBinding.embedView({
-    slotId: model.groupListbox.id,
-    model: model.groupListbox,
-    viewInputs: listboxViewInputs({ value: GroupBy.make('None'), options: [] }),
-  }).toParentMessage(message)
+const groupListboxMessage = (message: typeof GroupListboxBlock.Message.Type) =>
+  toParentMessage(GroupListboxBinding, message)
 
 describe('IssueListBlock', () => {
   test('emits controlled filter changes from typed local facts', () => {
@@ -105,7 +76,6 @@ describe('IssueListBlock', () => {
       given(initialModel),
       message(
         statusListboxMessage(
-          initialModel,
           StatusFilterListboxBlock.Message.RequestedSelectItem({
             item: 'Todo',
           }),
@@ -116,7 +86,6 @@ describe('IssueListBlock', () => {
       ),
       message(
         sortListboxMessage(
-          initialModel,
           SortListboxBlock.Message.RequestedSelectItem({
             item: 'Priority',
           }),
@@ -125,7 +94,6 @@ describe('IssueListBlock', () => {
       expectOutMessage(OutMessage.ChangedSort({ sort: 'Priority' })),
       message(
         groupListboxMessage(
-          initialModel,
           GroupListboxBlock.Message.RequestedSelectItem({
             item: 'Project',
           }),
@@ -134,7 +102,6 @@ describe('IssueListBlock', () => {
       expectOutMessage(OutMessage.ChangedGrouping({ groupBy: 'Project' })),
       message(
         statusListboxMessage(
-          initialModel,
           StatusFilterListboxBlock.Message.RequestedSelectItem({ item: 'All' }),
         ),
       ),
@@ -143,7 +110,6 @@ describe('IssueListBlock', () => {
       ),
       message(
         statusListboxMessage(
-          initialModel,
           StatusFilterListboxBlock.Message.RequestedSelectItem({
             item: 'Unknown',
           }),

@@ -697,10 +697,37 @@ const checks: ReadonlyArray<
     consumers: ['keyed-map-field.consume.ts'],
   },
   {
+    name: 'variant-binding',
+    accepted: ['variant-binding.accepted.ts'],
+    rejected: ['variant-binding.rejected.ts'],
+    consumers: ['variant-binding.consume.ts'],
+  },
+  {
     name: 'command-args',
     accepted: ['command-args.accepted.ts', 'command-args.helper.ts'],
     rejected: ['command-args.rejected.ts'],
     consumers: ['command-args.consume.ts'],
+  },
+  {
+    name: 'story-concurrency',
+    accepted: ['story-concurrency.accepted.ts'],
+    rejected: ['story-concurrency.rejected.ts'],
+    consumers: ['story-concurrency.consume.ts'],
+  },
+  {
+    name: 'test-parent-message',
+    accepted: ['test-parent-message.accepted.ts'],
+    rejected: ['test-parent-message.rejected.ts'],
+    consumers: ['test-parent-message.consume.ts'],
+  },
+  {
+    name: 'extracted-connected-step',
+    accepted: [
+      'extracted-connected-step.accepted.ts',
+      'extracted-connected-step.helper.ts',
+    ],
+    rejected: ['extracted-connected-step.rejected.ts'],
+    consumers: ['extracted-connected-step.consume.ts'],
   },
   {
     name: 'outmessage-steps',
@@ -886,8 +913,12 @@ const main = async (): Promise<void> => {
   for (const name of [
     'command-args',
     'keyed-map-field',
+    'variant-binding',
     'managed-resource-registry',
     'policy-graph',
+    'story-concurrency',
+    'test-parent-message',
+    'extracted-connected-step',
   ]) {
     runCompiler(`Checking direct source ${name} contracts`, [
       '-p',

@@ -136,6 +136,14 @@ The graph requirement is intentional: an ordinary `Model` type says nothing abou
 
 ::Snippet{name="updateConnectedStepAfter" label="✅ Deferring a connected Step to its Composition"}
 
+#### Extracting a Local Edit Before an Emitting Operation
+
+An extracted helper can change parent-owned fields and then apply a child operation whose policy emits an OutMessage. Derive the helper's Model input from that connected operation with `Parameters<typeof operation>[0]`. This retains its exact Binding requirement; a plain Model annotation loses that requirement.
+
+::Snippet{name="blockExtractedConnectedStep" label="Preserve the connected operation's input contract"}
+
+The child fold sees the updated parent fields. Return its complete result so Composition can resolve Commands and OutMessages. Do not put the emitting operation in `combineSteps`, which deliberately has no OutMessage channel. This extracted form needs one precise input annotation; inline handlers receive their contextual Model from `makeUpdate`.
+
 #### Combining Steps
 
 Use `Update.combineSteps` when two or more operations transform the same Model and a later Step should receive the Model produced by an earlier Step. Use the owning Definition's narrow helper when that Step only changes fields:

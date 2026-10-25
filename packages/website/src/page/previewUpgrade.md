@@ -48,6 +48,8 @@ After installing one coherent target:
 
 Effect `DateTime` and `TimeZone` values can now pass through ViewInputs without converting them to primitives. Added nested application callbacks remain rejected. `Update.withOutMessage` also retains its OutMessage after homogeneous or nested connected Step combinations. These declaration fixes require no new API names or data conversions.
 
+`Story.message` now permits another fact while Commands are pending. Pending Commands retain their identity and still require explicit resolution before the Story ends. This lets concurrency tests keep the actual pending work instead of constructing a pending Model. Scene retains its separate interaction and Mount checks. See [concurrent Story delivery](/testing/story#multi-step-flows).
+
 Reciprocal Binding policies now resolve converging paths without repeatedly expanding the same policy graph. The reported twelve-Binding compiler-depth case has regression coverage. This does not establish an unlimited graph size or eliminate all editor latency.
 
 The following additions are optional:
@@ -55,6 +57,7 @@ The following additions are optional:
 - Schema-backed Record and HashMap child fields can use [`makeMapBinding` from `foldkit/mapBinding`](/core/block#keyed-map-fields), removing repeated lookup and replacement configuration. Existing general keyed Bindings remain supported for custom relationships.
 - A closed, fully attached ManagedResource registry supplies its handler recipes through [managedResources.layer](/core/managed-resources), matching Subscriptions. Empty registries supply `Layer.empty`; mixed attached/host-owned registries require explicit provider selection.
 - Story and Scene helpers can inspect captured Command arguments through [Command.argsOf](/testing/story#inspect-captured-command-arguments), matching the original Definition's source identity without changing the pending Command or selecting an occurrence.
+- Parent Stories can wrap a child fact with [toParentMessage from foldkit/test](/testing#send-a-child-fact-without-a-view), using the exact Binding without view setup or fabricated envelope fields. Existing Command and Subscription replay paths remain appropriate for their respective sources.
 
 The new Workspace example demonstrates a larger application, and named public UI Block headers improve declaration serialization. Those changes do not require a new application architecture. Applications with public declaration output should still [verify their own emission](#emit-public-block-declarations); a successful application source check alone does not establish declaration portability.
 
@@ -85,6 +88,8 @@ The checked preparation and assembly boundary below is required for every source
 Popover, Menu, and Listbox report trigger clicks as `ClickedButton`. Include that fact in exhaustive component Message matchers and update Scene expectations that previously expected an open or close Message from a trigger click. The component's update decides whether to open or close from its current Model. Parent coordination uses Binding operations and OutMessage policies.
 
 For a Popover with the default focus policy, use `Scene.focusLeave(panel)` instead of `Scene.blur(panel)` when testing dismissal as focus leaves the panel. Moving focus between the panel and its descendants keeps it open. With `contentFocus: true`, the application owns focus and dismissal.
+
+Optional `makeVariantBinding` from `foldkit/variantBinding` replaces manual accessors when a child occupies one complete tagged member of the parent `Schema.Union`. Include the actual child Model Schema in that union. Parent update still owns variant switches and explicit initialization. See [whole tagged variants](/core/block#whole-tagged-variants).
 
 ## Update the Application Boundary
 

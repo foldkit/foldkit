@@ -118,6 +118,11 @@ export const registerGeneratedDelivery = (
   generatedDeliveries.set(binding, envelope)
 }
 
+/** @internal Reads the exact generated envelope Codec retained by a Binding. */
+export const generatedEnvelopeSchemaOf = (
+  binding: object,
+): Schema.Top | undefined => generatedDeliveries.get(binding)
+
 /** @internal Reads generated origin metadata without trusting a Message's shape. */
 export const generatedDeliveryOf = (
   binding: object,

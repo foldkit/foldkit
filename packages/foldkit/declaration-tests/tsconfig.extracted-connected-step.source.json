@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "paths": {
+      "foldkit": ["../src/index.ts"],
+      "foldkit/struct": ["../src/struct/public.ts"]
+    }
+  },
+  "include": [
+    "../src/vite-env.d.ts",
+    "extracted-connected-step.accepted.ts",
+    "extracted-connected-step.rejected.ts",
+    "extracted-connected-step.consume.ts"
+  ]
+}

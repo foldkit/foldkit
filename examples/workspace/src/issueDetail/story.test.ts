@@ -9,6 +9,7 @@ import {
   story,
 } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
+import { toParentMessage } from 'foldkit/test'
 import { describe, expect, test } from 'vitest'
 
 import { Comment, RetainedIssueDraft, initialSnapshot } from '../domain'
@@ -16,7 +17,7 @@ import { WorkspaceListboxBlock } from '../listbox'
 import { RepositoryError } from '../repository'
 import { SaveIssue } from './command'
 import { AssigneeBinding } from './composition'
-import { Message, Model, OutMessage, SaveState } from './definition'
+import { Message, OutMessage, SaveState } from './definition'
 import { draftFromIssue, revisionFromIssue } from './draft'
 import { init } from './init'
 import { update } from './update'
@@ -48,23 +49,12 @@ const commentedIssue = modifyFields(issue, {
 
 describe('Issue Detail', () => {
   test('ignores a malformed assignee selection without clearing the current assignee', () => {
-    const assigneeView = AssigneeBinding.embedView({
-      slotId: initialModel.assigneeListbox.id,
-      model: initialModel.assigneeListbox,
-      viewInputs: {
-        items: [],
-        itemToValue: option => option.value,
-        itemToConfig: () => ({ content: null }),
-        buttonContent: null,
-        maybeSelectedValue: Option.none(),
-      },
-    })
-
     story(
       update,
       given(initialModel),
       message(
-        assigneeView.toParentMessage(
+        toParentMessage(
+          AssigneeBinding,
           WorkspaceListboxBlock.Message.RequestedSelectItem({
             item: 'not-an-assignee-selection',
           }),
@@ -286,15 +276,18 @@ describe('Issue Detail', () => {
       comments: () => commented.comments,
     })
 
-    const pending = Model.make({
-      ...initialModel,
-      draft: editedDraft,
-      saveState: SaveState.Saving({ expectedVersion: issue.version }),
-    })
-
     story(
       update,
-      given(pending),
+      given(initialModel),
+      message(Message.UpdatedTitle({ value: editedTitle })),
+      message(Message.RequestedSave()),
+      Command.expectExact(
+        SaveIssue({
+          issueId: issue.id,
+          draft: editedDraft,
+          expectedVersion: issue.version,
+        }),
+      ),
       message(Message.InformedOfIssueChange({ issue: commented })),
       model(model => {
         expect(model.baseline).toEqual(revisionFromIssue(issue))
@@ -304,7 +297,15 @@ describe('Issue Detail', () => {
           SaveState.Saving({ expectedVersion: issue.version }),
         )
       }),
-      message(
+      Command.expectExact(
+        SaveIssue({
+          issueId: issue.id,
+          draft: editedDraft,
+          expectedVersion: issue.version,
+        }),
+      ),
+      Command.resolve(
+        SaveIssue,
         Message.SucceededSaveIssue({
           issue: saved,
           expectedVersion: issue.version,

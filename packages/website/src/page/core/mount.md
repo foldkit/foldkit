@@ -198,6 +198,8 @@ The Composition derives its builder type from the complete Mount collection, and
 
 Let TypeScript infer `mounts` arrays and composed spreads. Widening the array to `ReadonlyArray<Mount.LayeredMountDefinition>` discards the contracts required for registration checking, so application assembly rejects it. Forwarded attribute arrays preserve the same evidence: use `Attribute<Message, RequiredMounts>` or `ChildAttribute<RequiredMounts>` when an explicit annotation is necessary. `childAttributes` infers those requirements from its input, and `CustomElement.withMessage(h)` retains the builder's allowed Mounts.
 
+A name-preserving annotation such as `ReadonlyArray<Mount.LayeredMountDefinition<Name, Message>>` still erases the per-instance args to `any`. Composition construction does not reliably reject that annotated union. Keep the actual Definitions inferred instead of annotating a registry with that broad alias. This is an explicit type-erasure limit; ordinary inferred registry and Mount invocation checks remain.
+
 ### Names and Runtime Identity
 
 Name the Mount for the imperative work attached to the element, using a verb-first name such as `MeasurePanel`, `AnchorPopover`, or `PortalMenuBackdrop`. Compose `MeasurePanel.layer` directly in the feature's `EffectsLayer` export. Name an individual provider `MeasurePanelLayer` only when it is intentionally public or independently reused outside that bundle's assembly.
