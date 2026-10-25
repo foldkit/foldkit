@@ -16,6 +16,7 @@ export const filterAndSortIssues = (
   issues: ReadonlyArray<typeof Issue.Type>,
 ) => {
   const query = filters.query.toLowerCase().trim()
+
   const filtered = Array.filter(
     issues,
     issue =>
@@ -25,6 +26,7 @@ export const filterAndSortIssues = (
         onSome: status => issue.status === status,
       }),
   )
+
   return Array.sort(
     filtered,
     filters.sort === 'Priority'

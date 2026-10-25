@@ -161,23 +161,27 @@ export const issuesRouter = pipe(
   Route.query(issueFiltersFromQuery),
   Route.mapTo(ApplicationRoute.Issues),
 )
+
 export const projectRouter = pipe(
   literal('projects'),
   slash(string('projectId')),
   Route.query(issueFiltersFromQuery),
   Route.mapTo(ApplicationRoute.Project),
 )
+
 export const issueRouter = pipe(
   literal('issues'),
   slash(string('issueId')),
   Route.query(issueReturnToFromQuery),
   Route.mapTo(ApplicationRoute.Issue),
 )
+
 export const myIssuesRouter = pipe(
   literal('my-issues'),
   Route.query(issueFiltersFromQuery),
   Route.mapTo(ApplicationRoute.MyIssues),
 )
+
 export const savedViewRouter = pipe(
   literal('views'),
   slash(string('viewId')),
@@ -189,22 +193,26 @@ export const peopleRouter = pipe(
   literal('people'),
   Route.mapTo(ApplicationRoute.People),
 )
+
 export const settingsRouter = pipe(
   literal('settings'),
   Route.mapTo(ApplicationRoute.Settings),
 )
+
 export const boardRouter = pipe(
   literal('projects'),
   slash(string('projectId')),
   slash(literal('board')),
   Route.mapTo(ApplicationRoute.Board),
 )
+
 export const projectOverviewRouter = pipe(
   literal('projects'),
   slash(string('projectId')),
   slash(literal('overview')),
   Route.mapTo(ApplicationRoute.ProjectOverview),
 )
+
 export const projectSettingsRouter = pipe(
   literal('projects'),
   slash(string('projectId')),

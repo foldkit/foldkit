@@ -117,6 +117,7 @@ const handleSucceededSaveIssue = (
 
   const saved = revisionFromIssue(issue)
   const known = latestRevision(model)
+
   const baseline = known.version > saved.version ? known : saved
 
   return {

@@ -9,6 +9,7 @@ import { view } from './view'
 
 test('discard restores the last saved project fields', () => {
   const project = Option.getOrThrow(Array.head(initialSnapshot.projects))
+
   scene(
     { update, view },
     given(init(project).model),

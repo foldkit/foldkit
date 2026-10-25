@@ -88,6 +88,7 @@ const pageTitle = (
       Array.findFirst(snapshot.projects, project => project.id === projectId),
       { onNone: () => 'Project not found', onSome: project => project.name },
     )
+
   return ApplicationRoute.match<string>(route, {
     Issues: () => 'All issues',
     MyIssues: () => 'My issues',
@@ -324,6 +325,7 @@ const issueMoveFeedback = (
         ),
       ],
     )
+
   return IssueMoveState.match(model.issueMoveState, {
     Idle: () => h.empty,
     MovingIssue: () =>
@@ -341,6 +343,7 @@ const workspaceView = (
   const maybeProject = Option.flatMap(maybeProjectId(route), projectId =>
     Array.findFirst(snapshot.projects, project => project.id === projectId),
   )
+
   return h.div(
     [h.Class('min-w-0 flex-1')],
     [
@@ -463,6 +466,7 @@ const overlaysView = (
     onNone: () => [],
     onSome: snapshot => snapshot.projects,
   })
+
   return h.div(
     [],
     [
@@ -490,6 +494,7 @@ const documentTitle = (model: typeof Model.Type): string =>
     onSome: snapshot => {
       if (ApplicationRoute.guards.Issue(model.route)) {
         const issueId = model.route.issueId
+
         return Option.match(
           Array.findFirst(snapshot.issues, issue => issue.id === issueId),
           {
@@ -498,6 +503,7 @@ const documentTitle = (model: typeof Model.Type): string =>
           },
         )
       }
+
       const title = pageTitle(model, snapshot)
 
       return ApplicationRoute.matchOrElse(

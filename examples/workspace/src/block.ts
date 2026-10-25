@@ -8,27 +8,14 @@ import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view/view'
 
-interface ApplicationImplementation {
-  readonly init: typeof init
-  readonly update: typeof update
-  readonly view: typeof view
-  readonly subscriptions: typeof subscriptions
-  readonly EffectsLayer: typeof EffectsLayer
-}
-
-const prepare = (): Block.AssemblyDraft<
-  Block.CompletedWithView<
-    typeof ApplicationComposition,
-    ApplicationImplementation
-  >
-> =>
+const prepare = () =>
   ApplicationComposition.prepareBlock({
     init,
     update,
     view,
     subscriptions,
     EffectsLayer,
-  } satisfies ApplicationImplementation)
+  })
 export const ApplicationBlock: Block.FromAssemblyWithView<
   typeof Model,
   typeof prepare

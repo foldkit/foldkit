@@ -106,6 +106,7 @@ export const view = CommentComposerComposition.makeView.withInputs<
   typeof ViewInputs.Type
 >((model, viewInputs, h) => {
   const textareaId = `issue-${model.issueId}-comment`
+
   const isDraftLocked = !canEditDraft(model)
   const hasBody = String.isNonEmpty(model.body)
 

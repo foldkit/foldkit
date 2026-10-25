@@ -27,6 +27,16 @@ this is not a universal static guarantee after erasure. Publication remains held
 
 ## October 25 candidate verification
 
+The subsequent [Workspace assembly cleanup](workspace-clean-assembly-20261025.md)
+removes its extra implementation interface while retaining actual whole-root
+emission and strict relocation. Framework artifacts are unchanged. The existing
+Binding tuple type is exported for cross-module declaration reuse; `block.ts`
+still exports only the Block. Its 110 declarations now total 12,420,362
+bytes. Three alternating native pairs measure completed-Block post-edit
+completion at 840 ms for the earlier header and 57 ms for ordinary assembly.
+Other workflow ranges overlap, and all five compiler counts remain unchanged.
+The table below retains the earlier candidate's verification scope.
+
 The final framework migration is integrated and independently reviewed. `Composition.makeUpdate` is record-only; all three focused Step helpers take producer callbacks and expose `.fromMessage`; owned all-attached ManagedResource registries expose `.layer`. All examples, Website, Typing Game, UI and scaffolds were inspected for adoption, including working sites eligible for the conveniences. [Adoption and intentional exceptions](preview-api-adoption.md).
 
 | Gate                    | Result                                                                                                                      |

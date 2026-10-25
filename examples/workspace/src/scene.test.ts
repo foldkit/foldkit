@@ -48,10 +48,12 @@ const url = (path: string) =>
 
 const loadedModel = (path = '/') => {
   const applicationInit = init(url(path))
+
   const workspaceLoad = update(
     applicationInit.model,
     Message.SucceededLoadWorkspace({ snapshot: initialSnapshot }),
   )
+
   return workspaceLoad.model
 }
 
@@ -64,7 +66,9 @@ const captureUpdates = () => {
       message: typeof ApplicationComposition.Message.Type,
     ) => {
       const messageUpdate = update(model, message)
+
       models.push(messageUpdate.model)
+
       return messageUpdate
     },
     latestModel: () => Option.getOrThrow(Array.last(models)),
@@ -142,6 +146,7 @@ describe('workspace application', () => {
       title: () => 'Revised after reloading',
       version: version => version + 1,
     })
+
     scene(
       { update, view },
       given(loadedModel(issueUrl)),
@@ -198,6 +203,7 @@ describe('workspace application', () => {
       expect(label('Issue title')).toHaveValue(savedIssue.title),
     )
   })
+
   test('renders the loading and loaded workspace states', () => {
     const applicationInit = init(url('/'))
 
@@ -219,6 +225,7 @@ describe('workspace application', () => {
       ).toExist(),
     )
   })
+
   test('preserves saved filters in an issue return URL without saved view metadata', () => {
     const filters = IssueFilters.make({
       query: 'command',
@@ -234,10 +241,12 @@ describe('workspace application', () => {
     const modelWithPreset = modifyFields(loadedModel(), {
       savedViews: () => [savedView],
     })
+
     const barePresetRoute = update(
       modelWithPreset,
       Message.ChangedUrl({ url: url(`/views/${savedView.id}`) }),
     ).model
+
     const returnTarget = savedViewRouter({
       viewId: savedView.id,
       filters,
@@ -268,6 +277,7 @@ describe('workspace application', () => {
     )
 
     expectValue(appliedIssueFilters(returned.model)).toEqual(filters)
+
     scene(
       { update, view },
       given(returned.model),
@@ -282,11 +292,13 @@ describe('workspace application', () => {
       expect(text('Keep issue drafts when switching projects')).not.toExist(),
     )
   })
+
   test('updates the canonical issue and its list row after saving a draft', () => {
     const savedIssue = modifyFields(firstIssue, {
       title: () => 'Find every project from one command menu',
       version: version => version + 1,
     })
+
     scene(
       { update, view },
       given(loadedModel(issueUrl)),
@@ -313,12 +325,14 @@ describe('workspace application', () => {
       expect(text(`${savedIssue.identifier} saved`)).toExist(),
     )
   })
+
   test('retains the draft after failure and updates the list after a successful retry', () => {
     const savedIssue = modifyFields(firstIssue, {
       title: () => 'Keep the issue draft when a save fails',
       description: () => 'Retry the current draft after the service recovers.',
       version: version => version + 1,
     })
+
     scene(
       { update, view },
       given(loadedModel('/settings')),
@@ -336,6 +350,7 @@ describe('workspace application', () => {
       returnToIssues.model,
       Message.ChangedUrl({ url: url(issueUrl) }),
     )
+
     scene(
       { update, view },
       given(routeChange.model),
@@ -382,6 +397,7 @@ describe('workspace application', () => {
 
   test('announces a failed load and renders the workspace after retrying', () => {
     const applicationInit = init(url('/'))
+
     const workspaceFailure = update(
       applicationInit.model,
       Message.FailedLoadWorkspace({

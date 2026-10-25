@@ -125,6 +125,8 @@ The root follows the same pattern and exports `ApplicationBlock`. `Program.make`
 
 Published packages also need a named declaration boundary: an interface extending the matching checked `FromAssembly*` header, followed by the same-name annotated value. Generic factories can use a named generic completed interface. Verify emitted declarations and external consumption, not only `noEmit`. This prevents repeated declaration expansion; it does not remove every source of TypeScript latency.
 
+If a large Composition needs an exact named Binding tuple for declaration emission, export that type from `composition.ts` so other modules can name it. Keep the feature barrel limited to the completed Block. Check type visibility before adding another implementation inventory to `block.ts`; Workspace retains ordinary assembly through this existing TypeScript boundary. Do not add tuple inventories to ordinary applications without a measured serialization failure.
+
 The parent declares `ParentDefinition.makeBinding(ChildBlock, config)` and registers that Binding in its Composition's `bindings`. Registered Bindings contribute child handlers and lifecycle entries automatically. The parent's authored Message contains local facts only; `Composition.Message` and `ChildBlock.Message` add generated child envelopes. Use those complete contracts for cross-module dispatch types. Do not author `Got*` wrappers or Message mappers, inspect internal child Message tags in parent update, or update child fields directly.
 
 Choose storage from the parent Schema:
@@ -243,6 +245,7 @@ When a Scene emits a Subscription Message, include the owning Composition and re
 - Author updates with exhaustive `makeUpdate` records. Branch on already-typed domain and Route variants through their owning union's guards and exhaustive `match`; use Effect `Match` for partial or grouped matches and unions without a matcher. Reserve Schema decoding or `Schema.is` for actual boundary validation. Never use `switch`.
 - Use `Calendar` for date-only values and Effect `DateTime` / `Duration` for timestamps and elapsed time. Read the current time in a Command, Subscription, or Flags.
 - Always use braces for control flow: `if (foo) { return true }`.
+- Use blank lines to show the phases of non-trivial control flow, and prefer a blank line when uncertain. Separate setup, a value read from the guard that consumes it, independent guards or validation cases, writes, and the final return. In a loop, give each skip, failure, or mutation condition its own visual paragraph. Keep statements together only when they form one operation or one explicit `if`/`else` chain. Preserve the required adjacency of a Composition and its ViewBuilder alias, and of `prepare` and its checked Block export. Formatting alone does not choose these logical boundaries; review them while authoring the code.
 - Don't add inline comments to explain code. Use better names instead. Reserve `// NOTE:` for behavior that would mislead a careful reader.
 
 ## Message Layout

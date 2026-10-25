@@ -118,6 +118,7 @@ const makeWorkspaceRepository = (
 
     const load = Effect.gen(function* () {
       yield* checkAvailability('Load')
+
       return (yield* Ref.get(state)).snapshot
     })
 

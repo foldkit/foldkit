@@ -39,6 +39,7 @@ export const sidebarView = (
 ): Html => {
   const route = backgroundRoute(model)
   const maybeCurrentProjectId = maybeProjectId(route)
+
   return h.aside(
     [
       h.Class(

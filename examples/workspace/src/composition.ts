@@ -253,6 +253,7 @@ export const IssueListBinding = ApplicationDefinition.makeBinding(
           onNone: ApplicationDefinition.makeNoopStep,
           onSome: snapshot => {
             const route = backgroundRoute(model)
+
             const maybeProject = Option.match(maybeProjectId(route), {
               onNone: () => Array.head(snapshot.projects),
               onSome: projectId =>
@@ -261,6 +262,7 @@ export const IssueListBinding = ApplicationDefinition.makeBinding(
                   project => project.id === projectId,
                 ),
             })
+
             return Option.match(maybeProject, {
               onNone: ApplicationDefinition.makeNoopStep,
               onSome: project =>
@@ -312,6 +314,7 @@ export const requestMoveIssue = (
     if (IssueMoveState.guards.MovingIssue(model.issueMoveState)) {
       return { model }
     }
+
     return Option.match(AsyncData.getData(model.workspaceAsyncData), {
       onNone: () => ({ model }),
       onSome: snapshot =>
@@ -418,7 +421,7 @@ export const ProjectSettingsBinding = ApplicationDefinition.makeBinding(
     })(outMessage),
 })
 
-type ApplicationBindings = readonly [
+export type ApplicationBindings = readonly [
   typeof ActiveMemberBinding,
   typeof ProjectSettingsBinding,
   typeof IssueListBinding,

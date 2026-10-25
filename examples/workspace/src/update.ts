@@ -48,7 +48,11 @@ const syncIssuePanel = ApplicationDefinition.makeStep(model => {
       }),
     }
   }
-  const issueId = model.route.issueId
+
+  const {
+    route: { issueId },
+  } = model
+
   if (
     Option.exists(
       model.maybeIssueDetailInstance,
@@ -57,11 +61,13 @@ const syncIssuePanel = ApplicationDefinition.makeStep(model => {
   ) {
     return { model }
   }
+
   const maybeIssue = Option.match(AsyncData.getData(model.workspaceAsyncData), {
     onNone: () => Option.none(),
     onSome: snapshot =>
       Array.findFirst(snapshot.issues, issue => issue.id === issueId),
   })
+
   return Option.match(maybeIssue, {
     onNone: () => ({
       model: modifyFields(model, {
@@ -89,6 +95,7 @@ const syncIssuePanel = ApplicationDefinition.makeStep(model => {
 
 const syncProjectBoard = ApplicationDefinition.makeStep(model => {
   const route = backgroundRoute(model)
+
   const maybeProject = Option.match(
     AsyncData.getData(model.workspaceAsyncData),
     {
@@ -102,6 +109,7 @@ const syncProjectBoard = ApplicationDefinition.makeStep(model => {
           : Option.none(),
     },
   )
+
   return Option.match(maybeProject, {
     onNone: () => ({
       model: modifyFields(model, { maybeBoardInstance: () => Option.none() }),
@@ -115,6 +123,7 @@ const syncProjectBoard = ApplicationDefinition.makeStep(model => {
       ) {
         return { model }
       }
+
       return IssueBoardBinding.init({
         key: project.id,
         args: [],
@@ -238,6 +247,7 @@ const informOpenIssue = ApplicationDefinition.makeStep(model => {
   }
 
   const issues = maybeSnapshot.value.issues
+
   return Option.match(
     Option.flatMap(model.maybeIssueDetailInstance, instance =>
       Array.findFirst(issues, issue => issue.id === instance.issueId),
@@ -302,14 +312,14 @@ const informBoardMoveFailure = (issueId: string) =>
     ),
   )
 
-const keepModel = ApplicationDefinition.makeNoopStep()
+const noop = ApplicationDefinition.makeNoopStep()
 
 const navigateInternal = (url: string) =>
   ApplicationDefinition.makeCommandsStep(() => [NavigateInternal({ url })])
 
 const handleClickedRetryLoad = ApplicationDefinition.makeStep(model =>
   Option.match(AsyncData.revalidateOrLoad(model.workspaceAsyncData), {
-    onNone: () => keepModel(model),
+    onNone: () => noop(model),
     onSome: workspaceAsyncData => ({
       model: modifyFields(model, {
         workspaceAsyncData: () => workspaceAsyncData,
@@ -327,9 +337,11 @@ const handleClickedDeleteSavedView = (
   const isDeletingCurrentView =
     ApplicationRoute.guards.SavedView(currentPageRoute) &&
     currentPageRoute.viewId === viewId
+
   const nextIssueCloseRoute = ApplicationRoute.Issues({
     filters: appliedIssueFilters(model),
   })
+
   const deletedModel = modifyFields(model, {
     savedViews: Array.filter(saved => saved.id !== viewId),
     issueCloseRoute: previous =>
@@ -359,6 +371,7 @@ export const update = ApplicationComposition.makeUpdate({
     }),
   ChangedUrl: (model, { url }) => {
     const nextRoute = urlToApplicationRoute(url)
+
     return Update.combineSteps(model, [
       ApplicationDefinition.makeFieldsStep(() => ({
         route: () => nextRoute,
@@ -371,9 +384,9 @@ export const update = ApplicationComposition.makeUpdate({
       syncProjectBoard,
     ])
   },
-  CompletedNavigateInternal: keepModel,
-  CompletedLoadExternal: keepModel,
-  CompletedReplaceFilters: keepModel,
+  CompletedNavigateInternal: noop,
+  CompletedLoadExternal: noop,
+  CompletedReplaceFilters: noop,
   SucceededLoadWorkspace: (model, { snapshot }) =>
     Update.combineSteps(model, [
       applySnapshot(snapshot),
@@ -468,6 +481,7 @@ export const update = ApplicationComposition.makeUpdate({
           error: error.message,
         }),
     }))
+
     return RepositoryError.guards.Conflict(error)
       ? Update.combineSteps(model, [
           rollbackMove(issueId),
@@ -483,8 +497,8 @@ export const update = ApplicationComposition.makeUpdate({
   },
   ClickedRetryMove: model =>
     IssueMoveState.match(model.issueMoveState, {
-      Idle: () => keepModel(model),
-      MovingIssue: () => keepModel(model),
+      Idle: () => noop(model),
+      MovingIssue: () => noop(model),
       FailedMove: ({ issueId, status, insertionIndex }) =>
         requestMoveIssue(issueId, status, insertionIndex)(model),
     }),

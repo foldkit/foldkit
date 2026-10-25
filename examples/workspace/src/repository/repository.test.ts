@@ -33,6 +33,7 @@ describe('WorkspaceRepository', () => {
     const snapshot = await Effect.runPromise(
       Effect.gen(function* () {
         const repository = yield* WorkspaceRepository
+
         return yield* repository.load
       }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
     )
@@ -50,6 +51,7 @@ describe('WorkspaceRepository', () => {
           status: 'Done',
           maybeAssigneeId: Option.none(),
         })
+
         const saved = yield* repository.saveIssue({
           issueId: firstIssue.id,
           draft,
@@ -139,6 +141,7 @@ describe('WorkspaceRepository', () => {
           }),
           expectedVersion: firstIssue.version,
         }
+
         const saved = yield* repository.saveIssue(input)
         const staleSave = yield* Effect.result(
           repository.saveIssue({
@@ -302,6 +305,7 @@ describe('WorkspaceRepository', () => {
     const RepositoryLayer = makeWorkspaceRepositoryLayer({ latency: 0 })
     const write = Effect.gen(function* () {
       const repository = yield* WorkspaceRepository
+
       return yield* repository.createIssue(toDraft(firstIssue))
     })
 
@@ -569,6 +573,7 @@ describe('WorkspaceRepository', () => {
           name: 'Core Platform',
           description: 'Reliable foundations for every team.',
         })
+
         const saved = yield* repository.saveProject(project)
         const snapshot = yield* repository.load
 

@@ -72,29 +72,39 @@ import { update } from './update'
 
 const issueA = Option.getOrThrow(Array.head(initialSnapshot.issues))
 const issueB = Option.getOrThrow(Array.get(initialSnapshot.issues, 1))
+
 const url = (path: string) =>
   Option.getOrThrow(Url.fromString(`https://workspace.test${path}`))
+
 const issueUrl = (issueId: string) => url(issueRouter({ issueId }))
+
 const loadedModel = (path = '/') => {
   const applicationInit = init(url(path))
+
   const workspaceLoad = update(
     applicationInit.model,
     Message.SucceededLoadWorkspace({ snapshot: initialSnapshot }),
   )
+
   return workspaceLoad.model
 }
+
 const detailInstance = (model: typeof Model.Type) =>
   Option.getOrThrow(model.maybeIssueDetailInstance)
+
 const detailMessage = (
   model: typeof Model.Type,
   message: typeof IssueDetailBlock.Message.Type,
 ) => {
   const instance = detailInstance(model)
+
   return toParentMessage(IssueDetailBinding, instance.issueId, message)
 }
+
 describe('workspace navigation', () => {
   test('navigates to a project and returns there after closing an issue', () => {
     const projectPath = projectRouter({ projectId: issueB.projectId })
+
     story(
       update,
       given(loadedModel()),
@@ -116,11 +126,14 @@ describe('workspace navigation', () => {
         expect(detailInstance(model).issueId).toBe(issueB.id)
       }),
     )
+
     const projectModel = loadedModel(projectPath)
+
     const issueOpen = update(
       projectModel,
       Message.ChangedUrl({ url: issueUrl(issueB.id) }),
     )
+
     story(
       update,
       given(issueOpen.model),
@@ -138,6 +151,7 @@ describe('workspace navigation', () => {
       }),
     )
   })
+
   test('removes the editor when leaving the issue route', () => {
     story(
       update,
@@ -188,6 +202,7 @@ describe('workspace notifications', () => {
     const commentedIssue = modifyFields(issueA, {
       comments: Array.append(comment),
     })
+
     const staleComment = Comment.make({
       id: 'stale-comment',
       authorId: 'jordan',
@@ -238,12 +253,14 @@ describe('workspace notifications', () => {
           }),
           expect.objectContaining({ id: notificationId, isRead: true }),
         ])
+
         const canonicalIssue = Option.getOrThrow(
           Array.findFirst(
             snapshotOf(model).issues,
             issue => issue.id === issueA.id,
           ),
         )
+
         expect(canonicalIssue).toEqual(mergeIssue(commentedIssue, staleIssue))
         expect(canonicalIssue.comments).toContainEqual(staleComment)
       }),
@@ -731,6 +748,7 @@ describe('Application child policies', () => {
       ),
       model(model => {
         expect(model.savedViews).toEqual([])
+
         expect(model.route).toEqual(
           ApplicationRoute.Issue({
             issueId: 'issue-102',
@@ -757,6 +775,7 @@ describe('Application child policies', () => {
     const savedProject = modifyFields(project, {
       name: () => 'Platform engineering',
     })
+
     story(
       update,
       given(initial),
@@ -1028,6 +1047,7 @@ describe('Issue drafts', () => {
         expect(detail.maybeIncomingRevision).toEqual(Option.none())
         expect(detail.saveState._tag).toBe('Idle')
         expect(detail.commentComposer.body).toBe('')
+
         expect(retained.baseline).toEqual(revisionFromIssue(issueWithComment))
         expect(retained.draft.title).toBe(editedTitle)
         expect(retained.commentBody).toBe('')
@@ -1051,6 +1071,7 @@ describe('Issue drafts', () => {
     const commentedIssue = modifyFields(savedIssue, {
       comments: Array.append(savedComment),
     })
+
     const pending = modifyFields(initial, {
       maybeIssueDetailInstance: Option.map(instance =>
         modifyFields(instance, {
@@ -1115,6 +1136,7 @@ describe('Issue drafts', () => {
         expect(detail.draft).toEqual(draftFromIssue(commentedIssue))
         expect(detail.saveState._tag).toBe('Idle')
         expect(detail.commentComposer.body).toBe('')
+
         expect(canonicalIssue(model)).toEqual(commentedIssue)
         expect(model.issueDrafts).toEqual([])
       }),
@@ -1132,6 +1154,7 @@ describe('Issue drafts', () => {
     const latestIssue = modifyFields(issueA, {
       comments: Array.append(activityComment),
     })
+
     const postedComment = Comment.make({
       id: 'comment-older-response',
       authorId: initial.activeMemberId,
@@ -1141,6 +1164,7 @@ describe('Issue drafts', () => {
     const olderCommentIssue = modifyFields(issueA, {
       comments: Array.append(postedComment),
     })
+
     const pending = modifyFields(initial, {
       maybeIssueDetailInstance: Option.map(instance =>
         modifyFields(instance, {
@@ -1182,6 +1206,7 @@ describe('Issue drafts', () => {
         expect(detail.baseline).toEqual(revisionFromIssue(latestIssue))
         expect(detail.draft).toEqual(draftFromIssue(latestIssue))
         expect(detail.commentComposer.body).toBe('')
+
         expect(canonicalIssue(model)).toEqual(
           mergeIssue(latestIssue, olderCommentIssue),
         )
@@ -1214,6 +1239,7 @@ describe('Issue drafts', () => {
         expect(detail.draft).toEqual(draftFromIssue(observedIssue))
         expect(detail.maybeIncomingRevision).toEqual(Option.none())
         expect(detail.commentComposer.body).toBe(commentBody)
+
         expect(retainedDraft(model)).toEqual(
           RetainedIssueDraft.make({
             issueId: observedIssue.id,
@@ -1261,6 +1287,7 @@ describe('Issue drafts', () => {
         expect(detail.draft.title).toBe(editedTitle)
         expect(detail.maybeIncomingRevision).toEqual(Option.none())
         expect(detail.saveState._tag).toBe('Idle')
+
         expect(retained.baseline).toEqual(revisionFromIssue(observedIssue))
         expect(retained.draft.title).toBe(editedTitle)
       }),
@@ -1278,6 +1305,7 @@ describe('Issue drafts', () => {
     const commentedIssue = modifyFields(issueA, {
       comments: Array.append(activityComment),
     })
+
     const renamedIssue = modifyFields(issueA, {
       title: () => 'Canonical title changed while the editor was closed',
       version: version => version + 1,
@@ -1367,6 +1395,7 @@ describe('Issue drafts', () => {
 
         expect(detail.draft).toEqual(draftFromIssue(issueA))
         expect(detail.commentComposer.body).toBe(commentBody)
+
         expect(retainedDraft(model)).toEqual(
           RetainedIssueDraft.make({
             issueId: issueA.id,
@@ -1392,6 +1421,7 @@ describe('Issue drafts', () => {
         expect(detail.draft).toEqual(draftFromIssue(newerIssue))
         expect(detail.commentComposer.body).toBe(commentBody)
         expect(detail.maybeIncomingRevision).toEqual(Option.none())
+
         expect(retainedDraft(model)).toEqual(
           RetainedIssueDraft.make({
             issueId: newerIssue.id,
@@ -1485,6 +1515,7 @@ describe('Board moves', () => {
       comments: Array.append(teammateComment),
     })
     const itemId = draggableId(issue.id)
+
     const childMessage = (message: typeof DragAndDropBlock.Message.Type) =>
       toParentMessage(
         IssueBoardBinding,
@@ -1521,6 +1552,7 @@ describe('Board moves', () => {
       DragAndDrop.test.settleFocus({ binding: DragAndDropBinding, itemId }),
       model(model => {
         expect(issueOf(model, issue.id).status).toBe('Done')
+
         expect(
           Option.getOrThrow(model.maybeBoardInstance).model.announcement,
         ).toBe('Moved to Done, position 1.')
@@ -1565,6 +1597,7 @@ describe('Board moves', () => {
         expect(issueOf(model, issue.id).comments).toContainEqual(
           teammateComment,
         )
+
         expect(
           Option.getOrThrow(model.maybeBoardInstance).model.announcement,
         ).toBe('Could not save the move. Issue position restored.')
@@ -1728,6 +1761,7 @@ describe('when refreshing the workspace with an unsaved issue draft', () => {
       model(model => {
         expect(model.workspaceAsyncData._tag).toBe('Refreshing')
         expect(snapshotOf(model).issues).toContainEqual(issueA)
+
         expect(detailInstance(model).model.draft.title).toBe(title)
       }),
       Command.resolve(LoadWorkspace, Message.FailedLoadWorkspace({ error })),
@@ -1737,6 +1771,7 @@ describe('when refreshing the workspace with an unsaved issue draft', () => {
           Option.some(error),
         )
         expect(snapshotOf(model).issues).toContainEqual(issueA)
+
         expect(detailInstance(model).model.draft.title).toBe(title)
         expect(detailInstance(model).model.maybeIncomingRevision).toEqual(
           Option.none(),
@@ -1777,6 +1812,7 @@ describe('when refreshing the workspace with an unsaved issue draft', () => {
       model(model => {
         expect(model.workspaceAsyncData._tag).toBe('Success')
         expect(snapshotOf(model).issues).toContainEqual(latestIssue)
+
         expect(detailInstance(model).model.draft.title).toBe(title)
         expect(detailInstance(model).model.maybeIncomingRevision).toEqual(
           Option.some(revisionFromIssue(latestIssue)),

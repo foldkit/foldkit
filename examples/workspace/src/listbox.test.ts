@@ -17,6 +17,7 @@ describe('Workspace Listbox types', () => {
       { value: 'Todo', label: 'Todo' },
       { value: 'Done', label: 'Done' },
     ]
+
     const viewInputs = listboxViewInputs({ value: 'Todo', options })
 
     expectTypeOf(viewInputs).toExtend<
@@ -34,6 +35,7 @@ describe('Workspace Listbox types', () => {
     expectTypeOf(
       PriorityListboxBlock.OutMessage.Selected({ value: 'High' }).value,
     ).toEqualTypeOf<typeof IssuePriority.Type>()
+
     expect(viewInputs.maybeSelectedValue).toEqual(Option.some('Todo'))
   })
 })
@@ -44,8 +46,10 @@ if (false) {
 
   // @ts-expect-error Status operations retain the domain value type.
   StatusListboxBlock.operations.requestSelectItem(statusInit.model, 'Blocked')
+
   // @ts-expect-error Priority operations reject status values.
   PriorityListboxBlock.operations.requestSelectItem(priorityInit.model, 'Done')
+
   const acceptStatusView = (
     inputs: Listbox.ViewInputs<
       typeof StatusListboxOption.Type,

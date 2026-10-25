@@ -2,7 +2,7 @@
 
 ## Status
 
-The first October 25 candidate is committed and pushed to the development branch `codex/workspace-example` at `679d2d5e7f`. Subsequent testing and storage followups are being verified below. Publication is held for your approval. The current published preview remains `1f6776fa7ece`; release integration and main have not been updated.
+The framework, testing and storage followups are committed and pushed to the development branch `codex/workspace-example` at `23f4bd93e5`. The subsequent Workspace readability and assembly cleanup is verified below. Publication is held for your approval. The current published preview remains `1f6776fa7ece`; release integration and main have not been updated.
 
 ## Public API changes since that preview
 
@@ -20,6 +20,8 @@ The first October 25 candidate is committed and pushed to the development branch
 Handle DragAndDrop’s new `StartedKeyboardDrag` and `ChangedKeyboardTarget` OutMessages in exhaustive policies. Keep complete connected results: a handler mixing raw local branches with connected recipes needs Definition-owned local Steps. Ordinary cohesive raw handlers can return results directly. Silent operations now retain their own per-Message channels rather than inheriting unrelated OutMessages.
 
 The checked `prepareBlock` / `Block.assemble` / `FromAssembly*` pattern, completed-only feature exports, `Program.make`, and ordinary factory names were already in the published preview. They have not been renamed again.
+
+Workspace's extra implementation interface and nested producer annotation are removed. Exporting the existing exact Binding tuple type lets ordinary Website-style root assembly emit and relocate without framework changes. The tuple inventory remains; declarations are larger. Three alternating native pairs improve completed-Block post-edit completion from 840 to 57 ms while other workflow ranges overlap. All five compiler counts are unchanged. [Current cleanup, proof and limits](workspace-clean-assembly-20261025.md).
 
 ## Other improvements
 

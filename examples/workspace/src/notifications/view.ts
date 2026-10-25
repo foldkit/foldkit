@@ -76,10 +76,12 @@ const notificationView = (
     viewInputs.members,
     member => member.id === notification.actorId,
   )
+
   const maybeIssue = Array.findFirst(
     viewInputs.issues,
     issue => issue.id === notification.issueId,
   )
+
   const actorName = Option.match(maybeActor, {
     onNone: () => 'Someone',
     onSome: member => member.name,
@@ -88,6 +90,7 @@ const notificationView = (
     onNone: () => '?',
     onSome: member => member.initials,
   })
+
   const issueIdentifier = Option.match(maybeIssue, {
     onNone: () => notification.issueId,
     onSome: issue => issue.identifier,
@@ -96,6 +99,7 @@ const notificationView = (
     onNone: () => 'Issue',
     onSome: issue => issue.title,
   })
+
   const copy = NotificationKind.match(notification.kind, {
     Commented: ({ body }) => ({
       event: 'commented on',
@@ -103,6 +107,7 @@ const notificationView = (
     }),
     Assigned: () => ({ event: 'assigned you to', body: Option.none() }),
   })
+
   const readStateAction = `${notification.isRead ? 'Mark as unread' : 'Mark as read'}: ${issueIdentifier}`
 
   return h.keyed('li')(
@@ -228,10 +233,12 @@ export const view = NotificationCenterComposition.makeView.withInputs<
     model.notifications,
     notification => notification.recipientId === viewInputs.activeMemberId,
   )
+
   const unreadCount = Array.filter(
     visibleNotifications,
     notification => !notification.isRead,
   ).length
+
   const unreadDescription =
     unreadCount === 1
       ? '1 unread notification'

@@ -18,6 +18,7 @@ import { update } from './update'
 describe('CommandPaletteBlock', () => {
   test('initializes closed and resets its search when the user closes it', () => {
     const paletteInit = CommandPaletteBlock.init()
+
     expect(paletteInit.model.dialog.isOpen).toBe(false)
 
     story(

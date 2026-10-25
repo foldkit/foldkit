@@ -24,6 +24,7 @@ const maybeMoveFromDrop = (
 
   return Option.gen(function* () {
     const issueId = yield* maybeIssueIdFromDraggableId(reordered.itemId)
+
     const status = yield* maybeStatusFromContainerId(reordered.toContainerId)
 
     return OutMessage.RequestedMove({

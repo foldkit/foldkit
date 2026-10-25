@@ -105,10 +105,13 @@ const issueCard = (
 ): Html => {
   const isSaving = inputs.isSaving ?? false
   const isDisabled = isSaving || isDragging(model.dragAndDrop)
+
   const maybeHref = Option.fromNullishOr(inputs.issueHrefs[issue.id])
+
   const maybeAssignee = Option.flatMap(issue.maybeAssigneeId, memberId =>
     Array.findFirst(inputs.members, member => member.id === memberId),
   )
+
   const isKeyboardDragged =
     DragState.guards.KeyboardDragging(model.dragAndDrop.dragState) &&
     model.dragAndDrop.dragState.itemId === draggableId(issue.id)
@@ -192,13 +195,16 @@ const columnCards = (
   }
 
   const maybeDragged = maybeDraggedIssue(model, inputs)
+
   const visibleIssues = Array.filter(
     issues,
     issue => !Option.exists(maybeDragged, dragged => dragged.id === issue.id),
   )
+
   const cards = Array.map(visibleIssues, (issue, index) =>
     issueCard(model, issue, status, index, inputs, dragAndDrop, h),
   )
+
   const maybeTarget = Option.filter(
     maybeDropTarget(model.dragAndDrop),
     target => target.containerId === containerId(status),
@@ -208,6 +214,7 @@ const columnCards = (
     onNone: () => cards,
     onSome: target => {
       const insertionIndex = Math.max(0, Math.min(target.index, cards.length))
+
       const preview = DragState.guards.KeyboardDragging(
         model.dragAndDrop.dragState,
       )
@@ -254,7 +261,9 @@ const column = (
   h: IssueBoardViewBuilder,
 ): Html => {
   const issues = Array.filter(inputs.issues, issue => issue.status === status)
+
   const isDisabled = (inputs.isSaving ?? false) || isDragging(model.dragAndDrop)
+
   const isTarget = Option.exists(
     maybeDropTarget(model.dragAndDrop),
     target => target.containerId === containerId(status),

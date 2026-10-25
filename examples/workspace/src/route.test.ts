@@ -43,7 +43,9 @@ describe('workspace list routes', () => {
     expect(path).toBe(
       '/?search=cache+%26+routing&status=Todo&sort=Priority&group=Status',
     )
+
     const route = urlToApplicationRoute(url(path))
+
     expect(route).toEqual(ApplicationRoute.Issues({ filters: filtered }))
     expect(routeFilters(route)).toEqual(Option.some(filtered))
     expect(routeToPath(route)).toBe(path)
@@ -61,6 +63,7 @@ describe('workspace list routes', () => {
       '/projects/platform?search=cache+%26+routing&status=Todo&sort=Priority&group=Status',
       '/views/mine?search=cache+%26+routing&status=Todo&sort=Priority&group=Status',
     ])
+
     for (const path of paths) {
       expect(routeFilters(urlToApplicationRoute(url(path)))).toEqual(
         Option.some(filtered),
@@ -110,7 +113,9 @@ describe('workspace list routes', () => {
     ).toEqual(
       ApplicationRoute.Project({ projectId: 'platform', filters: filtered }),
     )
+
     const board = ApplicationRoute.Board({ projectId: 'platform' })
+
     expect(withRouteFilters(board, filtered)).toBe(board)
   })
 })
@@ -123,13 +128,17 @@ describe('Issue return context', () => {
     expect(path).toBe(
       '/issues/issue-101?returnTo=%2Fprojects%2Fplatform%3Fsearch%3Dcache%2B%2526%2Brouting%26status%3DTodo%26sort%3DPriority%26group%3DStatus',
     )
+
     const route = urlToApplicationRoute(url(path))
+
     expect(route).toEqual(
       ApplicationRoute.Issue({ issueId: 'issue-101', returnTo }),
     )
+
     if (!ApplicationRoute.guards.Issue(route)) {
       throw new Error('Expected an Issue route')
     }
+
     expect(maybeIssueCloseRoute(route)).toEqual(
       Option.some(
         ApplicationRoute.Project({ projectId: 'platform', filters: filtered }),

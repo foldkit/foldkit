@@ -23,6 +23,7 @@ const MemberDirectoryDefinition = Block.makeDefinition('MemberDirectory', {
   Model,
   Message,
 })
+
 const MemberDirectoryComposition = MemberDirectoryDefinition.makeComposition()
 type MemberDirectoryViewBuilder = Block.ViewBuilderFor<
   typeof MemberDirectoryComposition
@@ -70,6 +71,7 @@ const memberCard = (
   h: MemberDirectoryViewBuilder,
 ): Html => {
   const assigned = assignedIssues(member.id, issues)
+
   const isSelected = Option.contains(model.maybeSelectedMemberId, member.id)
 
   return h.keyed('li')(
@@ -245,9 +247,11 @@ export const view = MemberDirectoryComposition.makeView.withInputs<
   typeof ViewInputs.Type
 >((model, viewInputs, h) => {
   const searchText = model.query.trim().toLowerCase()
+
   const members = Array.filter(viewInputs.members, member =>
     `${member.name} ${member.initials}`.toLowerCase().includes(searchText),
   )
+
   const maybeSelectedMember = Option.flatMap(
     model.maybeSelectedMemberId,
     memberId =>

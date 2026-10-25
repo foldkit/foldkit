@@ -142,6 +142,7 @@ export const AssignIssue = ApplicationDefinition.makeCommand('AssignIssue', {
     return args =>
       Effect.gen(function* () {
         const issue = yield* repository.saveIssue(args)
+
         const createdAt = DateTime.formatIso(
           DateTime.makeUnsafe(yield* clock.currentTimeMillis),
         )

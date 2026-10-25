@@ -61,6 +61,7 @@ const selectResult = (
   }
 
   const dialogClose = closeDialog(model)
+
   const outMessage = ResultTarget.match(target, {
     Issue: ({ issueId }) => OutMessage.SelectedIssue({ issueId }),
     Project: ({ projectId }) => OutMessage.SelectedProject({ projectId }),

@@ -14,6 +14,7 @@ const handleInformedOfActivity =
           makeNotifications(activity),
           (left, right) => left.id === right.id,
         )
+
         const unseen = Array.filter(
           incoming,
           notification =>

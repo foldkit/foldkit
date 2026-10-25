@@ -159,10 +159,12 @@ const properties = (
   h: IssueDetailViewBuilder,
 ): Html => {
   const isSaving = SaveState.guards.Saving(model.saveState)
+
   const projectOptions = Array.map(viewInputs.projects, project => ({
     value: project.id,
     label: project.name,
   }))
+
   const assigneeOptions = [
     { value: assigneeValue(Option.none()), label: 'Unassigned' },
     ...Array.map(viewInputs.members, member => ({

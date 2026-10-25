@@ -15,6 +15,12 @@ Depth lives in these places:
 
 Read those when a rule needs context.
 
+Before writing or reviewing Foldkit application code in `examples/`,
+`packages/website/`, or `packages/typing-game/`, read the scaffold's
+[`FOLDKIT.md`](packages/create-foldkit-app/templates/base/FOLDKIT.md). Apply its
+consumer conventions alongside this repository's rules. Read an application's
+own `FOLDKIT.md` as well when one is present.
+
 ## Project Conventions
 
 - "Foldkit" is always capitalized in prose. The only exception is the npm package name (`foldkit`) and import paths.

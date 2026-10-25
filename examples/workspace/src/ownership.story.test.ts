@@ -18,12 +18,15 @@ import { update } from './update'
 
 const url = (path: string) =>
   Option.getOrThrow(Url.fromString(`https://workspace.test${path}`))
+
 const loadedModel = () =>
   update(
     init(url('/projects/platform/settings')).model,
     Message.SucceededLoadWorkspace({ snapshot: initialSnapshot }),
   ).model
+
 const project = Option.getOrThrow(Array.head(initialSnapshot.projects))
+
 const settingsView = (model: typeof Model.Type, projectId = 'platform') => {
   const instance = Option.getOrThrow(
     Array.findFirst(
@@ -31,12 +34,14 @@ const settingsView = (model: typeof Model.Type, projectId = 'platform') => {
       instance => instance.projectId === projectId,
     ),
   )
+
   return ProjectSettingsBinding.embedView({
     key: projectId,
     slotId: `project-settings-${projectId}`,
     model: instance.model,
   })
 }
+
 const settingsModel = (model: typeof Model.Type, projectId = 'platform') =>
   Option.getOrThrow(
     Array.findFirst(
@@ -48,6 +53,7 @@ const settingsModel = (model: typeof Model.Type, projectId = 'platform') =>
 describe('workspace ownership', () => {
   test('preserves project edits when the current URL is delivered again', () => {
     const initial = loadedModel()
+
     story(
       update,
       given(initial),
@@ -106,6 +112,7 @@ describe('workspace ownership', () => {
 
   test('background activity does not clear an unrelated foreground notice', () => {
     const issue = Option.getOrThrow(Array.head(initialSnapshot.issues))
+
     story(
       update,
       given(
@@ -207,6 +214,7 @@ describe('workspace ownership', () => {
         expect(settingsModel(model, anotherProject.id).draft.name).toBe(
           anotherProject.name,
         )
+
         expect(model.route).toEqual(
           ApplicationRoute.ProjectSettings({ projectId: anotherProject.id }),
         )
@@ -216,6 +224,7 @@ describe('workspace ownership', () => {
         const snapshot = Option.getOrThrow(
           AsyncData.getData(model.workspaceAsyncData),
         )
+
         expect(snapshot.projects).toContainEqual(savedProject)
       }),
       Command.expectNone(),

@@ -46,6 +46,7 @@ export const reconcileIssue = (
   }
 
   const incoming = revisionFromIssue(issue)
+
   const isEditing = isDirty(state)
   const matchesDraft = equivalentDraft(incoming.fields, state.draft)
   const isCompatible =

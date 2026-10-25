@@ -21,6 +21,7 @@ export const simulateActivity = ApplicationDefinition.makeStep(model => {
   }
 
   const { issues, members } = maybeSnapshot.value
+
   const relevantIssues = Array.filter(
     issues,
     issue =>
@@ -30,9 +31,11 @@ export const simulateActivity = ApplicationDefinition.makeStep(model => {
         comment => comment.authorId === model.activeMemberId,
       ),
   )
+
   const candidates = Array.isReadonlyArrayNonEmpty(relevantIssues)
     ? relevantIssues
     : issues
+
   const maybeIssue = Option.orElse(
     Option.flatMap(model.maybeIssueDetailInstance, instance =>
       Array.findFirst(candidates, issue => issue.id === instance.issueId),
@@ -43,6 +46,7 @@ export const simulateActivity = ApplicationDefinition.makeStep(model => {
         model.activityTick % Math.max(1, candidates.length),
       ),
   )
+
   const maybeActor = Array.findFirst(
     members,
     member => member.id !== model.activeMemberId,
@@ -55,11 +59,13 @@ export const simulateActivity = ApplicationDefinition.makeStep(model => {
   const issue = maybeIssue.value
   const actorId = maybeActor.value.id
   const nextActivityTick = model.activityTick + 1
+
   const maybeAssignment = Array.findFirst(
     issues,
     candidate =>
       !Option.contains(candidate.maybeAssigneeId, model.activeMemberId),
   )
+
   const isAssigning =
     nextActivityTick % ASSIGNMENT_ACTIVITY_INTERVAL === 0 &&
     Option.isSome(maybeAssignment)

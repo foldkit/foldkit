@@ -18,9 +18,11 @@ export const searchResults = (
   projects: ReadonlyArray<typeof Project.Type>,
 ): ReadonlyArray<typeof SearchResult.Type> => {
   const searchText = query.trim().toLowerCase()
+
   const matchingProjects = Array.filter(projects, project =>
     `${project.name} ${project.description}`.toLowerCase().includes(searchText),
   )
+
   const projectResults = Array.map(matchingProjects, project =>
     SearchResult.make({
       id: `project-${project.id}`,
@@ -29,9 +31,11 @@ export const searchResults = (
       target: ResultTarget.Project({ projectId: project.id }),
     }),
   )
+
   const matchingIssues = Array.filter(issues, issue =>
     `${issue.identifier} ${issue.title}`.toLowerCase().includes(searchText),
   )
+
   const issueResults = Array.map(matchingIssues, issue =>
     SearchResult.make({
       id: `issue-${issue.id}`,

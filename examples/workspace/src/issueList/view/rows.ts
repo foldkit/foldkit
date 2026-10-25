@@ -19,6 +19,7 @@ const issueRow = (
     Array.findFirst(inputs.members, member => member.id === id),
   )
   const isActive = Option.contains(inputs.maybeActiveIssueId, issue.id)
+
   const content = [
     h.span(
       [
@@ -68,7 +69,9 @@ const issueRow = (
       ],
     ),
   ]
+
   const accessibleName = `${issue.identifier} ${issue.title}`
+
   const row = Option.match(Record.get(inputs.issueHrefs, issue.id), {
     onNone: () =>
       h.div(

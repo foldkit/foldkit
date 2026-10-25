@@ -64,6 +64,7 @@ export const projectOverview = (
     issues,
     issue => issue.status === 'InProgress',
   )
+
   return h.section(
     [h.Class('space-y-6 p-5 lg:p-8'), h.AriaLabel('Project overview')],
     [

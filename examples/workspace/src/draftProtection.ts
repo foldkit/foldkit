@@ -10,9 +10,11 @@ export const protectUnsavedChanges = ({
         type: 'beforeunload',
         filterMapEvent: event => {
           event.preventDefault()
+
           // NOTE: Vite's baseline includes Chrome/Edge before 119,
           // which require this legacy fallback for the native warning.
           event.returnValue = true
+
           return Option.none()
         },
       })

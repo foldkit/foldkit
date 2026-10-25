@@ -14,6 +14,7 @@ export const init = IssueDetailComposition.makeInit(
       maybeDraft,
       draft => draft.issueId === issue.id,
     )
+
     const reconciled = reconcileIssue(
       {
         issueId: issue.id,

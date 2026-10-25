@@ -83,6 +83,7 @@ describe('Project Settings', () => {
         candidate => candidate.id !== project.id,
       ),
     )
+
     story(
       update,
       given(initial),
@@ -92,9 +93,11 @@ describe('Project Settings', () => {
       }),
       expectNoOutMessage(),
     )
+
     const pending = modifyFields(initial, {
       saveState: () => SaveState.Saving(),
     })
+
     story(
       update,
       given(pending),
@@ -108,6 +111,7 @@ describe('Project Settings', () => {
 
   test('normalizes a name in the saved payload and makes the saved values the next baseline', () => {
     const savedProject = modifyFields(project, { name: () => 'A new name' })
+
     story(
       update,
       given(initial),

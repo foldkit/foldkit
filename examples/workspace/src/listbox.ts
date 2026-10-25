@@ -24,25 +24,31 @@ export const StatusFilterValue = Schema.Literals([
   'All',
   ...IssueStatus.literals,
 ])
+
 export const StatusFilterListboxOption = makeListboxOption(StatusFilterValue)
 
 export const WorkspaceListboxBlock = Listbox.create<typeof ListboxOption.Type>()
+
 export const StatusListboxBlock = Listbox.create<
   typeof StatusListboxOption.Type,
   typeof IssueStatus.Type
 >()
+
 export const PriorityListboxBlock = Listbox.create<
   typeof PriorityListboxOption.Type,
   typeof IssuePriority.Type
 >()
+
 export const SortListboxBlock = Listbox.create<
   typeof SortListboxOption.Type,
   typeof IssueFilters.fields.sort.Type
 >()
+
 export const GroupListboxBlock = Listbox.create<
   typeof GroupListboxOption.Type,
   typeof GroupBy.Type
 >()
+
 export const StatusFilterListboxBlock = Listbox.create<
   typeof StatusFilterListboxOption.Type,
   typeof StatusFilterValue.Type

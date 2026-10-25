@@ -14,9 +14,11 @@ export const update = IssueListComposition.makeUpdate({
   ),
   SubmittedSavedView: (model, { filters }) => {
     const name = String.trim(model.savedViewName)
+
     if (String.isEmpty(name)) {
       return { model }
     }
+
     return {
       model: modifyFields(model, { savedViewName: () => '' }),
       outMessage: OutMessage.SavedFilter({
