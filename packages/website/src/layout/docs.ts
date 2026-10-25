@@ -771,6 +771,11 @@ export const view = (
           lazyDocsContent(Core.Machine.view, docContentArgs),
           Core.Machine.tableOfContents,
         ),
+      CoreAgentContext: () =>
+        withTableOfContents(
+          lazyDocsContent(Core.AgentContext.view, docContentArgs),
+          Core.AgentContext.tableOfContents,
+        ),
       AsyncData: () =>
         withTableOfContents(
           lazyDocsContent(AsyncDataPage.view, docContentArgs),

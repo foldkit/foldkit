@@ -128,6 +128,7 @@ export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
             CoreDevTools: () => Core.DevTools.tableOfContents,
             CoreBlock: () => CoreBlockMetadata.tableOfContents,
             CoreMachine: () => Core.Machine.tableOfContents,
+            CoreAgentContext: () => Core.AgentContext.tableOfContents,
             AsyncData: () => AsyncDataPage.tableOfContents,
             PatternsAntiPatterns: () => Patterns.AntiPatterns.tableOfContents,
             PatternsInformingBlocks: () =>

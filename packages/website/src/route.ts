@@ -74,6 +74,7 @@ export const ApplicationRoute = defineRouteUnion({
   CoreEmbedding: {},
   CoreBlock: {},
   CoreMachine: {},
+  CoreAgentContext: {},
   AsyncData: {},
   PatternsAntiPatterns: {},
   PatternsInformingBlocks: {},
@@ -187,6 +188,7 @@ export const DocsRoute = ApplicationRoute.subset([
   'CoreEmbedding',
   'CoreBlock',
   'CoreMachine',
+  'CoreAgentContext',
   'AsyncData',
   'PatternsAntiPatterns',
   'PatternsInformingBlocks',
@@ -494,6 +496,10 @@ export const coreEmbeddingRouter = core(
 export const coreBlockRouter = core('block', ApplicationRoute.CoreBlock)
 const legacyCoreBlockParser = core('submodel', ApplicationRoute.CoreBlock)
 export const coreMachineRouter = core('machine', ApplicationRoute.CoreMachine)
+export const coreAgentContextRouter = core(
+  'agent-context',
+  ApplicationRoute.CoreAgentContext,
+)
 export const asyncDataRouter = core('async-data', ApplicationRoute.AsyncData)
 
 export const patternsAntiPatternsRouter = patterns(
@@ -644,6 +650,7 @@ const coreParser = oneOf(
   coreBlockRouter,
   legacyCoreBlockParser,
   coreMachineRouter,
+  coreAgentContextRouter,
   routingAndNavigationRouter,
   fieldValidationRouter,
   asyncDataRouter,
@@ -837,6 +844,7 @@ export const routeToUrlPath = (route: typeof ApplicationRoute.Type): string =>
     CorePreserveScroll: () => corePreserveScrollRouter(),
     CoreBlock: () => coreBlockRouter(),
     CoreMachine: () => coreMachineRouter(),
+    CoreAgentContext: () => coreAgentContextRouter(),
     AsyncData: () => asyncDataRouter(),
     PatternsAntiPatterns: () => patternsAntiPatternsRouter(),
     PatternsInformingBlocks: () => patternsInformingBlocksRouter(),

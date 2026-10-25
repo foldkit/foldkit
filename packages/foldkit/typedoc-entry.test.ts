@@ -1,6 +1,7 @@
 import { Array, Order } from 'effect'
 import { describe, expect, test } from 'vitest'
 
+import * as PublicAgentContext from './src/experimental/agentContext/public.js'
 import * as PublicMachine from './src/experimental/machine/public.js'
 import * as PublicQuery from './src/experimental/query/public.js'
 import * as PublicServer from './src/experimental/server/public.js'
@@ -11,6 +12,9 @@ const exportNames = (moduleExports: object): ReadonlyArray<string> =>
 
 describe('TypeDoc entry', () => {
   test('uses the public experimental module boundaries', () => {
+    expect(exportNames(Experimental.AgentContext)).toEqual(
+      exportNames(PublicAgentContext),
+    )
     expect(exportNames(Experimental.Machine)).toEqual(
       exportNames(PublicMachine),
     )

@@ -1,3 +1,4 @@
+export * as AgentContext from './agentContext'
 export * as Architecture from './architecture'
 export * as CoreCanvas from './canvas'
 export * as Commands from './commands'

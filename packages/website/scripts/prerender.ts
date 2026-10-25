@@ -122,6 +122,7 @@ export const STATIC_ROUTES: ReadonlyArray<typeof ApplicationRoute.Type> = [
   ApplicationRoute.CorePreserveScroll(),
   ApplicationRoute.CoreBlock(),
   ApplicationRoute.CoreMachine(),
+  ApplicationRoute.CoreAgentContext(),
   ApplicationRoute.AsyncData(),
   ApplicationRoute.PatternsAntiPatterns(),
   ApplicationRoute.PatternsInformingBlocks(),

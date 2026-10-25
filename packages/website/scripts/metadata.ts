@@ -298,6 +298,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Machine',
     'Model multi-state workflows as typed transition tables with guards, shared Edges, update integration, structural analysis, and pure tests.',
   ),
+  CoreAgentContext: core(
+    'Agent Context',
+    'Declare the part of the Model an in-app agent may read. Covers the Schema-typed context, attaching it to an agent turn, publishing changes through a Subscription, and the JSON Schema description.',
+  ),
   AsyncData: core(
     'Async Data',
     'A six-state value type for asynchronously loaded data in the Model: Idle, Loading, Refreshing, Failure, Stale, and Success, with stale-while-revalidate and keep-stale-on-failure built in.',

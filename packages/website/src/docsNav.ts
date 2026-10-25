@@ -14,6 +14,7 @@ import {
   comingFromReactRouter,
   comingFromTanStackQueryRouter,
   contentApiRouter,
+  coreAgentContextRouter,
   coreArchitectureRouter,
   coreBlockRouter,
   coreCanvasRouter,
@@ -323,6 +324,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'CoreMachine',
           href: coreMachineRouter(),
           label: 'Machine',
+        },
+        {
+          _tag: 'CoreAgentContext',
+          href: coreAgentContextRouter(),
+          label: 'Agent Context',
         },
       ],
       [
