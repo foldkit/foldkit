@@ -1269,7 +1269,7 @@ test.describe('workspace example', () => {
     await expect(handle).toHaveAttribute('aria-disabled', 'false')
   })
 
-  test('a save from a previous keyed occurrence cannot replace the current draft', async ({
+  test('a retained issue save settles while another issue is open', async ({
     page,
   }) => {
     await page.goto('/issues/issue-101')
@@ -1279,7 +1279,7 @@ test.describe('workspace example', () => {
 
     await page
       .getByLabel('Issue title', { exact: true })
-      .fill('Draft from the first visit')
+      .fill('Saved while another issue is open')
     await page.clock.runFor(RENDER_SETTLE_TIME)
     await page
       .getByRole('button', { name: 'Save changes', exact: true })
@@ -1289,42 +1289,29 @@ test.describe('workspace example', () => {
       .click()
     await page.clock.runFor(RENDER_SETTLE_TIME)
     await expectIssueLocation(page, 'issue-102', '/')
-    await issueList(page)
-      .getByRole('link', { name: /^WSP-101 / })
-      .click()
-    await page.clock.runFor(RENDER_SETTLE_TIME)
-    await expectIssueLocation(page, 'issue-101', '/')
-    await page
-      .getByLabel('Issue title', { exact: true })
-      .fill('Draft from the current visit')
-    await page.clock.runFor(RENDER_SETTLE_TIME)
-    await page
-      .getByRole('button', { name: 'Save changes', exact: true })
-      .click()
     await page.clock.runFor(SAVE_SETTLE_TIME)
 
     await expect(page.getByLabel('Issue title', { exact: true })).toHaveValue(
-      'Draft from the current visit',
+      'Keep issue drafts when switching projects',
     )
-    await expect(page.getByRole('alert')).toContainText(
-      'Your draft is preserved',
-    )
-    await page.getByRole('button', { name: 'Reload issue' }).click()
+    const savedIssueLink = issueList(page).getByRole('link', {
+      name: 'WSP-101 Saved while another issue is open',
+    })
+    await expect(savedIssueLink).toBeVisible()
+
+    await savedIssueLink.click()
     await page.clock.runFor(RENDER_SETTLE_TIME)
+    await expectIssueLocation(page, 'issue-101', '/')
     await expect(page.getByLabel('Issue title', { exact: true })).toHaveValue(
-      'Draft from the first visit',
+      'Saved while another issue is open',
     )
-    await page
-      .getByLabel('Issue title', { exact: true })
-      .fill('Draft from the current visit')
-    await page.clock.runFor(RENDER_SETTLE_TIME)
-    await page
-      .getByRole('button', { name: 'Save changes', exact: true })
-      .click()
-    await page.clock.runFor(SAVE_SETTLE_TIME)
+    await expect(
+      page.getByRole('button', { name: 'Save changes', exact: true }),
+    ).toBeDisabled()
+    await expect(page.getByRole('alert')).toHaveCount(0)
     await expect(
       issueList(page).getByRole('link', {
-        name: 'WSP-101 Draft from the current visit',
+        name: 'WSP-102 Keep issue drafts when switching projects',
       }),
     ).toBeVisible()
   })

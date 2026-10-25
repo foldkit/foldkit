@@ -19,12 +19,17 @@ import {
   NotificationCenterBinding,
   ProjectSettingsBinding,
 } from '../composition'
-import { BUTTON_CLASS, PRIMARY_BUTTON_CLASS } from '../controlStyles'
 import type { Issue, Project, WorkspaceSnapshot } from '../domain'
 import { listboxViewInputs } from '../listbox'
 import { Message } from '../message'
 import { IssueMoveState, type Model } from '../model'
-import { appliedIssueFilters, backgroundRoute, issueHrefs } from '../navigation'
+import {
+  appliedIssueFilters,
+  backgroundRoute,
+  issueHrefs,
+  maybeActiveBoardInstance,
+  maybeActiveIssueDetailInstance,
+} from '../navigation'
 import {
   ApplicationRoute,
   issuesRouter,
@@ -82,7 +87,7 @@ const pageTitle = (
   model: typeof Model.Type,
   snapshot: typeof WorkspaceSnapshot.Type,
 ): string => {
-  const route = backgroundRoute(model)
+  const route = backgroundRoute(model.route)
   const projectTitle = (projectId: string) =>
     Option.match(
       Array.findFirst(snapshot.projects, project => project.id === projectId),
@@ -130,10 +135,9 @@ const issueListView = (
         issues,
         members: snapshot.members,
         projects: snapshot.projects,
-        maybeActiveIssueId: Option.map(
-          model.maybeIssueDetailInstance,
-          instance => instance.issueId,
-        ),
+        maybeActiveIssueId: ApplicationRoute.guards.Issue(model.route)
+          ? Option.some(model.route.issueId)
+          : Option.none(),
       },
     }),
   )
@@ -163,7 +167,7 @@ const routeContent = (
   snapshot: typeof WorkspaceSnapshot.Type,
   h: ApplicationViewBuilder,
 ): Html => {
-  const route = backgroundRoute(model)
+  const route = backgroundRoute(model.route)
 
   const projectContent = (
     projectId: string,
@@ -228,33 +232,31 @@ const routeContent = (
       ),
     Board: ({ projectId }) =>
       projectContent(projectId, () =>
-        Option.match(model.maybeBoardInstance, {
+        Option.match(maybeActiveBoardInstance(model), {
           onNone: () =>
             h.p(
               [h.Class('p-8 text-sm text-slate-500'), h.Role('status')],
               ['Loading board…'],
             ),
           onSome: instance =>
-            instance.projectId === projectId
-              ? h.block(
-                  IssueBoardBinding.embedView({
-                    key: projectId,
-                    slotId: `project-board-${projectId}`,
-                    model: instance.model,
-                    viewInputs: {
-                      issueHrefs: issueHrefs(model, snapshot.issues),
-                      isSaving: IssueMoveState.guards.MovingIssue(
-                        model.issueMoveState,
-                      ),
-                      issues: Array.filter(
-                        snapshot.issues,
-                        issue => issue.projectId === projectId,
-                      ),
-                      members: snapshot.members,
-                    },
-                  }),
-                )
-              : h.empty,
+            h.block(
+              IssueBoardBinding.embedView({
+                key: projectId,
+                slotId: `project-board-${projectId}`,
+                model: instance.model,
+                viewInputs: {
+                  issueHrefs: issueHrefs(model, snapshot.issues),
+                  isSaving: IssueMoveState.guards.MovingIssue(
+                    model.issueMoveState,
+                  ),
+                  issues: Array.filter(
+                    snapshot.issues,
+                    issue => issue.projectId === projectId,
+                  ),
+                  members: snapshot.members,
+                },
+              }),
+            ),
         }),
       ),
     People: () =>
@@ -317,7 +319,7 @@ const issueMoveFeedback = (
             onClick: Message.ClickedRetryMove(),
             toView: attributes =>
               h.button(
-                [...attributes.button, h.Class(BUTTON_CLASS)],
+                [...attributes.button, h.Class('button')],
                 ['Retry changes'],
               ),
           },
@@ -339,7 +341,7 @@ const workspaceView = (
   snapshot: typeof WorkspaceSnapshot.Type,
   h: ApplicationViewBuilder,
 ): Html => {
-  const route = backgroundRoute(model)
+  const route = backgroundRoute(model.route)
   const maybeProject = Option.flatMap(maybeProjectId(route), projectId =>
     Array.findFirst(snapshot.projects, project => project.id === projectId),
   )
@@ -402,14 +404,16 @@ const workspaceView = (
           ...(ApplicationRoute.guards.Issue(model.route)
             ? [
                 Option.match(
-                  Option.flatMap(model.maybeIssueDetailInstance, instance =>
-                    Option.map(
-                      Array.findFirst(
-                        snapshot.issues,
-                        issue => issue.id === instance.issueId,
+                  Option.flatMap(
+                    maybeActiveIssueDetailInstance(model),
+                    instance =>
+                      Option.map(
+                        Array.findFirst(
+                          snapshot.issues,
+                          issue => issue.id === instance.issueId,
+                        ),
+                        issue => ({ instance, issue }),
                       ),
-                      issue => ({ instance, issue }),
-                    ),
                   ),
                   {
                     onNone: () =>
@@ -593,10 +597,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
                           onClick: Message.ClickedRetryLoad(),
                           toView: attributes =>
                             h.button(
-                              [
-                                ...attributes.button,
-                                h.Class(PRIMARY_BUTTON_CLASS),
-                              ],
+                              [...attributes.button, h.Class('button-primary')],
                               ['Retry loading'],
                             ),
                         },

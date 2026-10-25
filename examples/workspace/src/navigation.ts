@@ -6,18 +6,45 @@ import {
   ApplicationRoute,
   defaultIssueFilters,
   issueRouter,
+  resolveIssueCloseRoute,
   routeFilters,
   routeToPath,
   withRouteFilters,
 } from './route'
 
-export const backgroundRoute = (model: typeof Model.Type) =>
-  ApplicationRoute.guards.Issue(model.route)
-    ? model.issueCloseRoute
-    : model.route
+export const backgroundRoute = (route: typeof ApplicationRoute.Type) =>
+  ApplicationRoute.guards.Issue(route) ? resolveIssueCloseRoute(route) : route
+
+export const maybeActiveIssueDetailInstance = (model: typeof Model.Type) => {
+  const route = model.route
+
+  return ApplicationRoute.guards.Issue(route)
+    ? Array.findFirst(
+        model.issueDetailInstances,
+        instance => instance.issueId === route.issueId,
+      )
+    : Option.none()
+}
+
+export const isActiveBoard = (model: typeof Model.Type, projectId: string) => {
+  const route = backgroundRoute(model.route)
+
+  return ApplicationRoute.guards.Board(route) && route.projectId === projectId
+}
+
+export const maybeActiveBoardInstance = (model: typeof Model.Type) => {
+  const route = backgroundRoute(model.route)
+
+  return ApplicationRoute.guards.Board(route)
+    ? Array.findFirst(
+        model.boardInstances,
+        instance => instance.projectId === route.projectId,
+      )
+    : Option.none()
+}
 
 export const appliedIssueFilters = (model: typeof Model.Type) => {
-  const route = backgroundRoute(model)
+  const route = backgroundRoute(model.route)
 
   return Option.getOrElse(routeFilters(route), () => {
     if (ApplicationRoute.guards.SavedView(route)) {
@@ -36,7 +63,7 @@ export const appliedIssueFilters = (model: typeof Model.Type) => {
 
 export const issueHref = (model: typeof Model.Type, issueId: string) => {
   const returnTo = routeToPath(
-    withRouteFilters(backgroundRoute(model), appliedIssueFilters(model)),
+    withRouteFilters(backgroundRoute(model.route), appliedIssueFilters(model)),
   )
 
   return issueRouter(returnTo === '/' ? { issueId } : { issueId, returnTo })
@@ -46,7 +73,7 @@ export const issueFiltersHref = (
   model: typeof Model.Type,
   filters: typeof IssueFilters.Type,
 ) => {
-  const route = withRouteFilters(backgroundRoute(model), filters)
+  const route = withRouteFilters(backgroundRoute(model.route), filters)
 
   return ApplicationRoute.guards.Issue(model.route)
     ? issueRouter({

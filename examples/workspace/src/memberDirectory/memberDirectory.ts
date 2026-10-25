@@ -6,7 +6,6 @@ import { defineMessageUnion } from 'foldkit/message'
 
 import { Button, Input } from '@foldkit/ui'
 
-import { INPUT_CLASS } from '../controlStyles'
 import { Issue, Member } from '../domain'
 
 const Model = Schema.Struct({
@@ -279,7 +278,7 @@ export const view = MemberDirectoryComposition.makeView.withInputs<
                       [...attributes.label, h.Class('sr-only')],
                       ['Search members'],
                     ),
-                    h.input([...attributes.input, h.Class(INPUT_CLASS)]),
+                    h.input([...attributes.input, h.Class('input-control')]),
                   ],
                 ),
             },

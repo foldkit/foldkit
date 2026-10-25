@@ -2,7 +2,6 @@ import { Array } from 'effect'
 
 import { Button } from '@foldkit/ui'
 
-import { COMPACT_BUTTON_CLASS } from '../../controlStyles'
 import { IssueListComposition } from '../composition'
 import { filterAndSortIssues } from '../filter'
 import { Message } from '../message'
@@ -44,7 +43,7 @@ export const view = IssueListComposition.makeView.withInputs<
                   onClick: Message.RequestedClearFilters(),
                   toView: attributes =>
                     h.button(
-                      [...attributes.button, h.Class(COMPACT_BUTTON_CLASS)],
+                      [...attributes.button, h.Class('button-compact')],
                       ['Clear filters'],
                     ),
                 },

@@ -47,14 +47,14 @@ export const LoadExternal = ApplicationDefinition.makeCommand('LoadExternal', {
   },
 })
 
-export const ReplaceFilters = ApplicationDefinition.makeCommand(
-  'ReplaceFilters',
+export const ReplaceInternalUrl = ApplicationDefinition.makeCommand(
+  'ReplaceInternalUrl',
   {
     args: { url: Schema.String },
-    messages: [Message.CompletedReplaceFilters],
+    messages: [Message.CompletedReplaceInternalUrl],
     handler: function* () {
       return ({ url }) =>
-        replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceFilters()))
+        replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceInternalUrl()))
     },
   },
 )
@@ -164,7 +164,7 @@ export const EffectsLayer = Layer.mergeAll(
   LoadWorkspace.layer,
   NavigateInternal.layer,
   LoadExternal.layer,
-  ReplaceFilters.layer,
+  ReplaceInternalUrl.layer,
   SimulateSaveFailure.layer,
   MoveIssue.layer,
   AppendActivity.layer,

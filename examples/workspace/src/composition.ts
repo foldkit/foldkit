@@ -3,7 +3,7 @@ import { AsyncData, type Block, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { IssueBoardBlock } from './board'
-import { MoveIssue, NavigateInternal, ReplaceFilters } from './command'
+import { MoveIssue, NavigateInternal, ReplaceInternalUrl } from './command'
 import { CommandPaletteBlock } from './commandPalette'
 import { CreateIssueBlock } from './createIssue'
 import { ApplicationDefinition } from './definition'
@@ -25,6 +25,7 @@ import { IssueMoveState } from './model'
 import {
   appliedIssueFilters,
   backgroundRoute,
+  isActiveBoard,
   issueFiltersHref,
   issueHref,
 } from './navigation'
@@ -34,6 +35,7 @@ import {
   ApplicationRoute,
   maybeProjectId,
   projectRouter,
+  resolveIssueCloseRoute,
   routeToPath,
 } from './route'
 
@@ -60,13 +62,12 @@ export const ActiveMemberBinding = ApplicationDefinition.makeBinding(
 export const IssueDetailBinding = ApplicationDefinition.makeBinding(
   IssueDetailBlock,
   {
-    field: 'maybeIssueDetailInstance',
+    field: 'issueDetailInstances',
     key: 'issueId',
     childField: 'model',
-    delivery: {
-      when: (model, issueId) =>
-        ApplicationRoute.guards.Issue(model.route) &&
-        model.route.issueId === issueId,
+    init: {
+      instances: () => [],
+      toItem: ({ key }, issueDetail) => ({ issueId: key, model: issueDetail }),
     },
   },
 )
@@ -137,7 +138,7 @@ const notifyNewComments = (issue: typeof Issue.Type) =>
     )
   })
 
-export const applyObservedIssue = (issue: typeof Issue.Type) =>
+export const applyIssueRevision = (issue: typeof Issue.Type) =>
   Update.combineSteps([
     notifyNewComments(issue),
     ApplicationDefinition.makeFieldsStep(() => ({
@@ -166,12 +167,11 @@ const retainIssueDraft = (
     },
   }))
 
-const foldIssueDetailOutMessage = ApplicationDefinition.makeOutMessageFold(
-  IssueDetailBlock,
-  {
+const foldIssueDetailOutMessage = (issueId: string) =>
+  ApplicationDefinition.makeOutMessageFold(IssueDetailBlock, {
     Saved: ({ issue }) =>
       Update.combineSteps([
-        applyObservedIssue(issue),
+        applyIssueRevision(issue),
         ApplicationDefinition.makeFieldsStep(() => ({
           maybeNotice: () => Option.some(`${issue.identifier} saved`),
         })),
@@ -179,17 +179,26 @@ const foldIssueDetailOutMessage = ApplicationDefinition.makeOutMessageFold(
       ]),
     ObservedIssue: ({ issue }) =>
       Update.combineSteps([
-        applyObservedIssue(issue),
+        applyIssueRevision(issue),
         IssueDetailBinding.requestReportDraft(issue.id),
       ]),
     ChangedDraft: ({ issueId, maybeDraft }) =>
       retainIssueDraft(issueId, maybeDraft),
     Closed: () =>
-      ApplicationDefinition.makeCommandsStep(model => [
-        NavigateInternal({ url: routeToPath(model.issueCloseRoute) }),
-      ]),
-  },
-)
+      ApplicationDefinition.makeStep(model =>
+        ApplicationRoute.guards.Issue(model.route) &&
+        model.route.issueId === issueId
+          ? {
+              model,
+              commands: [
+                NavigateInternal({
+                  url: routeToPath(resolveIssueCloseRoute(model.route)),
+                }),
+              ],
+            }
+          : { model },
+      ),
+  })
 
 const navigateIssueFilters = (
   change: (filters: typeof IssueFilters.Type) => typeof IssueFilters.Type,
@@ -221,7 +230,7 @@ export const IssueListBinding = ApplicationDefinition.makeBinding(
       })),
     ChangedQuery: ({ query }) =>
       ApplicationDefinition.makeCommandsStep(model => [
-        ReplaceFilters({
+        ReplaceInternalUrl({
           url: issueFiltersHref(
             model,
             modifyFields(appliedIssueFilters(model), { query: () => query }),
@@ -252,7 +261,7 @@ export const IssueListBinding = ApplicationDefinition.makeBinding(
         return Option.match(AsyncData.getData(model.workspaceAsyncData), {
           onNone: ApplicationDefinition.makeNoopStep,
           onSome: snapshot => {
-            const route = backgroundRoute(model)
+            const route = backgroundRoute(model.route)
 
             const maybeProject = Option.match(maybeProjectId(route), {
               onNone: () => Array.head(snapshot.projects),
@@ -349,9 +358,15 @@ export const requestMoveIssue = (
 export const IssueBoardBinding = ApplicationDefinition.makeBinding(
   IssueBoardBlock,
   {
-    field: 'maybeBoardInstance',
+    field: 'boardInstances',
     key: 'projectId',
     childField: 'model',
+    init: {
+      instances: () => [],
+      toItem: ({ key }, board) => ({ projectId: key, model: board }),
+    },
+    subscriptions: { when: isActiveBoard },
+    delivery: { when: isActiveBoard },
   },
 )
 
@@ -391,7 +406,8 @@ export const MemberDirectoryBinding = ApplicationDefinition.makeBinding(
 
 const IssueDetailBindingWithOutMessagePolicy =
   IssueDetailBinding.withOutMessagePolicy({
-    fold: (_issueId, outMessage) => foldIssueDetailOutMessage(outMessage),
+    fold: (issueId, outMessage) =>
+      foldIssueDetailOutMessage(issueId)(outMessage),
   })
 
 export const ProjectSettingsBinding = ApplicationDefinition.makeBinding(

@@ -17,7 +17,7 @@ import { WorkspaceListboxBlock } from './listbox'
 import { MemberDirectoryBlock } from './memberDirectory'
 import { NotificationCenterBlock } from './notifications'
 import { ProjectSettingsBlock } from './projectSettings'
-import { ApplicationRoute, IssueCloseRoute } from './route'
+import { ApplicationRoute } from './route'
 
 export const WorkspaceAsyncData = AsyncData.Schema(
   WorkspaceSnapshot,
@@ -57,15 +57,14 @@ export const IssueMoveState = defineTaggedUnion({
 
 export const Model = Schema.Struct({
   route: ApplicationRoute,
-  issueCloseRoute: IssueCloseRoute,
   workspaceAsyncData: WorkspaceAsyncData.schema,
   issueList: IssueListBlock.Model,
   createIssue: CreateIssueBlock.Model,
-  maybeBoardInstance: Schema.Option(BoardInstance),
+  boardInstances: Schema.Array(BoardInstance),
   commandPalette: CommandPaletteBlock.Model,
   memberDirectory: MemberDirectoryBlock.Model,
   notificationCenter: NotificationCenterBlock.Model,
-  maybeIssueDetailInstance: Schema.Option(IssueDetailInstance),
+  issueDetailInstances: Schema.Array(IssueDetailInstance),
   issueDrafts: Schema.Array(RetainedIssueDraft),
   maybeNotice: Schema.Option(Schema.String),
   maybeActivityError: Schema.Option(Schema.String),

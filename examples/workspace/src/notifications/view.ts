@@ -4,7 +4,6 @@ import type { Html } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
-import { COMPACT_BUTTON_CLASS, POPOVER_SURFACE_CLASS } from '../controlStyles'
 import { Issue, Member, Notification, NotificationKind } from '../domain'
 import {
   NotificationCenterComposition,
@@ -297,10 +296,7 @@ export const view = NotificationCenterComposition.makeView.withInputs<
                         h.Role('dialog'),
                         h.AriaLabelledBy(TITLE_ID),
                         h.Class(
-                          clsx(
-                            POPOVER_SURFACE_CLASS,
-                            'z-10 w-[min(22rem,calc(100vw-1rem))] overflow-hidden text-sm font-medium',
-                          ),
+                          'popover-surface z-10 w-[min(22rem,calc(100vw-1rem))] overflow-hidden text-sm font-medium',
                         ),
                       ],
                       [
@@ -332,7 +328,7 @@ export const view = NotificationCenterComposition.makeView.withInputs<
                                         h.button(
                                           [
                                             ...attributes.button,
-                                            h.Class(COMPACT_BUTTON_CLASS),
+                                            h.Class('button-compact'),
                                           ],
                                           ['Mark all as read'],
                                         ),

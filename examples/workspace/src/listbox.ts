@@ -1,15 +1,8 @@
-import { clsx } from 'clsx'
 import { Array, Option, Schema } from 'effect'
 import { inertHtml as ih } from 'foldkit/html'
 
 import { Listbox } from '@foldkit/ui'
 
-import {
-  COMPACT_LISTBOX_BUTTON_CLASS,
-  LISTBOX_BUTTON_CLASS,
-  LISTBOX_OPTION_CLASS,
-  POPOVER_SURFACE_CLASS,
-} from './controlStyles'
 import { GroupBy, IssueFilters, IssuePriority, IssueStatus } from './domain'
 
 const makeListboxOption = <Value extends string>(value: Schema.Schema<Value>) =>
@@ -91,13 +84,9 @@ export const listboxViewInputs = <const Value extends string>({
     ...(ariaLabel === undefined ? {} : { ariaLabel }),
     anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
     className: 'relative min-w-0 data-[open]:z-20',
-    buttonClassName: isCompact
-      ? COMPACT_LISTBOX_BUTTON_CLASS
-      : LISTBOX_BUTTON_CLASS,
-    itemsClassName: clsx(
-      POPOVER_SURFACE_CLASS,
-      'z-10 min-w-(--button-width) p-1 text-sm outline-none',
-    ),
+    buttonClassName: isCompact ? 'listbox-trigger-compact' : 'listbox-trigger',
+    itemsClassName:
+      'popover-surface z-10 min-w-(--button-width) p-1 text-sm outline-none',
     itemsScrollClassName: 'max-h-64 overflow-y-auto overscroll-contain',
     backdropClassName: 'fixed inset-0 z-0',
     buttonContent: ih.div(
@@ -135,7 +124,7 @@ export const listboxViewInputs = <const Value extends string>({
       ],
     ),
     itemToConfig: (option: typeof ListboxOption.Type) => ({
-      className: LISTBOX_OPTION_CLASS,
+      className: 'group listbox-option',
       content: ih.div(
         [ih.Class('flex w-full min-w-0 items-center justify-between gap-3')],
         [

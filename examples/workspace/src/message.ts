@@ -11,7 +11,7 @@ export const Message = defineMessageUnion({
   ChangedUrl: { url: Url },
   CompletedNavigateInternal: {},
   CompletedLoadExternal: {},
-  CompletedReplaceFilters: {},
+  CompletedReplaceInternalUrl: {},
   SucceededLoadWorkspace: { snapshot: WorkspaceSnapshot },
   FailedLoadWorkspace: { error: Schema.String },
   ClickedRetryLoad: {},

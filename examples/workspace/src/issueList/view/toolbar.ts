@@ -1,14 +1,8 @@
-import { clsx } from 'clsx'
 import { Array, Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
 import { Button, Input, Listbox } from '@foldkit/ui'
 
-import {
-  COMPACT_BUTTON_CLASS,
-  COMPACT_INPUT_CLASS,
-  COMPACT_PRIMARY_BUTTON_CLASS,
-} from '../../controlStyles'
 import { GroupBy, IssueFilters, IssueStatus } from '../../domain'
 import {
   GroupListboxOption,
@@ -154,7 +148,7 @@ const savedViewForm = (
               h.Required(true),
               h.AriaRequired(true),
               h.Pattern('.*\\S.*'),
-              h.Class(COMPACT_INPUT_CLASS),
+              h.Class('input-control-compact'),
             ]),
         },
         h,
@@ -164,7 +158,7 @@ const savedViewForm = (
           type: 'submit',
           toView: attributes =>
             h.button(
-              [...attributes.button, h.Class(COMPACT_BUTTON_CLASS)],
+              [...attributes.button, h.Class('button-compact')],
               ['Save view'],
             ),
         },
@@ -204,7 +198,7 @@ export const filterToolbarView = (
                 h.span([h.Class('sr-only')], ['Search issues']),
                 h.input([
                   ...attributes.input,
-                  h.Class(clsx(COMPACT_INPUT_CLASS, 'pl-9')),
+                  h.Class('input-control-compact pl-9'),
                 ]),
                 searchIcon(h),
               ],
@@ -223,10 +217,7 @@ export const filterToolbarView = (
               [
                 ...attributes.button,
                 h.Class(
-                  clsx(
-                    COMPACT_PRIMARY_BUTTON_CLASS,
-                    'ml-auto @lg:col-start-3 @lg:row-start-1 @4xl:col-start-6',
-                  ),
+                  'button-primary-compact ml-auto @lg:col-start-3 @lg:row-start-1 @4xl:col-start-6',
                 ),
               ],
               [plusIcon(h), 'New issue'],

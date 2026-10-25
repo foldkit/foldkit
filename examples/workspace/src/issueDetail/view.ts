@@ -1,15 +1,9 @@
-import { clsx } from 'clsx'
 import { Array, Option, Schema, String } from 'effect'
 import type { Html } from 'foldkit/html'
 
 import { Button, Fieldset, Input, Textarea } from '@foldkit/ui'
 import { buttonId } from '@foldkit/ui/listbox'
 
-import {
-  BUTTON_CLASS,
-  PRIMARY_BUTTON_CLASS,
-  TEXT_CONTROL_CLASS,
-} from '../controlStyles'
 import { Issue, Member, Project } from '../domain'
 import {
   PriorityListboxOption,
@@ -56,7 +50,7 @@ const secondaryButton = (
     {
       onClick,
       toView: attributes =>
-        h.button([...attributes.button, h.Class(BUTTON_CLASS)], [label]),
+        h.button([...attributes.button, h.Class('button')], [label]),
     },
     h,
   )
@@ -270,12 +264,7 @@ const titleField = (
             ),
             h.input([
               ...attributes.input,
-              h.Class(
-                clsx(
-                  TEXT_CONTROL_CLASS,
-                  'h-11 px-3 py-2.5 text-lg font-semibold',
-                ),
-              ),
+              h.Class('text-control h-11 px-3 py-2.5 text-lg font-semibold'),
               h.Required(true),
               h.AriaRequired(true),
             ]),
@@ -310,10 +299,7 @@ const descriptionField = (
             h.textarea([
               ...attributes.textarea,
               h.Class(
-                clsx(
-                  TEXT_CONTROL_CLASS,
-                  'min-h-32 resize-y px-3 py-2.5 text-sm font-normal leading-7',
-                ),
+                'text-control min-h-32 resize-y px-3 py-2.5 text-sm font-normal leading-7',
               ),
             ]),
           ],
@@ -365,7 +351,7 @@ const submitButton = (
           [
             ...attributes.button,
             h.Disabled(isDisabled),
-            h.Class(PRIMARY_BUTTON_CLASS),
+            h.Class('button-primary'),
           ],
           ['Save changes'],
         ),
@@ -428,7 +414,7 @@ export const view = IssueDetailComposition.makeView.withInputs<
                                           model.saveState,
                                         ),
                                       ),
-                                      h.Class(BUTTON_CLASS),
+                                      h.Class('button'),
                                     ],
                                     ['Discard changes'],
                                   ),

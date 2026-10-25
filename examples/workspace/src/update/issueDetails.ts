@@ -1,0 +1,56 @@
+import { Array, Option } from 'effect'
+import { AsyncData, Update } from 'foldkit'
+
+import { IssueDetailBinding, applyIssueRevision } from '../composition'
+import { ApplicationDefinition } from '../definition'
+import type { Issue } from '../domain'
+
+export const applyIncomingIssue = (issue: typeof Issue.Type) =>
+  ApplicationDefinition.makeStep(model => {
+    const isNewFieldRevision = Option.exists(
+      Option.flatMap(AsyncData.getData(model.workspaceAsyncData), snapshot =>
+        Array.findFirst(snapshot.issues, current => current.id === issue.id),
+      ),
+      current => issue.version > current.version,
+    )
+
+    if (!isNewFieldRevision) {
+      return applyIssueRevision(issue)
+    }
+
+    return Update.combineSteps([
+      applyIssueRevision(issue),
+      IssueDetailBinding.informIssueChanged(issue.id, { issue }),
+      IssueDetailBinding.requestReportDraft(issue.id),
+    ])
+  })
+
+export const reconcileRetainedIssueDetails = ApplicationDefinition.makeStep(
+  model => {
+    const maybeSnapshot = AsyncData.getData(model.workspaceAsyncData)
+
+    if (Option.isNone(maybeSnapshot)) {
+      return { model }
+    }
+
+    const steps = Array.flatMap(model.issueDetailInstances, ({ issueId }) => {
+      const maybeIssue = Array.findFirst(
+        maybeSnapshot.value.issues,
+        issue => issue.id === issueId,
+      )
+
+      return Option.match(maybeIssue, {
+        onNone: () => [],
+        onSome: issue => [
+          IssueDetailBinding.informIssueChanged(issueId, { issue }),
+          IssueDetailBinding.requestReportDraft(issueId),
+        ],
+      })
+    })
+
+    return Array.match(steps, {
+      onEmpty: () => ({ model }),
+      onNonEmpty: steps => Update.combineSteps(steps),
+    })
+  },
+)

@@ -17,7 +17,7 @@ import {
   LoadWorkspace,
   MoveIssue,
   NavigateInternal,
-  ReplaceFilters,
+  ReplaceInternalUrl,
 } from './command'
 import { CommentComposerBlock } from './commentComposer'
 import { AddComment } from './commentComposer/command'
@@ -55,28 +55,36 @@ import { IssueListBlock } from './issueList'
 import { WorkspaceListboxBlock } from './listbox'
 import { Message } from './message'
 import { IssueMoveState, type Model } from './model'
-import { appliedIssueFilters, issueHref } from './navigation'
+import {
+  appliedIssueFilters,
+  backgroundRoute,
+  isActiveBoard,
+  issueHref,
+  maybeActiveBoardInstance,
+  maybeActiveIssueDetailInstance,
+} from './navigation'
 import { NotificationCenterBlock } from './notifications'
 import { ProjectSettingsBlock } from './projectSettings'
 import { SaveProject } from './projectSettings/command'
 import { RepositoryError } from './repository'
 import {
   ApplicationRoute,
+  boardRouter,
   defaultIssueFilters,
   issueRouter,
   issuesRouter,
   projectRouter,
   routeToPath,
+  savedViewRouter,
 } from './route'
 import { update } from './update'
 
 const issueA = Option.getOrThrow(Array.head(initialSnapshot.issues))
 const issueB = Option.getOrThrow(Array.get(initialSnapshot.issues, 1))
+const issueC = Option.getOrThrow(Array.get(initialSnapshot.issues, 2))
 
 const url = (path: string) =>
   Option.getOrThrow(Url.fromString(`https://workspace.test${path}`))
-
-const issueUrl = (issueId: string) => url(issueRouter({ issueId }))
 
 const loadedModel = (path = '/') => {
   const applicationInit = init(url(path))
@@ -90,7 +98,26 @@ const loadedModel = (path = '/') => {
 }
 
 const detailInstance = (model: typeof Model.Type) =>
-  Option.getOrThrow(model.maybeIssueDetailInstance)
+  Option.getOrThrow(maybeActiveIssueDetailInstance(model))
+
+const boardInstance = (model: typeof Model.Type) =>
+  Option.getOrThrow(maybeActiveBoardInstance(model))
+
+const retainedDetailInstance = (model: typeof Model.Type, issueId: string) =>
+  Option.getOrThrow(
+    Array.findFirst(
+      model.issueDetailInstances,
+      instance => instance.issueId === issueId,
+    ),
+  )
+
+const retainedBoardInstance = (model: typeof Model.Type, projectId: string) =>
+  Option.getOrThrow(
+    Array.findFirst(
+      model.boardInstances,
+      instance => instance.projectId === projectId,
+    ),
+  )
 
 const detailMessage = (
   model: typeof Model.Type,
@@ -100,6 +127,21 @@ const detailMessage = (
 
   return toParentMessage(IssueDetailBinding, instance.issueId, message)
 }
+
+const detailMessageFor = (
+  issueId: string,
+  message: typeof IssueDetailBlock.Message.Type,
+) => toParentMessage(IssueDetailBinding, issueId, message)
+
+const boardDragMessage = (
+  projectId: string,
+  message: typeof DragAndDropBlock.Message.Type,
+) =>
+  toParentMessage(
+    IssueBoardBinding,
+    projectId,
+    toParentMessage(DragAndDropBinding, message),
+  )
 
 describe('workspace navigation', () => {
   test('navigates to a project and returns there after closing an issue', () => {
@@ -118,9 +160,13 @@ describe('workspace navigation', () => {
       ),
       Command.resolve(NavigateInternal, Message.CompletedNavigateInternal()),
       message(Message.ChangedUrl({ url: url(projectPath) })),
-      message(Message.ChangedUrl({ url: issueUrl(issueB.id) })),
+      message(
+        Message.ChangedUrl({
+          url: url(issueRouter({ issueId: issueB.id, returnTo: projectPath })),
+        }),
+      ),
       model(model => {
-        expect(model.issueCloseRoute).toEqual(
+        expect(backgroundRoute(model.route)).toEqual(
           ApplicationRoute.Project({ projectId: issueB.projectId }),
         )
         expect(detailInstance(model).issueId).toBe(issueB.id)
@@ -131,7 +177,9 @@ describe('workspace navigation', () => {
 
     const issueOpen = update(
       projectModel,
-      Message.ChangedUrl({ url: issueUrl(issueB.id) }),
+      Message.ChangedUrl({
+        url: url(issueRouter({ issueId: issueB.id, returnTo: projectPath })),
+      }),
     )
 
     story(
@@ -147,19 +195,182 @@ describe('workspace navigation', () => {
         expect(model.route).toEqual(
           ApplicationRoute.Project({ projectId: issueB.projectId }),
         )
-        expect(model.maybeIssueDetailInstance).toEqual(Option.none())
+        expect(model.issueDetailInstances).toHaveLength(1)
       }),
     )
   })
 
-  test('removes the editor when leaving the issue route', () => {
+  test('retains the editor when leaving the issue route', () => {
     story(
       update,
       given(loadedModel(issueRouter({ issueId: issueA.id }))),
       message(Message.ChangedUrl({ url: url('/') })),
       model(model => {
         expect(model.route).toEqual(ApplicationRoute.Issues({}))
-        expect(model.maybeIssueDetailInstance).toEqual(Option.none())
+        expect(model.issueDetailInstances).toHaveLength(1)
+      }),
+      Command.expectNone(),
+    )
+  })
+
+  test('reuses each retained editor when navigating between issues', () => {
+    const initial = loadedModel(issueRouter({ issueId: issueA.id }))
+    const issueAEditor = detailInstance(initial).model
+    const issueBPath = issueRouter({ issueId: issueB.id })
+
+    story(
+      update,
+      given(initial),
+      message(Message.ChangedUrl({ url: url(issueBPath) })),
+      model(model => {
+        expect(detailInstance(model).issueId).toBe(issueB.id)
+        expect(model.issueDetailInstances).toHaveLength(2)
+      }),
+      message(
+        Message.ChangedUrl({
+          url: url(issueRouter({ issueId: issueA.id })),
+        }),
+      ),
+      model(model => {
+        expect(detailInstance(model).model).toBe(issueAEditor)
+        expect(model.issueDetailInstances).toHaveLength(2)
+      }),
+      Command.expectNone(),
+    )
+  })
+
+  test('admits hidden editor results without letting it close the active issue', () => {
+    const initial = loadedModel(issueRouter({ issueId: issueA.id }))
+    const savedIssue = modifyFields(issueA, {
+      title: () => 'Saved while another issue is open',
+      version: Number.increment,
+    })
+
+    story(
+      update,
+      given(initial),
+      message(
+        detailMessageFor(
+          issueA.id,
+          IssueDetailBlock.Message.UpdatedTitle({ value: savedIssue.title }),
+        ),
+      ),
+      message(
+        detailMessageFor(issueA.id, IssueDetailBlock.Message.RequestedSave()),
+      ),
+      message(
+        Message.ChangedUrl({
+          url: url(issueRouter({ issueId: issueB.id })),
+        }),
+      ),
+      model(model => expect(detailInstance(model).issueId).toBe(issueB.id)),
+      Command.resolve(
+        SaveIssue,
+        IssueDetailBlock.Message.SucceededSaveIssue({
+          issue: savedIssue,
+          expectedVersion: issueA.version,
+        }),
+      ),
+      model(model => {
+        const hiddenEditor = retainedDetailInstance(model, issueA.id).model
+
+        expect(detailInstance(model).issueId).toBe(issueB.id)
+        expect(hiddenEditor.saveState).toEqual(SaveState.Idle())
+        expect(hiddenEditor.baseline).toEqual(revisionFromIssue(savedIssue))
+        expect(snapshotOf(model).issues).toContainEqual(savedIssue)
+        expect(model.issueDrafts).toEqual([])
+        expect(model.maybeNotice).toEqual(
+          Option.some(`${savedIssue.identifier} saved`),
+        )
+      }),
+      message(
+        detailMessageFor(issueA.id, IssueDetailBlock.Message.ClickedClose()),
+      ),
+      model(model => expect(detailInstance(model).issueId).toBe(issueB.id)),
+      Command.expectNone(),
+      message(
+        detailMessageFor(issueB.id, IssueDetailBlock.Message.ClickedClose()),
+      ),
+      Command.expectExact(NavigateInternal({ url: '/' })),
+      Command.resolve(NavigateInternal, Message.CompletedNavigateInternal()),
+    )
+  })
+
+  test('closes a direct issue URL to All issues', () => {
+    const initial = loadedModel(issueRouter({ issueId: issueA.id }))
+
+    story(
+      update,
+      given(initial),
+      message(detailMessage(initial, IssueDetailBlock.Message.ClickedClose())),
+      Command.expectExact(NavigateInternal({ url: '/' })),
+      Command.resolve(NavigateInternal, Message.CompletedNavigateInternal()),
+    )
+  })
+
+  test('reconciles every retained editor from a refreshed snapshot', () => {
+    const initial = loadedModel(issueRouter({ issueId: issueA.id }))
+    const latestIssueA = modifyFields(issueA, {
+      title: () => 'A clean hidden editor receives the refresh',
+      version: Number.increment,
+    })
+    const latestIssueB = modifyFields(issueB, {
+      title: () => 'A remote title conflicts with a retained draft',
+      version: Number.increment,
+    })
+    const refreshedSnapshot = modifyFields(initialSnapshot, {
+      issues: issues =>
+        Array.map(
+          Array.filter(issues, issue => issue.id !== issueC.id),
+          issue => {
+            if (issue.id === issueA.id) {
+              return latestIssueA
+            }
+
+            if (issue.id === issueB.id) {
+              return latestIssueB
+            }
+
+            return issue
+          },
+        ),
+    })
+    const localTitle = 'Keep this local title'
+
+    story(
+      update,
+      given(initial),
+      message(
+        Message.ChangedUrl({
+          url: url(issueRouter({ issueId: issueB.id })),
+        }),
+      ),
+      message(
+        detailMessageFor(
+          issueB.id,
+          IssueDetailBlock.Message.UpdatedTitle({ value: localTitle }),
+        ),
+      ),
+      message(
+        Message.ChangedUrl({
+          url: url(issueRouter({ issueId: issueC.id })),
+        }),
+      ),
+      message(Message.ChangedUrl({ url: url('/people') })),
+      message(Message.SucceededLoadWorkspace({ snapshot: refreshedSnapshot })),
+      model(model => {
+        const retainedIssueA = retainedDetailInstance(model, issueA.id).model
+        const retainedIssueB = retainedDetailInstance(model, issueB.id).model
+        const retainedIssueC = retainedDetailInstance(model, issueC.id).model
+
+        expect(maybeActiveIssueDetailInstance(model)).toEqual(Option.none())
+        expect(retainedIssueA.baseline).toEqual(revisionFromIssue(latestIssueA))
+        expect(retainedIssueA.draft).toEqual(draftFromIssue(latestIssueA))
+        expect(retainedIssueB.draft.title).toBe(localTitle)
+        expect(retainedIssueB.maybeIncomingRevision).toEqual(
+          Option.some(revisionFromIssue(latestIssueB)),
+        )
+        expect(retainedIssueC.baseline).toEqual(revisionFromIssue(issueC))
       }),
       Command.expectNone(),
     )
@@ -479,9 +690,9 @@ describe('Application child policies', () => {
   const listMessage = (message: typeof IssueListBlock.Message.Type) =>
     toParentMessage(IssueListBinding, message)
 
-  test('keeps one Board instance per active project and removes it when leaving', () => {
+  test('retains one Board instance per project across navigation', () => {
     const initial = loadedModel('/projects/platform/board')
-    const board = Option.getOrThrow(initial.maybeBoardInstance)
+    const board = boardInstance(initial)
     const issue = Option.getOrThrow(
       Array.findFirst(
         initialSnapshot.issues,
@@ -492,24 +703,34 @@ describe('Application child policies', () => {
     story(
       update,
       given(initial),
-      message(Message.ChangedUrl({ url: url(`/issues/${issue.id}`) })),
+      message(
+        Message.ChangedUrl({
+          url: url(
+            issueRouter({
+              issueId: issue.id,
+              returnTo: '/projects/platform/board',
+            }),
+          ),
+        }),
+      ),
       model(model => {
-        expect(Option.getOrThrow(model.maybeBoardInstance)).toBe(board)
+        expect(boardInstance(model)).toBe(board)
       }),
       message(Message.ChangedUrl({ url: url('/projects/platform/board') })),
       model(model => {
-        expect(Option.getOrThrow(model.maybeBoardInstance)).toBe(board)
+        expect(boardInstance(model)).toBe(board)
       }),
       message(Message.ChangedUrl({ url: url('/projects/experience/board') })),
       model(model => {
-        const switchedBoard = Option.getOrThrow(model.maybeBoardInstance)
+        const switchedBoard = boardInstance(model)
 
         expect(switchedBoard.projectId).toBe('experience')
         expect(switchedBoard).not.toBe(board)
       }),
       message(Message.ChangedUrl({ url: url('/people') })),
       model(model => {
-        expect(model.maybeBoardInstance).toEqual(Option.none())
+        expect(maybeActiveBoardInstance(model)).toEqual(Option.none())
+        expect(model.boardInstances).toHaveLength(2)
       }),
       Command.expectNone(),
     )
@@ -518,7 +739,96 @@ describe('Application child policies', () => {
       update,
       given(loadedModel('/projects/missing/board')),
       model(model => {
-        expect(model.maybeBoardInstance).toEqual(Option.none())
+        expect(model.boardInstances).toEqual([])
+      }),
+      Command.expectNone(),
+    )
+  })
+
+  test('keeps a Board interaction under its issue overlay and cancels it when hidden', () => {
+    const projectId = 'platform'
+    const boardPath = boardRouter({ projectId })
+    const issue = Option.getOrThrow(
+      Array.findFirst(
+        initialSnapshot.issues,
+        issue => issue.projectId === projectId,
+      ),
+    )
+    const issuePath = issueRouter({ issueId: issue.id, returnTo: boardPath })
+    const initial = loadedModel(boardPath)
+    const pressedDraggable = DragAndDropBlock.Message.PressedDraggable({
+      itemId: draggableId(issue.id),
+      containerId: containerId(issue.status),
+      index: 0,
+      screenX: 20,
+      screenY: 30,
+    })
+
+    story(
+      update,
+      given(initial),
+      message(boardDragMessage(projectId, pressedDraggable)),
+      model(model => {
+        expect(boardInstance(model).model.dragAndDrop.dragState._tag).toBe(
+          'Pending',
+        )
+      }),
+      message(Message.ChangedUrl({ url: url(issuePath) })),
+      model(model => {
+        expect(isActiveBoard(model, projectId)).toBe(true)
+        expect(
+          retainedBoardInstance(model, projectId).model.dragAndDrop.dragState
+            ._tag,
+        ).toBe('Pending')
+      }),
+      message(Message.ChangedUrl({ url: url(issuePath) })),
+      model(model => {
+        expect(
+          retainedBoardInstance(model, projectId).model.dragAndDrop.dragState
+            ._tag,
+        ).toBe('Pending')
+      }),
+      message(Message.ChangedUrl({ url: url('/people') })),
+      model(model => {
+        expect(isActiveBoard(model, projectId)).toBe(false)
+        expect(
+          retainedBoardInstance(model, projectId).model.dragAndDrop.dragState
+            ._tag,
+        ).toBe('Idle')
+      }),
+      Command.expectNone(),
+    )
+  })
+
+  test('cancels the previous Board interaction when switching projects', () => {
+    const projectId = 'platform'
+    const initial = loadedModel(boardRouter({ projectId }))
+
+    story(
+      update,
+      given(initial),
+      message(
+        boardDragMessage(
+          projectId,
+          DragAndDropBlock.Message.ActivatedKeyboardDrag({
+            itemId: draggableId(issueA.id),
+            containerId: containerId(issueA.status),
+            index: 0,
+          }),
+        ),
+      ),
+      message(
+        Message.ChangedUrl({
+          url: url(boardRouter({ projectId: 'experience' })),
+        }),
+      ),
+      model(model => {
+        expect(
+          retainedBoardInstance(model, projectId).model.dragAndDrop.dragState
+            ._tag,
+        ).toBe('Idle')
+        expect(boardInstance(model).projectId).toBe('experience')
+        expect(model.boardInstances).toHaveLength(2)
       }),
       Command.expectNone(),
     )
@@ -610,9 +920,12 @@ describe('Application child policies', () => {
         listMessage(IssueListBlock.Message.UpdatedQuery({ value: 'keyboard' })),
       ),
       Command.expectExact(
-        ReplaceFilters({ url: issuesRouter({ filters: queriedFilters }) }),
+        ReplaceInternalUrl({ url: issuesRouter({ filters: queriedFilters }) }),
       ),
-      Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),
+      Command.resolve(
+        ReplaceInternalUrl,
+        Message.CompletedReplaceInternalUrl(),
+      ),
       message(
         Message.ChangedUrl({
           url: url(issuesRouter({ filters: queriedFilters })),
@@ -709,6 +1022,62 @@ describe('Application child policies', () => {
     )
   })
 
+  test('deletes unrelated and displayed saved views without changing filters', () => {
+    const savedFilters = IssueFilters.make({
+      ...defaultIssueFilters,
+      query: 'keyboard',
+      groupBy: 'Project',
+    })
+    const displayedView = SavedView.make({
+      id: 'view-1',
+      name: 'Keyboard work',
+      filters: savedFilters,
+    })
+    const unrelatedView = SavedView.make({
+      id: 'view-2',
+      name: 'Other work',
+      filters: defaultIssueFilters,
+    })
+    const displayedPath = savedViewRouter({
+      viewId: displayedView.id,
+      filters: savedFilters,
+    })
+    const issuesPath = issuesRouter({ filters: savedFilters })
+    const initial = modifyFields(loadedModel(displayedPath), {
+      savedViews: () => [displayedView, unrelatedView],
+      nextSavedViewId: () => 3,
+    })
+
+    story(
+      update,
+      given(initial),
+      message(Message.ClickedDeleteSavedView({ viewId: unrelatedView.id })),
+      model(model => {
+        expect(model.savedViews).toEqual([displayedView])
+        expect(model.route).toEqual(
+          ApplicationRoute.SavedView({
+            viewId: displayedView.id,
+            filters: savedFilters,
+          }),
+        )
+        expect(appliedIssueFilters(model)).toEqual(savedFilters)
+      }),
+      Command.expectNone(),
+    )
+
+    story(
+      update,
+      given(initial),
+      message(Message.ClickedDeleteSavedView({ viewId: displayedView.id })),
+      model(model => {
+        expect(model.savedViews).toEqual([unrelatedView])
+        expect(appliedIssueFilters(model)).toEqual(savedFilters)
+      }),
+      Command.expectExact(NavigateInternal({ url: issuesPath })),
+      Command.resolve(NavigateInternal, Message.CompletedNavigateInternal()),
+    )
+  })
+
   test('deleting a saved view behind an issue preserves its filters for close', () => {
     const savedFilters = IssueFilters.make({
       ...defaultIssueFilters,
@@ -734,6 +1103,11 @@ describe('Application child policies', () => {
       issueId: 'issue-102',
       returnTo: backgroundPath,
     })
+    const issuesPath = issuesRouter({ filters: changedFilters })
+    const repairedIssuePath = issueRouter({
+      issueId: 'issue-102',
+      returnTo: issuesPath,
+    })
     const initial = modifyFields(loadedModel(issuePath), {
       savedViews: () => [savedView],
       nextSavedViewId: () => 2,
@@ -743,23 +1117,28 @@ describe('Application child policies', () => {
       update,
       given(initial),
       message(Message.ClickedDeleteSavedView({ viewId: savedView.id })),
-      Command.expectExact(
-        NavigateInternal({ url: issuesRouter({ filters: changedFilters }) }),
-      ),
+      Command.expectExact(ReplaceInternalUrl({ url: repairedIssuePath })),
       model(model => {
         expect(model.savedViews).toEqual([])
 
         expect(model.route).toEqual(
           ApplicationRoute.Issue({
             issueId: 'issue-102',
-            returnTo: backgroundPath,
+            returnTo: issuesPath,
           }),
         )
-        expect(model.issueCloseRoute).toEqual(
+        expect(backgroundRoute(model.route)).toEqual(
           ApplicationRoute.Issues({ filters: changedFilters }),
         )
         expect(appliedIssueFilters(model)).toEqual(changedFilters)
       }),
+      Command.resolve(
+        ReplaceInternalUrl,
+        Message.CompletedReplaceInternalUrl(),
+      ),
+      message(Message.ChangedUrl({ url: url(repairedIssuePath) })),
+      message(detailMessage(initial, IssueDetailBlock.Message.ClickedClose())),
+      Command.expectExact(NavigateInternal({ url: issuesPath })),
       Command.resolve(NavigateInternal, Message.CompletedNavigateInternal()),
     )
   })
@@ -863,7 +1242,7 @@ describe('Issue drafts', () => {
     ).model
 
   const detailInstance = (model: typeof Model.Type) =>
-    Option.getOrThrow(model.maybeIssueDetailInstance)
+    Option.getOrThrow(maybeActiveIssueDetailInstance(model))
 
   const detailMessage = (
     model: typeof Model.Type,
@@ -1073,7 +1452,7 @@ describe('Issue drafts', () => {
     })
 
     const pending = modifyFields(initial, {
-      maybeIssueDetailInstance: Option.map(instance =>
+      issueDetailInstances: Array.map(instance =>
         modifyFields(instance, {
           model: detail =>
             modifyFields(detail, {
@@ -1166,7 +1545,7 @@ describe('Issue drafts', () => {
     })
 
     const pending = modifyFields(initial, {
-      maybeIssueDetailInstance: Option.map(instance =>
+      issueDetailInstances: Array.map(instance =>
         modifyFields(instance, {
           model: detail =>
             modifyFields(detail, {
@@ -1503,7 +1882,7 @@ describe('Board moves', () => {
 
   test('retains a teammate comment between an optimistic move and its rollback', () => {
     const initial = loadedBoard()
-    const board = Option.getOrThrow(initial.maybeBoardInstance)
+    const board = boardInstance(initial)
     const issue = issueOf(initial, 'issue-103')
     const teammateComment = Comment.make({
       id: 'comment-during-move',
@@ -1553,9 +1932,9 @@ describe('Board moves', () => {
       model(model => {
         expect(issueOf(model, issue.id).status).toBe('Done')
 
-        expect(
-          Option.getOrThrow(model.maybeBoardInstance).model.announcement,
-        ).toBe('Moved to Done, position 1.')
+        expect(boardInstance(model).model.announcement).toBe(
+          'Moved to Done, position 1.',
+        )
       }),
       Command.expectExact(
         MoveIssue({
@@ -1598,9 +1977,9 @@ describe('Board moves', () => {
           teammateComment,
         )
 
-        expect(
-          Option.getOrThrow(model.maybeBoardInstance).model.announcement,
-        ).toBe('Could not save the move. Issue position restored.')
+        expect(boardInstance(model).model.announcement).toBe(
+          'Could not save the move. Issue position restored.',
+        )
       }),
     )
   })

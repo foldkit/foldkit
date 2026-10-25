@@ -1,16 +1,9 @@
-import { clsx } from 'clsx'
 import { Array, Match, Option, Schema } from 'effect'
 import type { Html } from 'foldkit/html'
 
 import { Input } from '@foldkit/ui'
 import type { RenderInfo } from '@foldkit/ui/dialog'
 
-import {
-  COMMAND_OPTION_CLASS,
-  COMPACT_BUTTON_CLASS,
-  DIALOG_SURFACE_CLASS,
-  INPUT_CLASS,
-} from '../controlStyles'
 import { Issue, Project } from '../domain'
 import {
   CommandPaletteComposition,
@@ -57,7 +50,7 @@ const searchInput = (
             h.input([
               ...attributes.input,
               ...initialFocus,
-              h.Class(INPUT_CLASS),
+              h.Class('input-control'),
               h.Role('combobox'),
               h.AriaExpanded(true),
               h.AriaAutocomplete('list'),
@@ -131,7 +124,7 @@ const resultList = (
             'command-palette-result-index',
             globalThis.String(index),
           ),
-          h.Class(COMMAND_OPTION_CLASS),
+          h.Class('command-option'),
           ...(index === model.activeResultIndex
             ? [h.DataAttribute('active', '')]
             : []),
@@ -188,10 +181,7 @@ export const view = CommandPaletteComposition.makeView.withInputs<
                     [
                       ...panel,
                       h.Class(
-                        clsx(
-                          DIALOG_SURFACE_CLASS,
-                          'relative mx-auto mt-[max(1.5rem,10dvh)] w-[calc(100vw-2rem)] max-w-xl overflow-hidden text-sm font-medium',
-                        ),
+                        'dialog-surface relative mx-auto mt-[max(1.5rem,10dvh)] w-[calc(100vw-2rem)] max-w-xl overflow-hidden text-sm font-medium',
                       ),
                     ],
                     [
@@ -210,7 +200,7 @@ export const view = CommandPaletteComposition.makeView.withInputs<
                             ['Go to…'],
                           ),
                           h.button(
-                            [...closeButton, h.Class(COMPACT_BUTTON_CLASS)],
+                            [...closeButton, h.Class('button-compact')],
                             ['Close search'],
                           ),
                         ],

@@ -154,6 +154,8 @@ Include `forward` only when at least one child variant continues to this Block's
 
 ### Child initialization
 
+Keep child state retention, rendering, and activity as separate decisions. A Route change can select another view while retaining child Models in the parent. Store multiple retained editors by entity identity when navigating A to B to A should preserve both. A retained occurrence can still receive pending results; gate its Subscriptions or other activity explicitly when necessary. Remove child state for an application reason such as deletion or eviction. Use `initialize...IfMissing` for application Steps that preserve an existing occurrence and initialize only an absent identity.
+
 Author one `Composition.makeInit` with a concrete signature; optional, default, and rest arguments remain exact. Return parent-owned fields under `model`, optional root `commands`, and `steps` for transitions after child fields exist. An optional Definition `ChildInitContext` Schema describes shared data produced by parent init; each child's `init.contextToArgs` selects initializer arguments from that context. Return the value as `childInitContext`. It does not describe the parent's own init arguments.
 
 For a required direct child whose initializer accepts no arguments, omit `init` for automatic initialization. Required inputs use `init.contextToArgs`; `init: false` makes the parent supply the field. Optional, keyed, and accessor storage remains parent-owned when `init` is omitted. An optional direct field's selector returns `Option<tuple>`. Keyed arrays use `init.instances` returning ordered `{ key, args }` records and `init.toItem`; custom accessors can use `init.toParentFields`. Preserve the planned key and exact initialized child Model inside plain wrapper records.
@@ -197,6 +199,8 @@ Keep the four lifetimes distinct. Application services such as RPC clients last 
 Handlers and services may own mutable execution bookkeeping, such as worker availability or protocol request IDs. The Model and update own pending work shown to the user, selections, and submission rules. A `Ref` created in the constructor must not become the source of truth for workflow decisions or state read by view.
 
 ### File organization
+
+When using Tailwind, keep reusable static control recipes in the stylesheet's `@layer components`, where ordinary utilities can override them. Use `@utility` when adding an actual utility that needs variants. Keep `clsx` for conditional classes. Avoid a TypeScript module whose only job is assembling and exporting static class strings.
 
 Keep a compact feature together. Split when a responsibility has a distinct reason to change and a meaningful name; do not add one file per Message or helper. Keep domain Schemas and pure domain operations in `domain/`, independent of Model, update, and view modules.
 
@@ -246,6 +250,7 @@ When a Scene emits a Subscription Message, include the owning Composition and re
 - Use `Calendar` for date-only values and Effect `DateTime` / `Duration` for timestamps and elapsed time. Read the current time in a Command, Subscription, or Flags.
 - Always use braces for control flow: `if (foo) { return true }`.
 - Use blank lines to show the phases of non-trivial control flow, and prefer a blank line when uncertain. Separate setup, a value read from the guard that consumes it, independent guards or validation cases, writes, and the final return. In a loop, give each skip, failure, or mutation condition its own visual paragraph. Keep statements together only when they form one operation or one explicit `if`/`else` chain. Preserve the required adjacency of a Composition and its ViewBuilder alias, and of `prepare` and its checked Block export. Formatting alone does not choose these logical boundaries; review them while authoring the code.
+- Name selectors for derived values (`visibleIssues`), pure transitions for the Model change they describe (`applyWorkspaceSnapshot`), and dedicated handlers `handle<MessageTag>`. Use `initialize...IfMissing` for conditional creation. Reserve `sync` and `observe` for actual synchronization or observation. Commands describe effects for Runtime; a Step only computes state and Commands.
 - Don't add inline comments to explain code. Use better names instead. Reserve `// NOTE:` for behavior that would mislead a careful reader.
 
 ## Message Layout

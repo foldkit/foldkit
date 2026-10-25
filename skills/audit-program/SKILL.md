@@ -210,6 +210,8 @@ A Binding's `write` or `writeAt` places the next child Model into parent storage
 
 Check both direct-field writer coordination caught by `foldkit/no-binding-write-coordination` and complex writers outside its conservative coverage. Do not flag legitimate wrapper metadata, keyed replacement, or absence checks merely because a custom writer touches several fields.
 
+Review child retention, rendering, and activity separately. Route-driven deletion should have a product reason. When editors are retained by identity, view must select the active child from the Route; hidden save completions must still reach their occurrence. Check that route-wide delivery gates do not discard those results and that unfinished transient interactions are canceled through child operations before returning to a retained view. Name conditional initialization `initialize...IfMissing` and pure transitions for their actual Model change; vague `sync` or `observe` helpers can conceal several responsibilities.
+
 For Block, Binding, Composition, OutMessage, startup, handler Layer, and root
 Service review, read
 [Block composition and Layers](../foldkit/references/composition.md). Trace the

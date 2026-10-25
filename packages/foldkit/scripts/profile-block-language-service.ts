@@ -114,7 +114,13 @@ const definitionPath = 'packages/website/src/definition.ts'
 const compositionPath = 'packages/website/src/composition/composition.ts'
 const changedUrlPath = 'packages/website/src/update/handleChangedUrl.ts'
 const workspaceCompositionPath = 'examples/workspace/src/composition.ts'
-const workspaceUpdatePath = 'examples/workspace/src/update.ts'
+const workspaceInitializationPath =
+  'examples/workspace/src/update/initializeActiveChildren.ts'
+const workspaceUpdatePath = existsSync(
+  resolve(workspaceRoot, workspaceInitializationPath),
+)
+  ? workspaceInitializationPath
+  : 'examples/workspace/src/update.ts'
 const workspaceEntryPath = 'examples/workspace/src/entry.ts'
 const workspaceDetailUpdatePath = 'examples/workspace/src/issueDetail/update.ts'
 const workspaceBindingCall = 'IssueDetailBinding.init('

@@ -336,21 +336,8 @@ export const maybeIssueCloseRoute = (
 ) => Option.flatMap(Option.fromNullishOr(route.returnTo), parseIssueCloseRoute)
 
 export const resolveIssueCloseRoute = (
-  route: typeof ApplicationRoute.Type,
-  previousCloseRoute: typeof IssueCloseRoute.Type = ApplicationRoute.Issues({
-    filters: defaultIssueFilters,
-  }),
-): typeof IssueCloseRoute.Type => {
-  if (ApplicationRoute.guards.Issue(route)) {
-    return Option.getOrElse(
-      maybeIssueCloseRoute(route),
-      () => previousCloseRoute,
-    )
-  }
-
-  if (ApplicationRoute.guards.NotFound(route)) {
-    return previousCloseRoute
-  }
-
-  return route
-}
+  route: typeof ApplicationRoute.Issue.Type,
+): typeof IssueCloseRoute.Type =>
+  Option.getOrElse(maybeIssueCloseRoute(route), () =>
+    ApplicationRoute.Issues({ filters: defaultIssueFilters }),
+  )

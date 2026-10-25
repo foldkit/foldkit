@@ -121,6 +121,7 @@ const Message = defineMessageUnion({
 
 ### Variables and Functions
 
+- Name selectors for derived values and pure transitions for the changes they describe. Dedicated Message handlers use `handle<MessageTag>`. Use `initialize...IfMissing` when a Step preserves an existing occurrence and initializes an absent identity. Reserve `sync` and `observe` for actual synchronization or observation; Step construction and application do not execute Commands.
 - Avoid opaque abbreviations: `signature` not `sig`, `message` not `msg`, `callbacks` not `cbs`
 - Conventional technical shorthand is allowed when it is the normal domain spelling, such as `attrs`, `props`, `args`, `dir`, `ctx`, `fn`, `DOM`, `URL`, and `VNode`; established API and DSL bindings such as `h` are also allowed
 - Use descriptive callback parameters: `(tickCount) => tickCount + 1` not `(t) => t + 1`; prefer `toMessage` over an unexplained `f`
@@ -390,6 +391,8 @@ Give independent interactions their own pending and failure state. A project sav
 
 An editor owns its baseline, draft, and submission state. Decide whether navigation retains or removes that editor occurrence. Repeated URL delivery and data refresh must not silently reset dirty drafts. Retain an occurrence while hidden when its pending result must still update the parent. Apply mutation responses only to the data that operation owns; a delayed full snapshot must not replace unrelated newer changes.
 
+Separate retention, rendering, and activity. A Route can select one child view while the parent retains several child Models by entity identity. A single Option slot preserves only its current identity. A retained child can receive pending results while hidden; a route-wide `delivery.when` rejection also rejects save completions. Gate only the Streams that should stop, and use a child operation to cancel a transient interaction such as a drag. Use Route Transitions when navigation policy depends on entry, exit, or changed payloads; data arrival can require a separate initialization Step.
+
 ## Update Results
 
 Use an existing compatible Model-first Step directly in a `makeUpdate` handler record when the case only applies it: `ClickedOpenSearch: SearchBinding.requestOpen()`. Keep handler functions for payload-dependent or Model-dependent arguments, argument construction deferred until dispatch, dispatch context, and necessary generic contextual inference. This does not apply to payload-first `Message.match` branches.
@@ -637,6 +640,8 @@ Use `taggedStruct` when the variants cannot be declared together:
 - No dead code, no empty catch blocks, no placeholder types
 
 ## Conditional Styles with clsx
+
+In Tailwind applications, repeated static control recipes belong in the stylesheet's `@layer components`, which ordinary utilities can override. Use `@utility` for a custom utility that needs variant support. Keep `clsx` for actual conditional composition rather than exporting chains of static class strings from TypeScript. See [Tailwind's custom-style guidance](https://tailwindcss.com/docs/adding-custom-styles#adding-component-classes).
 
 Use `clsx` for conditional class composition. Never string concatenation, template literals, or `&&` expressions. Use the object syntax `{ 'class-name': condition }` for conditional classes:
 

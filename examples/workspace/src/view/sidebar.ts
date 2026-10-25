@@ -6,7 +6,6 @@ import type { Html } from 'foldkit/html'
 import { Button } from '@foldkit/ui'
 
 import type { ApplicationViewBuilder } from '../composition'
-import { BUTTON_CLASS } from '../controlStyles'
 import { Message } from '../message'
 import type { Model } from '../model'
 import { backgroundRoute, issueHref } from '../navigation'
@@ -37,7 +36,7 @@ export const sidebarView = (
   model: typeof Model.Type,
   h: ApplicationViewBuilder,
 ): Html => {
-  const route = backgroundRoute(model)
+  const route = backgroundRoute(model.route)
   const maybeCurrentProjectId = maybeProjectId(route)
 
   return h.aside(
@@ -76,7 +75,7 @@ export const sidebarView = (
               [
                 ...attributes.button,
                 h.AriaLabel('Search workspace'),
-                h.Class(clsx(BUTTON_CLASS, 'w-full justify-between lg:mb-5')),
+                h.Class('button w-full justify-between lg:mb-5'),
               ],
               [
                 h.span([h.Class('sm:hidden')], ['Search']),

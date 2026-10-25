@@ -1,15 +1,8 @@
-import { clsx } from 'clsx'
 import { String } from 'effect'
 import type { Html } from 'foldkit/html'
 
 import { Button, Fieldset, Input, Textarea } from '@foldkit/ui'
 
-import {
-  BUTTON_CLASS,
-  INPUT_CLASS,
-  PRIMARY_BUTTON_CLASS,
-  TEXT_CONTROL_CLASS,
-} from '../controlStyles'
 import {
   ProjectSettingsComposition,
   type ProjectSettingsViewBuilder,
@@ -46,7 +39,7 @@ const saveFeedback = (
               onClick: Message.ClickedRetrySave(),
               toView: attributes =>
                 h.button(
-                  [...attributes.button, h.Class(BUTTON_CLASS)],
+                  [...attributes.button, h.Class('button')],
                   ['Retry changes'],
                 ),
             },
@@ -82,7 +75,7 @@ const projectNameField = (
               h.Required(true),
               h.AriaRequired(true),
               h.Pattern('.*\\S.*'),
-              h.Class(INPUT_CLASS),
+              h.Class('input-control'),
             ]),
           ],
         ),
@@ -115,10 +108,7 @@ const projectDescriptionField = (
             h.textarea([
               ...attributes.textarea,
               h.Class(
-                clsx(
-                  TEXT_CONTROL_CLASS,
-                  'min-h-11 resize-y px-3 py-2 text-sm leading-6',
-                ),
+                'text-control min-h-11 resize-y px-3 py-2 text-sm leading-6',
               ),
             ]),
           ],
@@ -149,7 +139,7 @@ const formActions = (
           onClick: Message.ClickedDiscardChanges(),
           toView: attributes =>
             h.button(
-              [...attributes.button, h.Class(BUTTON_CLASS)],
+              [...attributes.button, h.Class('button')],
               ['Discard changes'],
             ),
         },
@@ -161,7 +151,7 @@ const formActions = (
           isDisabled: isSaving || !isValid || !isChanged,
           toView: attributes =>
             h.button(
-              [...attributes.button, h.Class(PRIMARY_BUTTON_CLASS)],
+              [...attributes.button, h.Class('button-primary')],
               [isSaving ? 'Saving…' : 'Save changes'],
             ),
         },

@@ -1,14 +1,8 @@
-import { clsx } from 'clsx'
 import { Array, Option, Schema, String } from 'effect'
 import type { Html } from 'foldkit/html'
 
 import { Button, Textarea } from '@foldkit/ui'
 
-import {
-  BUTTON_CLASS,
-  PRIMARY_BUTTON_CLASS,
-  TEXT_CONTROL_CLASS,
-} from '../controlStyles'
 import { Comment, Member } from '../domain'
 import {
   CommentComposerComposition,
@@ -158,10 +152,7 @@ export const view = CommentComposerComposition.makeView.withInputs<
                     h.textarea([
                       ...attributes.textarea,
                       h.Class(
-                        clsx(
-                          TEXT_CONTROL_CLASS,
-                          'min-h-24 resize-y px-3 py-2.5 text-sm font-normal leading-6',
-                        ),
+                        'text-control min-h-24 resize-y px-3 py-2.5 text-sm font-normal leading-6',
                       ),
                       h.Required(true),
                       h.AriaRequired(true),
@@ -187,7 +178,7 @@ export const view = CommentComposerComposition.makeView.withInputs<
                             [
                               ...attributes.button,
                               h.Disabled(isDraftLocked),
-                              h.Class(BUTTON_CLASS),
+                              h.Class('button'),
                             ],
                             ['Discard comment'],
                           ),
@@ -205,7 +196,7 @@ export const view = CommentComposerComposition.makeView.withInputs<
                       [
                         ...attributes.button,
                         h.Disabled(isDraftLocked),
-                        h.Class(PRIMARY_BUTTON_CLASS),
+                        h.Class('button-primary'),
                       ],
                       ['Post comment'],
                     ),

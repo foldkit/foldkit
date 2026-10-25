@@ -199,6 +199,17 @@ Prototype proposed APIs and verify source/emitted acceptance/rejection, runtime 
 - [x] Complete the independent final static security review over the candidate delta, including the two-interface repair. No new release-blocking code vulnerability was established. The unresolved audit remains 1 Critical, 8 High, 11 Moderate and 4 Low; retain the reviewed reachability limits and maintenance followups. This is not a new Daybreak run or a clean audit. [Report](next-preview-security-review.md).
 - [ ] Follow the authorized commit/push and integration gates; do not merge preview work into main.
 
+## Workspace transition and initialization clarity
+
+- [x] Retain Issue Detail and Board Models by entity identity across navigation. Select rendered children from the Route, and verify hidden pending results, retained edits, conflict handling, and child lifecycle behavior separately.
+- [x] Replace vague `sync*` and `observe*` transformation names with precise application behavior. Use `initialize...IfMissing` for conditional creation and `handle<MessageTag>` for dedicated handlers.
+- [x] Express navigation policy with Route Transitions; retain data-arrival initialization and explicit parent-owned retention policy.
+- [x] Simplify saved-view deletion, preserve active filters, and keep an open issue visible while repairing its deleted return destination.
+- [x] Assess declaration-derived dynamic Binding initialization before adoption. The exact keyed-array append prototype passes source/emitted/runtime safety but exceeds unchanged compiler ceilings. Reject this encoding and retain explicit `toParentModel` placement. [Assessment and retained implementation](workspace-transition-cleanup-20261025.md).
+- [x] Compose meaningful application Steps and apply focused producer helpers where they improve clarity. Review the real split-file consumer for dependency direction and unnecessary bookkeeping.
+- [x] After the transition work, assess shared control styling against Tailwind custom utilities and migrate appropriate repeated control recipes.
+- [x] Verify source and emitted declarations, focused Story/Scene/browser flows, affected consumers, unchanged compiler counts, and three alternating native editor pairs. No material editor regression is established. [Final measurements and limits](workspace-transition-cleanup-20261025.md#final-verification). Keep publication held for approval.
+
 ## Migration support
 
 Breaking beta changes may require a complete application migration. Provide accurate guides, agent prompts, and verified migrations. Codemods and an incremental compatibility bridge are outside this plan. Large diagnostic counts alone do not justify retaining the previous architecture; unclear contracts, incorrect diagnostics, and unnecessary wiring are actionable findings.

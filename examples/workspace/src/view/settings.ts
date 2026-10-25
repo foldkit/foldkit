@@ -4,7 +4,6 @@ import type { Html } from 'foldkit/html'
 import { Button } from '@foldkit/ui'
 
 import type { ApplicationViewBuilder } from '../composition'
-import { BUTTON_CLASS } from '../controlStyles'
 import { Message } from '../message'
 import type { Model } from '../model'
 
@@ -65,7 +64,7 @@ export const workspaceSettings = (
                   onClick: Message.ClickedSimulateActivity(),
                   toView: attributes =>
                     h.button(
-                      [...attributes.button, h.Class(BUTTON_CLASS)],
+                      [...attributes.button, h.Class('button')],
                       ['Simulate activity'],
                     ),
                 },
@@ -98,7 +97,7 @@ export const workspaceSettings = (
               onClick: Message.ClickedSimulateSaveFailure(),
               toView: attributes =>
                 h.button(
-                  [...attributes.button, h.Class(BUTTON_CLASS)],
+                  [...attributes.button, h.Class('button')],
                   ['Fail next save'],
                 ),
             },

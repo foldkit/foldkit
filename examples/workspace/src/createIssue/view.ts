@@ -1,4 +1,3 @@
-import { clsx } from 'clsx'
 import { Array, Schema, String } from 'effect'
 import type { Html } from 'foldkit/html'
 
@@ -6,13 +5,6 @@ import { Button, Fieldset, Input, Textarea } from '@foldkit/ui'
 import type { RenderInfo } from '@foldkit/ui/dialog'
 import { buttonId } from '@foldkit/ui/listbox'
 
-import {
-  BUTTON_CLASS,
-  DIALOG_SURFACE_CLASS,
-  INPUT_CLASS,
-  PRIMARY_BUTTON_CLASS,
-  TEXT_CONTROL_CLASS,
-} from '../controlStyles'
 import { Project } from '../domain'
 import {
   PriorityListboxOption,
@@ -82,7 +74,7 @@ const titleField = (
             h.input([
               ...attributes.input,
               ...initialFocus,
-              h.Class(INPUT_CLASS),
+              h.Class('input-control'),
               h.Required(true),
               h.AriaRequired(true),
             ]),
@@ -113,12 +105,7 @@ const descriptionField = (
             ),
             h.textarea([
               ...attributes.textarea,
-              h.Class(
-                clsx(
-                  TEXT_CONTROL_CLASS,
-                  'min-h-24 resize-y px-3 py-2 leading-6',
-                ),
-              ),
+              h.Class('text-control min-h-24 resize-y px-3 py-2 leading-6'),
             ]),
           ],
         ),
@@ -247,7 +234,7 @@ const submitButton = (
           [
             ...attributes.button,
             h.Disabled(isCreating),
-            h.Class(PRIMARY_BUTTON_CLASS),
+            h.Class('button-primary'),
           ],
           [isCreating ? 'Creating…' : 'Create issue'],
         ),
@@ -290,10 +277,7 @@ export const view = CreateIssueComposition.makeView.withInputs<
                     [
                       ...panel,
                       h.Class(
-                        clsx(
-                          DIALOG_SURFACE_CLASS,
-                          'relative z-10 my-8 w-[calc(100vw-2rem)] max-w-lg p-6 text-sm font-medium sm:my-[10vh] sm:p-8',
-                        ),
+                        'dialog-surface relative z-10 my-8 w-[calc(100vw-2rem)] max-w-lg p-6 text-sm font-medium sm:my-[10vh] sm:p-8',
                       ),
                     ],
                     [
@@ -319,7 +303,7 @@ export const view = CreateIssueComposition.makeView.withInputs<
                             ],
                             [
                               h.button(
-                                [...closeButton, h.Class(BUTTON_CLASS)],
+                                [...closeButton, h.Class('button')],
                                 [
                                   CreateState.guards.Creating(model.createState)
                                     ? 'Close'

@@ -256,6 +256,7 @@ describe('update', () => {
         message(
           dragAndDropMessage(
             DragAndDropBlock.Message.CompletedResolveKeyboardMove({
+              keyboardDragGeneration: 1,
               targetContainerId: 'todo',
               targetIndex: 2,
             }),
@@ -298,6 +299,7 @@ describe('update', () => {
         message(
           dragAndDropMessage(
             DragAndDropBlock.Message.CompletedResolveKeyboardMove({
+              keyboardDragGeneration: 1,
               targetContainerId: 'in-progress',
               targetIndex: 0,
             }),

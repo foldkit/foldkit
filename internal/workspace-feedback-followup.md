@@ -2,6 +2,12 @@
 
 ## Scope
 
+The verification counts below describe the named earlier checkpoints. The
+[transition cleanup](workspace-transition-cleanup-20261025.md) records current
+per-ID editor retention, URL-derived return context, hidden-result delivery,
+and shared control styling. Navigation now reuses retained editors; the earlier
+remove-and-recreate scenarios are not the current navigation contract.
+
 This pass applies the user's Workspace feedback after the initial Listbox consolidation. It changes the private example and its tests, without a framework API change. Concurrent update-function and Subscription work is retained. No commit, push, release publication, or Ready promotion is part of this pass.
 
 ## Consumer changes
@@ -9,7 +15,7 @@ This pass applies the user's Workspace feedback after the initial Listbox consol
 | Feedback                                        | Disposition                                                                                                                                                                                                                             |
 | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Use search params for list state                | The Route owns search, status, sort, and grouping. Issue List renders controlled filters and reports changes through OutMessages.                                                                                                       |
-| Keep useful browser history                     | Live search uses `ReplaceFilters`; status, sort, grouping, and clear use `NavigateInternal`. Back/Forward restore the applied URL state.                                                                                                |
+| Keep useful browser history                     | Live search uses `ReplaceInternalUrl`; status, sort, grouping, and clear use `NavigateInternal`. Back/Forward restore the applied URL state.                                                                                            |
 | Preserve the originating view                   | Issue links carry validated internal `returnTo` context. Reloading an issue and closing it restores the complete filtered URL.                                                                                                          |
 | Separate internal and external navigation       | `NavigateInternal({ url })` and `LoadExternal({ href })` replace the Boolean-dispatched Command. Each has its corresponding completion Message.                                                                                         |
 | Capture stable Services in handler constructors | All eight repository-backed Commands capture `WorkspaceRepository` once. Invocation functions perform repository work later, with the existing error Messages and handler requirements.                                                 |
@@ -89,7 +95,7 @@ Browser inspection confirms aligned title positions across different statuses, v
 
 Workspace activity is active after data loads. Every 20 seconds it produces a teammate comment on a relevant issue or an assignment; Settings can request the next event directly. Comments notify assignees and participants except their author. Assignments notify their recipient except the actor. The Notification Center owns recipient-specific read state, deduplicates records, and presents them through a Foldkit UI Popover with an unread count, relative timestamps, read/unread actions, and Mark all as read. Selecting an entry marks it read and asks parent policy to navigate. Incoming activity neither opens the panel nor navigates. Ordinary issue changes do not generate notifications.
 
-Root policy detects new comments before updating canonical data, ignores stale revisions, and informs the active editor through its existing Binding operations. Draft, conflict, optimistic placement, rollback, and stale-occurrence regressions remain covered. The relative-time clock runs while the Popover is open. The Popover shares Listbox layering levels so its trigger remains operable over its backdrop. At 320 CSS pixels, the member label stays accessible while its visual footprint is removed; the header and panel do not overflow.
+Root policy detects new comments before updating canonical data, ignores stale revisions, and informs retained editors through their Binding operations. A hidden editor can settle its own pending save while the current editor stays isolated. The relative-time clock runs while the Popover is open. The Popover shares Listbox layering levels so its trigger remains operable over its backdrop. At 320 CSS pixels, the member label stays accessible while its visual footprint is removed; the header and panel do not overflow. Current retention regressions are recorded in the transition cleanup; the counts below describe the original notification checkpoint.
 
 Root update Stories, including notification policy, are in `src/story.test.ts`. The child’s update tests are in `notifications/story.test.ts`. Isolated mutations prove that the Stories reject own-comment leakage, unrelated-issue activity selection, and obsolete error retention after assignment success. Browser tests first fail against the prefeature build; a failing open-trigger case also caught the incorrect backdrop layering. The final production suite passes all **29 cases**; application tests pass **149 cases across 24 files**. Source checking, application/Effect lint, and production build pass.
 

@@ -85,6 +85,24 @@ const canonicalIssue = (model: typeof Model.Type, issueId = firstIssue.id) =>
   )
 
 describe('workspace application', () => {
+  test('does not render a retained issue editor after its route is hidden', () => {
+    const issueModel = loadedModel(issueUrl)
+    const hiddenIssue = update(
+      issueModel,
+      Message.ChangedUrl({ url: url('/people') }),
+    ).model
+
+    expectValue(hiddenIssue.issueDetailInstances).toHaveLength(1)
+
+    scene(
+      { update, view },
+      given(hiddenIssue),
+      expect(role('heading', { name: 'People' })).toExist(),
+      expect(label('Issue title')).not.toExist(),
+      expect(role('button', { name: 'Close issue' })).not.toExist(),
+    )
+  })
+
   test('selects the active member through its Listbox before requesting activity', () => {
     scene(
       { update, view },

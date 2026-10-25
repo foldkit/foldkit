@@ -137,11 +137,14 @@ const resolveSelectedKeyboardMove =
           ? instance
           : __bindCommandMatcher(DragAndDropBlock, binding, instance, key)
       return __commandMatches(matcher, command)
-        ? Result.succeed(matcher)
+        ? Result.succeed({
+            keyboardDragGeneration: args.keyboardDragGeneration,
+            matcher,
+          })
         : Result.failVoid
     })
 
-    const matcher = Array.match(matchers, {
+    const selectedMove = Array.match(matchers, {
       onEmpty: () => {
         throw new Error(
           binding === undefined
@@ -163,8 +166,12 @@ const resolveSelectedKeyboardMove =
     })
 
     const afterMove = Story.Command.resolve(
-      matcher,
-      Message.CompletedResolveKeyboardMove({ targetContainerId, targetIndex }),
+      selectedMove.matcher,
+      Message.CompletedResolveKeyboardMove({
+        keyboardDragGeneration: selectedMove.keyboardDragGeneration,
+        targetContainerId,
+        targetIndex,
+      }),
     )(simulation)
 
     return Story.Command.resolve(
