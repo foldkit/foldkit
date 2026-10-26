@@ -10,6 +10,13 @@ The user has explicitly held publication pending approval. Prepare and verify lo
 
 ## Final approval preparation, October 26
 
+- [x] Use one local Subscription registry per owning Block. Consolidate Website,
+      audit examples, Typing Game, UI, DevTools and active snippets, and document
+      aggregate Layer composition in active guides, scaffolds and skills.
+      [Audit and verification scope](subscription-registry-organization.md).
+- [ ] Profile the repeatable Lustre gap against main, identify the dominant added
+      update/view/patch/framework work and assess a verified reduction before release
+      sign-off. Keep the existing paired measurements and source pins unchanged.
 - [x] Name assigned Step values with a descriptive `Step` suffix across current
       consumers, framework examples/tests, active snippets and guidance. Preserve
       operation registry names, ordinary direct-result handler names, factory APIs, applied

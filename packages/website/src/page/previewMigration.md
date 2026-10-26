@@ -87,6 +87,8 @@ Apply the same ownership to every effect primitive:
 
 `makeSubscriptions` entries take a dependency Schema field record, in the same shape passed to `Schema.Struct`. If an adapter already supplies a Struct as `dependenciesSchema`, pass `dependenciesSchema.fields` to `entry`.
 
+Collect all Subscriptions owned by one Block in one `makeSubscriptions` registry and compose its `subscriptions.layer`. Extract substantial Stream implementations into helpers instead of creating another registry for the same owner. Child Blocks retain their own registries; `Subscription.aggregate` remains appropriate at graph, adapter, and test boundaries that join independent records.
+
 Every attached handler exposes a `.layer`. Merge only the definitions owned by that feature into its local `EffectsLayer`, then pass that bundle to `prepareBlock`. Registered child Bindings contribute their own handler graphs automatically.
 
 ::Snippet{name="applicationFeatureLayer" label="Feature handler Layer composition"}

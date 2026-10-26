@@ -135,12 +135,17 @@ Parent-facing operation names describe the communication: `requestCloseMenu` pro
 
 Choose parent inputs by ownership. Use view inputs for current render data and update context (`delivery.toUpdateContext`) for current data read while handling a Message. Use an `inform*` operation when an external event requires a child transition, Command, or OutMessage. View inputs and context do not dispatch Messages when their values change. Keep an independent editing baseline in the child Model when needed, while passing current comments or other display data through view inputs. Do not mirror parent data merely to read it, or notify a child back about a change it already applied unless another transition is required.
 
-An owned `Definition.makeSubscriptions(...)` registry exposes `subscriptions.layer`
-when every entry has an attached handler. Merge that passive recipe into
-`EffectsLayer`; constructor errors and ordinary Services remain precise. An empty
-record supplies an empty Layer. Mixed host contracts have no aggregate: provide
-those contracts explicitly. The entry key `layer` is reserved. Individual entry
-Layers remain available when intentionally selecting only part of a registry.
+Create one `Definition.makeSubscriptions(...)` registry for all Subscriptions
+owned by a Block. Extract a substantial Stream implementation into a focused
+helper instead of creating another registry for the same owner. Distinct child
+Blocks retain their own registries. A fully attached registry exposes
+`subscriptions.layer`; merge that passive recipe into `EffectsLayer`. Constructor
+errors and ordinary Services remain precise. An empty record supplies an empty
+Layer. Mixed host contracts have no registry `.layer`: provide those contracts explicitly.
+The entry key `layer` is reserved. Individual entry Layers remain available when
+intentionally selecting only part of a registry. Use `Subscription.aggregate` at
+graph, adapter, or test boundaries that join independent records, not to rebuild
+one Block's registry.
 
 `managedResources.layer` selects every attached handler
 from an explicit closed resource registry without changing it. It preserves exact
@@ -510,7 +515,8 @@ only when it is public or independently reused. Import Effect's module as
 `Layer` and reserve `ApplicationLayer` for the root's ordinary Service
 providers.
 
-Split Subscription modules export their `subscriptions` registry. Compose
+When Subscription declarations are split from Block assembly, that module
+exports the Block's one `subscriptions` registry. Compose
 `Feature.subscriptions.layer` directly in the local handler bundle. When that
 registry supplies all local handlers, pass `EffectsLayer: subscriptions.layer`
 directly to `prepareBlock`.

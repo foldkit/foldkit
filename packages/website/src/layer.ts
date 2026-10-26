@@ -5,5 +5,5 @@ import * as Subscription from './subscription'
 
 export const EffectsLayer = Layer.mergeAll(
   Command.EffectsLayer,
-  Subscription.EffectsLayer,
+  Subscription.subscriptions.layer,
 )

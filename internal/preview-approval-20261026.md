@@ -2,7 +2,8 @@
 
 ## Status
 
-Prepared for the user's release review. Publication remains held. The verified
+Publication remains held. The rendering-performance gap against main requires
+profiling before release sign-off. The verified
 implementation is `978c07a093bdcdadf2a94cf8ab0e5f9e985a008d` on
 `codex/workspace-example`. Later handoff/evidence edits are internal documentation
 only. Published Ready remains `1f6776fa7ececa766188df5201eefec6ba781b5d`;
@@ -11,6 +12,11 @@ integration and main have not moved.
 The [API review](next-preview-review.md#public-api-changes-since-that-preview)
 contains the consumer migration table. This summary supersedes older preparation
 checkpoints while preserving their dated evidence.
+
+The subsequent [Subscription organization followup](subscription-registry-organization.md)
+consolidates Website's local registry and documents the convention across the repo.
+Its targeted checks supplement the frozen framework/package evidence below;
+that evidence retains its exact implementation pin.
 
 ## Changes from the published preview
 
