@@ -2,12 +2,14 @@
 
 ## Status
 
-Publication remains held. The preceding frozen implementation and package
-rehearsal are pinned to `978c07a093bdcdadf2a94cf8ab0e5f9e985a008d` on
-`codex/workspace-example`. Subsequent Subscription and runtime followups are
-recorded below with their own verification scope. The runtime followup requires
-fresh packed-package acceptance before sign-off. Published Ready remains
-`1f6776fa7ececa766188df5201eefec6ba781b5d`; integration and main have not moved.
+Publication remains held for user approval. The latest frozen implementation is
+`fa96bf7d907fe86cf02c0c6c12cd33e1b7a9923c` on `codex/workspace-example`.
+It includes the Subscription organization and runtime followups and passes the
+fresh nine-package local rehearsal. Its source digest is
+`3e9c0e0265ca70256b84356cd932caf87808bf53d2fd6e6f35ff88c59f7ebd47`.
+The earlier broad evidence below retains its `978c07a093` pin. Published Ready
+remains `1f6776fa7ececa766188df5201eefec6ba781b5d`; integration and main have
+not moved.
 
 The [API review](next-preview-review.md#public-api-changes-since-that-preview)
 contains the consumer migration table. This summary supersedes older preparation
@@ -22,6 +24,20 @@ The [runtime investigation](preview-runtime-investigation-20261026.md) identifie
 Mount validation as the largest added measured phase and verifies a 12.7%
 optimized workload reduction. No public API changes are introduced. Remaining
 main costs and bundle growth are retained for approval.
+
+### Current followup verification
+
+- Source/emitted contracts, strict relocation, six unchanged compiler ceilings
+  and 3,798 core tests pass; all 289 emitted declarations are unchanged.
+- All nine public artifacts are rebuilt and packed from the frozen candidate.
+  Coverchart source/lint, 40 tests, build and persistence/browser checks pass.
+- Generated SPA, SSG and SSR projects pass source, lint, tests, builds and browser
+  checks. Installed testing, Binding and initialization contracts pass.
+- Workspace's 32 browser tests pass without retries. The actual Coverchart
+  checkout and all 88 tracked-file hashes are preserved.
+- [Fresh package evidence and qualifications](preview-runtime-investigation-20261026.md#fresh-packed-package-rehearsal)
+  distinguish local acceptance from publication. No new public API migration is
+  introduced by the runtime fix.
 
 ## Changes from the published preview
 

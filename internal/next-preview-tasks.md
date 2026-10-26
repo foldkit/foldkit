@@ -19,9 +19,11 @@ The user has explicitly held publication pending approval. Prepare and verify lo
       sign-off. Preserve earlier paired measurements and source pins. The new
       optimized workload improves 12.7%; naive performance is similar and main
       remains faster. [Investigation, remaining costs and proofs](preview-runtime-investigation-20261026.md).
-- [ ] Freeze the runtime followup and refresh all nine local packages, installed
-      Coverchart/scaffold acceptance and browser checks. The preceding package
-      rehearsal retains its original implementation pin.
+- [x] Freeze the runtime followup and refresh all nine local packages, installed
+      Coverchart/scaffold acceptance and browser checks. Candidate `fa96bf7d90`
+      passes the fresh local rehearsal, including all 32 Workspace browser tests.
+      [Artifacts, source scope and retained qualifications](preview-runtime-investigation-20261026.md#fresh-packed-package-rehearsal).
+      The preceding package rehearsal retains its original implementation pin.
 - [x] Name assigned Step values with a descriptive `Step` suffix across current
       consumers, framework examples/tests, active snippets and guidance. Preserve
       operation registry names, ordinary direct-result handler names, factory APIs, applied

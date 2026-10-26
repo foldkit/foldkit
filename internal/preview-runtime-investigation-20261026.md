@@ -130,7 +130,42 @@ original captures use the same Node gzip method.
 
 The remaining main costs are visible in the approval summary. This investigation
 supports the bounded reduction above; it does not establish that all rendering
-performance issues are resolved. The previous packed-package rehearsal retains
-its original source pin. A fresh local package rehearsal is required for this
-runtime delta before release sign-off. Published Ready and the integration
-branch remain unchanged until approval.
+performance issues are resolved. The preceding package rehearsal retains its
+original pin. The fresh rehearsal below covers this runtime delta. Published
+Ready and the integration branch remain unchanged until approval.
+
+## Fresh packed-package rehearsal
+
+The frozen implementation is `fa96bf7d907fe86cf02c0c6c12cd33e1b7a9923c`.
+Its source digest is
+`3e9c0e0265ca70256b84356cd932caf87808bf53d2fd6e6f35ff88c59f7ebd47`.
+All nine packages use matching `-local.3e9c0e0265ca` snapshot labels. The measured
+runtime source hashes match the frozen inputs. The eight libraries build with
+official TypeScript 7.1.0-beta; the CLI uses its own declared TypeScript 7.0.2.
+
+[Artifact hashes, installed provenance and fresh gate results](benchmarks/runtime-rehearsal-20261026.json)
+record successful Coverchart source/lint, 40 tests, production build and five
+persistence/keyboard browser behaviors. Generated SPA, SSG and SSR projects pass
+their source, lint, tests, builds and hydration/routing browser checks. Installed
+testing, event-delivery, variant Binding and initialization-family contracts
+pass. All 32 Workspace browser tests pass with no retries or flaky results.
+
+All 6,894 tracked files are included in the snapshot. Its 106 additional generated
+files are recorded: 102 Website build outputs, two generated API data files and
+two lint presets. Website outputs are not consumed by these gates; lint presets
+are regenerated during the package build. This is no claim of a fresh Website
+build or deployment. Scaffold-only dependency-resolution controls retain frozen
+lock choices without relaxing the active policy; SSG uses a local metadata
+transport for the exact unpublished UI peer.
+
+The first sandbox-blocked registry-metadata attempt is excluded. The
+network-enabled rerun passes. Expected favicon 404s and Vite configuration/color
+warnings remain in the original logs. The occupied preexisting Workspace MCP
+port is preserved; these browser checks do not prove relay availability.
+
+The actual Coverchart checkout remains at
+`c51e856b2e75ca44106e37ead24f9c4e8046aef0`, with its Git status and all 88 tracked
+file hashes unchanged. Full local evidence is under
+`/private/tmp/foldkit-runtime-final-rehearsal-20261026`. The local rehearsal does
+not establish published-registry acceptance or authorize release promotion.
+Subsequent internal evidence edits preserve the frozen package inputs.
