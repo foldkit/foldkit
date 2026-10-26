@@ -2,16 +2,14 @@
 
 let socket: WebSocket | undefined
 
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    JoinedRoom: ({ roomId }) => {
-      socket = new WebSocket(`/rooms/${roomId}`)
-      return { model }
-    },
-    LeftRoom: () => {
-      socket?.close()
-      socket = undefined
-      return { model }
-    },
-  }),
-)
+const update = ApplicationComposition.makeUpdate({
+  JoinedRoom: (model, { roomId }) => {
+    socket = new WebSocket(`/rooms/${roomId}`)
+    return { model }
+  },
+  LeftRoom: model => {
+    socket?.close()
+    socket = undefined
+    return { model }
+  },
+})

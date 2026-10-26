@@ -1,0 +1,394 @@
+{
+  "sourceCommit": "e3202fcf959cdffe3da85b2980fc6005b1e62ae3",
+  "implementationCommit": "fa96bf7d907fe86cf02c0c6c12cd33e1b7a9923c",
+  "publishedBase": "1f6776fa7ececa766188df5201eefec6ba781b5d",
+  "daybreak": {
+    "startedAtUtc": "2026-10-26T18:32:10.036407+00:00",
+    "state": "Finished",
+    "command": [
+      "codex",
+      "exec",
+      "-m",
+      "gpt-daybreak-blue-latest",
+      "-s",
+      "read-only",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--cyber-access-program",
+      "daybreak_blue",
+      "-C",
+      "/private/tmp/foldkit-final-security-20261026/source",
+      "--ephemeral",
+      "--color",
+      "never",
+      "--output-last-message",
+      "/private/tmp/foldkit-final-security-20261026/daybreak-final-e3202fcf95.md",
+      "-"
+    ],
+    "sourceCommit": "e3202fcf959cdffe3da85b2980fc6005b1e62ae3",
+    "baseCommit": "1f6776fa7ececa766188df5201eefec6ba781b5d",
+    "promptSha256": "c37e887abee577b010b9737c0dad528e79824b15de6f9fd7c93a3bf27dd426fb",
+    "finishedAtUtc": "2026-10-26T18:40:52.476782+00:00",
+    "exitCode": 0,
+    "reportExists": true,
+    "reportSha256": "bd6ab25ff45a57b60e1ab7b0955a20c61c46941dcfcd150f4316ffe9ea8de872",
+    "finalHead": "e3202fcf959cdffe3da85b2980fc6005b1e62ae3",
+    "finalStatus": "",
+    "frozenHeadAndStatusPreserved": true
+  },
+  "frozenSourceVerification": {
+    "checkedAtUtc": "2026-10-26T18:39:13.192550+00:00",
+    "head": "e3202fcf959cdffe3da85b2980fc6005b1e62ae3",
+    "gitStatus": "",
+    "checked": 6895,
+    "missing": [],
+    "mismatched": [],
+    "manifestSha256": "acca85402b2f8a0d21531571af4892cb02cc32cb70171882c898b67df495d962",
+    "method": "Python standard-library file reads; symlink paths hashed as their literal target with no appended newline."
+  },
+  "publicSourceVerification": [
+    {
+      "url": "https://api.github.com/repos/foldkit/foldkit/commits/1f6776fa7ececa766188df5201eefec6ba781b5d",
+      "status": 200,
+      "sha": "1f6776fa7ececa766188df5201eefec6ba781b5d",
+      "authorizationHeaderSent": false
+    },
+    {
+      "url": "https://api.github.com/repos/foldkit/foldkit/commits/e3202fcf959cdffe3da85b2980fc6005b1e62ae3",
+      "status": 200,
+      "sha": "e3202fcf959cdffe3da85b2980fc6005b1e62ae3",
+      "authorizationHeaderSent": false
+    }
+  ],
+  "dependencyAssessment": {
+    "reviewedAt": "2026-10-26T18:40:37.277860+00:00",
+    "scope": {
+      "checkout": "/private/tmp/foldkit-preview-followups",
+      "sourceCommit": "e3202fcf959cdffe3da85b2980fc6005b1e62ae3",
+      "packageCodeCommit": "fa96bf7d907fe86cf02c0c6c12cd33e1b7a9923c",
+      "relationshipToDaybreak": "Independent dependency advisory and reachability review; not a Daybreak verdict or certification.",
+      "browserEvidence": "Final local production build after three lead documentation edits, separately recorded in ../website-build-final.json; no deployed-output equivalence claimed.",
+      "mutations": "Only evidence files under /private/tmp were written by this reviewer; no source, lockfile, install, build, test, browser, publication, or push operation."
+    },
+    "verdict": "No concrete reachable dependency release blocker established in the reviewed current browser, stdio MCP, API-generation, and development-tool configurations. The inherited advisory findings remain unresolved maintenance; this is not a clean audit or a patched-sanitizer claim.",
+    "audit": {
+      "pnpmVersion": "11.8.0",
+      "nodeVersion": "24.22.1",
+      "completedAt": "2026-10-26T18:32:50.404553+00:00",
+      "lockSha256": "b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47",
+      "lockUnchanged": true,
+      "rawFile": "audit.json",
+      "rawSha256": "97adaed15f7264f636d1dd9391cb727b661a41e91bbaf5af56db7444724444d5",
+      "counts": {
+        "info": 0,
+        "low": 4,
+        "moderate": 11,
+        "high": 8,
+        "critical": 1
+      },
+      "entries": 24,
+      "distinctAdvisories": 22,
+      "sameBytesAsOctober23": true,
+      "exitCodeMeaning": "pnpm exit 1 reports vulnerabilities; the network-enabled query completed. The failed sandbox query is retained separately and excluded."
+    },
+    "findings": [
+      {
+        "component": "Monaco 0.56.0 / vendored DOMPurify 3.4.8",
+        "status": "Unpatched browser code; no current advisory trigger established.",
+        "sources": [
+          "packages/website/src/page/playground/mount.ts:78",
+          "packages/website/node_modules/monaco-editor/esm/vs/base/browser/domSanitize.js:3",
+          "packages/website/node_modules/monaco-editor/esm/vs/base/browser/domSanitize.js:164",
+          "packages/website/node_modules/monaco-editor/esm/vs/base/browser/domSanitize.js:236",
+          "packages/website/node_modules/monaco-editor/esm/vs/base/browser/dompurify/dompurify.js:406",
+          "pnpm-workspace.yaml:61"
+        ],
+        "evidence": "website-monaco-final-asset.json",
+        "preconditions": "The wrapper allows RETURN_DOM_FRAGMENT/RETURN_TRUSTED_TYPE but does not enable SAFE_FOR_TEMPLATES, IN_PLACE, XHTML parsing, CUSTOM_ELEMENT_HANDLING, or a supplied TRUSTED_TYPES_POLICY. It uses per-call configuration, does not call setConfig/clearConfig, and does not mutate data.allowedAttributes in its hooks.",
+        "additionalVendoredAdvisories": [
+          {
+            "id": "GHSA-cmwh-pvxp-8882",
+            "severity": "moderate",
+            "title": "DOMPurify: Permanent `ALLOWED_ATTR` pollution via `setConfig()` bypassing the hook clone-guard (incomplete fix of the 3.4.7 hook-pollution patch)"
+          },
+          {
+            "id": "GHSA-vxr8-fq34-vvx9",
+            "severity": "low",
+            "title": "DOMPurify: Trusted Types policy survives `clearConfig()` and can poison later `RETURN_TRUSTED_TYPE` output"
+          },
+          {
+            "id": "GHSA-c2j3-45gr-mqc4",
+            "severity": "low",
+            "title": "DOMPurify: `CUSTOM_ELEMENT_HANDLING` bypasses `afterSanitizeElements` for allowed custom elements."
+          },
+          {
+            "id": "GHSA-55q2-fjhq-7xh7",
+            "severity": "moderate",
+            "title": "DOMPurify: IN_PLACE hook removal leaves a detached subtree executable, causing XSS"
+          },
+          {
+            "id": "GHSA-6688-9rhm-gjv2",
+            "severity": "low",
+            "title": "DOMPurify: IN_PLACE returns a force-removed rawtext root whose text carries attacker markup \u2014 pure HTML reparse executes"
+          }
+        ],
+        "additionalAdvisoryQualification": "The separate npm bulk query for actual vendored 3.4.8 returns eight findings, including five not visible in the lockfile audit of external 3.4.16. Keep these counts separate.",
+        "necessaryAction": "Carry the additional vendored findings in maintenance. To claim remediation, replace the executed vendored sanitizer with at least 3.4.17 through a compatible Monaco update or a reviewed import patch, then rebuild and verify editor/hover behavior and actual bundle bytes. Raising only the external override is insufficient.",
+        "upstream": [
+          "https://github.com/cure53/DOMPurify/security/advisories/GHSA-cg2g-xh64-v4q7",
+          "https://github.com/cure53/DOMPurify/security/advisories/GHSA-mrv2-3pqr-j5jr",
+          "https://github.com/cure53/DOMPurify/security/advisories/GHSA-c6gr-qvv4-5v3f",
+          "https://github.com/cure53/DOMPurify/security/advisories/GHSA-cmwh-pvxp-8882",
+          "https://github.com/cure53/DOMPurify/security/advisories/GHSA-vxr8-fq34-vvx9",
+          "https://github.com/cure53/DOMPurify/security/advisories/GHSA-c2j3-45gr-mqc4",
+          "https://github.com/cure53/DOMPurify/security/advisories/GHSA-55q2-fjhq-7xh7",
+          "https://github.com/cure53/DOMPurify/security/advisories/GHSA-6688-9rhm-gjv2"
+        ]
+      },
+      {
+        "component": "MCP SDK 1.31.0 and HTTP middleware",
+        "status": "Inherited maintenance; affected HTTP/OAuth/task-store paths absent.",
+        "sources": [
+          "packages/devtools-mcp/src/server.ts:8",
+          "packages/devtools-mcp/src/server.ts:52",
+          "packages/devtools-mcp/src/server.ts:90",
+          "packages/devtools-mcp/src/relayClient.ts:29",
+          "packages/devtools-mcp/src/tools.ts:228",
+          "packages/devtools-mcp/rolldown.config.ts:5"
+        ],
+        "preconditions": "Executable constructs the low-level Server with tools only and StdioServerTransport. It does not construct SDK HTTP/SSE transports, configure a shared task store, or use OAuth/bearer middleware. The relay is a separate ws client. A host controlling stdin can still exhaust local process memory with oversized JSON.",
+        "packedEvidence": "The coherent local MCP tarball contains the same stdio construction; its bundle hash is recorded in inspected-file-hashes.json.",
+        "necessaryAction": "Maintain SDK 1.32.0, body-parser 2.4.0 and ip-address 10.7.4 updates as bounded followups. Rebuild the bundled MCP executable and recheck initialization, tools, cancellation and relay behavior. Adding HTTP hosting requires body/validation limits and a new reachability review; upgrading the SDK alone does not enable maxToolInputElements.",
+        "upstream": [
+          "https://github.com/modelcontextprotocol/typescript-sdk/security/advisories/GHSA-22jm-h49p-29qw",
+          "https://github.com/modelcontextprotocol/typescript-sdk/security/advisories/GHSA-46jr-4wx8-v453"
+        ]
+      },
+      {
+        "component": "markdown-it 14.3.2 via TypeDoc 0.28.20",
+        "status": "Inherited build dependency; vulnerable rendering path not used by current JSON-only generation.",
+        "sources": [
+          "internal/api-reference-generator/generate.mjs:30",
+          "packages/foldkit/typedoc.json:5",
+          "packages/ui/typedoc.json:5",
+          "internal/api-reference-generator/node_modules/typedoc/dist/index.js:16632",
+          "internal/api-reference-generator/node_modules/typedoc/dist/index.js:17085",
+          "internal/api-reference-generator/node_modules/typedoc/dist/index.js:13226"
+        ],
+        "preconditions": "Both projects select JSON output. TypeDoc JSON serialization bypasses its HTML renderer and MarkedPlugin; conversion uses markdown-it helpers rather than the affected block-reference/HTML-inline renderers. Enabling HTML docs or separately rendering untrusted Markdown changes the assessment. Foldkit Markdown is a separate implementation.",
+        "necessaryAction": "Resolve 14.3.3 within the existing TypeDoc range and recheck API generation in the maintenance followup.",
+        "upstream": [
+          "https://github.com/markdown-it/markdown-it/security/advisories/GHSA-gfr2-rv44-r23c"
+        ]
+      },
+      {
+        "component": "Vite / launch-editor previous blocker",
+        "status": "Patched in current lock and installed bundled code.",
+        "sources": [
+          "packages/website/src/page/previewUpgrade.md:213",
+          "packages/vite-plugin-foldkit/package.json:46",
+          "packages/vite-plugin-foldkit/package.json:47",
+          "pnpm-workspace.yaml:59"
+        ],
+        "versions": {
+          "vite": "8.3.5",
+          "viteCompatibilityFixture": "8.2.4",
+          "launch-editor": "2.14.2"
+        },
+        "evidence": "Both installed Vite bundles contain launch-editor 2.14.2 regions and the revised Windows command construction. Neither package appears in the fresh audit.",
+        "necessaryAction": "No additional release repair established for this previous blocker. Preserve consumer upgrade guidance for older installed Vite/launch-editor versions.",
+        "upstream": ["https://github.com/advisories/GHSA-587h-7wmj-h5pm"]
+      },
+      {
+        "component": "fast-uri 3.1.8 via SDK AJV",
+        "status": "Inherited maintenance; no affected URL trust decision established.",
+        "sources": [
+          "packages/devtools-mcp/node_modules/@modelcontextprotocol/sdk/dist/esm/server/index.js:51",
+          "packages/devtools-mcp/node_modules/@modelcontextprotocol/sdk/dist/esm/server/index.js:358",
+          "packages/devtools-mcp/src/relayLocation.ts:60",
+          "packages/devtools-mcp/src/relayLocation.ts:78"
+        ],
+        "preconditions": "AJV is loaded and instantiated, so this is not an unloaded-dependency claim. Its role is JSON Schema references; the Server validator is used for elicitation, which Foldkit does not invoke. Relay URL and loopback policy uses the platform URL parser and node:net, not fast-uri.",
+        "necessaryAction": "Resolve 3.1.9 within AJV range; reassess if accepting external schemas or using this URI parser for URL authorization.",
+        "upstream": [
+          "https://github.com/fastify/fast-uri/security/advisories/GHSA-wjr9-j795-jxcr"
+        ]
+      },
+      {
+        "component": "Zod 4.6.5",
+        "status": "Inherited maintenance; no affected bounded-collection remote-input path established.",
+        "sources": [
+          "packages/devtools-mcp/node_modules/@modelcontextprotocol/sdk/dist/esm/types.js:1328",
+          "packages/devtools-mcp/node_modules/@modelcontextprotocol/sdk/dist/esm/types.js:1905",
+          "packages/devtools-mcp/src/tools.ts:228"
+        ],
+        "preconditions": "Tool arguments have an unknown-value record envelope, then Effect Schema validation. The SDK bounded completion array is not a configured operation. General stdio memory limits remain.",
+        "necessaryAction": "Resolve 4.6.6 within existing ranges and recheck MCP; do not characterize the patch as universal request-size protection."
+      },
+      {
+        "component": "Undici 8.11.2",
+        "status": "Inherited maintenance; named fetch/EventSource/integrity paths not established in reviewed consumers.",
+        "sources": [
+          "packages/devtools-mcp/node_modules/@effect/platform-node/src/NodeHttpClient.ts:159"
+        ],
+        "preconditions": "The Effect Node client uses dispatcher.request. No reviewed caller selects npm Undici fetch, EventSource or the affected integrity option. Node global fetch is separately bundled in the Node runtime.",
+        "necessaryAction": "Resolve 8.12.2 within existing ranges and retain Node compatibility checks; updating npm Undici does not patch the Node binary."
+      },
+      {
+        "component": "Happy DOM 20.14.5 and Vitest mocker 4.1.11/5.0.2",
+        "status": "Inherited development/build maintenance; exploit configuration absent.",
+        "sources": [
+          "packages/website/node_modules/happy-dom/lib/browser/DefaultBrowserSettings.js:6",
+          "packages/website/scripts/prerender.ts:239",
+          "internal/next-preview-security-review.md:147",
+          "internal/next-preview-security-review.md:153"
+        ],
+        "preconditions": "JavaScript evaluation remains false in default Windows and repository configs. No mockerPlugin/interceptorPlugin registration or browser mock WebSocket surface is configured. Windows traversal additionally requires Windows path semantics.",
+        "necessaryAction": "Schedule Happy DOM 21.0.4 as a compatibility change; update Vitest and matching coverage within each existing major to at least 4.1.12/5.0.3. Reassess if script evaluation, untrusted modules, or the browser mock plugins are enabled."
+      }
+    ],
+    "releaseDisposition": "No source or lockfile change is required by a demonstrated current dependency exploit path from this review. Preserve unresolved findings and their preconditions in release preparation. Publication and Ready status are not granted by this assessment."
+  },
+  "finalWebsiteBuild": {
+    "sourceHeadBeforeDocumentationCommit": "e3202fcf959cdffe3da85b2980fc6005b1e62ae3",
+    "scope": "Fresh Website production build with three documentation-only edits after frozen e320; no deployment or new package rehearsal claimed.",
+    "sourceFiles": {
+      "packages/website/src/page/core/block.md": "de6142b7d01e46570743808467872694bb3c4fbb0b39a94706922845279e6cbe",
+      "packages/website/src/page/core/devtools.md": "9de376053d37e968feb3a5e89315cdfac3c49c7842e05d81e88e45618063ef4b",
+      "packages/website/src/page/previewUpgrade.md": "cfd771bf70ccbae3e4e8f299266fdb580fbe21672c82aa3ddf80dc9a2ee3df4b"
+    },
+    "logSha256": "cd89dca4848a942225e39b81f896344b34074740cb519ebc9f2a0d51f56e4913",
+    "warnings": {
+      "lines": [
+        "[warning] Found 0 errors and 281 warnings",
+        "[warning] Found 0 errors and 21 warnings",
+        "\u2713 built in 23.24s",
+        "(!) Some chunks are larger than 500 kB after minification. Consider:"
+      ]
+    },
+    "status": "Passed"
+  },
+  "finalWebsiteMonacoAsset": {
+    "checkedAt": "2026-10-26T18:38:52.594796+00:00",
+    "buildEvidence": "/private/tmp/foldkit-final-security-20261026/website-build-final.json",
+    "assets": [
+      {
+        "path": "/private/tmp/foldkit-preview-followups/packages/website/dist/assets/editor.api-BR67Km8q.js",
+        "sha256": "266c4a4c4b050c58a1c4ec3337d60e78f556de3983b5048bb8cd2125546f16d2",
+        "sizeBytes": 2652399,
+        "vendoredDomPurifyVersion": "3.4.8",
+        "versionAssignment": "uments[0]:wG(),t=e=>DG(e);if(t.version=`3.4.8`,t.removed=[],!e||!e.document|",
+        "wrapperModes": ["RETURN_DOM_FRAGMENT", "RETURN_TRUSTED_TYPE"],
+        "advisoryModesRemainDefaults": [
+          "SAFE_FOR_TEMPLATES:false",
+          "IN_PLACE:false",
+          "PARSER_MEDIA_TYPE:text/html"
+        ],
+        "sourceWrapperHash": "fd41b231eb5e191936ed5f84252b4d729a48e722348a82cfae25c45b7308ac7e",
+        "referencedBy": [
+          "/private/tmp/foldkit-preview-followups/packages/website/dist/assets/handlebars-DVesnOi1.js",
+          "/private/tmp/foldkit-preview-followups/packages/website/dist/assets/mdx-LNiR3rgs.js",
+          "/private/tmp/foldkit-preview-followups/packages/website/dist/assets/html-DXn5Gg8b.js",
+          "/private/tmp/foldkit-preview-followups/packages/website/dist/assets/yaml-D9ULdwEw.js",
+          "/private/tmp/foldkit-preview-followups/packages/website/dist/assets/htmlMode-BUWsqjB_.js",
+          "/private/tmp/foldkit-preview-followups/packages/website/dist/assets/razor-DzJC6sXa.js",
+          "/private/tmp/foldkit-preview-followups/packages/website/dist/assets/workers-BEnY-bj0.js",
+          "/private/tmp/foldkit-preview-followups/packages/website/dist/assets/index-CnMRu7Zx.js",
+          "/private/tmp/foldkit-preview-followups/packages/website/dist/assets/tsMode-DJ8FxVyF.js",
+          "/private/tmp/foldkit-preview-followups/packages/website/dist/assets/liquid-BZU_fEkq.js",
+          "/private/tmp/foldkit-preview-followups/packages/website/dist/assets/freemarker2-C8Tv80nE.js",
+          "/private/tmp/foldkit-preview-followups/packages/website/dist/assets/vs-cPF65lm2.js",
+          "/private/tmp/foldkit-preview-followups/packages/website/dist/assets/typescript-CTLmfhW-.js",
+          "/private/tmp/foldkit-preview-followups/packages/website/dist/assets/jsonMode-DU_b-BWv.js",
+          "/private/tmp/foldkit-preview-followups/packages/website/dist/assets/xml-CILFk591.js",
+          "/private/tmp/foldkit-preview-followups/packages/website/dist/assets/python-B6lcbvXQ.js",
+          "/private/tmp/foldkit-preview-followups/packages/website/dist/assets/lspLanguageFeatures-BqrppyoF.js",
+          "/private/tmp/foldkit-preview-followups/packages/website/dist/assets/cssMode-DIxgumlv.js"
+        ]
+      }
+    ],
+    "qualification": "Final local Website production build after lead documentation edits. Static asset inspection only; no deployed asset, fresh browser, or Daybreak verdict claim."
+  },
+  "newFeedbackReproduction": {
+    "results": {
+      "published": {
+        "root": "/private/tmp/foldkit-published-1f6776-20261023",
+        "mounts": {
+          "survivingMarkerName": "Second",
+          "onlySecondRegistration": true,
+          "firstRegistrationDiscarded": true
+        },
+        "crossRuntime": {
+          "emittedA": {
+            "_tag": "GotChildMessage",
+            "placement": "child",
+            "generation": 1,
+            "message": {
+              "_tag": "ChangedValue",
+              "value": 7
+            }
+          },
+          "decodesInB": true,
+          "matchingGenerationAdmitted": true,
+          "generationMismatchRejected": true,
+          "admittedGuardRejectsRetiredTarget": true
+        }
+      },
+      "candidate": {
+        "root": "/private/tmp/foldkit-preview-followups",
+        "mounts": {
+          "survivingMarkerName": "Second",
+          "onlySecondRegistration": true,
+          "firstRegistrationDiscarded": true
+        },
+        "crossRuntime": {
+          "emittedA": {
+            "_tag": "GotChildMessage",
+            "placement": "child",
+            "generation": 1,
+            "message": {
+              "_tag": "ChangedValue",
+              "value": 7
+            }
+          },
+          "decodesInB": true,
+          "matchingGenerationAdmitted": true,
+          "generationMismatchRejected": true,
+          "admittedGuardRejectsRetiredTarget": true
+        }
+      }
+    },
+    "provenance": {
+      "feedback": "https://github.com/foldkit/foldkit/pull/1655#issuecomment-6415641973",
+      "scope": "Bounded pure construction/admission reproduction; no DOM, network, external writes, or full Runtime started. Distinct synthetic occurrence trees use the same real package admission implementation. Source inspection confirms each real composition Runtime starts its own generation counter.",
+      "scriptSha256": "9bfc5f7f79209642f10646545692d3bb7357ca2dd774a4eb885a60c488b19739",
+      "resultsSha256": "17bddfb01aabd6c57712c764f1cde2691202e1340915db20080a5f24bb8405c3",
+      "sources": {
+        "published": {
+          "path": "/private/tmp/foldkit-published-1f6776-20261023",
+          "implementationCommit": "1f6776fa7ececa766188df5201eefec6ba781b5d",
+          "distFiles": {
+            "html/index.js": "b3e55aced9dc205c2f4d2617988951d6796643dd390a61d150ff010a1cb4e6c5",
+            "runtime/childOrigin.js": "343c52c07b9c5bff3d2c4e066c041e60234a153709d0b52bd84cb66a319b9807",
+            "block/childEnvelope.js": "02f31962cede86f091ba7a48c7fa5c57795bb15081018e36ec8cd034b0212de9"
+          }
+        },
+        "candidate": {
+          "path": "/private/tmp/foldkit-preview-followups",
+          "implementationCommit": "fa96bf7d907fe86cf02c0c6c12cd33e1b7a9923c",
+          "distFiles": {
+            "html/index.js": "b3e55aced9dc205c2f4d2617988951d6796643dd390a61d150ff010a1cb4e6c5",
+            "runtime/childOrigin.js": "343c52c07b9c5bff3d2c4e066c041e60234a153709d0b52bd84cb66a319b9807",
+            "block/childEnvelope.js": "73dc30da4ae16330bec415cdbadf7a0b12354c227dbaa1b923d6755e0141a812"
+          }
+        }
+      },
+      "candidateDocumentationHead": "e3202fcf959cdffe3da85b2980fc6005b1e62ae3"
+    }
+  },
+  "scopeLimits": [
+    "Daybreak is a static source review, not a fresh network audit; the independent dependency assessment supplies fresh network audit and final local browser-bundle inspection.",
+    "Subsequent changes are internal evidence, three Website Markdown pages and changeset prose; no nine-package implementation, manifests, lockfile, emitted contracts or runtime inputs change.",
+    "No publication, integration push, Ready promotion, deployment acceptance or actual Coverchart update is claimed."
+  ]
+}

@@ -1,31 +1,22 @@
-import { Match, Option } from 'effect'
-
 import { ClearSession, RedirectToHome } from '../command'
-import { ApplicationDefinition } from '../definition'
-import { LoggedInBlock, LoggedOutBlock } from '../page'
+import { ApplicationDefinition, makeStep } from '../definition'
+import { LoggedInBlock } from '../page'
 import { ApplicationRoute } from '../route'
+import { LoggedInBinding, LoggedOutBinding } from './bindings'
 
 const foldLoggedInOutMessage = ApplicationDefinition.makeOutMessageFold(
   LoggedInBlock,
   {
     RequestedLogout: () =>
-      ApplicationDefinition.makeStep(() => ({
-        model: LoggedOutBlock.init(ApplicationRoute.Home()).model,
-        commands: [ClearSession(), RedirectToHome()],
-      })),
+      makeStep(() =>
+        LoggedOutBinding.init({
+          args: [ApplicationRoute.Home()],
+          toParentModel: loggedOut => loggedOut,
+          commands: [ClearSession(), RedirectToHome()],
+        }),
+      ),
   },
 )
 
-export const LoggedInBinding = ApplicationDefinition.makeBinding(
-  LoggedInBlock,
-  {
-    read: model =>
-      Match.value(model).pipe(
-        Match.tagsExhaustive({
-          LoggedOut: () => Option.none(),
-          LoggedIn: loggedInModel => Option.some(loggedInModel),
-        }),
-      ),
-    write: (_model, nextLoggedIn) => nextLoggedIn,
-  },
-).withOutMessagePolicy({ fold: foldLoggedInOutMessage })
+export const LoggedInBindingWithOutMessagePolicy =
+  LoggedInBinding.withOutMessagePolicy({ fold: foldLoggedInOutMessage })

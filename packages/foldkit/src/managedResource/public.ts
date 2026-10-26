@@ -21,13 +21,9 @@ export interface ManagedResourceService<Key extends string> {
   readonly [ManagedResourceBrand]: Key
 }
 
-export {
-  tag,
-  ResourceNotAvailable,
-  make,
-  lift,
-  aggregate,
-} from './managedResource.js'
+export { tag, ResourceNotAvailable, make } from './managedResource.js'
+
+export { lift, aggregate } from './managedResource.js'
 
 export type {
   ManagedResource,

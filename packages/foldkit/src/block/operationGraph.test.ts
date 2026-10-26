@@ -41,7 +41,7 @@ const ChildDefinition = ChildNamespace.makeDefinition({
   Message,
 })
 const resetInvocation = vi.fn()
-const reset = ChildDefinition.makeStep(_model => {
+const resetStep = ChildDefinition.makeStep(_model => {
   resetInvocation()
 
   return { model: ChildModel.make({ count: 0 }) }
@@ -51,20 +51,18 @@ const prepareChildBlock = () =>
   ChildComposition.prepareBlock({
     view: ChildComposition.makeView((_model, h) => h.div([])),
     init: () => ({ model: ChildModel.make({ count: 0 }) }),
-    update: ChildComposition.makeUpdate((model, message) =>
-      Message.match(message, {
-        RequestedReset: () => reset(model),
-        Advanced: () => ({
-          model: modifyFields(model, { count: count => count + 1 }),
-        }),
-        CompletedRecordBeforeReplay: () => ({
-          model: modifyFields(model, { count: count => count + 1 }),
-        }),
-        CompletedRecordAfterReplay: () => ({
-          model: modifyFields(model, { count: count => count + 1 }),
-        }),
+    update: ChildComposition.makeUpdate({
+      RequestedReset: model => resetStep(model),
+      Advanced: model => ({
+        model: modifyFields(model, { count: count => count + 1 }),
       }),
-    ),
+      CompletedRecordBeforeReplay: model => ({
+        model: modifyFields(model, { count: count => count + 1 }),
+      }),
+      CompletedRecordAfterReplay: model => ({
+        model: modifyFields(model, { count: count => count + 1 }),
+      }),
+    }),
     operations: { reset: () => Tuple.make(Message.RequestedReset()) },
     EffectsLayer: Layer.empty,
   })
@@ -86,7 +84,7 @@ const OmittedChildBinding = OmittedParentDefinition.makeBinding(ChildBlock, {
     modifyFields(model, { primary: () => nextChild }),
 })
 
-const initializeOmittedChild = OmittedParentDefinition.makeStep(model =>
+const initializeOmittedChildStep = OmittedParentDefinition.makeStep(model =>
   OmittedChildBinding.init({
     args: [],
     toParentModel: child => modifyFields(model, { primary: () => child }),
@@ -99,14 +97,14 @@ const prepareOmittedParent = () =>
   omittedParentComposition.prepareBlock({
     view: omittedParentComposition.makeView((_model, h) => h.div([])),
     init: () => ({ model: initialModel }),
-    update: omittedParentComposition.makeUpdate((model, message) =>
-      ParentMessage.match(message, {
-        RequestedInitializeChild: () => initializeOmittedChild(model),
-        Advanced: () => ({ model }),
-        CompletedRecordBeforeReplay: () => ({ model }),
-        CompletedRecordAfterReplay: () => ({ model }),
-      }),
-    ),
+    update: omittedParentComposition.makeUpdate({
+      RequestedInitializeChild: model => initializeOmittedChildStep(model),
+      Advanced: model => OmittedParentDefinition.makeNoopStep()(model),
+      CompletedRecordBeforeReplay: model =>
+        OmittedParentDefinition.makeNoopStep()(model),
+      CompletedRecordAfterReplay: model =>
+        OmittedParentDefinition.makeNoopStep()(model),
+    }),
     operations: {
       initializeOmittedChild: () =>
         Tuple.make(ParentMessage.RequestedInitializeChild()),
@@ -135,23 +133,48 @@ const narrowedReset = (model: ParentModel): Readonly<{ model: ParentModel }> =>
 const unregisteredNarrowedReset = Reflect.apply(
   unregisteredParentComposition.makeUpdate,
   undefined,
-  [narrowedReset],
+  [
+    {
+      Advanced: narrowedReset,
+      CompletedRecordBeforeReplay: narrowedReset,
+      CompletedRecordAfterReplay: narrowedReset,
+      RequestedInitializeChild: narrowedReset,
+    },
+  ],
 )
 const registeredNarrowedReset = Reflect.apply(
   omittedParentComposition.makeUpdate,
   undefined,
-  [narrowedReset],
+  [
+    {
+      Advanced: narrowedReset,
+      CompletedRecordBeforeReplay: narrowedReset,
+      CompletedRecordAfterReplay: narrowedReset,
+      RequestedInitializeChild: narrowedReset,
+    },
+  ],
 )
-const unregisteredDiscardedReset = unregisteredParentComposition.makeUpdate(
-  model => {
+const unregisteredDiscardedReset = unregisteredParentComposition.makeUpdate({
+  Advanced: model => {
     Reflect.apply(OmittedChildBinding.reset(), undefined, [model])
-
     return { model }
   },
-)
+  CompletedRecordBeforeReplay: model => {
+    Reflect.apply(OmittedChildBinding.reset(), undefined, [model])
+    return { model }
+  },
+  CompletedRecordAfterReplay: model => {
+    Reflect.apply(OmittedChildBinding.reset(), undefined, [model])
+    return { model }
+  },
+  RequestedInitializeChild: model => {
+    Reflect.apply(OmittedChildBinding.reset(), undefined, [model])
+    return { model }
+  },
+})
 
 it('runs a completed exposed operation in its registered child graph', () => {
-  const recipe = Reflect.apply(initializeOmittedChild, undefined, [
+  const recipe = Reflect.apply(initializeOmittedChildStep, undefined, [
     initialModel,
   ])
 
@@ -213,12 +236,31 @@ it('keeps method-shaped void erasure passive outside its registered graph', () =
 
 it('keeps a callback holding a scoped Model passive after its graph returns', () => {
   const callbacks: Array<() => void> = []
-  const captureReset = omittedParentComposition.makeUpdate(model => {
-    callbacks.push(() => {
-      OmittedChildBinding.reset()(model)
-    })
-
-    return { model }
+  const captureReset = omittedParentComposition.makeUpdate({
+    Advanced: model => {
+      callbacks.push(() => {
+        OmittedChildBinding.reset()(model)
+      })
+      return { model }
+    },
+    CompletedRecordBeforeReplay: model => {
+      callbacks.push(() => {
+        OmittedChildBinding.reset()(model)
+      })
+      return { model }
+    },
+    CompletedRecordAfterReplay: model => {
+      callbacks.push(() => {
+        OmittedChildBinding.reset()(model)
+      })
+      return { model }
+    },
+    RequestedInitializeChild: model => {
+      callbacks.push(() => {
+        OmittedChildBinding.reset()(model)
+      })
+      return { model }
+    },
   })
   const previousInvocationCount = resetInvocation.mock.calls.length
 
@@ -277,7 +319,7 @@ const WrongPlacementBinding = ExactParentBaseDefinition.makeBinding(
 const exactParentComposition = ExactParentBaseDefinition.makeComposition({
   bindings: [RegisteredPlacementBinding],
 })
-const initializeWrongPlacement = ExactParentBaseDefinition.makeStep(model =>
+const initializeWrongPlacementStep = ExactParentBaseDefinition.makeStep(model =>
   WrongPlacementBinding.init({
     key: 'only',
     args: [],
@@ -288,15 +330,17 @@ const prepareExactParent = () =>
   exactParentComposition.prepareBlock({
     view: exactParentComposition.makeView((_model, h) => h.div([])),
     init: () => ({ model: initialModel }),
-    update: exactParentComposition.makeUpdate((model, message) =>
-      ParentMessage.match(message, {
-        RequestedInitializeChild: () => initializeWrongPlacement(model),
-        Advanced: () =>
+    update: exactParentComposition.makeUpdate({
+      RequestedInitializeChild: model => initializeWrongPlacementStep(model),
+      Advanced: model =>
+        ExactParentBaseDefinition.makeStep(() =>
           WrongPlacementBinding.fold(model, 'only', Message.Advanced()),
-        CompletedRecordBeforeReplay: () => ({ model }),
-        CompletedRecordAfterReplay: () => ({ model }),
-      }),
-    ),
+        )(model),
+      CompletedRecordBeforeReplay: model =>
+        ExactParentBaseDefinition.makeNoopStep()(model),
+      CompletedRecordAfterReplay: model =>
+        ExactParentBaseDefinition.makeNoopStep()(model),
+    }),
     operations: {
       initializeWrongPlacement: () =>
         Tuple.make(ParentMessage.RequestedInitializeChild()),
@@ -364,7 +408,14 @@ const pendingRegisteredKeyedReset = Reflect.apply(
 const returnPendingRegisteredKeyedReset = Reflect.apply(
   PendingParentComposition.makeUpdate,
   undefined,
-  [() => pendingRegisteredKeyedReset],
+  [
+    {
+      Advanced: () => pendingRegisteredKeyedReset,
+      CompletedRecordBeforeReplay: () => pendingRegisteredKeyedReset,
+      CompletedRecordAfterReplay: () => pendingRegisteredKeyedReset,
+      RequestedInitializeChild: () => pendingRegisteredKeyedReset,
+    },
+  ],
 )
 
 it('resolves a pending keyed operation against the active Model after its key is removed', () => {
@@ -407,7 +458,12 @@ it('replays a deferred combined operation from the active Model without restorin
     ],
   ])
   const replay = Reflect.apply(PendingParentComposition.makeUpdate, undefined, [
-    () => pending,
+    {
+      Advanced: () => pending,
+      CompletedRecordBeforeReplay: () => pending,
+      CompletedRecordAfterReplay: () => pending,
+      RequestedInitializeChild: () => pending,
+    },
   ])
   const modelWithoutKey = modifyFields(capturedPendingModel, {
     entries: () => [],
@@ -436,13 +492,19 @@ const policyComposition = PolicyNamespace.makeDefinition({
   Message,
   OutMessage: PolicyOutMessage,
 }).makeComposition()
+const requestSiblingReset = (model: ChildModel) => ({
+  model,
+  outMessage: PolicyOutMessage.RequestedSiblingReset(),
+})
 const preparePolicyChild = () =>
   policyComposition.prepareBlock({
     view: policyComposition.makeView((_model, h) => h.div([])),
     init: () => ({ model: ChildModel.make({ count: 0 }) }),
-    update: model => ({
-      model,
-      outMessage: PolicyOutMessage.RequestedSiblingReset(),
+    update: policyComposition.makeUpdate({
+      RequestedReset: requestSiblingReset,
+      Advanced: requestSiblingReset,
+      CompletedRecordBeforeReplay: requestSiblingReset,
+      CompletedRecordAfterReplay: requestSiblingReset,
     }),
     EffectsLayer: Layer.empty,
   })
@@ -480,7 +542,7 @@ const preparePolicyParent = () =>
   policyParentComposition.prepareBlock({
     view: policyParentComposition.makeView((_model, h) => h.div([])),
     init: () => ({ model: initialModel }),
-    update: policyParentComposition.makeUpdate(),
+    update: policyParentComposition.makeUpdate({}),
     EffectsLayer: Layer.empty,
   })
 const PolicyParent: Block.FromAssemblyWithView<

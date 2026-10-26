@@ -1,6 +1,7 @@
 import { Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
+import { toParentMessage } from 'foldkit/test'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
@@ -24,14 +25,8 @@ const browseModel: typeof Model.Type = {
   periodListbox: PeriodListboxBlock.init({ id: 'period-filter' }).model,
 }
 
-const emptyDietListboxView = DietListboxBlock.makeView((_model, h) => h.empty)
-
 const dietMessage = (message: typeof DietListboxBlock.Message.Type) =>
-  DietListboxBinding.embedView({
-    slotId: 'dietListbox',
-    model: browseModel.dietListbox,
-    view: emptyDietListboxView,
-  }).toParentMessage(message)
+  toParentMessage(DietListboxBinding, message)
 
 const urlOrThrow = (raw: string) =>
   Option.getOrThrowWith(

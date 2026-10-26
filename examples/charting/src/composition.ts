@@ -3,7 +3,7 @@ import { AsyncData, type Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { FetchTelemetry, SyncChart } from './command'
-import { ApplicationDefinition } from './definition'
+import { ApplicationDefinition, makeStep } from './definition'
 import { Model } from './model'
 import { MountChart } from './mount'
 import {
@@ -49,10 +49,10 @@ export const refetchTelemetry = (model: typeof Model.Type) =>
     }),
   })
 
-const selectedControl = (
+const selectControlStep = (
   updateModel: (model: typeof Model.Type) => typeof Model.Type,
 ) =>
-  ApplicationDefinition.makeStep(model => {
+  makeStep(model => {
     const nextModel = updateModel(
       modifyFields(model, { maybeSelectedDatumId: () => Option.none() }),
     )
@@ -79,7 +79,7 @@ export const ChartModeRadioGroupBinding = ApplicationDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ChartModeRadioGroupBlock, {
     Selected: ({ value }) =>
-      selectedControl(modifyFields({ chartMode: () => value })),
+      selectControlStep(modifyFields({ chartMode: () => value })),
   }),
 })
 
@@ -92,7 +92,7 @@ export const PeriodRadioGroupBinding = ApplicationDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(PeriodRadioGroupBlock, {
     Selected: ({ value }) =>
-      selectedControl(modifyFields({ period: () => value })),
+      selectControlStep(modifyFields({ period: () => value })),
   }),
 })
 
@@ -105,7 +105,7 @@ export const PackageRadioGroupBinding = ApplicationDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(PackageRadioGroupBlock, {
     Selected: ({ value }) =>
-      selectedControl(modifyFields({ selectedPackageId: () => value })),
+      selectControlStep(modifyFields({ selectedPackageId: () => value })),
   }),
 })
 

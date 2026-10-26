@@ -56,9 +56,9 @@ const init = GenericMenuBindingIdentityComposition.makeInit(() =>
     toParentModel: menu => Model.make({ menu }),
   }),
 )
-const update = GenericMenuBindingIdentityComposition.makeUpdate(model =>
-  MenuBinding.requestOpen()(model),
-)
+const update = GenericMenuBindingIdentityComposition.makeUpdate({
+  RequestedOpen: MenuBinding.requestOpen(),
+})
 const requestOpen = Message.RequestedOpen
 const prepare = () =>
   GenericMenuBindingIdentityComposition.prepareBlock({

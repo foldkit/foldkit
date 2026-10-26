@@ -1,7 +1,10 @@
 import { ApplicationDefinition } from '../definition'
-import { LoggedInBinding } from './loggedIn'
-import { LoggedOutBinding } from './loggedOut'
+import { LoggedInBindingWithOutMessagePolicy } from './loggedIn'
+import { LoggedOutBindingWithOutMessagePolicy } from './loggedOut'
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
-  bindings: [LoggedOutBinding, LoggedInBinding],
+  bindings: [
+    LoggedOutBindingWithOutMessagePolicy,
+    LoggedInBindingWithOutMessagePolicy,
+  ],
 })

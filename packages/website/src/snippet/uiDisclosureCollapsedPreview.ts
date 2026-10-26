@@ -32,14 +32,12 @@ const init = ArticlePreviewComposition.makeInit(() => ({
   },
 }))
 
-// In the corresponding Message.match handler, store the value:
-const update = ArticlePreviewComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ToggledArticle: ({ isOpen }) => ({
-      model: modifyFields(model, { isArticleOpen: () => isOpen }),
-    }),
+// In the corresponding update handler, store the value:
+const update = ArticlePreviewComposition.makeUpdate({
+  ToggledArticle: (model, { isOpen }) => ({
+    model: modifyFields(model, { isArticleOpen: () => isOpen }),
   }),
-)
+})
 
 // Pass peek to animatePanel to keep that much of the panel visible while
 // closed. The preview is inert until the disclosure opens, so keep the toggle

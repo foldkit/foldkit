@@ -40,7 +40,9 @@ export const implementation = {
     model: null,
     commands: [ReadSession()],
   })),
-  update: Composition.makeUpdate(model => ({ model })),
+  update: Composition.makeUpdate({
+    CompletedRead: model => ({ model }),
+  }),
   view: Composition.makeView(() => null),
   EffectsLayer: ReadSession.layer,
 }
@@ -164,7 +166,9 @@ export const RenamedRegisteredComposition = KeyedDefinition.makeComposition({
 const prepareKeyedRegisteredBlock = () =>
   RegisteredComposition.prepareBlock({
     init: () => ({ model: KeyedModel.make({ sessions: [] }) }),
-    update: RegisteredComposition.makeUpdate(model => ({ model })),
+    update: RegisteredComposition.makeUpdate({
+      CompletedRead: model => ({ model }),
+    }),
     view: RegisteredComposition.makeView(() => null),
   })
 export const KeyedRegisteredBlock: Block.FromAssemblyWithView<
@@ -174,7 +178,9 @@ export const KeyedRegisteredBlock: Block.FromAssemblyWithView<
 const prepareKeyedUnregisteredBlock = () =>
   UnregisteredComposition.prepareBlock({
     init: () => ({ model: KeyedModel.make({ sessions: [] }) }),
-    update: UnregisteredComposition.makeUpdate(model => ({ model })),
+    update: UnregisteredComposition.makeUpdate({
+      CompletedRead: model => ({ model }),
+    }),
     view: UnregisteredComposition.makeView(() => null),
   })
 export const KeyedUnregisteredBlock: Block.FromAssemblyWithView<
@@ -184,7 +190,9 @@ export const KeyedUnregisteredBlock: Block.FromAssemblyWithView<
 const prepareKeyedOtherPlacementBlock = () =>
   OtherPlacementComposition.prepareBlock({
     init: () => ({ model: KeyedModel.make({ sessions: [] }) }),
-    update: OtherPlacementComposition.makeUpdate(model => ({ model })),
+    update: OtherPlacementComposition.makeUpdate({
+      CompletedRead: model => ({ model }),
+    }),
     view: OtherPlacementComposition.makeView(() => null),
   })
 export const KeyedOtherPlacementBlock: Block.FromAssemblyWithView<
@@ -194,7 +202,9 @@ export const KeyedOtherPlacementBlock: Block.FromAssemblyWithView<
 const prepareKeyedRenamedRegisteredBlock = () =>
   RenamedRegisteredComposition.prepareBlock({
     init: () => ({ model: KeyedModel.make({ sessions: [] }) }),
-    update: RenamedRegisteredComposition.makeUpdate(model => ({ model })),
+    update: RenamedRegisteredComposition.makeUpdate({
+      CompletedRead: model => ({ model }),
+    }),
     view: RenamedRegisteredComposition.makeView(() => null),
   })
 export const KeyedRenamedRegisteredBlock: Block.FromAssemblyWithView<
@@ -223,7 +233,9 @@ export const ReadStore = Definition.makeCommand('ReadStore', {
 })
 export const storeImplementation = {
   init: Composition.makeInit(() => ({ model: null, commands: [ReadStore()] })),
-  update: Composition.makeUpdate(model => ({ model })),
+  update: Composition.makeUpdate({
+    CompletedRead: model => ({ model }),
+  }),
   view: Composition.makeView(() => null),
 }
 const prepareSuppliedStoreBlock = () =>

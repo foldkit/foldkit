@@ -20,3 +20,5 @@ export const AttachmentsDefinition = Block.makeDefinition('Attachments', {
   Model,
   Message,
 })
+
+export const { makeFieldsStep, makeNoopStep } = AttachmentsDefinition

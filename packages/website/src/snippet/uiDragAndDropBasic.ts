@@ -31,6 +31,8 @@ const SortableListDefinition = Block.makeDefinition('SortableList', {
   Message,
 })
 
+const { makeFieldsStep, makeNoopStep } = SortableListDefinition
+
 // At module scope, fold the OutMessage into your own Model. `Reordered`
 // carries the move so you can apply it to your own list. Each arm returns an
 // Update.Step over the parent Model, which already has the next DragAndDrop
@@ -40,14 +42,16 @@ const foldDragAndDropOutMessage = SortableListDefinition.makeOutMessageFold(
   DragAndDrop.DragAndDropBlock,
   {
     Reordered: ({ itemId, fromIndex, toIndex }) =>
-      SortableListDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         // reorder is your own function that moves the item
         items: items => reorder(items, itemId, fromIndex, toIndex),
       })),
     // The child has emitted `Cancelled`. In this arm the parent can update
     // its own state or dispatch its own Commands, for example revert an
     // optimistic UI change, log analytics, or trigger a downstream Command.
-    Cancelled: SortableListDefinition.makeNoopStep,
+    StartedKeyboardDrag: makeNoopStep,
+    ChangedKeyboardTarget: makeNoopStep,
+    Cancelled: makeNoopStep,
   },
 )
 
@@ -78,7 +82,7 @@ const init = SortableListComposition.makeInit(() => ({
   },
 }))
 
-const update = SortableListComposition.makeUpdate()
+const update = SortableListComposition.makeUpdate({})
 
 // Registering `DragAndDropBinding` in `bindings` collects its document-level Subscriptions.
 

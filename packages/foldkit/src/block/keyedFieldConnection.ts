@@ -3,6 +3,7 @@ import { Array, Option, Predicate, Schema, SchemaAST } from 'effect'
 import { modifyFields } from '../struct/index.js'
 import type { BindableBlock } from './binding.js'
 import type {
+  RuntimeBindingStorage,
   RuntimeWrappedKeyedInitialOccurrence,
   RuntimeWrappedKeyedInitialPolicy,
 } from './composition.js'
@@ -10,6 +11,13 @@ import { hasSameDecodedSchemaShape } from './decodedSchemaShape.js'
 import type { InstanceKey } from './instanceContext.js'
 import type { KeyedBindingBaseConfig } from './keyedBinding.js'
 import type { ValidateConcreteComposition } from './requirements.js'
+
+const initializationStorage = new WeakMap<object, RuntimeBindingStorage>()
+
+/** @internal Reads validated optional-slot storage from a lowered field config. */
+export const keyedOptionStorageOf = (
+  config: object,
+): RuntimeBindingStorage | undefined => initializationStorage.get(config)
 
 type Exact<Left, Right> =
   (<Value>() => Value extends Left ? 1 : 2) extends <
@@ -713,7 +721,7 @@ export const normalizeKeyedFieldConfig = (config: unknown): unknown => {
     return readInstanceKey(item, keyField)
   }
 
-  return {
+  const normalized = {
     ...policy,
     placement: Reflect.get(policy, 'placement') ?? field,
     readAll,
@@ -786,6 +794,18 @@ export const normalizeKeyedFieldConfig = (config: unknown): unknown => {
       })
     },
   }
+
+  if (kind === 'Option' && childField !== undefined) {
+    initializationStorage.set(normalized, {
+      kind: 'KeyedOption',
+      field,
+      keyField,
+      childField,
+      isPlainWrapper: Reflect.ownKeys(keyFields).length === 2,
+    })
+  }
+
+  return normalized
 }
 
 /** @internal Validates and lowers a keyed field initialization policy. */

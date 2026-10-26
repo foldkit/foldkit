@@ -14,190 +14,166 @@ import {
   VirtualListDemoBinding,
   VirtualListVariableDemoBinding,
 } from './composition'
+import { makeFieldsStep } from './definition'
 import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './demo/virtualListData'
-import { Message } from './message'
 import {
   VirtualListChatDemoBinding,
-  prependVirtualListChatMessages,
-  updateVirtualListChatMessages,
+  prependVirtualListChatMessagesStep,
+  updateVirtualListChatMessagesStep,
 } from './virtualListChat'
 
-export const update = UiComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    UpdatedInputDemoValue: ({ value }) => ({
-      model: modifyFields(model, { inputDemoValue: () => value }),
+export const update = UiComposition.makeUpdate({
+  UpdatedInputDemoValue: makeFieldsStep.fromMessage(({ value }) => ({
+    inputDemoValue: () => value,
+  })),
+
+  UpdatedTextareaDemoValue: makeFieldsStep.fromMessage(({ value }) => ({
+    textareaDemoValue: () => value,
+  })),
+
+  UpdatedFieldsetInputValue: makeFieldsStep.fromMessage(({ value }) => ({
+    fieldsetInputValue: () => value,
+  })),
+
+  UpdatedFieldsetTextareaValue: makeFieldsStep.fromMessage(({ value }) => ({
+    fieldsetTextareaValue: () => value,
+  })),
+
+  UpdatedSelectDemoValue: makeFieldsStep.fromMessage(({ value }) => ({
+    selectDemoValue: () => value,
+  })),
+
+  ToggledFieldsetCheckboxDemo: makeFieldsStep.fromMessage(({ isChecked }) => ({
+    isFieldsetCheckboxDemoChecked: () => isChecked,
+  })),
+
+  ClickedButtonDemo: makeFieldsStep(() => ({
+    buttonClickCount: Number.increment,
+  })),
+
+  ToggledCheckboxBasicDemo: makeFieldsStep.fromMessage(({ isChecked }) => ({
+    isCheckboxBasicDemoChecked: () => isChecked,
+  })),
+
+  ToggledCheckboxAllDemo: makeFieldsStep.fromMessage(({ isChecked }) => ({
+    isCheckboxOptionADemoChecked: () => isChecked,
+    isCheckboxOptionBDemoChecked: () => isChecked,
+  })),
+
+  ToggledCheckboxOptionADemo: makeFieldsStep.fromMessage(({ isChecked }) => ({
+    isCheckboxOptionADemoChecked: () => isChecked,
+  })),
+
+  ToggledCheckboxOptionBDemo: makeFieldsStep.fromMessage(({ isChecked }) => ({
+    isCheckboxOptionBDemoChecked: () => isChecked,
+  })),
+
+  ClickedDeleteProject: NestedDialogChildDemoBinding.requestOpen(),
+
+  ClickedOpenDialog: DialogDemoBinding.requestOpen(),
+
+  ClickedOpenAnimatedDialog: DialogAnimatedDemoBinding.requestOpen(),
+
+  ClickedEditFilters: OverlayDialogDemoBinding.requestOpen(),
+
+  ClickedOpenProjectSettings: NestedDialogParentDemoBinding.requestOpen(),
+
+  ToggledDisclosureDemo: makeFieldsStep.fromMessage(({ isOpen }) => ({
+    isDisclosureDemoOpen: () => isOpen,
+  })),
+
+  ToggledDisclosureCollapsedPreviewDemo: makeFieldsStep.fromMessage(
+    ({ isOpen }) => ({
+      isDisclosureCollapsedPreviewDemoOpen: () => isOpen,
     }),
+  ),
 
-    UpdatedTextareaDemoValue: ({ value }) => ({
-      model: modifyFields(model, { textareaDemoValue: () => value }),
-    }),
+  ToggledSwitchDemo: makeFieldsStep.fromMessage(({ isChecked }) => ({
+    isSwitchDemoChecked: () => isChecked,
+  })),
 
-    UpdatedFieldsetInputValue: ({ value }) => ({
-      model: modifyFields(model, { fieldsetInputValue: () => value }),
-    }),
+  ClickedHoverIntentMenuItem: HoverIntentMenuDemoBinding.requestClose(),
 
-    UpdatedFieldsetTextareaValue: ({ value }) => ({
-      model: modifyFields(model, { fieldsetTextareaValue: () => value }),
-    }),
-
-    UpdatedSelectDemoValue: ({ value }) => ({
-      model: modifyFields(model, { selectDemoValue: () => value }),
-    }),
-
-    ToggledFieldsetCheckboxDemo: ({ isChecked }) => ({
-      model: modifyFields(model, {
-        isFieldsetCheckboxDemoChecked: () => isChecked,
-      }),
-    }),
-
-    ClickedButtonDemo: () => ({
-      model: modifyFields(model, {
-        buttonClickCount: Number.increment,
-      }),
-    }),
-
-    ToggledCheckboxBasicDemo: ({ isChecked }) => ({
-      model: modifyFields(model, {
-        isCheckboxBasicDemoChecked: () => isChecked,
-      }),
-    }),
-
-    ToggledCheckboxAllDemo: ({ isChecked }) => ({
-      model: modifyFields(model, {
-        isCheckboxOptionADemoChecked: () => isChecked,
-        isCheckboxOptionBDemoChecked: () => isChecked,
-      }),
-    }),
-
-    ToggledCheckboxOptionADemo: ({ isChecked }) => ({
-      model: modifyFields(model, {
-        isCheckboxOptionADemoChecked: () => isChecked,
-      }),
-    }),
-
-    ToggledCheckboxOptionBDemo: ({ isChecked }) => ({
-      model: modifyFields(model, {
-        isCheckboxOptionBDemoChecked: () => isChecked,
-      }),
-    }),
-
-    ClickedDeleteProject: () =>
-      NestedDialogChildDemoBinding.requestOpen()(model),
-
-    ClickedOpenDialog: () => DialogDemoBinding.requestOpen()(model),
-
-    ClickedOpenAnimatedDialog: () =>
-      DialogAnimatedDemoBinding.requestOpen()(model),
-
-    ClickedEditFilters: () => OverlayDialogDemoBinding.requestOpen()(model),
-
-    ClickedOpenProjectSettings: () =>
-      NestedDialogParentDemoBinding.requestOpen()(model),
-
-    ToggledDisclosureDemo: ({ isOpen }) => ({
-      model: modifyFields(model, { isDisclosureDemoOpen: () => isOpen }),
-    }),
-
-    ToggledDisclosureCollapsedPreviewDemo: ({ isOpen }) => ({
-      model: modifyFields(model, {
-        isDisclosureCollapsedPreviewDemoOpen: () => isOpen,
-      }),
-    }),
-
-    ToggledSwitchDemo: ({ isChecked }) => ({
-      model: modifyFields(model, { isSwitchDemoChecked: () => isChecked }),
-    }),
-
-    ClickedHoverIntentMenuItem: () =>
-      HoverIntentMenuDemoBinding.requestClose()(model),
-
-    ClickedShowInfoToast: () =>
-      ToastDemoBinding.requestShow({
-        variant: 'Info',
-        payload: {
-          title: 'Preferences updated',
-          maybeDescription: Option.some('Your changes are saved.'),
-        },
-      })(model),
-
-    ClickedShowSuccessToast: () =>
-      ToastDemoBinding.requestShow({
-        variant: 'Success',
-        payload: {
-          title: 'Uploaded',
-          maybeDescription: Option.some('kit-manual.pdf is now available.'),
-        },
-      })(model),
-
-    ClickedShowErrorToast: () =>
-      ToastDemoBinding.requestShow({
-        variant: 'Error',
-        payload: {
-          title: 'Save failed',
-          maybeDescription: Option.some('Check your connection and try again.'),
-        },
-      })(model),
-
-    ClickedShowStickyToast: () =>
-      ToastDemoBinding.requestShow({
-        variant: 'Info',
-        payload: {
-          title: 'Action required',
-          maybeDescription: Option.some('Stays visible until dismissed.'),
-        },
-        sticky: true,
-      })(model),
-
-    ClickedDismissAllToasts: () => ToastDemoBinding.requestDismissAll()(model),
-
-    ClickedToggleAnimationDemo: () =>
-      model.animationDemo.isShowing
-        ? AnimationDemoBinding.requestHide()(model)
-        : AnimationDemoBinding.requestShow()(model),
-
-    ClickedRemoveFileDropDemoFile: ({ fileIndex }) => ({
-      model: modifyFields(model, {
-        fileDropBasicDemoFiles: () =>
-          Array.remove(model.fileDropBasicDemoFiles, fileIndex),
-      }),
-    }),
-
-    ClickedVirtualListScrollToMiddle: () =>
-      VirtualListDemoBinding.requestScrollToIndex(
-        Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
-      )(model),
-
-    ClickedVirtualListVariableScrollToMiddle: () =>
-      VirtualListVariableDemoBinding.requestScrollToIndex(
-        Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
-      )(model),
-
-    ClickedVirtualListChatPrepend: () => prependVirtualListChatMessages(model),
-
-    ClickedVirtualListChatScrollToMessage: () =>
-      VirtualListChatDemoBinding.requestScrollToKey('7', {
-        alignment: 'Center',
-      })(model),
-
-    ClickedVirtualListChatAppend: () => {
-      const nextId = model.virtualListChatNextId
-      const nextMessages = Array.append(model.virtualListChatMessages, {
-        id: nextId,
-        body: `New message ${nextId} arrived at the end.`,
-        isExpanded: nextId % 3 === 0,
-      })
-      return updateVirtualListChatMessages(nextMessages, nextId + 1)(model)
-    },
-
-    ClickedVirtualListChatToggleMessage: ({ messageId }) => {
-      const nextMessages = Array.map(model.virtualListChatMessages, message =>
-        message.id === messageId
-          ? modifyFields(message, {
-              isExpanded: isExpanded => !isExpanded,
-            })
-          : message,
-      )
-      return updateVirtualListChatMessages(nextMessages)(model)
+  ClickedShowInfoToast: ToastDemoBinding.requestShow({
+    variant: 'Info',
+    payload: {
+      title: 'Preferences updated',
+      maybeDescription: Option.some('Your changes are saved.'),
     },
   }),
-)
+
+  ClickedShowSuccessToast: ToastDemoBinding.requestShow({
+    variant: 'Success',
+    payload: {
+      title: 'Uploaded',
+      maybeDescription: Option.some('kit-manual.pdf is now available.'),
+    },
+  }),
+
+  ClickedShowErrorToast: ToastDemoBinding.requestShow({
+    variant: 'Error',
+    payload: {
+      title: 'Save failed',
+      maybeDescription: Option.some('Check your connection and try again.'),
+    },
+  }),
+
+  ClickedShowStickyToast: ToastDemoBinding.requestShow({
+    variant: 'Info',
+    payload: {
+      title: 'Action required',
+      maybeDescription: Option.some('Stays visible until dismissed.'),
+    },
+    sticky: true,
+  }),
+
+  ClickedDismissAllToasts: ToastDemoBinding.requestDismissAll(),
+
+  ClickedToggleAnimationDemo: model =>
+    model.animationDemo.isShowing
+      ? AnimationDemoBinding.requestHide()(model)
+      : AnimationDemoBinding.requestShow()(model),
+
+  ClickedRemoveFileDropDemoFile: makeFieldsStep.fromMessage(
+    ({ fileIndex }) => ({
+      fileDropBasicDemoFiles: Array.remove(fileIndex),
+    }),
+  ),
+
+  ClickedVirtualListScrollToMiddle: VirtualListDemoBinding.requestScrollToIndex(
+    Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
+  ),
+
+  ClickedVirtualListVariableScrollToMiddle:
+    VirtualListVariableDemoBinding.requestScrollToIndex(
+      Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
+    ),
+
+  ClickedVirtualListChatPrepend: prependVirtualListChatMessagesStep,
+
+  ClickedVirtualListChatScrollToMessage:
+    VirtualListChatDemoBinding.requestScrollToKey('7', {
+      alignment: 'Center',
+    }),
+
+  ClickedVirtualListChatAppend: model => {
+    const nextId = model.virtualListChatNextId
+    const nextMessages = Array.append(model.virtualListChatMessages, {
+      id: nextId,
+      body: `New message ${nextId} arrived at the end.`,
+      isExpanded: nextId % 3 === 0,
+    })
+    return updateVirtualListChatMessagesStep(nextMessages, nextId + 1)(model)
+  },
+
+  ClickedVirtualListChatToggleMessage: (model, { messageId }) => {
+    const nextMessages = Array.map(model.virtualListChatMessages, message =>
+      message.id === messageId
+        ? modifyFields(message, {
+            isExpanded: isExpanded => !isExpanded,
+          })
+        : message,
+    )
+    return updateVirtualListChatMessagesStep(nextMessages)(model)
+  },
+})

@@ -3,6 +3,7 @@ import { Option } from 'effect'
 import {
   EducationEntryDefinition,
   GraduationYearListboxBlock,
+  makeFieldsStep,
 } from './definition'
 
 export const GraduationYearListboxBinding =
@@ -16,7 +17,7 @@ export const GraduationYearListboxBinding =
       GraduationYearListboxBlock,
       {
         Selected: ({ value }) =>
-          EducationEntryDefinition.makeFieldsStep(() => ({
+          makeFieldsStep(() => ({
             maybeGraduationYear: () => Option.some(value),
           })),
       },

@@ -3,71 +3,67 @@ import { modifyFields } from 'foldkit/struct'
 
 import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
 import { ApplicationComposition } from './composition'
+import { makeFieldsStep, makeNoopStep } from './definition'
 import { Column } from './domain'
-import { Message } from './message'
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedAddCard: ({ columnId }) => ({
-      model: modifyFields(model, {
-        maybeNewCardColumnId: () => Option.some(columnId),
-        newCardTitle: () => '',
-      }),
-      commands: [FocusAddCardInput()],
+export const update = ApplicationComposition.makeUpdate({
+  ClickedAddCard: (model, { columnId }) => ({
+    model: modifyFields(model, {
+      maybeNewCardColumnId: () => Option.some(columnId),
+      newCardTitle: () => '',
     }),
+    commands: [FocusAddCardInput()],
+  }),
 
-    ChangedNewCardTitle: ({ value }) => ({
-      model: modifyFields(model, { newCardTitle: () => value }),
-    }),
+  ChangedNewCardTitle: makeFieldsStep.fromMessage(({ value }) => ({
+    newCardTitle: () => value,
+  })),
 
-    SubmittedNewCard: () =>
-      Option.match(model.maybeNewCardColumnId, {
-        onNone: () => ({ model }),
-        onSome: columnId => {
-          const title = String.trim(model.newCardTitle)
-          if (String.isEmpty(title)) {
-            return { model }
-          }
-
-          return {
-            model,
-            commands: [GenerateCardId({ columnId, title })],
-          }
-        },
-      }),
-
-    CompletedGenerateCardId: ({ cardId, columnId, title }) => {
-      const nextColumns = Array.map(model.columns, column => {
-        if (column.id !== columnId) {
-          return column
+  SubmittedNewCard: model =>
+    Option.match(model.maybeNewCardColumnId, {
+      onNone: () => ({ model }),
+      onSome: columnId => {
+        const title = String.trim(model.newCardTitle)
+        if (String.isEmpty(title)) {
+          return { model }
         }
-        return Column.appendCard(column, {
-          id: cardId,
-          title,
-          description: '',
-          sortKey: '',
-        })
-      })
 
-      return {
-        model: modifyFields(model, {
-          columns: () => nextColumns,
-          maybeNewCardColumnId: () => Option.none(),
-          newCardTitle: () => '',
-        }),
-        commands: [SaveBoard({ columns: nextColumns })],
+        return {
+          model,
+          commands: [GenerateCardId({ columnId, title })],
+        }
+      },
+    }),
+
+  CompletedGenerateCardId: (model, { cardId, columnId, title }) => {
+    const nextColumns = Array.map(model.columns, column => {
+      if (column.id !== columnId) {
+        return column
       }
-    },
+      return Column.appendCard(column, {
+        id: cardId,
+        title,
+        description: '',
+        sortKey: '',
+      })
+    })
 
-    CancelledNewCard: () => ({
+    return {
       model: modifyFields(model, {
+        columns: () => nextColumns,
         maybeNewCardColumnId: () => Option.none(),
         newCardTitle: () => '',
       }),
-    }),
+      commands: [SaveBoard({ columns: nextColumns })],
+    }
+  },
 
-    CompletedSaveBoard: () => ({ model }),
+  CancelledNewCard: makeFieldsStep(() => ({
+    maybeNewCardColumnId: () => Option.none(),
+    newCardTitle: () => '',
+  })),
 
-    CompletedFocusAddCardInput: () => ({ model }),
-  }),
-)
+  CompletedSaveBoard: makeNoopStep(),
+
+  CompletedFocusAddCardInput: makeNoopStep(),
+})

@@ -25,24 +25,24 @@ export const make = <Value extends string>(Value: ValueSchema<Value>) => {
   const Model = Schema.Struct({ selected: Schema.Option(Value) })
   const Message = makeMessage(Value)
   const OutMessage = makeOutMessage(Value)
-  const RefinedPicker = PickerNamespace.makeDefinition({
+  const RefinedPickerDefinition = PickerNamespace.makeDefinition({
     Model,
     Message,
     OutMessage,
   })
-  const RefinedPickerComposition = RefinedPicker.makeComposition()
+  const RefinedPickerComposition = RefinedPickerDefinition.makeComposition()
 
-  const selectValue = RefinedPicker.makeStep((model, value: Value) => ({
-    model: modifyFields(model, { selected: () => Option.some(value) }),
-    outMessage: OutMessage.Selected({ value }),
-  }))
-
-  const update = RefinedPickerComposition.makeUpdate((model, message) =>
-    Message.match(message, {
-      SelectedValue: ({ value }) => selectValue(model, value),
-      RequestedSelectValue: ({ value }) => selectValue(model, value),
+  const selectValueStep = RefinedPickerDefinition.makeStep(
+    (model, value: Value) => ({
+      model: modifyFields(model, { selected: () => Option.some(value) }),
+      outMessage: OutMessage.Selected({ value }),
     }),
   )
+
+  const update = RefinedPickerComposition.makeUpdate({
+    SelectedValue: (model, { value }) => selectValueStep(model, value),
+    RequestedSelectValue: (model, { value }) => selectValueStep(model, value),
+  })
 
   const view = RefinedPickerComposition.makeView.withInputs<ViewInputs<Value>>(
     (model, { values }, h) =>
@@ -77,7 +77,12 @@ export const make = <Value extends string>(Value: ValueSchema<Value>) => {
       },
     })
 
-  return Block.assemble(prepare)
+  const PickerBlock: Block.FromAssemblyWithViewAndOutMessage<
+    typeof Model,
+    typeof prepare
+  > = Block.assemble(prepare)
+
+  return PickerBlock
 }
 
 const Fruit = Schema.Literals(['Apple', 'Pear'])
@@ -105,7 +110,7 @@ const PickerBinding = FruitSelectionDefinition.makeBinding(FruitPicker, {
   }),
 })
 
-export const selectApple = PickerBinding.requestSelectValue('Apple')
+export const selectAppleStep = PickerBinding.requestSelectValue('Apple')
 
 const FruitSelectionComposition = FruitSelectionDefinition.makeComposition({
   bindings: [PickerBinding],

@@ -13,7 +13,7 @@ import { modifyFields } from 'foldkit/struct'
 import { revealFieldErrors } from '../validation'
 import { ValidateEmailAsync } from './command'
 import { PersonalInfoComposition } from './composition'
-import { Message, type Model } from './definition'
+import { type Model, makeFieldsStep } from './definition'
 
 const firstNameRules = makeRules({
   required: 'First name is required',
@@ -50,68 +50,62 @@ const validateEmail = validate(emailRules)
 const validatePhone = validate(phoneRules)
 const validatePortfolioUrl = validate(portfolioUrlRules)
 
-export const update = PersonalInfoComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    UpdatedFirstName: ({ value }) => ({
-      model: modifyFields(model, { firstName: () => validateFirstName(value) }),
-    }),
+export const update = PersonalInfoComposition.makeUpdate({
+  UpdatedFirstName: makeFieldsStep.fromMessage(({ value }) => ({
+    firstName: () => validateFirstName(value),
+  })),
 
-    UpdatedLastName: ({ value }) => ({
-      model: modifyFields(model, { lastName: () => validateLastName(value) }),
-    }),
+  UpdatedLastName: makeFieldsStep.fromMessage(({ value }) => ({
+    lastName: () => validateLastName(value),
+  })),
 
-    UpdatedEmail: ({ value }) => {
-      const validationId = Number.increment(model.emailValidationId)
-      return Match.value(validateEmail(value)).pipe(
-        Match.tag('Valid', () => ({
-          model: modifyFields(model, {
-            email: () => Validating({ value }),
-            emailValidationId: () => validationId,
-          }),
-          commands: [ValidateEmailAsync({ emailInput: value, validationId })],
-        })),
-        Match.orElse(syncResult => ({
-          model: modifyFields(model, {
-            email: () => syncResult,
-            emailValidationId: () => validationId,
-          }),
-        })),
-      )
-    },
+  UpdatedEmail: (model, { value }) => {
+    const validationId = Number.increment(model.emailValidationId)
+    return Match.value(validateEmail(value)).pipe(
+      Match.tag('Valid', () => ({
+        model: modifyFields(model, {
+          email: () => Validating({ value }),
+          emailValidationId: () => validationId,
+        }),
+        commands: [ValidateEmailAsync({ emailInput: value, validationId })],
+      })),
+      Match.orElse(syncResult => ({
+        model: modifyFields(model, {
+          email: () => syncResult,
+          emailValidationId: () => validationId,
+        }),
+      })),
+    )
+  },
 
-    CompletedValidateEmailAsync: ({ validationId, field }) => {
-      if (validationId === model.emailValidationId) {
-        return { model: modifyFields(model, { email: () => field }) }
-      } else {
-        return { model }
-      }
-    },
+  CompletedValidateEmailAsync: (model, { validationId, field }) => {
+    if (validationId === model.emailValidationId) {
+      return { model: modifyFields(model, { email: () => field }) }
+    } else {
+      return { model }
+    }
+  },
 
-    UpdatedPhone: ({ value }) => ({
-      model: modifyFields(model, { phone: () => validatePhone(value) }),
-    }),
+  UpdatedPhone: makeFieldsStep.fromMessage(({ value }) => ({
+    phone: () => validatePhone(value),
+  })),
 
-    RequestedRevealErrors: () => ({
-      model: modifyFields(model, {
-        firstName: revealFieldErrors(firstNameRules),
-        lastName: revealFieldErrors(lastNameRules),
-        email: revealFieldErrors(emailRules),
-        phone: revealFieldErrors(phoneRules),
-        portfolioUrl: revealFieldErrors(portfolioUrlRules),
-      }),
-    }),
+  RequestedRevealErrors: makeFieldsStep(() => ({
+    firstName: revealFieldErrors(firstNameRules),
+    lastName: revealFieldErrors(lastNameRules),
+    email: revealFieldErrors(emailRules),
+    phone: revealFieldErrors(phoneRules),
+    portfolioUrl: revealFieldErrors(portfolioUrlRules),
+  })),
 
-    UpdatedCustomPronouns: ({ value }) => ({
-      model: modifyFields(model, { customPronouns: () => value }),
-    }),
+  UpdatedCustomPronouns: makeFieldsStep.fromMessage(({ value }) => ({
+    customPronouns: () => value,
+  })),
 
-    UpdatedPortfolioUrl: ({ value }) => ({
-      model: modifyFields(model, {
-        portfolioUrl: () => validatePortfolioUrl(value),
-      }),
-    }),
-  }),
-)
+  UpdatedPortfolioUrl: makeFieldsStep.fromMessage(({ value }) => ({
+    portfolioUrl: () => validatePortfolioUrl(value),
+  })),
+})
 
 const validatedFields = (
   model: typeof Model.Type,

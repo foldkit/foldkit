@@ -1,5 +1,14 @@
-import { Array, Equal, Option, Order, Predicate, pipe } from 'effect'
-import type { Effect } from 'effect'
+import {
+  Array,
+  Equal,
+  Option,
+  Order,
+  Predicate,
+  Schema,
+  String,
+  pipe,
+} from 'effect'
+import type { Effect, Stream } from 'effect'
 
 import {
   type DefinitionIdentity,
@@ -9,9 +18,16 @@ import {
   invocationIdentity,
   invocationName,
 } from '../block/identity.js'
-import { isScopedInvocation } from '../block/scope.js'
+import { isScopedEntry, isScopedInvocation } from '../block/scope.js'
+import type { Scoped } from '../block/scope.js'
 import { CommandDefinitionTypeId } from '../command/index.js'
+import type { InterruptDefinitionNoArgs } from '../command/interruptible/index.js'
 import { type MountDefinition, MountDefinitionTypeId } from '../mount/index.js'
+import {
+  type Subscription,
+  type MessageDeclaration as SubscriptionMessageDeclaration,
+  __messageMappers as subscriptionMessageMappers,
+} from '../subscription/subscription.js'
 import {
   bindingMatcherFingerprint,
   commandMatches,
@@ -82,6 +98,22 @@ export type ResolvableCommandDefinition<
   ((
     ...args: Array<any>
   ) => Readonly<{ effect: Effect.Effect<ResultMessage, any, any> }>)
+
+/** Captured argument type projected from a resolvable Command Definition. */
+export type CommandArgs<
+  Definition extends ResolvableCommandDefinition<string, unknown>,
+> =
+  Definition extends InterruptDefinitionNoArgs<string>
+    ? undefined
+    : ReturnType<Definition> extends infer Invocation
+      ? Invocation extends unknown
+        ? 'args' extends keyof Invocation
+          ? Invocation['args']
+          : Parameters<Definition> extends readonly []
+            ? undefined
+            : AnyCommand['args']
+        : never
+      : never
 
 /** A Definition or Command instance accepted by Story and Scene resolution
  * APIs. */
@@ -877,4 +909,115 @@ export const assertAllUnmountsAcknowledged = (
         'was previously resolved.',
     )
   }
+}
+
+// SUBSCRIPTIONS
+
+type UnscopedSubscriptionRequirements<Requirements> =
+  Requirements extends Scoped<any, infer Contract> ? Contract : Requirements
+
+/** The entry values a test may pass to emit a registered Subscription entry:
+ *  the entry itself, or the child entry it was lifted from. */
+export type SubscriptionEmissionSource<Entry> =
+  Entry extends Readonly<{
+    dependenciesToStream: (
+      ...args: ReadonlyArray<any>
+    ) => Stream.Stream<any, never, infer Requirements>
+  }>
+    ?
+        | Subscription<any, any, any, Requirements>
+        | Subscription<
+            any,
+            any,
+            any,
+            UnscopedSubscriptionRequirements<Requirements>
+          >
+    : never
+
+const applySubscriptionMappers = (
+  declaration: SubscriptionMessageDeclaration,
+  message: unknown,
+): unknown =>
+  Array.reduce(
+    declaration.messageMappers,
+    message,
+    (current, toParentMessage) => toParentMessage(current),
+  )
+
+/** Validates a Message emitted for a registered Subscription entry and
+ *  applies that entry's generated delivery. */
+export const resolveSubscriptionMessage = (
+  stepName: string,
+  declarations: ReadonlyArray<SubscriptionMessageDeclaration>,
+  entry: unknown,
+  message: unknown,
+): unknown => {
+  const exactDeclarations = Array.filter(
+    declarations,
+    declaration => declaration.entry === entry,
+  )
+  const sourceDeclarations = Array.isArrayNonEmpty(exactDeclarations)
+    ? exactDeclarations
+    : Array.filter(declarations, declaration => {
+        if (!Predicate.isObject(entry)) {
+          return false
+        }
+
+        const expected = identityOf(entry)
+        const actual = identityOf(declaration.entry)
+        if (expected === undefined || actual?.token !== expected.token) {
+          return false
+        }
+
+        const sourceMappers = subscriptionMessageMappers(entry)
+        if (
+          !sourceMappers.every(
+            (mapper, index) =>
+              Option.getOrUndefined(
+                Array.get(declaration.messageMappers, index),
+              ) === mapper,
+          )
+        ) {
+          return false
+        }
+
+        const name = Reflect.get(entry, 'name')
+        const declarationName = Reflect.get(declaration.entry, 'name')
+        return (
+          !isScopedEntry(entry) ||
+          declarationName === name ||
+          (Predicate.isString(name) &&
+            Predicate.isString(declarationName) &&
+            String.endsWith(`/${name}`)(declarationName))
+        )
+      })
+  const matchingDeclarations = Array.filter(sourceDeclarations, declaration =>
+    Array.some(declaration.schemas, schema => Schema.is(schema)(message)),
+  )
+
+  return Array.matchLeft(matchingDeclarations, {
+    onEmpty: () => {
+      throw new Error(
+        `${stepName} received a Message that is not declared by the selected Subscription:\n\n` +
+          `    ${JSON.stringify(message)}`,
+      )
+    },
+    onNonEmpty: (declaration, remainingDeclarations) => {
+      if (Array.isArrayNonEmpty(remainingDeclarations)) {
+        const entryKeys = pipe(
+          matchingDeclarations,
+          Array.map(({ entryKey }) => entryKey),
+          Array.join(', '),
+        )
+
+        throw new Error(
+          `${stepName} selected a Subscription entry ` +
+            `registered under multiple keys: ${entryKeys}.\n\n` +
+            'Select the bound Subscription entry for the intended child placement.',
+        )
+      }
+
+      return applySubscriptionMappers(declaration, message)
+    },
+  })
 }

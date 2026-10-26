@@ -59,6 +59,10 @@ Choose the lifecycle primitive by what owns the work:
 | [Mount](/core/mount)                       | One rendered element                                | Listeners, observers, or imperative work that needs that element                              |
 | [ManagedResource](/core/managed-resources) | A Model condition, with a typed handle for Commands | A `WebSocket`, camera stream, or third-party instance that other parts of the program consume |
 
+Before choosing a ManagedResource, ask: which Command or other consumer needs to read its handle? Cleanup alone does not require a ManagedResource. A Subscription Scope can install a listener and remove it when the Model no longer needs it. Use `messages: []` and a `Stream<never>` when that work emits no Messages.
+
+For example, an unsaved-draft warning can use a Subscription that installs a `beforeunload` listener while drafts exist. Cancel the event synchronously in the listener; a Message followed by a Command would run too late. This warns before leaving and does not save the draft. There is no shared handle to expose or acquisition result to report.
+
 ## Auto-Counter Example
 
 Commands describe one-shot work that produces one result. Subscriptions describe ongoing work. In the counter, a Subscription emits `Ticked` once per second while `isAutoCounting` is `true` and stops when it becomes `false`.
@@ -72,6 +76,8 @@ Commands describe one-shot work that produces one result. Subscriptions describe
 - A stable handler name for the Layer requirement.
 - A field map defining the dependency Schema, in the same shape passed to `Schema.Struct`.
 - A config containing `messages`, `modelToDependencies`, and the `handler` generator that returns the Stream function. `messages` lists the Message Schemas that the handler Stream may emit. Use `messages: []` for scoped work that emits no Messages.
+
+Create one registry for all Subscriptions owned by the Block. Add entries to that registry as the feature grows. When a handler implementation becomes substantial, extract its Stream construction into a focused helper while keeping the entry in the owning registry. A child Block is a distinct owner and keeps its own registry.
 
 If an adapter already exposes a dependency Struct, pass its `.fields` as the second argument: `dependenciesSchema.fields`. Passing the Struct itself produces a field-map error, often wrapped in `No overload matches this call`.
 
@@ -99,9 +105,11 @@ An external generic Stream helper can infer its result Message from one callback
 
 Each entry, such as `subscriptions.gameClockTicks`, is an individual owned definition. Its record key identifies the local runtime entry, while its handler name becomes part of the owned Layer requirement that assembly must satisfy. Several child Bindings can carry one definition into different placements while retaining separate Stream scopes. Naming also gives tools a declared identity to display; Subscription lifecycle events in DevTools are follow-up work. An entry with `handler` exposes `.layer`; include that recipe in the local `EffectsLayer` passed to `FeatureComposition.prepareBlock`.
 
-When every entry has an attached handler, the owned registry also exposes `subscriptions.layer`. Use it to include all the record's handlers in `EffectsLayer`. It merges the recipes passively; the Runtime still constructs them later. An empty record supplies an empty Layer. The aggregate preserves each handler's Service requirements and constructor errors.
+When every entry has an attached handler, the owned registry also exposes `subscriptions.layer`. When Subscription declarations are split from Block assembly, that module exports the Block's one registry. Compose `Feature.subscriptions.layer` with other local providers in `EffectsLayer`. When the registry supplies every local handler, pass `EffectsLayer: subscriptions.layer` directly to `FeatureComposition.prepareBlock`. The registry Layer merges the recipes passively; the Runtime constructs them later. An empty record supplies an empty Layer. The registry Layer preserves each handler's Service requirements and constructor errors.
 
-The aggregate is unavailable if any entry leaves its handler to the host. Supply those contracts explicitly through `hostHandlers` and `provideHandlers`. Individual `subscriptions.entry.layer` recipes remain available for intentionally selective assembly. The entry key `layer` is reserved; the aggregate recipe is metadata and never becomes a running Subscription or a Scene emission source.
+The registry Layer is unavailable if any entry leaves its handler to the host. Supply those contracts explicitly through `hostHandlers` and `provideHandlers`. Individual `subscriptions.entry.layer` recipes remain available for intentionally selective assembly. The entry key `layer` is reserved; the registry recipe is metadata and never becomes a running Subscription or a Scene emission source.
+
+`Subscription.aggregate` remains available at graph, adapter, and test boundaries that need to join independent Subscription records. Do not use it to recombine several registries for one Block; declare those entries together in that Block's registry.
 
 The Runtime runs the attached handler generator once while building the application Layer and obtains a `dependencies => Stream` function. Return that function directly when construction needs no services. The constructor must not capture the current dependency record; Foldkit passes that record when starting each Stream. A dependency change restarts the Stream scope without reconstructing the handler or its provider. Scoped resources owned by the application Layer release when the runtime stops.
 
@@ -123,7 +131,7 @@ Definitions created by different named Blocks receive different owned names even
 
 ### Naming a Subscription
 
-A Subscription definition describes a scoped Stream. Its record key identifies the registration that Foldkit starts and stops; its handler name identifies the Stream or scoped behavior a Layer supplies. Keep them parallel: in the counter example, `gameClockTicks` is the record key, `GameClockTicks` is the handler name, and `subscriptions.gameClockTicks.layer` is its attached Layer recipe. A feature exports an `EffectsLayer` containing its handlers.
+A Subscription definition describes a scoped Stream. Its record key identifies the registration that Foldkit starts and stops; its handler name identifies the Stream or scoped behavior a Layer supplies. Keep them parallel: in the counter example, `gameClockTicks` is the record key, `GameClockTicks` is the handler name, and `subscriptions.gameClockTicks.layer` is its attached Layer recipe. A leaf Subscription module exports its owned `subscriptions` registry. The owning Block or layer module uses that registry when it assembles the feature's handlers.
 
 Name the events or scoped behavior the definition supplies, such as `KeyboardPresses`, `SystemThemeChanges`, `GameClockTicks`, or `DragSelectionStyles`. `KeyboardPresses` identifies the events produced from keyboard input; `GameClockTicks` identifies the events produced by a timer. The Model dependencies determine when the Stream is active and when its scope restarts; they do not need to appear in the handler name.
 

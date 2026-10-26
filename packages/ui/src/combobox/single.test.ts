@@ -100,13 +100,13 @@ const FruitComboboxTestComposition =
     bindings: [FruitComboboxBinding],
   })
 
-const fruitParentUpdate = FruitComboboxTestComposition.makeUpdate(
-  (model, { item }) =>
+const fruitParentUpdate = FruitComboboxTestComposition.makeUpdate({
+  RequestedSelectFruitAndClose: (model, { item }) =>
     Update.combineSteps([
       FruitComboboxBinding.requestSelectItem(item, item),
       FruitComboboxBinding.requestClose(''),
     ])(model),
-)
+})
 const requestSelectFruitAndClose = (item: Fruit) =>
   Tuple.make(FruitParentMessage.RequestedSelectFruitAndClose({ item }))
 

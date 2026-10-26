@@ -170,18 +170,17 @@ export const settingsInit = SettingsComposition.makeInit((theme: string) => ({
   model: SettingsModel.make({ theme }),
   commands: [SyncSettings({ accountId: 'childInitContext', theme })],
 }))
-export const settingsUpdate = SettingsComposition.makeUpdate(
-  (model, message, currentUser: CurrentUser) =>
-    SettingsMessage.match(message, {
-      ChangedTheme: ({ theme }) => ({
-        model: Struct.modifyFields(model, { theme: () => theme }),
-        outMessage: SettingsOutMessage.SelectedTheme({ theme }),
-      }),
-      RequestedSync: () => refreshSettings(model, currentUser),
-      CompletedSync: () => ({ model }),
+export const settingsUpdate = SettingsComposition.makeUpdate.withContext(
+  (currentUser: CurrentUser) => ({
+    ChangedTheme: (model, { theme }) => ({
+      model: Struct.modifyFields(model, { theme: () => theme }),
+      outMessage: SettingsOutMessage.SelectedTheme({ theme }),
     }),
+    RequestedSync: model => refreshSettingsStep(model, currentUser),
+    CompletedSync: model => ({ model }),
+  }),
 )
-export const refreshSettings = SettingsDefinition.makeStep(
+export const refreshSettingsStep = SettingsDefinition.makeStep(
   (model, currentUser: CurrentUser) => ({
     model,
     commands: [
@@ -252,9 +251,11 @@ const prepareStatusBlock = () =>
     init: StatusComposition.makeInit(() => ({
       model: StatusModel.make({ count: 0 }),
     })),
-    update: StatusComposition.makeUpdate(model => ({
-      model: Struct.modifyFields(model, { count: count => count + 1 }),
-    })),
+    update: StatusComposition.makeUpdate({
+      Incremented: model => ({
+        model: Struct.modifyFields(model, { count: count => count + 1 }),
+      }),
+    }),
     operations: { increment: () => [StatusMessage.Incremented()] },
     EffectsLayer: Layer.empty,
   })
@@ -282,17 +283,18 @@ const prepareRoomBlock = () =>
     init: RoomComposition.makeInit((id: string, name: string) => ({
       model: RoomModel.make({ id, name }),
     })),
-    update: RoomComposition.makeUpdate(
-      (model, message, context: RoomDispatchContext) => {
-        const roomId: string = context.roomId
-        void roomId
-
-        return RoomMessage.match(message, {
-          RenamedRoom: ({ name }) => ({
-            model: Struct.modifyFields(model, { name: () => name }),
-          }),
-        })
-      },
+    update: RoomComposition.makeUpdate.withContext(
+      (context: RoomDispatchContext) => ({
+        RenamedRoom: (model, message) => {
+          const roomId: string = context.roomId
+          void roomId
+          return RoomMessage.match(message, {
+            RenamedRoom: ({ name }) => ({
+              model: Struct.modifyFields(model, { name: () => name }),
+            }),
+          })
+        },
+      }),
     ),
     EffectsLayer: Layer.empty,
   })
@@ -460,39 +462,42 @@ export const parentInit = ParentComposition.makeInit(
   }),
 )
 
-export const parentUpdate = ParentComposition.makeUpdate((model, message) => {
-  const exactMessage: ReturnType<typeof ParentMessage.OpenedDashboard> = message
-  void exactMessage
-
-  return { model }
+export const parentUpdate = ParentComposition.makeUpdate({
+  OpenedDashboard: (model, message) => {
+    const exactMessage: ReturnType<typeof ParentMessage.OpenedDashboard> =
+      message
+    void exactMessage
+    return { model }
+  },
 })
 
 const policyProofCurrentUser = CurrentUser.make({ accountId: 'policy-proof' })
-const directRefresh = SettingsBinding.refresh(policyProofCurrentUser)
-export const parentRefreshUpdate = ParentComposition.makeUpdate(
-  (model, _message) => directRefresh(model),
-)
+const directRefreshStep = SettingsBinding.refresh(policyProofCurrentUser)
+export const parentRefreshUpdate = ParentComposition.makeUpdate({
+  OpenedDashboard: (model, _message) => directRefreshStep(model),
+})
 
-export const foldSettings = ParentComposition.makeUpdate(
-  (
-    model,
-    _message,
-    childMessage: typeof SettingsMessage.Type,
-    currentUser: CurrentUser,
-  ) => SettingsBinding.fold(model, childMessage, currentUser),
+export const foldSettings = ParentComposition.makeUpdate.withContext(
+  (childMessage: typeof SettingsMessage.Type, currentUser: CurrentUser) => ({
+    OpenedDashboard: (model, _message) =>
+      SettingsBinding.fold(model, childMessage, currentUser),
+  }),
 )
-export const foldStatus = ParentComposition.makeUpdate(
-  (model, _message, childMessage: typeof StatusMessage.Type) =>
-    StatusBinding.fold(model, childMessage),
+export const foldStatus = ParentComposition.makeUpdate.withContext(
+  (childMessage: typeof StatusMessage.Type) => ({
+    OpenedDashboard: (model, _message) =>
+      StatusBinding.fold(model, childMessage),
+  }),
 )
-export const foldRoom = ParentComposition.makeUpdate(
+export const foldRoom = ParentComposition.makeUpdate.withContext(
   (
-    model,
-    _message,
     roomId: string,
     childMessage: typeof RoomMessage.Type,
     context: RoomDispatchContext,
-  ) => RoomBinding.fold(model, roomId, childMessage, context),
+  ) => ({
+    OpenedDashboard: (model, _message) =>
+      RoomBinding.fold(model, roomId, childMessage, context),
+  }),
 )
 
 const prepareParentBlock = () =>
@@ -553,7 +558,7 @@ type ParentUpdateOutMessageIsExact = Expect<
   Equal<ReturnOutMessage<ReturnType<typeof parentUpdate>>, ParentOutMessage>
 >
 type DirectRefreshOutMessageIsOpaque = Expect<
-  Equal<ReturnOutMessage<ReturnType<typeof directRefresh>>, never>
+  Equal<ReturnOutMessage<ReturnType<typeof directRefreshStep>>, never>
 >
 type ParentRefreshMessageIsExact = Expect<
   Equal<
@@ -584,7 +589,7 @@ type ExposedRefreshOutMessageIsResolved = Expect<
     ReturnOutMessage<
       ReturnType<typeof ParentRefreshBlock.operations.refreshSettings>
     >,
-    ParentOutMessage
+    never
   >
 >
 type GeneratedMessageOf<BindingValue> =
@@ -820,9 +825,11 @@ export const applicationReadonlyRestInit = ApplicationComposition.makeInit(
   }),
 )
 export const applicationUndefinedDefaultInit = applicationDefaultInit(undefined)
-export const applicationUpdate = ApplicationComposition.makeUpdate(model => ({
-  model: Struct.modifyFields(model, { count: count => count + 1 }),
-}))
+export const applicationUpdate = ApplicationComposition.makeUpdate({
+  Incremented: model => ({
+    model: Struct.modifyFields(model, { count: count => count + 1 }),
+  }),
+})
 export const applicationView = ApplicationComposition.makeView((model, h) =>
   h.main([], [globalThis.String(model.count)]),
 )
@@ -911,15 +918,13 @@ export const serviceApplicationInit = ServiceApplicationComposition.makeInit(
   () => ({ model: ServiceApplicationModel.make({ count: 0 }) }),
 )
 export const serviceApplicationUpdate =
-  ServiceApplicationComposition.makeUpdate((model, message) =>
-    ServiceApplicationMessage.match(message, {
-      RequestedApplicationTask: () => ({
-        model,
-        commands: [RunApplicationTask()],
-      }),
-      CompletedRunApplicationTask: () => ({ model }),
+  ServiceApplicationComposition.makeUpdate({
+    RequestedApplicationTask: model => ({
+      model,
+      commands: [RunApplicationTask()],
     }),
-  )
+    CompletedRunApplicationTask: model => ({ model }),
+  })
 export const serviceApplicationView = ServiceApplicationComposition.makeView(
   (model, h) => h.main([], [globalThis.String(model.count)]),
 )
@@ -1001,7 +1006,7 @@ export const symbolMetadataInit = NoStartupComposition.makeInit(() => ({
 const prepareNoStartupBlock = () =>
   NoStartupComposition.prepareBlock({
     init: noStartupInit,
-    update: NoStartupComposition.makeUpdate(),
+    update: NoStartupComposition.makeUpdate({}),
   })
 export const NoStartupBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof NoStartupModel,

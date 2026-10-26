@@ -8,7 +8,7 @@ import {
   applyPostsTransition,
   applyStatsTransition,
 } from './composition'
-import { Message } from './message'
+import { makeFieldsStep } from './definition'
 import { PostDetailData } from './model'
 
 const setPostDetail = (
@@ -16,62 +16,60 @@ const setPostDetail = (
   postDetail: typeof PostDetailData.schema.Type,
 ) => HashMap.set(postId, postDetail)
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedPost: ({ postId }) => {
-      const selectedModel = modifyFields(model, {
-        maybeSelectedPostId: () => Option.some(postId),
-      })
+export const update = ApplicationComposition.makeUpdate({
+  ClickedPost: (model, { postId }) => {
+    const selectedModel = modifyFields(model, {
+      maybeSelectedPostId: () => Option.some(postId),
+    })
 
-      return Option.match(HashMap.get(model.postDetailById, postId), {
-        onNone: () => ({
-          model: modifyFields(selectedModel, {
-            postDetailById: setPostDetail(postId, PostDetailData.Loading()),
-          }),
-          commands: [FetchPostDetail({ postId })],
+    return Option.match(HashMap.get(model.postDetailById, postId), {
+      onNone: () => ({
+        model: modifyFields(selectedModel, {
+          postDetailById: setPostDetail(postId, PostDetailData.Loading()),
         }),
-        onSome: () => ({ model: selectedModel }),
-      })
-    },
-
-    ClickedBackToPosts: () => ({
-      model: modifyFields(model, { maybeSelectedPostId: () => Option.none() }),
-    }),
-
-    ClickedInvalidatePosts: () =>
-      applyPostsTransition(model, AsyncData.revalidateOrLoad(model.posts)),
-
-    ClickedRetryPosts: () =>
-      applyPostsTransition(model, AsyncData.revalidateOrLoad(model.posts)),
-
-    ClickedRetryPostDetail: ({ postId }) => ({
-      model: modifyFields(model, {
-        postDetailById: setPostDetail(postId, PostDetailData.Loading()),
+        commands: [FetchPostDetail({ postId })],
       }),
-      commands: [FetchPostDetail({ postId })],
+      onSome: () => ({ model: selectedModel }),
+    })
+  },
+
+  ClickedBackToPosts: makeFieldsStep(() => ({
+    maybeSelectedPostId: () => Option.none(),
+  })),
+
+  ClickedInvalidatePosts: model =>
+    applyPostsTransition(model, AsyncData.revalidateOrLoad(model.posts)),
+
+  ClickedRetryPosts: model =>
+    applyPostsTransition(model, AsyncData.revalidateOrLoad(model.posts)),
+
+  ClickedRetryPostDetail: (model, { postId }) => ({
+    model: modifyFields(model, {
+      postDetailById: setPostDetail(postId, PostDetailData.Loading()),
     }),
-
-    ClickedRefreshStats: () =>
-      applyStatsTransition(model, AsyncData.revalidateOrLoad(model.stats)),
-
-    ClickedRetryStats: () =>
-      applyStatsTransition(model, AsyncData.revalidateOrLoad(model.stats)),
-
-    TickedRevalidateStats: () =>
-      applyStatsTransition(model, AsyncData.revalidate(model.stats)),
-
-    CompletedFetchPosts: ({ result }) => ({
-      model: modifyFields(model, { posts: AsyncData.settle(result) }),
-    }),
-
-    CompletedFetchPostDetail: ({ postId, result }) => ({
-      model: modifyFields(model, {
-        postDetailById: HashMap.modify(postId, AsyncData.settle(result)),
-      }),
-    }),
-
-    CompletedFetchStats: ({ result }) => ({
-      model: modifyFields(model, { stats: AsyncData.settle(result) }),
-    }),
+    commands: [FetchPostDetail({ postId })],
   }),
-)
+
+  ClickedRefreshStats: model =>
+    applyStatsTransition(model, AsyncData.revalidateOrLoad(model.stats)),
+
+  ClickedRetryStats: model =>
+    applyStatsTransition(model, AsyncData.revalidateOrLoad(model.stats)),
+
+  TickedRevalidateStats: model =>
+    applyStatsTransition(model, AsyncData.revalidate(model.stats)),
+
+  CompletedFetchPosts: makeFieldsStep.fromMessage(({ result }) => ({
+    posts: AsyncData.settle(result),
+  })),
+
+  CompletedFetchPostDetail: makeFieldsStep.fromMessage(
+    ({ postId, result }) => ({
+      postDetailById: HashMap.modify(postId, AsyncData.settle(result)),
+    }),
+  ),
+
+  CompletedFetchStats: makeFieldsStep.fromMessage(({ result }) => ({
+    stats: AsyncData.settle(result),
+  })),
+})

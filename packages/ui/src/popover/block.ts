@@ -314,19 +314,16 @@ export const PortalPopoverBackdrop = PopoverDefinition.makeMount(
 /** Mount Definitions rendered by Popover views. */
 export const mounts = [AnchorPopover, PortalPopoverBackdrop]
 
-const detectPopoverMovementOrAnimationEnd = (generation: number) =>
-  PopoverDefinition.makeStep(model => ({
-    model,
-    commands: [
-      DetectPopoverMovementOrAnimationEnd({ id: model.id, generation }),
-    ],
-  }))
+const detectPopoverMovementOrAnimationEndStep = (generation: number) =>
+  PopoverDefinition.makeCommandsStep(model => [
+    DetectPopoverMovementOrAnimationEnd({ id: model.id, generation }),
+  ])
 
 const foldAnimationOutMessage = PopoverDefinition.makeOutMessageFold(
   Animation.AnimationBlock,
   {
     StartedLeaveAnimating: ({ generation }) =>
-      detectPopoverMovementOrAnimationEnd(generation),
+      detectPopoverMovementOrAnimationEndStep(generation),
     TransitionedOut: PopoverDefinition.makeNoopStep,
   },
 )
@@ -512,16 +509,31 @@ const internalUpdate = (model: Model, message: AuthoredMessage) => {
   )
 }
 
-const authoredUpdate = PopoverDefinition.makeStep(
+const authoredUpdateStep = PopoverDefinition.makeStep(
   (model, message: Parameters<typeof internalUpdate>[1]) =>
     internalUpdate(model, message),
 )
 
 /** Processes a Popover Message and returns the next Model, optional Commands,
  *  and an optional OutMessage. */
-export const update = PopoverComposition.makeUpdate((model, message) =>
-  authoredUpdate(model, message),
-)
+export const update = PopoverComposition.makeUpdate({
+  RequestedOpen: authoredUpdateStep,
+  RequestedClose: authoredUpdateStep,
+  BlurredPanel: authoredUpdateStep,
+  PressedPointerOnButton: authoredUpdateStep,
+  CompletedFocusPopoverPanel: authoredUpdateStep,
+  CompletedFocusPopoverButton: authoredUpdateStep,
+  CompletedLockPopoverScroll: authoredUpdateStep,
+  CompletedUnlockPopoverScroll: authoredUpdateStep,
+  CompletedInertPopoverOthers: authoredUpdateStep,
+  CompletedRestorePopoverInert: authoredUpdateStep,
+  ClickedButton: authoredUpdateStep,
+  IgnoredMouseClick: authoredUpdateStep,
+  SuppressedSpaceScroll: authoredUpdateStep,
+  CompletedAnchorPopover: authoredUpdateStep,
+  CompletedPortalPopoverBackdrop: authoredUpdateStep,
+  CompletedDetectPopoverMovementOrAnimationEnd: authoredUpdateStep,
+})
 
 /** Provides Popover's Command and Mount handlers. */
 const EffectsLayer = Layer.mergeAll(
@@ -742,8 +754,10 @@ const implementation = {
 }
 
 const prepare = () => PopoverComposition.prepareBlock(implementation)
-/** Complete Popover Block definition. */
-export const PopoverBlock: Block.FromAssemblyWithViewAndOutMessage<
+/** Completed Popover Block contract. */
+export interface PopoverBlock extends Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof prepare
-> = Block.assemble(prepare)
+> {}
+/** Complete Popover Block definition. */
+export const PopoverBlock: PopoverBlock = Block.assemble(prepare)

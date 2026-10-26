@@ -24,13 +24,11 @@ const prepareChildBlock = () =>
     init: ChildComposition.makeInit((config: Readonly<{ count: number }>) => ({
       model: ChildModel.make({ count: config.count }),
     })),
-    update: ChildComposition.makeUpdate((model, message) =>
-      ChildMessage.match(message, {
-        UpdatedCount: ({ count }) => ({
-          model: modifyFields(model, { count: () => count }),
-        }),
+    update: ChildComposition.makeUpdate({
+      UpdatedCount: (model, { count }) => ({
+        model: modifyFields(model, { count: () => count }),
       }),
-    ),
+    }),
   })
 const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
@@ -195,7 +193,7 @@ it('keeps the accessor read and write policy after projected initialization', ()
   const Composition = Parent.makeComposition({
     bindings: [AccessorBinding],
   })
-  const update = Composition.makeUpdate()
+  const update = Composition.makeUpdate({})
   const updated = update(parent, {
     _tag: 'GotAccessorMessage',
     placement: 'accessor',

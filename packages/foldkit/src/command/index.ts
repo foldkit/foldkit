@@ -86,9 +86,9 @@ export interface CommandDefinitionWithArgs<
 > {
   readonly [CommandDefinitionTypeId]: CommandDefinitionTypeId
   readonly name: Name
-  (args: Schema.Schema.Type<Schema.Struct<Fields>>): Readonly<{
+  (args: Schema.Struct.Type<Fields>): Readonly<{
     name: Name
-    args: Schema.Schema.Type<Schema.Struct<Fields>>
+    args: Schema.Struct.Type<Fields>
     effect: Eff
   }>
 }
@@ -115,14 +115,10 @@ export interface LayeredCommandDefinitionWithArgs<
   Effect.Effect<
     Message,
     never,
-    Handler<Name, Schema.Schema.Type<Schema.Struct<Fields>>, Message>
+    Handler<Name, Schema.Struct.Type<Fields>, Message>
   >
 > {
-  readonly toLayer: ToLayer<
-    Name,
-    Schema.Schema.Type<Schema.Struct<Fields>>,
-    Message
-  >
+  readonly toLayer: ToLayer<Name, Schema.Struct.Type<Fields>, Message>
 }
 
 /** A Command definition created with `Command.define`. Union over the no-args and with-args shapes; consumers that only need name/identity can accept this. */
@@ -138,6 +134,9 @@ export type CommandDefinition<
  *  flight. `{ keyFields, toKey }` derives the key part from declared args, so
  *  invocations that run concurrently can be interrupted independently.
  *  `keyFields` declares the exact args the Interrupt constructor requires.
+ *  `toKey` receives only the selected fields for both invocation and
+ *  interruption. Other invocation args are omitted. The selected record has no
+ *  prototype; use Object helpers instead of inherited methods.
  *  Derive the key part from the Model identity that owns the in-flight work (a
  *  list item id, an entity id), never from a generated value: update is pure,
  *  and any invocation you can meaningfully target is already distinguished by
@@ -149,7 +148,12 @@ export type InterruptOption<
   | true
   | Readonly<{
       keyFields: Array.NonEmptyReadonlyArray<KeyField>
-      toKey: (keyArgs: Pick<Args, KeyField>) => string
+      toKey: (
+        keyArgs: Interruptible.KeyArgs<
+          Args,
+          Array.NonEmptyReadonlyArray<KeyField>
+        >,
+      ) => string
     }>
 
 /** @internal The shape {@link define} reads at runtime. The public overloads
@@ -165,8 +169,8 @@ type DefineConfig = Readonly<{
   interrupt?:
     | true
     | Readonly<{
-        keyFields?: ReadonlyArray<string>
-        toKey?: (keyArgs: any) => string
+        keyFields: ReadonlyArray<string>
+        toKey: (keyArgs: any) => string
       }>
 }>
 
@@ -272,8 +276,9 @@ export function define<
   const Name extends string,
   Fields extends Schema.Struct.Fields,
   const Messages extends ReadonlyArray<Schema.Top>,
-  const KeyField extends keyof Schema.Schema.Type<Schema.Struct<Fields>> &
-    string,
+  const KeyFields extends Array.NonEmptyReadonlyArray<
+    keyof Schema.Struct.Type<Fields> & string
+  >,
   HandlerRequirements = never,
   Yielded extends Effect.Effect<unknown, unknown, unknown> = Effect.Effect<
     never,
@@ -299,22 +304,24 @@ export function define<
       ValidateHandlerConstruction<Yielded>
     execute?: never
     interrupt: Readonly<{
-      keyFields: Array.NonEmptyReadonlyArray<KeyField>
+      keyFields: KeyFields
       toKey: (
-        keyArgs: Pick<Schema.Schema.Type<Schema.Struct<Fields>>, KeyField>,
+        keyArgs: NoInfer<
+          Interruptible.KeyArgs<Schema.Struct.Type<Fields>, KeyFields>
+        >,
       ) => string
     }>
   }>,
 ): Interruptible.DefinitionWithArgs<
   Name,
   Fields,
-  Pick<Schema.Schema.Type<Schema.Struct<Fields>>, KeyField>,
+  Pick<Schema.Struct.Type<Fields>, KeyFields[number]>,
   Effect.Effect<
     Schema.Schema.Type<Messages[number]>,
     never,
     Handler<
       Name,
-      Schema.Schema.Type<Schema.Struct<Fields>>,
+      Schema.Struct.Type<Fields>,
       Schema.Schema.Type<Messages[number]>
     >
   >
@@ -322,13 +329,13 @@ export function define<
   Readonly<{
     toLayer: ToLayer<
       Name,
-      Schema.Schema.Type<Schema.Struct<Fields>>,
+      Schema.Struct.Type<Fields>,
       Schema.Schema.Type<Messages[number]>
     >
     layer: Layer.Layer<
       Handler<
         Name,
-        Schema.Schema.Type<Schema.Struct<Fields>>,
+        Schema.Struct.Type<Fields>,
         Schema.Schema.Type<Messages[number]>
       >,
       Effect.Error<Yielded>,
@@ -340,8 +347,9 @@ export function define<
   const Name extends string,
   Fields extends Schema.Struct.Fields,
   const Messages extends ReadonlyArray<Schema.Top>,
-  const KeyField extends keyof Schema.Schema.Type<Schema.Struct<Fields>> &
-    string,
+  const KeyFields extends Array.NonEmptyReadonlyArray<
+    keyof Schema.Struct.Type<Fields> & string
+  >,
 >(
   name: Name,
   config: Readonly<{
@@ -350,22 +358,24 @@ export function define<
     handler?: never
     execute?: never
     interrupt: Readonly<{
-      keyFields: Array.NonEmptyReadonlyArray<KeyField>
+      keyFields: KeyFields
       toKey: (
-        keyArgs: Pick<Schema.Schema.Type<Schema.Struct<Fields>>, KeyField>,
+        keyArgs: NoInfer<
+          Interruptible.KeyArgs<Schema.Struct.Type<Fields>, KeyFields>
+        >,
       ) => string
     }>
   }>,
 ): Interruptible.DefinitionWithArgs<
   Name,
   Fields,
-  Pick<Schema.Schema.Type<Schema.Struct<Fields>>, KeyField>,
+  Pick<Schema.Struct.Type<Fields>, KeyFields[number]>,
   Effect.Effect<
     Schema.Schema.Type<Messages[number]>,
     never,
     Handler<
       Name,
-      Schema.Schema.Type<Schema.Struct<Fields>>,
+      Schema.Struct.Type<Fields>,
       Schema.Schema.Type<Messages[number]>
     >
   >
@@ -373,7 +383,7 @@ export function define<
   Readonly<{
     toLayer: ToLayer<
       Name,
-      Schema.Schema.Type<Schema.Struct<Fields>>,
+      Schema.Struct.Type<Fields>,
       Schema.Schema.Type<Messages[number]>
     >
   }>
@@ -416,7 +426,7 @@ export function define<
     never,
     Handler<
       Name,
-      Schema.Schema.Type<Schema.Struct<Fields>>,
+      Schema.Struct.Type<Fields>,
       Schema.Schema.Type<Messages[number]>
     >
   >
@@ -424,13 +434,13 @@ export function define<
   Readonly<{
     toLayer: ToLayer<
       Name,
-      Schema.Schema.Type<Schema.Struct<Fields>>,
+      Schema.Struct.Type<Fields>,
       Schema.Schema.Type<Messages[number]>
     >
     layer: Layer.Layer<
       Handler<
         Name,
-        Schema.Schema.Type<Schema.Struct<Fields>>,
+        Schema.Struct.Type<Fields>,
         Schema.Schema.Type<Messages[number]>
       >,
       Effect.Error<Yielded>,
@@ -459,7 +469,7 @@ export function define<
     never,
     Handler<
       Name,
-      Schema.Schema.Type<Schema.Struct<Fields>>,
+      Schema.Struct.Type<Fields>,
       Schema.Schema.Type<Messages[number]>
     >
   >
@@ -467,7 +477,7 @@ export function define<
   Readonly<{
     toLayer: ToLayer<
       Name,
-      Schema.Schema.Type<Schema.Struct<Fields>>,
+      Schema.Struct.Type<Fields>,
       Schema.Schema.Type<Messages[number]>
     >
   }>
@@ -511,7 +521,7 @@ export function define<
     layer: Layer.Layer<
       Handler<
         Name,
-        Schema.Schema.Type<Schema.Struct<Fields>>,
+        Schema.Struct.Type<Fields>,
         Schema.Schema.Type<Messages[number]>
       >,
       Effect.Error<Yielded>,
@@ -700,12 +710,15 @@ export function define(name: string, config: DefineConfig): unknown {
   }
 
   const { value: interrupt } = maybeInterrupt
-  const maybeToKey =
+  const maybeKeyedInterrupt =
     Predicate.isObject(interrupt) &&
     Predicate.hasProperty(interrupt, 'toKey') &&
     Predicate.isFunction(interrupt.toKey)
-      ? Option.some(interrupt.toKey)
-      : Option.none<(keyArgs: any) => string>()
+      ? Option.some({
+          keyFields: Array.fromIterable(interrupt.keyFields),
+          toKey: interrupt.toKey,
+        })
+      : Option.none<Exclude<DefineConfig['interrupt'], true | undefined>>()
 
   if (!isArgsDeclared) {
     const definition = () => ({
@@ -731,7 +744,7 @@ export function define(name: string, config: DefineConfig): unknown {
     return definition
   }
 
-  if (Option.isNone(maybeToKey)) {
+  if (Option.isNone(maybeKeyedInterrupt)) {
     const definition = (args: any) => ({
       name,
       args,
@@ -753,8 +766,19 @@ export function define(name: string, config: DefineConfig): unknown {
     return definition
   }
 
-  const { value: toKey } = maybeToKey
-  const toFullKey = (keyArgs: any): string => `${name}:${toKey(keyArgs)}`
+  const {
+    value: { keyFields, toKey },
+  } = maybeKeyedInterrupt
+  const toFullKey = (args: any): string => {
+    const keyArgs: globalThis.Record<string, unknown> = Object.create(null)
+    for (const keyField of keyFields) {
+      if (Object.hasOwn(args, keyField)) {
+        Reflect.set(keyArgs, keyField, Reflect.get(args, keyField))
+      }
+    }
+
+    return `${name}:${toKey(keyArgs)}`
+  }
 
   const definition = (args: any) => {
     const key = toFullKey(args)

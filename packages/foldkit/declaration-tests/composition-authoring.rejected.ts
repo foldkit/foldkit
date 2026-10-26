@@ -18,6 +18,7 @@ import {
   SettingsBinding,
   SettingsBlock,
   SettingsComposition,
+  SettingsMessage,
   SettingsModel,
   SettingsOutMessage,
   StatusBinding,
@@ -55,13 +56,11 @@ applicationDefaultInit('wrong')
 // @ts-expect-error A numeric rest initializer does not accept a string.
 applicationReadonlyRestInit('wrong')
 
-ParentComposition.makeUpdate((model, message) =>
-  // @ts-expect-error Composition routes the registered child Message.
-  ParentMessage.match(message, {
-    OpenedDashboard: () => ({ model }),
-    GotStatusMessage: () => ({ model }),
-  }),
-)
+ParentComposition.makeUpdate({
+  OpenedDashboard: model => ({ model }),
+  // @ts-expect-error Routed child Messages are handled by their registered Binding.
+  GotStatusMessage: model => ({ model }),
+})
 
 const forwardSettingsOutMessage = (
   outMessage: typeof SettingsOutMessage.Type,
@@ -71,13 +70,13 @@ const forwardSettingsOutMessage = (
       ParentOutMessage.SelectedSettingsTheme({ theme }),
   })
 
-const rawRefresh = SettingsBinding.refresh(
+const rawRefreshStep = SettingsBinding.refresh(
   CurrentUser.make({ accountId: 'raw-completion' }),
 )
 const uncompletedRawRefreshUpdate = (
-  model: Parameters<typeof rawRefresh>[0],
+  model: Parameters<typeof rawRefreshStep>[0],
   _message: typeof ParentMessage.Type,
-) => rawRefresh(model)
+) => rawRefreshStep(model)
 
 ParentComposition.prepareBlock({
   init: parentInit,
@@ -283,19 +282,26 @@ ParentComposition.makeInit((childInitContext: ParentChildInitContext) => ({
   ],
 }))
 
-ParentComposition.makeUpdate((model, message) => {
-  // @ts-expect-error Generated child Messages are excluded from authored update input.
-  const routed: Readonly<{ _tag: 'GotSettingsMessage' }> = message
-  void routed
-
-  return { model }
+ParentComposition.makeUpdate({
+  OpenedDashboard: (model, message) => {
+    // @ts-expect-error Generated child Messages are excluded from authored update input.
+    const routed: Readonly<{
+      _tag: 'GotSettingsMessage'
+    }> = message
+    void routed
+    return { model }
+  },
 })
 
-// @ts-expect-error Parent update cannot emit a child OutMessage.
-ParentComposition.makeUpdate(model => ({
-  model,
-  outMessage: SettingsOutMessage.SelectedTheme({ theme: model.settings.theme }),
-}))
+ParentComposition.makeUpdate({
+  // @ts-expect-error Parent update cannot emit a child OutMessage.
+  OpenedDashboard: model => ({
+    model,
+    outMessage: SettingsOutMessage.SelectedTheme({
+      theme: model.settings.theme,
+    }),
+  }),
+})
 
 const UnregisteredStatusBinding = ParentDefinition.makeBinding(StatusBlock, {
   field: 'status',
@@ -328,23 +334,23 @@ void unregisteredInit
 void parentInit
 void parentUpdate
 
-// @ts-expect-error An exposed operation with a possible forwarded OutMessage cannot be silently consumed by init.
-ParentComposition.makeInit((childInitContext: ParentChildInitContext) => ({
-  childInitContext,
-  model: {
-    currentUser: childInitContext.currentUser,
-    route: childInitContext.route,
-    maybeRoom: Option.none(),
-  },
-  steps: [SettingsBinding.refresh(childInitContext.currentUser)],
-}))
+const exactRefreshInit = ParentComposition.makeInit(
+  (childInitContext: ParentChildInitContext) => ({
+    childInitContext,
+    model: {
+      currentUser: childInitContext.currentUser,
+      route: childInitContext.route,
+      maybeRoom: Option.none(),
+    },
+    steps: [SettingsBinding.refresh(childInitContext.currentUser)],
+  }),
+)
 
 type RefreshStep = ReturnType<typeof SettingsBinding.refresh>
 type DirectRefreshRequirements = Update.RequirementsOf<RefreshStep>
 type SettingsRegistration = Block.RequirementOfBinding<typeof SettingsBinding>
 
-// @ts-expect-error A raw recipe cannot erase its deferred OutMessage policy obligation while retaining only the direct registration.
-const erasedRefresh: (
+const exactRefreshStep: (
   model: Parameters<RefreshStep>[0],
 ) => Update.ResultRecipe<
   typeof ParentModel.Type,
@@ -354,7 +360,40 @@ const erasedRefresh: (
   SettingsRegistration
 > = SettingsBinding.refresh(CurrentUser.make({ accountId: 'exact-erasure' }))
 
-const widenedRefresh: (
+const changedThemeStep = ParentDefinition.makeStep(
+  () => (model: Parameters<typeof SettingsBinding.fold>[0]) =>
+    SettingsBinding.fold(
+      model,
+      SettingsMessage.ChangedTheme({ theme: 'Contrast' }),
+      CurrentUser.make({ accountId: 'emitting-policy' }),
+    ),
+)
+type ChangedThemeStep = typeof changedThemeStep
+type ChangedThemeRequirements = Update.RequirementsOf<ChangedThemeStep>
+
+// @ts-expect-error Init cannot consume a Step whose selected handler forwards an OutMessage.
+ParentComposition.makeInit((childInitContext: ParentChildInitContext) => ({
+  childInitContext,
+  model: {
+    currentUser: childInitContext.currentUser,
+    route: childInitContext.route,
+    maybeRoom: Option.none(),
+  },
+  steps: [changedThemeStep],
+}))
+
+// @ts-expect-error A recipe cannot erase its selected handler's forwarded OutMessage policy while retaining only direct registration.
+const erasedChangedThemeStep: (
+  model: Parameters<ChangedThemeStep>[0],
+) => Update.ResultRecipe<
+  typeof ParentModel.Type,
+  typeof ParentComposition.Message.Type,
+  never,
+  ChangedThemeRequirements,
+  SettingsRegistration
+> = changedThemeStep
+
+const widenedRefreshStep: (
   model: Parameters<RefreshStep>[0],
 ) => Update.ResultRecipe<
   typeof ParentModel.Type,
@@ -364,12 +403,12 @@ const widenedRefresh: (
   unknown
 > = SettingsBinding.refresh(CurrentUser.make({ accountId: 'unknown-erasure' }))
 
-const combinedWidenedRefresh = Update.combineSteps([
-  widenedRefresh,
+const combinedWidenedRefreshStep = Update.combineSteps([
+  widenedRefreshStep,
   ParentDefinition.makeStep(model => ({ model })),
 ])
 
-const erasedAnyRefresh: (
+const erasedAnyRefreshStep: (
   model: Parameters<RefreshStep>[0],
 ) => Update.ResultRecipe<
   typeof ParentModel.Type,
@@ -388,7 +427,7 @@ ParentComposition.makeInit((childInitContext: ParentChildInitContext) => ({
     route: childInitContext.route,
     maybeRoom: Option.none(),
   },
-  steps: [widenedRefresh],
+  steps: [widenedRefreshStep],
 }))
 
 // @ts-expect-error Combining Steps cannot erase their policy obligations.
@@ -399,15 +438,21 @@ ParentComposition.makeInit((childInitContext: ParentChildInitContext) => ({
     route: childInitContext.route,
     maybeRoom: Option.none(),
   },
-  steps: [combinedWidenedRefresh],
+  steps: [combinedWidenedRefreshStep],
 }))
 
-// @ts-expect-error Update rejects unknown-erased policy obligations.
-ParentComposition.makeUpdate((model, _message) => widenedRefresh(model))
-// @ts-expect-error Update rejects any-erased policy obligations.
-ParentComposition.makeUpdate((model, _message) => erasedAnyRefresh(model))
+ParentComposition.makeUpdate({
+  // @ts-expect-error Update rejects unknown-erased policy obligations.
+  OpenedDashboard: (model, _message) => widenedRefreshStep(model),
+})
+ParentComposition.makeUpdate({
+  // @ts-expect-error Update rejects any-erased policy obligations.
+  OpenedDashboard: (model, _message) => erasedAnyRefreshStep(model),
+})
 
-void erasedRefresh
+void exactRefreshInit
+void exactRefreshStep
+void erasedChangedThemeStep
 
 // @ts-expect-error The removed command authoring name has no compatibility alias.
 ParentDefinition.command

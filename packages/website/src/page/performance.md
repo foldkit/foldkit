@@ -30,9 +30,9 @@ The cost model above puts the cost of a Message on your `update` logic. What the
 
 ### Exhaustive Message Matching
 
-`Message.match` is the one whose cost scales with your app. It dispatches directly on `_tag`, but the handler object and one closure per arm are still allocated on every dispatch. Because the arms close over `model`, they cannot be hoisted to module scope.
+A context-free `Composition.makeUpdate` handler record is constructed once when the module creates the update. Its handlers receive the Model as an argument, so they do not need new closures over that Model on each dispatch. The record remains exhaustive and preserves each Message handler's output contract. See [local Message handlers](/core/update#exhaustive-local-message-handlers).
 
-Keep `Message.match` anyway. Its signature requires a handler for every tag in the union, so adding a Message variant fails to compile in every update that does not handle it. It also avoids the matcher pipeline that Effect `Match` builds for more general pattern matching. An `if`/`else` chain on `_tag` gives up exhaustiveness for less allocation. If a profile ever puts a genuinely hot update at the top, that trade is available, but it is the last change to reach for rather than the first.
+A `makeUpdate` handler record is constructed during passive configuration and reused for dispatch. A `makeUpdate.withContext` factory constructs its local handler record when a local Message arrives, allowing those handlers to close over dispatch context. A domain matcher built inside a handler can also allocate case closures on dispatch; profile the actual update before attributing a delay to that allocation. Connected child routing, policy resolution, and application transitions still have their own work.
 
 ## Benchmarks
 
@@ -42,7 +42,7 @@ Foldkit ships a TodoMVC implementation for the [lustre-labs/benchmark](https://g
 
 ### Batch and Results
 
-These cover every current-version framework variant in the harness plus Foldkit’s two current development slots; the legacy Lustre 4 and older Foldkit slots are excluded. The medians come from fifteen interleaved runs in one position-balanced batch, so every implementation occupied every ordinal run position once. The batch used harness commit 03fff17 and Chromium 152.0.7977.65. The relative column divides each displayed median by the fastest median from that same batch. A parenthesized label appears only where the harness registers both a baseline and a memoized slot. Solid and Alpine drive the DOM without a diff to skip, so each registers one implementation and its row carries a bare name. Absolute times depend on hardware and browser conditions; the same-run relationships are the result to compare.
+This prior benchmark batch covers the framework variants registered in that harness batch plus Foldkit’s two development slots at the time; the legacy Lustre 4 and older Foldkit slots are excluded. These timings predate the current preview branch’s framework changes and are not measurements of this candidate. The medians come from fifteen interleaved runs in one position-balanced batch, so every implementation occupied every ordinal run position once. The batch used harness commit 03fff17 and Chromium 152.0.7977.65. The relative column divides each displayed median by the fastest median from that same batch. A parenthesized label appears only where the harness registers both a baseline and a memoized slot. Solid and Alpine drive the DOM without a diff to skip, so each registers one implementation and its row carries a bare name. Absolute times depend on hardware and browser conditions; the same-run relationships are the result to compare.
 
 | Implementation         | Median time | Relative to fastest |
 | ---------------------- | ----------- | ------------------- |

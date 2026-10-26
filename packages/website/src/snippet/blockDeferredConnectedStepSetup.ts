@@ -13,12 +13,15 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
+
+const { makeNoopStep } = ApplicationDefinition
+
 export const SettingsBinding = ApplicationDefinition.makeBinding(
   Settings.SettingsBlock,
   { field: 'settings' },
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(Settings.SettingsBlock, {
-    ChangedTheme: ApplicationDefinition.makeNoopStep,
+    ChangedTheme: makeNoopStep,
   }),
 })
 export const ApplicationComposition = ApplicationDefinition.makeComposition({

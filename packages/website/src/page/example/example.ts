@@ -21,7 +21,7 @@ import {
   SOURCE_FILE_TABS_ID,
   SourceFileTabsBinding,
 } from './composition'
-import { ExampleDetailDefinition } from './definition'
+import { ExampleDetailDefinition, makeFieldsStep, makeStep } from './definition'
 import { SourceFileTabsBlock } from './fileTabs'
 import { Message } from './message'
 import { type ExampleMeta, findBySlug } from './meta'
@@ -122,8 +122,8 @@ export const init = ExampleDetailComposition.makeInit(
   },
 )
 
-const startLoadingExampleSources = (slug: string) =>
-  ExampleDetailDefinition.makeStep(model => {
+const startLoadingExampleSourcesStep = (slug: string) =>
+  makeStep(model => {
     return SourceFileTabsBinding.init({
       args: [{ id: SOURCE_FILE_TABS_ID }],
       toParentModel: sourceFileTabs =>
@@ -137,13 +137,7 @@ const startLoadingExampleSources = (slug: string) =>
     })
   })
 
-const showExampleSources = (sources: typeof ExampleSources.Type) =>
-  ExampleDetailDefinition.makeFieldsStep(() => ({
-    maybeActiveSourceFilePath: () => maybeFirstSourceFilePath(sources),
-    currentSources: () => CurrentSourcesAsyncData.Success({ data: sources }),
-  }))
-
-const clearExampleSources = ExampleDetailDefinition.makeStep(model => {
+const clearExampleSourcesStep = makeStep(model => {
   return SourceFileTabsBinding.init({
     args: [{ id: SOURCE_FILE_TABS_ID }],
     toParentModel: sourceFileTabs =>
@@ -156,37 +150,34 @@ const clearExampleSources = ExampleDetailDefinition.makeStep(model => {
   })
 })
 
-export const update = ExampleDetailComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    InformedOfRouteChange: ({ slug }) => changeExampleRoute(model, slug),
+export const update = ExampleDetailComposition.makeUpdate({
+  InformedOfRouteChange: (model, { slug }) =>
+    changeExampleRouteStep(model, slug),
 
-    ChangedExampleUrl: ({ url }) => ({
-      model: modifyFields(model, { maybeExampleUrl: () => Option.some(url) }),
-    }),
-    ToggledLivePreview: ({ isOpen }) => ({
-      model: modifyFields(model, { isLivePreviewOpen: () => isOpen }),
-    }),
+  ChangedExampleUrl: makeFieldsStep.fromMessage(({ url }) => ({
+    maybeExampleUrl: () => Option.some(url),
+  })),
+  ToggledLivePreview: makeFieldsStep.fromMessage(({ isOpen }) => ({
+    isLivePreviewOpen: () => isOpen,
+  })),
 
-    SucceededLoadExampleSources: ({ sources }) =>
-      showExampleSources(sources)(model),
+  SucceededLoadExampleSources: makeFieldsStep.fromMessage(({ sources }) => ({
+    maybeActiveSourceFilePath: () => maybeFirstSourceFilePath(sources),
+    currentSources: () => CurrentSourcesAsyncData.Success({ data: sources }),
+  })),
 
-    FailedLoadExampleSources: ({ error }) => ({
-      model: modifyFields(model, {
-        currentSources: () => CurrentSourcesAsyncData.Failure({ error }),
-      }),
-    }),
-  }),
-)
+  FailedLoadExampleSources: makeFieldsStep.fromMessage(({ error }) => ({
+    currentSources: () => CurrentSourcesAsyncData.Failure({ error }),
+  })),
+})
 
-const changeExampleRoute = ExampleDetailDefinition.makeStep(
-  (_model, slug: string) => {
-    if (isSourceAvailable(slug)) {
-      return startLoadingExampleSources(slug)
-    }
+const changeExampleRouteStep = makeStep((_model, slug: string) => {
+  if (isSourceAvailable(slug)) {
+    return startLoadingExampleSourcesStep(slug)
+  }
 
-    return clearExampleSources
-  },
-)
+  return clearExampleSourcesStep
+})
 
 const featureTag = (text: string): Html =>
   ih.div(

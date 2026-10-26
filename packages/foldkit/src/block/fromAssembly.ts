@@ -399,6 +399,13 @@ export type FromAssemblyWithViewAndOutMessage<
  * An unannotated `Block.assemble(() => ...)` call is rejected. Use the named
  * producer pattern below so lint can also recognize the checked boundary.
  *
+ * Packages that emit declarations should give public completed Blocks a named
+ * interface extending this checked type, then annotate the same-named value
+ * with that interface. This keeps parent declarations from repeatedly expanding
+ * the child's inferred implementation. Applications that only bundle JavaScript
+ * may keep the direct checked annotation. Neither form guarantees that arbitrary
+ * composition graphs can be serialized without TypeScript size limits.
+ *
  * A producer typed as `any`, or returning `any`, is rejected. A never-returning
  * producer cannot provide a usable Block. Union returns, mutable members, and
  * extra fields are unsupported.
@@ -424,15 +431,16 @@ export type FromAssemblyWithViewAndOutMessage<
  *     init: CounterComposition.makeInit(() => ({
  *       model: Model.make({ count: 0 }),
  *     })),
- *     update: CounterComposition.makeUpdate(),
+ *     update: CounterComposition.makeUpdate({}),
  *     view: CounterComposition.makeView((model, h) =>
  *       h.div([], [globalThis.String(model.count)]),
  *     ),
  *   })
- * export const CounterBlock: Block.FromAssemblyWithView<
+ * export interface CounterBlock extends Block.FromAssemblyWithView<
  *   typeof Model,
  *   typeof prepare
- * > = Block.assemble(prepare)
+ * > {}
+ * export const CounterBlock: CounterBlock = Block.assemble(prepare)
  * ```
  */
 export type FromAssemblyWithView<

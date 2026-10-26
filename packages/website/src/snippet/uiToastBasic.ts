@@ -42,13 +42,15 @@ const NotificationsDefinition = Block.makeDefinition('Notifications', {
   Message,
 })
 
+const { makeFieldsStep } = NotificationsDefinition
+
 // At module scope, fold the OutMessage into your own Model, lifting the
 // DismissedToast event into domain state. The arm returns an Update.Step over
 // the parent Model, which already has the next Toast Model written back. The
 // parent Definition infers the factory-refined payload from the whole Block:
 const foldToastOutMessage = NotificationsDefinition.makeOutMessageFold(Toast, {
   DismissedToast: ({ payload }) =>
-    NotificationsDefinition.makeFieldsStep(() => ({
+    makeFieldsStep(() => ({
       maybeLastDismissedBody: () => Option.some(payload.bodyText),
     })),
 })
@@ -79,18 +81,16 @@ const init = NotificationsComposition.makeInit(() => ({
 
 declare const changesRouter: () => string
 
-const update = NotificationsComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedSave: () =>
-      ToastBinding.requestShow({
-        variant: 'Success',
-        payload: {
-          bodyText: 'Changes saved',
-          maybeLink: Option.some({ href: changesRouter(), text: 'View' }),
-        },
-      })(model),
-  }),
-)
+const update = NotificationsComposition.makeUpdate({
+  ClickedSave: model =>
+    ToastBinding.requestShow({
+      variant: 'Success',
+      payload: {
+        bodyText: 'Changes saved',
+        maybeLink: Option.some({ href: changesRouter(), text: 'View' }),
+      },
+    })(model),
+})
 
 // Registering `ToastBinding` in `bindings` collects the instance's pointer Subscriptions.
 

@@ -30,7 +30,7 @@ const TooltipSceneComposition = TooltipSceneDefinition.makeComposition({
   bindings: [TooltipBinding],
 })
 
-const update = TooltipSceneComposition.makeUpdate()
+const update = TooltipSceneComposition.makeUpdate({})
 
 const acknowledgeAnchor = Scene.Mount.resolve(
   AnchorTooltip,

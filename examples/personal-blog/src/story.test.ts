@@ -1,5 +1,6 @@
 import { Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
+import { toParentMessage } from 'foldkit/test'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
@@ -16,10 +17,7 @@ const home = Model.make({
 })
 
 const counterMessage = (message: typeof CounterBlock.Message.Type) =>
-  CounterBinding.embedView({
-    slotId: 'counter',
-    model: home.counter,
-  }).toParentMessage(message)
+  toParentMessage(CounterBinding, message)
 
 const urlOrThrow = (raw: string) =>
   Option.getOrThrowWith(

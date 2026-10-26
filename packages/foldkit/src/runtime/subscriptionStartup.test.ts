@@ -61,7 +61,9 @@ describe('Subscription startup supervision', () => {
     const prepare = () =>
       ApplicationComposition.prepareBlock({
         init: () => ({ model: { count: 0 } }),
-        update: ApplicationComposition.makeUpdate(model => ({ model })),
+        update: ApplicationComposition.makeUpdate({
+          EmittedPulse: model => ({ model }),
+        }),
         view: ApplicationComposition.makeView((_model, h) =>
           h.div([], ['Running']),
         ),
@@ -127,7 +129,9 @@ describe('Subscription startup supervision', () => {
     const prepareBlock = () =>
       ChildComposition.prepareBlock({
         init: () => ({ model: { count: 0 } }),
-        update: ChildComposition.makeUpdate(model => ({ model })),
+        update: ChildComposition.makeUpdate({
+          EmittedPulse: model => ({ model }),
+        }),
         subscriptions,
         EffectsLayer: subscriptions.pulses.layer,
       })
@@ -156,18 +160,16 @@ describe('Subscription startup supervision', () => {
     const prepare = () =>
       ApplicationComposition.prepareBlock({
         init: () => ({ model: { maybeChild: Option.none() } }),
-        update: ApplicationComposition.makeUpdate((model, message) =>
-          Message.match(message, {
-            ClickedActivateChild: () =>
-              ChildBinding.init({
-                args: [],
-                toParentModel: child =>
-                  modifyFields(model, {
-                    maybeChild: () => Option.some(child),
-                  }),
-              }),
-          }),
-        ),
+        update: ApplicationComposition.makeUpdate({
+          ClickedActivateChild: model =>
+            ChildBinding.init({
+              args: [],
+              toParentModel: child =>
+                modifyFields(model, {
+                  maybeChild: () => Option.some(child),
+                }),
+            }),
+        }),
         view: ApplicationComposition.makeView((_model, h) =>
           h.button(
             [h.Id('activate-child'), h.OnClick(Message.ClickedActivateChild())],

@@ -181,6 +181,12 @@ const main = (): void => {
     'generic-composition.rejected.ts',
     'generic-composition.consume.ts',
     'test-namespaces.accepted.ts',
+    'kernel-operation-channels.accepted.ts',
+    'kernel-operation-channels.consume.ts',
+    'shared-dialog-renderer.ts',
+    'shared-dialog-renderer.accepted.ts',
+    'shared-dialog-renderer.rejected.ts',
+    'shared-dialog-renderer.consume.ts',
   ]) {
     if (!existsSync(join(fixtureRoot, fixture))) {
       fail(`Missing declaration fixture ${fixture}.`)
@@ -193,6 +199,11 @@ const main = (): void => {
   if (!/^Version 7\./.test(version)) {
     fail(`Expected the package TypeScript 7 compiler, received ${version}.`)
   }
+
+  runCompiler('Checking shared Dialog renderer source contracts', [
+    '-p',
+    join(fixtureRoot, 'tsconfig.shared-dialog-renderer.source.json'),
+  ])
 
   const workspace = mkdtempSync(join(tmpdir(), 'foldkit-ui-declarations-'))
 
@@ -243,6 +254,10 @@ const main = (): void => {
       'generic-composition.accepted.ts',
       'generic-composition.rejected.ts',
       'test-namespaces.accepted.ts',
+      'kernel-operation-channels.accepted.ts',
+      'shared-dialog-renderer.ts',
+      'shared-dialog-renderer.accepted.ts',
+      'shared-dialog-renderer.rejected.ts',
     ]) {
       copyFileSync(join(fixtureRoot, fixture), join(sources, fixture))
     }
@@ -262,6 +277,8 @@ const main = (): void => {
       files: [
         join(sources, 'generic-composition.accepted.ts'),
         join(sources, 'test-namespaces.accepted.ts'),
+        join(sources, 'kernel-operation-channels.accepted.ts'),
+        join(sources, 'shared-dialog-renderer.accepted.ts'),
       ],
     })
     runCompiler('Emitting external generic UI declarations', [
@@ -293,7 +310,10 @@ const main = (): void => {
     const rejectedConfig = join(emitter, 'rejected.json')
     writeJson(rejectedConfig, {
       compilerOptions: { ...compilerOptions, noEmit: true },
-      files: [join(sources, 'generic-composition.rejected.ts')],
+      files: [
+        join(sources, 'generic-composition.rejected.ts'),
+        join(sources, 'shared-dialog-renderer.rejected.ts'),
+      ],
     })
     runCompiler('Rejecting invalid generic UI wiring', ['-p', rejectedConfig])
 
@@ -303,10 +323,22 @@ const main = (): void => {
       join(fixtureRoot, 'generic-composition.consume.ts'),
       join(relocated, 'generic-composition.consume.ts'),
     )
+    for (const fixture of [
+      'kernel-operation-channels.consume.ts',
+      'shared-dialog-renderer.consume.ts',
+      'shared-dialog-renderer.rejected.ts',
+    ]) {
+      copyFileSync(join(fixtureRoot, fixture), join(relocated, fixture))
+    }
     const consumerConfig = join(relocated, 'tsconfig.json')
     writeJson(consumerConfig, {
       compilerOptions: { ...compilerOptions, noEmit: true },
-      files: ['generic-composition.consume.ts'],
+      files: [
+        'generic-composition.consume.ts',
+        'kernel-operation-channels.consume.ts',
+        'shared-dialog-renderer.consume.ts',
+        'shared-dialog-renderer.rejected.ts',
+      ],
     })
     runCompiler('Consuming relocated generic UI declarations', [
       '-p',
@@ -314,7 +346,7 @@ const main = (): void => {
     ])
 
     process.stdout.write(
-      `[ui-emitted-declarations] ${version}; isolated package build, external emission, rejected wiring, and relocation checks passed.\n`,
+      `[ui-emitted-declarations] ${version}; shared Dialog source contracts, isolated package build, external emission, exact kernel operation channels, rejected wiring, and relocation checks passed.\n`,
     )
   } finally {
     rmSync(workspace, { recursive: true, force: true })

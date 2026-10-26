@@ -84,7 +84,7 @@ type UpdateHandlers = {
   ) => UpdateReturn
 }
 
-const updateHandlers: UpdateHandlers = {
+export const updateHandlers: UpdateHandlers = {
   UpdatedNewTodo: (model, { text }) => ({
     model: modifyFields(model, {
       newTodoText: () => text,

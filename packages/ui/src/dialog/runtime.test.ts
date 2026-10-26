@@ -46,7 +46,7 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [DialogBinding],
 })
 
-const update = ApplicationComposition.makeUpdate()
+const update = ApplicationComposition.makeUpdate({})
 
 const view = ApplicationComposition.makeView((model, h) =>
   h.div(

@@ -16,8 +16,15 @@ export const ApplicationComposition = Block.makeDefinition('Application', {
   Message,
 }).makeComposition()
 
-export const update = ApplicationComposition.makeUpdate((_model, _message) => {
+const handleClickedCrash = (
+  _model: typeof Model.Type,
+  _message: typeof Message.ClickedCrash.Type,
+): { model: typeof Model.Type } => {
   throw new Error('This is a simulated crash!')
+}
+
+export const update = ApplicationComposition.makeUpdate({
+  ClickedCrash: handleClickedCrash,
 })
 
 export const init = ApplicationComposition.makeInit(() => ({

@@ -7,12 +7,10 @@ const SettingsBinding = ParentDefinition.makeBinding(Settings.block, {
   parentMessage: Message.GotSettingsMessage,
 })
 
-const update = ParentComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedResetSettings: () =>
-      SettingsBinding.fold(
-        model,
-        SettingsMessage.ChangedTheme({ theme: 'Light' }),
-      ),
-  }),
-)
+const update = ParentComposition.makeUpdate({
+  ClickedResetSettings: model =>
+    SettingsBinding.fold(
+      model,
+      SettingsMessage.ChangedTheme({ theme: 'Light' }),
+    ),
+})

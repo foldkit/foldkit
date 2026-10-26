@@ -6,9 +6,15 @@ import { modifyFields } from 'foldkit/struct'
 
 import { PagefindService } from '../pagefind'
 import { SEARCH_INPUT_ID } from '../searchDom'
-import { clearSearchQuery } from './clear'
+import { clearSearchQueryStep } from './clear'
 import { DialogBinding, SearchComposition } from './composition'
-import { SearchDefinition } from './definition'
+import {
+  SearchDefinition,
+  makeCommandsStep,
+  makeFieldsStep,
+  makeNoopStep,
+  makeStep,
+} from './definition'
 import { SearchResult, SearchState, resultsFromState } from './domain'
 import { Message } from './message'
 
@@ -98,99 +104,94 @@ export const FocusSearchInput = SearchDefinition.makeCommand(
   },
 )
 
-const focusSearchInput = SearchDefinition.makeCommandsStep([FocusSearchInput()])
+const focusSearchInputStep = makeCommandsStep(() => [FocusSearchInput()])
 
-const open = SearchDefinition.makeStep(() =>
-  Update.combineSteps([DialogBinding.requestOpen(), focusSearchInput]),
+const openStep = makeStep(() =>
+  Update.combineSteps([DialogBinding.requestOpen(), focusSearchInputStep]),
 )
 
-export const update = SearchComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    UpdatedSearchQuery: ({ query }) => {
-      if (query === model.query) {
-        return { model }
-      }
+export const update = SearchComposition.makeUpdate({
+  UpdatedSearchQuery: (model, { query }) => {
+    if (query === model.query) {
+      return { model }
+    }
 
-      if (String.isEmpty(query)) {
-        return {
-          model: modifyFields(model, {
-            query: () => '',
-            searchState: () => SearchState.Idle(),
-            activeResultIndex: () => -1,
-          }),
-        }
-      }
-
-      const previousResults = resultsFromState(model.searchState)
-
+    if (String.isEmpty(query)) {
       return {
         model: modifyFields(model, {
-          query: () => query,
-          searchState: () => SearchState.Loading({ results: previousResults }),
+          query: () => '',
+          searchState: () => SearchState.Idle(),
           activeResultIndex: () => -1,
         }),
-        commands: [FetchSearchResults({ query })],
       }
-    },
+    }
 
-    CompletedFetchSearchResults: ({ results, query }) => {
-      if (query !== model.query) {
-        return { model }
-      }
+    const previousResults = resultsFromState(model.searchState)
 
-      return {
-        model: modifyFields(model, {
-          searchState: () => SearchState.Ok({ results }),
-          activeResultIndex: () => 0,
-        }),
-      }
-    },
-
-    SelectedSearchResult: ({ url }) => ({
+    return {
       model: modifyFields(model, {
-        query: () => '',
-        searchState: () => SearchState.Idle(),
+        query: () => query,
+        searchState: () => SearchState.Loading({ results: previousResults }),
         activeResultIndex: () => -1,
       }),
-      commands: [NavigateToResult({ url })],
-    }),
+      commands: [FetchSearchResults({ query })],
+    }
+  },
 
-    ClearedSearchQuery: () => clearSearchQuery(model),
+  CompletedFetchSearchResults: makeFieldsStep((model, { results, query }) => {
+    if (query !== model.query) {
+      return {}
+    }
 
-    RequestedOpen: () => open(model),
-
-    InformedOfRouteChange: () =>
-      Update.combineSteps(model, [
-        clearSearchQuery,
-        DialogBinding.requestClose(),
-      ]),
-
-    PressedArrowKey: ({ direction }) => {
-      const results = resultsFromState(model.searchState)
-      const lastIndex = results.length - 1
-
-      const nextIndex = Match.value(direction).pipe(
-        Match.when('Up', () =>
-          model.activeResultIndex <= 0
-            ? lastIndex
-            : Number.decrement(model.activeResultIndex),
-        ),
-        Match.when('Down', () =>
-          model.activeResultIndex >= lastIndex
-            ? 0
-            : Number.increment(model.activeResultIndex),
-        ),
-        Match.exhaustive,
-      )
-
-      return {
-        model: modifyFields(model, { activeResultIndex: () => nextIndex }),
-        commands: [ScrollToResult({ index: nextIndex })],
-      }
-    },
-
-    CompletedNavigateToResult: () => ({ model }),
-    CompletedScrollToResult: () => ({ model }),
-    CompletedFocusSearchInput: () => ({ model }),
+    return {
+      searchState: () => SearchState.Ok({ results }),
+      activeResultIndex: () => 0,
+    }
   }),
-)
+
+  SelectedSearchResult: (model, { url }) => ({
+    model: modifyFields(model, {
+      query: () => '',
+      searchState: () => SearchState.Idle(),
+      activeResultIndex: () => -1,
+    }),
+    commands: [NavigateToResult({ url })],
+  }),
+
+  ClearedSearchQuery: clearSearchQueryStep,
+
+  RequestedOpen: openStep,
+
+  InformedOfRouteChange: Update.combineSteps([
+    clearSearchQueryStep,
+    DialogBinding.requestClose(),
+  ]),
+
+  PressedArrowKey: (model, { direction }) => {
+    const results = resultsFromState(model.searchState)
+    const lastIndex = results.length - 1
+
+    const nextIndex = Match.value(direction).pipe(
+      Match.when('Up', () =>
+        model.activeResultIndex <= 0
+          ? lastIndex
+          : Number.decrement(model.activeResultIndex),
+      ),
+      Match.when('Down', () =>
+        model.activeResultIndex >= lastIndex
+          ? 0
+          : Number.increment(model.activeResultIndex),
+      ),
+      Match.exhaustive,
+    )
+
+    return {
+      model: modifyFields(model, { activeResultIndex: () => nextIndex }),
+      commands: [ScrollToResult({ index: nextIndex })],
+    }
+  },
+
+  CompletedNavigateToResult: makeNoopStep(),
+  CompletedScrollToResult: makeNoopStep(),
+  CompletedFocusSearchInput: makeNoopStep(),
+})

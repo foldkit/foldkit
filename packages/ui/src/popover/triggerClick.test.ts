@@ -77,7 +77,7 @@ const makeProgram = (container: HTMLElement, isModal: boolean) => {
           toParentModel: popover => ({ popover }),
         }),
       ),
-      update: PopoverTriggerClickTestComposition.makeUpdate(),
+      update: PopoverTriggerClickTestComposition.makeUpdate({}),
       view,
     })
   const block: Block.FromAssemblyWithView<typeof Model, typeof prepare> =

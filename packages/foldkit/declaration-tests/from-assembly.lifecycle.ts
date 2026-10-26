@@ -52,13 +52,11 @@ const Composition = Definition.makeComposition({ mounts: [ObserveElement] })
 export const prepareRootBlock = () =>
   Composition.prepareBlock({
     init: () => ({ model: Model.make({ status: 'ready' }) }),
-    update: Composition.makeUpdate((model, message) =>
-      RootMessage.match(message, {
-        CompletedWork: ({ value }) => ({
-          model: Struct.modifyFields(model, { status: () => value }),
-        }),
+    update: Composition.makeUpdate({
+      CompletedWork: (model, { value }) => ({
+        model: Struct.modifyFields(model, { status: () => value }),
       }),
-    ),
+    }),
     view: Composition.makeView((model, h) =>
       h.button([h.OnMount(ObserveElement())], [model.status]),
     ),

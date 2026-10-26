@@ -197,24 +197,34 @@ When update returns Commands, Scene keeps them pending until the test supplies t
 - Interactions throw if there are unresolved Commands when they try to dispatch a Message.
 - `scene` throws at the end if any Command remains unresolved.
 
+Use `Command.keepPending(Definition | instance)` when one ordinary Command is still running and the Scene must perform a later interaction or deliver a Subscription Message before its result arrives. The matcher must select one exact pending invocation. An instance can select its args and bound child occurrence.
+
+::Snippet{name="testingKeepPendingCommand" label="Keep a Command pending across later events"}
+
+The kept Command remains visible to `expectHas`, `expectExact`, and every resolver. `resolveAllExact` still requires the complete pending set, and the Scene still fails at the end until the Command is resolved. The exemption applies only to Scene's boundary check for later Messages; Runtime behavior and the Command value are unchanged.
+
 ### Resolve and Inspect Commands
 
 ::Snippet{name="sceneCommandAssertions" label="Command assertions"}
 
 | Step                                                 | Effect                                                                                                                                                                                                                                          |
 | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Command.argsOf(Def)(pending)`                       | Projects the exact captured args when `pending` has the Definition's source identity. It returns `Option`, leaves the pending value unchanged, and does not select among matching occurrences.                                                  |
 | `Command.resolve(Def, ResultMessage)`                | Resolves the first pending Command from the given Definition by feeding `ResultMessage` through update. For a child Block Command, pass the child’s raw result Message; resolve replays the Command’s own `mapMessages` wrapping automatically. |
 | `Command.resolveAll([Def, ResultMessage], ...)`      | Resolves a batch of pending Commands, walking cascades. Each entry resolves exactly one matching dispatch in declaration order and unmatched entries carry forward; compose with Array.makeBy for N identical responses.                        |
 | `Command.resolveAllExact([Def, ResultMessage], ...)` | Resolves a batch and throws unless every listed resolver matches within the call and no actual Commands remain unresolved. Repeated Definition entries consume repeated dispatches in declaration order.                                        |
 | `Command.expectExact(A, B)`                          | The pending Commands are exactly A and B (order-independent).                                                                                                                                                                                   |
 | `Command.expectHas(A)`                               | A is among the pending Commands (subset check).                                                                                                                                                                                                 |
 | `Command.expectNone()`                               | There are no pending Commands.                                                                                                                                                                                                                  |
+| `Command.keepPending(A)`                             | Lets later Scene Messages arrive while the one exact matching invocation remains pending. Assertions, resolvers, `resolveAllExact`, and final completeness still include it.                                                                    |
 
 ### Match Command Names and Arguments
 
 Prefer `Command.expectExact` as the default. It catches bugs where an interaction produces unexpected Commands. Use `Command.expectHas` when you only care about a subset of the pending Commands.
 
 Each matcher accepts either a Command Definition or a Command instance. A Definition matches the originating declaration, including after a Binding qualifies its displayed name. An instance also checks structurally equal args, and a bound instance selects its composition path. Pass a Definition when the test only cares that this Command was dispatched; pass an instance when its args are part of what the test is verifying. `Command.expectExact(FetchWeather({ zipCode: '90210' }))` fails if the runtime dispatched `FetchWeather({ zipCode: '99999' })`, where the same call with just `FetchWeather` would pass.
+
+When a Scene helper needs to read captured args before resolving a Command, use `Command.argsOf` with the original Definition. The [Story example](/testing/story#inspect-captured-command-arguments) shows the same projection over both Story and Scene simulations. Keep occurrence selection explicit; `argsOf` returns every source match when mapped across the pending list.
 
 ## Mounts
 

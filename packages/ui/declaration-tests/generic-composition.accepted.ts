@@ -6,10 +6,11 @@ import {
   Schema,
   SchemaTransformation,
 } from 'effect'
-import { Block, Message, Program, Struct } from 'foldkit'
+import { Block, Command, Message, Program, Struct, Update } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 
 import * as Animation from '@foldkit/ui/animation'
+import * as Calendar from '@foldkit/ui/calendar'
 import * as Combobox from '@foldkit/ui/combobox'
 import * as Dialog from '@foldkit/ui/dialog'
 import * as DragAndDrop from '@foldkit/ui/dragAndDrop'
@@ -178,6 +179,8 @@ const foldDragAndDropOutMessage =
   DragAndDropFixtureDefinition.makeOutMessageFold(
     DragAndDrop.DragAndDropBlock,
     {
+      StartedKeyboardDrag: DragAndDropFixtureDefinition.makeNoopStep,
+      ChangedKeyboardTarget: DragAndDropFixtureDefinition.makeNoopStep,
       Reordered: () => DragAndDropFixtureDefinition.makeNoopStep(),
       Cancelled: () => DragAndDropFixtureDefinition.makeNoopStep(),
     },
@@ -220,6 +223,8 @@ const foldKeyedDragAndDropOutMessage =
   KeyedDragAndDropFixtureDefinition.makeOutMessageFold(
     DragAndDrop.DragAndDropBlock,
     {
+      StartedKeyboardDrag: KeyedDragAndDropFixtureDefinition.makeNoopStep,
+      ChangedKeyboardTarget: KeyedDragAndDropFixtureDefinition.makeNoopStep,
       Reordered: () => KeyedDragAndDropFixtureDefinition.makeNoopStep(),
       Cancelled: () => KeyedDragAndDropFixtureDefinition.makeNoopStep(),
     },
@@ -289,7 +294,7 @@ export const KeyedAnimationFixtureComposition =
       }),
     ],
   })
-export const keyedAnimationLeaveWait =
+export const keyedAnimationLeaveWaitStep =
   KeyedAnimationBinding.requestWaitForLeaveSettlement('Primary')
 export const Model = Schema.Struct({
   animation: Animation.AnimationBlock.Model,
@@ -445,7 +450,9 @@ export const author = (composition: Composition) => {
   const init = composition.makeInit(() => ({
     model: { maybeSelected: Option.none() },
   }))
-  const update = composition.makeUpdate((model, _message) => ({ model }))
+  const update = composition.makeUpdate({
+    ClickedClear: model => ({ model }),
+  })
   const view = composition.makeView((model, h) => helper(model, h))
 
   const prepare = () => composition.prepareBlock({ init, update, view })
@@ -472,8 +479,10 @@ export type GenericAssertions = [
   >,
   Expect<
     Equal<
-      ReturnType<typeof AnimationBinding.requestWaitForLeaveSettlement>,
-      ReturnType<typeof AnimationBinding.requestResume>
+      Update.RequirementsOf<
+        typeof Animation.AnimationBlock.operations.requestWaitForLeaveSettlement
+      >,
+      Command.HandlerOf<typeof Animation.test.WaitForAnimationSettled>
     >
   >,
   Expect<
@@ -484,8 +493,11 @@ export type GenericAssertions = [
   >,
   Expect<
     Equal<
-      ReturnType<typeof KeyedAnimationBinding.requestWaitForLeaveSettlement>,
-      ReturnType<typeof KeyedAnimationBinding.requestResume>
+      Update.RequirementsOf<
+        typeof Animation.AnimationBlock.operations.requestResume
+      >,
+      | Command.HandlerOf<typeof Animation.test.WaitForAnimationSettled>
+      | Command.HandlerOf<typeof Animation.test.WaitForPaint>
     >
   >,
   Expect<
@@ -678,3 +690,141 @@ export type ShapeAssertions = [
     >
   >,
 ]
+
+export type ExactAnimationUpdateOutMessage = Expect<
+  Equal<
+    Exclude<
+      ReturnType<typeof Animation.AnimationBlock.update>['outMessage'],
+      undefined
+    >,
+    typeof Animation.AnimationBlock.OutMessage.Type
+  >
+>
+export type ExactAnimationFinishOutMessage = Expect<
+  Equal<
+    Exclude<
+      ReturnType<
+        typeof Animation.AnimationBlock.operations.requestFinish
+      >['outMessage'],
+      undefined
+    >,
+    Extract<
+      typeof Animation.AnimationBlock.OutMessage.Type,
+      { _tag: 'TransitionedOut' }
+    >
+  >
+>
+export type ExactAnimationShowOutMessage = Expect<
+  Equal<
+    Exclude<
+      ReturnType<
+        typeof Animation.AnimationBlock.operations.requestShow
+      >['outMessage'],
+      undefined
+    >,
+    never
+  >
+>
+export type ExactAnimationHideOutMessage = Expect<
+  Equal<
+    Exclude<
+      ReturnType<
+        typeof Animation.AnimationBlock.operations.requestHide
+      >['outMessage'],
+      undefined
+    >,
+    never
+  >
+>
+export type ExactAnimationShowRequirements = Expect<
+  Equal<
+    Update.RequirementsOf<
+      typeof Animation.AnimationBlock.operations.requestShow
+    >,
+    Command.HandlerOf<typeof Animation.test.WaitForPaint>
+  >
+>
+export type ExactAnimationHideRequirements = Expect<
+  Equal<
+    Update.RequirementsOf<
+      typeof Animation.AnimationBlock.operations.requestHide
+    >,
+    Command.HandlerOf<typeof Animation.test.WaitForPaint>
+  >
+>
+export type ExactAnimationFinishRequirements = Expect<
+  Equal<
+    Update.RequirementsOf<
+      typeof Animation.AnimationBlock.operations.requestFinish
+    >,
+    never
+  >
+>
+export type ExactCalendarDropOutMessage = Expect<
+  Equal<
+    Exclude<
+      ReturnType<
+        typeof Calendar.CalendarBlock.operations.requestDropToDays
+      >['outMessage'],
+      undefined
+    >,
+    never
+  >
+>
+export type ExactCalendarDropRequirements = Expect<
+  Equal<
+    Update.RequirementsOf<
+      typeof Calendar.CalendarBlock.operations.requestDropToDays
+    >,
+    never
+  >
+>
+export type ExactCalendarSelectOutMessage = Expect<
+  Equal<
+    Exclude<
+      ReturnType<
+        typeof Calendar.CalendarBlock.operations.requestSelectDate
+      >['outMessage'],
+      undefined
+    >,
+    Extract<
+      typeof Calendar.CalendarBlock.OutMessage.Type,
+      { _tag: 'SelectedDate' }
+    >
+  >
+>
+export type ExactSliderRangeOutMessage = Expect<
+  Equal<
+    Exclude<
+      ReturnType<
+        typeof Slider.SliderBlock.operations.informRangeChanged
+      >['outMessage'],
+      undefined
+    >,
+    never
+  >
+>
+export type ExactRootSliderRangeOutMessage = Expect<
+  Equal<
+    Exclude<
+      ReturnType<typeof RootSlider.operations.informRangeChanged>['outMessage'],
+      undefined
+    >,
+    never
+  >
+>
+
+export const keyboardDragStarted =
+  DragAndDrop.DragAndDropBlock.OutMessage.StartedKeyboardDrag({
+    itemId: 'card-1',
+    containerId: 'todo',
+    index: 0,
+  })
+export const keyboardTargetChanged =
+  DragAndDrop.DragAndDropBlock.OutMessage.ChangedKeyboardTarget({
+    itemId: 'card-1',
+    fromContainerId: 'todo',
+    fromIndex: 0,
+    toContainerId: 'done',
+    toIndex: 1,
+  })

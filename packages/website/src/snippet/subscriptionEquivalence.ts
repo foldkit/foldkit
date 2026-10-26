@@ -67,5 +67,3 @@ export const subscriptions = DragDefinition.makeSubscriptions(entry => ({
     },
   ),
 }))
-
-export const EffectsLayer = subscriptions.layer

@@ -45,6 +45,13 @@ export type Frame = Readonly<{
 }>
 
 const stack: Array<Frame> = []
+const frameDispatches = new WeakMap<
+  Frame,
+  Readonly<{
+    boundaryDispatch: DispatchSync
+    dispatch: DispatchSync
+  }>
+>()
 
 const requireFrame = (): Frame => {
   const frame = stack[stack.length - 1]
@@ -168,14 +175,19 @@ export const clearRuntime = (): void => {
  *  event-fire time. Throws when called outside of a runtime frame. */
 export const requireDispatch = (): DispatchSync => {
   const frame = requireFrame()
-  return guardInstanceDispatch(
-    frame.runtimeContext,
-    getOrCreateBoundaryDispatch(
-      frame.boundaryRegistry,
-      frame.outerDispatch,
-      frame.boundaryId,
-    ),
+  const boundaryDispatch = getOrCreateBoundaryDispatch(
+    frame.boundaryRegistry,
+    frame.outerDispatch,
+    frame.boundaryId,
   )
+  const cached = frameDispatches.get(frame)
+  if (cached?.boundaryDispatch === boundaryDispatch) {
+    return cached.dispatch
+  }
+
+  const dispatch = guardInstanceDispatch(frame.runtimeContext, boundaryDispatch)
+  frameDispatches.set(frame, { boundaryDispatch, dispatch })
+  return dispatch
 }
 
 /** Returns the render-owned root dispatcher for Mount results. A live render

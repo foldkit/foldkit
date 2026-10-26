@@ -39,35 +39,33 @@ const CheckEmailAvailable = ApplicationDefinition.makeCommand(
   },
 )
 
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ChangedEmail: ({ value }) => {
-      const syncResult = validateEmail(value)
-      const validationId = Number.increment(model.emailValidationId)
+const update = ApplicationComposition.makeUpdate({
+  ChangedEmail: (model, { value }) => {
+    const syncResult = validateEmail(value)
+    const validationId = Number.increment(model.emailValidationId)
 
-      return Match.value(syncResult).pipe(
-        Match.tag('Valid', () => ({
-          model: modifyFields(model, {
-            email: () => Validating({ value }),
-            emailValidationId: () => validationId,
-          }),
-          commands: [CheckEmailAvailable({ email: value, validationId })],
-        })),
-        Match.orElse(() => ({
-          model: modifyFields(model, {
-            email: () => syncResult,
-            emailValidationId: () => validationId,
-          }),
-        })),
-      )
-    },
+    return Match.value(syncResult).pipe(
+      Match.tag('Valid', () => ({
+        model: modifyFields(model, {
+          email: () => Validating({ value }),
+          emailValidationId: () => validationId,
+        }),
+        commands: [CheckEmailAvailable({ email: value, validationId })],
+      })),
+      Match.orElse(() => ({
+        model: modifyFields(model, {
+          email: () => syncResult,
+          emailValidationId: () => validationId,
+        }),
+      })),
+    )
+  },
 
-    CompletedCheckEmailAvailable: ({ validationId, field }) => {
-      if (validationId === model.emailValidationId) {
-        return { model: modifyFields(model, { email: () => field }) }
-      } else {
-        return { model }
-      }
-    },
-  }),
-)
+  CompletedCheckEmailAvailable: (model, { validationId, field }) => {
+    if (validationId === model.emailValidationId) {
+      return { model: modifyFields(model, { email: () => field }) }
+    } else {
+      return { model }
+    }
+  },
+})

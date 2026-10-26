@@ -9,6 +9,8 @@ import { DARK_COLOR_SCHEME_QUERY } from './colorScheme'
 import { ApplicationDefinition } from './definition'
 import { DOCS_SIDEBAR_NAV_ID, MOBILE_MENU_NAV_ID } from './docsNav'
 import { Message, type ResolvedTheme, ThemePreference } from './message'
+import { ExampleSlug } from './page/example/meta'
+import { playgroundRouter } from './route'
 import {
   SIDEBAR_STORAGE_KEY,
   SidebarState,
@@ -221,6 +223,20 @@ export const NavigateInternal = ApplicationDefinition.makeCommand(
   },
 )
 
+export const LoadPlayground = ApplicationDefinition.makeCommand(
+  'LoadPlayground',
+  {
+    args: { exampleSlug: ExampleSlug },
+    messages: [Message.CompletedLoadPlayground],
+    handler: function* () {
+      return ({ exampleSlug }) =>
+        load(playgroundRouter({ exampleSlug })).pipe(
+          Effect.as(Message.CompletedLoadPlayground()),
+        )
+    },
+  },
+)
+
 export const LoadExternal = ApplicationDefinition.makeCommand('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
@@ -240,6 +256,7 @@ export const EffectsLayer = Layer.mergeAll(
   ScrollMobileMenuActiveLinkIntoView.layer,
   NavigateInternal.layer,
   LoadExternal.layer,
+  LoadPlayground.layer,
   ApplyTheme.layer,
   SaveThemePreference.layer,
   SaveSidebarState.layer,

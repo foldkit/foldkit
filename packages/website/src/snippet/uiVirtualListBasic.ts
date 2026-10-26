@@ -38,9 +38,11 @@ const ActivityListExampleDefinition = Block.makeDefinition(
   },
 )
 
+const { makeNoopStep } = ActivityListExampleDefinition
+
 const foldActivityListOutMessage =
   ActivityListExampleDefinition.makeOutMessageFold(ActivityList, {
-    ObservedContainerScroll: ActivityListExampleDefinition.makeNoopStep,
+    ObservedContainerScroll: makeNoopStep,
   })
 
 const ActivityListBinding = ActivityListExampleDefinition.makeBinding(
@@ -66,12 +68,10 @@ const init = ActivityListExampleComposition.makeInit(() => ({
   },
 }))
 
-const update = ActivityListExampleComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedScrollActivityListToMiddle: () =>
-      ActivityListBinding.requestScrollToIndex(500)(model),
-  }),
-)
+const update = ActivityListExampleComposition.makeUpdate({
+  ClickedScrollActivityListToMiddle: model =>
+    ActivityListBinding.requestScrollToIndex(500)(model),
+})
 
 // Inside your view, render the list. Pass `items` from your Model, key
 // each row by a stable identifier (the data id, not its array position),

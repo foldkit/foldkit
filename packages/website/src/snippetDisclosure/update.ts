@@ -1,23 +1,19 @@
 import { HashMap, HashSet } from 'effect'
-import { modifyFields } from 'foldkit/struct'
 
 import { SnippetDisclosureComposition } from './composition'
-import { Message } from './message'
+import { makeFieldsStep } from './definition'
 
-export const update = SnippetDisclosureComposition.makeUpdate(
-  (model, message) =>
-    Message.match(message, {
-      ToggledCodeDisclosure: ({ disclosureId, isOpen }) => ({
-        model: modifyFields(model, {
-          openDisclosureIds: isOpen
-            ? HashSet.add(disclosureId)
-            : HashSet.remove(disclosureId),
-        }),
-      }),
-      CompletedMeasureSnippetHeight: ({ snippetId, snippetSize }) => ({
-        model: modifyFields(model, {
-          snippetSizes: HashMap.set(snippetId, snippetSize),
-        }),
-      }),
+export const update = SnippetDisclosureComposition.makeUpdate({
+  ToggledCodeDisclosure: makeFieldsStep.fromMessage(
+    ({ disclosureId, isOpen }) => ({
+      openDisclosureIds: isOpen
+        ? HashSet.add(disclosureId)
+        : HashSet.remove(disclosureId),
     }),
-)
+  ),
+  CompletedMeasureSnippetHeight: makeFieldsStep.fromMessage(
+    ({ snippetId, snippetSize }) => ({
+      snippetSizes: HashMap.set(snippetId, snippetSize),
+    }),
+  ),
+})

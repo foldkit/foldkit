@@ -1,0 +1,19 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "foldkit": ["../src/index.ts"],
+      "foldkit/message": ["../src/message/public.ts"],
+      "foldkit/update": ["../src/update/public.ts"]
+    },
+    "noEmit": true,
+    "rootDir": ".."
+  },
+  "include": [
+    "../src/vite-env.d.ts",
+    "policy-graph.accepted.ts",
+    "policy-graph.rejected.ts",
+    "policy-graph.consume.ts",
+    "policy-graph.ownership.ts"
+  ]
+}

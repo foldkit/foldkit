@@ -27,12 +27,10 @@ const makeGenericComplete = <const Id extends string>(id: Id) => {
   const prepare = () =>
     composition.prepareBlock({
       init: () => ({ model: Model.make({ value: '' }) }),
-      update: composition.makeUpdate((model, message) =>
-        Message.match(message, {
-          RequestedWork: () => ({ model, commands: [Work()] }),
-          CompletedWork: () => ({ model }),
-        }),
-      ),
+      update: composition.makeUpdate({
+        RequestedWork: model => ({ model, commands: [Work()] }),
+        CompletedWork: model => ({ model }),
+      }),
       view: composition.makeView((model, h) => h.div([], [model.value])),
       EffectsLayer: Work.layer,
     })
@@ -58,12 +56,10 @@ const makeGenericMissing = <const Id extends string>(id: Id) => {
   const prepare = () =>
     composition.prepareBlock({
       init: () => ({ model: Model.make({ value: '' }) }),
-      update: composition.makeUpdate((model, message) =>
-        Message.match(message, {
-          RequestedWork: () => ({ model, commands: [Work()] }),
-          CompletedWork: () => ({ model }),
-        }),
-      ),
+      update: composition.makeUpdate({
+        RequestedWork: model => ({ model, commands: [Work()] }),
+        CompletedWork: model => ({ model }),
+      }),
       view: composition.makeView((model, h) => h.div([], [model.value])),
       EffectsLayer: Layer.empty,
     })

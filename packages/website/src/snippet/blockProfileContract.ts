@@ -17,3 +17,5 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
+
+export const { makeFieldsStep } = ApplicationDefinition

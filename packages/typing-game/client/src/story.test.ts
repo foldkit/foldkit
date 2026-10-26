@@ -1,8 +1,10 @@
-import { Option, pipe } from 'effect'
-import { Url } from 'foldkit'
+import { Array, Option, pipe } from 'effect'
+import { Update, Url } from 'foldkit'
+import type { HandlerOf } from 'foldkit/command'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
-import { describe, expect, test } from 'vitest'
+import { toParentMessage } from 'foldkit/test'
+import { describe, expect, expectTypeOf, test } from 'vitest'
 
 import * as Shared from '@typing-game/shared'
 
@@ -59,24 +61,13 @@ const joinedRoom: typeof RoomBlock.Model.Type = {
   exitCountdownSecondsLeft: 0,
 }
 
-const emptyRoomView = RoomBlock.makeView((_model, h) => h.empty)
-
 const toHomeMessage = (message: typeof HomeBlock.Message.Type) =>
-  HomeBinding.embedView({
-    slotId: 'home',
-    model: selectActionHome,
-  }).toParentMessage(message)
+  toParentMessage(HomeBinding, message)
 
 const toRoomMessage = (
   roomId: string,
   message: typeof RoomBlock.Message.Type,
-) =>
-  RoomBinding.embedView({
-    slotId: roomId,
-    key: roomId,
-    model: joinedRoom,
-    view: emptyRoomView,
-  }).toParentMessage(message)
+) => toParentMessage(RoomBinding, roomId, message)
 
 const givenHomeRoute = given<typeof Model.Type>({
   route: ApplicationRoute.Home(),
@@ -359,6 +350,34 @@ describe('Room occurrence identity', () => {
 })
 
 describe('Home and Room coordination', () => {
+  test('informJoined retains its exact persistence requirement and the canonical join transition', () => {
+    expectTypeOf<
+      Update.RequirementsOf<typeof RoomBlock.operations.informJoined>
+    >().toEqualTypeOf<HandlerOf<typeof SavePlayerSession>>()
+
+    const informed = RoomBlock.operations.informJoined(
+      joinedRoom,
+      { player: bob },
+      { roomId: ROOM_A },
+    )
+    const joined = RoomBlock.update(
+      joinedRoom,
+      RoomBlock.Message.SucceededJoinRoom({ player: bob }),
+      { roomId: ROOM_A },
+    )
+    const expectedSession = { roomId: ROOM_A, player: bob }
+
+    expect(informed.model).toEqual(joined.model)
+    expect(informed.model.maybeSession).toEqual(Option.some(expectedSession))
+    expect(
+      Array.map(informed.commands ?? [], Command.argsOf(SavePlayerSession)),
+    ).toEqual([Option.some({ session: expectedSession })])
+    expect(
+      Array.map(joined.commands ?? [], Command.argsOf(SavePlayerSession)),
+    ).toEqual([Option.some({ session: expectedSession })])
+    expect(informed.outMessage).toBeUndefined()
+  })
+
   test.each([
     [
       'created',

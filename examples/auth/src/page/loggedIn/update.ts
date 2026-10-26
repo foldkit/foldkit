@@ -1,11 +1,6 @@
-import { LoggedInComposition } from './composition'
-import { Message, OutMessage } from './message'
+import { LoggedInComposition, makeOutMessageStep } from './composition'
+import { OutMessage } from './message'
 
-export const update = LoggedInComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedLogout: () => ({
-      model,
-      outMessage: OutMessage.RequestedLogout(),
-    }),
-  }),
-)
+export const update = LoggedInComposition.makeUpdate({
+  ClickedLogout: makeOutMessageStep(() => OutMessage.RequestedLogout()),
+})

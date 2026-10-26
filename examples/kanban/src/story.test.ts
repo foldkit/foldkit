@@ -1,5 +1,6 @@
 import { Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
+import { toParentMessage } from 'foldkit/test'
 import { generateKeyBetween } from 'fractional-indexing'
 import { describe, expect, test } from 'vitest'
 
@@ -63,14 +64,8 @@ const emptyModel: typeof Model.Type = {
   announcement: '',
 }
 
-const emptyDragAndDropView = DragAndDropBlock.makeView((_model, h) => h.empty)
-
 const dragAndDropMessage = (message: typeof DragAndDropBlock.Message.Type) =>
-  DragAndDropBinding.embedView({
-    slotId: 'drag-and-drop',
-    model: emptyModel.dragAndDrop,
-    view: emptyDragAndDropView,
-  }).toParentMessage(message)
+  toParentMessage(DragAndDropBinding, message)
 
 describe('update', () => {
   describe('add card', () => {
@@ -261,6 +256,7 @@ describe('update', () => {
         message(
           dragAndDropMessage(
             DragAndDropBlock.Message.CompletedResolveKeyboardMove({
+              keyboardDragGeneration: 1,
               targetContainerId: 'todo',
               targetIndex: 2,
             }),
@@ -303,6 +299,7 @@ describe('update', () => {
         message(
           dragAndDropMessage(
             DragAndDropBlock.Message.CompletedResolveKeyboardMove({
+              keyboardDragGeneration: 1,
               targetContainerId: 'in-progress',
               targetIndex: 0,
             }),

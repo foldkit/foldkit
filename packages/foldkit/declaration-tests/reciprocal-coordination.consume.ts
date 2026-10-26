@@ -428,7 +428,7 @@ type NestedPolicyChannels<Recipe> =
 type NestedPolicyRecipe = ReturnType<
   ReturnType<typeof NestedPolicy.HomeBinding.requestRoomWork>
 >
-const nestedPolicyUpdate = NestedPolicy.ParentComposition.makeUpdate()
+const nestedPolicyUpdate = NestedPolicy.ParentComposition.makeUpdate({})
 type NestedPolicyDirectChannelsAreExact = Expect<
   Equal<
     Omit<NestedPolicyChannels<NestedPolicyRecipe>, 'evidence'>,

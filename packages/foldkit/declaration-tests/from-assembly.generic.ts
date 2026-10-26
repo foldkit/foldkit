@@ -49,17 +49,15 @@ export const createPicker = <Item, Encoded, DecodingServices, EncodingServices>(
   const init = PickerComposition.makeInit((selected: Item) => ({
     model: { selected },
   }))
-  const update = PickerComposition.makeUpdate((model, message) =>
-    Message.match(message, {
-      RequestedSelect: ({ selected }) => ({
-        model: Struct.modifyFields(model, { selected: () => selected }),
-        commands: [SaveSelection()],
-        outMessage: OutMessage.Selected({ selected }),
-      }),
-      CompletedSaveSelection: () => ({ model }),
-      CompletedObservePicker: () => ({ model }),
+  const update = PickerComposition.makeUpdate({
+    RequestedSelect: (model, { selected }) => ({
+      model: Struct.modifyFields(model, { selected: () => selected }),
+      commands: [SaveSelection()],
+      outMessage: OutMessage.Selected({ selected }),
     }),
-  )
+    CompletedSaveSelection: model => ({ model }),
+    CompletedObservePicker: model => ({ model }),
+  })
   const view = PickerComposition.makeView.withInputs<
     Readonly<{ format: (selected: Item) => string }>
   >((model, { format }, h) =>

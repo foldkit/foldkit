@@ -11,14 +11,12 @@ const Message = defineMessageUnion({
   },
 })
 
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    SucceededSearch: ({ generation, suggestions }) => {
-      if (generation !== model.searchGeneration) {
-        return { model }
-      }
+const update = ApplicationComposition.makeUpdate({
+  SucceededSearch: (model, { generation, suggestions }) => {
+    if (generation !== model.searchGeneration) {
+      return { model }
+    }
 
-      return { model: modifyFields(model, { suggestions: () => suggestions }) }
-    },
-  }),
-)
+    return { model: modifyFields(model, { suggestions: () => suggestions }) }
+  },
+})

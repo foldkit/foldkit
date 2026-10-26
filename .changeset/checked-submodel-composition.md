@@ -10,7 +10,7 @@ Replace manual child wiring with checked Definition → Composition → Block as
 
 ## Remove authored child Message wrappers
 
-Keep only local facts in each feature's `Message`. Composition derives the complete dispatch Schema from its registered child Bindings, and routes child delivery before the local update callback.
+Keep only local facts in each feature's `Message`. Composition derives the complete dispatch Schema from its registered child Bindings, and routes child delivery before the authored local Message handlers.
 
 Before, a parent repeated the child's Message contract in its own union and routed it manually:
 
@@ -64,13 +64,10 @@ export const ApplicationComposition = ApplicationDefinition.makeComposition({
 
 // update.ts
 import { ApplicationComposition } from './composition'
-import { Message } from './message'
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedHelp: () => ({ model }),
-  }),
-)
+export const update = ApplicationComposition.makeUpdate({
+  ClickedHelp: model => ({ model }),
+})
 ```
 
 Remove `parentMessage`, `toParentMessage`, and `fromParentMessage` from Binding configuration. Use `delivery.when` to gate incoming child delivery and `delivery.toUpdateContext` to provide the child's exact additional update arguments. General keyed accessors also supply `keySchema`; direct array adapters derive it from their key field.
@@ -166,15 +163,12 @@ export const Message = defineMessageUnion({
 import { modifyFields } from 'foldkit/struct'
 
 import { SearchComposition } from './composition'
-import { Message } from './message'
 
-export const update = SearchComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    RequestedReset: () => ({
-      model: modifyFields(model, { query: () => '' }),
-    }),
+export const update = SearchComposition.makeUpdate({
+  RequestedReset: model => ({
+    model: modifyFields(model, { query: () => '' }),
   }),
-)
+})
 
 // block.ts
 import { Block } from 'foldkit'
@@ -203,13 +197,13 @@ Put the local Message constructor directly under `operations` when its payload i
 
 Keep a tuple producer under `operations` when the public inputs need mapping, refinement, defaults, or an exact update context tuple. Inline tuples receive contextual typing. An extracted producer returns `Tuple.make(Message.RequestedReset())`, with `Tuple` imported from `effect`. Local Message constructors and tuple producers complete through the same execution path. The registry accepts these two Message-producing forms, not arbitrary Steps, and there is no `expose` compatibility alias.
 
-Remove `exposedSteps` and any `pure` or `reflect*` public state transition. A public operation must select a local Message constructor so the child's update remains the only state transition boundary. Keep internal Model-only work as a Step: `Definition.makeFieldsStep` creates a unary field-transform Step. Pass `Definition.makeNoopStep` point-free as a `makeOutMessageFold` handler when the parent intentionally keeps its Model unchanged. Continue to use `Definition.makeStep` for parameterized, contextual, Command-producing, OutMessage-producing, connected, or composed results.
+Remove `exposedSteps` and any `pure` or `reflect*` public state transition. A public operation must select a local Message constructor so the child's update remains the only state transition boundary. Keep internal Model-only work as a Step: `Definition.makeFieldsStep` creates a unary field-transform Step. Pass `Definition.makeNoopStep` point-free as a `makeOutMessageFold` handler when the parent intentionally keeps its Model unchanged. Use the focused producer helpers for single-purpose field, Command, and OutMessage transitions, and `Definition.makeStep` for reusable mixed, connected, initialization, or composed results.
 
-Every completed operation uses the full return contract of the Block's update. If any update branch returns a Command or OutMessage, all operations carry that requirement or optional result in their type. Dispatching a Message for a pure branch does not run effects from another branch.
+A completed operation selecting one local Message retains that handler's inferred Command requirements and OutMessage contract. An operation that can select several Messages carries their combined channels. Every operation retains the update's full dispatch context. Delegating through a helper with an already aggregate visible return retains that broader contract.
 
 Keep the authored `update` in a named value before passing it to `prepareBlock`, as shown above. The current overloads can misinfer a handler Layer when `makeUpdate` is nested directly in a preparation record that also contains a view, operations, Subscriptions, and ManagedResources. The named form preserves exact inference without extra type annotations.
 
-A raw Binding operation recipe exposes only channels produced directly by the child transition. Return it intact from the owning Composition callback. The Composition resolves registered OutMessage policy and sibling operations into the final parent Command Message, requirements, and OutMessage channels. Derive exported parent contracts from the Composition-authored update or completed Block.
+A raw Binding operation recipe exposes only channels produced directly by the child transition. Return it intact from the owning Composition handler or init producer. The Composition resolves registered OutMessage policy and sibling operations into the final parent Command Message, requirements, and OutMessage channels. Derive exported parent contracts from the Composition-authored update or completed Block.
 
 Pair the operation and Message names: `informJoined` selects `Message.InformedOfJoin`, `informRouteChanged` selects `Message.InformedOfRouteChange`, and `requestCloseMenu` selects `Message.RequestedCloseMenu`. Notifications use `inform*`/`InformedOf*`; actions use `request*`/`Requested*`. Keep actual UI facts separate when their cause differs from the parent request. Selectors and derived view inputs remain ordinary helpers.
 
@@ -259,22 +253,20 @@ export const ApplicationComposition = ApplicationDefinition.makeComposition({
 })
 ```
 
-The direct field form infers the parent Model and child Model relationship for exact `ChildModel` and `Option<ChildModel>` fields. An unkeyed field uses its field name as the default placement. Every keyed form and an unkeyed accessor use the child Block ID. An explicit `placement` overrides either default. `None` makes an optional field absent, and a fold or operation never creates it. Optionality does not require a placement override. Add `presentWhen` when parent policy gates that whole direct child. Use explicit `read` and `write` for tagged, nested, or custom storage. Foldkit compares decoded built-in Schema shapes; reuse the same Schema instance for an opaque declaration or keep custom accessors. Composition generates child delivery; remove authored `Got*` wrappers and mapper fields. Do not pass a redundant Model Schema. A child with OutMessages selects an immutable policy through `.withOutMessagePolicy({ fold?, forward? })`; Composition rejects a missing policy and registers the selected full Binding without changing its child identity or lifecycle scopes. Binding and policy construction remain passive.
+The direct field form infers the parent Model and child Model relationship for exact `ChildModel` and `Option<ChildModel>` fields. An unkeyed field uses its field name as the default placement. Every keyed form and an unkeyed accessor use the child Block ID. An explicit `placement` overrides either default. `None` makes an optional field absent, and a fold or operation never creates it. Optionality does not require a placement override. Add `presentWhen` when parent policy gates that whole direct child. Use `makeVariantBinding` from `foldkit/variantBinding` when the child occupies one complete tagged member of the parent `Schema.Union`, including the actual child Model Schema. Use explicit `read` and `write` for nested, wrapped, or custom storage. Foldkit compares decoded built-in Schema shapes; reuse the same Schema instance for an opaque declaration or keep custom accessors. Composition generates child delivery; remove authored `Got*` wrappers and mapper fields. Do not pass a redundant Model Schema. A child with OutMessages selects an immutable policy through `.withOutMessagePolicy({ fold?, forward? })`; Composition rejects a missing policy and registers the selected full Binding without changing its child identity or lifecycle scopes. Binding and policy construction remain passive.
 
 Placement identifies one child Binding within the parent's composition graph. It does not identify a DOM position and need not match a Model field. Unkeyed direct fields default placement to the field. Accessor Bindings and all keyed Bindings default to the child Block ID, including direct and wrapped array adapters. For keyed Bindings, `key` identifies dynamic occurrences under that one placement. Supply an explicit placement only when sibling defaults collide or an established graph identity must deliberately remain different from the new default.
 
 A split feature without a `composition/` directory uses `composition.ts` for straightforward Bindings, its complete `makeComposition({ bindings, mounts })` registration, Composition and an optional owner-specific ViewBuilder alias. When `composition/` exists, `composition/composition.ts` owns that assembly and `composition/index.ts` exports it. Mount-only features use the same home, with definitions shared with the view in `mount.ts`. Extract a substantial one-way policy to `composition/<child>.ts`; then `composition/composition.ts` remains the single assembly point and `composition/index.ts` is an explicit barrel. Assembly imports actual policy exports directly from sibling modules, and the barrel re-exports intended values such as `HomeBinding`, `RoomBinding`, and `ApplicationComposition`. External consumers import from `composition.ts` or that barrel, never from a policy or assembly implementation path. Use a factory only when Binding construction needs caller-owned configuration. Keep reciprocal sibling policies together in the same parent assembly and defer sibling Binding calls through policy callbacks; a callback may close over a Binding declared later without a circular import. Internal implementation modules may use direct relative sibling imports to avoid barrel cycles. This assembly module is also required for a split graphless feature. Retain `definition.ts` and `FooDefinition` when authoring methods use that value; otherwise put the top-level Definition factory and contract imports in `composition.ts` and chain `makeComposition()` directly. Never put a Composition or owner-specific ViewBuilder in a retained `definition.ts`. A compact graphless feature keeps all stages beside its cohesive implementation. A genuinely compact root keeps Model, Message, init, update, view, `ApplicationDefinition`, and `ApplicationComposition` together in `application.ts`. A split root always uses `composition.ts` or `composition/composition.ts`, including when graphless, and removes the emptied `application.ts`. `makeBinding` only configures the relationship; including its result under `bindings` registers it. Neither step constructs Layers or starts effects.
 
-The Binding projects `init`, `fold`, `embedView`, and operations selected under `operations`. Every registered child routes through `fold` automatically, so the Composition update callback handles only local facts:
+The Binding projects `init`, `fold`, `embedView`, and operations selected under `operations`. Every registered child routes through `fold` automatically, so the Composition update record handles only local facts:
 
 Declare `delivery.toUpdateContext` when the child update has required, optional, defaulted, or rest context parameters. Return the exact additional argument tuple, including an empty tuple when choosing child defaults. Use `delivery.when` to ignore incoming delivery under parent-owned conditions; keyed callbacks also receive the captured key.
 
 ```ts
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedRefresh: () => HomeBinding.refresh()(model),
-  }),
-)
+export const update = ApplicationComposition.makeUpdate({
+  ClickedRefresh: HomeBinding.requestRefresh(),
+})
 ```
 
 The authored parent Message Schema contains only local facts. Composition derives the complete dispatch Schema from its registered Bindings; `Got*` is reserved and cannot be authored locally. Remove manual `Got*` branches, including branches that inspect the wrapped child Message, and move parent reactions to the Binding's selected `fold` policy.
@@ -305,10 +297,10 @@ const DialogBinding = ApplicationDefinition.makeBinding(DialogBlock, {
 const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [DialogBinding],
 })
-export const update = ApplicationComposition.makeUpdate()
+export const update = ApplicationComposition.makeUpdate({})
 ```
 
-Pass no callback when every parent Message is owned by registered child routing. Composition still returns the complete update function and routes each wrapper to its Binding.
+Pass an empty record when every parent Message is owned by registered child routing. Composition still returns the complete update function and routes each wrapper to its Binding.
 
 Remove `parentMessage`, `toParentMessage`, and `fromParentMessage` from Binding configs. Composition owns the envelope, its exact child Codec, captured generation, and keyed identity. A Message-free child has no delivery policy. Local constructors remain on the complete Message Codec; generated wrappers have no public constructors. Use `Composition.Message` or `FooBlock.Message` for complete serialization, validation, or replay.
 
@@ -584,13 +576,11 @@ export const ApplicationComposition = Block.makeDefinition('Application', {
   Message,
 }).makeComposition()
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedIncrement: () => ({
-      model: modifyFields(model, { count: count => count + 1 }),
-    }),
+export const update = ApplicationComposition.makeUpdate({
+  ClickedIncrement: model => ({
+    model: modifyFields(model, { count: count => count + 1 }),
   }),
-)
+})
 
 export const init = ApplicationComposition.makeInit(() => ({
   model: { count: 0 },

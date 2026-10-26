@@ -36,12 +36,14 @@ const FilterDialogDefinition = Block.makeDefinition('FilterDialog', {
   Message,
 })
 
+const { makeFieldsStep, makeNoopStep } = FilterDialogDefinition
+
 const foldDialogOutMessage = FilterDialogDefinition.makeOutMessageFold(
   Dialog.DialogBlock,
   {
-    Opened: FilterDialogDefinition.makeNoopStep,
-    Closed: FilterDialogDefinition.makeNoopStep,
-    CompletedClose: FilterDialogDefinition.makeNoopStep,
+    Opened: makeNoopStep,
+    Closed: makeNoopStep,
+    CompletedClose: makeNoopStep,
   },
 )
 
@@ -49,10 +51,10 @@ const foldComboboxOutMessage = FilterDialogDefinition.makeOutMessageFold(
   CityCombobox,
   {
     Selected: ({ value }) =>
-      FilterDialogDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeCity: () => Option.some(value),
       })),
-    ClearedSelection: FilterDialogDefinition.makeNoopStep,
+    ClearedSelection: makeNoopStep,
   },
 )
 
@@ -77,7 +79,7 @@ const init = FilterDialogComposition.makeInit(() => ({
   },
 }))
 
-const update = FilterDialogComposition.makeUpdate()
+const update = FilterDialogComposition.makeUpdate({})
 
 // Render the overlay inside the dialog panel. Its panel portals into the
 // dialog, so it renders above the dialog content with no extra anchor config.

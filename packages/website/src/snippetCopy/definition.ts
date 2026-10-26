@@ -7,3 +7,6 @@ export const SnippetCopyDefinition = Block.makeDefinition('SnippetCopy', {
   Model,
   Message,
 })
+
+export const { makeCommandsStep, makeFieldsStep, makeNoopStep } =
+  SnippetCopyDefinition

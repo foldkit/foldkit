@@ -3,7 +3,7 @@ import { Update } from 'foldkit'
 
 import { ScrollTarget } from '@foldkit/ui/virtualList'
 
-import { UiDefinition } from './definition'
+import { UiDefinition, makeFieldsStep, makeStep } from './definition'
 import { ChatVirtualListBlock } from './demo/components'
 import {
   type VirtualListChatMessage,
@@ -58,12 +58,12 @@ const foldVirtualListChatOutMessage = UiDefinition.makeOutMessageFold(
   ChatVirtualListBlock,
   {
     ObservedContainerScroll: ({ scrollTop }) =>
-      UiDefinition.makeStep(model => {
+      makeStep(model => {
         const isNearStart = scrollTop <= VIRTUAL_LIST_CHAT_START_THRESHOLD_PX
         const nextVirtualListChatStartProximity = isNearStart
           ? VirtualListChatStartProximity.Near()
           : VirtualListChatStartProximity.Away()
-        const updateStartProximity = UiDefinition.makeFieldsStep(() => ({
+        const updateStartProximityStep = makeFieldsStep(() => ({
           virtualListChatStartProximity: () =>
             nextVirtualListChatStartProximity,
         }))
@@ -72,17 +72,17 @@ const foldVirtualListChatOutMessage = UiDefinition.makeOutMessageFold(
           !isNearStart ||
           model.virtualListChatStartProximity._tag === 'Near'
         ) {
-          return updateStartProximity
+          return updateStartProximityStep
         }
 
         const nextMessages = olderVirtualListChatMessages(model)
-        const updateMessages = UiDefinition.makeFieldsStep(() => ({
+        const updateMessagesStep = makeFieldsStep(() => ({
           virtualListChatMessages: () => nextMessages,
         }))
 
         return Update.combineSteps([
-          updateStartProximity,
-          updateMessages,
+          updateStartProximityStep,
+          updateMessagesStep,
           VirtualListChatDemoBinding.informItemsChanged(
             Array.map(nextMessages, message => globalThis.String(message.id)),
           ),
@@ -96,26 +96,26 @@ export const VirtualListChatDemoBindingWithOutMessagePolicy =
     fold: foldVirtualListChatOutMessage,
   })
 
-export const updateVirtualListChatMessages = (
+export const updateVirtualListChatMessagesStep = (
   nextMessages: ReadonlyArray<typeof VirtualListChatMessage.Type>,
   nextId?: number,
 ) =>
-  UiDefinition.makeStep(model => {
+  makeStep(model => {
     const nextVirtualListChatNextId =
       nextId === undefined ? model.virtualListChatNextId : nextId
-    const updateMessages = UiDefinition.makeFieldsStep(() => ({
+    const updateMessagesStep = makeFieldsStep(() => ({
       virtualListChatMessages: () => nextMessages,
       virtualListChatNextId: () => nextVirtualListChatNextId,
     }))
 
     return Update.combineSteps([
-      updateMessages,
+      updateMessagesStep,
       VirtualListChatDemoBinding.informItemsChanged(
         Array.map(nextMessages, message => globalThis.String(message.id)),
       ),
     ])
   })
 
-export const prependVirtualListChatMessages = UiDefinition.makeStep(model =>
-  updateVirtualListChatMessages(olderVirtualListChatMessages(model)),
+export const prependVirtualListChatMessagesStep = makeStep(model =>
+  updateVirtualListChatMessagesStep(olderVirtualListChatMessages(model)),
 )

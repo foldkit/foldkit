@@ -5,7 +5,14 @@ import { modifyFields } from 'foldkit/struct'
 import { Item } from '../../domain'
 import { productsRouter } from '../../route'
 import { ProductsComposition } from './composition'
-import { Message, Model, OutMessage, ProductsDefinition } from './definition'
+import {
+  Message,
+  Model,
+  OutMessage,
+  ProductsDefinition,
+  makeNoopStep,
+  makeOutMessageStep,
+} from './definition'
 
 export const init = ProductsComposition.makeInit(
   (products: ReadonlyArray<typeof Item.Item.Type>) => ({
@@ -25,37 +32,29 @@ export const ReplaceSearchUrl = ProductsDefinition.makeCommand(
   },
 )
 
-export const update = ProductsComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    CompletedReplaceSearchUrl: () => ({ model }),
+export const update = ProductsComposition.makeUpdate({
+  CompletedReplaceSearchUrl: makeNoopStep(),
 
-    ChangedSearchInput: ({ value }) => ({
-      model: modifyFields(model, { searchText: () => value }),
-      commands: [
-        ReplaceSearchUrl({
-          url: productsRouter({
-            searchText: Option.filter(
-              Option.some(value),
-              value => value !== '',
-            ),
-          }),
+  ChangedSearchInput: (model, { value }) => ({
+    model: modifyFields(model, { searchText: () => value }),
+    commands: [
+      ReplaceSearchUrl({
+        url: productsRouter({
+          searchText: Option.filter(Option.some(value), value => value !== ''),
         }),
-      ],
-    }),
-
-    ClickedAddToCart: ({ item }) => ({
-      model,
-      outMessage: OutMessage.AddedToCart({ item }),
-    }),
-
-    ClickedIncrementQuantity: ({ itemId }) => ({
-      model,
-      outMessage: OutMessage.IncrementedQuantity({ itemId }),
-    }),
-
-    ClickedDecrementQuantity: ({ itemId }) => ({
-      model,
-      outMessage: OutMessage.DecrementedQuantity({ itemId }),
-    }),
+      }),
+    ],
   }),
-)
+
+  ClickedAddToCart: makeOutMessageStep.fromMessage(({ item }) =>
+    OutMessage.AddedToCart({ item }),
+  ),
+
+  ClickedIncrementQuantity: makeOutMessageStep.fromMessage(({ itemId }) =>
+    OutMessage.IncrementedQuantity({ itemId }),
+  ),
+
+  ClickedDecrementQuantity: makeOutMessageStep.fromMessage(({ itemId }) =>
+    OutMessage.DecrementedQuantity({ itemId }),
+  ),
+})

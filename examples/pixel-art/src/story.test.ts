@@ -1,6 +1,7 @@
 import { Equal, Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
+import { toParentMessage } from 'foldkit/test'
 import { describe, expect, test } from 'vitest'
 
 import { Dialog, DialogBlock } from '@foldkit/ui'
@@ -42,14 +43,8 @@ const emptyModel: typeof Model.Type = {
     .model,
 }
 
-const emptyErrorDialogView = DialogBlock.makeView((_model, h) => h.empty)
-
 const errorDialogMessage = (message: typeof DialogBlock.Message.Type) =>
-  ErrorDialogBinding.embedView({
-    slotId: 'errorDialog',
-    model: emptyModel.errorDialog,
-    view: emptyErrorDialogView,
-  }).toParentMessage(message)
+  toParentMessage(ErrorDialogBinding, message)
 
 describe('brush tool', () => {
   test('painting a cell sets its color and pushes undo history', () => {

@@ -5,7 +5,7 @@ import {
   LocalMessage,
   Model,
   init,
-  prepare,
+  prepareStep,
 } from './composed-init.accepted.js'
 import { ReadCount } from './generated-dispatch.accepted.js'
 
@@ -13,17 +13,17 @@ import { ReadCount } from './generated-dispatch.accepted.js'
 init('ready')
 
 // @ts-expect-error Standalone Steps return results rather than another Step.
-Update.defineStep((_model: typeof Model.Type) => prepare)
+Update.defineStep((_model: typeof Model.Type) => prepareStep)
 
 // @ts-expect-error Standalone Steps cannot return a curried composition.
 Update.defineStep((_model: typeof Model.Type) =>
-  Update.combineSteps([prepare, prepare]),
+  Update.combineSteps([prepareStep, prepareStep]),
 )
 
 Update.combineSteps(Model.make({ child: { count: 0 }, isReady: false }), [
   // @ts-expect-error Raw nested Step callbacks cannot enter a composition.
-  () => prepare,
-  prepare,
+  () => prepareStep,
+  prepareStep,
 ])
 
 const OutMessage = Message.defineMessageUnion({ Prepared: {} })

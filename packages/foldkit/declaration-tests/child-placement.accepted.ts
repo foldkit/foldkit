@@ -17,7 +17,7 @@ const prepareChildBlock = () =>
     init: DeclarationChildPlacementChildComposition.makeInit(() => ({
       model: ChildModel.make({ value: '' }),
     })),
-    update: DeclarationChildPlacementChildComposition.makeUpdate(),
+    update: DeclarationChildPlacementChildComposition.makeUpdate({}),
   })
 export const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,

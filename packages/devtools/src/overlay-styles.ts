@@ -737,7 +737,7 @@ ul {
 .json-arrow {
   color: var(--dt-json-arrow);
   width: 10px;
-  height: 10px;
+  height: 18px;
   user-select: none;
 }
 

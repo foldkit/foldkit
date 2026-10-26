@@ -22,15 +22,17 @@ const CityPickerDefinition = Block.makeDefinition('CityPicker', {
   Message,
 })
 
+const { makeFieldsStep, makeNoopStep } = CityPickerDefinition
+
 // The parent stores the committed selection reported by the child.
 const foldComboboxOutMessage = CityPickerDefinition.makeOutMessageFold(
   CityCombobox,
   {
     Selected: ({ value }) =>
-      CityPickerDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeCity: () => Option.some(value),
       })),
-    ClearedSelection: CityPickerDefinition.makeNoopStep,
+    ClearedSelection: makeNoopStep,
   },
 )
 
@@ -49,7 +51,7 @@ const init = CityPickerComposition.makeInit(() => ({
   model: { maybeCity: Option.none() },
 }))
 
-const update = CityPickerComposition.makeUpdate()
+const update = CityPickerComposition.makeUpdate({})
 
 const cities: ReadonlyArray<typeof City.Type> = [
   'Johannesburg',

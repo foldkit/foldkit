@@ -76,24 +76,23 @@ export const childInit = GeneratedDispatchChildComposition.makeInit(() => ({
   model: { count: 0 },
   commands: [ReadCount()],
 }))
-export const childUpdate = GeneratedDispatchChildComposition.makeUpdate(
-  (model, message) =>
-    ChildMessage.match(message, {
-      ClickedIncrement: () => ({
-        model: modifyFields(model, {
-          count: Number.increment,
-        }),
-      }),
-      RequestedReadCount: () => ({ model, commands: [ReadCount()] }),
-      RequestedSetCount: ({ count }) => ({ model: ChildModel.make({ count }) }),
-      CompletedReadCount: ({ count }) => ({
-        model: ChildModel.make({ count }),
-      }),
-      ObservedCount: ({ count }) => ({
-        model: ChildModel.make({ count }),
-      }),
+export const childUpdate = GeneratedDispatchChildComposition.makeUpdate({
+  ClickedIncrement: model => ({
+    model: modifyFields(model, {
+      count: Number.increment,
     }),
-)
+  }),
+  RequestedReadCount: model => ({ model, commands: [ReadCount()] }),
+  RequestedSetCount: (model, { count }) => ({
+    model: ChildModel.make({ count }),
+  }),
+  CompletedReadCount: (model, { count }) => ({
+    model: ChildModel.make({ count }),
+  }),
+  ObservedCount: (model, { count }) => ({
+    model: ChildModel.make({ count }),
+  }),
+})
 export const childView = GeneratedDispatchChildComposition.makeView(
   (model, h) =>
     h.button(
@@ -148,23 +147,17 @@ export const parentInit = GeneratedDispatchParentComposition.makeInit(() => ({
   model: { title: 'Counts' },
   steps: [ChildBinding.requestSetCount({ count: 1 })],
 }))
-export const parentUpdate = GeneratedDispatchParentComposition.makeUpdate(
-  (model, message) =>
-    ParentMessage.match(message, {
-      ChangedTitle: ({ title }) => ({
-        model: modifyFields(model, {
-          title: () => title,
-        }),
-      }),
+export const parentUpdate = GeneratedDispatchParentComposition.makeUpdate({
+  ChangedTitle: (model, { title }) => ({
+    model: modifyFields(model, {
+      title: () => title,
     }),
-)
-export const setChildCount = GeneratedDispatchParentComposition.makeUpdate(
-  (model, message) =>
-    ParentMessage.match(message, {
-      ChangedTitle: ({ title }) =>
-        ChildBinding.requestSetCount({ count: title.length })(model),
-    }),
-)
+  }),
+})
+export const setChildCount = GeneratedDispatchParentComposition.makeUpdate({
+  ChangedTitle: (model, { title }) =>
+    ChildBinding.requestSetCount({ count: title.length })(model),
+})
 export const parentView = GeneratedDispatchParentComposition.makeView(
   (model, h) =>
     h.section(
@@ -224,9 +217,9 @@ export const ApplicationComposition = ApplicationDefinition.makeComposition({
 })
 export const sceneSubscriptions = Scene.subscriptions(ApplicationComposition)
 export const init = ApplicationComposition.makeInit(() => ({ model: {} }))
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, { ClickedApplication: () => ({ model }) }),
-)
+export const update = ApplicationComposition.makeUpdate({
+  ClickedApplication: model => ({ model }),
+})
 export const view = ApplicationComposition.makeView((model, h) =>
   h.main(
     [],

@@ -54,6 +54,23 @@ export type RuntimeBindingInitialPolicy =
   | RuntimeWrappedKeyedInitialPolicy
   | RuntimeProjectedBindingInitialPolicy
 
+/** @internal Validated storage used by opt-in dynamic child initialization. */
+export type RuntimeBindingStorage =
+  | Readonly<{ kind: 'Direct'; field: string; isOptional: boolean }>
+  | Readonly<{
+      kind: 'KeyedOption'
+      field: string
+      keyField: string
+      childField: string
+      isPlainWrapper: boolean
+    }>
+  | Readonly<{
+      kind: 'Map'
+      field: string
+      container: 'Record' | 'HashMap'
+      childField?: string
+    }>
+
 /** @internal Enumerates a Binding's active children from one parent Model. */
 export type RuntimeBinding = Readonly<{
   block: BindableBlock
@@ -64,6 +81,7 @@ export type RuntimeBinding = Readonly<{
   parentContract?: RuntimeParentContract
   isParentModel?: (model: unknown) => boolean
   initial?: RuntimeBindingInitialPolicy
+  storage?: RuntimeBindingStorage
   inspection: Readonly<{
     subscriptions: object
     managedResources: object
@@ -181,6 +199,15 @@ export const registerBindingInitialPolicy = (
 ): void => {
   const runtime = runtimeBindingOf(binding)
   bindings.set(binding, { ...runtime, initial })
+}
+
+/** @internal Records validated primitive storage metadata without adding public members. */
+export const registerBindingStorage = (
+  binding: object,
+  storage: RuntimeBindingStorage,
+): void => {
+  const runtime = runtimeBindingOf(binding)
+  bindings.set(binding, { ...runtime, storage })
 }
 
 /** @internal Rejects Bindings constructed under a different parent contract. */

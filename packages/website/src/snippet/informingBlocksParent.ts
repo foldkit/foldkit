@@ -21,6 +21,8 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
+const { makeFieldsStep, makeNoopStep } = ApplicationDefinition
+
 export const PeopleBinding = ApplicationDefinition.makeBinding(
   People.PeopleBlock,
   {
@@ -33,22 +35,22 @@ export const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [PeopleBinding],
 })
 
-const setRoute = (nextRoute: typeof ApplicationRoute.Type) =>
-  ApplicationDefinition.makeFieldsStep(() => ({ route: () => nextRoute }))
+const setRouteStep = (nextRoute: typeof ApplicationRoute.Type) =>
+  makeFieldsStep(() => ({ route: () => nextRoute }))
 
-const keepModel = ApplicationDefinition.makeNoopStep()
+const keepModelStep = makeNoopStep()
 
 type InformPeopleRouteStep =
-  | typeof keepModel
+  | typeof keepModelStep
   | ReturnType<typeof PeopleBinding.informRouteChanged>
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ChangedUrl: ({ url }) => {
-      const nextRoute = urlToApplicationRoute(url)
+export const update = ApplicationComposition.makeUpdate({
+  ChangedUrl: (model, { url }) => {
+    const nextRoute = urlToApplicationRoute(url)
 
-      const transition = Transition.make(model.route, nextRoute)
-      const informPeopleRoute = Transition.matchOrElse<InformPeopleRouteStep>()(
+    const transition = Transition.make(model.route, nextRoute)
+    const informPeopleRouteStep =
+      Transition.matchOrElse<InformPeopleRouteStep>()(
         transition,
         'People',
         {
@@ -57,13 +59,12 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
           Stayed: ({ nextRoute }) =>
             PeopleBinding.informRouteChanged({ route: nextRoute }),
         },
-        () => keepModel,
+        () => keepModelStep,
       )
 
-      return Update.combineSteps(model, [
-        setRoute(nextRoute),
-        informPeopleRoute,
-      ])
-    },
-  }),
-)
+    return Update.combineSteps(model, [
+      setRouteStep(nextRoute),
+      informPeopleRouteStep,
+    ])
+  },
+})

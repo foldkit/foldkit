@@ -6,6 +6,7 @@ This guide covers upgrades from the Block previews listed below to the candidate
 
 | Installed canary source suffix                    | Upgrade path                                                                                                                                                                        |
 | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `1f6776fa7ece`                                    | [Upgrade from 1f6776fa7ece](#upgrade-from-1f6776fa7ece). The preparation, assembly, and Program APIs already match.                                                                 |
 | `1fbeaffe6563`                                    | [Upgrade from 1fbeaffe6563](#upgrade-from-1fbeaffe6563).                                                                                                                            |
 | `c701daa80af1`, `396b19976386`, or `bfd880b1e6ca` | Follow the complete guide, including the application boundary, Step composition, and UI call-site changes. These three snapshots share the same application API for this migration. |
 
@@ -31,6 +32,39 @@ Do not combine candidate packages with packages from the previous preview. Inter
 
 If the project enforces pnpm's `minimumReleaseAge`, a newly uploaded preview may be too recent to install. Preserve that policy and add only the exact `name@version` entries from the verified manifest to `minimumReleaseAgeExclude`. Do not disable the age check globally.
 
+## Upgrade from 1f6776fa7ece
+
+The source snapshot is `1f6776fa7ececa766188df5201eefec6ba781b5d`. It already uses `Composition.prepareBlock`, checked `Block.assemble(prepare)` exports, the `make*` Definition factories, and `Program.make` or `Program.makeElement`. Keep those names and the existing child graph. Coverchart's starting installation uses `foldkit@0.169.0-canary.1f6776fa7ece`; identify your own starting packages from the lockfile.
+
+After installing one coherent target:
+
+1. Replace every collection argument to `Definition.makeCommandsStep` with the [callback form](#pass-a-callback-to-makecommandsstep). The collection overload is removed.
+2. Convert callback-authored updates to exhaustive [handler records](#preserve-update-handler-contracts). Use `makeUpdate({})` without local Messages and `makeUpdate.withContext` for dispatch context. The callback overload is removed.
+3. Preserve connected result channels. A single handler mixing connected Binding recipes with raw local results must use Definition-owned Steps for those local branches. Keep the complete result of an OutMessage-producing operation instead of composing it where that OutMessage would be discarded.
+4. Replace value-taking `Definition.makeOutMessageStep` calls with a [producer callback](#use-focused-step-producers). The value overload is removed. The field, Command, and OutMessage helpers now share Model-aware, Message-aware, and `.fromMessage` forms.
+5. Rename any ManagedResource registry entry key named `layer`; that key now holds the aggregate handler Layer. A fully attached owned registry exposes [managedResources.layer](/core/managed-resources); mixed or host-owned registries use explicit entry providers.
+6. If the application uses DragAndDrop, add `StartedKeyboardDrag` and `ChangedKeyboardTarget` to exhaustive OutMessage policies. These report keyboard pickup and the proposed target; handle them in parent policy or use the owning Definition's no-op fold handler when no reaction is needed. Custom keyboard-move handlers and manually constructed `CompletedResolveKeyboardMove` Messages must echo the invocation's `keyboardDragGeneration`. The public Story helper derives that generation from the selected pending Command. The [DragAndDrop guide](/ui/drag-and-drop) shows the current contract.
+7. Check keyed Command cancellation policies. `toKey` now receives only the own fields selected by `keyFields` on both invocation and interruption. It cannot read unrelated invocation args. Preserve precise selected fields in extracted `Command.InterruptOption<Args, Key>` annotations; broad policies must handle uncertain fields as optional. Narrow policy unions before construction. See [keyed interruption](/core/commands#choosing-an-interruption-key).
+8. Run [the upgrade checks](#verify-the-upgrade), including tests and public declaration output where applicable.
+
+Effect `DateTime` and `TimeZone` values can now pass through ViewInputs without converting them to primitives. Added nested application callbacks remain rejected. `Update.withOutMessage` also retains its OutMessage after homogeneous or nested connected Step combinations. These declaration fixes require no new API names or data conversions.
+
+`Story.message` now permits another fact while Commands are pending. Pending Commands retain their identity and still require explicit resolution before the Story ends. This lets concurrency tests keep the actual pending work instead of constructing a pending Model. Scene retains its separate interaction and Mount checks. See [concurrent Story delivery](/testing/story#multi-step-flows).
+
+Reciprocal Binding policies now resolve converging paths without repeatedly expanding the same policy graph. The reported twelve-Binding compiler-depth case has regression coverage. This does not establish an unlimited graph size or eliminate all editor latency.
+
+The following additions are optional:
+
+- Schema-backed Record and HashMap child fields can use [`makeMapBinding` from `foldkit/mapBinding`](/core/block#keyed-map-fields), removing repeated lookup and replacement configuration. Existing general keyed Bindings remain supported for custom relationships.
+- A closed, fully attached ManagedResource registry supplies its handler recipes through [managedResources.layer](/core/managed-resources), matching Subscriptions. Empty registries supply `Layer.empty`; mixed attached/host-owned registries require explicit provider selection.
+- Story and Scene helpers can inspect captured Command arguments through [Command.argsOf](/testing/story#inspect-captured-command-arguments), matching the original Definition's source identity without changing the pending Command or selecting an occurrence.
+- Parent Stories can wrap a child fact with [toParentMessage from foldkit/test](/testing#send-a-child-fact-without-a-view), using the exact Binding without view setup or fabricated envelope fields. Existing Command and Subscription replay paths remain appropriate for their respective sources.
+- Whole tagged child variants can use [makeVariantBinding](/core/block#whole-tagged-variants). [Dynamic storage helpers](/core/init-and-flags#dynamic-storage-helpers) set singular children, append initialized keyed arrays, and insert direct-value map entries without repeating storage writers.
+- Story can [derive a Message from the current Model](/testing/story#build-a-message-from-the-current-model) with `messageWith` or [deliver a decoded registered Subscription Message](/testing/story#deliver-a-subscription-message) with `Subscription.from(FeatureBlock.subscriptions).emit`.
+- Scene can [keep one exact ordinary Command pending](/testing/scene#pending-command-rules) across another interaction with `Command.keepPending`. The Command remains visible to assertions and resolution, and must resolve before the Scene ends.
+
+The new Workspace example demonstrates a larger application, and named public UI Block headers improve declaration serialization. Those changes do not require a new application architecture. Applications with public declaration output should still [verify their own emission](#emit-public-block-declarations); a successful application source check alone does not establish declaration portability.
+
 ## Upgrade from 1fbeaffe6563
 
 The verified source is `1fbeaffe656303b44d8fd20c18d598f08014a5c9`. Its root already uses the previous `assembleBlock` preparation method and `Program.make` or `Program.makeElement`. Rename that method to `prepareBlock`, name its private zero-argument producer `prepare`, and assemble the returned draft with `Block.assemble(prepare)` while keeping the existing graph and host wiring:
@@ -44,18 +78,24 @@ After installing one coherent target, make the changes used by your application:
 
 1. Replace `assembleBlock` with `prepareBlock`, replace `Block.complete` with `Block.assemble`, and rename each ordinary private `assemble` producer to `prepare`. For direct `foldkit/block` imports, rename the `complete` function to `assemble` and the `AssembleBlock` method type to `PrepareBlock`. The four `FromAssembly*` annotation types retain their names. The old names have no compatibility aliases.
 2. Apply the [Definition and Namespace factory renames](#rename-definition-authoring-factories). The old names have no compatibility aliases.
-3. Replace `Animation.defaultLeaveCommand` with the [bound leave-settlement operation](#replace-the-standard-animation-leave-helper) wherever the application uses standard CSS settlement. Keep custom settlement Commands for additional signals.
-4. Update any affected [UI trigger and focus tests](#update-ui-trigger-and-focus-tests).
-5. Apply the [Vite security patches](#vite-security-patches) to affected installed development tooling.
-6. Run [the upgrade checks](#verify-the-upgrade). Assembly now rejects incompatible same-named Command handler contracts inside generic Block factories. Correct the owning definitions or handler Layers when this exposes invalid wiring.
+3. Convert existing `makeCommandsStep` collection arguments to the [required callback form](#pass-a-callback-to-makecommandsstep).
+4. Replace `Animation.defaultLeaveCommand` with the [bound leave-settlement operation](#replace-the-standard-animation-leave-helper) wherever the application uses standard CSS settlement. Keep custom settlement Commands for additional signals.
+5. Update any affected [UI trigger and focus tests](#update-ui-trigger-and-focus-tests).
+6. Apply the [Vite security patches](#vite-security-patches) to affected installed development tooling.
+7. Check [update handler contracts](#preserve-update-handler-contracts) and [public declaration boundaries](#emit-public-block-declarations) for the code the project contains.
+8. Run [the upgrade checks](#verify-the-upgrade). Assembly now rejects incompatible same-named Command handler contracts inside generic Block factories. Correct the owning definitions or handler Layers when this exposes invalid wiring.
 
-The checked preparation and assembly boundary below is required for every source Block. [Native TypeScript tooling](#native-typescript-tooling) and [Command-only Steps](#optional-convenience) remain separate setup or organization choices. The explicit producer/header shape also keeps parent Model Schema access independent of the completed implementation graph.
+The checked preparation and assembly boundary below is required for every source Block. Existing `makeCommandsStep` callers must also adopt its callback argument. [Native TypeScript tooling](#native-typescript-tooling) and choosing [Command-only Step helpers](#optional-convenience) remain separate setup or organization choices. The explicit producer/header shape also keeps parent Model Schema access independent of the completed implementation graph.
 
 ### Update UI trigger and focus tests
 
 Popover, Menu, and Listbox report trigger clicks as `ClickedButton`. Include that fact in exhaustive component Message matchers and update Scene expectations that previously expected an open or close Message from a trigger click. The component's update decides whether to open or close from its current Model. Parent coordination uses Binding operations and OutMessage policies.
 
 For a Popover with the default focus policy, use `Scene.focusLeave(panel)` instead of `Scene.blur(panel)` when testing dismissal as focus leaves the panel. Moving focus between the panel and its descendants keeps it open. With `contentFocus: true`, the application owns focus and dismissal.
+
+Optional `makeVariantBinding` from `foldkit/variantBinding` replaces manual accessors when a child occupies one complete tagged member of the parent `Schema.Union`. Include the actual child Model Schema in that union. Parent update still owns variant switches and explicit initialization. See [whole tagged variants](/core/block#whole-tagged-variants).
+
+The optional `foldkit/bindingInit` module adds `initAndSet` for required/optional direct fields and exact key/child Option wrappers, `initAndAppend` for arrays with an existing `init.instances`/`init.toItem` policy, and `initAndInsert` for direct-value Record/HashMap storage. Pass the Binding, current parent Model and `{ args }`, adding `key` for keyed storage. Append and insert reject occupied keys. Keep explicit initialization for additional wrapper metadata, sibling changes, parent Commands, or whole tagged variants. See [dynamic storage helpers](/core/init-and-flags#dynamic-storage-helpers).
 
 ## Update the Application Boundary
 
@@ -114,13 +154,33 @@ Definition-owned factories now use the same `make*` naming as `makeInit`, `makeU
 | `Definition.stepFields(...)`       | `Definition.makeFieldsStep(...)`       |
 | `Definition.stepNoop()`            | `Definition.makeNoopStep()`            |
 
-Apply the primitive factory renames to an early Namespace used by a generic Block factory as well. `Definition.makeCommandsStep(...)` already has its final name. Keep completion fields such as `subscriptions` and `managedResources`, completed Block metadata, and standalone Command and Update APIs unchanged. The removed factory names have no compatibility aliases.
+Apply the primitive factory renames to an early Namespace used by a generic Block factory as well. `Definition.makeCommandsStep(...)` retains its name but now requires the [callback argument below](#pass-a-callback-to-makecommandsstep). Keep completion fields such as `subscriptions` and `managedResources`, completed Block metadata, and standalone Command and Update APIs unchanged. The removed factory names have no compatibility aliases.
 
 ## Rename Step Composition
 
 This change applies to `c701daa80af1`, `396b19976386`, and `bfd880b1e6ca`.
 
 Replace `Update.combine` with `Update.combineSteps` in both data-first and data-last calls. The helper applies pure Steps sequentially to the Model and collects their Commands; it does not sequence Command execution. Its arguments, inferred requirements, and registration checks are unchanged. See [Combining Steps](/core/update#combining-steps).
+
+## Pass a Callback to makeCommandsStep
+
+Existing `Definition.makeCommandsStep(commands)` calls must become `Definition.makeCommandsStep(() => commands)`. The collection overload has been removed. For an inline collection, move the array expression inside the callback, as in `Definition.makeCommandsStep(() => [FocusField()])`.
+
+When Command arguments depend on the Model, read them inside `Definition.makeCommandsStep(model => commands)`. The callback receives the contextually typed current Model when the Step is applied, including changes from a preceding Step. Construction defers the callback, and application returns the same Model object with its Commands. Neither stage executes Effects; the Runtime executes the Commands.
+
+::Snippet{name="blockCommandsStep" label="Producing Commands from the current Model"}
+
+Converting existing calls is required. Adopting this helper where ordinary update branches already return result objects remains an optional organization change. Keep `makeStep` for additional producer arguments, reusable mixed transitions, and connected or composed results beyond the focused helpers.
+
+## Preserve Update Handler Contracts
+
+Use the exhaustive `Composition.makeUpdate({ Tag: (model, message) => result })` record for local facts. It contextually types the Model and exact Message payload, checks every handler, and retains per-Message Commands and OutMessages for public operations. A selected silent operation can participate in `Update.combineSteps`; an emitting operation cannot lose its OutMessage there. Required dispatch context uses `makeUpdate.withContext(context => handlers)`.
+
+The callback-taking overload is removed. Convert every callback-authored update to an exhaustive handler record; use `makeUpdate({})` for message-free and routed-only Compositions. A handler receives `(model, message)`. Name an extracted single-Message handler `handle<MessageTag>` and pass compatible handlers or Steps directly. Keep callbacks when they adapt payloads, derive inputs, or supply contextual inference. Give every named Model-first Step value a descriptive name ending in `Step`. Give a purposeful transition factory that returns a Step an operation name ending in `Step` too. Named OutMessage folds and matchers retain their established names. If one handler mixes connected Binding recipes with raw local result branches, use Definition-owned Steps for those local branches. Do not erase connected results through `.model`, a broad return annotation, or a cast.
+
+::Snippet{name="updateCanonicalLocalResults" label="Repairing mixed connected and local results"}
+
+The local no-op in a record can be `CompletedSave: Definition.makeNoopStep()`. The bare helper is a factory, not that Model-first handler. There is no need to name a no-op alias or wrap every normal handler with `makeStep`. [Update](/core/update) explains the forms and the context-factory adapter.
 
 ## Update UI Call Sites
 
@@ -207,12 +267,21 @@ The feature barrel exports its completed Block. Keep the Model Schema internal t
 
 The recommended `foldkit/no-completed-block-model-in-schema` rule still reports proven inferred completed Models inside Schema construction, including nested wrappers. It accepts the recognized checked producer/header boundary. Ordinary public Model access and type queries remain supported. See [Model Schema dependencies](/patterns/project-organization#keep-model-schema-dependencies-small) for recognition limits. This is a compiler-work boundary, not a promise of instant editor responses.
 
+### Emit Public Block Declarations
+
+Packages that ship declaration files should name their public completed Block contracts with a same-name interface and value over the existing matching `FromAssembly*` header. JavaScript-only applications keep the checked value annotation above. The private preparation producer and `Block.assemble` call stay unchanged:
+
+::Snippet{name="blockDeclarationBoundary" label="Keeping a public Block declaration named"}
+
+Run declaration emission for the actual public entrypoints and check the emitted package externally. There is no reliable graph-size threshold, and `noEmit` alone does not verify serialization. This boundary avoids repeated child expansion; it does not guarantee that every larger root producer will fit the compiler's serialization limit. See [declaration emission](/patterns/project-organization#declaration-emission).
+
 ## Confirm the Remaining Compiler Findings
 
 The checklist below applies to the older `c701daa80af1`, `396b19976386`, and `bfd880b1e6ca` snapshots. For `1fbeaffe6563`, use [its direct upgrade path](#upgrade-from-1fbeaffe6563), then [verify the upgrade](#verify-the-upgrade). Search first, then change only the code the project contains:
 
 - Replace `assembleBlock` with `prepareBlock`, replace `Block.complete` with `Block.assemble`, and rename an ordinary private `assemble` producer to `prepare`.
 - Replace every removed Definition or Namespace factory name using the table above. Do not rename completion config fields, completed Block metadata, or standalone Command and Update APIs.
+- Convert each existing `makeCommandsStep(commands)` call to a callback. Construct Model-dependent Commands inside that callback so they read the Model at Step application time.
 - Replace remaining `makeApplicationDefinition`, `assembleApplication`, and `assembleElement` uses with the completed root Block and Program boundary above.
 - Update each server render whose first argument is an Application Composition or whose host config repeats `init`, `update`, or `view`.
 - Replace Animation `viewInputs.content` with a top-level `toView` renderer.
@@ -228,11 +297,19 @@ Run the project's formatter, typecheck, lint, tests, and build after these edits
 
 ## Optional Convenience
 
-Use `Definition.makeCommandsStep(commands)` for a composed Step whose only job is returning an existing Command collection. It preserves the Model and keeps Command requirements and Binding evidence. Keep `Definition.makeStep` when the Commands depend on the current Model or the transition also changes fields or emits an OutMessage. Ordinary update branches can keep returning their result objects directly.
+### Use focused Step producers
 
-Use `Definition.makeOutMessageStep(outMessage)` for a reusable Step that preserves the Model and emits one already-known declared OutMessage. Use `Update.withOutMessage` to attach an OutMessage to an existing result or when the value may be `undefined`. `Update.combineSteps` rejects OutMessage-producing Steps; attach an OutMessage to its plain result afterward.
+`makeFieldsStep`, `makeCommandsStep`, and `makeOutMessageStep` all take producer callbacks. Ordinary producers receive the current Model and, for Message-dependent handlers, the exact Message. Use `.fromMessage` for payload-only producers and `() => value` for fixed producers. Pass compatible Steps and handlers directly in the exhaustive update record:
 
-These conveniences can shorten current code; they are optional when upgrading.
+::Snippet{name="blockMessageStepProducers" label="Producing focused handler results"}
+
+Producers run when applied. Commands-only and OutMessage-only helpers preserve the incoming Model identity, and the Runtime executes returned Commands later. The OutMessage helper's previous value form is removed; a fixed OutMessage now uses a zero-argument producer:
+
+::Snippet{name="blockOutMessageStep" label="Producing a fixed OutMessage"}
+
+Converting existing value/collection arguments is required. Adopting focused helpers in other single-purpose handlers is optional for downstream upgrades. Keep cohesive mixed transitions as direct results and reusable mixed or connected operations on `makeStep`. `Update.withOutMessage` attaches an OutMessage to an existing plain result or accepts an optional value. `Update.combineSteps` still rejects emitting Steps.
+
+### Simplify keyed storage
 
 An exact required `Schema.Option` field containing one keyed Struct wrapper can use the `field`, `key`, and `childField` Binding shorthand. `None` means absent, and `Binding.init` remains responsible for creating an occurrence. Existing explicit `readAll`, `read`, `writeAt`, and `keySchema` policies remain supported. See [Optional keyed children](/core/block#fold-child-at) before choosing the shorthand.
 
@@ -253,3 +330,9 @@ When asking a coding agent to perform the migration, give it this page URL and t
 - **`ToastBlock.test.drainEntry` finds no timer.** Check the completed Toast Block, exact Binding, occurrence key, entry ID, and timer version. Use individual resolvers when the entry is sticky or its lifecycle has advanced.
 - **Installed packages show different canary hashes.** Reapply the exact manifest versions and regenerate the lockfile before diagnosing TypeScript errors.
 - **pnpm refuses a newly uploaded package because of its age.** Add that exact manifest entry to `minimumReleaseAgeExclude`. Keep the project's minimum release age enabled.
+
+## DragAndDrop parent coordination
+
+DragAndDrop now exposes `StartedKeyboardDrag` and `ChangedKeyboardTarget`. Add both cases to exhaustive OutMessage policies, using the parent's `makeNoopStep` when no reaction is needed. The target notification carries the item ID and previous/next container IDs and indices, and only emits for a changed keyboard target. Keyboard move results must preserve the invocation's `keyboardDragGeneration`; results from cancelled interactions cannot affect a restarted drag.
+
+Move announcements derived from a Binding writer into its OutMessage policy. Writers place child state into storage; policies own parent reactions. The recommended `no-binding-write-coordination` rule detects straightforward direct-field violations. An optimistic move announcement should follow the parent's accepted placement; persistence failure should announce rollback separately.

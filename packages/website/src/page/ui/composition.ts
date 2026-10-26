@@ -15,10 +15,9 @@ import {
   SliderBlock,
   TooltipBlock,
 } from '@foldkit/ui'
-import { DragState } from '@foldkit/ui/dragAndDrop'
 
 import { CityComboboxBlock, CityMultiComboboxBlock } from './combobox'
-import { UiDefinition } from './definition'
+import { UiDefinition, makeFieldsStep, makeNoopStep } from './definition'
 import {
   ActivityVirtualListBlock,
   CharacterListboxBlock,
@@ -30,7 +29,6 @@ import {
 } from './demo/components'
 import { ToastBlock } from './demo/toastModule'
 import { type DemoCard, type DemoColumn } from './domain/domain'
-import { Model } from './model'
 import { VirtualListChatDemoBindingWithOutMessagePolicy } from './virtualListChat'
 
 export { VirtualListChatDemoBinding } from './virtualListChat'
@@ -125,88 +123,30 @@ const dragAndDropDemoAnnouncementToText = DragAndDropDemoAnnouncement.match({
   Cancelled: () => 'Drag cancelled.',
 })
 
-const maybeDragAndDropDemoKeyboardAnnouncement = (
-  model: typeof Model.Type,
-  nextDragAndDrop: typeof DragAndDropBlock.Model.Type,
-): Option.Option<typeof DragAndDropDemoAnnouncement.Type> =>
-  DragState.matchOrElse<Option.Option<typeof DragAndDropDemoAnnouncement.Type>>(
-    nextDragAndDrop.dragState,
-    {
-      KeyboardDragging: nextState =>
-        DragState.matchOrElse<
-          Option.Option<typeof DragAndDropDemoAnnouncement.Type>
-        >(
-          model.dragAndDropDemo.dragState,
-          {
-            Idle: () =>
-              Option.some(
-                DragAndDropDemoAnnouncement.PickedUp({
-                  label: findDragAndDropDemoCardLabel(
-                    model.dragAndDropDemoColumns,
-                    nextState.itemId,
-                  ),
-                }),
-              ),
-            KeyboardDragging: previousState => {
-              const columnLabel = findDragAndDropDemoColumnLabel(
-                model.dragAndDropDemoColumns,
-                nextState.targetContainerId,
-              )
-              const position = nextState.targetIndex + 1
-
-              if (
-                previousState.targetContainerId !== nextState.targetContainerId
-              ) {
-                return Option.some(
-                  DragAndDropDemoAnnouncement.MovedToColumn({
-                    columnLabel,
-                    position,
-                  }),
-                )
-              }
-
-              if (previousState.targetIndex !== nextState.targetIndex) {
-                return Option.some(
-                  DragAndDropDemoAnnouncement.MovedWithinColumn({
-                    columnLabel,
-                    position,
-                  }),
-                )
-              }
-
-              return Option.none()
-            },
-          },
-          () => Option.none(),
-        ),
-    },
-    () => Option.none(),
-  )
-
 const foldDialogOutMessage = UiDefinition.makeOutMessageFold(DialogBlock, {
-  Opened: UiDefinition.makeNoopStep,
-  Closed: UiDefinition.makeNoopStep,
-  CompletedClose: UiDefinition.makeNoopStep,
+  Opened: makeNoopStep,
+  Closed: makeNoopStep,
+  CompletedClose: makeNoopStep,
 })
 
 const foldMenuOutMessage = UiDefinition.makeOutMessageFold(DemoMenuBlock, {
-  Selected: UiDefinition.makeNoopStep,
-  Closed: UiDefinition.makeNoopStep,
+  Selected: makeNoopStep,
+  Closed: makeNoopStep,
 })
 
 const foldPopoverOutMessage = UiDefinition.makeOutMessageFold(PopoverBlock, {
-  Opened: UiDefinition.makeNoopStep,
-  Closed: UiDefinition.makeNoopStep,
+  Opened: makeNoopStep,
+  Closed: makeNoopStep,
 })
 
 const foldCalendarBasicDemoOutMessage = UiDefinition.makeOutMessageFold(
   CalendarBlock,
   {
     SelectedDate: ({ date }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeCalendarBasicDemoSelectedDate: () => Option.some(date),
       })),
-    ChangedViewMonth: UiDefinition.makeNoopStep,
+    ChangedViewMonth: makeNoopStep,
   },
 )
 
@@ -230,14 +170,14 @@ const foldDatePickerBasicDemoOutMessage = UiDefinition.makeOutMessageFold(
   DatePickerBlock,
   {
     SelectedDate: ({ date }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeDatePickerBasicDemoSelectedDate: () => Option.some(date),
       })),
     ClearedDate: () =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeDatePickerBasicDemoSelectedDate: () => Option.none(),
       })),
-    ChangedViewMonth: UiDefinition.makeNoopStep,
+    ChangedViewMonth: makeNoopStep,
   },
 )
 
@@ -261,10 +201,10 @@ const foldComboboxDemoOutMessage = UiDefinition.makeOutMessageFold(
   CityComboboxBlock,
   {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeComboboxDemoSelectedCity: () => Option.some(value),
       })),
-    ClearedSelection: UiDefinition.makeNoopStep,
+    ClearedSelection: makeNoopStep,
   },
 )
 
@@ -277,10 +217,10 @@ const foldComboboxPlacementLockDemoOutMessage = UiDefinition.makeOutMessageFold(
   CityComboboxBlock,
   {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeComboboxPlacementLockDemoSelectedCity: () => Option.some(value),
       })),
-    ClearedSelection: UiDefinition.makeNoopStep,
+    ClearedSelection: makeNoopStep,
   },
 )
 
@@ -298,7 +238,7 @@ const foldComboboxNullableDemoOutMessage = UiDefinition.makeOutMessageFold(
   CityComboboxBlock,
   {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeComboboxNullableDemoSelectedCity:
           maybeComboboxNullableDemoSelectedCity =>
             Option.contains(maybeComboboxNullableDemoSelectedCity, value)
@@ -306,7 +246,7 @@ const foldComboboxNullableDemoOutMessage = UiDefinition.makeOutMessageFold(
               : Option.some(value),
       })),
     ClearedSelection: () =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeComboboxNullableDemoSelectedCity: () => Option.none(),
       })),
   },
@@ -327,7 +267,7 @@ const foldComboboxMultiDemoOutMessage = UiDefinition.makeOutMessageFold(
   CityMultiComboboxBlock,
   {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         comboboxMultiDemoSelectedCities: comboboxMultiDemoSelectedCities =>
           Array.contains(comboboxMultiDemoSelectedCities, value)
             ? Array.filter(
@@ -336,7 +276,7 @@ const foldComboboxMultiDemoOutMessage = UiDefinition.makeOutMessageFold(
               )
             : Array.append(comboboxMultiDemoSelectedCities, value),
       })),
-    ClearedSelection: UiDefinition.makeNoopStep,
+    ClearedSelection: makeNoopStep,
   },
 )
 
@@ -352,10 +292,10 @@ const foldComboboxSelectOnFocusDemoOutMessage = UiDefinition.makeOutMessageFold(
   CityComboboxBlock,
   {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeComboboxSelectOnFocusDemoSelectedCity: () => Option.some(value),
       })),
-    ClearedSelection: UiDefinition.makeNoopStep,
+    ClearedSelection: makeNoopStep,
   },
 )
 
@@ -395,10 +335,10 @@ const foldOverlayComboboxDemoOutMessage = UiDefinition.makeOutMessageFold(
   CityComboboxBlock,
   {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeOverlayComboboxDemoSelectedCity: () => Option.some(value),
       })),
-    ClearedSelection: UiDefinition.makeNoopStep,
+    ClearedSelection: makeNoopStep,
   },
 )
 
@@ -434,7 +374,7 @@ const foldListboxDemoOutMessage = UiDefinition.makeOutMessageFold(
   ItemListboxBlock,
   {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeListboxDemoSelectedItem: () => Option.some(value),
       })),
   },
@@ -449,7 +389,7 @@ const foldListboxMultiDemoOutMessage = UiDefinition.makeOutMessageFold(
   ItemMultiListboxBlock,
   {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         listboxMultiDemoSelectedItems: listboxMultiDemoSelectedItems =>
           Array.contains(listboxMultiDemoSelectedItems, value)
             ? Array.filter(
@@ -473,7 +413,7 @@ const foldListboxGroupedDemoOutMessage = UiDefinition.makeOutMessageFold(
   CharacterListboxBlock,
   {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeListboxGroupedDemoSelectedItem: () => Option.some(value),
       })),
   },
@@ -546,7 +486,7 @@ const foldSliderRatingDemoOutMessage = UiDefinition.makeOutMessageFold(
   SliderBlock,
   {
     ChangedValue: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({ sliderRatingValue: () => value })),
+      makeFieldsStep(() => ({ sliderRatingValue: () => value })),
   },
 )
 
@@ -562,7 +502,7 @@ const foldSliderVolumeDemoOutMessage = UiDefinition.makeOutMessageFold(
   SliderBlock,
   {
     ChangedValue: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({ sliderVolumeValue: () => value })),
+      makeFieldsStep(() => ({ sliderVolumeValue: () => value })),
   },
 )
 
@@ -578,7 +518,7 @@ const foldHorizontalTabsDemoOutMessage = UiDefinition.makeOutMessageFold(
   DemoTabsBlock,
   {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         horizontalTabsDemoTab: () => value,
       })),
   },
@@ -596,7 +536,7 @@ const foldVerticalTabsDemoOutMessage = UiDefinition.makeOutMessageFold(
   DemoTabsBlock,
   {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({ verticalTabsDemoTab: () => value })),
+      makeFieldsStep(() => ({ verticalTabsDemoTab: () => value })),
   },
 )
 
@@ -606,8 +546,8 @@ export const VerticalTabsDemoBinding = UiDefinition.makeBinding(DemoTabsBlock, {
 }).withOutMessagePolicy({ fold: foldVerticalTabsDemoOutMessage })
 
 const foldTooltipOutMessage = UiDefinition.makeOutMessageFold(TooltipBlock, {
-  Shown: UiDefinition.makeNoopStep,
-  Hidden: UiDefinition.makeNoopStep,
+  Shown: makeNoopStep,
+  Hidden: makeNoopStep,
 })
 
 export const TooltipDemoBinding = UiDefinition.makeBinding(TooltipBlock, {
@@ -618,8 +558,8 @@ export const TooltipDemoBinding = UiDefinition.makeBinding(TooltipBlock, {
 const foldHoverIntentOutMessage = UiDefinition.makeOutMessageFold(
   HoverIntentBlock,
   {
-    Opened: UiDefinition.makeNoopStep,
-    Closed: UiDefinition.makeNoopStep,
+    Opened: makeNoopStep,
+    Closed: makeNoopStep,
   },
 )
 
@@ -639,7 +579,7 @@ export const HoverIntentMenuDemoBinding = UiDefinition.makeBinding(
 
 const foldToastDemoOutMessage = UiDefinition.makeOutMessageFold(ToastBlock, {
   DismissedToast: ({ payload }) =>
-    UiDefinition.makeFieldsStep(() => ({
+    makeFieldsStep(() => ({
       maybeLastDismissedToastTitle: () => Option.some(payload.title),
     })),
 })
@@ -661,7 +601,7 @@ const foldAnimationDemoOutMessage = UiDefinition.makeOutMessageFold(
   {
     StartedLeaveAnimating: () =>
       AnimationDemoBinding.requestWaitForLeaveSettlement(),
-    TransitionedOut: UiDefinition.makeNoopStep,
+    TransitionedOut: makeNoopStep,
   },
 )
 
@@ -669,10 +609,10 @@ const foldFileDropBasicDemoOutMessage = UiDefinition.makeOutMessageFold(
   FileDropBlock,
   {
     ReceivedFiles: ({ files }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         fileDropBasicDemoFiles: Array.appendAll(files),
       })),
-    RejectedNonFiles: UiDefinition.makeNoopStep,
+    RejectedNonFiles: makeNoopStep,
   },
 )
 
@@ -687,8 +627,37 @@ export const FileDropBasicDemoBinding = UiDefinition.makeBinding(
 const foldDragAndDropDemoOutMessage = UiDefinition.makeOutMessageFold(
   DragAndDropBlock,
   {
+    StartedKeyboardDrag: ({ itemId }) =>
+      makeFieldsStep(model => ({
+        dragAndDropDemoAnnouncement: () =>
+          dragAndDropDemoAnnouncementToText(
+            DragAndDropDemoAnnouncement.PickedUp({
+              label: findDragAndDropDemoCardLabel(
+                model.dragAndDropDemoColumns,
+                itemId,
+              ),
+            }),
+          ),
+      })),
+    ChangedKeyboardTarget: ({ fromContainerId, toContainerId, toIndex }) =>
+      makeFieldsStep(model => ({
+        dragAndDropDemoAnnouncement: () => {
+          const args = {
+            columnLabel: findDragAndDropDemoColumnLabel(
+              model.dragAndDropDemoColumns,
+              toContainerId,
+            ),
+            position: toIndex + 1,
+          }
+          return dragAndDropDemoAnnouncementToText(
+            fromContainerId !== toContainerId
+              ? DragAndDropDemoAnnouncement.MovedToColumn(args)
+              : DragAndDropDemoAnnouncement.MovedWithinColumn(args),
+          )
+        },
+      })),
     Reordered: ({ itemId, fromContainerId, toContainerId, toIndex }) =>
-      UiDefinition.makeFieldsStep(model => {
+      makeFieldsStep(model => {
         const label = findDragAndDropDemoCardLabel(
           model.dragAndDropDemoColumns,
           itemId,
@@ -718,7 +687,7 @@ const foldDragAndDropDemoOutMessage = UiDefinition.makeOutMessageFold(
         }
       }),
     Cancelled: () =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         dragAndDropDemoAnnouncement: () =>
           dragAndDropDemoAnnouncementToText(
             DragAndDropDemoAnnouncement.Cancelled(),
@@ -730,33 +699,15 @@ const foldDragAndDropDemoOutMessage = UiDefinition.makeOutMessageFold(
 export const DragAndDropDemoBinding = UiDefinition.makeBinding(
   DragAndDropBlock,
   {
-    read: model => Option.some(model.dragAndDropDemo),
-    write: (model, nextDragAndDropDemo) =>
-      modifyFields(model, {
-        dragAndDropDemo: () => nextDragAndDropDemo,
-        dragAndDropDemoAnnouncement: dragAndDropDemoAnnouncement =>
-          Option.match(
-            maybeDragAndDropDemoKeyboardAnnouncement(
-              model,
-              nextDragAndDropDemo,
-            ),
-            {
-              onNone: () => dragAndDropDemoAnnouncement,
-              onSome: dragAndDropDemoAnnouncementToText,
-            },
-          ),
-      }),
-    init: {
-      contextToArgs: () => [{ id: 'drag-and-drop-demo' }],
-      toParentFields: dragAndDropDemo => ({ dragAndDropDemo }),
-    },
+    field: 'dragAndDropDemo',
+    init: { contextToArgs: () => [{ id: 'drag-and-drop-demo' }] },
   },
 ).withOutMessagePolicy({ fold: foldDragAndDropDemoOutMessage })
 
 const foldVirtualListOutMessage = UiDefinition.makeOutMessageFold(
   ActivityVirtualListBlock,
   {
-    ObservedContainerScroll: UiDefinition.makeNoopStep,
+    ObservedContainerScroll: makeNoopStep,
   },
 )
 
@@ -786,7 +737,7 @@ const foldVerticalRadioGroupDemoOutMessage = UiDefinition.makeOutMessageFold(
   PlanRadioGroupBlock,
   {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         verticalRadioGroupDemoValue: () => Option.some(value),
       })),
   },
@@ -806,7 +757,7 @@ const foldHorizontalRadioGroupDemoOutMessage = UiDefinition.makeOutMessageFold(
   PlanRadioGroupBlock,
   {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         horizontalRadioGroupDemoValue: () => Option.some(value),
       })),
   },

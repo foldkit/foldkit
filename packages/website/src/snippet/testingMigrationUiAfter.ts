@@ -9,14 +9,17 @@ const Model = Schema.Struct({ dialog: Dialog.DialogBlock.Model })
 
 const Message = defineMessageUnion({})
 const ConfirmDefinition = Block.makeDefinition('Confirm', { Model, Message })
+
+const { makeNoopStep } = ConfirmDefinition
+
 const DialogBinding = ConfirmDefinition.makeBinding(Dialog.DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => Tuple.make({ id: 'confirm' }) },
 }).withOutMessagePolicy({
   fold: ConfirmDefinition.makeOutMessageFold(Dialog.DialogBlock, {
-    Opened: ConfirmDefinition.makeNoopStep,
-    Closed: ConfirmDefinition.makeNoopStep,
-    CompletedClose: ConfirmDefinition.makeNoopStep,
+    Opened: makeNoopStep,
+    Closed: makeNoopStep,
+    CompletedClose: makeNoopStep,
   }),
 })
 const ConfirmComposition = ConfirmDefinition.makeComposition({

@@ -151,22 +151,20 @@ export const EffectsLayer = Layer.mergeAll(FocusTab.layer)
  *  an optional OutMessage. `Selected` fires when a tab is committed via click
  *  or keyboard; the parent stores the new value and passes it back in as
  *  `selectedValue`. */
-export const update = TabsComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    SelectedTab: ({ index, value }) => ({
-      model: modifyFields(model, { maybeFocusedIndex: () => Option.none() }),
-      commands: [FocusTab({ id: model.id, index })],
-      outMessage: OutMessage.Selected({ value, index }),
-    }),
-    FocusedTab: ({ index }) => ({
-      model: modifyFields(model, {
-        maybeFocusedIndex: () => Option.some(index),
-      }),
-      commands: [FocusTab({ id: model.id, index })],
-    }),
-    CompletedFocusTab: () => ({ model }),
+export const update = TabsComposition.makeUpdate({
+  SelectedTab: (model, { index, value }) => ({
+    model: modifyFields(model, { maybeFocusedIndex: () => Option.none() }),
+    commands: [FocusTab({ id: model.id, index })],
+    outMessage: OutMessage.Selected({ value, index }),
   }),
-)
+  FocusedTab: (model, { index }) => ({
+    model: modifyFields(model, {
+      maybeFocusedIndex: () => Option.some(index),
+    }),
+    commands: [FocusTab({ id: model.id, index })],
+  }),
+  CompletedFocusTab: TabsDefinition.makeNoopStep(),
+})
 
 // VIEW
 
@@ -429,9 +427,11 @@ const makeBlockParts = <Value extends string>() => {
       viewInputs: ViewInputs<Value>,
       h: Parameters<typeof internalView>[2],
     ) => Html
-  const refinedUpdate = TabsComposition.makeUpdate((model, message) =>
-    castReturn(update(model, message)),
-  )
+  const refinedUpdate = TabsComposition.makeUpdate({
+    SelectedTab: (model, message) => castReturn(update(model, message)),
+    FocusedTab: (model, message) => castReturn(update(model, message)),
+    CompletedFocusTab: (model, message) => castReturn(update(model, message)),
+  })
   const view = TabsComposition.makeView.withInputs<ViewInputs<Value>>(
     (model, viewInputs, h) => refinedView(model, viewInputs, h),
   )

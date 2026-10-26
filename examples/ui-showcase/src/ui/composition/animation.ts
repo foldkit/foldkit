@@ -1,6 +1,6 @@
 import { AnimationBlock } from '@foldkit/ui'
 
-import { UiDefinition } from '../definition'
+import { UiDefinition, makeNoopStep } from '../definition'
 
 export const AnimationDemoBinding = UiDefinition.makeBinding(AnimationBlock, {
   field: 'animationDemo',
@@ -12,7 +12,7 @@ const foldAnimationDemoOutMessage = UiDefinition.makeOutMessageFold(
   {
     StartedLeaveAnimating: () =>
       AnimationDemoBinding.requestWaitForLeaveSettlement(),
-    TransitionedOut: UiDefinition.makeNoopStep,
+    TransitionedOut: makeNoopStep,
   },
 )
 

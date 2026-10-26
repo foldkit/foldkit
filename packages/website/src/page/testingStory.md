@@ -12,8 +12,9 @@ The entire test is one `story` call. Start from a Model, send a Message, resolve
 
 Import the steps you need from `foldkit/story`.
 
-- Top-level steps start the test, group reusable setup, send Messages, and inspect results: `story`, `steps`, `given`, `message`, `model`, `expectOutMessage`, and `expectNoOutMessage`.
-- The `Command` namespace handles pending Commands: `resolve`, `resolveAll`, `resolveAllExact`, `expectHas`, `expectExact`, and `expectNone`.
+- Top-level steps start the test, group reusable setup, send Messages, and inspect results: `story`, `steps`, `given`, `message`, `messageWith`, `model`, `expectOutMessage`, and `expectNoOutMessage`.
+- The `Command` namespace handles pending Commands: `argsOf`, `resolve`, `resolveAll`, `resolveAllExact`, `expectHas`, `expectExact`, and `expectNone`.
+- `Subscription.from(Block.subscriptions)` creates emission steps from a completed Block's registered Subscription graph.
 
 Use named imports when the file contains only Story tests. If a file contains both Story and Scene tests, import the namespaces from `foldkit` so `Story.given` and `Scene.given` stay distinct.
 
@@ -26,6 +27,14 @@ A Command matcher accepts either a Definition or an instance. A Definition match
 Use `FetchWeather` when the test only cares that this Command was dispatched. Use `FetchWeather({ zipCode: '90210' })` when the placement and zip code are part of the contract. Do not compare `command.name` with a string or with `Definition.name`: different owners may declare the same local name, while a bound Command's displayed name includes its placement.
 
 For before-and-after examples covering generated child delivery and completed UI Blocks, see [Migrate an existing test suite](/testing#migrate-an-existing-test-suite).
+
+### Inspect Captured Command Arguments
+
+Use `Command.argsOf(Definition)(pending)` when a test helper needs the args captured on pending Command metadata. It matches the Definition's source identity, including through qualified Binding paths, and returns `Option` of the Definition's exact args type. An argless match returns `Some(undefined)`; `None` means the pending Command came from another source.
+
+Projection does not choose an occurrence. Map it across `simulation.commands`, then state the cardinality your helper requires. It also leaves the pending value's parent Message mapping, Effect channels, qualified name, and keys unchanged. Construct an instance from the projected args when the next step should resolve that exact dispatch.
+
+::Snippet{name="testingCommandArgs" label="Inspect captured Command arguments"}
 
 :::Info{label="Mount lifecycle is a Scene concern"}
 Story does not render the view, so the OnMount lifecycle is not observable from a Story test. Tests that need to acknowledge mounts use Scene's `Mount.resolve` and the related steps; see the [Scene](/testing/scene) page.
@@ -60,8 +69,28 @@ Use `resolveAllExact` when the resolver list is also a claim about which Command
 :::
 
 :::Info{label="Unresolved Commands"}
-`message` throws if there are pending Commands from a previous step. Resolve all Commands before sending the next Message. `story` throws at the end if any Commands remain unresolved. Every Command your update function produces must be accounted for.
+`message` can deliver another fact while Commands are pending. Existing Commands remain pending, and any Commands produced by the new Message are appended. Resolve each Command explicitly when its result should arrive; dispatching a Message does not run a stored resolver. `story` throws at the end if any Commands remain unresolved. Every Command your update function produces must be accounted for.
 :::
+
+::Snippet{name="testingConcurrentMessages" label="Deliver a Message while a Command is pending"}
+
+The increment arrives before the delayed reset's result. The test checks that the same reset Command is still pending, then supplies its completion. Scene interactions retain their separate pending-Command and Mount checks.
+
+### Build a Message from the Current Model
+
+Use `messageWith(model => Message.Variant(...))` when a Message carries a value produced by an earlier update, such as a request generation or stream session. The callback receives the Model held when that step runs. It follows `message` semantics: existing Commands remain pending and Commands returned by the new update are appended.
+
+::Snippet{name="testingStoryMessageWith" label="Build a Message from the current Model"}
+
+Give an extracted callback its precise Model annotation so a reusable `steps` group retains the same update contract as an inline step.
+
+### Deliver a Subscription Message
+
+Use `Subscription.from(CompletedBlock.subscriptions)` when a Story needs to deliver a fact from a registered Subscription. The emitter accepts a registered entry and that entry's decoded Message. It applies the same generated child delivery used by Scene and the Runtime without starting a Stream or constructing its dependencies.
+
+::Snippet{name="testingStorySubscription" label="Deliver a registered Subscription Message"}
+
+Pass the raw child entry only when it identifies one registration. If a child Subscription appears at multiple placements, select the intended bound entry from the completed Block's `subscriptions` record. A composition-only test can build the same record with `Scene.subscriptions(composition, localSubscriptions?)`; that helper exposes the shared registered graph when no completed Block exists yet.
 
 ### Resolve Child Commands
 

@@ -27,9 +27,7 @@ const init = ApplicationComposition.makeInit(() => ({
   steps: [PostsBinding.requestLoadIfMissing()],
 }))
 
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    // Return the transition and Command for either missing or retained data.
-    ClickedRefreshPosts: () => PostsBinding.requestRevalidationOrLoad()(model),
-  }),
-)
+const update = ApplicationComposition.makeUpdate({
+  // Return the transition and Command for either missing or retained data.
+  ClickedRefreshPosts: model => PostsBinding.requestRevalidationOrLoad()(model),
+})

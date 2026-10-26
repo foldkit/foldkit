@@ -33,6 +33,8 @@ const PeoplePickerDefinition = Block.makeDefinition('PeoplePicker', {
   Message,
 })
 
+const { makeFieldsStep } = PeoplePickerDefinition
+
 // At module scope, fold the OutMessage into your own Model. `Selected` carries
 // the activated value. The parent owns the selection and decides what it
 // means: for multi-select, toggle the value in and out of its array. The arm
@@ -43,7 +45,7 @@ const foldListboxMultiOutMessage = PeoplePickerDefinition.makeOutMessageFold(
   PeopleListbox,
   {
     Selected: ({ value }) =>
-      PeoplePickerDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         selectedPeople: selectedPeople =>
           Array.contains(selectedPeople, value)
             ? Array.filter(selectedPeople, person => person !== value)
@@ -74,7 +76,7 @@ const init = PeoplePickerComposition.makeInit(() => ({
   },
 }))
 
-const update = PeoplePickerComposition.makeUpdate()
+const update = PeoplePickerComposition.makeUpdate({})
 
 const people: ReadonlyArray<typeof Person.Type> = [
   'Michael Bluth',

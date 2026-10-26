@@ -1,0 +1,116 @@
+import { Array, Data, Option, String } from 'effect'
+import { AsyncData } from 'foldkit'
+import { modifyFields } from 'foldkit/struct'
+
+import * as Shared from '@typing-game/shared'
+
+import { optionWhen } from '../../../optionWhen'
+import {
+  FocusUserGameTextInput,
+  WaitForExitCountdownInterval,
+} from '../command'
+import { Model, RoomAsyncData } from '../model'
+
+const EXIT_COUNTDOWN_SECONDS = 3
+
+export const handleUpdatedRoom =
+  (model: typeof Model.Type) =>
+  ({
+    room,
+    maybePlayerProgress,
+  }: {
+    room: typeof Shared.Room.Type
+    maybePlayerProgress: Option.Option<typeof Shared.PlayerProgress.Type>
+  }) => {
+    const maybePreviousRoom = AsyncData.getData(model.roomAsyncData)
+    const hadRoom = Option.isSome(maybePreviousRoom)
+    const hadStatusPlaying = Option.exists(
+      maybePreviousRoom,
+      ({ status }) => status._tag === 'Playing',
+    )
+    const isStatusPlaying = room.status._tag === 'Playing'
+
+    const gameJustStarted = hadRoom && !hadStatusPlaying && isStatusPlaying
+
+    const hadStatusFinished = Option.exists(
+      maybePreviousRoom,
+      ({ status }) => status._tag === 'Finished',
+    )
+    const isStatusFinished = room.status._tag === 'Finished'
+    const gameJustFinished = hadRoom && !hadStatusFinished && isStatusFinished
+
+    const progressAction = determinePlayerProgressAction(
+      room,
+      model.userGameText,
+      model.charsTyped,
+      maybePlayerProgress,
+    )
+
+    const nextUserGameText = gameJustStarted
+      ? String.empty
+      : PlayerProgressAction.$match(progressAction, {
+          Clear: () => String.empty,
+          Maintain: ({ userGameText }) => userGameText,
+          Restore: ({ progress: { userText } }) => userText,
+        })
+
+    const nextCharsTyped = gameJustStarted
+      ? 0
+      : PlayerProgressAction.$match(progressAction, {
+          Clear: () => 0,
+          Maintain: ({ charsTyped }) => charsTyped,
+          Restore: ({ progress }) => progress.charsTyped,
+        })
+
+    const maybeExitCountdown = optionWhen(gameJustFinished, () =>
+      WaitForExitCountdownInterval(),
+    )
+    const maybeFocusUserGameText = optionWhen(gameJustStarted, () =>
+      FocusUserGameTextInput(),
+    )
+
+    return {
+      model: modifyFields(model, {
+        roomAsyncData: () => RoomAsyncData.Success({ data: room }),
+        userGameText: () => nextUserGameText,
+        charsTyped: () => nextCharsTyped,
+        exitCountdownSecondsLeft: () =>
+          gameJustFinished
+            ? EXIT_COUNTDOWN_SECONDS
+            : model.exitCountdownSecondsLeft,
+      }),
+      commands: Array.appendAll(
+        Array.fromOption(maybeExitCountdown),
+        Array.fromOption(maybeFocusUserGameText),
+      ),
+    }
+  }
+
+type PlayerProgressAction = Data.TaggedEnum<{
+  Clear: {}
+  Maintain: { userGameText: string; charsTyped: number }
+  Restore: { progress: typeof Shared.PlayerProgress.Type }
+}>
+
+const PlayerProgressAction = Data.taggedEnum<PlayerProgressAction>()
+
+const determinePlayerProgressAction = (
+  room: typeof Shared.Room.Type,
+  currentUserGameText: string,
+  currentCharsTyped: number,
+  maybePlayerProgress: Option.Option<typeof Shared.PlayerProgress.Type>,
+): PlayerProgressAction => {
+  if (room.status._tag === 'Finished') {
+    return PlayerProgressAction.Clear()
+  } else if (String.isNonEmpty(currentUserGameText)) {
+    return PlayerProgressAction.Maintain({
+      userGameText: currentUserGameText,
+      charsTyped: currentCharsTyped,
+    })
+  } else {
+    return Option.match(maybePlayerProgress, {
+      onSome: progress => PlayerProgressAction.Restore({ progress }),
+      onNone: () => PlayerProgressAction.Clear(),
+    })
+  }
+}

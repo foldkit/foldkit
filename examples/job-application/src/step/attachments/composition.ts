@@ -3,7 +3,11 @@ import type { Block } from 'foldkit'
 
 import { FileDropBlock } from '@foldkit/ui'
 
-import { AttachmentsDefinition } from './definition'
+import {
+  AttachmentsDefinition,
+  makeFieldsStep,
+  makeNoopStep,
+} from './definition'
 
 export const ResumeDropBinding = AttachmentsDefinition.makeBinding(
   FileDropBlock,
@@ -14,11 +18,11 @@ export const ResumeDropBinding = AttachmentsDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: AttachmentsDefinition.makeOutMessageFold(FileDropBlock, {
     ReceivedFiles: ({ files }) =>
-      AttachmentsDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeResume: maybeResume =>
           Option.orElse(Array.head(files), () => maybeResume),
       })),
-    RejectedNonFiles: AttachmentsDefinition.makeNoopStep,
+    RejectedNonFiles: makeNoopStep,
   }),
 })
 
@@ -31,10 +35,10 @@ export const AdditionalFilesDropBinding = AttachmentsDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: AttachmentsDefinition.makeOutMessageFold(FileDropBlock, {
     ReceivedFiles: ({ files }) =>
-      AttachmentsDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         additionalFiles: Array.appendAll(files),
       })),
-    RejectedNonFiles: AttachmentsDefinition.makeNoopStep,
+    RejectedNonFiles: makeNoopStep,
   }),
 })
 

@@ -32,21 +32,23 @@ export const ChildBinding = ComposedInitDefinition.makeBinding(
 export const ComposedInitComposition = ComposedInitDefinition.makeComposition({
   bindings: [ChildBinding],
 })
-export const prepare = ComposedInitDefinition.makeStep(model => ({
+export const prepareStep = ComposedInitDefinition.makeStep(model => ({
   model: modifyFields(model, { isReady: () => true }),
   commands: [Prepare()],
 }))
-export const prepareTogether = ComposedInitDefinition.makeStep(() =>
-  Update.combineSteps([ChildBinding.requestReadCount(), prepare]),
+export const prepareTogetherStep = ComposedInitDefinition.makeStep(() =>
+  Update.combineSteps([ChildBinding.requestReadCount(), prepareStep]),
 )
 export const init = ComposedInitComposition.makeInit((isReady: boolean) => ({
   model: { isReady },
-  steps: [prepareTogether],
+  steps: [prepareTogetherStep],
 }))
 export const prepareComposedInitBlock = () =>
   ComposedInitComposition.prepareBlock({
     init,
-    update: ComposedInitComposition.makeUpdate(model => ({ model })),
+    update: ComposedInitComposition.makeUpdate({
+      CompletedPrepare: model => ({ model }),
+    }),
     EffectsLayer: Prepare.layer,
   })
 

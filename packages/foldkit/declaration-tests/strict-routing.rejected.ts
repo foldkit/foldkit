@@ -55,12 +55,12 @@ type GeneratedChildMessage = Extract<
   typeof ParentComposition.Message.Type,
   Readonly<{ placement: 'child' }>
 >
-ParentComposition.makeUpdate(
-  // @ts-expect-error An authored callback receives local Messages, not generated child envelopes.
-  (model, _message: GeneratedChildMessage) => ({ model }),
-)
+ParentComposition.makeUpdate({
+  // @ts-expect-error An authored handler receives local Messages, not generated child envelopes.
+  ClickedReset: (model, _message: GeneratedChildMessage) => ({ model }),
+})
 
-const omittedSilentInitialization = SilentParentDefinition.makeStep(model =>
+const omittedSilentInitializationStep = SilentParentDefinition.makeStep(model =>
   SilentBinding.init({ args: [], toParentModel: () => model }),
 )
 const OmittedSilentComposition = SilentParentDefinition.makeComposition()
@@ -70,8 +70,9 @@ OmittedSilentComposition.prepareBlock({
   init: OmittedSilentComposition.makeInit(() => ({
     model: { silent: { ready: false } },
   })),
-  update: OmittedSilentComposition.makeUpdate((model, _message) =>
-    // @ts-expect-error The omitted Binding requires graph capability at application.
-    omittedSilentInitialization(model),
-  ),
+  update: OmittedSilentComposition.makeUpdate({
+    ClickedParent: (model, _message) =>
+      // @ts-expect-error The omitted Binding requires graph capability at application.
+      omittedSilentInitializationStep(model),
+  }),
 })

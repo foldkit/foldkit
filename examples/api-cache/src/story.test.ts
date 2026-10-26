@@ -1,6 +1,7 @@
 import { HashMap, Option, Result } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
+import { toParentMessage } from 'foldkit/test'
 import { expect, test } from 'vitest'
 
 import { Tabs } from '@foldkit/ui'
@@ -31,23 +32,13 @@ const postDetailTag = (model: typeof Model.Type, postId: string): string =>
     Option.getOrElse(() => 'Missing'),
   )
 
-const emptyApplicationTabsView = ApplicationTabsBlock.makeView(
-  (_model, h) => h.empty,
-)
-
-const selectedPostsTab = TabsBinding.embedView({
-  slotId: 'tabs',
-  model: loadedPostsModel.tabs,
-  view: emptyApplicationTabsView,
-}).toParentMessage(
+const selectedPostsTab = toParentMessage(
+  TabsBinding,
   ApplicationTabsBlock.Message.SelectedTab({ index: 0, value: 'Posts' }),
 )
 
-const selectedStatsTab = TabsBinding.embedView({
-  slotId: 'tabs',
-  model: loadedStatsModel.tabs,
-  view: emptyApplicationTabsView,
-}).toParentMessage(
+const selectedStatsTab = toParentMessage(
+  TabsBinding,
   ApplicationTabsBlock.Message.SelectedTab({ index: 1, value: 'Stats' }),
 )
 

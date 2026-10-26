@@ -50,7 +50,7 @@ import {
   childInspection,
   childLiteralInit,
   childParameterizedInit,
-  contextualRefreshChild,
+  contextualRefreshChildStep,
   directResultInit,
   makePageProgram,
   makeProgram,
@@ -67,7 +67,7 @@ import {
   recordApplicationUpdate,
   recordUpdate,
   refinedChoiceParentUpdate,
-  refreshDirectValue,
+  refreshDirectValueStep,
   renderPage,
   wrappedOverloadedChildInit,
 } from './accepted.js'
@@ -175,16 +175,16 @@ void emittedGraphfulApplicationView
 
 export const childRefresh = ChildBlock.operations.refresh(childModel)
 export const directRefresh = Direct.operations.refreshDirectValue(directModel)
-const boundRefreshUpdate = ParentComposition.makeUpdate((model, _message) =>
-  ChildBinding.refresh()(model),
-)
+const boundRefreshUpdate = ParentComposition.makeUpdate({
+  RequestedRefresh: (model, _message) => ChildBinding.refresh()(model),
+})
 export const boundRefresh = boundRefreshUpdate(
   parentModel,
   ParentMessage.RequestedRefresh(),
 )
-const directBoundRefreshUpdate = ApplicationComposition.makeUpdate(
-  (model, _message) => DirectChildBinding.refresh()(model),
-)
+const directBoundRefreshUpdate = ApplicationComposition.makeUpdate({
+  RequestedRefresh: (model, _message) => DirectChildBinding.refresh()(model),
+})
 export const directBoundRefresh = directBoundRefreshUpdate(
   parentModel,
   ParentMessage.RequestedRefresh(),
@@ -331,7 +331,7 @@ type EmittedInspectionMountsAreExact = Expect<
 >
 type EmittedProducerParametersAreExact = Expect<
   Equal<
-    Parameters<typeof contextualRefreshChild>,
+    Parameters<typeof contextualRefreshChildStep>,
     [
       model: ParentModel &
         Update.GraphCapability<
@@ -344,13 +344,13 @@ type EmittedProducerParametersAreExact = Expect<
 >
 type EmittedProducerRequirementsAreExact = Expect<
   Equal<
-    Update.RequirementsOf<typeof contextualRefreshChild>,
+    Update.RequirementsOf<typeof contextualRefreshChildStep>,
     Block.Scoped<'child', Command.HandlerOf<typeof ReadCount>>
   >
 >
 type EmittedDirectRequirementsAreExact = Expect<
   Equal<
-    Update.RequirementsOf<typeof refreshDirectValue>,
+    Update.RequirementsOf<typeof refreshDirectValueStep>,
     Command.HandlerOf<typeof ReadDirectValue>
   >
 >

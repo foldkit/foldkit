@@ -86,11 +86,13 @@ Runtime.embed(element)
 // @ts-expect-error Registered child operations preserve their exact Message payload.
 ChildBinding.requestSetCount({ count: 'invalid' })
 
-GeneratedDispatchParentComposition.makeUpdate((model, message) => {
-  // @ts-expect-error Authored callbacks see local facts, not generated child wrappers.
-  const tag: 'GotChildMessage' = message._tag
-  void tag
-  return { model }
+GeneratedDispatchParentComposition.makeUpdate({
+  ChangedTitle: (model, message) => {
+    // @ts-expect-error Authored callbacks see local facts, not generated child wrappers.
+    const tag: 'GotChildMessage' = message._tag
+    void tag
+    return { model }
+  },
 })
 
 GeneratedDispatchParentComposition.makeInit(() => ({
@@ -101,28 +103,34 @@ GeneratedDispatchParentComposition.makeInit(() => ({
 
 const EmptyParentComposition =
   GeneratedDispatchParentDefinition.makeComposition()
-EmptyParentComposition.makeUpdate(model =>
-  // @ts-expect-error Generated Binding folds require the exact registered child graph.
-  ChildBinding.fold(model, ChildMessage.ClickedIncrement()),
-)
-EmptyParentComposition.makeUpdate(model =>
-  // @ts-expect-error Generated operations require the exact registered child graph.
-  ChildBinding.requestSetCount({ count: 1 })(model),
-)
+EmptyParentComposition.makeUpdate({
+  ChangedTitle: model =>
+    // @ts-expect-error Generated Binding folds require the exact registered child graph.
+    ChildBinding.fold(model, ChildMessage.ClickedIncrement()),
+})
+EmptyParentComposition.makeUpdate({
+  ChangedTitle: model =>
+    // @ts-expect-error Generated operations require the exact registered child graph.
+    ChildBinding.requestSetCount({ count: 1 })(model),
+})
 EmptyParentComposition.prepareBlock({
   // @ts-expect-error The child initializer cannot be installed without its registered Binding.
   init: parentInit,
-  update: EmptyParentComposition.makeUpdate(model => ({ model })),
+  update: EmptyParentComposition.makeUpdate({
+    ChangedTitle: model => ({ model }),
+  }),
 })
 EmptyParentComposition.prepareBlock({
   init: () => ({ model: ParentModel.make({ child: { count: 0 }, title: '' }) }),
   // @ts-expect-error Child update routing retains its Binding registration evidence.
   update: parentUpdate,
 })
+// @ts-expect-error A view's child capability cannot disappear at completion.
 EmptyParentComposition.prepareBlock({
   init: () => ({ model: ParentModel.make({ child: { count: 0 }, title: '' }) }),
-  update: EmptyParentComposition.makeUpdate(model => ({ model })),
-  // @ts-expect-error A view's child capability cannot disappear at completion.
+  update: EmptyParentComposition.makeUpdate({
+    ChangedTitle: model => ({ model }),
+  }),
   view: parentView,
 })
 
@@ -130,7 +138,9 @@ const EmptyApplicationComposition = ApplicationDefinition.makeComposition()
 EmptyApplicationComposition.prepareBlock({
   // @ts-expect-error Nested init keeps root Binding registration evidence.
   init,
-  update: EmptyApplicationComposition.makeUpdate(model => ({ model })),
+  update: EmptyApplicationComposition.makeUpdate({
+    ClickedApplication: model => ({ model }),
+  }),
   view: EmptyApplicationComposition.makeView((_model, h) => h.empty),
 })
 

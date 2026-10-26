@@ -23,7 +23,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
 
 it('contextually types fields and preserves valid result refinements', () => {
   let evaluations = 0
-  const ready = FieldStepsDefinition.makeFieldsStep(model => {
+  const readyStep = FieldStepsDefinition.makeFieldsStep(model => {
     evaluations += 1
     expectTypeOf(model).toEqualTypeOf<typeof Model.Type>()
 
@@ -44,7 +44,7 @@ it('contextually types fields and preserves valid result refinements', () => {
 
   expect(evaluations).toBe(0)
 
-  const next = ready(initialModel)
+  const next = readyStep(initialModel)
 
   expect(next).toEqual({
     model: { count: 2, label: 'Example: ready', status: 'Ready' },
@@ -52,10 +52,52 @@ it('contextually types fields and preserves valid result refinements', () => {
   expect(initialModel.status).toBe('Idle')
   expect(evaluations).toBe(1)
   expectTypeOf<typeof next.model.status>().toEqualTypeOf<'Ready'>()
-  expectTypeOf<Update.RequirementsOf<typeof ready>>().toEqualTypeOf<never>()
+  expectTypeOf<Update.RequirementsOf<typeof readyStep>>().toEqualTypeOf<never>()
   expectTypeOf<typeof next.commands>().toEqualTypeOf<undefined>()
   expectTypeOf<typeof next.outMessage>().toEqualTypeOf<undefined>()
   expect(Object.keys(next)).toEqual(['model'])
+})
+
+it('preserves Model identity for a deferred empty field Step', () => {
+  let evaluations = 0
+  let fieldEvaluations = 0
+  const updateWhenReadyStep = FieldStepsDefinition.makeFieldsStep(model => {
+    evaluations += 1
+    return model.status === 'Ready'
+      ? {
+          count: count => {
+            fieldEvaluations += 1
+            return count + 1
+          },
+        }
+      : {}
+  })
+  const idle = Model.make({ count: 1, label: 'Draft', status: 'Idle' })
+  const ready = Model.make({ count: 1, label: 'Draft', status: 'Ready' })
+
+  expect(evaluations).toBe(0)
+  expect(updateWhenReadyStep(idle).model).toBe(idle)
+  expect(evaluations).toBe(1)
+  expect(fieldEvaluations).toBe(0)
+  expect(updateWhenReadyStep(ready).model.count).toBe(2)
+  expect(evaluations).toBe(2)
+  expect(fieldEvaluations).toBe(1)
+})
+
+it('applies symbol field transformations rather than treating them as empty', () => {
+  const count = Symbol('count')
+  const SymbolModel = Schema.Struct({ [count]: Schema.Number })
+  const SymbolDefinition = makeDefinition('SymbolFields', {
+    Model: SymbolModel,
+    Message: Schema.Never,
+  })
+  const initial = SymbolModel.make({ [count]: 1 })
+  const incrementStep = SymbolDefinition.makeFieldsStep(() => ({
+    [count]: Number.increment,
+  }))
+
+  expect(incrementStep(initial).model[count]).toBe(2)
+  expect(initial[count]).toBe(1)
 })
 
 it('combines ordinary field Steps sequentially for Blocks and Applications', () => {
@@ -64,18 +106,20 @@ it('combines ordinary field Steps sequentially for Blocks and Applications', () 
     label: 'Example',
     status: 'Idle',
   })
-  const update = Update.combineSteps([
+  const updateStep = Update.combineSteps([
     FieldStepsDefinition.makeFieldsStep(() => ({ count: Number.increment })),
     ApplicationDefinition.makeFieldsStep(model => ({
       label: () => `${model.count}`,
     })),
   ])
 
-  const combined = update(initialModel)
+  const combined = updateStep(initialModel)
 
   expect(combined.model).toEqual({ count: 2, label: '2', status: 'Idle' })
   expect(combined.commands).toEqual([])
-  expectTypeOf<Update.RequirementsOf<typeof update>>().toEqualTypeOf<never>()
+  expectTypeOf<
+    Update.RequirementsOf<typeof updateStep>
+  >().toEqualTypeOf<never>()
 })
 
 it('returns the identical refined Model with no other result channels', () => {
@@ -110,14 +154,12 @@ it('preserves a child transition when an OutMessage policy has no parent transit
   const prepareChildBlock = () =>
     ChildComposition.prepareBlock({
       init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
-      update: ChildComposition.makeUpdate((model, message) =>
-        ChildMessage.match(message, {
-          ClickedIncrement: () => ({
-            model: modifyFields(model, { count: Number.increment }),
-            outMessage: ChildOutMessage.Incremented(),
-          }),
+      update: ChildComposition.makeUpdate({
+        ClickedIncrement: model => ({
+          model: modifyFields(model, { count: Number.increment }),
+          outMessage: ChildOutMessage.Incremented(),
         }),
-      ),
+      }),
     })
   const ChildBlock: Block.FromAssemblyWithOutMessage<
     typeof ChildModel,
@@ -140,7 +182,7 @@ it('preserves a child transition when an OutMessage policy has no parent transit
   const ParentComposition = ParentDefinition.makeComposition({
     bindings: [ChildBinding],
   })
-  const update = ParentComposition.makeUpdate()
+  const update = ParentComposition.makeUpdate({})
   const initialModel = ParentModel.make({
     child: { count: 1 },
     label: 'Parent',

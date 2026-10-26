@@ -1,12 +1,15 @@
 import { Schema } from 'effect'
 import { Update } from 'foldkit'
+import type { FieldTransforms } from 'foldkit/struct'
 
 import {
   Model,
-  combined,
-  preserve,
-  preserveText,
-  ready,
+  combinedStep,
+  editFieldsStep,
+  guardedIncrement,
+  preserveStep,
+  preserveTextStep,
+  readyStep,
 } from './field-steps.accepted.js'
 
 type Equal<Left, Right> =
@@ -24,29 +27,47 @@ const model = ExtendedModel.make({
   status: 'Idle',
   extra: true,
 })
-const preserved = preserve(model)
+const preserved = preserveStep(model)
 
 export type PreservedRefinement = Expect<
   Equal<typeof preserved.model, typeof ExtendedModel.Type>
 >
 export type EmittedStatus = Expect<
-  Equal<ReturnType<typeof ready>['model']['status'], 'Ready'>
+  Equal<ReturnType<typeof readyStep>['model']['status'], 'Ready'>
 >
 export type EmittedArguments = Expect<
-  Equal<Parameters<typeof ready>, [model: typeof Model.Type]>
+  Equal<Parameters<typeof readyStep>, [model: typeof Model.Type]>
 >
 export type EmittedRequirements = Expect<
-  Equal<Update.RequirementsOf<typeof combined>, never>
+  Equal<Update.RequirementsOf<typeof combinedStep>, never>
 >
 export type EmittedChannels = Expect<
-  Equal<keyof ReturnType<typeof ready>, 'model' | 'commands' | 'outMessage'>
+  Equal<keyof ReturnType<typeof readyStep>, 'model' | 'commands' | 'outMessage'>
 >
 
-preserveText('ready')
+preserveTextStep('ready')
 // @ts-expect-error A primitive no-op still checks its owning Model.
-preserveText(1)
-const result = ready(model)
+preserveTextStep(1)
+const result = readyStep(model)
 export type AbsentCommands = Expect<Equal<typeof result.commands, undefined>>
 export type AbsentOutMessage = Expect<
   Equal<typeof result.outMessage, undefined>
 >
+
+const fields: FieldTransforms<typeof Model.Type> = {
+  count: count => count + 1,
+}
+editFieldsStep(fields)
+export type GuardedRequirements = Expect<
+  Equal<Update.RequirementsOf<typeof guardedIncrement>, never>
+>
+export type GuardedModel = Expect<
+  Equal<ReturnType<typeof guardedIncrement>['model'], typeof Model.Type>
+>
+// @ts-expect-error Emitted field helpers reject extra record properties.
+editFieldsStep({ count: count => count + 1, extra: () => 1 })
+const extra = { count: (count: number) => count + 1, extra: () => 1 }
+// @ts-expect-error Emitted field helpers retain validation for extracted records.
+editFieldsStep(extra)
+// @ts-expect-error Emitted field helpers reject an incompatible output.
+editFieldsStep({ count: () => 'wrong' })

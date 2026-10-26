@@ -24,16 +24,15 @@ const accountSettingsInit = AccountSettingsComposition.makeInit(() => ({
     auditTrail: [],
   }),
 }))
-const accountSettingsUpdate = AccountSettingsComposition.makeUpdate(
-  (model, message, currentUser: typeof CurrentUser.Type) =>
-    AccountSettingsMessage.match(message, {
-      ChangedTheme: ({ theme }) => ({
-        model: modifyFields(model, {
-          theme: () => theme,
-          auditTrail: Array.append(currentUser.name),
-        }),
+const accountSettingsUpdate = AccountSettingsComposition.makeUpdate.withContext(
+  (currentUser: typeof CurrentUser.Type) => ({
+    ChangedTheme: (model, { theme }) => ({
+      model: modifyFields(model, {
+        theme: () => theme,
+        auditTrail: Array.append(currentUser.name),
       }),
     }),
+  }),
 )
 const accountSettingsView = AccountSettingsComposition.makeView((model, h) =>
   h.p([], [`${model.theme}; audit: ${Array.join(model.auditTrail, ', ')}`]),

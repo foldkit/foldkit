@@ -20,8 +20,10 @@ const prepareContextChildBlock = () =>
     init: BindingMessagePolicyContextChildComposition.makeInit(() => ({
       model: ChildModel.make({ value: '' }),
     })),
-    update: BindingMessagePolicyContextChildComposition.makeUpdate(
-      (model, _message, _context: DispatchContext) => ({ model }),
+    update: BindingMessagePolicyContextChildComposition.makeUpdate.withContext(
+      (_context: DispatchContext) => ({
+        ChangedValue: (model, _message) => ({ model }),
+      }),
     ),
   })
 export const ContextChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -41,7 +43,7 @@ const prepareSilentChildBlock = () =>
     init: BindingMessagePolicySilentChildComposition.makeInit(() => ({
       model: ChildModel.make({ value: '' }),
     })),
-    update: BindingMessagePolicySilentChildComposition.makeUpdate(),
+    update: BindingMessagePolicySilentChildComposition.makeUpdate({}),
   })
 export const SilentChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
@@ -117,4 +119,6 @@ export const BindingMessagePolicyParentComposition =
     bindings: [ContextBinding, KeyedBinding, SilentBinding, SilentKeyedBinding],
   })
 
-BindingMessagePolicyParentComposition.makeUpdate(model => ({ model }))
+BindingMessagePolicyParentComposition.makeUpdate({
+  ClickedSave: model => ({ model }),
+})

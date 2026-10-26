@@ -492,7 +492,9 @@ const UnregisteredComposition =
 UnregisteredComposition.prepareBlock({
   // @ts-expect-error An initializer retains registration evidence for its initialized child graph.
   init: initialize,
-  update: UnregisteredComposition.makeUpdate(model => ({ model })),
+  update: UnregisteredComposition.makeUpdate({
+    IgnoredChildMessage: model => ({ model }),
+  }),
   EffectsLayer: Choice.ReadChoice.layer,
 })
 

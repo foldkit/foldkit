@@ -8,6 +8,8 @@ import {
   isCallExpression,
   isIdentifierReference,
   isMemberExpression,
+  isObjectExpression,
+  isObjectProperty,
   isVariableDeclarator,
   resolveImportedPath,
   resolvedVariable,
@@ -29,7 +31,7 @@ type Stage =
 type SourceExpression =
   | Readonly<{ kind: 'ModelProjection'; receiver: SourceExpression }>
   | Readonly<{ kind: 'Widened'; value: SourceExpression }>
-  | Readonly<{ kind: 'Producer'; body: SourceExpression; plain: boolean }>
+  | Readonly<{ kind: 'Producer'; body: SourceExpression; checked: boolean }>
   | Readonly<{ kind: 'Invoke'; producer: SourceExpression }>
   | Readonly<{
       kind: 'Complete'
@@ -64,6 +66,14 @@ type Module = Readonly<{
     Readonly<{ source?: string; names: ReadonlyArray<string> }>
   >
 }>
+
+type BoundaryAnnotation = Readonly<{
+  helper: unknown
+  model: unknown
+  producer: unknown
+}>
+
+type ImplementationFields = ReadonlyMap<string, ReadonlyArray<string>>
 
 const nextStage = (
   stage: Stage | undefined,
@@ -114,6 +124,16 @@ const isBoundaryHelper = (
       (source === 'foldkit/block' && members.length === 1))
   )
 }
+
+const isBlockType = (
+  source: string,
+  members: ReadonlyArray<string>,
+  name: string,
+): boolean =>
+  (source === 'foldkit' && members.join('.') === `Block.${name}`) ||
+  (source === 'foldkit/block' &&
+    members.length === 1 &&
+    Option.contains(Array.head(members), name))
 
 const isSyntaxNode = (node: unknown): node is ESTree.Node =>
   typeof node === 'object' && node !== null && 'type' in node
@@ -171,12 +191,150 @@ const isPlainProducer = (node: unknown): boolean => {
   )
 }
 
+const exactPath = (node: unknown): ReadonlyArray<string> | undefined => {
+  if (unwrapSchemaExpression(node) !== node) {
+    return undefined
+  }
+  const path = Option.getOrUndefined(staticMemberPath(node))
+  return path === undefined ? undefined : [path.root.name, ...path.members]
+}
+
+const samePath = (
+  left: ReadonlyArray<string> | undefined,
+  right: ReadonlyArray<string> | undefined,
+): boolean =>
+  left !== undefined &&
+  right !== undefined &&
+  left.length === right.length &&
+  left.every((name, index) => Option.contains(Array.get(right, index), name))
+
+const implementationFields = (
+  node: unknown,
+): ImplementationFields | undefined => {
+  if (
+    !isSyntaxNode(node) ||
+    node.type !== 'TSInterfaceDeclaration' ||
+    node.extends.length !== 0 ||
+    (node.typeParameters !== undefined && node.typeParameters !== null)
+  ) {
+    return undefined
+  }
+  const fields = new Map<string, ReadonlyArray<string>>()
+  for (const member of node.body.body) {
+    if (
+      member.type !== 'TSPropertySignature' ||
+      !member.readonly ||
+      member.optional ||
+      member.computed ||
+      !isIdentifierReference(member.key)
+    ) {
+      return undefined
+    }
+    const annotation = member.typeAnnotation?.typeAnnotation
+    if (
+      annotation?.type !== 'TSTypeQuery' ||
+      (annotation.typeArguments !== undefined &&
+        annotation.typeArguments !== null)
+    ) {
+      return undefined
+    }
+    const path = exactPath(annotation.exprName)
+    if (path === undefined || fields.has(member.key.name)) {
+      return undefined
+    }
+    fields.set(member.key.name, path)
+  }
+  return fields
+}
+
+const isNamedProducer = (
+  node: unknown,
+  interfaces: ReadonlyMap<string, ImplementationFields | undefined>,
+  isHelper: (node: unknown, name: string) => boolean,
+): boolean => {
+  if (!isArrowFunction(node)) {
+    return false
+  }
+  const body = producerBody(node)
+  const draft = node.returnType?.typeAnnotation
+  const completed =
+    draft?.type === 'TSTypeReference'
+      ? Option.getOrUndefined(Array.head(draft.typeArguments?.params ?? []))
+      : undefined
+  if (
+    !isCallExpression(body) ||
+    !isMemberExpression(body.callee) ||
+    !Option.contains(staticMemberName(body.callee), 'prepareBlock') ||
+    body.arguments.length !== 1 ||
+    (body.typeArguments !== undefined && body.typeArguments !== null) ||
+    draft?.type !== 'TSTypeReference' ||
+    draft.typeArguments?.params.length !== 1 ||
+    !isHelper(draft.typeName, 'AssemblyDraft') ||
+    completed?.type !== 'TSTypeReference' ||
+    completed.typeArguments?.params.length !== 2 ||
+    !(
+      isHelper(completed.typeName, 'CompletedWithView') ||
+      isHelper(completed.typeName, 'CompletedWithViewAndOutMessage')
+    )
+  ) {
+    return false
+  }
+  const [composition, implementation] = completed.typeArguments.params
+  const argument = Option.getOrUndefined(Array.head(body.arguments))
+  if (
+    composition?.type !== 'TSTypeQuery' ||
+    (composition.typeArguments !== undefined &&
+      composition.typeArguments !== null) ||
+    implementation?.type !== 'TSTypeReference' ||
+    !isIdentifierReference(implementation.typeName) ||
+    (implementation.typeArguments !== undefined &&
+      implementation.typeArguments !== null) ||
+    argument?.type !== 'TSSatisfiesExpression' ||
+    argument.typeAnnotation.type !== 'TSTypeReference' ||
+    !isIdentifierReference(argument.typeAnnotation.typeName) ||
+    argument.typeAnnotation.typeName.name !== implementation.typeName.name ||
+    (argument.typeAnnotation.typeArguments !== undefined &&
+      argument.typeAnnotation.typeArguments !== null) ||
+    !isObjectExpression(argument.expression)
+  ) {
+    return false
+  }
+  const owner = exactPath(composition.exprName)
+  const receiver = exactPath(body.callee.object)
+  const fields = interfaces.get(implementation.typeName.name)
+  if (
+    !samePath(owner, receiver) ||
+    fields === undefined ||
+    fields.size !== argument.expression.properties.length
+  ) {
+    return false
+  }
+  const seen = new Set<string>()
+  return argument.expression.properties.every(property => {
+    if (
+      !isObjectProperty(property) ||
+      property.computed ||
+      property.method ||
+      property.kind !== 'init' ||
+      !isIdentifierReference(property.key) ||
+      seen.has(property.key.name)
+    ) {
+      return false
+    }
+    seen.add(property.key.name)
+    const value = exactPath(property.value)
+    return samePath(fields.get(property.key.name), value)
+  })
+}
+
 const boundaryAnnotation = (
   identifier: unknown,
   init: unknown,
-):
-  | Readonly<{ helper: unknown; model: unknown; producer: unknown }>
-  | undefined => {
+  interfaceBoundaries: ReadonlyMap<
+    string,
+    BoundaryAnnotation | undefined
+  > = new Map(),
+): BoundaryAnnotation | undefined => {
   if (
     !isSyntaxNode(identifier) ||
     identifier.type !== 'Identifier' ||
@@ -196,29 +354,43 @@ const boundaryAnnotation = (
   if (annotation?.type !== 'TSTypeReference') {
     return undefined
   }
-  const arguments_ = annotation.typeArguments?.params
-  if (arguments_?.length !== 2) {
-    return undefined
-  }
-  const [model, producer] = arguments_
-  return model?.type === 'TSTypeQuery' &&
-    producer?.type === 'TSTypeQuery' &&
+  const directArguments = annotation.typeArguments?.params
+  const namedInterface =
+    (annotation.typeArguments === undefined ||
+      annotation.typeArguments === null) &&
+    isIdentifierReference(annotation.typeName) &&
+    annotation.typeName.name === identifier.name
+      ? interfaceBoundaries.get(identifier.name)
+      : undefined
+  const [model, producer] =
+    directArguments?.length === 2
+      ? directArguments
+      : [namedInterface?.model, namedInterface?.producer]
+  const helper =
+    directArguments?.length === 2 ? annotation.typeName : namedInterface?.helper
+  return isSyntaxNode(model) &&
+    model.type === 'TSTypeQuery' &&
+    isSyntaxNode(producer) &&
+    producer.type === 'TSTypeQuery' &&
     (model.typeArguments === undefined || model.typeArguments === null) &&
     (producer.typeArguments === undefined || producer.typeArguments === null) &&
     isIdentifierReference(producer.exprName) &&
     producer.exprName.name === completionProducer.name
     ? {
-        helper: annotation.typeName,
+        helper,
         model: model.exprName,
         producer: completionProducer,
       }
     : undefined
 }
 
-const sourceExpression = (input: unknown): SourceExpression | undefined => {
+const sourceExpression = (
+  input: unknown,
+  checkedProducer: (node: unknown) => boolean = isPlainProducer,
+): SourceExpression | undefined => {
   const changed = typeChangingExpression(input)
   if (changed !== undefined) {
-    const value = sourceExpression(changed)
+    const value = sourceExpression(changed, checkedProducer)
     return value === undefined ? undefined : { kind: 'Widened', value }
   }
   if (
@@ -231,7 +403,7 @@ const sourceExpression = (input: unknown): SourceExpression | undefined => {
       'ChainExpression',
     ]).has(input.type)
   ) {
-    return sourceExpression(input.expression)
+    return sourceExpression(input.expression, checkedProducer)
   }
   const node = unwrapSchemaExpression(input)
   const rawBody = producerBody(node)
@@ -241,21 +413,21 @@ const sourceExpression = (input: unknown): SourceExpression | undefined => {
     isMemberExpression(body.callee) &&
     Option.contains(staticMemberName(body.callee), 'prepareBlock')
   ) {
-    const expression = sourceExpression(body)
+    const expression = sourceExpression(body, checkedProducer)
     return expression === undefined
       ? undefined
       : {
           kind: 'Producer',
           body: expression,
-          plain: input === node && rawBody === body && isPlainProducer(node),
+          checked: input === node && rawBody === body && checkedProducer(node),
         }
   }
   if (isCallExpression(node) && isIdentifierReference(node.callee)) {
-    const producer = sourceExpression(node.callee)
+    const producer = sourceExpression(node.callee, checkedProducer)
     return producer === undefined ? undefined : { kind: 'Invoke', producer }
   }
   if (isCallExpression(node) && isMemberExpression(node.callee)) {
-    const receiver = sourceExpression(node.callee.object)
+    const receiver = sourceExpression(node.callee.object, checkedProducer)
     const method = Option.getOrUndefined(staticMemberName(node.callee))
     const producer = Option.getOrUndefined(Array.head(node.arguments))
     if (
@@ -263,7 +435,7 @@ const sourceExpression = (input: unknown): SourceExpression | undefined => {
       node.arguments.length === 1 &&
       receiver !== undefined
     ) {
-      const producerExpression = sourceExpression(producer)
+      const producerExpression = sourceExpression(producer, checkedProducer)
       return producerExpression === undefined
         ? undefined
         : { kind: 'Complete', receiver, producer: producerExpression }
@@ -276,7 +448,7 @@ const sourceExpression = (input: unknown): SourceExpression | undefined => {
     isMemberExpression(node) &&
     Option.contains(staticMemberName(node), 'Model')
   ) {
-    const receiver = sourceExpression(node.object)
+    const receiver = sourceExpression(node.object, checkedProducer)
     return receiver === undefined
       ? undefined
       : { kind: 'ModelProjection', receiver }
@@ -318,6 +490,11 @@ const readModule = (filename: string): Module => {
       string,
       Readonly<{ source?: string; names: ReadonlyArray<string> }>
     >()
+    const interfaceBoundaries = new Map<
+      string,
+      BoundaryAnnotation | undefined
+    >()
+    const interfaces = new Map<string, ImplementationFields | undefined>()
     for (const statement of parsed.program.body) {
       if (statement.type === 'ImportDeclaration') {
         for (const specifier of statement.specifiers) {
@@ -338,6 +515,46 @@ const readModule = (filename: string): Module => {
           }
         }
       }
+      const declaration =
+        statement.type === 'ExportNamedDeclaration'
+          ? statement.declaration
+          : statement
+      if (declaration?.type !== 'TSInterfaceDeclaration') {
+        continue
+      }
+      const name = declaration.id.name
+      interfaces.set(
+        name,
+        interfaces.has(name) ? undefined : implementationFields(declaration),
+      )
+      if (statement.type !== 'ExportNamedDeclaration') {
+        continue
+      }
+      if (interfaceBoundaries.has(name)) {
+        interfaceBoundaries.set(name, undefined)
+        continue
+      }
+      const heritage = Option.getOrUndefined(Array.head(declaration.extends))
+      const arguments_ = heritage?.typeArguments?.params
+      const [model, producer] = arguments_ ?? []
+      interfaceBoundaries.set(
+        name,
+        declaration.extends.length === 1 &&
+          declaration.body.body.length === 0 &&
+          (declaration.typeParameters === undefined ||
+            declaration.typeParameters === null) &&
+          arguments_?.length === 2 &&
+          model?.type === 'TSTypeQuery' &&
+          producer?.type === 'TSTypeQuery'
+          ? {
+              helper: heritage?.expression,
+              model,
+              producer,
+            }
+          : undefined,
+      )
+    }
+    for (const statement of parsed.program.body) {
       if (
         statement.type === 'ExportAllDeclaration' &&
         statement.exported !== null &&
@@ -379,8 +596,30 @@ const readModule = (filename: string): Module => {
         if (declarator.id.type !== 'Identifier') {
           continue
         }
-        const value = sourceExpression(declarator.init)
-        const annotation = boundaryAnnotation(declarator.id, declarator.init)
+        const value = sourceExpression(
+          declarator.init,
+          node =>
+            isPlainProducer(node) ||
+            isNamedProducer(node, interfaces, (helper, name) => {
+              const path = Option.getOrUndefined(staticMemberPath(helper))
+              const imported =
+                path === undefined ? undefined : imports.get(path.root.name)
+              return (
+                path !== undefined &&
+                imported !== undefined &&
+                isBlockType(
+                  imported.source,
+                  [...imported.names, ...path.members],
+                  name,
+                )
+              )
+            }),
+        )
+        const annotation = boundaryAnnotation(
+          declarator.id,
+          declarator.init,
+          interfaceBoundaries,
+        )
         const helper = Option.getOrUndefined(
           staticMemberPath(annotation?.helper),
         )
@@ -434,11 +673,10 @@ export const unwrapSchemaExpression = (node: unknown): unknown => {
   return node
 }
 
-/** Tracks only proven Foldkit authoring chains and their immutable aliases. */
-export const makeCompletedBlockProvenance = (
+const makeBlockStageResolver = (
   references: WeakMap<ESTree.Node, Reference>,
   filename: string | undefined,
-): ((node: unknown) => boolean) => {
+): ((node: unknown) => Stage | undefined) => {
   const modules = new Map<string, Module>()
   const moduleAt = (path: string): Module => {
     const existing = modules.get(path)
@@ -545,7 +783,7 @@ export const makeCompletedBlockProvenance = (
       return stage === 'Completed' &&
         completionProducer !== undefined &&
         producer?.kind === 'Producer' &&
-        producer.plain &&
+        producer.checked &&
         sourceStage(file, completionProducer, visited) === 'Producer' &&
         !sourceModelDependency(file, expression.model, visited) &&
         imported !== undefined &&
@@ -841,6 +1079,20 @@ export const makeCompletedBlockProvenance = (
           definition.node.id,
           definition.node.init,
         )
+        const namedBoundary =
+          filename === undefined || !isIdentifierReference(definition.node.id)
+            ? undefined
+            : moduleAt(filename).values.get(definition.node.id.name)
+        if (
+          filename !== undefined &&
+          (variable.value.scope.type === 'module' ||
+            variable.value.scope.type === 'global') &&
+          namedBoundary?.kind === 'Boundary' &&
+          Array.isReadonlyArrayEmpty(members) &&
+          sourceStage(filename, namedBoundary, new Set()) === 'CheckedCompleted'
+        ) {
+          return 'CheckedCompleted'
+        }
         const importedHelper = resolveImportedPath(references, helper?.helper)
         const producerVariable = isIdentifierReference(helper?.producer)
           ? resolvedVariable(references, helper.producer)
@@ -878,5 +1130,23 @@ export const makeCompletedBlockProvenance = (
     return undefined
   }
 
-  return node => localStage(node) === 'Completed'
+  return node => localStage(node)
+}
+
+/** Tracks only proven Foldkit authoring chains and their immutable aliases. */
+export const makeCompletedBlockProvenance = (
+  references: WeakMap<ESTree.Node, Reference>,
+  filename: string | undefined,
+): ((node: unknown) => boolean) => {
+  const stageOf = makeBlockStageResolver(references, filename)
+  return node => stageOf(node) === 'Completed'
+}
+
+/** Recognizes Definition owners through proven Foldkit factories and imports. */
+export const makeBlockDefinitionProvenance = (
+  references: WeakMap<ESTree.Node, Reference>,
+  filename: string | undefined,
+): ((node: unknown) => boolean) => {
+  const stageOf = makeBlockStageResolver(references, filename)
+  return node => stageOf(node) === 'Definition'
 }

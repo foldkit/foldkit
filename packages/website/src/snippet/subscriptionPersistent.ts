@@ -25,5 +25,3 @@ export const subscriptions = HeartbeatDefinition.makeSubscriptions(entry => ({
     },
   }),
 }))
-
-export const EffectsLayer = subscriptions.layer

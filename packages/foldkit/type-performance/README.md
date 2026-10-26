@@ -38,6 +38,129 @@ Only update budgets after reviewing an intentional type-level change. The
 ordinary check never changes them and fails when either gated metric exceeds
 its stored maximum.
 
+## Workspace composition scale
+
+`workspace-composition-4` and `workspace-composition-8` use the same count
+harness and baseline. Their generator emits distinct, named workspace Group
+Blocks, rather than increasing the number of runtime records in one array:
+
+```sh
+node packages/foldkit/type-performance/workspace-generate.ts
+node packages/foldkit/scripts/check-block-type-performance.ts workspace-composition-4
+node packages/foldkit/scripts/check-block-type-performance.ts workspace-composition-8
+```
+
+For `N` Groups, the static graph contains `N + 3` distinct completed Blocks
+(Application, Groups, Control, and Editor), `4N` child Bindings, `N` Mounts,
+and `2N + 1` attached local handler recipes. Every Group has a required Control
+child using default zero-argument init, an optional keyed Editor wrapper opened
+through `Binding.init`, and a wrapped keyed Editor array using `init.instances`
+and `toItem`. Extracted authored views retain the Mount requirement. Local
+Message-backed operations invoke sibling operations through parent OutMessage
+policies. Commands and Mounts require the same ordinary `WorkspaceStore` Service.
+The Application finishes with `Program.makeElement(...).provide(...)`.
+
+Checked assembly headers name each local canonical Model Schema. Compiler
+assertions retain exact Model, encoded, decoding-Service and encoding-Service
+channels, OutMessage payloads, Mount requirements, Layer errors, and the ordinary
+Service requirement before and after Program provision. These fixtures extend
+the count workload; ownership rejection and declaration safety remain covered by
+the existing emitted-declaration fixtures.
+
+Initial exact budgets with TypeScript `7.1.0-beta` are:
+
+| Groups | Instantiations above baseline | Types above baseline | Symbols above baseline |
+| ------ | ----------------------------- | -------------------- | ---------------------- |
+| 4      | 2,639,574                     | 206,314              | 276,265                |
+| 8      | 4,515,010                     | 280,523              | 402,969                |
+
+The original deep, wide, and Command budgets are unchanged. Counts do not
+measure editor latency, and this synthetic static graph does not claim that
+every feature of the handwritten workspace example is represented.
+
+### Declaration emission and the larger-size limit
+
+Source checking and declaration serialization are separate checks. Use the
+package compiler and `workspace-declarations.json` for strict source checking
+and declaration emission:
+
+```sh
+packages/foldkit/node_modules/.bin/tsc -p packages/foldkit/type-performance/workspace-declarations.json --outDir /tmp/foldkit-workspace-declarations --pretty false --extendedDiagnostics
+```
+
+For a portable external emission and consumer check, use a temporary package as
+the existing emitted-declaration harness does. Run these commands from the repo
+root after generating the retained fixtures:
+
+```sh
+fixture_tmp=$(mktemp -d)
+mkdir "$fixture_tmp/node_modules"
+ln -s "$PWD/packages/foldkit" "$fixture_tmp/node_modules/foldkit"
+ln -s "$PWD/packages/foldkit/node_modules/effect" "$fixture_tmp/node_modules/effect"
+cp packages/foldkit/type-performance/workspace-composition-*.ts packages/foldkit/type-performance/workspace-groups-*.ts packages/foldkit/type-performance/workspace-shared.ts packages/foldkit/type-performance/workspace-declarations.json packages/foldkit/type-performance/tsconfig.json "$fixture_tmp/"
+printf '{"type":"module"}\n' > "$fixture_tmp/package.json"
+packages/foldkit/node_modules/.bin/tsc -p "$fixture_tmp/workspace-declarations.json" --outDir "$fixture_tmp/emitted" --pretty false --extendedDiagnostics
+packages/foldkit/node_modules/.bin/tsc --strict --skipLibCheck false --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ESNext,DOM --noEmit "$fixture_tmp"/emitted/*.d.ts
+```
+
+Emitting from inside the Foldkit package can name its own declarations through
+relative `../dist` imports; moving that output alone does not make an external
+consumer package. The external check above resolves public package imports and
+checks emitted declarations with `skipLibCheck: false`.
+
+The initial combined 4/8 external emission produced five declaration files
+totaling 2,997,831 bytes. It took 1.338 seconds of compiler time and 1.567 seconds
+of wall time, with 567,560 KiB reported compiler memory on the measurement host.
+These observations describe this run and are not timing or memory budgets.
+
+The requested 8/32 scale exposed a declaration-serialization limit. The initial
+32-Group variant, which also combined every sibling's `requestSave()` operation
+in one root Message branch, source-checked but failed declaration emission with
+TS7056 at the root `prepare`: “The inferred type of this node exceeds the maximum
+length the compiler will serialize. An explicit type annotation is needed.”
+Removing that extra aggregate operation still left 16 Groups failing TS7056 at
+`prepare`. An exact local implementation type and explicit instantiated
+`ReturnType` annotation moved the 16-Group error to `ApplicationComposition`;
+it did not establish an emitting boundary. No assertion or Service channel was
+weakened to obtain the retained 4/8 fixtures.
+
+The generator keeps these larger reproductions available without adding failing
+fixtures to the ordinary budget gate:
+
+```sh
+node packages/foldkit/type-performance/workspace-generate.ts 16
+packages/foldkit/node_modules/.bin/tsc -p packages/foldkit/type-performance/workspace-declarations.json --outDir /tmp/foldkit-workspace-16 --pretty false --extendedDiagnostics
+rm packages/foldkit/type-performance/workspace-composition-16.ts packages/foldkit/type-performance/workspace-groups-16.ts
+node packages/foldkit/type-performance/workspace-generate.ts 32 --save-all
+packages/foldkit/node_modules/.bin/tsc -p packages/foldkit/type-performance/workspace-declarations.json --outDir /tmp/foldkit-workspace-32 --pretty false --extendedDiagnostics
+rm packages/foldkit/type-performance/workspace-composition-32.ts packages/foldkit/type-performance/workspace-groups-32.ts
+node packages/foldkit/type-performance/workspace-generate.ts
+```
+
+The generator defaults to 4/8 and accepts distinct counts from 1 through 32.
+Explicit sizes create additional files; remove those files after investigating.
+`--save-all` only adds the aggregate-operation branch and is not part of the
+retained budget workload. Larger source checks succeeding is not evidence that
+their declarations emit or that the handwritten app meets the same bound.
+
+A later isolated naming control made the same 16-group graph and the full workspace application emit by adding an exported interface extending each completed Block's exact checked contract. Type aliases and an internal preparation wrapper did not fix serialization. The emitter can retain a named consumer interface rather than repeatedly expanding the private producer, so this demonstrates an encoding limitation, not an inherent impossibility for the graph. The reviewed same-name interface form is now adopted for public UI Block declarations after source/emitted rejection and editor checks. At the October 23 four-control checkpoint, naming the library's completed update and owned document view contracts also made that Workspace root emit and relocate without additional consumer annotations. The larger Workspace root retains an exact Binding tuple type in `composition.ts`. Exporting that type lets the ordinary checked `block.ts` emit without the earlier implementation interface; the actual root and strict relocated consumption pass. Inline Composition inference and the separate 32-group synthetic root retain their documented serialization limits. The [latest cleanup](../../../internal/workspace-clean-assembly-20261025.md) records larger declaration output and the separate paired editor results. See the [current Workspace boundary](../../../examples/workspace/README.md#verification-and-scale). [Integrated measurements and current scope](../../../internal/preview-framework-performance.md). [Detailed scope and results](../../../internal/workspace-performance.md#independent-serialization-controls).
+
+### Actual application declarations
+
+After building `foldkit` and `@foldkit/ui`, check the complete Workspace root
+with the opt-in declaration configuration:
+
+```sh
+workspace_declarations=$(mktemp -d /tmp/foldkit-workspace-declarations.XXXXXX)
+packages/foldkit/node_modules/.bin/tsc -p packages/foldkit/type-performance/workspace-application-declarations.json --outDir "$workspace_declarations" --pretty false --extendedDiagnostics
+```
+
+This gate follows every import from the actual application Block. Release
+verification also checks a relocated copy of those declarations with
+`skipLibCheck: false` and the application's TypeScript source absent. Workspace
+bundles JavaScript and does not ship declarations; this optional stress check
+does not establish an unlimited graph size or predict editor latency.
+
 ## Language service latency
 
 Compiler instantiation and type counts provide regression signals,
@@ -86,7 +209,7 @@ the run. The actual-file Binding hover requires `InitializedBinding` and rejects
 a direct `any`, `unknown`, or `never` type. When the Owner is visible, it must be
 `Search`. Checked assembly headers can hide the Owner through hover truncation;
 in that case, the guard requires the recorded Schema header and field fragments.
-This validates the visible Binding shape, not full ownership. Framework source
+Expanded and abbreviated nested TaggedUnion displays are both accepted while the required Binding and Schema field fragments remain checked. This validates the visible Binding shape, not full ownership. Framework source
 and emitted-declaration tests enforce ownership. Missing route errors or errors
 remaining after restoration fail instead of recording an artificially fast
 response.
@@ -118,6 +241,50 @@ Inspect post-edit samples and slow requests alongside medians. Repeat small
 compiler-count differences with identical source and emitted declarations.
 Wall-clock results vary with CPU contention, filesystem cache state, profiling,
 and language-server scheduling. Keep captured JSON outside the source tree.
+
+### Workspace example
+
+Profile the workspace's issue-list and routed-editor composition with:
+
+```sh
+node packages/foldkit/scripts/profile-block-language-service.ts --scenario workspace --runs 3 > /tmp/foldkit-workspace-language-service.json
+```
+
+The workspace selection starts four fresh native servers per run. It measures
+`IssueDetailBinding` hover in `examples/workspace/src/composition.ts`, Binding
+member completion at the real initializer call in `src/update.ts`, and completed
+`ApplicationBlock` member completion at its routing callback in `src/entry.ts`.
+Each request has first and warm samples, then repeats after an incremental
+newline edit. Completion must include `requestSave`, `embedView` and `init` on
+the Binding, and `Model`, `Message`, `init`, `makeView` and `replaceEffectsLayer`
+on the completed Block.
+
+The fourth server checks `src/issueDetail/update.ts`. It requires clean full
+diagnostics, changes the production draft writer from `title: () => value` to
+`title: () => value.length`, and requires exactly one TS2322 error at the `title`
+property. Restoring `value` must clear the error. Edits stay in server memory,
+and the diagnostic workflow verifies restoration of the original text plus the
+deliberate newline. Source markers must identify one occurrence.
+
+Workspace runs sample the native server's resident memory at startup, every
+250 milliseconds during requests, and after the workload before closing the
+server, with `ps -o rss= -p <pid>`. JSON labels each sample `Startup`, `Interval`,
+or `Final` and includes peak sampled RSS in KiB for each server. The final sample
+also covers workloads that finish before the first interval. Startup and final
+sampling run outside request latency measurements. Sampling supports macOS and
+Linux and requires permission to inspect processes; other platforms fail
+explicitly. Each `ps` invocation has a
+one-second timeout, and samples do not overlap. Sampled RSS can miss peaks
+between samples and does not include the benchmark client or editor. There is
+no RSS threshold, and a bounded run does not establish long-session stability.
+
+Format version 5 records memory sample phases and final workload coverage. The
+`all` selection runs the Website workloads described above. Workspace workload
+hashes and Git dirty state include the example's TypeScript files, package
+manifest, and TypeScript configuration. Preserve the compiler budgets when comparing
+editor measurements, use the same idle host, and record the exact app revision
+and graph size. Increasing the issue-record count exercises runtime workload;
+larger type workloads need distinct static Block compositions.
 
 The initial investigation at commit
 `3edb273870b898ef963f1ed3a308424554bfd370` reproduced a 3.3–4.4 second Website
@@ -239,19 +406,29 @@ Only the wide fixture's Types ceiling changes, to the exact observed 216,662.
 All instantiation ceilings and the deep and Command Types ceilings stay in
 place. No fixture was narrowed and no rejection test was removed.
 
-## Source Model Schema boundaries
+## Checked Model Schema boundaries
 
-The Website's parent Model composes canonical child Schemas exported from
-feature barrels. It uses `Ui.Model` when declaring state and the completed
-`UiBlock` for Bindings. This prevents a Schema query from demanding the inferred
-child implementation, including unrelated views and child policies. It does not
-change assembly validation or runtime behavior.
+Parent Models can compose `ChildBlock.Model` through the mandatory checked
+completed-Block export boundary. The header supplies the canonical local Model
+Schema to `Block.FromAssembly*`; `Block.assemble(prepare)` validates and packages
+the prepared implementation. This separates a parent Schema lookup from the
+child's inferred implementation graph while preserving assembly checks. A
+directly exported canonical Schema is a fallback when that boundary is unavailable.
+Use the local Schema inside the feature's own Definition to avoid an import cycle.
 
 The external `schema-boundary` declaration fixture checks exact Schema and
 Codec channels, Service requirements, operation arguments, and registration
-checks through the public barrel, then emits and relocates the consumer. The actual-file editor benchmark above
-measures the source dependency. A full-program count does not establish that an
-editor demand boundary is cheap: the compiler must still validate the producer.
+through the public barrel, then emits and relocates the consumer. Named public
+UI interfaces additionally let declaration emission refer to the completed
+contract without repeatedly expanding its producer. These boundaries do not
+make every completed Block member cheap to inspect. The
+[integrated measurements and remaining Website cold-access cost](../../../internal/preview-framework-performance.md)
+cover actual post-edit requests separately from compiler counts.
+
+The recommended lint guard targets unguarded completed-Block dependencies during
+parent Schema construction. Ordinary `typeof ChildBlock.Model.Type` annotations
+remain supported. Provenance tracking is a performance guardrail, not universal
+static detection of expensive inference.
 
 ## Assembly checks
 

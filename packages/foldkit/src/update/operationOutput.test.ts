@@ -14,11 +14,11 @@ const CounterDefinition = makeDefinition('OperationOutputCounter', {
   Model,
   Message,
 })
-const increment = Update.defineStep((model: Model) => ({
+const incrementStep = Update.defineStep((model: Model) => ({
   model: modifyFields(model, { count: Number.increment }),
 }))
-const keepModel = (model: Model) => ({ model })
-const invalidNestedStep = () => increment
+const keepModelStep = (model: Model) => ({ model })
+const invalidNestedStep = () => incrementStep
 const nestedStepError = 'returned another Step instead of its result'
 
 describe('Step output validation', () => {
@@ -26,14 +26,14 @@ describe('Step output validation', () => {
     expect(() =>
       Reflect.apply(Update.combineSteps, undefined, [
         Model.make({ count: 0 }),
-        [invalidNestedStep, keepModel],
+        [invalidNestedStep, keepModelStep],
       ]),
     ).toThrow(nestedStepError)
   })
 
   it('rejects an unchecked nested Step in data-last composition', () => {
     const combined = Reflect.apply(Update.combineSteps, undefined, [
-      [invalidNestedStep, keepModel],
+      [invalidNestedStep, keepModelStep],
     ])
 
     expect(() =>
@@ -42,7 +42,9 @@ describe('Step output validation', () => {
   })
 
   it('rejects a nested Step after resolving a passive operation', () => {
-    const nested = makeResultRecipe<Model, typeof increment>(() => increment)
+    const nested = makeResultRecipe<Model, typeof incrementStep>(
+      () => incrementStep,
+    )
 
     expect(() =>
       resolveOperationOutput(nested, Model.make({ count: 0 })),
@@ -50,27 +52,32 @@ describe('Step output validation', () => {
   })
 
   it('executes an intentionally deferred Definition Step once', () => {
-    const deferred = CounterDefinition.makeStep(() => increment)
-    const combined = CounterDefinition.makeStep(() =>
-      Update.combineSteps([increment, increment]),
+    const deferredStep = CounterDefinition.makeStep(() => incrementStep)
+    const combinedStep = CounterDefinition.makeStep(() =>
+      Update.combineSteps([incrementStep, incrementStep]),
     )
 
     expect(
-      Update.combineSteps(Model.make({ count: 0 }), [deferred, combined]).model
-        .count,
+      Update.combineSteps(Model.make({ count: 0 }), [
+        deferredStep,
+        combinedStep,
+      ]).model.count,
     ).toBe(3)
   })
 })
 
 if (false) {
   // @ts-expect-error Standalone Steps return results, not another Step.
-  Update.defineStep((_model: Model) => increment)
+  Update.defineStep((_model: Model) => incrementStep)
 
   // @ts-expect-error Standalone Steps cannot return a curried composition.
   Update.defineStep((_model: Model) =>
-    Update.combineSteps([increment, increment]),
+    Update.combineSteps([incrementStep, incrementStep]),
   )
 
-  // @ts-expect-error Raw callbacks returning Steps cannot enter composition.
-  Update.combineSteps(Model.make({ count: 0 }), [invalidNestedStep, keepModel])
+  Update.combineSteps(Model.make({ count: 0 }), [
+    // @ts-expect-error Raw callbacks returning Steps cannot enter composition.
+    invalidNestedStep,
+    keepModelStep,
+  ])
 }

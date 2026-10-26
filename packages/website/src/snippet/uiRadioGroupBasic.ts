@@ -29,6 +29,8 @@ const PlanPickerDefinition = Block.makeDefinition('PlanPicker', {
   Message,
 })
 
+const { makeFieldsStep } = PlanPickerDefinition
+
 const plans: ReadonlyArray<typeof Plan.Type> = [
   'Startup',
   'Business',
@@ -49,7 +51,7 @@ const foldPlanRadioGroupOutMessage = PlanPickerDefinition.makeOutMessageFold(
   PlanRadioGroup,
   {
     Selected: ({ value }) =>
-      PlanPickerDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybePlan: () => Option.some(value),
       })),
   },
@@ -76,7 +78,7 @@ const init = PlanPickerComposition.makeInit(() => ({
   },
 }))
 
-const update = PlanPickerComposition.makeUpdate()
+const update = PlanPickerComposition.makeUpdate({})
 
 // Inside your view function, embed the radio group via h.block and pass
 // the parent-owned selection as selectedValue:

@@ -1,4 +1,4 @@
-import { Effect, Option } from 'effect'
+import { Array, Effect, Option } from 'effect'
 import {
   Diagnostic,
   type ESTree,
@@ -24,10 +24,13 @@ import {
   staticMemberName,
   staticPropertyName,
   staticStringValue,
+  blockBindingChild,
   blockBindingMethod,
   blockBindingConfiguration,
-  blockBindingSourceCall,
+  blockBindingParent,
   isOwnedDefinitionCall,
+  ownedDefinitionMethodOwner,
+  isVariableDeclaration,
 } from '../guards.ts'
 
 const directBlockStateUpdateMessage = (fieldName: string): string =>
@@ -305,41 +308,92 @@ type FoldKind = 'Fold' | 'Keyed' | 'Step'
 
 type DefinitionOwner = Readonly<{
   fallbackRootName: string
+  importedPath?: Readonly<{
+    source: string
+    members: ReadonlyArray<string>
+  }>
   members: ReadonlyArray<string>
   variable?: Variable
 }>
+
+const definitionOwnerForPath = (
+  path: Readonly<{
+    root: ESTree.IdentifierReference
+    members: ReadonlyArray<string>
+  }>,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): DefinitionOwner => ({
+  fallbackRootName: path.root.name,
+  ...(references === undefined
+    ? {}
+    : Option.match(resolveImportedPath(references, path.root), {
+        onNone: () => ({}),
+        onSome: imported => ({
+          importedPath: {
+            source: imported.source,
+            members: [...imported.members, ...path.members],
+          },
+        }),
+      })),
+  members: path.members,
+  ...(references === undefined
+    ? {}
+    : Option.match(resolvedVariable(references, path.root), {
+        onNone: () => ({}),
+        onSome: variable => ({ variable }),
+      })),
+})
+
+const definitionOwnerForExpression = (
+  node: unknown,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): DefinitionOwner | undefined => {
+  const maybePath = staticMemberPath(node)
+  if (Option.isNone(maybePath)) {
+    return undefined
+  }
+
+  return definitionOwnerForPath(maybePath.value, references)
+}
 
 const definitionOwner = (
   node: ESTree.CallExpression,
   methodName: string,
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  importerFilename?: string,
 ): DefinitionOwner | undefined => {
-  const maybePath = staticMemberPath(node.callee)
-  if (Option.isNone(maybePath)) {
+  const maybeOwner = ownedDefinitionMethodOwner(
+    node.callee,
+    methodName,
+    references,
+    importerFilename,
+  )
+  if (Option.isNone(maybeOwner)) {
     return undefined
   }
 
-  const { root, members } = maybePath.value
-  if (members.at(-1) !== methodName) {
-    return undefined
-  }
-
-  return {
-    fallbackRootName: root.name,
-    members: members.slice(0, -1),
-    ...(references === undefined
-      ? {}
-      : Option.match(resolvedVariable(references, root), {
-          onNone: () => ({}),
-          onSome: variable => ({ variable }),
-        })),
-  }
+  const owner = definitionOwnerForPath(maybeOwner.value.path, references)
+  return maybeOwner.value.importedPath === undefined
+    ? owner
+    : { ...owner, importedPath: maybeOwner.value.importedPath }
 }
 
 const isSameDefinitionOwner = (
   left: DefinitionOwner,
   right: DefinitionOwner,
 ): boolean => {
+  if (left.importedPath !== undefined || right.importedPath !== undefined) {
+    return (
+      left.importedPath !== undefined &&
+      right.importedPath !== undefined &&
+      left.importedPath.source === right.importedPath.source &&
+      left.importedPath.members.length === right.importedPath.members.length &&
+      left.importedPath.members.every(
+        (member, index) => member === right.importedPath?.members[index],
+      )
+    )
+  }
+
   if (
     left.members.length !== right.members.length ||
     left.members.some((member, index) => member !== right.members[index])
@@ -575,8 +629,30 @@ type FoldEvidence = Readonly<{
     ESTree.CallExpression,
     ESTree.IdentifierReference
   >
+  registrationsByStepFieldsCall: ReadonlyMap<
+    ESTree.CallExpression,
+    ReadonlyMap<string, ReadonlyArray<FoldDefinition>>
+  >
   writeCallbacks: ReadonlySet<ESTree.Node>
 }>
+
+const registrationsForModel = (
+  parentModel: ESTree.IdentifierReference | undefined,
+  evidence: FoldEvidence,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): ReadonlyMap<string, ReadonlyArray<FoldDefinition>> | undefined => {
+  if (parentModel === undefined) {
+    return undefined
+  }
+  if (references === undefined) {
+    return evidence.fallbackRegistrationsByParentModel.get(parentModel.name)
+  }
+  return Option.getOrUndefined(
+    Option.flatMap(resolvedVariable(references, parentModel), variable =>
+      Option.fromNullishOr(evidence.registrationsByParentModel.get(variable)),
+    ),
+  )
+}
 
 const addRegistration = <Key>(
   registrationsByParentModel: Map<Key, Map<string, Array<FoldDefinition>>>,
@@ -588,7 +664,9 @@ const addRegistration = <Key>(
     new Map<string, Array<FoldDefinition>>()
   const registrations =
     registrationsByChildField.get(definition.childField) ?? []
-  registrations.push(definition)
+  if (!registrations.includes(definition)) {
+    registrations.push(definition)
+  }
   registrationsByChildField.set(definition.childField, registrations)
   registrationsByParentModel.set(parentModel, registrationsByChildField)
 }
@@ -639,19 +717,24 @@ const foldDefinitions = (
         continue
       }
 
-      const configuration = blockBindingConfiguration(declarator.init)
+      const configuration = blockBindingConfiguration(
+        declarator.init,
+        references,
+      )
       if (!isObjectExpression(configuration)) {
         continue
       }
 
       const bindingMethod = blockBindingMethod(declarator.init, references)
-      const bindingCall = blockBindingSourceCall(declarator.init)
-      const [boundChild] = bindingCall.arguments
+      const boundChild = blockBindingChild(declarator.init, references)
       const childOwner = Option.isSome(bindingMethod)
         ? childBlockOwner(boundChild, references)
         : undefined
       const owner = Option.isSome(bindingMethod)
-        ? definitionOwner(bindingCall, 'makeBinding', references)
+        ? definitionOwnerForExpression(
+            blockBindingParent(declarator.init, references),
+            references,
+          )
         : undefined
       const directField =
         Option.isSome(bindingMethod) &&
@@ -758,6 +841,11 @@ type CompositionDefinition = Readonly<{
   bindings: ReadonlyArray<FoldDefinition>
 }>
 
+type CompositionUpdate = Readonly<{
+  definition: CompositionDefinition
+  kind: 'Direct' | 'WithContext'
+}>
+
 const compositionDefinitions = (
   program: ESTree.Program,
   scopes: ReadonlyArray<OxlintScope> | undefined,
@@ -843,25 +931,91 @@ const compositionDefinitionForUpdate = (
     fallbackByName: ReadonlyMap<string, CompositionDefinition>
   }>,
   references: WeakMap<ESTree.Node, Reference> | undefined,
-): CompositionDefinition | undefined => {
+): CompositionUpdate | undefined => {
   const maybePath = staticMemberPath(callee)
   if (
     Option.isNone(maybePath) ||
-    maybePath.value.members.length !== 1 ||
-    maybePath.value.members[0] !== 'makeUpdate'
+    (maybePath.value.members.join('.') !== 'makeUpdate' &&
+      maybePath.value.members.join('.') !== 'makeUpdate.withContext')
   ) {
     return undefined
   }
 
   const { root } = maybePath.value
+  const kind = maybePath.value.members.length === 1 ? 'Direct' : 'WithContext'
   if (references === undefined) {
-    return definitions.fallbackByName.get(root.name)
+    const definition = definitions.fallbackByName.get(root.name)
+    return definition === undefined ? undefined : { definition, kind }
   }
-  return Option.getOrUndefined(
+  const definition = Option.getOrUndefined(
     Option.flatMap(resolvedVariable(references, root), variable =>
       Option.fromNullishOr(definitions.byVariable.get(variable)),
     ),
   )
+  return definition === undefined ? undefined : { definition, kind }
+}
+
+const resolvedObjectValue = (
+  value: unknown,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): ESTree.ObjectExpression | undefined => {
+  if (isObjectExpression(value)) {
+    return value
+  }
+  if (references === undefined || !isIdentifierReference(value)) {
+    return undefined
+  }
+
+  return Option.getOrUndefined(
+    Option.flatMap(resolvedVariable(references, value), variable =>
+      Array.head(
+        variable.defs.flatMap(definition =>
+          isVariableDeclarator(definition.node) &&
+          isObjectExpression(definition.node.init)
+            ? [definition.node.init]
+            : [],
+        ),
+      ),
+    ),
+  )
+}
+
+const resolvedCallbackValue = (
+  value: unknown,
+  callbacks: ReadonlyMap<string, ESTree.ArrowFunctionExpression>,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): ESTree.ArrowFunctionExpression | ESTree.Function | undefined => {
+  if (references !== undefined && isIdentifierReference(value)) {
+    return localFunction(value, references)
+  }
+  return isFunction(value) ? value : callbackValue(value, callbacks)
+}
+
+const compositionUpdateHandlers = (
+  node: ESTree.CallExpression,
+  kind: CompositionUpdate['kind'],
+  callbacks: ReadonlyMap<string, ESTree.ArrowFunctionExpression>,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): ReadonlyArray<ESTree.ObjectProperty['value']> => {
+  const handlerValues = (handlers: ESTree.ObjectExpression) =>
+    handlers.properties.flatMap(property =>
+      property.type === 'Property' ? [property.value] : [],
+    )
+  const [authored] = node.arguments
+  if (kind === 'Direct') {
+    const handlers = resolvedObjectValue(authored, references)
+    return handlers === undefined ? [] : handlerValues(handlers)
+  }
+
+  const createCases = resolvedCallbackValue(authored, callbacks, references)
+  if (createCases === undefined) {
+    return []
+  }
+
+  return expressionsReturnedBy(createCases).flatMap(returned => {
+    const handlers = resolvedObjectValue(returned, references)
+    return handlers === undefined ? [] : handlerValues(handlers)
+  })
 }
 
 const foldDefinitionFor = (
@@ -909,9 +1063,16 @@ const isArrayExpression = (value: unknown): value is ESTree.ArrayExpression =>
 const ownedStepFieldsCallFor = (
   node: unknown,
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  importerFilename?: string,
+  visited: ReadonlySet<Variable> = new Set(),
 ): ESTree.CallExpression | undefined => {
   if (isCallExpression(node)) {
-    return isOwnedDefinitionCall(node, 'makeFieldsStep', references)
+    return isOwnedDefinitionCall(
+      node,
+      'makeFieldsStep',
+      references,
+      importerFilename,
+    )
       ? node
       : undefined
   }
@@ -920,25 +1081,58 @@ const ownedStepFieldsCallFor = (
   }
 
   return Option.getOrUndefined(
-    Option.flatMap(resolvedVariable(references, node), variable =>
-      Option.fromNullishOr(
-        variable.defs.flatMap(definition => {
-          if (
-            !isVariableDeclarator(definition.node) ||
-            !isCallExpression(definition.node.init) ||
-            !isOwnedDefinitionCall(
-              definition.node.init,
-              'makeFieldsStep',
-              references,
-            )
-          ) {
-            return []
-          }
-          return [definition.node.init]
-        })[0],
-      ),
-    ),
+    Option.flatMap(resolvedVariable(references, node), variable => {
+      if (visited.has(variable) || variable.defs.length !== 1) {
+        return Option.none()
+      }
+      return Option.flatMap(Array.head(variable.defs), definition => {
+        if (
+          !isVariableDeclarator(definition.node) ||
+          !isVariableDeclaration(definition.node.parent) ||
+          definition.node.parent.kind !== 'const'
+        ) {
+          return Option.none()
+        }
+        return Option.fromNullishOr(
+          ownedStepFieldsCallFor(
+            definition.node.init,
+            references,
+            importerFilename,
+            new Set([...visited, variable]),
+          ),
+        )
+      })
+    }),
   )
+}
+
+const modelParameterForFieldsStep = (
+  node: ESTree.CallExpression,
+  callbacks: ReadonlyMap<string, ESTree.ArrowFunctionExpression>,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+  importerFilename?: string,
+): ESTree.IdentifierReference | undefined => {
+  const isFromMessageAdapter =
+    references === undefined
+      ? Option.exists(staticMemberPath(node.callee), path =>
+          Option.contains(Array.last(path.members), 'fromMessage'),
+        )
+      : Option.exists(
+          ownedDefinitionMethodOwner(
+            node.callee,
+            'makeFieldsStep',
+            references,
+            importerFilename,
+          ),
+          owner => owner.isFromMessageAdapter,
+        )
+  if (isFromMessageAdapter) {
+    return undefined
+  }
+  const [authored] = node.arguments
+  const callback = resolvedCallbackValue(authored, callbacks, references)
+  const [model] = callback?.params ?? []
+  return isIdentifierReference(model) ? model : undefined
 }
 
 const childFieldsForCombine = (
@@ -948,6 +1142,7 @@ const childFieldsForCombine = (
     fallbackByName: ReadonlyMap<string, FoldDefinition>
   }>,
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  importerFilename?: string,
 ): CombineStepDefinition => {
   if (!isCombineStepsCall(node, references)) {
     return {
@@ -971,7 +1166,11 @@ const childFieldsForCombine = (
   const bindings: Array<FoldDefinition> = []
   const stepFieldsCalls = new Set<ESTree.CallExpression>()
   for (const step of steps.elements) {
-    const stepFieldsCall = ownedStepFieldsCallFor(step, references)
+    const stepFieldsCall = ownedStepFieldsCallFor(
+      step,
+      references,
+      importerFilename,
+    )
     if (stepFieldsCall !== undefined) {
       stepFieldsCalls.add(stepFieldsCall)
       continue
@@ -1004,6 +1203,7 @@ const combineStepDefinitions = (
     fallbackByName: ReadonlyMap<string, FoldDefinition>
   }>,
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  importerFilename?: string,
 ): Readonly<{
   byVariable: WeakMap<Variable, CombineStepDefinition>
   fallbackByName: ReadonlyMap<string, CombineStepDefinition>
@@ -1028,6 +1228,7 @@ const combineStepDefinitions = (
       node.init,
       definitions,
       references,
+      importerFilename,
     )
     if (bindings.length === 0 && stepFieldsCalls.size === 0) {
       return
@@ -1145,6 +1346,7 @@ const foldEvidence = (
   program: ESTree.Program,
   scopes: ReadonlyArray<OxlintScope> | undefined,
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  importerFilename?: string,
 ): FoldEvidence => {
   const callbacks = moduleCallbacks(program)
   const definitions = foldDefinitions(program, scopes, references)
@@ -1159,6 +1361,7 @@ const foldEvidence = (
     scopes,
     definitions,
     references,
+    importerFilename,
   )
   const registrationsByParentModel = new Map<
     Variable,
@@ -1172,11 +1375,16 @@ const foldEvidence = (
     ESTree.CallExpression,
     ESTree.IdentifierReference
   >()
+  const registrationsByStepFieldsCall = new Map<
+    ESTree.CallExpression,
+    Map<string, Array<FoldDefinition>>
+  >()
   const declaredVariables = (scopes ?? []).flatMap(scope => scope.variables)
   const helperCalls: Array<
     Readonly<{
       source: ESTree.IdentifierReference
       target: ESTree.IdentifierReference
+      owner?: DefinitionOwner
     }>
   > = []
   const addEvidence = (
@@ -1191,12 +1399,33 @@ const foldEvidence = (
       references,
       declaredVariables,
     )
+  const addStepFieldsModelEvidence = (
+    stepFieldsCall: ESTree.CallExpression,
+    parentModel: ESTree.IdentifierReference,
+  ): void => {
+    const helperModel = modelParameterForFieldsStep(
+      stepFieldsCall,
+      callbacks,
+      references,
+      importerFilename,
+    )
+    const owner = definitionOwner(
+      stepFieldsCall,
+      'makeFieldsStep',
+      references,
+      importerFilename,
+    )
+    if (helperModel !== undefined && owner !== undefined) {
+      helperCalls.push({ source: parentModel, target: helperModel, owner })
+    }
+  }
   const addCombineEvidence = (
     definition: CombineStepDefinition,
     parentModel: ESTree.IdentifierReference,
   ): void => {
     for (const stepFieldsCall of definition.stepFieldsCalls) {
       parentModelByStepFieldsCall.set(stepFieldsCall, parentModel)
+      addStepFieldsModelEvidence(stepFieldsCall, parentModel)
     }
     for (const binding of definition.bindings) {
       addEvidence(binding, parentModel)
@@ -1205,6 +1434,7 @@ const foldEvidence = (
   const copyParentEvidence = (
     source: ESTree.IdentifierReference,
     target: ESTree.IdentifierReference,
+    owner?: DefinitionOwner,
   ): boolean => {
     const sourceVariable =
       references === undefined
@@ -1222,6 +1452,13 @@ const foldEvidence = (
 
     for (const definitionsByField of registrations.values()) {
       for (const definition of definitionsByField) {
+        if (
+          owner !== undefined &&
+          (definition.owner === undefined ||
+            !isSameDefinitionOwner(owner, definition.owner))
+        ) {
+          continue
+        }
         addEvidence(definition, target)
       }
     }
@@ -1246,18 +1483,64 @@ const foldEvidence = (
       helperCalls.push({ source: helperArgument, target: helperModel })
     }
 
-    const composition = compositionDefinitionForUpdate(
+    const compositionUpdate = compositionDefinitionForUpdate(
       node.callee,
       compositions,
       references,
     )
-    if (composition !== undefined) {
-      const [updateValue] = node.arguments
-      const update = callbackValue(updateValue, callbacks)
-      const [parentModel] = update?.params ?? []
-      if (isIdentifierReference(parentModel)) {
-        for (const binding of composition.bindings) {
-          addEvidence(binding, parentModel)
+    if (compositionUpdate !== undefined) {
+      const handlers = compositionUpdateHandlers(
+        node,
+        compositionUpdate.kind,
+        callbacks,
+        references,
+      )
+      for (const handler of handlers) {
+        const stepFieldsCall = ownedStepFieldsCallFor(
+          handler,
+          references,
+          importerFilename,
+        )
+        if (stepFieldsCall !== undefined) {
+          const owner = definitionOwner(
+            stepFieldsCall,
+            'makeFieldsStep',
+            references,
+            importerFilename,
+          )
+          const helperModel = modelParameterForFieldsStep(
+            stepFieldsCall,
+            callbacks,
+            references,
+            importerFilename,
+          )
+          for (const binding of compositionUpdate.definition.bindings) {
+            if (
+              owner === undefined ||
+              binding.owner === undefined ||
+              !isSameDefinitionOwner(owner, binding.owner)
+            ) {
+              continue
+            }
+            addRegistration(
+              registrationsByStepFieldsCall,
+              stepFieldsCall,
+              binding,
+            )
+            if (helperModel !== undefined) {
+              addEvidence(binding, helperModel)
+            }
+          }
+        }
+        const update = resolvedCallbackValue(handler, callbacks, references)
+        if (update === undefined) {
+          continue
+        }
+        const [parentModel] = update.params
+        if (isIdentifierReference(parentModel)) {
+          for (const binding of compositionUpdate.definition.bindings) {
+            addEvidence(binding, parentModel)
+          }
         }
       }
     }
@@ -1266,17 +1549,27 @@ const foldEvidence = (
       ? combineModel(node, ancestors)
       : undefined
     if (parentModelForCombine !== undefined) {
-      const childFields = childFieldsForCombine(node, definitions, references)
+      const childFields = childFieldsForCombine(
+        node,
+        definitions,
+        references,
+        importerFilename,
+      )
       addCombineEvidence(childFields, parentModelForCombine)
     }
 
-    const appliedStepFields = ownedStepFieldsCallFor(node.callee, references)
+    const appliedStepFields = ownedStepFieldsCallFor(
+      node.callee,
+      references,
+      importerFilename,
+    )
     const [stepFieldsParentModel] = node.arguments
     if (
       appliedStepFields !== undefined &&
       isIdentifierReference(stepFieldsParentModel)
     ) {
       parentModelByStepFieldsCall.set(appliedStepFields, stepFieldsParentModel)
+      addStepFieldsModelEvidence(appliedStepFields, stepFieldsParentModel)
     }
 
     if (isDataLastFoldCall(node, ancestors)) {
@@ -1335,7 +1628,13 @@ const foldEvidence = (
     pass += 1
   ) {
     for (const helperCall of pendingHelperCalls) {
-      if (copyParentEvidence(helperCall.source, helperCall.target)) {
+      if (
+        copyParentEvidence(
+          helperCall.source,
+          helperCall.target,
+          helperCall.owner,
+        )
+      ) {
         pendingHelperCalls.delete(helperCall)
       }
     }
@@ -1344,6 +1643,7 @@ const foldEvidence = (
     registrationsByParentModel,
     fallbackRegistrationsByParentModel,
     parentModelByStepFieldsCall,
+    registrationsByStepFieldsCall,
     writeCallbacks: definitions.writeCallbacks,
   }
 }
@@ -1537,32 +1837,33 @@ const directChildStepFieldsField = (
   evidence: FoldEvidence,
   callbacks: ReadonlyMap<string, ESTree.ArrowFunctionExpression>,
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  importerFilename?: string,
 ): DirectChildStateUpdate | undefined => {
-  if (!isOwnedDefinitionCall(node, 'makeFieldsStep', references)) {
+  if (
+    !isOwnedDefinitionCall(node, 'makeFieldsStep', references, importerFilename)
+  ) {
     return undefined
   }
 
-  const stepOwner = definitionOwner(node, 'makeFieldsStep', references)
+  const stepOwner = definitionOwner(
+    node,
+    'makeFieldsStep',
+    references,
+    importerFilename,
+  )
   const parentModel = evidence.parentModelByStepFieldsCall.get(node)
-  if (stepOwner === undefined || parentModel === undefined) {
+  if (stepOwner === undefined) {
     return undefined
   }
 
   const registrations =
-    references === undefined
-      ? evidence.fallbackRegistrationsByParentModel.get(parentModel.name)
-      : Option.getOrUndefined(
-          Option.flatMap(resolvedVariable(references, parentModel), variable =>
-            Option.fromNullishOr(
-              evidence.registrationsByParentModel.get(variable),
-            ),
-          ),
-        )
+    evidence.registrationsByStepFieldsCall.get(node) ??
+    registrationsForModel(parentModel, evidence, references)
   if (registrations === undefined) {
     return undefined
   }
   const [callbackNode] = node.arguments
-  const callback = callbackValue(callbackNode, callbacks)
+  const callback = resolvedCallbackValue(callbackNode, callbacks, references)
   if (callback === undefined) {
     return undefined
   }
@@ -1620,16 +1921,97 @@ const directChildStepFieldsField = (
   return undefined
 }
 
-const keyedChildArrayUpdater = (
+const keyedChildCollectionUpdaters = (
   expression: ESTree.Expression,
   childrenName: string | undefined,
   references: WeakMap<ESTree.Node, Reference> | undefined,
-): unknown => {
+): ReadonlyArray<unknown> => {
   if (!isCallExpression(expression)) {
-    return undefined
+    return []
   }
 
-  const [firstArgument, secondArgument] = expression.arguments
+  const isHashMapModify = (callee: unknown): boolean =>
+    references !== undefined &&
+    Option.exists(resolveImportedPath(references, callee), path => {
+      const [firstMember, secondMember, extraMember] = path.members
+      return (
+        (path.source === 'effect' &&
+          firstMember === 'HashMap' &&
+          secondMember === 'modify' &&
+          extraMember === undefined) ||
+        (path.source === 'effect/HashMap' &&
+          firstMember === 'modify' &&
+          secondMember === undefined)
+      )
+    })
+
+  const isPipe = (callee: unknown): boolean =>
+    references !== undefined &&
+    Option.exists(resolveImportedPath(references, callee), path => {
+      const [firstMember, secondMember, extraMember] = path.members
+      return (
+        (path.source === 'effect' &&
+          ((firstMember === 'pipe' && secondMember === undefined) ||
+            (firstMember === 'Function' &&
+              secondMember === 'pipe' &&
+              extraMember === undefined))) ||
+        (path.source === 'effect/Function' &&
+          firstMember === 'pipe' &&
+          secondMember === undefined)
+      )
+    })
+
+  const [firstArgument, secondArgument, thirdArgument] = expression.arguments
+  const hashMapModify = isHashMapModify(expression.callee)
+
+  if (hashMapModify && thirdArgument === undefined && isNode(secondArgument)) {
+    return [secondArgument]
+  }
+
+  if (
+    hashMapModify &&
+    childrenName !== undefined &&
+    isIdentifier(firstArgument, childrenName) &&
+    isNode(thirdArgument)
+  ) {
+    return [thirdArgument]
+  }
+
+  if (
+    childrenName !== undefined &&
+    isCallExpression(expression.callee) &&
+    isHashMapModify(expression.callee.callee)
+  ) {
+    const [key, updater, extraModifyArgument] = expression.callee.arguments
+    const [children, extraChildrenArgument] = expression.arguments
+    if (
+      isNode(key) &&
+      isNode(updater) &&
+      extraModifyArgument === undefined &&
+      isIdentifier(children, childrenName) &&
+      extraChildrenArgument === undefined
+    ) {
+      return [updater]
+    }
+  }
+
+  if (
+    childrenName !== undefined &&
+    isPipe(expression.callee) &&
+    isIdentifier(firstArgument, childrenName)
+  ) {
+    return Array.flatMap(Array.drop(expression.arguments, 1), operator => {
+      if (!isCallExpression(operator) || !isHashMapModify(operator.callee)) {
+        return []
+      }
+
+      const [key, updater, extraModifyArgument] = operator.arguments
+      return isNode(key) && isNode(updater) && extraModifyArgument === undefined
+        ? [updater]
+        : []
+    })
+  }
+
   const staticMap =
     references === undefined
       ? Option.exists(staticMemberPath(expression.callee), path => {
@@ -1662,7 +2044,7 @@ const keyedChildArrayUpdater = (
     secondArgument === undefined &&
     isNode(firstArgument)
   ) {
-    return firstArgument
+    return [firstArgument]
   }
 
   if (
@@ -1671,7 +2053,7 @@ const keyedChildArrayUpdater = (
     isIdentifier(firstArgument, childrenName) &&
     isNode(secondArgument)
   ) {
-    return secondArgument
+    return [secondArgument]
   }
 
   if (
@@ -1682,10 +2064,10 @@ const keyedChildArrayUpdater = (
     isIdentifier(expression.callee.property, 'map') &&
     isNode(firstArgument)
   ) {
-    return firstArgument
+    return [firstArgument]
   }
 
-  return undefined
+  return []
 }
 
 const updatesKeyedChildArray = (
@@ -1694,34 +2076,37 @@ const updatesKeyedChildArray = (
   childOwners: ReadonlyArray<ChildBlockOwner>,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): boolean => {
-  const updater = keyedChildArrayUpdater(expression, childrenName, references)
-  if (updater === undefined) {
-    return false
-  }
+  const updaters = keyedChildCollectionUpdaters(
+    expression,
+    childrenName,
+    references,
+  )
 
-  if (isOwnedChildTransform(updater, childOwners, references)) {
-    return true
-  }
+  return updaters.some(updater => {
+    if (isOwnedChildTransform(updater, childOwners, references)) {
+      return true
+    }
 
-  if (!isArrowFunction(updater)) {
-    return false
-  }
-
-  const [childModel] = updater.params
-  if (!isIdentifier(childModel)) {
-    return false
-  }
-
-  return expressionsReturnedBy(updater).some(returned => {
-    if (
-      !isCallExpression(returned) ||
-      !isModifyFieldsCall(returned, references)
-    ) {
+    if (!isArrowFunction(updater)) {
       return false
     }
 
-    const [updatedModel] = returned.arguments
-    return isIdentifier(updatedModel, childModel.name)
+    const [childModel] = updater.params
+    if (!isIdentifier(childModel)) {
+      return false
+    }
+
+    return expressionsReturnedBy(updater).some(returned => {
+      if (
+        !isCallExpression(returned) ||
+        !isModifyFieldsCall(returned, references)
+      ) {
+        return false
+      }
+
+      const [updatedModel] = returned.arguments
+      return isIdentifier(updatedModel, childModel.name)
+    })
   })
 }
 
@@ -1731,49 +2116,52 @@ const updatesWrappedKeyedChildArray = (
   childFields: ReadonlySet<string>,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): boolean => {
-  const updater = keyedChildArrayUpdater(expression, childrenName, references)
-  if (updater === undefined) {
-    return false
-  }
+  const updaters = keyedChildCollectionUpdaters(
+    expression,
+    childrenName,
+    references,
+  )
 
-  if (!isArrowFunction(updater)) {
-    return false
-  }
+  return updaters.some(updater => {
+    if (!isArrowFunction(updater)) {
+      return false
+    }
 
-  const [wrapper] = updater.params
-  if (!isIdentifier(wrapper)) {
-    return false
-  }
+    const [wrapper] = updater.params
+    if (!isIdentifier(wrapper)) {
+      return false
+    }
 
-  return expressionsReturnedBy(updater).some(returned => {
-    let updatesChild = false
-    walk(returned, (node, ancestors) => {
-      if (
-        updatesChild ||
-        ancestors.some(isFunction) ||
-        !isCallExpression(node) ||
-        !isModifyFieldsCall(node, references)
-      ) {
-        return
-      }
+    return expressionsReturnedBy(updater).some(returned => {
+      let updatesChild = false
+      walk(returned, (node, ancestors) => {
+        if (
+          updatesChild ||
+          ancestors.some(isFunction) ||
+          !isCallExpression(node) ||
+          !isModifyFieldsCall(node, references)
+        ) {
+          return
+        }
 
-      const [updatedModel, updates] = node.arguments
-      if (
-        !isIdentifier(updatedModel, wrapper.name) ||
-        !isObjectExpression(updates)
-      ) {
-        return
-      }
+        const [updatedModel, updates] = node.arguments
+        if (
+          !isIdentifier(updatedModel, wrapper.name) ||
+          !isObjectExpression(updates)
+        ) {
+          return
+        }
 
-      updatesChild = updates.properties.some(
-        property =>
-          property.type === 'Property' &&
-          Option.exists(staticPropertyName(property), childField =>
-            childFields.has(childField),
-          ),
-      )
+        updatesChild = updates.properties.some(
+          property =>
+            property.type === 'Property' &&
+            Option.exists(staticPropertyName(property), childField =>
+              childFields.has(childField),
+            ),
+        )
+      })
+      return updatesChild
     })
-    return updatesChild
   })
 }
 
@@ -1943,16 +2331,7 @@ const directChildModifyFieldsField = (
   if (!isIdentifierReference(model) || !isObjectExpression(updates)) {
     return undefined
   }
-  const registrations =
-    references === undefined
-      ? evidence.fallbackRegistrationsByParentModel.get(model.name)
-      : Option.getOrUndefined(
-          Option.flatMap(resolvedVariable(references, model), variable =>
-            Option.fromNullishOr(
-              evidence.registrationsByParentModel.get(variable),
-            ),
-          ),
-        )
+  const registrations = registrationsForModel(model, evidence, references)
   if (registrations === undefined) {
     return undefined
   }
@@ -2031,12 +2410,13 @@ export const noDirectBlockStateUpdate = Rule.define({
         if (node.type !== 'Program') {
           return Effect.void
         }
-        const evidence = foldEvidence(node, scopes, references)
+        const evidence = foldEvidence(node, scopes, references, ctx.filename)
         const origins = collectChildReturnOrigins(node, scopes, references)
         const callbacks = moduleCallbacks(node)
         if (
           evidence.registrationsByParentModel.size === 0 &&
-          evidence.fallbackRegistrationsByParentModel.size === 0
+          evidence.fallbackRegistrationsByParentModel.size === 0 &&
+          evidence.registrationsByStepFieldsCall.size === 0
         ) {
           return Effect.void
         }
@@ -2066,6 +2446,7 @@ export const noDirectBlockStateUpdate = Rule.define({
                   evidence,
                   callbacks,
                   references,
+                  ctx.filename,
                 ) ??
                 directChildModifyFieldsField(
                   candidate,

@@ -65,22 +65,20 @@ const TrackPointer = Search.makeMountStream('TrackPointer', {
   },
 })
 const search = Search.makeComposition({})
-const clear = Search.makeStep(model => ({
+const clearStep = Search.makeStep(model => ({
   model: modifyFields(model, { value: () => '' }),
 }))
-const update = search.makeUpdate((model, message) =>
-  Message.match(message, {
-    RequestedClear: () => clear(model),
-    RequestedSave: ({ value }) => ({
-      model: modifyFields(model, { value: () => value }),
-      commands: [Save({ value })],
-    }),
-    CompletedSave: () => ({
-      model,
-      outMessage: OutMessage.Saved({ value: model.value }),
-    }),
+const update = search.makeUpdate({
+  RequestedClear: model => clearStep(model),
+  RequestedSave: (model, { value }) => ({
+    model: modifyFields(model, { value: () => value }),
+    commands: [Save({ value })],
   }),
-)
+  CompletedSave: model => ({
+    model,
+    outMessage: OutMessage.Saved({ value: model.value }),
+  }),
+})
 const prepareBlock = () =>
   search.prepareBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
@@ -104,7 +102,7 @@ expectTypeOf<
 expectTypeOf<
   Layer.Error<typeof TrackPointer.layer>
 >().toEqualTypeOf<TrackingUnavailable>()
-expectTypeOf(clear(Model.make({ value: 'before' })).model).toEqualTypeOf<
+expectTypeOf(clearStep(Model.make({ value: 'before' })).model).toEqualTypeOf<
   typeof Model.Type
 >()
 const EarlyNamespace = Block.makeNamespace('Early')
@@ -126,10 +124,20 @@ const secondComposition = EarlyNamespace.makeDefinition({
 const prepareFirstBlock = () =>
   firstComposition.prepareBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
-    update: firstComposition.makeUpdate(model => ({
-      model,
-      commands: [Shared()],
-    })),
+    update: firstComposition.makeUpdate({
+      RequestedSave: model => ({
+        model,
+        commands: [Shared()],
+      }),
+      CompletedSave: model => ({
+        model,
+        commands: [Shared()],
+      }),
+      RequestedClear: model => ({
+        model,
+        commands: [Shared()],
+      }),
+    }),
     EffectsLayer: Shared.layer,
   })
 const firstBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -139,10 +147,20 @@ const firstBlock: Block.FromAssemblyWithoutViewOrOutMessage<
 const prepareSecondBlock = () =>
   secondComposition.prepareBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
-    update: secondComposition.makeUpdate(model => ({
-      model,
-      commands: [Shared()],
-    })),
+    update: secondComposition.makeUpdate({
+      RequestedSave: model => ({
+        model,
+        commands: [Shared()],
+      }),
+      CompletedSave: model => ({
+        model,
+        commands: [Shared()],
+      }),
+      RequestedClear: model => ({
+        model,
+        commands: [Shared()],
+      }),
+    }),
     EffectsLayer: Shared.layer,
   })
 const secondBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -292,10 +310,20 @@ if (false) {
   // @ts-expect-error Missing local handler remains rejected.
   firstComposition.prepareBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
-    update: firstComposition.makeUpdate(model => ({
-      model,
-      commands: [Shared()],
-    })),
+    update: firstComposition.makeUpdate({
+      RequestedSave: model => ({
+        model,
+        commands: [Shared()],
+      }),
+      CompletedSave: model => ({
+        model,
+        commands: [Shared()],
+      }),
+      RequestedClear: model => ({
+        model,
+        commands: [Shared()],
+      }),
+    }),
   })
   const Foreign = Block.makeDefinition('Foreign', { Model, Message })
   const ForeignShared = Foreign.makeCommand('Shared', {
@@ -305,10 +333,20 @@ if (false) {
   // @ts-expect-error A different owner cannot provide the local handler.
   ForeignComposition.prepareBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
-    update: ForeignComposition.makeUpdate(model => ({
-      model,
-      commands: [ForeignShared()],
-    })),
+    update: ForeignComposition.makeUpdate({
+      RequestedSave: model => ({
+        model,
+        commands: [ForeignShared()],
+      }),
+      CompletedSave: model => ({
+        model,
+        commands: [ForeignShared()],
+      }),
+      RequestedClear: model => ({
+        model,
+        commands: [ForeignShared()],
+      }),
+    }),
     EffectsLayer: Shared.layer,
   })
 }

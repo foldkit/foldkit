@@ -41,3 +41,5 @@ export const PersonalInfoDefinition = Block.makeDefinition('PersonalInfo', {
   Message,
   ChildInitContext: CalendarDate,
 })
+
+export const { makeFieldsStep, makeNoopStep } = PersonalInfoDefinition

@@ -54,22 +54,24 @@ const revealLocalErrors = (child: Child.Model): Child.Model =>
 const revealErrorsThroughParentHelper = (model: Model): Model =>
   modifyFields(model, { child: revealLocalErrors })
 
-const revealChildFields = ApplicationDefinition.makeFieldsStep(() => ({
+const revealChildFieldsStep = ApplicationDefinition.makeFieldsStep(() => ({
   child: Child.revealErrors,
 }))
 
-export const update = ApplicationComposition.makeUpdate(model => {
-  void modifyFields(model, { child: Child.revealErrors })
-  void modifyFields(model, { child: revealLocalErrors })
-  void revealErrorsThroughParentHelper(model)
-  void modifyFields(model, { aliasedChild: revealImportedErrors })
-  void modifyFields(model, {
-    entries: Array.map(Child.revealErrors),
-  })
-  void Update.combineSteps(model, [
-    revealChildFields,
-    ChildBinding.informThemeChanged({ theme: 'Light' }),
-  ])
+export const update = ApplicationComposition.makeUpdate({
+  GotChildMessage: model => {
+    void modifyFields(model, { child: Child.revealErrors })
+    void modifyFields(model, { child: revealLocalErrors })
+    void revealErrorsThroughParentHelper(model)
+    void modifyFields(model, { aliasedChild: revealImportedErrors })
+    void modifyFields(model, {
+      entries: Array.map(Child.revealErrors),
+    })
+    void Update.combineSteps(model, [
+      revealChildFieldsStep,
+      ChildBinding.informThemeChanged({ theme: 'Light' }),
+    ])
 
-  return ChildBinding.informThemeChanged({ theme: 'Light' })(model)
+    return ChildBinding.informThemeChanged({ theme: 'Light' })(model)
+  },
 })

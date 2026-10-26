@@ -4,6 +4,7 @@ import type { Block } from 'foldkit'
 import {
   NoteDurationRadioGroupBlock,
   NotePlayerDemoDefinition,
+  makeFieldsStep,
 } from './definition'
 import { prependToLog } from './messageLog'
 
@@ -16,7 +17,7 @@ export const NoteDurationRadioGroupBinding =
       NoteDurationRadioGroupBlock,
       {
         Selected: ({ value }) =>
-          NotePlayerDemoDefinition.makeFieldsStep(() => ({
+          makeFieldsStep(() => ({
             noteDuration: () => value,
             messageLog: prependToLog(`Selected(${value})`),
           })),

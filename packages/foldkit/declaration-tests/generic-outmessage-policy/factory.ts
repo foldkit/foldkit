@@ -37,18 +37,16 @@ export const makeSelectionFeature = <Item extends string, ItemEncoded>(
       init: SelectionComposition.makeInit(() => ({
         model: SelectionModel.make({ selections: 0 }),
       })),
-      update: SelectionComposition.makeUpdate((model, message) =>
-        SelectionMessage.match(message, {
-          RequestedSelect: ({ value }) => ({
-            model: Struct.modifyFields(model, { selections: Number.increment }),
-            outMessage: SelectionOutMessage.Selected({ value }),
-          }),
-          RequestedClose: () => ({
-            model,
-            outMessage: SelectionOutMessage.Closed(),
-          }),
+      update: SelectionComposition.makeUpdate({
+        RequestedSelect: (model, { value }) => ({
+          model: Struct.modifyFields(model, { selections: Number.increment }),
+          outMessage: SelectionOutMessage.Selected({ value }),
         }),
-      ),
+        RequestedClose: model => ({
+          model,
+          outMessage: SelectionOutMessage.Closed(),
+        }),
+      }),
       operations: {
         select: SelectionMessage.RequestedSelect,
         close: SelectionMessage.RequestedClose,
@@ -129,13 +127,12 @@ export const makeSelectionFeature = <Item extends string, ItemEncoded>(
   const init = Composition.makeInit(() => ({
     model: { maybeSelected: Option.none() },
   }))
-  const update = Composition.makeUpdate((model, message) =>
-    ParentMessage.match(message, {
-      RequestedSelect: ({ value }) => SelectionBinding.select({ value })(model),
-      RequestedClose: () => SelectionBinding.close()(model),
-      CompletedRecordSelection: () => ({ model }),
-    }),
-  )
+  const update = Composition.makeUpdate({
+    RequestedSelect: (model, { value }) =>
+      SelectionBinding.select({ value })(model),
+    RequestedClose: model => SelectionBinding.close()(model),
+    CompletedRecordSelection: model => Definition.makeNoopStep()(model),
+  })
   const prepareBlock = () =>
     Composition.prepareBlock({
       init,

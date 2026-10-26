@@ -1,4 +1,4 @@
-import type { Option, Pipeable } from 'effect'
+import type { Inspectable, Option, Pipeable } from 'effect'
 
 import type { VNode } from '../vdom.js'
 import type { ChildAttribute } from './childAttribute.js'
@@ -26,6 +26,9 @@ type Includes<
 type ObjectKey<Value> = Exclude<
   keyof Value,
   | symbol
+  | (Value extends Inspectable.Inspectable
+      ? keyof Inspectable.Inspectable
+      : never)
   | (Value extends Pipeable.Pipeable ? keyof Pipeable.Pipeable : never)
   | (Value extends Date ? keyof Date : never)
 >

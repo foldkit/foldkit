@@ -2,7 +2,6 @@ import clsx from 'clsx'
 import { Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 
 import { Textarea } from '@foldkit/ui'
 
@@ -14,22 +13,24 @@ const Message = defineMessageUnion({
   UpdatedContent: { value: Schema.String },
 })
 
-const CoverLetterComposition = Block.makeDefinition('CoverLetter', {
+const CoverLetterDefinition = Block.makeDefinition('CoverLetter', {
   Model,
   Message,
-}).makeComposition()
+})
+
+const { makeFieldsStep } = CoverLetterDefinition
+
+const CoverLetterComposition = CoverLetterDefinition.makeComposition()
 
 const init = CoverLetterComposition.makeInit(() => ({
   model: { content: '' },
 }))
 
-const update = CoverLetterComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    UpdatedContent: ({ value }) => ({
-      model: modifyFields(model, { content: () => value }),
-    }),
-  }),
-)
+const update = CoverLetterComposition.makeUpdate({
+  UpdatedContent: makeFieldsStep.fromMessage(({ value }) => ({
+    content: () => value,
+  })),
+})
 
 const MAX_COVER_LETTER_LENGTH = 2000
 const WARNING_THRESHOLD_CHARS = 200

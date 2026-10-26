@@ -1,4 +1,4 @@
-import { Array } from 'effect'
+import { Array, Function } from 'effect'
 import { describe, expect, expectTypeOf, test } from 'vitest'
 
 import * as Interruptible from '../command/interruptible/index.js'
@@ -668,15 +668,104 @@ describe('story', () => {
     ).toThrow('I found Commands without resolvers')
   })
 
-  test('throws when sending a Message with pending Commands', () => {
+  test('retains pending Commands while later Messages update the Model', () => {
+    Story.story(
+      update,
+      Story.given({ count: 0, log: [] }),
+      Story.message(CounterMessage.ClickedFetch()),
+      Story.message(CounterMessage.ClickedIncrement()),
+      Story.model(model => {
+        expect(model.count).toBe(1)
+      }),
+      Story.Command.expectExact(FetchCount),
+      Story.Command.resolve(
+        FetchCount,
+        CounterMessage.SucceededFetchCount({ count: 42 }),
+      ),
+      Story.model(model => {
+        expect(model.count).toBe(42)
+        expect(model.log).toEqual([42])
+      }),
+    )
+  })
+
+  test('retains Commands from concurrent Messages in dispatch order', () => {
+    Story.story(
+      update,
+      Story.given({ count: 0, log: [] }),
+      Story.steps(
+        Story.message(CounterMessage.ClickedFetchById({ id: 1 })),
+        Story.steps(
+          Story.message(CounterMessage.ClickedIncrement()),
+          Story.message(CounterMessage.ClickedFetchById({ id: 2 })),
+        ),
+      ),
+      Story.Command.expectExact(
+        FetchCountById({ id: 1 }),
+        FetchCountById({ id: 2 }),
+      ),
+      Story.Command.resolveAll(
+        [
+          FetchCountById({ id: 1 }),
+          CounterMessage.SucceededFetchCount({ count: 10 }),
+        ],
+        [
+          FetchCountById({ id: 2 }),
+          CounterMessage.SucceededFetchCount({ count: 20 }),
+        ],
+      ),
+      Story.model(model => {
+        expect(model.count).toBe(20)
+        expect(model.log).toEqual([10, 20])
+      }),
+    )
+  })
+
+  test('still reports ambiguous definitions after concurrent dispatches', () => {
+    expect(() =>
+      Story.story(
+        update,
+        Story.given({ count: 0, log: [] }),
+        Story.message(CounterMessage.ClickedFetch()),
+        Story.message(CounterMessage.ClickedFetch()),
+        Story.Command.resolve(
+          FetchCount,
+          CounterMessage.SucceededFetchCount({ count: 42 }),
+        ),
+      ),
+    ).toThrow(
+      'I tried to resolve "FetchCount" but multiple pending Commands match',
+    )
+  })
+
+  test('still reports a missing definition while concurrent Commands remain pending', () => {
     expect(() =>
       Story.story(
         update,
         Story.given({ count: 0, log: [] }),
         Story.message(CounterMessage.ClickedFetch()),
         Story.message(CounterMessage.ClickedIncrement()),
+        Story.Command.resolve(
+          SubmitForm,
+          FormChildJsChildMessage.SucceededSubmitForm({ id: 'abc' }),
+        ),
       ),
-    ).toThrow('I found unresolved Commands when you sent a new Message')
+    ).toThrow(
+      'I tried to resolve "SubmitForm" but no matching pending Command was found',
+    )
+  })
+
+  test('still reports all ordinary Commands left pending after concurrent Messages', () => {
+    expect(() =>
+      Story.story(
+        update,
+        Story.given({ count: 0, log: [] }),
+        Story.message(CounterMessage.ClickedFetch()),
+        Story.message(CounterMessage.ClickedFetchById({ id: 1 })),
+      ),
+    ).toThrow(
+      'I found Commands without resolvers:\n\n    FetchCount\n    FetchCountById {"id":1}',
+    )
   })
 
   test('succeeds with a Message that produces no Commands', () => {
@@ -858,6 +947,96 @@ describe('interruptible Commands', () => {
 })
 
 describe('outMessage', () => {
+  const dualChildUpdate = Function.dual(2, childUpdate)
+
+  test('dual updates preserve their complete OutMessage union', () => {
+    Story.story(
+      dualChildUpdate,
+      Story.given({ status: 'Idle' }),
+      Story.message(FormChildJsChildMessage.SubmittedForm()),
+      Story.Command.resolve(
+        SubmitForm,
+        FormChildJsChildMessage.SucceededSubmitForm({ id: 'abc' }),
+      ),
+      Story.expectOutMessage(
+        FormChildJsChildOutMessage.RequestedSave({ id: 'abc' }),
+      ),
+      Story.Command.resolve(
+        ResetForm,
+        FormChildJsChildMessage.CompletedResetForm(),
+      ),
+    )
+
+    const cancelled = dualChildUpdate(FormChildJsChildMessage.CancelledForm())({
+      status: 'Submitting',
+    })
+
+    expect(cancelled.outMessage).toEqual(
+      FormChildJsChildOutMessage.RequestedCancel(),
+    )
+  })
+
+  test('dual updates reject unrelated OutMessages', () => {
+    expectTypeOf(() =>
+      Story.story(
+        dualChildUpdate,
+        Story.given({ status: 'Idle' }),
+        Story.message(FormChildJsChildMessage.CancelledForm()),
+        // @ts-expect-error ClickedIncrement is not a child OutMessage
+        Story.expectOutMessage(CounterMessage.ClickedIncrement()),
+      ),
+    ).toBeFunction()
+  })
+
+  test('validates the data-first update contract', () => {
+    const missingModel = (
+      _model: CounterModel,
+      _message: typeof CounterMessage.Type,
+    ) => ({ status: 'Done' })
+    const wrongModel = (
+      _model: CounterModel,
+      _message: typeof CounterMessage.Type,
+    ) => ({ model: { status: 'Done' } })
+    const requiredContext = (
+      model: CounterModel,
+      _message: typeof CounterMessage.Type,
+      _context: string,
+    ) => ({ model })
+    const optionalContext = (
+      model: CounterModel,
+      _message: typeof CounterMessage.Type,
+      _context?: string,
+    ) => ({ model })
+
+    expectTypeOf(() =>
+      Story.story(
+        // @ts-expect-error an update must return its Model
+        missingModel,
+        Story.given({ count: 0, log: [] }),
+      ),
+    ).toBeFunction()
+    expectTypeOf(() =>
+      Story.story(
+        // @ts-expect-error an update must return the same Model type it accepts
+        wrongModel,
+        Story.given({ count: 0, log: [] }),
+      ),
+    ).toBeFunction()
+    expectTypeOf(() =>
+      Story.story(
+        // @ts-expect-error Story cannot supply required update context
+        requiredContext,
+        Story.given({ count: 0, log: [] }),
+      ),
+    ).toBeFunction()
+
+    Story.story(
+      optionalContext,
+      Story.given({ count: 0, log: [] }),
+      Story.message(CounterMessage.ClickedIncrement()),
+    )
+  })
+
   test('OutMessage updates at each step in the story', () => {
     Story.story(
       childUpdate,
@@ -1007,6 +1186,14 @@ describe("resolveAll applies each Command's own message mapping", () => {
 })
 
 describe('type safety', () => {
+  test('retains the explicit generic call shape', () => {
+    Story.story<CounterModel, typeof CounterMessage.Type>(
+      update,
+      Story.given({ count: 0, log: [] }),
+      Story.message(CounterMessage.ClickedIncrement()),
+    )
+  })
+
   test('given returns a GivenStep', () => {
     const step = Story.given({ count: 0, log: [] })
     expectTypeOf(step).toMatchTypeOf<Story.GivenStep<{ count: number }>>()

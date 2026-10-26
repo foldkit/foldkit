@@ -7,92 +7,72 @@ import {
   TimestampSentMessage,
 } from './command'
 import { ApplicationComposition } from './composition'
-import { Message } from './message'
+import { makeCommandsStep, makeFieldsStep, makeNoopStep } from './definition'
 import { ChatMessage, ConnectionState } from './model'
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedConnect: () => ({
-      model: modifyFields(model, {
-        connection: () => ConnectionState.Connecting(),
-      }),
-    }),
+export const update = ApplicationComposition.makeUpdate({
+  ClickedConnect: makeFieldsStep(() => ({
+    connection: () => ConnectionState.Connecting(),
+  })),
 
-    ConnectedChatSocket: () => ({
-      model: modifyFields(model, {
-        connection: () => ConnectionState.Connected(),
-      }),
-    }),
+  ConnectedChatSocket: makeFieldsStep(() => ({
+    connection: () => ConnectionState.Connected(),
+  })),
 
-    DisconnectedChatSocket: () => ({
-      model: modifyFields(model, {
-        connection: () => ConnectionState.Disconnected(),
-        messages: () => [],
-      }),
-    }),
+  DisconnectedChatSocket: makeFieldsStep(() => ({
+    connection: () => ConnectionState.Disconnected(),
+    messages: () => [],
+  })),
 
-    ReleasedChatSocket: () => ({ model }),
+  ReleasedChatSocket: makeNoopStep(),
 
-    FailedConnectChatSocket: ({ error }) => ({
-      model: modifyFields(model, {
-        connection: () => ConnectionState.Error({ error }),
-      }),
-    }),
+  FailedConnectChatSocket: makeFieldsStep.fromMessage(({ error }) => ({
+    connection: () => ConnectionState.Error({ error }),
+  })),
 
-    FailedChatSocket: ({ error }) => ({
-      model: modifyFields(model, {
-        connection: () => ConnectionState.Error({ error }),
-      }),
-    }),
+  FailedChatSocket: makeFieldsStep.fromMessage(({ error }) => ({
+    connection: () => ConnectionState.Error({ error }),
+  })),
 
-    FailedSendMessage: ({ error }) => ({
-      model: modifyFields(model, {
-        connection: () => ConnectionState.Error({ error }),
-      }),
-    }),
+  FailedSendMessage: makeFieldsStep.fromMessage(({ error }) => ({
+    connection: () => ConnectionState.Error({ error }),
+  })),
 
-    UpdatedMessageInput: ({ value }) => ({
-      model: modifyFields(model, {
-        messageInput: () => value,
-      }),
-    }),
+  UpdatedMessageInput: makeFieldsStep.fromMessage(({ value }) => ({
+    messageInput: () => value,
+  })),
 
-    SubmittedMessage: () => {
-      const trimmedMessage = model.messageInput.trim()
+  SubmittedMessage: model => {
+    const trimmedMessage = model.messageInput.trim()
 
-      if (String.isEmpty(trimmedMessage)) {
-        return { model }
-      }
+    if (String.isEmpty(trimmedMessage)) {
+      return { model }
+    }
 
-      return Match.value(model.connection).pipe(
-        Match.tag('Connected', () => ({
-          model: modifyFields(model, {
-            messageInput: () => '',
-          }),
-          commands: [SendMessage({ text: trimmedMessage })],
-        })),
-        Match.orElse(() => ({ model })),
-      )
-    },
-
-    SucceededSendMessage: ({ text }) => ({
-      model,
-      commands: [TimestampSentMessage({ text })],
-    }),
-
-    ReceivedMessage: ({ text }) => ({
-      model,
-      commands: [TimestampReceivedMessage({ text })],
-    }),
-
-    TimestampedMessage: ({ text, zoned, isSent }) => {
-      const newMessage = ChatMessage.make({ text, zoned, isSent })
-
-      return {
+    return Match.value(model.connection).pipe(
+      Match.tag('Connected', () => ({
         model: modifyFields(model, {
-          messages: messages => [...messages, newMessage],
+          messageInput: () => '',
         }),
-      }
-    },
+        commands: [SendMessage({ text: trimmedMessage })],
+      })),
+      Match.orElse(() => ({ model })),
+    )
+  },
+
+  SucceededSendMessage: makeCommandsStep.fromMessage(({ text }) => [
+    TimestampSentMessage({ text }),
+  ]),
+
+  ReceivedMessage: makeCommandsStep.fromMessage(({ text }) => [
+    TimestampReceivedMessage({ text }),
+  ]),
+
+  TimestampedMessage: makeFieldsStep.fromMessage(({ text, zoned, isSent }) => {
+    const newMessage = ChatMessage.make({ text, zoned, isSent })
+
+    return {
+      messages: messages => [...messages, newMessage],
+    }
   }),
-)
+})

@@ -1,4 +1,3 @@
-import { Match } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -31,30 +30,33 @@ const extractedHandlers = {
   GotExtractedMessage: () => ({ model: Model.make({}) }),
   ClickedSave: () => ({ model: Model.make({}) }),
 }
-const extractedUpdate = (model: unknown, message: unknown) =>
-  Message.match(message, extractedHandlers)
 
-ApplicationComposition.makeUpdate(extractedUpdate)
+ApplicationComposition.makeUpdate(extractedHandlers)
 
-ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    GotInlineMessage: () => ({ model }),
-    ClickedSave: () => ({ model }),
-  }),
-)
+ApplicationComposition.makeUpdate({
+  GotInlineMessage: model => ({ model }),
+  ClickedSave: model => ({ model }),
+})
 
-ApplicationComposition.makeUpdate((model, message) =>
-  Match.value(message).pipe(
-    Match.tag('GotPickerEvent', () => ({ model })),
-    Match.orElse(() => ({ model })),
-  ),
-)
+ApplicationComposition.makeUpdate({
+  GotPickerEvent: model => ({ model }),
+})
 
-const broadUpdate = (model: unknown, message: { _tag: string }) =>
-  message._tag === 'GotDialogMessage' ? { model } : { model }
+const broadCases = {
+  GotDialogMessage: (model: unknown) => ({ model }),
+  ClickedSave: (model: unknown) => ({ model }),
+}
 
-ApplicationComposition.makeUpdate(broadUpdate)
+ApplicationComposition.makeUpdate(broadCases)
 
-ApplicationComposition.makeUpdate((model, message) =>
-  message.message._tag === 'ChangedDialog' ? { model } : { model },
-)
+ApplicationComposition.makeUpdate({
+  ClickedSave: (model, message) =>
+    message.message._tag === 'ChangedDialog' ? { model } : { model },
+})
+
+const makeContextualCases = (_context: string) => ({
+  ClickedSave: (model: unknown, message: { message: { _tag: string } }) =>
+    message.message._tag === 'ChangedDialog' ? { model } : { model },
+})
+
+ApplicationComposition.makeUpdate.withContext(makeContextualCases)

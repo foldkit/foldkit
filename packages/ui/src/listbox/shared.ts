@@ -231,9 +231,9 @@ export const closedModel = <Model extends BaseModel>(model: Model): Model =>
 
 // UPDATE FACTORY
 
-type HandlerReturn<Model> = Readonly<{
+type HandlerReturn<Model, Value extends string> = Readonly<{
   model: Model
-  outMessage?: OutMessage
+  outMessage?: OutMessage<Value>
 }>
 
 /** Prevents page scrolling while the listbox is open in modal mode. */
@@ -388,36 +388,41 @@ export const DetectListboxMovementOrAnimationEnd = ListboxNamespace.makeCommand(
   },
 )
 
-export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
+/** Creates exact Listbox Message handlers and their Animation Binding. */
+export const makeUpdateHandlers = <
+  Value extends string,
+  ParentOutMessageSchema extends Schema.Top,
+>(
   bindChild: Block.BindChild<
     typeof BaseModel,
     typeof Message,
     ParentOutMessageSchema
   >,
-  makeOutMessageFold: Block.MakeOutMessageFold<BaseModel, Message, OutMessage>,
-  step: Block.DefineStep<BaseModel, Message, OutMessage>,
-  stepFields: Block.DefineStepFields<BaseModel>,
+  makeOutMessageFold: Block.MakeOutMessageFold<
+    BaseModel,
+    Message,
+    OutMessage<Value>
+  >,
+  step: Block.DefineStep<BaseModel, Message, OutMessage<Value>>,
+  stepFields: Block.DefineStepFields<BaseModel, Message>,
   stepNoop: Block.DefineStepNoop<BaseModel>,
+  commandsStep: Block.MakeCommandsStep<BaseModel, Message>,
   selectionBehavior: 'CloseWithFocus' | 'KeepOpen',
   handleSelectedItem: (
     model: BaseModel,
     item: string,
-  ) => HandlerReturn<BaseModel>,
+  ) => HandlerReturn<BaseModel, Value>,
 ) => {
   type Model = BaseModel
-  type RoutedMessage = Message
 
-  const detectListboxMovementOrAnimationEnd = (generation: number) =>
-    step(model => ({
-      model,
-      commands: [
-        DetectListboxMovementOrAnimationEnd({ id: model.id, generation }),
-      ],
-    }))
+  const detectListboxMovementOrAnimationEndStep = (generation: number) =>
+    commandsStep(model => [
+      DetectListboxMovementOrAnimationEnd({ id: model.id, generation }),
+    ])
 
   const foldAnimationOutMessage = makeOutMessageFold(Animation.AnimationBlock, {
     StartedLeaveAnimating: ({ generation }) =>
-      detectListboxMovementOrAnimationEnd(generation),
+      detectListboxMovementOrAnimationEndStep(generation),
     TransitionedOut: stepNoop,
   })
 
@@ -426,273 +431,303 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
     init: false,
   }).withOutMessagePolicy({ fold: foldAnimationOutMessage })
 
-  const internalUpdate = (model: Model, message: RoutedMessage) => {
-    const modalOpenCommands = Array.filter(
+  const modalOpenCommands = (model: Model) =>
+    Array.filter(
       [LockListboxScroll(), InertListboxOthers({ id: model.id })],
       () => model.isModal,
     )
 
-    const closeWithoutFocusCommands = Array.filter(
+  const closeWithoutFocusCommands = (model: Model) =>
+    Array.filter(
       [UnlockListboxScroll(), RestoreListboxInert({ id: model.id })],
       () => model.isModal,
     )
 
-    const focusButton = FocusListboxButton({ id: model.id })
-    const focusItems = FocusListboxItems({ id: model.id })
+  const focusButton = (model: Model) => FocusListboxButton({ id: model.id })
+  const focusItems = (model: Model) => FocusListboxItems({ id: model.id })
 
-    const openCommands = [...modalOpenCommands, focusItems]
+  const openCommands = (model: Model) => [
+    ...modalOpenCommands(model),
+    focusItems(model),
+  ]
 
-    const closeWithFocusCommands = [focusButton, ...closeWithoutFocusCommands]
+  const closeWithFocusCommands = (model: Model) => [
+    focusButton(model),
+    ...closeWithoutFocusCommands(model),
+  ]
 
-    const openListbox = (baseModel: Model) => {
-      if (baseModel.isAnimated) {
-        return Update.combineSteps([
-          step(() => ({ model: baseModel, commands: openCommands })),
-          AnimationBinding.requestShow(),
-          stepFields(() => ({ isOpen: () => true })),
-        ])
-      }
-
-      return {
-        model: modifyBaseFields(baseModel, { isOpen: () => true }),
-        commands: openCommands,
-      }
+  const openListboxStep = (model: Model, baseModel: Model) => {
+    if (baseModel.isAnimated) {
+      return Update.combineSteps([
+        step(() => ({ model: baseModel, commands: openCommands(model) })),
+        AnimationBinding.requestShow(),
+        stepFields(() => ({ isOpen: () => true })),
+      ])
     }
 
-    const closeListbox = (
-      baseModel: Model,
-      commands: typeof closeWithFocusCommands,
-      outMessage?: OutMessage,
-    ) => {
-      if (!baseModel.isOpen) {
-        return Update.withOutMessage({ model: baseModel }, outMessage)
-      }
+    return step(() => ({
+      model: modifyBaseFields(baseModel, { isOpen: () => true }),
+      commands: openCommands(model),
+    }))
+  }
 
-      const closed = closedModel(baseModel)
+  const closeListboxStep = (
+    baseModel: Model,
+    commands: ReturnType<typeof closeWithFocusCommands>,
+  ) => {
+    if (!baseModel.isOpen) {
+      return step(() => ({ model: baseModel }))
+    }
 
-      if (baseModel.isAnimated) {
-        return step(() =>
-          Function.compose(
-            Update.combineSteps([
-              step(() => ({ model: closed, commands })),
-              AnimationBinding.requestHide(),
-            ]),
-            Update.withOutMessage(outMessage),
+    const closed = closedModel(baseModel)
+
+    if (baseModel.isAnimated) {
+      return Update.combineSteps([
+        step(() => ({ model: closed, commands })),
+        AnimationBinding.requestHide(),
+      ])
+    }
+
+    return step(() => ({ model: closed, commands }))
+  }
+
+  const openWithActiveItem = (
+    model: Model,
+    maybeActiveItemIndex: Option.Option<number>,
+  ) => {
+    if (model.isOpen) {
+      return stepNoop()
+    }
+
+    return openListboxStep(
+      model,
+      modifyBaseFields(model, {
+        maybeActiveItemIndex: () => maybeActiveItemIndex,
+        activationTrigger: () =>
+          Option.match(maybeActiveItemIndex, {
+            onNone: () => 'Pointer' as const,
+            onSome: () => 'Keyboard' as const,
+          }),
+        searchQuery: () => '',
+        searchVersion: () => 0,
+        maybeLastPointerPosition: () => Option.none(),
+      }),
+    )
+  }
+
+  const selectItem = (model: Model, item: string) => {
+    const selection = handleSelectedItem(model, item)
+    if (selectionBehavior === 'CloseWithFocus') {
+      return step(() =>
+        Function.compose(
+          step(() =>
+            closeListboxStep(selection.model, closeWithFocusCommands(model)),
           ),
-        )
+          Update.withOutMessage(selection.outMessage),
+        ),
+      )
+    } else {
+      return step(() => selection)
+    }
+  }
+
+  const cases = {
+    CompletedLockListboxScroll: model => ({ model }),
+    CompletedUnlockListboxScroll: model => ({ model }),
+    CompletedInertListboxOthers: model => ({ model }),
+    CompletedRestoreListboxInert: model => ({ model }),
+    CompletedFocusListboxButton: model => ({ model }),
+    CompletedFocusListboxItems: model => ({ model }),
+    CompletedScrollListboxItemIntoView: model => ({ model }),
+    CompletedClickListboxItem: model => ({ model }),
+    SuppressedSpaceScroll: model => ({ model }),
+    SuppressedItemCommit: model => ({ model }),
+    CompletedAnchorListbox: model => ({ model }),
+    CompletedPortalListboxBackdrop: model => ({ model }),
+    RequestedOpen: model => openWithActiveItem(model, Option.none()),
+
+    RequestedClose: model =>
+      closeListboxStep(model, closeWithFocusCommands(model)),
+
+    RequestedSelectItem: (model, { item }) => selectItem(model, item),
+
+    Opened: (model, { maybeActiveItemIndex }) =>
+      openWithActiveItem(model, maybeActiveItemIndex),
+
+    Closed: model => closeListboxStep(model, closeWithFocusCommands(model)),
+
+    BlurredItems: model => {
+      if (
+        Option.exists(model.maybeLastButtonPointerType, Equal.equals('mouse'))
+      ) {
+        return stepNoop()
       }
 
-      return Update.withOutMessage({ model: closed, commands }, outMessage)
-    }
+      return closeListboxStep(model, closeWithoutFocusCommands(model))
+    },
 
-    const openWithActiveItem = (
-      maybeActiveItemIndex: Option.Option<number>,
-    ) => {
-      if (model.isOpen) {
+    ActivatedItem: (model, { index, activationTrigger }) => ({
+      model: modifyBaseFields(model, {
+        maybeActiveItemIndex: () => Option.some(index),
+        activationTrigger: () => activationTrigger,
+      }),
+      commands: Array.filter(
+        [ScrollListboxItemIntoView({ id: model.id, index })],
+        () => activationTrigger === 'Keyboard',
+      ),
+    }),
+
+    MovedPointerOverItem: (model, { index, screenX, screenY }) => {
+      const isSamePosition = Option.exists(
+        model.maybeLastPointerPosition,
+        position =>
+          position.screenX === screenX && position.screenY === screenY,
+      )
+
+      if (isSamePosition) {
         return { model }
       }
 
-      return openListbox(
-        modifyBaseFields(model, {
-          maybeActiveItemIndex: () => maybeActiveItemIndex,
-          activationTrigger: () =>
-            Option.match(maybeActiveItemIndex, {
-              onNone: () => 'Pointer' as const,
-              onSome: () => 'Keyboard' as const,
+      return {
+        model: modifyBaseFields(model, {
+          maybeActiveItemIndex: () => Option.some(index),
+          activationTrigger: () => 'Pointer' as const,
+          maybeLastPointerPosition: () => Option.some({ screenX, screenY }),
+        }),
+      }
+    },
+
+    DeactivatedItem: model =>
+      model.activationTrigger === 'Pointer'
+        ? {
+            model: modifyBaseFields(model, {
+              maybeActiveItemIndex: () => Option.none(),
             }),
+          }
+        : { model },
+
+    SelectedItem: (model, { item }) => selectItem(model, item),
+
+    RequestedItemClick: (model, { index }) => ({
+      model,
+      commands: [ClickListboxItem({ id: model.id, index })],
+    }),
+
+    Searched: (model, { key, maybeTargetIndex }) => {
+      const nextSearchQuery = model.searchQuery + key
+      const nextSearchVersion = Number.increment(model.searchVersion)
+
+      return {
+        model: modifyBaseFields(model, {
+          searchQuery: () => nextSearchQuery,
+          searchVersion: () => nextSearchVersion,
+          maybeActiveItemIndex: () =>
+            Option.orElse(maybeTargetIndex, () => model.maybeActiveItemIndex),
+        }),
+        commands: [DelayClearListboxSearch({ version: nextSearchVersion })],
+      }
+    },
+
+    CompletedDelayClearListboxSearch: (model, { version }) => {
+      if (version !== model.searchVersion) {
+        return { model }
+      }
+
+      return {
+        model: modifyBaseFields(model, { searchQuery: () => '' }),
+      }
+    },
+
+    CompletedDetectListboxMovementOrAnimationEnd: (_model, { generation }) =>
+      AnimationBinding.requestFinish(generation),
+
+    PressedPointerOnButton: (model, { pointerType, button }) => {
+      const withPointerType = modifyBaseFields(model, {
+        maybeLastButtonPointerType: () => Option.some(pointerType),
+      })
+
+      if (pointerType !== 'mouse' || button !== LEFT_MOUSE_BUTTON) {
+        return step(() => ({ model: withPointerType }))
+      }
+
+      if (model.isOpen) {
+        const closed = modifyBaseFields(closedModel(withPointerType), {
+          maybeLastButtonPointerType: () => Option.some(pointerType),
+        })
+
+        if (model.isAnimated) {
+          return Update.combineSteps([
+            step(() => ({
+              model: closed,
+              commands: closeWithFocusCommands(model),
+            })),
+            AnimationBinding.requestHide(),
+          ])
+        }
+
+        return step(() => ({
+          model: closed,
+          commands: closeWithFocusCommands(model),
+        }))
+      }
+
+      return openListboxStep(
+        model,
+        modifyBaseFields(withPointerType, {
+          maybeActiveItemIndex: () => Option.none(),
+          activationTrigger: () => 'Pointer' as const,
           searchQuery: () => '',
           searchVersion: () => 0,
           maybeLastPointerPosition: () => Option.none(),
         }),
       )
-    }
+    },
 
-    const selectItem = (item: string) => {
-      const selection = handleSelectedItem(model, item)
-      if (selectionBehavior === 'CloseWithFocus') {
-        return closeListbox(
-          selection.model,
-          closeWithFocusCommands,
-          selection.outMessage,
-        )
-      } else {
-        return selection
-      }
-    }
-
-    return Message.match(message, {
-      CompletedLockListboxScroll: () => ({ model }),
-      CompletedUnlockListboxScroll: () => ({ model }),
-      CompletedInertListboxOthers: () => ({ model }),
-      CompletedRestoreListboxInert: () => ({ model }),
-      CompletedFocusListboxButton: () => ({ model }),
-      CompletedFocusListboxItems: () => ({ model }),
-      CompletedScrollListboxItemIntoView: () => ({ model }),
-      CompletedClickListboxItem: () => ({ model }),
-      SuppressedSpaceScroll: () => ({ model }),
-      SuppressedItemCommit: () => ({ model }),
-      CompletedAnchorListbox: () => ({ model }),
-      CompletedPortalListboxBackdrop: () => ({ model }),
-      RequestedOpen: () => openWithActiveItem(Option.none()),
-
-      RequestedClose: () => closeListbox(model, closeWithFocusCommands),
-
-      RequestedSelectItem: ({ item }) => selectItem(item),
-
-      Opened: ({ maybeActiveItemIndex }) =>
-        openWithActiveItem(maybeActiveItemIndex),
-
-      Closed: () => closeListbox(model, closeWithFocusCommands),
-
-      BlurredItems: () => {
-        if (
-          Option.exists(model.maybeLastButtonPointerType, Equal.equals('mouse'))
-        ) {
-          return { model }
-        }
-
-        return closeListbox(model, closeWithoutFocusCommands)
-      },
-
-      ActivatedItem: ({ index, activationTrigger }) => ({
-        model: modifyBaseFields(model, {
-          maybeActiveItemIndex: () => Option.some(index),
-          activationTrigger: () => activationTrigger,
-        }),
-        commands: Array.filter(
-          [ScrollListboxItemIntoView({ id: model.id, index })],
-          () => activationTrigger === 'Keyboard',
-        ),
+    IgnoredMouseClick: model => ({
+      model: modifyBaseFields(model, {
+        maybeLastButtonPointerType: () => Option.none(),
       }),
-
-      MovedPointerOverItem: ({ index, screenX, screenY }) => {
-        const isSamePosition = Option.exists(
-          model.maybeLastPointerPosition,
-          position =>
-            position.screenX === screenX && position.screenY === screenY,
-        )
-
-        if (isSamePosition) {
-          return { model }
-        }
-
-        return {
-          model: modifyBaseFields(model, {
-            maybeActiveItemIndex: () => Option.some(index),
-            activationTrigger: () => 'Pointer' as const,
-            maybeLastPointerPosition: () => Option.some({ screenX, screenY }),
-          }),
-        }
-      },
-
-      DeactivatedItem: () =>
-        model.activationTrigger === 'Pointer'
-          ? {
-              model: modifyBaseFields(model, {
-                maybeActiveItemIndex: () => Option.none(),
-              }),
-            }
-          : { model },
-
-      SelectedItem: ({ item }) => selectItem(item),
-
-      RequestedItemClick: ({ index }) => ({
-        model,
-        commands: [ClickListboxItem({ id: model.id, index })],
-      }),
-
-      Searched: ({ key, maybeTargetIndex }) => {
-        const nextSearchQuery = model.searchQuery + key
-        const nextSearchVersion = Number.increment(model.searchVersion)
-
-        return {
-          model: modifyBaseFields(model, {
-            searchQuery: () => nextSearchQuery,
-            searchVersion: () => nextSearchVersion,
-            maybeActiveItemIndex: () =>
-              Option.orElse(maybeTargetIndex, () => model.maybeActiveItemIndex),
-          }),
-          commands: [DelayClearListboxSearch({ version: nextSearchVersion })],
-        }
-      },
-
-      CompletedDelayClearListboxSearch: ({ version }) => {
-        if (version !== model.searchVersion) {
-          return { model }
-        }
-
-        return {
-          model: modifyBaseFields(model, { searchQuery: () => '' }),
-        }
-      },
-
-      CompletedDetectListboxMovementOrAnimationEnd: ({ generation }) =>
-        AnimationBinding.requestFinish(generation),
-
-      PressedPointerOnButton: ({ pointerType, button }) => {
-        const withPointerType = modifyBaseFields(model, {
-          maybeLastButtonPointerType: () => Option.some(pointerType),
-        })
-
-        if (pointerType !== 'mouse' || button !== LEFT_MOUSE_BUTTON) {
-          return { model: withPointerType }
-        }
-
-        if (model.isOpen) {
-          const closed = modifyBaseFields(closedModel(withPointerType), {
-            maybeLastButtonPointerType: () => Option.some(pointerType),
-          })
-
-          if (model.isAnimated) {
-            return Update.combineSteps([
-              step(() => ({
-                model: closed,
-                commands: closeWithFocusCommands,
-              })),
-              AnimationBinding.requestHide(),
-            ])
-          }
-
-          return { model: closed, commands: closeWithFocusCommands }
-        }
-
-        return openListbox(
-          modifyBaseFields(withPointerType, {
-            maybeActiveItemIndex: () => Option.none(),
-            activationTrigger: () => 'Pointer' as const,
-            searchQuery: () => '',
-            searchVersion: () => 0,
-            maybeLastPointerPosition: () => Option.none(),
-          }),
-        )
-      },
-
-      IgnoredMouseClick: () => ({
-        model: modifyBaseFields(model, {
+    }),
+    ClickedButton: model => {
+      if (
+        Option.exists(model.maybeLastButtonPointerType, Equal.equals('mouse'))
+      ) {
+        return stepFields(() => ({
           maybeLastButtonPointerType: () => Option.none(),
-        }),
-      }),
-      ClickedButton: () => {
-        if (
-          Option.exists(model.maybeLastButtonPointerType, Equal.equals('mouse'))
-        ) {
-          return {
-            model: modifyBaseFields(model, {
-              maybeLastButtonPointerType: () => Option.none(),
-            }),
-          }
-        }
+        }))
+      }
 
-        if (model.isOpen) {
-          return closeListbox(model, closeWithFocusCommands)
-        }
+      if (model.isOpen) {
+        return closeListboxStep(model, closeWithFocusCommands(model))
+      }
 
-        return openWithActiveItem(Option.none())
-      },
-    })
+      return openWithActiveItem(model, Option.none())
+    },
+  } satisfies Readonly<{
+    [Tag in Message['_tag']]: (
+      model: Model,
+      message: Extract<Message, Readonly<{ _tag: Tag }>>,
+    ) => unknown
+  }>
+
+  return {
+    handlers: {
+      ...cases,
+      RequestedOpen: step(cases.RequestedOpen),
+      RequestedClose: step(cases.RequestedClose),
+      RequestedSelectItem: step(cases.RequestedSelectItem),
+      Opened: step(cases.Opened),
+      Closed: step(cases.Closed),
+      BlurredItems: step(cases.BlurredItems),
+      SelectedItem: step(cases.SelectedItem),
+      PressedPointerOnButton: step(cases.PressedPointerOnButton),
+      ClickedButton: step(cases.ClickedButton),
+      CompletedDetectListboxMovementOrAnimationEnd: step(
+        cases.CompletedDetectListboxMovementOrAnimationEnd,
+      ),
+    },
+    AnimationBinding,
   }
-
-  return { update: internalUpdate, AnimationBinding }
 }
 
 /**

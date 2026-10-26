@@ -1,4 +1,11 @@
-import { Layer, Option, type Pipeable, Schema } from 'effect'
+import {
+  type DateTime,
+  type Inspectable,
+  Layer,
+  Option,
+  type Pipeable,
+  Schema,
+} from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import { makeNamespace } from '../block/define.js'
@@ -90,11 +97,76 @@ type DateBearingInputs = Readonly<{
 
 type DateWithCallback = Date & Readonly<{ onSubmit: () => unknown }>
 
+type EffectDateTimeInputs = Readonly<{
+  utc: DateTime.Utc
+  zoned: DateTime.Zoned
+  timeZone: DateTime.TimeZone
+  namedTimeZone: DateTime.TimeZone.Named
+  history: ReadonlyArray<Readonly<{ at: DateTime.Utc }>>
+  maybeDeadline: Option.Option<DateTime.Zoned>
+}>
+
+type InspectableWithCallback = Inspectable.Inspectable &
+  Readonly<{ onSubmit: () => unknown }>
+
+type DateTimeWithCallback = DateTime.Utc & Readonly<{ onSubmit: () => unknown }>
+
+type DateTimeOrCallback = DateTime.Utc | Readonly<{ onSubmit: () => unknown }>
+
+type DateTimeCallbacksInArray = ReadonlyArray<DateTimeWithCallback>
+
+type DateTimeCallbacksInOption = Option.Option<DateTimeWithCallback>
+
 type PreservesDateBearingInputs = Expect<
   Equal<ValidViewInputs<DateBearingInputs>, DateBearingInputs>
 >
+type PreservesEffectDateTimeInputs = Expect<
+  Equal<ValidViewInputs<EffectDateTimeInputs>, EffectDateTimeInputs>
+>
 type RejectsDateWithCallback = Expect<
   Equal<ValidViewInputs<Readonly<{ createdAt: DateWithCallback }>>, never>
+>
+type RejectsInspectableWithCallback = Expect<
+  Equal<ValidViewInputs<Readonly<{ value: InspectableWithCallback }>>, never>
+>
+type RejectsDateTimeWithCallback = Expect<
+  Equal<ValidViewInputs<Readonly<{ value: DateTimeWithCallback }>>, never>
+>
+type RejectsDateTimeOrCallback = Expect<
+  Equal<ValidViewInputs<Readonly<{ value: DateTimeOrCallback }>>, never>
+>
+type RejectsDateTimeCallbacksInArray = Expect<
+  Equal<ValidViewInputs<Readonly<{ values: DateTimeCallbacksInArray }>>, never>
+>
+type RejectsDateTimeCallbacksInOption = Expect<
+  Equal<
+    ValidViewInputs<Readonly<{ maybeValue: DateTimeCallbacksInOption }>>,
+    never
+  >
+>
+type IdentifiesDateTimeCallbackPath = Expect<
+  Equal<
+    keyof InvalidViewInputsDiagnostic<
+      Readonly<{ value: DateTimeWithCallback }>
+    >,
+    'Nested callback at viewInputs.value.onSubmit: move it to a top-level ViewInputs field'
+  >
+>
+type IdentifiesDateTimeArrayCallbackPath = Expect<
+  Equal<
+    keyof InvalidViewInputsDiagnostic<
+      Readonly<{ values: DateTimeCallbacksInArray }>
+    >,
+    'Nested callback at viewInputs.values[number].onSubmit: move it to a top-level ViewInputs field'
+  >
+>
+type IdentifiesDateTimeOptionCallbackPath = Expect<
+  Equal<
+    keyof InvalidViewInputsDiagnostic<
+      Readonly<{ maybeValue: DateTimeCallbacksInOption }>
+    >,
+    'Nested callback at viewInputs.maybeValue.value.onSubmit: move it to a top-level ViewInputs field'
+  >
 >
 type IdentifiesNestedCallbackPath = Expect<
   Equal<
@@ -217,7 +289,9 @@ const makeGenericBlock = <Item>() => {
   const prepare = () =>
     GenericViewInputsComposition.prepareBlock({
       init: () => ({ model: ViewInputsModel.make({ id: 'child' }) }),
-      update: GenericViewInputsComposition.makeUpdate(model => ({ model })),
+      update: GenericViewInputsComposition.makeUpdate({
+        CompletedObserve: model => ({ model }),
+      }),
       view,
       EffectsLayer: Layer.empty,
       operations: {},
@@ -308,7 +382,16 @@ type CallbackItemViewStillRequiresInputs = Expect<
 
 export type ViewInputsAssertions = [
   PreservesDateBearingInputs,
+  PreservesEffectDateTimeInputs,
   RejectsDateWithCallback,
+  RejectsInspectableWithCallback,
+  RejectsDateTimeWithCallback,
+  RejectsDateTimeOrCallback,
+  RejectsDateTimeCallbacksInArray,
+  RejectsDateTimeCallbacksInOption,
+  IdentifiesDateTimeCallbackPath,
+  IdentifiesDateTimeArrayCallbackPath,
+  IdentifiesDateTimeOptionCallbackPath,
   IdentifiesNestedCallbackPath,
   OmitsOptionalTopLevelCallbackPath,
   RejectsNestedRecordCallbacks,

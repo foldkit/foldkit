@@ -163,7 +163,7 @@ Two view input fields cover the cases a `<label for>` does not. Pass `ariaLabel`
 
 Configuration passed to the Binding for the completed Block returned by `Combobox.create(Item)` or `Combobox.Multi.create(Item)`.
 
-The Binding’s `init` accepts the same configuration in its child argument tuple: `ComboboxBinding.init({ args: [config], toParentModel })`. It returns a passive initialization recipe with no `.model` or `.commands` fields. Return that recipe from the registered Composition’s `makeInit` or `makeUpdate` callback, or preserve it through a Definition-owned Step; checked execution constructs the parent Model and retains the child Commands.
+The Binding’s `init` accepts the same configuration in its child argument tuple: `ComboboxBinding.init({ args: [config], toParentModel })`. It returns a passive initialization recipe with no `.model` or `.commands` fields. Return that recipe from the registered Composition’s `makeInit` callback or `makeUpdate` handler, or preserve it through a Definition-owned Step; checked execution constructs the parent Model and retains the child Commands.
 
 | Name                 | Type      | Default | Description                                                                                                                                                                                                                                                     |
 | -------------------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

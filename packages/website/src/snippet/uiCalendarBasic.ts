@@ -45,6 +45,8 @@ const CalendarExampleDefinition = Block.makeDefinition('CalendarExample', {
   ChildInitContext: Flags,
 })
 
+const { makeFieldsStep, makeNoopStep } = CalendarExampleDefinition
+
 // At module scope, fold the OutMessage into your own Model. When the user
 // commits a date (click, Enter, or Space) it carries `SelectedDate({ date })`.
 // `ChangedViewMonth` fires when navigation shifts the visible month without
@@ -59,13 +61,13 @@ const foldCalendarOutMessage = CalendarExampleDefinition.makeOutMessageFold(
     // to the calendar as `maybeSelectedDate`, so the parent stays the single
     // source of truth for the selection.
     SelectedDate: ({ date }) =>
-      CalendarExampleDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeSelectedDate: () => Option.some(date),
       })),
     // The child has emitted `ChangedViewMonth`. In this arm the parent can
     // update its own state or dispatch its own Commands, for example
     // prefetch month data, fire analytics, or trigger a downstream Command.
-    ChangedViewMonth: CalendarExampleDefinition.makeNoopStep,
+    ChangedViewMonth: makeNoopStep,
   },
 )
 
@@ -107,7 +109,7 @@ const init = CalendarExampleComposition.makeInit(
   }),
 )
 
-const update = CalendarExampleComposition.makeUpdate()
+const update = CalendarExampleComposition.makeUpdate({})
 
 // Class names live at module scope, and each view mode gets its own view
 // function below.

@@ -77,7 +77,7 @@ const makeProgram = (container: HTMLElement) => {
           toParentModel: popover => ({ popover }),
         }),
       ),
-      update: PopoverFocusLeaveTestComposition.makeUpdate(),
+      update: PopoverFocusLeaveTestComposition.makeUpdate({}),
       view,
     })
   const block: Block.FromAssemblyWithView<typeof Model, typeof prepare> =

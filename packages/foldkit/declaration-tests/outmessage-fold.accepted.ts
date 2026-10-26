@@ -40,16 +40,17 @@ const prepareChildBlock = () =>
     init: DeclarationFoldChildComposition.makeInit(() => ({
       model: { count: 0 },
     })),
-    update: DeclarationFoldChildComposition.makeUpdate((model, message) =>
-      ChildMessage.match(message, {
-        RequestedChoose: ({ value }) => ({
-          model: Struct.modifyFields(model, { count: Number.increment }),
-          outMessage: ChildOutMessage.Chose({ value }),
-        }),
-        RequestedClose: () => ({ model, outMessage: ChildOutMessage.Closed() }),
-        CompletedObserveChoice: () => ({ model }),
+    update: DeclarationFoldChildComposition.makeUpdate({
+      RequestedChoose: (model, { value }) => ({
+        model: Struct.modifyFields(model, { count: Number.increment }),
+        outMessage: ChildOutMessage.Chose({ value }),
       }),
-    ),
+      RequestedClose: model => ({
+        model,
+        outMessage: ChildOutMessage.Closed(),
+      }),
+      CompletedObserveChoice: model => ({ model }),
+    }),
     operations: {
       requestChoose: ChildMessage.RequestedChoose,
       requestClose: ChildMessage.RequestedClose,
@@ -79,21 +80,23 @@ export const foldLiteralModel =
     Chose: () => _model => ({ model: { phase: 'Done' } }),
     Closed: () => _model => ({ model: { phase: 'Idle' } }),
   })
-export const literalModelUpdate = DeclarationLiteralFoldComposition.makeUpdate(
-  (_model, message) =>
-    message._tag === 'RequestedFinish'
-      ? { model: { phase: 'Done' } }
-      : { model: { phase: 'Idle' } },
-)
+export const literalModelUpdate = DeclarationLiteralFoldComposition.makeUpdate({
+  RequestedFinish: () => ({ model: { phase: 'Done' } }),
+  RequestedReset: () => ({ model: { phase: 'Idle' } }),
+})
 export const literalMatcherUpdate =
-  DeclarationLiteralFoldComposition.makeUpdate((_model, message) =>
-    LiteralMessage.match<
-      Update.Return<typeof LiteralModel.Type, typeof LiteralMessage.Type>
-    >(message, {
-      RequestedFinish: () => ({ model: { phase: 'Done' } }),
-      RequestedReset: () => ({ model: { phase: 'Idle' } }),
+  DeclarationLiteralFoldComposition.makeUpdate({
+    RequestedFinish: (
+      _model,
+    ): Update.Return<typeof LiteralModel.Type, typeof LiteralMessage.Type> => ({
+      model: { phase: 'Done' },
     }),
-  )
+    RequestedReset: (
+      _model,
+    ): Update.Return<typeof LiteralModel.Type, typeof LiteralMessage.Type> => ({
+      model: { phase: 'Idle' },
+    }),
+  })
 export type LiteralModelInference = Expect<
   Equal<
     ReturnType<typeof literalModelUpdate>['model']['phase'],
@@ -233,20 +236,20 @@ const DeclarationFoldParentComposition =
   DeclarationFoldParentDefinition.makeComposition({
     bindings: [ChildBinding, SiblingBinding],
   })
-export const parentUpdate = DeclarationFoldParentComposition.makeUpdate(
-  (model, message) =>
-    ParentMessage.match(message, {
-      RequestedChoose: ({ value }) =>
-        ChildBinding.requestChoose({ value })(model),
-      CompletedRecordChoice: () => ({ model }),
-    }),
-)
+export const parentUpdate = DeclarationFoldParentComposition.makeUpdate({
+  RequestedChoose: (model, { value }) =>
+    ChildBinding.requestChoose({ value })(model),
+  CompletedRecordChoice: model =>
+    DeclarationFoldParentDefinition.makeNoopStep()(model),
+})
 export const conditionalParentUpdate =
-  DeclarationFoldParentComposition.makeUpdate((model, message) =>
-    message._tag === 'RequestedChoose'
-      ? { model, commands: [RecordChoice({ value: message.value })] }
-      : { model },
-  )
+  DeclarationFoldParentComposition.makeUpdate({
+    RequestedChoose: (model, message) => ({
+      model,
+      commands: [RecordChoice({ value: message.value })],
+    }),
+    CompletedRecordChoice: model => ({ model }),
+  })
 const prepareParentBlock = () =>
   DeclarationFoldParentComposition.prepareBlock({
     init: DeclarationFoldParentComposition.makeInit(() => ({
@@ -294,10 +297,9 @@ export const DeclarationFoldRootComposition =
 export const rootInit = DeclarationFoldRootComposition.makeInit(() => ({
   model: { choice: 'Apple' },
 }))
-export const rootUpdate = DeclarationFoldRootComposition.makeUpdate(
-  (model, message) =>
-    RootMessage.match(message, { CompletedRecord: () => ({ model }) }),
-)
+export const rootUpdate = DeclarationFoldRootComposition.makeUpdate({
+  CompletedRecord: model => ({ model }),
+})
 export const rootView = DeclarationFoldRootComposition.makeView(() => ({
   title: 'Fold',
   body: null,

@@ -1,8 +1,7 @@
 import { Array, Number, pipe } from 'effect'
-import { modifyFields } from 'foldkit/struct'
 
 import { ApplicationComposition } from './composition'
-import { Message } from './message'
+import { makeFieldsStep } from './definition'
 import { type SlowWarning } from './model'
 import { PATCH_ROW_COUNT, UPDATE_WORK_MS, burnCpu } from './workload'
 
@@ -15,47 +14,35 @@ const prependWarning =
   ): ReadonlyArray<typeof SlowWarning.Type> =>
     pipe(warnings, Array.prepend(warning), Array.take(MAX_WARNING_COUNT))
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedRunUpdateWork: () => {
-      burnCpu(UPDATE_WORK_MS)
-      return {
-        model: modifyFields(model, { activeWorkload: () => 'Update' }),
-      }
-    },
-    ClickedRunViewWork: () => ({
-      model: modifyFields(model, { activeWorkload: () => 'View' }),
-    }),
-    ClickedRunPatchWork: () => ({
-      model: modifyFields(model, {
-        activeWorkload: () => 'Patch',
-        patchRows: () => PATCH_ROW_COUNT,
-        patchRun: Number.increment,
-      }),
-    }),
-    ClickedRunSubscriptionDependenciesWork: () => ({
-      model: modifyFields(model, {
-        activeWorkload: () => 'SubscriptionDependencies',
-      }),
-    }),
-    ClickedClearWarnings: () => ({
-      model: modifyFields(model, {
-        activeWorkload: () => 'Idle',
-        warnings: () => [],
-      }),
-    }),
-    RecordedSlowWarning: ({ report }) => {
-      const warning: typeof SlowWarning.Type = {
-        id: model.nextWarningId,
-        ...report,
-      }
-      return {
-        model: modifyFields(model, {
-          activeWorkload: () => 'Idle',
-          nextWarningId: Number.increment,
-          warnings: prependWarning(warning),
-        }),
-      }
-    },
+export const update = ApplicationComposition.makeUpdate({
+  ClickedRunUpdateWork: makeFieldsStep(() => {
+    burnCpu(UPDATE_WORK_MS)
+    return { activeWorkload: () => 'Update' }
   }),
-)
+  ClickedRunViewWork: makeFieldsStep(() => ({
+    activeWorkload: () => 'View',
+  })),
+  ClickedRunPatchWork: makeFieldsStep(() => ({
+    activeWorkload: () => 'Patch',
+    patchRows: () => PATCH_ROW_COUNT,
+    patchRun: Number.increment,
+  })),
+  ClickedRunSubscriptionDependenciesWork: makeFieldsStep(() => ({
+    activeWorkload: () => 'SubscriptionDependencies',
+  })),
+  ClickedClearWarnings: makeFieldsStep(() => ({
+    activeWorkload: () => 'Idle',
+    warnings: () => [],
+  })),
+  RecordedSlowWarning: makeFieldsStep((model, { report }) => {
+    const warning: typeof SlowWarning.Type = {
+      id: model.nextWarningId,
+      ...report,
+    }
+    return {
+      activeWorkload: () => 'Idle',
+      nextWarningId: Number.increment,
+      warnings: prependWarning(warning),
+    }
+  }),
+})

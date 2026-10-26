@@ -19,13 +19,11 @@ const themePickerInit = ThemePickerComposition.makeInit(
     model: ThemePickerModel.make({ theme }),
   }),
 )
-const themePickerUpdate = ThemePickerComposition.makeUpdate((model, message) =>
-  ThemePickerMessage.match(message, {
-    ChangedTheme: ({ theme }) => ({
-      model: modifyFields(model, { theme: () => theme }),
-    }),
+const themePickerUpdate = ThemePickerComposition.makeUpdate({
+  ChangedTheme: (model, { theme }) => ({
+    model: modifyFields(model, { theme: () => theme }),
   }),
-)
+})
 const themePickerView = ThemePickerComposition.makeView((model, h) =>
   h.p([], [`Theme: ${model.theme}`]),
 )

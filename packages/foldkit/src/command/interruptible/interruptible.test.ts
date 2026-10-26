@@ -1,8 +1,9 @@
-import { Array, Effect, Fiber, Schema } from 'effect'
+import { Array, Effect, Fiber, Layer, Schema } from 'effect'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
+import * as Block from '../../block/public.js'
 import { defineMessageUnion } from '../../message/index.js'
 import * as Command from '../index.js'
 import { __CurrentRegistry, type __Registry, __makeRegistry } from './index.js'
@@ -18,6 +19,206 @@ const provideRegistry =
     Effect.provideService(effect, __CurrentRegistry, registry)
 
 describe('interruptible Command.define', () => {
+  it.effect(
+    'selects the same key fields for owned and unowned invocation and interruption',
+    () =>
+      Effect.gen(function* () {
+        const registry = __makeRegistry()
+        const Definition = Block.makeDefinition('SelectedTaskFields', {
+          Model: Schema.Struct({}),
+          Message,
+        })
+        const Args = Schema.Struct({
+          taskId: Schema.NumberFromString,
+          label: Schema.String,
+          revision: Schema.Number,
+        })
+        const KeyArgs = Schema.Struct({
+          taskId: Args.fields.taskId,
+          label: Args.fields.label,
+        })
+        const OwnedHost = Definition.makeCommand('OwnedHost', {
+          args: Args.fields,
+          messages: [Message.SucceededTask],
+          interrupt: {
+            keyFields: ['label', 'taskId'],
+            toKey: keyArgs => JSON.stringify(keyArgs),
+          },
+        })
+        const OwnedAttached = Definition.makeCommand('OwnedAttached', {
+          args: Args.fields,
+          messages: [Message.SucceededTask],
+          handler: function* () {
+            return ({ taskId }) =>
+              Effect.as(Effect.never, Message.SucceededTask({ taskId }))
+          },
+          interrupt: {
+            keyFields: ['label', 'taskId'],
+            toKey: keyArgs => JSON.stringify(keyArgs),
+          },
+        })
+        const UnownedHost = Command.define('SelectedFieldsHost', {
+          args: Args.fields,
+          messages: [Message.SucceededTask],
+          interrupt: {
+            keyFields: ['label', 'taskId'],
+            toKey: keyArgs => JSON.stringify(keyArgs),
+          },
+        })
+        const UnownedAttached = Command.define('SelectedFieldsAttached', {
+          args: Args.fields,
+          messages: [Message.SucceededTask],
+          handler: function* () {
+            return ({ taskId }) =>
+              Effect.as(Effect.never, Message.SucceededTask({ taskId }))
+          },
+          interrupt: {
+            keyFields: ['label', 'taskId'],
+            toKey: keyArgs => JSON.stringify(keyArgs),
+          },
+        })
+        const EffectsLayer = Layer.mergeAll(
+          OwnedHost.toLayer(
+            Effect.succeed(({ taskId }) =>
+              Effect.as(Effect.never, Message.SucceededTask({ taskId })),
+            ),
+          ),
+          OwnedAttached.layer,
+          UnownedHost.toLayer(
+            Effect.succeed(({ taskId }) =>
+              Effect.as(Effect.never, Message.SucceededTask({ taskId })),
+            ),
+          ),
+          UnownedAttached.layer,
+        )
+        const args = { taskId: 7, revision: 3, label: 'seven' }
+        const keyArgs = { taskId: 7, label: 'seven' }
+        const decodedKeyArgs = yield* Schema.decodeUnknownEffect(KeyArgs)({
+          taskId: '7',
+          label: 'seven',
+          revision: 3,
+        })
+        expect(decodedKeyArgs).toEqual(keyArgs)
+
+        for (const definition of [
+          OwnedHost,
+          OwnedAttached,
+          UnownedHost,
+          UnownedAttached,
+        ]) {
+          const instance = definition(args)
+          const interrupt = definition.Interrupt(keyArgs, outcome => outcome)
+          const decodedInterrupt = definition.Interrupt(
+            decodedKeyArgs,
+            outcome => outcome,
+          )
+          expect(instance.args).toBe(args)
+          expect(interrupt.args).toBe(keyArgs)
+          expect(decodedInterrupt.args).toBe(decodedKeyArgs)
+          expect(instance.key).toBe(
+            `${definition.name}:{"label":"seven","taskId":7}`,
+          )
+          expect(interrupt.interruptsKey).toBe(instance.key)
+          expect(decodedInterrupt.interruptsKey).toBe(instance.key)
+
+          const execution: Effect.Effect<
+            typeof Message.SucceededTask.Type,
+            never,
+            Layer.Success<typeof EffectsLayer>
+          > = instance.effect
+          const fiber = yield* Effect.forkChild(
+            execution.pipe(
+              Effect.provide(EffectsLayer),
+              provideRegistry(registry),
+            ),
+          )
+          yield* Effect.yieldNow
+          const outcome = yield* decodedInterrupt.effect.pipe(
+            provideRegistry(registry),
+          )
+          expect(outcome._tag).toBe('Interrupted')
+          expect((yield* Fiber.await(fiber))._tag).toBe('Failure')
+        }
+      }),
+  )
+
+  it('omits unselected optional properties before deriving either key', () => {
+    const Args = Schema.Struct({
+      taskId: Schema.Number,
+      revision: Schema.Number,
+    })
+    const OptionalRevision = Schema.Struct({
+      taskId: Schema.Number,
+      revision: Schema.optionalKey(Schema.Number),
+    })
+    const RunTask = Command.define('OptionalSelectedTask', {
+      args: Args.fields,
+      messages: [Message.SucceededTask],
+      interrupt: {
+        keyFields: ['taskId'],
+        toKey: (keyArgs: typeof OptionalRevision.Type) =>
+          `${keyArgs.taskId}:${keyArgs.revision}`,
+      },
+    })
+    const args = { taskId: 7, revision: 3 }
+    const instance = RunTask(args)
+    const interrupt = RunTask.Interrupt(args, outcome => outcome)
+    expect(instance.key).toBe('OptionalSelectedTask:7:undefined')
+    expect(interrupt.interruptsKey).toBe(instance.key)
+  })
+
+  it('omits inherited selected fields from ordinary and null-prototype args', () => {
+    const Args = Schema.Struct({
+      taskId: Schema.Number,
+      constructor: Schema.optionalKey(Schema.String),
+      toString: Schema.optionalKey(Schema.String),
+    })
+    const RunTask = Command.define('OwnSelectedTask', {
+      args: Args.fields,
+      messages: [Message.SucceededTask],
+      interrupt: {
+        keyFields: ['taskId', 'constructor', 'toString'],
+        toKey: keyArgs => {
+          expect(Object.getPrototypeOf(keyArgs)).toBeNull()
+          return `${keyArgs.taskId}:${keyArgs.constructor ?? 'Missing'}:${keyArgs.toString ?? 'Missing'}`
+        },
+      },
+    })
+    const decodeArgs = () => {
+      const input = { taskId: 7 }
+      Object.setPrototypeOf(input, null)
+      return Schema.decodeUnknownSync(Args)(input)
+    }
+    const ordinaryArgs = decodeArgs()
+    Object.setPrototypeOf(ordinaryArgs, Object.prototype)
+    const nullPrototypeArgs = decodeArgs()
+    Object.setPrototypeOf(nullPrototypeArgs, null)
+    const inheritedArgs = decodeArgs()
+    Object.setPrototypeOf(inheritedArgs, {
+      constructor: 'InheritedConstructor',
+      toString: 'InheritedToString',
+    })
+
+    for (const args of [ordinaryArgs, nullPrototypeArgs, inheritedArgs]) {
+      const instance = RunTask(args)
+      const interrupt = RunTask.Interrupt(args, outcome => outcome)
+      expect(instance.args).toBe(args)
+      expect(interrupt.args).toBe(args)
+      expect(instance.key).toBe('OwnSelectedTask:7:Missing:Missing')
+      expect(interrupt.interruptsKey).toBe(instance.key)
+    }
+
+    const ownArgs = {
+      taskId: 7,
+      constructor: 'OwnConstructor',
+      toString: 'OwnToString',
+    }
+    const instance = RunTask(ownArgs)
+    const interrupt = RunTask.Interrupt(ownArgs, outcome => outcome)
+    expect(instance.key).toBe('OwnSelectedTask:7:OwnConstructor:OwnToString')
+    expect(interrupt.interruptsKey).toBe(instance.key)
+  })
+
   it('derives the key from args at construction, prefixed by the Command name', () => {
     const RunTask = Command.define('RunTask', {
       args: { taskId: Schema.Number, label: Schema.String },

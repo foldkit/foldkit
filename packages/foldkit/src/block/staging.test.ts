@@ -61,7 +61,10 @@ const defaultView = observeComposition.makeView.withInputs<
 const prepareChild = () =>
   observeComposition.prepareBlock({
     init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
-    update: observeComposition.makeUpdate(model => ({ model })),
+    update: observeComposition.makeUpdate({
+      CompletedMeasure: model => ({ model }),
+      CompletedObserve: model => ({ model }),
+    }),
     view: defaultView,
     EffectsLayer: Observe.layer,
   })
@@ -116,10 +119,10 @@ if (false) {
     ]),
   )
 
+  // @ts-expect-error A graphless Composition cannot complete a Mount-capable view.
   graphlessComposition.prepareBlock({
     init: Child.init,
     update: Child.update,
-    // @ts-expect-error A graphless Composition cannot complete a Mount-capable view.
     view: defaultView,
     EffectsLayer: Observe.layer,
   })
@@ -195,8 +198,8 @@ it('matches required-field and explicit Binding behavior', () => {
   const ExplicitComposition = Parent.makeComposition({
     bindings: [ExplicitChildBinding],
   })
-  const updateDirect = DirectComposition.makeUpdate()
-  const updateExplicit = ExplicitComposition.makeUpdate()
+  const updateDirect = DirectComposition.makeUpdate({})
+  const updateExplicit = ExplicitComposition.makeUpdate({})
   const childMessage = ChildMessage.CompletedObserve()
   const directUpdate = updateDirect(initialParent, {
     _tag: 'GotChildMessage',
@@ -224,12 +227,23 @@ it('preserves graph constructor errors and requirements exactly', () => {
 })
 
 it('retains contextual update and Step inference after registration', () => {
-  const update = observeComposition.makeUpdate((model, message) => {
-    expectTypeOf(model).toMatchTypeOf<ChildModel>()
-    expectTypeOf(message).toEqualTypeOf<ChildMessage>()
-    return { model }
+  const update = observeComposition.makeUpdate({
+    CompletedMeasure: (model, message) => {
+      expectTypeOf(model).toMatchTypeOf<ChildModel>()
+      expectTypeOf(message).toEqualTypeOf<
+        ReturnType<typeof ChildMessage.CompletedMeasure>
+      >()
+      return { model }
+    },
+    CompletedObserve: (model, message) => {
+      expectTypeOf(model).toMatchTypeOf<ChildModel>()
+      expectTypeOf(message).toEqualTypeOf<
+        ReturnType<typeof ChildMessage.CompletedObserve>
+      >()
+      return { model }
+    },
   })
-  const setValue = ChildBaseDefinition.makeStep((model, value: string) => {
+  const setValueStep = ChildBaseDefinition.makeStep((model, value: string) => {
     expectTypeOf(model).toEqualTypeOf<ChildModel>()
     return { model: modifyFields(model, { value: () => value }) }
   })
@@ -241,13 +255,13 @@ it('retains contextual update and Step inference after registration', () => {
     ).model.value,
   ).toBe('before')
   expect(
-    setValue(ChildModel.make({ value: 'before' }), 'after').model.value,
+    setValueStep(ChildModel.make({ value: 'before' }), 'after').model.value,
   ).toBe('after')
 
   if (false) {
     // @ts-expect-error Registered helpers preserve the exact Message boundary.
     update(ChildModel.make({ value: 'before' }), { _tag: 'ForeignMessage' })
     // @ts-expect-error Additional Step parameters preserve their domain type.
-    setValue(ChildModel.make({ value: 'before' }), 1)
+    setValueStep(ChildModel.make({ value: 'before' }), 1)
   }
 })

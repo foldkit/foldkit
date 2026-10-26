@@ -6,7 +6,7 @@ import {
   ComposedInitBlock,
   Model,
   init,
-  prepareTogether,
+  prepareTogetherStep,
 } from './composed-init.accepted.js'
 import {
   CountStore,
@@ -35,7 +35,7 @@ export type EmittedConstructorError = Expect<
 >
 export type EmittedStepRequirements = Expect<
   Equal<
-    Update.RequirementsOf<typeof prepareTogether>,
+    Update.RequirementsOf<typeof prepareTogetherStep>,
     Update.RequirementsOf<typeof init>
   >
 >

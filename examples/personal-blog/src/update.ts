@@ -1,30 +1,27 @@
 import { UrlRequest } from 'foldkit/navigation'
-import { modifyFields } from 'foldkit/struct'
 import { toString as urlToString } from 'foldkit/url'
 
 import { LoadExternal, NavigateInternal } from './command'
 import { ApplicationComposition } from './composition'
-import { Message } from './message'
+import { makeFieldsStep, makeNoopStep } from './definition'
 import * as Route from './route'
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedLink: ({ request }) =>
-      UrlRequest.match(request, {
-        Internal: ({ url }) => ({
-          model,
-          commands: [NavigateInternal({ url: urlToString(url) })],
-        }),
-        External: ({ href }) => ({
-          model,
-          commands: [LoadExternal({ href })],
-        }),
+export const update = ApplicationComposition.makeUpdate({
+  ClickedLink: (model, { request }) =>
+    UrlRequest.match(request, {
+      Internal: ({ url }) => ({
+        model,
+        commands: [NavigateInternal({ url: urlToString(url) })],
       }),
-    ChangedUrl: ({ url }) => {
-      const nextRoute = Route.urlToApplicationRoute(url)
-      return { model: modifyFields(model, { route: () => nextRoute }) }
-    },
-    CompletedNavigateInternal: () => ({ model }),
-    CompletedLoadExternal: () => ({ model }),
+      External: ({ href }) => ({
+        model,
+        commands: [LoadExternal({ href })],
+      }),
+    }),
+  ChangedUrl: makeFieldsStep.fromMessage(({ url }) => {
+    const nextRoute = Route.urlToApplicationRoute(url)
+    return { route: () => nextRoute }
   }),
-)
+  CompletedNavigateInternal: makeNoopStep(),
+  CompletedLoadExternal: makeNoopStep(),
+})

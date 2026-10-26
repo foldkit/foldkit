@@ -45,9 +45,11 @@ const childComposition = ChildOwnerNamespace.makeDefinition({
 const prepareChildBlock = () =>
   childComposition.prepareBlock({
     init: (label: string) => ({ model: { label }, commands: [ReadValue()] }),
-    update: childComposition.makeUpdate((model, { value }) => ({
-      model: modifyFields(model, { label: () => value }),
-    })),
+    update: childComposition.makeUpdate({
+      CompletedReadValue: (model, { value }) => ({
+        model: modifyFields(model, { label: () => value }),
+      }),
+    }),
     view: childComposition.makeView((model, h) => h.span([], [model.label])),
     EffectsLayer: ReadValue.layer,
   })
@@ -75,7 +77,7 @@ const composition = ApplicationDefinition.makeComposition({
   bindings: [LeftBinding, RightBinding],
 })
 const init = composition.makeInit(() => ({ model: {} }))
-const update = composition.makeUpdate()
+const update = composition.makeUpdate({})
 const view = composition.makeView((model, h) =>
   h.div(
     [],
@@ -107,9 +109,11 @@ const hostChildComposition = HostChildOwnerNamespace.makeDefinition({
 const prepareUnresolvedHostChild = () =>
   hostChildComposition.prepareBlock({
     init: () => ({ model: { value: '' }, commands: [ReadHostValue()] }),
-    update: hostChildComposition.makeUpdate((model, { value }) => ({
-      model: modifyFields(model, { value: () => value }),
-    })),
+    update: hostChildComposition.makeUpdate({
+      CompletedReadHostValue: (model, { value }) => ({
+        model: modifyFields(model, { value: () => value }),
+      }),
+    }),
     view: hostChildComposition.makeView((model, h) =>
       h.span([], [model.value]),
     ),
@@ -165,8 +169,8 @@ const unresolvedHostInit = unresolvedHostComposition.makeInit(() =>
 const resolvedHostInit = resolvedHostComposition.makeInit(() =>
   ResolvedHostBinding.init({ args: [], toParentModel: child => ({ child }) }),
 )
-const unresolvedHostUpdate = unresolvedHostComposition.makeUpdate()
-const resolvedHostUpdate = resolvedHostComposition.makeUpdate()
+const unresolvedHostUpdate = unresolvedHostComposition.makeUpdate({})
+const resolvedHostUpdate = resolvedHostComposition.makeUpdate({})
 const unresolvedHostView = unresolvedHostComposition.makeView((model, h) =>
   h.div(
     [],
@@ -309,18 +313,16 @@ describe('completed root Block hosting', () => {
     const prepareLeafBlock = () =>
       leafComposition.prepareBlock({
         init: () => ({ model: { value: 'pending' } }),
-        update: leafComposition.makeUpdate((model, message) =>
-          LeafMessage.match(message, {
-            ClickedReadValue: () => ({ model, commands: [ReadLeafValue()] }),
-            CompletedReadValue: ({ value }) => ({
-              model: modifyFields(model, { value: () => value }),
-            }),
-            FailedReadValue: () => ({ model }),
-            AcquiredValue: () => ({ model }),
-            ReleasedValue: () => ({ model }),
-            FailedAcquireValue: () => ({ model }),
+        update: leafComposition.makeUpdate({
+          ClickedReadValue: model => ({ model, commands: [ReadLeafValue()] }),
+          CompletedReadValue: (model, { value }) => ({
+            model: modifyFields(model, { value: () => value }),
           }),
-        ),
+          FailedReadValue: model => ({ model }),
+          AcquiredValue: model => ({ model }),
+          ReleasedValue: model => ({ model }),
+          FailedAcquireValue: model => ({ model }),
+        }),
         view: leafComposition.makeView((model, h) =>
           h.div(
             [],
@@ -365,7 +367,7 @@ describe('completed root Block hosting', () => {
         init: middleComposition.makeInit(() =>
           LeafBinding.init({ args: [], toParentModel: leaf => ({ leaf }) }),
         ),
-        update: middleComposition.makeUpdate(),
+        update: middleComposition.makeUpdate({}),
         view: middleComposition.makeView((model, h) =>
           h.block(
             LeafBinding.embedView({
@@ -397,7 +399,7 @@ describe('completed root Block hosting', () => {
     const nestedInit = nestedComposition.makeInit(() =>
       MiddleBinding.init({ args: [], toParentModel: middle => ({ middle }) }),
     )
-    const nestedUpdate = nestedComposition.makeUpdate()
+    const nestedUpdate = nestedComposition.makeUpdate({})
     const nestedView = nestedComposition.makeView((model, h) =>
       h.block(
         MiddleBinding.embedView({
@@ -494,9 +496,11 @@ describe('completed root Block hosting', () => {
           model: { value: 'pending' },
           commands: [ReadSharedValue()],
         }),
-        update: serviceChildComposition.makeUpdate((model, { value }) => ({
-          model: modifyFields(model, { value: () => value }),
-        })),
+        update: serviceChildComposition.makeUpdate({
+          CompletedReadSharedValue: (model, { value }) => ({
+            model: modifyFields(model, { value: () => value }),
+          }),
+        }),
         view: serviceChildComposition.makeView((model, h) =>
           h.span([h.Id('service-child-value')], [model.value]),
         ),
@@ -534,23 +538,20 @@ describe('completed root Block hosting', () => {
         toParentModel: child => ({ maybeChild: Option.some(child) }),
       }),
     )
-    const serviceUpdate = serviceComposition.makeUpdate((model, message) =>
-      ServiceRootMessage.match(message, {
-        ClickedRemoveServiceChild: () => ({
-          model: modifyFields(model, {
-            maybeChild: () => Option.none(),
-          }),
+    const serviceUpdate = serviceComposition.makeUpdate({
+      ClickedRemoveServiceChild: model =>
+        ServiceRootDefinition.makeFieldsStep(() => ({
+          maybeChild: () => Option.none(),
+        }))(model),
+      ClickedAddServiceChild: model =>
+        ServiceChildBinding.init({
+          args: [],
+          toParentModel: child =>
+            modifyFields(model, {
+              maybeChild: () => Option.some(child),
+            }),
         }),
-        ClickedAddServiceChild: () =>
-          ServiceChildBinding.init({
-            args: [],
-            toParentModel: child =>
-              modifyFields(model, {
-                maybeChild: () => Option.some(child),
-              }),
-          }),
-      }),
-    )
+    })
     const serviceView = serviceComposition.makeView((model, h) =>
       h.div(
         [],
@@ -703,21 +704,19 @@ describe('completed root Block hosting', () => {
     const prepareFeatureBlock = () =>
       featureComposition.prepareBlock({
         init: (label: string) => ({ model: { label } }),
-        update: featureComposition.makeUpdate((model, message) =>
-          FeatureMessage.match(message, {
-            AcquiredValue: () => ({
-              model,
-              outMessage: FeatureOutMessage.AcquiredValue(),
-            }),
-            ReleasedValue: () => ({ model }),
-            FailedAcquireValue: () => ({ model }),
-            CompletedObserveValue: ({ value }) => ({
-              model,
-              outMessage: FeatureOutMessage.ObservedValue({ value }),
-            }),
-            FailedObserveValue: () => ({ model }),
+        update: featureComposition.makeUpdate({
+          AcquiredValue: model => ({
+            model,
+            outMessage: FeatureOutMessage.AcquiredValue(),
           }),
-        ),
+          ReleasedValue: model => ({ model }),
+          FailedAcquireValue: model => ({ model }),
+          CompletedObserveValue: (model, { value }) => ({
+            model,
+            outMessage: FeatureOutMessage.ObservedValue({ value }),
+          }),
+          FailedObserveValue: model => ({ model }),
+        }),
         view: featureComposition.makeView((model, h) =>
           h.div([h.OnMount(ObserveValue())], [model.label]),
         ),
@@ -774,7 +773,7 @@ describe('completed root Block hosting', () => {
         right: featureBlock.init('right').model,
       },
     })
-    const rootUpdate = rootComposition.makeUpdate()
+    const rootUpdate = rootComposition.makeUpdate({})
     const rootView = rootComposition.makeView((model, h) =>
       h.div(
         [],

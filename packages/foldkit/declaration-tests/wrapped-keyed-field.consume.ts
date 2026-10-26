@@ -269,13 +269,7 @@ export type RefreshRequirements = Expect<
   >
 >
 export type PolicyRequirements = Expect<
-  Equal<
-    Update.RequirementsOf<ReturnType<typeof ChoicesBinding.select>>,
-    Block.Scoped<
-      'DeclarationWrappedKeyedFieldChoice',
-      Command.HandlerOf<typeof Choice.ReadChoice>
-    >
-  >
+  Equal<Update.RequirementsOf<ReturnType<typeof ChoicesBinding.select>>, never>
 >
 export type InspectionServices = Expect<
   Equal<Layer.Services<typeof choiceInspection.EffectsLayer>, ChoiceService>
@@ -371,7 +365,7 @@ export type GeneralKey = Expect<
 export type GeneralPolicyRequirements = Expect<
   ExactRequirements<
     Update.RequirementsOf<ReturnType<typeof GeneralChoicesBinding.select>>,
-    Block.Scoped<'generalChoices', Command.HandlerOf<typeof Choice.ReadChoice>>
+    never
   >
 >
 export type GeneralExtractedPolicyRequirements = Expect<
@@ -379,10 +373,7 @@ export type GeneralExtractedPolicyRequirements = Expect<
     Update.RequirementsOf<
       ReturnType<typeof GeneralExtractedPolicyChoicesBinding.select>
     >,
-    Block.Scoped<
-      'generalExtractedPolicyChoices',
-      Command.HandlerOf<typeof Choice.ReadChoice>
-    >
+    never
   >
 >
 export type GeneralRegistration = Expect<

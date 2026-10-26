@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "files": [],
+  "include": ["workspace-composition-*.ts"],
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "noEmitOnError": true,
+    "skipLibCheck": false
+  }
+}

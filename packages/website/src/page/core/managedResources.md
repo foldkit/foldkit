@@ -4,6 +4,8 @@
 
 Layers provided to the application live for the entire runtime. Some stateful handles should exist only while the Model is in a particular state: a camera stream during a video call, a `WebSocket` while on a chat page, or a Web Worker pool during a computation. Managed Resources give those handles a Model-driven acquire and release lifecycle, using the same dependency-diffing engine as Subscriptions.
 
+Choose a ManagedResource when Commands or other consumers need access to the acquired handle. Model-gated listeners and scoped work with no handle consumer belong in a Subscription, which supports cleanup even when it emits no Messages. Check [lifecycle ownership](/core/subscriptions#lifecycle-ownership) before defining a resource accessor or acquisition Messages.
+
 :::Info{label="The restaurant analogy"}
 Application-scoped Layers are the kitchen equipment available all night. A Managed Resource is a specialty station set up only while the menu needs it. Changing the special tears down the old station and sets up the new one, just as changing camera requirements releases one stream and acquires another. A Command that asks for an inactive station receives `ResourceNotAvailable`.
 :::
@@ -12,7 +14,7 @@ Application-scoped Layers are the kitchen equipment available all night. A Manag
 
 Create the handle accessor from the named feature with `FeatureDefinition.makeResource<Value>()('ResourceName')`, then define its lifecycle through `FeatureDefinition.makeManagedResources`. The feature name qualifies the accessor's local identity. The `modelToMaybeRequirements` function returns `Option.some(params)` while the handle should be active and `Option.none()` while it should be absent.
 
-Give each entry a stable local handler name and set `config.handler` to a generator constructor that returns both `acquire` and `release`. Both functions are required whenever the handler is supplied. The entry exposes that attached recipe as `.layer`. Pass the `managedResources` record and its attached recipes to `FeatureComposition.prepareBlock`; `Block.assemble` then creates the Block that carries the lifecycle registrations and handler graph through parent Bindings. The root follows the same producer and finisher sequence, while `program.provide(layer)` supplies any ordinary Services the handler recipes still require. The constructed handler lasts for the application lifetime; each handle it acquires still starts and stops according to the Model.
+Give each entry a stable local handler name and set `config.handler` to a generator constructor that returns both `acquire` and `release`. Both functions are required whenever the handler is supplied. The entry exposes that attached recipe as `.layer`. When every entry has an attached handler, include the owned registry's `managedResources.layer` in the local `EffectsLayer` and pass the registry under `managedResources` to `FeatureComposition.prepareBlock`. `Block.assemble` then creates the Block that carries the lifecycle registrations and handler graph through parent Bindings. The root follows the same producer and finisher sequence, while `program.provide(layer)` supplies any ordinary Services the handler recipes still require. The constructed handler lasts for the application lifetime; each handle it acquires still starts and stops according to the Model.
 
 Put the named authoring value and resource accessor in a shared module. The lifecycle registry and Commands must import the same accessor definition.
 
@@ -55,7 +57,11 @@ Definitions created by different named Blocks receive different owned names even
 
 Within one Block Definition, each local lifecycle owner needs its own resource accessor. Completion rejects two local entries that share an accessor. Binding a completed child derives a placement-scoped accessor, so the same child can appear more than once with independent handles. A keyed Binding applies the same rule per active collection key.
 
-The record key identifies the local lifecycle that Foldkit watches. The handler name identifies the acquire-and-release implementation and becomes part of its owned path. Use a verb-first name such as `ManageCamera` or `ManageChatSocket`, and compose the entry's `.layer` directly in the feature's `EffectsLayer` export. Create a standalone `ManageCameraLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly.
+The record key identifies the local lifecycle that Foldkit watches. The handler name identifies the acquire-and-release implementation and becomes part of its owned path. Use a verb-first name such as `ManageCamera` or `ManageChatSocket`. The registry key `layer` is reserved for the aggregate Layer, matching Subscriptions; use another key for a resource entry. An empty owned registry supplies `Layer.empty`.
+
+Mixed attached and host-owned registries expose no aggregate `.layer`. Compose individual entry Layers when selecting a subset or supplying host-owned implementations. Create a standalone `ManageCameraLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly.
+
+The aggregate requires one closed owned registry with own string keys. It includes non-enumerable entries and preserves exact Layer output, error, and Service contracts. Open registries and alternatives with conflicting Layer contracts expose no aggregate Layer; select a concrete implementation or provide its entries explicitly. Registry construction and Layer composition remain passive.
 
 ### Execution Testing
 
@@ -89,7 +95,7 @@ A Binding lifts the child's entries through its Model access and generated deliv
 
 ### Optional Child Models
 
-Use an exact `Option<ChildModel>` field for direct optional storage. `None` releases the child's resources without reading their requirements, and `Some` lets the child determine which resources it needs. A direct-field `presentWhen` predicate can also make the whole child absent without clearing its stored Model. Use explicit accessors for nested, tagged, or custom storage; `None` from `read` has the same release behavior. `subscriptions.when` does not gate ManagedResources.
+Use an exact `Option<ChildModel>` field for direct optional storage. `None` releases the child's resources without reading their requirements, and `Some` lets the child determine which resources it needs. A direct-field `presentWhen` predicate can also make the whole child absent without clearing its stored Model. Use [whole-variant Bindings](/core/block#whole-tagged-variants) for one complete tagged child member. Use explicit accessors for nested, wrapped, or custom storage; `None` from `read` has the same release behavior. `subscriptions.when` does not gate ManagedResources.
 
 ::Snippet{name="managedResourcesLift" label="Composing child ManagedResources"}
 

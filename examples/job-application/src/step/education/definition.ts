@@ -25,3 +25,6 @@ export const EducationDefinition = Block.makeDefinition('Education', {
     initialEntryId: Schema.String,
   }),
 })
+
+export const { makeFieldsStep, makeCommandsStep, makeNoopStep } =
+  EducationDefinition

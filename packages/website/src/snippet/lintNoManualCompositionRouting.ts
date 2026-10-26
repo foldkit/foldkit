@@ -6,12 +6,11 @@ const BadDialogBinding = ApplicationDefinition.makeBinding(Dialog.block, {
   fromParentMessage: false,
 })
 
-const badUpdate = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    GotDialogMessage: ({ message }) => BadDialogBinding.fold(model, message),
-    ClickedSave: () => ({ model }),
-  }),
-)
+const badUpdate = ApplicationComposition.makeUpdate({
+  GotDialogMessage: (model, { message }) =>
+    BadDialogBinding.fold(model, message),
+  ClickedSave: ApplicationDefinition.makeNoopStep(),
+})
 
 // ✅ Good
 // Composition derives delivery from the registered Binding.
@@ -19,8 +18,6 @@ const DialogBinding = ApplicationDefinition.makeBinding(Dialog.DialogBlock, {
   field: 'dialog',
 })
 
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedSave: () => ({ model }),
-  }),
-)
+const update = ApplicationComposition.makeUpdate({
+  ClickedSave: ApplicationDefinition.makeNoopStep(),
+})

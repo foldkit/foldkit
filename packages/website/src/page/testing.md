@@ -73,6 +73,14 @@ When the Command belongs to a child Block, supply its raw child result Message. 
 
 The parent Message union no longer declares `GotPinsMessage`. Composition owns generated child envelopes, and tests do not fabricate their placement or occurrence fields.
 
+### Send a Child Fact Without a View
+
+When a parent Story owns a delivery or OutMessage policy assertion, use `toParentMessage` from `foldkit/test` with the actual Binding and a decoded child Message. A keyed Binding takes its decoded key before the Message. The helper wraps exactly one boundary using the Binding's existing tracked mapper; it needs no Model, slot, view or ViewInputs.
+
+::Snippet{name="testingHeadlessChildMessage" label="Test a parent policy without rendering the child"}
+
+The helper uses synthetic generation `0` for pure replay. It does not select a live occurrence, create an absent child or override Runtime admission. Normal parent dispatch still applies presence, delivery context and OutMessage policy. Wrap nested ancestor boundaries explicitly. Keep production parent code on Binding operations, and retain Command/Subscription replay for facts originating from those sources.
+
 ### Register Scene Subscription Sources
 
 `Subscription.emit` identifies both the registered source and its raw Message. Build the Scene registry from the Application Composition, pass it in the Scene config, and select the entry that declared the Message. For a child entry, pass the child's Message; Scene derives every generated parent delivery from the registry.

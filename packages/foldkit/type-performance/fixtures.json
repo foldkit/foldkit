@@ -11,6 +11,18 @@
     {
       "name": "command-requirements-200",
       "file": "command-requirements-200.ts"
+    },
+    {
+      "name": "wide-subscriptions-100",
+      "file": "wide-subscriptions-100.ts"
+    },
+    {
+      "name": "workspace-composition-4",
+      "file": "workspace-composition-4.ts"
+    },
+    {
+      "name": "workspace-composition-8",
+      "file": "workspace-composition-8.ts"
     }
   ]
 }

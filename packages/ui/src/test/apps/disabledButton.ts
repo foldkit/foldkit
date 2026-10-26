@@ -70,15 +70,12 @@ export const initialModel = modifyFields(makeInitialModel(), {
   dialog: dialog => modifyFields(dialog, { isOpen: () => true }),
 })
 
-export const update = DisabledButtonTestComposition.makeUpdate(
-  (model, message) =>
-    Message.match(message, {
-      ClickedToggle: () => ({
-        model: modifyFields(model, { isEnabled: isEnabled => !isEnabled }),
-      }),
-      ClickedSubmit: () => ({ model }),
-    }),
-)
+export const update = DisabledButtonTestComposition.makeUpdate({
+  ClickedToggle: DisabledButtonTestDefinition.makeFieldsStep(() => ({
+    isEnabled: isEnabled => !isEnabled,
+  })),
+  ClickedSubmit: DisabledButtonTestDefinition.makeNoopStep(),
+})
 
 // VIEW
 

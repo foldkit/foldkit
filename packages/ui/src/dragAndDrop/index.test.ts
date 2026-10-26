@@ -74,6 +74,7 @@ describe('DragAndDrop', () => {
       const model = defaultInit()
       expect(model.id).toBe('test')
       expect(model.orientation).toBe('Vertical')
+      expect(model.keyboardDragGeneration).toBe(0)
       expect(model.dragState._tag).toBe('Idle')
     })
 
@@ -244,6 +245,71 @@ describe('DragAndDrop', () => {
         }),
       )
     })
+  })
+
+  describe('keyboard drag generations', () => {
+    it('ignores a pending keyboard move completion after cancellation', () => {
+      Story.story(
+        update,
+        Story.given(defaultInit()),
+        Story.message(activatedKeyboardDrag),
+        Story.message(Message.PressedArrowKey({ direction: 'Down' })),
+        Story.message(Message.CancelledDrag()),
+        Story.expectOutMessage(OutMessage.Cancelled()),
+        Story.Command.resolve(FocusItem, Message.CompletedFocusItem()),
+        Story.Command.resolve(
+          ResolveKeyboardMove,
+          Message.CompletedResolveKeyboardMove({
+            keyboardDragGeneration: 1,
+            targetContainerId: 'list-1',
+            targetIndex: 1,
+          }),
+        ),
+        Story.model(model => expect(model.dragState._tag).toBe('Idle')),
+        Story.Command.expectNone(),
+      )
+    })
+
+    it.each(['item-1', 'item-2'])(
+      'ignores a previous keyboard drag completion after restarting with %s',
+      restartedItemId => {
+        Story.story(
+          update,
+          Story.given(defaultInit()),
+          Story.message(activatedKeyboardDrag),
+          Story.message(Message.PressedArrowKey({ direction: 'Down' })),
+          Story.message(Message.CancelledDrag()),
+          Story.expectOutMessage(OutMessage.Cancelled()),
+          Story.Command.resolve(FocusItem, Message.CompletedFocusItem()),
+          Story.message(
+            Message.ActivatedKeyboardDrag({
+              itemId: restartedItemId,
+              containerId: 'list-1',
+              index: 0,
+            }),
+          ),
+          Story.Command.resolve(
+            ResolveKeyboardMove,
+            Message.CompletedResolveKeyboardMove({
+              keyboardDragGeneration: 1,
+              targetContainerId: 'list-2',
+              targetIndex: 3,
+            }),
+          ),
+          Story.model(model => {
+            expect(model.keyboardDragGeneration).toBe(2)
+            expect(model.dragState._tag).toBe('KeyboardDragging')
+            if (model.dragState._tag === 'KeyboardDragging') {
+              expect(model.dragState.itemId).toBe(restartedItemId)
+              expect(model.dragState.targetContainerId).toBe('list-1')
+              expect(model.dragState.targetIndex).toBe(0)
+            }
+          }),
+          Story.expectNoOutMessage(),
+          Story.Command.expectNone(),
+        )
+      },
+    )
   })
 
   describe('OutMessage', () => {
@@ -537,6 +603,7 @@ describe('DragAndDrop', () => {
         Story.message(activatedKeyboardDrag),
         Story.model(model => {
           expect(model.dragState._tag).toBe('KeyboardDragging')
+          expect(model.keyboardDragGeneration).toBe(1)
           if (model.dragState._tag === 'KeyboardDragging') {
             expect(model.dragState.itemId).toBe('item-1')
             expect(model.dragState.sourceContainerId).toBe('list-1')
@@ -545,6 +612,69 @@ describe('DragAndDrop', () => {
             expect(model.dragState.targetIndex).toBe(0)
           }
         }),
+      )
+    })
+
+    it('emits keyboard facts without announcing an unchanged or inactive target', () => {
+      Story.story(
+        update,
+        Story.given(defaultInit()),
+        Story.message(activatedKeyboardDrag),
+        Story.expectOutMessage(
+          OutMessage.StartedKeyboardDrag({
+            itemId: 'item-1',
+            containerId: 'list-1',
+            index: 0,
+          }),
+        ),
+        Story.message(
+          Message.CompletedResolveKeyboardMove({
+            keyboardDragGeneration: 1,
+            targetContainerId: 'list-2',
+            targetIndex: 3,
+          }),
+        ),
+        Story.expectOutMessage(
+          OutMessage.ChangedKeyboardTarget({
+            itemId: 'item-1',
+            fromContainerId: 'list-1',
+            fromIndex: 0,
+            toContainerId: 'list-2',
+            toIndex: 3,
+          }),
+        ),
+        Story.Command.resolve(
+          FocusItem({ itemId: 'item-1' }),
+          Message.CompletedFocusItem(),
+        ),
+        Story.expectNoOutMessage(),
+        Story.message(
+          Message.CompletedResolveKeyboardMove({
+            keyboardDragGeneration: 1,
+            targetContainerId: 'list-2',
+            targetIndex: 3,
+          }),
+        ),
+        Story.expectNoOutMessage(),
+        Story.Command.resolve(
+          FocusItem({ itemId: 'item-1' }),
+          Message.CompletedFocusItem(),
+        ),
+        Story.message(Message.CancelledDrag()),
+        Story.expectOutMessage(OutMessage.Cancelled()),
+        Story.Command.resolve(
+          FocusItem({ itemId: 'item-1' }),
+          Message.CompletedFocusItem(),
+        ),
+        Story.message(
+          Message.CompletedResolveKeyboardMove({
+            keyboardDragGeneration: 1,
+            targetContainerId: 'list-1',
+            targetIndex: 0,
+          }),
+        ),
+        Story.expectNoOutMessage(),
+        Story.model(model => expect(model.dragState._tag).toBe('Idle')),
       )
     })
 
@@ -557,6 +687,7 @@ describe('DragAndDrop', () => {
         Story.Command.resolve(
           ResolveKeyboardMove,
           Message.CompletedResolveKeyboardMove({
+            keyboardDragGeneration: 1,
             targetContainerId: 'list-1',
             targetIndex: 1,
           }),
@@ -581,6 +712,7 @@ describe('DragAndDrop', () => {
         Story.message(activatedKeyboardDrag),
         Story.message(
           Message.CompletedResolveKeyboardMove({
+            keyboardDragGeneration: 1,
             targetContainerId: 'list-2',
             targetIndex: 3,
           }),
@@ -606,6 +738,7 @@ describe('DragAndDrop', () => {
         Story.message(activatedKeyboardDrag),
         Story.message(
           Message.CompletedResolveKeyboardMove({
+            keyboardDragGeneration: 1,
             targetContainerId: 'list-2',
             targetIndex: 1,
           }),

@@ -16,13 +16,11 @@ const KeyedEntryComposition =
 const init = KeyedEntryComposition.makeInit(() => ({
   model: Model.make({ id: 'initial', theme: 'System' }),
 }))
-const update = KeyedEntryComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    InformedOfThemeChange: ({ theme }) => ({
-      model: modifyFields(model, { theme: () => theme }),
-    }),
+const update = KeyedEntryComposition.makeUpdate({
+  InformedOfThemeChange: (model, { theme }) => ({
+    model: modifyFields(model, { theme: () => theme }),
   }),
-)
+})
 const prepare = () =>
   KeyedEntryComposition.prepareBlock({
   init,

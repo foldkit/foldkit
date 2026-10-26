@@ -1,31 +1,19 @@
-import { Effect, Option } from 'effect'
-import { load } from 'foldkit/navigation'
+import { Option } from 'effect'
 
-import { ApplicationDefinition } from '../definition'
-import { Message } from '../message'
+import { LoadPlayground } from '../command'
+import {
+  ApplicationDefinition,
+  makeCommandsStep,
+  makeFieldsStep,
+} from '../definition'
 import { HomeBlock } from '../page'
-import { ExampleSlug } from '../page/example/meta'
-import { ApplicationRoute, playgroundRouter } from '../route'
-
-export const LoadPlayground = ApplicationDefinition.makeCommand(
-  'LoadPlayground',
-  {
-    args: { exampleSlug: ExampleSlug },
-    messages: [Message.CompletedLoadPlayground],
-    handler: function* () {
-      return ({ exampleSlug }) =>
-        load(playgroundRouter({ exampleSlug })).pipe(
-          Effect.as(Message.CompletedLoadPlayground()),
-        )
-    },
-  },
-)
+import { ApplicationRoute } from '../route'
 
 const foldHomeOutMessage = ApplicationDefinition.makeOutMessageFold(HomeBlock, {
   SelectedPlaygroundExample: ({ exampleSlug }) =>
-    ApplicationDefinition.makeCommandsStep([LoadPlayground({ exampleSlug })]),
+    makeCommandsStep(() => [LoadPlayground({ exampleSlug })]),
   UpdatedNewsletterEmail: ({ value }) =>
-    ApplicationDefinition.makeFieldsStep(() => ({
+    makeFieldsStep(() => ({
       newsletterEmail: () => value,
     })),
 })

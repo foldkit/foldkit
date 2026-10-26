@@ -1,0 +1,19 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "foldkit/block": ["../src/block/public.ts"],
+      "foldkit/message": ["../src/message/public.ts"],
+      "foldkit/struct": ["../src/struct/index.ts"],
+      "foldkit/test": ["../src/test/public.ts"]
+    },
+    "rootDir": ".."
+  },
+  "include": [
+    "../src/vite-env.d.ts",
+    "test-parent-message.accepted.ts",
+    "test-parent-message.consume.ts",
+    "test-parent-message.rejected.ts"
+  ]
+}

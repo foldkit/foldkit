@@ -1,7 +1,6 @@
 import { Effect, Number, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 
 export const Model = Schema.Struct({ count: Schema.Int })
 
@@ -15,6 +14,8 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
+
+const { makeFieldsStep, makeCommandsStep } = ApplicationDefinition
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
 
@@ -37,20 +38,15 @@ export const init = ApplicationComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),
 }))
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedIncrement: () => ({
-      model: modifyFields(model, { count: Number.increment }),
-    }),
-    ClickedResetAfterDelay: () => ({
-      model,
-      commands: [WaitBeforeReset()],
-    }),
-    CompletedWaitBeforeReset: () => ({
-      model: modifyFields(model, { count: () => 0 }),
-    }),
-  }),
-)
+export const update = ApplicationComposition.makeUpdate({
+  ClickedIncrement: makeFieldsStep(() => ({
+    count: Number.increment,
+  })),
+  ClickedResetAfterDelay: makeCommandsStep(() => [WaitBeforeReset()]),
+  CompletedWaitBeforeReset: makeFieldsStep(() => ({
+    count: () => 0,
+  })),
+})
 
 export const view = ApplicationComposition.makeView((model, h) => ({
   title: `Counter: ${model.count}`,

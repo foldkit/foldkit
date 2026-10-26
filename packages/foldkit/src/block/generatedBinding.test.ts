@@ -18,9 +18,11 @@ const AccessorChildComposition = AccessorChildDefinition.makeComposition()
 const prepareAccessorChildBlock = () =>
   AccessorChildComposition.prepareBlock({
     init: AccessorChildComposition.makeInit(() => ({ model: { count: 0 } })),
-    update: AccessorChildComposition.makeUpdate(
-      (model, _message, amount: number) => ({
-        model: modifyFields(model, { count: count => count + amount }),
+    update: AccessorChildComposition.makeUpdate.withContext(
+      (amount: number) => ({
+        ClickedIncrement: (model, _message) => ({
+          model: modifyFields(model, { count: count => count + amount }),
+        }),
       }),
     ),
     view: AccessorChildComposition.makeView((_model, h) => h.div([])),
@@ -55,12 +57,9 @@ const AccessorBinding = AccessorParentDefinition.makeBinding(
 const AccessorParentComposition = AccessorParentDefinition.makeComposition({
   bindings: [AccessorBinding],
 })
-const updateAccessorParent = AccessorParentComposition.makeUpdate(
-  (model, message) =>
-    AccessorParentMessage.match(message, {
-      ClickedParent: () => ({ model }),
-    }),
-)
+const updateAccessorParent = AccessorParentComposition.makeUpdate({
+  ClickedParent: model => ({ model }),
+})
 
 const OptionalContextChildDefinition = makeDefinition(
   'GeneratedOptionalContextChild',
@@ -76,10 +75,12 @@ const prepareOptionalContextChildBlock = () =>
     init: OptionalContextChildComposition.makeInit(() => ({
       model: { count: 0 },
     })),
-    update: OptionalContextChildComposition.makeUpdate(
-      (model, _message, amount?: number) => ({
-        model: modifyFields(model, {
-          count: count => count + (amount ?? 0),
+    update: OptionalContextChildComposition.makeUpdate.withContext(
+      (amount?: number) => ({
+        ClickedIncrement: (model, _message) => ({
+          model: modifyFields(model, {
+            count: count => count + (amount ?? 0),
+          }),
         }),
       }),
     ),
@@ -104,9 +105,11 @@ const prepareDefaultContextChildBlock = () =>
     init: DefaultContextChildComposition.makeInit(() => ({
       model: { count: 0 },
     })),
-    update: DefaultContextChildComposition.makeUpdate(
-      (model, _message, amount: number = 0) => ({
-        model: modifyFields(model, { count: count => count + amount }),
+    update: DefaultContextChildComposition.makeUpdate.withContext(
+      (amount: number = 0) => ({
+        ClickedIncrement: (model, _message) => ({
+          model: modifyFields(model, { count: count => count + amount }),
+        }),
       }),
     ),
     view: DefaultContextChildComposition.makeView((_model, h) => h.div([])),
@@ -126,11 +129,13 @@ const prepareRestContextChildBlock = () =>
     init: RestContextChildComposition.makeInit(() => ({
       model: { count: 0 },
     })),
-    update: RestContextChildComposition.makeUpdate(
-      (model, _message, ...amounts: ReadonlyArray<number>) => ({
-        model: modifyFields(model, {
-          count: count =>
-            count + Array.reduce(amounts, 0, (sum, amount) => sum + amount),
+    update: RestContextChildComposition.makeUpdate.withContext(
+      (...amounts: ReadonlyArray<number>) => ({
+        ClickedIncrement: (model, _message) => ({
+          model: modifyFields(model, {
+            count: count =>
+              count + Array.reduce(amounts, 0, (sum, amount) => sum + amount),
+          }),
         }),
       }),
     ),
@@ -180,10 +185,9 @@ const ContextVariantsParentComposition =
     ],
   })
 const updateContextVariantsParent = ContextVariantsParentComposition.makeUpdate(
-  (model, message) =>
-    AccessorParentMessage.match(message, {
-      ClickedParent: () => ({ model }),
-    }),
+  {
+    ClickedParent: model => ({ model }),
+  },
 )
 
 const KeyedChildModel = Schema.Struct({
@@ -200,11 +204,11 @@ const prepareKeyedChildBlock = () =>
     init: KeyedChildComposition.makeInit((id: string) => ({
       model: { id, count: 0 },
     })),
-    update: KeyedChildComposition.makeUpdate(
-      (model, _message, amount: number) => ({
+    update: KeyedChildComposition.makeUpdate.withContext((amount: number) => ({
+      ClickedIncrement: (model, _message) => ({
         model: modifyFields(model, { count: count => count + amount }),
       }),
-    ),
+    })),
     view: KeyedChildComposition.makeView((_model, h) => h.div([])),
   })
 const KeyedChildBlock: Block.FromAssemblyWithView<
@@ -233,11 +237,9 @@ const KeyedBinding = KeyedParentDefinition.makeBinding(KeyedChildBlock, {
 const KeyedParentComposition = KeyedParentDefinition.makeComposition({
   bindings: [KeyedBinding],
 })
-const updateKeyedParent = KeyedParentComposition.makeUpdate((model, message) =>
-  KeyedParentMessage.match(message, {
-    ClickedParent: () => ({ model }),
-  }),
-)
+const updateKeyedParent = KeyedParentComposition.makeUpdate({
+  ClickedParent: model => ({ model }),
+})
 
 const Room = Schema.Struct({
   roomId: Schema.String,
@@ -278,11 +280,9 @@ const RoomBinding = RoomParentDefinition.makeBinding(KeyedChildBlock, {
 const RoomParentComposition = RoomParentDefinition.makeComposition({
   bindings: [RoomBinding],
 })
-const updateRoomParent = RoomParentComposition.makeUpdate((model, message) =>
-  RoomParentMessage.match(message, {
-    ClickedParent: () => ({ model }),
-  }),
-)
+const updateRoomParent = RoomParentComposition.makeUpdate({
+  ClickedParent: model => ({ model }),
+})
 
 const WrappedRoom = Schema.Struct({
   roomId: Schema.String,
@@ -308,12 +308,9 @@ const WrappedBinding = WrappedParentDefinition.makeBinding(KeyedChildBlock, {
 const WrappedParentComposition = WrappedParentDefinition.makeComposition({
   bindings: [WrappedBinding],
 })
-const updateWrappedParent = WrappedParentComposition.makeUpdate(
-  (model, message) =>
-    WrappedParentMessage.match(message, {
-      ClickedParent: () => ({ model }),
-    }),
-)
+const updateWrappedParent = WrappedParentComposition.makeUpdate({
+  ClickedParent: model => ({ model }),
+})
 
 it('routes generated contextual accessor delivery from the current parent Model', () => {
   const initial = AccessorParentModel.make({

@@ -24,9 +24,11 @@ const ForeignMessage = Message.defineMessageUnion({ ClickedForeign: {} })
 export const init = ApplicationComposition.makeInit(() => ({
   model: { count: 0 },
 }))
-export const update = ApplicationComposition.makeUpdate(model => ({
-  model: modifyFields(model, { count: Number.increment }),
-}))
+export const update = ApplicationComposition.makeUpdate({
+  ClickedIncrement: model => ({
+    model: modifyFields(model, { count: Number.increment }),
+  }),
+})
 export const helper = (model: typeof Model.Type, h: ApplicationViewBuilder) =>
   h.button(
     [h.OnClick(LocalMessage.ClickedIncrement())],

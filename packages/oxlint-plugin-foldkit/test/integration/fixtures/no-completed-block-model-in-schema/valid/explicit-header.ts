@@ -9,6 +9,7 @@ import type {
 } from 'foldkit/block'
 
 import {
+  PublicInterfaceHeader,
   PublicHeader,
 } from '../shared/header-barrel'
 import * as HeaderFeature from '../shared/header-barrel'
@@ -27,6 +28,13 @@ const preparePlain = () => Composition.prepareBlock({})
 const Plain: PlainHeader<typeof Model, typeof preparePlain> = Feature.assemble(preparePlain)
 const checkedBoundaryProducer = () => Composition.prepareBlock({})
 const NamedBoundary: PlainHeader<typeof Model, typeof checkedBoundaryProducer> = Feature.assemble(checkedBoundaryProducer)
+const prepareInterface = () => Composition.prepareBlock({})
+export interface InterfaceBoundary extends PlainHeader<
+  typeof Model,
+  typeof prepareInterface
+> {}
+export const InterfaceBoundary: InterfaceBoundary =
+  Feature.assemble(prepareInterface)
 const alias = Qualified
 export const Parent = Schema.Struct({
   qualified: Schema.Option(Schema.Array(alias.Model)),
@@ -38,6 +46,8 @@ export const Parent = Schema.Struct({
   out: Out.Model,
   plain: Plain.Model,
   namedBoundary: NamedBoundary.Model,
+  localInterface: InterfaceBoundary.Model,
+  importedInterface: PublicInterfaceHeader.Model,
   imported: PublicHeader.Model,
   namespace: HeaderFeature.PublicHeader.Model,
 })

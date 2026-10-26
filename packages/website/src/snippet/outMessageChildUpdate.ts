@@ -1,12 +1,10 @@
-export const update = LoginComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    SubmittedLoginForm: () => ({
-      model,
-      commands: [Authenticate(model.email, model.password)],
-    }),
-    SucceededAuthenticate: ({ sessionId }) => ({
-      model,
-      outMessage: OutMessage.SucceededLogin({ sessionId }),
-    }),
+export const update = LoginComposition.makeUpdate({
+  SubmittedLoginForm: model => ({
+    model,
+    commands: [Authenticate(model.email, model.password)],
   }),
-)
+  SucceededAuthenticate: (model, { sessionId }) => ({
+    model,
+    outMessage: OutMessage.SucceededLogin({ sessionId }),
+  }),
+})

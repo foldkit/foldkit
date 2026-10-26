@@ -27,12 +27,14 @@ const AnimatedDialogExampleDefinition = Block.makeDefinition(
   },
 )
 
+const { makeNoopStep } = AnimatedDialogExampleDefinition
+
 const foldDialogOutMessage = AnimatedDialogExampleDefinition.makeOutMessageFold(
   Dialog.DialogBlock,
   {
-    Opened: AnimatedDialogExampleDefinition.makeNoopStep,
-    Closed: AnimatedDialogExampleDefinition.makeNoopStep,
-    CompletedClose: AnimatedDialogExampleDefinition.makeNoopStep,
+    Opened: makeNoopStep,
+    Closed: makeNoopStep,
+    CompletedClose: makeNoopStep,
   },
 )
 
@@ -58,7 +60,7 @@ const init = AnimatedDialogExampleComposition.makeInit(() => ({
   },
 }))
 
-const update = AnimatedDialogExampleComposition.makeUpdate()
+const update = AnimatedDialogExampleComposition.makeUpdate({})
 
 // Inside your view function, use data-[closed] for enter/leave transitions and
 // spread the `closeButton` bundle onto your dismiss buttons:

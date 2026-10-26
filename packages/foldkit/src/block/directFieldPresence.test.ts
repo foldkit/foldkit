@@ -16,7 +16,7 @@ const Child = makeDefinition('DirectPresenceChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const setCount = Child.makeStep((model, count: number) => ({
+const setCountStep = Child.makeStep((model, count: number) => ({
   model: modifyFields(model, { count: () => count }),
 }))
 const ChildComposition = Child.makeComposition()
@@ -25,12 +25,10 @@ const prepareChildBlock = () =>
     init: ChildComposition.makeInit(() => ({
       model: ChildModel.make({ count: 0 }),
     })),
-    update: ChildComposition.makeUpdate((model, message) =>
-      ChildMessage.match(message, {
-        RequestedSetCount: ({ count }) => setCount(model, count),
-        UpdatedCount: ({ count }) => setCount(model, count),
-      }),
-    ),
+    update: ChildComposition.makeUpdate({
+      RequestedSetCount: (model, { count }) => setCountStep(model, count),
+      UpdatedCount: (model, { count }) => setCountStep(model, count),
+    }),
     operations: {
       setCount: (count: number) =>
         Tuple.make(ChildMessage.RequestedSetCount({ count })),
@@ -64,13 +62,12 @@ const GatedBinding = Parent.makeBinding(childBlock, {
 const composition = Parent.makeComposition({
   bindings: [OptionalBinding, GatedBinding],
 })
-const update = composition.makeUpdate((model, message) =>
-  Message.match(message, {
-    RequestedSetOptionalCount: ({ count }) =>
-      OptionalBinding.setCount(count)(model),
-    RequestedSetGatedCount: ({ count }) => GatedBinding.setCount(count)(model),
-  }),
-)
+const update = composition.makeUpdate({
+  RequestedSetOptionalCount: (model, { count }) =>
+    OptionalBinding.setCount(count)(model),
+  RequestedSetGatedCount: (model, { count }) =>
+    GatedBinding.setCount(count)(model),
+})
 const initial = Model.make({
   child: ChildModel.make({ count: 1 }),
   maybeChild: Option.some(ChildModel.make({ count: 2 })),
@@ -153,9 +150,11 @@ it('distinguishes Option child Models from optional storage wrappers', () => {
       init: OptionChildComposition.makeInit(() => ({
         model: Option.none<string>(),
       })),
-      update: OptionChildComposition.makeUpdate((_model, { text }) => ({
-        model: Option.some(text),
-      })),
+      update: OptionChildComposition.makeUpdate({
+        UpdatedText: (_model, { text }) => ({
+          model: Option.some(text),
+        }),
+      }),
     })
   const block: Block.FromAssemblyWithoutViewOrOutMessage<
     typeof OptionModel,
@@ -178,7 +177,7 @@ it('distinguishes Option child Models from optional storage wrappers', () => {
   const Composition = Parent.makeComposition({
     bindings: [RequiredBinding, OptionalBinding],
   })
-  const updateRequired = Composition.makeUpdate()
+  const updateRequired = Composition.makeUpdate({})
   const updateOptional = updateRequired
   const initial = Model.make({ required: Option.none(), maybe: Option.none() })
   expect(
@@ -250,7 +249,7 @@ it('preserves absence through a suspended Option storage schema', () => {
   const Composition = Suspended.makeComposition({
     bindings: [ChildBinding],
   })
-  const update = Composition.makeUpdate()
+  const update = Composition.makeUpdate({})
   const absent = SuspendedModel.make({ maybeChild: Option.none() })
   expect(
     update(absent, {
@@ -317,7 +316,12 @@ it('rejects nonboolean presence policies from erased callers', () => {
   const invalidUpdate = Reflect.apply(
     Reflect.get(Composition, 'makeUpdate'),
     undefined,
-    [],
+    [
+      {
+        RequestedSetOptionalCount: Parent.makeNoopStep(),
+        RequestedSetGatedCount: Parent.makeNoopStep(),
+      },
+    ],
   )
 
   if (!Predicate.isFunction(invalidUpdate)) {
@@ -371,7 +375,10 @@ it('reads direct fields from callable tagged Struct parent Models', () => {
   const Composition = Parent.makeComposition({
     bindings: [ChildBinding, OptionalBinding],
   })
-  const updateChild = Composition.makeUpdate(model => ({ model }))
+  const updateChild = Composition.makeUpdate({
+    RequestedSetOptionalCount: model => ({ model }),
+    RequestedSetGatedCount: model => ({ model }),
+  })
   const updateOptional = updateChild
   const initial = Model({
     child: ChildModel.make({ count: 1 }),

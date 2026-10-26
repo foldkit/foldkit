@@ -40,7 +40,7 @@ const FinishInitialization = Counter.makeCommand('FinishInitialization', {
       Effect.succeed(CounterMessage.CompletedFinishInitialization({ count }))
   },
 })
-const setCount = Counter.makeStep((model, count: number) => ({
+const setCountStep = Counter.makeStep((model, count: number) => ({
   model: modifyFields(model, { count: () => count }),
 }))
 const CounterComposition = Counter.makeComposition()
@@ -50,13 +50,12 @@ const prepareCounterBlock = () =>
       model: CounterModel.make({ count }),
       commands: [FinishInitialization({ count })],
     })),
-    update: CounterComposition.makeUpdate((model, message) =>
-      CounterMessage.match(message, {
-        RequestedSetCount: ({ count }) => setCount(model, count),
-        UpdatedCount: ({ count }) => setCount(model, count),
-        CompletedFinishInitialization: ({ count }) => setCount(model, count),
-      }),
-    ),
+    update: CounterComposition.makeUpdate({
+      RequestedSetCount: (model, { count }) => setCountStep(model, count),
+      UpdatedCount: (model, { count }) => setCountStep(model, count),
+      CompletedFinishInitialization: (model, { count }) =>
+        setCountStep(model, count),
+    }),
     operations: {
       setCount: (count: number) =>
         Tuple.make(CounterMessage.RequestedSetCount({ count })),
@@ -85,9 +84,11 @@ const TextComposition = makeDefinition('WrappedKeyedFieldText', {
 const prepareTextBlock = () =>
   TextComposition.prepareBlock({
     init: TextComposition.makeInit((value: string) => ({ model: value })),
-    update: TextComposition.makeUpdate((_model, { value }) => ({
-      model: value,
-    })),
+    update: TextComposition.makeUpdate({
+      ReplacedText: (_model, { value }) => ({
+        model: value,
+      }),
+    }),
   })
 const textBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Schema.String,
@@ -134,12 +135,10 @@ const prepareParentBlock = () =>
     init: ParentComposition.makeInit(() => ({
       model: ParentModel.make({ counters: [], textEntries: [] }),
     })),
-    update: ParentComposition.makeUpdate((model, message) =>
-      ParentMessage.match(message, {
-        RequestedSetCount: ({ id, count }) =>
-          CountersBinding.setCount(id, count)(model),
-      }),
-    ),
+    update: ParentComposition.makeUpdate({
+      RequestedSetCount: (model, { id, count }) =>
+        CountersBinding.setCount(id, count)(model),
+    }),
     operations: {
       setCount: (id: string, count: number) =>
         Tuple.make(ParentMessage.RequestedSetCount({ id, count })),

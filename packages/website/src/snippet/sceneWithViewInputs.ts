@@ -12,6 +12,9 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
+
+const { makeNoopStep } = ApplicationDefinition
+
 const SliderBinding = ApplicationDefinition.makeBinding(Slider.SliderBlock, {
   field: 'slider',
   init: {
@@ -19,14 +22,14 @@ const SliderBinding = ApplicationDefinition.makeBinding(Slider.SliderBlock, {
   },
 }).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(Slider.SliderBlock, {
-    ChangedValue: ApplicationDefinition.makeNoopStep,
+    ChangedValue: makeNoopStep,
   }),
 })
 const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [SliderBinding],
 })
 
-const update = ApplicationComposition.makeUpdate()
+const update = ApplicationComposition.makeUpdate({})
 const view = ApplicationComposition.makeView.withInputs<
   Readonly<{ value: number; isDisabled?: boolean }>
 >((model, { value, isDisabled }, h) =>

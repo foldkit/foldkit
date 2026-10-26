@@ -66,12 +66,10 @@ const prepareLeaf = () =>
     init: TypePerformanceWideLeafComposition.makeInit(() => ({
       model: LeafModel.make({ value: 0 }),
     })),
-    update: TypePerformanceWideLeafComposition.makeUpdate((model, message) =>
-      LeafMessage.match(message, {
-        RequestedRun: () => runLeaf(model),
-        CompletedRun: () => ({ model }),
-      }),
-    ),
+    update: TypePerformanceWideLeafComposition.makeUpdate({
+      RequestedRun: model => runLeaf(model),
+      CompletedRun: model => ({ model }),
+    }),
     operations: {
       runLeaf: LeafMessage.RequestedRun,
     },
@@ -797,7 +795,7 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
   ],
 })
 
-const update = ApplicationComposition.makeUpdate()
+const update = ApplicationComposition.makeUpdate({})
 const view = ApplicationComposition.makeView((_model, h) => h.main([]))
 
 const prepareApplicationBlock = () =>

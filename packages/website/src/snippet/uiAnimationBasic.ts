@@ -24,6 +24,8 @@ const AnimationExampleDefinition = Block.makeDefinition('AnimationExample', {
   Message,
 })
 
+const { makeNoopStep } = AnimationExampleDefinition
+
 // Bind before defining the policy so its standard leave operation is available
 // inside the StartedLeaveAnimating branch.
 const AnimationBinding = AnimationExampleDefinition.makeBinding(
@@ -48,7 +50,7 @@ const foldAnimationOutMessage = AnimationExampleDefinition.makeOutMessageFold(
     // release a resource. No Commands here because animateSize keeps the
     // element mounted (collapsed to zero height) so there's nothing to
     // tear down.
-    TransitionedOut: AnimationExampleDefinition.makeNoopStep,
+    TransitionedOut: makeNoopStep,
   },
 )
 
@@ -69,14 +71,12 @@ const init = AnimationExampleComposition.makeInit(() => ({
 // Bound public operations integrate the next child Model and Commands without
 // exposing the internal Showed or Hid Message constructors to the parent.
 
-const update = AnimationExampleComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedToggleAnimation: () =>
-      model.animation.isShowing
-        ? AnimationBinding.requestHide()(model)
-        : AnimationBinding.requestShow()(model),
-  }),
-)
+const update = AnimationExampleComposition.makeUpdate({
+  ClickedToggleAnimation: model =>
+    model.animation.isShowing
+      ? AnimationBinding.requestHide()(model)
+      : AnimationBinding.requestShow()(model),
+})
 
 // Inside your view function, dispatch a parent-owned fact. The parent update
 // invokes the child capability. model.animation.isShowing is your source of

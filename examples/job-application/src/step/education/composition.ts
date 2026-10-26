@@ -1,13 +1,13 @@
 import { Array } from 'effect'
 import type { Block } from 'foldkit'
 
-import { EducationDefinition } from './definition'
+import { EducationDefinition, makeFieldsStep } from './definition'
 import { EducationEntryBlock } from './entry'
 
 const foldEntryOutMessage = (entryId: string) =>
   EducationDefinition.makeOutMessageFold(EducationEntryBlock, {
     Removed: () =>
-      EducationDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         entries: Array.filter(entry => entry.id !== entryId),
       })),
   })

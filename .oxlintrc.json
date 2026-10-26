@@ -70,6 +70,22 @@
       }
     },
     {
+      "files": [
+        "packages/foldkit/declaration-tests/focused-step.limitations.ts",
+        "packages/foldkit/declaration-tests/keyed-map-field.consume.ts",
+        "packages/foldkit/declaration-tests/operation-hint.source.ts"
+      ],
+      "rules": {
+        "typescript/no-explicit-any": "off"
+      }
+    },
+    {
+      "files": ["packages/foldkit/type-performance/**/*.ts"],
+      "rules": {
+        "foldkit/block-name-matches-variable": "off"
+      }
+    },
+    {
       "files": ["packages/foldkit/src/**/*.ts"],
       "rules": {
         "typescript/no-explicit-any": "off",

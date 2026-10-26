@@ -38,14 +38,14 @@ const ClearJoinDraft = Home.makeCommand('ClearJoinDraft', {
   },
 })
 const HomeComposition = Home.makeComposition()
-const resetJoinForm = Home.makeStep((model, username: string) => ({
+const resetJoinFormStep = Home.makeStep((model, username: string) => ({
   model: modifyFields(model, {
     username: () => username,
     resetCount: count => count + 1,
   }),
   commands: [ClearJoinDraft()],
 }))
-const requestJoin = Home.makeStep(
+const requestJoinStep = Home.makeStep(
   (model, roomId: string, username: string) => ({
     model,
     outMessage: HomeOutMessage.JoinedRoom({ roomId, username }),
@@ -56,19 +56,17 @@ const prepareHomeBlock = () =>
     init: HomeComposition.makeInit(() => ({
       model: HomeModel.make({ username: '', resetCount: 0 }),
     })),
-    update: HomeComposition.makeUpdate((model, message) =>
-      HomeMessage.match(message, {
-        RequestedResetJoinForm: ({ username }) =>
-          resetJoinForm(model, username),
-        RequestedJoin: ({ roomId, username }) =>
-          requestJoin(model, roomId, username),
-        SucceededJoinRoom: ({ roomId, username }) => ({
-          model,
-          outMessage: HomeOutMessage.JoinedRoom({ roomId, username }),
-        }),
-        CompletedClearJoinDraft: () => ({ model }),
+    update: HomeComposition.makeUpdate({
+      RequestedResetJoinForm: (model, { username }) =>
+        resetJoinFormStep(model, username),
+      RequestedJoin: (model, { roomId, username }) =>
+        requestJoinStep(model, roomId, username),
+      SucceededJoinRoom: (model, { roomId, username }) => ({
+        model,
+        outMessage: HomeOutMessage.JoinedRoom({ roomId, username }),
       }),
-    ),
+      CompletedClearJoinDraft: model => ({ model }),
+    }),
     operations: {
       resetJoinForm: (username: string) =>
         Tuple.make(HomeMessage.RequestedResetJoinForm({ username })),
@@ -97,7 +95,7 @@ const Room = Block.makeDefinition('Room', {
   OutMessage: RoomOutMessage,
 })
 const RoomComposition = Room.makeComposition()
-const informJoined = Room.makeStep(
+const informJoinedStep = Room.makeStep(
   (model, username: string, _context: typeof RoomContext.Type) => ({
     model: modifyFields(model, { maybeUsername: () => Option.some(username) }),
   }),
@@ -107,16 +105,15 @@ const prepareRoomBlock = () =>
     init: RoomComposition.makeInit(() => ({
       model: RoomModel.make({ maybeUsername: Option.none() }),
     })),
-    update: RoomComposition.makeUpdate(
-      (model, message, context: typeof RoomContext.Type) =>
-        RoomMessage.match(message, {
-          RequestedInformJoined: ({ username }) =>
-            informJoined(model, username, context),
-          CompletedLeaveRoom: () => ({
-            model,
-            outMessage: RoomOutMessage.LeftRoom({ roomId: context.roomId }),
-          }),
+    update: RoomComposition.makeUpdate.withContext(
+      (context: typeof RoomContext.Type) => ({
+        RequestedInformJoined: (model, { username }) =>
+          informJoinedStep(model, username, context),
+        CompletedLeaveRoom: model => ({
+          model,
+          outMessage: RoomOutMessage.LeftRoom({ roomId: context.roomId }),
         }),
+      }),
     ),
     operations: {
       informJoined: (username: string, context: typeof RoomContext.Type) =>
@@ -218,50 +215,48 @@ const RoomBinding = Application.makeBinding(RoomBlock, {
 const ApplicationComposition = Application.makeComposition({
   bindings: [HomeBinding, RoomBinding],
 })
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    RequestedJoin: ({ roomId, username }) =>
-      HomeBinding.requestJoin(roomId, username)(model),
-    RequestedResetJoinForm: ({ username }) =>
-      HomeBinding.resetJoinForm(username)(model),
-  }),
-)
+const update = ApplicationComposition.makeUpdate({
+  RequestedJoin: (model, { roomId, username }) =>
+    HomeBinding.requestJoin(roomId, username)(model),
+  RequestedResetJoinForm: (model, { username }) =>
+    HomeBinding.resetJoinForm(username)(model),
+})
 const makeInitialModel = () =>
   Model.make({
     home: HomeModel.make({ username: 'Devin', resetCount: 0 }),
     maybeRoomInstance: Option.none(),
     route: ApplicationRoute.Home(),
   })
-const directHomeRequest = HomeBinding.requestJoin('room-a', 'Devin')
+const directHomeRequestStep = HomeBinding.requestJoin('room-a', 'Devin')
 
 // @ts-expect-error A raw recipe cannot erase its deferred Binding policy obligation.
-const erasedDirectHomeRequest: (
-  model: Parameters<typeof directHomeRequest>[0],
+const erasedDirectHomeRequestStep: (
+  model: Parameters<typeof directHomeRequestStep>[0],
 ) => Update.ResultRecipe<
   Model,
   Parameters<typeof update>[1],
   never,
-  Update.RequirementsOf<typeof directHomeRequest>,
+  Update.RequirementsOf<typeof directHomeRequestStep>,
   Block.RequirementOfBinding<typeof HomeBinding>
-> = directHomeRequest
+> = directHomeRequestStep
 
-const widenedDirectHomeRequest: (
-  model: Parameters<typeof directHomeRequest>[0],
+const widenedDirectHomeRequestStep: (
+  model: Parameters<typeof directHomeRequestStep>[0],
 ) => Update.ResultRecipe<
   Model,
   Parameters<typeof update>[1],
   never,
-  Update.RequirementsOf<typeof directHomeRequest>,
+  Update.RequirementsOf<typeof directHomeRequestStep>,
   unknown
-> = directHomeRequest
+> = directHomeRequestStep
 
 // @ts-expect-error Composition init rejects a recipe whose Binding policy obligation was widened away.
 ApplicationComposition.makeInit(() => ({
   model: makeInitialModel(),
-  steps: [widenedDirectHomeRequest],
+  steps: [widenedDirectHomeRequestStep],
 }))
 
-void erasedDirectHomeRequest
+void erasedDirectHomeRequestStep
 const prepareApplicationBlock = () =>
   ApplicationComposition.prepareBlock({
     init: ApplicationComposition.makeInit(() => ({

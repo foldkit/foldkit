@@ -4,11 +4,15 @@ import {
   makeRules,
   validate,
 } from 'foldkit/fieldValidation'
-import { modifyFields } from 'foldkit/struct'
 
 import { revealFieldErrors } from '../../validation'
 import { WorkHistoryEntryComposition } from './composition'
-import { Message, type Model, OutMessage } from './definition'
+import {
+  type Model,
+  OutMessage,
+  makeFieldsStep,
+  makeOutMessageStep,
+} from './definition'
 
 export const companyRules = makeRules({
   required: 'Company is required',
@@ -21,34 +25,30 @@ export const titleRules = makeRules({
 const validateCompany = validate(companyRules)
 const validateTitle = validate(titleRules)
 
-export const update = WorkHistoryEntryComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    UpdatedCompany: ({ value }) => ({
-      model: modifyFields(model, { company: () => validateCompany(value) }),
-    }),
+export const update = WorkHistoryEntryComposition.makeUpdate({
+  UpdatedCompany: makeFieldsStep.fromMessage(({ value }) => ({
+    company: () => validateCompany(value),
+  })),
 
-    UpdatedTitle: ({ value }) => ({
-      model: modifyFields(model, { title: () => validateTitle(value) }),
-    }),
+  UpdatedTitle: makeFieldsStep.fromMessage(({ value }) => ({
+    title: () => validateTitle(value),
+  })),
 
-    ToggledCurrentlyEmployed: ({ isChecked }) => ({
-      model: modifyFields(model, { isCurrentlyEmployed: () => isChecked }),
-    }),
+  ToggledCurrentlyEmployed: makeFieldsStep.fromMessage(({ isChecked }) => ({
+    isCurrentlyEmployed: () => isChecked,
+  })),
 
-    UpdatedDescription: ({ value }) => ({
-      model: modifyFields(model, { description: () => value }),
-    }),
+  UpdatedDescription: makeFieldsStep.fromMessage(({ value }) => ({
+    description: () => value,
+  })),
 
-    RequestedRevealErrors: () => ({
-      model: modifyFields(model, {
-        company: revealFieldErrors(companyRules),
-        title: revealFieldErrors(titleRules),
-      }),
-    }),
+  RequestedRevealErrors: makeFieldsStep(() => ({
+    company: revealFieldErrors(companyRules),
+    title: revealFieldErrors(titleRules),
+  })),
 
-    ClickedRemoveSelf: () => ({ model, outMessage: OutMessage.Removed() }),
-  }),
-)
+  ClickedRemoveSelf: makeOutMessageStep(() => OutMessage.Removed()),
+})
 
 export const hasErrors = (entry: typeof Model.Type): boolean =>
   anyInvalid([entry.company, entry.title])

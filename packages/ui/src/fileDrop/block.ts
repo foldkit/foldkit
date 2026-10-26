@@ -1,5 +1,4 @@
 import { Array, Schema } from 'effect'
-import { type Update } from 'foldkit'
 import * as Block from 'foldkit/block'
 import * as File from 'foldkit/file'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
@@ -41,11 +40,12 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
-const FileDropComposition = Block.makeDefinition('FileDrop', {
+const FileDropDefinition = Block.makeDefinition('FileDrop', {
   Model,
   Message,
   OutMessage,
-}).makeComposition()
+})
+const FileDropComposition = FileDropDefinition.makeComposition()
 
 // INIT
 
@@ -66,27 +66,22 @@ export const init = FileDropComposition.makeInit((config: InitConfig) => ({
 
 /** Processes a file-drop Message and returns the next Model, optional Commands,
  *  and an optional OutMessage. */
-export const update = FileDropComposition.makeUpdate((model, message) =>
-  Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
-    message,
-    {
-      EnteredDragZone: () => ({
-        model: modifyFields(model, { isDragOver: () => true }),
-      }),
-      LeftDragZone: () => ({
-        model: modifyFields(model, { isDragOver: () => false }),
-      }),
-      DroppedFiles: ({ files }) => ({
-        model: modifyFields(model, { isDragOver: () => false }),
-        outMessage: OutMessage.ReceivedFiles({ files }),
-      }),
-      DroppedNonFiles: () => ({
-        model: modifyFields(model, { isDragOver: () => false }),
-        outMessage: OutMessage.RejectedNonFiles(),
-      }),
-    },
-  ),
-)
+export const update = FileDropComposition.makeUpdate({
+  EnteredDragZone: FileDropDefinition.makeFieldsStep(() => ({
+    isDragOver: () => true,
+  })),
+  LeftDragZone: FileDropDefinition.makeFieldsStep(() => ({
+    isDragOver: () => false,
+  })),
+  DroppedFiles: (model, { files }) => ({
+    model: modifyFields(model, { isDragOver: () => false }),
+    outMessage: OutMessage.ReceivedFiles({ files }),
+  }),
+  DroppedNonFiles: model => ({
+    model: modifyFields(model, { isDragOver: () => false }),
+    outMessage: OutMessage.RejectedNonFiles(),
+  }),
+})
 
 // VIEW
 
@@ -166,8 +161,10 @@ const prepare = () =>
     update,
     view,
   })
-/** Complete FileDrop Block definition for connecting to a parent. */
-export const FileDropBlock: Block.FromAssemblyWithViewAndOutMessage<
+/** Completed FileDrop Block contract. */
+export interface FileDropBlock extends Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof prepare
-> = Block.assemble(prepare)
+> {}
+/** Complete FileDrop Block definition for connecting to a parent. */
+export const FileDropBlock: FileDropBlock = Block.assemble(prepare)

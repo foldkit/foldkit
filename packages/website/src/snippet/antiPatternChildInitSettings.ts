@@ -35,16 +35,14 @@ export const init = SettingsComposition.makeInit(() => ({
   model: Model.make({ theme: 'Light' }),
 }))
 
-export const update = SettingsComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    RequestedRestore: ({ theme }) => ({
-      model: modifyFields(model, { theme: () => theme }),
-      commands: [RefreshAvailableThemes()],
-      outMessage: OutMessage.RestoredTheme({ theme }),
-    }),
-    CompletedRefreshAvailableThemes: () => ({ model }),
+export const update = SettingsComposition.makeUpdate({
+  RequestedRestore: (model, { theme }) => ({
+    model: modifyFields(model, { theme: () => theme }),
+    commands: [RefreshAvailableThemes()],
+    outMessage: OutMessage.RestoredTheme({ theme }),
   }),
-)
+  CompletedRefreshAvailableThemes: model => ({ model }),
+})
 
 const prepare = () =>
   SettingsComposition.prepareBlock({

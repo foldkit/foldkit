@@ -1,12 +1,12 @@
 import { Array } from 'effect'
 
-import { SkillsDefinition } from './definition'
+import { SkillsDefinition, makeFieldsStep } from './definition'
 import { SkillsEntryBlock } from './entry'
 
 const foldEntryOutMessage = (entryId: string) =>
   SkillsDefinition.makeOutMessageFold(SkillsEntryBlock, {
     Removed: () =>
-      SkillsDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         entries: Array.filter(entry => entry.id !== entryId),
       })),
   })

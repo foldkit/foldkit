@@ -24,11 +24,13 @@ const AccountMenuDefinition = Block.makeDefinition('AccountMenu', {
   Message,
 })
 
+const { makeNoopStep } = AccountMenuDefinition
+
 const foldPopoverOutMessage = AccountMenuDefinition.makeOutMessageFold(
   Popover.PopoverBlock,
   {
-    Opened: AccountMenuDefinition.makeNoopStep,
-    Closed: AccountMenuDefinition.makeNoopStep,
+    Opened: makeNoopStep,
+    Closed: makeNoopStep,
   },
 )
 
@@ -65,7 +67,7 @@ const init = AccountMenuComposition.makeInit(() => ({
   },
 }))
 
-const update = AccountMenuComposition.makeUpdate()
+const update = AccountMenuComposition.makeUpdate({})
 
 // Inside your view function, render the child Popover inside the parent
 // panel. `focusSelector` points at the child trigger, which Popover derives

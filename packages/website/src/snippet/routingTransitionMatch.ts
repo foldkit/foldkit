@@ -1,28 +1,28 @@
 import { Equal, Option } from 'effect'
 import { Transition } from 'foldkit/route'
 
-const loadPeople = (route: typeof ApplicationRoute.People.Type) =>
-  ApplicationDefinition.makeCommandsStep([
+const loadPeopleStep = (route: typeof ApplicationRoute.People.Type) =>
+  ApplicationDefinition.makeCommandsStep(() => [
     FetchPeople({
       searchText: Option.getOrElse(route.searchText, () => ''),
     }),
   ])
 
-const keepModel = ApplicationDefinition.makeNoopStep()
-type RouteStep = ReturnType<typeof loadPeople> | typeof keepModel
+const keepModelStep = ApplicationDefinition.makeNoopStep()
+type RouteStep = ReturnType<typeof loadPeopleStep> | typeof keepModelStep
 
-const reconcilePeopleRoute = (
+const reconcilePeopleRouteStep = (
   transition: Transition.Transition<typeof ApplicationRoute.Type>,
 ): RouteStep =>
   Transition.matchOrElse<RouteStep>()(
     transition,
     'People',
     {
-      Entered: loadPeople,
+      Entered: loadPeopleStep,
       Stayed: ({ previousRoute, nextRoute }) =>
         Equal.equals(previousRoute.searchText, nextRoute.searchText)
-          ? keepModel
-          : loadPeople(nextRoute),
+          ? keepModelStep
+          : loadPeopleStep(nextRoute),
     },
-    () => keepModel,
+    () => keepModelStep,
   )

@@ -1,4 +1,4 @@
-const revalidateAllNotes = ApplicationDefinition.makeStep(model =>
+const revalidateAllNotesStep = ApplicationDefinition.makeStep(model =>
   Option.match(AsyncData.revalidate(model.allNotes), {
     onNone: () => ({ model }),
     onSome: refreshingAllNotes => ({

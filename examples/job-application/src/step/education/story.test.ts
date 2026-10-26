@@ -1,6 +1,7 @@
 import { Array, Option, pipe } from 'effect'
 import { Calendar } from 'foldkit'
 import { Command, given, message, model, story } from 'foldkit/story'
+import { toParentMessage } from 'foldkit/test'
 import { describe, expect, test } from 'vitest'
 
 import { GenerateEducationEntryId } from './command'
@@ -12,21 +13,10 @@ import { update } from './update'
 
 const today = Calendar.make(2026, 4, 16)
 const givenInitial = given(init(today, 'education-entry-1').model)
-const emptyEducationEntryView = EducationEntryBlock.makeView(
-  (_model, h) => h.empty,
-)
-
 const entryMessage = (
   entryId: string,
-  model: typeof EducationEntryBlock.Model.Type,
   message: typeof EducationEntryBlock.Message.Type,
-) =>
-  EntriesBinding.embedView({
-    key: entryId,
-    slotId: entryId,
-    model,
-    view: emptyEducationEntryView,
-  }).toParentMessage(message)
+) => toParentMessage(EntriesBinding, entryId, message)
 
 describe('education', () => {
   test('ClickedAddEntry generates an id and appends an entry', () => {
@@ -68,7 +58,6 @@ describe('education', () => {
       message(
         entryMessage(
           firstEntry.id,
-          firstEntry,
           EducationEntryBlock.Message.ClickedRemoveSelf(),
         ),
       ),
@@ -89,7 +78,6 @@ describe('education', () => {
       message(
         entryMessage(
           firstEntry.id,
-          firstEntry,
           EducationEntryBlock.Message.UpdatedSchool({ value: 'MIT' }),
         ),
       ),

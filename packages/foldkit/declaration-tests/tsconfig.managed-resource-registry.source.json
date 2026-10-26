@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": { "noEmit": true },
+  "include": [
+    "managed-resource-registry.accepted.ts",
+    "managed-resource-registry.rejected.ts",
+    "managed-resource-registry.consume.ts"
+  ]
+}

@@ -81,24 +81,22 @@ const registered = Child.makeComposition({ mounts: [Observe] })
 const view = registered.makeView((model, h) =>
   h.div([h.OnMount(Observe())], [globalThis.String(model.count)]),
 )
-const childUpdate = registered.makeUpdate((model, message) =>
-  Message.match(message, {
-    RequestedRead: () => ({
-      model,
-      commands: [Read()],
-      outMessage: OutMessage.ReadRequested(),
-    }),
-    RequestedReadOperation: () => ({ model, commands: [Read()] }),
-    CompletedRead: ({ count }) => ({
-      model: modifyFields(model, { count: () => count }),
-    }),
-    ObservedTick: () => ({ model }),
-    CompletedObserve: () => ({ model }),
-    AcquiredSession: () => ({ model }),
-    ReleasedSession: () => ({ model }),
-    FailedAcquireSession: () => ({ model }),
+const childUpdate = registered.makeUpdate({
+  RequestedRead: model => ({
+    model,
+    commands: [Read()],
+    outMessage: OutMessage.ReadRequested(),
   }),
-)
+  RequestedReadOperation: model => ({ model, commands: [Read()] }),
+  CompletedRead: (model, { count }) => ({
+    model: modifyFields(model, { count: () => count }),
+  }),
+  ObservedTick: model => ({ model }),
+  CompletedObserve: model => ({ model }),
+  AcquiredSession: model => ({ model }),
+  ReleasedSession: model => ({ model }),
+  FailedAcquireSession: model => ({ model }),
+})
 const prepareBlock = () =>
   registered.prepareBlock({
     init: () => ({ model: Model.make({ count: 0 }) }),
@@ -186,12 +184,10 @@ const KeyedBinding = Parent.makeBinding(block, {
 const ParentComposition = Parent.makeComposition({
   bindings: [PrimaryBinding, KeyedBinding],
 })
-const update = ParentComposition.makeUpdate((model, message) =>
-  ParentMessage.match(message, {
-    ReceivedForeignMessage: () => ({ model }),
-    RequestedReadOperation: () => PrimaryBinding.read()(model),
-  }),
-)
+const update = ParentComposition.makeUpdate({
+  ReceivedForeignMessage: model => Parent.makeNoopStep()(model),
+  RequestedReadOperation: model => PrimaryBinding.read()(model),
+})
 
 const keyedUpdate = update
 

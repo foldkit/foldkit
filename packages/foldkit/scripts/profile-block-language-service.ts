@@ -1,5 +1,5 @@
 import { Array as EffectArray, Option, Predicate, String } from 'effect'
-import { execFileSync, spawn } from 'node:child_process'
+import { execFile, execFileSync, spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import {
   existsSync,
@@ -12,7 +12,7 @@ import { createRequire } from 'node:module'
 import { dirname, join, relative, resolve } from 'node:path'
 import { performance } from 'node:perf_hooks'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { parseArgs } from 'node:util'
+import { parseArgs, promisify } from 'node:util'
 
 import {
   createMessageConnection,
@@ -46,7 +46,10 @@ type RequestTargetConfig =
       expectedBinding?: Readonly<{
         name: string
         owner: string
+        typeNames?: ReadonlyArray<string>
+        requireSchemaHeader?: boolean
         schemaHeaderFragments?: ReadonlyArray<string>
+        namedBoundaryFragments?: ReadonlyArray<string>
       }>
     }>
   | Readonly<{ method: 'textDocument/definition' }>
@@ -66,7 +69,7 @@ type Measurement = Readonly<{
   documentVersion?: number
   sourceSha256?: string
   diagnosticEvidence?: Readonly<{
-    expected: 'Clean' | 'RouteError'
+    expected: 'Clean' | 'RouteError' | 'TitleError'
     errorCount: number
     code?: number
     range?: Readonly<{ start: Position; end: Position }>
@@ -81,12 +84,28 @@ type ServerInfo = Readonly<{
 type ScenarioResult = Readonly<{
   serverInfo: ServerInfo
   measurements: ReadonlyArray<Measurement>
+  serverMemory?: ServerMemory
+}>
+
+type ServerMemory = Readonly<{
+  scenario: string
+  method: 'ps -o rss= -p <pid>'
+  unit: 'KiB'
+  samplingIntervalMs: number
+  peakRssKiB: number
+  samples: ReadonlyArray<ServerMemorySample>
+}>
+
+type ServerMemorySample = Readonly<{
+  phase: 'Startup' | 'Interval' | 'Final'
+  elapsedMs: number
+  rssKiB: number
 }>
 
 type Options = Readonly<{
   runs: number
   timeoutMs: number
-  scenario: 'all' | 'message-constructors'
+  scenario: 'all' | 'message-constructors' | 'workspace'
 }>
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -95,16 +114,54 @@ const benchmarkScriptPath = fileURLToPath(import.meta.url)
 const definitionPath = 'packages/website/src/definition.ts'
 const compositionPath = 'packages/website/src/composition/composition.ts'
 const changedUrlPath = 'packages/website/src/update/handleChangedUrl.ts'
+const workspaceCompositionPath = 'examples/workspace/src/composition.ts'
+const workspaceInitializationPath =
+  'examples/workspace/src/update/initializeActiveChildren.ts'
+const workspaceUpdatePath = existsSync(
+  resolve(workspaceRoot, workspaceInitializationPath),
+)
+  ? workspaceInitializationPath
+  : 'examples/workspace/src/update.ts'
+const workspaceEntryPath = 'examples/workspace/src/entry.ts'
+const workspaceDetailUpdatePath = 'examples/workspace/src/issueDetail/update.ts'
+const workspaceBindingProbe = '\nIssueDetailBinding.init\n'
+const workspaceBlockAccess = 'ApplicationBlock.Message.ClickedLink'
+const workspaceTitleWriter = 'title: () => value'
+const workspaceInvalidTitle = 'value.length'
+const serverMemorySamplingIntervalMs = 250
+const serverMemorySampleTimeoutMs = 1_000
+const runProcess = promisify(execFile)
 const bindingCall = 'SearchBinding.informRouteChanged()'
-const searchBindingHover = {
+export const searchBindingHover = {
   name: 'SearchBinding',
   owner: 'Search',
+  typeNames: ['InitializedBinding', 'BindingEvidence'],
+  requireSchemaHeader: true,
   schemaHeaderFragments: [
     'InitializedBinding<GeneratedDirectBindingReturn<AssemblyWithView<Struct<{',
     'readonly query: String;',
-    'readonly searchState: TaggedUnion<...>;',
+    'readonly searchState: TaggedUnion<',
     'readonly activeResultIndex: Number;',
   ],
+  namedBoundaryFragments: [
+    'BindingEvidence<AssemblyWithView<Struct<{',
+    'readonly query: String;',
+    'readonly searchState: TaggedUnion<',
+    'readonly activeResultIndex: Number;',
+    ', false> &',
+  ],
+}
+export const workspaceBindingHover = {
+  name: 'IssueDetailBinding',
+  owner: 'IssueDetail',
+  typeNames: ['Block.BindingWithoutOutMessagePolicy'],
+  schemaHeaderFragments: [
+    'AssemblyWithViewAndOutMessage<Struct<{',
+    'readonly issueId: String;',
+    'readonly baseline: Struct<{',
+    'readonly draft: Struct<{',
+  ],
+  namedBoundaryFragments: ['IssueDetailBlock', 'readonly route: RouteUnion<{'],
 }
 const routeWriter = 'route: () => nextRoute'
 const routeErrorCode = 2322
@@ -148,6 +205,14 @@ const workloadGitPaths = [
   'pnpm-lock.yaml',
   'pnpm-workspace.yaml',
   'tsconfig.base.json',
+]
+const workspaceExampleGitPaths = [
+  ':(glob)examples/workspace/**/*.ts',
+  ':(glob)examples/workspace/**/*.tsx',
+  ':(glob)examples/workspace/**/*.mts',
+  ':(glob)examples/workspace/**/*.cts',
+  'examples/workspace/package.json',
+  'examples/workspace/tsconfig.json',
 ]
 
 const fail = (message: string): never => {
@@ -198,14 +263,18 @@ const parseOptions = (): Options => {
   })
   if (values.help) {
     process.stdout.write(
-      'Usage: node packages/foldkit/scripts/profile-block-language-service.ts [--runs N] [--timeout-ms N] [--scenario all|message-constructors]\n',
+      'Usage: node packages/foldkit/scripts/profile-block-language-service.ts [--runs N] [--timeout-ms N] [--scenario all|message-constructors|workspace]\n',
     )
     process.exit(0)
   }
 
   const scenario = values.scenario
-  if (scenario !== 'all' && scenario !== 'message-constructors') {
-    return fail(`--scenario must be all or message-constructors.`)
+  if (
+    scenario !== 'all' &&
+    scenario !== 'message-constructors' &&
+    scenario !== 'workspace'
+  ) {
+    return fail(`--scenario must be all, message-constructors or workspace.`)
   }
 
   return {
@@ -229,6 +298,10 @@ class LspClient {
   private stderr = ''
   private hasExited = false
   private lifecycleError: Error | undefined
+
+  get processId(): number {
+    return this.child.pid ?? fail(`Language server has no process ID.`)
+  }
 
   constructor() {
     this.exitPromise = new Promise(resolveExit => {
@@ -347,6 +420,116 @@ class LspClient {
     if (!this.hasExited) {
       return fail(`TypeScript language server did not exit after SIGKILL.`)
     }
+  }
+}
+
+export const readServerRssKiB = (output: string): number => {
+  const text = output.trim()
+  const rssKiB = globalThis.Number(text)
+  if (
+    !/^\d+$/.test(text) ||
+    !globalThis.Number.isSafeInteger(rssKiB) ||
+    rssKiB < 1
+  ) {
+    return fail(
+      `ps returned an invalid RSS measurement: ${JSON.stringify(output)}.`,
+    )
+  }
+
+  return rssKiB
+}
+
+const readServerProcessRssKiB = async (processId: number): Promise<number> => {
+  if (process.platform !== 'darwin' && process.platform !== 'linux') {
+    return fail(
+      `Workspace RSS sampling supports macOS and Linux, received ${process.platform}.`,
+    )
+  }
+
+  const { stdout } = await runProcess(
+    'ps',
+    ['-o', 'rss=', '-p', globalThis.String(processId)],
+    {
+      encoding: 'utf8',
+      timeout: serverMemorySampleTimeoutMs,
+      maxBuffer: 1_024,
+    },
+  )
+
+  return readServerRssKiB(stdout)
+}
+
+export const startServerMemorySampler = async (
+  processId: number,
+  scenario: string,
+  readRssKiB: (processId: number) => Promise<number> = readServerProcessRssKiB,
+) => {
+  const started = performance.now()
+  const samples: Array<ServerMemorySample> = []
+  let samplingError: unknown
+  let isSampling = false
+  let pendingSample = Promise.resolve()
+  let stopPromise: Promise<ServerMemory> | undefined
+
+  const sample = async (phase: ServerMemorySample['phase']): Promise<void> => {
+    const rssKiB = await readRssKiB(processId)
+    samples.push({
+      phase,
+      elapsedMs: globalThis.Number((performance.now() - started).toFixed(3)),
+      rssKiB,
+    })
+  }
+
+  await sample('Startup')
+  const timer = setInterval(() => {
+    if (
+      stopPromise !== undefined ||
+      isSampling ||
+      samplingError !== undefined
+    ) {
+      return
+    }
+
+    isSampling = true
+    pendingSample = sample('Interval')
+      .catch(error => {
+        samplingError = error
+      })
+      .finally(() => {
+        isSampling = false
+      })
+  }, serverMemorySamplingIntervalMs)
+
+  return {
+    stop: (): Promise<ServerMemory> => {
+      if (stopPromise !== undefined) {
+        return stopPromise
+      }
+
+      clearInterval(timer)
+      stopPromise = (async () => {
+        await pendingSample
+
+        if (samplingError !== undefined) {
+          throw samplingError
+        }
+
+        await sample('Final')
+
+        return {
+          scenario,
+          method: 'ps -o rss= -p <pid>',
+          unit: 'KiB',
+          samplingIntervalMs: serverMemorySamplingIntervalMs,
+          peakRssKiB: globalThis.Math.max(
+            ...samples.map(({ rssKiB }) => rssKiB),
+          ),
+          samples: [...samples],
+        }
+      })()
+
+      return stopPromise
+    },
   }
 }
 
@@ -614,7 +797,7 @@ const hoverText = (contents: unknown): string => {
   return markedStringText(contents)
 }
 
-const validateResult = (
+export const validateResult = (
   label: string,
   target: RequestTarget,
   result: unknown,
@@ -630,28 +813,46 @@ const validateResult = (
     }
 
     if (target.expectedBinding !== undefined) {
-      const { name, owner, schemaHeaderFragments } = target.expectedBinding
+      const {
+        name,
+        owner,
+        typeNames = ['InitializedBinding'],
+        schemaHeaderFragments,
+        namedBoundaryFragments,
+        requireSchemaHeader = false,
+      } = target.expectedBinding
       const text = hoverText(result.contents)
-      const isInitializedBinding = new RegExp(
-        `${name}:\\s*InitializedBinding<`,
-      ).test(text)
-      const isErased = new RegExp(
-        `${name}:\\s*(any|unknown|never)(?:\\s|$|\u0060)`,
-      ).test(text)
+      const hasExpectedBindingType = typeNames.some(typeName =>
+        new RegExp(`${name}:\\s*${typeName.replaceAll('.', '\\.')}<`).test(
+          text,
+        ),
+      )
+      const isErased =
+        new RegExp(`${name}:\\s*(any|unknown|never)(?:\\s|$|\u0060)`).test(
+          text,
+        ) ||
+        typeNames.some(typeName =>
+          new RegExp(
+            `${name}:\\s*${typeName.replaceAll('.', '\\.')}<\\s*(any|unknown|never)\\s*[,>]`,
+          ).test(text),
+        )
       const hasVisibleOwner = text.includes('Owner<"')
       const hasExpectedOwner = text.includes(`Owner<"${owner}"`)
       const hasSchemaHeader =
-        schemaHeaderFragments !== undefined &&
-        EffectArray.isReadonlyArrayNonEmpty(schemaHeaderFragments) &&
-        schemaHeaderFragments.every(fragment => text.includes(fragment))
+        (schemaHeaderFragments !== undefined &&
+          EffectArray.isReadonlyArrayNonEmpty(schemaHeaderFragments) &&
+          schemaHeaderFragments.every(fragment => text.includes(fragment))) ||
+        (namedBoundaryFragments !== undefined &&
+          EffectArray.isReadonlyArrayNonEmpty(namedBoundaryFragments) &&
+          namedBoundaryFragments.every(fragment => text.includes(fragment)))
       if (
-        !isInitializedBinding ||
+        !hasExpectedBindingType ||
         isErased ||
         (hasVisibleOwner && !hasExpectedOwner) ||
-        (!hasVisibleOwner && !hasSchemaHeader)
+        ((requireSchemaHeader || !hasVisibleOwner) && !hasSchemaHeader)
       ) {
         return fail(
-          `${label} returned an erased or unexpected visible Binding shape.`,
+          `${label} returned an erased or unexpected visible Binding shape. Visible hover: ${text}`,
         )
       }
     }
@@ -748,14 +949,35 @@ const editThenMeasurePair = async (
 const runScenario = async (
   timeoutMs: number,
   execute: (client: LspClient) => Promise<ReadonlyArray<Measurement>>,
+  memoryScenario?: string,
 ): Promise<ScenarioResult> => {
   const client = new LspClient()
+  let memorySampler:
+    | Awaited<ReturnType<typeof startServerMemorySampler>>
+    | undefined
   try {
+    if (memoryScenario !== undefined) {
+      memorySampler = await startServerMemorySampler(
+        client.processId,
+        memoryScenario,
+      )
+    }
+
     const serverInfo = await initialize(client, timeoutMs)
     const measurements = await execute(client)
-    return { serverInfo, measurements }
+    return {
+      serverInfo,
+      measurements,
+      ...(memorySampler === undefined
+        ? {}
+        : { serverMemory: await memorySampler.stop() }),
+    }
   } finally {
-    await client.close(timeoutMs)
+    try {
+      await memorySampler?.stop()
+    } finally {
+      await client.close(timeoutMs)
+    }
   }
 }
 
@@ -976,12 +1198,62 @@ const findRouteError = (
   })
 }
 
+export const findWorkspaceTitleError = (
+  source: Pick<SourceDocument, 'text'>,
+  errors: ReadonlyArray<unknown>,
+): Option.Option<unknown> => {
+  const titleStart = positionAt(
+    source.text,
+    uniqueOccurrence(source.text, `title: () => ${workspaceInvalidTitle}`),
+  )
+  const titleEnd = {
+    line: titleStart.line,
+    character: titleStart.character + 'title'.length,
+  }
+
+  return EffectArray.findFirst(errors, diagnostic => {
+    if (
+      !Predicate.isObject(diagnostic) ||
+      diagnostic['code'] !== routeErrorCode ||
+      !Predicate.isString(diagnostic['message']) ||
+      !/number/.test(diagnostic['message']) ||
+      !/assignable/.test(diagnostic['message']) ||
+      !Predicate.isObject(diagnostic['range'])
+    ) {
+      return false
+    }
+
+    const start = diagnosticPosition(diagnostic['range']['start'])
+    const end = diagnosticPosition(diagnostic['range']['end'])
+    return (
+      start.line === titleStart.line &&
+      start.character === titleStart.character &&
+      end.line === titleEnd.line &&
+      end.character === titleEnd.character
+    )
+  })
+}
+
+const findExpectedDiagnostic = (
+  source: SourceDocument,
+  errors: ReadonlyArray<unknown>,
+  expected: 'Clean' | 'RouteError' | 'TitleError',
+): Option.Option<unknown> => {
+  if (expected === 'RouteError') {
+    return findRouteError(source, errors)
+  } else if (expected === 'TitleError') {
+    return findWorkspaceTitleError(source, errors)
+  } else {
+    return Option.none()
+  }
+}
+
 const measureDiagnostic = async (
   client: LspClient,
   timeoutMs: number,
   label: string,
   source: SourceDocument,
-  expected: 'Clean' | 'RouteError',
+  expected: 'Clean' | 'RouteError' | 'TitleError',
 ): Promise<Measurement> => {
   const response = await client.request(
     'textDocument/diagnostic',
@@ -1002,17 +1274,25 @@ const measureDiagnostic = async (
       Predicate.isObject(diagnostic) &&
       diagnostic['severity'] === errorSeverity,
   )
-  const maybeRouteError =
-    expected === 'RouteError' ? findRouteError(source, errors) : Option.none()
+  const maybeExpectedError = findExpectedDiagnostic(source, errors, expected)
   if (expected === 'Clean' && EffectArray.isArrayNonEmpty(errors)) {
     return fail(`${label} retained errors: ${JSON.stringify(errors)}.`)
   }
-  if (expected === 'RouteError' && Option.isNone(maybeRouteError)) {
+  if (expected === 'RouteError' && Option.isNone(maybeExpectedError)) {
     return fail(
       `${label} did not report TS${routeErrorCode} at the route property.`,
     )
   }
-  const diagnosticEvidence = Option.match(maybeRouteError, {
+  if (
+    expected === 'TitleError' &&
+    (Option.isNone(maybeExpectedError) || errors.length !== 1)
+  ) {
+    return fail(
+      `${label} did not report exactly one TS${routeErrorCode} at the title property.`,
+    )
+  }
+
+  const diagnosticEvidence = Option.match(maybeExpectedError, {
     onNone: () => ({ expected, errorCount: errors.length }),
     onSome: diagnostic => {
       if (
@@ -1182,6 +1462,188 @@ const changedUrlWorkflowScenario = (
     return measurements
   })
 
+const workspaceRequestScenario = (
+  timeoutMs: number,
+  label: string,
+  sourcePath: string,
+  toTarget: (source: SourceDocument) => RequestTarget,
+): Promise<ScenarioResult> =>
+  runScenario(
+    timeoutMs,
+    async client => {
+      const source = document(sourcePath)
+      const target = toTarget(source)
+      await openDocument(client, source, source.text)
+      const measurements = [
+        ...(await measurePair(
+          client,
+          timeoutMs,
+          [`${label}.first`, `${label}.warm`],
+          target,
+        )),
+      ]
+
+      await appendNewline(client, source)
+      measurements.push(
+        ...(await measurePair(
+          client,
+          timeoutMs,
+          [`${label}.postWhitespace`, `${label}.postWhitespaceWarm`],
+          target,
+        )),
+      )
+      return measurements
+    },
+    label,
+  )
+
+const workspaceBindingHoverScenario = (
+  timeoutMs: number,
+): Promise<ScenarioResult> =>
+  workspaceRequestScenario(
+    timeoutMs,
+    'workspace.bindingHover',
+    workspaceCompositionPath,
+    source => {
+      uniqueOccurrence(source.text, 'export const IssueDetailBinding')
+      return requestTarget(
+        {
+          method: 'textDocument/hover',
+          expectedBinding: workspaceBindingHover,
+        },
+        source,
+        'IssueDetailBinding',
+        'export const IssueDetailBinding',
+      )
+    },
+  )
+
+export const workspaceBindingCompletionTarget = (
+  source: SourceDocument,
+): RequestTarget => ({
+  method: 'textDocument/completion',
+  expectedLabels: ['requestSave', 'embedView', 'init'],
+  source,
+  position: positionAt(
+    source.text,
+    uniqueOccurrence(source.text, workspaceBindingProbe) +
+      '\nIssueDetailBinding.'.length,
+  ),
+})
+
+const workspaceBindingCompletionScenario = (
+  timeoutMs: number,
+): Promise<ScenarioResult> =>
+  workspaceRequestScenario(
+    timeoutMs,
+    'workspace.bindingCompletion',
+    workspaceUpdatePath,
+    source => {
+      source.text = `${source.text}${workspaceBindingProbe}`
+      return workspaceBindingCompletionTarget(source)
+    },
+  )
+
+export const workspaceBlockCompletionTarget = (
+  source: SourceDocument,
+): RequestTarget => ({
+  method: 'textDocument/completion',
+  expectedLabels: [
+    'Model',
+    'Message',
+    'init',
+    'makeView',
+    'replaceEffectsLayer',
+  ],
+  source,
+  position: positionAt(
+    source.text,
+    uniqueOccurrence(source.text, workspaceBlockAccess) +
+      'ApplicationBlock.'.length,
+  ),
+})
+
+const workspaceBlockCompletionScenario = (
+  timeoutMs: number,
+): Promise<ScenarioResult> =>
+  workspaceRequestScenario(
+    timeoutMs,
+    'workspace.blockCompletion',
+    workspaceEntryPath,
+    workspaceBlockCompletionTarget,
+  )
+
+const workspaceTitleWorkflowScenario = (
+  timeoutMs: number,
+): Promise<ScenarioResult> =>
+  runScenario(
+    timeoutMs,
+    async client => {
+      const update = document(workspaceDetailUpdatePath)
+      uniqueOccurrence(update.text, workspaceTitleWriter)
+      await openDocument(client, update)
+      const measurements = [
+        await measureDiagnostic(
+          client,
+          timeoutMs,
+          'workspace.diagnostics.clean',
+          update,
+          'Clean',
+        ),
+      ]
+
+      await appendNewline(client, update)
+      const titleValueStart =
+        uniqueOccurrence(update.text, workspaceTitleWriter) +
+        'title: () => '.length
+      await replaceDocumentRange(
+        client,
+        update,
+        titleValueStart,
+        titleValueStart + 'value'.length,
+        workspaceInvalidTitle,
+      )
+      measurements.push(
+        await measureDiagnostic(
+          client,
+          timeoutMs,
+          'workspace.diagnostics.badTitle',
+          update,
+          'TitleError',
+        ),
+      )
+
+      const invalidValueStart =
+        uniqueOccurrence(update.text, `title: () => ${workspaceInvalidTitle}`) +
+        'title: () => '.length
+      await replaceDocumentRange(
+        client,
+        update,
+        invalidValueStart,
+        invalidValueStart + workspaceInvalidTitle.length,
+        'value',
+      )
+      measurements.push(
+        await measureDiagnostic(
+          client,
+          timeoutMs,
+          'workspace.diagnostics.restored',
+          update,
+          'Clean',
+        ),
+      )
+
+      if (update.text !== `${update.originalText}\n`) {
+        return fail(
+          `Workspace title workflow did not restore the original source.`,
+        )
+      }
+
+      return measurements
+    },
+    'workspace.diagnostics',
+  )
+
 const sha256 = (value: string | Buffer): string =>
   createHash('sha256').update(value).digest('hex')
 
@@ -1201,7 +1663,7 @@ const filesBelow = (
     ],
   }).map(path => join(directory, path))
 
-const workloadHash = (): string => {
+const workloadHash = (scenario: Options['scenario']): string => {
   const workspaceSourceRoots = [
     join(workspaceRoot, 'packages'),
     join(workspaceRoot, 'internal'),
@@ -1216,6 +1678,15 @@ const workloadHash = (): string => {
     )
   }
   const websiteRoot = join(workspaceRoot, 'packages/website')
+  const workspaceExampleRoot = join(workspaceRoot, 'examples/workspace')
+  const workspaceExamplePaths =
+    scenario === 'workspace'
+      ? [
+          join(workspaceExampleRoot, 'package.json'),
+          join(workspaceExampleRoot, 'tsconfig.json'),
+          ...filesBelow(workspaceExampleRoot, '**/*.{ts,tsx,mts,cts}'),
+        ]
+      : []
   const paths = globalThis.Array.from(
     new Set([
       join(workspaceRoot, 'package.json'),
@@ -1225,6 +1696,7 @@ const workloadHash = (): string => {
       join(websiteRoot, 'package.json'),
       join(websiteRoot, 'tsconfig.json'),
       ...filesBelow(websiteRoot, '**/*.{ts,tsx,mts,cts}'),
+      ...workspaceExamplePaths,
       ...workspaceSourceRoots.flatMap(root =>
         filesBelow(root, '**/package.json'),
       ),
@@ -1299,6 +1771,44 @@ const summarize = (
   }))
 }
 
+const selectedScenarios = async (
+  options: Options,
+): Promise<ReadonlyArray<ScenarioResult>> => {
+  if (options.scenario === 'message-constructors') {
+    return [
+      await messageConstructorScenario(options.timeoutMs, 'local'),
+      await messageConstructorScenario(options.timeoutMs, 'completed'),
+    ]
+  } else if (options.scenario === 'workspace') {
+    return [
+      await workspaceBindingHoverScenario(options.timeoutMs),
+      await workspaceBindingCompletionScenario(options.timeoutMs),
+      await workspaceBlockCompletionScenario(options.timeoutMs),
+      await workspaceTitleWorkflowScenario(options.timeoutMs),
+    ]
+  } else {
+    return [
+      await hoverScenario(options.timeoutMs),
+      await definitionScenario(options.timeoutMs),
+      await completionScenario(options.timeoutMs),
+      await bindingCompletionScenario(options.timeoutMs),
+      await changedUrlWorkflowScenario(options.timeoutMs),
+      await messageConstructorScenario(options.timeoutMs, 'local'),
+      await messageConstructorScenario(options.timeoutMs, 'completed'),
+    ]
+  }
+}
+
+const documentChangeMode = (scenario: Options['scenario']): string => {
+  if (scenario === 'message-constructors') {
+    return 'One fresh document per cold constructor scenario; no edits'
+  } else if (scenario === 'workspace') {
+    return 'Incremental ranges for workspace hover, completion and title diagnostics'
+  } else {
+    return 'Incremental ranges for Binding and changed URL workflows'
+  }
+}
+
 const main = async (): Promise<void> => {
   const options = parseOptions()
   nativeCompilerExecutable()
@@ -1311,8 +1821,9 @@ const main = async (): Promise<void> => {
       '--untracked-files=all',
       '--',
       ...workloadGitPaths,
+      ...(options.scenario === 'workspace' ? workspaceExampleGitPaths : []),
     ]) !== ''
-  const initialWorkloadHash = workloadHash()
+  const initialWorkloadHash = workloadHash(options.scenario)
   const lockfileHash = sha256(
     readFileSync(join(workspaceRoot, 'pnpm-lock.yaml')),
   )
@@ -1320,26 +1831,16 @@ const main = async (): Promise<void> => {
   const typescriptVersion = compilerVersion()
 
   const runs: Array<
-    Readonly<{ run: number; measurements: ReadonlyArray<Measurement> }>
+    Readonly<{
+      run: number
+      measurements: ReadonlyArray<Measurement>
+      serverMemory?: ReadonlyArray<ServerMemory>
+    }>
   > = []
   let serverInfo: ServerInfo | undefined
 
   for (let run = 1; run <= options.runs; run += 1) {
-    const scenarios =
-      options.scenario === 'message-constructors'
-        ? [
-            await messageConstructorScenario(options.timeoutMs, 'local'),
-            await messageConstructorScenario(options.timeoutMs, 'completed'),
-          ]
-        : [
-            await hoverScenario(options.timeoutMs),
-            await definitionScenario(options.timeoutMs),
-            await completionScenario(options.timeoutMs),
-            await bindingCompletionScenario(options.timeoutMs),
-            await changedUrlWorkflowScenario(options.timeoutMs),
-            await messageConstructorScenario(options.timeoutMs, 'local'),
-            await messageConstructorScenario(options.timeoutMs, 'completed'),
-          ]
+    const scenarios = await selectedScenarios(options)
     serverInfo ??= EffectArray.head(scenarios).pipe(
       Option.map(scenario => scenario.serverInfo),
       Option.getOrElse(() => fail(`No scenario produced server metadata.`)),
@@ -1361,10 +1862,19 @@ const main = async (): Promise<void> => {
     runs.push({
       run,
       measurements: scenarios.flatMap(scenario => scenario.measurements),
+      ...(options.scenario === 'workspace'
+        ? {
+            serverMemory: scenarios.map(
+              scenario =>
+                scenario.serverMemory ??
+                fail('Workspace scenario has no server memory measurements.'),
+            ),
+          }
+        : {}),
     })
   }
 
-  if (workloadHash() !== initialWorkloadHash) {
+  if (workloadHash(options.scenario) !== initialWorkloadHash) {
     return fail(`The measured source or declarations changed during the run.`)
   }
   if (sha256(readFileSync(benchmarkScriptPath)) !== benchmarkScriptHash) {
@@ -1373,7 +1883,7 @@ const main = async (): Promise<void> => {
 
   const output = {
     metadata: {
-      formatVersion: 3,
+      formatVersion: 5,
       measuredAt: new Date().toISOString(),
       sourceCommit,
       sourceWorkloadDirty,
@@ -1390,10 +1900,7 @@ const main = async (): Promise<void> => {
       scenario: options.scenario,
       timeoutMs: options.timeoutMs,
       completionSnippetSupport: true,
-      documentChangeMode:
-        options.scenario === 'message-constructors'
-          ? 'One fresh document per cold constructor scenario; no edits'
-          : 'Incremental ranges for Binding and changed URL workflows',
+      documentChangeMode: documentChangeMode(options.scenario),
     },
     workload: {
       ...(options.scenario === 'all'
@@ -1415,12 +1922,45 @@ const main = async (): Promise<void> => {
             },
           }
         : {}),
-      messageConstructorDiagnostics: {
-        source: 'packages/website/src/entry.ts',
-        local: messageConstructorSource('local'),
-        completed: messageConstructorSource('completed'),
-        mode: 'One cold full pull diagnostic request per fresh server',
-      },
+      ...(options.scenario === 'workspace'
+        ? {
+            workspace: {
+              bindingHover: `${workspaceCompositionPath}#IssueDetailBinding`,
+              bindingHoverValidation: workspaceBindingHover,
+              bindingCompletion: `${workspaceUpdatePath}#appended in-memory IssueDetailBinding.|init probe`,
+              expectedBindingMembers: ['requestSave', 'embedView', 'init'],
+              blockCompletion: `${workspaceEntryPath}#ApplicationBlock.|Message.ClickedLink`,
+              expectedBlockMembers: [
+                'Model',
+                'Message',
+                'init',
+                'makeView',
+                'replaceEffectsLayer',
+              ],
+              titleDiagnostics: {
+                source: workspaceDetailUpdatePath,
+                edit: `${workspaceTitleWriter} becomes title: () => ${workspaceInvalidTitle}, then restores value`,
+                expectedErrorCode: routeErrorCode,
+                expectedErrorProperty: 'title',
+                mode: 'Full pull diagnostics without previousResultId',
+              },
+              serverMemory: {
+                method: 'ps -o rss= -p <pid>',
+                unit: 'KiB',
+                samplingIntervalMs: serverMemorySamplingIntervalMs,
+                sampleTimeoutMs: serverMemorySampleTimeoutMs,
+                supportedPlatforms: ['darwin', 'linux'],
+              },
+            },
+          }
+        : {
+            messageConstructorDiagnostics: {
+              source: 'packages/website/src/entry.ts',
+              local: messageConstructorSource('local'),
+              completed: messageConstructorSource('completed'),
+              mode: 'One cold full pull diagnostic request per fresh server',
+            },
+          }),
     },
     summary: summarize(runs),
     runs,
@@ -1428,11 +1968,19 @@ const main = async (): Promise<void> => {
   process.stdout.write(`${JSON.stringify(output, null, 2)}\n`)
 }
 
-main().catch(error => {
-  const message =
-    error instanceof Error ? error.message : globalThis.String(error)
-  process.stderr.write(
-    `[block-language-service] ${message.replaceAll(workspaceRoot, '<workspace>')}\n`,
-  )
-  process.exitCode = 1
+const maybeScriptPath = EffectArray.head(process.argv.slice(1))
+const isMain = Option.match(maybeScriptPath, {
+  onNone: () => false,
+  onSome: scriptPath => fileURLToPath(import.meta.url) === resolve(scriptPath),
 })
+
+if (isMain) {
+  main().catch(error => {
+    const message =
+      error instanceof Error ? error.message : globalThis.String(error)
+    process.stderr.write(
+      `[block-language-service] ${message.replaceAll(workspaceRoot, '<workspace>')}\n`,
+    )
+    process.exitCode = 1
+  })
+}

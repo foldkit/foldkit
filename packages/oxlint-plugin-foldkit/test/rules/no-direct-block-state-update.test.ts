@@ -1048,9 +1048,14 @@ describe('completed Block bindings', () => {
     model: unknown = directSettingsUpdate('model'),
   ) =>
     Testing.callOfMember(composition, 'makeUpdate', [
-      Testing.arrowFn(objectExpression([property('model', model)]), [
-        Testing.id('model'),
-        Testing.id('message'),
+      objectExpression([
+        property(
+          'ClickedUpdate',
+          Testing.arrowFn(objectExpression([property('model', model)]), [
+            Testing.id('model'),
+            Testing.id('message'),
+          ]),
+        ),
       ]),
     ])
 

@@ -41,24 +41,22 @@ const init = NotificationPreferencesComposition.makeInit(() => ({
   },
 }))
 
-// In the corresponding Message.match handler, toggling "Select All"
+// In the corresponding update handler, toggling "Select All"
 // writes the same value to every child:
-const update = NotificationPreferencesComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ToggledSelectAll: ({ isChecked }) => ({
-      model: modifyFields(model, {
-        optionA: () => isChecked,
-        optionB: () => isChecked,
-      }),
-    }),
-    ToggledOptionA: ({ isChecked }) => ({
-      model: modifyFields(model, { optionA: () => isChecked }),
-    }),
-    ToggledOptionB: ({ isChecked }) => ({
-      model: modifyFields(model, { optionB: () => isChecked }),
+const update = NotificationPreferencesComposition.makeUpdate({
+  ToggledSelectAll: (model, { isChecked }) => ({
+    model: modifyFields(model, {
+      optionA: () => isChecked,
+      optionB: () => isChecked,
     }),
   }),
-)
+  ToggledOptionA: (model, { isChecked }) => ({
+    model: modifyFields(model, { optionA: () => isChecked }),
+  }),
+  ToggledOptionB: (model, { isChecked }) => ({
+    model: modifyFields(model, { optionB: () => isChecked }),
+  }),
+})
 
 // Inside your view function, compute the parent's checked and indeterminate
 // state from the children and pass isIndeterminate straight to Checkbox.view:

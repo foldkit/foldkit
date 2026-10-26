@@ -109,5 +109,3 @@ export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
     },
   ),
 }))
-
-export const EffectsLayer = subscriptions.layer

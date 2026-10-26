@@ -11,7 +11,7 @@ export const EffectsLayer = Layer.provide(
     LoadProducts.layer,
     subscriptions.layer,
     MeasureProductGrid.layer,
-    managedResources.productPreview.layer,
+    managedResources.layer,
   ),
   ProductCatalogLayer,
 )

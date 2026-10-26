@@ -23,6 +23,9 @@ export const SettingsDefinition = Block.makeDefinition('Settings', {
   Message,
   OutMessage,
 })
+
+export const { makeStep, makeNoopStep } = SettingsDefinition
+
 export const SettingsComposition = SettingsDefinition.makeComposition()
 
 export class SettingsStore extends Context.Service<

@@ -49,7 +49,7 @@ DragAndDrop supports full keyboard navigation. Space/Enter activates drag mode, 
 
 ## Accessibility
 
-Draggable items receive `role="option"` with `aria-roledescription="draggable"`. Drop containers receive `role="listbox"`. Screen reader announcements are emitted for drag start, movement, and drop via a live region.
+Draggable items receive `role="option"` with `aria-roledescription="draggable"`. Drop containers receive `role="listbox"`. The parent owns a live region and its announcement text. Handle `StartedKeyboardDrag`, `ChangedKeyboardTarget`, `Reordered`, and `Cancelled` in the Binding OutMessage policy. Keep its writer focused on storing the child Model. `ChangedKeyboardTarget` describes a proposed keyboard position; the parent applies the actual move after `Reordered`. Announce the optimistic placement when the parent accepts it, and announce rollback separately if persistence fails.
 
 ## Testing
 
@@ -59,6 +59,8 @@ In [Story tests](/testing/story), use `DragAndDrop.test` to resolve keyboard dra
 - `DragAndDrop.test.resolveKeyboardMove({ itemId, targetContainerId, targetIndex })` supplies a target container and index for an arrow-key move, then resolves the item's focus.
 
 Those forms test `DragAndDropBlock.update` directly. In a parent Story, also pass the exact `binding` so the helper resolves that embedded occurrence. Pass its `key` as well when the Binding is keyed. The scoped keyboard move helper verifies the pending move's item and complete invocation arguments before it supplies the result. Binding selection matches the composed path suffix. If an enclosing Binding repeats that path, isolate one ancestor occurrence in the Story; the helper rejects the ambiguity.
+
+Keyboard move results carry the originating `keyboardDragGeneration`. The Story helper copies it from the selected pending Command. Custom handlers and tests constructing `CompletedResolveKeyboardMove` directly must preserve that invocation's generation; a result from an earlier drag cannot move or focus a restarted interaction, including a new drag of the same item.
 
 ## API Reference
 
@@ -90,7 +92,9 @@ Functions for attaching drag-and-drop behavior to your elements and reading drag
 
 Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s selected `fold` policy.
 
-| Name        | Type                                                             | Default | Description                                                                                                                                                                                                                                     |
-| ----------- | ---------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Reordered` | `{ itemId, fromContainerId, fromIndex, toContainerId, toIndex }` | —       | Emitted when a drag completes with a valid drop target. The parent uses this to commit the reorder against its own data (move the item in the source array, splice it into the destination). Handle it in the Binding's selected `fold` policy. |
-| `Cancelled` | `{}`                                                             | —       | Emitted when a drag is cancelled via Escape or a pointer release without a valid drop target. No reorder should be applied.                                                                                                                     |
+| Name                    | Type                                                             | Default | Description                                                                                                                                                                                                                                                        |
+| ----------------------- | ---------------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `StartedKeyboardDrag`   | `{ itemId, containerId, index }`                                 | —       | Emitted when keyboard drag mode starts. The parent can announce pickup instructions.                                                                                                                                                                               |
+| `ChangedKeyboardTarget` | `{ itemId, fromContainerId, fromIndex, toContainerId, toIndex }` | —       | Emitted only when the keyboard target changes. The `from` fields describe the previous target. The child Model already contains the new target; item data has not been reordered. Focus Commands retain their existing behavior, including at a movement boundary. |
+| `Reordered`             | `{ itemId, fromContainerId, fromIndex, toContainerId, toIndex }` | —       | Emitted when a drag completes with a valid drop target. The parent uses this to commit the reorder against its own data (move the item in the source array, splice it into the destination). Handle it in the Binding's selected `fold` policy.                    |
+| `Cancelled`             | `{}`                                                             | —       | Emitted when an active drag is cancelled via Escape or a pointer release without a valid drop target. No reorder should be applied.                                                                                                                                |

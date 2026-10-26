@@ -29,9 +29,11 @@ const MessageListExampleDefinition = Block.makeDefinition(
   },
 )
 
+const { makeNoopStep } = MessageListExampleDefinition
+
 const foldMessageListOutMessage =
   MessageListExampleDefinition.makeOutMessageFold(MessageList, {
-    ObservedContainerScroll: MessageListExampleDefinition.makeNoopStep,
+    ObservedContainerScroll: makeNoopStep,
   })
 
 const MessageListBinding = MessageListExampleDefinition.makeBinding(
@@ -61,19 +63,17 @@ const init = MessageListExampleComposition.makeInit(() => ({
   },
 }))
 
-const update = MessageListExampleComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ReceivedMessage: ({ message }) => {
-      const nextMessages = Array.append(model.messages, message)
-      const nextModel = modifyFields(model, {
-        messages: () => nextMessages,
-      })
-      return MessageListBinding.informItemsChanged(
-        Array.map(nextMessages, message => String(message.id)),
-      )(nextModel)
-    },
-  }),
-)
+const update = MessageListExampleComposition.makeUpdate({
+  ReceivedMessage: (model, { message }) => {
+    const nextMessages = Array.append(model.messages, message)
+    const nextModel = modifyFields(model, {
+      messages: () => nextMessages,
+    })
+    return MessageListBinding.informItemsChanged(
+      Array.map(nextMessages, message => String(message.id)),
+    )(nextModel)
+  },
+})
 
 const view = MessageListExampleComposition.makeView((model, h) =>
   h.block(

@@ -47,7 +47,9 @@ const ApplicationComposition = block
 const ApplicationBlock = block.assemble(() =>
   ApplicationComposition.prepareBlock({
     init: ApplicationComposition.makeInit(() => ({ model: Model.make({}) })),
-    update: ApplicationComposition.makeUpdate(model => ({ model })),
+    update: ApplicationComposition.makeUpdate({
+      IgnoredRender: model => ({ model }),
+    }),
     view: ApplicationComposition.makeView(() => ({ title: 't', body: null })),
   }),
 )

@@ -27,21 +27,22 @@ export const Save = CommandsDefinition.makeCommand('Save', {
   },
 })
 export const commands = [Save()]
-export const save = CommandsDefinition.makeCommandsStep(commands)
-export const combined = Update.combineSteps([
+export const saveStep = CommandsDefinition.makeCommandsStep(() => commands)
+export const saveFromCurrentModelStep = CommandsDefinition.makeCommandsStep(
+  ({ count }) => (count > 0 ? commands : []),
+)
+export const combinedStep = Update.combineSteps([
   CommandsDefinition.makeFieldsStep(() => ({ count: Number.increment })),
-  save,
+  saveStep,
 ])
 export const CommandsComposition = CommandsDefinition.makeComposition()
 export const init = CommandsComposition.makeInit(() => ({
   model: { count: 0 },
 }))
-export const update = CommandsComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    RequestedSave: () => save(model),
-    CompletedSave: () => ({ model }),
-  }),
-)
+export const update = CommandsComposition.makeUpdate({
+  RequestedSave: model => saveStep(model),
+  CompletedSave: model => ({ model }),
+})
 const prepareCommandsBlock = () =>
   CommandsComposition.prepareBlock({
     init,
@@ -73,18 +74,33 @@ type Expect<Value extends true> = Value
 
 export type ExactCommands = Expect<
   Equal<
-    ReturnType<typeof save>['commands'],
+    ReturnType<typeof saveStep>['commands'],
     ReadonlyArray<(typeof commands)[number]>
   >
 >
 export type Requirements = Expect<
-  Equal<Update.RequirementsOf<typeof save>, Command.HandlerOf<typeof Save>>
+  Equal<Update.RequirementsOf<typeof saveStep>, Command.HandlerOf<typeof Save>>
 >
 export type CombinedRequirements = Expect<
-  Equal<Update.RequirementsOf<typeof combined>, Command.HandlerOf<typeof Save>>
+  Equal<
+    Update.RequirementsOf<typeof combinedStep>,
+    Command.HandlerOf<typeof Save>
+  >
+>
+export type ModelDependentCommands = Expect<
+  Equal<
+    ReturnType<typeof saveFromCurrentModelStep>['commands'],
+    ReadonlyArray<(typeof commands)[number]>
+  >
+>
+export type ModelDependentRequirements = Expect<
+  Equal<
+    Update.RequirementsOf<typeof saveFromCurrentModelStep>,
+    Command.HandlerOf<typeof Save>
+  >
 >
 export type NoOutMessage = Expect<
-  Equal<ReturnType<typeof save>['outMessage'], undefined>
+  Equal<ReturnType<typeof saveStep>['outMessage'], undefined>
 >
 
 export const ChildComposition = Block.makeDefinition('CommandsStepChild', {
@@ -94,7 +110,7 @@ export const ChildComposition = Block.makeDefinition('CommandsStepChild', {
 const prepareChildBlock = () =>
   ChildComposition.prepareBlock({
     init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
-    update: ChildComposition.makeUpdate(),
+    update: ChildComposition.makeUpdate({}),
   })
 export const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
@@ -112,7 +128,7 @@ export const ParentComposition = ParentDefinition.makeComposition({
   bindings: [ChildBinding],
 })
 
-export const withChildCommands = (
+export const withChildCommandsStep = (
   childCommands: NonNullable<
     Update.ReturnWithRegistrationEvidence<
       typeof ParentModel.Type,
@@ -122,15 +138,18 @@ export const withChildCommands = (
       Block.RequirementOfBinding<typeof ChildBinding>
     >['commands']
   >,
-) => ParentDefinition.makeCommandsStep(childCommands)
+) => ParentDefinition.makeCommandsStep(() => childCommands)
 export const updateWithChildCommands = (
-  childCommands: Parameters<typeof withChildCommands>[0],
+  childCommands: Parameters<typeof withChildCommandsStep>[0],
 ) =>
-  ParentComposition.makeUpdate(model => withChildCommands(childCommands)(model))
+  ParentComposition.makeUpdate({
+    RequestedSave: model => withChildCommandsStep(childCommands)(model),
+    CompletedSave: model => withChildCommandsStep(childCommands)(model),
+  })
 export type PreservedRegistration = Expect<
   Equal<
     Update.RegistrationEvidenceOf<
-      ReturnType<ReturnType<typeof withChildCommands>>
+      ReturnType<ReturnType<typeof withChildCommandsStep>>
     >,
     Block.RequirementOfBinding<typeof ChildBinding>
   >

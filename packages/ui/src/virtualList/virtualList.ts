@@ -565,7 +565,7 @@ export type ScrollToOptions = Readonly<{
   alignment?: ScrollAlignment
 }>
 
-const buildScrollRequest = (request: typeof ScrollRequest.Type) =>
+const buildScrollRequestStep = (request: typeof ScrollRequest.Type) =>
   VirtualListDefinition.makeStep(model => {
     const nextVersion = Number.increment(model.pendingScrollVersion)
     return {
@@ -595,8 +595,8 @@ const currentScrollRequest = (model: Model): typeof ScrollRequest.Type =>
     Pending: ({ request }) => request,
   })
 
-const reconcileLayout = VirtualListDefinition.makeStep(model =>
-  buildScrollRequest(currentScrollRequest(model)),
+const reconcileLayoutStep = VirtualListDefinition.makeStep(model =>
+  buildScrollRequestStep(currentScrollRequest(model)),
 )
 
 const anchorFromSnapshot = (
@@ -657,7 +657,7 @@ const measureContainer = (
     Unmeasured: () => false,
     Measured: measurement => measurement.containerWidth !== containerWidth,
   })
-  const recordContainerMeasurement = VirtualListDefinition.makeFieldsStep(
+  const recordContainerMeasurementStep = VirtualListDefinition.makeFieldsStep(
     () => ({
       measurement: () =>
         Measurement.Measured({ containerWidth, containerHeight }),
@@ -671,8 +671,8 @@ const measureContainer = (
   const { initialScroll } = model
   if (initialScroll._tag === 'Pending') {
     return Update.combineSteps(model, [
-      recordContainerMeasurement,
-      buildScrollRequest(
+      recordContainerMeasurementStep,
+      buildScrollRequestStep(
         ScrollRequest.Target({
           target: initialScroll.target,
           alignment: initialScroll.alignment,
@@ -682,12 +682,12 @@ const measureContainer = (
   }
 
   if (wasUnmeasured) {
-    return recordContainerMeasurement(model)
+    return recordContainerMeasurementStep(model)
   }
 
   return Update.combineSteps(model, [
-    recordContainerMeasurement,
-    reconcileLayout,
+    recordContainerMeasurementStep,
+    reconcileLayoutStep,
   ])
 }
 
@@ -738,80 +738,11 @@ const applyRowMeasurements = (
     VirtualListDefinition.makeFieldsStep(() => ({
       measuredRowHeights: () => measuredRowHeights,
     })),
-    reconcileLayout,
+    reconcileLayoutStep,
   ])
 }
 
 /** Processes a VirtualList Message and returns the next Model and optional Commands. */
-const updateImpl = (model: Model, message: Message) =>
-  Message.match(message, {
-    RequestedScrollTo: ({ target, maybeAlignment }) =>
-      requestScroll(model, target, maybeAlignment),
-
-    RequestedScrollToIndex: ({ index, maybeAlignment }) =>
-      requestScroll(model, ScrollTarget.Index({ index }), maybeAlignment),
-
-    RequestedScrollToKey: ({ key, maybeAlignment }) =>
-      requestScroll(model, ScrollTarget.Key({ key }), maybeAlignment),
-
-    RequestedScrollToOffset: ({ offset }) =>
-      requestScroll(model, ScrollTarget.Offset({ offset }), Option.none()),
-
-    RequestedScrollToEnd: () =>
-      requestScroll(model, ScrollTarget.End(), Option.none()),
-
-    InformedOfItemsChange: ({ itemKeys }) => applyItemsChange(model, itemKeys),
-
-    ObservedContainerScroll: snapshot => {
-      const nextPendingScrollVersion = PendingScroll.match<number>(
-        model.pendingScroll,
-        {
-          Idle: () => model.pendingScrollVersion,
-          Pending: () => Number.increment(model.pendingScrollVersion),
-        },
-      )
-      return {
-        model: modifyFields(applyScrollSnapshot(model, snapshot), {
-          initialScroll: () => InitialScroll.Applied(),
-          pendingScroll: () => PendingScroll.Idle(),
-          pendingScrollVersion: () => nextPendingScrollVersion,
-        }),
-        outMessage: OutMessage.ObservedContainerScroll(snapshot),
-      }
-    },
-
-    ResizedContainer: ({ containerWidth, containerHeight }) =>
-      measureContainer(model, containerWidth, containerHeight),
-
-    MeasuredRows: ({ measurements }) =>
-      applyRowMeasurements(model, measurements),
-
-    CompletedApplyScroll: ({ version, outcome }) => {
-      if (version !== model.pendingScrollVersion) {
-        return { model }
-      }
-
-      return ApplyScrollOutcome.match(outcome, {
-        Applied: snapshot => {
-          const scrolledModel = applyScrollSnapshot(model, snapshot)
-          return {
-            model: modifyFields(scrolledModel, {
-              initialScroll: () =>
-                snapshot.anchor._tag === 'Row'
-                  ? InitialScroll.Applied()
-                  : model.initialScroll,
-              pendingScroll: () => PendingScroll.Idle(),
-            }),
-          }
-        },
-        Skipped: () => ({
-          model: modifyFields(model, {
-            pendingScroll: () => PendingScroll.Idle(),
-          }),
-        }),
-      })
-    },
-  })
 
 type RowOffsets = Readonly<{
   startOffset: number
@@ -827,7 +758,7 @@ const requestScroll = (
     VirtualListDefinition.makeFieldsStep(() => ({
       initialScroll: () => InitialScroll.Applied(),
     })),
-    buildScrollRequest(
+    buildScrollRequestStep(
       ScrollRequest.Target({
         target,
         alignment: Option.getOrElse(maybeAlignment, () => 'Start'),
@@ -844,7 +775,7 @@ const applyItemsChange = (model: Model, itemKeys: ReadonlyArray<string>) => {
       ),
       layoutVersion: Number.increment,
     })),
-    reconcileLayout,
+    reconcileLayoutStep,
   ])
 }
 
@@ -1312,7 +1243,65 @@ export const init = VirtualListComposition.makeInit((config: InitConfig) => ({
   model: makeInitialModel(config),
 }))
 
-export const update = VirtualListComposition.makeUpdate(updateImpl)
+export const update = VirtualListComposition.makeUpdate({
+  RequestedScrollTo: (model, { target, maybeAlignment }) =>
+    requestScroll(model, target, maybeAlignment),
+  RequestedScrollToIndex: (model, { index, maybeAlignment }) =>
+    requestScroll(model, ScrollTarget.Index({ index }), maybeAlignment),
+  RequestedScrollToKey: (model, { key, maybeAlignment }) =>
+    requestScroll(model, ScrollTarget.Key({ key }), maybeAlignment),
+  RequestedScrollToOffset: (model, { offset }) =>
+    requestScroll(model, ScrollTarget.Offset({ offset }), Option.none()),
+  RequestedScrollToEnd: model =>
+    requestScroll(model, ScrollTarget.End(), Option.none()),
+  InformedOfItemsChange: (model, { itemKeys }) =>
+    applyItemsChange(model, itemKeys),
+  ObservedContainerScroll: (model, snapshot) => {
+    const nextPendingScrollVersion = PendingScroll.match<number>(
+      model.pendingScroll,
+      {
+        Idle: () => model.pendingScrollVersion,
+        Pending: () => Number.increment(model.pendingScrollVersion),
+      },
+    )
+    return {
+      model: modifyFields(applyScrollSnapshot(model, snapshot), {
+        initialScroll: () => InitialScroll.Applied(),
+        pendingScroll: () => PendingScroll.Idle(),
+        pendingScrollVersion: () => nextPendingScrollVersion,
+      }),
+      outMessage: OutMessage.ObservedContainerScroll(snapshot),
+    }
+  },
+  ResizedContainer: (model, { containerWidth, containerHeight }) =>
+    measureContainer(model, containerWidth, containerHeight),
+  MeasuredRows: (model, { measurements }) =>
+    applyRowMeasurements(model, measurements),
+  CompletedApplyScroll: (model, { version, outcome }) => {
+    if (version !== model.pendingScrollVersion) {
+      return { model }
+    }
+    return ApplyScrollOutcome.match(outcome, {
+      Applied: snapshot => {
+        const scrolledModel = applyScrollSnapshot(model, snapshot)
+        return {
+          model: modifyFields(scrolledModel, {
+            initialScroll: () =>
+              snapshot.anchor._tag === 'Row'
+                ? InitialScroll.Applied()
+                : model.initialScroll,
+            pendingScroll: () => PendingScroll.Idle(),
+          }),
+        }
+      },
+      Skipped: () => ({
+        model: modifyFields(model, {
+          pendingScroll: () => PendingScroll.Idle(),
+        }),
+      }),
+    })
+  },
+})
 
 /** Provides VirtualList's Command and Mount handlers. */
 export const EffectsLayer = Layer.mergeAll(

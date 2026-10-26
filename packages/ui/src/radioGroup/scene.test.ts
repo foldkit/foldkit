@@ -60,7 +60,7 @@ const RadioGroupSceneComposition = RadioGroupSceneDefinition.makeComposition({
   bindings: [RadioGroupBinding],
 })
 
-const update = RadioGroupSceneComposition.makeUpdate()
+const update = RadioGroupSceneComposition.makeUpdate({})
 
 type Overrides = Omit<
   Partial<ViewInputs>,

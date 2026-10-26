@@ -1,5 +1,5 @@
 import { ChildBlock } from './child'
-import { ApplicationDefinition } from './definition'
+import { ApplicationDefinition, makeStep } from './definition'
 
 const ChildBinding = ApplicationDefinition.makeBinding(ChildBlock, {
   field: 'child',
@@ -14,6 +14,4 @@ const badAliasRouting = () => requestSave()
 
 // ✅ Good
 // The parent invokes the operation projected by its child Binding.
-const goodRouting = ApplicationDefinition.makeStep(() =>
-  ChildBinding.requestSave(),
-)
+const goodRoutingStep = makeStep(() => ChildBinding.requestSave())

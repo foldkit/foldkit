@@ -6,7 +6,7 @@ import {
   ParentComposition,
   ParentMessage,
   ParentModel,
-  initializeGeneral,
+  initializeGeneralStep,
 } from './message-free-keyed.accepted.js'
 
 type Equal<Left, Right> =
@@ -17,10 +17,10 @@ type Equal<Left, Right> =
     : false
 type Expect<Value extends true> = Value
 
-const operation = initializeGeneral
+const operation = initializeGeneralStep
 export type ExactKey = Expect<
   Equal<
-    Parameters<typeof initializeGeneral> extends [unknown, ...infer Args]
+    Parameters<typeof initializeGeneralStep> extends [unknown, ...infer Args]
       ? Args
       : never,
     [key: string]
@@ -29,14 +29,14 @@ export type ExactKey = Expect<
 export type ParentModelIsPreserved = Expect<
   Equal<
     Pick<
-      Parameters<typeof initializeGeneral>[0],
+      Parameters<typeof initializeGeneralStep>[0],
       keyof typeof ParentModel.Type
     >,
     typeof ParentModel.Type
   >
 >
 // @ts-expect-error A connected initializer requires the registering graph's Model capability.
-initializeGeneral(ParentModel.make({ entries: [] }), 'unregistered')
+initializeGeneralStep(ParentModel.make({ entries: [] }), 'unregistered')
 export type ExactRegistration = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<typeof operation>>,

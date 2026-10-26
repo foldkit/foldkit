@@ -67,6 +67,10 @@
       "types": "./dist/managedResource/public.d.ts",
       "import": "./dist/managedResource/public.js"
     },
+    "./mapBinding": {
+      "types": "./dist/block/mapBinding.d.ts",
+      "import": "./dist/block/mapBinding.js"
+    },
     "./message": {
       "types": "./dist/message/public.d.ts",
       "import": "./dist/message/public.js"
@@ -158,6 +162,14 @@
     "./devtools-host": {
       "types": "./dist/devTools/host.d.ts",
       "import": "./dist/devTools/host.js"
+    },
+    "./variantBinding": {
+      "types": "./dist/block/variantBinding.d.ts",
+      "import": "./dist/block/variantBinding.js"
+    },
+    "./bindingInit": {
+      "types": "./dist/block/bindingInit.d.ts",
+      "import": "./dist/block/bindingInit.js"
     }
   },
   "sideEffects": false,
@@ -169,6 +181,7 @@
     "clean": "rimraf dist *.tsbuildinfo",
     "build": "pnpm run clean && tsc -b tsconfig.build.json",
     "check:emitted-declarations": "node scripts/check-emitted-declarations.ts",
+    "check:compiler-diagnostics": "node scripts/check-compiler-diagnostics.ts",
     "check:block-type-performance": "node scripts/check-block-type-performance.ts",
     "update:block-type-performance": "node scripts/check-block-type-performance.ts --update",
     "watch": "tsc -b tsconfig.build.json --watch",

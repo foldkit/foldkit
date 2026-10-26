@@ -6,22 +6,32 @@ import {
   Layer,
   Option,
   Predicate,
-  Record,
   Ref,
   type Schema,
   type Scope,
 } from 'effect'
 
-import { registerIdentity, registerResource } from '../block/identity.js'
+import {
+  copyIdentity,
+  registerIdentity,
+  registerResource,
+} from '../block/identity.js'
 import {
   IsConstructingHandler,
   type ValidateConstructionRequirements,
 } from '../block/scope.js'
 import { type Handler, type ToLayer, makeHandler } from './handler.js'
 import type { ManagedResourceService } from './public.js'
+import {
+  type Registry,
+  type RegistryEntries,
+  RegistryEntriesTypeId,
+} from './registry.js'
 
 export type { Handler, HandlerOf, ToLayer } from './handler.js'
 export type { ManagedResourceService } from './public.js'
+export { RegistryEntriesTypeId } from './registry.js'
+export type { OwnedRegistry, Registry, RegistryEntries } from './registry.js'
 
 /** Typed error raised when a command accesses a managed resource that is not currently acquired. */
 export class ResourceNotAvailable extends Data.TaggedError(
@@ -222,13 +232,16 @@ export type LayeredEntry<
   }>
 
 /** Type-level utility to extract the service union from a ManagedResources record. */
-export type ServicesOf<Resources> = {
-  [Key in keyof Resources]: Resources[Key] extends {
-    readonly resource: ManagedResource<any, infer Service>
-  }
-    ? Service
+export type ServicesOf<Resources> =
+  RegistryEntries<Resources> extends infer Entries
+    ? {
+        [Key in keyof Entries]: Entries[Key] extends {
+          readonly resource: ManagedResource<any, infer Service>
+        }
+          ? Service
+          : never
+      }[keyof Entries]
     : never
-}[keyof Resources]
 
 type LayeredEntryConfig<
   Model,
@@ -363,9 +376,10 @@ export interface EntryBuilder<Model, Message> {
  *
  * Application features create accessors through their named Block's
  * `resource` and registries through their definition's `managedResources`.
- * Pass the registry as `managedResources` and its local handler recipes through
- * `EffectsLayer` when calling `Composition.prepareBlock`; registered child bindings
- * collect their own registries and derive independent occurrence lifetimes.
+ * Pass the registry as `managedResources` and attached entry Layers in
+ * `EffectsLayer` when calling
+ * `Composition.prepareBlock`; registered child bindings collect their own
+ * registries and derive independent occurrence lifetimes.
  *
  * Use this when a resource is expensive or stateful and should only exist while
  * the model is in a particular state: a camera stream during a video call, a
@@ -520,8 +534,13 @@ export const make =
     return build(entry)
   }
 
+type EntryOfResources<Resources> =
+  RegistryEntries<Resources> extends infer Entries
+    ? Entries[keyof Entries]
+    : never
+
 type ChildModelOf<Resources> =
-  Resources[keyof Resources] extends Entry<
+  EntryOfResources<Resources> extends Entry<
     infer ChildModel,
     any,
     any,
@@ -535,7 +554,7 @@ type ChildModelOf<Resources> =
     : never
 
 type ChildMessageOf<Resources> =
-  Resources[keyof Resources] extends Entry<
+  EntryOfResources<Resources> extends Entry<
     any,
     infer ChildMessage,
     any,
@@ -548,13 +567,45 @@ type ChildMessageOf<Resources> =
     ? ChildMessage
     : never
 
+type AnyResourceEntries = Readonly<
+  Record<string, Entry<any, any, any, any, any, any, any, any>>
+>
+
+type AnyResources = AnyResourceEntries | Registry<AnyResourceEntries>
+
+const registryEntries = (resources: AnyResources): AnyResourceEntries =>
+  Object.hasOwn(resources, RegistryEntriesTypeId)
+    ? /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      (Reflect.get(resources, RegistryEntriesTypeId) as AnyResourceEntries)
+    : /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      (resources as AnyResourceEntries)
+
+const resourceEntryKeys = (resources: AnyResourceEntries): Array<string> => {
+  const prototype = Object.getPrototypeOf(resources)
+  if (prototype !== null && prototype !== Object.prototype) {
+    throw new Error(
+      '[foldkit] ManagedResource registries must contain own resource entries, not inherited entries.',
+    )
+  }
+
+  return Array.map(Reflect.ownKeys(resources), key => {
+    if (!Predicate.isString(key)) {
+      throw new Error(
+        '[foldkit] ManagedResource registration keys must be own string properties.',
+      )
+    }
+
+    return key
+  })
+}
+
 /**
  * Low-level transformation of a ManagedResource record into another Model and
  * Message context. It applies a Model accessor and Message wrapper to every
  * entry, preserving requirements Schemas and resource services.
  *
- * Application Blocks use registered `bind` or `bindEach` placements, which
- * also compose their handler recipes and derive occurrence-owned handle slots.
+ * Application Blocks use registered child Bindings. Composition preserves
+ * their handler recipes and derives occurrence-owned resource handle slots.
  *
  * `read` returns `Some(childModel)` while the child exists and `None` while
  * it is absent.
@@ -565,10 +616,21 @@ type ChildMessageOf<Resources> =
  */
 export const lift =
   <
-    Resources extends Record<
-      string,
-      Entry<any, any, Option.Option<any>, any, any, any, any, any>
-    >,
+    Resources extends
+      | Readonly<
+          Record<
+            string,
+            Entry<any, any, Option.Option<any>, any, any, any, any, any>
+          >
+        >
+      | Registry<
+          Readonly<
+            Record<
+              string,
+              Entry<any, any, Option.Option<any>, any, any, any, any, any>
+            >
+          >
+        >,
   >(
     resources: Resources,
   ) =>
@@ -580,7 +642,9 @@ export const lift =
       message: ChildMessageOf<Resources>,
     ) => ParentMessage
   }): {
-    readonly [Key in keyof Resources]: Resources[Key] extends Entry<
+    readonly [
+      Key in keyof RegistryEntries<Resources>
+    ]: RegistryEntries<Resources>[Key] extends Entry<
       any,
       any,
       infer Requirements,
@@ -600,35 +664,54 @@ export const lift =
           LifecycleServices,
           Params
         > &
-          (Resources[Key] extends {
+          (RegistryEntries<Resources>[Key] extends {
             readonly name: infer Name
             readonly toLayer: infer EntryToLayer
           }
             ? Readonly<{ name: Name; toLayer: EntryToLayer }>
             : unknown) &
-          (Resources[Key] extends { readonly layer: infer EntryLayer }
+          (RegistryEntries<Resources>[Key] extends {
+            readonly layer: infer EntryLayer
+          }
             ? Readonly<{ layer: EntryLayer }>
             : unknown)
       : never
   } =>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    Record.map(resources, resource => ({
-      ...resource,
-      schema: resource.schema,
-      resource: resource.resource,
-      modelToMaybeRequirements: (parentModel: ParentModel) =>
-        Option.flatMap(
-          config.read(parentModel),
-          resource.modelToMaybeRequirements,
-        ),
-      acquire: resource.acquire,
-      release: resource.release,
-      onAcquired: (value: unknown) =>
-        config.toParentMessage(resource.onAcquired(value)),
-      onReleased: () => config.toParentMessage(resource.onReleased()),
-      onAcquireError: (error: unknown) =>
-        config.toParentMessage(resource.onAcquireError(error)),
-    })) as any
+    (() => {
+      const entries = registryEntries(resources)
+      const liftedResources: Record<string, unknown> = {}
+
+      for (const key of resourceEntryKeys(entries)) {
+        const resource = Reflect.get(entries, key)
+        const lifted = {
+          ...resource,
+          schema: resource.schema,
+          resource: resource.resource,
+          modelToMaybeRequirements: (parentModel: ParentModel) =>
+            Option.flatMap(
+              config.read(parentModel),
+              resource.modelToMaybeRequirements,
+            ),
+          acquire: resource.acquire,
+          release: resource.release,
+          onAcquired: (value: unknown) =>
+            config.toParentMessage(resource.onAcquired(value)),
+          onReleased: () => config.toParentMessage(resource.onReleased()),
+          onAcquireError: (error: unknown) =>
+            config.toParentMessage(resource.onAcquireError(error)),
+        }
+        copyIdentity(resource, lifted)
+        Object.defineProperty(liftedResources, key, {
+          configurable: true,
+          enumerable: true,
+          value: lifted,
+          writable: true,
+        })
+      }
+
+      return liftedResources
+    })() as any
 
 type RuntimeKey<Key> = Key extends string
   ? Key
@@ -642,20 +725,19 @@ type RuntimeEntries<RecordType> = {
 
 type MergeRecords<Records extends ReadonlyArray<unknown>> =
   Records extends readonly [infer Head, ...infer Rest]
-    ? RuntimeEntries<Head> &
+    ? RuntimeEntries<RegistryEntries<Head>> &
         (Rest extends ReadonlyArray<unknown> ? MergeRecords<Rest> : {})
     : {}
-
-type AnyResources = Readonly<
-  Record<string, Entry<any, any, any, any, any, any, any, any>>
->
 
 // NOTE: requiring one record keeps `aggregate()` unambiguously curried.
 type AnyResourcesList = readonly [AnyResources, ...ReadonlyArray<AnyResources>]
 
-type EntriesOfRecord<ResourcesRecord> = ResourcesRecord extends unknown
-  ? ResourcesRecord[keyof ResourcesRecord]
-  : never
+type EntriesOfRecord<ResourcesRecord> =
+  RegistryEntries<ResourcesRecord> extends infer Entries
+    ? Entries extends unknown
+      ? Entries[keyof Entries]
+      : never
+    : never
 
 type ModelOfEntry<AnyEntry> = [AnyEntry] extends [
   Entry<infer Model, any, any, any, any, any, any, any>,
@@ -688,7 +770,7 @@ type ReferenceModel<Records extends ReadonlyArray<AnyResources>> =
 
 type CompatibleResources<Records extends AnyResourcesList> = {
   readonly [Index in keyof Records]: Records[Index] &
-    Readonly<
+    (RegistryEntries<Records[Index]> extends Readonly<
       Record<
         string,
         Entry<
@@ -703,6 +785,8 @@ type CompatibleResources<Records extends AnyResourcesList> = {
         >
       >
     >
+      ? unknown
+      : never)
 }
 
 const mergeResources = (
@@ -713,7 +797,8 @@ const mergeResources = (
     Entry<any, any, any, any, any, any, any, any>
   > = {}
   for (const record of records) {
-    for (const key of Object.keys(record)) {
+    const entries = registryEntries(record)
+    for (const key of resourceEntryKeys(entries)) {
       if (Object.hasOwn(result, key)) {
         throw new Error(
           `ManagedResource.aggregate: duplicate key "${key}" across records`,
@@ -722,7 +807,7 @@ const mergeResources = (
       Object.defineProperty(result, key, {
         configurable: true,
         enumerable: true,
-        value: record[key],
+        value: Reflect.get(entries, key),
         writable: true,
       })
     }

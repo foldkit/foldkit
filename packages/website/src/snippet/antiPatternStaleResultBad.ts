@@ -8,10 +8,8 @@ const Message = defineMessageUnion({
   SucceededSearch: { suggestions: Schema.Array(Schema.String) },
 })
 
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    SucceededSearch: ({ suggestions }) => ({
-      model: modifyFields(model, { suggestions: () => suggestions }),
-    }),
+const update = ApplicationComposition.makeUpdate({
+  SucceededSearch: (model, { suggestions }) => ({
+    model: modifyFields(model, { suggestions: () => suggestions }),
   }),
-)
+})

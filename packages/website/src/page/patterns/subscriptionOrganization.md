@@ -10,9 +10,13 @@ This keeps one parent-child relationship in one place. The parent does not separ
 
 Use the Block definition's `makeSubscriptions` helper. It fixes the Model and Message types while each entry keeps its named handler identity, dependency Schema, declared Messages, and attached Layer recipe.
 
+Create one registry for all Subscriptions owned by that Block. Add entries to the same record as the feature grows. A substantial handler may move its Stream construction into a focused helper, but its entry stays in the owning registry. A child Block remains a distinct owner with its own registry.
+
 ::Snippet{name="subscriptionOrganizationChild" label="Block Subscription definitions"}
 
-Compose the attached entry recipes in the feature's local `EffectsLayer`. Pass that bundle to `FeatureComposition.prepareBlock`. A parent Binding contributes it automatically.
+When Subscription declarations are split from Block assembly, that module exports the Block's `subscriptions` registry. In the child's Block assembly, pass `EffectsLayer: subscriptions.layer` to `FeatureComposition.prepareBlock`. When the feature has other local providers, compose their recipes and the registry Layer in `EffectsLayer`. A parent Binding contributes the completed child's handlers automatically.
+
+Use `Subscription.aggregate` only where a graph, adapter, or test boundary must join independent Subscription records. It is not needed to rebuild one Block's registry from several same-owner records.
 
 ## Connect the Child Once
 

@@ -25,11 +25,9 @@ const GenerateApplePosition = ApplicationDefinition.makeCommand(
   },
 )
 
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    RequestedApple: () => ({ model, commands: [GenerateApplePosition()] }),
-    CompletedGenerateApplePosition: ({ position }) => ({
-      model: modifyFields(model, { apple: () => position }),
-    }),
+const update = ApplicationComposition.makeUpdate({
+  RequestedApple: model => ({ model, commands: [GenerateApplePosition()] }),
+  CompletedGenerateApplePosition: (model, { position }) => ({
+    model: modifyFields(model, { apple: () => position }),
   }),
-)
+})

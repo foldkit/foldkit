@@ -65,37 +65,36 @@ export const EffectsLayer = FillHistoryStep.layer
 
 // UPDATE
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedTick: () => ({
-      model: modifyFields(model, { tickCount: tickCount => tickCount + 1 }),
+export const update = ApplicationComposition.makeUpdate({
+  ClickedTick: ApplicationDefinition.makeFieldsStep(() => ({
+    tickCount: Number.increment,
+  })),
+  ClickedDispatchLargeMessage: ApplicationDefinition.makeFieldsStep.fromMessage(
+    ({ payload }) => ({
+      lastReceivedPayloadSize: () => payload.length,
     }),
-    ClickedDispatchLargeMessage: ({ payload }) => ({
-      model: modifyFields(model, {
-        lastReceivedPayloadSize: () => payload.length,
-      }),
+  ),
+  ClickedFillLargeModel: ApplicationDefinition.makeFieldsStep.fromMessage(
+    ({ items }) => ({
+      largeArray: () => items,
     }),
-    ClickedFillLargeModel: ({ items }) => ({
-      model: modifyFields(model, { largeArray: () => items }),
+  ),
+  ClickedClearLargeModel: ApplicationDefinition.makeFieldsStep(() => ({
+    largeArray: () => [],
+  })),
+  ClickedFillHistory: ApplicationDefinition.makeCommandsStep(() => [
+    FillHistoryStep({ remaining: HISTORY_FILL_COUNT }),
+  ]),
+  CompletedFillHistoryStep: (model, { remaining }) => ({
+    model: modifyFields(model, {
+      tickCount: Number.increment,
     }),
-    ClickedClearLargeModel: () => ({
-      model: modifyFields(model, { largeArray: () => [] }),
-    }),
-    ClickedFillHistory: () => ({
-      model,
-      commands: [FillHistoryStep({ remaining: HISTORY_FILL_COUNT })],
-    }),
-    CompletedFillHistoryStep: ({ remaining }) => ({
-      model: modifyFields(model, {
-        tickCount: tickCount => Number.increment(tickCount),
-      }),
-      commands: Array.filter(
-        [FillHistoryStep({ remaining: Number.decrement(remaining) })],
-        () => remaining > 1,
-      ),
-    }),
+    commands: Array.filter(
+      [FillHistoryStep({ remaining: Number.decrement(remaining) })],
+      () => remaining > 1,
+    ),
   }),
-)
+})
 
 // INIT
 

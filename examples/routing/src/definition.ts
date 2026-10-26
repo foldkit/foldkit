@@ -9,3 +9,6 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
   ChildInitContext: ApplicationRoute.People,
 })
+
+export const { makeFieldsStep, makeCommandsStep, makeNoopStep } =
+  ApplicationDefinition

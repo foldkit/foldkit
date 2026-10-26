@@ -22,11 +22,13 @@ const HoverMenuDefinition = Block.makeDefinition('HoverMenu', {
   Message,
 })
 
+const { makeNoopStep } = HoverMenuDefinition
+
 const foldHoverMenuOutMessage = HoverMenuDefinition.makeOutMessageFold(
   HoverIntent.HoverIntentBlock,
   {
-    Opened: HoverMenuDefinition.makeNoopStep,
-    Closed: HoverMenuDefinition.makeNoopStep,
+    Opened: makeNoopStep,
+    Closed: makeNoopStep,
   },
 )
 
@@ -49,12 +51,10 @@ const init = HoverMenuComposition.makeInit(() => ({
 
 // Close the menu immediately when any item is clicked.
 
-// In the corresponding Message.match handlers:
-const update = HoverMenuComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedHoverMenuItem: () => HoverMenuBinding.requestClose()(model),
-  }),
-)
+// In the corresponding update handlers:
+const update = HoverMenuComposition.makeUpdate({
+  ClickedHoverMenuItem: model => HoverMenuBinding.requestClose()(model),
+})
 
 const triggerId = 'actions-trigger'
 const panelId = 'actions-panel'

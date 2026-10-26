@@ -26,7 +26,9 @@ const prepareChildBlock = () =>
       model: ChildModel.make({ count: childInitialized(config) }),
       commands: [CompleteChildInit()],
     })),
-    update: ChildComposition.makeUpdate(model => ({ model })),
+    update: ChildComposition.makeUpdate({
+      CompletedChildInit: model => ({ model }),
+    }),
     EffectsLayer: CompleteChildInit.layer,
   })
 const childBlock: Block.FromAssemblyWithoutViewOrOutMessage<

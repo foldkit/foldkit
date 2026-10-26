@@ -123,7 +123,19 @@ const runProfile = async (
   const prepare = () =>
     ApplicationComposition.prepareBlock({
       init: ApplicationComposition.makeInit(init_),
-      update: ApplicationComposition.makeUpdate(wrappedUpdate.fn),
+      update: ApplicationComposition.makeUpdate({
+        UpdatedNewTodo: wrappedUpdate.fn,
+        UpdatedEditingTodo: wrappedUpdate.fn,
+        AddedTodo: wrappedUpdate.fn,
+        DeletedTodo: wrappedUpdate.fn,
+        ToggledTodo: wrappedUpdate.fn,
+        StartedEditing: wrappedUpdate.fn,
+        SavedEdit: wrappedUpdate.fn,
+        CancelledEdit: wrappedUpdate.fn,
+        ToggledAll: wrappedUpdate.fn,
+        ClearedCompleted: wrappedUpdate.fn,
+        SelectedFilter: wrappedUpdate.fn,
+      }),
       view: ApplicationComposition.makeView(captureView),
     })
   const ApplicationBlock: Block.FromAssemblyWithView<

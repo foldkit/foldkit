@@ -1,6 +1,7 @@
 import { Array, Option, pipe } from 'effect'
 import { Calendar } from 'foldkit'
 import { Command, given, message, model, story } from 'foldkit/story'
+import { toParentMessage } from 'foldkit/test'
 import { describe, expect, test } from 'vitest'
 
 import { GenerateWorkHistoryEntryId } from './command'
@@ -15,14 +16,8 @@ const givenInitial = given(init(today, 'work-history-entry-1').model)
 
 const entryMessage = (
   entryId: string,
-  model: typeof WorkHistoryEntryBlock.Model.Type,
   message: typeof WorkHistoryEntryBlock.Message.Type,
-) =>
-  EntriesBinding.embedView({
-    key: entryId,
-    slotId: entryId,
-    model,
-  }).toParentMessage(message)
+) => toParentMessage(EntriesBinding, entryId, message)
 
 describe('workHistory', () => {
   test('ClickedAddEntry generates an id and appends an entry', () => {
@@ -64,7 +59,6 @@ describe('workHistory', () => {
       message(
         entryMessage(
           firstEntry.id,
-          firstEntry,
           WorkHistoryEntryBlock.Message.ClickedRemoveSelf(),
         ),
       ),
@@ -85,7 +79,6 @@ describe('workHistory', () => {
       message(
         entryMessage(
           firstEntry.id,
-          firstEntry,
           WorkHistoryEntryBlock.Message.UpdatedCompany({
             value: 'Foldkit Inc.',
           }),

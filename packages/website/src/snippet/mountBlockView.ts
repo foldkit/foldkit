@@ -9,6 +9,8 @@ const Message = defineMessageUnion({
 
 const PanelDefinition = Block.makeDefinition('Panel', { Model, Message })
 
+const { makeNoopStep } = PanelDefinition
+
 const MeasurePanel = PanelDefinition.makeMount('MeasurePanel', {
   messages: [Message.CompletedMeasurePanel],
   handler: function* () {
@@ -34,7 +36,9 @@ const panelView = <Builder extends PanelViewBuilder>(
 const init = PanelComposition.makeInit(() => ({
   model: Model.make({ label: 'PanelDefinition' }),
 }))
-const update = PanelComposition.makeUpdate(model => ({ model }))
+const update = PanelComposition.makeUpdate({
+  CompletedMeasurePanel: makeNoopStep(),
+})
 const view = PanelComposition.makeView((model, h) => panelView(model, h))
 
 const prepare = () =>

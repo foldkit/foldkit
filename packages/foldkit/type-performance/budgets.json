@@ -12,6 +12,18 @@
     "command-requirements-200": {
       "maxInstantiationsDelta": 2659415,
       "maxTypesDelta": 389460
+    },
+    "workspace-composition-4": {
+      "maxInstantiationsDelta": 2639574,
+      "maxTypesDelta": 206314
+    },
+    "workspace-composition-8": {
+      "maxInstantiationsDelta": 4515010,
+      "maxTypesDelta": 280523
+    },
+    "wide-subscriptions-100": {
+      "maxInstantiationsDelta": 548398,
+      "maxTypesDelta": 24566
     }
   }
 }

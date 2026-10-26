@@ -44,12 +44,10 @@ const pageView = DeclarationPageComposition.makeView(model => ({
   title: model.status,
   body: null,
 }))
-const pageUpdate = DeclarationPageComposition.makeUpdate((model, message) =>
-  RootMessage.match(message, {
-    RequestedNavigation: () => ({ model }),
-    ChangedUrl: () => ({ model }),
-  }),
-)
+const pageUpdate = DeclarationPageComposition.makeUpdate({
+  RequestedNavigation: model => ({ model }),
+  ChangedUrl: model => ({ model }),
+})
 
 const preparePageBlock = () =>
   DeclarationPageComposition.prepareBlock({
@@ -105,13 +103,10 @@ const prepareAlternativeRoutedBlock = () =>
     init: (flags: typeof Flags.Type, _url: Url.Url) => ({
       model: Model.make({ status: flags.status }),
     }),
-    update: DeclarationAlternativeRoutedPageComposition.makeUpdate(
-      (model, message) =>
-        RootMessage.match(message, {
-          RequestedNavigation: () => ({ model }),
-          ChangedUrl: () => ({ model }),
-        }),
-    ),
+    update: DeclarationAlternativeRoutedPageComposition.makeUpdate({
+      RequestedNavigation: model => ({ model }),
+      ChangedUrl: model => ({ model }),
+    }),
     view: DeclarationAlternativeRoutedPageComposition.makeView(model => ({
       title: model.status,
       body: null,
@@ -145,7 +140,7 @@ const DeclarationPurePageComposition =
 const preparePurePageBlock = () =>
   DeclarationPurePageComposition.prepareBlock({
     init: () => ({ model: Model.make({ status: 'ready' }) }),
-    update: DeclarationPurePageComposition.makeUpdate(),
+    update: DeclarationPurePageComposition.makeUpdate({}),
     view: DeclarationPurePageComposition.makeView(model => ({
       title: model.status,
       body: null,
@@ -184,7 +179,7 @@ const DeclarationAlternativePageComposition =
 const prepareAlternativePageBlock = () =>
   DeclarationAlternativePageComposition.prepareBlock({
     init: () => ({ model: Model.make({ status: 'alternative' }) }),
-    update: DeclarationAlternativePageComposition.makeUpdate(),
+    update: DeclarationAlternativePageComposition.makeUpdate({}),
     view: DeclarationAlternativePageComposition.makeView(model => ({
       title: model.status,
       body: null,
@@ -219,14 +214,12 @@ const prepareElementBlock = () =>
     init: (flags: typeof Flags.Type) => ({
       model: Model.make({ status: flags.status }),
     }),
-    update: DeclarationElementComposition.makeUpdate((model, message) =>
-      RootMessage.match(message, {
-        RequestedNavigation: () => ({ model }),
-        ChangedUrl: ({ url }) => ({
-          model: Struct.modifyFields(model, { status: () => url.pathname }),
-        }),
+    update: DeclarationElementComposition.makeUpdate({
+      RequestedNavigation: model => ({ model }),
+      ChangedUrl: (model, { url }) => ({
+        model: Struct.modifyFields(model, { status: () => url.pathname }),
       }),
-    ),
+    }),
     view: elementView,
     EffectsLayer: Layer.empty,
   })
@@ -272,14 +265,11 @@ const ServiceDecodedProgramComposition =
 const serviceDecodedInit = () => ({
   model: Model.make({ status: 'ready' }),
 })
-const serviceDecodedUpdate = ServiceDecodedProgramComposition.makeUpdate(
-  (_model, message) =>
-    ServiceDecodedMessage.match(message, {
-      SubmittedValue: ({ value }) => ({
-        model: Model.make({ status: value }),
-      }),
-    }),
-)
+const serviceDecodedUpdate = ServiceDecodedProgramComposition.makeUpdate({
+  SubmittedValue: (_model, { value }) => ({
+    model: Model.make({ status: value }),
+  }),
+})
 const serviceDecodedElementView = ServiceDecodedProgramComposition.makeView(
   (model, h) => h.div([], [model.status]),
 )
@@ -369,13 +359,11 @@ const ManagedDecoderProgramComposition =
 const prepareManagedDecodedBlock = () =>
   ManagedDecoderProgramComposition.prepareBlock({
     init: () => ({ model: Model.make({ status: 'ready' }) }),
-    update: ManagedDecoderProgramComposition.makeUpdate((model, message) =>
-      ManagedDecodedMessage.match(message, {
-        SubmittedValue: ({ value }) => ({
-          model: Struct.modifyFields(model, { status: () => value }),
-        }),
+    update: ManagedDecoderProgramComposition.makeUpdate({
+      SubmittedValue: (model, { value }) => ({
+        model: Struct.modifyFields(model, { status: () => value }),
       }),
-    ),
+    }),
     view: ManagedDecoderProgramComposition.makeView((model, h) =>
       h.div([], [model.status]),
     ),
@@ -472,12 +460,10 @@ const DeclarationServiceProgramComposition =
 const prepareServiceBlock = () =>
   DeclarationServiceProgramComposition.prepareBlock({
     init: () => ({ model: Model.make({ status: 'ready' }) }),
-    update: DeclarationServiceProgramComposition.makeUpdate((model, message) =>
-      ServiceMessage.match(message, {
-        RequestedWork: () => ({ model, commands: [RunWork()] }),
-        CompletedWork: () => ({ model }),
-      }),
-    ),
+    update: DeclarationServiceProgramComposition.makeUpdate({
+      RequestedWork: model => ({ model, commands: [RunWork()] }),
+      CompletedWork: model => ({ model }),
+    }),
     view: DeclarationServiceProgramComposition.makeView((model, h) =>
       h.div([], [model.status]),
     ),
@@ -527,15 +513,12 @@ const DeclarationRawCommandProgramComposition =
 const prepareRawCommandBlock = () =>
   DeclarationRawCommandProgramComposition.prepareBlock({
     init: () => ({ model: Model.make({ status: 'ready' }) }),
-    update: DeclarationRawCommandProgramComposition.makeUpdate(
-      (model, message) =>
-        RawCommandMessage.match(message, {
-          RequestedRead: () => ({ model, commands: [ReadValue()] }),
-          CompletedRead: ({ value }) => ({
-            model: Struct.modifyFields(model, { status: () => value }),
-          }),
-        }),
-    ),
+    update: DeclarationRawCommandProgramComposition.makeUpdate({
+      RequestedRead: model => ({ model, commands: [ReadValue()] }),
+      CompletedRead: (model, { value }) => ({
+        model: Struct.modifyFields(model, { status: () => value }),
+      }),
+    }),
     view: DeclarationRawCommandProgramComposition.makeView((model, h) =>
       h.div([], [model.status]),
     ),

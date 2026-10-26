@@ -1,7 +1,10 @@
 import type { Command } from '../command/index.js'
 import type * as Update from '../update/index.js'
 import type { AnyBinding, RequirementsOfBindings } from './binding.js'
-import type { ResolveCompositionOutput } from './deferredPolicy.js'
+import type {
+  HasInvalidCombinedStepsRegistration,
+  ResolveCompositionOutput,
+} from './deferredPolicy.js'
 import type {
   AnyBindingInitRecipe,
   BindingInitRecipeReturn,
@@ -369,6 +372,35 @@ type ValidateInitializationOutMessage<
       ]
   : readonly []
 
+type ResolvedInitializationRegistration<
+  Output,
+  ChildBindings extends ReadonlyArray<AnyBinding>,
+> =
+  | Update.RegistrationEvidenceOf<
+      ResolvedInitializationOutput<Output, ChildBindings>
+    >
+  | Update.RegistrationEvidenceOf<
+      StepReturnOf<
+        ResolvedInitializationOutput<Output, ChildBindings>,
+        ChildBindings
+      >
+    >
+
+type ValidateInitializationCombinedSteps<
+  Init,
+  ChildBindings extends ReadonlyArray<AnyBinding>,
+> = Init extends (...args: ReadonlyArray<any>) => infer Output
+  ? HasInvalidCombinedStepsRegistration<
+      ResolvedInitializationRegistration<Output, ChildBindings>
+    > extends true
+    ? readonly [
+        error: Readonly<{
+          'Update.combineSteps cannot discard an OutMessage produced by a registered child Binding policy; return that bound operation directly': never
+        }>,
+      ]
+    : readonly []
+  : readonly []
+
 type InitializationRecipeValues<Output> =
   | ResolvedInitializationOutput<Output, readonly []>
   | (StepsOf<
@@ -435,6 +467,7 @@ type ValidateInit<
   ...ValidateInitializationFields<Init, ChildBindings>,
   ...ValidateInitializationEvidence<Init>,
   ...ValidateInitializationOutMessage<Init, ChildBindings>,
+  ...ValidateInitializationCombinedSteps<Init, ChildBindings>,
 ]
 
 /**

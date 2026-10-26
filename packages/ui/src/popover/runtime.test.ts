@@ -45,14 +45,11 @@ const PopoverSiblingRuntimeTestComposition =
     bindings: [PopoverBinding],
   })
 
-const update = PopoverSiblingRuntimeTestComposition.makeUpdate(
-  (model, message) =>
-    Message.match(message, {
-      ClickedToggleBadge: () => ({
-        model: modifyFields(model, { isBadgeShown: isShown => !isShown }),
-      }),
-    }),
-)
+const update = PopoverSiblingRuntimeTestComposition.makeUpdate({
+  ClickedToggleBadge: model => ({
+    model: modifyFields(model, { isBadgeShown: isShown => !isShown }),
+  }),
+})
 
 const view = PopoverSiblingRuntimeTestComposition.makeView((model, h) =>
   h.main(

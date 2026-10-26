@@ -47,17 +47,15 @@ const ChildComposition = ChildDefinition.makeComposition()
 const prepareChildBlock = () =>
   ChildComposition.prepareBlock({
     init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
-    update: ChildComposition.makeUpdate((model, message) =>
-      ChildMessage.match(message, {
-        RequestedReadCount: () => ({ model, commands: [ReadCount()] }),
-        CompletedReadCount: ({ count }) => ({
-          model: modifyFields(model, { count: () => count }),
-        }),
-        ObservedCount: ({ count }) => ({
-          model: modifyFields(model, { count: () => count }),
-        }),
+    update: ChildComposition.makeUpdate({
+      RequestedReadCount: model => ({ model, commands: [ReadCount()] }),
+      CompletedReadCount: (model, { count }) => ({
+        model: modifyFields(model, { count: () => count }),
       }),
-    ),
+      ObservedCount: (model, { count }) => ({
+        model: modifyFields(model, { count: () => count }),
+      }),
+    }),
     view: ChildComposition.makeView((model, h) =>
       h.section(
         [],
@@ -97,11 +95,9 @@ const ParentComposition = ParentDefinition.makeComposition({
 const prepareParentBlock = () =>
   ParentComposition.prepareBlock({
     init: ParentComposition.makeInit(() => ({ model: {} })),
-    update: ParentComposition.makeUpdate((model, message) =>
-      ParentMessage.match(message, {
-        RequestedRefresh: () => ChildBinding.requestReadCount()(model),
-      }),
-    ),
+    update: ParentComposition.makeUpdate({
+      RequestedRefresh: model => ChildBinding.requestReadCount()(model),
+    }),
     view: ParentComposition.makeView((model, h) =>
       h.block(ChildBinding.embedView({ slotId: 'child', model: model.child })),
     ),
@@ -125,11 +121,9 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [ParentBinding],
 })
 const init = ApplicationComposition.makeInit(() => ({ model: {} }))
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    RequestedRefresh: () => ParentBinding.requestRefresh()(model),
-  }),
-)
+const update = ApplicationComposition.makeUpdate({
+  RequestedRefresh: model => ParentBinding.requestRefresh()(model),
+})
 const view = ApplicationComposition.makeView((model, h) => ({
   title: 'Generated dispatch',
   body: h.main(

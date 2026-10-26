@@ -7,7 +7,7 @@ import {
   SelectionBinding,
 } from './composition'
 
-export const finishEditing = ApplicationDefinition.makeStep(() =>
+export const finishEditingStep = ApplicationDefinition.makeStep(() =>
   Update.combineSteps([
     DialogBinding.requestClose(),
     SelectionBinding.requestClear(),

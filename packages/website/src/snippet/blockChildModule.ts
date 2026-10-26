@@ -24,16 +24,14 @@ const SettingsComposition = Block.makeDefinition('Settings', {
   Message,
 }).makeComposition()
 
-export const update = SettingsComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ChangedTheme: ({ theme }) => ({
-      model: modifyFields(model, { theme: () => theme }),
-    }),
-    ChangedFontSize: ({ fontSize }) => ({
-      model: modifyFields(model, { fontSize: () => fontSize }),
-    }),
-    ToggledNotifications: () => ({
-      model: modifyFields(model, { notificationsEnabled: enabled => !enabled }),
-    }),
+export const update = SettingsComposition.makeUpdate({
+  ChangedTheme: (model, { theme }) => ({
+    model: modifyFields(model, { theme: () => theme }),
   }),
-)
+  ChangedFontSize: (model, { fontSize }) => ({
+    model: modifyFields(model, { fontSize: () => fontSize }),
+  }),
+  ToggledNotifications: model => ({
+    model: modifyFields(model, { notificationsEnabled: enabled => !enabled }),
+  }),
+})

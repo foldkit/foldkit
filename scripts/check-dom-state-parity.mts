@@ -29,7 +29,7 @@ const makeParityBlock = (
   const prepare = () =>
     ApplicationComposition.prepareBlock({
       init: ApplicationComposition.makeInit(() => ({ model: null })),
-      update: ApplicationComposition.makeUpdate(),
+      update: ApplicationComposition.makeUpdate({}),
       view: ApplicationComposition.makeView(view),
       EffectsLayer: Layer.empty,
     })

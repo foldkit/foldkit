@@ -3,7 +3,11 @@ import { Update } from 'foldkit'
 
 import { DatePickerBlock } from '@foldkit/ui'
 
-import { WorkHistoryEntryDefinition } from './definition'
+import {
+  WorkHistoryEntryDefinition,
+  makeFieldsStep,
+  makeNoopStep,
+} from './definition'
 
 export const StartDatePickerBinding = WorkHistoryEntryDefinition.makeBinding(
   DatePickerBlock,
@@ -30,17 +34,17 @@ export const EndDatePickerBinding = WorkHistoryEntryDefinition.makeBinding(
 const foldStartDateOutMessage = WorkHistoryEntryDefinition.makeOutMessageFold(
   DatePickerBlock,
   {
-    ChangedViewMonth: WorkHistoryEntryDefinition.makeNoopStep,
+    ChangedViewMonth: makeNoopStep,
     SelectedDate: ({ date }) =>
       Update.combineSteps([
-        WorkHistoryEntryDefinition.makeFieldsStep(() => ({
+        makeFieldsStep(() => ({
           maybeStartDate: () => Option.some(date),
         })),
         EndDatePickerBinding.informMinDateChanged(Option.some(date)),
       ]),
     ClearedDate: () =>
       Update.combineSteps([
-        WorkHistoryEntryDefinition.makeFieldsStep(() => ({
+        makeFieldsStep(() => ({
           maybeStartDate: () => Option.none(),
         })),
         EndDatePickerBinding.informMinDateChanged(Option.none()),
@@ -51,17 +55,17 @@ const foldStartDateOutMessage = WorkHistoryEntryDefinition.makeOutMessageFold(
 const foldEndDateOutMessage = WorkHistoryEntryDefinition.makeOutMessageFold(
   DatePickerBlock,
   {
-    ChangedViewMonth: WorkHistoryEntryDefinition.makeNoopStep,
+    ChangedViewMonth: makeNoopStep,
     SelectedDate: ({ date }) =>
       Update.combineSteps([
-        WorkHistoryEntryDefinition.makeFieldsStep(() => ({
+        makeFieldsStep(() => ({
           maybeEndDate: () => Option.some(date),
         })),
         StartDatePickerBinding.informMaxDateChanged(Option.some(date)),
       ]),
     ClearedDate: () =>
       Update.combineSteps([
-        WorkHistoryEntryDefinition.makeFieldsStep(() => ({
+        makeFieldsStep(() => ({
           maybeEndDate: () => Option.none(),
         })),
         StartDatePickerBinding.informMaxDateChanged(Option.none()),

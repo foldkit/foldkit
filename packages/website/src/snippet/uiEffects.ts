@@ -23,7 +23,7 @@ export const ApplicationComposition = ApplicationDefinition.makeComposition({
 // update.ts
 import { ApplicationComposition } from './composition'
 
-export const update = ApplicationComposition.makeUpdate()
+export const update = ApplicationComposition.makeUpdate({})
 
 // view.ts
 import {

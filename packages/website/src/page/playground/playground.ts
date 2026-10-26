@@ -12,7 +12,7 @@ import {
   Schema,
   pipe,
 } from 'effect'
-import type { ManagedResource } from 'foldkit'
+import { ManagedResource } from 'foldkit'
 import { Html, inertHtml as ih } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
 import filesBySlug from 'virtual:playground-files'
@@ -36,6 +36,8 @@ import {
   Model,
   PlaygroundDefinition,
   PlaygroundState,
+  makeFieldsStep,
+  makeNoopStep,
 } from './definition'
 import { MountPlaygroundEditor } from './mount'
 
@@ -222,7 +224,7 @@ export const managedResources = PlaygroundDefinition.makeManagedResources(
 )
 
 export const EffectsLayer = Layer.mergeAll(
-  managedResources.webContainerPlayground.layer,
+  managedResources.layer,
   MountPlaygroundEditor.layer,
   WaitForPlaygroundServerFailure.layer,
   SchedulePlaygroundFileWrite.layer,
@@ -264,80 +266,65 @@ const markPreviewLoaded = (
     Match.orElse(() => state),
   )
 
-export const update = PlaygroundComposition.makeUpdate((model, message) =>
-  Match.value(message).pipe(
-    Match.tagsExhaustive({
-      InformedOfSupport: ({ isSupported }) => ({
-        model: modifyFields(model, {
-          maybeIsSupported: () => Option.some(isSupported),
+export const update = PlaygroundComposition.makeUpdate({
+  InformedOfSupport: makeFieldsStep.fromMessage(({ isSupported }) => ({
+    maybeIsSupported: () => Option.some(isSupported),
+  })),
+  BootedPlayground: (model, { previewUrl }) => ({
+    model: modifyFields(model, {
+      state: () =>
+        PlaygroundState.Booted({
+          preview: PlaygroundPreview.start(previewUrl),
         }),
-      }),
-      BootedPlayground: ({ previewUrl }) => ({
-        model: modifyFields(model, {
-          state: () =>
-            PlaygroundState.Booted({
-              preview: PlaygroundPreview.start(previewUrl),
-            }),
-          dirtyPaths: () => [],
-          lastWriteError: () => Option.none(),
-        }),
-        commands: [WaitForPlaygroundServerFailure(), ...flushDirtyPaths(model)],
-      }),
-      FailedBootPlayground: ({ reason }) => ({
-        model: modifyFields(model, {
-          state: () => PlaygroundState.Failed({ reason }),
-        }),
-      }),
-      ReleasedPlayground: () => ({
-        model: modifyFields(model, {
-          state: state =>
-            state._tag === 'Failed' ? state : PlaygroundState.Idle(),
-        }),
-      }),
-      LoadedPlaygroundPreview: ({ previewUrl }) => ({
-        model: modifyFields(model, {
-          state: state => markPreviewLoaded(state, previewUrl),
-        }),
-      }),
-      EditedPlaygroundFile: ({ path, content }) => {
-        const isBooted = model.state._tag === 'Booted'
-        const nextModel = modifyFields(model, {
-          files: Record.set(path, content),
-          dirtyPaths: existing =>
-            isBooted ? existing : appendDeduped(existing, path),
-        })
+      dirtyPaths: () => [],
+      lastWriteError: () => Option.none(),
+    }),
+    commands: [WaitForPlaygroundServerFailure(), ...flushDirtyPaths(model)],
+  }),
+  FailedBootPlayground: makeFieldsStep.fromMessage(({ reason }) => ({
+    state: () => PlaygroundState.Failed({ reason }),
+  })),
+  ReleasedPlayground: makeFieldsStep(() => ({
+    state: state => (state._tag === 'Failed' ? state : PlaygroundState.Idle()),
+  })),
+  LoadedPlaygroundPreview: makeFieldsStep.fromMessage(({ previewUrl }) => ({
+    state: state => markPreviewLoaded(state, previewUrl),
+  })),
+  EditedPlaygroundFile: (model, { path, content }) => {
+    const isBooted = model.state._tag === 'Booted'
+    const nextModel = modifyFields(model, {
+      files: Record.set(path, content),
+      dirtyPaths: existing =>
+        isBooted ? existing : appendDeduped(existing, path),
+    })
 
-        if (isBooted) {
-          return {
-            model: nextModel,
-            commands: [SchedulePlaygroundFileWrite({ path, content })],
-          }
-        } else {
-          return { model: nextModel }
-        }
-      },
-      FailedMountPlaygroundEditor: ({ reason }) => ({
-        model: modifyFields(model, {
-          state: () => PlaygroundState.Failed({ reason }),
-        }),
-      }),
-      SucceededSchedulePlaygroundFileWrite: () => ({
-        model: modifyFields(model, { lastWriteError: () => Option.none() }),
-      }),
-      FailedSchedulePlaygroundFileWrite: ({ reason }) => ({
-        model: modifyFields(model, {
-          lastWriteError: () => Option.some(reason),
-        }),
-      }),
-      CompletedWaitForPlaygroundServerFailure: ({ reason }) => ({
-        model: modifyFields(model, {
-          state: () => PlaygroundState.Failed({ reason }),
-        }),
-      }),
-      SucceededMountPlaygroundEditor: () => ({ model }),
+    if (isBooted) {
+      return {
+        model: nextModel,
+        commands: [SchedulePlaygroundFileWrite({ path, content })],
+      }
+    } else {
+      return { model: nextModel }
+    }
+  },
+  FailedMountPlaygroundEditor: makeFieldsStep.fromMessage(({ reason }) => ({
+    state: () => PlaygroundState.Failed({ reason }),
+  })),
+  SucceededSchedulePlaygroundFileWrite: makeFieldsStep(() => ({
+    lastWriteError: () => Option.none(),
+  })),
+  FailedSchedulePlaygroundFileWrite: makeFieldsStep.fromMessage(
+    ({ reason }) => ({
+      lastWriteError: () => Option.some(reason),
     }),
   ),
-)
+  CompletedWaitForPlaygroundServerFailure: makeFieldsStep.fromMessage(
+    ({ reason }) => ({
+      state: () => PlaygroundState.Failed({ reason }),
+    }),
+  ),
+  SucceededMountPlaygroundEditor: makeNoopStep(),
+})
 
 const FILE_TAB_BUTTON_BASE_CLASS =
   'block w-full text-left px-3 py-1.5 font-mono text-xs'

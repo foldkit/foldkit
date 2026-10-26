@@ -37,6 +37,8 @@ const CharacterPickerDefinition = Block.makeDefinition('CharacterPicker', {
   Message,
 })
 
+const { makeFieldsStep } = CharacterPickerDefinition
+
 // At module scope, fold the OutMessage into your own Model. On selection, the
 // `Selected` variant carries the chosen item's string value (the result of
 // `itemToValue`). The arm returns an Update.Step over the parent Model, which
@@ -46,7 +48,7 @@ const foldListboxOutMessage = CharacterPickerDefinition.makeOutMessageFold(
   CharacterListbox,
   {
     Selected: ({ value }) =>
-      CharacterPickerDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeCharacter: () => Option.some(value),
       })),
   },
@@ -77,7 +79,7 @@ const init = CharacterPickerComposition.makeInit(() => ({
   },
 }))
 
-const update = CharacterPickerComposition.makeUpdate()
+const update = CharacterPickerComposition.makeUpdate({})
 
 const characters: ReadonlyArray<Character> = [
   { firstName: 'Michael', lastName: 'Bluth' },

@@ -60,15 +60,54 @@ Keep a child's initial state transition and initial Command in that child's `mak
 
 For an exact unkeyed `Option` field, omitting `init` leaves presence with the parent. Return `Option.none()` from `init.contextToArgs` for absence or `Option.some(args)` for presence.
 
-An exact keyed Option wrapper also leaves presence with the parent. Create it through the registered `Binding.init({ key, args, toParentModel })` operation described below. Automatic `init.instances` is available only for keyed arrays. Accessor Bindings likewise remain parent-owned unless the parent initializes them explicitly.
+An exact keyed Option wrapper also leaves presence with the parent. Create it through `initAndSet` or the registered `Binding.init({ key, args, toParentModel })` operation described below. Automatic `init.instances` is available only for keyed arrays. Accessor Bindings likewise remain parent-owned unless the parent initializes them explicitly.
 
 The final parent Model determines which initialized occurrences are active. Init Commands for absent or `presentWhen`-inactive children are omitted. A `subscriptions.when` policy only gates Subscription Streams; it does not suppress child init Commands. Initial Steps may change the child Model without discarding its init Commands.
 
 For custom storage or dynamic creation, call the registered Binding's explicit `init` operation. Pass `{ args, toParentModel }`, plus `key` for a keyed Binding and optional parent `commands`. `args` is the exact child init tuple. `toParentModel` receives the initialized child Model and constructs the complete parent Model. `Binding.init` returns a passive initialization recipe. The recipe has no `.model` or `.commands` fields to project.
 
-Return that recipe directly from the owning Composition's `makeInit` or `makeUpdate` callback, or preserve it through the owning Definition's `makeStep` producer. The Composition callbacks interpret it directly. Checked execution enters the registered graph, then returns the complete parent Model with every lifted child init Command followed by the optional parent Commands. That collection order does not sequence their effects or completion. The compiler checks the key, argument tuple, complete parent Model, Command requirements, and exact Binding requirement at these boundaries.
+Return that recipe directly from the owning Composition's `makeInit` callback or `makeUpdate` handler, or preserve it through the owning Definition's `makeStep` producer. The Composition authoring boundary interprets it directly. Checked execution enters the registered graph, then returns the complete parent Model with every lifted child init Command followed by the optional parent Commands. That collection order does not sequence their effects or completion. The compiler checks the key, argument tuple, complete parent Model, Command requirements, and exact Binding requirement at these boundaries.
 
 During checked execution, runtime validation verifies the active composition frame, validates the complete parent Model against its Schema, checks that `toParentModel` stores a schema-equivalent initialized child, and checks that a keyed result contains exactly one occurrence with the requested key. These guards protect JavaScript with erased types and operations captured for later execution. Ordinary Model construction remains available for fixtures and other pure values.
+
+### Dynamic storage helpers
+
+The optional `foldkit/bindingInit` module reuses declared storage when dynamic initialization only places a child:
+
+| Storage                                                      | Helper          | Existing child         |
+| ------------------------------------------------------------ | --------------- | ---------------------- |
+| Required or optional direct field                            | `initAndSet`    | Replaced               |
+| Option wrapper containing only the key and child fields      | `initAndSet`    | Replaced               |
+| Keyed array with existing `init.instances` and `init.toItem` | `initAndAppend` | Duplicate key rejected |
+| Record or HashMap containing child Models directly           | `initAndInsert` | Duplicate key rejected |
+
+Pass the Binding, the current complete parent Model, and the child `args`; keyed storage also takes `key`. Each helper returns the same passive recipe as `Binding.init`, preserving child init Commands and registration requirements. Ordinary folds and operations still never create absent children. An `initialize...IfMissing` Step owns any presence check.
+
+For example, assume `RoomBinding` declares `field: 'maybeRoomInstance'`, `key: 'roomId'`, and `childField: 'model'`, and its wrapper contains only those last two fields. The parent supplies identity and initializer arguments:
+
+::Snippet{name="initSetKeyedChild" label="Initializing an optional keyed child"}
+
+Direct fields need no startup policy for `initAndSet`. A custom unkeyed accessor may reuse an existing `init.toParentFields` projection. Keep explicit `Binding.init` when creating additional wrapper metadata, changing sibling fields, selecting a different accessor target, adding parent Commands, or replacing an entire tagged parent variant. Do not add a startup policy solely to enable a helper.
+
+For a direct-value map created with `makeMapBinding`, insertion keeps every other entry and rejects an occupied key before child init. Assume `EditorsBinding` stores Issue editor Models by Issue ID:
+
+::Snippet{name="initInsertMappedChild" label="Inserting a mapped child"}
+
+Wrapped maps keep explicit construction so the parent supplies their metadata. Keyed identity identifies an occurrence; it does not require storing multiple children. Same-key reinitialization does not create a fresh generation or cancel pending work. Replacing a keyed Option with a different key follows ordinary occurrence removal and creation.
+
+### Resetting a child
+
+Use a child-owned operation such as `requestReset` when reset is part of the child's behavior. Its Message enters child update, which owns validation, Commands, OutMessages, and any lifecycle transitions. Reset parent-owned fields separately through the parent's `makeFieldsStep`.
+
+This Counter exposes a Message-backed reset operation and takes its initial count as an init argument:
+
+::Snippet{name="initResetCounter" label="Counter reset operation"}
+
+The parent normally composes that operation with clearing its own draft. When it deliberately wants the initializer's baseline instead, it returns a complete `CounterBinding.init` recipe. Both paths preserve `applicationId`:
+
+::Snippet{name="initResetParent" label="Resetting through a child boundary"}
+
+Return the initialization recipe intact. Composition retains and lifts every child init Command, followed by any parent `commands` supplied in the recipe. This Counter has no pending work or lifecycle. Reinitializing stored Model state does not establish a fresh occurrence generation or cancellation of earlier work. A child with active resources, a Dialog, or pending work needs a child-owned operation that defines the reset behavior.
 
 ### Keyed Initial Instances
 
@@ -76,13 +115,21 @@ A keyed-array Binding can declare `init.instances` and `init.toItem`. The first 
 
 Return each wrapper as a plain record so its child field keeps the exact initialized object. A wrapper Schema constructor may reconstruct that child and fail the identity check. Composition constructs the full parent Model through its Schema after collecting these records.
 
-This Counter application starts three instances. Its Model declares `counters: Schema.Array(CounterInstance)`, where each instance holds `id` and `counter`. Its `addCounter` Step returns a `CountersBinding.init({ key, args, toParentModel })` recipe, so the Definition defers initialization until it can produce the parent result with the child init Commands:
+This Counter application starts three instances. Its Model declares `counters: Schema.Array(CounterInstance)`, where each instance holds `id` and `counter`. Its `addCounterStep` returns a `CountersBinding.init({ key, args, toParentModel })` recipe, so the Definition defers initialization until it can produce the parent result with the child init Commands:
 
 ::Snippet{name="initKeyedChildren" label="Initializing keyed child instances"}
 
 The assembler validates the entire occurrence plan before calling child init. Duplicate keys, invalid keys, and non-array `args` fail with a configuration error. TypeScript checks tuple length and argument types. At a JavaScript boundary, the Runtime cannot reconstruct which initializer parameters were required, optional, defaulted, or rest parameters. Each wrapper must retain its planned key. Only keys present in the final parent Model retain their init Commands; initial Steps may change their child state.
 
 This startup adapter applies to exact `field` / `key` keyed arrays, with or without `childField`. General keyed accessors keep explicit initialization so their custom storage and write policy remain visible.
+
+When an array already declares that startup policy, `initAndAppend` from `foldkit/bindingInit` reuses its `init.toItem` for dynamic creation. Pass the Binding, current parent Model, and `{ key, args }`. It returns a passive recipe that initializes and appends one child when the registered Composition interprets it, retaining the child's Commands and preserving the other items and their order. An existing key is rejected. Keep a presence check in an `initialize...IfMissing` Step when an existing occurrence should be retained.
+
+Assume `ProjectSettingsBinding` stores `{ projectId, model }` wrappers in `projectSettingsInstances` and already declares `init.toItem`. This Step keeps an existing project editor and initializes an absent one:
+
+::Snippet{name="initAppendKeyedChild" label="Appending a keyed child"}
+
+Use the explicit `Binding.init` writer for custom storage, additional parent fields or Commands, or array replacement. The other [dynamic storage helpers](#dynamic-storage-helpers) cover direct fields, optional keyed slots and direct-value maps. `initAndAppend` requires an existing startup array policy; do not add an otherwise unnecessary startup policy just to use this helper.
 
 ## Compose Startup Steps {#startup-steps}
 

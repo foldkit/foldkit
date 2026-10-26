@@ -32,7 +32,10 @@ const preparePageBlock = () =>
     init: (flags: typeof Flags.Type, _url: Url.Url) => ({
       model: Model.make({ status: flags.status }),
     }),
-    update: RejectedDeclarationPageComposition.makeUpdate(model => ({ model })),
+    update: RejectedDeclarationPageComposition.makeUpdate({
+      RequestedNavigation: model => ({ model }),
+      ChangedUrl: model => ({ model }),
+    }),
     view: RejectedDeclarationPageComposition.makeView(model => ({
       title: model.status,
       body: null,
@@ -57,9 +60,14 @@ const prepareElementBlock = () =>
     init: (flags: typeof Flags.Type) => ({
       model: Model.make({ status: flags.status }),
     }),
-    update: RejectedDeclarationElementComposition.makeUpdate(model => ({
-      model,
-    })),
+    update: RejectedDeclarationElementComposition.makeUpdate({
+      RequestedNavigation: model => ({
+        model,
+      }),
+      ChangedUrl: model => ({
+        model,
+      }),
+    }),
     view: RejectedDeclarationElementComposition.makeView((model, h) =>
       h.div([], [model.status]),
     ),
@@ -81,9 +89,14 @@ const prepareMixedBlock = () =>
     init: (flags: typeof Flags.Type) => ({
       model: Model.make({ status: flags.status }),
     }),
-    update: RejectedDeclarationElementComposition.makeUpdate(model => ({
-      model,
-    })),
+    update: RejectedDeclarationElementComposition.makeUpdate({
+      RequestedNavigation: model => ({
+        model,
+      }),
+      ChangedUrl: model => ({
+        model,
+      }),
+    }),
     view: MixedView,
   })
 const MixedBlock: Block.FromAssemblyWithView<
@@ -104,9 +117,14 @@ const prepareMaybeInputViewBlock = () =>
     init: (flags: typeof Flags.Type) => ({
       model: Model.make({ status: flags.status }),
     }),
-    update: RejectedDeclarationElementComposition.makeUpdate(model => ({
-      model,
-    })),
+    update: RejectedDeclarationElementComposition.makeUpdate({
+      RequestedNavigation: model => ({
+        model,
+      }),
+      ChangedUrl: model => ({
+        model,
+      }),
+    }),
     view: MaybeInputView,
   })
 const MaybeInputViewBlock: Block.FromAssemblyWithView<
@@ -120,9 +138,14 @@ const prepareNarrowFlagsBlock = () =>
     init: (_flags: typeof NarrowFlags.Type) => ({
       model: Model.make({ status: 'ready' }),
     }),
-    update: RejectedDeclarationElementComposition.makeUpdate(model => ({
-      model,
-    })),
+    update: RejectedDeclarationElementComposition.makeUpdate({
+      RequestedNavigation: model => ({
+        model,
+      }),
+      ChangedUrl: model => ({
+        model,
+      }),
+    }),
     view: RejectedDeclarationElementComposition.makeView((model, h) =>
       h.div([], [model.status]),
     ),
@@ -178,9 +201,14 @@ const prepareAlternativeRoutingBlock = () =>
     init: (_url: Url.Url) => ({
       model: Model.make({ status: 'alternative' }),
     }),
-    update: RejectedAlternativeRoutingPageComposition.makeUpdate(model => ({
-      model,
-    })),
+    update: RejectedAlternativeRoutingPageComposition.makeUpdate({
+      RequestedAlternativeNavigation: model => ({
+        model,
+      }),
+      ChangedAlternativeUrl: model => ({
+        model,
+      }),
+    }),
     view: RejectedAlternativeRoutingPageComposition.makeView(model => ({
       title: model.status,
       body: null,
@@ -199,9 +227,14 @@ const RejectedPrimaryRoutingPageComposition =
 const preparePrimaryRoutingBlock = () =>
   RejectedPrimaryRoutingPageComposition.prepareBlock({
     init: (_url: Url.Url) => ({ model: Model.make({ status: 'primary' }) }),
-    update: RejectedPrimaryRoutingPageComposition.makeUpdate(model => ({
-      model,
-    })),
+    update: RejectedPrimaryRoutingPageComposition.makeUpdate({
+      RequestedNavigation: model => ({
+        model,
+      }),
+      ChangedUrl: model => ({
+        model,
+      }),
+    }),
     view: RejectedPrimaryRoutingPageComposition.makeView(model => ({
       title: model.status,
       body: null,
@@ -453,7 +486,10 @@ const DeclarationHeadlessRootComposition =
 const prepareHeadlessBlock = () =>
   DeclarationHeadlessRootComposition.prepareBlock({
     init: () => ({ model: Model.make({ status: 'ready' }) }),
-    update: DeclarationHeadlessRootComposition.makeUpdate(model => ({ model })),
+    update: DeclarationHeadlessRootComposition.makeUpdate({
+      RequestedNavigation: model => ({ model }),
+      ChangedUrl: model => ({ model }),
+    }),
   })
 const HeadlessBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
@@ -463,7 +499,10 @@ const HeadlessBlock: Block.FromAssemblyWithoutViewOrOutMessage<
 const prepareHeadedBlock = () =>
   DeclarationHeadlessRootComposition.prepareBlock({
     init: () => ({ model: Model.make({ status: 'ready' }) }),
-    update: DeclarationHeadlessRootComposition.makeUpdate(model => ({ model })),
+    update: DeclarationHeadlessRootComposition.makeUpdate({
+      RequestedNavigation: model => ({ model }),
+      ChangedUrl: model => ({ model }),
+    }),
     view: DeclarationHeadlessRootComposition.makeView((model, h) =>
       h.div([], [model.status]),
     ),
@@ -496,9 +535,14 @@ const DeclarationOutMessageRootComposition =
 const prepareOutMessageBlock = () =>
   DeclarationOutMessageRootComposition.prepareBlock({
     init: () => ({ model: Model.make({ status: 'ready' }) }),
-    update: DeclarationOutMessageRootComposition.makeUpdate(model => ({
-      model,
-    })),
+    update: DeclarationOutMessageRootComposition.makeUpdate({
+      RequestedNavigation: model => ({
+        model,
+      }),
+      ChangedUrl: model => ({
+        model,
+      }),
+    }),
     view: DeclarationOutMessageRootComposition.makeView(model => ({
       title: model.status,
       body: null,
@@ -530,8 +574,11 @@ const DeclarationContextRootComposition =
 const prepareContextBlock = () =>
   DeclarationContextRootComposition.prepareBlock({
     init: () => ({ model: Model.make({ status: 'ready' }) }),
-    update: DeclarationContextRootComposition.makeUpdate(
-      (model, _message, _requiredContext: string) => ({ model }),
+    update: DeclarationContextRootComposition.makeUpdate.withContext(
+      (_requiredContext: string) => ({
+        RequestedNavigation: (model, _message) => ({ model }),
+        ChangedUrl: (model, _message) => ({ model }),
+      }),
     ),
     view: DeclarationContextRootComposition.makeView((model, h) =>
       h.div([], [model.status]),
@@ -548,7 +595,10 @@ Program.makeElement({ block: ContextBlock, container: null })
 const prepareSafeContextBlock = () =>
   DeclarationContextRootComposition.prepareBlock({
     init: () => ({ model: Model.make({ status: 'ready' }) }),
-    update: DeclarationContextRootComposition.makeUpdate(model => ({ model })),
+    update: DeclarationContextRootComposition.makeUpdate({
+      RequestedNavigation: model => ({ model }),
+      ChangedUrl: model => ({ model }),
+    }),
     view: DeclarationContextRootComposition.makeView((model, h) =>
       h.div([], [model.status]),
     ),
@@ -577,7 +627,10 @@ const prepareInvalidInitBlock = () =>
     init: (_url: Url.Url, _unexpected: string) => ({
       model: Model.make({ status: 'ready' }),
     }),
-    update: DeclarationInvalidInitComposition.makeUpdate(model => ({ model })),
+    update: DeclarationInvalidInitComposition.makeUpdate({
+      RequestedNavigation: model => ({ model }),
+      ChangedUrl: model => ({ model }),
+    }),
     view: DeclarationInvalidInitComposition.makeView((model, h) =>
       h.div([], [model.status]),
     ),

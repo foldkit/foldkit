@@ -17,7 +17,7 @@ import {
   closedBaseModel,
   makeMessage,
   makeOutMessage,
-  makeUpdate,
+  makeUpdateHandlers,
   makeView,
   mounts,
 } from './shared.js'
@@ -50,7 +50,7 @@ export type InitConfig = BaseInitConfig
  *  membership.
  *  Closing never emits `ClearedSelection` because its input rests empty by
  *  design. Clear the selection by toggling each value off. */
-const defaultUpdate = makeUpdate(
+const defaultUpdate = makeUpdateHandlers(
   ComboboxDefinition.makeBinding,
   ComboboxDefinition.makeOutMessageFold,
   ComboboxDefinition.makeStep,
@@ -80,14 +80,7 @@ const ComboboxComposition = ComboboxDefinition.makeComposition({
   bindings: [defaultUpdate.AnimationBinding],
 })
 
-const authoredUpdate = ComboboxDefinition.makeStep(
-  (model, message: Parameters<typeof defaultUpdate.update>[1]) =>
-    defaultUpdate.update(model, message),
-)
-
-export const update = ComboboxComposition.makeUpdate((model, message) =>
-  authoredUpdate(model, message),
-)
+export const update = ComboboxComposition.makeUpdate(defaultUpdate.handlers)
 
 type UpdateReturn = ReturnType<typeof update>
 
@@ -124,7 +117,7 @@ const makeBlockParts = <Item extends string, ItemEncoded>(
     Message: ItemMessage,
     OutMessage: ItemOutMessage,
   })
-  const itemUpdate = makeUpdate(
+  const itemUpdate = makeUpdateHandlers(
     ComboboxDefinition.makeBinding,
     ComboboxDefinition.makeOutMessageFold,
     ComboboxDefinition.makeStep,
@@ -150,13 +143,7 @@ const makeBlockParts = <Item extends string, ItemEncoded>(
     mounts,
     bindings: [itemUpdate.AnimationBinding],
   })
-  const authoredUpdate = ComboboxDefinition.makeStep(
-    (model, message: Parameters<typeof itemUpdate.update>[1]) =>
-      itemUpdate.update(model, message),
-  )
-  const update = ComboboxComposition.makeUpdate((model, message) =>
-    authoredUpdate(model, message),
-  )
+  const update = ComboboxComposition.makeUpdate(itemUpdate.handlers)
   const init = ComboboxComposition.makeInit((config: InitConfig) => ({
     model: baseInit(config),
   }))

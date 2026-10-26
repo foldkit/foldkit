@@ -25,6 +25,8 @@ const VolumeSliderDefinition = Block.makeDefinition('VolumeSlider', {
   Message,
 })
 
+const { makeFieldsStep } = VolumeSliderDefinition
+
 // At module scope, fold the OutMessage into your own Model. `ChangedValue`
 // carries the new number. Lift it to domain state, validate, or persist on
 // each commit. The arm returns an Update.Step over the parent Model, which
@@ -37,7 +39,7 @@ const foldSliderOutMessage = VolumeSliderDefinition.makeOutMessageFold(
     // you own. This arm is also where the parent can validate, persist, or
     // trigger a downstream Command.
     ChangedValue: ({ value }) =>
-      VolumeSliderDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         ratingValue: () => value,
       })),
   },
@@ -66,7 +68,7 @@ const init = VolumeSliderComposition.makeInit(() => ({
   },
 }))
 
-const update = VolumeSliderComposition.makeUpdate()
+const update = VolumeSliderComposition.makeUpdate({})
 
 // Registering `SliderBinding` in `bindings` also collects both drag Subscriptions.
 

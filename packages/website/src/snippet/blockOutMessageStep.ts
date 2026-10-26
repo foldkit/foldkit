@@ -10,6 +10,6 @@ const EntryDefinition = Block.makeDefinition('Entry', {
   OutMessage,
 })
 
-export const reportRemoved = EntryDefinition.makeOutMessageStep(
-  OutMessage.Removed(),
-)
+const { makeOutMessageStep } = EntryDefinition
+
+export const reportRemovedStep = makeOutMessageStep(() => OutMessage.Removed())

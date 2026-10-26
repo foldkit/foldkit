@@ -32,6 +32,8 @@ const PlanPickerDefinition = Block.makeDefinition('PlanPicker', {
   Message,
 })
 
+const { makeFieldsStep } = PlanPickerDefinition
+
 // At module scope, fold the OutMessage into your own Model. When the user
 // commits a selection it carries `Selected({ value })` where `value: Plan`.
 // The arm returns an Update.Step over the parent Model, which already has the
@@ -41,7 +43,7 @@ const foldListboxOutMessage = PlanPickerDefinition.makeOutMessageFold(
   PlanListbox,
   {
     Selected: ({ value }) =>
-      PlanPickerDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybePlan: () => Option.some(value),
       })),
   },
@@ -69,7 +71,7 @@ const init = PlanPickerComposition.makeInit(() => ({
 }))
 
 // The Composition routes generated Listbox delivery through the Binding.
-const update = PlanPickerComposition.makeUpdate()
+const update = PlanPickerComposition.makeUpdate({})
 
 const plans: ReadonlyArray<typeof Plan.Type> = ['Free', 'Pro', 'Enterprise']
 

@@ -1,5 +1,6 @@
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
+import { toParentMessage } from 'foldkit/test'
 import { expect, test } from 'vitest'
 
 import { RadioGroup } from '@foldkit/ui'
@@ -21,19 +22,9 @@ import { loadingModel, readyModel, sampleTelemetry } from './model.fixture'
 import { ChartModeRadioGroupBlock, PackageRadioGroupBlock } from './radioGroups'
 import { update } from './update'
 
-const emptyChartModeRadioGroupView = ChartModeRadioGroupBlock.makeView(
-  (_model, h) => h.empty,
-)
-const emptyPackageRadioGroupView = PackageRadioGroupBlock.makeView(
-  (_model, h) => h.empty,
-)
-
 const selectedChartMode = (chartMode: typeof ChartMode.Type) =>
-  ChartModeRadioGroupBinding.embedView({
-    slotId: 'chartModeRadioGroup',
-    model: readyModel.chartModeRadioGroup,
-    view: emptyChartModeRadioGroupView,
-  }).toParentMessage(
+  toParentMessage(
+    ChartModeRadioGroupBinding,
     ChartModeRadioGroupBlock.Message.SelectedOption({
       index: chartModes.indexOf(chartMode),
       value: chartMode,
@@ -41,11 +32,8 @@ const selectedChartMode = (chartMode: typeof ChartMode.Type) =>
   )
 
 const selectedPackage = (packageId: typeof PackageId.Type) =>
-  PackageRadioGroupBinding.embedView({
-    slotId: 'packageRadioGroup',
-    model: readyModel.packageRadioGroup,
-    view: emptyPackageRadioGroupView,
-  }).toParentMessage(
+  toParentMessage(
+    PackageRadioGroupBinding,
     PackageRadioGroupBlock.Message.SelectedOption({
       index: packageIds.indexOf(packageId),
       value: packageId,

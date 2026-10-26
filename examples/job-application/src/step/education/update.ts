@@ -1,44 +1,43 @@
 import { Array } from 'effect'
 import { Update } from 'foldkit'
-import { modifyFields } from 'foldkit/struct'
+import { initAndAppend } from 'foldkit/bindingInit'
 
 import { GenerateEducationEntryId } from './command'
 import { EducationComposition, EntriesBinding } from './composition'
-import { Message, type Model } from './definition'
+import {
+  type Model,
+  makeCommandsStep,
+  makeFieldsStep,
+  makeNoopStep,
+} from './definition'
 import {
   hasErrors as entryHasErrors,
   isComplete as isEntryComplete,
 } from './entry/update'
 
-export const update = EducationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedAddEntry: () => ({ model, commands: [GenerateEducationEntryId()] }),
+export const update = EducationComposition.makeUpdate({
+  ClickedAddEntry: makeCommandsStep(() => [GenerateEducationEntryId()]),
 
-    SucceededGenerateEducationEntryId: ({ entryId }) =>
-      EntriesBinding.init({
-        key: entryId,
-        args: [entryId],
-        toParentModel: entry =>
-          modifyFields(model, { entries: Array.append(entry) }),
-      }),
-
-    FailedGenerateEducationEntryId: () => ({ model }),
-
-    RemovedEntry: ({ entryId }) => ({
-      model: modifyFields(model, {
-        entries: Array.filter(entry => entry.id !== entryId),
-      }),
+  SucceededGenerateEducationEntryId: (model, { entryId }) =>
+    initAndAppend(EntriesBinding, model, {
+      key: entryId,
+      args: [entryId],
     }),
 
-    RequestedRevealErrors: () =>
-      Update.combineSteps(
-        model,
-        Array.map(model.entries, entry =>
-          EntriesBinding.requestRevealErrors(entry.id),
-        ),
+  FailedGenerateEducationEntryId: makeNoopStep(),
+
+  RemovedEntry: makeFieldsStep.fromMessage(({ entryId }) => ({
+    entries: Array.filter(entry => entry.id !== entryId),
+  })),
+
+  RequestedRevealErrors: model =>
+    Update.combineSteps(
+      model,
+      Array.map(model.entries, entry =>
+        EntriesBinding.requestRevealErrors(entry.id),
       ),
-  }),
-)
+    ),
+})
 
 export const hasErrors = (model: typeof Model.Type): boolean =>
   Array.some(model.entries, entryHasErrors)

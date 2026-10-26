@@ -15,7 +15,7 @@ export const init = ApplicationComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),
 }))
 
-export const update = ApplicationComposition.makeUpdate()
+export const update = ApplicationComposition.makeUpdate({})
 
 export const view = ApplicationComposition.makeView((model, h) => ({
   title: 'Client only',

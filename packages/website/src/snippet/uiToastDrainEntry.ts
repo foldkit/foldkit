@@ -14,10 +14,13 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
+
+const { makeNoopStep } = ApplicationDefinition
+
 const foldToastOutMessage = ApplicationDefinition.makeOutMessageFold(
   ToastBlock,
   {
-    DismissedToast: ApplicationDefinition.makeNoopStep,
+    DismissedToast: makeNoopStep,
   },
 )
 const ToastBinding = ApplicationDefinition.makeBinding(ToastBlock, {
@@ -31,12 +34,9 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
 })
 
 const init = ApplicationComposition.makeInit(() => ({ model: {} }))
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    RequestedShowToast: () =>
-      ToastBinding.requestShow({ payload: { body: 'Saved' } })(model),
-  }),
-)
+const update = ApplicationComposition.makeUpdate({
+  RequestedShowToast: ToastBinding.requestShow({ payload: { body: 'Saved' } }),
+})
 
 Story.story(
   update,

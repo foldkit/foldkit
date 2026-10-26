@@ -20,6 +20,9 @@ const Message = defineMessageUnion({
 })
 
 const EditorDefinition = Block.makeDefinition('Editor', { Model, Message })
+
+const { makeFieldsStep } = EditorDefinition
+
 const EditorComposition = EditorDefinition.makeComposition()
 
 const SaveDocument = EditorDefinition.makeCommand('SaveDocument', {
@@ -31,20 +34,18 @@ const init = EditorComposition.makeInit((contents: string) => ({
   model: { contents, save: SaveState.Idle() },
 }))
 
-const update = EditorComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedSave: () => ({
-      model: modifyFields(model, { save: () => SaveState.Saving() }),
-      commands: [SaveDocument({ contents: model.contents })],
-    }),
-    SucceededSaveDocument: () => ({
-      model: modifyFields(model, { save: () => SaveState.Saved() }),
-    }),
-    FailedSaveDocument: ({ reason }) => ({
-      model: modifyFields(model, { save: () => SaveState.Failed({ reason }) }),
-    }),
+const update = EditorComposition.makeUpdate({
+  ClickedSave: model => ({
+    model: modifyFields(model, { save: () => SaveState.Saving() }),
+    commands: [SaveDocument({ contents: model.contents })],
   }),
-)
+  SucceededSaveDocument: makeFieldsStep(() => ({
+    save: () => SaveState.Saved(),
+  })),
+  FailedSaveDocument: makeFieldsStep.fromMessage(({ reason }) => ({
+    save: () => SaveState.Failed({ reason }),
+  })),
+})
 
 const prepare = () =>
   EditorComposition.prepareBlock({

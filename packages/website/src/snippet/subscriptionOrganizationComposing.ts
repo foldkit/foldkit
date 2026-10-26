@@ -9,11 +9,13 @@ export const SettingsDefinition = Block.makeDefinition('Settings', {
   Message,
 })
 
+const { makeNoopStep } = SettingsDefinition
+
 const foldThemeMenuOutMessage = SettingsDefinition.makeOutMessageFold(
   ThemeMenu.ThemeMenuBlock,
   {
-    Selected: SettingsDefinition.makeNoopStep,
-    Closed: SettingsDefinition.makeNoopStep,
+    Selected: makeNoopStep,
+    Closed: makeNoopStep,
   },
 )
 

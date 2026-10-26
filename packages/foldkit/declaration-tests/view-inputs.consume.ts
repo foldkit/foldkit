@@ -1,4 +1,4 @@
-import { Option, Schema } from 'effect'
+import { DateTime, Option, Schema } from 'effect'
 import * as Block from 'foldkit/block'
 
 import {
@@ -53,6 +53,9 @@ const DateBinding = EmittedGenericViewInputsParentDefinition.makeBinding(
   { field: 'child' },
 )
 const date = new Date('2026-10-21T12:00:00.000Z')
+const utc = DateTime.makeUnsafe('2026-10-21T12:00:00.000Z')
+const timeZone = DateTime.zoneMakeNamedUnsafe('America/New_York')
+const zoned = DateTime.makeZonedUnsafe(utc, { timeZone })
 
 export const emittedDateConfig = DateBinding.embedView({
   slotId: 'date-child',
@@ -64,6 +67,12 @@ export const emittedDateConfig = DateBinding.embedView({
       maybeExpiresAt: Option.some(date),
       range: [date, date],
       byId: { first: { at: date } },
+      utc,
+      zoned,
+      timeZone,
+      namedTimeZone: timeZone,
+      effectTimeline: [{ at: utc }],
+      maybeEffectDeadline: Option.some(zoned),
     },
   },
 })

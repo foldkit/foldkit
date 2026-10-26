@@ -1,7 +1,6 @@
 import { Schema, Tuple } from 'effect'
 import * as Block from 'foldkit/block'
 import type { Html } from 'foldkit/html'
-import type * as Update from 'foldkit/update'
 
 import {
   type BaseInitConfig,
@@ -13,25 +12,10 @@ import {
   OutMessage,
   type OutMessageSchema,
   baseInit,
-  makeUpdate,
+  makeUpdateHandlers,
   makeView,
   mounts,
 } from './shared.js'
-
-type RefineOutMessage<Return, OutMessage> =
-  Return extends Update.ResultRecipe<
-    infer Model,
-    infer Message,
-    unknown,
-    infer R,
-    infer Evidence
-  >
-    ? Update.ResultRecipe<Model, Message, OutMessage, R, Evidence>
-    : Return extends (...args: infer Args) => infer Output
-      ? (...args: Args) => RefineOutMessage<Output, OutMessage>
-      : Return extends unknown
-        ? Omit<Return, 'outMessage'> & Readonly<{ outMessage?: OutMessage }>
-        : never
 
 // MODEL
 
@@ -66,38 +50,26 @@ const makeBlockParts = <Item, Value extends string>() => {
     Message,
     OutMessage: RefinedOutMessage,
   })
-  const itemUpdate = makeUpdate(
+  const itemUpdate = makeUpdateHandlers(
     ListboxDefinition.makeBinding,
     ListboxDefinition.makeOutMessageFold,
     ListboxDefinition.makeStep,
     ListboxDefinition.makeFieldsStep,
     ListboxDefinition.makeNoopStep,
+    ListboxDefinition.makeCommandsStep,
     'KeepOpen',
     (model, item) => ({
       model,
-      outMessage: OutMessage.Selected({ value: item }),
+      outMessage:
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        OutMessage.Selected({ value: item }) as OutMessage<Value>,
     }),
   )
-  type RefinedOutMessage = OutMessage<Value>
-  type RefinedReturn = RefineOutMessage<
-    ReturnType<typeof itemUpdate.update>,
-    RefinedOutMessage
-  >
-
-  const castReturn = (result: ReturnType<typeof itemUpdate.update>) =>
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    result as unknown as RefinedReturn
   const ListboxComposition = ListboxDefinition.makeComposition({
     mounts,
     bindings: [itemUpdate.AnimationBinding],
   })
-  const authoredUpdate = ListboxDefinition.makeStep(
-    (model, message: Parameters<typeof itemUpdate.update>[1]) =>
-      castReturn(itemUpdate.update(model, message)),
-  )
-  const update = ListboxComposition.makeUpdate((model, message) =>
-    authoredUpdate(model, message),
-  )
+  const update = ListboxComposition.makeUpdate(itemUpdate.handlers)
   const init = ListboxComposition.makeInit((config: InitConfig) => ({
     model: baseInit(config),
   }))

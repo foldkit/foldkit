@@ -46,11 +46,11 @@ const prepareChildBlock = () =>
       model: ChildModel.make({ count: 0 }),
       commands: [FinishInitialization({ count: 0 })],
     })),
-    update: DeclarationStartupDefaultChildComposition.makeUpdate(
-      (model, { count }) => ({
+    update: DeclarationStartupDefaultChildComposition.makeUpdate({
+      CompletedInitialization: (model, { count }) => ({
         model: Struct.modifyFields(model, { count: () => count }),
       }),
-    ),
+    }),
     EffectsLayer: Layer.merge(
       FinishInitialization.layer,
       FailChildConstructionLayer,
@@ -75,11 +75,11 @@ const prepareDefaultChildBlock = () =>
         model: ChildModel.make({ count }),
       }),
     ),
-    update: DeclarationStartupDefaultArgumentChildComposition.makeUpdate(
-      model => ({
+    update: DeclarationStartupDefaultArgumentChildComposition.makeUpdate({
+      CompletedInitialization: model => ({
         model,
       }),
-    ),
+    }),
   })
 export const DefaultChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
@@ -100,9 +100,9 @@ const prepareOptionalChildBlock = () =>
         model: ChildModel.make({ count: count ?? 2 }),
       }),
     ),
-    update: DeclarationStartupOptionalArgumentChildComposition.makeUpdate(
-      model => ({ model }),
-    ),
+    update: DeclarationStartupOptionalArgumentChildComposition.makeUpdate({
+      CompletedInitialization: model => ({ model }),
+    }),
   })
 export const OptionalChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
@@ -123,11 +123,11 @@ const prepareRestChildBlock = () =>
         model: ChildModel.make({ count: first + rest.length }),
       }),
     ),
-    update: DeclarationStartupRequiredRestChildComposition.makeUpdate(
-      model => ({
+    update: DeclarationStartupRequiredRestChildComposition.makeUpdate({
+      CompletedInitialization: model => ({
         model,
       }),
-    ),
+    }),
   })
 export const RestChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
@@ -148,9 +148,11 @@ const prepareRequiredChildBlock = () =>
         model: ChildModel.make({ count }),
       }),
     ),
-    update: DeclarationStartupRequiredChildComposition.makeUpdate(model => ({
-      model,
-    })),
+    update: DeclarationStartupRequiredChildComposition.makeUpdate({
+      CompletedInitialization: model => ({
+        model,
+      }),
+    }),
   })
 export const RequiredChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
@@ -281,9 +283,14 @@ export const initialize = DeclarationStartupDefaultsParentComposition.makeInit(
 const prepareParentBlock = () =>
   DeclarationStartupDefaultsParentComposition.prepareBlock({
     init: initialize,
-    update: DeclarationStartupDefaultsParentComposition.makeUpdate(model => ({
-      model,
-    })),
+    update: DeclarationStartupDefaultsParentComposition.makeUpdate({
+      CompletedParentInitialization: model => ({
+        model,
+      }),
+      CompletedParentStep: model => ({
+        model,
+      }),
+    }),
     EffectsLayer: Layer.merge(
       FinishParentInitialization.layer,
       FinishStep.layer,

@@ -1,3 +1,3 @@
 import { DialogBinding } from './composition'
 
-export const closeDialog = DialogBinding.requestClose()
+export const closeDialogStep = DialogBinding.requestClose()

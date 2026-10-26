@@ -22,6 +22,8 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
+const { makeFieldsStep, makeNoopStep } = ApplicationDefinition
+
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 // PORT
@@ -58,16 +60,14 @@ const advance = (model: typeof Model.Type) => {
   }
 }
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    Ticked: () => advance(model),
-    ClickedAdvance: () => advance(model),
-    ChangedStep: ({ step }) => ({
-      model: modifyFields(model, { step: () => step }),
-    }),
-    CompletedReportCount: () => ({ model }),
-  }),
-)
+export const update = ApplicationComposition.makeUpdate({
+  Ticked: model => advance(model),
+  ClickedAdvance: model => advance(model),
+  ChangedStep: makeFieldsStep.fromMessage(({ step }) => ({
+    step: () => step,
+  })),
+  CompletedReportCount: makeNoopStep(),
+})
 
 const TICK_INTERVAL = Duration.seconds(1)
 

@@ -1,5 +1,6 @@
 import { Array, Option, String } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
+import { toParentMessage } from 'foldkit/test'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
@@ -32,10 +33,7 @@ const peoplePageWith = (searchInput: string) =>
 const initialPeoplePage = peoplePageWith('')
 
 const peopleMessage = (message: typeof PeopleBlock.Message.Type) =>
-  PeoplePageBinding.embedView({
-    slotId: 'peoplePage',
-    model: initialPeoplePage,
-  }).toParentMessage(message)
+  toParentMessage(PeoplePageBinding, message)
 
 const home = Model.make({
   route: ApplicationRoute.Home(),

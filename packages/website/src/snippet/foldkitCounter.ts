@@ -16,13 +16,11 @@ const ApplicationComposition = Block.makeDefinition('Application', {
   Message,
 }).makeComposition()
 
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedIncrement: () => ({
-      model: modifyFields(model, { count: count => count + 1 }),
-    }),
+const update = ApplicationComposition.makeUpdate({
+  ClickedIncrement: model => ({
+    model: modifyFields(model, { count: count => count + 1 }),
   }),
-)
+})
 
 const view = ApplicationComposition.makeView((model, h) => ({
   title: `Count: ${model.count}`,

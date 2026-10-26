@@ -44,7 +44,7 @@ const TabsBinding = TabsSceneDefinition.makeBinding(TestTabs, {
 const TabsSceneComposition = TabsSceneDefinition.makeComposition({
   bindings: [TabsBinding],
 })
-const sceneUpdate = TabsSceneComposition.makeUpdate()
+const sceneUpdate = TabsSceneComposition.makeUpdate({})
 
 const sceneView = TabsSceneComposition.makeView((model, h) =>
   h.block(

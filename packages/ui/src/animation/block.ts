@@ -1,7 +1,6 @@
-import { Layer, Match, Tuple } from 'effect'
+import { Match, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import type { ChildAttribute, Html, TagName } from 'foldkit/html'
-import type * as Update from 'foldkit/update'
 
 import { Message, Model, OutMessage, TransitionState } from './schema.js'
 import {
@@ -142,15 +141,7 @@ export const view = AnimationComposition.makeView.withInputs<ViewInputs>(
 const prepare = () =>
   AnimationComposition.prepareBlock({
     init,
-    update: (
-      model: Model,
-      message: Message,
-    ): Update.ReturnWithOutMessage<
-      Model,
-      Message,
-      OutMessage,
-      Layer.Success<typeof EffectsLayer>
-    > => update(model, message),
+    update,
     view,
     operations: {
       requestShow: Message.RequestedShow,
@@ -164,11 +155,13 @@ const prepare = () =>
     },
     EffectsLayer,
   })
-/** Complete Animation Block definition for connecting to a parent. */
-export const AnimationBlock: Block.FromAssemblyWithViewAndOutMessage<
+/** Completed Animation Block contract. */
+export interface AnimationBlock extends Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof prepare
-> = Block.assemble(prepare)
+> {}
+/** Complete Animation Block definition for connecting to a parent. */
+export const AnimationBlock: AnimationBlock = Block.assemble(prepare)
 
 /** Programmatically starts the enter lifecycle through Animation update. */
 export const show = AnimationBlock.operations.requestShow

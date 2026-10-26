@@ -47,18 +47,18 @@ const makeChoice = <const Values extends ReadonlyArray<string>>(
       },
     },
   )
-  const setValue = DeclarationWrappedKeyedFieldChoiceDefinition.makeStep(
+  const setValueStep = DeclarationWrappedKeyedFieldChoiceDefinition.makeStep(
     (model, value: Value) => ({
       model: Struct.modifyFields(model, { value: () => value }),
     }),
   )
-  const refresh = DeclarationWrappedKeyedFieldChoiceDefinition.makeStep(
+  const refreshStep = DeclarationWrappedKeyedFieldChoiceDefinition.makeStep(
     model => ({
       model,
       commands: [ReadChoice()],
     }),
   )
-  const select = DeclarationWrappedKeyedFieldChoiceDefinition.makeStep(
+  const selectStep = DeclarationWrappedKeyedFieldChoiceDefinition.makeStep(
     model => ({
       model,
       outMessage: ChoiceOutMessage.SelectedValue({ value: model.value }),
@@ -74,15 +74,12 @@ const makeChoice = <const Values extends ReadonlyArray<string>>(
           commands: [ReadChoice()],
         }),
       ),
-      update: DeclarationWrappedKeyedFieldChoiceComposition.makeUpdate(
-        (model, message) =>
-          ChoiceMessage.match(message, {
-            UpdatedValue: ({ value }) => setValue(model, value),
-            RequestedRefresh: () => refresh(model),
-            RequestedSelect: () => select(model),
-            CompletedRefresh: () => ({ model }),
-          }),
-      ),
+      update: DeclarationWrappedKeyedFieldChoiceComposition.makeUpdate({
+        UpdatedValue: (model, { value }) => setValueStep(model, value),
+        RequestedRefresh: model => refreshStep(model),
+        RequestedSelect: model => selectStep(model),
+        CompletedRefresh: model => ({ model }),
+      }),
       operations: {
         setValue: (value: Value) => [ChoiceMessage.UpdatedValue({ value })],
         refresh: () => [ChoiceMessage.RequestedRefresh()],
@@ -117,17 +114,14 @@ const preparePlainChoiceBlock = () =>
     init: DeclarationWrappedKeyedFieldPlainChoiceComposition.makeInit(() => ({
       model: Choice.block.Model.make({ value: 'One' }),
     })),
-    update: DeclarationWrappedKeyedFieldPlainChoiceComposition.makeUpdate(
-      (model, message) =>
-        Choice.Message.match(message, {
-          UpdatedValue: ({ value }) => ({
-            model: Struct.modifyFields(model, { value: () => value }),
-          }),
-          RequestedRefresh: () => ({ model }),
-          RequestedSelect: () => ({ model }),
-          CompletedRefresh: () => ({ model }),
-        }),
-    ),
+    update: DeclarationWrappedKeyedFieldPlainChoiceComposition.makeUpdate({
+      UpdatedValue: (model, { value }) => ({
+        model: Struct.modifyFields(model, { value: () => value }),
+      }),
+      RequestedRefresh: model => ({ model }),
+      RequestedSelect: model => ({ model }),
+      CompletedRefresh: model => ({ model }),
+    }),
     EffectsLayer: Layer.empty,
   })
 export const PlainChoiceBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -164,9 +158,9 @@ const prepareTextBlock = () =>
     init: DeclarationWrappedKeyedFieldTextComposition.makeInit(() => ({
       model: '',
     })),
-    update: DeclarationWrappedKeyedFieldTextComposition.makeUpdate(
-      (_model, { value }) => ({ model: value }),
-    ),
+    update: DeclarationWrappedKeyedFieldTextComposition.makeUpdate({
+      ReplacedText: (_model, { value }) => ({ model: value }),
+    }),
     EffectsLayer: Layer.empty,
   })
 export const TextBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -490,7 +484,9 @@ export const initialize = initialComposition.makeInit(
 const prepareInitializedBlock = () =>
   initialComposition.prepareBlock({
     init: initialize,
-    update: initialComposition.makeUpdate(model => ({ model })),
+    update: initialComposition.makeUpdate({
+      IgnoredChildMessage: model => ({ model }),
+    }),
     EffectsLayer: Layer.empty,
   })
 export const initializedBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -531,40 +527,50 @@ const textEntriesExecutionComposition =
     bindings: [ChoicesBinding, LiteralChoicesBinding, TextEntriesBinding],
   })
 
-export const foldChoice = choicesExecutionComposition.makeUpdate(
-  (
-    model,
-    _message,
-    id: typeof ChoiceId.Type,
-    childMessage: typeof Choice.Message.Type,
-  ) => ChoicesBinding.fold(model, id, childMessage),
+export const foldChoice = choicesExecutionComposition.makeUpdate.withContext(
+  (id: typeof ChoiceId.Type, childMessage: typeof Choice.Message.Type) => ({
+    IgnoredChildMessage: (model, _message) =>
+      ChoicesBinding.fold(model, id, childMessage),
+  }),
 )
-export const setChoiceValue = choicesExecutionComposition.makeUpdate(
-  (model, _message, id: typeof ChoiceId.Type, value: 'One' | 'Two') =>
-    ChoicesBinding.setValue(id, value)(model),
+export const setChoiceValue =
+  choicesExecutionComposition.makeUpdate.withContext(
+    (id: typeof ChoiceId.Type, value: 'One' | 'Two') => ({
+      IgnoredChildMessage: (model, _message) =>
+        ChoicesBinding.setValue(id, value)(model),
+    }),
+  )
+export const refreshChoice = choicesExecutionComposition.makeUpdate.withContext(
+  (id: typeof ChoiceId.Type) => ({
+    IgnoredChildMessage: (model, _message) => ChoicesBinding.refresh(id)(model),
+  }),
 )
-export const refreshChoice = choicesExecutionComposition.makeUpdate(
-  (model, _message, id: typeof ChoiceId.Type) =>
-    ChoicesBinding.refresh(id)(model),
-)
-export const selectChoice = choicesExecutionComposition.makeUpdate(
-  (model, _message, id: typeof ChoiceId.Type) =>
-    ChoicesBinding.select(id)(model),
+export const selectChoice = choicesExecutionComposition.makeUpdate.withContext(
+  (id: typeof ChoiceId.Type) => ({
+    IgnoredChildMessage: (model, _message) => ChoicesBinding.select(id)(model),
+  }),
 )
 export const setLiteralChoiceValue =
-  literalChoicesExecutionComposition.makeUpdate(
-    (model, _message, kind: 'Primary' | 'Secondary', value: 'One' | 'Two') =>
-      LiteralChoicesBinding.setValue(kind, value)(model),
+  literalChoicesExecutionComposition.makeUpdate.withContext(
+    (kind: 'Primary' | 'Secondary', value: 'One' | 'Two') => ({
+      IgnoredChildMessage: (model, _message) =>
+        LiteralChoicesBinding.setValue(kind, value)(model),
+    }),
   )
 export const selectLiteralChoice =
-  literalChoicesExecutionComposition.makeUpdate(
-    (model, _message, kind: 'Primary' | 'Secondary') =>
-      LiteralChoicesBinding.select(kind)(model),
+  literalChoicesExecutionComposition.makeUpdate.withContext(
+    (kind: 'Primary' | 'Secondary') => ({
+      IgnoredChildMessage: (model, _message) =>
+        LiteralChoicesBinding.select(kind)(model),
+    }),
   )
-export const foldTextEntry = textEntriesExecutionComposition.makeUpdate(
-  (model, _message, id: string, childMessage: typeof TextMessage.Type) =>
-    TextEntriesBinding.fold(model, id, childMessage),
-)
+export const foldTextEntry =
+  textEntriesExecutionComposition.makeUpdate.withContext(
+    (id: string, childMessage: typeof TextMessage.Type) => ({
+      IgnoredChildMessage: (model, _message) =>
+        TextEntriesBinding.fold(model, id, childMessage),
+    }),
+  )
 
 const choiceExecutionMessage = ParentMessage.IgnoredChildMessage()
 const otherExecutionMessage = ParentMessage.IgnoredChildMessage()

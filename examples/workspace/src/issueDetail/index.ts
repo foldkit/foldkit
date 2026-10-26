@@ -1,0 +1,1 @@
+export { IssueDetailBlock } from './block'

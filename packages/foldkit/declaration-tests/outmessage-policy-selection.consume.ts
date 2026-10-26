@@ -1,6 +1,7 @@
 import {
   ChildModel,
   EntriesBindingWithOutMessagePolicy,
+  InlinePolicyBlock,
   InlinePolicyComposition,
   LeftBindingWithInlineOutMessagePolicy,
   LeftBindingWithOutMessagePolicy,
@@ -8,6 +9,8 @@ import {
   ParentComposition,
   ParentDefinition,
   ParentModel,
+  ReciprocalPolicyBlock,
+  ReciprocalPolicyComposition,
   RefinedBindingWithInlineOutMessagePolicy,
   RefinedInlinePolicyComposition,
   RightBindingWithOutMessagePolicy,
@@ -28,18 +31,25 @@ export const emittedView = LeftBindingWithOutMessagePolicy.embedView({
   slotId: 'emitted-left',
   model: ChildModel.make({ value: '' }),
 })
-export const emittedUpdate = ParentComposition.makeUpdate(model => ({ model }))
-export const emittedInlineUpdate = InlinePolicyComposition.makeUpdate(
-  model => ({
+export const emittedUpdate = ParentComposition.makeUpdate({
+  Reflected: model => ({ model }),
+})
+export const emittedInlineUpdate = InlinePolicyComposition.makeUpdate({
+  Reflected: model => ({
     model,
   }),
-)
+})
+export const emittedReciprocalUpdate = ReciprocalPolicyComposition.makeUpdate({
+  Reflected: model => ({ model }),
+})
 export const emittedInlineOperation =
   LeftBindingWithInlineOutMessagePolicy.reset()
 export const emittedRefinedInlineOperation =
   RefinedBindingWithInlineOutMessagePolicy.reset()
 export const emittedRefinedInlineUpdate =
-  RefinedInlinePolicyComposition.makeUpdate(model => ({ model }))
+  RefinedInlinePolicyComposition.makeUpdate({
+    Reflected: model => ({ model }),
+  })
 export const emittedReselection =
   LeftBindingWithReselectedOutMessagePolicy.withOutMessagePolicy({
     fold: foldLeftOutMessage,
@@ -47,6 +57,8 @@ export const emittedReselection =
 
 void EntriesBindingWithOutMessagePolicy
 void RightBindingWithOutMessagePolicy
+void InlinePolicyBlock
+void ReciprocalPolicyBlock
 
 export const emittedReusedComposition = ParentDefinition.makeComposition({
   bindings: ParentComposition.bindings,

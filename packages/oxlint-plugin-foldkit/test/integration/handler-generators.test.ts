@@ -2,9 +2,9 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { build } from 'rolldown'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { buildPlugin } from './build-plugin.ts'
 import { runOxlint } from './run-oxlint.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -18,11 +18,7 @@ const consumerConfigPath = join(workDir, 'consumer.oxlintrc.json')
 const fixturePath = join(workDir, 'command.ts')
 
 beforeAll(async () => {
-  await build({
-    input: join(pluginRoot, 'src', 'index.ts'),
-    platform: 'node',
-    output: { file: bundlePath, format: 'esm' },
-  })
+  await buildPlugin(bundlePath)
 
   const { default: plugin } = await import(pathToFileURL(bundlePath).href)
   writeFileSync(

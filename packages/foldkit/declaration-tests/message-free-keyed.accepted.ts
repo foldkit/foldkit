@@ -47,7 +47,7 @@ const prepareSilentBlock = () =>
       model: SilentModel.make({ id, ready: false }),
       commands: [WaitForever()],
     })),
-    update: SilentComposition.makeUpdate(),
+    update: SilentComposition.makeUpdate({}),
     EffectsLayer: WaitForever.layer,
   })
 export const SilentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -112,7 +112,7 @@ export const GeneralKeyedBinding = ParentDefinition.makeBinding(SilentBlock, {
 export const ParentComposition = ParentDefinition.makeComposition({
   bindings: [GeneralKeyedBinding],
 })
-export const initializeGeneral = ParentDefinition.makeStep(
+export const initializeGeneralStep = ParentDefinition.makeStep(
   (model, key: string) =>
     GeneralKeyedBinding.init({
       key,
@@ -126,7 +126,9 @@ export const initializeGeneral = ParentDefinition.makeStep(
 const prepareParentBlock = () =>
   ParentComposition.prepareBlock({
     init: ParentComposition.makeInit(() => ({ model: { entries: [] } })),
-    update: ParentComposition.makeUpdate(model => ({ model })),
+    update: ParentComposition.makeUpdate({
+      ClickedParent: model => ({ model }),
+    }),
   })
 export const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
@@ -135,7 +137,7 @@ export const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
 
 type InitializationRequirements = Expect<
   Equal<
-    Update.RequirementsOf<typeof initializeGeneral>,
+    Update.RequirementsOf<typeof initializeGeneralStep>,
     Block.Scoped<'general-silent', Command.HandlerOf<typeof WaitForever>>
   >
 >

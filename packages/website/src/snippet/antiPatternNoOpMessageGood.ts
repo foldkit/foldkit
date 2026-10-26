@@ -8,8 +8,6 @@ const Message = defineMessageUnion({
 
 const handleMouseClick = () => Message.IgnoredMouseClick()
 
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    IgnoredMouseClick: () => ({ model }),
-  }),
-)
+const update = ApplicationComposition.makeUpdate({
+  IgnoredMouseClick: model => ({ model }),
+})

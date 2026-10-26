@@ -18,7 +18,7 @@ const ResetCounter = makeDefinition('ResetCounter', {
   Message: CounterMessage,
   OutMessage: CounterOutMessage,
 })
-const reset = ResetCounter.makeStep(model => ({
+const resetStep = ResetCounter.makeStep(model => ({
   model: modifyFields(model, { count: () => 0 }),
   outMessage: CounterOutMessage.Reset(),
 }))
@@ -26,9 +26,9 @@ const ResetCounterComposition = ResetCounter.makeComposition()
 const prepareBlock = () =>
   ResetCounterComposition.prepareBlock({
     init: (count: number) => ({ model: CounterModel.make({ count }) }),
-    update: ResetCounterComposition.makeUpdate((model, _message) =>
-      reset(model),
-    ),
+    update: ResetCounterComposition.makeUpdate({
+      ClickedReset: (model, _message) => resetStep(model),
+    }),
     operations: { reset: () => Tuple.make(CounterMessage.ClickedReset()) },
     EffectsLayer: Layer.empty,
   })
@@ -146,28 +146,26 @@ const RecordCount = SequencedCounter.makeCommand('RecordCount', {
   args: { count: Schema.Number },
   messages: [SequencedCounterMessage.CompletedRecordCount],
 })
-const add = SequencedCounter.makeStep((model, amount: number) => ({
+const addStep = SequencedCounter.makeStep((model, amount: number) => ({
   model: modifyFields(model, { count: count => count + amount }),
 }))
-const record = SequencedCounter.makeStep(model => ({
+const recordStep = SequencedCounter.makeStep(model => ({
   model,
   commands: [RecordCount({ count: model.count })],
 }))
-const multiply = SequencedCounter.makeStep((model, factor: number) => ({
+const multiplyStep = SequencedCounter.makeStep((model, factor: number) => ({
   model: modifyFields(model, { count: count => count * factor }),
 }))
 const SequencedCounterComposition = SequencedCounter.makeComposition()
 const prepareSequencedCounterBlock = () =>
   SequencedCounterComposition.prepareBlock({
     init: (count: number) => ({ model: { count } }),
-    update: SequencedCounterComposition.makeUpdate((model, message) =>
-      SequencedCounterMessage.match(message, {
-        RequestedAdd: ({ amount }) => add(model, amount),
-        RequestedRecord: () => record(model),
-        RequestedMultiply: ({ factor }) => multiply(model, factor),
-        CompletedRecordCount: () => ({ model }),
-      }),
-    ),
+    update: SequencedCounterComposition.makeUpdate({
+      RequestedAdd: (model, { amount }) => addStep(model, amount),
+      RequestedRecord: model => recordStep(model),
+      RequestedMultiply: (model, { factor }) => multiplyStep(model, factor),
+      CompletedRecordCount: model => ({ model }),
+    }),
     operations: {
       add: (amount: number) =>
         Tuple.make(SequencedCounterMessage.RequestedAdd({ amount })),
@@ -330,12 +328,10 @@ const StaticComposition = Parent.makeComposition({
 const prepareStaticParent = () =>
   StaticComposition.prepareBlock({
     init: () => ({ model: initialModel }),
-    update: StaticComposition.makeUpdate((model, message) =>
-      Message.match(message, {
-        RequestedResetCounter: () => BoundCounterBinding.reset()(model),
-        RequestedResetEntry: () => ({ model }),
-      }),
-    ),
+    update: StaticComposition.makeUpdate({
+      RequestedResetCounter: model => BoundCounterBinding.reset()(model),
+      RequestedResetEntry: model => Parent.makeNoopStep()(model),
+    }),
     operations: { reset: () => Tuple.make(Message.RequestedResetCounter()) },
   })
 const staticParent: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -348,12 +344,10 @@ const KeyedComposition = Parent.makeComposition({
 const prepareKeyedParent = () =>
   KeyedComposition.prepareBlock({
     init: () => ({ model: initialModel }),
-    update: KeyedComposition.makeUpdate((model, message) =>
-      Message.match(message, {
-        RequestedResetCounter: () => ({ model }),
-        RequestedResetEntry: ({ id }) => EntriesBinding.reset(id)(model),
-      }),
-    ),
+    update: KeyedComposition.makeUpdate({
+      RequestedResetCounter: model => Parent.makeNoopStep()(model),
+      RequestedResetEntry: (model, { id }) => EntriesBinding.reset(id)(model),
+    }),
     operations: {
       reset: (id: number) => Tuple.make(Message.RequestedResetEntry({ id })),
     },
@@ -408,14 +402,15 @@ describe('bound Step sequencing', () => {
     const SequencedComposition = SequencedParent.makeComposition({
       bindings: [SequencedCounterBinding],
     })
-    const update = SequencedComposition.makeUpdate(model =>
-      Update.combineSteps(model, [
-        SequencedCounterBinding.add(2),
-        SequencedCounterBinding.record(),
-        SequencedCounterBinding.multiply(3),
-        SequencedCounterBinding.record(),
-      ]),
-    )
+    const update = SequencedComposition.makeUpdate({
+      RequestedSequence: model =>
+        Update.combineSteps(model, [
+          SequencedCounterBinding.add(2),
+          SequencedCounterBinding.record(),
+          SequencedCounterBinding.multiply(3),
+          SequencedCounterBinding.record(),
+        ]),
+    })
     const result = update(
       SequencedParentModel.make({ child: { count: 3 } }),
       SequencedParentMessage.RequestedSequence(),

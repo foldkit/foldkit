@@ -1,19 +1,14 @@
 import { Array, Option } from 'effect'
-import { modifyFields } from 'foldkit/struct'
 
 import { AttachmentsComposition } from './composition'
-import { Message } from './definition'
+import { makeFieldsStep } from './definition'
 
-export const update = AttachmentsComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    RemovedResume: () => ({
-      model: modifyFields(model, { maybeResume: () => Option.none() }),
-    }),
+export const update = AttachmentsComposition.makeUpdate({
+  RemovedResume: makeFieldsStep(() => ({
+    maybeResume: () => Option.none(),
+  })),
 
-    RemovedAdditionalFile: ({ fileIndex }) => ({
-      model: modifyFields(model, {
-        additionalFiles: Array.remove(fileIndex),
-      }),
-    }),
-  }),
-)
+  RemovedAdditionalFile: makeFieldsStep.fromMessage(({ fileIndex }) => ({
+    additionalFiles: Array.remove(fileIndex),
+  })),
+})

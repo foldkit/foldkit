@@ -15,13 +15,11 @@ const BoundSettingsComposition = BoundSettingsDefinition.makeComposition()
 const init = BoundSettingsComposition.makeInit(() => ({
   model: Model.make({ theme: 'System' }),
 }))
-const update = BoundSettingsComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    InformedOfThemeChange: ({ theme }) => ({
-      model: modifyFields(model, { theme: () => theme }),
-    }),
+const update = BoundSettingsComposition.makeUpdate({
+  InformedOfThemeChange: (model, { theme }) => ({
+    model: modifyFields(model, { theme: () => theme }),
   }),
-)
+})
 const prepare = () =>
   BoundSettingsComposition.prepareBlock({
   init,

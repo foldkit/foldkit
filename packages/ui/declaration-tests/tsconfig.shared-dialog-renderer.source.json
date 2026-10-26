@@ -1,0 +1,19 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "../..",
+    "paths": {
+      "@foldkit/ui/dialog": ["../src/dialog/public.ts"],
+      "foldkit": ["../../foldkit/src/index.ts"],
+      "foldkit/*": ["../../foldkit/src/*/public.ts"],
+      "foldkit/devtools-host": ["../../foldkit/src/devTools/host.ts"]
+    }
+  },
+  "files": [
+    "../../foldkit/src/vite-env.d.ts",
+    "shared-dialog-renderer.accepted.ts",
+    "shared-dialog-renderer.rejected.ts",
+    "shared-dialog-renderer.consume.ts"
+  ],
+  "include": []
+}

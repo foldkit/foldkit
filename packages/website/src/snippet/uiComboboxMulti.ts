@@ -22,18 +22,20 @@ const CitiesPickerDefinition = Block.makeDefinition('CitiesPicker', {
   Message,
 })
 
+const { makeFieldsStep, makeNoopStep } = CitiesPickerDefinition
+
 // The parent toggles the committed value in the selection it owns.
 const foldComboboxMultiOutMessage = CitiesPickerDefinition.makeOutMessageFold(
   CitiesCombobox,
   {
     Selected: ({ value }) =>
-      CitiesPickerDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         selectedCities: selectedCities =>
           Array.contains(selectedCities, value)
             ? Array.filter(selectedCities, city => city !== value)
             : Array.append(selectedCities, value),
       })),
-    ClearedSelection: CitiesPickerDefinition.makeNoopStep,
+    ClearedSelection: makeNoopStep,
   },
 )
 
@@ -54,7 +56,7 @@ const init = CitiesPickerComposition.makeInit(() => ({
   },
 }))
 
-const update = CitiesPickerComposition.makeUpdate()
+const update = CitiesPickerComposition.makeUpdate({})
 
 const cities: ReadonlyArray<typeof City.Type> = [
   'Johannesburg',

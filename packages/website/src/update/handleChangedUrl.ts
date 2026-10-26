@@ -1,5 +1,6 @@
 import { Array, Option, Record } from 'effect'
 import { Update } from 'foldkit'
+import { initAndSet } from 'foldkit/bindingInit'
 import { Transition } from 'foldkit/route'
 import { modifyFields } from 'foldkit/struct'
 import { type Url } from 'foldkit/url'
@@ -14,35 +15,39 @@ import {
   SearchBinding,
   ThemeMenuBinding,
 } from '../composition'
-import { ApplicationDefinition } from '../definition'
+import { makeCommandsStep, makeFieldsStep, makeStep } from '../definition'
 import { findActiveSectionKeyForRoute } from '../docsNav'
+import type { Message } from '../message'
 import { type Model } from '../model'
-import { ApplicationRoute, urlToApplicationRoute } from '../route'
+import {
+  ApplicationRoute,
+  type ApplicationTransition,
+  urlToApplicationRoute,
+} from '../route'
 
-type ApplicationTransition = Transition.Transition<typeof ApplicationRoute.Type>
-
-export const handleChangedUrl = (url: Url) =>
-  ApplicationDefinition.makeStep(model => {
+export const handleChangedUrlStep = makeStep(
+  (model, { url }: typeof Message.ChangedUrl.Type) => {
     const { route: previousRoute } = model
     const nextRoute = urlToApplicationRoute(url)
     const transition = Transition.make(previousRoute, nextRoute)
     const isDifferentPathname = model.url.pathname !== url.pathname
 
     return Update.combineSteps([
-      ApplicationDefinition.makeFieldsStep(stepModel => ({
+      makeFieldsStep(stepModel => ({
         route: () => nextRoute,
         url: () => url,
         sidebarGroups: () => nextSidebarGroups(stepModel, nextRoute),
       })),
-      stepHome(transition),
-      stepPlayground(transition),
+      reconcileHomeStep(transition),
+      reconcilePlaygroundStep(transition),
       MobileMenuDialogBinding.requestClose(),
       ThemeMenuBinding.requestClose(),
       SearchBinding.informRouteChanged(),
-      loadRouteData(transition),
-      scrollAfterUrlChange(url, isDifferentPathname),
+      loadRouteDataStep(transition),
+      scrollAfterUrlChangeStep(url, isDifferentPathname),
     ])
-  })
+  },
+)
 
 const nextSidebarGroups = (
   model: typeof Model.Type,
@@ -56,14 +61,10 @@ const nextSidebarGroups = (
         : Record.set(model.sidebarGroups, activeSectionKey, true),
   })
 
-const stepHome = (transition: ApplicationTransition) =>
-  ApplicationDefinition.makeStep(model => {
+const reconcileHomeStep = (transition: ApplicationTransition) =>
+  makeStep(model => {
     if (Transition.isEntering(transition, 'Home')) {
-      return HomeBinding.init({
-        args: [],
-        toParentModel: home =>
-          modifyFields(model, { maybeHome: () => Option.some(home) }),
-      })
+      return initAndSet(HomeBinding, model, { args: [] })
     }
 
     if (Option.isSome(Transition.exited(transition, 'Home'))) {
@@ -75,8 +76,8 @@ const stepHome = (transition: ApplicationTransition) =>
     return { model }
   })
 
-const stepPlayground = (transition: ApplicationTransition) =>
-  ApplicationDefinition.makeStep(model => {
+const reconcilePlaygroundStep = (transition: ApplicationTransition) =>
+  makeStep(model => {
     const { nextRoute } = transition
 
     if (nextRoute._tag !== 'Playground') {
@@ -95,15 +96,13 @@ const stepPlayground = (transition: ApplicationTransition) =>
       return { model }
     }
 
-    return PlaygroundBinding.init({
+    return initAndSet(PlaygroundBinding, model, {
       args: [nextRoute.exampleSlug, model.maybeIsPlaygroundSupported],
-      toParentModel: playground =>
-        modifyFields(model, { playground: () => Option.some(playground) }),
     })
   })
 
-const loadRouteData = (transition: ApplicationTransition) =>
-  ApplicationDefinition.makeStep(model =>
+const loadRouteDataStep = (transition: ApplicationTransition) =>
+  makeStep(model =>
     ApplicationRoute.matchOrElse(
       transition.nextRoute,
       {
@@ -138,10 +137,12 @@ const loadRouteData = (transition: ApplicationTransition) =>
     ),
   )
 
-const scrollAfterUrlChange = (url: Url, isChangingPathname: boolean) => {
+const scrollAfterUrlChangeStep = (url: Url, isChangingPathname: boolean) => {
   if (Option.isSome(url.hash)) {
-    return ApplicationDefinition.makeCommandsStep([
-      Command.ScrollToAnchor({ hash: url.hash.value }),
+    const hash = url.hash.value
+
+    return makeCommandsStep(() => [
+      Command.ScrollToAnchor({ hash }),
       ...Array.filter(
         [Command.ScrollSidebarActiveLinkIntoView()],
         () => isChangingPathname,
@@ -149,7 +150,7 @@ const scrollAfterUrlChange = (url: Url, isChangingPathname: boolean) => {
     ])
   }
 
-  return ApplicationDefinition.makeCommandsStep(
+  return makeCommandsStep(() =>
     Array.filter(
       [Command.ScrollToTop(), Command.ScrollSidebarActiveLinkIntoView()],
       () => isChangingPathname,

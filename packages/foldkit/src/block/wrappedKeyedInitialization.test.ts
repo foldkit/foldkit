@@ -34,7 +34,7 @@ const FinishIncrement = Child.makeCommand('FinishIncrement', {
     return () => Effect.succeed(ChildMessage.CompletedIncrement())
   },
 })
-const increment = Child.makeStep(model => ({
+const incrementStep = Child.makeStep(model => ({
   model: modifyFields(model, { count: count => count + 100 }),
   commands: [FinishIncrement()],
 }))
@@ -51,15 +51,13 @@ const prepareChildBlock = () =>
         commands: [FinishInitialization({ count })],
       }
     }),
-    update: ChildComposition.makeUpdate((model, message) =>
-      ChildMessage.match(message, {
-        RequestedIncrement: () => increment(model),
-        CompletedInitialization: ({ count }) => ({
-          model: modifyFields(model, { count: () => count }),
-        }),
-        CompletedIncrement: () => ({ model }),
+    update: ChildComposition.makeUpdate({
+      RequestedIncrement: model => incrementStep(model),
+      CompletedInitialization: (model, { count }) => ({
+        model: modifyFields(model, { count: () => count }),
       }),
-    ),
+      CompletedIncrement: model => ({ model }),
+    }),
     operations: {
       increment: () => Tuple.make(ChildMessage.RequestedIncrement()),
     },
@@ -125,7 +123,7 @@ const ParentComposition = Parent.makeComposition({
 })
 
 it('initializes occurrences in order and orders own, child, then Step Commands', () => {
-  const markStepped = Parent.makeStep(model => ({
+  const markSteppedStep = Parent.makeStep(model => ({
     model: modifyFields(model, { status: () => 'Stepped' }),
   }))
   const initialize = ParentComposition.makeInit(
@@ -133,7 +131,7 @@ it('initializes occurrences in order and orders own, child, then Step Commands',
       childInitContext,
       model: { status: 'Ready' },
       commands: [FinishParentInitialization()],
-      steps: [EntriesBinding.increment('first'), markStepped],
+      steps: [EntriesBinding.increment('first'), markSteppedStep],
     }),
   )
 
@@ -172,7 +170,11 @@ const prepareKeyedChildBlock = () =>
     init: KeyedChildComposition.makeInit((id: string, count: number) => ({
       model: KeyedChildModel.make({ id, count }),
     })),
-    update: KeyedChildComposition.makeUpdate(model => ({ model })),
+    update: KeyedChildComposition.makeUpdate({
+      RequestedIncrement: model => ({ model }),
+      CompletedInitialization: model => ({ model }),
+      CompletedIncrement: model => ({ model }),
+    }),
   })
 const KeyedChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof KeyedChildModel,
@@ -238,12 +240,12 @@ it('rejects an unwrapped keyed child that replaces the initialized Model', () =>
 })
 
 it('drops an original init Command when a Step removes its key before another Step readds it', () => {
-  const removeFirst = Parent.makeStep(model => ({
+  const removeFirstStep = Parent.makeStep(model => ({
     model: modifyFields(model, {
       entries: Array.filter(({ id }) => id !== 'first'),
     }),
   }))
-  const readdFirst = Parent.makeStep(model => ({
+  const readdFirstStep = Parent.makeStep(model => ({
     model: modifyFields(model, {
       entries: entries => [
         ...entries,
@@ -258,7 +260,7 @@ it('drops an original init Command when a Step removes its key before another St
   const initialize = ParentComposition.makeInit(() => ({
     childInitContext: { firstCount: 1, secondCount: 2 },
     model: { status: 'Ready' },
-    steps: [removeFirst, readdFirst],
+    steps: [removeFirstStep, readdFirstStep],
   }))
 
   const initialized = initialize()
@@ -479,10 +481,10 @@ it('selects one large wrapped keyed field once in each validation and survival p
   const ScalingComposition = Parent.makeComposition({
     bindings: [ScalingBinding],
   })
-  const retainEntries = Parent.makeStep(model => ({ model }))
+  const retainEntriesStep = Parent.makeStep(model => ({ model }))
   const initialize = ScalingComposition.makeInit(() => ({
     model: { status: 'Ready' },
-    steps: [retainEntries],
+    steps: [retainEntriesStep],
   }))
 
   const initialized = (() => {

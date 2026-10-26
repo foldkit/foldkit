@@ -49,3 +49,5 @@ export const PlaygroundDefinition = Block.makeDefinition('Playground', {
   Model,
   Message,
 })
+
+export const { makeFieldsStep, makeNoopStep } = PlaygroundDefinition

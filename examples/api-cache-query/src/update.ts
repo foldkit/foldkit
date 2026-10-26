@@ -7,29 +7,27 @@ import {
   PostsBinding,
   StatsBinding,
 } from './composition'
-import { Message } from './message'
+import { makeFieldsStep } from './definition'
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedPost: ({ postId }) =>
-      PostDetailsBinding.requestLoadIfMissing({ postId })(
-        modifyFields(model, {
-          maybeSelectedPostId: () => Option.some(postId),
-        }),
-      ),
+export const update = ApplicationComposition.makeUpdate({
+  ClickedPost: (model, { postId }) =>
+    PostDetailsBinding.requestLoadIfMissing({ postId })(
+      modifyFields(model, {
+        maybeSelectedPostId: () => Option.some(postId),
+      }),
+    ),
 
-    ClickedBackToPosts: () => ({
-      model: modifyFields(model, { maybeSelectedPostId: () => Option.none() }),
-    }),
+  ClickedBackToPosts: makeFieldsStep(() => ({
+    maybeSelectedPostId: () => Option.none(),
+  })),
 
-    ClickedRefreshPosts: () => PostsBinding.requestRevalidationOrLoad()(model),
-    ClickedRetryPosts: () => PostsBinding.requestRevalidationOrLoad()(model),
+  ClickedRefreshPosts: PostsBinding.requestRevalidationOrLoad(),
+  ClickedRetryPosts: PostsBinding.requestRevalidationOrLoad(),
 
-    ClickedRetryPost: ({ postId }) =>
-      PostDetailsBinding.requestRevalidationOrLoad({ postId })(model),
+  ClickedRetryPost: (model, { postId }) =>
+    PostDetailsBinding.requestRevalidationOrLoad({ postId })(model),
 
-    ClickedRefreshStats: () => StatsBinding.requestRevalidationOrLoad()(model),
-    ClickedRetryStats: () => StatsBinding.requestRevalidationOrLoad()(model),
-    TickedStatsRefreshInterval: () => StatsBinding.requestRevalidation()(model),
-  }),
-)
+  ClickedRefreshStats: StatsBinding.requestRevalidationOrLoad(),
+  ClickedRetryStats: StatsBinding.requestRevalidationOrLoad(),
+  TickedStatsRefreshInterval: StatsBinding.requestRevalidation(),
+})

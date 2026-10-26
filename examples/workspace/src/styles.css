@@ -1,0 +1,90 @@
+@import 'tailwindcss';
+
+@layer components {
+  .text-control,
+  .input-control,
+  .input-control-compact,
+  .listbox-trigger,
+  .listbox-trigger-compact {
+    @apply min-w-0 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 shadow-xs outline-none transition-colors hover:border-slate-300 focus-visible:border-indigo-400 focus-visible:ring-2 focus-visible:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-60 data-[disabled]:cursor-not-allowed data-[disabled]:bg-slate-50 data-[disabled]:opacity-60;
+  }
+
+  .text-control,
+  .input-control,
+  .input-control-compact {
+    @apply w-full placeholder:text-slate-500;
+  }
+
+  .input-control,
+  .input-control-compact {
+    @apply px-3 py-2 text-sm;
+  }
+
+  .input-control,
+  .listbox-trigger {
+    @apply h-10;
+  }
+
+  .input-control-compact,
+  .listbox-trigger-compact {
+    @apply h-9;
+  }
+
+  .listbox-trigger,
+  .listbox-trigger-compact {
+    @apply flex w-full cursor-pointer items-center justify-between gap-3 px-3 text-left text-sm;
+  }
+
+  .button,
+  .button-compact,
+  .button-primary,
+  .button-primary-compact {
+    @apply inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg border text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50;
+  }
+
+  .button,
+  .button-compact {
+    @apply border-slate-200 bg-white text-slate-600 shadow-xs hover:border-slate-300 hover:bg-slate-50;
+  }
+
+  .button-primary,
+  .button-primary-compact {
+    @apply border-indigo-600 bg-indigo-600 text-white shadow-xs hover:bg-indigo-700 disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400;
+  }
+
+  .button,
+  .button-primary {
+    @apply h-10 px-4 py-2;
+  }
+
+  .button-compact,
+  .button-primary-compact {
+    @apply h-9 px-3 py-2;
+  }
+
+  .popover-surface,
+  .dialog-surface {
+    @apply border border-slate-200 bg-white text-slate-700;
+  }
+
+  .popover-surface {
+    @apply rounded-lg shadow-lg;
+  }
+
+  .dialog-surface {
+    @apply rounded-xl shadow-xl;
+  }
+
+  .listbox-option,
+  .command-option {
+    @apply flex cursor-pointer items-center rounded-md font-medium text-slate-700 outline-none hover:bg-slate-50 data-[active]:bg-indigo-50 data-[active]:text-indigo-700 data-[selected]:font-semibold data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50;
+  }
+
+  .listbox-option {
+    @apply min-h-9 px-2.5 py-2 text-sm;
+  }
+
+  .command-option {
+    @apply min-h-12 gap-3 px-3 py-3 text-sm;
+  }
+}

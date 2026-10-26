@@ -58,7 +58,7 @@ const prepare = () =>
         toParentModel: menu => ({ menu }),
       }),
     ),
-    update: MenuTriggerClickTestComposition.makeUpdate(),
+    update: MenuTriggerClickTestComposition.makeUpdate({}),
     view,
   })
 const ApplicationBlock: Block.FromAssemblyWithView<

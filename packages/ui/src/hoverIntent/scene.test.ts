@@ -32,7 +32,7 @@ const HoverIntentSceneComposition = HoverIntentSceneDefinition.makeComposition({
   bindings: [HoverIntentBinding],
 })
 
-const update = HoverIntentSceneComposition.makeUpdate()
+const update = HoverIntentSceneComposition.makeUpdate({})
 
 const sceneView = HoverIntentSceneComposition.makeView((model, h) =>
   h.block(

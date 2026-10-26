@@ -1,0 +1,1 @@
+export { CommandPaletteBlock } from './block'

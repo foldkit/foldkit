@@ -4,11 +4,15 @@ import {
   makeRules,
   validate,
 } from 'foldkit/fieldValidation'
-import { modifyFields } from 'foldkit/struct'
 
 import { revealFieldErrors } from '../../validation'
 import { EducationEntryComposition } from './composition'
-import { Message, type Model, OutMessage } from './definition'
+import {
+  type Model,
+  OutMessage,
+  makeFieldsStep,
+  makeOutMessageStep,
+} from './definition'
 
 export const schoolRules = makeRules({
   required: 'School is required',
@@ -26,37 +30,31 @@ const validateSchool = validate(schoolRules)
 const validateDegree = validate(degreeRules)
 const validateFieldOfStudy = validate(fieldOfStudyRules)
 
-export const update = EducationEntryComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    UpdatedSchool: ({ value }) => ({
-      model: modifyFields(model, { school: () => validateSchool(value) }),
-    }),
+export const update = EducationEntryComposition.makeUpdate({
+  UpdatedSchool: makeFieldsStep.fromMessage(({ value }) => ({
+    school: () => validateSchool(value),
+  })),
 
-    UpdatedDegree: ({ value }) => ({
-      model: modifyFields(model, { degree: () => validateDegree(value) }),
-    }),
+  UpdatedDegree: makeFieldsStep.fromMessage(({ value }) => ({
+    degree: () => validateDegree(value),
+  })),
 
-    UpdatedFieldOfStudy: ({ value }) => ({
-      model: modifyFields(model, {
-        fieldOfStudy: () => validateFieldOfStudy(value),
-      }),
-    }),
+  UpdatedFieldOfStudy: makeFieldsStep.fromMessage(({ value }) => ({
+    fieldOfStudy: () => validateFieldOfStudy(value),
+  })),
 
-    ToggledCurrentlyEnrolled: ({ isChecked }) => ({
-      model: modifyFields(model, { isCurrentlyEnrolled: () => isChecked }),
-    }),
+  ToggledCurrentlyEnrolled: makeFieldsStep.fromMessage(({ isChecked }) => ({
+    isCurrentlyEnrolled: () => isChecked,
+  })),
 
-    RequestedRevealErrors: () => ({
-      model: modifyFields(model, {
-        school: revealFieldErrors(schoolRules),
-        degree: revealFieldErrors(degreeRules),
-        fieldOfStudy: revealFieldErrors(fieldOfStudyRules),
-      }),
-    }),
+  RequestedRevealErrors: makeFieldsStep(() => ({
+    school: revealFieldErrors(schoolRules),
+    degree: revealFieldErrors(degreeRules),
+    fieldOfStudy: revealFieldErrors(fieldOfStudyRules),
+  })),
 
-    ClickedRemoveSelf: () => ({ model, outMessage: OutMessage.Removed() }),
-  }),
-)
+  ClickedRemoveSelf: makeOutMessageStep(() => OutMessage.Removed()),
+})
 
 export const hasErrors = (entry: typeof Model.Type): boolean =>
   anyInvalid([entry.school, entry.degree, entry.fieldOfStudy])

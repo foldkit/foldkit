@@ -71,13 +71,11 @@ DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
   Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 
-DeclarationCoordinatedComposition.makeUpdate((model, message) =>
-  // @ts-expect-error A result branch cannot hide an unapplied connected Step in another branch.
-  DeclarationFoldParentDefinition.Message.match(message, {
-    RequestedChoose: ({ value }) => ChildBinding.requestChoose({ value }),
-    CompletedRecordChoice: () => ({ model }),
-  }),
-)
+DeclarationCoordinatedComposition.makeUpdate({
+  // @ts-expect-error A result handler cannot return an unapplied connected Step.
+  RequestedChoose: (_model, { value }) => ChildBinding.requestChoose({ value }),
+  CompletedRecordChoice: model => ({ model }),
+})
 
 // @ts-expect-error All named child variants must be handled.
 DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
@@ -191,44 +189,43 @@ DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
   Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 
-// @ts-expect-error A valid branch cannot hide a foreign Command result Message.
-DeclarationCoordinatedComposition.makeUpdate((model, message) =>
-  DeclarationFoldParentDefinition.Message.match(message, {
-    RequestedChoose: () => ({ model, commands: [ForeignCommand()] }),
-    CompletedRecordChoice: () => ({ model }),
+DeclarationCoordinatedComposition.makeUpdate({
+  // @ts-expect-error A handler cannot return a foreign Command result Message.
+  RequestedChoose: model => ({ model, commands: [ForeignCommand()] }),
+  CompletedRecordChoice: model => ({ model }),
+})
+
+DeclarationCoordinatedComposition.makeUpdate({
+  // @ts-expect-error A handler cannot return an undeclared parent OutMessage.
+  RequestedChoose: model => ({
+    model,
+    outMessage: ChildOutMessage.Closed(),
   }),
-)
+  CompletedRecordChoice: model => ({ model }),
+})
 
-// @ts-expect-error A valid branch cannot hide an undeclared parent OutMessage.
-DeclarationCoordinatedComposition.makeUpdate((model, message) =>
-  DeclarationFoldParentDefinition.Message.match(message, {
-    RequestedChoose: () => ({ model, outMessage: ChildOutMessage.Closed() }),
-    CompletedRecordChoice: () => ({ model }),
-  }),
-)
+DeclarationCoordinatedComposition.makeUpdate({
+  // @ts-expect-error Every handler must return the owning parent Model.
+  RequestedChoose: () => ({ model: { wrong: true } }),
+  CompletedRecordChoice: DeclarationFoldParentDefinition.makeNoopStep(),
+})
 
-DeclarationCoordinatedComposition.makeUpdate((model, message) =>
-  // @ts-expect-error Every branch must return the owning parent Model.
-  DeclarationFoldParentDefinition.Message.match(message, {
-    RequestedChoose: () => ({ model: { wrong: true } }),
-    CompletedRecordChoice: () => ({ model }),
-  }),
-)
+DeclarationCoordinatedComposition.makeUpdate({
+  // @ts-expect-error A record handler must validate every conditional Command result Message.
+  RequestedChoose: (model, message) =>
+    message.value === 'Apple'
+      ? { model, commands: [ForeignCommand()] }
+      : { model },
+  CompletedRecordChoice: model => ({ model }),
+})
 
-// @ts-expect-error A direct conditional must validate every Command result Message.
-DeclarationCoordinatedComposition.makeUpdate((model, message) =>
-  message._tag === 'RequestedChoose'
-    ? { model, commands: [ForeignCommand()] }
-    : { model },
-)
-
-// @ts-expect-error An early return must validate its parent OutMessage.
-DeclarationCoordinatedComposition.makeUpdate((model, message) => {
-  if (message._tag === 'RequestedChoose') {
-    return { model, outMessage: ChildOutMessage.Closed() }
-  }
-
-  return { model }
+DeclarationCoordinatedComposition.makeUpdate({
+  // @ts-expect-error A record handler must validate every conditional parent OutMessage.
+  RequestedChoose: (model, message) =>
+    message.value === 'Apple'
+      ? { model, outMessage: ChildOutMessage.Closed() }
+      : { model },
+  CompletedRecordChoice: model => ({ model }),
 })
 
 // @ts-expect-error Connected Steps in a fold keep their sibling registration obligation.
@@ -271,11 +268,9 @@ const DeclarationNoFoldComposition =
 const prepareNoOutMessageBlock = () =>
   DeclarationNoFoldComposition.prepareBlock({
     init: () => ({ model: { count: 0 } }),
-    update: DeclarationNoFoldComposition.makeUpdate((model, message) =>
-      DeclarationNoFoldDefinition.Message.match(message, {
-        CompletedWork: () => ({ model }),
-      }),
-    ),
+    update: DeclarationNoFoldComposition.makeUpdate({
+      CompletedWork: model => ({ model }),
+    }),
   })
 const NoOutMessageBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof DeclarationNoFoldComposition.Model,
@@ -299,7 +294,7 @@ const prepareTaggedOutMessageBlock = () =>
     init: () => ({
       model: RootModel.make({ child: { count: 0 }, choice: 'Apple' }),
     }),
-    update: DeclarationTaggedFoldComposition.makeUpdate(),
+    update: DeclarationTaggedFoldComposition.makeUpdate({}),
   })
 const TaggedOutMessageBlock: Block.FromAssemblyWithOutMessage<
   typeof RootModel,
@@ -328,16 +323,19 @@ DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
   Chose: () => model => ({ model, commands: { unexpected: true } }),
   Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
-// @ts-expect-error Authored update Command collections cannot widen to unknown.
-DeclarationCoordinatedComposition.makeUpdate((model, _message) => ({
-  model,
-  commands: unknownCommands,
-}))
-// @ts-expect-error Authored update Command collections must be arrays of Commands.
-DeclarationCoordinatedComposition.makeUpdate((model, _message) => ({
-  model,
-  commands: { unexpected: true },
-}))
+DeclarationCoordinatedComposition.makeUpdate({
+  // @ts-expect-error Authored update Command collections cannot widen to unknown.
+  RequestedChoose: model => ({ model, commands: unknownCommands }),
+  CompletedRecordChoice: model => ({ model }),
+})
+DeclarationCoordinatedComposition.makeUpdate({
+  // @ts-expect-error Authored update Command collections must be arrays of Commands.
+  RequestedChoose: model => ({
+    model,
+    commands: { unexpected: true },
+  }),
+  CompletedRecordChoice: model => ({ model }),
+})
 
 declare const anyInputStep: (
   // oxlint-disable-next-line typescript/no-explicit-any -- This rejection fixture deliberately erases the Step input.
@@ -357,9 +355,8 @@ DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
   Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 
-DeclarationLiteralFoldDefinition.makeComposition().makeUpdate(
-  (_model, _message) => ({
-    // @ts-expect-error A contextual Model literal must belong to its declared Schema.
-    model: { phase: 'Unknown' },
-  }),
-)
+DeclarationLiteralFoldDefinition.makeComposition().makeUpdate({
+  // @ts-expect-error A contextual Model literal must belong to its declared Schema.
+  RequestedReset: () => ({ model: { phase: 'Unknown' } }),
+  RequestedFinish: DeclarationLiteralFoldDefinition.makeNoopStep(),
+})

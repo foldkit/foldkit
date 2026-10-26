@@ -10,9 +10,8 @@ import {
   SkillsBinding,
   WorkHistoryBinding,
 } from './composition'
-import { ApplicationDefinition } from './definition'
+import { makeFieldsStep, makeStep } from './definition'
 import { Step } from './domain'
-import { Message } from './message'
 import { type Model, Submission } from './model'
 import { isComplete as isEducationComplete } from './step/education/update'
 import { isComplete as isPersonalInfoComplete } from './step/personalInfo/update'
@@ -41,11 +40,11 @@ const toPreviousStep = (
     Option.getOrElse(() => current),
   )
 
-const markSubmitAttempted = ApplicationDefinition.makeFieldsStep(() => ({
+const markSubmitAttemptedStep = makeFieldsStep(() => ({
   isSubmitAttempted: () => true,
 }))
 
-const submitWhenComplete = ApplicationDefinition.makeStep(model => {
+const submitWhenCompleteStep = makeStep(model => {
   if (isApplicationComplete(model)) {
     return {
       model: modifyFields(model, {
@@ -58,40 +57,34 @@ const submitWhenComplete = ApplicationDefinition.makeStep(model => {
   return { model }
 })
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedNext: () => ({
-      model: modifyFields(model, { currentStep: toNextStep }),
-    }),
+export const update = ApplicationComposition.makeUpdate({
+  ClickedNext: makeFieldsStep(() => ({
+    currentStep: toNextStep,
+  })),
 
-    ClickedPrevious: () => ({
-      model: modifyFields(model, { currentStep: toPreviousStep }),
-    }),
+  ClickedPrevious: makeFieldsStep(() => ({
+    currentStep: toPreviousStep,
+  })),
 
-    ToggledPreview: () => ({
-      model: modifyFields(model, { isPreviewVisible: isVisible => !isVisible }),
-    }),
+  ToggledPreview: makeFieldsStep(() => ({
+    isPreviewVisible: isVisible => !isVisible,
+  })),
 
-    ClickedSubmit: () =>
-      Update.combineSteps(model, [
-        markSubmitAttempted,
-        PersonalInfoBinding.requestRevealErrors(),
-        WorkHistoryBinding.requestRevealErrors(),
-        EducationBinding.requestRevealErrors(),
-        SkillsBinding.requestRevealErrors(),
-        submitWhenComplete,
-      ]),
+  ClickedSubmit: model =>
+    Update.combineSteps(model, [
+      markSubmitAttemptedStep,
+      PersonalInfoBinding.requestRevealErrors(),
+      WorkHistoryBinding.requestRevealErrors(),
+      EducationBinding.requestRevealErrors(),
+      SkillsBinding.requestRevealErrors(),
+      submitWhenCompleteStep,
+    ]),
 
-    SucceededSubmitApplication: () => ({
-      model: modifyFields(model, {
-        submission: () => Submission.SubmitSuccess(),
-      }),
-    }),
+  SucceededSubmitApplication: makeFieldsStep(() => ({
+    submission: () => Submission.SubmitSuccess(),
+  })),
 
-    FailedSubmitApplication: ({ error }) => ({
-      model: modifyFields(model, {
-        submission: () => Submission.SubmitError({ error }),
-      }),
-    }),
-  }),
-)
+  FailedSubmitApplication: makeFieldsStep.fromMessage(({ error }) => ({
+    submission: () => Submission.SubmitError({ error }),
+  })),
+})

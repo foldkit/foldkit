@@ -32,25 +32,23 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedDecrement: () => {
-      const nextCount = model.count - 1
-      return {
-        model: modifyFields(model, { count: () => nextCount }),
-        commands: [PersistCount({ count: nextCount })],
-      }
-    },
-    ClickedIncrement: () => {
-      const nextCount = model.count + 1
-      return {
-        model: modifyFields(model, { count: () => nextCount }),
-        commands: [PersistCount({ count: nextCount })],
-      }
-    },
-    CompletedPersistCount: () => ({ model }),
-  }),
-)
+export const update = ApplicationComposition.makeUpdate({
+  ClickedDecrement: model => {
+    const nextCount = model.count - 1
+    return {
+      model: modifyFields(model, { count: () => nextCount }),
+      commands: [PersistCount({ count: nextCount })],
+    }
+  },
+  ClickedIncrement: model => {
+    const nextCount = model.count + 1
+    return {
+      model: modifyFields(model, { count: () => nextCount }),
+      commands: [PersistCount({ count: nextCount })],
+    }
+  },
+  CompletedPersistCount: model => ({ model }),
+})
 
 const COUNT_COOKIE_MAX_AGE_SECONDS = 31536000
 

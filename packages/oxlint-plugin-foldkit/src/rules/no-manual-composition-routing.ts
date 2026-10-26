@@ -8,11 +8,15 @@ import {
 } from 'effect-oxlint'
 
 import {
+  blockBindingConfiguration,
   indexReferences,
+  isBlockBindingCall,
   isCallExpression,
   isIdentifier,
   isIdentifierReference,
+  isMemberExpression,
   isObjectExpression,
+  isOwnedDefinitionCallee,
   isOwnedDefinitionCall,
   resolvedVariable,
   staticMemberPath,
@@ -123,10 +127,81 @@ const resolvedObject = (
   )
 }
 
-const isOwnedMakeUpdate = (
+type AuthoredUpdateKind = 'Direct' | 'WithContext'
+
+const ownedMakeUpdateKind = (
   node: ESTree.CallExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
-): boolean => isOwnedDefinitionCall(node, 'makeUpdate', references)
+): AuthoredUpdateKind | undefined => {
+  if (isOwnedDefinitionCall(node, 'makeUpdate', references)) {
+    return 'Direct'
+  }
+
+  if (!isMemberExpression(node.callee)) {
+    return undefined
+  }
+  const maybePath = staticMemberPath(node.callee)
+  if (
+    Option.isNone(maybePath) ||
+    maybePath.value.members.slice(-2).join('.') !== 'makeUpdate.withContext' ||
+    !isOwnedDefinitionCallee(node.callee.object, 'makeUpdate', references)
+  ) {
+    return undefined
+  }
+
+  return 'WithContext'
+}
+
+const returnedExpressions = (
+  callback: ESTree.ArrowFunctionExpression | ESTree.Function,
+): ReadonlyArray<unknown> => {
+  if (callback.body === null) {
+    return []
+  }
+  if (callback.body.type !== 'BlockStatement') {
+    return [callback.body]
+  }
+
+  return callback.body.body.flatMap(statement =>
+    statement.type === 'ReturnStatement' && statement.argument !== null
+      ? [statement.argument]
+      : [],
+  )
+}
+
+const authoredHandlerObjects = (
+  node: ESTree.CallExpression,
+  kind: AuthoredUpdateKind,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): ReadonlyArray<ESTree.ObjectExpression> => {
+  const [authored] = node.arguments
+  if (kind === 'Direct') {
+    const handlers = resolvedObject(authored, references)
+    return handlers === undefined ? [] : [handlers]
+  }
+
+  const createCases = resolvedFunction(authored, references)
+  if (createCases === undefined) {
+    return []
+  }
+
+  return returnedExpressions(createCases).flatMap(value => {
+    const handlers = resolvedObject(value, references)
+    return handlers === undefined ? [] : [handlers]
+  })
+}
+
+const objectHandlerFunctions = (
+  handlers: ESTree.ObjectExpression,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): ReadonlyArray<ESTree.ArrowFunctionExpression | ESTree.Function> =>
+  handlers.properties.flatMap(property => {
+    if (property.type !== 'Property') {
+      return []
+    }
+    const handler = resolvedFunction(property.value, references)
+    return handler === undefined ? [] : [handler]
+  })
 
 const matchesHandlerObject = (
   node: ESTree.CallExpression,
@@ -262,11 +337,11 @@ export const noManualCompositionRouting = Rule.define({
       'Program:exit': (program: ESTree.Node) => {
         const effects: Array<Effect.Effect<void>> = []
         walk(program, node => {
-          if (
-            isCallExpression(node) &&
-            isOwnedDefinitionCall(node, 'makeBinding', references)
-          ) {
-            const config = resolvedObject(node.arguments[1], references)
+          if (isCallExpression(node) && isBlockBindingCall(node, references)) {
+            const config = resolvedObject(
+              blockBindingConfiguration(node, references),
+              references,
+            )
             for (const property of config?.properties ?? []) {
               if (property.type !== 'Property') {
                 continue
@@ -294,103 +369,138 @@ export const noManualCompositionRouting = Rule.define({
             }
           }
 
-          if (!isCallExpression(node) || !isOwnedMakeUpdate(node, references)) {
+          if (!isCallExpression(node)) {
             return
           }
 
-          const callback = resolvedFunction(node.arguments[0], references)
-          if (callback === undefined || callback.body === null) {
+          const updateKind = ownedMakeUpdateKind(node, references)
+          if (updateKind === undefined) {
             return
           }
-          const messageParameter = callback.params[1]
-          const messageParameterName = isIdentifier(messageParameter)
-            ? messageParameter.name
-            : undefined
 
-          walk(callback.body, callbackNode => {
-            if (
-              isGotWrapperTagComparison(
-                callbackNode,
-                callback,
-                messageParameterName,
-                references,
-              )
-            ) {
-              effects.push(
-                ctx.report(
-                  Diagnostic.make({
-                    node: callbackNode,
-                    message: manualRoutingMessage,
-                  }),
-                ),
-              )
-            }
-
-            if (
-              isNestedChildTagRead(
-                callbackNode,
-                callback,
-                messageParameterName,
-                references,
-              )
-            ) {
-              effects.push(
-                ctx.report(
-                  Diagnostic.make({
-                    node: callbackNode,
-                    message: hiddenChildInspectionMessage,
-                  }),
-                ),
-              )
-            }
-
-            if (!isCallExpression(callbackNode)) {
-              return
-            }
-
-            for (const argument of matchesHandlerObject(callbackNode)) {
-              const handlers = resolvedObject(argument, references)
-              if (handlers === undefined) {
-                continue
+          const handlerObjects = authoredHandlerObjects(
+            node,
+            updateKind,
+            references,
+          )
+          for (const handlers of handlerObjects) {
+            for (const property of handlers.properties) {
+              if (
+                property.type === 'Property' &&
+                Option.exists(staticPropertyName(property), name =>
+                  /^Got.+/.test(name),
+                )
+              ) {
+                effects.push(
+                  ctx.report(
+                    Diagnostic.make({
+                      node: property,
+                      message: manualRoutingMessage,
+                    }),
+                  ),
+                )
               }
-              for (const property of handlers.properties) {
-                if (
-                  property.type === 'Property' &&
-                  Option.exists(staticPropertyName(property), name =>
-                    /^Got.+/.test(name),
-                  )
-                ) {
-                  effects.push(
-                    ctx.report(
-                      Diagnostic.make({
-                        node: property,
-                        message: manualRoutingMessage,
-                      }),
-                    ),
-                  )
+            }
+          }
+
+          const callbacks = handlerObjects.flatMap(handlers =>
+            objectHandlerFunctions(handlers, references),
+          )
+
+          for (const callback of callbacks) {
+            if (callback.body === null) {
+              continue
+            }
+            const messageParameter = callback.params[1]
+            const messageParameterName = isIdentifier(messageParameter)
+              ? messageParameter.name
+              : undefined
+
+            walk(callback.body, callbackNode => {
+              if (
+                isGotWrapperTagComparison(
+                  callbackNode,
+                  callback,
+                  messageParameterName,
+                  references,
+                )
+              ) {
+                effects.push(
+                  ctx.report(
+                    Diagnostic.make({
+                      node: callbackNode,
+                      message: manualRoutingMessage,
+                    }),
+                  ),
+                )
+              }
+
+              if (
+                isNestedChildTagRead(
+                  callbackNode,
+                  callback,
+                  messageParameterName,
+                  references,
+                )
+              ) {
+                effects.push(
+                  ctx.report(
+                    Diagnostic.make({
+                      node: callbackNode,
+                      message: hiddenChildInspectionMessage,
+                    }),
+                  ),
+                )
+              }
+
+              if (!isCallExpression(callbackNode)) {
+                return
+              }
+
+              for (const argument of matchesHandlerObject(callbackNode)) {
+                const handlers = resolvedObject(argument, references)
+                if (handlers === undefined) {
+                  continue
+                }
+                for (const property of handlers.properties) {
+                  if (
+                    property.type === 'Property' &&
+                    Option.exists(staticPropertyName(property), name =>
+                      /^Got.+/.test(name),
+                    )
+                  ) {
+                    effects.push(
+                      ctx.report(
+                        Diagnostic.make({
+                          node: property,
+                          message: manualRoutingMessage,
+                        }),
+                      ),
+                    )
+                  }
                 }
               }
-            }
 
-            const maybePath = staticMemberPath(callbackNode.callee)
-            if (
-              Option.isSome(maybePath) &&
-              (maybePath.value.members.at(-1) === 'tag' ||
-                maybePath.value.members.at(-1) === 'tags') &&
-              callbackNode.arguments.some(
-                argument => gotWrapperName(argument) !== undefined,
-              )
-            ) {
-              effects.push(
-                ctx.report(
-                  Diagnostic.make({
-                    node: callbackNode,
-                    message: manualRoutingMessage,
-                  }),
-                ),
-              )
-            }
-          })
+              const maybePath = staticMemberPath(callbackNode.callee)
+              if (
+                Option.isSome(maybePath) &&
+                (maybePath.value.members.at(-1) === 'tag' ||
+                  maybePath.value.members.at(-1) === 'tags') &&
+                callbackNode.arguments.some(
+                  argument => gotWrapperName(argument) !== undefined,
+                )
+              ) {
+                effects.push(
+                  ctx.report(
+                    Diagnostic.make({
+                      node: callbackNode,
+                      message: manualRoutingMessage,
+                    }),
+                  ),
+                )
+              }
+            })
+          }
         })
 
         return Effect.all(effects, { discard: true })

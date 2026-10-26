@@ -1,40 +1,38 @@
 import { ApplicationComposition } from './composition'
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    PressedCell: ({ x, y }) =>
-      Match.value(model.tool).pipe(
-        withUpdateReturn,
-        Match.when('Brush', () => ({
-          model: modifyFields(model, {
-            grid: () => applyBrush(model, x, y),
-            undoStack: () => pushHistory(model.undoStack, model.grid),
-            redoStack: () => [],
-            isDrawing: () => true,
-          }),
-        })),
-        Match.when('Fill', () => {
-          const nextModel = modifyFields(model, {
-            grid: () => applyFill(model, x, y),
-            undoStack: () => pushHistory(model.undoStack, model.grid),
-            redoStack: () => [],
-          })
-          return { model: nextModel, commands: [saveCanvas(nextModel)] }
+export const update = ApplicationComposition.makeUpdate({
+  PressedCell: (model, { x, y }) =>
+    Match.value(model.tool).pipe(
+      withUpdateReturn,
+      Match.when('Brush', () => ({
+        model: modifyFields(model, {
+          grid: () => applyBrush(model, x, y),
+          undoStack: () => pushHistory(model.undoStack, model.grid),
+          redoStack: () => [],
+          isDrawing: () => true,
         }),
-        // ...
-      ),
-    ClickedUndo: () =>
-      Array.match(model.undoStack, {
-        onEmpty: () => ({ model }),
-        onNonEmpty: nonEmptyUndoStack => {
-          const nextModel = modifyFields(model, {
-            grid: () => Array.lastNonEmpty(nonEmptyUndoStack),
-            undoStack: () => Array.initNonEmpty(nonEmptyUndoStack),
-            redoStack: Array.append(model.grid),
-          })
-          return { model: nextModel, commands: [saveCanvas(nextModel)] }
-        },
+      })),
+      Match.when('Fill', () => {
+        const nextModel = modifyFields(model, {
+          grid: () => applyFill(model, x, y),
+          undoStack: () => pushHistory(model.undoStack, model.grid),
+          redoStack: () => [],
+        })
+        return { model: nextModel, commands: [saveCanvas(nextModel)] }
       }),
-    // ... 17 more handlers
-  }),
-)
+      // ...
+    ),
+  ClickedUndo: model =>
+    Array.match(model.undoStack, {
+      onEmpty: () => ({ model }),
+      onNonEmpty: nonEmptyUndoStack => {
+        const nextModel = modifyFields(model, {
+          grid: () => Array.lastNonEmpty(nonEmptyUndoStack),
+          undoStack: () => Array.initNonEmpty(nonEmptyUndoStack),
+          redoStack: Array.append(model.grid),
+        })
+        return { model: nextModel, commands: [saveCanvas(nextModel)] }
+      },
+    }),
+  // ... 17 more handlers
+})

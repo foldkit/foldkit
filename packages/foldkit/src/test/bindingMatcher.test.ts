@@ -46,7 +46,9 @@ const ChildComposition = ChildDefinition.makeComposition()
 const prepareChildBlock = () =>
   ChildComposition.prepareBlock({
     init: () => ({ model: {} }),
-    update: ChildComposition.makeUpdate(model => ({ model })),
+    update: ChildComposition.makeUpdate({
+      CompletedWork: model => ({ model }),
+    }),
     EffectsLayer: Work.layer,
   })
 const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -207,7 +209,9 @@ describe('__bindCommandMatcher', () => {
     const prepareOtherBlock = () =>
       OtherComposition.prepareBlock({
         init: () => ({ model: {} }),
-        update: OtherComposition.makeUpdate(model => ({ model })),
+        update: OtherComposition.makeUpdate({
+          CompletedWork: model => ({ model }),
+        }),
         EffectsLayer: Work.layer,
       })
     const OtherBlock: Block.FromAssemblyWithoutViewOrOutMessage<

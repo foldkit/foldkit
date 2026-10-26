@@ -72,6 +72,8 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
+const { makeFieldsStep, makeCommandsStep } = ApplicationDefinition
+
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
@@ -132,41 +134,38 @@ const advanceBall =
     })
   }
 
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    TickedFrame: ({ deltaTime }) => ({
-      model: modifyFields(model, {
-        balls: Array.map(advanceBall(deltaTime / MS_PER_SECOND)),
+export const update = ApplicationComposition.makeUpdate({
+  TickedFrame: makeFieldsStep.fromMessage(({ deltaTime }) => ({
+    balls: Array.map(advanceBall(deltaTime / MS_PER_SECOND)),
+  })),
+
+  ClickedCanvas: makeCommandsStep.fromMessage(({ x, y }) => [
+    GenerateBall({ x, y }),
+  ]),
+
+  CompletedGenerateBall: makeFieldsStep(
+    (model, { x, y, vx, vy, radius, color }) => ({
+      balls: Array.append({
+        id: model.nextId,
+        x,
+        y,
+        vx,
+        vy,
+        radius,
+        color,
       }),
+      nextId: Number.increment,
     }),
+  ),
 
-    ClickedCanvas: ({ x, y }) => ({
-      model,
-      commands: [GenerateBall({ x, y })],
-    }),
+  ClickedClear: makeFieldsStep(() => ({
+    balls: () => [],
+  })),
 
-    CompletedGenerateBall: ({ x, y, vx, vy, radius, color }) => ({
-      model: modifyFields(model, {
-        balls: Array.append({
-          id: model.nextId,
-          x,
-          y,
-          vx,
-          vy,
-          radius,
-          color,
-        }),
-        nextId: Number.increment,
-      }),
-    }),
-
-    ClickedClear: () => ({ model: modifyFields(model, { balls: () => [] }) }),
-
-    ClickedTogglePlay: () => ({
-      model: modifyFields(model, { isRunning: running => !running }),
-    }),
-  }),
-)
+  ClickedTogglePlay: makeFieldsStep(() => ({
+    isRunning: running => !running,
+  })),
+})
 
 export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
   animationFrameTicks: entry(

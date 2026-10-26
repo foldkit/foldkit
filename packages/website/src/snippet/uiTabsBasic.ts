@@ -29,6 +29,8 @@ const TabsExampleDefinition = Block.makeDefinition('TabsExample', {
   Message,
 })
 
+const { makeFieldsStep } = TabsExampleDefinition
+
 const frameworks: ReadonlyArray<typeof Framework.Type> = [
   'Foldkit',
   'React',
@@ -55,7 +57,7 @@ const foldTabsOutMessage = TabsExampleDefinition.makeOutMessageFold(
     // dispatch Commands, for example route to a new URL, persist the
     // selection, or trigger a panel content fetch.
     Selected: ({ value }) =>
-      TabsExampleDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         activeFramework: () => value,
       })),
   },
@@ -83,7 +85,7 @@ const init = TabsExampleComposition.makeInit(() => ({
   },
 }))
 
-const update = TabsExampleComposition.makeUpdate()
+const update = TabsExampleComposition.makeUpdate({})
 
 // Inside your view function, embed the tabs via h.block and pass the
 // parent-owned active tab as selectedValue:

@@ -10,7 +10,7 @@ import {
   NOISE_SCALE_MIN_DIVISOR,
   NOISE_SCALE_STEP,
 } from './constant'
-import { ApplicationDefinition } from './definition'
+import { ApplicationDefinition, makeFieldsStep } from './definition'
 export const FlowStrengthSliderBinding = ApplicationDefinition.makeBinding(
   SliderBlock,
   {
@@ -29,7 +29,7 @@ export const FlowStrengthSliderBinding = ApplicationDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(SliderBlock, {
     ChangedValue: ({ value }) =>
-      ApplicationDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         flowStrength: () => value,
       })),
   }),
@@ -53,7 +53,7 @@ export const NoiseScaleSliderBinding = ApplicationDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(SliderBlock, {
     ChangedValue: ({ value }) =>
-      ApplicationDefinition.makeFieldsStep(() => ({ noiseScale: () => value })),
+      makeFieldsStep(() => ({ noiseScale: () => value })),
   }),
 })
 

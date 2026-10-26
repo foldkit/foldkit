@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "foldkit": ["../src/index.ts"],
+      "foldkit/mapBinding": ["../src/block/mapBinding.ts"]
+    },
+    "rootDir": ".."
+  },
+  "include": [
+    "../src/vite-env.d.ts",
+    "keyed-map-field.accepted.ts",
+    "keyed-map-field.consume.ts",
+    "keyed-map-field.rejected.ts"
+  ]
+}

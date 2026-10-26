@@ -2,37 +2,35 @@
 
 import { Number } from 'effect'
 
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    UpdatedQuery: ({ query }) =>
-      SearchState.match(model.searchState, {
-        Running: () => ({
-          model: modifyFields(model, {
-            query: () => query,
-            searchGeneration: Number.increment,
-            searchState: () => SearchState.Cancelling(),
-          }),
-          commands: [
-            FetchSuggestions.Interrupt(() =>
-              Message.CompletedCancelFetchSuggestions(),
-            ),
-          ],
+const update = ApplicationComposition.makeUpdate({
+  UpdatedQuery: (model, { query }) =>
+    SearchState.match(model.searchState, {
+      Running: () => ({
+        model: modifyFields(model, {
+          query: () => query,
+          searchGeneration: Number.increment,
+          searchState: () => SearchState.Cancelling(),
         }),
-        Cancelling: () => ({
-          model: modifyFields(model, { query: () => query }),
-        }),
+        commands: [
+          FetchSuggestions.Interrupt(() =>
+            Message.CompletedCancelFetchSuggestions(),
+          ),
+        ],
       }),
-
-    CompletedCancelFetchSuggestions: () => ({
-      model: modifyFields(model, {
-        searchState: () => SearchState.Running(),
+      Cancelling: () => ({
+        model: modifyFields(model, { query: () => query }),
       }),
-      commands: [
-        FetchSuggestions({
-          query: model.query,
-          generation: model.searchGeneration,
-        }),
-      ],
     }),
+
+  CompletedCancelFetchSuggestions: model => ({
+    model: modifyFields(model, {
+      searchState: () => SearchState.Running(),
+    }),
+    commands: [
+      FetchSuggestions({
+        query: model.query,
+        generation: model.searchGeneration,
+      }),
+    ],
   }),
-)
+})

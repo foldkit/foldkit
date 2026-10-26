@@ -2,35 +2,37 @@ import { Effect, HashSet, Layer, Schema } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import { SnippetCopyComposition } from './composition'
-import { SnippetCopyDefinition } from './definition'
+import {
+  SnippetCopyDefinition,
+  makeCommandsStep,
+  makeFieldsStep,
+  makeNoopStep,
+} from './definition'
 import { Message } from './message'
 
-export const update = SnippetCopyComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedCopySnippet: ({ snippetId, text }) => ({
-      model,
-      commands: [CopySnippet({ snippetId, text })],
+export const update = SnippetCopyComposition.makeUpdate({
+  ClickedCopySnippet: makeCommandsStep.fromMessage(({ snippetId, text }) => [
+    CopySnippet({ snippetId, text }),
+  ]),
+
+  SucceededCopySnippet: (model, { snippetId }) =>
+    HashSet.has(model.copiedSnippetIds, snippetId)
+      ? { model }
+      : {
+          model: modifyFields(model, {
+            copiedSnippetIds: HashSet.add(snippetId),
+          }),
+          commands: [WaitBeforeHidingCopiedIndicator({ snippetId })],
+        },
+
+  FailedCopySnippet: makeNoopStep(),
+
+  CompletedWaitBeforeHidingCopiedIndicator: makeFieldsStep.fromMessage(
+    ({ snippetId }) => ({
+      copiedSnippetIds: HashSet.remove(snippetId),
     }),
-
-    SucceededCopySnippet: ({ snippetId }) =>
-      HashSet.has(model.copiedSnippetIds, snippetId)
-        ? { model }
-        : {
-            model: modifyFields(model, {
-              copiedSnippetIds: HashSet.add(snippetId),
-            }),
-            commands: [WaitBeforeHidingCopiedIndicator({ snippetId })],
-          },
-
-    FailedCopySnippet: () => ({ model }),
-
-    CompletedWaitBeforeHidingCopiedIndicator: ({ snippetId }) => ({
-      model: modifyFields(model, {
-        copiedSnippetIds: HashSet.remove(snippetId),
-      }),
-    }),
-  }),
-)
+  ),
+})
 
 export const CopySnippet = SnippetCopyDefinition.makeCommand('CopySnippet', {
   args: { snippetId: Schema.String, text: Schema.String },

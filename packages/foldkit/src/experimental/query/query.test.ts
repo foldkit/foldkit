@@ -709,11 +709,9 @@ describe('Query Block binding', () => {
   const Composition = QueryParentDefinition.makeComposition({
     bindings: [NotesChildBinding],
   })
-  const update = Composition.makeUpdate((model, message) =>
-    Message.match(message, {
-      ClickedLoad: () => NotesChildBinding.requestRevalidationOrLoad()(model),
-    }),
-  )
+  const update = Composition.makeUpdate({
+    ClickedLoad: model => NotesChildBinding.requestRevalidationOrLoad()(model),
+  })
   const prepareParent = () =>
     Composition.prepareBlock({
       init: Composition.makeInit(() => ({
@@ -780,12 +778,10 @@ describe('Query Block binding', () => {
     const KeyedComposition = KeyedDefinition.makeComposition({
       bindings: [KeyedNotesBinding],
     })
-    const update = KeyedComposition.makeUpdate((model, message) =>
-      KeyedMessage.match(message, {
-        RequestedLoad: ({ noteId }) =>
-          KeyedNotesBinding.requestLoadIfMissing({ noteId })(model),
-      }),
-    )
+    const update = KeyedComposition.makeUpdate({
+      RequestedLoad: (model, { noteId }) =>
+        KeyedNotesBinding.requestLoadIfMissing({ noteId })(model),
+    })
     const started = update(
       KeyedModel.make({ notes: noteById.init().model }),
       KeyedMessage.RequestedLoad({ noteId: '1' }),

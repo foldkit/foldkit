@@ -23,6 +23,8 @@ const PopoverExampleDefinition = Block.makeDefinition('PopoverExample', {
   Message,
 })
 
+const { makeNoopStep } = PopoverExampleDefinition
+
 // At module scope, fold the OutMessage into your own Model. `Opened` and
 // `Closed` mark the visibility transitions. Fire analytics, coordinate with
 // other UI, or clear ephemeral state on close. Each arm returns an
@@ -34,11 +36,11 @@ const foldPopoverOutMessage = PopoverExampleDefinition.makeOutMessageFold(
     // The child has emitted `Opened`. In this arm the parent can update its
     // own state or dispatch its own Commands, for example lazy-load panel
     // content, log analytics, or trigger a downstream Command.
-    Opened: PopoverExampleDefinition.makeNoopStep,
+    Opened: makeNoopStep,
     // The child has emitted `Closed`. In this arm the parent can update its
     // own state or dispatch its own Commands, for example persist a draft,
     // clear ephemeral state, or trigger a downstream Command.
-    Closed: PopoverExampleDefinition.makeNoopStep,
+    Closed: makeNoopStep,
   },
 )
 
@@ -64,7 +66,7 @@ const init = PopoverExampleComposition.makeInit(() => ({
   },
 }))
 
-const update = PopoverExampleComposition.makeUpdate()
+const update = PopoverExampleComposition.makeUpdate({})
 
 // Inside your view function, embed the popover via h.block. Give the
 // trigger an accessible name: target the trigger id with

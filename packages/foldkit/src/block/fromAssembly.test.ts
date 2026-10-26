@@ -44,17 +44,21 @@ const init = Composition.makeInit(() => ({
   model: Model.make({ count: 0 }),
   commands: [Observe()],
 }))
-const update = Composition.makeUpdate(model => ({ model }))
+const update = Composition.makeUpdate({
+  CompletedObserve: model => ({ model }),
+})
 const view = Composition.makeView((model, h) =>
   h.div([], [globalThis.String(model.count)]),
 )
 const reportingInit = ReportingComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),
 }))
-const reportingUpdate = ReportingComposition.makeUpdate(model => ({
-  model,
-  outMessage: OutMessage.ReportedCount({ count: model.count }),
-}))
+const reportingUpdate = ReportingComposition.makeUpdate({
+  CompletedObserve: model => ({
+    model,
+    outMessage: OutMessage.ReportedCount({ count: model.count }),
+  }),
+})
 const reportingView = ReportingComposition.makeView((model, h) =>
   h.div([], [globalThis.String(model.count)]),
 )
@@ -109,10 +113,12 @@ const HostComposition = HostDefinition.makeComposition()
 const hostInit = HostComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),
 }))
-const hostUpdate = HostComposition.makeUpdate(model => ({
-  model,
-  commands: [HostObserve()],
-}))
+const hostUpdate = HostComposition.makeUpdate({
+  CompletedObserve: model => ({
+    model,
+    commands: [HostObserve()],
+  }),
+})
 const hostView = HostComposition.makeView((model, h) =>
   h.div([], [globalThis.String(model.count)]),
 )

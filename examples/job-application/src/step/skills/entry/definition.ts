@@ -33,3 +33,5 @@ export const SkillsEntryDefinition = Block.makeDefinition('SkillsEntry', {
   OutMessage,
   ChildInitContext: Schema.String,
 })
+
+export const { makeFieldsStep, makeOutMessageStep } = SkillsEntryDefinition

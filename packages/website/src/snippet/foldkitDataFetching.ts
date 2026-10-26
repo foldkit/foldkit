@@ -48,17 +48,15 @@ const FetchUser = ApplicationDefinition.makeCommand('FetchUser', {
   },
 })
 
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedFetchUser: ({ userId }) => ({
-      model: modifyFields(model, { user: () => UserState.Loading() }),
-      commands: [FetchUser({ userId })],
-    }),
-    SucceededFetchUser: ({ data }) => ({
-      model: modifyFields(model, { user: () => UserState.Success({ data }) }),
-    }),
-    FailedFetchUser: ({ error }) => ({
-      model: modifyFields(model, { user: () => UserState.Failure({ error }) }),
-    }),
+const update = ApplicationComposition.makeUpdate({
+  ClickedFetchUser: (model, { userId }) => ({
+    model: modifyFields(model, { user: () => UserState.Loading() }),
+    commands: [FetchUser({ userId })],
   }),
-)
+  SucceededFetchUser: (model, { data }) => ({
+    model: modifyFields(model, { user: () => UserState.Success({ data }) }),
+  }),
+  FailedFetchUser: (model, { error }) => ({
+    model: modifyFields(model, { user: () => UserState.Failure({ error }) }),
+  }),
+})

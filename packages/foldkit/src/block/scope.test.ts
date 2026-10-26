@@ -47,10 +47,16 @@ const makeFeature = (id: string, onConstruct: () => void = () => {}) => {
     Model: Schema.Struct({}),
     Message,
   }).makeComposition()
-  const update = composition.makeUpdate(model => ({
-    model,
-    commands: [ReadValue()],
-  }))
+  const update = composition.makeUpdate({
+    RequestedValue: model => ({
+      model,
+      commands: [ReadValue()],
+    }),
+    CompletedReadValue: model => ({
+      model,
+      commands: [ReadValue()],
+    }),
+  })
   const prepareBlock = () =>
     composition.prepareBlock({
       init: () => ({ model: {} }),
@@ -98,8 +104,8 @@ describe('Block capability contexts', () => {
     const RightComposition = ScopeParent.makeComposition({
       bindings: [RightBinding],
     })
-    const foldLeft = LeftComposition.makeUpdate()
-    const foldRight = RightComposition.makeUpdate()
+    const foldLeft = LeftComposition.makeUpdate({})
+    const foldRight = RightComposition.makeUpdate({})
     const model = { child: {} }
     const leftCommand = foldLeft(model, {
       _tag: 'GotLeftMessage',
@@ -179,8 +185,8 @@ describe('Block capability contexts', () => {
     const RightComposition = ScopeParent.makeComposition({
       bindings: [RightBinding],
     })
-    const foldLeft = LeftComposition.makeUpdate()
-    const foldRight = RightComposition.makeUpdate()
+    const foldLeft = LeftComposition.makeUpdate({})
+    const foldRight = RightComposition.makeUpdate({})
     const layer = Layer.merge(
       inspectBinding(LeftBinding).EffectsLayer,
       inspectBinding(RightBinding).EffectsLayer,
@@ -255,7 +261,7 @@ describe('Block capability contexts', () => {
     const composition = ScopeParent.makeComposition({
       bindings: [SelectedBinding],
     })
-    const foldSelected = composition.makeUpdate()
+    const foldSelected = composition.makeUpdate({})
     const commands =
       foldSelected(
         {},

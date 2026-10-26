@@ -20,10 +20,8 @@ const ApplicationComposition = Block.makeDefinition('Application', {
   Message,
 }).makeComposition()
 
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    UpdatedQuery: ({ query }) => ({
-      model: modifyFields(model, { query: () => query }),
-    }),
+const update = ApplicationComposition.makeUpdate({
+  UpdatedQuery: (model, { query }) => ({
+    model: modifyFields(model, { query: () => query }),
   }),
-)
+})

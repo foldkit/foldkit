@@ -134,6 +134,32 @@ const makeInterruptEffect = <ToMessage>(
     return toMessage(outcome)
   })
 
+type IsUnion<Value, Whole = Value> = Value extends Whole
+  ? [Whole] extends [Value]
+    ? false
+    : true
+  : never
+
+type GuaranteedFields<Fields> = Fields extends readonly [
+  infer Field extends string,
+  ...infer Rest,
+]
+  ?
+      | ({} extends Record<Field, never>
+          ? never
+          : true extends IsUnion<Field>
+            ? never
+            : Field)
+      | GuaranteedFields<Rest>
+  : never
+
+/** @internal Preserves required tuple fields and makes uncertain selected fields optional. */
+export type KeyArgs<Args, Fields> =
+  Fields extends ReadonlyArray<keyof Args>
+    ? Partial<Pick<Args, Fields[number]>> &
+        Pick<Args, Extract<GuaranteedFields<Fields>, keyof Args>>
+    : never
+
 /** An Interrupt Command definition derived from an interruptible Command
  *  definition with no declared args. Call as `Definition.Interrupt(toMessage)`
  *  to produce a Command that interrupts every holder of the definition's key. */

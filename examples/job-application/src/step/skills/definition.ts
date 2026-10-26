@@ -21,3 +21,6 @@ export const SkillsDefinition = Block.makeDefinition('Skills', {
   Message,
   ChildInitContext: Schema.String,
 })
+
+export const { makeFieldsStep, makeCommandsStep, makeNoopStep } =
+  SkillsDefinition

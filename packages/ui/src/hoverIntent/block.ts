@@ -130,7 +130,7 @@ const finishClosing = (model: Model) => {
   }
 }
 
-const scheduleOpen = HoverIntentDefinition.makeStep(model => {
+const scheduleOpenStep = HoverIntentDefinition.makeStep(model => {
   const version = Number.increment(model.pendingOpenVersion)
   return {
     model: modifyFields(model, { pendingOpenVersion: () => version }),
@@ -138,7 +138,7 @@ const scheduleOpen = HoverIntentDefinition.makeStep(model => {
   }
 })
 
-const scheduleClose = (delay: Duration.Duration) =>
+const scheduleCloseStep = (delay: Duration.Duration) =>
   HoverIntentDefinition.makeStep(model => {
     const version = Number.increment(model.pendingCloseVersion)
     return {
@@ -156,7 +156,7 @@ const entered = (model: Model) => {
     return { model: enteredModel }
   }
 
-  return scheduleOpen(enteredModel)
+  return scheduleOpenStep(enteredModel)
 }
 
 const left = (model: Model) => {
@@ -176,7 +176,7 @@ const left = (model: Model) => {
     return { model: leftModel }
   }
 
-  return scheduleClose(leftModel.closeDelay)(leftModel)
+  return scheduleCloseStep(leftModel.closeDelay)(leftModel)
 }
 
 const focused = (model: Model, focusLocation: FocusLocation) => {
@@ -211,7 +211,7 @@ const blurred = (model: Model) => {
     return { model: blurredModel }
   }
 
-  return scheduleClose(Duration.zero)(blurredModel)
+  return scheduleCloseStep(Duration.zero)(blurredModel)
 }
 
 const dismiss = (model: Model, isTriggerFocused: boolean) => {
@@ -236,61 +236,52 @@ const dismiss = (model: Model, isTriggerFocused: boolean) => {
 }
 
 /** Processes a HoverIntent Message and returns the next Model, optional Commands, and an optional OutMessage. */
-export const update = HoverIntentComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    EnteredTrigger: () =>
-      entered(modifyFields(model, { isTriggerHovered: () => true })),
-    LeftTrigger: () =>
-      left(modifyFields(model, { isTriggerHovered: () => false })),
-    EnteredPanel: () =>
-      entered(modifyFields(model, { isPanelHovered: () => true })),
-    LeftPanel: () => left(modifyFields(model, { isPanelHovered: () => false })),
-    FocusedTrigger: () => focused(model, 'Trigger'),
-    BlurredTrigger: () => blurred(model),
-    FocusedPanel: () => focused(model, 'Panel'),
-    BlurredPanel: () => blurred(model),
-
-    PressedEscape: ({ source }) => {
-      const isTriggerFocused =
-        source === 'Trigger' ||
-        Option.exists(
-          model.maybeFocusLocation,
-          focusLocation => focusLocation === 'Trigger',
-        )
-
-      return dismiss(model, isTriggerFocused)
-    },
-
-    RequestedClose: () =>
-      dismiss(
-        model,
-        Option.exists(
-          model.maybeFocusLocation,
-          focusLocation => focusLocation === 'Trigger',
-        ),
+export const update = HoverIntentComposition.makeUpdate({
+  EnteredTrigger: model =>
+    entered(modifyFields(model, { isTriggerHovered: () => true })),
+  LeftTrigger: model =>
+    left(modifyFields(model, { isTriggerHovered: () => false })),
+  EnteredPanel: model =>
+    entered(modifyFields(model, { isPanelHovered: () => true })),
+  LeftPanel: model =>
+    left(modifyFields(model, { isPanelHovered: () => false })),
+  FocusedTrigger: model => focused(model, 'Trigger'),
+  BlurredTrigger: model => blurred(model),
+  FocusedPanel: model => focused(model, 'Panel'),
+  BlurredPanel: model => blurred(model),
+  PressedEscape: (model, { source }) => {
+    const isTriggerFocused =
+      source === 'Trigger' ||
+      Option.exists(
+        model.maybeFocusLocation,
+        focusLocation => focusLocation === 'Trigger',
+      )
+    return dismiss(model, isTriggerFocused)
+  },
+  RequestedClose: model =>
+    dismiss(
+      model,
+      Option.exists(
+        model.maybeFocusLocation,
+        focusLocation => focusLocation === 'Trigger',
       ),
-
-    CompletedWaitBeforeOpening: ({ version }) => {
-      if (version !== model.pendingOpenVersion) {
-        return { model }
-      }
-
-      if (model.isDismissed || !isEngaged(model)) {
-        return { model }
-      }
-
-      return open(model)
-    },
-
-    CompletedWaitBeforeClosing: ({ version }) => {
-      if (version !== model.pendingCloseVersion || isEngaged(model)) {
-        return { model }
-      }
-
-      return finishClosing(model)
-    },
-  }),
-)
+    ),
+  CompletedWaitBeforeOpening: (model, { version }) => {
+    if (version !== model.pendingOpenVersion) {
+      return { model }
+    }
+    if (model.isDismissed || !isEngaged(model)) {
+      return { model }
+    }
+    return open(model)
+  },
+  CompletedWaitBeforeClosing: (model, { version }) => {
+    if (version !== model.pendingCloseVersion || isEngaged(model)) {
+      return { model }
+    }
+    return finishClosing(model)
+  },
+})
 
 // VIEW
 
@@ -370,8 +361,10 @@ const prepare = () =>
     },
     EffectsLayer,
   })
-/** Complete HoverIntent Block definition for connecting to a parent. */
-export const HoverIntentBlock: Block.FromAssemblyWithViewAndOutMessage<
+/** Completed HoverIntent Block contract. */
+export interface HoverIntentBlock extends Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof prepare
-> = Block.assemble(prepare)
+> {}
+/** Complete HoverIntent Block definition for connecting to a parent. */
+export const HoverIntentBlock: HoverIntentBlock = Block.assemble(prepare)

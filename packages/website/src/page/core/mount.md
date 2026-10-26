@@ -79,7 +79,7 @@ First, the handler must use the live element. If it does not read or write that 
 #### One Mount per Element
 
 :::Warning{label="Attach one Mount per element"}
-A VNode has one `insert` and `destroy` hook. If the same element receives `[h.OnMount(A), h.OnMount(B)]`, the second action silently replaces the first and `A` never runs. Combine both behaviors in one Mount and register both releases in its scope.
+A VNode supports one Mount. Attaching a second `OnMount` throws while constructing the VNode, before either Mount runs. The error names both Mounts, including when their attributes come from spread arrays or child attribute groups. Combine both behaviors in one Mount and register both releases in its scope. `OnUnmount` can share the element with that Mount.
 :::
 
 #### Historical Renders
@@ -194,9 +194,11 @@ An owned view receives a builder whose allowed Mounts are inferred from its Comp
 
 The parent must include the child Binding under `bindings` before its builder can embed that child view. An owned child with `ViewInputs` uses `FeatureComposition.makeView.withInputs<ViewInputs>` and receives its builder third.
 
-The Composition derives its builder type from the complete Mount collection, and application assembly includes those definitions. Missing Mounts fail at the composition boundary, and helpers cannot attach Mounts outside their builder's declared set. Keep helpers genuinely shared across Compositions on the framework's general `HtmlBuilder<Message>`, with an explicit requirements parameter when they forward capabilities. The returned `Html` type stays the same.
+The Composition derives its builder type from the complete Mount collection, and application assembly includes those definitions. Missing Mounts fail at the composition boundary, and helpers cannot attach Mounts outside their builder's declared set. A shared helper can use `HtmlBuilder<Message>` for ordinary content. When forwarding Mount-bearing child Attributes across owners, pass a typed render callback that closes over the caller's inferred builder. A raw Mount-requirement annotation does not describe the scoped Binding capability. See [Builder ownership](/core/view#builder-ownership) for a Dialog example. The returned `Html` type stays the same.
 
 Let TypeScript infer `mounts` arrays and composed spreads. Widening the array to `ReadonlyArray<Mount.LayeredMountDefinition>` discards the contracts required for registration checking, so application assembly rejects it. Forwarded attribute arrays preserve the same evidence: use `Attribute<Message, RequiredMounts>` or `ChildAttribute<RequiredMounts>` when an explicit annotation is necessary. `childAttributes` infers those requirements from its input, and `CustomElement.withMessage(h)` retains the builder's allowed Mounts.
+
+A name-preserving annotation such as `ReadonlyArray<Mount.LayeredMountDefinition<Name, Message>>` still erases the per-instance args to `any`. Composition construction does not reliably reject that annotated union. Keep the actual Definitions inferred instead of annotating a registry with that broad alias. This is an explicit type-erasure limit; ordinary inferred registry and Mount invocation checks remain.
 
 ### Names and Runtime Identity
 

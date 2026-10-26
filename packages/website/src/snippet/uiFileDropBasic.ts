@@ -23,6 +23,8 @@ const FileDropExampleDefinition = Block.makeDefinition('FileDropExample', {
   Message,
 })
 
+const { makeFieldsStep, makeNoopStep } = FileDropExampleDefinition
+
 // At module scope, fold the OutMessage FileDrop emits when files arrive (via
 // drop or input change) into your own Model. Each arm returns an Update.Step
 // over the parent Model, which already has the next FileDrop Model written
@@ -32,12 +34,12 @@ const foldFileDropOutMessage = FileDropExampleDefinition.makeOutMessageFold(
   FileDrop.FileDropBlock,
   {
     ReceivedFiles: ({ files }) =>
-      FileDropExampleDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         uploadedFiles: Array.appendAll(files),
       })),
     // Fires when something is dropped but no files came through (e.g.
     // a drag of text or a URL). Ignore, or show a hint to the user.
-    RejectedNonFiles: FileDropExampleDefinition.makeNoopStep,
+    RejectedNonFiles: makeNoopStep,
   },
 )
 
@@ -65,7 +67,7 @@ const init = FileDropExampleComposition.makeInit(() => ({
   },
 }))
 
-const update = FileDropExampleComposition.makeUpdate()
+const update = FileDropExampleComposition.makeUpdate({})
 
 // Render the drop zone. The `toView` callback receives attribute groups.
 // Spread `root` onto a <label> so clicking opens the picker, and spread

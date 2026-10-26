@@ -52,10 +52,11 @@ export const ProfileComposition = ProfileDefinition.makeComposition({
 })
 export type ProfileViewBuilder = Block.ViewBuilderFor<typeof ProfileComposition>
 
-export const update = ProfileComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedSave: () => ({ model, commands: [SaveProfile()] }),
-    CompletedSave: () => ({ model }),
-    GotChildMessage: () => ({ model }),
-  }),
-)
+export const update = ProfileComposition.makeUpdate({
+  ClickedSave: model => ({ model, commands: [SaveProfile()] }),
+  ClickedSaveFromImportedBuilder: model => ({ model }),
+  CompletedSave: model => ({ model }),
+  CompletedSaveFromExtensionImport: model => ({ model }),
+  CompletedSaveFromRedundantLocalPath: model => ({ model }),
+  GotChildMessage: model => ({ model }),
+})

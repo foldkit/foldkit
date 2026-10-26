@@ -148,6 +148,22 @@ Keep changing values inside the invocation. Command args, the current time, and 
 
 A handler can own execution bookkeeping, such as a resource pool or worker response callbacks. Keep user-visible pending work, selections, and submission rules in the Model. [State in handlers](/core/layers#state-in-handlers) covers state ownership and scoped preparation.
 
+#### Generic Feature Factories
+
+A factory may accept a generic `Context.Key<Id, Service>` and preserve that exact Service requirement. Keep the Command unhandled in the reusable factory, return the key with the Command and composition parts, and attach the implementation after the caller selects a concrete key:
+
+::Snippet{name="commandGenericFactoryLayer" label="Implementing a generic feature Command"}
+
+Here, `searchFactory.ts` owns the generic Model, Message, unhandled `FetchResults` Command, and composition parts. The caller owns `SearchApi`, so it also owns the `toLayer` boundary. The resulting `EffectsLayer` retains `SearchApi` as an exact requirement for application assembly and tests.
+
+An attached generator inside an unconstrained generic factory cannot provide the same construction proof. In the current Effect generator encoding, yielding `Context.Key<Id, Service>` contributes `Id` as the Effect requirement. Until `Id` is concrete, Foldkit cannot establish that it excludes Command, Subscription, Mount, or ManagedResource capabilities, which are unavailable during handler construction. Moving `toLayer` to the concrete caller supplies that proof without erasing the Service requirement.
+
+#### Command Declaration Errors
+
+A `No overload matches this call` error can point at valid `args` or `handler` fields as `never`. TypeScript may describe the final failed overload rather than the declaration's intended form. This does not mean that Commands cannot take arguments or attached handlers.
+
+Check that every result Message returned by the handler appears in `messages`, that its args match the declared Schema fields, and that invocation failures become declared result Messages. For a generic Service identifier rejected during handler construction, use the concrete caller-owned Layer boundary above. Keep these checks at compile time; casts or erased Service requirements remove the guarantee.
+
 ### Naming and Composition
 
 Compose `FetchCount.layer` directly in the feature's local `EffectsLayer`. Create a standalone `FetchCountLayer` binding only when that provider is intentionally public or independently reused, as it is by this tutorial's direct execution test.
@@ -201,6 +217,10 @@ Use `interrupt: { keyFields, toKey }` when concurrent invocations need separate 
 ::Snippet{name="commandInterruptKey" label="Cancelling uploads independently"}
 
 `keyFields` selects the args used to derive the interruption key. It also controls the args accepted by `UploadFile.Interrupt`: the cancellation site needs `{ uploadId }`, not the original `file`.
+
+`toKey` receives only those selected own fields on both invocation and interruption. The handler still receives the full decoded args. The selected record has no prototype, so use `Object` helpers rather than inherited methods.
+
+Inline literal tuples preserve exact selected fields. For an extracted policy, preserve the selected key in its annotation, such as `Command.InterruptOption<typeof Args.Type, 'uploadId'>`. A broad key union cannot guarantee that every possible field is present; its callback must handle uncertain fields as optional. Narrow a union of differently keyed policies before constructing the Command.
 
 Do not key an upload by its file name. Two rows may upload the same file and still need independent cancellation.
 

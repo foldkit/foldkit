@@ -11,6 +11,8 @@ const DateRangeDefinition = Block.makeDefinition('DateRange', {
   OutMessage,
 })
 
+const { makeStep } = DateRangeDefinition
+
 const EndDatePickerBinding = DateRangeDefinition.makeBinding(
   DatePicker.DatePickerBlock,
   {
@@ -23,6 +25,4 @@ const EndDatePickerBinding = DateRangeDefinition.makeBinding(
   }),
 })
 
-const restoreEndDate = DateRangeDefinition.makeStep(() =>
-  EndDatePickerBinding.requestRestore(),
-)
+const restoreEndDateStep = makeStep(() => EndDatePickerBinding.requestRestore())

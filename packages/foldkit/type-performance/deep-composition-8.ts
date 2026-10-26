@@ -66,12 +66,10 @@ const prepareLeaf = () =>
     init: TypePerformanceDeepLeafComposition.makeInit(() => ({
       model: LeafModel.make({ value: 0 }),
     })),
-    update: TypePerformanceDeepLeafComposition.makeUpdate((model, message) =>
-      LeafMessage.match(message, {
-        RequestedRun: () => runLeaf(model),
-        CompletedRun: () => ({ model }),
-      }),
-    ),
+    update: TypePerformanceDeepLeafComposition.makeUpdate({
+      RequestedRun: model => runLeaf(model),
+      CompletedRun: model => ({ model }),
+    }),
     operations: {
       runLeaf: LeafMessage.RequestedRun,
     },
@@ -103,7 +101,7 @@ const prepareLevel001 = () =>
     init: TypePerformanceLevel001Composition.makeInit(() =>
       Child001Binding.init({ args: [], toParentModel: model => model }),
     ),
-    update: TypePerformanceLevel001Composition.makeUpdate(),
+    update: TypePerformanceLevel001Composition.makeUpdate({}),
     EffectsLayer: Layer.empty,
   })
 const Level001: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -135,7 +133,7 @@ const prepareLevel002 = () =>
     init: TypePerformanceLevel002Composition.makeInit(() =>
       Child002Binding.init({ args: [], toParentModel: model => model }),
     ),
-    update: TypePerformanceLevel002Composition.makeUpdate(),
+    update: TypePerformanceLevel002Composition.makeUpdate({}),
     EffectsLayer: Layer.empty,
   })
 const Level002: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -167,7 +165,7 @@ const prepareLevel003 = () =>
     init: TypePerformanceLevel003Composition.makeInit(() =>
       Child003Binding.init({ args: [], toParentModel: model => model }),
     ),
-    update: TypePerformanceLevel003Composition.makeUpdate(),
+    update: TypePerformanceLevel003Composition.makeUpdate({}),
     EffectsLayer: Layer.empty,
   })
 const Level003: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -199,7 +197,7 @@ const prepareLevel004 = () =>
     init: TypePerformanceLevel004Composition.makeInit(() =>
       Child004Binding.init({ args: [], toParentModel: model => model }),
     ),
-    update: TypePerformanceLevel004Composition.makeUpdate(),
+    update: TypePerformanceLevel004Composition.makeUpdate({}),
     EffectsLayer: Layer.empty,
   })
 const Level004: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -231,7 +229,7 @@ const prepareLevel005 = () =>
     init: TypePerformanceLevel005Composition.makeInit(() =>
       Child005Binding.init({ args: [], toParentModel: model => model }),
     ),
-    update: TypePerformanceLevel005Composition.makeUpdate(),
+    update: TypePerformanceLevel005Composition.makeUpdate({}),
     EffectsLayer: Layer.empty,
   })
 const Level005: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -263,7 +261,7 @@ const prepareLevel006 = () =>
     init: TypePerformanceLevel006Composition.makeInit(() =>
       Child006Binding.init({ args: [], toParentModel: model => model }),
     ),
-    update: TypePerformanceLevel006Composition.makeUpdate(),
+    update: TypePerformanceLevel006Composition.makeUpdate({}),
     EffectsLayer: Layer.empty,
   })
 const Level006: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -295,7 +293,7 @@ const prepareLevel007 = () =>
     init: TypePerformanceLevel007Composition.makeInit(() =>
       Child007Binding.init({ args: [], toParentModel: model => model }),
     ),
-    update: TypePerformanceLevel007Composition.makeUpdate(),
+    update: TypePerformanceLevel007Composition.makeUpdate({}),
     EffectsLayer: Layer.empty,
   })
 const Level007: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -327,7 +325,7 @@ const prepareLevel008 = () =>
     init: TypePerformanceLevel008Composition.makeInit(() =>
       Child008Binding.init({ args: [], toParentModel: model => model }),
     ),
-    update: TypePerformanceLevel008Composition.makeUpdate(),
+    update: TypePerformanceLevel008Composition.makeUpdate({}),
     EffectsLayer: Layer.empty,
   })
 const Level008: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -348,7 +346,7 @@ const Child008RootBinding = ApplicationDefinition.makeBinding(Level008, {
 const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [Child008RootBinding],
 })
-const update = ApplicationComposition.makeUpdate()
+const update = ApplicationComposition.makeUpdate({})
 const view = ApplicationComposition.makeView((_model, h) => h.main([]))
 
 const prepareApplicationBlock = () =>

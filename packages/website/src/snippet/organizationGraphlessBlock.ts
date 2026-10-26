@@ -17,13 +17,11 @@ export const CounterComposition = Block.makeDefinition('Counter', {
 const init = CounterComposition.makeInit(() => ({
   model: Model.make({ count: 0 }),
 }))
-const update = CounterComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedIncrement: () => ({
-      model: modifyFields(model, { count: Number.increment }),
-    }),
+const update = CounterComposition.makeUpdate({
+  ClickedIncrement: model => ({
+    model: modifyFields(model, { count: Number.increment }),
   }),
-)
+})
 const view = CounterComposition.makeView((model, h) =>
   h.button([h.OnClick(Message.ClickedIncrement())], [`Count: ${model.count}`]),
 )

@@ -88,10 +88,10 @@ const UnregisteredStatusBinding = GeneratedBindingParentDefinition.makeBinding(
 const unregisteredGeneratedStep = GeneratedBindingParentDefinition.makeStep(
   () => UnregisteredStatusBinding.requestToggle(),
 )
-GeneratedBindingParentComposition.makeUpdate(model =>
+GeneratedBindingParentComposition.makeUpdate({
   // @ts-expect-error Wrapping an operation in Definition.makeStep cannot erase its Binding registration.
-  unregisteredGeneratedStep(model),
-)
+  ClickedParent: model => unregisteredGeneratedStep(model),
+})
 
 GeneratedBindingParentDefinition.makeBinding(CounterBlock, {
   // @ts-expect-error Parent Message wrappers are generated from the Binding placement.
@@ -122,7 +122,7 @@ const prepareSilentBlock = () =>
     init: GeneratedBindingSilentComposition.makeInit(() => ({
       model: { value: 0 },
     })),
-    update: GeneratedBindingSilentComposition.makeUpdate(),
+    update: GeneratedBindingSilentComposition.makeUpdate({}),
   })
 const SilentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof SilentModel,

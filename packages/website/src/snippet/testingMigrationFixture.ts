@@ -34,17 +34,15 @@ const PinsComposition = PinsDefinition.makeComposition()
 const prepare = () =>
   PinsComposition.prepareBlock({
     init: PinsComposition.makeInit(() => ({ model: { count: 0 } })),
-    update: PinsComposition.makeUpdate((model, message) =>
-      PinsMessage.match(message, {
-        RequestedReadPins: () => ({ model, commands: [ReadPins()] }),
-        CompletedReadPins: ({ count }) => ({
-          model: modifyFields(model, { count: () => count }),
-        }),
-        ObservedPins: ({ count }) => ({
-          model: modifyFields(model, { count: () => count }),
-        }),
+    update: PinsComposition.makeUpdate({
+      RequestedReadPins: model => ({ model, commands: [ReadPins()] }),
+      CompletedReadPins: (model, { count }) => ({
+        model: modifyFields(model, { count: () => count }),
       }),
-    ),
+      ObservedPins: (model, { count }) => ({
+        model: modifyFields(model, { count: () => count }),
+      }),
+    }),
     view: PinsComposition.makeView((model, h) =>
       h.output([], [globalThis.String(model.count)]),
     ),
@@ -74,11 +72,9 @@ export const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [PinsBinding],
 })
 export const init = ApplicationComposition.makeInit(() => ({ model: {} }))
-export const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    RequestedRefreshPins: () => PinsBinding.requestReadPins()(model),
-  }),
-)
+export const update = ApplicationComposition.makeUpdate({
+  RequestedRefreshPins: PinsBinding.requestReadPins(),
+})
 export const view = ApplicationComposition.makeView((model, h) => ({
   title: 'Pins',
   body: h.main(

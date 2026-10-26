@@ -7,3 +7,6 @@ export const SearchDefinition = Block.makeDefinition('Search', {
   Model,
   Message,
 })
+
+export const { makeCommandsStep, makeFieldsStep, makeNoopStep, makeStep } =
+  SearchDefinition
