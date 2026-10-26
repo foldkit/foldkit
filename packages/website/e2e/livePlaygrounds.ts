@@ -67,7 +67,9 @@ const playgroundFrame = async (page: Page, slug: string) => {
   })
   expect(isInert).toBe(false)
   await expect(frameElement).toHaveAttribute('tabindex', '0')
-  expect(await frame.locator('[data-foldkit-build]').count()).toBe(0)
+  await expect(frame.locator('[data-foldkit-build]')).toHaveCount(0, {
+    timeout: PLAYGROUND_BOOT_TIMEOUT_MILLISECONDS,
+  })
   await assertPlaygroundFrameRemains(page)
   return frame
 }
