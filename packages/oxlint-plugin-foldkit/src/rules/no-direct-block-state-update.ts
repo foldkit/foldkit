@@ -28,8 +28,8 @@ import {
   blockBindingMethod,
   blockBindingConfiguration,
   blockBindingParent,
-  definitionMethodOwnerPath,
   isOwnedDefinitionCall,
+  ownedDefinitionMethodOwner,
   isVariableDeclaration,
 } from '../guards.ts'
 
@@ -308,6 +308,10 @@ type FoldKind = 'Fold' | 'Keyed' | 'Step'
 
 type DefinitionOwner = Readonly<{
   fallbackRootName: string
+  importedPath?: Readonly<{
+    source: string
+    members: ReadonlyArray<string>
+  }>
   members: ReadonlyArray<string>
   variable?: Variable
 }>
@@ -320,6 +324,17 @@ const definitionOwnerForPath = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): DefinitionOwner => ({
   fallbackRootName: path.root.name,
+  ...(references === undefined
+    ? {}
+    : Option.match(resolveImportedPath(references, path.root), {
+        onNone: () => ({}),
+        onSome: imported => ({
+          importedPath: {
+            source: imported.source,
+            members: [...imported.members, ...path.members],
+          },
+        }),
+      })),
   members: path.members,
   ...(references === undefined
     ? {}
@@ -345,19 +360,40 @@ const definitionOwner = (
   node: ESTree.CallExpression,
   methodName: string,
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  importerFilename?: string,
 ): DefinitionOwner | undefined => {
-  const maybePath = definitionMethodOwnerPath(node.callee, methodName)
-  if (Option.isNone(maybePath)) {
+  const maybeOwner = ownedDefinitionMethodOwner(
+    node.callee,
+    methodName,
+    references,
+    importerFilename,
+  )
+  if (Option.isNone(maybeOwner)) {
     return undefined
   }
 
-  return definitionOwnerForPath(maybePath.value, references)
+  const owner = definitionOwnerForPath(maybeOwner.value.path, references)
+  return maybeOwner.value.importedPath === undefined
+    ? owner
+    : { ...owner, importedPath: maybeOwner.value.importedPath }
 }
 
 const isSameDefinitionOwner = (
   left: DefinitionOwner,
   right: DefinitionOwner,
 ): boolean => {
+  if (left.importedPath !== undefined || right.importedPath !== undefined) {
+    return (
+      left.importedPath !== undefined &&
+      right.importedPath !== undefined &&
+      left.importedPath.source === right.importedPath.source &&
+      left.importedPath.members.length === right.importedPath.members.length &&
+      left.importedPath.members.every(
+        (member, index) => member === right.importedPath?.members[index],
+      )
+    )
+  }
+
   if (
     left.members.length !== right.members.length ||
     left.members.some((member, index) => member !== right.members[index])
@@ -1027,10 +1063,16 @@ const isArrayExpression = (value: unknown): value is ESTree.ArrayExpression =>
 const ownedStepFieldsCallFor = (
   node: unknown,
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  importerFilename?: string,
   visited: ReadonlySet<Variable> = new Set(),
 ): ESTree.CallExpression | undefined => {
   if (isCallExpression(node)) {
-    return isOwnedDefinitionCall(node, 'makeFieldsStep', references)
+    return isOwnedDefinitionCall(
+      node,
+      'makeFieldsStep',
+      references,
+      importerFilename,
+    )
       ? node
       : undefined
   }
@@ -1055,6 +1097,7 @@ const ownedStepFieldsCallFor = (
           ownedStepFieldsCallFor(
             definition.node.init,
             references,
+            importerFilename,
             new Set([...visited, variable]),
           ),
         )
@@ -1067,12 +1110,23 @@ const modelParameterForFieldsStep = (
   node: ESTree.CallExpression,
   callbacks: ReadonlyMap<string, ESTree.ArrowFunctionExpression>,
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  importerFilename?: string,
 ): ESTree.IdentifierReference | undefined => {
-  if (
-    Option.exists(staticMemberPath(node.callee), path =>
-      Option.contains(Array.last(path.members), 'fromMessage'),
-    )
-  ) {
+  const isFromMessageAdapter =
+    references === undefined
+      ? Option.exists(staticMemberPath(node.callee), path =>
+          Option.contains(Array.last(path.members), 'fromMessage'),
+        )
+      : Option.exists(
+          ownedDefinitionMethodOwner(
+            node.callee,
+            'makeFieldsStep',
+            references,
+            importerFilename,
+          ),
+          owner => owner.isFromMessageAdapter,
+        )
+  if (isFromMessageAdapter) {
     return undefined
   }
   const [authored] = node.arguments
@@ -1088,6 +1142,7 @@ const childFieldsForCombine = (
     fallbackByName: ReadonlyMap<string, FoldDefinition>
   }>,
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  importerFilename?: string,
 ): CombineStepDefinition => {
   if (!isCombineStepsCall(node, references)) {
     return {
@@ -1111,7 +1166,11 @@ const childFieldsForCombine = (
   const bindings: Array<FoldDefinition> = []
   const stepFieldsCalls = new Set<ESTree.CallExpression>()
   for (const step of steps.elements) {
-    const stepFieldsCall = ownedStepFieldsCallFor(step, references)
+    const stepFieldsCall = ownedStepFieldsCallFor(
+      step,
+      references,
+      importerFilename,
+    )
     if (stepFieldsCall !== undefined) {
       stepFieldsCalls.add(stepFieldsCall)
       continue
@@ -1144,6 +1203,7 @@ const combineStepDefinitions = (
     fallbackByName: ReadonlyMap<string, FoldDefinition>
   }>,
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  importerFilename?: string,
 ): Readonly<{
   byVariable: WeakMap<Variable, CombineStepDefinition>
   fallbackByName: ReadonlyMap<string, CombineStepDefinition>
@@ -1168,6 +1228,7 @@ const combineStepDefinitions = (
       node.init,
       definitions,
       references,
+      importerFilename,
     )
     if (bindings.length === 0 && stepFieldsCalls.size === 0) {
       return
@@ -1285,6 +1346,7 @@ const foldEvidence = (
   program: ESTree.Program,
   scopes: ReadonlyArray<OxlintScope> | undefined,
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  importerFilename?: string,
 ): FoldEvidence => {
   const callbacks = moduleCallbacks(program)
   const definitions = foldDefinitions(program, scopes, references)
@@ -1299,6 +1361,7 @@ const foldEvidence = (
     scopes,
     definitions,
     references,
+    importerFilename,
   )
   const registrationsByParentModel = new Map<
     Variable,
@@ -1344,8 +1407,14 @@ const foldEvidence = (
       stepFieldsCall,
       callbacks,
       references,
+      importerFilename,
     )
-    const owner = definitionOwner(stepFieldsCall, 'makeFieldsStep', references)
+    const owner = definitionOwner(
+      stepFieldsCall,
+      'makeFieldsStep',
+      references,
+      importerFilename,
+    )
     if (helperModel !== undefined && owner !== undefined) {
       helperCalls.push({ source: parentModel, target: helperModel, owner })
     }
@@ -1427,17 +1496,23 @@ const foldEvidence = (
         references,
       )
       for (const handler of handlers) {
-        const stepFieldsCall = ownedStepFieldsCallFor(handler, references)
+        const stepFieldsCall = ownedStepFieldsCallFor(
+          handler,
+          references,
+          importerFilename,
+        )
         if (stepFieldsCall !== undefined) {
           const owner = definitionOwner(
             stepFieldsCall,
             'makeFieldsStep',
             references,
+            importerFilename,
           )
           const helperModel = modelParameterForFieldsStep(
             stepFieldsCall,
             callbacks,
             references,
+            importerFilename,
           )
           for (const binding of compositionUpdate.definition.bindings) {
             if (
@@ -1474,11 +1549,20 @@ const foldEvidence = (
       ? combineModel(node, ancestors)
       : undefined
     if (parentModelForCombine !== undefined) {
-      const childFields = childFieldsForCombine(node, definitions, references)
+      const childFields = childFieldsForCombine(
+        node,
+        definitions,
+        references,
+        importerFilename,
+      )
       addCombineEvidence(childFields, parentModelForCombine)
     }
 
-    const appliedStepFields = ownedStepFieldsCallFor(node.callee, references)
+    const appliedStepFields = ownedStepFieldsCallFor(
+      node.callee,
+      references,
+      importerFilename,
+    )
     const [stepFieldsParentModel] = node.arguments
     if (
       appliedStepFields !== undefined &&
@@ -1753,12 +1837,20 @@ const directChildStepFieldsField = (
   evidence: FoldEvidence,
   callbacks: ReadonlyMap<string, ESTree.ArrowFunctionExpression>,
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  importerFilename?: string,
 ): DirectChildStateUpdate | undefined => {
-  if (!isOwnedDefinitionCall(node, 'makeFieldsStep', references)) {
+  if (
+    !isOwnedDefinitionCall(node, 'makeFieldsStep', references, importerFilename)
+  ) {
     return undefined
   }
 
-  const stepOwner = definitionOwner(node, 'makeFieldsStep', references)
+  const stepOwner = definitionOwner(
+    node,
+    'makeFieldsStep',
+    references,
+    importerFilename,
+  )
   const parentModel = evidence.parentModelByStepFieldsCall.get(node)
   if (stepOwner === undefined) {
     return undefined
@@ -2318,7 +2410,7 @@ export const noDirectBlockStateUpdate = Rule.define({
         if (node.type !== 'Program') {
           return Effect.void
         }
-        const evidence = foldEvidence(node, scopes, references)
+        const evidence = foldEvidence(node, scopes, references, ctx.filename)
         const origins = collectChildReturnOrigins(node, scopes, references)
         const callbacks = moduleCallbacks(node)
         if (
@@ -2354,6 +2446,7 @@ export const noDirectBlockStateUpdate = Rule.define({
                   evidence,
                   callbacks,
                   references,
+                  ctx.filename,
                 ) ??
                 directChildModifyFieldsField(
                   candidate,

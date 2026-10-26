@@ -15,6 +15,8 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
+const { makeFieldsStep, makeCommandsStep } = ApplicationDefinition
+
 const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 const WaitBeforeReset = ApplicationDefinition.makeCommand('WaitBeforeReset', {
@@ -29,10 +31,10 @@ const WaitBeforeReset = ApplicationDefinition.makeCommand('WaitBeforeReset', {
 })
 
 const update = ApplicationComposition.makeUpdate({
-  ClickedResetAfterDelay: ApplicationDefinition.makeCommandsStep.fromMessage(
-    ({ delayMs }) => [WaitBeforeReset({ delayMs })],
-  ),
-  CompletedWaitBeforeReset: ApplicationDefinition.makeFieldsStep(() => ({
+  ClickedResetAfterDelay: makeCommandsStep.fromMessage(({ delayMs }) => [
+    WaitBeforeReset({ delayMs }),
+  ]),
+  CompletedWaitBeforeReset: makeFieldsStep(() => ({
     count: () => 0,
   })),
 })

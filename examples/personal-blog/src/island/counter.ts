@@ -15,6 +15,9 @@ const CounterDefinition = Block.makeDefinition('Counter', {
   Model,
   Message,
 })
+
+const { makeFieldsStep } = CounterDefinition
+
 const CounterComposition = CounterDefinition.makeComposition()
 
 const init = CounterComposition.makeInit(() => ({
@@ -22,10 +25,10 @@ const init = CounterComposition.makeInit(() => ({
 }))
 
 const update = CounterComposition.makeUpdate({
-  ClickedDecrement: CounterDefinition.makeFieldsStep(() => ({
+  ClickedDecrement: makeFieldsStep(() => ({
     count: count => count - 1,
   })),
-  ClickedIncrement: CounterDefinition.makeFieldsStep(() => ({
+  ClickedIncrement: makeFieldsStep(() => ({
     count: count => count + 1,
   })),
 })

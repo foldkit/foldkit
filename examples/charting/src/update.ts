@@ -7,7 +7,7 @@ import {
   refetchTelemetry,
   syncChart,
 } from './composition'
-import { ApplicationDefinition } from './definition'
+import { makeFieldsStep } from './definition'
 import { TelemetryAsyncData } from './model'
 
 export const update = ApplicationComposition.makeUpdate({
@@ -46,11 +46,9 @@ export const update = ApplicationComposition.makeUpdate({
     }
   },
 
-  FailedFetchTelemetry: ApplicationDefinition.makeFieldsStep(
-    (model, { error }) => ({
-      telemetry: () => AsyncData.settle(model.telemetry, Result.fail(error)),
-    }),
-  ),
+  FailedFetchTelemetry: makeFieldsStep((model, { error }) => ({
+    telemetry: () => AsyncData.settle(model.telemetry, Result.fail(error)),
+  })),
 
   SucceededMountChart: (model, { hostId }) => ({
     model: modifyFields(model, {
@@ -67,19 +65,15 @@ export const update = ApplicationComposition.makeUpdate({
     }),
   }),
 
-  FailedMountChart: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ reason }) => ({
-      maybeChartError: () => Option.some(reason),
-    }),
-  ),
+  FailedMountChart: makeFieldsStep.fromMessage(({ reason }) => ({
+    maybeChartError: () => Option.some(reason),
+  })),
 
-  SucceededSyncChart: ApplicationDefinition.makeFieldsStep(() => ({
+  SucceededSyncChart: makeFieldsStep(() => ({
     maybeChartError: () => Option.none(),
   })),
 
-  FailedSyncChart: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ reason }) => ({
-      maybeChartError: () => Option.some(reason),
-    }),
-  ),
+  FailedSyncChart: makeFieldsStep.fromMessage(({ reason }) => ({
+    maybeChartError: () => Option.some(reason),
+  })),
 })

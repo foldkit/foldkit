@@ -8,12 +8,16 @@ import {
   StatusFilterListboxBlock,
   StatusFilterValue,
 } from '../listbox'
-import { IssueListDefinition } from './definition'
+import {
+  IssueListDefinition,
+  makeNoopStep,
+  makeOutMessageStep,
+} from './definition'
 import { OutMessage } from './message'
 
 const changeStatusFilter = (value: typeof StatusFilterValue.Type) => {
   if (value === 'All') {
-    return IssueListDefinition.makeOutMessageStep(() =>
+    return makeOutMessageStep(() =>
       OutMessage.ChangedStatusFilter({
         maybeStatus: Option.none(),
       }),
@@ -21,29 +25,25 @@ const changeStatusFilter = (value: typeof StatusFilterValue.Type) => {
   }
 
   if (Schema.is(IssueStatus)(value)) {
-    return IssueListDefinition.makeOutMessageStep(() =>
+    return makeOutMessageStep(() =>
       OutMessage.ChangedStatusFilter({
         maybeStatus: Option.some(value),
       }),
     )
   }
 
-  return IssueListDefinition.makeNoopStep()
+  return makeNoopStep()
 }
 
 const changeSort = (value: typeof IssueFilters.fields.sort.Type) =>
   Schema.is(IssueFilters.fields.sort)(value)
-    ? IssueListDefinition.makeOutMessageStep(() =>
-        OutMessage.ChangedSort({ sort: value }),
-      )
-    : IssueListDefinition.makeNoopStep()
+    ? makeOutMessageStep(() => OutMessage.ChangedSort({ sort: value }))
+    : makeNoopStep()
 
 const changeGrouping = (value: typeof GroupBy.Type) =>
   Schema.is(GroupBy)(value)
-    ? IssueListDefinition.makeOutMessageStep(() =>
-        OutMessage.ChangedGrouping({ groupBy: value }),
-      )
-    : IssueListDefinition.makeNoopStep()
+    ? makeOutMessageStep(() => OutMessage.ChangedGrouping({ groupBy: value }))
+    : makeNoopStep()
 
 export const StatusListboxBinding = IssueListDefinition.makeBinding(
   StatusFilterListboxBlock,

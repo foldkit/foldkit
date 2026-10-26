@@ -16,6 +16,8 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
+const { makeFieldsStep, makeCommandsStep, makeNoopStep } = ApplicationDefinition
+
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 const CountResponse = Schema.Struct({ count: Schema.Int })
@@ -50,11 +52,9 @@ export const fetchCount = (client: HttpClient.HttpClient) =>
 export const FetchCountLayer = FetchCount.layer
 
 export const update = ApplicationComposition.makeUpdate({
-  ClickedFetchCount: ApplicationDefinition.makeCommandsStep(() => [
-    FetchCount(),
-  ]),
-  SucceededFetchCount: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ count }) => ({ count: () => count }),
-  ),
-  FailedFetchCount: ApplicationDefinition.makeNoopStep(),
+  ClickedFetchCount: makeCommandsStep(() => [FetchCount()]),
+  SucceededFetchCount: makeFieldsStep.fromMessage(({ count }) => ({
+    count: () => count,
+  })),
+  FailedFetchCount: makeNoopStep(),
 })

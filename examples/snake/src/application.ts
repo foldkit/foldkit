@@ -47,6 +47,8 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
+const { makeFieldsStep } = ApplicationDefinition
+
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
@@ -182,7 +184,7 @@ export const update = ApplicationComposition.makeUpdate({
     }
   },
 
-  PausedGame: ApplicationDefinition.makeFieldsStep(() => ({
+  PausedGame: makeFieldsStep(() => ({
     gameState: gameState => (gameState === 'Playing' ? 'Paused' : 'Playing'),
   })),
 
@@ -202,10 +204,11 @@ export const update = ApplicationComposition.makeUpdate({
     }
   },
 
-  CompletedGenerateApplePosition:
-    ApplicationDefinition.makeFieldsStep.fromMessage(({ position }) => ({
+  CompletedGenerateApplePosition: makeFieldsStep.fromMessage(
+    ({ position }) => ({
       apple: () => position,
-    })),
+    }),
+  ),
 })
 
 export const GenerateApplePosition = ApplicationDefinition.makeCommand(

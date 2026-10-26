@@ -5,7 +5,11 @@ import { pushUrl } from 'foldkit/navigation'
 
 import * as Shared from '@typing-game/shared'
 
-import { ApplicationDefinition } from '../definition'
+import {
+  ApplicationDefinition,
+  makeCommandsStep,
+  makeStep,
+} from '../definition'
 import { Message } from '../message'
 import { HomeBlock } from '../page'
 import { ApplicationRoute, roomRouter } from '../route'
@@ -26,10 +30,10 @@ export const NavigateToRoom = ApplicationDefinition.makeCommand(
 )
 
 const navigateToRoom = (roomId: string) =>
-  ApplicationDefinition.makeCommandsStep(() => [NavigateToRoom({ roomId })])
+  makeCommandsStep(() => [NavigateToRoom({ roomId })])
 
 const initRoomInstance = (roomId: string) =>
-  ApplicationDefinition.makeStep(model =>
+  makeStep(model =>
     initAndSet(RoomBinding, model, {
       key: roomId,
       args: [Option.none()],

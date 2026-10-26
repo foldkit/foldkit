@@ -10,7 +10,8 @@ import { WorkHistoryEntryComposition } from './composition'
 import {
   type Model,
   OutMessage,
-  WorkHistoryEntryDefinition,
+  makeFieldsStep,
+  makeOutMessageStep,
 } from './definition'
 
 export const companyRules = makeRules({
@@ -25,31 +26,28 @@ const validateCompany = validate(companyRules)
 const validateTitle = validate(titleRules)
 
 export const update = WorkHistoryEntryComposition.makeUpdate({
-  UpdatedCompany: WorkHistoryEntryDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ company: () => validateCompany(value) }),
-  ),
+  UpdatedCompany: makeFieldsStep.fromMessage(({ value }) => ({
+    company: () => validateCompany(value),
+  })),
 
-  UpdatedTitle: WorkHistoryEntryDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ title: () => validateTitle(value) }),
-  ),
+  UpdatedTitle: makeFieldsStep.fromMessage(({ value }) => ({
+    title: () => validateTitle(value),
+  })),
 
-  ToggledCurrentlyEmployed:
-    WorkHistoryEntryDefinition.makeFieldsStep.fromMessage(({ isChecked }) => ({
-      isCurrentlyEmployed: () => isChecked,
-    })),
+  ToggledCurrentlyEmployed: makeFieldsStep.fromMessage(({ isChecked }) => ({
+    isCurrentlyEmployed: () => isChecked,
+  })),
 
-  UpdatedDescription: WorkHistoryEntryDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ description: () => value }),
-  ),
+  UpdatedDescription: makeFieldsStep.fromMessage(({ value }) => ({
+    description: () => value,
+  })),
 
-  RequestedRevealErrors: WorkHistoryEntryDefinition.makeFieldsStep(() => ({
+  RequestedRevealErrors: makeFieldsStep(() => ({
     company: revealFieldErrors(companyRules),
     title: revealFieldErrors(titleRules),
   })),
 
-  ClickedRemoveSelf: WorkHistoryEntryDefinition.makeOutMessageStep(() =>
-    OutMessage.Removed(),
-  ),
+  ClickedRemoveSelf: makeOutMessageStep(() => OutMessage.Removed()),
 })
 
 export const hasErrors = (entry: typeof Model.Type): boolean =>

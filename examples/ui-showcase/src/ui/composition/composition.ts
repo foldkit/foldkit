@@ -13,7 +13,7 @@ import {
 } from '@foldkit/ui'
 
 import { CityComboboxBlock, CityMultiComboboxBlock } from '../combobox'
-import { UiDefinition } from '../definition'
+import { UiDefinition, makeFieldsStep, makeNoopStep } from '../definition'
 import {
   CharacterListboxBlock,
   ItemListboxBlock,
@@ -28,24 +28,24 @@ import { AnimationDemoBindingWithOutMessagePolicy } from './animation'
 import { DragAndDropDemoBinding } from './dragAndDrop'
 
 const foldDialogOutMessage = UiDefinition.makeOutMessageFold(DialogBlock, {
-  Opened: UiDefinition.makeNoopStep,
-  Closed: UiDefinition.makeNoopStep,
-  CompletedClose: UiDefinition.makeNoopStep,
+  Opened: makeNoopStep,
+  Closed: makeNoopStep,
+  CompletedClose: makeNoopStep,
 })
 
 const foldMenuOutMessage = UiDefinition.makeOutMessageFold(DemoMenuBlock, {
-  Selected: UiDefinition.makeNoopStep,
-  Closed: UiDefinition.makeNoopStep,
+  Selected: makeNoopStep,
+  Closed: makeNoopStep,
 })
 
 const foldPopoverOutMessage = UiDefinition.makeOutMessageFold(PopoverBlock, {
-  Opened: UiDefinition.makeNoopStep,
-  Closed: UiDefinition.makeNoopStep,
+  Opened: makeNoopStep,
+  Closed: makeNoopStep,
 })
 
 const foldTooltipOutMessage = UiDefinition.makeOutMessageFold(TooltipBlock, {
-  Shown: UiDefinition.makeNoopStep,
-  Hidden: UiDefinition.makeNoopStep,
+  Shown: makeNoopStep,
+  Hidden: makeNoopStep,
 })
 
 export const MobileMenuDialogBinding = UiDefinition.makeBinding(DialogBlock, {
@@ -59,10 +59,10 @@ export const ComboboxDemoBinding = UiDefinition.makeBinding(CityComboboxBlock, {
 }).withOutMessagePolicy({
   fold: UiDefinition.makeOutMessageFold(CityComboboxBlock, {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeComboboxDemoSelectedCity: () => Option.some(value),
       })),
-    ClearedSelection: UiDefinition.makeNoopStep,
+    ClearedSelection: makeNoopStep,
   }),
 })
 
@@ -77,7 +77,7 @@ export const ComboboxNullableDemoBinding = UiDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: UiDefinition.makeOutMessageFold(CityComboboxBlock, {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeComboboxNullableDemoSelectedCity:
           maybeComboboxNullableDemoSelectedCity =>
             Option.contains(maybeComboboxNullableDemoSelectedCity, value)
@@ -85,7 +85,7 @@ export const ComboboxNullableDemoBinding = UiDefinition.makeBinding(
               : Option.some(value),
       })),
     ClearedSelection: () =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeComboboxNullableDemoSelectedCity: () => Option.none(),
       })),
   }),
@@ -100,7 +100,7 @@ export const ComboboxMultiDemoBinding = UiDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: UiDefinition.makeOutMessageFold(CityMultiComboboxBlock, {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         comboboxMultiDemoSelectedCities: comboboxMultiDemoSelectedCities =>
           Array.contains(comboboxMultiDemoSelectedCities, value)
             ? Array.filter(
@@ -109,7 +109,7 @@ export const ComboboxMultiDemoBinding = UiDefinition.makeBinding(
               )
             : Array.append(comboboxMultiDemoSelectedCities, value),
       })),
-    ClearedSelection: UiDefinition.makeNoopStep,
+    ClearedSelection: makeNoopStep,
   }),
 })
 
@@ -122,10 +122,10 @@ export const ComboboxPlacementLockDemoBinding = UiDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: UiDefinition.makeOutMessageFold(CityComboboxBlock, {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeComboboxPlacementLockDemoSelectedCity: () => Option.some(value),
       })),
-    ClearedSelection: UiDefinition.makeNoopStep,
+    ClearedSelection: makeNoopStep,
   }),
 })
 
@@ -142,10 +142,10 @@ export const ComboboxSelectOnFocusDemoBinding = UiDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: UiDefinition.makeOutMessageFold(CityComboboxBlock, {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeComboboxSelectOnFocusDemoSelectedCity: () => Option.some(value),
       })),
-    ClearedSelection: UiDefinition.makeNoopStep,
+    ClearedSelection: makeNoopStep,
   }),
 })
 
@@ -175,10 +175,10 @@ export const OverlayComboboxDemoBinding = UiDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: UiDefinition.makeOutMessageFold(CityComboboxBlock, {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeOverlayComboboxDemoSelectedCity: () => Option.some(value),
       })),
-    ClearedSelection: UiDefinition.makeNoopStep,
+    ClearedSelection: makeNoopStep,
   }),
 })
 
@@ -216,10 +216,10 @@ export const CalendarBasicDemoBinding = UiDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: UiDefinition.makeOutMessageFold(CalendarBlock, {
     SelectedDate: ({ date }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeCalendarBasicDemoSelectedDate: () => Option.some(date),
       })),
-    ChangedViewMonth: UiDefinition.makeNoopStep,
+    ChangedViewMonth: makeNoopStep,
   }),
 })
 
@@ -241,14 +241,14 @@ export const DatePickerBasicDemoBinding = UiDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: UiDefinition.makeOutMessageFold(DatePickerBlock, {
     SelectedDate: ({ date }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeDatePickerBasicDemoSelectedDate: () => Option.some(date),
       })),
     ClearedDate: () =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeDatePickerBasicDemoSelectedDate: () => Option.none(),
       })),
-    ChangedViewMonth: UiDefinition.makeNoopStep,
+    ChangedViewMonth: makeNoopStep,
   }),
 })
 
@@ -261,10 +261,10 @@ export const FileDropBasicDemoBinding = UiDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: UiDefinition.makeOutMessageFold(FileDropBlock, {
     ReceivedFiles: ({ files }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         fileDropBasicDemoFiles: Array.appendAll(files),
       })),
-    RejectedNonFiles: UiDefinition.makeNoopStep,
+    RejectedNonFiles: makeNoopStep,
   }),
 })
 
@@ -274,7 +274,7 @@ export const ListboxDemoBinding = UiDefinition.makeBinding(ItemListboxBlock, {
 }).withOutMessagePolicy({
   fold: UiDefinition.makeOutMessageFold(ItemListboxBlock, {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeListboxDemoSelectedItem: () => Option.some(value),
       })),
   }),
@@ -289,7 +289,7 @@ export const ListboxMultiDemoBinding = UiDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: UiDefinition.makeOutMessageFold(ItemMultiListboxBlock, {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         listboxMultiDemoSelectedItems: listboxMultiDemoSelectedItems =>
           Array.contains(listboxMultiDemoSelectedItems, value)
             ? Array.filter(
@@ -310,7 +310,7 @@ export const ListboxGroupedDemoBinding = UiDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: UiDefinition.makeOutMessageFold(CharacterListboxBlock, {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeListboxGroupedDemoSelectedItem: () => Option.some(value),
       })),
   }),
@@ -372,7 +372,7 @@ export const VerticalRadioGroupDemoBinding = UiDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: UiDefinition.makeOutMessageFold(PlanRadioGroupBlock, {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         verticalRadioGroupDemoValue: () => Option.some(value),
       })),
   }),
@@ -387,7 +387,7 @@ export const HorizontalRadioGroupDemoBinding = UiDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: UiDefinition.makeOutMessageFold(PlanRadioGroupBlock, {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         horizontalRadioGroupDemoValue: () => Option.some(value),
       })),
   }),
@@ -403,7 +403,7 @@ export const SliderRatingDemoBinding = UiDefinition.makeBinding(SliderBlock, {
 }).withOutMessagePolicy({
   fold: UiDefinition.makeOutMessageFold(SliderBlock, {
     ChangedValue: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({ sliderRatingValue: () => value })),
+      makeFieldsStep(() => ({ sliderRatingValue: () => value })),
   }),
 })
 
@@ -417,7 +417,7 @@ export const SliderVolumeDemoBinding = UiDefinition.makeBinding(SliderBlock, {
 }).withOutMessagePolicy({
   fold: UiDefinition.makeOutMessageFold(SliderBlock, {
     ChangedValue: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({ sliderVolumeValue: () => value })),
+      makeFieldsStep(() => ({ sliderVolumeValue: () => value })),
   }),
 })
 
@@ -430,7 +430,7 @@ export const HorizontalTabsDemoBinding = UiDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: UiDefinition.makeOutMessageFold(DemoTabsBlock, {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         horizontalTabsDemoTab: () => value,
       })),
   }),
@@ -442,7 +442,7 @@ export const VerticalTabsDemoBinding = UiDefinition.makeBinding(DemoTabsBlock, {
 }).withOutMessagePolicy({
   fold: UiDefinition.makeOutMessageFold(DemoTabsBlock, {
     Selected: ({ value }) =>
-      UiDefinition.makeFieldsStep(() => ({ verticalTabsDemoTab: () => value })),
+      makeFieldsStep(() => ({ verticalTabsDemoTab: () => value })),
   }),
 })
 
@@ -451,7 +451,7 @@ export const ToastDemoBinding = UiDefinition.makeBinding(ToastBlock, {
   init: { contextToArgs: () => [{ id: 'toast-demo', swipeToDismiss: {} }] },
 }).withOutMessagePolicy({
   fold: UiDefinition.makeOutMessageFold(ToastBlock, {
-    DismissedToast: UiDefinition.makeNoopStep,
+    DismissedToast: makeNoopStep,
   }),
 })
 
@@ -477,15 +477,15 @@ export const HoverIntentDemoBinding = UiDefinition.makeBinding(
   },
 ).withOutMessagePolicy({
   fold: UiDefinition.makeOutMessageFold(HoverIntentBlock, {
-    Opened: UiDefinition.makeNoopStep,
-    Closed: UiDefinition.makeNoopStep,
+    Opened: makeNoopStep,
+    Closed: makeNoopStep,
   }),
 })
 
 const foldVirtualListOutMessage = UiDefinition.makeOutMessageFold(
   ActivityVirtualListBlock,
   {
-    ObservedContainerScroll: UiDefinition.makeNoopStep,
+    ObservedContainerScroll: makeNoopStep,
   },
 )
 

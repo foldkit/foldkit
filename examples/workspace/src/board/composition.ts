@@ -4,7 +4,13 @@ import type { Block } from 'foldkit'
 import { DragAndDropBlock } from '@foldkit/ui'
 
 import { issueStatusLabel } from '../domain'
-import { IssueBoardDefinition, OutMessage } from './definition'
+import {
+  IssueBoardDefinition,
+  OutMessage,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageStep,
+} from './definition'
 import {
   maybeIssueIdFromDraggableId,
   maybeStatusFromContainerId,
@@ -39,12 +45,12 @@ const foldDragAndDropOutMessage = IssueBoardDefinition.makeOutMessageFold(
   DragAndDropBlock,
   {
     StartedKeyboardDrag: () =>
-      IssueBoardDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         announcement: () =>
           'Issue picked up. Use arrow keys to change position, Tab to change status, Space to drop, or Escape to cancel.',
       })),
     ChangedKeyboardTarget: ({ toContainerId, toIndex }) =>
-      IssueBoardDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         announcement: announcement =>
           Option.match(maybeStatusFromContainerId(toContainerId), {
             onNone: () => announcement,
@@ -54,12 +60,11 @@ const foldDragAndDropOutMessage = IssueBoardDefinition.makeOutMessageFold(
       })),
     Reordered: reordered =>
       Option.match(maybeMoveFromDrop(reordered), {
-        onNone: IssueBoardDefinition.makeNoopStep,
-        onSome: outMessage =>
-          IssueBoardDefinition.makeOutMessageStep(() => outMessage),
+        onNone: makeNoopStep,
+        onSome: outMessage => makeOutMessageStep(() => outMessage),
       }),
     Cancelled: () =>
-      IssueBoardDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         announcement: () => 'Drag cancelled. Issue order is unchanged.',
       })),
   },

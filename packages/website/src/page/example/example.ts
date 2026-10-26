@@ -21,7 +21,7 @@ import {
   SOURCE_FILE_TABS_ID,
   SourceFileTabsBinding,
 } from './composition'
-import { ExampleDetailDefinition } from './definition'
+import { ExampleDetailDefinition, makeFieldsStep, makeStep } from './definition'
 import { SourceFileTabsBlock } from './fileTabs'
 import { Message } from './message'
 import { type ExampleMeta, findBySlug } from './meta'
@@ -123,7 +123,7 @@ export const init = ExampleDetailComposition.makeInit(
 )
 
 const startLoadingExampleSources = (slug: string) =>
-  ExampleDetailDefinition.makeStep(model => {
+  makeStep(model => {
     return SourceFileTabsBinding.init({
       args: [{ id: SOURCE_FILE_TABS_ID }],
       toParentModel: sourceFileTabs =>
@@ -137,7 +137,7 @@ const startLoadingExampleSources = (slug: string) =>
     })
   })
 
-const clearExampleSources = ExampleDetailDefinition.makeStep(model => {
+const clearExampleSources = makeStep(model => {
   return SourceFileTabsBinding.init({
     args: [{ id: SOURCE_FILE_TABS_ID }],
     toParentModel: sourceFileTabs =>
@@ -153,35 +153,30 @@ const clearExampleSources = ExampleDetailDefinition.makeStep(model => {
 export const update = ExampleDetailComposition.makeUpdate({
   InformedOfRouteChange: (model, { slug }) => changeExampleRoute(model, slug),
 
-  ChangedExampleUrl: ExampleDetailDefinition.makeFieldsStep.fromMessage(
-    ({ url }) => ({ maybeExampleUrl: () => Option.some(url) }),
-  ),
-  ToggledLivePreview: ExampleDetailDefinition.makeFieldsStep.fromMessage(
-    ({ isOpen }) => ({ isLivePreviewOpen: () => isOpen }),
-  ),
+  ChangedExampleUrl: makeFieldsStep.fromMessage(({ url }) => ({
+    maybeExampleUrl: () => Option.some(url),
+  })),
+  ToggledLivePreview: makeFieldsStep.fromMessage(({ isOpen }) => ({
+    isLivePreviewOpen: () => isOpen,
+  })),
 
-  SucceededLoadExampleSources:
-    ExampleDetailDefinition.makeFieldsStep.fromMessage(({ sources }) => ({
-      maybeActiveSourceFilePath: () => maybeFirstSourceFilePath(sources),
-      currentSources: () => CurrentSourcesAsyncData.Success({ data: sources }),
-    })),
+  SucceededLoadExampleSources: makeFieldsStep.fromMessage(({ sources }) => ({
+    maybeActiveSourceFilePath: () => maybeFirstSourceFilePath(sources),
+    currentSources: () => CurrentSourcesAsyncData.Success({ data: sources }),
+  })),
 
-  FailedLoadExampleSources: ExampleDetailDefinition.makeFieldsStep.fromMessage(
-    ({ error }) => ({
-      currentSources: () => CurrentSourcesAsyncData.Failure({ error }),
-    }),
-  ),
+  FailedLoadExampleSources: makeFieldsStep.fromMessage(({ error }) => ({
+    currentSources: () => CurrentSourcesAsyncData.Failure({ error }),
+  })),
 })
 
-const changeExampleRoute = ExampleDetailDefinition.makeStep(
-  (_model, slug: string) => {
-    if (isSourceAvailable(slug)) {
-      return startLoadingExampleSources(slug)
-    }
+const changeExampleRoute = makeStep((_model, slug: string) => {
+  if (isSourceAvailable(slug)) {
+    return startLoadingExampleSources(slug)
+  }
 
-    return clearExampleSources
-  },
-)
+  return clearExampleSources
+})
 
 const featureTag = (text: string): Html =>
   ih.div(

@@ -14,10 +14,13 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
+
+const { makeNoopStep } = ApplicationDefinition
+
 const foldToastOutMessage = ApplicationDefinition.makeOutMessageFold(
   ToastBlock,
   {
-    DismissedToast: ApplicationDefinition.makeNoopStep,
+    DismissedToast: makeNoopStep,
   },
 )
 const ToastBinding = ApplicationDefinition.makeBinding(ToastBlock, {

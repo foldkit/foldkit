@@ -17,6 +17,9 @@ const CoverLetterDefinition = Block.makeDefinition('CoverLetter', {
   Model,
   Message,
 })
+
+const { makeFieldsStep } = CoverLetterDefinition
+
 const CoverLetterComposition = CoverLetterDefinition.makeComposition()
 
 const init = CoverLetterComposition.makeInit(() => ({
@@ -24,9 +27,9 @@ const init = CoverLetterComposition.makeInit(() => ({
 }))
 
 const update = CoverLetterComposition.makeUpdate({
-  UpdatedContent: CoverLetterDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ content: () => value }),
-  ),
+  UpdatedContent: makeFieldsStep.fromMessage(({ value }) => ({
+    content: () => value,
+  })),
 })
 
 const MAX_COVER_LETTER_LENGTH = 2000

@@ -7,3 +7,5 @@ export const ExampleDetailDefinition = Block.makeDefinition('ExampleDetail', {
   Model,
   Message,
 })
+
+export const { makeFieldsStep, makeStep } = ExampleDetailDefinition

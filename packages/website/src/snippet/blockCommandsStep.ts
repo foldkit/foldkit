@@ -10,6 +10,8 @@ const NotificationDefinition = Block.makeDefinition('Notification', {
   Message,
 })
 
+const { makeCommandsStep } = NotificationDefinition
+
 const WaitBeforeDismissal = NotificationDefinition.makeCommand(
   'WaitBeforeDismissal',
   {
@@ -24,8 +26,8 @@ const WaitBeforeDismissal = NotificationDefinition.makeCommand(
   },
 )
 
-export const waitBeforeDismissal = NotificationDefinition.makeCommandsStep(
-  model => [WaitBeforeDismissal({ delayMs: model.dismissDelayMs })],
-)
+export const waitBeforeDismissal = makeCommandsStep(model => [
+  WaitBeforeDismissal({ delayMs: model.dismissDelayMs }),
+])
 
 export const EffectsLayer = WaitBeforeDismissal.layer

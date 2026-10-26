@@ -3,7 +3,7 @@ import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { IssueBoardBinding } from '../composition'
-import { ApplicationDefinition } from '../definition'
+import { makeFieldsStep, makeStep } from '../definition'
 import {
   type Issue,
   type WorkspaceSnapshot,
@@ -33,7 +33,7 @@ export const mergeIssues = (
 ]
 
 export const applyMovedIssues = (snapshot: typeof WorkspaceSnapshot.Type) =>
-  ApplicationDefinition.makeFieldsStep(() => ({
+  makeFieldsStep(() => ({
     workspaceAsyncData: AsyncData.map(current =>
       modifyFields(current, {
         issues: issues => mergeIssues(issues, snapshot.issues),
@@ -42,7 +42,7 @@ export const applyMovedIssues = (snapshot: typeof WorkspaceSnapshot.Type) =>
   }))
 
 export const rollbackMove = (issueId: string) =>
-  ApplicationDefinition.makeFieldsStep(model => ({
+  makeFieldsStep(model => ({
     workspaceAsyncData: workspaceAsyncData => {
       if (
         !IssueMoveState.guards.MovingIssue(model.issueMoveState) ||
@@ -77,7 +77,7 @@ export const rollbackMove = (issueId: string) =>
   }))
 
 export const informBoardMoveFailure = (issueId: string) =>
-  ApplicationDefinition.makeStep(model =>
+  makeStep(model =>
     pipe(
       AsyncData.getData(model.workspaceAsyncData),
       Option.flatMap(snapshot =>

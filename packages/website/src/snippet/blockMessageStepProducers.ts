@@ -15,6 +15,10 @@ const EditorDefinition = Block.makeDefinition('Editor', {
   Message,
   OutMessage,
 })
+
+const { makeFieldsStep, makeCommandsStep, makeOutMessageStep, makeNoopStep } =
+  EditorDefinition
+
 const EditorComposition = EditorDefinition.makeComposition()
 const SaveTitle = EditorDefinition.makeCommand('SaveTitle', {
   args: { issueId: Schema.String, title: Schema.String },
@@ -22,14 +26,14 @@ const SaveTitle = EditorDefinition.makeCommand('SaveTitle', {
 })
 
 export const update = EditorComposition.makeUpdate({
-  UpdatedTitle: EditorDefinition.makeFieldsStep.fromMessage(({ title }) => ({
+  UpdatedTitle: makeFieldsStep.fromMessage(({ title }) => ({
     title: () => title,
   })),
-  RequestedSaveTitle: EditorDefinition.makeCommandsStep((model, { title }) => [
+  RequestedSaveTitle: makeCommandsStep((model, { title }) => [
     SaveTitle({ issueId: model.issueId, title }),
   ]),
-  ClickedClose: EditorDefinition.makeOutMessageStep.fromMessage(({ reason }) =>
+  ClickedClose: makeOutMessageStep.fromMessage(({ reason }) =>
     OutMessage.Closed({ reason }),
   ),
-  CompletedSaveTitle: EditorDefinition.makeNoopStep(),
+  CompletedSaveTitle: makeNoopStep(),
 })

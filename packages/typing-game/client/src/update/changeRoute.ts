@@ -4,15 +4,15 @@ import { initAndSet } from 'foldkit/bindingInit'
 import { modifyFields } from 'foldkit/struct'
 
 import { RoomBinding } from '../composition'
-import { ApplicationDefinition } from '../definition'
+import { makeFieldsStep, makeNoopStep } from '../definition'
 import { type Model } from '../model'
 import { ApplicationRoute, urlToApplicationRoute } from '../route'
 
-const clearRoomInstance = ApplicationDefinition.makeFieldsStep(() => ({
+const clearRoomInstance = makeFieldsStep(() => ({
   maybeRoomInstance: () => Option.none(),
 }))
 
-const keepRoomInstance = ApplicationDefinition.makeNoopStep()
+const keepRoomInstance = makeNoopStep()
 
 export const initRoom = (model: typeof Model.Type, roomId: string) =>
   initAndSet(RoomBinding, model, {

@@ -12,7 +12,12 @@ import {
   selectColor,
   selectTool,
 } from './composition'
-import { ApplicationDefinition } from './definition'
+import {
+  makeCommandsStep,
+  makeFieldsStep,
+  makeNoopStep,
+  makeStep,
+} from './definition'
 import {
   createEmptyGrid,
   erasePixels,
@@ -70,7 +75,7 @@ export const update = ApplicationComposition.makeUpdate({
       Match.exhaustive,
     ),
 
-  EnteredCell: ApplicationDefinition.makeFieldsStep((model, { x, y }) => {
+  EnteredCell: makeFieldsStep((model, { x, y }) => {
     const maybeHoveredCell = () => Option.some({ x, y })
 
     if (model.isDrawing && model.tool === 'Brush') {
@@ -90,7 +95,7 @@ export const update = ApplicationComposition.makeUpdate({
     return { maybeHoveredCell }
   }),
 
-  LeftCanvas: ApplicationDefinition.makeFieldsStep(() => ({
+  LeftCanvas: makeFieldsStep(() => ({
     maybeHoveredCell: () => Option.none(),
   })),
 
@@ -108,7 +113,7 @@ export const update = ApplicationComposition.makeUpdate({
 
   SelectedGridSize: (model, { size }) => requestGridSizeChange(size)(model),
 
-  ToggledMirrorHorizontal: ApplicationDefinition.makeFieldsStep(model => {
+  ToggledMirrorHorizontal: makeFieldsStep(model => {
     const nextMirrorMode = Match.value(model.mirrorMode).pipe(
       Match.when('None', () => 'Horizontal' as const),
       Match.when('Horizontal', () => 'None' as const),
@@ -119,7 +124,7 @@ export const update = ApplicationComposition.makeUpdate({
     return { mirrorMode: () => nextMirrorMode }
   }),
 
-  ToggledMirrorVertical: ApplicationDefinition.makeFieldsStep(model => {
+  ToggledMirrorVertical: makeFieldsStep(model => {
     const nextMirrorMode = Match.value(model.mirrorMode).pipe(
       Match.when('None', () => 'Vertical' as const),
       Match.when('Vertical', () => 'None' as const),
@@ -210,7 +215,7 @@ export const update = ApplicationComposition.makeUpdate({
     return { model: nextModel, commands: [saveCanvas(nextModel)] }
   },
 
-  ClickedExport: ApplicationDefinition.makeCommandsStep(model => [
+  ClickedExport: makeCommandsStep(model => [
     ExportPng({
       grid: model.grid,
       gridSize: model.gridSize,
@@ -218,13 +223,13 @@ export const update = ApplicationComposition.makeUpdate({
     }),
   ]),
 
-  SucceededExportPng: ApplicationDefinition.makeNoopStep(),
+  SucceededExportPng: makeNoopStep(),
 
-  CompletedSaveCanvas: ApplicationDefinition.makeNoopStep(),
+  CompletedSaveCanvas: makeNoopStep(),
 
   FailedExportPng: (model, { error }) =>
     Update.combineSteps(model, [
-      ApplicationDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeExportError: () => Option.some(error),
       })),
       ErrorDialogBinding.requestOpen(),
@@ -232,16 +237,12 @@ export const update = ApplicationComposition.makeUpdate({
 
   ConfirmedGridSizeChange: model =>
     Option.match(model.maybePendingGridSize, {
-      onNone: () => ApplicationDefinition.makeNoopStep()(model),
+      onNone: () => makeNoopStep()(model),
       onSome: pendingSize =>
         Update.combineSteps(model, [
-          ApplicationDefinition.makeStep(stepModel =>
-            applyGridSizeChange(stepModel, pendingSize),
-          ),
+          makeStep(stepModel => applyGridSizeChange(stepModel, pendingSize)),
           GridSizeConfirmDialogBinding.requestClose(),
-          ApplicationDefinition.makeCommandsStep(stepModel => [
-            saveCanvas(stepModel),
-          ]),
+          makeCommandsStep(stepModel => [saveCanvas(stepModel)]),
         ]),
     }),
 })

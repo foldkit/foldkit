@@ -36,6 +36,8 @@ import {
   Model,
   PlaygroundDefinition,
   PlaygroundState,
+  makeFieldsStep,
+  makeNoopStep,
 } from './definition'
 import { MountPlaygroundEditor } from './mount'
 
@@ -265,11 +267,9 @@ const markPreviewLoaded = (
   )
 
 export const update = PlaygroundComposition.makeUpdate({
-  InformedOfSupport: PlaygroundDefinition.makeFieldsStep.fromMessage(
-    ({ isSupported }) => ({
-      maybeIsSupported: () => Option.some(isSupported),
-    }),
-  ),
+  InformedOfSupport: makeFieldsStep.fromMessage(({ isSupported }) => ({
+    maybeIsSupported: () => Option.some(isSupported),
+  })),
   BootedPlayground: (model, { previewUrl }) => ({
     model: modifyFields(model, {
       state: () =>
@@ -281,19 +281,15 @@ export const update = PlaygroundComposition.makeUpdate({
     }),
     commands: [WaitForPlaygroundServerFailure(), ...flushDirtyPaths(model)],
   }),
-  FailedBootPlayground: PlaygroundDefinition.makeFieldsStep.fromMessage(
-    ({ reason }) => ({
-      state: () => PlaygroundState.Failed({ reason }),
-    }),
-  ),
-  ReleasedPlayground: PlaygroundDefinition.makeFieldsStep(() => ({
+  FailedBootPlayground: makeFieldsStep.fromMessage(({ reason }) => ({
+    state: () => PlaygroundState.Failed({ reason }),
+  })),
+  ReleasedPlayground: makeFieldsStep(() => ({
     state: state => (state._tag === 'Failed' ? state : PlaygroundState.Idle()),
   })),
-  LoadedPlaygroundPreview: PlaygroundDefinition.makeFieldsStep.fromMessage(
-    ({ previewUrl }) => ({
-      state: state => markPreviewLoaded(state, previewUrl),
-    }),
-  ),
+  LoadedPlaygroundPreview: makeFieldsStep.fromMessage(({ previewUrl }) => ({
+    state: state => markPreviewLoaded(state, previewUrl),
+  })),
   EditedPlaygroundFile: (model, { path, content }) => {
     const isBooted = model.state._tag === 'Booted'
     const nextModel = modifyFields(model, {
@@ -311,23 +307,23 @@ export const update = PlaygroundComposition.makeUpdate({
       return { model: nextModel }
     }
   },
-  FailedMountPlaygroundEditor: PlaygroundDefinition.makeFieldsStep.fromMessage(
+  FailedMountPlaygroundEditor: makeFieldsStep.fromMessage(({ reason }) => ({
+    state: () => PlaygroundState.Failed({ reason }),
+  })),
+  SucceededSchedulePlaygroundFileWrite: makeFieldsStep(() => ({
+    lastWriteError: () => Option.none(),
+  })),
+  FailedSchedulePlaygroundFileWrite: makeFieldsStep.fromMessage(
+    ({ reason }) => ({
+      lastWriteError: () => Option.some(reason),
+    }),
+  ),
+  CompletedWaitForPlaygroundServerFailure: makeFieldsStep.fromMessage(
     ({ reason }) => ({
       state: () => PlaygroundState.Failed({ reason }),
     }),
   ),
-  SucceededSchedulePlaygroundFileWrite: PlaygroundDefinition.makeFieldsStep(
-    () => ({ lastWriteError: () => Option.none() }),
-  ),
-  FailedSchedulePlaygroundFileWrite:
-    PlaygroundDefinition.makeFieldsStep.fromMessage(({ reason }) => ({
-      lastWriteError: () => Option.some(reason),
-    })),
-  CompletedWaitForPlaygroundServerFailure:
-    PlaygroundDefinition.makeFieldsStep.fromMessage(({ reason }) => ({
-      state: () => PlaygroundState.Failed({ reason }),
-    })),
-  SucceededMountPlaygroundEditor: PlaygroundDefinition.makeNoopStep(),
+  SucceededMountPlaygroundEditor: makeNoopStep(),
 })
 
 const FILE_TAB_BUTTON_BASE_CLASS =

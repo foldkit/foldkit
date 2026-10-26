@@ -8,6 +8,9 @@ const Message = defineMessageUnion({
   UpdatedDisplayName: { value: Schema.String },
 })
 const EditorDefinition = Block.makeDefinition('Editor', { Model, Message })
+
+const { makeFieldsStep } = EditorDefinition
+
 const EditorComposition = EditorDefinition.makeComposition()
 const prepare = () =>
   EditorComposition.prepareBlock({
@@ -15,9 +18,9 @@ const prepare = () =>
       model: Model({ displayName }),
     })),
     update: EditorComposition.makeUpdate({
-      UpdatedDisplayName: EditorDefinition.makeFieldsStep.fromMessage(
-        ({ value }) => ({ displayName: () => value }),
-      ),
+      UpdatedDisplayName: makeFieldsStep.fromMessage(({ value }) => ({
+        displayName: () => value,
+      })),
     }),
   })
 export const EditorBlock: Block.FromAssemblyWithoutViewOrOutMessage<

@@ -3,7 +3,7 @@ import { AsyncData, type Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { FetchPosts, FetchStats } from './command'
-import { ApplicationDefinition } from './definition'
+import { ApplicationDefinition, makeStep } from './definition'
 import {
   ApplicationTabsBlock,
   type Model,
@@ -65,7 +65,7 @@ export const TabsBinding = ApplicationDefinition.makeBinding(
   },
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ApplicationTabsBlock, {
-    Selected: ({ value }) => ApplicationDefinition.makeStep(activateTab(value)),
+    Selected: ({ value }) => makeStep(activateTab(value)),
   }),
 })
 

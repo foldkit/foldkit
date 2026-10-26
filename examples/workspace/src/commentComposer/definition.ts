@@ -39,3 +39,5 @@ export const CommentComposerDefinition = Block.makeDefinition(
     OutMessage,
   },
 )
+
+export const { makeOutMessageStep } = CommentComposerDefinition

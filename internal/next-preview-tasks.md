@@ -32,6 +32,22 @@ All six ceilings remain unchanged. Paired editor measurements retain the moderat
 Workspace error-appearance cost; publication remains held.
 [Scope, consumer choices, evidence and limits](child-initialization-family.md).
 
+## Feature-local Step authoring
+
+- [x] Export used Step helpers from split Definition modules, destructure them
+      privately in colocated features, and retain owner qualification when several
+      Definitions share a module. Migrate all eligible example, Website and Typing
+      Game consumers, active snippets, scaffold guidance and skills; preserve the
+      completed-Block barrel boundary.
+- [x] Preserve lint ownership through local/imported helper aliases and
+      `.fromMessage`, including wrong-owner and shadowing controls. Verify consumer
+      source/tests/lint, strict relocated Workspace declarations, all six unchanged
+      compiler fixtures and three alternating native editor pairs per workload.
+      [Adoption, measurements, scope and remaining limits](step-helper-authoring.md).
+
+Publication remains held. This authoring followup is distinct from the previously
+packed release candidate and does not promote the published Ready snapshot.
+
 ## Followups authorized after the review summary
 
 The reviewed candidate `679d2d5e7fae638f7aa0dbce65440da0ce767331` is pushed only to `codex/workspace-example`. The user authorized the following work after that checkpoint. Its existing verification does not automatically cover this subsequent delta; refresh affected release evidence before presenting another candidate.

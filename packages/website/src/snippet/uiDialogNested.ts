@@ -27,12 +27,14 @@ const ProjectDialogsDefinition = Block.makeDefinition('ProjectDialogs', {
   Message,
 })
 
+const { makeNoopStep } = ProjectDialogsDefinition
+
 const foldConfirmDialogOutMessage = ProjectDialogsDefinition.makeOutMessageFold(
   Dialog.DialogBlock,
   {
-    Opened: ProjectDialogsDefinition.makeNoopStep,
-    Closed: ProjectDialogsDefinition.makeNoopStep,
-    CompletedClose: ProjectDialogsDefinition.makeNoopStep,
+    Opened: makeNoopStep,
+    Closed: makeNoopStep,
+    CompletedClose: makeNoopStep,
   },
 )
 

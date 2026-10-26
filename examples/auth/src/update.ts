@@ -11,7 +11,7 @@ import {
   RedirectToLogin,
 } from './command'
 import { ApplicationComposition } from './composition'
-import { ApplicationDefinition } from './definition'
+import { makeCommandsStep, makeNoopStep } from './definition'
 import { urlToApplicationRoute } from './route'
 
 export const update = ApplicationComposition.makeUpdate({
@@ -54,20 +54,20 @@ export const update = ApplicationComposition.makeUpdate({
     )
   },
 
-  FailedSaveSession: ApplicationDefinition.makeCommandsStep.fromMessage(
-    ({ error }) => [LogError({ entries: ['Failed to save session:', error] })],
-  ),
+  FailedSaveSession: makeCommandsStep.fromMessage(({ error }) => [
+    LogError({ entries: ['Failed to save session:', error] }),
+  ]),
 
-  FailedClearSession: ApplicationDefinition.makeCommandsStep.fromMessage(
-    ({ error }) => [LogError({ entries: ['Failed to clear session:', error] })],
-  ),
+  FailedClearSession: makeCommandsStep.fromMessage(({ error }) => [
+    LogError({ entries: ['Failed to clear session:', error] }),
+  ]),
 
-  CompletedNavigateInternal: ApplicationDefinition.makeNoopStep(),
-  CompletedRedirectToLogin: ApplicationDefinition.makeNoopStep(),
-  CompletedRedirectToDashboard: ApplicationDefinition.makeNoopStep(),
-  CompletedRedirectToHome: ApplicationDefinition.makeNoopStep(),
-  CompletedLoadExternal: ApplicationDefinition.makeNoopStep(),
-  CompletedLogError: ApplicationDefinition.makeNoopStep(),
-  SucceededSaveSession: ApplicationDefinition.makeNoopStep(),
-  SucceededClearSession: ApplicationDefinition.makeNoopStep(),
+  CompletedNavigateInternal: makeNoopStep(),
+  CompletedRedirectToLogin: makeNoopStep(),
+  CompletedRedirectToDashboard: makeNoopStep(),
+  CompletedRedirectToHome: makeNoopStep(),
+  CompletedLoadExternal: makeNoopStep(),
+  CompletedLogError: makeNoopStep(),
+  SucceededSaveSession: makeNoopStep(),
+  SucceededClearSession: makeNoopStep(),
 })

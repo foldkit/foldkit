@@ -8,7 +8,7 @@ import {
   applyPostsTransition,
   applyStatsTransition,
 } from './composition'
-import { ApplicationDefinition } from './definition'
+import { makeFieldsStep } from './definition'
 import { PostDetailData } from './model'
 
 const setPostDetail = (
@@ -33,7 +33,7 @@ export const update = ApplicationComposition.makeUpdate({
     })
   },
 
-  ClickedBackToPosts: ApplicationDefinition.makeFieldsStep(() => ({
+  ClickedBackToPosts: makeFieldsStep(() => ({
     maybeSelectedPostId: () => Option.none(),
   })),
 
@@ -59,17 +59,17 @@ export const update = ApplicationComposition.makeUpdate({
   TickedRevalidateStats: model =>
     applyStatsTransition(model, AsyncData.revalidate(model.stats)),
 
-  CompletedFetchPosts: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ result }) => ({ posts: AsyncData.settle(result) }),
-  ),
+  CompletedFetchPosts: makeFieldsStep.fromMessage(({ result }) => ({
+    posts: AsyncData.settle(result),
+  })),
 
-  CompletedFetchPostDetail: ApplicationDefinition.makeFieldsStep.fromMessage(
+  CompletedFetchPostDetail: makeFieldsStep.fromMessage(
     ({ postId, result }) => ({
       postDetailById: HashMap.modify(postId, AsyncData.settle(result)),
     }),
   ),
 
-  CompletedFetchStats: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ result }) => ({ stats: AsyncData.settle(result) }),
-  ),
+  CompletedFetchStats: makeFieldsStep.fromMessage(({ result }) => ({
+    stats: AsyncData.settle(result),
+  })),
 })

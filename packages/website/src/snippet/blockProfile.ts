@@ -1,7 +1,7 @@
 import { Block } from 'foldkit'
 
 import type { Model } from './blockProfileContract'
-import { ApplicationDefinition } from './blockProfileContract'
+import { ApplicationDefinition, makeFieldsStep } from './blockProfileContract'
 import * as Settings from './blockSettings'
 
 export const SettingsBinding = ApplicationDefinition.makeBinding(
@@ -12,7 +12,7 @@ export const SettingsBinding = ApplicationDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(Settings.SettingsBlock, {
     ChangedTheme: ({ theme }) =>
-      ApplicationDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         previewTheme: () => theme,
       })),
   }),

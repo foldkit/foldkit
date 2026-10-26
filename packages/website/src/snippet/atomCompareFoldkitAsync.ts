@@ -23,6 +23,8 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
+const { makeFieldsStep } = ApplicationDefinition
+
 const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 // Api is an Effect service; ApiLayer provides it.
@@ -49,14 +51,10 @@ export const update = ApplicationComposition.makeUpdate({
     model: modifyFields(model, { user: () => UserAsyncData.Loading() }),
     commands: [FetchUser()],
   }),
-  SucceededLoadUser: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ user }) => ({
-      user: () => UserAsyncData.Success({ data: user }),
-    }),
-  ),
-  FailedLoadUser: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ error }) => ({
-      user: () => UserAsyncData.Failure({ error }),
-    }),
-  ),
+  SucceededLoadUser: makeFieldsStep.fromMessage(({ user }) => ({
+    user: () => UserAsyncData.Success({ data: user }),
+  })),
+  FailedLoadUser: makeFieldsStep.fromMessage(({ error }) => ({
+    user: () => UserAsyncData.Failure({ error }),
+  })),
 })

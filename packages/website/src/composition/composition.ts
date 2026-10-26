@@ -4,7 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { DialogBlock } from '@foldkit/ui'
 
-import { ApplicationDefinition } from '../definition'
+import { ApplicationDefinition, makeNoopStep, makeStep } from '../definition'
 import {
   ApiReferenceBlock,
   BlockPageBlock,
@@ -103,14 +103,14 @@ export const MobileMenuDialogBinding = ApplicationDefinition.makeBinding(
   },
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(DialogBlock, {
-    Opened: ApplicationDefinition.makeNoopStep,
-    Closed: ApplicationDefinition.makeNoopStep,
-    CompletedClose: ApplicationDefinition.makeNoopStep,
+    Opened: makeNoopStep,
+    Closed: makeNoopStep,
+    CompletedClose: makeNoopStep,
   }),
 })
 
 const applyThemePreference = (preference: typeof ThemePreference.Type) =>
-  ApplicationDefinition.makeStep(model => {
+  makeStep(model => {
     const resolvedTheme = resolveTheme(preference, model.systemTheme)
 
     return {
@@ -134,7 +134,7 @@ export const ThemeMenuBinding = ApplicationDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ThemeMenu.ThemeMenuBlock, {
     Selected: ({ value }) => applyThemePreference(value),
-    Closed: ApplicationDefinition.makeNoopStep,
+    Closed: makeNoopStep,
   }),
 })
 

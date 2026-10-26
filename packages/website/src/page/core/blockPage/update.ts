@@ -1,8 +1,8 @@
 import { BlockPageComposition } from './composition'
-import { BlockPageDefinition } from './definition'
+import { makeFieldsStep } from './definition'
 
 export const update = BlockPageComposition.makeUpdate({
-  ToggledMapMessagesUnderHood: BlockPageDefinition.makeFieldsStep.fromMessage(
-    ({ isOpen }) => ({ isMapMessagesUnderHoodOpen: () => isOpen }),
-  ),
+  ToggledMapMessagesUnderHood: makeFieldsStep.fromMessage(({ isOpen }) => ({
+    isMapMessagesUnderHoodOpen: () => isOpen,
+  })),
 })

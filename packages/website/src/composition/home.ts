@@ -1,17 +1,19 @@
 import { Option } from 'effect'
 
 import { LoadPlayground } from '../command'
-import { ApplicationDefinition } from '../definition'
+import {
+  ApplicationDefinition,
+  makeCommandsStep,
+  makeFieldsStep,
+} from '../definition'
 import { HomeBlock } from '../page'
 import { ApplicationRoute } from '../route'
 
 const foldHomeOutMessage = ApplicationDefinition.makeOutMessageFold(HomeBlock, {
   SelectedPlaygroundExample: ({ exampleSlug }) =>
-    ApplicationDefinition.makeCommandsStep(() => [
-      LoadPlayground({ exampleSlug }),
-    ]),
+    makeCommandsStep(() => [LoadPlayground({ exampleSlug })]),
   UpdatedNewsletterEmail: ({ value }) =>
-    ApplicationDefinition.makeFieldsStep(() => ({
+    makeFieldsStep(() => ({
       newsletterEmail: () => value,
     })),
 })

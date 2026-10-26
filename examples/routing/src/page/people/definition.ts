@@ -7,3 +7,6 @@ export const PeopleDefinition = Block.makeDefinition('People', {
   Model,
   Message,
 })
+
+export const { makeFieldsStep, makeCommandsStep, makeNoopStep } =
+  PeopleDefinition

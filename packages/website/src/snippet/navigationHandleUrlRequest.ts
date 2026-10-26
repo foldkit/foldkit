@@ -36,6 +36,9 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
+
+const { makeFieldsStep, makeNoopStep } = ApplicationDefinition
+
 const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 const NavigateInternal = ApplicationDefinition.makeCommand('NavigateInternal', {
@@ -59,8 +62,8 @@ const LoadExternal = ApplicationDefinition.makeCommand('LoadExternal', {
 })
 
 const update = ApplicationComposition.makeUpdate({
-  CompletedNavigateInternal: ApplicationDefinition.makeNoopStep(),
-  CompletedLoadExternal: ApplicationDefinition.makeNoopStep(),
+  CompletedNavigateInternal: makeNoopStep(),
+  CompletedLoadExternal: makeNoopStep(),
 
   ClickedLink: (model, { request }) =>
     Navigation.UrlRequest.match(request, {
@@ -74,7 +77,7 @@ const update = ApplicationComposition.makeUpdate({
       }),
     }),
 
-  ChangedUrl: ApplicationDefinition.makeFieldsStep.fromMessage(({ url }) => ({
+  ChangedUrl: makeFieldsStep.fromMessage(({ url }) => ({
     route: () => urlToApplicationRoute(url),
   })),
 })

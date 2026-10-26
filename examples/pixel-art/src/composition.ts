@@ -15,7 +15,12 @@ import {
   ToolRadioGroupBlock,
 } from './components'
 import { DEFAULT_COLOR_INDEX } from './constant'
-import { ApplicationDefinition } from './definition'
+import {
+  ApplicationDefinition,
+  makeFieldsStep,
+  makeNoopStep,
+  makeStep,
+} from './definition'
 import { createEmptyGrid, isGridEmpty } from './grid'
 import {
   Model,
@@ -33,12 +38,12 @@ export const ErrorDialogBinding = ApplicationDefinition.makeBinding(
   },
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(DialogBlock, {
-    Opened: ApplicationDefinition.makeNoopStep,
+    Opened: makeNoopStep,
     Closed: () =>
-      ApplicationDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeExportError: () => Option.none(),
       })),
-    CompletedClose: ApplicationDefinition.makeNoopStep,
+    CompletedClose: makeNoopStep,
   }),
 })
 
@@ -50,12 +55,12 @@ export const GridSizeConfirmDialogBinding = ApplicationDefinition.makeBinding(
   },
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(DialogBlock, {
-    Opened: ApplicationDefinition.makeNoopStep,
+    Opened: makeNoopStep,
     Closed: () =>
-      ApplicationDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybePendingGridSize: () => Option.none(),
       })),
-    CompletedClose: ApplicationDefinition.makeNoopStep,
+    CompletedClose: makeNoopStep,
   }),
 })
 
@@ -84,8 +89,7 @@ export const ToolRadioGroupBinding = ApplicationDefinition.makeBinding(
   },
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ToolRadioGroupBlock, {
-    Selected: ({ value }) =>
-      ApplicationDefinition.makeStep(model => selectTool(model, value)),
+    Selected: ({ value }) => makeStep(model => selectTool(model, value)),
   }),
 })
 
@@ -104,7 +108,7 @@ export const applyGridSizeChange = (
 })
 
 export const requestGridSizeChange = (size: number) =>
-  ApplicationDefinition.makeStep(model => {
+  makeStep(model => {
     if (size === model.gridSize) {
       return { model }
     }
@@ -113,7 +117,7 @@ export const requestGridSizeChange = (size: number) =>
       return applyGridSizeChange(model, size)
     }
 
-    const rememberGridSize = ApplicationDefinition.makeFieldsStep(() => ({
+    const rememberGridSize = makeFieldsStep(() => ({
       maybePendingGridSize: () => Option.some(size),
     }))
 
@@ -144,7 +148,7 @@ export const PaletteRadioGroupBinding = ApplicationDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(PaletteRadioGroupBlock, {
     Selected: ({ value }) =>
-      ApplicationDefinition.makeStep(model =>
+      makeStep(model =>
         selectColor(
           model,
           paletteIndexFromValue(value, model.selectedColorIndex),
@@ -157,7 +161,7 @@ const foldThemeListboxOutMessage = ApplicationDefinition.makeOutMessageFold(
   ThemeListboxBlock,
   {
     Selected: ({ value }) =>
-      ApplicationDefinition.makeStep(model => {
+      makeStep(model => {
         const themeIndex = Number(value)
         const maybeNextTheme = Array.get(PALETTE_THEMES, themeIndex)
         if (Option.isNone(maybeNextTheme)) {

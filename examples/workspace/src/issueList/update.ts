@@ -2,16 +2,16 @@ import { Option, String } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import { IssueListComposition } from './composition'
-import { IssueListDefinition } from './definition'
+import { makeFieldsStep, makeOutMessageStep } from './definition'
 import { OutMessage } from './message'
 
 export const update = IssueListComposition.makeUpdate({
-  UpdatedGrouping: IssueListDefinition.makeOutMessageStep.fromMessage(
-    ({ value }) => OutMessage.ChangedGrouping({ groupBy: value }),
+  UpdatedGrouping: makeOutMessageStep.fromMessage(({ value }) =>
+    OutMessage.ChangedGrouping({ groupBy: value }),
   ),
-  UpdatedSavedViewName: IssueListDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ savedViewName: () => value }),
-  ),
+  UpdatedSavedViewName: makeFieldsStep.fromMessage(({ value }) => ({
+    savedViewName: () => value,
+  })),
   SubmittedSavedView: (model, { filters }) => {
     const name = String.trim(model.savedViewName)
 
@@ -27,27 +27,23 @@ export const update = IssueListComposition.makeUpdate({
       }),
     }
   },
-  UpdatedQuery: IssueListDefinition.makeOutMessageStep.fromMessage(
-    ({ value }) => OutMessage.ChangedQuery({ query: value }),
+  UpdatedQuery: makeOutMessageStep.fromMessage(({ value }) =>
+    OutMessage.ChangedQuery({ query: value }),
   ),
-  UpdatedStatusFilter: IssueListDefinition.makeOutMessageStep.fromMessage(
-    ({ value }) => {
-      if (value === 'All') {
-        return OutMessage.ChangedStatusFilter({ maybeStatus: Option.none() })
-      }
+  UpdatedStatusFilter: makeOutMessageStep.fromMessage(({ value }) => {
+    if (value === 'All') {
+      return OutMessage.ChangedStatusFilter({ maybeStatus: Option.none() })
+    }
 
-      return OutMessage.ChangedStatusFilter({
-        maybeStatus: Option.some(value),
-      })
-    },
-  ),
-  UpdatedSort: IssueListDefinition.makeOutMessageStep.fromMessage(({ value }) =>
+    return OutMessage.ChangedStatusFilter({
+      maybeStatus: Option.some(value),
+    })
+  }),
+  UpdatedSort: makeOutMessageStep.fromMessage(({ value }) =>
     OutMessage.ChangedSort({ sort: value }),
   ),
-  ClickedCreateIssue: IssueListDefinition.makeOutMessageStep(() =>
-    OutMessage.RequestedCreation(),
-  ),
-  RequestedClearFilters: IssueListDefinition.makeOutMessageStep(() =>
+  ClickedCreateIssue: makeOutMessageStep(() => OutMessage.RequestedCreation()),
+  RequestedClearFilters: makeOutMessageStep(() =>
     OutMessage.RequestedClearFilters(),
   ),
 })

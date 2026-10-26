@@ -7,7 +7,7 @@ import {
   PostsBinding,
   StatsBinding,
 } from './composition'
-import { ApplicationDefinition } from './definition'
+import { makeFieldsStep } from './definition'
 
 export const update = ApplicationComposition.makeUpdate({
   ClickedPost: (model, { postId }) =>
@@ -17,7 +17,7 @@ export const update = ApplicationComposition.makeUpdate({
       }),
     ),
 
-  ClickedBackToPosts: ApplicationDefinition.makeFieldsStep(() => ({
+  ClickedBackToPosts: makeFieldsStep(() => ({
     maybeSelectedPostId: () => Option.none(),
   })),
 

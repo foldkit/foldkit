@@ -3,7 +3,7 @@ import { AsyncData, type Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { FetchTelemetry, SyncChart } from './command'
-import { ApplicationDefinition } from './definition'
+import { ApplicationDefinition, makeStep } from './definition'
 import { Model } from './model'
 import { MountChart } from './mount'
 import {
@@ -52,7 +52,7 @@ export const refetchTelemetry = (model: typeof Model.Type) =>
 const selectedControl = (
   updateModel: (model: typeof Model.Type) => typeof Model.Type,
 ) =>
-  ApplicationDefinition.makeStep(model => {
+  makeStep(model => {
     const nextModel = updateModel(
       modifyFields(model, { maybeSelectedDatumId: () => Option.none() }),
     )

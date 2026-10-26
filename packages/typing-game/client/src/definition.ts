@@ -7,3 +7,6 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
+
+export const { makeCommandsStep, makeFieldsStep, makeNoopStep, makeStep } =
+  ApplicationDefinition

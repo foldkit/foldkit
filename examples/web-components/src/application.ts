@@ -24,6 +24,9 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
+
+const { makeFieldsStep } = ApplicationDefinition
+
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
@@ -42,15 +45,15 @@ export const init = ApplicationComposition.makeInit(() => ({
 }))
 
 export const update = ApplicationComposition.makeUpdate({
-  UpdatedContent: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ content: () => value }),
-  ),
-  ChangedFillColor: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ fillColor: () => value }),
-  ),
-  ChangedBackgroundColor: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ backgroundColor: () => value }),
-  ),
+  UpdatedContent: makeFieldsStep.fromMessage(({ value }) => ({
+    content: () => value,
+  })),
+  ChangedFillColor: makeFieldsStep.fromMessage(({ value }) => ({
+    fillColor: () => value,
+  })),
+  ChangedBackgroundColor: makeFieldsStep.fromMessage(({ value }) => ({
+    backgroundColor: () => value,
+  })),
 })
 
 // WEB COMPONENT

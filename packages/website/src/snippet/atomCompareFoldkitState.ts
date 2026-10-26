@@ -20,16 +20,18 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
+const { makeFieldsStep } = ApplicationDefinition
+
 const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 export const update = ApplicationComposition.makeUpdate({
-  AddedTodo: ApplicationDefinition.makeFieldsStep(() => ({
+  AddedTodo: makeFieldsStep(() => ({
     todos: Array.append(emptyTodo()),
   })),
-  ClearedDoneTodos: ApplicationDefinition.makeFieldsStep(() => ({
+  ClearedDoneTodos: makeFieldsStep(() => ({
     todos: Array.filter(todo => !todo.done),
   })),
-  SelectedFilter: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ filter }) => ({ filter: () => filter }),
-  ),
+  SelectedFilter: makeFieldsStep.fromMessage(({ filter }) => ({
+    filter: () => filter,
+  })),
 })

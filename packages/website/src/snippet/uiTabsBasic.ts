@@ -29,6 +29,8 @@ const TabsExampleDefinition = Block.makeDefinition('TabsExample', {
   Message,
 })
 
+const { makeFieldsStep } = TabsExampleDefinition
+
 const frameworks: ReadonlyArray<typeof Framework.Type> = [
   'Foldkit',
   'React',
@@ -55,7 +57,7 @@ const foldTabsOutMessage = TabsExampleDefinition.makeOutMessageFold(
     // dispatch Commands, for example route to a new URL, persist the
     // selection, or trigger a panel content fetch.
     Selected: ({ value }) =>
-      TabsExampleDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         activeFramework: () => value,
       })),
   },

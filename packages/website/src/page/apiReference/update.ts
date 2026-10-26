@@ -3,7 +3,7 @@ import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { ApiReferenceComposition } from './composition'
-import { ApiReferenceDefinition } from './definition'
+import { ApiReferenceDefinition, makeFieldsStep, makeStep } from './definition'
 import { ApiDataAsyncData, ParsedApiReference } from './domain'
 import { Message } from './message'
 import { disclosuresForApiData } from './model'
@@ -49,7 +49,7 @@ export const LoadApiData = ApiReferenceDefinition.makeCommand('LoadApiData', {
 
 export const EffectsLayer = LoadApiData.layer
 
-const refreshApiData = ApiReferenceDefinition.makeStep(model =>
+const refreshApiData = makeStep(model =>
   Option.match(
     AsyncData.isStale(model.apiData)
       ? AsyncData.revalidate(model.apiData)
@@ -67,27 +67,21 @@ const refreshApiData = ApiReferenceDefinition.makeStep(model =>
 export const update = ApiReferenceComposition.makeUpdate({
   InformedOfRouteChange: model => refreshApiData(model),
 
-  SucceededLoadApiData: ApiReferenceDefinition.makeFieldsStep.fromMessage(
-    ({ apiData }) => ({
-      apiData: () => ApiDataAsyncData.Success({ data: apiData }),
-      disclosures: disclosures =>
-        Record.union(
-          disclosures,
-          disclosuresForApiData(apiData),
-          isOpen => isOpen,
-        ),
-    }),
-  ),
+  SucceededLoadApiData: makeFieldsStep.fromMessage(({ apiData }) => ({
+    apiData: () => ApiDataAsyncData.Success({ data: apiData }),
+    disclosures: disclosures =>
+      Record.union(
+        disclosures,
+        disclosuresForApiData(apiData),
+        isOpen => isOpen,
+      ),
+  })),
 
-  FailedLoadApiData: ApiReferenceDefinition.makeFieldsStep.fromMessage(
-    ({ error }) => ({
-      apiData: apiData => AsyncData.settle(apiData, Result.fail(error)),
-    }),
-  ),
+  FailedLoadApiData: makeFieldsStep.fromMessage(({ error }) => ({
+    apiData: apiData => AsyncData.settle(apiData, Result.fail(error)),
+  })),
 
-  ToggledSignature: ApiReferenceDefinition.makeFieldsStep.fromMessage(
-    ({ id, isOpen }) => ({
-      disclosures: disclosures => Record.set(disclosures, id, isOpen),
-    }),
-  ),
+  ToggledSignature: makeFieldsStep.fromMessage(({ id, isOpen }) => ({
+    disclosures: disclosures => Record.set(disclosures, id, isOpen),
+  })),
 })

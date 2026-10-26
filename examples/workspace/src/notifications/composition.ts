@@ -2,13 +2,13 @@ import type { Block } from 'foldkit'
 
 import { PopoverBlock } from '@foldkit/ui'
 
-import { NotificationCenterDefinition } from './definition'
+import { NotificationCenterDefinition, makeNoopStep } from './definition'
 
 const foldPopoverOutMessage = NotificationCenterDefinition.makeOutMessageFold(
   PopoverBlock,
   {
-    Opened: NotificationCenterDefinition.makeNoopStep,
-    Closed: NotificationCenterDefinition.makeNoopStep,
+    Opened: makeNoopStep,
+    Closed: makeNoopStep,
   },
 )
 

@@ -1,8 +1,6 @@
-import { LoggedInComposition, LoggedInDefinition } from './composition'
+import { LoggedInComposition, makeOutMessageStep } from './composition'
 import { OutMessage } from './message'
 
 export const update = LoggedInComposition.makeUpdate({
-  ClickedLogout: LoggedInDefinition.makeOutMessageStep(() =>
-    OutMessage.RequestedLogout(),
-  ),
+  ClickedLogout: makeOutMessageStep(() => OutMessage.RequestedLogout()),
 })

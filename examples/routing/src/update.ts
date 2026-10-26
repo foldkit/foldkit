@@ -6,7 +6,7 @@ import { toString as urlToString } from 'foldkit/url'
 
 import { LoadExternal, NavigateInternal } from './command'
 import { ApplicationComposition, PeoplePageBinding } from './composition'
-import { ApplicationDefinition } from './definition'
+import { makeCommandsStep, makeFieldsStep, makeNoopStep } from './definition'
 import { type NavigationShortcut } from './message'
 import {
   ApplicationRoute,
@@ -27,17 +27,17 @@ const navigationUrlByShortcut: Readonly<
 }
 
 const setRoute = (nextRoute: typeof ApplicationRoute.Type) =>
-  ApplicationDefinition.makeFieldsStep(() => ({ route: () => nextRoute }))
+  makeFieldsStep(() => ({ route: () => nextRoute }))
 
-const keepModel = ApplicationDefinition.makeNoopStep()
+const keepModel = makeNoopStep()
 
 type InformPeopleRouteStep =
   | typeof keepModel
   | ReturnType<typeof PeoplePageBinding.informRouteChanged>
 
 export const update = ApplicationComposition.makeUpdate({
-  CompletedNavigateInternal: ApplicationDefinition.makeNoopStep(),
-  CompletedLoadExternal: ApplicationDefinition.makeNoopStep(),
+  CompletedNavigateInternal: makeNoopStep(),
+  CompletedLoadExternal: makeNoopStep(),
 
   ClickedLink: (model, { request }) =>
     UrlRequest.match(request, {
@@ -70,11 +70,9 @@ export const update = ApplicationComposition.makeUpdate({
     return Update.combineSteps(model, [setRoute(nextRoute), informPeopleRoute])
   },
 
-  EnteredNavigationShortcut: ApplicationDefinition.makeCommandsStep.fromMessage(
-    ({ shortcut }) => {
-      const url = navigationUrlByShortcut[shortcut]()
+  EnteredNavigationShortcut: makeCommandsStep.fromMessage(({ shortcut }) => {
+    const url = navigationUrlByShortcut[shortcut]()
 
-      return [NavigateInternal({ url })]
-    },
-  ),
+    return [NavigateInternal({ url })]
+  }),
 })

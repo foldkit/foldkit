@@ -3,7 +3,7 @@ import { Update } from 'foldkit'
 
 import { ScrollTarget } from '@foldkit/ui/virtualList'
 
-import { UiDefinition } from './definition'
+import { UiDefinition, makeFieldsStep, makeStep } from './definition'
 import { ChatVirtualListBlock } from './demo/components'
 import {
   type VirtualListChatMessage,
@@ -58,12 +58,12 @@ const foldVirtualListChatOutMessage = UiDefinition.makeOutMessageFold(
   ChatVirtualListBlock,
   {
     ObservedContainerScroll: ({ scrollTop }) =>
-      UiDefinition.makeStep(model => {
+      makeStep(model => {
         const isNearStart = scrollTop <= VIRTUAL_LIST_CHAT_START_THRESHOLD_PX
         const nextVirtualListChatStartProximity = isNearStart
           ? VirtualListChatStartProximity.Near()
           : VirtualListChatStartProximity.Away()
-        const updateStartProximity = UiDefinition.makeFieldsStep(() => ({
+        const updateStartProximity = makeFieldsStep(() => ({
           virtualListChatStartProximity: () =>
             nextVirtualListChatStartProximity,
         }))
@@ -76,7 +76,7 @@ const foldVirtualListChatOutMessage = UiDefinition.makeOutMessageFold(
         }
 
         const nextMessages = olderVirtualListChatMessages(model)
-        const updateMessages = UiDefinition.makeFieldsStep(() => ({
+        const updateMessages = makeFieldsStep(() => ({
           virtualListChatMessages: () => nextMessages,
         }))
 
@@ -100,10 +100,10 @@ export const updateVirtualListChatMessages = (
   nextMessages: ReadonlyArray<typeof VirtualListChatMessage.Type>,
   nextId?: number,
 ) =>
-  UiDefinition.makeStep(model => {
+  makeStep(model => {
     const nextVirtualListChatNextId =
       nextId === undefined ? model.virtualListChatNextId : nextId
-    const updateMessages = UiDefinition.makeFieldsStep(() => ({
+    const updateMessages = makeFieldsStep(() => ({
       virtualListChatMessages: () => nextMessages,
       virtualListChatNextId: () => nextVirtualListChatNextId,
     }))
@@ -116,6 +116,6 @@ export const updateVirtualListChatMessages = (
     ])
   })
 
-export const prependVirtualListChatMessages = UiDefinition.makeStep(model =>
+export const prependVirtualListChatMessages = makeStep(model =>
   updateVirtualListChatMessages(olderVirtualListChatMessages(model)),
 )

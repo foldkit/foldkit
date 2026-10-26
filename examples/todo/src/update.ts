@@ -3,25 +3,21 @@ import { modifyFields } from 'foldkit/struct'
 
 import { GenerateTodo, SaveTodos } from './command'
 import { ApplicationComposition } from './composition'
-import { ApplicationDefinition } from './definition'
+import { makeFieldsStep, makeNoopStep } from './definition'
 import { EditingState, type Todo } from './model'
 
 export const update = ApplicationComposition.makeUpdate({
-  UpdatedNewTodo: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ text }) => ({
-      newTodoText: () => text,
-    }),
-  ),
+  UpdatedNewTodo: makeFieldsStep.fromMessage(({ text }) => ({
+    newTodoText: () => text,
+  })),
 
-  UpdatedEditingTodo: ApplicationDefinition.makeFieldsStep(
-    (model, { text }) => ({
-      editing: () =>
-        EditingState.match(model.editing, {
-          NotEditing: () => model.editing,
-          Editing: ({ id }) => EditingState.Editing({ id, text }),
-        }),
-    }),
-  ),
+  UpdatedEditingTodo: makeFieldsStep((model, { text }) => ({
+    editing: () =>
+      EditingState.match(model.editing, {
+        NotEditing: () => model.editing,
+        Editing: ({ id }) => EditingState.Editing({ id, text }),
+      }),
+  })),
 
   AddedTodo: model => {
     if (String.isEmpty(String.trim(model.newTodoText))) {
@@ -79,7 +75,7 @@ export const update = ApplicationComposition.makeUpdate({
     }
   },
 
-  StartedEditing: ApplicationDefinition.makeFieldsStep((model, { id }) => {
+  StartedEditing: makeFieldsStep((model, { id }) => {
     const maybeTodo = Array.findFirst(model.todos, todo => todo.id === id)
     return {
       editing: () =>
@@ -122,7 +118,7 @@ export const update = ApplicationComposition.makeUpdate({
       },
     }),
 
-  CancelledEdit: ApplicationDefinition.makeFieldsStep(() => ({
+  CancelledEdit: makeFieldsStep(() => ({
     editing: () => EditingState.NotEditing(),
   })),
 
@@ -153,17 +149,13 @@ export const update = ApplicationComposition.makeUpdate({
     }
   },
 
-  SelectedFilter: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ filter }) => ({
-      filter: () => filter,
-    }),
-  ),
+  SelectedFilter: makeFieldsStep.fromMessage(({ filter }) => ({
+    filter: () => filter,
+  })),
 
-  SucceededSaveTodos: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ todos }) => ({
-      todos: () => todos,
-    }),
-  ),
+  SucceededSaveTodos: makeFieldsStep.fromMessage(({ todos }) => ({
+    todos: () => todos,
+  })),
 
-  FailedSaveTodos: ApplicationDefinition.makeNoopStep(),
+  FailedSaveTodos: makeNoopStep(),
 })

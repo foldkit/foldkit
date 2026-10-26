@@ -4,7 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 import type { ApplicationRoute } from '../../route'
 import { FetchPeople, PushSearchUrl } from './command'
 import { PeopleComposition } from './composition'
-import { PeopleDefinition } from './definition'
+import { makeCommandsStep, makeFieldsStep, makeNoopStep } from './definition'
 import {
   Model,
   SearchResults,
@@ -26,11 +26,11 @@ export const init = PeopleComposition.makeInit(
   },
 )
 export const update = PeopleComposition.makeUpdate({
-  ChangedSearchInput: PeopleDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ searchInput: () => value }),
-  ),
+  ChangedSearchInput: makeFieldsStep.fromMessage(({ value }) => ({
+    searchInput: () => value,
+  })),
 
-  SubmittedSearch: PeopleDefinition.makeCommandsStep(model => [
+  SubmittedSearch: makeCommandsStep(model => [
     PushSearchUrl({
       searchText: Option.fromNullishOr(model.searchInput || null),
     }),
@@ -49,11 +49,11 @@ export const update = PeopleComposition.makeUpdate({
     }
   },
 
-  CompletedFetchPeople: PeopleDefinition.makeFieldsStep.fromMessage(
+  CompletedFetchPeople: makeFieldsStep.fromMessage(
     ({ query, people: fetchedPeople }) => ({
       results: () => SearchResults.Loaded({ query, people: fetchedPeople }),
     }),
   ),
 
-  CompletedPushSearchUrl: PeopleDefinition.makeNoopStep(),
+  CompletedPushSearchUrl: makeNoopStep(),
 })

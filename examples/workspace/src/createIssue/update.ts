@@ -6,15 +6,16 @@ import { IssueDraft } from '../domain'
 import { CreateIssue } from './command'
 import { CreateIssueComposition, DialogBinding } from './composition'
 import {
-  CreateIssueDefinition,
   CreateState,
   Message,
   type Model,
   OutMessage,
+  makeFieldsStep,
+  makeStep,
 } from './definition'
 import { editDraft } from './draft'
 
-const handleSubmittedIssueForm = CreateIssueDefinition.makeStep(model => {
+const handleSubmittedIssueForm = makeStep(model => {
   if (CreateState.guards.Creating(model.createState)) {
     return { model }
   }
@@ -63,7 +64,7 @@ export const update = CreateIssueComposition.makeUpdate({
     }
 
     return Update.combineSteps(model, [
-      CreateIssueDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         title: () => '',
         description: () => '',
         projectId: () => projectId,
@@ -84,7 +85,7 @@ export const update = CreateIssueComposition.makeUpdate({
   SucceededCreateIssue: (model, { issue }) => {
     return pipe(
       Update.combineSteps(model, [
-        CreateIssueDefinition.makeFieldsStep(() => ({
+        makeFieldsStep(() => ({
           createState: () => CreateState.Idle(),
         })),
         DialogBinding.requestClose(),
@@ -94,7 +95,7 @@ export const update = CreateIssueComposition.makeUpdate({
   },
   FailedCreateIssue: (model, { error }) =>
     Update.combineSteps(model, [
-      CreateIssueDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         createState: () => CreateState.Failed({ error }),
       })),
       DialogBinding.requestOpen(),

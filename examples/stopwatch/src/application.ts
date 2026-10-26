@@ -37,6 +37,8 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
+const { makeFieldsStep, makeCommandsStep } = ApplicationDefinition
+
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
@@ -83,36 +85,32 @@ export const DetermineTickTime = ApplicationDefinition.makeCommand(
 )
 
 export const update = ApplicationComposition.makeUpdate({
-  ClickedStart: ApplicationDefinition.makeCommandsStep(model => [
+  ClickedStart: makeCommandsStep(model => [
     DetermineStartTime({ elapsedMs: model.elapsedMs }),
   ]),
 
-  CompletedDetermineStartTime: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ startTime }) => ({
-      isRunning: () => true,
-      startTime: () => startTime,
-    }),
-  ),
+  CompletedDetermineStartTime: makeFieldsStep.fromMessage(({ startTime }) => ({
+    isRunning: () => true,
+    startTime: () => startTime,
+  })),
 
-  ClickedStop: ApplicationDefinition.makeFieldsStep(() => ({
+  ClickedStop: makeFieldsStep(() => ({
     isRunning: () => false,
   })),
 
-  ClickedReset: ApplicationDefinition.makeFieldsStep(() => ({
+  ClickedReset: makeFieldsStep(() => ({
     elapsedMs: () => 0,
     isRunning: () => false,
     startTime: () => 0,
   })),
 
-  Ticked: ApplicationDefinition.makeCommandsStep(model => [
+  Ticked: makeCommandsStep(model => [
     DetermineTickTime({ startTime: model.startTime }),
   ]),
 
-  CompletedDetermineTickTime: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ elapsedMs }) => ({
-      elapsedMs: () => elapsedMs,
-    }),
-  ),
+  CompletedDetermineTickTime: makeFieldsStep.fromMessage(({ elapsedMs }) => ({
+    elapsedMs: () => elapsedMs,
+  })),
 })
 
 export const init = ApplicationComposition.makeInit(() => ({

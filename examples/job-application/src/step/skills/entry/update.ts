@@ -7,7 +7,12 @@ import {
 
 import { revealFieldErrors } from '../../validation'
 import { SkillsEntryComposition } from './composition'
-import { type Model, OutMessage, SkillsEntryDefinition } from './definition'
+import {
+  type Model,
+  OutMessage,
+  makeFieldsStep,
+  makeOutMessageStep,
+} from './definition'
 
 export const nameRules = makeRules({
   required: 'Skill name is required',
@@ -16,17 +21,15 @@ export const nameRules = makeRules({
 const validateName = validate(nameRules)
 
 export const update = SkillsEntryComposition.makeUpdate({
-  UpdatedName: SkillsEntryDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ name: () => validateName(value) }),
-  ),
+  UpdatedName: makeFieldsStep.fromMessage(({ value }) => ({
+    name: () => validateName(value),
+  })),
 
-  RequestedRevealErrors: SkillsEntryDefinition.makeFieldsStep(() => ({
+  RequestedRevealErrors: makeFieldsStep(() => ({
     name: revealFieldErrors(nameRules),
   })),
 
-  ClickedRemoveSelf: SkillsEntryDefinition.makeOutMessageStep(() =>
-    OutMessage.Removed(),
-  ),
+  ClickedRemoveSelf: makeOutMessageStep(() => OutMessage.Removed()),
 })
 
 export const hasErrors = (entry: typeof Model.Type) => anyInvalid([entry.name])

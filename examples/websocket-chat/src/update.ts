@@ -7,48 +7,40 @@ import {
   TimestampSentMessage,
 } from './command'
 import { ApplicationComposition } from './composition'
-import { ApplicationDefinition } from './definition'
+import { makeCommandsStep, makeFieldsStep, makeNoopStep } from './definition'
 import { ChatMessage, ConnectionState } from './model'
 
 export const update = ApplicationComposition.makeUpdate({
-  ClickedConnect: ApplicationDefinition.makeFieldsStep(() => ({
+  ClickedConnect: makeFieldsStep(() => ({
     connection: () => ConnectionState.Connecting(),
   })),
 
-  ConnectedChatSocket: ApplicationDefinition.makeFieldsStep(() => ({
+  ConnectedChatSocket: makeFieldsStep(() => ({
     connection: () => ConnectionState.Connected(),
   })),
 
-  DisconnectedChatSocket: ApplicationDefinition.makeFieldsStep(() => ({
+  DisconnectedChatSocket: makeFieldsStep(() => ({
     connection: () => ConnectionState.Disconnected(),
     messages: () => [],
   })),
 
-  ReleasedChatSocket: ApplicationDefinition.makeNoopStep(),
+  ReleasedChatSocket: makeNoopStep(),
 
-  FailedConnectChatSocket: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ error }) => ({
-      connection: () => ConnectionState.Error({ error }),
-    }),
-  ),
+  FailedConnectChatSocket: makeFieldsStep.fromMessage(({ error }) => ({
+    connection: () => ConnectionState.Error({ error }),
+  })),
 
-  FailedChatSocket: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ error }) => ({
-      connection: () => ConnectionState.Error({ error }),
-    }),
-  ),
+  FailedChatSocket: makeFieldsStep.fromMessage(({ error }) => ({
+    connection: () => ConnectionState.Error({ error }),
+  })),
 
-  FailedSendMessage: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ error }) => ({
-      connection: () => ConnectionState.Error({ error }),
-    }),
-  ),
+  FailedSendMessage: makeFieldsStep.fromMessage(({ error }) => ({
+    connection: () => ConnectionState.Error({ error }),
+  })),
 
-  UpdatedMessageInput: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({
-      messageInput: () => value,
-    }),
-  ),
+  UpdatedMessageInput: makeFieldsStep.fromMessage(({ value }) => ({
+    messageInput: () => value,
+  })),
 
   SubmittedMessage: model => {
     const trimmedMessage = model.messageInput.trim()
@@ -68,21 +60,19 @@ export const update = ApplicationComposition.makeUpdate({
     )
   },
 
-  SucceededSendMessage: ApplicationDefinition.makeCommandsStep.fromMessage(
-    ({ text }) => [TimestampSentMessage({ text })],
-  ),
+  SucceededSendMessage: makeCommandsStep.fromMessage(({ text }) => [
+    TimestampSentMessage({ text }),
+  ]),
 
-  ReceivedMessage: ApplicationDefinition.makeCommandsStep.fromMessage(
-    ({ text }) => [TimestampReceivedMessage({ text })],
-  ),
+  ReceivedMessage: makeCommandsStep.fromMessage(({ text }) => [
+    TimestampReceivedMessage({ text }),
+  ]),
 
-  TimestampedMessage: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ text, zoned, isSent }) => {
-      const newMessage = ChatMessage.make({ text, zoned, isSent })
+  TimestampedMessage: makeFieldsStep.fromMessage(({ text, zoned, isSent }) => {
+    const newMessage = ChatMessage.make({ text, zoned, isSent })
 
-      return {
-        messages: messages => [...messages, newMessage],
-      }
-    },
-  ),
+    return {
+      messages: messages => [...messages, newMessage],
+    }
+  }),
 })

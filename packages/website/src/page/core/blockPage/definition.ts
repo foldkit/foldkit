@@ -7,3 +7,5 @@ export const BlockPageDefinition = Block.makeDefinition('BlockPage', {
   Model,
   Message,
 })
+
+export const { makeFieldsStep } = BlockPageDefinition

@@ -18,6 +18,9 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
+
+const { makeStep, makeFieldsStep } = ApplicationDefinition
+
 const CounterBinding = ApplicationDefinition.makeBinding(CounterBlock, {
   field: 'counter',
   init: { contextToArgs: () => [0] },
@@ -26,11 +29,11 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [CounterBinding],
 })
 
-const clearDraft = ApplicationDefinition.makeFieldsStep(() => ({
+const clearDraft = makeFieldsStep(() => ({
   draft: () => '',
 }))
 const reset = Update.combineSteps([clearDraft, CounterBinding.requestReset()])
-const restoreBaseline = ApplicationDefinition.makeStep(model =>
+const restoreBaseline = makeStep(model =>
   CounterBinding.init({
     args: [0],
     toParentModel: counter =>

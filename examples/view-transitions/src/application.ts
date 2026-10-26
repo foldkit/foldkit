@@ -34,6 +34,8 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
+const { makeFieldsStep, makeNoopStep } = ApplicationDefinition
+
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
@@ -67,8 +69,8 @@ export const EffectsLayer = Layer.mergeAll(
 )
 
 export const update = ApplicationComposition.makeUpdate({
-  CompletedNavigateInternal: ApplicationDefinition.makeNoopStep(),
-  CompletedLoadExternal: ApplicationDefinition.makeNoopStep(),
+  CompletedNavigateInternal: makeNoopStep(),
+  CompletedLoadExternal: makeNoopStep(),
 
   ClickedLink: (model, { request }) =>
     UrlRequest.match(request, {
@@ -82,13 +84,13 @@ export const update = ApplicationComposition.makeUpdate({
       }),
     }),
 
-  ChangedUrl: ApplicationDefinition.makeFieldsStep.fromMessage(({ url }) => ({
+  ChangedUrl: makeFieldsStep.fromMessage(({ url }) => ({
     route: () => urlToApplicationRoute(url),
   })),
 
-  UpdatedFilterText: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ filterText }) => ({ filterText: () => filterText }),
-  ),
+  UpdatedFilterText: makeFieldsStep.fromMessage(({ filterText }) => ({
+    filterText: () => filterText,
+  })),
 })
 
 // NOTE: every arm past the guard is a navigation, so none return `false`.

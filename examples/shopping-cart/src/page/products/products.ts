@@ -5,7 +5,14 @@ import { modifyFields } from 'foldkit/struct'
 import { Item } from '../../domain'
 import { productsRouter } from '../../route'
 import { ProductsComposition } from './composition'
-import { Message, Model, OutMessage, ProductsDefinition } from './definition'
+import {
+  Message,
+  Model,
+  OutMessage,
+  ProductsDefinition,
+  makeNoopStep,
+  makeOutMessageStep,
+} from './definition'
 
 export const init = ProductsComposition.makeInit(
   (products: ReadonlyArray<typeof Item.Item.Type>) => ({
@@ -26,7 +33,7 @@ export const ReplaceSearchUrl = ProductsDefinition.makeCommand(
 )
 
 export const update = ProductsComposition.makeUpdate({
-  CompletedReplaceSearchUrl: ProductsDefinition.makeNoopStep(),
+  CompletedReplaceSearchUrl: makeNoopStep(),
 
   ChangedSearchInput: (model, { value }) => ({
     model: modifyFields(model, { searchText: () => value }),
@@ -39,15 +46,15 @@ export const update = ProductsComposition.makeUpdate({
     ],
   }),
 
-  ClickedAddToCart: ProductsDefinition.makeOutMessageStep.fromMessage(
-    ({ item }) => OutMessage.AddedToCart({ item }),
+  ClickedAddToCart: makeOutMessageStep.fromMessage(({ item }) =>
+    OutMessage.AddedToCart({ item }),
   ),
 
-  ClickedIncrementQuantity: ProductsDefinition.makeOutMessageStep.fromMessage(
-    ({ itemId }) => OutMessage.IncrementedQuantity({ itemId }),
+  ClickedIncrementQuantity: makeOutMessageStep.fromMessage(({ itemId }) =>
+    OutMessage.IncrementedQuantity({ itemId }),
   ),
 
-  ClickedDecrementQuantity: ProductsDefinition.makeOutMessageStep.fromMessage(
-    ({ itemId }) => OutMessage.DecrementedQuantity({ itemId }),
+  ClickedDecrementQuantity: makeOutMessageStep.fromMessage(({ itemId }) =>
+    OutMessage.DecrementedQuantity({ itemId }),
   ),
 })

@@ -5,14 +5,16 @@ import { modifyFields } from 'foldkit/struct'
 import { ScrollActiveResult } from './command'
 import { CommandPaletteComposition, DialogBinding } from './composition'
 import {
-  CommandPaletteDefinition,
   Message,
   type Model,
   OutMessage,
   ResultTarget,
+  makeFieldsStep,
+  makeNoopStep,
+  makeStep,
 } from './definition'
 
-const keepModel = CommandPaletteDefinition.makeNoopStep()
+const keepModel = makeNoopStep()
 
 const closeDialog = DialogBinding.requestClose()
 
@@ -28,7 +30,7 @@ const handleUpdatedQuery = (
 })
 
 const moveActiveResult = (nextActiveResultIndex: number, resultCount: number) =>
-  CommandPaletteDefinition.makeStep(model => ({
+  makeStep(model => ({
     model: modifyFields(model, {
       activeResultIndex: () => nextActiveResultIndex,
     }),
@@ -38,13 +40,13 @@ const moveActiveResult = (nextActiveResultIndex: number, resultCount: number) =>
     ),
   }))
 
-const openPalette = CommandPaletteDefinition.makeStep(model => {
+const openPalette = makeStep(model => {
   if (model.dialog.isOpen) {
     return { model }
   }
 
   return Update.combineSteps([
-    CommandPaletteDefinition.makeFieldsStep(() => ({
+    makeFieldsStep(() => ({
       query: () => '',
       activeResultIndex: () => 0,
     })),

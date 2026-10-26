@@ -8,15 +8,20 @@ import {
   JoinRoomFromHome,
 } from '../command'
 import { HomeComposition } from '../composition'
-import { HomeDefinition } from '../definition'
+import {
+  makeCommandsStep,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageStep,
+} from '../definition'
 import { OutMessage } from '../message'
 import { HomeStep } from '../model'
 import { handlePressedKey } from './handlePressedKey'
 
 export const update = HomeComposition.makeUpdate({
-  CompletedFocusUsernameInput: HomeDefinition.makeNoopStep(),
+  CompletedFocusUsernameInput: makeNoopStep(),
 
-  CompletedFocusRoomIdInput: HomeDefinition.makeNoopStep(),
+  CompletedFocusRoomIdInput: makeNoopStep(),
 
   SubmittedUsernameForm: model =>
     Match.value(model.homeStep).pipe(
@@ -49,13 +54,9 @@ export const update = HomeComposition.makeUpdate({
       Match.orElse(() => ({ model })),
     ),
 
-  BlurredUsernameInput: HomeDefinition.makeCommandsStep(() => [
-    FocusUsernameInput(),
-  ]),
+  BlurredUsernameInput: makeCommandsStep(() => [FocusUsernameInput()]),
 
-  BlurredRoomIdInput: HomeDefinition.makeCommandsStep(() => [
-    FocusRoomIdInput(),
-  ]),
+  BlurredRoomIdInput: makeCommandsStep(() => [FocusRoomIdInput()]),
 
   ChangedRoomId: (model, { value }) =>
     Match.value(model.homeStep).pipe(
@@ -96,21 +97,19 @@ export const update = HomeComposition.makeUpdate({
       Match.orElse(() => ({ model })),
     ),
 
-  SucceededCreateRoom: HomeDefinition.makeOutMessageStep.fromMessage(
-    ({ roomId, player }) => OutMessage.CreatedRoom({ roomId, player }),
+  SucceededCreateRoom: makeOutMessageStep.fromMessage(({ roomId, player }) =>
+    OutMessage.CreatedRoom({ roomId, player }),
   ),
 
-  SucceededJoinRoomFromHome: HomeDefinition.makeOutMessageStep.fromMessage(
+  SucceededJoinRoomFromHome: makeOutMessageStep.fromMessage(
     ({ roomId, player }) => OutMessage.JoinedRoom({ roomId, player }),
   ),
 
-  FailedCreateRoom: HomeDefinition.makeFieldsStep.fromMessage(({ error }) => ({
+  FailedCreateRoom: makeFieldsStep.fromMessage(({ error }) => ({
     formError: () => Option.some(error),
   })),
 
-  FailedJoinRoomFromHome: HomeDefinition.makeFieldsStep.fromMessage(
-    ({ error }) => ({
-      formError: () => Option.some(error),
-    }),
-  ),
+  FailedJoinRoomFromHome: makeFieldsStep.fromMessage(({ error }) => ({
+    formError: () => Option.some(error),
+  })),
 })

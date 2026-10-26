@@ -35,6 +35,8 @@ import {
   NoteHighlightPhase,
   NotePlayerDemoDefinition,
   PlaybackState,
+  makeFieldsStep,
+  makeNoopStep,
 } from './definition'
 import { prependToLog } from './messageLog'
 
@@ -147,20 +149,18 @@ const enterNoteCommandPhase = (
 })
 
 export const update = NotePlayerDemoComposition.makeUpdate({
-  ChangedNoteInput: NotePlayerDemoDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => {
-      const uppercased = String.toUpperCase(value)
-      const fieldState = String.isEmpty(uppercased)
-        ? FieldValidation.NotValidated({ value: uppercased })
-        : validateNoteInput(uppercased)
+  ChangedNoteInput: makeFieldsStep.fromMessage(({ value }) => {
+    const uppercased = String.toUpperCase(value)
+    const fieldState = String.isEmpty(uppercased)
+      ? FieldValidation.NotValidated({ value: uppercased })
+      : validateNoteInput(uppercased)
 
-      return {
-        noteInput: () => fieldState,
-        playbackState: () => PlaybackState.Idle(),
-        highlightPhase: () => 'Idle',
-      }
-    },
-  ),
+    return {
+      noteInput: () => fieldState,
+      playbackState: () => PlaybackState.Idle(),
+      highlightPhase: () => 'Idle',
+    }
+  }),
 
   ClickedPlay: model =>
     PlaybackState.match(model.playbackState, {
@@ -250,7 +250,7 @@ export const update = NotePlayerDemoComposition.makeUpdate({
       Match.orElse(() => ({ model })),
     ),
 
-  ClickedStop: NotePlayerDemoDefinition.makeFieldsStep(() => ({
+  ClickedStop: makeFieldsStep(() => ({
     playbackState: () => PlaybackState.Idle(),
     highlightPhase: () => 'Idle',
     messageLog: prependToLog('ClickedStop'),
@@ -338,15 +338,15 @@ export const update = NotePlayerDemoComposition.makeUpdate({
     )
   },
 
-  SucceededAcquireAudioContext: NotePlayerDemoDefinition.makeFieldsStep(() => ({
+  SucceededAcquireAudioContext: makeFieldsStep(() => ({
     audio: () => AudioState.Ready(),
   })),
 
-  FailedAcquireAudioContext: NotePlayerDemoDefinition.makeFieldsStep(() => ({
+  FailedAcquireAudioContext: makeFieldsStep(() => ({
     audio: () => AudioState.Unavailable(),
   })),
 
-  ReleasedAudioContext: NotePlayerDemoDefinition.makeNoopStep(),
+  ReleasedAudioContext: makeNoopStep(),
 })
 
 // MANAGED RESOURCE

@@ -18,6 +18,9 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
+
+const { makeFieldsStep } = ApplicationDefinition
+
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 export const init = ApplicationComposition.makeInit(() => ({
@@ -25,13 +28,13 @@ export const init = ApplicationComposition.makeInit(() => ({
 }))
 
 export const update = ApplicationComposition.makeUpdate({
-  ClickedDecrement: ApplicationDefinition.makeFieldsStep(() => ({
+  ClickedDecrement: makeFieldsStep(() => ({
     count: Number.decrement,
   })),
-  ClickedIncrement: ApplicationDefinition.makeFieldsStep(() => ({
+  ClickedIncrement: makeFieldsStep(() => ({
     count: Number.increment,
   })),
-  ClickedReset: ApplicationDefinition.makeFieldsStep(() => ({
+  ClickedReset: makeFieldsStep(() => ({
     count: () => 0,
   })),
 })

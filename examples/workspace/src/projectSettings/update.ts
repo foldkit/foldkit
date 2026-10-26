@@ -7,15 +7,15 @@ import {
   type Model,
   OutMessage,
   type ProjectDraft,
-  ProjectSettingsDefinition,
   SaveState,
+  makeStep,
 } from './definition'
 import { isDirty } from './draft'
 
 const editDraft = (
   change: (draft: typeof ProjectDraft.Type) => typeof ProjectDraft.Type,
 ) =>
-  ProjectSettingsDefinition.makeStep(model => {
+  makeStep(model => {
     if (SaveState.guards.Saving(model.saveState)) {
       return { model }
     }
@@ -28,7 +28,7 @@ const editDraft = (
     }
   })
 
-const save = ProjectSettingsDefinition.makeStep(model => {
+const save = makeStep(model => {
   const name = String.trim(model.draft.name)
 
   if (

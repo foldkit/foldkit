@@ -72,6 +72,8 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
+const { makeFieldsStep, makeNoopStep } = ApplicationDefinition
+
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
@@ -98,27 +100,23 @@ export const Compute = ApplicationDefinition.makeCommand('Compute', {
 })
 
 export const update = ApplicationComposition.makeUpdate({
-  ClickedStartEngine: ApplicationDefinition.makeFieldsStep(() => ({
+  ClickedStartEngine: makeFieldsStep(() => ({
     engine: () => EngineState.Booting(),
   })),
 
-  ClickedStopEngine: ApplicationDefinition.makeFieldsStep(() => ({
+  ClickedStopEngine: makeFieldsStep(() => ({
     engine: () => EngineState.Off(),
   })),
 
-  StartedEngine: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ engineId }) => ({
-      engine: () => EngineState.Ready({ engineId }),
-    }),
-  ),
+  StartedEngine: makeFieldsStep.fromMessage(({ engineId }) => ({
+    engine: () => EngineState.Ready({ engineId }),
+  })),
 
-  StoppedEngine: ApplicationDefinition.makeNoopStep(),
+  StoppedEngine: makeNoopStep(),
 
-  FailedStartEngine: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ reason }) => ({
-      engine: () => EngineState.Failed({ reason }),
-    }),
-  ),
+  FailedStartEngine: makeFieldsStep.fromMessage(({ reason }) => ({
+    engine: () => EngineState.Failed({ reason }),
+  })),
 
   ClickedCompute: model => {
     const nextComputeCount = Number.increment(model.computeCount)
@@ -128,13 +126,11 @@ export const update = ApplicationComposition.makeUpdate({
     }
   },
 
-  SucceededCompute: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ result }) => ({
-      maybeSquareResult: () => Option.some(result),
-    }),
-  ),
+  SucceededCompute: makeFieldsStep.fromMessage(({ result }) => ({
+    maybeSquareResult: () => Option.some(result),
+  })),
 
-  FailedCompute: ApplicationDefinition.makeNoopStep(),
+  FailedCompute: makeNoopStep(),
 })
 
 export const init = ApplicationComposition.makeInit(() => ({

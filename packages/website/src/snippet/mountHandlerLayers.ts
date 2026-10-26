@@ -9,6 +9,8 @@ const Message = defineMessageUnion({
 
 const PanelDefinition = Block.makeDefinition('Panel', { Model, Message })
 
+const { makeFieldsStep } = PanelDefinition
+
 const MeasurePanel = PanelDefinition.makeMount('MeasurePanel', {
   messages: [Message.CompletedMeasurePanel],
   handler: function* () {
@@ -26,11 +28,9 @@ const PanelComposition = PanelDefinition.makeComposition({
 })
 
 const update = PanelComposition.makeUpdate({
-  CompletedMeasurePanel: PanelDefinition.makeFieldsStep.fromMessage(
-    ({ height }) => ({
-      panelHeight: () => Option.some(height),
-    }),
-  ),
+  CompletedMeasurePanel: makeFieldsStep.fromMessage(({ height }) => ({
+    panelHeight: () => Option.some(height),
+  })),
 })
 
 const view = PanelComposition.makeView((model, h) => ({

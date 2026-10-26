@@ -3,7 +3,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
 import { ApplicationComposition } from './composition'
-import { ApplicationDefinition } from './definition'
+import { makeFieldsStep, makeNoopStep } from './definition'
 import { Column } from './domain'
 
 export const update = ApplicationComposition.makeUpdate({
@@ -15,9 +15,9 @@ export const update = ApplicationComposition.makeUpdate({
     commands: [FocusAddCardInput()],
   }),
 
-  ChangedNewCardTitle: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ newCardTitle: () => value }),
-  ),
+  ChangedNewCardTitle: makeFieldsStep.fromMessage(({ value }) => ({
+    newCardTitle: () => value,
+  })),
 
   SubmittedNewCard: model =>
     Option.match(model.maybeNewCardColumnId, {
@@ -58,12 +58,12 @@ export const update = ApplicationComposition.makeUpdate({
     }
   },
 
-  CancelledNewCard: ApplicationDefinition.makeFieldsStep(() => ({
+  CancelledNewCard: makeFieldsStep(() => ({
     maybeNewCardColumnId: () => Option.none(),
     newCardTitle: () => '',
   })),
 
-  CompletedSaveBoard: ApplicationDefinition.makeNoopStep(),
+  CompletedSaveBoard: makeNoopStep(),
 
-  CompletedFocusAddCardInput: ApplicationDefinition.makeNoopStep(),
+  CompletedFocusAddCardInput: makeNoopStep(),
 })

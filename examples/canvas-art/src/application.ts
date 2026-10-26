@@ -72,6 +72,8 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
+const { makeFieldsStep, makeCommandsStep } = ApplicationDefinition
+
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
@@ -133,17 +135,15 @@ const advanceBall =
   }
 
 export const update = ApplicationComposition.makeUpdate({
-  TickedFrame: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ deltaTime }) => ({
-      balls: Array.map(advanceBall(deltaTime / MS_PER_SECOND)),
-    }),
-  ),
+  TickedFrame: makeFieldsStep.fromMessage(({ deltaTime }) => ({
+    balls: Array.map(advanceBall(deltaTime / MS_PER_SECOND)),
+  })),
 
-  ClickedCanvas: ApplicationDefinition.makeCommandsStep.fromMessage(
-    ({ x, y }) => [GenerateBall({ x, y })],
-  ),
+  ClickedCanvas: makeCommandsStep.fromMessage(({ x, y }) => [
+    GenerateBall({ x, y }),
+  ]),
 
-  CompletedGenerateBall: ApplicationDefinition.makeFieldsStep(
+  CompletedGenerateBall: makeFieldsStep(
     (model, { x, y, vx, vy, radius, color }) => ({
       balls: Array.append({
         id: model.nextId,
@@ -158,11 +158,11 @@ export const update = ApplicationComposition.makeUpdate({
     }),
   ),
 
-  ClickedClear: ApplicationDefinition.makeFieldsStep(() => ({
+  ClickedClear: makeFieldsStep(() => ({
     balls: () => [],
   })),
 
-  ClickedTogglePlay: ApplicationDefinition.makeFieldsStep(() => ({
+  ClickedTogglePlay: makeFieldsStep(() => ({
     isRunning: running => !running,
   })),
 })

@@ -36,3 +36,5 @@ export const EducationEntryDefinition = Block.makeDefinition('EducationEntry', {
   OutMessage,
   ChildInitContext: Schema.String,
 })
+
+export const { makeFieldsStep, makeOutMessageStep } = EducationEntryDefinition

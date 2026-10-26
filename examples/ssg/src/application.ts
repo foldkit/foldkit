@@ -30,6 +30,8 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
+const { makeFieldsStep, makeNoopStep } = ApplicationDefinition
+
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
@@ -63,7 +65,7 @@ export const EffectsLayer = Layer.mergeAll(
 )
 
 export const update = ApplicationComposition.makeUpdate({
-  ClickedIncrement: ApplicationDefinition.makeFieldsStep(() => ({
+  ClickedIncrement: makeFieldsStep(() => ({
     count: count => count + 1,
   })),
   ClickedLink: (model, { request }) =>
@@ -77,11 +79,11 @@ export const update = ApplicationComposition.makeUpdate({
         commands: [LoadExternal({ href })],
       }),
     }),
-  ChangedUrl: ApplicationDefinition.makeFieldsStep.fromMessage(({ url }) => ({
+  ChangedUrl: makeFieldsStep.fromMessage(({ url }) => ({
     route: () => urlToApplicationRoute(url),
   })),
-  CompletedNavigateInternal: ApplicationDefinition.makeNoopStep(),
-  CompletedLoadExternal: ApplicationDefinition.makeNoopStep(),
+  CompletedNavigateInternal: makeNoopStep(),
+  CompletedLoadExternal: makeNoopStep(),
 })
 
 const routeTitle = (route: typeof ApplicationRoute.Type): string =>

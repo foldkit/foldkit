@@ -11,6 +11,8 @@ const AnimationExampleDefinition = Block.makeDefinition('AnimationExample', {
   Message,
 })
 
+const { makeCommandsStep, makeNoopStep } = AnimationExampleDefinition
+
 // The leave Command returns Animation's own EndedAnimation Message. It takes
 // the generation of the leave that started it and puts that generation on the
 // result, so Animation can tell this leave's settlement apart from a late
@@ -37,9 +39,9 @@ const foldAnimationOutMessage = AnimationExampleDefinition.makeOutMessageFold(
   Animation.AnimationBlock,
   {
     StartedLeaveAnimating: ({ generation }, { liftCommand }) =>
-      AnimationExampleDefinition.makeCommandsStep(() => [
+      makeCommandsStep(() => [
         liftCommand(WaitForPanelSettled({ generation })),
       ]),
-    TransitionedOut: AnimationExampleDefinition.makeNoopStep,
+    TransitionedOut: makeNoopStep,
   },
 )

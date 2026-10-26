@@ -2,13 +2,18 @@ import { Effect, HashSet, Layer, Schema } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import { SnippetCopyComposition } from './composition'
-import { SnippetCopyDefinition } from './definition'
+import {
+  SnippetCopyDefinition,
+  makeCommandsStep,
+  makeFieldsStep,
+  makeNoopStep,
+} from './definition'
 import { Message } from './message'
 
 export const update = SnippetCopyComposition.makeUpdate({
-  ClickedCopySnippet: SnippetCopyDefinition.makeCommandsStep.fromMessage(
-    ({ snippetId, text }) => [CopySnippet({ snippetId, text })],
-  ),
+  ClickedCopySnippet: makeCommandsStep.fromMessage(({ snippetId, text }) => [
+    CopySnippet({ snippetId, text }),
+  ]),
 
   SucceededCopySnippet: (model, { snippetId }) =>
     HashSet.has(model.copiedSnippetIds, snippetId)
@@ -20,12 +25,13 @@ export const update = SnippetCopyComposition.makeUpdate({
           commands: [WaitBeforeHidingCopiedIndicator({ snippetId })],
         },
 
-  FailedCopySnippet: SnippetCopyDefinition.makeNoopStep(),
+  FailedCopySnippet: makeNoopStep(),
 
-  CompletedWaitBeforeHidingCopiedIndicator:
-    SnippetCopyDefinition.makeFieldsStep.fromMessage(({ snippetId }) => ({
+  CompletedWaitBeforeHidingCopiedIndicator: makeFieldsStep.fromMessage(
+    ({ snippetId }) => ({
       copiedSnippetIds: HashSet.remove(snippetId),
-    })),
+    }),
+  ),
 })
 
 export const CopySnippet = SnippetCopyDefinition.makeCommand('CopySnippet', {

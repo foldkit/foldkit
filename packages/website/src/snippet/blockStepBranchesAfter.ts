@@ -14,8 +14,10 @@ const CreateIssueDefinition = Block.makeDefinition('CreateIssue', {
   Message: Schema.Never,
 })
 
+const { makeStep } = CreateIssueDefinition
+
 export const updateProject = (projectId: string) =>
-  CreateIssueDefinition.makeStep(model => {
+  makeStep(model => {
     if (model.createState._tag === 'Creating') {
       return { model }
     }

@@ -7,7 +7,12 @@ import {
 
 import { revealFieldErrors } from '../../validation'
 import { EducationEntryComposition } from './composition'
-import { EducationEntryDefinition, type Model, OutMessage } from './definition'
+import {
+  type Model,
+  OutMessage,
+  makeFieldsStep,
+  makeOutMessageStep,
+} from './definition'
 
 export const schoolRules = makeRules({
   required: 'School is required',
@@ -26,33 +31,29 @@ const validateDegree = validate(degreeRules)
 const validateFieldOfStudy = validate(fieldOfStudyRules)
 
 export const update = EducationEntryComposition.makeUpdate({
-  UpdatedSchool: EducationEntryDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ school: () => validateSchool(value) }),
-  ),
+  UpdatedSchool: makeFieldsStep.fromMessage(({ value }) => ({
+    school: () => validateSchool(value),
+  })),
 
-  UpdatedDegree: EducationEntryDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ degree: () => validateDegree(value) }),
-  ),
+  UpdatedDegree: makeFieldsStep.fromMessage(({ value }) => ({
+    degree: () => validateDegree(value),
+  })),
 
-  UpdatedFieldOfStudy: EducationEntryDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({
-      fieldOfStudy: () => validateFieldOfStudy(value),
-    }),
-  ),
+  UpdatedFieldOfStudy: makeFieldsStep.fromMessage(({ value }) => ({
+    fieldOfStudy: () => validateFieldOfStudy(value),
+  })),
 
-  ToggledCurrentlyEnrolled: EducationEntryDefinition.makeFieldsStep.fromMessage(
-    ({ isChecked }) => ({ isCurrentlyEnrolled: () => isChecked }),
-  ),
+  ToggledCurrentlyEnrolled: makeFieldsStep.fromMessage(({ isChecked }) => ({
+    isCurrentlyEnrolled: () => isChecked,
+  })),
 
-  RequestedRevealErrors: EducationEntryDefinition.makeFieldsStep(() => ({
+  RequestedRevealErrors: makeFieldsStep(() => ({
     school: revealFieldErrors(schoolRules),
     degree: revealFieldErrors(degreeRules),
     fieldOfStudy: revealFieldErrors(fieldOfStudyRules),
   })),
 
-  ClickedRemoveSelf: EducationEntryDefinition.makeOutMessageStep(() =>
-    OutMessage.Removed(),
-  ),
+  ClickedRemoveSelf: makeOutMessageStep(() => OutMessage.Removed()),
 })
 
 export const hasErrors = (entry: typeof Model.Type): boolean =>

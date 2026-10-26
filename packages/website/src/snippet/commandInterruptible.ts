@@ -19,6 +19,8 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
+const { makeFieldsStep, makeCommandsStep, makeNoopStep } = ApplicationDefinition
+
 const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 export const WaitBeforeReset = ApplicationDefinition.makeCommand(
@@ -38,16 +40,14 @@ export const WaitBeforeReset = ApplicationDefinition.makeCommand(
 export const EffectsLayer = WaitBeforeReset.layer
 
 const update = ApplicationComposition.makeUpdate({
-  ClickedResetAfterDelay: ApplicationDefinition.makeCommandsStep(() => [
-    WaitBeforeReset(),
-  ]),
-  ClickedCancelReset: ApplicationDefinition.makeCommandsStep(() => [
+  ClickedResetAfterDelay: makeCommandsStep(() => [WaitBeforeReset()]),
+  ClickedCancelReset: makeCommandsStep(() => [
     WaitBeforeReset.Interrupt(outcome =>
       Message.CompletedCancelWaitBeforeReset({ outcome }),
     ),
   ]),
-  CompletedWaitBeforeReset: ApplicationDefinition.makeFieldsStep(() => ({
+  CompletedWaitBeforeReset: makeFieldsStep(() => ({
     count: () => 0,
   })),
-  CompletedCancelWaitBeforeReset: ApplicationDefinition.makeNoopStep(),
+  CompletedCancelWaitBeforeReset: makeNoopStep(),
 })

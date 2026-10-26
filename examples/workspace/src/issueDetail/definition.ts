@@ -74,3 +74,6 @@ export const IssueDetailDefinition = Block.makeDefinition('IssueDetail', {
   OutMessage,
   ChildInitContext,
 })
+
+export const { makeStep, makeOutMessageStep, makeNoopStep } =
+  IssueDetailDefinition

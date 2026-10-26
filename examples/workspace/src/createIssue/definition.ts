@@ -53,3 +53,5 @@ export const CreateIssueDefinition = Block.makeDefinition('CreateIssue', {
   Message,
   OutMessage,
 })
+
+export const { makeStep, makeFieldsStep, makeNoopStep } = CreateIssueDefinition

@@ -17,6 +17,9 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
+
+const { makeFieldsStep, makeNoopStep } = ApplicationDefinition
+
 const CounterBinding = ApplicationDefinition.makeBinding(CounterBlock, {
   field: 'counter',
   init: { contextToArgs: () => Tuple.make(0) },
@@ -28,13 +31,13 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
 export const update = ApplicationComposition.makeUpdate({
   ClickedResetCounter: model => {
     if (model.counter.count === 0) {
-      return ApplicationDefinition.makeNoopStep()(model)
+      return makeNoopStep()(model)
     }
 
     return CounterBinding.requestReset()(model)
   },
-  ClickedIncrementRevision: ApplicationDefinition.makeFieldsStep(() => ({
+  ClickedIncrementRevision: makeFieldsStep(() => ({
     revision: revision => revision + 1,
   })),
-  CompletedSave: ApplicationDefinition.makeNoopStep(),
+  CompletedSave: makeNoopStep(),
 })

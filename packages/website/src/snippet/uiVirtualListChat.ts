@@ -29,9 +29,11 @@ const MessageListExampleDefinition = Block.makeDefinition(
   },
 )
 
+const { makeNoopStep } = MessageListExampleDefinition
+
 const foldMessageListOutMessage =
   MessageListExampleDefinition.makeOutMessageFold(MessageList, {
-    ObservedContainerScroll: MessageListExampleDefinition.makeNoopStep,
+    ObservedContainerScroll: makeNoopStep,
   })
 
 const MessageListBinding = MessageListExampleDefinition.makeBinding(

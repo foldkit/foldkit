@@ -1,5 +1,5 @@
 import { ClearSession, RedirectToHome } from '../command'
-import { ApplicationDefinition } from '../definition'
+import { ApplicationDefinition, makeStep } from '../definition'
 import { LoggedInBlock } from '../page'
 import { ApplicationRoute } from '../route'
 import { LoggedInBinding, LoggedOutBinding } from './bindings'
@@ -8,7 +8,7 @@ const foldLoggedInOutMessage = ApplicationDefinition.makeOutMessageFold(
   LoggedInBlock,
   {
     RequestedLogout: () =>
-      ApplicationDefinition.makeStep(() =>
+      makeStep(() =>
         LoggedOutBinding.init({
           args: [ApplicationRoute.Home()],
           toParentModel: loggedOut => loggedOut,

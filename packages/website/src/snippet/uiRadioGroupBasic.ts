@@ -29,6 +29,8 @@ const PlanPickerDefinition = Block.makeDefinition('PlanPicker', {
   Message,
 })
 
+const { makeFieldsStep } = PlanPickerDefinition
+
 const plans: ReadonlyArray<typeof Plan.Type> = [
   'Startup',
   'Business',
@@ -49,7 +51,7 @@ const foldPlanRadioGroupOutMessage = PlanPickerDefinition.makeOutMessageFold(
   PlanRadioGroup,
   {
     Selected: ({ value }) =>
-      PlanPickerDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybePlan: () => Option.some(value),
       })),
   },

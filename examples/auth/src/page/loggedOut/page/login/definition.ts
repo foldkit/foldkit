@@ -28,3 +28,5 @@ export const LoginDefinition = Block.makeDefinition('Login', {
   Message,
   OutMessage,
 })
+
+export const { makeFieldsStep, makeOutMessageStep } = LoginDefinition

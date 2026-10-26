@@ -14,7 +14,7 @@ import {
   VirtualListDemoBinding,
   VirtualListVariableDemoBinding,
 } from './composition'
-import { UiDefinition } from './definition'
+import { makeFieldsStep } from './definition'
 import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './demo/virtualListData'
 import {
   VirtualListChatDemoBinding,
@@ -23,60 +23,50 @@ import {
 } from './virtualListChat'
 
 export const update = UiComposition.makeUpdate({
-  UpdatedInputDemoValue: UiDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ inputDemoValue: () => value }),
-  ),
+  UpdatedInputDemoValue: makeFieldsStep.fromMessage(({ value }) => ({
+    inputDemoValue: () => value,
+  })),
 
-  UpdatedTextareaDemoValue: UiDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ textareaDemoValue: () => value }),
-  ),
+  UpdatedTextareaDemoValue: makeFieldsStep.fromMessage(({ value }) => ({
+    textareaDemoValue: () => value,
+  })),
 
-  UpdatedFieldsetInputValue: UiDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ fieldsetInputValue: () => value }),
-  ),
+  UpdatedFieldsetInputValue: makeFieldsStep.fromMessage(({ value }) => ({
+    fieldsetInputValue: () => value,
+  })),
 
-  UpdatedFieldsetTextareaValue: UiDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ fieldsetTextareaValue: () => value }),
-  ),
+  UpdatedFieldsetTextareaValue: makeFieldsStep.fromMessage(({ value }) => ({
+    fieldsetTextareaValue: () => value,
+  })),
 
-  UpdatedSelectDemoValue: UiDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ selectDemoValue: () => value }),
-  ),
+  UpdatedSelectDemoValue: makeFieldsStep.fromMessage(({ value }) => ({
+    selectDemoValue: () => value,
+  })),
 
-  ToggledFieldsetCheckboxDemo: UiDefinition.makeFieldsStep.fromMessage(
-    ({ isChecked }) => ({
-      isFieldsetCheckboxDemoChecked: () => isChecked,
-    }),
-  ),
+  ToggledFieldsetCheckboxDemo: makeFieldsStep.fromMessage(({ isChecked }) => ({
+    isFieldsetCheckboxDemoChecked: () => isChecked,
+  })),
 
-  ClickedButtonDemo: UiDefinition.makeFieldsStep(() => ({
+  ClickedButtonDemo: makeFieldsStep(() => ({
     buttonClickCount: Number.increment,
   })),
 
-  ToggledCheckboxBasicDemo: UiDefinition.makeFieldsStep.fromMessage(
-    ({ isChecked }) => ({
-      isCheckboxBasicDemoChecked: () => isChecked,
-    }),
-  ),
+  ToggledCheckboxBasicDemo: makeFieldsStep.fromMessage(({ isChecked }) => ({
+    isCheckboxBasicDemoChecked: () => isChecked,
+  })),
 
-  ToggledCheckboxAllDemo: UiDefinition.makeFieldsStep.fromMessage(
-    ({ isChecked }) => ({
-      isCheckboxOptionADemoChecked: () => isChecked,
-      isCheckboxOptionBDemoChecked: () => isChecked,
-    }),
-  ),
+  ToggledCheckboxAllDemo: makeFieldsStep.fromMessage(({ isChecked }) => ({
+    isCheckboxOptionADemoChecked: () => isChecked,
+    isCheckboxOptionBDemoChecked: () => isChecked,
+  })),
 
-  ToggledCheckboxOptionADemo: UiDefinition.makeFieldsStep.fromMessage(
-    ({ isChecked }) => ({
-      isCheckboxOptionADemoChecked: () => isChecked,
-    }),
-  ),
+  ToggledCheckboxOptionADemo: makeFieldsStep.fromMessage(({ isChecked }) => ({
+    isCheckboxOptionADemoChecked: () => isChecked,
+  })),
 
-  ToggledCheckboxOptionBDemo: UiDefinition.makeFieldsStep.fromMessage(
-    ({ isChecked }) => ({
-      isCheckboxOptionBDemoChecked: () => isChecked,
-    }),
-  ),
+  ToggledCheckboxOptionBDemo: makeFieldsStep.fromMessage(({ isChecked }) => ({
+    isCheckboxOptionBDemoChecked: () => isChecked,
+  })),
 
   ClickedDeleteProject: NestedDialogChildDemoBinding.requestOpen(),
 
@@ -88,18 +78,19 @@ export const update = UiComposition.makeUpdate({
 
   ClickedOpenProjectSettings: NestedDialogParentDemoBinding.requestOpen(),
 
-  ToggledDisclosureDemo: UiDefinition.makeFieldsStep.fromMessage(
-    ({ isOpen }) => ({ isDisclosureDemoOpen: () => isOpen }),
-  ),
+  ToggledDisclosureDemo: makeFieldsStep.fromMessage(({ isOpen }) => ({
+    isDisclosureDemoOpen: () => isOpen,
+  })),
 
-  ToggledDisclosureCollapsedPreviewDemo:
-    UiDefinition.makeFieldsStep.fromMessage(({ isOpen }) => ({
+  ToggledDisclosureCollapsedPreviewDemo: makeFieldsStep.fromMessage(
+    ({ isOpen }) => ({
       isDisclosureCollapsedPreviewDemoOpen: () => isOpen,
-    })),
-
-  ToggledSwitchDemo: UiDefinition.makeFieldsStep.fromMessage(
-    ({ isChecked }) => ({ isSwitchDemoChecked: () => isChecked }),
+    }),
   ),
+
+  ToggledSwitchDemo: makeFieldsStep.fromMessage(({ isChecked }) => ({
+    isSwitchDemoChecked: () => isChecked,
+  })),
 
   ClickedHoverIntentMenuItem: HoverIntentMenuDemoBinding.requestClose(),
 
@@ -143,7 +134,7 @@ export const update = UiComposition.makeUpdate({
       ? AnimationDemoBinding.requestHide()(model)
       : AnimationDemoBinding.requestShow()(model),
 
-  ClickedRemoveFileDropDemoFile: UiDefinition.makeFieldsStep.fromMessage(
+  ClickedRemoveFileDropDemoFile: makeFieldsStep.fromMessage(
     ({ fileIndex }) => ({
       fileDropBasicDemoFiles: Array.remove(fileIndex),
     }),

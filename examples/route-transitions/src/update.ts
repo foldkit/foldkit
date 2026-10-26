@@ -6,14 +6,14 @@ import { toString as urlToString } from 'foldkit/url'
 
 import { LoadExternal, NavigateInternal } from './command'
 import { ApplicationComposition } from './composition'
-import { ApplicationDefinition } from './definition'
+import { makeFieldsStep, makeNoopStep } from './definition'
 import { PaintingStatus } from './model'
 import { urlToApplicationRoute } from './route'
 import { handleTransition } from './transition'
 
 export const update = ApplicationComposition.makeUpdate({
-  CompletedNavigateInternal: ApplicationDefinition.makeNoopStep(),
-  CompletedLoadExternal: ApplicationDefinition.makeNoopStep(),
+  CompletedNavigateInternal: makeNoopStep(),
+  CompletedLoadExternal: makeNoopStep(),
 
   ClickedLink: (model, { request }) =>
     UrlRequest.match(request, {
@@ -36,7 +36,7 @@ export const update = ApplicationComposition.makeUpdate({
     )
   },
 
-  CompletedLoadCatalog: ApplicationDefinition.makeFieldsStep(() => ({
+  CompletedLoadCatalog: makeFieldsStep(() => ({
     catalogStatus: () => 'Ready',
   })),
 
@@ -50,13 +50,11 @@ export const update = ApplicationComposition.makeUpdate({
         }
       : { model },
 
-  UpdatedStudioDraft: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ studioDraft: () => value }),
-  ),
+  UpdatedStudioDraft: makeFieldsStep.fromMessage(({ value }) => ({
+    studioDraft: () => value,
+  })),
 
-  CompletedSaveDraft: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ draft }) => ({
-      maybeSavedDraft: () => Option.some(draft),
-    }),
-  ),
+  CompletedSaveDraft: makeFieldsStep.fromMessage(({ draft }) => ({
+    maybeSavedDraft: () => Option.some(draft),
+  })),
 })

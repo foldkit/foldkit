@@ -8,3 +8,6 @@ export const IssueListDefinition = Block.makeDefinition('IssueList', {
   Message,
   OutMessage,
 })
+
+export const { makeFieldsStep, makeOutMessageStep, makeNoopStep } =
+  IssueListDefinition

@@ -34,3 +34,5 @@ export const NotificationCenterDefinition = Block.makeDefinition(
   'NotificationCenter',
   { Model, Message, OutMessage },
 )
+
+export const { makeFieldsStep, makeNoopStep } = NotificationCenterDefinition

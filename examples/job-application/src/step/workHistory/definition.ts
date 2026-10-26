@@ -25,3 +25,6 @@ export const WorkHistoryDefinition = Block.makeDefinition('WorkHistory', {
     initialEntryId: Schema.String,
   }),
 })
+
+export const { makeFieldsStep, makeCommandsStep, makeNoopStep } =
+  WorkHistoryDefinition

@@ -19,6 +19,9 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
   OutMessage,
 })
+
+const { makeOutMessageStep } = ApplicationDefinition
+
 export const SettingsBinding = ApplicationDefinition.makeBinding(
   SettingsBlock,
   {
@@ -27,7 +30,7 @@ export const SettingsBinding = ApplicationDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(SettingsBlock, {
     ChangedTheme: ({ theme }) =>
-      ApplicationDefinition.makeOutMessageStep(model =>
+      makeOutMessageStep(model =>
         OutMessage.ChangedTheme({
           theme,
           changeCount: model.themeChangeCount,

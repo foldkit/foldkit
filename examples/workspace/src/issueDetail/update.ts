@@ -9,11 +9,13 @@ import {
   changeDraft,
 } from './composition'
 import {
-  IssueDetailDefinition,
   Message,
   type Model,
   OutMessage,
   SaveState,
+  makeNoopStep,
+  makeOutMessageStep,
+  makeStep,
 } from './definition'
 import {
   isDirty,
@@ -33,7 +35,7 @@ const resetDraftFields = (model: typeof Model.Type) => {
   }
 }
 
-const keepModel = IssueDetailDefinition.makeNoopStep()
+const keepModel = makeNoopStep()
 
 const reportDraft = CommentComposerBinding.requestReportDraft()
 
@@ -45,7 +47,7 @@ const resetDraft = (model: Parameters<typeof reportDraft>[0]) => {
   return reportDraft(modifyFields(model, resetDraftFields(model)))
 }
 
-const saveIssue = IssueDetailDefinition.makeStep(model => {
+const saveIssue = makeStep(model => {
   if (
     SaveState.guards.Saving(model.saveState) ||
     Option.isSome(model.maybeIncomingRevision) ||
@@ -185,9 +187,7 @@ export const update = IssueDetailComposition.makeUpdate({
       onSome: () => resetDraft(model),
     }),
   ClickedDiscardChanges: resetDraft,
-  ClickedClose: IssueDetailDefinition.makeOutMessageStep(() =>
-    OutMessage.Closed(),
-  ),
+  ClickedClose: makeOutMessageStep(() => OutMessage.Closed()),
   SucceededSaveIssue: handleSucceededSaveIssue,
   FailedSaveIssue: handleFailedSaveIssue,
 })

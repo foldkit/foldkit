@@ -31,3 +31,6 @@ export const IssueBoardDefinition = Block.makeDefinition('IssueBoard', {
   Message,
   OutMessage,
 })
+
+export const { makeFieldsStep, makeOutMessageStep, makeNoopStep } =
+  IssueBoardDefinition

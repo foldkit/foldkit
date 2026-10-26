@@ -20,6 +20,9 @@ const Message = defineMessageUnion({
 })
 
 const EditorDefinition = Block.makeDefinition('Editor', { Model, Message })
+
+const { makeFieldsStep } = EditorDefinition
+
 const EditorComposition = EditorDefinition.makeComposition()
 
 const SaveDocument = EditorDefinition.makeCommand('SaveDocument', {
@@ -36,12 +39,12 @@ const update = EditorComposition.makeUpdate({
     model: modifyFields(model, { save: () => SaveState.Saving() }),
     commands: [SaveDocument({ contents: model.contents })],
   }),
-  SucceededSaveDocument: EditorDefinition.makeFieldsStep(() => ({
+  SucceededSaveDocument: makeFieldsStep(() => ({
     save: () => SaveState.Saved(),
   })),
-  FailedSaveDocument: EditorDefinition.makeFieldsStep.fromMessage(
-    ({ reason }) => ({ save: () => SaveState.Failed({ reason }) }),
-  ),
+  FailedSaveDocument: makeFieldsStep.fromMessage(({ reason }) => ({
+    save: () => SaveState.Failed({ reason }),
+  })),
 })
 
 const prepare = () =>

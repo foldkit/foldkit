@@ -6,7 +6,13 @@ import { IssueBoardBlock } from './board'
 import { MoveIssue, NavigateInternal, ReplaceInternalUrl } from './command'
 import { CommandPaletteBlock } from './commandPalette'
 import { CreateIssueBlock } from './createIssue'
-import { ApplicationDefinition } from './definition'
+import {
+  ApplicationDefinition,
+  makeCommandsStep,
+  makeFieldsStep,
+  makeNoopStep,
+  makeStep,
+} from './definition'
 import {
   type Issue,
   type IssueFilters,
@@ -36,7 +42,7 @@ export const ActiveMemberBinding = ApplicationDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(WorkspaceListboxBlock, {
     Selected: ({ value }) =>
-      ApplicationDefinition.makeFieldsStep(model => ({
+      makeFieldsStep(model => ({
         activeMemberId: current =>
           Option.exists(AsyncData.getData(model.workspaceAsyncData), snapshot =>
             Array.some(snapshot.members, member => member.id === value),
@@ -61,7 +67,7 @@ export const IssueDetailBinding = ApplicationDefinition.makeBinding(
 )
 
 const openIssue = (issueId: string) =>
-  ApplicationDefinition.makeCommandsStep(model => [
+  makeCommandsStep(model => [
     NavigateInternal({ url: issueHref(model, issueId) }),
   ])
 
@@ -74,7 +80,7 @@ export const CreateIssueBinding = ApplicationDefinition.makeBinding(
   fold: ApplicationDefinition.makeOutMessageFold(CreateIssueBlock, {
     Created: ({ issue }) =>
       Update.combineSteps([
-        ApplicationDefinition.makeFieldsStep(() => ({
+        makeFieldsStep(() => ({
           workspaceAsyncData: AsyncData.map(snapshot =>
             modifyFields(snapshot, {
               issues: Array.append(issue),
@@ -97,7 +103,7 @@ export const NotificationCenterBinding = ApplicationDefinition.makeBinding(
 })
 
 const notifyNewComments = (issue: typeof Issue.Type) =>
-  ApplicationDefinition.makeStep(model => {
+  makeStep(model => {
     const maybePreviousIssue = Option.flatMap(
       AsyncData.getData(model.workspaceAsyncData),
       snapshot =>
@@ -105,7 +111,7 @@ const notifyNewComments = (issue: typeof Issue.Type) =>
     )
 
     if (Option.isNone(maybePreviousIssue)) {
-      return ApplicationDefinition.makeNoopStep()
+      return makeNoopStep()
     }
 
     const newComments = Array.filter(
@@ -129,7 +135,7 @@ const notifyNewComments = (issue: typeof Issue.Type) =>
 export const applyIssueRevision = (issue: typeof Issue.Type) =>
   Update.combineSteps([
     notifyNewComments(issue),
-    ApplicationDefinition.makeFieldsStep(() => ({
+    makeFieldsStep(() => ({
       workspaceAsyncData: AsyncData.map(snapshot =>
         modifyFields(snapshot, {
           issues: Array.map(current =>
@@ -144,7 +150,7 @@ const retainIssueDraft = (
   issueId: string,
   maybeDraft: Option.Option<typeof RetainedIssueDraft.Type>,
 ) =>
-  ApplicationDefinition.makeFieldsStep(() => ({
+  makeFieldsStep(() => ({
     issueDrafts: drafts => {
       const remaining = Array.filter(drafts, draft => draft.issueId !== issueId)
 
@@ -161,7 +167,7 @@ const foldIssueDetailOutMessage = ApplicationDefinition.makeOutMessageFold(
     Saved: ({ issue }) =>
       Update.combineSteps([
         applyIssueRevision(issue),
-        ApplicationDefinition.makeFieldsStep(() => ({
+        makeFieldsStep(() => ({
           maybeNotice: () => Option.some(`${issue.identifier} saved`),
         })),
         IssueDetailBinding.requestReportDraft(issue.id),
@@ -174,7 +180,7 @@ const foldIssueDetailOutMessage = ApplicationDefinition.makeOutMessageFold(
     ChangedDraft: ({ issueId, maybeDraft }) =>
       retainIssueDraft(issueId, maybeDraft),
     Closed: () =>
-      ApplicationDefinition.makeCommandsStep(model => [
+      makeCommandsStep(model => [
         NavigateInternal({ url: routeToPath(pageRoute(model.route)) }),
       ]),
   },
@@ -183,7 +189,7 @@ const foldIssueDetailOutMessage = ApplicationDefinition.makeOutMessageFold(
 const navigateIssueFilters = (
   change: (filters: typeof IssueFilters.Type) => typeof IssueFilters.Type,
 ) =>
-  ApplicationDefinition.makeCommandsStep(model => [
+  makeCommandsStep(model => [
     NavigateInternal({
       url: issueFiltersHref(model, change(appliedIssueFilters(model))),
     }),
@@ -197,7 +203,7 @@ export const IssueListBinding = ApplicationDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(IssueListBlock, {
     SavedFilter: ({ name, filters }) =>
-      ApplicationDefinition.makeFieldsStep(model => ({
+      makeFieldsStep(model => ({
         savedViews: Array.append(
           SavedView.make({
             id: `view-${model.nextSavedViewId}`,
@@ -209,7 +215,7 @@ export const IssueListBinding = ApplicationDefinition.makeBinding(
         maybeNotice: () => Option.some(`Saved view “${name}”`),
       })),
     ChangedQuery: ({ query }) =>
-      ApplicationDefinition.makeCommandsStep(model => [
+      makeCommandsStep(model => [
         ReplaceInternalUrl({
           url: issueFiltersHref(
             model,
@@ -237,9 +243,9 @@ export const IssueListBinding = ApplicationDefinition.makeBinding(
         }),
       ),
     RequestedCreation: () =>
-      ApplicationDefinition.makeStep(model => {
+      makeStep(model => {
         return Option.match(AsyncData.getData(model.workspaceAsyncData), {
-          onNone: ApplicationDefinition.makeNoopStep,
+          onNone: makeNoopStep,
           onSome: snapshot => {
             const route = pageRoute(model.route)
 
@@ -253,7 +259,7 @@ export const IssueListBinding = ApplicationDefinition.makeBinding(
             })
 
             return Option.match(maybeProject, {
-              onNone: ApplicationDefinition.makeNoopStep,
+              onNone: makeNoopStep,
               onSome: project =>
                 CreateIssueBinding.requestOpen({ projectId: project.id }),
             })
@@ -269,7 +275,7 @@ const applyOptimisticMove = (
   insertionIndex: number,
   previousIndex: number,
 ) =>
-  ApplicationDefinition.makeStep(model => ({
+  makeStep(model => ({
     model: modifyFields(model, {
       workspaceAsyncData: AsyncData.map(current =>
         modifyFields(current, {
@@ -299,7 +305,7 @@ export const requestMoveIssue = (
   status: typeof IssueStatus.Type,
   insertionIndex: number,
 ) =>
-  ApplicationDefinition.makeStep(model => {
+  makeStep(model => {
     if (IssueMoveState.guards.MovingIssue(model.issueMoveState)) {
       return { model }
     }
@@ -367,11 +373,11 @@ export const CommandPaletteBinding = ApplicationDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(CommandPaletteBlock, {
     SelectedIssue: ({ issueId }) =>
-      ApplicationDefinition.makeCommandsStep(model => [
+      makeCommandsStep(model => [
         NavigateInternal({ url: issueHref(model, issueId) }),
       ]),
     SelectedProject: ({ projectId }) =>
-      ApplicationDefinition.makeCommandsStep(() => [
+      makeCommandsStep(() => [
         NavigateInternal({ url: projectRouter({ projectId }) }),
       ]),
   }),
@@ -402,7 +408,7 @@ export const ProjectSettingsBinding = ApplicationDefinition.makeBinding(
   fold: (_projectId, outMessage) =>
     ApplicationDefinition.makeOutMessageFold(ProjectSettingsBlock, {
       Saved: ({ project }) =>
-        ApplicationDefinition.makeFieldsStep(() => ({
+        makeFieldsStep(() => ({
           workspaceAsyncData: AsyncData.map(snapshot =>
             modifyFields(snapshot, {
               projects: Array.map(current =>

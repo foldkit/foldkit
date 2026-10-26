@@ -1,7 +1,7 @@
 import { Effect } from 'effect'
 
 import { SaveTheme } from './blockDefinition'
-import { ApplicationDefinition } from './blockProfileContract'
+import { ApplicationDefinition, makeFieldsStep } from './blockProfileContract'
 import * as Settings from './blockSettings'
 
 const SettingsDemo = Settings.SettingsBlock.replaceEffectsLayer(
@@ -17,7 +17,7 @@ export const SettingsBinding = ApplicationDefinition.makeBinding(SettingsDemo, {
 }).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(SettingsDemo, {
     ChangedTheme: ({ theme }) =>
-      ApplicationDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         previewTheme: () => theme,
       })),
   }),

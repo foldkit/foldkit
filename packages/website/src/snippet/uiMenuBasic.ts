@@ -25,6 +25,8 @@ const ActionMenuExampleDefinition = Block.makeDefinition('ActionMenuExample', {
   Message,
 })
 
+const { makeNoopStep } = ActionMenuExampleDefinition
+
 const actions: ReadonlyArray<Action> = [
   'Edit',
   'Duplicate',
@@ -43,8 +45,8 @@ const foldMenuOutMessage = ActionMenuExampleDefinition.makeOutMessageFold(
     // The child has emitted `Selected`. In this arm the parent can update
     // its own state or dispatch its own Commands, for example transition a
     // page, mutate domain state, or trigger a downstream Command.
-    Selected: ActionMenuExampleDefinition.makeNoopStep,
-    Closed: ActionMenuExampleDefinition.makeNoopStep,
+    Selected: makeNoopStep,
+    Closed: makeNoopStep,
   },
 )
 

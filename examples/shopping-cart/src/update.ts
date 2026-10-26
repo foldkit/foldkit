@@ -3,13 +3,13 @@ import { toString as urlToString } from 'foldkit/url'
 
 import { LoadExternal, NavigateInternal } from './command'
 import { ApplicationComposition } from './composition'
-import { ApplicationDefinition } from './definition'
+import { makeFieldsStep, makeNoopStep } from './definition'
 import { Cart } from './domain'
 import { urlToApplicationRoute } from './route'
 
 export const update = ApplicationComposition.makeUpdate({
-  CompletedNavigateInternal: ApplicationDefinition.makeNoopStep(),
-  CompletedLoadExternal: ApplicationDefinition.makeNoopStep(),
+  CompletedNavigateInternal: makeNoopStep(),
+  CompletedLoadExternal: makeNoopStep(),
   ClickedLink: (model, { request }) =>
     UrlRequest.match(request, {
       Internal: ({ url }) => ({
@@ -21,25 +21,25 @@ export const update = ApplicationComposition.makeUpdate({
         commands: [LoadExternal({ href })],
       }),
     }),
-  ChangedUrl: ApplicationDefinition.makeFieldsStep.fromMessage(({ url }) => ({
+  ChangedUrl: makeFieldsStep.fromMessage(({ url }) => ({
     route: () => urlToApplicationRoute(url),
   })),
-  ClickedIncrementQuantity: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ itemId }) => ({ cart: Cart.incrementQuantity(itemId) }),
-  ),
-  ClickedDecrementQuantity: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ itemId }) => ({ cart: Cart.decrementQuantity(itemId) }),
-  ),
-  ClickedRemoveCartItem: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ itemId }) => ({ cart: Cart.removeItem(itemId) }),
-  ),
-  ClickedClearCart: ApplicationDefinition.makeFieldsStep(() => ({
+  ClickedIncrementQuantity: makeFieldsStep.fromMessage(({ itemId }) => ({
+    cart: Cart.incrementQuantity(itemId),
+  })),
+  ClickedDecrementQuantity: makeFieldsStep.fromMessage(({ itemId }) => ({
+    cart: Cart.decrementQuantity(itemId),
+  })),
+  ClickedRemoveCartItem: makeFieldsStep.fromMessage(({ itemId }) => ({
+    cart: Cart.removeItem(itemId),
+  })),
+  ClickedClearCart: makeFieldsStep(() => ({
     cart: () => [],
   })),
-  UpdatedDeliveryInstructions: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ deliveryInstructions: () => value }),
-  ),
-  ClickedPlaceOrder: ApplicationDefinition.makeFieldsStep(() => ({
+  UpdatedDeliveryInstructions: makeFieldsStep.fromMessage(({ value }) => ({
+    deliveryInstructions: () => value,
+  })),
+  ClickedPlaceOrder: makeFieldsStep(() => ({
     orderPlaced: () => true,
     cart: () => [],
     deliveryInstructions: () => '',

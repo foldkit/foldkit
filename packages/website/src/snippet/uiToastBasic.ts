@@ -42,13 +42,15 @@ const NotificationsDefinition = Block.makeDefinition('Notifications', {
   Message,
 })
 
+const { makeFieldsStep } = NotificationsDefinition
+
 // At module scope, fold the OutMessage into your own Model, lifting the
 // DismissedToast event into domain state. The arm returns an Update.Step over
 // the parent Model, which already has the next Toast Model written back. The
 // parent Definition infers the factory-refined payload from the whole Block:
 const foldToastOutMessage = NotificationsDefinition.makeOutMessageFold(Toast, {
   DismissedToast: ({ payload }) =>
-    NotificationsDefinition.makeFieldsStep(() => ({
+    makeFieldsStep(() => ({
       maybeLastDismissedBody: () => Option.some(payload.bodyText),
     })),
 })

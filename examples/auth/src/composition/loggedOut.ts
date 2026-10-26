@@ -1,5 +1,5 @@
 import { RedirectToDashboard, SaveSession } from '../command'
-import { ApplicationDefinition } from '../definition'
+import { ApplicationDefinition, makeStep } from '../definition'
 import { LoggedOutBlock } from '../page'
 import { ApplicationRoute } from '../route'
 import { LoggedInBinding, LoggedOutBinding } from './bindings'
@@ -8,7 +8,7 @@ const foldLoggedOutOutMessage = ApplicationDefinition.makeOutMessageFold(
   LoggedOutBlock,
   {
     SucceededLogin: ({ session }) =>
-      ApplicationDefinition.makeStep(() =>
+      makeStep(() =>
         LoggedInBinding.init({
           args: [ApplicationRoute.Dashboard(), session],
           toParentModel: loggedIn => loggedIn,

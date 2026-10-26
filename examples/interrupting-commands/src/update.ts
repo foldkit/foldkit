@@ -4,7 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { CancelUploadFile, UploadFile } from './command'
 import { ApplicationComposition } from './composition'
-import { ApplicationDefinition } from './definition'
+import { makeCommandsStep, makeFieldsStep } from './definition'
 import { Upload, type UploadStatus } from './model'
 
 export const FakeFile = Schema.Struct({
@@ -56,10 +56,10 @@ export const update = ApplicationComposition.makeUpdate({
       ],
     }
   },
-  ClickedCancelUpload: ApplicationDefinition.makeCommandsStep.fromMessage(
-    ({ uploadId }) => [CancelUploadFile({ uploadId })],
-  ),
-  ClickedCancelAllUploads: ApplicationDefinition.makeCommandsStep(model =>
+  ClickedCancelUpload: makeCommandsStep.fromMessage(({ uploadId }) => [
+    CancelUploadFile({ uploadId }),
+  ]),
+  ClickedCancelAllUploads: makeCommandsStep(model =>
     pipe(
       model.uploads,
       Array.filter(upload => upload.status === 'Uploading'),
@@ -84,9 +84,9 @@ export const update = ApplicationComposition.makeUpdate({
         }),
       }),
     ),
-  CompletedUploadFile: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ uploadId }) => ({ uploads: setStatusForId(uploadId, 'Done') }),
-  ),
+  CompletedUploadFile: makeFieldsStep.fromMessage(({ uploadId }) => ({
+    uploads: setStatusForId(uploadId, 'Done'),
+  })),
   CompletedCancelUploadFile: (model, { uploadId, outcome }) =>
     Command.Interruptible.Outcome.match(outcome, {
       Interrupted: () => ({

@@ -8,3 +8,10 @@ export const HomeDefinition = Block.makeDefinition('Home', {
   Message,
   OutMessage,
 })
+
+export const {
+  makeCommandsStep,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageStep,
+} = HomeDefinition

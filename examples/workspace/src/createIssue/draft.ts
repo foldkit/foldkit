@@ -1,4 +1,4 @@
-import { CreateIssueDefinition, CreateState, type Model } from './definition'
+import { CreateState, type Model, makeStep } from './definition'
 
 export const canEditDraft = (model: typeof Model.Type) =>
   !CreateState.guards.Creating(model.createState)
@@ -6,7 +6,7 @@ export const canEditDraft = (model: typeof Model.Type) =>
 export const editDraft = (
   change: (model: typeof Model.Type) => typeof Model.Type,
 ) =>
-  CreateIssueDefinition.makeStep(model => {
+  makeStep(model => {
     if (!canEditDraft(model)) {
       return { model }
     }

@@ -10,3 +10,5 @@ export const SnippetDisclosureDefinition = Block.makeDefinition(
     Message,
   },
 )
+
+export const { makeFieldsStep } = SnippetDisclosureDefinition

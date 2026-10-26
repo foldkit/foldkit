@@ -1,17 +1,15 @@
 import { Dialog } from '@foldkit/ui'
 
 import { SaveDraft } from '../command'
-import { EditorDefinition } from '../definition'
+import { EditorDefinition, makeCommandsStep, makeNoopStep } from '../definition'
 
 const foldDialogOutMessage = EditorDefinition.makeOutMessageFold(
   Dialog.DialogBlock,
   {
-    Opened: EditorDefinition.makeNoopStep,
-    CompletedClose: EditorDefinition.makeNoopStep,
+    Opened: makeNoopStep,
+    CompletedClose: makeNoopStep,
     Closed: () =>
-      EditorDefinition.makeCommandsStep(model => [
-        SaveDraft({ contents: model.contents }),
-      ]),
+      makeCommandsStep(model => [SaveDraft({ contents: model.contents })]),
   },
 )
 

@@ -1,7 +1,7 @@
 import { Array, Number, pipe } from 'effect'
 
 import { ApplicationComposition } from './composition'
-import { ApplicationDefinition } from './definition'
+import { makeFieldsStep } from './definition'
 import { type SlowWarning } from './model'
 import { PATCH_ROW_COUNT, UPDATE_WORK_MS, burnCpu } from './workload'
 
@@ -15,38 +15,34 @@ const prependWarning =
     pipe(warnings, Array.prepend(warning), Array.take(MAX_WARNING_COUNT))
 
 export const update = ApplicationComposition.makeUpdate({
-  ClickedRunUpdateWork: ApplicationDefinition.makeFieldsStep(() => {
+  ClickedRunUpdateWork: makeFieldsStep(() => {
     burnCpu(UPDATE_WORK_MS)
     return { activeWorkload: () => 'Update' }
   }),
-  ClickedRunViewWork: ApplicationDefinition.makeFieldsStep(() => ({
+  ClickedRunViewWork: makeFieldsStep(() => ({
     activeWorkload: () => 'View',
   })),
-  ClickedRunPatchWork: ApplicationDefinition.makeFieldsStep(() => ({
+  ClickedRunPatchWork: makeFieldsStep(() => ({
     activeWorkload: () => 'Patch',
     patchRows: () => PATCH_ROW_COUNT,
     patchRun: Number.increment,
   })),
-  ClickedRunSubscriptionDependenciesWork: ApplicationDefinition.makeFieldsStep(
-    () => ({
-      activeWorkload: () => 'SubscriptionDependencies',
-    }),
-  ),
-  ClickedClearWarnings: ApplicationDefinition.makeFieldsStep(() => ({
+  ClickedRunSubscriptionDependenciesWork: makeFieldsStep(() => ({
+    activeWorkload: () => 'SubscriptionDependencies',
+  })),
+  ClickedClearWarnings: makeFieldsStep(() => ({
     activeWorkload: () => 'Idle',
     warnings: () => [],
   })),
-  RecordedSlowWarning: ApplicationDefinition.makeFieldsStep(
-    (model, { report }) => {
-      const warning: typeof SlowWarning.Type = {
-        id: model.nextWarningId,
-        ...report,
-      }
-      return {
-        activeWorkload: () => 'Idle',
-        nextWarningId: Number.increment,
-        warnings: prependWarning(warning),
-      }
-    },
-  ),
+  RecordedSlowWarning: makeFieldsStep((model, { report }) => {
+    const warning: typeof SlowWarning.Type = {
+      id: model.nextWarningId,
+      ...report,
+    }
+    return {
+      activeWorkload: () => 'Idle',
+      nextWarningId: Number.increment,
+      warnings: prependWarning(warning),
+    }
+  }),
 })

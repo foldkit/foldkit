@@ -7,3 +7,5 @@ export const ApiReferenceDefinition = Block.makeDefinition('ApiReference', {
   Model,
   Message,
 })
+
+export const { makeFieldsStep, makeStep } = ApiReferenceDefinition

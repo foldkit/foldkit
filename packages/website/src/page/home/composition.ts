@@ -2,7 +2,12 @@ import { Tuple } from 'effect'
 import type { Block } from 'foldkit'
 
 import { AsyncCounterDemoBlock } from './asyncCounterDemo'
-import { HomeDefinition } from './definition'
+import {
+  HomeDefinition,
+  makeFieldsStep,
+  makeNoopStep,
+  makeOutMessageStep,
+} from './definition'
 import * as DemoTab from './demoTab'
 import { OutMessage } from './message'
 import { NotePlayerDemoBlock } from './notePlayerDemo'
@@ -17,7 +22,7 @@ export const DemoTabsBinding = HomeDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: HomeDefinition.makeOutMessageFold(DemoTab.DemoTabsBlock, {
     Selected: ({ value }) =>
-      HomeDefinition.makeFieldsStep(() => ({ activeDemoTab: () => value })),
+      makeFieldsStep(() => ({ activeDemoTab: () => value })),
   }),
 })
 
@@ -25,12 +30,12 @@ const foldPlaygroundMenuOutMessage = HomeDefinition.makeOutMessageFold(
   PlaygroundMenuBlock,
   {
     Selected: ({ value }) =>
-      HomeDefinition.makeOutMessageStep(() =>
+      makeOutMessageStep(() =>
         OutMessage.SelectedPlaygroundExample({
           exampleSlug: value,
         }),
       ),
-    Closed: HomeDefinition.makeNoopStep,
+    Closed: makeNoopStep,
   },
 )
 

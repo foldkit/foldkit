@@ -10,8 +10,10 @@ const DraftDefinition = Block.makeDefinition('Draft', {
   Message: Schema.Never,
 })
 
+const { makeStep } = DraftDefinition
+
 const editDraft = (change: (model: typeof Model.Type) => typeof Model.Type) =>
-  DraftDefinition.makeStep(model => {
+  makeStep(model => {
     if (SaveState.guards.Saving(model.saveState)) {
       return { model }
     }

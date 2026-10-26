@@ -1,10 +1,10 @@
-import { ApplicationDefinition } from './definition'
+import { ApplicationDefinition, makeFieldsStep } from './definition'
 
 const foldSearchOutMessage = ApplicationDefinition.makeOutMessageFold(
   Search.SearchBlock,
   {
     RestoredQuery: ({ query }) =>
-      ApplicationDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeRestoredQuery: () => Option.some(query),
       })),
   },
@@ -14,7 +14,7 @@ const foldEditorOutMessage = ApplicationDefinition.makeOutMessageFold(
   Editor.EditorBlock,
   {
     RestoredDraft: ({ documentId }) =>
-      ApplicationDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeRestoredDocumentId: () => Option.some(documentId),
       })),
   },

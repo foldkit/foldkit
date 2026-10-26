@@ -24,11 +24,13 @@ const AccountMenuDefinition = Block.makeDefinition('AccountMenu', {
   Message,
 })
 
+const { makeNoopStep } = AccountMenuDefinition
+
 const foldPopoverOutMessage = AccountMenuDefinition.makeOutMessageFold(
   Popover.PopoverBlock,
   {
-    Opened: AccountMenuDefinition.makeNoopStep,
-    Closed: AccountMenuDefinition.makeNoopStep,
+    Opened: makeNoopStep,
+    Closed: makeNoopStep,
   },
 )
 

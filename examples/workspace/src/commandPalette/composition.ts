@@ -2,7 +2,11 @@ import type { Block } from 'foldkit'
 
 import { DialogBlock } from '@foldkit/ui'
 
-import { CommandPaletteDefinition } from './definition'
+import {
+  CommandPaletteDefinition,
+  makeFieldsStep,
+  makeNoopStep,
+} from './definition'
 
 export const DialogBinding = CommandPaletteDefinition.makeBinding(DialogBlock, {
   field: 'dialog',
@@ -11,13 +15,13 @@ export const DialogBinding = CommandPaletteDefinition.makeBinding(DialogBlock, {
   },
 }).withOutMessagePolicy({
   fold: CommandPaletteDefinition.makeOutMessageFold(DialogBlock, {
-    Opened: CommandPaletteDefinition.makeNoopStep,
+    Opened: makeNoopStep,
     Closed: () =>
-      CommandPaletteDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         query: () => '',
         activeResultIndex: () => 0,
       })),
-    CompletedClose: CommandPaletteDefinition.makeNoopStep,
+    CompletedClose: makeNoopStep,
   }),
 })
 

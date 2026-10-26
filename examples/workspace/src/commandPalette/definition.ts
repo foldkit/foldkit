@@ -38,3 +38,6 @@ export const CommandPaletteDefinition = Block.makeDefinition('CommandPalette', {
   Message,
   OutMessage,
 })
+
+export const { makeStep, makeFieldsStep, makeNoopStep } =
+  CommandPaletteDefinition

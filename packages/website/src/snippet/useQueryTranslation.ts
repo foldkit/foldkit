@@ -23,6 +23,8 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
+const { makeFieldsStep } = ApplicationDefinition
+
 const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 const FetchPosts = ApplicationDefinition.makeCommand('FetchPosts', {
@@ -47,7 +49,7 @@ const update = ApplicationComposition.makeUpdate({
       }),
     }),
 
-  CompletedFetchPosts: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ result }) => ({ posts: AsyncData.settle(result) }),
-  ),
+  CompletedFetchPosts: makeFieldsStep.fromMessage(({ result }) => ({
+    posts: AsyncData.settle(result),
+  })),
 })

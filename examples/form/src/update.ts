@@ -3,14 +3,14 @@ import { modifyFields } from 'foldkit/struct'
 
 import { SubmitForm, ValidateEmail } from './command'
 import { ApplicationComposition } from './composition'
-import { ApplicationDefinition } from './definition'
+import { makeFieldsStep } from './definition'
 import { Submission } from './model'
 import { isFormValid, validateEmail, validateName } from './validation'
 
 export const update = ApplicationComposition.makeUpdate({
-  UpdatedName: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ name: () => validateName(value) }),
-  ),
+  UpdatedName: makeFieldsStep.fromMessage(({ value }) => ({
+    name: () => validateName(value),
+  })),
   UpdatedEmail: (model, { value }) => {
     const validateEmailResult = validateEmail(value)
     if (validateEmailResult._tag === 'Valid') {
@@ -31,9 +31,9 @@ export const update = ApplicationComposition.makeUpdate({
       return { model }
     }
   },
-  UpdatedMessageText: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ messageText: () => Valid({ value }) }),
-  ),
+  UpdatedMessageText: makeFieldsStep.fromMessage(({ value }) => ({
+    messageText: () => Valid({ value }),
+  })),
   ClickedFormSubmit: model => {
     if (model.submission._tag === 'Submitting') {
       return { model }
@@ -56,15 +56,13 @@ export const update = ApplicationComposition.makeUpdate({
       ],
     }
   },
-  SucceededSubmitForm: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ name }) => ({
-      submission: () =>
-        Submission.SubmitSuccess({
-          confirmationText: `Welcome to the waitlist, ${name}! We'll be in touch soon.`,
-        }),
-    }),
-  ),
-  FailedSubmitForm: ApplicationDefinition.makeFieldsStep(() => ({
+  SucceededSubmitForm: makeFieldsStep.fromMessage(({ name }) => ({
+    submission: () =>
+      Submission.SubmitSuccess({
+        confirmationText: `Welcome to the waitlist, ${name}! We'll be in touch soon.`,
+      }),
+  })),
+  FailedSubmitForm: makeFieldsStep(() => ({
     submission: () =>
       Submission.SubmitError({
         error:

@@ -10,7 +10,7 @@ import {
   UnlockBodyScroll,
 } from './command'
 import { ApplicationComposition } from './composition'
-import { ApplicationDefinition } from './definition'
+import { makeFieldsStep, makeNoopStep } from './definition'
 import type { Location } from './locations'
 import { GeolocateState, type Model } from './model'
 
@@ -21,23 +21,21 @@ const findLocation = (
   Array.findFirst(model.locations, ({ id }) => Equal.equals(id, locationId))
 
 export const update = ApplicationComposition.makeUpdate({
-  SucceededMountMap: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ hostId }) => ({ maybeMapHostId: () => Option.some(hostId) }),
-  ),
+  SucceededMountMap: makeFieldsStep.fromMessage(({ hostId }) => ({
+    maybeMapHostId: () => Option.some(hostId),
+  })),
 
-  FailedMountMap: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ reason }) => ({ maybeMapError: () => Option.some(reason) }),
-  ),
+  FailedMountMap: makeFieldsStep.fromMessage(({ reason }) => ({
+    maybeMapError: () => Option.some(reason),
+  })),
 
-  MovedMap: ApplicationDefinition.makeFieldsStep.fromMessage(({ bounds }) => ({
+  MovedMap: makeFieldsStep.fromMessage(({ bounds }) => ({
     maybeBounds: () => Option.some(bounds),
   })),
 
-  ClickedMarker: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ locationId }) => ({
-      maybeSelectedLocationId: () => Option.some(locationId),
-    }),
-  ),
+  ClickedMarker: makeFieldsStep.fromMessage(({ locationId }) => ({
+    maybeSelectedLocationId: () => Option.some(locationId),
+  })),
 
   ClickedLocation: (model, { locationId }) =>
     Option.match(findLocation(model, locationId), {
@@ -57,9 +55,9 @@ export const update = ApplicationComposition.makeUpdate({
       }),
     }),
 
-  UpdatedSearchQuery: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ searchQuery: () => value }),
-  ),
+  UpdatedSearchQuery: makeFieldsStep.fromMessage(({ value }) => ({
+    searchQuery: () => value,
+  })),
 
   ClickedFindMe: model => ({
     model: modifyFields(model, {
@@ -91,15 +89,13 @@ export const update = ApplicationComposition.makeUpdate({
     ],
   }),
 
-  FailedGeolocate: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ reason }) => ({
-      geolocateState: () => GeolocateState.Failed({ reason }),
-    }),
-  ),
+  FailedGeolocate: makeFieldsStep.fromMessage(({ reason }) => ({
+    geolocateState: () => GeolocateState.Failed({ reason }),
+  })),
 
-  SucceededFlyTo: ApplicationDefinition.makeNoopStep(),
-  FailedFlyTo: ApplicationDefinition.makeNoopStep(),
-  CompletedFocusSearchInput: ApplicationDefinition.makeNoopStep(),
-  CompletedLockBodyScroll: ApplicationDefinition.makeNoopStep(),
-  CompletedUnlockBodyScroll: ApplicationDefinition.makeNoopStep(),
+  SucceededFlyTo: makeNoopStep(),
+  FailedFlyTo: makeNoopStep(),
+  CompletedFocusSearchInput: makeNoopStep(),
+  CompletedLockBodyScroll: makeNoopStep(),
+  CompletedUnlockBodyScroll: makeNoopStep(),
 })

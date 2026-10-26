@@ -18,6 +18,9 @@ const Message = defineMessageUnion({
 })
 
 const CounterDefinition = Block.makeDefinition('Counter', { Model, Message })
+
+const { makeFieldsStep } = CounterDefinition
+
 const CounterComposition = CounterDefinition.makeComposition()
 
 const subscriptions = CounterDefinition.makeSubscriptions(entry => ({
@@ -44,16 +47,16 @@ const subscriptions = CounterDefinition.makeSubscriptions(entry => ({
 }))
 
 const update = CounterComposition.makeUpdate({
-  ClickedIncrement: CounterDefinition.makeFieldsStep(model => ({
+  ClickedIncrement: makeFieldsStep(model => ({
     count: count => count + model.step,
   })),
-  ClickedToggleAutoCount: CounterDefinition.makeFieldsStep(() => ({
+  ClickedToggleAutoCount: makeFieldsStep(() => ({
     isAutoCounting: isAutoCounting => !isAutoCounting,
   })),
-  ChangedStep: CounterDefinition.makeFieldsStep.fromMessage(({ step }) => ({
+  ChangedStep: makeFieldsStep.fromMessage(({ step }) => ({
     step: () => step,
   })),
-  Ticked: CounterDefinition.makeFieldsStep(model => ({
+  Ticked: makeFieldsStep(model => ({
     count: count => count + model.step,
   })),
 })

@@ -1,6 +1,10 @@
 import type { Block } from 'foldkit'
 
-import { ApplicationDefinition } from './definition'
+import {
+  ApplicationDefinition,
+  makeFieldsStep,
+  makeNoopStep,
+} from './definition'
 import { StepMenuBlock, StepTabsBlock } from './navigationComponents'
 import {
   AttachmentsBlock,
@@ -75,10 +79,10 @@ export const StepMenuBinding = ApplicationDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(StepMenuBlock, {
     Selected: ({ value }) =>
-      ApplicationDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         currentStep: () => value,
       })),
-    Closed: ApplicationDefinition.makeNoopStep,
+    Closed: makeNoopStep,
   }),
 })
 
@@ -91,7 +95,7 @@ export const StepTabsBinding = ApplicationDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(StepTabsBlock, {
     Selected: ({ value }) =>
-      ApplicationDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         currentStep: () => value,
       })),
   }),

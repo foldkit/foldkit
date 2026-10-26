@@ -29,7 +29,7 @@ import {
   TRAIL_LENGTH,
   TWO_PI,
 } from './constant'
-import { ApplicationDefinition } from './definition'
+import { makeCommandsStep, makeFieldsStep } from './definition'
 import { Message } from './message'
 import { Particle, Point } from './model'
 import { fractalNoise } from './noise'
@@ -187,7 +187,7 @@ const spawnAmbientParticles = (particleCount: number) => {
   return Array.makeBy(clamped, () => GenerateAmbientParticle())
 }
 
-const appendGeneratedParticle = ApplicationDefinition.makeFieldsStep(
+const appendGeneratedParticle = makeFieldsStep(
   (
     model,
     generatedParticle:
@@ -242,21 +242,19 @@ export const update = ApplicationComposition.makeUpdate({
 
   CompletedGenerateBurstParticle: appendGeneratedParticle,
 
-  PressedCanvas: ApplicationDefinition.makeCommandsStep((model, { x, y }) =>
+  PressedCanvas: makeCommandsStep((model, { x, y }) =>
     spawnBurstParticles(x, y, computeBurstHueAnchor(model.elapsedSeconds)),
   ),
 
-  MovedPointer: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ x, y }) => ({
-      maybeMousePosition: () => Option.some(Point.make({ x, y })),
-    }),
-  ),
+  MovedPointer: makeFieldsStep.fromMessage(({ x, y }) => ({
+    maybeMousePosition: () => Option.some(Point.make({ x, y })),
+  })),
 
-  ClickedTogglePlay: ApplicationDefinition.makeFieldsStep(() => ({
+  ClickedTogglePlay: makeFieldsStep(() => ({
     isRunning: running => !running,
   })),
 
-  ClickedReset: ApplicationDefinition.makeFieldsStep(() => ({
+  ClickedReset: makeFieldsStep(() => ({
     particles: () => [],
     maybeMousePosition: () => Option.none(),
   })),

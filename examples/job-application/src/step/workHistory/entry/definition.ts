@@ -43,3 +43,6 @@ export const WorkHistoryEntryDefinition = Block.makeDefinition(
     }),
   },
 )
+
+export const { makeFieldsStep, makeOutMessageStep, makeNoopStep } =
+  WorkHistoryEntryDefinition

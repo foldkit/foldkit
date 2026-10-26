@@ -8,6 +8,9 @@ export const LoggedInDefinition = Block.makeDefinition('LoggedIn', {
   Message,
   OutMessage,
 })
+
+export const { makeOutMessageStep } = LoggedInDefinition
+
 export const LoggedInComposition = LoggedInDefinition.makeComposition()
 export type LoggedInViewBuilder = Block.ViewBuilderFor<
   typeof LoggedInComposition

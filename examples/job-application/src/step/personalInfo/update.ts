@@ -13,7 +13,7 @@ import { modifyFields } from 'foldkit/struct'
 import { revealFieldErrors } from '../validation'
 import { ValidateEmailAsync } from './command'
 import { PersonalInfoComposition } from './composition'
-import { type Model, PersonalInfoDefinition } from './definition'
+import { type Model, makeFieldsStep } from './definition'
 
 const firstNameRules = makeRules({
   required: 'First name is required',
@@ -51,13 +51,13 @@ const validatePhone = validate(phoneRules)
 const validatePortfolioUrl = validate(portfolioUrlRules)
 
 export const update = PersonalInfoComposition.makeUpdate({
-  UpdatedFirstName: PersonalInfoDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ firstName: () => validateFirstName(value) }),
-  ),
+  UpdatedFirstName: makeFieldsStep.fromMessage(({ value }) => ({
+    firstName: () => validateFirstName(value),
+  })),
 
-  UpdatedLastName: PersonalInfoDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ lastName: () => validateLastName(value) }),
-  ),
+  UpdatedLastName: makeFieldsStep.fromMessage(({ value }) => ({
+    lastName: () => validateLastName(value),
+  })),
 
   UpdatedEmail: (model, { value }) => {
     const validationId = Number.increment(model.emailValidationId)
@@ -86,11 +86,11 @@ export const update = PersonalInfoComposition.makeUpdate({
     }
   },
 
-  UpdatedPhone: PersonalInfoDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ phone: () => validatePhone(value) }),
-  ),
+  UpdatedPhone: makeFieldsStep.fromMessage(({ value }) => ({
+    phone: () => validatePhone(value),
+  })),
 
-  RequestedRevealErrors: PersonalInfoDefinition.makeFieldsStep(() => ({
+  RequestedRevealErrors: makeFieldsStep(() => ({
     firstName: revealFieldErrors(firstNameRules),
     lastName: revealFieldErrors(lastNameRules),
     email: revealFieldErrors(emailRules),
@@ -98,15 +98,13 @@ export const update = PersonalInfoComposition.makeUpdate({
     portfolioUrl: revealFieldErrors(portfolioUrlRules),
   })),
 
-  UpdatedCustomPronouns: PersonalInfoDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({ customPronouns: () => value }),
-  ),
+  UpdatedCustomPronouns: makeFieldsStep.fromMessage(({ value }) => ({
+    customPronouns: () => value,
+  })),
 
-  UpdatedPortfolioUrl: PersonalInfoDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({
-      portfolioUrl: () => validatePortfolioUrl(value),
-    }),
-  ),
+  UpdatedPortfolioUrl: makeFieldsStep.fromMessage(({ value }) => ({
+    portfolioUrl: () => validatePortfolioUrl(value),
+  })),
 })
 
 const validatedFields = (

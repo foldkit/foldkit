@@ -21,6 +21,7 @@ import {
   isObjectExpression,
   isObjectProperty,
   isOwnedDefinitionCallee,
+  ownedDefinitionMethodOwner,
   isVariableDeclaration,
   isVariableDeclarator,
   resolveFoldkitApiPath,
@@ -422,6 +423,10 @@ type DefinitionOperation = Readonly<{
   root: ESTree.IdentifierReference
 }>
 
+const namedDefinitionOperations: ReadonlyArray<
+  DefinitionOperation['operation']
+> = ['makeCommandsStep', 'makeFieldsStep', 'makeOutMessageStep', 'makeStep']
+
 const definitionOperationName = (
   method: string,
   maybePreviousMethod: Option.Option<string>,
@@ -528,6 +533,7 @@ const compositionDefinitionPath = (
 const definitionOperationForCall = (
   references: WeakMap<ESTree.Node, Reference>,
   parent: ESTree.CallExpression,
+  importerFilename?: string,
 ): Option.Option<DefinitionOperation> => {
   return Option.gen(function* () {
     if (isBlockBindingCall(parent, references)) {
@@ -557,7 +563,24 @@ const definitionOperationForCall = (
     }
 
     const calleePath = yield* staticMemberPath(parent.callee)
-    const method = yield* Array.last(calleePath.members)
+    const namedOperation = Array.findFirst(
+      namedDefinitionOperations,
+      operation =>
+        Option.isSome(
+          ownedDefinitionMethodOwner(
+            parent.callee,
+            operation,
+            references,
+            importerFilename,
+          ),
+        ),
+    )
+    const method =
+      Option.getOrUndefined(namedOperation) ??
+      Option.getOrUndefined(Array.last(calleePath.members))
+    if (method === undefined) {
+      return yield* Option.none()
+    }
     const maybePreviousMethod = Array.get(
       calleePath.members,
       Array.length(calleePath.members) - 2,
@@ -568,7 +591,9 @@ const definitionOperationForCall = (
     const isUpdateWithContext =
       method === 'withContext' &&
       Option.contains(maybePreviousMethod, 'makeUpdate')
-    const operation = definitionOperationName(method, maybePreviousMethod)
+    const operation =
+      Option.getOrUndefined(namedOperation) ??
+      definitionOperationName(method, maybePreviousMethod)
     if (operation === undefined) {
       return yield* Option.none()
     }
@@ -578,7 +603,12 @@ const definitionOperationForCall = (
       operation === 'makeOutMessageStep'
     if (
       isFocusedStep &&
-      !isOwnedDefinitionCallee(parent.callee, operation, references)
+      !isOwnedDefinitionCallee(
+        parent.callee,
+        operation,
+        references,
+        importerFilename,
+      )
     ) {
       return yield* Option.none()
     }
@@ -602,23 +632,39 @@ const definitionOperationForCall = (
       return yield* Option.none()
     }
 
+    const namedOwner = Option.flatMap(namedOperation, named =>
+      ownedDefinitionMethodOwner(
+        parent.callee,
+        named,
+        references,
+        importerFilename,
+      ),
+    )
     const suffixLength =
       isViewWithInputs ||
       isUpdateWithContext ||
       (isFocusedStep && method === 'fromMessage')
         ? 2
         : 1
-    const definitionPath = compositionDefinitionPath(references, {
-      root: calleePath.root,
-      members: calleePath.members.slice(0, -suffixLength),
+    const definitionPath = Option.match(namedOwner, {
+      onNone: () =>
+        compositionDefinitionPath(references, {
+          root: calleePath.root,
+          members: calleePath.members.slice(0, -suffixLength),
+        }),
+      onSome: owner => owner.path,
     })
-    const importedDefinitionPath = Option.map(
-      resolveImportedPathThroughConst(references, definitionPath.root),
-      path => ({
-        source: path.source,
-        members: [...path.members, ...definitionPath.members],
-      }),
-    )
+    const importedDefinitionPath = Option.match(namedOwner, {
+      onNone: () =>
+        Option.map(
+          resolveImportedPathThroughConst(references, definitionPath.root),
+          path => ({
+            source: path.source,
+            members: [...path.members, ...definitionPath.members],
+          }),
+        ),
+      onSome: owner => Option.fromNullishOr(owner.importedPath),
+    })
 
     return {
       importedDefinitionPath: Option.getOrUndefined(importedDefinitionPath),
@@ -707,6 +753,7 @@ const returnedExpressions = (
 const ownedHandlerFunctions = (
   node: ESTree.CallExpression,
   references: WeakMap<ESTree.Node, Reference>,
+  importerFilename?: string,
 ): ReadonlyArray<
   Readonly<{
     handler: ESTree.ArrowFunctionExpression | ESTree.Function
@@ -714,12 +761,13 @@ const ownedHandlerFunctions = (
   }>
 > => {
   const operation = Option.getOrUndefined(
-    definitionOperationForCall(references, node),
+    definitionOperationForCall(references, node, importerFilename),
   )
   if (
     operation?.operation === 'makeFieldsStep' ||
     operation?.operation === 'makeCommandsStep' ||
-    operation?.operation === 'makeOutMessageStep'
+    operation?.operation === 'makeOutMessageStep' ||
+    operation?.operation === 'makeStep'
   ) {
     const [authored] = node.arguments
     const handler = resolvedFunctionValue(authored, references)
@@ -769,13 +817,14 @@ const ownedHandlerFunctions = (
 const definitionOperation = (
   references: WeakMap<ESTree.Node, Reference>,
   functionNode: ESTree.ArrowFunctionExpression | ESTree.Function,
+  importerFilename?: string,
 ): Option.Option<DefinitionOperation> => {
   const parent = functionNode.parent
   if (!isCallExpression(parent) || !parent.arguments.includes(functionNode)) {
     return Option.none()
   }
 
-  return definitionOperationForCall(references, parent)
+  return definitionOperationForCall(references, parent, importerFilename)
 }
 
 const localDefinitionMessagePath = (
@@ -1073,8 +1122,10 @@ const definitionOperationOwnsMessage = (
   messagePath: ImportedMessagePath,
   filename: string,
 ): boolean =>
-  Option.exists(definitionOperation(references, functionNode), operation =>
-    operationOwnsMessage(references, operation, messagePath, filename),
+  Option.exists(
+    definitionOperation(references, functionNode, filename),
+    operation =>
+      operationOwnsMessage(references, operation, messagePath, filename),
   )
 
 const definitionOperationCallOwnsMessage = (
@@ -1084,7 +1135,7 @@ const definitionOperationCallOwnsMessage = (
   filename: string,
 ): boolean =>
   Option.exists(
-    definitionOperationForCall(references, operationCall),
+    definitionOperationForCall(references, operationCall, filename),
     operation =>
       (operation.operation === 'update' ||
         operation.operation === 'makeBinding') &&
@@ -1483,6 +1534,7 @@ export const noChildMessageConstructionInRoot = Rule.define({
           for (const { handler, operation } of ownedHandlerFunctions(
             node,
             references,
+            ctx.filename,
           )) {
             ownedHandlers.set(handler, [
               ...(ownedHandlers.get(handler) ?? []),

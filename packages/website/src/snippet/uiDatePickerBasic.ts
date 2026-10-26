@@ -46,6 +46,8 @@ const DatePickerExampleDefinition = Block.makeDefinition('DatePickerExample', {
   ChildInitContext: Flags,
 })
 
+const { makeFieldsStep, makeNoopStep } = DatePickerExampleDefinition
+
 // At module scope, fold the OutMessage into your own Model. `SelectedDate`
 // carries the committed date. The popover has already closed by the time it
 // fires; lift the date into your domain state and pass it back as
@@ -62,18 +64,18 @@ const foldDatePickerOutMessage = DatePickerExampleDefinition.makeOutMessageFold(
     // the picker as `maybeSelectedDate`, so the parent stays the single
     // source of truth for the selection.
     SelectedDate: ({ date }) =>
-      DatePickerExampleDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeSelectedDate: () => Option.some(date),
       })),
     // The user cleared the selection. Reset the parent's field.
     ClearedDate: () =>
-      DatePickerExampleDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeSelectedDate: () => Option.none(),
       })),
     // The child has emitted `ChangedViewMonth`. In this arm the parent can
     // update its own state or dispatch its own Commands, for example
     // prefetch month data, fire analytics, or trigger a downstream Command.
-    ChangedViewMonth: DatePickerExampleDefinition.makeNoopStep,
+    ChangedViewMonth: makeNoopStep,
   },
 )
 

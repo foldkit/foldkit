@@ -1,12 +1,12 @@
 import { Array } from 'effect'
 
-import { WorkHistoryDefinition } from './definition'
+import { WorkHistoryDefinition, makeFieldsStep } from './definition'
 import { WorkHistoryEntryBlock } from './entry'
 
 const foldEntryOutMessage = (entryId: string) =>
   WorkHistoryDefinition.makeOutMessageFold(WorkHistoryEntryBlock, {
     Removed: () =>
-      WorkHistoryDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         entries: Array.filter(entry => entry.id !== entryId),
       })),
   })

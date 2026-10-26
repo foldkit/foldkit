@@ -30,6 +30,8 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
+const { makeFieldsStep } = ApplicationDefinition
+
 export const CountersBinding = ApplicationDefinition.makeBinding(
   Counter.CounterBlock,
   {
@@ -67,11 +69,9 @@ export const update = ApplicationComposition.makeUpdate({
         }),
     })
   },
-  ClickedRemoveCounter: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ id }) => ({
-      counters: Array.filter(counterInstance => counterInstance.id !== id),
-    }),
-  ),
+  ClickedRemoveCounter: makeFieldsStep.fromMessage(({ id }) => ({
+    counters: Array.filter(counterInstance => counterInstance.id !== id),
+  })),
 })
 
 export const init = ApplicationComposition.makeInit(() => ({

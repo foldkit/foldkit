@@ -4,16 +4,19 @@ import { initAndAppend } from 'foldkit/bindingInit'
 
 import { GenerateEducationEntryId } from './command'
 import { EducationComposition, EntriesBinding } from './composition'
-import { EducationDefinition, type Model } from './definition'
+import {
+  type Model,
+  makeCommandsStep,
+  makeFieldsStep,
+  makeNoopStep,
+} from './definition'
 import {
   hasErrors as entryHasErrors,
   isComplete as isEntryComplete,
 } from './entry/update'
 
 export const update = EducationComposition.makeUpdate({
-  ClickedAddEntry: EducationDefinition.makeCommandsStep(() => [
-    GenerateEducationEntryId(),
-  ]),
+  ClickedAddEntry: makeCommandsStep(() => [GenerateEducationEntryId()]),
 
   SucceededGenerateEducationEntryId: (model, { entryId }) =>
     initAndAppend(EntriesBinding, model, {
@@ -21,13 +24,11 @@ export const update = EducationComposition.makeUpdate({
       args: [entryId],
     }),
 
-  FailedGenerateEducationEntryId: EducationDefinition.makeNoopStep(),
+  FailedGenerateEducationEntryId: makeNoopStep(),
 
-  RemovedEntry: EducationDefinition.makeFieldsStep.fromMessage(
-    ({ entryId }) => ({
-      entries: Array.filter(entry => entry.id !== entryId),
-    }),
-  ),
+  RemovedEntry: makeFieldsStep.fromMessage(({ entryId }) => ({
+    entries: Array.filter(entry => entry.id !== entryId),
+  })),
 
   RequestedRevealErrors: model =>
     Update.combineSteps(

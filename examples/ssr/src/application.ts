@@ -31,6 +31,8 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
+const { makeNoopStep } = ApplicationDefinition
+
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
@@ -51,7 +53,7 @@ export const update = ApplicationComposition.makeUpdate({
       commands: [PersistCount({ count: nextCount })],
     }
   },
-  CompletedPersistCount: ApplicationDefinition.makeNoopStep(),
+  CompletedPersistCount: makeNoopStep(),
 })
 
 const COUNT_COOKIE_MAX_AGE_SECONDS = 31536000

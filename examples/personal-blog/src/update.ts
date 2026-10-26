@@ -3,7 +3,7 @@ import { toString as urlToString } from 'foldkit/url'
 
 import { LoadExternal, NavigateInternal } from './command'
 import { ApplicationComposition } from './composition'
-import { ApplicationDefinition } from './definition'
+import { makeFieldsStep, makeNoopStep } from './definition'
 import * as Route from './route'
 
 export const update = ApplicationComposition.makeUpdate({
@@ -18,10 +18,10 @@ export const update = ApplicationComposition.makeUpdate({
         commands: [LoadExternal({ href })],
       }),
     }),
-  ChangedUrl: ApplicationDefinition.makeFieldsStep.fromMessage(({ url }) => {
+  ChangedUrl: makeFieldsStep.fromMessage(({ url }) => {
     const nextRoute = Route.urlToApplicationRoute(url)
     return { route: () => nextRoute }
   }),
-  CompletedNavigateInternal: ApplicationDefinition.makeNoopStep(),
-  CompletedLoadExternal: ApplicationDefinition.makeNoopStep(),
+  CompletedNavigateInternal: makeNoopStep(),
+  CompletedLoadExternal: makeNoopStep(),
 })

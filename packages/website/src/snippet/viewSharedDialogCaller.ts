@@ -12,14 +12,17 @@ const DeleteIssueDefinition = Block.makeDefinition('DeleteIssue', {
   Model,
   Message,
 })
+
+const { makeNoopStep } = DeleteIssueDefinition
+
 const DialogBinding = DeleteIssueDefinition.makeBinding(Dialog.DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => [{ id: 'delete-issue' }] },
 }).withOutMessagePolicy({
   fold: DeleteIssueDefinition.makeOutMessageFold(Dialog.DialogBlock, {
-    Opened: DeleteIssueDefinition.makeNoopStep,
-    Closed: DeleteIssueDefinition.makeNoopStep,
-    CompletedClose: DeleteIssueDefinition.makeNoopStep,
+    Opened: makeNoopStep,
+    Closed: makeNoopStep,
+    CompletedClose: makeNoopStep,
   }),
 })
 const DeleteIssueComposition = DeleteIssueDefinition.makeComposition({

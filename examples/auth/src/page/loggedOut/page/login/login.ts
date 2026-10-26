@@ -11,7 +11,14 @@ import { modifyFields } from 'foldkit/struct'
 
 import { type Session } from '../../../../domain/session'
 import { LoginComposition } from './composition'
-import { LoginDefinition, Message, type Model, OutMessage } from './definition'
+import {
+  LoginDefinition,
+  Message,
+  type Model,
+  OutMessage,
+  makeFieldsStep,
+  makeOutMessageStep,
+} from './definition'
 
 export const initModel = (): typeof Model.Type => ({
   email: NotValidated({ value: '' }),
@@ -76,11 +83,11 @@ export const SimulateAuthRequest = LoginDefinition.makeCommand(
 export const EffectsLayer = SimulateAuthRequest.layer
 
 export const update = LoginComposition.makeUpdate({
-  ChangedEmail: LoginDefinition.makeFieldsStep.fromMessage(({ value }) => ({
+  ChangedEmail: makeFieldsStep.fromMessage(({ value }) => ({
     email: () => validateEmail(value),
   })),
 
-  ChangedPassword: LoginDefinition.makeFieldsStep.fromMessage(({ value }) => ({
+  ChangedPassword: makeFieldsStep.fromMessage(({ value }) => ({
     password: () => validatePassword(value),
   })),
 
@@ -104,18 +111,16 @@ export const update = LoginComposition.makeUpdate({
     }
   },
 
-  SucceededSimulateAuthRequest: LoginDefinition.makeOutMessageStep.fromMessage(
-    ({ session }) => OutMessage.SucceededLogin({ session }),
+  SucceededSimulateAuthRequest: makeOutMessageStep.fromMessage(({ session }) =>
+    OutMessage.SucceededLogin({ session }),
   ),
 
-  FailedSimulateAuthRequest: LoginDefinition.makeFieldsStep(
-    (model, { error }) => ({
-      password: () =>
-        Invalid({
-          value: model.password.value,
-          errors: [error],
-        }),
-      isSubmitting: () => false,
-    }),
-  ),
+  FailedSimulateAuthRequest: makeFieldsStep((model, { error }) => ({
+    password: () =>
+      Invalid({
+        value: model.password.value,
+        errors: [error],
+      }),
+    isSubmitting: () => false,
+  })),
 })

@@ -45,3 +45,5 @@ export const ProjectSettingsDefinition = Block.makeDefinition(
     OutMessage,
   },
 )
+
+export const { makeStep } = ProjectSettingsDefinition

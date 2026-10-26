@@ -59,6 +59,16 @@ const diagnosticsFor = (name: string, rule: string, source: string) => {
   return diagnostics
 }
 
+const diagnosticsForSplitFiles = (
+  name: string,
+  rule: string,
+  source: string,
+  definition: string,
+) => {
+  writeFileSync(join(workDir, `${name}-definition.ts`), definition)
+  return diagnosticsFor(name, rule, source)
+}
+
 const parentSource = `
 import { Schema } from 'effect'
 import { Block, Update } from 'foldkit'
@@ -354,6 +364,408 @@ export const messages = ChildDefinition.makeCommandsStep.fromMessage(message => 
         'foreign-command-messages',
         'no-child-message-construction-in-root',
         source,
+      ),
+    ).toHaveLength(1)
+  })
+
+  it('rejects child state transforms through an aliased imported fields helper', () => {
+    const definition = `
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
+import * as Child from './child'
+export const Model = Schema.Struct({ child: Child.Model })
+export const Message = defineMessageUnion({ RequestedChange: {} })
+export const ParentDefinition = Block.makeDefinition('Parent', { Model, Message })
+export const { makeFieldsStep } = ParentDefinition
+`
+    const source = `
+import { modifyFields } from 'foldkit/struct'
+import * as Child from './child'
+import { ParentDefinition, makeFieldsStep as fieldsStep } from './imported-fields-definition'
+const ChildBinding = ParentDefinition.makeBinding(Child.ChildBlock, { field: 'child' })
+const ParentComposition = ParentDefinition.makeComposition({ bindings: [ChildBinding] })
+const changeFields = message => ({
+  child: child => modifyFields(child, { theme: () => 'Light' }),
+})
+const fieldsFromMessage = fieldsStep.fromMessage
+const changeChild = fieldsFromMessage(changeFields)
+export const update = ParentComposition.makeUpdate({ RequestedChange: changeChild })
+`
+
+    expect(
+      diagnosticsForSplitFiles(
+        'imported-fields',
+        'no-direct-block-state-update',
+        source,
+        definition,
+      ),
+    ).toHaveLength(1)
+  })
+
+  it('rejects child state transforms through a locally destructured fields helper', () => {
+    const source =
+      parentSource +
+      `
+const { makeFieldsStep } = ParentDefinition
+const changeFields = message => ({ child: ${childTransform} })
+const changeChild = makeFieldsStep.fromMessage(changeFields)
+export const update = ParentComposition.makeUpdate({ RequestedChange: changeChild })
+`
+
+    expect(
+      diagnosticsFor(
+        'local-destructured-fields',
+        'no-direct-block-state-update',
+        source,
+      ),
+    ).toHaveLength(1)
+  })
+
+  it('rejects child state transforms through Definition member aliases', () => {
+    const source =
+      parentSource +
+      `
+const fieldsStep = ParentDefinition.makeFieldsStep
+const fieldsFromMessage = ParentDefinition.makeFieldsStep.fromMessage
+const changeFields = message => ({ child: ${childTransform} })
+export const updateThroughHelper = ParentComposition.makeUpdate({
+  RequestedChange: fieldsStep.fromMessage(changeFields),
+})
+export const updateThroughAdapter = ParentComposition.makeUpdate({
+  RequestedChange: fieldsFromMessage(changeFields),
+})
+`
+
+    expect(
+      diagnosticsFor(
+        'definition-member-fields-aliases',
+        'no-direct-block-state-update',
+        source,
+      ),
+    ).toHaveLength(2)
+  })
+
+  it('does not treat a fields adapter alias payload as the parent Model', () => {
+    const source =
+      parentSource.replace(
+        'const Message = defineMessageUnion({ RequestedChange: { label: Schema.String } })',
+        `const PayloadChild = Schema.Struct({ theme: Schema.String })
+const Message = defineMessageUnion({
+  RequestedChange: { child: PayloadChild, label: Schema.String },
+})`,
+      ) +
+      `
+const fieldsFromMessage = ParentDefinition.makeFieldsStep.fromMessage
+const adapterAlias = fieldsFromMessage
+const changeChild = adapterAlias(message => {
+  const changedMessage = modifyFields(message, { child: ${childTransform} })
+  return {
+    label: () => changedMessage.label,
+    preferences: () => message.child,
+  }
+})
+export const update = ParentComposition.makeUpdate({ RequestedChange: changeChild })
+`
+
+    expect(
+      diagnosticsFor(
+        'fields-adapter-payload-overlap',
+        'no-direct-block-state-update',
+        source,
+      ),
+    ).toEqual([])
+  })
+
+  it('retains parent Model evidence through an ordinary fields helper alias', () => {
+    const source =
+      parentSource +
+      `
+const fieldsStep = ParentDefinition.makeFieldsStep
+const changeChild = fieldsStep(model => {
+  const changedModel = modifyFields(model, { child: ${childTransform} })
+  return { label: () => changedModel.label }
+})
+export const update = ParentComposition.makeUpdate({ RequestedChange: changeChild })
+`
+
+    expect(
+      diagnosticsFor(
+        'fields-helper-model-evidence',
+        'no-direct-block-state-update',
+        source,
+      ),
+    ).toHaveLength(1)
+  })
+
+  it('keeps aliased fields helpers associated with their actual Definition', () => {
+    const source =
+      parentSource +
+      `
+const OtherDefinition = Block.makeDefinition('Other', { Model, Message })
+const fieldsFromMessage = OtherDefinition.makeFieldsStep.fromMessage
+const changeFields = message => ({ child: ${childTransform} })
+export const update = ParentComposition.makeUpdate({
+  RequestedChange: fieldsFromMessage(changeFields),
+})
+`
+
+    expect(
+      diagnosticsFor(
+        'wrong-definition-fields-alias',
+        'no-direct-block-state-update',
+        source,
+      ),
+    ).toEqual([])
+  })
+
+  it('does not grant ownership to fields member aliases on lookalike objects', () => {
+    const source =
+      parentSource +
+      `
+const independent = {
+  makeFieldsStep: Object.assign(callback => callback, { fromMessage: callback => callback }),
+}
+const fieldsFromMessage = independent.makeFieldsStep.fromMessage
+const changeFields = message => ({ child: ${childTransform} })
+export const update = ParentComposition.makeUpdate({
+  RequestedChange: fieldsFromMessage(changeFields),
+})
+`
+
+    expect(
+      diagnosticsFor(
+        'lookalike-fields-member-alias',
+        'no-direct-block-state-update',
+        source,
+      ),
+    ).toEqual([])
+  })
+
+  it('keeps imported fields helpers associated with their actual Definition', () => {
+    const definition = `
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
+import * as Child from './child'
+export const Model = Schema.Struct({ child: Child.Model })
+export const Message = defineMessageUnion({ RequestedChange: {} })
+export const ParentDefinition = Block.makeDefinition('Parent', { Model, Message })
+const OtherDefinition = Block.makeDefinition('Other', { Model, Message })
+export const { makeFieldsStep } = OtherDefinition
+`
+    const source = `
+import { modifyFields } from 'foldkit/struct'
+import * as Child from './child'
+import { ParentDefinition, makeFieldsStep } from './wrong-fields-definition'
+const ChildBinding = ParentDefinition.makeBinding(Child.ChildBlock, { field: 'child' })
+const ParentComposition = ParentDefinition.makeComposition({ bindings: [ChildBinding] })
+const changeChild = makeFieldsStep(() => ({
+  child: child => modifyFields(child, { theme: () => 'Light' }),
+}))
+export const update = ParentComposition.makeUpdate({ RequestedChange: changeChild })
+`
+
+    expect(
+      diagnosticsForSplitFiles(
+        'wrong-fields',
+        'no-direct-block-state-update',
+        source,
+        definition,
+      ),
+    ).toEqual([])
+  })
+
+  it('does not infer fields helper ownership from a shadowed name', () => {
+    const definition = `
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
+export const Model = Schema.Struct({ label: Schema.String })
+export const Message = defineMessageUnion({ RequestedChange: {} })
+export const ParentDefinition = Block.makeDefinition('Parent', { Model, Message })
+export const { makeFieldsStep } = ParentDefinition
+`
+    const source = `
+import { makeFieldsStep as importedFieldsStep } from './shadowed-fields-definition'
+const run = makeFieldsStep => makeFieldsStep(() => ({ child: child => child }))
+export const step = run(callback => callback)
+void importedFieldsStep
+`
+
+    expect(
+      diagnosticsForSplitFiles(
+        'shadowed-fields',
+        'no-direct-block-state-update',
+        source,
+        definition,
+      ),
+    ).toEqual([])
+  })
+
+  it('tracks named producers passed to an aliased imported Command helper', () => {
+    const definition = `
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
+export const Model = Schema.Struct({ value: Schema.String })
+export const Message = defineMessageUnion({ ClickedSave: {} })
+export const ChildDefinition = Block.makeDefinition('Child', { Model, Message })
+export const { makeCommandsStep } = ChildDefinition
+`
+    const source = `
+import { Message, makeCommandsStep as commandsStep } from './imported-commands-definition'
+const commands = message => [Message.ClickedSave()]
+const commandsFromMessage = commandsStep.fromMessage
+export const step = commandsFromMessage(commands)
+`
+
+    expect(
+      diagnosticsForSplitFiles(
+        'imported-commands',
+        'no-child-message-construction-in-root',
+        source,
+        definition,
+      ),
+    ).toEqual([])
+  })
+
+  it('tracks named producers passed to a locally destructured Command helper', () => {
+    const source =
+      parentSource +
+      `
+const ChildDefinition = Block.makeDefinition('Child', { Model: Child.Model, Message: Child.Message })
+const { makeCommandsStep } = ChildDefinition
+const commands = message => [Child.Message.ClickedSave()]
+export const ownMessages = makeCommandsStep.fromMessage(commands)
+`
+
+    expect(
+      diagnosticsFor(
+        'local-destructured-commands',
+        'no-child-message-construction-in-root',
+        source,
+      ),
+    ).toEqual([])
+  })
+
+  it('tracks named producers through Definition Command member aliases', () => {
+    const source =
+      parentSource +
+      `
+const ChildDefinition = Block.makeDefinition('Child', { Model: Child.Model, Message: Child.Message })
+const commandsStep = ChildDefinition.makeCommandsStep
+const commandsFromMessage = ChildDefinition.makeCommandsStep.fromMessage
+const commands = message => [Child.Message.ClickedSave()]
+export const helperStep = commandsStep.fromMessage(commands)
+export const adapterStep = commandsFromMessage(commands)
+`
+
+    expect(
+      diagnosticsFor(
+        'definition-member-command-aliases',
+        'no-child-message-construction-in-root',
+        source,
+      ),
+    ).toEqual([])
+  })
+
+  it('tracks named producers passed to an imported general Step helper', () => {
+    const definition = `
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
+export const Model = Schema.Struct({ value: Schema.String })
+export const Message = defineMessageUnion({ ClickedSave: {} })
+export const ChildDefinition = Block.makeDefinition('Child', { Model, Message })
+export const { makeStep } = ChildDefinition
+`
+    const source = `
+import { Message, makeStep } from './imported-step-definition'
+const save = model => ({ model, commands: [Message.ClickedSave()] })
+export const step = makeStep(save)
+`
+
+    expect(
+      diagnosticsForSplitFiles(
+        'imported-step',
+        'no-child-message-construction-in-root',
+        source,
+        definition,
+      ),
+    ).toEqual([])
+  })
+
+  it('tracks named producers through a Definition general Step member alias', () => {
+    const source =
+      parentSource +
+      `
+const ChildDefinition = Block.makeDefinition('Child', { Model: Child.Model, Message: Child.Message })
+const step = ChildDefinition.makeStep
+const save = model => ({ model, commands: [Child.Message.ClickedSave()] })
+export const ownMessages = step(save)
+`
+
+    expect(
+      diagnosticsFor(
+        'definition-member-general-step-alias',
+        'no-child-message-construction-in-root',
+        source,
+      ),
+    ).toEqual([])
+  })
+
+  it('rejects child Messages passed to an imported parent Command helper', () => {
+    const definition = `
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
+export const Model = Schema.Struct({ value: Schema.String })
+export const Message = defineMessageUnion({ CompletedWork: {} })
+export const ParentDefinition = Block.makeDefinition('Parent', { Model, Message })
+export const { makeCommandsStep } = ParentDefinition
+`
+    const source = `
+import * as Child from './child'
+import { makeCommandsStep } from './parent-commands-definition'
+const commands = message => [Child.Message.ClickedSave()]
+export const step = makeCommandsStep.fromMessage(commands)
+`
+
+    expect(
+      diagnosticsForSplitFiles(
+        'parent-commands',
+        'no-child-message-construction-in-root',
+        source,
+        definition,
+      ),
+    ).toHaveLength(1)
+  })
+
+  it('rejects child Messages behind a shadowed Command helper name', () => {
+    const definition = `
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
+export const Model = Schema.Struct({ value: Schema.String })
+export const Message = defineMessageUnion({ CompletedWork: {} })
+export const ParentDefinition = Block.makeDefinition('Parent', { Model, Message })
+export const { makeCommandsStep } = ParentDefinition
+`
+    const source = `
+import * as Child from './child'
+import { makeCommandsStep as importedCommandsStep } from './shadowed-commands-definition'
+const make = makeCommandsStep => makeCommandsStep(() => [Child.Message.ClickedSave()])
+export const step = make(callback => callback)
+void importedCommandsStep
+`
+
+    expect(
+      diagnosticsForSplitFiles(
+        'shadowed-commands',
+        'no-child-message-construction-in-root',
+        source,
+        definition,
       ),
     ).toHaveLength(1)
   })

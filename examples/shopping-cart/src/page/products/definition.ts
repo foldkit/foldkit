@@ -28,3 +28,5 @@ export const ProductsDefinition = Block.makeDefinition('Products', {
   Message,
   OutMessage,
 })
+
+export const { makeOutMessageStep, makeNoopStep } = ProductsDefinition

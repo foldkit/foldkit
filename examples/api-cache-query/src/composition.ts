@@ -1,7 +1,7 @@
 import { Match } from 'effect'
 import { type Block, Update } from 'foldkit'
 
-import { ApplicationDefinition } from './definition'
+import { ApplicationDefinition, makeFieldsStep, makeStep } from './definition'
 import { AppTabsBlock, TABS_ID, type Tab } from './model'
 import { postQuery, postsQuery, statsQuery } from './query'
 
@@ -18,7 +18,7 @@ export const PostDetailsBinding = ApplicationDefinition.makeBinding(postQuery, {
 })
 
 const activateTab = (tab: typeof Tab.Type) => {
-  const selectTab = ApplicationDefinition.makeFieldsStep(() => ({
+  const selectTab = makeFieldsStep(() => ({
     activeTab: () => tab,
   }))
 
@@ -28,9 +28,7 @@ const activateTab = (tab: typeof Tab.Type) => {
     Match.exhaustive,
   )
 
-  return ApplicationDefinition.makeStep(() =>
-    Update.combineSteps([selectTab, loadTab]),
-  )
+  return makeStep(() => Update.combineSteps([selectTab, loadTab]))
 }
 
 export const TabsBinding = ApplicationDefinition.makeBinding(AppTabsBlock, {

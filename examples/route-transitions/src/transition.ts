@@ -4,7 +4,12 @@ import { Transition } from 'foldkit/route'
 import { modifyFields } from 'foldkit/struct'
 
 import { LoadCatalog, LoadPainting, SaveDraft } from './command'
-import { ApplicationDefinition } from './definition'
+import {
+  makeCommandsStep,
+  makeFieldsStep,
+  makeNoopStep,
+  makeStep,
+} from './definition'
 import { type LoggedTransition, type Model, PaintingStatus } from './model'
 import { type ApplicationRoute } from './route'
 
@@ -21,7 +26,7 @@ const nextSequenceNumber = (
   })
 
 const logTransition = (transition: AppTransition) =>
-  ApplicationDefinition.makeFieldsStep(() => ({
+  makeFieldsStep(() => ({
     transitionLog: transitionLog =>
       pipe(
         transitionLog,
@@ -35,7 +40,7 @@ const logTransition = (transition: AppTransition) =>
   }))
 
 const loadCatalogOnGalleryEntry = (transition: AppTransition) =>
-  ApplicationDefinition.makeStep(model =>
+  makeStep(model =>
     Transition.isEntering(transition, 'Gallery') &&
     model.catalogStatus !== 'Loading'
       ? {
@@ -45,10 +50,10 @@ const loadCatalogOnGalleryEntry = (transition: AppTransition) =>
       : { model },
   )
 
-const keepModel = ApplicationDefinition.makeNoopStep()
+const keepModel = makeNoopStep()
 
 const loadPainting = (paintingId: number) =>
-  ApplicationDefinition.makeStep(model => ({
+  makeStep(model => ({
     model: modifyFields(model, {
       paintingStatus: () => PaintingStatus.Loading({ paintingId }),
     }),
@@ -72,7 +77,7 @@ const reconcilePaintingRoute = (transition: AppTransition) =>
   )
 
 const saveDraftOnStudioExit = (transition: AppTransition) =>
-  ApplicationDefinition.makeCommandsStep(model =>
+  makeCommandsStep(model =>
     Array.filter(
       [SaveDraft({ draft: model.studioDraft })],
       () =>

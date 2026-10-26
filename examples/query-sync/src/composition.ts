@@ -2,7 +2,7 @@ import { Option, Schema, String, pipe } from 'effect'
 import type { Block } from 'foldkit'
 
 import { ReplaceFilters } from './command'
-import { ApplicationDefinition } from './definition'
+import { ApplicationDefinition, makeCommandsStep } from './definition'
 import { DietListboxBlock, PeriodListboxBlock } from './model'
 import { Diet, Period, routeToBrowseFields } from './route'
 
@@ -23,7 +23,7 @@ const foldDietListboxOutMessage = ApplicationDefinition.makeOutMessageFold(
   DietListboxBlock,
   {
     Selected: ({ value }) =>
-      ApplicationDefinition.makeCommandsStep(model => {
+      makeCommandsStep(model => {
         const fields = routeToBrowseFields(model.route)
         return [
           ReplaceFilters({
@@ -47,7 +47,7 @@ const foldPeriodListboxOutMessage = ApplicationDefinition.makeOutMessageFold(
   PeriodListboxBlock,
   {
     Selected: ({ value }) =>
-      ApplicationDefinition.makeCommandsStep(model => {
+      makeCommandsStep(model => {
         const fields = routeToBrowseFields(model.route)
         return [
           ReplaceFilters({

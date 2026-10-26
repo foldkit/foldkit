@@ -21,6 +21,8 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
+const { makeFieldsStep, makeNoopStep } = ApplicationDefinition
+
 export const PeopleBinding = ApplicationDefinition.makeBinding(
   People.PeopleBlock,
   {
@@ -34,9 +36,9 @@ export const ApplicationComposition = ApplicationDefinition.makeComposition({
 })
 
 const setRoute = (nextRoute: typeof ApplicationRoute.Type) =>
-  ApplicationDefinition.makeFieldsStep(() => ({ route: () => nextRoute }))
+  makeFieldsStep(() => ({ route: () => nextRoute }))
 
-const keepModel = ApplicationDefinition.makeNoopStep()
+const keepModel = makeNoopStep()
 
 type InformPeopleRouteStep =
   | typeof keepModel

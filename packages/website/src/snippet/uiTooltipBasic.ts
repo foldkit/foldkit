@@ -22,6 +22,8 @@ const TooltipExampleDefinition = Block.makeDefinition('TooltipExample', {
   Message,
 })
 
+const { makeNoopStep } = TooltipExampleDefinition
+
 // At module scope, fold the OutMessage into your own Model. `Shown` and
 // `Hidden` mark the visibility transitions. Fire analytics or coordinate with
 // the rest of your UI from the parent. Each arm returns an Update.Step over
@@ -33,11 +35,11 @@ const foldTooltipOutMessage = TooltipExampleDefinition.makeOutMessageFold(
     // The child has emitted `Shown`. In this arm the parent can update its
     // own state or dispatch its own Commands, for example log analytics,
     // prefetch content, or trigger a downstream Command.
-    Shown: TooltipExampleDefinition.makeNoopStep,
+    Shown: makeNoopStep,
     // The child has emitted `Hidden`. In this arm the parent can update its
     // own state or dispatch its own Commands, for example clear ephemeral
     // state, fire analytics, or trigger a downstream Command.
-    Hidden: TooltipExampleDefinition.makeNoopStep,
+    Hidden: makeNoopStep,
   },
 )
 

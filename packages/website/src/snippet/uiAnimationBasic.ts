@@ -24,6 +24,8 @@ const AnimationExampleDefinition = Block.makeDefinition('AnimationExample', {
   Message,
 })
 
+const { makeNoopStep } = AnimationExampleDefinition
+
 // Bind before defining the policy so its standard leave operation is available
 // inside the StartedLeaveAnimating branch.
 const AnimationBinding = AnimationExampleDefinition.makeBinding(
@@ -48,7 +50,7 @@ const foldAnimationOutMessage = AnimationExampleDefinition.makeOutMessageFold(
     // release a resource. No Commands here because animateSize keeps the
     // element mounted (collapsed to zero height) so there's nothing to
     // tear down.
-    TransitionedOut: AnimationExampleDefinition.makeNoopStep,
+    TransitionedOut: makeNoopStep,
   },
 )
 

@@ -5,7 +5,7 @@ import { DragAndDropBlock } from '@foldkit/ui'
 import { maybeDraggedItemId } from '@foldkit/ui/dragAndDrop'
 
 import { SaveBoard } from '../command'
-import { ApplicationDefinition } from '../definition'
+import { ApplicationDefinition, makeFieldsStep, makeStep } from '../definition'
 import { Column } from '../domain'
 
 const findCardTitle = (
@@ -39,12 +39,12 @@ const foldDragAndDropOutMessage = ApplicationDefinition.makeOutMessageFold(
   DragAndDropBlock,
   {
     StartedKeyboardDrag: ({ itemId }) =>
-      ApplicationDefinition.makeFieldsStep(model => ({
+      makeFieldsStep(model => ({
         announcement: () =>
           `Picked up ${findCardTitle(model.columns, itemId)}. Use arrow keys to move within column, Tab to move between columns, Space to drop, Escape to cancel.`,
       })),
     ChangedKeyboardTarget: ({ fromContainerId, toContainerId, toIndex }) =>
-      ApplicationDefinition.makeFieldsStep(model => ({
+      makeFieldsStep(model => ({
         announcement: () => {
           const columnName = findColumnName(model.columns, toContainerId)
           return fromContainerId !== toContainerId
@@ -53,7 +53,7 @@ const foldDragAndDropOutMessage = ApplicationDefinition.makeOutMessageFold(
         },
       })),
     Reordered: (outMessage, { modelBeforeUpdate }) =>
-      ApplicationDefinition.makeStep(model => {
+      makeStep(model => {
         const { itemId, fromContainerId, toContainerId, toIndex } = outMessage
         const nextColumns = Column.reorder(
           model.columns,
@@ -72,7 +72,7 @@ const foldDragAndDropOutMessage = ApplicationDefinition.makeOutMessageFold(
         }
       }),
     Cancelled: (_outMessage, { modelBeforeUpdate }) =>
-      ApplicationDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         announcement: () =>
           Option.match(maybeDraggedItemId(modelBeforeUpdate.dragAndDrop), {
             onNone: () => 'Drag cancelled.',

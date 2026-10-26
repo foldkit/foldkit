@@ -1,7 +1,7 @@
 import type { Block } from 'foldkit'
 
 import { products } from './data/products'
-import { ApplicationDefinition } from './definition'
+import { ApplicationDefinition, makeFieldsStep } from './definition'
 import { Cart } from './domain'
 import { ProductsBlock } from './page'
 
@@ -14,15 +14,15 @@ export const ProductsPageBinding = ApplicationDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ProductsBlock, {
     AddedToCart: ({ item }) =>
-      ApplicationDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         cart: Cart.addItem(item),
       })),
     IncrementedQuantity: ({ itemId }) =>
-      ApplicationDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         cart: Cart.incrementQuantity(itemId),
       })),
     DecrementedQuantity: ({ itemId }) =>
-      ApplicationDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         cart: Cart.decrementQuantity(itemId),
       })),
   }),

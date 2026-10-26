@@ -1,7 +1,7 @@
 import { Option, Tuple } from 'effect'
 import type { Block } from 'foldkit'
 
-import { ExampleDetailDefinition } from './definition'
+import { ExampleDetailDefinition, makeFieldsStep } from './definition'
 import { SourceFileTabsBlock } from './fileTabs'
 import { ObserveExampleUrlMessages } from './mount'
 
@@ -16,7 +16,7 @@ export const SourceFileTabsBinding = ExampleDetailDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: ExampleDetailDefinition.makeOutMessageFold(SourceFileTabsBlock, {
     Selected: ({ value }) =>
-      ExampleDetailDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         maybeActiveSourceFilePath: () => Option.some(value),
       })),
   }),

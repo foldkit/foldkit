@@ -23,6 +23,8 @@ const MemberDirectoryDefinition = Block.makeDefinition('MemberDirectory', {
   Message,
 })
 
+const { makeFieldsStep } = MemberDirectoryDefinition
+
 const MemberDirectoryComposition = MemberDirectoryDefinition.makeComposition()
 type MemberDirectoryViewBuilder = Block.ViewBuilderFor<
   typeof MemberDirectoryComposition
@@ -33,17 +35,13 @@ const init = MemberDirectoryComposition.makeInit(() => ({
 }))
 
 export const update = MemberDirectoryComposition.makeUpdate({
-  UpdatedQuery: MemberDirectoryDefinition.makeFieldsStep.fromMessage(
-    ({ value }) => ({
-      query: () => value,
-      maybeSelectedMemberId: () => Option.none(),
-    }),
-  ),
-  ClickedMember: MemberDirectoryDefinition.makeFieldsStep.fromMessage(
-    ({ memberId }) => ({
-      maybeSelectedMemberId: () => Option.some(memberId),
-    }),
-  ),
+  UpdatedQuery: makeFieldsStep.fromMessage(({ value }) => ({
+    query: () => value,
+    maybeSelectedMemberId: () => Option.none(),
+  })),
+  ClickedMember: makeFieldsStep.fromMessage(({ memberId }) => ({
+    maybeSelectedMemberId: () => Option.some(memberId),
+  })),
 })
 
 const ViewInputs = Schema.Struct({

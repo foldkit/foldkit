@@ -19,7 +19,12 @@ import {
   WaitForExitCountdownInterval,
 } from '../command'
 import { RoomComposition } from '../composition'
-import { RoomDefinition } from '../definition'
+import {
+  RoomDefinition,
+  makeCommandsStep,
+  makeFieldsStep,
+  makeNoopStep,
+} from '../definition'
 import { Message } from '../message'
 import { Model, RoomAsyncData, RoomPlayerSession } from '../model'
 import { validateUserTextInput } from '../userGameText'
@@ -87,17 +92,15 @@ export const update = RoomComposition.makeUpdate.withContext(
       }
     },
 
-    BlurredRoomPageUsernameInput: RoomDefinition.makeCommandsStep(() => [
+    BlurredRoomPageUsernameInput: makeCommandsStep(() => [
       FocusRoomPageUsernameInput(),
     ]),
 
-    ChangedRoomPageUsername: RoomDefinition.makeFieldsStep.fromMessage(
-      ({ value }) => ({
-        username: () => value,
-      }),
-    ),
+    ChangedRoomPageUsername: makeFieldsStep.fromMessage(({ value }) => ({
+      username: () => value,
+    })),
 
-    SubmittedJoinRoomFromPage: RoomDefinition.makeCommandsStep(model => {
+    SubmittedJoinRoomFromPage: makeCommandsStep(model => {
       const maybeJoinRoom = optionWhen(String.isNonEmpty(model.username), () =>
         JoinRoom({ username: model.username, roomId: context.roomId }),
       )
@@ -107,7 +110,7 @@ export const update = RoomComposition.makeUpdate.withContext(
 
     UpdatedRoom: (model, message) => handleUpdatedRoom(model)(message),
 
-    FailedStreamRoom: RoomDefinition.makeNoopStep(),
+    FailedStreamRoom: makeNoopStep(),
 
     CompletedLoadSession: (model, { maybeSession }) => {
       const maybeFocus = optionWhen(
@@ -134,11 +137,11 @@ export const update = RoomComposition.makeUpdate.withContext(
       }
     },
 
-    FailedFetchRoom: RoomDefinition.makeFieldsStep(() => ({
+    FailedFetchRoom: makeFieldsStep(() => ({
       roomAsyncData: () => RoomAsyncData.Failure({ error: 'Room not found' }),
     })),
 
-    ClickedCopyRoomId: RoomDefinition.makeCommandsStep(() => [
+    ClickedCopyRoomId: makeCommandsStep(() => [
       CopyRoomId({ roomId: context.roomId }),
     ]),
 
@@ -152,10 +155,9 @@ export const update = RoomComposition.makeUpdate.withContext(
             commands: [WaitBeforeHidingRoomIdCopiedIndicator()],
           },
 
-    CompletedWaitBeforeHidingRoomIdCopiedIndicator:
-      RoomDefinition.makeFieldsStep(() => ({
-        isRoomIdCopyIndicatorVisible: () => false,
-      })),
+    CompletedWaitBeforeHidingRoomIdCopiedIndicator: makeFieldsStep(() => ({
+      isRoomIdCopyIndicatorVisible: () => false,
+    })),
 
     CompletedWaitForExitCountdownInterval: model => {
       const nextSecondsLeft = Number.decrement(model.exitCountdownSecondsLeft)
@@ -175,16 +177,16 @@ export const update = RoomComposition.makeUpdate.withContext(
       recordJoinedPlayer(model, player, context),
     SucceededJoinRoom: (model, { player }) =>
       recordJoinedPlayer(model, player, context),
-    CompletedFocusRoomPageUsernameInput: RoomDefinition.makeNoopStep(),
-    CompletedFocusUserGameTextInput: RoomDefinition.makeNoopStep(),
-    CompletedNavigateHome: RoomDefinition.makeNoopStep(),
-    SucceededStartGame: RoomDefinition.makeNoopStep(),
-    FailedStartGame: RoomDefinition.makeNoopStep(),
-    CompletedUpdatePlayerProgress: RoomDefinition.makeNoopStep(),
-    CompletedSavePlayerSession: RoomDefinition.makeNoopStep(),
-    CompletedClearSession: RoomDefinition.makeNoopStep(),
-    FailedJoinRoom: RoomDefinition.makeNoopStep(),
-    FailedCopyRoomId: RoomDefinition.makeNoopStep(),
+    CompletedFocusRoomPageUsernameInput: makeNoopStep(),
+    CompletedFocusUserGameTextInput: makeNoopStep(),
+    CompletedNavigateHome: makeNoopStep(),
+    SucceededStartGame: makeNoopStep(),
+    FailedStartGame: makeNoopStep(),
+    CompletedUpdatePlayerProgress: makeNoopStep(),
+    CompletedSavePlayerSession: makeNoopStep(),
+    CompletedClearSession: makeNoopStep(),
+    FailedJoinRoom: makeNoopStep(),
+    FailedCopyRoomId: makeNoopStep(),
   }),
 )
 

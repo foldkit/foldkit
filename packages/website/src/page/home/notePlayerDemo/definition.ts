@@ -66,3 +66,5 @@ export const NotePlayerDemoDefinition = Block.makeDefinition('NotePlayerDemo', {
   Model,
   Message,
 })
+
+export const { makeFieldsStep, makeNoopStep } = NotePlayerDemoDefinition

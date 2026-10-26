@@ -3,7 +3,7 @@ import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { AppendActivity, AssignIssue } from './command'
-import { ApplicationDefinition } from './definition'
+import { makeStep } from './definition'
 import { IssueDraft } from './domain'
 import { maybeActiveIssueDetailInstance } from './model'
 
@@ -14,7 +14,7 @@ const ACTIVITY_COMMENT_BODIES = [
   'Thanks for the update. I will pick this up next.',
 ]
 
-export const simulateActivity = ApplicationDefinition.makeStep(model => {
+export const simulateActivity = makeStep(model => {
   const maybeSnapshot = AsyncData.getData(model.workspaceAsyncData)
 
   if (Option.isNone(maybeSnapshot)) {

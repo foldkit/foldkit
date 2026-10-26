@@ -1,7 +1,7 @@
 import { Tuple } from 'effect'
 import type { Block } from 'foldkit'
 
-import { PlaygroundDefinition } from './definition'
+import { PlaygroundDefinition, makeFieldsStep } from './definition'
 import { PlaygroundFileTabsBlock } from './fileTabs'
 import { MountPlaygroundEditor } from './mount'
 
@@ -14,7 +14,7 @@ export const FileTabsBinding = PlaygroundDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: PlaygroundDefinition.makeOutMessageFold(PlaygroundFileTabsBlock, {
     Selected: ({ value }) =>
-      PlaygroundDefinition.makeFieldsStep(() => ({
+      makeFieldsStep(() => ({
         activeFilePath: () => value,
       })),
   }),

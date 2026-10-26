@@ -10,7 +10,7 @@ import {
   SkillsBinding,
   WorkHistoryBinding,
 } from './composition'
-import { ApplicationDefinition } from './definition'
+import { makeFieldsStep, makeStep } from './definition'
 import { Step } from './domain'
 import { type Model, Submission } from './model'
 import { isComplete as isEducationComplete } from './step/education/update'
@@ -40,11 +40,11 @@ const toPreviousStep = (
     Option.getOrElse(() => current),
   )
 
-const markSubmitAttempted = ApplicationDefinition.makeFieldsStep(() => ({
+const markSubmitAttempted = makeFieldsStep(() => ({
   isSubmitAttempted: () => true,
 }))
 
-const submitWhenComplete = ApplicationDefinition.makeStep(model => {
+const submitWhenComplete = makeStep(model => {
   if (isApplicationComplete(model)) {
     return {
       model: modifyFields(model, {
@@ -58,15 +58,15 @@ const submitWhenComplete = ApplicationDefinition.makeStep(model => {
 })
 
 export const update = ApplicationComposition.makeUpdate({
-  ClickedNext: ApplicationDefinition.makeFieldsStep(() => ({
+  ClickedNext: makeFieldsStep(() => ({
     currentStep: toNextStep,
   })),
 
-  ClickedPrevious: ApplicationDefinition.makeFieldsStep(() => ({
+  ClickedPrevious: makeFieldsStep(() => ({
     currentStep: toPreviousStep,
   })),
 
-  ToggledPreview: ApplicationDefinition.makeFieldsStep(() => ({
+  ToggledPreview: makeFieldsStep(() => ({
     isPreviewVisible: isVisible => !isVisible,
   })),
 
@@ -80,13 +80,11 @@ export const update = ApplicationComposition.makeUpdate({
       submitWhenComplete,
     ]),
 
-  SucceededSubmitApplication: ApplicationDefinition.makeFieldsStep(() => ({
+  SucceededSubmitApplication: makeFieldsStep(() => ({
     submission: () => Submission.SubmitSuccess(),
   })),
 
-  FailedSubmitApplication: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ error }) => ({
-      submission: () => Submission.SubmitError({ error }),
-    }),
-  ),
+  FailedSubmitApplication: makeFieldsStep.fromMessage(({ error }) => ({
+    submission: () => Submission.SubmitError({ error }),
+  })),
 })

@@ -10,6 +10,13 @@ source/emitted checks and a fresh paired editor comparison. The earlier
 and its qualified provenance. Publication remains held for your approval.
 Published Ready stays `1f6776fa7ece`; integration and main have not been updated.
 
+The subsequent [feature-local Step helper migration](step-helper-authoring.md)
+changes consumer organization without changing the framework API. The source,
+runtime, lint, strict declaration and compiler gates pass. Paired native editor
+measurements retain small slower cases and the existing cold-root latency; they
+do not establish a performance improvement. Its exact committed review precedes
+the development-branch push, and publication remains held.
+
 ## Public API changes since that preview
 
 | Change                                            | Consumer action                                                                                                                                                                                                                                                               |

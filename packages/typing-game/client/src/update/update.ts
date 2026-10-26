@@ -3,7 +3,7 @@ import { UrlRequest } from 'foldkit/navigation'
 
 import { LoadExternal, NavigateInternal } from '../command'
 import { ApplicationComposition } from '../composition'
-import { ApplicationDefinition } from '../definition'
+import { makeNoopStep } from '../definition'
 import { changeRoute } from './changeRoute'
 
 export const update = ApplicationComposition.makeUpdate({
@@ -19,7 +19,7 @@ export const update = ApplicationComposition.makeUpdate({
       }),
     }),
   ChangedUrl: (model, { url }) => changeRoute(model, url),
-  CompletedNavigateInternal: ApplicationDefinition.makeNoopStep(),
-  CompletedLoadExternal: ApplicationDefinition.makeNoopStep(),
-  CompletedNavigateToRoom: ApplicationDefinition.makeNoopStep(),
+  CompletedNavigateInternal: makeNoopStep(),
+  CompletedLoadExternal: makeNoopStep(),
+  CompletedNavigateToRoom: makeNoopStep(),
 })

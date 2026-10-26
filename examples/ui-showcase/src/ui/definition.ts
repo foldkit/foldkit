@@ -9,3 +9,5 @@ export const UiDefinition = Block.makeDefinition('Ui', {
   Message,
   ChildInitContext: CalendarDate,
 })
+
+export const { makeFieldsStep, makeNoopStep } = UiDefinition

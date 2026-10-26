@@ -42,7 +42,17 @@ Return Commands beside the next Model from the Message branch that requests the 
 
 Write an ordinary Message handler as `(model, message) => result`. The Counter handlers above return results directly; each needs no `makeStep` wrapper. Use Step helpers for reusable transitions, sequencing with `Update.combineSteps`, OutMessage policies, or useful specialized shorthand.
 
-For example, `CompletedSave: FeatureDefinition.makeNoopStep()` constructs a Model-preserving Step once and uses it as the handler. Pass the constructed Step, including the factory call's parentheses. The bare `makeNoopStep` factory does not have a handler's signature.
+In a split feature, export the Step helpers its implementation needs from `definition.ts`. For this Search feature, assume the Model has a `query` field and the Message contract declares `UpdatedQuery` with a `value` payload and `CompletedSave` with no payload:
+
+::Snippet{name="updateStepHelperDefinition" label="Exporting owned Step helpers"}
+
+Implementation files import those helpers from the Definition module. Their Model, Message and result contracts retain the owning Definition's types:
+
+::Snippet{name="updateStepHelperImports" label="Importing owned Step helpers"}
+
+A compact feature destructures its helpers beside its Definition. Keep qualified calls when a module works with several Definitions and the qualifier makes the owner clear. Feature barrels keep authoring helpers private and export the completed Block.
+
+For example, `CompletedSave: makeNoopStep()` constructs a Model-preserving Step once and uses it as the handler. Pass the constructed Step, including the factory call's parentheses. The bare `makeNoopStep` factory does not have a handler's signature.
 
 Keep a Step with the behavior it owns. A Block's reusable internal transition can live in `update.ts` or an owning helper module. Parent coordination belongs beside its Bindings and policies. Steps are useful throughout update authoring, not only in composition files or calls to `Update.combineSteps`.
 
