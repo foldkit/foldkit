@@ -79,7 +79,7 @@ First, the handler must use the live element. If it does not read or write that 
 #### One Mount per Element
 
 :::Warning{label="Attach one Mount per element"}
-A VNode has one `insert` and `destroy` hook. If the same element receives `[h.OnMount(A), h.OnMount(B)]`, the second action silently replaces the first and `A` never runs. Combine both behaviors in one Mount and register both releases in its scope.
+A VNode supports one Mount. Attaching a second `OnMount` throws while constructing the VNode, before either Mount runs. The error names both Mounts, including when their attributes come from spread arrays or child attribute groups. Combine both behaviors in one Mount and register both releases in its scope. `OnUnmount` can share the element with that Mount.
 :::
 
 #### Historical Renders

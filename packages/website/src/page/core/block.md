@@ -422,6 +422,25 @@ When an external fact requires a child transition, expose an `inform*` operation
 
 The child update handles the child-local fact and may return only `{ model }`. It does not echo an OutMessage to the parent that just supplied the fact. Keeping the notification in update centralizes the child invariant and shares transition behavior with every other cause of the same Model change. The same path remains valid when the transition later gains Commands. Pure selectors and derived view inputs remain ordinary helpers because they do not change the child Model. When a child reports a change through an OutMessage, update the parent-owned data in its policy. Notify that same child again only if it needs another transition; an acknowledgement that repeats work it already performed adds unnecessary synchronization.
 
+## Customize a Block {#customizing-a-block}
+
+Choose the approach that matches what changes:
+
+| Need                                                                            | Supported choice                                                                                                                                           |
+| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Refine a Model or Message contract, or accept stable construction configuration | Return a completed Block from a factory. Create one module-level `Block.makeNamespace` when the results share the same feature identity.                   |
+| Select different markup at one embedding site                                   | Author an alternate view with `ChildBlock.makeView` or `ChildBlock.makeView.withInputs`, then pass it as `view` to `ChildBinding.embedView`.               |
+| Supply parent-owned render-only values                                          | Declare `viewInputs` and pass them through `ChildBinding.embedView`.                                                                                       |
+| Let the parent own the elements while the child owns their behavior             | Publish checked attribute groups with `childAttributes`.                                                                                                   |
+| Select another implementation of attached handlers                              | Call `replaceEffectsLayer` with Layers built from the original definitions. Use `provideHandlers` for contracts the Block deliberately leaves to its host. |
+| Add state, Messages, public operations, or coordination policy                  | Create a wrapper Block, bind the original Block as its child, and express the new policy through operations and OutMessages.                               |
+
+An alternate view uses the completed child Block's fixed Model, Message, child Binding, and Mount graph. The parent selects it for one render position without changing the Block's primary view:
+
+::Snippet{name="blockCustomizationAlternateView" label="Selecting an alternate embedded view"}
+
+The completed Block has no general `withView`, `rename`, or `mapUpdate` transform. Use a factory for contract-level variation and a wrapper Block when the adaptation changes behavior or ownership. The sections below show handler selection and generic factories in detail; [view inputs](#wiring-the-view) and [child attributes](#child-attributes) cover the two markup boundaries.
+
 ## Select a Handler Recipe {#select-a-local-handler-recipe}
 
 The completed Block includes the feature's attached handlers. Most tests should keep them and replace their underlying service Layers. This exercises the same mapping, retry, error, and Message policy as production.

@@ -5,13 +5,15 @@
 The [foldkit-plus report](https://github.com/foldkit/foldkit/pull/1655#issuecomment-6415641973)
 was posted on October 26 at 12:09:35 UTC and reviews published preview
 `1f6776fa7ececa766188df5201eefec6ba781b5d`. It arrived after the earlier feedback
-snapshot. The current implementation is `fa96bf7d907fe86cf02c0c6c12cd33e1b7a9923c`.
+snapshot. The reproduced pre-fix implementation is
+`fa96bf7d907fe86cf02c0c6c12cd33e1b7a9923c`.
 No newer reply was found on performance-help issue #1737 in this scoped check.
 
 The report combines integration API proposals with two concrete behavior claims.
-The proposals below are open design requests, not implemented features or
-user-approved additions to this frozen release. Existing narrower patterns are
-described without claiming they supply the requested generic APIs.
+The user subsequently approved duplicate-Mount rejection and a grouped guide to
+existing customization options. Those two improvements are implemented below;
+the broader integration proposals remain open design requests. Existing narrower
+patterns are described without claiming they supply the requested generic APIs.
 
 ## Concrete behavior
 
@@ -33,24 +35,34 @@ reachable vulnerability was established by this construction-level proof.
 
 ### One Mount per element
 
-Two `OnMount` attributes retain only the second action's marker, registration
-and hooks. The same behavior occurs in both versions. The existing
+Before the approved fix, two `OnMount` attributes retain only the second action's
+marker, registration and hooks. That reproduction matches both old versions. The
 [Mount guide](../packages/website/src/page/core/mount.md#one-mount-per-element)
 explicitly requires one Mount per element and describes combining work in one
 scoped Mount. Composition registration establishes allowed definitions; it
 cannot establish the number of attributes on a particular rendered element.
 
-A duplicate-attribute rejection would be a useful defensive change, but is not
-implemented here. The reproduction demonstrates the documented unsupported
-combination, not a regression in supported single-Mount behavior. Multiple
-independent Mounts on one element would require an explicit lifecycle contract.
+The approved followup rejects a second `OnMount` during VNode construction and
+names both Mounts, before either handler starts. The guard covers direct and
+spread attributes, including published child attribute groups. Existing
+`OnMount`/`OnUnmount` composition keeps its lifecycle behavior. Three regressions
+first fail against the old implementation, then pass with the guard. Multiple
+independent Mounts on one element still require a separate lifecycle design.
+
+### Discoverable Block customization
+
+The [new customization guide](../packages/website/src/page/core/block.md#customizing-a-block)
+groups factories, alternate embedded views authored with completed
+`Block.makeView`, parent view inputs, headless child attributes, handler selection
+and wrapper Blocks. Its alternate-view snippet is typechecked. No new Block
+transformation API is added.
 
 ### Reproduction scope
 
 The bounded reproduction uses real built Html/envelope/admission implementations
 and distinct synthetic occurrence trees. It does not start a full Runtime,
 render DOM, exercise network ingress or establish sender authentication.
-Published and current `html/index.js` and `runtime/childOrigin.js` hashes match.
+Published and pre-fix `html/index.js` and `runtime/childOrigin.js` hashes match.
 
 Local evidence is `/private/tmp/foldkit-preview-new-feedback-20261026/`:
 
@@ -71,11 +83,11 @@ Local evidence is `/private/tmp/foldkit-preview-new-feedback-20261026/`:
 | 5. Lazy Blocks                           | A handler may use `import()`, but that is not equivalent to deferred child graphs, queued occurrence Messages, deferred operations or late handler Layer construction. First-class lazy Blocks require a new scheduling and lifecycle design.                                        |
 | 6. Observe arbitrary child Messages      | Child-owned facts are reported through OutMessages and folded by the parent. There is no arbitrary Binding Message observer; dirty/autosave reporting and a generic observer are different contracts.                                                                                |
 | 7a. Leaf shorthand                       | The checked producer/export boundary applies to leaves too. A shorthand must preserve declaration validation and the measured inference boundary; none is added by this release.                                                                                                     |
-| 7b. Vary a completed Block               | Existing options include `Block.makeNamespace` factories, headless render inputs, checked alternate views, handler replacement and wrapper Blocks. Arbitrary `rename` or `mapUpdate` combinators are not provided.                                                                   |
-| 7c. Several Mounts on one element        | The supported single-Mount contract and reproduced overwrite are recorded above. A defensive duplicate check and multiple-Mount composition remain separate proposals.                                                                                                               |
+| 7b. Vary a completed Block               | The approved guide groups existing factories, headless render inputs, completed-Block alternate views, handler replacement and wrapper Blocks. Arbitrary `rename` or `mapUpdate` combinators are not provided.                                                                       |
+| 7c. Several Mounts on one element        | The approved defensive guard rejects duplicate Mounts during VNode construction. First-class multiple-Mount lifecycle composition is not added.                                                                                                                                      |
 | 7d. Vocabulary collisions                | This is ecosystem naming feedback; it identifies no source or runtime defect.                                                                                                                                                                                                        |
 
-No new broad API or runtime behavior is introduced in response to this report.
-Do not mark these proposals implemented or describe this assessment as resolving
-all requested integrations. They remain visible for the user's scope decisions
-after reviewing the prepared release.
+Duplicate-Mount rejection and customization guidance are the two approved
+additions. Do not mark the broader proposals implemented or describe this
+assessment as resolving all requested integrations. They remain visible for
+future scope decisions.

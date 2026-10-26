@@ -2576,6 +2576,15 @@ const attributeHandlers: AttributeHandlers = {
       },
     }),
   OnMount: ({ action }, ctx) => {
+    const existingMount: FoldkitMountMarker | undefined =
+      ctx.data[FOLDKIT_MOUNT_KEY]
+
+    if (existingMount !== undefined) {
+      throw new Error(
+        `[foldkit] An element can have only one OnMount attribute; received "${existingMount.name}" and "${action.name}". Combine both behaviors in one Mount.`,
+      )
+    }
+
     const capturedContext = ctx.getCapturedContext()
     const instance = Context.get(capturedContext, CurrentInstance)?.node
     const startBarrier = instance?.startBarrier
@@ -5095,6 +5104,10 @@ type HtmlAttributes<Message, AllowedMountRequirements> = {
     readonly _tag: 'PreserveAspectRatio'
     readonly value: string
   }
+  /** Attaches one element-owned Mount. A second `OnMount` on the same element
+   *  throws during VNode construction, before either Mount handler starts.
+   *  Combine element-owned work in one scoped Mount. `OnUnmount` may share
+   *  the element with that Mount. */
   OnMount: <
     Action extends MountAction<
       Message,

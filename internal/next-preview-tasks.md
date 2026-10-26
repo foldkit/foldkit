@@ -10,6 +10,13 @@ The user has explicitly held publication pending approval. Prepare and verify lo
 
 ## Final approval preparation, October 26
 
+- [x] Apply the two approved small wins from the new foldkit-plus report:
+      reject duplicate `OnMount` attributes before handler acquisition and
+      group existing Block customization options with a checked alternate-view
+      snippet. Preserve the other integration requests as open design proposals.
+- [ ] Freeze this hardening followup, refresh its exact package/browser evidence
+      and obtain a scoped security addendum before restoring final readiness.
+
 - [x] Use one local Subscription registry per owning Block. Consolidate Website,
       audit examples, Typing Game, UI, DevTools and active snippets, and document
       aggregate Layer composition in active guides, scaffolds and skills.

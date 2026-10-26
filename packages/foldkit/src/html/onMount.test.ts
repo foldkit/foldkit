@@ -20,6 +20,7 @@ import {
   toVNode,
 } from '../snabbdom/index.js'
 import type { VNode } from '../vdom.js'
+import { childAttributes } from './childAttribute.js'
 import {
   __htmlBuilder,
   __clearRuntime as clearHtmlRuntime,
@@ -119,6 +120,56 @@ describe('OnMount', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+  })
+
+  it('rejects two Mounts on one element before either handler starts', () => {
+    const h = __htmlBuilder<typeof Message.MountedRoot.Type>()
+    const firstHandler = vi.fn(() => oneShotStream())
+    const secondHandler = vi.fn(() => oneShotStream())
+
+    expect(() =>
+      h.div([
+        h.OnMount({ name: 'FocusPanel', f: firstHandler }),
+        h.OnMount({ name: 'ObserveSize', f: secondHandler }),
+      ]),
+    ).toThrow(/FocusPanel.*ObserveSize/)
+
+    expect(firstHandler).not.toHaveBeenCalled()
+    expect(secondHandler).not.toHaveBeenCalled()
+  })
+
+  it('rejects the same Mount attached twice to one element', () => {
+    const h = __htmlBuilder<typeof Message.MountedRoot.Type>()
+    const handler = vi.fn(() => oneShotStream())
+    const action = { name: 'FocusPanel', f: handler }
+
+    expect(() => h.div([h.OnMount(action), h.OnMount(action)])).toThrow(
+      /FocusPanel.*FocusPanel/,
+    )
+
+    expect(handler).not.toHaveBeenCalled()
+  })
+
+  it('rejects a second Mount spread from child attribute groups', () => {
+    const h = __htmlBuilder<typeof Message.MountedRoot.Type>()
+    const firstHandler = vi.fn(() => oneShotStream())
+    const secondHandler = vi.fn(() => oneShotStream())
+    const { dispatch } = createCapturingDispatch()
+    const view = () => {
+      const firstAttributes = childAttributes([
+        h.OnMount({ name: 'FocusPanel', f: firstHandler }),
+      ])
+      const secondAttributes = childAttributes([
+        h.OnMount({ name: 'ObserveSize', f: secondHandler }),
+      ])
+
+      return h.div([...firstAttributes, ...secondAttributes])
+    }
+
+    expect(() => renderView(view, dispatch)).toThrow(/FocusPanel.*ObserveSize/)
+
+    expect(firstHandler).not.toHaveBeenCalled()
+    expect(secondHandler).not.toHaveBeenCalled()
   })
 
   it('dispatches the emitted Message when the element mounts', async () => {
