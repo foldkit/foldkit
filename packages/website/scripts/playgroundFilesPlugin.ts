@@ -128,10 +128,17 @@ const rewriteWorkspaceSpec =
   }
 
 // NOTE: Rolldown 1.2.9's generated loader rejects its WASI binding because
-// both export `__napiBindingTarget`. WebContainers must use the last compatible
-// release until Rolldown publishes a matching loader and binding pair.
+// both export `__napiBindingTarget`, so WebContainers retain 1.2.6. Install
+// its binding with the project because Rolldown's separate auto-install does
+// not use project overrides. The binding pins emnapi alpha.4, which
+// wasm-runtime 1.2.6 rejects, so keep the last compatible runtime too.
+const PLAYGROUND_DEV_DEPENDENCY_ADDITIONS: DependencySpec = {
+  '@rolldown/binding-wasm32-wasi': '1.2.6',
+}
+
 export const PLAYGROUND_DEPENDENCY_OVERRIDES: DependencySpec = {
   rolldown: '1.2.6',
+  '@napi-rs/wasm-runtime': '1.2.5',
 }
 
 const versionForDeployment = (
@@ -185,10 +192,13 @@ const transformPackageJson = (
       ...PLAYGROUND_DEPENDENCY_OVERRIDES,
     },
     dependencies: rewriteDependencyMap(packageJson.dependencies, rewrite),
-    devDependencies: rewriteDependencyMap(
-      filterToRuntimeDevDependencies(packageJson.devDependencies),
-      rewrite,
-    ),
+    devDependencies: {
+      ...rewriteDependencyMap(
+        filterToRuntimeDevDependencies(packageJson.devDependencies),
+        rewrite,
+      ),
+      ...PLAYGROUND_DEV_DEPENDENCY_ADDITIONS,
+    },
     optionalDependencies: rewriteDependencyMap(
       packageJson.optionalDependencies,
       rewrite,

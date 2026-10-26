@@ -173,9 +173,15 @@ describe('server-rendered example build scripts', () => {
         throw new Error(`the ${slug} playground omits package.json`)
       }
       const manifest: Readonly<{
+        devDependencies?: Readonly<Record<string, string>>
         overrides?: Readonly<Record<string, string>>
       }> = JSON.parse(source)
+      expect(
+        manifest.devDependencies?.['@rolldown/binding-wasm32-wasi'],
+        slug,
+      ).toBe('1.2.6')
       expect(manifest.overrides, slug).toEqual(PLAYGROUND_DEPENDENCY_OVERRIDES)
+      expect(manifest.overrides?.['@napi-rs/wasm-runtime'], slug).toBe('1.2.5')
     }
   })
 
