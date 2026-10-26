@@ -1,4 +1,5 @@
 import {
+  Array,
   Cause,
   Context,
   Effect,
@@ -388,18 +389,23 @@ export const makeRenderer = <Model, Message>({
       mounts.map(mount => mount[MountRegistrationTypeId]),
     )
 
+    const mountValidationVisits = new WeakMap<VNode, object>()
+
     const assertLayeredMountsAreRegistered = (root: VNode | null): void => {
       if (root === null) {
         return
       }
 
-      const visited = new Set<object>()
-      const missing = new Map<object, string>()
+      const mountValidationToken = {}
+      let missing: Map<object, string> | undefined
       const walk = (node: VNode): void => {
-        if (visited.has(node)) {
-          return
+        const { children } = node
+        if (children !== undefined && Array.isArrayNonEmpty(children)) {
+          if (mountValidationVisits.get(node) === mountValidationToken) {
+            return
+          }
+          mountValidationVisits.set(node, mountValidationToken)
         }
-        visited.add(node)
 
         /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
         const marker = node.data?.[FOLDKIT_MOUNT_KEY] as
@@ -411,18 +417,21 @@ export const makeRenderer = <Model, Message>({
           registration !== undefined &&
           !registeredMounts.has(registration)
         ) {
+          missing ??= new Map<object, string>()
           missing.set(registration, marker.name)
         }
 
-        for (const child of node.children ?? []) {
-          if (!Predicate.isString(child)) {
-            walk(child)
+        if (children !== undefined) {
+          for (const child of children) {
+            if (!Predicate.isString(child)) {
+              walk(child)
+            }
           }
         }
       }
       walk(root)
 
-      if (missing.size === 0) {
+      if (missing === undefined) {
         return
       }
 

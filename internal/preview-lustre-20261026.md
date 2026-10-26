@@ -103,3 +103,11 @@ The release review should retain the measured main cost. This screen provides no
 basis for an API change or for claiming that all performance issues are solved.
 Native TypeScript editor latency is a separate measurement and remains documented
 in the earlier scoped reports.
+
+## Subsequent runtime investigation
+
+The [runtime followup](preview-runtime-investigation-20261026.md) preserves this
+report's source pins and measurements. It adds CPU/allocation attribution,
+phase counters, rejected experiments and a fresh main/unchanged-preview/fixed
+comparison. The optimized candidate improves 12.7% against unchanged preview;
+remaining main and bundle costs stay explicit. Publication remains held.

@@ -14,9 +14,14 @@ The user has explicitly held publication pending approval. Prepare and verify lo
       audit examples, Typing Game, UI, DevTools and active snippets, and document
       aggregate Layer composition in active guides, scaffolds and skills.
       [Audit and verification scope](subscription-registry-organization.md).
-- [ ] Profile the repeatable Lustre gap against main, identify the dominant added
-      update/view/patch/framework work and assess a verified reduction before release
-      sign-off. Keep the existing paired measurements and source pins unchanged.
+- [x] Profile the repeatable Lustre gap against main, identify the dominant added
+      update/view/patch/framework work and verify a reduction before release
+      sign-off. Preserve earlier paired measurements and source pins. The new
+      optimized workload improves 12.7%; naive performance is similar and main
+      remains faster. [Investigation, remaining costs and proofs](preview-runtime-investigation-20261026.md).
+- [ ] Freeze the runtime followup and refresh all nine local packages, installed
+      Coverchart/scaffold acceptance and browser checks. The preceding package
+      rehearsal retains its original implementation pin.
 - [x] Name assigned Step values with a descriptive `Step` suffix across current
       consumers, framework examples/tests, active snippets and guidance. Preserve
       operation registry names, ordinary direct-result handler names, factory APIs, applied

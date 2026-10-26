@@ -1,8 +1,10 @@
 import { Effect, Fiber, Schema } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { createLazy } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import * as Mount from '../mount/public.js'
+import { h as rawHtml } from '../snabbdom/index.js'
 import * as Application from './application.js'
 import { __startProgram, run } from './start.js'
 
@@ -216,6 +218,81 @@ describe('Layer-backed Mount runtime', () => {
         expect(document.title).toBe('Application Crash')
         expect(document.body.textContent).not.toContain('revealing Mount')
       })
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+      consoleError.mockRestore()
+    }
+  })
+
+  it('revalidates an unregistered Mount added to a reused lazy VNode before patching', async () => {
+    const cachedChild = rawHtml('div', {}, ['cached content'])
+    const cachedVNode = rawHtml('section', {}, [cachedChild])
+    const buildCachedView = vi.fn(() => cachedVNode)
+    const lazyView = createLazy()
+    const patchView = vi.fn()
+    let reportedError: Error | undefined
+    const application = Application.__makeFromConfig({
+      Model,
+      init: () => ({ model: { status: 'ready' } }),
+      update,
+      view: (model, h) => {
+        if (model.status === 'revealing Mount') {
+          const revealedMount = h.div([
+            // @ts-expect-error Cached raw Html still requires runtime Mount validation.
+            h.OnMount(AnchorPanel({ label: 'anchored' })),
+          ])
+          if (revealedMount !== null) {
+            cachedChild.data = revealedMount.data
+          }
+        }
+
+        const body = h.div(
+          [],
+          [
+            h.button(
+              [h.OnClick(Message.ClickedRevealMount())],
+              ['reveal Mount'],
+            ),
+            lazyView(buildCachedView, []),
+            model.status,
+          ],
+        )
+        if (body !== null) {
+          body.data = { ...body.data, hook: { prepatch: patchView } }
+        }
+
+        return { title: 'Cached unregistered Mount test', body }
+      },
+      crash: {
+        report: ({ error }) => {
+          reportedError = error
+        },
+      },
+      container,
+    })
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const fiber = Effect.runFork(
+      __startProgram(application, undefined, 'Fresh'),
+    )
+
+    try {
+      await vi.waitFor(() => {
+        expect(document.body.textContent).toContain('cached content')
+        expect(document.body.textContent).toContain('ready')
+      })
+      expect(buildCachedView).toHaveBeenCalledOnce()
+      expect(patchView).not.toHaveBeenCalled()
+
+      document.body.querySelector('button')?.click()
+
+      await vi.waitFor(() => {
+        expect(reportedError?.message).toContain(
+          'Layer-backed Mounts that were not registered: AnchorPanel',
+        )
+        expect(document.title).toBe('Application Crash')
+      })
+      expect(buildCachedView).toHaveBeenCalledOnce()
+      expect(patchView).not.toHaveBeenCalled()
     } finally {
       await Effect.runPromise(Fiber.interrupt(fiber))
       consoleError.mockRestore()

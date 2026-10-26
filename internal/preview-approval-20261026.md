@@ -2,12 +2,12 @@
 
 ## Status
 
-Publication remains held. The rendering-performance gap against main requires
-profiling before release sign-off. The verified
-implementation is `978c07a093bdcdadf2a94cf8ab0e5f9e985a008d` on
-`codex/workspace-example`. Later handoff/evidence edits are internal documentation
-only. Published Ready remains `1f6776fa7ececa766188df5201eefec6ba781b5d`;
-integration and main have not moved.
+Publication remains held. The preceding frozen implementation and package
+rehearsal are pinned to `978c07a093bdcdadf2a94cf8ab0e5f9e985a008d` on
+`codex/workspace-example`. Subsequent Subscription and runtime followups are
+recorded below with their own verification scope. The runtime followup requires
+fresh packed-package acceptance before sign-off. Published Ready remains
+`1f6776fa7ececa766188df5201eefec6ba781b5d`; integration and main have not moved.
 
 The [API review](next-preview-review.md#public-api-changes-since-that-preview)
 contains the consumer migration table. This summary supersedes older preparation
@@ -17,6 +17,11 @@ The subsequent [Subscription organization followup](subscription-registry-organi
 consolidates Website's local registry and documents the convention across the repo.
 Its targeted checks supplement the frozen framework/package evidence below;
 that evidence retains its exact implementation pin.
+
+The [runtime investigation](preview-runtime-investigation-20261026.md) identifies
+Mount validation as the largest added measured phase and verifies a 12.7%
+optimized workload reduction. No public API changes are introduced. Remaining
+main costs and bundle growth are retained for approval.
 
 ## Changes from the published preview
 
@@ -138,6 +143,16 @@ speedup. Do not join absolute timings across batches.
 
 Gzip grows by about 31.7–32.4 KB versus main and 1.8 KB versus the published
 preview. No API/source change is inferred from these timing results.
+
+A subsequent six-round, 36-sample comparison measures main, unchanged preview
+and the runtime followup together. Optimized medians are 190.9, 266.8 and
+232.9 ms: 12.7% faster than unchanged preview, still 22.0% slower than main.
+Five of six paired optimized rounds improve. Naive medians are 469.6, 562.6
+and 565.3 ms, an effectively similar preview result with a remaining 20.4%
+main cost. All samples pass. The full report retains ranges, the slower candidate
+sample, raw totals, phase/profile limits and the unchanged runbook. These
+measurements supersede the unexplained-cost assessment without replacing the
+older snapshots above.
 
 Native TypeScript cold-root requests can still take several seconds. Earlier
 paired editor results retain their own source pins; this pass refreshes compiler

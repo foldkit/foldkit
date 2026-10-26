@@ -1,0 +1,3793 @@
+{
+  "schemaVersion": 1,
+  "scope": "Diagnostic captures and bounded experiment screens from the pinned sources. Final acceptance timing is retained separately.",
+  "sourcePlan": {
+    "baseline": "b702a5efbb74bebc056b798b414ddb923a82fbd5",
+    "preview": "8cce3fa0b8ff6499c2bd17e56fcbef1d54feb08c",
+    "measuredPreviewEquivalent": "978c07a093bdcdadf2a94cf8ab0e5f9e985a008d",
+    "equivalenceScope": "No framework, Vite plugin, benchmark, or aliases source changes between these preview commits",
+    "stages": [
+      "Reproduce optimized workload and isolate unconditional Mount-validation pass without treating guard removal as a fix",
+      "Paired production CPU profiles; allocation sampling and GC/timeline separately when needed",
+      "Choose smallest supported intervention, retaining exact registration and lifecycle guards",
+      "Run focused regression/source/emitted checks and unchanged compiler ceilings",
+      "Run unchanged production benchmark with correctness assertions and fresh contexts; retain raw data and costs"
+    ],
+    "initialNoScanDiagnostic": {
+      "rounds": 3,
+      "variants": 3,
+      "allValidSamples": 9,
+      "mainMedianMs": 169.8,
+      "previewMedianMs": 242.0,
+      "noScanMedianMs": 216.2,
+      "limitation": "Ablation removes required validation and is not a shippable candidate; only three rounds and high no-scan spread."
+    },
+    "publication": "Held pending user approval",
+    "concurrency": "No concurrent browser timing or build/test load during timing batches; independent static analysis only"
+  },
+  "experimentLedgerFile": "/private/tmp/foldkit-runtime-dive-20261026/experiment-ledger.json",
+  "experimentLedger": {
+    "sourceCommit": "8cce3fa0b8ff6499c2bd17e56fcbef1d54feb08c",
+    "entries": [
+      {
+        "encoding": "Remove Mount scan invocation",
+        "patch": "no-scan-diagnostic.patch",
+        "result": "Unsafe diagnostic only; optimized median242.0\u2192216.2ms, highvariance, main169.8ms samebatch",
+        "disposition": "Never ship: removes required prepatch registration guard"
+      },
+      {
+        "encoding": "Full scan with missing Map allocated only for violations, visitedSet only on branches, no empty child arrays",
+        "patch": "/private/tmp/foldkit-runtime-cost-analysis/scan-constant-factor.patch",
+        "result": "3 balancedrounds, all9valid; preview263.9\u2192246.7ms median, main193.2ms samebatch. Each paired trial faster by6\u20139%.",
+        "disposition": "Retain as candidate, insufficient to resolve broader gap"
+      },
+      {
+        "encoding": "Miss-only dispatcher factories",
+        "patch": "/private/tmp/foldkit-runtime-cost-analysis/dispatch-factories.patch",
+        "result": "3 balancedrounds original242.4ms, factories270.2ms; all9valid includingcombinedvariant",
+        "disposition": "Reject as rendering performance fix; no positive timing signal"
+      },
+      {
+        "encoding": "Miss-only factories plus WeakMap numeric visitation epochs",
+        "patch": "/private/tmp/foldkit-runtime-cost-analysis/dispatch-factories-and-scan-epochs.patch",
+        "result": "3 balancedrounds original242.4ms, combined248.1ms; all9valid",
+        "disposition": "No material win, do not adopt based on source reasoning or allocation estimates alone"
+      },
+      {
+        "encoding": "Opaque per-scan visit token",
+        "patch": "/private/tmp/foldkit-runtime-cost-analysis/scan-visitation-token.patch",
+        "result": "Timed independently in token-diagnostic-raw.json: 3 balanced rounds, preview244.0 vs token231.7ms; two of three pairs faster. Modest signal only.",
+        "disposition": "Component-only screen. Retained as part of the combined verified candidate, with no independently shipped improvement claimed."
+      },
+      {
+        "encoding": "Ancestor-array traversal, and ancestry plus empty-boundary fastpath",
+        "patch": "scan-ancestry.patch",
+        "result": "ancestry-diagnostic-raw.json: 3 balanced rounds; preview244.1, ancestry239.1, ancestry+lazy243.5ms medians, all9valid",
+        "disposition": "Reject: no material gain; also adds depth-sensitive and shared-DAG traversal costs"
+      },
+      {
+        "encoding": "Constant-factor Set scan plus childless synchronization and empty-boundary fastpath",
+        "patches": [
+          "scan-constant-factor.patch",
+          "composition-childless-synchronize.patch",
+          "lazy-empty-boundaries.patch"
+        ],
+        "result": "token-diagnostic-raw.json: preview244.0 vs combined253.8ms, all9valid across3variants",
+        "disposition": "Reject combined encoding as performance fix; childless shortcut not integrated. Readonly Array helper correction is identical emitted implementation alias and does not change this timing result."
+      },
+      {
+        "encoding": "Per-pass weak visitation token plus Frame/raw guard cache and empty-boundary fastpath",
+        "patch": "final-production.patch",
+        "result": "frame-diagnostic-raw.json: preview257.5 vs combined226.2ms median; all3paired comparisons favor candidate, all9valid includingalternativevariant",
+        "disposition": "Prototype retained for final safety gates and fresh main/preview/candidate comparison"
+      },
+      {
+        "encoding": "Constant-factor Set scan plus same Frame cache and empty-boundary fastpath",
+        "patches": [
+          "scan-constant-factor.patch",
+          "guarded-dispatch-cache.patch",
+          "lazy-empty-boundaries.patch"
+        ],
+        "result": "frame-diagnostic-raw.json: preview257.5 vs combined249.9ms median; first2pairs slower, lastfaster",
+        "disposition": "Reject as primary candidate: inconsistent improvement"
+      }
+    ],
+    "profiling": {
+      "cpu": "output/cpu/manifest-cpu.json",
+      "heap": "output/heap/manifest-heap.json",
+      "limits": "CPU profiler/postboot setup changes absolute timings, so use attribution only. Heap sampling estimates allocation, not GC durations. No production source edited."
+    }
+  },
+  "ablationSource": {
+    "sourceCommit": "8cce3fa0b8ff6499c2bd17e56fcbef1d54feb08c",
+    "archiveSha256": "cc7ae5ec115252397431f69fb9222b3457b0e55a1a9aba8014280e0fa30a5b45",
+    "ablation": "Remove only assertLayeredMountsAreRegistered(nextVNode) invocation; diagnosis only, not a safe candidate",
+    "unmodifiedRendererSha256": "817208f9c0c651741a2b33303fdceb0febf3d0281233fc3738ee50c86a30b508",
+    "rendererSha256": "59a6c4413f4b588ba4c9f2208a8f6e72e133e592358dd23676753c011a95aa08",
+    "frameworkAndBenchmarkDiffSinceMeasured978": ""
+  },
+  "toolchain": {
+    "baselineBundleManifest": "/private/tmp/foldkit-next-preview-signoff-final-20261026/lustre/bundles.json",
+    "versionsBySlot": {
+      "foldkit-oct26-final-main": {
+        "vite": "8.3.5",
+        "effect": "4.0.0",
+        "playwright": "1.63.0"
+      },
+      "foldkit-oct26-final-main-optimised": {
+        "vite": "8.3.5",
+        "effect": "4.0.0",
+        "playwright": "1.63.0"
+      },
+      "foldkit-oct26-final-preview": {
+        "vite": "8.3.5",
+        "effect": "4.0.0",
+        "playwright": "1.63.0"
+      },
+      "foldkit-oct26-final-preview-optimised": {
+        "vite": "8.3.5",
+        "effect": "4.0.0",
+        "playwright": "1.63.0"
+      }
+    },
+    "harnessRevision": "03fff17ad22407115a91937ddab680e40fe0c7c7",
+    "instrumentationSha256": "6e3597e81ef7276d99f17cfa4c3430e05beb7768411a1a34bffa0026343f7f69",
+    "mainCommit": "b702a5efbb74bebc056b798b414ddb923a82fbd5",
+    "measuredPreviewCommit": "978c07a093bdcdadf2a94cf8ab0e5f9e985a008d",
+    "measuredPreviewDigest": "41ec430daf817d7dc592f8123211d405022752a2d434cadb4c6269e03b9223c4",
+    "matchedToolchainControl": "Matched cached third-party dependencies/build tools; main source archived from exact commit, not a fresh main-lockfile installation"
+  },
+  "cpu": {
+    "manifest": "/private/tmp/foldkit-runtime-dive-20261026/output/cpu/manifest-cpu.json",
+    "settings": {
+      "createdAt": "2026-10-26T17:00:19.330Z",
+      "diagnosticOnly": true,
+      "runbook": "Existing instrumented add/toggle/delete operations with boot settled before profiling; profiling artifacts are separate from unchanged benchmark evidence",
+      "mode": "cpu",
+      "itemCount": 100,
+      "rounds": 2,
+      "orderRotatesByRound": true,
+      "freshContextPerSample": true,
+      "profilerSettings": {
+        "cpuInterval": 100,
+        "heapInterval": 16384
+      },
+      "harnessDir": "/private/tmp/foldkit-preview-runtime-harness-20261023",
+      "harnessRevision": "03fff17ad22407115a91937ddab680e40fe0c7c7",
+      "browserVersion": "155.0.8059.85",
+      "host": {
+        "platform": "darwin",
+        "architecture": "arm64",
+        "osRelease": "25.6.0",
+        "cpuModel": "Apple M1 Max",
+        "logicalCpuCount": 10,
+        "nodeVersion": "v24.22.1"
+      },
+      "driverFiles": [
+        {
+          "file": "profile.mjs",
+          "sha256": "ca0cbe1faecc32040a6bed25700059dc0f74048ccfc6caeeccf957999e877b34"
+        },
+        {
+          "file": "profile-runner.html",
+          "sha256": "01d2af4592acd5f0ae5558b518a6de7ab53829e367e05126f402769f7ba30654"
+        },
+        {
+          "file": "server.mjs",
+          "sha256": "78271074ac683cb1a3036e5aae23a040071904e04bfb6031e12f89652d5203b5"
+        }
+      ],
+      "slotFiles": {
+        "foldkit-oct26-final-main-optimised": [
+          {
+            "path": "assets/index.optimised-9WXsnvtj.js",
+            "bytes": 300443,
+            "sha256": "8a4c3391ac6e98e6a400516b39cf801d48c8b0e0b9b542e14512faa296473d0d"
+          },
+          {
+            "path": "index.html",
+            "bytes": 700,
+            "sha256": "4941dd4a52b940a5cd3cbdc4928883d21e69090711a4df4967399f7f19b22b7c"
+          }
+        ],
+        "foldkit-oct26-final-preview-optimised": [
+          {
+            "path": "assets/index.optimised-BnhBmfvX.js",
+            "bytes": 418401,
+            "sha256": "b28bbca2b123ec352e5ae62a367b23358986e410a8c26939b32589910ff75619"
+          },
+          {
+            "path": "index.html",
+            "bytes": 700,
+            "sha256": "efa367bdab6cc1b287ce5bc56d83c5c58b5bb58cdb473059dc0e2376828e89c9"
+          }
+        ]
+      }
+    },
+    "samples": [
+      {
+        "round": 1,
+        "implementation": "foldkit-oct26-final-main-optimised",
+        "artifact": "01-foldkit-oct26-final-main-optimised-cpu.cpuprofile",
+        "artifactSha256": "33498537f1df51df4429ef70841e4a27e809cdd791927f50d9533b2eba7d0195",
+        "result": {
+          "crossOriginIsolated": true,
+          "total": 58.05000066757202,
+          "results": {
+            "sync": 14.440002918243408,
+            "timeout": 0,
+            "animation_frame": 43.60999774932861,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        },
+        "analysis": "/private/tmp/foldkit-runtime-dive-20261026/output/cpu/01-foldkit-oct26-final-main-optimised-cpu.cpuprofile.analysis.json",
+        "unit": "microseconds of self samples",
+        "sampledTotal": 13336947,
+        "selfCategories": [
+          {
+            "category": "idle",
+            "value": 12979849
+          },
+          {
+            "category": "browser",
+            "value": 296420
+          },
+          {
+            "category": "foldkit-html",
+            "value": 13150
+          },
+          {
+            "category": "profile-runner",
+            "value": 11890
+          },
+          {
+            "category": "dom-patch",
+            "value": 9252
+          },
+          {
+            "category": "foldkit-other",
+            "value": 7519
+          },
+          {
+            "category": "gc",
+            "value": 4690
+          },
+          {
+            "category": "effect",
+            "value": 3322
+          },
+          {
+            "category": "other",
+            "value": 2486
+          },
+          {
+            "category": "app-view",
+            "value": 2098
+          },
+          {
+            "category": "foldkit-renderer",
+            "value": 1673
+          },
+          {
+            "category": "foldkit-runtime",
+            "value": 1631
+          },
+          {
+            "category": "instrumentation",
+            "value": 1521
+          },
+          {
+            "category": "app-model",
+            "value": 949
+          },
+          {
+            "category": "app-update",
+            "value": 497
+          }
+        ],
+        "topSelfFrames": [
+          {
+            "source": "(native)",
+            "line": -1,
+            "column": -1,
+            "name": "(garbage collector)",
+            "mapped": false,
+            "value": 4690
+          },
+          {
+            "source": "http://localhost:43977/__profile/profile-runner.html",
+            "line": 67,
+            "column": 34,
+            "name": "(anonymous)",
+            "mapped": false,
+            "value": 3896
+          },
+          {
+            "source": "(native)",
+            "line": -1,
+            "column": -1,
+            "name": "querySelector",
+            "mapped": false,
+            "value": 3049
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/vdom.ts",
+            "line": 76,
+            "column": 6,
+            "name": "visit",
+            "mapped": true,
+            "value": 2689
+          },
+          {
+            "source": "http://localhost:43977/__profile/profile-runner.html",
+            "line": 92,
+            "column": 14,
+            "name": "(anonymous)",
+            "mapped": false,
+            "value": 2376
+          }
+        ],
+        "topMappedFrameworkSelfFrames": [
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/vdom.ts",
+            "line": 76,
+            "column": 6,
+            "name": "visit",
+            "mapped": true,
+            "value": 2689
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/html/lazy.ts",
+            "line": 130,
+            "column": 6,
+            "name": "resolveOrCache",
+            "mapped": true,
+            "value": 1729
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/html/index.ts",
+            "line": 2763,
+            "column": 2,
+            "name": "eP",
+            "mapped": true,
+            "value": 1715
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/snabbdom/init.ts",
+            "line": 734,
+            "column": 11,
+            "name": "patchVnode",
+            "mapped": true,
+            "value": 1471
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/dist/brand/brand.js",
+            "line": 0,
+            "column": 17,
+            "name": "PR",
+            "mapped": true,
+            "value": 1304
+          }
+        ],
+        "metricDeltas": {
+          "JSHeapUsedSize": 1960368,
+          "JSHeapTotalSize": 1572864,
+          "ScriptDuration": 0.065521,
+          "TaskDuration": 0.364336,
+          "LayoutDuration": 0.028088,
+          "RecalcStyleDuration": 0.01112
+        }
+      },
+      {
+        "round": 1,
+        "implementation": "foldkit-oct26-final-preview-optimised",
+        "artifact": "01-foldkit-oct26-final-preview-optimised-cpu.cpuprofile",
+        "artifactSha256": "3d6176ac79ea39b764058f1a303bda71bef158a90117a8eac1770ba332989369",
+        "result": {
+          "crossOriginIsolated": true,
+          "total": 75.76000881195068,
+          "results": {
+            "sync": 17.74000597000122,
+            "timeout": 0,
+            "animation_frame": 58.02000284194946,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        },
+        "analysis": "/private/tmp/foldkit-runtime-dive-20261026/output/cpu/01-foldkit-oct26-final-preview-optimised-cpu.cpuprofile.analysis.json",
+        "unit": "microseconds of self samples",
+        "sampledTotal": 13341384,
+        "selfCategories": [
+          {
+            "category": "idle",
+            "value": 12966174
+          },
+          {
+            "category": "browser",
+            "value": 292979
+          },
+          {
+            "category": "foldkit-other",
+            "value": 14388
+          },
+          {
+            "category": "profile-runner",
+            "value": 13078
+          },
+          {
+            "category": "foldkit-html",
+            "value": 11524
+          },
+          {
+            "category": "layered-mount-assert",
+            "value": 8793
+          },
+          {
+            "category": "effect",
+            "value": 8442
+          },
+          {
+            "category": "dom-patch",
+            "value": 8137
+          },
+          {
+            "category": "foldkit-runtime",
+            "value": 5774
+          },
+          {
+            "category": "gc",
+            "value": 4626
+          },
+          {
+            "category": "app-view",
+            "value": 2078
+          },
+          {
+            "category": "other",
+            "value": 1784
+          },
+          {
+            "category": "instrumentation",
+            "value": 1568
+          },
+          {
+            "category": "app-model",
+            "value": 1459
+          },
+          {
+            "category": "foldkit-renderer",
+            "value": 580
+          }
+        ],
+        "topSelfFrames": [
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/runtime/renderer.ts",
+            "line": 397,
+            "column": 20,
+            "name": "r",
+            "mapped": true,
+            "value": 8641
+          },
+          {
+            "source": "http://localhost:43977/__profile/profile-runner.html",
+            "line": 67,
+            "column": 34,
+            "name": "(anonymous)",
+            "mapped": false,
+            "value": 4838
+          },
+          {
+            "source": "(native)",
+            "line": -1,
+            "column": -1,
+            "name": "(garbage collector)",
+            "mapped": false,
+            "value": 4626
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/controlledDomState.ts",
+            "line": 27,
+            "column": 13,
+            "name": "synchronizeControlledDefault",
+            "mapped": true,
+            "value": 2687
+          },
+          {
+            "source": "(native)",
+            "line": -1,
+            "column": -1,
+            "name": "querySelector",
+            "mapped": false,
+            "value": 2432
+          }
+        ],
+        "topMappedFrameworkSelfFrames": [
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/runtime/renderer.ts",
+            "line": 397,
+            "column": 20,
+            "name": "r",
+            "mapped": true,
+            "value": 8641
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/controlledDomState.ts",
+            "line": 27,
+            "column": 13,
+            "name": "synchronizeControlledDefault",
+            "mapped": true,
+            "value": 2687
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/html/lazy.ts",
+            "line": 142,
+            "column": 6,
+            "name": "resolveOrCache",
+            "mapped": true,
+            "value": 2314
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/vdom.ts",
+            "line": 76,
+            "column": 6,
+            "name": "visit",
+            "mapped": true,
+            "value": 2042
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/snabbdom/init.ts",
+            "line": 734,
+            "column": 11,
+            "name": "patchVnode",
+            "mapped": true,
+            "value": 1779
+          }
+        ],
+        "metricDeltas": {
+          "JSHeapUsedSize": 1802420,
+          "JSHeapTotalSize": 4194304,
+          "ScriptDuration": 0.083802,
+          "TaskDuration": 0.376715,
+          "LayoutDuration": 0.02739,
+          "RecalcStyleDuration": 0.010997
+        }
+      },
+      {
+        "round": 2,
+        "implementation": "foldkit-oct26-final-preview-optimised",
+        "artifact": "02-foldkit-oct26-final-preview-optimised-cpu.cpuprofile",
+        "artifactSha256": "a10a4c6bd8759dec090eedd8d4f67cdae9b3f40144ceca2288db7b54d602b95f",
+        "result": {
+          "crossOriginIsolated": true,
+          "total": 78.2100100517273,
+          "results": {
+            "sync": 17.845012187957764,
+            "timeout": 0,
+            "animation_frame": 60.36499786376953,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        },
+        "analysis": "/private/tmp/foldkit-runtime-dive-20261026/output/cpu/02-foldkit-oct26-final-preview-optimised-cpu.cpuprofile.analysis.json",
+        "unit": "microseconds of self samples",
+        "sampledTotal": 13338902,
+        "selfCategories": [
+          {
+            "category": "idle",
+            "value": 12955152
+          },
+          {
+            "category": "browser",
+            "value": 303415
+          },
+          {
+            "category": "foldkit-html",
+            "value": 12407
+          },
+          {
+            "category": "foldkit-other",
+            "value": 11090
+          },
+          {
+            "category": "profile-runner",
+            "value": 10945
+          },
+          {
+            "category": "dom-patch",
+            "value": 10607
+          },
+          {
+            "category": "layered-mount-assert",
+            "value": 9231
+          },
+          {
+            "category": "effect",
+            "value": 7600
+          },
+          {
+            "category": "gc",
+            "value": 5207
+          },
+          {
+            "category": "foldkit-runtime",
+            "value": 5048
+          },
+          {
+            "category": "app-view",
+            "value": 2982
+          },
+          {
+            "category": "other",
+            "value": 1895
+          },
+          {
+            "category": "foldkit-renderer",
+            "value": 1130
+          },
+          {
+            "category": "app-model",
+            "value": 1030
+          },
+          {
+            "category": "instrumentation",
+            "value": 1005
+          },
+          {
+            "category": "app-update",
+            "value": 158
+          }
+        ],
+        "topSelfFrames": [
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/runtime/renderer.ts",
+            "line": 397,
+            "column": 20,
+            "name": "r",
+            "mapped": true,
+            "value": 9044
+          },
+          {
+            "source": "(native)",
+            "line": -1,
+            "column": -1,
+            "name": "(garbage collector)",
+            "mapped": false,
+            "value": 5207
+          },
+          {
+            "source": "(native)",
+            "line": -1,
+            "column": -1,
+            "name": "querySelector",
+            "mapped": false,
+            "value": 4283
+          },
+          {
+            "source": "http://localhost:43977/__profile/profile-runner.html",
+            "line": 67,
+            "column": 34,
+            "name": "(anonymous)",
+            "mapped": false,
+            "value": 3678
+          },
+          {
+            "source": "(native)",
+            "line": -1,
+            "column": -1,
+            "name": "requestAnimationFrame",
+            "mapped": false,
+            "value": 2646
+          }
+        ],
+        "topMappedFrameworkSelfFrames": [
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/runtime/renderer.ts",
+            "line": 397,
+            "column": 20,
+            "name": "r",
+            "mapped": true,
+            "value": 9044
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/snabbdom/init.ts",
+            "line": 734,
+            "column": 11,
+            "name": "patchVnode",
+            "mapped": true,
+            "value": 1882
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/html/index.ts",
+            "line": 3309,
+            "column": 6,
+            "name": "buildElement",
+            "mapped": true,
+            "value": 1627
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/html/index.ts",
+            "line": 2874,
+            "column": 2,
+            "name": "OL",
+            "mapped": true,
+            "value": 1594
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/snabbdom/init.ts",
+            "line": 523,
+            "column": 11,
+            "name": "updateChildren",
+            "mapped": true,
+            "value": 1415
+          }
+        ],
+        "metricDeltas": {
+          "JSHeapUsedSize": 1821300,
+          "JSHeapTotalSize": 4456448,
+          "ScriptDuration": 0.086558,
+          "TaskDuration": 0.38904900000000003,
+          "LayoutDuration": 0.027952,
+          "RecalcStyleDuration": 0.011008
+        }
+      },
+      {
+        "round": 2,
+        "implementation": "foldkit-oct26-final-main-optimised",
+        "artifact": "02-foldkit-oct26-final-main-optimised-cpu.cpuprofile",
+        "artifactSha256": "622e7e6083039bc08a7507e126cf7aa21715f5c717859a2684d1f2eca32a24b5",
+        "result": {
+          "crossOriginIsolated": true,
+          "total": 55.784992694854736,
+          "results": {
+            "sync": 13.99000072479248,
+            "timeout": 0,
+            "animation_frame": 41.794991970062256,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        },
+        "analysis": "/private/tmp/foldkit-runtime-dive-20261026/output/cpu/02-foldkit-oct26-final-main-optimised-cpu.cpuprofile.analysis.json",
+        "unit": "microseconds of self samples",
+        "sampledTotal": 13345520,
+        "selfCategories": [
+          {
+            "category": "idle",
+            "value": 13006098
+          },
+          {
+            "category": "browser",
+            "value": 281987
+          },
+          {
+            "category": "foldkit-html",
+            "value": 14203
+          },
+          {
+            "category": "profile-runner",
+            "value": 10361
+          },
+          {
+            "category": "dom-patch",
+            "value": 8191
+          },
+          {
+            "category": "foldkit-other",
+            "value": 6775
+          },
+          {
+            "category": "effect",
+            "value": 4139
+          },
+          {
+            "category": "gc",
+            "value": 3936
+          },
+          {
+            "category": "app-view",
+            "value": 2685
+          },
+          {
+            "category": "other",
+            "value": 2449
+          },
+          {
+            "category": "foldkit-runtime",
+            "value": 1842
+          },
+          {
+            "category": "foldkit-renderer",
+            "value": 1328
+          },
+          {
+            "category": "app-model",
+            "value": 881
+          },
+          {
+            "category": "instrumentation",
+            "value": 645
+          }
+        ],
+        "topSelfFrames": [
+          {
+            "source": "http://localhost:43977/__profile/profile-runner.html",
+            "line": 67,
+            "column": 34,
+            "name": "(anonymous)",
+            "mapped": false,
+            "value": 4171
+          },
+          {
+            "source": "(native)",
+            "line": -1,
+            "column": -1,
+            "name": "(garbage collector)",
+            "mapped": false,
+            "value": 3936
+          },
+          {
+            "source": "(native)",
+            "line": -1,
+            "column": -1,
+            "name": "requestAnimationFrame",
+            "mapped": false,
+            "value": 3850
+          },
+          {
+            "source": "(native)",
+            "line": -1,
+            "column": -1,
+            "name": "querySelector",
+            "mapped": false,
+            "value": 2609
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/vdom.ts",
+            "line": 76,
+            "column": 6,
+            "name": "visit",
+            "mapped": true,
+            "value": 2502
+          }
+        ],
+        "topMappedFrameworkSelfFrames": [
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/vdom.ts",
+            "line": 76,
+            "column": 6,
+            "name": "visit",
+            "mapped": true,
+            "value": 2502
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/html/index.ts",
+            "line": 2763,
+            "column": 2,
+            "name": "eP",
+            "mapped": true,
+            "value": 2502
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/html/lazy.ts",
+            "line": 130,
+            "column": 6,
+            "name": "resolveOrCache",
+            "mapped": true,
+            "value": 1512
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/snabbdom/h.ts",
+            "line": 157,
+            "column": 16,
+            "name": "h",
+            "mapped": true,
+            "value": 1237
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/snabbdom/init.ts",
+            "line": 734,
+            "column": 11,
+            "name": "patchVnode",
+            "mapped": true,
+            "value": 1170
+          }
+        ],
+        "metricDeltas": {
+          "JSHeapUsedSize": 1248232,
+          "JSHeapTotalSize": 1310720,
+          "ScriptDuration": 0.063005,
+          "TaskDuration": 0.344824,
+          "LayoutDuration": 0.026766,
+          "RecalcStyleDuration": 0.010703
+        }
+      }
+    ]
+  },
+  "heap": {
+    "manifest": "/private/tmp/foldkit-runtime-dive-20261026/output/heap/manifest-heap.json",
+    "settings": {
+      "createdAt": "2026-10-26T17:01:50.787Z",
+      "diagnosticOnly": true,
+      "runbook": "Existing instrumented add/toggle/delete operations with boot settled before profiling; profiling artifacts are separate from unchanged benchmark evidence",
+      "mode": "heap",
+      "itemCount": 100,
+      "rounds": 2,
+      "orderRotatesByRound": true,
+      "freshContextPerSample": true,
+      "profilerSettings": {
+        "cpuInterval": 100,
+        "heapInterval": 16384
+      },
+      "harnessDir": "/private/tmp/foldkit-preview-runtime-harness-20261023",
+      "harnessRevision": "03fff17ad22407115a91937ddab680e40fe0c7c7",
+      "browserVersion": "155.0.8059.85",
+      "host": {
+        "platform": "darwin",
+        "architecture": "arm64",
+        "osRelease": "25.6.0",
+        "cpuModel": "Apple M1 Max",
+        "logicalCpuCount": 10,
+        "nodeVersion": "v24.22.1"
+      },
+      "driverFiles": [
+        {
+          "file": "profile.mjs",
+          "sha256": "ca0cbe1faecc32040a6bed25700059dc0f74048ccfc6caeeccf957999e877b34"
+        },
+        {
+          "file": "profile-runner.html",
+          "sha256": "01d2af4592acd5f0ae5558b518a6de7ab53829e367e05126f402769f7ba30654"
+        },
+        {
+          "file": "server.mjs",
+          "sha256": "78271074ac683cb1a3036e5aae23a040071904e04bfb6031e12f89652d5203b5"
+        }
+      ],
+      "slotFiles": {
+        "foldkit-oct26-final-main-optimised": [
+          {
+            "path": "assets/index.optimised-9WXsnvtj.js",
+            "bytes": 300443,
+            "sha256": "8a4c3391ac6e98e6a400516b39cf801d48c8b0e0b9b542e14512faa296473d0d"
+          },
+          {
+            "path": "index.html",
+            "bytes": 700,
+            "sha256": "4941dd4a52b940a5cd3cbdc4928883d21e69090711a4df4967399f7f19b22b7c"
+          }
+        ],
+        "foldkit-oct26-final-preview-optimised": [
+          {
+            "path": "assets/index.optimised-BnhBmfvX.js",
+            "bytes": 418401,
+            "sha256": "b28bbca2b123ec352e5ae62a367b23358986e410a8c26939b32589910ff75619"
+          },
+          {
+            "path": "index.html",
+            "bytes": 700,
+            "sha256": "efa367bdab6cc1b287ce5bc56d83c5c58b5bb58cdb473059dc0e2376828e89c9"
+          }
+        ]
+      }
+    },
+    "samples": [
+      {
+        "round": 1,
+        "implementation": "foldkit-oct26-final-main-optimised",
+        "artifact": "01-foldkit-oct26-final-main-optimised-heap.heapprofile",
+        "artifactSha256": "0553ffc666ac97a39de5f2317fbb5eeb8f1b0c624c64f629ee512ee137225ee9",
+        "result": {
+          "crossOriginIsolated": true,
+          "total": 199.87999773025513,
+          "results": {
+            "sync": 42.03000020980835,
+            "timeout": 0,
+            "animation_frame": 157.84999752044678,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        },
+        "analysis": "/private/tmp/foldkit-runtime-dive-20261026/output/heap/01-foldkit-oct26-final-main-optimised-heap.heapprofile.analysis.json",
+        "unit": "sampled allocated bytes (self)",
+        "sampledTotal": 11659808,
+        "selfCategories": [
+          {
+            "category": "foldkit-html",
+            "value": 3890976
+          },
+          {
+            "category": "app-view",
+            "value": 2377744
+          },
+          {
+            "category": "browser",
+            "value": 2335944
+          },
+          {
+            "category": "effect",
+            "value": 656684
+          },
+          {
+            "category": "dom-patch",
+            "value": 574260
+          },
+          {
+            "category": "app-model",
+            "value": 558392
+          },
+          {
+            "category": "profile-runner",
+            "value": 380292
+          },
+          {
+            "category": "other",
+            "value": 327944
+          },
+          {
+            "category": "foldkit-other",
+            "value": 311540
+          },
+          {
+            "category": "foldkit-runtime",
+            "value": 82016
+          },
+          {
+            "category": "foldkit-renderer",
+            "value": 82016
+          },
+          {
+            "category": "instrumentation",
+            "value": 65592
+          },
+          {
+            "category": "app-update",
+            "value": 16408
+          },
+          {
+            "category": "foldkit-patch",
+            "value": 0
+          }
+        ],
+        "topSelfFrames": [
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/internal/lustre-benchmark/src/main.optimised.ts",
+            "line": 243,
+            "column": 37,
+            "name": "(anonymous)",
+            "mapped": true,
+            "value": 2000676,
+            "largestNodeBytes": 2000676
+          },
+          {
+            "source": "(native)",
+            "line": -1,
+            "column": -1,
+            "name": "add",
+            "mapped": false,
+            "value": 972444,
+            "largestNodeBytes": 403900
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/html/index.ts",
+            "line": 2763,
+            "column": 2,
+            "name": "eP",
+            "mapped": true,
+            "value": 787168,
+            "largestNodeBytes": 196760
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/html/boundary.ts",
+            "line": 295,
+            "column": 13,
+            "name": "restoreBoundaryWrapsForLazyHit",
+            "mapped": true,
+            "value": 770500,
+            "largestNodeBytes": 688540
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/html/index.ts",
+            "line": 3190,
+            "column": 6,
+            "name": "buildElement",
+            "mapped": true,
+            "value": 643948,
+            "largestNodeBytes": 430572
+          }
+        ],
+        "topMappedFrameworkSelfFrames": [
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/html/index.ts",
+            "line": 2763,
+            "column": 2,
+            "name": "eP",
+            "mapped": true,
+            "value": 787168,
+            "largestNodeBytes": 196760
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/html/boundary.ts",
+            "line": 295,
+            "column": 13,
+            "name": "restoreBoundaryWrapsForLazyHit",
+            "mapped": true,
+            "value": 770500,
+            "largestNodeBytes": 688540
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/html/index.ts",
+            "line": 3190,
+            "column": 6,
+            "name": "buildElement",
+            "mapped": true,
+            "value": 643948,
+            "largestNodeBytes": 430572
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/html/lazy.ts",
+            "line": 130,
+            "column": 6,
+            "name": "resolveOrCache",
+            "mapped": true,
+            "value": 557400,
+            "largestNodeBytes": 524600
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/html/boundary.ts",
+            "line": 698,
+            "column": 13,
+            "name": "getOrCreateBoundaryDispatch",
+            "mapped": true,
+            "value": 360780,
+            "largestNodeBytes": 278768
+          }
+        ],
+        "inclusiveRootsByCategory": [
+          {
+            "category": "foldkit-renderer",
+            "value": 19041060
+          },
+          {
+            "category": "browser",
+            "value": 18735172
+          },
+          {
+            "category": "app-view",
+            "value": 14504148
+          },
+          {
+            "category": "effect",
+            "value": 13393332
+          },
+          {
+            "category": "foldkit-runtime",
+            "value": 10853084
+          },
+          {
+            "category": "instrumentation",
+            "value": 10539588
+          },
+          {
+            "category": "other",
+            "value": 8698104
+          },
+          {
+            "category": "foldkit-html",
+            "value": 8026544
+          },
+          {
+            "category": "foldkit-patch",
+            "value": 2187672
+          },
+          {
+            "category": "foldkit-other",
+            "value": 2021992
+          },
+          {
+            "category": "dom-patch",
+            "value": 1789772
+          },
+          {
+            "category": "app-model",
+            "value": 1462980
+          },
+          {
+            "category": "profile-runner",
+            "value": 1300596
+          },
+          {
+            "category": "app-update",
+            "value": 559504
+          }
+        ],
+        "largestAllocationPathExample": [
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/internal/lustre-benchmark/src/entry.optimised.ts",
+            "line": 9,
+            "column": 2,
+            "name": "view",
+            "mapped": true
+          },
+          {
+            "source": "../../../foldkit-preview-followups/node_modules/.pnpm/effect@4.0.0/node_modules/effect/dist/Function.js",
+            "line": 75,
+            "column": 13,
+            "name": "(anonymous)",
+            "mapped": true
+          },
+          {
+            "source": "../../../foldkit-preview-followups/node_modules/.pnpm/effect@4.0.0/node_modules/effect/dist/Array.js",
+            "line": 327,
+            "column": 39,
+            "name": "(anonymous)",
+            "mapped": true
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/internal/lustre-benchmark/src/main.optimised.ts",
+            "line": 235,
+            "column": 4,
+            "name": "onNonEmpty",
+            "mapped": true
+          },
+          {
+            "source": "../../../foldkit-preview-followups/node_modules/.pnpm/effect@4.0.0/node_modules/effect/dist/Function.js",
+            "line": 75,
+            "column": 13,
+            "name": "(anonymous)",
+            "mapped": true
+          },
+          {
+            "source": "../../../foldkit-preview-followups/node_modules/.pnpm/effect@4.0.0/node_modules/effect/dist/Array.js",
+            "line": 2862,
+            "column": 37,
+            "name": "(anonymous)",
+            "mapped": true
+          },
+          {
+            "source": "(native)",
+            "line": -1,
+            "column": -1,
+            "name": "map",
+            "mapped": false
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/internal/lustre-benchmark/src/main.optimised.ts",
+            "line": 243,
+            "column": 37,
+            "name": "(anonymous)",
+            "mapped": true
+          }
+        ],
+        "metricDeltas": {
+          "JSHeapUsedSize": 1844136,
+          "JSHeapTotalSize": 786432,
+          "ScriptDuration": 0.21587,
+          "TaskDuration": 1.3076,
+          "LayoutDuration": 0.095009,
+          "RecalcStyleDuration": 0.033122
+        }
+      },
+      {
+        "round": 1,
+        "implementation": "foldkit-oct26-final-preview-optimised",
+        "artifact": "01-foldkit-oct26-final-preview-optimised-heap.heapprofile",
+        "artifactSha256": "7aabbb9c8e7de60754c47b3f08cc06b60aed9ee70b6774cf352607994aa1b21e",
+        "result": {
+          "crossOriginIsolated": true,
+          "total": 270.0999855995178,
+          "results": {
+            "sync": 51.67999458312988,
+            "timeout": 0,
+            "animation_frame": 218.41999101638794,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        },
+        "analysis": "/private/tmp/foldkit-runtime-dive-20261026/output/heap/01-foldkit-oct26-final-preview-optimised-heap.heapprofile.analysis.json",
+        "unit": "sampled allocated bytes (self)",
+        "sampledTotal": 21582072,
+        "selfCategories": [
+          {
+            "category": "browser",
+            "value": 7781128
+          },
+          {
+            "category": "foldkit-html",
+            "value": 4890540
+          },
+          {
+            "category": "app-view",
+            "value": 2377924
+          },
+          {
+            "category": "foldkit-other",
+            "value": 2148968
+          },
+          {
+            "category": "layered-mount-assert",
+            "value": 1065616
+          },
+          {
+            "category": "effect",
+            "value": 787736
+          },
+          {
+            "category": "app-model",
+            "value": 673924
+          },
+          {
+            "category": "dom-patch",
+            "value": 606960
+          },
+          {
+            "category": "profile-runner",
+            "value": 511460
+          },
+          {
+            "category": "other",
+            "value": 360680
+          },
+          {
+            "category": "foldkit-runtime",
+            "value": 262384
+          },
+          {
+            "category": "instrumentation",
+            "value": 49176
+          },
+          {
+            "category": "foldkit-patch",
+            "value": 32788
+          },
+          {
+            "category": "foldkit-renderer",
+            "value": 32788
+          },
+          {
+            "category": "app-update",
+            "value": 0
+          }
+        ],
+        "topSelfFrames": [
+          {
+            "source": "(native)",
+            "line": -1,
+            "column": -1,
+            "name": "add",
+            "mapped": false,
+            "value": 5858880,
+            "largestNodeBytes": 2489880
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/internal/lustre-benchmark/src/view.optimised.ts",
+            "line": 243,
+            "column": 37,
+            "name": "(anonymous)",
+            "mapped": true,
+            "value": 1787472,
+            "largestNodeBytes": 1787472
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/block/instanceContext.ts",
+            "line": 128,
+            "column": 13,
+            "name": "guardInstanceDispatch",
+            "mapped": true,
+            "value": 1214200,
+            "largestNodeBytes": 1000796
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/html/boundary.ts",
+            "line": 883,
+            "column": 13,
+            "name": "getOrCreateBoundaryDispatch",
+            "mapped": true,
+            "value": 1049728,
+            "largestNodeBytes": 754400
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/runtime/renderer.ts",
+            "line": 397,
+            "column": 20,
+            "name": "r",
+            "mapped": true,
+            "value": 1049208,
+            "largestNodeBytes": 393440
+          }
+        ],
+        "topMappedFrameworkSelfFrames": [
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/block/instanceContext.ts",
+            "line": 128,
+            "column": 13,
+            "name": "guardInstanceDispatch",
+            "mapped": true,
+            "value": 1214200,
+            "largestNodeBytes": 1000796
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/html/boundary.ts",
+            "line": 883,
+            "column": 13,
+            "name": "getOrCreateBoundaryDispatch",
+            "mapped": true,
+            "value": 1049728,
+            "largestNodeBytes": 754400
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/runtime/renderer.ts",
+            "line": 397,
+            "column": 20,
+            "name": "r",
+            "mapped": true,
+            "value": 1049208,
+            "largestNodeBytes": 393440
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/html/lazy.ts",
+            "line": 91,
+            "column": 2,
+            "name": "RA",
+            "mapped": true,
+            "value": 754120,
+            "largestNodeBytes": 688540
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/html/index.ts",
+            "line": 2874,
+            "column": 2,
+            "name": "OL",
+            "mapped": true,
+            "value": 721516,
+            "largestNodeBytes": 163968
+          }
+        ],
+        "inclusiveRootsByCategory": [
+          {
+            "category": "browser",
+            "value": 36054596
+          },
+          {
+            "category": "foldkit-renderer",
+            "value": 30718140
+          },
+          {
+            "category": "app-view",
+            "value": 29747484
+          },
+          {
+            "category": "foldkit-runtime",
+            "value": 25865892
+          },
+          {
+            "category": "instrumentation",
+            "value": 19296708
+          },
+          {
+            "category": "effect",
+            "value": 18183552
+          },
+          {
+            "category": "foldkit-other",
+            "value": 17186808
+          },
+          {
+            "category": "foldkit-html",
+            "value": 11505416
+          },
+          {
+            "category": "layered-mount-assert",
+            "value": 6183268
+          },
+          {
+            "category": "foldkit-patch",
+            "value": 2924736
+          },
+          {
+            "category": "dom-patch",
+            "value": 2708820
+          },
+          {
+            "category": "profile-runner",
+            "value": 2383752
+          },
+          {
+            "category": "app-model",
+            "value": 1841388
+          },
+          {
+            "category": "other",
+            "value": 377080
+          },
+          {
+            "category": "app-update",
+            "value": 98528
+          }
+        ],
+        "largestAllocationPathExample": [
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/runtime/renderer.ts",
+            "line": 397,
+            "column": 20,
+            "name": "r",
+            "mapped": true
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/runtime/renderer.ts",
+            "line": 397,
+            "column": 20,
+            "name": "r",
+            "mapped": true
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/runtime/renderer.ts",
+            "line": 397,
+            "column": 20,
+            "name": "r",
+            "mapped": true
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/runtime/renderer.ts",
+            "line": 397,
+            "column": 20,
+            "name": "r",
+            "mapped": true
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/runtime/renderer.ts",
+            "line": 397,
+            "column": 20,
+            "name": "r",
+            "mapped": true
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/runtime/renderer.ts",
+            "line": 397,
+            "column": 20,
+            "name": "r",
+            "mapped": true
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/runtime/renderer.ts",
+            "line": 397,
+            "column": 20,
+            "name": "r",
+            "mapped": true
+          },
+          {
+            "source": "(native)",
+            "line": -1,
+            "column": -1,
+            "name": "add",
+            "mapped": false
+          }
+        ],
+        "metricDeltas": {
+          "JSHeapUsedSize": 1583732,
+          "JSHeapTotalSize": 3407872,
+          "ScriptDuration": 0.287892,
+          "TaskDuration": 1.3400670000000001,
+          "LayoutDuration": 0.091608,
+          "RecalcStyleDuration": 0.030295
+        }
+      },
+      {
+        "round": 2,
+        "implementation": "foldkit-oct26-final-preview-optimised",
+        "artifact": "02-foldkit-oct26-final-preview-optimised-heap.heapprofile",
+        "artifactSha256": "6ced36148dad9c8ebff4b626dcf56012a69dae13811f4ce97ebe76486383c182",
+        "result": {
+          "crossOriginIsolated": true,
+          "total": 281.5399956703186,
+          "results": {
+            "sync": 51.48499870300293,
+            "timeout": 0,
+            "animation_frame": 230.05499696731567,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        },
+        "analysis": "/private/tmp/foldkit-runtime-dive-20261026/output/heap/02-foldkit-oct26-final-preview-optimised-heap.heapprofile.analysis.json",
+        "unit": "sampled allocated bytes (self)",
+        "sampledTotal": 21902404,
+        "selfCategories": [
+          {
+            "category": "browser",
+            "value": 7823692
+          },
+          {
+            "category": "foldkit-html",
+            "value": 5332416
+          },
+          {
+            "category": "app-view",
+            "value": 2607316
+          },
+          {
+            "category": "foldkit-other",
+            "value": 1640520
+          },
+          {
+            "category": "layered-mount-assert",
+            "value": 1262340
+          },
+          {
+            "category": "effect",
+            "value": 820168
+          },
+          {
+            "category": "dom-patch",
+            "value": 591260
+          },
+          {
+            "category": "app-model",
+            "value": 541892
+          },
+          {
+            "category": "profile-runner",
+            "value": 495688
+          },
+          {
+            "category": "foldkit-runtime",
+            "value": 426416
+          },
+          {
+            "category": "other",
+            "value": 245920
+          },
+          {
+            "category": "foldkit-renderer",
+            "value": 49196
+          },
+          {
+            "category": "instrumentation",
+            "value": 32800
+          },
+          {
+            "category": "app-update",
+            "value": 32780
+          },
+          {
+            "category": "foldkit-patch",
+            "value": 0
+          }
+        ],
+        "topSelfFrames": [
+          {
+            "source": "(native)",
+            "line": -1,
+            "column": -1,
+            "name": "add",
+            "mapped": false,
+            "value": 5836724,
+            "largestNodeBytes": 2865480
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/internal/lustre-benchmark/src/view.optimised.ts",
+            "line": 243,
+            "column": 37,
+            "name": "(anonymous)",
+            "mapped": true,
+            "value": 1967828,
+            "largestNodeBytes": 1967828
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/runtime/renderer.ts",
+            "line": 397,
+            "column": 20,
+            "name": "r",
+            "mapped": true,
+            "value": 1229552,
+            "largestNodeBytes": 377044
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/block/instanceContext.ts",
+            "line": 128,
+            "column": 13,
+            "name": "guardInstanceDispatch",
+            "mapped": true,
+            "value": 1033788,
+            "largestNodeBytes": 787556
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/html/boundary.ts",
+            "line": 883,
+            "column": 13,
+            "name": "getOrCreateBoundaryDispatch",
+            "mapped": true,
+            "value": 1000480,
+            "largestNodeBytes": 721600
+          }
+        ],
+        "topMappedFrameworkSelfFrames": [
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/runtime/renderer.ts",
+            "line": 397,
+            "column": 20,
+            "name": "r",
+            "mapped": true,
+            "value": 1229552,
+            "largestNodeBytes": 377044
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/block/instanceContext.ts",
+            "line": 128,
+            "column": 13,
+            "name": "guardInstanceDispatch",
+            "mapped": true,
+            "value": 1033788,
+            "largestNodeBytes": 787556
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/html/boundary.ts",
+            "line": 883,
+            "column": 13,
+            "name": "getOrCreateBoundaryDispatch",
+            "mapped": true,
+            "value": 1000480,
+            "largestNodeBytes": 721600
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/html/index.ts",
+            "line": 2874,
+            "column": 2,
+            "name": "OL",
+            "mapped": true,
+            "value": 1000344,
+            "largestNodeBytes": 278768
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/html/boundary.ts",
+            "line": 436,
+            "column": 13,
+            "name": "restoreBoundaryWrapsForLazyHit",
+            "mapped": true,
+            "value": 639380,
+            "largestNodeBytes": 622980
+          }
+        ],
+        "inclusiveRootsByCategory": [
+          {
+            "category": "browser",
+            "value": 36794048
+          },
+          {
+            "category": "foldkit-renderer",
+            "value": 31659380
+          },
+          {
+            "category": "app-view",
+            "value": 31151180
+          },
+          {
+            "category": "foldkit-runtime",
+            "value": 26299140
+          },
+          {
+            "category": "instrumentation",
+            "value": 19781244
+          },
+          {
+            "category": "effect",
+            "value": 18949372
+          },
+          {
+            "category": "foldkit-other",
+            "value": 16555288
+          },
+          {
+            "category": "foldkit-html",
+            "value": 12125068
+          },
+          {
+            "category": "layered-mount-assert",
+            "value": 6460688
+          },
+          {
+            "category": "foldkit-patch",
+            "value": 2526544
+          },
+          {
+            "category": "dom-patch",
+            "value": 2298552
+          },
+          {
+            "category": "profile-runner",
+            "value": 2202996
+          },
+          {
+            "category": "app-model",
+            "value": 1593824
+          },
+          {
+            "category": "other",
+            "value": 245920
+          },
+          {
+            "category": "app-update",
+            "value": 98384
+          }
+        ],
+        "largestAllocationPathExample": [
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/runtime/renderer.ts",
+            "line": 397,
+            "column": 20,
+            "name": "r",
+            "mapped": true
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/runtime/renderer.ts",
+            "line": 397,
+            "column": 20,
+            "name": "r",
+            "mapped": true
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/runtime/renderer.ts",
+            "line": 397,
+            "column": 20,
+            "name": "r",
+            "mapped": true
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/runtime/renderer.ts",
+            "line": 397,
+            "column": 20,
+            "name": "r",
+            "mapped": true
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/runtime/renderer.ts",
+            "line": 397,
+            "column": 20,
+            "name": "r",
+            "mapped": true
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/runtime/renderer.ts",
+            "line": 397,
+            "column": 20,
+            "name": "r",
+            "mapped": true
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-final-20261026/foldkit-source/packages/foldkit/src/runtime/renderer.ts",
+            "line": 397,
+            "column": 20,
+            "name": "r",
+            "mapped": true
+          },
+          {
+            "source": "(native)",
+            "line": -1,
+            "column": -1,
+            "name": "add",
+            "mapped": false
+          }
+        ],
+        "metricDeltas": {
+          "JSHeapUsedSize": 1731404,
+          "JSHeapTotalSize": 3145728,
+          "ScriptDuration": 0.298809,
+          "TaskDuration": 1.367368,
+          "LayoutDuration": 0.093049,
+          "RecalcStyleDuration": 0.029647
+        }
+      },
+      {
+        "round": 2,
+        "implementation": "foldkit-oct26-final-main-optimised",
+        "artifact": "02-foldkit-oct26-final-main-optimised-heap.heapprofile",
+        "artifactSha256": "e8d0f136174e6e3d990db3cfff6b52e71a6847f1af5d90e8c79f6591d81a161b",
+        "result": {
+          "crossOriginIsolated": true,
+          "total": 207.6949963569641,
+          "results": {
+            "sync": 45.93999624252319,
+            "timeout": 0,
+            "animation_frame": 161.75500011444092,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        },
+        "analysis": "/private/tmp/foldkit-runtime-dive-20261026/output/heap/02-foldkit-oct26-final-main-optimised-heap.heapprofile.analysis.json",
+        "unit": "sampled allocated bytes (self)",
+        "sampledTotal": 12335196,
+        "selfCategories": [
+          {
+            "category": "foldkit-html",
+            "value": 4086440
+          },
+          {
+            "category": "app-view",
+            "value": 2443316
+          },
+          {
+            "category": "browser",
+            "value": 2031472
+          },
+          {
+            "category": "effect",
+            "value": 869616
+          },
+          {
+            "category": "dom-patch",
+            "value": 541308
+          },
+          {
+            "category": "other",
+            "value": 524628
+          },
+          {
+            "category": "app-model",
+            "value": 509404
+          },
+          {
+            "category": "profile-runner",
+            "value": 476308
+          },
+          {
+            "category": "foldkit-other",
+            "value": 426344
+          },
+          {
+            "category": "foldkit-runtime",
+            "value": 180364
+          },
+          {
+            "category": "foldkit-renderer",
+            "value": 147628
+          },
+          {
+            "category": "instrumentation",
+            "value": 81976
+          },
+          {
+            "category": "app-update",
+            "value": 16392
+          },
+          {
+            "category": "foldkit-patch",
+            "value": 0
+          }
+        ],
+        "topSelfFrames": [
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/internal/lustre-benchmark/src/main.optimised.ts",
+            "line": 243,
+            "column": 37,
+            "name": "(anonymous)",
+            "mapped": true,
+            "value": 2082596,
+            "largestNodeBytes": 2082596
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/html/index.ts",
+            "line": 2763,
+            "column": 2,
+            "name": "eP",
+            "mapped": true,
+            "value": 770748,
+            "largestNodeBytes": 196764
+          },
+          {
+            "source": "(native)",
+            "line": -1,
+            "column": -1,
+            "name": "add",
+            "mapped": false,
+            "value": 668960,
+            "largestNodeBytes": 303780
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/html/lazy.ts",
+            "line": 130,
+            "column": 6,
+            "name": "resolveOrCache",
+            "mapped": true,
+            "value": 606612,
+            "largestNodeBytes": 524600
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/html/boundary.ts",
+            "line": 698,
+            "column": 13,
+            "name": "getOrCreateBoundaryDispatch",
+            "mapped": true,
+            "value": 590380,
+            "largestNodeBytes": 360752
+          }
+        ],
+        "topMappedFrameworkSelfFrames": [
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/html/index.ts",
+            "line": 2763,
+            "column": 2,
+            "name": "eP",
+            "mapped": true,
+            "value": 770748,
+            "largestNodeBytes": 196764
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/html/lazy.ts",
+            "line": 130,
+            "column": 6,
+            "name": "resolveOrCache",
+            "mapped": true,
+            "value": 606612,
+            "largestNodeBytes": 524600
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/html/boundary.ts",
+            "line": 698,
+            "column": 13,
+            "name": "getOrCreateBoundaryDispatch",
+            "mapped": true,
+            "value": 590380,
+            "largestNodeBytes": 360752
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/html/boundary.ts",
+            "line": 295,
+            "column": 13,
+            "name": "restoreBoundaryWrapsForLazyHit",
+            "mapped": true,
+            "value": 541020,
+            "largestNodeBytes": 459040
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/packages/foldkit/src/html/index.ts",
+            "line": 3190,
+            "column": 6,
+            "name": "buildElement",
+            "mapped": true,
+            "value": 528096,
+            "largestNodeBytes": 364000
+          }
+        ],
+        "inclusiveRootsByCategory": [
+          {
+            "category": "foldkit-renderer",
+            "value": 19470604
+          },
+          {
+            "category": "browser",
+            "value": 19433440
+          },
+          {
+            "category": "app-view",
+            "value": 16107700
+          },
+          {
+            "category": "effect",
+            "value": 14864104
+          },
+          {
+            "category": "foldkit-runtime",
+            "value": 11202780
+          },
+          {
+            "category": "instrumentation",
+            "value": 10528748
+          },
+          {
+            "category": "other",
+            "value": 9367860
+          },
+          {
+            "category": "foldkit-html",
+            "value": 9352884
+          },
+          {
+            "category": "app-model",
+            "value": 2216528
+          },
+          {
+            "category": "foldkit-patch",
+            "value": 2080588
+          },
+          {
+            "category": "dom-patch",
+            "value": 2035328
+          },
+          {
+            "category": "profile-runner",
+            "value": 1822704
+          },
+          {
+            "category": "foldkit-other",
+            "value": 1570944
+          },
+          {
+            "category": "app-update",
+            "value": 952752
+          }
+        ],
+        "largestAllocationPathExample": [
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/internal/lustre-benchmark/src/entry.optimised.ts",
+            "line": 9,
+            "column": 2,
+            "name": "view",
+            "mapped": true
+          },
+          {
+            "source": "../../../foldkit-preview-followups/node_modules/.pnpm/effect@4.0.0/node_modules/effect/dist/Function.js",
+            "line": 75,
+            "column": 13,
+            "name": "(anonymous)",
+            "mapped": true
+          },
+          {
+            "source": "../../../foldkit-preview-followups/node_modules/.pnpm/effect@4.0.0/node_modules/effect/dist/Array.js",
+            "line": 327,
+            "column": 39,
+            "name": "(anonymous)",
+            "mapped": true
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/internal/lustre-benchmark/src/main.optimised.ts",
+            "line": 235,
+            "column": 4,
+            "name": "onNonEmpty",
+            "mapped": true
+          },
+          {
+            "source": "../../../foldkit-preview-followups/node_modules/.pnpm/effect@4.0.0/node_modules/effect/dist/Function.js",
+            "line": 75,
+            "column": 13,
+            "name": "(anonymous)",
+            "mapped": true
+          },
+          {
+            "source": "../../../foldkit-preview-followups/node_modules/.pnpm/effect@4.0.0/node_modules/effect/dist/Array.js",
+            "line": 2862,
+            "column": 37,
+            "name": "(anonymous)",
+            "mapped": true
+          },
+          {
+            "source": "(native)",
+            "line": -1,
+            "column": -1,
+            "name": "map",
+            "mapped": false
+          },
+          {
+            "source": "../../../foldkit-next-preview-signoff-20261026/main-source/internal/lustre-benchmark/src/main.optimised.ts",
+            "line": 243,
+            "column": 37,
+            "name": "(anonymous)",
+            "mapped": true
+          }
+        ],
+        "metricDeltas": {
+          "JSHeapUsedSize": 1845332,
+          "JSHeapTotalSize": 1048576,
+          "ScriptDuration": 0.223573,
+          "TaskDuration": 1.340996,
+          "LayoutDuration": 0.096444,
+          "RecalcStyleDuration": 0.033365
+        }
+      }
+    ]
+  },
+  "phases": {
+    "summaryFile": "/private/tmp/foldkit-runtime-dive-20261026/phase-summary.json",
+    "rawFile": "/private/tmp/foldkit-runtime-dive-20261026/phase-diagnostic-raw.json",
+    "overlayManifestFile": "/private/tmp/foldkit-runtime-dive-20261026/instrumentation-overlays/manifest.json",
+    "overlayManifest": {
+      "generatedAt": "2026-10-26T17:19:35.173Z",
+      "runnerSource": "/private/tmp/foldkit-next-preview-signoff-final-20261026/lustre/driver/runner.html",
+      "variants": {
+        "main": {
+          "revision": "b702a5efbb74bebc056b798b414ddb923a82fbd5",
+          "sourceRoot": "/private/tmp/foldkit-next-preview-signoff-20261026/main-source",
+          "hasMountScan": false,
+          "files": {
+            "packages/foldkit/src/runtime/renderer.ts": {
+              "sourceSha256": "207240595195e6913f70aaba898a30b25c993bc67d9f03f192f0af96960db80f",
+              "overlaySha256": "b2d7c5c600f2ae7ccd2b14a0afdd10aa8846729358874b851f7499d397d29f24"
+            },
+            "packages/foldkit/src/runtime/runtime.ts": {
+              "sourceSha256": "b7acd658f8fa3e539e011aeca266c1607600acbe8d98d3124f6efa82d6611538",
+              "overlaySha256": "c646e0d0a4105445fef0a72a7770fcba43b119d1e5721cd24223bc26233a5cfe"
+            },
+            "packages/foldkit/src/html/lazy.ts": {
+              "sourceSha256": "d27f7193add9ed1f917a5951aaa7fec9ea24ac81514e129d9ec8bdbf508b2a44",
+              "overlaySha256": "b2a1e5ed10d5a01046646ab9c450f4fd925b765600a3865f3746367727ab1de7"
+            },
+            "packages/foldkit/src/runtime/runtimeDiagnostics.ts": {
+              "sourceSha256": null,
+              "overlaySha256": "15551641b49d924dae233f462c459cd464c05569863d2ba3bd0e6f0132dacfc5"
+            }
+          }
+        },
+        "preview": {
+          "revision": "8cce3fa0b8ff6499c2bd17e56fcbef1d54feb08c",
+          "sourceRoot": "/private/tmp/foldkit-preview-followups",
+          "hasMountScan": true,
+          "files": {
+            "packages/foldkit/src/runtime/renderer.ts": {
+              "sourceSha256": "817208f9c0c651741a2b33303fdceb0febf3d0281233fc3738ee50c86a30b508",
+              "overlaySha256": "ce81c41df0ba6bfa6d5be9be6970944c63a071bf4cd02a5b104097c7a9da04d3"
+            },
+            "packages/foldkit/src/runtime/runtime.ts": {
+              "sourceSha256": "c031b38a39168ad710d00a9b763182d3172039444cb0200eff229abd7692c2b8",
+              "overlaySha256": "4eb013e453e1064608acb0de4a83ee0378beba2fbde05d159c4ac03411b17568"
+            },
+            "packages/foldkit/src/html/lazy.ts": {
+              "sourceSha256": "3705fbba3a556ddc0b4d92a56eda535cb73b0951aa39abb971ffd52f9a0703b5",
+              "overlaySha256": "3ddcc42a1ee4c32ab6b5594e629de8de7d618688bbcfb4db96742b0c317ec87f"
+            },
+            "packages/foldkit/src/runtime/runtimeDiagnostics.ts": {
+              "sourceSha256": null,
+              "overlaySha256": "15551641b49d924dae233f462c459cd464c05569863d2ba3bd0e6f0132dacfc5"
+            }
+          }
+        }
+      },
+      "measurements": {
+        "view": "Only the application view(model, htmlBuilder) call.",
+        "mountScan": "Only assertLayeredMountsAreRegistered(nextVNode); zero calls on main, where this scan does not exist.",
+        "patch": "The normal render path direct __patchVNode call inside patchRuntimeVNode; teardown patching is outside the retained sample window and is not wrapped.",
+        "hydrate": "The direct __hydrateVNode call. Expected to be zero after the retained runner resets counters after boot.",
+        "update": "Only update(currentModel, message).",
+        "lazy": "One call and hit/miss increment per resolveOrCache decision, plus direct dispatcher, Mount dispatcher, Mount render owner, and combined frame identity mismatch counts. It does not invoke the resolution observer or calculate findMissReason."
+      },
+      "overlap": "View time includes lazy view work on misses. Other timed phases are disjoint at these call sites. Instrumentation adds performance.now overhead and is for attribution, not benchmark replacement.",
+      "runner": {
+        "sourceSha256": "6d26843332fa4b5bcd55def19f6219ac8d26a0db242c32bc54a2291a6a695ee1",
+        "overlaySha256": "933fb1cc98f8cb9c3a289aaa78d2cad7183ea6a26d88eed9a86a12cc1c005847",
+        "output": "/private/tmp/foldkit-runtime-dive-20261026/instrumentation-overlays/runner.instrumented.html"
+      }
+    },
+    "recordedSummary": {
+      "foldkit-oct26-dive-main-phase-optimised": {
+        "totalMedian": 217.5275046825409,
+        "phases": {
+          "view": 82.01250195503235,
+          "mountScan": 0.0,
+          "patch": 68.87499785423279,
+          "update": 13.492499113082886
+        },
+        "lazy": {
+          "calls": 26843,
+          "hits": 26140,
+          "misses": 703,
+          "dispatchIdentityMisses": 0,
+          "mountDispatchIdentityMisses": 0,
+          "mountRenderOwnerIdentityMisses": 0,
+          "frameIdentityMisses": 0
+        },
+        "otherMedian": 53.14750576019287
+      },
+      "foldkit-oct26-dive-preview-phase-optimised": {
+        "totalMedian": 284.76750445365906,
+        "phases": {
+          "view": 100.73750019073486,
+          "mountScan": 44.700000047683716,
+          "patch": 63.65249848365784,
+          "update": 19.165000438690186
+        },
+        "lazy": {
+          "calls": 26843,
+          "hits": 26140,
+          "misses": 703,
+          "dispatchIdentityMisses": 0,
+          "mountDispatchIdentityMisses": 0,
+          "mountRenderOwnerIdentityMisses": 0,
+          "frameIdentityMisses": 0
+        },
+        "otherMedian": 56.512505292892456
+      }
+    },
+    "previewMinusMainMedians": {
+      "totalMs": 67.23999977111816,
+      "phasesMs": {
+        "view": 18.724998235702515,
+        "mountScan": 44.700000047683716,
+        "patch": -5.222499370574951,
+        "update": 5.6725013256073
+      },
+      "otherMs": 3.364999532699585,
+      "warning": "Differences of phase medians do not necessarily sum to the median total gap; instrumentation changes costs."
+    }
+  },
+  "bundle": {
+    "directory": "/private/tmp/foldkit-bundle-attribution-20261026",
+    "topLevelFiles": [
+      "analyze.mjs",
+      "attribution-optimised.json",
+      "attribution.json",
+      "bindChild.ts.rendered.txt",
+      "build.mjs",
+      "definition.ts.rendered.txt",
+      "initializationRuntime.ts.rendered.txt",
+      "main-modules.json",
+      "main-optimised-modules.json",
+      "preview-modules.json",
+      "preview-optimised-modules.json",
+      "program.ts.rendered.txt",
+      "programRoot.ts.rendered.txt"
+    ],
+    "maps": [
+      "/private/tmp/foldkit-bundle-attribution-20261026/main-optimised/assets/index.optimised-9WXsnvtj.js.map",
+      "/private/tmp/foldkit-bundle-attribution-20261026/main/assets/index-DvxYd33x.js.map",
+      "/private/tmp/foldkit-bundle-attribution-20261026/preview-optimised/assets/index.optimised-BnhBmfvX.js.map",
+      "/private/tmp/foldkit-bundle-attribution-20261026/preview/assets/index-nUSpZEfx.js.map"
+    ],
+    "naive": {
+      "attributionFile": "/private/tmp/foldkit-bundle-attribution-20261026/attribution.json",
+      "sizes": {
+        "main": {
+          "file": "index-DvxYd33x.js",
+          "bytes": 298040,
+          "gzip": 97081,
+          "sha256": "12edee10fcab977045b37a264f67ac08e7d83b957659beab5ae3a1503cdf3ce0",
+          "unattributedBytes": 7876
+        },
+        "preview": {
+          "file": "index-nUSpZEfx.js",
+          "bytes": 411787,
+          "gzip": 128784,
+          "sha256": "d2c74cfddfefce44274f017d46162f1109b29c593a84bd075ef0460bd560b78e",
+          "unattributedBytes": 7876
+        }
+      },
+      "categoryBytes": {
+        "main": {
+          "Application and other": 6908,
+          "Effect and dependencies": 140080,
+          "Other Foldkit": 108963,
+          "Runtime": 34213
+        },
+        "preview": {
+          "Application and other": 7049,
+          "Effect and dependencies": 144580,
+          "Other Foldkit": 123754,
+          "Block": 78566,
+          "Runtime": 49962
+        }
+      },
+      "categoryDeltas": {
+        "Effect and dependencies": 4500,
+        "Application and other": 141,
+        "Block": 78566,
+        "Other Foldkit": 14791,
+        "Runtime": 15749
+      },
+      "topAddedSources": [
+        {
+          "source": "foldkit/src/block/bindChild.ts",
+          "main": 0,
+          "preview": 11387,
+          "delta": 11387
+        },
+        {
+          "source": "foldkit/src/block/definition.ts",
+          "main": 0,
+          "preview": 8403,
+          "delta": 8403
+        },
+        {
+          "source": "foldkit/src/block/keyedFieldConnection.ts",
+          "main": 0,
+          "preview": 7639,
+          "delta": 7639
+        },
+        {
+          "source": "app/src/todo.ts",
+          "main": 0,
+          "preview": 6105,
+          "delta": 6105
+        },
+        {
+          "source": "foldkit/src/block/initializationRuntime.ts",
+          "main": 0,
+          "preview": 6099,
+          "delta": 6099
+        },
+        {
+          "source": "foldkit/src/runtime/compositionRuntime.ts",
+          "main": 0,
+          "preview": 5381,
+          "delta": 5381
+        },
+        {
+          "source": "foldkit/src/block/binding.ts",
+          "main": 0,
+          "preview": 5177,
+          "delta": 5177
+        },
+        {
+          "source": "foldkit/src/block/keyedMapFieldConnection.ts",
+          "main": 0,
+          "preview": 4269,
+          "delta": 4269
+        },
+        {
+          "source": "foldkit/src/block/delivery.ts",
+          "main": 0,
+          "preview": 4198,
+          "delta": 4198
+        },
+        {
+          "source": "foldkit/src/block/keyedBinding.ts",
+          "main": 0,
+          "preview": 3883,
+          "delta": 3883
+        },
+        {
+          "source": "foldkit/src/block/scope.ts",
+          "main": 0,
+          "preview": 3845,
+          "delta": 3845
+        },
+        {
+          "source": "foldkit/src/block/directConnection.ts",
+          "main": 0,
+          "preview": 3756,
+          "delta": 3756
+        },
+        {
+          "source": "foldkit/src/runtime/programRoot.ts",
+          "main": 0,
+          "preview": 3239,
+          "delta": 3239
+        },
+        {
+          "source": "foldkit/src/html/block.ts",
+          "main": 0,
+          "preview": 2842,
+          "delta": 2842
+        },
+        {
+          "source": "foldkit/src/runtime/childOrigin.ts",
+          "main": 0,
+          "preview": 2147,
+          "delta": 2147
+        }
+      ],
+      "rawDelta": 113747,
+      "gzipDelta": 31703
+    },
+    "optimised": {
+      "attributionFile": "/private/tmp/foldkit-bundle-attribution-20261026/attribution-optimised.json",
+      "sizes": {
+        "main": {
+          "file": "index.optimised-9WXsnvtj.js",
+          "bytes": 300443,
+          "gzip": 97796,
+          "sha256": "8a4c3391ac6e98e6a400516b39cf801d48c8b0e0b9b542e14512faa296473d0d",
+          "unattributedBytes": 7876
+        },
+        "preview": {
+          "file": "index.optimised-BnhBmfvX.js",
+          "bytes": 418401,
+          "gzip": 130152,
+          "sha256": "b28bbca2b123ec352e5ae62a367b23358986e410a8c26939b32589910ff75619",
+          "unattributedBytes": 7876
+        }
+      },
+      "categoryBytes": {
+        "main": {
+          "Application and other": 7547,
+          "Effect and dependencies": 140080,
+          "Other Foldkit": 110727,
+          "Runtime": 34213
+        },
+        "preview": {
+          "Application and other": 10607,
+          "Effect and dependencies": 144567,
+          "Other Foldkit": 126818,
+          "Block": 78567,
+          "Runtime": 49966
+        }
+      },
+      "categoryDeltas": {
+        "Effect and dependencies": 4487,
+        "Application and other": 3060,
+        "Block": 78567,
+        "Other Foldkit": 16091,
+        "Runtime": 15753
+      },
+      "topAddedSources": [
+        {
+          "source": "foldkit/src/block/bindChild.ts",
+          "main": 0,
+          "preview": 11387,
+          "delta": 11387
+        },
+        {
+          "source": "foldkit/src/block/definition.ts",
+          "main": 0,
+          "preview": 8403,
+          "delta": 8403
+        },
+        {
+          "source": "foldkit/src/block/keyedFieldConnection.ts",
+          "main": 0,
+          "preview": 7639,
+          "delta": 7639
+        },
+        {
+          "source": "app/src/todo.ts",
+          "main": 0,
+          "preview": 6105,
+          "delta": 6105
+        },
+        {
+          "source": "foldkit/src/block/initializationRuntime.ts",
+          "main": 0,
+          "preview": 6099,
+          "delta": 6099
+        },
+        {
+          "source": "foldkit/src/runtime/compositionRuntime.ts",
+          "main": 0,
+          "preview": 5381,
+          "delta": 5381
+        },
+        {
+          "source": "foldkit/src/block/binding.ts",
+          "main": 0,
+          "preview": 5177,
+          "delta": 5177
+        },
+        {
+          "source": "foldkit/src/block/keyedMapFieldConnection.ts",
+          "main": 0,
+          "preview": 4269,
+          "delta": 4269
+        },
+        {
+          "source": "foldkit/src/block/delivery.ts",
+          "main": 0,
+          "preview": 4198,
+          "delta": 4198
+        },
+        {
+          "source": "foldkit/src/block/keyedBinding.ts",
+          "main": 0,
+          "preview": 3883,
+          "delta": 3883
+        },
+        {
+          "source": "foldkit/src/block/scope.ts",
+          "main": 0,
+          "preview": 3845,
+          "delta": 3845
+        },
+        {
+          "source": "foldkit/src/block/directConnection.ts",
+          "main": 0,
+          "preview": 3756,
+          "delta": 3756
+        },
+        {
+          "source": "app/src/view.optimised.ts",
+          "main": 0,
+          "preview": 3450,
+          "delta": 3450
+        },
+        {
+          "source": "foldkit/src/runtime/programRoot.ts",
+          "main": 0,
+          "preview": 3239,
+          "delta": 3239
+        },
+        {
+          "source": "foldkit/src/html/block.ts",
+          "main": 0,
+          "preview": 2846,
+          "delta": 2846
+        }
+      ],
+      "rawDelta": 117958,
+      "gzipDelta": 32356
+    },
+    "interpretation": "All four isolated sourcemap rebuild JS byte counts and SHA-256 values match frozen bundle evidence exactly. Category amounts are generated sourcemap-span raw-byte attribution, not additive gzip contributions. Most growth is retained Block authoring/composition machinery. No new platform service/provider dependency appears; Effect Tuple is the only newly retained third-party source module. Program itself is small, while callable Definition methods retain Binding and effect-construction implementations."
+  },
+  "exploratoryRuns": [
+    {
+      "rawFile": "/private/tmp/foldkit-runtime-dive-20261026/phase-diagnostic-raw.json",
+      "bundleManifest": "/private/tmp/foldkit-runtime-dive-20261026/phase-bundles.json",
+      "bundleManifestContents": [
+        {
+          "name": "main",
+          "slot": "foldkit-oct26-dive-main-phase-optimised"
+        },
+        {
+          "name": "preview",
+          "slot": "foldkit-oct26-dive-preview-phase-optimised"
+        }
+      ],
+      "baselineBundleManifest": "/private/tmp/foldkit-next-preview-signoff-final-20261026/lustre/bundles.json",
+      "method": {
+        "harnessRevision": "03fff17ad22407115a91937ddab680e40fe0c7c7",
+        "browserVersion": "155.0.8059.85",
+        "driverProtocol": "Unchanged runbook and timer aggregation; final DOM and sync-count assertions after returned measurement snapshot",
+        "itemCount": 100,
+        "rounds": 2,
+        "freshContextPerSample": true,
+        "separateWarmup": false,
+        "bootExcluded": true,
+        "garbageCollectionControl": false,
+        "outlierPolicy": "Keep every valid sample; fail on any page error or contract failure",
+        "host": {
+          "platform": "darwin",
+          "architecture": "arm64",
+          "osRelease": "25.6.0",
+          "cpuModel": "Apple M1 Max",
+          "logicalCpuCount": 10,
+          "nodeVersion": "v24.22.1"
+        }
+      },
+      "recordedRoundedMedianTotalsMs": {
+        "foldkit-oct26-dive-main-phase-optimised": 217.5,
+        "foldkit-oct26-dive-preview-phase-optimised": 284.8
+      },
+      "implementations": {
+        "foldkit-oct26-dive-main-phase-optimised": {
+          "allRawTotalsMs": [198.60999822616577, 236.44501113891602],
+          "medianMs": 217.5275046825409,
+          "rangeMs": [198.60999822616577, 236.44501113891602],
+          "allRawBucketsMs": {
+            "sync": [44.069997787475586, 51.68000507354736],
+            "animation_frame": [154.54000043869019, 184.76500606536865]
+          },
+          "allSamplesPassedFinalStateAndCounts": true
+        },
+        "foldkit-oct26-dive-preview-phase-optimised": {
+          "allRawTotalsMs": [273.6200051307678, 295.9150037765503],
+          "medianMs": 284.76750445365906,
+          "rangeMs": [273.6200051307678, 295.9150037765503],
+          "allRawBucketsMs": {
+            "sync": [54.615002155303955, 61.12000226974487],
+            "animation_frame": [219.00500297546387, 234.79500150680542]
+          },
+          "allSamplesPassedFinalStateAndCounts": true
+        }
+      },
+      "interpretation": "Instrumented phase attribution only; not a replacement benchmark."
+    },
+    {
+      "rawFile": "/private/tmp/foldkit-runtime-dive-20261026/no-scan-diagnostic-raw.json",
+      "bundleManifest": "/private/tmp/foldkit-runtime-dive-20261026/no-scan-bundle.json",
+      "bundleManifestContents": [
+        {
+          "path": "index.html",
+          "bytes": 700,
+          "sha256": "8c8ab4d5eeac2eeb11daf756baef5917bbcbbe6b7ec9e467d91187131a570a82"
+        },
+        {
+          "path": "assets/index.optimised-DA_ivNgj.js",
+          "bytes": 417928,
+          "sha256": "da6cac396d9ca0d7b1c4a1edfabfe7e286aaa28a2e786566358a668937a17c9c"
+        },
+        {
+          "path": "assets/index.optimised-DA_ivNgj.js.map",
+          "bytes": 5416814,
+          "sha256": "ce99599a754141e02c3554023d938549ab0e98b7bc40818e52dc65cddd5ba0d5"
+        }
+      ],
+      "baselineBundleManifest": "/private/tmp/foldkit-next-preview-signoff-final-20261026/lustre/bundles.json",
+      "method": {
+        "harnessRevision": "03fff17ad22407115a91937ddab680e40fe0c7c7",
+        "browserVersion": "155.0.8059.85",
+        "driverProtocol": "Unchanged runbook and timer aggregation; final DOM and sync-count assertions after returned measurement snapshot",
+        "itemCount": 100,
+        "rounds": 3,
+        "freshContextPerSample": true,
+        "separateWarmup": false,
+        "bootExcluded": true,
+        "garbageCollectionControl": false,
+        "outlierPolicy": "Keep every valid sample; fail on any page error or contract failure",
+        "host": {
+          "platform": "darwin",
+          "architecture": "arm64",
+          "osRelease": "25.6.0",
+          "cpuModel": "Apple M1 Max",
+          "logicalCpuCount": 10,
+          "nodeVersion": "v24.22.1"
+        }
+      },
+      "recordedRoundedMedianTotalsMs": {
+        "foldkit-oct26-final-main-optimised": 169.8,
+        "foldkit-oct26-final-preview-optimised": 242,
+        "foldkit-oct26-dive-no-scan-optimised": 216.2
+      },
+      "implementations": {
+        "foldkit-oct26-final-main-optimised": {
+          "allRawTotalsMs": [
+            169.7550048828125, 136.51500511169434, 188.29499864578247
+          ],
+          "medianMs": 169.7550048828125,
+          "rangeMs": [136.51500511169434, 188.29499864578247],
+          "allRawBucketsMs": {
+            "sync": [38.82499694824219, 31.799999237060547, 42.34999990463257],
+            "animation_frame": [
+              130.9300079345703, 104.71500587463379, 145.9449987411499
+            ]
+          },
+          "allSamplesPassedFinalStateAndCounts": true
+        },
+        "foldkit-oct26-final-preview-optimised": {
+          "allRawTotalsMs": [
+            241.96498823165894, 241.75000619888306, 270.3099946975708
+          ],
+          "medianMs": 241.96498823165894,
+          "rangeMs": [241.75000619888306, 270.3099946975708],
+          "allRawBucketsMs": {
+            "sync": [48.53499746322632, 49.26999521255493, 55.24499797821045],
+            "animation_frame": [
+              193.42999076843262, 192.48001098632812, 215.06499671936035
+            ]
+          },
+          "allSamplesPassedFinalStateAndCounts": true
+        },
+        "foldkit-oct26-dive-no-scan-optimised": {
+          "allRawTotalsMs": [
+            223.36999893188477, 140.66000175476074, 216.17499828338623
+          ],
+          "medianMs": 216.17499828338623,
+          "rangeMs": [140.66000175476074, 223.36999893188477],
+          "allRawBucketsMs": {
+            "sync": [52.25500154495239, 34.47000074386597, 52.189998149871826],
+            "animation_frame": [
+              171.11499738693237, 106.19000101089478, 163.9850001335144
+            ]
+          },
+          "allSamplesPassedFinalStateAndCounts": true
+        }
+      },
+      "interpretation": "Unsafe diagnostic ablation; required validation removed; never ship."
+    },
+    {
+      "rawFile": "/private/tmp/foldkit-runtime-dive-20261026/scan-constant-diagnostic-raw.json",
+      "bundleManifest": "/private/tmp/foldkit-runtime-dive-20261026/scan-constant-bundle.json",
+      "bundleManifestContents": [
+        {
+          "path": "index.html",
+          "bytes": 700,
+          "sha256": "19ba50f6892e8b8fdf4210dff058be9ac97bd66760504adbf87200ed10f13e4f"
+        },
+        {
+          "path": "assets/index.optimised-QYlozJDE.js",
+          "bytes": 418448,
+          "sha256": "bbc9b5c3f1df8ce0613b46b91c4761bfe59bb5678ad9b9b7a9b13f77d9c6a1a4"
+        },
+        {
+          "path": "assets/index.optimised-QYlozJDE.js.map",
+          "bytes": 5417926,
+          "sha256": "7be89841106c76b969cd1fc373fa75623088e72887af8f0acd075b82ae59da29"
+        }
+      ],
+      "baselineBundleManifest": "/private/tmp/foldkit-next-preview-signoff-final-20261026/lustre/bundles.json",
+      "method": {
+        "harnessRevision": "03fff17ad22407115a91937ddab680e40fe0c7c7",
+        "browserVersion": "155.0.8059.85",
+        "driverProtocol": "Unchanged runbook and timer aggregation; final DOM and sync-count assertions after returned measurement snapshot",
+        "itemCount": 100,
+        "rounds": 3,
+        "freshContextPerSample": true,
+        "separateWarmup": false,
+        "bootExcluded": true,
+        "garbageCollectionControl": false,
+        "outlierPolicy": "Keep every valid sample; fail on any page error or contract failure",
+        "host": {
+          "platform": "darwin",
+          "architecture": "arm64",
+          "osRelease": "25.6.0",
+          "cpuModel": "Apple M1 Max",
+          "logicalCpuCount": 10,
+          "nodeVersion": "v24.22.1"
+        }
+      },
+      "recordedRoundedMedianTotalsMs": {
+        "foldkit-oct26-final-main-optimised": 193.2,
+        "foldkit-oct26-final-preview-optimised": 263.9,
+        "foldkit-oct26-dive-scan-constant-optimised": 246.7
+      },
+      "implementations": {
+        "foldkit-oct26-final-main-optimised": {
+          "allRawTotalsMs": [
+            193.2349991798401, 155.13000297546387, 200.5800018310547
+          ],
+          "medianMs": 193.2349991798401,
+          "rangeMs": [155.13000297546387, 200.5800018310547],
+          "allRawBucketsMs": {
+            "sync": [42.92499923706055, 35.29499816894531, 44.52999925613403],
+            "animation_frame": [
+              150.30999994277954, 119.83500480651855, 156.05000257492065
+            ]
+          },
+          "allSamplesPassedFinalStateAndCounts": true
+        },
+        "foldkit-oct26-final-preview-optimised": {
+          "allRawTotalsMs": [
+            263.91999673843384, 258.3800091743469, 274.1049976348877
+          ],
+          "medianMs": 263.91999673843384,
+          "rangeMs": [258.3800091743469, 274.1049976348877],
+          "allRawBucketsMs": {
+            "sync": [53.77999496459961, 53.77000570297241, 55.689998626708984],
+            "animation_frame": [
+              210.14000177383423, 204.6100034713745, 218.4149990081787
+            ]
+          },
+          "allSamplesPassedFinalStateAndCounts": true
+        },
+        "foldkit-oct26-dive-scan-constant-optimised": {
+          "allRawTotalsMs": [
+            246.71500062942505, 242.15999746322632, 248.3099980354309
+          ],
+          "medianMs": 246.71500062942505,
+          "rangeMs": [242.15999746322632, 248.3099980354309],
+          "allRawBucketsMs": {
+            "sync": [52.62499761581421, 51.97499752044678, 53.814998149871826],
+            "animation_frame": [
+              194.09000301361084, 190.18499994277954, 194.49499988555908
+            ]
+          },
+          "allSamplesPassedFinalStateAndCounts": true
+        }
+      },
+      "interpretation": "Exploratory constant-factor scan candidate; broader gap remains."
+    },
+    {
+      "rawFile": "/private/tmp/foldkit-runtime-dive-20261026/factories-diagnostic-raw.json",
+      "bundleManifest": "/private/tmp/foldkit-runtime-dive-20261026/factory-trial-bundles.json",
+      "bundleManifestContents": [
+        {
+          "slot": "foldkit-oct26-dive-factories-optimised",
+          "files": [
+            {
+              "path": "index.html",
+              "bytes": 700,
+              "sha256": "155cb48639ac9449cfba9f3bf05d89bca029ce8073f649c325d1374ea211400f"
+            },
+            {
+              "path": "assets/index.optimised-CGZrOKOf.js",
+              "bytes": 418458,
+              "sha256": "81c3b4ed6a52badcd4cb5b2e9af59c25583cf941c62b4d3574c2f46c42c07954"
+            },
+            {
+              "path": "assets/index.optimised-CGZrOKOf.js.map",
+              "bytes": 5418196,
+              "sha256": "436dd9ff061b65946233fcf4118734728af239ab9679e38987b4ee8c1c325240"
+            }
+          ],
+          "patches": ["dispatch-factories"]
+        },
+        {
+          "slot": "foldkit-oct26-dive-factories-epochs-optimised",
+          "files": [
+            {
+              "path": "index.html",
+              "bytes": 700,
+              "sha256": "3f8e99889a35631c026113f01735e5c4f08018935f99efa7e56425ca33b5d24c"
+            },
+            {
+              "path": "assets/index.optimised-6L2mWgdR.js.map",
+              "bytes": 5418934,
+              "sha256": "9123ce5fdef540cc3f3d15844ab96be3358cdf295b1015deb5519ba890d93614"
+            },
+            {
+              "path": "assets/index.optimised-6L2mWgdR.js",
+              "bytes": 418534,
+              "sha256": "04105ca840b9e6ca8aeb5711acae7a6edb7367c4921e54fccc7c49cd08089bde"
+            }
+          ],
+          "patches": ["dispatch-factories", "scan-visitation-epochs"]
+        }
+      ],
+      "baselineBundleManifest": "/private/tmp/foldkit-next-preview-signoff-final-20261026/lustre/bundles.json",
+      "method": {
+        "harnessRevision": "03fff17ad22407115a91937ddab680e40fe0c7c7",
+        "browserVersion": "155.0.8059.85",
+        "driverProtocol": "Unchanged runbook and timer aggregation; final DOM and sync-count assertions after returned measurement snapshot",
+        "itemCount": 100,
+        "rounds": 3,
+        "freshContextPerSample": true,
+        "separateWarmup": false,
+        "bootExcluded": true,
+        "garbageCollectionControl": false,
+        "outlierPolicy": "Keep every valid sample; fail on any page error or contract failure",
+        "host": {
+          "platform": "darwin",
+          "architecture": "arm64",
+          "osRelease": "25.6.0",
+          "cpuModel": "Apple M1 Max",
+          "logicalCpuCount": 10,
+          "nodeVersion": "v24.22.1"
+        }
+      },
+      "recordedRoundedMedianTotalsMs": {
+        "foldkit-oct26-final-preview-optimised": 242.4,
+        "foldkit-oct26-dive-factories-optimised": 270.2,
+        "foldkit-oct26-dive-factories-epochs-optimised": 248.1
+      },
+      "implementations": {
+        "foldkit-oct26-final-preview-optimised": {
+          "allRawTotalsMs": [
+            242.42999601364136, 260.8299984931946, 222.21999740600586
+          ],
+          "medianMs": 242.42999601364136,
+          "rangeMs": [222.21999740600586, 260.8299984931946],
+          "allRawBucketsMs": {
+            "sync": [48.30499839782715, 52.8700008392334, 47.66499710083008],
+            "animation_frame": [
+              194.1249976158142, 207.95999765396118, 174.55500030517578
+            ]
+          },
+          "allSamplesPassedFinalStateAndCounts": true
+        },
+        "foldkit-oct26-dive-factories-optimised": {
+          "allRawTotalsMs": [
+            270.21500539779663, 254.61499404907227, 275.2150020599365
+          ],
+          "medianMs": 270.21500539779663,
+          "rangeMs": [254.61499404907227, 275.2150020599365],
+          "allRawBucketsMs": {
+            "sync": [55.064998149871826, 49.73999738693237, 54.35500144958496],
+            "animation_frame": [
+              215.1500072479248, 204.8749966621399, 220.86000061035156
+            ]
+          },
+          "allSamplesPassedFinalStateAndCounts": true
+        },
+        "foldkit-oct26-dive-factories-epochs-optimised": {
+          "allRawTotalsMs": [
+            248.0950059890747, 260.5750045776367, 235.44000244140625
+          ],
+          "medianMs": 248.0950059890747,
+          "rangeMs": [235.44000244140625, 260.5750045776367],
+          "allRawBucketsMs": {
+            "sync": [
+              53.765005588531494, 56.460004806518555, 50.779998779296875
+            ],
+            "animation_frame": [
+              194.3300004005432, 204.11499977111816, 184.66000366210938
+            ]
+          },
+          "allSamplesPassedFinalStateAndCounts": true
+        }
+      },
+      "interpretation": "Factories show no positive timing signal; combined numeric epochs do not isolate epoch effect."
+    },
+    {
+      "rawFile": "/private/tmp/foldkit-runtime-dive-20261026/ancestry-diagnostic-raw.json",
+      "bundleManifest": "/private/tmp/foldkit-runtime-dive-20261026/ancestry-bundles.json",
+      "bundleManifestContents": {
+        "foldkit-oct26-dive-ancestry-optimised": {
+          "index.html": "479522cd5a025912c2f664042f20df2d1a2e69d97c01cadbc23c5d554d461f9f",
+          "assets/index.optimised-BBX6RQzc.js.map": "d03f3448d0f3b0da6d6cbb655f0bd17fcf2604d94768ed45d865561ed3c709ce",
+          "assets/index.optimised-BBX6RQzc.js": "39c9b613355aef0180b00f9af3978d51e88a844343ceb1fe51ee6a1cf413dd3e"
+        },
+        "foldkit-oct26-dive-ancestry-lazy-empty-optimised": {
+          "index.html": "138df54323d68574adf0c4c3d1ae50f0a9acefe78716f25e67109a518efc95ed",
+          "assets/index.optimised-CjLwnxRg.js.map": "ad67921afd8be5e983c1df58ab101e86cda335a141532d6b2a0ad92123c10e79",
+          "assets/index.optimised-CjLwnxRg.js": "a2692a00e698d7657e562bc3db7cdb0233f16c65c781c66ff3a213b9d58ca901"
+        }
+      },
+      "baselineBundleManifest": "/private/tmp/foldkit-next-preview-signoff-final-20261026/lustre/bundles.json",
+      "method": {
+        "harnessRevision": "03fff17ad22407115a91937ddab680e40fe0c7c7",
+        "browserVersion": "155.0.8059.85",
+        "driverProtocol": "Unchanged runbook and timer aggregation; final DOM and sync-count assertions after returned measurement snapshot",
+        "itemCount": 100,
+        "rounds": 3,
+        "freshContextPerSample": true,
+        "separateWarmup": false,
+        "bootExcluded": true,
+        "garbageCollectionControl": false,
+        "outlierPolicy": "Keep every valid sample; fail on any page error or contract failure",
+        "host": {
+          "platform": "darwin",
+          "architecture": "arm64",
+          "osRelease": "25.6.0",
+          "cpuModel": "Apple M1 Max",
+          "logicalCpuCount": 10,
+          "nodeVersion": "v24.22.1"
+        }
+      },
+      "recordedRoundedMedianTotalsMs": {
+        "foldkit-oct26-final-preview-optimised": 244.1,
+        "foldkit-oct26-dive-ancestry-optimised": 239.1,
+        "foldkit-oct26-dive-ancestry-lazy-empty-optimised": 243.5
+      },
+      "implementations": {
+        "foldkit-oct26-final-preview-optimised": {
+          "allRawTotalsMs": [
+            244.06499862670898, 236.98000288009644, 265.324999332428
+          ],
+          "medianMs": 244.06499862670898,
+          "rangeMs": [236.98000288009644, 265.324999332428],
+          "allRawBucketsMs": {
+            "sync": [50.73500156402588, 47.63000249862671, 54.80499887466431],
+            "animation_frame": [
+              193.3299970626831, 189.35000038146973, 210.52000045776367
+            ]
+          },
+          "allSamplesPassedFinalStateAndCounts": true
+        },
+        "foldkit-oct26-dive-ancestry-optimised": {
+          "allRawTotalsMs": [
+            239.05499172210693, 245.51000356674194, 229.63998937606812
+          ],
+          "medianMs": 239.05499172210693,
+          "rangeMs": [229.63998937606812, 245.51000356674194],
+          "allRawBucketsMs": {
+            "sync": [53.134995460510254, 52.780001640319824, 52.47499942779541],
+            "animation_frame": [
+              185.91999626159668, 192.73000192642212, 177.1649899482727
+            ]
+          },
+          "allSamplesPassedFinalStateAndCounts": true
+        },
+        "foldkit-oct26-dive-ancestry-lazy-empty-optimised": {
+          "allRawTotalsMs": [
+            243.4599986076355, 244.82499933242798, 183.00500440597534
+          ],
+          "medianMs": 243.4599986076355,
+          "rangeMs": [183.00500440597534, 244.82499933242798],
+          "allRawBucketsMs": {
+            "sync": [55.06500053405762, 54.58500099182129, 42.46500253677368],
+            "animation_frame": [
+              188.39499807357788, 190.2399983406067, 140.54000186920166
+            ]
+          },
+          "allSamplesPassedFinalStateAndCounts": true
+        }
+      },
+      "interpretation": "No material timing win; ancestor-array approach also has deep-tree and shared-subtree traversal costs."
+    },
+    {
+      "rawFile": "/private/tmp/foldkit-runtime-dive-20261026/token-diagnostic-raw.json",
+      "bundleManifest": "/private/tmp/foldkit-runtime-dive-20261026/token-trial-bundles.json",
+      "bundleManifestContents": {
+        "foldkit-oct26-dive-scan-token-optimised": {
+          "patches": ["scan-visitation-token.patch"],
+          "files": {
+            "index.html": "157e5452f80cdb761b57115b85a56b8a1a9b912172cffe6dd1b14c21fa601cbf",
+            "assets/index.optimised-DKVRve_3.js": "52aa1cf82c9b4f3f40a3ee9e3dc773fb65fd5e7a54014ac9a33eabcaee2a9dc9",
+            "assets/index.optimised-DKVRve_3.js.map": "185c0958760c7ac93265dc88085591a127ad8ef93bd9f26047fde4c8884ed2ff"
+          }
+        },
+        "foldkit-oct26-dive-scan-constant-childless-lazy-optimised": {
+          "patches": [
+            "scan-constant-factor.patch",
+            "composition-childless-synchronize.patch",
+            "lazy-empty-boundaries.patch"
+          ],
+          "files": {
+            "index.html": "729f52fb1fcfd77d525071c862282c9df7e771355a1a9e9583978c86e6563827",
+            "assets/index.optimised-C2cAsdwo.js": "19cac353a86d0ec34b30aae80249713cf4617a9fc60db9cbdb1b0fba4ee50e0f",
+            "assets/index.optimised-C2cAsdwo.js.map": "f657c5f3fb77b73e3321363c0c86bd4e6fdf71e65bb57a798600cb396907879d"
+          }
+        }
+      },
+      "baselineBundleManifest": "/private/tmp/foldkit-next-preview-signoff-final-20261026/lustre/bundles.json",
+      "method": {
+        "harnessRevision": "03fff17ad22407115a91937ddab680e40fe0c7c7",
+        "browserVersion": "155.0.8059.85",
+        "driverProtocol": "Unchanged runbook and timer aggregation; final DOM and sync-count assertions after returned measurement snapshot",
+        "itemCount": 100,
+        "rounds": 3,
+        "freshContextPerSample": true,
+        "separateWarmup": false,
+        "bootExcluded": true,
+        "garbageCollectionControl": false,
+        "outlierPolicy": "Keep every valid sample; fail on any page error or contract failure",
+        "host": {
+          "platform": "darwin",
+          "architecture": "arm64",
+          "osRelease": "25.6.0",
+          "cpuModel": "Apple M1 Max",
+          "logicalCpuCount": 10,
+          "nodeVersion": "v24.22.1"
+        }
+      },
+      "recordedRoundedMedianTotalsMs": {
+        "foldkit-oct26-final-preview-optimised": 244,
+        "foldkit-oct26-dive-scan-token-optimised": 231.7,
+        "foldkit-oct26-dive-scan-constant-childless-lazy-optimised": 253.8
+      },
+      "implementations": {
+        "foldkit-oct26-final-preview-optimised": {
+          "allRawTotalsMs": [
+            243.95499229431152, 244.3949899673462, 240.11000967025757
+          ],
+          "medianMs": 243.95499229431152,
+          "rangeMs": [240.11000967025757, 244.3949899673462],
+          "allRawBucketsMs": {
+            "sync": [52.394996643066406, 49.27999401092529, 49.33000421524048],
+            "animation_frame": [
+              191.55999565124512, 195.1149959564209, 190.7800054550171
+            ]
+          },
+          "allSamplesPassedFinalStateAndCounts": true
+        },
+        "foldkit-oct26-dive-scan-token-optimised": {
+          "allRawTotalsMs": [
+            228.62999773025513, 231.74499368667603, 243.0949935913086
+          ],
+          "medianMs": 231.74499368667603,
+          "rangeMs": [228.62999773025513, 243.0949935913086],
+          "allRawBucketsMs": {
+            "sync": [49.7699990272522, 49.409992694854736, 52.719998836517334],
+            "animation_frame": [
+              178.85999870300293, 182.3350009918213, 190.37499475479126
+            ]
+          },
+          "allSamplesPassedFinalStateAndCounts": true
+        },
+        "foldkit-oct26-dive-scan-constant-childless-lazy-optimised": {
+          "allRawTotalsMs": [
+            253.8499994277954, 265.1400046348572, 234.0900001525879
+          ],
+          "medianMs": 253.8499994277954,
+          "rangeMs": [234.0900001525879, 265.1400046348572],
+          "allRawBucketsMs": {
+            "sync": [52.15500354766846, 54.35500431060791, 50.934998512268066],
+            "animation_frame": [
+              201.69499588012695, 210.78500032424927, 183.15500164031982
+            ]
+          },
+          "allSamplesPassedFinalStateAndCounts": true
+        }
+      },
+      "interpretation": "Token-only and combined constant/childless/lazy trials recorded; exploratory evidence only, no adoption inferred."
+    },
+    {
+      "rawFile": "/private/tmp/foldkit-runtime-dive-20261026/frame-diagnostic-raw.json",
+      "bundleManifest": "/private/tmp/foldkit-runtime-dive-20261026/frame-trial-bundles.json",
+      "bundleManifestContents": {
+        "foldkit-oct26-dive-scan-token-frame-optimised": {
+          "patches": [
+            "scan-visitation-token.patch",
+            "guarded-dispatch-cache.patch",
+            "lazy-empty-boundaries.patch"
+          ],
+          "files": {
+            "index.html": "4a50ba68979e764e62108c12a5cf10fd5e54ce69b3d6dc2b326e3fe2dd3817f5",
+            "assets/index.optimised-BwJmJhyW.js": "6dac45530e06880f7fe4ed599143035726ab01f3804f90b03d6c7dffc8d57afb",
+            "assets/index.optimised-BwJmJhyW.js.map": "a316e1f10cba04541f63d69a7b82b584ac00a914ebb5a8c7c4c39c6a5857c287"
+          }
+        },
+        "foldkit-oct26-dive-scan-constant-frame-optimised": {
+          "patches": [
+            "scan-constant-factor.patch",
+            "guarded-dispatch-cache.patch",
+            "lazy-empty-boundaries.patch"
+          ],
+          "files": {
+            "index.html": "bbf1c5e968c5c3a58723402124d173b43963a80192af3340e1f9008956bbd3ab",
+            "assets/index.optimised-B6CM07Al.js.map": "f69fa654057c4fe766d6b7494660841dda41ca14824fe679981de3cd6b42d57d",
+            "assets/index.optimised-B6CM07Al.js": "cbe132342a58795892e40077ee57a1fd52ef2bbe86924b18aa260209be17b38c"
+          }
+        }
+      },
+      "baselineBundleManifest": "/private/tmp/foldkit-next-preview-signoff-final-20261026/lustre/bundles.json",
+      "method": {
+        "harnessRevision": "03fff17ad22407115a91937ddab680e40fe0c7c7",
+        "browserVersion": "155.0.8059.85",
+        "driverProtocol": "Unchanged runbook and timer aggregation; final DOM and sync-count assertions after returned measurement snapshot",
+        "itemCount": 100,
+        "rounds": 3,
+        "freshContextPerSample": true,
+        "separateWarmup": false,
+        "bootExcluded": true,
+        "garbageCollectionControl": false,
+        "outlierPolicy": "Keep every valid sample; fail on any page error or contract failure",
+        "host": {
+          "platform": "darwin",
+          "architecture": "arm64",
+          "osRelease": "25.6.0",
+          "cpuModel": "Apple M1 Max",
+          "logicalCpuCount": 10,
+          "nodeVersion": "v24.22.1"
+        }
+      },
+      "recordedRoundedMedianTotalsMs": {
+        "foldkit-oct26-final-preview-optimised": 257.5,
+        "foldkit-oct26-dive-scan-token-frame-optimised": 226.2,
+        "foldkit-oct26-dive-scan-constant-frame-optimised": 249.9
+      },
+      "implementations": {
+        "foldkit-oct26-final-preview-optimised": {
+          "allRawTotalsMs": [
+            209.5100040435791, 269.474995136261, 257.4650049209595
+          ],
+          "medianMs": 257.4650049209595,
+          "rangeMs": [209.5100040435791, 269.474995136261],
+          "allRawBucketsMs": {
+            "sync": [45.18499708175659, 53.36499881744385, 53.54499959945679],
+            "animation_frame": [
+              164.3250069618225, 216.10999631881714, 203.92000532150269
+            ]
+          },
+          "allSamplesPassedFinalStateAndCounts": true
+        },
+        "foldkit-oct26-dive-scan-token-frame-optimised": {
+          "allRawTotalsMs": [
+            203.18000173568726, 234.90500116348267, 226.249990940094
+          ],
+          "medianMs": 226.249990940094,
+          "rangeMs": [203.18000173568726, 234.90500116348267],
+          "allRawBucketsMs": {
+            "sync": [45.609994888305664, 51.17000484466553, 48.99000120162964],
+            "animation_frame": [
+              157.5700068473816, 183.73499631881714, 177.25998973846436
+            ]
+          },
+          "allSamplesPassedFinalStateAndCounts": true
+        },
+        "foldkit-oct26-dive-scan-constant-frame-optimised": {
+          "allRawTotalsMs": [
+            252.9499969482422, 249.8550043106079, 213.99499893188477
+          ],
+          "medianMs": 249.8550043106079,
+          "rangeMs": [213.99499893188477, 252.9499969482422],
+          "allRawBucketsMs": {
+            "sync": [56.069998264312744, 54.82500171661377, 47.25999879837036],
+            "animation_frame": [
+              196.87999868392944, 195.03000259399414, 166.7350001335144
+            ]
+          },
+          "allSamplesPassedFinalStateAndCounts": true
+        }
+      },
+      "interpretation": "Token plus Frame/raw dispatcher cache and empty-boundary shortcut retained for final safety/acceptance comparison; all three pairs faster than unfixed preview. Constant-factor Set alternative has inconsistent paired improvement."
+    }
+  ],
+  "caveats": [
+    "CPU and heap profiling change absolute workload timings. Use profiles for attribution within their own diagnostic batches, not as replacements for the frozen unprofiled benchmark.",
+    "Phase instrumentation adds performance.now and counting overhead. Phase measurements indicate cost locations but are not causal proof or final acceptance timings.",
+    "Heap sampling estimates allocation, including allocations collected later. Sampled bytes and end-minus-start heap size do not measure retained memory or garbage-collection pause durations.",
+    "CPU profiles contain GC-category samples, but these data do not establish that additional GC time causes the main-to-preview gap; no forced-GC or dedicated GC trace control was recorded.",
+    "Inclusive heap category roots can overlap and must not be summed. Self categories and mapped frames have different attribution boundaries.",
+    "Exploratory runs are three-round local screens with fresh contexts, no separate discarded warmup and no forced-GC control; retain every valid sample. Compare paired variants within each batch, not absolute totals across batches.",
+    "No-scan removes required prepatch identity validation and is diagnosis only, never a shippable fix.",
+    "Bundle size and retained cold authoring code do not demonstrate an executable hot-path cause.",
+    "Publication remains held. This diagnostic summary does not authorize main/preview integration or publication."
+  ],
+  "additionalCompletedExperiments": {
+    "plainFullWalk": {
+      "rawResults": {
+        "harnessRevision": "03fff17ad22407115a91937ddab680e40fe0c7c7",
+        "browserVersion": "155.0.8059.85",
+        "driverProtocol": "Unchanged runbook and timer aggregation; final DOM and sync-count assertions after returned measurement snapshot",
+        "itemCount": 100,
+        "rounds": 3,
+        "freshContextPerSample": true,
+        "separateWarmup": false,
+        "bootExcluded": true,
+        "garbageCollectionControl": false,
+        "outlierPolicy": "Keep every valid sample; fail on any page error or contract failure",
+        "host": {
+          "platform": "darwin",
+          "architecture": "arm64",
+          "osRelease": "25.6.0",
+          "cpuModel": "Apple M1 Max",
+          "logicalCpuCount": 10,
+          "nodeVersion": "v24.22.1"
+        },
+        "summary": {
+          "foldkit-oct26-dive-final-preview-optimised": {
+            "crossOriginIsolated": true,
+            "total": 279.8,
+            "sync": 55.8,
+            "timeout": 0,
+            "animationFrame": 224.1,
+            "microtask": 0,
+            "promise": 0,
+            "boot": 0,
+            "counts": {
+              "sync": 400,
+              "timeout": 0,
+              "animation_frame": 400,
+              "microtask": 0,
+              "promise": 0
+            },
+            "relativeToFastest": 1.14
+          },
+          "foldkit-oct26-dive-final-candidate-optimised": {
+            "crossOriginIsolated": true,
+            "total": 255.7,
+            "sync": 54.7,
+            "timeout": 0,
+            "animationFrame": 201.9,
+            "microtask": 0,
+            "promise": 0,
+            "boot": 0,
+            "counts": {
+              "sync": 400,
+              "timeout": 0,
+              "animation_frame": 400,
+              "microtask": 0,
+              "promise": 0
+            },
+            "relativeToFastest": 1.04
+          },
+          "foldkit-oct26-dive-plain-frame-optimised": {
+            "crossOriginIsolated": true,
+            "total": 246.3,
+            "sync": 55.9,
+            "timeout": 0,
+            "animationFrame": 190.3,
+            "microtask": 0,
+            "promise": 0,
+            "boot": 0,
+            "counts": {
+              "sync": 400,
+              "timeout": 0,
+              "animation_frame": 400,
+              "microtask": 0,
+              "promise": 0
+            },
+            "relativeToFastest": 1
+          }
+        },
+        "runsByImplementation": {
+          "foldkit-oct26-dive-final-preview-optimised": [
+            {
+              "crossOriginIsolated": true,
+              "total": 238.71499872207642,
+              "boot": {
+                "results": {
+                  "sync": 0,
+                  "timeout": 0,
+                  "animation_frame": 0,
+                  "microtask": 0,
+                  "promise": 0
+                },
+                "counts": {
+                  "sync": 0,
+                  "timeout": 0,
+                  "animation_frame": 0,
+                  "microtask": 0,
+                  "promise": 0
+                }
+              },
+              "results": {
+                "sync": 48.74499559402466,
+                "timeout": 0,
+                "animation_frame": 189.97000312805176,
+                "microtask": 0,
+                "promise": 0
+              },
+              "counts": {
+                "sync": 400,
+                "timeout": 0,
+                "animation_frame": 400,
+                "microtask": 0,
+                "promise": 0
+              },
+              "finalState": {
+                "todoCount": 0,
+                "inputValue": ""
+              }
+            },
+            {
+              "crossOriginIsolated": true,
+              "total": 279.8400049209595,
+              "boot": {
+                "results": {
+                  "sync": 0,
+                  "timeout": 0,
+                  "animation_frame": 0,
+                  "microtask": 0,
+                  "promise": 0
+                },
+                "counts": {
+                  "sync": 0,
+                  "timeout": 0,
+                  "animation_frame": 0,
+                  "microtask": 0,
+                  "promise": 0
+                }
+              },
+              "results": {
+                "sync": 55.770005226135254,
+                "timeout": 0,
+                "animation_frame": 224.06999969482422,
+                "microtask": 0,
+                "promise": 0
+              },
+              "counts": {
+                "sync": 400,
+                "timeout": 0,
+                "animation_frame": 400,
+                "microtask": 0,
+                "promise": 0
+              },
+              "finalState": {
+                "todoCount": 0,
+                "inputValue": ""
+              }
+            },
+            {
+              "crossOriginIsolated": true,
+              "total": 289.2500023841858,
+              "boot": {
+                "results": {
+                  "sync": 0,
+                  "timeout": 0,
+                  "animation_frame": 0,
+                  "microtask": 0,
+                  "promise": 0
+                },
+                "counts": {
+                  "sync": 0,
+                  "timeout": 0,
+                  "animation_frame": 0,
+                  "microtask": 0,
+                  "promise": 0
+                }
+              },
+              "results": {
+                "sync": 59.63000154495239,
+                "timeout": 0,
+                "animation_frame": 229.6200008392334,
+                "microtask": 0,
+                "promise": 0
+              },
+              "counts": {
+                "sync": 400,
+                "timeout": 0,
+                "animation_frame": 400,
+                "microtask": 0,
+                "promise": 0
+              },
+              "finalState": {
+                "todoCount": 0,
+                "inputValue": ""
+              }
+            }
+          ],
+          "foldkit-oct26-dive-final-candidate-optimised": [
+            {
+              "crossOriginIsolated": true,
+              "total": 255.69999313354492,
+              "boot": {
+                "results": {
+                  "sync": 0,
+                  "timeout": 0,
+                  "animation_frame": 0,
+                  "microtask": 0,
+                  "promise": 0
+                },
+                "counts": {
+                  "sync": 0,
+                  "timeout": 0,
+                  "animation_frame": 0,
+                  "microtask": 0,
+                  "promise": 0
+                }
+              },
+              "results": {
+                "sync": 53.784996032714844,
+                "timeout": 0,
+                "animation_frame": 201.91499710083008,
+                "microtask": 0,
+                "promise": 0
+              },
+              "counts": {
+                "sync": 400,
+                "timeout": 0,
+                "animation_frame": 400,
+                "microtask": 0,
+                "promise": 0
+              },
+              "finalState": {
+                "todoCount": 0,
+                "inputValue": ""
+              }
+            },
+            {
+              "crossOriginIsolated": true,
+              "total": 255.5849928855896,
+              "boot": {
+                "results": {
+                  "sync": 0,
+                  "timeout": 0,
+                  "animation_frame": 0,
+                  "microtask": 0,
+                  "promise": 0
+                },
+                "counts": {
+                  "sync": 0,
+                  "timeout": 0,
+                  "animation_frame": 0,
+                  "microtask": 0,
+                  "promise": 0
+                }
+              },
+              "results": {
+                "sync": 54.729995250701904,
+                "timeout": 0,
+                "animation_frame": 200.8549976348877,
+                "microtask": 0,
+                "promise": 0
+              },
+              "counts": {
+                "sync": 400,
+                "timeout": 0,
+                "animation_frame": 400,
+                "microtask": 0,
+                "promise": 0
+              },
+              "finalState": {
+                "todoCount": 0,
+                "inputValue": ""
+              }
+            },
+            {
+              "crossOriginIsolated": true,
+              "total": 275.16000413894653,
+              "boot": {
+                "results": {
+                  "sync": 0,
+                  "timeout": 0,
+                  "animation_frame": 0,
+                  "microtask": 0,
+                  "promise": 0
+                },
+                "counts": {
+                  "sync": 0,
+                  "timeout": 0,
+                  "animation_frame": 0,
+                  "microtask": 0,
+                  "promise": 0
+                }
+              },
+              "results": {
+                "sync": 61.200005531311035,
+                "timeout": 0,
+                "animation_frame": 213.9599986076355,
+                "microtask": 0,
+                "promise": 0
+              },
+              "counts": {
+                "sync": 400,
+                "timeout": 0,
+                "animation_frame": 400,
+                "microtask": 0,
+                "promise": 0
+              },
+              "finalState": {
+                "todoCount": 0,
+                "inputValue": ""
+              }
+            }
+          ],
+          "foldkit-oct26-dive-plain-frame-optimised": [
+            {
+              "crossOriginIsolated": true,
+              "total": 259.6000003814697,
+              "boot": {
+                "results": {
+                  "sync": 0,
+                  "timeout": 0,
+                  "animation_frame": 0,
+                  "microtask": 0,
+                  "promise": 0
+                },
+                "counts": {
+                  "sync": 0,
+                  "timeout": 0,
+                  "animation_frame": 0,
+                  "microtask": 0,
+                  "promise": 0
+                }
+              },
+              "results": {
+                "sync": 56.745001792907715,
+                "timeout": 0,
+                "animation_frame": 202.854998588562,
+                "microtask": 0,
+                "promise": 0
+              },
+              "counts": {
+                "sync": 400,
+                "timeout": 0,
+                "animation_frame": 400,
+                "microtask": 0,
+                "promise": 0
+              },
+              "finalState": {
+                "todoCount": 0,
+                "inputValue": ""
+              }
+            },
+            {
+              "crossOriginIsolated": true,
+              "total": 246.25499534606934,
+              "boot": {
+                "results": {
+                  "sync": 0,
+                  "timeout": 0,
+                  "animation_frame": 0,
+                  "microtask": 0,
+                  "promise": 0
+                },
+                "counts": {
+                  "sync": 0,
+                  "timeout": 0,
+                  "animation_frame": 0,
+                  "microtask": 0,
+                  "promise": 0
+                }
+              },
+              "results": {
+                "sync": 55.91499853134155,
+                "timeout": 0,
+                "animation_frame": 190.33999681472778,
+                "microtask": 0,
+                "promise": 0
+              },
+              "counts": {
+                "sync": 400,
+                "timeout": 0,
+                "animation_frame": 400,
+                "microtask": 0,
+                "promise": 0
+              },
+              "finalState": {
+                "todoCount": 0,
+                "inputValue": ""
+              }
+            },
+            {
+              "crossOriginIsolated": true,
+              "total": 201.27999305725098,
+              "boot": {
+                "results": {
+                  "sync": 0,
+                  "timeout": 0,
+                  "animation_frame": 0,
+                  "microtask": 0,
+                  "promise": 0
+                },
+                "counts": {
+                  "sync": 0,
+                  "timeout": 0,
+                  "animation_frame": 0,
+                  "microtask": 0,
+                  "promise": 0
+                }
+              },
+              "results": {
+                "sync": 46.129995822906494,
+                "timeout": 0,
+                "animation_frame": 155.14999723434448,
+                "microtask": 0,
+                "promise": 0
+              },
+              "counts": {
+                "sync": 400,
+                "timeout": 0,
+                "animation_frame": 400,
+                "microtask": 0,
+                "promise": 0
+              },
+              "finalState": {
+                "todoCount": 0,
+                "inputValue": ""
+              }
+            }
+          ]
+        }
+      },
+      "bundles": {
+        "foldkit-oct26-dive-plain-frame-optimised": {
+          "patches": [
+            "scan-plain.patch",
+            "guarded-dispatch-cache.patch",
+            "lazy-empty-boundaries.patch"
+          ],
+          "files": {
+            "index.html": "0b866cc722594df776958bb0d5d2c5ad5ffd53d74e56313cd35ace4d4ce4519d",
+            "assets/index.optimised-CxnsIB9t.js": "28d8de114dfc76e88dddbe21d242e8870eab74c4e3215d0e7a5466bf3207f984",
+            "assets/index.optimised-CxnsIB9t.js.map": "18683adad25416d56af4bccd7b6a3fdb6c732f666e6b908365be027010741a91"
+          }
+        }
+      },
+      "disposition": "Not integrated: a 3.7% median gain over the verified candidate, with two of three pairs faster, and changed behavior for unsupported cyclic inputs."
+    }
+  },
+  "captureHashesReferTo": "Original locally retained capture bytes; this committed JSON embeds parsed evidence and preserves all numeric samples.",
+  "finalAcceptanceEvidence": "runtime-final-20261026.json; completed separately. All 36 samples are valid and the predeclared gate passes."
+}

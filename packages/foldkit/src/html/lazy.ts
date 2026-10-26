@@ -91,6 +91,10 @@ type CacheEntry = Readonly<{
 const trackedBoundaryOccurrencesAreCurrent = (
   trackedBoundaries: ReadonlyMap<BoundaryId, TrackedBoundaryWrap>,
 ): boolean => {
+  if (trackedBoundaries.size === 0) {
+    return true
+  }
+
   for (const { block } of trackedBoundaries.values()) {
     if (block.isCurrent?.() === false) {
       return false
