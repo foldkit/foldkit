@@ -14,6 +14,7 @@ const prepare = () =>
     update,
     view,
     subscriptions,
+    EffectsLayer: subscriptions.layer,
   })
 export const ApplicationBlock: Block.FromAssemblyWithView<
   typeof Model,

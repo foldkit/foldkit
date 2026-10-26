@@ -817,8 +817,6 @@ export const subscriptions = defineSubscriptionsForRoot(
   () => document,
 )
 
-const EffectsLayer = subscriptions.layer
-
 const operations = {
   /** Updates the range through the Slider's update. The parent owns the value;
    * snap it to the new bounds with `snapAndClamp` in the same parent transition. */
@@ -832,7 +830,7 @@ const prepareSliderBlock = () =>
     view,
     operations,
     subscriptions,
-    EffectsLayer,
+    EffectsLayer: subscriptions.layer,
   })
 /** Completed Slider Block contract. */
 export interface SliderBlock extends Block.FromAssemblyWithViewAndOutMessage<
@@ -872,7 +870,6 @@ export const forRoot = (getTrackRoot: () => Document | ShadowRoot) => {
     SliderDefinition.makeSubscriptions,
     getTrackRoot,
   )
-  const EffectsLayer = subscriptions.layer
   const operations = {
     informRangeChanged: Message.InformedOfRangeChange,
   }
@@ -884,7 +881,7 @@ export const forRoot = (getTrackRoot: () => Document | ShadowRoot) => {
       view: rootView,
       operations,
       subscriptions,
-      EffectsLayer,
+      EffectsLayer: subscriptions.layer,
     })
 
   const sliderBlock: Block.FromAssemblyWithViewAndOutMessage<

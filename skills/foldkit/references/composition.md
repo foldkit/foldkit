@@ -508,6 +508,11 @@ only when it is public or independently reused. Import Effect's module as
 `Layer` and reserve `ApplicationLayer` for the root's ordinary Service
 providers.
 
+Split Subscription modules export their `subscriptions` registry. Compose
+`Feature.subscriptions.layer` directly in the local handler bundle. When that
+registry supplies all local handlers, pass `EffectsLayer: subscriptions.layer`
+directly to `prepareBlock`.
+
 `config.handler` defines a recipe; it does not build it. Its generator runs
 once when the Runtime builds the application Layer. A Command, Subscription, or
 Mount constructor returns the invocation function used with each current args,

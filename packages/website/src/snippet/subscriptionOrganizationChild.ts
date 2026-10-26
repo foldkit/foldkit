@@ -24,5 +24,3 @@ export const subscriptions = themeMenu.makeSubscriptions(entry => ({
     },
   ),
 }))
-
-export const EffectsLayer = subscriptions.layer

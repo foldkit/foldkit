@@ -12,7 +12,7 @@ Use the Block definition's `makeSubscriptions` helper. It fixes the Model and Me
 
 ::Snippet{name="subscriptionOrganizationChild" label="Block Subscription definitions"}
 
-Compose the attached entry recipes in the feature's local `EffectsLayer`. Pass that bundle to `FeatureComposition.prepareBlock`. A parent Binding contributes it automatically.
+Split Subscription modules export their `subscriptions` registry. In the child's Block assembly, pass `EffectsLayer: subscriptions.layer` to `FeatureComposition.prepareBlock`. When the feature has other local providers, compose their recipes and the registry Layer in `EffectsLayer`. A parent Binding contributes the completed child's handlers automatically.
 
 ## Connect the Child Once
 

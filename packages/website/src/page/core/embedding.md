@@ -36,6 +36,8 @@ Data the host pushes while the app runs arrives on an inbound Port, which the ap
 
 ::Snippet{name="embeddingInboundSubscription" label="Inbound Subscription"}
 
+The Subscription module exports its registry. Pass `EffectsLayer: subscriptions.layer` to the widget's Block assembly, or compose the registry Layer with other local handler recipes in `EffectsLayer`.
+
 Values sent while no Stream for the Port is running are dropped, with one exception: values sent before the first Stream attaches are buffered and delivered to it in order, so sends issued right after `embed` are not lost during startup.
 
 ### Outbound Ports: a Command {#outbound-ports}

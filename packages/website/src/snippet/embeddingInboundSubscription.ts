@@ -19,5 +19,3 @@ export const subscriptions = widget.makeSubscriptions(entry => ({
     },
   }),
 }))
-
-export const EffectsLayer = subscriptions.layer
