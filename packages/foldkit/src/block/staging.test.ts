@@ -243,7 +243,7 @@ it('retains contextual update and Step inference after registration', () => {
       return { model }
     },
   })
-  const setValue = ChildBaseDefinition.makeStep((model, value: string) => {
+  const setValueStep = ChildBaseDefinition.makeStep((model, value: string) => {
     expectTypeOf(model).toEqualTypeOf<ChildModel>()
     return { model: modifyFields(model, { value: () => value }) }
   })
@@ -255,13 +255,13 @@ it('retains contextual update and Step inference after registration', () => {
     ).model.value,
   ).toBe('before')
   expect(
-    setValue(ChildModel.make({ value: 'before' }), 'after').model.value,
+    setValueStep(ChildModel.make({ value: 'before' }), 'after').model.value,
   ).toBe('after')
 
   if (false) {
     // @ts-expect-error Registered helpers preserve the exact Message boundary.
     update(ChildModel.make({ value: 'before' }), { _tag: 'ForeignMessage' })
     // @ts-expect-error Additional Step parameters preserve their domain type.
-    setValue(ChildModel.make({ value: 'before' }), 1)
+    setValueStep(ChildModel.make({ value: 'before' }), 1)
   }
 })

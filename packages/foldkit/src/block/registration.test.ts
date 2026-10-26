@@ -26,7 +26,7 @@ const ChildDefinition = ChildNamespace.makeDefinition({
   Model: ChildModel,
   Message,
 })
-const reset = ChildDefinition.makeStep(_model => ({
+const resetStep = ChildDefinition.makeStep(_model => ({
   model: ChildModel.make({ count: 0 }),
 }))
 const ChildComposition = ChildDefinition.makeComposition()
@@ -34,7 +34,7 @@ const prepareChildBlock = () =>
   ChildComposition.prepareBlock({
     init: () => ({ model: ChildModel.make({ count: 0 }) }),
     update: ChildComposition.makeUpdate({
-      RequestedReset: model => reset(model),
+      RequestedReset: model => resetStep(model),
       Advanced: model => ({
         model: ChildModel.make({ count: model.count + 1 }),
       }),
@@ -394,13 +394,13 @@ const genericUpdate = Update.define((model: ParentModel, message: Message) =>
   ChildBinding.fold(model, message),
 )
 
-const branchUpdate = RegisteredParentBaseDefinition.makeStep(
+const branchUpdateStep = RegisteredParentBaseDefinition.makeStep(
   (model, message: Message) =>
     message._tag === 'Advanced' ? ChildBinding.reset() : { model },
 )
 const registeredBranchDefinedUpdate = RegisteredParent.makeUpdate({
-  Ignored: (model, message) => branchUpdate(model, message),
-  Advanced: (model, message) => branchUpdate(model, message),
+  Ignored: (model, message) => branchUpdateStep(model, message),
+  Advanced: (model, message) => branchUpdateStep(model, message),
 })
 const prepareRegisteredBranchUpdate = () =>
   RegisteredParent.prepareBlock({
@@ -416,7 +416,7 @@ const registeredBranchUpdate: Block.FromAssemblyWithoutViewOrOutMessage<
 > = Block.assemble(prepareRegisteredBranchUpdate)
 OmittedParent.makeUpdate({
   // @ts-expect-error A conditional child Step cannot execute without its registered Binding.
-  Ignored: (model, message) => branchUpdate(model, message),
+  Ignored: (model, message) => branchUpdateStep(model, message),
   Advanced: model => ({ model }),
 })
 const prepareOmittedBranchUpdate = () =>

@@ -36,10 +36,13 @@ type Equal<Left, Right> =
     : false
 type Expect<Value extends true> = Value
 
-const step = update(changedCount)
+const changedCountStep = update(changedCount)
 const initial = Model.make({ count: 0 })
-const combined = Update.combineSteps(initial, [step, update(changedCount)])
-const genericCombined = combineGenericSteps(initial, [step])
+const combined = Update.combineSteps(initial, [
+  changedCountStep,
+  update(changedCount),
+])
+const genericCombined = combineGenericSteps(initial, [changedCountStep])
 const contextual = requiredContextUpdate(changedCount)(initial, {
   multiplier: 2,
 })
@@ -150,4 +153,4 @@ const rejectMissingBranchHandlers = () => {
   })
 }
 void rejectMissingBranchHandlers
-void step
+void changedCountStep

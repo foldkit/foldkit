@@ -269,13 +269,15 @@ type UpdateRequirements = Expect<
   Equal<Update.RequirementsOf<typeof update>, Command.HandlerOf<typeof Save>>
 >
 
-const incrementAgain = CounterDefinition.makeStep((model, amount: number) => ({
-  model: modifyFields(model, { count: count => count + amount }),
-}))
+const incrementAgainStep = CounterDefinition.makeStep(
+  (model, amount: number) => ({
+    model: modifyFields(model, { count: count => count + amount }),
+  }),
+)
 
 const combined = Update.combineSteps(Model.make({ count: 0 }), [
   changedCountStep,
-  stepModel => incrementAgain(stepModel, 3),
+  stepModel => incrementAgainStep(stepModel, 3),
 ])
 
 const combineGenericSteps = <Model, Message, R>(
@@ -382,7 +384,7 @@ type RequiredCurriedParameters = Expect<
 const requiredCombined = Update.combineSteps(Model.make({ count: 0 }), [
   stepModel =>
     requiredContextUpdate(changedCount)(stepModel, { multiplier: 2 }),
-  stepModel => incrementAgain(stepModel, 1),
+  stepModel => incrementAgainStep(stepModel, 1),
 ])
 
 const optionalContextUpdate = ContextualComposition.makeUpdate.withContext(
@@ -599,7 +601,7 @@ const GraphFullChildBinding = GraphFullDefinition.makeBinding(ChildBlock, {
 const GraphFullComposition = GraphFullDefinition.makeComposition({
   bindings: [GraphFullChildBinding],
 })
-const saveGraphFull = GraphFullDefinition.makeStep(
+const saveGraphFullStep = GraphFullDefinition.makeStep(
   (model, context: DispatchContext) => {
     const nextModel = modifyFields(model, {
       count: count => count + context.multiplier,
@@ -614,13 +616,13 @@ const saveGraphFull = GraphFullDefinition.makeStep(
     }
   },
 )
-const ignoreGraphFullRequest = GraphFullDefinition.makeNoopStep()
+const ignoreGraphFullRequestStep = GraphFullDefinition.makeNoopStep()
 const graphFullUpdate = GraphFullComposition.makeUpdate.withContext(
   (context: DispatchContext) => ({
     ChangedCount: (model, { amount }) =>
       GraphFullChildBinding.requestChangeCount({ amount })(model),
-    CompletedSave: model => saveGraphFull(model, context),
-    IgnoredRequest: model => ignoreGraphFullRequest(model),
+    CompletedSave: model => saveGraphFullStep(model, context),
+    IgnoredRequest: model => ignoreGraphFullRequestStep(model),
   }),
 )
 const prepareGraphFullBlock = () =>
@@ -719,13 +721,13 @@ const parentModel = ParentModel.make({
   updates: 0,
 })
 const parentMessage = ParentMessage.ChangedLabel({ label: 'Primary' })
-const countParentUpdate = ParentDefinition.makeStep(model => ({
+const countParentUpdateStep = ParentDefinition.makeStep(model => ({
   model: modifyFields(model, { updates: updates => updates + 1 }),
 }))
 
 const graphCombined = Update.combineSteps(parentModel, [
   parentUpdate(parentMessage),
-  countParentUpdate,
+  countParentUpdateStep,
 ])
 
 const prepareParentBlock = () =>
@@ -740,7 +742,7 @@ const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
 const completedParentStep = ParentBlock.update(parentMessage)
 const completedGraphCombined = Update.combineSteps(parentModel, [
   completedParentStep,
-  countParentUpdate,
+  countParentUpdateStep,
 ])
 
 type CompletedParentParameters = Expect<

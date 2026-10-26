@@ -35,13 +35,13 @@ export const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [PeopleBinding],
 })
 
-const setRoute = (nextRoute: typeof ApplicationRoute.Type) =>
+const setRouteStep = (nextRoute: typeof ApplicationRoute.Type) =>
   makeFieldsStep(() => ({ route: () => nextRoute }))
 
-const keepModel = makeNoopStep()
+const keepModelStep = makeNoopStep()
 
 type InformPeopleRouteStep =
-  | typeof keepModel
+  | typeof keepModelStep
   | ReturnType<typeof PeopleBinding.informRouteChanged>
 
 export const update = ApplicationComposition.makeUpdate({
@@ -49,18 +49,22 @@ export const update = ApplicationComposition.makeUpdate({
     const nextRoute = urlToApplicationRoute(url)
 
     const transition = Transition.make(model.route, nextRoute)
-    const informPeopleRoute = Transition.matchOrElse<InformPeopleRouteStep>()(
-      transition,
-      'People',
-      {
-        Entered: peopleRoute =>
-          PeopleBinding.informRouteChanged({ route: peopleRoute }),
-        Stayed: ({ nextRoute }) =>
-          PeopleBinding.informRouteChanged({ route: nextRoute }),
-      },
-      () => keepModel,
-    )
+    const informPeopleRouteStep =
+      Transition.matchOrElse<InformPeopleRouteStep>()(
+        transition,
+        'People',
+        {
+          Entered: peopleRoute =>
+            PeopleBinding.informRouteChanged({ route: peopleRoute }),
+          Stayed: ({ nextRoute }) =>
+            PeopleBinding.informRouteChanged({ route: nextRoute }),
+        },
+        () => keepModelStep,
+      )
 
-    return Update.combineSteps(model, [setRoute(nextRoute), informPeopleRoute])
+    return Update.combineSteps(model, [
+      setRouteStep(nextRoute),
+      informPeopleRouteStep,
+    ])
   },
 })

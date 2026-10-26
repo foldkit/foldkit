@@ -29,7 +29,7 @@ it('defers and repeats its producer while preserving the Model and exact Command
   const command = Save()
   const commands: ReadonlyArray<typeof command> = [command]
   const receivedModels: Array<typeof Model.Type> = []
-  const save = CommandsDefinition.makeCommandsStep(model => {
+  const saveStep = CommandsDefinition.makeCommandsStep(model => {
     expectTypeOf(model).toEqualTypeOf<typeof Model.Type>()
     receivedModels.push(model)
     return commands
@@ -38,9 +38,9 @@ it('defers and repeats its producer while preserving the Model and exact Command
 
   expect(receivedModels).toEqual([])
 
-  const result = save(model)
+  const result = saveStep(model)
   const nextModel = Model.make({ count: 2 })
-  const repeated = save(nextModel)
+  const repeated = saveStep(nextModel)
 
   expect(result.model).toBe(model)
   expect(repeated.model).toBe(nextModel)
@@ -51,7 +51,7 @@ it('defers and repeats its producer while preserving the Model and exact Command
   expectTypeOf<typeof result.commands>().toEqualTypeOf<
     ReadonlyArray<typeof command>
   >()
-  expectTypeOf<Update.RequirementsOf<typeof save>>().toEqualTypeOf<
+  expectTypeOf<Update.RequirementsOf<typeof saveStep>>().toEqualTypeOf<
     Update.RequirementsOf<() => typeof result>
   >()
 
@@ -89,10 +89,10 @@ it('composes sequential Model changes without losing Commands', () => {
 
 it('retains handler completeness and ordinary Service requirements', () => {
   const CommandsComposition = CommandsDefinition.makeComposition()
-  const save = CommandsDefinition.makeCommandsStep(() => [Save()])
+  const saveStep = CommandsDefinition.makeCommandsStep(() => [Save()])
   const init = CommandsComposition.makeInit(() => ({ model: { count: 0 } }))
   const update = CommandsComposition.makeUpdate({
-    RequestedSave: model => save(model),
+    RequestedSave: model => saveStep(model),
     CompletedSave: model => ({ model }),
   })
 
@@ -147,24 +147,24 @@ it('retains registration obligations carried by a Command collection', () => {
   type Evidence = Block.RequirementOfBinding<typeof ChildBinding>
   const commands: ReadonlyArray<ReturnType<typeof Save>> &
     Update.RegistrationEvidence<Evidence> = [Save()]
-  const save = ParentDefinition.makeCommandsStep(() => commands)
+  const saveStep = ParentDefinition.makeCommandsStep(() => commands)
   const update = ParentComposition.makeUpdate({
-    RequestedSave: model => save(model),
-    CompletedSave: model => save(model),
+    RequestedSave: model => saveStep(model),
+    CompletedSave: model => saveStep(model),
   })
   const model = ParentModel.make({ child: { count: 0 } })
 
   expect(update(model, Message.RequestedSave()).commands).toHaveLength(1)
   expectTypeOf<
-    Update.RegistrationEvidenceOf<ReturnType<typeof save>>
+    Update.RegistrationEvidenceOf<ReturnType<typeof saveStep>>
   >().toEqualTypeOf<Evidence>()
 
   if (false) {
     // @ts-expect-error A plain Model cannot erase a Command collection's graph obligations.
-    save(model)
+    saveStep(model)
     ParentDefinition.makeComposition().makeUpdate({
       // @ts-expect-error Missing child registration cannot be hidden by returning only Commands.
-      RequestedSave: model => save(model),
+      RequestedSave: model => saveStep(model),
       CompletedSave: ParentDefinition.makeNoopStep(),
     })
   }

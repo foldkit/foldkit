@@ -60,7 +60,7 @@ ParentComposition.makeUpdate({
   ClickedReset: (model, _message: GeneratedChildMessage) => ({ model }),
 })
 
-const omittedSilentInitialization = SilentParentDefinition.makeStep(model =>
+const omittedSilentInitializationStep = SilentParentDefinition.makeStep(model =>
   SilentBinding.init({ args: [], toParentModel: () => model }),
 )
 const OmittedSilentComposition = SilentParentDefinition.makeComposition()
@@ -73,6 +73,6 @@ OmittedSilentComposition.prepareBlock({
   update: OmittedSilentComposition.makeUpdate({
     ClickedParent: (model, _message) =>
       // @ts-expect-error The omitted Binding requires graph capability at application.
-      omittedSilentInitialization(model),
+      omittedSilentInitializationStep(model),
   }),
 })

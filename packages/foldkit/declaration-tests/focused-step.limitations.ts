@@ -17,7 +17,7 @@ const requiresMissingPayload = (
     Readonly<{ missingPayload: number }>,
 ) => ({ count: () => model.count + message.missingPayload })
 
-export const explicitAnyExactMessage = Definition.makeFieldsStep<
+export const explicitAnyExactMessageStep = Definition.makeFieldsStep<
   any,
   typeof requiresMissingPayload
 >(requiresMissingPayload)

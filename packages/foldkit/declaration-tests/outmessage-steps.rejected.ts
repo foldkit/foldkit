@@ -12,8 +12,8 @@ import {
   ParentComposition,
   ParentOutMessage,
   PrimitiveDefinition,
-  emitClosed,
-  emitPrimitive,
+  emitClosedStep,
+  emitPrimitiveStep,
 } from './outmessage-steps.accepted.js'
 
 // @ts-expect-error Old callback authoring cannot bypass the registered Binding policy guard.
@@ -53,17 +53,17 @@ OutMessageStepsDefinition.makeOutMessageStep(() => erasedOutMessage)
 // @ts-expect-error Optional callback results are not definite OutMessages.
 OutMessageStepsDefinition.makeOutMessageStep(() => maybeOutMessage)
 // @ts-expect-error The Step checks the owning Model.
-emitClosed({ count: 'invalid', status: 'Idle' })
+emitClosedStep({ count: 'invalid', status: 'Idle' })
 // @ts-expect-error The Step accepts only its incoming Model.
-emitClosed(Model.make({ count: 0, status: 'Idle' }), 1)
+emitClosedStep(Model.make({ count: 0, status: 'Idle' }), 1)
 // @ts-expect-error Primitive Models retain their declared type.
-emitPrimitive(1)
+emitPrimitiveStep(1)
 // @ts-expect-error A plain Step combination cannot discard an OutMessage.
-Update.combineSteps([emitClosed])
+Update.combineSteps([emitClosedStep])
 // @ts-expect-error A preceding Model-only Step cannot hide a later OutMessage.
-Update.combineSteps([OutMessageStepsDefinition.makeNoopStep(), emitClosed])
+Update.combineSteps([OutMessageStepsDefinition.makeNoopStep(), emitClosedStep])
 // @ts-expect-error The data-first combination cannot discard an OutMessage.
-Update.combineSteps(Model.make({ count: 0, status: 'Idle' }), [emitClosed])
+Update.combineSteps(Model.make({ count: 0, status: 'Idle' }), [emitClosedStep])
 
 const ObserveSelection = OutMessageStepsDefinition.makeCommand(
   'ObserveSelection',
@@ -88,36 +88,38 @@ const erasedCommands: Block.OutMessageStep<
 > = emitWithCommands
 void erasedCommands
 
-const preserve = OutMessageStepsDefinition.makeNoopStep()
-const fields = OutMessageStepsDefinition.makeFieldsStep(() => ({}))
-const noopAndOutMessage = [preserve, emitClosed]
-const fieldsAndOutMessage = [fields, emitClosed]
+const preserveStep = OutMessageStepsDefinition.makeNoopStep()
+const fieldsStep = OutMessageStepsDefinition.makeFieldsStep(() => ({}))
+const noopAndOutMessage = [preserveStep, emitClosedStep]
+const fieldsAndOutMessage = [fieldsStep, emitClosedStep]
 // @ts-expect-error Extracted lists cannot erase an emitting Step behind a no-op.
 Update.combineSteps(noopAndOutMessage)
 // @ts-expect-error Extracted lists cannot erase an emitting Step behind field transforms.
 Update.combineSteps(fieldsAndOutMessage)
 // @ts-expect-error A later no-op cannot erase an earlier emitting Step.
-Update.combineSteps([emitClosed, preserve])
+Update.combineSteps([emitClosedStep, preserveStep])
 // @ts-expect-error A no-op cannot be annotated to conceal an OutMessage.
-const emittingNoop: typeof preserve = emitClosed
+const emittingNoopStep: typeof preserveStep = emitClosedStep
 // @ts-expect-error A field Step cannot be annotated to conceal an OutMessage.
-const emittingFields: typeof fields = emitClosed
-void emittingNoop
-void emittingFields
+const emittingFieldsStep: typeof fieldsStep = emitClosedStep
+void emittingNoopStep
+void emittingFieldsStep
 
-const commandsOnly = <Current extends typeof Model.Type>(model: Current) => ({
+const commandsOnlyStep = <Current extends typeof Model.Type>(
+  model: Current,
+) => ({
   model,
   commands: [ObserveSelection()],
 })
 // @ts-expect-error A no-op cannot be annotated to conceal Commands.
-const commandsNoop: typeof preserve = commandsOnly
+const commandsNoopStep: typeof preserveStep = commandsOnlyStep
 // @ts-expect-error A field Step cannot be annotated to conceal Commands.
-const commandsFields: typeof fields = commandsOnly
-void commandsNoop
-void commandsFields
+const commandsFieldsStep: typeof fieldsStep = commandsOnlyStep
+void commandsNoopStep
+void commandsFieldsStep
 
 OutMessageStepsComposition.makeInit(() => ({
   model: Model.make({ count: 0, status: 'Idle' }),
   // @ts-expect-error Initialization cannot discard a Step's OutMessage.
-  steps: [emitClosed],
+  steps: [emitClosedStep],
 }))

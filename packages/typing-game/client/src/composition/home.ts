@@ -29,10 +29,10 @@ export const NavigateToRoom = ApplicationDefinition.makeCommand(
   },
 )
 
-const navigateToRoom = (roomId: string) =>
+const navigateToRoomStep = (roomId: string) =>
   makeCommandsStep(() => [NavigateToRoom({ roomId })])
 
-const initRoomInstance = (roomId: string) =>
+const initRoomInstanceStep = (roomId: string) =>
   makeStep(model =>
     initAndSet(RoomBinding, model, {
       key: roomId,
@@ -40,16 +40,19 @@ const initRoomInstance = (roomId: string) =>
     }),
   )
 
-const enterJoinedRoom = (roomId: string, player: typeof Shared.Player.Type) =>
+const enterJoinedRoomStep = (
+  roomId: string,
+  player: typeof Shared.Player.Type,
+) =>
   Update.combineSteps([
-    initRoomInstance(roomId),
+    initRoomInstanceStep(roomId),
     RoomBinding.informJoined(roomId, { player }, { roomId }),
-    navigateToRoom(roomId),
+    navigateToRoomStep(roomId),
   ])
 
 const foldHomeOutMessage = ApplicationDefinition.makeOutMessageFold(HomeBlock, {
-  CreatedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
-  JoinedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
+  CreatedRoom: ({ roomId, player }) => enterJoinedRoomStep(roomId, player),
+  JoinedRoom: ({ roomId, player }) => enterJoinedRoomStep(roomId, player),
 })
 
 export const HomeBinding = ApplicationDefinition.makeBinding(HomeBlock, {

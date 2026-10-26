@@ -86,7 +86,7 @@ const update = Composition.makeUpdate.withContext(
 )
 const message = Message.ChangedCount({ amount: 1 })
 const model = Model.make({ count: 0 })
-const step = update(message)
+const messageStep = update(message)
 const view = (
   current: typeof Model.Type,
   h: HtmlBuilder<typeof Message.Type>,
@@ -146,10 +146,10 @@ Scene.scene(
 )
 
 // @ts-expect-error Required context is supplied after the curried Step's Model.
-step(model)
+messageStep(model)
 
 // @ts-expect-error A context-bearing curried update is not a unary Step.
-Update.combineSteps(model, [step])
+Update.combineSteps(model, [messageStep])
 
 // @ts-expect-error The two-argument form is the canonical data-first call.
 update(message, { multiplier: 2 })

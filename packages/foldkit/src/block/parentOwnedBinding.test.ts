@@ -37,7 +37,7 @@ const Child = makeDefinition('ParentOwnedBindingChild', {
   Message: ChildMessage,
   OutMessage: ChildOutMessage,
 })
-const selectValue = Child.makeStep(model => ({
+const selectValueStep = Child.makeStep(model => ({
   model,
   outMessage: ChildOutMessage.SelectedValue({ value: model.value }),
 }))
@@ -46,7 +46,7 @@ const prepareChildBlock = () =>
   ChildComposition.prepareBlock({
     init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
     update: ChildComposition.makeUpdate({
-      RequestedSelectValue: model => selectValue(model),
+      RequestedSelectValue: model => selectValueStep(model),
       RequestedSetPrototypeValue: model => ({ model }),
       UpdatedValue: (model, { value }) => ({
         model: modifyFields(model, { value: () => value }),
@@ -66,7 +66,7 @@ const PlainChild = makeDefinition('ParentOwnedBindingPlainChild', {
   Message: ChildMessage,
 })
 const PlainChildComposition = PlainChild.makeComposition()
-const setPrototypeValue = PlainChild.makeStep((model, value: string) => ({
+const setPrototypeValueStep = PlainChild.makeStep((model, value: string) => ({
   model: modifyFields(model, { value: () => value }),
 }))
 const preparePlainChildBlock = () =>
@@ -75,7 +75,7 @@ const preparePlainChildBlock = () =>
     update: PlainChildComposition.makeUpdate({
       RequestedSelectValue: model => ({ model }),
       RequestedSetPrototypeValue: (model, { value }) =>
-        setPrototypeValue(model, value),
+        setPrototypeValueStep(model, value),
       UpdatedValue: (model, { value }) => ({
         model: modifyFields(model, { value: () => value }),
       }),
@@ -728,7 +728,7 @@ it('binds an exposed operation named __proto__ as an own property', () => {
   const composition = SnapshotParent.makeComposition({
     bindings: [PrototypeOperationBinding],
   })
-  const invokePrototypeOperation = SnapshotParent.makeStep(
+  const invokePrototypeOperationStep = SnapshotParent.makeStep(
     (_model, value: string) => {
       const boundOperation = Reflect.get(PrototypeOperationBinding, '__proto__')
       return Reflect.apply(boundOperation, PrototypeOperationBinding, [value])
@@ -746,7 +746,7 @@ it('binds an exposed operation named __proto__ as an own property', () => {
       })),
       update: composition.makeUpdate({
         RequestedInvokePrototypeOperation: (model, { value }) =>
-          invokePrototypeOperation(model, value),
+          invokePrototypeOperationStep(model, value),
       }),
       operations: {
         invokePrototypeOperation: (value: string) =>

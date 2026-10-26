@@ -10,7 +10,7 @@ import type { Message, ThemePreference } from '../message'
 import { initialSidebarGroups } from '../sidebarStorage'
 import { ApplyTheme, resolveTheme } from '../theme'
 
-export const handleCompletedLoadBrowserEnvironment = makeStep(
+export const handleCompletedLoadBrowserEnvironmentStep = makeStep(
   (
     _model,
     {
@@ -28,7 +28,7 @@ export const handleCompletedLoadBrowserEnvironment = makeStep(
     )
     const resolvedTheme = resolveTheme(themePreference, systemTheme)
 
-    const applyBrowserEnvironment = makeStep(model => ({
+    const applyBrowserEnvironmentStep = makeStep(model => ({
       model: modifyFields(model, {
         currentYear: () => currentYear,
         maybeIsPlaygroundSupported: () => Option.some(isPlaygroundSupported),
@@ -44,14 +44,14 @@ export const handleCompletedLoadBrowserEnvironment = makeStep(
       commands: [ApplyTheme({ theme: resolvedTheme })],
     }))
 
-    const initUiPages = makeStep(model =>
+    const initUiPagesStep = makeStep(model =>
       initAndSet(UiPagesBinding, model, { args: [today] }),
     )
 
     return Update.combineSteps([
-      applyBrowserEnvironment,
+      applyBrowserEnvironmentStep,
       PlaygroundBinding.informSupport({ isSupported: isPlaygroundSupported }),
-      initUiPages,
+      initUiPagesStep,
     ])
   },
 )

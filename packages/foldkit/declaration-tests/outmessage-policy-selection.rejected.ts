@@ -61,7 +61,7 @@ const EmittingRightBinding = ParentDefinition.makeBinding(EmittingChildBlock, {
   field: 'right',
 })
 
-const combineForwardingPolicyOperation = ParentDefinition.makeStep(() =>
+const combineForwardingPolicyOperationStep = ParentDefinition.makeStep(() =>
   Update.combineSteps([
     ParentDefinition.makeNoopStep(),
     EmittingLeftBinding.reset(),
@@ -98,7 +98,7 @@ DirectCombinedPolicyComposition.prepareBlock({
 const ExtractedCombinedPolicyBinding =
   EmittingRightBinding.withOutMessagePolicy({
     fold: ParentDefinition.makeOutMessageFold(EmittingChildBlock, {
-      Selected: () => combineForwardingPolicyOperation,
+      Selected: () => combineForwardingPolicyOperationStep,
       Closed: ParentDefinition.makeNoopStep,
     }),
   })
@@ -124,7 +124,7 @@ const ConditionalCombinedPolicyBinding =
     fold: ParentDefinition.makeOutMessageFold(EmittingChildBlock, {
       Selected: ({ value }) =>
         value === 'Pear'
-          ? combineForwardingPolicyOperation
+          ? combineForwardingPolicyOperationStep
           : ParentDefinition.makeNoopStep(),
       Closed: ParentDefinition.makeNoopStep,
     }),

@@ -12,7 +12,7 @@ import {
 } from './definition'
 import { isDirty } from './draft'
 
-const editDraft = (
+const editDraftStep = (
   change: (draft: typeof ProjectDraft.Type) => typeof ProjectDraft.Type,
 ) =>
   makeStep(model => {
@@ -28,7 +28,7 @@ const editDraft = (
     }
   })
 
-const save = makeStep(model => {
+const saveStep = makeStep(model => {
   const name = String.trim(model.draft.name)
 
   if (
@@ -70,13 +70,13 @@ const handleClickedDiscardChanges = (model: typeof Model.Type) => {
 
 export const update = ProjectSettingsComposition.makeUpdate({
   UpdatedProjectName: (model, { value }) =>
-    editDraft(draft => modifyFields(draft, { name: () => value }))(model),
+    editDraftStep(draft => modifyFields(draft, { name: () => value }))(model),
   UpdatedProjectDescription: (model, { value }) =>
-    editDraft(draft => modifyFields(draft, { description: () => value }))(
+    editDraftStep(draft => modifyFields(draft, { description: () => value }))(
       model,
     ),
-  SubmittedProjectSettings: save,
-  ClickedRetrySave: save,
+  SubmittedProjectSettings: saveStep,
+  ClickedRetrySave: saveStep,
   ClickedDiscardChanges: handleClickedDiscardChanges,
   SucceededSaveProject: (model, { project }) => {
     if (

@@ -189,7 +189,7 @@ export const GeneratedBindingParentComposition =
       StatusBinding,
     ],
   })
-export const applyGeneratedOperation =
+export const applyGeneratedOperationStep =
   GeneratedBindingParentDefinition.makeStep(() =>
     Update.combineSteps([
       GeneratedBindingParentDefinition.makeNoopStep(),
@@ -197,5 +197,5 @@ export const applyGeneratedOperation =
     ]),
   )
 export const update = GeneratedBindingParentComposition.makeUpdate({
-  ClickedParent: model => applyGeneratedOperation(model),
+  ClickedParent: model => applyGeneratedOperationStep(model),
 })

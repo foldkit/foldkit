@@ -25,7 +25,7 @@ const nextSequenceNumber = (
     onSome: newestEntry => newestEntry.sequenceNumber + 1,
   })
 
-const logTransition = (transition: AppTransition) =>
+const logTransitionStep = (transition: AppTransition) =>
   makeFieldsStep(() => ({
     transitionLog: transitionLog =>
       pipe(
@@ -39,7 +39,7 @@ const logTransition = (transition: AppTransition) =>
       ),
   }))
 
-const loadCatalogOnGalleryEntry = (transition: AppTransition) =>
+const loadCatalogOnGalleryEntryStep = (transition: AppTransition) =>
   makeStep(model =>
     Transition.isEntering(transition, 'Gallery') &&
     model.catalogStatus !== 'Loading'
@@ -50,9 +50,9 @@ const loadCatalogOnGalleryEntry = (transition: AppTransition) =>
       : { model },
   )
 
-const keepModel = makeNoopStep()
+const keepModelStep = makeNoopStep()
 
-const loadPainting = (paintingId: number) =>
+const loadPaintingStep = (paintingId: number) =>
   makeStep(model => ({
     model: modifyFields(model, {
       paintingStatus: () => PaintingStatus.Loading({ paintingId }),
@@ -60,23 +60,25 @@ const loadPainting = (paintingId: number) =>
     commands: [LoadPainting({ paintingId })],
   }))
 
-type PaintingRouteStep = typeof keepModel | ReturnType<typeof loadPainting>
+type PaintingRouteStep =
+  | typeof keepModelStep
+  | ReturnType<typeof loadPaintingStep>
 
-const reconcilePaintingRoute = (transition: AppTransition) =>
+const reconcilePaintingRouteStep = (transition: AppTransition) =>
   Transition.matchOrElse<PaintingRouteStep>()(
     transition,
     'Painting',
     {
-      Entered: ({ paintingId }) => loadPainting(paintingId),
+      Entered: ({ paintingId }) => loadPaintingStep(paintingId),
       Stayed: ({ previousRoute, nextRoute }) =>
         previousRoute.paintingId === nextRoute.paintingId
-          ? keepModel
-          : loadPainting(nextRoute.paintingId),
+          ? keepModelStep
+          : loadPaintingStep(nextRoute.paintingId),
     },
-    () => keepModel,
+    () => keepModelStep,
   )
 
-const saveDraftOnStudioExit = (transition: AppTransition) =>
+const saveDraftOnStudioExitStep = (transition: AppTransition) =>
   makeCommandsStep(model =>
     Array.filter(
       [SaveDraft({ draft: model.studioDraft })],
@@ -90,8 +92,8 @@ export const handleTransition = (
   transition: AppTransition,
 ) =>
   Update.combineSteps(model, [
-    logTransition(transition),
-    loadCatalogOnGalleryEntry(transition),
-    reconcilePaintingRoute(transition),
-    saveDraftOnStudioExit(transition),
+    logTransitionStep(transition),
+    loadCatalogOnGalleryEntryStep(transition),
+    reconcilePaintingRouteStep(transition),
+    saveDraftOnStudioExitStep(transition),
   ])

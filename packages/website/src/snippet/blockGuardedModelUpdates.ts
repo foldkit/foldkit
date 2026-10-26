@@ -12,7 +12,9 @@ const DraftDefinition = Block.makeDefinition('Draft', {
 
 const { makeStep } = DraftDefinition
 
-const editDraft = (change: (model: typeof Model.Type) => typeof Model.Type) =>
+const editDraftStep = (
+  change: (model: typeof Model.Type) => typeof Model.Type,
+) =>
   makeStep(model => {
     if (SaveState.guards.Saving(model.saveState)) {
       return { model }
@@ -21,11 +23,11 @@ const editDraft = (change: (model: typeof Model.Type) => typeof Model.Type) =>
     return { model: change(model) }
   })
 
-const uppercaseTitle = editDraft(model =>
+const uppercaseTitleStep = editDraftStep(model =>
   modifyFields(model, { title: String.toUpperCase }),
 )
 const savingDraft = Model.make({
   title: 'Draft',
   saveState: SaveState.Saving(),
 })
-const blockedEdit = uppercaseTitle(savingDraft)
+const blockedEdit = uppercaseTitleStep(savingDraft)

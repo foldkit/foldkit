@@ -130,7 +130,7 @@ const finishClosing = (model: Model) => {
   }
 }
 
-const scheduleOpen = HoverIntentDefinition.makeStep(model => {
+const scheduleOpenStep = HoverIntentDefinition.makeStep(model => {
   const version = Number.increment(model.pendingOpenVersion)
   return {
     model: modifyFields(model, { pendingOpenVersion: () => version }),
@@ -138,7 +138,7 @@ const scheduleOpen = HoverIntentDefinition.makeStep(model => {
   }
 })
 
-const scheduleClose = (delay: Duration.Duration) =>
+const scheduleCloseStep = (delay: Duration.Duration) =>
   HoverIntentDefinition.makeStep(model => {
     const version = Number.increment(model.pendingCloseVersion)
     return {
@@ -156,7 +156,7 @@ const entered = (model: Model) => {
     return { model: enteredModel }
   }
 
-  return scheduleOpen(enteredModel)
+  return scheduleOpenStep(enteredModel)
 }
 
 const left = (model: Model) => {
@@ -176,7 +176,7 @@ const left = (model: Model) => {
     return { model: leftModel }
   }
 
-  return scheduleClose(leftModel.closeDelay)(leftModel)
+  return scheduleCloseStep(leftModel.closeDelay)(leftModel)
 }
 
 const focused = (model: Model, focusLocation: FocusLocation) => {
@@ -211,7 +211,7 @@ const blurred = (model: Model) => {
     return { model: blurredModel }
   }
 
-  return scheduleClose(Duration.zero)(blurredModel)
+  return scheduleCloseStep(Duration.zero)(blurredModel)
 }
 
 const dismiss = (model: Model, isTriggerFocused: boolean) => {

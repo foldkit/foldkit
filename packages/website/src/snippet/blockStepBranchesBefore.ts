@@ -13,7 +13,7 @@ const CreateIssueDefinition = Block.makeDefinition('CreateIssue', {
   Message: Schema.Never,
 })
 
-export const updateProject = (projectId: string) =>
+export const updateProjectStep = (projectId: string) =>
   CreateIssueDefinition.makeStep(model => {
     if (model.createState._tag === 'Creating') {
       return CreateIssueDefinition.makeNoopStep()(model)

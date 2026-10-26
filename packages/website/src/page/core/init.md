@@ -115,7 +115,7 @@ A keyed-array Binding can declare `init.instances` and `init.toItem`. The first 
 
 Return each wrapper as a plain record so its child field keeps the exact initialized object. A wrapper Schema constructor may reconstruct that child and fail the identity check. Composition constructs the full parent Model through its Schema after collecting these records.
 
-This Counter application starts three instances. Its Model declares `counters: Schema.Array(CounterInstance)`, where each instance holds `id` and `counter`. Its `addCounter` Step returns a `CountersBinding.init({ key, args, toParentModel })` recipe, so the Definition defers initialization until it can produce the parent result with the child init Commands:
+This Counter application starts three instances. Its Model declares `counters: Schema.Array(CounterInstance)`, where each instance holds `id` and `counter`. Its `addCounterStep` returns a `CountersBinding.init({ key, args, toParentModel })` recipe, so the Definition defers initialization until it can produce the parent result with the child init Commands:
 
 ::Snippet{name="initKeyedChildren" label="Initializing keyed child instances"}
 

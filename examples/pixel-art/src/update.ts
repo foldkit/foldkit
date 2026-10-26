@@ -8,7 +8,7 @@ import {
   ErrorDialogBinding,
   GridSizeConfirmDialogBinding,
   applyGridSizeChange,
-  requestGridSizeChange,
+  requestGridSizeChangeStep,
   selectColor,
   selectTool,
 } from './composition'
@@ -111,7 +111,7 @@ export const update = ApplicationComposition.makeUpdate({
 
   SelectedTool: (model, { tool }) => selectTool(model, tool),
 
-  SelectedGridSize: (model, { size }) => requestGridSizeChange(size)(model),
+  SelectedGridSize: (model, { size }) => requestGridSizeChangeStep(size)(model),
 
   ToggledMirrorHorizontal: makeFieldsStep(model => {
     const nextMirrorMode = Match.value(model.mirrorMode).pipe(

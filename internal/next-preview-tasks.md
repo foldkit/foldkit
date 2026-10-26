@@ -8,6 +8,26 @@ Preserve concurrent edits. Preview integration targets `codex/layers-and-submode
 
 The user has explicitly held publication pending approval. Prepare and verify locally; pushing the integration branch would itself trigger publication and is outside this preparation step. [Release handoff](next-preview-release-handoff.md).
 
+## Final approval preparation, October 26
+
+- [ ] Name assigned Step values with a descriptive `Step` suffix across current
+      consumers, framework examples/tests, active snippets and guidance. Preserve
+      operation registry names, ordinary Message-handler names, factories, applied
+      results, historical published content and unchanged compiler-performance fixtures.
+- [ ] Refresh affected source/runtime/lint/declaration checks and inspect realistic
+      split-file consumers. Record intentional naming exceptions by value contract.
+- [ ] Freeze a coherent candidate and refresh packed-package, Coverchart and
+      scaffold acceptance for the accumulated post-preparation changes. Keep the
+      actual Coverchart checkout and the user's running servers intact.
+- [x] Check new feedback only within the Blocks + Effect Layers preview scope. No
+      new replies were found on #1737 or #1655 after the previous scoped check.
+- [ ] After source and verification jobs settle, compare the final preview with
+      pinned main in the Lustre harness, including naive and optimized views,
+      correctness checks, balanced repeated runs and bundle provenance.
+- [ ] Prepare a concise final approval summary with public API changes, measured
+      results, retained limitations and publication steps. Do not publish or push
+      the integration branch before approval.
+
 ## Initialization helpers authorized after preparation
 
 Publication remains held. The previously verified preparation checkpoint is

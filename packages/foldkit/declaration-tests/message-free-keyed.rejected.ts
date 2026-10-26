@@ -52,18 +52,19 @@ ParentDefinition.makeBinding(MessagefulBlock, {
   writeAt: (model: typeof ParentModel.Type, _key, _nextChild) => model,
 })
 
-const omittedInitialization = ParentDefinition.makeStep((model, key: string) =>
-  GeneralKeyedBinding.init({
-    key,
-    args: [key],
-    toParentModel: () => model,
-  }),
+const omittedInitializationStep = ParentDefinition.makeStep(
+  (model, key: string) =>
+    GeneralKeyedBinding.init({
+      key,
+      args: [key],
+      toParentModel: () => model,
+    }),
 )
 const OmittedComposition = ParentDefinition.makeComposition()
 const omittedUpdate = OmittedComposition.makeUpdate({
   ClickedParent: (model, _message) =>
     // @ts-expect-error The omitted Binding's initialization requires graph capability at application.
-    omittedInitialization(model, 'one'),
+    omittedInitializationStep(model, 'one'),
 })
 
 // @ts-expect-error Connected initialization requires its message-free Binding to be registered.

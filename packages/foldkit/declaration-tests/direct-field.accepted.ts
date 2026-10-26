@@ -11,12 +11,12 @@ const ChildDefinition = Block.makeDefinition('DeclaredDirectFieldChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const setCount = ChildDefinition.makeStep((model, count: number) => ({
+const setCountStep = ChildDefinition.makeStep((model, count: number) => ({
   model: Struct.modifyFields(model, { count: () => count }),
 }))
 const DeclaredDirectFieldChildComposition = ChildDefinition.makeComposition()
 const childUpdate = DeclaredDirectFieldChildComposition.makeUpdate({
-  UpdatedCount: (model, { count }) => setCount(model, count),
+  UpdatedCount: (model, { count }) => setCountStep(model, count),
 })
 const prepareChildBlock = () =>
   DeclaredDirectFieldChildComposition.prepareBlock({

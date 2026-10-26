@@ -26,27 +26,27 @@ export const DefinitionWithoutOutMessage = Block.makeDefinition(
   'StepsWithoutOutMessage',
   { Model, Message },
 )
-export const emitSelected = OutMessageStepsDefinition.makeOutMessageStep(() =>
-  OutMessage.SelectedChoice({ value: 'Pear' }),
+export const emitSelectedStep = OutMessageStepsDefinition.makeOutMessageStep(
+  () => OutMessage.SelectedChoice({ value: 'Pear' }),
 )
-export const emitRefined = OutMessageStepsDefinition.makeOutMessageStep(() =>
-  RefinedOutMessage.SelectedChoice({ value: 'Apple' }),
+export const emitRefinedStep = OutMessageStepsDefinition.makeOutMessageStep(
+  () => RefinedOutMessage.SelectedChoice({ value: 'Apple' }),
 )
-export const emitClosed = OutMessageStepsDefinition.makeOutMessageStep(() =>
+export const emitClosedStep = OutMessageStepsDefinition.makeOutMessageStep(() =>
   OutMessage.ClosedPicker(),
 )
-export const emitUnion = (outMessage: typeof OutMessage.Type) =>
+export const emitUnionStep = (outMessage: typeof OutMessage.Type) =>
   OutMessageStepsDefinition.makeOutMessageStep(() => outMessage)
 export const applyToGenericModel = <Current extends typeof Model.Type>(
   model: Current,
-) => emitRefined(model)
+) => emitRefinedStep(model)
 
 export const PrimitiveDefinition = Block.makeDefinition('PrimitiveSteps', {
   Model: Schema.String,
   Message: Schema.Never,
   OutMessage: Schema.Literals(['Accepted', 'Cancelled']),
 })
-export const emitPrimitive = PrimitiveDefinition.makeOutMessageStep(
+export const emitPrimitiveStep = PrimitiveDefinition.makeOutMessageStep(
   () => 'Accepted',
 )
 
@@ -62,7 +62,7 @@ const prepare = () =>
         OutMessageStepsDefinition.makeOutMessageStep(() =>
           OutMessage.SelectedChoice({ value }),
         )(model),
-      RequestedClose: model => emitClosed(model),
+      RequestedClose: model => emitClosedStep(model),
       CompletedObserveSelection: model => ({ model }),
     }),
     operations: {

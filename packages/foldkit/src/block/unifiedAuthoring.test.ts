@@ -65,11 +65,11 @@ const TrackPointer = Search.makeMountStream('TrackPointer', {
   },
 })
 const search = Search.makeComposition({})
-const clear = Search.makeStep(model => ({
+const clearStep = Search.makeStep(model => ({
   model: modifyFields(model, { value: () => '' }),
 }))
 const update = search.makeUpdate({
-  RequestedClear: model => clear(model),
+  RequestedClear: model => clearStep(model),
   RequestedSave: (model, { value }) => ({
     model: modifyFields(model, { value: () => value }),
     commands: [Save({ value })],
@@ -102,7 +102,7 @@ expectTypeOf<
 expectTypeOf<
   Layer.Error<typeof TrackPointer.layer>
 >().toEqualTypeOf<TrackingUnavailable>()
-expectTypeOf(clear(Model.make({ value: 'before' })).model).toEqualTypeOf<
+expectTypeOf(clearStep(Model.make({ value: 'before' })).model).toEqualTypeOf<
   typeof Model.Type
 >()
 const EarlyNamespace = Block.makeNamespace('Early')

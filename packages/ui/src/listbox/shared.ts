@@ -415,14 +415,14 @@ export const makeUpdateHandlers = <
 ) => {
   type Model = BaseModel
 
-  const detectListboxMovementOrAnimationEnd = (generation: number) =>
+  const detectListboxMovementOrAnimationEndStep = (generation: number) =>
     commandsStep(model => [
       DetectListboxMovementOrAnimationEnd({ id: model.id, generation }),
     ])
 
   const foldAnimationOutMessage = makeOutMessageFold(Animation.AnimationBlock, {
     StartedLeaveAnimating: ({ generation }) =>
-      detectListboxMovementOrAnimationEnd(generation),
+      detectListboxMovementOrAnimationEndStep(generation),
     TransitionedOut: stepNoop,
   })
 
@@ -456,7 +456,7 @@ export const makeUpdateHandlers = <
     ...closeWithoutFocusCommands(model),
   ]
 
-  const openListbox = (model: Model, baseModel: Model) => {
+  const openListboxStep = (model: Model, baseModel: Model) => {
     if (baseModel.isAnimated) {
       return Update.combineSteps([
         step(() => ({ model: baseModel, commands: openCommands(model) })),
@@ -471,7 +471,7 @@ export const makeUpdateHandlers = <
     }))
   }
 
-  const closeListbox = (
+  const closeListboxStep = (
     baseModel: Model,
     commands: ReturnType<typeof closeWithFocusCommands>,
   ) => {
@@ -499,7 +499,7 @@ export const makeUpdateHandlers = <
       return stepNoop()
     }
 
-    return openListbox(
+    return openListboxStep(
       model,
       modifyBaseFields(model, {
         maybeActiveItemIndex: () => maybeActiveItemIndex,
@@ -521,7 +521,7 @@ export const makeUpdateHandlers = <
       return step(() =>
         Function.compose(
           step(() =>
-            closeListbox(selection.model, closeWithFocusCommands(model)),
+            closeListboxStep(selection.model, closeWithFocusCommands(model)),
           ),
           Update.withOutMessage(selection.outMessage),
         ),
@@ -546,14 +546,15 @@ export const makeUpdateHandlers = <
     CompletedPortalListboxBackdrop: model => ({ model }),
     RequestedOpen: model => openWithActiveItem(model, Option.none()),
 
-    RequestedClose: model => closeListbox(model, closeWithFocusCommands(model)),
+    RequestedClose: model =>
+      closeListboxStep(model, closeWithFocusCommands(model)),
 
     RequestedSelectItem: (model, { item }) => selectItem(model, item),
 
     Opened: (model, { maybeActiveItemIndex }) =>
       openWithActiveItem(model, maybeActiveItemIndex),
 
-    Closed: model => closeListbox(model, closeWithFocusCommands(model)),
+    Closed: model => closeListboxStep(model, closeWithFocusCommands(model)),
 
     BlurredItems: model => {
       if (
@@ -562,7 +563,7 @@ export const makeUpdateHandlers = <
         return stepNoop()
       }
 
-      return closeListbox(model, closeWithoutFocusCommands(model))
+      return closeListboxStep(model, closeWithoutFocusCommands(model))
     },
 
     ActivatedItem: (model, { index, activationTrigger }) => ({
@@ -670,7 +671,7 @@ export const makeUpdateHandlers = <
         }))
       }
 
-      return openListbox(
+      return openListboxStep(
         model,
         modifyBaseFields(withPointerType, {
           maybeActiveItemIndex: () => Option.none(),
@@ -697,7 +698,7 @@ export const makeUpdateHandlers = <
       }
 
       if (model.isOpen) {
-        return closeListbox(model, closeWithFocusCommands(model))
+        return closeListboxStep(model, closeWithFocusCommands(model))
       }
 
       return openWithActiveItem(model, Option.none())

@@ -23,32 +23,32 @@ import {
   update,
 } from './record-update.accepted.js'
 
-const quiet = CounterDefinition.makeNoopStep()
+const quietStep = CounterDefinition.makeNoopStep()
 const validCases = {
-  RequestedQuiet: quiet,
-  RequestedReport: quiet,
-  RequestedSave: quiet,
-  CompletedSave: quiet,
+  RequestedQuiet: quietStep,
+  RequestedReport: quietStep,
+  RequestedSave: quietStep,
+  CompletedSave: quietStep,
 }
 
-const largeNoop = LargeContextDefinition.makeNoopStep()
+const largeNoopStep = LargeContextDefinition.makeNoopStep()
 const validLargeCases = {
-  PressedKey: largeNoop,
-  ChangedCount: largeNoop,
-  BlurredInput: largeNoop,
-  SubmittedSave: largeNoop,
-  RequestedReport: largeNoop,
-  UpdatedRemote: largeNoop,
-  FailedRemote: largeNoop,
-  CompletedLoad: largeNoop,
-  SucceededFetch: largeNoop,
-  FailedFetch: largeNoop,
-  ClickedCopy: largeNoop,
-  SucceededCopy: largeNoop,
-  CompletedWait: largeNoop,
-  InformedJoin: largeNoop,
-  SucceededJoin: largeNoop,
-  CompletedSave: largeNoop,
+  PressedKey: largeNoopStep,
+  ChangedCount: largeNoopStep,
+  BlurredInput: largeNoopStep,
+  SubmittedSave: largeNoopStep,
+  RequestedReport: largeNoopStep,
+  UpdatedRemote: largeNoopStep,
+  FailedRemote: largeNoopStep,
+  CompletedLoad: largeNoopStep,
+  SucceededFetch: largeNoopStep,
+  FailedFetch: largeNoopStep,
+  ClickedCopy: largeNoopStep,
+  SucceededCopy: largeNoopStep,
+  CompletedWait: largeNoopStep,
+  InformedJoin: largeNoopStep,
+  SucceededJoin: largeNoopStep,
+  CompletedSave: largeNoopStep,
 }
 
 // @ts-expect-error Large contextual records retain the owning Model contract.
@@ -68,10 +68,10 @@ LargeContextComposition.makeUpdate.withContext((_context: LargeContext) => ({
 }))
 
 // @ts-expect-error Every local Message needs a handler.
-CounterComposition.makeUpdate({ RequestedQuiet: quiet })
+CounterComposition.makeUpdate({ RequestedQuiet: quietStep })
 // @ts-expect-error Extra handlers are rejected even when extracted.
-CounterComposition.makeUpdate({ ...validCases, Undeclared: quiet })
-const extraCases = { ...validCases, Undeclared: quiet }
+CounterComposition.makeUpdate({ ...validCases, Undeclared: quietStep })
+const extraCases = { ...validCases, Undeclared: quietStep }
 // @ts-expect-error Structural assignment cannot hide an extra handler.
 CounterComposition.makeUpdate(extraCases)
 CounterComposition.makeUpdate({
@@ -216,12 +216,12 @@ CounterComposition.makeUpdate({
   RequestedQuiet: () => erasedRegistration,
 })
 
-const parentQuiet = ParentDefinition.makeNoopStep()
+const parentQuietStep = ParentDefinition.makeNoopStep()
 const parentCases = {
-  RequestedQuiet: parentQuiet,
-  RequestedReport: parentQuiet,
-  RequestedSave: parentQuiet,
-  CompletedSave: parentQuiet,
+  RequestedQuiet: parentQuietStep,
+  RequestedReport: parentQuietStep,
+  RequestedSave: parentQuietStep,
+  CompletedSave: parentQuietStep,
 }
 ParentDefinition.makeComposition().makeUpdate({
   ...parentCases,
@@ -269,7 +269,7 @@ CounterComposition.makeUpdate.withContext((_context: number) => ({
   }),
 }))
 // @ts-expect-error Emitting results cannot masquerade as a silent ordinary Step.
-const _silent: Update.Step<typeof Model.Type, typeof LocalMessage.Type> = (
+const _silentStep: Update.Step<typeof Model.Type, typeof LocalMessage.Type> = (
   model: typeof Model.Type,
 ) => ({ model, outMessage: OutMessage.ReportedCount({ count: 1 }) })
 // @ts-expect-error Owned result constructors do not accept foreign result Messages.

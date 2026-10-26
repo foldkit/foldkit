@@ -5,7 +5,7 @@ import {
   Composition,
   Save,
   connectedSteps,
-  deferredConnectedSteps,
+  deferredConnectedStep,
   init,
   saveUpdate,
   update,
@@ -25,8 +25,8 @@ export const curriedConnectedUpdate = Composition.makeUpdate({
   Clicked: model => Update.combineSteps(connectedSteps)(model),
 })
 export const deferredConnectedUpdate = Composition.makeUpdate({
-  Clicked: deferredConnectedSteps,
-  CompletedSave: deferredConnectedSteps,
+  Clicked: deferredConnectedStep,
+  CompletedSave: deferredConnectedStep,
 })
 
 export const ordinaryBlock = Composition.prepareBlock({ init, update, view })

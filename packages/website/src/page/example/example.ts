@@ -122,7 +122,7 @@ export const init = ExampleDetailComposition.makeInit(
   },
 )
 
-const startLoadingExampleSources = (slug: string) =>
+const startLoadingExampleSourcesStep = (slug: string) =>
   makeStep(model => {
     return SourceFileTabsBinding.init({
       args: [{ id: SOURCE_FILE_TABS_ID }],
@@ -137,7 +137,7 @@ const startLoadingExampleSources = (slug: string) =>
     })
   })
 
-const clearExampleSources = makeStep(model => {
+const clearExampleSourcesStep = makeStep(model => {
   return SourceFileTabsBinding.init({
     args: [{ id: SOURCE_FILE_TABS_ID }],
     toParentModel: sourceFileTabs =>
@@ -151,7 +151,8 @@ const clearExampleSources = makeStep(model => {
 })
 
 export const update = ExampleDetailComposition.makeUpdate({
-  InformedOfRouteChange: (model, { slug }) => changeExampleRoute(model, slug),
+  InformedOfRouteChange: (model, { slug }) =>
+    changeExampleRouteStep(model, slug),
 
   ChangedExampleUrl: makeFieldsStep.fromMessage(({ url }) => ({
     maybeExampleUrl: () => Option.some(url),
@@ -170,12 +171,12 @@ export const update = ExampleDetailComposition.makeUpdate({
   })),
 })
 
-const changeExampleRoute = makeStep((_model, slug: string) => {
+const changeExampleRouteStep = makeStep((_model, slug: string) => {
   if (isSourceAvailable(slug)) {
-    return startLoadingExampleSources(slug)
+    return startLoadingExampleSourcesStep(slug)
   }
 
-  return clearExampleSources
+  return clearExampleSourcesStep
 })
 
 const featureTag = (text: string): Html =>

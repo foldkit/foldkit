@@ -57,18 +57,18 @@ export const CommentComposerBinding = IssueDetailDefinition.makeBinding(
   }),
 })
 
-const reportDraft = CommentComposerBinding.requestReportDraft()
+const reportDraftStep = CommentComposerBinding.requestReportDraft()
 
-const keepModel = makeNoopStep()
+const keepModelStep = makeNoopStep()
 
-export const changeDraft =
+export const changeDraftStep =
   (toDraft: (draft: typeof IssueDraft.Type) => typeof IssueDraft.Type) =>
-  (model: Parameters<typeof reportDraft>[0]) => {
+  (model: Parameters<typeof reportDraftStep>[0]) => {
     if (SaveState.guards.Saving(model.saveState)) {
-      return keepModel(model)
+      return keepModelStep(model)
     }
 
-    return reportDraft(modifyFields(model, { draft: toDraft }))
+    return reportDraftStep(modifyFields(model, { draft: toDraft }))
   }
 
 export const StatusBinding = IssueDetailDefinition.makeBinding(
@@ -83,7 +83,7 @@ export const StatusBinding = IssueDetailDefinition.makeBinding(
   fold: IssueDetailDefinition.makeOutMessageFold(StatusListboxBlock, {
     Selected: ({ value }) =>
       Schema.is(IssueStatus)(value)
-        ? changeDraft(draft => modifyFields(draft, { status: () => value }))
+        ? changeDraftStep(draft => modifyFields(draft, { status: () => value }))
         : makeNoopStep(),
   }),
 })
@@ -100,7 +100,9 @@ export const PriorityBinding = IssueDetailDefinition.makeBinding(
   fold: IssueDetailDefinition.makeOutMessageFold(PriorityListboxBlock, {
     Selected: ({ value }) =>
       Schema.is(IssuePriority)(value)
-        ? changeDraft(draft => modifyFields(draft, { priority: () => value }))
+        ? changeDraftStep(draft =>
+            modifyFields(draft, { priority: () => value }),
+          )
         : makeNoopStep(),
   }),
 })
@@ -116,7 +118,7 @@ export const ProjectBinding = IssueDetailDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: IssueDetailDefinition.makeOutMessageFold(WorkspaceListboxBlock, {
     Selected: ({ value }) =>
-      changeDraft(draft => modifyFields(draft, { projectId: () => value })),
+      changeDraftStep(draft => modifyFields(draft, { projectId: () => value })),
   }),
 })
 
@@ -134,7 +136,7 @@ export const AssigneeBinding = IssueDetailDefinition.makeBinding(
       Option.match(decodeAssigneeSelection(value), {
         onNone: makeNoopStep,
         onSome: maybeAssigneeId =>
-          changeDraft(draft =>
+          changeDraftStep(draft =>
             modifyFields(draft, { maybeAssigneeId: () => maybeAssigneeId }),
           ),
       }),

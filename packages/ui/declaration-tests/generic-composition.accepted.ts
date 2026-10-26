@@ -294,7 +294,7 @@ export const KeyedAnimationFixtureComposition =
       }),
     ],
   })
-export const keyedAnimationLeaveWait =
+export const keyedAnimationLeaveWaitStep =
   KeyedAnimationBinding.requestWaitForLeaveSettlement('Primary')
 export const Model = Schema.Struct({
   animation: Animation.AnimationBlock.Model,

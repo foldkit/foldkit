@@ -97,14 +97,14 @@ const childView = ChildComposition.makeView((model, h) =>
 )
 
 const childUpdate = ChildComposition.makeUpdate({
-  RequestedRead: model => refresh(model),
+  RequestedRead: model => refreshStep(model),
   CompletedRead: (model, { value }) => ({
     model: ChildModel.make({ value }),
   }),
   CompletedMeasure: model => ({ model }),
 })
 
-const refresh = ChildDefinition.makeStep(model => ({
+const refreshStep = ChildDefinition.makeStep(model => ({
   model,
   commands: [ReadCount()],
 }))
@@ -266,13 +266,13 @@ export const StreamDirectValue =
   })
 
 export const directUpdate = DeclarationTestsDirectComposition.makeUpdate({
-  RequestedReadDirectValue: model => refreshDirectValue(model),
+  RequestedReadDirectValue: model => refreshDirectValueStep(model),
   CompletedReadDirectValue: (model, { value }) => ({
     model: DirectModel.make({ value }),
   }),
 })
 
-export const refreshDirectValue = DeclarationTestsDirectDefinition.makeStep(
+export const refreshDirectValueStep = DeclarationTestsDirectDefinition.makeStep(
   model => ({
     model,
     commands: [ReadDirectValue()],
@@ -505,10 +505,10 @@ export const parentArrayViewHelper = (
 ) => labels.map(label => h.span([], [label]))
 
 export const parentUpdate = ParentComposition.makeUpdate({
-  RequestedRefresh: model => refreshChild(model),
+  RequestedRefresh: model => refreshChildStep(model),
 })
 
-const refreshChild = DeclarationTestsParentDefinition.makeStep(() =>
+const refreshChildStep = DeclarationTestsParentDefinition.makeStep(() =>
   ChildBinding.refresh(),
 )
 
@@ -517,9 +517,10 @@ export const RefreshContext = Schema.Struct({
 })
 export type RefreshContext = typeof RefreshContext.Type
 
-export const contextualRefreshChild = DeclarationTestsParentDefinition.makeStep(
-  (_model, _context?: RefreshContext) => ChildBinding.refresh(),
-)
+export const contextualRefreshChildStep =
+  DeclarationTestsParentDefinition.makeStep(
+    (_model, _context?: RefreshContext) => ChildBinding.refresh(),
+  )
 
 const prepareParent = () =>
   ParentComposition.prepareBlock({
@@ -575,7 +576,7 @@ const makeChoiceParts = <const Values extends ReadonlyArray<string>>(
     Message,
     OutMessage,
   })
-  const finish = ChoiceDefinition.makeStep((_model, value: Value) => ({
+  const finishStep = ChoiceDefinition.makeStep((_model, value: Value) => ({
     model: Model.make({ value }),
     outMessage: OutMessage.make({ value }),
   }))
@@ -588,7 +589,7 @@ const makeChoiceParts = <const Values extends ReadonlyArray<string>>(
       }),
     ),
     update: DeclarationTestsChoiceComposition.makeUpdate({
-      SelectedValue: (model, message) => finish(model, message.value),
+      SelectedValue: (model, message) => finishStep(model, message.value),
     }),
     operations: {
       finish: (value: Values[number]) => Tuple.make(Message.make({ value })),

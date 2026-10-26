@@ -13,8 +13,8 @@ import {
 import { makeCommandsStep, makeFieldsStep, makeNoopStep } from '../definition'
 import { isPlaygroundRoute, urlToApplicationRoute } from '../route'
 import { ApplyTheme, resolveTheme } from '../theme'
-import { handleChangedUrl } from './handleChangedUrl'
-import { handleCompletedLoadBrowserEnvironment } from './handleCompletedLoadBrowserEnvironment'
+import { handleChangedUrlStep } from './handleChangedUrl'
+import { handleCompletedLoadBrowserEnvironmentStep } from './handleCompletedLoadBrowserEnvironment'
 
 export const update = ApplicationComposition.makeUpdate({
   ClickedLink: makeCommandsStep.fromMessage(({ request }) =>
@@ -36,7 +36,7 @@ export const update = ApplicationComposition.makeUpdate({
     }),
   ),
 
-  ChangedUrl: handleChangedUrl,
+  ChangedUrl: handleChangedUrlStep,
 
   ClickedCopyLink: makeCommandsStep((model, { hash }) => [
     Command.CopyLink({
@@ -78,7 +78,7 @@ export const update = ApplicationComposition.makeUpdate({
     isNarrowViewport: () => isNarrow,
   })),
 
-  CompletedLoadBrowserEnvironment: handleCompletedLoadBrowserEnvironment,
+  CompletedLoadBrowserEnvironment: handleCompletedLoadBrowserEnvironmentStep,
 
   ChangedSystemTheme: (model, { theme }) => {
     const resolvedTheme = resolveTheme(

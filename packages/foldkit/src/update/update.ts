@@ -921,12 +921,12 @@ type CombinedStepRecipe<
  * ```ts
  * SucceededUpdateNote: ({ note }) =>
  *   combineSteps(model, [
- *     replaceNoteInCaches(note),
- *     refreshNote(note.id),
- *     refreshAllNotes,
- *     refreshNotebookNotes(note.maybeNotebookId),
- *     ...Array.filter([refreshNotebookNotes(previousNotebookId)], () => hasMoved),
- *     showToast('Success', `Updated ${note.title}`),
+ *     replaceNoteInCachesStep(note),
+ *     refreshNoteStep(note.id),
+ *     refreshAllNotesStep,
+ *     refreshNotebookNotesStep(note.maybeNotebookId),
+ *     ...Array.filter([refreshNotebookNotesStep(previousNotebookId)], () => hasMoved),
+ *     showToastStep('Success', `Updated ${note.title}`),
  *   ])
  * ```
  */
@@ -1185,7 +1185,7 @@ export type Refreshable<Model, Message, A, E, R = never> = Readonly<{
  *  caches that currently hold data reload.
  *
  *  ```ts
- *  const refreshAllNotes = refresh({
+ *  const refreshAllNotesStep = refresh({
  *    read: model => Option.some(model.allNotes),
  *    revalidate: AsyncData.revalidate,
  *    write: (model, nextAllNotes) => modifyFields(model, { allNotes: () => nextAllNotes }),
@@ -2315,7 +2315,7 @@ type AnyChildStepFold = Readonly<{
  *  an input the child does not take:
  *
  *  ```ts
- *  const foldMobileMenuDialogClose = Update.foldChildStep({
+ *  const foldMobileMenuDialogCloseStep = Update.foldChildStep({
  *    update: Dialog.close,
  *    read: readMobileMenuDialog,
  *    write: writeMobileMenuDialog,
@@ -2324,7 +2324,7 @@ type AnyChildStepFold = Readonly<{
  *  })
  *
  *  // in the parent update
- *  Update.combineSteps(model, [writeRouteFields, foldMobileMenuDialogClose])
+ *  Update.combineSteps(model, [writeRouteFieldsStep, foldMobileMenuDialogCloseStep])
  *  ```
  *
  *  `foldOutMessage` takes the same optional second parameter as

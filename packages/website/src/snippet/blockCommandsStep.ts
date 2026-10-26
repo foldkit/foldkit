@@ -26,7 +26,7 @@ const WaitBeforeDismissal = NotificationDefinition.makeCommand(
   },
 )
 
-export const waitBeforeDismissal = makeCommandsStep(model => [
+export const waitBeforeDismissalStep = makeCommandsStep(model => [
   WaitBeforeDismissal({ delayMs: model.dismissDelayMs }),
 ])
 

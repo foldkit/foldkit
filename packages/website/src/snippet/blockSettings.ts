@@ -12,16 +12,16 @@ import {
   makeStep,
 } from './blockDefinition'
 
-const changeTheme = makeStep((model, theme: typeof Theme.Type) => ({
+const changeThemeStep = makeStep((model, theme: typeof Theme.Type) => ({
   model: modifyFields(model, { theme: () => theme }),
   commands: [SaveTheme({ theme })],
   outMessage: OutMessage.ChangedTheme({ theme }),
 }))
 
 const update = SettingsComposition.makeUpdate({
-  ChangedTheme: (model, { theme }) => changeTheme(model, theme),
-  RequestedThemeChange: (model, { theme }) => changeTheme(model, theme),
-  RequestedReset: model => changeTheme(model, 'System'),
+  ChangedTheme: (model, { theme }) => changeThemeStep(model, theme),
+  RequestedThemeChange: (model, { theme }) => changeThemeStep(model, theme),
+  RequestedReset: model => changeThemeStep(model, 'System'),
   CompletedSaveTheme: makeNoopStep(),
   FailedSaveTheme: makeNoopStep(),
 })

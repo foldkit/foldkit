@@ -7,7 +7,7 @@ import { ApplicationComposition, UiBinding } from './composition'
 import { makeFieldsStep, makeNoopStep } from './definition'
 import { urlToApplicationRoute } from './route'
 
-const stepRoute = (url: Url) =>
+const setRouteStep = (url: Url) =>
   makeFieldsStep(() => ({
     route: () => urlToApplicationRoute(url),
   }))
@@ -30,7 +30,7 @@ export const update = ApplicationComposition.makeUpdate({
 
   ChangedUrl: (model, { url }) =>
     Update.combineSteps(model, [
-      stepRoute(url),
+      setRouteStep(url),
       UiBinding.requestCloseMobileMenu(),
     ]),
 

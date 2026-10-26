@@ -324,11 +324,11 @@ describe('defineStep', () => {
 
 describe('combineSteps inference', () => {
   it('unions Message and handler requirements across heterogeneous Steps', () => {
-    const combined = combineSteps([loadProfileStep, loadPreferencesStep])
+    const combinedStep = combineSteps([loadProfileStep, loadPreferencesStep])
     const model = Model.make({ count: 0 })
     const result = combineSteps(model, [loadProfileStep, loadPreferencesStep])
 
-    expectTypeOf(combined).toEqualTypeOf<
+    expectTypeOf(combinedStep).toEqualTypeOf<
       Step<
         Model,
         | typeof Message.CompletedLoadProfile.Type
@@ -346,7 +346,7 @@ describe('combineSteps inference', () => {
         | Command.HandlerOf<typeof LoadPreferences>
       >
     >()
-    expect(combined(model).commands?.map(({ name }) => name)).toEqual([
+    expect(combinedStep(model).commands?.map(({ name }) => name)).toEqual([
       'LoadProfile',
       'LoadPreferences',
     ])

@@ -33,7 +33,7 @@ import {
   StatusListboxBinding,
 } from './composition'
 import { CreateState, Message, OutMessage } from './definition'
-import { editDraft } from './draft'
+import { editDraftStep } from './draft'
 import { update } from './update'
 
 const initModel = () => CreateIssueBlock.init().model
@@ -248,7 +248,7 @@ describe('CreateIssueBlock update', () => {
     })
 
     expect(
-      editDraft(model =>
+      editDraftStep(model =>
         modifyFields(model, { title: () => 'A rejected title' }),
       )(initial).model,
     ).toBe(initial)

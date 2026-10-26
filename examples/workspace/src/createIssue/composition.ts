@@ -11,7 +11,7 @@ import {
   WorkspaceListboxBlock,
 } from '../listbox'
 import { CreateIssueDefinition, makeNoopStep } from './definition'
-import { editDraft } from './draft'
+import { editDraftStep } from './draft'
 
 export const DialogBinding = CreateIssueDefinition.makeBinding(DialogBlock, {
   field: 'dialog',
@@ -37,7 +37,7 @@ export const ProjectListboxBinding = CreateIssueDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: CreateIssueDefinition.makeOutMessageFold(WorkspaceListboxBlock, {
     Selected: ({ value }) =>
-      editDraft(model => modifyFields(model, { projectId: () => value })),
+      editDraftStep(model => modifyFields(model, { projectId: () => value })),
   }),
 })
 
@@ -53,7 +53,7 @@ export const StatusListboxBinding = CreateIssueDefinition.makeBinding(
   fold: CreateIssueDefinition.makeOutMessageFold(StatusListboxBlock, {
     Selected: ({ value }) =>
       Schema.is(IssueStatus)(value)
-        ? editDraft(model => modifyFields(model, { status: () => value }))
+        ? editDraftStep(model => modifyFields(model, { status: () => value }))
         : makeNoopStep(),
   }),
 })
@@ -70,7 +70,7 @@ export const PriorityListboxBinding = CreateIssueDefinition.makeBinding(
   fold: CreateIssueDefinition.makeOutMessageFold(PriorityListboxBlock, {
     Selected: ({ value }) =>
       Schema.is(IssuePriority)(value)
-        ? editDraft(model => modifyFields(model, { priority: () => value }))
+        ? editDraftStep(model => modifyFields(model, { priority: () => value }))
         : makeNoopStep(),
   }),
 })

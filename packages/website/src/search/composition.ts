@@ -3,7 +3,7 @@ import type { Block } from 'foldkit'
 
 import { DialogBlock } from '@foldkit/ui'
 
-import { clearSearchQuery } from './clear'
+import { clearSearchQueryStep } from './clear'
 import { SearchDefinition, makeNoopStep } from './definition'
 
 export const DialogBinding = SearchDefinition.makeBinding(DialogBlock, {
@@ -13,7 +13,7 @@ export const DialogBinding = SearchDefinition.makeBinding(DialogBlock, {
   fold: SearchDefinition.makeOutMessageFold(DialogBlock, {
     Opened: makeNoopStep,
     Closed: makeNoopStep,
-    CompletedClose: () => clearSearchQuery,
+    CompletedClose: () => clearSearchQueryStep,
   }),
 })
 

@@ -6,7 +6,7 @@ import { SaveIssue } from './command'
 import {
   CommentComposerBinding,
   IssueDetailComposition,
-  changeDraft,
+  changeDraftStep,
 } from './composition'
 import {
   Message,
@@ -35,19 +35,19 @@ const resetDraftFields = (model: typeof Model.Type) => {
   }
 }
 
-const keepModel = makeNoopStep()
+const keepModelStep = makeNoopStep()
 
-const reportDraft = CommentComposerBinding.requestReportDraft()
+const reportDraftStep = CommentComposerBinding.requestReportDraft()
 
-const resetDraft = (model: Parameters<typeof reportDraft>[0]) => {
+const resetDraft = (model: Parameters<typeof reportDraftStep>[0]) => {
   if (SaveState.guards.Saving(model.saveState)) {
-    return keepModel(model)
+    return keepModelStep(model)
   }
 
-  return reportDraft(modifyFields(model, resetDraftFields(model)))
+  return reportDraftStep(modifyFields(model, resetDraftFields(model)))
 }
 
-const saveIssue = makeStep(model => {
+const saveIssueStep = makeStep(model => {
   if (
     SaveState.guards.Saving(model.saveState) ||
     Option.isSome(model.maybeIncomingRevision) ||
@@ -171,19 +171,21 @@ const handleFailedSaveIssue = (
 
 export const update = IssueDetailComposition.makeUpdate({
   UpdatedTitle: (model, { value }) =>
-    changeDraft(draft => modifyFields(draft, { title: () => value }))(model),
-  UpdatedDescription: (model, { value }) =>
-    changeDraft(draft => modifyFields(draft, { description: () => value }))(
+    changeDraftStep(draft => modifyFields(draft, { title: () => value }))(
       model,
     ),
-  SubmittedIssueForm: saveIssue,
-  ClickedRetrySave: saveIssue,
-  RequestedSave: saveIssue,
-  RequestedReportDraft: reportDraft,
+  UpdatedDescription: (model, { value }) =>
+    changeDraftStep(draft => modifyFields(draft, { description: () => value }))(
+      model,
+    ),
+  SubmittedIssueForm: saveIssueStep,
+  ClickedRetrySave: saveIssueStep,
+  RequestedSave: saveIssueStep,
+  RequestedReportDraft: reportDraftStep,
   InformedOfIssueChange: handleInformedOfIssueChange,
   ClickedReloadIssue: model =>
     Option.match(model.maybeIncomingRevision, {
-      onNone: () => keepModel(model),
+      onNone: () => keepModelStep(model),
       onSome: () => resetDraft(model),
     }),
   ClickedDiscardChanges: resetDraft,

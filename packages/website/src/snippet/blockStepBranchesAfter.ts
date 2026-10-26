@@ -16,7 +16,7 @@ const CreateIssueDefinition = Block.makeDefinition('CreateIssue', {
 
 const { makeStep } = CreateIssueDefinition
 
-export const updateProject = (projectId: string) =>
+export const updateProjectStep = (projectId: string) =>
   makeStep(model => {
     if (model.createState._tag === 'Creating') {
       return { model }

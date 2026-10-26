@@ -13,9 +13,9 @@ import {
   makeFieldsStep,
   makeStep,
 } from './definition'
-import { editDraft } from './draft'
+import { editDraftStep } from './draft'
 
-const handleSubmittedIssueForm = makeStep(model => {
+const handleSubmittedIssueFormStep = makeStep(model => {
   if (CreateState.guards.Creating(model.createState)) {
     return { model }
   }
@@ -55,7 +55,9 @@ const handleUpdatedDescription = (
   model: typeof Model.Type,
   { value }: typeof Message.UpdatedDescription.Type,
 ) =>
-  editDraft(draft => modifyFields(draft, { description: () => value }))(model)
+  editDraftStep(draft => modifyFields(draft, { description: () => value }))(
+    model,
+  )
 
 export const update = CreateIssueComposition.makeUpdate({
   RequestedOpen: (model, { projectId, status = 'Todo' }) => {
@@ -77,11 +79,11 @@ export const update = CreateIssueComposition.makeUpdate({
   },
   RequestedClose: DialogBinding.requestClose(),
   UpdatedTitle: (model, { value }) =>
-    editDraft(draftModel => modifyFields(draftModel, { title: () => value }))(
-      model,
-    ),
+    editDraftStep(draftModel =>
+      modifyFields(draftModel, { title: () => value }),
+    )(model),
   UpdatedDescription: handleUpdatedDescription,
-  SubmittedIssueForm: handleSubmittedIssueForm,
+  SubmittedIssueForm: handleSubmittedIssueFormStep,
   SucceededCreateIssue: (model, { issue }) => {
     return pipe(
       Update.combineSteps(model, [

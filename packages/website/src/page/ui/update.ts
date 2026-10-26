@@ -18,8 +18,8 @@ import { makeFieldsStep } from './definition'
 import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './demo/virtualListData'
 import {
   VirtualListChatDemoBinding,
-  prependVirtualListChatMessages,
-  updateVirtualListChatMessages,
+  prependVirtualListChatMessagesStep,
+  updateVirtualListChatMessagesStep,
 } from './virtualListChat'
 
 export const update = UiComposition.makeUpdate({
@@ -149,7 +149,7 @@ export const update = UiComposition.makeUpdate({
       Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
     ),
 
-  ClickedVirtualListChatPrepend: prependVirtualListChatMessages,
+  ClickedVirtualListChatPrepend: prependVirtualListChatMessagesStep,
 
   ClickedVirtualListChatScrollToMessage:
     VirtualListChatDemoBinding.requestScrollToKey('7', {
@@ -163,7 +163,7 @@ export const update = UiComposition.makeUpdate({
       body: `New message ${nextId} arrived at the end.`,
       isExpanded: nextId % 3 === 0,
     })
-    return updateVirtualListChatMessages(nextMessages, nextId + 1)(model)
+    return updateVirtualListChatMessagesStep(nextMessages, nextId + 1)(model)
   },
 
   ClickedVirtualListChatToggleMessage: (model, { messageId }) => {
@@ -174,6 +174,6 @@ export const update = UiComposition.makeUpdate({
           })
         : message,
     )
-    return updateVirtualListChatMessages(nextMessages)(model)
+    return updateVirtualListChatMessagesStep(nextMessages)(model)
   },
 })

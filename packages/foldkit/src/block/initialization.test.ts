@@ -64,7 +64,7 @@ const FinishIncrement = Child.makeCommand('FinishIncrement', {
 
 const calls: globalThis.Array<string> = []
 const single = (value: number): [number] => [value]
-const increment = Child.makeStep(model => {
+const incrementStep = Child.makeStep(model => {
   calls.push('child-step')
   return {
     model: modifyFields(model, { count: count => count + 100 }),
@@ -82,7 +82,7 @@ const prepareChildBlock = () =>
       }
     }),
     update: ChildComposition.makeUpdate({
-      RequestedIncrement: model => increment(model),
+      RequestedIncrement: model => incrementStep(model),
       CompletedInitialization: (model, { count }) => ({
         model: modifyFields(model, { count: () => count }),
       }),
@@ -262,7 +262,7 @@ it('stays passive, initializes in Binding order, applies Steps sequentially, and
 })
 
 it('preserves a combined Binding operation and Command-producing Definition Step in init', () => {
-  const finishCombined = Parent.makeStep(() =>
+  const finishCombinedStep = Parent.makeStep(() =>
     Update.combineSteps([FirstBinding.increment(), finishParentStep]),
   )
   const initializeCombined = ParentComposition.makeInit((count: number) => ({
@@ -271,7 +271,7 @@ it('preserves a combined Binding operation and Command-producing Definition Step
       maybeSecondCount: Option.none<number>(),
     },
     model: { status: 'Ready' },
-    steps: [finishCombined],
+    steps: [finishCombinedStep],
   }))
 
   expectTypeOf<Parameters<typeof initializeCombined>>().toEqualTypeOf<

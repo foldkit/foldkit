@@ -12,14 +12,14 @@ import { Message as AliasMessage } from '@/message'
 
 // UPDATE
 
-const foldChildSave = Update.foldChildStep({
+const foldChildSaveStep = Update.foldChildStep({
   update: Child.save,
   read: (model: Model) => Option.some(model.child),
   write: (model, child) => modifyFields(model, { child: () => child }),
   toParentMessage: message => GotChildMessage({ message }),
 })
 
-export const update = (model: Model) => foldChildSave(model)
+export const update = (model: Model) => foldChildSaveStep(model)
 
 // CHILD VIEW
 

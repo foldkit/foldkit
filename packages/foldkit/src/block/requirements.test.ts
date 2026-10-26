@@ -92,12 +92,12 @@ const update = Update.define((_model: Model, _message: Message) => ({
   commands: [LoadRoom()],
 }))
 
-const boot = Update.defineStep((_model: Model) => ({
+const bootStep = Update.defineStep((_model: Model) => ({
   model,
   commands: [WaitForBoot()],
 }))
 
-const refresh = Update.defineStep((_model: Model) => ({
+const refreshStep = Update.defineStep((_model: Model) => ({
   model,
   commands: [Refresh()],
   outMessage: reportedValue('ready'),
@@ -119,10 +119,10 @@ it('collects block requirements separately from public Step producers', () => {
   expectTypeOf<ProducerRequirements<typeof init>>().toEqualTypeOf<
     Command.HandlerOf<typeof Initialize>
   >()
-  expectTypeOf<ProducerRequirements<typeof boot>>().toEqualTypeOf<
+  expectTypeOf<ProducerRequirements<typeof bootStep>>().toEqualTypeOf<
     Command.HandlerOf<typeof WaitForBoot>
   >()
-  expectTypeOf<ProducerRequirements<typeof refresh>>().toEqualTypeOf<
+  expectTypeOf<ProducerRequirements<typeof refreshStep>>().toEqualTypeOf<
     Command.HandlerOf<typeof Refresh>
   >()
   type Requirements = RequirementsOfBlock<CompleteBlock>
@@ -151,10 +151,10 @@ it('collects block requirements separately from public Step producers', () => {
 })
 
 it('preserves refined OutMessage producer requirements', () => {
-  expectTypeOf<ReturnType<typeof refresh>['outMessage']>().toEqualTypeOf<
+  expectTypeOf<ReturnType<typeof refreshStep>['outMessage']>().toEqualTypeOf<
     OutMessage | undefined
   >()
-  expectTypeOf<ProducerRequirements<typeof refresh>>().toEqualTypeOf<
+  expectTypeOf<ProducerRequirements<typeof refreshStep>>().toEqualTypeOf<
     Command.HandlerOf<typeof Refresh>
   >()
 })
@@ -505,7 +505,7 @@ it('accepts an exact unbranded imported Command as a host contract', () => {
   >().toEqualTypeOf<unknown>()
 })
 
-const refreshFactory = (value: string) =>
+const refreshFactoryStep = (value: string) =>
   Update.defineStep((stepModel: Model) => ({
     model: stepModel,
     commands: [Refresh()],
@@ -513,11 +513,11 @@ const refreshFactory = (value: string) =>
   }))
 
 it('retains Command requirements through nested Step factories', () => {
-  expectTypeOf<ProducerRequirements<typeof refreshFactory>>().toEqualTypeOf<
+  expectTypeOf<ProducerRequirements<typeof refreshFactoryStep>>().toEqualTypeOf<
     Command.HandlerOf<typeof Refresh>
   >()
 
-  type DeferredAgain = () => typeof refreshFactory
+  type DeferredAgain = () => typeof refreshFactoryStep
   expectTypeOf<ProducerRequirements<DeferredAgain>>().toEqualTypeOf<
     Command.HandlerOf<typeof Refresh>
   >()
@@ -536,7 +536,7 @@ type OperationFactoryConnection = BindingBlockEvidence<
       model: Model,
       message: Message,
     ) => Update.Return<Model, Message, Command.HandlerOf<typeof Refresh>>
-    refresh: typeof refreshFactory
+    refresh: typeof refreshFactoryStep
   }>
 
 type ParentWithPolicyStep = Readonly<{

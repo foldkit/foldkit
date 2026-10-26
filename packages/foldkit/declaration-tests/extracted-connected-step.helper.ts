@@ -2,15 +2,15 @@ import { modifyFields } from 'foldkit/struct'
 
 import { ChildBinding, ParentDefinition } from './record-update.accepted.js'
 
-const reportCount = ChildBinding.report({ amount: 0 })
-const keepModel = ParentDefinition.makeNoopStep()
+const reportCountStep = ChildBinding.report({ amount: 0 })
+const keepModelStep = ParentDefinition.makeNoopStep()
 
 export const changeCount =
   (toCount: (count: number) => number) =>
-  (model: Parameters<typeof reportCount>[0]) => {
+  (model: Parameters<typeof reportCountStep>[0]) => {
     if (model.count < 0) {
-      return keepModel(model)
+      return keepModelStep(model)
     }
 
-    return reportCount(modifyFields(model, { count: toCount }))
+    return reportCountStep(modifyFields(model, { count: toCount }))
   }

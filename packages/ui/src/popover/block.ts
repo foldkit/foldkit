@@ -314,7 +314,7 @@ export const PortalPopoverBackdrop = PopoverDefinition.makeMount(
 /** Mount Definitions rendered by Popover views. */
 export const mounts = [AnchorPopover, PortalPopoverBackdrop]
 
-const detectPopoverMovementOrAnimationEnd = (generation: number) =>
+const detectPopoverMovementOrAnimationEndStep = (generation: number) =>
   PopoverDefinition.makeCommandsStep(model => [
     DetectPopoverMovementOrAnimationEnd({ id: model.id, generation }),
   ])
@@ -323,7 +323,7 @@ const foldAnimationOutMessage = PopoverDefinition.makeOutMessageFold(
   Animation.AnimationBlock,
   {
     StartedLeaveAnimating: ({ generation }) =>
-      detectPopoverMovementOrAnimationEnd(generation),
+      detectPopoverMovementOrAnimationEndStep(generation),
     TransitionedOut: PopoverDefinition.makeNoopStep,
   },
 )
@@ -509,7 +509,7 @@ const internalUpdate = (model: Model, message: AuthoredMessage) => {
   )
 }
 
-const authoredUpdate = PopoverDefinition.makeStep(
+const authoredUpdateStep = PopoverDefinition.makeStep(
   (model, message: Parameters<typeof internalUpdate>[1]) =>
     internalUpdate(model, message),
 )
@@ -517,22 +517,22 @@ const authoredUpdate = PopoverDefinition.makeStep(
 /** Processes a Popover Message and returns the next Model, optional Commands,
  *  and an optional OutMessage. */
 export const update = PopoverComposition.makeUpdate({
-  RequestedOpen: authoredUpdate,
-  RequestedClose: authoredUpdate,
-  BlurredPanel: authoredUpdate,
-  PressedPointerOnButton: authoredUpdate,
-  CompletedFocusPopoverPanel: authoredUpdate,
-  CompletedFocusPopoverButton: authoredUpdate,
-  CompletedLockPopoverScroll: authoredUpdate,
-  CompletedUnlockPopoverScroll: authoredUpdate,
-  CompletedInertPopoverOthers: authoredUpdate,
-  CompletedRestorePopoverInert: authoredUpdate,
-  ClickedButton: authoredUpdate,
-  IgnoredMouseClick: authoredUpdate,
-  SuppressedSpaceScroll: authoredUpdate,
-  CompletedAnchorPopover: authoredUpdate,
-  CompletedPortalPopoverBackdrop: authoredUpdate,
-  CompletedDetectPopoverMovementOrAnimationEnd: authoredUpdate,
+  RequestedOpen: authoredUpdateStep,
+  RequestedClose: authoredUpdateStep,
+  BlurredPanel: authoredUpdateStep,
+  PressedPointerOnButton: authoredUpdateStep,
+  CompletedFocusPopoverPanel: authoredUpdateStep,
+  CompletedFocusPopoverButton: authoredUpdateStep,
+  CompletedLockPopoverScroll: authoredUpdateStep,
+  CompletedUnlockPopoverScroll: authoredUpdateStep,
+  CompletedInertPopoverOthers: authoredUpdateStep,
+  CompletedRestorePopoverInert: authoredUpdateStep,
+  ClickedButton: authoredUpdateStep,
+  IgnoredMouseClick: authoredUpdateStep,
+  SuppressedSpaceScroll: authoredUpdateStep,
+  CompletedAnchorPopover: authoredUpdateStep,
+  CompletedPortalPopoverBackdrop: authoredUpdateStep,
+  CompletedDetectPopoverMovementOrAnimationEnd: authoredUpdateStep,
 })
 
 /** Provides Popover's Command and Mount handlers. */

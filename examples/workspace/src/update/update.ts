@@ -14,7 +14,7 @@ import {
   ApplicationComposition,
   CommandPaletteBinding,
   NotificationCenterBinding,
-  requestMoveIssue,
+  requestMoveIssueStep,
 } from '../composition'
 import {
   makeCommandsStep,
@@ -22,25 +22,25 @@ import {
   makeNoopStep,
   makeStep,
 } from '../definition'
-import { simulateActivity } from '../demoActivity'
+import { simulateActivityStep } from '../demoActivity'
 import { NotificationActivity, type WorkspaceSnapshot } from '../domain'
 import { IssueMoveState, WorkspaceAsyncData } from '../model'
 import { RepositoryError } from '../repository'
-import { handleChangedUrl } from './handleChangedUrl'
+import { handleChangedUrlStep } from './handleChangedUrl'
 import { handleClickedDeleteSavedView } from './handleClickedDeleteSavedView'
-import { initializeActiveChildren } from './initializeActiveChildren'
+import { initializeActiveChildrenStep } from './initializeActiveChildren'
 import {
-  applyIncomingIssue,
-  reconcileRetainedIssueDetails,
+  applyIncomingIssueStep,
+  reconcileRetainedIssueDetailsStep,
 } from './issueDetails'
 import {
-  applyMovedIssues,
-  informBoardMoveFailure,
+  applyMovedIssuesStep,
+  informBoardMoveFailureStep,
   mergeIssues,
-  rollbackMove,
+  rollbackMoveStep,
 } from './issueMove'
 
-const applySnapshot = (snapshot: typeof WorkspaceSnapshot.Type) =>
+const applySnapshotStep = (snapshot: typeof WorkspaceSnapshot.Type) =>
   makeFieldsStep(() => ({
     workspaceAsyncData: workspaceAsyncData =>
       WorkspaceAsyncData.Success({
@@ -55,11 +55,11 @@ const applySnapshot = (snapshot: typeof WorkspaceSnapshot.Type) =>
       }),
   }))
 
-const noop = makeNoopStep()
+const noopStep = makeNoopStep()
 
-const handleClickedRetryLoad = makeStep(model =>
+const handleClickedRetryLoadStep = makeStep(model =>
   Option.match(AsyncData.revalidateOrLoad(model.workspaceAsyncData), {
-    onNone: () => noop(model),
+    onNone: () => noopStep(model),
     onSome: workspaceAsyncData => ({
       model: modifyFields(model, {
         workspaceAsyncData: () => workspaceAsyncData,
@@ -76,21 +76,21 @@ export const update = ApplicationComposition.makeUpdate({
       External: ({ href }) => [LoadExternal({ href })],
     }),
   ),
-  ChangedUrl: handleChangedUrl,
-  CompletedNavigateInternal: noop,
-  CompletedLoadExternal: noop,
-  CompletedReplaceInternalUrl: noop,
+  ChangedUrl: handleChangedUrlStep,
+  CompletedNavigateInternal: noopStep,
+  CompletedLoadExternal: noopStep,
+  CompletedReplaceInternalUrl: noopStep,
   SucceededLoadWorkspace: (model, { snapshot }) =>
     Update.combineSteps(model, [
-      applySnapshot(snapshot),
-      initializeActiveChildren,
-      reconcileRetainedIssueDetails,
+      applySnapshotStep(snapshot),
+      initializeActiveChildrenStep,
+      reconcileRetainedIssueDetailsStep,
     ]),
   FailedLoadWorkspace: makeFieldsStep.fromMessage(({ error }) => ({
     workspaceAsyncData: workspaceAsyncData =>
       AsyncData.settle(workspaceAsyncData, Result.fail(error)),
   })),
-  ClickedRetryLoad: handleClickedRetryLoad,
+  ClickedRetryLoad: handleClickedRetryLoadStep,
   ClickedSimulateSaveFailure: makeCommandsStep(() => [SimulateSaveFailure()]),
   CompletedSimulateSaveFailure: makeFieldsStep(() => ({
     maybeNotice: () =>
@@ -100,11 +100,11 @@ export const update = ApplicationComposition.makeUpdate({
   })),
   ClickedOpenCommandPalette: CommandPaletteBinding.requestOpen(),
   ClickedDeleteSavedView: handleClickedDeleteSavedView,
-  TickedActivityStream: simulateActivity,
-  ClickedSimulateActivity: simulateActivity,
+  TickedActivityStream: simulateActivityStep,
+  ClickedSimulateActivity: simulateActivityStep,
   SucceededAppendActivity: (model, { issue }) =>
     Update.combineSteps(model, [
-      applyIncomingIssue(issue),
+      applyIncomingIssueStep(issue),
       makeFieldsStep(() => ({
         maybeActivityError: () => Option.none(),
       })),
@@ -127,7 +127,7 @@ export const update = ApplicationComposition.makeUpdate({
     )
 
     return Update.combineSteps(model, [
-      applyIncomingIssue(issue),
+      applyIncomingIssueStep(issue),
       makeFieldsStep(() => ({
         maybeActivityError: () => Option.none(),
       })),
@@ -150,15 +150,15 @@ export const update = ApplicationComposition.makeUpdate({
   })),
   SucceededMoveIssue: (model, { snapshot }) =>
     Update.combineSteps(model, [
-      applyMovedIssues(snapshot),
+      applyMovedIssuesStep(snapshot),
       makeFieldsStep(() => ({
         issueMoveState: () => IssueMoveState.Idle(),
         maybeNotice: () => Option.some('Issue moved'),
       })),
-      reconcileRetainedIssueDetails,
+      reconcileRetainedIssueDetailsStep,
     ]),
   FailedMoveIssue: (model, { issueId, status, insertionIndex, error }) => {
-    const failedMove = makeFieldsStep(() => ({
+    const failedMoveStep = makeFieldsStep(() => ({
       issueMoveState: () =>
         IssueMoveState.FailedMove({
           issueId,
@@ -170,22 +170,22 @@ export const update = ApplicationComposition.makeUpdate({
 
     return RepositoryError.guards.Conflict(error)
       ? Update.combineSteps(model, [
-          rollbackMove(issueId),
-          failedMove,
-          applyIncomingIssue(error.latestIssue),
-          informBoardMoveFailure(issueId),
+          rollbackMoveStep(issueId),
+          failedMoveStep,
+          applyIncomingIssueStep(error.latestIssue),
+          informBoardMoveFailureStep(issueId),
         ])
       : Update.combineSteps(model, [
-          rollbackMove(issueId),
-          failedMove,
-          informBoardMoveFailure(issueId),
+          rollbackMoveStep(issueId),
+          failedMoveStep,
+          informBoardMoveFailureStep(issueId),
         ])
   },
   ClickedRetryMove: model =>
     IssueMoveState.match(model.issueMoveState, {
-      Idle: () => noop(model),
-      MovingIssue: () => noop(model),
+      Idle: () => noopStep(model),
+      MovingIssue: () => noopStep(model),
       FailedMove: ({ issueId, status, insertionIndex }) =>
-        requestMoveIssue(issueId, status, insertionIndex)(model),
+        requestMoveIssueStep(issueId, status, insertionIndex)(model),
     }),
 })

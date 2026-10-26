@@ -22,8 +22,8 @@ const SelectionDefinition = Block.makeDefinition('OutMessageStepSelection', {
 it('returns the identical Model and OutMessage without other result channels', () => {
   const model = Model.make({ count: 1 })
   const outMessage = OutMessage.Closed()
-  const close = SelectionDefinition.makeOutMessageStep(() => outMessage)
-  const result = close(model)
+  const closeStep = SelectionDefinition.makeOutMessageStep(() => outMessage)
+  const result = closeStep(model)
 
   expect(result).toEqual({ model, outMessage })
   expect(result.model).toBe(model)
@@ -33,7 +33,7 @@ it('returns the identical Model and OutMessage without other result channels', (
   >()
   expect(Object.keys(result).sort()).toEqual(['model', 'outMessage'])
   expectTypeOf<typeof result.commands>().toEqualTypeOf<undefined>()
-  expectTypeOf<Update.RequirementsOf<typeof close>>().toEqualTypeOf<never>()
+  expectTypeOf<Update.RequirementsOf<typeof closeStep>>().toEqualTypeOf<never>()
   expectTypeOf<
     Update.RegistrationEvidenceOf<typeof result>
   >().toEqualTypeOf<never>()
@@ -42,11 +42,11 @@ it('returns the identical Model and OutMessage without other result channels', (
 it('retains refined input Models and literal OutMessage payloads', () => {
   const ExtendedModel = Schema.Struct({ ...Model.fields, label: Schema.String })
   const model = ExtendedModel.make({ count: 2, label: 'Selected' })
-  const select = SelectionDefinition.makeOutMessageStep(() => ({
+  const selectStep = SelectionDefinition.makeOutMessageStep(() => ({
     _tag: 'Selected',
     value: 'Pear',
   }))
-  const result = select(model)
+  const result = selectStep(model)
 
   expect(result.model).toBe(model)
   expect(result.outMessage.value).toBe('Pear')
@@ -148,7 +148,7 @@ it('emits a derived OutMessage from an inferred Binding policy', () => {
   )
 
   if (false) {
-    const selectAndPreserve = ParentDefinition.makeStep(() =>
+    const selectAndPreserveStep = ParentDefinition.makeStep(() =>
       Update.combineSteps([
         ParentDefinition.makeNoopStep(),
         SelectionBinding.requestSelect({ value: 'Pear' }),
@@ -167,16 +167,16 @@ it('emits a derived OutMessage from an inferred Binding policy', () => {
     })
     ParentComposition.makeUpdate({
       // @ts-expect-error Extracting the combination through makeStep cannot erase the deferred OutMessage.
-      RequestedSelect: model => selectAndPreserve(model),
+      RequestedSelect: model => selectAndPreserveStep(model),
     })
     ParentComposition.makeUpdate({
       // @ts-expect-error Conditional use cannot erase the deferred OutMessage.
       RequestedSelect: (model, message) =>
-        message.value === 'Pear' ? selectAndPreserve(model) : { model },
+        message.value === 'Pear' ? selectAndPreserveStep(model) : { model },
     })
     ParentComposition.makeInit(
       // @ts-expect-error Initializers cannot discard an OutMessage from a deferred combined Step.
-      () => ({ model: {}, steps: [selectAndPreserve] }),
+      () => ({ model: {}, steps: [selectAndPreserveStep] }),
     )
 
     ParentDefinition.makeComposition().makeUpdate({
@@ -211,21 +211,21 @@ if (false) {
   SelectionDefinition.makeOutMessageStep(unknownValue)
   // @ts-expect-error Any values cannot bypass the OutMessage contract.
   SelectionDefinition.makeOutMessageStep(uncheckedValue)
-  const close = SelectionDefinition.makeOutMessageStep(() =>
+  const closeStep = SelectionDefinition.makeOutMessageStep(() =>
     OutMessage.Closed(),
   )
-  const noop = SelectionDefinition.makeNoopStep()
-  const fields = SelectionDefinition.makeFieldsStep(() => ({}))
-  const noopAndClose = [noop, close]
-  const fieldsAndClose = [fields, close]
+  const noopStep = SelectionDefinition.makeNoopStep()
+  const fieldsStep = SelectionDefinition.makeFieldsStep(() => ({}))
+  const noopAndClose = [noopStep, closeStep]
+  const fieldsAndClose = [fieldsStep, closeStep]
   // @ts-expect-error The produced Step checks its owning Model.
-  close({ count: 'invalid' })
+  closeStep({ count: 'invalid' })
   // @ts-expect-error combineSteps cannot discard an OutMessage.
-  Update.combineSteps(Model.make({ count: 0 }), [close, noop])
+  Update.combineSteps(Model.make({ count: 0 }), [closeStep, noopStep])
   // @ts-expect-error A preceding Model-only Step cannot hide an OutMessage.
-  Update.combineSteps([noop, close])
+  Update.combineSteps([noopStep, closeStep])
   // @ts-expect-error A later Model-only Step cannot hide an OutMessage.
-  Update.combineSteps([close, noop])
+  Update.combineSteps([closeStep, noopStep])
   // @ts-expect-error An extracted Step list retains its OutMessage channel.
   Update.combineSteps(noopAndClose)
   // @ts-expect-error A field Step cannot hide an OutMessage in an extracted list.
@@ -233,21 +233,21 @@ if (false) {
   // @ts-expect-error A data-first extracted list cannot hide its OutMessage.
   Update.combineSteps(Model.make({ count: 0 }), noopAndClose)
   // @ts-expect-error A pure no-op's public contract cannot hide an OutMessage.
-  const emittingNoop: typeof noop = close
+  const emittingNoopStep: typeof noopStep = closeStep
   // @ts-expect-error A pure field Step's public contract cannot hide an OutMessage.
-  const emittingFields: typeof fields = close
-  void emittingNoop
-  void emittingFields
+  const emittingFieldsStep: typeof fieldsStep = closeStep
+  void emittingNoopStep
+  void emittingFieldsStep
 
   const UnknownDefinition = Block.makeDefinition('UnknownOutMessageStep', {
     Model: Schema.Unknown,
     Message: Schema.Never,
     OutMessage,
   })
-  const emitUnknown = UnknownDefinition.makeOutMessageStep(() =>
+  const emitUnknownStep = UnknownDefinition.makeOutMessageStep(() =>
     OutMessage.Closed(),
   )
-  const preserveUnknown = UnknownDefinition.makeNoopStep()
+  const preserveUnknownStep = UnknownDefinition.makeNoopStep()
   // @ts-expect-error An unconstrained Model still retains its OutMessage channel.
-  Update.combineSteps([preserveUnknown, emitUnknown])
+  Update.combineSteps([preserveUnknownStep, emitUnknownStep])
 }

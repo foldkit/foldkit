@@ -4,7 +4,7 @@ import { initAndSet } from 'foldkit/bindingInit'
 import { RoomBinding } from './composition'
 import { makeStep } from './definition'
 
-const initializeRoom = (roomId: string) =>
+const initializeRoomStep = (roomId: string) =>
   makeStep(model =>
     initAndSet(RoomBinding, model, {
       key: roomId,

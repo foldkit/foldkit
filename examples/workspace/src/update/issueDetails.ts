@@ -1,18 +1,18 @@
 import { Array, Option } from 'effect'
 import { AsyncData, Update } from 'foldkit'
 
-import { IssueDetailBinding, applyIssueRevision } from '../composition'
+import { IssueDetailBinding, applyIssueRevisionStep } from '../composition'
 import { makeStep } from '../definition'
 import type { Issue } from '../domain'
 
-export const applyIncomingIssue = (issue: typeof Issue.Type) =>
+export const applyIncomingIssueStep = (issue: typeof Issue.Type) =>
   Update.combineSteps([
-    applyIssueRevision(issue),
+    applyIssueRevisionStep(issue),
     IssueDetailBinding.informIssueChanged(issue.id, { issue }),
     IssueDetailBinding.requestReportDraft(issue.id),
   ])
 
-export const reconcileRetainedIssueDetails = makeStep(model => {
+export const reconcileRetainedIssueDetailsStep = makeStep(model => {
   const maybeSnapshot = AsyncData.getData(model.workspaceAsyncData)
 
   if (Option.isNone(maybeSnapshot)) {

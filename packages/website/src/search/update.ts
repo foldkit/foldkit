@@ -6,7 +6,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { PagefindService } from '../pagefind'
 import { SEARCH_INPUT_ID } from '../searchDom'
-import { clearSearchQuery } from './clear'
+import { clearSearchQueryStep } from './clear'
 import { DialogBinding, SearchComposition } from './composition'
 import {
   SearchDefinition,
@@ -104,10 +104,10 @@ export const FocusSearchInput = SearchDefinition.makeCommand(
   },
 )
 
-const focusSearchInput = makeCommandsStep(() => [FocusSearchInput()])
+const focusSearchInputStep = makeCommandsStep(() => [FocusSearchInput()])
 
-const open = makeStep(() =>
-  Update.combineSteps([DialogBinding.requestOpen(), focusSearchInput]),
+const openStep = makeStep(() =>
+  Update.combineSteps([DialogBinding.requestOpen(), focusSearchInputStep]),
 )
 
 export const update = SearchComposition.makeUpdate({
@@ -158,12 +158,12 @@ export const update = SearchComposition.makeUpdate({
     commands: [NavigateToResult({ url })],
   }),
 
-  ClearedSearchQuery: clearSearchQuery,
+  ClearedSearchQuery: clearSearchQueryStep,
 
-  RequestedOpen: open,
+  RequestedOpen: openStep,
 
   InformedOfRouteChange: Update.combineSteps([
-    clearSearchQuery,
+    clearSearchQueryStep,
     DialogBinding.requestClose(),
   ]),
 

@@ -8,10 +8,10 @@ import {
   Message,
   Model,
   Save,
-  combined,
+  combinedStep,
   commands,
-  save,
-  withChildCommands,
+  saveStep,
+  withChildCommandsStep,
 } from './commands-steps.accepted.js'
 
 type Equal<Left, Right> =
@@ -26,54 +26,57 @@ const SaveCount = CommandsDefinition.makeCommand('SaveCount', {
   args: { count: Schema.Number },
   messages: [Message.CompletedSave],
 })
-export const saveCurrentCount = CommandsDefinition.makeCommandsStep(model => [
-  SaveCount({ count: model.count }),
-])
+export const saveCurrentCountStep = CommandsDefinition.makeCommandsStep(
+  model => [SaveCount({ count: model.count })],
+)
 export type ModelDependentArgs = Expect<
   Equal<
-    ReturnType<typeof saveCurrentCount>['commands'][number]['args'],
+    ReturnType<typeof saveCurrentCountStep>['commands'][number]['args'],
     Readonly<{ count: number }>
   >
 >
 export type ModelDependentRequirements = Expect<
   Equal<
-    Update.RequirementsOf<typeof saveCurrentCount>,
+    Update.RequirementsOf<typeof saveCurrentCountStep>,
     Command.HandlerOf<typeof SaveCount>
   >
 >
 
 export type ExactCommands = Expect<
   Equal<
-    ReturnType<typeof save>['commands'],
+    ReturnType<typeof saveStep>['commands'],
     ReadonlyArray<(typeof commands)[number]>
   >
 >
 export type Requirements = Expect<
-  Equal<Update.RequirementsOf<typeof combined>, Command.HandlerOf<typeof Save>>
+  Equal<
+    Update.RequirementsOf<typeof combinedStep>,
+    Command.HandlerOf<typeof Save>
+  >
 >
 export type ExactModel = Expect<
-  Equal<Parameters<typeof save>, [model: typeof Model.Type]>
+  Equal<Parameters<typeof saveStep>, [model: typeof Model.Type]>
 >
 export type ExactMessage = Expect<
   Equal<
-    Effect.Success<ReturnType<typeof save>['commands'][number]['effect']>,
+    Effect.Success<ReturnType<typeof saveStep>['commands'][number]['effect']>,
     typeof Message.CompletedSave.Type
   >
 >
 export type PreservedRegistration = Expect<
   Equal<
     Update.RegistrationEvidenceOf<
-      ReturnType<ReturnType<typeof withChildCommands>>
+      ReturnType<ReturnType<typeof withChildCommandsStep>>
     >,
     Block.RequirementOfBinding<typeof ChildBinding>
   >
 >
 // @ts-expect-error Emitted Steps retain the owning Model.
-save({ count: 'invalid' })
+saveStep({ count: 'invalid' })
 export type NoOutMessage = Expect<
-  Equal<ReturnType<typeof save>['outMessage'], undefined>
+  Equal<ReturnType<typeof saveStep>['outMessage'], undefined>
 >
 
-declare const childCommands: Parameters<typeof withChildCommands>[0]
+declare const childCommands: Parameters<typeof withChildCommandsStep>[0]
 // @ts-expect-error Emission retains graph obligations on a Command collection.
-withChildCommands(childCommands)({ child: { count: 0 } })
+withChildCommandsStep(childCommands)({ child: { count: 0 } })

@@ -25,7 +25,7 @@ import {
   urlToApplicationRoute,
 } from '../route'
 
-export const handleChangedUrl = makeStep(
+export const handleChangedUrlStep = makeStep(
   (model, { url }: typeof Message.ChangedUrl.Type) => {
     const { route: previousRoute } = model
     const nextRoute = urlToApplicationRoute(url)
@@ -38,13 +38,13 @@ export const handleChangedUrl = makeStep(
         url: () => url,
         sidebarGroups: () => nextSidebarGroups(stepModel, nextRoute),
       })),
-      stepHome(transition),
-      stepPlayground(transition),
+      reconcileHomeStep(transition),
+      reconcilePlaygroundStep(transition),
       MobileMenuDialogBinding.requestClose(),
       ThemeMenuBinding.requestClose(),
       SearchBinding.informRouteChanged(),
-      loadRouteData(transition),
-      scrollAfterUrlChange(url, isDifferentPathname),
+      loadRouteDataStep(transition),
+      scrollAfterUrlChangeStep(url, isDifferentPathname),
     ])
   },
 )
@@ -61,7 +61,7 @@ const nextSidebarGroups = (
         : Record.set(model.sidebarGroups, activeSectionKey, true),
   })
 
-const stepHome = (transition: ApplicationTransition) =>
+const reconcileHomeStep = (transition: ApplicationTransition) =>
   makeStep(model => {
     if (Transition.isEntering(transition, 'Home')) {
       return initAndSet(HomeBinding, model, { args: [] })
@@ -76,7 +76,7 @@ const stepHome = (transition: ApplicationTransition) =>
     return { model }
   })
 
-const stepPlayground = (transition: ApplicationTransition) =>
+const reconcilePlaygroundStep = (transition: ApplicationTransition) =>
   makeStep(model => {
     const { nextRoute } = transition
 
@@ -101,7 +101,7 @@ const stepPlayground = (transition: ApplicationTransition) =>
     })
   })
 
-const loadRouteData = (transition: ApplicationTransition) =>
+const loadRouteDataStep = (transition: ApplicationTransition) =>
   makeStep(model =>
     ApplicationRoute.matchOrElse(
       transition.nextRoute,
@@ -137,7 +137,7 @@ const loadRouteData = (transition: ApplicationTransition) =>
     ),
   )
 
-const scrollAfterUrlChange = (url: Url, isChangingPathname: boolean) => {
+const scrollAfterUrlChangeStep = (url: Url, isChangingPathname: boolean) => {
   if (Option.isSome(url.hash)) {
     const hash = url.hash.value
 

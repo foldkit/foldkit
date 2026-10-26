@@ -8,11 +8,11 @@ import { makeFieldsStep, makeNoopStep } from '../definition'
 import { type Model } from '../model'
 import { ApplicationRoute, urlToApplicationRoute } from '../route'
 
-const clearRoomInstance = makeFieldsStep(() => ({
+const clearRoomInstanceStep = makeFieldsStep(() => ({
   maybeRoomInstance: () => Option.none(),
 }))
 
-const keepRoomInstance = makeNoopStep()
+const keepRoomInstanceStep = makeNoopStep()
 
 export const initRoom = (model: typeof Model.Type, roomId: string) =>
   initAndSet(RoomBinding, model, {
@@ -25,15 +25,15 @@ export const changeRoute = (model: typeof Model.Type, url: Url.Url) => {
   const routeChanged = modifyFields(model, { route: () => route })
 
   return ApplicationRoute.match(route, {
-    Home: () => clearRoomInstance(routeChanged),
+    Home: () => clearRoomInstanceStep(routeChanged),
     Room: ({ roomId }) =>
       Option.match(model.maybeRoomInstance, {
         onNone: () => initRoom(routeChanged, roomId),
         onSome: roomInstance =>
           roomInstance.roomId === roomId
-            ? keepRoomInstance(routeChanged)
+            ? keepRoomInstanceStep(routeChanged)
             : initRoom(routeChanged, roomId),
       }),
-    NotFound: () => clearRoomInstance(routeChanged),
+    NotFound: () => clearRoomInstanceStep(routeChanged),
   })
 }

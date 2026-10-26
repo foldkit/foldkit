@@ -107,7 +107,7 @@ export const applyGridSizeChange = (
   }),
 })
 
-export const requestGridSizeChange = (size: number) =>
+export const requestGridSizeChangeStep = (size: number) =>
   makeStep(model => {
     if (size === model.gridSize) {
       return { model }
@@ -117,12 +117,12 @@ export const requestGridSizeChange = (size: number) =>
       return applyGridSizeChange(model, size)
     }
 
-    const rememberGridSize = makeFieldsStep(() => ({
+    const rememberGridSizeStep = makeFieldsStep(() => ({
       maybePendingGridSize: () => Option.some(size),
     }))
 
     return Update.combineSteps([
-      rememberGridSize,
+      rememberGridSizeStep,
       GridSizeConfirmDialogBinding.requestOpen(),
     ])
   })
@@ -135,7 +135,7 @@ export const GridSizeRadioGroupBinding = ApplicationDefinition.makeBinding(
   },
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(GridSizeRadioGroupBlock, {
-    Selected: ({ value }) => requestGridSizeChange(Number(value)),
+    Selected: ({ value }) => requestGridSizeChangeStep(Number(value)),
   }),
 })
 

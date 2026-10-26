@@ -283,7 +283,7 @@ The existing `Binding.init({ args, toParentModel })` is a passive recipe accepte
 The tested reset shape was:
 
 ```ts
-const reset = FormDefinition.makeStep(model =>
+const resetStep = FormDefinition.makeStep(model =>
   DialogBinding.init({
     args: [{ id: model.dialog.id }],
     toParentModel: dialog =>
@@ -292,7 +292,7 @@ const reset = FormDefinition.makeStep(model =>
 )
 ```
 
-An update branch returns `reset(model)`. The temporary completed parent Block compiled and pure execution verified that reset cleared the draft, closed the initialized Dialog, preserved its ID, and preserved `applicationId`. Its initial child config used only `id`; a real consumer must pass its full intended init config, including animation/focus settings when relevant. Existing initialization tests separately cover child Command lifting and ordering.
+An update branch returns `resetStep(model)`. The temporary completed parent Block compiled and pure execution verified that reset cleared the draft, closed the initialized Dialog, preserved its ID, and preserved `applicationId`. Its initial child config used only `id`; a real consumer must pass its full intended init config, including animation/focus settings when relevant. Existing initialization tests separately cover child Command lifting and ordering.
 
 For a child-defined business reset, expose the child's request as an operation and call the connected Binding operation. For deliberate fresh initialization, return the recipe intact. Do not spread `ChildBlock.init().model` or copy only a child's result Model. Neither this type/pure-transition proof nor `Binding.init` documentation establishes a fresh runtime occurrence generation or cancellation of old asynchronous work. A live Dialog lifecycle reset would need its own behavior proof before documenting that stronger guarantee.
 

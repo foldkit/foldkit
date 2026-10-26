@@ -187,7 +187,7 @@ const spawnAmbientParticles = (particleCount: number) => {
   return Array.makeBy(clamped, () => GenerateAmbientParticle())
 }
 
-const appendGeneratedParticle = makeFieldsStep(
+const appendGeneratedParticleStep = makeFieldsStep(
   (
     model,
     generatedParticle:
@@ -238,9 +238,9 @@ export const update = ApplicationComposition.makeUpdate({
     }
   },
 
-  CompletedGenerateAmbientParticle: appendGeneratedParticle,
+  CompletedGenerateAmbientParticle: appendGeneratedParticleStep,
 
-  CompletedGenerateBurstParticle: appendGeneratedParticle,
+  CompletedGenerateBurstParticle: appendGeneratedParticleStep,
 
   PressedCanvas: makeCommandsStep((model, { x, y }) =>
     spawnBurstParticles(x, y, computeBurstHueAnchor(model.elapsedSeconds)),

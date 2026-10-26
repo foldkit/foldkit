@@ -229,7 +229,7 @@ const rootInit = () => ({
     entries: [firstEntry, itemBlock.init(2, 'other').model],
   },
 })
-const addReplacement = RootBaseDefinition.makeStep(model =>
+const addReplacementStep = RootBaseDefinition.makeStep(model =>
   EntriesBinding.init({
     key: 1,
     args: [1, 'new'],
@@ -239,7 +239,7 @@ const addReplacement = RootBaseDefinition.makeStep(model =>
       }),
   }),
 )
-const restoreFirst = RootBaseDefinition.makeFieldsStep(() => ({
+const restoreFirstStep = RootBaseDefinition.makeFieldsStep(() => ({
   entries: current => [...current, firstEntry],
 }))
 const rootUpdate = root.makeUpdate({
@@ -247,8 +247,8 @@ const rootUpdate = root.makeUpdate({
     RootBaseDefinition.makeFieldsStep(() => ({
       entries: Array.filter(entry => entry.id !== 1),
     }))(model),
-  ClickedAddReplacement: model => addReplacement(model),
-  ClickedRestoreFirst: model => restoreFirst(model),
+  ClickedAddReplacement: model => addReplacementStep(model),
+  ClickedRestoreFirst: model => restoreFirstStep(model),
 })
 const lazyEntries = createKeyedLazy()
 const entryRenderCounts = new Map<number, number>()

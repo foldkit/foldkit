@@ -32,7 +32,7 @@ export const mergeIssues = (
   ),
 ]
 
-export const applyMovedIssues = (snapshot: typeof WorkspaceSnapshot.Type) =>
+export const applyMovedIssuesStep = (snapshot: typeof WorkspaceSnapshot.Type) =>
   makeFieldsStep(() => ({
     workspaceAsyncData: AsyncData.map(current =>
       modifyFields(current, {
@@ -41,7 +41,7 @@ export const applyMovedIssues = (snapshot: typeof WorkspaceSnapshot.Type) =>
     ),
   }))
 
-export const rollbackMove = (issueId: string) =>
+export const rollbackMoveStep = (issueId: string) =>
   makeFieldsStep(model => ({
     workspaceAsyncData: workspaceAsyncData => {
       if (
@@ -76,7 +76,7 @@ export const rollbackMove = (issueId: string) =>
     },
   }))
 
-export const informBoardMoveFailure = (issueId: string) =>
+export const informBoardMoveFailureStep = (issueId: string) =>
   makeStep(model =>
     pipe(
       AsyncData.getData(model.workspaceAsyncData),

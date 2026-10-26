@@ -41,7 +41,7 @@ const ChildDefinition = ChildNamespace.makeDefinition({
   Message,
 })
 const resetInvocation = vi.fn()
-const reset = ChildDefinition.makeStep(_model => {
+const resetStep = ChildDefinition.makeStep(_model => {
   resetInvocation()
 
   return { model: ChildModel.make({ count: 0 }) }
@@ -52,7 +52,7 @@ const prepareChildBlock = () =>
     view: ChildComposition.makeView((_model, h) => h.div([])),
     init: () => ({ model: ChildModel.make({ count: 0 }) }),
     update: ChildComposition.makeUpdate({
-      RequestedReset: model => reset(model),
+      RequestedReset: model => resetStep(model),
       Advanced: model => ({
         model: modifyFields(model, { count: count => count + 1 }),
       }),
@@ -84,7 +84,7 @@ const OmittedChildBinding = OmittedParentDefinition.makeBinding(ChildBlock, {
     modifyFields(model, { primary: () => nextChild }),
 })
 
-const initializeOmittedChild = OmittedParentDefinition.makeStep(model =>
+const initializeOmittedChildStep = OmittedParentDefinition.makeStep(model =>
   OmittedChildBinding.init({
     args: [],
     toParentModel: child => modifyFields(model, { primary: () => child }),
@@ -98,7 +98,7 @@ const prepareOmittedParent = () =>
     view: omittedParentComposition.makeView((_model, h) => h.div([])),
     init: () => ({ model: initialModel }),
     update: omittedParentComposition.makeUpdate({
-      RequestedInitializeChild: model => initializeOmittedChild(model),
+      RequestedInitializeChild: model => initializeOmittedChildStep(model),
       Advanced: model => OmittedParentDefinition.makeNoopStep()(model),
       CompletedRecordBeforeReplay: model =>
         OmittedParentDefinition.makeNoopStep()(model),
@@ -174,7 +174,7 @@ const unregisteredDiscardedReset = unregisteredParentComposition.makeUpdate({
 })
 
 it('runs a completed exposed operation in its registered child graph', () => {
-  const recipe = Reflect.apply(initializeOmittedChild, undefined, [
+  const recipe = Reflect.apply(initializeOmittedChildStep, undefined, [
     initialModel,
   ])
 
@@ -319,7 +319,7 @@ const WrongPlacementBinding = ExactParentBaseDefinition.makeBinding(
 const exactParentComposition = ExactParentBaseDefinition.makeComposition({
   bindings: [RegisteredPlacementBinding],
 })
-const initializeWrongPlacement = ExactParentBaseDefinition.makeStep(model =>
+const initializeWrongPlacementStep = ExactParentBaseDefinition.makeStep(model =>
   WrongPlacementBinding.init({
     key: 'only',
     args: [],
@@ -331,7 +331,7 @@ const prepareExactParent = () =>
     view: exactParentComposition.makeView((_model, h) => h.div([])),
     init: () => ({ model: initialModel }),
     update: exactParentComposition.makeUpdate({
-      RequestedInitializeChild: model => initializeWrongPlacement(model),
+      RequestedInitializeChild: model => initializeWrongPlacementStep(model),
       Advanced: model =>
         ExactParentBaseDefinition.makeStep(() =>
           WrongPlacementBinding.fold(model, 'only', Message.Advanced()),

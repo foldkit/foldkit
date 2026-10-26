@@ -513,7 +513,7 @@ it('executes an initialized sibling through an owned Step and retains its graph 
 
 it('rejects erased invalid configuration before calling a variant handler', () => {
   const makeFold = FoldParentDefinition.makeOutMessageFold
-  const noop = () => FoldParentDefinition.makeNoopStep()
+  const noopStep = () => FoldParentDefinition.makeNoopStep()
 
   expect(() => Reflect.apply(makeFold, undefined, [{}, {}])).toThrow(
     'completed child Block',
@@ -521,32 +521,35 @@ it('rejects erased invalid configuration before calling a variant handler', () =
   expect(() =>
     Reflect.apply(makeFold, undefined, [
       FoldChildDefinition,
-      { Selected: noop, Closed: noop },
+      { Selected: noopStep, Closed: noopStep },
     ]),
   ).toThrow('completed child Block')
   expect(() =>
-    Reflect.apply(makeFold, undefined, [ChildBlock, { Selected: noop }]),
+    Reflect.apply(makeFold, undefined, [ChildBlock, { Selected: noopStep }]),
   ).toThrow('missing handlers for: Closed')
   expect(() =>
     Reflect.apply(makeFold, undefined, [
       ChildBlock,
-      { Selected: noop, Closed: noop, Unexpected: noop },
+      { Selected: noopStep, Closed: noopStep, Unexpected: noopStep },
     ]),
   ).toThrow('unexpected handlers for: Unexpected')
   expect(() =>
     Reflect.apply(makeFold, undefined, [
       ChildBlock,
-      { Selected: noop, Closed: true },
+      { Selected: noopStep, Closed: true },
     ]),
   ).toThrow('handler "Closed" must be a function')
   expect(() =>
     Reflect.apply(makeFold, undefined, [
       ChildBlock,
-      Object.create({ Selected: noop, Closed: noop }),
+      Object.create({ Selected: noopStep, Closed: noopStep }),
     ]),
   ).toThrow('missing handlers for: Selected, Closed')
 
-  const fold = makeFold(ChildBlock, { Selected: noop, Closed: noop })
+  const fold = makeFold(ChildBlock, {
+    Selected: noopStep,
+    Closed: noopStep,
+  })
   expect(() => Reflect.apply(fold, undefined, [{ _tag: 'toString' }])).toThrow(
     'has no handler for child OutMessage "toString"',
   )
@@ -918,7 +921,7 @@ it('validates explicit callable cases without invoking handlers', () => {
     init: false,
   })
   let handled = 0
-  const selected = () => {
+  const selectedMatcherStep = () => {
     handled += 1
     return FoldParentDefinition.makeNoopStep()
   }
@@ -926,13 +929,16 @@ it('validates explicit callable cases without invoking handlers', () => {
 
   expect(handled).toBe(0)
   expect(() =>
-    Reflect.apply(makeFold, undefined, [ChildBlock, { Selected: selected }]),
+    Reflect.apply(makeFold, undefined, [
+      ChildBlock,
+      { Selected: selectedMatcherStep },
+    ]),
   ).toThrow('missing handlers for: Closed')
   expect(() =>
     Reflect.apply(makeFold, undefined, [
       ChildBlock,
       {
-        Selected: selected,
+        Selected: selectedMatcherStep,
         Closed: FoldParentDefinition.makeNoopStep,
         Unexpected: FoldParentDefinition.makeNoopStep,
       },
@@ -947,7 +953,7 @@ it('validates explicit callable cases without invoking handlers', () => {
   expect(() =>
     Reflect.apply(makeFold, undefined, [
       {
-        Selected: selected,
+        Selected: selectedMatcherStep,
         Closed: FoldParentDefinition.makeNoopStep,
       },
     ]),
@@ -955,7 +961,7 @@ it('validates explicit callable cases without invoking handlers', () => {
     'requires a completed child Block followed by a record of variant handlers',
   )
   const explicitFold = makeFold(ChildBlock, {
-    Selected: selected,
+    Selected: selectedMatcherStep,
     Closed: FoldParentDefinition.makeNoopStep,
   })
   const contextualForward = Reflect.apply(

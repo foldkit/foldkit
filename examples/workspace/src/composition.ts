@@ -66,7 +66,7 @@ export const IssueDetailBinding = ApplicationDefinition.makeBinding(
   },
 )
 
-const openIssue = (issueId: string) =>
+const openIssueStep = (issueId: string) =>
   makeCommandsStep(model => [
     NavigateInternal({ url: issueHref(model, issueId) }),
   ])
@@ -88,7 +88,7 @@ export const CreateIssueBinding = ApplicationDefinition.makeBinding(
           ),
           maybeNotice: () => Option.some(`${issue.identifier} created`),
         })),
-        openIssue(issue.id),
+        openIssueStep(issue.id),
       ]),
   }),
 })
@@ -98,11 +98,11 @@ export const NotificationCenterBinding = ApplicationDefinition.makeBinding(
   { field: 'notificationCenter' },
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(NotificationCenterBlock, {
-    SelectedIssue: ({ issueId }) => openIssue(issueId),
+    SelectedIssue: ({ issueId }) => openIssueStep(issueId),
   }),
 })
 
-const notifyNewComments = (issue: typeof Issue.Type) =>
+const notifyNewCommentsStep = (issue: typeof Issue.Type) =>
   makeStep(model => {
     const maybePreviousIssue = Option.flatMap(
       AsyncData.getData(model.workspaceAsyncData),
@@ -132,9 +132,9 @@ const notifyNewComments = (issue: typeof Issue.Type) =>
     )
   })
 
-export const applyIssueRevision = (issue: typeof Issue.Type) =>
+export const applyIssueRevisionStep = (issue: typeof Issue.Type) =>
   Update.combineSteps([
-    notifyNewComments(issue),
+    notifyNewCommentsStep(issue),
     makeFieldsStep(() => ({
       workspaceAsyncData: AsyncData.map(snapshot =>
         modifyFields(snapshot, {
@@ -146,7 +146,7 @@ export const applyIssueRevision = (issue: typeof Issue.Type) =>
     })),
   ])
 
-const retainIssueDraft = (
+const retainIssueDraftStep = (
   issueId: string,
   maybeDraft: Option.Option<typeof RetainedIssueDraft.Type>,
 ) =>
@@ -166,7 +166,7 @@ const foldIssueDetailOutMessage = ApplicationDefinition.makeOutMessageFold(
   {
     Saved: ({ issue }) =>
       Update.combineSteps([
-        applyIssueRevision(issue),
+        applyIssueRevisionStep(issue),
         makeFieldsStep(() => ({
           maybeNotice: () => Option.some(`${issue.identifier} saved`),
         })),
@@ -174,11 +174,11 @@ const foldIssueDetailOutMessage = ApplicationDefinition.makeOutMessageFold(
       ]),
     ObservedIssue: ({ issue }) =>
       Update.combineSteps([
-        applyIssueRevision(issue),
+        applyIssueRevisionStep(issue),
         IssueDetailBinding.requestReportDraft(issue.id),
       ]),
     ChangedDraft: ({ issueId, maybeDraft }) =>
-      retainIssueDraft(issueId, maybeDraft),
+      retainIssueDraftStep(issueId, maybeDraft),
     Closed: () =>
       makeCommandsStep(model => [
         NavigateInternal({ url: routeToPath(pageRoute(model.route)) }),
@@ -186,7 +186,7 @@ const foldIssueDetailOutMessage = ApplicationDefinition.makeOutMessageFold(
   },
 )
 
-const navigateIssueFilters = (
+const navigateIssueFiltersStep = (
   change: (filters: typeof IssueFilters.Type) => typeof IssueFilters.Type,
 ) =>
   makeCommandsStep(model => [
@@ -224,19 +224,19 @@ export const IssueListBinding = ApplicationDefinition.makeBinding(
         }),
       ]),
     ChangedStatusFilter: ({ maybeStatus }) =>
-      navigateIssueFilters(filters =>
+      navigateIssueFiltersStep(filters =>
         modifyFields(filters, { maybeStatus: () => maybeStatus }),
       ),
     ChangedSort: ({ sort }) =>
-      navigateIssueFilters(filters =>
+      navigateIssueFiltersStep(filters =>
         modifyFields(filters, { sort: () => sort }),
       ),
     ChangedGrouping: ({ groupBy }) =>
-      navigateIssueFilters(filters =>
+      navigateIssueFiltersStep(filters =>
         modifyFields(filters, { groupBy: () => groupBy }),
       ),
     RequestedClearFilters: () =>
-      navigateIssueFilters(filters =>
+      navigateIssueFiltersStep(filters =>
         modifyFields(filters, {
           query: () => '',
           maybeStatus: () => Option.none(),
@@ -269,7 +269,7 @@ export const IssueListBinding = ApplicationDefinition.makeBinding(
   }),
 })
 
-const applyOptimisticMove = (
+const applyOptimisticMoveStep = (
   issue: typeof Issue.Type,
   status: typeof IssueStatus.Type,
   insertionIndex: number,
@@ -300,7 +300,7 @@ const applyOptimisticMove = (
     ],
   }))
 
-export const requestMoveIssue = (
+export const requestMoveIssueStep = (
   issueId: string,
   status: typeof IssueStatus.Type,
   insertionIndex: number,
@@ -319,7 +319,7 @@ export const requestMoveIssue = (
             onNone: () => ({ model }),
             onSome: issue =>
               Update.combineSteps([
-                applyOptimisticMove(
+                applyOptimisticMoveStep(
                   issue,
                   status,
                   insertionIndex,
@@ -361,7 +361,7 @@ const IssueBoardBindingWithOutMessagePolicy =
         RequestedCreation: ({ status }) =>
           CreateIssueBinding.requestOpen({ projectId, status }),
         RequestedMove: ({ issueId, status, insertionIndex }) =>
-          requestMoveIssue(issueId, status, insertionIndex),
+          requestMoveIssueStep(issueId, status, insertionIndex),
       })(outMessage),
   })
 

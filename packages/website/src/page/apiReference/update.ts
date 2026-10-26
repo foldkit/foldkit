@@ -49,7 +49,7 @@ export const LoadApiData = ApiReferenceDefinition.makeCommand('LoadApiData', {
 
 export const EffectsLayer = LoadApiData.layer
 
-const refreshApiData = makeStep(model =>
+const refreshApiDataStep = makeStep(model =>
   Option.match(
     AsyncData.isStale(model.apiData)
       ? AsyncData.revalidate(model.apiData)
@@ -65,7 +65,7 @@ const refreshApiData = makeStep(model =>
 )
 
 export const update = ApiReferenceComposition.makeUpdate({
-  InformedOfRouteChange: model => refreshApiData(model),
+  InformedOfRouteChange: model => refreshApiDataStep(model),
 
   SucceededLoadApiData: makeFieldsStep.fromMessage(({ apiData }) => ({
     apiData: () => ApiDataAsyncData.Success({ data: apiData }),

@@ -9,7 +9,7 @@ import {
   type PolicyStep,
   ReadValue,
   type Store,
-  combinedPolicy,
+  combinedPolicyStep,
   completedProgram,
   connectedProgram,
   connectedStep,
@@ -39,7 +39,9 @@ type RequirementsOfProgram<ProgramValue> =
     ? Requirements
     : never
 
-export type ExactCombinedStep = Expect<Equal<typeof combinedPolicy, PolicyStep>>
+export type ExactCombinedStep = Expect<
+  Equal<typeof combinedPolicyStep, PolicyStep>
+>
 export type ExactEnteredStep = Expect<
   Equal<typeof enteredOutStep, PolicyOutStep>
 >
@@ -50,7 +52,7 @@ export type ExactPolicyRequirements = Expect<
 >
 export type ExactCombinedRequirements = Expect<
   Equal<
-    Update.RequirementsOf<typeof combinedPolicy>,
+    Update.RequirementsOf<typeof combinedPolicyStep>,
     DetailService | DraftService
   >
 >

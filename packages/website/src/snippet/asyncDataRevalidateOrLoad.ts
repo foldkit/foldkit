@@ -1,4 +1,4 @@
-const enterNotebooksRoute = ApplicationDefinition.makeStep(model =>
+const enterNotebooksRouteStep = ApplicationDefinition.makeStep(model =>
   Option.match(AsyncData.revalidateOrLoad(model.notebooks), {
     onNone: () => ({ model }),
     onSome: nextNotebooks => ({

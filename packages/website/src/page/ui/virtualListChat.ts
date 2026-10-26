@@ -63,7 +63,7 @@ const foldVirtualListChatOutMessage = UiDefinition.makeOutMessageFold(
         const nextVirtualListChatStartProximity = isNearStart
           ? VirtualListChatStartProximity.Near()
           : VirtualListChatStartProximity.Away()
-        const updateStartProximity = makeFieldsStep(() => ({
+        const updateStartProximityStep = makeFieldsStep(() => ({
           virtualListChatStartProximity: () =>
             nextVirtualListChatStartProximity,
         }))
@@ -72,17 +72,17 @@ const foldVirtualListChatOutMessage = UiDefinition.makeOutMessageFold(
           !isNearStart ||
           model.virtualListChatStartProximity._tag === 'Near'
         ) {
-          return updateStartProximity
+          return updateStartProximityStep
         }
 
         const nextMessages = olderVirtualListChatMessages(model)
-        const updateMessages = makeFieldsStep(() => ({
+        const updateMessagesStep = makeFieldsStep(() => ({
           virtualListChatMessages: () => nextMessages,
         }))
 
         return Update.combineSteps([
-          updateStartProximity,
-          updateMessages,
+          updateStartProximityStep,
+          updateMessagesStep,
           VirtualListChatDemoBinding.informItemsChanged(
             Array.map(nextMessages, message => globalThis.String(message.id)),
           ),
@@ -96,26 +96,26 @@ export const VirtualListChatDemoBindingWithOutMessagePolicy =
     fold: foldVirtualListChatOutMessage,
   })
 
-export const updateVirtualListChatMessages = (
+export const updateVirtualListChatMessagesStep = (
   nextMessages: ReadonlyArray<typeof VirtualListChatMessage.Type>,
   nextId?: number,
 ) =>
   makeStep(model => {
     const nextVirtualListChatNextId =
       nextId === undefined ? model.virtualListChatNextId : nextId
-    const updateMessages = makeFieldsStep(() => ({
+    const updateMessagesStep = makeFieldsStep(() => ({
       virtualListChatMessages: () => nextMessages,
       virtualListChatNextId: () => nextVirtualListChatNextId,
     }))
 
     return Update.combineSteps([
-      updateMessages,
+      updateMessagesStep,
       VirtualListChatDemoBinding.informItemsChanged(
         Array.map(nextMessages, message => globalThis.String(message.id)),
       ),
     ])
   })
 
-export const prependVirtualListChatMessages = makeStep(model =>
-  updateVirtualListChatMessages(olderVirtualListChatMessages(model)),
+export const prependVirtualListChatMessagesStep = makeStep(model =>
+  updateVirtualListChatMessagesStep(olderVirtualListChatMessages(model)),
 )

@@ -5,26 +5,26 @@ import {
   type ConnectedPolicyStep,
   type PolicyStep,
   connectedProgram,
-  loadDetail,
-  persistDraft,
+  loadDetailStep,
+  persistDraftStep,
   policyTransition,
-  preserveModel,
-  preserveParent,
-  refreshChild,
+  preserveModelStep,
+  preserveParentStep,
+  refreshChildStep,
 } from './route-step-program.accepted.js'
 
 Transition.match<PolicyStep>()(policyTransition, 'NoteDetail', {
-  Entered: () => loadDetail,
-  Exited: () => persistDraft,
-  Stayed: () => preserveModel,
+  Entered: () => loadDetailStep,
+  Exited: () => persistDraftStep,
+  Stayed: () => preserveModelStep,
   // @ts-expect-error Every handler must return the constrained Step.
   Unrelated: () => 'unrelated',
 })
 
 Transition.match<ConnectedPolicyStep>()(policyTransition, 'NoteDetail', {
-  Entered: () => refreshChild,
-  Exited: () => preserveParent,
-  Stayed: () => refreshChild,
+  Entered: () => refreshChildStep,
+  Exited: () => preserveParentStep,
+  Stayed: () => refreshChildStep,
   // @ts-expect-error Connected matcher output cannot discard its Step contract.
   Unrelated: () => 'unrelated',
 })

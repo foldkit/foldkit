@@ -15,7 +15,7 @@ import {
 } from './definition'
 import { OutMessage } from './message'
 
-const changeStatusFilter = (value: typeof StatusFilterValue.Type) => {
+const changeStatusFilterStep = (value: typeof StatusFilterValue.Type) => {
   if (value === 'All') {
     return makeOutMessageStep(() =>
       OutMessage.ChangedStatusFilter({
@@ -55,7 +55,7 @@ export const StatusListboxBinding = IssueListDefinition.makeBinding(
   },
 ).withOutMessagePolicy({
   fold: IssueListDefinition.makeOutMessageFold(StatusFilterListboxBlock, {
-    Selected: ({ value }) => changeStatusFilter(value),
+    Selected: ({ value }) => changeStatusFilterStep(value),
   }),
 })
 

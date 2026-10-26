@@ -10,7 +10,7 @@ import {
 import { makeNoopStep, makeStep } from '../definition'
 import { ApplicationRoute, pageRoute } from '../route'
 
-const initializeIssueDetailIfMissing = (issueId: string) =>
+const initializeIssueDetailIfMissingStep = (issueId: string) =>
   makeStep(model => {
     if (
       Array.some(
@@ -43,7 +43,7 @@ const initializeIssueDetailIfMissing = (issueId: string) =>
     )
   })
 
-const initializeProjectBoardIfMissing = (projectId: string) =>
+const initializeProjectBoardIfMissingStep = (projectId: string) =>
   makeStep(model => {
     if (
       Array.some(
@@ -70,7 +70,7 @@ const initializeProjectBoardIfMissing = (projectId: string) =>
     )
   })
 
-const initializeProjectSettingsIfMissing = (projectId: string) =>
+const initializeProjectSettingsIfMissingStep = (projectId: string) =>
   makeStep(model => {
     if (
       Array.some(
@@ -97,23 +97,26 @@ const initializeProjectSettingsIfMissing = (projectId: string) =>
     )
   })
 
-export const initializeActiveChildren = makeStep(model => {
-  const initializeIssueDetail = ApplicationRoute.matchOrElse(
+export const initializeActiveChildrenStep = makeStep(model => {
+  const initializeIssueDetailStep = ApplicationRoute.matchOrElse(
     model.route,
-    { Issue: ({ issueId }) => initializeIssueDetailIfMissing(issueId) },
+    { Issue: ({ issueId }) => initializeIssueDetailIfMissingStep(issueId) },
     makeNoopStep,
   )
 
   const route = pageRoute(model.route)
-  const initializeProjectChild = ApplicationRoute.matchOrElse(
+  const initializeProjectChildStep = ApplicationRoute.matchOrElse(
     route,
     {
-      Board: ({ projectId }) => initializeProjectBoardIfMissing(projectId),
+      Board: ({ projectId }) => initializeProjectBoardIfMissingStep(projectId),
       ProjectSettings: ({ projectId }) =>
-        initializeProjectSettingsIfMissing(projectId),
+        initializeProjectSettingsIfMissingStep(projectId),
     },
     makeNoopStep,
   )
 
-  return Update.combineSteps([initializeIssueDetail, initializeProjectChild])
+  return Update.combineSteps([
+    initializeIssueDetailStep,
+    initializeProjectChildStep,
+  ])
 })

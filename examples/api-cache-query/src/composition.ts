@@ -17,18 +17,18 @@ export const PostDetailsBinding = ApplicationDefinition.makeBinding(postQuery, {
   field: 'postDetails',
 })
 
-const activateTab = (tab: typeof Tab.Type) => {
-  const selectTab = makeFieldsStep(() => ({
+const activateTabStep = (tab: typeof Tab.Type) => {
+  const selectTabStep = makeFieldsStep(() => ({
     activeTab: () => tab,
   }))
 
-  const loadTab = Match.value(tab).pipe(
+  const loadTabStep = Match.value(tab).pipe(
     Match.when('Posts', () => PostsBinding.requestLoadIfMissing()),
     Match.when('Stats', () => StatsBinding.requestLoadIfMissing()),
     Match.exhaustive,
   )
 
-  return makeStep(() => Update.combineSteps([selectTab, loadTab]))
+  return makeStep(() => Update.combineSteps([selectTabStep, loadTabStep]))
 }
 
 export const TabsBinding = ApplicationDefinition.makeBinding(AppTabsBlock, {
@@ -36,7 +36,7 @@ export const TabsBinding = ApplicationDefinition.makeBinding(AppTabsBlock, {
   init: { contextToArgs: () => [{ id: TABS_ID }] },
 }).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(AppTabsBlock, {
-    Selected: ({ value }) => activateTab(value),
+    Selected: ({ value }) => activateTabStep(value),
   }),
 })
 
