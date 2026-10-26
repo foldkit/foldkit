@@ -36,6 +36,31 @@ placements are unchanged. No other scoped consumer has the helper's exact
 whole-variant shape. Nested/wrapped/custom relationships retain accessors.
 [Assessment and measured optional cost](variant-binding-assessment.md).
 
+## Final initialization and delivery adoption
+
+The optional `initAndAppend` leaf replaces six repeated append writers:
+Workspace's Issue Detail, Board and Project Settings, plus Job Application's
+Education, Work History and Skills Entry collections. Each Binding already
+owns `init.instances` and `init.toItem`. Counters and the keyed-init guide keep
+explicit writers because they also change the next ID. Other storage,
+replacement and mixed parent transitions retain explicit `Binding.init`.
+[Scope and proof](dynamic-child-append.md).
+
+Workspace's existing conflict Scene now keeps one exact save Command pending,
+delivers its registered activity Subscription and verifies the teammate comment
+before resolving the conflict. `Story.messageWith` and registered Subscription
+emission are documented and verified through installed public contracts; existing
+Stories need no conversion when they already have the Message or intentionally
+simulate a different input source. [Contracts](testing-event-delivery.md).
+
+The Command selector sweep found no callback reading outside its selected keys.
+No application migration is needed for the tighter cancellation contract.
+[Source, emitted and runtime proof](command-interruption-keys.md).
+
+The final ordinary Workspace root emits 115 declarations (13,222,561 bytes) and
+passes strict relocation. This supersedes the earlier audit's serialization
+count; it does not promise unlimited whole-application declaration scaling.
+
 ## Composition update records
 
 The current AST inventory finds no callback-taking or no-argument

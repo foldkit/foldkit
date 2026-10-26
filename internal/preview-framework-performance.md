@@ -1,5 +1,77 @@
 # Integrated framework performance
 
+## Final initialization and testing candidate
+
+Three alternating paired native TypeScript 7 runs compare the pre-initialization
+checkpoint (`1d92c2ca0f5a` application cleanup with earlier framework artifacts)
+with final implementation `1b89a2325553`. Both use identical current driver bytes,
+equivalent operation probes and package-local TypeScript 7 declaration builds.
+All twelve sessions pass their hover, completion and diagnostic payload checks.
+This is the combined delta, not an isolated causal measurement of one helper.
+
+| Workflow                                   | Baseline median (range), ms | Candidate median (range), ms |
+| ------------------------------------------ | --------------------------: | ---------------------------: |
+| Workspace post-edit Binding hover          |               275 (260–279) |                280 (258–289) |
+| Workspace post-edit Binding completion     |               271 (264–291) |                276 (258–282) |
+| Workspace completed Block completion       |                  57 (47–64) |                   49 (46–61) |
+| Workspace error appearance                 |               201 (200–208) |                202 (201–206) |
+| Workspace error clearing                   |               179 (177–189) |                178 (175–182) |
+| Website post-edit Binding hover            |               220 (212–265) |                236 (214–242) |
+| Website post-edit Binding completion       |               224 (224–227) |                236 (228–243) |
+| Website ordinary completion                |                  15 (15–15) |                   21 (19–21) |
+| Website error appearance                   |               594 (585–659) |                569 (566–580) |
+| Website error clearing                     |               607 (606–612) |                585 (574–586) |
+| Website cold completed-root Message access |         2,838 (2,809–2,942) |          2,771 (2,740–2,833) |
+
+Workspace's bounded sampled peak server RSS is 434 MiB baseline and 444 MiB
+candidate. Website does not have a memory sampling result in this driver. The
+aggregation initially assumed both workloads did; all twelve valid raw sessions
+were retained and summarized with absent sampling stated explicitly. No timing
+rerun or result selection was used to repair the summary.
+
+These measurements support retaining the final delta. Small ordinary completion
+costs remain usable; no material overall incremental regression or broad causal
+speedup is established. The roughly 2.8-second cold completed-root cost, actual
+Neovim behavior, long-session memory and unlimited graph scaling remain outside
+this bounded result. The separately tested optional tsrs setup remains a useful
+editor option; official TypeScript remains the source and CI contract.
+
+All six compiler fixtures pass. Original ceilings are unchanged, including
+Workspace four/eight-group Types of 205,020/278,605 against 206,314/280,523. The
+new 100-distinct-Subscription fixture stays at its initial 548,398 instantiations
+and 24,566 Types. Actual Workspace root emission and strict relocation pass with
+115 declarations totaling 13,222,561 bytes; declaration size remains a cost.
+
+Evidence: `/private/tmp/foldkit-release-ready-20261025/native/summary.json`,
+its twelve raw reports, `verification/compiler-budgets.log`, and
+`workspace-declarations/results.json`. The
+[final preparation report](preview-ready-20261025.md) records installed-consumer
+and runtime results separately. Earlier sections retain their own source pins.
+
+### Runtime comparison with the published preview
+
+Four balanced rotating rounds compare published `1f6776fa7ece` with final
+`1b89a2325553` on Chrome 155.0.8059.85 and harness
+`03fff17ad22407115a91937ddab680e40fe0c7c7`. All four builds pass the independent
+Todo behavior verifier before timing. Each run preserves cross-origin isolation
+and the same 400 synchronous/400 animation-frame callback counts.
+
+| Variant   | Published median (range), ms | Candidate median (range), ms | Median change |
+| --------- | ---------------------------: | ---------------------------: | ------------: |
+| Naive     |          560.3 (473.3–594.2) |          564.0 (525.8–606.1) |         +0.7% |
+| Optimized |          266.1 (254.6–286.4) |          256.4 (217.0–280.3) |         −3.6% |
+
+Ranges overlap. This bounded DOM/update screen establishes no material runtime
+regression or general causal speedup. Instrumented execution time excludes
+waiting; it is not end-to-end interaction latency. Candidate JavaScript adds
+7,721 raw bytes, and gzip adds 1,625 naive / 1,636 optimized bytes. Both builds
+resolve Foldkit and its Vite plugin from their own snapshots.
+
+Raw rounds, bucket totals, correctness logs, bundle hashes and resolved package
+paths are in `/private/tmp/foldkit-release-ready-20261025/runtime/`. No compiler
+ceiling or timeout was increased. User servers were left running; no other
+agent build/test job ran during editor or runtime timing.
+
 ## October 25 testing and storage followups
 
 The subsequent frozen source is `d7d06ee6c4d7b9be56a1803985be01bce0ca58a9a6466266df72fee4d47866df`, comprising 6,902 files after excluding generated build/cache outputs and `examples/vite.aliases.d.ts`. It follows committed `679d2d5e7f`; final internal evidence addenda do not alter its package-producing source. The four changes and acceptance results are recorded in [final followups](preview-final-followups-20261025.md).

@@ -28,13 +28,45 @@ All four followups have focused runtime, source/emitted and consumer proofs with
 - [x] Audit adoption of every API added in this preview round across all examples, Typing Game, and Website. Migrate applicable sites, including optional conveniences that remove real repeated wiring; document concrete intentional exceptions. Include UI/framework consumers where the record-only change requires them. Do not force Step helpers around ordinary handlers that can return results directly.
 - [x] Repair Workspace root declaration emission (TS7056). The earlier exact Binding tuple and implementation interface restored full emission and strict relocation. The subsequent cleanup above removes the implementation inventory by exporting the tuple type; actual ordinary root emission and relocation still pass. Declarations grow from approximately 11.45 to 12.42 MB. [Current proof and costs](workspace-clean-assembly-20261025.md).
 
+### Final preparation verification
+
+The final implementation checkpoint is `1b89a2325553`. Core 3,753 tests and
+coverage, UI 1,301, Website 1,490, Workspace 153 and Job Application 69 pass.
+All 53 source configurations, the repeated checker-count matrix, core/UI strict
+emitted-declaration gates, actual Workspace root relocation and all six fixed
+compiler fixtures pass. The narrow alias followup passes the existing subpath
+guard and affected consumers; its missing-alias control fails before the fix.
+
+All nine packages are locally packed and installed. Coverchart's 40 tests and
+all source/lint/build gates pass; SPA/SSG/SSR pass their source/lint/test/build
+and browser gates. Installed new API contracts pass. Workspace 32/32 browser
+cases use the original packed source snapshot plus the explicitly recorded
+example source-alias correction. All 2,446 package/scaffold inputs remain
+identical to the packed freeze. Current native editor and four-round runtime
+results disclose remaining latency and size costs. No publication or actual
+Coverchart change occurred. [Final report and evidence](preview-ready-20261025.md).
+
+The last scoped read-only inventory found no new feedback after October 25,
+18:00 UTC. Exact commits have independent review; final documentation review
+and authorized development-branch push complete the preparation. Integration,
+published-package/deployment acceptance, actual Coverchart upgrade and Ready
+promotion remain held for approval.
+
 ### Current integration gates
+
+The counts and artifact results below describe the preceding verified checkpoint.
+The subsequent initialization, Program, Command and testing work required a fresh
+freeze and rehearsal. The final preparation section above records their completion
+and the exact source-alias qualification. Use the package-local TypeScript 7 compiler for both
+declaration builds and measurements. A control built with the workspace's
+TypeScript 6 shim exceeded a compiler ceiling; the same source rebuilt with the
+correct compiler passes. The mismatched-compiler run is excluded.
 
 The final source sweep passes all 53 repository configurations with stable framework source/artifact hashes. Core and UI external emitted-declaration/relocation harnesses pass. Independent review verifies actual Typing Game Room, all 28 adversarial return-channel controls, and the exact Workspace root boundary. The five compiler ceilings pass twice without changes. Faster encodings with unsafe union channels were rejected before integration.
 
 Runtime evidence passes 3,700 core tests (one intentional skip) with coverage gates, 1,298 UI tests, 1,480 Website tests, 622 lint tests, and 331 Vite tests (three intentional skips). The semantic application audit retains 270 focused tests, including Workspace’s 160. Website uses the pinned cached pnpm; the stalled default-Corepack run is excluded. Vite’s sandbox-blocked loopback run is excluded in favor of its successful network-enabled run. Final local packed-consumer/browser checks pass; final paired editor/runtime measurements and artifact equivalence pass, with their measured costs disclosed in the handoff. Publication remains held.
 
-October 25 public feedback check: #1737 remains closed with 10 comments and no
+Earlier October 25 public feedback check: #1737 remains closed with 10 comments and no
 updates after October 23. The new preview-PR reports remain the already tracked
 DateTime/combined-OutMessage cases and reciprocal-policy #1772. No additional
 related contribution PR appeared in the October 24 onward issue/PR inventory.
@@ -42,6 +74,20 @@ related contribution PR appeared in the October 24 onward issue/PR inventory.
 are separately scoped features; this pass does not expand into those. Preserve
 these boundaries rather than treating unrelated repository activity as release
 work. Read-only inventory: `/private/tmp/foldkit-preview-feedback-check-20261025.jsonl`.
+
+### Latest preview feedback, October 25
+
+The later [migration report](https://github.com/foldkit/foldkit/pull/1655#issuecomment-6398999418)
+adds the following assessments. These are not covered by the earlier checkpoint.
+
+- [x] [#1779](https://github.com/foldkit/foldkit/issues/1779): bound invalid Program-root requirement inference before it reaches broad Block contracts. The original one-checker source-order failure and native counts one, four, five, six and eight pass after the repair. Mutation controls retain rejection and reproduce the failure without the guard. [Cause and verification](program-checker-order.md). Repeat the matrix after the remaining framework changes.
+- [x] [#1777](https://github.com/foldkit/foldkit/issues/1777): retain construction validation and use caller-owned `toLayer` wiring when a reusable factory accepts a generic Service key. The supported boundary preserves exact external Services while rejecting placement-bound capabilities and unresolved Block requirements. [Assessment and declaration proof](generic-construction-requirements.md).
+- [x] Assess [#1776](https://github.com/foldkit/foldkit/issues/1776). Reordering improves common source/emitted diagnostics but exceeds unchanged compiler ceilings; alternative bounded encodings do not repair that cost. Retain the safe signatures and add active troubleshooting guidance. The misleading final-overload diagnostic remains a documented limitation, not a claimed fix. [Measured assessment](command-diagnostic-assessment.md).
+- [x] Reconcile [#1780](https://github.com/foldkit/foldkit/pull/1780): Story already permits concurrent delivery; add `Scene.Command.keepPending` for one exact ordinary invocation without changing assertion, resolution or final-completeness behavior. Workspace exercises activity delivery during a pending save. [Contracts and proof](testing-event-delivery.md).
+- [x] Adopt the focused conveniences from [#1783](https://github.com/foldkit/foldkit/pull/1783): `Story.messageWith` reads the current Model when its step runs; `Story.Subscription.from` validates decoded input and applies a registered Subscription's parent mapping. Preserve ambiguity rejection and document that simulation does not execute Streams or Runtime occurrence admission. Source/emitted/relocated checks, runtime regressions and a distinct 100-entry compiler fixture pass. [Scope and costs](testing-event-delivery.md).
+- [x] Complete `initAndAppend(binding, model, { key, args })` as an optional leaf for existing initialized keyed arrays. Source/emitted/relocated, runtime and mutation proofs pass; all six compiler budgets pass, six consumers are migrated, installed contracts and Workspace 32/32 pass. Three paired native runs show no material overall regression. Keep explicit writers for mixed parent transitions and other storage. [Scope and adoption](dynamic-child-append.md).
+- [x] Repair keyed Command cancellation: infer `toKey` only from the selected `keyFields`, and project those fields on both invocation and interruption. The confirmed failure starts with one key and returns `NotFound` on cancellation. Preserve exact Interrupt arguments, Services, metadata and original invocation identity; source/emitted/relocated, real cancellation and mutation regressions pass. The combined matrix passes twice at all five checker counts, and all six compiler ceilings pass. [Repair and breaking annotation guidance](command-interruption-keys.md).
+- [x] Resolve the apparent clean-build Workspace Types-ceiling regression. The control used TypeScript 6 to emit declarations for TypeScript 7 measurements. Rebuilding with the package-local TypeScript 7 compiler restores 205,758 types and 2,509,168 instantiations, within unchanged ceilings. Independent commit comparisons confirm the optional initialization leaf adds zero default-fixture cost; the Program guard adds 21 types and 66 instantiations in this fixture. Repeat all fixtures after the final combined changes.
 
 The isolated ManagedResource registry prototype passes source/emitted contracts and real Runtime acquisition/release tests, including non-enumerable source entries, metadata separation, and rejection of foreign Model/Message registries. Moving registry contracts to a dedicated internal module removes the first prototype's unconditional cost. The combined record-only/registry/focused-producer encoding now passes all five unchanged ceilings in repeated runs. A dedicated internal operation-contract module and registry module prevent repeated expansion; no alias or filler export is retained. The mechanism, all four eligible full registries, and active guidance are migrated. Final source and declaration checks pass; current performance and artifact provenance are recorded in the release handoff.
 
@@ -64,7 +110,7 @@ The October 24 scope correction was correct: the earlier agent recommendations t
 - [x] Improve connected-Step, OutMessage-combination, and assembly diagnostics while retaining compile-time rejection. Source and relocated emitted diagnostics name the registered/deferred repair, incompatible OutMessage, primary-view ownership, or missing handler provider. Native init errors and deliberate type-erasure limits are documented.
 - [x] Independently review the retained mechanisms, fix aggregate union-channel and map-placement findings, and run current Website/Workspace editor workflows. All five compiler budgets pass unchanged. The related #1772 reciprocal-policy graph fix has source/emitted/runtime proofs and fresh Astra Max review.
 
-These completions do not mark the release Ready. The expanded Workspace root now emits and relocates with a measured private boundary; the ordinary unannotated control still reaches TS7056. Final record-inference/safety, source/declaration, installed-consumer and independent review gates pass. Final performance and artifact-equivalence gates pass with their measured costs recorded in the release handoff. No approved deferral is inferred.
+These completions do not mark the release Ready. The earlier private boundary restored expanded Workspace emission; subsequent ordinary assembly now emits and relocates by exporting the existing exact Binding tuple type. The earlier unannotated control and its TS7056 result retain their historical scope. Final record-inference/safety, source/declaration, installed-consumer and independent review gates pass. Final performance and artifact-equivalence gates pass with their measured costs recorded in the release handoff. No approved deferral is inferred.
 
 ## Complete: October 24 declaration feedback
 

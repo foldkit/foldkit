@@ -2,7 +2,11 @@
 
 ## Status
 
-The framework, testing and storage followups are committed and pushed to the development branch `codex/workspace-example` at `23f4bd93e5`. The subsequent Workspace readability and assembly cleanup is verified below. Publication is held for your approval. The current published preview remains `1f6776fa7ece`; release integration and main have not been updated.
+The preparation is on development branch `codex/workspace-example`. The latest
+implementation checkpoint is `1b89a2325553`; the
+[final preparation report](preview-ready-20261025.md) supersedes older verification
+counts below. Publication remains held for your approval. Published Ready stays
+`1f6776fa7ece`; release integration and main have not been updated.
 
 ## Public API changes since that preview
 
@@ -14,7 +18,10 @@ The framework, testing and storage followups are committed and pushed to the dev
 | Record/HashMap child storage                      | Optional `makeMapBinding` derives storage and occurrence keys from the parent Schema. Ordinary operations preserve membership and ignore absent occurrences.                                                                                                  |
 | Captured Command arguments                        | Optional `Story.Command.argsOf` / `Scene.Command.argsOf` project exact args by Definition identity. Occurrence selection remains explicit.                                                                                                                    |
 | Headless child facts                              | Optional `toParentMessage` from `foldkit/test` replaces mapper-only embeds and manually decoded test envelopes. Supply the actual Binding and decoded Message/key.                                                                                            |
-| Concurrent Story Messages                         | Ordinary `Story.message` retains pending Commands; resolve them explicitly before Story completion. Scene is unchanged.                                                                                                                                       |
+| Concurrent Story Messages                         | Ordinary `Story.message` retains pending Commands; resolve them explicitly before Story completion. Scene retains its boundary checks, with the explicit `keepPending` operation described below.                                                             |
+| Dynamic keyed-array initialization                | Optional `initAndAppend` from `foldkit/bindingInit` reuses an existing `init.toItem` policy. Other storage and mixed parent transitions keep explicit `Binding.init`.                                                                                         |
+| Testing event delivery                            | Optional `Story.messageWith`, `Story.Subscription.from(...).emit` and `Scene.Command.keepPending` model concurrent inputs while keeping resolution explicit.                                                                                                  |
+| Keyed Command cancellation                        | `toKey` receives only own selected fields on both paths. Precise tuple policies retain exact cancellation args; broad or mixed policies need accurate optional fields or narrowing.                                                                           |
 | Whole tagged child variants                       | Optional `makeVariantBinding` from `foldkit/variantBinding` derives exact whole-member storage from the parent Union. Other storage keeps existing accessors.                                                                                                 |
 
 Handle DragAndDrop’s new `StartedKeyboardDrag` and `ChangedKeyboardTarget` OutMessages in exhaustive policies. Keep complete connected results: a handler mixing raw local branches with connected recipes needs Definition-owned local Steps. Ordinary cohesive raw handlers can return results directly. Silent operations now retain their own per-Message channels rather than inheriting unrelated OutMessages.
@@ -51,6 +58,6 @@ Current Website hover/completion is 239/227 ms and Workspace Block completion is
 
 ## After approval
 
-Workspace now retains per-ID editors and Boards, admits hidden save completions, applies parsed Routes without drag orchestration, repairs deleted saved-view return context, and organizes precise handlers and focused Steps. Shared controls use Tailwind component classes. The dynamic Binding initialization prototype passed source/emitted/runtime safety but exceeded unchanged compiler ceilings and is excluded. The [transition cleanup report](workspace-transition-cleanup-20261025.md) records its earlier measurements. The subsequent [application simplification](workspace-simplification-20261025.md) removes the speculative drag API and navigation helper chain; current verification is recorded there. Earlier counts above describe their pinned snapshots.
+Workspace now retains per-ID editors and Boards, admits hidden save completions, applies parsed Routes without drag orchestration, repairs deleted saved-view return context, and organizes precise handlers and focused Steps. Shared controls use Tailwind component classes. The earlier default-Binding initialization prototype exceeded compiler ceilings and remains excluded. The new optional `foldkit/bindingInit` leaf passes the fixed budgets and is adopted at six eligible sites. The [transition cleanup report](workspace-transition-cleanup-20261025.md) records its earlier measurements. The subsequent [application simplification](workspace-simplification-20261025.md) removes the speculative drag API and navigation helper chain; current verification is recorded there. Earlier counts above describe their pinned snapshots.
 
 Use only the preview integration branch, never main. Verify the published package set and immutable deployment, then generate the PR’s three starting paths: stable migration, previous-preview upgrade and new project. Preserve the prior Ready snapshot until those gates pass. Update actual Coverchart against that exact verified snapshot, then provide announcement links. [Release handoff](next-preview-release-handoff.md).

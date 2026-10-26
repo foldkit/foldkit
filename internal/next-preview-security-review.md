@@ -8,6 +8,36 @@ The release lead retained the current dependency checkpoint for this candidate a
 
 This is an independent static review. It is **not a Daybreak model run or certification** and does not extend the earlier Daybreak verdict. Publication still requires the user's explicit approval.
 
+## Final initialization and testing delta
+
+Independent static review covers `7cae18608761` through the final Program guard,
+optional initialization leaf, testing delivery and keyed-cancellation repair,
+plus the exact example alias followup at `1b89a2325553`. No new security or
+behavioral blocker was found. Exact committed changes have independent review.
+[Final verification and release boundary](preview-ready-20261025.md).
+
+The Program guard is type-only. `initAndAppend` reuses registered native init
+recipes and validates supported storage, duplicates and wrapper identity.
+Test-only delivery reuses recorded Schema/mapper contracts without creating live
+occurrence authority; keeping a Command pending preserves its exact identity and
+final completeness. Cancellation derives both keys from the same selected own
+fields in a null-prototype record while preserving original handler/metadata args.
+The example alias adds no execution or external-input capability.
+
+The fresh local installed/browser rehearsal is separate evidence. Workspace uses
+the recorded post-freeze alias correction; unchanged package inputs establish
+transfer of packed acceptance. It is not an unchanged exact-commit freeze or
+registry/deployment acceptance. Final static reports:
+`/private/tmp/foldkit-release-ready-20261025/verification/final-static-review.md`
+and `alias-and-rehearsal-review.md` in that directory.
+
+The lockfile remains `b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47`.
+The dependency findings and reachability limits below remain unresolved. This is
+not a fresh audit or Daybreak run, and publication remains held for approval.
+The older addendum below retains its original declaration-boundary checkpoint;
+Workspace now emits through ordinary checked assembly with an exported exact
+Binding tuple type.
+
 ## October 25 addendum
 
 The final local review covers record-only update authoring, focused producer callbacks, owned ManagedResource registries, the exact UI handler records, and Workspace's private declaration boundary. No additional blocking code finding remains in this reviewed delta. The October 23 review and dependency dispositions below retain their original scope. This addendum is not a new Daybreak run or a fresh dependency audit.
@@ -19,7 +49,7 @@ The reviewed shared delivery source is `aae3ac48f1da6ee4f883b61e3dce538effa0a3d1
 - The UI kernels now return exact per-Message handler records. Review retained selection order, original-versus-next Model use, animation registration, and existing generic selection refinement boundaries. The repair adds no Model, graph or requirement cast.
 - Independent checks rejected an intermediate encoding that accepted fourteen invalid result unions. The final encoding rejects those cases; all twenty-eight independent negative controls pass against source and emitted declarations. Actual Typing Game Room, the official record controls, the UI declaration harness, and Workspace emission and strict relocation pass. The final core type repair preserves all 286 parsed JavaScript programs; the sole byte difference from the reviewed runtime control is moved ManagedResource documentation.
 
-Workspace still requires fourteen exact `typeof` references across its two root files. Its 110 declarations total 11,452,935 bytes. The checked boundary preserves implementation and Binding drift guards; this result establishes neither unlimited serialization nor an editor speedup.
+At the earlier addendum checkpoint, Workspace required fourteen exact `typeof` references across its two root files. Its 110 declarations total 11,452,935 bytes. The checked boundary preserves implementation and Binding drift guards; this result establishes neither unlimited serialization nor an editor speedup.
 
 The current lockfile hash is `b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47`. Its only change from the October 23 lockfile adds the already-resolved `clsx` 2.1.1 to the Workspace importer. Overrides are unchanged. The recorded **1 Critical, 8 High, 11 Moderate, and 4 Low** findings remain unresolved under the documented reachability limits; Monaco's vendored sanitizer is not newly patched. No source was uploaded externally. Publication still requires the user's explicit approval.
 

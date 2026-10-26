@@ -1,5 +1,20 @@
 # Next preview release handoff
 
+## Latest preparation checkpoint
+
+Use the [final preparation report](preview-ready-20261025.md) for the current
+implementation at `1b89a2325553`, fresh combined verification, optional dynamic
+initialization, testing delivery and cancellation-policy tightening. Older
+sections below retain their dated checkpoints and do not supersede that report.
+The packed nine-package rehearsal, source-serving alias correction and final
+benchmarks have separately recorded provenance. Publication remains held.
+
+Keep the three consumer starting paths and existing published Ready instructions.
+Only after approval may release integration assign the published source commit,
+package map and immutable deployment. Generate the PR prompts and exact scaffold
+command from that verified manifest; local tarball versions are not installation
+instructions. Update actual Coverchart only against the published package set.
+
 ## Subsequent followups after 679d2d5e7f
 
 The headless `foldkit/test` wrapper, concurrent Story delivery, exact whole-variant
@@ -63,7 +78,7 @@ The final source sweep includes the internal benchmark and Vite fixtures that it
 
 Published Ready remains `1f6776fa7ececa766188df5201eefec6ba781b5d`. Final preparation does not promote that snapshot. Publication is held for the user’s approval, and preview integration targets `codex/layers-and-submodels`, never `main`.
 
-The working source is on `codex/workspace-example`, based on `31d8aad9fe4555112b3cf8e2d948badeee9ced0d` with concurrent changes included. The candidate is committed locally; the published integration commit, registry package map, and immutable deployment have not been assigned. Pushing the preview integration branch triggers canary publication, so no push, merge, publication, actual Coverchart migration or external PR edit is performed during preparation.
+The working source is on `codex/workspace-example`, based on `31d8aad9fe4555112b3cf8e2d948badeee9ced0d` with concurrent changes included. The candidate is committed locally; the published integration commit, registry package map, and immutable deployment have not been assigned. Pushing the preview integration branch triggers canary publication, so no integration push, merge, publication, actual Coverchart migration or external PR release promotion is performed during preparation. Development-branch commits and pushes remain separately authorized.
 
 The historical checkpoint sections below retain their own dates, artifact identities and scope. Their older results do not supersede the October 25 candidate gates. Keep the existing working Ready instructions available in [PR #1655](https://github.com/foldkit/foldkit/pull/1655) until the replacement passes publication/deployment gates.
 
