@@ -6,8 +6,8 @@ import * as SystemTheme from './systemTheme'
 import * as ViewportWidth from './viewportWidth'
 
 export const EffectsLayer = Layer.mergeAll(
-  ActiveSection.EffectsLayer,
-  SearchShortcut.EffectsLayer,
-  SystemTheme.EffectsLayer,
-  ViewportWidth.EffectsLayer,
+  ActiveSection.subscriptions.layer,
+  SearchShortcut.subscriptions.layer,
+  SystemTheme.subscriptions.layer,
+  ViewportWidth.subscriptions.layer,
 )

@@ -13,4 +13,4 @@ export {
   UiPagesBinding,
   type ApplicationViewBuilder,
 } from './composition'
-export { HomeBinding, LoadPlayground } from './home'
+export { HomeBinding } from './home'

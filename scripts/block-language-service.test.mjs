@@ -16,8 +16,8 @@ import {
 test('workspace completion requires the public operation and completed Block members', () => {
   const source = {
     uri: 'file:///workspace.ts',
-    originalText: 'IssueDetailBinding.init()',
-    text: 'IssueDetailBinding.init()',
+    originalText: '\nIssueDetailBinding.init\n',
+    text: '\nIssueDetailBinding.init\n',
     version: 1,
   }
   const target = workspaceBindingCompletionTarget(source)
@@ -245,6 +245,39 @@ test('Website hover validates expanded and abbreviated Schema displays', () => {
     contentsFor('any'),
     contentsFor('String'),
     contentsFor('TaggedUnion<...>').replace('readonly query: String;', ''),
+    `${contentsFor('TaggedUnion<...>')} & Owner<"OtherChild">`,
+  ]) {
+    assert.throws(
+      () => validateResult('website.hover', target, { contents }),
+      /unexpected visible Binding shape/,
+    )
+  }
+})
+
+test('Website hover validates the storage-evidence display without accepting erased Schemas', () => {
+  const target = {
+    method: 'textDocument/hover',
+    expectedBinding: searchBindingHover,
+  }
+  const contentsFor = searchState =>
+    `const SearchBinding: BindingEvidence<AssemblyWithView<Struct<{ readonly query: String; readonly searchState: ${searchState}; readonly activeResultIndex: Number; }>, ...>, never, Readonly<...>, false> & ...`
+
+  assert.equal(
+    validateResult('website.hover', target, {
+      contents: contentsFor('TaggedUnion<...>'),
+    }),
+    undefined,
+  )
+
+  for (const contents of [
+    'const SearchBinding: BindingEvidence<any, never, Readonly<...>, false>',
+    'const SearchBinding: BindingEvidence<unknown, never, Readonly<...>, false>',
+    contentsFor('any'),
+    contentsFor('String'),
+    contentsFor('TaggedUnion<...>').replace('readonly query: String;', ''),
+    contentsFor('TaggedUnion<...>').replace(', false>', ', true>'),
+    'const SearchBinding: BindingEvidence<Opaque, never, Readonly<...>, false> & Owner<"Search">',
+    `${contentsFor('TaggedUnion<...>').replace('readonly query: String;', '')} & Owner<"Search">`,
     `${contentsFor('TaggedUnion<...>')} & Owner<"OtherChild">`,
   ]) {
     assert.throws(

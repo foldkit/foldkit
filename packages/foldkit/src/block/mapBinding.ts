@@ -1,7 +1,7 @@
 import { Predicate, Schema } from 'effect'
 
 import type { BindChild, BindChildConstructorResult } from './bindChild.js'
-import type { BindableBlock } from './binding.js'
+import type { BindableBlock, BindingStorageEvidence } from './binding.js'
 import { runtimeBindingOf } from './composition.js'
 import type { InstanceKey } from './instanceContext.js'
 import type {
@@ -244,7 +244,18 @@ type ResultConfig<
     item: unknown,
   ) => KeyFor<ParentModelSchema, FieldOfSource<Source, Field>>
   keySchema: KeySchemaFor<ParentModelSchema, FieldOfSource<Source, Field>>
-}>
+}> &
+  BindingStorageEvidence<
+    Readonly<{
+      kind: 'Map'
+      field: FieldOfSource<Source, Field>
+      childField: Source extends Readonly<{
+        childField: infer ChildField extends string
+      }>
+        ? ChildField
+        : never
+    }>
+  >
 
 /** Creates a keyed child Binding over an exact required Record or Effect
  * HashMap field owned by the supplied parent Definition.
@@ -252,8 +263,10 @@ type ResultConfig<
  * Add `childField` when each map value is a closed parent-owned Struct wrapping
  * the exact child Model. Placement defaults to `field`. Map membership controls
  * occurrence presence, while `subscriptions` gates only Subscription Streams.
- * Explicit insertion remains parent-owned through the returned Binding's
- * `init` operation. This dedicated subpath keeps its Schema-derived generic
+ * Insertion remains parent-owned through `initAndInsert` from
+ * `foldkit/bindingInit` for direct child values, or the returned Binding's
+ * explicit `init` operation for wrapper metadata and mixed transitions. This
+ * dedicated subpath keeps its Schema-derived generic
  * surface isolated from ordinary Binding type checking. */
 export interface MakeMapBinding {
   <

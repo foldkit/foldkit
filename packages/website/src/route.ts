@@ -1,5 +1,6 @@
 import { Option, Schema, String, pipe } from 'effect'
 import {
+  type Transition,
   defineRouteUnion,
   literal,
   mapTo,
@@ -121,6 +122,10 @@ export const ApplicationRoute = defineRouteUnion({
   BlogPost: { postSlug: Schema.String },
   NotFound: { path: Schema.String },
 })
+
+export type ApplicationTransition = Transition.Transition<
+  typeof ApplicationRoute.Type
+>
 
 export const maybeExampleSlugForRoute = (
   route: typeof ApplicationRoute.Type,

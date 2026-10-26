@@ -1,10 +1,11 @@
 import { Option } from 'effect'
 import { Url } from 'foldkit'
+import { initAndSet } from 'foldkit/bindingInit'
 import { modifyFields } from 'foldkit/struct'
 
 import { RoomBinding } from '../composition'
 import { ApplicationDefinition } from '../definition'
-import { type Model, RoomInstance } from '../model'
+import { type Model } from '../model'
 import { ApplicationRoute, urlToApplicationRoute } from '../route'
 
 const clearRoomInstance = ApplicationDefinition.makeFieldsStep(() => ({
@@ -13,17 +14,11 @@ const clearRoomInstance = ApplicationDefinition.makeFieldsStep(() => ({
 
 const keepRoomInstance = ApplicationDefinition.makeNoopStep()
 
-export const initRoom = (model: typeof Model.Type, roomId: string) => {
-  return RoomBinding.init({
+export const initRoom = (model: typeof Model.Type, roomId: string) =>
+  initAndSet(RoomBinding, model, {
     key: roomId,
     args: [Option.some(roomId)],
-    toParentModel: room =>
-      modifyFields(model, {
-        maybeRoomInstance: () =>
-          Option.some(RoomInstance.make({ roomId, model: room })),
-      }),
   })
-}
 
 export const changeRoute = (model: typeof Model.Type, url: Url.Url) => {
   const route = urlToApplicationRoute(url)

@@ -1,7 +1,7 @@
 import { Option, Predicate, Schema, SchemaAST } from 'effect'
 
 import type { BindChild, BindChildConstructorResult } from './bindChild.js'
-import type { BindableBlock } from './binding.js'
+import type { BindableBlock, BindingStorageEvidence } from './binding.js'
 import { runtimeBindingOf } from './composition.js'
 import type { ValidateConcreteComposition } from './requirements.js'
 
@@ -240,7 +240,7 @@ type VariantBinding<
   Definition['Model'],
   Definition['Message'],
   OutMessageOf<Definition>,
-  Config,
+  Config & BindingStorageEvidence<Readonly<{ kind: 'Variant' }>>,
   ChildInitContextOf<Definition>
 >
 

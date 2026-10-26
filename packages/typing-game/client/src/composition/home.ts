@@ -1,13 +1,12 @@
 import { Effect, Option, Schema } from 'effect'
 import { Update } from 'foldkit'
+import { initAndSet } from 'foldkit/bindingInit'
 import { pushUrl } from 'foldkit/navigation'
-import { modifyFields } from 'foldkit/struct'
 
 import * as Shared from '@typing-game/shared'
 
 import { ApplicationDefinition } from '../definition'
 import { Message } from '../message'
-import { RoomInstance } from '../model'
 import { HomeBlock } from '../page'
 import { ApplicationRoute, roomRouter } from '../route'
 import { RoomBinding } from './room'
@@ -31,14 +30,9 @@ const navigateToRoom = (roomId: string) =>
 
 const initRoomInstance = (roomId: string) =>
   ApplicationDefinition.makeStep(model =>
-    RoomBinding.init({
+    initAndSet(RoomBinding, model, {
       key: roomId,
       args: [Option.none()],
-      toParentModel: room =>
-        modifyFields(model, {
-          maybeRoomInstance: () =>
-            Option.some(RoomInstance.make({ roomId, model: room })),
-        }),
     }),
   )
 

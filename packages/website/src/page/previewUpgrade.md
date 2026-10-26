@@ -59,7 +59,7 @@ The following additions are optional:
 - A closed, fully attached ManagedResource registry supplies its handler recipes through [managedResources.layer](/core/managed-resources), matching Subscriptions. Empty registries supply `Layer.empty`; mixed attached/host-owned registries require explicit provider selection.
 - Story and Scene helpers can inspect captured Command arguments through [Command.argsOf](/testing/story#inspect-captured-command-arguments), matching the original Definition's source identity without changing the pending Command or selecting an occurrence.
 - Parent Stories can wrap a child fact with [toParentMessage from foldkit/test](/testing#send-a-child-fact-without-a-view), using the exact Binding without view setup or fabricated envelope fields. Existing Command and Subscription replay paths remain appropriate for their respective sources.
-- Whole tagged child variants can use [makeVariantBinding](/core/block#whole-tagged-variants). Initialized keyed arrays can use [initAndAppend](/core/init#keyed-initial-instances) to reuse their declared `init.toItem` policy instead of repeating an append writer.
+- Whole tagged child variants can use [makeVariantBinding](/core/block#whole-tagged-variants). [Dynamic storage helpers](/core/init-and-flags#dynamic-storage-helpers) set singular children, append initialized keyed arrays, and insert direct-value map entries without repeating storage writers.
 - Story can [derive a Message from the current Model](/testing/story#build-a-message-from-the-current-model) with `messageWith` or [deliver a decoded registered Subscription Message](/testing/story#deliver-a-subscription-message) with `Subscription.from(FeatureBlock.subscriptions).emit`.
 - Scene can [keep one exact ordinary Command pending](/testing/scene#pending-command-rules) across another interaction with `Command.keepPending`. The Command remains visible to assertions and resolution, and must resolve before the Scene ends.
 
@@ -95,7 +95,7 @@ For a Popover with the default focus policy, use `Scene.focusLeave(panel)` inste
 
 Optional `makeVariantBinding` from `foldkit/variantBinding` replaces manual accessors when a child occupies one complete tagged member of the parent `Schema.Union`. Include the actual child Model Schema in that union. Parent update still owns variant switches and explicit initialization. See [whole tagged variants](/core/block#whole-tagged-variants).
 
-For a keyed array that already declares `init.instances` and `init.toItem`, optional `initAndAppend` from `foldkit/bindingInit` replaces a repeated append writer. Pass the Binding, current parent Model, and `{ key, args }`. Existing keys are rejected. Keep the explicit initializer when the same transition also changes other parent fields or produces parent Commands. See [keyed child initialization](/core/init#keyed-initial-instances).
+The optional `foldkit/bindingInit` module adds `initAndSet` for required/optional direct fields and exact key/child Option wrappers, `initAndAppend` for arrays with an existing `init.instances`/`init.toItem` policy, and `initAndInsert` for direct-value Record/HashMap storage. Pass the Binding, current parent Model and `{ args }`, adding `key` for keyed storage. Append and insert reject occupied keys. Keep explicit initialization for additional wrapper metadata, sibling changes, parent Commands, or whole tagged variants. See [dynamic storage helpers](/core/init-and-flags#dynamic-storage-helpers).
 
 ## Update the Application Boundary
 

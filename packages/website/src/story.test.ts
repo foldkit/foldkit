@@ -9,6 +9,7 @@ import { DialogBlock } from '@foldkit/ui'
 import { test as DialogTest } from '@foldkit/ui/dialog'
 
 import {
+  LoadPlayground,
   ScrollSidebarActiveLinkIntoView,
   ScrollToAnchor,
   ScrollToTop,
@@ -17,7 +18,6 @@ import {
   ApiReferenceBinding,
   ExampleDetailBinding,
   HomeBinding,
-  LoadPlayground,
   SnippetCopyBinding,
   SnippetDisclosureBinding,
 } from './composition'

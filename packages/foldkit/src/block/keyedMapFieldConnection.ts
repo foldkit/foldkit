@@ -258,6 +258,21 @@ type RuntimeStorage = Readonly<{
   kind: 'HashMap' | 'Record'
 }>
 
+/** @internal Validated storage retained for opt-in dynamic map initialization. */
+export type KeyedMapBindingStorage = Readonly<{
+  kind: 'Map'
+  field: string
+  container: 'HashMap' | 'Record'
+  childField?: string
+}>
+
+const keyedMapBindingStorages = new WeakMap<object, KeyedMapBindingStorage>()
+
+/** @internal Reads storage metadata from one normalized keyed map config. */
+export const keyedMapBindingStorageOf = (
+  config: object,
+): KeyedMapBindingStorage | undefined => keyedMapBindingStorages.get(config)
+
 const storageOf = (
   parentModel: unknown,
   childModel: unknown,
@@ -494,7 +509,7 @@ export const normalizeKeyedMapFieldConfig = (
     childField: ____,
     ...policy
   } = config
-  return {
+  const normalized = {
     ...policy,
     readAll,
     key: (entry: Readonly<{ key: InstanceKey }>) => entry.key,
@@ -538,4 +553,15 @@ export const normalizeKeyedMapFieldConfig = (
       })
     },
   }
+
+  keyedMapBindingStorages.set(normalized, {
+    kind: 'Map',
+    field: storage.field,
+    container: storage.kind,
+    ...(storage.childField === undefined
+      ? {}
+      : { childField: storage.childField }),
+  })
+
+  return normalized
 }

@@ -8,6 +8,30 @@ Preserve concurrent edits. Preview integration targets `codex/layers-and-submode
 
 The user has explicitly held publication pending approval. Prepare and verify locally; pushing the integration branch would itself trigger publication and is outside this preparation step. [Release handoff](next-preview-release-handoff.md).
 
+## Initialization helpers authorized after preparation
+
+Publication remains held. The previously verified preparation checkpoint is
+`732258ae40`; the following approved exploration reopens affected verification.
+
+- [x] Audit actual dynamic child initialization across direct fields, optional
+      direct/keyed slots, Record/HashMap fields and whole tagged variants. Distinguish
+      shared storage wiring from purposeful parent transitions.
+- [x] Prototype the smallest coherent helper family alongside `initAndAppend`.
+      Preserve parent-owned metadata, explicit replacement/insertion intent, passive
+      recipes, exact args/Commands/Services/registration and native lifecycle behavior.
+      Require source/emitted/relocated rejection and unchanged compiler ceilings.
+- [x] Independently review realistic consumer code and inference/performance
+      tradeoffs before migrating eligible consumers. Keep explicit writers where
+      mixed parent work or custom relationships make them clearer.
+- [x] Migrate adopted helpers, update active guidance and refresh affected
+      installed-consumer/browser/editor evidence before restoring release readiness.
+
+The set/append/insert family, five singular consumer migrations and Auth recipe
+correction pass combined source/emitted/runtime and installed-package checks.
+All six ceilings remain unchanged. Paired editor measurements retain the moderate
+Workspace error-appearance cost; publication remains held.
+[Scope, consumer choices, evidence and limits](child-initialization-family.md).
+
 ## Followups authorized after the review summary
 
 The reviewed candidate `679d2d5e7fae638f7aa0dbce65440da0ce767331` is pushed only to `codex/workspace-example`. The user authorized the following work after that checkpoint. Its existing verification does not automatically cover this subsequent delta; refresh affected release evidence before presenting another candidate.

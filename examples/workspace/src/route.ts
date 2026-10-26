@@ -5,7 +5,7 @@ import * as Url from 'foldkit/url'
 
 import { GroupBy, IssueFilters, IssueStatus } from './domain'
 
-export const defaultIssueFilters: typeof IssueFilters.Type = IssueFilters.make({
+export const defaultIssueFilters = IssueFilters.make({
   query: '',
   maybeStatus: Option.none(),
   sort: 'Identifier',

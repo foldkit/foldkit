@@ -2,7 +2,12 @@ import { Array, Option, Predicate, Schema, SchemaAST } from 'effect'
 
 import type * as Update from '../update/index.js'
 import { assertCompletedBlock } from './assemblyState.js'
-import { type BindableBlock, type Binding, bind } from './binding.js'
+import {
+  type BindableBlock,
+  type Binding,
+  type BindingStorageEvidence,
+  bind,
+} from './binding.js'
 import {
   attachOutMessagePolicy,
   deferredOutMessagePolicy,
@@ -17,6 +22,7 @@ import {
 import {
   registerBindingInitialPolicy,
   registerBindingParentContract,
+  registerBindingStorage,
 } from './composition.js'
 import { hasSameDecodedSchemaShape } from './decodedSchemaShape.js'
 import {
@@ -37,12 +43,14 @@ import {
   type WrappedKeyedFieldConfig,
   isInstanceKeySchema,
   isKeyedFieldStorage,
+  keyedOptionStorageOf,
   normalizeKeyedFieldConfig,
   wrappedKeyedInitialPolicyOf,
 } from './keyedFieldConnection.js'
 import {
   isKeyedMapBindingConfig,
   isKeyedMapFieldStorage,
+  keyedMapBindingStorageOf,
   normalizeKeyedMapFieldConfig,
 } from './keyedMapFieldConnection.js'
 import type { OutMessageHelperEvidence } from './outMessageHelperEvidence.js'
@@ -1685,6 +1693,26 @@ type KeyedBindingResultForConfig<
         never
       >
 
+type StorageOfConfig<Config> =
+  Config extends BindingStorageEvidence<infer Storage>
+    ? Storage
+    : Config extends Readonly<{ field: infer Field extends string }>
+      ? Config extends Readonly<{ readAll: unknown }>
+        ? never
+        : Config extends Readonly<{ key: infer KeyField extends string }>
+          ? Readonly<{
+              kind: 'KeyedField'
+              field: Field
+              keyField: KeyField
+              childField: Config extends Readonly<{
+                childField: infer ChildField extends string
+              }>
+                ? ChildField
+                : never
+            }>
+          : Readonly<{ kind: 'Direct'; field: Field }>
+      : never
+
 type BindChildResultForConfig<
   BlockValue extends BindableBlock,
   ParentModelSchema extends AnySchema,
@@ -2000,6 +2028,7 @@ export type SelectedChildBinding<
   Config & Readonly<{ outMessage: Policy }>,
   ChildInitContext
 > &
+  BindingStorageEvidence<StorageOfConfig<Config>> &
   Readonly<{
     /** Selects another Composition-local policy for the same child occurrence.
      * The returned full Binding is immutable and the current Binding remains
@@ -2031,6 +2060,7 @@ export type BindingWithoutOutMessagePolicy<
   Config & Readonly<{ outMessage: UnselectedOutMessagePolicy }>,
   ChildInitContext
 > &
+  BindingStorageEvidence<StorageOfConfig<Config>> &
   Readonly<{
     /** Selects a Composition-local OutMessage policy for this child occurrence.
      * The returned full Binding is immutable and this Binding remains
@@ -2071,7 +2101,8 @@ export type BindChildConstructorResult<
         ParentOutMessageSchema,
         Config,
         ChildInitContext
-      >
+      > &
+        BindingStorageEvidence<StorageOfConfig<Config>>
 
 /** Creates a static, optional, or keyed child Binding in this Definition's
  * parent Model, Message, and OutMessage context.
@@ -2603,6 +2634,7 @@ const registerDirectInitialPolicy = (
     ? Reflect.get(fields, field)
     : undefined
   const isOptional = !hasSameDecodedSchemaShape(fieldSchema, block.Model)
+  registerBindingStorage(binding, { kind: 'Direct', field, isOptional })
   const isExplicit = Object.hasOwn(config, 'init')
 
   if (!isExplicit && isOptional) {
@@ -2997,6 +3029,10 @@ export const makeBindChild = <
         deliveryConfig as never,
       )
       registerBindingParentContract(binding, parentContract)
+      const storage = keyedMapBindingStorageOf(normalized)
+      if (storage !== undefined) {
+        registerBindingStorage(binding, storage)
+      }
       if (generated !== undefined) {
         registerGeneratedDelivery(binding, generated.envelope)
       }
@@ -3050,6 +3086,10 @@ export const makeBindChild = <
         registerGeneratedDelivery(binding, generated.envelope)
       }
       const init = wrappedKeyedInitialPolicyOf(config, normalized)
+      const storage = keyedOptionStorageOf(normalized)
+      if (storage !== undefined) {
+        registerBindingStorage(binding, storage)
+      }
       if (init !== undefined) {
         registerBindingInitialPolicy(binding, init)
       }

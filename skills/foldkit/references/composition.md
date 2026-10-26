@@ -434,13 +434,20 @@ child placement, and exactly one requested keyed occurrence. The available runti
 metadata cannot reconstruct TypeScript's required, optional, defaulted, and rest
 parameter distinctions.
 
-For a pure append to an exact keyed array with an existing startup policy, use
-`initAndAppend(Binding, model, { key, args })` from `foldkit/bindingInit`. It
-reuses `init.toItem` and returns the same passive initialization recipe with
-child Commands and registration evidence. An existing key is rejected. Keep a
-presence check when an existing occurrence should be retained. Other storage,
-replacement, and mixed parent transitions retain the explicit initializer;
-do not add a startup policy solely to enable the helper.
+For dynamic initialization that only places the child, use the optional
+`foldkit/bindingInit` helpers with the Binding, current parent Model and `{ args }`,
+plus `key` for keyed storage. `initAndSet` replaces a required/optional direct
+field or a keyed Option wrapper containing only its key and child fields. Direct
+fields need no startup policy; a custom unkeyed accessor can reuse an existing
+`init.toParentFields` projection. `initAndAppend` reuses a keyed array's existing
+`init.instances` and `init.toItem` policy. `initAndInsert` inserts into direct-value
+Record/HashMap storage declared through `makeMapBinding`.
+
+All preserve passive recipes, child init Commands and registration. Append and
+insert reject occupied keys; the caller owns any presence check. Additional
+wrapper metadata, sibling changes, parent Commands, custom relationships,
+array/map replacement and whole tagged variants retain explicit `Binding.init`.
+Do not add a startup policy solely to enable a helper.
 
 Prefer a child Message-backed `requestReset` or domain operation for reset
 behavior, composed with the parent's `makeFieldsStep` for parent-owned fields.
@@ -454,8 +461,9 @@ For a keyed array of wrappers, prefer `init.instances` and `init.toItem` when
 startup creates the complete collection. Each occurrence supplies child init
 args and the parent metadata needed by `toItem`, such as an ID or server
 revision. Dynamic pure appends can reuse this policy through `initAndAppend`.
-Use explicit `Binding.init` for other storage, replacement, additional parent
-changes or Commands, or custom interleaving. All these paths retain and lift the
+Use the matching storage helper for singular fields or direct-value maps. Keep
+explicit `Binding.init` for additional metadata, mixed parent changes or Commands,
+array/map replacement, or custom interleaving. All these paths retain and lift the
 child initializer's Commands; never take only its Model.
 
 `init.instances` accepts keyed arrays only. An Option-wrapped keyed occurrence

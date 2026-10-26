@@ -691,6 +691,27 @@ const checks: ReadonlyArray<
     consumers: ['append-initialization.consume.ts'],
   },
   {
+    name: 'set-initialization',
+    accepted: ['set-initialization.accepted.ts'],
+    rejected: [
+      'set-initialization.rejected.ts',
+      'binding-init-unions.rejected.ts',
+    ],
+    consumers: ['set-initialization.consume.ts'],
+  },
+  {
+    name: 'set-optional-initialization',
+    accepted: ['set-optional-initialization.accepted.ts'],
+    rejected: ['set-optional-initialization.rejected.ts'],
+    consumers: ['set-optional-initialization.consume.ts'],
+  },
+  {
+    name: 'insert-initialization',
+    accepted: ['insert-initialization.accepted.ts'],
+    rejected: ['insert-initialization.rejected.ts'],
+    consumers: ['insert-initialization.consume.ts'],
+  },
+  {
     name: 'view-inputs',
     accepted: ['view-inputs.accepted.ts'],
     rejected: ['view-inputs.rejected.ts'],
@@ -965,6 +986,9 @@ const main = async (): Promise<void> => {
     'test-parent-message',
     'extracted-connected-step',
     'append-initialization',
+    'set-initialization',
+    'set-optional-initialization',
+    'insert-initialization',
     'generic-service-factory',
     'testing-event-delivery',
   ]) {

@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "foldkit": ["../src/index.ts"],
+      "foldkit/bindingInit": ["../src/block/bindingInit.ts"]
+    },
+    "rootDir": ".."
+  },
+  "include": [
+    "../src/vite-env.d.ts",
+    "set-optional-initialization.accepted.ts",
+    "set-optional-initialization.consume.ts",
+    "set-optional-initialization.rejected.ts"
+  ]
+}

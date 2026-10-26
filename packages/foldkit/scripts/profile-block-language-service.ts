@@ -47,6 +47,7 @@ type RequestTargetConfig =
         name: string
         owner: string
         typeNames?: ReadonlyArray<string>
+        requireSchemaHeader?: boolean
         schemaHeaderFragments?: ReadonlyArray<string>
         namedBoundaryFragments?: ReadonlyArray<string>
       }>
@@ -134,11 +135,20 @@ const bindingCall = 'SearchBinding.informRouteChanged()'
 export const searchBindingHover = {
   name: 'SearchBinding',
   owner: 'Search',
+  typeNames: ['InitializedBinding', 'BindingEvidence'],
+  requireSchemaHeader: true,
   schemaHeaderFragments: [
     'InitializedBinding<GeneratedDirectBindingReturn<AssemblyWithView<Struct<{',
     'readonly query: String;',
     'readonly searchState: TaggedUnion<',
     'readonly activeResultIndex: Number;',
+  ],
+  namedBoundaryFragments: [
+    'BindingEvidence<AssemblyWithView<Struct<{',
+    'readonly query: String;',
+    'readonly searchState: TaggedUnion<',
+    'readonly activeResultIndex: Number;',
+    ', false> &',
   ],
 }
 export const workspaceBindingHover = {
@@ -809,6 +819,7 @@ export const validateResult = (
         typeNames = ['InitializedBinding'],
         schemaHeaderFragments,
         namedBoundaryFragments,
+        requireSchemaHeader = false,
       } = target.expectedBinding
       const text = hoverText(result.contents)
       const hasExpectedBindingType = typeNames.some(typeName =>
@@ -838,10 +849,10 @@ export const validateResult = (
         !hasExpectedBindingType ||
         isErased ||
         (hasVisibleOwner && !hasExpectedOwner) ||
-        (!hasVisibleOwner && !hasSchemaHeader)
+        ((requireSchemaHeader || !hasVisibleOwner) && !hasSchemaHeader)
       ) {
         return fail(
-          `${label} returned an erased or unexpected visible Binding shape.${target.expectedBinding.typeNames === undefined ? '' : ` Visible hover: ${text}`}`,
+          `${label} returned an erased or unexpected visible Binding shape. Visible hover: ${text}`,
         )
       }
     }

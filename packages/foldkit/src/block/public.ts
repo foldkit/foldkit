@@ -14,6 +14,7 @@ export type {
   AnyBinding,
   Binding,
   BindingEvidence,
+  BindingStorageEvidence,
   BindingInitializer,
   BindingInspection,
   InspectionOfBinding,

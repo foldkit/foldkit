@@ -1,22 +1,22 @@
-import { makeVariantBinding } from 'foldkit/variantBinding'
-
 import { ClearSession, RedirectToHome } from '../command'
 import { ApplicationDefinition } from '../definition'
-import { LoggedInBlock, LoggedOutBlock } from '../page'
+import { LoggedInBlock } from '../page'
 import { ApplicationRoute } from '../route'
+import { LoggedInBinding, LoggedOutBinding } from './bindings'
 
 const foldLoggedInOutMessage = ApplicationDefinition.makeOutMessageFold(
   LoggedInBlock,
   {
     RequestedLogout: () =>
-      ApplicationDefinition.makeStep(() => ({
-        model: LoggedOutBlock.init(ApplicationRoute.Home()).model,
-        commands: [ClearSession(), RedirectToHome()],
-      })),
+      ApplicationDefinition.makeStep(() =>
+        LoggedOutBinding.init({
+          args: [ApplicationRoute.Home()],
+          toParentModel: loggedOut => loggedOut,
+          commands: [ClearSession(), RedirectToHome()],
+        }),
+      ),
   },
 )
 
-export const LoggedInBinding = makeVariantBinding(
-  ApplicationDefinition,
-  LoggedInBlock,
-).withOutMessagePolicy({ fold: foldLoggedInOutMessage })
+export const LoggedInBindingWithOutMessagePolicy =
+  LoggedInBinding.withOutMessagePolicy({ fold: foldLoggedInOutMessage })

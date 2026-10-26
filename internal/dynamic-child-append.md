@@ -1,5 +1,9 @@
 # Dynamic child append
 
+The [initialization family followup](child-initialization-family.md) adds singular
+set and direct-value map insertion after this original array-helper proof. The
+measurements and adoption counts below describe that earlier checkpoint.
+
 `initAndAppend` from `foldkit/bindingInit` removes a repeated array writer when
 the Binding already declares `init.instances` and `init.toItem`:
 

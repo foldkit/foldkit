@@ -166,7 +166,13 @@ Composition initializes selected children once in Binding order, then applies st
 
 Dynamic creation or deliberate replacement returns `Binding.init({ key?, args, toParentModel })` intact from Composition-owned authoring. It is a passive, noncallable recipe with no `.model` or `.commands`. Reinitializing an existing occurrence does not create a fresh generation or cancel pending work; lifecycle-sensitive resets belong in a child operation.
 
-For a keyed array that already declares startup `init.instances` and `init.toItem`, use `initAndAppend(Binding, model, { key, args })` from `foldkit/bindingInit` to append an absent occurrence. Pass the current parent Model from its Step or handler. The helper reuses `init.toItem`, preserves existing items, and returns the same passive initialization recipe with lifted child Commands. An existing key is rejected; an `initialize...IfMissing` Step owns the presence check. Keep the explicit Binding initializer for other storage, deliberate replacement, or parent Commands. Do not add an otherwise unnecessary startup policy just to use this helper.
+Use the optional `foldkit/bindingInit` helpers when initialization only places the child in declared storage. Pass the Binding, current parent Model, and `{ args }`, adding `key` for keyed storage:
+
+- `initAndSet` replaces a required or optional direct field, or a keyed Option wrapper containing only its key and child fields. Direct storage needs no startup policy. A custom unkeyed accessor can reuse its existing `init.toParentFields` projection.
+- `initAndAppend` appends an absent keyed array occurrence using an existing startup `init.instances` and `init.toItem` policy.
+- `initAndInsert` inserts an absent Record/HashMap key when `makeMapBinding` stores child Models directly.
+
+All return passive recipes retaining child init Commands and registration requirements. Append and insert reject existing keys; an `initialize...IfMissing` Step owns any presence check. Keep explicit `Binding.init` for additional wrapper metadata, sibling changes, parent Commands, custom storage without a projection, array/map replacement, or a whole tagged variant. Do not add an unnecessary startup policy for a helper. Same-key reinitialization does not establish a fresh generation or cancel pending work.
 
 ### View
 

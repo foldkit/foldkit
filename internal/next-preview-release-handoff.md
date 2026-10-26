@@ -2,12 +2,12 @@
 
 ## Latest preparation checkpoint
 
-Use the [final preparation report](preview-ready-20261025.md) for the current
-implementation at `1b89a2325553`, fresh combined verification, optional dynamic
-initialization, testing delivery and cancellation-policy tightening. Older
-sections below retain their dated checkpoints and do not supersede that report.
-The packed nine-package rehearsal, source-serving alias correction and final
-benchmarks have separately recorded provenance. Publication remains held.
+Use the [initialization followup](child-initialization-family.md) for the latest
+approved helper family and its verification. It extends `732258ae40`; the earlier
+[preparation report](preview-ready-20261025.md) retains the nine-package packed
+rehearsal, source-serving alias correction and their exact provenance. This pass
+adds a fresh packed Foldkit-only consumer and paired editor comparison. It does
+not replace published-package/deployment acceptance. Publication remains held.
 
 Keep the three consumer starting paths and existing published Ready instructions.
 Only after approval may release integration assign the published source commit,

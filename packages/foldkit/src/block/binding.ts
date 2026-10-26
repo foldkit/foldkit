@@ -236,6 +236,21 @@ export interface ParentBindingContract<
   }>
 }
 
+declare const BindingStorageEvidenceTypeId: unique symbol
+
+/** @internal Retains only the declared storage relationship of a parent-owned Binding. */
+export interface BindingStorageEvidence<Storage> {
+  readonly [BindingStorageEvidenceTypeId]: Storage
+}
+
+/** @internal Recovers a Binding's declared storage relationship. */
+export type StorageOfBinding<BindingValue> =
+  BindingValue extends Readonly<{
+    [BindingStorageEvidenceTypeId]: infer Storage
+  }>
+    ? Storage
+    : never
+
 type OptionalParentBindingContract<
   ParentModel,
   ParentMessage,
