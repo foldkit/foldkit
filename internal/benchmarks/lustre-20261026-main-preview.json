@@ -1,0 +1,1475 @@
+{
+  "kind": "Lustre TodoMVC supported-host comparison",
+  "candidateCommit": "978c07a093bdcdadf2a94cf8ab0e5f9e985a008d",
+  "candidateSourceDigest": "41ec430daf817d7dc592f8123211d405022752a2d434cadb4c6269e03b9223c4",
+  "baselineCommit": "b702a5efbb74bebc056b798b414ddb923a82fbd5",
+  "baselineArchiveSha256": "f02aee3388969b6db5de9740a88605db1689f49e9fbce104cc77a630849af2a5",
+  "harnessRevision": "03fff17ad22407115a91937ddab680e40fe0c7c7",
+  "instrumentationSha256": "6e3597e81ef7276d99f17cfa4c3430e05beb7768411a1a34bffa0026343f7f69",
+  "browserVersion": "155.0.8059.85",
+  "host": {
+    "platform": "darwin",
+    "architecture": "arm64",
+    "osRelease": "25.6.0",
+    "cpuModel": "Apple M1 Max",
+    "logicalCpuCount": 10,
+    "nodeVersion": "v24.22.1"
+  },
+  "protocol": {
+    "itemCount": 100,
+    "rounds": 8,
+    "freshContextPerSample": true,
+    "separateWarmup": false,
+    "bootExcluded": true,
+    "garbageCollectionControl": false,
+    "outlierPolicy": "Keep every valid sample; fail on any page error or contract failure",
+    "driverProtocol": "Unchanged runbook and timer aggregation; final DOM and sync-count assertions after returned measurement snapshot"
+  },
+  "execution": {
+    "startedAt": "2026-10-26T04:21:13.091Z",
+    "finishedAt": "2026-10-26T04:28:27.032Z",
+    "exitCode": 0,
+    "rounds": 8,
+    "samples": 32
+  },
+  "driver": {
+    "sourceBenchDirectory": "internal/lustre-benchmark/bench",
+    "adaptations": [
+      "Persist all raw samples, browser and platform metadata",
+      "Assert final empty Todo list, cleared input and 400 synchronous events after measurement snapshot",
+      "Correctness preflight additionally asserts keyed row identity across toggle and first deletion"
+    ],
+    "files": [
+      {
+        "file": "run.mjs",
+        "sha256": "074385689e04422d042f26a8a8a30181acc73360ad3f4d727de4567ee493d655"
+      },
+      {
+        "file": "runner.html",
+        "sha256": "6d26843332fa4b5bcd55def19f6219ac8d26a0db242c32bc54a2291a6a695ee1"
+      },
+      {
+        "file": "server.mjs",
+        "sha256": "fb76bfaf628dd7ecd9932c008604b566a0cafaa20fc9f88f8f35bfa3ac980398"
+      },
+      {
+        "file": "verify.mjs",
+        "sha256": "1cbc1de3ec96afc62901463acf7e251481377dada8c0cb1100bb1f06814fc28e"
+      }
+    ]
+  },
+  "bundles": [
+    {
+      "slot": "foldkit-oct26-final-main",
+      "name": "main",
+      "variant": "naive",
+      "versions": {
+        "vite": "8.3.5",
+        "effect": "4.0.0",
+        "playwright": "1.63.0"
+      },
+      "sourceAliases": "Each checkout own examples/vite.aliases.ts, resolving Foldkit production source inside that snapshot",
+      "files": [
+        {
+          "file": "assets/index-DvxYd33x.js",
+          "bytes": 298040,
+          "gzipBytes": 97081,
+          "sha256": "12edee10fcab977045b37a264f67ac08e7d83b957659beab5ae3a1503cdf3ce0"
+        },
+        {
+          "file": "index.html",
+          "bytes": 678,
+          "gzipBytes": 381,
+          "sha256": "c47c700b3756d9a7357b6d5fcd5cda0c2c2125a8e3f07477dae49076e1cfd566"
+        }
+      ]
+    },
+    {
+      "slot": "foldkit-oct26-final-main-optimised",
+      "name": "main",
+      "variant": "optimised",
+      "versions": {
+        "vite": "8.3.5",
+        "effect": "4.0.0",
+        "playwright": "1.63.0"
+      },
+      "sourceAliases": "Each checkout own examples/vite.aliases.ts, resolving Foldkit production source inside that snapshot",
+      "files": [
+        {
+          "file": "assets/index.optimised-9WXsnvtj.js",
+          "bytes": 300443,
+          "gzipBytes": 97796,
+          "sha256": "8a4c3391ac6e98e6a400516b39cf801d48c8b0e0b9b542e14512faa296473d0d"
+        },
+        {
+          "file": "index.html",
+          "bytes": 700,
+          "gzipBytes": 392,
+          "sha256": "4941dd4a52b940a5cd3cbdc4928883d21e69090711a4df4967399f7f19b22b7c"
+        }
+      ]
+    },
+    {
+      "slot": "foldkit-oct26-final-preview",
+      "name": "preview",
+      "variant": "naive",
+      "versions": {
+        "vite": "8.3.5",
+        "effect": "4.0.0",
+        "playwright": "1.63.0"
+      },
+      "sourceAliases": "Each checkout own examples/vite.aliases.ts, resolving Foldkit production source inside that snapshot",
+      "files": [
+        {
+          "file": "assets/index-nUSpZEfx.js",
+          "bytes": 411787,
+          "gzipBytes": 128784,
+          "sha256": "d2c74cfddfefce44274f017d46162f1109b29c593a84bd075ef0460bd560b78e"
+        },
+        {
+          "file": "index.html",
+          "bytes": 678,
+          "gzipBytes": 381,
+          "sha256": "7b4b8adddae2f790affeff0377183e6d8b5f243f1e6bd85c5c828e7b3f07f70a"
+        }
+      ]
+    },
+    {
+      "slot": "foldkit-oct26-final-preview-optimised",
+      "name": "preview",
+      "variant": "optimised",
+      "versions": {
+        "vite": "8.3.5",
+        "effect": "4.0.0",
+        "playwright": "1.63.0"
+      },
+      "sourceAliases": "Each checkout own examples/vite.aliases.ts, resolving Foldkit production source inside that snapshot",
+      "files": [
+        {
+          "file": "assets/index.optimised-BnhBmfvX.js",
+          "bytes": 418401,
+          "gzipBytes": 130152,
+          "sha256": "b28bbca2b123ec352e5ae62a367b23358986e410a8c26939b32589910ff75619"
+        },
+        {
+          "file": "index.html",
+          "bytes": 700,
+          "gzipBytes": 391,
+          "sha256": "efa367bdab6cc1b287ce5bc56d83c5c58b5bb58cdb473059dc0e2376828e89c9"
+        }
+      ]
+    }
+  ],
+  "comparison": [
+    {
+      "variant": "naive",
+      "scope": "100 adds, 100 toggles, 100 deletions; end-to-end instrumented callback plus DOM/update work, boot excluded",
+      "samplesPerVariant": 8,
+      "main": {
+        "medianMs": 516.487500667572,
+        "minMs": 448.3599953651428,
+        "maxMs": 541.7749967575073,
+        "rawMs": [
+          535.6499972343445, 524.854998588562, 515.6200051307678,
+          448.3599953651428, 448.544997215271, 488.62999868392944,
+          517.3549962043762, 541.7749967575073
+        ],
+        "javascriptBytes": 298040,
+        "javascriptGzipBytes": 97081
+      },
+      "preview": {
+        "medianMs": 588.5725014209747,
+        "minMs": 467.47499561309814,
+        "maxMs": 615.0699963569641,
+        "rawMs": [
+          589.3850016593933, 599.2249984741211, 615.0699963569641,
+          479.4200015068054, 467.47499561309814, 613.4999957084656,
+          563.2150015830994, 587.7600011825562
+        ],
+        "javascriptBytes": 411787,
+        "javascriptGzipBytes": 128784
+      },
+      "ratioOfMedians": 1.1395677546121274,
+      "changePercent": 13.956775461212745,
+      "roundPairedRatios": [
+        1.1003173801969424, 1.1416962781826496, 1.192874578636596,
+        1.0692747043954434, 1.0422031201225104, 1.2555512296847504,
+        1.0886432057584818, 1.0848784176092778
+      ],
+      "medianPairedRatio": 1.0944802929777122,
+      "gzipBytesAdded": 31703
+    },
+    {
+      "variant": "optimised",
+      "scope": "100 adds, 100 toggles, 100 deletions; end-to-end instrumented callback plus DOM/update work, boot excluded",
+      "samplesPerVariant": 8,
+      "main": {
+        "medianMs": 191.12499475479126,
+        "minMs": 160.60000610351562,
+        "maxMs": 204.0249924659729,
+        "rawMs": [
+          204.0249924659729, 169.65499782562256, 160.60000610351562,
+          189.9799885749817, 167.1450047492981, 192.27000093460083,
+          203.99998474121094, 195.19001388549805
+        ],
+        "javascriptBytes": 300443,
+        "javascriptGzipBytes": 97796
+      },
+      "preview": {
+        "medianMs": 268.70249700546265,
+        "minMs": 231.9650001525879,
+        "maxMs": 291.09999799728394,
+        "rawMs": [
+          285.68499422073364, 286.8849925994873, 291.09999799728394,
+          251.71999979019165, 290.9149990081787, 231.9650001525879,
+          239.98499822616577, 245.48500633239746
+        ],
+        "javascriptBytes": 418401,
+        "javascriptGzipBytes": 130152
+      },
+      "ratioOfMedians": 1.4058993034908984,
+      "changePercent": 40.58993034908984,
+      "roundPairedRatios": [
+        1.4002450913869287, 1.690990517676101, 1.812577751769535,
+        1.3249816555854896, 1.7404947245927214, 1.2064544600043405,
+        1.1763971381203997, 1.2576719548593474
+      ],
+      "medianPairedRatio": 1.3626133734862091,
+      "gzipBytesAdded": 32356
+    }
+  ],
+  "rawSamples": {
+    "foldkit-oct26-final-main": [
+      {
+        "crossOriginIsolated": true,
+        "total": 535.6499972343445,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 39.16500234603882,
+          "timeout": 0,
+          "animation_frame": 496.48499488830566,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 524.854998588562,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 41.47000026702881,
+          "timeout": 0,
+          "animation_frame": 483.3849983215332,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 515.6200051307678,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 39.83000087738037,
+          "timeout": 0,
+          "animation_frame": 475.79000425338745,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 448.3599953651428,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 40.605000019073486,
+          "timeout": 0,
+          "animation_frame": 407.75499534606934,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 448.544997215271,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 37.72999811172485,
+          "timeout": 0,
+          "animation_frame": 410.81499910354614,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 488.62999868392944,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 38.72999954223633,
+          "timeout": 0,
+          "animation_frame": 449.8999991416931,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 517.3549962043762,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 40.95499849319458,
+          "timeout": 0,
+          "animation_frame": 476.39999771118164,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 541.7749967575073,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 44.03999948501587,
+          "timeout": 0,
+          "animation_frame": 497.73499727249146,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      }
+    ],
+    "foldkit-oct26-final-main-optimised": [
+      {
+        "crossOriginIsolated": true,
+        "total": 204.0249924659729,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 44.56499195098877,
+          "timeout": 0,
+          "animation_frame": 159.46000051498413,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 169.65499782562256,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 37.0999960899353,
+          "timeout": 0,
+          "animation_frame": 132.55500173568726,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 160.60000610351562,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 36.840007305145264,
+          "timeout": 0,
+          "animation_frame": 123.75999879837036,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 189.9799885749817,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 43.084993839263916,
+          "timeout": 0,
+          "animation_frame": 146.89499473571777,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 167.1450047492981,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 38.82000112533569,
+          "timeout": 0,
+          "animation_frame": 128.3250036239624,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 192.27000093460083,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 43.335004806518555,
+          "timeout": 0,
+          "animation_frame": 148.93499612808228,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 203.99998474121094,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 47.419997215270996,
+          "timeout": 0,
+          "animation_frame": 156.57998752593994,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 195.19001388549805,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 45.53000831604004,
+          "timeout": 0,
+          "animation_frame": 149.660005569458,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      }
+    ],
+    "foldkit-oct26-final-preview": [
+      {
+        "crossOriginIsolated": true,
+        "total": 589.3850016593933,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 49.8100061416626,
+          "timeout": 0,
+          "animation_frame": 539.5749955177307,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 599.2249984741211,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 47.625000953674316,
+          "timeout": 0,
+          "animation_frame": 551.5999975204468,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 615.0699963569641,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 55.47500038146973,
+          "timeout": 0,
+          "animation_frame": 559.5949959754944,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 479.4200015068054,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 47.25001096725464,
+          "timeout": 0,
+          "animation_frame": 432.1699905395508,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 467.47499561309814,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 45.66000175476074,
+          "timeout": 0,
+          "animation_frame": 421.8149938583374,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 613.4999957084656,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 56.234999656677246,
+          "timeout": 0,
+          "animation_frame": 557.2649960517883,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 563.2150015830994,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 49.790000915527344,
+          "timeout": 0,
+          "animation_frame": 513.425000667572,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 587.7600011825562,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 53.4699969291687,
+          "timeout": 0,
+          "animation_frame": 534.2900042533875,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      }
+    ],
+    "foldkit-oct26-final-preview-optimised": [
+      {
+        "crossOriginIsolated": true,
+        "total": 285.68499422073364,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 55.58499813079834,
+          "timeout": 0,
+          "animation_frame": 230.0999960899353,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 286.8849925994873,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 57.03499889373779,
+          "timeout": 0,
+          "animation_frame": 229.8499937057495,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 291.09999799728394,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 59.52999448776245,
+          "timeout": 0,
+          "animation_frame": 231.57000350952148,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 251.71999979019165,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 50.58000183105469,
+          "timeout": 0,
+          "animation_frame": 201.13999795913696,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 290.9149990081787,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 57.83499717712402,
+          "timeout": 0,
+          "animation_frame": 233.0800018310547,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 231.9650001525879,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 49.94999599456787,
+          "timeout": 0,
+          "animation_frame": 182.01500415802002,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 239.98499822616577,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 52.48999738693237,
+          "timeout": 0,
+          "animation_frame": 187.4950008392334,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      },
+      {
+        "crossOriginIsolated": true,
+        "total": 245.48500633239746,
+        "boot": {
+          "results": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 0,
+            "timeout": 0,
+            "animation_frame": 0,
+            "microtask": 0,
+            "promise": 0
+          }
+        },
+        "results": {
+          "sync": 53.975003242492676,
+          "timeout": 0,
+          "animation_frame": 191.51000308990479,
+          "microtask": 0,
+          "promise": 0
+        },
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "finalState": {
+          "todoCount": 0,
+          "inputValue": ""
+        }
+      }
+    ]
+  },
+  "limits": [
+    "Matched cached third-party toolchain, not a fresh main lockfile install",
+    "Small rotating screen on one machine, all valid samples retained",
+    "No forced GC or separate discarded warmup",
+    "Normal user applications/background OS activity retained",
+    "Instrumentation does not isolate renderer CPU or measure frame/presentation latency",
+    "Main Runtime host and preview Program/completed-Block host are respective supported APIs"
+  ]
+}

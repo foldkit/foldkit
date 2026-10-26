@@ -2,20 +2,21 @@
 
 ## Status
 
-The preparation is on development branch `codex/workspace-example`. The
-[initialization followup](child-initialization-family.md) extends checkpoint
-`732258ae40` with singular and map initialization helpers, migrated consumers,
-source/emitted checks and a fresh paired editor comparison. The earlier
-[preparation report](preview-ready-20261025.md) retains the nine-package rehearsal
-and its qualified provenance. Publication remains held for your approval.
-Published Ready stays `1f6776fa7ece`; integration and main have not been updated.
+The [October 26 approval summary](preview-approval-20261026.md) identifies the
+final prepared implementation `978c07a093` and source pin `41ec430d…`.
+All current source, runtime, lint, contract, compiler-budget, packed-consumer and
+browser gates pass. The [Step naming convention](named-step-convention.md) is
+adopted across current consumers and guidance.
 
-The subsequent [feature-local Step helper migration](step-helper-authoring.md)
-changes consumer organization without changing the framework API. The source,
-runtime, lint, strict declaration and compiler gates pass. Paired native editor
-measurements retain small slower cases and the existing cold-root latency; they
-do not establish a performance improvement. Its exact committed review precedes
-the development-branch push, and publication remains held.
+The [fresh Lustre report](preview-lustre-20261026.md) records both main and
+published-preview comparisons, all raw samples, bundle costs and limitations.
+The main gap is retained for review; the smaller published-preview control is
+reported separately. Earlier editor and verification numbers below retain their
+original pins and are not relabeled as fresh measurements.
+
+Publication remains held for user approval. Published Ready stays `1f6776fa7ece`;
+integration and main are unchanged. The following table remains the public API
+review since that published snapshot.
 
 ## Public API changes since that preview
 
@@ -33,6 +34,12 @@ the development-branch push, and publication remains held.
 | Keyed Command cancellation                        | `toKey` receives only own selected fields on both paths. Precise tuple policies retain exact cancellation args; broad or mixed policies need accurate optional fields or narrowing.                                                                                           |
 | Whole tagged child variants                       | Optional `makeVariantBinding` from `foldkit/variantBinding` derives exact whole-member storage from the parent Union. Other storage keeps existing accessors.                                                                                                                 |
 
+Consumer organization also standardizes feature-local Step helper imports and
+descriptive `Step` suffixes for named transitions/factories. These are authoring
+conventions; public operation keys and ordinary direct-result handlers retain
+their roles. The checked assembly boundary and Definition factory renames were
+already in the published preview.
+
 Handle DragAndDrop’s new `StartedKeyboardDrag` and `ChangedKeyboardTarget` OutMessages in exhaustive policies. Keep complete connected results: a handler mixing raw local branches with connected recipes needs Definition-owned local Steps. Ordinary cohesive raw handlers can return results directly. Silent operations now retain their own per-Message channels rather than inheriting unrelated OutMessages.
 
 The checked `prepareBlock` / `Block.assemble` / `FromAssembly*` pattern, completed-only feature exports, `Program.make`, and ordinary factory names were already in the published preview. They have not been renamed again.
@@ -47,7 +54,7 @@ Workspace's extra implementation interface and nested producer annotation are re
 - The Workspace example now exercises realistic shared data, routed retained drafts, optimistic board moves and rollback, creation, comments, saved views, notifications, continuous activity and accessible Foldkit UI controls.
 - Examples, Website, Typing Game, UI, scaffolds, snippets and agent guidance were audited for adoption. Intentional mixed-result, guarded and domain-only exceptions are [documented](preview-api-adoption.md).
 
-## Verification
+## Earlier verification checkpoints
 
 The counts in this section describe the verified `679d2d5e7f` checkpoint. The [subsequent followup report](preview-final-followups-20261025.md) identifies its refreshed gates and the inherited explicit Mount-erasure limitation.
 
@@ -55,7 +62,7 @@ All 53 source configurations pass. Core/UI external declaration emission, reject
 
 All nine packages were packed locally. Installed Coverchart and generated SPA/SSG/SSR projects pass source, lint, tests, builds and browser checks. The actual Coverchart repository and your running Workspace server are preserved.
 
-## Performance and remaining limits
+## Earlier performance checkpoints and retained limits
 
 Official TypeScript Website hover/completion/definition are broadly similar to the published preview. Error appearance/clearing add about 56 ms; cold root Message access is 2.80 seconds versus 2.45. Workspace Block completion is about 0.77 seconds, with a sampled peak near 580 MiB in bounded fresh sessions. The runtime screen has overlapping ranges and median increases of 2.3% naive / 6.7% optimized. Bundles add about 1.6 KB gzip. [Methods, ranges and evidence](preview-framework-performance.md#october-25-final-candidate).
 

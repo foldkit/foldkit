@@ -2,18 +2,26 @@
 
 ## Latest preparation checkpoint
 
-Use the [initialization followup](child-initialization-family.md) for the latest
-approved helper family and its verification. It extends `732258ae40`; the earlier
-[preparation report](preview-ready-20261025.md) retains the nine-package packed
-rehearsal, source-serving alias correction and their exact provenance. This pass
-adds a fresh packed Foldkit-only consumer and paired editor comparison. It does
-not replace published-package/deployment acceptance. Publication remains held.
+Use the [October 26 approval summary](preview-approval-20261026.md) for the final
+prepared implementation `978c07a093` and complete source pin `41ec430d…`.
+It supersedes older preparation checkpoints: all 53 source scripts, core/UI
+contracts, six unchanged compiler controls, runtime/lint checks, nine packed
+packages, installed consumers, Coverchart and scaffold/Workspace browser flows
+pass. The [Step naming migration](named-step-convention.md) and
+[fresh rendering comparisons](preview-lustre-20261026.md) are included.
 
-Keep the three consumer starting paths and existing published Ready instructions.
-Only after approval may release integration assign the published source commit,
-package map and immutable deployment. Generate the PR prompts and exact scaffold
-command from that verified manifest; local tarball versions are not installation
-instructions. Update actual Coverchart only against the published package set.
+Publication remains held for user approval. Published Ready stays `1f6776fa7ece`;
+main and preview integration are unchanged. The measured main runtime/bundle cost
+remains visible for review. The separate published-preview control has a +4.9%
+naive median and an effectively similar optimized result, with overlapping
+ranges; it does not establish zero regression.
+
+Keep the three consumer starting paths and current Ready instructions. After
+approval, assign the published source/package map and matching immutable
+documentation deployment, then generate the two migration prompts and exact
+scaffold command from that verified manifest. Update actual Coverchart against
+the published set. Local tarballs are preparation evidence, not installation
+instructions. Historical tables below retain their own pins and scopes.
 
 ## Subsequent followups after 679d2d5e7f
 

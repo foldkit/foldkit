@@ -10,23 +10,31 @@ The user has explicitly held publication pending approval. Prepare and verify lo
 
 ## Final approval preparation, October 26
 
-- [ ] Name assigned Step values with a descriptive `Step` suffix across current
+- [x] Name assigned Step values with a descriptive `Step` suffix across current
       consumers, framework examples/tests, active snippets and guidance. Preserve
-      operation registry names, ordinary Message-handler names, factories, applied
+      operation registry names, ordinary direct-result handler names, factory APIs, applied
       results, historical published content and unchanged compiler-performance fixtures.
-- [ ] Refresh affected source/runtime/lint/declaration checks and inspect realistic
+- [x] Refresh affected source/runtime/lint/declaration checks and inspect realistic
       split-file consumers. Record intentional naming exceptions by value contract.
-- [ ] Freeze a coherent candidate and refresh packed-package, Coverchart and
+- [x] Freeze a coherent candidate and refresh packed-package, Coverchart and
       scaffold acceptance for the accumulated post-preparation changes. Keep the
       actual Coverchart checkout and the user's running servers intact.
 - [x] Check new feedback only within the Blocks + Effect Layers preview scope. No
       new replies were found on #1737 or #1655 after the previous scoped check.
-- [ ] After source and verification jobs settle, compare the final preview with
+- [x] After source and verification jobs settle, compare the final preview with
       pinned main in the Lustre harness, including naive and optimized views,
       correctness checks, balanced repeated runs and bundle provenance.
-- [ ] Prepare a concise final approval summary with public API changes, measured
+- [x] Prepare a concise final approval summary with public API changes, measured
       results, retained limitations and publication steps. Do not publish or push
       the integration branch before approval.
+
+The [final approval summary](preview-approval-20261026.md) pins the coherent
+implementation and package evidence. [Naming adoption](named-step-convention.md)
+and [main/published-preview rendering comparisons](preview-lustre-20261026.md)
+are complete. Base/application/Effect lint and release metadata checks are clean;
+intentional erasure proofs and compiler budgets remain intact. User release
+approval is still pending. The measured main cost is part of that review; no
+performance win or published acceptance is inferred from local preparation.
 
 ## Initialization helpers authorized after preparation
 

@@ -1,5 +1,9 @@
 # Integrated framework performance
 
+The [October 26 rendering workload comparisons](preview-lustre-20261026.md)
+record the final main and published-preview runtime screens separately. The
+editor measurements below retain their own source pins and scopes.
+
 ## Final initialization and testing candidate
 
 Three alternating paired native TypeScript 7 runs compare the pre-initialization
