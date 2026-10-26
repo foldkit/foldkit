@@ -172,7 +172,6 @@ export const initOnly = ParentComposition.makeUpdate({
   RequestedReport: localNoopStep,
   CompletedLocalSave: localNoopStep,
 })
-export const initOrOwned = initOnly
 export const KeyedModel = Schema.Struct({
   children: Schema.Array(
     Schema.Struct({ id: Schema.String, counter: ChildModel }),
