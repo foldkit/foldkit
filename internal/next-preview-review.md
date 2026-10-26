@@ -3,20 +3,22 @@
 ## Status
 
 The [October 26 approval summary](preview-approval-20261026.md) identifies frozen
-implementation `fa96bf7d907fe86cf02c0c6c12cd33e1b7a9923c` and local package
-source digest `3e9c0e0265ca70256b84356cd932caf87808bf53d2fd6e6f35ff88c59f7ebd47`.
+implementation `f5506b7e240a4d8987338f22427a2bd1ecdf9cb5` and local package
+source digest `b8b162accc756093e0516fbc0d0c12378915370b2eb680514d377fc0086f2abe`.
 Current affected source, runtime, lint, contract, compiler-budget, packed-consumer
 and browser gates pass. The earlier broad source sweep retains its own pin.
 The [Step naming convention](named-step-convention.md) is adopted across current
 consumers and guidance.
 
-The [runtime investigation](preview-runtime-investigation-20261026.md) verifies a
+The [runtime investigation at fa96](preview-runtime-investigation-20261026.md) verifies a
 12.7% optimized-workload reduction while preserving registration checks. The
-candidate remains 22.0% above main in that screen; naive time is effectively
+measured candidate is 22.0% above main in that screen; naive time is effectively
 unchanged. The [earlier Lustre report](preview-lustre-20261026.md) retains its
 separate main/published-preview comparisons. Earlier editor and verification
 numbers below retain their original pins and are not relabeled as fresh
-measurements.
+measurements. The subsequent [hardening pass](preview-final-hardening-20261026.md)
+adds duplicate-Mount rejection and customization guidance, refreshes all nine
+packages and obtains a passing Daybreak addendum without adding timing claims.
 
 Publication remains held for user approval. Published Ready stays `1f6776fa7ece`;
 integration and main are unchanged. The following table remains the public API
@@ -56,6 +58,7 @@ Workspace's extra implementation interface and nested producer annotation are re
 - Reciprocal/converging policies, connected OutMessage combinations, registration, and assembly diagnostics have focused regressions.
 - Public UI declaration headers and a targeted private Workspace boundary repair actual declaration expansion failures without wider requirements.
 - The Workspace example now exercises realistic shared data, routed retained drafts, optimistic board moves and rollback, creation, comments, saved views, notifications, continuous activity and accessible Foldkit UI controls.
+- Duplicate Mount attributes reject during VNode construction before either handler starts. The customization guide groups existing variation options and includes a checked alternate embedded view.
 - Examples, Website, Typing Game, UI, scaffolds, snippets and agent guidance were audited for adoption. Intentional mixed-result, guarded and domain-only exceptions are [documented](preview-api-adoption.md).
 
 ## Earlier verification checkpoints

@@ -3,10 +3,11 @@
 ## Latest preparation checkpoint
 
 Use the [October 26 approval summary](preview-approval-20261026.md) for frozen
-implementation `fa96bf7d907fe86cf02c0c6c12cd33e1b7a9923c` and local package
-source digest `3e9c0e0265ca70256b84356cd932caf87808bf53d2fd6e6f35ff88c59f7ebd47`.
-Its [fresh nine-package rehearsal](preview-runtime-investigation-20261026.md#fresh-packed-package-rehearsal)
-covers the Subscription organization and runtime followups. Source/emitted
+implementation `f5506b7e240a4d8987338f22427a2bd1ecdf9cb5` and local package
+source digest `b8b162accc756093e0516fbc0d0c12378915370b2eb680514d377fc0086f2abe`.
+Its [fresh nine-package rehearsal](preview-final-hardening-20261026.md)
+covers Subscription organization, runtime optimization, duplicate-Mount rejection
+and the customization guide. Source/emitted
 contracts, all six unchanged compiler controls, runtime/lint checks, installed
 Coverchart, all three scaffolds and 32 Workspace browser cases pass. The earlier
 53-script sweep retains its `978c07a093` pin and is supplemented by affected
@@ -14,15 +15,16 @@ checks for the subsequent code. Recorded generated seed files and local package
 labels qualify the package-source digest.
 
 Publication remains held for user approval. Published Ready stays `1f6776fa7ece`;
-main and preview integration are unchanged. The [runtime investigation](preview-runtime-investigation-20261026.md)
-reduces optimized workload time by 12.7% in six paired rounds; it remains 22.0%
+main and preview integration are unchanged. The [runtime investigation at fa96](preview-runtime-investigation-20261026.md)
+reduces optimized workload time by 12.7% in six paired rounds; that screen is 22.0%
 above main, with naive performance effectively unchanged and about 32 KB of
 additional gzip. The [earlier published-preview control](preview-lustre-20261026.md)
 retains its own source and timing scope. No absolute times are pooled across
-batches. [Daybreak's full-delta PASS](preview-daybreak-20261026.md) and the
+batches. No new rendering timings are claimed for f550. [Daybreak's full-delta PASS](preview-daybreak-20261026.md),
+[hardening addendum](preview-daybreak-hardening-20261026.md) and the
 [new feedback assessment](preview-feedback-20261026.md) record inherited limits
-and open integration proposals. The final Website documentation build passes;
-framework/package inputs are unchanged. Detailed advisory and review scope lives
+and open integration proposals. The final Website production build passes;
+subsequent internal evidence edits preserve f550 package inputs. Detailed advisory and review scope lives
 in the [approval summary](preview-approval-20261026.md#feedback-and-security).
 
 Keep the three consumer starting paths and current Ready instructions. After

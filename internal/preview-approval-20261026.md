@@ -3,10 +3,11 @@
 ## Status
 
 Publication remains held for user approval. The latest frozen implementation is
-`fa96bf7d907fe86cf02c0c6c12cd33e1b7a9923c` on `codex/workspace-example`.
-It includes the Subscription organization and runtime followups and passes the
-fresh nine-package local rehearsal. Its source digest is
-`3e9c0e0265ca70256b84356cd932caf87808bf53d2fd6e6f35ff88c59f7ebd47`.
+`f5506b7e240a4d8987338f22427a2bd1ecdf9cb5` on `codex/workspace-example`.
+It includes Subscription organization, runtime optimization, duplicate-Mount
+rejection and grouped customization guidance. Its fresh nine-package local
+rehearsal passes with source digest
+`b8b162accc756093e0516fbc0d0c12378915370b2eb680514d377fc0086f2abe`.
 The earlier broad evidence below retains its `978c07a093` pin. Published Ready
 remains `1f6776fa7ececa766188df5201eefec6ba781b5d`; integration and main have
 not moved.
@@ -20,7 +21,7 @@ consolidates Website's local registry and documents the convention across the re
 Its targeted checks supplement the frozen framework/package evidence below;
 that evidence retains its exact implementation pin.
 
-The [runtime investigation](preview-runtime-investigation-20261026.md) identifies
+The [runtime investigation at fa96](preview-runtime-investigation-20261026.md) identifies
 Mount validation as the largest added measured phase and verifies a 12.7%
 optimized workload reduction. No public API changes are introduced. Remaining
 main costs and bundle growth are retained for approval.
@@ -28,16 +29,20 @@ main costs and bundle growth are retained for approval.
 ### Current followup verification
 
 - Source/emitted contracts, strict relocation, six unchanged compiler ceilings
-  and 3,798 core tests pass; all 289 emitted declarations are unchanged.
+  and 3,801 core tests pass. Of 289 declarations, 288 are byte-identical to fa96;
+  the only change is four `OnMount` TSDoc lines, with no signature changes.
+- UI's 1,301 tests and Website's 1,495 tests and production build pass. Three
+  duplicate-Mount regressions first fail on the old behavior, then pass.
 - All nine public artifacts are rebuilt and packed from the frozen candidate.
   Coverchart source/lint, 40 tests, build and persistence/browser checks pass.
 - Generated SPA, SSG and SSR projects pass source, lint, tests, builds and browser
   checks. Installed testing, Binding and initialization contracts pass.
 - Workspace's 32 browser tests pass without retries. The actual Coverchart
   checkout and all 88 tracked-file hashes are preserved.
-- [Fresh package evidence and qualifications](preview-runtime-investigation-20261026.md#fresh-packed-package-rehearsal)
-  distinguish local acceptance from publication. No new public API migration is
-  introduced by the runtime fix.
+- [Current source, package and security evidence](preview-final-hardening-20261026.md)
+  distinguish local acceptance from publication. Daybreak's addendum closes the
+  earlier Low duplicate-Mount finding. Earlier rendering measurements retain
+  their fa96 source pin; this hardening pass adds no timing claim.
 
 ## Changes from the published preview
 
@@ -86,6 +91,9 @@ No compatibility aliases remain for the removed forms. The checked
   [Adoption and intentional exceptions](named-step-convention.md).
 - Optional tsrs setup is recommended as a tested editor responsiveness option.
   Official TypeScript remains the repository/CI checking contract.
+- Duplicate `OnMount` attributes throw during VNode construction, naming both
+  Mounts before either handler starts. The customization guide groups existing
+  variation options and shows a checked alternate embedded view.
 
 Consumers, active snippets/guides, scaffolds, skills and TSDoc were audited for
 adoption. Working lower-level APIs remain where they carry meaningful additional
@@ -180,10 +188,10 @@ Synthetic declaration scaling and explicit-erasure limits remain documented.
 
 The final October 26 scoped check found a new foldkit-plus report on preview PR
 #1655, posted at 12:09:35 UTC. Its concrete envelope-portability and duplicate
-Mount claims reproduce on both the published preview and current code.
-Documentation clarifies runtime-local envelope admission; the one-Mount contract
-was already explicit. Proposed integration APIs are recorded as open requests,
-not implemented or approved additions to this candidate.
+Mount claims reproduce on the published preview and pre-fix code.
+Documentation clarifies runtime-local envelope admission. The two subsequently
+approved improvements now reject duplicate Mounts and group existing Block
+customization guidance; broader proposed integration APIs remain open requests.
 [Current feedback assessment](preview-feedback-20261026.md).
 Performance-help issue #1737 has no newer replies. Unrelated features and fork
 migration work are outside this release. Earlier report dispositions retain
@@ -193,20 +201,21 @@ The refreshed dependency audit has the same advisory contracts as the reviewed
 checkpoint: 1 Critical, 8 High, 11 Moderate and 4 Low. Existing reachability limits
 and maintenance followups remain. A separate check of Monaco's actual vendored
 sanitizer records five additional advisory reports whose required modes/hooks
-are absent; those are not folded into the lockfile counts. No dependency or
-runtime input changes in this final documentation pass.
+are absent; those are not folded into the lockfile counts. No dependency,
+manifest or lockfile changed in the hardening followup.
 
 [Daybreak passes the complete published-preview-to-e320 delta](preview-daybreak-20261026.md),
-including frozen runtime `fa96bf7d90`, with no new release blocker. It identifies
-the inherited single-Mount constraint as Low-severity hardening work. Frozen
-source and all 6,895 tracked paths are verified. The fresh independent dependency
+including runtime `fa96bf7d90`, with no new release blocker. The subsequent
+[exact-f550 addendum](preview-daybreak-hardening-20261026.md) passes and closes
+the duplicate-Mount Low finding. All 6,900 tracked paths of that frozen target
+are verified. The fresh independent dependency
 review establishes no concrete reachable blocker under current paths/settings;
 this is not a clean audit. [Review scope, exact evidence and remaining maintenance](next-preview-security-review.md#october-26-final-review).
 
-Subsequent changes are documentation and changeset prose only. The final Website
-production build passes; exact final commit review covers those edits. Public
-packages, manifests, lockfile and runtime source retain the packed candidate's
-inputs. Local build and rehearsal evidence do not establish deployed output.
+The [fresh hardening rehearsal](preview-final-hardening-20261026.md) rebuilds all
+nine packages from f550 and verifies installed consumers and browser workflows.
+Subsequent internal evidence edits retain those package inputs. Local build and
+rehearsal evidence do not establish deployed output.
 
 ## After approval
 

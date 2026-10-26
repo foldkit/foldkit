@@ -14,8 +14,9 @@ The user has explicitly held publication pending approval. Prepare and verify lo
       reject duplicate `OnMount` attributes before handler acquisition and
       group existing Block customization options with a checked alternate-view
       snippet. Preserve the other integration requests as open design proposals.
-- [ ] Freeze this hardening followup, refresh its exact package/browser evidence
+- [x] Freeze this hardening followup, refresh its exact package/browser evidence
       and obtain a scoped security addendum before restoring final readiness.
+      [Exact source, verification, artifacts and limits](preview-final-hardening-20261026.md).
 
 - [x] Use one local Subscription registry per owning Block. Consolidate Website,
       audit examples, Typing Game, UI, DevTools and active snippets, and document

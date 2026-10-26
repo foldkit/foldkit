@@ -1,5 +1,24 @@
 # Next preview security review
 
+## Duplicate-Mount finding closed, October 26
+
+The [bounded Daybreak addendum](preview-daybreak-hardening-20261026.md) passes the
+exact `f6ead23…f5506b7` delta and closes the earlier Low duplicate-Mount finding.
+It verifies the guard's ordering, per-element/per-render scope, direct and child
+attribute processing, passive acquisition, ordinary Mount/Unmount lifecycle,
+replay/stale-dispatch behavior and context restoration when construction throws.
+The customization guide's alternate view retains the completed child's graph.
+
+Frozen target `f5506b7e240a4d8987338f22427a2bd1ecdf9cb5` is detached and clean;
+all 6,900 tracked paths match. The [fresh nine-package rehearsal and verification](preview-final-hardening-20261026.md)
+separately pass for source digest
+`b8b162accc756093e0516fbc0d0c12378915370b2eb680514d377fc0086f2abe`.
+The addendum is static review, not a fresh audit or independent test run.
+Dependencies, manifest/lockfile, transport and scheduling are unchanged; the
+inherited advisory and runtime-provenance qualifications below retain their
+scope. Publication remains held. The earlier report below records the finding
+before this approved repair and is preserved as history.
+
 ## October 26 final review
 
 [Daybreak's exact-source review](preview-daybreak-20261026.md) passes the complete

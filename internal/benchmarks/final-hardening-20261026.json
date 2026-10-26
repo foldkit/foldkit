@@ -1,0 +1,2497 @@
+{
+  "implementationCommit": "f5506b7e240a4d8987338f22427a2bd1ecdf9cb5",
+  "sourceDigest": "b8b162accc756093e0516fbc0d0c12378915370b2eb680514d377fc0086f2abe",
+  "verification": {
+    "implementationCommit": "f5506b7e240a4d8987338f22427a2bd1ecdf9cb5",
+    "logs": {
+      "core-build.log": {
+        "path": "/private/tmp/foldkit-duplicate-mount-verification-20261026/core-build.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "resultLines": []
+      },
+      "core-tests.log": {
+        "path": "/private/tmp/foldkit-duplicate-mount-verification-20261026/core-tests.log",
+        "sha256": "b70f6553ba327fa6d8d9c277ac3b6584768b5e9c7072bcf1c8726b0f1148a71f",
+        "resultLines": [
+          " Test Files  201 passed | 1 skipped (202)",
+          "      Tests  3801 passed | 1 skipped (3802)",
+          "=============================== Coverage summary ===============================",
+          "Statements   : 91.21% ( 13576/14884 )",
+          "Branches     : 85.39% ( 6789/7950 )",
+          "Functions    : 89.58% ( 4067/4540 )",
+          "Lines        : 91.46% ( 13359/14605 )"
+        ]
+      },
+      "ui-tests.log": {
+        "path": "/private/tmp/foldkit-duplicate-mount-verification-20261026/ui-tests.log",
+        "sha256": "071a3f47896dcf4f081b264e4b94c410bf4e76a69fea10ee326914ed4ef10075",
+        "resultLines": [
+          " Test Files  67 passed (67)",
+          "      Tests  1301 passed (1301)"
+        ]
+      },
+      "emitted-contracts.log": {
+        "path": "/private/tmp/foldkit-duplicate-mount-verification-20261026/emitted-contracts.log",
+        "sha256": "de9f58c3954d2c29a1a28afd3a5fe2734be431df3d2e697959650e7b32382dba",
+        "resultLines": [
+          "[compiler-diagnostics] Source and relocated emitted diagnostics passed.",
+          "[emitted-declarations] Version 7.1.0-beta; external emission, rejected wiring, relocation, native completion and inferred configuration documentation checks passed."
+        ]
+      },
+      "compiler-budgets.log": {
+        "path": "/private/tmp/foldkit-duplicate-mount-verification-20261026/compiler-budgets.log",
+        "sha256": "f2afde2d61505527355e6a16b34d4f98533be40dea115f8124a43278594a319b",
+        "resultLines": [
+          "fixture                   instDelta  instMax    typesDelta  typesMax  symbolsDelta  status",
+          "deep-composition-8        635,409    1,152,618  51,416      55,843    83,310        ok    ",
+          "wide-composition-100      1,331,305  3,132,298  80,466      216,662   124,987       ok    ",
+          "command-requirements-200  335,824    2,659,415  62,285      389,460   112,989       ok    ",
+          "wide-subscriptions-100    548,398    548,398    24,566      24,566    58,267        ok    ",
+          "workspace-composition-4   2,510,412  2,639,574  203,019     206,314   269,075       ok    ",
+          "workspace-composition-8   4,278,713  4,515,010  279,563     280,523   399,155       ok    "
+        ]
+      },
+      "program-source.log": {
+        "path": "/private/tmp/foldkit-duplicate-mount-verification-20261026/program-source.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "resultLines": []
+      },
+      "lint.log": {
+        "path": "/private/tmp/foldkit-duplicate-mount-verification-20261026/lint.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "resultLines": []
+      },
+      "website-build.log": {
+        "path": "/private/tmp/foldkit-duplicate-mount-verification-20261026/website-build.log",
+        "sha256": "0ba31e8aede79eb4bc5ec1601ab4ea87ece7b5e1ac36181046db06fa6e8ec773",
+        "resultLines": [
+          "[warning] Found 0 errors and 281 warnings",
+          "[warning] Found 0 errors and 21 warnings",
+          "\u2713 built in 22.42s",
+          "(!) Some chunks are larger than 500 kB after minification. Consider:"
+        ]
+      },
+      "website-tests.log": {
+        "path": "/private/tmp/foldkit-duplicate-mount-verification-20261026/website-tests.log",
+        "sha256": "b8fabbcf475131992e2db26bdec01a9da22b684a30af7d4f143e16a90c4a4a00",
+        "resultLines": [
+          " Test Files  38 passed (38)",
+          "      Tests  1495 passed (1495)"
+        ]
+      }
+    },
+    "regressionProof": {
+      "baselineRedCases": 3,
+      "focusedGreenCases": 73,
+      "redLog": {
+        "path": "/private/tmp/foldkit-duplicate-mount-red-20261026.log",
+        "sha256": "e2460f447bde0d6097b30f775825b898ff9588b863aa28f0c9b308c5797ba26b"
+      }
+    },
+    "declarationComparison": {
+      "beforeCount": 289,
+      "afterCount": 289,
+      "added": [],
+      "removed": [],
+      "changed": ["html/index.d.ts"]
+    },
+    "sourceFiles": {
+      "packages/foldkit/src/html/index.ts": "24026413fe036c5779058f83681523e697a00a12cc54f0cbd645970887a3153d",
+      "packages/foldkit/src/html/onMount.test.ts": "801c83a7a9f0791073848a60d86a0340f4f15f8af186ea84ba6152b1abf6aaa1",
+      "packages/website/src/page/core/block.md": "3d5844a07d12209123f29d8d111dc43276f79c90b0ff6e0e09c2ffe0469f2ad1",
+      "packages/website/src/page/core/mount.md": "ee90cd55da3433d3e67850b618134dc484891a8e90576d526559a577aade4256",
+      "packages/website/src/snippet/blockCustomizationAlternateView.ts": "f2d4e0f911ec87767134bf80235dbec9b4f4668c33f1d36f2d28768f9e57911e"
+    },
+    "qualifications": [
+      "Default pnpm launcher stalled in an initial full Website test attempt. Only that owned process tree was stopped; the pinned-pnpm rerun passes. Stalled log retained and excluded.",
+      "The rendering benchmark retains its earlier fa96 source pin; no new rendering timing is claimed for this OnMount-only guard.",
+      "Public declaration comparison has 289files;288byte-identical and html/index.d.ts differs only by4TSDoclines. No public signatures changed."
+    ]
+  },
+  "packageRehearsal": {
+    "status": "Passed",
+    "sourceCommit": "f5506b7e240a4d8987338f22427a2bd1ecdf9cb5",
+    "sourceDigest": "b8b162accc756093e0516fbc0d0c12378915370b2eb680514d377fc0086f2abe",
+    "sourceQualification": "Packed artifacts, source gates, and Workspace browser gates use the approved exact committed source snapshot. The tracked-file identity check includes committed fixtures in build-named directories.",
+    "trackedSourceIdentity": {
+      "status": "Passed",
+      "trackedFileCount": 6900,
+      "allTrackedFilesIncluded": true
+    },
+    "dependencyResolutionControl": {
+      "classification": "fixture-infrastructure-resolution-control",
+      "policyRelaxed": false,
+      "reason": "Fresh no-lock resolution selects transitive releases newer than the active minimumReleaseAge policy; the rehearsal is anchored to the coherent frozen source lock instead.",
+      "overrides": {
+        "@modelcontextprotocol/sdk>hono": "4.13.11",
+        "express-rate-limit>ip-address": "10.7.2",
+        "magic-string@^1.4.0": "1.4.2"
+      },
+      "frozenSourceLock": "foldkit-source/pnpm-lock.yaml",
+      "scope": "scaffolds fixture pnpm workspaces only",
+      "applicationSourceChanged": false,
+      "packedArtifactChanged": false
+    },
+    "packageCount": 9,
+    "artifacts": [
+      {
+        "name": "foldkit",
+        "version": "0.169.0-local.b8b162accc75",
+        "sha256": "69d757c748402def2f7ee4303b91994af817c53b86bc9a0c0ca809aef2120a53"
+      },
+      {
+        "name": "@foldkit/ui",
+        "version": "0.169.0-local.b8b162accc75",
+        "sha256": "21eb266edf1fb7a3cc94a9cbd31bed2183f95d355439db651cdbe894e90b6ff1"
+      },
+      {
+        "name": "@foldkit/devtools",
+        "version": "0.169.0-local.b8b162accc75",
+        "sha256": "b8cb964c251fe4f18c0e0ead8eceab193eca03c33bae936709a75af35c6766b4"
+      },
+      {
+        "name": "@foldkit/devtools-mcp",
+        "version": "0.25.0-local.b8b162accc75",
+        "sha256": "841f256db7c1d9fce50b66d178a4aa7b4d2d2d4385c6adfbc74fea46292db5ee"
+      },
+      {
+        "name": "@foldkit/oxlint-plugin",
+        "version": "0.15.3-local.b8b162accc75",
+        "sha256": "52e1cec19f069575c1150f99126b7f2fc8367b48b2302a55a056e69c99da386e"
+      },
+      {
+        "name": "@foldkit/vite-plugin",
+        "version": "0.28.0-local.b8b162accc75",
+        "sha256": "7852474800b2855a097ae2346c750ac11f9cda62bfb6c0e070e3c59e091e5989"
+      },
+      {
+        "name": "@foldkit/node",
+        "version": "0.1.0-local.b8b162accc75",
+        "sha256": "b14e2b5ecfb5f9bfd567215c81f897fadf83b8b5c3fca875e26fd16b5148ef71"
+      },
+      {
+        "name": "@foldkit/markdown",
+        "version": "0.14.4-local.b8b162accc75",
+        "sha256": "da7e492492c399fb555ad7e48fd438689b4b20c24e10ae941450ee2eb09ffd6e"
+      },
+      {
+        "name": "create-foldkit-app",
+        "version": "0.40.0-local.b8b162accc75",
+        "sha256": "75fb1bc9ce2479213692e7a59c14e7493c2a8be824af9700961e175b76720b08"
+      }
+    ],
+    "coverchart": {
+      "compiler": {
+        "executable": "/private/tmp/foldkit-mount-final-rehearsal-20261026/coverchart/node_modules/.bin/tsc",
+        "version": "Version 7.1.0-beta"
+      },
+      "results": [
+        {
+          "name": "typecheck",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/coverchart-typecheck.log"
+        },
+        {
+          "name": "lint",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/coverchart-lint.log"
+        },
+        {
+          "name": "test",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/coverchart-test.log"
+        },
+        {
+          "name": "build",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/coverchart-build.log"
+        },
+        {
+          "name": "test-count",
+          "status": "Passed",
+          "count": 40
+        }
+      ]
+    },
+    "scaffolds": {
+      "artifactTransport": "local-packed-tarballs",
+      "publishedRegistryAcceptance": false,
+      "compilers": [
+        {
+          "mode": "spa",
+          "executable": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/spa-smoke/node_modules/.bin/tsc",
+          "version": "Version 7.1.0-beta"
+        },
+        {
+          "mode": "ssg",
+          "executable": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/ssg-smoke/node_modules/.bin/tsc",
+          "version": "Version 7.1.0-beta"
+        },
+        {
+          "mode": "ssr",
+          "executable": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/ssr-smoke/node_modules/.bin/tsc",
+          "version": "Version 7.1.0-beta"
+        }
+      ],
+      "results": [
+        {
+          "mode": "spa",
+          "gate": "typecheck",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-spa-typecheck.log"
+        },
+        {
+          "mode": "spa",
+          "gate": "lint",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-spa-lint.log"
+        },
+        {
+          "mode": "spa",
+          "gate": "test",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-spa-test.log"
+        },
+        {
+          "mode": "spa",
+          "gate": "build",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-spa-build.log"
+        },
+        {
+          "mode": "ssg",
+          "gate": "typecheck",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-ssg-typecheck.log"
+        },
+        {
+          "mode": "ssg",
+          "gate": "lint",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-ssg-lint.log"
+        },
+        {
+          "mode": "ssg",
+          "gate": "test",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-ssg-test.log"
+        },
+        {
+          "mode": "ssg",
+          "gate": "build",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-ssg-build.log"
+        },
+        {
+          "mode": "ssr",
+          "gate": "typecheck",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-ssr-typecheck.log"
+        },
+        {
+          "mode": "ssr",
+          "gate": "lint",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-ssr-lint.log"
+        },
+        {
+          "mode": "ssr",
+          "gate": "test",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-ssr-test.log"
+        },
+        {
+          "mode": "ssr",
+          "gate": "build",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-ssr-build.log"
+        }
+      ]
+    },
+    "testingFollowups": {
+      "status": "Passed",
+      "testCount": 4,
+      "installedEntryPoints": [
+        "foldkit/story",
+        "foldkit/test",
+        "foldkit/variantBinding"
+      ],
+      "variantBinding": true,
+      "browserRequired": false,
+      "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/testing-followups-contract.log"
+    },
+    "eventDelivery": {
+      "status": "Passed",
+      "typecheckStatus": "Passed",
+      "typecheckLogPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-spa-typecheck.log",
+      "runtimeStatus": "Passed",
+      "testCount": 4,
+      "expectedTestCount": 4,
+      "sourceSha256": "7e55325d08e7d8813ba5477bd68ce835fa446e4d101932aca081f32de0849662",
+      "installedSha256": "7e55325d08e7d8813ba5477bd68ce835fa446e4d101932aca081f32de0849662",
+      "hashesMatch": true,
+      "installedEntryPoints": [
+        "foldkit",
+        "foldkit/message",
+        "foldkit/scene",
+        "foldkit/story",
+        "foldkit/struct"
+      ],
+      "browserRequired": false,
+      "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/event-delivery-contract.log"
+    },
+    "dynamicInit": {
+      "status": "Passed",
+      "testCount": 2,
+      "expectedTestCount": 2,
+      "sourceSha256": "d4b515058bb49461c9d3cadf7a6f7ddf99a61ef13b7868b1f810d7e4d8b0bf9d",
+      "installedSha256": "d4b515058bb49461c9d3cadf7a6f7ddf99a61ef13b7868b1f810d7e4d8b0bf9d",
+      "hashesMatch": true,
+      "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/dynamic-init-contract.log",
+      "installedEntryPoint": "foldkit/bindingInit"
+    },
+    "initializationFamily": {
+      "status": "Passed",
+      "compiler": {
+        "executable": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/spa-smoke/node_modules/.bin/tsc",
+        "version": "Version 7.1.0-beta"
+      },
+      "installedEntryPoints": [
+        "foldkit",
+        "foldkit/bindingInit",
+        "foldkit/mapBinding"
+      ],
+      "fixtureCount": 9,
+      "hashesMatch": true,
+      "results": [
+        {
+          "name": "asset-hashes",
+          "status": "Passed"
+        },
+        {
+          "name": "typecheck",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/initialization-family-typecheck.log"
+        },
+        {
+          "name": "runtime",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/initialization-family-runtime.log"
+        },
+        {
+          "name": "five-lifted-Commands",
+          "status": "Passed",
+          "expected": 5,
+          "observed": 5
+        }
+      ],
+      "runtimeProof": {
+        "exports": ["initAndSet", "initAndAppend", "initAndInsert"],
+        "commandNames": [
+          "requiredChild/Read",
+          "PackedInitializationChild[\"optional\"]/Read",
+          "childrenById[\"record\"]/Read",
+          "childrenByNumber[4]/Read",
+          "appended[\"append\"]/Read"
+        ],
+        "commandMessages": [
+          {
+            "_tag": "GotRequiredChildMessage",
+            "placement": "requiredChild",
+            "generation": 0,
+            "message": {
+              "_tag": "CompletedRead",
+              "count": 1
+            }
+          },
+          {
+            "_tag": "GotPackedInitializationChildMessage",
+            "placement": "PackedInitializationChild",
+            "generation": 0,
+            "key": "optional",
+            "message": {
+              "_tag": "CompletedRead",
+              "count": 2
+            }
+          },
+          {
+            "_tag": "GotChildrenByIdMessage",
+            "placement": "childrenById",
+            "generation": 0,
+            "key": "record",
+            "message": {
+              "_tag": "CompletedRead",
+              "count": 3
+            }
+          },
+          {
+            "_tag": "GotChildrenByNumberMessage",
+            "placement": "childrenByNumber",
+            "generation": 0,
+            "key": 4,
+            "message": {
+              "_tag": "CompletedRead",
+              "count": 4
+            }
+          },
+          {
+            "_tag": "GotAppendedMessage",
+            "placement": "appended",
+            "generation": 0,
+            "key": "append",
+            "message": {
+              "_tag": "CompletedRead",
+              "count": 5
+            }
+          }
+        ],
+        "models": {
+          "direct": {
+            "count": 1
+          },
+          "optional": {
+            "_id": "Option",
+            "_tag": "Some",
+            "value": {
+              "id": "optional",
+              "child": {
+                "count": 2
+              }
+            }
+          },
+          "record": {
+            "record": {
+              "count": 3
+            }
+          },
+          "hashMap": [
+            [
+              4,
+              {
+                "count": 4
+              }
+            ]
+          ],
+          "appended": [
+            {
+              "id": "append",
+              "child": {
+                "count": 5
+              },
+              "label": "append"
+            }
+          ]
+        }
+      }
+    },
+    "installedProvenance": {
+      "sourceSnapshotDigest": "b8b162accc756093e0516fbc0d0c12378915370b2eb680514d377fc0086f2abe",
+      "installations": [
+        {
+          "root": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds",
+          "packages": [
+            {
+              "name": "foldkit",
+              "placement": "dependencies",
+              "version": "0.169.0-local.b8b162accc75",
+              "internal": []
+            },
+            {
+              "name": "@foldkit/ui",
+              "placement": "dependencies",
+              "version": "0.169.0-local.b8b162accc75",
+              "internal": [
+                {
+                  "dependency": "foldkit",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/node_modules/.pnpm/foldkit@file+..+tarballs+foldkit-0.169.0-local.b8b162accc75.tgz_@effect+platform-browse_563fa63b5a00fbf7f4edb921976d20a0/node_modules/foldkit"
+                }
+              ]
+            },
+            {
+              "name": "@foldkit/devtools",
+              "placement": "dependencies",
+              "version": "0.169.0-local.b8b162accc75",
+              "internal": [
+                {
+                  "dependency": "@foldkit/ui",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/node_modules/.pnpm/@foldkit+ui@file+..+tarballs+foldkit-ui-0.169.0-local.b8b162accc75.tgz_effect@4.0.0_fol_5cc45d12df22e23254d2f3333a59285c/node_modules/@foldkit/ui"
+                },
+                {
+                  "dependency": "foldkit",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/node_modules/.pnpm/foldkit@file+..+tarballs+foldkit-0.169.0-local.b8b162accc75.tgz_@effect+platform-browse_563fa63b5a00fbf7f4edb921976d20a0/node_modules/foldkit"
+                }
+              ]
+            },
+            {
+              "name": "@foldkit/devtools-mcp",
+              "placement": "dependencies",
+              "version": "0.25.0-local.b8b162accc75",
+              "internal": [
+                {
+                  "dependency": "foldkit",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/node_modules/.pnpm/foldkit@file+..+tarballs+foldkit-0.169.0-local.b8b162accc75.tgz_@effect+platform-browse_563fa63b5a00fbf7f4edb921976d20a0/node_modules/foldkit"
+                }
+              ]
+            },
+            {
+              "name": "@foldkit/oxlint-plugin",
+              "placement": "dependencies",
+              "version": "0.15.3-local.b8b162accc75",
+              "internal": []
+            },
+            {
+              "name": "@foldkit/vite-plugin",
+              "placement": "dependencies",
+              "version": "0.28.0-local.b8b162accc75",
+              "internal": [
+                {
+                  "dependency": "foldkit",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/node_modules/.pnpm/foldkit@file+..+tarballs+foldkit-0.169.0-local.b8b162accc75.tgz_@effect+platform-browse_563fa63b5a00fbf7f4edb921976d20a0/node_modules/foldkit"
+                }
+              ]
+            },
+            {
+              "name": "@foldkit/node",
+              "placement": "dependencies",
+              "version": "0.1.0-local.b8b162accc75",
+              "internal": [
+                {
+                  "dependency": "foldkit",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/node_modules/.pnpm/foldkit@file+..+tarballs+foldkit-0.169.0-local.b8b162accc75.tgz_@effect+platform-browse_563fa63b5a00fbf7f4edb921976d20a0/node_modules/foldkit"
+                }
+              ]
+            },
+            {
+              "name": "@foldkit/markdown",
+              "placement": "dependencies",
+              "version": "0.14.4-local.b8b162accc75",
+              "internal": [
+                {
+                  "dependency": "foldkit",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/node_modules/.pnpm/foldkit@file+..+tarballs+foldkit-0.169.0-local.b8b162accc75.tgz_@effect+platform-browse_563fa63b5a00fbf7f4edb921976d20a0/node_modules/foldkit"
+                }
+              ]
+            },
+            {
+              "name": "create-foldkit-app",
+              "placement": "dependencies",
+              "version": "0.40.0-local.b8b162accc75",
+              "internal": []
+            }
+          ]
+        },
+        {
+          "root": "/private/tmp/foldkit-mount-final-rehearsal-20261026/coverchart",
+          "packages": [
+            {
+              "name": "@foldkit/ui",
+              "placement": "dependencies",
+              "version": "0.169.0-local.b8b162accc75",
+              "internal": [
+                {
+                  "dependency": "foldkit",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/coverchart/node_modules/.pnpm/foldkit@file+..+tarballs+foldkit-0.169.0-local.b8b162accc75.tgz_@effect+platform-browse_563fa63b5a00fbf7f4edb921976d20a0/node_modules/foldkit"
+                }
+              ]
+            },
+            {
+              "name": "foldkit",
+              "placement": "dependencies",
+              "version": "0.169.0-local.b8b162accc75",
+              "internal": []
+            },
+            {
+              "name": "@foldkit/devtools",
+              "placement": "devDependencies",
+              "version": "0.169.0-local.b8b162accc75",
+              "internal": [
+                {
+                  "dependency": "@foldkit/ui",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/coverchart/node_modules/.pnpm/@foldkit+ui@file+..+tarballs+foldkit-ui-0.169.0-local.b8b162accc75.tgz_effect@4.0.0_fol_5cc45d12df22e23254d2f3333a59285c/node_modules/@foldkit/ui"
+                },
+                {
+                  "dependency": "foldkit",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/coverchart/node_modules/.pnpm/foldkit@file+..+tarballs+foldkit-0.169.0-local.b8b162accc75.tgz_@effect+platform-browse_563fa63b5a00fbf7f4edb921976d20a0/node_modules/foldkit"
+                }
+              ]
+            },
+            {
+              "name": "@foldkit/devtools-mcp",
+              "placement": "devDependencies",
+              "version": "0.25.0-local.b8b162accc75",
+              "internal": [
+                {
+                  "dependency": "foldkit",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/coverchart/node_modules/.pnpm/foldkit@file+..+tarballs+foldkit-0.169.0-local.b8b162accc75.tgz_@effect+platform-browse_563fa63b5a00fbf7f4edb921976d20a0/node_modules/foldkit"
+                }
+              ]
+            },
+            {
+              "name": "@foldkit/oxlint-plugin",
+              "placement": "devDependencies",
+              "version": "0.15.3-local.b8b162accc75",
+              "internal": []
+            },
+            {
+              "name": "@foldkit/vite-plugin",
+              "placement": "devDependencies",
+              "version": "0.28.0-local.b8b162accc75",
+              "internal": [
+                {
+                  "dependency": "foldkit",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/coverchart/node_modules/.pnpm/foldkit@file+..+tarballs+foldkit-0.169.0-local.b8b162accc75.tgz_@effect+platform-browse_563fa63b5a00fbf7f4edb921976d20a0/node_modules/foldkit"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "root": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/spa-smoke",
+          "packages": [
+            {
+              "name": "@foldkit/ui",
+              "placement": "dependencies",
+              "version": "0.169.0-local.b8b162accc75",
+              "internal": [
+                {
+                  "dependency": "foldkit",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/spa-smoke/node_modules/.pnpm/foldkit@file+..+..+tarballs+foldkit-0.169.0-local.b8b162accc75.tgz_@effect+platform-bro_de365241188d12dd1b78e317418ed737/node_modules/foldkit"
+                }
+              ]
+            },
+            {
+              "name": "foldkit",
+              "placement": "dependencies",
+              "version": "0.169.0-local.b8b162accc75",
+              "internal": []
+            },
+            {
+              "name": "@foldkit/devtools",
+              "placement": "devDependencies",
+              "version": "0.169.0-local.b8b162accc75",
+              "internal": [
+                {
+                  "dependency": "@foldkit/ui",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/spa-smoke/node_modules/.pnpm/@foldkit+ui@file+..+..+tarballs+foldkit-ui-0.169.0-local.b8b162accc75.tgz_effect@4.0.0__ddaf92b8d058c6f364ac0cd7b69644c2/node_modules/@foldkit/ui"
+                },
+                {
+                  "dependency": "foldkit",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/spa-smoke/node_modules/.pnpm/foldkit@file+..+..+tarballs+foldkit-0.169.0-local.b8b162accc75.tgz_@effect+platform-bro_de365241188d12dd1b78e317418ed737/node_modules/foldkit"
+                }
+              ]
+            },
+            {
+              "name": "@foldkit/devtools-mcp",
+              "placement": "devDependencies",
+              "version": "0.25.0-local.b8b162accc75",
+              "internal": [
+                {
+                  "dependency": "foldkit",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/spa-smoke/node_modules/.pnpm/foldkit@file+..+..+tarballs+foldkit-0.169.0-local.b8b162accc75.tgz_@effect+platform-bro_de365241188d12dd1b78e317418ed737/node_modules/foldkit"
+                }
+              ]
+            },
+            {
+              "name": "@foldkit/oxlint-plugin",
+              "placement": "devDependencies",
+              "version": "0.15.3-local.b8b162accc75",
+              "internal": []
+            },
+            {
+              "name": "@foldkit/vite-plugin",
+              "placement": "devDependencies",
+              "version": "0.28.0-local.b8b162accc75",
+              "internal": [
+                {
+                  "dependency": "foldkit",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/spa-smoke/node_modules/.pnpm/foldkit@file+..+..+tarballs+foldkit-0.169.0-local.b8b162accc75.tgz_@effect+platform-bro_de365241188d12dd1b78e317418ed737/node_modules/foldkit"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "root": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/ssg-smoke",
+          "packages": [
+            {
+              "name": "foldkit",
+              "placement": "dependencies",
+              "version": "0.169.0-local.b8b162accc75",
+              "internal": []
+            },
+            {
+              "name": "@foldkit/devtools",
+              "placement": "devDependencies",
+              "version": "0.169.0-local.b8b162accc75",
+              "internal": [
+                {
+                  "dependency": "@foldkit/ui",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/ssg-smoke/node_modules/.pnpm/@foldkit+ui@0.169.0-local.b8b162accc75_effect@4.0.0_foldkit@file+..+..+tarballs+foldkit_c6151593dd1ca57c70593f40d380907a/node_modules/@foldkit/ui"
+                },
+                {
+                  "dependency": "foldkit",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/ssg-smoke/node_modules/.pnpm/foldkit@file+..+..+tarballs+foldkit-0.169.0-local.b8b162accc75.tgz_@effect+platform-bro_de365241188d12dd1b78e317418ed737/node_modules/foldkit"
+                }
+              ]
+            },
+            {
+              "name": "@foldkit/devtools-mcp",
+              "placement": "devDependencies",
+              "version": "0.25.0-local.b8b162accc75",
+              "internal": [
+                {
+                  "dependency": "foldkit",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/ssg-smoke/node_modules/.pnpm/foldkit@file+..+..+tarballs+foldkit-0.169.0-local.b8b162accc75.tgz_@effect+platform-bro_de365241188d12dd1b78e317418ed737/node_modules/foldkit"
+                }
+              ]
+            },
+            {
+              "name": "@foldkit/oxlint-plugin",
+              "placement": "devDependencies",
+              "version": "0.15.3-local.b8b162accc75",
+              "internal": []
+            },
+            {
+              "name": "@foldkit/vite-plugin",
+              "placement": "devDependencies",
+              "version": "0.28.0-local.b8b162accc75",
+              "internal": [
+                {
+                  "dependency": "foldkit",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/ssg-smoke/node_modules/.pnpm/foldkit@file+..+..+tarballs+foldkit-0.169.0-local.b8b162accc75.tgz_@effect+platform-bro_de365241188d12dd1b78e317418ed737/node_modules/foldkit"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "root": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/ssr-smoke",
+          "packages": [
+            {
+              "name": "@foldkit/node",
+              "placement": "dependencies",
+              "version": "0.1.0-local.b8b162accc75",
+              "internal": [
+                {
+                  "dependency": "foldkit",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/ssr-smoke/node_modules/.pnpm/foldkit@file+..+..+tarballs+foldkit-0.169.0-local.b8b162accc75.tgz_@effect+platform-bro_de365241188d12dd1b78e317418ed737/node_modules/foldkit"
+                }
+              ]
+            },
+            {
+              "name": "@foldkit/ui",
+              "placement": "dependencies",
+              "version": "0.169.0-local.b8b162accc75",
+              "internal": [
+                {
+                  "dependency": "foldkit",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/ssr-smoke/node_modules/.pnpm/foldkit@file+..+..+tarballs+foldkit-0.169.0-local.b8b162accc75.tgz_@effect+platform-bro_de365241188d12dd1b78e317418ed737/node_modules/foldkit"
+                }
+              ]
+            },
+            {
+              "name": "foldkit",
+              "placement": "dependencies",
+              "version": "0.169.0-local.b8b162accc75",
+              "internal": []
+            },
+            {
+              "name": "@foldkit/devtools",
+              "placement": "devDependencies",
+              "version": "0.169.0-local.b8b162accc75",
+              "internal": [
+                {
+                  "dependency": "@foldkit/ui",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/ssr-smoke/node_modules/.pnpm/@foldkit+ui@file+..+..+tarballs+foldkit-ui-0.169.0-local.b8b162accc75.tgz_effect@4.0.0__ddaf92b8d058c6f364ac0cd7b69644c2/node_modules/@foldkit/ui"
+                },
+                {
+                  "dependency": "foldkit",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/ssr-smoke/node_modules/.pnpm/foldkit@file+..+..+tarballs+foldkit-0.169.0-local.b8b162accc75.tgz_@effect+platform-bro_de365241188d12dd1b78e317418ed737/node_modules/foldkit"
+                }
+              ]
+            },
+            {
+              "name": "@foldkit/devtools-mcp",
+              "placement": "devDependencies",
+              "version": "0.25.0-local.b8b162accc75",
+              "internal": [
+                {
+                  "dependency": "foldkit",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/ssr-smoke/node_modules/.pnpm/foldkit@file+..+..+tarballs+foldkit-0.169.0-local.b8b162accc75.tgz_@effect+platform-bro_de365241188d12dd1b78e317418ed737/node_modules/foldkit"
+                }
+              ]
+            },
+            {
+              "name": "@foldkit/oxlint-plugin",
+              "placement": "devDependencies",
+              "version": "0.15.3-local.b8b162accc75",
+              "internal": []
+            },
+            {
+              "name": "@foldkit/vite-plugin",
+              "placement": "devDependencies",
+              "version": "0.28.0-local.b8b162accc75",
+              "internal": [
+                {
+                  "dependency": "foldkit",
+                  "version": "0.169.0-local.b8b162accc75",
+                  "realpath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffolds/ssr-smoke/node_modules/.pnpm/foldkit@file+..+..+tarballs+foldkit-0.169.0-local.b8b162accc75.tgz_@effect+platform-bro_de365241188d12dd1b78e317418ed737/node_modules/foldkit"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "actualCoverchart": {
+        "head": "c51e856b2e75ca44106e37ead24f9c4e8046aef0",
+        "status": "?? .claude/\n",
+        "unchangedTrackedFiles": 88
+      }
+    },
+    "browserEvidence": {
+      "repeated": true,
+      "executable": {
+        "executable": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "playwrightVersion": "1.63.0"
+      },
+      "coverchart": {
+        "status": "Passed",
+        "completed": [
+          "Loaded a pre-JSON-codec 0.151 library and saved dark theme",
+          "Duplicated a legacy section and persisted generated IDs",
+          "Completed keyboard section reorder and persisted order",
+          "Confirmed section deletion and persisted removal",
+          "Reload retained legacy data, dark theme, duplicate, reorder, and deletion"
+        ],
+        "events": [],
+        "expectedFavicon404s": [
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+            "location": {
+              "url": "http://127.0.0.1:53980/favicon.ico",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          }
+        ],
+        "sourceSnapshotDigest": "b8b162accc756093e0516fbc0d0c12378915370b2eb680514d377fc0086f2abe",
+        "consumerBaseCommit": "c51e856b2e75ca44106e37ead24f9c4e8046aef0",
+        "artifactTransport": "local-packed-tarballs",
+        "publishedRegistryAcceptance": false,
+        "freshBrowserContext": true
+      },
+      "scaffolds": {
+        "status": "Passed",
+        "sourceSnapshotDigest": "b8b162accc756093e0516fbc0d0c12378915370b2eb680514d377fc0086f2abe",
+        "artifactTransport": "local-packed-tarballs",
+        "publishedRegistryAcceptance": false,
+        "independentBrowserContexts": true,
+        "completed": [
+          "SPA: packed Counter scaffold booted; increment/decrement updated Model and document title",
+          "SSG: HTML prerendered About; Home hydrated, incremented, and retained Model across client routes",
+          "SSR: request cookie rendered initial7 with private headers; hydration increment persisted8 and reload rendered8"
+        ],
+        "events": [],
+        "expectedFavicon404s": [
+          {
+            "mode": "spa",
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+            "location": {
+              "url": "http://127.0.0.1:53981/favicon.ico",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          },
+          {
+            "mode": "ssg",
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+            "location": {
+              "url": "http://127.0.0.1:53982/favicon.ico",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          },
+          {
+            "mode": "ssr",
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 ()",
+            "location": {
+              "url": "http://127.0.0.1:53983/favicon.ico",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          }
+        ],
+        "serverLogs": [
+          {
+            "mode": "spa",
+            "log": "  \u279c  Local:   http://127.0.0.1:53981/\n"
+          },
+          {
+            "mode": "ssg",
+            "log": "  \u279c  Local:   http://127.0.0.1:53982/\n"
+          },
+          {
+            "mode": "ssr",
+            "log": "[15:09:21.761] INFO (#2): Listening on http://[::]:53983\n"
+          }
+        ]
+      },
+      "workspace": {
+        "config": {
+          "argv": [
+            "/Users/devinjameson/.vite-plus/js_runtime/node/24.22.1/bin/node",
+            "/private/tmp/foldkit-mount-final-rehearsal-20261026/foldkit-source/packages/examples-e2e/node_modules/@playwright/test/cli.js",
+            "test",
+            "--config",
+            "/private/tmp/foldkit-mount-final-rehearsal-20261026/playwright-workspace.config.mjs"
+          ],
+          "configFile": "/private/tmp/foldkit-mount-final-rehearsal-20261026/playwright-workspace.config.mjs",
+          "rootDir": "/private/tmp/foldkit-mount-final-rehearsal-20261026/foldkit-source/packages/examples-e2e/e2e",
+          "failOnFlakyTests": false,
+          "forbidOnly": false,
+          "fullyParallel": true,
+          "globalSetup": null,
+          "globalTeardown": null,
+          "globalTimeout": 0,
+          "grep": {},
+          "grepInvert": null,
+          "maxFailures": 0,
+          "metadata": {
+            "actualWorkers": 2
+          },
+          "preserveOutput": "always",
+          "projects": [
+            {
+              "outputDir": "/private/tmp/foldkit-mount-final-rehearsal-20261026/workspace-browser-artifacts",
+              "repeatEach": 1,
+              "retries": 0,
+              "metadata": {
+                "actualWorkers": 2
+              },
+              "id": "chromium",
+              "name": "chromium",
+              "testDir": "/private/tmp/foldkit-mount-final-rehearsal-20261026/foldkit-source/packages/examples-e2e/e2e",
+              "testIgnore": [],
+              "testMatch": ["**/workspace.spec.ts"],
+              "timeout": 60000
+            }
+          ],
+          "quiet": false,
+          "reporter": [
+            ["list", null],
+            [
+              "json",
+              {
+                "outputFile": "/private/tmp/foldkit-mount-final-rehearsal-20261026/workspace-browser-results.json"
+              }
+            ]
+          ],
+          "reportSlowTests": {
+            "max": 5,
+            "threshold": 300000
+          },
+          "shard": null,
+          "tags": [],
+          "updateSnapshots": "missing",
+          "updateSourceMethod": "patch",
+          "version": "1.63.0",
+          "workers": 2,
+          "webServer": {
+            "command": "node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 53984 --strictPort",
+            "cwd": "/private/tmp/foldkit-mount-final-rehearsal-20261026/foldkit-source/examples/workspace",
+            "url": "http://127.0.0.1:53984",
+            "reuseExistingServer": false,
+            "timeout": 120000
+          }
+        },
+        "suites": [
+          {
+            "title": "workspace.spec.ts",
+            "file": "workspace.spec.ts",
+            "column": 0,
+            "line": 0,
+            "specs": [],
+            "suites": [
+              {
+                "title": "workspace example",
+                "file": "workspace.spec.ts",
+                "line": 55,
+                "column": 6,
+                "specs": [
+                  {
+                    "title": "loads cleanly",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 0,
+                            "parallelIndex": 0,
+                            "status": "passed",
+                            "duration": 1849,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:23.939Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-d9fc5e5f4ca3798bb89a",
+                    "file": "workspace.spec.ts",
+                    "line": 56,
+                    "column": 3
+                  },
+                  {
+                    "title": "saving an issue updates the list and survives navigating away and back",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 1,
+                            "parallelIndex": 1,
+                            "status": "passed",
+                            "duration": 2169,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:23.939Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-42c7a81fa4675c2e9506",
+                    "file": "workspace.spec.ts",
+                    "line": 60,
+                    "column": 3
+                  },
+                  {
+                    "title": "a failed save retains its draft and can be retried",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 0,
+                            "parallelIndex": 0,
+                            "status": "passed",
+                            "duration": 1905,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:26.146Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-185eaede8bb8819df99d",
+                    "file": "workspace.spec.ts",
+                    "line": 92,
+                    "column": 3
+                  },
+                  {
+                    "title": "closing and reopening an issue retains its fields and pending comment",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 1,
+                            "parallelIndex": 1,
+                            "status": "passed",
+                            "duration": 1355,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:26.462Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-2b36f969dc631f14fb41",
+                    "file": "workspace.spec.ts",
+                    "line": 125,
+                    "column": 3
+                  },
+                  {
+                    "title": "issue drafts survive switching issues and browser history",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 1,
+                            "parallelIndex": 1,
+                            "status": "passed",
+                            "duration": 1248,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:27.826Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-22b53dd66048f6beced6",
+                    "file": "workspace.spec.ts",
+                    "line": 186,
+                    "column": 3
+                  },
+                  {
+                    "title": "dirty issue drafts prompt before reload and saved or discarded fields do not",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 0,
+                            "parallelIndex": 0,
+                            "status": "passed",
+                            "duration": 3388,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:28.062Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-56a2d27e7eafa553322a",
+                    "file": "workspace.spec.ts",
+                    "line": 237,
+                    "column": 3
+                  },
+                  {
+                    "title": "project drafts survive navigation and a pending save settles in its own editor",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 1,
+                            "parallelIndex": 1,
+                            "status": "passed",
+                            "duration": 1460,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:29.084Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-15be5b75f74789cc3c8c",
+                    "file": "workspace.spec.ts",
+                    "line": 288,
+                    "column": 3
+                  },
+                  {
+                    "title": "a hidden dirty project editor protects reload and discarding it removes the warning",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 1,
+                            "parallelIndex": 1,
+                            "status": "passed",
+                            "duration": 2754,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:30.555Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-5ba6c29afd28c11801eb",
+                    "file": "workspace.spec.ts",
+                    "line": 344,
+                    "column": 3
+                  },
+                  {
+                    "title": "narrow screens open the issue editor directly and close returns to the list",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 0,
+                            "parallelIndex": 0,
+                            "status": "passed",
+                            "duration": 1163,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:31.464Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-59ab791e965854692bcc",
+                    "file": "workspace.spec.ts",
+                    "line": 381,
+                    "column": 3
+                  },
+                  {
+                    "title": "project navigation filters canonical data and close returns to that project",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 0,
+                            "parallelIndex": 0,
+                            "status": "passed",
+                            "duration": 1126,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:32.635Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-6f39f229ef1013efb8a7",
+                    "file": "workspace.spec.ts",
+                    "line": 403,
+                    "column": 3
+                  },
+                  {
+                    "title": "an unknown project cannot open creation for a nonexistent project",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 1,
+                            "parallelIndex": 1,
+                            "status": "passed",
+                            "duration": 1079,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:33.320Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-0520e0ed8feb3f459046",
+                    "file": "workspace.spec.ts",
+                    "line": 420,
+                    "column": 3
+                  },
+                  {
+                    "title": "creating an issue through the Dialog updates shared data and opens its route",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 0,
+                            "parallelIndex": 0,
+                            "status": "passed",
+                            "duration": 1754,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:33.771Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-97dbc447ccd4bb31842e",
+                    "file": "workspace.spec.ts",
+                    "line": 436,
+                    "column": 3
+                  },
+                  {
+                    "title": "creating from a Board column keeps its project and status defaults",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 1,
+                            "parallelIndex": 1,
+                            "status": "passed",
+                            "duration": 1461,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:34.407Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-9d85ac6d1aec247e31dc",
+                    "file": "workspace.spec.ts",
+                    "line": 489,
+                    "column": 3
+                  },
+                  {
+                    "title": "search and status filters combine without changing shared issues",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 0,
+                            "parallelIndex": 0,
+                            "status": "passed",
+                            "duration": 1275,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:35.533Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-b8e10d4f63d9f302ac13",
+                    "file": "workspace.spec.ts",
+                    "line": 535,
+                    "column": 3
+                  },
+                  {
+                    "title": "a filtered deep link restores its controls and results after reload",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 1,
+                            "parallelIndex": 1,
+                            "status": "passed",
+                            "duration": 1845,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:35.879Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-55a4be207589fc2f5a41",
+                    "file": "workspace.spec.ts",
+                    "line": 563,
+                    "column": 3
+                  },
+                  {
+                    "title": "Back and Forward restore filters on distinct issue routes",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 0,
+                            "parallelIndex": 0,
+                            "status": "passed",
+                            "duration": 1465,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:36.818Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-876fdb81314834e31b02",
+                    "file": "workspace.spec.ts",
+                    "line": 603,
+                    "column": 3
+                  },
+                  {
+                    "title": "issue reload and close preserve the filtered return URL",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 1,
+                            "parallelIndex": 1,
+                            "status": "passed",
+                            "duration": 1910,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:37.732Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-305dcd98e98a9f887e1a",
+                    "file": "workspace.spec.ts",
+                    "line": 677,
+                    "column": 3
+                  },
+                  {
+                    "title": "a modified native member issue link opens a new tab without moving the directory",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 0,
+                            "parallelIndex": 0,
+                            "status": "passed",
+                            "duration": 1956,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:38.293Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-bbbe0349757756ade11a",
+                    "file": "workspace.spec.ts",
+                    "line": 717,
+                    "column": 3
+                  },
+                  {
+                    "title": "malformed filter values use defaults and clear to the canonical URL",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 1,
+                            "parallelIndex": 1,
+                            "status": "passed",
+                            "duration": 1112,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:39.652Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-f3ce95e6bbaa69ffc7a9",
+                    "file": "workspace.spec.ts",
+                    "line": 745,
+                    "column": 3
+                  },
+                  {
+                    "title": "the command shortcut opens the palette and keyboard selection navigates to an issue",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 0,
+                            "parallelIndex": 0,
+                            "status": "passed",
+                            "duration": 1184,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:40.261Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-3d8a4c849f443f7eed15",
+                    "file": "workspace.spec.ts",
+                    "line": 776,
+                    "column": 3
+                  },
+                  {
+                    "title": "background activity waits for the full 20-second interval",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 1,
+                            "parallelIndex": 1,
+                            "status": "passed",
+                            "duration": 766,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:40.773Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-36ad514b87acfedd5fae",
+                    "file": "workspace.spec.ts",
+                    "line": 822,
+                    "column": 3
+                  },
+                  {
+                    "title": "a saved sidebar view restores its settings and deleting it returns to all issues",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 0,
+                            "parallelIndex": 0,
+                            "status": "passed",
+                            "duration": 1931,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:41.458Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-b43e5bccdbcfebdf838f",
+                    "file": "workspace.spec.ts",
+                    "line": 854,
+                    "column": 3
+                  },
+                  {
+                    "title": "a saved-view issue return survives reload without session preset metadata",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 1,
+                            "parallelIndex": 1,
+                            "status": "passed",
+                            "duration": 2432,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:41.551Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-a8769e61af5a15ee65a7",
+                    "file": "workspace.spec.ts",
+                    "line": 939,
+                    "column": 3
+                  },
+                  {
+                    "title": "a keyboard cross-column drop updates issue details and returns to the same board",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 0,
+                            "parallelIndex": 0,
+                            "status": "passed",
+                            "duration": 1321,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:43.397Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-3b51242dfa4ab464a9f7",
+                    "file": "workspace.spec.ts",
+                    "line": 1006,
+                    "column": 3
+                  },
+                  {
+                    "title": "keyboard drag reorders project issues and retains the order across navigation",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 1,
+                            "parallelIndex": 1,
+                            "status": "passed",
+                            "duration": 1313,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:43.994Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-5684d34badb94bc36650",
+                    "file": "workspace.spec.ts",
+                    "line": 1060,
+                    "column": 3
+                  },
+                  {
+                    "title": "posting a comment preserves a dirty issue draft and remains visible after reopening",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 0,
+                            "parallelIndex": 0,
+                            "status": "passed",
+                            "duration": 1597,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:44.732Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-936297282361b6c486cc",
+                    "file": "workspace.spec.ts",
+                    "line": 1127,
+                    "column": 3
+                  },
+                  {
+                    "title": "a pointer drop stays in its target column before the save finishes",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 1,
+                            "parallelIndex": 1,
+                            "status": "passed",
+                            "duration": 1192,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:45.315Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-4f623b1bd57997c4edef",
+                    "file": "workspace.spec.ts",
+                    "line": 1158,
+                    "column": 3
+                  },
+                  {
+                    "title": "a board move stays in place before the save finishes and preserves keyboard focus",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 0,
+                            "parallelIndex": 0,
+                            "status": "passed",
+                            "duration": 1218,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:46.338Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-5a7f929e00af43b01efe",
+                    "file": "workspace.spec.ts",
+                    "line": 1206,
+                    "column": 3
+                  },
+                  {
+                    "title": "a cross-column drop stays in its new status before saving and keeps keyboard focus",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 1,
+                            "parallelIndex": 1,
+                            "status": "passed",
+                            "duration": 1255,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:46.522Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-8be726c1f85204b1267a",
+                    "file": "workspace.spec.ts",
+                    "line": 1237,
+                    "column": 3
+                  },
+                  {
+                    "title": "a retained issue save settles while another issue is open",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 0,
+                            "parallelIndex": 0,
+                            "status": "passed",
+                            "duration": 1440,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:47.563Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-37ecf7b76705c957cec0",
+                    "file": "workspace.spec.ts",
+                    "line": 1275,
+                    "column": 3
+                  },
+                  {
+                    "title": "opening a notification preserves unread state and selecting it opens the issue",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 1,
+                            "parallelIndex": 1,
+                            "status": "passed",
+                            "duration": 1659,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:47.798Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-a1db85cd021ddf2c3b77",
+                    "file": "workspace.spec.ts",
+                    "line": 1322,
+                    "column": 3
+                  },
+                  {
+                    "title": "assignment and read state stay scoped to their recipient",
+                    "ok": true,
+                    "tags": [],
+                    "tests": [
+                      {
+                        "timeout": 60000,
+                        "annotations": [],
+                        "expectedStatus": "passed",
+                        "projectId": "chromium",
+                        "projectName": "chromium",
+                        "results": [
+                          {
+                            "workerIndex": 0,
+                            "parallelIndex": 0,
+                            "status": "passed",
+                            "duration": 2338,
+                            "errors": [],
+                            "stdout": [],
+                            "stderr": [],
+                            "retry": 0,
+                            "startTime": "2026-10-26T19:09:49.012Z",
+                            "annotations": [],
+                            "attachments": []
+                          }
+                        ],
+                        "status": "expected"
+                      }
+                    ],
+                    "id": "b163ed09f68681248ada-14bf997e7952afe0fc0c",
+                    "file": "workspace.spec.ts",
+                    "line": 1370,
+                    "column": 3
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "errors": [],
+        "stats": {
+          "startTime": "2026-10-26T19:09:22.660Z",
+          "duration": 28985.943,
+          "expected": 32,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        }
+      },
+      "workspaceProvenance": "approved exact committed source snapshot; fresh Workspace regression coverage"
+    },
+    "publishedRegistryAcceptance": false,
+    "publication": false
+  },
+  "finalRehearsalReview": {
+    "status": "Passed",
+    "sourceCommit": "f5506b7e240a4d8987338f22427a2bd1ecdf9cb5",
+    "sourceDigest": "b8b162accc756093e0516fbc0d0c12378915370b2eb680514d377fc0086f2abe",
+    "sourceQualification": {
+      "tracked": 6900,
+      "additionalRecordedGeneratedSources": 106,
+      "totalCapturedBeforeIsolatedLocalMetadata": 7006
+    },
+    "artifactManifestSha256": "e2bff55a430b38b6c5fa9ea679cec9bbcef5b92784c009f54dd120c153dfbe95",
+    "rehearsalSummarySha256": "820a95a90ad59e83b053e253c2e40c11c3984d2b54fd774fec00f7d6d856d65a",
+    "installedProvenanceSha256": "fd34dce15f518521ad6c74a4b0982cba117b74ab2c7584b540175bf2c9765b94",
+    "allNineArtifactSha256Sha512AndPackedIdentityVerified": true,
+    "originalEightArtifactsUnchangedFromHandshake": true,
+    "packedFoldkitContainsDuplicateMountGuard": true,
+    "artifacts": [
+      {
+        "name": "foldkit",
+        "version": "0.169.0-local.b8b162accc75",
+        "sha256": "69d757c748402def2f7ee4303b91994af817c53b86bc9a0c0ca809aef2120a53",
+        "integrity": "sha512-ihfBT4DEft9AP7Yw8r0EWi6tuLWWXEVm4oLwVzRktfrlz+4hC9vI1RfM7UZUrh0WjzpYDmNIceGzRwJ9ltUdLA=="
+      },
+      {
+        "name": "@foldkit/ui",
+        "version": "0.169.0-local.b8b162accc75",
+        "sha256": "21eb266edf1fb7a3cc94a9cbd31bed2183f95d355439db651cdbe894e90b6ff1",
+        "integrity": "sha512-j3wwCz/763ADZghia5MVlaZyXru/UX2r6m9AHaeDHY5y8Gqebg8CJcweNGq/3q9TeSPCJu7ckV2KyjEXRyhYVQ=="
+      },
+      {
+        "name": "@foldkit/devtools",
+        "version": "0.169.0-local.b8b162accc75",
+        "sha256": "b8cb964c251fe4f18c0e0ead8eceab193eca03c33bae936709a75af35c6766b4",
+        "integrity": "sha512-HHQyD6amrCeOW+4Vd9+MzUa/uVZR3jk2uq0ld58iHpIhloqN5zoHiP8YNwThNCErXwBK45X/cTwBcjXCkV5p/A=="
+      },
+      {
+        "name": "@foldkit/devtools-mcp",
+        "version": "0.25.0-local.b8b162accc75",
+        "sha256": "841f256db7c1d9fce50b66d178a4aa7b4d2d2d4385c6adfbc74fea46292db5ee",
+        "integrity": "sha512-sF8vAughJW0MTBR1gf8wTFPLTYVLsU3C0vhHDJRrTXBpBO4gdNNv86QGrhiPIridCV4Aspn6ODbtcgZfp1Tksg=="
+      },
+      {
+        "name": "@foldkit/oxlint-plugin",
+        "version": "0.15.3-local.b8b162accc75",
+        "sha256": "52e1cec19f069575c1150f99126b7f2fc8367b48b2302a55a056e69c99da386e",
+        "integrity": "sha512-f1/CH36YBWynacsX6msMao7e5LpgbvnRvSCS+aqoDQMhiuZsMzcMb4w8GFJ9ynOVOv0xgCmLxucpebU3dYkV7g=="
+      },
+      {
+        "name": "@foldkit/vite-plugin",
+        "version": "0.28.0-local.b8b162accc75",
+        "sha256": "7852474800b2855a097ae2346c750ac11f9cda62bfb6c0e070e3c59e091e5989",
+        "integrity": "sha512-VX+M3ycTY+Wj4vLWWtWSzj/obCJBC9q7zYit2C0erb/vFvNtGX0P3jufFHceN44gp+9Hl/kU7szjeHEfn5zh5w=="
+      },
+      {
+        "name": "@foldkit/node",
+        "version": "0.1.0-local.b8b162accc75",
+        "sha256": "b14e2b5ecfb5f9bfd567215c81f897fadf83b8b5c3fca875e26fd16b5148ef71",
+        "integrity": "sha512-sBrWIEY+Y1t6Uf7GiKo/jQrK7fmg/d0kwWPuy0I4Nm9wa1UJY+ST9/Fyt13w5MRJxMO4M8ETK2vCEtcMbtt8cQ=="
+      },
+      {
+        "name": "@foldkit/markdown",
+        "version": "0.14.4-local.b8b162accc75",
+        "sha256": "da7e492492c399fb555ad7e48fd438689b4b20c24e10ae941450ee2eb09ffd6e",
+        "integrity": "sha512-iiOaQCPflJwIlL+YtQSDwP9f8mG46aOhZQbHPqsz2UU+dVkbm0GkLht7rLOkIiYpIDBhyZinuZrvjV6eDtH0wg=="
+      },
+      {
+        "name": "create-foldkit-app",
+        "version": "0.40.0-local.b8b162accc75",
+        "sha256": "75fb1bc9ce2479213692e7a59c14e7493c2a8be824af9700961e175b76720b08",
+        "integrity": "sha512-abPR4/izpLwdvwHcUw6K0L1cvsFQanGOiwihxgzo8pkjLetRnjrp/H/neN123Keq+i0V/L+agFrY+1XmhHAtIw=="
+      }
+    ],
+    "compilers": {
+      "eightLibraries": ["Version 7.1.0-beta"],
+      "cli": "Version 7.0.2"
+    },
+    "consumers": 5,
+    "gates": {
+      "coverchart": [
+        {
+          "name": "typecheck",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/coverchart-typecheck.log"
+        },
+        {
+          "name": "lint",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/coverchart-lint.log"
+        },
+        {
+          "name": "test",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/coverchart-test.log"
+        },
+        {
+          "name": "build",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/coverchart-build.log"
+        },
+        {
+          "name": "test-count",
+          "status": "Passed",
+          "count": 40
+        }
+      ],
+      "scaffolds": [
+        {
+          "mode": "spa",
+          "gate": "typecheck",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-spa-typecheck.log"
+        },
+        {
+          "mode": "spa",
+          "gate": "lint",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-spa-lint.log"
+        },
+        {
+          "mode": "spa",
+          "gate": "test",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-spa-test.log"
+        },
+        {
+          "mode": "spa",
+          "gate": "build",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-spa-build.log"
+        },
+        {
+          "mode": "ssg",
+          "gate": "typecheck",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-ssg-typecheck.log"
+        },
+        {
+          "mode": "ssg",
+          "gate": "lint",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-ssg-lint.log"
+        },
+        {
+          "mode": "ssg",
+          "gate": "test",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-ssg-test.log"
+        },
+        {
+          "mode": "ssg",
+          "gate": "build",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-ssg-build.log"
+        },
+        {
+          "mode": "ssr",
+          "gate": "typecheck",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-ssr-typecheck.log"
+        },
+        {
+          "mode": "ssr",
+          "gate": "lint",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-ssr-lint.log"
+        },
+        {
+          "mode": "ssr",
+          "gate": "test",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-ssr-test.log"
+        },
+        {
+          "mode": "ssr",
+          "gate": "build",
+          "status": "Passed",
+          "logPath": "/private/tmp/foldkit-mount-final-rehearsal-20261026/scaffold-ssr-build.log"
+        }
+      ],
+      "testingFollowups": "Passed",
+      "eventDelivery": "Passed",
+      "dynamicInit": "Passed",
+      "initializationFamily": "Passed",
+      "coverchartBrowser": "Passed",
+      "scaffoldBrowser": "Passed",
+      "workspaceBrowserStats": {
+        "startTime": "2026-10-26T19:09:22.660Z",
+        "duration": 28985.943,
+        "expected": 32,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "workspaceBrowserErrors": []
+    },
+    "policyRelaxed": false,
+    "actualCoverchart": {
+      "head": "c51e856b2e75ca44106e37ead24f9c4e8046aef0",
+      "status": "?? .claude/\n",
+      "trackedFilesUnchanged": 88,
+      "verifiedAfterBrowserGates": true
+    },
+    "historicalCacheSourceIndexUnchanged": true,
+    "prepared52InputsUnchanged": true,
+    "qualifications": [
+      "Unpublished local package labels and local CLI/SSG metadata transport; not registry acceptance.",
+      "Fresh scaffold fixture overrides preserve minimum release age policy; policyRelaxed:false.",
+      "First sandbox attempt encountered registry ENOTFOUND; rehearsal-only process group terminated; unchanged authorized network retry passed.",
+      "Workspace Vite emitted existing native-config compatibility warning, occupied DevTools MCP port9991 warning (relay not started), and one 17.3ms slow-view warning; no unrelated process was stopped."
+    ],
+    "publication": false,
+    "integration": false
+  },
+  "daybreakRun": {
+    "startedAtUtc": "2026-10-26T19:06:26.298956+00:00",
+    "state": "Finished",
+    "command": [
+      "codex",
+      "exec",
+      "-m",
+      "gpt-daybreak-blue-latest",
+      "-s",
+      "read-only",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--cyber-access-program",
+      "daybreak_blue",
+      "-C",
+      "/private/tmp/foldkit-mount-final-security-20261026/source",
+      "--ephemeral",
+      "--color",
+      "never",
+      "--output-last-message",
+      "/private/tmp/foldkit-mount-final-security-20261026/daybreak-addendum-f5506b7e24.md",
+      "-"
+    ],
+    "sourceCommit": "f5506b7e240a4d8987338f22427a2bd1ecdf9cb5",
+    "baseCommit": "f6ead23c15e7317465ab42df715b076764561564",
+    "promptSha256": "78a9dbcd3d84e4d0b4b6e0c996a5c209e6dd27f3244ef72053eb32e648be022a",
+    "finishedAtUtc": "2026-10-26T19:10:07.813051+00:00",
+    "exitCode": 0,
+    "reportExists": true,
+    "reportSha256": "eed7a4a01d94fe3ce163b3bf6a9ff7dfd19f997ca97786b1120e3976f70dbb55",
+    "finalHead": "f5506b7e240a4d8987338f22427a2bd1ecdf9cb5",
+    "finalStatus": "",
+    "frozenHeadAndStatusPreserved": true
+  },
+  "publicSourceVerification": [
+    {
+      "url": "https://api.github.com/repos/foldkit/foldkit/commits/f6ead23c15e7317465ab42df715b076764561564",
+      "status": 200,
+      "sha": "f6ead23c15e7317465ab42df715b076764561564",
+      "authorizationHeaderSent": false
+    },
+    {
+      "url": "https://api.github.com/repos/foldkit/foldkit/commits/f5506b7e240a4d8987338f22427a2bd1ecdf9cb5",
+      "status": 200,
+      "sha": "f5506b7e240a4d8987338f22427a2bd1ecdf9cb5",
+      "authorizationHeaderSent": false
+    }
+  ],
+  "originalCaptureHashes": {
+    "/private/tmp/foldkit-mount-final-rehearsal-20261026/rehearsal-summary.json": "820a95a90ad59e83b053e253c2e40c11c3984d2b54fd774fec00f7d6d856d65a",
+    "/private/tmp/foldkit-mount-final-rehearsal-20261026/artifacts.json": "e2bff55a430b38b6c5fa9ea679cec9bbcef5b92784c009f54dd120c153dfbe95",
+    "/private/tmp/foldkit-mount-final-rehearsal-20261026/installed-provenance.json": "fd34dce15f518521ad6c74a4b0982cba117b74ab2c7584b540175bf2c9765b94",
+    "/private/tmp/foldkit-mount-final-security-20261026/frozen-source.json": "04305a932ef08b4706d494d0c04340b2407f0678ee8c619ab035f2e0594fa6b4",
+    "/private/tmp/foldkit-mount-final-security-20261026/daybreak-addendum-f5506b7e24.md": "eed7a4a01d94fe3ce163b3bf6a9ff7dfd19f997ca97786b1120e3976f70dbb55"
+  },
+  "scopeLimits": [
+    "Tracked implementation is exactly f5506b7, plus106 recorded generated source seeds and isolated local package labels.",
+    "Browser evidence is local, not a deployed or published-registry acceptance claim.",
+    "Rendering measurements keep their earlier fa96 pin; this guard adds no rendering timing claim.",
+    "Publication and integration remain held for user approval."
+  ],
+  "independentRehearsalReview": {
+    "originalSha256": "2a2e73138f98a8dd4c1039318c3e2b3957928ef4b9e1a4c26e2efe20d3334745",
+    "review": {
+      "status": "Passed",
+      "reviewedAt": "2026-10-26T19:12:46.150244+00:00",
+      "scope": "Independent static source, artifact, installed-byte and completed gate-evidence review; no build, install, test, browser, publication or push performed.",
+      "sourceCommit": "f5506b7e240a4d8987338f22427a2bd1ecdf9cb5",
+      "sourceDigest": "b8b162accc756093e0516fbc0d0c12378915370b2eb680514d377fc0086f2abe",
+      "sourceQualification": {
+        "trackedFilesMatchingCommit": 6900,
+        "recordedGeneratedSeedFiles": 106,
+        "totalManifestFiles": 7006,
+        "postFreezeTrackedChanges": "Only nine deliberate local package-manifest labels. Website generated seeds are not packed; lint presets are regenerated by the build."
+      },
+      "artifactCount": 9,
+      "artifactSha256AndSha512Verified": true,
+      "packedFilesMatchFrozenBuild": true,
+      "directInstalledFileComparisons": 7481,
+      "internalInstalledFileComparisons": 6250,
+      "allInstalledBytesMatch": true,
+      "eightLibraryHandshakeArtifactsUnchanged": true,
+      "packedDuplicateMountGuardPresent": true,
+      "guardEmissionSha256": "2049ed0c883323392c5d3092d4e8fd5912f79d50566aa7cb1a998ebee7dc95fc",
+      "compilers": {
+        "eightLibraries": "7.1.0-beta",
+        "cli": "7.0.2"
+      },
+      "completedGates": {
+        "coverchartTests": 40,
+        "scaffoldModes": ["spa", "ssg", "ssr"],
+        "installedContracts": "Passed",
+        "workspaceBrowserPassed": 32,
+        "workspaceSkipped": 0,
+        "workspaceUnexpected": 0,
+        "workspaceFlaky": 0
+      },
+      "originalCoverchartTrackedFilesUnchanged": 88,
+      "qualifications": [
+        "Local packed-package rehearsal only; no published-registry or deployment acceptance.",
+        "SSG uses the recorded local UI peer transport.",
+        "Three fixture infrastructure overrides retained with policyRelaxed:false.",
+        "Dependency security assessment and Daybreak addendum remain separate evidence."
+      ],
+      "evidence": [
+        "independent-source-verification.json",
+        "independent-artifact-verification.json",
+        "independent-gate-verification.json"
+      ],
+      "finalManifestHashes": {
+        "artifacts.json": "e2bff55a430b38b6c5fa9ea679cec9bbcef5b92784c009f54dd120c153dfbe95",
+        "rehearsal-summary.json": "820a95a90ad59e83b053e253c2e40c11c3984d2b54fd774fec00f7d6d856d65a",
+        "installed-provenance.json": "fd34dce15f518521ad6c74a4b0982cba117b74ab2c7584b540175bf2c9765b94",
+        "final-stage-review.json": "e1c64dbc0641afda274d6dfa46e26be58f8071a22dd572e44337274325755d9c"
+      },
+      "blockers": []
+    }
+  }
+}
