@@ -1,6 +1,19 @@
 # Next preview release handoff
 
-## Latest preparation checkpoint
+## Verified published snapshot
+
+The published snapshot is `f3be22cfeefed437164ad614d08b16d9000e0703`.
+Its authoritative nine-package manifest, immutable Website, actual Coverchart
+upgrade and retained qualifications are recorded in the
+[October 26 publication report](preview-publication-20261026.md). The generated
+PR #1655 handoff is posted and read back after this evidence commit.
+
+The release was integrated only into `codex/layers-and-submodels`; Foldkit
+`main` was not changed. Sections below preserve their original preparation
+state, local artifact labels and evidence pins. They are historical context,
+not current installation instructions.
+
+## Historical preparation checkpoint
 
 Use the [October 26 approval summary](preview-approval-20261026.md) for frozen
 implementation `f5506b7e240a4d8987338f22427a2bd1ecdf9cb5` and local package

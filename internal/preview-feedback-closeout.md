@@ -4,11 +4,20 @@
 
 This ledger reconciles 38 numbered source reports into 44 disposition rows. A disposition records what Foldkit supports, what changed, or why work remains deferred; it does not mean every requested API was added.
 
-The October 24 scope correction reopened Record/HashMap adapters, aggregate ManagedResource Layer assessment, public pending-Command inspection, and remaining diagnostics. All four are now implemented locally with retained source/emitted/runtime proofs and unchanged compiler budgets. Earlier failed controls remain historical evidence, not approved deferrals. [Current APIs, checks, native editor measurements, and release limits](composition-feedback-closeout.md). The expanded Workspace root now emits and relocates with its measured private boundary. The October 25 candidate passed its record-inference, measurement, inclusive artifact and independent-review gates at `679d2d5e7f`. The subsequent testing and storage followups require their own combined verification below; neither checkpoint promotes Ready.
+The verified published snapshot is
+`f3be22cfeefed437164ad614d08b16d9000e0703`. Its exact package cohort,
+immutable deployment, actual consumer upgrade and retained limits are recorded
+in the [October 26 publication report](preview-publication-20261026.md). Broader
+foldkit-plus ownership, lifecycle and integration proposals remain open design
+work. The four reopened areas—Record/HashMap adapters, aggregate ManagedResource
+Layers, pending-Command inspection and diagnostics—are included with their
+existing proofs; they are not still deferred.
 
-The published Ready snapshot is `1f6776fa7ececa766188df5201eefec6ba781b5d`. It includes the checked preparation/assembly boundary and the earlier feedback fixes recorded below. The subsequent Workspace example, Model-aware Command Steps, handler-record updates, connected OutMessage checks, and named public UI headers target the next preview. [The next-preview task list](./next-preview-tasks.md) and [integrated performance report](./preview-framework-performance.md) record their current verification and remaining limits. Publication requires the user's approval; local preparation does not promote another Ready snapshot.
-
-The checkpoint sections below preserve the evidence gathered before the published snapshot. Their older local-versus-published labels describe those checkpoints, not the next candidate's current release status. Repository links resolve within the checkout containing this ledger; unpublished commits are not linked to GitHub blobs.
+Rows and checkpoint sections below preserve the wording that applied when each
+result was recorded. Labels such as “local,” “unreleased,” and “publication
+pending” are historical status; the publication report identifies what shipped.
+Repository links resolve within the checkout containing this ledger. The PR's
+external handoff update and readback follow this evidence commit.
 
 | Follow-up commit | Scope after Ready                                                                        |
 | ---------------- | ---------------------------------------------------------------------------------------- |

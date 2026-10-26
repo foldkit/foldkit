@@ -2,13 +2,29 @@
 
 ## Release boundary
 
-The published preview is `1f6776fa7ececa766188df5201eefec6ba781b5d`. Work listed here targets the next preview. Publication requires a separately verified candidate; completing a task does not change the published Ready snapshot.
+The verified published snapshot is
+`f3be22cfeefed437164ad614d08b16d9000e0703`, with source tree
+`17ef995528c447cd13604ffcd390a63d73ec6953`. Its nine-package manifest,
+immutable Website and actual Coverchart upgrade pass the
+[publication report's gates](preview-publication-20261026.md).
 
-Preserve concurrent edits. Preview integration targets `codex/layers-and-submodels`, not `main`.
+Preview integration remains on `codex/layers-and-submodels`; Foldkit `main`
+was not changed by this release. The preparation sections below retain their
+original status, source pins and publication holds as historical evidence.
 
-The user has explicitly held publication pending approval. Prepare and verify locally; pushing the integration branch would itself trigger publication and is outside this preparation step. [Release handoff](next-preview-release-handoff.md).
+## Publication completion, October 26
 
-## Final approval preparation, October 26
+- [x] Publish and verify all nine registry packages from `f3be22cfeefe`.
+- [x] Verify the matching immutable Website, guides, manifest and live SSR/SSG
+      playgrounds.
+- [x] Upgrade, verify, independently review, commit and push actual Coverchart.
+- [x] Generate and review PR #1655's three consumer paths and exact prompts from
+      the verified manifest. External posting/readback follows this evidence
+      commit and is recorded separately.
+- [x] Record security, performance, topology and feedback qualifications in the
+      [publication report](preview-publication-20261026.md).
+
+## Historical final approval preparation, October 26
 
 - [x] Apply the two approved small wins from the new foldkit-plus report:
       reject duplicate `OnMount` attributes before handler acquisition and
