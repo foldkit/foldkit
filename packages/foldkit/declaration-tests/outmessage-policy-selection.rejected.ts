@@ -3,8 +3,8 @@ import { Block, Message, Update } from 'foldkit'
 
 import {
   ChildBlock,
-  ChildModel,
   ChildMessage,
+  ChildModel,
   ChildOutMessage,
   EntriesBinding,
   EntriesBindingWithOutMessagePolicy,

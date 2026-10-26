@@ -1,12 +1,12 @@
 import {
   ApplicationBlock,
+  type ApplicationBoundaryAssertions,
+  type ExactBoundaryAssertions,
   ReportingViewedBlock,
   ViewedBlock,
   applicationMessage,
   applicationModel,
   makeApplication,
-  type ApplicationBoundaryAssertions,
-  type ExactBoundaryAssertions,
 } from './named-assembly-header.barrel.js'
 
 const consumesApplicationType: ApplicationBlock = ApplicationBlock

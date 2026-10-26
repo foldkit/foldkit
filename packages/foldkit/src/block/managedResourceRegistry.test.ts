@@ -189,7 +189,9 @@ describe('Definition ManagedResource registry', () => {
     await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* () {
+          // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
           const value = yield* resources.connection.acquire(null)
+          // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
           yield* resources.connection.release(value)
         }).pipe(Effect.provide(resources.layer)),
       ),

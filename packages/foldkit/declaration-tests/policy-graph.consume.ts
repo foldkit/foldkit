@@ -1,6 +1,6 @@
 import { Update } from 'foldkit'
 
-import { update, run, ChildBlock } from './policy-graph.accepted.js'
+import { ChildBlock, run, update } from './policy-graph.accepted.js'
 
 type Equal<Left, Right> =
   (<Value>() => Value extends Left ? 1 : 2) extends <

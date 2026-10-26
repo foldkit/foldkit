@@ -271,7 +271,7 @@ it('does not evaluate context factories for generated child-envelope delivery', 
   )
   expect(scaled.model.scaledCount).toBe(6)
   expect([factoryCalls, handlerCalls]).toEqual([1, 1])
-  const childMessage = Schema.decodeUnknownSync(ParentComposition.Message)({
+  const childMessage = Schema.decodeSync(ParentComposition.Message)({
     _tag: 'GotChildMessage',
     placement: 'child',
     generation: 0,

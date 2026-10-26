@@ -15,7 +15,7 @@ const FruitMultiCombobox = MultiCombobox.create(Fruit)
 const FruitListbox = Listbox.create<Fruit>()
 const FruitMultiListbox = MultiListbox.create<Fruit>()
 
-type OutMessageOf<Producer extends (...args: ReadonlyArray<any>) => unknown> =
+type OutMessageOf<Producer extends (...args: ReadonlyArray<never>) => unknown> =
   ReturnType<Producer> extends Readonly<{ outMessage?: infer OutMessage }>
     ? Exclude<OutMessage, undefined>
     : never

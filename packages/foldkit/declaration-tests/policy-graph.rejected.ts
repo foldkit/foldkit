@@ -2,6 +2,7 @@ import {
   ApplicationDefinition,
   p0,
   p1,
+  p10,
   p2,
   p3,
   p4,
@@ -10,7 +11,6 @@ import {
   p7,
   p8,
   p9,
-  p10,
 } from './policy-graph.accepted.js'
 
 // @ts-expect-error A converging reciprocal policy still requires every referenced Binding.

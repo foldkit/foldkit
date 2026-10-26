@@ -1,8 +1,8 @@
 import type { Block, Update } from 'foldkit'
 
 import {
-  ChildBlock,
   BroadNumberChildrenBinding,
+  ChildBlock,
   ChildrenByIdBinding,
   ChildrenByNumberBinding,
   FiniteChildrenBinding,

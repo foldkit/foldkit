@@ -9,8 +9,8 @@ import type {
 } from './binding.js'
 import type { GeneratedEnvelopeOf } from './childEnvelope.js'
 import type {
-  ResolveCompositionOutput,
   HasInvalidCombinedStepsRegistration,
+  ResolveCompositionOutput,
 } from './deferredPolicy.js'
 import type { DefinedUpdate, DefinedUpdateSource } from './definition.js'
 import {

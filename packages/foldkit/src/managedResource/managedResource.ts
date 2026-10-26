@@ -23,9 +23,9 @@ import {
 import { type Handler, type ToLayer, makeHandler } from './handler.js'
 import type { ManagedResourceService } from './public.js'
 import {
-  RegistryEntriesTypeId,
   type Registry,
   type RegistryEntries,
+  RegistryEntriesTypeId,
 } from './registry.js'
 
 export type { Handler, HandlerOf, ToLayer } from './handler.js'
@@ -575,8 +575,10 @@ type AnyResources = AnyResourceEntries | Registry<AnyResourceEntries>
 
 const registryEntries = (resources: AnyResources): AnyResourceEntries =>
   Object.hasOwn(resources, RegistryEntriesTypeId)
-    ? (Reflect.get(resources, RegistryEntriesTypeId) as AnyResourceEntries)
-    : (resources as AnyResourceEntries)
+    ? /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      (Reflect.get(resources, RegistryEntriesTypeId) as AnyResourceEntries)
+    : /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      (resources as AnyResourceEntries)
 
 const resourceEntryKeys = (resources: AnyResourceEntries): Array<string> => {
   const prototype = Object.getPrototypeOf(resources)

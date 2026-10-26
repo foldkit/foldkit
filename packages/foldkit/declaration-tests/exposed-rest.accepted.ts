@@ -50,7 +50,7 @@ const childUpdate = ChildComposition.makeUpdate({
       count: count => count + values.length,
     }),
   }),
-  RequestedReset: model => ({ model: ChildModel.make({ count: 0 }) }),
+  RequestedReset: _model => ({ model: ChildModel.make({ count: 0 }) }),
 })
 const prepareChildBlock = () =>
   ChildComposition.prepareBlock({

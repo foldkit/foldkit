@@ -93,7 +93,7 @@ describe('interruptible Command.define', () => {
         )
         const args = { taskId: 7, revision: 3, label: 'seven' }
         const keyArgs = { taskId: 7, label: 'seven' }
-        const decodedKeyArgs = Schema.decodeUnknownSync(KeyArgs)({
+        const decodedKeyArgs = yield* Schema.decodeUnknownEffect(KeyArgs)({
           taskId: '7',
           label: 'seven',
           revision: 3,

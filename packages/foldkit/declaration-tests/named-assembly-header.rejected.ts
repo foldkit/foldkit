@@ -33,7 +33,7 @@ const wrongModelProducer = () =>
   })
 
 // @ts-expect-error A producer typed as any cannot define the interface boundary.
-interface AnyProducerBlock extends Block.FromAssemblyWithView<
+export interface AnyProducerBlock extends Block.FromAssemblyWithView<
   typeof Model,
   typeof anyProducer
 > {}
@@ -45,13 +45,13 @@ interface NeverProducerBlock extends Block.FromAssemblyWithView<
 // @ts-expect-error A producer typed as never cannot initialize the value boundary.
 const NeverProducerBlock: NeverProducerBlock = Block.assemble(neverProducer)
 
-interface AnyReturnBlock extends Block.FromAssemblyWithView<
+export interface AnyReturnBlock extends Block.FromAssemblyWithView<
   typeof Model,
   // @ts-expect-error A producer returning any cannot define the interface boundary.
   typeof returnsAny
 > {}
 
-interface ForgedProducerBlock extends Block.FromAssemblyWithView<
+export interface ForgedProducerBlock extends Block.FromAssemblyWithView<
   typeof Model,
   // @ts-expect-error A structurally forged producer cannot define the interface boundary.
   typeof forgedProducer
@@ -64,7 +64,7 @@ interface NeverReturnBlock extends Block.FromAssemblyWithView<
 // @ts-expect-error A producer returning never cannot initialize the value boundary.
 const NeverReturnBlock: NeverReturnBlock = Block.assemble(returnsNever)
 
-interface WrongModelBlock extends Block.FromAssemblyWithoutViewOrOutMessage<
+export interface WrongModelBlock extends Block.FromAssemblyWithoutViewOrOutMessage<
   typeof wrongModel,
   // @ts-expect-error The interface must name the producer's exact Model Schema.
   typeof wrongModelProducer

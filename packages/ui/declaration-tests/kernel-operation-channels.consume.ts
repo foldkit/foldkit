@@ -12,7 +12,7 @@ type Equal<Left, Right> =
     ? true
     : false
 type Expect<Value extends true> = Value
-type OutMessageOf<Producer extends (...args: ReadonlyArray<any>) => unknown> =
+type OutMessageOf<Producer extends (...args: ReadonlyArray<never>) => unknown> =
   ReturnType<Producer> extends Readonly<{ outMessage?: infer OutMessage }>
     ? Exclude<OutMessage, undefined>
     : never

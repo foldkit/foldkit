@@ -1,13 +1,12 @@
 import {
-  KeyedComposition,
+  ChildBinding,
   KeyedBinding,
-  ParentModel,
+  KeyedComposition,
+  LocalSave,
   ParentComposition,
   ParentDefinition,
-  ParentMessage,
+  ParentModel,
   ParentOutMessage,
-  ChildBinding,
-  LocalSave,
 } from './callback-guard.accepted.js'
 const keepModelStep = ParentDefinition.makeNoopStep()
 const validHandlers = {

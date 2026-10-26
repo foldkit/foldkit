@@ -10,9 +10,9 @@ import * as Update from 'foldkit/update'
 import {
   ChildBlock,
   CounterComposition,
+  Model as CounterModel,
   GraphFullComposition,
   GraphFullModel,
-  Model as CounterModel,
   OutMessage,
   ParentDefinition,
   PersistLayer,
@@ -21,6 +21,7 @@ import {
   RootComposition,
   SaveClient,
   earlyReturnUpdate,
+  graphFullUpdate,
   makePendingApplication,
   parentMessage,
   parentModel,
@@ -29,7 +30,6 @@ import {
   rootUpdate,
   rootView,
   ternaryUpdate,
-  graphFullUpdate,
 } from './dual-update.accepted.js'
 
 const rejectMissingBranchHandlers = () => {

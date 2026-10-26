@@ -1,8 +1,8 @@
 import {
   ChildModel,
   EntriesBindingWithOutMessagePolicy,
-  InlinePolicyComposition,
   InlinePolicyBlock,
+  InlinePolicyComposition,
   LeftBindingWithInlineOutMessagePolicy,
   LeftBindingWithOutMessagePolicy,
   LeftBindingWithReselectedOutMessagePolicy,

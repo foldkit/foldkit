@@ -8,7 +8,7 @@ import {
 } from './testing-event-delivery.accepted.js'
 
 // @ts-expect-error An explicit emitter annotation must retain its entry source contract.
-type MissingEmissionSource = Story.SubscriptionEmitter<
+export type MissingEmissionSource = Story.SubscriptionEmitter<
   typeof SubscriptionHostMessage.Type
 >
 
