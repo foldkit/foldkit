@@ -31,6 +31,15 @@ const invalidInitFragments = [
   "Property 'model' is missing",
   "Types of property 'outMessage' are incompatible",
 ]
+const commandDiagnosticFiles = [
+  'command-diagnostics.invalid-result.ts',
+  'command-diagnostics.invalid-args.ts',
+  'command-diagnostics.invalid-interrupt.ts',
+  'command-diagnostics.invalid-interrupt-generic.ts',
+  'command-diagnostics.invalid-interrupt-policy.ts',
+  'command-diagnostics.invalid-interrupt-tuple.ts',
+  'command-diagnostics.invalid-interrupt-rest.ts',
+]
 
 const fail = (message: string): never => {
   throw new Error(message)
@@ -140,6 +149,8 @@ const main = (): void => {
       'compiler-diagnostics.accepted.ts',
       'compiler-diagnostics.invalid.ts',
       'compiler-diagnostics.invalid-init.ts',
+      'command-diagnostics.accepted.ts',
+      ...commandDiagnosticFiles,
     ]) {
       copyFileSync(join(fixtureRoot, name), join(sources, name))
     }
@@ -167,6 +178,7 @@ const main = (): void => {
       files: [
         join(sources, 'compiler-diagnostics.fixture.ts'),
         join(sources, 'compiler-diagnostics.accepted.ts'),
+        join(sources, 'command-diagnostics.accepted.ts'),
       ],
     })
     requireSuccess(
@@ -197,6 +209,7 @@ const main = (): void => {
       files: [
         join(emitted, 'compiler-diagnostics.fixture.d.ts'),
         join(emitted, 'compiler-diagnostics.accepted.d.ts'),
+        join(emitted, 'command-diagnostics.accepted.d.ts'),
         join(emitted, 'compiler-diagnostics.invalid.ts'),
       ],
     })
@@ -225,6 +238,87 @@ const main = (): void => {
       ]),
       invalidInitFragments,
     )
+
+    const acceptedCommandConsumerConfig = join(
+      workspace,
+      'accepted-command-consumer.json',
+    )
+    writeJson(acceptedCommandConsumerConfig, {
+      compilerOptions: { ...compilerOptions, noEmit: true },
+      files: [join(emitted, 'command-diagnostics.accepted.d.ts')],
+    })
+    requireSuccess(
+      'Relocated emitted Command contract acceptance',
+      runCompiler(workspace, [
+        '-p',
+        acceptedCommandConsumerConfig,
+        '--pretty',
+        'false',
+      ]),
+    )
+
+    const sourceCommandConfig = join(workspace, 'source-command.json')
+    writeJson(sourceCommandConfig, {
+      compilerOptions: {
+        ...compilerOptions,
+        noEmit: true,
+        verbatimModuleSyntax: false,
+        paths: { foldkit: [join(packageRoot, 'src/index.ts')] },
+      },
+      files: [
+        join(packageRoot, 'src/vite-env.d.ts'),
+        join(sources, 'command-diagnostics.accepted.ts'),
+      ],
+    })
+    requireSuccess(
+      'Source Command diagnostic acceptance',
+      runCompiler(workspace, ['-p', sourceCommandConfig, '--pretty', 'false']),
+    )
+
+    for (const file of commandDiagnosticFiles) {
+      for (const kind of ['source', 'emitted']) {
+        const config = join(workspace, `${kind}-${file}.json`)
+        writeJson(config, {
+          compilerOptions: {
+            ...compilerOptions,
+            noEmit: true,
+            ...(kind === 'source'
+              ? {
+                  verbatimModuleSyntax: false,
+                  paths: { foldkit: [join(packageRoot, 'src/index.ts')] },
+                }
+              : {}),
+          },
+          files: [
+            ...(kind === 'source'
+              ? [join(packageRoot, 'src/vite-env.d.ts')]
+              : []),
+            join(sources, file),
+          ],
+        })
+        const result = runCompiler(workspace, [
+          '-p',
+          config,
+          '--pretty',
+          'false',
+          '--noErrorTruncation',
+        ])
+        requireDiagnostics(`${kind} ${file}`, result, [])
+        const diagnostics = result.output.match(/error TS\d+:/g) ?? []
+        const expectedDiagnostic =
+          file === 'command-diagnostics.invalid-interrupt-policy.ts'
+            ? 'error TS18048:'
+            : 'error TS2769:'
+        if (
+          diagnostics.length !== 2 ||
+          diagnostics.some(diagnostic => diagnostic !== expectedDiagnostic)
+        ) {
+          fail(
+            `${kind} Command diagnostics did not identify both invalid definitions in ${file}:\n${result.output}`,
+          )
+        }
+      }
+    }
 
     process.stdout.write(
       '[compiler-diagnostics] Source and relocated emitted diagnostics passed.\n',

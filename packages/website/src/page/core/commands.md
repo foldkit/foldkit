@@ -218,6 +218,10 @@ Use `interrupt: { keyFields, toKey }` when concurrent invocations need separate 
 
 `keyFields` selects the args used to derive the interruption key. It also controls the args accepted by `UploadFile.Interrupt`: the cancellation site needs `{ uploadId }`, not the original `file`.
 
+`toKey` receives only those selected own fields on both invocation and interruption. The handler still receives the full decoded args. The selected record has no prototype, so use `Object` helpers rather than inherited methods.
+
+Inline literal tuples preserve exact selected fields. For an extracted policy, preserve the selected key in its annotation, such as `Command.InterruptOption<typeof Args.Type, 'uploadId'>`. A broad key union cannot guarantee that every possible field is present; its callback must handle uncertain fields as optional. Narrow a union of differently keyed policies before constructing the Command.
+
 Do not key an upload by its file name. Two rows may upload the same file and still need independent cancellation.
 
 Foldkit prefixes every derived key with the owned Command name, and composition adds the Binding placement. Local names must already be unique within their named Block, and separate static placements do not collide. Items in one keyed Binding share a placement, so include the item's stable identity in the key when those items need independent cancellation. A single-instance Block needs no extra field.

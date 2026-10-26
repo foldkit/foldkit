@@ -62,17 +62,13 @@ type CommandWithArgs<
         Name,
         Fields,
         Pick<
-          Schema.Schema.Type<Schema.Struct<Fields>>,
-          Extract<KeyField, keyof Schema.Schema.Type<Schema.Struct<Fields>>>
+          Schema.Struct.Type<Fields>,
+          Extract<KeyField, keyof Schema.Struct.Type<Fields>>
         >,
         Effect.Effect<
           Message,
           never,
-          Command.Handler<
-            Name,
-            Schema.Schema.Type<Schema.Struct<Fields>>,
-            Message
-          >
+          Command.Handler<Name, Schema.Struct.Type<Fields>, Message>
         >
       >
     : Interrupt extends true
@@ -82,11 +78,7 @@ type CommandWithArgs<
           Effect.Effect<
             Message,
             never,
-            Command.Handler<
-              Name,
-              Schema.Schema.Type<Schema.Struct<Fields>>,
-              Message
-            >
+            Command.Handler<Name, Schema.Struct.Type<Fields>, Message>
           >
         >
       : Command.LayeredCommandDefinitionWithArgs<Name, Fields, Message>
@@ -111,17 +103,7 @@ export interface DefineCommand<Id extends string, OwnerMessage = unknown> {
     const Name extends string,
     Fields extends Schema.Struct.Fields,
     const Messages extends ReadonlyArray<Schema.Top>,
-    const KeyField extends keyof Schema.Schema.Type<Schema.Struct<Fields>> &
-      string,
-    const Interrupt extends
-      | true
-      | Readonly<{
-          keyFields: readonly [KeyField, ...ReadonlyArray<KeyField>]
-          toKey: (
-            keyArgs: Pick<Schema.Schema.Type<Schema.Struct<Fields>>, KeyField>,
-          ) => string
-        }>
-      | undefined,
+    const Interrupt extends true | undefined = undefined,
     HandlerRequirements = never,
     Yielded extends Effect.Effect<unknown, unknown, unknown> = Effect.Effect<
       never,
@@ -157,7 +139,7 @@ export interface DefineCommand<Id extends string, OwnerMessage = unknown> {
   > &
     CommandHandlerLayer<
       OwnedName<Id, Name>,
-      Schema.Schema.Type<Schema.Struct<Fields>>,
+      Schema.Struct.Type<Fields>,
       Schema.Schema.Type<Messages[number]>,
       Yielded,
       HandlerRequirements
@@ -165,7 +147,7 @@ export interface DefineCommand<Id extends string, OwnerMessage = unknown> {
     Readonly<{
       toLayer: Command.ToLayer<
         OwnedName<Id, Name>,
-        Schema.Schema.Type<Schema.Struct<Fields>>,
+        Schema.Struct.Type<Fields>,
         Schema.Schema.Type<Messages[number]>
       >
     }>
@@ -173,17 +155,7 @@ export interface DefineCommand<Id extends string, OwnerMessage = unknown> {
     const Name extends string,
     Fields extends Schema.Struct.Fields,
     const Messages extends ReadonlyArray<Schema.Top>,
-    const KeyField extends keyof Schema.Schema.Type<Schema.Struct<Fields>> &
-      string,
-    const Interrupt extends
-      | true
-      | Readonly<{
-          keyFields: readonly [KeyField, ...ReadonlyArray<KeyField>]
-          toKey: (
-            keyArgs: Pick<Schema.Schema.Type<Schema.Struct<Fields>>, KeyField>,
-          ) => string
-        }>
-      | undefined,
+    const Interrupt extends true | undefined = undefined,
   >(
     name: LocalName<Name>,
     config: Readonly<{
@@ -203,7 +175,107 @@ export interface DefineCommand<Id extends string, OwnerMessage = unknown> {
     Readonly<{
       toLayer: Command.ToLayer<
         OwnedName<Id, Name>,
-        Schema.Schema.Type<Schema.Struct<Fields>>,
+        Schema.Struct.Type<Fields>,
+        Schema.Schema.Type<Messages[number]>
+      >
+    }>
+  <
+    const Name extends string,
+    Fields extends Schema.Struct.Fields,
+    const Messages extends ReadonlyArray<Schema.Top>,
+    const KeyFields extends readonly [
+      keyof Schema.Struct.Type<Fields> & string,
+      ...ReadonlyArray<keyof Schema.Struct.Type<Fields> & string>,
+    ],
+    HandlerRequirements = never,
+    Yielded extends Effect.Effect<unknown, unknown, unknown> = Effect.Effect<
+      never,
+      never,
+      never
+    >,
+  >(
+    name: LocalName<Name>,
+    config: Readonly<{
+      args: Fields
+      messages: Messages &
+        ValidateOwnedMessages<NoInfer<Messages>, OwnerMessage>
+      handler: (() => Generator<
+        Yielded,
+        (
+          args: Schema.Struct.Type<NoInfer<Fields>>,
+        ) => Effect.Effect<
+          NoInfer<Schema.Schema.Type<Messages[number]>>,
+          never,
+          HandlerRequirements
+        >,
+        unknown
+      >) &
+        ValidateHandlerConstruction<Yielded>
+      execute?: never
+      interrupt: Readonly<{
+        keyFields: KeyFields
+        toKey: (
+          keyArgs: NoInfer<
+            Interruptible.KeyArgs<Schema.Struct.Type<Fields>, KeyFields>
+          >,
+        ) => string
+      }>
+    }>,
+  ): CommandWithArgs<
+    OwnedName<Id, Name>,
+    Fields,
+    Schema.Schema.Type<Messages[number]>,
+    Readonly<{ keyFields: KeyFields }>
+  > &
+    CommandHandlerLayer<
+      OwnedName<Id, Name>,
+      Schema.Struct.Type<Fields>,
+      Schema.Schema.Type<Messages[number]>,
+      Yielded,
+      HandlerRequirements
+    > &
+    Readonly<{
+      toLayer: Command.ToLayer<
+        OwnedName<Id, Name>,
+        Schema.Struct.Type<Fields>,
+        Schema.Schema.Type<Messages[number]>
+      >
+    }>
+  <
+    const Name extends string,
+    Fields extends Schema.Struct.Fields,
+    const Messages extends ReadonlyArray<Schema.Top>,
+    const KeyFields extends readonly [
+      keyof Schema.Struct.Type<Fields> & string,
+      ...ReadonlyArray<keyof Schema.Struct.Type<Fields> & string>,
+    ],
+  >(
+    name: LocalName<Name>,
+    config: Readonly<{
+      args: Fields
+      messages: Messages &
+        ValidateOwnedMessages<NoInfer<Messages>, OwnerMessage>
+      handler?: never
+      execute?: never
+      interrupt: Readonly<{
+        keyFields: KeyFields
+        toKey: (
+          keyArgs: NoInfer<
+            Interruptible.KeyArgs<Schema.Struct.Type<Fields>, KeyFields>
+          >,
+        ) => string
+      }>
+    }>,
+  ): CommandWithArgs<
+    OwnedName<Id, Name>,
+    Fields,
+    Schema.Schema.Type<Messages[number]>,
+    Readonly<{ keyFields: KeyFields }>
+  > &
+    Readonly<{
+      toLayer: Command.ToLayer<
+        OwnedName<Id, Name>,
+        Schema.Struct.Type<Fields>,
         Schema.Schema.Type<Messages[number]>
       >
     }>

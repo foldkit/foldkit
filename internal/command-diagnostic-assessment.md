@@ -35,3 +35,12 @@ Undeclared result Messages, incompatible handler args, invalid construction
 requirements and missing providers must remain source and emitted compile-time
 errors. Do not use a cast, wider Message protocol or runtime validation as a
 repair for invalid handler wiring.
+
+## Subsequent cancellation repair
+
+The keyed-cancellation repair separates ordinary and keyed overloads and uses
+`Schema.Struct.Type<Fields>` for decoded Command args. That contract-equivalent
+normalization recovers the compiler cost of the required safety fix. It does not
+adopt the reordered terminal handler signature assessed above, or establish that
+all misleading final-overload diagnostics are repaired. Current accepted and
+rejected cases remain checked through source and relocated declarations.
