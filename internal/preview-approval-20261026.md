@@ -75,7 +75,7 @@ No compatibility aliases remain for the removed forms. The checked
 - Public tests can construct child facts through `toParentMessage`, inspect exact
   Command arguments through `argsOf`, and model concurrent Messages/Subscription
   delivery while resolving pending Commands explicitly.
-- Nested Date/DateTime/TimeZone ViewInputs, reciprocal Binding inference and
+- Nested Effect DateTime/TimeZone ViewInputs, reciprocal Binding inference and
   connected output contracts receive source and declaration fixes.
 - Workspace exercises retained per-entity state, optimistic Board moves,
   notifications, routes/search parameters, Foldkit UI controls, Tailwind styling
@@ -93,9 +93,10 @@ policy. [Adoption details](preview-api-adoption.md) and
 [initialization choices](child-initialization-family.md) record those exceptions.
 Published historical material is preserved.
 
-## Verified source and packages
+## Earlier broad verification at 978c07a093
 
-Frozen source digest:
+This checkpoint precedes the Subscription and runtime followups verified above.
+Its frozen source digest is
 `41ec430daf817d7dc592f8123211d405022752a2d434cadb4c6269e03b9223c4`.
 All 6,888 tracked files are present. The 6,994-file verification fingerprint is
 unchanged before/after framework checks. Nine isolated local package manifests
@@ -177,17 +178,35 @@ Synthetic declaration scaling and explicit-erasure limits remain documented.
 
 ## Feedback and security
 
-The October 26 UTC scoped read-only check found no new replies after October 25,
-18:00 UTC on the performance-help issue or preview PR. Recent unrelated features
-and fork-migration PR updates are outside this release. The original migration
-reports and adopted/clarified assessments retain their linked dispositions.
+The final October 26 scoped check found a new foldkit-plus report on preview PR
+#1655, posted at 12:09:35 UTC. Its concrete envelope-portability and duplicate
+Mount claims reproduce on both the published preview and current code.
+Documentation clarifies runtime-local envelope admission; the one-Mount contract
+was already explicit. Proposed integration APIs are recorded as open requests,
+not implemented or approved additions to this candidate.
+[Current feedback assessment](preview-feedback-20261026.md).
+Performance-help issue #1737 has no newer replies. Unrelated features and fork
+migration work are outside this release. Earlier report dispositions retain
+their linked evidence.
 
 The refreshed dependency audit has the same advisory contracts as the reviewed
 checkpoint: 1 Critical, 8 High, 11 Moderate and 4 Low. Existing reachability limits
-and maintenance followups remain. No dependency is added by the naming/lint work.
-Earlier static security dispositions remain scoped to their reviewed source;
-subsequent exact-commit reviews find no changed production behavior. This is
-not a clean dependency audit or a new Daybreak run.
+and maintenance followups remain. A separate check of Monaco's actual vendored
+sanitizer records five additional advisory reports whose required modes/hooks
+are absent; those are not folded into the lockfile counts. No dependency or
+runtime input changes in this final documentation pass.
+
+[Daybreak passes the complete published-preview-to-e320 delta](preview-daybreak-20261026.md),
+including frozen runtime `fa96bf7d90`, with no new release blocker. It identifies
+the inherited single-Mount constraint as Low-severity hardening work. Frozen
+source and all 6,895 tracked paths are verified. The fresh independent dependency
+review establishes no concrete reachable blocker under current paths/settings;
+this is not a clean audit. [Review scope, exact evidence and remaining maintenance](next-preview-security-review.md#october-26-final-review).
+
+Subsequent changes are documentation and changeset prose only. The final Website
+production build passes; exact final commit review covers those edits. Public
+packages, manifests, lockfile and runtime source retain the packed candidate's
+inputs. Local build and rehearsal evidence do not establish deployed output.
 
 ## After approval
 

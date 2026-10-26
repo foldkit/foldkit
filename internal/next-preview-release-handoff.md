@@ -2,19 +2,28 @@
 
 ## Latest preparation checkpoint
 
-Use the [October 26 approval summary](preview-approval-20261026.md) for the final
-prepared implementation `978c07a093` and complete source pin `41ec430d…`.
-It supersedes older preparation checkpoints: all 53 source scripts, core/UI
-contracts, six unchanged compiler controls, runtime/lint checks, nine packed
-packages, installed consumers, Coverchart and scaffold/Workspace browser flows
-pass. The [Step naming migration](named-step-convention.md) and
-[fresh rendering comparisons](preview-lustre-20261026.md) are included.
+Use the [October 26 approval summary](preview-approval-20261026.md) for frozen
+implementation `fa96bf7d907fe86cf02c0c6c12cd33e1b7a9923c` and local package
+source digest `3e9c0e0265ca70256b84356cd932caf87808bf53d2fd6e6f35ff88c59f7ebd47`.
+Its [fresh nine-package rehearsal](preview-runtime-investigation-20261026.md#fresh-packed-package-rehearsal)
+covers the Subscription organization and runtime followups. Source/emitted
+contracts, all six unchanged compiler controls, runtime/lint checks, installed
+Coverchart, all three scaffolds and 32 Workspace browser cases pass. The earlier
+53-script sweep retains its `978c07a093` pin and is supplemented by affected
+checks for the subsequent code. Recorded generated seed files and local package
+labels qualify the package-source digest.
 
 Publication remains held for user approval. Published Ready stays `1f6776fa7ece`;
-main and preview integration are unchanged. The measured main runtime/bundle cost
-remains visible for review. The separate published-preview control has a +4.9%
-naive median and an effectively similar optimized result, with overlapping
-ranges; it does not establish zero regression.
+main and preview integration are unchanged. The [runtime investigation](preview-runtime-investigation-20261026.md)
+reduces optimized workload time by 12.7% in six paired rounds; it remains 22.0%
+above main, with naive performance effectively unchanged and about 32 KB of
+additional gzip. The [earlier published-preview control](preview-lustre-20261026.md)
+retains its own source and timing scope. No absolute times are pooled across
+batches. [Daybreak's full-delta PASS](preview-daybreak-20261026.md) and the
+[new feedback assessment](preview-feedback-20261026.md) record inherited limits
+and open integration proposals. The final Website documentation build passes;
+framework/package inputs are unchanged. Detailed advisory and review scope lives
+in the [approval summary](preview-approval-20261026.md#feedback-and-security).
 
 Keep the three consumer starting paths and current Ready instructions. After
 approval, assign the published source/package map and matching immutable

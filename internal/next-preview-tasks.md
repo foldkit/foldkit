@@ -33,8 +33,16 @@ The user has explicitly held publication pending approval. Prepare and verify lo
 - [x] Freeze a coherent candidate and refresh packed-package, Coverchart and
       scaffold acceptance for the accumulated post-preparation changes. Keep the
       actual Coverchart checkout and the user's running servers intact.
-- [x] Check new feedback only within the Blocks + Effect Layers preview scope. No
-      new replies were found on #1737 or #1655 after the previous scoped check.
+- [x] Check new feedback only within the Blocks + Effect Layers preview scope.
+      The October 26 foldkit-plus report on #1655 is assessed, its two concrete
+      behavior claims reproduce on published/current code, and envelope
+      portability guidance is clarified. Broader proposed APIs are explicitly
+      open, not counted as implemented. #1737 has no newer replies.
+      [Current dispositions and reproduction limits](preview-feedback-20261026.md).
+- [x] Complete the exact-candidate Daybreak review and refresh dependency
+      reachability dispositions. Record source identity, review limits and any
+      required repairs before release approval; publication stays held.
+      [Final verdict and inherited limitations](next-preview-security-review.md#october-26-final-review).
 - [x] After source and verification jobs settle, compare the final preview with
       pinned main in the Lustre harness, including naive and optimized views,
       correctness checks, balanced repeated runs and bundle provenance.

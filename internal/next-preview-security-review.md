@@ -1,6 +1,57 @@
 # Next preview security review
 
-## Disposition
+## October 26 final review
+
+[Daybreak's exact-source review](preview-daybreak-20261026.md) passes the complete
+published `1f6776fa7ece` to `e3202fcf959cdffe3da85b2980fc6005b1e62ae3` production
+delta, including frozen implementation `fa96bf7d90`. No new release-blocking
+vulnerability is verified. Its one actionable Low finding is the inherited,
+documented single-Mount-per-element limit: a second `OnMount` replaces the first
+before acquisition. A fail-fast duplicate check is a hardening proposal, not
+implemented behavior. The [new community feedback assessment](preview-feedback-20261026.md)
+records that constraint and the runtime-local envelope contract.
+
+The Daybreak checkout is detached and clean before and after review; all 6,895
+tracked paths match the frozen manifest. Daybreak inspected source without
+running project code, tests, builds, installs or a network audit. Its attempted
+subagent tracks were unavailable, so the model completed the review directly.
+Failed shell checksum attempts were replaced by a successful complete manifest
+comparison; no source drift was found.
+
+A separate independent dependency review ran pinned pnpm 11.8.0 with registry
+access at 18:32:50 UTC. Its JSON is byte-identical to the October 23 snapshot:
+**1 Critical, 8 High, 11 Moderate and 4 Low**, across 24 entries and 22 distinct
+advisories. The unchanged lock hash is
+`b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47`;
+the audit hash is
+`97adaed15f7264f636d1dd9391cb727b661a41e91bbaf5af56db7444724444d5`.
+The review finds no concrete reachable dependency blocker in the inspected
+configurations. This is not a clean audit or a patched-dependency claim.
+
+Monaco's final local Website bundle still executes vendored DOMPurify 3.4.8.
+An additional query for that actual version reports eight advisories, five of
+which are hidden by the external 3.4.16 dependency metadata. Their required
+configuration modes or hook behavior are absent from the inspected wrapper;
+keep those findings separate from the lockfile counts. Remediation must replace
+the executed sanitizer and verify rebuilt code and editor behavior. The earlier
+Vite/`launch-editor` blocker remains patched. MCP remains stdio-only, and API
+generation uses TypeDoc's JSON path. Changing these paths requires a new
+reachability assessment.
+
+[Combined security, advisory, build and feedback evidence](benchmarks/security-20261026.json)
+records the fresh audit, final local Website asset, source hashes and limits.
+The three subsequent Website changes clarify admission and correct migration
+prose; the active changeset also removes an unpublished helper name. They do not
+change framework/package code. The final Website production build passes with
+281 Foldkit / 21 UI TypeDoc warnings and the existing chunk-size warning. It is
+not a deployed-asset check. Exact final documentation/metadata receives separate
+commit review; Daybreak's reviewed source target stays `e3202fcf95`.
+
+Publication and integration remain held for user approval. The older dated
+records below retain their original scope and are not substituted for this
+final review.
+
+## October 23 disposition
 
 Reviewed on **2026-10-23**. No new release-blocking code vulnerability was established in the reviewed source delta. The fresh dependency audit remains **1 Critical, 8 High, 11 Moderate, and 4 Low**. These findings are unresolved maintenance items with the reachability limits below; this is not a clean-audit result.
 

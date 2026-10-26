@@ -493,6 +493,8 @@ Use `FeatureComposition.Message` or `FeatureBlock.Message` to decode, serialize,
 
 Decoding checks the envelope's structure, placement, and key Schema. It does not establish that its occurrence is still current. Before queueing externally supplied live Messages, the Runtime checks the complete placement, key, and generation chain against the active graph. History replays previously accepted Messages; pure update, Story, and Scene replay do not repeat live admission. A Message that decodes for replay is not necessarily valid for live delivery.
 
+Generations belong to one Program runtime. They are not portable occurrence IDs or authentication tokens: a generated child envelope from another runtime can pass decoding and live admission when its placement, key, and generation happen to match. Use these envelopes for that runtime's delivery and history, not as a cross-runtime live-dispatch protocol. Replication, persisted intent, Ports, and agent integrations need an application-owned protocol. Decode its inputs into local parent Messages, then call registered Binding operations from the parent's update.
+
 ## API
 
 ### Block.makeDefinition

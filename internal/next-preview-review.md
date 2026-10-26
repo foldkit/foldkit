@@ -2,17 +2,21 @@
 
 ## Status
 
-The [October 26 approval summary](preview-approval-20261026.md) identifies the
-final prepared implementation `978c07a093` and source pin `41ec430d…`.
-All current source, runtime, lint, contract, compiler-budget, packed-consumer and
-browser gates pass. The [Step naming convention](named-step-convention.md) is
-adopted across current consumers and guidance.
+The [October 26 approval summary](preview-approval-20261026.md) identifies frozen
+implementation `fa96bf7d907fe86cf02c0c6c12cd33e1b7a9923c` and local package
+source digest `3e9c0e0265ca70256b84356cd932caf87808bf53d2fd6e6f35ff88c59f7ebd47`.
+Current affected source, runtime, lint, contract, compiler-budget, packed-consumer
+and browser gates pass. The earlier broad source sweep retains its own pin.
+The [Step naming convention](named-step-convention.md) is adopted across current
+consumers and guidance.
 
-The [fresh Lustre report](preview-lustre-20261026.md) records both main and
-published-preview comparisons, all raw samples, bundle costs and limitations.
-The main gap is retained for review; the smaller published-preview control is
-reported separately. Earlier editor and verification numbers below retain their
-original pins and are not relabeled as fresh measurements.
+The [runtime investigation](preview-runtime-investigation-20261026.md) verifies a
+12.7% optimized-workload reduction while preserving registration checks. The
+candidate remains 22.0% above main in that screen; naive time is effectively
+unchanged. The [earlier Lustre report](preview-lustre-20261026.md) retains its
+separate main/published-preview comparisons. Earlier editor and verification
+numbers below retain their original pins and are not relabeled as fresh
+measurements.
 
 Publication remains held for user approval. Published Ready stays `1f6776fa7ece`;
 integration and main are unchanged. The following table remains the public API
@@ -48,7 +52,7 @@ Workspace's extra implementation interface and nested producer annotation are re
 
 ## Other improvements
 
-- Nested Date/Effect DateTime/TimeZone ViewInputs are accepted while application callbacks remain rejected.
+- Nested Effect DateTime/TimeZone ViewInputs are accepted while application callbacks remain rejected. Native Date support already exists in the published preview.
 - Reciprocal/converging policies, connected OutMessage combinations, registration, and assembly diagnostics have focused regressions.
 - Public UI declaration headers and a targeted private Workspace boundary repair actual declaration expansion failures without wider requirements.
 - The Workspace example now exercises realistic shared data, routed retained drafts, optimistic board moves and rollback, creation, comments, saved views, notifications, continuous activity and accessible Foldkit UI controls.
