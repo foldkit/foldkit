@@ -14,6 +14,13 @@ original status, source pins and publication holds as historical evidence.
 
 ## Followups after the published preview
 
+- [x] Reassess `Definition.makeMapBinding` with a shared receiver-method prototype
+      and a narrow Schema-contract refinement. Retain the standalone API after
+      both fail unchanged larger-composition budgets. Preserve exact patches,
+      paired editor measurements and safety scope in the
+      [investigation](map-binding-method-experiment-20261027.md), and expose the
+      authoritative documentation on the exported callable.
+
 - [x] Audit Workspace guards against their interaction sources. Simplify repeated
       membership, lookup, initialization, reconciliation and notification checks;
       preserve URL, loading, revision and rollback checks. Record the generic

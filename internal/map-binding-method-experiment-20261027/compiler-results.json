@@ -1,0 +1,186 @@
+{
+  "typescriptVersion": "7.1.0-beta",
+  "budgetsSha256": "460aa6927ea43ba1f5daf57f0d8847c3ebc247000cdd1a5bf36ad78276815c9c",
+  "results": [
+    {
+      "encoding": "baseline",
+      "exitCode": 0,
+      "fixtures": [
+        {
+          "fixture": "deep-composition-8",
+          "instantiationsDelta": 635409,
+          "instantiationsMaximum": 1152618,
+          "typesDelta": 51416,
+          "typesMaximum": 55843,
+          "symbolsDelta": 83329,
+          "status": "ok"
+        },
+        {
+          "fixture": "wide-composition-100",
+          "instantiationsDelta": 1331305,
+          "instantiationsMaximum": 3132298,
+          "typesDelta": 80466,
+          "typesMaximum": 216662,
+          "symbolsDelta": 125006,
+          "status": "ok"
+        },
+        {
+          "fixture": "command-requirements-200",
+          "instantiationsDelta": 335824,
+          "instantiationsMaximum": 2659415,
+          "typesDelta": 62285,
+          "typesMaximum": 389460,
+          "symbolsDelta": 113008,
+          "status": "ok"
+        },
+        {
+          "fixture": "wide-subscriptions-100",
+          "instantiationsDelta": 548398,
+          "instantiationsMaximum": 548398,
+          "typesDelta": 24566,
+          "typesMaximum": 24566,
+          "symbolsDelta": 58267,
+          "status": "ok"
+        },
+        {
+          "fixture": "workspace-composition-4",
+          "instantiationsDelta": 2510412,
+          "instantiationsMaximum": 2639574,
+          "typesDelta": 203019,
+          "typesMaximum": 206314,
+          "symbolsDelta": 269094,
+          "status": "ok"
+        },
+        {
+          "fixture": "workspace-composition-8",
+          "instantiationsDelta": 4278713,
+          "instantiationsMaximum": 4515010,
+          "typesDelta": 279563,
+          "typesMaximum": 280523,
+          "symbolsDelta": 399174,
+          "status": "ok"
+        }
+      ]
+    },
+    {
+      "encoding": "receiver-definition",
+      "exitCode": 1,
+      "fixtures": [
+        {
+          "fixture": "deep-composition-8",
+          "instantiationsDelta": 635409,
+          "instantiationsMaximum": 1152618,
+          "typesDelta": 51416,
+          "typesMaximum": 55843,
+          "symbolsDelta": 83445,
+          "status": "ok"
+        },
+        {
+          "fixture": "wide-composition-100",
+          "instantiationsDelta": 1331305,
+          "instantiationsMaximum": 3132298,
+          "typesDelta": 80466,
+          "typesMaximum": 216662,
+          "symbolsDelta": 125082,
+          "status": "ok"
+        },
+        {
+          "fixture": "command-requirements-200",
+          "instantiationsDelta": 335824,
+          "instantiationsMaximum": 2659415,
+          "typesDelta": 62285,
+          "typesMaximum": 389460,
+          "symbolsDelta": 113084,
+          "status": "ok"
+        },
+        {
+          "fixture": "wide-subscriptions-100",
+          "instantiationsDelta": 548398,
+          "instantiationsMaximum": 548398,
+          "typesDelta": 24566,
+          "typesMaximum": 24566,
+          "symbolsDelta": 58270,
+          "status": "ok"
+        },
+        {
+          "fixture": "workspace-composition-4",
+          "instantiationsDelta": 2642699,
+          "instantiationsMaximum": 2639574,
+          "typesDelta": 229173,
+          "typesMaximum": 206314,
+          "symbolsDelta": 304270,
+          "status": "failed: Instantiations, Types"
+        },
+        {
+          "fixture": "workspace-composition-8",
+          "instantiationsDelta": 4398255,
+          "instantiationsMaximum": 4515010,
+          "typesDelta": 303062,
+          "typesMaximum": 280523,
+          "symbolsDelta": 429925,
+          "status": "failed: Types"
+        }
+      ]
+    },
+    {
+      "encoding": "receiver-contracts",
+      "exitCode": 1,
+      "fixtures": [
+        {
+          "fixture": "deep-composition-8",
+          "instantiationsDelta": 635409,
+          "instantiationsMaximum": 1152618,
+          "typesDelta": 51416,
+          "typesMaximum": 55843,
+          "symbolsDelta": 83445,
+          "status": "ok"
+        },
+        {
+          "fixture": "wide-composition-100",
+          "instantiationsDelta": 1331305,
+          "instantiationsMaximum": 3132298,
+          "typesDelta": 80466,
+          "typesMaximum": 216662,
+          "symbolsDelta": 125082,
+          "status": "ok"
+        },
+        {
+          "fixture": "command-requirements-200",
+          "instantiationsDelta": 335824,
+          "instantiationsMaximum": 2659415,
+          "typesDelta": 62285,
+          "typesMaximum": 389460,
+          "symbolsDelta": 113084,
+          "status": "ok"
+        },
+        {
+          "fixture": "wide-subscriptions-100",
+          "instantiationsDelta": 548398,
+          "instantiationsMaximum": 548398,
+          "typesDelta": 24566,
+          "typesMaximum": 24566,
+          "symbolsDelta": 58270,
+          "status": "ok"
+        },
+        {
+          "fixture": "workspace-composition-4",
+          "instantiationsDelta": 2642699,
+          "instantiationsMaximum": 2639574,
+          "typesDelta": 229173,
+          "typesMaximum": 206314,
+          "symbolsDelta": 304270,
+          "status": "failed: Instantiations, Types"
+        },
+        {
+          "fixture": "workspace-composition-8",
+          "instantiationsDelta": 4398255,
+          "instantiationsMaximum": 4515010,
+          "typesDelta": 303062,
+          "typesMaximum": 280523,
+          "symbolsDelta": 429925,
+          "status": "failed: Types"
+        }
+      ]
+    }
+  ]
+}

@@ -257,17 +257,7 @@ type ResultConfig<
     }>
   >
 
-/** Creates a keyed child Binding over an exact required Record or Effect
- * HashMap field owned by the supplied parent Definition.
- *
- * Add `childField` when each map value is a closed parent-owned Struct wrapping
- * the exact child Model. Placement defaults to `field`. Map membership controls
- * occurrence presence, while `subscriptions` gates only Subscription Streams.
- * Insertion remains parent-owned through `initAndInsert` from
- * `foldkit/bindingInit` for direct child values, or the returned Binding's
- * explicit `init` operation for wrapper metadata and mixed transitions. This
- * dedicated subpath keeps its Schema-derived generic
- * surface isolated from ordinary Binding type checking. */
+/** Call signature for {@link makeMapBinding}. */
 export interface MakeMapBinding {
   <
     const DefinitionValue extends MapBindingDefinition,
@@ -316,7 +306,36 @@ export interface MakeMapBinding {
 }
 
 /** Creates a keyed child Binding from a parent Definition's required Record or
- * Effect HashMap field. */
+ * Effect HashMap field, deriving enumeration, lookup, replacement and identity.
+ *
+ * The field's value Schema must exactly match the child Model. Add `childField`
+ * when each value is a closed Struct wrapping the exact child Model; replacement
+ * preserves the wrapper's other fields. Placement defaults to `field`.
+ *
+ * Record keys must decode to strings. HashMap keys must decode to strings or
+ * numbers, with finite numeric occurrence keys. Literal, template, refined and
+ * branded keys retain their contracts. Numeric Record and composite HashMap
+ * keys are rejected. HashMap enumeration does not promise display order.
+ *
+ * The parent owns membership. Ordinary child operations replace existing values;
+ * removing an entry ends its occurrence's lifecycle. `subscriptions` gates only
+ * Subscription Streams. Initialize and insert direct child values with
+ * `initAndInsert` from `foldkit/bindingInit`; use the returned Binding's explicit
+ * `init({ key, args, toParentModel })` for wrapper metadata or mixed transitions.
+ *
+ * The standalone subpath isolates Schema-heavy typing from ordinary Definition
+ * use. Tested Definition-method encodings increased compiler cost; this is a
+ * measured implementation tradeoff, not a universal TypeScript limitation.
+ *
+ * @example
+ * ```ts
+ * import { makeMapBinding } from 'foldkit/mapBinding'
+ *
+ * const ChildrenBinding = makeMapBinding(ParentDefinition, ChildBlock, {
+ *   field: 'children',
+ * })
+ * ```
+ */
 export const makeMapBinding = ((): MakeMapBinding =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   ((definition: object, block: BindableBlock, config: object): unknown => {

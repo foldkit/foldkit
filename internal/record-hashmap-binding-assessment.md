@@ -246,8 +246,15 @@ the built package and fixture to a relocated consumer before checking it.
 Prototype measurements explain the dedicated subpath. Putting the map overload
 or a map constructor property on the main Definition and Block surface caused
 the workspace fixtures to exceed their fixed TypeScript budgets in the tested
-encodings. Keeping the exact map signature in its own package subpath leaves
-ordinary Binding consumers at 203,903 types for the four-group workspace and
-277,968 for the eight-group workspace. This supports the isolated surface; it
+encodings. At that earlier checkpoint, keeping the exact map signature in its
+own package subpath left ordinary Binding consumers at 203,903 types for the
+four-group workspace and 277,968 for the eight-group workspace. This supports the isolated surface; it
 does not establish that every possible Definition method encoding has the same
 compiler cost.
+
+The [October 27 bounded investigation](map-binding-method-experiment-20261027.md)
+compares two shared receiver-method encodings against the current optimized
+followup. Both fail the unchanged larger-composition budgets; paired editor
+measurements show no clear benefit. It retains the standalone surface with exact
+patches and per-run evidence, without attributing every added Type to receiver
+inference or claiming that all method encodings must fail.
