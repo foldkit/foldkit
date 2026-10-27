@@ -1,0 +1,29 @@
+{
+  "exitCode": 0,
+  "declarations": 152,
+  "declarationBytes": 12272552,
+  "compilerOptions": {
+    "strict": true,
+    "skipLibCheck": false,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ES2022",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "types": [],
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true
+  },
+  "coverage": [
+    "exact canonical Model",
+    "exact init URL tuple",
+    "direct and curried update Model",
+    "invalid URL and Message rejection",
+    "no generated constructors",
+    "ordinary Service requirements",
+    "relative imports stay inside relocated application"
+  ],
+  "sourceCommit": "ae2eba84283939f5991a1b0c35c32ba351f9efdc",
+  "scope": "Fresh full ordinary Workspace root emission and strict physically relocated consumer; source/accepted/rejected proof unchanged, only candidate/output paths adapted."
+}

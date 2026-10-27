@@ -1,0 +1,21 @@
+{
+  "mutations": [
+    {
+      "control": "literal-control-removal",
+      "exitCode": 1,
+      "expectedFailure": true
+    },
+    {
+      "control": "normalized-slash-removal",
+      "exitCode": 1,
+      "expectedFailure": true
+    },
+    {
+      "control": "query-truncation",
+      "exitCode": 1,
+      "expectedFailure": true
+    }
+  ],
+  "restoredCandidateExitCode": 0,
+  "scope": "Disposable emitted JavaScript only; repository sources never mutated."
+}

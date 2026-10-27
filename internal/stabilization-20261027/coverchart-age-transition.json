@@ -1,0 +1,85 @@
+{
+  "status": "Passed",
+  "sourceCommit": "ae2eba84283939f5991a1b0c35c32ba351f9efdc",
+  "sourceDigest": "81aa61f4e66b52f0890c550284b99092a36bd7623764c818663b583fcf334f09",
+  "classification": "Retain already-approved exact previous-cohort exemptions only during lock transition",
+  "policyRelaxed": false,
+  "oldExclusions": [
+    "@foldkit/ui@0.169.0-canary.f3be22cfeefe",
+    "foldkit@0.169.0-canary.f3be22cfeefe",
+    "@foldkit/devtools@0.169.0-canary.f3be22cfeefe",
+    "@foldkit/devtools-mcp@0.25.0-canary.f3be22cfeefe",
+    "@foldkit/oxlint-plugin@0.15.3-canary.f3be22cfeefe",
+    "@foldkit/vite-plugin@0.28.0-canary.f3be22cfeefe"
+  ],
+  "targetExclusions": [
+    "@foldkit/ui@0.169.0-local.81aa61f4e66b",
+    "foldkit@0.169.0-local.81aa61f4e66b",
+    "@foldkit/devtools@0.169.0-local.81aa61f4e66b",
+    "@foldkit/devtools-mcp@0.25.0-local.81aa61f4e66b",
+    "@foldkit/oxlint-plugin@0.15.3-local.81aa61f4e66b",
+    "@foldkit/vite-plugin@0.28.0-local.81aa61f4e66b"
+  ],
+  "otherPolicyBytesPreserved": true,
+  "oldRegistryEntriesPruned": true,
+  "finalPolicyHasOnlyTargetExclusions": true,
+  "frozenLockfileSha256": "f6df00db764d800c642d02a653453dfcc1e92392f1656700877f1c8573d508a0",
+  "priorFailureLog": {
+    "path": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/coverchart-install.log",
+    "sha256": "1a0ed79ef7d99c1d3e806d1b18ad0b9edd44c295f8b522f9079c269e1f837702",
+    "preserved": true
+  },
+  "installs": [
+    {
+      "label": "transition",
+      "logPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/coverchart-install-transition.log",
+      "status": "Passed",
+      "frozenLockfile": false
+    },
+    {
+      "label": "target-frozen",
+      "logPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/coverchart-install-target-frozen.log",
+      "status": "Passed",
+      "frozenLockfile": true
+    }
+  ],
+  "packageVerification": [
+    {
+      "name": "@foldkit/ui",
+      "version": "0.169.0-local.81aa61f4e66b",
+      "artifactSha256": "067bf2a79085ab5c89aabf99b91f39d4dda1995eb0e5fa730e1b43893ccf4986",
+      "comparedFiles": 380
+    },
+    {
+      "name": "foldkit",
+      "version": "0.169.0-local.81aa61f4e66b",
+      "artifactSha256": "9ae9bbfb2964f005d581b2f782a20cc09a56de530cfd8e966360980fa6608014",
+      "comparedFiles": 870
+    },
+    {
+      "name": "@foldkit/devtools",
+      "version": "0.169.0-local.81aa61f4e66b",
+      "artifactSha256": "785ce9b71bdb8ab4f451e0fa72da5fdc3439c46c955e4cc466e63a30826d58ea",
+      "comparedFiles": 14
+    },
+    {
+      "name": "@foldkit/devtools-mcp",
+      "version": "0.25.0-local.81aa61f4e66b",
+      "artifactSha256": "413cb1f7b4703938833ac77e7066c192ad943ca822c5e89fd715dcbb616807b0",
+      "comparedFiles": 23
+    },
+    {
+      "name": "@foldkit/oxlint-plugin",
+      "version": "0.15.3-local.81aa61f4e66b",
+      "artifactSha256": "ccd6c995cc1f56a4cdf94f215c1086a543dae0793a3866d89953127e4b388985",
+      "comparedFiles": 87
+    },
+    {
+      "name": "@foldkit/vite-plugin",
+      "version": "0.28.0-local.81aa61f4e66b",
+      "artifactSha256": "3407c91421d9bd98a552d364caf2cd781b4810aa984d824272b9d67d92228fa9",
+      "comparedFiles": 32
+    }
+  ],
+  "actualCoverchartChanged": false
+}

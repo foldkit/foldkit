@@ -1,0 +1,33 @@
+# PASS — exact delta
+
+No new release-blocking vulnerability was identified in `f3be22cfeefed437164ad614d08b16d9000e0703…5835d220595e4f663cf0ffacb43b0263e801bea9`. This does not imply perfect security. Publication and release-branch integration remain held for approval.
+
+## Actionable findings
+
+- **Low — relative-path parsing accepts noncanonical delimiter variants.** [parser.ts:762](/private/tmp/foldkit-preview-stabilization-20261027/security/source/packages/foldkit/src/route/parser.ts:762) rejects literal `//`, but normalization at [parser.ts:767](/private/tmp/foldkit-preview-stabilization-20261027/security/source/packages/foldkit/src/route/parser.ts:767) can turn backslashes or stripped ASCII tabs/newlines into repeated leading slashes. The route parser subsequently removes empty segments, so input such as `/\people/ada` may be classified as the local `/people/ada` route instead of falling back. Preconditions: attacker-controlled redirect/path input and a consumer treating parse-versus-fallback as an allowlist boundary. Consequence: malformed network-path-like input can be accepted as a local typed Route. This helper does not itself navigate or return the raw target, so this is not a direct open redirect. Smallest repair: reject backslashes and URL-stripped whitespace before parsing, then verify the parsed sentinel origin and that the normalized pathname begins with exactly one slash; add boundary fixtures.
+
+- **Low — raw subsequent `?` characters can be discarded before query validation.** `parsePathWithFallback` uses `Url.fromString`; [url/index.ts:69](/private/tmp/foldkit-preview-stabilization-20261027/security/source/packages/foldkit/src/url/index.ts:69)–[70](/private/tmp/foldkit-preview-stabilization-20261027/security/source/packages/foldkit/src/url/index.ts:70) split the reconstructed href on every `?` and retain only the first query portion. Preconditions: attacker-controlled path containing an unencoded second `?`, such as `/search?query=allowed?rejected`, and a query Schema used as a validation boundary. Consequence: the suffix is omitted rather than validated, potentially converting a rejected value into an accepted typed Route. Correct nested encoding avoids this, and typed-route rebuilding prevents raw-target navigation. Smallest repair: construct `Url` directly from the WHATWG URL properties or split only at the first delimiters; cover raw subsequent `?` values.
+
+## Reviewed security properties
+
+- Definition-owned `makeMapBinding` captures the exact parent constructor. Composition still rejects cross-parent Bindings, duplicate placements, invalid map storage, unsupported keys, and child-model mismatches.
+- `makeInitIfMissingStep` is passive. Registration is checked before both reuse and insertion; reuse preserves Model identity and emits no Commands; insertion uses native Binding key/model validation and retains lifecycle-qualified child Commands.
+- Lint provenance follows const aliases, exported destructuring, actual Definition ownership, and Composition construction without treating arbitrary similarly named imports as owned helpers.
+- Workspace keeps confirmed repository data separate from optimistic move projection. Issue save results correlate issue identity and expected revision; snapshot, save, move, comment, and activity application reject or merge stale data by identity/version.
+- Workspace titles, descriptions, names, and comment bodies remain text children or ordinary escaped attributes—not raw HTML. Generated navigation targets remain internal typed routes.
+
+## Inherited limitations
+
+- No dependency or lockfile version changed. The inherited recorded audit remains **1 Critical / 8 High / 11 Moderate / 4 Low**; this was not a fresh network advisory audit or a clean dependency report.
+- Vendored sanitizer limitations, including Monaco’s separately vendored DOMPurify, remain.
+- Trusted DevTools ingress, intentionally unsafe fixed-port/shared-network mode, and runtime-local child-envelope provenance remain unchanged.
+- Supplied source, emitted-declaration, compiler, runtime, and application passes are lead evidence only, not this review’s independent proof.
+
+## Integrity and scope
+
+- Base resolved exactly to `f3be22cfeefed437164ad614d08b16d9000e0703`.
+- Final HEAD: `5835d220595e4f663cf0ffacb43b0263e801bea9`; tree `ed1fe5421d32c2aa3923bed10b04a5eb2e250700`.
+- All **7,018** tracked paths, index blobs, modes, file SHA-256 values, and literal symlink targets matched `../frozen-source.json`.
+- `../review-delta.patch` and all **349** entries in `../changed-paths.txt` exactly matched Git’s base-to-target diff; `git diff --check` was clean.
+- Final status remained clean and HEAD/manifest were preserved.
+- Static inspection only: no project code, tests, builds, installations, servers, release commands, edits, commits, or external posts were performed.

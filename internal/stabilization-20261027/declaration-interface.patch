@@ -1,0 +1,28 @@
+--- a/packages/foldkit/src/block/definition.ts
++++ b/packages/foldkit/src/block/definition.ts
+@@ -3817,14 +3817,14 @@
+ /** A passive Definition with its child and Mount graph registered. A Composition
+  * supplies graph-aware view authoring and Block completion; it does not build
+  * Layers or start child lifecycle work. */
+-export type Composition<
++export interface Composition<
+   OwnerValue extends Owner<string>,
+   ModelSchema extends AnySchema,
+   MessageSchema extends AnySchema,
+   OutMessageSchema extends AnySchema | undefined,
+   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
+   Children extends ReadonlyArray<AnyBinding>,
+-> = Pick<
++> extends Pick<
+   Definition<
+     OwnerValue,
+     ModelSchema,
+@@ -3839,7 +3839,7 @@
+   | 'mounts'
+   | typeof LocalMountsTypeId
+   | 'bindings'
+-> & {
++> {
+   /** Complete dispatch Codec, including this Composition's generated child Messages. */
+   readonly Message: DispatchSchemaFor<MessageSchema, Children>
+   /** Authors initialization for this registered graph. The callback supplies

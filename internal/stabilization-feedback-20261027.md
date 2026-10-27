@@ -1,5 +1,14 @@
 # Blocks + Effect Layers stabilization feedback
 
+The [final stabilization report](preview-stabilization-20261027.md) records
+subsequent source repairs and verification at `ae2eba842839`. This inventory
+retains its original assessment pin. A fresh 15:43 UTC recheck found no later
+#1655/#1737 comments or repository issues/PRs updated since 15:00 UTC.
+The subsequent 16:03 UTC refresh found new preview report
+[#1810](https://github.com/foldkit/foldkit/issues/1810), created at 15:48:10 UTC
+with no comments. Its diagnostics and DevTools snapshot-preservation claims
+are under assessment; the original inventory below retains its earlier scope.
+
 ## Result and scope
 
 Checked on October 27, 2026, at **15:00 UTC**, against local implementation

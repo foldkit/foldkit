@@ -19,9 +19,10 @@ depending on feedback before considering the merge to main. Keep this cycle
 focused on existing Block and Layer contracts, adoption, diagnostics and
 regressions. General feature proposals do not automatically join its scope.
 
-- [ ] Verify the integrated, approved Block and Layer changes, including the
+- [x] Verify the integrated, approved Block and Layer changes, including the
       Definition-owned map Binding API and mapped-child initialization helpers.
       Reconcile active migration guidance with the actual public surface.
+      [Current stabilization evidence](preview-stabilization-20261027.md).
 - [x] Close out feedback specifically about Blocks + Effect Layers using the
       existing implementation and assessment evidence. An open issue or PR is
       not evidence that its fix is missing. General UI, Query and broader plugin
@@ -29,12 +30,24 @@ regressions. General feature proposals do not automatically join its scope.
       covers all preview reports, related contribution discussions and the latest
       plugin question. Diagnostic/performance limitations and unimplemented
       proposals remain explicit; this is not a claim that every request shipped.
-- [ ] Run integrated source and emitted-declaration checks, registration and
+- [x] Run integrated source and emitted-declaration checks, registration and
       lifecycle coverage, unchanged compiler fixtures and representative editor
       workflows. Check runtime performance for regressions in the release work.
-- [ ] Prepare packed-package and Coverchart acceptance, matching Website and
+      All 15 integrated gates, checker-order controls, 12 native runs and 36
+      Lustre samples pass. The existing reviewed compiler-ceiling revision and
+      remaining cold-root/runtime limits stay explicit in the report.
+- [x] Prepare packed-package and Coverchart acceptance, matching Website and
       PR #1655 guidance, and final independent/Daybreak review. Keep publication
       held for the user's approval.
+      All nine local artifacts, three scaffold modes, Coverchart and 33 Workspace
+      browser cases pass. Independent source review and the exact Daybreak
+      addendum pass; both Low input-boundary findings are closed. Registry and
+      immutable deployment verification remain post-approval gates.
+- [ ] Assess new preview report #1810, found at the final 16:03 UTC refresh:
+      diagnostic priority, paired local/connected and deferred-Step guidance,
+      and the actual DevTools snapshot-preservation failure path. Refresh
+      affected exact-source verification before final sign-off. Existing ae2
+      evidence remains a checkpoint, not proof of subsequent repairs.
 
 ## Followups after the published preview
 

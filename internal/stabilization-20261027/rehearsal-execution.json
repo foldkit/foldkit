@@ -1,0 +1,51 @@
+{
+  "status": "Passed",
+  "completedAtUtc": "2026-10-27T15:50:24.255354+00:00",
+  "sourceCommit": "ae2eba84283939f5991a1b0c35c32ba351f9efdc",
+  "sourceDigest": "81aa61f4e66b52f0890c550284b99092a36bd7623764c818663b583fcf334f09",
+  "packageCount": 9,
+  "recoverySequence": [
+    "Preserve original age-verification failure; transition with original six approved exact exceptions plus six target exceptions; final target-only frozen offline installation",
+    "Preserve scaffold offline artifact-cache miss; fill isolated cache with unchanged policy and resume offline sequence",
+    "Preserve prior continuation summary-count failure; guard entire current frozen 33-case suite using source hash and listing",
+    "Preserve listing-only JSON; rerun only Workspace to retain genuine execution result"
+  ],
+  "earlierContinuationRecordRetained": "continuation-execution.json",
+  "artifactsRebuiltOrRepackedDuringRecovery": false,
+  "actualRepositoriesChanged": false,
+  "publication": false,
+  "evidence": [
+    {
+      "path": "rehearsal-summary.json",
+      "sha256": "5cd3a0103ee6fa3ad7e31e7148ffe665bae8db6133fc4fc12f5a8b4ba52c4e26"
+    },
+    {
+      "path": "artifacts.json",
+      "sha256": "f50fc9989bce84a4ad70871fce2bdca14baf83b4f1176886281163bf12b8cfab"
+    },
+    {
+      "path": "workspace-browser-results.json",
+      "sha256": "d25e4fe86158f5aa79746bce1c3f2bec348940c474af692f6543dbd725f8db67"
+    },
+    {
+      "path": "workspace-suite-provenance.json",
+      "sha256": "45e6c0f1247f4f6577688ed29a8fda1d9bd83d37d1a622c51e8f93f9e667fb74"
+    },
+    {
+      "path": "stabilization-contracts.json",
+      "sha256": "f790abdecbe3f7dab4f8c7688099ececaac67910b0f09af9ee446808b8e30428"
+    },
+    {
+      "path": "coverchart-age-transition.json",
+      "sha256": "c0b7b57429a749932618f8642389b5c8aa0021e255e387094d47c8f14a55c92e"
+    },
+    {
+      "path": "scaffold-cache-fill.json",
+      "sha256": "c861890e8e72a5faca19e5ff66418d33bf8c8ab556fbee2cf933f6ab06bedb7d"
+    },
+    {
+      "path": "scaffold-resolution-after-cache-fill.json",
+      "sha256": "72cb5dc4179f0febc600847412e1ff485ca3106c4092da9490300380acc281ba"
+    }
+  ]
+}

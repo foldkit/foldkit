@@ -1,0 +1,23 @@
+# PASS — Daybreak addendum
+
+Both prior Low findings are closed. No new actionable correctness or security findings were identified in the exact local `5835d220595e4f663cf0ffacb43b0263e801bea9…ae2eba84283939f5991a1b0c35c32ba351f9efdc` tree delta.
+
+- **Low 1 — noncanonical relative paths: closed.** [parser.ts:761](/private/tmp/foldkit-preview-stabilization-20261027/security-final/source/packages/foldkit/src/route/parser.ts:761) rejects raw backslashes, ASCII controls, missing leading slashes, and raw network paths. [parser.ts:773](/private/tmp/foldkit-preview-stabilization-20261027/security-final/source/packages/foldkit/src/route/parser.ts:773) then verifies the sentinel protocol/hostname, absence of a port, and exactly one normalized leading slash. The fallback closure retains the original unnormalized input.
+
+- **Low 2 — truncated query values: closed.** [url/index.ts:28](/private/tmp/foldkit-preview-stabilization-20261027/security-final/source/packages/foldkit/src/url/index.ts:28) reads WHATWG URL components directly. Complete query and fragment contents after their first delimiters are preserved at [url/index.ts:36](/private/tmp/foldkit-preview-stabilization-20261027/security-final/source/packages/foldkit/src/url/index.ts:36), so route Schema validation receives the full query value.
+
+The refactor retains encoded delimiters and controls as encoded data, preserves WHATWG dot-segment normalization, and continues excluding fragments from route matching. I found no introduced decode/encode regression.
+
+The Workspace restoration at [composition.ts:406](/private/tmp/foldkit-preview-stabilization-20261027/security-final/source/examples/workspace/src/composition.ts:406) names the exact nine-element `ApplicationBindings` tuple and passes the same Binding objects—including both policy-decorated identities—in the same order. Registration and runtime channels remain intact. `block.ts` is byte-identical to the base; the decoder test correction at [route.test.ts:238](/private/tmp/foldkit-preview-stabilization-20261027/security-final/source/examples/workspace/src/route.test.ts:238) is type-appropriate and test-only.
+
+Integrity:
+
+- Final HEAD `ae2eba84283939f5991a1b0c35c32ba351f9efdc`; tree `a119b9cd51263c033865220eee43bdf1be5c8da0`; status clean.
+- Baseline SHA-256 matches `0b956839135325414036399fbc5dcf6c55fe1a3f5d114a44d28d22f0250666ee`.
+- All 7,019 manifest entries matched target paths, modes, blobs, and SHA-256 values. Literal symlink: `CLAUDE.md → AGENTS.md`.
+- `review-delta.patch` and all seven `changed-paths.txt` entries match freshly generated direct Git diffs exactly; `git diff --check` is clean.
+- Shallow boundaries and local object alternates were honored; no public SHA was substituted.
+
+Inherited dependency, sanitizer, DevTools, fixed-port/shared-network, and runtime-local envelope qualifications remain unchanged. No dependency or lockfile changed, and no fresh network audit is claimed. The supplied tests, mutations, controls, contracts, and gates remain lead evidence rather than independently executed proof.
+
+Static inspection only; no files or external state were changed. Publication and release-branch integration remain held for user approval.
