@@ -1,4 +1,4 @@
-import { Option, Schema, SchemaTransformation, pipe } from 'effect'
+import { Option, Schema, SchemaTransformation, Tuple, pipe } from 'effect'
 import { Route } from 'foldkit'
 import { defineRouteUnion, literal, slash, string } from 'foldkit/route'
 
@@ -45,7 +45,7 @@ export const ApplicationRoute = defineRouteUnion({
   NotFound: { path: Schema.String },
 })
 
-export const PageRoute = ApplicationRoute.subset([
+const pageRouteTags = Tuple.make(
   'Issues',
   'MyIssues',
   'Project',
@@ -55,9 +55,11 @@ export const PageRoute = ApplicationRoute.subset([
   'People',
   'Settings',
   'SavedView',
-])
+)
 
-export const isPageRoute = Schema.is(PageRoute)
+export const PageRoute = ApplicationRoute.subset(pageRouteTags)
+
+export const isPageRoute = ApplicationRoute.isAnyOf(pageRouteTags)
 
 const FilterQueryParams = Schema.Struct({
   search: Schema.optional(Schema.String),

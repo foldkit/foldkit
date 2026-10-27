@@ -1,4 +1,4 @@
-import { Array, Option, Record, pipe } from 'effect'
+import { Array, Option, Record } from 'effect'
 import { AsyncData, Update } from 'foldkit'
 import { initAndInsert } from 'foldkit/bindingInit'
 
@@ -8,88 +8,98 @@ import {
   ProjectSettingsBinding,
 } from '../composition'
 import { makeNoopStep, makeStep } from '../definition'
+import type { WorkspaceSnapshot } from '../domain'
 import { ApplicationRoute, maybeIssueId } from '../route'
 
-const initializeIssueDetailIfMissingStep = (issueId: string) =>
+const initializeIssueDetailIfMissingStep = (
+  issueId: string,
+  snapshot: typeof WorkspaceSnapshot.Type,
+) =>
   makeStep(model => {
     if (Record.has(model.issueDetails, issueId)) {
       return { model }
     }
 
-    return pipe(
-      AsyncData.getData(model.workspaceAsyncData),
-      Option.flatMap(snapshot =>
-        Array.findFirst(snapshot.issues, issue => issue.id === issueId),
-      ),
-      Option.match({
+    return Option.match(
+      Array.findFirst(snapshot.issues, issue => issue.id === issueId),
+      {
         onNone: () => ({ model }),
         onSome: issue =>
           initAndInsert(IssueDetailBinding, model, {
             key: issueId,
             args: [issue],
           }),
-      }),
+      },
     )
   })
 
-const initializeProjectBoardIfMissingStep = (projectId: string) =>
+const initializeProjectBoardIfMissingStep = (
+  projectId: string,
+  snapshot: typeof WorkspaceSnapshot.Type,
+) =>
   makeStep(model => {
     if (Record.has(model.boards, projectId)) {
       return { model }
     }
 
-    return pipe(
-      AsyncData.getData(model.workspaceAsyncData),
-      Option.flatMap(snapshot =>
-        Array.findFirst(snapshot.projects, project => project.id === projectId),
-      ),
-      Option.match({
+    return Option.match(
+      Array.findFirst(snapshot.projects, project => project.id === projectId),
+      {
         onNone: () => ({ model }),
         onSome: () =>
           initAndInsert(IssueBoardBinding, model, {
             key: projectId,
             args: [],
           }),
-      }),
+      },
     )
   })
 
-const initializeProjectSettingsIfMissingStep = (projectId: string) =>
+const initializeProjectSettingsIfMissingStep = (
+  projectId: string,
+  snapshot: typeof WorkspaceSnapshot.Type,
+) =>
   makeStep(model => {
     if (Record.has(model.projectSettings, projectId)) {
       return { model }
     }
 
-    return pipe(
-      AsyncData.getData(model.workspaceAsyncData),
-      Option.flatMap(snapshot =>
-        Array.findFirst(snapshot.projects, project => project.id === projectId),
-      ),
-      Option.match({
+    return Option.match(
+      Array.findFirst(snapshot.projects, project => project.id === projectId),
+      {
         onNone: () => ({ model }),
         onSome: project =>
           initAndInsert(ProjectSettingsBinding, model, {
             key: project.id,
             args: [project],
           }),
-      }),
+      },
     )
   })
 
 export const initializeRouteChildrenStep = makeStep(model => {
+  const maybeSnapshot = AsyncData.getData(model.workspaceAsyncData)
+
+  if (Option.isNone(maybeSnapshot)) {
+    return { model }
+  }
+
+  const snapshot = maybeSnapshot.value
+
   // Shouldnt we be using the Transition helpers? dont we only care to do this
   // if we are entering the route?
   const initializeIssueDetailStep = Option.match(maybeIssueId(model.route), {
     onNone: makeNoopStep,
-    onSome: initializeIssueDetailIfMissingStep,
+    onSome: issueId => initializeIssueDetailIfMissingStep(issueId, snapshot),
   })
 
   const initializeProjectChildStep = ApplicationRoute.matchOrElse(
     model.route,
     {
-      Board: ({ projectId }) => initializeProjectBoardIfMissingStep(projectId),
+      Board: ({ projectId }) =>
+        initializeProjectBoardIfMissingStep(projectId, snapshot),
       ProjectSettings: ({ projectId }) =>
-        initializeProjectSettingsIfMissingStep(projectId),
+        initializeProjectSettingsIfMissingStep(projectId, snapshot),
     },
     makeNoopStep,
   )

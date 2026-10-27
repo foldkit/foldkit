@@ -31,11 +31,7 @@ import {
   maybeProjectId,
   routeFilters,
 } from '../route'
-import {
-  appliedIssueFilters,
-  maybeActiveBoard,
-  maybeActiveIssueDetail,
-} from '../selection'
+import { appliedIssueFilters, maybeActiveIssueDetail } from '../selection'
 import { projectOverview, projectTabs } from './project'
 import { workspaceSettings } from './settings'
 import { sidebarView } from './sidebar'
@@ -224,7 +220,7 @@ const routeContent = (
       ),
     Board: ({ projectId }) =>
       projectContent(projectId, () =>
-        Option.match(maybeActiveBoard(model), {
+        Option.match(Record.get(model.boards, projectId), {
           onNone: () =>
             h.p(
               [h.Class('p-8 text-sm text-slate-500'), h.Role('status')],

@@ -16,14 +16,8 @@ export const Message = defineMessageUnion({
   InformedOfActivity: { activity: NotificationActivity },
   TickedClock: { timestamp: Schema.Number },
   ClickedMarkAllAsRead: { recipientId: Schema.String },
-  ClickedNotificationReadState: {
-    notificationId: Schema.String,
-    recipientId: Schema.String,
-  },
-  ClickedNotification: {
-    notificationId: Schema.String,
-    recipientId: Schema.String,
-  },
+  ClickedNotificationReadState: { notificationId: Schema.String },
+  ClickedNotification: { notificationId: Schema.String },
 })
 
 export const OutMessage = defineMessageUnion({

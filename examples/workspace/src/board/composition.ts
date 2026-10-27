@@ -20,10 +20,8 @@ const maybeMoveFromDrop = (
   reordered: typeof DragAndDropBlock.OutMessage.Reordered.Type,
 ) => {
   if (
-    !Number.isInteger(reordered.toIndex) ||
-    reordered.toIndex < 0 ||
-    (reordered.fromContainerId === reordered.toContainerId &&
-      reordered.fromIndex === reordered.toIndex)
+    reordered.fromContainerId === reordered.toContainerId &&
+    reordered.fromIndex === reordered.toIndex
   ) {
     return Option.none()
   }

@@ -67,11 +67,10 @@ export const simulateActivityStep = makeStep(model => {
       !Option.contains(candidate.maybeAssigneeId, model.activeMemberId),
   )
 
-  const isAssigning =
+  if (
     nextActivityTick % ASSIGNMENT_ACTIVITY_INTERVAL === 0 &&
     Option.isSome(maybeAssignment)
-
-  if (isAssigning && Option.isSome(maybeAssignment)) {
+  ) {
     const assignedIssue = maybeAssignment.value
 
     return {

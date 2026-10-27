@@ -23,7 +23,12 @@ export const view = IssueListComposition.makeView.withInputs<
       h.div(
         [h.Class('space-y-3 border-b border-slate-200 px-4 py-4 @lg:px-5')],
         [
-          filterToolbarView(model, inputs.filters, h),
+          filterToolbarView(
+            model,
+            inputs.filters,
+            Array.isReadonlyArrayEmpty(inputs.projects),
+            h,
+          ),
           listSummaryView(model, inputs.filters, issues.length, h),
         ],
       ),

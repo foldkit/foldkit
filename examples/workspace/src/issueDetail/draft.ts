@@ -36,9 +36,9 @@ export const latestRevision = (state: ReconciliationState) =>
   Option.getOrElse(state.maybeIncomingRevision, () => state.baseline)
 
 export const reconcileIssue = (
-  state: ReconciliationState,
+  state: typeof Model.Type,
   issue: typeof Issue.Type,
-): ReconciliationState => {
+) => {
   if (
     issue.id !== state.issueId ||
     issue.version <= latestRevision(state).version

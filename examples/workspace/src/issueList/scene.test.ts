@@ -69,6 +69,24 @@ const finishSelection = () => [
 ]
 
 describe('Issue List view', () => {
+  test('disables issue creation when there is no project to create it in', () => {
+    scene(
+      {
+        update,
+        view: withViewInputs(view, {
+          issues: [],
+          members: initialSnapshot.members,
+          projects: [],
+          maybeActiveIssueId: Option.none(),
+          filters: initialFilters,
+          issueHrefs: {},
+        })(),
+      },
+      given(IssueListBlock.init().model),
+      expect(role('button', { name: 'New issue' })).toBeDisabled(),
+    )
+  })
+
   test('reports search and clear requests while rendering controlled filters', () => {
     const filters = IssueFilters.make({
       ...initialFilters,

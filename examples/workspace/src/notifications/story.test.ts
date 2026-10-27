@@ -50,7 +50,6 @@ describe('NotificationCenterBlock', () => {
       message(
         Message.ClickedNotificationReadState({
           notificationId: 'comment:comment-new:member-assignee',
-          recipientId: 'member-assignee',
         }),
       ),
       message(Message.InformedOfActivity({ activity })),
@@ -73,7 +72,7 @@ describe('NotificationCenterBlock', () => {
     )
   })
 
-  test('verifies the recipient before selecting and marking a notification read', () => {
+  test('marks the selected notification read without changing another recipient', () => {
     story(
       update,
       given(NotificationCenterBlock.init().model),
@@ -81,14 +80,6 @@ describe('NotificationCenterBlock', () => {
       message(
         Message.ClickedNotification({
           notificationId: 'comment:comment-new:member-assignee',
-          recipientId: 'member-participant',
-        }),
-      ),
-      expectNoOutMessage(),
-      message(
-        Message.ClickedNotification({
-          notificationId: 'comment:comment-new:member-assignee',
-          recipientId: 'member-assignee',
         }),
       ),
       expectOutMessage(OutMessage.SelectedIssue({ issueId: issue.id })),
@@ -99,6 +90,12 @@ describe('NotificationCenterBlock', () => {
             notification => notification.recipientId === 'member-assignee',
           ).pipe(Option.getOrThrow).isRead,
         ).toBe(true)
+        expect(
+          Array.findFirst(
+            model.notifications,
+            notification => notification.recipientId === 'member-participant',
+          ).pipe(Option.getOrThrow).isRead,
+        ).toBe(false)
       }),
     )
   })

@@ -14,6 +14,12 @@ original status, source pins and publication holds as historical evidence.
 
 ## Followups after the published preview
 
+- [x] Audit Workspace guards against their interaction sources. Simplify repeated
+      membership, lookup, initialization, reconciliation and notification checks;
+      preserve URL, loading, revision and rollback checks. Record the generic
+      Listbox Schema limitation and retained boundary validation in the
+      [guard audit](workspace-guard-audit.md).
+
 - [x] Keep Workspace page Routes while issue panels are open. Store the selected
       issue in `?issue=...`, retain standalone `/issues/:id` links, remove nested
       return Routes and page-unwrapping selectors, and initialize children directly

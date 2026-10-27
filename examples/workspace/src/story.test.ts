@@ -436,7 +436,6 @@ describe('workspace notifications', () => {
         notificationMessage(
           NotificationCenterBlock.Message.ClickedNotificationReadState({
             notificationId,
-            recipientId: 'maya',
           }),
         ),
       ),
@@ -643,7 +642,6 @@ describe('workspace notifications', () => {
         notificationMessage(
           NotificationCenterBlock.Message.ClickedNotification({
             notificationId: alexNotificationId,
-            recipientId: 'alex',
           }),
         ),
       ),

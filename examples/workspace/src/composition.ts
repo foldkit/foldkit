@@ -51,14 +51,7 @@ export const ActiveMemberBinding = ApplicationDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(WorkspaceListboxBlock, {
     Selected: ({ value }) =>
-      makeFieldsStep(model => ({
-        activeMemberId: current =>
-          Option.exists(AsyncData.getData(model.workspaceAsyncData), snapshot =>
-            Array.some(snapshot.members, member => member.id === value),
-          )
-            ? value
-            : current,
-      })),
+      makeFieldsStep(() => ({ activeMemberId: () => value })),
   }),
 })
 
@@ -306,22 +299,19 @@ export const requestMoveIssueStep = (
       onNone: () => ({ model }),
       onSome: snapshot =>
         Option.match(
-          Array.findFirst(snapshot.issues, issue => issue.id === issueId),
+          Array.findFirstWithIndex(
+            snapshot.issues,
+            issue => issue.id === issueId,
+          ),
           {
             onNone: () => ({ model }),
-            onSome: issue =>
+            onSome: ([issue, previousIndex]) =>
               Update.combineSteps([
                 applyOptimisticMoveStep(
                   issue,
                   status,
                   insertionIndex,
-                  Option.getOrElse(
-                    Array.findFirstIndex(
-                      snapshot.issues,
-                      current => current.id === issueId,
-                    ),
-                    () => 0,
-                  ),
+                  previousIndex,
                 ),
                 IssueBoardBinding.informIssueMoved(issue.projectId, {
                   status,

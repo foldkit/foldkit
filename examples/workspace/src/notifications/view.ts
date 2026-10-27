@@ -130,7 +130,6 @@ const notificationView = (
           type: 'button',
           onClick: Message.ClickedNotification({
             notificationId: notification.id,
-            recipientId: viewInputs.activeMemberId,
           }),
           toView: attributes =>
             h.button(
@@ -204,7 +203,6 @@ const notificationView = (
           type: 'button',
           onClick: Message.ClickedNotificationReadState({
             notificationId: notification.id,
-            recipientId: viewInputs.activeMemberId,
           }),
           toView: attributes =>
             h.button(

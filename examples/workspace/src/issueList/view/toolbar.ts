@@ -170,6 +170,7 @@ const savedViewForm = (
 export const filterToolbarView = (
   model: typeof Model.Type,
   filters: typeof IssueFilters.Type,
+  isCreationDisabled: boolean,
   h: IssueListViewBuilder,
 ): Html =>
   h.div(
@@ -211,11 +212,15 @@ export const filterToolbarView = (
       groupView(model, filters, h),
       Button.view(
         {
+          isDisabled: isCreationDisabled,
           onClick: Message.ClickedCreateIssue(),
           toView: attributes =>
             h.button(
               [
                 ...attributes.button,
+                ...(isCreationDisabled
+                  ? [h.AriaDescription('No projects are available')]
+                  : []),
                 h.Class(
                   'button-primary-compact ml-auto @lg:col-start-3 @lg:row-start-1 @4xl:col-start-6',
                 ),

@@ -61,10 +61,6 @@ const selectResult = (
   model: Parameters<typeof closeDialogStep>[0],
   target: typeof ResultTarget.Type,
 ) => {
-  if (!model.dialog.isOpen) {
-    return keepModelStep(model)
-  }
-
   const dialogClose = closeDialogStep(model)
 
   const outMessage = ResultTarget.match(target, {

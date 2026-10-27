@@ -9,10 +9,7 @@ import { Message, OutMessage, makeFieldsStep, makeNoopStep } from './definition'
 const handleInformedOfActivityStep = makeFieldsStep.fromMessage(
   ({ activity }: typeof Message.InformedOfActivity.Type) => ({
     notifications: notifications => {
-      const incoming = Array.dedupeWith(
-        makeNotifications(activity),
-        (left, right) => left.id === right.id,
-      )
+      const incoming = makeNotifications(activity)
 
       const unseen = Array.filter(
         incoming,
@@ -36,13 +33,9 @@ const handleClickedMarkAllAsReadStep = makeFieldsStep.fromMessage(
 )
 
 const handleClickedNotificationReadStateStep = makeFieldsStep.fromMessage(
-  ({
-    notificationId,
-    recipientId,
-  }: typeof Message.ClickedNotificationReadState.Type) => ({
+  ({ notificationId }: typeof Message.ClickedNotificationReadState.Type) => ({
     notifications: Array.map(notification =>
-      notification.id === notificationId &&
-      notification.recipientId === recipientId
+      notification.id === notificationId
         ? modifyFields(notification, {
             isRead: isRead => !isRead,
           })
@@ -51,11 +44,10 @@ const handleClickedNotificationReadStateStep = makeFieldsStep.fromMessage(
   }),
 )
 
-const markAsReadStep = (notificationId: string, recipientId: string) =>
+const markAsReadStep = (notificationId: string) =>
   makeFieldsStep(() => ({
     notifications: Array.map(notification =>
-      notification.id === notificationId &&
-      notification.recipientId === recipientId
+      notification.id === notificationId
         ? modifyFields(notification, { isRead: () => true })
         : notification,
     ),
@@ -68,19 +60,17 @@ export const update = NotificationCenterComposition.makeUpdate({
   })),
   ClickedMarkAllAsRead: handleClickedMarkAllAsReadStep,
   ClickedNotificationReadState: handleClickedNotificationReadStateStep,
-  ClickedNotification: (model, { notificationId, recipientId }) =>
+  ClickedNotification: (model, { notificationId }) =>
     Option.match(
       Array.findFirst(
         model.notifications,
-        notification =>
-          notification.id === notificationId &&
-          notification.recipientId === recipientId,
+        notification => notification.id === notificationId,
       ),
       {
         onNone: () => makeNoopStep()(model),
         onSome: notification => {
           const selected = Update.combineSteps(model, [
-            markAsReadStep(notificationId, recipientId),
+            markAsReadStep(notificationId),
             PopoverBinding.requestClose(),
           ])
 

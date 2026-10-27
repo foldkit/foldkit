@@ -30,22 +30,10 @@ export const CommentComposerBinding = IssueDetailDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: IssueDetailDefinition.makeOutMessageFold(CommentComposerBlock, {
     AddedComment: ({ issue }) =>
-      makeStep(model => {
-        const reconciled = reconcileIssue(model, issue)
-
-        return {
-          model:
-            reconciled === model
-              ? model
-              : modifyFields(model, {
-                  baseline: () => reconciled.baseline,
-                  draft: () => reconciled.draft,
-                  maybeIncomingRevision: () => reconciled.maybeIncomingRevision,
-                  saveState: () => reconciled.saveState,
-                }),
-          outMessage: OutMessage.ObservedIssue({ issue }),
-        }
-      }),
+      makeStep(model => ({
+        model: reconcileIssue(model, issue),
+        outMessage: OutMessage.ObservedIssue({ issue }),
+      })),
   }),
 })
 

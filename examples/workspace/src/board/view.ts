@@ -244,11 +244,9 @@ const columnCards = (
             h.AriaHidden(true),
           ])
 
-      return pipe(
-        cards,
-        Array.insertAt(insertionIndex, preview),
-        Option.getOrElse(() => Array.append(cards, preview)),
-      )
+      const [before, after] = Array.splitAt(cards, insertionIndex)
+
+      return [...before, preview, ...after]
     },
   })
 }

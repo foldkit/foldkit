@@ -9,7 +9,6 @@ import {
   type Model,
   OutMessage,
   SaveState,
-  makeNoopStep,
   makeOutMessageStep,
   makeStep,
 } from './definition'
@@ -30,8 +29,6 @@ const resetDraftFields = (model: typeof Model.Type) => {
     saveState: () => SaveState.Idle(),
   }
 }
-
-const keepModelStep = makeNoopStep()
 
 const resetDraftStep = makeStep(model => {
   if (SaveState.guards.Saving(model.saveState)) {
@@ -77,22 +74,7 @@ const saveIssueStep = makeStep(model => {
 const handleInformedOfIssueChange = (
   model: typeof Model.Type,
   { issue }: typeof Message.InformedOfIssueChange.Type,
-) => {
-  const reconciled = reconcileIssue(model, issue)
-
-  if (reconciled === model) {
-    return { model }
-  }
-
-  return {
-    model: modifyFields(model, {
-      baseline: () => reconciled.baseline,
-      draft: () => reconciled.draft,
-      maybeIncomingRevision: () => reconciled.maybeIncomingRevision,
-      saveState: () => reconciled.saveState,
-    }),
-  }
-}
+) => ({ model: reconcileIssue(model, issue) })
 
 const isCurrentSave = (
   model: typeof Model.Type,
@@ -142,10 +124,7 @@ const handleFailedSaveIssue = (
         const reconciled = reconcileIssue(model, latestIssue)
 
         return {
-          model: modifyFields(model, {
-            baseline: () => reconciled.baseline,
-            draft: () => reconciled.draft,
-            maybeIncomingRevision: () => reconciled.maybeIncomingRevision,
+          model: modifyFields(reconciled, {
             saveState: () => SaveState.Failed({ error: error.message }),
           }),
           outMessage: OutMessage.ObservedIssue({ issue: latestIssue }),
@@ -176,11 +155,7 @@ export const update = IssueDetailComposition.makeUpdate({
   ClickedRetrySave: saveIssueStep,
   RequestedSave: saveIssueStep,
   InformedOfIssueChange: handleInformedOfIssueChange,
-  ClickedReloadIssue: model =>
-    Option.match(model.maybeIncomingRevision, {
-      onNone: () => keepModelStep(model),
-      onSome: () => resetDraftStep(model),
-    }),
+  ClickedReloadIssue: resetDraftStep,
   ClickedDiscardChanges: resetDraftStep,
   ClickedClose: makeOutMessageStep(() => OutMessage.Closed()),
   SucceededSaveIssue: handleSucceededSaveIssue,

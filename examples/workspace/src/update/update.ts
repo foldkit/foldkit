@@ -84,7 +84,7 @@ export const update = ApplicationComposition.makeUpdate({
     Update.combineSteps(model, [
       applySnapshotStep(snapshot),
       initializeRouteChildrenStep,
-      reconcileRetainedIssueDetailsStep,
+      reconcileRetainedIssueDetailsStep(snapshot.issues),
     ]),
   FailedLoadWorkspace: makeFieldsStep.fromMessage(({ error }) => ({
     workspaceAsyncData: workspaceAsyncData =>
@@ -155,7 +155,7 @@ export const update = ApplicationComposition.makeUpdate({
         issueMoveState: () => IssueMoveState.Idle(),
         maybeNotice: () => Option.some('Issue moved'),
       })),
-      reconcileRetainedIssueDetailsStep,
+      reconcileRetainedIssueDetailsStep(snapshot.issues),
     ]),
   FailedMoveIssue: (model, { issueId, status, insertionIndex, error }) => {
     const failedMoveStep = makeFieldsStep(() => ({
