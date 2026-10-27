@@ -235,9 +235,7 @@ describe('issue selection', () => {
       projectId: 'platform',
       issueId: 'issue-101',
     })
-    expect(Schema.decodeUnknownSync(ApplicationRoute)(encodedRoute)).toEqual(
-      route,
-    )
+    expect(Schema.decodeSync(ApplicationRoute)(encodedRoute)).toEqual(route)
     expect(
       Schema.is(ApplicationRoute)({
         _tag: 'Board',
