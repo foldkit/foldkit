@@ -1,11 +1,30 @@
 # Blocks + Effect Layers stabilization feedback
 
-The [final stabilization summary](preview-stabilization-final-20261027.md)
-records subsequent source repairs and verification at `93c49c77b6d2`.
+The [latest stabilization addendum](preview-stabilization-1811-20261027.md)
+records #1811's repair and affected verification at `f15fa1646241`.
+The [preceding summary](preview-stabilization-final-20261027.md) retains the
+full source/performance checkpoint at `93c49c77b6d2`.
 The original inventory below retains its assessment pin. Later bounded refreshes
 found #1810 and then no further updated repository issues or PRs through
 16:53 UTC. The [retained refresh](stabilization-final-20261027/feedback-refresh.json)
 also reads #1810's unchanged body and zero comments back.
+
+## Late report #1811
+
+[#1811](https://github.com/foldkit/foldkit/issues/1811), posted at 17:36 UTC,
+reports Home HTML at an SSG scaffold's declared `/about` path. The 18:05 refresh
+finds this single new item and zero replies. Raw HTML and JavaScript-disabled
+navigation reproduce it in the prepared candidate; hydration hides the error.
+Earlier coverage used `/about/` without JavaScript and missed the mismatch.
+
+Fixed in `f15fa1646241`: preview resolves directory-index pages using Vite's
+actual client output before fallback, retaining Vite-owned serving and existing
+request boundaries. All350 plugin tests, including17 actual-preview cases,
+the strengthened3-case example suite and a physically packed-plugin SSG smoke
+pass. Independent review closes the initial output-directory finding and the
+exact-source Daybreak addendum passes. [Scope and evidence](preview-stabilization-1811-20261027.md).
+No application API changed. Source comparison suggests a preexisting mismatch;
+main and deployed hosts were not executed. Publication remains held.
 
 ## Late report #1810
 

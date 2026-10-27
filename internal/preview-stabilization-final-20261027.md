@@ -1,5 +1,9 @@
 # Blocks + Effect Layers stabilization approval summary
 
+This is the 93c acceptance checkpoint. The subsequent
+[SSG addendum](preview-stabilization-1811-20261027.md) records the #1811 repair
+and affected verification at f15. Results below retain their original pin.
+
 The candidate is prepared for release approval. Publication, release-branch
 integration, Ready promotion and merging to main remain held. The published
 snapshot is still `f3be22cfeefed437164ad614d08b16d9000e0703`.

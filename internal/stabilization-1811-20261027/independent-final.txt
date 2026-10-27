@@ -1,0 +1,13 @@
+# Independent #1811 amended source review
+
+## Verdict
+
+PASS for exact commit `f15fa164624130f1773be20aac9090a9d1e2a9dc`, tree `bcfd547940b480fd3f6f8738f08d224a7ac443be`, parent `d97860167b1df76fff407e16d3456839cd5c7ea3`.
+
+The sole P2 finding from the superseded `92e2926727eb498f93c375a9d0bbd63ef16e688a` review is resolved. The preview middleware now takes the resolved client environment's output directory, matching Vite preview's static root, with a top-level fallback only when that environment is unavailable.
+
+The new actual-preview fixture deliberately separates `unused-root-output` from `generated-client`, writes pages into the latter and asserts that both `/about` and `/about/index.html` return About. The helper preserves supplied build options. The previous implementation would check the absent root output and miss this page, so the regression is specific to the reported defect.
+
+The amendment changes only that production expression and its test helper/case. The preceding review's conclusions about contained path validation, proxy/flat-file/base/method/accept/custom-host boundaries, Vite-owned serving, no-JavaScript coverage and static-host documentation remain applicable. No new actionable findings.
+
+This was an exact-object, read-only rereview. `git diff --check` passes. No tests, builds, browser sessions or benchmarks were rerun; the lead's final execution gates remain separate evidence. The earlier finding report is preserved. No repository or external state was changed; only this temporary report was written.

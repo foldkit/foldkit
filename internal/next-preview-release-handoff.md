@@ -2,10 +2,11 @@
 
 ## Current stabilization preparation, October 27
 
-The [final stabilization summary](preview-stabilization-final-20261027.md) owns
-the current candidate, feedback dispositions, verification and remaining
-limitations. Its implementation pin is
-`93c49c77b6d25d9f0aa8213135bb629c1a3e1ff4`. The late #1810 report is assessed:
+The [SSG stabilization addendum](preview-stabilization-1811-20261027.md) owns
+the latest #1811 repair at `f15fa164624130f1773be20aac9090a9d1e2a9dc`,
+with affected source, packed-plugin, browser and review verification. The
+[preceding summary](preview-stabilization-final-20261027.md) retains the full
+change inventory and 93c source/performance evidence. The late #1810 report is assessed:
 preservation recovery and paired troubleshooting examples are implemented;
 missing-handler diagnostic priority remains a disclosed limitation.
 Publication and release-branch integration remain held for approval. The

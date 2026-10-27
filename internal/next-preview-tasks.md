@@ -53,6 +53,20 @@ regressions. General feature proposals do not automatically join its scope.
       diagnostic priority remains a disclosed limitation. All affected final
       gates, nine-package acceptance and exact-source review pass at93c.
       Existing ae2 evidence remains a separate checkpoint.
+- [x] Fix #1811: SSG preview must serve the generated About document at its
+      declared `/about` path before hydration. Preserve directory-index output
+      and Vite-owned serving, use its resolved client output, and cover raw HTML,
+      JavaScript-disabled navigation and the generated link. Plugin350 tests,
+      strengthened3-case browser suite, packed delta and independent/Daybreak
+      reviews pass atf15. [Affected evidence](preview-stabilization-1811-20261027.md).
+
+## Before merging to main
+
+- [ ] Review temporary preview documentation for the stable release. Retire or
+      archive canary installation and preview-to-preview history, adapt the
+      stable migration guide, and retain the permanent API/architecture guides.
+      Preserve historical published material. This follows the remaining
+      feedback previews and does not hold the current stabilization preview.
 
 ## Followups after the published preview
 
