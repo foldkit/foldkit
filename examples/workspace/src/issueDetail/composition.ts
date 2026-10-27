@@ -16,7 +16,7 @@ import {
   makeNoopStep,
   makeStep,
 } from './definition'
-import { maybeRetainedDraft, reconcileIssue } from './draft'
+import { reconcileIssue } from './draft'
 import { decodeAssigneeSelection } from './field'
 
 export const CommentComposerBinding = IssueDetailDefinition.makeBinding(
@@ -24,7 +24,7 @@ export const CommentComposerBinding = IssueDetailDefinition.makeBinding(
   {
     field: 'commentComposer',
     init: {
-      contextToArgs: ({ issueId, commentBody }) => [issueId, commentBody],
+      contextToArgs: ({ issueId }) => [issueId],
     },
   },
 ).withOutMessagePolicy({
@@ -46,30 +46,17 @@ export const CommentComposerBinding = IssueDetailDefinition.makeBinding(
           outMessage: OutMessage.ObservedIssue({ issue }),
         }
       }),
-    ReportedDraft: ({ body }) =>
-      makeStep(model => ({
-        model,
-        outMessage: OutMessage.ChangedDraft({
-          issueId: model.issueId,
-          maybeDraft: maybeRetainedDraft(model, body),
-        }),
-      })),
   }),
 })
 
-const reportDraftStep = CommentComposerBinding.requestReportDraft()
-
-const keepModelStep = makeNoopStep()
-
-export const changeDraftStep =
-  (toDraft: (draft: typeof IssueDraft.Type) => typeof IssueDraft.Type) =>
-  (model: Parameters<typeof reportDraftStep>[0]) => {
-    if (SaveState.guards.Saving(model.saveState)) {
-      return keepModelStep(model)
-    }
-
-    return reportDraftStep(modifyFields(model, { draft: toDraft }))
-  }
+export const changeDraftStep = (
+  toDraft: (draft: typeof IssueDraft.Type) => typeof IssueDraft.Type,
+) =>
+  makeStep(model => ({
+    model: SaveState.guards.Saving(model.saveState)
+      ? model
+      : modifyFields(model, { draft: toDraft }),
+  }))
 
 export const StatusBinding = IssueDetailDefinition.makeBinding(
   StatusListboxBlock,

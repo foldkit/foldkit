@@ -3,8 +3,9 @@ import { modifyFields } from 'foldkit/struct'
 
 import { NavigateInternal, ReplaceInternalUrl } from '../command'
 import type { Message } from '../message'
-import { type Model, appliedIssueFilters } from '../model'
+import type { Model } from '../model'
 import { ApplicationRoute, routeForPageContent, routeToPath } from '../route'
+import { appliedIssueFilters } from '../selection'
 
 export const handleClickedDeleteSavedView = (
   model: typeof Model.Type,

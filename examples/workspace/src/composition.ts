@@ -1,5 +1,6 @@
 import { Array, Number, Option } from 'effect'
 import { AsyncData, type Block, Update } from 'foldkit'
+import { makeMapBinding } from 'foldkit/mapBinding'
 import { modifyFields } from 'foldkit/struct'
 
 import { IssueBoardBlock } from './board'
@@ -18,7 +19,6 @@ import {
   type IssueFilters,
   type IssueStatus,
   NotificationActivity,
-  type RetainedIssueDraft,
   SavedView,
   mergeIssue,
   moveIssue,
@@ -27,7 +27,7 @@ import { IssueDetailBlock } from './issueDetail'
 import { IssueListBlock } from './issueList'
 import { WorkspaceListboxBlock } from './listbox'
 import { MemberDirectoryBlock } from './memberDirectory'
-import { IssueMoveState, appliedIssueFilters } from './model'
+import { IssueMoveState } from './model'
 import { issueFiltersHref, issueHref } from './navigation'
 import { NotificationCenterBlock } from './notifications'
 import { ProjectSettingsBlock } from './projectSettings'
@@ -37,6 +37,7 @@ import {
   routeForPageContent,
   routeToPath,
 } from './route'
+import { appliedIssueFilters } from './selection'
 
 export const ActiveMemberBinding = ApplicationDefinition.makeBinding(
   WorkspaceListboxBlock,
@@ -58,16 +59,11 @@ export const ActiveMemberBinding = ApplicationDefinition.makeBinding(
   }),
 })
 
-export const IssueDetailBinding = ApplicationDefinition.makeBinding(
+export const IssueDetailBinding = makeMapBinding(
+  ApplicationDefinition,
   IssueDetailBlock,
   {
-    field: 'issueDetailInstances',
-    key: 'issueId',
-    childField: 'model',
-    init: {
-      instances: () => [],
-      toItem: ({ key }, issueDetail) => ({ issueId: key, model: issueDetail }),
-    },
+    field: 'issueDetails',
   },
 )
 
@@ -151,21 +147,6 @@ export const applyIssueRevisionStep = (issue: typeof Issue.Type) =>
     })),
   ])
 
-const retainIssueDraftStep = (
-  issueId: string,
-  maybeDraft: Option.Option<typeof RetainedIssueDraft.Type>,
-) =>
-  makeFieldsStep(() => ({
-    issueDrafts: drafts => {
-      const remaining = Array.filter(drafts, draft => draft.issueId !== issueId)
-
-      return Option.match(maybeDraft, {
-        onNone: () => remaining,
-        onSome: draft => Array.append(remaining, draft),
-      })
-    },
-  }))
-
 const foldIssueDetailOutMessage = ApplicationDefinition.makeOutMessageFold(
   IssueDetailBlock,
   {
@@ -175,15 +156,8 @@ const foldIssueDetailOutMessage = ApplicationDefinition.makeOutMessageFold(
         makeFieldsStep(() => ({
           maybeNotice: () => Option.some(`${issue.identifier} saved`),
         })),
-        IssueDetailBinding.requestReportDraft(issue.id),
       ]),
-    ObservedIssue: ({ issue }) =>
-      Update.combineSteps([
-        applyIssueRevisionStep(issue),
-        IssueDetailBinding.requestReportDraft(issue.id),
-      ]),
-    ChangedDraft: ({ issueId, maybeDraft }) =>
-      retainIssueDraftStep(issueId, maybeDraft),
+    ObservedIssue: ({ issue }) => applyIssueRevisionStep(issue),
     Closed: () =>
       makeCommandsStep(model => [
         NavigateInternal({
@@ -348,16 +322,11 @@ export const requestMoveIssueStep = (
     })
   })
 
-export const IssueBoardBinding = ApplicationDefinition.makeBinding(
+export const IssueBoardBinding = makeMapBinding(
+  ApplicationDefinition,
   IssueBoardBlock,
   {
-    field: 'boardInstances',
-    key: 'projectId',
-    childField: 'model',
-    init: {
-      instances: () => [],
-      toItem: ({ key }, board) => ({ projectId: key, model: board }),
-    },
+    field: 'boards',
   },
 )
 
@@ -400,16 +369,11 @@ const IssueDetailBindingWithOutMessagePolicy =
     fold: (_issueId, outMessage) => foldIssueDetailOutMessage(outMessage),
   })
 
-export const ProjectSettingsBinding = ApplicationDefinition.makeBinding(
+export const ProjectSettingsBinding = makeMapBinding(
+  ApplicationDefinition,
   ProjectSettingsBlock,
   {
-    field: 'projectSettingsInstances',
-    key: 'projectId',
-    childField: 'model',
-    init: {
-      instances: () => [],
-      toItem: ({ key }, settings) => ({ projectId: key, model: settings }),
-    },
+    field: 'projectSettings',
   },
 ).withOutMessagePolicy({
   fold: (_projectId, outMessage) =>

@@ -59,13 +59,6 @@ export const IssueRevision = Schema.Struct({
   fields: IssueDraft,
 })
 
-export const RetainedIssueDraft = Schema.Struct({
-  issueId: Schema.String,
-  baseline: IssueRevision,
-  draft: IssueDraft,
-  commentBody: Schema.String,
-})
-
 const commentOrder = Order.combine(
   Order.mapInput(
     Option.makeOrder(DateTime.Order),

@@ -4,6 +4,7 @@ import { AsyncData } from 'foldkit'
 import { ApplicationDefinition } from './definition'
 import { protectUnsavedChanges } from './draftProtection'
 import { Message } from './message'
+import { unsavedIssueDrafts } from './selection'
 
 const ACTIVITY_INTERVAL = Duration.seconds(20)
 
@@ -14,7 +15,7 @@ export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
     {
       messages: [],
       modelToDependencies: model => ({
-        isProtecting: Array.isReadonlyArrayNonEmpty(model.issueDrafts),
+        isProtecting: Array.isReadonlyArrayNonEmpty(unsavedIssueDrafts(model)),
       }),
       handler: function* () {
         return protectUnsavedChanges

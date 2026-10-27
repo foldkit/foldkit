@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { Array, Option } from 'effect'
+import { Array, Option, Record } from 'effect'
 import { AsyncData } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
@@ -22,13 +22,7 @@ import {
 import type { Issue, Project, WorkspaceSnapshot } from '../domain'
 import { listboxViewInputs } from '../listbox'
 import { Message } from '../message'
-import {
-  IssueMoveState,
-  type Model,
-  appliedIssueFilters,
-  maybeActiveBoardInstance,
-  maybeActiveIssueDetailInstance,
-} from '../model'
+import { IssueMoveState, type Model } from '../model'
 import { issueHrefs } from '../navigation'
 import {
   ApplicationRoute,
@@ -37,6 +31,11 @@ import {
   routeFilters,
   routeForPageContent,
 } from '../route'
+import {
+  appliedIssueFilters,
+  maybeActiveBoard,
+  maybeActiveIssueDetail,
+} from '../selection'
 import { projectOverview, projectTabs } from './project'
 import { workspaceSettings } from './settings'
 import { sidebarView } from './sidebar'
@@ -213,38 +212,32 @@ const routeContent = (
       ),
     ProjectSettings: ({ projectId }) =>
       projectContent(projectId, () =>
-        Option.match(
-          Array.findFirst(
-            model.projectSettingsInstances,
-            instance => instance.projectId === projectId,
-          ),
-          {
-            onNone: () => h.empty,
-            onSome: instance =>
-              h.block(
-                ProjectSettingsBinding.embedView({
-                  key: projectId,
-                  slotId: `project-settings-${projectId}`,
-                  model: instance.model,
-                }),
-              ),
-          },
-        ),
+        Option.match(Record.get(model.projectSettings, projectId), {
+          onNone: () => h.empty,
+          onSome: settings =>
+            h.block(
+              ProjectSettingsBinding.embedView({
+                key: projectId,
+                slotId: `project-settings-${projectId}`,
+                model: settings,
+              }),
+            ),
+        }),
       ),
     Board: ({ projectId }) =>
       projectContent(projectId, () =>
-        Option.match(maybeActiveBoardInstance(model), {
+        Option.match(maybeActiveBoard(model), {
           onNone: () =>
             h.p(
               [h.Class('p-8 text-sm text-slate-500'), h.Role('status')],
               ['Loading board…'],
             ),
-          onSome: instance =>
+          onSome: board =>
             h.block(
               IssueBoardBinding.embedView({
                 key: projectId,
                 slotId: `project-board-${projectId}`,
-                model: instance.model,
+                model: board,
                 viewInputs: {
                   issueHrefs: issueHrefs(model, snapshot.issues),
                   isSaving: IssueMoveState.guards.MovingIssue(
@@ -405,16 +398,14 @@ const workspaceView = (
           ...(ApplicationRoute.guards.Issue(model.route)
             ? [
                 Option.match(
-                  Option.flatMap(
-                    maybeActiveIssueDetailInstance(model),
-                    instance =>
-                      Option.map(
-                        Array.findFirst(
-                          snapshot.issues,
-                          issue => issue.id === instance.issueId,
-                        ),
-                        issue => ({ instance, issue }),
+                  Option.flatMap(maybeActiveIssueDetail(model), detail =>
+                    Option.map(
+                      Array.findFirst(
+                        snapshot.issues,
+                        issue => issue.id === detail.issueId,
                       ),
+                      issue => ({ detail, issue }),
+                    ),
                   ),
                   {
                     onNone: () =>
@@ -423,7 +414,7 @@ const workspaceView = (
                         'Choose another issue from the list.',
                         h,
                       ),
-                    onSome: ({ instance, issue }) =>
+                    onSome: ({ detail, issue }) =>
                       h.aside(
                         [
                           h.Class(
@@ -433,9 +424,9 @@ const workspaceView = (
                         [
                           h.block(
                             IssueDetailBinding.embedView({
-                              key: instance.issueId,
-                              slotId: instance.issueId,
-                              model: instance.model,
+                              key: detail.issueId,
+                              slotId: detail.issueId,
+                              model: detail,
                               viewInputs: {
                                 issue,
                                 projects: snapshot.projects,

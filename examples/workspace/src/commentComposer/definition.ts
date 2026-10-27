@@ -20,14 +20,12 @@ export const Model = Schema.Struct({
 export const Message = defineMessageUnion({
   UpdatedBody: { value: Schema.String },
   ClickedDiscardComment: {},
-  RequestedReportDraft: {},
   SubmittedCommentForm: { authorId: Schema.String },
   SucceededAddComment: { issue: Issue },
   FailedAddComment: { error: Schema.String },
 })
 
 export const OutMessage = defineMessageUnion({
-  ReportedDraft: { body: Schema.String },
   AddedComment: { issue: Issue },
 })
 
@@ -39,5 +37,3 @@ export const CommentComposerDefinition = Block.makeDefinition(
     OutMessage,
   },
 )
-
-export const { makeOutMessageStep } = CommentComposerDefinition

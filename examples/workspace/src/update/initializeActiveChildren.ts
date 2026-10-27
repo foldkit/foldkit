@@ -1,6 +1,6 @@
-import { Array, Option, pipe } from 'effect'
+import { Array, Option, Record, pipe } from 'effect'
 import { AsyncData, Update } from 'foldkit'
-import { initAndAppend } from 'foldkit/bindingInit'
+import { initAndInsert } from 'foldkit/bindingInit'
 
 import {
   IssueBoardBinding,
@@ -12,12 +12,7 @@ import { ApplicationRoute, routeForPageContent } from '../route'
 
 const initializeIssueDetailIfMissingStep = (issueId: string) =>
   makeStep(model => {
-    if (
-      Array.some(
-        model.issueDetailInstances,
-        instance => instance.issueId === issueId,
-      )
-    ) {
+    if (Record.has(model.issueDetails, issueId)) {
       return { model }
     }
 
@@ -29,15 +24,9 @@ const initializeIssueDetailIfMissingStep = (issueId: string) =>
       Option.match({
         onNone: () => ({ model }),
         onSome: issue =>
-          initAndAppend(IssueDetailBinding, model, {
+          initAndInsert(IssueDetailBinding, model, {
             key: issueId,
-            args: [
-              issue,
-              Array.findFirst(
-                model.issueDrafts,
-                draft => draft.issueId === issueId,
-              ),
-            ],
+            args: [issue],
           }),
       }),
     )
@@ -45,12 +34,7 @@ const initializeIssueDetailIfMissingStep = (issueId: string) =>
 
 const initializeProjectBoardIfMissingStep = (projectId: string) =>
   makeStep(model => {
-    if (
-      Array.some(
-        model.boardInstances,
-        instance => instance.projectId === projectId,
-      )
-    ) {
+    if (Record.has(model.boards, projectId)) {
       return { model }
     }
 
@@ -62,7 +46,7 @@ const initializeProjectBoardIfMissingStep = (projectId: string) =>
       Option.match({
         onNone: () => ({ model }),
         onSome: () =>
-          initAndAppend(IssueBoardBinding, model, {
+          initAndInsert(IssueBoardBinding, model, {
             key: projectId,
             args: [],
           }),
@@ -72,12 +56,7 @@ const initializeProjectBoardIfMissingStep = (projectId: string) =>
 
 const initializeProjectSettingsIfMissingStep = (projectId: string) =>
   makeStep(model => {
-    if (
-      Array.some(
-        model.projectSettingsInstances,
-        instance => instance.projectId === projectId,
-      )
-    ) {
+    if (Record.has(model.projectSettings, projectId)) {
       return { model }
     }
 
@@ -89,7 +68,7 @@ const initializeProjectSettingsIfMissingStep = (projectId: string) =>
       Option.match({
         onNone: () => ({ model }),
         onSome: project =>
-          initAndAppend(ProjectSettingsBinding, model, {
+          initAndInsert(ProjectSettingsBinding, model, {
             key: project.id,
             args: [project],
           }),
@@ -98,6 +77,8 @@ const initializeProjectSettingsIfMissingStep = (projectId: string) =>
   })
 
 export const initializeActiveChildrenStep = makeStep(model => {
+  // Shouldnt we be using the Transition helpers? dont we only care to do this
+  // if we are entering the route?
   const initializeIssueDetailStep = ApplicationRoute.matchOrElse(
     model.route,
     { Issue: ({ issueId }) => initializeIssueDetailIfMissingStep(issueId) },

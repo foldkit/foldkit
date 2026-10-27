@@ -1,7 +1,7 @@
 import { Record } from 'effect'
 
 import type { Issue, IssueFilters } from './domain'
-import { type Model, appliedIssueFilters } from './model'
+import type { Model } from './model'
 import {
   ApplicationRoute,
   issueRouter,
@@ -9,6 +9,7 @@ import {
   routeToPath,
   withRouteFilters,
 } from './route'
+import { appliedIssueFilters } from './selection'
 
 export const issueHref = (model: typeof Model.Type, issueId: string) => {
   const route = routeForPageContent(model.route)

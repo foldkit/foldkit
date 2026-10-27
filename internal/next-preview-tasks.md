@@ -14,6 +14,12 @@ original status, source pins and publication holds as historical evidence.
 
 ## Followups after the published preview
 
+- [x] Simplify Workspace retained state: keep issue editors, Boards and project
+      settings in ID-keyed records using map Bindings. Derive draft summaries
+      from retained editors, remove the root draft mirror and reporting operations,
+      and keep shared selectors in `selection.ts`. Preserve navigation retention,
+      hidden saves, draft indicators, exit protection and optimistic moves.
+
 - [x] Decode Workspace's issue return location through its URL query Schema.
       Store an optional typed page Route, select it through `routeForPageContent`,
       and preserve panel closing, list filters, reloads and existing URL forms.

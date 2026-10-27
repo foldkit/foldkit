@@ -1,4 +1,4 @@
-import { Array, Option } from 'effect'
+import { Array, Option, Record } from 'effect'
 import { AsyncData } from 'foldkit'
 import {
   Command,
@@ -33,12 +33,13 @@ import { IssueDetailBlock } from './issueDetail'
 import { SaveIssue } from './issueDetail/command'
 import { WorkspaceListboxBlock } from './listbox'
 import { Message } from './message'
-import { type Model, appliedIssueFilters } from './model'
+import type { Model } from './model'
 import { issueHref } from './navigation'
 import { ProjectSettingsBlock } from './projectSettings'
 import { SaveProject } from './projectSettings/command'
 import { RepositoryError } from './repository'
 import { ApplicationRoute, issueRouter, savedViewRouter } from './route'
+import { appliedIssueFilters } from './selection'
 import { update } from './update'
 import { view } from './view'
 
@@ -94,7 +95,7 @@ describe('workspace application', () => {
       Message.ChangedUrl({ url: url('/people') }),
     ).model
 
-    expectValue(hiddenIssue.issueDetailInstances).toHaveLength(1)
+    expectValue(Record.values(hiddenIssue.issueDetails)).toHaveLength(1)
 
     scene(
       { update, view },

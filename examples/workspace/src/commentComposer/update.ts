@@ -3,7 +3,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { AddComment } from './command'
 import { CommentComposerComposition } from './composition'
-import { OutMessage, PostState, makeOutMessageStep } from './definition'
+import { OutMessage, PostState } from './definition'
 import { canEditDraft } from './draft'
 
 export const update = CommentComposerComposition.makeUpdate({
@@ -14,7 +14,6 @@ export const update = CommentComposerComposition.makeUpdate({
 
     return {
       model: modifyFields(model, { body: () => value }),
-      outMessage: OutMessage.ReportedDraft({ body: value }),
     }
   },
   ClickedDiscardComment: model => {
@@ -27,12 +26,8 @@ export const update = CommentComposerComposition.makeUpdate({
         body: () => '',
         postState: () => PostState.Idle(),
       }),
-      outMessage: OutMessage.ReportedDraft({ body: '' }),
     }
   },
-  RequestedReportDraft: makeOutMessageStep(model =>
-    OutMessage.ReportedDraft({ body: model.body }),
-  ),
   SubmittedCommentForm: (model, { authorId }) => {
     if (PostState.guards.Posting(model.postState)) {
       return { model }

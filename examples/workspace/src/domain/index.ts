@@ -12,7 +12,6 @@ export {
   NotificationActivity,
   NotificationKind,
   Project,
-  RetainedIssueDraft,
   SavedView,
   WorkspaceSnapshot,
   issueStatusLabel,

@@ -13,7 +13,9 @@ export const init = ApplicationComposition.makeInit((url: Url) => {
     model: {
       route,
       workspaceAsyncData: WorkspaceAsyncData.Loading(),
-      issueDrafts: [],
+      issueDetails: {},
+      boards: {},
+      projectSettings: {},
       maybeNotice: Option.none(),
       maybeActivityError: Option.none(),
       activeMemberId: 'maya',

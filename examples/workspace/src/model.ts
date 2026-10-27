@@ -1,48 +1,23 @@
-import { Array, Option, Schema } from 'effect'
+import { Schema } from 'effect'
 import { AsyncData } from 'foldkit'
 import { defineTaggedUnion } from 'foldkit/schema'
 
 import { IssueBoardBlock } from './board'
 import { CommandPaletteBlock } from './commandPalette'
 import { CreateIssueBlock } from './createIssue'
-import {
-  IssueStatus,
-  RetainedIssueDraft,
-  SavedView,
-  WorkspaceSnapshot,
-} from './domain'
+import { IssueStatus, SavedView, WorkspaceSnapshot } from './domain'
 import { IssueDetailBlock } from './issueDetail'
 import { IssueListBlock } from './issueList'
 import { WorkspaceListboxBlock } from './listbox'
 import { MemberDirectoryBlock } from './memberDirectory'
 import { NotificationCenterBlock } from './notifications'
 import { ProjectSettingsBlock } from './projectSettings'
-import {
-  ApplicationRoute,
-  defaultIssueFilters,
-  routeFilters,
-  routeForPageContent,
-} from './route'
+import { ApplicationRoute } from './route'
 
 export const WorkspaceAsyncData = AsyncData.Schema(
   WorkspaceSnapshot,
   Schema.String,
 )
-
-export const IssueDetailInstance = Schema.Struct({
-  issueId: Schema.String,
-  model: IssueDetailBlock.Model,
-})
-
-export const BoardInstance = Schema.Struct({
-  projectId: Schema.String,
-  model: IssueBoardBlock.Model,
-})
-
-export const ProjectSettingsInstance = Schema.Struct({
-  projectId: Schema.String,
-  model: ProjectSettingsBlock.Model,
-})
 
 export const IssueMoveState = defineTaggedUnion({
   Idle: {},
@@ -65,12 +40,11 @@ export const Model = Schema.Struct({
   workspaceAsyncData: WorkspaceAsyncData.schema,
   issueList: IssueListBlock.Model,
   createIssue: CreateIssueBlock.Model,
-  boardInstances: Schema.Array(BoardInstance),
+  boards: Schema.Record(Schema.String, IssueBoardBlock.Model),
   commandPalette: CommandPaletteBlock.Model,
   memberDirectory: MemberDirectoryBlock.Model,
   notificationCenter: NotificationCenterBlock.Model,
-  issueDetailInstances: Schema.Array(IssueDetailInstance),
-  issueDrafts: Schema.Array(RetainedIssueDraft),
+  issueDetails: Schema.Record(Schema.String, IssueDetailBlock.Model),
   maybeNotice: Schema.Option(Schema.String),
   maybeActivityError: Schema.Option(Schema.String),
   activeMemberId: Schema.String,
@@ -78,46 +52,6 @@ export const Model = Schema.Struct({
   activityTick: Schema.Number,
   savedViews: Schema.Array(SavedView),
   nextSavedViewId: Schema.Number,
-  projectSettingsInstances: Schema.Array(ProjectSettingsInstance),
+  projectSettings: Schema.Record(Schema.String, ProjectSettingsBlock.Model),
   issueMoveState: IssueMoveState,
 })
-
-export const maybeActiveIssueDetailInstance = (model: typeof Model.Type) => {
-  const route = model.route
-
-  return ApplicationRoute.guards.Issue(route)
-    ? Array.findFirst(
-        model.issueDetailInstances,
-        instance => instance.issueId === route.issueId,
-      )
-    : Option.none()
-}
-
-export const maybeActiveBoardInstance = (model: typeof Model.Type) => {
-  const route = routeForPageContent(model.route)
-
-  return ApplicationRoute.guards.Board(route)
-    ? Array.findFirst(
-        model.boardInstances,
-        instance => instance.projectId === route.projectId,
-      )
-    : Option.none()
-}
-
-export const appliedIssueFilters = (model: typeof Model.Type) => {
-  const route = routeForPageContent(model.route)
-
-  return Option.getOrElse(routeFilters(route), () => {
-    if (ApplicationRoute.guards.SavedView(route)) {
-      return Option.match(
-        Array.findFirst(model.savedViews, view => view.id === route.viewId),
-        {
-          onNone: () => defaultIssueFilters,
-          onSome: view => view.filters,
-        },
-      )
-    }
-
-    return defaultIssueFilters
-  })
-}

@@ -1,7 +1,8 @@
 import { Option, Schema, String } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import { Issue, IssueDraft, IssueRevision, RetainedIssueDraft } from '../domain'
+import { hasDraft } from '../commentComposer/draft'
+import { Issue, IssueDraft, IssueRevision } from '../domain'
 import { type Model, SaveState } from './definition'
 
 export const draftFromIssue = (issue: typeof Issue.Type) =>
@@ -69,17 +70,15 @@ export const reconcileIssue = (
   })
 }
 
-export const maybeRetainedDraft = (
-  model: typeof Model.Type,
-  commentBody: string,
-) =>
-  isDirty(model) || String.isNonEmpty(commentBody)
-    ? Option.some(
-        RetainedIssueDraft.make({
-          issueId: model.issueId,
-          baseline: model.baseline,
-          draft: model.draft,
-          commentBody,
-        }),
-      )
-    : Option.none()
+export const maybeDraftSummary = (model: typeof Model.Type) => {
+  if (!isDirty(model) && !hasDraft(model.commentComposer)) {
+    return Option.none()
+  }
+
+  const title = String.trim(model.draft.title)
+
+  return Option.some({
+    issueId: model.issueId,
+    title: String.isEmpty(title) ? model.baseline.fields.title : title,
+  })
+}

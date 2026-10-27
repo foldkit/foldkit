@@ -3,11 +3,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { RepositoryError } from '../repository'
 import { SaveIssue } from './command'
-import {
-  CommentComposerBinding,
-  IssueDetailComposition,
-  changeDraftStep,
-} from './composition'
+import { IssueDetailComposition, changeDraftStep } from './composition'
 import {
   Message,
   type Model,
@@ -37,15 +33,13 @@ const resetDraftFields = (model: typeof Model.Type) => {
 
 const keepModelStep = makeNoopStep()
 
-const reportDraftStep = CommentComposerBinding.requestReportDraft()
-
-const resetDraft = (model: Parameters<typeof reportDraftStep>[0]) => {
+const resetDraftStep = makeStep(model => {
   if (SaveState.guards.Saving(model.saveState)) {
-    return keepModelStep(model)
+    return { model }
   }
 
-  return reportDraftStep(modifyFields(model, resetDraftFields(model)))
-}
+  return { model: modifyFields(model, resetDraftFields(model)) }
+})
 
 const saveIssueStep = makeStep(model => {
   if (
@@ -181,14 +175,13 @@ export const update = IssueDetailComposition.makeUpdate({
   SubmittedIssueForm: saveIssueStep,
   ClickedRetrySave: saveIssueStep,
   RequestedSave: saveIssueStep,
-  RequestedReportDraft: reportDraftStep,
   InformedOfIssueChange: handleInformedOfIssueChange,
   ClickedReloadIssue: model =>
     Option.match(model.maybeIncomingRevision, {
       onNone: () => keepModelStep(model),
-      onSome: () => resetDraft(model),
+      onSome: () => resetDraftStep(model),
     }),
-  ClickedDiscardChanges: resetDraft,
+  ClickedDiscardChanges: resetDraftStep,
   ClickedClose: makeOutMessageStep(() => OutMessage.Closed()),
   SucceededSaveIssue: handleSucceededSaveIssue,
   FailedSaveIssue: handleFailedSaveIssue,

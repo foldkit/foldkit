@@ -1,4 +1,4 @@
-import { Array, Option } from 'effect'
+import { Array, Option, Record } from 'effect'
 import { AsyncData, Update } from 'foldkit'
 
 import { IssueDetailBinding, applyIssueRevisionStep } from '../composition'
@@ -9,7 +9,6 @@ export const applyIncomingIssueStep = (issue: typeof Issue.Type) =>
   Update.combineSteps([
     applyIssueRevisionStep(issue),
     IssueDetailBinding.informIssueChanged(issue.id, { issue }),
-    IssueDetailBinding.requestReportDraft(issue.id),
   ])
 
 export const reconcileRetainedIssueDetailsStep = makeStep(model => {
@@ -19,7 +18,7 @@ export const reconcileRetainedIssueDetailsStep = makeStep(model => {
     return { model }
   }
 
-  const steps = Array.flatMap(model.issueDetailInstances, ({ issueId }) => {
+  const steps = Array.flatMap(Record.keys(model.issueDetails), issueId => {
     const maybeIssue = Array.findFirst(
       maybeSnapshot.value.issues,
       issue => issue.id === issueId,
@@ -29,7 +28,6 @@ export const reconcileRetainedIssueDetailsStep = makeStep(model => {
       onNone: () => [],
       onSome: issue => [
         IssueDetailBinding.informIssueChanged(issueId, { issue }),
-        IssueDetailBinding.requestReportDraft(issueId),
       ],
     })
   })

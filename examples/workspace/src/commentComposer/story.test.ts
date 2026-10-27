@@ -19,31 +19,17 @@ import { update } from './update'
 const issue = Option.getOrThrow(Array.head(initialSnapshot.issues))
 
 describe('CommentComposerBlock update', () => {
-  test('reports its retained draft through the public operation', () => {
-    const body = 'Keep this comment available.'
-
-    story(
-      update,
-      given(init(issue.id, body).model),
-      message(Message.RequestedReportDraft()),
-      expectOutMessage(OutMessage.ReportedDraft({ body })),
-      model(model => {
-        expect(model.body).toBe(body)
-      }),
-      Command.expectNone(),
-    )
-  })
-
-  test('reports accepted edits and discards an idle draft', () => {
+  test('keeps edits local and discards an idle draft', () => {
     const body = 'This draft changed.'
 
     story(
       update,
       given(init(issue.id).model),
       message(Message.UpdatedBody({ value: body })),
-      expectOutMessage(OutMessage.ReportedDraft({ body })),
+      expectNoOutMessage(),
+      model(model => expect(model.body).toBe(body)),
       message(Message.ClickedDiscardComment()),
-      expectOutMessage(OutMessage.ReportedDraft({ body: '' })),
+      expectNoOutMessage(),
       model(model => {
         expect(model.body).toBe('')
         expect(model.postState).toEqual(PostState.Idle())
@@ -52,7 +38,7 @@ describe('CommentComposerBlock update', () => {
     )
   })
 
-  test('keeps a posting draft locked without reporting ignored edits', () => {
+  test('keeps a posting draft locked', () => {
     const body = 'The submitted comment.'
     const posting = Model.make({
       issueId: issue.id,
@@ -72,9 +58,6 @@ describe('CommentComposerBlock update', () => {
       message(Message.SubmittedCommentForm({ authorId: 'alex' })),
       expectNoOutMessage(),
       model(model => expect(model).toBe(posting)),
-      Command.expectNone(),
-      message(Message.RequestedReportDraft()),
-      expectOutMessage(OutMessage.ReportedDraft({ body })),
       Command.expectNone(),
     )
   })

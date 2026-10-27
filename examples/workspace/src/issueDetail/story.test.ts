@@ -12,7 +12,7 @@ import { modifyFields } from 'foldkit/struct'
 import { toParentMessage } from 'foldkit/test'
 import { describe, expect, test } from 'vitest'
 
-import { Comment, RetainedIssueDraft, initialSnapshot } from '../domain'
+import { Comment, initialSnapshot } from '../domain'
 import { WorkspaceListboxBlock } from '../listbox'
 import { RepositoryError } from '../repository'
 import { SaveIssue } from './command'
@@ -85,19 +85,7 @@ describe('Issue Detail', () => {
         expect(model.baseline).toEqual(revisionFromIssue(issue))
         expect(model.draft).toEqual(editedDescriptionDraft)
       }),
-      expectOutMessage(
-        OutMessage.ChangedDraft({
-          issueId: issue.id,
-          maybeDraft: Option.some(
-            RetainedIssueDraft.make({
-              issueId: issue.id,
-              baseline: revisionFromIssue(issue),
-              draft: editedDescriptionDraft,
-              commentBody: '',
-            }),
-          ),
-        }),
-      ),
+      expectNoOutMessage(),
       Command.expectNone(),
     )
   })

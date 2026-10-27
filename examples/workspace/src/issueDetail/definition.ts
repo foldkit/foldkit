@@ -4,7 +4,7 @@ import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 
 import { CommentComposerBlock } from '../commentComposer'
-import { Issue, IssueDraft, IssueRevision, RetainedIssueDraft } from '../domain'
+import { Issue, IssueDraft, IssueRevision } from '../domain'
 import {
   PriorityListboxBlock,
   StatusListboxBlock,
@@ -33,7 +33,6 @@ export const Model = Schema.Struct({
 
 const ChildInitContext = Schema.Struct({
   issueId: Schema.String,
-  commentBody: Schema.String,
 })
 
 export const Message = defineMessageUnion({
@@ -45,7 +44,6 @@ export const Message = defineMessageUnion({
   ClickedClose: {},
   ClickedDiscardChanges: {},
   RequestedSave: {},
-  RequestedReportDraft: {},
   InformedOfIssueChange: { issue: Issue },
   SucceededSaveIssue: {
     issue: Issue,
@@ -61,10 +59,6 @@ export const Message = defineMessageUnion({
 export const OutMessage = defineMessageUnion({
   Saved: { issue: Issue },
   ObservedIssue: { issue: Issue },
-  ChangedDraft: {
-    issueId: Schema.String,
-    maybeDraft: Schema.Option(RetainedIssueDraft),
-  },
   Closed: {},
 })
 

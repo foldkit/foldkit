@@ -16,7 +16,6 @@ const prepare = () =>
     operations: {
       informIssueChanged: Message.InformedOfIssueChange,
       requestSave: Message.RequestedSave,
-      requestReportDraft: Message.RequestedReportDraft,
     },
   })
 export const IssueDetailBlock: Block.FromAssemblyWithViewAndOutMessage<

@@ -5,7 +5,7 @@ import { modifyFields } from 'foldkit/struct'
 import { AppendActivity, AssignIssue } from './command'
 import { makeStep } from './definition'
 import { IssueDraft } from './domain'
-import { maybeActiveIssueDetailInstance } from './model'
+import { maybeActiveIssueDetail } from './selection'
 
 const ASSIGNMENT_ACTIVITY_INTERVAL = 3
 const ACTIVITY_COMMENT_BODIES = [
@@ -38,8 +38,8 @@ export const simulateActivityStep = makeStep(model => {
     : issues
 
   const maybeIssue = Option.orElse(
-    Option.flatMap(maybeActiveIssueDetailInstance(model), instance =>
-      Array.findFirst(candidates, issue => issue.id === instance.issueId),
+    Option.flatMap(maybeActiveIssueDetail(model), detail =>
+      Array.findFirst(candidates, issue => issue.id === detail.issueId),
     ),
     () =>
       Array.get(

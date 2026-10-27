@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { Array, Option, String } from 'effect'
+import { Array, Option } from 'effect'
 import { AsyncData } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
@@ -20,6 +20,7 @@ import {
   savedViewRouter,
   settingsRouter,
 } from '../route'
+import { unsavedIssueDrafts } from '../selection'
 import { navigationLink } from './navigation'
 
 const maybeSnapshot = (model: typeof Model.Type) =>
@@ -37,6 +38,7 @@ export const sidebarView = (
   model: typeof Model.Type,
   h: ApplicationViewBuilder,
 ): Html => {
+  const drafts = unsavedIssueDrafts(model)
   const route = routeForPageContent(model.route)
   const maybeCurrentProjectId = maybeProjectId(route)
 
@@ -232,10 +234,8 @@ export const sidebarView = (
         [
           h.Class(
             clsx({
-              hidden: Array.isReadonlyArrayEmpty(model.issueDrafts),
-              [SIDEBAR_COLLECTION_CLASS]: Array.isReadonlyArrayNonEmpty(
-                model.issueDrafts,
-              ),
+              hidden: Array.isReadonlyArrayEmpty(drafts),
+              [SIDEBAR_COLLECTION_CLASS]: Array.isReadonlyArrayNonEmpty(drafts),
             }),
           ),
           h.AriaLabel('Drafts'),
@@ -249,8 +249,7 @@ export const sidebarView = (
             ],
             ['Drafts'],
           ),
-          ...Array.map(model.issueDrafts, retainedDraft => {
-            const title = String.trim(retainedDraft.draft.title)
+          ...Array.map(drafts, retainedDraft => {
             const maybeIssue = Option.flatMap(maybeSnapshot(model), snapshot =>
               Array.findFirst(
                 snapshot.issues,
@@ -289,11 +288,7 @@ export const sidebarView = (
                     ),
                     h.span(
                       [h.Class('block truncate text-sm font-medium')],
-                      [
-                        String.isEmpty(title)
-                          ? retainedDraft.baseline.fields.title
-                          : title,
-                      ],
+                      [retainedDraft.title],
                     ),
                   ],
                 ),
