@@ -3,7 +3,7 @@ import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest } from 'foldkit/navigation'
 import { Url } from 'foldkit/url'
 
-import { Issue, IssueStatus, WorkspaceSnapshot } from './domain'
+import { Issue, IssueStatus, Workspace } from './domain'
 import { RepositoryError } from './repository'
 
 export const Message = defineMessageUnion({
@@ -12,7 +12,7 @@ export const Message = defineMessageUnion({
   CompletedNavigateInternal: {},
   CompletedLoadExternal: {},
   CompletedReplaceInternalUrl: {},
-  SucceededLoadWorkspace: { snapshot: WorkspaceSnapshot },
+  SucceededLoadWorkspace: { workspace: Workspace },
   FailedLoadWorkspace: { error: Schema.String },
   ClickedRetryLoad: {},
   ClickedSimulateSaveFailure: {},
@@ -29,7 +29,7 @@ export const Message = defineMessageUnion({
     createdAt: Schema.String,
   },
   FailedAssignIssue: { error: Schema.String },
-  SucceededMoveIssue: { snapshot: WorkspaceSnapshot },
+  SucceededMoveIssue: { workspace: Workspace },
   FailedMoveIssue: {
     issueId: Schema.String,
     status: IssueStatus,

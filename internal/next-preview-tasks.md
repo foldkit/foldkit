@@ -14,6 +14,12 @@ original status, source pins and publication holds as historical evidence.
 
 ## Followups after the published preview
 
+- [x] Align Workspace feature folders with their completed Block names. Use full
+      responsibility-based layouts for split Blocks, including separate init and
+      assembly, and remove hybrid feature-named modules. Document the compact or
+      fully split convention in scaffold `FOLDKIT.md` and repository guidance.
+      Workspace typecheck, lint, all 152 tests, and production build pass.
+
 - [x] Reassess `Definition.makeMapBinding` beyond the rejected shared-receiver
       encodings. Adopt a parent-specialized callable that also supports detached,
       imported feature helpers. Preserve the earlier failed experiments and
@@ -404,7 +410,7 @@ Prototype proposed APIs and verify source/emitted acceptance/rejection, runtime 
 ## Workspace transition and initialization clarity
 
 - [x] Retain Issue Detail and Board Models by entity identity across navigation. Select rendered children from the Route, and verify hidden pending results, retained edits, conflict handling, and child lifecycle behavior separately.
-- [x] Replace vague `sync*` and `observe*` transformation names with precise application behavior. Use `initialize...IfMissing` for conditional creation and `handle<MessageTag>` for dedicated handlers.
+- [x] Replace vague `sync*` and `observe*` transformation names with precise application behavior. Use `init...IfMissingStep` for conditional creation and `handle<MessageTag>` for dedicated handlers.
 - [x] Apply parsed URL changes and initialize missing children while retaining existing state. The subsequent simplification removes Board drag-exit orchestration; use Route Transitions when actual entry/exit behavior requires them.
 - [x] Simplify saved-view deletion, preserve active filters, and keep an open issue visible while repairing its deleted return destination.
 - [x] Assess declaration-derived dynamic Binding initialization before adoption. The exact keyed-array append prototype passes source/emitted/runtime safety but exceeds unchanged compiler ceilings. Reject this encoding and retain explicit `toParentModel` placement. [Assessment and retained implementation](workspace-transition-cleanup-20261025.md).

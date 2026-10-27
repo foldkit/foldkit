@@ -2,22 +2,19 @@ import { Schema } from 'effect'
 import { AsyncData } from 'foldkit'
 import { defineTaggedUnion } from 'foldkit/schema'
 
-import { IssueBoardBlock } from './board'
 import { CommandPaletteBlock } from './commandPalette'
 import { CreateIssueBlock } from './createIssue'
-import { IssueStatus, SavedView, WorkspaceSnapshot } from './domain'
+import { IssueStatus, SavedView, Workspace } from './domain'
+import { IssueBoardBlock } from './issueBoard'
 import { IssueDetailBlock } from './issueDetail'
 import { IssueListBlock } from './issueList'
 import { WorkspaceListboxBlock } from './listbox'
 import { MemberDirectoryBlock } from './memberDirectory'
-import { NotificationCenterBlock } from './notifications'
+import { NotificationCenterBlock } from './notificationCenter'
 import { ProjectSettingsBlock } from './projectSettings'
 import { ApplicationRoute } from './route'
 
-export const WorkspaceAsyncData = AsyncData.Schema(
-  WorkspaceSnapshot,
-  Schema.String,
-)
+export const WorkspaceAsyncData = AsyncData.Schema(Workspace, Schema.String)
 
 export const IssueMoveState = defineTaggedUnion({
   Idle: {},
@@ -40,7 +37,7 @@ export const Model = Schema.Struct({
   workspaceAsyncData: WorkspaceAsyncData.schema,
   issueList: IssueListBlock.Model,
   createIssue: CreateIssueBlock.Model,
-  boards: Schema.Record(Schema.String, IssueBoardBlock.Model),
+  issueBoards: Schema.Record(Schema.String, IssueBoardBlock.Model),
   commandPalette: CommandPaletteBlock.Model,
   memberDirectory: MemberDirectoryBlock.Model,
   notificationCenter: NotificationCenterBlock.Model,

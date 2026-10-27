@@ -1,5 +1,5 @@
 import { CommentComposerComposition } from './composition'
-import { PostState } from './definition'
+import { PostState } from './model'
 
 export const init = CommentComposerComposition.makeInit(
   (issueId: string, body = '') => ({

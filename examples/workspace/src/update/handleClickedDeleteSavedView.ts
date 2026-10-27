@@ -11,9 +11,11 @@ export const handleClickedDeleteSavedView = (
   model: typeof Model.Type,
   { viewId }: typeof Message.ClickedDeleteSavedView.Type,
 ) => {
-  const route = model.route
+  const { route } = model
+
   const isDeletingDisplayedView =
     ApplicationRoute.guards.SavedView(route) && route.viewId === viewId
+
   const nextSavedViews = Array.filter(
     model.savedViews,
     saved => saved.id !== viewId,

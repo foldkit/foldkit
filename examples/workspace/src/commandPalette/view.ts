@@ -10,7 +10,8 @@ import {
   type CommandPaletteViewBuilder,
   DialogBinding,
 } from './composition'
-import { Message, type Model } from './definition'
+import { Message } from './message'
+import type { Model } from './model'
 import { SearchResult, searchResults } from './search'
 
 const ViewInputs = Schema.Struct({
@@ -62,7 +63,6 @@ const searchInput = (
               h.Autocomplete('off'),
               h.OnKeyDownPreventDefault(key =>
                 Match.value(key).pipe(
-                  Match.withReturnType<Option.Option<typeof Message.Type>>(),
                   Match.when('ArrowDown', () =>
                     Option.some(
                       Message.PressedNextResult({

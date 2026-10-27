@@ -2,7 +2,8 @@ import { Effect, Schema } from 'effect'
 
 import { IssueDraft } from '../domain'
 import { WorkspaceRepository } from '../repository'
-import { IssueDetailDefinition, Message } from './definition'
+import { IssueDetailDefinition } from './definition'
+import { Message } from './message'
 
 export const SaveIssue = IssueDetailDefinition.makeCommand('SaveIssue', {
   args: {

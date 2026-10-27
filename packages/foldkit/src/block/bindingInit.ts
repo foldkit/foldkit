@@ -16,7 +16,7 @@ import type { BindingInitRecipe } from './initRecipe.js'
 import type { InitialEvidenceOfBinding } from './initialization.js'
 import type { Qualify } from './scope.js'
 
-export { initAndInsert } from './mapInitialization.js'
+export { initAndInsert, makeInitIfMissingStep } from './mapInitialization.js'
 
 type IsAny<Value> = 0 extends 1 & Value ? true : false
 

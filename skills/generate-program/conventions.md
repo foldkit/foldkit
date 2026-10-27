@@ -121,7 +121,7 @@ const Message = defineMessageUnion({
 
 ### Variables and Functions
 
-- Name selectors for derived values and pure transitions for the changes they describe. Dedicated Message handlers use `handle<MessageTag>`. Use `initialize...IfMissing` when a Step preserves an existing occurrence and initializes an absent identity. Reserve `sync` and `observe` for actual synchronization or observation; Step construction and application do not execute Commands.
+- Name selectors for derived values and pure transitions for the changes they describe. Dedicated Message handlers use `handle<MessageTag>`. Use `init` for initialization functions, helpers, Steps and filenames. Use `init...IfMissingStep` when a Step preserves an existing occurrence and initializes an absent identity. Reserve `sync` and `observe` for actual synchronization or observation; Step construction and application do not execute Commands.
 - Avoid opaque abbreviations: `signature` not `sig`, `message` not `msg`, `callbacks` not `cbs`
 - Conventional technical shorthand is allowed when it is the normal domain spelling, such as `attrs`, `props`, `args`, `dir`, `ctx`, `fn`, `DOM`, `URL`, and `VNode`; established API and DSL bindings such as `h` are also allowed
 - Use descriptive callback parameters: `(tickCount) => tickCount + 1` not `(t) => t + 1`; prefer `toMessage` over an unexplained `f`
@@ -495,11 +495,18 @@ Use `initAndAppend` for keyed arrays already declaring `init.instances` and
 `init.toItem`, or `initAndInsert` for direct-value Record/HashMap storage from
 `ParentDefinition.makeMapBinding`. Destructure and export the factory from a split
 feature's `definition.ts`, then import it from that owning module. Append and insert
-reject duplicate keys; an `initialize...IfMissing` Step owns the presence check.
-Keep explicit `Binding.init`
+reject duplicate keys. Keep explicit `Binding.init`
 for additional wrapper metadata, sibling changes, parent Commands, array/map
 replacement or whole tagged variants. Do not add an unnecessary startup policy
 for a helper. Preserve recipes intact so child Commands and registration survive.
+
+Use `makeInitIfMissingStep(Binding, { key, args })` from `foldkit/bindingInit`
+when a direct-value Record/HashMap child should be retained if already present.
+It derives the field from the Binding and returns a connected Step, preserving
+the exact parent Model and emitting no Commands on reuse. An absent key retains
+the child's init Commands. Both paths require the registered Binding. Pass the
+Step directly to `Update.combineSteps` or a compatible handler; use the owning
+`makeStep` when selecting or combining Steps. Keep URL entity lookup in the app.
 
 ## Schema Constructors
 

@@ -98,6 +98,8 @@ Optional `makeVariantBinding` from `foldkit/variantBinding` replaces manual acce
 
 The optional `foldkit/bindingInit` module adds `initAndSet` for required/optional direct fields and exact key/child Option wrappers, `initAndAppend` for arrays with an existing `init.instances`/`init.toItem` policy, and `initAndInsert` for direct-value Record/HashMap storage. Pass the Binding, current parent Model and `{ args }`, adding `key` for keyed storage. Append and insert reject occupied keys. Keep explicit initialization for additional wrapper metadata, sibling changes, parent Commands, or whole tagged variants. See [dynamic storage helpers](/core/init-and-flags#dynamic-storage-helpers).
 
+For Record/HashMap fields storing child Models directly, `makeInitIfMissingStep(Binding, { key, args })` replaces a separate membership check and insertion when existing children should be retained. It returns a connected Step that checks the Binding's field when applied, preserving an existing child or retaining all init Commands for a missing one. Both paths require the registered Binding.
+
 ## Update the Application Boundary
 
 This section applies to `c701daa80af1`, `396b19976386`, and `bfd880b1e6ca`.

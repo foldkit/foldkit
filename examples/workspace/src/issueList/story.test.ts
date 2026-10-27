@@ -16,13 +16,14 @@ import {
   SortListboxBlock,
   StatusFilterListboxBlock,
 } from '../listbox'
+import { IssueListBlock } from './block'
 import {
   GroupListboxBinding,
   SortListboxBinding,
   StatusListboxBinding,
 } from './composition'
-import { IssueListBlock } from './issueList'
-import { Message, OutMessage } from './message'
+import { Message } from './message'
+import { OutMessage } from './outMessage'
 import { update } from './update'
 
 const statusListboxMessage = (

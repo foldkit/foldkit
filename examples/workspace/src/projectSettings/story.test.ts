@@ -11,13 +11,15 @@ import {
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
-import { initialSnapshot } from '../domain'
+import { initialWorkspace } from '../domain'
 import { SaveProject } from './command'
-import { Message, Model, OutMessage, SaveState } from './definition'
 import { init } from './init'
+import { Message } from './message'
+import { Model, SaveState } from './model'
+import { OutMessage } from './outMessage'
 import { update } from './update'
 
-const project = Option.getOrThrow(Array.head(initialSnapshot.projects))
+const project = Option.getOrThrow(Array.head(initialWorkspace.projects))
 const initial = Model.make(init(project).model)
 
 describe('Project Settings', () => {
@@ -79,7 +81,7 @@ describe('Project Settings', () => {
   test('does not publish an unsolicited or mismatched project save', () => {
     const otherProject = Option.getOrThrow(
       Array.findFirst(
-        initialSnapshot.projects,
+        initialWorkspace.projects,
         candidate => candidate.id !== project.id,
       ),
     )

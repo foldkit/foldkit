@@ -15,7 +15,9 @@ export const LoadWorkspace = ApplicationDefinition.makeCommand(
 
       return () =>
         repository.load.pipe(
-          Effect.map(snapshot => Message.SucceededLoadWorkspace({ snapshot })),
+          Effect.map(workspace =>
+            Message.SucceededLoadWorkspace({ workspace }),
+          ),
           Effect.catch(error =>
             Effect.succeed(
               Message.FailedLoadWorkspace({ error: error.message }),
@@ -87,7 +89,7 @@ export const MoveIssue = ApplicationDefinition.makeCommand('MoveIssue', {
 
     return args =>
       repository.moveIssue(args).pipe(
-        Effect.map(snapshot => Message.SucceededMoveIssue({ snapshot })),
+        Effect.map(workspace => Message.SucceededMoveIssue({ workspace })),
         Effect.catch(error =>
           Effect.succeed(
             Message.FailedMoveIssue({

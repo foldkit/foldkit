@@ -1,23 +1,20 @@
 import { Array } from 'effect'
 import { Update } from 'foldkit'
 
-import { IssueDetailBinding, applyIssueRevisionStep } from '../composition'
-import { makeStep } from '../definition'
+import { IssueDetailBinding, updateWorkspaceIssueStep } from '../composition'
 import type { Issue } from '../domain'
 
-export const applyIncomingIssueStep = (issue: typeof Issue.Type) =>
+export const updateIssueStep = (issue: typeof Issue.Type) =>
   Update.combineSteps([
-    applyIssueRevisionStep(issue),
+    updateWorkspaceIssueStep(issue),
     IssueDetailBinding.informIssueChanged(issue.id, { issue }),
   ])
 
-export const reconcileRetainedIssueDetailsStep = (
+export const updateIssueDetailsStep = (
   issues: ReadonlyArray<typeof Issue.Type>,
 ) =>
-  makeStep(() =>
-    Update.combineSteps(
-      Array.map(issues, issue =>
-        IssueDetailBinding.informIssueChanged(issue.id, { issue }),
-      ),
+  Update.combineSteps(
+    Array.map(issues, issue =>
+      IssueDetailBinding.informIssueChanged(issue.id, { issue }),
     ),
   )

@@ -2,7 +2,8 @@ import { Effect } from 'effect'
 
 import { Project } from '../domain'
 import { WorkspaceRepository } from '../repository'
-import { Message, ProjectSettingsDefinition } from './definition'
+import { ProjectSettingsDefinition } from './definition'
+import { Message } from './message'
 
 export const SaveProject = ProjectSettingsDefinition.makeCommand(
   'SaveProject',

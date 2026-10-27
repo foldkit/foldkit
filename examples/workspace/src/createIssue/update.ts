@@ -5,15 +5,11 @@ import { modifyFields } from 'foldkit/struct'
 import { IssueDraft } from '../domain'
 import { CreateIssue } from './command'
 import { CreateIssueComposition, DialogBinding } from './composition'
-import {
-  CreateState,
-  Message,
-  type Model,
-  OutMessage,
-  makeFieldsStep,
-  makeStep,
-} from './definition'
+import { makeFieldsStep, makeStep } from './definition'
 import { editDraftStep } from './draft'
+import { Message } from './message'
+import { CreateState, type Model } from './model'
+import { OutMessage } from './outMessage'
 
 const handleSubmittedIssueFormStep = makeStep(model => {
   if (CreateState.guards.Creating(model.createState)) {

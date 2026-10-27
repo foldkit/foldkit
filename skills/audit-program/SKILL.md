@@ -212,7 +212,7 @@ A Binding's `write` or `writeAt` places the next child Model into parent storage
 
 Check both direct-field writer coordination caught by `foldkit/no-binding-write-coordination` and complex writers outside its conservative coverage. Do not flag legitimate wrapper metadata, keyed replacement, or absence checks merely because a custom writer touches several fields.
 
-Review child retention, rendering, and activity separately. Route-driven deletion should have a product reason. When editors are retained by identity, view must select the active child from the Route; hidden save completions must still reach their occurrence. Check that route-wide delivery gates do not discard those results. Require interaction cleanup only when the product actually needs it; do not add exhaustive navigation/interleaving policy to a normal example application. Name conditional initialization `initialize...IfMissing` and pure transitions for their actual Model change; vague `sync` or `observe` helpers can conceal several responsibilities.
+Review child retention, rendering, and activity separately. Route-driven deletion should have a product reason. When editors are retained by identity, view must select the active child from the Route; hidden save completions must still reach their occurrence. Check that route-wide delivery gates do not discard those results. Require interaction cleanup only when the product actually needs it; do not add exhaustive navigation/interleaving policy to a normal example application. Use `init` in initialization function, helper, Step and file names, with `init...IfMissingStep` for conditional creation. Name pure transitions for their actual Model change; vague `sync` or `observe` helpers can conceal several responsibilities.
 
 Record/HashMap Bindings come from `ParentDefinition.makeMapBinding(ChildBlock, config)`
 or a destructured factory imported from the owning feature's `definition.ts`.
@@ -228,6 +228,13 @@ presence decisions and handles duplicate-key rejection. Retain explicit
 custom relationships, array/map replacement, or whole tagged variants. Do not
 require a startup policy solely to enable a helper. Reinitializing the same
 occurrence does not reset lifecycle generations or cancel pending work.
+
+For retained direct-value Record/HashMap children, prefer
+`makeInitIfMissingStep(Binding, { key, args })` over repeated field selectors and
+membership checks. It uses the Binding's storage and checks presence when the
+connected Step is applied. Verify that existing children retain Model identity
+and emit no init Commands, and that both paths retain the Binding registration.
+Keep entity lookup and reasonable handling of unknown URL IDs in app code.
 
 For Block, Binding, Composition, OutMessage, startup, handler Layer, and root
 Service review, read

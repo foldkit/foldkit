@@ -98,7 +98,7 @@ export const Member = Schema.Struct({
   initials: Schema.String,
 })
 
-export const WorkspaceSnapshot = Schema.Struct({
+export const Workspace = Schema.Struct({
   issues: Schema.Array(Issue),
   projects: Schema.Array(Project),
   members: Schema.Array(Member),

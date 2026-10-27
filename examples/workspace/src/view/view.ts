@@ -19,7 +19,7 @@ import {
   NotificationCenterBinding,
   ProjectSettingsBinding,
 } from '../composition'
-import type { Issue, Project, WorkspaceSnapshot } from '../domain'
+import type { Issue, Project, Workspace } from '../domain'
 import { issueHrefs } from '../issueLinks'
 import { listboxViewInputs } from '../listbox'
 import { Message } from '../message'
@@ -36,12 +36,12 @@ import { projectOverview, projectTabs } from './project'
 import { workspaceSettings } from './settings'
 import { sidebarView } from './sidebar'
 
-const maybeSnapshot = (model: typeof Model.Type) =>
+const maybeWorkspace = (model: typeof Model.Type) =>
   AsyncData.getData(model.workspaceAsyncData)
 
 const memberControl = (
   model: typeof Model.Type,
-  snapshot: typeof WorkspaceSnapshot.Type,
+  workspace: typeof Workspace.Type,
   h: ApplicationViewBuilder,
 ): Html =>
   h.div(
@@ -67,7 +67,7 @@ const memberControl = (
               model: model.activeMemberListbox,
               viewInputs: listboxViewInputs({
                 value: model.activeMemberId,
-                options: Array.map(snapshot.members, member => ({
+                options: Array.map(workspace.members, member => ({
                   value: member.id,
                   label: member.name,
                 })),
@@ -81,12 +81,12 @@ const memberControl = (
 
 const pageTitle = (
   model: typeof Model.Type,
-  snapshot: typeof WorkspaceSnapshot.Type,
+  workspace: typeof Workspace.Type,
 ): string => {
-  const route = model.route
+  const { route } = model
   const projectTitle = (projectId: string) =>
     Option.match(
-      Array.findFirst(snapshot.projects, project => project.id === projectId),
+      Array.findFirst(workspace.projects, project => project.id === projectId),
       { onNone: () => 'Project not found', onSome: project => project.name },
     )
 
@@ -117,7 +117,7 @@ const pageTitle = (
 
 const issueListView = (
   model: typeof Model.Type,
-  snapshot: typeof WorkspaceSnapshot.Type,
+  workspace: typeof Workspace.Type,
   issues: ReadonlyArray<typeof Issue.Type>,
   h: ApplicationViewBuilder,
 ): Html =>
@@ -129,8 +129,8 @@ const issueListView = (
         filters: appliedIssueFilters(model),
         issueHrefs: issueHrefs(model, issues),
         issues,
-        members: snapshot.members,
-        projects: snapshot.projects,
+        members: workspace.members,
+        projects: workspace.projects,
         maybeActiveIssueId: maybeIssueId(model.route),
       },
     }),
@@ -158,17 +158,17 @@ const missingPage = (
 
 const routeContent = (
   model: typeof Model.Type,
-  snapshot: typeof WorkspaceSnapshot.Type,
+  workspace: typeof Workspace.Type,
   h: ApplicationViewBuilder,
 ): Html => {
-  const route = model.route
+  const { route } = model
 
   const projectContent = (
     projectId: string,
     toView: (project: typeof Project.Type) => Html,
   ) =>
     Option.match(
-      Array.findFirst(snapshot.projects, project => project.id === projectId),
+      Array.findFirst(workspace.projects, project => project.id === projectId),
       {
         onNone: () =>
           missingPage(
@@ -181,12 +181,12 @@ const routeContent = (
     )
 
   return ApplicationRoute.match<Html>(route, {
-    Issues: () => issueListView(model, snapshot, snapshot.issues, h),
+    Issues: () => issueListView(model, workspace, workspace.issues, h),
     MyIssues: () =>
       issueListView(
         model,
-        snapshot,
-        Array.filter(snapshot.issues, issue =>
+        workspace,
+        Array.filter(workspace.issues, issue =>
           Option.contains(issue.maybeAssigneeId, model.activeMemberId),
         ),
         h,
@@ -195,14 +195,17 @@ const routeContent = (
       projectContent(projectId, () =>
         issueListView(
           model,
-          snapshot,
-          Array.filter(snapshot.issues, issue => issue.projectId === projectId),
+          workspace,
+          Array.filter(
+            workspace.issues,
+            issue => issue.projectId === projectId,
+          ),
           h,
         ),
       ),
     ProjectOverview: ({ projectId }) =>
       projectContent(projectId, project =>
-        projectOverview(project, snapshot, h),
+        projectOverview(project, workspace, h),
       ),
     ProjectSettings: ({ projectId }) =>
       projectContent(projectId, () =>
@@ -220,7 +223,7 @@ const routeContent = (
       ),
     Board: ({ projectId }) =>
       projectContent(projectId, () =>
-        Option.match(Record.get(model.boards, projectId), {
+        Option.match(Record.get(model.issueBoards, projectId), {
           onNone: () =>
             h.p(
               [h.Class('p-8 text-sm text-slate-500'), h.Role('status')],
@@ -233,15 +236,15 @@ const routeContent = (
                 slotId: `project-board-${projectId}`,
                 model: board,
                 viewInputs: {
-                  issueHrefs: issueHrefs(model, snapshot.issues),
+                  issueHrefs: issueHrefs(model, workspace.issues),
                   isSaving: IssueMoveState.guards.MovingIssue(
                     model.issueMoveState,
                   ),
                   issues: Array.filter(
-                    snapshot.issues,
+                    workspace.issues,
                     issue => issue.projectId === projectId,
                   ),
-                  members: snapshot.members,
+                  members: workspace.members,
                 },
               }),
             ),
@@ -253,9 +256,9 @@ const routeContent = (
           slotId: 'member-directory',
           model: model.memberDirectory,
           viewInputs: {
-            members: snapshot.members,
-            issues: snapshot.issues,
-            issueHrefs: issueHrefs(model, snapshot.issues),
+            members: workspace.members,
+            issues: workspace.issues,
+            issueHrefs: issueHrefs(model, workspace.issues),
           },
         }),
       ),
@@ -272,9 +275,10 @@ const routeContent = (
                   'Save a new set of issue filters to create a view.',
                   h,
                 ),
-              onSome: () => issueListView(model, snapshot, snapshot.issues, h),
+              onSome: () =>
+                issueListView(model, workspace, workspace.issues, h),
             }),
-          onSome: () => issueListView(model, snapshot, snapshot.issues, h),
+          onSome: () => issueListView(model, workspace, workspace.issues, h),
         },
       ),
     Issue: () => h.empty,
@@ -326,12 +330,12 @@ const issueMoveFeedback = (
 
 const workspaceView = (
   model: typeof Model.Type,
-  snapshot: typeof WorkspaceSnapshot.Type,
+  workspace: typeof Workspace.Type,
   h: ApplicationViewBuilder,
 ): Html => {
-  const route = model.route
+  const { route } = model
   const maybeProject = Option.flatMap(maybeProjectId(route), projectId =>
-    Array.findFirst(snapshot.projects, project => project.id === projectId),
+    Array.findFirst(workspace.projects, project => project.id === projectId),
   )
 
   return h.div(
@@ -346,20 +350,20 @@ const workspaceView = (
         [
           h.h1(
             [h.Class('text-lg font-semibold text-slate-900')],
-            [pageTitle(model, snapshot)],
+            [pageTitle(model, workspace)],
           ),
           h.div(
             [h.Class('flex items-center gap-3')],
             [
-              memberControl(model, snapshot, h),
+              memberControl(model, workspace, h),
               h.block(
                 NotificationCenterBinding.embedView({
                   slotId: 'workspace-notifications',
                   model: model.notificationCenter,
                   viewInputs: {
                     activeMemberId: model.activeMemberId,
-                    issues: snapshot.issues,
-                    members: snapshot.members,
+                    issues: workspace.issues,
+                    members: workspace.members,
                   },
                 }),
               ),
@@ -391,7 +395,7 @@ const workspaceView = (
                       }),
                     ),
                   ],
-                  [routeContent(model, snapshot, h)],
+                  [routeContent(model, workspace, h)],
                 ),
               ]
             : []),
@@ -401,7 +405,7 @@ const workspaceView = (
                   Option.flatMap(maybeActiveIssueDetail(model), detail =>
                     Option.map(
                       Array.findFirst(
-                        snapshot.issues,
+                        workspace.issues,
                         issue => issue.id === detail.issueId,
                       ),
                       issue => ({ detail, issue }),
@@ -434,8 +438,8 @@ const workspaceView = (
                               model: detail,
                               viewInputs: {
                                 issue,
-                                projects: snapshot.projects,
-                                members: snapshot.members,
+                                projects: workspace.projects,
+                                members: workspace.members,
                                 authorId: model.activeMemberId,
                               },
                             }),
@@ -456,16 +460,16 @@ const overlaysView = (
   model: typeof Model.Type,
   h: ApplicationViewBuilder,
 ): Html => {
-  const paletteInputs = Option.match(maybeSnapshot(model), {
+  const paletteInputs = Option.match(maybeWorkspace(model), {
     onNone: () => ({ issues: [], projects: [] }),
-    onSome: snapshot => ({
-      issues: snapshot.issues,
-      projects: snapshot.projects,
+    onSome: workspace => ({
+      issues: workspace.issues,
+      projects: workspace.projects,
     }),
   })
-  const projects = Option.match(maybeSnapshot(model), {
+  const projects = Option.match(maybeWorkspace(model), {
     onNone: () => [],
-    onSome: snapshot => snapshot.projects,
+    onSome: workspace => workspace.projects,
   })
 
   return h.div(
@@ -490,14 +494,17 @@ const overlaysView = (
 }
 
 const documentTitle = (model: typeof Model.Type): string =>
-  Option.match(maybeSnapshot(model), {
+  Option.match(maybeWorkspace(model), {
     onNone: () => 'Northstar | Foldkit workspace',
-    onSome: snapshot => {
+    onSome: workspace => {
       const issueId = maybeIssueId(model.route)
 
       if (Option.isSome(issueId)) {
         return Option.match(
-          Array.findFirst(snapshot.issues, issue => issue.id === issueId.value),
+          Array.findFirst(
+            workspace.issues,
+            issue => issue.id === issueId.value,
+          ),
           {
             onNone: () => 'Issue not found | Northstar',
             onSome: issue => `${issue.identifier}: ${issue.title} | Northstar`,
@@ -505,7 +512,7 @@ const documentTitle = (model: typeof Model.Type): string =>
         )
       }
 
-      const title = pageTitle(model, snapshot)
+      const title = pageTitle(model, workspace)
 
       return ApplicationRoute.matchOrElse(
         model.route,
@@ -602,7 +609,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
                       ),
                     ],
                   ),
-                onData: snapshot => workspaceView(model, snapshot, h),
+                onData: workspace => workspaceView(model, workspace, h),
               }),
         ],
       ),

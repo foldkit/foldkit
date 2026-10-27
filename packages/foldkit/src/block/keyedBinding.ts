@@ -843,7 +843,7 @@ export const bindEach = <const BlockValue extends BindableBlock>(
       Layer.Services<BlockValue['EffectsLayer']>
     >,
   )
-  const initialize = (key: InstanceKey, ...args: ReadonlyArray<any>) => {
+  const initChild = (key: InstanceKey, ...args: ReadonlyArray<any>) => {
     assertRegisteredInitialization(binding, placement)
     const initialChild = withOperationGraph(runtimeBindingsOf(block), () =>
       block.init(...args),
@@ -866,7 +866,7 @@ export const bindEach = <const BlockValue extends BindableBlock>(
       const commands = [...(initial.commands ?? [])]
 
       return makeBindingInitRecipe(binding, () => {
-        const childInit = initialize(key, ...args)
+        const childInit = initChild(key, ...args)
         const model = toParentModel(childInit.model)
         assertInitializedParentModel(binding, placement, model)
         let matchingKeyCount = 0
@@ -930,7 +930,7 @@ export const bindEach = <const BlockValue extends BindableBlock>(
   }
   registerBinding(binding, {
     block,
-    initialize: (key, args) => initialize(requireKey(key), ...args),
+    init: (key, args) => initChild(requireKey(key), ...args),
     select: model =>
       readAll(model).map(item => ({
         key: keyOf(item),

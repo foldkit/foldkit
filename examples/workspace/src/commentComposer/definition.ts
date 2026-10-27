@@ -1,33 +1,8 @@
-import { Schema } from 'effect'
 import { Block } from 'foldkit'
-import { defineMessageUnion } from 'foldkit/message'
-import { defineTaggedUnion } from 'foldkit/schema'
 
-import { Issue } from '../domain'
-
-export const PostState = defineTaggedUnion({
-  Idle: {},
-  Posting: {},
-  Failed: { error: Schema.String },
-})
-
-export const Model = Schema.Struct({
-  issueId: Schema.String,
-  body: Schema.String,
-  postState: PostState,
-})
-
-export const Message = defineMessageUnion({
-  UpdatedBody: { value: Schema.String },
-  ClickedDiscardComment: {},
-  SubmittedCommentForm: { authorId: Schema.String },
-  SucceededAddComment: { issue: Issue },
-  FailedAddComment: { error: Schema.String },
-})
-
-export const OutMessage = defineMessageUnion({
-  AddedComment: { issue: Issue },
-})
+import { Message } from './message'
+import { Model } from './model'
+import { OutMessage } from './outMessage'
 
 export const CommentComposerDefinition = Block.makeDefinition(
   'CommentComposer',
@@ -37,3 +12,5 @@ export const CommentComposerDefinition = Block.makeDefinition(
     OutMessage,
   },
 )
+
+export const { makeComposition } = CommentComposerDefinition

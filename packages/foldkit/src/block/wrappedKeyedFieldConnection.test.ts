@@ -228,7 +228,7 @@ it('keeps literal default and overridden placements', () => {
 })
 
 it('initializes the parent Model and lifts Commands with the wrapper key', async () => {
-  const initializeCounter = ParentComposition.makeInit(() =>
+  const initCounter = ParentComposition.makeInit(() =>
     CountersBinding.init({
       key: 'created',
       args: [4],
@@ -246,7 +246,7 @@ it('initializes the parent Model and lifts Commands with the wrapper key', async
         }),
     }),
   )
-  const counterInit = initializeCounter()
+  const counterInit = initCounter()
   const command = Option.getOrThrow(Array.head(counterInit.commands!))
   const completed = await Effect.runPromise(
     Effect.scoped(

@@ -23,33 +23,30 @@ import {
   makeStep,
 } from '../definition'
 import { simulateActivityStep } from '../demoActivity'
-import { NotificationActivity, type WorkspaceSnapshot } from '../domain'
+import { NotificationActivity, type Workspace } from '../domain'
 import { IssueMoveState, WorkspaceAsyncData } from '../model'
 import { RepositoryError } from '../repository'
 import { handleChangedUrlStep } from './handleChangedUrl'
 import { handleClickedDeleteSavedView } from './handleClickedDeleteSavedView'
-import { initializeRouteChildrenStep } from './initializeRouteChildren'
+import { initChildrenStep } from './initChildrenStep'
+import { updateIssueDetailsStep, updateIssueStep } from './issueDetails'
 import {
-  applyIncomingIssueStep,
-  reconcileRetainedIssueDetailsStep,
-} from './issueDetails'
-import {
-  applyMovedIssuesStep,
   informBoardMoveFailureStep,
   mergeIssues,
   rollbackMoveStep,
+  updateWorkspaceIssuesStep,
 } from './issueMove'
 
-const applySnapshotStep = (snapshot: typeof WorkspaceSnapshot.Type) =>
+const applyWorkspaceStep = (nextWorkspace: typeof Workspace.Type) =>
   makeFieldsStep(() => ({
     workspaceAsyncData: workspaceAsyncData =>
       WorkspaceAsyncData.Success({
         data: Option.match(AsyncData.getData(workspaceAsyncData), {
-          onNone: () => snapshot,
-          onSome: current =>
-            modifyFields(snapshot, {
+          onNone: () => nextWorkspace,
+          onSome: currentWorkspace =>
+            modifyFields(nextWorkspace, {
               issues: incomingIssues =>
-                mergeIssues(current.issues, incomingIssues),
+                mergeIssues(currentWorkspace.issues, incomingIssues),
             }),
         }),
       }),
@@ -80,11 +77,11 @@ export const update = ApplicationComposition.makeUpdate({
   CompletedNavigateInternal: noopStep,
   CompletedLoadExternal: noopStep,
   CompletedReplaceInternalUrl: noopStep,
-  SucceededLoadWorkspace: (model, { snapshot }) =>
+  SucceededLoadWorkspace: (model, { workspace }) =>
     Update.combineSteps(model, [
-      applySnapshotStep(snapshot),
-      initializeRouteChildrenStep,
-      reconcileRetainedIssueDetailsStep(snapshot.issues),
+      applyWorkspaceStep(workspace),
+      initChildrenStep,
+      updateIssueDetailsStep(workspace.issues),
     ]),
   FailedLoadWorkspace: makeFieldsStep.fromMessage(({ error }) => ({
     workspaceAsyncData: workspaceAsyncData =>
@@ -104,7 +101,7 @@ export const update = ApplicationComposition.makeUpdate({
   ClickedSimulateActivity: simulateActivityStep,
   SucceededAppendActivity: (model, { issue }) =>
     Update.combineSteps(model, [
-      applyIncomingIssueStep(issue),
+      updateIssueStep(issue),
       makeFieldsStep(() => ({
         maybeActivityError: () => Option.none(),
       })),
@@ -112,8 +109,8 @@ export const update = ApplicationComposition.makeUpdate({
   SucceededAssignIssue: (model, { issue, actorId, createdAt }) => {
     const isNewerAssignment = pipe(
       AsyncData.getData(model.workspaceAsyncData),
-      Option.flatMap(snapshot =>
-        Array.findFirst(snapshot.issues, previous => previous.id === issue.id),
+      Option.flatMap(workspace =>
+        Array.findFirst(workspace.issues, previous => previous.id === issue.id),
       ),
       Option.exists(
         previous =>
@@ -127,7 +124,7 @@ export const update = ApplicationComposition.makeUpdate({
     )
 
     return Update.combineSteps(model, [
-      applyIncomingIssueStep(issue),
+      updateIssueStep(issue),
       makeFieldsStep(() => ({
         maybeActivityError: () => Option.none(),
       })),
@@ -148,17 +145,17 @@ export const update = ApplicationComposition.makeUpdate({
   FailedAppendActivity: makeFieldsStep.fromMessage(({ error }) => ({
     maybeActivityError: () => Option.some(error),
   })),
-  SucceededMoveIssue: (model, { snapshot }) =>
+  SucceededMoveIssue: (model, { workspace }) =>
     Update.combineSteps(model, [
-      applyMovedIssuesStep(snapshot),
+      updateWorkspaceIssuesStep(workspace.issues),
       makeFieldsStep(() => ({
         issueMoveState: () => IssueMoveState.Idle(),
         maybeNotice: () => Option.some('Issue moved'),
       })),
-      reconcileRetainedIssueDetailsStep(snapshot.issues),
+      updateIssueDetailsStep(workspace.issues),
     ]),
   FailedMoveIssue: (model, { issueId, status, insertionIndex, error }) => {
-    const failedMoveStep = makeFieldsStep(() => ({
+    const failIssueMoveStep = makeFieldsStep(() => ({
       issueMoveState: () =>
         IssueMoveState.FailedMove({
           issueId,
@@ -171,13 +168,13 @@ export const update = ApplicationComposition.makeUpdate({
     return RepositoryError.guards.Conflict(error)
       ? Update.combineSteps(model, [
           rollbackMoveStep(issueId),
-          failedMoveStep,
-          applyIncomingIssueStep(error.latestIssue),
+          failIssueMoveStep,
+          updateIssueStep(error.latestIssue),
           informBoardMoveFailureStep(issueId),
         ])
       : Update.combineSteps(model, [
           rollbackMoveStep(issueId),
-          failedMoveStep,
+          failIssueMoveStep,
           informBoardMoveFailureStep(issueId),
         ])
   },

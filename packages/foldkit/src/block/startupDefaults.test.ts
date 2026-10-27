@@ -278,7 +278,7 @@ const applyParentStep = Parent.makeStep(model => ({
   model: modifyFields(model, { status: () => 'Stepped' }),
   commands: [FinishParentStep()],
 }))
-const initialize = ParentComposition.makeInit(
+const init = ParentComposition.makeInit(
   (childInitContext: ChildInitContext) => ({
     childInitContext,
     model: {
@@ -293,7 +293,7 @@ const initialize = ParentComposition.makeInit(
 )
 const prepareParentBlock = () =>
   ParentComposition.prepareBlock({
-    init: initialize,
+    init,
     update: ParentComposition.makeUpdate({
       CompletedParentInitialization: model => ({ model }),
       CompletedParentStep: model => ({ model }),
@@ -338,17 +338,15 @@ type InitialRequirements =
       Command.HandlerOf<typeof FinishChildInitialization>
     >
 
-expectTypeOf<Parameters<typeof initialize>>().toEqualTypeOf<
+expectTypeOf<Parameters<typeof init>>().toEqualTypeOf<
   [childInitContext: ChildInitContext]
 >()
+expectTypeOf<ReturnType<typeof init>['model']>().toEqualTypeOf<ParentModel>()
 expectTypeOf<
-  ReturnType<typeof initialize>['model']
->().toEqualTypeOf<ParentModel>()
-expectTypeOf<
-  Update.RegistrationEvidenceOf<ReturnType<typeof initialize>>
+  Update.RegistrationEvidenceOf<ReturnType<typeof init>>
 >().toEqualTypeOf<InitialRegistration>()
 expectTypeOf<
-  Update.RequirementsOf<typeof initialize>
+  Update.RequirementsOf<typeof init>
 >().toEqualTypeOf<InitialRequirements>()
 expectTypeOf<
   Layer.Services<typeof ParentBlock.EffectsLayer>
@@ -488,7 +486,7 @@ it('initializes required direct fields by default and leaves opt-out storage par
   effects.constructorBuilds = 0
   effects.commandExecutions = 0
 
-  const initialized = initialize({
+  const initialized = init({
     count: 3,
     includeOptional: true,
     entryIds: ['first', 'second'],

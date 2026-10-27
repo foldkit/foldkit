@@ -9,7 +9,7 @@ import {
   RoomContext,
   RoomId,
   RoomMessage,
-  initializeRoom,
+  initRoom,
   payloadParent,
 } from './optional-wrapped-keyed.accepted.js'
 
@@ -50,8 +50,8 @@ export type OperationArguments = Expect<
 export type InitConfig = Parameters<typeof RoomBinding.init>[0]
 export type InitKey = Expect<Equal<InitConfig['key'], typeof RoomId.Type>>
 export type InitArguments = Expect<Equal<InitConfig['args'], [count: number]>>
-export type InitializeArguments = Expect<
-  Equal<Parameters<typeof initializeRoom>, [roomId: typeof RoomId.Type]>
+export type RoomInitArguments = Expect<
+  Equal<Parameters<typeof initRoom>, [roomId: typeof RoomId.Type]>
 >
 export type CompleteMessage = Expect<
   Equal<

@@ -21,18 +21,19 @@ import { describe, test } from 'vitest'
 
 import { Dialog, DialogBlock } from '@foldkit/ui'
 
-import { initialSnapshot } from '../domain'
+import { initialWorkspace } from '../domain'
 import { CommandPaletteBlock } from './block'
 import { ScrollActiveResult } from './command'
 import { CommandPaletteComposition } from './composition'
-import { Message, OutMessage } from './definition'
+import { Message } from './message'
+import { OutMessage } from './outMessage'
 import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
 const sceneView = withViewInputs(view, {
-  issues: initialSnapshot.issues,
-  projects: initialSnapshot.projects,
+  issues: initialWorkspace.issues,
+  projects: initialWorkspace.projects,
 })
 const sceneSubscriptions = Scene.subscriptions(
   CommandPaletteComposition,
@@ -62,7 +63,7 @@ const scrollToResult = (index: number) =>
 
 describe('command palette search', () => {
   test('opens with the keyboard shortcut and selects an issue with Arrow keys and Enter', () => {
-    const secondIssue = Option.getOrThrow(Array.get(initialSnapshot.issues, 1))
+    const secondIssue = Option.getOrThrow(Array.get(initialWorkspace.issues, 1))
 
     scene(
       { update, view: sceneView(), subscriptions: sceneSubscriptions },

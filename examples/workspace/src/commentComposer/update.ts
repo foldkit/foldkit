@@ -3,8 +3,9 @@ import { modifyFields } from 'foldkit/struct'
 
 import { AddComment } from './command'
 import { CommentComposerComposition } from './composition'
-import { OutMessage, PostState } from './definition'
 import { canEditDraft } from './draft'
+import { PostState } from './model'
+import { OutMessage } from './outMessage'
 
 export const update = CommentComposerComposition.makeUpdate({
   UpdatedBody: (model, { value }) => {

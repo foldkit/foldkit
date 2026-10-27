@@ -19,8 +19,9 @@ import {
   ProjectListboxBinding,
   StatusListboxBinding,
 } from './composition'
-import { CreateState, Message, type Model } from './definition'
 import { canEditDraft } from './draft'
+import { Message } from './message'
+import { CreateState, type Model } from './model'
 
 const FIELD_CLASS = 'grid gap-2'
 const LABEL_CLASS = 'text-[13px] font-medium text-slate-600'

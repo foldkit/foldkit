@@ -12,17 +12,19 @@ import { modifyFields } from 'foldkit/struct'
 import { toParentMessage } from 'foldkit/test'
 import { describe, expect, test } from 'vitest'
 
-import { Comment, initialSnapshot } from '../domain'
+import { Comment, initialWorkspace } from '../domain'
 import { WorkspaceListboxBlock } from '../listbox'
 import { RepositoryError } from '../repository'
 import { SaveIssue } from './command'
 import { AssigneeBinding } from './composition'
-import { Message, OutMessage, SaveState } from './definition'
 import { draftFromIssue, revisionFromIssue } from './draft'
 import { init } from './init'
+import { Message } from './message'
+import { SaveState } from './model'
+import { OutMessage } from './outMessage'
 import { update } from './update'
 
-const issue = Option.getOrThrow(Array.head(initialSnapshot.issues))
+const issue = Option.getOrThrow(Array.head(initialWorkspace.issues))
 const initialModel = init(issue).model
 const editedTitle = 'Search every project from the command menu'
 const editedDraft = modifyFields(draftFromIssue(issue), {
@@ -242,7 +244,7 @@ describe('Issue Detail', () => {
           error: 'This issue changed since you opened it.',
         })
       }),
-      expectOutMessage(OutMessage.ObservedIssue({ issue: newerIssue })),
+      expectOutMessage(OutMessage.ReceivedIssue({ issue: newerIssue })),
       message(Message.InformedOfIssueChange({ issue: newerIssue })),
       model(model => {
         expect(model.baseline).toEqual(revisionFromIssue(issue))

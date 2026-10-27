@@ -1,62 +1,50 @@
-import { Array } from 'effect'
+import { Array, Record } from 'effect'
 import type { Html } from 'foldkit/html'
 
+import { Nav } from '@foldkit/ui'
+
 import type { ApplicationViewBuilder } from '../composition'
-import type { Project, WorkspaceSnapshot } from '../domain'
-import {
-  ApplicationRoute,
-  boardRouter,
-  projectOverviewRouter,
-  projectRouter,
-  projectSettingsRouter,
-} from '../route'
-import { navigationLink } from './navigation'
+import type { Project, Workspace } from '../domain'
+import { ApplicationRoute, boardRouter, routeToPath } from '../route'
+import { navigationLink } from './navigationLink'
 
 export const projectTabs = (
   project: typeof Project.Type,
   route: typeof ApplicationRoute.Type,
   h: ApplicationViewBuilder,
-): Html =>
-  h.nav(
-    [
-      h.AriaLabel('Project navigation'),
-      h.Class('flex flex-wrap gap-1 border-b border-slate-200 px-2 pb-3'),
-    ],
-    [
-      navigationLink(
-        projectOverviewRouter({ projectId: project.id }),
-        'Overview',
-        ApplicationRoute.guards.ProjectOverview(route),
-        h,
+): Html => {
+  const pages = {
+    Overview: ApplicationRoute.ProjectOverview({ projectId: project.id }),
+    Issues: ApplicationRoute.Project({ projectId: project.id }),
+    Board: ApplicationRoute.Board({ projectId: project.id }),
+    'Project settings': ApplicationRoute.ProjectSettings({
+      projectId: project.id,
+    }),
+  }
+
+  return Nav.view({
+    items: Record.keys(pages),
+    ariaLabel: 'Project navigation',
+    toHref: label => routeToPath(pages[label]),
+    isItemCurrent: label => pages[label]._tag === route._tag,
+    toView: ({ nav, items }) =>
+      h.nav(
+        [
+          ...nav,
+          h.Class('flex flex-wrap gap-1 border-b border-slate-200 px-2 pb-3'),
+        ],
+        Array.map(items, item => navigationLink(item, item.value, h)),
       ),
-      navigationLink(
-        projectRouter({ projectId: project.id }),
-        'Issues',
-        ApplicationRoute.guards.Project(route),
-        h,
-      ),
-      navigationLink(
-        boardRouter({ projectId: project.id }),
-        'Board',
-        ApplicationRoute.guards.Board(route),
-        h,
-      ),
-      navigationLink(
-        projectSettingsRouter({ projectId: project.id }),
-        'Project settings',
-        ApplicationRoute.guards.ProjectSettings(route),
-        h,
-      ),
-    ],
-  )
+  })
+}
 
 export const projectOverview = (
   project: typeof Project.Type,
-  snapshot: typeof WorkspaceSnapshot.Type,
+  workspace: typeof Workspace.Type,
   h: ApplicationViewBuilder,
 ): Html => {
   const issues = Array.filter(
-    snapshot.issues,
+    workspace.issues,
     issue => issue.projectId === project.id,
   )
   const completed = Array.filter(issues, issue => issue.status === 'Done')

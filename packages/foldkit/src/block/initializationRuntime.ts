@@ -491,7 +491,7 @@ export const makeInit =
             continue
           }
 
-          const childInit = runtimeBindingOf(plan.binding).initialize(
+          const childInit = runtimeBindingOf(plan.binding).init(
             undefined,
             plan.maybeArguments.value,
           )
@@ -511,7 +511,7 @@ export const makeInit =
           const items: globalThis.Array<unknown> = []
 
           for (const occurrence of plan.occurrences) {
-            const childInit = runtimeBindingOf(plan.binding).initialize(
+            const childInit = runtimeBindingOf(plan.binding).init(
               occurrence.key,
               occurrence.args,
             )
@@ -538,7 +538,7 @@ export const makeInit =
           continue
         }
 
-        const childInit = runtimeBindingOf(plan.binding).initialize(
+        const childInit = runtimeBindingOf(plan.binding).init(
           undefined,
           plan.arguments,
         )

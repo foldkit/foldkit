@@ -31,7 +31,7 @@ import {
   foldRoom,
   foldWrappedRow,
   initialParentModel,
-  initializeKeyedParent,
+  initKeyedParent,
   outEntriesInspection,
 } from './keyed-field-binding.accepted.js'
 
@@ -310,5 +310,5 @@ const mapped = Schema.decodeSync(
   key: 'first',
   message: ChildBlock.Message.UpdatedCount({ count: 3 }),
 })
-initializeKeyedParent('Ready')
+initKeyedParent('Ready')
 void mapped

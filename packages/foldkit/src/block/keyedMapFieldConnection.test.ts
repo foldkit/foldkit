@@ -132,7 +132,7 @@ const ParentComposition = ParentDefinition.makeComposition({
   ],
 })
 const update = ParentComposition.makeUpdate({})
-const initializeRecordChild = ParentComposition.makeInit(() =>
+const initRecordChild = ParentComposition.makeInit(() =>
   ChildrenByIdBinding.init({
     key: 'created',
     args: [],
@@ -376,7 +376,7 @@ it('derives Record keys and replaces only existing exact children', () => {
 })
 
 it('allows explicit Binding initialization to insert one declared occurrence', () => {
-  const initialized = initializeRecordChild()
+  const initialized = initRecordChild()
 
   expect(Reflect.get(initialized.model.childrenById, 'created')).toEqual(
     ChildModel.make({ count: 0 }),

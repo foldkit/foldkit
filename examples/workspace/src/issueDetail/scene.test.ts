@@ -20,21 +20,22 @@ import { Listbox } from '@foldkit/ui'
 
 import { CommentComposerBlock } from '../commentComposer'
 import { AddComment } from '../commentComposer/command'
-import { initialSnapshot } from '../domain'
+import { initialWorkspace } from '../domain'
 import { WorkspaceListboxBlock } from '../listbox'
 import { RepositoryError } from '../repository'
 import { SaveIssue } from './command'
-import { Message, OutMessage } from './definition'
 import { draftFromIssue } from './draft'
 import { init } from './init'
+import { Message } from './message'
+import { OutMessage } from './outMessage'
 import { update } from './update'
 import { view } from './view'
 
-const issue = Option.getOrThrow(Array.head(initialSnapshot.issues))
+const issue = Option.getOrThrow(Array.head(initialWorkspace.issues))
 const sceneView = withViewInputs(view, {
   issue,
-  members: initialSnapshot.members,
-  projects: initialSnapshot.projects,
+  members: initialWorkspace.members,
+  projects: initialWorkspace.projects,
   authorId: 'maya',
 })
 
@@ -126,7 +127,7 @@ describe('Issue Detail view', () => {
       expect(label('Issue title')).toHaveValue(draftTitle),
       expect(label('Write a comment')).toHaveValue(''),
       expect(text(comment.body)).not.toExist(),
-      expectOutMessage(OutMessage.ObservedIssue({ issue: commentedIssue })),
+      expectOutMessage(OutMessage.ReceivedIssue({ issue: commentedIssue })),
     )
   })
 
@@ -159,7 +160,7 @@ describe('Issue Detail view', () => {
       expect(label('Issue title')).toHaveValue(draftTitle),
       expect(text(comment.body)).not.toExist(),
       expectOutMessage(
-        OutMessage.ObservedIssue({ issue: remotelyEditedIssue }),
+        OutMessage.ReceivedIssue({ issue: remotelyEditedIssue }),
       ),
     )
   })

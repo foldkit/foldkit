@@ -458,10 +458,19 @@ fields need no startup policy; a custom unkeyed accessor can reuse an existing
 Record/HashMap storage declared through `ParentDefinition.makeMapBinding`.
 
 All preserve passive recipes, child init Commands and registration. Append and
-insert reject occupied keys; the caller owns any presence check. Additional
+insert reject occupied keys. Additional
 wrapper metadata, sibling changes, parent Commands, custom relationships,
 array/map replacement and whole tagged variants retain explicit `Binding.init`.
 Do not add a startup policy solely to enable a helper.
+
+For direct-value Record/HashMap children that should be retained, use
+`makeInitIfMissingStep(Binding, { key, args })` from `foldkit/bindingInit`.
+The Binding supplies storage; the connected Step checks the current Model when
+applied. An existing key preserves the parent Model and emits no Commands; an
+absent key retains the initialized child's Commands. Both paths require the
+registered Binding. Pass it directly to `Update.combineSteps` or a compatible
+handler; use the owning `makeStep` when selecting or composing Steps. Entity
+lookup and handling of unknown URL IDs belong in the application.
 
 Prefer a child Message-backed `requestReset` or domain operation for reset
 behavior, composed with the parent's `makeFieldsStep` for parent-owned fields.

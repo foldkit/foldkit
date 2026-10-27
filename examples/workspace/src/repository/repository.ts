@@ -13,8 +13,8 @@ import {
   type Issue,
   type IssueDraft,
   type Project,
-  type WorkspaceSnapshot,
-  initialSnapshot,
+  type Workspace,
+  initialWorkspace,
 } from '../domain'
 import {
   addCommentInState,
@@ -37,10 +37,7 @@ const DEFAULT_LATENCY = 250
 export class WorkspaceRepository extends Context.Service<
   WorkspaceRepository,
   Readonly<{
-    load: Effect.Effect<
-      typeof WorkspaceSnapshot.Type,
-      typeof RepositoryError.Type
-    >
+    load: Effect.Effect<typeof Workspace.Type, typeof RepositoryError.Type>
     saveIssue: (
       input: typeof SaveIssueInput.Type,
     ) => Effect.Effect<typeof Issue.Type, typeof RepositoryError.Type>
@@ -52,10 +49,7 @@ export class WorkspaceRepository extends Context.Service<
     ) => Effect.Effect<typeof Issue.Type, typeof RepositoryError.Type>
     moveIssue: (
       input: typeof MoveIssueInput.Type,
-    ) => Effect.Effect<
-      typeof WorkspaceSnapshot.Type,
-      typeof RepositoryError.Type
-    >
+    ) => Effect.Effect<typeof Workspace.Type, typeof RepositoryError.Type>
     saveProject: (
       project: typeof Project.Type,
     ) => Effect.Effect<typeof Project.Type, typeof RepositoryError.Type>
@@ -83,13 +77,13 @@ const consumeFailure = (
 const makeWorkspaceRepository = (
   options: Readonly<{
     latency?: number
-    initialSnapshot?: typeof WorkspaceSnapshot.Type
+    initialWorkspace?: typeof Workspace.Type
     failNext?: ReadonlyArray<typeof RepositoryOperation.Type>
   }>,
 ) =>
   Effect.gen(function* () {
     const state = yield* Ref.make(
-      makeRepositoryState(options.initialSnapshot ?? initialSnapshot),
+      makeRepositoryState(options.initialWorkspace ?? initialWorkspace),
     )
     const failures = yield* Ref.make<
       ReadonlyArray<typeof RepositoryOperation.Type>
@@ -119,7 +113,7 @@ const makeWorkspaceRepository = (
     const load = Effect.gen(function* () {
       yield* checkAvailability('Load')
 
-      return (yield* Ref.get(state)).snapshot
+      return (yield* Ref.get(state)).workspace
     })
 
     const saveIssue = (input: typeof SaveIssueInput.Type) =>
@@ -195,7 +189,7 @@ const makeWorkspaceRepository = (
 export const makeWorkspaceRepositoryLayer = (
   options: Readonly<{
     latency?: number
-    initialSnapshot?: typeof WorkspaceSnapshot.Type
+    initialWorkspace?: typeof Workspace.Type
     failNext?: ReadonlyArray<typeof RepositoryOperation.Type>
   }> = {},
 ) => Layer.effect(WorkspaceRepository, makeWorkspaceRepository(options))

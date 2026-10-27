@@ -5,7 +5,7 @@ import { ProjectSettingsBinding } from './composition'
 import { makeStep } from './definition'
 import { Project } from './domain'
 
-const initializeProjectSettingsIfMissingStep = (project: typeof Project.Type) =>
+const initProjectSettingsIfMissingStep = (project: typeof Project.Type) =>
   makeStep(model => {
     if (
       Array.some(

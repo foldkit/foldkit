@@ -1,6 +1,6 @@
 import { String } from 'effect'
 
-import { type Model, PostState } from './definition'
+import { type Model, PostState } from './model'
 
 export const canEditDraft = (model: typeof Model.Type) =>
   !PostState.guards.Posting(model.postState)

@@ -1,9 +1,8 @@
 import type { Block } from 'foldkit'
 
-import { CommentComposerDefinition } from './definition'
+import { makeComposition } from './definition'
 
-export const CommentComposerComposition =
-  CommentComposerDefinition.makeComposition()
+export const CommentComposerComposition = makeComposition()
 export type CommentComposerViewBuilder = Block.ViewBuilderFor<
   typeof CommentComposerComposition
 >

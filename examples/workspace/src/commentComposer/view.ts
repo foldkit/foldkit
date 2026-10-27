@@ -8,8 +8,9 @@ import {
   CommentComposerComposition,
   type CommentComposerViewBuilder,
 } from './composition'
-import { Message, type Model, PostState } from './definition'
 import { canEditDraft } from './draft'
+import { Message } from './message'
+import { type Model, PostState } from './model'
 
 const ViewInputs = Schema.Struct({
   members: Schema.Array(Member),

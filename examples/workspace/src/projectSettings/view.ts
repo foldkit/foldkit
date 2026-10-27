@@ -7,8 +7,9 @@ import {
   ProjectSettingsComposition,
   type ProjectSettingsViewBuilder,
 } from './composition'
-import { Message, type Model, SaveState } from './definition'
 import { isDirty } from './draft'
+import { Message } from './message'
+import { type Model, SaveState } from './model'
 
 const saveFeedback = (
   model: typeof Model.Type,

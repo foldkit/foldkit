@@ -13,5 +13,8 @@ export const {
   makeFieldsStep,
   makeCommandsStep,
   makeNoopStep,
+  makeOutMessageFold,
+  makeBinding,
   makeMapBinding,
+  makeComposition,
 } = ApplicationDefinition

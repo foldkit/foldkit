@@ -3,14 +3,10 @@ import { modifyFields } from 'foldkit/struct'
 
 import { SaveProject } from './command'
 import { ProjectSettingsComposition } from './composition'
-import {
-  type Model,
-  OutMessage,
-  type ProjectDraft,
-  SaveState,
-  makeStep,
-} from './definition'
+import { makeStep } from './definition'
 import { isDirty } from './draft'
+import { type Model, type ProjectDraft, SaveState } from './model'
+import { OutMessage } from './outMessage'
 
 const editDraftStep = (
   change: (draft: typeof ProjectDraft.Type) => typeof ProjectDraft.Type,

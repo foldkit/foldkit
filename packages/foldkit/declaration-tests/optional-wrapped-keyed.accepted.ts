@@ -117,7 +117,7 @@ export const DeclarationOptionalWrappedKeyedParentComposition =
     bindings: [RoomBinding, LiteralRoomBinding],
   })
 
-export const initializeRoom =
+export const initRoom =
   DeclarationOptionalWrappedKeyedParentComposition.makeInit(
     (roomId: typeof RoomId.Type) =>
       RoomBinding.init({

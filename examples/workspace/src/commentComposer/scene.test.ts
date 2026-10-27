@@ -13,16 +13,16 @@ import {
 } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import { initialSnapshot } from '../domain'
+import { initialWorkspace } from '../domain'
 import { AddComment } from './command'
-import { Message } from './definition'
 import { init } from './init'
+import { Message } from './message'
 import { update } from './update'
 import { view } from './view'
 
-const issue = Option.getOrThrow(Array.head(initialSnapshot.issues))
+const issue = Option.getOrThrow(Array.head(initialWorkspace.issues))
 const sceneView = withViewInputs(view, {
-  members: initialSnapshot.members,
+  members: initialWorkspace.members,
   comments: issue.comments,
   authorId: 'maya',
 })

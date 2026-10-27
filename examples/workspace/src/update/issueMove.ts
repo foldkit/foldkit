@@ -4,12 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { IssueBoardBinding } from '../composition'
 import { makeFieldsStep, makeStep } from '../definition'
-import {
-  type Issue,
-  type WorkspaceSnapshot,
-  mergeIssue,
-  placeIssueAt,
-} from '../domain'
+import { type Issue, mergeIssue, placeIssueAt } from '../domain'
 import { IssueMoveState } from '../model'
 
 export const mergeIssues = (
@@ -32,11 +27,13 @@ export const mergeIssues = (
   ),
 ]
 
-export const applyMovedIssuesStep = (snapshot: typeof WorkspaceSnapshot.Type) =>
+export const updateWorkspaceIssuesStep = (
+  incomingIssues: ReadonlyArray<typeof Issue.Type>,
+) =>
   makeFieldsStep(() => ({
     workspaceAsyncData: AsyncData.map(current =>
       modifyFields(current, {
-        issues: issues => mergeIssues(issues, snapshot.issues),
+        issues: issues => mergeIssues(issues, incomingIssues),
       }),
     ),
   }))
@@ -54,8 +51,8 @@ export const rollbackMoveStep = (issueId: string) =>
       const { previousStatus, previousIndex, expectedVersion } =
         model.issueMoveState
 
-      return AsyncData.map(workspaceAsyncData, snapshot =>
-        modifyFields(snapshot, {
+      return AsyncData.map(workspaceAsyncData, workspace =>
+        modifyFields(workspace, {
           issues: issues =>
             Option.match(
               Array.findFirst(issues, issue => issue.id === issueId),
@@ -80,8 +77,8 @@ export const informBoardMoveFailureStep = (issueId: string) =>
   makeStep(model =>
     pipe(
       AsyncData.getData(model.workspaceAsyncData),
-      Option.flatMap(snapshot =>
-        Array.findFirst(snapshot.issues, issue => issue.id === issueId),
+      Option.flatMap(workspace =>
+        Array.findFirst(workspace.issues, issue => issue.id === issueId),
       ),
       Option.match({
         onNone: () => ({ model }),

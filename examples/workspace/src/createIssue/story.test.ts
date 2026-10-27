@@ -32,8 +32,10 @@ import {
   ProjectListboxBinding,
   StatusListboxBinding,
 } from './composition'
-import { CreateState, Message, OutMessage } from './definition'
 import { editDraftStep } from './draft'
+import { Message } from './message'
+import { CreateState } from './model'
+import { OutMessage } from './outMessage'
 import { update } from './update'
 
 const initModel = () => CreateIssueBlock.init().model

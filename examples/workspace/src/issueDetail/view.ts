@@ -19,9 +19,10 @@ import {
   ProjectBinding,
   StatusBinding,
 } from './composition'
-import { Message, type Model, SaveState } from './definition'
 import { CONFLICT_MESSAGE, isDirty } from './draft'
 import { assigneeValue } from './field'
+import { Message } from './message'
+import { type Model, SaveState } from './model'
 
 const ViewInputs = Schema.Struct({
   issue: Issue,

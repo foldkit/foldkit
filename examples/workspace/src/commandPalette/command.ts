@@ -1,7 +1,8 @@
 import { Effect, Schema } from 'effect'
 import { Dom } from 'foldkit'
 
-import { CommandPaletteDefinition, Message } from './definition'
+import { CommandPaletteDefinition } from './definition'
+import { Message } from './message'
 
 export const ScrollActiveResult = CommandPaletteDefinition.makeCommand(
   'ScrollActiveResult',

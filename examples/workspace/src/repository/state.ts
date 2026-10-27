@@ -1,12 +1,12 @@
 import { Array, type Result, Schema } from 'effect'
 
-import { Issue, WorkspaceSnapshot } from '../domain'
+import { Issue, Workspace } from '../domain'
 import type { RepositoryError } from './schema'
 
 const FIRST_ISSUE_NUMBER = 101
 
 export const RepositoryState = Schema.Struct({
-  snapshot: WorkspaceSnapshot,
+  workspace: Workspace,
   nextIssueNumber: Schema.Number,
   nextCommentNumber: Schema.Number,
 })
@@ -18,13 +18,13 @@ export type RepositoryTransition<Value> = Readonly<
   ]
 >
 
-export const makeRepositoryState = (snapshot: typeof WorkspaceSnapshot.Type) =>
+export const makeRepositoryState = (workspace: typeof Workspace.Type) =>
   RepositoryState.make({
-    snapshot,
-    nextIssueNumber: FIRST_ISSUE_NUMBER + snapshot.issues.length,
+    workspace,
+    nextIssueNumber: FIRST_ISSUE_NUMBER + workspace.issues.length,
     nextCommentNumber:
       Array.reduce(
-        snapshot.issues,
+        workspace.issues,
         0,
         (count, issue) => count + issue.comments.length,
       ) + 1,
@@ -33,20 +33,20 @@ export const makeRepositoryState = (snapshot: typeof WorkspaceSnapshot.Type) =>
 export const findIssue = (
   state: typeof RepositoryState.Type,
   issueId: string,
-) => Array.findFirst(state.snapshot.issues, issue => issue.id === issueId)
+) => Array.findFirst(state.workspace.issues, issue => issue.id === issueId)
 
 export const hasProject = (
   state: typeof RepositoryState.Type,
   projectId: string,
-) => Array.some(state.snapshot.projects, project => project.id === projectId)
+) => Array.some(state.workspace.projects, project => project.id === projectId)
 
 export const replaceIssue = (
-  snapshot: typeof WorkspaceSnapshot.Type,
+  workspace: typeof Workspace.Type,
   issue: typeof Issue.Type,
 ) =>
-  WorkspaceSnapshot.make({
-    ...snapshot,
-    issues: Array.map(snapshot.issues, currentIssue =>
+  Workspace.make({
+    ...workspace,
+    issues: Array.map(workspace.issues, currentIssue =>
       currentIssue.id === issue.id ? issue : currentIssue,
     ),
   })
@@ -58,7 +58,7 @@ export const findAvailableIssueNumber = (
 
   while (
     Array.some(
-      state.snapshot.issues,
+      state.workspace.issues,
       issue =>
         issue.id === `issue-${issueNumber}` ||
         issue.identifier === `WSP-${issueNumber}`,
@@ -76,7 +76,7 @@ export const findAvailableCommentNumber = (
   let commentNumber = state.nextCommentNumber
 
   while (
-    Array.some(state.snapshot.issues, issue =>
+    Array.some(state.workspace.issues, issue =>
       Array.some(
         issue.comments,
         comment => comment.id === `comment-${commentNumber}`,

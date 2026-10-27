@@ -14,7 +14,7 @@ export const init = ApplicationComposition.makeInit((url: Url) => {
       route,
       workspaceAsyncData: WorkspaceAsyncData.Loading(),
       issueDetails: {},
-      boards: {},
+      issueBoards: {},
       projectSettings: {},
       maybeNotice: Option.none(),
       maybeActivityError: Option.none(),

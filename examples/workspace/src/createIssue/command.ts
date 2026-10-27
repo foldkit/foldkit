@@ -2,7 +2,8 @@ import { Effect } from 'effect'
 
 import { IssueDraft } from '../domain'
 import { WorkspaceRepository } from '../repository'
-import { CreateIssueDefinition, Message } from './definition'
+import { CreateIssueDefinition } from './definition'
+import { Message } from './message'
 
 export const CreateIssue = CreateIssueDefinition.makeCommand('CreateIssue', {
   args: { draft: IssueDraft },

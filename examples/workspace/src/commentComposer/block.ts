@@ -2,8 +2,8 @@ import { Block } from 'foldkit'
 
 import { EffectsLayer } from './command'
 import { CommentComposerComposition } from './composition'
-import type { Model } from './definition'
 import { init } from './init'
+import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 

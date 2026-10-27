@@ -1,6 +1,11 @@
 import { Option, Schema } from 'effect'
 import { Block, Message, Struct } from 'foldkit'
-import { initAndAppend, initAndInsert, initAndSet } from 'foldkit/bindingInit'
+import {
+  initAndAppend,
+  initAndInsert,
+  initAndSet,
+  makeInitIfMissingStep,
+} from 'foldkit/bindingInit'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
 const FirstComposition = Block.makeDefinition('FirstUnionInitChild', {
@@ -125,3 +130,5 @@ const SecondMap = Definition.makeMapBinding(SecondBlock, {
 const selectedMap = Math.random() > 0.5 ? FirstMap : SecondMap
 // @ts-expect-error Insert must retain one exact child initializer.
 initAndInsert(selectedMap, model, { key: 'one', args: [1] })
+// @ts-expect-error Identical placement and storage do not make different initializers interchangeable.
+makeInitIfMissingStep(selectedMap, { key: 'one', args: [1] })

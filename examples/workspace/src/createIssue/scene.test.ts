@@ -17,7 +17,7 @@ import { describe, expect as expectValue, test } from 'vitest'
 
 import { Dialog, DialogBlock, Listbox } from '@foldkit/ui'
 
-import { Issue, IssueDraft, initialSnapshot } from '../domain'
+import { Issue, IssueDraft, initialWorkspace } from '../domain'
 import {
   PriorityListboxBlock,
   StatusListboxBlock,
@@ -31,12 +31,14 @@ import {
   ProjectListboxBinding,
   StatusListboxBinding,
 } from './composition'
-import { CreateState, Message, OutMessage } from './definition'
+import { Message } from './message'
+import { CreateState } from './model'
+import { OutMessage } from './outMessage'
 import { update } from './update'
 import { view } from './view'
 
 const sceneView = withViewInputs(view, {
-  projects: initialSnapshot.projects,
+  projects: initialWorkspace.projects,
 })
 const createIssueOpen = CreateIssueBlock.operations.requestOpen(
   CreateIssueBlock.init().model,

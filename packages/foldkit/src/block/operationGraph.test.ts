@@ -21,7 +21,7 @@ const ParentMessage = defineMessageUnion({
   Advanced: {},
   CompletedRecordBeforeReplay: {},
   CompletedRecordAfterReplay: {},
-  RequestedInitializeChild: {},
+  RequestedInitChild: {},
 })
 
 const ParentModel = Schema.Struct({
@@ -84,7 +84,7 @@ const OmittedChildBinding = OmittedParentDefinition.makeBinding(ChildBlock, {
     modifyFields(model, { primary: () => nextChild }),
 })
 
-const initializeOmittedChildStep = OmittedParentDefinition.makeStep(model =>
+const initOmittedChildStep = OmittedParentDefinition.makeStep(model =>
   OmittedChildBinding.init({
     args: [],
     toParentModel: child => modifyFields(model, { primary: () => child }),
@@ -98,7 +98,7 @@ const prepareOmittedParent = () =>
     view: omittedParentComposition.makeView((_model, h) => h.div([])),
     init: () => ({ model: initialModel }),
     update: omittedParentComposition.makeUpdate({
-      RequestedInitializeChild: model => initializeOmittedChildStep(model),
+      RequestedInitChild: model => initOmittedChildStep(model),
       Advanced: model => OmittedParentDefinition.makeNoopStep()(model),
       CompletedRecordBeforeReplay: model =>
         OmittedParentDefinition.makeNoopStep()(model),
@@ -106,8 +106,7 @@ const prepareOmittedParent = () =>
         OmittedParentDefinition.makeNoopStep()(model),
     }),
     operations: {
-      initializeOmittedChild: () =>
-        Tuple.make(ParentMessage.RequestedInitializeChild()),
+      initOmittedChild: () => Tuple.make(ParentMessage.RequestedInitChild()),
     },
     EffectsLayer: Layer.empty,
   })
@@ -138,7 +137,7 @@ const unregisteredNarrowedReset = Reflect.apply(
       Advanced: narrowedReset,
       CompletedRecordBeforeReplay: narrowedReset,
       CompletedRecordAfterReplay: narrowedReset,
-      RequestedInitializeChild: narrowedReset,
+      RequestedInitChild: narrowedReset,
     },
   ],
 )
@@ -150,7 +149,7 @@ const registeredNarrowedReset = Reflect.apply(
       Advanced: narrowedReset,
       CompletedRecordBeforeReplay: narrowedReset,
       CompletedRecordAfterReplay: narrowedReset,
-      RequestedInitializeChild: narrowedReset,
+      RequestedInitChild: narrowedReset,
     },
   ],
 )
@@ -167,22 +166,19 @@ const unregisteredDiscardedReset = unregisteredParentComposition.makeUpdate({
     Reflect.apply(OmittedChildBinding.reset(), undefined, [model])
     return { model }
   },
-  RequestedInitializeChild: model => {
+  RequestedInitChild: model => {
     Reflect.apply(OmittedChildBinding.reset(), undefined, [model])
     return { model }
   },
 })
 
 it('runs a completed exposed operation in its registered child graph', () => {
-  const recipe = Reflect.apply(initializeOmittedChildStep, undefined, [
-    initialModel,
-  ])
+  const recipe = Reflect.apply(initOmittedChildStep, undefined, [initialModel])
 
   expect(recipe).not.toHaveProperty('model')
   expect(recipe).not.toHaveProperty('commands')
 
-  const initialized =
-    OmittedParent.operations.initializeOmittedChild(initialModel)
+  const initialized = OmittedParent.operations.initOmittedChild(initialModel)
 
   expect(initialized.model.primary.count).toBe(0)
 })
@@ -255,7 +251,7 @@ it('keeps a callback holding a scoped Model passive after its graph returns', ()
       })
       return { model }
     },
-    RequestedInitializeChild: model => {
+    RequestedInitChild: model => {
       callbacks.push(() => {
         OmittedChildBinding.reset()(model)
       })
@@ -319,7 +315,7 @@ const WrongPlacementBinding = ExactParentBaseDefinition.makeBinding(
 const exactParentComposition = ExactParentBaseDefinition.makeComposition({
   bindings: [RegisteredPlacementBinding],
 })
-const initializeWrongPlacementStep = ExactParentBaseDefinition.makeStep(model =>
+const initWrongPlacementStep = ExactParentBaseDefinition.makeStep(model =>
   WrongPlacementBinding.init({
     key: 'only',
     args: [],
@@ -331,7 +327,7 @@ const prepareExactParent = () =>
     view: exactParentComposition.makeView((_model, h) => h.div([])),
     init: () => ({ model: initialModel }),
     update: exactParentComposition.makeUpdate({
-      RequestedInitializeChild: model => initializeWrongPlacementStep(model),
+      RequestedInitChild: model => initWrongPlacementStep(model),
       Advanced: model =>
         ExactParentBaseDefinition.makeStep(() =>
           WrongPlacementBinding.fold(model, 'only', Message.Advanced()),
@@ -342,8 +338,7 @@ const prepareExactParent = () =>
         ExactParentBaseDefinition.makeNoopStep()(model),
     }),
     operations: {
-      initializeWrongPlacement: () =>
-        Tuple.make(ParentMessage.RequestedInitializeChild()),
+      initWrongPlacement: () => Tuple.make(ParentMessage.RequestedInitChild()),
     },
     EffectsLayer: Layer.empty,
   })
@@ -364,9 +359,7 @@ it('checks exact binding identity before reading or writing the parent Model', (
 })
 
 it('keeps foreign Bindings out of completed exposed operations', () => {
-  expect(() =>
-    ExactParent.operations.initializeWrongPlacement(initialModel),
-  ).toThrow(
+  expect(() => ExactParent.operations.initWrongPlacement(initialModel)).toThrow(
     'The child binding at placement "same-placement" is not registered in the current Block graph.',
   )
 })
@@ -413,7 +406,7 @@ const returnPendingRegisteredKeyedReset = Reflect.apply(
       Advanced: () => pendingRegisteredKeyedReset,
       CompletedRecordBeforeReplay: () => pendingRegisteredKeyedReset,
       CompletedRecordAfterReplay: () => pendingRegisteredKeyedReset,
-      RequestedInitializeChild: () => pendingRegisteredKeyedReset,
+      RequestedInitChild: () => pendingRegisteredKeyedReset,
     },
   ],
 )
@@ -462,7 +455,7 @@ it('replays a deferred combined operation from the active Model without restorin
       Advanced: () => pending,
       CompletedRecordBeforeReplay: () => pending,
       CompletedRecordAfterReplay: () => pending,
-      RequestedInitializeChild: () => pending,
+      RequestedInitChild: () => pending,
     },
   ])
   const modelWithoutKey = modifyFields(capturedPendingModel, {

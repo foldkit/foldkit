@@ -15,10 +15,10 @@ export const maybeActiveIssueDetail = (model: typeof Model.Type) =>
   )
 
 export const maybeActiveBoard = (model: typeof Model.Type) => {
-  const route = model.route
+  const { route } = model
 
   return ApplicationRoute.guards.Board(route)
-    ? Record.get(model.boards, route.projectId)
+    ? Record.get(model.issueBoards, route.projectId)
     : Option.none()
 }
 
@@ -31,7 +31,7 @@ export const unsavedIssueDrafts = (model: typeof Model.Type) =>
   )
 
 export const appliedIssueFilters = (model: typeof Model.Type) => {
-  const route = model.route
+  const { route } = model
 
   return Option.getOrElse(routeFilters(route), () => {
     if (ApplicationRoute.guards.SavedView(route)) {

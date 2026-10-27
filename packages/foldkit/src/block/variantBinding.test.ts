@@ -146,7 +146,7 @@ const GatedBinding = makeVariantBinding(ParentDefinition, ChildBlock, {
 const ParentComposition = ParentDefinition.makeComposition({
   bindings: [ChildBinding],
 })
-const initialize = ParentComposition.makeInit((count: number) =>
+const init = ParentComposition.makeInit((count: number) =>
   ChildBinding.init({
     args: [count],
     toParentModel: child => child,
@@ -158,7 +158,7 @@ const update = ParentComposition.makeUpdate({
 })
 const prepareParent = () =>
   ParentComposition.prepareBlock({
-    init: initialize,
+    init,
     update,
     operations: {
       setCount: (count: number) =>
@@ -192,7 +192,7 @@ const GatedParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
 const first = Active.make({ _tag: 'Active', count: 1 })
 const absent = Inactive.make({ _tag: 'Inactive', reason: 'signed out' })
 it('keeps explicit dynamic initialization, Commands, updates, and absence identity', () => {
-  const initialized = initialize(4)
+  const initialized = init(4)
   assert.deepEqual(initialized.model, Active.make({ _tag: 'Active', count: 4 }))
   assert.equal(initialized.commands!.length, 1)
   assert.equal(

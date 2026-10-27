@@ -4,7 +4,7 @@ import type { Html } from 'foldkit/html'
 
 import { type Issue, type IssueFilters, IssueStatus } from '../../domain'
 import type { IssueListViewBuilder } from '../composition'
-import type { ViewInputs } from '../model'
+import type { ViewInputs } from '../viewInputs'
 import { statusLabel } from './controls'
 
 const ROW_CLASS =

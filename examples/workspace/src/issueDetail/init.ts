@@ -2,8 +2,8 @@ import { Option } from 'effect'
 
 import type { Issue } from '../domain'
 import { IssueDetailComposition } from './composition'
-import { SaveState } from './definition'
 import { draftFromIssue, revisionFromIssue } from './draft'
+import { SaveState } from './model'
 
 export const init = IssueDetailComposition.makeInit(
   (issue: typeof Issue.Type) => ({

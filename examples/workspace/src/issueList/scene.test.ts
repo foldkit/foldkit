@@ -17,10 +17,10 @@ import { describe, test } from 'vitest'
 
 import { Listbox } from '@foldkit/ui'
 
-import { IssueFilters, initialSnapshot } from '../domain'
+import { IssueFilters, initialWorkspace } from '../domain'
 import { WorkspaceListboxBlock } from '../listbox'
-import { IssueListBlock } from './issueList'
-import { OutMessage } from './message'
+import { IssueListBlock } from './block'
+import { OutMessage } from './outMessage'
 import { update } from './update'
 import { view } from './view'
 
@@ -33,9 +33,9 @@ const initialFilters = IssueFilters.make({
 
 const sceneView = (filters: typeof IssueFilters.Type = initialFilters) =>
   withViewInputs(view, {
-    issues: Array.take(initialSnapshot.issues, 2),
-    members: initialSnapshot.members,
-    projects: initialSnapshot.projects,
+    issues: Array.take(initialWorkspace.issues, 2),
+    members: initialWorkspace.members,
+    projects: initialWorkspace.projects,
     maybeActiveIssueId: Option.none(),
     filters,
     issueHrefs: { 'issue-101': '/issues/issue-101' },
@@ -75,7 +75,7 @@ describe('Issue List view', () => {
         update,
         view: withViewInputs(view, {
           issues: [],
-          members: initialSnapshot.members,
+          members: initialWorkspace.members,
           projects: [],
           maybeActiveIssueId: Option.none(),
           filters: initialFilters,

@@ -3,7 +3,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { hasDraft } from '../commentComposer/draft'
 import { Issue, IssueDraft, IssueRevision } from '../domain'
-import { type Model, SaveState } from './definition'
+import { type Model, SaveState } from './model'
 
 export const draftFromIssue = (issue: typeof Issue.Type) =>
   IssueDraft.make({

@@ -1,0 +1,88 @@
+import { Array, Option, pipe } from 'effect'
+import { Update } from 'foldkit'
+import { modifyFields } from 'foldkit/struct'
+
+import { makeNotifications } from '../domain'
+import { NotificationCenterComposition, PopoverBinding } from './composition'
+import { makeFieldsStep, makeNoopStep } from './definition'
+import { Message } from './message'
+import { OutMessage } from './outMessage'
+
+const handleInformedOfActivityStep = makeFieldsStep.fromMessage(
+  ({ activity }: typeof Message.InformedOfActivity.Type) => ({
+    notifications: notifications => {
+      const incoming = makeNotifications(activity)
+
+      const unseen = Array.filter(
+        incoming,
+        notification =>
+          !Array.some(notifications, current => current.id === notification.id),
+      )
+
+      return [...unseen, ...notifications]
+    },
+  }),
+)
+
+const handleClickedMarkAllAsReadStep = makeFieldsStep.fromMessage(
+  ({ recipientId }: typeof Message.ClickedMarkAllAsRead.Type) => ({
+    notifications: Array.map(notification =>
+      notification.recipientId === recipientId
+        ? modifyFields(notification, { isRead: () => true })
+        : notification,
+    ),
+  }),
+)
+
+const handleClickedNotificationReadStateStep = makeFieldsStep.fromMessage(
+  ({ notificationId }: typeof Message.ClickedNotificationReadState.Type) => ({
+    notifications: Array.map(notification =>
+      notification.id === notificationId
+        ? modifyFields(notification, {
+            isRead: isRead => !isRead,
+          })
+        : notification,
+    ),
+  }),
+)
+
+const markAsReadStep = (notificationId: string) =>
+  makeFieldsStep(() => ({
+    notifications: Array.map(notification =>
+      notification.id === notificationId
+        ? modifyFields(notification, { isRead: () => true })
+        : notification,
+    ),
+  }))
+
+export const update = NotificationCenterComposition.makeUpdate({
+  InformedOfActivity: handleInformedOfActivityStep,
+  TickedClock: makeFieldsStep.fromMessage(({ timestamp }) => ({
+    now: () => timestamp,
+  })),
+  ClickedMarkAllAsRead: handleClickedMarkAllAsReadStep,
+  ClickedNotificationReadState: handleClickedNotificationReadStateStep,
+  ClickedNotification: (model, { notificationId }) =>
+    Option.match(
+      Array.findFirst(
+        model.notifications,
+        notification => notification.id === notificationId,
+      ),
+      {
+        onNone: () => makeNoopStep()(model),
+        onSome: notification => {
+          const selected = Update.combineSteps(model, [
+            markAsReadStep(notificationId),
+            PopoverBinding.requestClose(),
+          ])
+
+          return pipe(
+            selected,
+            Update.withOutMessage(
+              OutMessage.SelectedIssue({ issueId: notification.issueId }),
+            ),
+          )
+        },
+      },
+    ),
+})

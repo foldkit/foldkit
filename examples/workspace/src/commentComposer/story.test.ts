@@ -10,13 +10,15 @@ import {
 } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
-import { Comment, Issue, initialSnapshot } from '../domain'
+import { Comment, Issue, initialWorkspace } from '../domain'
 import { AddComment } from './command'
-import { Message, Model, OutMessage, PostState } from './definition'
 import { init } from './init'
+import { Message } from './message'
+import { Model, PostState } from './model'
+import { OutMessage } from './outMessage'
 import { update } from './update'
 
-const issue = Option.getOrThrow(Array.head(initialSnapshot.issues))
+const issue = Option.getOrThrow(Array.head(initialWorkspace.issues))
 
 describe('CommentComposerBlock update', () => {
   test('keeps edits local and discards an idle draft', () => {

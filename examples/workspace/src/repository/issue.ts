@@ -4,7 +4,7 @@ import {
   Comment,
   Issue,
   type IssueDraft,
-  WorkspaceSnapshot,
+  Workspace,
   placeIssue,
 } from '../domain'
 import {
@@ -79,7 +79,7 @@ export const saveIssueInState = (
 
   return [
     Result.succeed(nextIssue),
-    { ...state, snapshot: replaceIssue(state.snapshot, nextIssue) },
+    { ...state, workspace: replaceIssue(state.workspace, nextIssue) },
   ]
 }
 
@@ -107,14 +107,14 @@ export const createIssueInState = (
     version: 1,
     comments: [],
   })
-  const snapshot = WorkspaceSnapshot.make({
-    ...state.snapshot,
-    issues: Array.append(state.snapshot.issues, issue),
+  const workspace = Workspace.make({
+    ...state.workspace,
+    issues: Array.append(state.workspace.issues, issue),
   })
 
   return [
     Result.succeed(issue),
-    { ...state, snapshot, nextIssueNumber: issueNumber + 1 },
+    { ...state, workspace, nextIssueNumber: issueNumber + 1 },
   ]
 }
 
@@ -154,7 +154,7 @@ export const addCommentInState = (
     Result.succeed(nextIssue),
     {
       ...state,
-      snapshot: replaceIssue(state.snapshot, nextIssue),
+      workspace: replaceIssue(state.workspace, nextIssue),
       nextCommentNumber: commentNumber + 1,
     },
   ]
@@ -163,7 +163,7 @@ export const addCommentInState = (
 export const moveIssueInState = (
   state: typeof RepositoryState.Type,
   input: typeof MoveIssueInput.Type,
-): RepositoryTransition<typeof WorkspaceSnapshot.Type> => {
+): RepositoryTransition<typeof Workspace.Type> => {
   const maybeIssue = findIssue(state, input.issueId)
 
   if (Option.isNone(maybeIssue)) {
@@ -201,10 +201,10 @@ export const moveIssueInState = (
     status: input.status,
     version: issue.version + 1,
   })
-  const snapshot = WorkspaceSnapshot.make({
-    ...state.snapshot,
-    issues: placeIssue(state.snapshot.issues, nextIssue, input.insertionIndex),
+  const workspace = Workspace.make({
+    ...state.workspace,
+    issues: placeIssue(state.workspace.issues, nextIssue, input.insertionIndex),
   })
 
-  return [Result.succeed(snapshot), { ...state, snapshot }]
+  return [Result.succeed(workspace), { ...state, workspace }]
 }

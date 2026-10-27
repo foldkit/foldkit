@@ -13,12 +13,15 @@ import {
 import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
-import { initialSnapshot } from '../domain'
-import { MemberDirectoryBlock, Message, update, view } from './memberDirectory'
+import { initialWorkspace } from '../domain'
+import { MemberDirectoryBlock } from './block'
+import { Message } from './message'
+import { update } from './update'
+import { view } from './view'
 
 const sceneView = withViewInputs(view, {
-  members: initialSnapshot.members,
-  issues: initialSnapshot.issues,
+  members: initialWorkspace.members,
+  issues: initialWorkspace.issues,
   issueHrefs: { 'issue-101': '/issues/issue-101' },
 })
 
@@ -37,7 +40,7 @@ describe('member directory', () => {
   })
 
   test('shows a selected member and renders a native assigned-issue link', () => {
-    const issue = Option.getOrThrow(Array.head(initialSnapshot.issues))
+    const issue = Option.getOrThrow(Array.head(initialWorkspace.issues))
 
     scene(
       { update, view: sceneView() },
@@ -51,7 +54,7 @@ describe('member directory', () => {
   })
 
   test('renders non-link assigned-issue content when its href is absent', () => {
-    const issue = Option.getOrThrow(Array.head(initialSnapshot.issues))
+    const issue = Option.getOrThrow(Array.head(initialWorkspace.issues))
     const directoryInit = MemberDirectoryBlock.init()
     const memberSelection = update(
       directoryInit.model,
@@ -74,7 +77,7 @@ describe('member directory', () => {
       directoryInit.model,
       Message.ClickedMember({ memberId: 'maya' }),
     )
-    const nextIssues = Array.map(initialSnapshot.issues, issue =>
+    const nextIssues = Array.map(initialWorkspace.issues, issue =>
       modifyFields(issue, { maybeAssigneeId: () => Option.none() }),
     )
 

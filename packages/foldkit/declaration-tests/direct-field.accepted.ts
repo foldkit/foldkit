@@ -224,7 +224,7 @@ export type InitializationContext = Readonly<{
   count: number
   maybeCount: Option.Option<number>
 }>
-export const initialize = initialComposition.makeInit(
+export const init = initialComposition.makeInit(
   (context: InitializationContext) => ({
     childInitContext: context,
     model: {
@@ -239,7 +239,7 @@ export const initialize = initialComposition.makeInit(
 )
 const prepareInitializedBlock = () =>
   initialComposition.prepareBlock({
-    init: initialize,
+    init,
     update: initialComposition.makeUpdate({
       IgnoredChildMessage: model => ({ model }),
     }),

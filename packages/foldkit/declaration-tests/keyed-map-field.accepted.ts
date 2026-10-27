@@ -118,7 +118,7 @@ export const ParentComposition = ParentDefinition.makeComposition({
   ],
 })
 export const update = ParentComposition.makeUpdate({})
-export const initialize = ParentComposition.makeInit(() =>
+export const init = ParentComposition.makeInit(() =>
   ChildrenByIdBinding.init({
     key: 'created',
     args: [],
@@ -138,4 +138,4 @@ export const initialize = ParentComposition.makeInit(() =>
   }),
 )
 
-export const initialModel = initialize().model
+export const initialModel = init().model

@@ -15,13 +15,13 @@ const ACTIVITY_COMMENT_BODIES = [
 ]
 
 export const simulateActivityStep = makeStep(model => {
-  const maybeSnapshot = AsyncData.getData(model.workspaceAsyncData)
+  const maybeWorkspace = AsyncData.getData(model.workspaceAsyncData)
 
-  if (Option.isNone(maybeSnapshot)) {
+  if (Option.isNone(maybeWorkspace)) {
     return { model }
   }
 
-  const { issues, members } = maybeSnapshot.value
+  const { issues, members } = maybeWorkspace.value
 
   const relevantIssues = Array.filter(
     issues,

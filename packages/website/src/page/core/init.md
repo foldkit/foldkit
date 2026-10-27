@@ -81,7 +81,7 @@ The optional `foldkit/bindingInit` module reuses declared storage when dynamic i
 | Keyed array with existing `init.instances` and `init.toItem` | `initAndAppend` | Duplicate key rejected |
 | Record or HashMap containing child Models directly           | `initAndInsert` | Duplicate key rejected |
 
-Pass the Binding, the current complete parent Model, and the child `args`; keyed storage also takes `key`. Each helper returns the same passive recipe as `Binding.init`, preserving child init Commands and registration requirements. Ordinary folds and operations still never create absent children. An `initialize...IfMissing` Step owns any presence check.
+Pass the Binding, the current complete parent Model, and the child `args`; keyed storage also takes `key`. Each helper returns the same passive recipe as `Binding.init`, preserving child init Commands and registration requirements. Ordinary folds and operations never create absent children.
 
 For example, assume `RoomBinding` declares `field: 'maybeRoomInstance'`, `key: 'roomId'`, and `childField: 'model'`, and its wrapper contains only those last two fields. The parent supplies identity and initializer arguments:
 
@@ -92,6 +92,12 @@ Direct fields need no startup policy for `initAndSet`. A custom unkeyed accessor
 For a direct-value map created with `ParentDefinition.makeMapBinding`, insertion keeps every other entry and rejects an occupied key before child init. Assume `EditorsBinding` stores Issue editor Models by Issue ID:
 
 ::Snippet{name="initInsertMappedChild" label="Inserting a mapped child"}
+
+When an existing child should be retained, use `makeInitIfMissingStep(Binding, { key, args })`. It returns a connected Step and derives the map field from the Binding. Construction captures the key and arguments; applying the Step checks the current Model. An existing key preserves the exact parent Model and emits no Commands. An absent key initializes and inserts the child with its init Commands. Both paths require the registered Binding.
+
+::Snippet{name="initMappedChildIfMissing" label="Retaining a mapped child"}
+
+Pass the Step directly to `Update.combineSteps` or a compatible update handler. Use the owning Definition's `makeStep` when a producer selects or combines Steps. Keep entity lookup and handling of unknown URL IDs in the application.
 
 Wrapped maps keep explicit construction so the parent supplies their metadata. Keyed identity identifies an occurrence; it does not require storing multiple children. Same-key reinitialization does not create a fresh generation or cancel pending work. Replacing a keyed Option with a different key follows ordinary occurrence removal and creation.
 
@@ -123,7 +129,7 @@ The assembler validates the entire occurrence plan before calling child init. Du
 
 This startup adapter applies to exact `field` / `key` keyed arrays, with or without `childField`. General keyed accessors keep explicit initialization so their custom storage and write policy remain visible.
 
-When an array already declares that startup policy, `initAndAppend` from `foldkit/bindingInit` reuses its `init.toItem` for dynamic creation. Pass the Binding, current parent Model, and `{ key, args }`. It returns a passive recipe that initializes and appends one child when the registered Composition interprets it, retaining the child's Commands and preserving the other items and their order. An existing key is rejected. Keep a presence check in an `initialize...IfMissing` Step when an existing occurrence should be retained.
+When an array already declares that startup policy, `initAndAppend` from `foldkit/bindingInit` reuses its `init.toItem` for dynamic creation. Pass the Binding, current parent Model, and `{ key, args }`. It returns a passive recipe that initializes and appends one child when the registered Composition interprets it, retaining the child's Commands and preserving the other items and their order. An existing key is rejected. Keep a presence check in an `init...IfMissingStep` when an existing occurrence should be retained.
 
 Assume `ProjectSettingsBinding` stores `{ projectId, model }` wrappers in `projectSettingsInstances` and already declares `init.toItem`. This Step keeps an existing project editor and initializes an absent one:
 

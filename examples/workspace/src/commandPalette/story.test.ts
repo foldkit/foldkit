@@ -13,7 +13,9 @@ import { Dialog, DialogBlock } from '@foldkit/ui'
 
 import { CommandPaletteBlock } from './block'
 import { ScrollActiveResult } from './command'
-import { Message, OutMessage, ResultTarget } from './definition'
+import { Message } from './message'
+import { OutMessage } from './outMessage'
+import { ResultTarget } from './resultTarget'
 import { update } from './update'
 
 describe('CommandPaletteBlock', () => {

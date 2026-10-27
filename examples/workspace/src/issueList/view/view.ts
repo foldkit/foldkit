@@ -5,7 +5,7 @@ import { Button } from '@foldkit/ui'
 import { IssueListComposition } from '../composition'
 import { filterAndSortIssues } from '../filter'
 import { Message } from '../message'
-import type { ViewInputs } from '../model'
+import type { ViewInputs } from '../viewInputs'
 import { issueGroupsView } from './rows'
 import { filterToolbarView, listSummaryView } from './toolbar'
 

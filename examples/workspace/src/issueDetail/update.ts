@@ -4,20 +4,16 @@ import { modifyFields } from 'foldkit/struct'
 import { RepositoryError } from '../repository'
 import { SaveIssue } from './command'
 import { IssueDetailComposition, changeDraftStep } from './composition'
-import {
-  Message,
-  type Model,
-  OutMessage,
-  SaveState,
-  makeOutMessageStep,
-  makeStep,
-} from './definition'
+import { makeOutMessageStep, makeStep } from './definition'
 import {
   isDirty,
   latestRevision,
   reconcileIssue,
   revisionFromIssue,
 } from './draft'
+import { Message } from './message'
+import { type Model, SaveState } from './model'
+import { OutMessage } from './outMessage'
 
 const resetDraftFields = (model: typeof Model.Type) => {
   const revision = latestRevision(model)
@@ -127,7 +123,7 @@ const handleFailedSaveIssue = (
           model: modifyFields(reconciled, {
             saveState: () => SaveState.Failed({ error: error.message }),
           }),
-          outMessage: OutMessage.ObservedIssue({ issue: latestIssue }),
+          outMessage: OutMessage.ReceivedIssue({ issue: latestIssue }),
         }
       },
     },

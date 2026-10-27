@@ -24,7 +24,7 @@ import {
   foldOptional,
   generatedUpdate,
   initial,
-  initialize,
+  init,
   setCallableCount,
   setOptionalCount,
 } from './direct-field.accepted.js'
@@ -91,9 +91,9 @@ export type GeneratedDispatch = Assert<
       }>
   >
 >
-export type InitializeArguments = Assert<
+export type InitArguments = Assert<
   Equal<
-    Parameters<typeof initialize>,
+    Parameters<typeof init>,
     [
       context: Readonly<{
         count: number
@@ -102,7 +102,7 @@ export type InitializeArguments = Assert<
     ]
   >
 >
-const assembled = initialize({ count: 1, maybeCount: Option.some(2) })
+const assembled = init({ count: 1, maybeCount: Option.some(2) })
 export type InitializedModelIsKnown = Assert<
   IsAnyOrUnknown<typeof assembled.model> extends false ? true : false
 >

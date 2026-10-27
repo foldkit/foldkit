@@ -10,52 +10,48 @@ import {
   WorkspaceListboxBlock,
 } from '../listbox'
 import {
-  IssueDetailDefinition,
-  OutMessage,
-  SaveState,
+  makeBinding,
+  makeComposition,
   makeNoopStep,
+  makeOutMessageFold,
   makeStep,
 } from './definition'
 import { reconcileIssue } from './draft'
 import { decodeAssigneeSelection } from './field'
+import { SaveState } from './model'
+import { OutMessage } from './outMessage'
 
-export const CommentComposerBinding = IssueDetailDefinition.makeBinding(
-  CommentComposerBlock,
-  {
-    field: 'commentComposer',
-    init: {
-      contextToArgs: ({ issueId }) => [issueId],
-    },
+export const CommentComposerBinding = makeBinding(CommentComposerBlock, {
+  field: 'commentComposer',
+  init: {
+    contextToArgs: ({ issueId }) => [issueId],
   },
-).withOutMessagePolicy({
-  fold: IssueDetailDefinition.makeOutMessageFold(CommentComposerBlock, {
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(CommentComposerBlock, {
     AddedComment: ({ issue }) =>
       makeStep(model => ({
         model: reconcileIssue(model, issue),
-        outMessage: OutMessage.ObservedIssue({ issue }),
+        outMessage: OutMessage.ReceivedIssue({ issue }),
       })),
   }),
 })
 
 export const changeDraftStep = (
-  toDraft: (draft: typeof IssueDraft.Type) => typeof IssueDraft.Type,
+  transformDraft: (draft: typeof IssueDraft.Type) => typeof IssueDraft.Type,
 ) =>
   makeStep(model => ({
     model: SaveState.guards.Saving(model.saveState)
       ? model
-      : modifyFields(model, { draft: toDraft }),
+      : modifyFields(model, { draft: transformDraft }),
   }))
 
-export const StatusBinding = IssueDetailDefinition.makeBinding(
-  StatusListboxBlock,
-  {
-    field: 'statusListbox',
-    init: {
-      contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-status` }],
-    },
+export const StatusBinding = makeBinding(StatusListboxBlock, {
+  field: 'statusListbox',
+  init: {
+    contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-status` }],
   },
-).withOutMessagePolicy({
-  fold: IssueDetailDefinition.makeOutMessageFold(StatusListboxBlock, {
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(StatusListboxBlock, {
     Selected: ({ value }) =>
       Schema.is(IssueStatus)(value)
         ? changeDraftStep(draft => modifyFields(draft, { status: () => value }))
@@ -63,16 +59,13 @@ export const StatusBinding = IssueDetailDefinition.makeBinding(
   }),
 })
 
-export const PriorityBinding = IssueDetailDefinition.makeBinding(
-  PriorityListboxBlock,
-  {
-    field: 'priorityListbox',
-    init: {
-      contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-priority` }],
-    },
+export const PriorityBinding = makeBinding(PriorityListboxBlock, {
+  field: 'priorityListbox',
+  init: {
+    contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-priority` }],
   },
-).withOutMessagePolicy({
-  fold: IssueDetailDefinition.makeOutMessageFold(PriorityListboxBlock, {
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(PriorityListboxBlock, {
     Selected: ({ value }) =>
       Schema.is(IssuePriority)(value)
         ? changeDraftStep(draft =>
@@ -82,31 +75,25 @@ export const PriorityBinding = IssueDetailDefinition.makeBinding(
   }),
 })
 
-export const ProjectBinding = IssueDetailDefinition.makeBinding(
-  WorkspaceListboxBlock,
-  {
-    field: 'projectListbox',
-    init: {
-      contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-project` }],
-    },
+export const ProjectBinding = makeBinding(WorkspaceListboxBlock, {
+  field: 'projectListbox',
+  init: {
+    contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-project` }],
   },
-).withOutMessagePolicy({
-  fold: IssueDetailDefinition.makeOutMessageFold(WorkspaceListboxBlock, {
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(WorkspaceListboxBlock, {
     Selected: ({ value }) =>
       changeDraftStep(draft => modifyFields(draft, { projectId: () => value })),
   }),
 })
 
-export const AssigneeBinding = IssueDetailDefinition.makeBinding(
-  WorkspaceListboxBlock,
-  {
-    field: 'assigneeListbox',
-    init: {
-      contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-assignee` }],
-    },
+export const AssigneeBinding = makeBinding(WorkspaceListboxBlock, {
+  field: 'assigneeListbox',
+  init: {
+    contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-assignee` }],
   },
-).withOutMessagePolicy({
-  fold: IssueDetailDefinition.makeOutMessageFold(WorkspaceListboxBlock, {
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(WorkspaceListboxBlock, {
     Selected: ({ value }) =>
       Option.match(decodeAssigneeSelection(value), {
         onNone: makeNoopStep,
@@ -118,7 +105,7 @@ export const AssigneeBinding = IssueDetailDefinition.makeBinding(
   }),
 })
 
-export const IssueDetailComposition = IssueDetailDefinition.makeComposition({
+export const IssueDetailComposition = makeComposition({
   bindings: [
     CommentComposerBinding,
     StatusBinding,

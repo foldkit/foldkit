@@ -13,7 +13,7 @@ export {
   NotificationKind,
   Project,
   SavedView,
-  WorkspaceSnapshot,
+  Workspace,
   issueStatusLabel,
   makeNotifications,
   mergeIssue,
@@ -21,4 +21,4 @@ export {
   placeIssue,
   placeIssueAt,
 } from './domain'
-export { initialSnapshot } from './seed'
+export { initialWorkspace } from './seed'

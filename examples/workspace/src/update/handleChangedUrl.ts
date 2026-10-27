@@ -5,7 +5,7 @@ import { makeFieldsStep, makeStep } from '../definition'
 import type { Message } from '../message'
 import type { Model } from '../model'
 import { urlToApplicationRoute } from '../route'
-import { initializeRouteChildrenStep } from './initializeRouteChildren'
+import { initChildrenStep } from './initChildrenStep'
 
 export const handleChangedUrlStep = makeStep(
   (_model: typeof Model.Type, { url }: typeof Message.ChangedUrl.Type) =>
@@ -14,6 +14,6 @@ export const handleChangedUrlStep = makeStep(
         route: () => urlToApplicationRoute(url),
         maybeNotice: () => Option.none(),
       })),
-      initializeRouteChildrenStep,
+      initChildrenStep,
     ]),
 )

@@ -3763,7 +3763,8 @@ export type Definition<
    * The parent owns membership. Ordinary child operations replace existing values;
    * removing an entry ends its occurrence's lifecycle. `subscriptions` gates only
    * Subscription Streams. Initialize and insert direct child values with
-   * `initAndInsert` from `foldkit/bindingInit`; use the returned Binding's explicit
+   * `initAndInsert` from `foldkit/bindingInit`, or retain an existing child with
+   * `makeInitIfMissingStep`. Use the returned Binding's explicit
    * `init({ key, args, toParentModel })` for wrapper metadata or mixed transitions.
    *
    * @example

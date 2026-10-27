@@ -1,6 +1,6 @@
 import type { Project } from '../domain'
 import { ProjectSettingsComposition } from './composition'
-import { SaveState } from './definition'
+import { SaveState } from './model'
 
 export const init = ProjectSettingsComposition.makeInit(
   (project: typeof Project.Type) => ({

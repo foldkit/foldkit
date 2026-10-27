@@ -431,7 +431,7 @@ it('rejects invalid runtime storage and child key replacement', () => {
 })
 
 it('rejects an initialized child whose stable key differs from its occurrence', () => {
-  const initializeMismatchedChild = ParentComposition.makeInit(() =>
+  const initMismatchedChild = ParentComposition.makeInit(() =>
     ChildrenBinding.init({
       key: 'requested',
       args: [],
@@ -445,7 +445,7 @@ it('rejects an initialized child whose stable key differs from its occurrence', 
     }),
   )
 
-  expect(() => initializeMismatchedChild()).toThrow(
+  expect(() => initMismatchedChild()).toThrow(
     'cannot initialize or replace a child with a different key',
   )
 })

@@ -150,7 +150,7 @@ const childInitContext: ParentChildInitContext = {
 
 export const emittedSettingsInit = settingsInit('Light')
 export const emittedParentInit = parentInit(childInitContext)
-const initializeProjectedStatus = ParentComposition.makeInit(() =>
+const initProjectedStatus = ParentComposition.makeInit(() =>
   ProjectedStatusBinding.init({
     args: [],
     toParentModel: status =>
@@ -159,7 +159,7 @@ const initializeProjectedStatus = ParentComposition.makeInit(() =>
       }),
   }),
 )
-export const emittedProjectedStatusInit = initializeProjectedStatus()
+export const emittedProjectedStatusInit = initProjectedStatus()
 export const emittedSettingsUpdate = settingsUpdate(
   emittedParentInit.model.settings,
   SettingsMessage.RequestedSync(),

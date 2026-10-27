@@ -6,8 +6,8 @@ import {
   Issue,
   IssueDraft,
   Project,
-  WorkspaceSnapshot,
-  initialSnapshot,
+  Workspace,
+  initialWorkspace,
 } from '../domain'
 import {
   RepositoryError,
@@ -26,11 +26,11 @@ const toDraft = (issue: typeof Issue.Type) =>
     labelIds: issue.labelIds,
   })
 
-const firstIssue = Option.getOrThrow(Array.head(initialSnapshot.issues))
+const firstIssue = Option.getOrThrow(Array.head(initialWorkspace.issues))
 
 describe('WorkspaceRepository', () => {
-  it('loads the deterministic workspace snapshot', async () => {
-    const snapshot = await Effect.runPromise(
+  it('loads the deterministic workspace workspace', async () => {
+    const workspace = await Effect.runPromise(
       Effect.gen(function* () {
         const repository = yield* WorkspaceRepository
 
@@ -38,7 +38,7 @@ describe('WorkspaceRepository', () => {
       }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
     )
 
-    expect(snapshot).toEqual(initialSnapshot)
+    expect(workspace).toEqual(initialWorkspace)
   })
 
   it('saves fields and preserves issue identity and comments', async () => {
@@ -57,7 +57,7 @@ describe('WorkspaceRepository', () => {
           draft,
           expectedVersion: firstIssue.version,
         })
-        const snapshot = yield* repository.load
+        const workspace = yield* repository.load
 
         expect(saved).toEqual({
           ...firstIssue,
@@ -65,7 +65,7 @@ describe('WorkspaceRepository', () => {
           version: firstIssue.version + 1,
         })
         expect(
-          Array.findFirst(snapshot.issues, issue => issue.id === saved.id),
+          Array.findFirst(workspace.issues, issue => issue.id === saved.id),
         ).toEqual(Option.some(saved))
       }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
     )
@@ -86,9 +86,9 @@ describe('WorkspaceRepository', () => {
           })
         }
 
-        const snapshot = yield* repository.load
+        const workspace = yield* repository.load
 
-        expect(snapshot).toEqual(initialSnapshot)
+        expect(workspace).toEqual(initialWorkspace)
       }).pipe(
         Effect.provide(
           makeWorkspaceRepositoryLayer({
@@ -119,7 +119,7 @@ describe('WorkspaceRepository', () => {
         const beforeRetry = yield* repository.load
 
         expect(Result.isFailure(failed)).toBe(true)
-        expect(beforeRetry).toEqual(initialSnapshot)
+        expect(beforeRetry).toEqual(initialWorkspace)
 
         const saved = yield* repository.saveIssue(input)
 
@@ -152,7 +152,7 @@ describe('WorkspaceRepository', () => {
             }),
           }),
         )
-        const snapshot = yield* repository.load
+        const workspace = yield* repository.load
 
         expect(Result.isFailure(staleSave)).toBe(true)
 
@@ -169,7 +169,7 @@ describe('WorkspaceRepository', () => {
         }
 
         expect(
-          Array.findFirst(snapshot.issues, issue => issue.id === saved.id),
+          Array.findFirst(workspace.issues, issue => issue.id === saved.id),
         ).toEqual(Option.some(saved))
       }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
     )
@@ -197,7 +197,7 @@ describe('WorkspaceRepository', () => {
             }),
           ),
         )
-        expect(afterFailure).toEqual(initialSnapshot)
+        expect(afterFailure).toEqual(initialWorkspace)
 
         const created = yield* repository.createIssue(toDraft(firstIssue))
 
@@ -231,7 +231,7 @@ describe('WorkspaceRepository', () => {
             }),
           ),
         )
-        expect(afterFailure).toEqual(initialSnapshot)
+        expect(afterFailure).toEqual(initialWorkspace)
 
         const saved = yield* repository.saveIssue({
           issueId: firstIssue.id,
@@ -252,7 +252,7 @@ describe('WorkspaceRepository', () => {
           Array.replicate(repository.createIssue(toDraft(firstIssue)), 3),
           { concurrency: 'unbounded' },
         )
-        const snapshot = yield* repository.load
+        const workspace = yield* repository.load
 
         expect(Array.map(created, issue => issue.id)).toEqual([
           'issue-117',
@@ -264,8 +264,8 @@ describe('WorkspaceRepository', () => {
           'WSP-118',
           'WSP-119',
         ])
-        expect(snapshot.issues).toHaveLength(
-          initialSnapshot.issues.length + created.length,
+        expect(workspace.issues).toHaveLength(
+          initialWorkspace.issues.length + created.length,
         )
         expect(Array.every(created, issue => issue.version === 1)).toBe(true)
       }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
@@ -288,14 +288,14 @@ describe('WorkspaceRepository', () => {
           }),
           expectedVersion: firstIssue.version,
         })
-        const snapshot = yield* repository.load
+        const workspace = yield* repository.load
 
         expect(commented.version).toBe(firstIssue.version)
         expect(saved.version).toBe(firstIssue.version + 1)
         expect(saved.comments).toEqual(commented.comments)
         expect(saved.title).toBe('A revised title')
         expect(
-          Array.findFirst(snapshot.issues, issue => issue.id === saved.id),
+          Array.findFirst(workspace.issues, issue => issue.id === saved.id),
         ).toEqual(Option.some(saved))
       }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
     )
@@ -320,7 +320,7 @@ describe('WorkspaceRepository', () => {
     expect(second.id).toBe(first.id)
   })
 
-  it('moves within the source project target status while preserving other rows and snapshot fields', async () => {
+  it('moves within the source project target status while preserving other rows and workspace fields', async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
         const repository = yield* WorkspaceRepository
@@ -330,7 +330,7 @@ describe('WorkspaceRepository', () => {
           insertionIndex: 1,
           expectedVersion: firstIssue.version,
         })
-        const snapshot = yield* repository.load
+        const workspace = yield* repository.load
         const movedIssue = Option.getOrThrow(
           Array.findFirst(moved.issues, issue => issue.id === firstIssue.id),
         )
@@ -355,21 +355,21 @@ describe('WorkspaceRepository', () => {
           Array.filter(moved.issues, issue => issue.id !== firstIssue.id),
         ).toStrictEqual(
           Array.filter(
-            initialSnapshot.issues,
+            initialWorkspace.issues,
             issue => issue.id !== firstIssue.id,
           ),
         )
-        expect(moved.projects).toStrictEqual(initialSnapshot.projects)
-        expect(moved.members).toStrictEqual(initialSnapshot.members)
-        expect(snapshot).toStrictEqual(moved)
+        expect(moved.projects).toStrictEqual(initialWorkspace.projects)
+        expect(moved.members).toStrictEqual(initialWorkspace.members)
+        expect(workspace).toStrictEqual(moved)
       }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
     )
   })
 
   it('reorders within a status in either direction using positions after source removal', async () => {
-    const sameProjectSnapshot = WorkspaceSnapshot.make({
-      ...initialSnapshot,
-      issues: Array.map(initialSnapshot.issues, issue =>
+    const sameProjectWorkspace = Workspace.make({
+      ...initialWorkspace,
+      issues: Array.map(initialWorkspace.issues, issue =>
         issue.projectId === firstIssue.projectId && issue.status === 'Todo'
           ? Issue.make({ ...issue, status: 'InProgress' })
           : issue,
@@ -424,7 +424,7 @@ describe('WorkspaceRepository', () => {
           Array.filter(movedUp.issues, issue => issue.id !== firstIssue.id),
         ).toStrictEqual(
           Array.filter(
-            sameProjectSnapshot.issues,
+            sameProjectWorkspace.issues,
             issue => issue.id !== firstIssue.id,
           ),
         )
@@ -432,14 +432,14 @@ describe('WorkspaceRepository', () => {
         Effect.provide(
           makeWorkspaceRepositoryLayer({
             latency: 0,
-            initialSnapshot: sameProjectSnapshot,
+            initialWorkspace: sameProjectWorkspace,
           }),
         ),
       ),
     )
   })
 
-  it('rejects a stale move with the latest issue and preserves the current snapshot', async () => {
+  it('rejects a stale move with the latest issue and preserves the current workspace', async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
         const repository = yield* WorkspaceRepository
@@ -479,7 +479,7 @@ describe('WorkspaceRepository', () => {
     )
   })
 
-  it('rejects a move for a missing issue without changing the snapshot', async () => {
+  it('rejects a move for a missing issue without changing the workspace', async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
         const repository = yield* WorkspaceRepository
@@ -491,7 +491,7 @@ describe('WorkspaceRepository', () => {
             expectedVersion: 1,
           }),
         )
-        const snapshot = yield* repository.load
+        const workspace = yield* repository.load
 
         expect(failed).toEqual(
           Result.fail(
@@ -501,7 +501,7 @@ describe('WorkspaceRepository', () => {
             }),
           ),
         )
-        expect(snapshot).toStrictEqual(initialSnapshot)
+        expect(workspace).toStrictEqual(initialWorkspace)
       }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
     )
   })
@@ -532,7 +532,7 @@ describe('WorkspaceRepository', () => {
             }),
           ),
         )
-        expect(afterFailure).toStrictEqual(initialSnapshot)
+        expect(afterFailure).toStrictEqual(initialWorkspace)
 
         const moved = yield* repository.moveIssue({
           issueId: firstIssue.id,
@@ -575,23 +575,23 @@ describe('WorkspaceRepository', () => {
         })
 
         const saved = yield* repository.saveProject(project)
-        const snapshot = yield* repository.load
+        const workspace = yield* repository.load
 
         expect(saved).toStrictEqual(project)
-        expect(Array.head(snapshot.projects)).toEqual(Option.some(project))
-        expect(Array.drop(snapshot.projects, 1)).toStrictEqual(
-          Array.drop(initialSnapshot.projects, 1),
+        expect(Array.head(workspace.projects)).toEqual(Option.some(project))
+        expect(Array.drop(workspace.projects, 1)).toStrictEqual(
+          Array.drop(initialWorkspace.projects, 1),
         )
-        expect(Array.map(snapshot.projects, project => project.id)).toEqual(
-          Array.map(initialSnapshot.projects, project => project.id),
+        expect(Array.map(workspace.projects, project => project.id)).toEqual(
+          Array.map(initialWorkspace.projects, project => project.id),
         )
-        expect(snapshot.issues).toStrictEqual(initialSnapshot.issues)
-        expect(snapshot.members).toStrictEqual(initialSnapshot.members)
+        expect(workspace.issues).toStrictEqual(initialWorkspace.issues)
+        expect(workspace.members).toStrictEqual(initialWorkspace.members)
       }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
     )
   })
 
-  it('rejects saving an unknown project without changing the snapshot', async () => {
+  it('rejects saving an unknown project without changing the workspace', async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
         const repository = yield* WorkspaceRepository
@@ -604,7 +604,7 @@ describe('WorkspaceRepository', () => {
             }),
           ),
         )
-        const snapshot = yield* repository.load
+        const workspace = yield* repository.load
 
         expect(failed).toEqual(
           Result.fail(
@@ -614,7 +614,7 @@ describe('WorkspaceRepository', () => {
             }),
           ),
         )
-        expect(snapshot).toStrictEqual(initialSnapshot)
+        expect(workspace).toStrictEqual(initialWorkspace)
       }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
     )
   })
@@ -643,30 +643,30 @@ describe('WorkspaceRepository', () => {
             }),
           ),
         )
-        expect(afterFailure).toStrictEqual(initialSnapshot)
+        expect(afterFailure).toStrictEqual(initialWorkspace)
 
         const saved = yield* repository.saveProject(project)
-        const snapshot = yield* repository.load
+        const workspace = yield* repository.load
 
         expect(saved).toStrictEqual(project)
         expect(
           Array.findFirst(
-            snapshot.projects,
+            workspace.projects,
             candidate => candidate.id === project.id,
           ),
         ).toEqual(Option.some(project))
         expect(
           Array.filter(
-            snapshot.projects,
+            workspace.projects,
             candidate => candidate.id !== project.id,
           ),
         ).toStrictEqual(
           Array.filter(
-            initialSnapshot.projects,
+            initialWorkspace.projects,
             candidate => candidate.id !== project.id,
           ),
         )
-        expect(snapshot.issues).toStrictEqual(initialSnapshot.issues)
+        expect(workspace.issues).toStrictEqual(initialWorkspace.issues)
       }).pipe(Effect.provide(makeWorkspaceRepositoryLayer({ latency: 0 }))),
     )
   })

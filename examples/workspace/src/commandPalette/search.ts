@@ -1,7 +1,7 @@
 import { Array, Schema } from 'effect'
 
 import { Issue, Project } from '../domain'
-import { ResultTarget } from './definition'
+import { ResultTarget } from './resultTarget'
 
 export const SearchResult = Schema.Struct({
   id: Schema.String,

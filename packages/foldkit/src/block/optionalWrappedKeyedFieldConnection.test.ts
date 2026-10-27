@@ -284,7 +284,7 @@ it('infers the wrapper key and keeps the child Block identity as placement', () 
 })
 
 it('keeps keyed dynamic initialization and lifts its Commands', () => {
-  const initialize = ParentComposition.makeInit(() =>
+  const init = ParentComposition.makeInit(() =>
     ChildBinding.init({
       key: 'created',
       args: [4],
@@ -296,7 +296,7 @@ it('keeps keyed dynamic initialization and lifts its Commands', () => {
         }),
     }),
   )
-  const initialized = initialize()
+  const initialized = init()
   const command = Option.getOrThrow(Array.head(initialized.commands!))
 
   expect(initialized.model).toEqual(

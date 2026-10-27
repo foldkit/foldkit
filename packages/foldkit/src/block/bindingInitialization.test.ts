@@ -239,7 +239,7 @@ describe('connected initialization', () => {
   })
 
   it('threads a derived Model through registered keyed initialization Steps', () => {
-    const initializeFirstStep = Parent.makeStep(model =>
+    const initFirstStep = Parent.makeStep(model =>
       ItemsBinding.init({
         key: 'first',
         args: [1],
@@ -249,7 +249,7 @@ describe('connected initialization', () => {
           }),
       }),
     )
-    const initializeSecondStep = Parent.makeStep(model =>
+    const initSecondStep = Parent.makeStep(model =>
       ItemsBinding.init({
         key: 'second',
         args: [2],
@@ -271,8 +271,8 @@ describe('connected initialization', () => {
               }),
             })
             return Update.combineSteps(nextModel, [
-              initializeFirstStep,
-              initializeSecondStep,
+              initFirstStep,
+              initSecondStep,
             ])
           },
           CompletedRecord: model => Parent.makeNoopStep()(model),
@@ -556,7 +556,7 @@ const SecondSequencedBinding = SequencedParent.makeBinding(child, {
   placement: 'second',
   field: 'second',
 })
-const initializeFirstSequencedChildStep = SequencedParent.makeStep(model =>
+const initFirstSequencedChildStep = SequencedParent.makeStep(model =>
   FirstSequencedBinding.init({
     args: [1],
     toParentModel: child =>
@@ -564,7 +564,7 @@ const initializeFirstSequencedChildStep = SequencedParent.makeStep(model =>
     commands: [RecordSequencedInitialization()],
   }),
 )
-const initializeSecondSequencedChildStep = SequencedParent.makeStep(model =>
+const initSecondSequencedChildStep = SequencedParent.makeStep(model =>
   SecondSequencedBinding.init({
     args: [2],
     toParentModel: child =>
@@ -592,8 +592,8 @@ const prepareSequencedParent = () =>
       RequestedOpen: model => {
         const nextModel = modifyFields(model, { route: () => 'Play' })
         return Update.combineSteps(nextModel, [
-          initializeFirstSequencedChildStep,
-          initializeSecondSequencedChildStep,
+          initFirstSequencedChildStep,
+          initSecondSequencedChildStep,
         ])
       },
       CompletedRecord: model => SequencedParent.makeNoopStep()(model),

@@ -1,66 +1,9 @@
-import { Schema } from 'effect'
 import { Block } from 'foldkit'
-import { defineMessageUnion } from 'foldkit/message'
-import { defineTaggedUnion } from 'foldkit/schema'
 
-import { CommentComposerBlock } from '../commentComposer'
-import { Issue, IssueDraft, IssueRevision } from '../domain'
-import {
-  PriorityListboxBlock,
-  StatusListboxBlock,
-  WorkspaceListboxBlock,
-} from '../listbox'
-import { RepositoryError } from '../repository'
-
-export const SaveState = defineTaggedUnion({
-  Idle: {},
-  Saving: { expectedVersion: Schema.Number },
-  Failed: { error: Schema.String },
-})
-
-export const Model = Schema.Struct({
-  issueId: Schema.String,
-  baseline: IssueRevision,
-  draft: IssueDraft,
-  maybeIncomingRevision: Schema.Option(IssueRevision),
-  saveState: SaveState,
-  commentComposer: CommentComposerBlock.Model,
-  statusListbox: StatusListboxBlock.Model,
-  priorityListbox: PriorityListboxBlock.Model,
-  projectListbox: WorkspaceListboxBlock.Model,
-  assigneeListbox: WorkspaceListboxBlock.Model,
-})
-
-const ChildInitContext = Schema.Struct({
-  issueId: Schema.String,
-})
-
-export const Message = defineMessageUnion({
-  UpdatedTitle: { value: Schema.String },
-  UpdatedDescription: { value: Schema.String },
-  SubmittedIssueForm: {},
-  ClickedRetrySave: {},
-  ClickedReloadIssue: {},
-  ClickedClose: {},
-  ClickedDiscardChanges: {},
-  RequestedSave: {},
-  InformedOfIssueChange: { issue: Issue },
-  SucceededSaveIssue: {
-    issue: Issue,
-    expectedVersion: Schema.Number,
-  },
-  FailedSaveIssue: {
-    issueId: Schema.String,
-    expectedVersion: Schema.Number,
-    error: RepositoryError,
-  },
-})
-
-export const OutMessage = defineMessageUnion({
-  Saved: { issue: Issue },
-  ObservedIssue: { issue: Issue },
-  Closed: {},
-})
+import { ChildInitContext } from './childInitContext'
+import { Message } from './message'
+import { Model } from './model'
+import { OutMessage } from './outMessage'
 
 export const IssueDetailDefinition = Block.makeDefinition('IssueDetail', {
   Model,
@@ -69,5 +12,11 @@ export const IssueDetailDefinition = Block.makeDefinition('IssueDetail', {
   ChildInitContext,
 })
 
-export const { makeStep, makeOutMessageStep, makeNoopStep } =
-  IssueDetailDefinition
+export const {
+  makeStep,
+  makeOutMessageStep,
+  makeNoopStep,
+  makeBinding,
+  makeOutMessageFold,
+  makeComposition,
+} = IssueDetailDefinition

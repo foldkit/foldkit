@@ -1,6 +1,6 @@
 import { Context, Effect, HashMap, Schema } from 'effect'
-import { Block, Message } from 'foldkit'
-import { initAndInsert } from 'foldkit/bindingInit'
+import { Block, Message, Update } from 'foldkit'
+import { initAndInsert, makeInitIfMissingStep } from 'foldkit/bindingInit'
 
 export class ReadService extends Context.Service<
   ReadService,
@@ -124,3 +124,41 @@ export const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
   typeof prepareParent
 > = Block.assemble(prepareParent)
+
+export const initRecordIfMissingStep = makeInitIfMissingStep(
+  ChildrenByIdBinding,
+  {
+    key: firstId,
+    args: [1, 'first label', 'second label'],
+  },
+)
+export const initHashMapIfMissingStep = makeInitIfMissingStep(
+  ChildrenByNumberBinding,
+  { key: 1, args: [1] },
+)
+export const initChildrenStep = ParentDefinition.makeStep(() =>
+  Update.combineSteps([initRecordIfMissingStep, initRecordIfMissingStep]),
+)
+export const initChildrenUpdate = ParentComposition.makeUpdate({
+  RequestedInsert: (model, { id, count }) =>
+    makeInitIfMissingStep(ChildrenByIdBinding, {
+      key: id,
+      args: [count],
+    })(model),
+})
+export const initChildrenDirectUpdate = ParentComposition.makeUpdate({
+  RequestedInsert: initRecordIfMissingStep,
+})
+export const initWithChildren = ParentComposition.makeInit(() => ({
+  model,
+  steps: [initChildrenStep],
+}))
+const prepareInitializingParent = () =>
+  ParentComposition.prepareBlock({
+    init: initWithChildren,
+    update: initChildrenUpdate,
+  })
+export const InitializingParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ParentModel,
+  typeof prepareInitializingParent
+> = Block.assemble(prepareInitializingParent)
