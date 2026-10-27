@@ -60,6 +60,14 @@ regressions. General feature proposals do not automatically join its scope.
       strengthened3-case browser suite, packed delta and independent/Daybreak
       reviews pass atf15. [Affected evidence](preview-stabilization-1811-20261027.md).
 
+- [x] Add the optional general Step adapter `makeStep.fromMessage`, preserving
+      inline Message inference and the existing interpreter. Both general Step
+      forms reject invalid union branches. The two eligible consumers, lint,
+      docs, scaffold and skills are updated. Source, strict relocated
+      declarations, runtime/lint suites, all six unchanged compiler ceilings
+      and three paired editor runs pass.
+      [Adapter evidence](message-step-adapter-20261027.md).
+
 ## Before merging to main
 
 - [ ] Review temporary preview documentation for the stable release. Retire or

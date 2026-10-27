@@ -455,7 +455,8 @@ const definitionOperationName = (
         previousMethod =>
           previousMethod === 'makeFieldsStep' ||
           previousMethod === 'makeCommandsStep' ||
-          previousMethod === 'makeOutMessageStep',
+          previousMethod === 'makeOutMessageStep' ||
+          previousMethod === 'makeStep',
       ),
     )
   }
@@ -605,12 +606,13 @@ const definitionOperationForCall = (
     if (operation === undefined) {
       return yield* Option.none()
     }
-    const isFocusedStep =
+    const isStepProducer =
       operation === 'makeFieldsStep' ||
       operation === 'makeCommandsStep' ||
-      operation === 'makeOutMessageStep'
+      operation === 'makeOutMessageStep' ||
+      operation === 'makeStep'
     if (
-      isFocusedStep &&
+      isStepProducer &&
       !isOwnedDefinitionCallee(
         parent.callee,
         operation,
@@ -651,7 +653,7 @@ const definitionOperationForCall = (
     const suffixLength =
       isViewWithInputs ||
       isUpdateWithContext ||
-      (isFocusedStep && method === 'fromMessage')
+      (isStepProducer && method === 'fromMessage')
         ? 2
         : 1
     const definitionPath = Option.match(namedOwner, {
@@ -1215,11 +1217,12 @@ const importedOperationOwnsMessage = (
         operation === 'withInputs' && previousOperation === 'makeView'
       const isUpdateWithContext =
         operation === 'withContext' && previousOperation === 'makeUpdate'
-      const isFocusedStepFromMessage =
+      const isStepFromMessage =
         operation === 'fromMessage' &&
         (previousOperation === 'makeFieldsStep' ||
           previousOperation === 'makeCommandsStep' ||
-          previousOperation === 'makeOutMessageStep')
+          previousOperation === 'makeOutMessageStep' ||
+          previousOperation === 'makeStep')
       const isDefinitionOperation =
         operation !== undefined &&
         definitionOperationName(
@@ -1237,9 +1240,7 @@ const importedOperationOwnsMessage = (
       }
 
       const suffixLength =
-        isViewWithInputs || isUpdateWithContext || isFocusedStepFromMessage
-          ? 2
-          : 1
+        isViewWithInputs || isUpdateWithContext || isStepFromMessage ? 2 : 1
       const members = path.members.slice(0, -suffixLength)
       return (
         Array.isReadonlyArrayNonEmpty(members) &&

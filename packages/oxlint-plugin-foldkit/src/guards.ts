@@ -1182,7 +1182,7 @@ export const isBindingPolicyCall = (
   })
 }
 
-/** Finds the owner before an authoring method or its focused Message adapter. */
+/** Finds the owner before an authoring method or its Message adapter. */
 export const definitionMethodOwnerPath = (
   callee: unknown,
   method: string,
@@ -1193,7 +1193,12 @@ export const definitionMethodOwnerPath = (
     }
     if (
       Array.contains(
-        ['makeFieldsStep', 'makeCommandsStep', 'makeOutMessageStep'],
+        [
+          'makeFieldsStep',
+          'makeCommandsStep',
+          'makeOutMessageStep',
+          'makeStep',
+        ],
         method,
       ) &&
       Option.contains(Array.last(path.members), 'fromMessage') &&
@@ -1346,12 +1351,12 @@ const isObjectPattern = (node: unknown): node is ESTree.ObjectPattern =>
   'type' in node &&
   node.type === 'ObjectPattern'
 
-const isFocusedMessageAdapterPath = (
+const isMessageStepAdapterPath = (
   path: StaticMemberPath,
   method: string,
 ): boolean =>
   Array.contains(
-    ['makeFieldsStep', 'makeCommandsStep', 'makeOutMessageStep'],
+    ['makeFieldsStep', 'makeCommandsStep', 'makeOutMessageStep', 'makeStep'],
     method,
   ) &&
   Option.contains(Array.last(path.members), 'fromMessage') &&
@@ -1406,7 +1411,7 @@ const localDefinitionMethodOwner = (
       const aliasPath = yield* staticMemberPath(initializer)
       const imported = importedPathThroughAliases(
         references,
-        isFocusedMessageAdapterPath(aliasPath, method)
+        isMessageStepAdapterPath(aliasPath, method)
           ? { ...aliasPath, members: aliasPath.members.slice(0, -1) }
           : aliasPath,
       )
@@ -1422,7 +1427,7 @@ const localDefinitionMethodOwner = (
         )
         return {
           importedPath,
-          isFromMessageAdapter: isFocusedMessageAdapterPath(aliasPath, method),
+          isFromMessageAdapter: isMessageStepAdapterPath(aliasPath, method),
           isImportedHelper: true,
           path: { root: aliasPath.root, members: [] },
         }
@@ -1438,13 +1443,13 @@ const localDefinitionMethodOwner = (
           importedPath: Option.getOrUndefined(
             importedOwnerForPath(references, directOwner.value),
           ),
-          isFromMessageAdapter: isFocusedMessageAdapterPath(aliasPath, method),
+          isFromMessageAdapter: isMessageStepAdapterPath(aliasPath, method),
           path: directOwner.value,
         }
       }
 
       const isFocusedAdapter =
-        isFocusedMessageAdapterPath(aliasPath, method) &&
+        isMessageStepAdapterPath(aliasPath, method) &&
         Array.length(aliasPath.members) === 1 &&
         Option.contains(Array.head(aliasPath.members), 'fromMessage')
       if (
@@ -1627,7 +1632,7 @@ export const ownedDefinitionMethodOwner = (
     const imported = Option.flatMap(calleePath, path =>
       importedPathThroughAliases(
         references,
-        isFocusedMessageAdapterPath(path, method)
+        isMessageStepAdapterPath(path, method)
           ? { ...path, members: path.members.slice(0, -1) }
           : path,
       ),
@@ -1643,7 +1648,7 @@ export const ownedDefinitionMethodOwner = (
         const path = yield* staticMemberPath(callee)
         return {
           importedPath,
-          isFromMessageAdapter: isFocusedMessageAdapterPath(path, method),
+          isFromMessageAdapter: isMessageStepAdapterPath(path, method),
           isImportedHelper: true,
           path: { root: path.root, members: [] },
         }
@@ -1657,7 +1662,7 @@ export const ownedDefinitionMethodOwner = (
       return Option.some({
         importedPath: undefined,
         isFromMessageAdapter: Option.exists(staticMemberPath(callee), path =>
-          isFocusedMessageAdapterPath(path, method),
+          isMessageStepAdapterPath(path, method),
         ),
         path: directOwner.value,
       })
@@ -1670,7 +1675,7 @@ export const ownedDefinitionMethodOwner = (
         importedOwnerForPath(references, directOwner.value),
       ),
       isFromMessageAdapter: Option.exists(staticMemberPath(callee), path =>
-        isFocusedMessageAdapterPath(path, method),
+        isMessageStepAdapterPath(path, method),
       ),
       path: directOwner.value,
     })
@@ -1682,7 +1687,7 @@ export const ownedDefinitionMethodOwner = (
 
   return Option.flatMap(staticMemberPath(callee), path => {
     const isFocusedAdapter =
-      isFocusedMessageAdapterPath(path, method) &&
+      isMessageStepAdapterPath(path, method) &&
       Array.length(path.members) === 1 &&
       Option.contains(Array.head(path.members), 'fromMessage')
     if (!Array.isReadonlyArrayEmpty(path.members) && !isFocusedAdapter) {

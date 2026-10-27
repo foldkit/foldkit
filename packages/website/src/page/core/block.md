@@ -566,7 +566,7 @@ Use `makeFieldsStep`, `makeCommandsStep`, and `makeOutMessageStep` when a transi
 
 Pass the resulting compatible Step or Model-first handler directly to the update record:
 
-::Snippet{name="blockMessageStepProducers" label="Producing focused handler results"}
+::Snippet{name="blockMessageStepProducers" label="Composing Message-aware Steps"}
 
 All three helpers support `.fromMessage`. Payload-only producers receive the complete exact Message variant, and the returned handler still receives `(model, message)`. When extracting a Message-dependent producer outside a contextually typed record, give its parameter a precise variant contract such as `typeof Message.UpdatedTitle.Type`. Compatible function references remain callbacks. When constructing a different Message or OutMessage, map its payload explicitly instead of forwarding the incoming `_tag` through a constructor reference.
 
@@ -599,6 +599,8 @@ When combined after another Step, the callback receives the Model produced by th
 ### FeatureDefinition.makeStep
 
 `FeatureDefinition.makeStep(producer)` handles reusable mixed transitions, additional producer arguments, connected Binding operations, initialization, delegated results, and other composed results. It preserves or wraps a connected value until a Composition interprets it under the registered graph, and infers the operation's arguments, result Messages, Command requirements, and Binding requirements. Cohesive mixed handlers can return `{ model, commands, outMessage }` directly. Public operations belong in the completed Block's `operations` record as local Message constructors or Message tuple producers.
+
+Use `makeStep.fromMessage(producer)` when only the Message is needed to select or construct a Step, compose Steps, or create an initialization recipe. An inline `makeUpdate` entry infers the exact Message variant. The returned handler receives `(model, message)`; applying it evaluates the producer and passes the incoming Model to a returned Step. Construction is passive. An extracted producer needs a precise Message variant annotation, as with the focused helpers. Dispatch context stays in `makeUpdate.withContext`, where the producer can close over it.
 
 Choose the helper when authoring a Step. Inside a local `makeStep` callback, return results directly, including `{ model }` for an unchanged Model. Constructing and immediately applying another local Step merely to express a branch adds an unnecessary layer:
 

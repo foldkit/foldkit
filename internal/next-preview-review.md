@@ -1,5 +1,15 @@
 # Next preview review
 
+## Additional stabilization API review
+
+The optional `Definition.makeStep.fromMessage` adapter is verified against the
+current optimized preparation. Inline handlers infer their Message variant;
+extracted producers use a precise annotation. Both general Step forms reject
+invalid output union branches. The two matching consumers and active guidance
+are migrated. [Contracts, unchanged budgets, paired editor results and limits](message-step-adapter-20261027.md).
+Earlier release-wide evidence below retains its own source pins. Publication
+remains held for approval.
+
 ## Status
 
 The [October 26 approval summary](preview-approval-20261026.md) identifies frozen

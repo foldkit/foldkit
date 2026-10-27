@@ -85,6 +85,12 @@ import {
   makeStepFields,
   makeStepNoop,
 } from './fieldStep.js'
+import type {
+  ContextualMessageProducer,
+  FocusedMessageOf,
+  FocusedStepValidation,
+  ValidateMessageProducer,
+} from './focusedStep.js'
 import {
   type DefinitionIdentity,
   LocalMountsTypeId,
@@ -498,9 +504,15 @@ export interface DefineStep<Model, Message, OutMessage> {
       | AnyBindingInitRecipe
       | Update.AnyResultRecipe,
   >(
-    step: ((model: Model, ...context: Context) => Output) &
-      ValidateDeferredStepOutput<Model, Message, OutMessage, Output> &
-      ValidateAnnotatedContext<Context>,
+    step: (
+      model: Model,
+      ...context: Context
+    ) => Output &
+      NoInfer<ValidateDeferredStepOutput<Model, Message, OutMessage, Output>>,
+    ...validation: FocusedStepValidation<
+      ValidateAnnotatedContext<Context> &
+        ValidateKnownStepOutput<NoInfer<Output>>
+    >
   ): NoInfer<
     DefinedStep<
       Model,
@@ -515,7 +527,69 @@ export interface DefineStep<Model, Message, OutMessage> {
       | Update.GraphRequirementOf<Extract<Output, AnyFunction>>
     >
   >
+
+  /**
+   * Authors a Model-first handler from a Message-only producer. In an inline
+   * `makeUpdate` entry, the callback receives that entry's exact Message.
+   * The producer runs when the handler is applied. A returned Step receives
+   * the incoming Model, preserving its requirements and graph obligations.
+   */
+  readonly fromMessage: <
+    ExactMessage extends Message,
+    const Producer extends ContextualMessageProducer<
+      ExactMessage,
+      | OwnedReturn<Model, Message, OutMessage>
+      | AnyFunction
+      | AnyBindingInitRecipe
+      | Update.AnyResultRecipe
+    >,
+  >(
+    step: Producer &
+      ContextualMessageProducer<
+        ExactMessage,
+        ReturnType<Producer> &
+          NoInfer<
+            ValidateDeferredStepOutput<
+              Model,
+              Message,
+              OutMessage,
+              ReturnType<Producer>
+            >
+          >
+      >,
+    ...validation: FocusedStepValidation<
+      ValidateKnownStepOutput<ReturnType<NoInfer<Producer>>> &
+        ValidateMessageProducer<Message, ExactMessage, NoInfer<Producer>> &
+        (Parameters<Producer>['length'] extends 0
+          ? unknown
+          : [Parameters<Producer>[0]] extends [never]
+            ? never
+            : unknown)
+    >
+  ) => DefinedStep<
+    Model,
+    DeferredStepMessage<Message, ReturnType<Producer>>,
+    readonly [
+      message: Parameters<Producer>['length'] extends 0
+        ? ExactMessage
+        : FocusedMessageOf<Message, ExactMessage, Producer, 0>,
+    ],
+    OutMessageOfReturn<DeferredStepReturn<ReturnType<Producer>>>,
+    CommandRequirements<DeferredStepReturn<ReturnType<Producer>>>,
+    | Update.RegistrationEvidenceOf<DeferredStepReturn<ReturnType<Producer>>>
+    | Update.GraphRequirementOf<Extract<ReturnType<Producer>, AnyFunction>>,
+    DeferredStepKind<ReturnType<Producer>>,
+    | Update.ResultEvidenceChannelOf<DeferredStepReturn<ReturnType<Producer>>>
+    | Update.GraphRequirementOf<Extract<ReturnType<Producer>, AnyFunction>>
+  >
 }
+
+type ValidateKnownStepOutput<Output> =
+  IsAny<Output> extends true
+    ? never
+    : [Output] extends [never]
+      ? never
+      : unknown
 
 type DeferredValueKind<Value> = Value extends
   | Update.AnyResultRecipe
@@ -542,38 +616,42 @@ type DeferredStepMessage<Message, Output> =
       : ResultMessage
     : never
 
-type ValidateResultRecipe<Model, Message, OutMessage, Value> =
-  Value extends Update.ResultRecipe<
-    infer ResultModel,
-    infer ResultMessage,
-    infer ResultOutMessage,
-    infer R,
-    infer Evidence
-  >
-    ? true extends
-        | IsAny<ResultModel>
-        | IsUnknown<ResultModel>
-        | IsAny<ResultMessage>
-        | IsUnknown<ResultMessage>
-        | IsAny<ResultOutMessage>
-        | IsUnknown<ResultOutMessage>
-        | IsAny<R>
-        | IsUnknown<R>
-        | IsAny<Evidence>
-        | IsUnknown<Evidence>
-      ? never
-      : [ResultModel, Model] extends [Model, ResultModel]
-        ? [ResultMessage] extends [
-            Message | GeneratedMessageOfRequirement<Evidence>,
-          ]
-          ? [ResultOutMessage] extends [OutMessage]
-            ? unknown
-            : never
-          : never
-        : never
-    : never
+type ResultRecipeIsValid<Model, Message, OutMessage, Value> =
+  IsAny<Value> extends true
+    ? false
+    : [Value] extends [never]
+      ? false
+      : Value extends Update.ResultRecipe<
+            infer ResultModel,
+            infer ResultMessage,
+            infer ResultOutMessage,
+            infer R,
+            infer Evidence
+          >
+        ? true extends
+            | IsAny<ResultModel>
+            | IsUnknown<ResultModel>
+            | IsAny<ResultMessage>
+            | IsUnknown<ResultMessage>
+            | IsAny<ResultOutMessage>
+            | IsUnknown<ResultOutMessage>
+            | IsAny<R>
+            | IsUnknown<R>
+            | IsAny<Evidence>
+            | IsUnknown<Evidence>
+          ? false
+          : [ResultModel, Model] extends [Model, ResultModel]
+            ? [ResultMessage] extends [
+                Message | GeneratedMessageOfRequirement<Evidence>,
+              ]
+              ? [ResultOutMessage] extends [OutMessage]
+                ? true
+                : false
+              : false
+            : false
+        : false
 
-type ValidateDeferredReturn<Model, Message, OutMessage, Value> =
+type DeferredReturnIsValid<Model, Message, OutMessage, Value> =
   DeferredValueReturn<Value> extends infer Result
     ? Result extends Readonly<{ model: infer ResultModel }>
       ? true extends
@@ -583,7 +661,7 @@ type ValidateDeferredReturn<Model, Message, OutMessage, Value> =
           | IsUnknown<CommandMessageOfReturn<Result>>
           | IsAny<OutMessageOfReturn<Result>>
           | IsUnknown<OutMessageOfReturn<Result>>
-        ? never
+        ? false
         : [ResultModel] extends [Model]
           ? [CommandMessageOfReturn<Result>] extends [
               | Message
@@ -592,48 +670,65 @@ type ValidateDeferredReturn<Model, Message, OutMessage, Value> =
                 >,
             ]
             ? [OutMessageOfReturn<Result>] extends [OutMessage]
-              ? Update.ValidateConcreteResultEvidence<Result>
-              : never
-            : never
-          : never
-      : never
-    : never
+              ? unknown extends Update.ValidateConcreteResultEvidence<Result>
+                ? true
+                : false
+              : false
+            : false
+          : false
+      : false
+    : false
 
-type ValidateDeferredValue<Model, Message, OutMessage, Value> =
-  Value extends Update.AnyResultRecipe
-    ? ValidateResultRecipe<Model, Message, OutMessage, Value>
-    : ValidateDeferredReturn<Model, Message, OutMessage, Value>
+type DeferredValueIsValid<Model, Message, OutMessage, Value> =
+  IsAny<Value> extends true
+    ? false
+    : [Value] extends [never]
+      ? false
+      : Value extends Update.AnyResultRecipe
+        ? ResultRecipeIsValid<Model, Message, OutMessage, Value>
+        : DeferredReturnIsValid<Model, Message, OutMessage, Value>
 
-type ValidateDeferredStepOutput<Model, Message, OutMessage, Output> =
+type DeferredStepOutputIsValid<Model, Message, OutMessage, Output> =
   Output extends AnyFunction
     ? Parameters<Output> extends readonly [infer Input]
       ? IsAny<Input> extends true
-        ? never
+        ? false
         : IsUnknown<Input> extends true
-          ? never
+          ? false
           : Update.GraphRequirementOf<Output> extends infer Requirement
             ? IsAny<Requirement> extends true
-              ? never
+              ? false
               : IsUnknown<Requirement> extends true
-                ? never
+                ? false
                 : [Input, Update.GraphInput<Model, Requirement>] extends [
                       Update.GraphInput<Model, Requirement>,
                       Input,
                     ]
-                  ? ValidateDeferredValue<
+                  ? DeferredValueIsValid<
                       Model,
                       Message,
                       OutMessage,
                       ReturnType<Output>
                     >
-                  : never
-            : never
-      : never
+                  : false
+            : false
+      : false
     : Output extends AnyBindingInitRecipe
-      ? ValidateDeferredReturn<Model, Message, OutMessage, Output>
+      ? DeferredReturnIsValid<Model, Message, OutMessage, Output>
       : Output extends Update.AnyResultRecipe
-        ? ValidateResultRecipe<Model, Message, OutMessage, Output>
-        : ValidateDeferredReturn<Model, Message, OutMessage, Output>
+        ? ResultRecipeIsValid<Model, Message, OutMessage, Output>
+        : DeferredReturnIsValid<Model, Message, OutMessage, Output>
+
+type ValidateDeferredStepOutput<Model, Message, OutMessage, Output> =
+  IsAny<Output> extends true
+    ? never
+    : [Output] extends [never]
+      ? never
+      : [
+            DeferredStepOutputIsValid<Model, Message, OutMessage, Output>,
+          ] extends [true]
+        ? unknown
+        : never
 
 /** @internal Validates one inferred output through the Definition Step contract. */
 export type ValidateDefinitionStepOutput<Model, Message, OutMessage, Output> =
@@ -4118,36 +4213,12 @@ const makeDefineView = <
   return defineView
 }
 
-const makeDefineStep = <Model, Message, OutMessage>(): DefineStep<
+function makeDefineStep<Model, Message, OutMessage>(): DefineStep<
   Model,
   Message,
   OutMessage
-> => {
-  function defineStep<
-    const Context extends ReadonlyArray<unknown>,
-    const Output extends
-      | OwnedReturn<Model, Message, OutMessage>
-      | AnyFunction
-      | AnyBindingInitRecipe
-      | Update.AnyResultRecipe,
-  >(
-    step: ((model: Model, ...context: Context) => Output) &
-      ValidateDeferredStepOutput<Model, Message, OutMessage, Output> &
-      ValidateAnnotatedContext<Context>,
-  ): NoInfer<
-    DefinedStep<
-      Model,
-      DeferredStepMessage<Message, Output>,
-      Context,
-      OutMessageOfReturn<DeferredStepReturn<Output>>,
-      CommandRequirements<DeferredStepReturn<Output>>,
-      | Update.RegistrationEvidenceOf<DeferredStepReturn<Output>>
-      | Update.GraphRequirementOf<Extract<Output, AnyFunction>>,
-      DeferredStepKind<Output>,
-      | Update.ResultEvidenceChannelOf<DeferredStepReturn<Output>>
-      | Update.GraphRequirementOf<Extract<Output, AnyFunction>>
-    >
-  >
+>
+function makeDefineStep(): unknown {
   function defineStep(step: AnyFunction): AnyFunction {
     return (model: unknown, ...context: ReadonlyArray<unknown>) => {
       const output = step(model, ...context)
@@ -4164,7 +4235,10 @@ const makeDefineStep = <Model, Message, OutMessage>(): DefineStep<
     }
   }
 
-  return defineStep
+  const fromMessage = (step: AnyFunction): AnyFunction =>
+    defineStep((_model: unknown, message: unknown) => step(message))
+
+  return Object.assign(defineStep, { fromMessage })
 }
 
 const isSubscriptionEntryRecord = (

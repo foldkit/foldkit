@@ -2,6 +2,12 @@
 
 ## Current stabilization preparation, October 27
 
+The subsequent [Message-only Step adapter](message-step-adapter-20261027.md)
+adds optional `makeStep.fromMessage`, repairs invalid-union validation in both
+general Step forms, and migrates the two eligible consumers. Its source,
+declaration, runtime, lint, compiler and editor evidence supplements the earlier
+release checkpoints. Publication and integration remain held for approval.
+
 The [SSG stabilization addendum](preview-stabilization-1811-20261027.md) owns
 the latest #1811 repair at `f15fa164624130f1773be20aac9090a9d1e2a9dc`,
 with affected source, packed-plugin, browser and review verification. The

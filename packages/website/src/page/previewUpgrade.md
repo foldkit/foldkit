@@ -41,6 +41,8 @@ After installing one coherent target, replace standalone `makeMapBinding` calls 
 
 For retained children stored directly in Record or HashMap fields, optionally use [makeInitIfMissingStep](/core/init-and-flags#dynamic-storage-helpers) to preserve an existing child or initialize a missing one with its Commands. [Route.parsePathWithFallback](/core/routing-and-navigation#parse-relative-paths) is also available for decoding origin-relative paths; it does not require changing existing Routes.
 
+The optional [makeStep.fromMessage](/core/block#featuredefinitionmakestep) adapter lets a Message-only producer select or compose Steps without an unused Model parameter. Inline handler records infer the Message payload; extracted producers need an exact variant annotation. Step validation also checks every possible result branch, so an invalid Model or result channel cannot be hidden beside a valid branch.
+
 Run [the upgrade checks](#verify-the-upgrade), including public declaration output where applicable. The older snapshot sections below describe migrations already present in `f3be22cfeefe`.
 
 ## Upgrade from 1f6776fa7ece

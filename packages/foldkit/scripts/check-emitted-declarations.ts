@@ -742,6 +742,12 @@ const checks: ReadonlyArray<
     consumers: ['commands-steps.consume.ts'],
   },
   {
+    name: 'message-steps',
+    accepted: ['message-steps.accepted.ts', 'message-steps.definition.ts'],
+    rejected: ['message-steps.rejected.ts'],
+    consumers: ['message-steps.consume.ts'],
+  },
+  {
     name: 'managed-resource-registry',
     accepted: ['managed-resource-registry.accepted.ts'],
     rejected: ['managed-resource-registry.rejected.ts'],
@@ -998,6 +1004,7 @@ const main = async (): Promise<void> => {
     'story-concurrency',
     'test-parent-message',
     'extracted-connected-step',
+    'message-steps',
     'append-initialization',
     'set-initialization',
     'set-optional-initialization',

@@ -3,12 +3,11 @@ import { Update } from 'foldkit'
 
 import { makeFieldsStep, makeStep } from '../definition'
 import type { Message } from '../message'
-import type { Model } from '../model'
 import { urlToApplicationRoute } from '../route'
 import { initChildrenStep } from './initChildrenStep'
 
-export const handleChangedUrlStep = makeStep(
-  (_model: typeof Model.Type, { url }: typeof Message.ChangedUrl.Type) =>
+export const handleChangedUrlStep = makeStep.fromMessage(
+  ({ url }: typeof Message.ChangedUrl.Type) =>
     Update.combineSteps([
       makeFieldsStep(() => ({
         route: () => urlToApplicationRoute(url),
