@@ -5,31 +5,40 @@ import { type Model, appliedIssueFilters } from './model'
 import {
   ApplicationRoute,
   issueRouter,
-  pageRoute,
+  routeForPageContent,
   routeToPath,
   withRouteFilters,
 } from './route'
 
 export const issueHref = (model: typeof Model.Type, issueId: string) => {
-  const returnTo = routeToPath(
-    withRouteFilters(pageRoute(model.route), appliedIssueFilters(model)),
-  )
+  const route = routeForPageContent(model.route)
+  const returnTo = ApplicationRoute.guards.NotFound(route)
+    ? ApplicationRoute.Issues({ filters: appliedIssueFilters(model) })
+    : withRouteFilters(route, appliedIssueFilters(model))
 
-  return issueRouter(returnTo === '/' ? { issueId } : { issueId, returnTo })
+  return issueRouter(
+    routeToPath(returnTo) === '/' ? { issueId } : { issueId, returnTo },
+  )
 }
 
 export const issueFiltersHref = (
   model: typeof Model.Type,
   filters: typeof IssueFilters.Type,
 ) => {
-  const route = withRouteFilters(pageRoute(model.route), filters)
+  const route = routeForPageContent(model.route)
+
+  if (ApplicationRoute.guards.NotFound(route)) {
+    return routeToPath(route)
+  }
+
+  const nextRoute = withRouteFilters(route, filters)
 
   return ApplicationRoute.guards.Issue(model.route)
     ? issueRouter({
         issueId: model.route.issueId,
-        returnTo: routeToPath(route),
+        returnTo: nextRoute,
       })
-    : routeToPath(route)
+    : routeToPath(nextRoute)
 }
 
 export const issueHrefs = (

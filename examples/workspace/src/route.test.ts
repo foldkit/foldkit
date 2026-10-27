@@ -1,4 +1,4 @@
-import { Option } from 'effect'
+import { Option, Schema } from 'effect'
 import * as Url from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
@@ -9,9 +9,9 @@ import {
   issueRouter,
   issuesRouter,
   myIssuesRouter,
-  pageRoute,
   projectRouter,
   routeFilters,
+  routeForPageContent,
   routeToPath,
   savedViewRouter,
   urlToApplicationRoute,
@@ -120,8 +120,11 @@ describe('workspace list routes', () => {
 })
 
 describe('Issue return context', () => {
-  test('round-trips a filtered list return target', () => {
-    const returnTo = projectRouter({ projectId: 'platform', filters: filtered })
+  test('round-trips a filtered list return target as a typed Route', () => {
+    const returnTo = ApplicationRoute.Project({
+      projectId: 'platform',
+      filters: filtered,
+    })
     const path = issueRouter({ issueId: 'issue-101', returnTo })
 
     expect(path).toBe(
@@ -133,21 +136,30 @@ describe('Issue return context', () => {
     expect(route).toEqual(
       ApplicationRoute.Issue({ issueId: 'issue-101', returnTo }),
     )
-
-    expect(pageRoute(route)).toEqual(
-      ApplicationRoute.Project({ projectId: 'platform', filters: filtered }),
-    )
+    expect(routeForPageContent(route)).toEqual(returnTo)
+    expect(routeToPath(route)).toBe(path)
   })
 
-  test('selects the Board and ignores unrelated return query fields', () => {
-    expect(
-      pageRoute(
-        ApplicationRoute.Issue({
-          issueId: 'issue-101',
-          returnTo: '/projects/platform/board?ignored=yes',
-        }),
-      ),
-    ).toEqual(ApplicationRoute.Board({ projectId: 'platform' }))
+  test('selects an already typed page Route without replacing it', () => {
+    const returnTo = ApplicationRoute.Board({ projectId: 'platform' })
+    const route = ApplicationRoute.Issue({ issueId: 'issue-101', returnTo })
+
+    expect(routeForPageContent(route)).toBe(route.returnTo)
+    expect(routeForPageContent(returnTo)).toBe(returnTo)
+  })
+
+  test('decodes the Board and ignores unrelated return query fields', () => {
+    const path =
+      '/issues/issue-101?returnTo=' +
+      encodeURIComponent('/projects/platform/board?ignored=yes')
+    const route = urlToApplicationRoute(url(path))
+
+    expect(route).toEqual(
+      ApplicationRoute.Issue({
+        issueId: 'issue-101',
+        returnTo: ApplicationRoute.Board({ projectId: 'platform' }),
+      }),
+    )
   })
 
   test.each([
@@ -156,19 +168,54 @@ describe('Issue return context', () => {
     '/issues/issue-202',
     '/issues/issue-202?returnTo=%2F',
     '/unknown',
-  ])('rejects unsafe or unsupported return target %s', returnTo => {
-    expect(
-      pageRoute(ApplicationRoute.Issue({ issueId: 'issue-101', returnTo })),
-    ).toEqual(ApplicationRoute.Issues({ filters: defaultIssueFilters }))
-  })
+  ])('falls back when the URL return target is unsupported: %s', returnTo => {
+    const path = `/issues/issue-101?${new URLSearchParams({ returnTo })}`
+    const route = urlToApplicationRoute(url(path))
 
-  test('uses All issues when an Issue URL has an unsupported return page', () => {
-    const route = urlToApplicationRoute(
-      url('/issues/issue-101?returnTo=https%3A%2F%2Fevil.example'),
-    )
-
-    expect(pageRoute(route)).toEqual(
+    expect(route).toEqual(ApplicationRoute.Issue({ issueId: 'issue-101' }))
+    expect(routeForPageContent(route)).toEqual(
       ApplicationRoute.Issues({ filters: defaultIssueFilters }),
     )
+  })
+
+  test('preserves omitted and explicit-root return targets', () => {
+    const withoutReturnTo = ApplicationRoute.Issue({ issueId: 'issue-101' })
+    const withRootReturnTo = ApplicationRoute.Issue({
+      issueId: 'issue-101',
+      returnTo: ApplicationRoute.Issues({}),
+    })
+
+    expect(routeToPath(withoutReturnTo)).toBe('/issues/issue-101')
+    expect(routeToPath(withRootReturnTo)).toBe('/issues/issue-101?returnTo=%2F')
+    expect(urlToApplicationRoute(url(routeToPath(withoutReturnTo)))).toEqual(
+      withoutReturnTo,
+    )
+    expect(urlToApplicationRoute(url(routeToPath(withRootReturnTo)))).toEqual(
+      withRootReturnTo,
+    )
+  })
+
+  test('keeps URL strings out of the application Route Schema', () => {
+    const route = ApplicationRoute.Issue({
+      issueId: 'issue-101',
+      returnTo: ApplicationRoute.Board({ projectId: 'platform' }),
+    })
+    const encoded = Schema.encodeSync(ApplicationRoute)(route)
+
+    expect(encoded).toEqual(route)
+    expect(Schema.decodeUnknownSync(ApplicationRoute)(encoded)).toEqual(route)
+    for (const returnTo of [
+      '/projects/platform/board',
+      ApplicationRoute.NotFound({ path: '/unknown' }),
+      ApplicationRoute.Issue({ issueId: 'issue-102' }),
+    ]) {
+      expect(
+        Schema.is(ApplicationRoute)({
+          _tag: 'Issue',
+          issueId: 'issue-101',
+          returnTo,
+        }),
+      ).toBe(false)
+    }
   })
 })

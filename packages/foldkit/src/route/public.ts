@@ -13,6 +13,7 @@ export {
   slash,
   query,
   parseUrlWithFallback,
+  parsePathWithFallback,
   defineRouteUnion,
 } from './index.js'
 

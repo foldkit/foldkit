@@ -72,9 +72,8 @@ import {
   defaultIssueFilters,
   issueRouter,
   issuesRouter,
-  pageRoute,
   projectRouter,
-  routeToPath,
+  routeForPageContent,
   savedViewRouter,
 } from './route'
 import { update } from './update'
@@ -140,6 +139,9 @@ const projectSettingsModel = (model: typeof Model.Type, projectId: string) =>
 
 describe('workspace navigation', () => {
   test('navigates to a project and returns there after closing an issue', () => {
+    const projectRoute = ApplicationRoute.Project({
+      projectId: issueB.projectId,
+    })
     const projectPath = projectRouter({ projectId: issueB.projectId })
 
     story(
@@ -157,11 +159,11 @@ describe('workspace navigation', () => {
       message(Message.ChangedUrl({ url: url(projectPath) })),
       message(
         Message.ChangedUrl({
-          url: url(issueRouter({ issueId: issueB.id, returnTo: projectPath })),
+          url: url(issueRouter({ issueId: issueB.id, returnTo: projectRoute })),
         }),
       ),
       model(model => {
-        expect(pageRoute(model.route)).toEqual(
+        expect(routeForPageContent(model.route)).toEqual(
           ApplicationRoute.Project({ projectId: issueB.projectId }),
         )
         expect(detailInstance(model).issueId).toBe(issueB.id)
@@ -173,7 +175,7 @@ describe('workspace navigation', () => {
     const issueOpen = update(
       projectModel,
       Message.ChangedUrl({
-        url: url(issueRouter({ issueId: issueB.id, returnTo: projectPath })),
+        url: url(issueRouter({ issueId: issueB.id, returnTo: projectRoute })),
       }),
     )
 
@@ -917,7 +919,7 @@ describe('Application child policies', () => {
           url: url(
             issueRouter({
               issueId: issue.id,
-              returnTo: '/projects/platform/board',
+              returnTo: ApplicationRoute.Board({ projectId: 'platform' }),
             }),
           ),
         }),
@@ -1213,20 +1215,19 @@ describe('Application child policies', () => {
       name: 'Keyboard work',
       filters: savedFilters,
     })
-    const backgroundPath = routeToPath(
-      ApplicationRoute.SavedView({
-        viewId: savedView.id,
-        filters: changedFilters,
-      }),
-    )
+    const savedViewRoute = ApplicationRoute.SavedView({
+      viewId: savedView.id,
+      filters: changedFilters,
+    })
     const issuePath = issueRouter({
       issueId: 'issue-102',
-      returnTo: backgroundPath,
+      returnTo: savedViewRoute,
     })
+    const issuesRoute = ApplicationRoute.Issues({ filters: changedFilters })
     const issuesPath = issuesRouter({ filters: changedFilters })
     const repairedIssuePath = issueRouter({
       issueId: 'issue-102',
-      returnTo: issuesPath,
+      returnTo: issuesRoute,
     })
     const initial = modifyFields(loadedModel(issuePath), {
       savedViews: () => [savedView],
@@ -1244,10 +1245,10 @@ describe('Application child policies', () => {
         expect(model.route).toEqual(
           ApplicationRoute.Issue({
             issueId: 'issue-102',
-            returnTo: issuesPath,
+            returnTo: issuesRoute,
           }),
         )
-        expect(pageRoute(model.route)).toEqual(
+        expect(routeForPageContent(model.route)).toEqual(
           ApplicationRoute.Issues({ filters: changedFilters }),
         )
         expect(appliedIssueFilters(model)).toEqual(changedFilters)

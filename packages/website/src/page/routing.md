@@ -66,6 +66,14 @@ Combine routers with `Route.oneOf` and create a parser with a fallback for unmat
 
 A router only matches when it consumes the entire URL, so routes that share a prefix do not conflict. `/people` and `/people/:id` can appear in any order. When several routes fully match the same URL, the first one wins. That only happens when route shapes overlap, like a `literal('new')` page next to a `string('username')` profile: `/users/new` satisfies both, so list the literal route first.
 
+### Parse Relative Paths
+
+`Route.parsePathWithFallback` parses an origin-relative path and its query parameters into a Route. Use it for a path stored in a query parameter, such as an issue panel's return location. Decode that location when parsing the URL, then store the typed Route in the Model. The [Workspace example](/example-apps/workspace) uses a query Schema transformation to decode and encode its return Route.
+
+::Snippet{name="routingRelativePaths" label="Relative path parsing"}
+
+The path must begin with one `/`. Absolute URLs, paths beginning with `//`, invalid inputs and unmatched paths produce the configured fallback with the original `path`. Parsing uses the same URL normalization as `Route.parseUrlWithFallback`, decodes query parameters and ignores fragments. The function returns data synchronously; it does not navigate.
+
 ## Building URLs
 
 Here’s where the biparser pays off. The same router that parses URLs can build them:

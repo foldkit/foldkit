@@ -31,7 +31,12 @@ import { IssueMoveState, appliedIssueFilters } from './model'
 import { issueFiltersHref, issueHref } from './navigation'
 import { NotificationCenterBlock } from './notifications'
 import { ProjectSettingsBlock } from './projectSettings'
-import { maybeProjectId, pageRoute, projectRouter, routeToPath } from './route'
+import {
+  maybeProjectId,
+  projectRouter,
+  routeForPageContent,
+  routeToPath,
+} from './route'
 
 export const ActiveMemberBinding = ApplicationDefinition.makeBinding(
   WorkspaceListboxBlock,
@@ -181,7 +186,9 @@ const foldIssueDetailOutMessage = ApplicationDefinition.makeOutMessageFold(
       retainIssueDraftStep(issueId, maybeDraft),
     Closed: () =>
       makeCommandsStep(model => [
-        NavigateInternal({ url: routeToPath(pageRoute(model.route)) }),
+        NavigateInternal({
+          url: routeToPath(routeForPageContent(model.route)),
+        }),
       ]),
   },
 )
@@ -247,7 +254,7 @@ export const IssueListBinding = ApplicationDefinition.makeBinding(
         return Option.match(AsyncData.getData(model.workspaceAsyncData), {
           onNone: makeNoopStep,
           onSome: snapshot => {
-            const route = pageRoute(model.route)
+            const route = routeForPageContent(model.route)
 
             const maybeProject = Option.match(maybeProjectId(route), {
               onNone: () => Array.head(snapshot.projects),

@@ -847,6 +847,12 @@ const checks: ReadonlyArray<
     consumers: ['strict-routing.consume.ts'],
   },
   {
+    name: 'route-path',
+    accepted: ['route-path.accepted.ts'],
+    rejected: ['route-path.rejected.ts'],
+    consumers: ['route-path.consume.ts'],
+  },
+  {
     name: 'route-step-program',
     accepted: ['route-step-program.accepted.ts'],
     rejected: ['route-step-program.rejected.ts'],

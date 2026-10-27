@@ -11,6 +11,7 @@ import {
   literal,
   mapTo,
   oneOf,
+  parsePathWithFallback,
   parseUrlWithFallback,
   query,
   rest,
@@ -710,6 +711,82 @@ describe('parseUrlWithFallback', () => {
       ApplicationRoute.NotFound,
     )(makeUrl('/unknown'))
     expect(result).toStrictEqual({ _tag: 'NotFound', path: '/unknown' })
+  })
+})
+
+describe('parsePathWithFallback', () => {
+  const ApplicationRoute = defineRouteUnion({
+    Home: {},
+    Search: { query: Schema.String },
+    Person: { personId: Schema.String },
+    NotFound: { path: Schema.String },
+  })
+
+  const homeRouter = mapTo(ApplicationRoute.Home)(root)
+  const searchRouter = pipe(
+    literal('search'),
+    query(Schema.Struct({ query: Schema.String })),
+    mapTo(ApplicationRoute.Search),
+  )
+  const personRouter = pipe(
+    literal('people'),
+    slash(string('personId')),
+    mapTo(ApplicationRoute.Person),
+  )
+  const parsePath = parsePathWithFallback(
+    oneOf(homeRouter, searchRouter, personRouter),
+    ApplicationRoute.NotFound,
+  )
+
+  it('parses the root and a parameterized path', () => {
+    expect(parsePath('/')).toStrictEqual(ApplicationRoute.Home())
+    expect(parsePath('/people/ada')).toStrictEqual(
+      ApplicationRoute.Person({ personId: 'ada' }),
+    )
+  })
+
+  it('decodes query delimiters once and ignores fragments', () => {
+    expect(
+      parsePath('/search?query=cache+%26+routes%3F%23%252F#results'),
+    ).toStrictEqual(ApplicationRoute.Search({ query: 'cache & routes?#%2F' }))
+    expect(parsePath('/people/ada#profile')).toStrictEqual(
+      ApplicationRoute.Person({ personId: 'ada' }),
+    )
+  })
+
+  it('preserves encoded path delimiters and normalizes dot segments', () => {
+    expect(parsePath('/people/ada%2Flovelace')).toStrictEqual(
+      ApplicationRoute.Person({ personId: 'ada%2Flovelace' }),
+    )
+    expect(parsePath('/people/grace/../ada')).toStrictEqual(
+      ApplicationRoute.Person({ personId: 'ada' }),
+    )
+    expect(parsePath('/people/grace/%2e%2e/ada')).toStrictEqual(
+      ApplicationRoute.Person({ personId: 'ada' }),
+    )
+  })
+
+  it('requires complete consumption even when given one router', () => {
+    const path = '/people/ada/notes?sort=recent#top'
+    const parsePerson = parsePathWithFallback(
+      personRouter,
+      ApplicationRoute.NotFound,
+    )
+
+    expect(parsePerson(path)).toStrictEqual(ApplicationRoute.NotFound({ path }))
+  })
+
+  it.each([
+    '',
+    'people/ada',
+    'https://example.com/people/ada',
+    '//example.com/people/ada',
+    'https://[invalid',
+    '//[invalid',
+    '/unknown/../missing?query=value#section',
+    '/search',
+  ])('keeps the original input when falling back for %s', path => {
+    expect(parsePath(path)).toStrictEqual(ApplicationRoute.NotFound({ path }))
   })
 })
 

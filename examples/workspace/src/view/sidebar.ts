@@ -14,9 +14,9 @@ import {
   issuesRouter,
   maybeProjectId,
   myIssuesRouter,
-  pageRoute,
   peopleRouter,
   projectRouter,
+  routeForPageContent,
   savedViewRouter,
   settingsRouter,
 } from '../route'
@@ -37,7 +37,7 @@ export const sidebarView = (
   model: typeof Model.Type,
   h: ApplicationViewBuilder,
 ): Html => {
-  const route = pageRoute(model.route)
+  const route = routeForPageContent(model.route)
   const maybeCurrentProjectId = maybeProjectId(route)
 
   return h.aside(

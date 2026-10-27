@@ -38,7 +38,7 @@ import { issueHref } from './navigation'
 import { ProjectSettingsBlock } from './projectSettings'
 import { SaveProject } from './projectSettings/command'
 import { RepositoryError } from './repository'
-import { issueRouter, savedViewRouter } from './route'
+import { ApplicationRoute, issueRouter, savedViewRouter } from './route'
 import { update } from './update'
 import { view } from './view'
 
@@ -304,7 +304,10 @@ describe('workspace application', () => {
     const href = issueHref(barePresetRoute, firstIssue.id)
 
     expectValue(href).toBe(
-      issueRouter({ issueId: firstIssue.id, returnTo: returnTarget }),
+      issueRouter({
+        issueId: firstIssue.id,
+        returnTo: ApplicationRoute.SavedView({ viewId: savedView.id, filters }),
+      }),
     )
 
     const freshIssueModel = loadedModel(href)

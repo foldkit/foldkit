@@ -12,6 +12,16 @@ Preview integration remains on `codex/layers-and-submodels`; Foldkit `main`
 was not changed by this release. The preparation sections below retain their
 original status, source pins and publication holds as historical evidence.
 
+## Followups after the published preview
+
+- [x] Decode Workspace's issue return location through its URL query Schema.
+      Store an optional typed page Route, select it through `routeForPageContent`,
+      and preserve panel closing, list filters, reloads and existing URL forms.
+      Add `Route.parsePathWithFallback` for relative-path parsing and document
+      the boundary in the routing guide, scaffold and consumer skill.
+      This followup targets the next preview; the published `f3be22cfeefe`
+      snapshot and its immutable deployment are unchanged.
+
 ## Publication completion, October 26
 
 - [x] Publish and verify all nine registry packages from `f3be22cfeefe`.

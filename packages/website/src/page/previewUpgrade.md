@@ -55,6 +55,7 @@ Reciprocal Binding policies now resolve converging paths without repeatedly expa
 
 The following additions are optional:
 
+- Paths stored in query parameters can use [Route.parsePathWithFallback](/core/routing-and-navigation#parse-relative-paths). Decode return locations through the query Schema and store typed Routes in the Model; application selectors can then use those values directly.
 - Schema-backed Record and HashMap child fields can use [`makeMapBinding` from `foldkit/mapBinding`](/core/block#keyed-map-fields), removing repeated lookup and replacement configuration. Existing general keyed Bindings remain supported for custom relationships.
 - A closed, fully attached ManagedResource registry supplies its handler recipes through [managedResources.layer](/core/managed-resources), matching Subscriptions. Empty registries supply `Layer.empty`; mixed attached/host-owned registries require explicit provider selection.
 - Story and Scene helpers can inspect captured Command arguments through [Command.argsOf](/testing/story#inspect-captured-command-arguments), matching the original Definition's source identity without changing the pending Command or selecting an occurrence.

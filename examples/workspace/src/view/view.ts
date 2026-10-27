@@ -34,8 +34,8 @@ import {
   ApplicationRoute,
   issuesRouter,
   maybeProjectId,
-  pageRoute,
   routeFilters,
+  routeForPageContent,
 } from '../route'
 import { projectOverview, projectTabs } from './project'
 import { workspaceSettings } from './settings'
@@ -88,7 +88,7 @@ const pageTitle = (
   model: typeof Model.Type,
   snapshot: typeof WorkspaceSnapshot.Type,
 ): string => {
-  const route = pageRoute(model.route)
+  const route = routeForPageContent(model.route)
   const projectTitle = (projectId: string) =>
     Option.match(
       Array.findFirst(snapshot.projects, project => project.id === projectId),
@@ -168,7 +168,7 @@ const routeContent = (
   snapshot: typeof WorkspaceSnapshot.Type,
   h: ApplicationViewBuilder,
 ): Html => {
-  const route = pageRoute(model.route)
+  const route = routeForPageContent(model.route)
 
   const projectContent = (
     projectId: string,
@@ -342,7 +342,7 @@ const workspaceView = (
   snapshot: typeof WorkspaceSnapshot.Type,
   h: ApplicationViewBuilder,
 ): Html => {
-  const route = pageRoute(model.route)
+  const route = routeForPageContent(model.route)
   const maybeProject = Option.flatMap(maybeProjectId(route), projectId =>
     Array.findFirst(snapshot.projects, project => project.id === projectId),
   )

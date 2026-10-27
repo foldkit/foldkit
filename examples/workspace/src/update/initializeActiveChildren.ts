@@ -8,7 +8,7 @@ import {
   ProjectSettingsBinding,
 } from '../composition'
 import { makeNoopStep, makeStep } from '../definition'
-import { ApplicationRoute, pageRoute } from '../route'
+import { ApplicationRoute, routeForPageContent } from '../route'
 
 const initializeIssueDetailIfMissingStep = (issueId: string) =>
   makeStep(model => {
@@ -104,7 +104,7 @@ export const initializeActiveChildrenStep = makeStep(model => {
     makeNoopStep,
   )
 
-  const route = pageRoute(model.route)
+  const route = routeForPageContent(model.route)
   const initializeProjectChildStep = ApplicationRoute.matchOrElse(
     route,
     {

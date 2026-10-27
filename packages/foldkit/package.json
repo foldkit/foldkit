@@ -185,7 +185,7 @@
     "check:block-type-performance": "node scripts/check-block-type-performance.ts",
     "update:block-type-performance": "node scripts/check-block-type-performance.ts --update",
     "watch": "tsc -b tsconfig.build.json --watch",
-    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p declaration-tests/tsconfig.route-step-program.source.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p declaration-tests/tsconfig.route-step-program.source.json && tsc -p declaration-tests/tsconfig.route-path.source.json",
     "test": "vitest run --coverage"
   },
   "dependencies": {

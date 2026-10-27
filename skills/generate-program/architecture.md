@@ -614,6 +614,8 @@ Runtime.run(program.provide(ApplicationLayer))
 
 ### With Routing
 
+A URL is an input boundary. Parse it in init or the `ChangedUrl` handler and store a typed Route in the Model. `Route.parseUrlWithFallback` accepts a full `Url`; `Route.parsePathWithFallback` accepts an origin-relative path with query parameters. If a query value holds a return Route, decode and encode it through the query Schema. Keep that codec separate from the plain application Route Schema so rendering, selectors and Model serialization use the decoded Route.
+
 A routing init receives Flags, when declared, and the current URL. Add both Message constructors to `routing`:
 
 ```ts

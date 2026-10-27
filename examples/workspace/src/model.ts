@@ -20,8 +20,8 @@ import { ProjectSettingsBlock } from './projectSettings'
 import {
   ApplicationRoute,
   defaultIssueFilters,
-  pageRoute,
   routeFilters,
+  routeForPageContent,
 } from './route'
 
 export const WorkspaceAsyncData = AsyncData.Schema(
@@ -94,7 +94,7 @@ export const maybeActiveIssueDetailInstance = (model: typeof Model.Type) => {
 }
 
 export const maybeActiveBoardInstance = (model: typeof Model.Type) => {
-  const route = pageRoute(model.route)
+  const route = routeForPageContent(model.route)
 
   return ApplicationRoute.guards.Board(route)
     ? Array.findFirst(
@@ -105,7 +105,7 @@ export const maybeActiveBoardInstance = (model: typeof Model.Type) => {
 }
 
 export const appliedIssueFilters = (model: typeof Model.Type) => {
-  const route = pageRoute(model.route)
+  const route = routeForPageContent(model.route)
 
   return Option.getOrElse(routeFilters(route), () => {
     if (ApplicationRoute.guards.SavedView(route)) {

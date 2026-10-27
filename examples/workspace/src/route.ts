@@ -1,7 +1,6 @@
 import { Option, Schema, SchemaTransformation, pipe } from 'effect'
 import { Route } from 'foldkit'
 import { defineRouteUnion, literal, slash, string } from 'foldkit/route'
-import * as Url from 'foldkit/url'
 
 import { GroupBy, IssueFilters, IssueStatus } from './domain'
 
@@ -16,11 +15,7 @@ const RouteIssueFilters = Schema.Struct({
   filters: Schema.optionalKey(IssueFilters),
 })
 
-const IssueReturnTo = Schema.Struct({
-  returnTo: Schema.optionalKey(Schema.String),
-})
-
-export const ApplicationRoute = defineRouteUnion({
+const pageRouteCases = {
   Issues: RouteIssueFilters.fields,
   MyIssues: RouteIssueFilters.fields,
   Project: { projectId: Schema.String, ...RouteIssueFilters.fields },
@@ -30,6 +25,16 @@ export const ApplicationRoute = defineRouteUnion({
   People: {},
   Settings: {},
   SavedView: { viewId: Schema.String, ...RouteIssueFilters.fields },
+}
+
+const PageRoute = defineRouteUnion(pageRouteCases)
+
+const IssueReturnTo = Schema.Struct({
+  returnTo: Schema.optionalKey(PageRoute),
+})
+
+export const ApplicationRoute = defineRouteUnion({
+  ...pageRouteCases,
   Issue: { issueId: Schema.String, ...IssueReturnTo.fields },
   NotFound: { path: Schema.String },
 })
@@ -132,13 +137,6 @@ export const projectRouter = pipe(
   Route.mapTo(ApplicationRoute.Project),
 )
 
-export const issueRouter = pipe(
-  literal('issues'),
-  slash(string('issueId')),
-  Route.query(IssueReturnTo),
-  Route.mapTo(ApplicationRoute.Issue),
-)
-
 export const myIssuesRouter = pipe(
   literal('my-issues'),
   Route.query(issueFiltersFromQuery),
@@ -208,10 +206,10 @@ export const routeFilters = (route: typeof ApplicationRoute.Type) =>
   )
 
 export const withRouteFilters = (
-  route: typeof ApplicationRoute.Type,
+  route: typeof PageRoute.Type,
   filters: typeof IssueFilters.Type,
 ) =>
-  ApplicationRoute.match<typeof ApplicationRoute.Type>(route, {
+  PageRoute.match<typeof PageRoute.Type>(route, {
     Issues: () => ApplicationRoute.Issues({ filters }),
     MyIssues: () => ApplicationRoute.MyIssues({ filters }),
     Project: ({ projectId }) =>
@@ -222,11 +220,9 @@ export const withRouteFilters = (
     People: () => route,
     Settings: () => route,
     SavedView: ({ viewId }) => ApplicationRoute.SavedView({ viewId, filters }),
-    Issue: () => route,
-    NotFound: () => route,
   })
 
-export const routeToPath = ApplicationRoute.match({
+const pageRouteToPath = PageRoute.match({
   Issues: issuesRouter,
   MyIssues: myIssuesRouter,
   Project: projectRouter,
@@ -236,8 +232,6 @@ export const routeToPath = ApplicationRoute.match({
   People: peopleRouter,
   Settings: settingsRouter,
   SavedView: savedViewRouter,
-  Issue: issueRouter,
-  NotFound: ({ path }) => path,
 })
 
 const pageParser = Route.oneOf(
@@ -252,29 +246,60 @@ const pageParser = Route.oneOf(
   issuesRouter,
 )
 
-const urlToPageRoute = Route.parseUrlWithFallback(
+const pathToPageRoute = Route.parsePathWithFallback(
   pageParser,
   ApplicationRoute.NotFound,
 )
+
+const IssueReturnToFromQuery = Schema.Struct({
+  returnTo: Schema.optionalKey(Schema.String),
+}).pipe(
+  Schema.decodeTo(
+    IssueReturnTo,
+    SchemaTransformation.transform({
+      decode: ({ returnTo }) => {
+        if (returnTo === undefined) {
+          return {}
+        }
+
+        const route = pathToPageRoute(returnTo)
+
+        return ApplicationRoute.guards.NotFound(route)
+          ? {}
+          : { returnTo: route }
+      },
+      encode: ({ returnTo }) =>
+        returnTo === undefined ? {} : { returnTo: pageRouteToPath(returnTo) },
+    }),
+  ),
+)
+
+export const issueRouter = pipe(
+  literal('issues'),
+  slash(string('issueId')),
+  Route.query(IssueReturnToFromQuery),
+  Route.mapTo(ApplicationRoute.Issue),
+)
+
+export const routeToPath = (route: typeof ApplicationRoute.Type) => {
+  if (ApplicationRoute.guards.Issue(route)) {
+    return issueRouter(route)
+  }
+
+  if (ApplicationRoute.guards.NotFound(route)) {
+    return route.path
+  }
+
+  return pageRouteToPath(route)
+}
 
 export const urlToApplicationRoute = Route.parseUrlWithFallback(
   Route.oneOf(issueRouter, pageParser),
   ApplicationRoute.NotFound,
 )
 
-export const pageRoute = (route: typeof ApplicationRoute.Type) => {
-  if (!ApplicationRoute.guards.Issue(route)) {
-    return route
-  }
-
-  return pipe(
-    Option.fromNullishOr(route.returnTo),
-    Option.filter(path => path.startsWith('/') && !path.startsWith('//')),
-    Option.flatMap(path => Url.fromString(`https://workspace.invalid${path}`)),
-    Option.map(urlToPageRoute),
-    Option.filter(route => !ApplicationRoute.guards.NotFound(route)),
-    Option.getOrElse(() =>
-      ApplicationRoute.Issues({ filters: defaultIssueFilters }),
-    ),
-  )
-}
+export const routeForPageContent = (route: typeof ApplicationRoute.Type) =>
+  ApplicationRoute.guards.Issue(route)
+    ? (route.returnTo ??
+      ApplicationRoute.Issues({ filters: defaultIssueFilters }))
+    : route
