@@ -12,19 +12,37 @@ Preview integration remains on `codex/layers-and-submodels`; Foldkit `main`
 was not changed by this release. The preparation sections below retain their
 original status, source pins and publication holds as historical evidence.
 
+## Current Blocks + Effect Layers release scope
+
+The next preview is a stabilization release. Expect one or two further previews
+depending on feedback before considering the merge to main. Keep this cycle
+focused on existing Block and Layer contracts, adoption, diagnostics and
+regressions. General feature proposals do not automatically join its scope.
+
+- [ ] Verify the integrated, approved Block and Layer changes, including the
+      Definition-owned map Binding API and mapped-child initialization helpers.
+      Reconcile active migration guidance with the actual public surface.
+- [x] Close out feedback specifically about Blocks + Effect Layers using the
+      existing implementation and assessment evidence. An open issue or PR is
+      not evidence that its fix is missing. General UI, Query and broader plugin
+      proposals are outside this release scope. The [October 27 reconciliation](stabilization-feedback-20261027.md)
+      covers all preview reports, related contribution discussions and the latest
+      plugin question. Diagnostic/performance limitations and unimplemented
+      proposals remain explicit; this is not a claim that every request shipped.
+- [ ] Run integrated source and emitted-declaration checks, registration and
+      lifecycle coverage, unchanged compiler fixtures and representative editor
+      workflows. Check runtime performance for regressions in the release work.
+- [ ] Prepare packed-package and Coverchart acceptance, matching Website and
+      PR #1655 guidance, and final independent/Daybreak review. Keep publication
+      held for the user's approval.
+
 ## Followups after the published preview
 
 - [x] Simplify Workspace's generic Listbox option type and replace its `satisfies`
       return check with an explicit `Listbox.ViewInputs` return type. Existing
       accepted/rejected type fixtures, affected Scenes, source checking and lint
-      pass. Investigate the runtime Value mismatch and open
-      [#1809](https://github.com/foldkit/foldkit/issues/1809) with an executed,
-      strictly typechecked reproducer and the Combobox Schema-based precedent.
-      Extend the assessment to RadioGroup, Tabs and Menu after reproducing the
-      same invalid selection admission in each. Assess native Select separately;
-      it exposes plain strings without generic refinement. The issue separates
-      string Value contract repair from non-string selection design; no framework
-      API change or removal of boundary adapters is claimed.
+      pass. The separate selection-contract investigation is tracked in the
+      general backlog below.
 
 - [x] Audit naming throughout Workspace production code and tests. Align Step
       suffixes, Listbox Binding names, Option selectors, booleans, revision values,
@@ -84,6 +102,17 @@ original status, source pins and publication holds as historical evidence.
       snapshot and its immutable deployment are unchanged. The representation using
       nested return Routes introduced here is superseded by the page/panel factoring
       above.
+
+## General backlog outside the Blocks + Effect Layers release
+
+- [x] Investigate selection-contract mismatches and open
+      [#1809](https://github.com/foldkit/foldkit/issues/1809) with executed,
+      strictly typechecked reproducers for Listbox, RadioGroup, Tabs and Menu,
+      plus the Combobox Schema-based precedent. Assess native Select separately;
+      it exposes plain strings without generic refinement. The issue separates
+      string Value contract repair from non-string selection design. No framework
+      API change or removal of boundary adapters is claimed. Implementing this
+      general UI proposal is not a requirement for the Blocks + Layers preview.
 
 ## Publication completion, October 26
 

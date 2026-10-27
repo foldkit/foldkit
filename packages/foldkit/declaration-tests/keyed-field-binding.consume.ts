@@ -30,8 +30,8 @@ import {
   foldEntry,
   foldRoom,
   foldWrappedRow,
-  initialParentModel,
   initKeyedParent,
+  initialParentModel,
   outEntriesInspection,
 } from './keyed-field-binding.accepted.js'
 

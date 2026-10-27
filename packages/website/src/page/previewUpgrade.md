@@ -6,6 +6,7 @@ This guide covers upgrades from the Block previews listed below to the candidate
 
 | Installed canary source suffix                    | Upgrade path                                                                                                                                                                        |
 | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `f3be22cfeefe`                                    | [Upgrade from f3be22cfeefe](#upgrade-from-f3be22cfeefe). Keep the existing Block assembly and update APIs.                                                                          |
 | `1f6776fa7ece`                                    | [Upgrade from 1f6776fa7ece](#upgrade-from-1f6776fa7ece). The preparation, assembly, and Program APIs already match.                                                                 |
 | `1fbeaffe6563`                                    | [Upgrade from 1fbeaffe6563](#upgrade-from-1fbeaffe6563).                                                                                                                            |
 | `c701daa80af1`, `396b19976386`, or `bfd880b1e6ca` | Follow the complete guide, including the application boundary, Step composition, and UI call-site changes. These three snapshots share the same application API for this migration. |
@@ -31,6 +32,16 @@ On an uploaded integration preview, the banner identifies the verified release a
 Do not combine candidate packages with packages from the previous preview. Internal package dependencies are tested as one commit-addressed set.
 
 If the project enforces pnpm's `minimumReleaseAge`, a newly uploaded preview may be too recent to install. Preserve that policy and add only the exact `name@version` entries from the verified manifest to `minimumReleaseAgeExclude`. Do not disable the age check globally.
+
+## Upgrade from f3be22cfeefe
+
+The source snapshot is `f3be22cfeefed437164ad614d08b16d9000e0703`. It already includes checked `Block.assemble(prepare)` exports, record-only `makeUpdate`, focused Step producer callbacks, and aggregate ManagedResource Layers. Keep those APIs and the existing child graph.
+
+After installing one coherent target, replace standalone `makeMapBinding` calls with the [parent Definition method](#move-map-bindings-to-their-parent-definition). The `foldkit/mapBinding` import is removed. Applications without map Bindings need no API migration for this change.
+
+For retained children stored directly in Record or HashMap fields, optionally use [makeInitIfMissingStep](/core/init-and-flags#dynamic-storage-helpers) to preserve an existing child or initialize a missing one with its Commands. [Route.parsePathWithFallback](/core/routing-and-navigation#parse-relative-paths) is also available for decoding origin-relative paths; it does not require changing existing Routes.
+
+Run [the upgrade checks](#verify-the-upgrade), including public declaration output where applicable. The older snapshot sections below describe migrations already present in `f3be22cfeefe`.
 
 ## Upgrade from 1f6776fa7ece
 

@@ -16,6 +16,8 @@ import {
   makeMapBinding,
 } from './map-binding-method.accepted.js'
 
+void standaloneMapBinding
+
 // @ts-expect-error A contextful child requires its generated delivery context.
 makeMapBinding(ChildBlock, { field: 'children' })
 makeMapBinding(ChildBlock, {

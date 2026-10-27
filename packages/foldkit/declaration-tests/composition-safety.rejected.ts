@@ -15,8 +15,8 @@ import {
   RestContextBlock,
   combinedMixedConnectedStep,
   deferredMixedConnectedStep,
-  initialParentModel,
   initPlainStep,
+  initialParentModel,
   mixedConnectedSteps,
 } from './composition-safety.accepted.js'
 

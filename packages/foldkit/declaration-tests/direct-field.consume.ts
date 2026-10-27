@@ -23,8 +23,8 @@ import {
   composition,
   foldOptional,
   generatedUpdate,
-  initial,
   init,
+  initial,
   setCallableCount,
   setOptionalCount,
 } from './direct-field.accepted.js'

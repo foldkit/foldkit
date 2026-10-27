@@ -38,6 +38,7 @@ type ExpectedMessage = Readonly<{
   message: typeof ChildBlock.Message.Type
 }>
 type IncomingMessage<Binding> =
+  // oxlint-disable-next-line typescript/no-explicit-any -- Wildcards isolate the exact generated Message asserted below.
   Binding extends Block.BindingDeliveryEvidence<any, infer Message, any>
     ? Message
     : never
