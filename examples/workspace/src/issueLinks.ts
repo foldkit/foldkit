@@ -2,21 +2,40 @@ import { Record } from 'effect'
 
 import type { Issue, IssueFilters } from './domain'
 import type { Model } from './model'
-import { routeToPath, withIssue, withRouteFilters } from './route'
+import {
+  isPageRoute,
+  issueRouter,
+  routeToPath,
+  withIssuePanel,
+  withRouteFilters,
+} from './route'
 import { appliedIssueFilters } from './selection'
 
-export const issueHref = (model: typeof Model.Type, issueId: string) =>
-  routeToPath(
-    withIssue(
-      withRouteFilters(model.route, appliedIssueFilters(model)),
+export const issueHref = (model: typeof Model.Type, issueId: string) => {
+  const { route } = model
+
+  if (!isPageRoute(route)) {
+    return issueRouter({ issueId })
+  }
+
+  return routeToPath(
+    withIssuePanel(
+      withRouteFilters(route, appliedIssueFilters(model)),
       issueId,
     ),
   )
+}
 
 export const issueFiltersHref = (
   model: typeof Model.Type,
   filters: typeof IssueFilters.Type,
-) => routeToPath(withRouteFilters(model.route, filters))
+) => {
+  const { route } = model
+
+  return isPageRoute(route)
+    ? routeToPath(withRouteFilters(route, filters))
+    : routeToPath(route)
+}
 
 export const issueHrefs = (
   model: typeof Model.Type,

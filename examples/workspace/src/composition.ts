@@ -32,10 +32,13 @@ import { IssueMoveState } from './model'
 import { NotificationCenterBlock } from './notifications'
 import { ProjectSettingsBlock } from './projectSettings'
 import {
+  ApplicationRoute,
+  isPageRoute,
+  issuesRouter,
   maybeProjectId,
   projectRouter,
   routeToPath,
-  withoutIssue,
+  withoutIssuePanel,
 } from './route'
 import { appliedIssueFilters } from './selection'
 
@@ -159,11 +162,21 @@ const foldIssueDetailOutMessage = ApplicationDefinition.makeOutMessageFold(
       ]),
     ObservedIssue: ({ issue }) => applyIssueRevisionStep(issue),
     Closed: () =>
-      makeCommandsStep(model => [
-        NavigateInternal({
-          url: routeToPath(withoutIssue(model.route)),
-        }),
-      ]),
+      makeCommandsStep(model => {
+        const { route } = model
+
+        if (ApplicationRoute.guards.Issue(route)) {
+          return [NavigateInternal({ url: issuesRouter({}) })]
+        }
+
+        if (!isPageRoute(route)) {
+          return []
+        }
+
+        return [
+          NavigateInternal({ url: routeToPath(withoutIssuePanel(route)) }),
+        ]
+      }),
   },
 )
 

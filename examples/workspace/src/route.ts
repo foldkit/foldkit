@@ -45,6 +45,20 @@ export const ApplicationRoute = defineRouteUnion({
   NotFound: { path: Schema.String },
 })
 
+export const PageRoute = ApplicationRoute.subset([
+  'Issues',
+  'MyIssues',
+  'Project',
+  'ProjectOverview',
+  'ProjectSettings',
+  'Board',
+  'People',
+  'Settings',
+  'SavedView',
+])
+
+export const isPageRoute = Schema.is(PageRoute)
+
 const FilterQueryParams = Schema.Struct({
   search: Schema.optional(Schema.String),
   status: Schema.optional(Schema.String),
@@ -221,7 +235,7 @@ export const routeFilters = (route: typeof ApplicationRoute.Type) =>
   )
 
 export const withRouteFilters = (
-  route: typeof ApplicationRoute.Type,
+  route: typeof PageRoute.Type,
   filters: typeof IssueFilters.Type,
 ) => {
   if (
@@ -278,26 +292,12 @@ export const maybeIssueId = (route: typeof ApplicationRoute.Type) =>
     ? Option.none()
     : Option.fromNullishOr(route.issueId)
 
-export const withIssue = (
-  route: typeof ApplicationRoute.Type,
+export const withIssuePanel = (
+  route: typeof PageRoute.Type,
   issueId: string,
-) => {
-  if (ApplicationRoute.guards.NotFound(route)) {
-    return ApplicationRoute.Issues({ issueId })
-  }
+) => ({ ...route, issueId })
 
-  return { ...route, issueId }
-}
-
-export const withoutIssue = (route: typeof ApplicationRoute.Type) => {
-  if (ApplicationRoute.guards.Issue(route)) {
-    return ApplicationRoute.Issues({ filters: defaultIssueFilters })
-  }
-
-  if (ApplicationRoute.guards.NotFound(route)) {
-    return route
-  }
-
+export const withoutIssuePanel = (route: typeof PageRoute.Type) => {
   const { issueId: _issueId, ...pageRoute } = route
 
   return pageRoute

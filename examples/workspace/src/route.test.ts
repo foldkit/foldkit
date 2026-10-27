@@ -5,6 +5,7 @@ import { describe, expect, test } from 'vitest'
 import { IssueFilters } from './domain'
 import {
   ApplicationRoute,
+  PageRoute,
   boardRouter,
   defaultIssueFilters,
   issueRouter,
@@ -16,9 +17,9 @@ import {
   routeToPath,
   savedViewRouter,
   urlToApplicationRoute,
-  withIssue,
+  withIssuePanel,
   withRouteFilters,
-  withoutIssue,
+  withoutIssuePanel,
 } from './route'
 
 const url = (path: string) =>
@@ -146,15 +147,15 @@ describe('issue panels', () => {
 
   test('opens and closes a Board panel without changing the page', () => {
     const board = ApplicationRoute.Board({ projectId: 'platform' })
-    const opened = withIssue(board, 'issue-101')
+    const opened = withIssuePanel(board, 'issue-101')
 
     expect(opened).toEqual(
       ApplicationRoute.Board({ projectId: 'platform', issueId: 'issue-101' }),
     )
     expect(routeToPath(opened)).toBe('/projects/platform/board?issue=issue-101')
     expect(urlToApplicationRoute(url(routeToPath(opened)))).toEqual(opened)
-    expect(withoutIssue(opened)).toEqual(board)
-    expect(routeToPath(withoutIssue(opened))).toBe(
+    expect(withoutIssuePanel(opened)).toEqual(board)
+    expect(routeToPath(withoutIssuePanel(opened))).toBe(
       boardRouter({ projectId: 'platform' }),
     )
   })
@@ -165,7 +166,7 @@ describe('issue panels', () => {
       filters: filtered,
       issueId: 'issue-101',
     })
-    const switched = withIssue(route, 'issue-102')
+    const switched = withIssuePanel(route, 'issue-102')
 
     expect(switched).toEqual(
       ApplicationRoute.SavedView({
@@ -174,7 +175,7 @@ describe('issue panels', () => {
         issueId: 'issue-102',
       }),
     )
-    expect(withoutIssue(switched)).toEqual(
+    expect(withoutIssuePanel(switched)).toEqual(
       ApplicationRoute.SavedView({ viewId: 'mine', filters: filtered }),
     )
     expect(withRouteFilters(switched, defaultIssueFilters)).toEqual(
@@ -189,27 +190,21 @@ describe('issue panels', () => {
     )
   })
 
-  test('keeps standalone issue links and closes them to All issues', () => {
+  test('keeps standalone issue links', () => {
     const path = issueRouter({ issueId: 'issue-101' })
     const route = urlToApplicationRoute(url(path))
 
     expect(path).toBe('/issues/issue-101')
     expect(route).toEqual(ApplicationRoute.Issue({ issueId: 'issue-101' }))
     expect(maybeIssueId(route)).toEqual(Option.some('issue-101'))
-    expect(routeToPath(withoutIssue(route))).toBe('/')
-    expect(maybeIssueId(withoutIssue(route))).toEqual(Option.none())
   })
 
-  test('opens from an unknown page and leaves an unknown page unchanged on close', () => {
-    const route = ApplicationRoute.NotFound({ path: '/unknown' })
+  test('restricts panels to page Routes', () => {
+    const isPage = Schema.is(PageRoute)
 
-    expect(withIssue(route, 'issue-101')).toEqual(
-      ApplicationRoute.Issues({ issueId: 'issue-101' }),
-    )
-    expect(withoutIssue(route)).toBe(route)
-    expect(
-      withIssue(ApplicationRoute.Issue({ issueId: 'issue-101' }), 'issue-102'),
-    ).toEqual(ApplicationRoute.Issue({ issueId: 'issue-102' }))
+    expect(isPage(ApplicationRoute.Board({ projectId: 'platform' }))).toBe(true)
+    expect(isPage(ApplicationRoute.Issue({ issueId: 'issue-101' }))).toBe(false)
+    expect(isPage(ApplicationRoute.NotFound({ path: '/unknown' }))).toBe(false)
   })
 
   test('stores only the selected issue identity in the Route Schema', () => {

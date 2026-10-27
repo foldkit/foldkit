@@ -68,8 +68,7 @@ import {
   projectRouter,
   routeToPath,
   savedViewRouter,
-  withIssue,
-  withoutIssue,
+  withIssuePanel,
 } from './route'
 import {
   appliedIssueFilters,
@@ -150,12 +149,15 @@ describe('workspace navigation', () => {
       message(Message.ChangedUrl({ url: url(projectPath) })),
       message(
         Message.ChangedUrl({
-          url: url(routeToPath(withIssue(projectRoute, issueB.id))),
+          url: url(routeToPath(withIssuePanel(projectRoute, issueB.id))),
         }),
       ),
       model(model => {
-        expect(withoutIssue(model.route)).toEqual(
-          ApplicationRoute.Project({ projectId: issueB.projectId }),
+        expect(model.route).toEqual(
+          ApplicationRoute.Project({
+            projectId: issueB.projectId,
+            issueId: issueB.id,
+          }),
         )
         expect(detailModel(model).issueId).toBe(issueB.id)
       }),
@@ -166,7 +168,7 @@ describe('workspace navigation', () => {
     const issueOpen = update(
       projectModel,
       Message.ChangedUrl({
-        url: url(routeToPath(withIssue(projectRoute, issueB.id))),
+        url: url(routeToPath(withIssuePanel(projectRoute, issueB.id))),
       }),
     )
 
@@ -1211,10 +1213,12 @@ describe('Application child policies', () => {
       viewId: savedView.id,
       filters: changedFilters,
     })
-    const issuePath = routeToPath(withIssue(savedViewRoute, 'issue-102'))
+    const issuePath = routeToPath(withIssuePanel(savedViewRoute, 'issue-102'))
     const issuesRoute = ApplicationRoute.Issues({ filters: changedFilters })
     const issuesPath = issuesRouter({ filters: changedFilters })
-    const repairedIssuePath = routeToPath(withIssue(issuesRoute, 'issue-102'))
+    const repairedIssuePath = routeToPath(
+      withIssuePanel(issuesRoute, 'issue-102'),
+    )
     const initial = modifyFields(loadedModel(issuePath), {
       savedViews: () => [savedView],
       nextSavedViewId: () => 2,
@@ -1233,9 +1237,6 @@ describe('Application child policies', () => {
             filters: changedFilters,
             issueId: 'issue-102',
           }),
-        )
-        expect(withoutIssue(model.route)).toEqual(
-          ApplicationRoute.Issues({ filters: changedFilters }),
         )
         expect(appliedIssueFilters(model)).toEqual(changedFilters)
       }),
