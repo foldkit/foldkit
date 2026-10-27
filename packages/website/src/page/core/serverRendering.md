@@ -385,7 +385,9 @@ The [SSG example](https://github.com/foldkit/foldkit/tree/main/examples/ssg) is 
 
 ### Static output and build manifest
 
-A deployed SSG build is a directory of static files. Any static host or CDN can serve it as is. The hydration handoff already lives in the HTML.
+A deployed SSG build is a directory of static files. Serve it through a static host or CDN. The hydration handoff already lives in the HTML.
+
+Generated pages use directory indexes: `/about` is written to `about/index.html`. Foldkit's Vite preview serves that document at both `/about` and `/about/`. A deployed static host owns equivalent directory-index resolution or trailing-slash redirects. Check the URLs used by the generated navigation with JavaScript disabled so hydration cannot hide incorrect initial HTML.
 
 A build that `@foldkit/vite-plugin` owns writes `foldkit.build.json` beside the server bundle. It names the two output directories, the server entry, and every generated path. An SSR host can serve those files and send requests that match no file to the server. A static-only SSG host serves the generated files and leaves other paths as misses.
 

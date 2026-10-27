@@ -1,17 +1,20 @@
 import { Array, Effect, Predicate } from 'effect'
 import * as Server from 'foldkit/experimental/server'
-import { readFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
+import { readFile, stat } from 'node:fs/promises'
 import type { ServerResponse } from 'node:http'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { Readable } from 'node:stream'
 import type {
   Connect,
   DevEnvironment,
   Plugin,
+  PreviewServer,
   ProxyOptions,
   ViteDevServer,
 } from 'vite'
 
+import { renderTargetFor } from './build.js'
 import { buildIdForCommand } from './buildToken.js'
 
 /** Options for serving server-rendered pages from the Vite dev server. */
@@ -796,6 +799,57 @@ const renderMiddleware =
       })
   }
 
+const prerenderedPageMiddleware = (
+  server: PreviewServer,
+): Connect.NextHandleFunction => {
+  const clientDirectory = resolve(
+    server.config.root,
+    server.config.environments['client']?.build.outDir ??
+      server.config.build.outDir,
+  )
+  const basePath = new URL(server.config.base, 'http://localhost').pathname
+
+  return async (request, _response, next) => {
+    const [path = '', ...query] = (request.url ?? '').split('?')
+    const { accept } = request.headers
+
+    if (
+      (request.method !== 'GET' && request.method !== 'HEAD') ||
+      isProxyRequest(request, server.config.preview.proxy) ||
+      !path.startsWith(basePath) ||
+      path.endsWith('/') ||
+      (accept !== undefined &&
+        accept !== '' &&
+        !accept.includes('text/html') &&
+        !accept.includes('*/*'))
+    ) {
+      next()
+      return
+    }
+
+    try {
+      const { file } = renderTargetFor(
+        clientDirectory,
+        path.slice(basePath.length - 1),
+        'http://localhost',
+      )
+
+      if (existsSync(`${dirname(file)}.html`) || !(await stat(file)).isFile()) {
+        next()
+        return
+      }
+
+      const search = Array.isArrayNonEmpty(query) ? `?${query.join('?')}` : ''
+      request.url = `${path}/index.html${search}`
+    } catch {
+      next()
+      return
+    }
+
+    next()
+  }
+}
+
 /**
  * Serves server-rendered pages from the Vite dev server.
  *
@@ -807,6 +861,10 @@ const renderMiddleware =
  * or the server entry can resolve it. Vite's CORS option applies only to
  * Vite-owned responses, while the server entry owns CORS for application
  * responses. Server entry edits take effect without a restart.
+ *
+ * During `vite preview`, directory-index pages also resolve at their
+ * extensionless paths before Vite's HTML fallback. Vite still serves the
+ * files; preview never executes the server entry.
  */
 export const foldkitSsr = (options: FoldkitSsrOptions): Plugin => {
   let isDevelopmentHost = false
@@ -869,6 +927,11 @@ export const foldkitSsr = (options: FoldkitSsrOptions): Plugin => {
                 'import.meta.env.FOLDKIT_BUILD_ID': JSON.stringify(buildId),
               },
             }),
+      }
+    },
+    configurePreviewServer: server => {
+      if (server.config.appType !== 'custom') {
+        server.middlewares.use(prerenderedPageMiddleware(server))
       }
     },
     configureServer: server => {
