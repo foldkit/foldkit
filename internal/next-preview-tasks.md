@@ -22,7 +22,7 @@ regressions. General feature proposals do not automatically join its scope.
 - [x] Verify the integrated, approved Block and Layer changes, including the
       Definition-owned map Binding API and mapped-child initialization helpers.
       Reconcile active migration guidance with the actual public surface.
-      [Current stabilization evidence](preview-stabilization-20261027.md).
+      [Current stabilization evidence](preview-stabilization-final-20261027.md).
 - [x] Close out feedback specifically about Blocks + Effect Layers using the
       existing implementation and assessment evidence. An open issue or PR is
       not evidence that its fix is missing. General UI, Query and broader plugin
@@ -33,9 +33,12 @@ regressions. General feature proposals do not automatically join its scope.
 - [x] Run integrated source and emitted-declaration checks, registration and
       lifecycle coverage, unchanged compiler fixtures and representative editor
       workflows. Check runtime performance for regressions in the release work.
-      All 15 integrated gates, checker-order controls, 12 native runs and 36
-      Lustre samples pass. The existing reviewed compiler-ceiling revision and
-      remaining cold-root/runtime limits stay explicit in the report.
+      All 17 final integrated gates, 12 native sessions and 36 Lustre samples
+      pass at93c. The earlier checker-order control retains its ae2 pin;
+      final native/Lustre evidence is recorded separately. No material new
+      regression versus published is established; the main runtime gap remains.
+      The reviewed compiler-ceiling revision and remaining cold-root/runtime
+      limits stay explicit in the report.
 - [x] Prepare packed-package and Coverchart acceptance, matching Website and
       PR #1655 guidance, and final independent/Daybreak review. Keep publication
       held for the user's approval.
@@ -43,11 +46,13 @@ regressions. General feature proposals do not automatically join its scope.
       browser cases pass. Independent source review and the exact Daybreak
       addendum pass; both Low input-boundary findings are closed. Registry and
       immutable deployment verification remain post-approval gates.
-- [ ] Assess new preview report #1810, found at the final 16:03 UTC refresh:
+- [x] Assess new preview report #1810, found at the final 16:03 UTC refresh:
       diagnostic priority, paired local/connected and deferred-Step guidance,
-      and the actual DevTools snapshot-preservation failure path. Refresh
-      affected exact-source verification before final sign-off. Existing ae2
-      evidence remains a checkpoint, not proof of subsequent repairs.
+      and the actual DevTools snapshot-preservation failure path. Paired examples
+      and runtime-local invalidation/recovery are implemented. Missing-handler
+      diagnostic priority remains a disclosed limitation. All affected final
+      gates, nine-package acceptance and exact-source review pass at93c.
+      Existing ae2 evidence remains a separate checkpoint.
 
 ## Followups after the published preview
 

@@ -2,11 +2,12 @@
 
 ## Current stabilization preparation, October 27
 
-The [stabilization report](preview-stabilization-20261027.md) owns the current
-candidate, feedback dispositions, verification and remaining limitations.
-Its implementation pin is `ae2eba84283939f5991a1b0c35c32ba351f9efdc`.
-The final feedback refresh found #1810; its followup holds sign-off beyond this
-verified checkpoint.
+The [final stabilization summary](preview-stabilization-final-20261027.md) owns
+the current candidate, feedback dispositions, verification and remaining
+limitations. Its implementation pin is
+`93c49c77b6d25d9f0aa8213135bb629c1a3e1ff4`. The late #1810 report is assessed:
+preservation recovery and paired troubleshooting examples are implemented;
+missing-handler diagnostic priority remains a disclosed limitation.
 Publication and release-branch integration remain held for approval. The
 published snapshot below remains current; older preparation sections retain
 their historical source pins and states.

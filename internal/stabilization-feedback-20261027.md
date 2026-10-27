@@ -1,13 +1,37 @@
 # Blocks + Effect Layers stabilization feedback
 
-The [final stabilization report](preview-stabilization-20261027.md) records
-subsequent source repairs and verification at `ae2eba842839`. This inventory
-retains its original assessment pin. A fresh 15:43 UTC recheck found no later
-#1655/#1737 comments or repository issues/PRs updated since 15:00 UTC.
-The subsequent 16:03 UTC refresh found new preview report
-[#1810](https://github.com/foldkit/foldkit/issues/1810), created at 15:48:10 UTC
-with no comments. Its diagnostics and DevTools snapshot-preservation claims
-are under assessment; the original inventory below retains its earlier scope.
+The [final stabilization summary](preview-stabilization-final-20261027.md)
+records subsequent source repairs and verification at `93c49c77b6d2`.
+The original inventory below retains its assessment pin. Later bounded refreshes
+found #1810 and then no further updated repository issues or PRs through
+16:53 UTC. The [retained refresh](stabilization-final-20261027/feedback-refresh.json)
+also reads #1810's unchanged body and zero comments back.
+
+## Late report #1810
+
+[#1810](https://github.com/foldkit/foldkit/issues/1810) was posted at 15:48 UTC,
+after the original exhaustive inventory. All four points have dispositions:
+
+1. Incomplete-record diagnostic priority is reproduced and remains a compiler
+   presentation limitation. Completeness-first troubleshooting is added;
+   existing rejection and registration checks remain intact.
+2. Mixed local/connected branches have paired checked before/after snippets
+   beside the dedicated diagnostic. Unrelated plain-result handlers remain valid.
+3. Applied/deferred Step composition has paired checked examples explaining
+   when the registered Composition supplies graph evidence.
+4. Date/HashMap values inside opaque inspected snapshots reproduce the actual
+   preservation failure through Program/Runtime callbacks. Failure now warns
+   once per episode and invalidates only that Runtime's stale preserved entry,
+   preserving its live Model. Valid subsequent snapshots recover. The plugin
+   queue and declared rich-value restoration are tested. The complete original
+   browser/HMR sequence is not reproduced; arbitrary opaque values are not
+   promised lossless preservation. Foldkit and the Vite plugin must update
+   together for invalidation.
+
+[Exact source, emitted, runtime and snippet evidence](stabilization-final-20261027/issue1810.json).
+All 17 final integrated gates and the fresh nine-package rehearsal pass at the
+new pin, including 33/33 Workspace browser cases. This does not relabel the
+earlier inventory's implementation or close the remaining proposals below.
 
 ## Result and scope
 

@@ -1,0 +1,4974 @@
+{
+  "formatVersion": 1,
+  "scope": "Fresh same-batch latest-published/candidate native requests and main/published/candidate Lustre runbook. No LSP response bodies.",
+  "pinsAndArchiveHashes": [
+    {
+      "label": "main",
+      "sourceCommit": "b702a5efbb74bebc056b798b414ddb923a82fbd5",
+      "archiveSha256": "f02aee3388969b6db5de9740a88605db1689f49e9fbce104cc77a630849af2a5",
+      "lockfileSha256": "cfd315085703847ab0fac3d36c1960ad74a2123b7864768a773054c028d983ce",
+      "driverOriginalSha256": null,
+      "driverUsedSha256": null
+    },
+    {
+      "label": "published",
+      "sourceCommit": "f3be22cfeefed437164ad614d08b16d9000e0703",
+      "archiveSha256": "83963fe57a7ce20c0a6ff9ac6b3636cc7503ad8920e237ffddd2fbd5b1b5364f",
+      "lockfileSha256": "b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47",
+      "driverOriginalSha256": "2ea2ca9dfb900574807bf97d6099164f2658d615d9cbe96ec56c105b8fee8c56",
+      "driverUsedSha256": "63e3f1ab2ed7c500e36c5b15feacb195e259f46cf0e3f76dce9173004997cf43"
+    },
+    {
+      "label": "candidate",
+      "sourceCommit": "93c49c77b6d25d9f0aa8213135bb629c1a3e1ff4",
+      "archiveSha256": "2e9ab3a0d64dd28614bb3f63d189decff13ab91350bdbf53e692e409ad258876",
+      "lockfileSha256": "b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47",
+      "driverOriginalSha256": "63e3f1ab2ed7c500e36c5b15feacb195e259f46cf0e3f76dce9173004997cf43",
+      "driverUsedSha256": "63e3f1ab2ed7c500e36c5b15feacb195e259f46cf0e3f76dce9173004997cf43"
+    }
+  ],
+  "native": {
+    "order": [
+      "published1",
+      "candidate1",
+      "candidate2",
+      "published2",
+      "published3",
+      "candidate3"
+    ],
+    "runsPerSidePerScenario": 3,
+    "compiler": "Official native TypeScript 7.1.0-beta",
+    "rssMethod": "ps -axo pid=,ppid=,rss=,comm=, native direct children, every250ms; short peaks may be missed",
+    "rssSafetyCapMiB": 4096,
+    "inputAndWorkloadHashesStableAcrossRuns": true,
+    "runs": [
+      {
+        "side": "published",
+        "scenario": "workspace",
+        "run": 1,
+        "metadata": {
+          "formatVersion": 5,
+          "measuredAt": "2026-10-27T16:45:23.020Z",
+          "sourceCommit": "f3be22cfeefed437164ad614d08b16d9000e0703",
+          "sourceWorkloadDirty": false,
+          "workloadSha256": "4bc4d961a37257fac08a7ab4b71130452775470a6108f998fd1383cff834dce0",
+          "lockfileSha256": "b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47",
+          "benchmarkScriptSha256": "63e3f1ab2ed7c500e36c5b15feacb195e259f46cf0e3f76dce9173004997cf43",
+          "compilerPackageVersion": "7.1.0-beta",
+          "nativeCompilerPackage": "@typescript/typescript-darwin-arm64",
+          "server": {
+            "name": "typescript",
+            "version": "7.1.0-beta"
+          },
+          "nodeVersion": "v24.22.1",
+          "platform": "darwin",
+          "architecture": "arm64",
+          "runs": 1,
+          "scenario": "workspace",
+          "timeoutMs": 60000,
+          "completionSnippetSupport": true,
+          "documentChangeMode": "Incremental ranges for workspace hover, completion and title diagnostics"
+        },
+        "allSemanticValidationsPassed": true,
+        "sourceAndDeclarationsPreserved": true,
+        "inputDigest": "09424f2c1868b47b329df1534e29f358a20901f4f8d5db9c3958fb749742612c",
+        "maximumSampledRssKiB": 421824,
+        "memorySampleCount": 7,
+        "measurements": [
+          {
+            "label": "workspace.bindingHover.first",
+            "latencyMs": 414.377,
+            "resultBytes": 1051,
+            "resultSha256": "2a3973ed83865bc58121a33ddbdfa5ca853eb1cfe84d631b9bfbb7cc89c4f785",
+            "documentVersion": 1,
+            "sourceSha256": "61928d7d4e66f01c3b04fc2a10d37cce6a92ca97b73defbfd89f9cf14f3f264b"
+          },
+          {
+            "label": "workspace.bindingHover.warm",
+            "latencyMs": 0.683,
+            "resultBytes": 1051,
+            "resultSha256": "2a3973ed83865bc58121a33ddbdfa5ca853eb1cfe84d631b9bfbb7cc89c4f785",
+            "documentVersion": 1,
+            "sourceSha256": "61928d7d4e66f01c3b04fc2a10d37cce6a92ca97b73defbfd89f9cf14f3f264b"
+          },
+          {
+            "label": "workspace.bindingHover.postWhitespace",
+            "latencyMs": 269.068,
+            "resultBytes": 1051,
+            "resultSha256": "2a3973ed83865bc58121a33ddbdfa5ca853eb1cfe84d631b9bfbb7cc89c4f785",
+            "documentVersion": 2,
+            "sourceSha256": "12305585378c33e2a06ec9fdb64a722b51310288816260a4ca9ef7ba628d96ff"
+          },
+          {
+            "label": "workspace.bindingHover.postWhitespaceWarm",
+            "latencyMs": 0.482,
+            "resultBytes": 1051,
+            "resultSha256": "2a3973ed83865bc58121a33ddbdfa5ca853eb1cfe84d631b9bfbb7cc89c4f785",
+            "documentVersion": 2,
+            "sourceSha256": "12305585378c33e2a06ec9fdb64a722b51310288816260a4ca9ef7ba628d96ff"
+          },
+          {
+            "label": "workspace.bindingCompletion.first",
+            "latencyMs": 362.667,
+            "resultCount": 8,
+            "resultBytes": 1938,
+            "resultSha256": "ee4edcc95c0cb5771d4263a4de31a147471d3c78f5a4969e5df9164d9aa5a989",
+            "documentVersion": 1,
+            "sourceSha256": "97119b5ce15af5f0f7fbf3ac331088de9df8a8fc96bfbcccebe1559057c22b44"
+          },
+          {
+            "label": "workspace.bindingCompletion.warm",
+            "latencyMs": 0.434,
+            "resultCount": 8,
+            "resultBytes": 1938,
+            "resultSha256": "ee4edcc95c0cb5771d4263a4de31a147471d3c78f5a4969e5df9164d9aa5a989",
+            "documentVersion": 1,
+            "sourceSha256": "97119b5ce15af5f0f7fbf3ac331088de9df8a8fc96bfbcccebe1559057c22b44"
+          },
+          {
+            "label": "workspace.bindingCompletion.postWhitespace",
+            "latencyMs": 278.414,
+            "resultCount": 8,
+            "resultBytes": 1938,
+            "resultSha256": "ee4edcc95c0cb5771d4263a4de31a147471d3c78f5a4969e5df9164d9aa5a989",
+            "documentVersion": 2,
+            "sourceSha256": "b987d9b4fef104d933e80d59975bab7479d80c5b7c2a9c67fec3e0a915a6491b"
+          },
+          {
+            "label": "workspace.bindingCompletion.postWhitespaceWarm",
+            "latencyMs": 0.397,
+            "resultCount": 8,
+            "resultBytes": 1938,
+            "resultSha256": "ee4edcc95c0cb5771d4263a4de31a147471d3c78f5a4969e5df9164d9aa5a989",
+            "documentVersion": 2,
+            "sourceSha256": "b987d9b4fef104d933e80d59975bab7479d80c5b7c2a9c67fec3e0a915a6491b"
+          },
+          {
+            "label": "workspace.blockCompletion.first",
+            "latencyMs": 160.13,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "8ae6a37232ca00fc519d5bdfacca4e6720f3d6d0cbb2ded42ed586acf559c7f8",
+            "documentVersion": 1,
+            "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+          },
+          {
+            "label": "workspace.blockCompletion.warm",
+            "latencyMs": 0.395,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "8ae6a37232ca00fc519d5bdfacca4e6720f3d6d0cbb2ded42ed586acf559c7f8",
+            "documentVersion": 1,
+            "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+          },
+          {
+            "label": "workspace.blockCompletion.postWhitespace",
+            "latencyMs": 46.47,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "8ae6a37232ca00fc519d5bdfacca4e6720f3d6d0cbb2ded42ed586acf559c7f8",
+            "documentVersion": 2,
+            "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+          },
+          {
+            "label": "workspace.blockCompletion.postWhitespaceWarm",
+            "latencyMs": 0.334,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "8ae6a37232ca00fc519d5bdfacca4e6720f3d6d0cbb2ded42ed586acf559c7f8",
+            "documentVersion": 2,
+            "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+          },
+          {
+            "label": "workspace.diagnostics.clean",
+            "latencyMs": 300.947,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 1,
+            "sourceSha256": "d0eb1f7725952af4e4de15210523f9307c901e767a6cb04ff9eff8105398008d",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "workspace.diagnostics.badTitle",
+            "latencyMs": 207.334,
+            "resultCount": 1,
+            "resultBytes": 286,
+            "resultSha256": "18c8d3a26982335e1653805d27bf4683e2b54a82985d16b35e8cc5c41a596f9d",
+            "documentVersion": 3,
+            "sourceSha256": "1c355a8f79dd0479e4de6db09e1e2f946447649dce2440ba9b94c4c7c361986f",
+            "diagnosticEvidence": {
+              "expected": "TitleError",
+              "errorCount": 1,
+              "code": 2322,
+              "range": {
+                "start": {
+                  "line": 173,
+                  "character": 51
+                },
+                "end": {
+                  "line": 173,
+                  "character": 56
+                }
+              }
+            }
+          },
+          {
+            "label": "workspace.diagnostics.restored",
+            "latencyMs": 190.667,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 4,
+            "sourceSha256": "c20ac9c87a20f824cb731ce7fa34e819aa8ee023dcb25601f9ebfc326290701c",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          }
+        ]
+      },
+      {
+        "side": "published",
+        "scenario": "workspace",
+        "run": 2,
+        "metadata": {
+          "formatVersion": 5,
+          "measuredAt": "2026-10-27T16:45:39.554Z",
+          "sourceCommit": "f3be22cfeefed437164ad614d08b16d9000e0703",
+          "sourceWorkloadDirty": false,
+          "workloadSha256": "4bc4d961a37257fac08a7ab4b71130452775470a6108f998fd1383cff834dce0",
+          "lockfileSha256": "b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47",
+          "benchmarkScriptSha256": "63e3f1ab2ed7c500e36c5b15feacb195e259f46cf0e3f76dce9173004997cf43",
+          "compilerPackageVersion": "7.1.0-beta",
+          "nativeCompilerPackage": "@typescript/typescript-darwin-arm64",
+          "server": {
+            "name": "typescript",
+            "version": "7.1.0-beta"
+          },
+          "nodeVersion": "v24.22.1",
+          "platform": "darwin",
+          "architecture": "arm64",
+          "runs": 1,
+          "scenario": "workspace",
+          "timeoutMs": 60000,
+          "completionSnippetSupport": true,
+          "documentChangeMode": "Incremental ranges for workspace hover, completion and title diagnostics"
+        },
+        "allSemanticValidationsPassed": true,
+        "sourceAndDeclarationsPreserved": true,
+        "inputDigest": "09424f2c1868b47b329df1534e29f358a20901f4f8d5db9c3958fb749742612c",
+        "maximumSampledRssKiB": 407584,
+        "memorySampleCount": 7,
+        "measurements": [
+          {
+            "label": "workspace.bindingHover.first",
+            "latencyMs": 383.467,
+            "resultBytes": 1051,
+            "resultSha256": "2a3973ed83865bc58121a33ddbdfa5ca853eb1cfe84d631b9bfbb7cc89c4f785",
+            "documentVersion": 1,
+            "sourceSha256": "61928d7d4e66f01c3b04fc2a10d37cce6a92ca97b73defbfd89f9cf14f3f264b"
+          },
+          {
+            "label": "workspace.bindingHover.warm",
+            "latencyMs": 0.444,
+            "resultBytes": 1051,
+            "resultSha256": "2a3973ed83865bc58121a33ddbdfa5ca853eb1cfe84d631b9bfbb7cc89c4f785",
+            "documentVersion": 1,
+            "sourceSha256": "61928d7d4e66f01c3b04fc2a10d37cce6a92ca97b73defbfd89f9cf14f3f264b"
+          },
+          {
+            "label": "workspace.bindingHover.postWhitespace",
+            "latencyMs": 286.001,
+            "resultBytes": 1051,
+            "resultSha256": "2a3973ed83865bc58121a33ddbdfa5ca853eb1cfe84d631b9bfbb7cc89c4f785",
+            "documentVersion": 2,
+            "sourceSha256": "12305585378c33e2a06ec9fdb64a722b51310288816260a4ca9ef7ba628d96ff"
+          },
+          {
+            "label": "workspace.bindingHover.postWhitespaceWarm",
+            "latencyMs": 0.516,
+            "resultBytes": 1051,
+            "resultSha256": "2a3973ed83865bc58121a33ddbdfa5ca853eb1cfe84d631b9bfbb7cc89c4f785",
+            "documentVersion": 2,
+            "sourceSha256": "12305585378c33e2a06ec9fdb64a722b51310288816260a4ca9ef7ba628d96ff"
+          },
+          {
+            "label": "workspace.bindingCompletion.first",
+            "latencyMs": 377.789,
+            "resultCount": 8,
+            "resultBytes": 1938,
+            "resultSha256": "ee4edcc95c0cb5771d4263a4de31a147471d3c78f5a4969e5df9164d9aa5a989",
+            "documentVersion": 1,
+            "sourceSha256": "97119b5ce15af5f0f7fbf3ac331088de9df8a8fc96bfbcccebe1559057c22b44"
+          },
+          {
+            "label": "workspace.bindingCompletion.warm",
+            "latencyMs": 0.472,
+            "resultCount": 8,
+            "resultBytes": 1938,
+            "resultSha256": "ee4edcc95c0cb5771d4263a4de31a147471d3c78f5a4969e5df9164d9aa5a989",
+            "documentVersion": 1,
+            "sourceSha256": "97119b5ce15af5f0f7fbf3ac331088de9df8a8fc96bfbcccebe1559057c22b44"
+          },
+          {
+            "label": "workspace.bindingCompletion.postWhitespace",
+            "latencyMs": 264.817,
+            "resultCount": 8,
+            "resultBytes": 1938,
+            "resultSha256": "ee4edcc95c0cb5771d4263a4de31a147471d3c78f5a4969e5df9164d9aa5a989",
+            "documentVersion": 2,
+            "sourceSha256": "b987d9b4fef104d933e80d59975bab7479d80c5b7c2a9c67fec3e0a915a6491b"
+          },
+          {
+            "label": "workspace.bindingCompletion.postWhitespaceWarm",
+            "latencyMs": 0.33,
+            "resultCount": 8,
+            "resultBytes": 1938,
+            "resultSha256": "ee4edcc95c0cb5771d4263a4de31a147471d3c78f5a4969e5df9164d9aa5a989",
+            "documentVersion": 2,
+            "sourceSha256": "b987d9b4fef104d933e80d59975bab7479d80c5b7c2a9c67fec3e0a915a6491b"
+          },
+          {
+            "label": "workspace.blockCompletion.first",
+            "latencyMs": 155.738,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "8ae6a37232ca00fc519d5bdfacca4e6720f3d6d0cbb2ded42ed586acf559c7f8",
+            "documentVersion": 1,
+            "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+          },
+          {
+            "label": "workspace.blockCompletion.warm",
+            "latencyMs": 0.397,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "8ae6a37232ca00fc519d5bdfacca4e6720f3d6d0cbb2ded42ed586acf559c7f8",
+            "documentVersion": 1,
+            "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+          },
+          {
+            "label": "workspace.blockCompletion.postWhitespace",
+            "latencyMs": 47.696,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "8ae6a37232ca00fc519d5bdfacca4e6720f3d6d0cbb2ded42ed586acf559c7f8",
+            "documentVersion": 2,
+            "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+          },
+          {
+            "label": "workspace.blockCompletion.postWhitespaceWarm",
+            "latencyMs": 0.34,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "8ae6a37232ca00fc519d5bdfacca4e6720f3d6d0cbb2ded42ed586acf559c7f8",
+            "documentVersion": 2,
+            "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+          },
+          {
+            "label": "workspace.diagnostics.clean",
+            "latencyMs": 307.064,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 1,
+            "sourceSha256": "d0eb1f7725952af4e4de15210523f9307c901e767a6cb04ff9eff8105398008d",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "workspace.diagnostics.badTitle",
+            "latencyMs": 210.475,
+            "resultCount": 1,
+            "resultBytes": 286,
+            "resultSha256": "18c8d3a26982335e1653805d27bf4683e2b54a82985d16b35e8cc5c41a596f9d",
+            "documentVersion": 3,
+            "sourceSha256": "1c355a8f79dd0479e4de6db09e1e2f946447649dce2440ba9b94c4c7c361986f",
+            "diagnosticEvidence": {
+              "expected": "TitleError",
+              "errorCount": 1,
+              "code": 2322,
+              "range": {
+                "start": {
+                  "line": 173,
+                  "character": 51
+                },
+                "end": {
+                  "line": 173,
+                  "character": 56
+                }
+              }
+            }
+          },
+          {
+            "label": "workspace.diagnostics.restored",
+            "latencyMs": 190.404,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 4,
+            "sourceSha256": "c20ac9c87a20f824cb731ce7fa34e819aa8ee023dcb25601f9ebfc326290701c",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          }
+        ]
+      },
+      {
+        "side": "published",
+        "scenario": "workspace",
+        "run": 3,
+        "metadata": {
+          "formatVersion": 5,
+          "measuredAt": "2026-10-27T16:45:45.048Z",
+          "sourceCommit": "f3be22cfeefed437164ad614d08b16d9000e0703",
+          "sourceWorkloadDirty": false,
+          "workloadSha256": "4bc4d961a37257fac08a7ab4b71130452775470a6108f998fd1383cff834dce0",
+          "lockfileSha256": "b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47",
+          "benchmarkScriptSha256": "63e3f1ab2ed7c500e36c5b15feacb195e259f46cf0e3f76dce9173004997cf43",
+          "compilerPackageVersion": "7.1.0-beta",
+          "nativeCompilerPackage": "@typescript/typescript-darwin-arm64",
+          "server": {
+            "name": "typescript",
+            "version": "7.1.0-beta"
+          },
+          "nodeVersion": "v24.22.1",
+          "platform": "darwin",
+          "architecture": "arm64",
+          "runs": 1,
+          "scenario": "workspace",
+          "timeoutMs": 60000,
+          "completionSnippetSupport": true,
+          "documentChangeMode": "Incremental ranges for workspace hover, completion and title diagnostics"
+        },
+        "allSemanticValidationsPassed": true,
+        "sourceAndDeclarationsPreserved": true,
+        "inputDigest": "09424f2c1868b47b329df1534e29f358a20901f4f8d5db9c3958fb749742612c",
+        "maximumSampledRssKiB": 398048,
+        "memorySampleCount": 5,
+        "measurements": [
+          {
+            "label": "workspace.bindingHover.first",
+            "latencyMs": 392.321,
+            "resultBytes": 1051,
+            "resultSha256": "2a3973ed83865bc58121a33ddbdfa5ca853eb1cfe84d631b9bfbb7cc89c4f785",
+            "documentVersion": 1,
+            "sourceSha256": "61928d7d4e66f01c3b04fc2a10d37cce6a92ca97b73defbfd89f9cf14f3f264b"
+          },
+          {
+            "label": "workspace.bindingHover.warm",
+            "latencyMs": 0.46,
+            "resultBytes": 1051,
+            "resultSha256": "2a3973ed83865bc58121a33ddbdfa5ca853eb1cfe84d631b9bfbb7cc89c4f785",
+            "documentVersion": 1,
+            "sourceSha256": "61928d7d4e66f01c3b04fc2a10d37cce6a92ca97b73defbfd89f9cf14f3f264b"
+          },
+          {
+            "label": "workspace.bindingHover.postWhitespace",
+            "latencyMs": 280.937,
+            "resultBytes": 1051,
+            "resultSha256": "2a3973ed83865bc58121a33ddbdfa5ca853eb1cfe84d631b9bfbb7cc89c4f785",
+            "documentVersion": 2,
+            "sourceSha256": "12305585378c33e2a06ec9fdb64a722b51310288816260a4ca9ef7ba628d96ff"
+          },
+          {
+            "label": "workspace.bindingHover.postWhitespaceWarm",
+            "latencyMs": 0.503,
+            "resultBytes": 1051,
+            "resultSha256": "2a3973ed83865bc58121a33ddbdfa5ca853eb1cfe84d631b9bfbb7cc89c4f785",
+            "documentVersion": 2,
+            "sourceSha256": "12305585378c33e2a06ec9fdb64a722b51310288816260a4ca9ef7ba628d96ff"
+          },
+          {
+            "label": "workspace.bindingCompletion.first",
+            "latencyMs": 379.488,
+            "resultCount": 8,
+            "resultBytes": 1938,
+            "resultSha256": "ee4edcc95c0cb5771d4263a4de31a147471d3c78f5a4969e5df9164d9aa5a989",
+            "documentVersion": 1,
+            "sourceSha256": "97119b5ce15af5f0f7fbf3ac331088de9df8a8fc96bfbcccebe1559057c22b44"
+          },
+          {
+            "label": "workspace.bindingCompletion.warm",
+            "latencyMs": 0.44,
+            "resultCount": 8,
+            "resultBytes": 1938,
+            "resultSha256": "ee4edcc95c0cb5771d4263a4de31a147471d3c78f5a4969e5df9164d9aa5a989",
+            "documentVersion": 1,
+            "sourceSha256": "97119b5ce15af5f0f7fbf3ac331088de9df8a8fc96bfbcccebe1559057c22b44"
+          },
+          {
+            "label": "workspace.bindingCompletion.postWhitespace",
+            "latencyMs": 288.078,
+            "resultCount": 8,
+            "resultBytes": 1938,
+            "resultSha256": "ee4edcc95c0cb5771d4263a4de31a147471d3c78f5a4969e5df9164d9aa5a989",
+            "documentVersion": 2,
+            "sourceSha256": "b987d9b4fef104d933e80d59975bab7479d80c5b7c2a9c67fec3e0a915a6491b"
+          },
+          {
+            "label": "workspace.bindingCompletion.postWhitespaceWarm",
+            "latencyMs": 0.34,
+            "resultCount": 8,
+            "resultBytes": 1938,
+            "resultSha256": "ee4edcc95c0cb5771d4263a4de31a147471d3c78f5a4969e5df9164d9aa5a989",
+            "documentVersion": 2,
+            "sourceSha256": "b987d9b4fef104d933e80d59975bab7479d80c5b7c2a9c67fec3e0a915a6491b"
+          },
+          {
+            "label": "workspace.blockCompletion.first",
+            "latencyMs": 146.378,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "8ae6a37232ca00fc519d5bdfacca4e6720f3d6d0cbb2ded42ed586acf559c7f8",
+            "documentVersion": 1,
+            "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+          },
+          {
+            "label": "workspace.blockCompletion.warm",
+            "latencyMs": 0.379,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "8ae6a37232ca00fc519d5bdfacca4e6720f3d6d0cbb2ded42ed586acf559c7f8",
+            "documentVersion": 1,
+            "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+          },
+          {
+            "label": "workspace.blockCompletion.postWhitespace",
+            "latencyMs": 64.097,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "8ae6a37232ca00fc519d5bdfacca4e6720f3d6d0cbb2ded42ed586acf559c7f8",
+            "documentVersion": 2,
+            "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+          },
+          {
+            "label": "workspace.blockCompletion.postWhitespaceWarm",
+            "latencyMs": 0.374,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "8ae6a37232ca00fc519d5bdfacca4e6720f3d6d0cbb2ded42ed586acf559c7f8",
+            "documentVersion": 2,
+            "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+          },
+          {
+            "label": "workspace.diagnostics.clean",
+            "latencyMs": 316.026,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 1,
+            "sourceSha256": "d0eb1f7725952af4e4de15210523f9307c901e767a6cb04ff9eff8105398008d",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "workspace.diagnostics.badTitle",
+            "latencyMs": 214.572,
+            "resultCount": 1,
+            "resultBytes": 286,
+            "resultSha256": "18c8d3a26982335e1653805d27bf4683e2b54a82985d16b35e8cc5c41a596f9d",
+            "documentVersion": 3,
+            "sourceSha256": "1c355a8f79dd0479e4de6db09e1e2f946447649dce2440ba9b94c4c7c361986f",
+            "diagnosticEvidence": {
+              "expected": "TitleError",
+              "errorCount": 1,
+              "code": 2322,
+              "range": {
+                "start": {
+                  "line": 173,
+                  "character": 51
+                },
+                "end": {
+                  "line": 173,
+                  "character": 56
+                }
+              }
+            }
+          },
+          {
+            "label": "workspace.diagnostics.restored",
+            "latencyMs": 193.23,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 4,
+            "sourceSha256": "c20ac9c87a20f824cb731ce7fa34e819aa8ee023dcb25601f9ebfc326290701c",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          }
+        ]
+      },
+      {
+        "side": "candidate",
+        "scenario": "workspace",
+        "run": 1,
+        "metadata": {
+          "formatVersion": 5,
+          "measuredAt": "2026-10-27T16:45:28.618Z",
+          "sourceCommit": "93c49c77b6d25d9f0aa8213135bb629c1a3e1ff4",
+          "sourceWorkloadDirty": false,
+          "workloadSha256": "a27a52ec0cfcb11a7bc639f12c1067701d5466f5d5037ba68989ba2aa13cdeaf",
+          "lockfileSha256": "b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47",
+          "benchmarkScriptSha256": "63e3f1ab2ed7c500e36c5b15feacb195e259f46cf0e3f76dce9173004997cf43",
+          "compilerPackageVersion": "7.1.0-beta",
+          "nativeCompilerPackage": "@typescript/typescript-darwin-arm64",
+          "server": {
+            "name": "typescript",
+            "version": "7.1.0-beta"
+          },
+          "nodeVersion": "v24.22.1",
+          "platform": "darwin",
+          "architecture": "arm64",
+          "runs": 1,
+          "scenario": "workspace",
+          "timeoutMs": 60000,
+          "completionSnippetSupport": true,
+          "documentChangeMode": "Incremental ranges for workspace hover, completion and title diagnostics"
+        },
+        "allSemanticValidationsPassed": true,
+        "sourceAndDeclarationsPreserved": true,
+        "inputDigest": "3178e634c6a47586ff823c225f3d7100219746c80b5771f5954cf6fdbc164d51",
+        "maximumSampledRssKiB": 411600,
+        "memorySampleCount": 7,
+        "measurements": [
+          {
+            "label": "workspace.bindingHover.first",
+            "latencyMs": 360.427,
+            "resultBytes": 1051,
+            "resultSha256": "417ab5b94b31be7140a9ed8a960761852bdd3583495a5a282cd6119fbc3ae182",
+            "documentVersion": 1,
+            "sourceSha256": "8c709ad4ef815614585ef82c950bd89aff0df05b07a88f11a5528c7c20b382a2"
+          },
+          {
+            "label": "workspace.bindingHover.warm",
+            "latencyMs": 0.478,
+            "resultBytes": 1051,
+            "resultSha256": "417ab5b94b31be7140a9ed8a960761852bdd3583495a5a282cd6119fbc3ae182",
+            "documentVersion": 1,
+            "sourceSha256": "8c709ad4ef815614585ef82c950bd89aff0df05b07a88f11a5528c7c20b382a2"
+          },
+          {
+            "label": "workspace.bindingHover.postWhitespace",
+            "latencyMs": 265.05,
+            "resultBytes": 1051,
+            "resultSha256": "417ab5b94b31be7140a9ed8a960761852bdd3583495a5a282cd6119fbc3ae182",
+            "documentVersion": 2,
+            "sourceSha256": "0f00f6b01d29fd5054b09179a1f8f27d8eb9653bf98356e4823c81b4ed8b131d"
+          },
+          {
+            "label": "workspace.bindingHover.postWhitespaceWarm",
+            "latencyMs": 0.582,
+            "resultBytes": 1051,
+            "resultSha256": "417ab5b94b31be7140a9ed8a960761852bdd3583495a5a282cd6119fbc3ae182",
+            "documentVersion": 2,
+            "sourceSha256": "0f00f6b01d29fd5054b09179a1f8f27d8eb9653bf98356e4823c81b4ed8b131d"
+          },
+          {
+            "label": "workspace.bindingCompletion.first",
+            "latencyMs": 356.381,
+            "resultCount": 7,
+            "resultBytes": 1631,
+            "resultSha256": "94f324e78c806f3ac4b8c7ed78a9d02a4b0b2d178c4f5f37325494f4dab47a13",
+            "documentVersion": 1,
+            "sourceSha256": "17865a41737f23df62c5f1c2af1133386e4a3526785638e5e6cd23c3385bf5d7"
+          },
+          {
+            "label": "workspace.bindingCompletion.warm",
+            "latencyMs": 0.511,
+            "resultCount": 7,
+            "resultBytes": 1631,
+            "resultSha256": "94f324e78c806f3ac4b8c7ed78a9d02a4b0b2d178c4f5f37325494f4dab47a13",
+            "documentVersion": 1,
+            "sourceSha256": "17865a41737f23df62c5f1c2af1133386e4a3526785638e5e6cd23c3385bf5d7"
+          },
+          {
+            "label": "workspace.bindingCompletion.postWhitespace",
+            "latencyMs": 254.279,
+            "resultCount": 7,
+            "resultBytes": 1631,
+            "resultSha256": "94f324e78c806f3ac4b8c7ed78a9d02a4b0b2d178c4f5f37325494f4dab47a13",
+            "documentVersion": 2,
+            "sourceSha256": "ea2d96563190c7dfec4884a6d5c6278d86673236cec423733db1805c2a18219a"
+          },
+          {
+            "label": "workspace.bindingCompletion.postWhitespaceWarm",
+            "latencyMs": 0.302,
+            "resultCount": 7,
+            "resultBytes": 1631,
+            "resultSha256": "94f324e78c806f3ac4b8c7ed78a9d02a4b0b2d178c4f5f37325494f4dab47a13",
+            "documentVersion": 2,
+            "sourceSha256": "ea2d96563190c7dfec4884a6d5c6278d86673236cec423733db1805c2a18219a"
+          },
+          {
+            "label": "workspace.blockCompletion.first",
+            "latencyMs": 142.859,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "ea92ef6c26d785d1b429035b7fe37b0610d90901d6ad2efe30dd6bbaa345f6b6",
+            "documentVersion": 1,
+            "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+          },
+          {
+            "label": "workspace.blockCompletion.warm",
+            "latencyMs": 0.379,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "ea92ef6c26d785d1b429035b7fe37b0610d90901d6ad2efe30dd6bbaa345f6b6",
+            "documentVersion": 1,
+            "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+          },
+          {
+            "label": "workspace.blockCompletion.postWhitespace",
+            "latencyMs": 65.779,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "ea92ef6c26d785d1b429035b7fe37b0610d90901d6ad2efe30dd6bbaa345f6b6",
+            "documentVersion": 2,
+            "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+          },
+          {
+            "label": "workspace.blockCompletion.postWhitespaceWarm",
+            "latencyMs": 0.343,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "ea92ef6c26d785d1b429035b7fe37b0610d90901d6ad2efe30dd6bbaa345f6b6",
+            "documentVersion": 2,
+            "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+          },
+          {
+            "label": "workspace.diagnostics.clean",
+            "latencyMs": 289.079,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 1,
+            "sourceSha256": "449978e2041ee6185937f729a7b4f989bc55755dc59282c37d4291197405ebdc",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "workspace.diagnostics.badTitle",
+            "latencyMs": 192.05,
+            "resultCount": 1,
+            "resultBytes": 286,
+            "resultSha256": "9b408a12ca63d68b04c98a484ba8e3449efff5b9c35f1162e8717b99a07a0dc8",
+            "documentVersion": 3,
+            "sourceSha256": "6c1f22d3d515f4de0a096167e507d9daf9da046964dd5dc431be061476208245",
+            "diagnosticEvidence": {
+              "expected": "TitleError",
+              "errorCount": 1,
+              "code": 2322,
+              "range": {
+                "start": {
+                  "line": 140,
+                  "character": 49
+                },
+                "end": {
+                  "line": 140,
+                  "character": 54
+                }
+              }
+            }
+          },
+          {
+            "label": "workspace.diagnostics.restored",
+            "latencyMs": 176.171,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 4,
+            "sourceSha256": "4b271b2ee85589b8d61192dd7501062d3c9d2c82e5c22240716248f514b2d4d7",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          }
+        ]
+      },
+      {
+        "side": "candidate",
+        "scenario": "workspace",
+        "run": 2,
+        "metadata": {
+          "formatVersion": 5,
+          "measuredAt": "2026-10-27T16:45:34.047Z",
+          "sourceCommit": "93c49c77b6d25d9f0aa8213135bb629c1a3e1ff4",
+          "sourceWorkloadDirty": false,
+          "workloadSha256": "a27a52ec0cfcb11a7bc639f12c1067701d5466f5d5037ba68989ba2aa13cdeaf",
+          "lockfileSha256": "b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47",
+          "benchmarkScriptSha256": "63e3f1ab2ed7c500e36c5b15feacb195e259f46cf0e3f76dce9173004997cf43",
+          "compilerPackageVersion": "7.1.0-beta",
+          "nativeCompilerPackage": "@typescript/typescript-darwin-arm64",
+          "server": {
+            "name": "typescript",
+            "version": "7.1.0-beta"
+          },
+          "nodeVersion": "v24.22.1",
+          "platform": "darwin",
+          "architecture": "arm64",
+          "runs": 1,
+          "scenario": "workspace",
+          "timeoutMs": 60000,
+          "completionSnippetSupport": true,
+          "documentChangeMode": "Incremental ranges for workspace hover, completion and title diagnostics"
+        },
+        "allSemanticValidationsPassed": true,
+        "sourceAndDeclarationsPreserved": true,
+        "inputDigest": "3178e634c6a47586ff823c225f3d7100219746c80b5771f5954cf6fdbc164d51",
+        "maximumSampledRssKiB": 417520,
+        "memorySampleCount": 7,
+        "measurements": [
+          {
+            "label": "workspace.bindingHover.first",
+            "latencyMs": 365.191,
+            "resultBytes": 1051,
+            "resultSha256": "417ab5b94b31be7140a9ed8a960761852bdd3583495a5a282cd6119fbc3ae182",
+            "documentVersion": 1,
+            "sourceSha256": "8c709ad4ef815614585ef82c950bd89aff0df05b07a88f11a5528c7c20b382a2"
+          },
+          {
+            "label": "workspace.bindingHover.warm",
+            "latencyMs": 0.428,
+            "resultBytes": 1051,
+            "resultSha256": "417ab5b94b31be7140a9ed8a960761852bdd3583495a5a282cd6119fbc3ae182",
+            "documentVersion": 1,
+            "sourceSha256": "8c709ad4ef815614585ef82c950bd89aff0df05b07a88f11a5528c7c20b382a2"
+          },
+          {
+            "label": "workspace.bindingHover.postWhitespace",
+            "latencyMs": 265.242,
+            "resultBytes": 1051,
+            "resultSha256": "417ab5b94b31be7140a9ed8a960761852bdd3583495a5a282cd6119fbc3ae182",
+            "documentVersion": 2,
+            "sourceSha256": "0f00f6b01d29fd5054b09179a1f8f27d8eb9653bf98356e4823c81b4ed8b131d"
+          },
+          {
+            "label": "workspace.bindingHover.postWhitespaceWarm",
+            "latencyMs": 0.471,
+            "resultBytes": 1051,
+            "resultSha256": "417ab5b94b31be7140a9ed8a960761852bdd3583495a5a282cd6119fbc3ae182",
+            "documentVersion": 2,
+            "sourceSha256": "0f00f6b01d29fd5054b09179a1f8f27d8eb9653bf98356e4823c81b4ed8b131d"
+          },
+          {
+            "label": "workspace.bindingCompletion.first",
+            "latencyMs": 354.422,
+            "resultCount": 7,
+            "resultBytes": 1631,
+            "resultSha256": "94f324e78c806f3ac4b8c7ed78a9d02a4b0b2d178c4f5f37325494f4dab47a13",
+            "documentVersion": 1,
+            "sourceSha256": "17865a41737f23df62c5f1c2af1133386e4a3526785638e5e6cd23c3385bf5d7"
+          },
+          {
+            "label": "workspace.bindingCompletion.warm",
+            "latencyMs": 0.405,
+            "resultCount": 7,
+            "resultBytes": 1631,
+            "resultSha256": "94f324e78c806f3ac4b8c7ed78a9d02a4b0b2d178c4f5f37325494f4dab47a13",
+            "documentVersion": 1,
+            "sourceSha256": "17865a41737f23df62c5f1c2af1133386e4a3526785638e5e6cd23c3385bf5d7"
+          },
+          {
+            "label": "workspace.bindingCompletion.postWhitespace",
+            "latencyMs": 243.228,
+            "resultCount": 7,
+            "resultBytes": 1631,
+            "resultSha256": "94f324e78c806f3ac4b8c7ed78a9d02a4b0b2d178c4f5f37325494f4dab47a13",
+            "documentVersion": 2,
+            "sourceSha256": "ea2d96563190c7dfec4884a6d5c6278d86673236cec423733db1805c2a18219a"
+          },
+          {
+            "label": "workspace.bindingCompletion.postWhitespaceWarm",
+            "latencyMs": 0.301,
+            "resultCount": 7,
+            "resultBytes": 1631,
+            "resultSha256": "94f324e78c806f3ac4b8c7ed78a9d02a4b0b2d178c4f5f37325494f4dab47a13",
+            "documentVersion": 2,
+            "sourceSha256": "ea2d96563190c7dfec4884a6d5c6278d86673236cec423733db1805c2a18219a"
+          },
+          {
+            "label": "workspace.blockCompletion.first",
+            "latencyMs": 179.19,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "ea92ef6c26d785d1b429035b7fe37b0610d90901d6ad2efe30dd6bbaa345f6b6",
+            "documentVersion": 1,
+            "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+          },
+          {
+            "label": "workspace.blockCompletion.warm",
+            "latencyMs": 0.44,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "ea92ef6c26d785d1b429035b7fe37b0610d90901d6ad2efe30dd6bbaa345f6b6",
+            "documentVersion": 1,
+            "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+          },
+          {
+            "label": "workspace.blockCompletion.postWhitespace",
+            "latencyMs": 51.267,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "ea92ef6c26d785d1b429035b7fe37b0610d90901d6ad2efe30dd6bbaa345f6b6",
+            "documentVersion": 2,
+            "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+          },
+          {
+            "label": "workspace.blockCompletion.postWhitespaceWarm",
+            "latencyMs": 0.316,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "ea92ef6c26d785d1b429035b7fe37b0610d90901d6ad2efe30dd6bbaa345f6b6",
+            "documentVersion": 2,
+            "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+          },
+          {
+            "label": "workspace.diagnostics.clean",
+            "latencyMs": 287.473,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 1,
+            "sourceSha256": "449978e2041ee6185937f729a7b4f989bc55755dc59282c37d4291197405ebdc",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "workspace.diagnostics.badTitle",
+            "latencyMs": 187.611,
+            "resultCount": 1,
+            "resultBytes": 286,
+            "resultSha256": "9b408a12ca63d68b04c98a484ba8e3449efff5b9c35f1162e8717b99a07a0dc8",
+            "documentVersion": 3,
+            "sourceSha256": "6c1f22d3d515f4de0a096167e507d9daf9da046964dd5dc431be061476208245",
+            "diagnosticEvidence": {
+              "expected": "TitleError",
+              "errorCount": 1,
+              "code": 2322,
+              "range": {
+                "start": {
+                  "line": 140,
+                  "character": 49
+                },
+                "end": {
+                  "line": 140,
+                  "character": 54
+                }
+              }
+            }
+          },
+          {
+            "label": "workspace.diagnostics.restored",
+            "latencyMs": 176.074,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 4,
+            "sourceSha256": "4b271b2ee85589b8d61192dd7501062d3c9d2c82e5c22240716248f514b2d4d7",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          }
+        ]
+      },
+      {
+        "side": "candidate",
+        "scenario": "workspace",
+        "run": 3,
+        "metadata": {
+          "formatVersion": 5,
+          "measuredAt": "2026-10-27T16:45:50.646Z",
+          "sourceCommit": "93c49c77b6d25d9f0aa8213135bb629c1a3e1ff4",
+          "sourceWorkloadDirty": false,
+          "workloadSha256": "a27a52ec0cfcb11a7bc639f12c1067701d5466f5d5037ba68989ba2aa13cdeaf",
+          "lockfileSha256": "b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47",
+          "benchmarkScriptSha256": "63e3f1ab2ed7c500e36c5b15feacb195e259f46cf0e3f76dce9173004997cf43",
+          "compilerPackageVersion": "7.1.0-beta",
+          "nativeCompilerPackage": "@typescript/typescript-darwin-arm64",
+          "server": {
+            "name": "typescript",
+            "version": "7.1.0-beta"
+          },
+          "nodeVersion": "v24.22.1",
+          "platform": "darwin",
+          "architecture": "arm64",
+          "runs": 1,
+          "scenario": "workspace",
+          "timeoutMs": 60000,
+          "completionSnippetSupport": true,
+          "documentChangeMode": "Incremental ranges for workspace hover, completion and title diagnostics"
+        },
+        "allSemanticValidationsPassed": true,
+        "sourceAndDeclarationsPreserved": true,
+        "inputDigest": "3178e634c6a47586ff823c225f3d7100219746c80b5771f5954cf6fdbc164d51",
+        "maximumSampledRssKiB": 418448,
+        "memorySampleCount": 7,
+        "measurements": [
+          {
+            "label": "workspace.bindingHover.first",
+            "latencyMs": 360.868,
+            "resultBytes": 1051,
+            "resultSha256": "417ab5b94b31be7140a9ed8a960761852bdd3583495a5a282cd6119fbc3ae182",
+            "documentVersion": 1,
+            "sourceSha256": "8c709ad4ef815614585ef82c950bd89aff0df05b07a88f11a5528c7c20b382a2"
+          },
+          {
+            "label": "workspace.bindingHover.warm",
+            "latencyMs": 0.467,
+            "resultBytes": 1051,
+            "resultSha256": "417ab5b94b31be7140a9ed8a960761852bdd3583495a5a282cd6119fbc3ae182",
+            "documentVersion": 1,
+            "sourceSha256": "8c709ad4ef815614585ef82c950bd89aff0df05b07a88f11a5528c7c20b382a2"
+          },
+          {
+            "label": "workspace.bindingHover.postWhitespace",
+            "latencyMs": 263.724,
+            "resultBytes": 1051,
+            "resultSha256": "417ab5b94b31be7140a9ed8a960761852bdd3583495a5a282cd6119fbc3ae182",
+            "documentVersion": 2,
+            "sourceSha256": "0f00f6b01d29fd5054b09179a1f8f27d8eb9653bf98356e4823c81b4ed8b131d"
+          },
+          {
+            "label": "workspace.bindingHover.postWhitespaceWarm",
+            "latencyMs": 0.504,
+            "resultBytes": 1051,
+            "resultSha256": "417ab5b94b31be7140a9ed8a960761852bdd3583495a5a282cd6119fbc3ae182",
+            "documentVersion": 2,
+            "sourceSha256": "0f00f6b01d29fd5054b09179a1f8f27d8eb9653bf98356e4823c81b4ed8b131d"
+          },
+          {
+            "label": "workspace.bindingCompletion.first",
+            "latencyMs": 356.361,
+            "resultCount": 7,
+            "resultBytes": 1631,
+            "resultSha256": "94f324e78c806f3ac4b8c7ed78a9d02a4b0b2d178c4f5f37325494f4dab47a13",
+            "documentVersion": 1,
+            "sourceSha256": "17865a41737f23df62c5f1c2af1133386e4a3526785638e5e6cd23c3385bf5d7"
+          },
+          {
+            "label": "workspace.bindingCompletion.warm",
+            "latencyMs": 0.752,
+            "resultCount": 7,
+            "resultBytes": 1631,
+            "resultSha256": "94f324e78c806f3ac4b8c7ed78a9d02a4b0b2d178c4f5f37325494f4dab47a13",
+            "documentVersion": 1,
+            "sourceSha256": "17865a41737f23df62c5f1c2af1133386e4a3526785638e5e6cd23c3385bf5d7"
+          },
+          {
+            "label": "workspace.bindingCompletion.postWhitespace",
+            "latencyMs": 259.915,
+            "resultCount": 7,
+            "resultBytes": 1631,
+            "resultSha256": "94f324e78c806f3ac4b8c7ed78a9d02a4b0b2d178c4f5f37325494f4dab47a13",
+            "documentVersion": 2,
+            "sourceSha256": "ea2d96563190c7dfec4884a6d5c6278d86673236cec423733db1805c2a18219a"
+          },
+          {
+            "label": "workspace.bindingCompletion.postWhitespaceWarm",
+            "latencyMs": 0.309,
+            "resultCount": 7,
+            "resultBytes": 1631,
+            "resultSha256": "94f324e78c806f3ac4b8c7ed78a9d02a4b0b2d178c4f5f37325494f4dab47a13",
+            "documentVersion": 2,
+            "sourceSha256": "ea2d96563190c7dfec4884a6d5c6278d86673236cec423733db1805c2a18219a"
+          },
+          {
+            "label": "workspace.blockCompletion.first",
+            "latencyMs": 157.715,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "ea92ef6c26d785d1b429035b7fe37b0610d90901d6ad2efe30dd6bbaa345f6b6",
+            "documentVersion": 1,
+            "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+          },
+          {
+            "label": "workspace.blockCompletion.warm",
+            "latencyMs": 0.457,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "ea92ef6c26d785d1b429035b7fe37b0610d90901d6ad2efe30dd6bbaa345f6b6",
+            "documentVersion": 1,
+            "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+          },
+          {
+            "label": "workspace.blockCompletion.postWhitespace",
+            "latencyMs": 49.245,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "ea92ef6c26d785d1b429035b7fe37b0610d90901d6ad2efe30dd6bbaa345f6b6",
+            "documentVersion": 2,
+            "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+          },
+          {
+            "label": "workspace.blockCompletion.postWhitespaceWarm",
+            "latencyMs": 0.414,
+            "resultCount": 17,
+            "resultBytes": 3645,
+            "resultSha256": "ea92ef6c26d785d1b429035b7fe37b0610d90901d6ad2efe30dd6bbaa345f6b6",
+            "documentVersion": 2,
+            "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+          },
+          {
+            "label": "workspace.diagnostics.clean",
+            "latencyMs": 292.312,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 1,
+            "sourceSha256": "449978e2041ee6185937f729a7b4f989bc55755dc59282c37d4291197405ebdc",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "workspace.diagnostics.badTitle",
+            "latencyMs": 180.782,
+            "resultCount": 1,
+            "resultBytes": 286,
+            "resultSha256": "9b408a12ca63d68b04c98a484ba8e3449efff5b9c35f1162e8717b99a07a0dc8",
+            "documentVersion": 3,
+            "sourceSha256": "6c1f22d3d515f4de0a096167e507d9daf9da046964dd5dc431be061476208245",
+            "diagnosticEvidence": {
+              "expected": "TitleError",
+              "errorCount": 1,
+              "code": 2322,
+              "range": {
+                "start": {
+                  "line": 140,
+                  "character": 49
+                },
+                "end": {
+                  "line": 140,
+                  "character": 54
+                }
+              }
+            }
+          },
+          {
+            "label": "workspace.diagnostics.restored",
+            "latencyMs": 176.283,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 4,
+            "sourceSha256": "4b271b2ee85589b8d61192dd7501062d3c9d2c82e5c22240716248f514b2d4d7",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          }
+        ]
+      },
+      {
+        "side": "published",
+        "scenario": "all",
+        "run": 1,
+        "metadata": {
+          "formatVersion": 5,
+          "measuredAt": "2026-10-27T16:46:02.512Z",
+          "sourceCommit": "f3be22cfeefed437164ad614d08b16d9000e0703",
+          "sourceWorkloadDirty": false,
+          "workloadSha256": "2d005d4331068f64d6e5a78250d92be7833664bdb1936674de011fa82217f548",
+          "lockfileSha256": "b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47",
+          "benchmarkScriptSha256": "63e3f1ab2ed7c500e36c5b15feacb195e259f46cf0e3f76dce9173004997cf43",
+          "compilerPackageVersion": "7.1.0-beta",
+          "nativeCompilerPackage": "@typescript/typescript-darwin-arm64",
+          "server": {
+            "name": "typescript",
+            "version": "7.1.0-beta"
+          },
+          "nodeVersion": "v24.22.1",
+          "platform": "darwin",
+          "architecture": "arm64",
+          "runs": 1,
+          "scenario": "all",
+          "timeoutMs": 60000,
+          "completionSnippetSupport": true,
+          "documentChangeMode": "Incremental ranges for Binding and changed URL workflows"
+        },
+        "allSemanticValidationsPassed": true,
+        "sourceAndDeclarationsPreserved": true,
+        "inputDigest": "09424f2c1868b47b329df1534e29f358a20901f4f8d5db9c3958fb749742612c",
+        "maximumSampledRssKiB": 842224,
+        "memorySampleCount": 27,
+        "measurements": [
+          {
+            "label": "hover.first",
+            "latencyMs": 349.125,
+            "resultBytes": 1253,
+            "resultSha256": "0ae45788be5e44f2ff25fcee61d2a884a24b49d5ec73fc608a347a09456a6e1d",
+            "documentVersion": 1,
+            "sourceSha256": "fde6fb50d616c6aada5370da4bdce89f7edd6db0ab2a40c5ecd4906a9ff219e1"
+          },
+          {
+            "label": "hover.warm",
+            "latencyMs": 0.57,
+            "resultBytes": 1253,
+            "resultSha256": "0ae45788be5e44f2ff25fcee61d2a884a24b49d5ec73fc608a347a09456a6e1d",
+            "documentVersion": 1,
+            "sourceSha256": "fde6fb50d616c6aada5370da4bdce89f7edd6db0ab2a40c5ecd4906a9ff219e1"
+          },
+          {
+            "label": "hover.postWhitespace",
+            "latencyMs": 237.046,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "hover.postWhitespaceWarm",
+            "latencyMs": 0.863,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "hover.postSemantic",
+            "latencyMs": 227.991,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 3,
+            "sourceSha256": "d6fd8ba8a4d6cda463f57b7e8fe0cff4b6bed32f2e6cb47564b31d2b3099e083"
+          },
+          {
+            "label": "hover.postSemanticWarm",
+            "latencyMs": 0.879,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 3,
+            "sourceSha256": "d6fd8ba8a4d6cda463f57b7e8fe0cff4b6bed32f2e6cb47564b31d2b3099e083"
+          },
+          {
+            "label": "definition.first",
+            "latencyMs": 426.497,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "9e8774d3dcf81a4844a869119d2661ab66016aa4ef18a63de99d96352c9c2699",
+            "documentVersion": 1,
+            "sourceSha256": "01a3bd83b8e37f645377114c3ffd96fed68a88d77d6f06f8b4f92ee56b347a99"
+          },
+          {
+            "label": "definition.warm",
+            "latencyMs": 26.761,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "9e8774d3dcf81a4844a869119d2661ab66016aa4ef18a63de99d96352c9c2699",
+            "documentVersion": 1,
+            "sourceSha256": "01a3bd83b8e37f645377114c3ffd96fed68a88d77d6f06f8b4f92ee56b347a99"
+          },
+          {
+            "label": "definition.postWhitespace",
+            "latencyMs": 243.695,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "9e8774d3dcf81a4844a869119d2661ab66016aa4ef18a63de99d96352c9c2699",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "definition.postWhitespaceWarm",
+            "latencyMs": 16.962,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "9e8774d3dcf81a4844a869119d2661ab66016aa4ef18a63de99d96352c9c2699",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "completion.first",
+            "latencyMs": 221.661,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "b12e7eb18bfafc28463f51d4ad303d872fc22e2398d23976b8e17d7434336818",
+            "documentVersion": 1,
+            "sourceSha256": "04d0708d37d449397045b68c52bd3bdfc201df8cc206876b9ff174ea2f3d3427"
+          },
+          {
+            "label": "completion.warm",
+            "latencyMs": 0.34,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "b12e7eb18bfafc28463f51d4ad303d872fc22e2398d23976b8e17d7434336818",
+            "documentVersion": 1,
+            "sourceSha256": "04d0708d37d449397045b68c52bd3bdfc201df8cc206876b9ff174ea2f3d3427"
+          },
+          {
+            "label": "completion.postWhitespace",
+            "latencyMs": 18.968,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "b12e7eb18bfafc28463f51d4ad303d872fc22e2398d23976b8e17d7434336818",
+            "documentVersion": 2,
+            "sourceSha256": "b85c55eaecac7f6649bfade6b119f6f915e0aa6e863dfce072a57282004ab36e"
+          },
+          {
+            "label": "completion.postWhitespaceWarm",
+            "latencyMs": 1.886,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "b12e7eb18bfafc28463f51d4ad303d872fc22e2398d23976b8e17d7434336818",
+            "documentVersion": 2,
+            "sourceSha256": "b85c55eaecac7f6649bfade6b119f6f915e0aa6e863dfce072a57282004ab36e"
+          },
+          {
+            "label": "bindingCompletion.first",
+            "latencyMs": 404.115,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "0bcebfd574cc08f97d456c5b93bfe06d3400cefd23609fe4a06a8d19635f2053",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "bindingCompletion.warm",
+            "latencyMs": 0.383,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "0bcebfd574cc08f97d456c5b93bfe06d3400cefd23609fe4a06a8d19635f2053",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "bindingCompletion.postWhitespace",
+            "latencyMs": 244.274,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "0bcebfd574cc08f97d456c5b93bfe06d3400cefd23609fe4a06a8d19635f2053",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "bindingCompletion.postWhitespaceWarm",
+            "latencyMs": 0.321,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "0bcebfd574cc08f97d456c5b93bfe06d3400cefd23609fe4a06a8d19635f2053",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.hover.first",
+            "latencyMs": 450.128,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "changedUrl.hover.warm",
+            "latencyMs": 0.828,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "changedUrl.hover.postWhitespace",
+            "latencyMs": 239.5,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.hover.postWhitespaceWarm",
+            "latencyMs": 0.858,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.diagnostics.clean",
+            "latencyMs": 640.315,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "changedUrl.diagnostics.badRoute",
+            "latencyMs": 596.959,
+            "resultCount": 1,
+            "resultBytes": 783,
+            "resultSha256": "ff9d8e042ff751403ba7026867bc3e99863b730bd460118a10477294e9b88e6c",
+            "documentVersion": 3,
+            "sourceSha256": "075988e08860e6f71b3602d1c87b4e51de292c80d1475c94775495473cf5bc7e",
+            "diagnosticEvidence": {
+              "expected": "RouteError",
+              "errorCount": 1,
+              "code": 2322,
+              "range": {
+                "start": {
+                  "line": 36,
+                  "character": 8
+                },
+                "end": {
+                  "line": 36,
+                  "character": 13
+                }
+              }
+            }
+          },
+          {
+            "label": "changedUrl.diagnostics.restored",
+            "latencyMs": 618.1,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "changedUrl.hover.postRestore",
+            "latencyMs": 247.595,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.hover.postRestoreWarm",
+            "latencyMs": 1.119,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.completion.postRestoreWarm",
+            "latencyMs": 0.942,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "0bcebfd574cc08f97d456c5b93bfe06d3400cefd23609fe4a06a8d19635f2053",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "messageConstructor.local.cold",
+            "latencyMs": 296.515,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 1,
+            "sourceSha256": "086348b57dad755bb1f8cb553841bcf7e6ecc4b22f55ee8000297d74353b8090",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "messageConstructor.completed.cold",
+            "latencyMs": 2974.287,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 1,
+            "sourceSha256": "e2477c30b764d50cf1c6dd7b80d60510a3f7d7f84c888b28954de5912b4df8fe",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          }
+        ]
+      },
+      {
+        "side": "published",
+        "scenario": "all",
+        "run": 2,
+        "metadata": {
+          "formatVersion": 5,
+          "measuredAt": "2026-10-27T16:46:39.183Z",
+          "sourceCommit": "f3be22cfeefed437164ad614d08b16d9000e0703",
+          "sourceWorkloadDirty": false,
+          "workloadSha256": "2d005d4331068f64d6e5a78250d92be7833664bdb1936674de011fa82217f548",
+          "lockfileSha256": "b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47",
+          "benchmarkScriptSha256": "63e3f1ab2ed7c500e36c5b15feacb195e259f46cf0e3f76dce9173004997cf43",
+          "compilerPackageVersion": "7.1.0-beta",
+          "nativeCompilerPackage": "@typescript/typescript-darwin-arm64",
+          "server": {
+            "name": "typescript",
+            "version": "7.1.0-beta"
+          },
+          "nodeVersion": "v24.22.1",
+          "platform": "darwin",
+          "architecture": "arm64",
+          "runs": 1,
+          "scenario": "all",
+          "timeoutMs": 60000,
+          "completionSnippetSupport": true,
+          "documentChangeMode": "Incremental ranges for Binding and changed URL workflows"
+        },
+        "allSemanticValidationsPassed": true,
+        "sourceAndDeclarationsPreserved": true,
+        "inputDigest": "09424f2c1868b47b329df1534e29f358a20901f4f8d5db9c3958fb749742612c",
+        "maximumSampledRssKiB": 816880,
+        "memorySampleCount": 27,
+        "measurements": [
+          {
+            "label": "hover.first",
+            "latencyMs": 327.473,
+            "resultBytes": 1253,
+            "resultSha256": "0ae45788be5e44f2ff25fcee61d2a884a24b49d5ec73fc608a347a09456a6e1d",
+            "documentVersion": 1,
+            "sourceSha256": "fde6fb50d616c6aada5370da4bdce89f7edd6db0ab2a40c5ecd4906a9ff219e1"
+          },
+          {
+            "label": "hover.warm",
+            "latencyMs": 0.445,
+            "resultBytes": 1253,
+            "resultSha256": "0ae45788be5e44f2ff25fcee61d2a884a24b49d5ec73fc608a347a09456a6e1d",
+            "documentVersion": 1,
+            "sourceSha256": "fde6fb50d616c6aada5370da4bdce89f7edd6db0ab2a40c5ecd4906a9ff219e1"
+          },
+          {
+            "label": "hover.postWhitespace",
+            "latencyMs": 247.579,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "hover.postWhitespaceWarm",
+            "latencyMs": 0.894,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "hover.postSemantic",
+            "latencyMs": 214.707,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 3,
+            "sourceSha256": "d6fd8ba8a4d6cda463f57b7e8fe0cff4b6bed32f2e6cb47564b31d2b3099e083"
+          },
+          {
+            "label": "hover.postSemanticWarm",
+            "latencyMs": 0.881,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 3,
+            "sourceSha256": "d6fd8ba8a4d6cda463f57b7e8fe0cff4b6bed32f2e6cb47564b31d2b3099e083"
+          },
+          {
+            "label": "definition.first",
+            "latencyMs": 420.882,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "9e8774d3dcf81a4844a869119d2661ab66016aa4ef18a63de99d96352c9c2699",
+            "documentVersion": 1,
+            "sourceSha256": "01a3bd83b8e37f645377114c3ffd96fed68a88d77d6f06f8b4f92ee56b347a99"
+          },
+          {
+            "label": "definition.warm",
+            "latencyMs": 16.228,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "9e8774d3dcf81a4844a869119d2661ab66016aa4ef18a63de99d96352c9c2699",
+            "documentVersion": 1,
+            "sourceSha256": "01a3bd83b8e37f645377114c3ffd96fed68a88d77d6f06f8b4f92ee56b347a99"
+          },
+          {
+            "label": "definition.postWhitespace",
+            "latencyMs": 267.37,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "9e8774d3dcf81a4844a869119d2661ab66016aa4ef18a63de99d96352c9c2699",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "definition.postWhitespaceWarm",
+            "latencyMs": 16.935,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "9e8774d3dcf81a4844a869119d2661ab66016aa4ef18a63de99d96352c9c2699",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "completion.first",
+            "latencyMs": 200.414,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "b12e7eb18bfafc28463f51d4ad303d872fc22e2398d23976b8e17d7434336818",
+            "documentVersion": 1,
+            "sourceSha256": "04d0708d37d449397045b68c52bd3bdfc201df8cc206876b9ff174ea2f3d3427"
+          },
+          {
+            "label": "completion.warm",
+            "latencyMs": 0.433,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "b12e7eb18bfafc28463f51d4ad303d872fc22e2398d23976b8e17d7434336818",
+            "documentVersion": 1,
+            "sourceSha256": "04d0708d37d449397045b68c52bd3bdfc201df8cc206876b9ff174ea2f3d3427"
+          },
+          {
+            "label": "completion.postWhitespace",
+            "latencyMs": 14.289,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "b12e7eb18bfafc28463f51d4ad303d872fc22e2398d23976b8e17d7434336818",
+            "documentVersion": 2,
+            "sourceSha256": "b85c55eaecac7f6649bfade6b119f6f915e0aa6e863dfce072a57282004ab36e"
+          },
+          {
+            "label": "completion.postWhitespaceWarm",
+            "latencyMs": 9.615,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "b12e7eb18bfafc28463f51d4ad303d872fc22e2398d23976b8e17d7434336818",
+            "documentVersion": 2,
+            "sourceSha256": "b85c55eaecac7f6649bfade6b119f6f915e0aa6e863dfce072a57282004ab36e"
+          },
+          {
+            "label": "bindingCompletion.first",
+            "latencyMs": 403.015,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "0bcebfd574cc08f97d456c5b93bfe06d3400cefd23609fe4a06a8d19635f2053",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "bindingCompletion.warm",
+            "latencyMs": 0.344,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "0bcebfd574cc08f97d456c5b93bfe06d3400cefd23609fe4a06a8d19635f2053",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "bindingCompletion.postWhitespace",
+            "latencyMs": 239.288,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "0bcebfd574cc08f97d456c5b93bfe06d3400cefd23609fe4a06a8d19635f2053",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "bindingCompletion.postWhitespaceWarm",
+            "latencyMs": 0.367,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "0bcebfd574cc08f97d456c5b93bfe06d3400cefd23609fe4a06a8d19635f2053",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.hover.first",
+            "latencyMs": 413.609,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "changedUrl.hover.warm",
+            "latencyMs": 0.82,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "changedUrl.hover.postWhitespace",
+            "latencyMs": 265.53,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.hover.postWhitespaceWarm",
+            "latencyMs": 0.81,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.diagnostics.clean",
+            "latencyMs": 600.686,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "changedUrl.diagnostics.badRoute",
+            "latencyMs": 629.205,
+            "resultCount": 1,
+            "resultBytes": 783,
+            "resultSha256": "ff9d8e042ff751403ba7026867bc3e99863b730bd460118a10477294e9b88e6c",
+            "documentVersion": 3,
+            "sourceSha256": "075988e08860e6f71b3602d1c87b4e51de292c80d1475c94775495473cf5bc7e",
+            "diagnosticEvidence": {
+              "expected": "RouteError",
+              "errorCount": 1,
+              "code": 2322,
+              "range": {
+                "start": {
+                  "line": 36,
+                  "character": 8
+                },
+                "end": {
+                  "line": 36,
+                  "character": 13
+                }
+              }
+            }
+          },
+          {
+            "label": "changedUrl.diagnostics.restored",
+            "latencyMs": 616.47,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "changedUrl.hover.postRestore",
+            "latencyMs": 213.916,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.hover.postRestoreWarm",
+            "latencyMs": 0.942,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.completion.postRestoreWarm",
+            "latencyMs": 0.549,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "0bcebfd574cc08f97d456c5b93bfe06d3400cefd23609fe4a06a8d19635f2053",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "messageConstructor.local.cold",
+            "latencyMs": 294.62,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 1,
+            "sourceSha256": "086348b57dad755bb1f8cb553841bcf7e6ecc4b22f55ee8000297d74353b8090",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "messageConstructor.completed.cold",
+            "latencyMs": 3662.675,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 1,
+            "sourceSha256": "e2477c30b764d50cf1c6dd7b80d60510a3f7d7f84c888b28954de5912b4df8fe",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          }
+        ]
+      },
+      {
+        "side": "published",
+        "scenario": "all",
+        "run": 3,
+        "metadata": {
+          "formatVersion": 5,
+          "measuredAt": "2026-10-27T16:46:52.113Z",
+          "sourceCommit": "f3be22cfeefed437164ad614d08b16d9000e0703",
+          "sourceWorkloadDirty": false,
+          "workloadSha256": "2d005d4331068f64d6e5a78250d92be7833664bdb1936674de011fa82217f548",
+          "lockfileSha256": "b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47",
+          "benchmarkScriptSha256": "63e3f1ab2ed7c500e36c5b15feacb195e259f46cf0e3f76dce9173004997cf43",
+          "compilerPackageVersion": "7.1.0-beta",
+          "nativeCompilerPackage": "@typescript/typescript-darwin-arm64",
+          "server": {
+            "name": "typescript",
+            "version": "7.1.0-beta"
+          },
+          "nodeVersion": "v24.22.1",
+          "platform": "darwin",
+          "architecture": "arm64",
+          "runs": 1,
+          "scenario": "all",
+          "timeoutMs": 60000,
+          "completionSnippetSupport": true,
+          "documentChangeMode": "Incremental ranges for Binding and changed URL workflows"
+        },
+        "allSemanticValidationsPassed": true,
+        "sourceAndDeclarationsPreserved": true,
+        "inputDigest": "09424f2c1868b47b329df1534e29f358a20901f4f8d5db9c3958fb749742612c",
+        "maximumSampledRssKiB": 844016,
+        "memorySampleCount": 27,
+        "measurements": [
+          {
+            "label": "hover.first",
+            "latencyMs": 295.696,
+            "resultBytes": 1253,
+            "resultSha256": "0ae45788be5e44f2ff25fcee61d2a884a24b49d5ec73fc608a347a09456a6e1d",
+            "documentVersion": 1,
+            "sourceSha256": "fde6fb50d616c6aada5370da4bdce89f7edd6db0ab2a40c5ecd4906a9ff219e1"
+          },
+          {
+            "label": "hover.warm",
+            "latencyMs": 0.399,
+            "resultBytes": 1253,
+            "resultSha256": "0ae45788be5e44f2ff25fcee61d2a884a24b49d5ec73fc608a347a09456a6e1d",
+            "documentVersion": 1,
+            "sourceSha256": "fde6fb50d616c6aada5370da4bdce89f7edd6db0ab2a40c5ecd4906a9ff219e1"
+          },
+          {
+            "label": "hover.postWhitespace",
+            "latencyMs": 253.756,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "hover.postWhitespaceWarm",
+            "latencyMs": 0.919,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "hover.postSemantic",
+            "latencyMs": 219.143,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 3,
+            "sourceSha256": "d6fd8ba8a4d6cda463f57b7e8fe0cff4b6bed32f2e6cb47564b31d2b3099e083"
+          },
+          {
+            "label": "hover.postSemanticWarm",
+            "latencyMs": 0.959,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 3,
+            "sourceSha256": "d6fd8ba8a4d6cda463f57b7e8fe0cff4b6bed32f2e6cb47564b31d2b3099e083"
+          },
+          {
+            "label": "definition.first",
+            "latencyMs": 426.748,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "9e8774d3dcf81a4844a869119d2661ab66016aa4ef18a63de99d96352c9c2699",
+            "documentVersion": 1,
+            "sourceSha256": "01a3bd83b8e37f645377114c3ffd96fed68a88d77d6f06f8b4f92ee56b347a99"
+          },
+          {
+            "label": "definition.warm",
+            "latencyMs": 16.252,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "9e8774d3dcf81a4844a869119d2661ab66016aa4ef18a63de99d96352c9c2699",
+            "documentVersion": 1,
+            "sourceSha256": "01a3bd83b8e37f645377114c3ffd96fed68a88d77d6f06f8b4f92ee56b347a99"
+          },
+          {
+            "label": "definition.postWhitespace",
+            "latencyMs": 261.697,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "9e8774d3dcf81a4844a869119d2661ab66016aa4ef18a63de99d96352c9c2699",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "definition.postWhitespaceWarm",
+            "latencyMs": 17.14,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "9e8774d3dcf81a4844a869119d2661ab66016aa4ef18a63de99d96352c9c2699",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "completion.first",
+            "latencyMs": 222.607,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "b12e7eb18bfafc28463f51d4ad303d872fc22e2398d23976b8e17d7434336818",
+            "documentVersion": 1,
+            "sourceSha256": "04d0708d37d449397045b68c52bd3bdfc201df8cc206876b9ff174ea2f3d3427"
+          },
+          {
+            "label": "completion.warm",
+            "latencyMs": 0.379,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "b12e7eb18bfafc28463f51d4ad303d872fc22e2398d23976b8e17d7434336818",
+            "documentVersion": 1,
+            "sourceSha256": "04d0708d37d449397045b68c52bd3bdfc201df8cc206876b9ff174ea2f3d3427"
+          },
+          {
+            "label": "completion.postWhitespace",
+            "latencyMs": 14.383,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "b12e7eb18bfafc28463f51d4ad303d872fc22e2398d23976b8e17d7434336818",
+            "documentVersion": 2,
+            "sourceSha256": "b85c55eaecac7f6649bfade6b119f6f915e0aa6e863dfce072a57282004ab36e"
+          },
+          {
+            "label": "completion.postWhitespaceWarm",
+            "latencyMs": 8.03,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "b12e7eb18bfafc28463f51d4ad303d872fc22e2398d23976b8e17d7434336818",
+            "documentVersion": 2,
+            "sourceSha256": "b85c55eaecac7f6649bfade6b119f6f915e0aa6e863dfce072a57282004ab36e"
+          },
+          {
+            "label": "bindingCompletion.first",
+            "latencyMs": 414.889,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "0bcebfd574cc08f97d456c5b93bfe06d3400cefd23609fe4a06a8d19635f2053",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "bindingCompletion.warm",
+            "latencyMs": 0.394,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "0bcebfd574cc08f97d456c5b93bfe06d3400cefd23609fe4a06a8d19635f2053",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "bindingCompletion.postWhitespace",
+            "latencyMs": 237.058,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "0bcebfd574cc08f97d456c5b93bfe06d3400cefd23609fe4a06a8d19635f2053",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "bindingCompletion.postWhitespaceWarm",
+            "latencyMs": 0.396,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "0bcebfd574cc08f97d456c5b93bfe06d3400cefd23609fe4a06a8d19635f2053",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.hover.first",
+            "latencyMs": 425.279,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "changedUrl.hover.warm",
+            "latencyMs": 0.883,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "changedUrl.hover.postWhitespace",
+            "latencyMs": 249.689,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.hover.postWhitespaceWarm",
+            "latencyMs": 0.91,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.diagnostics.clean",
+            "latencyMs": 648.336,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "changedUrl.diagnostics.badRoute",
+            "latencyMs": 724.849,
+            "resultCount": 1,
+            "resultBytes": 783,
+            "resultSha256": "ff9d8e042ff751403ba7026867bc3e99863b730bd460118a10477294e9b88e6c",
+            "documentVersion": 3,
+            "sourceSha256": "075988e08860e6f71b3602d1c87b4e51de292c80d1475c94775495473cf5bc7e",
+            "diagnosticEvidence": {
+              "expected": "RouteError",
+              "errorCount": 1,
+              "code": 2322,
+              "range": {
+                "start": {
+                  "line": 36,
+                  "character": 8
+                },
+                "end": {
+                  "line": 36,
+                  "character": 13
+                }
+              }
+            }
+          },
+          {
+            "label": "changedUrl.diagnostics.restored",
+            "latencyMs": 786.805,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "changedUrl.hover.postRestore",
+            "latencyMs": 249.636,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.hover.postRestoreWarm",
+            "latencyMs": 3.908,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.completion.postRestoreWarm",
+            "latencyMs": 1.971,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "0bcebfd574cc08f97d456c5b93bfe06d3400cefd23609fe4a06a8d19635f2053",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "messageConstructor.local.cold",
+            "latencyMs": 458.628,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 1,
+            "sourceSha256": "086348b57dad755bb1f8cb553841bcf7e6ecc4b22f55ee8000297d74353b8090",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "messageConstructor.completed.cold",
+            "latencyMs": 3496.08,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 1,
+            "sourceSha256": "e2477c30b764d50cf1c6dd7b80d60510a3f7d7f84c888b28954de5912b4df8fe",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          }
+        ]
+      },
+      {
+        "side": "candidate",
+        "scenario": "all",
+        "run": 1,
+        "metadata": {
+          "formatVersion": 5,
+          "measuredAt": "2026-10-27T16:46:14.302Z",
+          "sourceCommit": "93c49c77b6d25d9f0aa8213135bb629c1a3e1ff4",
+          "sourceWorkloadDirty": false,
+          "workloadSha256": "8e456ef9bbe5f5b1bbd1f05eed286a9676101b1319f9931b034814d4c6f5351b",
+          "lockfileSha256": "b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47",
+          "benchmarkScriptSha256": "63e3f1ab2ed7c500e36c5b15feacb195e259f46cf0e3f76dce9173004997cf43",
+          "compilerPackageVersion": "7.1.0-beta",
+          "nativeCompilerPackage": "@typescript/typescript-darwin-arm64",
+          "server": {
+            "name": "typescript",
+            "version": "7.1.0-beta"
+          },
+          "nodeVersion": "v24.22.1",
+          "platform": "darwin",
+          "architecture": "arm64",
+          "runs": 1,
+          "scenario": "all",
+          "timeoutMs": 60000,
+          "completionSnippetSupport": true,
+          "documentChangeMode": "Incremental ranges for Binding and changed URL workflows"
+        },
+        "allSemanticValidationsPassed": true,
+        "sourceAndDeclarationsPreserved": true,
+        "inputDigest": "3178e634c6a47586ff823c225f3d7100219746c80b5771f5954cf6fdbc164d51",
+        "maximumSampledRssKiB": 758176,
+        "memorySampleCount": 27,
+        "measurements": [
+          {
+            "label": "hover.first",
+            "latencyMs": 340.951,
+            "resultBytes": 1253,
+            "resultSha256": "0ae45788be5e44f2ff25fcee61d2a884a24b49d5ec73fc608a347a09456a6e1d",
+            "documentVersion": 1,
+            "sourceSha256": "fde6fb50d616c6aada5370da4bdce89f7edd6db0ab2a40c5ecd4906a9ff219e1"
+          },
+          {
+            "label": "hover.warm",
+            "latencyMs": 0.571,
+            "resultBytes": 1253,
+            "resultSha256": "0ae45788be5e44f2ff25fcee61d2a884a24b49d5ec73fc608a347a09456a6e1d",
+            "documentVersion": 1,
+            "sourceSha256": "fde6fb50d616c6aada5370da4bdce89f7edd6db0ab2a40c5ecd4906a9ff219e1"
+          },
+          {
+            "label": "hover.postWhitespace",
+            "latencyMs": 239.707,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "hover.postWhitespaceWarm",
+            "latencyMs": 0.844,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "hover.postSemantic",
+            "latencyMs": 235.53,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 3,
+            "sourceSha256": "d6fd8ba8a4d6cda463f57b7e8fe0cff4b6bed32f2e6cb47564b31d2b3099e083"
+          },
+          {
+            "label": "hover.postSemanticWarm",
+            "latencyMs": 0.819,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 3,
+            "sourceSha256": "d6fd8ba8a4d6cda463f57b7e8fe0cff4b6bed32f2e6cb47564b31d2b3099e083"
+          },
+          {
+            "label": "definition.first",
+            "latencyMs": 427.886,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "ea4f8ecaa8fb7698e898175da6eca69ee1297cd3517243397c38111e06ada17a",
+            "documentVersion": 1,
+            "sourceSha256": "01a3bd83b8e37f645377114c3ffd96fed68a88d77d6f06f8b4f92ee56b347a99"
+          },
+          {
+            "label": "definition.warm",
+            "latencyMs": 16.245,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "ea4f8ecaa8fb7698e898175da6eca69ee1297cd3517243397c38111e06ada17a",
+            "documentVersion": 1,
+            "sourceSha256": "01a3bd83b8e37f645377114c3ffd96fed68a88d77d6f06f8b4f92ee56b347a99"
+          },
+          {
+            "label": "definition.postWhitespace",
+            "latencyMs": 243.301,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "ea4f8ecaa8fb7698e898175da6eca69ee1297cd3517243397c38111e06ada17a",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "definition.postWhitespaceWarm",
+            "latencyMs": 16.952,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "ea4f8ecaa8fb7698e898175da6eca69ee1297cd3517243397c38111e06ada17a",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "completion.first",
+            "latencyMs": 209.707,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "ba97ba02252a26dc824af49c0c218a2164c7875da8af6f68bc7b381b978946e5",
+            "documentVersion": 1,
+            "sourceSha256": "04d0708d37d449397045b68c52bd3bdfc201df8cc206876b9ff174ea2f3d3427"
+          },
+          {
+            "label": "completion.warm",
+            "latencyMs": 0.447,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "ba97ba02252a26dc824af49c0c218a2164c7875da8af6f68bc7b381b978946e5",
+            "documentVersion": 1,
+            "sourceSha256": "04d0708d37d449397045b68c52bd3bdfc201df8cc206876b9ff174ea2f3d3427"
+          },
+          {
+            "label": "completion.postWhitespace",
+            "latencyMs": 19.487,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "ba97ba02252a26dc824af49c0c218a2164c7875da8af6f68bc7b381b978946e5",
+            "documentVersion": 2,
+            "sourceSha256": "b85c55eaecac7f6649bfade6b119f6f915e0aa6e863dfce072a57282004ab36e"
+          },
+          {
+            "label": "completion.postWhitespaceWarm",
+            "latencyMs": 4.191,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "ba97ba02252a26dc824af49c0c218a2164c7875da8af6f68bc7b381b978946e5",
+            "documentVersion": 2,
+            "sourceSha256": "b85c55eaecac7f6649bfade6b119f6f915e0aa6e863dfce072a57282004ab36e"
+          },
+          {
+            "label": "bindingCompletion.first",
+            "latencyMs": 408.267,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "f494eac99f2a13ac9c6ccef91e8ca6e823db6a0209c2610ccd2e22e8749d9b76",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "bindingCompletion.warm",
+            "latencyMs": 0.356,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "f494eac99f2a13ac9c6ccef91e8ca6e823db6a0209c2610ccd2e22e8749d9b76",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "bindingCompletion.postWhitespace",
+            "latencyMs": 247.437,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "f494eac99f2a13ac9c6ccef91e8ca6e823db6a0209c2610ccd2e22e8749d9b76",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "bindingCompletion.postWhitespaceWarm",
+            "latencyMs": 0.36,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "f494eac99f2a13ac9c6ccef91e8ca6e823db6a0209c2610ccd2e22e8749d9b76",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.hover.first",
+            "latencyMs": 436.735,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "changedUrl.hover.warm",
+            "latencyMs": 0.848,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "changedUrl.hover.postWhitespace",
+            "latencyMs": 231.503,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.hover.postWhitespaceWarm",
+            "latencyMs": 1.026,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.diagnostics.clean",
+            "latencyMs": 629.841,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "changedUrl.diagnostics.badRoute",
+            "latencyMs": 613.032,
+            "resultCount": 1,
+            "resultBytes": 783,
+            "resultSha256": "ff9d8e042ff751403ba7026867bc3e99863b730bd460118a10477294e9b88e6c",
+            "documentVersion": 3,
+            "sourceSha256": "075988e08860e6f71b3602d1c87b4e51de292c80d1475c94775495473cf5bc7e",
+            "diagnosticEvidence": {
+              "expected": "RouteError",
+              "errorCount": 1,
+              "code": 2322,
+              "range": {
+                "start": {
+                  "line": 36,
+                  "character": 8
+                },
+                "end": {
+                  "line": 36,
+                  "character": 13
+                }
+              }
+            }
+          },
+          {
+            "label": "changedUrl.diagnostics.restored",
+            "latencyMs": 585.562,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "changedUrl.hover.postRestore",
+            "latencyMs": 251.753,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.hover.postRestoreWarm",
+            "latencyMs": 0.856,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.completion.postRestoreWarm",
+            "latencyMs": 0.648,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "f494eac99f2a13ac9c6ccef91e8ca6e823db6a0209c2610ccd2e22e8749d9b76",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "messageConstructor.local.cold",
+            "latencyMs": 312.62,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 1,
+            "sourceSha256": "086348b57dad755bb1f8cb553841bcf7e6ecc4b22f55ee8000297d74353b8090",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "messageConstructor.completed.cold",
+            "latencyMs": 2958.462,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 1,
+            "sourceSha256": "e2477c30b764d50cf1c6dd7b80d60510a3f7d7f84c888b28954de5912b4df8fe",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          }
+        ]
+      },
+      {
+        "side": "candidate",
+        "scenario": "all",
+        "run": 2,
+        "metadata": {
+          "formatVersion": 5,
+          "measuredAt": "2026-10-27T16:46:26.836Z",
+          "sourceCommit": "93c49c77b6d25d9f0aa8213135bb629c1a3e1ff4",
+          "sourceWorkloadDirty": false,
+          "workloadSha256": "8e456ef9bbe5f5b1bbd1f05eed286a9676101b1319f9931b034814d4c6f5351b",
+          "lockfileSha256": "b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47",
+          "benchmarkScriptSha256": "63e3f1ab2ed7c500e36c5b15feacb195e259f46cf0e3f76dce9173004997cf43",
+          "compilerPackageVersion": "7.1.0-beta",
+          "nativeCompilerPackage": "@typescript/typescript-darwin-arm64",
+          "server": {
+            "name": "typescript",
+            "version": "7.1.0-beta"
+          },
+          "nodeVersion": "v24.22.1",
+          "platform": "darwin",
+          "architecture": "arm64",
+          "runs": 1,
+          "scenario": "all",
+          "timeoutMs": 60000,
+          "completionSnippetSupport": true,
+          "documentChangeMode": "Incremental ranges for Binding and changed URL workflows"
+        },
+        "allSemanticValidationsPassed": true,
+        "sourceAndDeclarationsPreserved": true,
+        "inputDigest": "3178e634c6a47586ff823c225f3d7100219746c80b5771f5954cf6fdbc164d51",
+        "maximumSampledRssKiB": 959232,
+        "memorySampleCount": 28,
+        "measurements": [
+          {
+            "label": "hover.first",
+            "latencyMs": 337.338,
+            "resultBytes": 1253,
+            "resultSha256": "0ae45788be5e44f2ff25fcee61d2a884a24b49d5ec73fc608a347a09456a6e1d",
+            "documentVersion": 1,
+            "sourceSha256": "fde6fb50d616c6aada5370da4bdce89f7edd6db0ab2a40c5ecd4906a9ff219e1"
+          },
+          {
+            "label": "hover.warm",
+            "latencyMs": 0.422,
+            "resultBytes": 1253,
+            "resultSha256": "0ae45788be5e44f2ff25fcee61d2a884a24b49d5ec73fc608a347a09456a6e1d",
+            "documentVersion": 1,
+            "sourceSha256": "fde6fb50d616c6aada5370da4bdce89f7edd6db0ab2a40c5ecd4906a9ff219e1"
+          },
+          {
+            "label": "hover.postWhitespace",
+            "latencyMs": 263.326,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "hover.postWhitespaceWarm",
+            "latencyMs": 0.966,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "hover.postSemantic",
+            "latencyMs": 216.674,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 3,
+            "sourceSha256": "d6fd8ba8a4d6cda463f57b7e8fe0cff4b6bed32f2e6cb47564b31d2b3099e083"
+          },
+          {
+            "label": "hover.postSemanticWarm",
+            "latencyMs": 0.963,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 3,
+            "sourceSha256": "d6fd8ba8a4d6cda463f57b7e8fe0cff4b6bed32f2e6cb47564b31d2b3099e083"
+          },
+          {
+            "label": "definition.first",
+            "latencyMs": 398.158,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "ea4f8ecaa8fb7698e898175da6eca69ee1297cd3517243397c38111e06ada17a",
+            "documentVersion": 1,
+            "sourceSha256": "01a3bd83b8e37f645377114c3ffd96fed68a88d77d6f06f8b4f92ee56b347a99"
+          },
+          {
+            "label": "definition.warm",
+            "latencyMs": 16.393,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "ea4f8ecaa8fb7698e898175da6eca69ee1297cd3517243397c38111e06ada17a",
+            "documentVersion": 1,
+            "sourceSha256": "01a3bd83b8e37f645377114c3ffd96fed68a88d77d6f06f8b4f92ee56b347a99"
+          },
+          {
+            "label": "definition.postWhitespace",
+            "latencyMs": 250.452,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "ea4f8ecaa8fb7698e898175da6eca69ee1297cd3517243397c38111e06ada17a",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "definition.postWhitespaceWarm",
+            "latencyMs": 17.243,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "ea4f8ecaa8fb7698e898175da6eca69ee1297cd3517243397c38111e06ada17a",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "completion.first",
+            "latencyMs": 192.98,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "ba97ba02252a26dc824af49c0c218a2164c7875da8af6f68bc7b381b978946e5",
+            "documentVersion": 1,
+            "sourceSha256": "04d0708d37d449397045b68c52bd3bdfc201df8cc206876b9ff174ea2f3d3427"
+          },
+          {
+            "label": "completion.warm",
+            "latencyMs": 0.395,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "ba97ba02252a26dc824af49c0c218a2164c7875da8af6f68bc7b381b978946e5",
+            "documentVersion": 1,
+            "sourceSha256": "04d0708d37d449397045b68c52bd3bdfc201df8cc206876b9ff174ea2f3d3427"
+          },
+          {
+            "label": "completion.postWhitespace",
+            "latencyMs": 42.104,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "ba97ba02252a26dc824af49c0c218a2164c7875da8af6f68bc7b381b978946e5",
+            "documentVersion": 2,
+            "sourceSha256": "b85c55eaecac7f6649bfade6b119f6f915e0aa6e863dfce072a57282004ab36e"
+          },
+          {
+            "label": "completion.postWhitespaceWarm",
+            "latencyMs": 9.118,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "ba97ba02252a26dc824af49c0c218a2164c7875da8af6f68bc7b381b978946e5",
+            "documentVersion": 2,
+            "sourceSha256": "b85c55eaecac7f6649bfade6b119f6f915e0aa6e863dfce072a57282004ab36e"
+          },
+          {
+            "label": "bindingCompletion.first",
+            "latencyMs": 388.851,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "f494eac99f2a13ac9c6ccef91e8ca6e823db6a0209c2610ccd2e22e8749d9b76",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "bindingCompletion.warm",
+            "latencyMs": 0.366,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "f494eac99f2a13ac9c6ccef91e8ca6e823db6a0209c2610ccd2e22e8749d9b76",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "bindingCompletion.postWhitespace",
+            "latencyMs": 234.249,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "f494eac99f2a13ac9c6ccef91e8ca6e823db6a0209c2610ccd2e22e8749d9b76",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "bindingCompletion.postWhitespaceWarm",
+            "latencyMs": 0.373,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "f494eac99f2a13ac9c6ccef91e8ca6e823db6a0209c2610ccd2e22e8749d9b76",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.hover.first",
+            "latencyMs": 436.344,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "changedUrl.hover.warm",
+            "latencyMs": 0.962,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "changedUrl.hover.postWhitespace",
+            "latencyMs": 251.325,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.hover.postWhitespaceWarm",
+            "latencyMs": 0.854,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.diagnostics.clean",
+            "latencyMs": 599.042,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "changedUrl.diagnostics.badRoute",
+            "latencyMs": 983.867,
+            "resultCount": 1,
+            "resultBytes": 783,
+            "resultSha256": "ff9d8e042ff751403ba7026867bc3e99863b730bd460118a10477294e9b88e6c",
+            "documentVersion": 3,
+            "sourceSha256": "075988e08860e6f71b3602d1c87b4e51de292c80d1475c94775495473cf5bc7e",
+            "diagnosticEvidence": {
+              "expected": "RouteError",
+              "errorCount": 1,
+              "code": 2322,
+              "range": {
+                "start": {
+                  "line": 36,
+                  "character": 8
+                },
+                "end": {
+                  "line": 36,
+                  "character": 13
+                }
+              }
+            }
+          },
+          {
+            "label": "changedUrl.diagnostics.restored",
+            "latencyMs": 1027.714,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "changedUrl.hover.postRestore",
+            "latencyMs": 219.411,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.hover.postRestoreWarm",
+            "latencyMs": 0.877,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.completion.postRestoreWarm",
+            "latencyMs": 0.546,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "f494eac99f2a13ac9c6ccef91e8ca6e823db6a0209c2610ccd2e22e8749d9b76",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "messageConstructor.local.cold",
+            "latencyMs": 296.613,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 1,
+            "sourceSha256": "086348b57dad755bb1f8cb553841bcf7e6ecc4b22f55ee8000297d74353b8090",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "messageConstructor.completed.cold",
+            "latencyMs": 2995.987,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 1,
+            "sourceSha256": "e2477c30b764d50cf1c6dd7b80d60510a3f7d7f84c888b28954de5912b4df8fe",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          }
+        ]
+      },
+      {
+        "side": "candidate",
+        "scenario": "all",
+        "run": 3,
+        "metadata": {
+          "formatVersion": 5,
+          "measuredAt": "2026-10-27T16:47:04.946Z",
+          "sourceCommit": "93c49c77b6d25d9f0aa8213135bb629c1a3e1ff4",
+          "sourceWorkloadDirty": false,
+          "workloadSha256": "8e456ef9bbe5f5b1bbd1f05eed286a9676101b1319f9931b034814d4c6f5351b",
+          "lockfileSha256": "b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47",
+          "benchmarkScriptSha256": "63e3f1ab2ed7c500e36c5b15feacb195e259f46cf0e3f76dce9173004997cf43",
+          "compilerPackageVersion": "7.1.0-beta",
+          "nativeCompilerPackage": "@typescript/typescript-darwin-arm64",
+          "server": {
+            "name": "typescript",
+            "version": "7.1.0-beta"
+          },
+          "nodeVersion": "v24.22.1",
+          "platform": "darwin",
+          "architecture": "arm64",
+          "runs": 1,
+          "scenario": "all",
+          "timeoutMs": 60000,
+          "completionSnippetSupport": true,
+          "documentChangeMode": "Incremental ranges for Binding and changed URL workflows"
+        },
+        "allSemanticValidationsPassed": true,
+        "sourceAndDeclarationsPreserved": true,
+        "inputDigest": "3178e634c6a47586ff823c225f3d7100219746c80b5771f5954cf6fdbc164d51",
+        "maximumSampledRssKiB": 770192,
+        "memorySampleCount": 29,
+        "measurements": [
+          {
+            "label": "hover.first",
+            "latencyMs": 297.697,
+            "resultBytes": 1253,
+            "resultSha256": "0ae45788be5e44f2ff25fcee61d2a884a24b49d5ec73fc608a347a09456a6e1d",
+            "documentVersion": 1,
+            "sourceSha256": "fde6fb50d616c6aada5370da4bdce89f7edd6db0ab2a40c5ecd4906a9ff219e1"
+          },
+          {
+            "label": "hover.warm",
+            "latencyMs": 0.514,
+            "resultBytes": 1253,
+            "resultSha256": "0ae45788be5e44f2ff25fcee61d2a884a24b49d5ec73fc608a347a09456a6e1d",
+            "documentVersion": 1,
+            "sourceSha256": "fde6fb50d616c6aada5370da4bdce89f7edd6db0ab2a40c5ecd4906a9ff219e1"
+          },
+          {
+            "label": "hover.postWhitespace",
+            "latencyMs": 265.5,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "hover.postWhitespaceWarm",
+            "latencyMs": 1.038,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "hover.postSemantic",
+            "latencyMs": 237.325,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 3,
+            "sourceSha256": "d6fd8ba8a4d6cda463f57b7e8fe0cff4b6bed32f2e6cb47564b31d2b3099e083"
+          },
+          {
+            "label": "hover.postSemanticWarm",
+            "latencyMs": 0.908,
+            "resultBytes": 914,
+            "resultSha256": "c2eb59d5266be417926880d8f55701f16de40c1686c4a8ce60b2aca95117af72",
+            "documentVersion": 3,
+            "sourceSha256": "d6fd8ba8a4d6cda463f57b7e8fe0cff4b6bed32f2e6cb47564b31d2b3099e083"
+          },
+          {
+            "label": "definition.first",
+            "latencyMs": 554.592,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "ea4f8ecaa8fb7698e898175da6eca69ee1297cd3517243397c38111e06ada17a",
+            "documentVersion": 1,
+            "sourceSha256": "01a3bd83b8e37f645377114c3ffd96fed68a88d77d6f06f8b4f92ee56b347a99"
+          },
+          {
+            "label": "definition.warm",
+            "latencyMs": 18.498,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "ea4f8ecaa8fb7698e898175da6eca69ee1297cd3517243397c38111e06ada17a",
+            "documentVersion": 1,
+            "sourceSha256": "01a3bd83b8e37f645377114c3ffd96fed68a88d77d6f06f8b4f92ee56b347a99"
+          },
+          {
+            "label": "definition.postWhitespace",
+            "latencyMs": 317.248,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "ea4f8ecaa8fb7698e898175da6eca69ee1297cd3517243397c38111e06ada17a",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "definition.postWhitespaceWarm",
+            "latencyMs": 18.428,
+            "resultCount": 2,
+            "resultBytes": 819,
+            "resultSha256": "ea4f8ecaa8fb7698e898175da6eca69ee1297cd3517243397c38111e06ada17a",
+            "documentVersion": 2,
+            "sourceSha256": "40300e8ac8440e93ac1e8a04102ce2afa6b4a443153b23d227ccbffb26fdf246"
+          },
+          {
+            "label": "completion.first",
+            "latencyMs": 364.624,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "ba97ba02252a26dc824af49c0c218a2164c7875da8af6f68bc7b381b978946e5",
+            "documentVersion": 1,
+            "sourceSha256": "04d0708d37d449397045b68c52bd3bdfc201df8cc206876b9ff174ea2f3d3427"
+          },
+          {
+            "label": "completion.warm",
+            "latencyMs": 0.944,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "ba97ba02252a26dc824af49c0c218a2164c7875da8af6f68bc7b381b978946e5",
+            "documentVersion": 1,
+            "sourceSha256": "04d0708d37d449397045b68c52bd3bdfc201df8cc206876b9ff174ea2f3d3427"
+          },
+          {
+            "label": "completion.postWhitespace",
+            "latencyMs": 114.998,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "ba97ba02252a26dc824af49c0c218a2164c7875da8af6f68bc7b381b978946e5",
+            "documentVersion": 2,
+            "sourceSha256": "b85c55eaecac7f6649bfade6b119f6f915e0aa6e863dfce072a57282004ab36e"
+          },
+          {
+            "label": "completion.postWhitespaceWarm",
+            "latencyMs": 4.634,
+            "resultCount": 2,
+            "resultBytes": 472,
+            "resultSha256": "ba97ba02252a26dc824af49c0c218a2164c7875da8af6f68bc7b381b978946e5",
+            "documentVersion": 2,
+            "sourceSha256": "b85c55eaecac7f6649bfade6b119f6f915e0aa6e863dfce072a57282004ab36e"
+          },
+          {
+            "label": "bindingCompletion.first",
+            "latencyMs": 547.933,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "f494eac99f2a13ac9c6ccef91e8ca6e823db6a0209c2610ccd2e22e8749d9b76",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "bindingCompletion.warm",
+            "latencyMs": 0.426,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "f494eac99f2a13ac9c6ccef91e8ca6e823db6a0209c2610ccd2e22e8749d9b76",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "bindingCompletion.postWhitespace",
+            "latencyMs": 385.419,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "f494eac99f2a13ac9c6ccef91e8ca6e823db6a0209c2610ccd2e22e8749d9b76",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "bindingCompletion.postWhitespaceWarm",
+            "latencyMs": 0.692,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "f494eac99f2a13ac9c6ccef91e8ca6e823db6a0209c2610ccd2e22e8749d9b76",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.hover.first",
+            "latencyMs": 606.306,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "changedUrl.hover.warm",
+            "latencyMs": 1.41,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 1,
+            "sourceSha256": "26fa89f218ff25defd1f19fd453e224c105482140008ee8311a3a0d02caf2af7"
+          },
+          {
+            "label": "changedUrl.hover.postWhitespace",
+            "latencyMs": 270.266,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.hover.postWhitespaceWarm",
+            "latencyMs": 1.008,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.diagnostics.clean",
+            "latencyMs": 630.847,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 2,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "changedUrl.diagnostics.badRoute",
+            "latencyMs": 648.002,
+            "resultCount": 1,
+            "resultBytes": 783,
+            "resultSha256": "ff9d8e042ff751403ba7026867bc3e99863b730bd460118a10477294e9b88e6c",
+            "documentVersion": 3,
+            "sourceSha256": "075988e08860e6f71b3602d1c87b4e51de292c80d1475c94775495473cf5bc7e",
+            "diagnosticEvidence": {
+              "expected": "RouteError",
+              "errorCount": 1,
+              "code": 2322,
+              "range": {
+                "start": {
+                  "line": 36,
+                  "character": 8
+                },
+                "end": {
+                  "line": 36,
+                  "character": 13
+                }
+              }
+            }
+          },
+          {
+            "label": "changedUrl.diagnostics.restored",
+            "latencyMs": 622.306,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "changedUrl.hover.postRestore",
+            "latencyMs": 224.186,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.hover.postRestoreWarm",
+            "latencyMs": 0.959,
+            "resultBytes": 909,
+            "resultSha256": "46bab3499b65a03ebf82de48579e8f32d12f09533ee793109f8776164aabcc06",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "changedUrl.completion.postRestoreWarm",
+            "latencyMs": 0.573,
+            "resultCount": 6,
+            "resultBytes": 1372,
+            "resultSha256": "f494eac99f2a13ac9c6ccef91e8ca6e823db6a0209c2610ccd2e22e8749d9b76",
+            "documentVersion": 4,
+            "sourceSha256": "9e8d9403b74d92ffd4071aa0bf91cd3a7b1c22e89d3659fe61de5d07d2235841"
+          },
+          {
+            "label": "messageConstructor.local.cold",
+            "latencyMs": 304.313,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 1,
+            "sourceSha256": "086348b57dad755bb1f8cb553841bcf7e6ecc4b22f55ee8000297d74353b8090",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          },
+          {
+            "label": "messageConstructor.completed.cold",
+            "latencyMs": 3089.1,
+            "resultCount": 0,
+            "resultBytes": 26,
+            "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+            "documentVersion": 1,
+            "sourceSha256": "e2477c30b764d50cf1c6dd7b80d60510a3f7d7f84c888b28954de5912b4df8fe",
+            "diagnosticEvidence": {
+              "expected": "Clean",
+              "errorCount": 0
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "runtime": {
+    "harnessRevision": "03fff17ad22407115a91937ddab680e40fe0c7c7",
+    "browserVersion": "156.0.8078.48",
+    "driverProtocol": "Unchanged runbook and timer aggregation; final DOM and sync-count assertions after returned measurement snapshot",
+    "itemCount": 100,
+    "rounds": 6,
+    "freshContextPerSample": true,
+    "separateWarmup": false,
+    "bootExcluded": true,
+    "garbageCollectionControl": false,
+    "outlierPolicy": "Keep every valid sample; fail on any page error or contract failure",
+    "host": {
+      "platform": "darwin",
+      "architecture": "arm64",
+      "osRelease": "25.6.0",
+      "cpuModel": "Apple M1 Max",
+      "logicalCpuCount": 10,
+      "nodeVersion": "v24.22.1"
+    },
+    "summary": {
+      "foldkit-stabilization-1810-main": {
+        "crossOriginIsolated": true,
+        "total": 377.9,
+        "sync": 35.2,
+        "timeout": 0,
+        "animationFrame": 342.7,
+        "microtask": 0,
+        "promise": 0,
+        "boot": 0,
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "relativeToFastest": 2.34
+      },
+      "foldkit-stabilization-1810-main-optimised": {
+        "crossOriginIsolated": true,
+        "total": 161.5,
+        "sync": 41.5,
+        "timeout": 0,
+        "animationFrame": 121.6,
+        "microtask": 0,
+        "promise": 0,
+        "boot": 0,
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "relativeToFastest": 1
+      },
+      "foldkit-stabilization-1810-published": {
+        "crossOriginIsolated": true,
+        "total": 440.1,
+        "sync": 43.8,
+        "timeout": 0,
+        "animationFrame": 394.8,
+        "microtask": 0,
+        "promise": 0,
+        "boot": 0,
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "relativeToFastest": 2.73
+      },
+      "foldkit-stabilization-1810-published-optimised": {
+        "crossOriginIsolated": true,
+        "total": 216.4,
+        "sync": 47.1,
+        "timeout": 0,
+        "animationFrame": 168.5,
+        "microtask": 0,
+        "promise": 0,
+        "boot": 0,
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "relativeToFastest": 1.34
+      },
+      "foldkit-stabilization-1810-candidate": {
+        "crossOriginIsolated": true,
+        "total": 445.1,
+        "sync": 42.6,
+        "timeout": 0,
+        "animationFrame": 401.5,
+        "microtask": 0,
+        "promise": 0,
+        "boot": 0,
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "relativeToFastest": 2.76
+      },
+      "foldkit-stabilization-1810-candidate-optimised": {
+        "crossOriginIsolated": true,
+        "total": 208.6,
+        "sync": 45.9,
+        "timeout": 0,
+        "animationFrame": 160.9,
+        "microtask": 0,
+        "promise": 0,
+        "boot": 0,
+        "counts": {
+          "sync": 400,
+          "timeout": 0,
+          "animation_frame": 400,
+          "microtask": 0,
+          "promise": 0
+        },
+        "relativeToFastest": 1.29
+      }
+    },
+    "runsByImplementation": {
+      "foldkit-stabilization-1810-main": [
+        {
+          "crossOriginIsolated": true,
+          "total": 405.9199914932251,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 38.84999322891235,
+            "timeout": 0,
+            "animation_frame": 367.06999826431274,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 279.8350052833557,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 30.415003776550293,
+            "timeout": 0,
+            "animation_frame": 249.42000150680542,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 389.48000144958496,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 35.595001220703125,
+            "timeout": 0,
+            "animation_frame": 353.88500022888184,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 435.03500509262085,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 40.455005168914795,
+            "timeout": 0,
+            "animation_frame": 394.57999992370605,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 334.074999332428,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 33.969998359680176,
+            "timeout": 0,
+            "animation_frame": 300.1050009727478,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 366.39499282836914,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 34.89999437332153,
+            "timeout": 0,
+            "animation_frame": 331.4949984550476,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        }
+      ],
+      "foldkit-stabilization-1810-main-optimised": [
+        {
+          "crossOriginIsolated": true,
+          "total": 188.47999906539917,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 42.22000312805176,
+            "timeout": 0,
+            "animation_frame": 146.2599959373474,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 174.01500606536865,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 42.000003814697266,
+            "timeout": 0,
+            "animation_frame": 132.0150022506714,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 143.2300000190735,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 33.28999948501587,
+            "timeout": 0,
+            "animation_frame": 109.94000053405762,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 160.99499559402466,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 41.239999294281006,
+            "timeout": 0,
+            "animation_frame": 119.75499629974365,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 160.71000576019287,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 41.74500799179077,
+            "timeout": 0,
+            "animation_frame": 118.9649977684021,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 161.9550061225891,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 38.41500282287598,
+            "timeout": 0,
+            "animation_frame": 123.54000329971313,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        }
+      ],
+      "foldkit-stabilization-1810-published": [
+        {
+          "crossOriginIsolated": true,
+          "total": 452.09499883651733,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 46.764997482299805,
+            "timeout": 0,
+            "animation_frame": 405.33000135421753,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 481.5250105857849,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 42.36000680923462,
+            "timeout": 0,
+            "animation_frame": 439.1650037765503,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 531.5900025367737,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 45.67000150680542,
+            "timeout": 0,
+            "animation_frame": 485.92000102996826,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 428.0850043296814,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 43.899999141693115,
+            "timeout": 0,
+            "animation_frame": 384.1850051879883,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 424.76499223709106,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 43.60499715805054,
+            "timeout": 0,
+            "animation_frame": 381.1599950790405,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 400.11999702453613,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 41.98999643325806,
+            "timeout": 0,
+            "animation_frame": 358.1300005912781,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        }
+      ],
+      "foldkit-stabilization-1810-published-optimised": [
+        {
+          "crossOriginIsolated": true,
+          "total": 227.51000833511353,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 54.21500205993652,
+            "timeout": 0,
+            "animation_frame": 173.295006275177,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 222.03500509262085,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 45.46500110626221,
+            "timeout": 0,
+            "animation_frame": 176.57000398635864,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 202.15500259399414,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 47.1950044631958,
+            "timeout": 0,
+            "animation_frame": 154.95999813079834,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 210.6750044822693,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 46.9150013923645,
+            "timeout": 0,
+            "animation_frame": 163.76000308990479,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 193.45499324798584,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 42.86500072479248,
+            "timeout": 0,
+            "animation_frame": 150.58999252319336,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 234.2250099182129,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 48.865002155303955,
+            "timeout": 0,
+            "animation_frame": 185.36000776290894,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        }
+      ],
+      "foldkit-stabilization-1810-candidate": [
+        {
+          "crossOriginIsolated": true,
+          "total": 448.6300129890442,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 46.49000549316406,
+            "timeout": 0,
+            "animation_frame": 402.1400074958801,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 456.3099937438965,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 43.58000087738037,
+            "timeout": 0,
+            "animation_frame": 412.7299928665161,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 372.044997215271,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 41.69999837875366,
+            "timeout": 0,
+            "animation_frame": 330.34499883651733,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 441.50999450683594,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 40.7349967956543,
+            "timeout": 0,
+            "animation_frame": 400.77499771118164,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 462.60499906539917,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 47.49500322341919,
+            "timeout": 0,
+            "animation_frame": 415.10999584198,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 262.165002822876,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 35.710002422332764,
+            "timeout": 0,
+            "animation_frame": 226.4550004005432,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        }
+      ],
+      "foldkit-stabilization-1810-candidate-optimised": [
+        {
+          "crossOriginIsolated": true,
+          "total": 200.81999588012695,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 49.67499113082886,
+            "timeout": 0,
+            "animation_frame": 151.1450047492981,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 216.45500564575195,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 45.84000110626221,
+            "timeout": 0,
+            "animation_frame": 170.61500453948975,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 222.1950011253357,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 45.92500066757202,
+            "timeout": 0,
+            "animation_frame": 176.27000045776367,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 220.42500495910645,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 46.32499885559082,
+            "timeout": 0,
+            "animation_frame": 174.10000610351562,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 187.75999307632446,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 39.94499683380127,
+            "timeout": 0,
+            "animation_frame": 147.8149962425232,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        },
+        {
+          "crossOriginIsolated": true,
+          "total": 189.9699831008911,
+          "boot": {
+            "results": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            },
+            "counts": {
+              "sync": 0,
+              "timeout": 0,
+              "animation_frame": 0,
+              "microtask": 0,
+              "promise": 0
+            }
+          },
+          "results": {
+            "sync": 43.894991397857666,
+            "timeout": 0,
+            "animation_frame": 146.07499170303345,
+            "microtask": 0,
+            "promise": 0
+          },
+          "counts": {
+            "sync": 400,
+            "timeout": 0,
+            "animation_frame": 400,
+            "microtask": 0,
+            "promise": 0
+          },
+          "finalState": {
+            "todoCount": 0,
+            "inputValue": ""
+          }
+        }
+      ]
+    }
+  },
+  "runtimeProvenance": {
+    "harnessRevision": "03fff17ad22407115a91937ddab680e40fe0c7c7",
+    "instrumentationSha256": "6e3597e81ef7276d99f17cfa4c3430e05beb7768411a1a34bffa0026343f7f69",
+    "driver": {
+      "sourceBenchDirectory": "internal/lustre-benchmark/bench",
+      "adaptations": [
+        "Persist all raw samples, browser and platform metadata",
+        "Assert final empty Todo list, cleared input and 400 synchronous events after measurement snapshot",
+        "Correctness preflight additionally asserts keyed row identity across toggle and first deletion"
+      ],
+      "files": [
+        {
+          "file": "run.mjs",
+          "sha256": "074385689e04422d042f26a8a8a30181acc73360ad3f4d727de4567ee493d655"
+        },
+        {
+          "file": "runner.html",
+          "sha256": "6d26843332fa4b5bcd55def19f6219ac8d26a0db242c32bc54a2291a6a695ee1"
+        },
+        {
+          "file": "server.mjs",
+          "sha256": "fb76bfaf628dd7ecd9932c008604b566a0cafaa20fc9f88f8f35bfa3ac980398"
+        },
+        {
+          "file": "verify.mjs",
+          "sha256": "1cbc1de3ec96afc62901463acf7e251481377dada8c0cb1100bb1f06814fc28e"
+        }
+      ]
+    },
+    "slots": [
+      {
+        "slot": "foldkit-stabilization-1810-main",
+        "label": "main",
+        "variant": "naive",
+        "sourceCommit": "b702a5efbb74bebc056b798b414ddb923a82fbd5",
+        "archiveSha256": "f02aee3388969b6db5de9740a88605db1689f49e9fbce104cc77a630849af2a5",
+        "versions": {
+          "vite": "8.3.5",
+          "effect": "4.0.0",
+          "playwright": "1.63.0"
+        },
+        "files": [
+          {
+            "file": "assets/index-DvxYd33x.js",
+            "bytes": 298040,
+            "gzipBytes": 97081,
+            "sha256": "12edee10fcab977045b37a264f67ac08e7d83b957659beab5ae3a1503cdf3ce0"
+          },
+          {
+            "file": "index.html",
+            "bytes": 678,
+            "gzipBytes": 381,
+            "sha256": "c47c700b3756d9a7357b6d5fcd5cda0c2c2125a8e3f07477dae49076e1cfd566"
+          }
+        ]
+      },
+      {
+        "slot": "foldkit-stabilization-1810-main-optimised",
+        "label": "main",
+        "variant": "optimised",
+        "sourceCommit": "b702a5efbb74bebc056b798b414ddb923a82fbd5",
+        "archiveSha256": "f02aee3388969b6db5de9740a88605db1689f49e9fbce104cc77a630849af2a5",
+        "versions": {
+          "vite": "8.3.5",
+          "effect": "4.0.0",
+          "playwright": "1.63.0"
+        },
+        "files": [
+          {
+            "file": "assets/index.optimised-9WXsnvtj.js",
+            "bytes": 300443,
+            "gzipBytes": 97796,
+            "sha256": "8a4c3391ac6e98e6a400516b39cf801d48c8b0e0b9b542e14512faa296473d0d"
+          },
+          {
+            "file": "index.html",
+            "bytes": 700,
+            "gzipBytes": 392,
+            "sha256": "4941dd4a52b940a5cd3cbdc4928883d21e69090711a4df4967399f7f19b22b7c"
+          },
+          {
+            "file": "index.optimised.html",
+            "bytes": 700,
+            "gzipBytes": 392,
+            "sha256": "4941dd4a52b940a5cd3cbdc4928883d21e69090711a4df4967399f7f19b22b7c"
+          }
+        ]
+      },
+      {
+        "slot": "foldkit-stabilization-1810-published",
+        "label": "published",
+        "variant": "naive",
+        "sourceCommit": "f3be22cfeefed437164ad614d08b16d9000e0703",
+        "archiveSha256": "83963fe57a7ce20c0a6ff9ac6b3636cc7503ad8920e237ffddd2fbd5b1b5364f",
+        "versions": {
+          "vite": "8.3.5",
+          "effect": "4.0.0",
+          "playwright": "1.63.0"
+        },
+        "files": [
+          {
+            "file": "assets/index-mrOMhrU2.js",
+            "bytes": 412157,
+            "gzipBytes": 128899,
+            "sha256": "54e52069f3d94ec700c7dededa81f28ff7aaed24ff7336f7998e4169459d4c37"
+          },
+          {
+            "file": "index.html",
+            "bytes": 678,
+            "gzipBytes": 378,
+            "sha256": "69f403384cb3b67b9000565aeb63c0ae21f52b5bbdac61a02627158c4d36601e"
+          }
+        ]
+      },
+      {
+        "slot": "foldkit-stabilization-1810-published-optimised",
+        "label": "published",
+        "variant": "optimised",
+        "sourceCommit": "f3be22cfeefed437164ad614d08b16d9000e0703",
+        "archiveSha256": "83963fe57a7ce20c0a6ff9ac6b3636cc7503ad8920e237ffddd2fbd5b1b5364f",
+        "versions": {
+          "vite": "8.3.5",
+          "effect": "4.0.0",
+          "playwright": "1.63.0"
+        },
+        "files": [
+          {
+            "file": "assets/index.optimised-MILvbF3I.js",
+            "bytes": 418794,
+            "gzipBytes": 130291,
+            "sha256": "1a83d12bd0b6b2c36330773196f29ecacf32973968b84bf3a3a74d4524a340a1"
+          },
+          {
+            "file": "index.html",
+            "bytes": 700,
+            "gzipBytes": 395,
+            "sha256": "25db2fc854069f9521f0e238bfc4824f5710fba211118d0d03fc4c1ad46d2d3b"
+          },
+          {
+            "file": "index.optimised.html",
+            "bytes": 700,
+            "gzipBytes": 395,
+            "sha256": "25db2fc854069f9521f0e238bfc4824f5710fba211118d0d03fc4c1ad46d2d3b"
+          }
+        ]
+      },
+      {
+        "slot": "foldkit-stabilization-1810-candidate",
+        "label": "candidate",
+        "variant": "naive",
+        "sourceCommit": "93c49c77b6d25d9f0aa8213135bb629c1a3e1ff4",
+        "archiveSha256": "2e9ab3a0d64dd28614bb3f63d189decff13ab91350bdbf53e692e409ad258876",
+        "versions": {
+          "vite": "8.3.5",
+          "effect": "4.0.0",
+          "playwright": "1.63.0"
+        },
+        "files": [
+          {
+            "file": "assets/index-M-PVw1Rg.js",
+            "bytes": 412237,
+            "gzipBytes": 128963,
+            "sha256": "be948413c41e72e9ffa0e232b46daa56f6fb91ebb6d96ca4bf9bd18a32439837"
+          },
+          {
+            "file": "index.html",
+            "bytes": 678,
+            "gzipBytes": 380,
+            "sha256": "0f0ae8e0806f6c0c3f4f52f7810e8055a47ccb777c0be08b3d268fcfdd7df120"
+          }
+        ]
+      },
+      {
+        "slot": "foldkit-stabilization-1810-candidate-optimised",
+        "label": "candidate",
+        "variant": "optimised",
+        "sourceCommit": "93c49c77b6d25d9f0aa8213135bb629c1a3e1ff4",
+        "archiveSha256": "2e9ab3a0d64dd28614bb3f63d189decff13ab91350bdbf53e692e409ad258876",
+        "versions": {
+          "vite": "8.3.5",
+          "effect": "4.0.0",
+          "playwright": "1.63.0"
+        },
+        "files": [
+          {
+            "file": "assets/index.optimised-D4yAhoMW.js",
+            "bytes": 418874,
+            "gzipBytes": 130346,
+            "sha256": "40ed60283866fbbce79949043bbcf4e642f24cad0541989b55f016ded4046b0d"
+          },
+          {
+            "file": "index.html",
+            "bytes": 700,
+            "gzipBytes": 394,
+            "sha256": "678e2e4272ca1500745d6de83e6bacdc4bf04e5711069a1c46db579d3c09edd2"
+          },
+          {
+            "file": "index.optimised.html",
+            "bytes": 700,
+            "gzipBytes": 394,
+            "sha256": "678e2e4272ca1500745d6de83e6bacdc4bf04e5711069a1c46db579d3c09edd2"
+          }
+        ]
+      }
+    ],
+    "allBuiltArtifactsPreservedAfterTiming": true,
+    "all36FinalStateAnd400EventAssertionsPassed": true
+  },
+  "limits": [
+    "Three native pairs per workload are a small sample.",
+    "Cold first/root diagnostic requests differ from warmed post-edit requests.",
+    "Native server latency is not full editor/Neovim/tsrs latency.",
+    "Actual consumer factoring differs between release pins; timings do not isolate one framework encoding.",
+    "No forced GC; RSS is sampled and not allocation or retained heap.",
+    "Rendering totals exclude boot/waits and do not isolate DOM patching or presentation.",
+    "One machine/browser batch does not establish arbitrary-application scalability."
+  ],
+  "rawEvidenceSha256": {
+    "native-published-workspace-1.json": "cef9151894e77bd086d93d17466882438bbc12d2ac0b19c180a582edb6ceddc1",
+    "native-published-workspace-1.provenance.json": "bd59c9a4cc284f4721686dd887d4b9ea2911dbf7c22cb5b74033c7b2412608cf",
+    "native-published-workspace-2.json": "6b7bb4554b6cbada34451957d9bcae52e08ca3b3fb7498af0ca91f1c59dcf79e",
+    "native-published-workspace-2.provenance.json": "c4c70941eb6c04369cc7f88288e754adc75c21764fb54d0830a5c75a49abc70a",
+    "native-published-workspace-3.json": "b4ac327c3c839a377d6a193487d775695c3bf6d63bf2666375cd519c4e9613d5",
+    "native-published-workspace-3.provenance.json": "ea2af49dba26c7267d23f8ad06fa9c1e937a213ddb6db5e623ad6da7593c7961",
+    "native-candidate-workspace-1.json": "207cf4a4ab92da54ce34ef9ad39a89e62be3fdd3f68f6fdd1d3b19dcac3efeb5",
+    "native-candidate-workspace-1.provenance.json": "71641243b52c0482ee46a2a7c4166bf296ee34c512aaf3e60024a84bb0c66cf5",
+    "native-candidate-workspace-2.json": "cb97476048a423f481471bdc202a303a9c714fe22a12baacc26a0a87080b63d0",
+    "native-candidate-workspace-2.provenance.json": "8af3e9d4da6bdafd4d5de154eb605b4b7dfca01e2abdc86c75a9a5afdc464703",
+    "native-candidate-workspace-3.json": "c6ec8217ed420a8a35860d220dd8e9bcf2460b224fd5a70d47c84e94bd9078c9",
+    "native-candidate-workspace-3.provenance.json": "610b4a0f603111bd5a68f0382e23759046947569c576732ef8ccd1725f30d820",
+    "native-published-all-1.json": "cab16bf767d0a275d346d93259502c0f3f8842bb9a17ac8a31acb7eddfd4c765",
+    "native-published-all-1.provenance.json": "4067cf7ff1c34366bc8a83ca26eb3bfd0a32ec9d0cc18dbbd90c03272e0a9e3c",
+    "native-published-all-2.json": "51521b8b6d7bc1dbf715f5c6cdbefeac8ce2ad52c6589041b64c46c6c3036111",
+    "native-published-all-2.provenance.json": "91c444654abda4bf9cd5c835a7e13c52d1585625f6c66b00b68f114f0ceadd0c",
+    "native-published-all-3.json": "53a0fe343b470d6dd676958576d869e8f8a85002f6085ae807d2c500546df82a",
+    "native-published-all-3.provenance.json": "77c00aff0f34a4483396ef15359c0327d1d917825c6bc0b6c4d1b3595883c5ba",
+    "native-candidate-all-1.json": "f890ac575e7fb09838c13983bfcc5919872c2b6ca6c4e529bfd322d5a2b9318d",
+    "native-candidate-all-1.provenance.json": "8bbcea79a043a11753633cd75ed8cab75dd7494f45e5020f7260b9b1920acb4b",
+    "native-candidate-all-2.json": "10f4bca47628750a57c4115e1c65ab5aaf9230e2ec61b614d55745bb15e8262b",
+    "native-candidate-all-2.provenance.json": "bf908a80621fb683d5a7d692db2498acb6b8eaa78da0614c2e991bc8a3521c7b",
+    "native-candidate-all-3.json": "79652408207cfcb834a221c902a162289e7d2ee23688dc459b51f406fe9d1e15",
+    "native-candidate-all-3.provenance.json": "2192b38dcd4540274ea470c470db00407a83eb091dc5ee5bd20e2c490010837f",
+    "lustre-raw-results.json": "0f91ca091662e83a05bdb36d3f4a40fcd13b076664053c0e67fbeb8a57b755b1",
+    "lustre-bundles.json": "364abf9457e8a9460ae0872ed697ff0d87a025878bf0c2b5a3604f606bed1be1",
+    "source-manifest.json": "a4db57e5923f072333c14d3c5c30d2542747f05e4827b3711479efea242873c4",
+    "artifact-control.json": "35a5ef45899d212e57419be8f83431283128ae1b38de26402ffb39a0acfb12e3",
+    "declaration-identity-control.json": "cb6f1e1341352075d01d78e4eaa5f2f7d68078b7cf3014d12827bac5dcf97b82"
+  },
+  "batchReason": "Fresh final verification after candidate changed for #1810; preceding ae2 batch retained separately, with no old timing samples reused.",
+  "precedingCandidateCommit": "ae2eba84283939f5991a1b0c35c32ba351f9efdc",
+  "buildArtifactControl": {
+    "allBuildsFresh": true,
+    "earlierTimingReused": false,
+    "comparisonOnlyAgainstPreservedAe2Artifacts": [
+      {
+        "label": "main",
+        "variant": "naive",
+        "sameArtifactBytesAsAe2Batch": true,
+        "sameToolVersions": true,
+        "rawJsBytes": 298040,
+        "gzipJsBytes": 97081
+      },
+      {
+        "label": "main",
+        "variant": "optimised",
+        "sameArtifactBytesAsAe2Batch": true,
+        "sameToolVersions": true,
+        "rawJsBytes": 300443,
+        "gzipJsBytes": 97796
+      },
+      {
+        "label": "published",
+        "variant": "naive",
+        "sameArtifactBytesAsAe2Batch": true,
+        "sameToolVersions": true,
+        "rawJsBytes": 412157,
+        "gzipJsBytes": 128899
+      },
+      {
+        "label": "published",
+        "variant": "optimised",
+        "sameArtifactBytesAsAe2Batch": true,
+        "sameToolVersions": true,
+        "rawJsBytes": 418794,
+        "gzipJsBytes": 130291
+      },
+      {
+        "label": "candidate",
+        "variant": "naive",
+        "sameArtifactBytesAsAe2Batch": false,
+        "sameToolVersions": true,
+        "rawJsBytes": 412237,
+        "gzipJsBytes": 128963
+      },
+      {
+        "label": "candidate",
+        "variant": "optimised",
+        "sameArtifactBytesAsAe2Batch": false,
+        "sameToolVersions": true,
+        "rawJsBytes": 418874,
+        "gzipJsBytes": 130346
+      }
+    ],
+    "preparedChromeVersion": "156.0.8078.48"
+  },
+  "declarationIdentityAgainstAe2": [
+    {
+      "package": "foldkit",
+      "oldDeclarations": 289,
+      "newDeclarations": 289,
+      "changed": ["runtime/modelPreservation.d.ts"]
+    },
+    {
+      "package": "vite-plugin-foldkit",
+      "oldDeclarations": 10,
+      "newDeclarations": 10,
+      "changed": []
+    },
+    {
+      "package": "ui",
+      "oldDeclarations": 126,
+      "newDeclarations": 126,
+      "changed": []
+    },
+    {
+      "package": "devtools",
+      "oldDeclarations": 4,
+      "newDeclarations": 4,
+      "changed": []
+    },
+    {
+      "package": "markdown",
+      "oldDeclarations": 12,
+      "newDeclarations": 12,
+      "changed": []
+    }
+  ]
+}

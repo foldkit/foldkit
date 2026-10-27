@@ -1,10 +1,10 @@
 # Blocks + Effect Layers stabilization preparation
 
-The verification checkpoint below passes. A final 16:03 UTC feedback refresh
-found new [#1810](https://github.com/foldkit/foldkit/issues/1810), posted at
-15:48 UTC. Its diagnostic guidance and DevTools snapshot-preservation path are
-under assessment; final sign-off is held until that followup is dispositioned
-and affected verification is refreshed. Publication remains held for approval.
+This is the earlier ae2 verification checkpoint. The
+[final approval summary](preview-stabilization-final-20261027.md) owns the
+subsequent #1810 repairs and refreshed verification at `93c49c77b6d2`.
+Sections below preserve this checkpoint's source pin, measurements and original
+assessment state. Publication remains held for approval.
 
 ## Source and release boundary
 
