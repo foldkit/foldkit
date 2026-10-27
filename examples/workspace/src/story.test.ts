@@ -68,7 +68,7 @@ import {
   projectRouter,
   routeToPath,
   savedViewRouter,
-  withIssuePanel,
+  withIssueId,
 } from './route'
 import {
   appliedIssueFilters,
@@ -149,7 +149,7 @@ describe('workspace navigation', () => {
       message(Message.ChangedUrl({ url: url(projectPath) })),
       message(
         Message.ChangedUrl({
-          url: url(routeToPath(withIssuePanel(projectRoute, issueB.id))),
+          url: url(routeToPath(withIssueId(projectRoute, issueB.id))),
         }),
       ),
       model(model => {
@@ -168,7 +168,7 @@ describe('workspace navigation', () => {
     const issueOpen = update(
       projectModel,
       Message.ChangedUrl({
-        url: url(routeToPath(withIssuePanel(projectRoute, issueB.id))),
+        url: url(routeToPath(withIssueId(projectRoute, issueB.id))),
       }),
     )
 
@@ -1213,12 +1213,10 @@ describe('Application child policies', () => {
       viewId: savedView.id,
       filters: changedFilters,
     })
-    const issuePath = routeToPath(withIssuePanel(savedViewRoute, 'issue-102'))
+    const issuePath = routeToPath(withIssueId(savedViewRoute, 'issue-102'))
     const issuesRoute = ApplicationRoute.Issues({ filters: changedFilters })
     const issuesPath = issuesRouter({ filters: changedFilters })
-    const repairedIssuePath = routeToPath(
-      withIssuePanel(issuesRoute, 'issue-102'),
-    )
+    const repairedIssuePath = routeToPath(withIssueId(issuesRoute, 'issue-102'))
     const initial = modifyFields(loadedModel(issuePath), {
       savedViews: () => [savedView],
       nextSavedViewId: () => 2,

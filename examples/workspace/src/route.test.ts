@@ -17,9 +17,9 @@ import {
   routeToPath,
   savedViewRouter,
   urlToApplicationRoute,
-  withIssuePanel,
+  withIssueId,
   withRouteFilters,
-  withoutIssuePanel,
+  withoutIssueId,
 } from './route'
 
 const url = (path: string) =>
@@ -128,8 +128,8 @@ describe('workspace list routes', () => {
   })
 })
 
-describe('issue panels', () => {
-  test('round-trips a filtered Project with an open issue', () => {
+describe('issue selection', () => {
+  test('round-trips a filtered Project with a selected issue', () => {
     const route = ApplicationRoute.Project({
       projectId: 'platform',
       filters: filtered,
@@ -145,28 +145,28 @@ describe('issue panels', () => {
     expect(routeFilters(route)).toEqual(Option.some(filtered))
   })
 
-  test('opens and closes a Board panel without changing the page', () => {
+  test('adds and removes the selected issue without changing the Board Route', () => {
     const board = ApplicationRoute.Board({ projectId: 'platform' })
-    const opened = withIssuePanel(board, 'issue-101')
+    const opened = withIssueId(board, 'issue-101')
 
     expect(opened).toEqual(
       ApplicationRoute.Board({ projectId: 'platform', issueId: 'issue-101' }),
     )
     expect(routeToPath(opened)).toBe('/projects/platform/board?issue=issue-101')
     expect(urlToApplicationRoute(url(routeToPath(opened)))).toEqual(opened)
-    expect(withoutIssuePanel(opened)).toEqual(board)
-    expect(routeToPath(withoutIssuePanel(opened))).toBe(
+    expect(withoutIssueId(opened)).toEqual(board)
+    expect(routeToPath(withoutIssueId(opened))).toBe(
       boardRouter({ projectId: 'platform' }),
     )
   })
 
-  test('keeps filters while switching issues or closing a panel', () => {
+  test('keeps filters while changing or removing the selected issue', () => {
     const route = ApplicationRoute.SavedView({
       viewId: 'mine',
       filters: filtered,
       issueId: 'issue-101',
     })
-    const switched = withIssuePanel(route, 'issue-102')
+    const switched = withIssueId(route, 'issue-102')
 
     expect(switched).toEqual(
       ApplicationRoute.SavedView({
@@ -175,7 +175,7 @@ describe('issue panels', () => {
         issueId: 'issue-102',
       }),
     )
-    expect(withoutIssuePanel(switched)).toEqual(
+    expect(withoutIssueId(switched)).toEqual(
       ApplicationRoute.SavedView({ viewId: 'mine', filters: filtered }),
     )
     expect(withRouteFilters(switched, defaultIssueFilters)).toEqual(
@@ -199,7 +199,7 @@ describe('issue panels', () => {
     expect(maybeIssueId(route)).toEqual(Option.some('issue-101'))
   })
 
-  test('restricts panels to page Routes', () => {
+  test('restricts optional issue selection to page Routes', () => {
     const isPage = Schema.is(PageRoute)
 
     expect(isPage(ApplicationRoute.Board({ projectId: 'platform' }))).toBe(true)

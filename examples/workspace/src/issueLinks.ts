@@ -6,7 +6,7 @@ import {
   isPageRoute,
   issueRouter,
   routeToPath,
-  withIssuePanel,
+  withIssueId,
   withRouteFilters,
 } from './route'
 import { appliedIssueFilters } from './selection'
@@ -19,10 +19,7 @@ export const issueHref = (model: typeof Model.Type, issueId: string) => {
   }
 
   return routeToPath(
-    withIssuePanel(
-      withRouteFilters(route, appliedIssueFilters(model)),
-      issueId,
-    ),
+    withIssueId(withRouteFilters(route, appliedIssueFilters(model)), issueId),
   )
 }
 

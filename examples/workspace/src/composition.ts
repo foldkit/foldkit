@@ -38,7 +38,7 @@ import {
   maybeProjectId,
   projectRouter,
   routeToPath,
-  withoutIssuePanel,
+  withoutIssueId,
 } from './route'
 import { appliedIssueFilters } from './selection'
 
@@ -173,9 +173,7 @@ const foldIssueDetailOutMessage = ApplicationDefinition.makeOutMessageFold(
           return []
         }
 
-        return [
-          NavigateInternal({ url: routeToPath(withoutIssuePanel(route)) }),
-        ]
+        return [NavigateInternal({ url: routeToPath(withoutIssueId(route)) })]
       }),
   },
 )

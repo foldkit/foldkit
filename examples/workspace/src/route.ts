@@ -15,31 +15,31 @@ const RouteIssueFilters = Schema.Struct({
   filters: Schema.optionalKey(IssueFilters),
 })
 
-const IssuePanel = Schema.Struct({
+const RouteIssueSelection = Schema.Struct({
   issueId: Schema.optionalKey(Schema.String),
 })
 
-const issuePanelFromQuery = IssuePanel.pipe(
+const issueSelectionFromQuery = RouteIssueSelection.pipe(
   Schema.encodeKeys({ issueId: 'issue' }),
 )
 
 export const ApplicationRoute = defineRouteUnion({
-  Issues: { ...RouteIssueFilters.fields, ...IssuePanel.fields },
-  MyIssues: { ...RouteIssueFilters.fields, ...IssuePanel.fields },
+  Issues: { ...RouteIssueFilters.fields, ...RouteIssueSelection.fields },
+  MyIssues: { ...RouteIssueFilters.fields, ...RouteIssueSelection.fields },
   Project: {
     projectId: Schema.String,
     ...RouteIssueFilters.fields,
-    ...IssuePanel.fields,
+    ...RouteIssueSelection.fields,
   },
-  ProjectOverview: { projectId: Schema.String, ...IssuePanel.fields },
-  ProjectSettings: { projectId: Schema.String, ...IssuePanel.fields },
-  Board: { projectId: Schema.String, ...IssuePanel.fields },
-  People: IssuePanel.fields,
-  Settings: IssuePanel.fields,
+  ProjectOverview: { projectId: Schema.String, ...RouteIssueSelection.fields },
+  ProjectSettings: { projectId: Schema.String, ...RouteIssueSelection.fields },
+  Board: { projectId: Schema.String, ...RouteIssueSelection.fields },
+  People: RouteIssueSelection.fields,
+  Settings: RouteIssueSelection.fields,
   SavedView: {
     viewId: Schema.String,
     ...RouteIssueFilters.fields,
-    ...IssuePanel.fields,
+    ...RouteIssueSelection.fields,
   },
   Issue: { issueId: Schema.String },
   NotFound: { path: Schema.String },
@@ -147,7 +147,7 @@ const savedViewFiltersFromQuery = filtersFromQuery(true)
 export const issuesRouter = pipe(
   Route.root,
   Route.query(issueFiltersFromQuery),
-  Route.query(issuePanelFromQuery),
+  Route.query(issueSelectionFromQuery),
   Route.mapTo(ApplicationRoute.Issues),
 )
 
@@ -155,14 +155,14 @@ export const projectRouter = pipe(
   literal('projects'),
   slash(string('projectId')),
   Route.query(issueFiltersFromQuery),
-  Route.query(issuePanelFromQuery),
+  Route.query(issueSelectionFromQuery),
   Route.mapTo(ApplicationRoute.Project),
 )
 
 export const myIssuesRouter = pipe(
   literal('my-issues'),
   Route.query(issueFiltersFromQuery),
-  Route.query(issuePanelFromQuery),
+  Route.query(issueSelectionFromQuery),
   Route.mapTo(ApplicationRoute.MyIssues),
 )
 
@@ -170,19 +170,19 @@ export const savedViewRouter = pipe(
   literal('views'),
   slash(string('viewId')),
   Route.query(savedViewFiltersFromQuery),
-  Route.query(issuePanelFromQuery),
+  Route.query(issueSelectionFromQuery),
   Route.mapTo(ApplicationRoute.SavedView),
 )
 
 export const peopleRouter = pipe(
   literal('people'),
-  Route.query(issuePanelFromQuery),
+  Route.query(issueSelectionFromQuery),
   Route.mapTo(ApplicationRoute.People),
 )
 
 export const settingsRouter = pipe(
   literal('settings'),
-  Route.query(issuePanelFromQuery),
+  Route.query(issueSelectionFromQuery),
   Route.mapTo(ApplicationRoute.Settings),
 )
 
@@ -190,7 +190,7 @@ export const boardRouter = pipe(
   literal('projects'),
   slash(string('projectId')),
   slash(literal('board')),
-  Route.query(issuePanelFromQuery),
+  Route.query(issueSelectionFromQuery),
   Route.mapTo(ApplicationRoute.Board),
 )
 
@@ -198,7 +198,7 @@ export const projectOverviewRouter = pipe(
   literal('projects'),
   slash(string('projectId')),
   slash(literal('overview')),
-  Route.query(issuePanelFromQuery),
+  Route.query(issueSelectionFromQuery),
   Route.mapTo(ApplicationRoute.ProjectOverview),
 )
 
@@ -206,7 +206,7 @@ export const projectSettingsRouter = pipe(
   literal('projects'),
   slash(string('projectId')),
   slash(literal('settings')),
-  Route.query(issuePanelFromQuery),
+  Route.query(issueSelectionFromQuery),
   Route.mapTo(ApplicationRoute.ProjectSettings),
 )
 
@@ -292,12 +292,12 @@ export const maybeIssueId = (route: typeof ApplicationRoute.Type) =>
     ? Option.none()
     : Option.fromNullishOr(route.issueId)
 
-export const withIssuePanel = (
-  route: typeof PageRoute.Type,
-  issueId: string,
-) => ({ ...route, issueId })
+export const withIssueId = (route: typeof PageRoute.Type, issueId: string) => ({
+  ...route,
+  issueId,
+})
 
-export const withoutIssuePanel = (route: typeof PageRoute.Type) => {
+export const withoutIssueId = (route: typeof PageRoute.Type) => {
   const { issueId: _issueId, ...pageRoute } = route
 
   return pageRoute
