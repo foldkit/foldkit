@@ -1,4 +1,4 @@
-import { Array, DateTime, Option, Order, Schema } from 'effect'
+import { Array, Option, Schema } from 'effect'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
@@ -59,32 +59,18 @@ export const IssueRevision = Schema.Struct({
   fields: IssueDraft,
 })
 
-const commentOrder = Order.combine(
-  Order.mapInput(
-    Option.makeOrder(DateTime.Order),
-    (comment: typeof Comment.Type) => DateTime.make(comment.createdAt),
-  ),
-  Order.mapInput(Order.String, (comment: typeof Comment.Type) => comment.id),
-)
+export const SavedIssue = Schema.Struct({
+  issueId: Schema.String,
+  identifier: Schema.String,
+  revision: IssueRevision,
+})
 
-export const mergeIssue = (
-  current: typeof Issue.Type,
-  incoming: typeof Issue.Type,
-) => {
-  const latest = incoming.version > current.version ? incoming : current
-  const comments = Array.dedupeWith(
-    [...current.comments, ...incoming.comments],
-    (left, right) => left.id === right.id,
-  )
-
-  if (latest === current && comments.length === current.comments.length) {
-    return current
-  }
-
-  return modifyFields(latest, {
-    comments: () => Array.sort(comments, commentOrder),
-  })
-}
+export const MovedIssue = Schema.Struct({
+  issueId: Schema.String,
+  status: IssueStatus,
+  insertionIndex: Schema.Number,
+  version: Schema.Number,
+})
 
 export const Project = Schema.Struct({
   id: Schema.String,
@@ -109,43 +95,37 @@ export const placeIssue = (
   nextIssue: typeof Issue.Type,
   insertionIndex: number,
 ) => {
-  const remaining = Array.filter(issues, issue => issue.id !== nextIssue.id)
+  const remainingIssues = Array.filter(
+    issues,
+    issue => issue.id !== nextIssue.id,
+  )
   const targetIssues = Array.filter(
-    remaining,
+    remainingIssues,
     issue =>
       issue.projectId === nextIssue.projectId &&
       issue.status === nextIssue.status,
   )
-  const maybeBefore = Array.get(
+  const maybeFollowingIssue = Array.get(
     targetIssues,
     Math.max(0, Math.floor(insertionIndex)),
   )
-  const maybeGlobalIndex = Option.flatMap(maybeBefore, before =>
-    Array.findFirstIndex(remaining, issue => issue.id === before.id),
+  const maybeWorkspaceInsertionIndex = Option.flatMap(
+    maybeFollowingIssue,
+    followingIssue =>
+      Array.findFirstIndex(
+        remainingIssues,
+        issue => issue.id === followingIssue.id,
+      ),
   )
 
-  return Option.match(maybeGlobalIndex, {
-    onNone: () => Array.append(remaining, nextIssue),
+  return Option.match(maybeWorkspaceInsertionIndex, {
+    onNone: () => Array.append(remainingIssues, nextIssue),
     onSome: index => [
-      ...Array.take(remaining, index),
+      ...Array.take(remainingIssues, index),
       nextIssue,
-      ...Array.drop(remaining, index),
+      ...Array.drop(remainingIssues, index),
     ],
   })
-}
-
-export const placeIssueAt = (
-  issues: ReadonlyArray<typeof Issue.Type>,
-  issue: typeof Issue.Type,
-  index: number,
-) => {
-  const remaining = Array.filter(issues, current => current.id !== issue.id)
-
-  return [
-    ...Array.take(remaining, index),
-    issue,
-    ...Array.drop(remaining, index),
-  ]
 }
 
 export const moveIssue = (
@@ -192,7 +172,7 @@ export const makeNotifications = (activity: typeof NotificationActivity.Type) =>
     Commented: ({ issue, comment }) => {
       const recipientIds = Array.dedupe([
         ...Option.toArray(issue.maybeAssigneeId),
-        ...Array.map(issue.comments, participant => participant.authorId),
+        ...Array.map(issue.comments, issueComment => issueComment.authorId),
       ])
 
       return Array.map(

@@ -11,8 +11,8 @@ import { filterToolbarView, listSummaryView } from './toolbar'
 
 export const view = IssueListComposition.makeView.withInputs<
   typeof ViewInputs.Type
->((model, inputs, h) => {
-  const issues = filterAndSortIssues(inputs.filters, inputs.issues)
+>((model, viewInputs, h) => {
+  const issues = filterAndSortIssues(viewInputs.filters, viewInputs.issues)
 
   return h.section(
     [
@@ -25,11 +25,11 @@ export const view = IssueListComposition.makeView.withInputs<
         [
           filterToolbarView(
             model,
-            inputs.filters,
-            Array.isReadonlyArrayEmpty(inputs.projects),
+            viewInputs.filters,
+            Array.isReadonlyArrayEmpty(viewInputs.projects),
             h,
           ),
-          listSummaryView(model, inputs.filters, issues.length, h),
+          listSummaryView(model, viewInputs.filters, issues.length, h),
         ],
       ),
       Array.match(issues, {
@@ -57,7 +57,7 @@ export const view = IssueListComposition.makeView.withInputs<
             ],
           ),
         onNonEmpty: issues =>
-          issueGroupsView(issues, inputs.filters, inputs, h),
+          issueGroupsView(issues, viewInputs.filters, viewInputs, h),
       }),
     ],
   )

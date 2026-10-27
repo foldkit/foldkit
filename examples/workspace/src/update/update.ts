@@ -14,7 +14,8 @@ import {
   ApplicationComposition,
   CommandPaletteBinding,
   NotificationCenterBinding,
-  requestMoveIssueStep,
+  applyIssueCommentStep,
+  requestIssueMoveStep,
 } from '../composition'
 import {
   makeCommandsStep,
@@ -23,21 +24,22 @@ import {
   makeStep,
 } from '../definition'
 import { simulateActivityStep } from '../demoActivity'
-import { NotificationActivity, type Workspace } from '../domain'
-import { IssueMoveState, WorkspaceAsyncData } from '../model'
+import { NotificationActivity, type Workspace, mergeIssues } from '../domain'
+import { WorkspaceAsyncData } from '../model'
+import { IssueMoveState } from '../optimistic'
 import { RepositoryError } from '../repository'
 import { handleChangedUrlStep } from './handleChangedUrl'
 import { handleClickedDeleteSavedView } from './handleClickedDeleteSavedView'
 import { initChildrenStep } from './initChildrenStep'
-import { updateIssueDetailsStep, updateIssueStep } from './issueDetails'
 import {
-  informBoardMoveFailureStep,
-  mergeIssues,
-  rollbackMoveStep,
-  updateWorkspaceIssuesStep,
-} from './issueMove'
+  informIssueChangedStep,
+  informRetainedIssueDetailsStep,
+  receiveIssueSnapshotStep,
+  receiveSavedIssueStep,
+} from './issueDetails'
+import { applyMovedIssueStep, informBoardMoveFailureStep } from './issueMove'
 
-const applyWorkspaceStep = (nextWorkspace: typeof Workspace.Type) =>
+const applyWorkspaceSnapshotStep = (nextWorkspace: typeof Workspace.Type) =>
   makeFieldsStep(() => ({
     workspaceAsyncData: workspaceAsyncData =>
       WorkspaceAsyncData.Success({
@@ -79,9 +81,9 @@ export const update = ApplicationComposition.makeUpdate({
   CompletedReplaceInternalUrl: noopStep,
   SucceededLoadWorkspace: (model, { workspace }) =>
     Update.combineSteps(model, [
-      applyWorkspaceStep(workspace),
+      applyWorkspaceSnapshotStep(workspace),
       initChildrenStep,
-      updateIssueDetailsStep(workspace.issues),
+      informRetainedIssueDetailsStep,
     ]),
   FailedLoadWorkspace: makeFieldsStep.fromMessage(({ error }) => ({
     workspaceAsyncData: workspaceAsyncData =>
@@ -99,43 +101,62 @@ export const update = ApplicationComposition.makeUpdate({
   ClickedDeleteSavedView: handleClickedDeleteSavedView,
   TickedActivityStream: simulateActivityStep,
   ClickedSimulateActivity: simulateActivityStep,
-  SucceededAppendActivity: (model, { issue }) =>
+  SucceededAppendActivity: (model, { issueId, comment }) =>
     Update.combineSteps(model, [
-      updateIssueStep(issue),
+      applyIssueCommentStep(issueId, comment),
       makeFieldsStep(() => ({
         maybeActivityError: () => Option.none(),
       })),
     ]),
-  SucceededAssignIssue: (model, { issue, actorId, createdAt }) => {
-    const isNewerAssignment = pipe(
+  SucceededAssignIssue: (model, { savedIssue, actorId, createdAt }) => {
+    const isNewAssignment = pipe(
       AsyncData.getData(model.workspaceAsyncData),
       Option.flatMap(workspace =>
-        Array.findFirst(workspace.issues, previous => previous.id === issue.id),
+        Array.findFirst(
+          workspace.issues,
+          previousIssue => previousIssue.id === savedIssue.issueId,
+        ),
       ),
       Option.exists(
-        previous =>
-          issue.version > previous.version &&
+        previousIssue =>
+          savedIssue.revision.version > previousIssue.version &&
           Option.exists(
-            issue.maybeAssigneeId,
+            savedIssue.revision.fields.maybeAssigneeId,
             recipientId =>
-              !Option.contains(previous.maybeAssigneeId, recipientId),
+              !Option.contains(previousIssue.maybeAssigneeId, recipientId),
           ),
       ),
     )
 
     return Update.combineSteps(model, [
-      updateIssueStep(issue),
+      receiveSavedIssueStep(savedIssue),
       makeFieldsStep(() => ({
         maybeActivityError: () => Option.none(),
       })),
-      isNewerAssignment
-        ? NotificationCenterBinding.informActivity({
-            activity: NotificationActivity.Assigned({
-              issue,
-              actorId,
-              createdAt,
-            }),
-          })
+      isNewAssignment
+        ? makeStep(stepModel =>
+            Option.match(
+              Option.flatMap(
+                AsyncData.getData(stepModel.workspaceAsyncData),
+                workspace =>
+                  Array.findFirst(
+                    workspace.issues,
+                    issue => issue.id === savedIssue.issueId,
+                  ),
+              ),
+              {
+                onNone: () => ({ model: stepModel }),
+                onSome: issue =>
+                  NotificationCenterBinding.informActivity({
+                    activity: NotificationActivity.Assigned({
+                      issue,
+                      actorId,
+                      createdAt,
+                    }),
+                  }),
+              },
+            ),
+          )
         : makeNoopStep(),
     ])
   },
@@ -145,14 +166,14 @@ export const update = ApplicationComposition.makeUpdate({
   FailedAppendActivity: makeFieldsStep.fromMessage(({ error }) => ({
     maybeActivityError: () => Option.some(error),
   })),
-  SucceededMoveIssue: (model, { workspace }) =>
+  SucceededMoveIssue: (model, { movedIssue }) =>
     Update.combineSteps(model, [
-      updateWorkspaceIssuesStep(workspace.issues),
+      applyMovedIssueStep(movedIssue),
       makeFieldsStep(() => ({
         issueMoveState: () => IssueMoveState.Idle(),
         maybeNotice: () => Option.some('Issue moved'),
       })),
-      updateIssueDetailsStep(workspace.issues),
+      informIssueChangedStep(movedIssue.issueId),
     ]),
   FailedMoveIssue: (model, { issueId, status, insertionIndex, error }) => {
     const failIssueMoveStep = makeFieldsStep(() => ({
@@ -167,13 +188,11 @@ export const update = ApplicationComposition.makeUpdate({
 
     return RepositoryError.guards.Conflict(error)
       ? Update.combineSteps(model, [
-          rollbackMoveStep(issueId),
           failIssueMoveStep,
-          updateIssueStep(error.latestIssue),
+          receiveIssueSnapshotStep(error.latestIssue),
           informBoardMoveFailureStep(issueId),
         ])
       : Update.combineSteps(model, [
-          rollbackMoveStep(issueId),
           failIssueMoveStep,
           informBoardMoveFailureStep(issueId),
         ])
@@ -183,6 +202,6 @@ export const update = ApplicationComposition.makeUpdate({
       Idle: () => noopStep(model),
       MovingIssue: () => noopStep(model),
       FailedMove: ({ issueId, status, insertionIndex }) =>
-        requestMoveIssueStep(issueId, status, insertionIndex)(model),
+        requestIssueMoveStep(issueId, status, insertionIndex)(model),
     }),
 })

@@ -26,7 +26,7 @@ export const makeRepositoryState = (workspace: typeof Workspace.Type) =>
       Array.reduce(
         workspace.issues,
         0,
-        (count, issue) => count + issue.comments.length,
+        (commentCount, issue) => commentCount + issue.comments.length,
       ) + 1,
   })
 

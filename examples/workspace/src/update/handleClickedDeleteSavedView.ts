@@ -18,7 +18,7 @@ export const handleClickedDeleteSavedView = (
 
   const nextSavedViews = Array.filter(
     model.savedViews,
-    saved => saved.id !== viewId,
+    savedView => savedView.id !== viewId,
   )
 
   if (!isDeletingDisplayedView) {

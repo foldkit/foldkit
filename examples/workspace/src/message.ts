@@ -3,7 +3,13 @@ import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest } from 'foldkit/navigation'
 import { Url } from 'foldkit/url'
 
-import { Issue, IssueStatus, Workspace } from './domain'
+import {
+  Comment,
+  IssueStatus,
+  MovedIssue,
+  SavedIssue,
+  Workspace,
+} from './domain'
 import { RepositoryError } from './repository'
 
 export const Message = defineMessageUnion({
@@ -21,15 +27,15 @@ export const Message = defineMessageUnion({
   ClickedDeleteSavedView: { viewId: Schema.String },
   TickedActivityStream: {},
   ClickedSimulateActivity: {},
-  SucceededAppendActivity: { issue: Issue },
+  SucceededAppendActivity: { issueId: Schema.String, comment: Comment },
   FailedAppendActivity: { error: Schema.String },
   SucceededAssignIssue: {
-    issue: Issue,
+    savedIssue: SavedIssue,
     actorId: Schema.String,
     createdAt: Schema.String,
   },
   FailedAssignIssue: { error: Schema.String },
-  SucceededMoveIssue: { workspace: Workspace },
+  SucceededMoveIssue: { movedIssue: MovedIssue },
   FailedMoveIssue: {
     issueId: Schema.String,
     status: IssueStatus,

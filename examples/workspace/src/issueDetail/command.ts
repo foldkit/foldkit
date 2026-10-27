@@ -17,9 +17,9 @@ export const SaveIssue = IssueDetailDefinition.makeCommand('SaveIssue', {
 
     return args =>
       repository.saveIssue(args).pipe(
-        Effect.map(issue =>
+        Effect.map(savedIssue =>
           Message.SucceededSaveIssue({
-            issue,
+            savedIssue,
             expectedVersion: args.expectedVersion,
           }),
         ),

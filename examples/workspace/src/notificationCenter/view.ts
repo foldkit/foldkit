@@ -103,9 +103,9 @@ const notificationView = (
   const copy = NotificationKind.match(notification.kind, {
     Commented: ({ body }) => ({
       event: 'commented on',
-      body: Option.some(body),
+      maybeBody: Option.some(body),
     }),
-    Assigned: () => ({ event: 'assigned you to', body: Option.none() }),
+    Assigned: () => ({ event: 'assigned you to', maybeBody: Option.none() }),
   })
 
   const readStateAction = `${notification.isRead ? 'Mark as unread' : 'Mark as read'}: ${issueIdentifier}`
@@ -169,7 +169,7 @@ const notificationView = (
                       ],
                       [issueTitle],
                     ),
-                    ...Option.match(copy.body, {
+                    ...Option.match(copy.maybeBody, {
                       onNone: () => [],
                       onSome: body => [
                         h.span(

@@ -55,18 +55,24 @@ const ListboxConfig = Schema.Struct({
   ariaLabel: Schema.optionalKey(Schema.String),
 })
 
+type ListboxOption<Value extends string> = Omit<
+  typeof ListboxOption.Type,
+  'value'
+> &
+  Readonly<{ value: Value }>
+
 type ListboxViewConfig<Value extends string> = Omit<
   typeof ListboxConfig.Type,
   'value' | 'options'
 > &
   Readonly<{
     value: Value
-    options: ReadonlyArray<ReturnType<typeof makeListboxOption<Value>>['Type']>
+    options: ReadonlyArray<ListboxOption<Value>>
   }>
 
-const itemToValue = <Item extends typeof ListboxOption.Type>(
-  option: Item,
-): Item['value'] => option.value
+const itemToValue = <Value extends string>(
+  option: ListboxOption<Value>,
+): Value => option.value
 
 export const listboxViewInputs = <const Value extends string>({
   value,
@@ -74,48 +80,77 @@ export const listboxViewInputs = <const Value extends string>({
   isDisabled = false,
   isCompact = false,
   ariaLabel,
-}: ListboxViewConfig<Value>) =>
-  ({
-    items: options,
-    itemToValue,
-    itemToSearchText: (option: typeof ListboxOption.Type) => option.label,
-    maybeSelectedValue: Option.some(value),
-    isDisabled,
-    ...(ariaLabel === undefined ? {} : { ariaLabel }),
-    anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
-    className: 'relative min-w-0 data-[open]:z-20',
-    buttonClassName: isCompact ? 'listbox-trigger-compact' : 'listbox-trigger',
-    itemsClassName:
-      'popover-surface z-10 min-w-(--button-width) p-1 text-sm outline-none',
-    itemsScrollClassName: 'max-h-64 overflow-y-auto overscroll-contain',
-    backdropClassName: 'fixed inset-0 z-0',
-    buttonContent: ih.div(
+}: ListboxViewConfig<Value>): Listbox.ViewInputs<
+  ListboxOption<Value>,
+  Value
+> => ({
+  items: options,
+  itemToValue,
+  itemToSearchText: (option: typeof ListboxOption.Type) => option.label,
+  maybeSelectedValue: Option.some(value),
+  isDisabled,
+  ...(ariaLabel === undefined ? {} : { ariaLabel }),
+  anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+  className: 'relative min-w-0 data-[open]:z-20',
+  buttonClassName: isCompact ? 'listbox-trigger-compact' : 'listbox-trigger',
+  itemsClassName:
+    'popover-surface z-10 min-w-(--button-width) p-1 text-sm outline-none',
+  itemsScrollClassName: 'max-h-64 overflow-y-auto overscroll-contain',
+  backdropClassName: 'fixed inset-0 z-0',
+  buttonContent: ih.div(
+    [ih.Class('flex w-full min-w-0 items-center justify-between gap-3')],
+    [
+      ih.span(
+        [ih.Class('truncate')],
+        [
+          Option.match(
+            Array.findFirst(options, option => option.value === value),
+            {
+              onNone: () => 'Choose an option',
+              onSome: option => option.label,
+            },
+          ),
+        ],
+      ),
+      ih.svg(
+        [
+          ih.AriaHidden(true),
+          ih.Class('size-4 shrink-0 text-slate-500'),
+          ih.ViewBox('0 0 24 24'),
+          ih.Fill('none'),
+          ih.Stroke('currentColor'),
+          ih.StrokeWidth('1.5'),
+        ],
+        [
+          ih.path([
+            ih.D('m6 9 6 6 6-6'),
+            ih.StrokeLinecap('round'),
+            ih.StrokeLinejoin('round'),
+          ]),
+        ],
+      ),
+    ],
+  ),
+  itemToConfig: (option: typeof ListboxOption.Type) => ({
+    className: 'group listbox-option',
+    content: ih.div(
       [ih.Class('flex w-full min-w-0 items-center justify-between gap-3')],
       [
-        ih.span(
-          [ih.Class('truncate')],
-          [
-            Option.match(
-              Array.findFirst(options, option => option.value === value),
-              {
-                onNone: () => 'Choose an option',
-                onSome: option => option.label,
-              },
-            ),
-          ],
-        ),
+        ih.span([ih.Class('truncate')], [option.label]),
         ih.svg(
           [
             ih.AriaHidden(true),
-            ih.Class('size-4 shrink-0 text-slate-500'),
+            ih.Class(
+              'invisible size-3.5 shrink-0 text-indigo-600 group-data-[selected]:visible',
+            ),
             ih.ViewBox('0 0 24 24'),
             ih.Fill('none'),
             ih.Stroke('currentColor'),
-            ih.StrokeWidth('1.5'),
+            ih.StrokeWidth('1.75'),
           ],
           [
             ih.path([
-              ih.D('m6 9 6 6 6-6'),
+              ih.D('m5 12 4 4L19 6'),
               ih.StrokeLinecap('round'),
               ih.StrokeLinejoin('round'),
             ]),
@@ -123,35 +158,5 @@ export const listboxViewInputs = <const Value extends string>({
         ),
       ],
     ),
-    itemToConfig: (option: typeof ListboxOption.Type) => ({
-      className: 'group listbox-option',
-      content: ih.div(
-        [ih.Class('flex w-full min-w-0 items-center justify-between gap-3')],
-        [
-          ih.span([ih.Class('truncate')], [option.label]),
-          ih.svg(
-            [
-              ih.AriaHidden(true),
-              ih.Class(
-                'invisible size-3.5 shrink-0 text-indigo-600 group-data-[selected]:visible',
-              ),
-              ih.ViewBox('0 0 24 24'),
-              ih.Fill('none'),
-              ih.Stroke('currentColor'),
-              ih.StrokeWidth('1.75'),
-            ],
-            [
-              ih.path([
-                ih.D('m5 12 4 4L19 6'),
-                ih.StrokeLinecap('round'),
-                ih.StrokeLinejoin('round'),
-              ]),
-            ],
-          ),
-        ],
-      ),
-    }),
-  }) satisfies Listbox.ViewInputs<
-    ReturnType<typeof makeListboxOption<Value>>['Type'],
-    Value
-  >
+  }),
+})

@@ -23,21 +23,26 @@ import type { Issue, Project, Workspace } from '../domain'
 import { issueHrefs } from '../issueLinks'
 import { listboxViewInputs } from '../listbox'
 import { Message } from '../message'
-import { IssueMoveState, type Model } from '../model'
+import type { Model } from '../model'
+import { IssueMoveState } from '../optimistic'
 import {
   ApplicationRoute,
   issuesRouter,
   maybeIssueId,
   maybeProjectId,
-  routeFilters,
+  maybeRouteFilters,
 } from '../route'
-import { appliedIssueFilters, maybeActiveIssueDetail } from '../selection'
+import {
+  appliedIssueFilters,
+  maybeActiveIssueDetail,
+  visibleWorkspaceAsyncData,
+} from '../selection'
 import { projectOverview, projectTabs } from './project'
 import { workspaceSettings } from './settings'
 import { sidebarView } from './sidebar'
 
-const maybeWorkspace = (model: typeof Model.Type) =>
-  AsyncData.getData(model.workspaceAsyncData)
+const maybeVisibleWorkspace = (model: typeof Model.Type) =>
+  AsyncData.getData(visibleWorkspaceAsyncData(model))
 
 const memberControl = (
   model: typeof Model.Type,
@@ -104,7 +109,7 @@ const pageTitle = (
         Array.findFirst(model.savedViews, savedView => savedView.id === viewId),
         {
           onNone: () =>
-            Option.isSome(routeFilters(route))
+            Option.isSome(maybeRouteFilters(route))
               ? 'Filtered issues'
               : 'Saved view not found',
           onSome: savedView => savedView.name,
@@ -268,7 +273,7 @@ const routeContent = (
         Array.findFirst(model.savedViews, savedView => savedView.id === viewId),
         {
           onNone: () =>
-            Option.match(routeFilters(route), {
+            Option.match(maybeRouteFilters(route), {
               onNone: () =>
                 missingPage(
                   'This saved view is unavailable',
@@ -339,12 +344,12 @@ const workspaceView = (
   )
 
   return h.div(
-    [h.Class('min-w-0 flex-1')],
+    [h.Class('flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden')],
     [
       h.header(
         [
           h.Class(
-            'flex min-h-16 flex-wrap items-center justify-between gap-3 px-5 py-3',
+            'flex min-h-16 shrink-0 flex-wrap items-center justify-between gap-3 px-5 py-3',
           ),
         ],
         [
@@ -379,7 +384,7 @@ const workspaceView = (
       h.div(
         [
           h.Class(
-            'flex min-h-[calc(100vh-64px)] min-w-0 flex-col border-t border-slate-200 xl:flex-row',
+            'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-t border-slate-200 xl:flex-row',
           ),
         ],
         [
@@ -388,11 +393,14 @@ const workspaceView = (
                 h.div(
                   [
                     h.Class(
-                      clsx('min-w-0 flex-1', {
-                        'hidden xl:block': Option.isSome(
-                          maybeIssueId(model.route),
-                        ),
-                      }),
+                      clsx(
+                        'min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain',
+                        {
+                          'hidden xl:block': Option.isSome(
+                            maybeIssueId(model.route),
+                          ),
+                        },
+                      ),
                     ),
                   ],
                   [routeContent(model, workspace, h)],
@@ -423,10 +431,10 @@ const workspaceView = (
                         [
                           h.Class(
                             clsx(
-                              'w-full shrink-0 bg-slate-50/70',
+                              'min-h-0 w-full flex-1 overflow-y-auto overscroll-contain bg-slate-50/70',
                               ApplicationRoute.guards.Issue(model.route)
                                 ? 'mx-auto max-w-3xl'
-                                : 'xl:w-[430px] xl:border-l xl:border-slate-200',
+                                : 'xl:w-[430px] xl:flex-none xl:border-l xl:border-slate-200',
                             ),
                           ),
                         ],
@@ -460,14 +468,14 @@ const overlaysView = (
   model: typeof Model.Type,
   h: ApplicationViewBuilder,
 ): Html => {
-  const paletteInputs = Option.match(maybeWorkspace(model), {
+  const paletteInputs = Option.match(maybeVisibleWorkspace(model), {
     onNone: () => ({ issues: [], projects: [] }),
     onSome: workspace => ({
       issues: workspace.issues,
       projects: workspace.projects,
     }),
   })
-  const projects = Option.match(maybeWorkspace(model), {
+  const projects = Option.match(maybeVisibleWorkspace(model), {
     onNone: () => [],
     onSome: workspace => workspace.projects,
   })
@@ -494,7 +502,7 @@ const overlaysView = (
 }
 
 const documentTitle = (model: typeof Model.Type): string =>
-  Option.match(maybeWorkspace(model), {
+  Option.match(maybeVisibleWorkspace(model), {
     onNone: () => 'Northstar | Foldkit workspace',
     onSome: workspace => {
       const issueId = maybeIssueId(model.route)
@@ -532,13 +540,13 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   body: h.div(
     [
       h.Class(
-        'min-h-screen bg-slate-50 font-sans text-sm font-medium text-slate-700 antialiased lg:flex',
+        'flex h-dvh flex-col overflow-hidden bg-slate-50 font-sans text-sm font-medium text-slate-700 antialiased lg:flex-row',
       ),
     ],
     [
       sidebarView(model, h),
       h.main(
-        [h.Class('min-w-0 flex-1')],
+        [h.Class('flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto')],
         [
           h.div(
             [h.Role('status'), h.AriaLive('polite'), h.Class('sr-only')],
@@ -558,7 +566,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
                   ),
                 ],
               )
-            : AsyncData.matchDataSplitEmpty(model.workspaceAsyncData, {
+            : AsyncData.matchDataSplitEmpty(visibleWorkspaceAsyncData(model), {
                 onIdle: () =>
                   h.div(
                     [

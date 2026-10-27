@@ -1,9 +1,11 @@
+import { Schema } from 'effect'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Issue } from '../domain'
+import { Comment, Issue, SavedIssue } from '../domain'
 
 export const OutMessage = defineMessageUnion({
-  Saved: { issue: Issue },
+  Saved: { savedIssue: SavedIssue },
+  AddedComment: { issueId: Schema.String, comment: Comment },
   ReceivedIssue: { issue: Issue },
   Closed: {},
 })

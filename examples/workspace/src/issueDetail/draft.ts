@@ -1,23 +1,9 @@
 import { Option, Schema, String } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import { hasDraft } from '../commentComposer/draft'
-import { Issue, IssueDraft, IssueRevision } from '../domain'
+import { isDraftNonEmpty } from '../commentComposer/draft'
+import { Issue, IssueDraft, revisionFromIssue } from '../domain'
 import { type Model, SaveState } from './model'
-
-export const draftFromIssue = (issue: typeof Issue.Type) =>
-  IssueDraft.make({
-    title: issue.title,
-    description: issue.description,
-    status: issue.status,
-    priority: issue.priority,
-    projectId: issue.projectId,
-    maybeAssigneeId: issue.maybeAssigneeId,
-    labelIds: issue.labelIds,
-  })
-
-export const revisionFromIssue = (issue: typeof Issue.Type) =>
-  IssueRevision.make({ version: issue.version, fields: draftFromIssue(issue) })
 
 export const CONFLICT_MESSAGE =
   'This issue changed while you were editing. Your draft is preserved. Reload the issue to use the latest version.'
@@ -29,49 +15,50 @@ type ReconciliationState = Pick<
   'issueId' | 'baseline' | 'draft' | 'maybeIncomingRevision' | 'saveState'
 >
 
-export const isDirty = (state: ReconciliationState) =>
-  !equivalentDraft(state.draft, state.baseline.fields)
+export const isDirty = (model: ReconciliationState) =>
+  !equivalentDraft(model.draft, model.baseline.fields)
 
-export const latestRevision = (state: ReconciliationState) =>
-  Option.getOrElse(state.maybeIncomingRevision, () => state.baseline)
+export const latestRevision = (model: ReconciliationState) =>
+  Option.getOrElse(model.maybeIncomingRevision, () => model.baseline)
 
 export const reconcileIssue = (
-  state: typeof Model.Type,
+  model: typeof Model.Type,
   issue: typeof Issue.Type,
 ) => {
   if (
-    issue.id !== state.issueId ||
-    issue.version <= latestRevision(state).version
+    issue.id !== model.issueId ||
+    issue.version <= latestRevision(model).version
   ) {
-    return state
+    return model
   }
 
-  const incoming = revisionFromIssue(issue)
+  const incomingRevision = revisionFromIssue(issue)
 
-  const isEditing = isDirty(state)
-  const matchesDraft = equivalentDraft(incoming.fields, state.draft)
+  const isDraftDirty = isDirty(model)
+  const isDraftMatch = equivalentDraft(incomingRevision.fields, model.draft)
   const isCompatible =
-    equivalentDraft(incoming.fields, state.baseline.fields) || matchesDraft
+    equivalentDraft(incomingRevision.fields, model.baseline.fields) ||
+    isDraftMatch
 
-  if (isEditing && !isCompatible) {
-    return modifyFields(state, {
-      maybeIncomingRevision: () => Option.some(incoming),
+  if (isDraftDirty && !isCompatible) {
+    return modifyFields(model, {
+      maybeIncomingRevision: () => Option.some(incomingRevision),
     })
   }
 
-  return modifyFields(state, {
-    baseline: () => incoming,
-    draft: draft => (isEditing ? draft : incoming.fields),
+  return modifyFields(model, {
+    baseline: () => incomingRevision,
+    draft: draft => (isDraftDirty ? draft : incomingRevision.fields),
     maybeIncomingRevision: () => Option.none(),
     saveState: saveState =>
-      SaveState.guards.Saving(saveState) || (isEditing && !matchesDraft)
+      SaveState.guards.Saving(saveState) || (isDraftDirty && !isDraftMatch)
         ? saveState
         : SaveState.Idle(),
   })
 }
 
 export const maybeDraftSummary = (model: typeof Model.Type) => {
-  if (!isDirty(model) && !hasDraft(model.commentComposer)) {
+  if (!isDirty(model) && !isDraftNonEmpty(model.commentComposer)) {
     return Option.none()
   }
 

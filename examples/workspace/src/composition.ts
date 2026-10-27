@@ -16,13 +16,16 @@ import {
   makeStep,
 } from './definition'
 import {
+  type Comment,
   type Issue,
   type IssueFilters,
   type IssueStatus,
   NotificationActivity,
+  type SavedIssue,
   SavedView,
+  applyComment,
+  applySavedIssue,
   mergeIssue,
-  moveIssue,
 } from './domain'
 import { IssueBoardBlock } from './issueBoard'
 import { IssueDetailBlock } from './issueDetail'
@@ -30,8 +33,8 @@ import { issueFiltersHref, issueHref } from './issueLinks'
 import { IssueListBlock } from './issueList'
 import { WorkspaceListboxBlock } from './listbox'
 import { MemberDirectoryBlock } from './memberDirectory'
-import { IssueMoveState } from './model'
 import { NotificationCenterBlock } from './notificationCenter'
+import { IssueMoveState } from './optimistic'
 import { ProjectSettingsBlock } from './projectSettings'
 import {
   ApplicationRoute,
@@ -95,7 +98,10 @@ const notifyNewCommentsStep = (issue: typeof Issue.Type) =>
     const maybePreviousIssue = Option.flatMap(
       AsyncData.getData(model.workspaceAsyncData),
       workspace =>
-        Array.findFirst(workspace.issues, previous => previous.id === issue.id),
+        Array.findFirst(
+          workspace.issues,
+          previousIssue => previousIssue.id === issue.id,
+        ),
     )
 
     if (Option.isNone(maybePreviousIssue)) {
@@ -107,7 +113,7 @@ const notifyNewCommentsStep = (issue: typeof Issue.Type) =>
       comment =>
         !Array.some(
           maybePreviousIssue.value.comments,
-          previous => previous.id === comment.id,
+          previousComment => previousComment.id === comment.id,
         ),
     )
 
@@ -120,29 +126,75 @@ const notifyNewCommentsStep = (issue: typeof Issue.Type) =>
     )
   })
 
-export const updateWorkspaceIssueStep = (issue: typeof Issue.Type) =>
+export const applyIssueSnapshotStep = (issue: typeof Issue.Type) =>
   Update.combineSteps([
     notifyNewCommentsStep(issue),
     makeFieldsStep(() => ({
       workspaceAsyncData: AsyncData.map(workspace =>
         modifyFields(workspace, {
-          issues: Array.map(current =>
-            current.id === issue.id ? mergeIssue(current, issue) : current,
+          issues: Array.map(currentIssue =>
+            currentIssue.id === issue.id
+              ? mergeIssue(currentIssue, issue)
+              : currentIssue,
           ),
         }),
       ),
     })),
   ])
 
-const foldIssueDetailOutMessage = makeOutMessageFold(IssueDetailBlock, {
-  Saved: ({ issue }) =>
-    Update.combineSteps([
-      updateWorkspaceIssueStep(issue),
+export const applySavedIssueStep = (savedIssue: typeof SavedIssue.Type) =>
+  makeFieldsStep(() => ({
+    workspaceAsyncData: AsyncData.map(workspace =>
+      applySavedIssue(workspace, savedIssue),
+    ),
+  }))
+
+export const applyIssueCommentStep = (
+  issueId: string,
+  comment: typeof Comment.Type,
+) =>
+  makeStep(model => {
+    const maybeIssue = Option.flatMap(
+      AsyncData.getData(model.workspaceAsyncData),
+      workspace =>
+        Array.findFirst(workspace.issues, issue => issue.id === issueId),
+    )
+
+    if (Option.isNone(maybeIssue)) {
+      return { model }
+    }
+
+    const issue = maybeIssue.value
+    const isNewComment = !Array.some(
+      issue.comments,
+      previousComment => previousComment.id === comment.id,
+    )
+
+    return Update.combineSteps([
       makeFieldsStep(() => ({
-        maybeNotice: () => Option.some(`${issue.identifier} saved`),
+        workspaceAsyncData: AsyncData.map(workspace =>
+          applyComment(workspace, issueId, comment),
+        ),
+      })),
+      isNewComment
+        ? NotificationCenterBinding.informActivity({
+            activity: NotificationActivity.Commented({ issue, comment }),
+          })
+        : makeNoopStep(),
+    ])
+  })
+
+const foldIssueDetailOutMessage = makeOutMessageFold(IssueDetailBlock, {
+  Saved: ({ savedIssue }) =>
+    Update.combineSteps([
+      applySavedIssueStep(savedIssue),
+      makeFieldsStep(() => ({
+        maybeNotice: () => Option.some(`${savedIssue.identifier} saved`),
       })),
     ]),
-  ReceivedIssue: ({ issue }) => updateWorkspaceIssueStep(issue),
+  AddedComment: ({ issueId, comment }) =>
+    applyIssueCommentStep(issueId, comment),
+  ReceivedIssue: ({ issue }) => applyIssueSnapshotStep(issue),
   Closed: () =>
     makeCommandsStep(model => {
       const { route } = model
@@ -239,24 +291,18 @@ export const IssueListBinding = makeBinding(IssueListBlock, {
   }),
 })
 
-const applyOptimisticMoveStep = (
+const beginIssueMoveStep = (
   issue: typeof Issue.Type,
   status: typeof IssueStatus.Type,
   insertionIndex: number,
-  previousIndex: number,
 ) =>
   makeStep(model => ({
     model: modifyFields(model, {
-      workspaceAsyncData: AsyncData.map(current =>
-        modifyFields(current, {
-          issues: issues => moveIssue(issues, issue.id, status, insertionIndex),
-        }),
-      ),
       issueMoveState: () =>
         IssueMoveState.MovingIssue({
           issueId: issue.id,
-          previousStatus: issue.status,
-          previousIndex,
+          status,
+          insertionIndex,
           expectedVersion: issue.version,
         }),
     }),
@@ -270,7 +316,7 @@ const applyOptimisticMoveStep = (
     ],
   }))
 
-export const requestMoveIssueStep = (
+export const requestIssueMoveStep = (
   issueId: string,
   status: typeof IssueStatus.Type,
   insertionIndex: number,
@@ -284,20 +330,12 @@ export const requestMoveIssueStep = (
       onNone: () => ({ model }),
       onSome: workspace =>
         Option.match(
-          Array.findFirstWithIndex(
-            workspace.issues,
-            issue => issue.id === issueId,
-          ),
+          Array.findFirst(workspace.issues, issue => issue.id === issueId),
           {
             onNone: () => ({ model }),
-            onSome: ([issue, previousIndex]) =>
+            onSome: issue =>
               Update.combineSteps([
-                applyOptimisticMoveStep(
-                  issue,
-                  status,
-                  insertionIndex,
-                  previousIndex,
-                ),
+                beginIssueMoveStep(issue, status, insertionIndex),
                 IssueBoardBinding.informIssueMoved(issue.projectId, {
                   status,
                   insertionIndex,
@@ -319,7 +357,7 @@ const IssueBoardBindingWithOutMessagePolicy =
         RequestedCreation: ({ status }) =>
           CreateIssueBinding.requestOpen({ projectId, status }),
         RequestedMove: ({ issueId, status, insertionIndex }) =>
-          requestMoveIssueStep(issueId, status, insertionIndex),
+          requestIssueMoveStep(issueId, status, insertionIndex),
       })(outMessage),
   })
 
@@ -356,8 +394,8 @@ export const ProjectSettingsBinding = makeMapBinding(ProjectSettingsBlock, {
         makeFieldsStep(() => ({
           workspaceAsyncData: AsyncData.map(workspace =>
             modifyFields(workspace, {
-              projects: Array.map(current =>
-                current.id === project.id ? project : current,
+              projects: Array.map(currentProject =>
+                currentProject.id === project.id ? project : currentProject,
               ),
             }),
           ),

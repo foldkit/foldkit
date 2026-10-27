@@ -1,7 +1,7 @@
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Issue } from '../domain'
+import { Comment } from '../domain'
 
 export const OutMessage = defineMessageUnion({
-  AddedComment: { issue: Issue },
+  AddedComment: { comment: Comment },
 })

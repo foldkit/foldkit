@@ -7,7 +7,7 @@ import { makeStep } from './definition'
 import { IssueDraft } from './domain'
 import { maybeActiveIssueDetail } from './selection'
 
-const ASSIGNMENT_ACTIVITY_INTERVAL = 3
+const ACTIVITY_EVENTS_PER_ASSIGNMENT = 3
 const ACTIVITY_COMMENT_BODIES = [
   'I checked the latest changes. This is ready for another look.',
   'The next iteration is ready. Let me know what you think.',
@@ -23,71 +23,76 @@ export const simulateActivityStep = makeStep(model => {
 
   const { issues, members } = maybeWorkspace.value
 
-  const relevantIssues = Array.filter(
+  const memberRelatedIssues = Array.filter(
     issues,
-    issue =>
-      Option.contains(issue.maybeAssigneeId, model.activeMemberId) ||
+    activityIssue =>
+      Option.contains(activityIssue.maybeAssigneeId, model.activeMemberId) ||
       Array.some(
-        issue.comments,
+        activityIssue.comments,
         comment => comment.authorId === model.activeMemberId,
       ),
   )
 
-  const candidates = Array.isReadonlyArrayNonEmpty(relevantIssues)
-    ? relevantIssues
+  const activityIssueCandidates = Array.isReadonlyArrayNonEmpty(
+    memberRelatedIssues,
+  )
+    ? memberRelatedIssues
     : issues
 
-  const maybeIssue = Option.orElse(
+  const maybeActivityIssue = Option.orElse(
     Option.flatMap(maybeActiveIssueDetail(model), detail =>
-      Array.findFirst(candidates, issue => issue.id === detail.issueId),
+      Array.findFirst(
+        activityIssueCandidates,
+        activityIssue => activityIssue.id === detail.issueId,
+      ),
     ),
     () =>
       Array.get(
-        candidates,
-        model.activityTick % Math.max(1, candidates.length),
+        activityIssueCandidates,
+        model.activityTick % Math.max(1, activityIssueCandidates.length),
       ),
   )
 
-  const maybeActor = Array.findFirst(
+  const maybeActivityActor = Array.findFirst(
     members,
     member => member.id !== model.activeMemberId,
   )
 
-  if (Option.isNone(maybeIssue) || Option.isNone(maybeActor)) {
+  if (Option.isNone(maybeActivityIssue) || Option.isNone(maybeActivityActor)) {
     return { model }
   }
 
-  const issue = maybeIssue.value
-  const actorId = maybeActor.value.id
+  const activityIssue = maybeActivityIssue.value
+  const actorId = maybeActivityActor.value.id
   const nextActivityTick = model.activityTick + 1
 
-  const maybeAssignment = Array.findFirst(
+  const maybeIssueToAssign = Array.findFirst(
     issues,
     candidate =>
       !Option.contains(candidate.maybeAssigneeId, model.activeMemberId),
   )
 
   if (
-    nextActivityTick % ASSIGNMENT_ACTIVITY_INTERVAL === 0 &&
-    Option.isSome(maybeAssignment)
+    nextActivityTick % ACTIVITY_EVENTS_PER_ASSIGNMENT === 0 &&
+    Option.isSome(maybeIssueToAssign)
   ) {
-    const assignedIssue = maybeAssignment.value
+    const issueToAssign = maybeIssueToAssign.value
 
     return {
       model: modifyFields(model, { activityTick: () => nextActivityTick }),
       commands: [
         AssignIssue({
-          issueId: assignedIssue.id,
+          issueId: issueToAssign.id,
           draft: IssueDraft.make({
-            title: assignedIssue.title,
-            description: assignedIssue.description,
-            status: assignedIssue.status,
-            priority: assignedIssue.priority,
-            projectId: assignedIssue.projectId,
+            title: issueToAssign.title,
+            description: issueToAssign.description,
+            status: issueToAssign.status,
+            priority: issueToAssign.priority,
+            projectId: issueToAssign.projectId,
             maybeAssigneeId: Option.some(model.activeMemberId),
-            labelIds: assignedIssue.labelIds,
+            labelIds: issueToAssign.labelIds,
           }),
-          expectedVersion: assignedIssue.version,
+          expectedVersion: issueToAssign.version,
           actorId,
         }),
       ],
@@ -98,7 +103,7 @@ export const simulateActivityStep = makeStep(model => {
     model: modifyFields(model, { activityTick: () => nextActivityTick }),
     commands: [
       AppendActivity({
-        issueId: issue.id,
+        issueId: activityIssue.id,
         authorId: actorId,
         body: Array.getUnsafe(
           ACTIVITY_COMMENT_BODIES,

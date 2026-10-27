@@ -14,6 +14,37 @@ original status, source pins and publication holds as historical evidence.
 
 ## Followups after the published preview
 
+- [x] Simplify Workspace's generic Listbox option type and replace its `satisfies`
+      return check with an explicit `Listbox.ViewInputs` return type. Existing
+      accepted/rejected type fixtures, affected Scenes, source checking and lint
+      pass. Investigate the runtime Value mismatch and open
+      [#1809](https://github.com/foldkit/foldkit/issues/1809) with an executed,
+      strictly typechecked reproducer and the Combobox Schema-based precedent.
+      Extend the assessment to RadioGroup, Tabs and Menu after reproducing the
+      same invalid selection admission in each. Assess native Select separately;
+      it exposes plain strings without generic refinement. The issue separates
+      string Value contract repair from non-string selection design; no framework
+      API change or removal of boundary adapters is claimed.
+
+- [x] Audit naming throughout Workspace production code and tests. Align Step
+      suffixes, Listbox Binding names, Option selectors, booleans, revision values,
+      projected versus confirmed data, repository results and test fixtures.
+      Preserve established Foldkit contracts and interaction behavior. All 154 app
+      tests, source checking, application lint, formatting and production build
+      pass.
+
+- [x] Narrow Workspace save, comment and move responses to their changed data.
+      Keep confirmed Workspace data separate from a small, application-local
+      pending-move projection; failure drops the projection instead of restoring
+      an old snapshot. Initialize editable children from confirmed data. Preserve
+      revision conflicts, comments, notifications, retained drafts and retry.
+      All 154 app tests, source checking, application lint and production build
+      pass. Projection and editor-baseline mutations fail their regression Stories;
+      independent review has no remaining findings. Browser smoke verifies pending
+      and acknowledged placement, commenting with a dirty draft, and saving.
+      The helper supports one pending board move and remains replaceable by the
+      proposed `foldkit/optimistic`; no public framework API is added.
+
 - [x] Align Workspace feature folders with their completed Block names. Use full
       responsibility-based layouts for split Blocks, including separate init and
       assembly, and remove hybrid feature-named modules. Document the compact or

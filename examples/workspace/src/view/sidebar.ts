@@ -23,7 +23,7 @@ import {
 import { unsavedIssueDrafts } from '../selection'
 import { navigationLink } from './navigationLink'
 
-const maybeWorkspace = (model: typeof Model.Type) =>
+const maybeConfirmedWorkspace = (model: typeof Model.Type) =>
   AsyncData.getData(model.workspaceAsyncData)
 
 const SIDEBAR_COLLECTION_CLASS =
@@ -38,7 +38,7 @@ export const sidebarView = (
   model: typeof Model.Type,
   h: ApplicationViewBuilder,
 ): Html => {
-  const drafts = unsavedIssueDrafts(model)
+  const issueDrafts = unsavedIssueDrafts(model)
   const { route } = model
   const maybeCurrentProjectId = maybeProjectId(route)
 
@@ -64,7 +64,7 @@ export const sidebarView = (
   return h.aside(
     [
       h.Class(
-        'grid shrink-0 grid-cols-[1fr_auto] items-start gap-4 border-b border-slate-200 bg-slate-100/80 p-4 lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-60 lg:flex-col lg:gap-0 lg:overflow-y-auto lg:border-r lg:border-b-0 lg:p-5',
+        'grid max-h-[40dvh] shrink-0 grid-cols-[1fr_auto] items-start gap-4 overflow-y-auto border-b border-slate-200 bg-slate-100/80 p-4 lg:flex lg:h-full lg:max-h-none lg:w-60 lg:flex-col lg:gap-0 lg:border-r lg:border-b-0 lg:p-5',
       ),
     ],
     [
@@ -137,7 +137,7 @@ export const sidebarView = (
             ],
             ['Projects'],
           ),
-          ...Option.match(maybeWorkspace(model), {
+          ...Option.match(maybeConfirmedWorkspace(model), {
             onNone: () => [],
             onSome: ({ projects }) => [
               Nav.view({
@@ -241,8 +241,9 @@ export const sidebarView = (
         [
           h.Class(
             clsx({
-              hidden: Array.isReadonlyArrayEmpty(drafts),
-              [SIDEBAR_COLLECTION_CLASS]: Array.isReadonlyArrayNonEmpty(drafts),
+              hidden: Array.isReadonlyArrayEmpty(issueDrafts),
+              [SIDEBAR_COLLECTION_CLASS]:
+                Array.isReadonlyArrayNonEmpty(issueDrafts),
             }),
           ),
           h.AriaLabel('Drafts'),
@@ -256,9 +257,9 @@ export const sidebarView = (
             ],
             ['Drafts'],
           ),
-          ...Array.map(drafts, retainedDraft => {
+          ...Array.map(issueDrafts, retainedDraft => {
             const maybeIssue = Option.flatMap(
-              maybeWorkspace(model),
+              maybeConfirmedWorkspace(model),
               workspace =>
                 Array.findFirst(
                   workspace.issues,

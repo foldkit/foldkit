@@ -20,24 +20,28 @@ import { OutMessage } from './outMessage'
 import { update } from './update'
 
 const project = Option.getOrThrow(Array.head(initialWorkspace.projects))
-const initial = Model.make(init(project).model)
+const initialModel = Model.make(init(project).model)
 
 describe('Project Settings', () => {
   test('does not save unchanged, normalized, or invalid project settings', () => {
-    const whitespaceName = modifyFields(initial, {
+    const paddedNameModel = modifyFields(initialModel, {
       draft: draft => modifyFields(draft, { name: name => ` ${name} ` }),
     })
-    const emptyName = modifyFields(initial, {
+    const blankNameModel = modifyFields(initialModel, {
       draft: draft => modifyFields(draft, { name: () => '   ' }),
     })
 
-    for (const unchanged of [initial, whitespaceName, emptyName]) {
+    for (const unsavableModel of [
+      initialModel,
+      paddedNameModel,
+      blankNameModel,
+    ]) {
       story(
         update,
-        given(unchanged),
+        given(unsavableModel),
         message(Message.SubmittedProjectSettings()),
         model(model => {
-          expect(model).toBe(unchanged)
+          expect(model).toBe(unsavableModel)
         }),
         Command.expectNone(),
         expectNoOutMessage(),
@@ -52,7 +56,7 @@ describe('Project Settings', () => {
 
     story(
       update,
-      given(initial),
+      given(initialModel),
       message(Message.UpdatedProjectName({ value: savedProject.name })),
       message(Message.SubmittedProjectSettings()),
       Command.expectExact(SaveProject({ project: savedProject })),
@@ -88,24 +92,24 @@ describe('Project Settings', () => {
 
     story(
       update,
-      given(initial),
+      given(initialModel),
       message(Message.SucceededSaveProject({ project })),
       model(model => {
-        expect(model).toBe(initial)
+        expect(model).toBe(initialModel)
       }),
       expectNoOutMessage(),
     )
 
-    const pending = modifyFields(initial, {
+    const savingModel = modifyFields(initialModel, {
       saveState: () => SaveState.Saving(),
     })
 
     story(
       update,
-      given(pending),
+      given(savingModel),
       message(Message.SucceededSaveProject({ project: otherProject })),
       model(model => {
-        expect(model).toBe(pending)
+        expect(model).toBe(savingModel)
       }),
       expectNoOutMessage(),
     )
@@ -116,7 +120,7 @@ describe('Project Settings', () => {
 
     story(
       update,
-      given(initial),
+      given(initialModel),
       message(Message.UpdatedProjectName({ value: ' A new name ' })),
       message(Message.SubmittedProjectSettings()),
       Command.expectExact(SaveProject({ project: savedProject })),

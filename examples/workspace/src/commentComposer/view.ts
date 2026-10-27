@@ -8,7 +8,7 @@ import {
   CommentComposerComposition,
   type CommentComposerViewBuilder,
 } from './composition'
-import { canEditDraft } from './draft'
+import { isDraftEditable } from './draft'
 import { Message } from './message'
 import { type Model, PostState } from './model'
 
@@ -102,8 +102,8 @@ export const view = CommentComposerComposition.makeView.withInputs<
 >((model, viewInputs, h) => {
   const textareaId = `issue-${model.issueId}-comment`
 
-  const isDraftLocked = !canEditDraft(model)
-  const hasBody = String.isNonEmpty(model.body)
+  const isDraftLocked = !isDraftEditable(model)
+  const isBodyNonEmpty = String.isNonEmpty(model.body)
 
   return h.section(
     [h.Class('mt-8 border-t border-[#e3e6ef] pt-5'), h.AriaLabel('Activity')],
@@ -167,7 +167,7 @@ export const view = CommentComposerComposition.makeView.withInputs<
           h.div(
             [h.Class('mt-3 flex items-center justify-end gap-2')],
             [
-              ...(hasBody
+              ...(isBodyNonEmpty
                 ? [
                     Button.view(
                       {

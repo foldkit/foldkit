@@ -11,15 +11,18 @@ import { OutMessage } from './outMessage'
 const handleInformedOfActivityStep = makeFieldsStep.fromMessage(
   ({ activity }: typeof Message.InformedOfActivity.Type) => ({
     notifications: notifications => {
-      const incoming = makeNotifications(activity)
+      const incomingNotifications = makeNotifications(activity)
 
-      const unseen = Array.filter(
-        incoming,
+      const unseenNotifications = Array.filter(
+        incomingNotifications,
         notification =>
-          !Array.some(notifications, current => current.id === notification.id),
+          !Array.some(
+            notifications,
+            existingNotification => existingNotification.id === notification.id,
+          ),
       )
 
-      return [...unseen, ...notifications]
+      return [...unseenNotifications, ...notifications]
     },
   }),
 )
@@ -71,13 +74,13 @@ export const update = NotificationCenterComposition.makeUpdate({
       {
         onNone: () => makeNoopStep()(model),
         onSome: notification => {
-          const selected = Update.combineSteps(model, [
+          const notificationSelection = Update.combineSteps(model, [
             markAsReadStep(notificationId),
             PopoverBinding.requestClose(),
           ])
 
           return pipe(
-            selected,
+            notificationSelection,
             Update.withOutMessage(
               OutMessage.SelectedIssue({ issueId: notification.issueId }),
             ),

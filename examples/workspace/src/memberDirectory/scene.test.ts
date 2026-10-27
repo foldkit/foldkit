@@ -56,14 +56,14 @@ describe('member directory', () => {
   test('renders non-link assigned-issue content when its href is absent', () => {
     const issue = Option.getOrThrow(Array.head(initialWorkspace.issues))
     const directoryInit = MemberDirectoryBlock.init()
-    const memberSelection = update(
+    const directoryUpdate = update(
       directoryInit.model,
       Message.ClickedMember({ memberId: 'maya' }),
     )
 
     scene(
       { update, view: sceneView({ issueHrefs: {} }) },
-      given(memberSelection.model),
+      given(directoryUpdate.model),
       expect(
         role('link', { name: `${issue.identifier} ${issue.title}` }),
       ).not.toExist(),
@@ -73,7 +73,7 @@ describe('member directory', () => {
 
   test('reads assignment changes from current parent inputs', () => {
     const directoryInit = MemberDirectoryBlock.init()
-    const memberSelection = update(
+    const directoryUpdate = update(
       directoryInit.model,
       Message.ClickedMember({ memberId: 'maya' }),
     )
@@ -83,7 +83,7 @@ describe('member directory', () => {
 
     scene(
       { update, view: sceneView({ issues: nextIssues }) },
-      given(memberSelection.model),
+      given(directoryUpdate.model),
       expect(role('heading', { name: 'Maya Chen' })).toExist(),
       expect(text('No assigned issues.')).toExist(),
     )

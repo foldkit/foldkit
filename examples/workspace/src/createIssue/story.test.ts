@@ -126,14 +126,14 @@ describe('CreateIssueBlock update', () => {
   })
 
   test('rejects a whitespace title without scheduling creation', () => {
-    const initial = modifyFields(openModel(), {
+    const initialModel = modifyFields(openModel(), {
       title: () => '   ',
       description: () => 'Keep this description.',
     })
 
     story(
       update,
-      given(initial),
+      given(initialModel),
       message(Message.SubmittedIssueForm()),
       model(model => {
         expect(model.description).toBe('Keep this description.')
@@ -149,7 +149,7 @@ describe('CreateIssueBlock update', () => {
   })
 
   test('retains a failed draft and emits the issue after retry', () => {
-    const initial = modifyFields(openModel(), {
+    const initialModel = modifyFields(openModel(), {
       title: () => '  Prepare the welcome tour  ',
       description: () => 'Help new teams find their first project.',
       projectId: () => 'platform',
@@ -158,10 +158,10 @@ describe('CreateIssueBlock update', () => {
     })
     const draft = IssueDraft.make({
       title: 'Prepare the welcome tour',
-      description: initial.description,
-      projectId: initial.projectId,
-      status: initial.status,
-      priority: initial.priority,
+      description: initialModel.description,
+      projectId: initialModel.projectId,
+      status: initialModel.status,
+      priority: initialModel.priority,
       maybeAssigneeId: Option.none(),
       labelIds: [],
     })
@@ -176,16 +176,16 @@ describe('CreateIssueBlock update', () => {
 
     story(
       update,
-      given(initial),
+      given(initialModel),
       message(Message.SubmittedIssueForm()),
       Command.expectExact(CreateIssue({ draft })),
       Command.resolve(CreateIssue, Message.FailedCreateIssue({ error })),
       model(model => {
-        expect(model.title).toBe(initial.title)
-        expect(model.description).toBe(initial.description)
-        expect(model.projectId).toBe(initial.projectId)
-        expect(model.status).toBe(initial.status)
-        expect(model.priority).toBe(initial.priority)
+        expect(model.title).toBe(initialModel.title)
+        expect(model.description).toBe(initialModel.description)
+        expect(model.projectId).toBe(initialModel.projectId)
+        expect(model.status).toBe(initialModel.status)
+        expect(model.priority).toBe(initialModel.priority)
         expect(model.createState).toEqual(CreateState.Failed({ error }))
         expect(model.dialog.isOpen).toBe(true)
       }),
@@ -207,7 +207,7 @@ describe('CreateIssueBlock update', () => {
   })
 
   test('preserves a pending form across close and reopen requests', () => {
-    const initial = modifyFields(
+    const initialModel = modifyFields(
       CreateIssueBlock.operations.requestOpen(initModel(), {
         projectId: 'launch',
         status: 'Backlog',
@@ -220,7 +220,7 @@ describe('CreateIssueBlock update', () => {
 
     story(
       update,
-      given(initial),
+      given(initialModel),
       message(Message.RequestedClose()),
       Command.resolve(
         Dialog.test.CloseDialog,
@@ -243,7 +243,7 @@ describe('CreateIssueBlock update', () => {
   })
 
   test('ignores every draft edit while creation is pending', () => {
-    const initial = modifyFields(initModel(), {
+    const initialModel = modifyFields(initModel(), {
       title: () => 'A pending issue',
       description: () => 'Keep the submitted description.',
       createState: () => CreateState.Creating(),
@@ -252,12 +252,12 @@ describe('CreateIssueBlock update', () => {
     expect(
       editDraftStep(model =>
         modifyFields(model, { title: () => 'A rejected title' }),
-      )(initial).model,
-    ).toBe(initial)
+      )(initialModel).model,
+    ).toBe(initialModel)
 
     story(
       update,
-      given(initial),
+      given(initialModel),
       message(Message.UpdatedTitle({ value: 'A different title' })),
       message(Message.UpdatedDescription({ value: 'A different description' })),
       message(projectSelection('launch')),
@@ -265,11 +265,11 @@ describe('CreateIssueBlock update', () => {
       message(prioritySelection('High')),
       model(model => {
         expect(model).toMatchObject({
-          title: initial.title,
-          description: initial.description,
-          projectId: initial.projectId,
-          status: initial.status,
-          priority: initial.priority,
+          title: initialModel.title,
+          description: initialModel.description,
+          projectId: initialModel.projectId,
+          status: initialModel.status,
+          priority: initialModel.priority,
           createState: CreateState.Creating(),
         })
       }),

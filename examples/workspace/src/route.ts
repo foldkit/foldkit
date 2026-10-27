@@ -71,7 +71,7 @@ const FilterQueryParams = Schema.Struct({
 
 const decodeStatus = Schema.decodeUnknownOption(IssueStatus)
 const decodeSort = Schema.decodeUnknownOption(IssueFilters.fields.sort)
-const decodeGroup = Schema.decodeUnknownOption(GroupBy)
+const decodeGroupBy = Schema.decodeUnknownOption(GroupBy)
 
 const hasNonDefaultFilters = (filters: typeof IssueFilters.Type) =>
   filters.query !== defaultIssueFilters.query ||
@@ -85,14 +85,14 @@ const filtersFromQuery = (isSavedView: boolean) =>
       RouteIssueFilters,
       SchemaTransformation.transform({
         decode: params => {
-          const hasFilters =
+          const isFilterQueryPresent =
             params.search !== undefined ||
             params.status !== undefined ||
             params.sort !== undefined ||
             params.group !== undefined ||
             params.filters !== undefined
 
-          if (!hasFilters) {
+          if (!isFilterQueryPresent) {
             return {}
           }
 
@@ -110,7 +110,7 @@ const filtersFromQuery = (isSavedView: boolean) =>
               ),
               groupBy: pipe(
                 Option.fromNullishOr(params.group),
-                Option.flatMap(decodeGroup),
+                Option.flatMap(decodeGroupBy),
                 Option.getOrElse(() => defaultIssueFilters.groupBy),
               ),
             }),
@@ -224,7 +224,7 @@ export const maybeProjectId = (route: typeof ApplicationRoute.Type) =>
     Option.none,
   )
 
-export const routeFilters = (route: typeof ApplicationRoute.Type) =>
+export const maybeRouteFilters = (route: typeof ApplicationRoute.Type) =>
   ApplicationRoute.matchOrElse<Option.Option<typeof IssueFilters.Type>>(
     route,
     {

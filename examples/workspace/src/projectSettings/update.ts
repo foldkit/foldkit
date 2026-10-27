@@ -9,7 +9,7 @@ import { type Model, type ProjectDraft, SaveState } from './model'
 import { OutMessage } from './outMessage'
 
 const editDraftStep = (
-  change: (draft: typeof ProjectDraft.Type) => typeof ProjectDraft.Type,
+  transformDraft: (draft: typeof ProjectDraft.Type) => typeof ProjectDraft.Type,
 ) =>
   makeStep(model => {
     if (SaveState.guards.Saving(model.saveState)) {
@@ -18,13 +18,13 @@ const editDraftStep = (
 
     return {
       model: modifyFields(model, {
-        draft: change,
+        draft: transformDraft,
         saveState: () => SaveState.Idle(),
       }),
     }
   })
 
-const saveStep = makeStep(model => {
+const saveProjectStep = makeStep(model => {
   const name = String.trim(model.draft.name)
 
   if (
@@ -71,8 +71,8 @@ export const update = ProjectSettingsComposition.makeUpdate({
     editDraftStep(draft => modifyFields(draft, { description: () => value }))(
       model,
     ),
-  SubmittedProjectSettings: saveStep,
-  ClickedRetrySave: saveStep,
+  SubmittedProjectSettings: saveProjectStep,
+  ClickedRetrySave: saveProjectStep,
   ClickedDiscardChanges: handleClickedDiscardChanges,
   SucceededSaveProject: (model, { project }) => {
     if (

@@ -11,16 +11,16 @@ import {
   listboxViewInputs,
 } from '../listbox'
 import {
-  AssigneeBinding,
+  AssigneeListboxBinding,
   CommentComposerBinding,
   IssueDetailComposition,
   type IssueDetailViewBuilder,
-  PriorityBinding,
-  ProjectBinding,
-  StatusBinding,
+  PriorityListboxBinding,
+  ProjectListboxBinding,
+  StatusListboxBinding,
 } from './composition'
 import { CONFLICT_MESSAGE, isDirty } from './draft'
-import { assigneeValue } from './field'
+import { encodeAssigneeSelection } from './field'
 import { Message } from './message'
 import { type Model, SaveState } from './model'
 
@@ -161,9 +161,9 @@ const properties = (
   }))
 
   const assigneeOptions = [
-    { value: assigneeValue(Option.none()), label: 'Unassigned' },
+    { value: encodeAssigneeSelection(Option.none()), label: 'Unassigned' },
     ...Array.map(viewInputs.members, member => ({
-      value: assigneeValue(Option.some(member.id)),
+      value: encodeAssigneeSelection(Option.some(member.id)),
       label: member.name,
     })),
   ]
@@ -175,7 +175,7 @@ const properties = (
         buttonId(model.statusListbox.id),
         'Status',
         h.block(
-          StatusBinding.embedView({
+          StatusListboxBinding.embedView({
             slotId: model.statusListbox.id,
             model: model.statusListbox,
             viewInputs: listboxViewInputs({
@@ -191,7 +191,7 @@ const properties = (
         buttonId(model.priorityListbox.id),
         'Priority',
         h.block(
-          PriorityBinding.embedView({
+          PriorityListboxBinding.embedView({
             slotId: model.priorityListbox.id,
             model: model.priorityListbox,
             viewInputs: listboxViewInputs({
@@ -207,7 +207,7 @@ const properties = (
         buttonId(model.projectListbox.id),
         'Project',
         h.block(
-          ProjectBinding.embedView({
+          ProjectListboxBinding.embedView({
             slotId: model.projectListbox.id,
             model: model.projectListbox,
             viewInputs: listboxViewInputs({
@@ -223,11 +223,11 @@ const properties = (
         buttonId(model.assigneeListbox.id),
         'Assignee',
         h.block(
-          AssigneeBinding.embedView({
+          AssigneeListboxBinding.embedView({
             slotId: model.assigneeListbox.id,
             model: model.assigneeListbox,
             viewInputs: listboxViewInputs({
-              value: assigneeValue(model.draft.maybeAssigneeId),
+              value: encodeAssigneeSelection(model.draft.maybeAssigneeId),
               options: assigneeOptions,
               isDisabled: isSaving,
             }),

@@ -35,39 +35,30 @@ export const initChildrenStep = makeStep(model => {
     }),
   )
 
+  const findProject = (projectId: string) =>
+    Array.findFirst(workspace.projects, project => project.id === projectId)
+
   const initChildrenForRouteStep = ApplicationRoute.matchOrElse(
     route,
     {
       Board: ({ projectId }) =>
-        Option.match(
-          Array.findFirst(
-            workspace.projects,
-            project => project.id === projectId,
-          ),
-          {
-            onNone: makeNoopStep,
-            onSome: project =>
-              makeInitIfMissingStep(IssueBoardBinding, {
-                key: project.id,
-                args: [],
-              }),
-          },
-        ),
+        Option.match(findProject(projectId), {
+          onNone: makeNoopStep,
+          onSome: project =>
+            makeInitIfMissingStep(IssueBoardBinding, {
+              key: project.id,
+              args: [],
+            }),
+        }),
       ProjectSettings: ({ projectId }) =>
-        Option.match(
-          Array.findFirst(
-            workspace.projects,
-            project => project.id === projectId,
-          ),
-          {
-            onNone: makeNoopStep,
-            onSome: project =>
-              makeInitIfMissingStep(ProjectSettingsBinding, {
-                key: project.id,
-                args: [project],
-              }),
-          },
-        ),
+        Option.match(findProject(projectId), {
+          onNone: makeNoopStep,
+          onSome: project =>
+            makeInitIfMissingStep(ProjectSettingsBinding, {
+              key: project.id,
+              args: [project],
+            }),
+        }),
     },
     makeNoopStep,
   )

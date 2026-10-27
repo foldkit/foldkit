@@ -24,12 +24,12 @@ export const saveProjectInState = (
     ]
   }
 
-  const workspace = Workspace.make({
+  const nextWorkspace = Workspace.make({
     ...state.workspace,
-    projects: Array.map(state.workspace.projects, candidate =>
-      candidate.id === project.id ? project : candidate,
+    projects: Array.map(state.workspace.projects, currentProject =>
+      currentProject.id === project.id ? project : currentProject,
     ),
   })
 
-  return [Result.succeed(project), { ...state, workspace }]
+  return [Result.succeed(project), { ...state, workspace: nextWorkspace }]
 }

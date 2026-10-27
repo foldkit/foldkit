@@ -6,7 +6,7 @@ import { protectUnsavedChanges } from './draftProtection'
 import { Message } from './message'
 import { unsavedIssueDrafts } from './selection'
 
-const ACTIVITY_INTERVAL = Duration.seconds(20)
+const ACTIVITY_TICK_INTERVAL = Duration.seconds(20)
 
 export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
   draftExitGuard: entry(
@@ -33,7 +33,7 @@ export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
       handler: function* () {
         return ({ isActive }) =>
           isActive
-            ? Stream.tick(ACTIVITY_INTERVAL).pipe(
+            ? Stream.tick(ACTIVITY_TICK_INTERVAL).pipe(
                 Stream.drop(1),
                 Stream.map(Message.TickedActivityStream),
               )

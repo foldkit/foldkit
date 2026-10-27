@@ -3,24 +3,19 @@ import { modifyFields } from 'foldkit/struct'
 
 import { RepositoryError } from '../repository'
 import { SaveIssue } from './command'
-import { IssueDetailComposition, changeDraftStep } from './composition'
+import { IssueDetailComposition, editDraftStep } from './composition'
 import { makeOutMessageStep, makeStep } from './definition'
-import {
-  isDirty,
-  latestRevision,
-  reconcileIssue,
-  revisionFromIssue,
-} from './draft'
+import { isDirty, latestRevision, reconcileIssue } from './draft'
 import { Message } from './message'
 import { type Model, SaveState } from './model'
 import { OutMessage } from './outMessage'
 
 const resetDraftFields = (model: typeof Model.Type) => {
-  const revision = latestRevision(model)
+  const nextBaseline = latestRevision(model)
 
   return {
-    baseline: () => revision,
-    draft: () => revision.fields,
+    baseline: () => nextBaseline,
+    draft: () => nextBaseline.fields,
     maybeIncomingRevision: () => Option.none(),
     saveState: () => SaveState.Idle(),
   }
@@ -83,25 +78,28 @@ const isCurrentSave = (
 
 const handleSucceededSaveIssue = (
   model: typeof Model.Type,
-  { issue, expectedVersion }: typeof Message.SucceededSaveIssue.Type,
+  { savedIssue, expectedVersion }: typeof Message.SucceededSaveIssue.Type,
 ) => {
-  if (!isCurrentSave(model, issue.id, expectedVersion)) {
+  if (!isCurrentSave(model, savedIssue.issueId, expectedVersion)) {
     return { model }
   }
 
-  const saved = revisionFromIssue(issue)
-  const known = latestRevision(model)
+  const savedRevision = savedIssue.revision
+  const latestKnownRevision = latestRevision(model)
 
-  const baseline = known.version > saved.version ? known : saved
+  const nextBaseline =
+    latestKnownRevision.version > savedRevision.version
+      ? latestKnownRevision
+      : savedRevision
 
   return {
     model: modifyFields(model, {
-      baseline: () => baseline,
-      draft: () => baseline.fields,
+      baseline: () => nextBaseline,
+      draft: () => nextBaseline.fields,
       maybeIncomingRevision: () => Option.none(),
       saveState: () => SaveState.Idle(),
     }),
-    outMessage: OutMessage.Saved({ issue }),
+    outMessage: OutMessage.Saved({ savedIssue }),
   }
 }
 
@@ -117,10 +115,10 @@ const handleFailedSaveIssue = (
     error,
     {
       Conflict: ({ latestIssue }) => {
-        const reconciled = reconcileIssue(model, latestIssue)
+        const reconciledModel = reconcileIssue(model, latestIssue)
 
         return {
-          model: modifyFields(reconciled, {
+          model: modifyFields(reconciledModel, {
             saveState: () => SaveState.Failed({ error: error.message }),
           }),
           outMessage: OutMessage.ReceivedIssue({ issue: latestIssue }),
@@ -140,11 +138,9 @@ const handleFailedSaveIssue = (
 
 export const update = IssueDetailComposition.makeUpdate({
   UpdatedTitle: (model, { value }) =>
-    changeDraftStep(draft => modifyFields(draft, { title: () => value }))(
-      model,
-    ),
+    editDraftStep(draft => modifyFields(draft, { title: () => value }))(model),
   UpdatedDescription: (model, { value }) =>
-    changeDraftStep(draft => modifyFields(draft, { description: () => value }))(
+    editDraftStep(draft => modifyFields(draft, { description: () => value }))(
       model,
     ),
   SubmittedIssueForm: saveIssueStep,

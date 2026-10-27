@@ -1,7 +1,7 @@
 import { Schema } from 'effect'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Issue } from '../domain'
+import { Issue, SavedIssue } from '../domain'
 import { RepositoryError } from '../repository'
 
 export const Message = defineMessageUnion({
@@ -15,7 +15,7 @@ export const Message = defineMessageUnion({
   RequestedSave: {},
   InformedOfIssueChange: { issue: Issue },
   SucceededSaveIssue: {
-    issue: Issue,
+    savedIssue: SavedIssue,
     expectedVersion: Schema.Number,
   },
   FailedSaveIssue: {

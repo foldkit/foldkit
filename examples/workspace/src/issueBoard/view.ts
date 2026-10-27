@@ -85,13 +85,13 @@ const issueTitle = (
 
 const maybeDraggedIssue = (
   model: typeof Model.Type,
-  inputs: typeof ViewInputs.Type,
+  viewInputs: typeof ViewInputs.Type,
 ) =>
   pipe(
     maybeDraggedItemId(model.dragAndDrop),
     Option.flatMap(maybeIssueIdFromDraggableId),
     Option.flatMap(issueId =>
-      Array.findFirst(inputs.issues, issue => issue.id === issueId),
+      Array.findFirst(viewInputs.issues, issue => issue.id === issueId),
     ),
   )
 
@@ -100,17 +100,17 @@ const issueCard = (
   issue: typeof Issue.Type,
   status: typeof IssueStatus.Type,
   index: number,
-  inputs: typeof ViewInputs.Type,
-  dragAndDrop: RenderInfo,
+  viewInputs: typeof ViewInputs.Type,
+  dragAndDropRenderInfo: RenderInfo,
   h: IssueBoardViewBuilder,
 ): Html => {
-  const isSaving = inputs.isSaving ?? false
+  const isSaving = viewInputs.isSaving ?? false
   const isDisabled = isSaving || isDragging(model.dragAndDrop)
 
-  const maybeHref = Option.fromNullishOr(inputs.issueHrefs[issue.id])
+  const maybeHref = Option.fromNullishOr(viewInputs.issueHrefs[issue.id])
 
   const maybeAssignee = Option.flatMap(issue.maybeAssigneeId, memberId =>
-    Array.findFirst(inputs.members, member => member.id === memberId),
+    Array.findFirst(viewInputs.members, member => member.id === memberId),
   )
 
   const isKeyboardDragged =
@@ -133,7 +133,7 @@ const issueCard = (
           // NOTE: Keyboard drops focus this marker while the move is still saving.
           ...(isSaving
             ? [h.DataAttribute('draggable-id', draggableId(issue.id))]
-            : dragAndDrop.draggable({
+            : dragAndDropRenderInfo.draggable({
                 itemId: draggableId(issue.id),
                 containerId: containerId(status),
                 index,
@@ -146,8 +146,8 @@ const issueCard = (
           h.Class(
             clsx(DRAG_HANDLE_CLASS, {
               'cursor-wait opacity-50': isSaving,
-              'cursor-grab hover:bg-[#f4f3ff] active:cursor-grabbing':
-                !isSaving,
+              'cursor-grab active:cursor-grabbing': !isSaving,
+              'hover:bg-[#f4f3ff]': !isDisabled,
             }),
           ),
         ],
@@ -185,17 +185,25 @@ const columnCards = (
   model: typeof Model.Type,
   status: typeof IssueStatus.Type,
   issues: ReadonlyArray<typeof Issue.Type>,
-  inputs: typeof ViewInputs.Type,
-  dragAndDrop: RenderInfo,
+  viewInputs: typeof ViewInputs.Type,
+  dragAndDropRenderInfo: RenderInfo,
   h: IssueBoardViewBuilder,
 ): ReadonlyArray<Html> => {
   if (!isDragging(model.dragAndDrop)) {
     return Array.map(issues, (issue, index) =>
-      issueCard(model, issue, status, index, inputs, dragAndDrop, h),
+      issueCard(
+        model,
+        issue,
+        status,
+        index,
+        viewInputs,
+        dragAndDropRenderInfo,
+        h,
+      ),
     )
   }
 
-  const maybeDragged = maybeDraggedIssue(model, inputs)
+  const maybeDragged = maybeDraggedIssue(model, viewInputs)
 
   const visibleIssues = Array.filter(
     issues,
@@ -203,7 +211,15 @@ const columnCards = (
   )
 
   const cards = Array.map(visibleIssues, (issue, index) =>
-    issueCard(model, issue, status, index, inputs, dragAndDrop, h),
+    issueCard(
+      model,
+      issue,
+      status,
+      index,
+      viewInputs,
+      dragAndDropRenderInfo,
+      h,
+    ),
   )
 
   const maybeTarget = Option.filter(
@@ -233,8 +249,8 @@ const columnCards = (
                 issue,
                 status,
                 insertionIndex,
-                inputs,
-                dragAndDrop,
+                viewInputs,
+                dragAndDropRenderInfo,
                 h,
               ),
           })
@@ -255,13 +271,17 @@ const columnCards = (
 const column = (
   model: typeof Model.Type,
   status: typeof IssueStatus.Type,
-  inputs: typeof ViewInputs.Type,
-  dragAndDrop: RenderInfo,
+  viewInputs: typeof ViewInputs.Type,
+  dragAndDropRenderInfo: RenderInfo,
   h: IssueBoardViewBuilder,
 ): Html => {
-  const issues = Array.filter(inputs.issues, issue => issue.status === status)
+  const issues = Array.filter(
+    viewInputs.issues,
+    issue => issue.status === status,
+  )
 
-  const isDisabled = (inputs.isSaving ?? false) || isDragging(model.dragAndDrop)
+  const isDisabled =
+    (viewInputs.isSaving ?? false) || isDragging(model.dragAndDrop)
 
   const isTarget = Option.exists(
     maybeDropTarget(model.dragAndDrop),
@@ -342,14 +362,21 @@ const column = (
       ),
       h.ul(
         [
-          ...dragAndDrop.droppable(
+          ...dragAndDropRenderInfo.droppable(
             containerId(status),
             `${issueStatusLabel(status)} issues`,
           ),
           h.Role('list'),
           h.Class('m-0 flex min-h-40 list-none flex-col gap-3 p-0'),
         ],
-        columnCards(model, status, issues, inputs, dragAndDrop, h),
+        columnCards(
+          model,
+          status,
+          issues,
+          viewInputs,
+          dragAndDropRenderInfo,
+          h,
+        ),
       ),
     ],
   )
@@ -357,13 +384,13 @@ const column = (
 
 const ghost = (
   model: typeof Model.Type,
-  inputs: typeof ViewInputs.Type,
+  viewInputs: typeof ViewInputs.Type,
   h: IssueBoardViewBuilder,
 ): Html =>
   Option.match(
     Option.all({
       style: ghostStyle(model.dragAndDrop),
-      issue: maybeDraggedIssue(model, inputs),
+      issue: maybeDraggedIssue(model, viewInputs),
     }),
     {
       onNone: () => h.empty,
@@ -389,7 +416,7 @@ const ghost = (
 
 export const view = IssueBoardComposition.makeView.withInputs<
   typeof ViewInputs.Type
->((model, inputs, h) =>
+>((model, viewInputs, h) =>
   h.section(
     [h.Class('w-full min-w-0 bg-white p-5 lg:p-8'), h.AriaLabel('Issue board')],
     [
@@ -409,7 +436,7 @@ export const view = IssueBoardComposition.makeView.withInputs<
           slotId: model.dragAndDrop.id,
           model: model.dragAndDrop,
           viewInputs: {
-            toView: dragAndDrop =>
+            toView: dragAndDropRenderInfo =>
               h.div(
                 [],
                 [
@@ -420,10 +447,16 @@ export const view = IssueBoardComposition.makeView.withInputs<
                       ),
                     ],
                     Array.map(STATUSES, status =>
-                      column(model, status, inputs, dragAndDrop, h),
+                      column(
+                        model,
+                        status,
+                        viewInputs,
+                        dragAndDropRenderInfo,
+                        h,
+                      ),
                     ),
                   ),
-                  ghost(model, inputs, h),
+                  ghost(model, viewInputs, h),
                 ],
               ),
           },

@@ -73,7 +73,7 @@ describe('Issue Board view', () => {
 
   test('disables issue actions while saving', () => {
     const handle = role('button', { name: 'Drag WSP-101' })
-    const createIssue = role('button', {
+    const createIssueButton = role('button', {
       name: 'Create issue in In progress',
     })
     const title = text('Build a faster command menu')
@@ -86,7 +86,7 @@ describe('Issue Board view', () => {
       ).not.toExist(),
       expect(title).toHaveAttr('aria-disabled', 'true'),
       expect(handle).toHaveAttr('aria-disabled', 'true'),
-      expect(createIssue).toBeDisabled(),
+      expect(createIssueButton).toBeDisabled(),
       expectNoOutMessage(),
       Command.expectNone(),
     )

@@ -11,7 +11,7 @@ import { Message } from './message'
 import { CreateState, type Model } from './model'
 import { OutMessage } from './outMessage'
 
-const handleSubmittedIssueFormStep = makeStep(model => {
+const createIssueStep = makeStep(model => {
   if (CreateState.guards.Creating(model.createState)) {
     return { model }
   }
@@ -79,7 +79,7 @@ export const update = CreateIssueComposition.makeUpdate({
       modifyFields(draftModel, { title: () => value }),
     )(model),
   UpdatedDescription: handleUpdatedDescription,
-  SubmittedIssueForm: handleSubmittedIssueFormStep,
+  SubmittedIssueForm: createIssueStep,
   SucceededCreateIssue: (model, { issue }) => {
     return pipe(
       Update.combineSteps(model, [

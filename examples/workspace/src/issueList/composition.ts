@@ -37,12 +37,12 @@ const changeStatusFilterStep = (value: typeof StatusFilterValue.Type) => {
   return makeNoopStep()
 }
 
-const changeSort = (value: typeof IssueFilters.fields.sort.Type) =>
+const changeSortStep = (value: typeof IssueFilters.fields.sort.Type) =>
   Schema.is(IssueFilters.fields.sort)(value)
     ? makeOutMessageStep(() => OutMessage.ChangedSort({ sort: value }))
     : makeNoopStep()
 
-const changeGrouping = (value: typeof GroupBy.Type) =>
+const changeGroupingStep = (value: typeof GroupBy.Type) =>
   Schema.is(GroupBy)(value)
     ? makeOutMessageStep(() => OutMessage.ChangedGrouping({ groupBy: value }))
     : makeNoopStep()
@@ -63,7 +63,7 @@ export const SortListboxBinding = makeBinding(SortListboxBlock, {
   init: { contextToArgs: () => [{ id: 'issue-list-sort-issues' }] },
 }).withOutMessagePolicy({
   fold: makeOutMessageFold(SortListboxBlock, {
-    Selected: ({ value }) => changeSort(value),
+    Selected: ({ value }) => changeSortStep(value),
   }),
 })
 
@@ -72,7 +72,7 @@ export const GroupListboxBinding = makeBinding(GroupListboxBlock, {
   init: { contextToArgs: () => [{ id: 'issue-list-group-issues' }] },
 }).withOutMessagePolicy({
   fold: makeOutMessageFold(GroupListboxBlock, {
-    Selected: ({ value }) => changeGrouping(value),
+    Selected: ({ value }) => changeGroupingStep(value),
   }),
 })
 

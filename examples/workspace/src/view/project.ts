@@ -13,7 +13,7 @@ export const projectTabs = (
   route: typeof ApplicationRoute.Type,
   h: ApplicationViewBuilder,
 ): Html => {
-  const pages = {
+  const projectPageRoutes = {
     Overview: ApplicationRoute.ProjectOverview({ projectId: project.id }),
     Issues: ApplicationRoute.Project({ projectId: project.id }),
     Board: ApplicationRoute.Board({ projectId: project.id }),
@@ -23,10 +23,10 @@ export const projectTabs = (
   }
 
   return Nav.view({
-    items: Record.keys(pages),
+    items: Record.keys(projectPageRoutes),
     ariaLabel: 'Project navigation',
-    toHref: label => routeToPath(pages[label]),
-    isItemCurrent: label => pages[label]._tag === route._tag,
+    toHref: label => routeToPath(projectPageRoutes[label]),
+    isItemCurrent: label => projectPageRoutes[label]._tag === route._tag,
     toView: ({ nav, items }) =>
       h.nav(
         [
@@ -43,13 +43,16 @@ export const projectOverview = (
   workspace: typeof Workspace.Type,
   h: ApplicationViewBuilder,
 ): Html => {
-  const issues = Array.filter(
+  const projectIssues = Array.filter(
     workspace.issues,
     issue => issue.projectId === project.id,
   )
-  const completed = Array.filter(issues, issue => issue.status === 'Done')
-  const inProgress = Array.filter(
-    issues,
+  const completedIssues = Array.filter(
+    projectIssues,
+    issue => issue.status === 'Done',
+  )
+  const inProgressIssues = Array.filter(
+    projectIssues,
     issue => issue.status === 'InProgress',
   )
 
@@ -94,7 +97,7 @@ export const projectOverview = (
               ),
               h.dd(
                 [h.Class('mt-1 text-xl font-semibold text-slate-800')],
-                [`${issues.length}`],
+                [`${projectIssues.length}`],
               ),
             ],
           ),
@@ -107,7 +110,7 @@ export const projectOverview = (
               ),
               h.dd(
                 [h.Class('mt-1 text-xl font-semibold text-slate-800')],
-                [`${inProgress.length}`],
+                [`${inProgressIssues.length}`],
               ),
             ],
           ),
@@ -120,7 +123,7 @@ export const projectOverview = (
               ),
               h.dd(
                 [h.Class('mt-1 text-xl font-semibold text-slate-800')],
-                [`${completed.length}`],
+                [`${completedIssues.length}`],
               ),
             ],
           ),

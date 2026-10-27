@@ -14,9 +14,9 @@ import {
   makeComposition,
   makeNoopStep,
   makeOutMessageFold,
+  makeOutMessageStep,
   makeStep,
 } from './definition'
-import { reconcileIssue } from './draft'
 import { decodeAssigneeSelection } from './field'
 import { SaveState } from './model'
 import { OutMessage } from './outMessage'
@@ -28,15 +28,17 @@ export const CommentComposerBinding = makeBinding(CommentComposerBlock, {
   },
 }).withOutMessagePolicy({
   fold: makeOutMessageFold(CommentComposerBlock, {
-    AddedComment: ({ issue }) =>
-      makeStep(model => ({
-        model: reconcileIssue(model, issue),
-        outMessage: OutMessage.ReceivedIssue({ issue }),
-      })),
+    AddedComment: ({ comment }) =>
+      makeOutMessageStep(model =>
+        OutMessage.AddedComment({
+          issueId: model.issueId,
+          comment,
+        }),
+      ),
   }),
 })
 
-export const changeDraftStep = (
+export const editDraftStep = (
   transformDraft: (draft: typeof IssueDraft.Type) => typeof IssueDraft.Type,
 ) =>
   makeStep(model => ({
@@ -45,7 +47,7 @@ export const changeDraftStep = (
       : modifyFields(model, { draft: transformDraft }),
   }))
 
-export const StatusBinding = makeBinding(StatusListboxBlock, {
+export const StatusListboxBinding = makeBinding(StatusListboxBlock, {
   field: 'statusListbox',
   init: {
     contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-status` }],
@@ -54,12 +56,12 @@ export const StatusBinding = makeBinding(StatusListboxBlock, {
   fold: makeOutMessageFold(StatusListboxBlock, {
     Selected: ({ value }) =>
       Schema.is(IssueStatus)(value)
-        ? changeDraftStep(draft => modifyFields(draft, { status: () => value }))
+        ? editDraftStep(draft => modifyFields(draft, { status: () => value }))
         : makeNoopStep(),
   }),
 })
 
-export const PriorityBinding = makeBinding(PriorityListboxBlock, {
+export const PriorityListboxBinding = makeBinding(PriorityListboxBlock, {
   field: 'priorityListbox',
   init: {
     contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-priority` }],
@@ -68,14 +70,12 @@ export const PriorityBinding = makeBinding(PriorityListboxBlock, {
   fold: makeOutMessageFold(PriorityListboxBlock, {
     Selected: ({ value }) =>
       Schema.is(IssuePriority)(value)
-        ? changeDraftStep(draft =>
-            modifyFields(draft, { priority: () => value }),
-          )
+        ? editDraftStep(draft => modifyFields(draft, { priority: () => value }))
         : makeNoopStep(),
   }),
 })
 
-export const ProjectBinding = makeBinding(WorkspaceListboxBlock, {
+export const ProjectListboxBinding = makeBinding(WorkspaceListboxBlock, {
   field: 'projectListbox',
   init: {
     contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-project` }],
@@ -83,11 +83,11 @@ export const ProjectBinding = makeBinding(WorkspaceListboxBlock, {
 }).withOutMessagePolicy({
   fold: makeOutMessageFold(WorkspaceListboxBlock, {
     Selected: ({ value }) =>
-      changeDraftStep(draft => modifyFields(draft, { projectId: () => value })),
+      editDraftStep(draft => modifyFields(draft, { projectId: () => value })),
   }),
 })
 
-export const AssigneeBinding = makeBinding(WorkspaceListboxBlock, {
+export const AssigneeListboxBinding = makeBinding(WorkspaceListboxBlock, {
   field: 'assigneeListbox',
   init: {
     contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-assignee` }],
@@ -98,7 +98,7 @@ export const AssigneeBinding = makeBinding(WorkspaceListboxBlock, {
       Option.match(decodeAssigneeSelection(value), {
         onNone: makeNoopStep,
         onSome: maybeAssigneeId =>
-          changeDraftStep(draft =>
+          editDraftStep(draft =>
             modifyFields(draft, { maybeAssigneeId: () => maybeAssigneeId }),
           ),
       }),
@@ -108,10 +108,10 @@ export const AssigneeBinding = makeBinding(WorkspaceListboxBlock, {
 export const IssueDetailComposition = makeComposition({
   bindings: [
     CommentComposerBinding,
-    StatusBinding,
-    PriorityBinding,
-    ProjectBinding,
-    AssigneeBinding,
+    StatusListboxBinding,
+    PriorityListboxBinding,
+    ProjectListboxBinding,
+    AssigneeListboxBinding,
   ],
 })
 export type IssueDetailViewBuilder = Block.ViewBuilderFor<

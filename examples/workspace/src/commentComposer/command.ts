@@ -16,7 +16,7 @@ export const AddComment = CommentComposerDefinition.makeCommand('AddComment', {
 
     return args =>
       repository.addComment(args).pipe(
-        Effect.map(issue => Message.SucceededAddComment({ issue })),
+        Effect.map(comment => Message.SucceededAddComment({ comment })),
         Effect.catch(error =>
           Effect.succeed(
             Message.FailedAddComment({

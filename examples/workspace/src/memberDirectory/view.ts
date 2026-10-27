@@ -21,7 +21,7 @@ const ViewInputs = Schema.Struct({
 const MEMBER_CARD_CLASS =
   'flex w-full cursor-pointer flex-col items-start gap-3 rounded-xl border p-5 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500'
 
-const assignedIssues = (
+const issuesAssignedToMember = (
   memberId: string,
   issues: ReadonlyArray<typeof Issue.Type>,
 ) =>
@@ -35,7 +35,7 @@ const memberCard = (
   issues: ReadonlyArray<typeof Issue.Type>,
   h: MemberDirectoryViewBuilder,
 ): Html => {
-  const assigned = assignedIssues(member.id, issues)
+  const assignedIssues = issuesAssignedToMember(member.id, issues)
 
   const isSelected = Option.contains(model.maybeSelectedMemberId, member.id)
 
@@ -77,7 +77,7 @@ const memberCard = (
                 h.span(
                   [h.Class('text-xs font-medium leading-6 text-slate-500')],
                   [
-                    `${assigned.length} assigned ${assigned.length === 1 ? 'issue' : 'issues'}`,
+                    `${assignedIssues.length} assigned ${assignedIssues.length === 1 ? 'issue' : 'issues'}`,
                   ],
                 ),
               ],
@@ -138,8 +138,11 @@ const memberProfile = (
   issueHrefs: (typeof ViewInputs.Type)['issueHrefs'],
   h: MemberDirectoryViewBuilder,
 ): Html => {
-  const assigned = assignedIssues(member.id, issues)
-  const active = Array.filter(assigned, issue => issue.status !== 'Done')
+  const assignedIssues = issuesAssignedToMember(member.id, issues)
+  const activeIssues = Array.filter(
+    assignedIssues,
+    issue => issue.status !== 'Done',
+  )
 
   return h.section(
     [
@@ -172,7 +175,9 @@ const memberProfile = (
               ),
               h.p(
                 [h.Class('text-xs font-medium leading-6 text-slate-500')],
-                [`${active.length} active · ${assigned.length} assigned`],
+                [
+                  `${activeIssues.length} active · ${assignedIssues.length} assigned`,
+                ],
               ),
             ],
           ),
@@ -182,7 +187,7 @@ const memberProfile = (
         [h.Class('text-base font-semibold text-slate-700')],
         ['Assigned issues'],
       ),
-      Array.match(assigned, {
+      Array.match(assignedIssues, {
         onEmpty: () =>
           h.p(
             [
@@ -192,10 +197,10 @@ const memberProfile = (
             ],
             ['No assigned issues.'],
           ),
-        onNonEmpty: assigned =>
+        onNonEmpty: assignedIssues =>
           h.ul(
             [h.Class('mt-3 divide-y divide-slate-100')],
-            Array.map(assigned, issue =>
+            Array.map(assignedIssues, issue =>
               h.keyed('li')(
                 issue.id,
                 [],
@@ -213,7 +218,7 @@ export const view = MemberDirectoryComposition.makeView.withInputs<
 >((model, viewInputs, h) => {
   const searchText = model.query.trim().toLowerCase()
 
-  const members = Array.filter(viewInputs.members, member =>
+  const matchingMembers = Array.filter(viewInputs.members, member =>
     `${member.name} ${member.initials}`.toLowerCase().includes(searchText),
   )
 
@@ -252,7 +257,7 @@ export const view = MemberDirectoryComposition.makeView.withInputs<
           ),
           h.span(
             [h.Class('text-xs font-medium leading-6 text-slate-500')],
-            [`${members.length} members`],
+            [`${matchingMembers.length} members`],
           ),
         ],
       ),
@@ -263,7 +268,7 @@ export const view = MemberDirectoryComposition.makeView.withInputs<
           ),
         ],
         [
-          Array.match(members, {
+          Array.match(matchingMembers, {
             onEmpty: () =>
               h.p(
                 [
