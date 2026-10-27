@@ -56,7 +56,7 @@ Reciprocal Binding policies now resolve converging paths without repeatedly expa
 The following additions are optional:
 
 - Paths stored in query parameters can use [Route.parsePathWithFallback](/core/routing-and-navigation#parse-relative-paths). Decode return locations through the query Schema and store typed Routes in the Model; application selectors can then use those values directly.
-- Schema-backed Record and HashMap child fields can use [`makeMapBinding` from `foldkit/mapBinding`](/core/block#keyed-map-fields), removing repeated lookup and replacement configuration. Existing general keyed Bindings remain supported for custom relationships.
+- Schema-backed Record and HashMap child fields can use [ParentDefinition.makeMapBinding](/core/block#keyed-map-fields), removing repeated lookup and replacement configuration. Existing standalone calls need the [map Binding migration](#move-map-bindings-to-their-parent-definition). General keyed Bindings remain supported for custom relationships.
 - A closed, fully attached ManagedResource registry supplies its handler recipes through [managedResources.layer](/core/managed-resources), matching Subscriptions. Empty registries supply `Layer.empty`; mixed attached/host-owned registries require explicit provider selection.
 - Story and Scene helpers can inspect captured Command arguments through [Command.argsOf](/testing/story#inspect-captured-command-arguments), matching the original Definition's source identity without changing the pending Command or selecting an occurrence.
 - Parent Stories can wrap a child fact with [toParentMessage from foldkit/test](/testing#send-a-child-fact-without-a-view), using the exact Binding without view setup or fabricated envelope fields. Existing Command and Subscription replay paths remain appropriate for their respective sources.
@@ -137,6 +137,12 @@ Canonical routing Messages can be passed directly when their payloads are `{ req
 `Server.renderToString` now receives the same `ApplicationBlock` as the browser Program. Its second argument contains server host declarations such as `Flags` and `routing`. Its third argument contains request inputs such as `flags` and `url`. Remove `init`, `update`, `view`, lifecycle declarations, and handler recipes from the server call because the completed Block already carries them.
 
 ::Snippet{name="serverRenderingBlockServerEntry" label="Rendering the completed root Block"}
+
+## Move Map Bindings to Their Parent Definition
+
+Remove the standalone `makeMapBinding` import from `foldkit/mapBinding`. Call the parent Definition's `makeMapBinding` method with the child Block and existing config. The parent Definition is no longer a positional argument. The standalone subpath is removed.
+
+For a split feature, destructure and export `makeMapBinding` from its `definition.ts`, then import that factory from the feature module. Its parent contracts remain attached when destructured. Keep the existing Binding registration, key Schema, storage, OutMessage policy, and initialization. See [map Bindings](/core/block#keyed-map-fields) for the current calls.
 
 ## Rename Definition Authoring Factories
 

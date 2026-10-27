@@ -1,0 +1,7 @@
+--- a/packages/foldkit/type-performance/budgets.json
++++ b/packages/foldkit/type-performance/budgets.json
+@@ -17,2 +17,2 @@
+-      "maxInstantiationsDelta": 2639574,
+-      "maxTypesDelta": 206314
++      "maxInstantiationsDelta": 2642699,
++      "maxTypesDelta": 229173

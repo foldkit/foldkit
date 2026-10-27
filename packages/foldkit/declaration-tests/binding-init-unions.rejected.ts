@@ -1,7 +1,6 @@
 import { Option, Schema } from 'effect'
 import { Block, Message, Struct } from 'foldkit'
 import { initAndAppend, initAndInsert, initAndSet } from 'foldkit/bindingInit'
-import { makeMapBinding } from 'foldkit/mapBinding'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
 const FirstComposition = Block.makeDefinition('FirstUnionInitChild', {
@@ -115,11 +114,11 @@ const SecondArray = Definition.makeBinding(SecondBlock, {
 const selectedArray = Math.random() > 0.5 ? FirstArray : SecondArray
 // @ts-expect-error Append must select one exact Binding even when its storage is identical.
 initAndAppend(selectedArray, model, { key: 'one', args: [1] })
-const FirstMap = makeMapBinding(Definition, FirstBlock, {
+const FirstMap = Definition.makeMapBinding(FirstBlock, {
   field: 'mapped',
   placement: 'same',
 })
-const SecondMap = makeMapBinding(Definition, SecondBlock, {
+const SecondMap = Definition.makeMapBinding(SecondBlock, {
   field: 'mapped',
   placement: 'same',
 })

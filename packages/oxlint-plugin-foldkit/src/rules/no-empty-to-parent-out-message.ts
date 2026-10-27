@@ -111,6 +111,7 @@ const forwardsNothing = (
 const isBindingForwardProperty = (
   property: ESTree.ObjectProperty,
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  importerFilename?: string,
 ): boolean => {
   if (!Option.contains(staticPropertyName(property), 'forward')) {
     return false
@@ -125,7 +126,7 @@ const isBindingForwardProperty = (
     isObjectExpression(policy) &&
     isCallExpression(policyProperty) &&
     Array.contains(policyProperty.arguments, policy) &&
-    isBindingPolicyCall(policyProperty, references)
+    isBindingPolicyCall(policyProperty, references, importerFilename)
   ) {
     return true
   }
@@ -136,7 +137,7 @@ const isBindingForwardProperty = (
     Option.contains(staticPropertyName(policyProperty), 'outMessage') &&
     isObjectExpression(configuration) &&
     isCallExpression(binding) &&
-    Option.isSome(blockBindingMethod(binding, references))
+    Option.isSome(blockBindingMethod(binding, references, importerFilename))
   )
 }
 
@@ -168,13 +169,14 @@ const isEmptyOutMessageForwardCases = (
 const isEmptyMapperProperty = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
   property: ESTree.ObjectProperty,
+  importerFilename?: string,
 ): boolean =>
   property.kind === 'init' &&
   (Option.contains(
     staticPropertyName(property),
     TO_PARENT_OUT_MESSAGE_PROPERTY,
   ) ||
-    isBindingForwardProperty(property, references)) &&
+    isBindingForwardProperty(property, references, importerFilename)) &&
   isMapperFunction(property.value) &&
   forwardsNothing(references, property.value)
 
@@ -275,14 +277,18 @@ export const noEmptyToParentOutMessage = Rule.define({
           ([index, property]) => {
             if (
               !isObjectProperty(property) ||
-              !isEmptyMapperProperty(references, property)
+              !isEmptyMapperProperty(references, property, ctx.filename)
             ) {
               return Effect.void
             }
 
             const diagnostic = Diagnostic.make({
               node: property,
-              message: isBindingForwardProperty(property, references)
+              message: isBindingForwardProperty(
+                property,
+                references,
+                ctx.filename,
+              )
                 ? 'Omit outMessage.forward. Its inline mapper forwards no child OutMessages.'
                 : emptyMapperMessage,
             })

@@ -449,3 +449,27 @@ implementations, rejected mismatches, exact payloads, and relocated consumption.
 These encodings change type-checking work. They do not construct Layers or
 change Runtime behavior. Keep the numerical budgets unchanged when evaluating
 editor improvements, and measure real post-edit requests as well as counts.
+
+## Definition-owned map Bindings
+
+The parent-specialized `Definition.makeMapBinding` callable supports both direct
+method calls and extracted feature helpers. The public signature retains the
+Schema-heavy key and child checks without capturing a generic Definition object
+at every call. It lowers through the existing keyed Binding implementation.
+
+Evaluate new encodings against the unchanged fixtures and budgets first. For
+this adopted API, the complete exported declarations measure 2,642,699
+Instantiations and 229,173 Types in the four-group Workspace fixture, compared
+with 2,510,412 and 203,019 on the optimized baseline. The eight-group fixture
+falls slightly, from 4,278,713 / 279,563 to 4,265,971 / 276,909. These counts are
+not a causal decomposition of TypeScript's inference work; exporting a type also
+changes module/type discovery order.
+
+Only the four-group ceilings change, from 2,639,574 / 206,314 to the exact
+observed 2,642,699 / 229,173. All fixture sources, sizes and other ceilings stay
+unchanged. This is a reviewed API-cost decision supported by repeated paired
+editor requests: actual Workspace Binding hover and completion improve, larger
+graph requests improve, full-root diagnostics remain similar, and sampled RSS
+shows no material regression. Preserve the remaining roughly 1.7-second
+large-root diagnostic cost. The [adoption report](../../../internal/map-binding-method-adoption-20261027.md)
+contains timings, ranges, memory, correctness checks and reproduction artifacts.

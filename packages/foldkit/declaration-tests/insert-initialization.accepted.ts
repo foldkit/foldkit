@@ -1,7 +1,6 @@
 import { Context, Effect, HashMap, Schema } from 'effect'
 import { Block, Message } from 'foldkit'
 import { initAndInsert } from 'foldkit/bindingInit'
-import { makeMapBinding } from 'foldkit/mapBinding'
 
 export class ReadService extends Context.Service<
   ReadService,
@@ -65,8 +64,7 @@ export const ParentDefinition = Block.makeDefinition(
   'DeclarationInsertParent',
   { Model: ParentModel, Message: ParentMessage },
 )
-const ChildrenByIdBindingWithoutPolicy = makeMapBinding(
-  ParentDefinition,
+const ChildrenByIdBindingWithoutPolicy = ParentDefinition.makeMapBinding(
   ChildBlock,
   { field: 'childrenById' },
 )
@@ -77,12 +75,11 @@ export const ChildrenByIdBinding =
         ChangedCount: () => ParentDefinition.makeNoopStep(),
       })(outMessage),
   })
-export const ChildrenByNumberBinding = makeMapBinding(
-  ParentDefinition,
+export const ChildrenByNumberBinding = ParentDefinition.makeMapBinding(
   ChildBlock,
   { field: 'childrenByNumber' },
 )
-export const RowsByIdBinding = makeMapBinding(ParentDefinition, ChildBlock, {
+export const RowsByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
   field: 'rowsById',
   childField: 'child',
 })

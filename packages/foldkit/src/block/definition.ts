@@ -105,6 +105,7 @@ import type {
   ValidateUniqueInitialFields,
 } from './initialization.js'
 import { makeInit } from './initializationRuntime.js'
+import { type MakeMapBinding, makeMapBinding } from './mapBinding.js'
 import { isOperationMessageConstructor, prepareOperation } from './operation.js'
 import type { OperationEmission } from './operationEmission.js'
 import { withOperationGraph } from './operationGraph.js'
@@ -3747,6 +3748,39 @@ export type Definition<
       ? ChildInitContextSchema['Type']
       : never
   >
+  /** Creates a keyed child Binding from a parent Definition's required Record or
+   * Effect HashMap field, deriving enumeration, lookup, replacement and identity.
+   *
+   * The field's value Schema must exactly match the child Model. Add `childField`
+   * when each value is a closed Struct wrapping the exact child Model; replacement
+   * preserves the wrapper's other fields. Placement defaults to `field`.
+   *
+   * Record keys must decode to strings. HashMap keys must decode to strings or
+   * numbers, with finite numeric occurrence keys. Literal, template, refined and
+   * branded keys retain their contracts. Numeric Record and composite HashMap
+   * keys are rejected. HashMap enumeration does not promise display order.
+   *
+   * The parent owns membership. Ordinary child operations replace existing values;
+   * removing an entry ends its occurrence's lifecycle. `subscriptions` gates only
+   * Subscription Streams. Initialize and insert direct child values with
+   * `initAndInsert` from `foldkit/bindingInit`; use the returned Binding's explicit
+   * `init({ key, args, toParentModel })` for wrapper metadata or mixed transitions.
+   *
+   * @example
+   * ```ts
+   * const ChildrenBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+   *   field: 'children',
+   * })
+   * ```
+   */
+  makeMapBinding: MakeMapBinding<
+    ModelSchema,
+    MessageSchema,
+    OutMessageSchema,
+    ChildInitContextSchema extends AnySchema
+      ? ChildInitContextSchema['Type']
+      : never
+  >
   /** Registers the child and Mount graph and returns the Composition used to
    * author its view and complete its Block. */
   makeComposition: MakeComposition<
@@ -4698,6 +4732,7 @@ export const makeDefinition = (
     makeSubscriptions: defineSubscriptions,
     makeManagedResources: defineManagedResources,
     makeBinding: bindChild,
+    makeMapBinding: makeMapBinding(bindChild),
     prepareBlock,
   }
 }
@@ -4827,6 +4862,7 @@ export const makeBaseDefinition = (
     makeSubscriptions: base.makeSubscriptions,
     makeManagedResources: base.makeManagedResources,
     makeBinding: base.makeBinding,
+    makeMapBinding: base.makeMapBinding,
     makeComposition,
   }
 }

@@ -337,9 +337,12 @@ export const noManualCompositionRouting = Rule.define({
       'Program:exit': (program: ESTree.Node) => {
         const effects: Array<Effect.Effect<void>> = []
         walk(program, node => {
-          if (isCallExpression(node) && isBlockBindingCall(node, references)) {
+          if (
+            isCallExpression(node) &&
+            isBlockBindingCall(node, references, ctx.filename)
+          ) {
             const config = resolvedObject(
-              blockBindingConfiguration(node, references),
+              blockBindingConfiguration(node, references, ctx.filename),
               references,
             )
             for (const property of config?.properties ?? []) {

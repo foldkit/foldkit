@@ -126,7 +126,16 @@ describe('real-oxlint rule fixtures', () => {
     )
     expect(
       diagnostics.map(diagnostic => basename(diagnostic.filename)).sort(),
-    ).toEqual(['aliases.ts', 'direct.ts', 'map-binding.ts'])
+    ).toEqual([
+      'aliases.ts',
+      'direct.ts',
+      'map-binding.ts',
+      'map-namespace-destructured.ts',
+      'map-namespace-direct.ts',
+      'map-namespace-method-alias.ts',
+      'map-namespace-owner-alias.ts',
+      'map-namespace-owner-destructured.ts',
+    ])
     expect(
       diagnostics.every(diagnostic =>
         diagnostic.message.includes('OutMessage'),
@@ -192,6 +201,20 @@ describe('real-oxlint rule fixtures', () => {
     expect(valid).toEqual([])
   })
 
+  it('tracks extracted map Binding policy selection without matching unrelated helpers', () => {
+    const invalid = diagnosticsFor(
+      'no-empty-to-parent-out-message',
+      'invalid',
+    ).filter(diagnostic => diagnostic.filename.endsWith('map-binding.ts'))
+    const valid = diagnosticsFor(
+      'no-empty-to-parent-out-message',
+      'valid',
+    ).filter(diagnostic => diagnostic.filename.endsWith('map-binding.ts'))
+
+    expect(invalid).toHaveLength(4)
+    expect(valid).toEqual([])
+  })
+
   it('tracks provenance-backed child transform references', () => {
     const diagnostics = diagnosticsFor(
       'no-direct-block-state-update',
@@ -216,7 +239,7 @@ describe('real-oxlint rule fixtures', () => {
 
   it('reports disabled, missing, and manual child routing', () => {
     expect(countDiagnostics('no-manual-composition-routing', 'invalid')).toBe(
-      11,
+      18,
     )
   })
 
@@ -246,6 +269,10 @@ describe('real-oxlint rule fixtures', () => {
         'Child.Message.ClickedImportedParentViewSave',
         'Child.Message.ClickedParentStepSave',
         'Child.Message.ClickedParentCommandsStepSave',
+        'Child.Message.ClickedParentMapSave',
+        'Child.Message.ClickedParentMapSave',
+        'Child.Message.ClickedParentMapSave',
+        'Child.Message.ClickedParentMapSave',
         'Child.Message.ClickedParentMapSave',
         'Child.Message.ClickedParentViewSave',
         'Child.Message.ClickedFromContextRecord',

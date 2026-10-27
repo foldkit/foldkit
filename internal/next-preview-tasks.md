@@ -14,12 +14,11 @@ original status, source pins and publication holds as historical evidence.
 
 ## Followups after the published preview
 
-- [x] Reassess `Definition.makeMapBinding` with a shared receiver-method prototype
-      and a narrow Schema-contract refinement. Retain the standalone API after
-      both fail unchanged larger-composition budgets. Preserve exact patches,
-      paired editor measurements and safety scope in the
-      [investigation](map-binding-method-experiment-20261027.md), and expose the
-      authoritative documentation on the exported callable.
+- [x] Reassess `Definition.makeMapBinding` beyond the rejected shared-receiver
+      encodings. Adopt a parent-specialized callable that also supports detached,
+      imported feature helpers. Preserve the earlier failed experiments and
+      compare practical editor latency and memory before deciding compiler-cost
+      tradeoffs. [Final adoption and verification](map-binding-method-adoption-20261027.md).
 
 - [x] Audit Workspace guards against their interaction sources. Simplify repeated
       membership, lookup, initialization, reconciliation and notification checks;
@@ -255,7 +254,7 @@ Lint verification found that focused helper calls used directly as handler-recor
 
 The October 24 scope correction was correct: the earlier agent recommendations to defer these items were not user-approved release decisions. All four now have retained implementations and source/emitted/runtime checks. [Consumer APIs, measurements, evidence, and remaining release gates](composition-feedback-closeout.md).
 
-- [x] Add Record/HashMap child storage through `makeMapBinding` from `foldkit/mapBinding`. Parent Schemas establish exact primitive keys and child storage; writes preserve membership and wrappers. Same-child multiple maps and multiple child fields in one wrapper are verified. Composite domain keys use a general adapter with separate primitive occurrence identity; no structural-key identity is claimed.
+- [x] Add Record/HashMap child storage through the owning Definition's `makeMapBinding` method (the earlier standalone entry point is superseded). Parent Schemas establish exact primitive keys and child storage; writes preserve membership and wrappers. Same-child multiple maps and multiple child fields in one wrapper are verified. Composite domain keys use a general adapter with separate primitive occurrence identity; no structural-key identity is claimed.
 - [x] Adopt `managedResources.layer` for closed attached registries. Exact Layer channels, legal keys, non-enumerable entries, runtime source identity, host-provider policy, and conflicting-union rejection are verified. Explicit Command `.layer` composition remains the assessed contract; no owner-wide Command registry is introduced merely for symmetry.
 - [x] Add identity-based `Story.Command.argsOf` and `Scene.Command.argsOf`, including exact captured args, argless matches, split-file helpers, and occurrence-selection boundaries. The retained inline public signature meets the unchanged compiler ceilings.
 - [x] Improve connected-Step, OutMessage-combination, and assembly diagnostics while retaining compile-time rejection. Source and relocated emitted diagnostics name the registered/deferred repair, incompatible OutMessage, primary-view ownership, or missing handler provider. Native init errors and deliberate type-erasure limits are documented.
@@ -367,6 +366,12 @@ The [MyRemotely report](https://github.com/foldkit/foldkit/pull/1655#issuecommen
 Prototype proposed APIs and verify source/emitted acceptance/rejection, runtime behavior, inference, and realistic split-file consumers before broad conversion.
 
 ## Release review checklist
+
+- [x] Verify Definition-owned map Binding adoption with exact detached/imported
+      helper contracts, generic consumers, full source/emitted/runtime/lint checks,
+      TSDoc hovers and paired actual/larger editor workflows. Explicitly review the
+      four-group compiler ceiling increase; leave all fixture sources and other
+      ceilings unchanged. [Evidence and limits](map-binding-method-adoption-20261027.md).
 
 - [x] Refresh the combined source/emitted/runtime, installed-package, compiler and editor gates after the four subsequent followups. Keep the `679d2d5e7f` checkpoint distinct from this new delta. Nine freshly packed packages pass Coverchart, all three scaffolds and four installed contracts. Quiet native workflows and a bounded matched cold-root control pass, with limitations disclosed. [Final evidence](preview-final-followups-20261025.md).
 - [x] Review testing semantics and consumer adoption independently; mutation-check the pending-Command and erased decoded-input regressions and restore exact source.

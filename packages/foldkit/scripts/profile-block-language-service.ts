@@ -116,7 +116,7 @@ const compositionPath = 'packages/website/src/composition/composition.ts'
 const changedUrlPath = 'packages/website/src/update/handleChangedUrl.ts'
 const workspaceCompositionPath = 'examples/workspace/src/composition.ts'
 const workspaceInitializationPath =
-  'examples/workspace/src/update/initializeActiveChildren.ts'
+  'examples/workspace/src/update/initializeRouteChildren.ts'
 const workspaceUpdatePath = existsSync(
   resolve(workspaceRoot, workspaceInitializationPath),
 )

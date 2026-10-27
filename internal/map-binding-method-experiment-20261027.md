@@ -1,6 +1,10 @@
 # Definition map Binding investigation, October 27
 
-## Decision
+## Decision at this checkpoint
+
+This retained-standalone decision is superseded by the subsequent
+[parent-specialized method adoption](map-binding-method-adoption-20261027.md).
+The rejected encodings and their measurements below remain unchanged.
 
 Retain `makeMapBinding` from `foldkit/mapBinding` for the next preview. Two new
 shared receiver-method encodings compile and support the requested consumer

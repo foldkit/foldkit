@@ -8,5 +8,10 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-export const { makeStep, makeFieldsStep, makeCommandsStep, makeNoopStep } =
-  ApplicationDefinition
+export const {
+  makeStep,
+  makeFieldsStep,
+  makeCommandsStep,
+  makeNoopStep,
+  makeMapBinding,
+} = ApplicationDefinition

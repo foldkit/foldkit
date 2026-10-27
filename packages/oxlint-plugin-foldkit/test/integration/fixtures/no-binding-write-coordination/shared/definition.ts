@@ -22,3 +22,5 @@ export const ParentDefinition = Block.makeDefinition('WriterParent', {
   Model: Schema.Struct({ child: ChildModel, announcement: Schema.String }),
   Message: Schema.Never,
 })
+
+export const { makeMapBinding } = ParentDefinition

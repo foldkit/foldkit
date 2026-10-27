@@ -12,7 +12,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineMessageUnion } from '../message/index.js'
 import { runBindingInitRecipe } from './initRecipe.js'
 import { commandInstances } from './instanceContext.js'
-import { makeMapBinding } from './mapBinding.js'
 import { initAndInsert } from './mapInitialization.js'
 import { withOperationGraph } from './operationGraph.js'
 import * as Block from './public.js'
@@ -68,13 +67,13 @@ const ParentDefinition = Block.makeDefinition('InsertParent', {
   Model,
   Message,
 })
-const ChildrenByIdBinding = makeMapBinding(ParentDefinition, ChildBlock, {
+const ChildrenByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
   field: 'childrenById',
 })
-const ChildrenByNumberBinding = makeMapBinding(ParentDefinition, ChildBlock, {
+const ChildrenByNumberBinding = ParentDefinition.makeMapBinding(ChildBlock, {
   field: 'childrenByNumber',
 })
-const RowsByIdBinding = makeMapBinding(ParentDefinition, ChildBlock, {
+const RowsByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
   field: 'rowsById',
   childField: 'child',
 })

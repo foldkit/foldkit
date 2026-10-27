@@ -1,7 +1,6 @@
 import { Array, HashMap, Option, Record, Schema, Tuple } from 'effect'
 import { Block, Message, Struct } from 'foldkit'
 import { initAndInsert } from 'foldkit/bindingInit'
-import { makeMapBinding } from 'foldkit/mapBinding'
 
 import {
   ChildBlock,
@@ -64,7 +63,7 @@ MissingComposition.prepareBlock({
   init: MissingComposition.makeInit(() => ({ model })),
   update: missingUpdate,
 })
-const ForeignBinding = makeMapBinding(ParentDefinition, ChildBlock, {
+const ForeignBinding = ParentDefinition.makeMapBinding(ChildBlock, {
   field: 'childrenById',
   placement: 'foreign',
 }).withOutMessagePolicy({ fold: () => ParentDefinition.makeNoopStep() })
@@ -129,10 +128,10 @@ const GeneralBinding = OtherDefinition.makeBinding(ChildBlock, {
 })
 // @ts-expect-error General keyed accessors do not declare map storage.
 initAndInsert(GeneralBinding, otherModel, { key: firstId, args: [1] })
-const FirstMapBinding = makeMapBinding(OtherDefinition, ChildBlock, {
+const FirstMapBinding = OtherDefinition.makeMapBinding(ChildBlock, {
   field: 'children',
 })
-const SecondMapBinding = makeMapBinding(OtherDefinition, ChildBlock, {
+const SecondMapBinding = OtherDefinition.makeMapBinding(ChildBlock, {
   field: 'otherChildren',
 })
 const ambiguousBinding =
@@ -150,7 +149,7 @@ const HashDefinition = Block.makeDefinition('HashInsertParent', {
   Model: HashModel,
   Message: Message.defineMessageUnion({}),
 })
-const HashBinding = makeMapBinding(HashDefinition, ChildBlock, {
+const HashBinding = HashDefinition.makeMapBinding(ChildBlock, {
   field: 'children',
 })
 const hashModel = HashModel.make({ children: HashMap.empty() })

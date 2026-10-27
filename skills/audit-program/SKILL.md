@@ -214,6 +214,10 @@ Check both direct-field writer coordination caught by `foldkit/no-binding-write-
 
 Review child retention, rendering, and activity separately. Route-driven deletion should have a product reason. When editors are retained by identity, view must select the active child from the Route; hidden save completions must still reach their occurrence. Check that route-wide delivery gates do not discard those results. Require interaction cleanup only when the product actually needs it; do not add exhaustive navigation/interleaving policy to a normal example application. Name conditional initialization `initialize...IfMissing` and pure transitions for their actual Model change; vague `sync` or `observe` helpers can conceal several responsibilities.
 
+Record/HashMap Bindings come from `ParentDefinition.makeMapBinding(ChildBlock, config)`
+or a destructured factory imported from the owning feature's `definition.ts`.
+Check that the child relationship and key contract come from that parent Definition.
+
 Review dynamic initialization for the optional `foldkit/bindingInit` helpers:
 `initAndSet` for singular direct storage or exact key/child Option wrappers,
 `initAndAppend` for arrays with existing `init.instances`/`init.toItem`, and

@@ -1,6 +1,5 @@
 import { HashMap, Schema } from 'effect'
 import { Block } from 'foldkit'
-import { makeMapBinding } from 'foldkit/mapBinding'
 
 import { EntryBlock } from './blockKeyedMapChild'
 
@@ -17,14 +16,10 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message: Schema.Never,
 })
 
-export const EntriesBinding = makeMapBinding(
-  ApplicationDefinition,
-  EntryBlock,
-  {
-    field: 'entriesById',
-  },
-)
-export const RowsBinding = makeMapBinding(ApplicationDefinition, EntryBlock, {
+export const EntriesBinding = ApplicationDefinition.makeMapBinding(EntryBlock, {
+  field: 'entriesById',
+})
+export const RowsBinding = ApplicationDefinition.makeMapBinding(EntryBlock, {
   field: 'rowsById',
   childField: 'entry',
 })

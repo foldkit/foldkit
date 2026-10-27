@@ -11,9 +11,8 @@ import {
 import {
   type ImportedPath,
   type StaticMemberPath,
-  blockBindingParent,
+  blockBindingOwner,
   indexReferences,
-  isBlockBindingCall,
   isCallExpression,
   isIdentifier,
   isIdentifierReference,
@@ -536,21 +535,30 @@ const definitionOperationForCall = (
   importerFilename?: string,
 ): Option.Option<DefinitionOperation> => {
   return Option.gen(function* () {
-    if (isBlockBindingCall(parent, references)) {
-      const bindingParent = yield* Option.fromNullishOr(
-        blockBindingParent(parent, references),
-      )
+    const maybeBindingOwner = blockBindingOwner(
+      parent,
+      references,
+      importerFilename,
+    )
+    if (Option.isSome(maybeBindingOwner)) {
+      const bindingOwner = maybeBindingOwner.value
       const bindingParentPath = compositionDefinitionPath(
         references,
-        yield* staticMemberPath(bindingParent),
+        bindingOwner.path,
       )
-      const importedBindingParentPath = Option.map(
-        resolveImportedPathThroughConst(references, bindingParentPath.root),
-        path => ({
-          source: path.source,
-          members: [...path.members, ...bindingParentPath.members],
-        }),
-      )
+      const importedBindingParentPath =
+        bindingOwner.importedPath === undefined
+          ? Option.map(
+              resolveImportedPathThroughConst(
+                references,
+                bindingParentPath.root,
+              ),
+              path => ({
+                source: path.source,
+                members: [...path.members, ...bindingParentPath.members],
+              }),
+            )
+          : Option.some(bindingOwner.importedPath)
 
       return {
         importedDefinitionPath: Option.getOrUndefined(

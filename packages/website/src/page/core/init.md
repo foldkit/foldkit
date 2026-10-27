@@ -89,7 +89,7 @@ For example, assume `RoomBinding` declares `field: 'maybeRoomInstance'`, `key: '
 
 Direct fields need no startup policy for `initAndSet`. A custom unkeyed accessor may reuse an existing `init.toParentFields` projection. Keep explicit `Binding.init` when creating additional wrapper metadata, changing sibling fields, selecting a different accessor target, adding parent Commands, or replacing an entire tagged parent variant. Do not add a startup policy solely to enable a helper.
 
-For a direct-value map created with `makeMapBinding`, insertion keeps every other entry and rejects an occupied key before child init. Assume `EditorsBinding` stores Issue editor Models by Issue ID:
+For a direct-value map created with `ParentDefinition.makeMapBinding`, insertion keeps every other entry and rejects an occupied key before child init. Assume `EditorsBinding` stores Issue editor Models by Issue ID:
 
 ::Snippet{name="initInsertMappedChild" label="Inserting a mapped child"}
 

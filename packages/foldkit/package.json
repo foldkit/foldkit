@@ -67,10 +67,6 @@
       "types": "./dist/managedResource/public.d.ts",
       "import": "./dist/managedResource/public.js"
     },
-    "./mapBinding": {
-      "types": "./dist/block/mapBinding.d.ts",
-      "import": "./dist/block/mapBinding.js"
-    },
     "./message": {
       "types": "./dist/message/public.d.ts",
       "import": "./dist/message/public.js"

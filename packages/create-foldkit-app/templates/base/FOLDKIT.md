@@ -137,7 +137,7 @@ Choose storage from the parent Schema:
 
 - An exact child or `Option<Child>` field uses `field`. `None` means absent; ordinary operations never create it. `presentWhen` gates the whole direct child; `subscriptions.when` gates only Streams.
 - A keyed array uses `field` and `key`, the name of a stable string or finite-number identity field. Wrapped arrays and an Option-wrapped instance also specify `childField`. Keyed identity does not imply multiple stored children.
-- Exact Record/HashMap storage uses `makeMapBinding` from `foldkit/mapBinding`. Use its field-derived key contract and preserve a separate ordered ID list when order matters.
+- Exact Record/HashMap storage uses `ParentDefinition.makeMapBinding(ChildBlock, { field })`. Add `childField` for a closed wrapper around the child Model. A split feature can export the destructured `makeMapBinding` from its `definition.ts`; import the factory from that owning module. Use its field-derived key contract and preserve a separate ordered ID list when order matters.
 - Custom unkeyed storage uses `read` and `write`. General keyed storage uses `readAll`, function `key`, exact `keySchema`, `read`, and `writeAt`.
 
 Placement identifies a relationship in the graph. Direct and map fields default it to their field; keyed arrays, keyed Options, and static accessors default to the child Block ID. The occurrence key identifies one child within a keyed relationship. Override placement only for a sibling collision or deliberate stable identity.
@@ -172,7 +172,7 @@ Use the optional `foldkit/bindingInit` helpers when initialization only places t
 
 - `initAndSet` replaces a required or optional direct field, or a keyed Option wrapper containing only its key and child fields. Direct storage needs no startup policy. A custom unkeyed accessor can reuse its existing `init.toParentFields` projection.
 - `initAndAppend` appends an absent keyed array occurrence using an existing startup `init.instances` and `init.toItem` policy.
-- `initAndInsert` inserts an absent Record/HashMap key when `makeMapBinding` stores child Models directly.
+- `initAndInsert` inserts an absent Record/HashMap key when `ParentDefinition.makeMapBinding` stores child Models directly.
 
 All return passive recipes retaining child init Commands and registration requirements. Append and insert reject existing keys; an `initialize...IfMissing` Step owns any presence check. Keep explicit `Binding.init` for additional wrapper metadata, sibling changes, parent Commands, custom storage without a projection, array/map replacement, or a whole tagged variant. Do not add an unnecessary startup policy for a helper. Same-key reinitialization does not establish a fresh generation or cancel pending work.
 

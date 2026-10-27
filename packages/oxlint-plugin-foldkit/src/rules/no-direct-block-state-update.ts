@@ -27,7 +27,7 @@ import {
   blockBindingChild,
   blockBindingMethod,
   blockBindingConfiguration,
-  blockBindingParent,
+  blockBindingOwner,
   isOwnedDefinitionCall,
   ownedDefinitionMethodOwner,
   isVariableDeclaration,
@@ -344,18 +344,6 @@ const definitionOwnerForPath = (
       })),
 })
 
-const definitionOwnerForExpression = (
-  node: unknown,
-  references: WeakMap<ESTree.Node, Reference> | undefined,
-): DefinitionOwner | undefined => {
-  const maybePath = staticMemberPath(node)
-  if (Option.isNone(maybePath)) {
-    return undefined
-  }
-
-  return definitionOwnerForPath(maybePath.value, references)
-}
-
 const definitionOwner = (
   node: ESTree.CallExpression,
   methodName: string,
@@ -411,8 +399,9 @@ const isSameDefinitionOwner = (
 const foldKind = (
   node: ESTree.CallExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  importerFilename?: string,
 ): FoldKind | undefined => {
-  const bindingMethod = blockBindingMethod(node, references)
+  const bindingMethod = blockBindingMethod(node, references, importerFilename)
   if (Option.isSome(bindingMethod)) {
     return bindingMethod.value === 'Keyed' ? 'Keyed' : 'Fold'
   }
@@ -675,6 +664,7 @@ const foldDefinitions = (
   program: ESTree.Program,
   scopes: ReadonlyArray<OxlintScope> | undefined,
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  importerFilename?: string,
 ): Readonly<{
   byVariable: WeakMap<Variable, FoldDefinition>
   fallbackByName: ReadonlyMap<string, FoldDefinition>
@@ -712,7 +702,7 @@ const foldDefinitions = (
       if (!isIdentifier(declarator.id) || !isCallExpression(declarator.init)) {
         continue
       }
-      const kind = foldKind(declarator.init, references)
+      const kind = foldKind(declarator.init, references, importerFilename)
       if (kind === undefined) {
         continue
       }
@@ -720,22 +710,36 @@ const foldDefinitions = (
       const configuration = blockBindingConfiguration(
         declarator.init,
         references,
+        importerFilename,
       )
       if (!isObjectExpression(configuration)) {
         continue
       }
 
-      const bindingMethod = blockBindingMethod(declarator.init, references)
-      const boundChild = blockBindingChild(declarator.init, references)
+      const bindingMethod = blockBindingMethod(
+        declarator.init,
+        references,
+        importerFilename,
+      )
+      const boundChild = blockBindingChild(
+        declarator.init,
+        references,
+        importerFilename,
+      )
       const childOwner = Option.isSome(bindingMethod)
         ? childBlockOwner(boundChild, references)
         : undefined
-      const owner = Option.isSome(bindingMethod)
-        ? definitionOwnerForExpression(
-            blockBindingParent(declarator.init, references),
-            references,
-          )
-        : undefined
+      const owner = Option.getOrUndefined(
+        Option.map(
+          blockBindingOwner(declarator.init, references, importerFilename),
+          bindingOwner => {
+            const owner = definitionOwnerForPath(bindingOwner.path, references)
+            return bindingOwner.importedPath === undefined
+              ? owner
+              : { ...owner, importedPath: bindingOwner.importedPath }
+          },
+        ),
+      )
       const directField =
         Option.isSome(bindingMethod) &&
         propertyValue(configuration, 'field') !== undefined
@@ -1349,7 +1353,12 @@ const foldEvidence = (
   importerFilename?: string,
 ): FoldEvidence => {
   const callbacks = moduleCallbacks(program)
-  const definitions = foldDefinitions(program, scopes, references)
+  const definitions = foldDefinitions(
+    program,
+    scopes,
+    references,
+    importerFilename,
+  )
   const compositions = compositionDefinitions(
     program,
     scopes,

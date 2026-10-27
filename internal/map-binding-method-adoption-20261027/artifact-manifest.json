@@ -1,0 +1,118 @@
+{
+  "README.md": {
+    "bytes": 13953,
+    "sha256": "8e35e37db8d52c79ce8d8b9916ff1a5f227dcf2e46a07d5544e0497704b73c43"
+  },
+  "compiler-budget-results.json": {
+    "bytes": 2616,
+    "sha256": "eaf94b3a3d5feec8d1c503c0b81103ceb1428e24751158e5527f5f84462b19cb"
+  },
+  "final-baseline-scale-emission.txt": {
+    "bytes": 350,
+    "sha256": "f97f65a66fd5d14f3cce2039e24e248727ecb90a9e0834bbaa1378dd6c4e4afc"
+  },
+  "final-manifest.json": {
+    "bytes": 8639,
+    "sha256": "9c635a5d304e0da5b2a80b12f4005489f7c34edbebd240bdcd828224348f377e"
+  },
+  "final-performance-inputs.patch": {
+    "bytes": 30126,
+    "sha256": "e60601cdd3da89874d1aed6271ef4176fb0be165c85dad46b4946d9764841921"
+  },
+  "final-scale-consumer-results.json": {
+    "bytes": 1687,
+    "sha256": "f0c15d53063a898583119ed18c6768e6ac8a8f1399281f835d998e2cc17180fd"
+  },
+  "final-scale-emission-manifest.json": {
+    "bytes": 4602,
+    "sha256": "82e31f49e22dfc0e0aab6564908f68deb7078661cbf910a6718352afdde62173"
+  },
+  "final-scale-root.json": {
+    "bytes": 54061,
+    "sha256": "c6102896a94510f73873bed417592d37e2fe18fb3e90baa97d22cb498e02f4b2"
+  },
+  "final-verified-scale-emission.txt": {
+    "bytes": 350,
+    "sha256": "77adf1088ddf8870abbc844a8c4462d89ac618d8d87602f06f18d23ac36f14a8"
+  },
+  "final-workspace.json": {
+    "bytes": 53691,
+    "sha256": "7d9cd9174135efb76afc750889d89779398e5bf2b16e8b62e6d57a5dfd65e3be"
+  },
+  "initial-baseline-scale-emission.txt": {
+    "bytes": 350,
+    "sha256": "37a296e36a5b0c8c9bb28e2af56a7bbbdb21710a3ab1f113c60d9f492649d7c2"
+  },
+  "initial-candidate-counts.txt": {
+    "bytes": 704,
+    "sha256": "0a6c31464e1ebd53b588c8a688000312c12d944cc40808606f6a8cddf54d0bcc"
+  },
+  "initial-candidate-scale-emission.txt": {
+    "bytes": 350,
+    "sha256": "bf47acbdee8a64e11600c157229d32a86a0175a884441c78c4541b8eb88c8c8d"
+  },
+  "initial-candidate.patch": {
+    "bytes": 8245,
+    "sha256": "415713bcf8ffce2fcde65aec48770f7a1f57d0c1168b426c3b162ece7a787c50"
+  },
+  "initial-manifest.json": {
+    "bytes": 6036,
+    "sha256": "2fb3cd090cfeced5db57ac0191d100ad17cd9b42ccbcaa8ec046c2c7049985d2"
+  },
+  "initial-scale-child.json": {
+    "bytes": 53986,
+    "sha256": "da89474f26217320dbdf97db9e2ec44c02e53ce4442c7a7a421258f3316f47b8"
+  },
+  "initial-scale-root.json": {
+    "bytes": 54080,
+    "sha256": "fb956cf699608b6c2b3b29c5ccb0f473255221e10ebf0585943de9a9b1cc1517"
+  },
+  "initial-workspace.json": {
+    "bytes": 53678,
+    "sha256": "63a325e4cb69510dd03fc7ad6248e98b0e717c24cb62119b84c1bec0293239d3"
+  },
+  "prepare-scale.py": {
+    "bytes": 5063,
+    "sha256": "2959b4139b0c80563306ba353db6b30e94f8be8d4ee3c31c543dd13ea09dcf4b"
+  },
+  "reviewed-budget-adjustment.patch": {
+    "bytes": 270,
+    "sha256": "40c362ea55d41ed53039b479683d4b0285a763095a0c3ff500ae7ddda2fc0341"
+  },
+  "scale-consumer-results.json": {
+    "bytes": 1688,
+    "sha256": "2579c91f431fe9cbfe97af343b5622f309ae4d247cf10477b23aae67151f1d8c"
+  },
+  "scale-consumer.ts": {
+    "bytes": 1996,
+    "sha256": "15bb2f6b094c812c4babd24b3f5c29852cd94e7148fcd0929afc6c5212d9fc97"
+  },
+  "scale-consumer.tsconfig.json": {
+    "bytes": 336,
+    "sha256": "cd6ba5d071e74a4cb86322acb2b4acf58e1d230cb0bfe617987f635a9096252e"
+  },
+  "scale-probe.patch": {
+    "bytes": 3079,
+    "sha256": "0f99dc9e81f53475dbc29f1279f5fbdf1fe73a697b03c9028f0b8f9c7e464018"
+  },
+  "verification.json": {
+    "bytes": 3441,
+    "sha256": "4b4e9eec5596b9550b62e4613c80e77848c5c931aec5826a9250cb3b1a6e8394"
+  },
+  "verified-counts.txt": {
+    "bytes": 1165,
+    "sha256": "2f9033a96d86f270580eb04847c3b014080707ef4a593578bb7c35c6d0631d5f"
+  },
+  "verified-reviewed-budgets.txt": {
+    "bytes": 1115,
+    "sha256": "2abdb83e6eba4c73fafff7a0eb1c22307f5a59bf0e616724b6b3742da48c7f25"
+  },
+  "verify-scale-consumer.py": {
+    "bytes": 4396,
+    "sha256": "caea8425de518488b7b723064ed60ef8313ff30a261f5c8fa9f280eaf85cb0d6"
+  },
+  "workspace-probe.patch": {
+    "bytes": 271,
+    "sha256": "a0b26f14d31af8a57519766d20afdc2d65f5b5f74a15c30a3c53846c8fa6e589"
+  }
+}

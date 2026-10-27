@@ -1,0 +1,118 @@
+{
+  "baseline": {
+    "exitCode": 0,
+    "elapsedSeconds": 2.904,
+    "inputsUnchanged": true,
+    "inputHashes": {
+      "packages/foldkit/src/block/definition.ts": {
+        "bytes": 147929,
+        "sha256": "83f046e4aa7053ea329239f7474aebb6e75cc2a7fc2ec9b26aecb9ed0a0661da"
+      },
+      "packages/foldkit/src/block/mapBinding.ts": {
+        "bytes": 12182,
+        "sha256": "e52ce18e12d7d76fa513f20c3bb8b5bf0b9c1b3404c98c107f260cc30ed28c26"
+      },
+      "packages/foldkit/src/block/public.ts": {
+        "bytes": 3782,
+        "sha256": "a8b621b5b0871994abca8cfdc11f5be590a556087dc372278463f017770ef8a8"
+      },
+      "packages/foldkit/package.json": {
+        "bytes": 6713,
+        "sha256": "50464432e221eab1361f635d660672e602f1cee6a8f1b93a56e05fda7391cd56"
+      },
+      "packages/foldkit/type-performance/tsconfig.json": {
+        "bytes": 409,
+        "sha256": "5e0c528e69d60903234d99d44ef489fe98d1f4a6017360354cf18adc6077d1ac"
+      },
+      "packages/foldkit/type-performance/workspace-generate.ts": {
+        "bytes": 13358,
+        "sha256": "9e02b39f5714075742d96d9576bc5a7ef81cce411bd6d43beca95b61ac7b7f8a"
+      },
+      "packages/foldkit/type-performance/workspace-shared.ts": {
+        "bytes": 5775,
+        "sha256": "2347c3c13ae4db17d509db423d8fdc67c25814c6b26daa4661617a962354d6d1"
+      },
+      "packages/foldkit/type-performance/workspace-groups-16.ts": {
+        "bytes": 153443,
+        "sha256": "bf607c23aed02cb7bdbf142a7759c0d5be577bd4d2184e61a4763f2fccac7425"
+      },
+      "packages/foldkit/type-performance/workspace-composition-16.ts": {
+        "bytes": 14348,
+        "sha256": "2e0fddc2d297ad944bfda0b4dee9b760ed7393551aff2885b5dda301b05ac4d9"
+      }
+    },
+    "distDeclarationTreeSha256": "7cc133f1aab1142bfc77e8785dd023b25af26a306a985a996a80e90d3095675e",
+    "emitted": {
+      "workspace-composition-16.d.ts": {
+        "bytes": 1623081,
+        "sha256": "9a25b148551343c697e050e3557b5316985ac93b896a34e2893db585147ee86a"
+      },
+      "workspace-groups-16.d.ts": {
+        "bytes": 1502412,
+        "sha256": "ddae018cd7a04d333315626febbfa60d0a8eb11b5a2263f14a21a042c4152167"
+      },
+      "workspace-shared.d.ts": {
+        "bytes": 14969,
+        "sha256": "e07ba44c82be88a73467c2b32cc10e87f65f193cb6a6869407741358d3649599"
+      }
+    }
+  },
+  "verified": {
+    "exitCode": 0,
+    "elapsedSeconds": 2.252,
+    "inputsUnchanged": true,
+    "inputHashes": {
+      "packages/foldkit/src/block/definition.ts": {
+        "bytes": 149584,
+        "sha256": "2ff533592fb2f20fc637baca6ac40d2d6931db1805657713e1b5f0d9a75cc872"
+      },
+      "packages/foldkit/src/block/mapBinding.ts": {
+        "bytes": 9673,
+        "sha256": "c3db1e644ae8e01eb89dac701f3d4c9430aae47f8e120c73b181d3f3ceab252b"
+      },
+      "packages/foldkit/src/block/public.ts": {
+        "bytes": 3836,
+        "sha256": "82a2cb31515ed603585320d9f9d2df059165ad54dcef43ad5d68aef6108e52eb"
+      },
+      "packages/foldkit/package.json": {
+        "bytes": 6592,
+        "sha256": "ebb4e880023cda2e2440bf4c28b8992bb10707ab3086e54554c5b90e4400feca"
+      },
+      "packages/foldkit/type-performance/tsconfig.json": {
+        "bytes": 409,
+        "sha256": "5e0c528e69d60903234d99d44ef489fe98d1f4a6017360354cf18adc6077d1ac"
+      },
+      "packages/foldkit/type-performance/workspace-generate.ts": {
+        "bytes": 13358,
+        "sha256": "9e02b39f5714075742d96d9576bc5a7ef81cce411bd6d43beca95b61ac7b7f8a"
+      },
+      "packages/foldkit/type-performance/workspace-shared.ts": {
+        "bytes": 5775,
+        "sha256": "2347c3c13ae4db17d509db423d8fdc67c25814c6b26daa4661617a962354d6d1"
+      },
+      "packages/foldkit/type-performance/workspace-groups-16.ts": {
+        "bytes": 153375,
+        "sha256": "11cd95d42c2bc2962cf3f0636990adc443621b36c52c8bed702827c41f355d5e"
+      },
+      "packages/foldkit/type-performance/workspace-composition-16.ts": {
+        "bytes": 14348,
+        "sha256": "2e0fddc2d297ad944bfda0b4dee9b760ed7393551aff2885b5dda301b05ac4d9"
+      }
+    },
+    "distDeclarationTreeSha256": "7ff2c7c450d544e9aa82d5ebec43d91f082442ddfcfda49f3cc37c72d48e1c1f",
+    "emitted": {
+      "workspace-composition-16.d.ts": {
+        "bytes": 1623081,
+        "sha256": "9a25b148551343c697e050e3557b5316985ac93b896a34e2893db585147ee86a"
+      },
+      "workspace-groups-16.d.ts": {
+        "bytes": 1502412,
+        "sha256": "ddae018cd7a04d333315626febbfa60d0a8eb11b5a2263f14a21a042c4152167"
+      },
+      "workspace-shared.d.ts": {
+        "bytes": 14969,
+        "sha256": "e07ba44c82be88a73467c2b32cc10e87f65f193cb6a6869407741358d3649599"
+      }
+    }
+  }
+}

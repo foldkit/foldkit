@@ -1,0 +1,5 @@
+--- a/packages/foldkit/scripts/profile-block-language-service.ts
++++ b/packages/foldkit/scripts/profile-block-language-service.ts
+@@ -119 +119 @@
+-  'examples/workspace/src/update/initializeActiveChildren.ts'
++  'examples/workspace/src/update/initializeRouteChildren.ts'

@@ -760,6 +760,12 @@ const checks: ReadonlyArray<
     consumers: ['keyed-map-field.consume.ts'],
   },
   {
+    name: 'map-binding-method',
+    accepted: ['map-binding-method.accepted.ts'],
+    rejected: ['map-binding-method.rejected.ts'],
+    consumers: ['map-binding-method.consume.ts'],
+  },
+  {
     name: 'variant-binding',
     accepted: ['variant-binding.accepted.ts'],
     rejected: ['variant-binding.rejected.ts'],
@@ -985,6 +991,7 @@ const main = async (): Promise<void> => {
     'program',
     'command-args',
     'keyed-map-field',
+    'map-binding-method',
     'variant-binding',
     'managed-resource-registry',
     'policy-graph',

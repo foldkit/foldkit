@@ -201,17 +201,17 @@ Messages, collect lifecycle entries, or contribute handler recipes.
 
 Choose the narrowest storage form that describes the parent Model:
 
-| Parent storage                                                                       | Binding shape                                          |
-| ------------------------------------------------------------------------------------ | ------------------------------------------------------ |
-| Exact Struct field containing `Child.Model` or `Option<Child.Model>`                 | `field`                                                |
-| Exact array of child Models with a declared stable string or finite-number key field | `field` and string `key`                               |
-| Exact array of closed wrappers around the child Model                                | `field`, string `key`, and distinct `childField`       |
-| Exact `Option` of one closed wrapper around the child Model                          | `field`, string `key`, and distinct `childField`       |
-| Exact `Schema.Record` or `Schema.HashMap` of child Models                            | `makeMapBinding(parent, child, { field })`             |
-| Exact Record/HashMap of closed wrappers around the child Model                       | `makeMapBinding(parent, child, { field, childField })` |
-| One exact tagged member of the parent Schema.Union                                   | `makeVariantBinding(parent, child)`                    |
-| Nested, wrapped, opaque, open, or custom static storage                              | `read` and `write`                                     |
-| Custom keyed storage or enumeration                                                  | `readAll`, function `key`, `read`, and `writeAt`       |
+| Parent storage                                                                       | Binding shape                                                        |
+| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| Exact Struct field containing `Child.Model` or `Option<Child.Model>`                 | `field`                                                              |
+| Exact array of child Models with a declared stable string or finite-number key field | `field` and string `key`                                             |
+| Exact array of closed wrappers around the child Model                                | `field`, string `key`, and distinct `childField`                     |
+| Exact `Option` of one closed wrapper around the child Model                          | `field`, string `key`, and distinct `childField`                     |
+| Exact `Schema.Record` or `Schema.HashMap` of child Models                            | `ParentDefinition.makeMapBinding(ChildBlock, { field })`             |
+| Exact Record/HashMap of closed wrappers around the child Model                       | `ParentDefinition.makeMapBinding(ChildBlock, { field, childField })` |
+| One exact tagged member of the parent Schema.Union                                   | `makeVariantBinding(parent, child)`                                  |
+| Nested, wrapped, opaque, open, or custom static storage                              | `read` and `write`                                                   |
+| Custom keyed storage or enumeration                                                  | `readAll`, function `key`, `read`, and `writeAt`                     |
 
 A Binding's `write` or `writeAt` places the next child Model into parent storage. Keep parent reactions to child transitions in its OutMessage policy. Do not compare old and new child state in a writer to generate announcements, trigger sibling changes, or maintain unrelated parent fields. Nested storage, keyed replacement, presence checks, and preservation of wrapper metadata remain legitimate custom writes. If a parent needs a child fact that is not exposed, add a truthful public OutMessage rather than using the writer as an event hook.
 
@@ -222,14 +222,21 @@ and a different key leave the exact parent Model unchanged. Neither form
 inserts a missing occurrence. The parent remains responsible for presence and
 collection membership.
 
-Import `makeMapBinding` from `foldkit/mapBinding` for Record/HashMap fields.
-Pass the parent Definition, completed child Block, and config. It derives the
-key contract from the parent Schema and defaults placement to the storage field. Record keys decode to strings; HashMap
+Call `ParentDefinition.makeMapBinding(ChildBlock, config)` for Record/HashMap fields.
+The factory derives the key contract from the parent Model Schema and defaults
+placement to the storage field.
+
+A split feature can destructure and export `makeMapBinding` from its `definition.ts`,
+then import that factory from the owning module. It retains the parent Definition's
+contracts when destructured.
+
+Record keys decode to strings; HashMap
 keys decode to strings or numbers, with finite numeric occurrence values
 required at Runtime. Record enumeration follows own enumerable string-key
 order. HashMap iteration does not promise display order. Preserve a separate
 ordered ID list when order matters. Parent-owned wrapper fields survive writes;
-ordinary operations never insert missing entries. Use dynamic `Binding.init`
+ordinary operations never insert missing entries. Removing a stored key ends
+that child occurrence's lifecycle. Use dynamic `Binding.init`
 for explicit creation and keep general keyed accessors for custom writers or
 separate composite storage keys and primitive occurrence identity.
 
@@ -448,7 +455,7 @@ field or a keyed Option wrapper containing only its key and child fields. Direct
 fields need no startup policy; a custom unkeyed accessor can reuse an existing
 `init.toParentFields` projection. `initAndAppend` reuses a keyed array's existing
 `init.instances` and `init.toItem` policy. `initAndInsert` inserts into direct-value
-Record/HashMap storage declared through `makeMapBinding`.
+Record/HashMap storage declared through `ParentDefinition.makeMapBinding`.
 
 All preserve passive recipes, child init Commands and registration. Append and
 insert reject occupied keys; the caller owns any presence check. Additional

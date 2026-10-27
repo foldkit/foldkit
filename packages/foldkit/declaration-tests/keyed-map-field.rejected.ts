@@ -1,6 +1,5 @@
 import { Schema } from 'effect'
 import { Block } from 'foldkit'
-import { makeMapBinding } from 'foldkit/mapBinding'
 
 import { ChildBlock } from './keyed-map-field.accepted.js'
 
@@ -29,36 +28,36 @@ const InvalidDefinition = Block.makeDefinition('InvalidKeyedMapParent', {
 })
 
 // @ts-expect-error Record map shorthand does not coerce numeric property keys.
-makeMapBinding(InvalidDefinition, ChildBlock, { field: 'numericRecord' })
+InvalidDefinition.makeMapBinding(ChildBlock, { field: 'numericRecord' })
 
 // @ts-expect-error Composite HashMap keys are not primitive occurrence identities.
-makeMapBinding(InvalidDefinition, ChildBlock, { field: 'compositeMap' })
+InvalidDefinition.makeMapBinding(ChildBlock, { field: 'compositeMap' })
 
 // @ts-expect-error Never cannot produce a child occurrence identity.
-makeMapBinding(InvalidDefinition, ChildBlock, { field: 'neverRecord' })
+InvalidDefinition.makeMapBinding(ChildBlock, { field: 'neverRecord' })
 
 // @ts-expect-error Never cannot produce a child occurrence identity.
-makeMapBinding(InvalidDefinition, ChildBlock, { field: 'neverMap' })
+InvalidDefinition.makeMapBinding(ChildBlock, { field: 'neverMap' })
 
 // @ts-expect-error The map value must exactly match the child Model.
-makeMapBinding(InvalidDefinition, ChildBlock, { field: 'wrongValues' })
+InvalidDefinition.makeMapBinding(ChildBlock, { field: 'wrongValues' })
 
 const wrongWrapperConfig = {
   field: 'wrongWrappers',
   childField: 'child',
 }
 // @ts-expect-error The declared wrapper child field has an incompatible Schema.
-makeMapBinding(InvalidDefinition, ChildBlock, wrongWrapperConfig)
+InvalidDefinition.makeMapBinding(ChildBlock, wrongWrapperConfig)
 
 const optionalWrapperConfig = {
   field: 'optionalWrappers',
   childField: 'child',
 }
 // @ts-expect-error A wrapper child field must be required.
-makeMapBinding(InvalidDefinition, ChildBlock, optionalWrapperConfig)
+InvalidDefinition.makeMapBinding(ChildBlock, optionalWrapperConfig)
 
 // @ts-expect-error The parent map field must be required.
-makeMapBinding(InvalidDefinition, ChildBlock, { field: 'optionalMap' })
+InvalidDefinition.makeMapBinding(ChildBlock, { field: 'optionalMap' })
 
 const ValidModel = Schema.Struct({
   childrenById: Schema.Record(Schema.String, ChildBlock.Model),
@@ -80,39 +79,39 @@ const FakeDefinition = {
 }
 
 // @ts-expect-error A lookalike object must implement the Definition's full Binding constructor contract.
-makeMapBinding(FakeDefinition, ChildBlock, { field: 'childrenById' })
+FakeDefinition.makeMapBinding(ChildBlock, { field: 'childrenById' })
 
 const conflictingReadAllConfig = {
   field: 'childrenById',
   readAll: () => [],
 }
 // @ts-expect-error Map shorthand derives readAll and rejects custom readers.
-makeMapBinding(ValidDefinition, ChildBlock, conflictingReadAllConfig)
+ValidDefinition.makeMapBinding(ChildBlock, conflictingReadAllConfig)
 
 const conflictingKeyConfig = {
   field: 'childrenById',
   key: 'count',
 }
 // @ts-expect-error Map shorthand derives identity from the property key.
-makeMapBinding(ValidDefinition, ChildBlock, conflictingKeyConfig)
+ValidDefinition.makeMapBinding(ChildBlock, conflictingKeyConfig)
 
 const conflictingWriterConfig = {
   field: 'childrenById',
   writeAt: (model: typeof ValidModel.Type) => model,
 }
 // @ts-expect-error Map shorthand derives an existing-only writer.
-makeMapBinding(ValidDefinition, ChildBlock, conflictingWriterConfig)
+ValidDefinition.makeMapBinding(ChildBlock, conflictingWriterConfig)
 
 const conflictingPresenceConfig = {
   field: 'childrenById',
   presentWhen: () => true,
 }
 // @ts-expect-error Presence comes from property membership, not presentWhen.
-makeMapBinding(ValidDefinition, ChildBlock, conflictingPresenceConfig)
+ValidDefinition.makeMapBinding(ChildBlock, conflictingPresenceConfig)
 
 const conflictingKeySchemaConfig = {
   field: 'childrenById',
   keySchema: Schema.String,
 }
 // @ts-expect-error The map field supplies the key Schema.
-makeMapBinding(ValidDefinition, ChildBlock, conflictingKeySchemaConfig)
+ValidDefinition.makeMapBinding(ChildBlock, conflictingKeySchemaConfig)

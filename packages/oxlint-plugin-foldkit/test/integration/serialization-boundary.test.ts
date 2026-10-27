@@ -219,11 +219,11 @@ describe('precise serialization boundaries through real oxlint', () => {
 
   it('accepts explicit field mappings and a single return statement', () => {
     const source = exactBoundary
-      .replace('const init =', 'const initialize =')
-      .replace('readonly init: typeof init', 'readonly init: typeof initialize')
+      .replace('const init =', 'const initModel =')
+      .replace('readonly init: typeof init', 'readonly init: typeof initModel')
       .replace(
         '=>\n  Composition.prepareBlock({ init, update, view } satisfies Implementation)',
-        '=> { return Composition.prepareBlock({ init: initialize, update, view } satisfies Implementation) }',
+        '=> { return Composition.prepareBlock({ init: initModel, update, view } satisfies Implementation) }',
       )
     expect(diagnosticsFor('mapped-fields', source + parent)).toEqual([])
   })

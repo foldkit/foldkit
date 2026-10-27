@@ -3,8 +3,7 @@
   "compilerOptions": {
     "noEmit": true,
     "paths": {
-      "foldkit": ["../src/index.ts"],
-      "foldkit/mapBinding": ["../src/block/mapBinding.ts"]
+      "foldkit": ["../src/index.ts"]
     },
     "rootDir": ".."
   },

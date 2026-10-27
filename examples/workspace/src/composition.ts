@@ -1,6 +1,5 @@
 import { Array, Number, Option } from 'effect'
 import { AsyncData, type Block, Update } from 'foldkit'
-import { makeMapBinding } from 'foldkit/mapBinding'
 import { modifyFields } from 'foldkit/struct'
 
 import { IssueBoardBlock } from './board'
@@ -11,6 +10,7 @@ import {
   ApplicationDefinition,
   makeCommandsStep,
   makeFieldsStep,
+  makeMapBinding,
   makeNoopStep,
   makeStep,
 } from './definition'
@@ -55,13 +55,9 @@ export const ActiveMemberBinding = ApplicationDefinition.makeBinding(
   }),
 })
 
-export const IssueDetailBinding = makeMapBinding(
-  ApplicationDefinition,
-  IssueDetailBlock,
-  {
-    field: 'issueDetails',
-  },
-)
+export const IssueDetailBinding = makeMapBinding(IssueDetailBlock, {
+  field: 'issueDetails',
+})
 
 const openIssueStep = (issueId: string) =>
   makeCommandsStep(model => [
@@ -323,13 +319,9 @@ export const requestMoveIssueStep = (
     })
   })
 
-export const IssueBoardBinding = makeMapBinding(
-  ApplicationDefinition,
-  IssueBoardBlock,
-  {
-    field: 'boards',
-  },
-)
+export const IssueBoardBinding = makeMapBinding(IssueBoardBlock, {
+  field: 'boards',
+})
 
 const IssueBoardBindingWithOutMessagePolicy =
   IssueBoardBinding.withOutMessagePolicy({
@@ -370,13 +362,9 @@ const IssueDetailBindingWithOutMessagePolicy =
     fold: (_issueId, outMessage) => foldIssueDetailOutMessage(outMessage),
   })
 
-export const ProjectSettingsBinding = makeMapBinding(
-  ApplicationDefinition,
-  ProjectSettingsBlock,
-  {
-    field: 'projectSettings',
-  },
-).withOutMessagePolicy({
+export const ProjectSettingsBinding = makeMapBinding(ProjectSettingsBlock, {
+  field: 'projectSettings',
+}).withOutMessagePolicy({
   fold: (_projectId, outMessage) =>
     ApplicationDefinition.makeOutMessageFold(ProjectSettingsBlock, {
       Saved: ({ project }) =>

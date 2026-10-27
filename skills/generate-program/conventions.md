@@ -493,8 +493,10 @@ fields and keyed Option wrappers containing only the key and child fields. A
 custom unkeyed accessor may reuse its existing `init.toParentFields` projection.
 Use `initAndAppend` for keyed arrays already declaring `init.instances` and
 `init.toItem`, or `initAndInsert` for direct-value Record/HashMap storage from
-`makeMapBinding`. Append and insert reject duplicate keys; an
-`initialize...IfMissing` Step owns the presence check. Keep explicit `Binding.init`
+`ParentDefinition.makeMapBinding`. Destructure and export the factory from a split
+feature's `definition.ts`, then import it from that owning module. Append and insert
+reject duplicate keys; an `initialize...IfMissing` Step owns the presence check.
+Keep explicit `Binding.init`
 for additional wrapper metadata, sibling changes, parent Commands, array/map
 replacement or whole tagged variants. Do not add an unnecessary startup policy
 for a helper. Preserve recipes intact so child Commands and registration survive.
