@@ -76,9 +76,19 @@ Name an extracted handler dedicated to one Message `handle<MessageTag>`, such as
 
 If a single handler mixes connected Binding recipes with local results, use canonical local results. Definition-owned Steps supply those result contracts. Return the connected recipe intact, and use `makeFieldsStep`, `makeCommandsStep`, `makeNoopStep`, or `makeStep` for its local branches. A raw `{ model }` beside a connected recipe is rejected because structural inference can otherwise erase Commands or OutMessages before Composition sees them. Ordinary raw-only handlers remain supported.
 
-::Snippet{name="updateCanonicalLocalResults" label="Preserving local results beside connected operations"}
+The diagnostic **“Local results beside connected operations must use Definition-owned Steps to preserve Commands and OutMessages”** applies to branches within one handler. Another handler returning only `{ model }` does not need a wrapper. These two handlers differ only in the local branch's result contract:
+
+::Snippet{name="updateMixedConnectedBranchesBefore" label="❌ Mixing a raw local result with a connected recipe"}
+
+::Snippet{name="updateMixedConnectedBranchesAfter" label="✅ Preserving a local result beside a connected recipe"}
 
 For other domain unions, use their `match` for exhaustive matching and `matchOrElse` for selected variants with a fallback. Use [Effect's `Match`](https://effect.website/docs/code-style/pattern-matching/) when one handler matches several tags, for partial matching, or for unions without their own matcher.
+
+### Checking Missing Handlers Before Structural Errors
+
+An incomplete handler record can report that a connected `ResultRecipe` has no `model` instead of naming the missing Message tag. First compare the record keys with the owning Definition's local Message union. Add every missing handler, including Command completions that need no further work; `CompletedSave: makeNoopStep()` is appropriate when saving has already been handled. Generated child envelopes do not need local handlers.
+
+After the record is complete, diagnose any remaining result-channel or registration error. Do not add a `model` field to a connected recipe or cast its return to silence this cascade. Missing-tag diagnostic priority is a compiler-reporting limitation; the record remains exhaustive.
 
 ### Calling update as a Step
 
@@ -145,6 +155,14 @@ The graph requirement is intentional: an ordinary `Model` type says nothing abou
 ::Snippet{name="updateConnectedStepBefore" label="❌ Applying a connected Step to a raw Model"}
 
 ::Snippet{name="updateConnectedStepAfter" label="✅ Deferring a connected Step to its Composition"}
+
+The same distinction applies inside a Definition-owned producer. Its `model` argument has the domain fields; it does not gain registration just because the producer belongs to the Definition. `combineSteps(model, steps)` applies immediately and therefore fails there. Return `combineSteps(steps)` instead: the registered Composition supplies its capable Model when it runs the Step.
+
+::Snippet{name="blockAppliedConnectedStep" label="❌ Applying a connected combination inside its producer"}
+
+::Snippet{name="blockDeferredConnectedStep" label="✅ Deferring a connected combination to its Composition"}
+
+Inside `Composition.makeUpdate`, the handler's contextual Model already carries registration, so the data-first combination remains valid there. Deferring pure Step application does not schedule Commands or introduce another Runtime phase.
 
 #### Extracting a Local Edit Before an Emitting Operation
 

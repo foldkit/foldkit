@@ -308,6 +308,10 @@ const handlePreserveModelReceived = (state: State, payload: unknown) =>
       ),
     onSuccess: ({ id, model, isReloadFlush }) =>
       Ref.update(state.preservedModels, current => {
+        if (model === undefined) {
+          return HashMap.remove(current, id)
+        }
+
         const existingFlag = Option.exists(
           HashMap.get(current, id),
           ({ isReloadFlush }) => isReloadFlush,

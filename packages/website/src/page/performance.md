@@ -79,6 +79,14 @@ The dev server runs several systems that production builds strip entirely:
 - The [Slow Warnings](/core/slow-warnings) can time update, subscriptions, view, and patch work against phase budgets.
 - Model preservation encodes the Model so state survives development reloads.
 
+### Model Preservation
+
+Preservation uses a JSON codec derived from the Model Schema. Declare rich values with their matching Schemas when they need to survive reloads; an opaque `Schema.Unknown` snapshot cannot describe how to encode a Date or HashMap.
+
+If encoding fails, the Runtime warns once for that failure episode and clears its cached Model. The live Model and normal interactions continue unchanged; the next development reload initializes that Runtime afresh. This also lets DevTools recover from an unsupported inspected snapshot. A later encodable Model can be preserved again. Keep Foldkit and `@foldkit/vite-plugin` on the same preview snapshot so both sides support cache invalidation.
+
+Encoding is deferred until a quiet window, with a synchronous flush before Vite reloads. It is not part of every Message's synchronous dispatch work.
+
 ### Measure a Production Build
 
 All of it is gated behind `import.meta.hot` and eliminated from production bundles. The consequence: judge performance with a production build. An animation-heavy app dispatching Messages at 60Hz pays the dev-mode systems on every single update, so the dev server systematically understates how the deployed app performs. If DevTools is enabled, use `excludeFromHistory` to skip history recording for high-frequency Messages like frame ticks and pointer moves.
