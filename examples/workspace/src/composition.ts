@@ -403,18 +403,32 @@ export const ProjectSettingsBinding = makeMapBinding(ProjectSettingsBlock, {
     })(outMessage),
 })
 
+export type ApplicationBindings = readonly [
+  typeof ActiveMemberBinding,
+  typeof ProjectSettingsBinding,
+  typeof IssueListBinding,
+  typeof CreateIssueBinding,
+  typeof IssueBoardBindingWithOutMessagePolicy,
+  typeof CommandPaletteBinding,
+  typeof MemberDirectoryBinding,
+  typeof NotificationCenterBinding,
+  typeof IssueDetailBindingWithOutMessagePolicy,
+]
+
+const bindings: ApplicationBindings = [
+  ActiveMemberBinding,
+  ProjectSettingsBinding,
+  IssueListBinding,
+  CreateIssueBinding,
+  IssueBoardBindingWithOutMessagePolicy,
+  CommandPaletteBinding,
+  MemberDirectoryBinding,
+  NotificationCenterBinding,
+  IssueDetailBindingWithOutMessagePolicy,
+]
+
 export const ApplicationComposition = makeComposition({
-  bindings: [
-    ActiveMemberBinding,
-    ProjectSettingsBinding,
-    IssueListBinding,
-    CreateIssueBinding,
-    IssueBoardBindingWithOutMessagePolicy,
-    CommandPaletteBinding,
-    MemberDirectoryBinding,
-    NotificationCenterBinding,
-    IssueDetailBindingWithOutMessagePolicy,
-  ],
+  bindings,
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
