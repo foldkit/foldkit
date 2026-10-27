@@ -28,7 +28,7 @@ import { IssueMoveState, WorkspaceAsyncData } from '../model'
 import { RepositoryError } from '../repository'
 import { handleChangedUrlStep } from './handleChangedUrl'
 import { handleClickedDeleteSavedView } from './handleClickedDeleteSavedView'
-import { initializeActiveChildrenStep } from './initializeActiveChildren'
+import { initializeRouteChildrenStep } from './initializeRouteChildren'
 import {
   applyIncomingIssueStep,
   reconcileRetainedIssueDetailsStep,
@@ -83,7 +83,7 @@ export const update = ApplicationComposition.makeUpdate({
   SucceededLoadWorkspace: (model, { snapshot }) =>
     Update.combineSteps(model, [
       applySnapshotStep(snapshot),
-      initializeActiveChildrenStep,
+      initializeRouteChildrenStep,
       reconcileRetainedIssueDetailsStep,
     ]),
   FailedLoadWorkspace: makeFieldsStep.fromMessage(({ error }) => ({

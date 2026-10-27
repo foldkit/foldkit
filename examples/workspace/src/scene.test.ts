@@ -31,20 +31,20 @@ import { Comment, IssueFilters, SavedView, initialSnapshot } from './domain'
 import { init } from './init'
 import { IssueDetailBlock } from './issueDetail'
 import { SaveIssue } from './issueDetail/command'
+import { issueHref } from './issueLinks'
 import { WorkspaceListboxBlock } from './listbox'
 import { Message } from './message'
 import type { Model } from './model'
-import { issueHref } from './navigation'
 import { ProjectSettingsBlock } from './projectSettings'
 import { SaveProject } from './projectSettings/command'
 import { RepositoryError } from './repository'
-import { ApplicationRoute, issueRouter, savedViewRouter } from './route'
+import { issueRouter, issuesRouter, savedViewRouter } from './route'
 import { appliedIssueFilters } from './selection'
 import { update } from './update'
 import { view } from './view'
 
 const firstIssue = Option.getOrThrow(Array.head(initialSnapshot.issues))
-const issueUrl = issueRouter({ issueId: firstIssue.id })
+const issueUrl = issuesRouter({ issueId: firstIssue.id })
 
 const url = (path: string) =>
   Option.getOrThrow(Url.fromString(`https://workspace.test${path}`))
@@ -277,7 +277,7 @@ describe('workspace application', () => {
     )
   })
 
-  test('preserves saved filters in an issue return URL without saved view metadata', () => {
+  test('preserves saved filters in an issue panel without saved view metadata', () => {
     const filters = IssueFilters.make({
       query: 'command',
       maybeStatus: Option.none(),
@@ -305,9 +305,10 @@ describe('workspace application', () => {
     const href = issueHref(barePresetRoute, firstIssue.id)
 
     expectValue(href).toBe(
-      issueRouter({
+      savedViewRouter({
+        viewId: savedView.id,
+        filters,
         issueId: firstIssue.id,
-        returnTo: ApplicationRoute.SavedView({ viewId: savedView.id, filters }),
       }),
     )
 

@@ -5,17 +5,17 @@ import type { Model } from './model'
 import {
   ApplicationRoute,
   defaultIssueFilters,
+  maybeIssueId,
   routeFilters,
-  routeForPageContent,
 } from './route'
 
 export const maybeActiveIssueDetail = (model: typeof Model.Type) =>
-  ApplicationRoute.guards.Issue(model.route)
-    ? Record.get(model.issueDetails, model.route.issueId)
-    : Option.none()
+  Option.flatMap(maybeIssueId(model.route), issueId =>
+    Record.get(model.issueDetails, issueId),
+  )
 
 export const maybeActiveBoard = (model: typeof Model.Type) => {
-  const route = routeForPageContent(model.route)
+  const route = model.route
 
   return ApplicationRoute.guards.Board(route)
     ? Record.get(model.boards, route.projectId)
@@ -31,7 +31,7 @@ export const unsavedIssueDrafts = (model: typeof Model.Type) =>
   )
 
 export const appliedIssueFilters = (model: typeof Model.Type) => {
-  const route = routeForPageContent(model.route)
+  const route = model.route
 
   return Option.getOrElse(routeFilters(route), () => {
     if (ApplicationRoute.guards.SavedView(route)) {

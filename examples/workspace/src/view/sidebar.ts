@@ -6,17 +6,17 @@ import type { Html } from 'foldkit/html'
 import { Button } from '@foldkit/ui'
 
 import type { ApplicationViewBuilder } from '../composition'
+import { issueHref } from '../issueLinks'
 import { Message } from '../message'
 import type { Model } from '../model'
-import { issueHref } from '../navigation'
 import {
   ApplicationRoute,
   issuesRouter,
+  maybeIssueId,
   maybeProjectId,
   myIssuesRouter,
   peopleRouter,
   projectRouter,
-  routeForPageContent,
   savedViewRouter,
   settingsRouter,
 } from '../route'
@@ -39,7 +39,7 @@ export const sidebarView = (
   h: ApplicationViewBuilder,
 ): Html => {
   const drafts = unsavedIssueDrafts(model)
-  const route = routeForPageContent(model.route)
+  const route = model.route
   const maybeCurrentProjectId = maybeProjectId(route)
 
   return h.aside(
@@ -115,13 +115,13 @@ export const sidebarView = (
             h,
           ),
           navigationLink(
-            peopleRouter(),
+            peopleRouter({}),
             'People',
             ApplicationRoute.guards.People(route),
             h,
           ),
           navigationLink(
-            settingsRouter(),
+            settingsRouter({}),
             'Settings',
             ApplicationRoute.guards.Settings(route),
             h,
@@ -256,9 +256,10 @@ export const sidebarView = (
                 issue => issue.id === retainedDraft.issueId,
               ),
             )
-            const isActive =
-              ApplicationRoute.guards.Issue(model.route) &&
-              model.route.issueId === retainedDraft.issueId
+            const isActive = Option.contains(
+              maybeIssueId(model.route),
+              retainedDraft.issueId,
+            )
 
             return h.keyed('div')(
               retainedDraft.issueId,

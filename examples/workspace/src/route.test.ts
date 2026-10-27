@@ -5,17 +5,20 @@ import { describe, expect, test } from 'vitest'
 import { IssueFilters } from './domain'
 import {
   ApplicationRoute,
+  boardRouter,
   defaultIssueFilters,
   issueRouter,
   issuesRouter,
+  maybeIssueId,
   myIssuesRouter,
   projectRouter,
   routeFilters,
-  routeForPageContent,
   routeToPath,
   savedViewRouter,
   urlToApplicationRoute,
+  withIssue,
   withRouteFilters,
+  withoutIssue,
 } from './route'
 
 const url = (path: string) =>
@@ -113,109 +116,124 @@ describe('workspace list routes', () => {
       ApplicationRoute.Project({ projectId: 'platform', filters: filtered }),
     )
 
+    const mine = ApplicationRoute.MyIssues({ issueId: 'issue-101' })
+    expect(withRouteFilters(mine, filtered)).toEqual(
+      ApplicationRoute.MyIssues({ issueId: 'issue-101', filters: filtered }),
+    )
+
     const board = ApplicationRoute.Board({ projectId: 'platform' })
 
     expect(withRouteFilters(board, filtered)).toBe(board)
   })
 })
 
-describe('Issue return context', () => {
-  test('round-trips a filtered list return target as a typed Route', () => {
-    const returnTo = ApplicationRoute.Project({
+describe('issue panels', () => {
+  test('round-trips a filtered Project with an open issue', () => {
+    const route = ApplicationRoute.Project({
       projectId: 'platform',
       filters: filtered,
+      issueId: 'issue-101',
     })
-    const path = issueRouter({ issueId: 'issue-101', returnTo })
+    const path = routeToPath(route)
 
     expect(path).toBe(
-      '/issues/issue-101?returnTo=%2Fprojects%2Fplatform%3Fsearch%3Dcache%2B%2526%2Brouting%26status%3DTodo%26sort%3DPriority%26group%3DStatus',
+      '/projects/platform?search=cache+%26+routing&status=Todo&sort=Priority&group=Status&issue=issue-101',
     )
-
-    const route = urlToApplicationRoute(url(path))
-
-    expect(route).toEqual(
-      ApplicationRoute.Issue({ issueId: 'issue-101', returnTo }),
-    )
-    expect(routeForPageContent(route)).toEqual(returnTo)
-    expect(routeToPath(route)).toBe(path)
+    expect(urlToApplicationRoute(url(path))).toEqual(route)
+    expect(maybeIssueId(route)).toEqual(Option.some('issue-101'))
+    expect(routeFilters(route)).toEqual(Option.some(filtered))
   })
 
-  test('selects an already typed page Route without replacing it', () => {
-    const returnTo = ApplicationRoute.Board({ projectId: 'platform' })
-    const route = ApplicationRoute.Issue({ issueId: 'issue-101', returnTo })
+  test('opens and closes a Board panel without changing the page', () => {
+    const board = ApplicationRoute.Board({ projectId: 'platform' })
+    const opened = withIssue(board, 'issue-101')
 
-    expect(routeForPageContent(route)).toBe(route.returnTo)
-    expect(routeForPageContent(returnTo)).toBe(returnTo)
+    expect(opened).toEqual(
+      ApplicationRoute.Board({ projectId: 'platform', issueId: 'issue-101' }),
+    )
+    expect(routeToPath(opened)).toBe('/projects/platform/board?issue=issue-101')
+    expect(urlToApplicationRoute(url(routeToPath(opened)))).toEqual(opened)
+    expect(withoutIssue(opened)).toEqual(board)
+    expect(routeToPath(withoutIssue(opened))).toBe(
+      boardRouter({ projectId: 'platform' }),
+    )
   })
 
-  test('decodes the Board and ignores unrelated return query fields', () => {
-    const path =
-      '/issues/issue-101?returnTo=' +
-      encodeURIComponent('/projects/platform/board?ignored=yes')
-    const route = urlToApplicationRoute(url(path))
+  test('keeps filters while switching issues or closing a panel', () => {
+    const route = ApplicationRoute.SavedView({
+      viewId: 'mine',
+      filters: filtered,
+      issueId: 'issue-101',
+    })
+    const switched = withIssue(route, 'issue-102')
 
-    expect(route).toEqual(
-      ApplicationRoute.Issue({
-        issueId: 'issue-101',
-        returnTo: ApplicationRoute.Board({ projectId: 'platform' }),
+    expect(switched).toEqual(
+      ApplicationRoute.SavedView({
+        viewId: 'mine',
+        filters: filtered,
+        issueId: 'issue-102',
       }),
     )
+    expect(withoutIssue(switched)).toEqual(
+      ApplicationRoute.SavedView({ viewId: 'mine', filters: filtered }),
+    )
+    expect(withRouteFilters(switched, defaultIssueFilters)).toEqual(
+      ApplicationRoute.SavedView({
+        viewId: 'mine',
+        filters: defaultIssueFilters,
+        issueId: 'issue-102',
+      }),
+    )
+    expect(routeToPath(withRouteFilters(switched, defaultIssueFilters))).toBe(
+      '/views/mine?filters=1&issue=issue-102',
+    )
   })
 
-  test.each([
-    'https://evil.example/projects/platform/board',
-    '//evil.example/projects/platform/board',
-    '/issues/issue-202',
-    '/issues/issue-202?returnTo=%2F',
-    '/unknown',
-  ])('falls back when the URL return target is unsupported: %s', returnTo => {
-    const path = `/issues/issue-101?${new URLSearchParams({ returnTo })}`
+  test('keeps standalone issue links and closes them to All issues', () => {
+    const path = issueRouter({ issueId: 'issue-101' })
     const route = urlToApplicationRoute(url(path))
 
+    expect(path).toBe('/issues/issue-101')
     expect(route).toEqual(ApplicationRoute.Issue({ issueId: 'issue-101' }))
-    expect(routeForPageContent(route)).toEqual(
-      ApplicationRoute.Issues({ filters: defaultIssueFilters }),
-    )
+    expect(maybeIssueId(route)).toEqual(Option.some('issue-101'))
+    expect(routeToPath(withoutIssue(route))).toBe('/')
+    expect(maybeIssueId(withoutIssue(route))).toEqual(Option.none())
   })
 
-  test('preserves omitted and explicit-root return targets', () => {
-    const withoutReturnTo = ApplicationRoute.Issue({ issueId: 'issue-101' })
-    const withRootReturnTo = ApplicationRoute.Issue({
-      issueId: 'issue-101',
-      returnTo: ApplicationRoute.Issues({}),
-    })
+  test('opens from an unknown page and leaves an unknown page unchanged on close', () => {
+    const route = ApplicationRoute.NotFound({ path: '/unknown' })
 
-    expect(routeToPath(withoutReturnTo)).toBe('/issues/issue-101')
-    expect(routeToPath(withRootReturnTo)).toBe('/issues/issue-101?returnTo=%2F')
-    expect(urlToApplicationRoute(url(routeToPath(withoutReturnTo)))).toEqual(
-      withoutReturnTo,
+    expect(withIssue(route, 'issue-101')).toEqual(
+      ApplicationRoute.Issues({ issueId: 'issue-101' }),
     )
-    expect(urlToApplicationRoute(url(routeToPath(withRootReturnTo)))).toEqual(
-      withRootReturnTo,
-    )
+    expect(withoutIssue(route)).toBe(route)
+    expect(
+      withIssue(ApplicationRoute.Issue({ issueId: 'issue-101' }), 'issue-102'),
+    ).toEqual(ApplicationRoute.Issue({ issueId: 'issue-102' }))
   })
 
-  test('keeps URL strings out of the application Route Schema', () => {
-    const route = ApplicationRoute.Issue({
+  test('stores only the selected issue identity in the Route Schema', () => {
+    const route = ApplicationRoute.Board({
+      projectId: 'platform',
       issueId: 'issue-101',
-      returnTo: ApplicationRoute.Board({ projectId: 'platform' }),
     })
     const encoded = Schema.encodeSync(ApplicationRoute)(route)
 
-    expect(encoded).toEqual(route)
+    expect(encoded).toEqual({
+      _tag: 'Board',
+      projectId: 'platform',
+      issueId: 'issue-101',
+    })
     expect(Schema.decodeUnknownSync(ApplicationRoute)(encoded)).toEqual(route)
-    for (const returnTo of [
-      '/projects/platform/board',
-      ApplicationRoute.NotFound({ path: '/unknown' }),
-      ApplicationRoute.Issue({ issueId: 'issue-102' }),
-    ]) {
-      expect(
-        Schema.is(ApplicationRoute)({
-          _tag: 'Issue',
-          issueId: 'issue-101',
-          returnTo,
-        }),
-      ).toBe(false)
-    }
+    expect(
+      Schema.is(ApplicationRoute)({
+        _tag: 'Board',
+        projectId: 'platform',
+        issueId: 42,
+      }),
+    ).toBe(false)
+    expect(
+      maybeIssueId(ApplicationRoute.NotFound({ path: '/unknown' })),
+    ).toEqual(Option.none())
   })
 })

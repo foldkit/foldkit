@@ -23,21 +23,13 @@ const expectLocation = (page: PlaywrightPage, pathname: string, search = '') =>
 const expectIssueLocation = (
   page: PlaywrightPage,
   issueId: string,
-  returnTo?: string,
+  pagePath = '/',
 ) =>
   expect(page).toHaveURL(url => {
-    if (url.pathname !== `/issues/${issueId}`) {
-      return false
-    }
+    const expected = new URL(pagePath, url.origin)
+    expected.searchParams.set('issue', issueId)
 
-    if (returnTo === undefined || returnTo === '/') {
-      return url.search === ''
-    }
-
-    return (
-      url.searchParams.size === 1 &&
-      url.searchParams.get('returnTo') === returnTo
-    )
+    return url.pathname === expected.pathname && url.search === expected.search
   })
 
 const chooseListbox = async (
@@ -55,6 +47,19 @@ const chooseListbox = async (
 test.describe('workspace example', () => {
   test('loads cleanly', async ({ page }) => {
     await Page.assertLoadedCleanly(page)
+  })
+
+  test('a direct issue link opens a standalone editor and closes to All issues', async ({
+    page,
+  }) => {
+    await page.goto('/issues/issue-101')
+    await expect(page.getByLabel('Issue title', { exact: true })).toHaveValue(
+      'Build a faster command menu',
+    )
+    await expect(issueList(page)).toHaveCount(0)
+    await page.getByRole('button', { name: 'Close issue', exact: true }).click()
+    await expectLocation(page, '/')
+    await expect(issueList(page)).toBeVisible()
   })
 
   test('saving an issue updates the list and survives navigating away and back', async ({
@@ -129,7 +134,7 @@ test.describe('workspace example', () => {
     const draftDescription = 'This work is still in progress.'
     const comment = 'Check the keyboard shortcuts before publishing.'
 
-    await page.goto('/issues/issue-101')
+    await page.goto('/?issue=issue-101')
     await page.getByLabel('Issue title', { exact: true }).fill(draftTitle)
     await page.getByLabel('Description', { exact: true }).fill(draftDescription)
     await page.getByRole('button', { name: 'Status', exact: true }).click()
@@ -189,7 +194,7 @@ test.describe('workspace example', () => {
     const firstTitle = 'Retained draft for WSP-101'
     const secondTitle = 'Retained draft for WSP-102'
 
-    await page.goto('/issues/issue-101')
+    await page.goto('/?issue=issue-101')
     await page.getByLabel('Issue title', { exact: true }).fill(firstTitle)
     const drafts = page.getByRole('region', { name: 'Drafts', exact: true })
     const firstIssueDraft = drafts.getByRole('link', {
@@ -237,7 +242,7 @@ test.describe('workspace example', () => {
   test('dirty issue drafts prompt before reload and saved or discarded fields do not', async ({
     page,
   }) => {
-    await page.goto('/issues/issue-101')
+    await page.goto('/?issue=issue-101')
     await page
       .getByLabel('Issue title', { exact: true })
       .fill('Prompt before reload')
@@ -674,32 +679,32 @@ test.describe('workspace example', () => {
     await expect(group).toHaveText('Project')
   })
 
-  test('issue reload and close preserve the filtered return URL', async ({
+  test('issue reload and close preserve the filtered page URL', async ({
     page,
   }) => {
-    const returnTo =
+    const pagePath =
       '/?search=command&status=InProgress&sort=Priority&group=Status'
 
-    await page.goto(returnTo)
+    await page.goto(pagePath)
     const issueLink = issueList(page).getByRole('link', {
       name: 'WSP-101 Build a faster command menu',
       exact: true,
     })
     await expect(issueLink).toBeVisible()
     await issueLink.click()
-    await expectIssueLocation(page, 'issue-101', returnTo)
+    await expectIssueLocation(page, 'issue-101', pagePath)
     await expect(page.getByLabel('Issue title', { exact: true })).toHaveValue(
       'Build a faster command menu',
     )
 
     await page.reload()
-    await expectIssueLocation(page, 'issue-101', returnTo)
+    await expectIssueLocation(page, 'issue-101', pagePath)
     await expect(page.getByLabel('Issue title', { exact: true })).toHaveValue(
       'Build a faster command menu',
     )
     await page.getByRole('button', { name: 'Close issue', exact: true }).click()
 
-    await expectLocation(page, '/', returnTo.slice(1))
+    await expectLocation(page, '/', pagePath.slice(1))
     await expect(
       page.getByRole('searchbox', { name: 'Search issues', exact: true }),
     ).toHaveValue('command')
@@ -724,10 +729,7 @@ test.describe('workspace example', () => {
       name: 'WSP-101 Build a faster command menu',
       exact: true,
     })
-    await expect(issueLink).toHaveAttribute(
-      'href',
-      '/issues/issue-101?returnTo=%2Fpeople',
-    )
+    await expect(issueLink).toHaveAttribute('href', '/people?issue=issue-101')
 
     const [issuePage] = await Promise.all([
       context.waitForEvent('page', { timeout: 5_000 }),
@@ -936,7 +938,7 @@ test.describe('workspace example', () => {
     await expect(savedView).toHaveCount(0)
   })
 
-  test('a saved-view issue return survives reload without session preset metadata', async ({
+  test('a saved-view issue panel survives reload without session preset metadata', async ({
     page,
   }) => {
     const search = page.getByRole('searchbox', {
@@ -950,7 +952,7 @@ test.describe('workspace example', () => {
     const savedViewPath = '/views/view-1'
     const savedViewSearch =
       '?search=issue&status=Todo&sort=Priority&group=Project'
-    const returnTo = `${savedViewPath}${savedViewSearch}`
+    const pagePath = `${savedViewPath}${savedViewSearch}`
 
     await page.goto('/')
     await search.fill('issue')
@@ -963,16 +965,16 @@ test.describe('workspace example', () => {
     const savedView = page
       .getByRole('region', { name: 'Saved views', exact: true })
       .getByRole('link', { name: viewName, exact: true })
-    await expect(savedView).toHaveAttribute('href', returnTo)
+    await expect(savedView).toHaveAttribute('href', pagePath)
     await savedView.click()
     await expectLocation(page, savedViewPath, savedViewSearch)
     await issueList(page)
       .getByRole('link', { name: /^WSP-102 / })
       .click()
-    await expectIssueLocation(page, 'issue-102', returnTo)
+    await expectIssueLocation(page, 'issue-102', pagePath)
 
     await page.reload()
-    await expectIssueLocation(page, 'issue-102', returnTo)
+    await expectIssueLocation(page, 'issue-102', pagePath)
     await expect(page.getByLabel('Issue title', { exact: true })).toHaveValue(
       'Keep issue drafts when switching projects',
     )
@@ -1127,7 +1129,7 @@ test.describe('workspace example', () => {
   test('posting a comment preserves a dirty issue draft and remains visible after reopening', async ({
     page,
   }) => {
-    await page.goto('/issues/issue-101')
+    await page.goto('/?issue=issue-101')
     const activity = page.getByRole('region', { name: 'Activity', exact: true })
     const comment = 'Reviewed the command menu with the team.'
     const draftTitle = 'Keep this draft while adding a comment'
@@ -1275,7 +1277,7 @@ test.describe('workspace example', () => {
   test('a retained issue save settles while another issue is open', async ({
     page,
   }) => {
-    await page.goto('/issues/issue-101')
+    await page.goto('/?issue=issue-101')
     await expect(page.getByLabel('Issue title', { exact: true })).toBeVisible()
     await page.clock.install()
     await page.clock.pauseAt(new Date())

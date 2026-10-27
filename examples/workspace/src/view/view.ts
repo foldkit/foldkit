@@ -20,16 +20,16 @@ import {
   ProjectSettingsBinding,
 } from '../composition'
 import type { Issue, Project, WorkspaceSnapshot } from '../domain'
+import { issueHrefs } from '../issueLinks'
 import { listboxViewInputs } from '../listbox'
 import { Message } from '../message'
 import { IssueMoveState, type Model } from '../model'
-import { issueHrefs } from '../navigation'
 import {
   ApplicationRoute,
   issuesRouter,
+  maybeIssueId,
   maybeProjectId,
   routeFilters,
-  routeForPageContent,
 } from '../route'
 import {
   appliedIssueFilters,
@@ -87,7 +87,7 @@ const pageTitle = (
   model: typeof Model.Type,
   snapshot: typeof WorkspaceSnapshot.Type,
 ): string => {
-  const route = routeForPageContent(model.route)
+  const route = model.route
   const projectTitle = (projectId: string) =>
     Option.match(
       Array.findFirst(snapshot.projects, project => project.id === projectId),
@@ -135,9 +135,7 @@ const issueListView = (
         issues,
         members: snapshot.members,
         projects: snapshot.projects,
-        maybeActiveIssueId: ApplicationRoute.guards.Issue(model.route)
-          ? Option.some(model.route.issueId)
-          : Option.none(),
+        maybeActiveIssueId: maybeIssueId(model.route),
       },
     }),
   )
@@ -167,7 +165,7 @@ const routeContent = (
   snapshot: typeof WorkspaceSnapshot.Type,
   h: ApplicationViewBuilder,
 ): Html => {
-  const route = routeForPageContent(model.route)
+  const route = model.route
 
   const projectContent = (
     projectId: string,
@@ -335,7 +333,7 @@ const workspaceView = (
   snapshot: typeof WorkspaceSnapshot.Type,
   h: ApplicationViewBuilder,
 ): Html => {
-  const route = routeForPageContent(model.route)
+  const route = model.route
   const maybeProject = Option.flatMap(maybeProjectId(route), projectId =>
     Array.findFirst(snapshot.projects, project => project.id === projectId),
   )
@@ -385,17 +383,23 @@ const workspaceView = (
           ),
         ],
         [
-          h.div(
-            [
-              h.Class(
-                clsx('min-w-0 flex-1', {
-                  'hidden xl:block': ApplicationRoute.guards.Issue(model.route),
-                }),
-              ),
-            ],
-            [routeContent(model, snapshot, h)],
-          ),
-          ...(ApplicationRoute.guards.Issue(model.route)
+          ...(!ApplicationRoute.guards.Issue(model.route)
+            ? [
+                h.div(
+                  [
+                    h.Class(
+                      clsx('min-w-0 flex-1', {
+                        'hidden xl:block': Option.isSome(
+                          maybeIssueId(model.route),
+                        ),
+                      }),
+                    ),
+                  ],
+                  [routeContent(model, snapshot, h)],
+                ),
+              ]
+            : []),
+          ...(Option.isSome(maybeIssueId(model.route))
             ? [
                 Option.match(
                   Option.flatMap(maybeActiveIssueDetail(model), detail =>
@@ -418,7 +422,12 @@ const workspaceView = (
                       h.aside(
                         [
                           h.Class(
-                            'w-full shrink-0 bg-slate-50/70 xl:w-[430px] xl:border-l xl:border-slate-200',
+                            clsx(
+                              'w-full shrink-0 bg-slate-50/70',
+                              ApplicationRoute.guards.Issue(model.route)
+                                ? 'mx-auto max-w-3xl'
+                                : 'xl:w-[430px] xl:border-l xl:border-slate-200',
+                            ),
                           ),
                         ],
                         [
@@ -488,11 +497,11 @@ const documentTitle = (model: typeof Model.Type): string =>
   Option.match(maybeSnapshot(model), {
     onNone: () => 'Northstar | Foldkit workspace',
     onSome: snapshot => {
-      if (ApplicationRoute.guards.Issue(model.route)) {
-        const issueId = model.route.issueId
+      const issueId = maybeIssueId(model.route)
 
+      if (Option.isSome(issueId)) {
         return Option.match(
-          Array.findFirst(snapshot.issues, issue => issue.id === issueId),
+          Array.findFirst(snapshot.issues, issue => issue.id === issueId.value),
           {
             onNone: () => 'Issue not found | Northstar',
             onSome: issue => `${issue.identifier}: ${issue.title} | Northstar`,

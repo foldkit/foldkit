@@ -50,11 +50,11 @@ import {
   SaveState,
 } from './issueDetail/definition'
 import { draftFromIssue, revisionFromIssue } from './issueDetail/draft'
+import { issueHref } from './issueLinks'
 import { IssueListBlock } from './issueList'
 import { WorkspaceListboxBlock } from './listbox'
 import { Message } from './message'
 import { IssueMoveState, type Model } from './model'
-import { issueHref } from './navigation'
 import { NotificationCenterBlock } from './notifications'
 import { ProjectSettingsBlock } from './projectSettings'
 import { SaveProject } from './projectSettings/command'
@@ -66,8 +66,10 @@ import {
   issueRouter,
   issuesRouter,
   projectRouter,
-  routeForPageContent,
+  routeToPath,
   savedViewRouter,
+  withIssue,
+  withoutIssue,
 } from './route'
 import {
   appliedIssueFilters,
@@ -148,11 +150,11 @@ describe('workspace navigation', () => {
       message(Message.ChangedUrl({ url: url(projectPath) })),
       message(
         Message.ChangedUrl({
-          url: url(issueRouter({ issueId: issueB.id, returnTo: projectRoute })),
+          url: url(routeToPath(withIssue(projectRoute, issueB.id))),
         }),
       ),
       model(model => {
-        expect(routeForPageContent(model.route)).toEqual(
+        expect(withoutIssue(model.route)).toEqual(
           ApplicationRoute.Project({ projectId: issueB.projectId }),
         )
         expect(detailModel(model).issueId).toBe(issueB.id)
@@ -164,7 +166,7 @@ describe('workspace navigation', () => {
     const issueOpen = update(
       projectModel,
       Message.ChangedUrl({
-        url: url(issueRouter({ issueId: issueB.id, returnTo: projectRoute })),
+        url: url(routeToPath(withIssue(projectRoute, issueB.id))),
       }),
     )
 
@@ -903,10 +905,12 @@ describe('Application child policies', () => {
       message(
         Message.ChangedUrl({
           url: url(
-            issueRouter({
-              issueId: issue.id,
-              returnTo: ApplicationRoute.Board({ projectId: 'platform' }),
-            }),
+            routeToPath(
+              ApplicationRoute.Board({
+                projectId: 'platform',
+                issueId: issue.id,
+              }),
+            ),
           ),
         }),
       ),
@@ -1207,16 +1211,10 @@ describe('Application child policies', () => {
       viewId: savedView.id,
       filters: changedFilters,
     })
-    const issuePath = issueRouter({
-      issueId: 'issue-102',
-      returnTo: savedViewRoute,
-    })
+    const issuePath = routeToPath(withIssue(savedViewRoute, 'issue-102'))
     const issuesRoute = ApplicationRoute.Issues({ filters: changedFilters })
     const issuesPath = issuesRouter({ filters: changedFilters })
-    const repairedIssuePath = issueRouter({
-      issueId: 'issue-102',
-      returnTo: issuesRoute,
-    })
+    const repairedIssuePath = routeToPath(withIssue(issuesRoute, 'issue-102'))
     const initial = modifyFields(loadedModel(issuePath), {
       savedViews: () => [savedView],
       nextSavedViewId: () => 2,
@@ -1231,12 +1229,12 @@ describe('Application child policies', () => {
         expect(model.savedViews).toEqual([])
 
         expect(model.route).toEqual(
-          ApplicationRoute.Issue({
+          ApplicationRoute.Issues({
+            filters: changedFilters,
             issueId: 'issue-102',
-            returnTo: issuesRoute,
           }),
         )
-        expect(routeForPageContent(model.route)).toEqual(
+        expect(withoutIssue(model.route)).toEqual(
           ApplicationRoute.Issues({ filters: changedFilters }),
         )
         expect(appliedIssueFilters(model)).toEqual(changedFilters)

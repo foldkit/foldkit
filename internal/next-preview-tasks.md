@@ -14,6 +14,12 @@ original status, source pins and publication holds as historical evidence.
 
 ## Followups after the published preview
 
+- [x] Keep Workspace page Routes while issue panels are open. Store the selected
+      issue in `?issue=...`, retain standalone `/issues/:id` links, remove nested
+      return Routes and page-unwrapping selectors, and initialize children directly
+      from the selected page and issue. Rename Model-aware URL helpers to
+      `issueLinks.ts`. Preserve filters, history, reloads and retained editor state.
+
 - [x] Simplify Workspace retained state: keep issue editors, Boards and project
       settings in ID-keyed records using map Bindings. Derive draft summaries
       from retained editors, remove the root draft mirror and reporting operations,
@@ -26,7 +32,9 @@ original status, source pins and publication holds as historical evidence.
       Add `Route.parsePathWithFallback` for relative-path parsing and document
       the boundary in the routing guide, scaffold and consumer skill.
       This followup targets the next preview; the published `f3be22cfeefe`
-      snapshot and its immutable deployment are unchanged.
+      snapshot and its immutable deployment are unchanged. The representation using
+      nested return Routes introduced here is superseded by the page/panel factoring
+      above.
 
 ## Publication completion, October 26
 

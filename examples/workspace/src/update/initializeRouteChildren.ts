@@ -8,7 +8,7 @@ import {
   ProjectSettingsBinding,
 } from '../composition'
 import { makeNoopStep, makeStep } from '../definition'
-import { ApplicationRoute, routeForPageContent } from '../route'
+import { ApplicationRoute, maybeIssueId } from '../route'
 
 const initializeIssueDetailIfMissingStep = (issueId: string) =>
   makeStep(model => {
@@ -76,18 +76,16 @@ const initializeProjectSettingsIfMissingStep = (projectId: string) =>
     )
   })
 
-export const initializeActiveChildrenStep = makeStep(model => {
+export const initializeRouteChildrenStep = makeStep(model => {
   // Shouldnt we be using the Transition helpers? dont we only care to do this
   // if we are entering the route?
-  const initializeIssueDetailStep = ApplicationRoute.matchOrElse(
-    model.route,
-    { Issue: ({ issueId }) => initializeIssueDetailIfMissingStep(issueId) },
-    makeNoopStep,
-  )
+  const initializeIssueDetailStep = Option.match(maybeIssueId(model.route), {
+    onNone: makeNoopStep,
+    onSome: initializeIssueDetailIfMissingStep,
+  })
 
-  const route = routeForPageContent(model.route)
   const initializeProjectChildStep = ApplicationRoute.matchOrElse(
-    route,
+    model.route,
     {
       Board: ({ projectId }) => initializeProjectBoardIfMissingStep(projectId),
       ProjectSettings: ({ projectId }) =>

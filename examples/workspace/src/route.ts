@@ -15,27 +15,33 @@ const RouteIssueFilters = Schema.Struct({
   filters: Schema.optionalKey(IssueFilters),
 })
 
-const pageRouteCases = {
-  Issues: RouteIssueFilters.fields,
-  MyIssues: RouteIssueFilters.fields,
-  Project: { projectId: Schema.String, ...RouteIssueFilters.fields },
-  ProjectOverview: { projectId: Schema.String },
-  ProjectSettings: { projectId: Schema.String },
-  Board: { projectId: Schema.String },
-  People: {},
-  Settings: {},
-  SavedView: { viewId: Schema.String, ...RouteIssueFilters.fields },
-}
-
-const PageRoute = defineRouteUnion(pageRouteCases)
-
-const IssueReturnTo = Schema.Struct({
-  returnTo: Schema.optionalKey(PageRoute),
+const IssuePanel = Schema.Struct({
+  issueId: Schema.optionalKey(Schema.String),
 })
 
+const issuePanelFromQuery = IssuePanel.pipe(
+  Schema.encodeKeys({ issueId: 'issue' }),
+)
+
 export const ApplicationRoute = defineRouteUnion({
-  ...pageRouteCases,
-  Issue: { issueId: Schema.String, ...IssueReturnTo.fields },
+  Issues: { ...RouteIssueFilters.fields, ...IssuePanel.fields },
+  MyIssues: { ...RouteIssueFilters.fields, ...IssuePanel.fields },
+  Project: {
+    projectId: Schema.String,
+    ...RouteIssueFilters.fields,
+    ...IssuePanel.fields,
+  },
+  ProjectOverview: { projectId: Schema.String, ...IssuePanel.fields },
+  ProjectSettings: { projectId: Schema.String, ...IssuePanel.fields },
+  Board: { projectId: Schema.String, ...IssuePanel.fields },
+  People: IssuePanel.fields,
+  Settings: IssuePanel.fields,
+  SavedView: {
+    viewId: Schema.String,
+    ...RouteIssueFilters.fields,
+    ...IssuePanel.fields,
+  },
+  Issue: { issueId: Schema.String },
   NotFound: { path: Schema.String },
 })
 
@@ -127,6 +133,7 @@ const savedViewFiltersFromQuery = filtersFromQuery(true)
 export const issuesRouter = pipe(
   Route.root,
   Route.query(issueFiltersFromQuery),
+  Route.query(issuePanelFromQuery),
   Route.mapTo(ApplicationRoute.Issues),
 )
 
@@ -134,12 +141,14 @@ export const projectRouter = pipe(
   literal('projects'),
   slash(string('projectId')),
   Route.query(issueFiltersFromQuery),
+  Route.query(issuePanelFromQuery),
   Route.mapTo(ApplicationRoute.Project),
 )
 
 export const myIssuesRouter = pipe(
   literal('my-issues'),
   Route.query(issueFiltersFromQuery),
+  Route.query(issuePanelFromQuery),
   Route.mapTo(ApplicationRoute.MyIssues),
 )
 
@@ -147,16 +156,19 @@ export const savedViewRouter = pipe(
   literal('views'),
   slash(string('viewId')),
   Route.query(savedViewFiltersFromQuery),
+  Route.query(issuePanelFromQuery),
   Route.mapTo(ApplicationRoute.SavedView),
 )
 
 export const peopleRouter = pipe(
   literal('people'),
+  Route.query(issuePanelFromQuery),
   Route.mapTo(ApplicationRoute.People),
 )
 
 export const settingsRouter = pipe(
   literal('settings'),
+  Route.query(issuePanelFromQuery),
   Route.mapTo(ApplicationRoute.Settings),
 )
 
@@ -164,6 +176,7 @@ export const boardRouter = pipe(
   literal('projects'),
   slash(string('projectId')),
   slash(literal('board')),
+  Route.query(issuePanelFromQuery),
   Route.mapTo(ApplicationRoute.Board),
 )
 
@@ -171,6 +184,7 @@ export const projectOverviewRouter = pipe(
   literal('projects'),
   slash(string('projectId')),
   slash(literal('overview')),
+  Route.query(issuePanelFromQuery),
   Route.mapTo(ApplicationRoute.ProjectOverview),
 )
 
@@ -178,6 +192,7 @@ export const projectSettingsRouter = pipe(
   literal('projects'),
   slash(string('projectId')),
   slash(literal('settings')),
+  Route.query(issuePanelFromQuery),
   Route.mapTo(ApplicationRoute.ProjectSettings),
 )
 
@@ -206,23 +221,27 @@ export const routeFilters = (route: typeof ApplicationRoute.Type) =>
   )
 
 export const withRouteFilters = (
-  route: typeof PageRoute.Type,
+  route: typeof ApplicationRoute.Type,
   filters: typeof IssueFilters.Type,
-) =>
-  PageRoute.match<typeof PageRoute.Type>(route, {
-    Issues: () => ApplicationRoute.Issues({ filters }),
-    MyIssues: () => ApplicationRoute.MyIssues({ filters }),
-    Project: ({ projectId }) =>
-      ApplicationRoute.Project({ projectId, filters }),
-    ProjectOverview: () => route,
-    ProjectSettings: () => route,
-    Board: () => route,
-    People: () => route,
-    Settings: () => route,
-    SavedView: ({ viewId }) => ApplicationRoute.SavedView({ viewId, filters }),
-  })
+) => {
+  if (
+    ApplicationRoute.isAnyOf(['Issues', 'MyIssues', 'Project', 'SavedView'])(
+      route,
+    )
+  ) {
+    return { ...route, filters }
+  }
 
-const pageRouteToPath = PageRoute.match({
+  return route
+}
+
+export const issueRouter = pipe(
+  literal('issues'),
+  slash(string('issueId')),
+  Route.mapTo(ApplicationRoute.Issue),
+)
+
+export const routeToPath = ApplicationRoute.match({
   Issues: issuesRouter,
   MyIssues: myIssuesRouter,
   Project: projectRouter,
@@ -232,9 +251,12 @@ const pageRouteToPath = PageRoute.match({
   People: peopleRouter,
   Settings: settingsRouter,
   SavedView: savedViewRouter,
+  Issue: issueRouter,
+  NotFound: ({ path }) => path,
 })
 
-const pageParser = Route.oneOf(
+const routeParser = Route.oneOf(
+  issueRouter,
   boardRouter,
   projectOverviewRouter,
   projectSettingsRouter,
@@ -246,60 +268,37 @@ const pageParser = Route.oneOf(
   issuesRouter,
 )
 
-const pathToPageRoute = Route.parsePathWithFallback(
-  pageParser,
+export const urlToApplicationRoute = Route.parseUrlWithFallback(
+  routeParser,
   ApplicationRoute.NotFound,
 )
 
-const IssueReturnToFromQuery = Schema.Struct({
-  returnTo: Schema.optionalKey(Schema.String),
-}).pipe(
-  Schema.decodeTo(
-    IssueReturnTo,
-    SchemaTransformation.transform({
-      decode: ({ returnTo }) => {
-        if (returnTo === undefined) {
-          return {}
-        }
+export const maybeIssueId = (route: typeof ApplicationRoute.Type) =>
+  ApplicationRoute.guards.NotFound(route)
+    ? Option.none()
+    : Option.fromNullishOr(route.issueId)
 
-        const route = pathToPageRoute(returnTo)
+export const withIssue = (
+  route: typeof ApplicationRoute.Type,
+  issueId: string,
+) => {
+  if (ApplicationRoute.guards.NotFound(route)) {
+    return ApplicationRoute.Issues({ issueId })
+  }
 
-        return ApplicationRoute.guards.NotFound(route)
-          ? {}
-          : { returnTo: route }
-      },
-      encode: ({ returnTo }) =>
-        returnTo === undefined ? {} : { returnTo: pageRouteToPath(returnTo) },
-    }),
-  ),
-)
+  return { ...route, issueId }
+}
 
-export const issueRouter = pipe(
-  literal('issues'),
-  slash(string('issueId')),
-  Route.query(IssueReturnToFromQuery),
-  Route.mapTo(ApplicationRoute.Issue),
-)
-
-export const routeToPath = (route: typeof ApplicationRoute.Type) => {
+export const withoutIssue = (route: typeof ApplicationRoute.Type) => {
   if (ApplicationRoute.guards.Issue(route)) {
-    return issueRouter(route)
+    return ApplicationRoute.Issues({ filters: defaultIssueFilters })
   }
 
   if (ApplicationRoute.guards.NotFound(route)) {
-    return route.path
+    return route
   }
 
-  return pageRouteToPath(route)
+  const { issueId: _issueId, ...pageRoute } = route
+
+  return pageRoute
 }
-
-export const urlToApplicationRoute = Route.parseUrlWithFallback(
-  Route.oneOf(issueRouter, pageParser),
-  ApplicationRoute.NotFound,
-)
-
-export const routeForPageContent = (route: typeof ApplicationRoute.Type) =>
-  ApplicationRoute.guards.Issue(route)
-    ? (route.returnTo ??
-      ApplicationRoute.Issues({ filters: defaultIssueFilters }))
-    : route

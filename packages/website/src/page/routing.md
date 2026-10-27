@@ -68,7 +68,7 @@ A router only matches when it consumes the entire URL, so routes that share a pr
 
 ### Parse Relative Paths
 
-`Route.parsePathWithFallback` parses an origin-relative path and its query parameters into a Route. Use it for a path stored in a query parameter, such as an issue panel's return location. Decode that location when parsing the URL, then store the typed Route in the Model. The [Workspace example](/example-apps/workspace) uses a query Schema transformation to decode and encode its return Route.
+`Route.parsePathWithFallback` parses an origin-relative path and its query parameters into a Route. Use it for a path stored in a query parameter, such as a redirect destination. Decode that location when parsing the URL, then store the typed Route in the Model.
 
 ::Snippet{name="routingRelativePaths" label="Relative path parsing"}
 
@@ -85,6 +85,8 @@ TypeScript ensures you provide the correct data. If `personRouter` expects `{ pe
 ## Query Parameters
 
 Query parameters use [Effect Schema](https://effect.website/docs/schema/introduction/) for validation. This gives you type-safe parsing, optional parameters, and automatic encoding/decoding.
+
+For a panel displayed over a page, keep the page's Route and put the selected entity ID in a query parameter. The [Workspace example](/example-apps/workspace) opens an issue over a Board at `/projects/platform/board?issue=issue-101`. Closing the panel removes `issue`, preserving the page and its filters.
 
 ### Decode Query Values
 

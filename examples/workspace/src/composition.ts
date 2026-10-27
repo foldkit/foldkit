@@ -24,18 +24,18 @@ import {
   moveIssue,
 } from './domain'
 import { IssueDetailBlock } from './issueDetail'
+import { issueFiltersHref, issueHref } from './issueLinks'
 import { IssueListBlock } from './issueList'
 import { WorkspaceListboxBlock } from './listbox'
 import { MemberDirectoryBlock } from './memberDirectory'
 import { IssueMoveState } from './model'
-import { issueFiltersHref, issueHref } from './navigation'
 import { NotificationCenterBlock } from './notifications'
 import { ProjectSettingsBlock } from './projectSettings'
 import {
   maybeProjectId,
   projectRouter,
-  routeForPageContent,
   routeToPath,
+  withoutIssue,
 } from './route'
 import { appliedIssueFilters } from './selection'
 
@@ -161,7 +161,7 @@ const foldIssueDetailOutMessage = ApplicationDefinition.makeOutMessageFold(
     Closed: () =>
       makeCommandsStep(model => [
         NavigateInternal({
-          url: routeToPath(routeForPageContent(model.route)),
+          url: routeToPath(withoutIssue(model.route)),
         }),
       ]),
   },
@@ -228,7 +228,7 @@ export const IssueListBinding = ApplicationDefinition.makeBinding(
         return Option.match(AsyncData.getData(model.workspaceAsyncData), {
           onNone: makeNoopStep,
           onSome: snapshot => {
-            const route = routeForPageContent(model.route)
+            const route = model.route
 
             const maybeProject = Option.match(maybeProjectId(route), {
               onNone: () => Array.head(snapshot.projects),

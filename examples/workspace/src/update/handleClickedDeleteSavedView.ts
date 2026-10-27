@@ -1,17 +1,17 @@
-import { Array } from 'effect'
+import { Array, Option } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import { NavigateInternal, ReplaceInternalUrl } from '../command'
 import type { Message } from '../message'
 import type { Model } from '../model'
-import { ApplicationRoute, routeForPageContent, routeToPath } from '../route'
+import { ApplicationRoute, maybeIssueId, routeToPath } from '../route'
 import { appliedIssueFilters } from '../selection'
 
 export const handleClickedDeleteSavedView = (
   model: typeof Model.Type,
   { viewId }: typeof Message.ClickedDeleteSavedView.Type,
 ) => {
-  const route = routeForPageContent(model.route)
+  const route = model.route
   const isDeletingDisplayedView =
     ApplicationRoute.guards.SavedView(route) && route.viewId === viewId
   const nextSavedViews = Array.filter(
@@ -28,25 +28,25 @@ export const handleClickedDeleteSavedView = (
   const issuesRoute = ApplicationRoute.Issues({
     filters: appliedIssueFilters(model),
   })
-  const issuesUrl = routeToPath(issuesRoute)
+  const maybeSelectedIssueId = maybeIssueId(model.route)
 
-  if (ApplicationRoute.guards.Issue(model.route)) {
-    const issueRoute = ApplicationRoute.Issue({
-      issueId: model.route.issueId,
-      returnTo: issuesRoute,
-    })
-
+  if (Option.isNone(maybeSelectedIssueId)) {
     return {
-      model: modifyFields(model, {
-        route: () => issueRoute,
-        savedViews: () => nextSavedViews,
-      }),
-      commands: [ReplaceInternalUrl({ url: routeToPath(issueRoute) })],
+      model: modifyFields(model, { savedViews: () => nextSavedViews }),
+      commands: [NavigateInternal({ url: routeToPath(issuesRoute) })],
     }
   }
 
+  const nextRoute = ApplicationRoute.Issues({
+    filters: appliedIssueFilters(model),
+    issueId: maybeSelectedIssueId.value,
+  })
+
   return {
-    model: modifyFields(model, { savedViews: () => nextSavedViews }),
-    commands: [NavigateInternal({ url: issuesUrl })],
+    model: modifyFields(model, {
+      route: () => nextRoute,
+      savedViews: () => nextSavedViews,
+    }),
+    commands: [ReplaceInternalUrl({ url: routeToPath(nextRoute) })],
   }
 }
