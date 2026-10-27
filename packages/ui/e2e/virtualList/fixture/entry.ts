@@ -12,14 +12,14 @@ const program = Program.make({
 })
 
 Runtime.run(program, {
-  flags: Effect.sync(() => {
+  flags: Effect.suspend(() => {
     const parameters = new URLSearchParams(window.location.search)
 
-    return Schema.decodeUnknownSync(FixtureConfig)({
+    return Schema.decodeUnknownEffect(FixtureConfig)({
       scrollMode: parameters.get('scroll') ?? 'Ancestor',
       layout: parameters.get('layout') ?? 'Spacers',
       isDynamic: parameters.get('dynamic') === 'true',
       isShort: parameters.get('short') === 'true',
-    })
+    }).pipe(Effect.orDie)
   }),
 })
