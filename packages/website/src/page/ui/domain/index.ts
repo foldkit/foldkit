@@ -7,6 +7,9 @@ export {
   Page,
   Plan,
   VirtualListChatMessage,
-  VirtualListChatStartProximity,
+  VirtualListChatHistorySource,
+  VirtualListChatHistoryMode,
+  VirtualListChatHistoryLoad,
+  historyModeForSource,
 } from './domain'
 export { tableOfContentsFor } from './pageMetadata'

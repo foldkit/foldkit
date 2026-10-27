@@ -18,6 +18,7 @@ import { makeFieldsStep } from './definition'
 import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './demo/virtualListData'
 import {
   VirtualListChatDemoBinding,
+  handleCompletedFetchVirtualListChatHistory,
   prependVirtualListChatMessagesStep,
   updateVirtualListChatMessagesStep,
 } from './virtualListChat'
@@ -150,6 +151,9 @@ export const update = UiComposition.makeUpdate({
     ),
 
   ClickedVirtualListChatPrepend: prependVirtualListChatMessagesStep,
+
+  CompletedFetchVirtualListChatHistory:
+    handleCompletedFetchVirtualListChatHistory,
 
   ClickedVirtualListChatScrollToMessage:
     VirtualListChatDemoBinding.requestScrollToKey('7', {

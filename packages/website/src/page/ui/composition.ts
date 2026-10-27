@@ -29,9 +29,15 @@ import {
 } from './demo/components'
 import { ToastBlock } from './demo/toastModule'
 import { type DemoCard, type DemoColumn } from './domain/domain'
-import { VirtualListChatDemoBindingWithOutMessagePolicy } from './virtualListChat'
+import {
+  VirtualListChatDemoBindingWithOutMessagePolicy,
+  VirtualListChatHistoryModeGroupBinding,
+} from './virtualListChat'
 
-export { VirtualListChatDemoBinding } from './virtualListChat'
+export {
+  VirtualListChatDemoBinding,
+  VirtualListChatHistoryModeGroupBinding,
+} from './virtualListChat'
 
 const reorderColumns = (
   columns: ReadonlyArray<typeof DemoColumn.Type>,
@@ -708,6 +714,8 @@ const foldVirtualListOutMessage = UiDefinition.makeOutMessageFold(
   ActivityVirtualListBlock,
   {
     ObservedContainerScroll: makeNoopStep,
+    ApproachedLoadedStart: makeNoopStep,
+    EndedContainerScroll: makeNoopStep,
   },
 )
 
@@ -814,6 +822,7 @@ export const UiComposition = UiDefinition.makeComposition({
     VerticalRadioGroupDemoBinding,
     VerticalTabsDemoBinding,
     VirtualListChatDemoBindingWithOutMessagePolicy,
+    VirtualListChatHistoryModeGroupBinding,
     VirtualListDemoBinding,
     VirtualListVariableDemoBinding,
   ],

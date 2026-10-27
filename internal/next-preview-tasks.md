@@ -534,3 +534,13 @@ Example apps should meet realistic product requirements and handle reasonable fa
 ## Migration support
 
 Breaking beta changes may require a complete application migration. Provide accurate guides, agent prompts, and verified migrations. Codemods and an incremental compatibility bridge are outside this plan. Large diagnostic counts alone do not justify retaining the previous architecture; unclear contracts, incorrect diagnostics, and unnecessary wiring are actionable findings.
+
+## VirtualList preview integration
+
+- [x] Port #1633 from `9499d5264c51c842c3cb11a9d62eb16eb48d7a34` to the current completed generic Block and Composition APIs. Preserve continuous history scrolling, parent-owned fetching, final-page state, dynamic row anchors and accessibility.
+- [x] Implement #1722 after the history port: semantic table rows, ancestor/page scroll ownership and positioned rows. Verify coordinate conversion, offsets, programmatic targets and Mount cleanup together.
+- [x] Verify source and relocated emitted contracts, focused runtime/Scene tests, browser geometry and existing compiler ceilings. [Evidence and compatibility boundaries](virtual-list-preview-integration-20261027.md).
+
+Review the exact final commit independently before pushing or integrating it.
+
+- [x] Keep this work out of the preview PR description and next X post. Document the APIs normally. Publication remains held for approval.

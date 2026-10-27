@@ -139,7 +139,8 @@
     "watch": "tsc -b tsconfig.build.json --watch",
     "lint": "pnpm --filter @foldkit/oxlint-plugin build && oxlint src",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e:virtual-list": "tsc -p tsconfig.e2e.json --noEmit && playwright test --config playwright.virtual-list.config.ts"
   },
   "peerDependencies": {
     "effect": "4.0.0",
@@ -151,6 +152,7 @@
   "devDependencies": {
     "@effect/vitest": "4.0.0",
     "@foldkit/vite-plugin": "workspace:*",
+    "@playwright/test": "^1.63.0",
     "effect": "4.0.0",
     "foldkit": "workspace:*",
     "happy-dom": "^20.14.5",

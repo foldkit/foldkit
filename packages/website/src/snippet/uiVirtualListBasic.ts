@@ -43,6 +43,8 @@ const { makeNoopStep } = ActivityListExampleDefinition
 const foldActivityListOutMessage =
   ActivityListExampleDefinition.makeOutMessageFold(ActivityList, {
     ObservedContainerScroll: makeNoopStep,
+    ApproachedLoadedStart: makeNoopStep,
+    EndedContainerScroll: makeNoopStep,
   })
 
 const ActivityListBinding = ActivityListExampleDefinition.makeBinding(

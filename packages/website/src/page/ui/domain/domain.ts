@@ -43,9 +43,30 @@ export const VirtualListChatMessage = Schema.Struct({
   isExpanded: Schema.Boolean,
 })
 
-export const VirtualListChatStartProximity = defineTaggedUnion({
-  Away: {},
-  Near: {},
+export const VirtualListChatHistorySource = defineTaggedUnion({
+  Unbounded: {},
+  Finite: { remainingCount: Schema.Number },
+})
+
+export const VirtualListChatHistoryMode = Schema.Literals([
+  'Infinite',
+  'Finite',
+])
+
+export const historyModeForSource = (
+  source: typeof VirtualListChatHistorySource.Type,
+): typeof VirtualListChatHistoryMode.Type =>
+  VirtualListChatHistorySource.match<typeof VirtualListChatHistoryMode.Type>(
+    source,
+    {
+      Unbounded: () => 'Infinite',
+      Finite: () => 'Finite',
+    },
+  )
+
+export const VirtualListChatHistoryLoad = defineTaggedUnion({
+  Idle: {},
+  Loading: { trigger: Schema.Literals(['Scroll', 'Button']) },
 })
 
 export const Page = Schema.Literals([

@@ -238,6 +238,14 @@ jobs:
         if: steps.scope.outputs.website == 'true'
         run: pnpm --filter website exec playwright install --with-deps chromium
 
+      - name: Typecheck VirtualList browser fixture
+        if: steps.scope.outputs.website == 'true'
+        run: pnpm --filter @foldkit/ui exec tsc --noEmit -p tsconfig.e2e.json
+
+      - name: Check VirtualList browser layouts
+        if: steps.scope.outputs.website == 'true'
+        run: pnpm --filter @foldkit/ui test:e2e:virtual-list
+
       - name: Prerender website agent surface
         if: steps.scope.outputs.website == 'true'
         run: pnpm --filter website prerender

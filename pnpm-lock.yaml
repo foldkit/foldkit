@@ -2011,6 +2011,9 @@ importers:
       '@foldkit/vite-plugin':
         specifier: workspace:*
         version: link:../vite-plugin-foldkit
+      '@playwright/test':
+        specifier: ^1.63.0
+        version: 1.63.0
       effect:
         specifier: 4.0.0
         version: 4.0.0

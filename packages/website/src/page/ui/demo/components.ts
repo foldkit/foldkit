@@ -4,6 +4,7 @@ import type {
   DemoTab,
   ListboxItem,
   Plan,
+  VirtualListChatHistoryMode,
   VirtualListChatMessage,
 } from '../domain/domain'
 
@@ -30,3 +31,6 @@ import type { Activity } from './virtualListData'
 export const ActivityVirtualListBlock = VirtualList.create<Activity>()
 export const ChatVirtualListBlock =
   VirtualList.create<typeof VirtualListChatMessage.Type>()
+
+export const HistoryModeRadioGroupBlock =
+  RadioGroup.create<typeof VirtualListChatHistoryMode.Type>()
