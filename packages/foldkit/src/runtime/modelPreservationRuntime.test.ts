@@ -187,7 +187,7 @@ describe('Runtime Model preservation', () => {
 
       try {
         await vi.waitFor(() =>
-          expect(container.querySelectorAll('button')).toHaveLength(2),
+          expect(document.body.querySelectorAll('button')).toHaveLength(2),
         )
         expect(callbacks).toHaveLength(1)
 
@@ -200,9 +200,9 @@ describe('Runtime Model preservation', () => {
           false,
         )
 
-        container.querySelector('button')?.click()
+        document.body.querySelector('button')?.click()
         await vi.waitFor(() =>
-          expect(container.querySelector('p')?.textContent).toBe('1'),
+          expect(document.body.querySelector('p')?.textContent).toBe('1'),
         )
         const inspectedModel = Option.getOrThrow(Array.last(renderedModels))
         expect(Option.getOrThrow(inspectedModel.maybeInspectedModel)).toBe(
@@ -228,7 +228,7 @@ describe('Runtime Model preservation', () => {
           inspectedModel,
         )
 
-        container.querySelectorAll('button').item(1)?.click()
+        document.body.querySelectorAll('button').item(1)?.click()
         await vi.waitFor(() =>
           expect(
             Option.getOrThrow(
@@ -247,9 +247,9 @@ describe('Runtime Model preservation', () => {
           }),
           true,
         )
-        container.querySelector('button')?.click()
+        document.body.querySelector('button')?.click()
         await vi.waitFor(() =>
-          expect(container.querySelector('p')?.textContent).toBe('2'),
+          expect(document.body.querySelector('p')?.textContent).toBe('2'),
         )
         Effect.runSync(
           preservation.onDebounce(
