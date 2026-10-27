@@ -740,7 +740,9 @@ const pathParsingOrigin = 'https://foldkit.invalid'
 /**
  * Parses an origin-relative path and its query parameters, ignoring fragments.
  * The path must start with one `/`; absolute URLs and network paths starting
- * with `//` are rejected. URL normalization, including dot segments and
+ * with `//`, literal backslashes and ASCII control characters are rejected.
+ * Normalized paths must also retain the local origin and a single leading `/`.
+ * URL normalization, including dot segments and
  * percent-encoded delimiters, follows `Url.fromString` before route parsing.
  *
  * Returns the parsed Route when the parser consumes the entire path. Invalid
@@ -759,7 +761,11 @@ export const parsePathWithFallback =
   (path: string): A | B => {
     const fallback = () => notFoundRouteConstructor.make({ path })
 
-    if (!path.startsWith('/') || path.startsWith('//')) {
+    if (
+      !path.startsWith('/') ||
+      path.startsWith('//') ||
+      /[\\\u0000-\u001f\u007f]/.test(path)
+    ) {
       return fallback()
     }
 
@@ -767,7 +773,18 @@ export const parsePathWithFallback =
       fromString(`${pathParsingOrigin}${path}`),
       Option.match({
         onNone: fallback,
-        onSome: url => parseUrlWithFallback(parser, { make: fallback })(url),
+        onSome: url => {
+          if (
+            `${url.protocol}//${url.host}` !== pathParsingOrigin ||
+            Option.isSome(url.port) ||
+            !url.pathname.startsWith('/') ||
+            url.pathname.startsWith('//')
+          ) {
+            return fallback()
+          }
+
+          return parseUrlWithFallback(parser, { make: fallback })(url)
+        },
       }),
     )
   }

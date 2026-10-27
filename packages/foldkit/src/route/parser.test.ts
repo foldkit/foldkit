@@ -754,9 +754,45 @@ describe('parsePathWithFallback', () => {
     )
   })
 
+  it('preserves subsequent query delimiters before ignoring the fragment', () => {
+    expect(
+      parsePath('/search?query=allowed?rejected#ignored?fragment#suffix'),
+    ).toStrictEqual(ApplicationRoute.Search({ query: 'allowed?rejected' }))
+  })
+
+  it('validates the entire query value against its Schema', () => {
+    const StrictSearchRoute = defineRouteUnion({
+      Search: { query: Schema.Literals(['allowed']) },
+      NotFound: { path: Schema.String },
+    })
+    const strictSearchRouter = pipe(
+      literal('search'),
+      query(Schema.Struct({ query: Schema.Literals(['allowed']) })),
+      mapTo(StrictSearchRoute.Search),
+    )
+    const parseSearch = parsePathWithFallback(
+      strictSearchRouter,
+      StrictSearchRoute.NotFound,
+    )
+    const path = '/search?query=allowed?rejected#ignored'
+
+    expect(parseSearch('/search?query=allowed')).toStrictEqual(
+      StrictSearchRoute.Search({ query: 'allowed' }),
+    )
+    expect(parseSearch(path)).toStrictEqual(
+      StrictSearchRoute.NotFound({ path }),
+    )
+  })
+
   it('preserves encoded path delimiters and normalizes dot segments', () => {
     expect(parsePath('/people/ada%2Flovelace')).toStrictEqual(
       ApplicationRoute.Person({ personId: 'ada%2Flovelace' }),
+    )
+    expect(parsePath('/people/ada%5Clovelace')).toStrictEqual(
+      ApplicationRoute.Person({ personId: 'ada%5Clovelace' }),
+    )
+    expect(parsePath('/people/ada%09lovelace')).toStrictEqual(
+      ApplicationRoute.Person({ personId: 'ada%09lovelace' }),
     )
     expect(parsePath('/people/grace/../ada')).toStrictEqual(
       ApplicationRoute.Person({ personId: 'ada' }),
@@ -786,6 +822,22 @@ describe('parsePathWithFallback', () => {
     '/unknown/../missing?query=value#section',
     '/search',
   ])('keeps the original input when falling back for %s', path => {
+    expect(parsePath(path)).toStrictEqual(ApplicationRoute.NotFound({ path }))
+  })
+
+  it.each([
+    '/\\people/ada',
+    '/people\\ada',
+    '/\t/people/ada',
+    '/\r/people/ada',
+    '/\n/people/ada',
+    '/people/\tada',
+    '/people/ada\n',
+    '/people/ada\u0000',
+    '/people/ada\u007f',
+    '/safe/..//people/ada',
+    '/..//people/ada',
+  ])('rejects noncanonical local paths without changing %j', path => {
     expect(parsePath(path)).toStrictEqual(ApplicationRoute.NotFound({ path }))
   })
 })
