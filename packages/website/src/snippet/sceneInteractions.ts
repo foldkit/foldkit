@@ -13,6 +13,7 @@ import {
   role,
   submit,
   type,
+  unhover,
 } from 'foldkit/scene'
 
 click(role('button', { name: 'Log out' }))
@@ -21,6 +22,7 @@ contextMenu(role('row', { name: 'Quarterly report' }))
 pointerDown(role('button', { name: 'Toggle' }))
 pointerUp(role('button', { name: 'Toggle' }))
 hover(role('menuitem', { name: 'File' }))
+unhover(role('menuitem', { name: 'File' }))
 focus(label('Email'))
 blur(label('Email'))
 type(label('Email'), 'alice@example.com')

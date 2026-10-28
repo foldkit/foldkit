@@ -2650,15 +2650,36 @@ describe('scene with extra interactions', () => {
     )
   })
 
-  test('hover fires mouseenter handler', () => {
+  test('hover fires the mouseenter handler and unhover fires the mouseleave handler', () => {
     Scene.scene(
       { update: interactionsUpdate, view: interactionsView },
       Scene.given(interactionsInitialModel),
       Scene.hover(Scene.label('action')),
-      Scene.tap(({ html }) => {
-        expect(html).toBeDefined()
-      }),
+      Scene.expect(Scene.label('action')).toContainText('hovered=true'),
+      Scene.unhover(Scene.label('action')),
+      Scene.expect(Scene.label('action')).toContainText('hovered=false'),
     )
+  })
+
+  test('hover falls back to mouseover and unhover falls back to mouseout', () => {
+    Scene.scene(
+      { update: interactionsUpdate, view: interactionsView },
+      Scene.given(interactionsInitialModel),
+      Scene.hover(Scene.label('badge')),
+      Scene.expect(Scene.label('badge')).toContainText('hovered=true'),
+      Scene.unhover(Scene.label('badge')),
+      Scene.expect(Scene.label('badge')).toContainText('hovered=false'),
+    )
+  })
+
+  test('unhover reports the missing OnMouseLeave attribute when no mouseleave or mouseout handler exists', () => {
+    expect(() =>
+      Scene.scene(
+        { update: interactionsUpdate, view: interactionsView },
+        Scene.given(interactionsInitialModel),
+        Scene.unhover(Scene.label('name')),
+      ),
+    ).toThrow(/no mouseleave handler[\s\S]*OnMouseLeave/)
   })
 
   test('focus fires focus handler; blur fires blur handler', () => {
