@@ -134,6 +134,19 @@ Event attributes return Messages instead of mutating state. Pass a Message direc
 
 Clicks allow the browser default and bubble to ancestors unless you say otherwise. Pass a second argument when the view owns either part of that browser contract. For example, an expand button inside a clickable tree row can use `{ defaultAction: 'Prevent', propagation: 'Stop' }`. The button dispatches its expansion Message without also dispatching the row's selection Message. The controls are independent, so use either one or both.
 
+### Context Menus
+
+`h.OnContextMenu` prevents the browser's context menu and dispatches a Message instead. Pass a function when the Message depends on where the user right-clicked. Foldkit calls it with a `PointerPosition` and the event's `KeyboardModifiers`:
+
+- `clientX` and `clientY` are the pointer's viewport coordinates, for opening a menu at the pointer.
+- `elementX` and `elementY` measure the pointer from the top-left corner of the element that carries `h.OnContextMenu`, even when the right-click lands on a descendant. `elementWidth` and `elementHeight` give that element's size.
+
+In the following example, right-clicking a task bar that spans several weeks dispatches a Message naming the week under the pointer and where to open the menu:
+
+::Snippet{name="eventHandlingContextMenu" label="Context menu at the pointer"}
+
+A menu opened from the keyboard has no pointer, so the browser chooses the coordinates and they may fall outside the element; clamp values derived from them, as the example clamps the week.
+
 ## Complex Handlers
 
 ### Optional Messages
