@@ -91,30 +91,38 @@ const subscriptions = Subscription.aggregate(
 )
 
 // Inside your view function, spread draggable() onto items and droppable()
-// onto containers:
+// onto containers. Render dragInstructions() once, and set
+// hasDragInstructions so each item's aria-describedby points at it:
 const view = (model: Model, h: HtmlBuilder<Message>) =>
-  h.ul(
+  h.div(
+    [],
     [
-      ...DragAndDrop.droppable('list', 'Sortable items'),
-      h.Class('flex flex-col gap-2'),
-    ],
-    model.items.map((item, index) =>
-      h.li(
+      DragAndDrop.dragInstructions(model.dragAndDrop),
+      h.ul(
         [
-          ...DragAndDrop.draggable(
-            {
-              model: model.dragAndDrop,
-              toParentMessage: message =>
-                Message.GotDragAndDropMessage({ message }),
-              itemId: item.id,
-              containerId: 'list',
-              index,
-            },
-            h,
-          ),
-          h.Class('p-3 rounded-lg border cursor-grab'),
+          ...DragAndDrop.droppable('list', 'Sortable items'),
+          h.Class('flex flex-col gap-2'),
         ],
-        [h.span([], [item.label])],
+        model.items.map((item, index) =>
+          h.li(
+            [
+              ...DragAndDrop.draggable(
+                {
+                  model: model.dragAndDrop,
+                  toParentMessage: message =>
+                    Message.GotDragAndDropMessage({ message }),
+                  itemId: item.id,
+                  containerId: 'list',
+                  index,
+                  hasDragInstructions: true,
+                },
+                h,
+              ),
+              h.Class('p-3 rounded-lg border cursor-grab'),
+            ],
+            [h.span([], [item.label])],
+          ),
+        ),
       ),
-    ),
+    ],
   )

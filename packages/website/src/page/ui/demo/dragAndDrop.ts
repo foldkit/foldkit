@@ -62,6 +62,7 @@ const cardView = (
           itemId: card.id,
           containerId,
           index,
+          hasDragInstructions: true,
         },
         h,
       ),
@@ -225,6 +226,7 @@ export const demo = (
           ),
         ),
         ghostView(model.dragAndDropDemoColumns, model.dragAndDropDemo),
+        DragAndDrop.dragInstructions(model.dragAndDropDemo),
         h.div(
           [h.Class('sr-only'), h.AriaLive('assertive')],
           [model.dragAndDropDemoAnnouncement],
