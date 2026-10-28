@@ -605,6 +605,8 @@ A raw `h.Attribute` and a typed builder cannot name the same attribute on one el
 
 A typed reflected builder is client-only when the HTML element's native interface does not own that property. For example: spreading `h.Type('button')` onto a `div` creates an expando, so server rendering omits it instead of creating an attribute that a fresh client render would not. Use the matching element when the value must appear in markup, or use an intentional raw `h.Attribute`.
 
+`h.Indeterminate` sets a checkbox's `indeterminate` property, which displays it as mixed. HTML has no attribute for that state, so server rendering omits it and the served checkbox appears checked or unchecked until hydration applies the property.
+
 A `CustomElement.define` property named `value` cannot control a native `select` in a server-rendered view. A fresh client assigns the property before the options exist, while hydration assigns it after the parser has created them. The two writes can select different options. Property factories belong on the Custom Element they declare. Use `h.Value` so a native select has one controlled selection.
 
 ### Custom Elements
