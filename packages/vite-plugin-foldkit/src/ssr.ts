@@ -1,14 +1,16 @@
-import { Array, Effect, Predicate } from 'effect'
+import { Array, Effect, Latch, Predicate } from 'effect'
 import * as Server from 'foldkit/experimental/server'
+import MagicString from 'magic-string'
 import { readFile } from 'node:fs/promises'
 import type { ServerResponse } from 'node:http'
 import { resolve } from 'node:path'
 import { Readable } from 'node:stream'
 import type {
   Connect,
-  DevEnvironment,
+  Environment,
   Plugin,
   ProxyOptions,
+  RunnableDevEnvironment,
   ViteDevServer,
 } from 'vite'
 
@@ -70,8 +72,77 @@ export type FoldkitSsrOptions = Readonly<{
 // copy, so it can call a runnable environment not runnable. The lazy `runner`
 // getter is the shape every copy shares, and `in` reads its descriptor without
 // invoking it.
-const isRunnable = (environment: DevEnvironment): boolean =>
-  'runner' in environment
+const isRunnable = (
+  environment: Environment,
+): environment is RunnableDevEnvironment => 'runner' in environment
+
+const isHotServerEnvironment = (
+  environment: Environment,
+): environment is RunnableDevEnvironment =>
+  environment.name === 'ssr' &&
+  environment.config.server.hmr !== false &&
+  isRunnable(environment)
+
+const SERVER_UPDATE_SETTLED_EVENT = 'foldkit:server-update-settled'
+const SERVER_UPDATE_SETTLE_TIMEOUT_MS = 1_000
+
+// NOTE: The module runner reruns the whole server module graph on every edit
+// unless the update reaches a module that accepts it. Accepting in the server
+// entry limits an edit to the modules between the edited file and the entry,
+// and makes Vite run the entry's `import.meta.hot.dispose` callback before it
+// evaluates the replacement. The entry also reports each update payload the
+// runner finishes handling, so the dev server can hold requests until then.
+const SERVER_ENTRY_HOT_SOURCE = `if (import.meta.hot) {
+  import.meta.hot.accept()
+  const reportSettledUpdate = () => {
+    import.meta.hot.send(${JSON.stringify(SERVER_UPDATE_SETTLED_EVENT)})
+  }
+  import.meta.hot.on('vite:afterUpdate', reportSettledUpdate)
+  import.meta.hot.on('vite:beforeFullReload', reportSettledUpdate)
+  import.meta.hot.on('vite:error', reportSettledUpdate)
+}
+`
+
+type ServerUpdateGate = Readonly<{
+  beginUpdate: () => void
+  settleUpdate: () => void
+  awaitSettledUpdates: Effect.Effect<void>
+}>
+
+// NOTE: Vite invalidates the edited modules before it sends the update to the
+// module runner. A request that imports the server entry in between evaluates
+// a new copy, whose `dispose` callback replaces the old copy's, so the old copy
+// is never released. The gate counts the edits to modules in the `ssr` module
+// graph and holds requests until the entry reports each one settled. The
+// timeout releases them when an edit never reaches the runner.
+const makeServerUpdateGate = (): ServerUpdateGate => {
+  const settled = Latch.makeUnsafe(true)
+  let pendingUpdateCount = 0
+  let settleTimeout: ReturnType<typeof setTimeout> | undefined
+
+  const release = (): void => {
+    pendingUpdateCount = 0
+    clearTimeout(settleTimeout)
+    settled.openUnsafe()
+  }
+
+  const beginUpdate = (): void => {
+    pendingUpdateCount += 1
+    settled.closeUnsafe()
+    clearTimeout(settleTimeout)
+    settleTimeout = setTimeout(release, SERVER_UPDATE_SETTLE_TIMEOUT_MS).unref()
+  }
+
+  const settleUpdate = (): void => {
+    pendingUpdateCount = Math.max(0, pendingUpdateCount - 1)
+
+    if (pendingUpdateCount === 0) {
+      release()
+    }
+  }
+
+  return { beginUpdate, settleUpdate, awaitSettledUpdates: settled.await }
+}
 
 const isEntryModule = (
   loadedModule: unknown,
@@ -268,6 +339,8 @@ const renderDecision = (
 
 const renderRequest = (
   server: ViteDevServer,
+  ssrEnvironment: RunnableDevEnvironment,
+  serverUpdates: ServerUpdateGate,
   options: FoldkitSsrOptions,
   nodeRequest: Connect.IncomingMessage,
   requestUrl: string,
@@ -276,8 +349,9 @@ const renderRequest = (
     const { pathname, search } = new URL(requestUrl)
     const route = `${pathname}${search}`
 
+    yield* serverUpdates.awaitSettledUpdates
     const loadedModule = yield* Effect.promise(() =>
-      server.ssrLoadModule(options.serverEntry),
+      ssrEnvironment.runner.import(options.serverEntry),
     )
 
     if (!isEntryModule(loadedModule)) {
@@ -724,6 +798,8 @@ const sendWebResponse = async (
 const renderMiddleware =
   (
     server: ViteDevServer,
+    ssrEnvironment: RunnableDevEnvironment,
+    serverUpdates: ServerUpdateGate,
     options: FoldkitSsrOptions,
     requestUrls: WeakMap<Connect.IncomingMessage, string>,
     stateByRequest: WeakMap<Connect.IncomingMessage, CorsResponseState>,
@@ -783,33 +859,44 @@ const renderMiddleware =
     }
     const isNegotiated = decision === 'RenderNegotiated'
     void Effect.runPromise(
-      renderRequest(server, options, nodeRequest, requestUrl),
+      renderRequest(
+        server,
+        ssrEnvironment,
+        serverUpdates,
+        options,
+        nodeRequest,
+        requestUrl,
+      ),
     )
       .then(response =>
         sendWebResponse(response, nodeRequest, nodeResponse, isNegotiated),
       )
-      .catch((error: unknown) => {
-        if (error instanceof Error) {
-          server.ssrFixStacktrace(error)
-        }
-        next(error)
-      })
+      // NOTE: The runner maps error stacks from the modules it evaluates to
+      // their source. `server.ssrFixStacktrace` would map them a second time
+      // and can point the error overlay at the wrong lines.
+      .catch(next)
   }
 
 /**
  * Serves server-rendered pages from the Vite dev server.
  *
  * Vite retains ownership of configured proxies, source modules, HMR, and
- * assets. Requests that fall through load the server entry through Vite's SSR
- * module loader, call its `renderPage` with a Web `Request`, and send the
- * resulting Web `Response`. Vite's host validation applies before either
- * owner. Foldkit then validates and normalizes the request target before Vite
- * or the server entry can resolve it. Vite's CORS option applies only to
+ * assets. Requests that fall through load the server entry through the `ssr`
+ * environment's module runner, call its `renderPage` with a Web `Request`, and
+ * send the resulting Web `Response`. Vite's host validation applies before
+ * either owner. Foldkit then validates and normalizes the request target before
+ * Vite or the server entry can resolve it. Vite's CORS option applies only to
  * Vite-owned responses, while the server entry owns CORS for application
- * responses. Server entry edits take effect without a restart.
+ * responses. Server entry edits take effect without a restart. The server
+ * entry accepts its own updates, so an edit reruns only the modules between the
+ * edited file and the entry. Unless `server.hmr` is `false`, an
+ * `import.meta.hot.dispose` callback in the entry runs before a hot update
+ * replaces it.
  */
 export const foldkitSsr = (options: FoldkitSsrOptions): Plugin => {
   let isDevelopmentHost = false
+  const entryIds = new WeakMap<Environment, string>()
+  const serverUpdates = makeServerUpdateGate()
 
   return {
     name: 'foldkit-ssr',
@@ -871,6 +958,83 @@ export const foldkitSsr = (options: FoldkitSsrOptions): Plugin => {
             }),
       }
     },
+    perEnvironmentWatchChangeDuringDev: true,
+    watchChange(id, change) {
+      if (
+        !isDevelopmentHost ||
+        change.event !== 'update' ||
+        !isHotServerEnvironment(this.environment)
+      ) {
+        return
+      }
+
+      const serverModules = this.environment.moduleGraph.getModulesByFile(id)
+
+      if (serverModules !== undefined && serverModules.size > 0) {
+        serverUpdates.beginUpdate()
+      }
+    },
+    // NOTE: Vite invalidates the server entry when a module it imports
+    // dynamically changes, even when the runner has not loaded that module,
+    // but sends the runner no update for it. The next request would then
+    // evaluate a new copy without disposing the old one, so the update goes to
+    // the entry instead.
+    hotUpdate({ type, file, modules }) {
+      if (
+        !isDevelopmentHost ||
+        type !== 'update' ||
+        !isHotServerEnvironment(this.environment) ||
+        Array.isArrayEmpty(modules)
+      ) {
+        return undefined
+      }
+
+      const entryId = entryIds.get(this.environment)
+      const evaluatedModules =
+        this.environment.runner.evaluatedModules.getModulesByFile(file)
+
+      if (
+        entryId === undefined ||
+        (evaluatedModules !== undefined && evaluatedModules.size > 0)
+      ) {
+        return undefined
+      }
+
+      const entryModule = this.environment.moduleGraph.getModuleById(entryId)
+
+      return entryModule === undefined ? undefined : [entryModule]
+    },
+    async transform(code, id) {
+      if (
+        !isDevelopmentHost ||
+        this.environment.name !== 'ssr' ||
+        !isRunnable(this.environment)
+      ) {
+        return undefined
+      }
+
+      const entryId =
+        entryIds.get(this.environment) ??
+        (await this.resolve(options.serverEntry).catch(() => undefined))?.id
+
+      if (entryId === undefined) {
+        return undefined
+      }
+
+      entryIds.set(this.environment, entryId)
+
+      if (entryId !== id) {
+        return undefined
+      }
+
+      const transformed = new MagicString(code)
+      transformed.prepend(SERVER_ENTRY_HOT_SOURCE)
+
+      return {
+        code: transformed.toString(),
+        map: transformed.generateMap({ hires: 'boundary', source: id }),
+      }
+    },
     configureServer: server => {
       // Rendering here loads the server entry through the `ssr` environment's
       // module runner, which only a runnable environment has. A host plugin
@@ -881,7 +1045,9 @@ export const foldkitSsr = (options: FoldkitSsrOptions): Plugin => {
       // them here instead would run the application in Node, without the
       // bindings the deployed entry holds, while the deployment it is standing
       // in for renders in workerd.
-      if (!isRunnable(server.environments.ssr)) {
+      const ssrEnvironment = server.environments.ssr
+
+      if (!isRunnable(ssrEnvironment)) {
         if (options.quietStandDown !== true) {
           server.config.logger.warn(
             '[foldkit] the "ssr" environment is not runnable, so another plugin owns' +
@@ -897,8 +1063,15 @@ export const foldkitSsr = (options: FoldkitSsrOptions): Plugin => {
         Connect.IncomingMessage,
         CorsResponseState
       >()
+      ssrEnvironment.hot.on(
+        SERVER_UPDATE_SETTLED_EVENT,
+        serverUpdates.settleUpdate,
+      )
+
       const render = renderMiddleware(
         server,
+        ssrEnvironment,
+        serverUpdates,
         options,
         requestUrls,
         stateByRequest,

@@ -23,7 +23,7 @@ import { createServer as createNetServer } from 'node:net'
 import { networkInterfaces } from 'node:os'
 import { join, resolve } from 'node:path'
 import {
-  type HmrContext,
+  type HotUpdateOptions,
   type MinimalPluginContextWithoutEnvironment,
   type Plugin,
   type ViteDevServer,
@@ -335,13 +335,8 @@ describe('DevTools MCP relay', () => {
       const plugin = replacedServer.config.plugins.find(
         candidate => candidate.name === 'foldkit',
       )
-      if (
-        plugin === undefined ||
-        !Predicate.isFunction(plugin.handleHotUpdate)
-      ) {
-        throw new Error(
-          'expected the foldkit plugin with a handleHotUpdate hook',
-        )
+      if (plugin === undefined || !Predicate.isFunction(plugin.hotUpdate)) {
+        throw new Error('expected the foldkit plugin with a hotUpdate hook')
       }
 
       await server.restart()
@@ -355,14 +350,22 @@ describe('DevTools MCP relay', () => {
       })
       expect(await requestModel(client, 'marker')).toBeUndefined()
 
-      const hotUpdate: HmrContext = {
+      const hotUpdate: HotUpdateOptions = {
+        type: 'update',
         file: join(PACKAGE_ROOT, 'src', 'index.ts'),
         timestamp: Date.now(),
-        modules: [await server.moduleGraph.ensureEntryFromUrl('/src/index.ts')],
+        modules: [
+          await server.environments.client.moduleGraph.ensureEntryFromUrl(
+            '/src/index.ts',
+          ),
+        ],
         read: () => '',
         server: replacedServer,
       }
-      plugin.handleHotUpdate.call(pluginContext, hotUpdate)
+      await plugin.hotUpdate.call(
+        { ...pluginContext, environment: replacedServer.environments.client },
+        hotUpdate,
+      )
 
       expect(await requestModel(client, 'app')).toBeUndefined()
     },
