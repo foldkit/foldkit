@@ -1,6 +1,6 @@
 import { Array, Effect, Fiber, Option, Stream } from 'effect'
 import * as Story from 'foldkit/story'
-import { expect } from 'vitest'
+import { expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
@@ -53,6 +53,17 @@ const movedPointer = (
   })
 
 const movedPointerAboveThreshold = movedPointer()
+
+const noModifiers = {
+  shiftKey: false,
+  ctrlKey: false,
+  altKey: false,
+  metaKey: false,
+}
+
+const altHeld = { ...noModifiers, altKey: true }
+
+const releasedPointer = Message.ReleasedPointer({ modifiers: noModifiers })
 
 const activatedKeyboardDrag = Message.ActivatedKeyboardDrag({
   itemId: 'item-1',
@@ -146,7 +157,7 @@ describe('DragAndDrop', () => {
         update,
         Story.given(defaultInit()),
         Story.message(pressedDraggable),
-        Story.message(Message.ReleasedPointer()),
+        Story.message(releasedPointer),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Idle')
         }),
@@ -188,7 +199,7 @@ describe('DragAndDrop', () => {
         Story.given(defaultInit()),
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
-        Story.message(Message.ReleasedPointer()),
+        Story.message(releasedPointer),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Idle')
         }),
@@ -225,7 +236,7 @@ describe('DragAndDrop', () => {
       Story.story(
         update,
         Story.given(originalModel),
-        Story.message(Message.ReleasedPointer()),
+        Story.message(releasedPointer),
         Story.model(model => {
           expect(model).toBe(originalModel)
         }),
@@ -254,7 +265,7 @@ describe('DragAndDrop', () => {
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
         Story.message(movedPointer({ maybeDropTarget: dropTarget })),
-        Story.message(Message.ReleasedPointer()),
+        Story.message(Message.ReleasedPointer({ modifiers: altHeld })),
         Story.expectOutMessage(
           OutMessage.Reordered({
             itemId: 'item-1',
@@ -262,6 +273,7 @@ describe('DragAndDrop', () => {
             fromIndex: 0,
             toContainerId: 'list-1',
             toIndex: 2,
+            modifiers: altHeld,
           }),
         ),
       )
@@ -273,7 +285,7 @@ describe('DragAndDrop', () => {
         Story.given(defaultInit()),
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
-        Story.message(Message.ReleasedPointer()),
+        Story.message(releasedPointer),
         Story.expectOutMessage(OutMessage.Cancelled()),
       )
     })
@@ -494,6 +506,70 @@ describe('DragAndDrop', () => {
     })
   })
 
+  describe('modifier keys', () => {
+    const firstMessageAfter = async (
+      stream: Stream.Stream<Message>,
+      event: Event,
+    ): Promise<Option.Option<Message>> => {
+      const addEventListener = vi.spyOn(document, 'addEventListener')
+      const firstMessage = Effect.runPromise(Stream.runHead(stream))
+
+      try {
+        await vi.waitFor(() => {
+          expect(addEventListener.mock.calls.map(([type]) => type)).toContain(
+            event.type,
+          )
+        })
+      } finally {
+        addEventListener.mockRestore()
+      }
+
+      document.dispatchEvent(event)
+
+      return firstMessage
+    }
+
+    it('reads modifier keys from the pointerup that ends a pointer drag', async () => {
+      const pointerDrag = update(defaultInit(), pressedDraggable)
+      const stream = subscriptions.documentPointer.dependenciesToStream(
+        subscriptions.documentPointer.modelToDependencies(pointerDrag.model),
+      )
+
+      const message = await firstMessageAfter(
+        stream,
+        new PointerEvent('pointerup', { altKey: true, metaKey: true }),
+      )
+
+      expect(message).toEqual(
+        Option.some(
+          Message.ReleasedPointer({
+            modifiers: { ...noModifiers, altKey: true, metaKey: true },
+          }),
+        ),
+      )
+    })
+
+    it('reads modifier keys from the key that confirms a keyboard drop', async () => {
+      const keyboardDrag = update(defaultInit(), activatedKeyboardDrag)
+      const stream = subscriptions.documentKeyboard.dependenciesToStream(
+        subscriptions.documentKeyboard.modelToDependencies(keyboardDrag.model),
+      )
+
+      const message = await firstMessageAfter(
+        stream,
+        new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true }),
+      )
+
+      expect(message).toEqual(
+        Option.some(
+          Message.ConfirmedKeyboardDrop({
+            modifiers: { ...noModifiers, ctrlKey: true },
+          }),
+        ),
+      )
+    })
+  })
+
   describe('keyboard drag', () => {
     it('prevents handled document keys before the native dispatch returns', async () => {
       const keyboardDrag = update(defaultInit(), activatedKeyboardDrag)
@@ -613,7 +689,7 @@ describe('DragAndDrop', () => {
           FocusItem({ itemId: 'item-1' }),
           Message.CompletedFocusItem(),
         ),
-        Story.message(Message.ConfirmedKeyboardDrop()),
+        Story.message(Message.ConfirmedKeyboardDrop({ modifiers: altHeld })),
         Story.model(model => {
           expect(model.dragState._tag).toBe('Idle')
         }),
@@ -624,6 +700,7 @@ describe('DragAndDrop', () => {
             fromIndex: 0,
             toContainerId: 'list-2',
             toIndex: 1,
+            modifiers: altHeld,
           }),
         ),
         Story.Command.resolve(FocusItem, Message.CompletedFocusItem()),
@@ -684,7 +761,9 @@ describe('DragAndDrop', () => {
         update,
         Story.given(defaultInit()),
         Story.message(activatedKeyboardDrag),
-        Story.message(Message.ConfirmedKeyboardDrop()),
+        Story.message(
+          Message.ConfirmedKeyboardDrop({ modifiers: noModifiers }),
+        ),
         Story.expectOutMessage(
           OutMessage.Reordered({
             itemId: 'item-1',
@@ -692,6 +771,7 @@ describe('DragAndDrop', () => {
             fromIndex: 0,
             toContainerId: 'list-1',
             toIndex: 0,
+            modifiers: noModifiers,
           }),
         ),
         DragAndDropTest.settleFocus({ itemId: 'item-1' }),
