@@ -1,22 +1,59 @@
-import { Duration, Effect, Layer, Match, Number, Option, Schema } from 'effect'
+import {
+  Array,
+  Duration,
+  Effect,
+  Equal,
+  Layer,
+  Match,
+  Number,
+  Option,
+  Schema,
+} from 'effect'
 import * as Block from 'foldkit/block'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
+import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
 import { InMessage, Message, OutMessage } from './message.js'
 
 // MODEL
 
-const FocusLocation = Schema.Literals(['Trigger', 'Panel'])
-type FocusLocation = typeof FocusLocation.Type
+/** Schema for the trigger an interaction comes from: the unkeyed `trigger` bundle, or a `keyedTrigger(key)` bundle. */
+export const Trigger = defineTaggedUnion({
+  Unkeyed: {},
+  Keyed: { key: Schema.String },
+})
+/** The trigger an interaction comes from. */
+export type Trigger = typeof Trigger.Type
 
-/** Schema for HoverIntent state. It tracks pointer and focus engagement over a trigger and its panel, visibility, delay timers, and Escape dismissal. */
+/** Schema for a trigger that has the pointer or focus. `isDismissed` records that Escape dismissed the panel for it. */
+export const TriggerEngagement = Schema.Struct({
+  trigger: Trigger,
+  isDismissed: Schema.Boolean,
+})
+/** A trigger that has the pointer or focus. */
+export type TriggerEngagement = typeof TriggerEngagement.Type
+
+/** Schema for the panel having the pointer or focus. `isDismissed` records that the panel was engaged while Escape dismissed it for the active trigger. */
+export const PanelEngagement = Schema.Struct({ isDismissed: Schema.Boolean })
+/** The panel having the pointer or focus. */
+export type PanelEngagement = typeof PanelEngagement.Type
+
+/** Schema for the element that holds focus: one trigger, or the panel, each recorded with its engagement fields. */
+export const FocusLocation = defineTaggedUnion({
+  Trigger: TriggerEngagement.fields,
+  Panel: PanelEngagement.fields,
+})
+/** The element that holds focus. */
+export type FocusLocation = typeof FocusLocation.Type
+
+/** Schema for HoverIntent state. It tracks which trigger the panel belongs to, which trigger and whether the panel has the pointer, where focus is, visibility, and delay timers. Escape dismissal is recorded on those pointer and focus records, so it ends once the dismissed trigger, and the panel while it belongs to that trigger, have lost both the pointer and focus. `activeTrigger` keeps the trigger that most recently took the panel after the panel closes. */
 export const Model = Schema.Struct({
   isOpen: Schema.Boolean,
-  isTriggerHovered: Schema.Boolean,
-  isPanelHovered: Schema.Boolean,
+  activeTrigger: Trigger,
+  maybeHoveredTrigger: Schema.Option(TriggerEngagement),
+  maybeHoveredPanel: Schema.Option(PanelEngagement),
   maybeFocusLocation: Schema.Option(FocusLocation),
-  isDismissed: Schema.Boolean,
   openDelay: Schema.DurationFromMillis,
   closeDelay: Schema.DurationFromMillis,
   pendingOpenVersion: Schema.Number,
@@ -36,6 +73,9 @@ export const HoverIntentBlock = Block.make('HoverIntent', {
   InMessage,
   inMessageOutputs: {
     RequestedClose: {
+      outMessage: OutMessage.Closed,
+    },
+    InformedOfRemovedKeyedTrigger: {
       outMessage: OutMessage.Closed,
     },
   },
@@ -60,10 +100,10 @@ export const init = HoverIntentComposition.makeInit(
   (config: InitConfig = {}) => ({
     model: {
       isOpen: false,
-      isTriggerHovered: false,
-      isPanelHovered: false,
+      activeTrigger: Trigger.Unkeyed(),
+      maybeHoveredTrigger: Option.none(),
+      maybeHoveredPanel: Option.none(),
       maybeFocusLocation: Option.none(),
-      isDismissed: false,
       openDelay:
         config.openDelay === undefined
           ? DEFAULT_OPEN_DELAY
@@ -116,11 +156,97 @@ export const EffectsLayer = Layer.mergeAll(
   WaitBeforeClosing.layer,
 )
 
-const isPointerOver = (model: Model): boolean =>
-  model.isTriggerHovered || model.isPanelHovered
+const toMaybeFocusedTrigger = (
+  model: Model,
+): Option.Option<TriggerEngagement> =>
+  Option.flatMap(
+    model.maybeFocusLocation,
+    FocusLocation.match<Option.Option<TriggerEngagement>>({
+      Trigger: ({ trigger, isDismissed }) =>
+        Option.some({ trigger, isDismissed }),
+      Panel: () => Option.none(),
+    }),
+  )
 
-const isEngaged = (model: Model): boolean =>
-  isPointerOver(model) || Option.isSome(model.maybeFocusLocation)
+const toMaybeFocusedPanel = (model: Model): Option.Option<PanelEngagement> =>
+  Option.flatMap(
+    model.maybeFocusLocation,
+    FocusLocation.match<Option.Option<PanelEngagement>>({
+      Trigger: () => Option.none(),
+      Panel: ({ isDismissed }) => Option.some({ isDismissed }),
+    }),
+  )
+
+const toTriggerEngagements = (model: Model): ReadonlyArray<TriggerEngagement> =>
+  Array.getSomes([model.maybeHoveredTrigger, toMaybeFocusedTrigger(model)])
+
+const toPanelEngagements = (model: Model): ReadonlyArray<PanelEngagement> =>
+  Array.getSomes([model.maybeHoveredPanel, toMaybeFocusedPanel(model)])
+
+const isEngagementOf =
+  (trigger: Trigger) =>
+  (engagement: TriggerEngagement): boolean =>
+    Equal.equals(engagement.trigger, trigger)
+
+const isTriggerHovered = (model: Model, trigger: Trigger): boolean =>
+  Option.exists(model.maybeHoveredTrigger, isEngagementOf(trigger))
+
+const isTriggerFocused = (model: Model, trigger: Trigger): boolean =>
+  Option.exists(toMaybeFocusedTrigger(model), isEngagementOf(trigger))
+
+const isTriggerEngaged = (model: Model, trigger: Trigger): boolean =>
+  isTriggerHovered(model, trigger) || isTriggerFocused(model, trigger)
+
+const isPanelEngaged = (model: Model): boolean =>
+  Array.isReadonlyArrayNonEmpty(toPanelEngagements(model))
+
+const isPanelDismissed = (model: Model): boolean =>
+  Array.some(toPanelEngagements(model), ({ isDismissed }) => isDismissed)
+
+const isTriggerDismissed = (model: Model, trigger: Trigger): boolean =>
+  Array.some(
+    toTriggerEngagements(model),
+    engagement => engagement.isDismissed && isEngagementOf(trigger)(engagement),
+  ) ||
+  (Equal.equals(trigger, model.activeTrigger) && isPanelDismissed(model))
+
+const isActiveTriggerDismissed = (model: Model): boolean =>
+  isTriggerDismissed(model, model.activeTrigger)
+
+const isActiveTriggerOrPanelEngaged = (model: Model): boolean =>
+  isTriggerEngaged(model, model.activeTrigger) || isPanelEngaged(model)
+
+const toMaybeHandBackTrigger = (model: Model): Option.Option<Trigger> =>
+  Option.map(
+    Array.findFirst(
+      toTriggerEngagements(model),
+      ({ trigger }) => !isTriggerDismissed(model, trigger),
+    ),
+    ({ trigger }) => trigger,
+  )
+
+const activateTrigger = (model: Model, trigger: Trigger): Model => {
+  if (Equal.equals(model.activeTrigger, trigger)) {
+    return model
+  } else {
+    return modifyFields(model, {
+      activeTrigger: () => trigger,
+      maybeHoveredPanel: Option.map(() => ({ isDismissed: false })),
+      maybeFocusLocation: Option.map(
+        FocusLocation.match<FocusLocation>({
+          Trigger: focusedTrigger => focusedTrigger,
+          Panel: () => FocusLocation.Panel({ isDismissed: false }),
+        }),
+      ),
+    })
+  }
+}
+
+const releasePanel = (model: Model): Model =>
+  modifyFields(model, {
+    maybeHoveredPanel: () => Option.none(),
+    maybeFocusLocation: Option.filter(FocusLocation.guards.Trigger),
+  })
 
 const open = (model: Model) => {
   if (model.isOpen) {
@@ -144,6 +270,14 @@ const finishClosing = (model: Model) => {
   }
 }
 
+const handBackOrClose = (model: Model) =>
+  Option.match(toMaybeHandBackTrigger(model), {
+    onNone: () => finishClosing(releasePanel(model)),
+    onSome: handBackTrigger => ({
+      model: activateTrigger(model, handBackTrigger),
+    }),
+  })
+
 const scheduleOpen = HoverIntentBlock.makeStep(model => {
   const version = Number.increment(model.pendingOpenVersion)
   return {
@@ -166,7 +300,7 @@ const entered = (model: Model) => {
     pendingCloseVersion: Number.increment,
   })
 
-  if (enteredModel.isOpen || enteredModel.isDismissed) {
+  if (enteredModel.isOpen || isActiveTriggerDismissed(enteredModel)) {
     return { model: enteredModel }
   }
 
@@ -178,15 +312,7 @@ const left = (model: Model) => {
     pendingOpenVersion: Number.increment,
   })
 
-  if (isEngaged(leftModel)) {
-    return { model: leftModel }
-  }
-
-  if (leftModel.isDismissed) {
-    return { model: modifyFields(leftModel, { isDismissed: () => false }) }
-  }
-
-  if (!leftModel.isOpen) {
+  if (isActiveTriggerOrPanelEngaged(leftModel) || !leftModel.isOpen) {
     return { model: leftModel }
   }
 
@@ -200,7 +326,7 @@ const focused = (model: Model, focusLocation: FocusLocation) => {
     pendingCloseVersion: Number.increment,
   })
 
-  if (focusedModel.isDismissed) {
+  if (!focusedModel.isOpen && isActiveTriggerDismissed(focusedModel)) {
     return { model: focusedModel }
   }
 
@@ -209,35 +335,122 @@ const focused = (model: Model, focusLocation: FocusLocation) => {
 
 const blurred = (model: Model) => {
   const blurredModel = modifyFields(model, {
-    maybeFocusLocation: () => Option.none(),
     pendingOpenVersion: Number.increment,
   })
 
-  if (isEngaged(blurredModel)) {
-    return { model: blurredModel }
-  }
-
-  if (blurredModel.isDismissed) {
-    return { model: modifyFields(blurredModel, { isDismissed: () => false }) }
-  }
-
-  if (!blurredModel.isOpen) {
+  if (isActiveTriggerOrPanelEngaged(blurredModel) || !blurredModel.isOpen) {
     return { model: blurredModel }
   }
 
   return scheduleClose(Duration.zero)(blurredModel)
 }
 
-const dismiss = (model: Model, isTriggerFocused: boolean) => {
-  const maybeFocusLocation = Option.liftPredicate<FocusLocation>(
-    'Trigger',
-    () => isTriggerFocused,
+const enteredTrigger = (model: Model, trigger: Trigger) => {
+  const isDismissed = isTriggerDismissed(model, trigger)
+  const hoveredModel = modifyFields(model, {
+    maybeHoveredTrigger: () => Option.some({ trigger, isDismissed }),
+  })
+
+  if (isDismissed) {
+    return { model: hoveredModel }
+  }
+
+  return entered(activateTrigger(hoveredModel, trigger))
+}
+
+const leftTrigger = (model: Model, trigger: Trigger) => {
+  const leftModel = modifyFields(model, {
+    maybeHoveredTrigger: Option.filter(
+      hoveredTrigger => !isEngagementOf(trigger)(hoveredTrigger),
+    ),
+  })
+
+  if (Equal.equals(leftModel.activeTrigger, trigger)) {
+    return left(leftModel)
+  } else {
+    return { model: leftModel }
+  }
+}
+
+const focusedTrigger = (model: Model, trigger: Trigger) => {
+  const isDismissed = isTriggerDismissed(model, trigger)
+  const focusLocation = FocusLocation.Trigger({ trigger, isDismissed })
+
+  if (isDismissed) {
+    return {
+      model: modifyFields(model, {
+        maybeFocusLocation: () => Option.some(focusLocation),
+      }),
+    }
+  }
+
+  return focused(activateTrigger(model, trigger), focusLocation)
+}
+
+const blurredTrigger = (model: Model, trigger: Trigger) => {
+  if (Equal.equals(model.activeTrigger, trigger)) {
+    return blurred(
+      modifyFields(model, {
+        maybeFocusLocation: Option.filter(
+          FocusLocation.match<boolean>({
+            Trigger: focusedTrigger => !isEngagementOf(trigger)(focusedTrigger),
+            Panel: () => false,
+          }),
+        ),
+      }),
+    )
+  } else {
+    return {
+      model: modifyFields(model, {
+        maybeFocusLocation: Option.filter(
+          FocusLocation.match<boolean>({
+            Trigger: focusedTrigger => !isEngagementOf(trigger)(focusedTrigger),
+            Panel: () => true,
+          }),
+        ),
+      }),
+    }
+  }
+}
+
+const enteredPanel = (model: Model) =>
+  entered(
+    modifyFields(model, {
+      maybeHoveredPanel: () =>
+        Option.some({ isDismissed: isActiveTriggerDismissed(model) }),
+    }),
   )
-  const dismissedModel = modifyFields(model, {
+
+const focusedPanel = (model: Model) =>
+  focused(
+    model,
+    FocusLocation.Panel({ isDismissed: isActiveTriggerDismissed(model) }),
+  )
+
+const dismiss = (model: Model, dismissedTriggers: ReadonlyArray<Trigger>) => {
+  const isDismissedBy = (engagement: TriggerEngagement): boolean =>
+    Array.some(dismissedTriggers, dismissedTrigger =>
+      isEngagementOf(dismissedTrigger)(engagement),
+    )
+
+  const dismissedModel = modifyFields(releasePanel(model), {
     isOpen: () => false,
-    isPanelHovered: () => false,
-    maybeFocusLocation: () => maybeFocusLocation,
-    isDismissed: () => model.isTriggerHovered || isTriggerFocused,
+    maybeHoveredTrigger: Option.map(hoveredTrigger =>
+      modifyFields(hoveredTrigger, {
+        isDismissed: isDismissed =>
+          isDismissed || isDismissedBy(hoveredTrigger),
+      }),
+    ),
+    maybeFocusLocation: Option.map(
+      FocusLocation.match<FocusLocation>({
+        Trigger: focusedTrigger =>
+          modifyFields(focusedTrigger, {
+            isDismissed: isDismissed =>
+              isDismissed || isDismissedBy(focusedTrigger),
+          }),
+        Panel: focusedPanel => focusedPanel,
+      }),
+    ),
     pendingOpenVersion: Number.increment,
     pendingCloseVersion: Number.increment,
   })
@@ -249,56 +462,97 @@ const dismiss = (model: Model, isTriggerFocused: boolean) => {
   return { model: dismissedModel }
 }
 
-/** Processes a parent close request without routing it through local Messages. */
+const pressedEscapeOnTrigger = (model: Model, trigger: Trigger) =>
+  dismiss(
+    modifyFields(model, {
+      activeTrigger: () => trigger,
+      maybeFocusLocation: () =>
+        Option.some(FocusLocation.Trigger({ trigger, isDismissed: false })),
+    }),
+    model.isOpen ? [trigger, model.activeTrigger] : [trigger],
+  )
+
+const removedTrigger = (model: Model, trigger: Trigger) => {
+  const releasedModel = modifyFields(model, {
+    maybeHoveredTrigger: Option.filter(
+      hoveredTrigger => !isEngagementOf(trigger)(hoveredTrigger),
+    ),
+    maybeFocusLocation: Option.filter(
+      FocusLocation.match<boolean>({
+        Trigger: focusedTrigger => !isEngagementOf(trigger)(focusedTrigger),
+        Panel: () => true,
+      }),
+    ),
+  })
+
+  if (!Equal.equals(releasedModel.activeTrigger, trigger)) {
+    return { model: releasedModel }
+  }
+
+  return handBackOrClose(
+    modifyFields(releasedModel, {
+      pendingOpenVersion: Number.increment,
+      pendingCloseVersion: Number.increment,
+    }),
+  )
+}
+
+/** Processes parent requests and notifications without routing them through local Messages. */
 export const inMessageUpdate = HoverIntentComposition.makeInMessageUpdate({
   RequestedClose: HoverIntentBlock.makeStep(model =>
-    dismiss(
-      model,
-      Option.exists(
-        model.maybeFocusLocation,
-        focusLocation => focusLocation === 'Trigger',
-      ),
-    ),
+    dismiss(model, [model.activeTrigger]),
   ),
+  InformedOfRemovedKeyedTrigger: (model, { key }) =>
+    removedTrigger(model, Trigger.Keyed({ key })),
 })
 
 /** Processes a HoverIntent Message and returns the next Model, optional Commands, and an optional OutMessage. */
 export const update = HoverIntentComposition.makeUpdate({
-  EnteredTrigger: model =>
-    entered(modifyFields(model, { isTriggerHovered: () => true })),
-  LeftTrigger: model =>
-    left(modifyFields(model, { isTriggerHovered: () => false })),
-  EnteredPanel: model =>
-    entered(modifyFields(model, { isPanelHovered: () => true })),
+  EnteredTrigger: model => enteredTrigger(model, Trigger.Unkeyed()),
+  LeftTrigger: model => leftTrigger(model, Trigger.Unkeyed()),
+  EnteredPanel: model => enteredPanel(model),
   LeftPanel: model =>
-    left(modifyFields(model, { isPanelHovered: () => false })),
-  FocusedTrigger: model => focused(model, 'Trigger'),
-  BlurredTrigger: model => blurred(model),
-  FocusedPanel: model => focused(model, 'Panel'),
-  BlurredPanel: model => blurred(model),
+    left(modifyFields(model, { maybeHoveredPanel: () => Option.none() })),
+  FocusedTrigger: model => focusedTrigger(model, Trigger.Unkeyed()),
+  BlurredTrigger: model => blurredTrigger(model, Trigger.Unkeyed()),
+  EnteredKeyedTrigger: (model, { key }) =>
+    enteredTrigger(model, Trigger.Keyed({ key })),
+  LeftKeyedTrigger: (model, { key }) =>
+    leftTrigger(model, Trigger.Keyed({ key })),
+  FocusedKeyedTrigger: (model, { key }) =>
+    focusedTrigger(model, Trigger.Keyed({ key })),
+  BlurredKeyedTrigger: (model, { key }) =>
+    blurredTrigger(model, Trigger.Keyed({ key })),
+  FocusedPanel: model => focusedPanel(model),
+  BlurredPanel: model =>
+    blurred(modifyFields(model, { maybeFocusLocation: () => Option.none() })),
   PressedEscape: (model, { source }) => {
-    const isTriggerFocused =
-      source === 'Trigger' ||
-      Option.exists(
-        model.maybeFocusLocation,
-        focusLocation => focusLocation === 'Trigger',
-      )
-    return dismiss(model, isTriggerFocused)
-  },
-  CompletedWaitBeforeOpening: (model, { version }) => {
-    if (version !== model.pendingOpenVersion) {
-      return { model }
+    if (source === 'Trigger') {
+      return pressedEscapeOnTrigger(model, Trigger.Unkeyed())
+    } else {
+      return dismiss(model, [model.activeTrigger])
     }
-    if (model.isDismissed || !isEngaged(model)) {
+  },
+  PressedEscapeOnKeyedTrigger: (model, { key }) =>
+    pressedEscapeOnTrigger(model, Trigger.Keyed({ key })),
+  CompletedWaitBeforeOpening: (model, { version }) => {
+    if (
+      version !== model.pendingOpenVersion ||
+      isActiveTriggerDismissed(model) ||
+      !isActiveTriggerOrPanelEngaged(model)
+    ) {
       return { model }
     }
     return open(model)
   },
   CompletedWaitBeforeClosing: (model, { version }) => {
-    if (version !== model.pendingCloseVersion || isEngaged(model)) {
+    if (
+      version !== model.pendingCloseVersion ||
+      isActiveTriggerOrPanelEngaged(model)
+    ) {
       return { model }
     }
-    return finishClosing(model)
+    return handBackOrClose(model)
   },
 })
 
@@ -307,10 +561,14 @@ export const update = HoverIntentComposition.makeUpdate({
 /** Render-time payload published to the consumer's `toView`.
  *
  * - `trigger`: event attributes for the element that starts intent.
+ * - `keyedTrigger`: event attributes for one of many triggers that share the panel, identified by `key`.
+ * - `maybeActiveTriggerKey`: the key of the keyed trigger the panel belongs to. It is `None` before any keyed trigger engages the panel and while the unkeyed trigger holds it. It keeps the key after the panel closes, so check `isVisible` before rendering the panel.
  * - `panel`: event attributes for the element that remains open while hovered or focused.
  * - `isVisible`: whether the consumer should render its panel. */
 export type RenderInfo = Readonly<{
   trigger: ReadonlyArray<ChildAttribute>
+  keyedTrigger: (key: string) => ReadonlyArray<ChildAttribute>
+  maybeActiveTriggerKey: Option.Option<string>
   panel: ReadonlyArray<ChildAttribute>
   isVisible: boolean
 }>
@@ -325,15 +583,16 @@ export type ViewInputs = Readonly<{
 /** Renders headless HoverIntent event bundles. It owns no markup, ARIA semantics, positioning, or styling. */
 export const view = HoverIntentComposition.makeView.withInputs(
   (model, { focusTriggerSelector, toView }, h) => {
-    const toPressedEscape =
-      (source: 'Trigger' | 'Panel') =>
-      (key: string): Option.Option<typeof Message.PressedEscape.Type> =>
+    const toEscapeMessage =
+      <EscapeMessage>(message: EscapeMessage) =>
+      (key: string): Option.Option<EscapeMessage> =>
         Match.value(key).pipe(
-          Match.when('Escape', () =>
-            Option.some(Message.PressedEscape({ source })),
-          ),
+          Match.when('Escape', () => Option.some(message)),
           Match.orElse(() => Option.none()),
         )
+
+    const toPressedEscape = (source: 'Trigger' | 'Panel') =>
+      toEscapeMessage(Message.PressedEscape({ source }))
 
     const panelEscapeHandler =
       focusTriggerSelector === undefined
@@ -358,6 +617,20 @@ export const view = HoverIntentComposition.makeView.withInputs(
         h.OnBlur(Message.BlurredTrigger()),
         h.OnKeyDownPreventDefault(toPressedEscape('Trigger')),
       ]),
+      keyedTrigger: key =>
+        childAttributes([
+          h.OnMouseEnter(Message.EnteredKeyedTrigger({ key })),
+          h.OnMouseLeave(Message.LeftKeyedTrigger({ key })),
+          h.OnFocus(Message.FocusedKeyedTrigger({ key })),
+          h.OnBlur(Message.BlurredKeyedTrigger({ key })),
+          h.OnKeyDownPreventDefault(
+            toEscapeMessage(Message.PressedEscapeOnKeyedTrigger({ key })),
+          ),
+        ]),
+      maybeActiveTriggerKey: Trigger.match(model.activeTrigger, {
+        Unkeyed: () => Option.none(),
+        Keyed: ({ key }) => Option.some(key),
+      }),
       panel: childAttributes([
         h.OnMouseEnter(Message.EnteredPanel()),
         h.OnMouseLeave(Message.LeftPanel()),

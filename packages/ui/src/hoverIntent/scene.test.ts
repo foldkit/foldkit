@@ -1,10 +1,11 @@
-import { Layer, Schema } from 'effect'
+import { Layer, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import * as Scene from 'foldkit/scene'
 
 import { describe, it } from '@effect/vitest'
 
-import { HoverIntentBlock, layer } from './block.js'
+import { HoverIntentBlock, WaitBeforeClosing, layer } from './block.js'
+import { Message } from './message.js'
 
 const HoverIntentSceneKey = Symbol('HoverIntentScene')
 const HoverIntentSceneBlock = Block.make('HoverIntentScene', {
@@ -44,13 +45,37 @@ const sceneView = HoverIntentSceneComposition.makeView((model, h) =>
       slotId: 'hover-intent',
       model: model.hoverIntent,
       viewInputs: {
-        toView: ({ trigger, panel, isVisible }) =>
+        toView: ({
+          trigger,
+          keyedTrigger,
+          maybeActiveTriggerKey,
+          panel,
+          isVisible,
+        }) =>
           h.div(
             [],
             [
               h.button([h.Id('trigger'), ...trigger], ['Preview']),
+              h.button(
+                [h.Id('first-keyed-trigger'), ...keyedTrigger('first')],
+                ['First'],
+              ),
+              h.button(
+                [h.Id('second-keyed-trigger'), ...keyedTrigger('second')],
+                ['Second'],
+              ),
               ...(isVisible
-                ? [h.div([h.Id('panel'), ...panel], ['Content'])]
+                ? [
+                    h.div(
+                      [h.Id('panel'), ...panel],
+                      [
+                        Option.getOrElse(
+                          maybeActiveTriggerKey,
+                          () => 'Content',
+                        ),
+                      ],
+                    ),
+                  ]
                 : []),
             ],
           ),
@@ -60,7 +85,16 @@ const sceneView = HoverIntentSceneComposition.makeView((model, h) =>
 )
 
 const trigger = Scene.selector('#trigger')
+const firstKeyedTrigger = Scene.selector('#first-keyed-trigger')
+const secondKeyedTrigger = Scene.selector('#second-keyed-trigger')
 const panel = Scene.selector('#panel')
+
+const STALE_VERSION = -1
+
+const resolveStaleClose = Scene.Command.resolve(
+  WaitBeforeClosing,
+  Message.CompletedWaitBeforeClosing({ version: STALE_VERSION }),
+)
 
 const hoverIntentScene = {
   block: HoverIntentSceneBlock,
@@ -83,6 +117,46 @@ describe('HoverIntent', () => {
         Scene.expect(trigger).toHaveHandler('blur'),
         Scene.expect(trigger).toHaveHandler('keydown'),
       ),
+    )
+
+    it.effect('routes focus and Escape from a keyed trigger with its key', () =>
+      Scene.scene(
+        hoverIntentScene,
+        Scene.init(),
+        Scene.focus(secondKeyedTrigger),
+        Scene.expect(panel).toHaveText('second'),
+        Scene.keydown(secondKeyedTrigger, 'Escape'),
+        Scene.expect(panel).toBeAbsent(),
+      ),
+    )
+
+    it.effect('renders the panel for whichever keyed trigger is active', () =>
+      Scene.scene(
+        hoverIntentScene,
+        Scene.init(),
+        Scene.focus(firstKeyedTrigger),
+        Scene.expect(panel).toHaveText('first'),
+        Scene.blur(firstKeyedTrigger),
+        resolveStaleClose,
+        Scene.focus(secondKeyedTrigger),
+        Scene.expect(panel).toHaveText('second'),
+      ),
+    )
+
+    it.effect(
+      "keeps the hovered keyed trigger's panel when the pointer moves into it while another trigger has focus",
+      () =>
+        Scene.scene(
+          hoverIntentScene,
+          Scene.init(),
+          Scene.focus(firstKeyedTrigger),
+          Scene.hover(secondKeyedTrigger),
+          Scene.expect(panel).toHaveText('second'),
+          Scene.unhover(secondKeyedTrigger),
+          resolveStaleClose,
+          Scene.hover(panel),
+          Scene.expect(panel).toHaveText('second'),
+        ),
     )
 
     it.effect('leaves panel markup to the consumer while hidden', () =>
