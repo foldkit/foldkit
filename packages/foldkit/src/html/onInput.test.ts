@@ -16,6 +16,7 @@ import {
 } from '../snabbdom/index.js'
 import type { VNode } from '../vdom.js'
 import {
+  InputSelection,
   __htmlBuilder,
   __clearRuntime as clearHtmlRuntime,
   __setRuntime as setHtmlRuntime,
@@ -34,6 +35,10 @@ const Message = defineMessageUnion({
   UpdatedValue: { value: Schema.String },
   InsertedText: { value: Schema.String },
   ObservedEdit: { inputType: Schema.String, hasData: Schema.Boolean },
+  EditedText: {
+    value: Schema.String,
+    maybeSelection: Schema.Option(InputSelection),
+  },
 })
 type Message = typeof Message.Type
 
@@ -139,6 +144,28 @@ const renderInput = (
   )
 }
 
+const renderSelectionReportingControl = (
+  dispatch: typeof Dispatch.Service,
+  control: 'TextInput' | 'NumberInput' | 'Contenteditable',
+): Element => {
+  const h = __htmlBuilder<Message>()
+  const onInput = h.OnInput((value, maybeSelection) =>
+    Message.EditedText({ value, maybeSelection }),
+  )
+
+  return patchInto(
+    renderView(() => {
+      if (control === 'TextInput') {
+        return h.input([h.Type('text'), onInput])
+      } else if (control === 'NumberInput') {
+        return h.input([h.Type('number'), onInput])
+      } else {
+        return h.div([h.Contenteditable('true'), onInput])
+      }
+    }, dispatch),
+  )
+}
+
 const renderContenteditable = (dispatch: typeof Dispatch.Service): Element => {
   const h = __htmlBuilder<Message>()
 
@@ -221,6 +248,52 @@ describe('OnInput', () => {
 
     expect(dispatched).toStrictEqual([
       Message.UpdatedValue({ value: 'raw text' }),
+    ])
+  })
+})
+
+describe('OnInput selection', () => {
+  it('reports the selected range in a text input', () => {
+    const { dispatch, dispatched } = createCapturingDispatch()
+    const field = requireInput(
+      renderSelectionReportingControl(dispatch, 'TextInput'),
+    )
+    field.value = 'Quarterly plan'
+    field.setSelectionRange(0, 9)
+
+    field.dispatchEvent(new Event('input', { bubbles: true }))
+
+    expect(dispatched).toStrictEqual([
+      Message.EditedText({
+        value: 'Quarterly plan',
+        maybeSelection: Option.some({ selectionStart: 0, selectionEnd: 9 }),
+      }),
+    ])
+  })
+
+  it('reports no selection for an input type without text selection', () => {
+    const { dispatch, dispatched } = createCapturingDispatch()
+    const field = requireInput(
+      renderSelectionReportingControl(dispatch, 'NumberInput'),
+    )
+    field.value = '42'
+
+    field.dispatchEvent(new Event('input', { bubbles: true }))
+
+    expect(dispatched).toStrictEqual([
+      Message.EditedText({ value: '42', maybeSelection: Option.none() }),
+    ])
+  })
+
+  it('reports no selection for a contenteditable host', () => {
+    const { dispatch, dispatched } = createCapturingDispatch()
+    const editor = renderSelectionReportingControl(dispatch, 'Contenteditable')
+    editor.textContent = 'rich text'
+
+    editor.dispatchEvent(new Event('input', { bubbles: true }))
+
+    expect(dispatched).toStrictEqual([
+      Message.EditedText({ value: 'rich text', maybeSelection: Option.none() }),
     ])
   })
 })
