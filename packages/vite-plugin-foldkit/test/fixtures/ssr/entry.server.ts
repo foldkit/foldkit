@@ -30,6 +30,74 @@ export const renderPage = async (
     )
   }
 
+  if (url.pathname === '/live-stream') {
+    const cancelReportUrl = url.searchParams.get('cancelReportUrl')
+    const isSilent = url.searchParams.has('silent')
+
+    return Server.Responded(
+      new Response(
+        new ReadableStream({
+          start: controller => {
+            if (!isSilent) {
+              controller.enqueue(new TextEncoder().encode('first\n'))
+            }
+          },
+          cancel: () => {
+            if (cancelReportUrl !== null) {
+              void fetch(cancelReportUrl, {
+                method: 'POST',
+                body: 'canceled',
+              }).catch(() => undefined)
+            }
+          },
+        }),
+        { status: 200, headers: { 'content-type': 'application/x-ndjson' } },
+      ),
+    )
+  }
+
+  if (url.pathname === '/failing-stream') {
+    return Server.Responded(
+      new Response(
+        new ReadableStream({
+          start: controller => {
+            controller.enqueue(new TextEncoder().encode('first\n'))
+          },
+          pull: controller => {
+            controller.error(new Error('upstream failed'))
+          },
+        }),
+        { status: 200, headers: { 'content-type': 'application/x-ndjson' } },
+      ),
+    )
+  }
+
+  if (url.pathname === '/failing-before-first-chunk') {
+    return Server.Responded(
+      new Response(
+        new ReadableStream({
+          pull: controller => {
+            controller.error(new Error('failed before first chunk'))
+          },
+        }),
+        { status: 200, headers: { 'content-type': 'application/x-ndjson' } },
+      ),
+    )
+  }
+
+  if (url.pathname === '/empty-stream') {
+    return Server.Responded(
+      new Response(
+        new ReadableStream({
+          start: controller => {
+            controller.close()
+          },
+        }),
+        { status: 201, headers: { 'x-response': 'empty-stream' } },
+      ),
+    )
+  }
+
   if (url.pathname === '/entry-cors') {
     return Server.Responded(
       new Response('entry cors', {
