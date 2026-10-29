@@ -337,6 +337,8 @@ The [SSR example](https://github.com/foldkit/foldkit/tree/main/examples/ssr) sta
 
 ::Snippet{name="serverRenderingNodeHost" label="Start the Node adapter"}
 
+The adapter loads the Fetch handler before it opens the port. Once the port accepts a connection, the server can answer it, so a readiness probe needs only to connect. When startup fails, for example because the build is missing, the port is never opened.
+
 The manifest records output paths relative to the Vite root. When the server output is outside that root, pass `rootDirectory` so the adapter can resolve both output directories; it refuses an outside-root server path without it.
 
 Set `basePath` to the same root-relative `base` used by Vite, such as `/app/`. The adapter serves static files only through that path and preserves it when it calls the Fetch handler.

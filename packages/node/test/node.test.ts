@@ -1,4 +1,4 @@
-import { Config, Effect, Exit, Fiber, Option } from 'effect'
+import { Config, Effect, Exit, Fiber, Option, Predicate } from 'effect'
 import {
   copyFile,
   mkdir,
@@ -36,6 +36,10 @@ const importMarkerFixtureUrl = new URL(
   './fixture/import-marker.mjs',
   import.meta.url,
 )
+const gatedHandlerFixtureUrl = new URL(
+  './fixture/gated-handler.mjs',
+  import.meta.url,
+)
 
 const getAvailablePort = (): Promise<number> =>
   new Promise((resolvePort, reject) => {
@@ -69,6 +73,25 @@ const waitForResponse = async (url: string): Promise<Response> => {
   }
   throw lastError
 }
+
+const connectionOutcome = (port: number): Promise<'Connected' | 'Refused'> =>
+  new Promise((resolveOutcome, reject) => {
+    const client = createConnection({ host: 'localhost', port })
+    client.once('connect', () => {
+      client.destroy()
+      resolveOutcome('Connected')
+    })
+    client.once('error', error => {
+      if (
+        Predicate.hasProperty(error, 'code') &&
+        error.code === 'ECONNREFUSED'
+      ) {
+        resolveOutcome('Refused')
+      } else {
+        reject(error)
+      }
+    })
+  })
 
 const waitForFile = async (path: string): Promise<string> => {
   let lastError: unknown = undefined
@@ -521,6 +544,39 @@ describe('serve', () => {
     await expect(readFile(markerPath, 'utf8')).rejects.toMatchObject({
       code: 'ENOENT',
     })
+  })
+
+  it('refuses connections until the application handler has loaded', async () => {
+    const fixture = await createFixture()
+    const serverDirectory = dirname(fixture.manifestPath)
+    await copyFile(gatedHandlerFixtureUrl, join(serverDirectory, 'handler.mjs'))
+    const port = await getAvailablePort()
+    const fiber = Effect.runFork(
+      serve({
+        port: Config.succeed(port),
+        origin: Config.succeed(Option.none()),
+        manifestPath: fixture.manifestPath,
+      }),
+    )
+
+    const releaseHandler = () =>
+      writeFile(join(serverDirectory, 'release.marker'), 'released')
+
+    try {
+      await expect(
+        waitForFile(join(serverDirectory, 'loading.marker')),
+      ).resolves.toBe('loading')
+      await expect(connectionOutcome(port)).resolves.toBe('Refused')
+
+      await releaseHandler()
+      const response = await waitForResponse(
+        `http://localhost:${String(port)}/`,
+      )
+      expect(await response.text()).toBe('ready')
+    } finally {
+      await releaseHandler()
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
   })
 
   it('aborts the Fetch Request when a client disconnects before it responds', async () => {
