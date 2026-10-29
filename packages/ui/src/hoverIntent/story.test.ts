@@ -41,11 +41,21 @@ const withFocusedOpen = Story.steps(
   Story.message(Message.FocusedTrigger()),
 )
 
+const withKeyedOpen = Story.steps(
+  withHidden,
+  Story.message(Message.EnteredKeyedTrigger({ key: 'first' })),
+  Story.Command.resolve(
+    WaitBeforeOpening,
+    Message.CompletedWaitBeforeOpening({ version: 1 }),
+  ),
+)
+
 describe('HoverIntent', () => {
   describe('init', () => {
     it('defaults to a hidden state with open and close delays', () => {
       expect(init().model).toStrictEqual({
         isOpen: false,
+        maybeActiveTriggerKey: Option.none(),
         isTriggerHovered: false,
         isPanelHovered: false,
         maybeFocusLocation: Option.none(),
@@ -341,6 +351,104 @@ describe('HoverIntent', () => {
       expect(closeUpdate.model.pendingOpenVersion).toBe(3)
       expect(closeUpdate.model.pendingCloseVersion).toBe(4)
       expect(closeUpdate.outMessage).toStrictEqual(OutMessage.Closed())
+    })
+  })
+
+  describe('keyed triggers', () => {
+    it('hands the open panel to another keyed trigger without a delay', () => {
+      Story.story(
+        update,
+        withKeyedOpen,
+        Story.message(Message.LeftKeyedTrigger({ key: 'first' })),
+        Story.message(Message.EnteredKeyedTrigger({ key: 'second' })),
+        Story.Command.resolve(
+          WaitBeforeClosing,
+          Message.CompletedWaitBeforeClosing({ version: 2 }),
+        ),
+        Story.model(model => {
+          expect(model.isOpen).toBe(true)
+          expect(model.maybeActiveTriggerKey).toStrictEqual(
+            Option.some('second'),
+          )
+        }),
+        Story.expectNoOutMessage(),
+      )
+    })
+
+    it('opens only for the latest keyed trigger', () => {
+      Story.story(
+        update,
+        withHidden,
+        Story.message(Message.EnteredKeyedTrigger({ key: 'first' })),
+        Story.message(Message.LeftKeyedTrigger({ key: 'first' })),
+        Story.message(Message.EnteredKeyedTrigger({ key: 'second' })),
+        Story.Command.resolve(
+          WaitBeforeOpening({ delay: Duration.millis(200), version: 1 }),
+          Message.CompletedWaitBeforeOpening({ version: 1 }),
+        ),
+        Story.model(model => {
+          expect(model.isOpen).toBe(false)
+        }),
+        Story.Command.resolve(
+          WaitBeforeOpening({ delay: Duration.millis(200), version: 3 }),
+          Message.CompletedWaitBeforeOpening({ version: 3 }),
+        ),
+        Story.expectOutMessage(OutMessage.Opened()),
+        Story.model(model => {
+          expect(model.maybeActiveTriggerKey).toStrictEqual(
+            Option.some('second'),
+          )
+        }),
+      )
+    })
+
+    it('closes after the delay only when the active keyed trigger is left', () => {
+      Story.story(
+        update,
+        withKeyedOpen,
+        Story.message(Message.LeftKeyedTrigger({ key: 'second' })),
+        Story.Command.expectNone(),
+        Story.message(Message.LeftKeyedTrigger({ key: 'first' })),
+        Story.Command.resolve(
+          WaitBeforeClosing({ delay: Duration.millis(300), version: 2 }),
+          Message.CompletedWaitBeforeClosing({ version: 2 }),
+        ),
+        Story.expectOutMessage(OutMessage.Closed()),
+      )
+    })
+
+    it('clears Escape dismissal once the keyed trigger that pressed Escape blurs', () => {
+      Story.story(
+        update,
+        withHidden,
+        Story.message(Message.FocusedKeyedTrigger({ key: 'first' })),
+        Story.message(Message.EnteredKeyedTrigger({ key: 'second' })),
+        Story.message(Message.PressedEscapeOnKeyedTrigger({ key: 'first' })),
+        Story.expectOutMessage(OutMessage.Closed()),
+        Story.message(Message.LeftKeyedTrigger({ key: 'second' })),
+        Story.message(Message.BlurredKeyedTrigger({ key: 'first' })),
+        Story.model(model => {
+          expect(model.isDismissed).toBe(false)
+        }),
+        Story.message(Message.EnteredKeyedTrigger({ key: 'second' })),
+        Story.Command.expectHas(WaitBeforeOpening),
+        resolveStaleOpen,
+      )
+    })
+
+    it('opens for another keyed trigger after Escape dismisses the panel', () => {
+      Story.story(
+        update,
+        withHidden,
+        Story.message(Message.FocusedKeyedTrigger({ key: 'first' })),
+        Story.message(Message.PressedEscapeOnKeyedTrigger({ key: 'first' })),
+        Story.message(Message.EnteredKeyedTrigger({ key: 'second' })),
+        Story.Command.resolve(
+          WaitBeforeOpening,
+          Message.CompletedWaitBeforeOpening({ version: 3 }),
+        ),
+        Story.expectOutMessage(OutMessage.Opened()),
+      )
     })
   })
 

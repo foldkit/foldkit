@@ -40,13 +40,33 @@ const sceneView = HoverIntentSceneComposition.makeView((model, h) =>
       slotId: 'hover-intent',
       model,
       viewInputs: {
-        toView: ({ trigger, panel, isVisible }) =>
+        toView: ({
+          trigger,
+          keyedTrigger,
+          maybeActiveTriggerKey,
+          panel,
+          isVisible,
+        }) =>
           h.div(
             [],
             [
               h.button([h.Id('trigger'), ...trigger], ['Preview']),
+              h.button(
+                [h.Id('keyed-trigger'), ...keyedTrigger('second')],
+                ['Second'],
+              ),
               ...(isVisible
-                ? [h.div([h.Id('panel'), ...panel], ['Content'])]
+                ? [
+                    h.div(
+                      [h.Id('panel'), ...panel],
+                      [
+                        Option.getOrElse(
+                          maybeActiveTriggerKey,
+                          () => 'Content',
+                        ),
+                      ],
+                    ),
+                  ]
                 : []),
             ],
           ),
@@ -56,6 +76,7 @@ const sceneView = HoverIntentSceneComposition.makeView((model, h) =>
 )
 
 const trigger = Scene.selector('#trigger')
+const keyedTrigger = Scene.selector('#keyed-trigger')
 const panel = Scene.selector('#panel')
 
 const hiddenModel = HoverIntentBlock.init().model
@@ -80,6 +101,17 @@ describe('HoverIntent', () => {
         Scene.expect(trigger).toHaveHandler('focus'),
         Scene.expect(trigger).toHaveHandler('blur'),
         Scene.expect(trigger).toHaveHandler('keydown'),
+      )
+    })
+
+    it('routes focus and Escape from a keyed trigger with its key', () => {
+      Scene.scene(
+        { update, view: sceneView },
+        Scene.given(hiddenModel),
+        Scene.focus(keyedTrigger),
+        Scene.expect(panel).toHaveText('second'),
+        Scene.keydown(keyedTrigger, 'Escape'),
+        Scene.expect(panel).toBeAbsent(),
       )
     })
 

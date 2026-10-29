@@ -26,6 +26,21 @@ Hover over or focus the “Actions” trigger, then move the pointer into the me
 
 Spread `trigger` onto the trigger element and `panel` onto the panel element. Each bundle supplies the hover, focus, and Escape handlers for that element. The `h.block` boundary routes the resulting child Messages back to the parent.
 
+## Keyed Triggers
+
+When many triggers share one panel, such as a hover card on every row of a list, one HoverIntent Model can serve all of them. Spread `keyedTrigger(key)` onto each trigger instead of `trigger`, and render the panel for the trigger that `maybeActiveTriggerKey` names.
+
+The latest trigger to receive the pointer or focus becomes the active one:
+
+- While the panel is open, the new trigger takes it at once, without waiting for `closeDelay` and then `openDelay`.
+- While the panel is closed, the new trigger restarts `openDelay`, and only the latest wait can open the panel.
+- Leaving or blurring any other trigger changes nothing.
+- Pressing Escape on a trigger dismisses the panel for that trigger. Another trigger receiving the pointer or focus opens the panel as usual.
+
+A trigger that loses the panel gets it back only when it receives the pointer or focus again. For example, if the pointer passes over another row while a trigger holds focus, the panel moves to that row and closes when the pointer leaves it.
+
+::Snippet{name="uiHoverIntentKeyed" label="Keyed triggers"}
+
 ## Timing and Dismissal
 
 ### Pointer Timing
@@ -84,15 +99,17 @@ Pass the child Model as `model` and these fields as `viewInputs` to the HoverInt
 
 ### RenderInfo {#render-info}
 
-| Name        | Type                            | Description                                                           |
-| ----------- | ------------------------------- | --------------------------------------------------------------------- |
-| `trigger`   | `ReadonlyArray<ChildAttribute>` | Hover, focus, and Escape attributes for the trigger element.          |
-| `panel`     | `ReadonlyArray<ChildAttribute>` | Hover, focus, and Escape attributes for the panel element.            |
-| `isVisible` | `boolean`                       | Whether the panel is open. The consumer decides whether to render it. |
+| Name                    | Type                                             | Description                                                                                                                        |
+| ----------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `trigger`               | `ReadonlyArray<ChildAttribute>`                  | Hover, focus, and Escape attributes for the trigger element.                                                                       |
+| `keyedTrigger`          | `(key: string) => ReadonlyArray<ChildAttribute>` | Hover, focus, and Escape attributes for one of many triggers that share the panel.                                                 |
+| `maybeActiveTriggerKey` | `Option<string>`                                 | The key of the keyed trigger that most recently engaged the panel. It keeps that key after the panel closes, so check `isVisible`. |
+| `panel`                 | `ReadonlyArray<ChildAttribute>`                  | Hover, focus, and Escape attributes for the panel element.                                                                         |
+| `isVisible`             | `boolean`                                        | Whether the panel is open. The consumer decides whether to render it.                                                              |
 
 ### Message
 
-`EnteredTrigger`, `LeftTrigger`, `EnteredPanel`, and `LeftPanel` describe pointer movement. `FocusedTrigger`, `BlurredTrigger`, `FocusedPanel`, and `BlurredPanel` describe focus movement. `PressedEscape` records whether Escape came from the trigger or panel. `CompletedWaitBeforeOpening` and `CompletedWaitBeforeClosing` are produced only by the exported wait Commands.
+`EnteredTrigger`, `LeftTrigger`, `EnteredPanel`, and `LeftPanel` describe pointer movement. `FocusedTrigger`, `BlurredTrigger`, `FocusedPanel`, and `BlurredPanel` describe focus movement. `EnteredKeyedTrigger`, `LeftKeyedTrigger`, `FocusedKeyedTrigger`, `BlurredKeyedTrigger`, and `PressedEscapeOnKeyedTrigger` describe pointer, focus, and Escape on a keyed trigger and carry its `key`. `PressedEscape` records whether Escape came from the trigger or panel. `CompletedWaitBeforeOpening` and `CompletedWaitBeforeClosing` are produced only by the exported wait Commands.
 
 ### OutMessage {#out-message}
 

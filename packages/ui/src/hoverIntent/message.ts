@@ -11,9 +11,14 @@ export const Message = defineMessageUnion({
   LeftPanel: {},
   FocusedTrigger: {},
   BlurredTrigger: {},
+  EnteredKeyedTrigger: { key: Schema.String },
+  LeftKeyedTrigger: { key: Schema.String },
+  FocusedKeyedTrigger: { key: Schema.String },
+  BlurredKeyedTrigger: { key: Schema.String },
   FocusedPanel: {},
   BlurredPanel: {},
   PressedEscape: { source: Schema.Literals(['Trigger', 'Panel']) },
+  PressedEscapeOnKeyedTrigger: { key: Schema.String },
   RequestedClose: {},
   CompletedWaitBeforeOpening: { version: Schema.Number },
   CompletedWaitBeforeClosing: { version: Schema.Number },
@@ -26,9 +31,15 @@ export type EnteredPanel = typeof Message.EnteredPanel.Type
 export type LeftPanel = typeof Message.LeftPanel.Type
 export type FocusedTrigger = typeof Message.FocusedTrigger.Type
 export type BlurredTrigger = typeof Message.BlurredTrigger.Type
+export type EnteredKeyedTrigger = typeof Message.EnteredKeyedTrigger.Type
+export type LeftKeyedTrigger = typeof Message.LeftKeyedTrigger.Type
+export type FocusedKeyedTrigger = typeof Message.FocusedKeyedTrigger.Type
+export type BlurredKeyedTrigger = typeof Message.BlurredKeyedTrigger.Type
 export type FocusedPanel = typeof Message.FocusedPanel.Type
 export type BlurredPanel = typeof Message.BlurredPanel.Type
 export type PressedEscape = typeof Message.PressedEscape.Type
+export type PressedEscapeOnKeyedTrigger =
+  typeof Message.PressedEscapeOnKeyedTrigger.Type
 export type RequestedClose = typeof Message.RequestedClose.Type
 export type CompletedWaitBeforeOpening =
   typeof Message.CompletedWaitBeforeOpening.Type
