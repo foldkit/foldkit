@@ -30,6 +30,7 @@ import {
   resolveDevToolsMaxEntries,
   resolveExcludeFromHistoryTags,
 } from './devToolsConfig.js'
+import { featureRegistry } from './featureRegistry.js'
 
 /** The Mount starts and ends recorded since the last drain. */
 export type MountEvents = Readonly<{
@@ -211,7 +212,14 @@ export const makeDevToolsIntegration = <Model, Message>({
             // direct lookup that reflects the real live state at the moment
             // the entry was recorded.
             const isExcludingMessages = excludeFromHistoryTags.size > 0
-            const store = yield* createDevToolsStore(
+            const createStore = import.meta.hot
+              ? createDevToolsStore
+              : featureRegistry.createProductionDevToolsStore
+            if (createStore === undefined) {
+              return
+            }
+
+            const store = yield* createStore(
               {
                 /* eslint-disable @typescript-eslint/consistent-type-assertions */
                 replay: (model, message) => {

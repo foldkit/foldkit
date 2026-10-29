@@ -12,6 +12,7 @@ import {
 } from 'effect'
 
 import type { Subscriptions } from '../subscription/subscription.js'
+import { featureRegistry } from './featureRegistry.js'
 import {
   type ResolvedSlowPhaseConfig,
   type SlowSubscriptionDependenciesContext,
@@ -151,3 +152,9 @@ export const forkSubscriptionFibers = <Model, Message, Services>({
       },
     ),
   )
+
+/** Called by `Subscription.make` so the runtime can fork Subscriptions
+ *  without importing this module directly. */
+export const registerSubscriptionRuntime = (): void => {
+  featureRegistry.forkSubscriptionFibers = forkSubscriptionFibers
+}
