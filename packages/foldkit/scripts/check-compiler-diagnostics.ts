@@ -32,6 +32,13 @@ const invalidInitFragments = [
   "Property 'model' is missing",
   "Types of property 'outMessage' are incompatible",
 ]
+const mixedUpdateDiagnostic =
+  'Raw local branches beside connected or Definition-owned Steps must use Definition.makeStep or a focused Step helper'
+const updateDiagnosticFiles = [
+  'update-diagnostics.invalid.ts',
+  'update-diagnostics.invalid-context.ts',
+  'update-diagnostics.invalid-extracted.ts',
+]
 const commandDiagnosticFiles = [
   'command-diagnostics.invalid-result.ts',
   'command-diagnostics.invalid-args.ts',
@@ -90,6 +97,30 @@ const requireDiagnostics = (
         `${label} did not include ${JSON.stringify(fragment)}:\n${result.output}`,
       )
     }
+  }
+}
+
+const requireMixedUpdateDiagnostic = (
+  label: string,
+  result: Readonly<{ output: string; status: number }>,
+): void => {
+  requireDiagnostics(label, result, [mixedUpdateDiagnostic])
+
+  const diagnostics = result.output.match(/error TS\d+:/g) ?? []
+  const isHandlerDiagnostic = result.output
+    .split('\n')
+    .some(
+      line =>
+        line.includes("Type '(model:") &&
+        line.includes(
+          `is not assignable to type 'Readonly<{ '${mixedUpdateDiagnostic}'`,
+        ),
+    )
+
+  if (diagnostics.length !== 1 || !isHandlerDiagnostic) {
+    fail(
+      `${label} did not identify the invalid handler directly:\n${result.output}`,
+    )
   }
 }
 
@@ -152,6 +183,7 @@ const main = (): void => {
       'compiler-diagnostics.invalid-init.ts',
       'command-diagnostics.accepted.ts',
       ...commandDiagnosticFiles,
+      ...updateDiagnosticFiles,
     ]) {
       copyFileSync(join(fixtureRoot, name), join(sources, name))
     }
@@ -275,6 +307,34 @@ const main = (): void => {
       'Source Command diagnostic acceptance',
       runCompiler(workspace, ['-p', sourceCommandConfig, '--pretty', 'false']),
     )
+
+    for (const file of updateDiagnosticFiles) {
+      for (const kind of ['source', 'emitted']) {
+        const config = join(workspace, `${kind}-${file}.json`)
+        writeJson(config, {
+          compilerOptions: {
+            ...compilerOptions,
+            noEmit: true,
+            ...(kind === 'source'
+              ? {
+                  verbatimModuleSyntax: false,
+                  paths: { foldkit: [join(packageRoot, 'src/index.ts')] },
+                }
+              : {}),
+          },
+          files: [
+            ...(kind === 'source'
+              ? [join(packageRoot, 'src/vite-env.d.ts')]
+              : []),
+            join(sources, file),
+          ],
+        })
+        requireMixedUpdateDiagnostic(
+          `${kind} ${file}`,
+          runCompiler(workspace, ['-p', config, '--pretty', 'false']),
+        )
+      }
+    }
 
     for (const file of commandDiagnosticFiles) {
       for (const kind of ['source', 'emitted']) {

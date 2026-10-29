@@ -1,5 +1,14 @@
 # Next preview review
 
+## Mixed update result diagnostic follow-up
+
+The existing mixed-result rejection now identifies the handler and recommends
+`Definition.makeStep` or a focused Step helper. Source and relocated-declaration
+cases cover ordinary, contextual and extracted connected handlers, alongside
+accepted repairs. The seven compiler budgets are unchanged. Upstream-erased
+helper outputs retain their existing limit; the lockfile report remains
+unreproduced. [Contracts and verification](mixed-update-diagnostics-20261029.md).
+
 ## Effect 4.1 Mount lifecycle follow-up
 
 The additional [#1853 report](https://github.com/foldkit/foldkit/pull/1853#issuecomment-6502029067)

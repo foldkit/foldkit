@@ -52,6 +52,10 @@ The next preview still requires separate publication approval.
 
 ## October 29 upgrade feedback
 
+The subsequent [mixed-result diagnostic repair](mixed-update-diagnostics-20261029.md)
+moves the existing check onto the offending handler and names the Step repair.
+The original assessment below retains its checkpoint and earlier limitations.
+
 The [new migration report](https://github.com/foldkit/foldkit/pull/1655#issuecomment-6496365991)
 tests the published `90746b32d2ca` snapshot. Track local follow-ups separately
 from that published Ready snapshot.
@@ -65,6 +69,11 @@ from that published Ready snapshot.
       the reported irreparable prerelease lockfile needs its original inputs.
 - [x] Add actionable `MissingBuildId` guidance and a named-producer checked
       assembly diagnostic while preserving their existing rejection contracts.
+- [x] Improve the reported mixed raw-local/connected handler diagnostic in
+      ordinary and contextual records. Preserve accepted code, exact output
+      contracts, registration rejection and all seven compiler ceilings; verify
+      inline, extracted, source and relocated-declaration consumers.
+      [Scope and enforcement limits](mixed-update-diagnostics-20261029.md).
 - [x] Correct the active Camera snippets' stale Definition imports and
       document the shared `resource.ts` home in organization and scaffold
       guidance. Validate the copied split-file example against public types.
