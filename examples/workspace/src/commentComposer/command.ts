@@ -1,7 +1,8 @@
 import { Effect, Schema } from 'effect'
 
 import { WorkspaceRepository } from '../repository'
-import { CommentComposerDefinition, Message } from './definition'
+import { CommentComposerDefinition } from './definition'
+import { Message } from './message'
 
 export const AddComment = CommentComposerDefinition.makeCommand('AddComment', {
   args: {
@@ -15,7 +16,7 @@ export const AddComment = CommentComposerDefinition.makeCommand('AddComment', {
 
     return args =>
       repository.addComment(args).pipe(
-        Effect.map(issue => Message.SucceededAddComment({ issue })),
+        Effect.map(comment => Message.SucceededAddComment({ comment })),
         Effect.catch(error =>
           Effect.succeed(
             Message.FailedAddComment({

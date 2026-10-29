@@ -5,11 +5,14 @@ import { defineMessageUnion } from 'foldkit/message'
 const Message = defineMessageUnion({
   AdvancedAutoScrollFrame: {},
 })
+type Message = typeof Message.Type
+type AdvancedAutoScrollFrame = typeof Message.AdvancedAutoScrollFrame.Type
 
 const Model = Schema.Struct({
   isDragging: Schema.Boolean,
   clientY: Schema.Number,
 })
+type Model = typeof Model.Type
 
 const DragDefinition = Block.makeDefinition('Drag', { Model, Message })
 
@@ -35,31 +38,27 @@ export const subscriptions = DragDefinition.makeSubscriptions(entry => ({
       handler: function* () {
         return ({ isDragging }, readDependencies) =>
           Stream.when(
-            Stream.callback<typeof Message.AdvancedAutoScrollFrame.Type>(
-              queue =>
-                Effect.acquireRelease(
-                  Effect.sync(() => {
-                    const animationFrameIdRef = { current: 0 }
-                    const step = () => {
-                      const { clientY } = readDependencies()
-                      window.scrollBy(
-                        0,
-                        clientY > window.innerHeight - 40 ? 5 : 0,
-                      )
-                      Queue.offerUnsafe(
-                        queue,
-                        Message.AdvancedAutoScrollFrame(),
-                      )
-                      animationFrameIdRef.current = requestAnimationFrame(step)
-                    }
+            Stream.callback<AdvancedAutoScrollFrame>(queue =>
+              Effect.acquireRelease(
+                Effect.sync(() => {
+                  const animationFrameIdRef = { current: 0 }
+                  const step = () => {
+                    const { clientY } = readDependencies()
+                    window.scrollBy(
+                      0,
+                      clientY > window.innerHeight - 40 ? 5 : 0,
+                    )
+                    Queue.offerUnsafe(queue, Message.AdvancedAutoScrollFrame())
                     animationFrameIdRef.current = requestAnimationFrame(step)
-                    return animationFrameIdRef
-                  }),
-                  animationFrameIdRef =>
-                    Effect.sync(() =>
-                      cancelAnimationFrame(animationFrameIdRef.current),
-                    ),
-                ).pipe(Effect.flatMap(() => Effect.never)),
+                  }
+                  animationFrameIdRef.current = requestAnimationFrame(step)
+                  return animationFrameIdRef
+                }),
+                animationFrameIdRef =>
+                  Effect.sync(() =>
+                    cancelAnimationFrame(animationFrameIdRef.current),
+                  ),
+              ).pipe(Effect.flatMap(() => Effect.never)),
             ),
             Effect.sync(() => isDragging),
           )

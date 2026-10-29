@@ -13,6 +13,7 @@ import type {
   ResolveCompositionOutput,
 } from './deferredPolicy.js'
 import type { DefinedUpdate, DefinedUpdateSource } from './definition.js'
+import type { StepContextHint } from './focusedStep.js'
 import {
   type AnyBindingInitRecipe,
   type BindingInitRecipe,
@@ -655,6 +656,12 @@ type AuthoredMessageTag<Message> =
     ? Tag
     : never
 
+type AuthoredMessageForTag<
+  Message,
+  Bindings extends ReadonlyArray<AnyBinding>,
+  Tag,
+> = Extract<AuthoredMessage<Message, Bindings>, Readonly<{ _tag: Tag }>>
+
 type AuthoredUpdateHandler<
   Model,
   Message,
@@ -663,7 +670,7 @@ type AuthoredUpdateHandler<
   Output,
 > = (
   model: Update.CompositionInput<Model, RequirementsOfBindings<Bindings>>,
-  message: Extract<AuthoredMessage<Message, Bindings>, Readonly<{ _tag: Tag }>>,
+  message: AuthoredMessageForTag<Message, Bindings, Tag>,
 ) => Output
 
 type AuthoredUpdateResult<Model, Message, OutMessage, Output> = Output extends
@@ -686,8 +693,89 @@ type AuthoredUpdateCases<
     Bindings,
     Tag,
     Outputs[Tag]
-  >
+  > &
+    StepContextHint<
+      readonly [message: AuthoredMessageForTag<Message, Bindings, Tag>]
+    >
 } & {
+  readonly [Tag in keyof NoInfer<Outputs>]: IsAny<Outputs[Tag]> extends true
+    ? Readonly<{ 'Block update handlers cannot return any': never }>
+    : [Outputs[Tag]] extends [never]
+      ? Readonly<{ 'Block update handlers cannot return never': never }>
+      : AuthoredUpdateHandler<
+          Model,
+          Message,
+          Bindings,
+          Tag,
+          NoInfer<Outputs>[Tag] &
+            AuthoredUpdateResult<
+              Model,
+              DispatchMessage,
+              OutMessage,
+              NoInfer<Outputs>[Tag]
+            > &
+            ValidateAuthoredUpdate<
+              Model,
+              DispatchMessage,
+              OutMessage,
+              NoInfer<Outputs>[Tag],
+              Bindings
+            >
+        >
+}
+
+type ContextualUpdateCases<
+  Model,
+  Message,
+  Bindings extends ReadonlyArray<AnyBinding>,
+  DispatchMessage,
+  OutMessage,
+> = {
+  readonly [
+    Tag in AuthoredMessageTag<AuthoredMessage<Message, Bindings>>
+  ]: AuthoredUpdateHandler<
+    Model,
+    Message,
+    Bindings,
+    Tag,
+    | OwnedReturn<Model, DispatchMessage, OutMessage>
+    | AnyBindingInitRecipe
+    | Update.AnyResultRecipe
+  > &
+    StepContextHint<
+      readonly [message: AuthoredMessageForTag<Message, Bindings, Tag>]
+    >
+}
+
+type ContextualUpdateOutputs<
+  Model,
+  Message,
+  Bindings extends ReadonlyArray<AnyBinding>,
+  Cases,
+> = {
+  readonly [Tag in keyof Cases]: Cases[Tag] extends AuthoredUpdateHandler<
+    Model,
+    Message,
+    Bindings,
+    Tag,
+    infer Output
+  >
+    ? Output
+    : never
+}
+
+// NOTE: This repeats the handler validation in AuthoredUpdateCases on purpose.
+// Referencing one shared alias from both makeUpdate and withContext raises the
+// type count of the workspace-composition-4 type-performance fixture past its
+// budget, although that fixture never calls withContext.
+type ValidatedContextualUpdateCases<
+  Model,
+  Message,
+  Bindings extends ReadonlyArray<AnyBinding>,
+  Outputs,
+  DispatchMessage,
+  OutMessage,
+> = {
   readonly [Tag in keyof NoInfer<Outputs>]: IsAny<Outputs[Tag]> extends true
     ? Readonly<{ 'Block update handlers cannot return any': never }>
     : [Outputs[Tag]] extends [never]
@@ -794,27 +882,30 @@ type ValidDefineCompositionUpdate<
        *  the union of the handlers' result channels. */
       readonly withContext: <
         const Context extends ReadonlyArray<unknown>,
-        const Outputs extends Readonly<
-          Record<
-            AuthoredMessageTag<AuthoredMessage<Message, Bindings>>,
-            unknown
-          >
-        >,
+        const Cases,
       >(
         createCases: ContextualUpdateCasesFactory<
           Context,
-          AuthoredUpdateCases<
-            Model,
-            Message,
-            Bindings,
-            Outputs,
-            DispatchMessage,
-            OutMessage
-          > &
+          Cases &
+            ContextualUpdateCases<
+              Model,
+              Message,
+              Bindings,
+              DispatchMessage,
+              OutMessage
+            > &
+            ValidatedContextualUpdateCases<
+              Model,
+              Message,
+              Bindings,
+              ContextualUpdateOutputs<Model, Message, Bindings, NoInfer<Cases>>,
+              DispatchMessage,
+              OutMessage
+            > &
             Readonly<
               Record<
                 Exclude<
-                  keyof Outputs,
+                  keyof NoInfer<Cases>,
                   AuthoredMessageTag<AuthoredMessage<Message, Bindings>>
                 >,
                 never
@@ -829,11 +920,16 @@ type ValidDefineCompositionUpdate<
         Model,
         DispatchMessage,
         Context,
-        Outputs[keyof Outputs],
+        ContextualUpdateOutputs<Model, Message, Bindings, Cases>[keyof Cases],
         Bindings,
         PreserveSource
       > &
-        OperationOutputs<CaseOutputChannels<Bindings, Outputs>>
+        OperationOutputs<
+          CaseOutputChannels<
+            Bindings,
+            ContextualUpdateOutputs<Model, Message, Bindings, Cases>
+          >
+        >
     }
 
 /**

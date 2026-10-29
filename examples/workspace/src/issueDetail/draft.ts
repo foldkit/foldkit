@@ -1,22 +1,9 @@
 import { Option, Schema, String } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import { Issue, IssueDraft, IssueRevision, RetainedIssueDraft } from '../domain'
-import { type Model, SaveState } from './definition'
-
-export const draftFromIssue = (issue: typeof Issue.Type) =>
-  IssueDraft.make({
-    title: issue.title,
-    description: issue.description,
-    status: issue.status,
-    priority: issue.priority,
-    projectId: issue.projectId,
-    maybeAssigneeId: issue.maybeAssigneeId,
-    labelIds: issue.labelIds,
-  })
-
-export const revisionFromIssue = (issue: typeof Issue.Type) =>
-  IssueRevision.make({ version: issue.version, fields: draftFromIssue(issue) })
+import { isDraftNonEmpty } from '../commentComposer/draft'
+import { Issue, IssueDraft, revisionFromIssue } from '../domain'
+import { type Model, SaveState } from './model'
 
 export const CONFLICT_MESSAGE =
   'This issue changed while you were editing. Your draft is preserved. Reload the issue to use the latest version.'
@@ -24,62 +11,58 @@ export const CONFLICT_MESSAGE =
 const equivalentDraft = Schema.toEquivalence(IssueDraft)
 
 type ReconciliationState = Pick<
-  typeof Model.Type,
+  Model,
   'issueId' | 'baseline' | 'draft' | 'maybeIncomingRevision' | 'saveState'
 >
 
-export const isDirty = (state: ReconciliationState) =>
-  !equivalentDraft(state.draft, state.baseline.fields)
+export const isDirty = (model: ReconciliationState) =>
+  !equivalentDraft(model.draft, model.baseline.fields)
 
-export const latestRevision = (state: ReconciliationState) =>
-  Option.getOrElse(state.maybeIncomingRevision, () => state.baseline)
+export const latestRevision = (model: ReconciliationState) =>
+  Option.getOrElse(model.maybeIncomingRevision, () => model.baseline)
 
-export const reconcileIssue = (
-  state: ReconciliationState,
-  issue: typeof Issue.Type,
-): ReconciliationState => {
+export const reconcileIssue = (model: Model, issue: Issue) => {
   if (
-    issue.id !== state.issueId ||
-    issue.version <= latestRevision(state).version
+    issue.id !== model.issueId ||
+    issue.version <= latestRevision(model).version
   ) {
-    return state
+    return model
   }
 
-  const incoming = revisionFromIssue(issue)
+  const incomingRevision = revisionFromIssue(issue)
 
-  const isEditing = isDirty(state)
-  const matchesDraft = equivalentDraft(incoming.fields, state.draft)
+  const isDraftDirty = isDirty(model)
+  const isDraftMatch = equivalentDraft(incomingRevision.fields, model.draft)
   const isCompatible =
-    equivalentDraft(incoming.fields, state.baseline.fields) || matchesDraft
+    equivalentDraft(incomingRevision.fields, model.baseline.fields) ||
+    isDraftMatch
 
-  if (isEditing && !isCompatible) {
-    return modifyFields(state, {
-      maybeIncomingRevision: () => Option.some(incoming),
+  if (isDraftDirty && !isCompatible) {
+    return modifyFields(model, {
+      maybeIncomingRevision: () => Option.some(incomingRevision),
     })
   }
 
-  return modifyFields(state, {
-    baseline: () => incoming,
-    draft: draft => (isEditing ? draft : incoming.fields),
+  return modifyFields(model, {
+    baseline: () => incomingRevision,
+    draft: draft => (isDraftDirty ? draft : incomingRevision.fields),
     maybeIncomingRevision: () => Option.none(),
     saveState: saveState =>
-      SaveState.guards.Saving(saveState) || (isEditing && !matchesDraft)
+      SaveState.guards.Saving(saveState) || (isDraftDirty && !isDraftMatch)
         ? saveState
         : SaveState.Idle(),
   })
 }
 
-export const maybeRetainedDraft = (
-  model: typeof Model.Type,
-  commentBody: string,
-) =>
-  isDirty(model) || String.isNonEmpty(commentBody)
-    ? Option.some(
-        RetainedIssueDraft.make({
-          issueId: model.issueId,
-          baseline: model.baseline,
-          draft: model.draft,
-          commentBody,
-        }),
-      )
-    : Option.none()
+export const maybeDraftSummary = (model: Model) => {
+  if (!isDirty(model) && !isDraftNonEmpty(model.commentComposer)) {
+    return Option.none()
+  }
+
+  const title = String.trim(model.draft.title)
+
+  return Option.some({
+    issueId: model.issueId,
+    title: String.isEmpty(title) ? model.baseline.fields.title : title,
+  })
+}

@@ -7,8 +7,9 @@ const Model = Schema.Struct({
   maybeData: Schema.Option(Schema.Array(Schema.String)),
   maybeError: Schema.Option(Schema.String),
 })
+type Model = typeof Model.Type
 
-const impossibleModel: typeof Model.Type = {
+const impossibleModel: Model = {
   isLoading: true,
   maybeData: Option.some(['Current data']),
   maybeError: Option.some('The request failed'),

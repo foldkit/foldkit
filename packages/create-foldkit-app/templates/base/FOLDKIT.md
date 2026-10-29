@@ -42,7 +42,7 @@ Then replace this file whole. Foldkit's conventions change with its APIs, and a 
 
 ## Project Conventions
 
-- Name a concrete typed Block authoring value `<BlockId>Definition`, such as `SearchDefinition = Block.makeDefinition('Search', ...)` and `ApplicationDefinition = Block.makeDefinition('Application', ...)`. Keep the runtime ID unchanged. Name the corresponding Composition `<BlockId>Composition` or `ApplicationComposition`. Export ordinary completed values as `SearchBlock` and `ApplicationBlock`; a generic factory returns an exact completed Block that its caller names locally.
+- Name a concrete typed Block authoring value `<BlockId>Definition`, such as `SearchDefinition = Block.makeDefinition('Search', ...)` and `ApplicationDefinition = Block.makeDefinition('Application', ...)`. Keep the runtime ID unchanged. Name the corresponding Composition `<BlockId>Composition` or `ApplicationComposition`. Export ordinary completed values as `SearchBlock` and `ApplicationBlock`; a generic UI factory uses `makeBlock` and returns an exact completed Block that its caller names locally. Declare it once at module scope, then bind that value into the parent.
 - Foldkit is tightly coupled to the Effect ecosystem. Do not suggest solutions outside of Effect-TS.
 - Model fields must be Schema types (the model is a schema). Plain TypeScript types are fine elsewhere (function return types, local variables, etc.).
 - Use full names like `Message` (not `Msg`), and `withReturnType` (not `as const` or type casting).
@@ -61,6 +61,8 @@ Use `AsyncData` directly when the owning Block's Messages and Commands participa
 
 Experimental Query and KeyedQuery values are completed viewless Blocks. Bind them with the same parent `makeBinding` method and include the Binding under `bindings`; use the Binding's `requestReset`, `requestRevalidation`, `requestRevalidationOrLoad`, and `requestLoadIfMissing` operations. The Query value itself retains direct `read` and `run` conveniences. Query preserves Fetch identity, handler completeness, host delegation, constructor errors and Service requirements, request generations, stale-response protection, and cache-key typing through standard Block composition. KeyedQuery entries are cache data inside one child Model, not keyed Block instances. A canonical Query supplies `query.EffectsLayer`; a host-owned Query omits `handler` and is completed with `query.provideHandlers(query.toLayer(...))` before binding.
 
+For age-aware reuse, configure `staleTime` and call the Binding's `requestLoadIfStale(args, nowMillis)` (omit `args` for ordinary Query). Obtain `nowMillis` from Effect Clock through a Command or Subscription Message. Expiry affects reuse without deleting retained display data. KeyedQuery's optional `maxSettledEntries` bounds settled entries by request and completion recency; pending entries are protected. Use `pendingArgs` and targeted `requestCancel` for obsolete requests. Opt into `notifyOnCompletion: true` and handle accepted results through the Binding's OutMessage policy when the parent coordinates further work. Keep URL, debounce, page planning, and provider-specific cooldown policy in the application; derive displayed data from `read` instead of copying it to another canonical cache. Consult the installed Query guide for the cancellation and retention limits.
+
 ### State ownership
 
 Keep the canonical domain data with its owner. Give each editor its own baseline, draft, and submission state. A baseline is an intentional historical value; current display data such as comments belongs in view inputs. Use update context (`delivery.toUpdateContext`) for current parent data needed while handling a Message. Use an `inform*` operation when an external event requires the child to transition, return a Command, or emit an OutMessage. Changing inputs or context does not dispatch a Message. Avoid acknowledgement informs that repeat a transition the child already performed.
@@ -68,6 +70,8 @@ Keep the canonical domain data with its owner. Give each editor its own baseline
 Build around the application's requirements and normal user workflows, including reasonable failure and retry behavior. Introduce abstractions for concrete repeated responsibilities; unusual event combinations do not by themselves justify additional framework APIs or application orchestration.
 
 Independent interactions need independent pending and failure state. A project save should not block an unrelated issue move or share feedback that a background response can clear. Keep exclusivity explicit when operations really must serialize.
+
+For a multi-state flow whose legal transitions need real tracing, consider experimental `Machine`. Bind its Schemas once with `Machine.makeDefinition({ State, Message, Context? })`, destructure the Definition helpers, and finish the checked transition table with `makeMachine`. Machine Context is read-only input, not stored state; there is no Composition stage. See the [Machine guide](https://foldkit.dev/core/machine) and `repos/foldkit/examples/state-machine/` for the complete pattern.
 
 Decide what navigation does to unfinished work. Repeated URL delivery or a refresh should not silently replace a dirty draft. Retaining a keyed editor lets its draft and pending save survive navigation. Removing its occurrence ends its lifecycle and invalidates later delivery; keep the owner present when its result must still update the application. Apply mutation results to the data that operation owns, so a delayed response cannot replace unrelated newer state.
 
@@ -85,11 +89,11 @@ const update = ApplicationComposition.makeUpdate({
 
 Use `makeUpdate({})` when there are no local Messages. Use `makeUpdate.withContext(context => cases)` for extra dispatch arguments. The factory runs for local dispatch, not routed child-only delivery. Keep purposeful parameter types for operation inputs and context; let owned callbacks infer Model, Message, returns, and Command requirements. Do not hide inference failures with casts or broad return annotations.
 
-Return ordinary handler results directly. Use Step helpers for reusable transitions, sequencing, OutMessage policies, or useful specialized shorthand; do not wrap every handler in `makeStep`. Steps can live in `update.ts` or an owning helper module as well as composition files. Colocate parent coordination with its Bindings and policies. Name an extracted single-Message handler `handle<MessageTag>` and pass it directly when its signature fits. Give every named Model-first Step value a descriptive name ending in `Step`, such as `refreshStep`. Give a purposeful transition factory that returns a Step an operation name ending in `Step` too. Factory methods, imported authoring helpers, named OutMessage folds and matchers, direct inline handlers, public operation keys, Message tags, and applied update-like results keep their established names. An existing compatible Model-first Step can be the record value, such as `ClickedOpenSearch: SearchBinding.requestOpen()` or `CompletedSave: makeNoopStep()`. Keep a callback when it adapts payloads, reads Model-dependent arguments, defers argument construction, supplies context, or is needed for contextual inference.
+Return ordinary handler results directly. Use Step helpers for reusable transitions, sequencing, OutMessage policies, or useful specialized shorthand; do not wrap every handler in `makeStep`. Name an extracted single-Message handler `handle<MessageTag>` and pass it directly when its signature fits. Give every named Model-first Step value a descriptive name ending in `Step`, such as `refreshStep`. Give a purposeful transition factory that returns a Step an operation name ending in `Step` too. Factory methods, imported authoring helpers, named OutMessage folds and matchers, direct inline handlers, public operation keys, Message tags, and applied update-like results keep their established names. An existing compatible Model-first Step can be the record value, such as `ClickedOpenSearch: SearchBinding.requestOpen()` or `CompletedSave: makeNoopStep()`. Keep a callback when it adapts payloads, reads Model-dependent arguments, defers argument construction, supplies context, or is needed for contextual inference.
 
 In a split feature, `definition.ts` exports the Step helpers used by its implementation, such as `export const { makeStep, makeFieldsStep, makeNoopStep } = FeatureDefinition`. Import those helpers by name in `update.ts`, policy modules, and other implementation files. A compact feature destructures them beside its Definition in the scope that uses them. Keep Definition-qualified calls when a module works with several Definitions and the qualifier identifies the owner. Keep authoring helpers out of the feature barrel; export the completed Block there.
 
-If one handler mixes connected Binding recipes with local results, author its local branches through Definition-owned Steps. A raw `{ model }` beside a connected recipe is rejected because it can erase channels. Generic Steps in a context factory may likewise need `model => step(model)` for inference. Ordinary raw-only handlers need no Step wrapper.
+If one handler mixes connected Binding recipes with local results, author its local branches through Definition-owned Steps. A raw `{ model }` beside a connected recipe is rejected because it can erase channels. Ordinary raw-only handlers need no Step wrapper.
 
 The update is dual: `update(model, message, ...context)` and `update(message)(model, ...context)`. The curried form is an internal Step. Record-authored updates retain each selected Message's Command and OutMessage contract; utilities inspecting the whole update retain their union. Extracted helpers must preserve those channels too. Avoid a fixed `Update.Return<Model, Message>` annotation on a Command-producing handler: its default requirement is `never`.
 
@@ -110,6 +114,8 @@ Choose the helper for the result the Step produces:
 | Conditional or composed results, initialization, connected operations, or combined channels | `Definition.makeStep(model => result)`            |
 
 All three focused helpers take producer callbacks. An ordinary producer receives the current Model and, in a Message-dependent handler, its exact Message. Use `.fromMessage(message => value)` for payload-only producers and `() => value` for fixed producers. Pass the returned compatible Step or handler directly to `makeUpdate`; keep cohesive mixed transitions as direct results.
+
+Use `makeStep.fromMessage(message => stepOrResult)` when the Message selects or constructs a composed Step or initialization recipe without reading the Model. Inline handler records infer the exact Message variant; extracted producers need a precise variant parameter annotation. The returned handler receives `(model, message)`, evaluates the producer on application, and passes the incoming Model to a returned Step. Keep ordinary `makeStep` for Model-aware producers and additional operation arguments. Close over dispatch context through `makeUpdate.withContext`. An inline Model-aware `makeStep` callback also infers the exact Message from its `makeUpdate` entry, including `.withContext` records. Extracted producers and additional operation arguments retain their precise parameter contracts.
 
 Step construction is passive. Producers run when applied. Commands-only and OutMessage-only helpers preserve the same Model object. Runtime executes effects later. An extracted Message-dependent producer needs a precise Message variant parameter when no surrounding handler record supplies it. Map payloads explicitly when constructing a different Message or OutMessage; do not forward its incoming `_tag` through a constructor reference.
 
@@ -137,7 +143,7 @@ Choose storage from the parent Schema:
 
 - An exact child or `Option<Child>` field uses `field`. `None` means absent; ordinary operations never create it. `presentWhen` gates the whole direct child; `subscriptions.when` gates only Streams.
 - A keyed array uses `field` and `key`, the name of a stable string or finite-number identity field. Wrapped arrays and an Option-wrapped instance also specify `childField`. Keyed identity does not imply multiple stored children.
-- Exact Record/HashMap storage uses `makeMapBinding` from `foldkit/mapBinding`. Use its field-derived key contract and preserve a separate ordered ID list when order matters.
+- Exact Record/HashMap storage uses `ParentDefinition.makeMapBinding(ChildBlock, { field })`. Add `childField` for a closed wrapper around the child Model. A split feature can export the destructured `makeMapBinding` from its `definition.ts`; import the factory from that owning module. Use its field-derived key contract and preserve a separate ordered ID list when order matters.
 - Custom unkeyed storage uses `read` and `write`. General keyed storage uses `readAll`, function `key`, exact `keySchema`, `read`, and `writeAt`.
 
 Placement identifies a relationship in the graph. Direct and map fields default it to their field; keyed arrays, keyed Options, and static accessors default to the child Block ID. The occurrence key identifies one child within a keyed relationship. Override placement only for a sibling collision or deliberate stable identity.
@@ -158,7 +164,7 @@ Include `forward` only when at least one child variant continues to this Block's
 
 ### Child initialization
 
-Keep child state retention, rendering, and activity as separate decisions. A Route change can select another view while retaining child Models in the parent. Store multiple retained editors by entity identity when navigating A to B to A should preserve both. A retained occurrence can still receive pending results; gate its Subscriptions or other activity explicitly when necessary. Remove child state for an application reason such as deletion or eviction. Use `initialize...IfMissing` for application Steps that preserve an existing occurrence and initialize only an absent identity.
+Keep child state retention, rendering, and activity as separate decisions. A Route change can select another view while retaining child Models in the parent. Store multiple retained editors by entity identity when navigating A to B to A should preserve both. A retained occurrence can still receive pending results; gate its Subscriptions or other activity explicitly when necessary. Remove child state for an application reason such as deletion or eviction. Use `init...IfMissingStep` for application Steps that preserve an existing occurrence and initialize only an absent identity.
 
 Author one `Composition.makeInit` with a concrete signature; optional, default, and rest arguments remain exact. Return parent-owned fields under `model`, optional root `commands`, and `steps` for transitions after child fields exist. An optional Definition `ChildInitContext` Schema describes shared data produced by parent init; each child's `init.contextToArgs` selects initializer arguments from that context. Return the value as `childInitContext`. It does not describe the parent's own init arguments.
 
@@ -172,9 +178,17 @@ Use the optional `foldkit/bindingInit` helpers when initialization only places t
 
 - `initAndSet` replaces a required or optional direct field, or a keyed Option wrapper containing only its key and child fields. Direct storage needs no startup policy. A custom unkeyed accessor can reuse its existing `init.toParentFields` projection.
 - `initAndAppend` appends an absent keyed array occurrence using an existing startup `init.instances` and `init.toItem` policy.
-- `initAndInsert` inserts an absent Record/HashMap key when `makeMapBinding` stores child Models directly.
+- `initAndInsert` inserts an absent Record/HashMap key when `ParentDefinition.makeMapBinding` stores child Models directly.
 
-All return passive recipes retaining child init Commands and registration requirements. Append and insert reject existing keys; an `initialize...IfMissing` Step owns any presence check. Keep explicit `Binding.init` for additional wrapper metadata, sibling changes, parent Commands, custom storage without a projection, array/map replacement, or a whole tagged variant. Do not add an unnecessary startup policy for a helper. Same-key reinitialization does not establish a fresh generation or cancel pending work.
+All return passive recipes retaining child init Commands and registration requirements. Append and insert reject existing keys. Keep explicit `Binding.init` for additional wrapper metadata, sibling changes, parent Commands, custom storage without a projection, array/map replacement, or a whole tagged variant. Do not add an unnecessary startup policy for a helper. Same-key reinitialization does not establish a fresh generation or cancel pending work.
+
+For Record/HashMap fields storing child Models directly, use `makeInitIfMissingStep(Binding, { key, args })` from the same module when existing children should be retained. It derives storage from the Binding and returns a connected Step. Applying it preserves the exact parent Model and emits no Commands for an existing key; an absent key initializes and inserts the child with its Commands. Both paths require the registered Binding. Pass the Step directly to `Update.combineSteps` or a compatible handler; use the owning `makeStep` when selecting or composing Steps. Keep entity lookup and handling of unknown URL IDs in the application.
+
+### Routing
+
+Parse the initial URL in init and later URLs in the `ChangedUrl` handler, then store a typed `ApplicationRoute` in the Model. Use `Route.parseUrlWithFallback` for a full `Url` and `Route.parsePathWithFallback` for an origin-relative path, including query parameters.
+
+When a query value represents a Route or another domain value, decode it through a Schema transformation passed to `Route.query`. Keep the application Route Schema plain so Model serialization carries the decoded value. Encode the value back to a string when building the URL. Rendering and selectors use the typed value directly.
 
 ### View
 
@@ -212,26 +226,34 @@ Handlers and services may own mutable execution bookkeeping, such as worker avai
 
 ### File organization
 
+Keep a Step used by only one responsibility with that code. Put reusable Steps shared by update, composition, or init in the owning Block's `steps.ts`. For a larger module, use responsibility files such as `steps/search.ts` and `steps/quoteLoading.ts`, with an explicit `steps/index.ts` barrel. The owner is the Block whose Model the Step transforms. Keep shared Steps independent of the owning update and completed Block.
+
+`update.ts` maps incoming Messages to handlers and Steps. `composition.ts` registers relationships and maps child OutMessages to parent Steps. `steps.ts` owns the reusable transitions those entry points share. Keep Binding registration and OutMessage policy in composition, and retain the `Step` suffix on named Steps. A Step that closes over a Binding from composition must read it in a deferred producer when the modules depend on one another; module initialization must not invoke that Binding.
+
 When using Tailwind, keep reusable static control recipes in the stylesheet's `@layer components`, where ordinary utilities can override them. Use `@utility` when adding an actual utility that needs variants. Keep `clsx` for conditional classes. Avoid a TypeScript module whose only job is assembling and exporting static class strings.
 
-Keep a compact feature together. Split when a responsibility has a distinct reason to change and a meaningful name; do not add one file per Message or helper. Keep domain Schemas and pure domain operations in `domain/`, independent of Model, update, and view modules.
+Name each child feature folder after its completed Block in camelCase: `IssueBoardBlock` lives in `issueBoard/`. A compact child keeps its entire implementation in the matching `issueBoard.ts`. Once any structural responsibility is extracted, use the complete split layout and remove `issueBoard.ts`; do not leave it combining init, assembly, or other pieces.
+
+Split additional behavior by responsibility; do not add one file per Message or helper. Keep reusable domain Schemas and pure domain operations in `domain/`, independent of Model, update, and view. Feature-specific pure Schemas and helpers can stay with the responsibility that uses them.
 
 A genuinely compact root lives in `application.ts`. Once the root is split, use the complete split layout:
 
-- `model.ts`, `message.ts`, `init.ts`, `update.ts`, and `view.ts` own their named responsibilities; use `view/` or `update/` when substantial behavior warrants it.
-- `definition.ts` contains the early contracts and `ApplicationDefinition` when its authoring methods are used. Otherwise chain the Definition factory into the Composition declaration and remove the empty file.
+- `model.ts`, `message.ts`, optional `outMessage.ts`, `init.ts`, `update.ts`, and `view.ts` own their named responsibilities; use `view/` or `update/` when substantial behavior warrants it.
+- `definition.ts` imports the Model, Message, optional OutMessage, and optional ChildInitContext Schemas from their own files, creates `ApplicationDefinition`, and exports the authoring helpers used by its implementation. Otherwise chain the Definition factory into the Composition declaration and remove the empty file.
 - `composition.ts` owns Bindings, parent OutMessage policy, child/Mount registration, `ApplicationComposition`, and its optional builder alias. It does not import root init, update, view, or the completed Block.
 - `block.ts` imports those implementations and assembles `ApplicationBlock`. Remove an emptied `application.ts`; do not retain it as an aggregation wrapper.
 - Commands belong to the feature whose update returns them. Keep small definitions alongside update or use feature-local `command.ts`. Compose local recipes there; extract `layer.ts` when the bundle is substantial or reused.
 - `services.ts` supplies the root `ApplicationLayer` of ordinary Services. `entry.ts` chooses the Program host options, provides that Layer, and starts the Runtime. A test provider is `ApplicationTestLayer`.
 
-A split child follows the same Definition, Composition, implementation, and assembly direction. Keep `FooDefinition` only when its authoring members are used. The final `block.ts` may compose a small local EffectsLayer. Shared Mount definitions live in `mount.ts`. Feature barrels expose the completed Block; internal exports needed by siblings and tests do not widen that barrel.
+A split child uses the same named files and dependency direction. Keep `FooDefinition` only when its authoring members are used. The final `block.ts` may compose a small local EffectsLayer. Shared Mount definitions live in `mount.ts`. Each feature’s `index.ts` exports its completed Block; internal exports needed by siblings and tests do not widen that barrel.
 
 Extract substantial parent policy into `composition/<child>.ts`, with `composition/composition.ts` assembling the graph and `composition/index.ts` as an explicit barrel. Export extracted policies through child-name namespaces, such as `export * as Home from './home'`. Keep flat named exports for the Composition and straightforward local Bindings. Internal sibling imports can avoid barrel cycles; externally import through the public composition entry. Reciprocal policies remain together with deferred sibling calls. Do not move child policy into a generic utility module or duplicate registration lists.
 
-`index.ts` is always a barrel. Export intended names explicitly. Routine app annotations query `typeof Model.Type` inside the owner and `typeof ChildBlock.Model.Type` across a child boundary, with analogous Message and OutMessage queries. Keep aliases only for deliberate library contracts or useful generic, mapped, and conditional types, including the owner-specific ViewBuilder.
+`index.ts` is always a barrel. Export intended names explicitly. Declare each Schema's decoded type on the next line, with the same name and no blank line: `const Foo = Schema.Struct(...)` followed by `type Foo = typeof Foo.Type`. Export both when they belong to the module's public surface. Use `Foo` in decoded-value annotations and `typeof Foo` when an API needs the Schema type. Inside a feature, use its local Model, Message, and OutMessage aliases. Across a child boundary, derive a named alias from the completed Block, such as `type SearchModel = typeof SearchBlock.Model.Type`, without importing the child implementation. Let owned callbacks infer their parameters.
 
 Only entries start execution. Client rendering uses `Runtime.run`; SSR/SSG uses `Runtime.hydrate`. A client app references `entry.ts` from `index.html`. SSR/SSG instead names `ssr.clientEntry` in `vite.config.ts`, imports CSS there, and exports `renderDocument` from `entry.server.ts`; it has no source `index.html`. Keep passive definitions importable by tests and server rendering.
+
+When a server entry creates a long-lived `ManagedRuntime` or another resource, register an `import.meta.hot.dispose` callback in that entry to release it during development reloads. Keep the resource in the entry so its lifetime matches the callback.
 
 Use section headers only when a long file needs wayfinding. Use `// NOTE:` for a surprising browser or timing constraint; ordinary behavior should be clear from names and structure.
 
@@ -267,7 +289,7 @@ Use `Scene.Command.keepPending(Definition | instance)` when a real interaction m
 - Always use braces for control flow: `if (foo) { return true }`.
 - Use direct `value === undefined` and `value !== undefined` comparisons for undefined checks.
 - Use blank lines to show the phases of non-trivial control flow, and prefer a blank line when uncertain. Separate setup, a value read from the guard that consumes it, independent guards or validation cases, writes, and the final return. In a loop, give each skip, failure, or mutation condition its own visual paragraph. Keep statements together only when they form one operation or one explicit `if`/`else` chain. Preserve the required adjacency of a Composition and its ViewBuilder alias, and of `prepare` and its checked Block export. Formatting alone does not choose these logical boundaries; review them while authoring the code.
-- Name selectors for derived values (`visibleIssues`), pure transitions for the Model change they describe (`applyWorkspaceSnapshot`), and dedicated handlers `handle<MessageTag>`. Use `initialize...IfMissing` for conditional creation. Reserve `sync` and `observe` for actual synchronization or observation. Commands describe effects for Runtime; a Step only computes state and Commands.
+- Name selectors for derived values (`visibleIssues`), pure transitions for the Model change they describe (`applyWorkspaceSnapshot`), and dedicated handlers `handle<MessageTag>`. Use `init` for initialization functions, helpers, Steps and filenames, such as `initRoom`, `initRoomStep` and `init.ts`. Use `init...IfMissingStep` for conditional creation. Reserve `sync` and `observe` for actual synchronization or observation. Commands describe effects for Runtime; a Step only computes state and Commands.
 - Don't add inline comments to explain code. Use better names instead. Reserve `// NOTE:` for behavior that would mislead a careful reader.
 
 ## Message Layout
@@ -279,9 +301,10 @@ const Message = defineMessageUnion({
   ClickedSubmit: {},
   UpdatedEmail: { value: Schema.String },
 })
+type Message = typeof Message.Type
 ```
 
-When an explicit local annotation needs the decoded union, write `typeof Message.Type` directly. Definition, Composition, and completed Block helpers infer it from the Schema value, so do not add a routine colocated alias. Construct values through the namespace (`Message.ClickedSubmit()`) and handle local facts in the Composition's exhaustive `makeUpdate` record. Never destructure constructors from `Message` or `OutMessage`; the owning namespace stays visible at every call site.
+Keep the `Message` type alias immediately below its Schema, with no blank line, and use it in explicit annotations. Definition, Composition, and completed Block helpers infer owned callback parameters. Construct values through the namespace (`Message.ClickedSubmit()`) and handle local facts in the Composition's exhaustive `makeUpdate` record. Never destructure constructors from `Message` or `OutMessage`; the owning namespace stays visible at every call site.
 
 Keep each case's payload object on one line when it fits. Let Oxfmt wrap payloads that need more space, so the declaration remains easy to scan as one variant per line.
 

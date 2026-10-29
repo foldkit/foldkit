@@ -18,9 +18,9 @@ import type { Model } from '../model'
 import { cardView } from './card'
 
 const addCardForm = (
-  model: typeof Model.Type,
+  model: Model,
   columnId: string,
-  toParentMessage: (message: typeof Message.Type) => typeof Message.Type,
+  toParentMessage: (message: Message) => Message,
   h: ApplicationViewBuilder,
 ): Html => {
   const isAddingToThisColumn = Option.exists(
@@ -130,9 +130,9 @@ const dropPlaceholder = (h: ApplicationViewBuilder): Html =>
   ])
 
 const findDraggedCard = (
-  model: typeof Model.Type,
+  model: Model,
   draggedId: string,
-): Option.Option<typeof Card.Card.Type> =>
+): Option.Option<Card.Card> =>
   pipe(
     model.columns,
     Array.flatMap(({ cards }) => cards),
@@ -140,8 +140,8 @@ const findDraggedCard = (
   )
 
 const defaultCardElements = (
-  model: typeof Model.Type,
-  column: typeof Column.Column.Type,
+  model: Model,
+  column: Column.Column,
   draggable: RenderInfo['draggable'],
   h: ApplicationViewBuilder,
 ): ReadonlyArray<Html> =>
@@ -150,8 +150,8 @@ const defaultCardElements = (
   )
 
 const previewCardElements = (
-  model: typeof Model.Type,
-  column: typeof Column.Column.Type,
+  model: Model,
+  column: Column.Column,
   draggable: RenderInfo['draggable'],
   h: ApplicationViewBuilder,
 ): ReadonlyArray<Html> => {
@@ -204,10 +204,10 @@ const previewCardElements = (
 }
 
 export const columnView = (
-  model: typeof Model.Type,
-  column: typeof Column.Column.Type,
+  model: Model,
+  column: Column.Column,
   render: RenderInfo,
-  toParentMessage: (message: typeof Message.Type) => typeof Message.Type,
+  toParentMessage: (message: Message) => Message,
   h: ApplicationViewBuilder,
 ): Html => {
   const maybeCurrentDropTarget = maybeDropTarget(model.dragAndDrop)

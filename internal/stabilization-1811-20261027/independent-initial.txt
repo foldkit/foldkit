@@ -1,0 +1,23 @@
+# Independent #1811 source review
+
+## Verdict
+
+FINDING for exact commit `92e2926727eb498f93c375a9d0bbd63ef16e688a`, parent `d97860167b1df76fff407e16d3456839cd5c7ea3`.
+
+### P2: Resolve the same client output directory that Vite preview serves
+
+Location: `packages/vite-plugin-foldkit/src/ssr.ts:805-808`.
+
+`prerenderedPageMiddleware` resolves its file checks from `server.config.build.outDir`. Vite 8 preview instead resolves its static root from `server.config.environments.client.build.outDir`. The installed Vite implementation uses that environment-specific field at `dist/node/chunks/node.js:35776`; its config resolver constructs the top-level build options separately from the resolved environments.
+
+For a supported configuration with `build.outDir: 'dist'` and `environments.client.build.outDir: 'client-dist'`, Vite serves `client-dist/about/index.html`, but this middleware checks `dist/about/index.html`. The missing stat falls through to Vite's original HTML fallback, so `/about` still receives Home or a 404 while `/about/index.html` works. A stale file in the other directory can also influence the flat-HTML precedence decision incorrectly.
+
+Use the resolved client environment's output directory, matching Vite preview. Add an actual-preview regression with different top-level and client-environment output directories. The current test helper writes every fixture under `dist` and forces top-level `build.outDir: 'dist'`, so the existing cases cannot expose this mismatch.
+
+## Remaining review
+
+No additional actionable findings in the six-file committed delta. The middleware is otherwise narrow: it rewrites only eligible preview requests, respects configured proxies and custom application routing, leaves file serving and headers to Vite, and preserves query text. Reusing `renderTargetFor` rejects malformed escapes, encoded separators, drive designators, non-normalized/origin-changing paths and lexical output-directory escape before inspecting a target. It does not execute the server entry or change development/runtime/authoring APIs.
+
+The new no-JavaScript browser assertions exercise `/about`, `/about/`, `/about/index.html` and the actual generated navigation link, so hydration cannot conceal the reported initial-document error. The changeset and static-host guidance describe preview versus deployed-host ownership accurately.
+
+Review was read-only against exact committed objects, plus the installed Vite implementation to verify the preview contract. No tests, builds, benchmarks or browser sessions were rerun. `git diff --check` passes. No repository or external state was changed; only this temporary report was written.

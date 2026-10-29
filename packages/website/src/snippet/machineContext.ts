@@ -1,8 +1,10 @@
-const checkoutMachine = Machine.define({
-  state: CheckoutState,
-  message: Message,
-  context: Schema.Struct({ inventory: Inventory }),
-})({
+const CheckoutDefinition = Machine.makeDefinition({
+  State: CheckoutState,
+  Message,
+  Context: Schema.Struct({ inventory: Inventory }),
+})
+
+const checkoutMachine = CheckoutDefinition.makeMachine({
   initial: initialCheckout,
   states: checkoutTransitions,
 })

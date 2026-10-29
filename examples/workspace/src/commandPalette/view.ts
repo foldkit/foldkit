@@ -10,24 +10,25 @@ import {
   type CommandPaletteViewBuilder,
   DialogBinding,
 } from './composition'
-import { Message, type Model } from './definition'
+import { Message } from './message'
+import type { Model } from './model'
 import { SearchResult, searchResults } from './search'
 
 const ViewInputs = Schema.Struct({
   issues: Schema.Array(Issue),
   projects: Schema.Array(Project),
 })
+type ViewInputs = typeof ViewInputs.Type
 
 const INPUT_ID = 'workspace-command-search'
 const RESULTS_ID = 'workspace-command-results'
 
-const resultId = (result: typeof SearchResult.Type) =>
-  `workspace-command-${result.id}`
+const resultId = (result: SearchResult) => `workspace-command-${result.id}`
 
 // NOTE: Combobox anchors an overlay; palette results stay in the Dialog's layout.
 const searchInput = (
-  model: typeof Model.Type,
-  results: ReadonlyArray<typeof SearchResult.Type>,
+  model: Model,
+  results: ReadonlyArray<SearchResult>,
   initialFocus: RenderInfo['initialFocus'],
   h: CommandPaletteViewBuilder,
 ): Html => {
@@ -62,7 +63,6 @@ const searchInput = (
               h.Autocomplete('off'),
               h.OnKeyDownPreventDefault(key =>
                 Match.value(key).pipe(
-                  Match.withReturnType<Option.Option<typeof Message.Type>>(),
                   Match.when('ArrowDown', () =>
                     Option.some(
                       Message.PressedNextResult({
@@ -99,8 +99,8 @@ const searchInput = (
 }
 
 const resultList = (
-  model: typeof Model.Type,
-  results: ReadonlyArray<typeof SearchResult.Type>,
+  model: Model,
+  results: ReadonlyArray<SearchResult>,
   h: CommandPaletteViewBuilder,
 ): Html =>
   h.ul(
@@ -141,100 +141,102 @@ const resultList = (
     ),
   )
 
-export const view = CommandPaletteComposition.makeView.withInputs<
-  typeof ViewInputs.Type
->((model, viewInputs, h) => {
-  const results = searchResults(
-    model.query,
-    viewInputs.issues,
-    viewInputs.projects,
-  )
+export const view = CommandPaletteComposition.makeView.withInputs<ViewInputs>(
+  (model, viewInputs, h) => {
+    const results = searchResults(
+      model.query,
+      viewInputs.issues,
+      viewInputs.projects,
+    )
 
-  return h.block(
-    DialogBinding.embedView({
-      slotId: model.dialog.id,
-      model: model.dialog,
-      viewInputs: {
-        toView: ({
-          dialog,
-          backdrop,
-          panel,
-          title,
-          closeButton,
-          initialFocus,
-          isVisible,
-        }) =>
-          h.dialog(
-            [
-              ...dialog,
-              h.Class(
-                'fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none border-0 bg-transparent p-0 text-slate-700',
-              ),
-            ],
-            isVisible
-              ? [
-                  h.div([
-                    ...backdrop,
-                    h.Class('fixed inset-0 bg-slate-950/35 backdrop-blur-xs'),
-                  ]),
-                  h.div(
-                    [
-                      ...panel,
-                      h.Class(
-                        'dialog-surface relative mx-auto mt-[max(1.5rem,10dvh)] w-[calc(100vw-2rem)] max-w-xl overflow-hidden text-sm font-medium',
-                      ),
-                    ],
-                    [
-                      h.header(
-                        [
-                          h.Class(
-                            'flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4',
-                          ),
-                        ],
-                        [
-                          h.h2(
-                            [
-                              ...title,
-                              h.Class('text-base font-semibold text-slate-700'),
-                            ],
-                            ['Go to…'],
-                          ),
-                          h.button(
-                            [...closeButton, h.Class('button-compact')],
-                            ['Close search'],
-                          ),
-                        ],
-                      ),
-                      searchInput(model, results, initialFocus, h),
-                      resultList(model, results, h),
-                      ...Array.match(results, {
-                        onEmpty: () => [
-                          h.p(
-                            [
-                              h.Role('status'),
-                              h.Class(
-                                'px-5 py-10 text-center text-sm text-slate-500',
-                              ),
-                            ],
-                            ['No matching issues or projects.'],
-                          ),
-                        ],
-                        onNonEmpty: () => [],
-                      }),
-                      h.p(
-                        [
-                          h.Class(
-                            'border-t border-slate-100 bg-slate-50 px-5 py-3 text-xs font-medium text-slate-500',
-                          ),
-                        ],
-                        ['↑ ↓ to navigate · Enter to open · Esc to close'],
-                      ),
-                    ],
-                  ),
-                ]
-              : [],
-          ),
-      },
-    }),
-  )
-})
+    return h.block(
+      DialogBinding.embedView({
+        slotId: model.dialog.id,
+        model: model.dialog,
+        viewInputs: {
+          toView: ({
+            dialog,
+            backdrop,
+            panel,
+            title,
+            closeButton,
+            initialFocus,
+            isVisible,
+          }) =>
+            h.dialog(
+              [
+                ...dialog,
+                h.Class(
+                  'fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none border-0 bg-transparent p-0 text-slate-700',
+                ),
+              ],
+              isVisible
+                ? [
+                    h.div([
+                      ...backdrop,
+                      h.Class('fixed inset-0 bg-slate-950/35 backdrop-blur-xs'),
+                    ]),
+                    h.div(
+                      [
+                        ...panel,
+                        h.Class(
+                          'dialog-surface relative mx-auto mt-[max(1.5rem,10dvh)] w-[calc(100vw-2rem)] max-w-xl overflow-hidden text-sm font-medium',
+                        ),
+                      ],
+                      [
+                        h.header(
+                          [
+                            h.Class(
+                              'flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4',
+                            ),
+                          ],
+                          [
+                            h.h2(
+                              [
+                                ...title,
+                                h.Class(
+                                  'text-base font-semibold text-slate-700',
+                                ),
+                              ],
+                              ['Go to…'],
+                            ),
+                            h.button(
+                              [...closeButton, h.Class('button-compact')],
+                              ['Close search'],
+                            ),
+                          ],
+                        ),
+                        searchInput(model, results, initialFocus, h),
+                        resultList(model, results, h),
+                        ...Array.match(results, {
+                          onEmpty: () => [
+                            h.p(
+                              [
+                                h.Role('status'),
+                                h.Class(
+                                  'px-5 py-10 text-center text-sm text-slate-500',
+                                ),
+                              ],
+                              ['No matching issues or projects.'],
+                            ),
+                          ],
+                          onNonEmpty: () => [],
+                        }),
+                        h.p(
+                          [
+                            h.Class(
+                              'border-t border-slate-100 bg-slate-50 px-5 py-3 text-xs font-medium text-slate-500',
+                            ),
+                          ],
+                          ['↑ ↓ to navigate · Enter to open · Esc to close'],
+                        ),
+                      ],
+                    ),
+                  ]
+                : [],
+            ),
+        },
+      }),
+    )
+  },
+)

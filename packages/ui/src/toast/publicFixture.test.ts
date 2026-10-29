@@ -11,10 +11,12 @@ import { describe, it } from '@effect/vitest'
 import * as Toast from './index.js'
 
 const FirstPayload = Schema.Struct({ body: Schema.String })
+type FirstPayload = typeof FirstPayload.Type
 const SecondPayload = Schema.Struct({ count: Schema.Number })
+type SecondPayload = typeof SecondPayload.Type
 
-const FirstToast = Toast.make(FirstPayload)
-const SecondToast = Toast.make(SecondPayload)
+const FirstToast = Toast.makeBlock(FirstPayload)
+const SecondToast = Toast.makeBlock(SecondPayload)
 
 const ParentModel = Schema.Struct({
   left: FirstToast.Model,
@@ -26,6 +28,7 @@ type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({
   RequestedShowAll: {},
 })
+type ParentMessage = typeof ParentMessage.Type
 
 const ToastFixtureParentDefinition = Block.makeDefinition(
   'ToastFixtureParent',
@@ -100,11 +103,13 @@ const KeyedToastSlot = Schema.Struct({
   key: Schema.String,
   toast: FirstToast.Model,
 })
+type KeyedToastSlot = typeof KeyedToastSlot.Type
 const KeyedParentModel = Schema.Struct({
   slots: Schema.Array(KeyedToastSlot),
 })
 type KeyedParentModel = typeof KeyedParentModel.Type
 const KeyedParentMessage = defineMessageUnion({ RequestedShow: {} })
+type KeyedParentMessage = typeof KeyedParentMessage.Type
 const KeyedToastFixtureParentDefinition = Block.makeDefinition(
   'KeyedToastFixtureParent',
   {

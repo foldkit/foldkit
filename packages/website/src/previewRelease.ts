@@ -7,15 +7,12 @@ export const PreviewRelease = Schema.Struct({
   uploadTag: Schema.NonEmptyString,
   packages: Schema.Record(Schema.String, Schema.NonEmptyString),
 })
+export type PreviewRelease = typeof PreviewRelease.Type
 
-export const decodePreviewRelease = (
-  encoded: string,
-): typeof PreviewRelease.Type =>
+export const decodePreviewRelease = (encoded: string): PreviewRelease =>
   Schema.decodeUnknownSync(PreviewRelease)(JSON.parse(encoded))
 
-export const scaffoldCommand = (
-  release: typeof PreviewRelease.Type,
-): string => {
+export const scaffoldCommand = (release: PreviewRelease): string => {
   const version = release.packages['create-foldkit-app']
 
   if (version === undefined) {

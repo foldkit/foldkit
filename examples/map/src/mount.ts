@@ -6,15 +6,21 @@ import { ApplicationDefinition } from './definition'
 import { featuredLocations } from './locations'
 import { MapRegistry } from './mapRegistry'
 import { Message } from './message'
+import type {
+  ClickedMarker,
+  FailedMountMap,
+  MovedMap,
+  SucceededMountMap,
+} from './message'
 import type { Bounds } from './model'
 
 const INITIAL_MAP_ZOOM = 1
 
 type MountMapMessage =
-  | typeof Message.SucceededMountMap.Type
-  | typeof Message.FailedMountMap.Type
-  | typeof Message.MovedMap.Type
-  | typeof Message.ClickedMarker.Type
+  | SucceededMountMap
+  | FailedMountMap
+  | MovedMap
+  | ClickedMarker
 const toMapMountError = (error: unknown): Error =>
   error instanceof Error ? error : new Error(`Failed to mount map: ${error}`)
 
@@ -160,7 +166,7 @@ export const MountMap = ApplicationDefinition.makeMountStream('MountMap', {
       )
   },
 })
-const boundsFromMap = (map: MapInstance): typeof Bounds.Type => {
+const boundsFromMap = (map: MapInstance): Bounds => {
   const bounds = map.getBounds()
   return {
     west: bounds.getWest(),

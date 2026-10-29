@@ -13,12 +13,13 @@ const Model = Schema.Struct({
   acceptedTerms: Schema.Boolean,
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // A verb-first, past-tense Message carries the new checked state:
 
 const Message = defineMessageUnion({
   ToggledTerms: { isChecked: Schema.Boolean },
 })
+type Message = typeof Message.Type
 
 const TermsFormComposition = Block.makeDefinition('TermsForm', {
   Model,
@@ -44,9 +45,7 @@ const update = TermsFormComposition.makeUpdate({
 // Inside your view function, render the checkbox with Checkbox.view. It reads
 // the checked state from your Model and calls onToggle with the new state.
 const view = TermsFormComposition.makeView((model, h) => {
-  const checkboxView = (
-    attributes: Checkbox.CheckboxAttributes<typeof Message.Type>,
-  ) =>
+  const checkboxView = (attributes: Checkbox.CheckboxAttributes<Message>) =>
     h.div(
       [h.Class('flex flex-col gap-1')],
       [

@@ -29,6 +29,7 @@ type CompletedFetch<Data, Error> = Readonly<{
   _tag: 'CompletedFetch'
   generation: number
   result: Result.Result<Data, Error>
+  completedAtMillis?: number
 }>
 
 type QueryFetchHandler<Name extends string, Data, Error> = Command.Handler<
@@ -43,6 +44,7 @@ type KeyedCompletedFetch<Args, Data, Error> = Readonly<{
   generation: number
   requestKey: string
   result: Result.Result<Data, Error>
+  completedAtMillis?: number
 }>
 
 type KeyedQueryFetchHandler<
@@ -129,6 +131,7 @@ const stringNeedingDecode = Schema.String.pipe(
     }),
   ),
 )
+type stringNeedingDecode = typeof stringNeedingDecode.Type
 
 const stringNeedingEncode = Schema.flip(stringNeedingDecode)
 
@@ -171,6 +174,7 @@ describe('Query.define Schema inputs', () => {
   it('rejects Schema.Top data and error values', () => {
     const data: Schema.Top = Schema.Array(Note)
     const error: Schema.Top = Schema.String
+    type error = typeof error.Type
     expectTypeOf(data).not.toExtend<
       Schema.Codec<unknown, unknown, never, never>
     >()
@@ -648,6 +652,7 @@ describe('Query Model encoding', () => {
       notes: notes.Model,
       noteById: noteById.Model,
     })
+    type Model = typeof Model.Type
     const notesLoad = notes.requestRevalidationOrLoad(notes.init().model)
     const notesSettle = notes.update(
       notesLoad.model,
@@ -695,9 +700,11 @@ describe('Query Model encoding', () => {
 
 describe('Query Block binding', () => {
   const Model = Schema.Struct({ notes: notes.Model })
+  type Model = typeof Model.Type
   const Message = defineMessageUnion({
     ClickedLoad: {},
   })
+  type Message = typeof Message.Type
   const QueryParentDefinition = Block.makeDefinition('QueryParent', {
     Model,
     Message,
@@ -765,9 +772,11 @@ describe('Query Block binding', () => {
 
   it('binds one KeyedQuery Block whose entries remain cache data', () => {
     const KeyedModel = Schema.Struct({ notes: noteById.Model })
+    type KeyedModel = typeof KeyedModel.Type
     const KeyedMessage = defineMessageUnion({
       RequestedLoad: { noteId: Schema.String },
     })
+    type KeyedMessage = typeof KeyedMessage.Type
     const KeyedDefinition = Block.makeDefinition('KeyedQueryParent', {
       Model: KeyedModel,
       Message: KeyedMessage,
@@ -1444,6 +1453,7 @@ describe('Layer-backed Query handlers', () => {
       expect(completion).toEqual(
         layeredNotes.Message.CompletedFetch({
           generation: 4,
+          completedAtMillis: 0,
           result: Result.succeed(hello),
         }),
       )
@@ -1483,6 +1493,7 @@ describe('Layer-backed Query handlers', () => {
       expect(completion).toEqual(
         layeredNoteById.Message.CompletedFetch({
           args: { noteId: '1' },
+          completedAtMillis: 0,
           generation: 5,
           requestKey: noteRequestKey('1'),
           result: Result.succeed({ id: '1', body: 'hello' }),
@@ -1581,6 +1592,7 @@ describe('Query handler requirements', () => {
     expect(reset.model.data).toEqual(AsyncData.Idle())
 
     const ParentModel = Schema.Struct({ notes: served.Model })
+    type ParentModel = typeof ParentModel.Type
     const ParentDefinition = Block.makeDefinition('ServedNotesParent', {
       Model: ParentModel,
       Message: Schema.Never,
@@ -1712,6 +1724,7 @@ describe('Query types', () => {
     ).parameters.toEqualTypeOf<[]>()
 
     const KeyedParentModel = Schema.Struct({ notes: noteById.Model })
+    type KeyedParentModel = typeof KeyedParentModel.Type
     const KeyedParentDefinition = Block.makeDefinition(
       'TypedKeyedQueryParent',
       {

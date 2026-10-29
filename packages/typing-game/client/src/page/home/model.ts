@@ -6,14 +6,15 @@ export const HomeAction = Schema.Literals([
   'JoinRoom',
   'ChangeUsername',
 ])
+export type HomeAction = typeof HomeAction.Type
 
-export const HOME_ACTIONS: ReadonlyArray<typeof HomeAction.Type> = [
+export const HOME_ACTIONS: ReadonlyArray<HomeAction> = [
   'CreateRoom',
   'JoinRoom',
   'ChangeUsername',
 ] as const
 
-export const homeActionToLabel = Match.type<typeof HomeAction.Type>().pipe(
+export const homeActionToLabel = Match.type<HomeAction>().pipe(
   Match.when('CreateRoom', () => 'Create room'),
   Match.when('JoinRoom', () => 'Join room'),
   Match.when('ChangeUsername', () => 'Change username'),
@@ -25,13 +26,18 @@ export const HomeStep = defineTaggedUnion({
   SelectAction: { username: Schema.String, selectedAction: HomeAction },
   EnterRoomId: { username: Schema.String, roomId: Schema.String },
 })
+export type HomeStep = typeof HomeStep.Type
+export type SelectActionHomeStep = typeof HomeStep.SelectAction.Type
+export type EnterUsernameHomeStep = typeof HomeStep.EnterUsername.Type
+export type EnterRoomIdHomeStep = typeof HomeStep.EnterRoomId.Type
 
 export const Model = Schema.Struct({
   homeStep: HomeStep,
   formError: Schema.Option(Schema.String),
 })
+export type Model = typeof Model.Type
 
-export const capturesKeyboard = (model: typeof Model.Type): boolean =>
+export const capturesKeyboard = (model: Model): boolean =>
   Match.value(model.homeStep).pipe(
     Match.tag('SelectAction', () => true),
     Match.orElse(() => false),

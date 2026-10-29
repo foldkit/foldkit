@@ -24,8 +24,9 @@ import {
   emptyBrowseFields,
   routeToBrowseFields,
 } from './route'
+import type { BrowseRoute } from './route'
 
-const columnOrders: Record<typeof SortColumn.Type, Order.Order<Dinosaur>> = {
+const columnOrders: Record<SortColumn, Order.Order<Dinosaur>> = {
   Name: Order.mapInput(Order.String, ({ name }) => name),
   Period: Order.mapInput(Order.String, ({ period }) => period),
   Diet: Order.mapInput(Order.String, ({ diet }) => diet),
@@ -45,10 +46,7 @@ const filterWhenSome =
     })
 
 const sortBySorting =
-  <A>(
-    sorting: typeof Sorting.Type,
-    orders: Record<typeof SortColumn.Type, Order.Order<A>>,
-  ) =>
+  <A>(sorting: Sorting, orders: Record<SortColumn, Order.Order<A>>) =>
   (items: ReadonlyArray<A>): ReadonlyArray<A> =>
     Sorting.match(sorting, {
       Unsorted: () => items,
@@ -73,10 +71,7 @@ const filterAndSort = (fields: BrowseFields): ReadonlyArray<Dinosaur> =>
     sortBySorting(fields.sorting, columnOrders),
   )
 
-const sortIndicator = (
-  column: typeof SortColumn.Type,
-  sorting: typeof Sorting.Type,
-): string =>
+const sortIndicator = (column: SortColumn, sorting: Sorting): string =>
   Match.value(columnSortDirection(sorting, column)).pipe(
     Match.when('Unsorted', () => ''),
     Match.when('Ascending', () => '↑'),
@@ -140,10 +135,7 @@ const dinosaurRowView = (dinosaur: Dinosaur, h: ApplicationViewBuilder): Html =>
     ],
   )
 
-const sortAriaLabel = (
-  column: typeof SortColumn.Type,
-  sorting: typeof Sorting.Type,
-): string =>
+const sortAriaLabel = (column: SortColumn, sorting: Sorting): string =>
   Match.value(columnSortDirection(sorting, column)).pipe(
     Match.when('Unsorted', () => `Sort by ${column}`),
     Match.when('Ascending', () => `Sort by ${column}, currently ascending`),
@@ -151,10 +143,7 @@ const sortAriaLabel = (
     Match.exhaustive,
   )
 
-const ariaSortValue = (
-  column: typeof SortColumn.Type,
-  sorting: typeof Sorting.Type,
-): string =>
+const ariaSortValue = (column: SortColumn, sorting: Sorting): string =>
   Match.value(columnSortDirection(sorting, column)).pipe(
     Match.when('Unsorted', () => 'none'),
     Match.when('Ascending', () => 'ascending'),
@@ -163,7 +152,7 @@ const ariaSortValue = (
   )
 
 const sortableColumnHeader = (
-  column: typeof SortColumn.Type,
+  column: SortColumn,
   displayLabel: string,
   fields: BrowseFields,
   isRightAligned: boolean,
@@ -283,8 +272,8 @@ const periodLabel = (item: string): string =>
   String.isEmpty(item) ? 'All Periods' : item
 
 const browseView = (
-  model: typeof Model.Type,
-  route: typeof ApplicationRoute.Browse.Type,
+  model: Model,
+  route: BrowseRoute,
   h: ApplicationViewBuilder,
 ): Html => {
   const fields = routeToBrowseFields(route)
@@ -493,7 +482,7 @@ const notFoundView = (path: string, h: ApplicationViewBuilder): Html =>
     ],
   )
 
-const routeTitle = (route: (typeof Model.Type)['route']): string =>
+const routeTitle = (route: Model['route']): string =>
   Match.value(route).pipe(
     Match.tag('Browse', () => 'Dinosaur Explorer'),
     Match.orElse(() => 'Not Found | Dinosaur Explorer'),

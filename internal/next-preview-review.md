@@ -1,5 +1,15 @@
 # Next preview review
 
+## Additional stabilization API review
+
+The optional `Definition.makeStep.fromMessage` adapter is verified against the
+current optimized preparation. Inline handlers infer their Message variant;
+extracted producers use a precise annotation. Both general Step forms reject
+invalid output union branches. The two matching consumers and active guidance
+are migrated. [Contracts, unchanged budgets, paired editor results and limits](message-step-adapter-20261027.md).
+Earlier release-wide evidence below retains its own source pins. Publication
+remains held for approval.
+
 ## Status
 
 The [October 26 approval summary](preview-approval-20261026.md) identifies frozen
@@ -84,3 +94,9 @@ Current Website hover/completion is 239/227 ms and Workspace Block completion is
 Workspace now retains per-ID editors and Boards, admits hidden save completions, applies parsed Routes without drag orchestration, repairs deleted saved-view return context, and organizes precise handlers and focused Steps. Shared controls use Tailwind component classes. The earlier default-Binding initialization prototype exceeded compiler ceilings and remains excluded. The new optional `foldkit/bindingInit` leaf passes the fixed budgets and is adopted at six eligible sites. The [transition cleanup report](workspace-transition-cleanup-20261025.md) records its earlier measurements. The subsequent [application simplification](workspace-simplification-20261025.md) removes the speculative drag API and navigation helper chain; current verification is recorded there. Earlier counts above describe their pinned snapshots.
 
 Use only the preview integration branch, never main. Verify the published package set and immutable deployment, then generate the PR’s three starting paths: stable migration, previous-preview upgrade and new project. Preserve the prior Ready snapshot until those gates pass. Update actual Coverchart against that exact verified snapshot, then provide announcement links. [Release handoff](next-preview-release-handoff.md).
+
+## Additional preview documentation scope
+
+Include Machine, Query/KeyedQuery and VirtualList in the next preview update, PR release notes and announcement handoff. Machine tests consistent Definition-based authoring alongside Blocks. Query and VirtualList support `foldkit-domains` and are separate from Block/Layer migration requirements. The user's October 28 clarification supersedes the earlier VirtualList announcement exclusion.
+
+PR #1633 and issue #1722 are integrated on the follow-up branch with targeted verification. [VirtualList scope, browser/editor evidence and limitations](virtual-list-preview-integration-20261027.md). The [Machine report](machine-authoring-20261027.md) and [Query report](keyed-query-capabilities-20261028.md) retain their own verification scope. Preserve the published Ready snapshot, the PR's three starting paths and the publication hold. Final integrated release checks must cover the committed candidate.

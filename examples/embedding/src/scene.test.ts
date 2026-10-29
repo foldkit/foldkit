@@ -4,7 +4,7 @@ import { describe, test } from 'vitest'
 
 import { Message, type Model, ReportCount, update, view } from './application'
 
-const initialModel: typeof Model.Type = { count: 10, step: 1 }
+const initialModel: Model = { count: 10, step: 1 }
 
 describe('view', () => {
   test('initial view shows the count, the tick description, and the advance button', () => {

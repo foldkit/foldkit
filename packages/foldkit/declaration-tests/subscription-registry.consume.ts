@@ -5,7 +5,9 @@ import {
   type ExactLayerProof,
   type RegistryLayer,
   aggregated,
+  gatedDependencies,
   lifted,
+  lowLevelGated,
   registryBlock,
 } from './subscription-registry.accepted.js'
 
@@ -31,4 +33,24 @@ export type LiftedKeysAreEntries = Expect<
 >
 export type BlockKeysAreEntries = Expect<
   Equal<keyof typeof registryBlock.subscriptions, 'clock' | 'logger'>
+>
+export type GatedProjectionIsExact = Expect<
+  Equal<
+    ReturnType<typeof gatedDependencies.count.modelToDependencies>,
+    Readonly<{ count: number }>
+  >
+>
+export type GatedKeepAliveReadIsExact = Expect<
+  Equal<
+    ReturnType<
+      Parameters<typeof gatedDependencies.retainedCount.dependenciesToStream>[1]
+    >,
+    Readonly<{ count: number }>
+  >
+>
+export type GatedHostContractIsExact = Expect<
+  Equal<
+    ReturnType<typeof lowLevelGated.clock.modelToDependencies>,
+    Record<string, never>
+  >
 >

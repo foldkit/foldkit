@@ -1,7 +1,7 @@
 import { Array, Schema } from 'effect'
 
 import { Issue, Project } from '../domain'
-import { ResultTarget } from './definition'
+import { ResultTarget } from './resultTarget'
 
 export const SearchResult = Schema.Struct({
   id: Schema.String,
@@ -9,14 +9,15 @@ export const SearchResult = Schema.Struct({
   description: Schema.String,
   target: ResultTarget,
 })
+export type SearchResult = typeof SearchResult.Type
 
 const MAX_RESULTS = 12
 
 export const searchResults = (
   query: string,
-  issues: ReadonlyArray<typeof Issue.Type>,
-  projects: ReadonlyArray<typeof Project.Type>,
-): ReadonlyArray<typeof SearchResult.Type> => {
+  issues: ReadonlyArray<Issue>,
+  projects: ReadonlyArray<Project>,
+): ReadonlyArray<SearchResult> => {
   const searchText = query.trim().toLowerCase()
 
   const matchingProjects = Array.filter(projects, project =>

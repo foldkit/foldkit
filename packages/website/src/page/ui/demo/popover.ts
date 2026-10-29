@@ -12,6 +12,8 @@ import {
   PopoverNestedParentDemoBinding,
 } from '../composition'
 
+type PopoverBlockModel = typeof PopoverBlock.Model.Type
+
 // DEMO CONTENT
 
 const triggerClassName = 'demo-neutral-button inline-flex items-center gap-1.5'
@@ -134,7 +136,7 @@ const popoverViewInputs = (
 }
 
 const labeledPopoverDemo = (
-  popoverModel: typeof PopoverBlock.Model.Type,
+  popoverModel: PopoverBlockModel,
   content: Html,
   h: UiViewBuilder,
 ): Array<Html> => [
@@ -151,7 +153,7 @@ const labeledPopoverDemo = (
 ]
 
 export const basicDemo = (
-  popoverModel: typeof PopoverBlock.Model.Type,
+  popoverModel: PopoverBlockModel,
   h: UiViewBuilder,
 ): Array<Html> =>
   labeledPopoverDemo(
@@ -167,7 +169,7 @@ export const basicDemo = (
   )
 
 export const animatedDemo = (
-  popoverModel: typeof PopoverBlock.Model.Type,
+  popoverModel: PopoverBlockModel,
   h: UiViewBuilder,
 ): Array<Html> =>
   labeledPopoverDemo(
@@ -183,7 +185,7 @@ export const animatedDemo = (
   )
 
 export const arrowDemo = (
-  popoverModel: typeof PopoverBlock.Model.Type,
+  popoverModel: PopoverBlockModel,
   h: UiViewBuilder,
 ): Array<Html> =>
   labeledPopoverDemo(
@@ -199,7 +201,7 @@ export const arrowDemo = (
   )
 
 const nestedChildPopover = (
-  childPopoverModel: typeof PopoverBlock.Model.Type,
+  childPopoverModel: PopoverBlockModel,
   h: UiViewBuilder,
 ): Html =>
   h.block(
@@ -248,8 +250,8 @@ const nestedChildPopover = (
   )
 
 export const nestedDemo = (
-  parentPopoverModel: typeof PopoverBlock.Model.Type,
-  childPopoverModel: typeof PopoverBlock.Model.Type,
+  parentPopoverModel: PopoverBlockModel,
+  childPopoverModel: PopoverBlockModel,
   h: UiViewBuilder,
 ) => {
   return [

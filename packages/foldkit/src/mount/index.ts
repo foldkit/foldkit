@@ -55,7 +55,6 @@ export class MountTracker extends Context.Service<
  *  it represents the current live Model. `Paused` means time travel has
  *  installed a historical view while the live application continues running. */
 export const ViewState = Schema.Literals(['Live', 'Paused'])
-
 /** The state of the DOM currently owned by the Foldkit renderer. */
 export type ViewState = typeof ViewState.Type
 

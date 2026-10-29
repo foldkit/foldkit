@@ -10,9 +10,10 @@ export const Column = Schema.Struct({
   name: Schema.String,
   cards: Schema.Array(CardSchema),
 })
+export type Column = typeof Column.Type
 
 const generateSortKeyAtIndex = (
-  cards: ReadonlyArray<typeof Card.Type>,
+  cards: ReadonlyArray<Card>,
   targetIndex: number,
 ): string => {
   const maybeBefore = Array.get(cards, targetIndex - 1)
@@ -30,11 +31,11 @@ const generateSortKeyAtIndex = (
 }
 
 export const removeCard = (
-  column: typeof Column.Type,
+  column: Column,
   cardId: string,
 ): {
-  readonly column: typeof Column.Type
-  readonly maybeCard: Option.Option<typeof Card.Type>
+  readonly column: Column
+  readonly maybeCard: Option.Option<Card>
 } => {
   const maybeCard = Array.findFirst(column.cards, ({ id }) => id === cardId)
   return {
@@ -46,10 +47,10 @@ export const removeCard = (
 }
 
 export const insertCard = (
-  column: typeof Column.Type,
-  card: typeof Card.Type,
+  column: Column,
+  card: Card,
   targetIndex: number,
-): typeof Column.Type => {
+): Column => {
   const sortKey = generateSortKeyAtIndex(column.cards, targetIndex)
   const updatedCard = modifyFields(card, { sortKey: () => sortKey })
   return modifyFields(column, {
@@ -62,10 +63,7 @@ export const insertCard = (
   })
 }
 
-export const appendCard = (
-  column: typeof Column.Type,
-  card: typeof Card.Type,
-): typeof Column.Type => {
+export const appendCard = (column: Column, card: Card): Column => {
   const sortKey = generateSortKeyAtIndex(column.cards, column.cards.length)
   return modifyFields(column, {
     cards: () => [
@@ -76,10 +74,10 @@ export const appendCard = (
 }
 
 const findCard = (
-  columns: ReadonlyArray<typeof Column.Type>,
+  columns: ReadonlyArray<Column>,
   containerId: string,
   cardId: string,
-): Option.Option<typeof Card.Type> =>
+): Option.Option<Card> =>
   pipe(
     columns,
     Array.findFirst(({ id }) => id === containerId),
@@ -89,12 +87,12 @@ const findCard = (
   )
 
 export const reorder = (
-  columns: ReadonlyArray<typeof Column.Type>,
+  columns: ReadonlyArray<Column>,
   itemId: string,
   fromContainerId: string,
   toContainerId: string,
   toIndex: number,
-): ReadonlyArray<typeof Column.Type> => {
+): ReadonlyArray<Column> => {
   if (fromContainerId === toContainerId) {
     return Array.map(columns, column => {
       if (column.id !== fromContainerId) {

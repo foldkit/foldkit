@@ -6,10 +6,16 @@ import * as Story from 'foldkit/story'
 import { Toast } from '@foldkit/ui'
 
 const ToastPayload = Schema.Struct({ body: Schema.String })
-const ToastBlock = Toast.make(ToastPayload)
+type ToastPayload = typeof ToastPayload.Type
+
+const ToastBlock = Toast.makeBlock(ToastPayload)
 
 const Model = Schema.Struct({ toast: ToastBlock.Model })
+type Model = typeof Model.Type
+
 const Message = defineMessageUnion({ RequestedShowToast: {} })
+type Message = typeof Message.Type
+
 const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,

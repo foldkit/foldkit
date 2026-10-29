@@ -11,3 +11,4 @@ export const Message = defineMessageUnion({
   SucceededSubmitForm: { name: Schema.String },
   FailedSubmitForm: {},
 })
+export type Message = typeof Message.Type

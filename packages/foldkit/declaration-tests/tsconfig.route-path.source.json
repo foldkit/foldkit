@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "foldkit": ["../src/index.ts"],
+      "foldkit/route": ["../src/route/public.ts"]
+    },
+    "rootDir": ".."
+  },
+  "include": [
+    "../src/vite-env.d.ts",
+    "route-path.accepted.ts",
+    "route-path.consume.ts",
+    "route-path.rejected.ts"
+  ]
+}

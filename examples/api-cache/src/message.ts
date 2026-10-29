@@ -21,3 +21,4 @@ export const Message = defineMessageUnion({
   },
   CompletedFetchStats: { result: Schema.Result(FetchedStats, Schema.String) },
 })
+export type Message = typeof Message.Type

@@ -103,8 +103,11 @@ const PrototypeOperationChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
 const Entry = Schema.Struct({ id: Schema.Number, child: ChildModel })
 type Entry = typeof Entry.Type
 const ChildSlot = Schema.TaggedStruct('Child', { child: ChildModel })
+type ChildSlot = typeof ChildSlot.Type
 const EmptySlot = Schema.TaggedStruct('Empty', {})
+type EmptySlot = typeof EmptySlot.Type
 const Slot = Schema.Union([ChildSlot, EmptySlot])
+type Slot = typeof Slot.Type
 const ParentModel = Schema.Struct({
   child: ChildModel,
   maybeChild: Schema.Option(ChildModel),
@@ -415,6 +418,7 @@ if (false) {
 const SingleParentMessage = defineMessageUnion({
   RequestedInvokePrototypeOperation: { value: Schema.String },
 })
+type SingleParentMessage = typeof SingleParentMessage.Type
 const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: ParentModel,
   Message: SingleParentMessage,
@@ -639,6 +643,7 @@ it('accepts shared named contracts and rejects incompatible contracts from that 
     child: ChildModel,
     unrelated: Schema.String,
   })
+  type IncompatibleParentModel = typeof IncompatibleParentModel.Type
   const IncompatibleDefinition = SharedParentNamespace.makeDefinition({
     Model: IncompatibleParentModel,
     Message: SingleParentMessage,

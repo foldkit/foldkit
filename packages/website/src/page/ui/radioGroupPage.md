@@ -6,9 +6,9 @@ A single-selection component with roving tabindex keyboard navigation. Arrow key
 
 ### State Ownership and Completed Type
 
-`RadioGroup.create()` and Blocks returned by `RadioGroup.create` keep their own keyboard-focus state, but the parent owns the selection. Store the selected value in your Model, pass it in as `selectedValue`, and fold the `Selected` OutMessage back into that field through the Binding’s selected `fold` policy. Both vertical and horizontal orientation are supported.
+`RadioGroup.makeBlock()` and Blocks returned by `RadioGroup.makeBlock` keep their own keyboard-focus state, but the parent owns the selection. Store the selected value in your Model, pass it in as `selectedValue`, and fold the `Selected` OutMessage back into that field through the Binding’s selected `fold` policy. Both vertical and horizontal orientation are supported.
 
-What `RadioGroup.create<Value>()` returns is typed [`Completed<Value>` from `@foldkit/ui/radioGroup`](/ui/selection-blocks#completed-type), for cases where a created Block has to be named.
+What `RadioGroup.makeBlock<Value>()` returns is typed [`Completed<Value>` from `@foldkit/ui/radioGroup`](/ui/selection-blocks#completed-type), for cases where a created Block has to be named.
 
 :::Info{label="See it in an app"}
 Check out how RadioGroup is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/radioGroup.ts).
@@ -18,9 +18,9 @@ Check out how RadioGroup is wired up in a [real Foldkit app](https://github.com/
 
 ### Vertical
 
-Declare the radio group once at module scope with `RadioGroup.create<Value>()` to lift the option type through `view` and `update` without casting. Read the current selection from your Model into `selectedValue`, pass the typed `options` array, and provide a `toView` callback that receives one `OptionInfo<Value>` per option (with attribute bundles for the option, label, and description).
+Declare the radio group once at module scope with `RadioGroup.makeBlock<Value>()` to lift the option type through `view` and `update` without casting. Read the current selection from your Model into `selectedValue`, pass the typed `options` array, and provide a `toView` callback that receives one `OptionInfo<Value>` per option (with attribute bundles for the option, label, and description).
 
-Connect the completed Block returned by `RadioGroup.create`, then store the value from the `Selected` OutMessage in the selected `fold` policy. Moving focus onto the newly selected option is the radio group's own concern. The fold maps the `FocusOption` Command into the parent Message type.
+Connect the completed Block returned by `RadioGroup.makeBlock`, then store the value from the `Selected` OutMessage in the selected `fold` policy. Moving focus onto the newly selected option is the radio group's own concern. The fold maps the `FocusOption` Command into the parent Message type.
 
 ::Demo{name="vertical"}
 
@@ -81,7 +81,7 @@ The group element receives `role="radiogroup"` and `aria-orientation`, plus `ari
 
 ### InitConfig {#init-config}
 
-Configuration passed to the Binding for the completed Block returned by `RadioGroup.create<Value>()`.
+Configuration passed to the Binding for the completed Block returned by `RadioGroup.makeBlock<Value>()`.
 
 | Name | Type     | Default | Description                                                                               |
 | ---- | -------- | ------- | ----------------------------------------------------------------------------------------- |
@@ -93,7 +93,7 @@ Pass the child Model as `model` and these fields as `viewInputs` to the composed
 
 | Name                   | Type                                       | Default      | Description                                                                                                                                                                                                                                                                                                     |
 | ---------------------- | ------------------------------------------ | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `options`              | `ReadonlyArray<Value>`                     | —            | The list of option values, in display order. When the radio group is declared via `RadioGroup.create<MyUnion>()`, `Value` is your union type and each `OptionInfo.value` is typed as `MyUnion`.                                                                                                                 |
+| `options`              | `ReadonlyArray<Value>`                     | —            | The list of option values, in display order. When the radio group is declared via `RadioGroup.makeBlock<MyUnion>()`, `Value` is your union type and each `OptionInfo.value` is typed as `MyUnion`.                                                                                                              |
 | `selectedValue`        | `Option<Value>`                            | —            | The current selection, owned by the parent Model and passed back in on each render. `aria-checked` and the `data-checked` marker derive from it, as does the roving tabindex whenever focus has not diverged. Update it in the Binding's selected `fold` policy. `Option.none()` renders with nothing selected. |
 | `ariaLabel`            | `string`                                   | —            | Accessible label for the radio group.                                                                                                                                                                                                                                                                           |
 | `toView`               | `(render: RenderInfo<Value>) => Html`      | —            | Callback that receives the `group` attribute bundle, one `OptionInfo<Value>` per option, the current `selectedValue`, and the `hiddenInput` attributes. Returns the composed layout.                                                                                                                            |
@@ -121,7 +121,7 @@ Each entry in `RenderInfo.options`. Carries the value, derived state flags, and 
 
 | Name          | Type                            | Default | Description                                                                                                                                                                                                                      |
 | ------------- | ------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `value`       | `Value`                         | —       | The option value. Typed as your `Value` union when the radio group is declared via `RadioGroup.create<Value>()`.                                                                                                                 |
+| `value`       | `Value`                         | —       | The option value. Typed as your `Value` union when the radio group is declared via `RadioGroup.makeBlock<Value>()`.                                                                                                              |
 | `index`       | `number`                        | —       | Position in the `options` array.                                                                                                                                                                                                 |
 | `isSelected`  | `boolean`                       | —       | Whether this option is currently selected.                                                                                                                                                                                       |
 | `isActive`    | `boolean`                       | —       | Whether this option owns the roving tabindex (the one in the tab order). Follows the modeled focus, so in a read-only group it tracks keyboard navigation rather than the selection.                                             |
@@ -135,6 +135,6 @@ Each entry in `RenderInfo.options`. Carries the value, derived state flags, and 
 
 Messages emitted to the parent through the optional `outMessage` field. Match on the OutMessage in the Binding’s selected `fold` policy.
 
-| Name       | Type                              | Default | Description                                                                                                                                                                                                                                                   |
-| ---------- | --------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Selected` | `{ value: Value; index: number }` | —       | Emitted when an option is committed via click or keyboard. Carries both the option's value (typed as your `Value` union via `RadioGroup.create<Value>()`) and its index. A read-only group never emits it. Handle it in the Binding's selected `fold` policy. |
+| Name       | Type                              | Default | Description                                                                                                                                                                                                                                                      |
+| ---------- | --------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Selected` | `{ value: Value; index: number }` | —       | Emitted when an option is committed via click or keyboard. Carries both the option's value (typed as your `Value` union via `RadioGroup.makeBlock<Value>()`) and its index. A read-only group never emits it. Handle it in the Binding's selected `fold` policy. |

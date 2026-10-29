@@ -13,10 +13,12 @@ const Model = Schema.Struct({
   popover: PopoverBlock.Model,
   isBadgeShown: Schema.Boolean,
 })
+type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
   ClickedToggleBadge: {},
 })
+type Message = typeof Message.Type
 
 const PopoverSiblingRuntimeTestDefinition = Block.makeDefinition(
   'PopoverSiblingRuntimeTest',

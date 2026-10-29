@@ -50,3 +50,4 @@ export const Model = Schema.Struct({
   exampleDetail: ExampleDetailBlock.Model,
   search: Search.SearchBlock.Model,
 })
+export type Model = typeof Model.Type

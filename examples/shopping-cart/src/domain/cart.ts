@@ -4,23 +4,21 @@ import { modifyFields } from 'foldkit/struct'
 import { CartItem, Item } from './item'
 
 export const Cart = Schema.Array(CartItem)
+export type Cart = typeof Cart.Type
 
 const hasItemId =
   (itemId: string) =>
-  (cartItem: typeof CartItem.Type): boolean =>
+  (cartItem: CartItem): boolean =>
     cartItem.item.id === itemId
 
-const mapCartItem = (
-  itemId: string,
-  f: (cartItem: typeof CartItem.Type) => typeof CartItem.Type,
-) =>
-  Array.map<typeof Cart.Type, typeof CartItem.Type>(cartItem =>
+const mapCartItem = (itemId: string, f: (cartItem: CartItem) => CartItem) =>
+  Array.map<Cart, CartItem>(cartItem =>
     hasItemId(itemId)(cartItem) ? f(cartItem) : cartItem,
   )
 
 export const addItem =
-  (item: typeof Item.Type) =>
-  (cart: typeof Cart.Type): typeof Cart.Type => {
+  (item: Item) =>
+  (cart: Cart): Cart => {
     const existingCartItem = Array.findFirst(cart, hasItemId(item.id))
 
     return Option.match(existingCartItem, {
@@ -37,7 +35,7 @@ export const addItem =
 
 export const removeItem =
   (itemId: string) =>
-  (cart: typeof Cart.Type): typeof Cart.Type =>
+  (cart: Cart): Cart =>
     Array.filter(cart, Predicate.not(hasItemId(itemId)))
 
 export const changeQuantity = (itemId: string, quantity: number) =>
@@ -60,20 +58,20 @@ export const incrementQuantity = (itemId: string) =>
 
 export const decrementQuantity =
   (itemId: string) =>
-  (cart: typeof Cart.Type): typeof Cart.Type =>
+  (cart: Cart): Cart =>
     changeQuantity(itemId, itemQuantity(itemId)(cart) - 1)(cart)
 
 export const itemQuantity =
   (itemId: string) =>
-  (cart: typeof Cart.Type): number =>
+  (cart: Cart): number =>
     pipe(
       cart,
-      Array.findFirst<typeof CartItem.Type>(hasItemId(itemId)),
+      Array.findFirst<CartItem>(hasItemId(itemId)),
       Option.match({
         onNone: () => 0,
         onSome: ({ quantity }) => quantity,
       }),
     )
 
-export const totalItems = (cart: typeof Cart.Type) =>
+export const totalItems = (cart: Cart) =>
   Array.reduce(cart, 0, (total, { quantity }) => total + quantity)

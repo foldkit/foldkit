@@ -1,1 +1,40 @@
-export * from './machine.js'
+export { fold } from './machine.js'
+export type {
+  DeadTransition,
+  DeadTransitionReason,
+  Edge,
+  EdgeGuard,
+  EdgeInput,
+  EdgeSummary,
+  FoldConfig,
+  GuardedEdge,
+  Ignore,
+  Ignored,
+  IgnoredReason,
+  Machine,
+  MachineReturn,
+  NoMachineContext,
+  Otherwise,
+  StateTransitions,
+  TagOf,
+  Tagged,
+  TransitionResult,
+  TransitionTable,
+  Transitioned,
+  Variant,
+  When,
+} from './machine.js'
+export { makeDefinition } from './definition.js'
+export type {
+  Definition,
+  GuardInput,
+  Handler,
+  MakeGuard,
+  MakeHandler,
+  MakeMachine,
+  MakeSharedTransitions,
+  MakeTransitions,
+  OtherwiseConstructor,
+  ToConstructor,
+  WhenConstructor,
+} from './definition.js'

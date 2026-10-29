@@ -4,7 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 import { Location, featuredLocations } from './locations'
 import { GeolocateState, type Model } from './model'
 
-export const initialModel: typeof Model.Type = {
+export const initialModel: Model = {
   locations: featuredLocations,
   searchQuery: '',
   maybeMapHostId: Option.none(),
@@ -15,11 +15,11 @@ export const initialModel: typeof Model.Type = {
   geolocateState: GeolocateState.Idle(),
 }
 
-export const mountedModel: typeof Model.Type = modifyFields(initialModel, {
+export const mountedModel: Model = modifyFields(initialModel, {
   maybeMapHostId: () => Option.some('map-host-1'),
 })
 
-export const eiffelTower: typeof Location.Type = {
+export const eiffelTower: Location = {
   id: 'eiffel-tower',
   name: 'Eiffel Tower',
   region: 'Paris, France',

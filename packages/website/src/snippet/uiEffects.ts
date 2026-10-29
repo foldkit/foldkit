@@ -10,7 +10,7 @@ export const DialogBinding = ApplicationDefinition.makeBinding(
   },
 ).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
-export const ApplicationMenu = Menu.create<string>()
+export const ApplicationMenu = Menu.makeBlock<string>()
 
 export const MenuBinding = ApplicationDefinition.makeBinding(ApplicationMenu, {
   field: 'menu',

@@ -1,0 +1,1291 @@
+{
+  "order": [
+    "baseline1",
+    "receiver-contracts1",
+    "receiver-contracts2",
+    "baseline2",
+    "baseline3",
+    "receiver-contracts3"
+  ],
+  "reports": [
+    {
+      "encoding": "baseline",
+      "sample": 1,
+      "metadata": {
+        "formatVersion": 5,
+        "measuredAt": "2026-10-27T04:28:50.291Z",
+        "sourceCommit": "f71d3db6cceb3c93943e1e1b65b2719e779168dc",
+        "sourceWorkloadDirty": false,
+        "workloadSha256": "56ddab0c7d3f92a00abce7815eeaf74ec0960dee48afe984bf1cc9bd18d3afec",
+        "lockfileSha256": "b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47",
+        "benchmarkScriptSha256": "2c30bd15da0d50c5ea7a0c61e9a22727657a3dfeed9b77c5159e5665598668a9",
+        "compilerPackageVersion": "7.1.0-beta",
+        "nativeCompilerPackage": "@typescript/typescript-darwin-arm64",
+        "server": {
+          "name": "typescript",
+          "version": "7.1.0-beta"
+        },
+        "nodeVersion": "v24.22.1",
+        "platform": "darwin",
+        "architecture": "arm64",
+        "runs": 1,
+        "scenario": "workspace",
+        "timeoutMs": 60000,
+        "completionSnippetSupport": true,
+        "documentChangeMode": "Incremental ranges for workspace hover, completion and title diagnostics"
+      },
+      "measurements": [
+        {
+          "label": "workspace.bindingHover.first",
+          "latencyMs": 417.9,
+          "resultBytes": 1051,
+          "resultSha256": "0b928faac5febd07b390bd151a866703628f8cac5e8775a57f87947f50540613",
+          "documentVersion": 1,
+          "sourceSha256": "1ef5ad93b910784a14d698ac3c80bd3a39c23fccc5f271733ddeda04fa296cd9"
+        },
+        {
+          "label": "workspace.bindingHover.warm",
+          "latencyMs": 0.453,
+          "resultBytes": 1051,
+          "resultSha256": "0b928faac5febd07b390bd151a866703628f8cac5e8775a57f87947f50540613",
+          "documentVersion": 1,
+          "sourceSha256": "1ef5ad93b910784a14d698ac3c80bd3a39c23fccc5f271733ddeda04fa296cd9"
+        },
+        {
+          "label": "workspace.bindingHover.postWhitespace",
+          "latencyMs": 316.25,
+          "resultBytes": 1051,
+          "resultSha256": "0b928faac5febd07b390bd151a866703628f8cac5e8775a57f87947f50540613",
+          "documentVersion": 2,
+          "sourceSha256": "a994cd6082b979c01c0ec01134d59f084f2cb218990e3ef3827fa7d75978d649"
+        },
+        {
+          "label": "workspace.bindingHover.postWhitespaceWarm",
+          "latencyMs": 0.482,
+          "resultBytes": 1051,
+          "resultSha256": "0b928faac5febd07b390bd151a866703628f8cac5e8775a57f87947f50540613",
+          "documentVersion": 2,
+          "sourceSha256": "a994cd6082b979c01c0ec01134d59f084f2cb218990e3ef3827fa7d75978d649"
+        },
+        {
+          "label": "workspace.bindingCompletion.first",
+          "latencyMs": 388.33,
+          "resultCount": 7,
+          "resultBytes": 1533,
+          "resultSha256": "cf0a32c807354df095f09968ccb95255d75680aa6dbecf8e5c264911f9dfefa3",
+          "documentVersion": 1,
+          "sourceSha256": "74387db9a572f3eec751d3a9943f4906cfbb7586dc6ecbbb4d5406a55fd6161f"
+        },
+        {
+          "label": "workspace.bindingCompletion.warm",
+          "latencyMs": 0.446,
+          "resultCount": 7,
+          "resultBytes": 1533,
+          "resultSha256": "cf0a32c807354df095f09968ccb95255d75680aa6dbecf8e5c264911f9dfefa3",
+          "documentVersion": 1,
+          "sourceSha256": "74387db9a572f3eec751d3a9943f4906cfbb7586dc6ecbbb4d5406a55fd6161f"
+        },
+        {
+          "label": "workspace.bindingCompletion.postWhitespace",
+          "latencyMs": 310.327,
+          "resultCount": 7,
+          "resultBytes": 1533,
+          "resultSha256": "cf0a32c807354df095f09968ccb95255d75680aa6dbecf8e5c264911f9dfefa3",
+          "documentVersion": 2,
+          "sourceSha256": "41fba7577bf3ea9118b52a7aba550a58929fdccd3af63f3f69dd2caa45945027"
+        },
+        {
+          "label": "workspace.bindingCompletion.postWhitespaceWarm",
+          "latencyMs": 0.436,
+          "resultCount": 7,
+          "resultBytes": 1533,
+          "resultSha256": "cf0a32c807354df095f09968ccb95255d75680aa6dbecf8e5c264911f9dfefa3",
+          "documentVersion": 2,
+          "sourceSha256": "41fba7577bf3ea9118b52a7aba550a58929fdccd3af63f3f69dd2caa45945027"
+        },
+        {
+          "label": "workspace.blockCompletion.first",
+          "latencyMs": 151.443,
+          "resultCount": 17,
+          "resultBytes": 3288,
+          "resultSha256": "67db8c467d64429a2007202b6555a2144b4fc8af2ff3b388000ede7b627b2955",
+          "documentVersion": 1,
+          "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+        },
+        {
+          "label": "workspace.blockCompletion.warm",
+          "latencyMs": 0.394,
+          "resultCount": 17,
+          "resultBytes": 3288,
+          "resultSha256": "67db8c467d64429a2007202b6555a2144b4fc8af2ff3b388000ede7b627b2955",
+          "documentVersion": 1,
+          "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+        },
+        {
+          "label": "workspace.blockCompletion.postWhitespace",
+          "latencyMs": 50.503,
+          "resultCount": 17,
+          "resultBytes": 3288,
+          "resultSha256": "67db8c467d64429a2007202b6555a2144b4fc8af2ff3b388000ede7b627b2955",
+          "documentVersion": 2,
+          "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+        },
+        {
+          "label": "workspace.blockCompletion.postWhitespaceWarm",
+          "latencyMs": 0.364,
+          "resultCount": 17,
+          "resultBytes": 3288,
+          "resultSha256": "67db8c467d64429a2007202b6555a2144b4fc8af2ff3b388000ede7b627b2955",
+          "documentVersion": 2,
+          "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+        },
+        {
+          "label": "workspace.diagnostics.clean",
+          "latencyMs": 294.243,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "b6fc60475196db7604a85c22ba890d59c4ad217a6b7974ecfd6913f9ccecccad",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "workspace.diagnostics.badTitle",
+          "latencyMs": 190.213,
+          "resultCount": 1,
+          "resultBytes": 286,
+          "resultSha256": "d226ec0596faf1206a265ef2fdcbddeebdcb4f48a1ddf5c2f75d091c5c16f879",
+          "documentVersion": 3,
+          "sourceSha256": "8ae9bae24f4b993fd71d9e119117d446b5eba22aee6ddff212da5b4d95607065",
+          "diagnosticEvidence": {
+            "expected": "TitleError",
+            "errorCount": 1,
+            "code": 2322,
+            "range": {
+              "start": {
+                "line": 146,
+                "character": 51
+              },
+              "end": {
+                "line": 146,
+                "character": 56
+              }
+            }
+          }
+        },
+        {
+          "label": "workspace.diagnostics.restored",
+          "latencyMs": 171.583,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 4,
+          "sourceSha256": "7a49f3e098759800700ca5e7e1064b664518fd9b6f4151c572d3ec19b4b09521",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        }
+      ],
+      "memory": [
+        {
+          "scenario": "workspace.bindingHover",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 426880
+        },
+        {
+          "scenario": "workspace.bindingCompletion",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 426592
+        },
+        {
+          "scenario": "workspace.blockCompletion",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 365440
+        },
+        {
+          "scenario": "workspace.diagnostics",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 427376
+        }
+      ]
+    },
+    {
+      "encoding": "baseline",
+      "sample": 2,
+      "metadata": {
+        "formatVersion": 5,
+        "measuredAt": "2026-10-27T04:30:28.308Z",
+        "sourceCommit": "f71d3db6cceb3c93943e1e1b65b2719e779168dc",
+        "sourceWorkloadDirty": false,
+        "workloadSha256": "56ddab0c7d3f92a00abce7815eeaf74ec0960dee48afe984bf1cc9bd18d3afec",
+        "lockfileSha256": "b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47",
+        "benchmarkScriptSha256": "2c30bd15da0d50c5ea7a0c61e9a22727657a3dfeed9b77c5159e5665598668a9",
+        "compilerPackageVersion": "7.1.0-beta",
+        "nativeCompilerPackage": "@typescript/typescript-darwin-arm64",
+        "server": {
+          "name": "typescript",
+          "version": "7.1.0-beta"
+        },
+        "nodeVersion": "v24.22.1",
+        "platform": "darwin",
+        "architecture": "arm64",
+        "runs": 1,
+        "scenario": "workspace",
+        "timeoutMs": 60000,
+        "completionSnippetSupport": true,
+        "documentChangeMode": "Incremental ranges for workspace hover, completion and title diagnostics"
+      },
+      "measurements": [
+        {
+          "label": "workspace.bindingHover.first",
+          "latencyMs": 440.416,
+          "resultBytes": 1051,
+          "resultSha256": "0b928faac5febd07b390bd151a866703628f8cac5e8775a57f87947f50540613",
+          "documentVersion": 1,
+          "sourceSha256": "1ef5ad93b910784a14d698ac3c80bd3a39c23fccc5f271733ddeda04fa296cd9"
+        },
+        {
+          "label": "workspace.bindingHover.warm",
+          "latencyMs": 0.533,
+          "resultBytes": 1051,
+          "resultSha256": "0b928faac5febd07b390bd151a866703628f8cac5e8775a57f87947f50540613",
+          "documentVersion": 1,
+          "sourceSha256": "1ef5ad93b910784a14d698ac3c80bd3a39c23fccc5f271733ddeda04fa296cd9"
+        },
+        {
+          "label": "workspace.bindingHover.postWhitespace",
+          "latencyMs": 331.852,
+          "resultBytes": 1051,
+          "resultSha256": "0b928faac5febd07b390bd151a866703628f8cac5e8775a57f87947f50540613",
+          "documentVersion": 2,
+          "sourceSha256": "a994cd6082b979c01c0ec01134d59f084f2cb218990e3ef3827fa7d75978d649"
+        },
+        {
+          "label": "workspace.bindingHover.postWhitespaceWarm",
+          "latencyMs": 0.527,
+          "resultBytes": 1051,
+          "resultSha256": "0b928faac5febd07b390bd151a866703628f8cac5e8775a57f87947f50540613",
+          "documentVersion": 2,
+          "sourceSha256": "a994cd6082b979c01c0ec01134d59f084f2cb218990e3ef3827fa7d75978d649"
+        },
+        {
+          "label": "workspace.bindingCompletion.first",
+          "latencyMs": 426.144,
+          "resultCount": 7,
+          "resultBytes": 1533,
+          "resultSha256": "cf0a32c807354df095f09968ccb95255d75680aa6dbecf8e5c264911f9dfefa3",
+          "documentVersion": 1,
+          "sourceSha256": "74387db9a572f3eec751d3a9943f4906cfbb7586dc6ecbbb4d5406a55fd6161f"
+        },
+        {
+          "label": "workspace.bindingCompletion.warm",
+          "latencyMs": 0.452,
+          "resultCount": 7,
+          "resultBytes": 1533,
+          "resultSha256": "cf0a32c807354df095f09968ccb95255d75680aa6dbecf8e5c264911f9dfefa3",
+          "documentVersion": 1,
+          "sourceSha256": "74387db9a572f3eec751d3a9943f4906cfbb7586dc6ecbbb4d5406a55fd6161f"
+        },
+        {
+          "label": "workspace.bindingCompletion.postWhitespace",
+          "latencyMs": 331.385,
+          "resultCount": 7,
+          "resultBytes": 1533,
+          "resultSha256": "cf0a32c807354df095f09968ccb95255d75680aa6dbecf8e5c264911f9dfefa3",
+          "documentVersion": 2,
+          "sourceSha256": "41fba7577bf3ea9118b52a7aba550a58929fdccd3af63f3f69dd2caa45945027"
+        },
+        {
+          "label": "workspace.bindingCompletion.postWhitespaceWarm",
+          "latencyMs": 0.41,
+          "resultCount": 7,
+          "resultBytes": 1533,
+          "resultSha256": "cf0a32c807354df095f09968ccb95255d75680aa6dbecf8e5c264911f9dfefa3",
+          "documentVersion": 2,
+          "sourceSha256": "41fba7577bf3ea9118b52a7aba550a58929fdccd3af63f3f69dd2caa45945027"
+        },
+        {
+          "label": "workspace.blockCompletion.first",
+          "latencyMs": 160.935,
+          "resultCount": 17,
+          "resultBytes": 3288,
+          "resultSha256": "67db8c467d64429a2007202b6555a2144b4fc8af2ff3b388000ede7b627b2955",
+          "documentVersion": 1,
+          "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+        },
+        {
+          "label": "workspace.blockCompletion.warm",
+          "latencyMs": 0.382,
+          "resultCount": 17,
+          "resultBytes": 3288,
+          "resultSha256": "67db8c467d64429a2007202b6555a2144b4fc8af2ff3b388000ede7b627b2955",
+          "documentVersion": 1,
+          "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+        },
+        {
+          "label": "workspace.blockCompletion.postWhitespace",
+          "latencyMs": 50.885,
+          "resultCount": 17,
+          "resultBytes": 3288,
+          "resultSha256": "67db8c467d64429a2007202b6555a2144b4fc8af2ff3b388000ede7b627b2955",
+          "documentVersion": 2,
+          "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+        },
+        {
+          "label": "workspace.blockCompletion.postWhitespaceWarm",
+          "latencyMs": 0.464,
+          "resultCount": 17,
+          "resultBytes": 3288,
+          "resultSha256": "67db8c467d64429a2007202b6555a2144b4fc8af2ff3b388000ede7b627b2955",
+          "documentVersion": 2,
+          "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+        },
+        {
+          "label": "workspace.diagnostics.clean",
+          "latencyMs": 321.985,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "b6fc60475196db7604a85c22ba890d59c4ad217a6b7974ecfd6913f9ccecccad",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "workspace.diagnostics.badTitle",
+          "latencyMs": 192.989,
+          "resultCount": 1,
+          "resultBytes": 286,
+          "resultSha256": "d226ec0596faf1206a265ef2fdcbddeebdcb4f48a1ddf5c2f75d091c5c16f879",
+          "documentVersion": 3,
+          "sourceSha256": "8ae9bae24f4b993fd71d9e119117d446b5eba22aee6ddff212da5b4d95607065",
+          "diagnosticEvidence": {
+            "expected": "TitleError",
+            "errorCount": 1,
+            "code": 2322,
+            "range": {
+              "start": {
+                "line": 146,
+                "character": 51
+              },
+              "end": {
+                "line": 146,
+                "character": 56
+              }
+            }
+          }
+        },
+        {
+          "label": "workspace.diagnostics.restored",
+          "latencyMs": 201.11,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 4,
+          "sourceSha256": "7a49f3e098759800700ca5e7e1064b664518fd9b6f4151c572d3ec19b4b09521",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        }
+      ],
+      "memory": [
+        {
+          "scenario": "workspace.bindingHover",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 438176
+        },
+        {
+          "scenario": "workspace.bindingCompletion",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 419392
+        },
+        {
+          "scenario": "workspace.blockCompletion",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 370464
+        },
+        {
+          "scenario": "workspace.diagnostics",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 429808
+        }
+      ]
+    },
+    {
+      "encoding": "baseline",
+      "sample": 3,
+      "metadata": {
+        "formatVersion": 5,
+        "measuredAt": "2026-10-27T04:30:43.640Z",
+        "sourceCommit": "f71d3db6cceb3c93943e1e1b65b2719e779168dc",
+        "sourceWorkloadDirty": false,
+        "workloadSha256": "56ddab0c7d3f92a00abce7815eeaf74ec0960dee48afe984bf1cc9bd18d3afec",
+        "lockfileSha256": "b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47",
+        "benchmarkScriptSha256": "2c30bd15da0d50c5ea7a0c61e9a22727657a3dfeed9b77c5159e5665598668a9",
+        "compilerPackageVersion": "7.1.0-beta",
+        "nativeCompilerPackage": "@typescript/typescript-darwin-arm64",
+        "server": {
+          "name": "typescript",
+          "version": "7.1.0-beta"
+        },
+        "nodeVersion": "v24.22.1",
+        "platform": "darwin",
+        "architecture": "arm64",
+        "runs": 1,
+        "scenario": "workspace",
+        "timeoutMs": 60000,
+        "completionSnippetSupport": true,
+        "documentChangeMode": "Incremental ranges for workspace hover, completion and title diagnostics"
+      },
+      "measurements": [
+        {
+          "label": "workspace.bindingHover.first",
+          "latencyMs": 410.176,
+          "resultBytes": 1051,
+          "resultSha256": "0b928faac5febd07b390bd151a866703628f8cac5e8775a57f87947f50540613",
+          "documentVersion": 1,
+          "sourceSha256": "1ef5ad93b910784a14d698ac3c80bd3a39c23fccc5f271733ddeda04fa296cd9"
+        },
+        {
+          "label": "workspace.bindingHover.warm",
+          "latencyMs": 0.464,
+          "resultBytes": 1051,
+          "resultSha256": "0b928faac5febd07b390bd151a866703628f8cac5e8775a57f87947f50540613",
+          "documentVersion": 1,
+          "sourceSha256": "1ef5ad93b910784a14d698ac3c80bd3a39c23fccc5f271733ddeda04fa296cd9"
+        },
+        {
+          "label": "workspace.bindingHover.postWhitespace",
+          "latencyMs": 323.759,
+          "resultBytes": 1051,
+          "resultSha256": "0b928faac5febd07b390bd151a866703628f8cac5e8775a57f87947f50540613",
+          "documentVersion": 2,
+          "sourceSha256": "a994cd6082b979c01c0ec01134d59f084f2cb218990e3ef3827fa7d75978d649"
+        },
+        {
+          "label": "workspace.bindingHover.postWhitespaceWarm",
+          "latencyMs": 0.506,
+          "resultBytes": 1051,
+          "resultSha256": "0b928faac5febd07b390bd151a866703628f8cac5e8775a57f87947f50540613",
+          "documentVersion": 2,
+          "sourceSha256": "a994cd6082b979c01c0ec01134d59f084f2cb218990e3ef3827fa7d75978d649"
+        },
+        {
+          "label": "workspace.bindingCompletion.first",
+          "latencyMs": 395.754,
+          "resultCount": 7,
+          "resultBytes": 1533,
+          "resultSha256": "cf0a32c807354df095f09968ccb95255d75680aa6dbecf8e5c264911f9dfefa3",
+          "documentVersion": 1,
+          "sourceSha256": "74387db9a572f3eec751d3a9943f4906cfbb7586dc6ecbbb4d5406a55fd6161f"
+        },
+        {
+          "label": "workspace.bindingCompletion.warm",
+          "latencyMs": 0.416,
+          "resultCount": 7,
+          "resultBytes": 1533,
+          "resultSha256": "cf0a32c807354df095f09968ccb95255d75680aa6dbecf8e5c264911f9dfefa3",
+          "documentVersion": 1,
+          "sourceSha256": "74387db9a572f3eec751d3a9943f4906cfbb7586dc6ecbbb4d5406a55fd6161f"
+        },
+        {
+          "label": "workspace.bindingCompletion.postWhitespace",
+          "latencyMs": 295.568,
+          "resultCount": 7,
+          "resultBytes": 1533,
+          "resultSha256": "cf0a32c807354df095f09968ccb95255d75680aa6dbecf8e5c264911f9dfefa3",
+          "documentVersion": 2,
+          "sourceSha256": "41fba7577bf3ea9118b52a7aba550a58929fdccd3af63f3f69dd2caa45945027"
+        },
+        {
+          "label": "workspace.bindingCompletion.postWhitespaceWarm",
+          "latencyMs": 0.308,
+          "resultCount": 7,
+          "resultBytes": 1533,
+          "resultSha256": "cf0a32c807354df095f09968ccb95255d75680aa6dbecf8e5c264911f9dfefa3",
+          "documentVersion": 2,
+          "sourceSha256": "41fba7577bf3ea9118b52a7aba550a58929fdccd3af63f3f69dd2caa45945027"
+        },
+        {
+          "label": "workspace.blockCompletion.first",
+          "latencyMs": 152.392,
+          "resultCount": 17,
+          "resultBytes": 3288,
+          "resultSha256": "67db8c467d64429a2007202b6555a2144b4fc8af2ff3b388000ede7b627b2955",
+          "documentVersion": 1,
+          "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+        },
+        {
+          "label": "workspace.blockCompletion.warm",
+          "latencyMs": 0.388,
+          "resultCount": 17,
+          "resultBytes": 3288,
+          "resultSha256": "67db8c467d64429a2007202b6555a2144b4fc8af2ff3b388000ede7b627b2955",
+          "documentVersion": 1,
+          "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+        },
+        {
+          "label": "workspace.blockCompletion.postWhitespace",
+          "latencyMs": 50.825,
+          "resultCount": 17,
+          "resultBytes": 3288,
+          "resultSha256": "67db8c467d64429a2007202b6555a2144b4fc8af2ff3b388000ede7b627b2955",
+          "documentVersion": 2,
+          "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+        },
+        {
+          "label": "workspace.blockCompletion.postWhitespaceWarm",
+          "latencyMs": 0.452,
+          "resultCount": 17,
+          "resultBytes": 3288,
+          "resultSha256": "67db8c467d64429a2007202b6555a2144b4fc8af2ff3b388000ede7b627b2955",
+          "documentVersion": 2,
+          "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+        },
+        {
+          "label": "workspace.diagnostics.clean",
+          "latencyMs": 302.558,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "b6fc60475196db7604a85c22ba890d59c4ad217a6b7974ecfd6913f9ccecccad",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "workspace.diagnostics.badTitle",
+          "latencyMs": 210.689,
+          "resultCount": 1,
+          "resultBytes": 286,
+          "resultSha256": "d226ec0596faf1206a265ef2fdcbddeebdcb4f48a1ddf5c2f75d091c5c16f879",
+          "documentVersion": 3,
+          "sourceSha256": "8ae9bae24f4b993fd71d9e119117d446b5eba22aee6ddff212da5b4d95607065",
+          "diagnosticEvidence": {
+            "expected": "TitleError",
+            "errorCount": 1,
+            "code": 2322,
+            "range": {
+              "start": {
+                "line": 146,
+                "character": 51
+              },
+              "end": {
+                "line": 146,
+                "character": 56
+              }
+            }
+          }
+        },
+        {
+          "label": "workspace.diagnostics.restored",
+          "latencyMs": 184.617,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 4,
+          "sourceSha256": "7a49f3e098759800700ca5e7e1064b664518fd9b6f4151c572d3ec19b4b09521",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        }
+      ],
+      "memory": [
+        {
+          "scenario": "workspace.bindingHover",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 433696
+        },
+        {
+          "scenario": "workspace.bindingCompletion",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 433536
+        },
+        {
+          "scenario": "workspace.blockCompletion",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 359936
+        },
+        {
+          "scenario": "workspace.diagnostics",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 448544
+        }
+      ]
+    },
+    {
+      "encoding": "receiver-contracts",
+      "sample": 1,
+      "metadata": {
+        "formatVersion": 5,
+        "measuredAt": "2026-10-27T04:29:17.074Z",
+        "sourceCommit": "f71d3db6cceb3c93943e1e1b65b2719e779168dc",
+        "sourceWorkloadDirty": true,
+        "workloadSha256": "e7c659f206301fa1307f9efaefd4ab99864db15c6f3b262b928570b148bb1aaf",
+        "lockfileSha256": "b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47",
+        "benchmarkScriptSha256": "2c30bd15da0d50c5ea7a0c61e9a22727657a3dfeed9b77c5159e5665598668a9",
+        "compilerPackageVersion": "7.1.0-beta",
+        "nativeCompilerPackage": "@typescript/typescript-darwin-arm64",
+        "server": {
+          "name": "typescript",
+          "version": "7.1.0-beta"
+        },
+        "nodeVersion": "v24.22.1",
+        "platform": "darwin",
+        "architecture": "arm64",
+        "runs": 1,
+        "scenario": "workspace",
+        "timeoutMs": 60000,
+        "completionSnippetSupport": true,
+        "documentChangeMode": "Incremental ranges for workspace hover, completion and title diagnostics"
+      },
+      "measurements": [
+        {
+          "label": "workspace.bindingHover.first",
+          "latencyMs": 445.234,
+          "resultBytes": 1051,
+          "resultSha256": "1627426b64e7aecc3a74aece8858ea1f32f5dfd5708f2c396e98d03a341327fb",
+          "documentVersion": 1,
+          "sourceSha256": "061012fd1269a2dbe8df7958bb8a0d09d095160060aa79022280a1424419d091"
+        },
+        {
+          "label": "workspace.bindingHover.warm",
+          "latencyMs": 0.593,
+          "resultBytes": 1051,
+          "resultSha256": "1627426b64e7aecc3a74aece8858ea1f32f5dfd5708f2c396e98d03a341327fb",
+          "documentVersion": 1,
+          "sourceSha256": "061012fd1269a2dbe8df7958bb8a0d09d095160060aa79022280a1424419d091"
+        },
+        {
+          "label": "workspace.bindingHover.postWhitespace",
+          "latencyMs": 334.943,
+          "resultBytes": 1051,
+          "resultSha256": "1627426b64e7aecc3a74aece8858ea1f32f5dfd5708f2c396e98d03a341327fb",
+          "documentVersion": 2,
+          "sourceSha256": "3938df73288691c0c5a60039956977cb0279d3cc11518643ce9f374034498237"
+        },
+        {
+          "label": "workspace.bindingHover.postWhitespaceWarm",
+          "latencyMs": 0.512,
+          "resultBytes": 1051,
+          "resultSha256": "1627426b64e7aecc3a74aece8858ea1f32f5dfd5708f2c396e98d03a341327fb",
+          "documentVersion": 2,
+          "sourceSha256": "3938df73288691c0c5a60039956977cb0279d3cc11518643ce9f374034498237"
+        },
+        {
+          "label": "workspace.bindingCompletion.first",
+          "latencyMs": 456.52,
+          "resultCount": 7,
+          "resultBytes": 1540,
+          "resultSha256": "42332fac7c81952b37857cc28792427ba0bbba86ba3cab57bc4c190674e2b0ae",
+          "documentVersion": 1,
+          "sourceSha256": "74387db9a572f3eec751d3a9943f4906cfbb7586dc6ecbbb4d5406a55fd6161f"
+        },
+        {
+          "label": "workspace.bindingCompletion.warm",
+          "latencyMs": 0.479,
+          "resultCount": 7,
+          "resultBytes": 1540,
+          "resultSha256": "42332fac7c81952b37857cc28792427ba0bbba86ba3cab57bc4c190674e2b0ae",
+          "documentVersion": 1,
+          "sourceSha256": "74387db9a572f3eec751d3a9943f4906cfbb7586dc6ecbbb4d5406a55fd6161f"
+        },
+        {
+          "label": "workspace.bindingCompletion.postWhitespace",
+          "latencyMs": 328.268,
+          "resultCount": 7,
+          "resultBytes": 1540,
+          "resultSha256": "42332fac7c81952b37857cc28792427ba0bbba86ba3cab57bc4c190674e2b0ae",
+          "documentVersion": 2,
+          "sourceSha256": "41fba7577bf3ea9118b52a7aba550a58929fdccd3af63f3f69dd2caa45945027"
+        },
+        {
+          "label": "workspace.bindingCompletion.postWhitespaceWarm",
+          "latencyMs": 0.524,
+          "resultCount": 7,
+          "resultBytes": 1540,
+          "resultSha256": "42332fac7c81952b37857cc28792427ba0bbba86ba3cab57bc4c190674e2b0ae",
+          "documentVersion": 2,
+          "sourceSha256": "41fba7577bf3ea9118b52a7aba550a58929fdccd3af63f3f69dd2caa45945027"
+        },
+        {
+          "label": "workspace.blockCompletion.first",
+          "latencyMs": 178.518,
+          "resultCount": 17,
+          "resultBytes": 3305,
+          "resultSha256": "f38b741845b5ad453417aa4f7631991b6d6ecfc6c5acd4fcc341dcc318aae246",
+          "documentVersion": 1,
+          "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+        },
+        {
+          "label": "workspace.blockCompletion.warm",
+          "latencyMs": 0.404,
+          "resultCount": 17,
+          "resultBytes": 3305,
+          "resultSha256": "f38b741845b5ad453417aa4f7631991b6d6ecfc6c5acd4fcc341dcc318aae246",
+          "documentVersion": 1,
+          "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+        },
+        {
+          "label": "workspace.blockCompletion.postWhitespace",
+          "latencyMs": 52.215,
+          "resultCount": 17,
+          "resultBytes": 3305,
+          "resultSha256": "f38b741845b5ad453417aa4f7631991b6d6ecfc6c5acd4fcc341dcc318aae246",
+          "documentVersion": 2,
+          "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+        },
+        {
+          "label": "workspace.blockCompletion.postWhitespaceWarm",
+          "latencyMs": 0.354,
+          "resultCount": 17,
+          "resultBytes": 3305,
+          "resultSha256": "f38b741845b5ad453417aa4f7631991b6d6ecfc6c5acd4fcc341dcc318aae246",
+          "documentVersion": 2,
+          "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+        },
+        {
+          "label": "workspace.diagnostics.clean",
+          "latencyMs": 344.855,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "b6fc60475196db7604a85c22ba890d59c4ad217a6b7974ecfd6913f9ccecccad",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "workspace.diagnostics.badTitle",
+          "latencyMs": 196.756,
+          "resultCount": 1,
+          "resultBytes": 286,
+          "resultSha256": "d226ec0596faf1206a265ef2fdcbddeebdcb4f48a1ddf5c2f75d091c5c16f879",
+          "documentVersion": 3,
+          "sourceSha256": "8ae9bae24f4b993fd71d9e119117d446b5eba22aee6ddff212da5b4d95607065",
+          "diagnosticEvidence": {
+            "expected": "TitleError",
+            "errorCount": 1,
+            "code": 2322,
+            "range": {
+              "start": {
+                "line": 146,
+                "character": 51
+              },
+              "end": {
+                "line": 146,
+                "character": 56
+              }
+            }
+          }
+        },
+        {
+          "label": "workspace.diagnostics.restored",
+          "latencyMs": 217.918,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 4,
+          "sourceSha256": "7a49f3e098759800700ca5e7e1064b664518fd9b6f4151c572d3ec19b4b09521",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        }
+      ],
+      "memory": [
+        {
+          "scenario": "workspace.bindingHover",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 435504
+        },
+        {
+          "scenario": "workspace.bindingCompletion",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 431536
+        },
+        {
+          "scenario": "workspace.blockCompletion",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 367680
+        },
+        {
+          "scenario": "workspace.diagnostics",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 446144
+        }
+      ]
+    },
+    {
+      "encoding": "receiver-contracts",
+      "sample": 2,
+      "metadata": {
+        "formatVersion": 5,
+        "measuredAt": "2026-10-27T04:29:44.444Z",
+        "sourceCommit": "f71d3db6cceb3c93943e1e1b65b2719e779168dc",
+        "sourceWorkloadDirty": true,
+        "workloadSha256": "e7c659f206301fa1307f9efaefd4ab99864db15c6f3b262b928570b148bb1aaf",
+        "lockfileSha256": "b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47",
+        "benchmarkScriptSha256": "2c30bd15da0d50c5ea7a0c61e9a22727657a3dfeed9b77c5159e5665598668a9",
+        "compilerPackageVersion": "7.1.0-beta",
+        "nativeCompilerPackage": "@typescript/typescript-darwin-arm64",
+        "server": {
+          "name": "typescript",
+          "version": "7.1.0-beta"
+        },
+        "nodeVersion": "v24.22.1",
+        "platform": "darwin",
+        "architecture": "arm64",
+        "runs": 1,
+        "scenario": "workspace",
+        "timeoutMs": 60000,
+        "completionSnippetSupport": true,
+        "documentChangeMode": "Incremental ranges for workspace hover, completion and title diagnostics"
+      },
+      "measurements": [
+        {
+          "label": "workspace.bindingHover.first",
+          "latencyMs": 471.345,
+          "resultBytes": 1051,
+          "resultSha256": "1627426b64e7aecc3a74aece8858ea1f32f5dfd5708f2c396e98d03a341327fb",
+          "documentVersion": 1,
+          "sourceSha256": "061012fd1269a2dbe8df7958bb8a0d09d095160060aa79022280a1424419d091"
+        },
+        {
+          "label": "workspace.bindingHover.warm",
+          "latencyMs": 0.504,
+          "resultBytes": 1051,
+          "resultSha256": "1627426b64e7aecc3a74aece8858ea1f32f5dfd5708f2c396e98d03a341327fb",
+          "documentVersion": 1,
+          "sourceSha256": "061012fd1269a2dbe8df7958bb8a0d09d095160060aa79022280a1424419d091"
+        },
+        {
+          "label": "workspace.bindingHover.postWhitespace",
+          "latencyMs": 321.264,
+          "resultBytes": 1051,
+          "resultSha256": "1627426b64e7aecc3a74aece8858ea1f32f5dfd5708f2c396e98d03a341327fb",
+          "documentVersion": 2,
+          "sourceSha256": "3938df73288691c0c5a60039956977cb0279d3cc11518643ce9f374034498237"
+        },
+        {
+          "label": "workspace.bindingHover.postWhitespaceWarm",
+          "latencyMs": 0.581,
+          "resultBytes": 1051,
+          "resultSha256": "1627426b64e7aecc3a74aece8858ea1f32f5dfd5708f2c396e98d03a341327fb",
+          "documentVersion": 2,
+          "sourceSha256": "3938df73288691c0c5a60039956977cb0279d3cc11518643ce9f374034498237"
+        },
+        {
+          "label": "workspace.bindingCompletion.first",
+          "latencyMs": 431.414,
+          "resultCount": 7,
+          "resultBytes": 1540,
+          "resultSha256": "42332fac7c81952b37857cc28792427ba0bbba86ba3cab57bc4c190674e2b0ae",
+          "documentVersion": 1,
+          "sourceSha256": "74387db9a572f3eec751d3a9943f4906cfbb7586dc6ecbbb4d5406a55fd6161f"
+        },
+        {
+          "label": "workspace.bindingCompletion.warm",
+          "latencyMs": 0.41,
+          "resultCount": 7,
+          "resultBytes": 1540,
+          "resultSha256": "42332fac7c81952b37857cc28792427ba0bbba86ba3cab57bc4c190674e2b0ae",
+          "documentVersion": 1,
+          "sourceSha256": "74387db9a572f3eec751d3a9943f4906cfbb7586dc6ecbbb4d5406a55fd6161f"
+        },
+        {
+          "label": "workspace.bindingCompletion.postWhitespace",
+          "latencyMs": 321.036,
+          "resultCount": 7,
+          "resultBytes": 1540,
+          "resultSha256": "42332fac7c81952b37857cc28792427ba0bbba86ba3cab57bc4c190674e2b0ae",
+          "documentVersion": 2,
+          "sourceSha256": "41fba7577bf3ea9118b52a7aba550a58929fdccd3af63f3f69dd2caa45945027"
+        },
+        {
+          "label": "workspace.bindingCompletion.postWhitespaceWarm",
+          "latencyMs": 0.454,
+          "resultCount": 7,
+          "resultBytes": 1540,
+          "resultSha256": "42332fac7c81952b37857cc28792427ba0bbba86ba3cab57bc4c190674e2b0ae",
+          "documentVersion": 2,
+          "sourceSha256": "41fba7577bf3ea9118b52a7aba550a58929fdccd3af63f3f69dd2caa45945027"
+        },
+        {
+          "label": "workspace.blockCompletion.first",
+          "latencyMs": 172.999,
+          "resultCount": 17,
+          "resultBytes": 3305,
+          "resultSha256": "f38b741845b5ad453417aa4f7631991b6d6ecfc6c5acd4fcc341dcc318aae246",
+          "documentVersion": 1,
+          "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+        },
+        {
+          "label": "workspace.blockCompletion.warm",
+          "latencyMs": 0.373,
+          "resultCount": 17,
+          "resultBytes": 3305,
+          "resultSha256": "f38b741845b5ad453417aa4f7631991b6d6ecfc6c5acd4fcc341dcc318aae246",
+          "documentVersion": 1,
+          "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+        },
+        {
+          "label": "workspace.blockCompletion.postWhitespace",
+          "latencyMs": 49.839,
+          "resultCount": 17,
+          "resultBytes": 3305,
+          "resultSha256": "f38b741845b5ad453417aa4f7631991b6d6ecfc6c5acd4fcc341dcc318aae246",
+          "documentVersion": 2,
+          "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+        },
+        {
+          "label": "workspace.blockCompletion.postWhitespaceWarm",
+          "latencyMs": 0.349,
+          "resultCount": 17,
+          "resultBytes": 3305,
+          "resultSha256": "f38b741845b5ad453417aa4f7631991b6d6ecfc6c5acd4fcc341dcc318aae246",
+          "documentVersion": 2,
+          "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+        },
+        {
+          "label": "workspace.diagnostics.clean",
+          "latencyMs": 298.122,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "b6fc60475196db7604a85c22ba890d59c4ad217a6b7974ecfd6913f9ccecccad",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "workspace.diagnostics.badTitle",
+          "latencyMs": 207.756,
+          "resultCount": 1,
+          "resultBytes": 286,
+          "resultSha256": "d226ec0596faf1206a265ef2fdcbddeebdcb4f48a1ddf5c2f75d091c5c16f879",
+          "documentVersion": 3,
+          "sourceSha256": "8ae9bae24f4b993fd71d9e119117d446b5eba22aee6ddff212da5b4d95607065",
+          "diagnosticEvidence": {
+            "expected": "TitleError",
+            "errorCount": 1,
+            "code": 2322,
+            "range": {
+              "start": {
+                "line": 146,
+                "character": 51
+              },
+              "end": {
+                "line": 146,
+                "character": 56
+              }
+            }
+          }
+        },
+        {
+          "label": "workspace.diagnostics.restored",
+          "latencyMs": 186.171,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 4,
+          "sourceSha256": "7a49f3e098759800700ca5e7e1064b664518fd9b6f4151c572d3ec19b4b09521",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        }
+      ],
+      "memory": [
+        {
+          "scenario": "workspace.bindingHover",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 471792
+        },
+        {
+          "scenario": "workspace.bindingCompletion",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 421856
+        },
+        {
+          "scenario": "workspace.blockCompletion",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 374000
+        },
+        {
+          "scenario": "workspace.diagnostics",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 447152
+        }
+      ]
+    },
+    {
+      "encoding": "receiver-contracts",
+      "sample": 3,
+      "metadata": {
+        "formatVersion": 5,
+        "measuredAt": "2026-10-27T04:31:05.841Z",
+        "sourceCommit": "f71d3db6cceb3c93943e1e1b65b2719e779168dc",
+        "sourceWorkloadDirty": true,
+        "workloadSha256": "e7c659f206301fa1307f9efaefd4ab99864db15c6f3b262b928570b148bb1aaf",
+        "lockfileSha256": "b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47",
+        "benchmarkScriptSha256": "2c30bd15da0d50c5ea7a0c61e9a22727657a3dfeed9b77c5159e5665598668a9",
+        "compilerPackageVersion": "7.1.0-beta",
+        "nativeCompilerPackage": "@typescript/typescript-darwin-arm64",
+        "server": {
+          "name": "typescript",
+          "version": "7.1.0-beta"
+        },
+        "nodeVersion": "v24.22.1",
+        "platform": "darwin",
+        "architecture": "arm64",
+        "runs": 1,
+        "scenario": "workspace",
+        "timeoutMs": 60000,
+        "completionSnippetSupport": true,
+        "documentChangeMode": "Incremental ranges for workspace hover, completion and title diagnostics"
+      },
+      "measurements": [
+        {
+          "label": "workspace.bindingHover.first",
+          "latencyMs": 409.471,
+          "resultBytes": 1051,
+          "resultSha256": "1627426b64e7aecc3a74aece8858ea1f32f5dfd5708f2c396e98d03a341327fb",
+          "documentVersion": 1,
+          "sourceSha256": "061012fd1269a2dbe8df7958bb8a0d09d095160060aa79022280a1424419d091"
+        },
+        {
+          "label": "workspace.bindingHover.warm",
+          "latencyMs": 0.434,
+          "resultBytes": 1051,
+          "resultSha256": "1627426b64e7aecc3a74aece8858ea1f32f5dfd5708f2c396e98d03a341327fb",
+          "documentVersion": 1,
+          "sourceSha256": "061012fd1269a2dbe8df7958bb8a0d09d095160060aa79022280a1424419d091"
+        },
+        {
+          "label": "workspace.bindingHover.postWhitespace",
+          "latencyMs": 343.307,
+          "resultBytes": 1051,
+          "resultSha256": "1627426b64e7aecc3a74aece8858ea1f32f5dfd5708f2c396e98d03a341327fb",
+          "documentVersion": 2,
+          "sourceSha256": "3938df73288691c0c5a60039956977cb0279d3cc11518643ce9f374034498237"
+        },
+        {
+          "label": "workspace.bindingHover.postWhitespaceWarm",
+          "latencyMs": 0.661,
+          "resultBytes": 1051,
+          "resultSha256": "1627426b64e7aecc3a74aece8858ea1f32f5dfd5708f2c396e98d03a341327fb",
+          "documentVersion": 2,
+          "sourceSha256": "3938df73288691c0c5a60039956977cb0279d3cc11518643ce9f374034498237"
+        },
+        {
+          "label": "workspace.bindingCompletion.first",
+          "latencyMs": 394.705,
+          "resultCount": 7,
+          "resultBytes": 1540,
+          "resultSha256": "42332fac7c81952b37857cc28792427ba0bbba86ba3cab57bc4c190674e2b0ae",
+          "documentVersion": 1,
+          "sourceSha256": "74387db9a572f3eec751d3a9943f4906cfbb7586dc6ecbbb4d5406a55fd6161f"
+        },
+        {
+          "label": "workspace.bindingCompletion.warm",
+          "latencyMs": 0.495,
+          "resultCount": 7,
+          "resultBytes": 1540,
+          "resultSha256": "42332fac7c81952b37857cc28792427ba0bbba86ba3cab57bc4c190674e2b0ae",
+          "documentVersion": 1,
+          "sourceSha256": "74387db9a572f3eec751d3a9943f4906cfbb7586dc6ecbbb4d5406a55fd6161f"
+        },
+        {
+          "label": "workspace.bindingCompletion.postWhitespace",
+          "latencyMs": 311.127,
+          "resultCount": 7,
+          "resultBytes": 1540,
+          "resultSha256": "42332fac7c81952b37857cc28792427ba0bbba86ba3cab57bc4c190674e2b0ae",
+          "documentVersion": 2,
+          "sourceSha256": "41fba7577bf3ea9118b52a7aba550a58929fdccd3af63f3f69dd2caa45945027"
+        },
+        {
+          "label": "workspace.bindingCompletion.postWhitespaceWarm",
+          "latencyMs": 0.319,
+          "resultCount": 7,
+          "resultBytes": 1540,
+          "resultSha256": "42332fac7c81952b37857cc28792427ba0bbba86ba3cab57bc4c190674e2b0ae",
+          "documentVersion": 2,
+          "sourceSha256": "41fba7577bf3ea9118b52a7aba550a58929fdccd3af63f3f69dd2caa45945027"
+        },
+        {
+          "label": "workspace.blockCompletion.first",
+          "latencyMs": 154.142,
+          "resultCount": 17,
+          "resultBytes": 3305,
+          "resultSha256": "f38b741845b5ad453417aa4f7631991b6d6ecfc6c5acd4fcc341dcc318aae246",
+          "documentVersion": 1,
+          "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+        },
+        {
+          "label": "workspace.blockCompletion.warm",
+          "latencyMs": 0.397,
+          "resultCount": 17,
+          "resultBytes": 3305,
+          "resultSha256": "f38b741845b5ad453417aa4f7631991b6d6ecfc6c5acd4fcc341dcc318aae246",
+          "documentVersion": 1,
+          "sourceSha256": "2a2c252e7995fbd3552591f4d362de1bc715bb3d14075635250ff3db6094a1eb"
+        },
+        {
+          "label": "workspace.blockCompletion.postWhitespace",
+          "latencyMs": 47.998,
+          "resultCount": 17,
+          "resultBytes": 3305,
+          "resultSha256": "f38b741845b5ad453417aa4f7631991b6d6ecfc6c5acd4fcc341dcc318aae246",
+          "documentVersion": 2,
+          "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+        },
+        {
+          "label": "workspace.blockCompletion.postWhitespaceWarm",
+          "latencyMs": 0.371,
+          "resultCount": 17,
+          "resultBytes": 3305,
+          "resultSha256": "f38b741845b5ad453417aa4f7631991b6d6ecfc6c5acd4fcc341dcc318aae246",
+          "documentVersion": 2,
+          "sourceSha256": "b783ac03f41ac6d00fe0ee70c432b19825272c35e3d6eb65810ee71aafe980d7"
+        },
+        {
+          "label": "workspace.diagnostics.clean",
+          "latencyMs": 287.909,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 1,
+          "sourceSha256": "b6fc60475196db7604a85c22ba890d59c4ad217a6b7974ecfd6913f9ccecccad",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        },
+        {
+          "label": "workspace.diagnostics.badTitle",
+          "latencyMs": 187.449,
+          "resultCount": 1,
+          "resultBytes": 286,
+          "resultSha256": "d226ec0596faf1206a265ef2fdcbddeebdcb4f48a1ddf5c2f75d091c5c16f879",
+          "documentVersion": 3,
+          "sourceSha256": "8ae9bae24f4b993fd71d9e119117d446b5eba22aee6ddff212da5b4d95607065",
+          "diagnosticEvidence": {
+            "expected": "TitleError",
+            "errorCount": 1,
+            "code": 2322,
+            "range": {
+              "start": {
+                "line": 146,
+                "character": 51
+              },
+              "end": {
+                "line": 146,
+                "character": 56
+              }
+            }
+          }
+        },
+        {
+          "label": "workspace.diagnostics.restored",
+          "latencyMs": 169.042,
+          "resultCount": 0,
+          "resultBytes": 26,
+          "resultSha256": "59a5219522e1ebb0c3be99f5df840ab89a8a9a9520fe1b353ebfc13a6dccbba6",
+          "documentVersion": 4,
+          "sourceSha256": "7a49f3e098759800700ca5e7e1064b664518fd9b6f4151c572d3ec19b4b09521",
+          "diagnosticEvidence": {
+            "expected": "Clean",
+            "errorCount": 0
+          }
+        }
+      ],
+      "memory": [
+        {
+          "scenario": "workspace.bindingHover",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 457920
+        },
+        {
+          "scenario": "workspace.bindingCompletion",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 449648
+        },
+        {
+          "scenario": "workspace.blockCompletion",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 362368
+        },
+        {
+          "scenario": "workspace.diagnostics",
+          "method": "ps -o rss= -p <pid>",
+          "unit": "KiB",
+          "samplingIntervalMs": 250,
+          "peakRssKiB": 453760
+        }
+      ]
+    }
+  ],
+  "measuredCandidate": "receiver-contracts"
+}

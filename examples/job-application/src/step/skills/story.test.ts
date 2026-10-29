@@ -10,12 +10,12 @@ import { SkillsEntryBlock } from './entry'
 import { init } from './init'
 import { update } from './update'
 
+type SkillsEntryMessage = typeof SkillsEntryBlock.Message.Type
+
 const givenInitial = given(init('skills-entry-1').model)
 
-const entryMessage = (
-  entryId: string,
-  message: typeof SkillsEntryBlock.Message.Type,
-) => toParentMessage(EntriesBinding, entryId, message)
+const entryMessage = (entryId: string, message: SkillsEntryMessage) =>
+  toParentMessage(EntriesBinding, entryId, message)
 
 describe('skills', () => {
   test('ClickedAddEntry generates an id and appends an entry', () => {

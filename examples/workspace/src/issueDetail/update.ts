@@ -3,49 +3,36 @@ import { modifyFields } from 'foldkit/struct'
 
 import { RepositoryError } from '../repository'
 import { SaveIssue } from './command'
-import {
-  CommentComposerBinding,
-  IssueDetailComposition,
-  changeDraftStep,
-} from './composition'
-import {
-  Message,
-  type Model,
-  OutMessage,
-  SaveState,
-  makeNoopStep,
-  makeOutMessageStep,
-  makeStep,
-} from './definition'
-import {
-  isDirty,
-  latestRevision,
-  reconcileIssue,
-  revisionFromIssue,
-} from './draft'
+import { IssueDetailComposition } from './composition'
+import { makeOutMessageStep, makeStep } from './definition'
+import { isDirty, latestRevision, reconcileIssue } from './draft'
+import type {
+  FailedSaveIssue,
+  InformedOfIssueChange,
+  SucceededSaveIssue,
+} from './message'
+import { type Model, SaveState } from './model'
+import { OutMessage } from './outMessage'
+import { editDraftStep } from './steps'
 
-const resetDraftFields = (model: typeof Model.Type) => {
-  const revision = latestRevision(model)
+const resetDraftFields = (model: Model) => {
+  const nextBaseline = latestRevision(model)
 
   return {
-    baseline: () => revision,
-    draft: () => revision.fields,
+    baseline: () => nextBaseline,
+    draft: () => nextBaseline.fields,
     maybeIncomingRevision: () => Option.none(),
     saveState: () => SaveState.Idle(),
   }
 }
 
-const keepModelStep = makeNoopStep()
-
-const reportDraftStep = CommentComposerBinding.requestReportDraft()
-
-const resetDraft = (model: Parameters<typeof reportDraftStep>[0]) => {
+const resetDraftStep = makeStep(model => {
   if (SaveState.guards.Saving(model.saveState)) {
-    return keepModelStep(model)
+    return { model }
   }
 
-  return reportDraftStep(modifyFields(model, resetDraftFields(model)))
-}
+  return { model: modifyFields(model, resetDraftFields(model)) }
+})
 
 const saveIssueStep = makeStep(model => {
   if (
@@ -81,27 +68,12 @@ const saveIssueStep = makeStep(model => {
 })
 
 const handleInformedOfIssueChange = (
-  model: typeof Model.Type,
-  { issue }: typeof Message.InformedOfIssueChange.Type,
-) => {
-  const reconciled = reconcileIssue(model, issue)
-
-  if (reconciled === model) {
-    return { model }
-  }
-
-  return {
-    model: modifyFields(model, {
-      baseline: () => reconciled.baseline,
-      draft: () => reconciled.draft,
-      maybeIncomingRevision: () => reconciled.maybeIncomingRevision,
-      saveState: () => reconciled.saveState,
-    }),
-  }
-}
+  model: Model,
+  { issue }: InformedOfIssueChange,
+) => ({ model: reconcileIssue(model, issue) })
 
 const isCurrentSave = (
-  model: typeof Model.Type,
+  model: Model,
   issueId: string,
   expectedVersion: number,
 ) =>
@@ -110,32 +82,35 @@ const isCurrentSave = (
   model.saveState.expectedVersion === expectedVersion
 
 const handleSucceededSaveIssue = (
-  model: typeof Model.Type,
-  { issue, expectedVersion }: typeof Message.SucceededSaveIssue.Type,
+  model: Model,
+  { savedIssue, expectedVersion }: SucceededSaveIssue,
 ) => {
-  if (!isCurrentSave(model, issue.id, expectedVersion)) {
+  if (!isCurrentSave(model, savedIssue.issueId, expectedVersion)) {
     return { model }
   }
 
-  const saved = revisionFromIssue(issue)
-  const known = latestRevision(model)
+  const savedRevision = savedIssue.revision
+  const latestKnownRevision = latestRevision(model)
 
-  const baseline = known.version > saved.version ? known : saved
+  const nextBaseline =
+    latestKnownRevision.version > savedRevision.version
+      ? latestKnownRevision
+      : savedRevision
 
   return {
     model: modifyFields(model, {
-      baseline: () => baseline,
-      draft: () => baseline.fields,
+      baseline: () => nextBaseline,
+      draft: () => nextBaseline.fields,
       maybeIncomingRevision: () => Option.none(),
       saveState: () => SaveState.Idle(),
     }),
-    outMessage: OutMessage.Saved({ issue }),
+    outMessage: OutMessage.Saved({ savedIssue }),
   }
 }
 
 const handleFailedSaveIssue = (
-  model: typeof Model.Type,
-  { issueId, expectedVersion, error }: typeof Message.FailedSaveIssue.Type,
+  model: Model,
+  { issueId, expectedVersion, error }: FailedSaveIssue,
 ) => {
   if (!isCurrentSave(model, issueId, expectedVersion)) {
     return { model }
@@ -145,16 +120,13 @@ const handleFailedSaveIssue = (
     error,
     {
       Conflict: ({ latestIssue }) => {
-        const reconciled = reconcileIssue(model, latestIssue)
+        const reconciledModel = reconcileIssue(model, latestIssue)
 
         return {
-          model: modifyFields(model, {
-            baseline: () => reconciled.baseline,
-            draft: () => reconciled.draft,
-            maybeIncomingRevision: () => reconciled.maybeIncomingRevision,
+          model: modifyFields(reconciledModel, {
             saveState: () => SaveState.Failed({ error: error.message }),
           }),
-          outMessage: OutMessage.ObservedIssue({ issue: latestIssue }),
+          outMessage: OutMessage.ReceivedIssue({ issue: latestIssue }),
         }
       },
     },
@@ -171,24 +143,17 @@ const handleFailedSaveIssue = (
 
 export const update = IssueDetailComposition.makeUpdate({
   UpdatedTitle: (model, { value }) =>
-    changeDraftStep(draft => modifyFields(draft, { title: () => value }))(
-      model,
-    ),
+    editDraftStep(draft => modifyFields(draft, { title: () => value }))(model),
   UpdatedDescription: (model, { value }) =>
-    changeDraftStep(draft => modifyFields(draft, { description: () => value }))(
+    editDraftStep(draft => modifyFields(draft, { description: () => value }))(
       model,
     ),
   SubmittedIssueForm: saveIssueStep,
   ClickedRetrySave: saveIssueStep,
   RequestedSave: saveIssueStep,
-  RequestedReportDraft: reportDraftStep,
   InformedOfIssueChange: handleInformedOfIssueChange,
-  ClickedReloadIssue: model =>
-    Option.match(model.maybeIncomingRevision, {
-      onNone: () => keepModelStep(model),
-      onSome: () => resetDraft(model),
-    }),
-  ClickedDiscardChanges: resetDraft,
+  ClickedReloadIssue: resetDraftStep,
+  ClickedDiscardChanges: resetDraftStep,
   ClickedClose: makeOutMessageStep(() => OutMessage.Closed()),
   SucceededSaveIssue: handleSucceededSaveIssue,
   FailedSaveIssue: handleFailedSaveIssue,

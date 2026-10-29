@@ -1,0 +1,86 @@
+{
+  "sourcePin": "8b4180822316edd736809ab65136c850be488281",
+  "compiler": "official TypeScript 7.1.0-beta",
+  "controls": [
+    {
+      "encoding": "baseline",
+      "coreBuildPassed": null,
+      "wholeRootEmissionPassed": false,
+      "errors": [
+        "src/block.ts(11,7): error TS7056: The inferred type of this node exceeds the maximum length the compiler will serialize. An explicit type annotation is needed.",
+        "src/composition.ts(406,14): error TS7056: The inferred type of this node exceeds the maximum length the compiler will serialize. An explicit type annotation is needed."
+      ],
+      "declarations": 0,
+      "bytes": 0,
+      "consumerBlockPreserved": true,
+      "frameworkDefinitionSha256": "b23316d371e0c4bdb3e575f569aabadca6992bb0e2c6a950077ee28d81c4d76b",
+      "patchSha256": null
+    },
+    {
+      "encoding": "interface",
+      "coreBuildPassed": true,
+      "wholeRootEmissionPassed": false,
+      "errors": [
+        "src/block.ts(11,7): error TS7056: The inferred type of this node exceeds the maximum length the compiler will serialize. An explicit type annotation is needed.",
+        "src/composition.ts(406,14): error TS7056: The inferred type of this node exceeds the maximum length the compiler will serialize. An explicit type annotation is needed."
+      ],
+      "declarations": 0,
+      "bytes": 0,
+      "consumerBlockPreserved": true,
+      "frameworkDefinitionSha256": "7668bd25b42fb89863d7609f0fb7faa1d7849ee34a206ce99977cb66b7eb39b6",
+      "patchSha256": "dbf374d8d0d955d7a550e4a0c9ab3c044866693eaecccc983fdeba8faeaf06e1"
+    },
+    {
+      "encoding": "header",
+      "coreBuildPassed": true,
+      "wholeRootEmissionPassed": false,
+      "errors": [
+        "src/block.ts(11,7): error TS7056: The inferred type of this node exceeds the maximum length the compiler will serialize. An explicit type annotation is needed.",
+        "src/composition.ts(406,14): error TS7056: The inferred type of this node exceeds the maximum length the compiler will serialize. An explicit type annotation is needed."
+      ],
+      "declarations": 0,
+      "bytes": 0,
+      "consumerBlockPreserved": true,
+      "frameworkDefinitionSha256": "1ea1cd92531201c432b3637a67c5365af4f1f9227d64d2d326de12ae4b511935",
+      "patchSha256": "6fb3fb480cd7aefc844808695a9d27c1774e49d1a93a70f4760550b4dc9a5f88"
+    },
+    {
+      "encoding": "restored",
+      "coreBuildPassed": null,
+      "wholeRootEmissionPassed": true,
+      "errors": [],
+      "declarations": 152,
+      "bytes": 12272552,
+      "consumerBlockPreserved": true,
+      "frameworkDefinitionSha256": "b23316d371e0c4bdb3e575f569aabadca6992bb0e2c6a950077ee28d81c4d76b",
+      "patchSha256": "7cd258942fbbec8e0e28ef463731ce121d123c6cbfda1a7368ea0784b6a0e29c"
+    }
+  ],
+  "restoredRelocation": {
+    "exitCode": 0,
+    "declarations": 152,
+    "declarationBytes": 12272552,
+    "compilerOptions": {
+      "strict": true,
+      "skipLibCheck": false,
+      "module": "ESNext",
+      "moduleResolution": "Bundler",
+      "target": "ES2022",
+      "lib": ["ESNext", "DOM", "DOM.Iterable"],
+      "types": [],
+      "exactOptionalPropertyTypes": true,
+      "noUncheckedIndexedAccess": true,
+      "verbatimModuleSyntax": true,
+      "noEmit": true
+    },
+    "coverage": [
+      "exact canonical Model",
+      "exact init URL tuple",
+      "direct and curried update Model",
+      "invalid URL and Message rejection",
+      "no generated constructors",
+      "ordinary Service requirements",
+      "relative imports stay inside relocated application"
+    ]
+  }
+}

@@ -1,5 +1,5 @@
 export const noteNotebookId = (
-  model: typeof Model.Type,
+  model: Model,
   noteId: NoteId,
 ): Option.Option<NotebookId> =>
   pipe(

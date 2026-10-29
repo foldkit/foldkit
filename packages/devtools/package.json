@@ -22,9 +22,9 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "@effect/platform-browser": "4.0.0",
+    "@effect/platform-browser": "4.0.0 || 4.0.6",
     "@foldkit/ui": ">=0.169.0",
-    "effect": "4.0.0",
+    "effect": "4.0.0 || 4.0.6",
     "foldkit": ">=0.169.0"
   },
   "dependencies": {

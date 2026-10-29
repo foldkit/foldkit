@@ -3,9 +3,12 @@ import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Model = Schema.Struct({ panelHeight: Schema.Option(Schema.Number) })
+type Model = typeof Model.Type
+
 const Message = defineMessageUnion({
   CompletedMeasurePanel: { height: Schema.Number },
 })
+type Message = typeof Message.Type
 
 const PanelDefinition = Block.makeDefinition('Panel', { Model, Message })
 

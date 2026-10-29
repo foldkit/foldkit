@@ -14,9 +14,10 @@ const Model = Schema.Struct({
   popover: Popover.PopoverBlock.Model,
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // This excerpt has no parent-owned facts. The Composition derives delivery.
 const Message = defineMessageUnion({})
+type Message = typeof Message.Type
 
 const PopoverExampleDefinition = Block.makeDefinition('PopoverExample', {
   Model,

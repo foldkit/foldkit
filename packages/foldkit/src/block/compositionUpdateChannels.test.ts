@@ -10,10 +10,12 @@ import { makeDefinition } from './define.js'
 import * as Block from './public.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
+type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({
   RequestedIncrement: {},
   CompletedChildSave: {},
 })
+type ChildMessage = typeof ChildMessage.Type
 const ChildDefinition = makeDefinition('CompositionUpdateChannelsChild', {
   Model: ChildModel,
   Message: ChildMessage,
@@ -29,8 +31,8 @@ const childUpdate = ChildComposition.makeUpdate({
   RequestedIncrement: (
     model,
   ): Update.Return<
-    typeof ChildModel.Type,
-    typeof ChildMessage.Type,
+    ChildModel,
+    ChildMessage,
     Command.HandlerOf<typeof ChildSave>
   > => ({
     model: modifyFields(model, { count: count => count + 1 }),
@@ -39,8 +41,8 @@ const childUpdate = ChildComposition.makeUpdate({
   CompletedChildSave: (
     model,
   ): Update.Return<
-    typeof ChildModel.Type,
-    typeof ChildMessage.Type,
+    ChildModel,
+    ChildMessage,
     Command.HandlerOf<typeof ChildSave>
   > => ({ model }),
 })
@@ -59,6 +61,7 @@ const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
 > = Block.assemble(prepareChild)
 
 const ParentModel = Schema.Struct({ child: ChildModel })
+type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({
   IgnoredRequest: {},
   RequestedChildIncrement: {},
@@ -66,7 +69,9 @@ const ParentMessage = defineMessageUnion({
   RequestedReport: {},
   CompletedLocalSave: {},
 })
+type ParentMessage = typeof ParentMessage.Type
 const ParentOutMessage = defineMessageUnion({ Reported: {} })
+type ParentOutMessage = typeof ParentOutMessage.Type
 const ParentDefinition = makeDefinition('CompositionUpdateChannelsParent', {
   Model: ParentModel,
   Message: ParentMessage,

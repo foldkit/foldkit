@@ -10,6 +10,7 @@ const ChatDefinition = Block.makeDefinition('Chat', { Model, Message })
 const ChatSocket = ChatDefinition.makeResource<WebSocket>()('ChatSocket')
 
 const RoomRequirements = Schema.Struct({ roomId: Schema.String })
+type RoomRequirements = typeof RoomRequirements.Type
 
 const managedResources = ChatDefinition.makeManagedResources(entry => ({
   chatSocket: entry('ManageChatSocket', Schema.Option(RoomRequirements), {

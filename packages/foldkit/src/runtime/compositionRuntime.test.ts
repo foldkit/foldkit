@@ -27,7 +27,9 @@ import type { SlowSubscriptionDependenciesContext } from './slowPhase.js'
 
 const ChildOwnerNamespace = makeNamespace('LifecycleChild')
 const ChildModel = Schema.Struct({ id: Schema.Number })
+type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({ EmittedPulse: {} })
+type ChildMessage = typeof ChildMessage.Type
 const ChildValue = ChildOwnerNamespace.makeResource<string>()('Value')
 class LifecycleLog extends Context.Service<
   LifecycleLog,
@@ -114,6 +116,7 @@ type RootModel = typeof RootModel.Type
 const RootMessage = defineMessageUnion({
   ChangedRootValueAvailability: {},
 })
+type RootMessage = typeof RootMessage.Type
 const RootBaseDefinition = RootNamespace.makeDefinition({
   Model: RootModel,
   Message: RootMessage,
@@ -203,7 +206,7 @@ const nestedParent = NestedParentBaseDefinition.makeComposition({
 })
 const prepareNestedParentBlock = () =>
   nestedParent.prepareBlock({
-    init: (id: number, entries: ReadonlyArray<typeof ChildModel.Type>) => ({
+    init: (id: number, entries: ReadonlyArray<ChildModel>) => ({
       model: { id, entries },
     }),
     update: nestedParent.makeUpdate({}),
@@ -286,9 +289,7 @@ registerGeneratedDelivery(
 const withRuntime = (
   run: (
     runtime: Effect.Success<
-      ReturnType<
-        typeof makeCompositionRuntime<RootModel, typeof RootMessage.Type>
-      >
+      ReturnType<typeof makeCompositionRuntime<RootModel, RootMessage>>
     >,
     log: Readonly<{
       starts: Array<number>
@@ -335,10 +336,7 @@ const withRuntime = (
             Layer.provideMerge(services),
           ),
         )
-        const runtime = yield* makeCompositionRuntime<
-          RootModel,
-          typeof RootMessage.Type
-        >({
+        const runtime = yield* makeCompositionRuntime<RootModel, RootMessage>({
           block: block,
           initModel: initialModel,
           context: Context.makeUnsafe<never>(built.mapUnsafe),

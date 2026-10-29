@@ -9,21 +9,19 @@ import { SUBSCRIPTION_DEPENDENCIES_WORK_MS, burnCpu } from './workload'
 const SLOW_WARNING_EVENT = 'foldkit:slow-warning'
 
 const slowWarningTarget: Dom.TypedEventTarget<{
-  [SLOW_WARNING_EVENT]: CustomEvent<typeof SlowWarningReport.Type>
+  [SLOW_WARNING_EVENT]: CustomEvent<SlowWarningReport>
 }> = new EventTarget()
 
-const messageToTag = ({ _tag }: typeof Message.Type): string => _tag
+const messageToTag = ({ _tag }: Message): string => _tag
 
-const maybeMessageTrigger = (
-  message: Option.Option<typeof Message.Type>,
-): string =>
+const maybeMessageTrigger = (message: Option.Option<Message>): string =>
   Option.match(message, {
     onNone: () => 'initial render',
     onSome: messageToTag,
   })
 
 const triggerForSlowContext = (
-  context: Runtime.SlowContext<typeof Model.Type, typeof Message.Type>,
+  context: Runtime.SlowContext<Model, Message>,
 ): string =>
   Match.value(context).pipe(
     Match.withReturnType<string>(),
@@ -36,7 +34,7 @@ const triggerForSlowContext = (
   )
 
 const detailsForSlowContext = (
-  context: Runtime.SlowContext<typeof Model.Type, typeof Message.Type>,
+  context: Runtime.SlowContext<Model, Message>,
 ): string =>
   Match.value(context).pipe(
     Match.withReturnType<string>(),
@@ -53,8 +51,8 @@ const detailsForSlowContext = (
   )
 
 const slowContextToReport = (
-  context: Runtime.SlowContext<typeof Model.Type, typeof Message.Type>,
-): typeof SlowWarningReport.Type => ({
+  context: Runtime.SlowContext<Model, Message>,
+): SlowWarningReport => ({
   phase: context._tag,
   durationMs: context.durationMs,
   thresholdMs: context.thresholdMs,
@@ -63,13 +61,13 @@ const slowContextToReport = (
 })
 
 export const handleSlow = (
-  context: Runtime.SlowContext<typeof Model.Type, typeof Message.Type>,
+  context: Runtime.SlowContext<Model, Message>,
 ): void => {
   Runtime.defaultSlowCallback(context)
 
   const report = slowContextToReport(context)
   slowWarningTarget.dispatchEvent(
-    new CustomEvent<typeof SlowWarningReport.Type>(SLOW_WARNING_EVENT, {
+    new CustomEvent<SlowWarningReport>(SLOW_WARNING_EVENT, {
       detail: report,
     }),
   )

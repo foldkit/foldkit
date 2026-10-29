@@ -9,3 +9,4 @@ export const Message = defineMessageUnion({
   SucceededSubmitApplication: {},
   FailedSubmitApplication: { error: Schema.String },
 })
+export type Message = typeof Message.Type

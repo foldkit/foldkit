@@ -7,7 +7,9 @@ import { makeDefinition } from './define.js'
 import * as Block from './public.js'
 
 const Model = Schema.Struct({ count: Schema.Number })
+type Model = typeof Model.Type
 const Message = defineMessageUnion({ RequestedSave: {}, CompletedSave: {} })
+type Message = typeof Message.Type
 const CommandsDefinition = makeDefinition('Commands', { Model, Message })
 class Store extends Context.Service<Store, { save: Effect.Effect<void> }>()(
   'CommandsStep/Store',
@@ -28,7 +30,7 @@ it('defers and repeats its producer while preserving the Model and exact Command
   let executions = 0
   const command = Save()
   const commands: ReadonlyArray<typeof command> = [command]
-  const receivedModels: Array<typeof Model.Type> = []
+  const receivedModels: Array<Model> = []
   const saveStep = CommandsDefinition.makeCommandsStep(model => {
     expectTypeOf(model).toEqualTypeOf<typeof Model.Type>()
     receivedModels.push(model)
@@ -134,6 +136,7 @@ it('retains registration obligations carried by a Command collection', () => {
     typeof prepareChildBlock
   > = Block.assemble(prepareChildBlock)
   const ParentModel = Schema.Struct({ child: Model })
+  type ParentModel = typeof ParentModel.Type
   const ParentDefinition = makeDefinition('CommandsStepIdentityParent', {
     Model: ParentModel,
     Message,
@@ -172,6 +175,7 @@ it('retains registration obligations carried by a Command collection', () => {
 
 if (false) {
   const OtherMessage = defineMessageUnion({ CompletedOther: {} })
+  type OtherMessage = typeof OtherMessage.Type
   const other = {
     name: 'Other',
     effect: Effect.succeed(OtherMessage.CompletedOther()),
@@ -191,12 +195,12 @@ if (false) {
   // @ts-expect-error The producer receives only the owning Model.
   CommandsDefinition.makeCommandsStep((_model, _extra: string) => [Save()])
 
-  const widenedCommands: Update.Commands<typeof Message.Type> &
+  const widenedCommands: Update.Commands<Message> &
     Update.RegistrationEvidence<unknown> = []
   // @ts-expect-error The producer cannot erase concrete child registration evidence.
   CommandsDefinition.makeCommandsStep(() => widenedCommands)
 
-  const erasedCommands: Update.Commands<typeof Message.Type> &
+  const erasedCommands: Update.Commands<Message> &
     Update.RegistrationEvidence<any> = []
   // @ts-expect-error Any registration evidence cannot hide a child graph obligation.
   CommandsDefinition.makeCommandsStep(() => erasedCommands)

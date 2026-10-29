@@ -221,7 +221,7 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 - [ ] Every route variant has a corresponding view branch
 - [ ] Every `Succeeded*` has a paired `Failed*`
 - [ ] Every discriminated union variant is handled in both update and view
-- [ ] Routine application annotations query Schema types directly: `typeof Model.Type` inside the owning feature and `typeof ChildBlock.Model.Type` across a child boundary, with the analogous Message and OutMessage forms. Owned callbacks infer their parameters. Colocated Schema-derived aliases remain only for deliberate public library contracts or useful generic, mapped, and conditional types.
+- [ ] Each Schema has its same-named decoded type immediately below it with no blank line, such as `type Model = typeof Model.Type`. Explicit value annotations use the alias; Schema-taking APIs retain `typeof Model`. Child types are named from completed Block contracts without importing child implementations. Owned callbacks infer their parameters.
 
 ## Application wiring
 
@@ -390,7 +390,7 @@ Foldkit ships these; reaching past them is a finding, not a style choice.
 - [ ] Each stateful UI component has its Model in the app Model, a parent-owned Binding registered in the Composition, an init policy where needed, and generated child delivery. Ordinary components expose a completed `FooBlock`; generic factories return an exact completed Block named locally. Stateless render helpers (`Button`, `Input`, `Textarea`, `Select`, `Fieldset`, `Checkbox`, `Switch`, `Disclosure`, `Nav`) are called directly in view and dispatch parent Messages; the controlled ones (`Checkbox`, `Switch`, `Disclosure`) take the current value in from the parent Model, which stores the new value on toggle
 - [ ] Stateful UI components enter through parent-owned Bindings included in the owner Composition’s `bindings`. Composition collects the component handler graph, Mounts, Subscriptions, and ManagedResources. The root prepares `ApplicationBlock` through explicit fields in `ApplicationComposition.prepareBlock`; it does not maintain a component Layer or registration list.
 - [ ] The canonical owned view uses `FeatureComposition.makeView` or `makeView.withInputs` and leaves its `h` parameter inferred. Ordinary feature-local helpers are plain functions whose builder parameter uses an owner-specific `FeatureViewBuilder` alias derived with `Block.ViewBuilderFor<typeof FeatureComposition>`. The alias appears immediately after the Composition with no blank line and is exported only for cross-file use. Helpers accept only meaningful Model, domain, or context parameters. Shared helpers use a generic builder for ordinary content and a typed caller-owned render callback for Mount-bearing child Attributes, preserving the caller's inferred Binding capability.
-- [ ] `Toast.make(PayloadSchema)` returns a completed Block with the consumer-defined payload type; bind that value through the parent Definition and include the Binding under `bindings`.
+- [ ] `Toast.makeBlock(PayloadSchema)` returns a completed Block with the consumer-defined payload type; bind that value through the parent Definition and include the Binding under `bindings`.
 - [ ] No custom keyboard navigation or ARIA attributes for patterns covered by Foldkit UI components
 
 ### Mechanical check: no hand-rolling
@@ -470,6 +470,8 @@ Each confirmed miss is a concrete a11y bug a screen reader user would hit.
 - [ ] File handling uses the `File` module with `FileDrop` from `@foldkit/ui`. No direct `File` API usage in update/view
 
 ## File organization
+
+- [ ] Reusable Steps shared by update, composition, or init live in owner-local `steps.ts`, or responsibility files under `steps/` with an explicit barrel. Message routing, Binding registration and child OutMessage policy remain in their owning modules; initialization does not eagerly read a cyclic Binding.
 
 - [ ] Message layout follows four-group convention (values, union + type)
 - [ ] Single-file apps use names and blank lines for structure. Section headers appear only for substantial groups that need wayfinding.
@@ -576,7 +578,7 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
       policies remain together in the parent assembly and defer sibling Binding
       calls through callbacks.
 - [ ] Imports ordered: npm packages first (alphabetized), then `foldkit/*`, then relative imports. No mixed groups.
-- [ ] Message unions are exported as Schema values when used across application modules. Explicit local annotations use `typeof Message.Type`; consumers of a completed child use `typeof ChildBlock.Message.Type`. A routine decoded Message alias is not exported. Variants stay on the owning namespace: `Message.ClickedSave()`, never a separate `ClickedSave` export. Internal-only Message unions stay unexported.
+- [ ] Message unions have `type Message = typeof Message.Type` immediately below the Schema, with no blank line. Export both from their owning module when used by other implementation modules; retain the local Message contract within the feature implementation. Consumers derive complete child Message aliases from the completed Block. Constructors stay on the owning namespace (`Message.ClickedSave()`); when an extracted handler needs a variant type, declare a purposeful alias beside the union, such as `type ClickedSave = typeof Message.ClickedSave.Type`. Internal-only unions and aliases stay unexported.
 
 ## Block and Command extraction [T5+]
 

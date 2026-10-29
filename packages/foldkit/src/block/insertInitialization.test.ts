@@ -10,20 +10,29 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
+import { modifyFields } from '../struct/index.js'
+import * as Update from '../update/index.js'
+import { resolveOperationOutput } from '../update/operationRecipe.js'
 import { runBindingInitRecipe } from './initRecipe.js'
 import { commandInstances } from './instanceContext.js'
-import { makeMapBinding } from './mapBinding.js'
-import { initAndInsert } from './mapInitialization.js'
+import { initAndInsert, makeInitIfMissingStep } from './mapInitialization.js'
 import { withOperationGraph } from './operationGraph.js'
 import * as Block from './public.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
+type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({
   CompletedRead: { count: Schema.Number },
 })
+type ChildMessage = typeof ChildMessage.Type
+const ChildOutMessage = defineMessageUnion({
+  ChangedCount: { count: Schema.Number },
+})
+type ChildOutMessage = typeof ChildOutMessage.Type
 const ChildDefinition = Block.makeDefinition('InsertChild', {
   Model: ChildModel,
   Message: ChildMessage,
+  OutMessage: ChildOutMessage,
 })
 const Read = ChildDefinition.makeCommand('Read', {
   args: { count: Schema.Number },
@@ -45,7 +54,7 @@ const prepareChild = () =>
     }),
     EffectsLayer: Read.layer,
   })
-const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+const ChildBlock: Block.FromAssemblyWithOutMessage<
   typeof ChildModel,
   typeof prepareChild
 > = Block.assemble(prepareChild)
@@ -53,33 +62,51 @@ const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
 const EntryId = Schema.String.check(Schema.isMinLength(2)).pipe(
   Schema.brand('InsertEntryId'),
 )
+type EntryId = typeof EntryId.Type
 const Wrapper = Schema.Struct({ child: ChildModel, label: Schema.String })
+type Wrapper = typeof Wrapper.Type
 const Model = Schema.Struct({
   childrenById: Schema.Record(EntryId, ChildModel),
   childrenByNumber: Schema.HashMap(Schema.Int, ChildModel),
   rowsById: Schema.Record(EntryId, Wrapper),
   label: Schema.String,
 })
+type Model = typeof Model.Type
 const Message = defineMessageUnion({
   RequestedRecordInsert: { key: EntryId, count: Schema.Number },
   RequestedHashMapInsert: { key: Schema.Int, count: Schema.Number },
+  RequestedRecordInit: { key: EntryId, count: Schema.Number },
+  RequestedHashMapInit: { key: Schema.Int, count: Schema.Number },
+  RequestedInitTwice: { key: EntryId, count: Schema.Number },
 })
+type Message = typeof Message.Type
 const ParentDefinition = Block.makeDefinition('InsertParent', {
   Model,
   Message,
 })
-const ChildrenByIdBinding = makeMapBinding(ParentDefinition, ChildBlock, {
+const ChildrenByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
   field: 'childrenById',
 })
-const ChildrenByNumberBinding = makeMapBinding(ParentDefinition, ChildBlock, {
+const ChildrenByNumberBinding = ParentDefinition.makeMapBinding(ChildBlock, {
   field: 'childrenByNumber',
 })
-const RowsByIdBinding = makeMapBinding(ParentDefinition, ChildBlock, {
+const RowsByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
   field: 'rowsById',
   childField: 'child',
 })
+const ChildrenByIdBindingWithPolicy = ChildrenByIdBinding.withOutMessagePolicy({
+  fold: () => ParentDefinition.makeNoopStep(),
+})
 const Composition = ParentDefinition.makeComposition({
-  bindings: [ChildrenByIdBinding, ChildrenByNumberBinding, RowsByIdBinding],
+  bindings: [
+    ChildrenByIdBindingWithPolicy,
+    ChildrenByNumberBinding.withOutMessagePolicy({
+      fold: () => ParentDefinition.makeNoopStep(),
+    }),
+    RowsByIdBinding.withOutMessagePolicy({
+      fold: () => ParentDefinition.makeNoopStep(),
+    }),
+  ],
 })
 const prepareParent = () =>
   Composition.prepareBlock({
@@ -96,12 +123,32 @@ const prepareParent = () =>
         initAndInsert(ChildrenByIdBinding, model, { key, args: [count] }),
       RequestedHashMapInsert: (model, { key, count }) =>
         initAndInsert(ChildrenByNumberBinding, model, { key, args: [count] }),
+      RequestedRecordInit: (model, { key, count }) =>
+        makeInitIfMissingStep(ChildrenByIdBindingWithPolicy, {
+          key,
+          args: [count],
+        })(model),
+      RequestedHashMapInit: (model, { key, count }) =>
+        makeInitIfMissingStep(ChildrenByNumberBinding, { key, args: [count] })(
+          model,
+        ),
+      RequestedInitTwice: (model, { key, count }) =>
+        Update.combineSteps(model, [
+          makeInitIfMissingStep(ChildrenByIdBinding, { key, args: [count] }),
+          makeInitIfMissingStep(ChildrenByIdBinding, {
+            key,
+            args: [count + 1],
+          }),
+        ]),
     }),
     operations: {
-      insertRecord: (key: typeof EntryId.Type, count: number) =>
+      insertRecord: (key: EntryId, count: number) =>
         Tuple.make(Message.RequestedRecordInsert({ key, count })),
       insertHashMap: (key: number, count: number) =>
         Tuple.make(Message.RequestedHashMapInsert({ key, count })),
+      initRecord: Message.RequestedRecordInit,
+      initHashMap: Message.RequestedHashMapInit,
+      initTwice: Message.RequestedInitTwice,
     },
   })
 const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
@@ -124,6 +171,176 @@ const makeModel = () => {
 
 beforeEach(() => {
   initialized.mockClear()
+})
+
+describe('makeInitIfMissingStep', () => {
+  it('defers initialization and captures the key and argument tuple at construction', () => {
+    const { model } = makeModel()
+    const args: [number] = [4]
+    const config = { key: secondId, args }
+    const initChildStep = makeInitIfMissingStep(ChildrenByIdBinding, config)
+
+    args.splice(0, 1, 99)
+    config.key = EntryId.make('changed')
+
+    const recipe = Reflect.apply(initChildStep, undefined, [model])
+
+    expect(initialized).not.toHaveBeenCalled()
+    expect(recipe).not.toHaveProperty('model')
+    expect(recipe).not.toHaveProperty('commands')
+
+    const inserted = withOperationGraph([ChildrenByIdBinding], () =>
+      resolveOperationOutput(recipe, model),
+    )
+
+    expect(initialized).toHaveBeenCalledExactlyOnceWith(4)
+    expect(Reflect.get(inserted.model.childrenById, secondId)).toEqual({
+      count: 4,
+    })
+    expect(Object.hasOwn(inserted.model.childrenById, 'changed')).toBe(false)
+  })
+
+  it('inserts a missing Record child and retains its qualified init Commands', async () => {
+    const { model } = makeModel()
+    const inserted = ParentBlock.operations.initRecord(model, {
+      key: secondId,
+      count: 4,
+    })
+    const command = Option.getOrThrow(Array.head(inserted.commands ?? []))
+    const message = await Effect.runPromise(
+      Effect.provide(command.effect, ParentBlock.EffectsLayer),
+    )
+
+    expect(Reflect.get(inserted.model.childrenById, firstId)).toBe(
+      Reflect.get(model.childrenById, firstId),
+    )
+    expect(Reflect.get(inserted.model.childrenById, secondId)).toEqual({
+      count: 4,
+    })
+    expect(inserted.model.childrenByNumber).toBe(model.childrenByNumber)
+    expect(commandInstances(command)).toEqual([
+      { binding: ChildrenByIdBinding, key: secondId, isInitialization: true },
+    ])
+    expect(message).toEqual({
+      _tag: 'GotChildrenByIdMessage',
+      placement: 'childrenById',
+      key: secondId,
+      generation: 0,
+      message: ChildMessage.CompletedRead({ count: 4 }),
+    })
+  })
+
+  it('preserves the exact parent Model and emits no Commands for an existing Record key', () => {
+    const { model } = makeModel()
+    const retained = ParentBlock.operations.initRecord(model, {
+      key: firstId,
+      count: 99,
+    })
+
+    expect(retained.model).toBe(model)
+    expect(retained.commands ?? []).toEqual([])
+    expect(initialized).not.toHaveBeenCalled()
+  })
+
+  it('inserts a missing HashMap child and preserves an existing key without resetting it', () => {
+    const { model } = makeModel()
+    const inserted = ParentBlock.operations.initHashMap(model, {
+      key: 2,
+      count: 4,
+    })
+    const retained = ParentBlock.operations.initHashMap(inserted.model, {
+      key: 2,
+      count: 99,
+    })
+
+    expect(
+      Option.getOrThrow(HashMap.get(inserted.model.childrenByNumber, 2)),
+    ).toEqual({ count: 4 })
+    expect(inserted.model.childrenById).toBe(model.childrenById)
+    expect(inserted.commands?.map(command => command.name)).toEqual([
+      'childrenByNumber[2]/Read',
+    ])
+    expect(retained.model).toBe(inserted.model)
+    expect(retained.commands ?? []).toEqual([])
+    expect(initialized).toHaveBeenCalledExactlyOnceWith(4)
+  })
+
+  it('checks the Model produced by preceding Steps and initializes a repeated key only once', () => {
+    const { model } = makeModel()
+    const inserted = ParentBlock.operations.initTwice(model, {
+      key: secondId,
+      count: 4,
+    })
+
+    expect(Reflect.get(inserted.model.childrenById, secondId)).toEqual({
+      count: 4,
+    })
+    expect(inserted.commands).toHaveLength(1)
+    expect(initialized).toHaveBeenCalledExactlyOnceWith(4)
+  })
+
+  it.each([firstId, secondId])(
+    'requires the registered Binding even when key %s already exists',
+    key => {
+      const { model } = makeModel()
+      const initChildStep = makeInitIfMissingStep(ChildrenByIdBinding, {
+        key,
+        args: [4],
+      })
+      const recipe = Reflect.apply(initChildStep, undefined, [model])
+
+      expect(() =>
+        withOperationGraph([], () => resolveOperationOutput(recipe, model)),
+      ).toThrow('not registered in the current Block graph')
+      expect(initialized).not.toHaveBeenCalled()
+    },
+  )
+
+  it('rechecks storage when the same Step is applied after the parent removes a key', () => {
+    const { model } = makeModel()
+    const initChildStep = makeInitIfMissingStep(ChildrenByIdBinding, {
+      key: firstId,
+      args: [4],
+    })
+    const applyStep = (model: Model) =>
+      withOperationGraph([ChildrenByIdBinding], () =>
+        resolveOperationOutput(
+          Reflect.apply(initChildStep, undefined, [model]),
+          model,
+        ),
+      )
+
+    const retained = applyStep(model)
+
+    expect(retained.model).toBe(model)
+    expect(initialized).not.toHaveBeenCalled()
+
+    const removedModel = modifyFields(model, {
+      childrenById: () => ({}),
+    })
+    const inserted = applyStep(removedModel)
+
+    expect(Reflect.get(inserted.model.childrenById, firstId)).toEqual({
+      count: 4,
+    })
+    expect(initialized).toHaveBeenCalledExactlyOnceWith(4)
+  })
+
+  it('rejects wrapped values and malformed configuration before child init', () => {
+    expect(() =>
+      Reflect.apply(makeInitIfMissingStep, undefined, [
+        RowsByIdBinding,
+        { key: firstId, args: [4] },
+      ]),
+    ).toThrow('exact Record or HashMap child Binding')
+    expect(() =>
+      Reflect.apply(makeInitIfMissingStep, undefined, [
+        ChildrenByIdBinding,
+        { key: firstId, args: [4], commands: Array.empty() },
+      ]),
+    ).toThrow('does not support the configuration field "commands"')
+    expect(initialized).not.toHaveBeenCalled()
+  })
 })
 
 describe('initAndInsert', () => {

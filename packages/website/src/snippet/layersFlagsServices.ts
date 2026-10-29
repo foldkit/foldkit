@@ -3,9 +3,9 @@ import { HttpClient, HttpClientRequest, HttpClientResponse } from 'effect/http'
 import { Http } from 'foldkit'
 
 export const Session = Schema.Struct({ id: Schema.String })
-
+export type Session = typeof Session.Type
 type ApiClient = Readonly<{
-  restoreSession: Effect.Effect<typeof Session.Type, unknown>
+  restoreSession: Effect.Effect<Session, unknown>
 }>
 
 export class ApiClientService extends Context.Service<

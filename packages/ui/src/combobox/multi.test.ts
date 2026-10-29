@@ -9,7 +9,7 @@ import { expect, expectTypeOf } from 'vitest'
 import { describe, it } from '@effect/vitest'
 
 import * as Animation from '../animation/block.js'
-import { create, init, update } from './multi.js'
+import { init, makeBlock, update } from './multi.js'
 import type { Model, ViewInputs } from './multi.js'
 import {
   Anchor,
@@ -28,13 +28,13 @@ import {
   mounts,
 } from './shared.js'
 
-const TestCombobox = create()
+const TestCombobox = makeBlock()
 const view = makeView<Model, string>({ ariaMultiSelectable: true }, Message)
 
 const Fruit = Schema.Literals(['Apple', 'Pear'])
 type Fruit = typeof Fruit.Type
 
-const FruitCombobox = create(Fruit)
+const FruitCombobox = makeBlock(Fruit)
 
 type TestHtmlBuilder = Parameters<typeof view>[2]
 

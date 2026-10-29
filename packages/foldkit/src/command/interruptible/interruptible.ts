@@ -17,7 +17,6 @@ export const Outcome = defineTaggedUnion({
   Interrupted: {},
   NotFound: {},
 })
-
 /** The result of interrupting a key. `Outcome.Interrupted` means at least one
  * in-flight Command was stopped and will not dispatch its result Message.
  * `Outcome.NotFound` means no Command held the key. The interrupt operation

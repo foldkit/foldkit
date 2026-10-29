@@ -8,11 +8,14 @@ import { makeDefinition } from './define.js'
 import * as Block from './public.js'
 
 const SearchModel = Schema.Struct({ count: Schema.Number })
+type SearchModel = typeof SearchModel.Type
 const SearchMessage = defineMessageUnion({
   ClickedIncrement: {},
   CompletedScheduleIncrement: {},
 })
+type SearchMessage = typeof SearchMessage.Type
 const SearchOutMessage = defineMessageUnion({ Incremented: {} })
+type SearchOutMessage = typeof SearchOutMessage.Type
 const SearchDefinition = makeDefinition('GeneratedDirectSearch', {
   Model: SearchModel,
   Message: SearchMessage,

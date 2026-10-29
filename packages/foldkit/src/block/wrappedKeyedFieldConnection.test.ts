@@ -22,12 +22,15 @@ import { makeDefinition } from './define.js'
 import * as Block from './public.js'
 
 const CounterModel = Schema.Struct({ count: Schema.Number })
+type CounterModel = typeof CounterModel.Type
 const StoredCounterModel = Schema.Struct({ count: Schema.Number })
+type StoredCounterModel = typeof StoredCounterModel.Type
 const CounterMessage = defineMessageUnion({
   RequestedSetCount: { count: Schema.Number },
   UpdatedCount: { count: Schema.Number },
   CompletedFinishInitialization: { count: Schema.Number },
 })
+type CounterMessage = typeof CounterMessage.Type
 const Counter = makeDefinition('WrappedKeyedFieldCounter', {
   Model: CounterModel,
   Message: CounterMessage,
@@ -73,9 +76,11 @@ const CounterEntry = Schema.Struct({
   label: Schema.String,
   rank: Schema.Number,
 })
+type CounterEntry = typeof CounterEntry.Type
 const TextMessage = defineMessageUnion({
   ReplacedText: { value: Schema.String },
 })
+type TextMessage = typeof TextMessage.Type
 
 const TextComposition = makeDefinition('WrappedKeyedFieldText', {
   Model: Schema.String,
@@ -99,6 +104,7 @@ const TextEntry = Schema.Struct({
   text: Schema.String,
   label: Schema.String,
 })
+type TextEntry = typeof TextEntry.Type
 const ParentModel = Schema.Struct({
   counters: Schema.Array(CounterEntry),
   textEntries: Schema.Array(TextEntry),
@@ -107,6 +113,7 @@ type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({
   RequestedSetCount: { id: Schema.String, count: Schema.Number },
 })
+type ParentMessage = typeof ParentMessage.Type
 const Parent = makeDefinition('WrappedKeyedFieldParent', {
   Model: ParentModel,
   Message: ParentMessage,
@@ -228,7 +235,7 @@ it('keeps literal default and overridden placements', () => {
 })
 
 it('initializes the parent Model and lifts Commands with the wrapper key', async () => {
-  const initializeCounter = ParentComposition.makeInit(() =>
+  const initCounter = ParentComposition.makeInit(() =>
     CountersBinding.init({
       key: 'created',
       args: [4],
@@ -246,7 +253,7 @@ it('initializes the parent Model and lifts Commands with the wrapper key', async
         }),
     }),
   )
-  const counterInit = initializeCounter()
+  const counterInit = initCounter()
   const command = Option.getOrThrow(Array.head(counterInit.commands!))
   const completed = await Effect.runPromise(
     Effect.scoped(
@@ -310,37 +317,46 @@ it('accepts equivalent child Schemas and scalar child Models', () => {
 })
 
 const OpaqueCounterEntry = Schema.declare(
-  (_input): _input is typeof CounterEntry.Type => true,
+  (_input): _input is CounterEntry => true,
   { expected: 'opaque counter entry' },
 )
+type OpaqueCounterEntry = typeof OpaqueCounterEntry.Type
 const PrimaryCounterEntry = Schema.Struct({
   _tag: Schema.Literal('Primary'),
   id: Schema.String,
   counter: CounterModel,
 })
+type PrimaryCounterEntry = typeof PrimaryCounterEntry.Type
 const SecondaryCounterEntry = Schema.Struct({
   _tag: Schema.Literal('Secondary'),
   id: Schema.String,
   counter: CounterModel,
 })
+type SecondaryCounterEntry = typeof SecondaryCounterEntry.Type
 const OptionalKeyEntry = Schema.Struct({
   id: Schema.optionalKey(Schema.String),
   counter: CounterModel,
 })
+type OptionalKeyEntry = typeof OptionalKeyEntry.Type
 const MissingKeyEntry = Schema.Struct({ counter: CounterModel })
+type MissingKeyEntry = typeof MissingKeyEntry.Type
 const BooleanKeyEntry = Schema.Struct({
   id: Schema.Boolean,
   counter: CounterModel,
 })
+type BooleanKeyEntry = typeof BooleanKeyEntry.Type
 const OptionalChildEntry = Schema.Struct({
   id: Schema.String,
   counter: Schema.optionalKey(CounterModel),
 })
+type OptionalChildEntry = typeof OptionalChildEntry.Type
 const MissingChildEntry = Schema.Struct({ id: Schema.String })
+type MissingChildEntry = typeof MissingChildEntry.Type
 const WrongChildEntry = Schema.Struct({
   id: Schema.String,
   counter: Schema.String,
 })
+type WrongChildEntry = typeof WrongChildEntry.Type
 const InvalidParentModel = Schema.Struct({
   opaqueEntries: Schema.Array(OpaqueCounterEntry),
   unionEntries: Schema.Array(
@@ -356,6 +372,7 @@ const InvalidParentModel = Schema.Struct({
   missingChildEntries: Schema.Array(MissingChildEntry),
   wrongChildEntries: Schema.Array(WrongChildEntry),
 })
+type InvalidParentModel = typeof InvalidParentModel.Type
 const InvalidParent = makeDefinition('WrappedKeyedFieldInvalidParent', {
   Model: InvalidParentModel,
   Message: ParentMessage,
@@ -413,9 +430,11 @@ it('rejects invalid wrapper key and child fields at runtime', () => {
   )
 
   const SameFieldEntry = Schema.Struct({ value: Schema.String })
+  type SameFieldEntry = typeof SameFieldEntry.Type
   const SameFieldParentModel = Schema.Struct({
     values: Schema.Array(SameFieldEntry),
   })
+  type SameFieldParentModel = typeof SameFieldParentModel.Type
   const SameFieldParent = makeDefinition('WrappedKeyedFieldSameFieldParent', {
     Model: SameFieldParentModel,
     Message: ParentMessage,
@@ -466,7 +485,7 @@ const constructRuntime = (model: ParentModel): void => {
     Effect.scoped(
       Effect.gen(function* () {
         const runtimeScope = yield* Scope.Scope
-        yield* makeCompositionRuntime<ParentModel, typeof ParentMessage.Type>({
+        yield* makeCompositionRuntime<ParentModel, ParentMessage>({
           block: ParentBlock,
           initModel: model,
           context: Context.empty(),

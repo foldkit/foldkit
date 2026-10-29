@@ -8,6 +8,7 @@ export const Workload = Schema.Literals([
   'Patch',
   'SubscriptionDependencies',
 ])
+export type Workload = typeof Workload.Type
 
 export type SlowPhase = Runtime.SlowPhase
 
@@ -18,11 +19,13 @@ export const SlowWarningReport = Schema.Struct({
   trigger: Schema.String,
   details: Schema.String,
 })
+export type SlowWarningReport = typeof SlowWarningReport.Type
 
 export const SlowWarning = Schema.Struct({
   id: Schema.Number,
   ...SlowWarningReport.fields,
 })
+export type SlowWarning = typeof SlowWarning.Type
 
 export const Model = Schema.Struct({
   activeWorkload: Workload,
@@ -31,3 +34,4 @@ export const Model = Schema.Struct({
   patchRows: Schema.Number,
   patchRun: Schema.Number,
 })
+export type Model = typeof Model.Type

@@ -8,3 +8,4 @@ const Message = defineMessageUnion({
   ClickedIncrement: {},
   ClickedReset: {},
 })
+type Message = typeof Message.Type

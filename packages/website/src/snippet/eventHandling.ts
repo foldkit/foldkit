@@ -9,7 +9,7 @@ const buttonExample = (h: HtmlBuilder<Message>) =>
 
 // For input events, Foldkit extracts the value and passes it
 // to your function:
-const inputExample = (model: typeof Model.Type, h: HtmlBuilder<Message>) =>
+const inputExample = (model: Model, h: HtmlBuilder<Message>) =>
   h.input([
     h.OnInput(value => ChangedSearch({ text: value })),
     h.Value(model.searchText),

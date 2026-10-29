@@ -28,6 +28,7 @@ const Model = Schema.Struct({ status: Schema.String })
 type Model = typeof Model.Type
 
 const Flags = Schema.Struct({ initialStatus: Schema.String })
+type Flags = typeof Flags.Type
 
 const Send = Command.define('Send', {
   args: { text: Schema.String },
@@ -42,6 +43,7 @@ const SendWithOptionalTextArgs = Command.define('Send', {
 const CompletedSendWithOptionalText = Schema.TaggedStruct('CompletedSend', {
   text: Schema.optional(Schema.String),
 })
+type CompletedSendWithOptionalText = typeof CompletedSendWithOptionalText.Type
 
 const SendWithOptionalTextResult = Command.define('Send', {
   args: { text: Schema.String },

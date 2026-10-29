@@ -3,10 +3,12 @@ import { Block } from 'foldkit'
 const Model = Schema.Struct({
   posts: postsQuery.Model,
 })
+type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
   ClickedRefreshPosts: {},
 })
+type Message = typeof Message.Type
 
 const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,

@@ -14,7 +14,7 @@ The counter defines its Model with [Effect Schema](https://effect.website/docs/s
 
 ::Snippet{name="counterModel" label="Counter Model"}
 
-`Schema.Struct` creates the runtime Schema. `typeof Model.Type` derives the TypeScript type from that same definition, so the runtime and compiler agree on the Model’s shape. Use that direct query when an application annotation needs the decoded type; a routine colocated `type Model = typeof Model.Type` alias adds no contract.
+`Schema.Struct` creates the runtime Schema. Put `type Model = typeof Model.Type` immediately below it, with no blank line. The alias derives the decoded type from that same definition, so the runtime and compiler agree on the Model’s shape. Use `Model` in explicit value annotations; use `typeof Model` when an API needs the Schema type.
 
 That runtime value matters because TypeScript types disappear after compilation. Foldkit uses the Model Schema to encode and decode state preserved across hot updates. The same Schema can validate unknown data at application boundaries.
 

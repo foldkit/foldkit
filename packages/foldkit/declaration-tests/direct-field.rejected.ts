@@ -15,7 +15,7 @@ import {
   argumentChildBlock,
   arrayChildBlock,
   childBlock,
-  initialize,
+  init,
   nestedOptionChildBlock,
 } from './direct-field.accepted.js'
 
@@ -227,7 +227,7 @@ const UnregisteredComposition = ParentDefinition.makeComposition({
 })
 UnregisteredComposition.prepareBlock({
   // @ts-expect-error An initializer retains registration evidence for its initialized child graph.
-  init: initialize,
+  init,
   update: UnregisteredComposition.makeUpdate({
     IgnoredChildMessage: model => ({ model }),
   }),

@@ -12,6 +12,7 @@ const Model = Schema.Struct({
   label: Schema.String,
   status: Schema.Literals(['Idle', 'Ready']),
 })
+type Model = typeof Model.Type
 const FieldStepsDefinition = makeDefinition('FieldSteps', {
   Model,
   Message: Schema.Never,
@@ -87,6 +88,7 @@ it('preserves Model identity for a deferred empty field Step', () => {
 it('applies symbol field transformations rather than treating them as empty', () => {
   const count = Symbol('count')
   const SymbolModel = Schema.Struct({ [count]: Schema.Number })
+  type SymbolModel = typeof SymbolModel.Type
   const SymbolDefinition = makeDefinition('SymbolFields', {
     Model: SymbolModel,
     Message: Schema.Never,
@@ -124,6 +126,7 @@ it('combines ordinary field Steps sequentially for Blocks and Applications', () 
 
 it('returns the identical refined Model with no other result channels', () => {
   const RefinedModel = Schema.Struct({ ...Model.fields, extra: Schema.Boolean })
+  type RefinedModel = typeof RefinedModel.Type
   const model = RefinedModel.make({
     count: 1,
     label: 'Example',
@@ -143,8 +146,11 @@ it('returns the identical refined Model with no other result channels', () => {
 
 it('preserves a child transition when an OutMessage policy has no parent transition', () => {
   const ChildModel = Schema.Struct({ count: Schema.Number })
+  type ChildModel = typeof ChildModel.Type
   const ChildMessage = defineMessageUnion({ ClickedIncrement: {} })
+  type ChildMessage = typeof ChildMessage.Type
   const ChildOutMessage = defineMessageUnion({ Incremented: {} })
+  type ChildOutMessage = typeof ChildOutMessage.Type
   const ChildDefinition = makeDefinition('FieldStepsChild', {
     Model: ChildModel,
     Message: ChildMessage,
@@ -172,7 +178,7 @@ it('preserves a child transition when an OutMessage policy has no parent transit
     Model: ParentModel,
     Message: Schema.Never,
   })
-  const foldChildOutMessage = (outMessage: typeof ChildOutMessage.Type) =>
+  const foldChildOutMessage = (outMessage: ChildOutMessage) =>
     ChildOutMessage.match<Update.Step<ParentModel, ParentMessage>>(outMessage, {
       Incremented: () => ParentDefinition.makeNoopStep(),
     })
@@ -213,6 +219,7 @@ const VariantModel = Schema.Union([
     isEnabled: Schema.Boolean,
   }),
 ])
+type VariantModel = typeof VariantModel.Type
 const VariantDefinition = makeDefinition('VariantFieldSteps', {
   Model: VariantModel,
   Message: Schema.Never,

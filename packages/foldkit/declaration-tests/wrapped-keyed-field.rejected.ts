@@ -15,7 +15,7 @@ import {
   TextEntriesBinding,
   choiceOutMessagePolicy,
   firstChoiceId,
-  initialize,
+  init,
 } from './wrapped-keyed-field.accepted.js'
 
 const OpaqueChoiceEntry = Schema.declare(
@@ -491,7 +491,7 @@ const UnregisteredComposition =
   })
 UnregisteredComposition.prepareBlock({
   // @ts-expect-error An initializer retains registration evidence for its initialized child graph.
-  init: initialize,
+  init,
   update: UnregisteredComposition.makeUpdate({
     IgnoredChildMessage: model => ({ model }),
   }),

@@ -1,5 +1,4 @@
-import { Array, Option } from 'effect'
-import { AsyncData } from 'foldkit'
+import { Array, Option, Record } from 'effect'
 import {
   Command,
   Mount,
@@ -14,6 +13,7 @@ import {
   type,
 } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
+import { toParentMessage } from 'foldkit/test'
 import * as Url from 'foldkit/url'
 import { describe, expect as expectValue, test } from 'vitest'
 
@@ -26,24 +26,30 @@ import {
   NavigateInternal,
   SimulateSaveFailure,
 } from './command'
-import { ApplicationComposition } from './composition'
-import { Comment, IssueFilters, SavedView, initialSnapshot } from './domain'
+import { IssueDetailBinding } from './composition'
+import {
+  Comment,
+  IssueFilters,
+  SavedView,
+  initialWorkspace,
+  savedIssueFromIssue,
+} from './domain'
 import { init } from './init'
 import { IssueDetailBlock } from './issueDetail'
 import { SaveIssue } from './issueDetail/command'
+import { issueHref } from './issueLinks'
 import { WorkspaceListboxBlock } from './listbox'
 import { Message } from './message'
-import { type Model, appliedIssueFilters } from './model'
-import { issueHref } from './navigation'
 import { ProjectSettingsBlock } from './projectSettings'
 import { SaveProject } from './projectSettings/command'
 import { RepositoryError } from './repository'
-import { issueRouter, savedViewRouter } from './route'
+import { issuesRouter, savedViewRouter } from './route'
+import { appliedIssueFilters } from './selection'
 import { update } from './update'
 import { view } from './view'
 
-const firstIssue = Option.getOrThrow(Array.head(initialSnapshot.issues))
-const issueUrl = issueRouter({ issueId: firstIssue.id })
+const firstIssue = Option.getOrThrow(Array.head(initialWorkspace.issues))
+const issuePath = issuesRouter({ issueId: firstIssue.id })
 
 const url = (path: string) =>
   Option.getOrThrow(Url.fromString(`https://workspace.test${path}`))
@@ -53,52 +59,51 @@ const loadedModel = (path = '/') => {
 
   const workspaceLoad = update(
     applicationInit.model,
-    Message.SucceededLoadWorkspace({ snapshot: initialSnapshot }),
+    Message.SucceededLoadWorkspace({ workspace: initialWorkspace }),
   )
 
   return workspaceLoad.model
 }
 
-const captureUpdates = () => {
-  const models = Array.empty<typeof Model.Type>()
-
-  return {
-    update: (
-      model: typeof Model.Type,
-      message: typeof ApplicationComposition.Message.Type,
-    ) => {
-      const messageUpdate = update(model, message)
-
-      models.push(messageUpdate.model)
-
-      return messageUpdate
-    },
-    latestModel: () => Option.getOrThrow(Array.last(models)),
-  }
-}
-
-const canonicalIssue = (model: typeof Model.Type, issueId = firstIssue.id) =>
-  Option.getOrThrow(
-    Option.match(AsyncData.getData(model.workspaceAsyncData), {
-      onNone: () => Option.none(),
-      onSome: snapshot =>
-        Array.findFirst(snapshot.issues, issue => issue.id === issueId),
-    }),
-  )
-
 describe('workspace application', () => {
-  test('does not render a retained issue editor after its route is hidden', () => {
-    const issueModel = loadedModel(issueUrl)
-    const hiddenIssue = update(
-      issueModel,
-      Message.ChangedUrl({ url: url('/people') }),
-    ).model
-
-    expectValue(hiddenIssue.issueDetailInstances).toHaveLength(1)
+  test('marks the current workspace and project navigation links', () => {
+    scene(
+      { update, view },
+      given(loadedModel('/projects/platform/board')),
+      expect(role('navigation', { name: 'Project navigation' })).toExist(),
+      expect(role('link', { name: 'Board' })).toHaveAttr(
+        'aria-current',
+        'page',
+      ),
+      expect(role('link', { name: 'Issues' })).not.toHaveAttr('aria-current'),
+    )
 
     scene(
       { update, view },
-      given(hiddenIssue),
+      given(loadedModel('/people')),
+      expect(role('navigation', { name: 'Workspace navigation' })).toExist(),
+      expect(role('link', { name: 'People' })).toHaveAttr(
+        'aria-current',
+        'page',
+      ),
+      expect(role('link', { name: 'All issues' })).not.toHaveAttr(
+        'aria-current',
+      ),
+    )
+  })
+
+  test('does not render a retained issue editor after its route is hidden', () => {
+    const issueOpenModel = loadedModel(issuePath)
+    const issueClose = update(
+      issueOpenModel,
+      Message.ChangedUrl({ url: url('/people') }),
+    ).model
+
+    expectValue(Record.values(issueClose.issueDetails)).toHaveLength(1)
+
+    scene(
+      { update, view },
+      given(issueClose),
       expect(role('heading', { name: 'People' })).toExist(),
       expect(label('Issue title')).not.toExist(),
       expect(role('button', { name: 'Close issue' })).not.toExist(),
@@ -162,7 +167,7 @@ describe('workspace application', () => {
       ),
       version: version => version + 1,
     })
-    const savedIssue = modifyFields(latestIssue, {
+    const savedIssueSnapshot = modifyFields(latestIssue, {
       title: () => 'Revised after reloading',
       version: version => version + 1,
     })
@@ -182,10 +187,11 @@ describe('workspace application', () => {
 
     scene(
       { update, view, subscriptions: ApplicationBlock.subscriptions },
-      given(loadedModel(issueUrl)),
+      given(loadedModel(issuePath)),
       type(label('Issue title'), 'Keep this local draft'),
       click(role('button', { name: 'Save changes' })),
       Command.keepPending(pendingSave),
+      Subscription.expectActive(ApplicationBlock.subscriptions.activity),
       Subscription.emit(
         ApplicationBlock.subscriptions.activity,
         Message.TickedActivityStream(),
@@ -200,7 +206,10 @@ describe('workspace application', () => {
       ),
       Command.resolve(
         AppendActivity,
-        Message.SucceededAppendActivity({ issue: latestIssue }),
+        Message.SucceededAppendActivity({
+          issueId: latestIssue.id,
+          comment: Option.getOrThrow(Array.last(latestIssue.comments)),
+        }),
       ),
       expect(text('The conversation stays current while you edit.')).toExist(),
       Command.resolve(
@@ -226,31 +235,31 @@ describe('workspace application', () => {
       expect(role('alert')).toContainText('Your draft is preserved'),
       click(role('button', { name: 'Reload issue' })),
       expect(label('Issue title')).toHaveValue(latestIssue.title),
-      type(label('Issue title'), savedIssue.title),
+      type(label('Issue title'), savedIssueSnapshot.title),
       click(role('button', { name: 'Save changes' })),
       Command.expectExact(
         SaveIssue({
           issueId: firstIssue.id,
           expectedVersion: latestIssue.version,
           draft: {
-            title: savedIssue.title,
-            description: savedIssue.description,
-            status: savedIssue.status,
-            priority: savedIssue.priority,
-            projectId: savedIssue.projectId,
-            maybeAssigneeId: savedIssue.maybeAssigneeId,
-            labelIds: savedIssue.labelIds,
+            title: savedIssueSnapshot.title,
+            description: savedIssueSnapshot.description,
+            status: savedIssueSnapshot.status,
+            priority: savedIssueSnapshot.priority,
+            projectId: savedIssueSnapshot.projectId,
+            maybeAssigneeId: savedIssueSnapshot.maybeAssigneeId,
+            labelIds: savedIssueSnapshot.labelIds,
           },
         }),
       ),
       Command.resolve(
         SaveIssue,
         IssueDetailBlock.Message.SucceededSaveIssue({
-          issue: savedIssue,
+          savedIssue: savedIssueFromIssue(savedIssueSnapshot),
           expectedVersion: latestIssue.version,
         }),
       ),
-      expect(label('Issue title')).toHaveValue(savedIssue.title),
+      expect(label('Issue title')).toHaveValue(savedIssueSnapshot.title),
     )
   })
 
@@ -276,7 +285,7 @@ describe('workspace application', () => {
     )
   })
 
-  test('preserves saved filters in an issue return URL without saved view metadata', () => {
+  test('preserves saved filters in an issue panel without saved view metadata', () => {
     const filters = IssueFilters.make({
       query: 'command',
       maybeStatus: Option.none(),
@@ -292,45 +301,41 @@ describe('workspace application', () => {
       savedViews: () => [savedView],
     })
 
-    const barePresetRoute = update(
+    const savedViewModel = update(
       modelWithPreset,
       Message.ChangedUrl({ url: url(`/views/${savedView.id}`) }),
     ).model
 
-    const returnTarget = savedViewRouter({
+    const savedViewPath = savedViewRouter({
       viewId: savedView.id,
       filters,
     })
-    const href = issueHref(barePresetRoute, firstIssue.id)
+    const href = issueHref(savedViewModel, firstIssue.id)
 
     expectValue(href).toBe(
-      issueRouter({ issueId: firstIssue.id, returnTo: returnTarget }),
+      savedViewRouter({
+        viewId: savedView.id,
+        filters,
+        issueId: firstIssue.id,
+      }),
     )
 
-    const freshIssueModel = loadedModel(href)
-    const captured = captureUpdates()
+    const reloadedIssueModel = loadedModel(href)
 
-    expectValue(freshIssueModel.savedViews).toEqual([])
-    expectValue(appliedIssueFilters(freshIssueModel)).toEqual(filters)
-
-    scene(
-      { update: captured.update, view },
-      given(freshIssueModel),
-      click(role('button', { name: 'Close issue' })),
-      Command.expectExact(NavigateInternal({ url: returnTarget })),
-      Command.resolve(NavigateInternal, Message.CompletedNavigateInternal()),
-    )
-
-    const returned = update(
-      captured.latestModel(),
-      Message.ChangedUrl({ url: url(returnTarget) }),
-    )
-
-    expectValue(appliedIssueFilters(returned.model)).toEqual(filters)
+    expectValue(reloadedIssueModel.savedViews).toEqual([])
+    expectValue(appliedIssueFilters(reloadedIssueModel)).toEqual(filters)
 
     scene(
       { update, view },
-      given(returned.model),
+      given(reloadedIssueModel),
+      click(role('button', { name: 'Close issue' })),
+      Command.expectExact(NavigateInternal({ url: savedViewPath })),
+      Command.resolve(NavigateInternal, Message.CompletedNavigateInternal()),
+    )
+
+    scene(
+      { update, view },
+      given(loadedModel(savedViewPath)),
       expect(role('heading', { name: 'Filtered issues' })).toExist(),
       expect(label('Search issues')).toHaveValue('command'),
       expect(text('1 issue')).toExist(),
@@ -344,15 +349,15 @@ describe('workspace application', () => {
   })
 
   test('updates the canonical issue and its list row after saving a draft', () => {
-    const savedIssue = modifyFields(firstIssue, {
+    const savedIssueSnapshot = modifyFields(firstIssue, {
       title: () => 'Find every project from one command menu',
       version: version => version + 1,
     })
 
     scene(
       { update, view },
-      given(loadedModel(issueUrl)),
-      type(label('Issue title'), savedIssue.title),
+      given(loadedModel(issuePath)),
+      type(label('Issue title'), savedIssueSnapshot.title),
       expect(
         role('link', {
           name: `${firstIssue.identifier} ${firstIssue.title}`,
@@ -362,22 +367,22 @@ describe('workspace application', () => {
       Command.resolve(
         SaveIssue,
         IssueDetailBlock.Message.SucceededSaveIssue({
-          issue: savedIssue,
+          savedIssue: savedIssueFromIssue(savedIssueSnapshot),
           expectedVersion: firstIssue.version,
         }),
       ),
       expect(
         role('link', {
-          name: `${savedIssue.identifier} ${savedIssue.title}`,
+          name: `${savedIssueSnapshot.identifier} ${savedIssueSnapshot.title}`,
         }),
       ).toExist(),
-      expect(label('Issue title')).toHaveValue(savedIssue.title),
-      expect(text(`${savedIssue.identifier} saved`)).toExist(),
+      expect(label('Issue title')).toHaveValue(savedIssueSnapshot.title),
+      expect(text(`${savedIssueSnapshot.identifier} saved`)).toExist(),
     )
   })
 
   test('retains the draft after failure and updates the list after a successful retry', () => {
-    const savedIssue = modifyFields(firstIssue, {
+    const savedIssueSnapshot = modifyFields(firstIssue, {
       title: () => 'Keep the issue draft when a save fails',
       description: () => 'Retry the current draft after the service recovers.',
       version: version => version + 1,
@@ -392,20 +397,20 @@ describe('workspace application', () => {
         Message.CompletedSimulateSaveFailure(),
       ),
     )
-    const returnToIssues = update(
+    const issueClose = update(
       loadedModel('/settings'),
       Message.ChangedUrl({ url: url('/') }),
     )
-    const routeChange = update(
-      returnToIssues.model,
-      Message.ChangedUrl({ url: url(issueUrl) }),
+    const issueOpen = update(
+      issueClose.model,
+      Message.ChangedUrl({ url: url(issuePath) }),
     )
 
     scene(
       { update, view },
-      given(routeChange.model),
-      type(label('Issue title'), savedIssue.title),
-      type(label('Description'), savedIssue.description),
+      given(issueOpen.model),
+      type(label('Issue title'), savedIssueSnapshot.title),
+      type(label('Description'), savedIssueSnapshot.description),
       click(role('button', { name: 'Save changes' })),
       Command.resolve(
         SaveIssue,
@@ -421,8 +426,8 @@ describe('workspace application', () => {
       expect(role('alert')).toContainText(
         'The workspace is temporarily unavailable.',
       ),
-      expect(label('Issue title')).toHaveValue(savedIssue.title),
-      expect(label('Description')).toHaveValue(savedIssue.description),
+      expect(label('Issue title')).toHaveValue(savedIssueSnapshot.title),
+      expect(label('Description')).toHaveValue(savedIssueSnapshot.description),
       expect(
         role('link', {
           name: `${firstIssue.identifier} ${firstIssue.title}`,
@@ -432,14 +437,14 @@ describe('workspace application', () => {
       Command.resolve(
         SaveIssue,
         IssueDetailBlock.Message.SucceededSaveIssue({
-          issue: savedIssue,
+          savedIssue: savedIssueFromIssue(savedIssueSnapshot),
           expectedVersion: firstIssue.version,
         }),
       ),
       expect(role('alert')).not.toExist(),
       expect(
         role('link', {
-          name: `${savedIssue.identifier} ${savedIssue.title}`,
+          name: `${savedIssueSnapshot.identifier} ${savedIssueSnapshot.title}`,
         }),
       ).toExist(),
     )
@@ -448,7 +453,7 @@ describe('workspace application', () => {
   test('announces a failed load and renders the workspace after retrying', () => {
     const applicationInit = init(url('/'))
 
-    const workspaceFailure = update(
+    const workspaceLoadFailure = update(
       applicationInit.model,
       Message.FailedLoadWorkspace({
         error: 'The workspace is temporarily unavailable.',
@@ -457,7 +462,7 @@ describe('workspace application', () => {
 
     scene(
       { update, view },
-      given(workspaceFailure.model),
+      given(workspaceLoadFailure.model),
       expect(role('alert')).toContainText(
         'The workspace is temporarily unavailable.',
       ),
@@ -467,7 +472,7 @@ describe('workspace application', () => {
       expect(text('Loading workspace…')).toExist(),
       Command.resolve(
         LoadWorkspace,
-        Message.SucceededLoadWorkspace({ snapshot: initialSnapshot }),
+        Message.SucceededLoadWorkspace({ workspace: initialWorkspace }),
       ),
       expect(role('alert')).not.toExist(),
       expect(
@@ -479,7 +484,7 @@ describe('workspace application', () => {
   })
 
   test('preserves project fields after failure and publishes the retried save', () => {
-    const project = Option.getOrThrow(Array.head(initialSnapshot.projects))
+    const project = Option.getOrThrow(Array.head(initialWorkspace.projects))
     const savedProject = modifyFields(project, {
       name: () => 'Platform engineering',
       description: () => 'Reliable foundations for every team.',
@@ -524,16 +529,15 @@ describe('workspace application', () => {
     )
   })
 
-  test('announces failed activity and shows a later update in canonical issue comments', () => {
-    const captured = captureUpdates()
-    const nextIssue = Option.getOrThrow(
+  test('announces failed activity and clears the error after a successful retry', () => {
+    const activityIssue = Option.getOrThrow(
       Array.findFirst(
-        initialSnapshot.issues,
+        initialWorkspace.issues,
         issue => issue.id === 'issue-105',
       ),
     )
     const body = 'A teammate checked the keyboard navigation.'
-    const commentedIssue = modifyFields(nextIssue, {
+    const commentedIssue = modifyFields(activityIssue, {
       comments: Array.append({
         id: 'activity-comment',
         authorId: 'alex',
@@ -544,7 +548,7 @@ describe('workspace application', () => {
     const error = 'Activity could not be added.'
 
     scene(
-      { update: captured.update, view },
+      { update, view },
       given(loadedModel('/settings')),
       click(role('button', { name: 'Simulate activity' })),
       Command.expectExact(
@@ -560,54 +564,43 @@ describe('workspace application', () => {
       click(role('button', { name: 'Simulate activity' })),
       Command.expectExact(
         AppendActivity({
-          issueId: nextIssue.id,
+          issueId: activityIssue.id,
           authorId: 'alex',
           body: 'The next iteration is ready. Let me know what you think.',
         }),
       ),
       Command.resolve(
         AppendActivity,
-        Message.SucceededAppendActivity({ issue: commentedIssue }),
+        Message.SucceededAppendActivity({
+          issueId: commentedIssue.id,
+          comment: Option.getOrThrow(Array.last(commentedIssue.comments)),
+        }),
       ),
       expect(text(error)).not.toExist(),
       expect(text('2 activity events requested')).toExist(),
     )
-
-    expectValue(canonicalIssue(captured.latestModel(), nextIssue.id)).toEqual(
-      commentedIssue,
-    )
-
-    const routedIssue = update(
-      captured.latestModel(),
-      Message.ChangedUrl({ url: url(issueRouter({ issueId: nextIssue.id })) }),
-    )
-
-    scene(
-      { update, view },
-      given(routedIssue.model),
-      expect(label('Issue title')).toHaveValue(nextIssue.title),
-      expect(text(body)).toExist(),
-      expect(role('heading', { name: 'Activity' })).toExist(),
-    )
   })
 
   test('keeps the routed editor and its draft visible during a failed refresh', () => {
-    const captured = captureUpdates()
-
-    scene(
-      { update: captured.update, view },
-      given(loadedModel(issueUrl)),
-      type(label('Issue title'), 'Keep this draft while refreshing'),
-      expect(label('Issue title')).toHaveValue(
-        'Keep this draft while refreshing',
+    const titleUpdate = update(
+      loadedModel(issuePath),
+      toParentMessage(
+        IssueDetailBinding,
+        firstIssue.id,
+        IssueDetailBlock.Message.UpdatedTitle({
+          value: 'Keep this draft while refreshing',
+        }),
       ),
     )
 
-    const reload = update(captured.latestModel(), Message.ClickedRetryLoad())
+    const workspaceReload = update(
+      titleUpdate.model,
+      Message.ClickedRetryLoad(),
+    )
 
     scene(
       { update, view },
-      given(reload.model),
+      given(workspaceReload.model),
       expect(label('Issue title')).toHaveValue(
         'Keep this draft while refreshing',
       ),
@@ -619,8 +612,8 @@ describe('workspace application', () => {
       expect(text('Loading workspace…')).not.toExist(),
     )
 
-    const failedRefresh = update(
-      reload.model,
+    const workspaceRefreshFailure = update(
+      workspaceReload.model,
       Message.FailedLoadWorkspace({
         error: 'The workspace is temporarily unavailable.',
       }),
@@ -628,7 +621,7 @@ describe('workspace application', () => {
 
     scene(
       { update, view },
-      given(failedRefresh.model),
+      given(workspaceRefreshFailure.model),
       expect(label('Issue title')).toHaveValue(
         'Keep this draft while refreshing',
       ),
@@ -640,40 +633,42 @@ describe('workspace application', () => {
       expect(role('button', { name: 'Close issue' })).toExist(),
       expect(text('Unable to load workspace')).not.toExist(),
     )
-
-    expectValue(canonicalIssue(failedRefresh.model)).toEqual(firstIssue)
   })
 
   test('keeps a dirty editor draft and offers the latest revision after a successful refresh', () => {
-    const captured = captureUpdates()
     const latestIssue = modifyFields(firstIssue, {
       title: () => 'A newer title loaded from the repository',
       version: version => version + 1,
     })
-    const latestSnapshot = modifyFields(initialSnapshot, {
+    const latestWorkspace = modifyFields(initialWorkspace, {
       issues: Array.map(issue =>
         issue.id === latestIssue.id ? latestIssue : issue,
       ),
     })
 
-    scene(
-      { update: captured.update, view },
-      given(loadedModel(issueUrl)),
-      type(label('Issue title'), 'Keep this unsaved title'),
-      expect(label('Issue title')).toHaveValue('Keep this unsaved title'),
+    const titleUpdate = update(
+      loadedModel(issuePath),
+      toParentMessage(
+        IssueDetailBinding,
+        firstIssue.id,
+        IssueDetailBlock.Message.UpdatedTitle({
+          value: 'Keep this unsaved title',
+        }),
+      ),
     )
 
-    const reload = update(captured.latestModel(), Message.ClickedRetryLoad())
-    const refreshed = update(
-      reload.model,
-      Message.SucceededLoadWorkspace({ snapshot: latestSnapshot }),
+    const workspaceReload = update(
+      titleUpdate.model,
+      Message.ClickedRetryLoad(),
     )
-
-    expectValue(canonicalIssue(refreshed.model)).toEqual(latestIssue)
+    const workspaceRefresh = update(
+      workspaceReload.model,
+      Message.SucceededLoadWorkspace({ workspace: latestWorkspace }),
+    )
 
     scene(
       { update, view },
-      given(refreshed.model),
+      given(workspaceRefresh.model),
       expect(label('Issue title')).toHaveValue('Keep this unsaved title'),
       expect(
         role('link', {

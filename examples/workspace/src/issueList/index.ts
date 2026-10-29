@@ -1,1 +1,1 @@
-export { IssueListBlock } from './issueList'
+export { IssueListBlock } from './block'

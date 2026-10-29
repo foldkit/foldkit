@@ -30,6 +30,12 @@ export const view = UiComposition.makeView.withInputs<ViewInputs>(
             model.virtualListChatDemo,
             model.virtualListChatMessages,
             h,
+            {
+              historySource: model.virtualListChatHistorySource,
+              historyModeGroup: model.virtualListChatHistoryModeGroup,
+              historyLoad: model.virtualListChatHistoryLoad,
+              announcedOlderCount: model.virtualListChatAnnouncedOlderCount,
+            },
           ),
         ),
       },

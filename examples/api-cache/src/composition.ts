@@ -14,7 +14,7 @@ import {
 } from './model'
 
 export const applyPostsTransition = (
-  model: typeof Model.Type,
+  model: Model,
   maybeNextPosts: Option.Option<typeof PostsData.schema.Type>,
 ) =>
   Option.match(maybeNextPosts, {
@@ -26,7 +26,7 @@ export const applyPostsTransition = (
   })
 
 export const applyStatsTransition = (
-  model: typeof Model.Type,
+  model: Model,
   maybeNextStats: Option.Option<typeof StatsData.schema.Type>,
 ) =>
   Option.match(maybeNextStats, {
@@ -37,7 +37,7 @@ export const applyStatsTransition = (
     }),
   })
 
-const activateTab = (tab: typeof Tab.Type) => (model: typeof Model.Type) => {
+const activateTab = (tab: Tab) => (model: Model) => {
   const modelWithActiveTab = modifyFields(model, { activeTab: () => tab })
 
   return Match.value(tab).pipe(

@@ -4,6 +4,7 @@ import type {
   DemoTab,
   ListboxItem,
   Plan,
+  VirtualListChatHistoryMode,
   VirtualListChatMessage,
 } from '../domain/domain'
 
@@ -12,21 +13,23 @@ export type Character = Readonly<{
   lastName: string
 }>
 
-export const ItemListboxBlock = Listbox.create<typeof ListboxItem.Type>()
-export const ItemMultiListboxBlock =
-  Listbox.Multi.create<typeof ListboxItem.Type>()
-export const CharacterListboxBlock = Listbox.create<Character>()
+export const ItemListboxBlock = Listbox.makeBlock<ListboxItem>()
+export const ItemMultiListboxBlock = Listbox.Multi.makeBlock<ListboxItem>()
+export const CharacterListboxBlock = Listbox.makeBlock<Character>()
 
 export type MenuItem = 'Edit' | 'Duplicate' | 'Archive' | 'Move' | 'Delete'
 
-export const DemoMenuBlock = Menu.create<MenuItem>()
+export const DemoMenuBlock = Menu.makeBlock<MenuItem>()
 
-export const PlanRadioGroupBlock = RadioGroup.create<typeof Plan.Type>()
+export const PlanRadioGroupBlock = RadioGroup.makeBlock<Plan>()
 
-export const DemoTabsBlock = Tabs.create<typeof DemoTab.Type>()
+export const DemoTabsBlock = Tabs.makeBlock<DemoTab>()
 
 import type { Activity } from './virtualListData'
 
-export const ActivityVirtualListBlock = VirtualList.create<Activity>()
+export const ActivityVirtualListBlock = VirtualList.makeBlock<Activity>()
 export const ChatVirtualListBlock =
-  VirtualList.create<typeof VirtualListChatMessage.Type>()
+  VirtualList.makeBlock<VirtualListChatMessage>()
+
+export const HistoryModeRadioGroupBlock =
+  RadioGroup.makeBlock<VirtualListChatHistoryMode>()

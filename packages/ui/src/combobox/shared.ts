@@ -188,7 +188,7 @@ export type UpdatedInputValue = typeof Message.UpdatedInputValue.Type
 export type PressedToggleButton = typeof Message.PressedToggleButton.Type
 
 /** The Message Schema and callable constructors on a created Combobox,
- * refined to the Item Schema supplied to `create`. */
+ * refined to the Item Schema supplied to `makeBlock`. */
 export type MessageSchema<Item extends string = string, ItemEncoded = Item> =
   typeof Message extends MessageUnion<infer Cases>
     ? MessageUnion<
@@ -244,7 +244,7 @@ export const makeOutMessage = <Item extends string, ItemEncoded = Item>(
 export const OutMessage = makeOutMessage(Schema.String)
 
 /** The OutMessage Schema and callable constructors on a created Combobox,
- * refined to the Item Schema supplied to `create`. */
+ * refined to the Item Schema supplied to `makeBlock`. */
 export type OutMessageSchema<Item extends string = string, ItemEncoded = Item> =
   typeof OutMessage extends MessageUnion<infer Cases>
     ? MessageUnion<

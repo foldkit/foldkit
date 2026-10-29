@@ -28,7 +28,6 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({
   ChangedColor: { value: Schema.String },
 })
-
 export type Message = typeof Message.Type
 
 // INIT

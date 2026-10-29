@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "foldkit": ["../src/index.ts"],
+      "foldkit/bindingInit": ["../src/block/bindingInit.ts"]
+    },
+    "rootDir": ".."
+  },
+  "include": [
+    "../src/vite-env.d.ts",
+    "map-binding-method.accepted.ts",
+    "map-binding-method.consume.ts",
+    "map-binding-method.rejected.ts"
+  ]
+}

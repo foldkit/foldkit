@@ -1,5 +1,5 @@
 export {
-  create,
+  makeBlock,
   Orientation,
   type InitConfig,
   type ViewInputs,

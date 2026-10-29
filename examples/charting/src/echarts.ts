@@ -34,10 +34,10 @@ const DEFAULT_SYMBOL_SIZE = 8
 const SELECTED_SYMBOL_SIZE = 11
 
 export type ChartOptionArgs = Readonly<{
-  telemetry: typeof Telemetry.Type
-  chartMode: typeof ChartMode.Type
-  selectedPackageId: typeof PackageId.Type
-  period: typeof Period.Type
+  telemetry: Telemetry
+  chartMode: ChartMode
+  selectedPackageId: PackageId
+  period: Period
   maybeSelectedDatumId: Option.Option<string>
 }>
 
@@ -68,7 +68,7 @@ export const registerEcharts = () => {
 }
 
 const datumId = (
-  chartMode: typeof ChartMode.Type,
+  chartMode: ChartMode,
   segment: string,
   weekStart: string,
 ): string => `${chartMode}:${segment}:${weekStart}`
@@ -82,7 +82,7 @@ const isSelected = (
 const weekLabel = (weekStart: string): string => String.slice(5)(weekStart)
 
 const downloadForWeek = (
-  snapshot: typeof PackageSnapshot.Type,
+  snapshot: PackageSnapshot,
   weekStart: string,
 ): number =>
   pipe(
@@ -352,7 +352,7 @@ const ecosystemOption = (args: ChartOptionArgs): EChartsOption => ({
 
 const packageSnapshotToDownloadDatumLabel =
   (weekStart: string) =>
-  (snapshot: typeof PackageSnapshot.Type): DatumLabel => ({
+  (snapshot: PackageSnapshot): DatumLabel => ({
     id: datumId('Adoption', snapshot.id, weekStart),
     label: `${weekStart}: ${downloadForWeek(
       snapshot,
@@ -361,8 +361,8 @@ const packageSnapshotToDownloadDatumLabel =
   })
 
 const weekToDatumLabels =
-  (telemetry: typeof Telemetry.Type) =>
-  (week: typeof WeeklyTelemetry.Type): ReadonlyArray<DatumLabel> => [
+  (telemetry: Telemetry) =>
+  (week: WeeklyTelemetry): ReadonlyArray<DatumLabel> => [
     ...Array.map(
       telemetry.packages,
       packageSnapshotToDownloadDatumLabel(week.weekStart),
@@ -390,7 +390,7 @@ export const makeChartOption = (args: ChartOptionArgs) =>
   )
 
 const findDatumLabelById =
-  (telemetry: typeof Telemetry.Type) =>
+  (telemetry: Telemetry) =>
   (datumId: string): Option.Option<DatumLabel> =>
     Array.findFirst(
       Array.flatMap(telemetry.weeks, weekToDatumLabels(telemetry)),
@@ -398,7 +398,7 @@ const findDatumLabelById =
     )
 
 export const selectedDatumLabel = (
-  telemetry: typeof Telemetry.Type,
+  telemetry: Telemetry,
   maybeSelectedDatumId: Option.Option<string>,
 ): Option.Option<string> =>
   pipe(

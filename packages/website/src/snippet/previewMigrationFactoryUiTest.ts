@@ -2,7 +2,7 @@ import { Scene } from 'foldkit'
 
 import { Menu } from '@foldkit/ui'
 
-const ChordMenuBlock = Menu.create()
+const ChordMenuBlock = Menu.makeBlock()
 
 Scene.Command.resolve(
   Menu.test.FocusMenuItems,

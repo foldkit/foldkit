@@ -6,6 +6,8 @@ import {
   SliderVolumeDemoBinding,
 } from '../composition'
 
+type SliderBlockModel = typeof SliderBlock.Model.Type
+
 // SHARED STYLES
 
 const horizontalRowClassName = 'flex flex-col gap-2 w-full max-w-sm'
@@ -49,7 +51,7 @@ const volumeFormatted = (value: number): string =>
   `${String(Math.round(value * 100))}%`
 
 export const horizontalDemo = (
-  ratingModel: typeof SliderBlock.Model.Type,
+  ratingModel: SliderBlockModel,
   ratingValue: number,
   h: UiViewBuilder,
 ) => {
@@ -102,7 +104,7 @@ export const horizontalDemo = (
 }
 
 export const verticalDemo = (
-  volumeModel: typeof SliderBlock.Model.Type,
+  volumeModel: SliderBlockModel,
   volumeValue: number,
   h: UiViewBuilder,
 ) => {

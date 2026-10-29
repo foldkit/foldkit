@@ -36,10 +36,7 @@ export const loadingPanel = (text: string, h: ApplicationViewBuilder) =>
   )
 
 export const errorPanel = (
-  {
-    error,
-    retryMessage,
-  }: Readonly<{ error: string; retryMessage: typeof Message.Type }>,
+  { error, retryMessage }: Readonly<{ error: string; retryMessage: Message }>,
   h: ApplicationViewBuilder,
 ) =>
   h.div(

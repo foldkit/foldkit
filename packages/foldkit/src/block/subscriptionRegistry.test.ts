@@ -16,7 +16,9 @@ class Logger extends Context.Service<Logger, Readonly<{ write: () => void }>>()(
 ) {}
 
 const Model = Schema.Struct({ count: Schema.Number })
+type Model = typeof Model.Type
 const Message = defineMessageUnion({ Ticked: {}, Logged: {} })
+type Message = typeof Message.Type
 const RegistryDefinition = makeDefinition('SubscriptionRegistry', {
   Model,
   Message,
@@ -93,8 +95,8 @@ describe('Definition subscriptions registry', () => {
   it('normalizes owned registries at aggregate, lift, and Block boundaries', () => {
     const aggregated = Subscription.aggregate(subscriptions)
     const lifted = Subscription.lift(subscriptions)<
-      Readonly<{ child: typeof Model.Type }>,
-      typeof Message.Type
+      Readonly<{ child: Model }>,
+      Message
     >({
       read: model => Option.some(model.child),
       toParentMessage: message => message,
@@ -111,7 +113,7 @@ describe('Definition subscriptions registry', () => {
 
     Scene.scene(
       {
-        update: (model: typeof Model.Type, _message: typeof Message.Type) => ({
+        update: (model: Model, _message: Message) => ({
           model,
         }),
         view: (_model, h) => h.div([]),

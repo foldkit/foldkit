@@ -24,10 +24,11 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@effect/platform-node": "4.0.0"
+    "@effect/platform-node": "4.0.0",
+    "@effect/platform-node-shared": "4.0.0"
   },
   "peerDependencies": {
-    "effect": "4.0.0",
+    "effect": "4.0.0 || 4.0.6",
     "foldkit": ">=0.165.0"
   },
   "devDependencies": {

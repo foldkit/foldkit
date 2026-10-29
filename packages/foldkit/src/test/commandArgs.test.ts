@@ -9,10 +9,12 @@ import * as Scene from '../scene/public.js'
 import * as Story from '../story/public.js'
 
 const Model = Schema.Struct({ generation: Schema.Number })
+type Model = typeof Model.Type
 const Message = defineMessageUnion({
   RequestedPaint: {},
   CompletedPaint: { generation: Schema.Number },
 })
+type Message = typeof Message.Type
 const ChildDefinition = Block.makeDefinition('CommandArgsChild', {
   Model,
   Message,
@@ -45,6 +47,7 @@ const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
 > = Block.assemble(prepare)
 
 const ParentMessage = defineMessageUnion({ ClickedPaint: {} })
+type ParentMessage = typeof ParentMessage.Type
 const ParentDefinition = Block.makeDefinition('CommandArgsParent', {
   Model: Schema.Struct({ child: Model }),
   Message: ParentMessage,
@@ -169,7 +172,7 @@ describe('Command.argsOf', () => {
 
     expect(() =>
       Story.story(
-        (_model: number, _message: typeof ParentMessage.Type) => ({
+        (_model: number, _message: ParentMessage) => ({
           model: 0,
           commands: pending,
         }),
@@ -223,6 +226,7 @@ describe('Command.argsOf', () => {
       ),
       label: Schema.optionalKey(Schema.String),
     })
+    type Args = typeof Args.Type
     const defaulted = Command.define('DefaultedArgsWork', {
       args: Args.fields,
       messages: [Message.CompletedPaint],
@@ -279,7 +283,7 @@ describe('Command.argsOf', () => {
 })
 
 class Store extends Context.Service<Store, {}>()('CommandArgs/Store') {}
-type ParentResult = Readonly<{ _tag: 'GotPaint'; message: typeof Message.Type }>
+type ParentResult = Readonly<{ _tag: 'GotPaint'; message: Message }>
 type QualifiedPending = Command.Command<ParentResult, 'Failed', Store> &
   Readonly<{
     name: `Parent/${string}`

@@ -8,7 +8,7 @@ import type { Model } from '../model'
 import { ghostCardView } from './card'
 import { columnView } from './column'
 
-const findDraggedCard = (model: typeof Model.Type) =>
+const findDraggedCard = (model: Model) =>
   pipe(
     model.dragAndDrop,
     maybeDraggedItemId,
@@ -21,7 +21,7 @@ const findDraggedCard = (model: typeof Model.Type) =>
     ),
   )
 
-const ghostElement = (model: typeof Model.Type, h: ApplicationViewBuilder) =>
+const ghostElement = (model: Model, h: ApplicationViewBuilder) =>
   pipe(
     ghostStyle(model.dragAndDrop),
     Option.flatMap(ghostStyle =>

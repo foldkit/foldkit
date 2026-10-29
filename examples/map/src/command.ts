@@ -4,6 +4,7 @@ import * as Dom from 'foldkit/dom'
 import { ApplicationDefinition } from './definition'
 import { MapRegistry } from './mapRegistry'
 import { Message } from './message'
+import type { FailedFlyTo, SucceededFlyTo } from './message'
 
 export const SELECTED_LOCATION_ZOOM = 12
 export const USER_LOCATION_ZOOM = 13
@@ -16,9 +17,7 @@ const flyToMap = (
   lng: number,
   lat: number,
   zoom: number,
-): Effect.Effect<
-  typeof Message.SucceededFlyTo.Type | typeof Message.FailedFlyTo.Type
-> =>
+): Effect.Effect<SucceededFlyTo | FailedFlyTo> =>
   Effect.gen(function* () {
     const maybeMap = yield* maps.get(hostId)
 

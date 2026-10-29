@@ -2,6 +2,7 @@ import { Schema } from 'effect'
 import { describe, expect, test } from 'vitest'
 
 import foldkitPackageJson from '../../../foldkit/package.json?raw'
+import installSource from '../snippet/getStartedInstallFoldkit.sh?raw'
 import getStartedSource from './getStarted.md?raw'
 
 // NOTE: The install instructions pin an exact Effect release. The nightly
@@ -9,10 +10,14 @@ import getStartedSource from './getStarted.md?raw'
 // so without this guard the getting-started version silently drifts from what
 // Foldkit ships.
 const FoldkitPackageJson = Schema.Struct({
-  peerDependencies: Schema.Struct({ effect: Schema.String }),
+  devDependencies: Schema.Struct({
+    effect: Schema.String,
+    '@effect/platform-browser': Schema.String,
+  }),
 })
+type FoldkitPackageJson = typeof FoldkitPackageJson.Type
 
-const { peerDependencies } = Schema.decodeUnknownSync(FoldkitPackageJson)(
+const { devDependencies } = Schema.decodeUnknownSync(FoldkitPackageJson)(
   JSON.parse(foldkitPackageJson),
 )
 
@@ -20,11 +25,16 @@ const EFFECT_VERSION_PATTERN =
   /(?<=effect@|@effect\/platform-browser@)\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?/g
 
 describe('getting started install instructions', () => {
-  test('pin the exact Effect release that Foldkit depends on', () => {
-    const mentionedVersions =
-      getStartedSource.match(EFFECT_VERSION_PATTERN) ?? []
+  test.each([
+    { name: 'prose', source: getStartedSource },
+    { name: 'copyable command', source: installSource },
+  ])('pins the tested Effect release in $name', ({ source }) => {
+    const mentionedVersions = source.match(EFFECT_VERSION_PATTERN) ?? []
     const distinctVersions = [...new Set(mentionedVersions)]
 
-    expect(distinctVersions).toEqual([peerDependencies.effect])
+    expect(devDependencies['@effect/platform-browser']).toBe(
+      devDependencies.effect,
+    )
+    expect(distinctVersions).toEqual([devDependencies.effect])
   })
 })

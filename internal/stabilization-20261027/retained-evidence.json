@@ -1,0 +1,133 @@
+{
+  "implementationCommit": "ae2eba84283939f5991a1b0c35c32ba351f9efdc",
+  "files": [
+    {
+      "file": "README.md",
+      "retainedBytes": 2496,
+      "retainedSha256": "c7e4ac885b1d3e1e4e34e68c562d1cd6e0613a041c6baf104acf39d8d59cbfa9"
+    },
+    {
+      "file": "coverchart-age-transition.json",
+      "retainedBytes": 3208,
+      "retainedSha256": "c0b7b57429a749932618f8642389b5c8aa0021e255e387094d47c8f14a55c92e",
+      "source": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/coverchart-age-transition.json",
+      "sourceBytes": 3208,
+      "sourceSha256": "c0b7b57429a749932618f8642389b5c8aa0021e255e387094d47c8f14a55c92e",
+      "normalization": "JSON formatting only; parsed values identical"
+    },
+    {
+      "file": "daybreak-addendum.txt",
+      "retainedBytes": 3217,
+      "retainedSha256": "2a2074835f28e3373aeb9ceed5aef69f4bfbbcc967c1eecaf7ba937c376ed4e9",
+      "source": "/private/tmp/foldkit-preview-stabilization-20261027/security-final/daybreak-report.md",
+      "sourceBytes": 3217,
+      "sourceSha256": "2a2074835f28e3373aeb9ceed5aef69f4bfbbcc967c1eecaf7ba937c376ed4e9",
+      "normalization": "Byte-identical original"
+    },
+    {
+      "file": "daybreak-initial.txt",
+      "retainedBytes": 4873,
+      "retainedSha256": "0b956839135325414036399fbc5dcf6c55fe1a3f5d114a44d28d22f0250666ee",
+      "source": "/private/tmp/foldkit-preview-stabilization-20261027/security/daybreak-report.md",
+      "sourceBytes": 4873,
+      "sourceSha256": "0b956839135325414036399fbc5dcf6c55fe1a3f5d114a44d28d22f0250666ee",
+      "normalization": "Byte-identical original"
+    },
+    {
+      "file": "declaration-controls.json",
+      "retainedBytes": 3556,
+      "retainedSha256": "25697253b83cacfed6bb93ed8301b5cd1f5aec4270a127ab02ed10d6a1c30903",
+      "source": "/private/tmp/foldkit-stabilization-performance-20261027/composition-proof/results.json",
+      "sourceBytes": 3588,
+      "sourceSha256": "2637ec126d333ec5d7fcdf903fd4ba9e938ab3be9038565a24c4be106d24c92e",
+      "normalization": "JSON formatting only; parsed values identical"
+    },
+    {
+      "file": "declaration-header.patch",
+      "retainedBytes": 1539,
+      "retainedSha256": "6fb3fb480cd7aefc844808695a9d27c1774e49d1a93a70f4760550b4dc9a5f88",
+      "source": "/private/tmp/foldkit-stabilization-performance-20261027/composition-proof/header.patch",
+      "sourceBytes": 1539,
+      "sourceSha256": "6fb3fb480cd7aefc844808695a9d27c1774e49d1a93a70f4760550b4dc9a5f88",
+      "normalization": "Byte-identical original"
+    },
+    {
+      "file": "declaration-interface.patch",
+      "retainedBytes": 1056,
+      "retainedSha256": "dbf374d8d0d955d7a550e4a0c9ab3c044866693eaecccc983fdeba8faeaf06e1",
+      "source": "/private/tmp/foldkit-stabilization-performance-20261027/composition-proof/interface.patch",
+      "sourceBytes": 1056,
+      "sourceSha256": "dbf374d8d0d955d7a550e4a0c9ab3c044866693eaecccc983fdeba8faeaf06e1",
+      "normalization": "Byte-identical original"
+    },
+    {
+      "file": "declaration-restoration.patch",
+      "retainedBytes": 1292,
+      "retainedSha256": "7cd258942fbbec8e0e28ef463731ce121d123c6cbfda1a7368ea0784b6a0e29c",
+      "source": "/private/tmp/foldkit-stabilization-performance-20261027/composition-proof/restored.patch",
+      "sourceBytes": 1292,
+      "sourceSha256": "7cd258942fbbec8e0e28ef463731ce121d123c6cbfda1a7368ea0784b6a0e29c",
+      "normalization": "Byte-identical original"
+    },
+    {
+      "file": "feedback-recheck.json",
+      "retainedBytes": 1101,
+      "retainedSha256": "ba3bf73cedf7b46eca466927e253b667db8571afbbec2e7c14f5129750989daa"
+    },
+    {
+      "file": "independent-review.txt",
+      "retainedBytes": 9640,
+      "retainedSha256": "1b62cf45a62c981acc6dab8d943afb616afdc9c055e18d8fbd017cd2f0573073",
+      "source": "/private/tmp/foldkit-preview-stabilization-20261027/independent-review.md",
+      "sourceBytes": 9640,
+      "sourceSha256": "1b62cf45a62c981acc6dab8d943afb616afdc9c055e18d8fbd017cd2f0573073",
+      "normalization": "Byte-identical original"
+    },
+    {
+      "file": "input-boundary-mutations.json",
+      "retainedBytes": 460,
+      "retainedSha256": "dd22372f1787b92ce314c2eb725ca0697ed15d67ffd4b6b4b19f899b957e37ad",
+      "source": "/private/tmp/foldkit-preview-stabilization-20261027/security/boundary-emitted/mutations.json",
+      "sourceBytes": 460,
+      "sourceSha256": "dd22372f1787b92ce314c2eb725ca0697ed15d67ffd4b6b4b19f899b957e37ad",
+      "normalization": "JSON formatting only; parsed values identical"
+    },
+    {
+      "file": "package-rehearsal.json",
+      "retainedBytes": 29697,
+      "retainedSha256": "06e092a93f408d1bee0b70b50a3deb76f3659bada1eddbcf15c44ec81f50a81a"
+    },
+    {
+      "file": "performance.json",
+      "retainedBytes": 182871,
+      "retainedSha256": "9b29c9390e1bb3285042bb7131b2a3aa96d23cd963d64a22683fa042a7afb005",
+      "source": "/private/tmp/foldkit-stabilization-performance-20261027/compact-evidence.json",
+      "sourceBytes": 182871,
+      "sourceSha256": "9b29c9390e1bb3285042bb7131b2a3aa96d23cd963d64a22683fa042a7afb005",
+      "normalization": "JSON formatting only; parsed values identical"
+    },
+    {
+      "file": "rehearsal-execution.json",
+      "retainedBytes": 2140,
+      "retainedSha256": "3ccfc3842bd8f0e8daf30f23ea1fcdf24db17a619e6f460dccd50fcd2132aab9",
+      "source": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/final-execution.json",
+      "sourceBytes": 2140,
+      "sourceSha256": "3ccfc3842bd8f0e8daf30f23ea1fcdf24db17a619e6f460dccd50fcd2132aab9",
+      "normalization": "JSON formatting only; parsed values identical"
+    },
+    {
+      "file": "verification.json",
+      "retainedBytes": 13252,
+      "retainedSha256": "8381aa3a6924b2b3c4a2d3e7322f661a2ea909777791c2ae348cfa5c2ee5d50e"
+    },
+    {
+      "file": "workspace-declarations.json",
+      "retainedBytes": 953,
+      "retainedSha256": "542d51adc90e9951796e4f08dce5deb17dae8547f788de84e19d3fb5c7957c0e",
+      "source": "/private/tmp/foldkit-preview-stabilization-20261027/workspace-declarations/final-ae2eba842839/results.json",
+      "sourceBytes": 977,
+      "sourceSha256": "b0930548837ef4fa9fac3a6b46e2d58f782750f944bf4a406750a74b1f60fd41",
+      "normalization": "JSON formatting only; parsed values identical"
+    }
+  ]
+}

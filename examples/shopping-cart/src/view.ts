@@ -17,7 +17,7 @@ import {
 } from './route'
 
 const navigationView = (
-  currentRoute: typeof ApplicationRoute.Type,
+  currentRoute: ApplicationRoute,
   cartCount: number,
   h: ApplicationViewBuilder,
 ): Html => {
@@ -72,10 +72,7 @@ const navigationView = (
   )
 }
 
-const productsView = (
-  model: typeof Model.Type,
-  h: ApplicationViewBuilder,
-): Html =>
+const productsView = (model: Model, h: ApplicationViewBuilder): Html =>
   h.block(
     ProductsPageBinding.embedView({
       slotId: 'products',
@@ -84,13 +81,10 @@ const productsView = (
     }),
   )
 
-const cartView = (model: typeof Model.Type, h: ApplicationViewBuilder): Html =>
+const cartView = (model: Model, h: ApplicationViewBuilder): Html =>
   CartPage.view(model.cart, h)
 
-const checkoutView = (
-  model: typeof Model.Type,
-  h: ApplicationViewBuilder,
-): Html =>
+const checkoutView = (model: Model, h: ApplicationViewBuilder): Html =>
   Checkout.view(model.cart, model.deliveryInstructions, model.orderPlaced, h)
 
 const notFoundView = (path: string, h: ApplicationViewBuilder): Html =>
@@ -115,7 +109,7 @@ const notFoundView = (path: string, h: ApplicationViewBuilder): Html =>
     ],
   )
 
-const routeTitle = (route: (typeof Model.Type)['route']): string =>
+const routeTitle = (route: Model['route']): string =>
   Match.value(route).pipe(
     Match.tag('Products', () => 'Shopping Cart'),
     Match.orElse(({ _tag }) => `${_tag} | Shopping Cart`),

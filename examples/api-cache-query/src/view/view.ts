@@ -60,8 +60,8 @@ export const tabsView = (
     model,
     renderInfo: { tablist, tabs },
   }: Readonly<{
-    model: typeof Model.Type
-    renderInfo: RenderInfo<typeof Tab.Type>
+    model: Model
+    renderInfo: RenderInfo<Tab>
   }>,
   h: ApplicationViewBuilder,
 ) =>

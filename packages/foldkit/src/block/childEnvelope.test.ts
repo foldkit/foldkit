@@ -11,26 +11,33 @@ import {
 } from './childEnvelope.js'
 
 const LocalMessage = defineMessageUnion({ ClickedRefresh: {} })
+type LocalMessage = typeof LocalMessage.Type
 const ChildMessage = defineMessageUnion({
   ChangedCount: { count: Schema.Number },
 })
+type ChildMessage = typeof ChildMessage.Type
 const PrimaryEnvelope = makeChildEnvelopeSchema('primary', ChildMessage)
+type PrimaryEnvelope = typeof PrimaryEnvelope.Type
 const SecondaryEnvelope = makeChildEnvelopeSchema('secondary', ChildMessage)
+type SecondaryEnvelope = typeof SecondaryEnvelope.Type
 const KeyedEnvelope = makeChildEnvelopeSchema(
   'counters',
   ChildMessage,
   Schema.String,
 )
+type KeyedEnvelope = typeof KeyedEnvelope.Type
 const NestedEnvelope = makeChildEnvelopeSchema(
   'home',
   makeDispatchSchema(LocalMessage, [PrimaryEnvelope, SecondaryEnvelope]),
 )
+type NestedEnvelope = typeof NestedEnvelope.Type
 const Dispatch = makeDispatchSchema(LocalMessage, [
   PrimaryEnvelope,
   SecondaryEnvelope,
   KeyedEnvelope,
   NestedEnvelope,
 ])
+type Dispatch = typeof Dispatch.Type
 
 expectTypeOf<typeof PrimaryEnvelope.Type>().toEqualTypeOf<
   ChildEnvelope<'primary', typeof ChildMessage.Type>
@@ -52,6 +59,7 @@ it('keeps a graphless dispatch Schema identical to the local contract', () => {
 
 it('preserves exact local constructors without copying local-only union helpers', () => {
   const Message = defineMessageUnion({ ChangedQuery: { query: Schema.String } })
+  type Message = typeof Message.Type
   const dispatch = makeDispatchSchema(Message, [PrimaryEnvelope])
 
   expect(dispatch.ChangedQuery).toBe(Message.ChangedQuery)
@@ -79,6 +87,7 @@ it('preserves exact local constructors without copying local-only union helpers'
 
 it('rejects a local constructor that would overwrite a derived Schema member', () => {
   const Message = defineMessageUnion({ mapMembers: {} })
+  type Message = typeof Message.Type
 
   expect(() => makeDispatchSchema(Message, [PrimaryEnvelope])).toThrow(
     'Local Message constructor "mapMembers" conflicts with the generated dispatch Schema surface',
@@ -171,7 +180,7 @@ if (false) {
   // @ts-expect-error A child occurrence key must be a string or number.
   makeChildEnvelopeSchema('invalid', ChildMessage, Schema.Boolean)
 
-  const receivePrimary = (_message: typeof PrimaryEnvelope.Type) => undefined
+  const receivePrimary = (_message: PrimaryEnvelope) => undefined
   // @ts-expect-error Another placement cannot satisfy this Binding's envelope.
   receivePrimary(Schema.decodeUnknownSync(SecondaryEnvelope)({}))
 

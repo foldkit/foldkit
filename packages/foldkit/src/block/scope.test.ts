@@ -18,6 +18,7 @@ const Message = defineMessageUnion({
   RequestedValue: {},
   CompletedReadValue: { value: Schema.String },
 })
+type Message = typeof Message.Type
 
 class ValueSource extends Context.Service<
   ValueSource,
@@ -25,6 +26,7 @@ class ValueSource extends Context.Service<
 >()('ScopeTest/ValueSource') {}
 
 const ScopeParentModel = Schema.Struct({})
+type ScopeParentModel = typeof ScopeParentModel.Type
 const ScopeParent = makeDefinition('ScopeTestParent', {
   Model: ScopeParentModel,
   Message: Schema.Never,
@@ -391,7 +393,7 @@ describe('Block capability contexts', () => {
             ],
             command => {
               const effect: Effect.Effect<
-                typeof Message.Type,
+                Message,
                 never,
                 Layer.Success<typeof layer>
               > = command.effect

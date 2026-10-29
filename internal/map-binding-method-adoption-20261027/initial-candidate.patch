@@ -1,0 +1,203 @@
+--- a/packages/foldkit/src/block/definition.ts
++++ b/packages/foldkit/src/block/definition.ts
+@@ -65,0 +66 @@
++import { type MakeMapBinding, makeMapBinding } from './mapBinding.js'
+@@ -3749,0 +3751,31 @@
++/** Creates a keyed child Binding from a parent Definition's required Record or
++ * Effect HashMap field, deriving enumeration, lookup, replacement and identity.
++ *
++ * The field's value Schema must exactly match the child Model. Add `childField`
++ * when each value is a closed Struct wrapping the exact child Model; replacement
++ * preserves the wrapper's other fields. Placement defaults to `field`.
++ *
++ * Record keys must decode to strings. HashMap keys must decode to strings or
++ * numbers, with finite numeric occurrence keys. Literal, template, refined and
++ * branded keys retain their contracts. Numeric Record and composite HashMap
++ * keys are rejected. HashMap enumeration does not promise display order.
++ *
++ * The parent owns membership. Ordinary child operations replace existing values;
++ * removing an entry ends its occurrence's lifecycle. `subscriptions` gates only
++ * Subscription Streams. Initialize and insert direct child values with
++ * `initAndInsert` from `foldkit/bindingInit`; use the returned Binding's explicit
++ * `init({ key, args, toParentModel })` for wrapper metadata or mixed transitions.
++ *
++ * @example
++ * ```ts
++ * const ChildrenBinding = ParentDefinition.makeMapBinding(ChildBlock, {
++ *   field: 'children',
++ * })
++ * ```
++ */
++  makeMapBinding: MakeMapBinding<
++    ModelSchema,
++    MessageSchema,
++    OutMessageSchema,
++    ChildInitContextSchema extends AnySchema ? ChildInitContextSchema['Type'] : never
++  >
+@@ -4700,0 +4733 @@
++    makeMapBinding: makeMapBinding(bindChild),
+@@ -4829,0 +4863 @@
++    makeMapBinding: base.makeMapBinding,
+--- a/packages/foldkit/src/block/mapBinding.ts
++++ b/packages/foldkit/src/block/mapBinding.ts
+@@ -1 +1 @@
+-import { Predicate, Schema } from 'effect'
++import type { Schema } from 'effect'
+@@ -5 +4,0 @@
+-import { runtimeBindingOf } from './composition.js'
+@@ -41,29 +39,0 @@
+-
+-type MapBindingDefinition = Readonly<{
+-  Model: AnySchema
+-  Message: AnySchema
+-  OutMessage?: AnySchema
+-  ChildInitContext?: AnySchema
+-}>
+-
+-type OutMessageSchemaOfDefinition<DefinitionValue> =
+-  DefinitionValue extends Readonly<{
+-    OutMessage: infer OutMessageSchema extends AnySchema
+-  }>
+-    ? OutMessageSchema
+-    : undefined
+-
+-type ChildInitContextOfDefinition<DefinitionValue> =
+-  DefinitionValue extends Readonly<{
+-    ChildInitContext: infer ChildInitContextSchema extends AnySchema
+-  }>
+-    ? ChildInitContextSchema['Type']
+-    : never
+-
+-type BindChildOfDefinition<DefinitionValue extends MapBindingDefinition> =
+-  BindChild<
+-    DefinitionValue['Model'],
+-    DefinitionValue['Message'],
+-    OutMessageSchemaOfDefinition<DefinitionValue>,
+-    ChildInitContextOfDefinition<DefinitionValue>
+-  >
+@@ -260,2 +230,7 @@
+-/** Call signature for {@link makeMapBinding}. */
+-export interface MakeMapBinding {
++/** Call signature for a Definition-owned map Binding constructor. */
++export interface MakeMapBinding<
++  ParentModelSchema extends AnySchema,
++  ParentMessageSchema extends AnySchema,
++  ParentOutMessageSchema extends AnySchema | undefined,
++  ParentChildInitContext = never,
++> {
+@@ -263 +237,0 @@
+-    const DefinitionValue extends MapBindingDefinition,
+@@ -270,2 +243,0 @@
+-    definition: DefinitionValue &
+-      Readonly<{ makeBinding: BindChildOfDefinition<DefinitionValue> }>,
+@@ -278 +250 @@
+-        DefinitionValue['Model'],
++        ParentModelSchema,
+@@ -284 +256 @@
+-          ValidField<BlockValue, DefinitionValue['Model'], Keys, ChildField>
++          ValidField<BlockValue, ParentModelSchema, Keys, ChildField>
+@@ -291,2 +263,2 @@
+-            DefinitionValue['Model']['Type'],
+-            KeyFor<DefinitionValue['Model'], Field>
++            ParentModelSchema['Type'],
++            KeyFor<ParentModelSchema, Field>
+@@ -300,5 +272,5 @@
+-    DefinitionValue['Model'],
+-    DefinitionValue['Message'],
+-    OutMessageSchemaOfDefinition<DefinitionValue>,
+-    ResultConfig<Source, DefinitionValue['Model'], Field>,
+-    ChildInitContextOfDefinition<DefinitionValue>
++    ParentModelSchema,
++    ParentMessageSchema,
++    ParentOutMessageSchema,
++    ResultConfig<Source, ParentModelSchema, Field>,
++    ParentChildInitContext
+@@ -308,32 +280,9 @@
+-/** Creates a keyed child Binding from a parent Definition's required Record or
+- * Effect HashMap field, deriving enumeration, lookup, replacement and identity.
+- *
+- * The field's value Schema must exactly match the child Model. Add `childField`
+- * when each value is a closed Struct wrapping the exact child Model; replacement
+- * preserves the wrapper's other fields. Placement defaults to `field`.
+- *
+- * Record keys must decode to strings. HashMap keys must decode to strings or
+- * numbers, with finite numeric occurrence keys. Literal, template, refined and
+- * branded keys retain their contracts. Numeric Record and composite HashMap
+- * keys are rejected. HashMap enumeration does not promise display order.
+- *
+- * The parent owns membership. Ordinary child operations replace existing values;
+- * removing an entry ends its occurrence's lifecycle. `subscriptions` gates only
+- * Subscription Streams. Initialize and insert direct child values with
+- * `initAndInsert` from `foldkit/bindingInit`; use the returned Binding's explicit
+- * `init({ key, args, toParentModel })` for wrapper metadata or mixed transitions.
+- *
+- * The standalone subpath isolates Schema-heavy typing from ordinary Definition
+- * use. Tested Definition-method encodings increased compiler cost; this is a
+- * measured implementation tradeoff, not a universal TypeScript limitation.
+- *
+- * @example
+- * ```ts
+- * import { makeMapBinding } from 'foldkit/mapBinding'
+- *
+- * const ChildrenBinding = makeMapBinding(ParentDefinition, ChildBlock, {
+- *   field: 'children',
+- * })
+- * ```
+- */
+-export const makeMapBinding = ((): MakeMapBinding =>
++/** @internal Creates a passive parent-owned map Binding constructor. */
++export const makeMapBinding = <
++  ParentModelSchema extends AnySchema,
++  ParentMessageSchema extends AnySchema,
++  ParentOutMessageSchema extends AnySchema | undefined,
++  ParentChildInitContext = never,
++>(
++  makeBinding: BindChild<ParentModelSchema, ParentMessageSchema, ParentOutMessageSchema, ParentChildInitContext>,
++): MakeMapBinding<ParentModelSchema, ParentMessageSchema, ParentOutMessageSchema, ParentChildInitContext> =>
+@@ -341,9 +290,2 @@
+-  ((definition: object, block: BindableBlock, config: object): unknown => {
+-    const makeBinding = Reflect.get(definition, 'makeBinding')
+-    if (!Predicate.isFunction(makeBinding)) {
+-      throw new Error(
+-        '[foldkit] makeMapBinding requires a parent Definition with makeBinding.',
+-      )
+-    }
+-
+-    const binding = Reflect.apply(makeBinding, definition, [
++  ((block: BindableBlock, config: object): unknown => {
++    return Reflect.apply(makeBinding, undefined, [
+@@ -353,16 +295 @@
+-    if (!Predicate.isObject(binding)) {
+-      throw new Error(
+-        '[foldkit] makeMapBinding requires a parent Definition whose makeBinding method returns a native child Binding.',
+-      )
+-    }
+-
+-    try {
+-      runtimeBindingOf(binding)
+-    } catch {
+-      throw new Error(
+-        '[foldkit] makeMapBinding requires a parent Definition whose makeBinding method returns a native child Binding.',
+-      )
+-    }
+-
+-    return binding
+-  }) as unknown as MakeMapBinding)()
++  }) as unknown as MakeMapBinding<ParentModelSchema, ParentMessageSchema, ParentOutMessageSchema, ParentChildInitContext>
+--- a/examples/workspace/src/definition.ts
++++ b/examples/workspace/src/definition.ts
+@@ -11 +11 @@
+-export const { makeStep, makeFieldsStep, makeCommandsStep, makeNoopStep } =
++export const { makeStep, makeFieldsStep, makeCommandsStep, makeNoopStep, makeMapBinding } =
+--- a/examples/workspace/src/composition.ts
++++ b/examples/workspace/src/composition.ts
+@@ -3 +2,0 @@
+-import { makeMapBinding } from 'foldkit/mapBinding'
+@@ -11,0 +11 @@
++  makeMapBinding,
+@@ -59 +58,0 @@
+-  ApplicationDefinition,
+@@ -327 +325,0 @@
+-  ApplicationDefinition,
+@@ -374 +371,0 @@
+-  ApplicationDefinition,

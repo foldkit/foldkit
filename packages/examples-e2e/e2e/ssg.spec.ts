@@ -19,11 +19,19 @@ test.describe('ssg example', () => {
     )
     await expect(page.locator('[data-foldkit-app]')).toHaveCount(1)
 
-    await page.goto('/about/')
+    for (const path of ['/about', '/about/', '/about/index.html']) {
+      await page.goto(path)
+      await expect(page.locator('#page-title')).toHaveText(
+        'Statically generated about page',
+      )
+      await expect(page.locator('[data-foldkit-app]')).toHaveCount(1)
+    }
+
+    await page.goto('/')
+    await page.getByRole('link', { name: 'About' }).click()
     await expect(page.locator('#page-title')).toHaveText(
       'Statically generated about page',
     )
-    await expect(page.locator('[data-foldkit-app]')).toHaveCount(1)
 
     await context.close()
   })

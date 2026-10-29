@@ -104,7 +104,7 @@ const navItemHref = (index: number): string =>
   )
 
 const componentNav = (
-  currentRoute: typeof ApplicationRoute.Type,
+  currentRoute: ApplicationRoute,
   toView: (render: Nav.RenderInfo) => Html,
 ): Html =>
   Nav.view({
@@ -156,7 +156,7 @@ const mobileNavLinkClassName = (isActive: boolean): string =>
   )
 
 const sidebarView = (
-  currentRoute: typeof ApplicationRoute.Type,
+  currentRoute: ApplicationRoute,
   h: ApplicationViewBuilder,
 ) => {
   const sidebarNavView = ({ nav, items }: Nav.RenderInfo): Html =>
@@ -192,7 +192,7 @@ const sidebarView = (
 
 const mobileMenuContent =
   (
-    currentRoute: typeof ApplicationRoute.Type,
+    currentRoute: ApplicationRoute,
   ): UiView.MobileMenuViewInputs['renderContent'] =>
   (closeButton, h) => {
     const mobileNavView = ({ nav, items }: Nav.RenderInfo): Html =>
@@ -251,10 +251,7 @@ const mobileMenuContent =
     )
   }
 
-const mobileHeaderView = (
-  model: typeof Model.Type,
-  h: ApplicationViewBuilder,
-) =>
+const mobileHeaderView = (model: Model, h: ApplicationViewBuilder) =>
   h.header(
     [
       h.Class(
@@ -294,7 +291,7 @@ const mobileHeaderView = (
     ],
   )
 
-const mobileMenuView = (model: typeof Model.Type, h: ApplicationViewBuilder) =>
+const mobileMenuView = (model: Model, h: ApplicationViewBuilder) =>
   h.block(
     UiBinding.embedView({
       slotId: 'mobile-menu',
@@ -346,7 +343,7 @@ const notFoundView = (path: string, h: ApplicationViewBuilder) =>
     ],
   )
 
-const contentView = (model: typeof Model.Type, h: ApplicationViewBuilder) => {
+const contentView = (model: Model, h: ApplicationViewBuilder) => {
   const embedUi = (id: string, view: typeof UiView.button): Html =>
     h.block(
       UiBinding.embedView({
@@ -389,7 +386,7 @@ const contentView = (model: typeof Model.Type, h: ApplicationViewBuilder) => {
   })
 }
 
-const routeTitle = (route: (typeof Model.Type)['route']): string =>
+const routeTitle = (route: Model['route']): string =>
   Match.value(route).pipe(
     Match.tag('Home', () => 'Foldkit UI Showcase'),
     Match.orElse(({ _tag }) => `${_tag} | Foldkit UI Showcase`),

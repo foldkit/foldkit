@@ -22,7 +22,6 @@ export const Message = defineMessageUnion({
   ReleasedFeedSocket: {},
   FailedAcquireFeedSocket: { error: Schema.String },
 })
-
 export type Message = typeof Message.Type
 
 // MANAGED RESOURCE

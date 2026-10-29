@@ -9,8 +9,9 @@ import { Tabs } from '@foldkit/ui'
 import type { RenderInfo as TabsRenderInfo } from '@foldkit/ui/tabs'
 
 const Framework = Schema.Literals(['Foldkit', 'React', 'Elm'])
+type Framework = typeof Framework.Type
 
-const FrameworkTabs = Tabs.create<typeof Framework.Type>()
+const FrameworkTabs = Tabs.makeBlock<Framework>()
 
 // Add fields to your Model for the Tabs Block and the active tab. The
 // Block keeps private keyboard-focus state; the parent owns the active
@@ -20,9 +21,10 @@ const Model = Schema.Struct({
   activeFramework: Framework,
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // This excerpt has no parent-owned facts. The Composition derives delivery.
 const Message = defineMessageUnion({})
+type Message = typeof Message.Type
 
 const TabsExampleDefinition = Block.makeDefinition('TabsExample', {
   Model,
@@ -31,13 +33,9 @@ const TabsExampleDefinition = Block.makeDefinition('TabsExample', {
 
 const { makeFieldsStep } = TabsExampleDefinition
 
-const frameworks: ReadonlyArray<typeof Framework.Type> = [
-  'Foldkit',
-  'React',
-  'Elm',
-]
+const frameworks: ReadonlyArray<Framework> = ['Foldkit', 'React', 'Elm']
 
-const descriptions: Record<typeof Framework.Type, string> = {
+const descriptions: Record<Framework, string> = {
   Foldkit: 'Model-View-Update with Effect.',
   React: 'Component-based with hooks.',
   Elm: 'The original MVU architecture.',
@@ -94,7 +92,7 @@ const view = TabsExampleComposition.makeView((model, h) => {
     tablist,
     tabs,
     activeIndex,
-  }: TabsRenderInfo<typeof Framework.Type>) =>
+  }: TabsRenderInfo<Framework>) =>
     h.div(
       [],
       [

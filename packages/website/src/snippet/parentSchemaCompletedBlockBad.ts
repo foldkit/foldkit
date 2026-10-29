@@ -14,3 +14,4 @@ const prepare = () =>
 const SettingsBlock = Block.assemble(prepare)
 
 export const Model = Schema.Struct({ settings: SettingsBlock.Model })
+export type Model = typeof Model.Type

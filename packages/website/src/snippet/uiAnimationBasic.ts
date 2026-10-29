@@ -13,11 +13,12 @@ const Model = Schema.Struct({
   animation: Animation.AnimationBlock.Model,
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // Declare only parent-owned facts. The Composition derives Animation delivery.
 const Message = defineMessageUnion({
   ClickedToggleAnimation: {},
 })
+type Message = typeof Message.Type
 
 const AnimationExampleDefinition = Block.makeDefinition('AnimationExample', {
   Model,

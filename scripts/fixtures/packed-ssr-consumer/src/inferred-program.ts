@@ -4,7 +4,9 @@ import type { Document } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Model = Schema.Struct({ count: Schema.Number })
+type Model = typeof Model.Type
 const Message = defineMessageUnion({ Ticked: {} })
+type Message = typeof Message.Type
 const ApplicationComposition = Block.makeDefinition('Application', {
   Model,
   Message,

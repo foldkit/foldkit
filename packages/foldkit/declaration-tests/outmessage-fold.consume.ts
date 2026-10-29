@@ -93,7 +93,7 @@ Runtime.run(runnable)
 Runtime.run(
   program.provide(
     Layer.succeed(ChoiceStore)({
-      initialize: Effect.void,
+      init: Effect.void,
       record: () => Effect.void,
     }),
   ),

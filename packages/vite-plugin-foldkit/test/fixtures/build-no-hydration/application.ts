@@ -3,8 +3,10 @@ import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 export const Model = Schema.Struct({ count: Schema.Number })
+export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({})
+export type Message = typeof Message.Type
 
 export const ApplicationComposition = Block.makeDefinition('Application', {
   Model,

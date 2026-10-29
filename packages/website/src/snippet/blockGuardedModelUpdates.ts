@@ -4,7 +4,11 @@ import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
 const SaveState = defineTaggedUnion({ Idle: {}, Saving: {} })
+type SaveState = typeof SaveState.Type
+
 const Model = Schema.Struct({ title: Schema.String, saveState: SaveState })
+type Model = typeof Model.Type
+
 const DraftDefinition = Block.makeDefinition('Draft', {
   Model,
   Message: Schema.Never,
@@ -12,9 +16,7 @@ const DraftDefinition = Block.makeDefinition('Draft', {
 
 const { makeStep } = DraftDefinition
 
-const editDraftStep = (
-  change: (model: typeof Model.Type) => typeof Model.Type,
-) =>
+const editDraftStep = (change: (model: Model) => Model) =>
   makeStep(model => {
     if (SaveState.guards.Saving(model.saveState)) {
       return { model }

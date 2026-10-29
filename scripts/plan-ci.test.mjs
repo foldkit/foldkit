@@ -129,6 +129,18 @@ test('a markdown change selects the packed consumer gate', () => {
   )
 })
 
+test('Effect peer package changes select the packed compatibility consumer', () => {
+  for (const directory of ['ui', 'node', 'devtools', 'devtools-mcp']) {
+    assert.equal(
+      planCiForFile(`packages/${directory}/package.json`)[
+        'packed_ssr_consumer'
+      ],
+      'true',
+      directory,
+    )
+  }
+})
+
 test('a website-only change leaves the packed consumer gate alone', () => {
   assert.equal(
     planCiForFile('packages/website/src/page/landing.ts')[

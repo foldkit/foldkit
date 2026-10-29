@@ -14,10 +14,12 @@ import { __htmlBuilder } from './index.js'
 import { clearRuntime, setRuntime } from './runtimeSingleton.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
+type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({
   ClickedIncrement: {},
   BlurredButton: {},
 })
+type ChildMessage = typeof ChildMessage.Type
 const ChildDefinition = makeDefinition('OriginViewChild', {
   Model: ChildModel,
   Message: ChildMessage,
@@ -44,7 +46,9 @@ const ChildBlock: Block.FromAssemblyWithView<
 > = Block.assemble(prepareChildBlock)
 
 const ParentModel = Schema.Struct({ child: ChildModel })
+type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({ ClickedParent: {} })
+type ParentMessage = typeof ParentMessage.Type
 const ParentDefinition = makeDefinition('OriginViewParent', {
   Model: ParentModel,
   Message: ParentMessage,

@@ -1,7 +1,7 @@
 import { Effect, Queue, Stream } from 'effect'
 
 import { ExampleDetailDefinition } from './definition'
-import { Message } from './message'
+import { type ChangedExampleUrl, Message } from './message'
 
 const BRIDGE_MESSAGE_TYPE = 'foldkit-example-url'
 
@@ -26,7 +26,7 @@ const observeExampleUrlMessages = (element: Element) => {
     return Stream.empty
   }
 
-  return Stream.callback<typeof Message.ChangedExampleUrl.Type>(queue =>
+  return Stream.callback<ChangedExampleUrl>(queue =>
     Effect.acquireRelease(
       Effect.sync(() => {
         const handler = (event: MessageEvent) => {

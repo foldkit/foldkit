@@ -12,9 +12,9 @@ const Person = Schema.Literals([
   'Lindsay Funke',
   'Tobias Funke',
 ])
-
+type Person = typeof Person.Type
 // Declare a typed multi-select Listbox once at module scope:
-const PeopleListbox = Listbox.Multi.create<typeof Person.Type>()
+const PeopleListbox = Listbox.Multi.makeBlock<Person>()
 
 // Add a field to your Model for the multi-select Listbox Block, plus a field
 // for the selected values your app actually cares about. Using the
@@ -24,9 +24,10 @@ const Model = Schema.Struct({
   listboxMulti: PeopleListbox.Model,
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // This excerpt has no parent-owned facts. The Composition derives delivery.
 const Message = defineMessageUnion({})
+type Message = typeof Message.Type
 
 const PeoplePickerDefinition = Block.makeDefinition('PeoplePicker', {
   Model,
@@ -78,7 +79,7 @@ const init = PeoplePickerComposition.makeInit(() => ({
 
 const update = PeoplePickerComposition.makeUpdate({})
 
-const people: ReadonlyArray<typeof Person.Type> = [
+const people: ReadonlyArray<Person> = [
   'Michael Bluth',
   'Lindsay Funke',
   'Tobias Funke',

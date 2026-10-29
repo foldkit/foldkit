@@ -509,6 +509,7 @@ const ArityParentMessage = defineMessageUnion({
   RequestedAddMany: { amounts: Schema.Array(Schema.Number) },
   RequestedReset: {},
 })
+type ArityParentMessage = typeof ArityParentMessage.Type
 
 const ArityParent = Schema.Struct({ child: ArityModel })
 type ArityParent = typeof ArityParent.Type
@@ -649,7 +650,7 @@ const IgnoredMessageComposition = IgnoredMessageNamespace.makeDefinition({
   Model: ArityModel,
   Message: ArityMessage,
 }).makeComposition()
-const ignoredMessageUpdate = (model: typeof ArityModel.Type) => ({
+const ignoredMessageUpdate = (model: ArityModel) => ({
   model: modifyFields(model, { count: count => count + 1 }),
 })
 const ignoredMessageHandlers = {
@@ -1150,6 +1151,7 @@ describe('Block binding', () => {
       reports: Schema.Array(Schema.Number),
       isListening: Schema.Boolean,
     })
+    type ParentSchema = typeof ParentSchema.Type
     const NamedParentMessage = Schema.Never
     type NamedParentMessage = typeof NamedParentMessage.Type
     const foldNamedChildOutMessage = ChildOutMessage.match<
@@ -1471,6 +1473,7 @@ describe('Block child registration composition', () => {
       let buildCount = 0
       const RepeatedNamespace = makeNamespace('BindingRepeated')
       const RepeatedMessage = defineMessageUnion({ CompletedMount: {} })
+      type RepeatedMessage = typeof RepeatedMessage.Type
       const RepeatedMount = RepeatedNamespace.makeMount('Mount', {
         messages: [RepeatedMessage.CompletedMount],
       })
@@ -1501,6 +1504,7 @@ describe('Block child registration composition', () => {
       const RepeatedParentModel = Schema.Struct({ child: ChildModel })
       type RepeatedParentModel = typeof RepeatedParentModel.Type
       const RepeatedParentMessage = Schema.Never
+      type RepeatedParentMessage = typeof RepeatedParentMessage.Type
       const RepeatedParent = makeDefinition('BindingRepeatedParent', {
         Model: RepeatedParentModel,
         Message: RepeatedParentMessage,
@@ -1527,6 +1531,7 @@ describe('Block child registration composition', () => {
 describe('generic block refinement', () => {
   const GenericNamespace = makeNamespace('BindingChoice')
   const CompletedChoiceWork = Schema.TaggedStruct('CompletedChoiceWork', {})
+  type CompletedChoiceWork = typeof CompletedChoiceWork.Type
   const FinishChoice = GenericNamespace.makeCommand('FinishChoice', {
     messages: [CompletedChoiceWork],
   })
@@ -1583,6 +1588,7 @@ describe('generic block refinement', () => {
     const ChoiceParentModel = Schema.Struct({ choice: Choice.Model })
     type ChoiceParentModel = typeof ChoiceParentModel.Type
     const ChoiceParentMessage = Schema.Never
+    type ChoiceParentMessage = typeof ChoiceParentMessage.Type
     type DeclaredOutMessage =
       typeof Choice extends Readonly<{
         OutMessage: Readonly<{ Type: infer OutMessage }>

@@ -1,4 +1,5 @@
 import { Option } from 'effect'
+import { Update } from 'foldkit'
 import { UrlRequest } from 'foldkit/navigation'
 import { Transition } from 'foldkit/route'
 import { modifyFields } from 'foldkit/struct'
@@ -9,7 +10,7 @@ import { ApplicationComposition } from './composition'
 import { makeFieldsStep, makeNoopStep } from './definition'
 import { PaintingStatus } from './model'
 import { urlToApplicationRoute } from './route'
-import { handleTransition } from './transition'
+import { handleTransitionStep } from './steps'
 
 export const update = ApplicationComposition.makeUpdate({
   CompletedNavigateInternal: makeNoopStep(),
@@ -30,10 +31,10 @@ export const update = ApplicationComposition.makeUpdate({
   ChangedUrl: (model, { url }) => {
     const nextRoute = urlToApplicationRoute(url)
     const transition = Transition.make(model.route, nextRoute)
-    return handleTransition(
-      modifyFields(model, { route: () => nextRoute }),
-      transition,
-    )
+    return Update.combineSteps(model, [
+      makeFieldsStep(() => ({ route: () => nextRoute })),
+      handleTransitionStep(transition),
+    ])
   },
 
   CompletedLoadCatalog: makeFieldsStep(() => ({

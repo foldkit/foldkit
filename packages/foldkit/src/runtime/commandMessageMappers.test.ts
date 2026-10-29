@@ -24,6 +24,7 @@ import { __setDevToolsOverlay } from './devToolsConfig.js'
 const ChildMessage = defineMessageUnion({
   CompletedDoChildWork: {},
 })
+type ChildMessage = typeof ChildMessage.Type
 
 const DoChildWork = Command.define('DoChildWork', {
   messages: [ChildMessage.CompletedDoChildWork],
@@ -134,6 +135,7 @@ describe('command message mappers', () => {
       GotEditorMessage: { message: ChildMessage },
       GotViewerMessage: { message: ChildMessage },
     })
+    type MiddleMessage = typeof MiddleMessage.Type
 
     const RootMessage = defineMessageUnion({
       GotPanelMessage: { message: MiddleMessage },

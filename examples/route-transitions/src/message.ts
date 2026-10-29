@@ -13,3 +13,4 @@ export const Message = defineMessageUnion({
   UpdatedStudioDraft: { value: Schema.String },
   CompletedSaveDraft: { draft: Schema.String },
 })
+export type Message = typeof Message.Type

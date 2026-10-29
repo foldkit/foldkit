@@ -1,27 +1,31 @@
-import { Option } from 'effect'
+import { Option, Schema } from 'effect'
 import * as Url from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
 import { IssueFilters } from './domain'
 import {
   ApplicationRoute,
+  PageRoute,
+  boardRouter,
   defaultIssueFilters,
   issueRouter,
   issuesRouter,
+  maybeIssueId,
+  maybeRouteFilters,
   myIssuesRouter,
-  pageRoute,
   projectRouter,
-  routeFilters,
   routeToPath,
   savedViewRouter,
   urlToApplicationRoute,
+  withIssueId,
   withRouteFilters,
+  withoutIssueId,
 } from './route'
 
 const url = (path: string) =>
   Option.getOrThrow(Url.fromString(`https://workspace.test${path}`))
 
-const filtered = IssueFilters.make({
+const customFilters = IssueFilters.make({
   query: 'cache & routing',
   maybeStatus: Option.some('Todo'),
   sort: 'Priority',
@@ -37,7 +41,7 @@ describe('workspace list routes', () => {
   })
 
   test('prints nondefault filters and round-trips encoded search text', () => {
-    const path = issuesRouter({ filters: filtered })
+    const path = issuesRouter({ filters: customFilters })
 
     expect(path).toBe(
       '/?search=cache+%26+routing&status=Todo&sort=Priority&group=Status',
@@ -45,16 +49,16 @@ describe('workspace list routes', () => {
 
     const route = urlToApplicationRoute(url(path))
 
-    expect(route).toEqual(ApplicationRoute.Issues({ filters: filtered }))
-    expect(routeFilters(route)).toEqual(Option.some(filtered))
+    expect(route).toEqual(ApplicationRoute.Issues({ filters: customFilters }))
+    expect(maybeRouteFilters(route)).toEqual(Option.some(customFilters))
     expect(routeToPath(route)).toBe(path)
   })
 
   test('supports the same filters on My Issues, Project, and Saved View', () => {
     const paths = [
-      myIssuesRouter({ filters: filtered }),
-      projectRouter({ projectId: 'platform', filters: filtered }),
-      savedViewRouter({ viewId: 'mine', filters: filtered }),
+      myIssuesRouter({ filters: customFilters }),
+      projectRouter({ projectId: 'platform', filters: customFilters }),
+      savedViewRouter({ viewId: 'mine', filters: customFilters }),
     ]
 
     expect(paths).toEqual([
@@ -64,8 +68,8 @@ describe('workspace list routes', () => {
     ])
 
     for (const path of paths) {
-      expect(routeFilters(urlToApplicationRoute(url(path)))).toEqual(
-        Option.some(filtered),
+      expect(maybeRouteFilters(urlToApplicationRoute(url(path)))).toEqual(
+        Option.some(customFilters),
       )
     }
   })
@@ -79,11 +83,11 @@ describe('workspace list routes', () => {
       savedViewRouter({ viewId: 'mine', filters: defaultIssueFilters }),
     ).toBe('/views/mine?filters=1')
 
-    expect(routeFilters(urlToApplicationRoute(url('/views/mine')))).toEqual(
-      Option.none(),
-    )
     expect(
-      routeFilters(urlToApplicationRoute(url('/views/mine?filters=1'))),
+      maybeRouteFilters(urlToApplicationRoute(url('/views/mine'))),
+    ).toEqual(Option.none())
+    expect(
+      maybeRouteFilters(urlToApplicationRoute(url('/views/mine?filters=1'))),
     ).toEqual(Option.some(defaultIssueFilters))
   })
 
@@ -92,7 +96,7 @@ describe('workspace list routes', () => {
       url('/?search=release%2Fnotes&status=Unknown&sort=Newest&group=Owner'),
     )
 
-    expect(routeFilters(route)).toEqual(
+    expect(maybeRouteFilters(route)).toEqual(
       Option.some(
         IssueFilters.make({
           ...defaultIssueFilters,
@@ -107,68 +111,140 @@ describe('workspace list routes', () => {
     expect(
       withRouteFilters(
         ApplicationRoute.Project({ projectId: 'platform' }),
-        filtered,
+        customFilters,
       ),
     ).toEqual(
-      ApplicationRoute.Project({ projectId: 'platform', filters: filtered }),
+      ApplicationRoute.Project({
+        projectId: 'platform',
+        filters: customFilters,
+      }),
     )
 
-    const board = ApplicationRoute.Board({ projectId: 'platform' })
+    const myIssuesRoute = ApplicationRoute.MyIssues({ issueId: 'issue-101' })
+    expect(withRouteFilters(myIssuesRoute, customFilters)).toEqual(
+      ApplicationRoute.MyIssues({
+        issueId: 'issue-101',
+        filters: customFilters,
+      }),
+    )
 
-    expect(withRouteFilters(board, filtered)).toBe(board)
+    const boardRoute = ApplicationRoute.Board({ projectId: 'platform' })
+
+    expect(withRouteFilters(boardRoute, customFilters)).toBe(boardRoute)
   })
 })
 
-describe('Issue return context', () => {
-  test('round-trips a filtered list return target', () => {
-    const returnTo = projectRouter({ projectId: 'platform', filters: filtered })
-    const path = issueRouter({ issueId: 'issue-101', returnTo })
+describe('issue selection', () => {
+  test('round-trips a filtered Project with a selected issue', () => {
+    const route = ApplicationRoute.Project({
+      projectId: 'platform',
+      filters: customFilters,
+      issueId: 'issue-101',
+    })
+    const path = routeToPath(route)
 
     expect(path).toBe(
-      '/issues/issue-101?returnTo=%2Fprojects%2Fplatform%3Fsearch%3Dcache%2B%2526%2Brouting%26status%3DTodo%26sort%3DPriority%26group%3DStatus',
+      '/projects/platform?search=cache+%26+routing&status=Todo&sort=Priority&group=Status&issue=issue-101',
     )
+    expect(urlToApplicationRoute(url(path))).toEqual(route)
+    expect(maybeIssueId(route)).toEqual(Option.some('issue-101'))
+    expect(maybeRouteFilters(route)).toEqual(Option.some(customFilters))
+  })
 
+  test('adds and removes the selected issue without changing the Board Route', () => {
+    const boardRoute = ApplicationRoute.Board({ projectId: 'platform' })
+    const routeWithIssue = withIssueId(boardRoute, 'issue-101')
+
+    expect(routeWithIssue).toEqual(
+      ApplicationRoute.Board({ projectId: 'platform', issueId: 'issue-101' }),
+    )
+    expect(routeToPath(routeWithIssue)).toBe(
+      '/projects/platform/board?issue=issue-101',
+    )
+    expect(urlToApplicationRoute(url(routeToPath(routeWithIssue)))).toEqual(
+      routeWithIssue,
+    )
+    expect(withoutIssueId(routeWithIssue)).toEqual(boardRoute)
+    expect(routeToPath(withoutIssueId(routeWithIssue))).toBe(
+      boardRouter({ projectId: 'platform' }),
+    )
+  })
+
+  test('keeps filters while changing or removing the selected issue', () => {
+    const route = ApplicationRoute.SavedView({
+      viewId: 'mine',
+      filters: customFilters,
+      issueId: 'issue-101',
+    })
+    const routeWithNextIssue = withIssueId(route, 'issue-102')
+
+    expect(routeWithNextIssue).toEqual(
+      ApplicationRoute.SavedView({
+        viewId: 'mine',
+        filters: customFilters,
+        issueId: 'issue-102',
+      }),
+    )
+    expect(withoutIssueId(routeWithNextIssue)).toEqual(
+      ApplicationRoute.SavedView({ viewId: 'mine', filters: customFilters }),
+    )
+    expect(withRouteFilters(routeWithNextIssue, defaultIssueFilters)).toEqual(
+      ApplicationRoute.SavedView({
+        viewId: 'mine',
+        filters: defaultIssueFilters,
+        issueId: 'issue-102',
+      }),
+    )
+    expect(
+      routeToPath(withRouteFilters(routeWithNextIssue, defaultIssueFilters)),
+    ).toBe('/views/mine?filters=1&issue=issue-102')
+  })
+
+  test('keeps standalone issue links', () => {
+    const path = issueRouter({ issueId: 'issue-101' })
     const route = urlToApplicationRoute(url(path))
 
-    expect(route).toEqual(
-      ApplicationRoute.Issue({ issueId: 'issue-101', returnTo }),
-    )
-
-    expect(pageRoute(route)).toEqual(
-      ApplicationRoute.Project({ projectId: 'platform', filters: filtered }),
-    )
+    expect(path).toBe('/issues/issue-101')
+    expect(route).toEqual(ApplicationRoute.Issue({ issueId: 'issue-101' }))
+    expect(maybeIssueId(route)).toEqual(Option.some('issue-101'))
   })
 
-  test('selects the Board and ignores unrelated return query fields', () => {
+  test('restricts optional issue selection to page Routes', () => {
+    const isValidPageRoute = Schema.is(PageRoute)
+
     expect(
-      pageRoute(
-        ApplicationRoute.Issue({
-          issueId: 'issue-101',
-          returnTo: '/projects/platform/board?ignored=yes',
-        }),
-      ),
-    ).toEqual(ApplicationRoute.Board({ projectId: 'platform' }))
-  })
-
-  test.each([
-    'https://evil.example/projects/platform/board',
-    '//evil.example/projects/platform/board',
-    '/issues/issue-202',
-    '/issues/issue-202?returnTo=%2F',
-    '/unknown',
-  ])('rejects unsafe or unsupported return target %s', returnTo => {
+      isValidPageRoute(ApplicationRoute.Board({ projectId: 'platform' })),
+    ).toBe(true)
     expect(
-      pageRoute(ApplicationRoute.Issue({ issueId: 'issue-101', returnTo })),
-    ).toEqual(ApplicationRoute.Issues({ filters: defaultIssueFilters }))
+      isValidPageRoute(ApplicationRoute.Issue({ issueId: 'issue-101' })),
+    ).toBe(false)
+    expect(
+      isValidPageRoute(ApplicationRoute.NotFound({ path: '/unknown' })),
+    ).toBe(false)
   })
 
-  test('uses All issues when an Issue URL has an unsupported return page', () => {
-    const route = urlToApplicationRoute(
-      url('/issues/issue-101?returnTo=https%3A%2F%2Fevil.example'),
-    )
+  test('stores only the selected issue identity in the Route Schema', () => {
+    const route = ApplicationRoute.Board({
+      projectId: 'platform',
+      issueId: 'issue-101',
+    })
+    const encodedRoute = Schema.encodeSync(ApplicationRoute)(route)
 
-    expect(pageRoute(route)).toEqual(
-      ApplicationRoute.Issues({ filters: defaultIssueFilters }),
-    )
+    expect(encodedRoute).toEqual({
+      _tag: 'Board',
+      projectId: 'platform',
+      issueId: 'issue-101',
+    })
+    expect(Schema.decodeSync(ApplicationRoute)(encodedRoute)).toEqual(route)
+    expect(
+      Schema.is(ApplicationRoute)({
+        _tag: 'Board',
+        projectId: 'platform',
+        issueId: 42,
+      }),
+    ).toBe(false)
+    expect(
+      maybeIssueId(ApplicationRoute.NotFound({ path: '/unknown' })),
+    ).toEqual(Option.none())
   })
 })

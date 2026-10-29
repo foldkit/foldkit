@@ -40,7 +40,7 @@ const faqItem = (
   id: string,
   question: string,
   answerContent: ReadonlyArray<Html>,
-  model: typeof Model.Type,
+  model: Model,
   h: ComingFromReactViewBuilder,
 ): Html =>
   Option.match(Record.get(model, id), {

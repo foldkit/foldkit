@@ -1,5 +1,6 @@
 import { Option } from 'effect'
 
+import { mountModule } from './mountModule.js'
 import { onUnmountModule } from './onUnmountModule.js'
 import { propsModule } from './propsModule.js'
 import {
@@ -29,6 +30,7 @@ export const patch = init([
   classModule,
   datasetModule,
   eventListenersModule,
+  mountModule,
   onUnmountModule,
   propsModule,
   styleModule,

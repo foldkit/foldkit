@@ -9,7 +9,9 @@ const LoadState = defineTaggedUnion({
   Loaded: { data: Schema.Array(Schema.String) },
   Failed: { error: Schema.String },
 })
+type LoadState = typeof LoadState.Type
 
 const Model = Schema.Struct({
   loadState: LoadState,
 })
+type Model = typeof Model.Type

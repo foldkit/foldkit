@@ -9,11 +9,11 @@ import { Listbox } from '@foldkit/ui'
 import { buttonId as ListboxButtonId } from '@foldkit/ui/listbox'
 
 const Plan = Schema.Literals(['Free', 'Pro', 'Enterprise'])
-
+type Plan = typeof Plan.Type
 // Declare a typed Listbox once at module scope. `view` and `update` are
 // bound to `Plan`: `items` is typed as `ReadonlyArray<Plan>` and the
 // OutMessage carries `value: Plan`.
-const PlanListbox = Listbox.create<typeof Plan.Type>()
+const PlanListbox = Listbox.makeBlock<Plan>()
 
 // Add a field to your Model for the Listbox Block, plus a field for
 // the selected value your app actually cares about. Using the `Plan`
@@ -23,9 +23,10 @@ const Model = Schema.Struct({
   listbox: PlanListbox.Model,
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // This excerpt has no parent-owned facts. The Composition derives delivery.
 const Message = defineMessageUnion({})
+type Message = typeof Message.Type
 
 const PlanPickerDefinition = Block.makeDefinition('PlanPicker', {
   Model,
@@ -73,7 +74,7 @@ const init = PlanPickerComposition.makeInit(() => ({
 // The Composition routes generated Listbox delivery through the Binding.
 const update = PlanPickerComposition.makeUpdate({})
 
-const plans: ReadonlyArray<typeof Plan.Type> = ['Free', 'Pro', 'Enterprise']
+const plans: ReadonlyArray<Plan> = ['Free', 'Pro', 'Enterprise']
 
 // Inside your view function, embed the Listbox via h.block using
 // its canonical view. Associate a visible label with the trigger via a native

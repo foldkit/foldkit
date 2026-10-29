@@ -4,6 +4,7 @@ import { KeyValueStore } from 'effect/persistence'
 export const Flags = Schema.Struct({
   savedCount: Schema.Option(Schema.Number),
 })
+export type Flags = typeof Flags.Type
 
 const COUNTER_STORAGE_KEY = 'count'
 

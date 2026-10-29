@@ -10,6 +10,7 @@ export const WeatherData = Schema.Struct({
   locationName: Schema.String,
   region: Schema.String,
 })
+export type WeatherData = typeof WeatherData.Type
 
 export const WeatherAsyncData = AsyncData.Schema(WeatherData, Schema.String)
 
@@ -17,3 +18,4 @@ export const Model = Schema.Struct({
   zipCodeInput: Schema.String,
   weather: WeatherAsyncData.schema,
 })
+export type Model = typeof Model.Type

@@ -7,7 +7,9 @@ import { makeDefinition } from './define.js'
 import { assemble } from './fromAssembly.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
+type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({ Incremented: {} })
+type ChildMessage = typeof ChildMessage.Type
 
 const PlainComposition = makeDefinition('CompositionSafetyRuntimePlain', {
   Model: ChildModel,
@@ -21,7 +23,7 @@ const preparePlain = () =>
       })),
       update: Reflect.apply(PlainComposition.makeUpdate, undefined, [
         {
-          Incremented: (model: typeof ChildModel.Type) => ({
+          Incremented: (model: ChildModel) => ({
             model: modifyFields(model, { count: count => count + 1 }),
           }),
         },
@@ -45,7 +47,7 @@ const prepareOptionalContext = () =>
       })),
       update: OptionalContextComposition.makeUpdate.withContext(
         (context?: Readonly<{ amount: number }>) => ({
-          Incremented: (model: typeof ChildModel.Type) => ({
+          Incremented: (model: ChildModel) => ({
             model: modifyFields(model, {
               count: count => count + (context?.amount ?? 1),
             }),
@@ -62,7 +64,9 @@ const OptionalContextBlock = Reflect.apply(assemble, undefined, [
 ])
 
 const ParentModel = Schema.Struct({ child: ChildModel })
+type ParentModel = typeof ParentModel.Type
 const ParentMessage = Schema.Never
+type ParentMessage = typeof ParentMessage.Type
 const Parent = makeDefinition('CompositionSafetyRuntimeParent', {
   Model: ParentModel,
   Message: ParentMessage,
@@ -115,7 +119,7 @@ describe('Composition safety', () => {
   it('rejects callback update authoring at runtime', () => {
     expect(() =>
       Reflect.apply(PlainComposition.makeUpdate, undefined, [
-        (model: typeof ChildModel.Type) => ({ model }),
+        (model: ChildModel) => ({ model }),
       ]),
     ).toThrow('requires an exhaustive handler record')
   })

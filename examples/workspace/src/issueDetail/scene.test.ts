@@ -20,26 +20,30 @@ import { Listbox } from '@foldkit/ui'
 
 import { CommentComposerBlock } from '../commentComposer'
 import { AddComment } from '../commentComposer/command'
-import { initialSnapshot } from '../domain'
+import {
+  draftFromIssue,
+  initialWorkspace,
+  savedIssueFromIssue,
+} from '../domain'
 import { WorkspaceListboxBlock } from '../listbox'
 import { RepositoryError } from '../repository'
 import { SaveIssue } from './command'
-import { Message, OutMessage } from './definition'
-import { draftFromIssue } from './draft'
 import { init } from './init'
+import { Message } from './message'
+import { OutMessage } from './outMessage'
 import { update } from './update'
 import { view } from './view'
 
-const issue = Option.getOrThrow(Array.head(initialSnapshot.issues))
+const issue = Option.getOrThrow(Array.head(initialWorkspace.issues))
 const sceneView = withViewInputs(view, {
   issue,
-  members: initialSnapshot.members,
-  projects: initialSnapshot.projects,
+  members: initialWorkspace.members,
+  projects: initialWorkspace.projects,
   authorId: 'maya',
 })
 
-const selectField = (field: string, option: string) => [
-  click(label(field)),
+const selectField = (fieldLabel: string, optionLabel: string) => [
+  click(label(fieldLabel)),
   Command.resolve(
     Listbox.test.FocusListboxItems,
     WorkspaceListboxBlock.Message.CompletedFocusListboxItems(),
@@ -52,7 +56,7 @@ const selectField = (field: string, option: string) => [
     Listbox.test.PortalListboxBackdrop,
     WorkspaceListboxBlock.Message.CompletedPortalListboxBackdrop(),
   ),
-  click(role('option', { name: option })),
+  click(role('option', { name: optionLabel })),
   Command.resolve(
     Listbox.test.FocusListboxButton,
     WorkspaceListboxBlock.Message.CompletedFocusListboxButton(),
@@ -107,9 +111,6 @@ describe('Issue Detail view', () => {
       body: 'Ready for review.',
       createdAt: '2026-10-22T14:30:00.000Z',
     }
-    const commentedIssue = modifyFields(issue, {
-      comments: Array.append(comment),
-    })
 
     scene(
       { update, view: sceneView() },
@@ -120,53 +121,19 @@ describe('Issue Detail view', () => {
       Command.resolve(
         AddComment,
         CommentComposerBlock.Message.SucceededAddComment({
-          issue: commentedIssue,
+          comment,
         }),
       ),
       expect(label('Issue title')).toHaveValue(draftTitle),
       expect(label('Write a comment')).toHaveValue(''),
       expect(text(comment.body)).not.toExist(),
-      expectOutMessage(OutMessage.ObservedIssue({ issue: commentedIssue })),
-    )
-  })
-
-  test('leaves the baseline unchanged when a comment returns remote edits', () => {
-    const draftTitle = 'Keep this local title'
-    const comment = {
-      id: 'comment-5',
-      authorId: 'maya',
-      body: 'This arrived with a remote edit.',
-      createdAt: '2026-10-22T14:30:00.000Z',
-    }
-    const remotelyEditedIssue = modifyFields(issue, {
-      title: () => 'A teammate changed this title',
-      comments: Array.append(comment),
-      version: version => version + 1,
-    })
-
-    scene(
-      { update, view: sceneView() },
-      given(init(issue).model),
-      type(label('Issue title'), draftTitle),
-      type(label('Write a comment'), comment.body),
-      click(role('button', { name: 'Post comment' })),
-      Command.resolve(
-        AddComment,
-        CommentComposerBlock.Message.SucceededAddComment({
-          issue: remotelyEditedIssue,
-        }),
-      ),
-      expect(label('Issue title')).toHaveValue(draftTitle),
-      expect(text(comment.body)).not.toExist(),
-      expectOutMessage(
-        OutMessage.ObservedIssue({ issue: remotelyEditedIssue }),
-      ),
+      expectOutMessage(OutMessage.AddedComment({ issueId: issue.id, comment })),
     )
   })
 
   test('retains edits in labeled fields and recovers from a failed save', () => {
     const title = 'Search every project from the command menu'
-    const savedIssue = modifyFields(issue, {
+    const savedIssueSnapshot = modifyFields(issue, {
       title: () => title,
       description: () => 'Find the right project without leaving your flow.',
       status: () => 'Done',
@@ -180,7 +147,7 @@ describe('Issue Detail view', () => {
       { update, view: sceneView() },
       given(init(issue).model),
       type(label('Issue title'), title),
-      type(label('Description'), savedIssue.description),
+      type(label('Description'), savedIssueSnapshot.description),
       ...selectField('Status', 'Done'),
       ...selectField('Priority', 'Medium'),
       ...selectField('Project', 'Platform'),
@@ -191,13 +158,13 @@ describe('Issue Detail view', () => {
           issueId: issue.id,
           expectedVersion: issue.version,
           draft: {
-            title: savedIssue.title,
-            description: savedIssue.description,
-            status: savedIssue.status,
-            priority: savedIssue.priority,
-            projectId: savedIssue.projectId,
-            maybeAssigneeId: savedIssue.maybeAssigneeId,
-            labelIds: savedIssue.labelIds,
+            title: savedIssueSnapshot.title,
+            description: savedIssueSnapshot.description,
+            status: savedIssueSnapshot.status,
+            priority: savedIssueSnapshot.priority,
+            projectId: savedIssueSnapshot.projectId,
+            maybeAssigneeId: savedIssueSnapshot.maybeAssigneeId,
+            labelIds: savedIssueSnapshot.labelIds,
           },
         }),
       ),
@@ -221,7 +188,7 @@ describe('Issue Detail view', () => {
         'The workspace is temporarily unavailable.',
       ),
       expect(label('Issue title')).toHaveValue(title),
-      expect(label('Description')).toHaveValue(savedIssue.description),
+      expect(label('Description')).toHaveValue(savedIssueSnapshot.description),
       expect(label('Status')).toHaveText('Done'),
       expect(label('Priority')).toHaveText('Medium'),
       expect(label('Project')).toHaveText('Platform'),
@@ -230,11 +197,15 @@ describe('Issue Detail view', () => {
       Command.resolve(
         SaveIssue,
         Message.SucceededSaveIssue({
-          issue: savedIssue,
+          savedIssue: savedIssueFromIssue(savedIssueSnapshot),
           expectedVersion: issue.version,
         }),
       ),
-      expectOutMessage(OutMessage.Saved({ issue: savedIssue })),
+      expectOutMessage(
+        OutMessage.Saved({
+          savedIssue: savedIssueFromIssue(savedIssueSnapshot),
+        }),
+      ),
       expect(role('status')).toContainText('All changes saved'),
       expect(role('button', { name: 'Save changes' })).toBeDisabled(),
     )

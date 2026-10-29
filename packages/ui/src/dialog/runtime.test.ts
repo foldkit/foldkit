@@ -8,6 +8,7 @@ import * as Dialog from './block.js'
 const dialogId = 'preserved-dialog'
 
 const DialogEvent = Schema.Literals(['Opened', 'Closed'])
+type DialogEvent = typeof DialogEvent.Type
 
 const Model = Schema.Struct({
   dialog: Dialog.Model,

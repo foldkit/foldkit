@@ -12,3 +12,4 @@ export const Message = defineMessageUnion({
     isOpen: Schema.Boolean,
   },
 })
+export type Message = typeof Message.Type

@@ -15,7 +15,6 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({
   ClickedFallback: {},
 })
-
 export type Message = typeof Message.Type
 
 // INIT

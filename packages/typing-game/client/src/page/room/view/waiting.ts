@@ -15,15 +15,15 @@ const badgeToString = Match.type<Badge>().pipe(
 )
 
 const isLocalPlayer = (
-  player: typeof Shared.Player.Type,
-  maybeSession: Option.Option<typeof RoomPlayerSession.Type>,
+  player: Shared.Player,
+  maybeSession: Option.Option<RoomPlayerSession>,
 ): boolean =>
   Option.exists(maybeSession, session => session.player.id === player.id)
 
 const player = (
-  players: ReadonlyArray<typeof Shared.Player.Type>,
+  players: ReadonlyArray<Shared.Player>,
   hostId: string,
-  maybeSession: Option.Option<typeof RoomPlayerSession.Type>,
+  maybeSession: Option.Option<RoomPlayerSession>,
   h: RoomViewBuilder,
 ): Array<Html> =>
   Array.map(players, player => {
@@ -50,9 +50,9 @@ const player = (
   })
 
 export const waiting = (
-  players: ReadonlyArray<typeof Shared.Player.Type>,
+  players: ReadonlyArray<Shared.Player>,
   hostId: string,
-  maybeSession: Option.Option<typeof RoomPlayerSession.Type>,
+  maybeSession: Option.Option<RoomPlayerSession>,
   h: RoomViewBuilder,
 ): Html => {
   const isLocalPlayerHost = Option.exists(

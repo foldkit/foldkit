@@ -11,12 +11,14 @@ import { Model } from './model'
 import { ApplicationRoute } from './route'
 import { update } from './update'
 
+type CounterMessage = typeof CounterBlock.Message.Type
+
 const home = Model.make({
   route: ApplicationRoute.Home(),
   counter: CounterBlock.init().model,
 })
 
-const counterMessage = (message: typeof CounterBlock.Message.Type) =>
+const counterMessage = (message: CounterMessage) =>
   toParentMessage(CounterBinding, message)
 
 const urlOrThrow = (raw: string) =>

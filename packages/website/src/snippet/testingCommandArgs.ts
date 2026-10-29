@@ -8,6 +8,8 @@ import { expect } from 'vitest'
 const Message = defineMessageUnion({
   CompletedPaint: { generation: Schema.Number },
 })
+type Message = typeof Message.Type
+
 const Paint = Command.define('Paint', {
   args: { generation: Schema.Number },
   messages: [Message.CompletedPaint],

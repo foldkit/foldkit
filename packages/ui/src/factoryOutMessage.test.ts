@@ -11,11 +11,11 @@ import * as Tabs from './tabs/tabs.js'
 const Fruit = Schema.Literals(['Apple', 'Pear'])
 type Fruit = typeof Fruit.Type
 
-const FruitListbox = Listbox.create<Fruit>()
-const FruitMultiListbox = MultiListbox.create<Fruit>()
-const FruitMenu = Menu.create<Fruit>()
-const FruitRadioGroup = RadioGroup.create<Fruit>()
-const FruitTabs = Tabs.create<Fruit>()
+const FruitListbox = Listbox.makeBlock<Fruit>()
+const FruitMultiListbox = MultiListbox.makeBlock<Fruit>()
+const FruitMenu = Menu.makeBlock<Fruit>()
+const FruitRadioGroup = RadioGroup.makeBlock<Fruit>()
+const FruitTabs = Tabs.makeBlock<Fruit>()
 
 it('preserves refined OutMessage constructors and matchers on completed factories', () => {
   expectTypeOf<typeof FruitListbox.Model.Type>().toEqualTypeOf<Listbox.Model>()

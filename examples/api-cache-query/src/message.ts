@@ -11,3 +11,4 @@ export const Message = defineMessageUnion({
   ClickedRetryStats: {},
   TickedStatsRefreshInterval: {},
 })
+export type Message = typeof Message.Type

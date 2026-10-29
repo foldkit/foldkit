@@ -6,6 +6,8 @@ import * as Icon from '../../icon'
 import { UiComposition } from '../composition'
 import { Message } from '../message'
 
+type UiMessage = typeof UiComposition.Message.Type
+
 const selectClassName =
   'appearance-none inline-flex items-center gap-2 w-full px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50'
 
@@ -27,7 +29,7 @@ export const view = UiComposition.makeView((model, h) => {
   ]
 
   const basicSelectView = (
-    attributes: Select.SelectAttributes<typeof UiComposition.Message.Type>,
+    attributes: Select.SelectAttributes<UiMessage>,
   ): Html =>
     h.div(
       [h.Class('flex flex-col gap-1.5 w-full')],
@@ -51,7 +53,7 @@ export const view = UiComposition.makeView((model, h) => {
     )
 
   const disabledSelectView = (
-    attributes: Select.SelectAttributes<typeof UiComposition.Message.Type>,
+    attributes: Select.SelectAttributes<UiMessage>,
   ): Html =>
     h.div(
       [h.Class('flex flex-col gap-1.5 max-w-sm')],

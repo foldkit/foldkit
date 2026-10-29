@@ -6,11 +6,14 @@ import * as Update from '../update/index.js'
 import * as Block from './public.js'
 
 const Model = Schema.Struct({ count: Schema.Number })
+type Model = typeof Model.Type
 const Message = defineMessageUnion({
   RequestedNotify: {},
   InformedOfIncrement: {},
 })
+type Message = typeof Message.Type
 const OutMessage = defineMessageUnion({ Notify: {} })
+type OutMessage = typeof OutMessage.Type
 const Definition = Block.makeDefinition('Child', { Model, Message, OutMessage })
 const ChildComposition = Definition.makeComposition()
 const prepare = () =>

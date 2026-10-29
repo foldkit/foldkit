@@ -26,10 +26,10 @@ import {
   makeView,
   mounts,
 } from './shared.js'
-import { create, init, update } from './single.js'
+import { init, makeBlock, update } from './single.js'
 import type { Model, ViewInputs } from './single.js'
 
-const TestCombobox = create()
+const TestCombobox = makeBlock()
 const gotAnimationMessage = ({
   message,
 }: Readonly<{ message: typeof Animation.AnimationBlock.Message.Type }>) =>
@@ -57,8 +57,8 @@ const view = (
 const Fruit = Schema.Literals(['Apple', 'Pear'])
 type Fruit = typeof Fruit.Type
 
-const FruitCombobox = create(Fruit)
-const OtherFruitCombobox = create(Schema.Literals(['Orange']))
+const FruitCombobox = makeBlock(Fruit)
+const OtherFruitCombobox = makeBlock(Schema.Literals(['Orange']))
 
 const FruitParentModel = Schema.Struct({
   combobox: FruitCombobox.Model,
@@ -69,6 +69,7 @@ type FruitParentModel = typeof FruitParentModel.Type
 const FruitParentMessage = defineMessageUnion({
   RequestedSelectFruitAndClose: { item: Fruit },
 })
+type FruitParentMessage = typeof FruitParentMessage.Type
 
 const FruitComboboxTestDefinition = Block.makeDefinition('FruitComboboxTest', {
   Model: FruitParentModel,

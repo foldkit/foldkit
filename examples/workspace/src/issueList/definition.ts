@@ -1,7 +1,8 @@
 import { Block } from 'foldkit'
 
-import { Message, OutMessage } from './message'
+import { Message } from './message'
 import { Model } from './model'
+import { OutMessage } from './outMessage'
 
 export const IssueListDefinition = Block.makeDefinition('IssueList', {
   Model,
@@ -9,5 +10,11 @@ export const IssueListDefinition = Block.makeDefinition('IssueList', {
   OutMessage,
 })
 
-export const { makeFieldsStep, makeOutMessageStep, makeNoopStep } =
-  IssueListDefinition
+export const {
+  makeFieldsStep,
+  makeOutMessageStep,
+  makeNoopStep,
+  makeBinding,
+  makeOutMessageFold,
+  makeComposition,
+} = IssueListDefinition

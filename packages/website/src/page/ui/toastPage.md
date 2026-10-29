@@ -4,7 +4,7 @@
 
 A stack of transient notifications positioned along an edge of the viewport. Each entry has its own enter and leave animation and hover state. Non-sticky entries have independent auto-dismiss timers that pause on hover. Swipe-to-dismiss is opt-in for the container. Keep the container at the app root and add entries with the Binding’s `requestShow` operation.
 
-Toast is parameterized on a payload Schema that you provide. The component owns entry IDs, variants, animations, optional dismiss timers, hover state, and swipe state. Your payload holds the content rendered by `entryToView`. `Toast.make(PayloadSchema)` returns a completed Block whose Model, programmatic API, view, Subscriptions, and handler recipes are bound to that payload type. Each parent Binding supplies its occurrence identity.
+Toast is parameterized on a payload Schema that you provide. The component owns entry IDs, variants, animations, optional dismiss timers, hover state, and swipe state. Your payload holds the content rendered by `entryToView`. `Toast.makeBlock(PayloadSchema)` returns a completed Block whose Model, programmatic API, view, Subscriptions, and handler recipes are bound to that payload type. Each parent Binding supplies its occurrence identity.
 
 :::Info{label="See it in an app"}
 Check out how Toast is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/toast.ts).
@@ -32,7 +32,7 @@ Swipe is pointer-driven and opt-in. Pass `swipeToDismiss` to the Toast Binding�
 
 ### Track the Pointer
 
-With swipe enabled, Toast handles `pointerdown` on each entry. Connect the completed Block returned by `Toast.make` and include the Binding in the owning Composition’s `bindings`; that one relationship carries the Toast instance’s pointer Subscriptions and handler recipes through application composition. The Subscriptions track `pointermove`, `pointerup`, and `pointercancel` even when the pointer leaves the entry. Without the Binding, the parent cannot embed the Toast view. Escape cancels active drags. While dragging, Toast prevents text selection and shows the grabbing cursor. The example above shows the Binding.
+With swipe enabled, Toast handles `pointerdown` on each entry. Connect the completed Block returned by `Toast.makeBlock` and include the Binding in the owning Composition’s `bindings`; that one relationship carries the Toast instance’s pointer Subscriptions and handler recipes through application composition. The Subscriptions track `pointermove`, `pointerup`, and `pointercancel` even when the pointer leaves the entry. Without the Binding, the parent cannot embed the Toast view. Escape cancels active drags. While dragging, Toast prevents text selection and shows the grabbing cursor. The example above shows the Binding.
 
 ### Preserve Nested Interactions
 
@@ -91,7 +91,7 @@ Input shape for `toast.requestShow(input)`.
 
 | Name       | Type                                          | Default  | Description                                                                                                                                                                                                                 |
 | ---------- | --------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `payload`  | `A (your payload type)`                       | —        | Content for this entry, in the shape you supplied to `Toast.make`. Toast passes it to your `entryToView` callback without reading it.                                                                                       |
+| `payload`  | `A (your payload type)`                       | —        | Content for this entry, in the shape you supplied to `Toast.makeBlock`. Toast passes it to your `entryToView` callback without reading it.                                                                                  |
 | `variant`  | `'Info' \| 'Success' \| 'Warning' \| 'Error'` | `'Info'` | Semantic category. Maps to data-variant for styling and to role=status (Info, Success) or role=alert (Warning, Error) for accessibility. The only content-adjacent field the component owns. Everything else is in payload. |
 | `duration` | `Duration.Input`                              | —        | Overrides the container's defaultDuration for this entry. No auto-dismiss timer is scheduled when `sticky: true`.                                                                                                           |
 | `sticky`   | `boolean`                                     | `false`  | When true, the entry does not auto-dismiss. It can still be closed with the close button, an enabled swipe, or `toast.requestDismiss`.                                                                                      |
@@ -122,7 +122,7 @@ Toast operations are public parent Steps. Call the Binding’s `requestShow`, `r
 
 #### Lift Pointer Subscriptions
 
-Each completed Block returned by `Toast.make` can be bound once and included in the owner’s `bindings`; composition carries `swipePointer`, `swipeEscape`, and their handler recipes automatically. The source `subscriptions` registry remains available when a Scene test needs to call `Subscription.emit` for one of those entries. The stable factory name keeps separate Toast instances distinct. The [example above](#examples) shows the Binding alongside the Toast Model and Message.
+Each completed Block returned by `Toast.makeBlock` can be bound once and included in the owner’s `bindings`; composition carries `swipePointer`, `swipeEscape`, and their handler recipes automatically. The source `subscriptions` registry remains available when a Scene test needs to call `Subscription.emit` for one of those entries. The stable factory name keeps separate Toast instances distinct. The [example above](#examples) shows the Binding alongside the Toast Model and Message.
 
 The composed Binding ensures `pointermove` and `pointerup` reach the Toast update after the initial `pointerdown`, even when the pointer leaves the entry.
 

@@ -18,7 +18,7 @@ import {
 } from './route'
 
 const navigationUrlByShortcut: Readonly<
-  Record<typeof NavigationShortcut.Type, () => string>
+  Record<NavigationShortcut, () => string>
 > = {
   GH: homeRouter,
   GP: () => peopleRouter({ searchText: Option.none() }),
@@ -26,7 +26,7 @@ const navigationUrlByShortcut: Readonly<
   GN: nestedRouter,
 }
 
-const setRouteStep = (nextRoute: typeof ApplicationRoute.Type) =>
+const setRouteStep = (nextRoute: ApplicationRoute) =>
   makeFieldsStep(() => ({ route: () => nextRoute }))
 
 const keepModelStep = makeNoopStep()

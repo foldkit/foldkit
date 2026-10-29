@@ -2,7 +2,7 @@ import { Mount, click, role } from 'foldkit/scene'
 
 import { Listbox, Popover } from '@foldkit/ui'
 
-const ListboxBlock = Listbox.create<string>()
+const ListboxBlock = Listbox.makeBlock<string>()
 const ListboxAnchorListbox = Listbox.test.AnchorListbox
 const ListboxPortalListboxBackdrop = Listbox.test.PortalListboxBackdrop
 const PopoverAnchorPopover = Popover.test.AnchorPopover

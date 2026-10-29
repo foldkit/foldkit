@@ -269,7 +269,7 @@ const applyParentStep = DeclarationStartupDefaultsParentDefinition.makeStep(
     commands: [FinishStep()],
   }),
 )
-export const initialize = DeclarationStartupDefaultsParentComposition.makeInit(
+export const init = DeclarationStartupDefaultsParentComposition.makeInit(
   (childInitContext: typeof ChildInitContext.Type) => ({
     childInitContext,
     model: {
@@ -282,7 +282,7 @@ export const initialize = DeclarationStartupDefaultsParentComposition.makeInit(
 )
 const prepareParentBlock = () =>
   DeclarationStartupDefaultsParentComposition.prepareBlock({
-    init: initialize,
+    init,
     update: DeclarationStartupDefaultsParentComposition.makeUpdate({
       CompletedParentInitialization: model => ({
         model,
@@ -330,7 +330,7 @@ export const DeclarationStartupGenericParentComposition =
   DeclarationStartupGenericParentDefinition.makeComposition({
     bindings: [WiderBinding],
   })
-export const initializeWithoutSelectorStartup =
+export const initWithoutSelectorStartup =
   DeclarationStartupGenericParentDefinition.makeComposition({
     bindings: [
       DeclarationStartupGenericParentDefinition.makeBinding(ChildBlock, {
@@ -416,7 +416,7 @@ export const DeclarationCompatibleStartupParentComposition =
   DeclarationCompatibleStartupParentDefinition.makeComposition({
     bindings: [CountStartupBinding, LabelStartupBinding],
   })
-export const initializeCompatibleStartup =
+export const initCompatibleStartup =
   DeclarationCompatibleStartupParentComposition.makeInit(
     (childInitContext: Readonly<{ count: number; label: string }>) => ({
       childInitContext,
@@ -453,7 +453,7 @@ export const DeclarationMixedStartupParentComposition =
   DeclarationMixedStartupParentDefinition.makeComposition({
     bindings: [NoInputBinding, ContextInputBinding],
   })
-export const initializeMixedStartup =
+export const initMixedStartup =
   DeclarationMixedStartupParentComposition.makeInit(
     (childInitContext: Readonly<{ count: number }>) => ({
       childInitContext,

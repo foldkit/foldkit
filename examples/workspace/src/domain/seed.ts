@@ -1,8 +1,8 @@
 import { Option } from 'effect'
 
-import { WorkspaceSnapshot } from './domain'
+import { Workspace } from './domain'
 
-export const initialSnapshot = WorkspaceSnapshot.make({
+export const initialWorkspace = Workspace.make({
   projects: [
     {
       id: 'platform',

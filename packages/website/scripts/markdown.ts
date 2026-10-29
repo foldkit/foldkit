@@ -307,12 +307,14 @@ export const urlPathToMarkdownPath = (urlPath: string): string =>
 
 // SKIP
 
-const SKIPPED_ROUTE_TAGS: ReadonlySet<(typeof ApplicationRoute.Type)['_tag']> =
-  new Set(['Playground', 'NotFound', 'Newsletter'])
+const SKIPPED_ROUTE_TAGS: ReadonlySet<ApplicationRoute['_tag']> = new Set([
+  'Playground',
+  'NotFound',
+  'Newsletter',
+])
 
-export const shouldExportMarkdown = (
-  route: typeof ApplicationRoute.Type,
-): boolean => !SKIPPED_ROUTE_TAGS.has(route._tag)
+export const shouldExportMarkdown = (route: ApplicationRoute): boolean =>
+  !SKIPPED_ROUTE_TAGS.has(route._tag)
 
 // INDEX
 

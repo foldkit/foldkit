@@ -52,7 +52,7 @@ class RoomsClient extends Context.Service<
   Readonly<{ roomName: string }>
 >()('BlockRequirementsTestRoomsClient') {}
 
-const Initialize = Command.define(makeOwnedName('Requirements', 'Initialize'), {
+const Init = Command.define(makeOwnedName('Requirements', 'Init'), {
   messages: [Message.CompletedWork],
 })
 
@@ -85,7 +85,7 @@ const model = Model.make({ value: '' })
 const reportedValue = (value: string): OutMessage =>
   OutMessage.ReportedValue({ value })
 
-const init = () => ({ model, commands: [Initialize()] })
+const init = () => ({ model, commands: [Init()] })
 
 const update = Update.define((_model: Model, _message: Message) => ({
   model,
@@ -112,12 +112,12 @@ type CompleteBlock = Readonly<{
   mounts: readonly []
   bindings: readonly []
   EffectsLayer: typeof LoadRoom.layer
-  hostHandlers: readonly [typeof Initialize, typeof ReadHostState]
+  hostHandlers: readonly [typeof Init, typeof ReadHostState]
 }>
 
 it('collects block requirements separately from public Step producers', () => {
   expectTypeOf<ProducerRequirements<typeof init>>().toEqualTypeOf<
-    Command.HandlerOf<typeof Initialize>
+    Command.HandlerOf<typeof Init>
   >()
   expectTypeOf<ProducerRequirements<typeof bootStep>>().toEqualTypeOf<
     Command.HandlerOf<typeof WaitForBoot>
@@ -128,7 +128,7 @@ it('collects block requirements separately from public Step producers', () => {
   type Requirements = RequirementsOfBlock<CompleteBlock>
   type Expected =
     | RoomsClient
-    | Command.HandlerOf<typeof Initialize>
+    | Command.HandlerOf<typeof Init>
     | Command.HandlerOf<typeof ReadHostState>
 
   expectTypeOf<Exclude<Requirements, Expected>>().toEqualTypeOf<never>()
@@ -136,7 +136,7 @@ it('collects block requirements separately from public Step producers', () => {
 
   type OperationRequirements = OperationRequirementsOfBlock<CompleteBlock>
   type ExpectedOperationRequirements =
-    | Command.HandlerOf<typeof Initialize>
+    | Command.HandlerOf<typeof Init>
     | Command.HandlerOf<typeof LoadRoom>
 
   expectTypeOf<
@@ -168,7 +168,7 @@ it('reports every handler without a local provider as a missing host contract', 
     MissingHostBlock
   >['Block handler requirements must be provided locally or listed in hostHandlers']
   type Expected =
-    | Command.HandlerOf<typeof Initialize>
+    | Command.HandlerOf<typeof Init>
     | Command.HandlerOf<typeof ReadHostState>
 
   expectTypeOf<Exclude<Missing, Expected>>().toEqualTypeOf<never>()

@@ -52,7 +52,7 @@ import * as Tabs from '@foldkit/ui/tabs'
 import * as OptionExt from './internal/optionExtensions.js'
 import { overlayStyles } from './overlay-styles.js'
 
-const BlockFilterListboxBlock = Listbox.create<string>()
+const BlockFilterListboxBlock = Listbox.makeBlock<string>()
 
 // MODEL
 
@@ -61,11 +61,13 @@ const DisplayCommand = Schema.Struct({
   args: Schema.Option(Schema.Record(Schema.String, Schema.Unknown)),
   maybeBlockPath: Schema.Option(Schema.Array(Schema.String)),
 })
+type DisplayCommand = typeof DisplayCommand.Type
 
 const DisplayMount = Schema.Struct({
   name: Schema.String,
   args: Schema.Option(Schema.Record(Schema.String, Schema.Unknown)),
 })
+type DisplayMount = typeof DisplayMount.Type
 
 const DisplayEntry = Schema.Struct({
   tag: Schema.String,
@@ -77,11 +79,13 @@ const DisplayEntry = Schema.Struct({
   timestamp: Schema.Number,
   isModelChanged: Schema.Boolean,
 })
+type DisplayEntry = typeof DisplayEntry.Type
 
 const CopyState = defineTaggedUnion({
   Copying: { requestId: Schema.Number },
   Copied: { requestId: Schema.Number },
 })
+type CopyState = typeof CopyState.Type
 
 const INSPECTOR_TABS_ID = 'dt-inspector'
 const BLOCK_FILTER_ID = 'dt-block-filter'
@@ -91,7 +95,7 @@ const SCRUBBER_SLIDER_ID = 'dt-scrubber'
 const InspectorTab = Schema.Literals(['Model', 'Message', 'Commands', 'Mounts'])
 type InspectorTab = typeof InspectorTab.Type
 const INSPECTOR_TABS: ReadonlyArray<InspectorTab> = InspectorTab.literals
-const InspectorTabsBlock = Tabs.create<InspectorTab>()
+const InspectorTabsBlock = Tabs.makeBlock<InspectorTab>()
 
 /**
  * `Schema.Unknown` whose equivalence is reference equality. Effect 4's default
@@ -107,6 +111,7 @@ const InspectorTabsBlock = Tabs.create<InspectorTab>()
 const UnknownByReference = Schema.Unknown.pipe(
   Schema.overrideToEquivalence(() => (a, b) => a === b),
 )
+type UnknownByReference = typeof UnknownByReference.Type
 
 const Screen = Schema.Literals(['Messages', 'Settings'])
 type Screen = typeof Screen.Type
@@ -116,7 +121,9 @@ const Position = Schema.Literals([
   'TopRight',
   'TopLeft',
 ])
+type Position = typeof Position.Type
 const Mode = Schema.Literals(['TimeTravel', 'Inspect'])
+type Mode = typeof Mode.Type
 
 const Model = Schema.Struct({
   position: Position,
@@ -177,6 +184,7 @@ const Flags = Schema.Struct({
   isPaused: Schema.Boolean,
   pausedAtIndex: Schema.Number,
 })
+type Flags = typeof Flags.Type
 
 // MESSAGE
 
@@ -227,6 +235,7 @@ const Message = defineMessageUnion({
     pausedAtIndex: Schema.Number,
   },
 })
+type Message = typeof Message.Type
 
 // HELPERS
 
@@ -238,8 +247,8 @@ const MAX_PREVIEW_KEYS = 3
 const JSON_INDENT = 2
 const ALL_MESSAGES_VALUE = ''
 const DEVTOOLS_STORAGE_KEY = 'foldkit-devtools'
-const NO_COMMANDS: ReadonlyArray<typeof DisplayCommand.Type> = []
-const NO_MOUNTS: ReadonlyArray<typeof DisplayMount.Type> = []
+const NO_COMMANDS: ReadonlyArray<DisplayCommand> = []
+const NO_MOUNTS: ReadonlyArray<DisplayMount> = []
 
 const formatTimeDelta = (deltaMs: number): string =>
   Match.value(deltaMs).pipe(
@@ -272,7 +281,7 @@ const sliderValueToHostIndex = (
 const SCROLL_FOLLOW_THRESHOLD_PX = 8
 
 const computeBlockTags = (
-  entries: ReadonlyArray<typeof DisplayEntry.Type>,
+  entries: ReadonlyArray<DisplayEntry>,
 ): ReadonlyArray<string> =>
   pipe(
     entries,
@@ -287,15 +296,13 @@ const blockSegmentLabel = (tag: string): string =>
 const formatBlockPath = (blockPath: ReadonlyArray<string>): string =>
   pipe(blockPath, Array.map(blockSegmentLabel), Array.join(' › '))
 
-const toDisplayCommand = (
-  command: CommandRecord,
-): typeof DisplayCommand.Type => ({
+const toDisplayCommand = (command: CommandRecord): DisplayCommand => ({
   name: command.name,
   args: Option.fromNullishOr(command.args),
   maybeBlockPath: command.maybeBlockPath,
 })
 
-const toDisplayMount = (mount: MountRecord): typeof DisplayMount.Type => ({
+const toDisplayMount = (mount: MountRecord): DisplayMount => ({
   name: mount.name,
   args: Option.fromNullishOr(mount.args),
 })
@@ -568,6 +575,7 @@ const DevToolsPersistedState = Schema.Struct({
 })
 type DevToolsPersistedState = typeof DevToolsPersistedState.Type
 const DevToolsPersistedStateJson = Schema.fromJsonString(DevToolsPersistedState)
+type DevToolsPersistedStateJson = typeof DevToolsPersistedStateJson.Type
 const DEFAULT_PERSISTED_STATE: DevToolsPersistedState = {
   isOpen: false,
   isFlattened: false,
@@ -781,7 +789,7 @@ const EffectsLayer = Layer.mergeAll(
   subscriptions.mobileBreakpointChanges.layer,
 )
 
-const init = ApplicationComposition.makeInit((flags: typeof Flags.Type) => {
+const init = ApplicationComposition.makeInit((flags: Flags) => {
   const { isFlattened, ...displayFlags } = flags
   const sliderMax = flags.entries.length
   const initialSliderValue = flags.isPaused
@@ -1750,9 +1758,7 @@ const buildOverlayView = (
     )
   }
 
-  const selectedCommands = (
-    model: Model,
-  ): ReadonlyArray<typeof DisplayCommand.Type> => {
+  const selectedCommands = (model: Model): ReadonlyArray<DisplayCommand> => {
     const selectedIndex = selectedHistoryIndex(model)
 
     if (selectedIndex === INIT_INDEX) {
@@ -1768,7 +1774,7 @@ const buildOverlayView = (
   }
 
   const flattenCommand = (
-    command: typeof DisplayCommand.Type,
+    command: DisplayCommand,
     index: number,
     expandedPaths: HashSet.HashSet<string>,
   ): ReadonlyArray<FlatNode> => {
@@ -1791,7 +1797,7 @@ const buildOverlayView = (
   }
 
   const commandsTabContent = (
-    commands: ReadonlyArray<typeof DisplayCommand.Type>,
+    commands: ReadonlyArray<DisplayCommand>,
     expandedPaths: HashSet.HashSet<string>,
     selectedIndex: number,
     copyStates: Model['copyStates'],
@@ -1868,8 +1874,8 @@ const buildOverlayView = (
     })
 
   type SelectedMountActivity = Readonly<{
-    starts: ReadonlyArray<typeof DisplayMount.Type>
-    ends: ReadonlyArray<typeof DisplayMount.Type>
+    starts: ReadonlyArray<DisplayMount>
+    ends: ReadonlyArray<DisplayMount>
   }>
 
   const selectedMountActivity = (model: Model): SelectedMountActivity => {
@@ -1893,7 +1899,7 @@ const buildOverlayView = (
   }
 
   const flattenMount = (
-    mount: typeof DisplayMount.Type,
+    mount: DisplayMount,
     sectionLabel: string,
     index: number,
     expandedPaths: HashSet.HashSet<string>,
@@ -1918,7 +1924,7 @@ const buildOverlayView = (
 
   const mountListSection = (
     label: string,
-    mounts: ReadonlyArray<typeof DisplayMount.Type>,
+    mounts: ReadonlyArray<DisplayMount>,
     expandedPaths: HashSet.HashSet<string>,
     selectedIndex: number,
     copyStates: Model['copyStates'],
@@ -1959,8 +1965,8 @@ const buildOverlayView = (
     )
 
   const mountsTabContent = (
-    starts: ReadonlyArray<typeof DisplayMount.Type>,
-    ends: ReadonlyArray<typeof DisplayMount.Type>,
+    starts: ReadonlyArray<DisplayMount>,
+    ends: ReadonlyArray<DisplayMount>,
     expandedPaths: HashSet.HashSet<string>,
     selectedIndex: number,
     copyStates: Model['copyStates'],
@@ -2513,7 +2519,7 @@ const buildOverlayView = (
     )
 
   const messageListBody = (
-    entries: ReadonlyArray<typeof DisplayEntry.Type>,
+    entries: ReadonlyArray<DisplayEntry>,
     startIndex: number,
     selectedIndex: number,
     isPaused: boolean,
@@ -2533,10 +2539,10 @@ const buildOverlayView = (
     const isInitSelected = selectedIndex === INIT_INDEX
     const isFiltered = Option.isSome(maybeFilterTag)
 
-    const leafOrTag = (entry: typeof DisplayEntry.Type): string =>
+    const leafOrTag = (entry: DisplayEntry): string =>
       Option.getOrElse(entry.maybeLeafTag, () => entry.tag)
 
-    const displayTagFor = (entry: typeof DisplayEntry.Type): string => {
+    const displayTagFor = (entry: DisplayEntry): string => {
       if (isFlattened) {
         return leafOrTag(entry)
       } else {
@@ -2558,7 +2564,7 @@ const buildOverlayView = (
 
     const indexedEntries: ReadonlyArray<
       Readonly<{
-        entry: typeof DisplayEntry.Type
+        entry: DisplayEntry
         absoluteIndex: number
       }>
     > = pipe(

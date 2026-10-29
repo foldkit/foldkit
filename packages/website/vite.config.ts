@@ -190,7 +190,7 @@ const RESOLVED_PARSED_API_ID = '\0' + PARSED_API_ID
 // modules stay top-level and the UI project contributes a single `Ui` namespace, so the
 // reference renders `Calendar` alongside `Ui/Calendar`. Type references render by name,
 // so the two projects' independent numeric ids never collide.
-const loadApiTypeDocJson = async (): Promise<typeof TypeDocJson.Type> => {
+const loadApiTypeDocJson = async (): Promise<TypeDocJson> => {
   const generatedDir = resolve(import.meta.dirname, 'src/generated')
   const [coreRaw, uiRaw] = await Promise.all([
     readFile(join(generatedDir, 'api.json'), 'utf-8'),
@@ -207,7 +207,7 @@ const loadApiTypeDocJson = async (): Promise<typeof TypeDocJson.Type> => {
 
 const formatTypeParam =
   (namedSchemas: NamedSchemas) =>
-  (typeParam: typeof TypeDocTypeParam.Type): string => {
+  (typeParam: TypeDocTypeParam): string => {
     const constraint = Option.match(typeParam.type, {
       onNone: () => '',
       onSome: () => ` extends ${typeToString(typeParam.type, 0, namedSchemas)}`,
@@ -221,14 +221,14 @@ const formatTypeParam =
 
 const formatParam =
   (namedSchemas: NamedSchemas) =>
-  (parameter: typeof TypeDocParam.Type, depth: number): string => {
+  (parameter: TypeDocParam, depth: number): string => {
     const optionalSuffix = parameter.flags.isOptional ? '?' : ''
     return `${parameter.name}${optionalSuffix}: ${typeToString(parameter.type, depth, namedSchemas)}`
   }
 
 const formatParams =
   (namedSchemas: NamedSchemas) =>
-  (parameters: ReadonlyArray<typeof TypeDocParam.Type>): string => {
+  (parameters: ReadonlyArray<TypeDocParam>): string => {
     const format = formatParam(namedSchemas)
     return Array.matchLeft(parameters, {
       onEmpty: () => '()',
@@ -248,7 +248,7 @@ const formatParams =
 
 const buildFunctionSignatureString =
   (namedSchemas: NamedSchemas) =>
-  (signature: typeof TypeDocSignature.Type): string => {
+  (signature: TypeDocSignature): string => {
     const typeParamString = pipe(
       signature.typeParameters,
       Option.filter(Array.isReadonlyArrayNonEmpty),
@@ -277,7 +277,7 @@ const buildFunctionSignatureString =
   }
 
 const partsToText = (
-  parts: ReadonlyArray<typeof TypeDocCommentPart.Type>,
+  parts: ReadonlyArray<TypeDocCommentPart>,
 ): Option.Option<string> =>
   pipe(
     Array.map(parts, ({ text }) => text),

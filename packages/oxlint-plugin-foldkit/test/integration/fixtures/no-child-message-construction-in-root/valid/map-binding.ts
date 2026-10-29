@@ -1,10 +1,8 @@
-import { makeMapBinding as bindMap } from 'foldkit/mapBinding'
-import * as MapBinding from 'foldkit/mapBinding'
-
 import { Child } from './child'
-import { Message, NestedDefinition } from './nested/definition'
+import * as Helpers from './nested/definition'
+import { Message, NestedDefinition, makeMapBinding as bindMap } from './nested/definition'
 
-bindMap(NestedDefinition, Child.block, {
+NestedDefinition.makeMapBinding(Child.block, {
   field: 'childrenById',
   delivery: {
     when: () => {
@@ -14,7 +12,7 @@ bindMap(NestedDefinition, Child.block, {
   },
 })
 
-MapBinding.makeMapBinding(NestedDefinition, Child.block, {
+bindMap(Child.block, {
   field: 'rowsById',
   childField: 'child',
   delivery: {
@@ -23,4 +21,29 @@ MapBinding.makeMapBinding(NestedDefinition, Child.block, {
       return true
     },
   },
+})
+
+const namespaceAlias = Helpers
+const namespaceAliasAgain = namespaceAlias
+const namespaceMethodAlias = namespaceAliasAgain.makeMapBinding
+const { makeMapBinding: namespaceDestructuredMap } = namespaceAliasAgain
+
+Helpers.makeMapBinding(Child.block, {
+  field: 'childrenById',
+  delivery: { when: () => { Message.ClickedSave(); return true } },
+})
+
+namespaceMethodAlias(Child.block, {
+  field: 'childrenById',
+  delivery: { when: () => { Message.ClickedSave(); return true } },
+})
+
+namespaceDestructuredMap(Child.block, {
+  field: 'childrenById',
+  delivery: { when: () => { Message.ClickedSave(); return true } },
+})
+
+namespaceAliasAgain.makeMapBinding(Child.block, {
+  field: 'childrenById',
+  delivery: { when: () => { Message.ClickedSave(); return true } },
 })

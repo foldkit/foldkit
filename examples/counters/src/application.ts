@@ -14,16 +14,19 @@ const CounterInstance = Schema.Struct({
   id: Schema.String,
   counter: Counter.CounterBlock.Model,
 })
+type CounterInstance = typeof CounterInstance.Type
 
 export const Model = Schema.Struct({
   counters: Schema.Array(CounterInstance),
   nextCounterId: Schema.Number,
 })
+export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ClickedAddCounter: {},
   ClickedRemoveCounter: { id: Schema.String },
 })
+export type Message = typeof Message.Type
 
 export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
@@ -79,7 +82,7 @@ export const init = ApplicationComposition.makeInit(() => ({
 }))
 
 const counterInstanceView = (
-  counterInstance: typeof CounterInstance.Type,
+  counterInstance: CounterInstance,
   h: ApplicationViewBuilder,
 ): Html =>
   h.keyed('div')(

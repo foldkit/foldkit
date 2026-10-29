@@ -14,3 +14,4 @@ export const Message = defineMessageUnion({
   SubmittedPromoCode: {},
   CompletedPlaceOrder: { orderId: Schema.String },
 })
+export type Message = typeof Message.Type

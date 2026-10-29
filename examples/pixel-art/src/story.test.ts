@@ -19,7 +19,9 @@ import { Message } from './message'
 import { type Model, type PaletteIndex } from './model'
 import { update } from './update'
 
-const emptyModel: typeof Model.Type = {
+type DialogMessage = typeof DialogBlock.Message.Type
+
+const emptyModel: Model = {
   grid: createEmptyGrid(4),
   undoStack: [],
   redoStack: [],
@@ -43,7 +45,7 @@ const emptyModel: typeof Model.Type = {
     .model,
 }
 
-const errorDialogMessage = (message: typeof DialogBlock.Message.Type) =>
+const errorDialogMessage = (message: DialogMessage) =>
   toParentMessage(ErrorDialogBinding, message)
 
 describe('brush tool', () => {
@@ -266,9 +268,7 @@ describe('fill tool', () => {
 
   test('fill does not cross color boundaries', () => {
     const gridWithBarrier = createEmptyGrid(4).map(row =>
-      row.map((cell, x) =>
-        x === 2 ? Option.some<typeof PaletteIndex.Type>(1) : cell,
-      ),
+      row.map((cell, x) => (x === 2 ? Option.some<PaletteIndex>(1) : cell)),
     )
     const modelWithBarrier = modifyFields(emptyModel, {
       grid: () => gridWithBarrier,
@@ -306,13 +306,11 @@ describe('grid size', () => {
   })
 
   test('painted canvas opens confirmation dialog', () => {
-    const paintedModel: typeof Model.Type = modifyFields(emptyModel, {
+    const paintedModel: Model = modifyFields(emptyModel, {
       grid: () =>
         createEmptyGrid(4).map((row, y) =>
           row.map((cell, x) =>
-            x === 0 && y === 0
-              ? Option.some<typeof PaletteIndex.Type>(0)
-              : cell,
+            x === 0 && y === 0 ? Option.some<PaletteIndex>(0) : cell,
           ),
         ),
     })
@@ -334,13 +332,11 @@ describe('grid size', () => {
   })
 
   test('confirming grid size change resets canvas and history', () => {
-    const paintedModel: typeof Model.Type = modifyFields(emptyModel, {
+    const paintedModel: Model = modifyFields(emptyModel, {
       grid: () =>
         createEmptyGrid(4).map((row, y) =>
           row.map((cell, x) =>
-            x === 0 && y === 0
-              ? Option.some<typeof PaletteIndex.Type>(0)
-              : cell,
+            x === 0 && y === 0 ? Option.some<PaletteIndex>(0) : cell,
           ),
         ),
       undoStack: () => [createEmptyGrid(4)],

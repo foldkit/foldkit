@@ -1,0 +1,106 @@
+{
+  "sourceCommit": "f15fa164624130f1773be20aac9090a9d1e2a9dc",
+  "originals": [
+    {
+      "path": "/private/tmp/foldkit-issue1811-20261027/assessment.json",
+      "sha256": "929161267e5258275cf451650203fb1dffdeec24d4a63e0657e7c0022809b623"
+    },
+    {
+      "path": "/private/tmp/foldkit-issue1811-20261027/probe.json",
+      "sha256": "cc7247c94bf397a306214c9a9b0c146d62f244c542affb2bd2cba4e29a577cf1"
+    },
+    {
+      "path": "/private/tmp/foldkit-issue1811-20261027/packed-smoke-reviewed/summary.json",
+      "sha256": "8f70638d0cfd73ae32664163b33a667908cc12a06c38f381033809c21898c72b"
+    },
+    {
+      "path": "/private/tmp/foldkit-issue1811-20261027/packed-smoke-reviewed/provenance.json",
+      "sha256": "f1d42398c3373910db4b3df60e5e76840eeb782e60488b82b7b294560a7be2b2"
+    },
+    {
+      "path": "/private/tmp/foldkit-issue1811-20261027/packed-smoke-reviewed/probe.json",
+      "sha256": "bdbd176b0c730ef8896fee7575f43487603d06b0360deba82e6fe0d434f327a8"
+    },
+    {
+      "path": "/private/tmp/foldkit-issue1811-20261027/packed-smoke-reviewed/resolution.json",
+      "sha256": "efce9885cf3d1840388ab681a815ce014e0a89b2ff295e379f443a0424e4e4a9"
+    },
+    {
+      "path": "/private/tmp/foldkit-issue1811-20261027/plugin-tests-reviewed.log",
+      "sha256": "9b36916c9c3ec407d06478ebc9b70b2c41144ca8ec6948dabe1b73926f289ee6"
+    },
+    {
+      "path": "/private/tmp/foldkit-issue1811-20261027/plugin-typecheck-reviewed.log",
+      "sha256": "6747a10f3c0478418a9700f0a2707d88fe22e66f56e8eb64e3903523ad31abf8"
+    },
+    {
+      "path": "/private/tmp/foldkit-issue1811-20261027/plugin-build-reviewed.log",
+      "sha256": "531ecaebb5f29b9e70faa716e0e0f963799a8997297aee0b7f492f19e59dfc8d"
+    },
+    {
+      "path": "/private/tmp/foldkit-issue1811-20261027/website-tests.log",
+      "sha256": "db8fbd136953f707cab4c2c21ddd3f2149e7788564037a263b937db1a86851db"
+    },
+    {
+      "path": "/private/tmp/foldkit-issue1811-20261027/example-reviewed/example-e2e.json",
+      "sha256": "e62d1c337d7d5e663af668b58030d28a7fad1be8ddaa868fcd2a070eef814979"
+    },
+    {
+      "path": "/private/tmp/foldkit-issue1811-20261027/example-reviewed/example-raw-http.json",
+      "sha256": "273a2671e8ef3c6038d29141a87e3beab8f4ec8207acfc9b401df589cd056db6"
+    },
+    {
+      "path": "/private/tmp/foldkit-issue1811-20261027/security/run-status.json",
+      "sha256": "34fe1cde51db16b44da25a6233f6e7a598e15e84956e2af3d8db034f353f2e17"
+    },
+    {
+      "path": "/private/tmp/foldkit-issue1811-20261027/security/frozen-source.json",
+      "sha256": "d07d5b3f8820d03f97186ab3d38f781f543e2c003c5d5893ec144f0263e6a22a"
+    },
+    {
+      "path": "/private/tmp/foldkit-issue1811-20261027/security/daybreak-report.md",
+      "sha256": "a9f0ae54b1968fd11b9646deab67158dbb006c6f9b8e66a5687ec7706f24b34d"
+    },
+    {
+      "path": "/private/tmp/foldkit-issue1811-20261027/independent-review-final.md",
+      "sha256": "47d6d2e719ea6ac75224d0efd3bd4cbf66b6026ec0fe2811f1abbaa576ecdd7d"
+    },
+    {
+      "path": "/private/tmp/foldkit-issue1811-20261027/independent-review.md",
+      "sha256": "0676066bf68297f825068f981eb4374912608d4bcb515dac1c8a59f4bccec349"
+    }
+  ],
+  "scope": "Original and normalized retained byte identities remain separate. Historical failed/setup/review controls remain at their original source pins.",
+  "retained": [
+    {
+      "file": "baseline.json",
+      "sha256": "cb602aa645943fcc310192a02279018c82dd67560bc3bdda8dc96bb4d881fcde",
+      "bytes": 2758
+    },
+    {
+      "file": "daybreak.txt",
+      "sha256": "a9f0ae54b1968fd11b9646deab67158dbb006c6f9b8e66a5687ec7706f24b34d",
+      "bytes": 749
+    },
+    {
+      "file": "independent-final.txt",
+      "sha256": "47d6d2e719ea6ac75224d0efd3bd4cbf66b6026ec0fe2811f1abbaa576ecdd7d",
+      "bytes": 1545
+    },
+    {
+      "file": "independent-initial.txt",
+      "sha256": "0676066bf68297f825068f981eb4374912608d4bcb515dac1c8a59f4bccec349",
+      "bytes": 2661
+    },
+    {
+      "file": "packed-plugin.json",
+      "sha256": "8f70638d0cfd73ae32664163b33a667908cc12a06c38f381033809c21898c72b",
+      "bytes": 4445
+    },
+    {
+      "file": "verification.json",
+      "sha256": "61cbac4211c4a97d93c73bb3e01f996004132d86176993d23e05e20123db63cd",
+      "bytes": 6640
+    }
+  ]
+}

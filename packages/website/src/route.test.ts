@@ -135,7 +135,7 @@ describe('section predicates', () => {
   const cases: ReadonlyArray<
     Readonly<{
       name: string
-      route: typeof Route.ApplicationRoute.Type
+      route: Route.ApplicationRoute
       isDocsSection: boolean
       isBlog: boolean
       isSearch: boolean

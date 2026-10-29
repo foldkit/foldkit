@@ -16,9 +16,10 @@ const Model = Schema.Struct({
   ratingDemo: Slider.SliderBlock.Model,
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // This excerpt has no parent-owned facts. The Composition derives delivery.
 const Message = defineMessageUnion({})
+type Message = typeof Message.Type
 
 const VolumeSliderDefinition = Block.makeDefinition('VolumeSlider', {
   Model,

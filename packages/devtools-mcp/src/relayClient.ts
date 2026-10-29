@@ -57,7 +57,7 @@ const encodeRequestFrameToJson = Schema.encodeUnknownSync(
 
 type PendingResponses = HashMap.HashMap<
   string,
-  Deferred.Deferred<typeof Response.Type, Error>
+  Deferred.Deferred<Response, Error>
 >
 
 type RelaySocket = Readonly<{
@@ -67,7 +67,7 @@ type RelaySocket = Readonly<{
 
 type RelayListing = Readonly<{
   relaySocket: RelaySocket
-  runtimes: ReadonlyArray<typeof RuntimeInfo.Type>
+  runtimes: ReadonlyArray<RuntimeInfo>
 }>
 
 type RuntimeRoute = Readonly<{
@@ -84,7 +84,7 @@ type RefreshTurn = Data.TaggedEnum<{
 const RefreshTurn = Data.taggedEnum<RefreshTurn>()
 
 export type ListedRuntime = Readonly<{
-  runtime: typeof RuntimeInfo.Type
+  runtime: RuntimeInfo
   maybeProjectRoot: Option.Option<string>
 }>
 
@@ -109,9 +109,9 @@ export type ListedRuntime = Readonly<{
 export type RelayClient = Readonly<{
   listRuntimes: Effect.Effect<ReadonlyArray<ListedRuntime>, Error>
   sendRequest: (
-    request: typeof Request.Type,
+    request: Request,
     maybeRuntimeId: Option.Option<string>,
-  ) => Effect.Effect<typeof Response.Type, Cause.TimeoutError | Error>
+  ) => Effect.Effect<Response, Cause.TimeoutError | Error>
   close: Effect.Effect<void>
 }>
 
@@ -425,10 +425,10 @@ export const makeRelayClient = <Services>(
 
     const exchange = (
       socket: WebSocket,
-      request: typeof Request.Type,
+      request: Request,
       maybeConnectionId: Option.Option<string>,
       timeout: Duration.Duration,
-    ): Effect.Effect<typeof Response.Type, Cause.TimeoutError | Error> =>
+    ): Effect.Effect<Response, Cause.TimeoutError | Error> =>
       Effect.acquireUseRelease(
         Effect.gen(function* () {
           if (yield* Deferred.isDone(closed)) {
@@ -436,13 +436,13 @@ export const makeRelayClient = <Services>(
           }
 
           const id = generateRequestId()
-          const deferred = yield* Deferred.make<typeof Response.Type, Error>()
+          const deferred = yield* Deferred.make<Response, Error>()
           yield* Ref.update(pendingResponsesRef, HashMap.set(id, deferred))
 
           return { id, deferred }
         }),
         ({ id, deferred }) => {
-          const frame: typeof RequestFrame.Type = {
+          const frame: RequestFrame = {
             id,
             maybeConnectionId,
             request,
@@ -468,7 +468,7 @@ export const makeRelayClient = <Services>(
     const listRelayRuntimes = ({
       socket,
       target,
-    }: RelaySocket): Effect.Effect<ReadonlyArray<typeof RuntimeInfo.Type>> =>
+    }: RelaySocket): Effect.Effect<ReadonlyArray<RuntimeInfo>> =>
       exchange(
         socket,
         Request.RequestListRuntimes(),
@@ -478,7 +478,7 @@ export const makeRelayClient = <Services>(
         Effect.flatMap(response =>
           Match.value(response).pipe(
             Match.withReturnType<
-              Effect.Effect<ReadonlyArray<typeof RuntimeInfo.Type>, Error>
+              Effect.Effect<ReadonlyArray<RuntimeInfo>, Error>
             >(),
             Match.tag('ResponseRuntimes', ({ runtimes }) =>
               Effect.succeed(runtimes),
@@ -532,9 +532,9 @@ export const makeRelayClient = <Services>(
     )
 
     const sendRequest = (
-      request: typeof Request.Type,
+      request: Request,
       maybeRuntimeId: Option.Option<string>,
-    ): Effect.Effect<typeof Response.Type, Cause.TimeoutError | Error> =>
+    ): Effect.Effect<Response, Cause.TimeoutError | Error> =>
       Effect.gen(function* () {
         const listings = yield* listRelays
         const route = yield* routeFromListings(listings, maybeRuntimeId)

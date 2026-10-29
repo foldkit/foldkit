@@ -12,13 +12,13 @@ import { Message } from './message'
 import { ConnectionState, type Model } from './model'
 import { update } from './update'
 
-const idleModel: typeof Model.Type = {
+const idleModel: Model = {
   connection: ConnectionState.Disconnected(),
   messages: [],
   messageInput: '',
 }
 
-const connectedModel: typeof Model.Type = modifyFields(idleModel, {
+const connectedModel: Model = modifyFields(idleModel, {
   connection: () => ConnectionState.Connected(),
 })
 

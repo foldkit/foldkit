@@ -12,7 +12,9 @@ import {
 } from './application'
 import { CounterBlock } from './counter'
 
-const initialModel: typeof ModelSchema.Type = {
+type CounterMessage = typeof CounterBlock.Message.Type
+
+const initialModel: ModelSchema = {
   counters: [
     { id: 'counter-0', counter: { count: 0 } },
     { id: 'counter-1', counter: { count: 0 } },
@@ -20,10 +22,8 @@ const initialModel: typeof ModelSchema.Type = {
   nextCounterId: 2,
 }
 
-const counterMessage = (
-  id: string,
-  message: typeof CounterBlock.Message.Type,
-) => toParentMessage(CountersBinding, id, message)
+const counterMessage = (id: string, message: CounterMessage) =>
+  toParentMessage(CountersBinding, id, message)
 
 describe('init', () => {
   test('creates distinct parent-owned instances with Counter state', () => {

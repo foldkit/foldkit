@@ -31,7 +31,7 @@ export const update = ApplicationComposition.makeUpdate({
   },
 
   CompletedGenerateTodo: (model, { id, timestamp, text }) => {
-    const newTodo: typeof Todo.Type = {
+    const newTodo: Todo = {
       id,
       text,
       completed: false,

@@ -7,10 +7,13 @@ export const RoomPlayerSession = Schema.Struct({
   roomId: Schema.String,
   player: Shared.Player,
 })
+export type RoomPlayerSession = typeof RoomPlayerSession.Type
 
 export const RoomPlayerSessionJsonString = Schema.fromJsonString(
   Schema.toCodecJson(RoomPlayerSession),
 )
+export type RoomPlayerSessionJsonString =
+  typeof RoomPlayerSessionJsonString.Type
 
 export const RoomAsyncData = AsyncData.Schema(Shared.Room, Schema.String)
 
@@ -23,8 +26,9 @@ export const Model = Schema.Struct({
   isRoomIdCopyIndicatorVisible: Schema.Boolean,
   exitCountdownSecondsLeft: Schema.Number,
 })
+export type Model = typeof Model.Type
 
-export const capturesKeyboard = (model: typeof Model.Type): boolean => {
+export const capturesKeyboard = (model: Model): boolean => {
   const isRoomPlayable = Option.exists(
     AsyncData.getData(model.roomAsyncData),
     ({ status }) => status._tag === 'Waiting' || status._tag === 'Finished',

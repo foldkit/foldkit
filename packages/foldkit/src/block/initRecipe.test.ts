@@ -6,14 +6,17 @@ import { makeDefinition } from './define.js'
 import * as Block from './public.js'
 
 const Config = Schema.Struct({ count: Schema.Number })
+type Config = typeof Config.Type
 const ChildModel = Schema.Struct({ count: Schema.Number })
+type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({ CompletedChildInit: {} })
+type ChildMessage = typeof ChildMessage.Type
 const Child = makeDefinition('InitRecipeSnapshotChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
 const ChildComposition = Child.makeComposition()
-const childInitialized = vi.fn((config: typeof Config.Type) => config.count)
+const childInitialized = vi.fn((config: Config) => config.count)
 const CompleteChildInit = Child.makeCommand('CompleteChildInit', {
   messages: [ChildMessage.CompletedChildInit],
   handler: function* () {
@@ -22,7 +25,7 @@ const CompleteChildInit = Child.makeCommand('CompleteChildInit', {
 })
 const prepareChildBlock = () =>
   ChildComposition.prepareBlock({
-    init: ChildComposition.makeInit((config: typeof Config.Type) => ({
+    init: ChildComposition.makeInit((config: Config) => ({
       model: ChildModel.make({ count: childInitialized(config) }),
       commands: [CompleteChildInit()],
     })),
@@ -37,9 +40,11 @@ const childBlock: Block.FromAssemblyWithoutViewOrOutMessage<
 > = Block.assemble(prepareChildBlock)
 
 const ParentModel = Schema.Struct({ child: Schema.Option(ChildModel) })
+type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({
   CompletedParentInit: { label: Schema.String },
 })
+type ParentMessage = typeof ParentMessage.Type
 const Parent = makeDefinition('InitRecipeSnapshotParent', {
   Model: ParentModel,
   Message: ParentMessage,
@@ -63,11 +68,11 @@ const ParentComposition = Parent.makeComposition({
 it('snapshots a passive child init recipe without cloning its argument values', () => {
   childInitialized.mockClear()
   const config = Config.make({ count: 3 })
-  const args: [typeof Config.Type] = [config]
+  const args: [Config] = [config]
   const originalCommand = CompleteParentInit({ label: 'original' })
   const replacementCommand = CompleteParentInit({ label: 'replacement' })
   const commands = [originalCommand]
-  const toParentModel = vi.fn((child: typeof ChildModel.Type) =>
+  const toParentModel = vi.fn((child: ChildModel) =>
     ParentModel.make({ child: Option.some(child) }),
   )
   const initial = { args, commands, toParentModel }
@@ -100,7 +105,9 @@ it('snapshots a passive child init recipe without cloning its argument values', 
 })
 
 const Item = Schema.Struct({ id: Schema.String, child: ChildModel })
+type Item = typeof Item.Type
 const KeyedModel = Schema.Struct({ items: Schema.Array(Item) })
+type KeyedModel = typeof KeyedModel.Type
 const Keyed = makeDefinition('InitRecipeSnapshotKeyedParent', {
   Model: KeyedModel,
   Message: Schema.Never,
@@ -117,8 +124,8 @@ const KeyedComposition = Keyed.makeComposition({
 it('snapshots the keyed identity and mapper before deferred child initialization', () => {
   childInitialized.mockClear()
   const config = Config.make({ count: 5 })
-  const args: [typeof Config.Type] = [config]
-  const toParentModel = vi.fn((child: typeof ChildModel.Type) =>
+  const args: [Config] = [config]
+  const toParentModel = vi.fn((child: ChildModel) =>
     KeyedModel.make({ items: [Item.make({ id: 'original', child })] }),
   )
   const initial = { key: 'original', args, toParentModel }
@@ -129,7 +136,7 @@ it('snapshots the keyed identity and mapper before deferred child initialization
   args.splice(0, 1, Config.make({ count: 7 }))
   initial.key = 'replacement'
   initial.args = [Config.make({ count: 9 })]
-  initial.toParentModel = vi.fn((child: typeof ChildModel.Type) =>
+  initial.toParentModel = vi.fn((child: ChildModel) =>
     KeyedModel.make({ items: [Item.make({ id: 'replacement', child })] }),
   )
 

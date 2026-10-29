@@ -1,32 +1,29 @@
 import { Array, Match, Option, String, pipe } from 'effect'
 import { Machine } from 'foldkit/experimental'
-import { otherwise, to, when } from 'foldkit/experimental/machine'
 import { modifyFields } from 'foldkit/struct'
 
 import { PlaceOrder } from './command'
 import { Message } from './message'
 import { CheckoutState, Discount, Promo } from './model'
+import type { ReviewState } from './model'
 
-const PROMO_DISCOUNTS: ReadonlyArray<typeof Discount.Type> = [
+const PROMO_DISCOUNTS: ReadonlyArray<Discount> = [
   { code: 'READER10', percentOff: 10 },
   { code: 'SIGNAL20', percentOff: 20 },
 ]
 
-export const promoToMaybeDiscount = (
-  promo: typeof Promo.Type,
-): Option.Option<typeof Discount.Type> =>
+export const promoToMaybeDiscount = (promo: Promo): Option.Option<Discount> =>
   Match.value(promo).pipe(
     Match.tags({ AppliedPromo: appliedPromo => appliedPromo.discount }),
     Match.option,
   )
 
-export const isReviewReady = (
-  review: typeof CheckoutState.Review.Type,
-): boolean => review.isPaymentMethodSelected && review.isTermsAccepted
+export const isReviewReady = (review: ReviewState): boolean =>
+  review.isPaymentMethodSelected && review.isTermsAccepted
 
 export const reviewToMaybeDiscount = (
-  review: typeof CheckoutState.Review.Type,
-): Option.Option<typeof Discount.Type> => {
+  review: ReviewState,
+): Option.Option<Discount> => {
   const normalizedCode = pipe(
     review.promoCodeInput,
     String.trim,
@@ -39,25 +36,54 @@ export const reviewToMaybeDiscount = (
   )
 }
 
-export const checkoutMachine = Machine.define({
-  state: CheckoutState,
-  message: Message,
-})({
+const CheckoutDefinition = Machine.makeDefinition({
+  State: CheckoutState,
+  Message,
+})
+const {
+  makeGuard,
+  makeHandler,
+  makeMachine,
+  makeSharedTransitions,
+  otherwise,
+  to,
+  when,
+} = CheckoutDefinition
+
+const maybeSubmittedDiscount = makeGuard(
+  { from: 'Review', on: 'SubmittedPromoCode' },
+  ({ state }) => reviewToMaybeDiscount(state),
+)
+
+const applySubmittedDiscount = makeHandler(
+  maybeSubmittedDiscount,
+  ({ state, guardValue: discount }) => ({
+    model: modifyFields(state, {
+      promo: () => Promo.AppliedPromo({ discount }),
+    }),
+  }),
+)
+
+export const checkoutMachine = makeMachine({
   initial: CheckoutState.Cart({ isShippingRequired: true }),
   shared: [
-    Machine.forStates(['Cart', 'Shipping', 'Payment', 'Review']).on({
-      ClickedCancel: to('Cancelled', ({ state }) => ({
-        model: CheckoutState.Cancelled({
-          isShippingRequired: state.isShippingRequired,
-        }),
-      })),
+    makeSharedTransitions(['Cart', 'Shipping', 'Payment', 'Review'], {
+      on: {
+        ClickedCancel: to('Cancelled', ({ state }) => ({
+          model: CheckoutState.Cancelled({
+            isShippingRequired: state.isShippingRequired,
+          }),
+        })),
+      },
     }),
-    Machine.forStates(['Confirmed', 'Cancelled']).on({
-      ClickedStartOver: to('Cart', ({ state }) => ({
-        model: CheckoutState.Cart({
-          isShippingRequired: state.isShippingRequired,
-        }),
-      })),
+    makeSharedTransitions(['Confirmed', 'Cancelled'], {
+      on: {
+        ClickedStartOver: to('Cart', ({ state }) => ({
+          model: CheckoutState.Cart({
+            isShippingRequired: state.isShippingRequired,
+          }),
+        })),
+      },
     }),
   ],
   states: {
@@ -70,7 +96,7 @@ export const checkoutMachine = Machine.define({
         })),
         ClickedContinue: [
           when(
-            state => state.isShippingRequired,
+            ({ state }) => state.isShippingRequired,
             'Shipping',
             ({ state }) => ({
               model: CheckoutState.Shipping({
@@ -122,7 +148,7 @@ export const checkoutMachine = Machine.define({
         })),
         ClickedBack: [
           when(
-            state => state.isShippingRequired,
+            ({ state }) => state.isShippingRequired,
             'Shipping',
             ({ state }) => ({
               model: CheckoutState.Shipping({
@@ -162,15 +188,7 @@ export const checkoutMachine = Machine.define({
           }),
         })),
         SubmittedPromoCode: [
-          when(
-            reviewToMaybeDiscount,
-            'Review',
-            ({ state, guardValue: discount }) => ({
-              model: modifyFields(state, {
-                promo: () => Promo.AppliedPromo({ discount }),
-              }),
-            }),
-          ),
+          when(maybeSubmittedDiscount, 'Review', applySubmittedDiscount),
           otherwise(
             to('Review', ({ state }) => ({
               model: modifyFields(state, {
@@ -180,15 +198,19 @@ export const checkoutMachine = Machine.define({
           ),
         ],
         ClickedPlaceOrder: [
-          when(isReviewReady, 'Placing', ({ state }) => ({
-            model: CheckoutState.Placing({
-              isShippingRequired: state.isShippingRequired,
-              maybeDiscount: promoToMaybeDiscount(state.promo),
+          when(
+            ({ state }) => isReviewReady(state),
+            'Placing',
+            ({ state }) => ({
+              model: CheckoutState.Placing({
+                isShippingRequired: state.isShippingRequired,
+                maybeDiscount: promoToMaybeDiscount(state.promo),
+              }),
+              commands: [
+                PlaceOrder({ isShippingRequired: state.isShippingRequired }),
+              ],
             }),
-            commands: [
-              PlaceOrder({ isShippingRequired: state.isShippingRequired }),
-            ],
-          })),
+          ),
         ],
         ClickedBack: to('Payment', ({ state }) => ({
           model: CheckoutState.Payment({

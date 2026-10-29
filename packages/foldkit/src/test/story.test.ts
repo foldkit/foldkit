@@ -989,22 +989,20 @@ describe('outMessage', () => {
   })
 
   test('validates the data-first update contract', () => {
-    const missingModel = (
-      _model: CounterModel,
-      _message: typeof CounterMessage.Type,
-    ) => ({ status: 'Done' })
-    const wrongModel = (
-      _model: CounterModel,
-      _message: typeof CounterMessage.Type,
-    ) => ({ model: { status: 'Done' } })
+    const missingModel = (_model: CounterModel, _message: CounterMessage) => ({
+      status: 'Done',
+    })
+    const wrongModel = (_model: CounterModel, _message: CounterMessage) => ({
+      model: { status: 'Done' },
+    })
     const requiredContext = (
       model: CounterModel,
-      _message: typeof CounterMessage.Type,
+      _message: CounterMessage,
       _context: string,
     ) => ({ model })
     const optionalContext = (
       model: CounterModel,
-      _message: typeof CounterMessage.Type,
+      _message: CounterMessage,
       _context?: string,
     ) => ({ model })
 
@@ -1187,7 +1185,7 @@ describe("resolveAll applies each Command's own message mapping", () => {
 
 describe('type safety', () => {
   test('retains the explicit generic call shape', () => {
-    Story.story<CounterModel, typeof CounterMessage.Type>(
+    Story.story<CounterModel, CounterMessage>(
       update,
       Story.given({ count: 0, log: [] }),
       Story.message(CounterMessage.ClickedIncrement()),

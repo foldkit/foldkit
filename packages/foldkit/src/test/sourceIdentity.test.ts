@@ -17,6 +17,7 @@ import {
 import * as Scene from './scene.js'
 
 const Message = defineMessageUnion({ CompletedRead: { value: Schema.Number } })
+type Message = typeof Message.Type
 const FirstCommand = Command.define('SharedRead', {
   messages: [Message.CompletedRead],
 })
@@ -31,6 +32,7 @@ const SecondMount = Mount.define('SharedObserve', {
 })
 
 const Model = Schema.Struct({ value: Schema.Number })
+type Model = typeof Model.Type
 const FirstOwnerNamespace = makeNamespace('SharedFeature')
 const SecondOwnerNamespace = makeNamespace('SharedFeature')
 const FirstDefinition = FirstOwnerNamespace.makeDefinition({ Model, Message })
@@ -41,19 +43,16 @@ const subscriptions = FirstDefinition.makeSubscriptions(entry => ({
 const otherSubscriptions = SecondDefinition.makeSubscriptions(entry => ({
   values: entry('Values', { messages: [Message.CompletedRead] }),
 }))
-const lifted = Subscription.lift(subscriptions)<
-  typeof Model.Type,
-  typeof Message.Type
->({
+const lifted = Subscription.lift(subscriptions)<Model, Message>({
   read: model => Option.some(model),
   toParentMessage: message => message,
 })
 const left = qualifyEntry('Left', lifted.values)
 const right = qualifyEntry('Right', lifted.values)
-const update = (_model: typeof Model.Type, { value }: typeof Message.Type) => ({
+const update = (_model: Model, { value }: Message) => ({
   model: { value },
 })
-const view = (model: typeof Model.Type, h: HtmlBuilder<typeof Message.Type>) =>
+const view = (model: Model, h: HtmlBuilder<Message>) =>
   h.div([h.Role('status')], [globalThis.String(model.value)])
 
 describe('test operation source identity', () => {
@@ -69,7 +68,7 @@ describe('test operation source identity', () => {
   })
 
   it('retains separate cached resolvers for same-named definitions', () => {
-    const initial: BaseInternal<typeof Model.Type, typeof Message.Type> = {
+    const initial: BaseInternal<Model, Message> = {
       model: { value: 0 },
       message: undefined,
       // eslint-disable-next-line foldkit/no-empty-commands-array

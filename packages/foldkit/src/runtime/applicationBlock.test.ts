@@ -25,9 +25,11 @@ class ValueSource extends Context.Service<
 
 const ChildOwnerNamespace = makeNamespace('RootChild')
 const ChildModel = Schema.Struct({ label: Schema.String })
+type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({
   CompletedReadValue: { value: Schema.String },
 })
+type ChildMessage = typeof ChildMessage.Type
 const ReadValue = ChildOwnerNamespace.makeCommand('ReadValue', {
   messages: [ChildMessage.CompletedReadValue],
   handler: function* () {
@@ -59,6 +61,7 @@ const childBlock: Block.FromAssemblyWithView<
 > = Block.assemble(prepareChildBlock)
 
 const Model = Schema.Struct({ left: ChildModel, right: ChildModel })
+type Model = typeof Model.Type
 const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message: Schema.Never,
@@ -95,9 +98,11 @@ class HostDependency extends Context.Service<
 
 const HostChildOwnerNamespace = makeNamespace('ApplicationHostChild')
 const HostChildModel = Schema.Struct({ value: Schema.String })
+type HostChildModel = typeof HostChildModel.Type
 const HostChildMessage = defineMessageUnion({
   CompletedReadHostValue: { value: Schema.String },
 })
+type HostChildMessage = typeof HostChildMessage.Type
 const ReadHostValue = HostChildOwnerNamespace.makeCommand('ReadHostValue', {
   messages: [HostChildMessage.CompletedReadHostValue],
 })
@@ -137,6 +142,7 @@ const resolvedHostChild = unresolvedHostChild.provideHandlers(
 )
 
 const HostParentModel = Schema.Struct({ child: HostChildModel })
+type HostParentModel = typeof HostParentModel.Type
 const HostParentDefinition = Block.makeDefinition('Application', {
   Model: HostParentModel,
   Message: Schema.Never,
@@ -144,7 +150,7 @@ const HostParentDefinition = Block.makeDefinition('Application', {
 const UnresolvedHostBinding = HostParentDefinition.makeBinding(
   unresolvedHostChild,
   {
-    read: (model: typeof HostParentModel.Type) => Option.some(model.child),
+    read: (model: HostParentModel) => Option.some(model.child),
     write: (model, nextChild) =>
       modifyFields(model, { child: () => nextChild }),
   },
@@ -152,7 +158,7 @@ const UnresolvedHostBinding = HostParentDefinition.makeBinding(
 const ResolvedHostBinding = HostParentDefinition.makeBinding(
   resolvedHostChild,
   {
-    read: (model: typeof HostParentModel.Type) => Option.some(model.child),
+    read: (model: HostParentModel) => Option.some(model.child),
     write: (model, nextChild) =>
       modifyFields(model, { child: () => nextChild }),
   },
@@ -268,6 +274,7 @@ describe('completed root Block hosting', () => {
     const LeafOwnerNamespace = makeNamespace('NestedCommandLeaf')
     const LeafValue = LeafOwnerNamespace.makeResource<string>()('Value')
     const LeafModel = Schema.Struct({ value: Schema.String })
+    type LeafModel = typeof LeafModel.Type
     const LeafMessage = defineMessageUnion({
       ClickedReadValue: {},
       CompletedReadValue: { value: Schema.String },
@@ -276,6 +283,7 @@ describe('completed root Block hosting', () => {
       ReleasedValue: {},
       FailedAcquireValue: {},
     })
+    type LeafMessage = typeof LeafMessage.Type
     const ReadLeafValue = LeafOwnerNamespace.makeCommand('ReadLeafValue', {
       messages: [LeafMessage.CompletedReadValue, LeafMessage.FailedReadValue],
       handler: function* () {
@@ -351,6 +359,7 @@ describe('completed root Block hosting', () => {
 
     const MiddleOwnerNamespace = makeNamespace('NestedCommandMiddle')
     const MiddleModel = Schema.Struct({ leaf: LeafModel })
+    type MiddleModel = typeof MiddleModel.Type
     const MiddleDefinition = MiddleOwnerNamespace.makeDefinition({
       Model: MiddleModel,
       Message: Schema.Never,
@@ -384,6 +393,7 @@ describe('completed root Block hosting', () => {
     > = Block.assemble(prepareMiddleBlock)
 
     const RootModel = Schema.Struct({ middle: MiddleModel })
+    type RootModel = typeof RootModel.Type
     const RootDefinition = Block.makeDefinition('Application', {
       Model: RootModel,
       Message: Schema.Never,
@@ -466,9 +476,11 @@ describe('completed root Block hosting', () => {
     )
     const ServiceChildOwnerNamespace = makeNamespace('ServiceLifetimeChild')
     const ServiceChildModel = Schema.Struct({ value: Schema.String })
+    type ServiceChildModel = typeof ServiceChildModel.Type
     const ServiceChildMessage = defineMessageUnion({
       CompletedReadSharedValue: { value: Schema.String },
     })
+    type ServiceChildMessage = typeof ServiceChildMessage.Type
     const ReadSharedValue = ServiceChildOwnerNamespace.makeCommand(
       'ReadSharedValue',
       {
@@ -513,10 +525,12 @@ describe('completed root Block hosting', () => {
     const ServiceRootModel = Schema.Struct({
       maybeChild: Schema.Option(ServiceChildModel),
     })
+    type ServiceRootModel = typeof ServiceRootModel.Type
     const ServiceRootMessage = defineMessageUnion({
       ClickedRemoveServiceChild: {},
       ClickedAddServiceChild: {},
     })
+    type ServiceRootMessage = typeof ServiceRootMessage.Type
     const ServiceRootDefinition = Block.makeDefinition('Application', {
       Model: ServiceRootModel,
       Message: ServiceRootMessage,
@@ -642,6 +656,7 @@ describe('completed root Block hosting', () => {
     let acquisitions = 0
     const Value = FeatureOwnerNamespace.makeResource<string>()('Value')
     const FeatureModel = Schema.Struct({ label: Schema.String })
+    type FeatureModel = typeof FeatureModel.Type
     const FeatureMessage = defineMessageUnion({
       AcquiredValue: {},
       ReleasedValue: {},
@@ -649,10 +664,12 @@ describe('completed root Block hosting', () => {
       CompletedObserveValue: { value: Schema.String },
       FailedObserveValue: {},
     })
+    type FeatureMessage = typeof FeatureMessage.Type
     const FeatureOutMessage = defineMessageUnion({
       AcquiredValue: {},
       ObservedValue: { value: Schema.String },
     })
+    type FeatureOutMessage = typeof FeatureOutMessage.Type
     const ObserveValue = FeatureOwnerNamespace.makeMountStream('ObserveValue', {
       messages: [
         FeatureMessage.CompletedObserveValue,
@@ -731,13 +748,14 @@ describe('completed root Block hosting', () => {
       typeof prepareFeatureBlock
     > = Block.assemble(prepareFeatureBlock)
     const RootModel = Schema.Struct({ left: FeatureModel, right: FeatureModel })
+    type RootModel = typeof RootModel.Type
     const RootDefinition = Block.makeDefinition('Application', {
       Model: RootModel,
       Message: Schema.Never,
     })
     const seen: Array<string> = []
     const foldFeatureOutMessage = (source: 'GotLeft' | 'GotRight') =>
-      FeatureOutMessage.match<Update.Step<typeof RootModel.Type, never>>({
+      FeatureOutMessage.match<Update.Step<RootModel, never>>({
         AcquiredValue: () => model => {
           acquisitions += 1
           if (acquisitions === 2) {
@@ -755,12 +773,12 @@ describe('completed root Block hosting', () => {
       })
     const LeftBinding = RootDefinition.makeBinding(featureBlock, {
       placement: 'Left',
-      read: (model: typeof RootModel.Type) => Option.some(model.left),
+      read: (model: RootModel) => Option.some(model.left),
       write: (model, nextLeft) => modifyFields(model, { left: () => nextLeft }),
     }).withOutMessagePolicy({ fold: foldFeatureOutMessage('GotLeft') })
     const RightBinding = RootDefinition.makeBinding(featureBlock, {
       placement: 'Right',
-      read: (model: typeof RootModel.Type) => Option.some(model.right),
+      read: (model: RootModel) => Option.some(model.right),
       write: (model, nextRight) =>
         modifyFields(model, { right: () => nextRight }),
     }).withOutMessagePolicy({ fold: foldFeatureOutMessage('GotRight') })

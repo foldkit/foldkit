@@ -109,7 +109,7 @@ export const MobileMenuDialogBinding = ApplicationDefinition.makeBinding(
   }),
 })
 
-const applyThemePreferenceStep = (preference: typeof ThemePreference.Type) =>
+const applyThemePreferenceStep = (preference: ThemePreference) =>
   makeStep(model => {
     const resolvedTheme = resolveTheme(preference, model.systemTheme)
 

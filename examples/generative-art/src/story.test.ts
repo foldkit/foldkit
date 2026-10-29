@@ -22,7 +22,7 @@ import { Message } from './message'
 import { type Model, type Particle } from './model'
 import { update } from './update'
 
-const initialModel: typeof Model.Type = {
+const initialModel: Model = {
   particles: [],
   nextId: 0,
   elapsedSeconds: 0,
@@ -44,11 +44,7 @@ const initialModel: typeof Model.Type = {
   }).model,
 }
 
-const makeParticle = (
-  id: number,
-  x: number,
-  y: number,
-): typeof Particle.Type => ({
+const makeParticle = (id: number, x: number, y: number): Particle => ({
   id,
   trail: [{ x, y }],
   baseHue: 200,

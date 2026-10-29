@@ -29,18 +29,24 @@ import {
 } from './demo/components'
 import { ToastBlock } from './demo/toastModule'
 import { type DemoCard, type DemoColumn } from './domain/domain'
-import { VirtualListChatDemoBindingWithOutMessagePolicy } from './virtualListChat'
+import {
+  VirtualListChatDemoBindingWithOutMessagePolicy,
+  VirtualListChatHistoryModeGroupBinding,
+} from './virtualListChat'
 
-export { VirtualListChatDemoBinding } from './virtualListChat'
+export {
+  VirtualListChatDemoBinding,
+  VirtualListChatHistoryModeGroupBinding,
+} from './virtualListChat'
 
 const reorderColumns = (
-  columns: ReadonlyArray<typeof DemoColumn.Type>,
+  columns: ReadonlyArray<DemoColumn>,
   itemId: string,
   fromContainerId: string,
   toContainerId: string,
   toIndex: number,
-): ReadonlyArray<typeof DemoColumn.Type> => {
-  const maybeCard: Option.Option<typeof DemoCard.Type> = pipe(
+): ReadonlyArray<DemoColumn> => {
+  const maybeCard: Option.Option<DemoCard> = pipe(
     columns,
     Array.findFirst(({ id }) => id === fromContainerId),
     Option.flatMap(column =>
@@ -73,7 +79,7 @@ const reorderColumns = (
 }
 
 const findDragAndDropDemoCardLabel = (
-  columns: ReadonlyArray<typeof DemoColumn.Type>,
+  columns: ReadonlyArray<DemoColumn>,
   itemId: string,
 ): string =>
   pipe(
@@ -87,7 +93,7 @@ const findDragAndDropDemoCardLabel = (
   )
 
 const findDragAndDropDemoColumnLabel = (
-  columns: ReadonlyArray<typeof DemoColumn.Type>,
+  columns: ReadonlyArray<DemoColumn>,
   containerId: string,
 ): string =>
   pipe(
@@ -110,6 +116,7 @@ const DragAndDropDemoAnnouncement = defineTaggedUnion({
   },
   Cancelled: {},
 })
+type DragAndDropDemoAnnouncement = typeof DragAndDropDemoAnnouncement.Type
 
 const dragAndDropDemoAnnouncementToText = DragAndDropDemoAnnouncement.match({
   PickedUp: ({ label }) =>
@@ -708,6 +715,8 @@ const foldVirtualListOutMessage = UiDefinition.makeOutMessageFold(
   ActivityVirtualListBlock,
   {
     ObservedContainerScroll: makeNoopStep,
+    ApproachedLoadedStart: makeNoopStep,
+    EndedContainerScroll: makeNoopStep,
   },
 )
 
@@ -814,6 +823,7 @@ export const UiComposition = UiDefinition.makeComposition({
     VerticalRadioGroupDemoBinding,
     VerticalTabsDemoBinding,
     VirtualListChatDemoBindingWithOutMessagePolicy,
+    VirtualListChatHistoryModeGroupBinding,
     VirtualListDemoBinding,
     VirtualListVariableDemoBinding,
   ],

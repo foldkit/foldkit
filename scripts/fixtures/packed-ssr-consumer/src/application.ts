@@ -11,24 +11,25 @@ export const Model = Schema.Struct({
   count: Schema.Number,
   formState: Schema.Literals(['Controlled', 'Released']),
 })
+export type Model = typeof Model.Type
 
 export const Flags = Schema.Struct({ start: Schema.Number })
+export type Flags = typeof Flags.Type
 
 export const Message = defineMessageUnion({
   ClickedIncrement: {},
   ClickedRelease: {},
 })
+export type Message = typeof Message.Type
 
 export const ApplicationComposition = Block.makeDefinition('Application', {
   Model,
   Message,
 }).makeComposition()
 
-export const init = ApplicationComposition.makeInit(
-  (flags: typeof Flags.Type) => ({
-    model: Model.make({ count: flags.start, formState: 'Controlled' }),
-  }),
-)
+export const init = ApplicationComposition.makeInit((flags: Flags) => ({
+  model: Model.make({ count: flags.start, formState: 'Controlled' }),
+}))
 
 export const update = ApplicationComposition.makeUpdate({
   ClickedIncrement: model => ({

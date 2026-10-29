@@ -9,13 +9,13 @@ import type { ViewInputs } from './radioGroup.js'
 import {
   FocusOption,
   Message as RadioGroupMessage,
-  create,
+  makeBlock,
 } from './radioGroup.js'
 
 const RADIO_ID = 'test'
 const options: ReadonlyArray<string> = ['Brush', 'Fill', 'Eraser']
 
-const TestRadioGroup = create()
+const TestRadioGroup = makeBlock()
 
 const Model = Schema.Struct({
   radioGroup: TestRadioGroup.Model,

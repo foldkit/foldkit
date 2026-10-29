@@ -1876,6 +1876,9 @@ importers:
       '@effect/platform-node':
         specifier: 4.0.0
         version: 4.0.0(effect@4.0.0)(redis@6.2.1(@opentelemetry/api@1.9.0))
+      '@effect/platform-node-shared':
+        specifier: 4.0.0
+        version: 4.0.0(effect@4.0.0)
     devDependencies:
       '@types/node':
         specifier: 26.4.0
@@ -2011,6 +2014,9 @@ importers:
       '@foldkit/vite-plugin':
         specifier: workspace:*
         version: link:../vite-plugin-foldkit
+      '@playwright/test':
+        specifier: ^1.63.0
+        version: 1.63.0
       effect:
         specifier: 4.0.0
         version: 4.0.0

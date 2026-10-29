@@ -9,16 +9,17 @@ import { Menu } from '@foldkit/ui'
 
 type Action = 'Edit' | 'Duplicate' | 'Archive' | 'Delete'
 
-const ActionMenu = Menu.create<Action>()
+const ActionMenu = Menu.makeBlock<Action>()
 
 // Add a field to your Model for the Menu Block:
 const Model = Schema.Struct({
   menu: ActionMenu.Model,
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // This excerpt has no parent-owned facts. The Composition derives delivery.
 const Message = defineMessageUnion({})
+type Message = typeof Message.Type
 
 const ActionMenuExampleDefinition = Block.makeDefinition('ActionMenuExample', {
   Model,

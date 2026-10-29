@@ -47,7 +47,6 @@ export const Model = Schema.Struct({
   disabledDaysOfWeek: Schema.Array(CalendarDomain.DayOfWeek),
   disabledDates: Schema.Array(CalendarDomain.CalendarDate),
 })
-
 export type Model = typeof Model.Type
 
 // MESSAGE
@@ -102,6 +101,7 @@ export const OutMessage = defineMessageUnion({
   },
   SelectedDate: { date: CalendarDomain.CalendarDate },
 })
+export type OutMessage = typeof OutMessage.Type
 
 export type ChangedViewMonth = typeof OutMessage.ChangedViewMonth.Type
 export type SelectedDate = typeof OutMessage.SelectedDate.Type

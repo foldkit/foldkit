@@ -18,7 +18,7 @@ import {
 } from './model'
 
 const editingTextFor = (
-  editing: typeof EditingState.Type,
+  editing: EditingState,
   todoId: string,
 ): Option.Option<string> =>
   EditingState.match(editing, {
@@ -27,7 +27,7 @@ const editingTextFor = (
   })
 
 const todoItemView = (
-  todo: typeof Todo.Type,
+  todo: Todo,
   maybeEditingText: Option.Option<string>,
   h: ApplicationViewBuilder,
 ): Html =>
@@ -37,7 +37,7 @@ const todoItemView = (
   })
 
 const editingTodoView = (
-  todo: typeof Todo.Type,
+  todo: Todo,
   text: string,
   h: ApplicationViewBuilder,
 ): Html =>
@@ -102,10 +102,7 @@ const checkboxBoxClassName = (isChecked: boolean): string =>
     isChecked ? 'border-blue-600 bg-blue-600' : 'border-gray-300',
   )
 
-const nonEditingTodoView = (
-  todo: typeof Todo.Type,
-  h: ApplicationViewBuilder,
-): Html =>
+const nonEditingTodoView = (todo: Todo, h: ApplicationViewBuilder): Html =>
   h.keyed('li')(
     todo.id,
     [h.Class('flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg group')],
@@ -164,12 +161,8 @@ const nonEditingTodoView = (
   )
 
 const filterButtonView =
-  (model: typeof Model.Type) =>
-  (
-    filter: typeof Filter.Type,
-    label: string,
-    h: ApplicationViewBuilder,
-  ): Html =>
+  (model: Model) =>
+  (filter: Filter, label: string, h: ApplicationViewBuilder): Html =>
     Button.view(
       {
         onClick: Message.SelectedFilter({ filter }),
@@ -192,7 +185,7 @@ const filterButtonView =
     )
 
 const footerView = (
-  model: typeof Model.Type,
+  model: Model,
   activeCount: number,
   completedCount: number,
   h: ApplicationViewBuilder,
@@ -269,10 +262,7 @@ const footerView = (
       ),
   })
 
-const filterTodos = (
-  todos: typeof Todos.Type,
-  filter: typeof Filter.Type,
-): typeof Todos.Type =>
+const filterTodos = (todos: Todos, filter: Filter): Todos =>
   Match.value(filter).pipe(
     Match.when('All', () => todos),
     Match.when('Active', () => Array.filter(todos, todo => !todo.completed)),

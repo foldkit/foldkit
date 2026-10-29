@@ -5,9 +5,13 @@ import { defineMessageUnion } from '../message/public.js'
 import * as Block from './public.js'
 
 const Model = Schema.Struct({ value: Schema.String })
+type Model = typeof Model.Type
 const Message = defineMessageUnion({ Updated: {} })
+type Message = typeof Message.Type
 const OutMessage = defineMessageUnion({ Completed: {} })
+type OutMessage = typeof OutMessage.Type
 const ChildInitContext = Schema.Struct({ seed: Schema.Number })
+type ChildInitContext = typeof ChildInitContext.Type
 
 const callDirectDefinition = (config: unknown): unknown =>
   Reflect.apply(Block.makeDefinition, undefined, [

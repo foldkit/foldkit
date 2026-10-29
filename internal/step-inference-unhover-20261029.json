@@ -1,0 +1,942 @@
+{
+  "baselineCommit": "501dff944fec205ab6dfe958cec8dc6fd76fd433",
+  "pairOrder": ["before/after", "after/before", "before/after"],
+  "workloads": {
+    "finalwebsite": {
+      "metrics": {
+        "hover.first": {
+          "before": {
+            "medianMs": 495.152,
+            "samplesMs": [451.274, 504.912, 495.152]
+          },
+          "after": {
+            "medianMs": 443.765,
+            "samplesMs": [443.765, 481.174, 410.595]
+          },
+          "pairedDifferenceMedianMs": -23.738
+        },
+        "hover.warm": {
+          "before": {
+            "medianMs": 1.279,
+            "samplesMs": [0.489, 3.036, 1.279]
+          },
+          "after": {
+            "medianMs": 1.279,
+            "samplesMs": [0.58, 1.279, 3.404]
+          },
+          "pairedDifferenceMedianMs": 0.09099999999999997
+        },
+        "hover.postWhitespace": {
+          "before": {
+            "medianMs": 324.979,
+            "samplesMs": [346.334, 324.979, 310.566]
+          },
+          "after": {
+            "medianMs": 311.028,
+            "samplesMs": [359.669, 290.418, 311.028]
+          },
+          "pairedDifferenceMedianMs": 0.46200000000004593
+        },
+        "hover.postWhitespaceWarm": {
+          "before": {
+            "medianMs": 1.749,
+            "samplesMs": [0.899, 2.958, 1.749]
+          },
+          "after": {
+            "medianMs": 3.151,
+            "samplesMs": [0.913, 3.151, 4.273]
+          },
+          "pairedDifferenceMedianMs": 0.19299999999999962
+        },
+        "hover.postSemantic": {
+          "before": {
+            "medianMs": 249.521,
+            "samplesMs": [249.521, 257.144, 241.061]
+          },
+          "after": {
+            "medianMs": 250.782,
+            "samplesMs": [279.339, 246.98, 250.782]
+          },
+          "pairedDifferenceMedianMs": 9.721000000000004
+        },
+        "hover.postSemanticWarm": {
+          "before": {
+            "medianMs": 4.222,
+            "samplesMs": [5.226, 1.462, 4.222]
+          },
+          "after": {
+            "medianMs": 0.959,
+            "samplesMs": [0.959, 0.925, 1.157]
+          },
+          "pairedDifferenceMedianMs": -3.0650000000000004
+        },
+        "definition.first": {
+          "before": {
+            "medianMs": 539.689,
+            "samplesMs": [532.82, 624.705, 539.689]
+          },
+          "after": {
+            "medianMs": 622.543,
+            "samplesMs": [622.543, 642.377, 514.772]
+          },
+          "pairedDifferenceMedianMs": 17.671999999999912
+        },
+        "definition.warm": {
+          "before": {
+            "medianMs": 16.967,
+            "samplesMs": [16.967, 34.305, 16.947]
+          },
+          "after": {
+            "medianMs": 17.104,
+            "samplesMs": [17.104, 16.84, 19.641]
+          },
+          "pairedDifferenceMedianMs": 0.13700000000000045
+        },
+        "definition.postWhitespace": {
+          "before": {
+            "medianMs": 319.049,
+            "samplesMs": [308.434, 353.843, 319.049]
+          },
+          "after": {
+            "medianMs": 307.244,
+            "samplesMs": [338.342, 281.98, 307.244]
+          },
+          "pairedDifferenceMedianMs": -11.80499999999995
+        },
+        "definition.postWhitespaceWarm": {
+          "before": {
+            "medianMs": 17.907,
+            "samplesMs": [17.907, 30.043, 17.581]
+          },
+          "after": {
+            "medianMs": 17.632,
+            "samplesMs": [17.632, 17.544, 19.065]
+          },
+          "pairedDifferenceMedianMs": -0.2749999999999986
+        },
+        "completion.first": {
+          "before": {
+            "medianMs": 332.339,
+            "samplesMs": [348.317, 291.191, 332.339]
+          },
+          "after": {
+            "medianMs": 343.223,
+            "samplesMs": [343.223, 371.838, 318.258]
+          },
+          "pairedDifferenceMedianMs": -5.093999999999994
+        },
+        "completion.warm": {
+          "before": {
+            "medianMs": 1.383,
+            "samplesMs": [0.368, 2.199, 1.383]
+          },
+          "after": {
+            "medianMs": 0.477,
+            "samplesMs": [0.389, 1.269, 0.477]
+          },
+          "pairedDifferenceMedianMs": -0.906
+        },
+        "completion.postWhitespace": {
+          "before": {
+            "medianMs": 13.895,
+            "samplesMs": [13.895, 13.808, 20.688]
+          },
+          "after": {
+            "medianMs": 16.825,
+            "samplesMs": [16.825, 14.869, 21.684]
+          },
+          "pairedDifferenceMedianMs": 1.061
+        },
+        "completion.postWhitespaceWarm": {
+          "before": {
+            "medianMs": 4.284,
+            "samplesMs": [4.284, 3.195, 11.102]
+          },
+          "after": {
+            "medianMs": 12.684,
+            "samplesMs": [5.39, 12.684, 20.326]
+          },
+          "pairedDifferenceMedianMs": 9.224
+        },
+        "bindingCompletion.first": {
+          "before": {
+            "medianMs": 549.694,
+            "samplesMs": [549.694, 547.702, 575.664]
+          },
+          "after": {
+            "medianMs": 560.177,
+            "samplesMs": [625.414, 560.177, 528.202]
+          },
+          "pairedDifferenceMedianMs": 12.475000000000023
+        },
+        "bindingCompletion.warm": {
+          "before": {
+            "medianMs": 0.411,
+            "samplesMs": [3.428, 0.395, 0.411]
+          },
+          "after": {
+            "medianMs": 0.37,
+            "samplesMs": [0.364, 0.37, 0.429]
+          },
+          "pairedDifferenceMedianMs": -0.025000000000000022
+        },
+        "bindingCompletion.postWhitespace": {
+          "before": {
+            "medianMs": 295.088,
+            "samplesMs": [295.827, 295.088, 291.451]
+          },
+          "after": {
+            "medianMs": 304.666,
+            "samplesMs": [305.25, 254.175, 304.666]
+          },
+          "pairedDifferenceMedianMs": 9.423000000000002
+        },
+        "bindingCompletion.postWhitespaceWarm": {
+          "before": {
+            "medianMs": 5.721,
+            "samplesMs": [6.225, 5.721, 0.376]
+          },
+          "after": {
+            "medianMs": 0.4,
+            "samplesMs": [0.4, 0.46, 0.34]
+          },
+          "pairedDifferenceMedianMs": -5.261
+        },
+        "changedUrl.hover.first": {
+          "before": {
+            "medianMs": 541.826,
+            "samplesMs": [517.895, 553.372, 541.826]
+          },
+          "after": {
+            "medianMs": 585.236,
+            "samplesMs": [585.236, 515.484, 658.787]
+          },
+          "pairedDifferenceMedianMs": 67.34100000000001
+        },
+        "changedUrl.hover.warm": {
+          "before": {
+            "medianMs": 4.883,
+            "samplesMs": [4.883, 2.295, 7.529]
+          },
+          "after": {
+            "medianMs": 2.205,
+            "samplesMs": [3.842, 2.205, 0.93]
+          },
+          "pairedDifferenceMedianMs": -1.041
+        },
+        "changedUrl.hover.postWhitespace": {
+          "before": {
+            "medianMs": 296.262,
+            "samplesMs": [307.7, 255.329, 296.262]
+          },
+          "after": {
+            "medianMs": 294.283,
+            "samplesMs": [294.283, 289.471, 302.348]
+          },
+          "pairedDifferenceMedianMs": 6.086000000000013
+        },
+        "changedUrl.hover.postWhitespaceWarm": {
+          "before": {
+            "medianMs": 2.114,
+            "samplesMs": [2.508, 2.114, 2.055]
+          },
+          "after": {
+            "medianMs": 0.936,
+            "samplesMs": [4.669, 0.896, 0.936]
+          },
+          "pairedDifferenceMedianMs": -1.1190000000000002
+        },
+        "changedUrl.diagnostics.clean": {
+          "before": {
+            "medianMs": 732.319,
+            "samplesMs": [732.319, 757.349, 670.651]
+          },
+          "after": {
+            "medianMs": 700.861,
+            "samplesMs": [669.275, 724.479, 700.861]
+          },
+          "pairedDifferenceMedianMs": -32.870000000000005
+        },
+        "changedUrl.diagnostics.badRoute": {
+          "before": {
+            "medianMs": 705.504,
+            "samplesMs": [714.21, 686.427, 705.504]
+          },
+          "after": {
+            "medianMs": 733.755,
+            "samplesMs": [733.755, 718.083, 750.403]
+          },
+          "pairedDifferenceMedianMs": 31.65599999999995
+        },
+        "changedUrl.diagnostics.restored": {
+          "before": {
+            "medianMs": 721.694,
+            "samplesMs": [721.694, 773.275, 720.228]
+          },
+          "after": {
+            "medianMs": 705.243,
+            "samplesMs": [744.871, 705.243, 681.746]
+          },
+          "pairedDifferenceMedianMs": -38.48199999999997
+        },
+        "changedUrl.hover.postRestore": {
+          "before": {
+            "medianMs": 249.103,
+            "samplesMs": [294.689, 249.103, 247.063]
+          },
+          "after": {
+            "medianMs": 259.575,
+            "samplesMs": [259.575, 237.957, 341.224]
+          },
+          "pairedDifferenceMedianMs": -11.146000000000015
+        },
+        "changedUrl.hover.postRestoreWarm": {
+          "before": {
+            "medianMs": 1.986,
+            "samplesMs": [2.254, 1.459, 1.986]
+          },
+          "after": {
+            "medianMs": 2.616,
+            "samplesMs": [2.459, 3.482, 2.616]
+          },
+          "pairedDifferenceMedianMs": 0.6300000000000001
+        },
+        "changedUrl.completion.postRestoreWarm": {
+          "before": {
+            "medianMs": 3.211,
+            "samplesMs": [0.579, 3.211, 4.672]
+          },
+          "after": {
+            "medianMs": 2.035,
+            "samplesMs": [2.146, 2.035, 1.962]
+          },
+          "pairedDifferenceMedianMs": -1.1759999999999997
+        },
+        "messageConstructor.local.cold": {
+          "before": {
+            "medianMs": 376.457,
+            "samplesMs": [376.457, 359.682, 494.239]
+          },
+          "after": {
+            "medianMs": 420.587,
+            "samplesMs": [434.881, 420.587, 420.133]
+          },
+          "pairedDifferenceMedianMs": 58.42399999999998
+        },
+        "messageConstructor.completed.cold": {
+          "before": {
+            "medianMs": 3613.059,
+            "samplesMs": [3613.059, 3603.342, 3669.941]
+          },
+          "after": {
+            "medianMs": 3698.942,
+            "samplesMs": [3780.85, 3698.942, 3692.575]
+          },
+          "pairedDifferenceMedianMs": 95.59999999999991
+        }
+      },
+      "peakRssKiB": {
+        "before": null,
+        "after": null
+      },
+      "workloadHashes": {
+        "before": [
+          "2f9ac70993fd5cd4e018709061d5dd6606dbe008e2ee1068d12b8504b9309eae"
+        ],
+        "after": [
+          "36033ef24d7ac26750661b22b78b9e845f2d086955e996a9974617f0db7d4156"
+        ]
+      },
+      "compilerVersions": ["7.1.0-beta"],
+      "allResultsValidated": true
+    },
+    "finalworkspace": {
+      "metrics": {
+        "workspace.bindingHover.first": {
+          "before": {
+            "medianMs": 427.622,
+            "samplesMs": [512.997, 427.622, 423.021]
+          },
+          "after": {
+            "medianMs": 430.422,
+            "samplesMs": [435.223, 430.422, 411.414]
+          },
+          "pairedDifferenceMedianMs": -11.607000000000028
+        },
+        "workspace.bindingHover.warm": {
+          "before": {
+            "medianMs": 0.47,
+            "samplesMs": [3.041, 0.424, 0.47]
+          },
+          "after": {
+            "medianMs": 0.848,
+            "samplesMs": [0.719, 2.251, 0.848]
+          },
+          "pairedDifferenceMedianMs": 0.378
+        },
+        "workspace.bindingHover.postWhitespace": {
+          "before": {
+            "medianMs": 296.234,
+            "samplesMs": [284.622, 359.037, 296.234]
+          },
+          "after": {
+            "medianMs": 303.022,
+            "samplesMs": [291.458, 345.329, 303.022]
+          },
+          "pairedDifferenceMedianMs": 6.788000000000011
+        },
+        "workspace.bindingHover.postWhitespaceWarm": {
+          "before": {
+            "medianMs": 0.488,
+            "samplesMs": [0.488, 2.438, 0.487]
+          },
+          "after": {
+            "medianMs": 4.642,
+            "samplesMs": [4.642, 6.604, 0.466]
+          },
+          "pairedDifferenceMedianMs": 4.154
+        },
+        "workspace.bindingCompletion.first": {
+          "before": {
+            "medianMs": 412.836,
+            "samplesMs": [411.987, 526.841, 412.836]
+          },
+          "after": {
+            "medianMs": 492.686,
+            "samplesMs": [403.387, 492.686, 503.1]
+          },
+          "pairedDifferenceMedianMs": -8.600000000000023
+        },
+        "workspace.bindingCompletion.warm": {
+          "before": {
+            "medianMs": 0.452,
+            "samplesMs": [0.411, 0.452, 1.538]
+          },
+          "after": {
+            "medianMs": 0.464,
+            "samplesMs": [6.452, 0.464, 0.373]
+          },
+          "pairedDifferenceMedianMs": 0.01200000000000001
+        },
+        "workspace.bindingCompletion.postWhitespace": {
+          "before": {
+            "medianMs": 296.852,
+            "samplesMs": [281.23, 302.243, 296.852]
+          },
+          "after": {
+            "medianMs": 308.169,
+            "samplesMs": [332.061, 297.334, 308.169]
+          },
+          "pairedDifferenceMedianMs": 11.317000000000007
+        },
+        "workspace.bindingCompletion.postWhitespaceWarm": {
+          "before": {
+            "medianMs": 0.441,
+            "samplesMs": [0.441, 0.404, 0.873]
+          },
+          "after": {
+            "medianMs": 3.251,
+            "samplesMs": [5.356, 0.472, 3.251]
+          },
+          "pairedDifferenceMedianMs": 2.378
+        },
+        "workspace.blockCompletion.first": {
+          "before": {
+            "medianMs": 214.423,
+            "samplesMs": [193.942, 214.423, 256.136]
+          },
+          "after": {
+            "medianMs": 204.383,
+            "samplesMs": [188.794, 204.383, 221.431]
+          },
+          "pairedDifferenceMedianMs": -10.039999999999992
+        },
+        "workspace.blockCompletion.warm": {
+          "before": {
+            "medianMs": 3.985,
+            "samplesMs": [5.016, 3.985, 0.37]
+          },
+          "after": {
+            "medianMs": 2.347,
+            "samplesMs": [0.89, 2.707, 2.347]
+          },
+          "pairedDifferenceMedianMs": -1.278
+        },
+        "workspace.blockCompletion.postWhitespace": {
+          "before": {
+            "medianMs": 66.823,
+            "samplesMs": [69.39, 66.823, 52.832]
+          },
+          "after": {
+            "medianMs": 75.964,
+            "samplesMs": [75.964, 73.42, 79.021]
+          },
+          "pairedDifferenceMedianMs": 6.597000000000008
+        },
+        "workspace.blockCompletion.postWhitespaceWarm": {
+          "before": {
+            "medianMs": 1.905,
+            "samplesMs": [1.204, 1.905, 5.275]
+          },
+          "after": {
+            "medianMs": 1.268,
+            "samplesMs": [1.268, 0.49, 1.768]
+          },
+          "pairedDifferenceMedianMs": -1.415
+        },
+        "workspace.diagnostics.clean": {
+          "before": {
+            "medianMs": 338.125,
+            "samplesMs": [338.125, 322.919, 407.864]
+          },
+          "after": {
+            "medianMs": 376.369,
+            "samplesMs": [377.073, 376.369, 345.761]
+          },
+          "pairedDifferenceMedianMs": 38.94799999999998
+        },
+        "workspace.diagnostics.badTitle": {
+          "before": {
+            "medianMs": 220.612,
+            "samplesMs": [220.612, 237.009, 202.7]
+          },
+          "after": {
+            "medianMs": 219.217,
+            "samplesMs": [219.217, 205.719, 227.615]
+          },
+          "pairedDifferenceMedianMs": -1.3949999999999818
+        },
+        "workspace.diagnostics.restored": {
+          "before": {
+            "medianMs": 220.211,
+            "samplesMs": [222.593, 206.069, 220.211]
+          },
+          "after": {
+            "medianMs": 200.889,
+            "samplesMs": [188.052, 200.889, 206.005]
+          },
+          "pairedDifferenceMedianMs": -14.206000000000017
+        }
+      },
+      "peakRssKiB": {
+        "before": [451648, 431520, 434864],
+        "after": [432304, 459776, 462496]
+      },
+      "workloadHashes": {
+        "before": [
+          "3cb01601322b63c8adf990ca086f364930a4d7c3bf3dd7aecca378894daa96bb"
+        ],
+        "after": [
+          "47f08a395ddd19dddba13a2e7a39406a459ccd244441a548d0b5f9b269866996"
+        ]
+      },
+      "compilerVersions": ["7.1.0-beta"],
+      "allResultsValidated": true
+    },
+    "finalscale16": {
+      "metrics": {
+        "workspace.bindingHover.first": {
+          "before": {
+            "medianMs": 116.272,
+            "samplesMs": [116.272, 172.339, 102.782]
+          },
+          "after": {
+            "medianMs": 185.57,
+            "samplesMs": [185.57, 207.203, 96.781]
+          },
+          "pairedDifferenceMedianMs": 34.864000000000004
+        },
+        "workspace.bindingHover.warm": {
+          "before": {
+            "medianMs": 0.665,
+            "samplesMs": [0.417, 0.665, 3.548]
+          },
+          "after": {
+            "medianMs": 1.114,
+            "samplesMs": [1.114, 0.64, 3.909]
+          },
+          "pairedDifferenceMedianMs": 0.36099999999999977
+        },
+        "workspace.bindingHover.postWhitespace": {
+          "before": {
+            "medianMs": 53.798,
+            "samplesMs": [42.95, 53.798, 69.403]
+          },
+          "after": {
+            "medianMs": 58.275,
+            "samplesMs": [56.372, 58.275, 93.482]
+          },
+          "pairedDifferenceMedianMs": 13.421999999999997
+        },
+        "workspace.bindingHover.postWhitespaceWarm": {
+          "before": {
+            "medianMs": 1.017,
+            "samplesMs": [1.017, 0.457, 2.813]
+          },
+          "after": {
+            "medianMs": 1.766,
+            "samplesMs": [0.495, 4.79, 1.766]
+          },
+          "pairedDifferenceMedianMs": -0.5219999999999999
+        },
+        "workspace.bindingCompletion.first": {
+          "before": {
+            "medianMs": 162.436,
+            "samplesMs": [186.329, 122.19, 162.436]
+          },
+          "after": {
+            "medianMs": 127.693,
+            "samplesMs": [114.036, 149.106, 127.693]
+          },
+          "pairedDifferenceMedianMs": -34.74300000000001
+        },
+        "workspace.bindingCompletion.warm": {
+          "before": {
+            "medianMs": 10.153,
+            "samplesMs": [10.153, 12, 2.439]
+          },
+          "after": {
+            "medianMs": 7.152,
+            "samplesMs": [7.152, 16.687, 2.513]
+          },
+          "pairedDifferenceMedianMs": 0.07399999999999984
+        },
+        "workspace.bindingCompletion.postWhitespace": {
+          "before": {
+            "medianMs": 75.198,
+            "samplesMs": [75.198, 126.76, 54.352]
+          },
+          "after": {
+            "medianMs": 73.97,
+            "samplesMs": [59.637, 73.97, 75.393]
+          },
+          "pairedDifferenceMedianMs": -15.560999999999993
+        },
+        "workspace.bindingCompletion.postWhitespaceWarm": {
+          "before": {
+            "medianMs": 2.798,
+            "samplesMs": [2.274, 2.798, 5.321]
+          },
+          "after": {
+            "medianMs": 15.076,
+            "samplesMs": [15.076, 4.246, 16.822]
+          },
+          "pairedDifferenceMedianMs": 11.501
+        },
+        "workspace.blockCompletion.first": {
+          "before": {
+            "medianMs": 96.694,
+            "samplesMs": [72.836, 96.694, 122.692]
+          },
+          "after": {
+            "medianMs": 114.901,
+            "samplesMs": [114.901, 85.28, 125.095]
+          },
+          "pairedDifferenceMedianMs": 2.403000000000006
+        },
+        "workspace.blockCompletion.warm": {
+          "before": {
+            "medianMs": 6.431,
+            "samplesMs": [6.673, 2.915, 6.431]
+          },
+          "after": {
+            "medianMs": 1.282,
+            "samplesMs": [1.262, 4.706, 1.282]
+          },
+          "pairedDifferenceMedianMs": -5.149
+        },
+        "workspace.blockCompletion.postWhitespace": {
+          "before": {
+            "medianMs": 54.24,
+            "samplesMs": [54.24, 17.975, 69.559]
+          },
+          "after": {
+            "medianMs": 25.976,
+            "samplesMs": [25.976, 48.029, 18.63]
+          },
+          "pairedDifferenceMedianMs": -28.264000000000003
+        },
+        "workspace.blockCompletion.postWhitespaceWarm": {
+          "before": {
+            "medianMs": 5.177,
+            "samplesMs": [5.177, 1.233, 8.182]
+          },
+          "after": {
+            "medianMs": 9.23,
+            "samplesMs": [2.985, 11.401, 9.23]
+          },
+          "pairedDifferenceMedianMs": 1.048
+        },
+        "workspace.diagnostics.clean": {
+          "before": {
+            "medianMs": 2056.318,
+            "samplesMs": [2101.864, 2056.318, 1975.585]
+          },
+          "after": {
+            "medianMs": 2023.089,
+            "samplesMs": [2079.141, 2023.089, 2006.681]
+          },
+          "pairedDifferenceMedianMs": -22.722999999999956
+        },
+        "workspace.diagnostics.badTitle": {
+          "before": {
+            "medianMs": 2044.412,
+            "samplesMs": [2000.7, 2631.463, 2044.412]
+          },
+          "after": {
+            "medianMs": 1968.407,
+            "samplesMs": [1955.276, 1968.407, 2284.611]
+          },
+          "pairedDifferenceMedianMs": -45.42399999999998
+        },
+        "workspace.diagnostics.restored": {
+          "before": {
+            "medianMs": 1886.752,
+            "samplesMs": [1886.752, 1902.92, 1879.818]
+          },
+          "after": {
+            "medianMs": 1851.409,
+            "samplesMs": [1851.409, 1833.046, 1959.615]
+          },
+          "pairedDifferenceMedianMs": -35.34299999999985
+        }
+      },
+      "peakRssKiB": {
+        "before": [689952, 687472, 693504],
+        "after": [674240, 697632, 708528]
+      },
+      "workloadHashes": {
+        "before": [
+          "c6aad8e97477a7f8104505a9698e76c93b27649bcb1ce3e46cc947ec6bf68689"
+        ],
+        "after": [
+          "e58692ac3348b448dad88ab10e94bb076f654f4f6868d72bdc2a5c4cf90b14b6"
+        ]
+      },
+      "compilerVersions": ["7.1.0-beta"],
+      "allResultsValidated": true
+    },
+    "cachedcold": {
+      "metrics": {
+        "messageConstructor.local.cold": {
+          "before": {
+            "medianMs": 385.616,
+            "samplesMs": [338.499, 446.593, 385.616]
+          },
+          "after": {
+            "medianMs": 515.63,
+            "samplesMs": [581.164, 515.63, 419.97]
+          },
+          "pairedDifferenceMedianMs": 69.03699999999998
+        },
+        "messageConstructor.completed.cold": {
+          "before": {
+            "medianMs": 3627.047,
+            "samplesMs": [2981.892, 3750.697, 3627.047]
+          },
+          "after": {
+            "medianMs": 3614.385,
+            "samplesMs": [3614.385, 3819.999, 3170.636]
+          },
+          "pairedDifferenceMedianMs": 69.30199999999968
+        }
+      },
+      "peakRssKiB": {
+        "before": null,
+        "after": null
+      },
+      "workloadHashes": {
+        "before": [
+          "2f9ac70993fd5cd4e018709061d5dd6606dbe008e2ee1068d12b8504b9309eae"
+        ],
+        "after": [
+          "ff447a775fd1add7acd7c8796be9dccabaa764696df3c2e00e403702cb7c9abf"
+        ]
+      },
+      "compilerVersions": ["7.1.0-beta"],
+      "allResultsValidated": true
+    }
+  },
+  "compiler": {
+    "deep-composition-8": {
+      "before": {
+        "instantiations": 625891,
+        "instantiationsBudget": 1152618,
+        "types": 50983,
+        "typesBudget": 55843,
+        "symbols": 83702,
+        "status": "ok"
+      },
+      "after": {
+        "instantiations": 626235,
+        "instantiationsBudget": 1152618,
+        "types": 51089,
+        "typesBudget": 55843,
+        "symbols": 83792,
+        "status": "ok"
+      }
+    },
+    "wide-composition-100": {
+      "before": {
+        "instantiations": 1316411,
+        "instantiationsBudget": 3132298,
+        "types": 79136,
+        "typesBudget": 216662,
+        "symbols": 127619,
+        "status": "ok"
+      },
+      "after": {
+        "instantiations": 1316755,
+        "instantiationsBudget": 3132298,
+        "types": 79242,
+        "typesBudget": 216662,
+        "symbols": 127709,
+        "status": "ok"
+      }
+    },
+    "command-requirements-200": {
+      "before": {
+        "instantiations": 334258,
+        "instantiationsBudget": 2659415,
+        "types": 62044,
+        "typesBudget": 389460,
+        "symbols": 113205,
+        "status": "ok"
+      },
+      "after": {
+        "instantiations": 334602,
+        "instantiationsBudget": 2659415,
+        "types": 62150,
+        "typesBudget": 389460,
+        "symbols": 113295,
+        "status": "ok"
+      }
+    },
+    "wide-subscriptions-100": {
+      "before": {
+        "instantiations": 548740,
+        "instantiationsBudget": 548740,
+        "types": 24583,
+        "typesBudget": 24583,
+        "symbols": 58535,
+        "status": "ok"
+      },
+      "after": {
+        "instantiations": 548740,
+        "instantiationsBudget": 548740,
+        "types": 24583,
+        "typesBudget": 24583,
+        "symbols": 58535,
+        "status": "ok"
+      }
+    },
+    "workspace-composition-4": {
+      "before": {
+        "instantiations": 2629192,
+        "instantiationsBudget": 2642699,
+        "types": 227452,
+        "typesBudget": 229173,
+        "symbols": 305046,
+        "status": "ok"
+      },
+      "after": {
+        "instantiations": 2633088,
+        "instantiationsBudget": 2642699,
+        "types": 228293,
+        "typesBudget": 229173,
+        "symbols": 305423,
+        "status": "ok"
+      }
+    },
+    "workspace-composition-8": {
+      "before": {
+        "instantiations": 4371356,
+        "instantiationsBudget": 4515010,
+        "types": 299721,
+        "typesBudget": 299721,
+        "symbols": 431137,
+        "status": "ok"
+      },
+      "after": {
+        "instantiations": 4256896,
+        "instantiationsBudget": 4515010,
+        "types": 277274,
+        "typesBudget": 299721,
+        "symbols": 400821,
+        "status": "ok"
+      }
+    },
+    "machine-search": {
+      "before": {
+        "instantiations": 71432,
+        "instantiationsBudget": 83700,
+        "types": 13728,
+        "typesBudget": 18800,
+        "symbols": 41121,
+        "status": "ok"
+      },
+      "after": {
+        "instantiations": 71432,
+        "instantiationsBudget": 83700,
+        "types": 13728,
+        "typesBudget": 18800,
+        "symbols": 41132,
+        "status": "ok"
+      }
+    }
+  },
+  "javascriptDelta": ["test/apps/interactions.js", "test/scene.js"],
+  "ts6Verification": {
+    "source": true,
+    "consumesTS7EmittedMessage": true,
+    "consumesTS7EmittedScene": true,
+    "ownFixtureEmission": "Fails equally on baseline and candidate naming existing focused helper types"
+  },
+  "sourceFiles": {
+    ".changeset/calm-trees-unhover.md": "077747ded173c510d78bd8b59bd11ba8f14cc108eba12018090bdd712068c29f",
+    ".changeset/fresh-steps-message-inference.md": "bd2fd08b1d8b415df4543dd7b6c37cf16c366f87a6f304688a333b1cead636fc",
+    "packages/create-foldkit-app/templates/base/FOLDKIT.md": "33bbbcb039e863cb567dd103390b1ea53287d882c396b350271b503449eaa1bc",
+    "packages/foldkit/declaration-tests/message-steps.accepted.ts": "d9566ff4ec58f8c3f52985f9ab814cbb1fb4958703cb53e5027534af32ec850c",
+    "packages/foldkit/declaration-tests/message-steps.consume.ts": "dca9086c60b2048ea22402996d23d0e411613fbc99a8941ab67e4da9b36dc533",
+    "packages/foldkit/declaration-tests/message-steps.rejected.ts": "bf2706d9ef8fabe888bde9a77e97adb85ef4b31cfc5c21760bbf3a1779dd5786",
+    "packages/foldkit/declaration-tests/scene-routing.accepted.ts": "e3ab7dd297e3e8e11625df0b566495e78d518c2ba60255062bce8e017c45a6ba",
+    "packages/foldkit/src/block/definition.ts": "0d9a2227006197cd0e77ab61c76d4ae5b666ea521489194e786ddc456d472f1c",
+    "packages/foldkit/src/block/definitionStep.test.ts": "ccc255b2bd7f0ad3cd44924c56723c3998dd868f7211bee78322def3d1904cde",
+    "packages/foldkit/src/block/delivery.ts": "33e2a837183fa0f09aad0a5355b9d50b18d3b40c8f0d39578216aeffcd09fa2d",
+    "packages/foldkit/src/block/focusedStep.ts": "ec30d2ccd4a4cb1c88b29bcc4eec78b976c70722908440e94a886397467d543a",
+    "packages/foldkit/src/test/apps/interactions.ts": "9f10d7996caccc0ce09cc5939bf6f7065bb19a1a91dc4d037fcfaa3834f97ea5",
+    "packages/foldkit/src/test/scene.test.ts": "940c390f2910e998295794208c834dd45587cfad661006e1b5256bb519f96105",
+    "packages/foldkit/src/test/scene.ts": "e471849a55d46a932d49beff0cfddd62f9c06957045e4807c40375db5b4ef617",
+    "packages/website/src/page/core/block.md": "6ff505f4ac0e94ed8c988b4c1f975d54b6c7990b717fc704fcf37403ac99b9b6",
+    "packages/website/src/page/core/update.md": "8cb0fda8fc7ebfe8f1abee42269016a8c8e76995592ffe122ab185600dedbe85",
+    "packages/website/src/page/previewUpgrade.md": "c5e22c0f0c51e97b34205751db1fa57244a06259ef1a4be1d9ce374afa157715",
+    "packages/website/src/page/testingScene.md": "86928e8b90a574a560fdc9f01894c3fb5a9b04636345db6f996b459d8e87b138",
+    "packages/website/src/snippet/blockMessageStepProducers.ts": "ce8b343367eac5e748235bd7b2ccb9e07b802e555afb241b0392fc7a7014421e",
+    "packages/website/src/snippet/sceneApi.ts": "b49e79b3da4bfe8227df0ae4f230e23984de25ec610d1f5f91f725b6d5670c04",
+    "packages/website/src/snippet/sceneInteractions.ts": "908347225933910710002324aed8ed0f0098bf6b24c5e35e55db0e564e8a27e4",
+    "skills/audit-program/SKILL.md": "bffda8a206dda544e418b3b70bb077af4ba2b01cf6f336338202eac926827e8d",
+    "skills/foldkit/references/composition.md": "8889e6965b93c9097abdbd5aeb930f74903319034fc0a357124babe23a486f76",
+    "skills/generate-program/SKILL.md": "32546bd6b2db6d60dc061c2bb3ac53809124ed2ebdea6e94380ad870e71b5ab1"
+  },
+  "status": "ImplementedPublicationHeld",
+  "deferredUntilAfterMergeToMain": [1662, 1663],
+  "verification": {
+    "sourceAndRelocatedDeclarationsTS7": true,
+    "nativeCompletionAndCompilerDiagnostics": true,
+    "typescript6Source": true,
+    "typescript6ConsumptionOfTS7Declarations": true,
+    "stepAndRecordTests": 11,
+    "sceneTests": 786,
+    "consumerSourceChecks": ["Website", "Workspace", "Typing Game", "UI"],
+    "compilerCeilingsUnchanged": true,
+    "finalNativeSessions": 18,
+    "supplementaryColdSessions": 6,
+    "inferenceMutation": true,
+    "unhoverMutation": true
+  },
+  "priorDaybreak": {
+    "source": "564adb49e908b3baf4c2e1855c8c6d67631b0c95",
+    "coversThisFollowup": false
+  },
+  "publicationAuthorized": false
+}

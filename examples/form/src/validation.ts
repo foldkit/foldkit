@@ -14,7 +14,7 @@ const emailRules = makeRules({
 export const validateName = validate(nameRules)
 export const validateEmail = validate(emailRules)
 
-export const isFormValid = (model: typeof Model.Type): boolean =>
+export const isFormValid = (model: Model): boolean =>
   allValid([
     [model.name, nameRules],
     [model.email, emailRules],

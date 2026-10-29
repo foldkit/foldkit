@@ -1,7 +1,6 @@
 import { Array, HashMap, Option, Record, Schema, Tuple } from 'effect'
 import { Block, Message, Struct } from 'foldkit'
-import { initAndInsert } from 'foldkit/bindingInit'
-import { makeMapBinding } from 'foldkit/mapBinding'
+import { initAndInsert, makeInitIfMissingStep } from 'foldkit/bindingInit'
 
 import {
   ChildBlock,
@@ -12,6 +11,7 @@ import {
   ParentModel,
   RowsByIdBinding,
   firstId,
+  initRecordIfMissingStep,
   insertRecord,
   model,
 } from './insert-initialization.accepted.js'
@@ -64,7 +64,7 @@ MissingComposition.prepareBlock({
   init: MissingComposition.makeInit(() => ({ model })),
   update: missingUpdate,
 })
-const ForeignBinding = makeMapBinding(ParentDefinition, ChildBlock, {
+const ForeignBinding = ParentDefinition.makeMapBinding(ChildBlock, {
   field: 'childrenById',
   placement: 'foreign',
 }).withOutMessagePolicy({ fold: () => ParentDefinition.makeNoopStep() })
@@ -129,10 +129,10 @@ const GeneralBinding = OtherDefinition.makeBinding(ChildBlock, {
 })
 // @ts-expect-error General keyed accessors do not declare map storage.
 initAndInsert(GeneralBinding, otherModel, { key: firstId, args: [1] })
-const FirstMapBinding = makeMapBinding(OtherDefinition, ChildBlock, {
+const FirstMapBinding = OtherDefinition.makeMapBinding(ChildBlock, {
   field: 'children',
 })
-const SecondMapBinding = makeMapBinding(OtherDefinition, ChildBlock, {
+const SecondMapBinding = OtherDefinition.makeMapBinding(ChildBlock, {
   field: 'otherChildren',
 })
 const ambiguousBinding =
@@ -150,7 +150,7 @@ const HashDefinition = Block.makeDefinition('HashInsertParent', {
   Model: HashModel,
   Message: Message.defineMessageUnion({}),
 })
-const HashBinding = makeMapBinding(HashDefinition, ChildBlock, {
+const HashBinding = HashDefinition.makeMapBinding(ChildBlock, {
   field: 'children',
 })
 const hashModel = HashModel.make({ children: HashMap.empty() })
@@ -165,3 +165,66 @@ const WrongOwner = Block.makeDefinition('WrongInsertOwner', {
 const wrongInit = WrongOwner.makeInit(() => recipe)
 // @ts-expect-error A different Composition cannot interpret the recipe.
 WrongOwner.prepareBlock({ init: wrongInit, update: WrongOwner.makeUpdate({}) })
+
+// @ts-expect-error The exact branded Record key is required.
+makeInitIfMissingStep(ChildrenByIdBinding, { key: 'first', args: [1] })
+// @ts-expect-error The first child init argument is required.
+makeInitIfMissingStep(ChildrenByIdBinding, { key: firstId, args: [] })
+// @ts-expect-error The required child init argument remains numeric.
+makeInitIfMissingStep(ChildrenByIdBinding, { key: firstId, args: ['wrong'] })
+makeInitIfMissingStep(ChildrenByIdBinding, {
+  key: firstId,
+  // @ts-expect-error The child init rest arguments remain strings.
+  args: [1, 'valid', 2],
+})
+// @ts-expect-error Parent Commands cannot be appended by this focused helper.
+makeInitIfMissingStep(ChildrenByIdBinding, commandsConfig)
+// @ts-expect-error The Binding owns the insertion writer.
+makeInitIfMissingStep(ChildrenByIdBinding, writerConfig)
+// @ts-expect-error Wrapped map values keep an explicit parent-owned writer.
+makeInitIfMissingStep(RowsByIdBinding, { key: firstId, args: [1] })
+// @ts-expect-error Direct fields do not prove map storage.
+makeInitIfMissingStep(DirectBinding, { key: firstId, args: [1] })
+// @ts-expect-error Option fields do not prove map storage.
+makeInitIfMissingStep(OptionalBinding, { key: firstId, args: [1] })
+// @ts-expect-error Custom accessors do not prove map storage.
+makeInitIfMissingStep(AccessorBinding, { key: firstId, args: [1] })
+// @ts-expect-error General keyed accessors do not prove map storage.
+makeInitIfMissingStep(GeneralBinding, { key: firstId, args: [1] })
+// @ts-expect-error One concrete Binding determines the key and init tuple.
+makeInitIfMissingStep(ambiguousBinding, { key: firstId, args: [1] })
+// @ts-expect-error A broad Binding does not prove map storage.
+makeInitIfMissingStep(erasedBinding, { key: firstId, args: [1] })
+declare const anyBinding: any
+// @ts-expect-error Any cannot establish a concrete Binding contract.
+makeInitIfMissingStep(anyBinding, { key: firstId, args: [1] })
+declare const impossibleBinding: never
+// @ts-expect-error Never cannot establish a concrete Binding contract.
+makeInitIfMissingStep(impossibleBinding, { key: firstId, args: [1] })
+// @ts-expect-error HashMap keys retain the exact numeric Schema key.
+makeInitIfMissingStep(HashBinding, { key: firstId, args: [1] })
+// @ts-expect-error Applying the Step requires the registered graph, even for an existing key.
+const uncheckedInitialization = initRecordIfMissingStep(model)
+// @ts-expect-error The connected result exposes no Model projection.
+uncheckedInitialization.model
+// @ts-expect-error The connected result exposes no Commands projection.
+uncheckedInitialization.commands
+
+const missingInitializationUpdate = MissingComposition.makeUpdate({
+  // @ts-expect-error The Step's Model input requires its registered Binding.
+  RequestedInsert: initRecordIfMissingStep,
+})
+// @ts-expect-error Reuse and initialization both retain the required Binding registration.
+MissingComposition.prepareBlock({
+  init: MissingComposition.makeInit(() => ({ model })),
+  update: missingInitializationUpdate,
+})
+const foreignInitializationUpdate = ForeignComposition.makeUpdate({
+  // @ts-expect-error A foreign graph cannot execute this Step.
+  RequestedInsert: initRecordIfMissingStep,
+})
+// @ts-expect-error Registering a different placement does not satisfy the Step.
+ForeignComposition.prepareBlock({
+  init: ForeignComposition.makeInit(() => ({ model })),
+  update: foreignInitializationUpdate,
+})

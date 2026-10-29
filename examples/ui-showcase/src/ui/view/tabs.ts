@@ -11,7 +11,7 @@ import {
 import type { UiViewBuilder } from '../composition'
 import type { DemoTab } from '../domain'
 
-const demoTabs: ReadonlyArray<typeof DemoTab.Type> = ['Foldkit', 'React', 'Elm']
+const demoTabs: ReadonlyArray<DemoTab> = ['Foldkit', 'React', 'Elm']
 
 const horizontalButtonClassName =
   'px-4 py-2 text-base font-normal cursor-pointer transition rounded-t-lg border border-gray-200 bg-gray-100 text-gray-500 hover:text-gray-700 hover:bg-gray-50 mb-[-1px] data-[selected]:relative data-[selected]:z-10 data-[selected]:bg-white data-[selected]:text-gray-900 data-[selected]:border-b-0'
@@ -88,7 +88,7 @@ const elmPanel = (h: UiViewBuilder) => {
   )
 }
 
-const panelFor = (tab: typeof DemoTab.Type, h: UiViewBuilder) =>
+const panelFor = (tab: DemoTab, h: UiViewBuilder) =>
   Match.value(tab).pipe(
     Match.when('Foldkit', () => foldkitPanel(h)),
     Match.when('React', () => reactPanel(h)),
@@ -101,7 +101,7 @@ export const view = UiComposition.makeView((model, h) => {
     tablist,
     tabs,
     activeIndex,
-  }: RenderInfo<typeof DemoTab.Type>): Html =>
+  }: RenderInfo<DemoTab>): Html =>
     h.div(
       [],
       [
@@ -129,7 +129,7 @@ export const view = UiComposition.makeView((model, h) => {
     tablist,
     tabs,
     activeIndex,
-  }: RenderInfo<typeof DemoTab.Type>): Html =>
+  }: RenderInfo<DemoTab>): Html =>
     h.div(
       [h.Class('flex')],
       [

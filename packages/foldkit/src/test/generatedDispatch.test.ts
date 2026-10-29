@@ -12,11 +12,13 @@ import * as Story from './story.js'
 const constructHandler = vi.fn()
 const executeHandler = vi.fn()
 const ChildModel = Schema.Struct({ count: Schema.Number })
+type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({
   RequestedReadCount: {},
   CompletedReadCount: { count: Schema.Number },
   ObservedCount: { count: Schema.Number },
 })
+type ChildMessage = typeof ChildMessage.Type
 const ChildDefinition = makeDefinition('GeneratedSimulationChild', {
   Model: ChildModel,
   Message: ChildMessage,
@@ -81,7 +83,9 @@ const ChildBlock: Block.FromAssemblyWithView<
 > = Block.assemble(prepareChildBlock)
 
 const ParentModel = Schema.Struct({ child: ChildBlock.Model })
+type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({ RequestedRefresh: {} })
+type ParentMessage = typeof ParentMessage.Type
 const ParentDefinition = makeDefinition('GeneratedSimulationParent', {
   Model: ParentModel,
   Message: ParentMessage,
@@ -109,7 +113,9 @@ const ParentBlock: Block.FromAssemblyWithView<
 > = Block.assemble(prepareParentBlock)
 
 const Model = Schema.Struct({ parent: ParentBlock.Model })
+type Model = typeof Model.Type
 const Message = defineMessageUnion({ RequestedRefresh: {} })
+type Message = typeof Message.Type
 const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,

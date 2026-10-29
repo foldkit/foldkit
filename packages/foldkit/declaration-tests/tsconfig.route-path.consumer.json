@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": { "noEmit": true, "rootDir": ".." },
+  "include": [
+    "route-path.accepted.ts",
+    "route-path.consume.ts",
+    "route-path.rejected.ts"
+  ]
+}

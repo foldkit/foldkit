@@ -16,10 +16,12 @@ class StartupClient extends Context.Service<
 >()('StartupDefaults/StartupClient') {}
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
+type ChildModel = typeof ChildModel.Type
 
 const ChildMessage = defineMessageUnion({
   CompletedInitialization: { count: Schema.Number },
 })
+type ChildMessage = typeof ChildMessage.Type
 
 const Child = makeDefinition('StartupDefaultsChild', {
   Model: ChildModel,
@@ -163,6 +165,7 @@ const RequiredChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
 > = Block.assemble(prepareRequiredChildBlock)
 
 const Entry = Schema.Struct({ id: Schema.String, child: ChildModel })
+type Entry = typeof Entry.Type
 const ChildInitContext = Schema.Struct({
   count: Schema.Number,
   includeOptional: Schema.Boolean,
@@ -186,6 +189,7 @@ const ParentMessage = defineMessageUnion({
   CompletedParentInitialization: {},
   CompletedParentStep: {},
 })
+type ParentMessage = typeof ParentMessage.Type
 const Parent = makeDefinition('StartupDefaultsParent', {
   Model: ParentModel,
   Message: ParentMessage,
@@ -278,7 +282,7 @@ const applyParentStep = Parent.makeStep(model => ({
   model: modifyFields(model, { status: () => 'Stepped' }),
   commands: [FinishParentStep()],
 }))
-const initialize = ParentComposition.makeInit(
+const init = ParentComposition.makeInit(
   (childInitContext: ChildInitContext) => ({
     childInitContext,
     model: {
@@ -293,7 +297,7 @@ const initialize = ParentComposition.makeInit(
 )
 const prepareParentBlock = () =>
   ParentComposition.prepareBlock({
-    init: initialize,
+    init,
     update: ParentComposition.makeUpdate({
       CompletedParentInitialization: model => ({ model }),
       CompletedParentStep: model => ({ model }),
@@ -338,17 +342,15 @@ type InitialRequirements =
       Command.HandlerOf<typeof FinishChildInitialization>
     >
 
-expectTypeOf<Parameters<typeof initialize>>().toEqualTypeOf<
+expectTypeOf<Parameters<typeof init>>().toEqualTypeOf<
   [childInitContext: ChildInitContext]
 >()
+expectTypeOf<ReturnType<typeof init>['model']>().toEqualTypeOf<ParentModel>()
 expectTypeOf<
-  ReturnType<typeof initialize>['model']
->().toEqualTypeOf<ParentModel>()
-expectTypeOf<
-  Update.RegistrationEvidenceOf<ReturnType<typeof initialize>>
+  Update.RegistrationEvidenceOf<ReturnType<typeof init>>
 >().toEqualTypeOf<InitialRegistration>()
 expectTypeOf<
-  Update.RequirementsOf<typeof initialize>
+  Update.RequirementsOf<typeof init>
 >().toEqualTypeOf<InitialRequirements>()
 expectTypeOf<
   Layer.Services<typeof ParentBlock.EffectsLayer>
@@ -412,6 +414,7 @@ if (false) {
 }
 
 const ExactStartupModel = Schema.Struct({ child: ChildModel })
+type ExactStartupModel = typeof ExactStartupModel.Type
 const ExactStartupNamespace = makeNamespace('StartupDefaultsExact')
 const ExactStartupDefinition = ExactStartupNamespace.makeDefinition({
   Model: ExactStartupModel,
@@ -444,6 +447,7 @@ const ZeroParameterStartupComposition = ExactStartupDefinition.makeComposition({
 ZeroParameterStartupComposition.makeInit(() => ({ model: {} }))
 
 const ForeignChildInitContext = Schema.Struct({ token: Schema.String })
+type ForeignChildInitContext = typeof ForeignChildInitContext.Type
 const ForeignStartupDefinition = ExactStartupNamespace.makeDefinition({
   Model: ExactStartupModel,
   Message: Schema.Never,
@@ -488,7 +492,7 @@ it('initializes required direct fields by default and leaves opt-out storage par
   effects.constructorBuilds = 0
   effects.commandExecutions = 0
 
-  const initialized = initialize({
+  const initialized = init({
     count: 3,
     includeOptional: true,
     entryIds: ['first', 'second'],

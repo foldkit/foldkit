@@ -44,6 +44,7 @@ const PointerOrigin = Schema.Struct({
   screenY: Schema.Number,
   timeStamp: Schema.Number,
 })
+type PointerOrigin = typeof PointerOrigin.Type
 
 /** Schema for the menu component's state, tracking open/closed status, active item, activation trigger, and typeahead search. */
 export const Model = Schema.Struct({
@@ -62,7 +63,6 @@ export const Model = Schema.Struct({
   maybeLastButtonPointerType: Schema.Option(Schema.String),
   maybePointerOrigin: Schema.Option(PointerOrigin),
 })
-
 export type Model = typeof Model.Type
 
 // MESSAGE
@@ -116,7 +116,6 @@ export const Message = defineMessageUnion({
     timeStamp: Schema.Number,
   },
 })
-
 export type Message = typeof Message.Type
 export type RequestedOpen = typeof Message.RequestedOpen.Type
 export type RequestedClose = typeof Message.RequestedClose.Type
@@ -151,7 +150,7 @@ export type Selected<Value extends string = string> = Readonly<{
 }>
 
 /** Generic over `Value extends string` so consumers using the typed
- *  `Menu.create<MyUnion>()` factory receive `value: MyUnion` in the
+ *  `Menu.makeBlock<MyUnion>()` factory receive `value: MyUnion` in the
  *  `Selected` OutMessage. `Closed` reports a non-selection transition from
  *  open to closed. Defaults to `string`. */
 export type OutMessage<Value extends string = string> =
@@ -888,7 +887,7 @@ const itemId = (id: string, index: number): string => `${id}-item-${index}`
 
 /** Headless menu view with typeahead search, keyboard navigation,
  *  and aria-activedescendant focus management. Obtained from
- *  `Menu.create<MyItem>().view`; not exported directly. */
+ *  `Menu.makeBlock<MyItem>().view`; not exported directly. */
 type ViewForItem<Item extends string> = Block.View<
   Model,
   Message,
@@ -1492,7 +1491,7 @@ export interface Completed<
   BlockParts<Item>['implementation']
 > {}
 
-const makeBlock = <Item extends string>(): Completed<Item> => {
+const assembleBlock = <Item extends string>(): Completed<Item> => {
   const { composition, implementation } = makeBlockParts<Item>()
 
   const prepare = () => composition.prepareBlock(implementation)
@@ -1506,8 +1505,8 @@ const makeBlock = <Item extends string>(): Completed<Item> => {
 
 /**
  * Creates a completed Menu Block refined to one Item type. Declare
- * `Menu.create<Action>()` once at module scope, then connect that Block to
+ * `Menu.makeBlock<Action>()` once at module scope, then connect that Block to
  * the parent. Its view inputs and `Selected.value` share the Item type.
  */
-export const create = <Item extends string = string>(): Completed<Item> =>
-  makeBlock<Item>()
+export const makeBlock = <Item extends string = string>(): Completed<Item> =>
+  assembleBlock<Item>()

@@ -20,7 +20,6 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({
   ClickedSection: { section: Section },
 })
-
 type Message = typeof Message.Type
 
 const update = (model: Model, message: Message) =>

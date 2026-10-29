@@ -22,7 +22,7 @@ export const SaveCanvas = ApplicationDefinition.makeCommand('SaveCanvas', {
 
     return ({ grid, gridSize, paletteThemeIndex, selectedColorIndex }) =>
       Effect.gen(function* () {
-        const data: typeof SavedCanvas.Type = {
+        const data: SavedCanvas = {
           grid,
           gridSize,
           paletteThemeIndex,
@@ -37,7 +37,7 @@ export const SaveCanvas = ApplicationDefinition.makeCommand('SaveCanvas', {
   },
 })
 
-export const saveCanvas = (model: typeof Model.Type) =>
+export const saveCanvas = (model: Model) =>
   SaveCanvas({
     grid: model.grid,
     gridSize: model.gridSize,

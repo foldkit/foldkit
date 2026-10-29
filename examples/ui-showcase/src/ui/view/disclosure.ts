@@ -8,6 +8,8 @@ import { UiComposition } from '../composition'
 import type { UiViewBuilder } from '../composition'
 import { Message } from '../message'
 
+type UiMessage = typeof UiComposition.Message.Type
+
 const DISCLOSURE_BASIC_DEMO_ID = 'disclosure-basic-demo'
 const DISCLOSURE_ANIMATED_DEMO_ID = 'disclosure-animated-demo'
 const DISCLOSURE_COLLAPSED_PREVIEW_DEMO_ID = 'disclosure-collapsed-preview-demo'
@@ -68,9 +70,7 @@ const subheading = (text: string, h: UiViewBuilder) => {
 
 export const view = UiComposition.makeView((model, h) => {
   const basicDisclosureView = (
-    attributes: Disclosure.DisclosureAttributes<
-      typeof UiComposition.Message.Type
-    >,
+    attributes: Disclosure.DisclosureAttributes<UiMessage>,
   ): Html =>
     h.div(
       [],
@@ -99,9 +99,7 @@ export const view = UiComposition.makeView((model, h) => {
     )
 
   const animatedDisclosureView = (
-    attributes: Disclosure.DisclosureAttributes<
-      typeof UiComposition.Message.Type
-    >,
+    attributes: Disclosure.DisclosureAttributes<UiMessage>,
   ): Html =>
     h.div(
       [h.Class('border border-gray-300 rounded-lg overflow-hidden')],
@@ -131,9 +129,7 @@ export const view = UiComposition.makeView((model, h) => {
     button,
     panel,
     animatePanel,
-  }: Disclosure.DisclosureAttributes<
-    typeof UiComposition.Message.Type
-  >): Html =>
+  }: Disclosure.DisclosureAttributes<UiMessage>): Html =>
     h.article(
       [
         h.Class(

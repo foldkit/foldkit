@@ -14,15 +14,15 @@ A Listbox over a literal-union `Plan` type:
 
 ::Snippet{name="uiListboxBasic" label="Typed Listbox"}
 
-## The `create` Factory {#create-factory}
+## Make a typed Block {#make-block-factory}
 
-A call to `Listbox.create<Plan>()` returns a completed Block whose entry points are all bound to `Plan`. Its view accepts `items: ReadonlyArray<Plan>`. Its update and public `requestSelectItem` operation can return a `Selected` OutMessage carrying a `Plan`. Declare the factory once at module scope and use the same Block at every site that needs it.
+A call to `Listbox.makeBlock<Plan>()` returns a completed Block whose entry points are all bound to `Plan`. Its view accepts `items: ReadonlyArray<Plan>`. Its update and public `requestSelectItem` operation can return a `Selected` OutMessage carrying a `Plan`. Declare the factory once at module scope and use the same Block at every site that needs it. Construction is passive. The Block's `init` creates each occurrence's initial Model and Commands.
 
 There is no inbound inform operation for the selection: the parent owns it outright and passes it in as `maybeSelectedValue` (`selectedValues` for multi-select), so there is no child Model field to update. When an external value changes the selection, the parent writes its own field. Components that store parent-provided configuration provide Message-producing operations instead: Calendar and DatePicker provide `informMinDateChanged`, `informMaxDateChanged`, `informDisabledDatesChanged`, and `informDisabledDaysOfWeekChanged`; Slider provides `informRangeChanged`. See [Informing a child about external state](/core/block#informing-external-state).
 
 ## Naming What a Factory Returns {#completed-type}
 
-Each component subpath exports a `Completed` type for what its factory returns. `Completed<Plan>` from `@foldkit/ui/listbox` is what `Listbox.create<Plan>()` produces. The Combobox, multi-select Listbox and Combobox, Tabs, Menu, and RadioGroup subpaths expose their corresponding `Completed` types.
+Each component subpath exports a `Completed` type for what its factory returns. `Completed<Plan>` from `@foldkit/ui/listbox` is what `Listbox.makeBlock<Plan>()` produces. The Combobox, multi-select Listbox and Combobox, Tabs, Menu, and RadioGroup subpaths expose their corresponding `Completed` types.
 
 ### When to Name the Completed Block
 
@@ -60,20 +60,20 @@ Each generic selection Block has a root factory export. Its inputs differ by wha
 
 ### Listbox
 
-`Listbox.create<Item, Value>()` takes two type parameters, or `Listbox.create<Item>()` when relying on the default. `Item` is the shape of the items the consumer supplies. `Value` is the shape of the value the OutMessage carries; it defaults to `Item` when `Item extends string`, else `string`. The two-parameter shape supports object-typed items via an `itemToValue` callback that extracts the stringy identifier from each `Item`.
+`Listbox.makeBlock<Item, Value>()` takes two type parameters, or `Listbox.makeBlock<Item>()` when relying on the default. `Item` is the shape of the items the consumer supplies. `Value` is the shape of the value the OutMessage carries; it defaults to `Item` when `Item extends string`, else `string`. The two-parameter shape supports object-typed items via an `itemToValue` callback that extracts the stringy identifier from each `Item`.
 
-`Listbox.Multi.create<Item, Value>()` (or `Listbox.Multi.create<Item>()`) is the multi-select variant. Same type-parameter shape; the `Selected` OutMessage carries only the activated `value`, and the parent toggles that value in and out of the selection it owns.
+`Listbox.Multi.makeBlock<Item, Value>()` (or `Listbox.Multi.makeBlock<Item>()`) is the multi-select variant. Same type-parameter shape; the `Selected` OutMessage carries only the activated `value`, and the parent toggles that value in and out of the selection it owns.
 
 ### Combobox
 
-`Combobox.create(Item)` takes one string Schema, such as `Combobox.create(City)`. Combobox items may be a literal union, a branded string Schema, or plain `Schema.String`.
+`Combobox.makeBlock(Item)` takes one string Schema, such as `Combobox.makeBlock(City)`. Combobox items may be a literal union, a branded string Schema, or plain `Schema.String`.
 
-`Combobox.Multi.create(Item)` is the multi-select variant. It takes the same Schema shape; the `Selected` OutMessage carries only the activated `value`, and the parent toggles that value in and out of the selection it owns.
+`Combobox.Multi.makeBlock(Item)` is the multi-select variant. It takes the same Schema shape; the `Selected` OutMessage carries only the activated `value`, and the parent toggles that value in and out of the selection it owns.
 
 ### Tabs
 
-`Tabs.create<Value>()` takes one type parameter, `Value extends string`. The view accepts `ReadonlyArray<Value>` as its tab list (a literal union `Value` is assignable to `string`), and the OutMessage carries both the picked `value: Value` and its `index: number`. The single parameter is enough because Tabs values are always inline strings; there is no object form.
+`Tabs.makeBlock<Value>()` takes one type parameter, `Value extends string`. The view accepts `ReadonlyArray<Value>` as its tab list (a literal union `Value` is assignable to `string`), and the OutMessage carries both the picked `value: Value` and its `index: number`. The single parameter is enough because Tabs values are always inline strings; there is no object form.
 
 ### Menu
 
-`Menu.create<Item>()` takes one type parameter, `Item extends string`. The view accepts `ReadonlyArray<Item>` as its menu items, and the OutMessage carries both the picked `value: Item` and its `index: number`. The picked value arrives directly in the OutMessage, so consumers no longer need to look it up from their own items array.
+`Menu.makeBlock<Item>()` takes one type parameter, `Item extends string`. The view accepts `ReadonlyArray<Item>` as its menu items, and the OutMessage carries both the picked `value: Item` and its `index: number`. The picked value arrives directly in the OutMessage, so consumers no longer need to look it up from their own items array.

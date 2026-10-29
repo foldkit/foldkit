@@ -78,6 +78,12 @@ export const Child: Block.FromAssemblyWithView<typeof Model, typeof constructHea
 `
 const parent = `export const Parent = Schema.Struct({ child: Child.Model })`
 
+const withExtractedCompositionFactory = (source: string) =>
+  source.replace(
+    "const Composition = Block.makeDefinition('Child', { Model, Message: Schema.Never }).makeComposition()",
+    "const Definition = Block.makeDefinition('Child', { Model, Message: Schema.Never })\nconst { makeComposition: makeGraph } = Definition\nconst Composition = makeGraph()",
+  )
+
 const rejectedBoundaries = [
   [
     'any-return',
@@ -191,6 +197,101 @@ describe('precise serialization boundaries through real oxlint', () => {
     expect(diagnosticsFor('local', exactBoundary + parent)).toEqual([])
   })
 
+  it('accepts a Composition built through a destructured Definition helper', () => {
+    expect(
+      diagnosticsFor(
+        'extracted-composition',
+        withExtractedCompositionFactory(exactBoundary) + parent,
+      ),
+    ).toEqual([])
+  })
+
+  it('accepts a Composition built through an inferred property alias', () => {
+    const source = withExtractedCompositionFactory(exactBoundary).replace(
+      'const { makeComposition: makeGraph } = Definition',
+      'const makeGraph = Definition.makeComposition',
+    )
+
+    expect(diagnosticsFor('property-factory', source + parent)).toEqual([])
+  })
+
+  it.each([
+    'const { makeComposition: makeGraph }: any = Definition',
+    'const { makeComposition: makeGraph } = Definition as any',
+    'const makeGraph: any = Definition.makeComposition',
+    'const makeGraph = Definition.makeComposition as any',
+    'const factory = Definition.makeComposition\nconst makeGraph: any = factory',
+    'const factory = Definition.makeComposition\nconst makeGraph = factory as any',
+  ])(
+    'rejects a widened factory locally and through an import: %s',
+    declaration => {
+      const source = withExtractedCompositionFactory(exactBoundary).replace(
+        'const { makeComposition: makeGraph } = Definition',
+        declaration,
+      )
+
+      expect(diagnosticsFor('widened-factory', source + parent)).toHaveLength(1)
+
+      writeFileSync(join(workDir, 'widened-factory-child.ts'), source)
+
+      expect(
+        diagnosticsFor(
+          'imported-widened-factory',
+          `import { Schema } from 'effect'\nimport { Child } from './widened-factory-child'\n${parent}`,
+        ),
+      ).toHaveLength(1)
+    },
+  )
+
+  it('follows an extracted Composition factory through a completed Block import', () => {
+    writeFileSync(
+      join(workDir, 'extracted-composition-child.ts'),
+      withExtractedCompositionFactory(exactBoundary),
+    )
+
+    expect(
+      diagnosticsFor(
+        'imported-extracted-composition',
+        `import { Schema } from 'effect'\nimport { Child } from './extracted-composition-child'\n${parent}`,
+      ),
+    ).toEqual([])
+  })
+
+  it('follows renamed factory exports through the sibling Definition and a barrel', () => {
+    writeFileSync(
+      join(workDir, 'helper-definition.ts'),
+      `import { Schema } from 'effect'
+import { Block } from 'foldkit'
+export const Model = Schema.Struct({ count: Schema.Number })
+const Definition = Block.makeDefinition('Child', { Model, Message: Schema.Never })
+export const { makeComposition: buildGraph } = Definition`,
+    )
+    writeFileSync(
+      join(workDir, 'helper-barrel.ts'),
+      "export { Model, buildGraph as createComposition } from './helper-definition'",
+    )
+
+    const source = exactBoundary
+      .replace(
+        'const Model = Schema.Struct({ count: Schema.Number })',
+        "import { Model, createComposition as makeGraph } from './helper-barrel'",
+      )
+      .replace(
+        "const Composition = Block.makeDefinition('Child', { Model, Message: Schema.Never }).makeComposition()",
+        'const Composition = makeGraph()',
+      )
+
+    writeFileSync(join(workDir, 'split-composition-child.ts'), source)
+
+    expect(diagnosticsFor('split-composition', source + parent)).toEqual([])
+    expect(
+      diagnosticsFor(
+        'imported-split-composition',
+        `import { Schema } from 'effect'\nimport { Child } from './split-composition-child'\n${parent}`,
+      ),
+    ).toEqual([])
+  })
+
   it('accepts aliased Foldkit type imports', () => {
     const source = exactBoundary
       .replace(
@@ -219,11 +320,11 @@ describe('precise serialization boundaries through real oxlint', () => {
 
   it('accepts explicit field mappings and a single return statement', () => {
     const source = exactBoundary
-      .replace('const init =', 'const initialize =')
-      .replace('readonly init: typeof init', 'readonly init: typeof initialize')
+      .replace('const init =', 'const initModel =')
+      .replace('readonly init: typeof init', 'readonly init: typeof initModel')
       .replace(
         '=>\n  Composition.prepareBlock({ init, update, view } satisfies Implementation)',
-        '=> { return Composition.prepareBlock({ init: initialize, update, view } satisfies Implementation) }',
+        '=> { return Composition.prepareBlock({ init: initModel, update, view } satisfies Implementation) }',
       )
     expect(diagnosticsFor('mapped-fields', source + parent)).toEqual([])
   })
@@ -241,6 +342,15 @@ describe('precise serialization boundaries through real oxlint', () => {
   for (const [name, source] of rejectedBoundaries) {
     it(`rejects ${name}`, () => {
       expect(diagnosticsFor(name, source + parent)).toHaveLength(1)
+    })
+
+    it(`rejects ${name} with an extracted Composition factory`, () => {
+      expect(
+        diagnosticsFor(
+          `extracted-${name}`,
+          withExtractedCompositionFactory(source) + parent,
+        ),
+      ).toHaveLength(1)
     })
   }
 

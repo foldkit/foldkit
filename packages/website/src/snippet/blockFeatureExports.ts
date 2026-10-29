@@ -26,7 +26,7 @@ import { Schema } from 'effect'
 import { SettingsBlock } from './page/settings'
 
 export const Model = Schema.Struct({ settings: SettingsBlock.Model })
-
+export type Model = typeof Model.Type
 // Parent composition.ts
 import { SettingsBlock } from './page/settings'
 

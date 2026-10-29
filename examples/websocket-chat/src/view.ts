@@ -65,7 +65,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
 }))
 
 const connectionStatusView = (
-  connection: typeof ConnectionState.Type,
+  connection: ConnectionState,
   h: ApplicationViewBuilder,
 ): Html =>
   h.div(
@@ -91,7 +91,7 @@ const connectionStatusView = (
   )
 
 const messagesView = (
-  messages: ReadonlyArray<typeof ChatMessage.Type>,
+  messages: ReadonlyArray<ChatMessage>,
   h: ApplicationViewBuilder,
 ): Html =>
   Array.match(messages, {

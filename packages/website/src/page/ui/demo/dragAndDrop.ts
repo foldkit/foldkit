@@ -16,12 +16,14 @@ import { DragAndDropDemoBinding, type UiViewBuilder } from '../composition'
 import type { DemoCard, DemoColumn } from '../domain/domain'
 import type { Model } from '../model'
 
+type DragAndDropBlockModel = typeof DragAndDropBlock.Model.Type
+
 // HELPERS
 
 const findDraggedCard = (
-  columns: ReadonlyArray<typeof DemoColumn.Type>,
+  columns: ReadonlyArray<DemoColumn>,
   maybeItemId: Option.Option<string>,
-): Option.Option<typeof DemoCard.Type> =>
+): Option.Option<DemoCard> =>
   pipe(
     maybeItemId,
     Option.flatMap(itemId =>
@@ -37,10 +39,10 @@ const cardClassName =
   'rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 cursor-grab active:cursor-grabbing select-none transition-opacity'
 
 const cardView = (
-  card: typeof DemoCard.Type,
+  card: DemoCard,
   index: number,
   containerId: string,
-  dragAndDropModel: typeof DragAndDropBlock.Model.Type,
+  dragAndDropModel: DragAndDropBlockModel,
   draggable: RenderInfo['draggable'],
   h: UiViewBuilder,
 ): Html => {
@@ -68,9 +70,9 @@ const cardView = (
 }
 
 const columnView = (
-  columns: ReadonlyArray<typeof DemoColumn.Type>,
-  column: typeof DemoColumn.Type,
-  dragAndDropModel: typeof DragAndDropBlock.Model.Type,
+  columns: ReadonlyArray<DemoColumn>,
+  column: DemoColumn,
+  dragAndDropModel: DragAndDropBlockModel,
   draggable: RenderInfo['draggable'],
   h: UiViewBuilder,
 ): Html => {
@@ -141,8 +143,8 @@ const columnView = (
 }
 
 const renderColumn = (
-  column: typeof DemoColumn.Type,
-  dragAndDropModel: typeof DragAndDropBlock.Model.Type,
+  column: DemoColumn,
+  dragAndDropModel: DragAndDropBlockModel,
   children: ReadonlyArray<Html>,
   h: UiViewBuilder,
 ): Html => {
@@ -180,8 +182,8 @@ const renderColumn = (
 }
 
 const ghostView = (
-  columns: ReadonlyArray<typeof DemoColumn.Type>,
-  dragAndDropModel: typeof DragAndDropBlock.Model.Type,
+  columns: ReadonlyArray<DemoColumn>,
+  dragAndDropModel: DragAndDropBlockModel,
 ): Html => {
   const maybeItemId = maybeDraggedItemId(dragAndDropModel)
 
@@ -209,10 +211,7 @@ const ghostView = (
   )
 }
 
-export const demo = (
-  model: typeof Model.Type,
-  h: UiViewBuilder,
-): ReadonlyArray<Html> => {
+export const demo = (model: Model, h: UiViewBuilder): ReadonlyArray<Html> => {
   return [
     h.block(
       DragAndDropDemoBinding.embedView({

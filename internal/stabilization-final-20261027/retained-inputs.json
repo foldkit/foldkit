@@ -1,0 +1,132 @@
+{
+  "sourceCommit": "93c49c77b6d25d9f0aa8213135bb629c1a3e1ff4",
+  "records": [
+    {
+      "source": "/private/tmp/foldkit-stabilization-1810-final-verification-20261027/gates.json",
+      "sha256": "033fa07b40eb28ac208feac5405f5a5a9d2e4a54052b16e3ffb4785c0fdd8c01"
+    },
+    {
+      "source": "/private/tmp/foldkit-stabilization-1810-final-metadata-20261027/summary.json",
+      "sha256": "8ac00f8e1a38f91572d94cb13620c1c02038590a89fea6a7571c854816c4be58"
+    },
+    {
+      "source": "/private/tmp/foldkit-stabilization-1810-final-metadata-20261027/workspace-declarations/results.json",
+      "sha256": "03596d0c391e732d5f7d6e5214b3b58b7cbdfd21158c110a75f95303ca44ab7b"
+    },
+    {
+      "source": "/private/tmp/foldkit-stabilization-1810-rehearsal-20261027/rehearsal-summary.json",
+      "sha256": "0dbf3602bdf305e89a57defd7f671c4e356f9d0d340e03107b727b8062e47908"
+    },
+    {
+      "source": "/private/tmp/foldkit-stabilization-1810-rehearsal-20261027/workspace-browser-results.json",
+      "sha256": "69fd02596201b38565bf51819a8ea191845cbbda39763bd72a1a519ff950fb2e"
+    },
+    {
+      "source": "/private/tmp/foldkit-stabilization-1810-rehearsal-20261027/workspace-suite-provenance.json",
+      "sha256": "6c17f4d28434ed33f6f09cfc3c58dd8dd76e8992eaaf8b0c7db4f6cbf094b4de"
+    },
+    {
+      "source": "/private/tmp/foldkit-stabilization-1810-rehearsal-20261027/installed-provenance.json",
+      "sha256": "f6ef9e0bb2cad7490c07eaed8a76cdd3e4688767e4bca766ce8625ff308aa15b"
+    },
+    {
+      "source": "/private/tmp/foldkit-stabilization-1810-rehearsal-20261027/artifacts.json",
+      "sha256": "88f0bc27571c06abc9c114fb2d4781cf77da3af2597804143ea1ec4c473683ae"
+    },
+    {
+      "source": "/private/tmp/foldkit-stabilization-1810-rehearsal-20261027/model-preservation-contract.json",
+      "sha256": "95d3d02e2585c8cb86809b1592b7264dde10d281d00419917c91106b6f6f6120"
+    },
+    {
+      "source": "/private/tmp/foldkit-stabilization-1810-final-verification-20261027/security/run-status.json",
+      "sha256": "fffb2265fe9a3509171b1942337075f9f4fb1a24167c827a0ee8c53322a029bc"
+    },
+    {
+      "source": "/private/tmp/foldkit-stabilization-1810-final-verification-20261027/security/frozen-source.json",
+      "sha256": "0183b444ecb26df75b2c3aba18ca9a39668850d27607245099806f7b98d009b5"
+    },
+    {
+      "source": "/private/tmp/foldkit-stabilization-1810-final-verification-20261027/security/review-delta.patch",
+      "sha256": "ef933fb64b99e0fb973ab2b6d6a72bb22c38240aba0cd1fdc6ae67f0a3f43ce3"
+    },
+    {
+      "source": "/private/tmp/foldkit-stabilization-1810-final-verification-20261027/security/daybreak-report.md",
+      "sha256": "c0efcee88c440c0816f62bbd13060f9f5745777f0430a1fd7f7122e4d761bf4b"
+    },
+    {
+      "source": "/private/tmp/foldkit-preview-stabilization-20261027/issue1810-independent-review.md",
+      "sha256": "706be701494743d4c8e1b27f93d86a869a837570bf3dc566e4ee4c8c6f2f9ded"
+    },
+    {
+      "source": "/private/tmp/foldkit-stabilization-1810-performance-20261027/compact-evidence.json",
+      "sha256": "290c916904d9d4d542ea9a04dc65bb5310b85c9621cb869e5899ea74f7b1f8e7"
+    },
+    {
+      "source": "/private/tmp/foldkit-stabilization-1810-performance-20261027/summary.json",
+      "sha256": "646dad2bf78b07f222adb94ec98a401f8a342cf65db2b90bd274d9f4aa5d8636"
+    },
+    {
+      "source": "/private/tmp/foldkit-stabilization-1810-performance-20261027/final-report.md",
+      "sha256": "ad84a04618fd94734da3a200f6b1ca500478b54d53da1ce4126d1f05b3f59566"
+    },
+    {
+      "source": "/private/tmp/foldkit-stabilization-1810-performance-20261027/lustre-raw-results.json",
+      "sha256": "0f91ca091662e83a05bdb36d3f4a40fcd13b076664053c0e67fbeb8a57b755b1"
+    },
+    {
+      "source": "/private/tmp/foldkit-stabilization-1810-performance-20261027/source-manifest.json",
+      "sha256": "a4db57e5923f072333c14d3c5c30d2542747f05e4827b3711479efea242873c4"
+    },
+    {
+      "source": "/private/tmp/foldkit-stabilization-1810-performance-20261027/artifact-control.json",
+      "sha256": "35a5ef45899d212e57419be8f83431283128ae1b38de26402ffb39a0acfb12e3"
+    },
+    {
+      "source": "/private/tmp/foldkit-stabilization-1810-performance-20261027/declaration-identity-control.json",
+      "sha256": "cb6f1e1341352075d01d78e4eaa5f2f7d68078b7cf3014d12827bac5dcf97b82"
+    }
+  ],
+  "scope": "Compact retained projections do not substitute their formatted byte hashes for original record identities. Original source pins and infrastructure failures remain separate.",
+  "retainedRecords": [
+    {
+      "file": "daybreak.txt",
+      "sha256": "c0efcee88c440c0816f62bbd13060f9f5745777f0430a1fd7f7122e4d761bf4b",
+      "bytes": 2689
+    },
+    {
+      "file": "feedback-refresh.json",
+      "sha256": "a3175e8587a92dde56fa0ac30bbf2754a536a498a15d68958ab2d317129a5fd4",
+      "bytes": 5735
+    },
+    {
+      "file": "independent-review.txt",
+      "sha256": "706be701494743d4c8e1b27f93d86a869a837570bf3dc566e4ee4c8c6f2f9ded",
+      "bytes": 4750
+    },
+    {
+      "file": "issue1810.json",
+      "sha256": "ca9feab3aab3302b07ebe39473cb3320e071802ae43d85dbc456d1d9ed3b3ab0",
+      "bytes": 20321
+    },
+    {
+      "file": "package-rehearsal.json",
+      "sha256": "008606ba57d9316fbd5c7f1ca582aee3271b2e5738c108c4c5b50e68247a3642",
+      "bytes": 51936
+    },
+    {
+      "file": "performance-report.txt",
+      "sha256": "ad84a04618fd94734da3a200f6b1ca500478b54d53da1ce4126d1f05b3f59566",
+      "bytes": 7411
+    },
+    {
+      "file": "performance.json",
+      "sha256": "2cda01da36bd783ba2c91c957a7ae2f310b3938176a0c27f00fb686628809f15",
+      "bytes": 185790
+    },
+    {
+      "file": "verification.json",
+      "sha256": "1117a6c008a6f191540e9e80e4d1307141de93f2b964e466c8470ce5d8441aa9",
+      "bytes": 20584
+    }
+  ]
+}

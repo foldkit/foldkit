@@ -4,12 +4,14 @@ import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 const Post = Schema.Struct({ id: Schema.String, title: Schema.String })
+type Post = typeof Post.Type
 
 const PostsData = AsyncData.Schema(Schema.Array(Post), Schema.String)
-
+type PostsData = typeof PostsData.schema.Type
 const Model = Schema.Struct({
   posts: PostsData.schema,
 })
+type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
   EnteredPostsRoute: {},
@@ -17,6 +19,7 @@ const Message = defineMessageUnion({
     result: Schema.Result(Schema.Array(Post), Schema.String),
   },
 })
+type Message = typeof Message.Type
 
 const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,

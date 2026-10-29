@@ -5,6 +5,7 @@ import { defineMessageUnion } from 'foldkit/message'
 const Message = defineMessageUnion({
   CompletedScrollPanel: {},
 })
+type Message = typeof Message.Type
 
 const ScrollPanel = Mount.define('ScrollPanel', {
   args: { initialScroll: Schema.Number },

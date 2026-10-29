@@ -11,3 +11,4 @@ export const Model = Schema.Struct({
   orderPlaced: Schema.Boolean,
   productsPage: Products.ProductsBlock.Model,
 })
+export type Model = typeof Model.Type

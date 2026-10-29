@@ -7,15 +7,18 @@ import { Combobox } from '@foldkit/ui'
 import { inputId as ComboboxInputId } from '@foldkit/ui/combobox'
 
 const City = Schema.Literals(['Johannesburg', 'Kyiv', 'Oxford', 'Wellington'])
+type City = typeof City.Type
 
-const CityCombobox = Combobox.create(City)
+const CityCombobox = Combobox.makeBlock(City)
 
 const Model = Schema.Struct({
   maybeCity: Schema.Option(City),
   combobox: CityCombobox.Model,
 })
+type Model = typeof Model.Type
 
 const Message = defineMessageUnion({})
+type Message = typeof Message.Type
 
 const CityPickerDefinition = Block.makeDefinition('CityPicker', {
   Model,
@@ -53,7 +56,7 @@ const init = CityPickerComposition.makeInit(() => ({
 
 const update = CityPickerComposition.makeUpdate({})
 
-const cities: ReadonlyArray<typeof City.Type> = [
+const cities: ReadonlyArray<City> = [
   'Johannesburg',
   'Kyiv',
   'Oxford',

@@ -24,12 +24,13 @@ const Model = Schema.Struct({
   maybeSelectedDate: Schema.Option(Calendar.CalendarDate),
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // Fetch `today` once at the app boundary via flags so init stays pure:
 const Flags = Schema.Struct({
   today: Calendar.CalendarDate,
   // ...your other flags
 })
+type Flags = typeof Flags.Type
 
 const flags = Effect.gen(function* () {
   const today = yield* Calendar.today.local
@@ -39,6 +40,7 @@ const flags = Effect.gen(function* () {
 // This excerpt has no parent-owned facts. DatePicker handles its Calendar and
 // Popover children internally, and the parent Composition derives delivery.
 const Message = defineMessageUnion({})
+type Message = typeof Message.Type
 
 const DatePickerExampleDefinition = Block.makeDefinition('DatePickerExample', {
   Model,
@@ -109,15 +111,13 @@ type DatePickerExampleViewBuilder = Block.ViewBuilderFor<
 
 // Pass the flags-resolved date through the child init context. The Composition
 // supplies it to DatePickerBinding and initializes the bound Model.
-const init = DatePickerExampleComposition.makeInit(
-  (flags: typeof Flags.Type) => ({
-    childInitContext: flags,
-    model: {
-      maybeSelectedDate: Option.none(),
-      // ...your other fields
-    },
-  }),
-)
+const init = DatePickerExampleComposition.makeInit((flags: Flags) => ({
+  childInitContext: flags,
+  model: {
+    maybeSelectedDate: Option.none(),
+    // ...your other fields
+  },
+}))
 
 const update = DatePickerExampleComposition.makeUpdate({})
 

@@ -116,12 +116,19 @@ const compositionPath = 'packages/website/src/composition/composition.ts'
 const changedUrlPath = 'packages/website/src/update/handleChangedUrl.ts'
 const workspaceCompositionPath = 'examples/workspace/src/composition.ts'
 const workspaceInitializationPath =
-  'examples/workspace/src/update/initializeActiveChildren.ts'
-const workspaceUpdatePath = existsSync(
-  resolve(workspaceRoot, workspaceInitializationPath),
+  'examples/workspace/src/update/initChildrenStep.ts'
+const workspaceUpdatePath = Option.getOrElse(
+  EffectArray.findFirst(
+    [
+      workspaceInitializationPath,
+      'examples/workspace/src/update/initChildBlocksStep.ts',
+      'examples/workspace/src/update/initializeRouteChildren.ts',
+      'examples/workspace/src/update/initializeActiveChildren.ts',
+    ],
+    path => existsSync(resolve(workspaceRoot, path)),
+  ),
+  () => 'examples/workspace/src/update.ts',
 )
-  ? workspaceInitializationPath
-  : 'examples/workspace/src/update.ts'
 const workspaceEntryPath = 'examples/workspace/src/entry.ts'
 const workspaceDetailUpdatePath = 'examples/workspace/src/issueDetail/update.ts'
 const workspaceBindingProbe = '\nIssueDetailBinding.init\n'
@@ -683,7 +690,7 @@ const serverInfoFrom = (response: Response): ServerInfo => {
   return { name, version }
 }
 
-const initialize = async (
+const initLanguageServer = async (
   client: LspClient,
   timeoutMs: number,
 ): Promise<ServerInfo> => {
@@ -963,7 +970,7 @@ const runScenario = async (
       )
     }
 
-    const serverInfo = await initialize(client, timeoutMs)
+    const serverInfo = await initLanguageServer(client, timeoutMs)
     const measurements = await execute(client)
     return {
       serverInfo,

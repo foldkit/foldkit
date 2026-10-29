@@ -19,10 +19,12 @@ __setDevToolsOverlay(overlay)
 const ApplicationPackageJson = Schema.Struct({
   dependencies: Schema.optional(Schema.Record(Schema.String, Schema.String)),
 })
+type ApplicationPackageJson = typeof ApplicationPackageJson.Type
 
 const DevToolsPackageJson = Schema.Struct({
   exports: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
 })
+type DevToolsPackageJson = typeof DevToolsPackageJson.Type
 
 const decodeApplicationPackageJson = Schema.decodeUnknownSync(
   ApplicationPackageJson,

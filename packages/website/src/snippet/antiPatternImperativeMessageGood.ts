@@ -5,6 +5,7 @@ import { defineMessageUnion } from 'foldkit/message'
 const Message = defineMessageUnion({
   ClickedRefresh: {},
 })
+type Message = typeof Message.Type
 
 const update = ApplicationComposition.makeUpdate({
   ClickedRefresh: model => ({ model, commands: [FetchWeather()] }),

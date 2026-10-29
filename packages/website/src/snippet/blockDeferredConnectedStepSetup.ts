@@ -8,7 +8,11 @@ const Model = Schema.Struct({
   settings: Settings.SettingsBlock.Model,
   resetCount: Schema.Number,
 })
+type Model = typeof Model.Type
+
 export const Message = defineMessageUnion({ RequestedResetSettings: {} })
+export type Message = typeof Message.Type
+
 export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,

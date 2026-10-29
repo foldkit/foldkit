@@ -3,9 +3,10 @@ import { modifyFields } from 'foldkit/struct'
 
 import { CreateRoom, FocusRoomIdInput, FocusUsernameInput } from '../command'
 import { HOME_ACTIONS, HomeAction, HomeStep, Model } from '../model'
+import type { SelectActionHomeStep } from '../model'
 
 export const handlePressedKey =
-  (model: typeof Model.Type) =>
+  (model: Model) =>
   ({ key }: { key: string }) =>
     Match.value(model.homeStep).pipe(
       Match.tag('SelectAction', whenSelectAction(model, key)),
@@ -13,8 +14,7 @@ export const handlePressedKey =
     )
 
 const whenSelectAction =
-  (model: typeof Model.Type, key: string) =>
-  (selectAction: typeof HomeStep.SelectAction.Type) =>
+  (model: Model, key: string) => (selectAction: SelectActionHomeStep) =>
     Match.value(key).pipe(
       Match.when('ArrowUp', () =>
         moveSelection(Number.decrement)(model, selectAction),
@@ -28,10 +28,7 @@ const whenSelectAction =
 
 const moveSelection =
   (f: (index: number) => number) =>
-  (
-    model: typeof Model.Type,
-    { username, selectedAction }: typeof HomeStep.SelectAction.Type,
-  ) => ({
+  (model: Model, { username, selectedAction }: SelectActionHomeStep) => ({
     model: modifyFields(model, {
       homeStep: () =>
         HomeStep.SelectAction({
@@ -42,7 +39,7 @@ const moveSelection =
   })
 
 const cycleAction =
-  (f: (a: number) => number) => (selectedAction: typeof HomeAction.Type) => {
+  (f: (a: number) => number) => (selectedAction: HomeAction) => {
     const homeActionsLength = Array.length(HOME_ACTIONS)
 
     return pipe(
@@ -62,8 +59,7 @@ const cycleAction =
   }
 
 const confirmSelection =
-  (model: typeof Model.Type) =>
-  (selectAction: typeof HomeStep.SelectAction.Type) =>
+  (model: Model) => (selectAction: SelectActionHomeStep) =>
     Match.value(selectAction.selectedAction).pipe(
       Match.when('CreateRoom', () => ({
         model,

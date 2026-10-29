@@ -9,7 +9,7 @@ import type { Model } from '../model'
 const buttonClassName =
   'button-accent inline-flex items-center gap-2 rounded-lg px-3 py-2 text-base shadow-sm cursor-pointer data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50'
 
-export const basicDemo = (model: typeof Model.Type, h: UiViewBuilder) => {
+export const basicDemo = (model: Model, h: UiViewBuilder) => {
   return [
     h.div(
       [h.Class('flex flex-col items-center gap-2')],
@@ -36,7 +36,7 @@ export const basicDemo = (model: typeof Model.Type, h: UiViewBuilder) => {
   ]
 }
 
-export const disabledDemo = (_model: typeof Model.Type, h: UiViewBuilder) => {
+export const disabledDemo = (_model: Model, h: UiViewBuilder) => {
   return [
     Button.view(
       {

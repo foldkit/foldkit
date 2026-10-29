@@ -20,11 +20,14 @@ import {
 } from '../composition'
 import type { City } from '../domain/domain'
 
+type CityComboboxBlockModel = typeof CityComboboxBlock.Model.Type
+type CityMultiComboboxBlockModel = typeof CityMultiComboboxBlock.Model.Type
+
 // DEMO CONTENT
 
 export { CityComboboxBlock, CityMultiComboboxBlock }
 
-const CITIES: ReadonlyArray<typeof City.Type> = [
+const CITIES: ReadonlyArray<City> = [
   'Johannesburg',
   'Kyiv',
   'Oxford',
@@ -53,7 +56,7 @@ const backdropClassName = 'fixed inset-0 z-0'
 
 const wrapperClassName = 'relative w-72'
 
-const filterCities = (inputValue: string): ReadonlyArray<typeof City.Type> =>
+const filterCities = (inputValue: string): ReadonlyArray<City> =>
   inputValue === ''
     ? CITIES
     : Array.filter(CITIES, city =>
@@ -70,7 +73,7 @@ export const comboboxViewInputs = ({
   restingInputValue: string
   anchor?: AnchorConfig
   wrapperClass?: string
-}>): Omit<ComboboxViewInputs<typeof City.Type>, 'maybeSelectedValue'> => {
+}>): Omit<ComboboxViewInputs<City>, 'maybeSelectedValue'> => {
   const filteredCities = filterCities(inputValue)
 
   return {
@@ -111,8 +114,8 @@ export const comboboxViewInputs = ({
 }
 
 export const view = (
-  comboboxModel: typeof CityComboboxBlock.Model.Type,
-  maybeSelectedCity: Option.Option<typeof City.Type>,
+  comboboxModel: CityComboboxBlockModel,
+  maybeSelectedCity: Option.Option<City>,
   h: UiViewBuilder,
 ) => {
   return [
@@ -150,8 +153,8 @@ export const view = (
 }
 
 export const nullableDemo = (
-  comboboxNullableModel: typeof CityComboboxBlock.Model.Type,
-  maybeSelectedCity: Option.Option<typeof City.Type>,
+  comboboxNullableModel: CityComboboxBlockModel,
+  maybeSelectedCity: Option.Option<City>,
   h: UiViewBuilder,
 ) => {
   return [
@@ -189,8 +192,8 @@ export const nullableDemo = (
 }
 
 export const selectOnFocusDemo = (
-  comboboxSelectOnFocusModel: typeof CityComboboxBlock.Model.Type,
-  maybeSelectedCity: Option.Option<typeof City.Type>,
+  comboboxSelectOnFocusModel: CityComboboxBlockModel,
+  maybeSelectedCity: Option.Option<City>,
   h: UiViewBuilder,
 ) => {
   return [
@@ -231,8 +234,8 @@ export const selectOnFocusDemo = (
 }
 
 export const placementLockDemo = (
-  comboboxPlacementLockModel: typeof CityComboboxBlock.Model.Type,
-  maybeSelectedCity: Option.Option<typeof City.Type>,
+  comboboxPlacementLockModel: CityComboboxBlockModel,
+  maybeSelectedCity: Option.Option<City>,
   h: UiViewBuilder,
 ) => [
   h.div(
@@ -291,8 +294,8 @@ const tagClassName =
 const emptyTagClassName = 'text-sm py-0.5 text-gray-700 dark:text-gray-400'
 
 export const multiDemo = (
-  comboboxMultiModel: typeof CityMultiComboboxBlock.Model.Type,
-  selectedCities: ReadonlyArray<typeof City.Type>,
+  comboboxMultiModel: CityMultiComboboxBlockModel,
+  selectedCities: ReadonlyArray<City>,
   h: UiViewBuilder,
 ) => {
   return [

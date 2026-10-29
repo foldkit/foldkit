@@ -180,7 +180,7 @@ const disabledTermsCheckbox = (h: UiViewBuilder): Html =>
     h,
   )
 
-export const basicDemo = (model: typeof Model.Type, h: UiViewBuilder) => {
+export const basicDemo = (model: Model, h: UiViewBuilder) => {
   return [
     Fieldset.view(
       {
@@ -214,7 +214,7 @@ export const basicDemo = (model: typeof Model.Type, h: UiViewBuilder) => {
   ]
 }
 
-export const disabledDemo = (_model: typeof Model.Type, h: UiViewBuilder) => {
+export const disabledDemo = (_model: Model, h: UiViewBuilder) => {
   return [
     Fieldset.view(
       {

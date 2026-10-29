@@ -336,12 +336,14 @@ const ServerEntry = Schema.Struct({
   foldkitEffectSchema: Schema.Unknown,
   applicationEffectSchema: Schema.Unknown,
 })
+type ServerEntry = typeof ServerEntry.Type
 
 const decodeServerEntry = Schema.decodeUnknownSync(ServerEntry)
 
 const ConsumerEntry = Schema.Struct({
   viaConsumer: Schema.Struct({ copy: Schema.String }),
 })
+type ConsumerEntry = typeof ConsumerEntry.Type
 
 const decodeConsumerEntry = Schema.decodeUnknownSync(ConsumerEntry)
 
@@ -380,7 +382,7 @@ const renderServerEntry = async (
   environments: NonNullable<InlineConfig['environments']>,
 ): Promise<
   Readonly<{
-    serverEntry: typeof ServerEntry.Type
+    serverEntry: ServerEntry
     clientBuildTokenCode: string | undefined
     environment: RunnableDevEnvironment
   }>
@@ -472,6 +474,7 @@ const AppManifest = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)],
 )
+type AppManifest = typeof AppManifest.Type
 
 const decodeAppManifest = Schema.decodeUnknownSync(
   Schema.fromJsonString(AppManifest),

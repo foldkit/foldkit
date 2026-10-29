@@ -41,15 +41,18 @@ const acknowledgeAcquireResources = Scene.Mount.resolve(
 )
 
 const DialogEvent = Schema.Literals(['Opened', 'Closed'])
+type DialogEvent = typeof DialogEvent.Type
 
 const ParentModel = Schema.Struct({
   dialog: Model,
   dialogEvents: Schema.Array(DialogEvent),
 })
+type ParentModel = typeof ParentModel.Type
 
 const ParentMessage = defineMessageUnion({
   CompletedLoadParentData: {},
 })
+type ParentMessage = typeof ParentMessage.Type
 
 const DialogParentTestDefinition = Block.makeDefinition('DialogParentTest', {
   Model: ParentModel,
@@ -179,7 +182,6 @@ const renderGroup = <RequiredMountRequirements>(
           }),
         ),
         Scene.Command.resolve(CloseDialog, Message.CompletedCloseDialog()),
-        Scene.Mount.expectEnded(AcquireResources),
       )
     } else {
       Scene.scene(

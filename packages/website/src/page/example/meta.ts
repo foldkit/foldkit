@@ -40,7 +40,7 @@ export const ExampleSlug = Schema.Literals([
   'personal-blog',
   'livestore',
 ])
-
+export type ExampleSlug = typeof ExampleSlug.Type
 export type LivePreview =
   | 'Spa'
   | 'Prerendered'
@@ -48,7 +48,7 @@ export type LivePreview =
   | 'Unavailable'
 
 export type ExampleMeta = Readonly<{
-  slug: typeof ExampleSlug.Type
+  slug: ExampleSlug
   title: string
   description: string
   difficulty: Difficulty
@@ -426,17 +426,16 @@ export const examples: ReadonlyArray<ExampleMeta> = [
   },
 ]
 
-export const exampleSlugs: ReadonlyArray<typeof ExampleSlug.Type> = Array.map(
+export const exampleSlugs: ReadonlyArray<ExampleSlug> = Array.map(
   examples,
   ({ slug }) => slug,
 )
 
-export const runnableExampleSlugs: ReadonlyArray<typeof ExampleSlug.Type> =
-  pipe(
-    examples,
-    Array.filter(example => example.livePreview !== 'Unavailable'),
-    Array.map(({ slug }) => slug),
-  )
+export const runnableExampleSlugs: ReadonlyArray<ExampleSlug> = pipe(
+  examples,
+  Array.filter(example => example.livePreview !== 'Unavailable'),
+  Array.map(({ slug }) => slug),
+)
 
 export const findBySlug = (slug: string): Option.Option<ExampleMeta> =>
   Array.findFirst(examples, example => example.slug === slug)

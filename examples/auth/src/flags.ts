@@ -7,6 +7,7 @@ import { Session, SessionJsonString } from './domain/session'
 export const Flags = Schema.Struct({
   maybeSession: Schema.Option(Session),
 })
+export type Flags = typeof Flags.Type
 
 export const flags = Effect.gen(function* () {
   const store = yield* KeyValueStore.KeyValueStore

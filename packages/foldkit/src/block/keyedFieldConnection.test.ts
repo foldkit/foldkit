@@ -14,42 +14,54 @@ import {
 import * as Block from './public.js'
 
 const ChildModel = Schema.Struct({ id: Schema.String, count: Schema.Number })
+type ChildModel = typeof ChildModel.Type
 const EquivalentChildModel = Schema.Struct({
   count: Schema.Number,
   id: Schema.String,
 })
+type EquivalentChildModel = typeof EquivalentChildModel.Type
 const EquivalentParentModel = Schema.Struct({
   entries: Schema.Array(EquivalentChildModel),
 })
+type EquivalentParentModel = typeof EquivalentParentModel.Type
 const SuspendedParentModel = Schema.Struct({
   entries: Schema.suspend(() => Schema.Array(ChildModel)),
 })
+type SuspendedParentModel = typeof SuspendedParentModel.Type
 const BooleanKeyChildModel = Schema.Struct({
   id: Schema.Boolean,
   count: Schema.Number,
 })
+type BooleanKeyChildModel = typeof BooleanKeyChildModel.Type
 const BooleanKeyParentModel = Schema.Struct({
   entries: Schema.Array(BooleanKeyChildModel),
 })
+type BooleanKeyParentModel = typeof BooleanKeyParentModel.Type
 const OptionalKeyChildModel = Schema.Struct({
   id: Schema.optionalKey(Schema.String),
   count: Schema.Number,
 })
+type OptionalKeyChildModel = typeof OptionalKeyChildModel.Type
 const OptionalKeyParentModel = Schema.Struct({
   entries: Schema.Array(OptionalKeyChildModel),
 })
+type OptionalKeyParentModel = typeof OptionalKeyParentModel.Type
 const OtherModel = Schema.Struct({ id: Schema.String, label: Schema.String })
+type OtherModel = typeof OtherModel.Type
 const ArrayChildModel = Schema.Array(Schema.String)
+type ArrayChildModel = typeof ArrayChildModel.Type
 const ParentModel = Schema.Struct({
   entries: Schema.Array(ChildModel),
   otherEntries: Schema.Array(OtherModel),
   child: ChildModel,
   arrayChild: ArrayChildModel,
 })
+type ParentModel = typeof ParentModel.Type
 const ChildMessage = defineMessageUnion({
   UpdatedCount: { count: Schema.Number },
   UpdatedId: { id: Schema.String },
 })
+type ChildMessage = typeof ChildMessage.Type
 
 const ChildComposition = makeDefinition('KeyedFieldConnectionChild', {
   Model: ChildModel,
@@ -75,6 +87,7 @@ const childBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof prepareChildBlock
 > = Block.assemble(prepareChildBlock)
 const ArrayChildMessage = defineMessageUnion({ IgnoredValue: {} })
+type ArrayChildMessage = typeof ArrayChildMessage.Type
 
 const ArrayChildComposition = makeDefinition('KeyedFieldConnectionArrayChild', {
   Model: ArrayChildModel,
@@ -95,7 +108,7 @@ const arrayChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof prepareArrayChildBlock
 > = Block.assemble(prepareArrayChildBlock)
 const keyedFieldCandidate: RequiredKeyedField<
-  typeof ParentModel.Type,
+  ParentModel,
   typeof childBlock.Model.Type
 > = 'entries'
 const keyFieldCandidate: RequiredKeyField<typeof childBlock.Model.Type> = 'id'
@@ -123,6 +136,7 @@ const CallableChildModel = taggedStruct('CallableChild', {
   id: Schema.String,
   count: Schema.Number,
 })
+type CallableChildModel = typeof CallableChildModel.Type
 
 const CallableChildComposition = makeDefinition(
   'KeyedFieldConnectionCallableChild',
@@ -153,6 +167,7 @@ const callableChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
 const CallableParentModel = taggedStruct('CallableParent', {
   entries: Schema.Array(CallableChildModel),
 })
+type CallableParentModel = typeof CallableParentModel.Type
 const CallableParent = makeDefinition('KeyedFieldConnectionCallableParent', {
   Model: CallableParentModel,
   Message: Schema.Never,
@@ -269,10 +284,12 @@ it('compares decoded Union alternatives without depending on declaration order',
     Schema.Struct({ _tag: Schema.Literal('First'), value: Schema.String }),
     Schema.Struct({ _tag: Schema.Literal('Second'), value: Schema.Number }),
   ])
+  type left = typeof left.Type
   const right = Schema.Union([
     Schema.Struct({ value: Schema.Number, _tag: Schema.Literal('Second') }),
     Schema.Struct({ value: Schema.String, _tag: Schema.Literal('First') }),
   ])
+  type right = typeof right.Type
 
   expect(hasSameDecodedSchemaShape(left, right)).toBe(true)
 })
@@ -431,7 +448,7 @@ it('rejects invalid runtime storage and child key replacement', () => {
 })
 
 it('rejects an initialized child whose stable key differs from its occurrence', () => {
-  const initializeMismatchedChild = ParentComposition.makeInit(() =>
+  const initMismatchedChild = ParentComposition.makeInit(() =>
     ChildrenBinding.init({
       key: 'requested',
       args: [],
@@ -445,7 +462,7 @@ it('rejects an initialized child whose stable key differs from its occurrence', 
     }),
   )
 
-  expect(() => initializeMismatchedChild()).toThrow(
+  expect(() => initMismatchedChild()).toThrow(
     'cannot initialize or replace a child with a different key',
   )
 })
@@ -490,10 +507,10 @@ it('rejects ambiguous shorthand and incomplete general keyed adapters', () => {
       childBlock,
       {
         field: 'entries',
-        readAll: (model: typeof ParentModel.Type) => model.entries,
-        key: (child: typeof ChildModel.Type) => child.id,
-        read: (child: typeof ChildModel.Type) => child,
-        writeAt: (model: typeof ParentModel.Type) => model,
+        readAll: (model: ParentModel) => model.entries,
+        key: (child: ChildModel) => child.id,
+        read: (child: ChildModel) => child,
+        writeAt: (model: ParentModel) => model,
       },
     ]),
   ).toThrow('cannot supply field or presentWhen')
@@ -502,9 +519,9 @@ it('rejects ambiguous shorthand and incomplete general keyed adapters', () => {
     Reflect.apply(Parent.makeBinding, undefined, [
       childBlock,
       {
-        readAll: (model: typeof ParentModel.Type) => model.entries,
-        key: (child: typeof ChildModel.Type) => child.id,
-        writeAt: (model: typeof ParentModel.Type) => model,
+        readAll: (model: ParentModel) => model.entries,
+        key: (child: ChildModel) => child.id,
+        writeAt: (model: ParentModel) => model,
       },
     ]),
   ).toThrow('requires a read function')
@@ -513,10 +530,10 @@ it('rejects ambiguous shorthand and incomplete general keyed adapters', () => {
     Reflect.apply(Parent.makeBinding, undefined, [
       childBlock,
       {
-        readAll: (model: typeof ParentModel.Type) => model.entries,
-        key: (child: typeof ChildModel.Type) => child.id,
-        read: (child: typeof ChildModel.Type) => child,
-        writeAt: (model: typeof ParentModel.Type) => model,
+        readAll: (model: ParentModel) => model.entries,
+        key: (child: ChildModel) => child.id,
+        read: (child: ChildModel) => child,
+        writeAt: (model: ParentModel) => model,
         subscriptons: {},
       },
     ]),

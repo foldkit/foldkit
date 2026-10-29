@@ -18,3 +18,4 @@ export const Message = defineMessageUnion({
   CompletedFocusSearchInput: {},
   PressedArrowKey: { direction: Schema.Literals(['Up', 'Down']) },
 })
+export type Message = typeof Message.Type

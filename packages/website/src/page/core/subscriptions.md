@@ -71,7 +71,7 @@ Commands describe one-shot work that produces one result. Subscriptions describe
 
 ### Defining Entries
 
-`FeatureDefinition.makeSubscriptions` receives a function that builds a named record of entries for the Block. When a Layer-backed entry depends on the Model, `entry` takes three arguments:
+`FeatureDefinition.makeSubscriptions` receives a function that builds a named record of entries for the Block. The counter uses a `when` predicate to run its timer only while `isAutoCounting` is `true`. An entry whose Stream also needs Model values takes three arguments:
 
 - A stable handler name for the Layer requirement.
 - A field map defining the dependency Schema, in the same shape passed to `Schema.Struct`.
@@ -81,9 +81,17 @@ Create one registry for all Subscriptions owned by the Block. Add entries to tha
 
 If an adapter already exposes a dependency Struct, pass its `.fields` as the second argument: `dependenciesSchema.fields`. Passing the Struct itself produces a field-map error, often wrapped in `No overload matches this call`.
 
-`modelToDependencies` extracts the values that control the entry. The `handler` generator constructs the Stream factory, and the owned registry’s `subscriptions.layer` supplies its attached handlers to the application. Foldkit compares the extracted record structurally by default, so unrelated Model updates do not restart the timer.
+`modelToDependencies` extracts the values the Stream needs. The `handler` generator constructs the Stream factory, and the owned registry’s `subscriptions.layer` supplies its attached handlers to the application. Foldkit compares the extracted record structurally by default, so unrelated Model updates do not restart the Stream.
 
 When `isAutoCounting` changes to `true`, the new Stream starts ticking. When it changes back to `false`, the active scope closes and the timer stops.
+
+### Gating an Entry on the Model
+
+The optional `when` predicate decides whether the entry runs for the current Model. While it returns `false`, Foldkit runs no Stream and skips `modelToDependencies`. Opening the gate starts the Stream with current dependencies. Closing it interrupts the Stream and closes its scope, even when `keepAliveEquivalence` would otherwise retain it.
+
+The gate controls Stream lifetime. Attached handler Layers still build at Runtime startup, so their constructor errors and Service requirements remain part of the Block's contract while the gate is closed.
+
+Use `when` for conditions on the owning Model and Binding `subscriptions.when` for parent policy. [`Subscription.expectActive`](/testing/scene#subscription-activity) and `expectInactive` can inspect these gates. Conditions inside the Stream, such as `Stream.when` or a branch returning `Stream.empty`, remain valid for Stream-local decisions but are not visible to activity assertions.
 
 ### Completing the Block
 
@@ -99,7 +107,7 @@ The [websocket-chat example](/example-apps/websocket-chat) shows a more involved
 
 The declared Message Schemas constrain the Stream returned by both the attached handler and an external `toLayer` implementation. Emitting an undeclared Message is a type error. Scene uses these Schemas to validate `Subscription.emit(entry, message)` against the composed source, including its generated delivery through parents. An empty declaration requires a `Stream<never>` for work that emits no Messages.
 
-An external generic Stream helper can infer its result Message from one callback and then reject a different, valid variant returned by another callback. If the error compares two declared Message variants, inspect the helper's callback inference. Give the callback that determines the generic result an explicit return type for the union this entry declares. Use `typeof Message.Type` when the entry declares the full Message union. The entry's `messages` declaration still checks every variant the resulting Stream may emit.
+An external generic Stream helper can infer its result Message from one callback and then reject a different, valid variant returned by another callback. If the error compares two declared Message variants, inspect the helper's callback inference. Give the callback that determines the generic result an explicit return type for the union this entry declares. Use the `Message` alias when the entry declares the full Message union. The entry's `messages` declaration still checks every variant the resulting Stream may emit.
 
 ### Handler Construction and Layers
 
@@ -155,7 +163,7 @@ Use `Stream.tick` for discrete wall-clock steps that should occur every N millis
 
 ## Streams Without Local Model Dependencies
 
-For a Layer-backed Subscription with no local Model dependencies, pass its stable handler name and declared Messages to `entry`. Local Model changes leave the Stream running. A parent can still gate the entry when lifting it.
+For a Layer-backed Subscription with no local Model dependencies, pass its stable handler name and declared Messages to `entry`. Local Model changes leave the Stream running while its own `when` predicate and any parent gate remain open.
 
 ::Snippet{name="subscriptionPersistent" label="Heartbeat without Model dependencies"}
 
@@ -191,7 +199,7 @@ When a parent embeds a Block with Subscriptions, its Binding lifts the child's M
 
 ### Gating Child Subscriptions
 
-The optional `when` field lets the parent add a Stream condition the child cannot see. One predicate can gate the whole record, or a map can gate selected entries. Put the policy under `subscriptions.when` in the Binding. This gate controls Stream lifetime only: it does not make the child absent, stop ManagedResources or Mounts, or prevent `binding.fold` from running.
+The optional `when` field lets the parent add a Stream condition the child cannot see. One predicate can gate the whole record, or a map can gate selected entries. Put the policy under `subscriptions.when` in the Binding. The child's own entry gate also applies. This gate controls Stream lifetime only: it does not make the child absent, stop ManagedResources or Mounts, or prevent `binding.fold` from running.
 
 Use direct-field `presentWhen` when the condition governs the whole child rather than its Streams. That predicate makes the Binding absent for updates and every lifecycle channel. A custom accessor expresses the same policy by returning `None` from `read`.
 

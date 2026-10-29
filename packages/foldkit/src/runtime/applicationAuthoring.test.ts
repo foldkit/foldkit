@@ -28,9 +28,11 @@ class ValueSource extends Context.Service<
 
 const ChildOwnerNamespace = makeNamespace('ApplicationAuthoringChild')
 const ChildModel = Schema.Struct({ value: Schema.String })
+type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({
   UpdatedChildValue: { value: Schema.String },
 })
+type ChildMessage = typeof ChildMessage.Type
 
 const ChildComposition = ChildOwnerNamespace.makeDefinition({
   Model: ChildModel,
@@ -55,11 +57,14 @@ const Model = Schema.Struct({
   rootValue: Schema.String,
   child: ChildModel,
 })
+type Model = typeof Model.Type
 const Message = defineMessageUnion({
   ClickedReadRootValue: {},
   CompletedReadRootValue: { value: Schema.String },
 })
+type Message = typeof Message.Type
 const ForeignMessage = defineMessageUnion({ ForeignCompleted: {} })
+type ForeignMessage = typeof ForeignMessage.Type
 const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
@@ -122,10 +127,7 @@ const update = composition.makeUpdate({
 expectTypeOf<Update.RequirementsOf<typeof update>>().toEqualTypeOf<
   Command.HandlerOf<typeof ReadRootValue>
 >()
-const rootBody = (
-  model: typeof Model.Type,
-  h: Block.ViewBuilderFor<typeof composition>,
-) =>
+const rootBody = (model: Model, h: Block.ViewBuilderFor<typeof composition>) =>
   h.div(
     [],
     [
@@ -141,6 +143,7 @@ const rootBody = (
 const view = composition.makeView(rootBody)
 
 const NoMessageModel = Schema.Null
+type NoMessageModel = typeof NoMessageModel.Type
 
 const NoMessageComposition = Block.makeDefinition('Application', {
   Model: NoMessageModel,
@@ -317,7 +320,8 @@ const typecheckRootCompletion = (): void => {
   })
 
   const Flags = Schema.Struct({ initialValue: Schema.String })
-  const initWithFlags = (flags: typeof Flags.Type) => ({
+  type Flags = typeof Flags.Type
+  const initWithFlags = (flags: Flags) => ({
     model: {
       rootValue: flags.initialValue,
       child: { value: 'child' },
@@ -385,7 +389,7 @@ const typecheckRootCompletion = (): void => {
   void pendingRoutedApplication
 
   const routedFlagsImplementation = {
-    init: (flags: typeof Flags.Type, _url: Url) => initWithFlags(flags),
+    init: (flags: Flags, _url: Url) => initWithFlags(flags),
     update,
     view: documentView,
     EffectsLayer: ReadRootValue.layer,
@@ -413,7 +417,7 @@ const typecheckRootCompletion = (): void => {
   })
   const pendingRoutedFlagsApplication: Program.Program<
     undefined,
-    typeof Flags.Type,
+    Flags,
     ValueSource,
     never,
     Layer.Success<typeof ReadRootValue.layer>

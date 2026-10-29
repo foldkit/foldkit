@@ -6,7 +6,7 @@ import { expect, it } from 'vitest'
 import * as Animation from '../animation/block.js'
 import * as Menu from './menu.js'
 
-const RefinedMenu = Menu.create<'Edit' | 'Delete'>()
+const RefinedMenu = Menu.makeBlock<'Edit' | 'Delete'>()
 
 const Model = Schema.Struct({ menu: RefinedMenu.Model })
 type Model = typeof Model.Type
@@ -14,10 +14,12 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({
   RequestedOpen: {},
 })
+type Message = typeof Message.Type
 
 const OutMessage = defineMessageUnion({
   SelectedMenuItem: { value: Schema.Literals(['Edit', 'Delete']) },
 })
+type OutMessage = typeof OutMessage.Type
 
 const GenericMenuBindingIdentityDefinition = Block.makeDefinition(
   'GenericMenuBindingIdentity',

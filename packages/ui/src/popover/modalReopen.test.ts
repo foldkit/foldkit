@@ -8,6 +8,7 @@ const PORTAL_ROOT_ID = 'foldkit-portal-root'
 const POPOVER_ID = 'sort'
 
 const Model = Schema.Struct({ popover: PopoverBlock.Model })
+type Model = typeof Model.Type
 const PopoverModalReopenTestDefinition = Block.makeDefinition(
   'PopoverModalReopenTest',
   {

@@ -23,3 +23,10 @@ export const Message = defineMessageUnion({
   CompletedLockBodyScroll: {},
   CompletedUnlockBodyScroll: {},
 })
+export type Message = typeof Message.Type
+export type SucceededFlyTo = typeof Message.SucceededFlyTo.Type
+export type FailedFlyTo = typeof Message.FailedFlyTo.Type
+export type SucceededMountMap = typeof Message.SucceededMountMap.Type
+export type FailedMountMap = typeof Message.FailedMountMap.Type
+export type MovedMap = typeof Message.MovedMap.Type
+export type ClickedMarker = typeof Message.ClickedMarker.Type

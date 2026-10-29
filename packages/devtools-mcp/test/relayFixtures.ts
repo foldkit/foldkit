@@ -264,7 +264,7 @@ export const replay = (
         Option.some(connectionId),
       )
       .pipe(
-        Effect.map((response: typeof Response.Type) =>
+        Effect.map((response: Response) =>
           Match.value(response).pipe(
             Match.tag('ResponseReplayed', ({ model }) => model),
             Match.orElse(({ _tag }) => _tag),

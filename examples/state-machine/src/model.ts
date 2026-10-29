@@ -7,12 +7,14 @@ export const Discount = Schema.Struct({
   code: Schema.String,
   percentOff: Schema.Number,
 })
+export type Discount = typeof Discount.Type
 
 export const Promo = defineTaggedUnion({
   NoPromo: {},
   AppliedPromo: { discount: Discount },
   RejectedPromo: {},
 })
+export type Promo = typeof Promo.Type
 
 export const CheckoutState = defineTaggedUnion({
   Cart: { isShippingRequired: Schema.Boolean },
@@ -39,11 +41,17 @@ export const CheckoutState = defineTaggedUnion({
   },
   Cancelled: { isShippingRequired: Schema.Boolean },
 })
+export type CheckoutState = typeof CheckoutState.Type
+export type ReviewState = typeof CheckoutState.Review.Type
+export type CartState = typeof CheckoutState.Cart.Type
+export type PaymentState = typeof CheckoutState.Payment.Type
+export type ConfirmedState = typeof CheckoutState.Confirmed.Type
 
 export const TransitionLogEntry = Schema.Struct({
   id: Schema.Number,
   summary: Schema.String,
 })
+export type TransitionLogEntry = typeof TransitionLogEntry.Type
 
 export const EDITION_RADIO_GROUP_ID = 'edition'
 
@@ -58,7 +66,7 @@ export const EDITIONS: ReadonlyArray<string> = [
 export const editionName = (isShippingRequired: boolean): string =>
   isShippingRequired ? HARDCOVER_EDITION : EBOOK_EDITION
 
-export const EditionRadioGroupBlock = RadioGroup.create()
+export const EditionRadioGroupBlock = RadioGroup.makeBlock()
 
 export const Model = Schema.Struct({
   checkout: CheckoutState,
@@ -66,3 +74,4 @@ export const Model = Schema.Struct({
   transitionLog: Schema.Array(TransitionLogEntry),
   nextTransitionLogId: Schema.Number,
 })
+export type Model = typeof Model.Type

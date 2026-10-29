@@ -29,7 +29,6 @@ export const Message = defineMessageUnion({
   SucceededFetchCount: { count: Schema.Number },
   FailedFetchCount: { error: Schema.String },
 })
-
 export type Message = typeof Message.Type
 
 // COMMAND

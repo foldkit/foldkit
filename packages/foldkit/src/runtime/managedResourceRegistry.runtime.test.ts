@@ -7,10 +7,12 @@ import * as Program from './programPublic.js'
 import { __startProgram } from './start.js'
 
 const Model = Schema.Struct({ active: Schema.Boolean })
+type Model = typeof Model.Type
 const Message = defineMessageUnion({
   AcquiredHiddenResource: {},
   ReleasedHiddenResource: {},
 })
+type Message = typeof Message.Type
 
 const Definition = Block.makeDefinition('RuntimeManagedResourceRegistry', {
   Model,

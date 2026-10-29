@@ -9,7 +9,9 @@ import { ToastDemoBinding } from '../composition'
 import { Message } from '../message'
 import { ToastBlock } from './toastModule'
 
-type Entry = (typeof ToastBlock.Model.Type)['entries'][number]
+type ToastBlockModel = typeof ToastBlock.Model.Type
+
+type Entry = ToastBlockModel['entries'][number]
 
 // DEMO CONTENT
 
@@ -45,7 +47,7 @@ const buttonClassName =
   'demo-neutral-button inline-flex items-center gap-1.5 text-sm'
 
 export const demo = (
-  toastModel: typeof ToastBlock.Model.Type,
+  toastModel: ToastBlockModel,
   maybeLastDismissedTitle: Option.Option<string>,
   h: UiViewBuilder,
 ): ReadonlyArray<Html> => {

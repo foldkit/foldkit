@@ -7,9 +7,15 @@ import {
   DecoratedCounterBlock,
   LocalMessage,
   Model,
+  OutMessage,
+  ParentMessage,
+  ParentModel,
   StringCounterBlock,
+  conditionalContextUpdate,
+  conditionalUpdate,
   contextualUpdate,
   makeGenericCounter,
+  mixedConnectedLocalUpdate,
   update,
 } from './record-update.accepted.js'
 
@@ -35,6 +41,24 @@ const direct: typeof curried = contextualUpdate(
   2,
 )
 const ordinary = update(model, LocalMessage.RequestedQuiet())
+const conditionalReport = conditionalUpdate(
+  model,
+  LocalMessage.RequestedReport({ amount: 3 }),
+)
+const conditionalContextReport = conditionalContextUpdate(
+  LocalMessage.RequestedReport({ amount: 3 }),
+)(model, 2)
+const parentModel = ParentModel.make({ child: model, count: 1 })
+const mixedConnectedLocalResult = mixedConnectedLocalUpdate(
+  parentModel,
+  ParentMessage.RequestedQuiet(),
+)
+const mixedConnectedLocalOutMessage: typeof OutMessage.Type | undefined =
+  mixedConnectedLocalResult.outMessage
+// @ts-expect-error A conditional result must not erase the update to any.
+const _invalidConditionalUpdate: string = conditionalUpdate
+// @ts-expect-error A conditional context result must not erase the update to any.
+const _invalidConditionalContextUpdate: string = conditionalContextUpdate
 const text = StringCounterBlock.operations.report(
   { value: 'before' },
   { value: 'after' },
@@ -59,6 +83,10 @@ export {
   curried,
   direct,
   ordinary,
+  conditionalReport,
+  conditionalContextReport,
+  mixedConnectedLocalResult,
+  mixedConnectedLocalOutMessage,
   text,
   literal,
   exact,

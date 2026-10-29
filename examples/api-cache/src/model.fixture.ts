@@ -13,7 +13,7 @@ import {
 
 export const FETCHED_AT = 1_750_000_000_000
 
-export const fixturePosts: ReadonlyArray<typeof Post.Type> = [
+export const fixturePosts: ReadonlyArray<Post> = [
   {
     id: 'first-post',
     title: 'First Post',
@@ -26,20 +26,20 @@ export const fixturePosts: ReadonlyArray<typeof Post.Type> = [
   },
 ]
 
-export const firstPostDetail: typeof PostDetail.Type = {
+export const firstPostDetail: PostDetail = {
   id: 'first-post',
   title: 'First Post',
   author: 'Grace Hopper',
   body: 'The whole body of the first fixture post.',
 }
 
-export const fixtureStats: typeof Stats.Type = {
+export const fixtureStats: Stats = {
   activeUsers: 120,
   requestsPerSecond: 1234,
   cacheHitRatePercent: 97,
 }
 
-export const loadingPostsModel: typeof Model.Type = {
+export const loadingPostsModel: Model = {
   tabs: ApplicationTabsBlock.init({ id: TABS_ID }).model,
   activeTab: 'Posts',
   posts: PostsData.Loading(),
@@ -48,37 +48,28 @@ export const loadingPostsModel: typeof Model.Type = {
   stats: StatsData.Idle(),
 }
 
-export const loadedPostsModel: typeof Model.Type = modifyFields(
-  loadingPostsModel,
-  {
-    posts: () =>
-      PostsData.Success({
-        data: { posts: fixturePosts, fetchedAt: FETCHED_AT },
-      }),
-  },
-)
+export const loadedPostsModel: Model = modifyFields(loadingPostsModel, {
+  posts: () =>
+    PostsData.Success({
+      data: { posts: fixturePosts, fetchedAt: FETCHED_AT },
+    }),
+})
 
-export const cachedFirstPostModel: typeof Model.Type = modifyFields(
-  loadedPostsModel,
-  {
-    postDetailById: () =>
-      HashMap.set(
-        HashMap.empty(),
-        'first-post',
-        PostDetailData.Success({
-          data: { detail: firstPostDetail, fetchedAt: FETCHED_AT },
-        }),
-      ),
-  },
-)
-
-export const loadedStatsModel: typeof Model.Type = modifyFields(
-  loadedPostsModel,
-  {
-    activeTab: () => 'Stats',
-    stats: () =>
-      StatsData.Success({
-        data: { stats: fixtureStats, fetchedAt: FETCHED_AT },
+export const cachedFirstPostModel: Model = modifyFields(loadedPostsModel, {
+  postDetailById: () =>
+    HashMap.set(
+      HashMap.empty(),
+      'first-post',
+      PostDetailData.Success({
+        data: { detail: firstPostDetail, fetchedAt: FETCHED_AT },
       }),
-  },
-)
+    ),
+})
+
+export const loadedStatsModel: Model = modifyFields(loadedPostsModel, {
+  activeTab: () => 'Stats',
+  stats: () =>
+    StatsData.Success({
+      data: { stats: fixtureStats, fetchedAt: FETCHED_AT },
+    }),
+})

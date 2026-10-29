@@ -15,6 +15,7 @@ const ApplicationRoute = defineRouteUnion({
   Person: { personId: Schema.Number },
   NotFound: { path: Schema.String },
 })
+type ApplicationRoute = typeof ApplicationRoute.Type
 
 describe('defineTaggedUnion', () => {
   it('builds a callable constructor for a variant with no fields', () => {
@@ -68,8 +69,9 @@ describe('defineTaggedUnion', () => {
       Fresh: {},
       Known: { id: Schema.String },
     })
+    type Kind = typeof Kind.Type
 
-    const toPhase = (kind: typeof Kind.Type) =>
+    const toPhase = (kind: Kind) =>
       Kind.match(kind, {
         Fresh: () => Phase.Idle(),
         Known: ({ id }) => Phase.Ready({ id }),
@@ -98,9 +100,10 @@ describe('defineTaggedUnion', () => {
       Fresh: {},
       Known: { id: Schema.String },
     })
+    type Kind = typeof Kind.Type
 
     const matchKind = <Output>(
-      kind: typeof Kind.Type,
+      kind: Kind,
       onFresh: () => Output,
       onKnown: (id: string) => Output,
     ): Output =>
@@ -136,6 +139,7 @@ describe('defineTaggedUnion', () => {
       Fresh: {},
       Known: { id: Schema.String },
     })
+    type Kind = typeof Kind.Type
     type RefinedKind =
       | typeof Kind.Fresh.Type
       | Readonly<{ _tag: 'Known'; id: 'a' | 'b' }>
@@ -354,6 +358,7 @@ const submissionForFullUnion = (): Submission => Submission.NotSubmitted()
 
 describe('subsets', () => {
   const Settled = Submission.subset(['NotSubmitted', 'Failed'])
+  type Settled = typeof Settled.Type
 
   it('builds a Schema from only the named variants', () => {
     expect(
@@ -407,6 +412,7 @@ describe('defineRouteUnion', () => {
 
   it('builds a Route subset Schema', () => {
     const PublicRoute = ApplicationRoute.subset(['Home', 'NotFound'])
+    type PublicRoute = typeof PublicRoute.Type
 
     expect(Schema.is(PublicRoute)(ApplicationRoute.Home())).toBe(true)
     expect(

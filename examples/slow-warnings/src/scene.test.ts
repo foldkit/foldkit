@@ -6,7 +6,7 @@ import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-const initialModel: typeof Model.Type = {
+const initialModel: Model = {
   activeWorkload: 'Idle',
   nextWarningId: 1,
   warnings: [],

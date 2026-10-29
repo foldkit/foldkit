@@ -4,9 +4,13 @@ import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 const RoomModel = Schema.Struct({ title: Schema.String })
+type RoomModel = typeof RoomModel.Type
+
 const RoomMessage = defineMessageUnion({
   RequestedRename: { title: Schema.String },
 })
+type RoomMessage = typeof RoomMessage.Type
+
 const RoomComposition = Block.makeDefinition('Room', {
   Model: RoomModel,
   Message: RoomMessage,
@@ -31,12 +35,18 @@ const RoomInstance = Schema.Struct({
   model: RoomBlock.Model,
   access: Schema.Literals(['Owner', 'Guest']),
 })
+type RoomInstance = typeof RoomInstance.Type
+
 const Model = Schema.Struct({
   maybeRoomInstance: Schema.Option(RoomInstance),
 })
+type Model = typeof Model.Type
+
 const Message = defineMessageUnion({
   RequestedOpenRoom: { roomId: Schema.String, title: Schema.String },
 })
+type Message = typeof Message.Type
+
 const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,

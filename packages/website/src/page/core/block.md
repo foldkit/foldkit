@@ -167,7 +167,7 @@ Let `makeView` infer the primary view's builder. For an extracted helper on the 
 
 A shared helper that forwards Mount-bearing child Attributes accepts a typed caller-owned render callback. The callback uses the caller's inferred builder, preserving its registered Binding capability. See [Builder ownership](/core/view#builder-ownership) for the shared Dialog pattern.
 
-The local `Message` union remains the right type for authored update logic. Derive `typeof FeatureComposition.Message.Type` only at a boundary that consumes the complete dispatch contract, such as a root `Runtime.CrashContext`. Do not add a parallel complete Message alias to every feature.
+The local `Message` alias describes the facts handled by authored update logic. When a boundary consumes the complete dispatch contract, such as a root `Runtime.CrashContext`, derive a separate named type from `FeatureComposition.Message`. That complete type includes generated child envelopes.
 
 ::Snippet{name="blockCompositionTypes" label="Composition-specific builder and dispatch types"}
 
@@ -220,7 +220,7 @@ supplement those guarantees for erased JavaScript. Definition, Binding, policy,
 and Composition construction remain passive: they do not build Layers, call
 handlers, or start lifecycle work.
 
-The parent configures integration policy in its child Binding. That policy executes during the pure child fold or operation. The flow is parent update → child fold or operation → parent OutMessage handling → parent result. Keep a substantial policy in a named parent fold beside that child's Binding, extracting both to `composition/<child>.ts` when the policy becomes substantial. A handler takes the exact `FoldContext` as its second argument only when it needs to lift a child Command or compare the transition with parent state from before the child update. A fold whose handlers omit that argument remains unary. `modelBeforeUpdate` is the previous parent Model. The Step returned by the handler still receives the parent Model after the next child Model has been written.
+The parent configures integration policy in its child Binding. That policy executes during the pure child fold or operation. The flow is parent update → child fold or operation → parent OutMessage handling → parent result. Keep a substantial policy in a named parent fold beside that child's Binding, extracting both to `composition/<child>.ts` when the policy becomes substantial. A handler takes the exact `FoldContext` as its second argument only when it needs to lift a child Command or compare the transition with parent state from before the child update. A fold whose handlers omit that argument remains unary. `modelBeforeUpdate` is the previous parent Model. The Step returned by the handler still receives the parent Model after the next child Model has been written. When update or init also uses that parent Step, put it in the owning Block's `steps.ts` and keep the OutMessage mapping here. See [Shared Steps](/core/update#shared-steps).
 
 ## Complete the Application
 
@@ -494,7 +494,7 @@ Register each repeated Binding once in the parent's Composition. This Chat paren
 
 ::Snippet{name="blockRegisterChildren" label="Registering repeated child Bindings"}
 
-An unkeyed direct field defaults placement to `field`, including an optional field. Record and HashMap Bindings created by `makeMapBinding` also default to `field`. Accessor Bindings and keyed array or Option Bindings default to the child Block ID. A keyed Binding's key distinguishes instances under that one placement. An explicit `placement` overrides either default. A direct `Option` field keeps the same placement whether it contains `Some` or `None`.
+An unkeyed direct field defaults placement to `field`, including an optional field. Record and HashMap Bindings created by `ParentDefinition.makeMapBinding` also default to `field`. Accessor Bindings and keyed array or Option Bindings default to the child Block ID. A keyed Binding's key distinguishes instances under that one placement. An explicit `placement` overrides either default. A direct `Option` field keeps the same placement whether it contains `Some` or `None`.
 
 Set `placement` only when a default would collide with a sibling Binding or when the graph deliberately needs another stable identity. For example, two accessor Bindings of the same Composer Block both default to `Composer`, so the second needs another placement:
 
@@ -538,11 +538,13 @@ For a generic factory that shares definitions, `Block.makeNamespace(id)` supplie
 
 `ParentDefinition.makeBinding(FooBlock, config)` creates one static, optional, or keyed Binding in the parent Model context. Use `field` for an exact Struct field containing the child Model or `Option<ChildModel>`. Use `presentWhen` for whole-child presence policy, or explicit `read`/`write` for custom storage. Generated delivery carries each child's exact Message Schema and occurrence identity. A child with OutMessages requires `.withOutMessagePolicy({ fold?, forward? })`; register and use that returned full Binding. Chain the call for an ordinary one-way policy. Keep the first Binding in a named value when a self-referential or reciprocal policy needs to call its operations, then name the selected value `<Child>BindingWithOutMessagePolicy`.
 
-`delivery.when` gates incoming child Messages without making the child absent. `delivery.toUpdateContext` returns the exact additional arguments required by the child update. Unkeyed callbacks receive the parent Model; keyed callbacks also receive the occurrence key. General keyed accessors supply `keySchema`; direct array adapters derive it from the key field. A Message-free child omits delivery configuration. Unkeyed direct fields and `makeMapBinding` default placement to `field`; accessor Bindings and keyed array or Option Bindings default to the child Block ID. `subscriptions.when` gates only Streams. OutMessage handling remains parent policy.
+`delivery.when` gates incoming child Messages without making the child absent. `delivery.toUpdateContext` returns the exact additional arguments required by the child update. Unkeyed callbacks receive the parent Model; keyed callbacks also receive the occurrence key. General keyed accessors supply `keySchema`; direct array adapters derive it from the key field. A Message-free child omits delivery configuration. Unkeyed direct fields and `ParentDefinition.makeMapBinding` default placement to `field`; accessor Bindings and keyed array or Option Bindings default to the child Block ID. `subscriptions.when` gates only Streams. OutMessage handling remains parent policy.
 
-### makeMapBinding {#keyed-map-fields}
+### ParentDefinition.makeMapBinding {#keyed-map-fields}
 
-Import `makeMapBinding` from `foldkit/mapBinding` for a required `Schema.Record(Key, ChildBlock.Model)` or `Schema.HashMap(Key, ChildBlock.Model)` field. Pass the parent Definition, completed child Block, and `{ field }`. The parent Schema supplies the exact child relationship and key contract. The property or map key identifies the child occurrence; the child Model does not need to repeat it. Add `childField` when each value is a closed parent-owned wrapper containing the child Model.
+Call `ParentDefinition.makeMapBinding(ChildBlock, { field })` for a required `Schema.Record(Key, ChildBlock.Model)` or `Schema.HashMap(Key, ChildBlock.Model)` field. The parent Definition supplies the exact child relationship and key contract from its Model Schema. The property or map key identifies the child occurrence; the child Model does not need to repeat it. Add `childField` when each value is a closed parent-owned wrapper containing the child Model.
+
+The factory can also be destructured from the parent Definition. In a split feature, export `makeMapBinding` from its `definition.ts` and import it from that module when authoring Bindings. The factory retains its parent Definition's contracts.
 
 This completed Entry Block owns its rename transition:
 
@@ -552,11 +554,11 @@ The parent can store exact child Models in a Record and wrapped child Models in 
 
 ::Snippet{name="blockKeyedMapFields" label="Schema-backed map Bindings"}
 
-`makeMapBinding` defaults the Binding placement to the parent field name. Override `placement` when two Bindings use different child fields in the same wrapper collection. The placement distinguishes the relationships; each stored key identifies an occurrence within that relationship.
+`ParentDefinition.makeMapBinding` defaults the Binding placement to the parent field name. Override `placement` when two Bindings use different child fields in the same wrapper collection. The placement distinguishes the relationships; each stored key identifies an occurrence within that relationship.
 
 Record keys must decode to strings. Lookup uses own properties, and enumeration follows JavaScript's own enumerable string-key order. HashMap keys decode to strings or numbers; actual numeric occurrence keys must be finite even when the declared Schema is broader. HashMap iteration does not establish display order. Keep a separate ordered list of IDs when the application needs one.
 
-Ordinary child folds and operations replace only an existing matching entry. Wrapped writes preserve parent metadata, and absent entries leave the same parent Model unchanged. Parents own membership. For direct child values, `initAndInsert` from `foldkit/bindingInit` creates an absent entry and rejects occupied keys. Wrapped maps keep explicit `Binding.init({ key, args, toParentModel })` so the parent supplies their metadata. Both retain the initialized child's Commands. Use general keyed accessors for custom writers, custom enumeration, or composite domain keys with a separate stable primitive occurrence identity. A fresh plain object is not a structural HashMap key merely because a Struct Schema describes it.
+Ordinary child folds and operations replace only an existing matching entry. Wrapped writes preserve parent metadata, and absent entries leave the same parent Model unchanged. Parents own membership. Removing a stored key ends that child occurrence's lifecycle. For direct child values, `initAndInsert` from `foldkit/bindingInit` creates an absent entry and rejects occupied keys. `makeInitIfMissingStep(Binding, { key, args })` creates a connected Step that retains an existing child and initializes an absent one. Wrapped maps keep explicit `Binding.init({ key, args, toParentModel })` so the parent supplies their metadata. These helpers retain the initialized child's Commands. Use general keyed accessors for custom writers, custom enumeration, or composite domain keys with a separate stable primitive occurrence identity. A fresh plain object is not a structural HashMap key merely because a Struct Schema describes it.
 
 ### Focused Step Producers
 
@@ -564,9 +566,9 @@ Use `makeFieldsStep`, `makeCommandsStep`, and `makeOutMessageStep` when a transi
 
 Pass the resulting compatible Step or Model-first handler directly to the update record:
 
-::Snippet{name="blockMessageStepProducers" label="Producing focused handler results"}
+::Snippet{name="blockMessageStepProducers" label="Composing Message-aware Steps"}
 
-All three helpers support `.fromMessage`. Payload-only producers receive the complete exact Message variant, and the returned handler still receives `(model, message)`. When extracting a Message-dependent producer outside a contextually typed record, give its parameter a precise variant contract such as `typeof Message.UpdatedTitle.Type`. Compatible function references remain callbacks. When constructing a different Message or OutMessage, map its payload explicitly instead of forwarding the incoming `_tag` through a constructor reference.
+All three helpers support `.fromMessage`. Payload-only producers receive the complete exact Message variant, and the returned handler still receives `(model, message)`. When extracting a Message-dependent producer outside a contextually typed record, give its parameter a named variant alias such as `UpdatedTitle`, declared beside the `Message` union. Compatible function references remain callbacks. When constructing a different Message or OutMessage, map its payload explicitly instead of forwarding the incoming `_tag` through a constructor reference.
 
 `FeatureDefinition.makeFieldsStep(producer)` applies the produced field transformers. A zero-argument or Model-only producer creates a reusable unary Step. Omit its Model parameter when the transformers need no other field.
 
@@ -597,6 +599,8 @@ When combined after another Step, the callback receives the Model produced by th
 ### FeatureDefinition.makeStep
 
 `FeatureDefinition.makeStep(producer)` handles reusable mixed transitions, additional producer arguments, connected Binding operations, initialization, delegated results, and other composed results. It preserves or wraps a connected value until a Composition interprets it under the registered graph, and infers the operation's arguments, result Messages, Command requirements, and Binding requirements. Cohesive mixed handlers can return `{ model, commands, outMessage }` directly. Public operations belong in the completed Block's `operations` record as local Message constructors or Message tuple producers.
+
+Use `makeStep.fromMessage(producer)` when only the Message is needed to select or construct a Step, compose Steps, or create an initialization recipe. An inline `makeUpdate` entry infers the exact Message variant for both the ordinary Model-aware form and `.fromMessage`, including `.withContext` records. The returned handler receives `(model, message)`; applying it evaluates the producer and passes the incoming Model to a returned Step. Construction is passive. An extracted producer needs a precise Message variant annotation, as with the focused helpers. Dispatch context stays in `makeUpdate.withContext`, where the producer can close over it.
 
 Choose the helper when authoring a Step. Inside a local `makeStep` callback, return results directly, including `{ model }` for an unchanged Model. Constructing and immediately applying another local Step merely to express a branch adds an unnecessary layer:
 

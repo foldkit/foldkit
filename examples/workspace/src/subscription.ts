@@ -4,8 +4,9 @@ import { AsyncData } from 'foldkit'
 import { ApplicationDefinition } from './definition'
 import { protectUnsavedChanges } from './draftProtection'
 import { Message } from './message'
+import { unsavedIssueDrafts } from './selection'
 
-const ACTIVITY_INTERVAL = Duration.seconds(20)
+const ACTIVITY_TICK_INTERVAL = Duration.seconds(20)
 
 export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
   draftExitGuard: entry(
@@ -14,30 +15,22 @@ export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
     {
       messages: [],
       modelToDependencies: model => ({
-        isProtecting: Array.isReadonlyArrayNonEmpty(model.issueDrafts),
+        isProtecting: Array.isReadonlyArrayNonEmpty(unsavedIssueDrafts(model)),
       }),
       handler: function* () {
         return protectUnsavedChanges
       },
     },
   ),
-  activity: entry(
-    'Activity',
-    { isActive: Schema.Boolean },
-    {
-      messages: [Message.TickedActivityStream],
-      modelToDependencies: model => ({
-        isActive: AsyncData.hasData(model.workspaceAsyncData),
-      }),
-      handler: function* () {
-        return ({ isActive }) =>
-          isActive
-            ? Stream.tick(ACTIVITY_INTERVAL).pipe(
-                Stream.drop(1),
-                Stream.map(Message.TickedActivityStream),
-              )
-            : Stream.empty
-      },
+  activity: entry('Activity', {
+    messages: [Message.TickedActivityStream],
+    when: model => AsyncData.hasData(model.workspaceAsyncData),
+    handler: function* () {
+      return () =>
+        Stream.tick(ACTIVITY_TICK_INTERVAL).pipe(
+          Stream.drop(1),
+          Stream.map(Message.TickedActivityStream),
+        )
     },
-  ),
+  }),
 }))

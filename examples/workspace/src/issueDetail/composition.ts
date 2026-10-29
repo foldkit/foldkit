@@ -3,153 +3,105 @@ import type { Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { CommentComposerBlock } from '../commentComposer'
-import { IssueDraft, IssuePriority, IssueStatus } from '../domain'
+import { IssuePriority, IssueStatus } from '../domain'
 import {
   PriorityListboxBlock,
   StatusListboxBlock,
   WorkspaceListboxBlock,
 } from '../listbox'
 import {
-  IssueDetailDefinition,
-  OutMessage,
-  SaveState,
+  makeBinding,
+  makeComposition,
   makeNoopStep,
-  makeStep,
+  makeOutMessageFold,
+  makeOutMessageStep,
 } from './definition'
-import { maybeRetainedDraft, reconcileIssue } from './draft'
 import { decodeAssigneeSelection } from './field'
+import { OutMessage } from './outMessage'
+import { editDraftStep } from './steps'
 
-export const CommentComposerBinding = IssueDetailDefinition.makeBinding(
-  CommentComposerBlock,
-  {
-    field: 'commentComposer',
-    init: {
-      contextToArgs: ({ issueId, commentBody }) => [issueId, commentBody],
-    },
+export const CommentComposerBinding = makeBinding(CommentComposerBlock, {
+  field: 'commentComposer',
+  init: {
+    contextToArgs: ({ issueId }) => [issueId],
   },
-).withOutMessagePolicy({
-  fold: IssueDetailDefinition.makeOutMessageFold(CommentComposerBlock, {
-    AddedComment: ({ issue }) =>
-      makeStep(model => {
-        const reconciled = reconcileIssue(model, issue)
-
-        return {
-          model:
-            reconciled === model
-              ? model
-              : modifyFields(model, {
-                  baseline: () => reconciled.baseline,
-                  draft: () => reconciled.draft,
-                  maybeIncomingRevision: () => reconciled.maybeIncomingRevision,
-                  saveState: () => reconciled.saveState,
-                }),
-          outMessage: OutMessage.ObservedIssue({ issue }),
-        }
-      }),
-    ReportedDraft: ({ body }) =>
-      makeStep(model => ({
-        model,
-        outMessage: OutMessage.ChangedDraft({
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(CommentComposerBlock, {
+    AddedComment: ({ comment }) =>
+      makeOutMessageStep(model =>
+        OutMessage.AddedComment({
           issueId: model.issueId,
-          maybeDraft: maybeRetainedDraft(model, body),
+          comment,
         }),
-      })),
+      ),
   }),
 })
 
-const reportDraftStep = CommentComposerBinding.requestReportDraft()
-
-const keepModelStep = makeNoopStep()
-
-export const changeDraftStep =
-  (toDraft: (draft: typeof IssueDraft.Type) => typeof IssueDraft.Type) =>
-  (model: Parameters<typeof reportDraftStep>[0]) => {
-    if (SaveState.guards.Saving(model.saveState)) {
-      return keepModelStep(model)
-    }
-
-    return reportDraftStep(modifyFields(model, { draft: toDraft }))
-  }
-
-export const StatusBinding = IssueDetailDefinition.makeBinding(
-  StatusListboxBlock,
-  {
-    field: 'statusListbox',
-    init: {
-      contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-status` }],
-    },
+export const StatusListboxBinding = makeBinding(StatusListboxBlock, {
+  field: 'statusListbox',
+  init: {
+    contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-status` }],
   },
-).withOutMessagePolicy({
-  fold: IssueDetailDefinition.makeOutMessageFold(StatusListboxBlock, {
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(StatusListboxBlock, {
     Selected: ({ value }) =>
       Schema.is(IssueStatus)(value)
-        ? changeDraftStep(draft => modifyFields(draft, { status: () => value }))
+        ? editDraftStep(draft => modifyFields(draft, { status: () => value }))
         : makeNoopStep(),
   }),
 })
 
-export const PriorityBinding = IssueDetailDefinition.makeBinding(
-  PriorityListboxBlock,
-  {
-    field: 'priorityListbox',
-    init: {
-      contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-priority` }],
-    },
+export const PriorityListboxBinding = makeBinding(PriorityListboxBlock, {
+  field: 'priorityListbox',
+  init: {
+    contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-priority` }],
   },
-).withOutMessagePolicy({
-  fold: IssueDetailDefinition.makeOutMessageFold(PriorityListboxBlock, {
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(PriorityListboxBlock, {
     Selected: ({ value }) =>
       Schema.is(IssuePriority)(value)
-        ? changeDraftStep(draft =>
-            modifyFields(draft, { priority: () => value }),
-          )
+        ? editDraftStep(draft => modifyFields(draft, { priority: () => value }))
         : makeNoopStep(),
   }),
 })
 
-export const ProjectBinding = IssueDetailDefinition.makeBinding(
-  WorkspaceListboxBlock,
-  {
-    field: 'projectListbox',
-    init: {
-      contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-project` }],
-    },
+export const ProjectListboxBinding = makeBinding(WorkspaceListboxBlock, {
+  field: 'projectListbox',
+  init: {
+    contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-project` }],
   },
-).withOutMessagePolicy({
-  fold: IssueDetailDefinition.makeOutMessageFold(WorkspaceListboxBlock, {
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(WorkspaceListboxBlock, {
     Selected: ({ value }) =>
-      changeDraftStep(draft => modifyFields(draft, { projectId: () => value })),
+      editDraftStep(draft => modifyFields(draft, { projectId: () => value })),
   }),
 })
 
-export const AssigneeBinding = IssueDetailDefinition.makeBinding(
-  WorkspaceListboxBlock,
-  {
-    field: 'assigneeListbox',
-    init: {
-      contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-assignee` }],
-    },
+export const AssigneeListboxBinding = makeBinding(WorkspaceListboxBlock, {
+  field: 'assigneeListbox',
+  init: {
+    contextToArgs: ({ issueId }) => [{ id: `issue-${issueId}-assignee` }],
   },
-).withOutMessagePolicy({
-  fold: IssueDetailDefinition.makeOutMessageFold(WorkspaceListboxBlock, {
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(WorkspaceListboxBlock, {
     Selected: ({ value }) =>
       Option.match(decodeAssigneeSelection(value), {
         onNone: makeNoopStep,
         onSome: maybeAssigneeId =>
-          changeDraftStep(draft =>
+          editDraftStep(draft =>
             modifyFields(draft, { maybeAssigneeId: () => maybeAssigneeId }),
           ),
       }),
   }),
 })
 
-export const IssueDetailComposition = IssueDetailDefinition.makeComposition({
+export const IssueDetailComposition = makeComposition({
   bindings: [
     CommentComposerBinding,
-    StatusBinding,
-    PriorityBinding,
-    ProjectBinding,
-    AssigneeBinding,
+    StatusListboxBinding,
+    PriorityListboxBinding,
+    ProjectListboxBinding,
+    AssigneeListboxBinding,
   ],
 })
 export type IssueDetailViewBuilder = Block.ViewBuilderFor<

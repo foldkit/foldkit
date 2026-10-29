@@ -24,3 +24,7 @@ export const Message = defineMessageUnion({
   ConfirmedGridSizeChange: {},
   CompletedSaveCanvas: {},
 })
+export type Message = typeof Message.Type
+export type ClickedUndo = typeof Message.ClickedUndo.Type
+export type ClickedRedo = typeof Message.ClickedRedo.Type
+export type SelectedTool = typeof Message.SelectedTool.Type

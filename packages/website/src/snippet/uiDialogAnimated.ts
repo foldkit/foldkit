@@ -13,11 +13,12 @@ const Model = Schema.Struct({
   dialog: Dialog.DialogBlock.Model,
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // This excerpt has no parent-owned facts. The Composition derives Dialog
 // delivery; open from a trigger with `DialogBinding.requestOpen()` as in the
 // basic Dialog example.
 const Message = defineMessageUnion({})
+type Message = typeof Message.Type
 
 const AnimatedDialogExampleDefinition = Block.makeDefinition(
   'AnimatedDialogExample',

@@ -5,6 +5,7 @@ export const Post = Schema.Struct({
   title: Schema.String,
   excerpt: Schema.String,
 })
+export type Post = typeof Post.Type
 
 export const PostDetail = Schema.Struct({
   id: Schema.String,
@@ -12,12 +13,14 @@ export const PostDetail = Schema.Struct({
   author: Schema.String,
   body: Schema.String,
 })
+export type PostDetail = typeof PostDetail.Type
 
 export const Stats = Schema.Struct({
   activeUsers: Schema.Number,
   requestsPerSecond: Schema.Number,
   cacheHitRatePercent: Schema.Number,
 })
+export type Stats = typeof Stats.Type
 
 export const FLAKY_POST_ID = 'flaky-connection'
 
@@ -89,7 +92,7 @@ const flakyAttempts = { count: 0 }
 
 export const fetchPostDetail = (
   postId: string,
-): Effect.Effect<typeof PostDetail.Type, string> =>
+): Effect.Effect<PostDetail, string> =>
   Effect.gen(function* () {
     yield* Effect.sleep(SERVER_LATENCY)
 

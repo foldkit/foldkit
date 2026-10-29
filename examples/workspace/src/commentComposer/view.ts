@@ -8,18 +8,20 @@ import {
   CommentComposerComposition,
   type CommentComposerViewBuilder,
 } from './composition'
-import { Message, type Model, PostState } from './definition'
-import { canEditDraft } from './draft'
+import { isDraftEditable } from './draft'
+import { Message } from './message'
+import { type Model, PostState } from './model'
 
 const ViewInputs = Schema.Struct({
   members: Schema.Array(Member),
   comments: Schema.Array(Comment),
   authorId: Schema.String,
 })
+type ViewInputs = typeof ViewInputs.Type
 
 const commentView = (
-  comment: typeof Comment.Type,
-  members: ReadonlyArray<typeof Member.Type>,
+  comment: Comment,
+  members: ReadonlyArray<Member>,
   h: CommentComposerViewBuilder,
 ): Html => {
   const maybeAuthor = Array.findFirst(
@@ -67,10 +69,7 @@ const commentView = (
   )
 }
 
-const feedback = (
-  model: typeof Model.Type,
-  h: CommentComposerViewBuilder,
-): Html =>
+const feedback = (model: Model, h: CommentComposerViewBuilder): Html =>
   PostState.match(model.postState, {
     Idle: () =>
       String.isEmpty(model.body)
@@ -96,117 +95,117 @@ const feedback = (
       ),
   })
 
-export const view = CommentComposerComposition.makeView.withInputs<
-  typeof ViewInputs.Type
->((model, viewInputs, h) => {
-  const textareaId = `issue-${model.issueId}-comment`
+export const view = CommentComposerComposition.makeView.withInputs<ViewInputs>(
+  (model, viewInputs, h) => {
+    const textareaId = `issue-${model.issueId}-comment`
 
-  const isDraftLocked = !canEditDraft(model)
-  const hasBody = String.isNonEmpty(model.body)
+    const isDraftLocked = !isDraftEditable(model)
+    const isBodyNonEmpty = String.isNonEmpty(model.body)
 
-  return h.section(
-    [h.Class('mt-8 border-t border-[#e3e6ef] pt-5'), h.AriaLabel('Activity')],
-    [
-      h.h2(
-        [h.Class('mb-4 text-base font-semibold text-slate-700')],
-        ['Activity'],
-      ),
-      ...Array.match(viewInputs.comments, {
-        onEmpty: () => [
-          h.p([h.Class('text-sm text-slate-500')], ['No activity yet.']),
-        ],
-        onNonEmpty: comments =>
-          Array.map(comments, comment =>
-            commentView(comment, viewInputs.members, h),
-          ),
-      }),
-      h.form(
-        [
-          h.Class('mt-5'),
-          h.OnSubmit(
-            Message.SubmittedCommentForm({ authorId: viewInputs.authorId }),
-          ),
-        ],
-        [
-          Textarea.view(
-            {
-              id: textareaId,
-              value: model.body,
-              rows: 3,
-              isDisabled: isDraftLocked,
-              isInvalid:
-                PostState.guards.Failed(model.postState) &&
-                String.isEmpty(String.trim(model.body)),
-              onInput: value => Message.UpdatedBody({ value }),
-              toView: attributes =>
-                h.div(
-                  [h.Class('mb-4 grid gap-2')],
-                  [
-                    h.label(
-                      [
-                        ...attributes.label,
-                        h.Class('text-[13px] font-medium text-slate-600'),
-                      ],
-                      ['Write a comment'],
-                    ),
-                    h.textarea([
-                      ...attributes.textarea,
-                      h.Class(
-                        'text-control min-h-24 resize-y px-3 py-2.5 text-sm font-normal leading-6',
+    return h.section(
+      [h.Class('mt-8 border-t border-[#e3e6ef] pt-5'), h.AriaLabel('Activity')],
+      [
+        h.h2(
+          [h.Class('mb-4 text-base font-semibold text-slate-700')],
+          ['Activity'],
+        ),
+        ...Array.match(viewInputs.comments, {
+          onEmpty: () => [
+            h.p([h.Class('text-sm text-slate-500')], ['No activity yet.']),
+          ],
+          onNonEmpty: comments =>
+            Array.map(comments, comment =>
+              commentView(comment, viewInputs.members, h),
+            ),
+        }),
+        h.form(
+          [
+            h.Class('mt-5'),
+            h.OnSubmit(
+              Message.SubmittedCommentForm({ authorId: viewInputs.authorId }),
+            ),
+          ],
+          [
+            Textarea.view(
+              {
+                id: textareaId,
+                value: model.body,
+                rows: 3,
+                isDisabled: isDraftLocked,
+                isInvalid:
+                  PostState.guards.Failed(model.postState) &&
+                  String.isEmpty(String.trim(model.body)),
+                onInput: value => Message.UpdatedBody({ value }),
+                toView: attributes =>
+                  h.div(
+                    [h.Class('mb-4 grid gap-2')],
+                    [
+                      h.label(
+                        [
+                          ...attributes.label,
+                          h.Class('text-[13px] font-medium text-slate-600'),
+                        ],
+                        ['Write a comment'],
                       ),
-                      h.Required(true),
-                      h.AriaRequired(true),
-                    ]),
-                  ],
+                      h.textarea([
+                        ...attributes.textarea,
+                        h.Class(
+                          'text-control min-h-24 resize-y px-3 py-2.5 text-sm font-normal leading-6',
+                        ),
+                        h.Required(true),
+                        h.AriaRequired(true),
+                      ]),
+                    ],
+                  ),
+              },
+              h,
+            ),
+            feedback(model, h),
+            h.div(
+              [h.Class('mt-3 flex items-center justify-end gap-2')],
+              [
+                ...(isBodyNonEmpty
+                  ? [
+                      Button.view(
+                        {
+                          type: 'button',
+                          isDisabled: isDraftLocked,
+                          onClick: Message.ClickedDiscardComment(),
+                          toView: attributes =>
+                            h.button(
+                              [
+                                ...attributes.button,
+                                h.Disabled(isDraftLocked),
+                                h.Class('button'),
+                              ],
+                              ['Discard comment'],
+                            ),
+                        },
+                        h,
+                      ),
+                    ]
+                  : []),
+                Button.view(
+                  {
+                    type: 'submit',
+                    isDisabled: isDraftLocked,
+                    toView: attributes =>
+                      h.button(
+                        [
+                          ...attributes.button,
+                          h.Disabled(isDraftLocked),
+                          h.Class('button-primary'),
+                        ],
+                        ['Post comment'],
+                      ),
+                  },
+                  h,
                 ),
-            },
-            h,
-          ),
-          feedback(model, h),
-          h.div(
-            [h.Class('mt-3 flex items-center justify-end gap-2')],
-            [
-              ...(hasBody
-                ? [
-                    Button.view(
-                      {
-                        type: 'button',
-                        isDisabled: isDraftLocked,
-                        onClick: Message.ClickedDiscardComment(),
-                        toView: attributes =>
-                          h.button(
-                            [
-                              ...attributes.button,
-                              h.Disabled(isDraftLocked),
-                              h.Class('button'),
-                            ],
-                            ['Discard comment'],
-                          ),
-                      },
-                      h,
-                    ),
-                  ]
-                : []),
-              Button.view(
-                {
-                  type: 'submit',
-                  isDisabled: isDraftLocked,
-                  toView: attributes =>
-                    h.button(
-                      [
-                        ...attributes.button,
-                        h.Disabled(isDraftLocked),
-                        h.Class('button-primary'),
-                      ],
-                      ['Post comment'],
-                    ),
-                },
-                h,
-              ),
-            ],
-          ),
-        ],
-      ),
-    ],
-  )
-})
+              ],
+            ),
+          ],
+        ),
+      ],
+    )
+  },
+)

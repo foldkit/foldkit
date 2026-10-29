@@ -14,6 +14,7 @@ const Message = defineMessageUnion({
   CompletedSaveDraft: { draftId: Schema.Number },
   CompletedDoWork: {},
 })
+type Message = typeof Message.Type
 
 if (false) {
   const LayerOnly = Command.define('LayerOnly', {

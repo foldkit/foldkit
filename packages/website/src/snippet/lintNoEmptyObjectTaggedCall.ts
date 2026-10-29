@@ -4,7 +4,7 @@ const Submission = defineTaggedUnion({
   NotSubmitted: {},
   Submitting: {},
 })
-
+type Submission = typeof Submission.Type
 // ❌ Bad
 const badSubmission = Submission.NotSubmitted({})
 

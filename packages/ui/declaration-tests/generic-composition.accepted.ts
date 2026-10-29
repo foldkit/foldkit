@@ -30,7 +30,7 @@ type Equal<Left, Right> =
 type Expect<Value extends true> = Value
 
 export const Item = Schema.Literals(['Apple', 'Pear'])
-export const Picker = Combobox.create(Item)
+export const Picker = Combobox.makeBlock(Item)
 export const EncodedItem = Schema.Number.pipe(
   Schema.decodeTo(
     Schema.String,
@@ -40,11 +40,11 @@ export const EncodedItem = Schema.Number.pipe(
     }),
   ),
 )
-export const EncodedPicker = Combobox.create(EncodedItem)
-export const MultiPicker = Combobox.Multi.create(Item)
-export const ListPicker = Listbox.create<'Apple' | 'Pear'>()
-export const MultiListPicker = Listbox.Multi.create<'Apple' | 'Pear'>()
-export const MenuPicker = Menu.create<'Apple' | 'Pear'>()
+export const EncodedPicker = Combobox.makeBlock(EncodedItem)
+export const MultiPicker = Combobox.Multi.makeBlock(Item)
+export const ListPicker = Listbox.makeBlock<'Apple' | 'Pear'>()
+export const MultiListPicker = Listbox.Multi.makeBlock<'Apple' | 'Pear'>()
+export const MenuPicker = Menu.makeBlock<'Apple' | 'Pear'>()
 const MenuFoldModel = Schema.Struct({ selected: Item })
 export const MenuFoldFixtureDefinition = Block.makeDefinition(
   'MenuFoldFixture',
@@ -98,8 +98,8 @@ export const RootSlider = Slider.forRoot(() => document)
 export const ToastPayload = Schema.Struct({
   kind: Schema.Literals(['Saved', 'Failed']),
 })
-export const ToastBlock = Toast.make(ToastPayload)
-export const OtherToastBlock = Toast.make(
+export const ToastBlock = Toast.makeBlock(ToastPayload)
+export const OtherToastBlock = Toast.makeBlock(
   Schema.Struct({ count: Schema.Number }),
 )
 const ToastFixtureModel = Schema.Struct({

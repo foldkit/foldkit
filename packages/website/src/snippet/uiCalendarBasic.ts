@@ -23,12 +23,13 @@ const Model = Schema.Struct({
   maybeSelectedDate: Schema.Option(Calendar.CalendarDate),
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // Fetch `today` once at the app boundary via flags so init stays pure:
 const Flags = Schema.Struct({
   today: Calendar.CalendarDate,
   // ...your other flags
 })
+type Flags = typeof Flags.Type
 
 const flags = Effect.gen(function* () {
   const today = yield* Calendar.today.local
@@ -38,6 +39,7 @@ const flags = Effect.gen(function* () {
 // This excerpt has no parent-owned facts. The Composition derives Calendar
 // delivery from the Binding.
 const Message = defineMessageUnion({})
+type Message = typeof Message.Type
 
 const CalendarExampleDefinition = Block.makeDefinition('CalendarExample', {
   Model,
@@ -99,15 +101,13 @@ type CalendarExampleViewBuilder = Block.ViewBuilderFor<
 
 // Pass the flags-resolved date through the child init context. `initialViewDate`
 // seeds the month the calendar opens onto. The parent owns the selection.
-const init = CalendarExampleComposition.makeInit(
-  (flags: typeof Flags.Type) => ({
-    childInitContext: flags,
-    model: {
-      maybeSelectedDate: Option.none(),
-      // ...your other fields
-    },
-  }),
-)
+const init = CalendarExampleComposition.makeInit((flags: Flags) => ({
+  childInitContext: flags,
+  model: {
+    maybeSelectedDate: Option.none(),
+    // ...your other fields
+  },
+}))
 
 const update = CalendarExampleComposition.makeUpdate({})
 

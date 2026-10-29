@@ -33,18 +33,23 @@ export type RoutingInputConfig<Message> = Readonly<{
   onUrlChange: RoutingHandler<'url', Url, Message>
 }>
 
+/** @internal Adapts a Program routing callback or canonical Message constructor. */
+export const normalizeRoutingHandler =
+  <Field extends string, Value, Message>(
+    field: Field,
+    handler: RoutingHandler<Field, Value, Message>,
+  ): ((value: Value) => Message) =>
+  value =>
+    isCallableTaggedStruct(handler)
+      ? Reflect.apply(handler, undefined, [{ [field]: value }])
+      : Reflect.apply(handler, undefined, [value])
+
 /** @internal Converts erased canonical routing constructors to Runtime callbacks. */
 export const normalizeRoutingInputConfig = <Message>(
   routing: RoutingInputConfig<Message>,
 ): RoutingConfig<Message> => {
-  const onUrlRequest = (request: UrlRequest): Message =>
-    isCallableTaggedStruct(routing.onUrlRequest)
-      ? Reflect.apply(routing.onUrlRequest, undefined, [{ request }])
-      : Reflect.apply(routing.onUrlRequest, undefined, [request])
-  const onUrlChange = (url: Url): Message =>
-    isCallableTaggedStruct(routing.onUrlChange)
-      ? Reflect.apply(routing.onUrlChange, undefined, [{ url }])
-      : Reflect.apply(routing.onUrlChange, undefined, [url])
+  const onUrlRequest = normalizeRoutingHandler('request', routing.onUrlRequest)
+  const onUrlChange = normalizeRoutingHandler('url', routing.onUrlChange)
 
   return { onUrlRequest, onUrlChange }
 }

@@ -107,9 +107,7 @@ export const update = PersonalInfoComposition.makeUpdate({
   })),
 })
 
-const validatedFields = (
-  model: typeof Model.Type,
-): ReadonlyArray<Field<string>> => [
+const validatedFields = (model: Model): ReadonlyArray<Field<string>> => [
   model.firstName,
   model.lastName,
   model.email,
@@ -117,10 +115,10 @@ const validatedFields = (
   model.portfolioUrl,
 ]
 
-export const hasErrors = (model: typeof Model.Type): boolean =>
+export const hasErrors = (model: Model): boolean =>
   anyInvalid(validatedFields(model))
 
-export const isComplete = (model: typeof Model.Type): boolean =>
+export const isComplete = (model: Model): boolean =>
   allValid([
     [model.firstName, firstNameRules],
     [model.lastName, lastNameRules],

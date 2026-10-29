@@ -7,10 +7,12 @@ export const SavedCanvas = Schema.Struct({
   paletteThemeIndex: Schema.Number,
   selectedColorIndex: PaletteIndex,
 })
+export type SavedCanvas = typeof SavedCanvas.Type
 
 export const SavedCanvasJsonString = Schema.fromJsonString(
   Schema.toCodecJson(SavedCanvas),
 )
+export type SavedCanvasJsonString = typeof SavedCanvasJsonString.Type
 
 export const flags = Effect.gen(function* () {
   const store = yield* KeyValueStore.KeyValueStore

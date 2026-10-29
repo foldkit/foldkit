@@ -1,1 +1,1 @@
-export { MemberDirectoryBlock } from './memberDirectory'
+export { MemberDirectoryBlock } from './block'

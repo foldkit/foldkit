@@ -9,9 +9,7 @@ import { CheckoutState, type Model, Promo } from './model'
 import { TRANSITION_LOG_LIMIT } from './transition'
 import { update } from './update'
 
-const maybeLatestTransitionSummary = (
-  model: typeof Model.Type,
-): Option.Option<string> =>
+const maybeLatestTransitionSummary = (model: Model): Option.Option<string> =>
   pipe(
     Array.head(model.transitionLog),
     Option.map(entry => entry.summary),

@@ -1,0 +1,99 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  font-family: sans-serif;
+}
+
+.controls {
+  position: fixed;
+  z-index: 5;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px;
+  background: white;
+  border-top: 1px solid #666;
+}
+
+.controls button {
+  padding: 4px;
+}
+
+#status {
+  display: block;
+  height: 30px;
+}
+
+.main {
+  border: 7px solid #333;
+  padding: 13px 17px;
+  margin: 0 11px 120px;
+}
+
+.main.ancestor {
+  overflow: auto;
+  resize: vertical;
+}
+
+#preceding {
+  background: #eee;
+}
+
+#following {
+  height: 600px;
+  background: #ddd;
+}
+
+.self-list {
+  height: 320px;
+}
+
+.row-content {
+  display: block;
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid #aaa;
+  background: white;
+  color: black;
+}
+
+.row-content.dynamic.expanded {
+  height: 100px;
+}
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+th,
+td {
+  padding: 0;
+  border: 0;
+}
+
+thead {
+  height: 32px;
+}
+
+@media (max-width: 480px) {
+  .row-content.dynamic {
+    height: 60px;
+  }
+
+  .row-content.dynamic.expanded {
+    height: 120px;
+  }
+}

@@ -100,7 +100,7 @@ export type WebContainerPlaygroundService = ManagedResource.ServiceOf<
 >
 
 const PlaygroundParams = Schema.Struct({ slug: Schema.String })
-
+type PlaygroundParams = typeof PlaygroundParams.Type
 // NOTE: Vite's HMR for a content file (`src/application.ts`) doesn't reliably
 // invalidate Tailwind's CSS module in the WebContainer. After writing the
 // content file, we write `src/styles.css` back to itself so Vite emits a
@@ -237,7 +237,7 @@ const appendDeduped = (
   Array.contains(paths, path) ? paths : [...paths, path]
 
 const flushDirtyPaths = (
-  model: typeof Model.Type,
+  model: Model,
 ): ReadonlyArray<ReturnType<typeof SchedulePlaygroundFileWrite>> =>
   model.dirtyPaths.flatMap(path =>
     pipe(
@@ -248,9 +248,9 @@ const flushDirtyPaths = (
   )
 
 const markPreviewLoaded = (
-  state: typeof PlaygroundState.Type,
+  state: PlaygroundState,
   previewUrl: string,
-): typeof PlaygroundState.Type =>
+): PlaygroundState =>
   Match.value(state).pipe(
     Match.tag('Booted', bootedState => {
       const nextPreview = PlaygroundPreview.load(
@@ -463,7 +463,7 @@ const editorPanelContent = (
   )
 
 const previewPaneView = (
-  state: typeof PlaygroundState.Type,
+  state: PlaygroundState,
   h: PlaygroundViewBuilder,
 ): Html =>
   h.div(
@@ -549,10 +549,7 @@ const tooNarrowMessageView = (): Html =>
     ],
   )
 
-const responsiveEditorView = (
-  model: typeof Model.Type,
-  h: PlaygroundViewBuilder,
-): Html =>
+const responsiveEditorView = (model: Model, h: PlaygroundViewBuilder): Html =>
   h.div(
     [h.Class('flex-1 min-h-0 flex flex-col')],
     [
@@ -564,10 +561,7 @@ const responsiveEditorView = (
     ],
   )
 
-const editorLayoutView = (
-  model: typeof Model.Type,
-  h: PlaygroundViewBuilder,
-): Html => {
+const editorLayoutView = (model: Model, h: PlaygroundViewBuilder): Html => {
   const paths = sortedPaths(model.files)
   return h.div(
     [h.Class('flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden')],

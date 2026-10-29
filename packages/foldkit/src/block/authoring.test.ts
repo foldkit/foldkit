@@ -447,6 +447,7 @@ const RoomWithHostProvider = Room.provideHandlers(
 const ChoiceNamespace = makeNamespace('AuthoringChoice')
 
 const CompletedObserveChoice = Schema.TaggedStruct('CompletedObserveChoice', {})
+type CompletedObserveChoice = typeof CompletedObserveChoice.Type
 
 const ObserveChoice = ChoiceNamespace.makeMount('ObserveChoice', {
   messages: [CompletedObserveChoice],
@@ -522,6 +523,7 @@ const makeChoice = <Value extends string>(Value: Schema.Schema<Value>) => {
 const StringChoice = makeChoice(Schema.Literals(['One', 'Two']))
 
 const LeafModel = Schema.Struct({ value: Schema.String })
+type LeafModel = typeof LeafModel.Type
 
 const LeafMessage = defineMessageUnion({
   UpdatedLeaf: { value: Schema.String },
@@ -571,11 +573,13 @@ const bindLeaf = <
 const GraphChildNamespace = makeNamespace('AuthoringGraphChild')
 
 const GraphChildModel = Schema.Struct({ count: Schema.Number })
+type GraphChildModel = typeof GraphChildModel.Type
 
 const GraphChildMessage = defineMessageUnion({
   RequestedChildWork: {},
   CompletedChildWork: {},
 })
+type GraphChildMessage = typeof GraphChildMessage.Type
 
 const RunChildWork = GraphChildNamespace.makeCommand('RunChildWork', {
   messages: [GraphChildMessage.CompletedChildWork],
@@ -613,6 +617,7 @@ const GraphParentMessage = defineMessageUnion({
   RequestedParentWork: {},
   CompletedParentWork: {},
 })
+type GraphParentMessage = typeof GraphParentMessage.Type
 
 const RunParentWork = GraphParentNamespace.makeCommand('RunParentWork', {
   messages: [GraphParentMessage.CompletedParentWork],
@@ -713,6 +718,7 @@ const PolicyParentMessage = defineMessageUnion({
   ClickedCreateRoom: {},
   CompletedCreateRoom: { roomId: Schema.String },
 })
+type PolicyParentMessage = typeof PolicyParentMessage.Type
 
 const PolicyParentBaseDefinition = PolicyParentNamespace.makeDefinition({
   Model: PolicyParentModel,
@@ -797,6 +803,7 @@ const ForeignPolicyConflictChildNamespace = makeNamespace(
   'AuthoringPolicyConflictChild',
 )
 const PolicyConflictChildModel = Schema.Struct({ value: Schema.String })
+type PolicyConflictChildModel = typeof PolicyConflictChildModel.Type
 const PolicyConflictChildMessage = defineMessageUnion({ CompletedRun: {} })
 type PolicyConflictChildMessage = typeof PolicyConflictChildMessage.Type
 const PolicyConflictChildOutMessage = defineMessageUnion({ RequestedRun: {} })
@@ -846,6 +853,7 @@ const PolicyConflictParentMessage = defineMessageUnion({
   ClickedCreateRoom: {},
   CompletedCreateRoom: { roomId: Schema.String },
 })
+type PolicyConflictParentMessage = typeof PolicyConflictParentMessage.Type
 
 const PolicyConflictParentBaseDefinition = makeNamespace(
   'AuthoringPolicyConflictParent',
@@ -866,7 +874,7 @@ const PolicyConflictChildBinding =
           liftCommand,
         }: Update.FoldContext<
           PolicyConflictChildMessage,
-          typeof PolicyConflictParentMessage.Type
+          PolicyConflictParentMessage
         >,
       ) =>
       (model: PolicyConflictParentModel) => ({
@@ -881,6 +889,7 @@ const policyConflictParentComposition =
 
 if (false) {
   const ForeignOwnedMessage = defineMessageUnion({ CompletedForeign: {} })
+  type ForeignOwnedMessage = typeof ForeignOwnedMessage.Type
   HomeDefinition.makeSubscriptions(entry => {
     entry('Foreign', {
       // @ts-expect-error The owned Subscription builder rejects foreign Message schemas.
@@ -1526,6 +1535,7 @@ if (false) {
   })
 
   const ParentOutMessage = defineMessageUnion({ AcceptedChildResult: {} })
+  type ParentOutMessage = typeof ParentOutMessage.Type
   const ForeignForwardParentBaseDefinition =
     GraphParentNamespace.makeDefinition({
       Model: GraphParentModel,
@@ -2328,10 +2338,8 @@ describe('Block authoring', () => {
   it('retains explicit host provenance through root lowering and recipe selection', async () => {
     const model = PolicyParentWithSelectedHostProvider.init().model
     const lowered = lowerBlock(PolicyParentWithSelectedHostProvider)
-    const policyUpdate: Update.Return<
-      PolicyParentModel,
-      typeof PolicyParentMessage.Type
-    > = lowered.update(model, PolicyParentMessage.ClickedCreateRoom())
+    const policyUpdate: Update.Return<PolicyParentModel, PolicyParentMessage> =
+      lowered.update(model, PolicyParentMessage.ClickedCreateRoom())
     const layer = qualifyLayer(
       PolicyParentWithSelectedHostProvider.owner.id,
       PolicyParentWithSelectedHostProvider.EffectsLayer,

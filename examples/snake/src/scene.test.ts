@@ -5,7 +5,7 @@ import { describe, test } from 'vitest'
 import { type Model, update, view } from './application'
 import { Snake } from './domain'
 
-const baseModel: typeof Model.Type = {
+const baseModel: Model = {
   snake: Snake.create({ x: 10, y: 10 }),
   apple: { x: 15, y: 15 },
   direction: 'Right',

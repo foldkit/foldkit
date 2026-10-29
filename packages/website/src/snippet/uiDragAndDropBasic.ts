@@ -15,16 +15,16 @@ const Model = Schema.Struct({
   dragAndDrop: DragAndDrop.DragAndDropBlock.Model,
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // This excerpt has no parent-owned facts. The Composition derives delivery.
 const Message = defineMessageUnion({})
-
+type Message = typeof Message.Type
 declare const reorder: (
-  items: (typeof Model.Type)['items'],
+  items: Model['items'],
   itemId: string,
   fromIndex: number,
   toIndex: number,
-) => (typeof Model.Type)['items']
+) => Model['items']
 
 const SortableListDefinition = Block.makeDefinition('SortableList', {
   Model,

@@ -88,7 +88,10 @@
       }
     },
     {
-      "files": ["packages/foldkit/src/experimental/machine/machine.test.ts"],
+      "files": [
+        "packages/foldkit/src/experimental/machine/machine.test.ts",
+        "packages/foldkit/declaration-tests/machine.rejected.ts"
+      ],
       "rules": {
         "effecttsgo/missing-effect-context": "off"
       }

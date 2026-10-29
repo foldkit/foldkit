@@ -10,6 +10,7 @@ import { type EntryHandlers, SwipeState, type Variant } from './toast.js'
 import { makeFixture } from './toast.js'
 
 const TestPayload = Schema.Struct({ body: Schema.String })
+type TestPayload = typeof TestPayload.Type
 
 const ToastFixture = makeFixture(TestPayload)
 const toastTest = ToastFixture.test

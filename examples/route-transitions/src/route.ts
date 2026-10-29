@@ -9,6 +9,7 @@ export const ApplicationRoute = defineRouteUnion({
   Studio: {},
   NotFound: { path: Schema.String },
 })
+export type ApplicationRoute = typeof ApplicationRoute.Type
 
 export const homeRouter = pipe(Route.root, Route.mapTo(ApplicationRoute.Home))
 

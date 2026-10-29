@@ -2,8 +2,9 @@ import { Block } from 'foldkit'
 
 import { EffectsLayer } from './command'
 import { IssueDetailComposition } from './composition'
-import { Message, type Model } from './definition'
 import { init } from './init'
+import { Message } from './message'
+import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
@@ -16,7 +17,6 @@ const prepare = () =>
     operations: {
       informIssueChanged: Message.InformedOfIssueChange,
       requestSave: Message.RequestedSave,
-      requestReportDraft: Message.RequestedReportDraft,
     },
   })
 export const IssueDetailBlock: Block.FromAssemblyWithViewAndOutMessage<

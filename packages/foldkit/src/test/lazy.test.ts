@@ -93,6 +93,7 @@ describe('Lazy.expectAllReused', () => {
     const child: Block.FromAssemblyWithView<typeof Model, typeof prepareChild> =
       Block.assemble(prepareChild)
     const ParentModel = Schema.Struct({ child: Model })
+    type ParentModel = typeof ParentModel.Type
     const ParentDefinition = makeDefinition('LazyAssertionParent', {
       Model: ParentModel,
       Message: Schema.Never,

@@ -13,7 +13,6 @@ export const DocumentAssets = Schema.Struct({
   stylesheets: Schema.Array(Schema.String),
   modulePreloads: Schema.Array(Schema.String),
 })
-
 /** The resolved browser asset URLs for one document.
  *
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.

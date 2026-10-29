@@ -15,21 +15,21 @@ const descendingRangeStream = (top: number, bottom: number) =>
 
 const getReadyStream = Stream.make(Shared.GetReady.make({}))
 
-const countdownStream: Stream.Stream<typeof Shared.Countdown.Type> = pipe(
+const countdownStream: Stream.Stream<Shared.Countdown> = pipe(
   descendingRangeStream(COUNTDOWN_SECONDS, 1),
   Stream.map(secondsLeft => Shared.Countdown.make({ secondsLeft })),
 )
 
-const playingStream: Stream.Stream<typeof Shared.Playing.Type> = pipe(
+const playingStream: Stream.Stream<Shared.Playing> = pipe(
   descendingRangeStream(PLAYING_SECONDS, 1),
   Stream.map(secondsLeft => Shared.Playing.make({ secondsLeft })),
 )
 
-const finishedStream: Stream.Stream<typeof Shared.Finished.Type> = Stream.make(
+const finishedStream: Stream.Stream<Shared.Finished> = Stream.make(
   Shared.Finished.make({}),
 )
 
-export const gameSequence: Stream.Stream<typeof Shared.GameStatus.Type> = pipe(
+export const gameSequence: Stream.Stream<Shared.GameStatus> = pipe(
   getReadyStream,
   Stream.concat(countdownStream),
   Stream.concat(playingStream),

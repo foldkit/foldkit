@@ -8,7 +8,7 @@ import { Message } from './message'
 import { EditingState, type Model } from './model'
 import { update } from './update'
 
-const emptyModel: typeof Model.Type = {
+const emptyModel: Model = {
   todos: [],
   newTodoText: '',
   filter: 'All',
@@ -36,7 +36,7 @@ const doneTask = {
   createdAt: 3000,
 }
 
-const modelWithTodos: typeof Model.Type = modifyFields(emptyModel, {
+const modelWithTodos: Model = modifyFields(emptyModel, {
   todos: () => [buyMilk, walkDog, doneTask],
 })
 
@@ -195,7 +195,7 @@ describe('update', () => {
     })
 
     test('UpdatedEditingTodo updates the editing text', () => {
-      const editingModel: typeof Model.Type = modifyFields(modelWithTodos, {
+      const editingModel: Model = modifyFields(modelWithTodos, {
         editing: () => EditingState.Editing({ id: 'abc', text: 'Buy milk' }),
       })
 
@@ -212,7 +212,7 @@ describe('update', () => {
     })
 
     test('SavedEdit updates the todo text and exits editing', () => {
-      const editingModel: typeof Model.Type = modifyFields(modelWithTodos, {
+      const editingModel: Model = modifyFields(modelWithTodos, {
         editing: () =>
           EditingState.Editing({ id: 'abc', text: 'Buy oat milk' }),
       })
@@ -242,7 +242,7 @@ describe('update', () => {
     })
 
     test('SavedEdit with empty text exits editing without saving', () => {
-      const editingModel: typeof Model.Type = modifyFields(modelWithTodos, {
+      const editingModel: Model = modifyFields(modelWithTodos, {
         editing: () => EditingState.Editing({ id: 'abc', text: '   ' }),
       })
 
@@ -262,7 +262,7 @@ describe('update', () => {
     })
 
     test('CancelledEdit exits editing without changes', () => {
-      const editingModel: typeof Model.Type = modifyFields(modelWithTodos, {
+      const editingModel: Model = modifyFields(modelWithTodos, {
         editing: () =>
           EditingState.Editing({ id: 'abc', text: 'Changed text' }),
       })
@@ -305,7 +305,7 @@ describe('update', () => {
     })
 
     test('ToggledAll marks all todos active when all are completed', () => {
-      const allCompletedModel: typeof Model.Type = modifyFields(emptyModel, {
+      const allCompletedModel: Model = modifyFields(emptyModel, {
         todos: () =>
           modelWithTodos.todos.map(todo =>
             modifyFields(todo, { completed: () => true }),

@@ -190,6 +190,10 @@ jobs:
         if: steps.scope.outputs.packed_ssr_consumer == 'true'
         run: pnpm check:packed-ssr-consumer:ci
 
+      - name: Check packed SSR consumer with Effect 4.0.6
+        if: steps.scope.outputs.packed_ssr_consumer == 'true'
+        run: node scripts/check-packed-ssr-consumer.ts --skip-build --effect-version=4.0.6 --platform-browser-version=4.0.6
+
       # Generates an SSR and an SSG project, builds each through the command its
       # own README documents, and drives the result in Chromium. This proves the
       # generated build id reaches both sides and hydration adopts the served
@@ -237,6 +241,14 @@ jobs:
       - name: Install Playwright browsers
         if: steps.scope.outputs.website == 'true'
         run: pnpm --filter website exec playwright install --with-deps chromium
+
+      - name: Typecheck VirtualList browser fixture
+        if: steps.scope.outputs.website == 'true'
+        run: pnpm --filter @foldkit/ui exec tsc --noEmit -p tsconfig.e2e.json
+
+      - name: Check VirtualList browser layouts
+        if: steps.scope.outputs.website == 'true'
+        run: pnpm --filter @foldkit/ui test:e2e:virtual-list
 
       - name: Prerender website agent surface
         if: steps.scope.outputs.website == 'true'

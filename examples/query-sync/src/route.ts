@@ -13,7 +13,9 @@ import { defineRouteUnion } from 'foldkit/route'
 import { defineTaggedUnion } from 'foldkit/schema'
 
 export const Diet = Schema.Literals(['Carnivore', 'Herbivore', 'Omnivore'])
+export type Diet = typeof Diet.Type
 export const Period = Schema.Literals(['Triassic', 'Jurassic', 'Cretaceous'])
+export type Period = typeof Period.Type
 export const SortColumn = Schema.Literals([
   'Name',
   'Period',
@@ -21,12 +23,14 @@ export const SortColumn = Schema.Literals([
   'Length',
   'Weight',
 ])
+export type SortColumn = typeof SortColumn.Type
 
 export const Sorting = defineTaggedUnion({
   Unsorted: {},
   Ascending: { column: SortColumn },
   Descending: { column: SortColumn },
 })
+export type Sorting = typeof Sorting.Type
 const SORT_PARAM_SEPARATOR = ':'
 
 const optionFromValidParam = <A extends string>(schema: Schema.Codec<A, A>) => {
@@ -44,6 +48,7 @@ const optionFromValidParam = <A extends string>(schema: Schema.Codec<A, A>) => {
 }
 
 const SortDirection = Schema.Literals(['Ascending', 'Descending'])
+type SortDirection = typeof SortDirection.Type
 
 const sortingFromParam = (() => {
   const decodeColumn = Schema.decodeUnknownOption(SortColumn)
@@ -109,6 +114,8 @@ export const ApplicationRoute = defineRouteUnion({
   },
   NotFound: { path: Schema.String },
 })
+export type ApplicationRoute = typeof ApplicationRoute.Type
+export type BrowseRoute = typeof ApplicationRoute.Browse.Type
 
 export const browseRouter = pipe(
   Route.root,
@@ -128,7 +135,7 @@ export const urlToApplicationRoute = Route.parseUrlWithFallback(
   routeParser,
   ApplicationRoute.NotFound,
 )
-export type BrowseFields = Omit<typeof ApplicationRoute.Browse.Type, '_tag'>
+export type BrowseFields = Omit<BrowseRoute, '_tag'>
 
 export const emptyBrowseFields: BrowseFields = {
   search: Option.none(),
@@ -137,17 +144,15 @@ export const emptyBrowseFields: BrowseFields = {
   period: Option.none(),
 }
 
-export const routeToBrowseFields = (
-  route: typeof ApplicationRoute.Type,
-): BrowseFields =>
+export const routeToBrowseFields = (route: ApplicationRoute): BrowseFields =>
   Match.value(route).pipe(
     Match.tag('Browse', route => route),
     Match.orElse(() => emptyBrowseFields),
   )
 export const columnSortDirection = (
-  sorting: typeof Sorting.Type,
-  column: typeof SortColumn.Type,
-): Types.Tags<typeof Sorting.Type> => {
+  sorting: Sorting,
+  column: SortColumn,
+): Types.Tags<Sorting> => {
   const isColumnSorted =
     sorting._tag !== 'Unsorted' && sorting.column === column
 
@@ -158,10 +163,7 @@ export const columnSortDirection = (
   }
 }
 
-export const nextSorting = (
-  sorting: typeof Sorting.Type,
-  column: typeof SortColumn.Type,
-): typeof Sorting.Type =>
+export const nextSorting = (sorting: Sorting, column: SortColumn): Sorting =>
   pipe(
     columnSortDirection(sorting, column),
     Match.value,

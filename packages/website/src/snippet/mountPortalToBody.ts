@@ -6,7 +6,7 @@ import { defineMessageUnion } from 'foldkit/message'
 const Message = defineMessageUnion({
   CompletedPortalToBody: {},
 })
-
+type Message = typeof Message.Type
 // Portal-to-body is a per-instance lifecycle effect that uses the element
 // directly. The Effect's acquireRelease moves the element to document.body
 // at mount and removes it on unmount. The work is pure DOM manipulation on
@@ -28,9 +28,6 @@ const PortalToBody = Mount.define('PortalToBody', {
 })
 
 const overlayView = (
-  h: HtmlBuilder<
-    typeof Message.Type,
-    Mount.RequirementsOf<typeof PortalToBody>
-  >,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof PortalToBody>>,
 ): Html =>
   h.div([h.Class('fixed inset-0 bg-black/50'), h.OnMount(PortalToBody())])

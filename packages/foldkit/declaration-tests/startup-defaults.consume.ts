@@ -23,10 +23,10 @@ import {
   RequiredRestBinding,
   RestChildBlock,
   StartupClient,
-  initialize,
-  initializeCompatibleStartup,
-  initializeMixedStartup,
-  initializeWithoutSelectorStartup,
+  init,
+  initCompatibleStartup,
+  initMixedStartup,
+  initWithoutSelectorStartup,
 } from './startup-defaults.accepted.js'
 
 type Equal<Left, Right> =
@@ -39,7 +39,7 @@ type Expect<Value extends true> = Value
 
 export type StartupArguments = Expect<
   Equal<
-    Parameters<typeof initialize>,
+    Parameters<typeof init>,
     [childInitContext: typeof ChildInitContext.Type]
   >
 >
@@ -60,13 +60,13 @@ export type RequiredRestArguments = Expect<
 >
 export type CompatibleStartupArguments = Expect<
   Equal<
-    Parameters<typeof initializeCompatibleStartup>,
+    Parameters<typeof initCompatibleStartup>,
     [childInitContext: Readonly<{ count: number; label: string }>]
   >
 >
 export type MixedStartupArguments = Expect<
   Equal<
-    Parameters<typeof initializeMixedStartup>,
+    Parameters<typeof initMixedStartup>,
     [childInitContext: Readonly<{ count: number }>]
   >
 >
@@ -78,7 +78,7 @@ export type StartupConstructorError = Expect<
 >
 export type StartupRegistration = Expect<
   Equal<
-    Update.RegistrationEvidenceOf<ReturnType<typeof initialize>>,
+    Update.RegistrationEvidenceOf<ReturnType<typeof init>>,
     | Block.RequirementOfBinding<typeof AutomaticBinding>
     | Block.RequirementOfBinding<typeof DefaultArgumentBinding>
     | Block.RequirementOfBinding<typeof OptionalArgumentBinding>
@@ -89,7 +89,7 @@ export type StartupRegistration = Expect<
 >
 export type StartupRequirements = Expect<
   Equal<
-    Update.RequirementsOf<typeof initialize>,
+    Update.RequirementsOf<typeof init>,
     | Command.HandlerOf<typeof FinishParentInitialization>
     | Command.HandlerOf<typeof FinishStep>
     | Block.Scoped<'automatic', Command.HandlerOf<typeof FinishInitialization>>
@@ -98,8 +98,8 @@ export type StartupRequirements = Expect<
   >
 >
 
-initialize({ count: 3, includeOptional: true, entryIds: ['first'] })
-initializeWithoutSelectorStartup()
+init({ count: 3, includeOptional: true, entryIds: ['first'] })
+initWithoutSelectorStartup()
 DeclarationStartupGenericParentComposition.makeInit(() => ({
   childInitContext: { count: 1, includeOptional: false, entryIds: [] },
   model: {},

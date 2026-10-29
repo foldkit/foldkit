@@ -31,6 +31,7 @@ export type {
 export { inspectBinding } from './binding.js'
 export type { BindingInitRecipe } from './initRecipe.js'
 export type { AssemblyDraft } from './assemblyState.js'
+export type { MakeMapBinding } from './mapBinding.js'
 export type {
   BindChild,
   BindingWithoutOutMessagePolicy,

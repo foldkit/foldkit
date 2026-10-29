@@ -34,5 +34,5 @@ export const plusIcon = (h: IssueListViewBuilder): Html =>
     [h.path([h.D('M8 3v10M3 8h10'), h.StrokeLinecap('round')])],
   )
 
-export const statusLabel = (status: typeof IssueStatus.Type): string =>
+export const statusLabel = (status: IssueStatus): string =>
   status === 'InProgress' ? 'In progress' : status

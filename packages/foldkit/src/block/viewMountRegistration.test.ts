@@ -12,10 +12,12 @@ import { lowerBlock } from './lowering.js'
 import * as Block from './public.js'
 
 const Model = Schema.Struct({ count: Schema.Number })
+type Model = typeof Model.Type
 const Message = defineMessageUnion({
   CompletedObserveFirst: {},
   CompletedObserveSecond: {},
 })
+type Message = typeof Message.Type
 const MountRegistration = makeDefinition('MountRegistration', {
   Model,
   Message,
@@ -83,10 +85,12 @@ const render = (view: AnyAuthoredView) => {
 }
 
 const Entry = Schema.Struct({ id: Schema.String, child: Model })
+type Entry = typeof Entry.Type
 const ParentModel = Schema.Struct({
   child: Model,
   entries: Schema.Array(Entry),
 })
+type ParentModel = typeof ParentModel.Type
 const MountParent = makeDefinition('MountParent', {
   Model: ParentModel,
   Message: Schema.Never,

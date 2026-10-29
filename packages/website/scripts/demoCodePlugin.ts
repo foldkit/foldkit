@@ -131,6 +131,7 @@ const Model = Schema.Struct({
   isResetting: Schema.Boolean,
   resetDuration: Schema.Number,
 })
+type Model = typeof Model.Type
 
 // MESSAGE
 
@@ -140,6 +141,7 @@ const Message = defineMessageUnion({
   ClickedResetAfterDelay: {},
   CompletedDelayReset: {},
 })
+type Message = typeof Message.Type
 
 // COMMAND
 
@@ -161,7 +163,7 @@ const EffectsLayer = DelayReset.layer
 
 // UPDATE
 
-const update = Update.define((model: typeof Model.Type, message: typeof Message.Type) =>
+const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: count => count + 1 }),
@@ -182,7 +184,12 @@ const update = Update.define((model: typeof Model.Type, message: typeof Message.
 const COUNTER_PHASE_REGIONS: PhaseRegions = {
   IncrementMessage: [{ from: '  ClickedIncrement: {},' }],
   IncrementUpdate: [{ from: '    ClickedIncrement: () => ({', to: '    }),' }],
-  IncrementModel: [{ from: 'const Model = Schema.Struct({', to: '})' }],
+  IncrementModel: [
+    {
+      from: 'const Model = Schema.Struct({',
+      to: 'type Model = typeof Model.Type',
+    },
+  ],
   DurationMessage: [
     {
       from: '  ChangedResetDuration: { seconds: Schema.Number },',
@@ -205,7 +212,12 @@ const COUNTER_PHASE_REGIONS: PhaseRegions = {
   ResetCommandUpdate: [
     { from: '    CompletedDelayReset: () => ({', to: '    }),' },
   ],
-  ResetModel: [{ from: 'const Model = Schema.Struct({', to: '})' }],
+  ResetModel: [
+    {
+      from: 'const Model = Schema.Struct({',
+      to: 'type Model = typeof Model.Type',
+    },
+  ],
 }
 
 /** Serves the async counter demo source as a virtual module of highlighted HTML. */
@@ -229,18 +241,21 @@ import { modifyFields } from 'foldkit/struct'`
 const NOTE_PLAYER_DEMO_CODE = `// MODEL
 
 const Note = Schema.Literals(['A', 'B', 'C', 'D', 'E', 'F', 'G'])
+type Note = typeof Note.Type
 
 const PlaybackState = defineTaggedUnion({
   Idle: {},
   Playing: { currentNoteIndex: Schema.Number },
   Paused: { currentNoteIndex: Schema.Number },
 })
+type PlaybackState = typeof PlaybackState.Type
 
 const Model = Schema.Struct({
   noteSequence: Schema.Array(Note),
   noteDuration: Schema.Number,
   playbackState: PlaybackState,
 })
+type Model = typeof Model.Type
 
 // MESSAGE
 
@@ -252,10 +267,12 @@ const Message = defineMessageUnion({
   FailedAcquireAudioContext: {},
   ReleasedAudioContext: {},
 })
+type Message = typeof Message.Type
+type CompletedPlayNote = typeof Message.CompletedPlayNote.Type
 
 // UPDATE
 
-const playNoteAtStep = Update.defineStep((model: typeof Model.Type, noteIndex: number) => ({
+const playNoteAtStep = Update.defineStep((model: Model, noteIndex: number) => ({
   model: modifyFields(model, {
     playbackState: () => PlaybackState.Playing({ currentNoteIndex: noteIndex }),
   }),
@@ -268,7 +285,7 @@ const playNoteAtStep = Update.defineStep((model: typeof Model.Type, noteIndex: n
   ],
 }))
 
-const update = Update.define((model: typeof Model.Type, message: typeof Message.Type) =>
+const update = Update.define((model: Model, message: Message) =>
   Message.match(message, {
     ClickedPlay: () =>
       PlaybackState.match(model.playbackState, {
@@ -309,8 +326,8 @@ const update = Update.define((model: typeof Model.Type, message: typeof Message.
 const AudioContextResource = ManagedResource.tag<AudioContext>()('AudioContext')
 
 const managedResources = ManagedResource.make<
-  typeof Model.Type,
-  typeof Message.Type
+  Model,
+  Message
 >()(entry => ({
   audioContext: entry(
     'ManageAudioContext',
@@ -344,7 +361,7 @@ const PlayNote = Command.define(
         Effect.gen(function* () {
           const audioContext = yield* AudioContextResource.get
 
-          return yield* Effect.callback<typeof Message.CompletedPlayNote.Type>(resume => {
+          return yield* Effect.callback<CompletedPlayNote>(resume => {
             const oscillator = audioContext.createOscillator()
             oscillator.frequency.setValueAtTime(
               NOTE_FREQUENCIES[note],
@@ -376,20 +393,38 @@ const NOTE_PLAYER_PHASE_REGIONS: PhaseRegions = {
   PlayUpdate: [
     { from: '    ClickedPlay: () =>', to: '      }),' },
     {
-      from: 'const playNoteAtStep = Update.defineStep((model: typeof Model.Type, noteIndex: number) => ({',
+      from: 'const playNoteAtStep = Update.defineStep((model: Model, noteIndex: number) => ({',
       to: '}))',
     },
   ],
-  PlayModel: [{ from: 'const Model = Schema.Struct({', to: '})' }],
+  PlayModel: [
+    {
+      from: 'const PlaybackState = defineTaggedUnion({',
+      to: 'type PlaybackState = typeof PlaybackState.Type',
+    },
+    {
+      from: 'const Model = Schema.Struct({',
+      to: 'type Model = typeof Model.Type',
+    },
+  ],
   NoteMessage: [{ from: '  CompletedPlayNote: { noteIndex: Schema.Number },' }],
   NoteUpdate: [
     { from: '    CompletedPlayNote: ({ noteIndex }) => {', to: '    },' },
     {
-      from: 'const playNoteAtStep = Update.defineStep((model: typeof Model.Type, noteIndex: number) => ({',
+      from: 'const playNoteAtStep = Update.defineStep((model: Model, noteIndex: number) => ({',
       to: '}))',
     },
   ],
-  NoteModel: [{ from: 'const Model = Schema.Struct({', to: '})' }],
+  NoteModel: [
+    {
+      from: 'const PlaybackState = defineTaggedUnion({',
+      to: 'type PlaybackState = typeof PlaybackState.Type',
+    },
+    {
+      from: 'const Model = Schema.Struct({',
+      to: 'type Model = typeof Model.Type',
+    },
+  ],
   NoteCommand: [
     { from: 'const PlayNote = Command.define(', to: ')' },
     {

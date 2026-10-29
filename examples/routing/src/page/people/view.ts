@@ -8,7 +8,7 @@ import { PeopleComposition, type PeopleViewBuilder } from './composition'
 import { Message } from './message'
 import { type Person, SearchResults } from './model'
 
-const statusText = (results: typeof SearchResults.Type): string =>
+const statusText = (results: SearchResults): string =>
   SearchResults.match<string>(results, {
     Loading: () => 'Searching…',
     Loaded: ({ query, people: found }) => {
@@ -40,10 +40,7 @@ const recentSearchesView = (
     ],
   )
 
-const personListItemView = (
-  person: typeof Person.Type,
-  h: PeopleViewBuilder,
-): Html =>
+const personListItemView = (person: Person, h: PeopleViewBuilder): Html =>
   h.keyed('li')(
     person.id.toString(),
     [h.Class('border border-gray-200 rounded-lg hover:bg-gray-50')],

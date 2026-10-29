@@ -104,3 +104,4 @@ export const Model = Schema.Struct({
   virtualListDemo: ActivityVirtualListBlock.Model,
   virtualListVariableDemo: ActivityVirtualListBlock.Model,
 })
+export type Model = typeof Model.Type

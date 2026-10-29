@@ -18,6 +18,7 @@ const twelveStrings = Schema.Tuple([
   Schema.String,
   Schema.String,
 ])
+type twelveStrings = typeof twelveStrings.Type
 
 const sevenStrings = Schema.Tuple([
   Schema.String,
@@ -28,6 +29,7 @@ const sevenStrings = Schema.Tuple([
   Schema.String,
   Schema.String,
 ])
+type sevenStrings = typeof sevenStrings.Type
 
 // DATE FORMAT
 
@@ -53,7 +55,6 @@ export const DatePart = defineTaggedUnion({
   YearNumber: {},
   LiteralText: { text: Schema.String },
 })
-
 export type DatePart = typeof DatePart.Type
 
 /**
@@ -76,7 +77,6 @@ export type DatePart = typeof DatePart.Type
  * ```
  */
 export const DateFormat = Schema.NonEmptyArray(DatePart)
-
 export type DateFormat = typeof DateFormat.Type
 
 /** A non-empty format restricted to month and year parts. */
@@ -90,7 +90,6 @@ export const MonthYearFormat = Schema.NonEmptyArray(
     'LiteralText',
   ]),
 )
-
 export type MonthYearFormat = typeof MonthYearFormat.Type
 
 /**
@@ -114,7 +113,6 @@ export const LocaleConfig = Schema.Struct({
   ariaLabelFormat: DateFormat,
   monthYearFormat: MonthYearFormat,
 })
-
 export type LocaleConfig = typeof LocaleConfig.Type
 
 /**
@@ -192,7 +190,7 @@ export const defaultEnglishLocale: LocaleConfig = {
   ],
 }
 
-const pickByMonth = (names: typeof twelveStrings.Type, month: number): string =>
+const pickByMonth = (names: twelveStrings, month: number): string =>
   pipe(
     names,
     Array.get(month - 1),
@@ -209,7 +207,7 @@ const DAY_OF_WEEK_INDEX: Readonly<Record<DayOfWeek, number>> = {
   Saturday: 6,
 }
 
-const pickByDay = (names: typeof sevenStrings.Type, day: DayOfWeek): string =>
+const pickByDay = (names: sevenStrings, day: DayOfWeek): string =>
   pipe(
     names,
     Array.get(DAY_OF_WEEK_INDEX[day]),

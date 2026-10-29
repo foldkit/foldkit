@@ -10,10 +10,12 @@ import { withOperationGraph } from './operationGraph.js'
 import * as Block from './public.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
+type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({
   CompletedRead: { count: Schema.Number },
   CompletedAudit: { count: Schema.Number },
 })
+type ChildMessage = typeof ChildMessage.Type
 const ChildDefinition = Block.makeDefinition('SetChild', {
   Model: ChildModel,
   Message: ChildMessage,
@@ -55,17 +57,20 @@ const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
 > = Block.assemble(prepareChild)
 
 const Sibling = Schema.Struct({ label: Schema.String })
+type Sibling = typeof Sibling.Type
 const Model = Schema.Struct({
   requiredChild: ChildBlock.Model,
   maybeChild: Schema.Option(ChildBlock.Model),
   projectedChild: ChildBlock.Model,
   sibling: Sibling,
 })
+type Model = typeof Model.Type
 const Message = defineMessageUnion({
   RequestedRequiredSet: { count: Schema.Number },
   RequestedOptionalSet: { count: Schema.Number },
   RequestedProjectedSet: { count: Schema.Number },
 })
+type Message = typeof Message.Type
 const ParentDefinition = Block.makeDefinition('SetParent', { Model, Message })
 const RequiredBinding = ParentDefinition.makeBinding(ChildBlock, {
   placement: 'required',
@@ -77,7 +82,7 @@ const OptionalBinding = ParentDefinition.makeBinding(ChildBlock, {
   field: 'maybeChild',
   init: { contextToArgs: () => Option.none() },
 })
-const projected = vi.fn<(child: typeof ChildModel.Type) => void>()
+const projected = vi.fn<(child: ChildModel) => void>()
 const ProjectedBinding = ParentDefinition.makeBinding(ChildBlock, {
   placement: 'projected',
   read: model => Option.some(model.projectedChild),

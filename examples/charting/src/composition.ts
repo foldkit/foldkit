@@ -16,12 +16,12 @@ import {
 } from './radioGroups'
 
 export const syncChart = (args: {
-  maybeChartHostId: (typeof Model.Type)['maybeChartHostId']
-  telemetry: (typeof Model.Type)['telemetry']
-  chartMode: (typeof Model.Type)['chartMode']
-  selectedPackageId: (typeof Model.Type)['selectedPackageId']
-  period: (typeof Model.Type)['period']
-  maybeSelectedDatumId: (typeof Model.Type)['maybeSelectedDatumId']
+  maybeChartHostId: Model['maybeChartHostId']
+  telemetry: Model['telemetry']
+  chartMode: Model['chartMode']
+  selectedPackageId: Model['selectedPackageId']
+  period: Model['period']
+  maybeSelectedDatumId: Model['maybeSelectedDatumId']
 }) =>
   pipe(
     args.maybeChartHostId,
@@ -40,7 +40,7 @@ export const syncChart = (args: {
     Array.fromOption,
   )
 
-export const refetchTelemetry = (model: typeof Model.Type) =>
+export const refetchTelemetry = (model: Model) =>
   Option.match(AsyncData.revalidateOrLoad(model.telemetry), {
     onNone: () => ({ model }),
     onSome: nextTelemetry => ({
@@ -49,9 +49,7 @@ export const refetchTelemetry = (model: typeof Model.Type) =>
     }),
   })
 
-const selectControlStep = (
-  updateModel: (model: typeof Model.Type) => typeof Model.Type,
-) =>
+const selectControlStep = (updateModel: (model: Model) => Model) =>
   makeStep(model => {
     const nextModel = updateModel(
       modifyFields(model, { maybeSelectedDatumId: () => Option.none() }),

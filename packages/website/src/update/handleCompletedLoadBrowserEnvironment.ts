@@ -10,19 +10,21 @@ import type { Message, ThemePreference } from '../message'
 import { initialSidebarGroups } from '../sidebarStorage'
 import { ApplyTheme, resolveTheme } from '../theme'
 
-export const handleCompletedLoadBrowserEnvironmentStep = makeStep(
-  (
-    _model,
-    {
-      maybeThemePreference,
-      maybeSidebarState,
-      systemTheme,
-      isPlaygroundSupported,
-      currentYear,
-      today,
-    }: typeof Message.CompletedLoadBrowserEnvironment.Type,
-  ) => {
-    const themePreference: typeof ThemePreference.Type = Option.getOrElse(
+type CompletedLoadBrowserEnvironmentMessage =
+  typeof Message.CompletedLoadBrowserEnvironment.Type
+
+type CompletedLoadBrowserEnvironment = CompletedLoadBrowserEnvironmentMessage
+
+export const handleCompletedLoadBrowserEnvironmentStep = makeStep.fromMessage(
+  ({
+    maybeThemePreference,
+    maybeSidebarState,
+    systemTheme,
+    isPlaygroundSupported,
+    currentYear,
+    today,
+  }: CompletedLoadBrowserEnvironment) => {
+    const themePreference: ThemePreference = Option.getOrElse(
       maybeThemePreference,
       () => 'System',
     )

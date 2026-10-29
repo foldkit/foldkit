@@ -14,11 +14,9 @@ import { Message } from './message'
 import type { Model } from './model'
 import { update } from './update'
 
-const card = (
-  id: string,
-  title: string,
-  sortKey: string,
-): typeof Card.Type => ({
+type DragAndDropMessage = typeof DragAndDropBlock.Message.Type
+
+const card = (id: string, title: string, sortKey: string): Card => ({
   id,
   title,
   description: '',
@@ -30,7 +28,7 @@ const k2 = generateKeyBetween(k1, null)
 const k3 = generateKeyBetween(k2, null)
 const k4 = generateKeyBetween(k3, null)
 
-const testColumns: ReadonlyArray<typeof Column.Column.Type> = [
+const testColumns: ReadonlyArray<Column.Column> = [
   {
     id: 'todo',
     name: 'To Do',
@@ -56,7 +54,7 @@ const testColumns: ReadonlyArray<typeof Column.Column.Type> = [
   },
 ]
 
-const emptyModel: typeof Model.Type = {
+const emptyModel: Model = {
   columns: testColumns,
   dragAndDrop: DragAndDropBlock.init({ id: 'kanban' }).model,
   maybeNewCardColumnId: Option.none(),
@@ -64,7 +62,7 @@ const emptyModel: typeof Model.Type = {
   announcement: '',
 }
 
-const dragAndDropMessage = (message: typeof DragAndDropBlock.Message.Type) =>
+const dragAndDropMessage = (message: DragAndDropMessage) =>
   toParentMessage(DragAndDropBinding, message)
 
 describe('update', () => {

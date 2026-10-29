@@ -49,6 +49,7 @@ const ItemModel = Schema.Struct({
   source: Schema.String,
   maybeObserved: Schema.Option(Schema.String),
 })
+type ItemModel = typeof ItemModel.Type
 const ItemMessage = defineMessageUnion({
   ClickedReadValue: {},
   CompletedReadValue: { value: Schema.String },
@@ -58,6 +59,7 @@ const ItemMessage = defineMessageUnion({
   FailedAcquireValue: {},
   EmittedPulse: { value: Schema.String },
 })
+type ItemMessage = typeof ItemMessage.Type
 const Value = ItemNamespace.makeResource<string>()('Value')
 const ReadValue = ItemNamespace.makeCommand('ReadValue', {
   messages: [ItemMessage.CompletedReadValue, ItemMessage.FailedReadValue],
@@ -207,11 +209,13 @@ const itemBlock: Block.FromAssemblyWithView<
 > = Block.assemble(prepareItemBlock)
 
 const RootModel = Schema.Struct({ entries: Schema.Array(ItemModel) })
+type RootModel = typeof RootModel.Type
 const RootMessage = defineMessageUnion({
   ClickedRemoveFirst: {},
   ClickedAddReplacement: {},
   ClickedRestoreFirst: {},
 })
+type RootMessage = typeof RootMessage.Type
 const RootBaseDefinition = Block.makeDefinition('Application', {
   Model: RootModel,
   Message: RootMessage,
@@ -253,7 +257,7 @@ const rootUpdate = root.makeUpdate({
 const lazyEntries = createKeyedLazy()
 const entryRenderCounts = new Map<number, number>()
 const renderEntry = (
-  entry: typeof ItemModel.Type,
+  entry: ItemModel,
   h: Block.ViewBuilderFor<typeof root>,
 ) => {
   entryRenderCounts.set(entry.id, (entryRenderCounts.get(entry.id) ?? 0) + 1)

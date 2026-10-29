@@ -1,9 +1,8 @@
 import type { Block } from 'foldkit'
 
-import { ProjectSettingsDefinition } from './definition'
+import { makeComposition } from './definition'
 
-export const ProjectSettingsComposition =
-  ProjectSettingsDefinition.makeComposition()
+export const ProjectSettingsComposition = makeComposition()
 export type ProjectSettingsViewBuilder = Block.ViewBuilderFor<
   typeof ProjectSettingsComposition
 >

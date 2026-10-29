@@ -238,7 +238,7 @@ Owned definitions include the Block's name and local operation name. Each defini
 
 Bind a completed UI Block and include that Binding in the parent's `bindings` list. Its handler recipes and Mount registrations then reach the parent together. This keeps the implementation graph aligned with the update and view placement.
 
-View-only components need no Block. Stateful Foldkit UI components provide completed values such as `DialogBlock`. Generic factories such as `Combobox.create(ItemSchema)` return a completed Block; name that result `ItemComboboxBlock`. Bind each used placement, including keyed collections, and include those Bindings under `bindings`.
+View-only components need no Block. Stateful Foldkit UI components provide completed values such as `DialogBlock`. Generic factories such as `Combobox.makeBlock(ItemSchema)` return a completed Block; name that result `ItemComboboxBlock`. Bind each used placement, including keyed collections, and include those Bindings under `bindings`.
 
 Component factories such as a Schema-refined Combobox return a completed Block with the factory's inferred Model, Message, OutMessage, view inputs, and public API operations. Bind the returned value exactly like a non-generic component.
 

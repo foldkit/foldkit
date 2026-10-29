@@ -1,7 +1,6 @@
 import { Array, Option, Schema, Tuple } from 'effect'
 import { Block, Message, Struct } from 'foldkit'
 import { initAndAppend } from 'foldkit/bindingInit'
-import { makeMapBinding } from 'foldkit/mapBinding'
 
 import {
   ChildBlock,
@@ -143,7 +142,7 @@ const GeneralBinding = OtherDefinition.makeBinding(ChildBlock, {
 })
 // @ts-expect-error General keyed accessors do not declare a stored insertion policy.
 initAndAppend(GeneralBinding, otherModel, { key: firstId, args: [1] })
-const MapBinding = makeMapBinding(OtherDefinition, ChildBlock, {
+const MapBinding = OtherDefinition.makeMapBinding(ChildBlock, {
   field: 'mapped',
 })
 // @ts-expect-error Map storage has no array append policy.

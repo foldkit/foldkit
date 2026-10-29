@@ -5,6 +5,7 @@ import { defineMessageUnion } from 'foldkit/message'
 const Message = defineMessageUnion({
   PressedSearchShortcut: {},
 })
+type Message = typeof Message.Type
 
 const searchShortcuts = Dom.streamFromEventFilterMapPreventDefault({
   target: document,

@@ -22,7 +22,7 @@ import { PendingCleanupPlayerIds, ProgressByGamePlayer } from '../store.ts'
 const DISCONNECT_CLEANUP_DELAY: Duration.Input = '2 seconds'
 
 const removePlayerFromRoom = (
-  roomByIdRef: SubscriptionRef.SubscriptionRef<typeof Shared.RoomById.Type>,
+  roomByIdRef: SubscriptionRef.SubscriptionRef<Shared.RoomById>,
   roomId: string,
   playerId: string,
 ) =>
@@ -76,7 +76,7 @@ const cancelPendingCleanup = (
 ) => Ref.update(pendingCleanupPlayerIdsRef, HashSet.remove(playerId))
 
 const scheduleDelayedCleanup = (
-  roomByIdRef: SubscriptionRef.SubscriptionRef<typeof Shared.RoomById.Type>,
+  roomByIdRef: SubscriptionRef.SubscriptionRef<Shared.RoomById>,
   progressByGamePlayerRef: SubscriptionRef.SubscriptionRef<ProgressByGamePlayer>,
   pendingCleanupPlayerIdsRef: Ref.Ref<PendingCleanupPlayerIds>,
   roomId: string,
@@ -103,16 +103,13 @@ const scheduleDelayedCleanup = (
 
 export const subscribeToRoom =
   (
-    roomByIdRef: SubscriptionRef.SubscriptionRef<typeof Shared.RoomById.Type>,
+    roomByIdRef: SubscriptionRef.SubscriptionRef<Shared.RoomById>,
     progressByGamePlayerRef: SubscriptionRef.SubscriptionRef<ProgressByGamePlayer>,
     pendingCleanupPlayerIdsRef: Ref.Ref<PendingCleanupPlayerIds>,
   ) =>
   (
     payload: Rpc.Payload<typeof Shared.subscribeToRoomRpc>,
-  ): Stream.Stream<
-    typeof Shared.RoomWithPlayerProgress.Type,
-    Shared.RoomNotFoundError
-  > =>
+  ): Stream.Stream<Shared.RoomWithPlayerProgress, Shared.RoomNotFoundError> =>
     Stream.fromEffect(
       cancelPendingCleanup(pendingCleanupPlayerIdsRef, payload.playerId),
     ).pipe(
@@ -135,8 +132,7 @@ export const subscribeToRoom =
                 payload.playerId,
                 game.id,
               ),
-            onNone: () =>
-              Effect.succeed(Option.none<typeof Shared.PlayerProgress.Type>()),
+            onNone: () => Effect.succeed(Option.none<Shared.PlayerProgress>()),
           })
 
           return Shared.RoomWithPlayerProgress.make({

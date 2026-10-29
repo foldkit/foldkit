@@ -4,11 +4,12 @@ import { afterEach, expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import { create } from './public.js'
+import { makeBlock } from './public.js'
 
-const TestListbox = create<string>()
+const TestListbox = makeBlock<string>()
 
 const Model = Schema.Struct({ listbox: TestListbox.Model })
+type Model = typeof Model.Type
 const ListboxTriggerClickTestDefinition = Block.makeDefinition(
   'ListboxTriggerClickTest',
   {

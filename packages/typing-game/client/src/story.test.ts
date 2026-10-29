@@ -26,13 +26,18 @@ import { NavigateHome } from './page/room/update'
 import { ApplicationRoute } from './route'
 import { update } from './update'
 
+type HomeModel = typeof HomeBlock.Model.Type
+type RoomModel = typeof RoomBlock.Model.Type
+type HomeMessage = typeof HomeBlock.Message.Type
+type RoomMessage = typeof RoomBlock.Message.Type
+
 const ROOM_A = 'r1'
 const ROOM_B = 'r2'
 
 const alice = { id: 'p1', username: 'alice' }
 const bob = { id: 'p2', username: 'bob' }
 
-const waitingRoom: typeof Shared.Room.Type = {
+const waitingRoom: Shared.Room = {
   id: ROOM_A,
   players: [alice],
   hostId: alice.id,
@@ -43,7 +48,7 @@ const waitingRoom: typeof Shared.Room.Type = {
   usedGameTexts: [],
 }
 
-const selectActionHome: typeof HomeBlock.Model.Type = {
+const selectActionHome: HomeModel = {
   homeStep: HomeStep.SelectAction({
     username: 'alice',
     selectedAction: 'CreateRoom',
@@ -51,7 +56,7 @@ const selectActionHome: typeof HomeBlock.Model.Type = {
   formError: Option.none(),
 }
 
-const joinedRoom: typeof RoomBlock.Model.Type = {
+const joinedRoom: RoomModel = {
   roomAsyncData: RoomAsyncData.Success({ data: waitingRoom }),
   maybeSession: Option.some({ roomId: ROOM_A, player: alice }),
   userGameText: '',
@@ -61,21 +66,19 @@ const joinedRoom: typeof RoomBlock.Model.Type = {
   exitCountdownSecondsLeft: 0,
 }
 
-const toHomeMessage = (message: typeof HomeBlock.Message.Type) =>
+const toHomeMessage = (message: HomeMessage) =>
   toParentMessage(HomeBinding, message)
 
-const toRoomMessage = (
-  roomId: string,
-  message: typeof RoomBlock.Message.Type,
-) => toParentMessage(RoomBinding, roomId, message)
+const toRoomMessage = (roomId: string, message: RoomMessage) =>
+  toParentMessage(RoomBinding, roomId, message)
 
-const givenHomeRoute = given<typeof Model.Type>({
+const givenHomeRoute = given<Model>({
   route: ApplicationRoute.Home(),
   home: selectActionHome,
   maybeRoomInstance: Option.none(),
 })
 
-const givenRoomRoute = given<typeof Model.Type>({
+const givenRoomRoute = given<Model>({
   route: ApplicationRoute.Room({ roomId: ROOM_A }),
   home: selectActionHome,
   maybeRoomInstance: Option.some({ roomId: ROOM_A, model: joinedRoom }),
@@ -92,7 +95,7 @@ const homeUrl = pipe(
   Option.getOrThrow,
 )
 
-const makeRoom = (roomId: string, createdAt: number): typeof Shared.Room.Type =>
+const makeRoom = (roomId: string, createdAt: number): Shared.Room =>
   Shared.Room.make({
     id: roomId,
     players: [],
@@ -104,7 +107,7 @@ const makeRoom = (roomId: string, createdAt: number): typeof Shared.Room.Type =>
     usedGameTexts: [],
   })
 
-const getRoomInstance = (model: typeof Model.Type): typeof RoomInstance.Type =>
+const getRoomInstance = (model: Model): RoomInstance =>
   pipe(model.maybeRoomInstance, Option.getOrThrow)
 
 const dirtyRoomModel = (roomId: string) =>
@@ -119,10 +122,10 @@ const dirtyRoomModel = (roomId: string) =>
   })
 
 const modelWithRoom = (
-  route: (typeof Model.Type)['route'],
+  route: Model['route'],
   roomId: string,
   roomModel = dirtyRoomModel(roomId),
-): typeof Model.Type =>
+): Model =>
   Model.make({
     route,
     home: selectActionHome,
@@ -262,7 +265,7 @@ describe('Room occurrence identity', () => {
       ApplicationRoute.Room({ roomId: ROOM_B }),
       ROOM_B,
     )
-    const staleMessages: ReadonlyArray<typeof RoomBlock.Message.Type> = [
+    const staleMessages: ReadonlyArray<RoomMessage> = [
       RoomBlock.Message.SucceededJoinRoom({ player: alice }),
       RoomBlock.Message.CompletedLoadSession({
         maybeSession: Option.some({ roomId: ROOM_A, player: alice }),

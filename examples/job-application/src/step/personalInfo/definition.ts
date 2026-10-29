@@ -6,7 +6,7 @@ import { defineMessageUnion } from 'foldkit/message'
 
 import { DatePickerBlock, Listbox } from '@foldkit/ui'
 
-export const PronounsListboxBlock = Listbox.create()
+export const PronounsListboxBlock = Listbox.makeBlock()
 
 export const Model = Schema.Struct({
   firstName: Field(Schema.String),
@@ -21,6 +21,7 @@ export const Model = Schema.Struct({
   availableDate: DatePickerBlock.Model,
   maybeAvailableDate: Schema.Option(CalendarDate),
 })
+export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   UpdatedFirstName: { value: Schema.String },
@@ -35,6 +36,7 @@ export const Message = defineMessageUnion({
   UpdatedCustomPronouns: { value: Schema.String },
   UpdatedPortfolioUrl: { value: Schema.String },
 })
+export type Message = typeof Message.Type
 
 export const PersonalInfoDefinition = Block.makeDefinition('PersonalInfo', {
   Model,

@@ -6,6 +6,6 @@ export const ProficiencyLevel = Schema.Literals([
   'Advanced',
   'Expert',
 ])
+export type ProficiencyLevel = typeof ProficiencyLevel.Type
 
-export const all: ReadonlyArray<typeof ProficiencyLevel.Type> =
-  ProficiencyLevel.literals
+export const all: ReadonlyArray<ProficiencyLevel> = ProficiencyLevel.literals

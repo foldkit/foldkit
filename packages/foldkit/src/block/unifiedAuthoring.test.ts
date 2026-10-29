@@ -15,13 +15,17 @@ class Storage extends Context.Service<
 >()('BlockAuthoring/Storage') {}
 class TrackingUnavailable extends Data.TaggedError('TrackingUnavailable')<{}> {}
 const Model = Schema.Struct({ value: Schema.String })
+type Model = typeof Model.Type
 const Message = defineMessageUnion({
   RequestedClear: {},
   RequestedSave: { value: Schema.String },
   CompletedSave: {},
 })
+type Message = typeof Message.Type
 const ForeignMessage = defineMessageUnion({ ForeignCompleted: {} })
+type ForeignMessage = typeof ForeignMessage.Type
 const OutMessage = defineMessageUnion({ Saved: { value: Schema.String } })
+type OutMessage = typeof OutMessage.Type
 const Search = Block.makeDefinition('Search', { Model, Message, OutMessage })
 const Save = Search.makeCommand('Save', {
   args: { value: Schema.String },
@@ -36,7 +40,7 @@ const ForeignInitCommand = Command.define('ForeignInitCommand', {
   messages: [ForeignMessage.ForeignCompleted],
 })
 
-type SearchInitReturn = Readonly<{ model: typeof Model.Type }>
+type SearchInitReturn = Readonly<{ model: Model }>
 
 function overloadedSearchInit(value: number): SearchInitReturn
 function overloadedSearchInit(value: string): SearchInitReturn

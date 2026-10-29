@@ -11,13 +11,13 @@ import { WorkHistoryEntryBlock } from './entry'
 import { init } from './init'
 import { update } from './update'
 
+type WorkHistoryEntryMessage = typeof WorkHistoryEntryBlock.Message.Type
+
 const today = Calendar.make(2026, 4, 16)
 const givenInitial = given(init(today, 'work-history-entry-1').model)
 
-const entryMessage = (
-  entryId: string,
-  message: typeof WorkHistoryEntryBlock.Message.Type,
-) => toParentMessage(EntriesBinding, entryId, message)
+const entryMessage = (entryId: string, message: WorkHistoryEntryMessage) =>
+  toParentMessage(EntriesBinding, entryId, message)
 
 describe('workHistory', () => {
   test('ClickedAddEntry generates an id and appends an entry', () => {

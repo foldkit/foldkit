@@ -8,6 +8,7 @@ import * as Command from './index.js'
 const CompletedFetchNotes = Schema.TaggedStruct('CompletedFetchNotes', {
   noteCount: Schema.Number,
 })
+type CompletedFetchNotes = typeof CompletedFetchNotes.Type
 
 type ChildMessage = typeof CompletedFetchNotes.Type
 type ParentMessage = Readonly<{

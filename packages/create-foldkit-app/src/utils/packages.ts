@@ -46,6 +46,7 @@ export const runScriptCommand = (
 const isWindows = process.platform === 'win32'
 
 const StringRecord = Schema.Record(Schema.String, Schema.String)
+type StringRecord = typeof StringRecord.Type
 
 const PackageJson = Schema.Struct({
   dependencies: StringRecord.pipe(
@@ -55,6 +56,7 @@ const PackageJson = Schema.Struct({
     Schema.withDecodingDefaultKey(Effect.succeed({})),
   ),
 })
+type PackageJson = typeof PackageJson.Type
 
 const ProjectPackageJson = Schema.Struct({
   name: Schema.String,
@@ -62,6 +64,7 @@ const ProjectPackageJson = Schema.Struct({
   type: Schema.String,
   scripts: StringRecord,
 })
+type ProjectPackageJson = typeof ProjectPackageJson.Type
 
 const ReleaseManifest = Schema.Struct({
   schemaVersion: Schema.Literal(1),
@@ -70,6 +73,7 @@ const ReleaseManifest = Schema.Struct({
   packages: StringRecord,
   dependencies: StringRecord,
 })
+type ReleaseManifest = typeof ReleaseManifest.Type
 
 const TEMPLATE_DEV_DEPENDENCIES = [
   '@effect/tsgo',
@@ -198,9 +202,7 @@ const readReleaseManifest = Effect.gen(function* () {
  * that tag for the manifest's `foldkit` package. A canary release is
  * commit-addressed and never tagged, so the ref is its source commit.
  */
-export const foldkitSubtreeRef = (
-  manifest: typeof ReleaseManifest.Type,
-): string =>
+export const foldkitSubtreeRef = (manifest: ReleaseManifest): string =>
   Match.value(manifest.channel).pipe(
     Match.when('stable', () =>
       Option.match(Record.get(manifest.packages, 'foldkit'), {
@@ -223,7 +225,7 @@ export const readFoldkitSubtreeRef = Effect.map(
   foldkitSubtreeRef,
 )
 
-const releaseVersions = (manifest: typeof ReleaseManifest.Type) =>
+const releaseVersions = (manifest: ReleaseManifest) =>
   Record.union(
     manifest.dependencies,
     manifest.packages,

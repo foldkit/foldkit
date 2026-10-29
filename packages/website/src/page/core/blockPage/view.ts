@@ -21,7 +21,7 @@ export type ViewInputs = Readonly<{
 }>
 
 const mapMessagesUnderHoodDemo = (
-  model: typeof Model.Type,
+  model: Model,
   renderSnippet: CodeBlock.RenderSnippet,
   h: BlockPageViewBuilder,
 ): Html =>

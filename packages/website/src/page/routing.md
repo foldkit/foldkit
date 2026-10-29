@@ -38,7 +38,7 @@ If a Model or Schema accepts only some application Routes, create that Schema wi
 
 `subset` includes only the tags you name. If you add a Route to `ApplicationRoute` later, `TopLevelRoute` will not accept it until you add its tag. There is no `omit`: an exclusion list would silently accept every Route added later.
 
-When an annotation needs one variant's type, query its Schema directly: `typeof ApplicationRoute.Newsletter.Type`. A routine `NewsletterRoute` alias only hides which union owns the variant.
+Declare `type ApplicationRoute = typeof ApplicationRoute.Type` directly below the Route Schema, with no blank line. When an annotation needs one variant, name that type beside the union, such as `type NewsletterRoute = typeof ApplicationRoute.Newsletter.Type`.
 
 ## Building Routers
 
@@ -66,6 +66,14 @@ Combine routers with `Route.oneOf` and create a parser with a fallback for unmat
 
 A router only matches when it consumes the entire URL, so routes that share a prefix do not conflict. `/people` and `/people/:id` can appear in any order. When several routes fully match the same URL, the first one wins. That only happens when route shapes overlap, like a `literal('new')` page next to a `string('username')` profile: `/users/new` satisfies both, so list the literal route first.
 
+### Parse Relative Paths
+
+`Route.parsePathWithFallback` parses an origin-relative path and its query parameters into a Route. Use it for a path stored in a query parameter, such as a redirect destination. Decode that location when parsing the URL, then store the typed Route in the Model.
+
+::Snippet{name="routingRelativePaths" label="Relative path parsing"}
+
+The path must begin with one `/`. Absolute URLs, paths beginning with `//`, invalid inputs and unmatched paths produce the configured fallback with the original `path`. Parsing uses the same URL normalization as `Route.parseUrlWithFallback`, decodes query parameters and ignores fragments. The function returns data synchronously; it does not navigate.
+
 ## Building URLs
 
 Here’s where the biparser pays off. The same router that parses URLs can build them:
@@ -77,6 +85,8 @@ TypeScript ensures you provide the correct data. If `personRouter` expects `{ pe
 ## Query Parameters
 
 Query parameters use [Effect Schema](https://effect.website/docs/schema/introduction/) for validation. This gives you type-safe parsing, optional parameters, and automatic encoding/decoding.
+
+For a panel displayed over a page, keep the page's Route and put the selected entity ID in a query parameter. The [Workspace example](/example-apps/workspace) opens an issue over a Board at `/projects/platform/board?issue=issue-101`. Closing the panel removes `issue`, preserving the page and its filters.
 
 ### Decode Query Values
 

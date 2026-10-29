@@ -22,7 +22,7 @@ const statusIndicator = (field: Field<string>, h: HtmlBuilder<Message>) =>
 // `allValid` gates fields of one value type per call; required rules demand
 // `Valid`, optional rules also accept `NotValidated`. For a form that mixes
 // value types, call `allValid` per type and combine with `&&`.
-const isFormValid = (model: typeof Model.Type): boolean =>
+const isFormValid = (model: Model): boolean =>
   allValid([
     [model.username, usernameRules],
     [model.email, emailRules],

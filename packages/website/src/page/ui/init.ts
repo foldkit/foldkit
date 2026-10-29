@@ -1,31 +1,12 @@
-import { Array, Option } from 'effect'
+import { Option } from 'effect'
 import { Calendar } from 'foldkit'
 
 import { UiComposition } from './composition'
 import {
-  type VirtualListChatMessage,
-  VirtualListChatStartProximity,
+  VirtualListChatHistoryLoad,
+  VirtualListChatHistorySource,
 } from './domain/domain'
-
-const chatBodies = [
-  'Can you review the latest build?',
-  'Yep — the navigation fix looks good.',
-  'I also checked the keyboard flow and the focus order is stable.',
-  'Perfect. I’ll queue the release once CI finishes.',
-]
-
-const INITIAL_VIRTUAL_LIST_CHAT_MESSAGE_COUNT = 24
-
-const initialVirtualListChatMessages: ReadonlyArray<
-  typeof VirtualListChatMessage.Type
-> = Array.makeBy(INITIAL_VIRTUAL_LIST_CHAT_MESSAGE_COUNT, index => ({
-  id: index,
-  body: Option.getOrElse(
-    Array.get(chatBodies, index % chatBodies.length),
-    () => 'Message',
-  ),
-  isExpanded: index % 7 === 0,
-}))
+import { initialVirtualListChatMessages } from './virtualListChat'
 
 export const init = UiComposition.makeInit((today: Calendar.CalendarDate) => ({
   childInitContext: today,
@@ -65,7 +46,11 @@ export const init = UiComposition.makeInit((today: Calendar.CalendarDate) => ({
     maybeLastDismissedToastTitle: Option.none(),
     virtualListChatMessages: initialVirtualListChatMessages,
     virtualListChatNextId: initialVirtualListChatMessages.length,
-    virtualListChatStartProximity: VirtualListChatStartProximity.Away(),
+    virtualListChatHistorySource: VirtualListChatHistorySource.Unbounded(),
+    virtualListChatHistoryLoad: VirtualListChatHistoryLoad.Idle(),
+    virtualListChatHistoryRequestVersion: 0,
+    virtualListChatLoadedOlderCount: 0,
+    virtualListChatAnnouncedOlderCount: 0,
     dragAndDropDemoColumns: [
       {
         id: 'backlog',

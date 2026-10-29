@@ -10,10 +10,16 @@ export const Model = Schema.Struct({
   settings: SettingsBlock.Model,
   themeChangeCount: Schema.Number,
 })
+export type Model = typeof Model.Type
+
 const Message = defineMessageUnion({ RequestedDarkTheme: {} })
+type Message = typeof Message.Type
+
 export const OutMessage = defineMessageUnion({
   ChangedTheme: { theme: Theme, changeCount: Schema.Number },
 })
+export type OutMessage = typeof OutMessage.Type
+
 const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
@@ -39,7 +45,7 @@ export const SettingsBinding = ApplicationDefinition.makeBinding(
   }),
 })
 
-const changeThemeStep = (theme: typeof Theme.Type) => {
+const changeThemeStep = (theme: Theme) => {
   const requestThemeChangeStep = SettingsBinding.requestThemeChange({ theme })
 
   return (model: Parameters<typeof requestThemeChangeStep>[0]) =>

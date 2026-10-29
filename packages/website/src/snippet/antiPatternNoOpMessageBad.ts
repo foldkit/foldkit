@@ -3,5 +3,6 @@
 const Message = defineMessageUnion({
   NoOp: {},
 })
+type Message = typeof Message.Type
 
 const handleMouseClick = () => Message.NoOp()

@@ -5,6 +5,7 @@ import { defineMessageUnion } from 'foldkit/message'
 const Message = defineMessageUnion({
   PressedEscape: {},
 })
+type Message = typeof Message.Type
 
 const escapePresses = Dom.streamFromEventFilterMap({
   target: document,

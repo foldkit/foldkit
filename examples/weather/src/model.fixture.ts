@@ -1,11 +1,11 @@
 import { type Model, WeatherAsyncData, type WeatherData } from './model'
 
-export const weatherModel: typeof Model.Type = {
+export const weatherModel: Model = {
   zipCodeInput: '90210',
   weather: WeatherAsyncData.Idle(),
 }
 
-export const weatherData: typeof WeatherData.Type = {
+export const weatherData: WeatherData = {
   zipCode: '90210',
   temperature: 72,
   description: 'Clear sky',

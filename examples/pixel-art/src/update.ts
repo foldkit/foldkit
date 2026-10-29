@@ -7,17 +7,8 @@ import {
   ApplicationComposition,
   ErrorDialogBinding,
   GridSizeConfirmDialogBinding,
-  applyGridSizeChange,
-  requestGridSizeChangeStep,
-  selectColor,
-  selectTool,
 } from './composition'
-import {
-  makeCommandsStep,
-  makeFieldsStep,
-  makeNoopStep,
-  makeStep,
-} from './definition'
+import { makeCommandsStep, makeFieldsStep, makeNoopStep } from './definition'
 import {
   createEmptyGrid,
   erasePixels,
@@ -27,18 +18,24 @@ import {
   setPixels,
 } from './grid'
 import { Model } from './model'
+import {
+  applyGridSizeChangeStep,
+  requestGridSizeChangeStep,
+  selectColorStep,
+  selectToolStep,
+} from './steps'
 
-const applyEraser = (model: typeof Model.Type, x: number, y: number) => {
+const applyEraser = (model: Model, x: number, y: number) => {
   const positions = getMirroredPositions(x, y, model.gridSize, model.mirrorMode)
   return erasePixels(model.grid, positions)
 }
 
-const applyBrush = (model: typeof Model.Type, x: number, y: number) => {
+const applyBrush = (model: Model, x: number, y: number) => {
   const positions = getMirroredPositions(x, y, model.gridSize, model.mirrorMode)
   return setPixels(model.grid, positions, model.selectedColorIndex)
 }
 
-const applyFill = (model: typeof Model.Type, x: number, y: number) => {
+const applyFill = (model: Model, x: number, y: number) => {
   const positions = getMirroredPositions(x, y, model.gridSize, 'None')
   return Array.reduce(positions, model.grid, (currentGrid, [fillX, fillY]) =>
     floodFill(currentGrid, fillX, fillY, model.selectedColorIndex),
@@ -107,9 +104,9 @@ export const update = ApplicationComposition.makeUpdate({
     return { model: nextModel, commands: [saveCanvas(nextModel)] }
   },
 
-  SelectedColor: (model, { colorIndex }) => selectColor(model, colorIndex),
+  SelectedColor: (model, { colorIndex }) => selectColorStep(colorIndex)(model),
 
-  SelectedTool: (model, { tool }) => selectTool(model, tool),
+  SelectedTool: (model, { tool }) => selectToolStep(tool)(model),
 
   SelectedGridSize: (model, { size }) => requestGridSizeChangeStep(size)(model),
 
@@ -240,7 +237,7 @@ export const update = ApplicationComposition.makeUpdate({
       onNone: () => makeNoopStep()(model),
       onSome: pendingSize =>
         Update.combineSteps(model, [
-          makeStep(stepModel => applyGridSizeChange(stepModel, pendingSize)),
+          applyGridSizeChangeStep(pendingSize),
           GridSizeConfirmDialogBinding.requestClose(),
           makeCommandsStep(stepModel => [saveCanvas(stepModel)]),
         ]),

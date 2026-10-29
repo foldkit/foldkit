@@ -10,11 +10,13 @@ import { renderToString } from './server.js'
 
 const ChildNamespace = makeNamespace('ServerChild')
 const ChildModel = Schema.Struct({ title: Schema.String })
+type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({
   ClickedPrepare: {},
   CompletedPrepare: {},
   CompletedObserve: {},
 })
+type ChildMessage = typeof ChildMessage.Type
 let constructions = 0
 let executions = 0
 const Prepare = ChildNamespace.makeCommand('Prepare', {
@@ -71,11 +73,13 @@ const childBlock: Block.FromAssemblyWithView<
   typeof prepareChildBlock
 > = Block.assemble(prepareChildBlock)
 const RootModel = Schema.Struct({ title: Schema.String })
+type RootModel = typeof RootModel.Type
 const RootApplicationDefinition = Block.makeDefinition('Application', {
   Model: RootModel,
   Message: Schema.Never,
 })
 const PlainMessage = Schema.Never
+type PlainMessage = typeof PlainMessage.Type
 const ChildBinding = RootApplicationDefinition.makeBinding(childBlock, {
   read: model => Option.some(model),
   write: (_model, nextChild) => nextChild,
@@ -170,6 +174,7 @@ const htmlImplementation = {
 }
 
 const OtherFlags = Schema.Struct({ count: Schema.Number })
+type OtherFlags = typeof OtherFlags.Type
 
 const prepareRootBlock = () =>
   RegisteredApplication.prepareBlock(rootImplementation)

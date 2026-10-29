@@ -10,14 +10,17 @@ const SaveState = defineTaggedUnion({
   Saved: {},
   Failed: { reason: Schema.String },
 })
+type SaveState = typeof SaveState.Type
 
 const Model = Schema.Struct({ contents: Schema.String, save: SaveState })
+type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
   ClickedSave: {},
   SucceededSaveDocument: {},
   FailedSaveDocument: { reason: Schema.String },
 })
+type Message = typeof Message.Type
 
 const EditorDefinition = Block.makeDefinition('Editor', { Model, Message })
 

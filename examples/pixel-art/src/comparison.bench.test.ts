@@ -22,7 +22,7 @@ const GRID_SIZE = 16
 const ITERATIONS = 10_000
 const WARMUP = 500
 
-const foldkitModel: typeof Model.Type = {
+const foldkitModel: Model = {
   grid: createFoldkitGrid(GRID_SIZE),
   undoStack: [],
   redoStack: [],
@@ -57,7 +57,7 @@ const reactState: State = {
   isGridSizeDialogOpen: false,
 }
 
-const buildFoldkitHistory = (steps: number): typeof Model.Type => {
+const buildFoldkitHistory = (steps: number): Model => {
   let model = foldkitModel
   for (let i = 0; i < steps; i++) {
     const x = i % GRID_SIZE
@@ -163,7 +163,7 @@ test('benchmark', () => {
     {
       name: 'Flood fill (16\u00d716)',
       foldkit: () => {
-        const m: typeof Model.Type = modifyFields(foldkitModel, {
+        const m: Model = modifyFields(foldkitModel, {
           tool: () => 'Fill',
         })
         update(m, Message.PressedCell({ x: 0, y: 0 }))

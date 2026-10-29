@@ -130,6 +130,7 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({
   GotCounterMessage: { message: Counter.Message },
 })
+type Message = typeof Message.Type
 
 export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
@@ -188,6 +189,7 @@ export const PostFrontmatter = Schema.Struct({
   title: Schema.String.check(Schema.isNonEmpty()),
   date: Schema.String,
 })
+export type PostFrontmatter = typeof PostFrontmatter.Type
 ```
 
 ```typescript

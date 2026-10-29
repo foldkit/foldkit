@@ -1,0 +1,24 @@
+# PASS — Daybreak addendum
+
+No new actionable findings in the exact local `c6831b807218a492ff75b5945e891716a410f47d…93c49c77b6d25d9f0aa8213135bb629c1a3e1ff4` delta.
+
+Static inspection confirms:
+
+- [runtime.ts](/private/tmp/foldkit-stabilization-1810-final-verification-20261027/security/source/packages/foldkit/src/runtime/runtime.ts:455) handles JSON encoding through `Exit`, invalidates before warning, warns once per continuous runtime-local failure episode, preserves live Model identity, and resumes after successful encoding.
+- [index.ts](/private/tmp/foldkit-stabilization-1810-final-verification-20261027/security/source/packages/vite-plugin-foldkit/src/index.ts:302) removes only the named runtime entry. A subsequent request cannot serve its stale Model; other runtime entries remain untouched. Model-present `null` remains preserved.
+- Hot-only scheduling, debounce/flush behavior, synchronous reload flush, Flags/init ordering, resource lifetimes, and runtime identity boundaries are unchanged.
+- No Block authoring or update type-check implementation changed. The documentation accurately retains missing-tag diagnostic priority as a limitation.
+- `13d8c0d0f0b7fb4677a731630d4fae328067826c…93c49c7` contains only six live-Document test query corrections and the empty test-only changeset. Production code is identical to `13d8c0d`.
+
+Integrity:
+
+- HEAD `93c49c77b6d25d9f0aa8213135bb629c1a3e1ff4`; tree `fcdf5b4dc8760f9f33710b25e311efedb4199742`; detached status clean.
+- Exact local parent chain: `c6831b8 → 13d8c0d → 93c49c7`.
+- All 7,044 manifest entries matched tracked paths, modes, blobs, and SHA-256 values. Literal symlink: `CLAUDE.md → AGENTS.md`.
+- Archive SHA-256 matched `2e9ab3a0d64dd28614bb3f63d189decff13ab91350bdbf53e692e409ad258876`.
+- `review-delta.patch` and all 15 `changed-paths.txt` entries exactly match fresh direct Git output; `git diff --check` is clean.
+- Shallow boundaries and the local read-only object alternate were honored. No public SHA was substituted.
+
+Inherited limits remain: the full browser/HMR sequence is not independently reproduced; supplied tests and execution records remain lead evidence; the full core rerun and final gates are still separate. Old plugins do not support explicit invalidation, so Foldkit and the Vite plugin require the documented coherent update. Dependency advisory, sanitizer, trusted DevTools ingress, fixed-port/shared-network, and runtime-local envelope qualifications remain unchanged. No dependency or lockfile changed, and no fresh network audit is claimed.
+
+Static inspection only; no source or external state was changed. Publication and release-branch integration remain held for approval.

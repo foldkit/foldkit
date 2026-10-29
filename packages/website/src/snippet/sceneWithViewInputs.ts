@@ -7,7 +7,11 @@ import { expect, given, role, scene, withViewInputs } from 'foldkit/scene'
 import { Slider } from '@foldkit/ui'
 
 const Model = Schema.Struct({ slider: Slider.SliderBlock.Model })
+type Model = typeof Model.Type
+
 const Message = defineMessageUnion({})
+type Message = typeof Message.Type
+
 const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,

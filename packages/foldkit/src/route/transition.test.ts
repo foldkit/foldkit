@@ -28,7 +28,6 @@ const ApplicationRoute = defineRouteUnion({
   NoteDetail: { id: Schema.String },
   People: { searchText: Schema.Option(Schema.String) },
 })
-
 type ApplicationRoute = typeof ApplicationRoute.Type
 
 describe('make', () => {

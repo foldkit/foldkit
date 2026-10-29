@@ -41,6 +41,7 @@ export function childMessageTag(placement: string): string {
 }
 
 const Generation = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))
+type Generation = typeof Generation.Type
 
 /** @internal Serializable origin of one unkeyed child Message. */
 export type ChildEnvelope<Placement extends string, Message> = Readonly<{

@@ -4,7 +4,7 @@ import type { HtmlBuilder } from 'foldkit/html'
 
 import { Input } from '@foldkit/ui'
 
-const view = (model: typeof Model.Type, h: HtmlBuilder<Message>) => {
+const view = (model: Model, h: HtmlBuilder<Message>) => {
   const inputView = (attributes: Input.InputAttributes<Message>) =>
     h.div(
       [h.Class('flex flex-col gap-1.5')],

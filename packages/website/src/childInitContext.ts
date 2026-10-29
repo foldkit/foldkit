@@ -9,3 +9,4 @@ export const ChildInitContext = Schema.Struct({
   maybeApiData: Flags.fields.maybeApiData,
   maybeExampleSources: Flags.fields.maybeExampleSources,
 })
+export type ChildInitContext = typeof ChildInitContext.Type

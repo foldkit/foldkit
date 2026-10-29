@@ -9,17 +9,21 @@ const AccessToken = Schema.Redacted(Schema.String, {
   label: accessTokenLabel,
   disallowJsonEncode: true,
 })
+type AccessToken = typeof AccessToken.Type
 
-const makeAccessToken = (accessToken: string): typeof AccessToken.Type =>
+const makeAccessToken = (accessToken: string): AccessToken =>
   Redacted.make(accessToken, { label: accessTokenLabel })
 
 // 2. Store the wrapper in the Model, never the raw string.
 const Model = Schema.Struct({ accessToken: AccessToken })
+type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
   CompletedFetchProfile: {},
   FailedFetchProfile: {},
 })
+type Message = typeof Message.Type
+
 const ApplicationComposition = Block.makeDefinition('Application', {
   Model,
   Message,
@@ -49,5 +53,5 @@ const FetchProfile = Command.define('FetchProfile', {
   },
 })
 
-const fetchProfile = (model: typeof Model.Type) =>
+const fetchProfile = (model: Model) =>
   FetchProfile({ accessToken: model.accessToken })

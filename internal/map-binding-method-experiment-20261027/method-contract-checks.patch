@@ -1,0 +1,130 @@
+--- a/packages/foldkit/declaration-tests/keyed-map-field.accepted.ts
++++ b/packages/foldkit/declaration-tests/keyed-map-field.accepted.ts
+@@ -3 +2,0 @@
+-import { makeMapBinding } from 'foldkit/mapBinding'
+@@ -59,3 +58 @@
+-export const ChildrenByIdBinding = makeMapBinding(
+-  ParentDefinition,
+-  ChildBlock,
++export const ChildrenByIdBinding = ParentDefinition.makeMapBinding(ChildBlock,
+@@ -66,3 +63 @@
+-export const FiniteChildrenBinding = makeMapBinding(
+-  ParentDefinition,
+-  ChildBlock,
++export const FiniteChildrenBinding = ParentDefinition.makeMapBinding(ChildBlock,
+@@ -73 +68 @@
+-export const RowsByIdBinding = makeMapBinding(ParentDefinition, ChildBlock, {
++export const RowsByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+@@ -77,3 +72 @@
+-export const ChildrenByNumberBinding = makeMapBinding(
+-  ParentDefinition,
+-  ChildBlock,
++export const ChildrenByNumberBinding = ParentDefinition.makeMapBinding(ChildBlock,
+@@ -89,3 +82 @@
+-export const HashRowsByIdBinding = makeMapBinding(
+-  ParentDefinition,
+-  ChildBlock,
++export const HashRowsByIdBinding = ParentDefinition.makeMapBinding(ChildBlock,
+@@ -98,3 +89 @@
+-export const BroadNumberChildrenBinding = makeMapBinding(
+-  ParentDefinition,
+-  ChildBlock,
++export const BroadNumberChildrenBinding = ParentDefinition.makeMapBinding(ChildBlock,
+@@ -103,3 +92 @@
+-export const LowerChildrenBinding = makeMapBinding(
+-  ParentDefinition,
+-  ChildBlock,
++export const LowerChildrenBinding = ParentDefinition.makeMapBinding(ChildBlock,
+@@ -112,3 +99 @@
+-export const UpperChildrenBinding = makeMapBinding(
+-  ParentDefinition,
+-  ChildBlock,
++export const UpperChildrenBinding = ParentDefinition.makeMapBinding(ChildBlock,
+--- a/packages/foldkit/declaration-tests/keyed-map-field.rejected.ts
++++ b/packages/foldkit/declaration-tests/keyed-map-field.rejected.ts
+@@ -3 +2,0 @@
+-import { makeMapBinding } from 'foldkit/mapBinding'
+@@ -32 +31 @@
+-makeMapBinding(InvalidDefinition, ChildBlock, { field: 'numericRecord' })
++InvalidDefinition.makeMapBinding(ChildBlock, { field: 'numericRecord' })
+@@ -35 +34 @@
+-makeMapBinding(InvalidDefinition, ChildBlock, { field: 'compositeMap' })
++InvalidDefinition.makeMapBinding(ChildBlock, { field: 'compositeMap' })
+@@ -38 +37 @@
+-makeMapBinding(InvalidDefinition, ChildBlock, { field: 'neverRecord' })
++InvalidDefinition.makeMapBinding(ChildBlock, { field: 'neverRecord' })
+@@ -41 +40 @@
+-makeMapBinding(InvalidDefinition, ChildBlock, { field: 'neverMap' })
++InvalidDefinition.makeMapBinding(ChildBlock, { field: 'neverMap' })
+@@ -44 +43 @@
+-makeMapBinding(InvalidDefinition, ChildBlock, { field: 'wrongValues' })
++InvalidDefinition.makeMapBinding(ChildBlock, { field: 'wrongValues' })
+@@ -51 +50 @@
+-makeMapBinding(InvalidDefinition, ChildBlock, wrongWrapperConfig)
++InvalidDefinition.makeMapBinding(ChildBlock, wrongWrapperConfig)
+@@ -58 +57 @@
+-makeMapBinding(InvalidDefinition, ChildBlock, optionalWrapperConfig)
++InvalidDefinition.makeMapBinding(ChildBlock, optionalWrapperConfig)
+@@ -61 +60 @@
+-makeMapBinding(InvalidDefinition, ChildBlock, { field: 'optionalMap' })
++InvalidDefinition.makeMapBinding(ChildBlock, { field: 'optionalMap' })
+@@ -76,0 +76 @@
++  makeMapBinding: ValidDefinition.makeMapBinding,
+@@ -83 +83 @@
+-makeMapBinding(FakeDefinition, ChildBlock, { field: 'childrenById' })
++FakeDefinition.makeMapBinding(ChildBlock, { field: 'childrenById' })
+@@ -90 +90 @@
+-makeMapBinding(ValidDefinition, ChildBlock, conflictingReadAllConfig)
++ValidDefinition.makeMapBinding(ChildBlock, conflictingReadAllConfig)
+@@ -97 +97 @@
+-makeMapBinding(ValidDefinition, ChildBlock, conflictingKeyConfig)
++ValidDefinition.makeMapBinding(ChildBlock, conflictingKeyConfig)
+@@ -104 +104 @@
+-makeMapBinding(ValidDefinition, ChildBlock, conflictingWriterConfig)
++ValidDefinition.makeMapBinding(ChildBlock, conflictingWriterConfig)
+@@ -111 +111 @@
+-makeMapBinding(ValidDefinition, ChildBlock, conflictingPresenceConfig)
++ValidDefinition.makeMapBinding(ChildBlock, conflictingPresenceConfig)
+@@ -118 +118,5 @@
+-makeMapBinding(ValidDefinition, ChildBlock, conflictingKeySchemaConfig)
++ValidDefinition.makeMapBinding(ChildBlock, conflictingKeySchemaConfig)
++
++const { makeMapBinding: detachedMapBinding } = ValidDefinition
++// @ts-expect-error The receiver-inferred prototype requires its Definition receiver.
++detachedMapBinding(ChildBlock, { field: 'childrenById' })
+--- a/packages/foldkit/src/block/keyedMapFieldConnection.test.ts
++++ b/packages/foldkit/src/block/keyedMapFieldConnection.test.ts
+@@ -83 +83 @@
+-const ChildrenByIdBinding = makeMapBinding(ParentDefinition, ChildBlock, {
++const ChildrenByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+@@ -86 +86 @@
+-const RowsByIdBinding = makeMapBinding(ParentDefinition, ChildBlock, {
++const RowsByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+@@ -90 +90 @@
+-const ChildrenByNumberBinding = makeMapBinding(ParentDefinition, ChildBlock, {
++const ChildrenByNumberBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+@@ -93 +93 @@
+-const HashRowsByIdBinding = makeMapBinding(ParentDefinition, ChildBlock, {
++const HashRowsByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+@@ -97 +97 @@
+-const LowerChildrenBinding = makeMapBinding(ParentDefinition, ChildBlock, {
++const LowerChildrenBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+@@ -102 +102 @@
+-const UpperChildrenBinding = makeMapBinding(ParentDefinition, ChildBlock, {
++const UpperChildrenBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+--- a/packages/foldkit/src/block/insertInitialization.test.ts
++++ b/packages/foldkit/src/block/insertInitialization.test.ts
+@@ -71 +71 @@
+-const ChildrenByIdBinding = makeMapBinding(ParentDefinition, ChildBlock, {
++const ChildrenByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+@@ -74 +74 @@
+-const ChildrenByNumberBinding = makeMapBinding(ParentDefinition, ChildBlock, {
++const ChildrenByNumberBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+@@ -77 +77 @@
+-const RowsByIdBinding = makeMapBinding(ParentDefinition, ChildBlock, {
++const RowsByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+--- a/packages/foldkit/scripts/profile-block-language-service.ts
++++ b/packages/foldkit/scripts/profile-block-language-service.ts
+@@ -119 +119 @@
+-  'examples/workspace/src/update/initializeActiveChildren.ts'
++  'examples/workspace/src/update/initializeRouteChildren.ts'

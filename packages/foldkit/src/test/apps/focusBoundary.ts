@@ -8,6 +8,7 @@ import type * as Update from '../../update/index.js'
 // MODEL
 
 const FocusState = Schema.Literals(['Outside', 'Within'])
+type FocusState = typeof FocusState.Type
 
 export const Model = Schema.Struct({
   focusState: FocusState,

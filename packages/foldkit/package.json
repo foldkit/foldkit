@@ -67,10 +67,6 @@
       "types": "./dist/managedResource/public.d.ts",
       "import": "./dist/managedResource/public.js"
     },
-    "./mapBinding": {
-      "types": "./dist/block/mapBinding.d.ts",
-      "import": "./dist/block/mapBinding.js"
-    },
     "./message": {
       "types": "./dist/message/public.d.ts",
       "import": "./dist/message/public.js"
@@ -185,15 +181,15 @@
     "check:block-type-performance": "node scripts/check-block-type-performance.ts",
     "update:block-type-performance": "node scripts/check-block-type-performance.ts --update",
     "watch": "tsc -b tsconfig.build.json --watch",
-    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p declaration-tests/tsconfig.route-step-program.source.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p declaration-tests/tsconfig.route-step-program.source.json && tsc -p declaration-tests/tsconfig.route-path.source.json && tsc -p declaration-tests/tsconfig.machine.source.json && tsc -p declaration-tests/tsconfig.scene-routing.source.json && tsc -p declaration-tests/tsconfig.query-policy.source.json",
     "test": "vitest run --coverage"
   },
   "dependencies": {
     "parse5": "^8.0.1"
   },
   "peerDependencies": {
-    "@effect/platform-browser": "4.0.0",
-    "effect": "4.0.0"
+    "@effect/platform-browser": "4.0.0 || 4.0.6",
+    "effect": "4.0.0 || 4.0.6"
   },
   "devDependencies": {
     "@effect/platform-browser": "4.0.0",

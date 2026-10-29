@@ -7,17 +7,16 @@ import { Tabs } from '@foldkit/ui'
 import type { RenderInfo as TabsRenderInfo } from '@foldkit/ui/tabs'
 
 const Framework = Schema.Literals(['Foldkit', 'React', 'Elm'])
+type Framework = typeof Framework.Type
 
-const FrameworkTabs = Tabs.create<typeof Framework.Type>()
+const FrameworkTabs = Tabs.makeBlock<Framework>()
 
 const Message = defineMessageUnion({})
-const frameworks: ReadonlyArray<typeof Framework.Type> = [
-  'Foldkit',
-  'React',
-  'Elm',
-]
+type Message = typeof Message.Type
 
-const descriptions: Record<typeof Framework.Type, string> = {
+const frameworks: ReadonlyArray<Framework> = ['Foldkit', 'React', 'Elm']
+
+const descriptions: Record<Framework, string> = {
   Foldkit: 'Model-View-Update with Effect.',
   React: 'Component-based with hooks.',
   Elm: 'The original MVU architecture.',
@@ -31,7 +30,7 @@ const view = TabsExampleComposition.makeView((model, h) => {
     tablist,
     tabs,
     activeIndex,
-  }: TabsRenderInfo<typeof Framework.Type>) =>
+  }: TabsRenderInfo<Framework>) =>
     h.div(
       [h.Class('flex')],
       [

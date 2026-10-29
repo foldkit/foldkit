@@ -12,7 +12,7 @@ import { Snake } from './domain'
 
 const initialSnake = Snake.create({ x: 10, y: 10 })
 
-const playingModel: typeof Model.Type = {
+const playingModel: Model = {
   snake: initialSnake,
   apple: { x: 15, y: 15 },
   direction: 'Right',
@@ -22,7 +22,7 @@ const playingModel: typeof Model.Type = {
   highScore: 0,
 }
 
-const notStartedModel: typeof Model.Type = modifyFields(playingModel, {
+const notStartedModel: Model = modifyFields(playingModel, {
   gameState: () => 'NotStarted',
 })
 
@@ -144,7 +144,7 @@ describe('update', () => {
     })
 
     test('eating an apple grows the snake, adds points, and requests a new apple', () => {
-      const aboutToEatModel: typeof Model.Type = modifyFields(playingModel, {
+      const aboutToEatModel: Model = modifyFields(playingModel, {
         apple: () => ({ x: 11, y: 10 }),
       })
       const lengthBefore = aboutToEatModel.snake.length

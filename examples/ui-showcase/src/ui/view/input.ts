@@ -5,6 +5,8 @@ import { Input } from '@foldkit/ui'
 import { UiComposition } from '../composition'
 import { Message } from '../message'
 
+type UiMessage = typeof UiComposition.Message.Type
+
 const inputClassName =
   'block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-base text-gray-900 transition-colors placeholder:text-gray-400 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50'
 
@@ -13,9 +15,7 @@ const labelClassName = 'block text-sm font-medium text-gray-700'
 const descriptionClassName = 'text-sm text-gray-500'
 
 export const view = UiComposition.makeView((model, h) => {
-  const basicInputView = (
-    attributes: Input.InputAttributes<typeof UiComposition.Message.Type>,
-  ): Html =>
+  const basicInputView = (attributes: Input.InputAttributes<UiMessage>): Html =>
     h.div(
       [h.Class('flex flex-col gap-1.5 w-full')],
       [
@@ -29,7 +29,7 @@ export const view = UiComposition.makeView((model, h) => {
     )
 
   const disabledInputView = (
-    attributes: Input.InputAttributes<typeof UiComposition.Message.Type>,
+    attributes: Input.InputAttributes<UiMessage>,
   ): Html =>
     h.div(
       [h.Class('flex flex-col gap-1.5 max-w-sm')],

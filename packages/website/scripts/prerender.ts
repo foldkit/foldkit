@@ -62,7 +62,7 @@ import { generateOgImages, injectMetaTags } from './og-image'
 
 // ROUTES
 
-export const STATIC_ROUTES: ReadonlyArray<typeof ApplicationRoute.Type> = [
+export const STATIC_ROUTES: ReadonlyArray<ApplicationRoute> = [
   ApplicationRoute.Home(),
   ApplicationRoute.Newsletter(),
   ApplicationRoute.WhyFoldkit(),
@@ -172,15 +172,13 @@ export const STATIC_ROUTES: ReadonlyArray<typeof ApplicationRoute.Type> = [
   ),
 ]
 
-const PLAYGROUND_ROUTES: ReadonlyArray<typeof ApplicationRoute.Type> =
-  Array.map(runnableExampleSlugs, exampleSlug =>
-    ApplicationRoute.Playground({ exampleSlug }),
-  )
+const PLAYGROUND_ROUTES: ReadonlyArray<ApplicationRoute> = Array.map(
+  runnableExampleSlugs,
+  exampleSlug => ApplicationRoute.Playground({ exampleSlug }),
+)
 export const INDEX_OUTPUT_PATH = 'index.html'
 
-export const routeToOutputPath = (
-  route: typeof ApplicationRoute.Type,
-): string => {
+export const routeToOutputPath = (route: ApplicationRoute): string => {
   const urlPath = routeToUrlPath(route)
   return urlPath === '/'
     ? INDEX_OUTPUT_PATH
@@ -189,7 +187,7 @@ export const routeToOutputPath = (
 
 export const enumerateRoutes = (
   apiModuleSlugs: ReadonlyArray<string>,
-): ReadonlyArray<typeof ApplicationRoute.Type> =>
+): ReadonlyArray<ApplicationRoute> =>
   pipe(
     STATIC_ROUTES,
     Array.appendAll(
@@ -251,7 +249,7 @@ const extractMarkdownFromHtml = (html: string): Effect.Effect<string> =>
 
 const renderRoutePage = (
   serverEntry: typeof ServerEntry,
-  route: typeof ApplicationRoute.Type,
+  route: ApplicationRoute,
 ) =>
   Effect.gen(function* () {
     const urlPath = routeToUrlPath(route)
@@ -306,6 +304,7 @@ const renderRoutePage = (
 // PRERENDER
 
 const ApiDocJson = Schema.fromJsonString(TypeDocJson)
+type ApiDocJson = typeof ApiDocJson.Type
 
 // NOTE: The core and UI TypeDoc projects are merged here the same way
 // vite.config.ts merges them for the client. Reading only api.json drops every
@@ -327,14 +326,14 @@ const readApiModules = Effect.gen(function* () {
 })
 
 type PrerenderResult = Readonly<{
-  route: typeof ApplicationRoute.Type
+  route: ApplicationRoute
   urlPath: string
   markdown: string
   html: string
 }>
 
 const buildApiModuleNameResolver = (
-  modules: ReadonlyArray<typeof ApiModule.Type>,
+  modules: ReadonlyArray<ApiModule>,
 ): ApiModuleNameResolver => {
   const nameBySlug = Record.fromIterableWith(modules, ({ name }) => [
     moduleNameToSlug(name),
@@ -354,7 +353,7 @@ const prerenderRoute =
     baseHtml: string,
     resolveApiModuleName: ApiModuleNameResolver,
   ) =>
-  (route: typeof ApplicationRoute.Type) =>
+  (route: ApplicationRoute) =>
     Effect.gen(function* () {
       const urlPath = routeToUrlPath(route)
       const outputPath = routeToOutputPath(route)
@@ -440,10 +439,7 @@ const prerenderPlaygroundShells = (
     )
 
     const fs = yield* FileSystem.FileSystem
-    const writeShell = (
-      route: typeof ApplicationRoute.Type,
-      outputPath: string,
-    ) => {
+    const writeShell = (route: ApplicationRoute, outputPath: string) => {
       const urlPath = routeToUrlPath(route)
       const outputHtml = injectMetaTags(
         shellHtml,
@@ -519,7 +515,7 @@ const formatDateIso = (dateTime: DateTime.DateTime): string => {
 }
 
 const routeToSitemapEntry =
-  (lastModification: string) => (route: typeof ApplicationRoute.Type) => {
+  (lastModification: string) => (route: ApplicationRoute) => {
     const urlPath = routeToUrlPath(route)
     return `<url>
   <loc>${SITE_URL}${urlPath}</loc>
@@ -528,7 +524,7 @@ const routeToSitemapEntry =
   }
 
 const buildSitemap = (
-  routes: ReadonlyArray<typeof ApplicationRoute.Type>,
+  routes: ReadonlyArray<ApplicationRoute>,
   lastModification: string,
 ): string => {
   const entries = pipe(

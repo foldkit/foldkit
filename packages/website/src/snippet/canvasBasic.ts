@@ -3,10 +3,13 @@ import { Block, Canvas, Dom } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Model = Schema.Struct({ isPlaying: Schema.Boolean, angle: Schema.Number })
+type Model = typeof Model.Type
+
 const Message = defineMessageUnion({
   TickedFrame: { deltaTime: Schema.Number },
   ClickedCanvas: { x: Schema.Number, y: Schema.Number },
 })
+type Message = typeof Message.Type
 
 const CanvasAppDefinition = Block.makeDefinition('CanvasApp', {
   Model,

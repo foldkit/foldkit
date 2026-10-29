@@ -486,6 +486,8 @@ const foldVirtualListOutMessage = UiDefinition.makeOutMessageFold(
   ActivityVirtualListBlock,
   {
     ObservedContainerScroll: makeNoopStep,
+    ApproachedLoadedStart: makeNoopStep,
+    EndedContainerScroll: makeNoopStep,
   },
 )
 

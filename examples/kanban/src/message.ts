@@ -14,3 +14,4 @@ export const Message = defineMessageUnion({
   CompletedSaveBoard: {},
   CompletedFocusAddCardInput: {},
 })
+export type Message = typeof Message.Type

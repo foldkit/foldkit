@@ -1,12 +1,11 @@
 import { Match, Schema } from 'effect'
 
 export const Direction = Schema.Literals(['Up', 'Down', 'Left', 'Right'])
+export type Direction = typeof Direction.Type
 
-export const opposite = (
-  direction: typeof Direction.Type,
-): typeof Direction.Type =>
+export const opposite = (direction: Direction): Direction =>
   Match.value(direction).pipe(
-    Match.withReturnType<typeof Direction.Type>(),
+    Match.withReturnType<Direction>(),
     Match.when('Up', () => 'Down'),
     Match.when('Down', () => 'Up'),
     Match.when('Left', () => 'Right'),
@@ -14,7 +13,5 @@ export const opposite = (
     Match.exhaustive,
   )
 
-export const isOpposite = (
-  a: typeof Direction.Type,
-  b: typeof Direction.Type,
-): boolean => opposite(a) === b
+export const isOpposite = (a: Direction, b: Direction): boolean =>
+  opposite(a) === b

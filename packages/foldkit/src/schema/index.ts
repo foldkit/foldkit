@@ -435,11 +435,14 @@ type TaggedUnionMatchOrElse<
   ): Return
 }
 
-interface UnionSchema<
+/** The common Schema contract of a tagged union, including decoded/encoded
+ * types and its exhaustive matcher. Usually inferred through defineTaggedUnion
+ * or defineMessageUnion; the named interface also supports declaration emission. */
+export interface TaggedUnionBaseSchema<
   CasesByTag extends Record<string, Schema.Struct.Fields>,
 > extends Schema.BottomLazy<
   BaseTaggedUnion<CasesByTag>['ast'],
-  UnionSchema<CasesByTag>
+  TaggedUnionBaseSchema<CasesByTag>
 > {
   readonly Type: BaseTaggedUnion<CasesByTag>['Type']
   readonly Encoded: BaseTaggedUnion<CasesByTag>['Encoded']
@@ -474,9 +477,11 @@ type TaggedUnionSubsetMembers<
     : never
 }
 
-interface RichUnionSchema<
+/** The Schema capabilities of defineTaggedUnion: guards, partial matching,
+ * members, and subset selection. TaggedUnion also carries callable variants. */
+export interface TaggedUnionSchema<
   CasesByTag extends Record<string, Schema.Struct.Fields>,
-> extends UnionSchema<CasesByTag> {
+> extends TaggedUnionBaseSchema<CasesByTag> {
   readonly guards: BaseTaggedUnion<CasesByTag>['guards']
   readonly isAnyOf: BaseTaggedUnion<CasesByTag>['isAnyOf']
   readonly matchOrElse: TaggedUnionMatchOrElse<CasesByTag>
@@ -498,7 +503,7 @@ interface RichUnionSchema<
  * each handler. */
 export type TaggedUnion<
   CasesByTag extends Record<string, Schema.Struct.Fields>,
-> = RichUnionSchema<CasesByTag> & {
+> = TaggedUnionSchema<CasesByTag> & {
   readonly [Tag in keyof CasesByTag & string]: CallableTaggedStruct<
     Tag,
     CasesByTag[Tag]
@@ -513,7 +518,7 @@ export type TaggedUnion<
  * preserve narrower payload fields in each handler. */
 export type MessageUnion<
   CasesByTag extends Record<string, Schema.Struct.Fields>,
-> = UnionSchema<CasesByTag> & {
+> = TaggedUnionBaseSchema<CasesByTag> & {
   readonly [Tag in keyof CasesByTag & string]: CallableTaggedStruct<
     Tag,
     CasesByTag[Tag]

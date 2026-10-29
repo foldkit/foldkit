@@ -10,16 +10,20 @@ import { ViewScopeTypeId } from './identity.js'
 import * as Block from './public.js'
 
 const Choice = Schema.Literals(['Apple', 'Pear'])
+type Choice = typeof Choice.Type
 const ChildModel = Schema.Struct({ count: Schema.Number })
+type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({
   RequestedSelect: { value: Choice },
   RequestedClose: {},
   CompletedObserveSelection: {},
 })
+type ChildMessage = typeof ChildMessage.Type
 const ChildOutMessage = defineMessageUnion({
   Selected: { value: Choice },
   Closed: {},
 })
+type ChildOutMessage = typeof ChildOutMessage.Type
 const FoldChildDefinition = Block.makeDefinition('FoldChild', {
   Model: ChildModel,
   Message: ChildMessage,
@@ -63,12 +67,16 @@ const Model = Schema.Struct({
   choice: Choice,
   previousCount: Schema.Number,
 })
+type Model = typeof Model.Type
 const Message = defineMessageUnion({
   RequestedSelect: { value: Choice },
   CompletedRecordChoice: {},
 })
+type Message = typeof Message.Type
 const OutMessage = defineMessageUnion({ Chose: { value: Choice } })
+type OutMessage = typeof OutMessage.Type
 const ForeignOutMessage = defineMessageUnion({ Escaped: {} })
+type ForeignOutMessage = typeof ForeignOutMessage.Type
 const FoldParentDefinition = Block.makeDefinition('FoldParent', {
   Model,
   Message,
@@ -118,10 +126,12 @@ it('infers exact child payloads and the parent Model without running a transitio
 
 it('contextually types literal Model fields in folds and authored updates', () => {
   const Model = Schema.Struct({ phase: Schema.Literals(['Idle', 'Done']) })
+  type Model = typeof Model.Type
   const Message = defineMessageUnion({
     RequestedFinish: {},
     RequestedReset: {},
   })
+  type Message = typeof Message.Type
   const LiteralFoldDefinition = Block.makeDefinition('LiteralFold', {
     Model,
     Message,
@@ -136,14 +146,10 @@ it('contextually types literal Model fields in folds and authored updates', () =
     RequestedReset: () => ({ model: { phase: 'Idle' } }),
   })
   const matcherUpdate = LiteralFoldComposition.makeUpdate({
-    RequestedFinish: (
-      _model,
-    ): Update.Return<typeof Model.Type, typeof Message.Type> => ({
+    RequestedFinish: (_model): Update.Return<Model, Message> => ({
       model: { phase: 'Done' },
     }),
-    RequestedReset: (
-      _model,
-    ): Update.Return<typeof Model.Type, typeof Message.Type> => ({
+    RequestedReset: (_model): Update.Return<Model, Message> => ({
       model: { phase: 'Idle' },
     }),
   })
@@ -250,21 +256,21 @@ it('accepts valid conditional Step and result unions without widening requiremen
 it('rejects every invalid member of mixed Step and result unions', () => {
   if (false) {
     const validStep = FoldParentDefinition.makeNoopStep()
-    const wrongModelStep = (model: typeof Model.Type) => {
+    const wrongModelStep = (model: Model) => {
       if (model.choice === 'Apple') {
         return { model }
       }
 
       return { model: ChildModel.make({ count: 0 }) }
     }
-    const foreignCommandStep = (model: typeof Model.Type) => {
+    const foreignCommandStep = (model: Model) => {
       if (model.choice === 'Apple') {
         return { model }
       }
 
       return { model, commands: [ObserveSelection()] }
     }
-    const foreignOutMessageStep = (model: typeof Model.Type) => {
+    const foreignOutMessageStep = (model: Model) => {
       if (model.choice === 'Apple') {
         return { model }
       }
@@ -275,14 +281,15 @@ it('rejects every invalid member of mixed Step and result unions', () => {
       ...Model.fields,
       extra: Schema.String,
     })
-    const narrowerInputStep = (_model: typeof ExtendedModel.Type) => ({
+    type ExtendedModel = typeof ExtendedModel.Type
+    const narrowerInputStep = (_model: ExtendedModel) => ({
       model: initialModel,
     })
     const unknownEvidenceStep = (
-      _model: typeof Model.Type,
+      _model: Model,
     ): Update.ReturnWithRegistrationEvidence<
-      typeof Model.Type,
-      typeof Message.Type,
+      Model,
+      Message,
       never,
       never,
       unknown
@@ -557,15 +564,19 @@ it('rejects erased invalid configuration before calling a variant handler', () =
 
 it('keeps keyed parent policy explicit and ignores operations on removed instances', () => {
   const InstanceId = Schema.Literals(['First', 'Second'])
+  type InstanceId = typeof InstanceId.Type
   const Instance = Schema.Struct({ id: InstanceId, child: ChildBlock.Model })
+  type Instance = typeof Instance.Type
   const KeyedModel = Schema.Struct({
     instances: Schema.Array(Instance),
     choice: Choice,
   })
+  type KeyedModel = typeof KeyedModel.Type
   const KeyedMessage = defineMessageUnion({
     RequestedSelect: { id: InstanceId, value: Choice },
     RequestedRemove: { id: InstanceId },
   })
+  type KeyedMessage = typeof KeyedMessage.Type
   const FoldKeyedDefinition = Block.makeDefinition('FoldKeyed', {
     Model: KeyedModel,
     Message: KeyedMessage,

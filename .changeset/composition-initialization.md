@@ -130,16 +130,14 @@ Then let the Composition collect child Models and Commands in init.ts:
 
 ```ts
 import { ApplicationComposition } from './composition'
-import { Flags } from './flags'
+import type { Flags } from './flags'
 
-export const init = ApplicationComposition.makeInit(
-  (flags: typeof Flags.Type) => ({
-    childInitContext: flags,
-    model: {
-      username: flags.username,
-    },
-  }),
-)
+export const init = ApplicationComposition.makeInit((flags: Flags) => ({
+  childInitContext: flags,
+  model: {
+    username: flags.username,
+  },
+}))
 ```
 
 For accessor storage, identify the one parent field that receives the initialized child. The Binding keeps its existing `read` and `write` policy after startup:

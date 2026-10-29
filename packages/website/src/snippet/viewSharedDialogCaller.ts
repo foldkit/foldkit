@@ -7,7 +7,11 @@ import * as Dialog from '@foldkit/ui/dialog'
 import { confirmDialogInputs } from './viewSharedDialog'
 
 const Model = Schema.Struct({ dialog: Dialog.DialogBlock.Model })
+type Model = typeof Model.Type
+
 const Message = defineMessageUnion({ ClickedConfirmDeletion: {} })
+type Message = typeof Message.Type
+
 const DeleteIssueDefinition = Block.makeDefinition('DeleteIssue', {
   Model,
   Message,

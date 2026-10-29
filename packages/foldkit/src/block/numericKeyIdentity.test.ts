@@ -7,9 +7,11 @@ import { makeDefinition } from './define.js'
 import * as Block from './public.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
+type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({
   CompletedRead: { value: Schema.Number },
 })
+type ChildMessage = typeof ChildMessage.Type
 const Child = makeDefinition('NumericIdentityChild', {
   Model: ChildModel,
   Message: ChildMessage,
@@ -44,6 +46,7 @@ const Model = Schema.Struct({
     Schema.Struct({ id: Schema.Number, child: ChildModel }),
   ),
 })
+type Model = typeof Model.Type
 const Parent = makeDefinition('NumericIdentityParent', {
   Model,
   Message: Schema.Never,

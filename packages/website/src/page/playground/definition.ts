@@ -12,6 +12,7 @@ export const PlaygroundState = defineTaggedUnion({
   Booted: { preview: PlaygroundPreview.State },
   Failed: { reason: Schema.String },
 })
+export type PlaygroundState = typeof PlaygroundState.Type
 
 export const Model = Schema.Struct({
   slug: Schema.String,
@@ -30,6 +31,7 @@ export const Model = Schema.Struct({
   lastWriteError: Schema.Option(Schema.String),
   maybeIsSupported: Schema.Option(Schema.Boolean),
 })
+export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   InformedOfSupport: { isSupported: Schema.Boolean },
@@ -44,7 +46,12 @@ export const Message = defineMessageUnion({
   FailedSchedulePlaygroundFileWrite: { reason: Schema.String },
   CompletedWaitForPlaygroundServerFailure: { reason: Schema.String },
 })
-
+export type Message = typeof Message.Type
+export type EditedPlaygroundFile = typeof Message.EditedPlaygroundFile.Type
+export type SucceededMountPlaygroundEditor =
+  typeof Message.SucceededMountPlaygroundEditor.Type
+export type FailedMountPlaygroundEditor =
+  typeof Message.FailedMountPlaygroundEditor.Type
 export const PlaygroundDefinition = Block.makeDefinition('Playground', {
   Model,
   Message,

@@ -1,6 +1,5 @@
 import { HashMap, Layer, Schema } from 'effect'
 import { Block, Message, Struct } from 'foldkit'
-import { makeMapBinding } from 'foldkit/mapBinding'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
 const ChildMessage = Message.defineMessageUnion({
@@ -56,26 +55,20 @@ export const ParentDefinition = Block.makeDefinition(
   },
 )
 
-export const ChildrenByIdBinding = makeMapBinding(
-  ParentDefinition,
-  ChildBlock,
-  {
-    field: 'childrenById',
-  },
-)
-export const FiniteChildrenBinding = makeMapBinding(
-  ParentDefinition,
+export const ChildrenByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+  field: 'childrenById',
+})
+export const FiniteChildrenBinding = ParentDefinition.makeMapBinding(
   ChildBlock,
   {
     field: 'finiteChildren',
   },
 )
-export const RowsByIdBinding = makeMapBinding(ParentDefinition, ChildBlock, {
+export const RowsByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
   field: 'rowsById',
   childField: 'child',
 })
-export const ChildrenByNumberBinding = makeMapBinding(
-  ParentDefinition,
+export const ChildrenByNumberBinding = ParentDefinition.makeMapBinding(
   ChildBlock,
   {
     field: 'childrenByNumber',
@@ -86,22 +79,16 @@ export const ChildrenByNumberBinding = makeMapBinding(
     },
   },
 )
-export const HashRowsByIdBinding = makeMapBinding(
-  ParentDefinition,
-  ChildBlock,
-  {
-    field: 'hashRowsById',
-    childField: 'child',
-    placement: 'hashRows',
-  },
-)
-export const BroadNumberChildrenBinding = makeMapBinding(
-  ParentDefinition,
+export const HashRowsByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+  field: 'hashRowsById',
+  childField: 'child',
+  placement: 'hashRows',
+})
+export const BroadNumberChildrenBinding = ParentDefinition.makeMapBinding(
   ChildBlock,
   { field: 'broadNumberChildren' },
 )
-export const LowerChildrenBinding = makeMapBinding(
-  ParentDefinition,
+export const LowerChildrenBinding = ParentDefinition.makeMapBinding(
   ChildBlock,
   {
     field: 'pairsById',
@@ -109,8 +96,7 @@ export const LowerChildrenBinding = makeMapBinding(
     placement: 'lowerChildren',
   },
 )
-export const UpperChildrenBinding = makeMapBinding(
-  ParentDefinition,
+export const UpperChildrenBinding = ParentDefinition.makeMapBinding(
   ChildBlock,
   {
     field: 'pairsById',
@@ -132,7 +118,7 @@ export const ParentComposition = ParentDefinition.makeComposition({
   ],
 })
 export const update = ParentComposition.makeUpdate({})
-export const initialize = ParentComposition.makeInit(() =>
+export const init = ParentComposition.makeInit(() =>
   ChildrenByIdBinding.init({
     key: 'created',
     args: [],
@@ -152,4 +138,4 @@ export const initialize = ParentComposition.makeInit(() =>
   }),
 )
 
-export const initialModel = initialize().model
+export const initialModel = init().model

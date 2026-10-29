@@ -45,7 +45,7 @@ const tooling = (title: string, description: string): PageMetadata =>
   docs(title, description, 'Tooling')
 
 type StaticRouteTag = Exclude<
-  (typeof ApplicationRoute.Type)['_tag'],
+  ApplicationRoute['_tag'],
   'ApiModule' | 'BlogPost' | 'ExampleDetail' | 'Playground'
 >
 
@@ -488,7 +488,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
 }
 
 export const routeToMetadata = (
-  route: typeof ApplicationRoute.Type,
+  route: ApplicationRoute,
   resolveApiModuleName: ApiModuleNameResolver,
 ): PageMetadata =>
   Match.value(route).pipe(

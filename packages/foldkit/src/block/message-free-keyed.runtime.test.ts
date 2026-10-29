@@ -59,6 +59,7 @@ if (false) {
 }
 
 const Entry = Schema.Struct({ id: Schema.String, child: SilentModel })
+type Entry = typeof Entry.Type
 const ParentModel = Schema.Struct({ entries: Schema.Array(Entry) })
 type ParentModel = typeof ParentModel.Type
 const Parent = makeDefinition('MessageFreeKeyedRuntimeParent', {
@@ -142,8 +143,8 @@ it('rejects generated delivery configuration for a Message-free child', () => {
       SilentBlock,
       {
         readAll: (model: ParentModel) => model.entries,
-        key: (entry: typeof Entry.Type) => entry.id,
-        read: (entry: typeof Entry.Type) => entry.child,
+        key: (entry: Entry) => entry.id,
+        read: (entry: Entry) => entry.child,
         writeAt: (model: ParentModel) => model,
         delivery: {},
       },

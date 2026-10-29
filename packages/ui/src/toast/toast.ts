@@ -147,7 +147,7 @@ const LEFT_MOUSE_BUTTON = 0
  *      text: Schema.String,
  *    })),
  *  })
- *  export const Toast = make(ToastPayload)
+ *  export const Toast = makeBlock(ToastPayload)
  *  ```
  */
 /** @internal Builds a completed Toast Block and exposes its definitions to package tests. */
@@ -360,6 +360,6 @@ type ToastBlock<A, I> = ReturnType<typeof makeFixture<A, I>>['block']
 export interface Completed<A, I> extends ToastBlock<A, I> {}
 
 /** Creates a completed Toast Block for one payload Schema. */
-export const make = <A, I>(
+export const makeBlock = <A, I>(
   payloadSchema: Schema.Codec<A, I>,
 ): Completed<A, I> => makeFixture(payloadSchema).block

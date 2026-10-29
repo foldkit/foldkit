@@ -7,12 +7,12 @@ import { UiDefinition, makeFieldsStep, makeNoopStep } from '../definition'
 import type { DemoColumn } from '../domain'
 
 const reorderColumns = (
-  columns: ReadonlyArray<typeof DemoColumn.Type>,
+  columns: ReadonlyArray<DemoColumn>,
   itemId: string,
   fromContainerId: string,
   toContainerId: string,
   toIndex: number,
-): ReadonlyArray<typeof DemoColumn.Type> => {
+): ReadonlyArray<DemoColumn> => {
   const maybeCard = pipe(
     columns,
     Array.findFirst(({ id }) => id === fromContainerId),

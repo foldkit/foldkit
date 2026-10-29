@@ -24,7 +24,7 @@ This page builds on the [Blocks](/core/block) pattern. Read that first for the l
 
 ### Keep the Message Private
 
-People declares its Model, Message, and early `PeopleDefinition` in cycle-safe files. The internal `InformedOfRouteChange` Message carries only `typeof ApplicationRoute.People.Type`, the variant Schema query for the part of the application Route that the feature understands. Commands import that early definition and the Message constructors they produce; the completed Block imports the Commands and their handler recipes.
+People declares its Model, Message, and early `PeopleDefinition` in cycle-safe files. The internal `InformedOfRouteChange` Message carries only the `PeopleRoute` alias derived from `ApplicationRoute.People`, the part of the application Route that the feature understands. Commands import that early definition and the Message constructors they produce; the completed Block imports the Commands and their handler recipes.
 
 ::Snippet{name="informingBlocksMessage" label="People Message contract"}
 

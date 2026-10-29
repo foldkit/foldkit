@@ -5,12 +5,12 @@ import { Button, Checkbox } from '@foldkit/ui'
 
 import * as Icon from '../icon'
 import { Message } from '../message'
-import { CheckoutState } from '../model'
+import type { PaymentState } from '../model'
 import { cancelCheckoutButton } from './cart'
 import { primaryButtonClassName, secondaryButtonClassName } from './shared'
 
 export const paymentView = (
-  state: typeof CheckoutState.Payment.Type,
+  state: PaymentState,
   h: ApplicationViewBuilder,
 ): Html =>
   h.div(

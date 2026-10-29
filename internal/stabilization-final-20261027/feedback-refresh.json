@@ -1,0 +1,52 @@
+{
+  "checkedAt": "2026-10-27T16:45:32Z",
+  "query": "repo:foldkit/foldkit updated:>=2026-10-27T16:03:07Z",
+  "results": {
+    "issues": []
+  },
+  "issue1810": {
+    "issue": {
+      "url": "https://github.com/foldkit/foldkit/issues/1810",
+      "title": "Blocks/Layers preview feedback: migration diagnostics and DevTools snapshot preservation",
+      "issue_number": 1810,
+      "body": "## Snapshot\n\nFeedback on the verified Blocks/Layers candidate for #1655, source commit [f3be22cfeefed437164ad614d08b16d9000e0703](https://github.com/foldkit/foldkit/commit/f3be22cfeefed437164ad614d08b16d9000e0703).\n\nFoldkit and DevTools: 0.169.0-canary.f3be22cfeefe. Effect: 4.0.0.\n\n## What is working well\n\n- Exhaustive update handler records retain the selected operation's Command requirements and OutMessage contract. Silent operations can compose without unrelated no-op Steps added just to satisfy inference.\n- The public toParentMessage test helper removes the need for dummy views and unrelated initialized Models just to deliver a child fact through its Binding.\n- Checked assembly headers make the Model Schema boundary explicit. Their additional verbosity is an understandable tradeoff.\n\n## Migration ergonomics\n\n1. **Incomplete handler records can produce misleading first diagnostics.** A missing Message handler surfaced as connected handlers returning a ResultRecipe without a model, inside a long structural type expansion. Highlighting the missing Message tags first would make the fix much easier to find.\n2. **Mixed local and connected branches require an extra distinction.** An ordinary local result is valid alone, but a sibling branch returning a connected Binding recipe requires the local branch to use a Definition-owned Step. The dedicated diagnostic is helpful; a short paired example directly beside it would make the rule easier to apply without wrapping every handler.\n3. **Deferred versus applied Step composition is easy to confuse.** An extracted Definition-owned makeStep producer coordinating connected operations needs to return the deferred combineSteps form rather than applying it to its plain Model argument there. The registered Composition supplies the capability later. A focused troubleshooting example contrasting these forms would help.\n\nThese are ergonomics observations, not requests to weaken capability or OutMessage checks.\n\n## DevTools snapshot preservation warning\n\nDuring one development source reload, Vite reported an unhandled SchemaError: \"Expected JSON value\" at the DevTools-owned maybeInspectedModel.value field. Subsequent browser reload attempts did not reproduce it consistently, and application interactions continued to work. This is an observed development-tooling issue, not an established regression introduced by this candidate.\n\nA deterministic, synthetic codec-level reproduction, without consumer code:\n\n1. Define a Struct with a snapshot field declared as an Effect Schema Option of Unknown.\n2. Convert that Struct Schema to a JSON codec using Schema.toCodecJson.\n3. Encode a present snapshot containing a native Date.\n4. Repeat with an Effect HashMap.\n\nBoth encoding attempts fail with the same JSON-value error at the snapshot field. This reproduces the codec limitation, not the complete browser/HMR sequence.\n\nPotentially relevant upstream boundaries:\n\n- [DevTools snapshot fields use UnknownByReference](https://github.com/foldkit/foldkit/blob/f3be22cfeefed437164ad614d08b16d9000e0703/packages/devtools/src/overlay.ts#L107).\n- [Runtime Model preservation uses a JSON codec](https://github.com/foldkit/foldkit/blob/f3be22cfeefed437164ad614d08b16d9000e0703/packages/foldkit/src/runtime/runtime.ts#L455).\n\nThe suspected connection between those boundaries still needs investigation. DevTools should handle supported rich Model values safely, or recover from an unsupported snapshot with a clear diagnostic rather than an unhandled rejection. A synthetic integration test covering Date and HashMap snapshots during preservation would help establish the actual failure path.\n",
+      "state": "open",
+      "user": {
+        "login": "devinjameson",
+        "name": "devinjameson",
+        "email": null,
+        "avatar_url": "https://avatars.githubusercontent.com/u/39350030?v=4",
+        "id": 39350030
+      },
+      "assignees": null,
+      "labels": null,
+      "milestone": null,
+      "state_reason": null,
+      "comments": 0,
+      "created_at": "2026-10-27T15:48:10Z",
+      "updated_at": "2026-10-27T15:48:10Z",
+      "closed_at": null,
+      "display_url": "https://github.com/foldkit/foldkit/issues/1810",
+      "display_title": "Blocks/Layers preview feedback: migration diagnostics and DevTools snapshot preservation"
+    },
+    "url": "https://github.com/foldkit/foldkit/issues/1810",
+    "title": "Blocks/Layers preview feedback: migration diagnostics and DevTools snapshot preservation",
+    "display_url": "https://github.com/foldkit/foldkit/issues/1810",
+    "display_title": "Blocks/Layers preview feedback: migration diagnostics and DevTools snapshot preservation"
+  },
+  "comments1810": {
+    "comments": [],
+    "url": "https://github.com/foldkit/foldkit/issues/1810",
+    "title": "foldkit/foldkit Issue #1810 comments",
+    "display_url": "https://github.com/foldkit/foldkit/issues/1810",
+    "display_title": "foldkit/foldkit Issue #1810 comments"
+  },
+  "scope": "Final bounded refresh supplements the exhaustive15:00 audit and16:03 discovery of1810. No external comments, issue changes or PR changes were posted.",
+  "finalCloseoutRefresh": {
+    "checkedAt": "2026-10-27T16:53:43Z",
+    "query": "repo:foldkit/foldkit updated:>=2026-10-27T16:45:32Z",
+    "results": {
+      "issues": []
+    }
+  }
+}

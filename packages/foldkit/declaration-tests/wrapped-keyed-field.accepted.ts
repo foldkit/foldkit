@@ -470,7 +470,7 @@ export const initialComposition =
     ],
   })
 
-export const initialize = initialComposition.makeInit(
+export const init = initialComposition.makeInit(
   (context: InitializationContext) => ({
     childInitContext: context,
     model: {
@@ -483,7 +483,7 @@ export const initialize = initialComposition.makeInit(
 
 const prepareInitializedBlock = () =>
   initialComposition.prepareBlock({
-    init: initialize,
+    init,
     update: initialComposition.makeUpdate({
       IgnoredChildMessage: model => ({ model }),
     }),
@@ -590,7 +590,7 @@ foldTextEntry(
   TextMessage.ReplacedText({ value: 'next' }),
 )
 
-const initializedModel = initialize({ id: firstChoiceId, value: 'Two' }).model
+const initializedModel = init({ id: firstChoiceId, value: 'Two' }).model
 type InitializedModelIsExact = Expect<
   MutuallyAssignable<typeof initializedModel, typeof ParentModel.Type>
 >
@@ -599,7 +599,7 @@ void initializedModelIsExact
 
 const UnassembledMessage = Schema.Never
 
-export const unassembledInitialize = Block.makeDefinition(
+export const unassembledInit = Block.makeDefinition(
   'DeclarationUnassembledWrappedKeyedFieldParent',
   {
     Model: ParentModel,
@@ -617,7 +617,7 @@ export const unassembledInitialize = Block.makeDefinition(
   }))
 type UnassembledModelRemainsExact = Expect<
   MutuallyAssignable<
-    ReturnType<typeof unassembledInitialize>['model']['choices'],
+    ReturnType<typeof unassembledInit>['model']['choices'],
     Array<never>
   >
 >

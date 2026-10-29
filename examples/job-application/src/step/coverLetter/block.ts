@@ -8,10 +8,12 @@ import { Textarea } from '@foldkit/ui'
 const Model = Schema.Struct({
   content: Schema.String,
 })
+type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
   UpdatedContent: { value: Schema.String },
 })
+type Message = typeof Message.Type
 
 const CoverLetterDefinition = Block.makeDefinition('CoverLetter', {
   Model,

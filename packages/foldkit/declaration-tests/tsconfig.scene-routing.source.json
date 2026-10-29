@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "paths": {
+      "foldkit/block": ["../src/block/public.ts"],
+      "foldkit/html": ["../src/html/public.ts"],
+      "foldkit/message": ["../src/message/public.ts"],
+      "foldkit/scene": ["../src/scene/public.ts"],
+      "foldkit/url": ["../src/url/public.ts"]
+    }
+  },
+  "include": ["../src/vite-env.d.ts", "scene-routing.*.ts"]
+}

@@ -19,7 +19,7 @@ type UnkeyedDefinitionFields<
   HandlerRequirements,
   ConstructorError,
   ConstructorRequirements,
-> = QueryConfig<string, A, AI, E, EI> & {
+> = QueryConfig<string, A, AI, E, EI, boolean> & {
   readonly args?: never
   readonly toKey?: never
   readonly handler?: () => Generator<
@@ -38,7 +38,7 @@ type KeyedDefinitionFields<
   HandlerRequirements,
   ConstructorError,
   ConstructorRequirements,
-> = KeyedQueryConfig<string, A, AI, E, EI, Fields> & {
+> = KeyedQueryConfig<string, A, AI, E, EI, Fields, boolean> & {
   readonly handler?: () => Generator<
     Effect.Effect<unknown, ConstructorError, ConstructorRequirements>,
     (
@@ -141,8 +141,9 @@ export function define<
     never,
     never
   >,
+  const Notify extends boolean = false,
 >(
-  config: KeyedQueryConfig<Name, A, AI, E, EI, Fields> &
+  config: KeyedQueryConfig<Name, A, AI, E, EI, Fields, Notify> &
     Readonly<{
       /** Constructs the canonical fetch handler when the Query Layer is built. */
       handler: (() => Generator<
@@ -163,7 +164,8 @@ export function define<
   Fields,
   HandlerRequirements,
   Effect.Error<Yielded>,
-  Effect.Services<Yielded>
+  Effect.Services<Yielded>,
+  Notify
 >
 export function define<
   Name extends string,
@@ -177,8 +179,9 @@ export function define<
     never,
     never
   >,
+  const Notify extends boolean = false,
 >(
-  config: QueryConfig<Name, A, AI, E, EI> &
+  config: QueryConfig<Name, A, AI, E, EI, Notify> &
     Readonly<{
       args?: never
       toKey?: never
@@ -198,7 +201,8 @@ export function define<
   EI,
   HandlerRequirements,
   Effect.Error<Yielded>,
-  Effect.Services<Yielded>
+  Effect.Services<Yielded>,
+  Notify
 >
 export function define<
   Name extends string,
@@ -207,18 +211,26 @@ export function define<
   E,
   EI,
   Fields extends SyncFields,
+  const Notify extends boolean = false,
 >(
-  config: KeyedQueryConfig<Name, A, AI, E, EI, Fields> &
+  config: KeyedQueryConfig<Name, A, AI, E, EI, Fields, Notify> &
     Readonly<{ handler?: never }>,
-): LayeredKeyedQuery<Name, A, AI, E, EI, Fields>
-export function define<Name extends string, A, AI, E, EI>(
-  config: QueryConfig<Name, A, AI, E, EI> &
+): LayeredKeyedQuery<Name, A, AI, E, EI, Fields, Notify>
+export function define<
+  Name extends string,
+  A,
+  AI,
+  E,
+  EI,
+  const Notify extends boolean = false,
+>(
+  config: QueryConfig<Name, A, AI, E, EI, Notify> &
     Readonly<{
       args?: never
       toKey?: never
       handler?: never
     }>,
-): LayeredQuery<Name, A, AI, E, EI>
+): LayeredQuery<Name, A, AI, E, EI, Notify>
 export function define<
   A,
   AI,

@@ -95,7 +95,7 @@ without the matching finisher do not establish this boundary. `replaceEffectsLay
 and `provideHandlers` preserve the assembly brand, object metadata, and passive
 runtime behavior.
 
-Author an exhaustive `Composition.makeUpdate({ Tag: (model, message) => result })` record. Each case receives the contextual Model and exact Message payload, and operations retain the selected case's Command requirements and OutMessage contract. Use `makeUpdate.withContext(context => cases)` for additional dispatch arguments; the factory runs for local dispatch, not routed child-only delivery. Generic Step values inside that context factory may need `model => step(model)` for inference. Ordinary handlers return results directly; do not wrap every case with `makeStep`. A Model-preserving no-op record value is `makeNoopStep()`, not the bare factory.
+Author an exhaustive `Composition.makeUpdate({ Tag: (model, message) => result })` record. Each case receives the contextual Model and exact Message payload, and operations retain the selected case's Command requirements and OutMessage contract. Use `makeUpdate.withContext(context => cases)` for additional dispatch arguments; the factory runs for local dispatch, not routed child-only delivery. Ordinary handlers return results directly; do not wrap every case with `makeStep`. Inline Model-aware `makeStep` producers infer the entry's exact Message in plain and `.withContext` records. Extracted producers retain their own precise parameter contracts. A Model-preserving no-op record value is `makeNoopStep()`, not the bare factory.
 
 When a handler only applies an existing compatible Model-first Step, use that Step point-free as the record value: `ClickedOpenSearch: SearchBinding.requestOpen()`. Keep a callback when it uses the Message payload, derives arguments from the Model, defers argument construction until dispatch, supplies context, or provides necessary contextual inference. A `Message.match` branch receives the Message payload first, so it cannot use a Model-first Step in the same way.
 
@@ -121,7 +121,11 @@ Use `FeatureDefinition.makeFieldsStep(producer)` for owning field transformation
 
 In a split feature, `definition.ts` exports the Step helpers used by its implementation and those modules named-import the helpers from that file. A colocated feature destructures helpers beside its Definition in the scope that uses them. Keep Definition-qualified calls when several Definitions in one module need visible ownership. Feature barrels keep authoring helpers private and export the completed Block.
 
+Put reusable parent Steps shared by update, composition, or init in the owning Block's `steps.ts`, or in responsibility modules such as `steps/search.ts` with an explicit `steps/index.ts` barrel. Ownership follows the Model being transformed. Keep Message routing in update and Binding registration and child OutMessage policy in composition; colocate Steps used by only one responsibility. Preserve the `Step` suffix and defer cyclic Binding access until the producer is applied.
+
 All three take callbacks, evaluated when the Step or handler is applied. An ordinary producer receives the current Model and, when authored as a Message-dependent handler, its exact Message. Use `.fromMessage(message => value)` for payload-only producers and `() => value` for fixed producers. Commands-only and OutMessage-only helpers preserve the incoming Model identity. `makeNoopStep()` stays unchanged; in an OutMessage fold, pass its factory point-free when appropriate.
+
+Use `makeStep.fromMessage(message => stepOrResult)` when only the Message is needed to select or construct a composed Step or initialization recipe. The returned handler stays Model-first, evaluates the producer on application, and passes the incoming Model to a returned Step. Keep ordinary `makeStep` for Model-aware producers and additional operation arguments. Close over dispatch context through `makeUpdate.withContext`.
 
 Pass compatible Steps directly as handler-record values. Extracted Message-dependent producers need a precise Message variant contract when no surrounding handler record supplies it. Map payloads explicitly when constructing a different Message or OutMessage; do not pass a constructor that could forward the incoming `_tag`. Keep cohesive mixed transitions as direct results, and use the owning `makeStep` helper for reusable mixed, connected, initialization, delegated, or composed operations. Local branches mixed with connected recipes still need canonical Definition-owned results.
 
@@ -201,17 +205,17 @@ Messages, collect lifecycle entries, or contribute handler recipes.
 
 Choose the narrowest storage form that describes the parent Model:
 
-| Parent storage                                                                       | Binding shape                                          |
-| ------------------------------------------------------------------------------------ | ------------------------------------------------------ |
-| Exact Struct field containing `Child.Model` or `Option<Child.Model>`                 | `field`                                                |
-| Exact array of child Models with a declared stable string or finite-number key field | `field` and string `key`                               |
-| Exact array of closed wrappers around the child Model                                | `field`, string `key`, and distinct `childField`       |
-| Exact `Option` of one closed wrapper around the child Model                          | `field`, string `key`, and distinct `childField`       |
-| Exact `Schema.Record` or `Schema.HashMap` of child Models                            | `makeMapBinding(parent, child, { field })`             |
-| Exact Record/HashMap of closed wrappers around the child Model                       | `makeMapBinding(parent, child, { field, childField })` |
-| One exact tagged member of the parent Schema.Union                                   | `makeVariantBinding(parent, child)`                    |
-| Nested, wrapped, opaque, open, or custom static storage                              | `read` and `write`                                     |
-| Custom keyed storage or enumeration                                                  | `readAll`, function `key`, `read`, and `writeAt`       |
+| Parent storage                                                                       | Binding shape                                                        |
+| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| Exact Struct field containing `Child.Model` or `Option<Child.Model>`                 | `field`                                                              |
+| Exact array of child Models with a declared stable string or finite-number key field | `field` and string `key`                                             |
+| Exact array of closed wrappers around the child Model                                | `field`, string `key`, and distinct `childField`                     |
+| Exact `Option` of one closed wrapper around the child Model                          | `field`, string `key`, and distinct `childField`                     |
+| Exact `Schema.Record` or `Schema.HashMap` of child Models                            | `ParentDefinition.makeMapBinding(ChildBlock, { field })`             |
+| Exact Record/HashMap of closed wrappers around the child Model                       | `ParentDefinition.makeMapBinding(ChildBlock, { field, childField })` |
+| One exact tagged member of the parent Schema.Union                                   | `makeVariantBinding(parent, child)`                                  |
+| Nested, wrapped, opaque, open, or custom static storage                              | `read` and `write`                                                   |
+| Custom keyed storage or enumeration                                                  | `readAll`, function `key`, `read`, and `writeAt`                     |
 
 A Binding's `write` or `writeAt` places the next child Model into parent storage. Keep parent reactions to child transitions in its OutMessage policy. Do not compare old and new child state in a writer to generate announcements, trigger sibling changes, or maintain unrelated parent fields. Nested storage, keyed replacement, presence checks, and preservation of wrapper metadata remain legitimate custom writes. If a parent needs a child fact that is not exposed, add a truthful public OutMessage rather than using the writer as an event hook.
 
@@ -222,14 +226,21 @@ and a different key leave the exact parent Model unchanged. Neither form
 inserts a missing occurrence. The parent remains responsible for presence and
 collection membership.
 
-Import `makeMapBinding` from `foldkit/mapBinding` for Record/HashMap fields.
-Pass the parent Definition, completed child Block, and config. It derives the
-key contract from the parent Schema and defaults placement to the storage field. Record keys decode to strings; HashMap
+Call `ParentDefinition.makeMapBinding(ChildBlock, config)` for Record/HashMap fields.
+The factory derives the key contract from the parent Model Schema and defaults
+placement to the storage field.
+
+A split feature can destructure and export `makeMapBinding` from its `definition.ts`,
+then import that factory from the owning module. It retains the parent Definition's
+contracts when destructured.
+
+Record keys decode to strings; HashMap
 keys decode to strings or numbers, with finite numeric occurrence values
 required at Runtime. Record enumeration follows own enumerable string-key
 order. HashMap iteration does not promise display order. Preserve a separate
 ordered ID list when order matters. Parent-owned wrapper fields survive writes;
-ordinary operations never insert missing entries. Use dynamic `Binding.init`
+ordinary operations never insert missing entries. Removing a stored key ends
+that child occurrence's lifecycle. Use dynamic `Binding.init`
 for explicit creation and keep general keyed accessors for custom writers or
 separate composite storage keys and primitive occurrence identity.
 
@@ -448,13 +459,22 @@ field or a keyed Option wrapper containing only its key and child fields. Direct
 fields need no startup policy; a custom unkeyed accessor can reuse an existing
 `init.toParentFields` projection. `initAndAppend` reuses a keyed array's existing
 `init.instances` and `init.toItem` policy. `initAndInsert` inserts into direct-value
-Record/HashMap storage declared through `makeMapBinding`.
+Record/HashMap storage declared through `ParentDefinition.makeMapBinding`.
 
 All preserve passive recipes, child init Commands and registration. Append and
-insert reject occupied keys; the caller owns any presence check. Additional
+insert reject occupied keys. Additional
 wrapper metadata, sibling changes, parent Commands, custom relationships,
 array/map replacement and whole tagged variants retain explicit `Binding.init`.
 Do not add a startup policy solely to enable a helper.
+
+For direct-value Record/HashMap children that should be retained, use
+`makeInitIfMissingStep(Binding, { key, args })` from `foldkit/bindingInit`.
+The Binding supplies storage; the connected Step checks the current Model when
+applied. An existing key preserves the parent Model and emits no Commands; an
+absent key retains the initialized child's Commands. Both paths require the
+registered Binding. Pass it directly to `Update.combineSteps` or a compatible
+handler; use the owning `makeStep` when selecting or composing Steps. Entity
+lookup and handling of unknown URL IDs belong in the application.
 
 Prefer a child Message-backed `requestReset` or domain operation for reset
 behavior, composed with the parent's `makeFieldsStep` for parent-owned fields.

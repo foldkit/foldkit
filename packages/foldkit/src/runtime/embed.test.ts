@@ -328,6 +328,7 @@ describe('embed', () => {
 
   it('seeds the initial model from flags', async () => {
     const Flags = Schema.Struct({ initialCount: Schema.Number })
+    type Flags = typeof Flags.Type
 
     const handle = embed(
       Application.__makeElementFromConfig({
@@ -353,6 +354,7 @@ describe('embed', () => {
 
   it('logs a flags failure Cause and leaves the container blank', async () => {
     const Flags = Schema.Struct({ initialCount: Schema.Number })
+    type Flags = typeof Flags.Type
     const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     const consoleErrorSpy = vi
       .spyOn(console, 'error')

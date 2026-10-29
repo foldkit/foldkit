@@ -11,9 +11,11 @@ import { withOperationGraph } from './operationGraph.js'
 import * as Block from './public.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
+type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({
   CompletedRead: { count: Schema.Number },
 })
+type ChildMessage = typeof ChildMessage.Type
 const ChildDefinition = Block.makeDefinition('AppendChild', {
   Model: ChildModel,
   Message: ChildMessage,
@@ -27,13 +29,7 @@ const Read = ChildDefinition.makeCommand('Read', {
 })
 const initialized = vi.fn<(count: number) => void>()
 const wrapped =
-  vi.fn<
-    (
-      key: string,
-      child: typeof ChildModel.Type,
-      args: ReadonlyArray<number>,
-    ) => void
-  >()
+  vi.fn<(key: string, child: ChildModel, args: ReadonlyArray<number>) => void>()
 const ChildComposition = ChildDefinition.makeComposition()
 const prepareChild = () =>
   ChildComposition.prepareBlock({
@@ -55,14 +51,17 @@ const Entry = Schema.Struct({
   child: ChildBlock.Model,
   label: Schema.String,
 })
+type Entry = typeof Entry.Type
 const Model = Schema.Struct({
   entries: Schema.Array(Entry),
   label: Schema.String,
 })
+type Model = typeof Model.Type
 const Message = defineMessageUnion({
   RequestedAppend: { key: Schema.String, count: Schema.Number },
   RequestedAppendPair: {},
 })
+type Message = typeof Message.Type
 const ParentDefinition = Block.makeDefinition('AppendParent', {
   Model,
   Message,

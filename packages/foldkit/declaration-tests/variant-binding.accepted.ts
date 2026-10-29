@@ -130,7 +130,7 @@ export const StreamGatedBinding = makeVariantBinding(
 export const ParentComposition = ParentDefinition.makeComposition({
   bindings: [ChildBinding],
 })
-export const initialize = ParentComposition.makeInit((count: number) =>
+export const init = ParentComposition.makeInit((count: number) =>
   ChildBinding.init({
     args: [count],
     toParentModel: child => child,
@@ -142,7 +142,7 @@ export const update = ParentComposition.makeUpdate({
 })
 const prepareParent = () =>
   ParentComposition.prepareBlock({
-    init: initialize,
+    init,
     update,
     operations: {
       setCount: (count: number) =>

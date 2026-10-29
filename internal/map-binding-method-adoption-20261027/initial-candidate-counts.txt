@@ -1,0 +1,8 @@
+fixture                   instDelta  instMax    typesDelta  typesMax  symbolsDelta  status
+------------------------  ---------  ---------  ----------  --------  ------------  ------
+deep-composition-8        635,409    1,152,618  51,416      55,843    83,445        ok
+wide-composition-100      1,331,305  3,132,298  80,466      216,662   125,082       ok
+command-requirements-200  335,824    2,659,415  62,285      389,460   113,084       ok
+wide-subscriptions-100    548,398    548,398    24,566      24,566    58,270        ok
+workspace-composition-4   2,523,160  2,639,574  205,675     206,314   273,740       ok
+workspace-composition-8   4,278,716  4,515,010  279,564     280,523   399,367       ok

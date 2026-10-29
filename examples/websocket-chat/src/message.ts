@@ -19,3 +19,7 @@ export const Message = defineMessageUnion({
     isSent: Schema.Boolean,
   },
 })
+export type Message = typeof Message.Type
+export type ReceivedMessage = typeof Message.ReceivedMessage.Type
+export type DisconnectedChatSocket = typeof Message.DisconnectedChatSocket.Type
+export type FailedChatSocket = typeof Message.FailedChatSocket.Type

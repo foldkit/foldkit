@@ -10,6 +10,8 @@ import {
 } from '../composition'
 import { Message } from '../message'
 
+type HoverIntentBlockModel = typeof HoverIntentBlock.Model.Type
+
 const triggerClassName =
   'button-accent inline-flex cursor-pointer items-center rounded-lg px-4 py-2 text-sm shadow-sm'
 
@@ -74,7 +76,7 @@ const hoverCard = (
   )
 
 export const hoverCardDemo = (
-  hoverIntentCardDemo: typeof HoverIntentBlock.Model.Type,
+  hoverIntentCardDemo: HoverIntentBlockModel,
   h: UiViewBuilder,
 ): ReadonlyArray<Html> => [
   h.div(
@@ -149,7 +151,7 @@ const hoverMenu = (
   )
 
 export const hoverMenuDemo = (
-  hoverIntentMenuDemo: typeof HoverIntentBlock.Model.Type,
+  hoverIntentMenuDemo: HoverIntentBlockModel,
   h: UiViewBuilder,
 ): ReadonlyArray<Html> => [
   h.div(

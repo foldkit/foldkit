@@ -7,6 +7,7 @@ import { defineMessageUnion } from '../message/index.js'
 import * as Mount from '../mount/index.js'
 import type { MountAction } from '../mount/index.js'
 import { MountTracker } from '../mount/index.js'
+import { mountModule } from '../mountModule.js'
 import { propsModule } from '../propsModule.js'
 import { noOpDispatch } from '../runtime/crashUI.js'
 import { Dispatch } from '../runtime/index.js'
@@ -33,6 +34,7 @@ const patch = init([
   classModule,
   datasetModule,
   eventListenersModule,
+  mountModule,
   propsModule,
   styleModule,
 ])
@@ -40,6 +42,7 @@ const patch = init([
 const Message = defineMessageUnion({
   MountedRoot: {},
 })
+type Message = typeof Message.Type
 
 const WAIT_FOR_INTERRUPT_PROPAGATION_MS = 50
 
@@ -799,5 +802,47 @@ describe('OnMount', () => {
     await vi.waitFor(() => {
       expect(cleanupRunCount).toBe(1)
     })
+  })
+
+  it('runs cleanup when a patched element drops OnMount before removal', async () => {
+    const h = __htmlBuilder<typeof Message.MountedRoot.Type>()
+    const { dispatch, dispatched } = createCapturingDispatch()
+    let cleanupRunCount = 0
+
+    const withMount = () =>
+      h.div(
+        [],
+        [
+          h.span([
+            h.OnMount(
+              makeMounted(() => oneShotStream(() => (cleanupRunCount += 1))),
+            ),
+          ]),
+        ],
+      )
+    const withoutMount = () => h.div([], [h.span([])])
+    const withoutChild = () => h.div([])
+
+    const mounted = patch(
+      toVNode(makeRootContainer()),
+      renderView(withMount, dispatch),
+    )
+    await vi.waitFor(() => {
+      expect(dispatched).toHaveLength(1)
+    })
+
+    const patchedWithoutMount = patch(
+      mounted,
+      renderView(withoutMount, dispatch),
+    )
+    expect(cleanupRunCount).toBe(0)
+    patch(patchedWithoutMount, renderView(withoutChild, dispatch))
+
+    await vi.waitFor(() => {
+      expect(cleanupRunCount).toBe(1)
+    })
+
+    patch(toVNode(makeRootContainer()), renderView(withoutChild, dispatch))
+    expect(cleanupRunCount).toBe(1)
   })
 })

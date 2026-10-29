@@ -19,9 +19,11 @@ import {
 import { shippingView } from './shipping'
 import { cancelledView, confirmedView, placingView } from './status'
 
+type EditionRadioGroupModel = typeof EditionRadioGroupBlock.Model.Type
+
 export const checkoutContentView = (
-  state: typeof CheckoutState.Type,
-  editionRadioGroup: typeof EditionRadioGroupBlock.Model.Type,
+  state: CheckoutState,
+  editionRadioGroup: EditionRadioGroupModel,
   h: ApplicationViewBuilder,
 ): Html =>
   CheckoutState.match(state, {
@@ -35,8 +37,8 @@ export const checkoutContentView = (
   })
 
 export const checkoutPanelView = (
-  state: typeof CheckoutState.Type,
-  editionRadioGroup: typeof EditionRadioGroupBlock.Model.Type,
+  state: CheckoutState,
+  editionRadioGroup: EditionRadioGroupModel,
   h: ApplicationViewBuilder,
 ): Html =>
   h.section(
@@ -72,7 +74,7 @@ export const checkoutPanelView = (
   )
 
 export const orderSummaryView = (
-  state: typeof CheckoutState.Type,
+  state: CheckoutState,
   h: ApplicationViewBuilder,
 ): Html => {
   const pricing = orderPricing(

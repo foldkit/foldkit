@@ -1,15 +1,16 @@
 import { Array, Duration, Option, Schema, String, pipe } from 'effect'
 import { defineTaggedUnion } from 'foldkit/schema'
 
-import type { ApplicationRoute } from '../../route'
+import type { PeopleRoute } from '../../route'
 
 export const Person = Schema.Struct({
   id: Schema.Number,
   name: Schema.String,
   role: Schema.String,
 })
+export type Person = typeof Person.Type
 
-const people: ReadonlyArray<typeof Person.Type> = [
+const people: ReadonlyArray<Person> = [
   { id: 1, name: 'Alice Johnson', role: 'Designer' },
   { id: 2, name: 'Bob Smith', role: 'Developer' },
   { id: 3, name: 'Carol Davis', role: 'Manager' },
@@ -20,7 +21,7 @@ const people: ReadonlyArray<typeof Person.Type> = [
 const SEARCH_HISTORY_LIMIT = 5
 export const SEARCH_LATENCY = Duration.millis(300)
 
-const matchesQuery = (person: typeof Person.Type, query: string): boolean => {
+const matchesQuery = (person: Person, query: string): boolean => {
   const lowerQuery = query.toLowerCase()
   return (
     person.name.toLowerCase().includes(lowerQuery) ||
@@ -28,9 +29,7 @@ const matchesQuery = (person: typeof Person.Type, query: string): boolean => {
   )
 }
 
-export const searchPeople = (
-  searchText: string,
-): ReadonlyArray<typeof Person.Type> =>
+export const searchPeople = (searchText: string): ReadonlyArray<Person> =>
   pipe(
     searchText,
     Option.liftPredicate(String.isNonEmpty),
@@ -52,9 +51,8 @@ export const addSearchToHistory = (
   return Array.take(Array.dedupe([value, ...history]), SEARCH_HISTORY_LIMIT)
 }
 
-export const routeSearchText = (
-  route: typeof ApplicationRoute.People.Type,
-): string => Option.getOrElse(route.searchText, () => '')
+export const routeSearchText = (route: PeopleRoute): string =>
+  Option.getOrElse(route.searchText, () => '')
 
 export const findPerson = (id: number) =>
   Array.findFirst(people, person => person.id === id)
@@ -63,9 +61,11 @@ export const SearchResults = defineTaggedUnion({
   Loading: {},
   Loaded: { query: Schema.String, people: Schema.Array(Person) },
 })
+export type SearchResults = typeof SearchResults.Type
 
 export const Model = Schema.Struct({
   searchInput: Schema.String,
   searchHistory: Schema.Array(Schema.String),
   results: SearchResults,
 })
+export type Model = typeof Model.Type

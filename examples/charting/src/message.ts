@@ -13,3 +13,7 @@ export const Message = defineMessageUnion({
   SucceededSyncChart: {},
   FailedSyncChart: { reason: Schema.String },
 })
+export type Message = typeof Message.Type
+export type SucceededMountChart = typeof Message.SucceededMountChart.Type
+export type FailedMountChart = typeof Message.FailedMountChart.Type
+export type ClickedChartDatum = typeof Message.ClickedChartDatum.Type

@@ -11,7 +11,7 @@ import { HeaderNav, Search, Sidebar, ThemeSelector } from '../view'
 
 const PagefindBody = ih.DataAttribute('pagefind-body', '')
 
-const headerView = (model: typeof Model.Type, h: ApplicationViewBuilder) =>
+const headerView = (model: Model, h: ApplicationViewBuilder) =>
   h.header(
     [
       h.Class(
@@ -113,7 +113,7 @@ type ViewOptions = Readonly<{
 }>
 
 export const view = (
-  model: typeof Model.Type,
+  model: Model,
   { content, mainClassName, isPagefindBody }: ViewOptions,
   h: ApplicationViewBuilder,
 ): Html =>

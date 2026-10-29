@@ -9,8 +9,9 @@ import {
 } from '../composition'
 import { Model } from '../model'
 import { ApplicationRoute } from '../route'
+import type { NotFoundRoute } from '../route'
 
-const routeTitle = (route: (typeof Model.Type)['route']): string =>
+const routeTitle = (route: Model['route']): string =>
   ApplicationRoute.match(route, {
     Home: () => 'Typing Game',
     Room: ({ roomId }) => `Room ${roomId} | Typing Game`,
@@ -72,10 +73,7 @@ export const view = ApplicationComposition.makeView((model, h) => {
   }
 })
 
-const notFound = (
-  { path }: typeof ApplicationRoute.NotFound.Type,
-  h: ApplicationViewBuilder,
-): Html =>
+const notFound = ({ path }: NotFoundRoute, h: ApplicationViewBuilder): Html =>
   h.section(
     [h.Class('max-w-4xl')],
     [

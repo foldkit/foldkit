@@ -51,6 +51,7 @@ export const Message = defineMessageUnion({
     disabledDaysOfWeek: Schema.Array(Calendar.DayOfWeek),
   },
 })
+export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
@@ -63,6 +64,7 @@ export const OutMessage = defineMessageUnion({
   SelectedDate: { date: Calendar.CalendarDate },
   ClearedDate: {},
 })
+export type OutMessage = typeof OutMessage.Type
 
 export type ChangedViewMonth = typeof OutMessage.ChangedViewMonth.Type
 export type SelectedDate = typeof OutMessage.SelectedDate.Type

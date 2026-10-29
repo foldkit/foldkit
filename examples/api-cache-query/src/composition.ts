@@ -17,7 +17,7 @@ export const PostDetailsBinding = ApplicationDefinition.makeBinding(postQuery, {
   field: 'postDetails',
 })
 
-const activateTabStep = (tab: typeof Tab.Type) => {
+const activateTabStep = (tab: Tab) => {
   const selectTabStep = makeFieldsStep(() => ({
     activeTab: () => tab,
   }))

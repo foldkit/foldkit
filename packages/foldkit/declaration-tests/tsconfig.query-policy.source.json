@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "paths": {
+      "foldkit/block": ["../src/block/public.ts"],
+      "foldkit/command": ["../src/command/public.ts"],
+      "foldkit/experimental/query": ["../src/experimental/query/public.ts"],
+      "foldkit/message": ["../src/message/public.ts"],
+      "foldkit/update": ["../src/update/public.ts"]
+    }
+  },
+  "include": ["../src/vite-env.d.ts", "query-policy.*.ts"]
+}

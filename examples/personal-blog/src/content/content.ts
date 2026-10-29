@@ -15,8 +15,9 @@ export const Post = Schema.Struct({
   summary: Schema.String,
   document: MarkdownDocument,
 })
+export type Post = typeof Post.Type
 
-export const posts: ReadonlyArray<typeof Post.Type> = [
+export const posts: ReadonlyArray<Post> = [
   {
     slug: 'making-this-blog',
     title: 'Making This Blog',
@@ -34,5 +35,5 @@ export const posts: ReadonlyArray<typeof Post.Type> = [
   },
 ]
 
-export const findPost = (slug: string): Option.Option<typeof Post.Type> =>
+export const findPost = (slug: string): Option.Option<Post> =>
   Array.findFirst(posts, post => post.slug === slug)

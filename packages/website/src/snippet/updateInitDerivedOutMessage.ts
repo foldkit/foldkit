@@ -4,6 +4,7 @@ const OutMessage = defineMessageUnion({
   SelectedEndDate: { date: Schema.String },
   CompletedRange: { startDate: Schema.String, endDate: Schema.String },
 })
+type OutMessage = typeof OutMessage.Type
 
 const DateRangeDefinition = Block.makeDefinition('DateRange', {
   Model,

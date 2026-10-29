@@ -6,6 +6,7 @@ import { makeDefinition } from './define.js'
 import * as Block from './public.js'
 
 const ChildModel = Schema.Struct({ value: Schema.String })
+type ChildModel = typeof ChildModel.Type
 
 const ChildComposition = makeDefinition('ChildPlacementChild', {
   Model: ChildModel,
@@ -22,12 +23,14 @@ const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
 > = Block.assemble(prepareChildBlock)
 
 const Entry = Schema.Struct({ id: Schema.String, child: ChildModel })
+type Entry = typeof Entry.Type
 const ParentModel = Schema.Struct({
   primary: ChildModel,
   secondary: ChildModel,
   maybeChild: Schema.Option(ChildModel),
   entries: Schema.Array(Entry),
 })
+type ParentModel = typeof ParentModel.Type
 
 const Parent = makeDefinition('ChildPlacementParent', {
   Model: ParentModel,

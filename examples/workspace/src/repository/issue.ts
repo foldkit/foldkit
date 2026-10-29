@@ -4,8 +4,11 @@ import {
   Comment,
   Issue,
   type IssueDraft,
-  WorkspaceSnapshot,
+  MovedIssue,
+  SavedIssue,
+  Workspace,
   placeIssue,
+  revisionFromIssue,
 } from '../domain'
 import {
   type AddCommentInput,
@@ -24,9 +27,9 @@ import {
 } from './state'
 
 export const saveIssueInState = (
-  state: typeof RepositoryState.Type,
-  input: typeof SaveIssueInput.Type,
-): RepositoryTransition<typeof Issue.Type> => {
+  state: RepositoryState,
+  input: SaveIssueInput,
+): RepositoryTransition<SavedIssue> => {
   const maybeIssue = findIssue(state, input.issueId)
 
   if (Option.isNone(maybeIssue)) {
@@ -78,15 +81,21 @@ export const saveIssueInState = (
   })
 
   return [
-    Result.succeed(nextIssue),
-    { ...state, snapshot: replaceIssue(state.snapshot, nextIssue) },
+    Result.succeed(
+      SavedIssue.make({
+        issueId: nextIssue.id,
+        identifier: nextIssue.identifier,
+        revision: revisionFromIssue(nextIssue),
+      }),
+    ),
+    { ...state, workspace: replaceIssue(state.workspace, nextIssue) },
   ]
 }
 
 export const createIssueInState = (
-  state: typeof RepositoryState.Type,
-  draft: typeof IssueDraft.Type,
-): RepositoryTransition<typeof Issue.Type> => {
+  state: RepositoryState,
+  draft: IssueDraft,
+): RepositoryTransition<Issue> => {
   if (!hasProject(state, draft.projectId)) {
     return [
       Result.fail(
@@ -107,22 +116,22 @@ export const createIssueInState = (
     version: 1,
     comments: [],
   })
-  const snapshot = WorkspaceSnapshot.make({
-    ...state.snapshot,
-    issues: Array.append(state.snapshot.issues, issue),
+  const nextWorkspace = Workspace.make({
+    ...state.workspace,
+    issues: Array.append(state.workspace.issues, issue),
   })
 
   return [
     Result.succeed(issue),
-    { ...state, snapshot, nextIssueNumber: issueNumber + 1 },
+    { ...state, workspace: nextWorkspace, nextIssueNumber: issueNumber + 1 },
   ]
 }
 
 export const addCommentInState = (
-  state: typeof RepositoryState.Type,
-  input: typeof AddCommentInput.Type,
+  state: RepositoryState,
+  input: AddCommentInput,
   createdAt: string,
-): RepositoryTransition<typeof Issue.Type> => {
+): RepositoryTransition<Comment> => {
   const maybeIssue = findIssue(state, input.issueId)
 
   if (Option.isNone(maybeIssue)) {
@@ -151,19 +160,19 @@ export const addCommentInState = (
   })
 
   return [
-    Result.succeed(nextIssue),
+    Result.succeed(comment),
     {
       ...state,
-      snapshot: replaceIssue(state.snapshot, nextIssue),
+      workspace: replaceIssue(state.workspace, nextIssue),
       nextCommentNumber: commentNumber + 1,
     },
   ]
 }
 
 export const moveIssueInState = (
-  state: typeof RepositoryState.Type,
-  input: typeof MoveIssueInput.Type,
-): RepositoryTransition<typeof WorkspaceSnapshot.Type> => {
+  state: RepositoryState,
+  input: MoveIssueInput,
+): RepositoryTransition<MovedIssue> => {
   const maybeIssue = findIssue(state, input.issueId)
 
   if (Option.isNone(maybeIssue)) {
@@ -201,10 +210,33 @@ export const moveIssueInState = (
     status: input.status,
     version: issue.version + 1,
   })
-  const snapshot = WorkspaceSnapshot.make({
-    ...state.snapshot,
-    issues: placeIssue(state.snapshot.issues, nextIssue, input.insertionIndex),
+  const nextWorkspace = Workspace.make({
+    ...state.workspace,
+    issues: placeIssue(state.workspace.issues, nextIssue, input.insertionIndex),
   })
 
-  return [Result.succeed(snapshot), { ...state, snapshot }]
+  const targetIssues = Array.filter(
+    nextWorkspace.issues,
+    candidateIssue =>
+      candidateIssue.projectId === nextIssue.projectId &&
+      candidateIssue.status === nextIssue.status,
+  )
+  const insertionIndex = Option.getOrThrow(
+    Array.findFirstIndex(
+      targetIssues,
+      candidateIssue => candidateIssue.id === nextIssue.id,
+    ),
+  )
+
+  return [
+    Result.succeed(
+      MovedIssue.make({
+        issueId: nextIssue.id,
+        status: nextIssue.status,
+        insertionIndex,
+        version: nextIssue.version,
+      }),
+    ),
+    { ...state, workspace: nextWorkspace },
+  ]
 }

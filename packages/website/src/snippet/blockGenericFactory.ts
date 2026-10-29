@@ -23,6 +23,7 @@ const PickerNamespace = Block.makeNamespace('Picker')
 
 export const make = <Value extends string>(Value: ValueSchema<Value>) => {
   const Model = Schema.Struct({ selected: Schema.Option(Value) })
+  type Model = typeof Model.Type
   const Message = makeMessage(Value)
   const OutMessage = makeOutMessage(Value)
   const RefinedPickerDefinition = PickerNamespace.makeDefinition({
@@ -86,13 +87,18 @@ export const make = <Value extends string>(Value: ValueSchema<Value>) => {
 }
 
 const Fruit = Schema.Literals(['Apple', 'Pear'])
+type Fruit = typeof Fruit.Type
+
 const FruitPicker = make(Fruit)
 
 const ParentModel = Schema.Struct({
   picker: FruitPicker.Model,
   selectionHistory: Schema.Array(Fruit),
 })
+type ParentModel = typeof ParentModel.Type
+
 const ParentMessage = defineMessageUnion({})
+type ParentMessage = typeof ParentMessage.Type
 
 const FruitSelectionDefinition = Block.makeDefinition('FruitSelection', {
   Model: ParentModel,

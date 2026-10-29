@@ -110,7 +110,7 @@ export const StoreInitError = Schema.TaggedStruct('StoreInitError', {
 export class ChoiceStore extends Context.Service<
   ChoiceStore,
   Readonly<{
-    initialize: Effect.Effect<void, typeof StoreInitError.Type>
+    init: Effect.Effect<void, typeof StoreInitError.Type>
     record: (value: typeof Choice.Type) => Effect.Effect<void>
   }>
 >()('DeclarationChoiceStore') {}
@@ -138,7 +138,7 @@ export const RecordChoice = DeclarationFoldParentDefinition.makeCommand(
     messages: [ParentMessage.CompletedRecordChoice],
     handler: function* () {
       const store = yield* ChoiceStore
-      yield* store.initialize
+      yield* store.init
       return ({ value }) =>
         store
           .record(value)
@@ -276,7 +276,7 @@ export const RootRecord = DeclarationFoldRootDefinition.makeCommand('Record', {
   messages: [RootMessage.CompletedRecord],
   handler: function* () {
     const store = yield* ChoiceStore
-    yield* store.initialize
+    yield* store.init
     return () =>
       store.record('Apple').pipe(Effect.as(RootMessage.CompletedRecord()))
   },
@@ -318,7 +318,7 @@ export const RootBlock: Block.FromAssemblyWithView<
 export const program = Program.make({ block: RootBlock, container: null })
 export const runnable = program.provide(
   Layer.succeed(ChoiceStore)({
-    initialize: Effect.void,
+    init: Effect.void,
     record: () => Effect.void,
   }),
 )

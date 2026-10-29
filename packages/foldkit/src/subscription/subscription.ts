@@ -179,6 +179,7 @@ type LayeredEntryCallbacksWithoutKeepAlive<
   readonly messages: Messages
   readonly modelToDependencies: (model: Model) => Dependencies
   readonly keepAliveEquivalence?: never
+  readonly when?: (model: Model) => boolean
   readonly dependenciesToStream?: never
   readonly handler?: never
 }
@@ -191,6 +192,7 @@ type LayeredEntryCallbacksWithKeepAlive<
   readonly messages: Messages
   readonly modelToDependencies: (model: Model) => Dependencies
   readonly keepAliveEquivalence: Equivalence.Equivalence<Dependencies>
+  readonly when?: (model: Model) => boolean
   readonly dependenciesToStream?: never
   readonly handler?: never
 }
@@ -222,9 +224,16 @@ type EmittedMessage<Messages extends ReadonlyArray<Schema.Top>> =
  * - The `handler` field is an Effect generator. Its build error plus the
  *   constructor and Stream requirements flow into `layer`; `Scope.Scope` is
  *   supplied by Foldkit.
+ * - The optional `when` predicate gates the entry on the Model. While it
+ *   returns `false`, the Runtime runs no Stream and skips
+ *   `modelToDependencies`. Scene's `Subscription.expectActive` and
+ *   `expectInactive` read the same gate, which a condition inside the
+ *   Stream, such as a branch returning `Stream.empty`, cannot provide.
+ *   Handler Layers still build at Runtime startup, including their
+ *   constructor errors and Service requirements, while the gate is closed.
  * - With a handler name and Message declarations but no field map, the entry
  *   has no local Model dependencies. Its Stream stays active across Model
- *   updates unless a parent gates it.
+ *   updates unless its `when` gate or a parent closes it.
  */
 export interface EntryBuilder<Model> {
   <
@@ -246,6 +255,7 @@ export interface EntryBuilder<Model> {
       keepAliveEquivalence: Equivalence.Equivalence<
         Schema.Struct.Type<NoInfer<Fields>>
       >
+      when?: (model: Model) => boolean
       dependenciesToStream?: never
       handler: (() => Generator<
         Yielded,
@@ -293,6 +303,7 @@ export interface EntryBuilder<Model> {
       messages: Messages
       modelToDependencies: (model: Model) => Schema.Struct.Type<NoInfer<Fields>>
       keepAliveEquivalence?: never
+      when?: (model: Model) => boolean
       dependenciesToStream?: never
       handler: (() => Generator<
         Yielded,
@@ -335,6 +346,7 @@ export interface EntryBuilder<Model> {
     name: Name,
     config: Readonly<{
       messages: Messages
+      when?: (model: Model) => boolean
       dependenciesToStream?: never
       handler: (() => Generator<
         Yielded,
@@ -368,6 +380,7 @@ export interface EntryBuilder<Model> {
     name: Name,
     config: Readonly<{
       messages: Messages
+      when?: (model: Model) => boolean
       dependenciesToStream?: never
       handler?: never
     }>,
@@ -418,6 +431,51 @@ export interface EntryBuilder<Model> {
     Schema.Struct.Type<Fields>,
     Messages
   >
+}
+
+const ActivationTypeId = Symbol('foldkit/Subscription/Activation')
+
+type Activation = (model: any) => Option.Option<any>
+
+const toActivation = (
+  when: ((model: any) => boolean) | undefined,
+  modelToDependencies: (model: any) => unknown,
+): Readonly<{ [ActivationTypeId]?: Activation }> => {
+  if (when === undefined) {
+    return {}
+  } else {
+    return {
+      [ActivationTypeId]: model =>
+        pipe(
+          model,
+          Option.liftPredicate(when),
+          Option.map(modelToDependencies),
+        ),
+    }
+  }
+}
+
+/**
+ * @internal Derives the dependencies the Runtime starts an entry's Stream
+ * with for this Model. `None` means the entry is inactive: the Runtime runs
+ * no Stream for it and skips its dependency projection. An entry with no
+ * `when` gate and no lift is always active. A lifted entry is also inactive
+ * while its child is absent.
+ */
+export const __maybeActiveDependencies = <Model, Dependencies>(
+  entry: Subscription<Model, any, Dependencies, any>,
+  model: Model,
+): Option.Option<Dependencies> => {
+  const activation: Activation | undefined = Reflect.get(
+    entry,
+    ActivationTypeId,
+  )
+
+  if (activation === undefined) {
+    return Option.some(entry.modelToDependencies(model))
+  } else {
+    return activation(model)
+  }
 }
 
 type RuntimeHandlerGenerator = () => Generator<
@@ -480,15 +538,18 @@ export const make =
         /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
         const config = fieldsOrCallbacks as Readonly<{
           messages: ReadonlyArray<Schema.Top>
+          when?: (model: unknown) => boolean
           handler?: RuntimeHandlerGenerator
         }>
+        const modelToDependencies = () => ({})
         const entry = {
           name,
           messages: config.messages,
           dependenciesSchema: Schema.Struct({}),
-          modelToDependencies: () => ({}),
+          modelToDependencies,
           dependenciesToStream: handler.toStream,
           toLayer: handler.toLayer,
+          ...toActivation(config.when, modelToDependencies),
         }
         registerIdentity(entry, handler.identity)
 
@@ -506,9 +567,11 @@ export const make =
 
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       const callbacks = maybeCallbacks as Record<string, unknown> & {
+        readonly modelToDependencies: (model: unknown) => unknown
+        readonly when?: (model: unknown) => boolean
         readonly handler?: RuntimeHandlerGenerator
       }
-      const { handler: configuredHandler, ...entryCallbacks } = callbacks
+      const { handler: configuredHandler, when, ...entryCallbacks } = callbacks
       const entry = {
         name,
         dependenciesSchema: Schema.Struct(
@@ -518,6 +581,7 @@ export const make =
         ...entryCallbacks,
         dependenciesToStream: handler.toStream,
         toLayer: handler.toLayer,
+        ...toActivation(when, entryCallbacks.modelToDependencies),
       }
       registerIdentity(entry, handler.identity)
 
@@ -736,9 +800,9 @@ type ChildMessageOf<ChildSubscriptions> =
 
 /**
  * The dependencies of a lifted Subscription. `maybeDependencies` holds the
- * child's dependencies while `read` returns `Some` and its `when` gate is
- * open. Otherwise it holds `None`, which tears down the entry's Stream and
- * skips the child's `modelToDependencies`.
+ * child's dependencies while `read` returns `Some` and both the lift's and
+ * the child entry's `when` gates are open. Otherwise it holds `None`, which
+ * tears down the entry's Stream and skips the child's `modelToDependencies`.
  */
 export type GatedDependencies<Dependencies> = Readonly<{
   maybeDependencies: Option.Option<Dependencies>
@@ -859,9 +923,17 @@ const makeLiftedEntry = (
       parentModel,
       Option.liftPredicate(when),
       Option.flatMap(config.read),
-      Option.map(subscription.modelToDependencies),
+      Option.flatMap(childModel =>
+        __maybeActiveDependencies(subscription, childModel),
+      ),
     ),
   })
+
+  const activation: Activation = parentModel => {
+    const gatedDependencies = modelToDependencies(parentModel)
+
+    return Option.as(gatedDependencies.maybeDependencies, gatedDependencies)
+  }
 
   if (subscription.keepAliveEquivalence !== undefined) {
     const maybeKeepAliveEquivalence = Option.makeEquivalence(
@@ -876,6 +948,7 @@ const makeLiftedEntry = (
       ],
       dependenciesSchema,
       modelToDependencies,
+      [ActivationTypeId]: activation,
       keepAliveEquivalence: (
         left: GatedDependencies<any>,
         right: GatedDependencies<any>,
@@ -912,6 +985,7 @@ const makeLiftedEntry = (
     ],
     dependenciesSchema,
     modelToDependencies,
+    [ActivationTypeId]: activation,
     dependenciesToStream: (gatedDependencies: GatedDependencies<any>) =>
       Option.match(gatedDependencies.maybeDependencies, {
         onNone: () => Stream.empty,
@@ -949,7 +1023,7 @@ const toLiftedEntry = (
  * entries. An entry runs only while its gate is open and `read` returns
  * `Some`. A closed gate skips `read` as well as the child's dependency
  * projection. Entries omitted from a gate map still stop when the child
- * is absent.
+ * is absent. A child entry's own `when` gate also applies after the lift.
  *
  * Every lifted entry wraps its dependencies in {@link GatedDependencies}.
  * The child's dependency Schema, declared Messages, handler Layer helper,

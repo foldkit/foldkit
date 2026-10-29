@@ -4,7 +4,7 @@ import { LoggedInComposition } from './composition'
 import { Model } from './model'
 
 export const init = LoggedInComposition.makeInit(
-  (route: typeof LoggedInRoute.Type, session: typeof Session.Type) => ({
+  (route: LoggedInRoute, session: Session) => ({
     model: Model({ route, session }),
   }),
 )

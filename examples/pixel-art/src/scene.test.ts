@@ -1,14 +1,5 @@
 import { Option } from 'effect'
-import {
-  Command,
-  Mount,
-  click,
-  expect,
-  given,
-  role,
-  scene,
-  text,
-} from 'foldkit/scene'
+import { Command, click, expect, given, role, scene, text } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
@@ -32,12 +23,7 @@ const resolveFocusOption = Command.resolve(
   ToolRadioGroupBlock.Message.CompletedFocusOption(),
 )
 
-const resolveDialogResources = Mount.resolve(
-  Dialog.test.AcquireResources,
-  DialogBlock.Message.SucceededAcquireResources(),
-)
-
-const createTestModel = (): typeof Model.Type => ({
+const createTestModel = (): Model => ({
   grid: createEmptyGrid(4),
   undoStack: [],
   redoStack: [],
@@ -61,12 +47,12 @@ const createTestModel = (): typeof Model.Type => ({
     .model,
 })
 
-const createPaintedModel = (): typeof Model.Type =>
+const createPaintedModel = (): Model =>
   modifyFields(createTestModel(), {
     grid: () =>
       createEmptyGrid(4).map((row, y) =>
         row.map((cell, x) =>
-          x === 0 && y === 0 ? Option.some<typeof PaletteIndex.Type>(0) : cell,
+          x === 0 && y === 0 ? Option.some<PaletteIndex>(0) : cell,
         ),
       ),
   })
@@ -96,7 +82,6 @@ describe('export workflow', () => {
         Dialog.test.ShowDialog,
         DialogBlock.Message.SucceededShowDialog(),
       ),
-      resolveDialogResources,
       expect(text('Export Failed')).toExist(),
       expect(text('Canvas 2D context not available')).toExist(),
       expect(role('button', { name: 'Dismiss' })).toExist(),
@@ -116,14 +101,12 @@ describe('export workflow', () => {
         Dialog.test.ShowDialog,
         DialogBlock.Message.SucceededShowDialog(),
       ),
-      resolveDialogResources,
       expect(text('Export Failed')).toExist(),
       click(role('button', { name: 'Dismiss' })),
       Command.resolve(
         Dialog.test.CloseDialog,
         DialogBlock.Message.CompletedCloseDialog(),
       ),
-      Mount.expectEnded(Dialog.test.AcquireResources),
       expect(text('Export Failed')).toBeAbsent(),
     )
   })
@@ -201,20 +184,15 @@ describe('history panel', () => {
   })
 
   test('undo enables after painting and re-disables after undoing', () => {
-    const modelWithHistory: typeof Model.Type = modifyFields(
-      createTestModel(),
-      {
-        grid: () =>
-          createEmptyGrid(4).map((row, y) =>
-            row.map((cell, x) =>
-              x === 0 && y === 0
-                ? Option.some<typeof PaletteIndex.Type>(0)
-                : cell,
-            ),
+    const modelWithHistory: Model = modifyFields(createTestModel(), {
+      grid: () =>
+        createEmptyGrid(4).map((row, y) =>
+          row.map((cell, x) =>
+            x === 0 && y === 0 ? Option.some<PaletteIndex>(0) : cell,
           ),
-        undoStack: () => [createEmptyGrid(4)],
-      },
-    )
+        ),
+      undoStack: () => [createEmptyGrid(4)],
+    })
 
     scene(
       { update, view },
@@ -240,7 +218,6 @@ describe('grid size change', () => {
         Dialog.test.ShowDialog,
         DialogBlock.Message.SucceededShowDialog(),
       ),
-      resolveDialogResources,
       expect(text('Change to 8\u00d78?')).toExist(),
       expect(
         text('This will clear your canvas and reset undo history.'),
@@ -264,14 +241,12 @@ describe('grid size change', () => {
         Dialog.test.ShowDialog,
         DialogBlock.Message.SucceededShowDialog(),
       ),
-      resolveDialogResources,
       expect(text('Change to 8\u00d78?')).toExist(),
       click(role('button', { name: 'Clear and Resize' })),
       Command.resolve(
         Dialog.test.CloseDialog,
         DialogBlock.Message.CompletedCloseDialog(),
       ),
-      Mount.expectEnded(Dialog.test.AcquireResources),
       Command.resolve(SaveCanvas, Message.CompletedSaveCanvas()),
       expect(text('Change to 8\u00d78?')).toBeAbsent(),
     )
@@ -287,14 +262,12 @@ describe('grid size change', () => {
         Dialog.test.ShowDialog,
         DialogBlock.Message.SucceededShowDialog(),
       ),
-      resolveDialogResources,
       expect(text('Change to 8\u00d78?')).toExist(),
       click(role('button', { name: 'Cancel' })),
       Command.resolve(
         Dialog.test.CloseDialog,
         DialogBlock.Message.CompletedCloseDialog(),
       ),
-      Mount.expectEnded(Dialog.test.AcquireResources),
       expect(text('Change to 8\u00d78?')).toBeAbsent(),
     )
   })

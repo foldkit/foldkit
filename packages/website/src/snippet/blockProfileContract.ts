@@ -10,8 +10,10 @@ export const Model = Schema.Struct({
   settings: Settings.SettingsBlock.Model,
   previewTheme: Theme,
 })
+export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({})
+export type Message = typeof Message.Type
 
 export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,

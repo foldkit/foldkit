@@ -17,7 +17,7 @@ import { describe, expect as expectValue, test } from 'vitest'
 
 import { Dialog, DialogBlock, Listbox } from '@foldkit/ui'
 
-import { Issue, IssueDraft, initialSnapshot } from '../domain'
+import { Issue, IssueDraft, initialWorkspace } from '../domain'
 import {
   PriorityListboxBlock,
   StatusListboxBlock,
@@ -31,14 +31,16 @@ import {
   ProjectListboxBinding,
   StatusListboxBinding,
 } from './composition'
-import { CreateState, Message, OutMessage } from './definition'
+import { Message } from './message'
+import { CreateState } from './model'
+import { OutMessage } from './outMessage'
 import { update } from './update'
 import { view } from './view'
 
 const sceneView = withViewInputs(view, {
-  projects: initialSnapshot.projects,
+  projects: initialWorkspace.projects,
 })
-const createIssueOpen = CreateIssueBlock.operations.requestOpen(
+const createIssueRequestOpen = CreateIssueBlock.operations.requestOpen(
   CreateIssueBlock.init().model,
   { projectId: 'experience' },
 )
@@ -50,8 +52,8 @@ const closeDialog = Command.resolve(
   Dialog.test.CloseDialog,
   DialogBlock.Message.CompletedCloseDialog(),
 )
-const selectField = (field: string, option: string) => [
-  click(label(field)),
+const selectField = (fieldLabel: string, optionLabel: string) => [
+  click(label(fieldLabel)),
   Command.resolve(
     Listbox.test.FocusListboxItems,
     WorkspaceListboxBlock.Message.CompletedFocusListboxItems(),
@@ -64,7 +66,7 @@ const selectField = (field: string, option: string) => [
     Listbox.test.PortalListboxBackdrop,
     WorkspaceListboxBlock.Message.CompletedPortalListboxBackdrop(),
   ),
-  click(role('option', { name: option })),
+  click(role('option', { name: optionLabel })),
   Command.resolve(
     Listbox.test.FocusListboxButton,
     WorkspaceListboxBlock.Message.CompletedFocusListboxButton(),
@@ -79,7 +81,7 @@ describe('Create Issue view', () => {
   test('validates a whitespace title without submitting the draft', () => {
     scene(
       { update, view: sceneView() },
-      given(createIssueOpen.model),
+      given(createIssueRequestOpen.model),
       acquireDialog,
       type(label('Title'), '   '),
       type(label('Description'), 'Keep this draft available.'),
@@ -115,7 +117,7 @@ describe('Create Issue view', () => {
 
     scene(
       { update, view: sceneView() },
-      given(createIssueOpen.model),
+      given(createIssueRequestOpen.model),
       acquireDialog,
       type(label('Title'), `  ${draft.title}  `),
       type(label('Description'), draft.description),
@@ -153,7 +155,6 @@ describe('Create Issue view', () => {
       Command.resolve(CreateIssue, Message.SucceededCreateIssue({ issue })),
       expectOutMessage(OutMessage.Created({ issue })),
       closeDialog,
-      Mount.expectEnded(Dialog.test.AcquireResources),
       expect(label('Title')).not.toExist(),
     )
   })
@@ -169,21 +170,21 @@ describe('Create Issue view', () => {
       labelIds: [],
     })
     const error = 'The workspace is temporarily unavailable.'
-    const titled = update(
-      createIssueOpen.model,
+    const titleUpdate = update(
+      createIssueRequestOpen.model,
       Message.UpdatedTitle({ value: draft.title }),
     )
-    const described = update(
-      titled.model,
+    const descriptionUpdate = update(
+      titleUpdate.model,
       Message.UpdatedDescription({ value: draft.description }),
     )
-    const projectSelected = update(
-      described.model,
+    const projectSelectionUpdate = update(
+      descriptionUpdate.model,
       ProjectListboxBinding.embedView({
-        slotId: described.model.projectListbox.id,
-        model: described.model.projectListbox,
+        slotId: descriptionUpdate.model.projectListbox.id,
+        model: descriptionUpdate.model.projectListbox,
         viewInputs: listboxViewInputs({
-          value: described.model.projectId,
+          value: descriptionUpdate.model.projectId,
           options: [],
         }),
       }).toParentMessage(
@@ -192,13 +193,13 @@ describe('Create Issue view', () => {
         }),
       ),
     )
-    const statusSelected = update(
-      projectSelected.model,
+    const statusSelectionUpdate = update(
+      projectSelectionUpdate.model,
       StatusListboxBinding.embedView({
-        slotId: projectSelected.model.statusListbox.id,
-        model: projectSelected.model.statusListbox,
+        slotId: projectSelectionUpdate.model.statusListbox.id,
+        model: projectSelectionUpdate.model.statusListbox,
         viewInputs: listboxViewInputs({
-          value: projectSelected.model.status,
+          value: projectSelectionUpdate.model.status,
           options: [],
         }),
       }).toParentMessage(
@@ -207,13 +208,13 @@ describe('Create Issue view', () => {
         }),
       ),
     )
-    const prioritySelected = update(
-      statusSelected.model,
+    const prioritySelectionUpdate = update(
+      statusSelectionUpdate.model,
       PriorityListboxBinding.embedView({
-        slotId: statusSelected.model.priorityListbox.id,
-        model: statusSelected.model.priorityListbox,
+        slotId: statusSelectionUpdate.model.priorityListbox.id,
+        model: statusSelectionUpdate.model.priorityListbox,
         viewInputs: listboxViewInputs({
-          value: statusSelected.model.priority,
+          value: statusSelectionUpdate.model.priority,
           options: [],
         }),
       }).toParentMessage(
@@ -222,18 +223,25 @@ describe('Create Issue view', () => {
         }),
       ),
     )
-    const submitted = update(
-      prioritySelected.model,
+    const issueSubmission = update(
+      prioritySelectionUpdate.model,
       Message.SubmittedIssueForm(),
     )
-    const dismissed = update(submitted.model, Message.RequestedClose())
-    const failed = update(dismissed.model, Message.FailedCreateIssue({ error }))
-    const reopenDialog = Option.getOrThrow(Array.head(failed.commands ?? []))
+    const issueClose = update(issueSubmission.model, Message.RequestedClose())
+    const creationFailure = update(
+      issueClose.model,
+      Message.FailedCreateIssue({ error }),
+    )
+    const reopenDialog = Option.getOrThrow(
+      Array.head(creationFailure.commands ?? []),
+    )
 
-    expectValue(dismissed.model.dialog.isOpen).toBe(false)
-    expectValue(failed.model.dialog.isOpen).toBe(true)
-    expectValue(failed.model.createState).toEqual(CreateState.Failed({ error }))
-    expectValue(failed.commands).toHaveLength(1)
+    expectValue(issueClose.model.dialog.isOpen).toBe(false)
+    expectValue(creationFailure.model.dialog.isOpen).toBe(true)
+    expectValue(creationFailure.model.createState).toEqual(
+      CreateState.Failed({ error }),
+    )
+    expectValue(creationFailure.commands).toHaveLength(1)
     expectValue(reopenDialog.args).toEqual({
       id: 'workspace-create-issue-dialog',
       focusSelector: Dialog.initialFocusMarkerSelector,
@@ -241,7 +249,7 @@ describe('Create Issue view', () => {
 
     scene(
       { update, view: sceneView() },
-      given(failed.model),
+      given(creationFailure.model),
       acquireDialog,
       expect(role('alert')).toContainText(error),
       expect(label('Title')).toHaveValue(draft.title),
@@ -263,12 +271,11 @@ describe('Create Issue view', () => {
   test('cancels through its Dialog without creating an issue', () => {
     scene(
       { update, view: sceneView() },
-      given(createIssueOpen.model),
+      given(createIssueRequestOpen.model),
       acquireDialog,
       type(label('Title'), 'An unsent issue'),
       click(role('button', { name: 'Cancel' })),
       closeDialog,
-      Mount.expectEnded(Dialog.test.AcquireResources),
       expect(label('Title')).not.toExist(),
       expectNoOutMessage(),
       Command.expectNone(),

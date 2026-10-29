@@ -7,7 +7,8 @@ export const ApplicationRoute = defineRouteUnion({
   People: { searchText: Schema.Option(Schema.String) },
   NotFound: { path: Schema.String },
 })
-
+export type ApplicationRoute = typeof ApplicationRoute.Type
+export type PeopleRoute = typeof ApplicationRoute.People.Type
 const homeRouter = pipe(Route.root, Route.mapTo(ApplicationRoute.Home))
 const peopleRouter = pipe(
   literal('people'),

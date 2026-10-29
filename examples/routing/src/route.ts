@@ -11,6 +11,8 @@ export const ApplicationRoute = defineRouteUnion({
   Files: { path: Schema.NonEmptyArray(Schema.String) },
   NotFound: { path: Schema.String },
 })
+export type ApplicationRoute = typeof ApplicationRoute.Type
+export type PeopleRoute = typeof ApplicationRoute.People.Type
 
 export const homeRouter = pipe(Route.root, Route.mapTo(ApplicationRoute.Home))
 

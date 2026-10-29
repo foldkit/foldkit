@@ -36,6 +36,7 @@ const ChildMessage = defineMessageUnion({
   CompletedInitialization: { count: Schema.Number },
   CompletedIncrement: {},
 })
+type ChildMessage = typeof ChildMessage.Type
 
 const Child = makeDefinition('InitializationChild', {
   Model: ChildModel,
@@ -183,7 +184,7 @@ const init = ParentComposition.makeInit(
 )
 
 it('preserves exact arguments, complete Model, requirements, and registration evidence', () => {
-  const initializeFirst = () =>
+  const initFirst = () =>
     FirstBinding.init({
       args: [1],
       toParentModel: first =>
@@ -193,7 +194,7 @@ it('preserves exact arguments, complete Model, requirements, and registration ev
           status: 'Ready',
         }),
     })
-  const initializeSecond = () =>
+  const initSecond = () =>
     SecondBinding.init({
       args: [2],
       toParentModel: second =>
@@ -204,14 +205,14 @@ it('preserves exact arguments, complete Model, requirements, and registration ev
         }),
     })
   type ExpectedRequirements =
-    | Update.RequirementsOf<typeof initializeFirst>
-    | Update.RequirementsOf<typeof initializeSecond>
+    | Update.RequirementsOf<typeof initFirst>
+    | Update.RequirementsOf<typeof initSecond>
     | Command.HandlerOf<typeof FinishParentInitialization>
     | Update.RequirementsOf<ReturnType<typeof FirstBinding.increment>>
     | Command.HandlerOf<typeof FinishParentStep>
   type ExpectedRegistration =
-    | Update.RegistrationEvidenceOf<ReturnType<typeof initializeFirst>>
-    | Update.RegistrationEvidenceOf<ReturnType<typeof initializeSecond>>
+    | Update.RegistrationEvidenceOf<ReturnType<typeof initFirst>>
+    | Update.RegistrationEvidenceOf<ReturnType<typeof initSecond>>
     | Update.RegistrationEvidenceOf<
         ReturnType<ReturnType<typeof FirstBinding.increment>>
       >
@@ -265,7 +266,7 @@ it('preserves a combined Binding operation and Command-producing Definition Step
   const finishCombinedStep = Parent.makeStep(() =>
     Update.combineSteps([FirstBinding.increment(), finishParentStep]),
   )
-  const initializeCombined = ParentComposition.makeInit((count: number) => ({
+  const initCombined = ParentComposition.makeInit((count: number) => ({
     childInitContext: {
       firstCount: count,
       maybeSecondCount: Option.none<number>(),
@@ -274,25 +275,23 @@ it('preserves a combined Binding operation and Command-producing Definition Step
     steps: [finishCombinedStep],
   }))
 
-  expectTypeOf<Parameters<typeof initializeCombined>>().toEqualTypeOf<
+  expectTypeOf<Parameters<typeof initCombined>>().toEqualTypeOf<
     [count: number]
   >()
   expectTypeOf<
-    ReturnType<typeof initializeCombined>['model']
+    ReturnType<typeof initCombined>['model']
   >().toEqualTypeOf<ParentModel>()
-  expectTypeOf<
-    Update.RequirementsOf<typeof initializeCombined>
-  >().toEqualTypeOf<
+  expectTypeOf<Update.RequirementsOf<typeof initCombined>>().toEqualTypeOf<
     Exclude<
       Update.RequirementsOf<typeof init>,
       Command.HandlerOf<typeof FinishParentInitialization>
     >
   >()
   expectTypeOf<
-    Update.RegistrationEvidenceOf<ReturnType<typeof initializeCombined>>
+    Update.RegistrationEvidenceOf<ReturnType<typeof initCombined>>
   >().toEqualTypeOf<Update.RegistrationEvidenceOf<ReturnType<typeof init>>>()
 
-  const initialized = initializeCombined(4)
+  const initialized = initCombined(4)
 
   expect(initialized.model).toEqual({
     first: { count: 104 },
@@ -307,14 +306,14 @@ it('preserves a combined Binding operation and Command-producing Definition Step
 })
 
 it('skips an optional child and drops its init Commands after a Step removes it', () => {
-  const initializeAbsent = ParentComposition.makeInit(() => ({
+  const initAbsent = ParentComposition.makeInit(() => ({
     childInitContext: {
       firstCount: 3,
       maybeSecondCount: Option.none<number>(),
     },
     model: { status: 'Ready' },
   }))
-  const initializeThenRemove = ParentComposition.makeInit(() => ({
+  const initThenRemove = ParentComposition.makeInit(() => ({
     childInitContext: {
       firstCount: 3,
       maybeSecondCount: Option.some(4),
@@ -329,17 +328,18 @@ it('skips an optional child and drops its init Commands after a Step removes it'
     ],
   }))
 
-  expect(initializeAbsent().model.maybeSecond).toEqual(Option.none())
-  expect(initializeAbsent().commands?.map(command => command.name)).toEqual([
+  expect(initAbsent().model.maybeSecond).toEqual(Option.none())
+  expect(initAbsent().commands?.map(command => command.name)).toEqual([
     'first/FinishInitialization',
   ])
-  expect(initializeThenRemove().commands?.map(command => command.name)).toEqual(
-    ['first/FinishInitialization'],
-  )
+  expect(initThenRemove().commands?.map(command => command.name)).toEqual([
+    'first/FinishInitialization',
+  ])
 })
 
 it('preserves default and rest parameters for a graphless Composition', () => {
   const PlainModel = Schema.Struct({ count: Schema.Number })
+  type PlainModel = typeof PlainModel.Type
 
   const PlainComposition = makeDefinition('InitializationPlain', {
     Model: PlainModel,
@@ -376,29 +376,28 @@ it('preserves primitive and tagged union Models for graphless Compositions', () 
     Model: Schema.String,
     Message: Schema.Never,
   }).makeComposition()
-  const initializeText = TextComposition.makeInit(() => ({ model: 'ready' }))
+  const initText = TextComposition.makeInit(() => ({ model: 'ready' }))
   const SessionModel = Schema.Union([
     Schema.TaggedStruct('SignedOut', {}),
     Schema.TaggedStruct('SignedIn', { username: Schema.String }),
   ])
+  type SessionModel = typeof SessionModel.Type
 
   const SessionComposition = makeDefinition('InitializationSession', {
     Model: SessionModel,
     Message: Schema.Never,
   }).makeComposition()
-  const initializeSession = SessionComposition.makeInit((username: string) => ({
+  const initSession = SessionComposition.makeInit((username: string) => ({
     model: { _tag: 'SignedIn', username },
   }))
 
-  expectTypeOf<
-    ReturnType<typeof initializeText>['model']
-  >().toEqualTypeOf<string>()
-  expectTypeOf<ReturnType<typeof initializeSession>['model']>().toEqualTypeOf<{
+  expectTypeOf<ReturnType<typeof initText>['model']>().toEqualTypeOf<string>()
+  expectTypeOf<ReturnType<typeof initSession>['model']>().toEqualTypeOf<{
     _tag: 'SignedIn'
     username: string
   }>()
-  expect(initializeText().model).toBe('ready')
-  expect(initializeSession('Ada').model).toEqual({
+  expect(initText().model).toBe('ready')
+  expect(initSession('Ada').model).toEqual({
     _tag: 'SignedIn',
     username: 'Ada',
   })
@@ -559,13 +558,14 @@ it('initializes a projected accessor child and verifies Schema reconstruction', 
     second: ChildModel,
     selected: Schema.Literal('Second'),
   })
+  type AccessorParentModel = typeof AccessorParentModel.Type
   const AccessorParent = makeDefinition('InitializationAccessorParent', {
     Model: AccessorParentModel,
     Message: Schema.Never,
   })
   const AccessorBinding = AccessorParent.makeBinding(ChildBlock, {
     placement: 'selectedChild',
-    read: (model: typeof AccessorParentModel.Type) => Option.some(model.second),
+    read: (model: AccessorParentModel) => Option.some(model.second),
     write: (model, nextSecond) =>
       modifyFields(model, { second: () => nextSecond }),
     init: {
@@ -576,14 +576,14 @@ it('initializes a projected accessor child and verifies Schema reconstruction', 
   const AccessorComposition = AccessorParent.makeComposition({
     bindings: [AccessorBinding],
   })
-  const initializeAccessor = AccessorComposition.makeInit(() => ({
+  const initAccessor = AccessorComposition.makeInit(() => ({
     model: {
       first: ChildModel.make({ count: 1 }),
       selected: 'Second',
     },
   }))
 
-  expect(initializeAccessor().model).toEqual({
+  expect(initAccessor().model).toEqual({
     first: { count: 1 },
     second: { count: 7 },
     selected: 'Second',
@@ -595,13 +595,14 @@ it('rejects a projected field that the accessor does not select', () => {
     first: ChildModel,
     second: ChildModel,
   })
+  type AccessorParentModel = typeof AccessorParentModel.Type
   const AccessorParent = makeDefinition('InitializationInvalidAccessorParent', {
     Model: AccessorParentModel,
     Message: Schema.Never,
   })
   const InvalidAccessorBinding = AccessorParent.makeBinding(ChildBlock, {
     placement: 'invalidSelectedChild',
-    read: (model: typeof AccessorParentModel.Type) => Option.some(model.first),
+    read: (model: AccessorParentModel) => Option.some(model.first),
     write: (model, nextFirst) =>
       modifyFields(model, { first: () => nextFirst }),
     init: {
@@ -612,11 +613,11 @@ it('rejects a projected field that the accessor does not select', () => {
   const InvalidAccessorComposition = AccessorParent.makeComposition({
     bindings: [InvalidAccessorBinding],
   })
-  const initializeInvalidAccessor = InvalidAccessorComposition.makeInit(() => ({
+  const initInvalidAccessor = InvalidAccessorComposition.makeInit(() => ({
     model: { first: ChildModel.make({ count: 7 }) },
   }))
 
-  expect(() => initializeInvalidAccessor()).toThrow(
+  expect(() => initInvalidAccessor()).toThrow(
     'must select the exact initialized child before constructing the parent Model',
   )
 })
@@ -655,6 +656,7 @@ it('runs initialization callbacks and Steps under the exact registered operation
     first: ChildModel,
     second: ChildModel,
   })
+  type ProjectedParentModel = typeof ProjectedParentModel.Type
   const ProjectedParent = makeDefinition('InitializationProjectedGraphParent', {
     Model: ProjectedParentModel,
     Message: Schema.Never,
@@ -666,8 +668,7 @@ it('runs initialization callbacks and Steps under the exact registered operation
   })
   const ProjectedBinding = ProjectedParent.makeBinding(ChildBlock, {
     placement: 'projectedSecond',
-    read: (model: typeof ProjectedParentModel.Type) =>
-      Option.some(model.second),
+    read: (model: ProjectedParentModel) => Option.some(model.second),
     write: (model, nextSecond) =>
       modifyFields(model, { second: () => nextSecond }),
     init: {
@@ -685,7 +686,7 @@ it('runs initialization callbacks and Steps under the exact registered operation
   const ProjectedComposition = ProjectedParent.makeComposition({
     bindings: [ProjectedBinding],
   })
-  const initializeWithForeignStep = ParentComposition.makeInit(() => ({
+  const initWithForeignStep = ParentComposition.makeInit(() => ({
     childInitContext: {
       firstCount: 1,
       maybeSecondCount: Option.none<number>(),
@@ -694,7 +695,7 @@ it('runs initialization callbacks and Steps under the exact registered operation
     // @ts-expect-error A startup Step requires its exact registered Binding.
     steps: [ForeignBinding.increment()],
   }))
-  const initializeWithForeignInit = Reflect.apply(
+  const initWithForeignInit = Reflect.apply(
     ParentComposition.makeInit,
     undefined,
     [
@@ -705,26 +706,26 @@ it('runs initialization callbacks and Steps under the exact registered operation
         }),
     ],
   )
-  const initializeWithForeignSelector = SelectorComposition.makeInit(() => ({
+  const initWithForeignSelector = SelectorComposition.makeInit(() => ({
     model: {
       maybeSecond: Option.none(),
       status: 'Ready',
     },
   }))
-  const initializeWithForeignProjection = ProjectedComposition.makeInit(() => ({
+  const initWithForeignProjection = ProjectedComposition.makeInit(() => ({
     model: { first: ChildModel.make({ count: 0 }) },
   }))
 
-  expect(() => initializeWithForeignStep()).toThrow(
+  expect(() => initWithForeignStep()).toThrow(
     'is not registered in the current Block graph',
   )
-  expect(() => initializeWithForeignInit()).toThrow(
+  expect(() => initWithForeignInit()).toThrow(
     'is not registered in the current Block graph',
   )
-  expect(() => initializeWithForeignSelector()).toThrow(
+  expect(() => initWithForeignSelector()).toThrow(
     'is not registered in the current Block graph',
   )
-  expect(() => initializeWithForeignProjection()).toThrow(
+  expect(() => initWithForeignProjection()).toThrow(
     'is not registered in the current Block graph',
   )
 })

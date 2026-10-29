@@ -5,7 +5,7 @@ import { Button } from '@foldkit/ui'
 
 import * as Icon from '../icon'
 import { Message } from '../message'
-import { CheckoutState } from '../model'
+import type { ConfirmedState } from '../model'
 import { primaryButtonClassName } from './shared'
 
 export const placingView = (h: ApplicationViewBuilder): Html =>
@@ -34,7 +34,7 @@ export const placingView = (h: ApplicationViewBuilder): Html =>
   )
 
 export const confirmedView = (
-  state: typeof CheckoutState.Confirmed.Type,
+  state: ConfirmedState,
   h: ApplicationViewBuilder,
 ): Html =>
   h.div(

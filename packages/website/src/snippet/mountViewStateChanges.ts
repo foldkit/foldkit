@@ -7,6 +7,7 @@ import { Editor } from '@tiptap/core'
 const Message = defineMessageUnion({
   CompletedMountEditor: {},
 })
+type Message = typeof Message.Type
 
 const MountEditor = Mount.define('MountEditor', {
   messages: [Message.CompletedMountEditor],

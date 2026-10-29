@@ -32,7 +32,6 @@ export const update = SkillsEntryComposition.makeUpdate({
   ClickedRemoveSelf: makeOutMessageStep(() => OutMessage.Removed()),
 })
 
-export const hasErrors = (entry: typeof Model.Type) => anyInvalid([entry.name])
+export const hasErrors = (entry: Model) => anyInvalid([entry.name])
 
-export const isComplete = (entry: typeof Model.Type) =>
-  allValid([[entry.name, nameRules]])
+export const isComplete = (entry: Model) => allValid([[entry.name, nameRules]])

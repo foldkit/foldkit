@@ -11,12 +11,14 @@ const HeavyItem = Schema.Struct({
   category: Schema.String,
   isActive: Schema.Boolean,
 })
+type HeavyItem = typeof HeavyItem.Type
 
 export const Model = Schema.Struct({
   tickCount: Schema.Number,
   lastReceivedPayloadSize: Schema.Number,
   largeArray: Schema.Array(HeavyItem),
 })
+export type Model = typeof Model.Type
 
 // MESSAGE
 
@@ -28,6 +30,7 @@ export const Message = defineMessageUnion({
   ClickedFillHistory: {},
   CompletedFillHistoryStep: { remaining: Schema.Number },
 })
+export type Message = typeof Message.Type
 
 export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
@@ -40,7 +43,7 @@ export const ApplicationComposition = ApplicationDefinition.makeComposition()
 const HEAVY_ITEM_COUNT = 10_000
 const HISTORY_FILL_COUNT = 500
 
-const makeHeavyArray = (count: number): ReadonlyArray<typeof HeavyItem.Type> =>
+const makeHeavyArray = (count: number): ReadonlyArray<HeavyItem> =>
   Array.makeBy(count, index => ({
     id: index,
     label: `Item ${index}`,

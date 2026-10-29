@@ -5,6 +5,7 @@ import { ApiClientService, Session } from './services'
 export const Flags = Schema.Struct({
   maybeSession: Schema.Option(Session),
 })
+export type Flags = typeof Flags.Type
 
 export const flags = Effect.gen(function* () {
   const apiClient = yield* ApiClientService

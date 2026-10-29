@@ -4,24 +4,17 @@ import { modifyFields } from 'foldkit/struct'
 
 import { ScrollActiveResult } from './command'
 import { CommandPaletteComposition, DialogBinding } from './composition'
-import {
-  Message,
-  type Model,
-  OutMessage,
-  ResultTarget,
-  makeFieldsStep,
-  makeNoopStep,
-  makeStep,
-} from './definition'
+import { makeFieldsStep, makeNoopStep, makeStep } from './definition'
+import type { UpdatedQuery } from './message'
+import type { Model } from './model'
+import { OutMessage } from './outMessage'
+import { ResultTarget } from './resultTarget'
 
 const keepModelStep = makeNoopStep()
 
 const closeDialogStep = DialogBinding.requestClose()
 
-const handleUpdatedQuery = (
-  model: typeof Model.Type,
-  { value }: typeof Message.UpdatedQuery.Type,
-) => ({
+const handleUpdatedQuery = (model: Model, { value }: UpdatedQuery) => ({
   model: modifyFields(model, {
     query: () => value,
     activeResultIndex: () => 0,
@@ -59,12 +52,8 @@ const openPaletteStep = makeStep(model => {
 
 const selectResult = (
   model: Parameters<typeof closeDialogStep>[0],
-  target: typeof ResultTarget.Type,
+  target: ResultTarget,
 ) => {
-  if (!model.dialog.isOpen) {
-    return keepModelStep(model)
-  }
-
   const dialogClose = closeDialogStep(model)
 
   const outMessage = ResultTarget.match(target, {

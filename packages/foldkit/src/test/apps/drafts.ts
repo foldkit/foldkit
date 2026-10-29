@@ -9,6 +9,7 @@ import * as Update from '../../update/index.js'
 // MODEL
 
 export const SaveStatus = Schema.Literals(['Editing', 'Saving', 'Saved'])
+export type SaveStatus = typeof SaveStatus.Type
 
 export const Model = Schema.Struct({
   revision: Schema.Number,
@@ -22,12 +23,12 @@ export const Message = defineMessageUnion({
   ClickedSaveDraft: {},
   SucceededSaveDraft: { revision: Schema.Number },
 })
-
 export type Message = typeof Message.Type
 
 // COMMAND
 
 export const SaveDraftArgs = Schema.Struct({ revision: Schema.Number })
+export type SaveDraftArgs = typeof SaveDraftArgs.Type
 
 export const SaveDraft = Command.define('SaveDraft', {
   args: SaveDraftArgs.fields,

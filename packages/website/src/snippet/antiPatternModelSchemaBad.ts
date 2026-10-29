@@ -12,3 +12,4 @@ type Model = {
 const ModelSchema = Schema.Struct({
   session: Schema.Unknown,
 })
+type ModelSchema = typeof ModelSchema.Type

@@ -139,7 +139,7 @@ export const isNavPageActive = (
 // DOCS SECTIONS
 
 export type DocsSection = Readonly<{
-  key: typeof GroupKey.Type
+  key: GroupKey
   label: string
   pageGroups: ReadonlyArray<ReadonlyArray<NavPage>>
 }>
@@ -766,7 +766,7 @@ export const pageNeighbors = (_tag: string): PageNeighbors =>
 export const findActiveSectionKey = (
   routeTag: string,
   maybeExampleSlug: Option.Option<string>,
-): Option.Option<typeof GroupKey.Type> => {
+): Option.Option<GroupKey> => {
   // NOTE: ApiModule and Blog pages aren't in docsSections. Their groups are
   // rendered separately, so map them explicitly.
   if (routeTag === 'ApiModule') {
@@ -792,6 +792,6 @@ export const findActiveSectionKey = (
 }
 
 export const findActiveSectionKeyForRoute = (
-  route: typeof ApplicationRoute.Type,
-): Option.Option<typeof GroupKey.Type> =>
+  route: ApplicationRoute,
+): Option.Option<GroupKey> =>
   findActiveSectionKey(route._tag, maybeExampleSlugForRoute(route))

@@ -6,7 +6,7 @@ const ApplicationRoute = defineRouteUnion({
   FilesIndex: {},
   Files: { path: Schema.NonEmptyArray(Schema.String) },
 })
-
+type ApplicationRoute = typeof ApplicationRoute.Type
 // Matches: /files
 const filesIndexRouter = pipe(
   literal('files'),

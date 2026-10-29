@@ -1,0 +1,68 @@
+diff --git a/packages/foldkit/src/block/definition.ts b/packages/foldkit/src/block/definition.ts
+index fee304ed49..cd9563b8fd 100644
+--- a/packages/foldkit/src/block/definition.ts
++++ b/packages/foldkit/src/block/definition.ts
+@@ -89,6 +89,7 @@ import type {
+   ContextualMessageProducer,
+   FocusedMessageOf,
+   FocusedStepValidation,
++  StepContextHint,
+   ValidateMessageProducer,
+ } from './focusedStep.js'
+ import {
+@@ -526,7 +527,8 @@ export interface DefineStep<Model, Message, OutMessage> {
+       | Update.ResultEvidenceChannelOf<DeferredStepReturn<Output>>
+       | Update.GraphRequirementOf<Extract<Output, AnyFunction>>
+     >
+-  >
++  > &
++    StepContextHint<Context>
+
+   /**
+    * Authors a Model-first handler from a Message-only producer. In an inline
+diff --git a/packages/foldkit/src/block/delivery.ts b/packages/foldkit/src/block/delivery.ts
+index 31b61b9864..b16f805ab0 100644
+--- a/packages/foldkit/src/block/delivery.ts
++++ b/packages/foldkit/src/block/delivery.ts
+@@ -13,6 +13,7 @@ import type {
+   ResolveCompositionOutput,
+ } from './deferredPolicy.js'
+ import type { DefinedUpdate, DefinedUpdateSource } from './definition.js'
++import type { StepContextHint } from './focusedStep.js'
+ import {
+   type AnyBindingInitRecipe,
+   type BindingInitRecipe,
+@@ -686,7 +687,15 @@ type AuthoredUpdateCases<
+     Bindings,
+     Tag,
+     Outputs[Tag]
+-  >
++  > &
++    StepContextHint<
++      readonly [
++        message: Extract<
++          AuthoredMessage<Message, Bindings>,
++          Readonly<{ _tag: Tag }>
++        >,
++      ]
++    >
+ } & {
+   readonly [Tag in keyof NoInfer<Outputs>]: IsAny<Outputs[Tag]> extends true
+     ? Readonly<{ 'Block update handlers cannot return any': never }>
+diff --git a/packages/foldkit/src/block/focusedStep.ts b/packages/foldkit/src/block/focusedStep.ts
+index b40acb4a33..82e82bc3a4 100644
+--- a/packages/foldkit/src/block/focusedStep.ts
++++ b/packages/foldkit/src/block/focusedStep.ts
+@@ -1,3 +1,12 @@
++/** @internal Identity for contextual Step argument inference. */
++export declare const StepContextTypeId: unique symbol
++
++/** @internal Carries contextual arguments without inferring result channels. */
++export type StepContextHint<Context extends ReadonlyArray<unknown>> =
++  Context extends readonly [unknown, ...ReadonlyArray<unknown>]
++    ? Readonly<{ [StepContextTypeId]?: (...context: Context) => void }>
++    : unknown
++
+ type AnyFunction = (...args: ReadonlyArray<any>) => any
+
+ type IsAny<Value> = 0 extends 1 & Value ? true : false

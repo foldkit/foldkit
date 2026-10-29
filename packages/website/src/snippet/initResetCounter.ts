@@ -4,7 +4,11 @@ import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 const Model = Schema.Struct({ count: Schema.Number })
+type Model = typeof Model.Type
+
 const Message = defineMessageUnion({ ClickedIncrement: {}, RequestedReset: {} })
+type Message = typeof Message.Type
+
 const CounterComposition = Block.makeDefinition('Counter', {
   Model,
   Message,

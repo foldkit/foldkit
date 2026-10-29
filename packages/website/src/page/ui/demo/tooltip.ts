@@ -4,6 +4,8 @@ import { type AnchorConfig, triggerId } from '@foldkit/ui/tooltip'
 import type { UiViewBuilder } from '../composition'
 import { TooltipDemoBinding } from '../composition'
 
+type TooltipBlockModel = typeof TooltipBlock.Model.Type
+
 // DEMO CONTENT
 
 const triggerClassName = 'demo-neutral-button inline-flex items-center gap-1.5'
@@ -19,10 +21,7 @@ const TOOLTIP_ANCHOR: AnchorConfig = {
   padding: 8,
 }
 
-export const demo = (
-  tooltipModel: typeof TooltipBlock.Model.Type,
-  h: UiViewBuilder,
-) => {
+export const demo = (tooltipModel: TooltipBlockModel, h: UiViewBuilder) => {
   return [
     h.div(
       [h.Class('demo-field')],

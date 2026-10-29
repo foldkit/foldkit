@@ -24,13 +24,13 @@ import {
   explicitGenericOrdinaryUpdate,
   foldPlain,
   foldStableProjected,
+  init,
+  initDerivedModel,
+  initDerivedStepsStep,
+  initEntryStep,
+  initPlainStep,
+  initPlainWithParentCommandsStep,
   initialParentModel,
-  initialize,
-  initializeDerivedModel,
-  initializeDerivedStepsStep,
-  initializeEntryStep,
-  initializePlainStep,
-  initializePlainWithParentCommandsStep,
   makeParentCommandInitRecipe,
   mixedConnectedCommandsStep,
   mixedConnectedCommandsUpdate,
@@ -197,12 +197,12 @@ const rejectReadableMixedRecipe = (
 void rejectRawMixedConnectedSteps
 void rejectReadableMixedRecipe
 
-const initial = initialize()
+const initial = init()
 const parentMessage = ParentMessage.CompletedParentInitialization()
 foldStableProjected(initial.model, parentMessage, ChildMessage.Incremented())
 foldPlain(initial.model, parentMessage, ChildMessage.Incremented())
-StrictBlock.operations.initializeEntry(initialParentModel, 'emitted-entry', 2)
-const appliedDerivedInitialization = initializeDerivedModel(
+StrictBlock.operations.initEntry(initialParentModel, 'emitted-entry', 2)
+const appliedDerivedInitialization = initDerivedModel(
   initialParentModel,
   parentMessage,
 )
@@ -210,13 +210,13 @@ appliedDerivedInitialization.model.first.count
 
 type EmittedEntryInitRequirementsAreExact = Expect<
   Equal<
-    Update.RequirementsOf<typeof initializeEntryStep>,
+    Update.RequirementsOf<typeof initEntryStep>,
     Block.Qualify<'entries', Command.HandlerOf<typeof LoadParameterizedChild>>
   >
 >
 type EmittedParentCommandRequirementsAreExact = Expect<
   Equal<
-    Update.RequirementsOf<typeof initializePlainWithParentCommandsStep>,
+    Update.RequirementsOf<typeof initPlainWithParentCommandsStep>,
     | Block.Qualify<'entries', Command.HandlerOf<typeof LoadParameterizedChild>>
     | Command.HandlerOf<typeof CompleteParentInitialization>
   >
@@ -224,33 +224,30 @@ type EmittedParentCommandRequirementsAreExact = Expect<
 type EmittedParentCommandRegistrationIsExact = Expect<
   Equal<
     Update.RegistrationEvidenceOf<
-      ReturnType<typeof initializePlainWithParentCommandsStep>
+      ReturnType<typeof initPlainWithParentCommandsStep>
     >,
     | Block.RequirementOfBinding<typeof ParentCommandsBinding>
     | Block.RequirementOfBinding<typeof EntryBinding>
   >
 >
 type EmittedEntryInitModelIsExact = Expect<
-  Equal<
-    RecipeModel<ReturnType<typeof initializeEntryStep>>,
-    typeof ParentModel.Type
-  >
+  Equal<RecipeModel<ReturnType<typeof initEntryStep>>, typeof ParentModel.Type>
 >
 type EmittedEntryInitMessageIsExact = Expect<
   Equal<
-    RecipeMessage<ReturnType<typeof initializeEntryStep>>,
+    RecipeMessage<ReturnType<typeof initEntryStep>>,
     typeof ParentMessage.Type
   >
 >
 type EmittedEntryInitRegistrationIsExact = Expect<
   Equal<
-    Update.RegistrationEvidenceOf<ReturnType<typeof initializeEntryStep>>,
+    Update.RegistrationEvidenceOf<ReturnType<typeof initEntryStep>>,
     Block.RequirementOfBinding<typeof EntryBinding>
   >
 >
 type EmittedPlainInitRegistrationIsExact = Expect<
   Equal<
-    Update.RegistrationEvidenceOf<ReturnType<typeof initializePlainStep>>,
+    Update.RegistrationEvidenceOf<ReturnType<typeof initPlainStep>>,
     Block.RequirementOfBinding<typeof PlainBinding>
   >
 >
@@ -270,16 +267,14 @@ type EmittedParentCommandRecipeRegistrationIsExact = Expect<
 >
 type EmittedDerivedModelRequirementsAreExact = Expect<
   Equal<
-    Update.RequirementsOf<typeof initializeDerivedModel>,
+    Update.RequirementsOf<typeof initDerivedModel>,
     | Block.Qualify<'entries', Command.HandlerOf<typeof LoadParameterizedChild>>
     | Command.HandlerOf<typeof CompleteParentInitialization>
   >
 >
 type EmittedDerivedModelRegistrationIsExact = Expect<
   Equal<
-    Update.RegistrationEvidenceOf<
-      ReturnType<typeof initializeDerivedStepsStep>
-    >,
+    Update.RegistrationEvidenceOf<ReturnType<typeof initDerivedStepsStep>>,
     | Block.RequirementOfBinding<typeof EntryBinding>
     | Block.RequirementOfBinding<typeof ParentCommandsBinding>
   >
@@ -353,7 +348,7 @@ PlainBinding.init({ args: [], toParentModel: child => Struct.modifyFields(initia
 const erasedEmittedConnectedStep: Update.Step<
   typeof ParentModel.Type,
   typeof ParentMessage.Type
-> = initializePlainStep
+> = initPlainStep
 void erasedEmittedConnectedStep
 
 const EmittedMissingPlainBindingComposition =
@@ -362,7 +357,7 @@ const EmittedMissingPlainBindingComposition =
   })
 EmittedMissingPlainBindingComposition.makeInit(() =>
   // @ts-expect-error A connected initializer cannot run without its registered Binding capability.
-  initializePlainStep(initialParentModel),
+  initPlainStep(initialParentModel),
 )
 
 const emittedDirectConnectedInit =
@@ -380,16 +375,16 @@ EmittedMissingPlainBindingComposition.prepareBlock({
     CompletedParentInitialization: model => ({
       model,
     }),
-    RequestedInitializeEntry: model => ({
+    RequestedInitEntry: model => ({
       model,
     }),
-    RequestedInitializePlain: model => ({
+    RequestedInitPlain: model => ({
       model,
     }),
-    RequestedInitializePlainWithOwningParentCommand: model => ({
+    RequestedInitPlainWithOwningParentCommand: model => ({
       model,
     }),
-    RequestedInitializePlainWithParentCommands: model => ({
+    RequestedInitPlainWithParentCommands: model => ({
       model,
     }),
   }),

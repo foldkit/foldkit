@@ -11,10 +11,12 @@ import {
 import { Message } from './definition'
 import { EducationEntryBlock } from './entry'
 
+type EducationEntryModel = typeof EducationEntryBlock.Model.Type
+
 const lazyEntry = createKeyedLazy()
 
 const entryView = (
-  entry: typeof EducationEntryBlock.Model.Type,
+  entry: EducationEntryModel,
   today: CalendarDate,
   h: EducationViewBuilder,
 ): Html =>

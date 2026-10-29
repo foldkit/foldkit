@@ -871,11 +871,13 @@ const DelimiterCollisionState = defineTaggedUnion({
   Target0: {},
   Target1: {},
 })
+type DelimiterCollisionState = typeof DelimiterCollisionState.Type
 
 const DelimiterCollisionMessage = defineMessageUnion({
   C: {},
   'B|C': {},
 })
+type DelimiterCollisionMessage = typeof DelimiterCollisionMessage.Type
 
 const delimiterCollisionMachine = define({
   state: DelimiterCollisionState,
@@ -914,9 +916,12 @@ const delimiterCollisionMachine = define({
 })
 
 const PlainIdle = Schema.Struct({ _tag: Schema.Literal('PlainIdle') })
+type PlainIdle = typeof PlainIdle.Type
 const PlainActive = Schema.Struct({ _tag: Schema.Literal('PlainActive') })
+type PlainActive = typeof PlainActive.Type
 
 const PlainState = Schema.Union([PlainIdle, PlainActive])
+type PlainState = typeof PlainState.Type
 
 const plainTagMachine = define({
   state: PlainState,
@@ -940,9 +945,13 @@ const NestedState = defineTaggedUnion({
   NestedError: { error: Schema.String },
   NestedOk: { data: Schema.String },
 })
+type NestedState = typeof NestedState.Type
 const NestedSettled = NestedState.subset(['NestedError', 'NestedOk'])
+type NestedSettled = typeof NestedSettled.Type
 const NestedActive = Schema.Union([NestedState.NestedLoading, NestedSettled])
+type NestedActive = typeof NestedActive.Type
 const NestedStateSchema = Schema.Union([NestedState.NestedIdle, NestedActive])
+type NestedStateSchema = typeof NestedStateSchema.Type
 
 const nestedUnionMachine = define({
   state: NestedStateSchema,
@@ -975,7 +984,9 @@ const nestedUnionMachine = define({
 })
 
 const UntaggedMember = Schema.Struct({ _tag: Schema.String })
+type UntaggedMember = typeof UntaggedMember.Type
 const UntaggedState = Schema.Union([PlainIdle, UntaggedMember])
+type UntaggedState = typeof UntaggedState.Type
 
 // REQUIREMENTS
 
@@ -1000,6 +1011,7 @@ const SubmitState = defineTaggedUnion({
   Persisting: {},
   Submitted: {},
 })
+type SubmitState = typeof SubmitState.Type
 
 const SubmitAppModel = Schema.Struct({ submit: SubmitState })
 type SubmitAppModel = typeof SubmitAppModel.Type
@@ -1448,7 +1460,7 @@ describe('shared transitions', () => {
         states: {},
       }),
     ).toThrow(
-      'Machine.define: shared transitions overlap for state "Idle" and Message "ClickedFetch"',
+      'Machine.makeMachine: shared transitions overlap for state "Idle" and Message "ClickedFetch"',
     )
   })
 
@@ -2143,7 +2155,7 @@ describe('state tag extraction', () => {
         states: {},
       }),
     ).toThrow(
-      'Machine.define: every member of the state union Schema must be a Struct with a literal _tag field',
+      'Machine.makeMachine: every member of the state union Schema must be a Struct with a literal _tag field',
     )
   })
 })

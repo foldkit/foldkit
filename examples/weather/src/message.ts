@@ -9,3 +9,4 @@ export const Message = defineMessageUnion({
   SucceededFetchWeather: { weather: WeatherData },
   FailedFetchWeather: { error: Schema.String },
 })
+export type Message = typeof Message.Type

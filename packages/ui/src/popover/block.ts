@@ -34,7 +34,6 @@ export const Model = Schema.Struct({
   animation: Animation.AnimationBlock.Model,
   maybeLastButtonPointerType: Schema.Option(Schema.String),
 })
-
 export type Model = typeof Model.Type
 
 // MESSAGE
@@ -61,6 +60,7 @@ export const Message = defineMessageUnion({
   CompletedPortalPopoverBackdrop: {},
   CompletedDetectPopoverMovementOrAnimationEnd: { generation: Schema.Number },
 })
+export type Message = typeof Message.Type
 
 export type RequestedOpen = typeof Message.RequestedOpen.Type
 export type RequestedClose = typeof Message.RequestedClose.Type
@@ -71,8 +71,6 @@ export type ClickedButton = typeof Message.ClickedButton.Type
 export type IgnoredMouseClick = typeof Message.IgnoredMouseClick.Type
 export type SuppressedSpaceScroll = typeof Message.SuppressedSpaceScroll.Type
 
-export type Message = typeof Message.Type
-
 // OUT MESSAGE
 
 /** Union of OutMessages the popover component can produce. Handle open and
@@ -81,6 +79,7 @@ export const OutMessage = defineMessageUnion({
   Opened: {},
   Closed: {},
 })
+export type OutMessage = typeof OutMessage.Type
 
 export type Opened = typeof OutMessage.Opened.Type
 export type Closed = typeof OutMessage.Closed.Type

@@ -19,33 +19,32 @@ const resultToTransitionSummary = (
     }),
   )
 
-export const stepMachine =
-  (message: typeof Message.Type) => (model: typeof Model.Type) => {
-    const result = checkoutMachine.step(model.checkout, message)
+export const stepMachine = (message: Message) => (model: Model) => {
+  const result = checkoutMachine.step(model.checkout, message)
 
-    const { state: nextCheckout } = result
+  const { state: nextCheckout } = result
 
-    const transitionCommands = Match.value(result).pipe(
-      Match.tagsExhaustive({
-        Transitioned: ({ commands }) => commands,
-        Ignored: () => [],
-      }),
-    )
+  const transitionCommands = Match.value(result).pipe(
+    Match.tagsExhaustive({
+      Transitioned: ({ commands }) => commands,
+      Ignored: () => [],
+    }),
+  )
 
-    const transitionLogEntry: typeof TransitionLogEntry.Type = {
-      id: model.nextTransitionLogId,
-      summary: resultToTransitionSummary(result),
-    }
-
-    return {
-      model: modifyFields(model, {
-        checkout: () => nextCheckout,
-        transitionLog: flow(
-          Array.prepend(transitionLogEntry),
-          Array.take(TRANSITION_LOG_LIMIT),
-        ),
-        nextTransitionLogId: Number.increment,
-      }),
-      commands: transitionCommands,
-    }
+  const transitionLogEntry: TransitionLogEntry = {
+    id: model.nextTransitionLogId,
+    summary: resultToTransitionSummary(result),
   }
+
+  return {
+    model: modifyFields(model, {
+      checkout: () => nextCheckout,
+      transitionLog: flow(
+        Array.prepend(transitionLogEntry),
+        Array.take(TRANSITION_LOG_LIMIT),
+      ),
+      nextTransitionLogId: Number.increment,
+    }),
+    commands: transitionCommands,
+  }
+}

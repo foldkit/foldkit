@@ -12,7 +12,7 @@ const selectWrapperClassName = 'relative w-full'
 const chevronClassName =
   'pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-500'
 
-export const basicDemo = (model: typeof Model.Type, h: UiViewBuilder) => {
+export const basicDemo = (model: Model, h: UiViewBuilder) => {
   return [
     h.div(
       [h.Class('flex flex-col items-start gap-2 w-full max-w-md')],
@@ -63,7 +63,7 @@ export const basicDemo = (model: typeof Model.Type, h: UiViewBuilder) => {
   ]
 }
 
-export const disabledDemo = (_model: typeof Model.Type, h: UiViewBuilder) => {
+export const disabledDemo = (_model: Model, h: UiViewBuilder) => {
   return [
     Select.view(
       {

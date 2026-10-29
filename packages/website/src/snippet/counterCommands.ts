@@ -3,12 +3,14 @@ import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 export const Model = Schema.Struct({ count: Schema.Int })
+export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ClickedIncrement: {},
   ClickedResetAfterDelay: {},
   CompletedWaitBeforeReset: {},
 })
+export type Message = typeof Message.Type
 
 export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,

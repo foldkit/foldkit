@@ -7,6 +7,7 @@ export const ApplicationRoute = defineRouteUnion({
   Artwork: { artworkId: Schema.Number },
   NotFound: { path: Schema.String },
 })
+export type ApplicationRoute = typeof ApplicationRoute.Type
 
 export const galleryRouter = pipe(
   Route.root,

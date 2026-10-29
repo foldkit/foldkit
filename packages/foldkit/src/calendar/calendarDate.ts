@@ -79,7 +79,6 @@ export const CalendarDate = Schema.Struct({
     },
   ),
 )
-
 export type CalendarDate = typeof CalendarDate.Type
 
 /**
@@ -235,3 +234,4 @@ export const CalendarDateFromIsoString = Schema.String.pipe(
     }),
   ),
 )
+export type CalendarDateFromIsoString = typeof CalendarDateFromIsoString.Type

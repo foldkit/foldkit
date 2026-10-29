@@ -13,12 +13,13 @@ const Model = Schema.Struct({
   dialog: Dialog.DialogBlock.Model,
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // A fact for the trigger, plus the Dialog Message embedded in your parent
 // Message for the block delegation:
 const Message = defineMessageUnion({
   ClickedOpenDialog: {},
 })
+type Message = typeof Message.Type
 
 const DialogExampleDefinition = Block.makeDefinition('DialogExample', {
   Model,

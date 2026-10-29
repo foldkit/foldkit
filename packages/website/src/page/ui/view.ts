@@ -40,7 +40,7 @@ import * as TooltipPage from './tooltipPage'
 import * as VirtualListPage from './virtualListPage'
 
 type ViewInputs = Readonly<{
-  page: typeof Page.Type
+  page: Page
   url: Url
   renderCopyButton: CodeBlock.RenderCopyButton
   renderSnippet: CodeBlock.RenderSnippet
@@ -49,8 +49,8 @@ type ViewInputs = Readonly<{
 
 const pageViews: Readonly<
   globalThis.Record<
-    typeof Page.Type,
-    (model: typeof Model.Type, viewInputs: ViewInputs, h: UiViewBuilder) => Html
+    Page,
+    (model: Model, viewInputs: ViewInputs, h: UiViewBuilder) => Html
   >
 > = {
   Anchor: (_model, { renderCopyButton, renderSnippet, renderHeadingLink }) =>

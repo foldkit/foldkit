@@ -8,8 +8,10 @@ import { makeDefinition } from './define.js'
 import * as Block from './public.js'
 
 const ChildMessage = defineMessageUnion({ ClickedIncrement: {} })
+type ChildMessage = typeof ChildMessage.Type
 
 const AccessorChildModel = Schema.Struct({ count: Schema.Number })
+type AccessorChildModel = typeof AccessorChildModel.Type
 const AccessorChildDefinition = makeDefinition('GeneratedAccessorChild', {
   Model: AccessorChildModel,
   Message: ChildMessage,
@@ -37,7 +39,9 @@ const AccessorParentModel = Schema.Struct({
   amount: Schema.Number,
   isEnabled: Schema.Boolean,
 })
+type AccessorParentModel = typeof AccessorParentModel.Type
 const AccessorParentMessage = defineMessageUnion({ ClickedParent: {} })
+type AccessorParentMessage = typeof AccessorParentMessage.Type
 const AccessorParentDefinition = makeDefinition('GeneratedAccessorParent', {
   Model: AccessorParentModel,
   Message: AccessorParentMessage,
@@ -194,6 +198,7 @@ const KeyedChildModel = Schema.Struct({
   id: Schema.String,
   count: Schema.Number,
 })
+type KeyedChildModel = typeof KeyedChildModel.Type
 const KeyedChildDefinition = makeDefinition('GeneratedKeyedChild', {
   Model: KeyedChildModel,
   Message: ChildMessage,
@@ -221,7 +226,9 @@ const KeyedParentModel = Schema.Struct({
   amount: Schema.Number,
   isEnabled: Schema.Boolean,
 })
+type KeyedParentModel = typeof KeyedParentModel.Type
 const KeyedParentMessage = defineMessageUnion({ ClickedParent: {} })
+type KeyedParentMessage = typeof KeyedParentMessage.Type
 const KeyedParentDefinition = makeDefinition('GeneratedKeyedParent', {
   Model: KeyedParentModel,
   Message: KeyedParentMessage,
@@ -245,21 +252,21 @@ const Room = Schema.Struct({
   roomId: Schema.String,
   child: KeyedChildModel,
 })
+type Room = typeof Room.Type
 const RoomParentModel = Schema.Struct({
   rooms: Schema.Array(Room),
   amount: Schema.Number,
 })
+type RoomParentModel = typeof RoomParentModel.Type
 const RoomParentMessage = defineMessageUnion({ ClickedParent: {} })
+type RoomParentMessage = typeof RoomParentMessage.Type
 const RoomParentDefinition = makeDefinition('GeneratedRoomParent', {
   Model: RoomParentModel,
   Message: RoomParentMessage,
 })
-const readRooms = (
-  model: typeof RoomParentModel.Type,
-): ReadonlyArray<typeof Room.Type> => model.rooms
-const roomId = (room: typeof Room.Type): string => room.roomId
-const readRoomChild = (room: typeof Room.Type): typeof KeyedChildModel.Type =>
-  room.child
+const readRooms = (model: RoomParentModel): ReadonlyArray<Room> => model.rooms
+const roomId = (room: Room): string => room.roomId
+const readRoomChild = (room: Room): KeyedChildModel => room.child
 const RoomBinding = RoomParentDefinition.makeBinding(KeyedChildBlock, {
   readAll: readRooms,
   key: roomId,
@@ -288,11 +295,14 @@ const WrappedRoom = Schema.Struct({
   roomId: Schema.String,
   child: KeyedChildModel,
 })
+type WrappedRoom = typeof WrappedRoom.Type
 const WrappedParentModel = Schema.Struct({
   rooms: Schema.Array(WrappedRoom),
   amount: Schema.Number,
 })
+type WrappedParentModel = typeof WrappedParentModel.Type
 const WrappedParentMessage = defineMessageUnion({ ClickedParent: {} })
+type WrappedParentMessage = typeof WrappedParentMessage.Type
 const WrappedParentDefinition = makeDefinition('GeneratedWrappedParent', {
   Model: WrappedParentModel,
   Message: WrappedParentMessage,
@@ -427,9 +437,9 @@ it('validates generated selector keys against the decoded side of a transformed 
       key: () => 1,
       keySchema: Schema.NumberFromString.check(Schema.isGreaterThan(0)),
       read: readRoomChild,
-      writeAt: (model: typeof RoomParentModel.Type) => model,
+      writeAt: (model: RoomParentModel) => model,
       delivery: {
-        toUpdateContext: (model: typeof RoomParentModel.Type) => [model.amount],
+        toUpdateContext: (model: RoomParentModel) => [model.amount],
       },
     },
   ])
@@ -451,9 +461,9 @@ it('rejects an erased selector result outside the generated key Schema', () => {
       key: () => 1,
       keySchema: Schema.String,
       read: readRoomChild,
-      writeAt: (model: typeof RoomParentModel.Type) => model,
+      writeAt: (model: RoomParentModel) => model,
       delivery: {
-        toUpdateContext: (model: typeof RoomParentModel.Type) => [model.amount],
+        toUpdateContext: (model: RoomParentModel) => [model.amount],
       },
     },
   ])
@@ -499,9 +509,9 @@ it('reports an invalid general keyed collection at the Binding boundary', () => 
       key: roomId,
       keySchema: Room.fields.roomId,
       read: readRoomChild,
-      writeAt: (model: typeof RoomParentModel.Type) => model,
+      writeAt: (model: RoomParentModel) => model,
       delivery: {
-        toUpdateContext: (model: typeof RoomParentModel.Type) => [model.amount],
+        toUpdateContext: (model: RoomParentModel) => [model.amount],
       },
     },
   ])
@@ -543,11 +553,9 @@ it('rejects removed authored parent Message mapping fields', () => {
         key: roomId,
         keySchema: Schema.Boolean,
         read: readRoomChild,
-        writeAt: (model: typeof RoomParentModel.Type) => model,
+        writeAt: (model: RoomParentModel) => model,
         delivery: {
-          toUpdateContext: (model: typeof RoomParentModel.Type) => [
-            model.amount,
-          ],
+          toUpdateContext: (model: RoomParentModel) => [model.amount],
         },
       },
     ]),
@@ -559,12 +567,10 @@ it('rejects removed authored parent Message mapping fields', () => {
 if (false) {
   AccessorParentDefinition.makeBinding(AccessorChildBlock, {
     // @ts-expect-error A missing delivery context makes the accessor config ineligible.
-    read: (model: typeof AccessorParentModel.Type) => Option.some(model.child),
+    read: (model: AccessorParentModel) => Option.some(model.child),
     // @ts-expect-error A missing delivery context makes the accessor config ineligible.
-    write: (
-      model: typeof AccessorParentModel.Type,
-      child: typeof AccessorChildModel.Type,
-    ) => modifyFields(model, { child: () => child }),
+    write: (model: AccessorParentModel, child: AccessorChildModel) =>
+      modifyFields(model, { child: () => child }),
     // @ts-expect-error Contextual generated delivery requires its context selector.
     delivery: {},
   })

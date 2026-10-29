@@ -14,10 +14,11 @@ const Model = Schema.Struct({
   accountDetailsPopover: Popover.PopoverBlock.Model,
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // This excerpt has no parent-owned facts. Each Binding derives distinct
 // generated Popover delivery.
 const Message = defineMessageUnion({})
+type Message = typeof Message.Type
 
 const AccountMenuDefinition = Block.makeDefinition('AccountMenu', {
   Model,

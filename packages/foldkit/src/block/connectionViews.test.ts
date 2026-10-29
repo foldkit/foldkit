@@ -10,6 +10,7 @@ import * as Block from './public.js'
 const Model = Schema.Struct({ count: Schema.Number })
 type Model = typeof Model.Type
 const Message = defineMessageUnion({ ClickedIncrement: {} })
+type Message = typeof Message.Type
 
 const ConnectionViewsChildComposition = makeDefinition('ConnectionViewsChild', {
   Model,
@@ -38,6 +39,7 @@ const block: Block.FromAssemblyWithView<typeof Model, typeof prepareBlock> =
   Block.assemble(prepareBlock)
 
 const Entry = Schema.Struct({ id: Schema.String, child: Model })
+type Entry = typeof Entry.Type
 const ParentModel = Schema.Struct({
   child: Model,
   entries: Schema.Array(Entry),
@@ -51,12 +53,12 @@ const ConnectionViewsParent = makeDefinition('ConnectionViewsParent', {
 const ConnectedBinding = ConnectionViewsParent.makeBinding(block, {
   field: 'child',
 })
-const entryKey = (entry: typeof Entry.Type): string => entry.id
+const entryKey = (entry: Entry): string => entry.id
 const KeyedBinding = ConnectionViewsParent.makeBinding(block, {
   placement: 'entries',
   readAll: (model: ParentModel) => model.entries,
   key: entryKey,
-  read: (entry: typeof Entry.Type) => entry.child,
+  read: (entry: Entry) => entry.child,
   writeAt: (model: ParentModel, id: string, nextChild: Model) =>
     modifyFields(model, {
       entries: Array.map(entry =>
@@ -68,6 +70,7 @@ const KeyedBinding = ConnectionViewsParent.makeBinding(block, {
   keySchema: Schema.String,
 })
 const ForeignMessage = defineMessageUnion({ ClickedForeignButton: {} })
+type ForeignMessage = typeof ForeignMessage.Type
 
 const ConnectionViewsForeignComposition = makeDefinition(
   'ConnectionViewsForeign',
@@ -84,7 +87,9 @@ const foreignView = ConnectionViewsForeignComposition.makeView((model, h) =>
 )
 
 const ActiveParent = Schema.TaggedStruct('Active', { child: Model })
+type ActiveParent = typeof ActiveParent.Type
 const InactiveParent = Schema.TaggedStruct('Inactive', {})
+type InactiveParent = typeof InactiveParent.Type
 const TaggedParentModel = Schema.Union([ActiveParent, InactiveParent])
 type TaggedParentModel = typeof TaggedParentModel.Type
 const TaggedParent = makeDefinition('ConnectionViewsTaggedParent', {
@@ -219,6 +224,7 @@ it('lowers required-field shorthand through the shared pure Binding adapter', ()
   expectTypeOf(result.model).toEqualTypeOf<ParentModel>()
 
   const optionalModel = Schema.Struct({ maybeChild: Schema.Option(Model) })
+  type optionalModel = typeof optionalModel.Type
   const OptionalParent = makeDefinition('ConnectionViewsOptionalParent', {
     Model: optionalModel,
     Message: Schema.Never,
@@ -245,15 +251,18 @@ it('lowers required-field shorthand through the shared pure Binding adapter', ()
   const widerModel = Schema.Struct({
     child: Schema.Union([Model, Schema.String]),
   })
+  type widerModel = typeof widerModel.Type
   const narrowerModel = Schema.Struct({
     child: Schema.Struct({ count: Schema.Literal(0) }),
   })
+  type narrowerModel = typeof narrowerModel.Type
   const extendedModel = Schema.Struct({
     child: Schema.Struct({
       count: Schema.Number,
       label: Schema.optionalKey(Schema.String),
     }),
   })
+  type extendedModel = typeof extendedModel.Type
   const WiderParent = makeDefinition('ConnectionViewsWiderParent', {
     Model: widerModel,
     Message: Schema.Never,

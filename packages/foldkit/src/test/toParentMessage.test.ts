@@ -12,14 +12,17 @@ import { modifyFields } from '../struct/index.js'
 import { toParentMessage } from './toParentMessage.js'
 
 const ChildModel = Schema.Struct({ id: Schema.String, count: Schema.Number })
+type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({
   RequestedAdd: {
     amount: Schema.NumberFromString.check(Schema.isGreaterThan(0)),
   },
 })
+type ChildMessage = typeof ChildMessage.Type
 const ChildOutMessage = defineMessageUnion({
   ChangedCount: { count: Schema.Number },
 })
+type ChildOutMessage = typeof ChildOutMessage.Type
 
 const ChildDefinition = makeDefinition('TestParentMessageChild', {
   Model: ChildModel,
@@ -103,14 +106,17 @@ const WrappedChild = Schema.Struct({
   child: ChildModel,
   label: Schema.String,
 })
+type WrappedChild = typeof WrappedChild.Type
 const NumericChild = Schema.Struct({
   order: Schema.Number,
   child: ChildModel,
 })
+type NumericChild = typeof NumericChild.Type
 const LiteralChild = Schema.Struct({
   slot: Schema.Literals(['Primary', 'Secondary']),
   child: ChildModel,
 })
+type LiteralChild = typeof LiteralChild.Type
 const ParentModel = Schema.Struct({
   child: ChildModel,
   maybeChild: Schema.Option(ChildModel),
@@ -123,6 +129,7 @@ const ParentModel = Schema.Struct({
   isEnabled: Schema.Boolean,
   observedCount: Schema.Number,
 })
+type ParentModel = typeof ParentModel.Type
 const ParentDefinition = makeDefinition('TestParentMessageParent', {
   Model: ParentModel,
   Message: Schema.Never,

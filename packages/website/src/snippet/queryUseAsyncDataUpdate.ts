@@ -1,10 +1,11 @@
 const OrderData = AsyncData.Schema(Order, Schema.String)
-
+type OrderData = typeof OrderData.schema.Type
 const Model = Schema.Struct({
   orderDraft: OrderDraft,
   order: OrderData.schema,
   route: ApplicationRoute,
 })
+type Model = typeof Model.Type
 
 const update = ApplicationComposition.makeUpdate({
   ClickedPlaceOrder: model => ({
