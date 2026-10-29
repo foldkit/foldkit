@@ -11,24 +11,28 @@ export const FetchedPosts = Schema.Struct({
   posts: Schema.Array(Post),
   fetchedAt: Schema.Number,
 })
+export type FetchedPosts = typeof FetchedPosts.Type
 
 export const FetchedPostDetail = Schema.Struct({
   detail: PostDetail,
   fetchedAt: Schema.Number,
 })
+export type FetchedPostDetail = typeof FetchedPostDetail.Type
 
 export const FetchedStats = Schema.Struct({
   stats: Stats,
   fetchedAt: Schema.Number,
 })
+export type FetchedStats = typeof FetchedStats.Type
 
 export const PostsData = AsyncData.Schema(FetchedPosts, Schema.String)
 export const PostDetailData = AsyncData.Schema(FetchedPostDetail, Schema.String)
 export const StatsData = AsyncData.Schema(FetchedStats, Schema.String)
 
 export const Tab = Schema.Literals(['Posts', 'Stats'])
+export type Tab = typeof Tab.Type
 
-export const ApplicationTabsBlock = Tabs.create<typeof Tab.Type>()
+export const ApplicationTabsBlock = Tabs.makeBlock<Tab>()
 
 export const Model = Schema.Struct({
   tabs: ApplicationTabsBlock.Model,
@@ -38,3 +42,4 @@ export const Model = Schema.Struct({
   maybeSelectedPostId: Schema.Option(Schema.String),
   stats: StatsData.schema,
 })
+export type Model = typeof Model.Type

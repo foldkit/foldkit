@@ -11,17 +11,18 @@ import {
   listboxViewInputs,
 } from '../listbox'
 import {
-  AssigneeBinding,
+  AssigneeListboxBinding,
   CommentComposerBinding,
   IssueDetailComposition,
   type IssueDetailViewBuilder,
-  PriorityBinding,
-  ProjectBinding,
-  StatusBinding,
+  PriorityListboxBinding,
+  ProjectListboxBinding,
+  StatusListboxBinding,
 } from './composition'
-import { Message, type Model, SaveState } from './definition'
 import { CONFLICT_MESSAGE, isDirty } from './draft'
-import { assigneeValue } from './field'
+import { encodeAssigneeSelection } from './field'
+import { Message } from './message'
+import { type Model, SaveState } from './model'
 
 const ViewInputs = Schema.Struct({
   issue: Issue,
@@ -29,13 +30,14 @@ const ViewInputs = Schema.Struct({
   projects: Schema.Array(Project),
   authorId: Schema.String,
 })
-const STATUS_OPTIONS: ReadonlyArray<typeof StatusListboxOption.Type> = [
+type ViewInputs = typeof ViewInputs.Type
+const STATUS_OPTIONS: ReadonlyArray<StatusListboxOption> = [
   { value: 'Backlog', label: 'Backlog' },
   { value: 'Todo', label: 'Todo' },
   { value: 'InProgress', label: 'In progress' },
   { value: 'Done', label: 'Done' },
 ]
-const PRIORITY_OPTIONS: ReadonlyArray<typeof PriorityListboxOption.Type> = [
+const PRIORITY_OPTIONS: ReadonlyArray<PriorityListboxOption> = [
   { value: 'Low', label: 'Low' },
   { value: 'Medium', label: 'Medium' },
   { value: 'High', label: 'High' },
@@ -43,7 +45,7 @@ const PRIORITY_OPTIONS: ReadonlyArray<typeof PriorityListboxOption.Type> = [
 
 const secondaryButton = (
   label: string,
-  onClick: typeof Message.Type,
+  onClick: Message,
   h: IssueDetailViewBuilder,
 ): Html =>
   Button.view(
@@ -72,10 +74,7 @@ const propertyField = (
     ],
   )
 
-const saveFeedback = (
-  model: typeof Model.Type,
-  h: IssueDetailViewBuilder,
-): Html => {
+const saveFeedback = (model: Model, h: IssueDetailViewBuilder): Html => {
   if (
     Option.isSome(model.maybeIncomingRevision) &&
     !SaveState.guards.Saving(model.saveState)
@@ -148,8 +147,8 @@ const saveFeedback = (
 }
 
 const properties = (
-  model: typeof Model.Type,
-  viewInputs: typeof ViewInputs.Type,
+  model: Model,
+  viewInputs: ViewInputs,
   h: IssueDetailViewBuilder,
 ): Html => {
   const isSaving = SaveState.guards.Saving(model.saveState)
@@ -160,9 +159,9 @@ const properties = (
   }))
 
   const assigneeOptions = [
-    { value: assigneeValue(Option.none()), label: 'Unassigned' },
+    { value: encodeAssigneeSelection(Option.none()), label: 'Unassigned' },
     ...Array.map(viewInputs.members, member => ({
-      value: assigneeValue(Option.some(member.id)),
+      value: encodeAssigneeSelection(Option.some(member.id)),
       label: member.name,
     })),
   ]
@@ -174,7 +173,7 @@ const properties = (
         buttonId(model.statusListbox.id),
         'Status',
         h.block(
-          StatusBinding.embedView({
+          StatusListboxBinding.embedView({
             slotId: model.statusListbox.id,
             model: model.statusListbox,
             viewInputs: listboxViewInputs({
@@ -190,7 +189,7 @@ const properties = (
         buttonId(model.priorityListbox.id),
         'Priority',
         h.block(
-          PriorityBinding.embedView({
+          PriorityListboxBinding.embedView({
             slotId: model.priorityListbox.id,
             model: model.priorityListbox,
             viewInputs: listboxViewInputs({
@@ -206,7 +205,7 @@ const properties = (
         buttonId(model.projectListbox.id),
         'Project',
         h.block(
-          ProjectBinding.embedView({
+          ProjectListboxBinding.embedView({
             slotId: model.projectListbox.id,
             model: model.projectListbox,
             viewInputs: listboxViewInputs({
@@ -222,11 +221,11 @@ const properties = (
         buttonId(model.assigneeListbox.id),
         'Assignee',
         h.block(
-          AssigneeBinding.embedView({
+          AssigneeListboxBinding.embedView({
             slotId: model.assigneeListbox.id,
             model: model.assigneeListbox,
             viewInputs: listboxViewInputs({
-              value: assigneeValue(model.draft.maybeAssigneeId),
+              value: encodeAssigneeSelection(model.draft.maybeAssigneeId),
               options: assigneeOptions,
               isDisabled: isSaving,
             }),
@@ -238,10 +237,7 @@ const properties = (
   )
 }
 
-const titleField = (
-  model: typeof Model.Type,
-  h: IssueDetailViewBuilder,
-): Html =>
+const titleField = (model: Model, h: IssueDetailViewBuilder): Html =>
   Input.view(
     {
       id: `issue-${model.issueId}-title`,
@@ -274,10 +270,7 @@ const titleField = (
     h,
   )
 
-const descriptionField = (
-  model: typeof Model.Type,
-  h: IssueDetailViewBuilder,
-): Html =>
+const descriptionField = (model: Model, h: IssueDetailViewBuilder): Html =>
   Textarea.view(
     {
       id: `issue-${model.issueId}-description`,
@@ -309,8 +302,8 @@ const descriptionField = (
   )
 
 const fields = (
-  model: typeof Model.Type,
-  viewInputs: typeof ViewInputs.Type,
+  model: Model,
+  viewInputs: ViewInputs,
   h: IssueDetailViewBuilder,
 ): Html =>
   Fieldset.view(
@@ -333,10 +326,7 @@ const fields = (
     h,
   )
 
-const submitButton = (
-  model: typeof Model.Type,
-  h: IssueDetailViewBuilder,
-): Html => {
+const submitButton = (model: Model, h: IssueDetailViewBuilder): Html => {
   const isDisabled =
     SaveState.guards.Saving(model.saveState) ||
     !isDirty(model) ||
@@ -360,90 +350,93 @@ const submitButton = (
   )
 }
 
-export const view = IssueDetailComposition.makeView.withInputs<
-  typeof ViewInputs.Type
->((model, viewInputs, h) =>
-  h.section(
-    [
-      h.Class('w-full min-w-0 bg-slate-50/70 text-slate-700'),
-      h.AriaLabel(`${viewInputs.issue.identifier} details`),
-    ],
-    [
-      h.header(
-        [
-          h.Class(
-            'flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6',
-          ),
-        ],
-        [
-          h.span(
-            [h.Class('text-xs font-medium whitespace-nowrap text-slate-500')],
-            [viewInputs.issue.identifier],
-          ),
-          secondaryButton('Close issue', Message.ClickedClose(), h),
-        ],
-      ),
-      h.div(
-        [h.Class('px-5 py-6 sm:px-6')],
-        [
-          h.form(
-            [h.OnSubmit(Message.SubmittedIssueForm())],
-            [
-              fields(model, viewInputs, h),
-              h.div(
-                [h.Class('mt-5 flex flex-col items-end gap-3')],
-                [
-                  h.div(
-                    [h.Class('flex flex-wrap items-center justify-end gap-2')],
-                    [
-                      ...(isDirty(model)
-                        ? [
-                            Button.view(
-                              {
-                                type: 'button',
-                                onClick: Message.ClickedDiscardChanges(),
-                                isDisabled: SaveState.guards.Saving(
-                                  model.saveState,
-                                ),
-                                toView: attributes =>
-                                  h.button(
-                                    [
-                                      ...attributes.button,
-                                      h.Disabled(
-                                        SaveState.guards.Saving(
-                                          model.saveState,
-                                        ),
-                                      ),
-                                      h.Class('button'),
-                                    ],
-                                    ['Discard changes'],
+export const view = IssueDetailComposition.makeView.withInputs<ViewInputs>(
+  (model, viewInputs, h) =>
+    h.section(
+      [
+        h.Class('w-full min-w-0 bg-slate-50/70 text-slate-700'),
+        h.AriaLabel(`${viewInputs.issue.identifier} details`),
+      ],
+      [
+        h.header(
+          [
+            h.Class(
+              'flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6',
+            ),
+          ],
+          [
+            h.span(
+              [h.Class('text-xs font-medium whitespace-nowrap text-slate-500')],
+              [viewInputs.issue.identifier],
+            ),
+            secondaryButton('Close issue', Message.ClickedClose(), h),
+          ],
+        ),
+        h.div(
+          [h.Class('px-5 py-6 sm:px-6')],
+          [
+            h.form(
+              [h.OnSubmit(Message.SubmittedIssueForm())],
+              [
+                fields(model, viewInputs, h),
+                h.div(
+                  [h.Class('mt-5 flex flex-col items-end gap-3')],
+                  [
+                    h.div(
+                      [
+                        h.Class(
+                          'flex flex-wrap items-center justify-end gap-2',
+                        ),
+                      ],
+                      [
+                        ...(isDirty(model)
+                          ? [
+                              Button.view(
+                                {
+                                  type: 'button',
+                                  onClick: Message.ClickedDiscardChanges(),
+                                  isDisabled: SaveState.guards.Saving(
+                                    model.saveState,
                                   ),
-                              },
-                              h,
-                            ),
-                          ]
-                        : []),
-                      submitButton(model, h),
-                    ],
-                  ),
-                  saveFeedback(model, h),
-                ],
-              ),
-            ],
-          ),
-          h.block(
-            CommentComposerBinding.embedView({
-              slotId: 'comment-composer',
-              model: model.commentComposer,
-              viewInputs: {
-                members: viewInputs.members,
-                comments: viewInputs.issue.comments,
-                authorId: viewInputs.authorId,
-              },
-            }),
-          ),
-        ],
-      ),
-    ],
-  ),
+                                  toView: attributes =>
+                                    h.button(
+                                      [
+                                        ...attributes.button,
+                                        h.Disabled(
+                                          SaveState.guards.Saving(
+                                            model.saveState,
+                                          ),
+                                        ),
+                                        h.Class('button'),
+                                      ],
+                                      ['Discard changes'],
+                                    ),
+                                },
+                                h,
+                              ),
+                            ]
+                          : []),
+                        submitButton(model, h),
+                      ],
+                    ),
+                    saveFeedback(model, h),
+                  ],
+                ),
+              ],
+            ),
+            h.block(
+              CommentComposerBinding.embedView({
+                slotId: 'comment-composer',
+                model: model.commentComposer,
+                viewInputs: {
+                  members: viewInputs.members,
+                  comments: viewInputs.issue.comments,
+                  authorId: viewInputs.authorId,
+                },
+              }),
+            ),
+          ],
+        ),
+      ],
+    ),
 )

@@ -4,7 +4,7 @@ import { type Person } from './informingBlocksModel'
 
 export const PeopleDirectory = Context.Service<
   Readonly<{
-    search: (query: string) => Effect.Effect<ReadonlyArray<typeof Person.Type>>
+    search: (query: string) => Effect.Effect<ReadonlyArray<Person>>
   }>
 >('PeopleDirectory')
 

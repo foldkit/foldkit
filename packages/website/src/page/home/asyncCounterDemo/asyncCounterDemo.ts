@@ -232,7 +232,7 @@ export const update = AsyncCounterDemoComposition.makeUpdate({
   },
 })
 
-const phaseLabel = (phase: typeof AnimationPhase.Type): string =>
+const phaseLabel = (phase: AnimationPhase): string =>
   Match.value(phase).pipe(
     Match.when('Idle', () => 'Idle'),
     Match.whenOr(
@@ -259,7 +259,7 @@ const phaseLabel = (phase: typeof AnimationPhase.Type): string =>
     Match.exhaustive,
   )
 
-const phaseColorClass = (phase: typeof AnimationPhase.Type): string =>
+const phaseColorClass = (phase: AnimationPhase): string =>
   Match.value(phase).pipe(
     Match.when('Idle', () => 'text-gray-600 dark:text-gray-400'),
     Match.whenOr(
@@ -298,10 +298,7 @@ export const view = AsyncCounterDemoComposition.makeView((model, h) =>
   ),
 )
 
-const appPanel = (
-  model: typeof Model.Type,
-  h: AsyncCounterDemoViewBuilder,
-): Html =>
+const appPanel = (model: Model, h: AsyncCounterDemoViewBuilder): Html =>
   h.div(
     [h.Class('relative')],
     [
@@ -340,7 +337,7 @@ const stepperButtonClass = (isDisabled: boolean): string =>
 
 const RESET_DELAY_LABEL_ID = 'demo-reset-delay-label'
 
-const resetButtonLabel = (model: typeof Model.Type): string => {
+const resetButtonLabel = (model: Model): string => {
   if (model.isResetting) {
     return 'Resetting...'
   } else {
@@ -350,7 +347,7 @@ const resetButtonLabel = (model: typeof Model.Type): string => {
 }
 
 const stepperButton = (
-  model: typeof Model.Type,
+  model: Model,
   label: string,
   symbol: string,
   delta: number,
@@ -378,7 +375,7 @@ const stepperButton = (
 }
 
 const viewAndControlsView = (
-  model: typeof Model.Type,
+  model: Model,
   h: AsyncCounterDemoViewBuilder,
 ): Html =>
   h.div(
@@ -477,7 +474,7 @@ const viewAndControlsView = (
     ],
   )
 
-const phaseIndicatorView = (model: typeof Model.Type): Html => {
+const phaseIndicatorView = (model: Model): Html => {
   const isCommand = model.phase === 'ResetCommand'
 
   return DemoView.phaseIndicator(
@@ -487,7 +484,7 @@ const phaseIndicatorView = (model: typeof Model.Type): Html => {
   )
 }
 
-const progressBarView = (model: typeof Model.Type, isCommand: boolean): Html =>
+const progressBarView = (model: Model, isCommand: boolean): Html =>
   ih.div(
     [
       ih.AriaHidden(true),

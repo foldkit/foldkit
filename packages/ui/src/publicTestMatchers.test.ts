@@ -59,7 +59,10 @@ it('publishes the original Command and Mount Definitions through test namespaces
   )
   expect(Menu.test.AnchorMenu).toBe(AnchorMenu)
   expect(Menu.test.PortalMenuBackdrop).toBe(PortalMenuBackdrop)
-  expect(Menu.create().mounts).toStrictEqual([AnchorMenu, PortalMenuBackdrop])
+  expect(Menu.makeBlock().mounts).toStrictEqual([
+    AnchorMenu,
+    PortalMenuBackdrop,
+  ])
   expect(Popover.test.AnchorPopover).toBe(AnchorPopover)
   expect(RadioGroup.test.FocusOption).toBe(FocusOption)
   expect(Tabs.test.FocusTab).toBe(FocusTab)

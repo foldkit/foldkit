@@ -2,10 +2,11 @@ import { Option } from 'effect'
 import { Runtime } from 'foldkit'
 import { Transition } from 'foldkit/route'
 
-export const viewTransition: Runtime.ViewTransitionConfig<
-  typeof Model.Type,
-  Message
-> = ({ previousModel, model, message }) => {
+export const viewTransition: Runtime.ViewTransitionConfig<Model, Message> = ({
+  previousModel,
+  model,
+  message,
+}) => {
   if (message._tag !== 'ChangedUrl') {
     return false
   }

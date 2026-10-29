@@ -10,47 +10,46 @@ import {
   StatusListboxBlock,
   WorkspaceListboxBlock,
 } from '../listbox'
-import { CreateIssueDefinition, makeNoopStep } from './definition'
+import {
+  makeBinding,
+  makeComposition,
+  makeNoopStep,
+  makeOutMessageFold,
+} from './definition'
 import { editDraftStep } from './draft'
 
-export const DialogBinding = CreateIssueDefinition.makeBinding(DialogBlock, {
+export const DialogBinding = makeBinding(DialogBlock, {
   field: 'dialog',
   init: {
     contextToArgs: () => [{ id: 'workspace-create-issue-dialog' }],
   },
 }).withOutMessagePolicy({
-  fold: CreateIssueDefinition.makeOutMessageFold(DialogBlock, {
+  fold: makeOutMessageFold(DialogBlock, {
     Opened: makeNoopStep,
     Closed: makeNoopStep,
     CompletedClose: makeNoopStep,
   }),
 })
 
-export const ProjectListboxBinding = CreateIssueDefinition.makeBinding(
-  WorkspaceListboxBlock,
-  {
-    field: 'projectListbox',
-    init: {
-      contextToArgs: () => [{ id: 'create-issue-project' }],
-    },
+export const ProjectListboxBinding = makeBinding(WorkspaceListboxBlock, {
+  field: 'projectListbox',
+  init: {
+    contextToArgs: () => [{ id: 'create-issue-project' }],
   },
-).withOutMessagePolicy({
-  fold: CreateIssueDefinition.makeOutMessageFold(WorkspaceListboxBlock, {
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(WorkspaceListboxBlock, {
     Selected: ({ value }) =>
       editDraftStep(model => modifyFields(model, { projectId: () => value })),
   }),
 })
 
-export const StatusListboxBinding = CreateIssueDefinition.makeBinding(
-  StatusListboxBlock,
-  {
-    field: 'statusListbox',
-    init: {
-      contextToArgs: () => [{ id: 'create-issue-status' }],
-    },
+export const StatusListboxBinding = makeBinding(StatusListboxBlock, {
+  field: 'statusListbox',
+  init: {
+    contextToArgs: () => [{ id: 'create-issue-status' }],
   },
-).withOutMessagePolicy({
-  fold: CreateIssueDefinition.makeOutMessageFold(StatusListboxBlock, {
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(StatusListboxBlock, {
     Selected: ({ value }) =>
       Schema.is(IssueStatus)(value)
         ? editDraftStep(model => modifyFields(model, { status: () => value }))
@@ -58,16 +57,13 @@ export const StatusListboxBinding = CreateIssueDefinition.makeBinding(
   }),
 })
 
-export const PriorityListboxBinding = CreateIssueDefinition.makeBinding(
-  PriorityListboxBlock,
-  {
-    field: 'priorityListbox',
-    init: {
-      contextToArgs: () => [{ id: 'create-issue-priority' }],
-    },
+export const PriorityListboxBinding = makeBinding(PriorityListboxBlock, {
+  field: 'priorityListbox',
+  init: {
+    contextToArgs: () => [{ id: 'create-issue-priority' }],
   },
-).withOutMessagePolicy({
-  fold: CreateIssueDefinition.makeOutMessageFold(PriorityListboxBlock, {
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(PriorityListboxBlock, {
     Selected: ({ value }) =>
       Schema.is(IssuePriority)(value)
         ? editDraftStep(model => modifyFields(model, { priority: () => value }))
@@ -75,7 +71,7 @@ export const PriorityListboxBinding = CreateIssueDefinition.makeBinding(
   }),
 })
 
-export const CreateIssueComposition = CreateIssueDefinition.makeComposition({
+export const CreateIssueComposition = makeComposition({
   bindings: [
     DialogBinding,
     ProjectListboxBinding,

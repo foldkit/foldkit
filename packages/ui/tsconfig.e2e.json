@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "types": ["node", "vite/client"],
+    "paths": {
+      "@foldkit/ui/virtualList": ["./src/virtualList/public.ts"]
+    }
+  },
+  "include": ["e2e/virtualList", "playwright.virtual-list.config.ts"]
+}

@@ -7,8 +7,9 @@ export const Location = Schema.Struct({
   lng: Schema.Number,
   lat: Schema.Number,
 })
+export type Location = typeof Location.Type
 
-export const featuredLocations: ReadonlyArray<typeof Location.Type> = [
+export const featuredLocations: ReadonlyArray<Location> = [
   {
     id: 'statue-of-liberty',
     name: 'Statue of Liberty',

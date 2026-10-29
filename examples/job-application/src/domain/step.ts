@@ -9,12 +9,13 @@ export const Step = Schema.Literals([
   'Attachments',
   'Review',
 ])
+export type Step = typeof Step.Type
 
 export const all = Step.literals
 
-export const indexOf = (step: typeof Step.Type): number => all.indexOf(step)
+export const indexOf = (step: Step): number => all.indexOf(step)
 
-export const show = (step: typeof Step.Type): string =>
+export const show = (step: Step): string =>
   Match.value(step).pipe(
     Match.when('PersonalInfo', () => 'Personal Info'),
     Match.when('WorkHistory', () => 'Work History'),

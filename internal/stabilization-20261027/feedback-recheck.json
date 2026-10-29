@@ -1,0 +1,34 @@
+{
+  "checkedAt": "2026-10-27T15:43:28Z",
+  "source": "GitHub connector, fresh all-page comment reads and repository issue/PR update search",
+  "pr1655": {
+    "comments": 12,
+    "lastCommentId": 6431232046,
+    "lastUpdatedAt": "2026-10-27T01:11:59Z"
+  },
+  "issue1737": {
+    "comments": 10,
+    "lastCommentId": 6369160547,
+    "timestampsUnavailableInConnector": true
+  },
+  "activitySearch": {
+    "query": "repo:foldkit/foldkit updated:>=2026-10-27T15:00:00Z",
+    "results": 0
+  },
+  "externalMutations": false,
+  "subsequentRefresh": {
+    "checkedAt": "2026-10-27T16:03:07Z",
+    "query": "repo:foldkit/foldkit updated:>=2026-10-27T15:43:00Z",
+    "results": [
+      {
+        "number": 1810,
+        "title": "Blocks/Layers preview feedback: migration diagnostics and DevTools snapshot preservation",
+        "createdAt": "2026-10-27T15:48:10Z",
+        "updatedAt": "2026-10-27T15:48:10Z",
+        "comments": 0,
+        "state": "open"
+      }
+    ],
+    "assessment": "Pending actual preservation-path reproduction and diagnostic guidance followup; initial ae2 gates remain pinned"
+  }
+}

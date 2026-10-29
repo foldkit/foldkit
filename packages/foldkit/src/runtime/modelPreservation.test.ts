@@ -32,6 +32,42 @@ describe('RestoreModelMessage', () => {
 })
 
 describe('PreserveModelMessage', () => {
+  it('round-trips an explicit cache invalidation without a Model', () => {
+    expect(PreserveModelMessage.make({ id: 'app' })).toEqual({ id: 'app' })
+    const encoded = Schema.encodeUnknownSync(PreserveModelMessage)(
+      PreserveModelMessage.make({
+        id: 'app',
+        model: undefined,
+        isReloadFlush: true,
+      }),
+    )
+    const wire = JSON.parse(JSON.stringify(encoded))
+    expect(wire).toEqual({ id: 'app', isReloadFlush: true })
+    expect(
+      Exit.isSuccess(Schema.decodeUnknownExit(PreserveModelMessage)(wire)),
+    ).toBe(true)
+  })
+
+  it('retains null as a present Model and rejects malformed runtime ids', () => {
+    expect(
+      Schema.decodeUnknownSync(PreserveModelMessage)({
+        id: 'app',
+        model: null,
+      }),
+    ).toEqual({ id: 'app', model: null })
+    expect(
+      Exit.isFailure(Schema.decodeUnknownExit(PreserveModelMessage)({ id: 1 })),
+    ).toBe(true)
+    expect(
+      Exit.isFailure(
+        Schema.decodeUnknownExit(PreserveModelMessage)({
+          id: 'app',
+          isReloadFlush: 'yes',
+        }),
+      ),
+    ).toBe(true)
+  })
+
   it('decodes a debounced preserve that omits isReloadFlush', () => {
     const wire = { id: 'app', model: { count: 7 } }
     const decoded = Schema.decodeUnknownExit(PreserveModelMessage)(wire)

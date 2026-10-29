@@ -114,6 +114,7 @@ const makeBlock = (selectedUpdate: typeof update) => {
 const Block = makeBlock(update)
 
 const Entry = Schema.Struct({ id: Schema.String, child: Model })
+type Entry = typeof Entry.Type
 const ParentModel = Schema.Struct({
   maybeChild: Schema.Option(Model),
   entries: Schema.Array(Entry),
@@ -123,6 +124,7 @@ const ParentMessage = defineMessageUnion({
   RequestedUpdateChild: { value: Schema.String },
   RequestedUpdateEntry: { id: Schema.String, value: Schema.String },
 })
+type ParentMessage = typeof ParentMessage.Type
 const Parent = makeDefinition('OperationConstructorRuntimeParent', {
   Model: ParentModel,
   Message: ParentMessage,
@@ -136,7 +138,7 @@ const ChildBinding = Parent.makeBinding(Block, {
     toUpdateContext: () => [{ prefix: 'routed' }],
   },
 }).withOutMessagePolicy({
-  fold: OutMessage.match<Update.Step<ParentModel, typeof ParentMessage.Type>>({
+  fold: OutMessage.match<Update.Step<ParentModel, ParentMessage>>({
     ChangedValue: () => model => ({ model }),
   }),
 })
@@ -157,12 +159,9 @@ const EntryBinding = Parent.makeBinding(Block, {
   },
 }).withOutMessagePolicy({
   fold: (_id, outMessage) =>
-    OutMessage.match<Update.Step<ParentModel, typeof ParentMessage.Type>>(
-      outMessage,
-      {
-        ChangedValue: () => model => ({ model }),
-      },
-    ),
+    OutMessage.match<Update.Step<ParentModel, ParentMessage>>(outMessage, {
+      ChangedValue: () => model => ({ model }),
+    }),
 })
 const ParentComposition = Parent.makeComposition({
   bindings: [ChildBinding, EntryBinding],
@@ -276,9 +275,11 @@ describe('Message constructor operations', () => {
   it('recognizes a symbol field as payload and keeps update Context after it', () => {
     const valueField = Symbol('value')
     const SymbolModel = Schema.Struct({ value: Schema.String })
+    type SymbolModel = typeof SymbolModel.Type
     const SymbolMessage = defineMessageUnion({
       UpdatedValue: { [valueField]: Schema.String },
     })
+    type SymbolMessage = typeof SymbolMessage.Type
 
     const SymbolComposition = makeDefinition(
       'OperationConstructorRuntimeSymbolField',
@@ -449,6 +450,7 @@ describe('Message constructor operations', () => {
 
   it('rejects routed, foreign, reserved, and malformed operation sources', () => {
     const ForeignMessage = defineMessageUnion({ UpdatedForeignValue: {} })
+    type ForeignMessage = typeof ForeignMessage.Type
     const dynamicReservedName: string = 'fold'
     const SameShapeMessage = defineMessageUnion({
       UpdatedValue: {
@@ -458,6 +460,7 @@ describe('Message constructor operations', () => {
         ),
       },
     })
+    type SameShapeMessage = typeof SameShapeMessage.Type
 
     expect(() =>
       Reflect.apply(Composition.prepareBlock, undefined, [

@@ -1,5 +1,5 @@
 import { CreateIssueComposition } from './composition'
-import { CreateState } from './definition'
+import { CreateState } from './model'
 
 export const init = CreateIssueComposition.makeInit(() => ({
   model: {

@@ -6,6 +6,7 @@ import { TODOS_STORAGE_KEY, Todos, TodosJsonString } from './model'
 export const Flags = Schema.Struct({
   todos: Schema.Option(Todos),
 })
+export type Flags = typeof Flags.Type
 
 export const flags = Effect.gen(function* () {
   const store = yield* KeyValueStore.KeyValueStore

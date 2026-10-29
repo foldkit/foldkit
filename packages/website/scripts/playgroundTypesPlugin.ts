@@ -55,13 +55,24 @@ const collectFilePaths = async (
   directory: string,
   predicate: (name: string) => boolean,
 ): Promise<ReadonlyArray<string>> => {
-  const entries = await readdir(directory, {
-    recursive: true,
-    withFileTypes: true,
-  })
-  return entries
-    .filter(entry => entry.isFile() && predicate(entry.name))
-    .map(entry => join(entry.parentPath, entry.name))
+  const entries = await readdir(directory, { withFileTypes: true })
+  const paths = await Promise.all(
+    entries.map(async entry => {
+      const path = join(directory, entry.name)
+
+      if (entry.isDirectory() && entry.name !== 'node_modules') {
+        return collectFilePaths(path, predicate)
+      }
+
+      if (entry.isFile() && predicate(entry.name)) {
+        return [path]
+      }
+
+      return []
+    }),
+  )
+
+  return Array.flatten(paths)
 }
 
 // NOTE: Returns the package-relative directories that hold the `.d.ts`
@@ -164,7 +175,7 @@ const computeRelativeImport = (fromPath: string, toPath: string): string => {
   return prefixed
 }
 
-const collectPackageTypes = async (
+export const collectPackageTypes = async (
   packageRoot: string,
   packageName: string,
 ): Promise<ReadonlyArray<TypeFile>> => {
@@ -174,12 +185,9 @@ const collectPackageTypes = async (
   )
   // Widen the `exports` type to accommodate packages that use the bare-string
   // shorthand (e.g. `"exports": "./src/index.js"` per the Node.js spec).
-  const rawPackageJson = JSON.parse(packageJsonRaw) as Omit<
-    PackageJson,
-    'exports'
-  > & {
+  const rawPackageJson: Omit<PackageJson, 'exports'> & {
     exports?: PackageJson['exports'] | string
-  }
+  } = JSON.parse(packageJsonRaw)
   // NOTE: The Node.js spec allows `exports` to be a bare string, shorthand
   // for `{ ".": "<value>" }`. Normalize it so the rest of the function can
   // assume an object map uniformly.
@@ -324,7 +332,7 @@ const collectPackageTypes = async (
 
   const barrelFiles: ReadonlyArray<TypeFile> = barrelEntries.map(
     ([barrelPath, targetPath]) => {
-      if (targetIsExportEquals(targetPath)) {
+      if (barrelPath === targetPath || targetIsExportEquals(targetPath)) {
         const targetContents = distFileContentsByPath.get(targetPath)
         if (targetContents !== undefined) {
           return { path: barrelPath, contents: targetContents }

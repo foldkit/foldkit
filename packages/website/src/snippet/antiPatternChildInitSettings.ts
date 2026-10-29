@@ -4,17 +4,22 @@ import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 export const Theme = Schema.Literals(['Light', 'Dark'])
+export type Theme = typeof Theme.Type
 
 export const Message = defineMessageUnion({
   RequestedRestore: { theme: Theme },
   CompletedRefreshAvailableThemes: {},
 })
+export type Message = typeof Message.Type
 
 export const OutMessage = defineMessageUnion({
   RestoredTheme: { theme: Theme },
 })
+export type OutMessage = typeof OutMessage.Type
 
 export const Model = Schema.Struct({ theme: Theme })
+export type Model = typeof Model.Type
+
 export const SettingsDefinition = Block.makeDefinition('Settings', {
   Model,
   Message,

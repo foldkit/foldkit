@@ -10,7 +10,6 @@ import type * as Update from '../../update/index.js'
 export const Model = Schema.Struct({
   lastKey: Schema.String,
 })
-
 export type Model = typeof Model.Type
 
 // MESSAGE
@@ -18,7 +17,6 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({
   PressedSelfKey: { key: Schema.String },
 })
-
 export type Message = typeof Message.Type
 
 // INIT

@@ -1,0 +1,88 @@
+# Final performance verification after #1810
+
+Exact candidate: `93c49c77b6d25d9f0aa8213135bb629c1a3e1ff4`. This is a fresh final batch after the source changed for #1810. The preceding ae2 batch remains separate and untouched; no old timings are reused or selected against.
+
+The lead confirmed all other build, checker and browser-rehearsal jobs had stopped. Native and rendering batches ran sequentially. Every valid sample is retained; there is no selectively extended batch or discarded warmup.
+
+## Source and tooling
+
+- main: `b702a5efbb74bebc056b798b414ddb923a82fbd5`; archive SHA-256 `f02aee3388969b6db5de9740a88605db1689f49e9fbce104cc77a630849af2a5`.
+- published: `f3be22cfeefed437164ad614d08b16d9000e0703`; archive SHA-256 `83963fe57a7ce20c0a6ff9ac6b3636cc7503ad8920e237ffddd2fbd5b1b5364f`.
+- candidate: `93c49c77b6d25d9f0aa8213135bb629c1a3e1ff4`; archive SHA-256 `2e9ab3a0d64dd28614bb3f63d189decff13ab91350bdbf53e692e409ad258876`.
+
+All snapshots have matching Git HEAD/index metadata, isolated workspace package links and matched cached third-party dependencies. This is not a historical-lockfile reinstall. Main was re-extracted from its SHA-verified captured exact archive. All 12 prerequisite builds and all six production bundles are fresh. Main/published artifacts reproduce the earlier baseline bytes exactly; all six artifacts remain unchanged after timing.
+
+Node `24.22.1`; official native TypeScript `7.1.0-beta`; identical current driver `63e3f1ab2ed7c500e36c5b15feacb195e259f46cf0e3f76dce9173004997cf43`. Actual common browser: Chrome `156.0.8078.48`. Vite `8.3.5`, Effect `4.0.0`, Playwright `1.63.0`. Unchanged Lustre harness `03fff17ad22407115a91937ddab680e40fe0c7c7` and proven instrumentation/driver.
+
+Fresh declaration comparison against ae2 finds no changed Block authoring declarations. The only changed core declaration is the expected internal preservation-message invalidation protocol; all Vite plugin/UI/DevTools/Markdown declarations are identical.
+
+## Native requests
+
+Three fresh-server runs per side and workload, paired published1/candidate1/candidate2/published2/published3/candidate3. Values below are median (range), ms. Post-edit requests follow an in-memory whitespace edit; diagnostics follow semantic edits and restoration.
+
+### Workspace
+
+| Request | Published | Candidate |
+| --- | --- | --- |
+| Binding hover after edit | 280.9 (269.1–286.0) | 265.1 (263.7–265.2) |
+| Binding completion after edit | 278.4 (264.8–288.1) | 254.3 (243.2–259.9) |
+| Completed Block completion, first request | 155.7 (146.4–160.1) | 157.7 (142.9–179.2) |
+| Completed Block completion after edit | 47.7 (46.5–64.1) | 51.3 (49.2–65.8) |
+| Title error appearance | 210.5 (207.3–214.6) | 187.6 (180.8–192.1) |
+| Title error clearing | 190.7 (190.4–193.2) | 176.2 (176.1–176.3) |
+
+Maximum sampled RSS: published 411.9 MiB; candidate 408.6 MiB.
+
+### Website
+
+| Request | Published | Candidate |
+| --- | --- | --- |
+| Changed-URL Binding hover after edit | 249.7 (239.5–265.5) | 251.3 (231.5–270.3) |
+| Binding completion after edit | 239.3 (237.1–244.3) | 247.4 (234.2–385.4) |
+| Route error appearance | 629.2 (597.0–724.8) | 648.0 (613.0–983.9) |
+| Route error clearing | 618.1 (616.5–786.8) | 622.3 (585.6–1027.7) |
+| Local Message constructor, cold diagnostics | 296.5 (294.6–458.6) | 304.3 (296.6–312.6) |
+| Completed Block constructor, cold root diagnostics | 3496.1 (2974.3–3662.7) | 2996.0 (2958.5–3089.1) |
+
+Maximum sampled RSS: published 824.2 MiB; candidate 936.8 MiB.
+
+All 12 runs pass hover/member validation, initially clean diagnostics, exact expected TS2322 appearance/clear, and source/declaration preservation. Input/workload hashes remain constant across all three runs per side/scenario. No server reached the 4 GiB safety cap.
+
+Workspace warm workflows improve or remain similar in this small sample; Website warm medians remain similar with overlapping ranges. One slower candidate Website diagnostic session, reaching roughly one second, is retained. The approximately three-second cold Website root request remains a limitation; roughly 51 ms warmed Workspace completion is not universal root responsiveness. The earlier ae2 batch’s approximately 58 ms local-constructor increase is not reproduced here; both batches remain recorded separately.
+
+Candidate Website sampled peak RSS is higher in this batch. RSS is sampled every 250 ms and short peaks can be missed; it is not allocation, retained heap or a long-session memory bound. These are native request latencies, not end-to-end Neovim or tsrs measurements. App factoring differs between release pins, so this compares actual release workflows rather than isolating one framework encoding. Three pairs are a small sample.
+
+## Rendering workload
+
+Six balanced rotating rounds; each slot visits each ordinal position once. All 36 samples pass page-error, final empty list/input, 400 synchronous-event and 400 animation-frame assertions.
+
+| Workload | Main median (range), ms | Published median (range), ms | Candidate median (range), ms |
+| --- | --- | --- | --- |
+| naive | 377.9 (279.8–435.0) | 440.1 (400.1–531.6) | 445.1 (262.2–462.6) |
+| optimised | 161.5 (143.2–188.5) | 216.4 (193.5–234.2) | 208.6 (187.8–222.2) |
+
+| Candidate compared with | Workload | Ratio of medians | Median paired ratio | Candidate faster pairs |
+| --- | --- | --- | --- | --- |
+| main | naive | 1.178 | 1.060 | 2/6 |
+| published | naive | 1.011 | 0.970 | 4/6 |
+| main | optimised | 1.292 | 1.208 | 0/6 |
+| published | optimised | 0.964 | 0.973 | 4/6 |
+
+Against published, naive/optimized ratios of medians are 1.011/0.964, paired medians are 0.970/0.973, with four of six pairs faster for the candidate in each workload. Ranges overlap; this establishes no material new rendering regression or strong speedup claim. Against main, candidate medians remain 17.8%/29.2% higher; optimized is slower in all six pairs, with a median paired ratio of 1.208. This remaining main cost is substantive and must stay visible. The published optimized path is also slower than main; this is not newly introduced by #1810. This batch is final verification of changed source, not an ablation of #1810 or a basis for choosing a favorable batch. Earlier reports retain their original sources and results.
+
+Totals sum instrumented callback and synchronous-handler execution across the unchanged add-100/toggle-100/delete-100 runbook. Boot/waits are excluded. These are not isolated DOM-patching, presentation latency or large-app scaling measurements. No forced-GC control; normal host applications/servers remain intact.
+
+| JavaScript gzip bytes | Naive | Optimized |
+| --- | --- | --- |
+| main | 97,081 | 97,796 |
+| published | 128,899 | 130,291 |
+| candidate | 128,963 | 130,346 |
+
+## Evidence
+
+- `compact-evidence.json` (185,806 bytes): per-run requests/RSS, validation, all 36 browser samples, exact source/tool/artifact hashes and provenance; no full LSP response bodies.
+- `summary.json`: every native label, sample, range and paired ratio plus runtime comparisons.
+- `summary.md`: expanded tables. Individual raw/source/provenance/build/preflight files remain locally available.
+- Earlier ae2 results are untouched at `/private/tmp/foldkit-stabilization-performance-20261027`.
+
+No shared checkout edits, commits, pushes, public posts or release actions were performed by this task.

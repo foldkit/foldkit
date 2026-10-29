@@ -7,7 +7,7 @@ import {
 } from './composition'
 import { Model } from './model'
 
-const title = (model: typeof Model.Type): string =>
+const title = (model: Model): string =>
   Match.value(model.route).pipe(
     Match.tag('Home', () => 'Auth'),
     Match.orElse(({ _tag }) => `${_tag} | Auth`),

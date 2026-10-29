@@ -4,11 +4,15 @@ import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 const PinsModel = Schema.Struct({ count: Schema.Number })
+type PinsModel = typeof PinsModel.Type
+
 const PinsMessage = defineMessageUnion({
   RequestedReadPins: {},
   CompletedReadPins: { count: Schema.Number },
   ObservedPins: { count: Schema.Number },
 })
+type PinsMessage = typeof PinsMessage.Type
+
 const PinsDefinition = Block.makeDefinition('Pins', {
   Model: PinsModel,
   Message: PinsMessage,
@@ -59,7 +63,11 @@ export const PinsBlock: Block.FromAssemblyWithView<
 > = Block.assemble(prepare)
 
 const Model = Schema.Struct({ pins: PinsBlock.Model })
+type Model = typeof Model.Type
+
 export const Message = defineMessageUnion({ RequestedRefreshPins: {} })
+export type Message = typeof Message.Type
+
 const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,

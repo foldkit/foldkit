@@ -28,7 +28,6 @@ import {
 export const Model = Schema.Struct({
   ...BaseModel.fields,
 })
-
 export type Model = typeof Model.Type
 
 const ComboboxDefinition = ComboboxNamespace.makeDefinition({
@@ -254,7 +253,7 @@ export interface Completed<
   BlockParts<Item, ItemEncoded>['implementation']
 > {}
 
-const makeBlock = <Item extends string, ItemEncoded>(
+const assembleBlock = <Item extends string, ItemEncoded>(
   Item: ItemSchema<Item, ItemEncoded>,
 ): Completed<Item, ItemEncoded> => {
   const { composition, implementation } = makeBlockParts(Item)
@@ -270,16 +269,16 @@ const makeBlock = <Item extends string, ItemEncoded>(
 
 /** Creates a checked single-select Combobox Block. Pass an Item Schema to
  * retain its exact Message and OutMessage payloads. */
-export function create(): Completed<string>
-export function create<Item extends string, ItemEncoded>(
+export function makeBlock(): Completed<string>
+export function makeBlock<Item extends string, ItemEncoded>(
   Item: ItemSchema<Item, ItemEncoded>,
 ): Completed<Item, ItemEncoded>
-export function create(Item: ItemSchema<string, unknown> = Schema.String) {
-  return makeBlock(Item)
+export function makeBlock(Item: ItemSchema<string, unknown> = Schema.String) {
+  return assembleBlock(Item)
 }
 
 /** Complete default single-select Combobox Block definition. */
-export const block = makeBlock(Schema.String)
+export const block = assembleBlock(Schema.String)
 
 /** Creates the initial single-select Combobox Model and Commands. Defaults to closed with no active item and an empty input. */
 export const init = block.init

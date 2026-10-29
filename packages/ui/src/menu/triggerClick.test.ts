@@ -4,11 +4,12 @@ import { afterEach, expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import { create } from './public.js'
+import { makeBlock } from './public.js'
 
-const TestMenu = create<string>()
+const TestMenu = makeBlock<string>()
 
 const Model = Schema.Struct({ menu: TestMenu.Model })
+type Model = typeof Model.Type
 const MenuTriggerClickTestDefinition = Block.makeDefinition(
   'MenuTriggerClickTest',
   {

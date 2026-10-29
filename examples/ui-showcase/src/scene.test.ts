@@ -11,9 +11,7 @@ import { view } from './view'
 const today = Calendar.make(2026, 4, 16)
 const uiInit = initUi(today)
 
-const modelForRoute = (
-  route: (typeof Model.Type)['route'],
-): typeof Model.Type => ({
+const modelForRoute = (route: Model['route']): Model => ({
   route,
   uiModel: uiInit.model,
 })
@@ -50,7 +48,7 @@ describe('view', () => {
   })
 
   test('simple component routes render the sidebar nav', () => {
-    const routes: ReadonlyArray<(typeof Model.Type)['route']> = [
+    const routes: ReadonlyArray<Model['route']> = [
       ApplicationRoute.Button(),
       ApplicationRoute.Checkbox(),
       ApplicationRoute.Disclosure(),

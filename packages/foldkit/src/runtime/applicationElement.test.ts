@@ -23,6 +23,7 @@ const Model = Schema.Struct({ status: Schema.String })
 type Model = typeof Model.Type
 
 const Flags = Schema.Struct({ initialStatus: Schema.String })
+type Flags = typeof Flags.Type
 
 const ports = {
   inbound: { statusChanged: Port.inbound(Schema.String) },

@@ -71,7 +71,7 @@ export type BaseInitConfig = Readonly<{
   id: string
   isAnimated?: boolean
   isModal?: boolean
-  orientation?: typeof Orientation.Type
+  orientation?: Orientation
 }>
 
 /** Creates the shared base fields for a listbox model from a config. Each variant spreads this and adds its selection field. */
@@ -138,6 +138,7 @@ export const Message = defineMessageUnion({
     button: Schema.Number,
   },
 })
+export type Message = typeof Message.Type
 
 export type Opened = typeof Message.Opened.Type
 export type Closed = typeof Message.Closed.Type
@@ -159,8 +160,6 @@ export type IgnoredMouseClick = typeof Message.IgnoredMouseClick.Type
 export type SuppressedSpaceScroll = typeof Message.SuppressedSpaceScroll.Type
 export type SuppressedItemCommit = typeof Message.SuppressedItemCommit.Type
 export type PressedPointerOnButton = typeof Message.PressedPointerOnButton.Type
-
-export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
@@ -188,7 +187,7 @@ export type OutMessageSchema<Value extends string = string> =
     : never
 
 /** Generic over `Value extends string` so consumers who create the listbox
- *  via `Listbox.create<MyUnion>()` receive `value: MyUnion` in the
+ *  via `Listbox.makeBlock<MyUnion>()` receive `value: MyUnion` in the
  *  `Selected` OutMessage from the factory's `update`, instead of
  *  `value: string`. Defaults to `string`. */
 export type OutMessage<Value extends string = string> = Selected<Value>

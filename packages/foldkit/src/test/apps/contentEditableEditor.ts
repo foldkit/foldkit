@@ -10,7 +10,6 @@ import type * as Update from '../../update/index.js'
 export const Model = Schema.Struct({
   body: Schema.String,
 })
-
 export type Model = typeof Model.Type
 
 // MESSAGE
@@ -19,7 +18,6 @@ export const Message = defineMessageUnion({
   UpdatedBody: { value: Schema.String },
   InsertedText: { value: Schema.String },
 })
-
 export type Message = typeof Message.Type
 
 // INIT

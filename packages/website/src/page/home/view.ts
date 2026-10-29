@@ -30,6 +30,10 @@ import { Message } from './message'
 import { NotePlayerDemoBlock } from './notePlayerDemo'
 import { PlaygroundMenuBlock } from './playgroundMenu'
 
+type AsyncCounterDemoBlockModel = typeof AsyncCounterDemoBlock.Model.Type
+type NotePlayerDemoBlockModel = typeof NotePlayerDemoBlock.Model.Type
+type PlaygroundMenuBlockModel = typeof PlaygroundMenuBlock.Model.Type
+
 // DEMO TABS
 
 const demoTabButtonClassName =
@@ -39,7 +43,7 @@ const demoTabPanelClassName =
   'flex-1 min-w-0 p-4 bg-cream dark:bg-gray-900 rounded-b-lg rounded-tr-lg lg:rounded-bl-lg lg:rounded-r-lg lg:rounded-tl-none border border-gray-300 dark:border-gray-800'
 
 const renderAsyncCounterDemo = (
-  model: typeof AsyncCounterDemoBlock.Model.Type,
+  model: AsyncCounterDemoBlockModel,
   h: HomeViewBuilder,
 ) =>
   h.block(
@@ -50,7 +54,7 @@ const renderAsyncCounterDemo = (
   )
 
 const renderNotePlayerDemo = (
-  model: typeof NotePlayerDemoBlock.Model.Type,
+  model: NotePlayerDemoBlockModel,
   h: HomeViewBuilder,
 ) =>
   h.block(
@@ -114,8 +118,8 @@ const playgroundItemContent = (meta: ExampleMeta): Html =>
   )
 
 type PlaygroundMenuViewInput = Readonly<{
-  model: typeof PlaygroundMenuBlock.Model.Type
-  slugs: ReadonlyArray<typeof ExampleSlug.Type>
+  model: PlaygroundMenuBlockModel
+  slugs: ReadonlyArray<ExampleSlug>
 }>
 
 const playgroundMenuView = (
@@ -172,7 +176,7 @@ type ViewInputs = Readonly<{
   renderSnippet: CodeBlock.RenderSnippet
   isNarrowViewport: boolean
   maybeGitHubStarCount: Option.Option<number>
-  resolvedTheme: typeof ResolvedTheme.Type
+  resolvedTheme: ResolvedTheme
   isBrowserEnvironmentLoaded: boolean
   newsletterEmail: string
 }>
@@ -197,14 +201,14 @@ export const view = HomeComposition.makeView.withInputs<ViewInputs>(
       h,
     )
 
-    const buttonLabelFor = (tab: typeof DemoTab.Tab.Type): string =>
+    const buttonLabelFor = (tab: DemoTab.Tab): string =>
       Match.value(tab).pipe(
         Match.when('AsyncCounter', () => 'Async Counter'),
         Match.when('Note Player', () => 'Note Player'),
         Match.exhaustive,
       )
 
-    const panelFor = (tab: typeof DemoTab.Tab.Type) =>
+    const panelFor = (tab: DemoTab.Tab) =>
       Match.value(tab).pipe(
         Match.when('AsyncCounter', () => asyncCounterDemoView),
         Match.when('Note Player', () => notePlayerDemoView),

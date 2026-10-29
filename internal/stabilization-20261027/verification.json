@@ -1,0 +1,398 @@
+{
+  "implementationCommit": "ae2eba84283939f5991a1b0c35c32ba351f9efdc",
+  "toolVersions": {
+    "node": "24.22.1",
+    "pnpm": "11.8.0",
+    "typescript": "7.1.0-beta"
+  },
+  "finalIntegratedGates": [
+    {
+      "name": "build-public-packages",
+      "command": [
+        "node",
+        "/Users/devinjameson/.cache/node/corepack/v1/pnpm/11.8.0/bin/pnpm.mjs",
+        "build:packages"
+      ],
+      "startedAt": "2026-10-27T15:23:43.454713+00:00",
+      "seconds": 6.963,
+      "exitCode": 0,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/build-public-packages.log",
+      "logSha256": "a894c1184916248db924115e9911db767434fb7dc67e27059b58f6db96eec159"
+    },
+    {
+      "name": "build-typing-shared",
+      "command": [
+        "node",
+        "/Users/devinjameson/.cache/node/corepack/v1/pnpm/11.8.0/bin/pnpm.mjs",
+        "--filter",
+        "@typing-game/shared",
+        "build"
+      ],
+      "startedAt": "2026-10-27T15:23:50.418535+00:00",
+      "seconds": 0.427,
+      "exitCode": 0,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/build-typing-shared.log",
+      "logSha256": "5ac71a99decf5b92dbfe798066cbe8ea317395f8f764f5a8879fd3511ca99454"
+    },
+    {
+      "name": "source-typechecks",
+      "command": [
+        "node",
+        "/Users/devinjameson/.cache/node/corepack/v1/pnpm/11.8.0/bin/pnpm.mjs",
+        "-r",
+        "typecheck"
+      ],
+      "startedAt": "2026-10-27T15:23:50.846202+00:00",
+      "seconds": 34.903,
+      "exitCode": 0,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/source-typechecks.log",
+      "logSha256": "f47248b4427900cbd8e6879f2fd8f44636e3856a505ea1357514504a9b88e7e5"
+    },
+    {
+      "name": "core-runtime",
+      "command": [
+        "node",
+        "/Users/devinjameson/.cache/node/corepack/v1/pnpm/11.8.0/bin/pnpm.mjs",
+        "--filter",
+        "foldkit",
+        "test"
+      ],
+      "startedAt": "2026-10-27T15:24:25.750042+00:00",
+      "seconds": 22.551,
+      "exitCode": 0,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/core-runtime.log",
+      "logSha256": "d60375023971e80dcf82ca084a0734823138003579b359cc33e34f4ac874bf25"
+    },
+    {
+      "name": "ui-runtime",
+      "command": [
+        "node",
+        "/Users/devinjameson/.cache/node/corepack/v1/pnpm/11.8.0/bin/pnpm.mjs",
+        "--filter",
+        "@foldkit/ui",
+        "test"
+      ],
+      "startedAt": "2026-10-27T15:24:48.301554+00:00",
+      "seconds": 10.103,
+      "exitCode": 0,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/ui-runtime.log",
+      "logSha256": "cc84fabf33df3ef6ebe66362478b93c7dcea1ddeb93bdc2c59033eeb4412d114"
+    },
+    {
+      "name": "workspace-runtime",
+      "command": [
+        "node",
+        "/Users/devinjameson/.cache/node/corepack/v1/pnpm/11.8.0/bin/pnpm.mjs",
+        "--filter",
+        "workspace-example",
+        "test"
+      ],
+      "startedAt": "2026-10-27T15:24:58.404857+00:00",
+      "seconds": 4.4,
+      "exitCode": 0,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/workspace-runtime.log",
+      "logSha256": "bcdfbc19ce071429f38e67983b710fc5cb4f470a7eef2bbd315ccfd248b688db"
+    },
+    {
+      "name": "website-runtime",
+      "command": [
+        "node",
+        "/Users/devinjameson/.cache/node/corepack/v1/pnpm/11.8.0/bin/pnpm.mjs",
+        "--filter",
+        "website",
+        "test"
+      ],
+      "startedAt": "2026-10-27T15:25:02.805359+00:00",
+      "seconds": 9.709,
+      "exitCode": 0,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/website-runtime.log",
+      "logSha256": "e78d9ad37767270ab7a912c639690c3375daea0942b40e76b59e1c49ed31aafd"
+    },
+    {
+      "name": "lint-plugin-runtime",
+      "command": [
+        "node",
+        "/Users/devinjameson/.cache/node/corepack/v1/pnpm/11.8.0/bin/pnpm.mjs",
+        "--filter",
+        "@foldkit/oxlint-plugin",
+        "test"
+      ],
+      "startedAt": "2026-10-27T15:25:12.515776+00:00",
+      "seconds": 17.798,
+      "exitCode": 0,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/lint-plugin-runtime.log",
+      "logSha256": "f6b3ba0041ede426de4fdf96fe46737fb0c7cc8fafc6065a71e8b54836318d8c"
+    },
+    {
+      "name": "emitted-declarations",
+      "command": [
+        "node",
+        "/Users/devinjameson/.cache/node/corepack/v1/pnpm/11.8.0/bin/pnpm.mjs",
+        "check:emitted-declarations"
+      ],
+      "startedAt": "2026-10-27T15:25:30.314427+00:00",
+      "seconds": 131.088,
+      "exitCode": 0,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/emitted-declarations.log",
+      "logSha256": "f4fe282960ad40e35c8f3a20d7ba6b8b14c3038c71738b090018b6248d7e2f7d"
+    },
+    {
+      "name": "compiler-diagnostics",
+      "command": [
+        "node",
+        "/Users/devinjameson/.cache/node/corepack/v1/pnpm/11.8.0/bin/pnpm.mjs",
+        "--filter",
+        "foldkit",
+        "check:compiler-diagnostics"
+      ],
+      "startedAt": "2026-10-27T15:27:41.403561+00:00",
+      "seconds": 13.851,
+      "exitCode": 0,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/compiler-diagnostics.log",
+      "logSha256": "763525ee197e9fc3ba031c13db566a3bfc550a514f74948bdd6d7c5f590f2655"
+    },
+    {
+      "name": "compiler-performance",
+      "command": [
+        "node",
+        "/Users/devinjameson/.cache/node/corepack/v1/pnpm/11.8.0/bin/pnpm.mjs",
+        "check:block-type-performance"
+      ],
+      "startedAt": "2026-10-27T15:27:55.254996+00:00",
+      "seconds": 4.182,
+      "exitCode": 0,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/compiler-performance.log",
+      "logSha256": "f5e76e073a6c977c033729d177b5340969930d1d3faf02c94ef9f00e7915156f"
+    },
+    {
+      "name": "lint",
+      "command": [
+        "node",
+        "/Users/devinjameson/.cache/node/corepack/v1/pnpm/11.8.0/bin/pnpm.mjs",
+        "lint:ci"
+      ],
+      "startedAt": "2026-10-27T15:27:59.437895+00:00",
+      "seconds": 81.082,
+      "exitCode": 0,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/lint.log",
+      "logSha256": "8a7a7c9cec611cfb686f2f099342ceb4535a191609475b1a26f82728e7554dc9"
+    },
+    {
+      "name": "scripts-typecheck",
+      "command": [
+        "node",
+        "/Users/devinjameson/.cache/node/corepack/v1/pnpm/11.8.0/bin/pnpm.mjs",
+        "typecheck:scripts"
+      ],
+      "startedAt": "2026-10-27T15:29:20.520930+00:00",
+      "seconds": 0.666,
+      "exitCode": 0,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/scripts-typecheck.log",
+      "logSha256": "a4503b0209226d8fa48a78994e6de7a463f5c78481505dd487ef1518080c22df"
+    },
+    {
+      "name": "scripts-tests",
+      "command": [
+        "node",
+        "/Users/devinjameson/.cache/node/corepack/v1/pnpm/11.8.0/bin/pnpm.mjs",
+        "test:scripts"
+      ],
+      "startedAt": "2026-10-27T15:29:21.187623+00:00",
+      "seconds": 22.377,
+      "exitCode": 0,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/scripts-tests.log",
+      "logSha256": "21cf32c8218fbebdaff9ed730e1708233da2264d0dc934a7f93299b0a44be531"
+    },
+    {
+      "name": "website-build",
+      "command": [
+        "node",
+        "/Users/devinjameson/.cache/node/corepack/v1/pnpm/11.8.0/bin/pnpm.mjs",
+        "--filter",
+        "website",
+        "build"
+      ],
+      "startedAt": "2026-10-27T15:29:43.565483+00:00",
+      "seconds": 41.068,
+      "exitCode": 0,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/website-build.log",
+      "logSha256": "453e808f13a3fe9a5446a1509bf6de1c86218f2cccc88c8cde748468320bd667"
+    }
+  ],
+  "metadata": {
+    "sourceCommit": "ae2eba84283939f5991a1b0c35c32ba351f9efdc",
+    "checkedAt": "2026-10-27T15:25:07.766568+00:00",
+    "gates": [
+      {
+        "gate": "check:peer-floors",
+        "command": ["pnpm", "run", "check:peer-floors"],
+        "exitCode": 0,
+        "seconds": 4.992
+      },
+      {
+        "gate": "check:changeset-ignore",
+        "command": ["pnpm", "run", "check:changeset-ignore"],
+        "exitCode": 0,
+        "seconds": 0.788
+      },
+      {
+        "gate": "check:ui-subpath-exports",
+        "command": ["pnpm", "run", "check:ui-subpath-exports"],
+        "exitCode": 0,
+        "seconds": 0.372
+      },
+      {
+        "gate": "check:effect-prebundle",
+        "command": ["pnpm", "run", "check:effect-prebundle"],
+        "exitCode": 0,
+        "seconds": 0.991
+      },
+      {
+        "gate": "check:no-major-changesets",
+        "command": ["pnpm", "run", "check:no-major-changesets"],
+        "exitCode": 0,
+        "seconds": 1.443
+      },
+      {
+        "gate": "check:no-claude-comments",
+        "command": ["pnpm", "run", "check:no-claude-comments"],
+        "exitCode": 0,
+        "seconds": 0.537
+      },
+      {
+        "gate": "format:check",
+        "command": ["pnpm", "run", "format:check"],
+        "exitCode": 0,
+        "seconds": 3.972
+      },
+      {
+        "gate": "check:circular-deps",
+        "command": ["pnpm", "run", "check:circular-deps"],
+        "exitCode": 0,
+        "seconds": 7.898
+      },
+      {
+        "gate": "check:dead-code",
+        "command": ["pnpm", "run", "check:dead-code"],
+        "exitCode": 0,
+        "seconds": 4.905
+      }
+    ]
+  },
+  "pinnedMainEquivalents": {
+    "sourceCommit": "ae2eba84283939f5991a1b0c35c32ba351f9efdc",
+    "comparisonCommit": "b702a5efbb74bebc056b798b414ddb923a82fbd5",
+    "comparisonKind": "Direct pinned-main comparison, not origin/main or ancestry-based merge-base invocation",
+    "skillVersion": {
+      "exitCode": 0,
+      "changedSkillFiles": [
+        "skills/audit-program/SKILL.md",
+        "skills/foldkit/SKILL.md",
+        "skills/foldkit/references/composition.md",
+        "skills/generate-program/SKILL.md",
+        "skills/generate-program/architecture.md",
+        "skills/generate-program/blindSpots.md",
+        "skills/generate-program/checklist.md",
+        "skills/generate-program/conventions.md"
+      ],
+      "pluginChanged": true,
+      "mainVersion": "0.18.31",
+      "candidateVersion": "0.18.56"
+    },
+    "changesetUnwrapped": {
+      "exitCode": 0,
+      "coverage": "Original parser and hidden-changeset checks; direct pinned-main tree replaces only unavailable ancestry calculation. Original default origin/main invocation remains blocked.",
+      "originalScriptSha256": "debb3b9322c90ca89efd2f4571e33a7f5cd3cf80d57ada659f4487df9872de8f",
+      "adaptedScriptSha256": "94fee1b33dabfaa2a3f02898b06b1ed0662171d261789dadabd25b15f702801c"
+    }
+  },
+  "checkerOrder": [
+    {
+      "round": 1,
+      "checkers": 1,
+      "exitCode": 0,
+      "seconds": 8.831,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/checker-order-final/round-1-checkers-1.log"
+    },
+    {
+      "round": 1,
+      "checkers": 4,
+      "exitCode": 0,
+      "seconds": 3.054,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/checker-order-final/round-1-checkers-4.log"
+    },
+    {
+      "round": 1,
+      "checkers": 5,
+      "exitCode": 0,
+      "seconds": 3.289,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/checker-order-final/round-1-checkers-5.log"
+    },
+    {
+      "round": 1,
+      "checkers": 6,
+      "exitCode": 0,
+      "seconds": 2.567,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/checker-order-final/round-1-checkers-6.log"
+    },
+    {
+      "round": 1,
+      "checkers": 8,
+      "exitCode": 0,
+      "seconds": 2.601,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/checker-order-final/round-1-checkers-8.log"
+    },
+    {
+      "round": 2,
+      "checkers": 1,
+      "exitCode": 0,
+      "seconds": 8.937,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/checker-order-final/round-2-checkers-1.log"
+    },
+    {
+      "round": 2,
+      "checkers": 4,
+      "exitCode": 0,
+      "seconds": 3.571,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/checker-order-final/round-2-checkers-4.log"
+    },
+    {
+      "round": 2,
+      "checkers": 5,
+      "exitCode": 0,
+      "seconds": 3.753,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/checker-order-final/round-2-checkers-5.log"
+    },
+    {
+      "round": 2,
+      "checkers": 6,
+      "exitCode": 0,
+      "seconds": 3.206,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/checker-order-final/round-2-checkers-6.log"
+    },
+    {
+      "round": 2,
+      "checkers": 8,
+      "exitCode": 0,
+      "seconds": 3.389,
+      "log": "/private/tmp/foldkit-preview-stabilization-20261027/checker-order-final/round-2-checkers-8.log"
+    }
+  ],
+  "tests": {
+    "core": {
+      "passed": 3837,
+      "existingSkipped": 1
+    },
+    "ui": 1301,
+    "workspace": 154,
+    "website": 1497,
+    "lintPlugin": 665,
+    "scripts": 232
+  },
+  "retainedQualifications": [
+    "One reviewed compiler ceiling revision predates this preparation; five other ceilings and all fixture sources unchanged",
+    "Prior failed controls remain in original evidence logs, excluded from final gate result",
+    "Metadata validators use pinned integrated main where missing origin/history prevents original invocation",
+    "No fresh network dependency audit; inherited advisory dispositions retained"
+  ]
+}

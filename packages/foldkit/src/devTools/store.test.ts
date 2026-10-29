@@ -126,11 +126,13 @@ describe('computeDiff', () => {
 const initialModel = { count: 0 }
 
 const CounterModel = Schema.Struct({ count: Schema.Number })
+type CounterModel = typeof CounterModel.Type
 
 const CounterMessage = defineMessageUnion({
   ClickedIncrement: {},
   ClickedDecrement: {},
 })
+type CounterMessage = typeof CounterMessage.Type
 
 const counterReplay = (model: unknown, message: unknown): unknown => {
   const counterModel = Schema.decodeUnknownSync(CounterModel)(model)

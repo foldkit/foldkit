@@ -48,6 +48,7 @@ describe('defineMessageUnion', () => {
       ),
     }
     const Args = Schema.Struct(fields)
+    type Args = typeof Args.Type
     const args = Args.make({ count: 1 })
 
     expect(constructRecorded(Args, args)).toStrictEqual({
@@ -323,6 +324,7 @@ describe('defineMessageUnion', () => {
     const TransformedMessage = defineMessageUnion({
       Recorded: { args: Schema.Struct({ count: Schema.NumberFromString }) },
     })
+    type TransformedMessage = typeof TransformedMessage.Type
 
     // @ts-expect-error A constructor rejects another variant's tag.
     Message.ChangedCount({ _tag: 'SelectedItem', count: 1 })

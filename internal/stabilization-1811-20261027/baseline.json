@@ -1,0 +1,75 @@
+{
+  "issue": "https://github.com/foldkit/foldkit/issues/1811",
+  "status": "Reproduced",
+  "testedSourceCommit": "93c49c77b6d25d9f0aa8213135bb629c1a3e1ff4",
+  "testedSourceDigest": "348f99655be9d899a41d10c6c584e8503a35270905b7c8e2ff4b00b573bb3e07",
+  "viteVersion": "8.3.5",
+  "raw": [
+    {
+      "path": "/",
+      "status": 200,
+      "page": "Home"
+    },
+    {
+      "path": "/about",
+      "status": 200,
+      "page": "Home"
+    },
+    {
+      "path": "/about/",
+      "status": 200,
+      "page": "About"
+    },
+    {
+      "path": "/about/index.html",
+      "status": 200,
+      "page": "About"
+    }
+  ],
+  "javaScriptDisabledLink": {
+    "href": "/about",
+    "path": "/about",
+    "title": "Home | Foldkit App",
+    "headings": ["Statically generated home"]
+  },
+  "javaScriptEnabledAboutWorks": true,
+  "mainSourceEvidence": {
+    "main": "b702a5efbb74bebc056b798b414ddb923a82fbd5",
+    "candidateBeforeFix": "d97860167b1df76fff407e16d3456839cd5c7ea3",
+    "comparisons": [
+      {
+        "path": "packages/create-foldkit-app/templates/rendering/ssg/package.json",
+        "mainSha256": "fac28c049170812d25971de3073f7236681c4265915f7fb056411849f11d10cb",
+        "candidateSha256": "fac28c049170812d25971de3073f7236681c4265915f7fb056411849f11d10cb",
+        "identical": true
+      },
+      {
+        "path": "packages/create-foldkit-app/templates/rendering/ssg/vite.config.ts",
+        "mainSha256": "821e804d46c835c4df5b579411e6023d1202db8bc311045b7fc2530b56eae243",
+        "candidateSha256": "821e804d46c835c4df5b579411e6023d1202db8bc311045b7fc2530b56eae243",
+        "identical": true
+      },
+      {
+        "path": "packages/vite-plugin-foldkit/src/build.ts",
+        "scope": "renderTargetFor implementation, not entire module",
+        "mainSha256": "b8093630538825a6499b4cb916f57709d2671d4fb0087c262e0c7e378f749c2c",
+        "candidateSha256": "b8093630538825a6499b4cb916f57709d2671d4fb0087c262e0c7e378f749c2c",
+        "identical": true
+      }
+    ],
+    "mainPrerenderPaths": ["/", "/about"],
+    "mainNavigation": "h.Href(aboutRouter()) in templates/rendering/ssg/src/main.ts",
+    "qualification": "Source-only comparison, no baseline build/browser run; deployed host behavior not established"
+  },
+  "missedCoverage": [
+    "Prior installed scaffold browser smoke fetches only /about/ directly",
+    "Prior no-JavaScript e2e checks only /about/",
+    "The extensionless /about path is otherwise checked after client routing or hydration"
+  ],
+  "scope": "SSG generated directory-index output and Vite preview route resolution; no evidence of Block graph/runtime regression",
+  "serverStopped": true,
+  "fixtureAppFilesUnchanged": true,
+  "fixtureAppFileCount": 30,
+  "sourceEdits": false,
+  "noReleaseOrExternalWrites": true
+}

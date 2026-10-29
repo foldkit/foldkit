@@ -27,7 +27,6 @@ const PathResolution = defineTaggedUnion({
     availableKeys: Schema.Array(Schema.String),
   },
 })
-
 /**
  * The result of looking up a `root.foo.bar` path in a Model snapshot.
  * `PathResolution.Found` returns the value and the path where it was found.

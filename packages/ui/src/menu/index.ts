@@ -1,5 +1,5 @@
 export {
-  create,
+  makeBlock,
   buttonId,
   ActivationTrigger,
   groupContiguous,

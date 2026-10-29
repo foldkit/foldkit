@@ -3,7 +3,8 @@ import type { Url } from 'foldkit/url'
 
 import { LoadWorkspace } from './command'
 import { ApplicationComposition } from './composition'
-import { IssueMoveState, WorkspaceAsyncData } from './model'
+import { WorkspaceAsyncData } from './model'
+import { IssueMoveState } from './optimistic'
 import { urlToApplicationRoute } from './route'
 
 export const init = ApplicationComposition.makeInit((url: Url) => {
@@ -13,7 +14,9 @@ export const init = ApplicationComposition.makeInit((url: Url) => {
     model: {
       route,
       workspaceAsyncData: WorkspaceAsyncData.Loading(),
-      issueDrafts: [],
+      issueDetails: {},
+      issueBoards: {},
+      projectSettings: {},
       maybeNotice: Option.none(),
       maybeActivityError: Option.none(),
       activeMemberId: 'maya',

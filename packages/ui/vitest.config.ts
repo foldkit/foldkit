@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 // NOTE: imported from source rather than the package entry so knip and a
 // clean-checkout CI run do not depend on the plugin's dist being built.
@@ -8,6 +8,7 @@ export default defineConfig({
   plugins: [foldkitViewIdentity()],
   test: {
     environment: 'happy-dom',
+    exclude: [...configDefaults.exclude, 'e2e/**'],
     setupFiles: ['./src/vitest-setup.ts'],
   },
 })

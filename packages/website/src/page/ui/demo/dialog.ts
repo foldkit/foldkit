@@ -18,6 +18,9 @@ import type { City } from '../domain/domain'
 import { Message } from '../message'
 import { comboboxViewInputs } from './combobox'
 
+type CityComboboxBlockModel = typeof CityComboboxBlock.Model.Type
+type DialogBlockModel = typeof DialogBlock.Model.Type
+
 // DEMO CONTENT
 
 const triggerClassName = 'demo-neutral-button'
@@ -64,11 +67,7 @@ const OVERLAY_COMBOBOX_ANCHOR = {
 
 // PANEL CONTENT
 
-const trigger = (
-  label: string,
-  message: typeof Message.Type,
-  h: UiViewBuilder,
-) =>
+const trigger = (label: string, message: Message, h: UiViewBuilder) =>
   h.div(
     [h.Class('flex gap-3')],
     [h.button([h.Class(triggerClassName), h.OnClick(message)], [label])],
@@ -105,8 +104,8 @@ const confirmContent = (
 const editFiltersContent = (
   title: DialogRenderInfo['title'],
   description: DialogRenderInfo['description'],
-  comboboxModel: typeof CityComboboxBlock.Model.Type,
-  maybeSelectedCity: Option.Option<typeof City.Type>,
+  comboboxModel: CityComboboxBlockModel,
+  maybeSelectedCity: Option.Option<City>,
   h: UiViewBuilder,
 ): Html =>
   h.div(
@@ -201,10 +200,7 @@ const deleteProjectContent = (
     ],
   )
 
-export const view = (
-  dialogModel: typeof DialogBlock.Model.Type,
-  h: UiViewBuilder,
-) => {
+export const view = (dialogModel: DialogBlockModel, h: UiViewBuilder) => {
   return [
     trigger('Open Dialog', Message.ClickedOpenDialog(), h),
     h.block(
@@ -249,9 +245,9 @@ export const view = (
 }
 
 export const overlayDialogDemo = (
-  dialogModel: typeof DialogBlock.Model.Type,
-  comboboxModel: typeof CityComboboxBlock.Model.Type,
-  maybeSelectedCity: Option.Option<typeof City.Type>,
+  dialogModel: DialogBlockModel,
+  comboboxModel: CityComboboxBlockModel,
+  maybeSelectedCity: Option.Option<City>,
   h: UiViewBuilder,
 ) => {
   return [
@@ -297,8 +293,8 @@ export const overlayDialogDemo = (
 }
 
 export const nestedDialogDemo = (
-  parentDialogModel: typeof DialogBlock.Model.Type,
-  childDialogModel: typeof DialogBlock.Model.Type,
+  parentDialogModel: DialogBlockModel,
+  childDialogModel: DialogBlockModel,
   h: UiViewBuilder,
 ) => {
   return [
@@ -381,7 +377,7 @@ export const nestedDialogDemo = (
 }
 
 export const dialogAnimatedDemo = (
-  dialogModel: typeof DialogBlock.Model.Type,
+  dialogModel: DialogBlockModel,
   h: UiViewBuilder,
 ) => {
   return [

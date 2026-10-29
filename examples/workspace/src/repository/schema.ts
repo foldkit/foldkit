@@ -11,6 +11,7 @@ export const RepositoryOperation = Schema.Literals([
   'Move',
   'Project',
 ])
+export type RepositoryOperation = typeof RepositoryOperation.Type
 
 export const RepositoryError = defineTaggedUnion({
   Unavailable: {
@@ -27,18 +28,21 @@ export const RepositoryError = defineTaggedUnion({
   MissingIssue: { message: Schema.String, issueId: Schema.String },
   InvalidProject: { message: Schema.String, projectId: Schema.String },
 })
+export type RepositoryError = typeof RepositoryError.Type
 
 export const SaveIssueInput = Schema.Struct({
   issueId: Schema.String,
   draft: IssueDraft,
   expectedVersion: Schema.Number,
 })
+export type SaveIssueInput = typeof SaveIssueInput.Type
 
 export const AddCommentInput = Schema.Struct({
   issueId: Schema.String,
   body: Schema.String,
   authorId: Schema.String,
 })
+export type AddCommentInput = typeof AddCommentInput.Type
 
 export const MoveIssueInput = Schema.Struct({
   issueId: Schema.String,
@@ -46,3 +50,4 @@ export const MoveIssueInput = Schema.Struct({
   insertionIndex: Schema.Number,
   expectedVersion: Schema.Number,
 })
+export type MoveIssueInput = typeof MoveIssueInput.Type

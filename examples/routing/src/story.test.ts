@@ -20,6 +20,8 @@ import {
 } from './route'
 import { update } from './update'
 
+type PeopleMessage = typeof PeopleBlock.Message.Type
+
 const peoplePageWith = (searchInput: string) =>
   PeopleBlock.Model.make({
     searchInput,
@@ -32,7 +34,7 @@ const peoplePageWith = (searchInput: string) =>
 
 const initialPeoplePage = peoplePageWith('')
 
-const peopleMessage = (message: typeof PeopleBlock.Message.Type) =>
+const peopleMessage = (message: PeopleMessage) =>
   toParentMessage(PeoplePageBinding, message)
 
 const home = Model.make({

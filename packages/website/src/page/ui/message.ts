@@ -1,6 +1,13 @@
 import { Schema } from 'effect'
 import { defineMessageUnion } from 'foldkit/message'
 
+import { VirtualList } from '@foldkit/ui'
+
+import {
+  VirtualListChatHistorySource,
+  VirtualListChatMessage,
+} from './domain/domain'
+
 export const Message = defineMessageUnion({
   ClickedButtonDemo: {},
   UpdatedInputDemoValue: { value: Schema.String },
@@ -32,7 +39,16 @@ export const Message = defineMessageUnion({
   ClickedVirtualListScrollToMiddle: {},
   ClickedVirtualListVariableScrollToMiddle: {},
   ClickedVirtualListChatPrepend: {},
+  CompletedFetchVirtualListChatHistory: {
+    requestVersion: Schema.Number,
+    messages: Schema.Array(VirtualListChatMessage),
+    source: VirtualListChatHistorySource,
+    page: VirtualList.HistoryPage,
+  },
   ClickedVirtualListChatScrollToMessage: {},
   ClickedVirtualListChatAppend: {},
   ClickedVirtualListChatToggleMessage: { messageId: Schema.Number },
 })
+export type Message = typeof Message.Type
+export type CompletedFetchVirtualListChatHistory =
+  typeof Message.CompletedFetchVirtualListChatHistory.Type

@@ -644,7 +644,7 @@ describe('lift over lift', () => {
       subscriptions.ticks.modelToDependencies(innerClosedModel)
 
     expect(dependencies).toEqual({
-      maybeDependencies: Option.some({ maybeDependencies: Option.none() }),
+      maybeDependencies: Option.none(),
     })
     expect(projectedModels).toEqual([])
     expect(
@@ -696,7 +696,6 @@ describe('lift over lift', () => {
     expect(entry.keepAliveEquivalence(open, openAfterLabelChange)).toBe(true)
     expect(entry.keepAliveEquivalence(open, innerClosed)).toBe(false)
     expect(entry.keepAliveEquivalence(open, outerClosed)).toBe(false)
-    expect(entry.keepAliveEquivalence(innerClosed, outerClosed)).toBe(false)
     expect(entry.keepAliveEquivalence(outerClosed, outerClosed)).toBe(true)
 
     expect(
@@ -742,7 +741,7 @@ describe('lift over lift', () => {
       }),
     })
     expect(subscriptions.ticks.modelToDependencies(innerClosedModel)).toEqual({
-      maybeDependencies: Option.some({ maybeDependencies: Option.none() }),
+      maybeDependencies: Option.none(),
     })
     expect(subscriptions.pulses.modelToDependencies(innerClosedModel)).toEqual({
       maybeDependencies: Option.some({
@@ -1075,6 +1074,7 @@ describe('Layer-backed entries', () => {
   const attachedVariants = make<ChildModel, string>()(entry => ({
     failed: entry('AttachedFailedValues', {
       messages: [Schema.String],
+      when: () => false,
       handler: function* () {
         return yield* Effect.fail(new HandlerBuildFailure())
       },
@@ -1157,6 +1157,17 @@ describe('Layer-backed entries', () => {
     expectTypeOf(attachedVariants.keepAlive.layer).toEqualTypeOf<
       Layer.Layer<HandlerOf<typeof attachedVariants.keepAlive>>
     >()
+  })
+
+  it('retains constructor failures behind a closed entry gate', async () => {
+    const failure = await Effect.runPromise(
+      Layer.build(attachedVariants.failed.layer).pipe(
+        Effect.scoped,
+        Effect.flip,
+      ),
+    )
+
+    expect(failure).toEqual(new HandlerBuildFailure())
   })
 
   it('attaches a precise handler Layer and preserves it through composition', async () => {
@@ -1562,10 +1573,12 @@ describe('aggregate', () => {
     _tag: Schema.Literal('ChangedTheme'),
     isDark: Schema.Boolean,
   })
+  type ThemeMessageSchema = typeof ThemeMessageSchema.Type
   const ViewportMessageSchema = Schema.Struct({
     _tag: Schema.Literal('ResizedViewport'),
     width: Schema.Number,
   })
+  type ViewportMessageSchema = typeof ViewportMessageSchema.Type
 
   const themeSubscriptions = make<ThemeModel, ThemeMessage>()(entry => ({
     systemTheme: entry(

@@ -50,6 +50,7 @@ import {
   MountTracker,
   liveViewStateChanges,
 } from '../mount/index.js'
+import { cleanupMount, registerMountCleanup } from '../mountModule.js'
 import {
   attachOnUnmount,
   beginReplayUnmountRender,
@@ -2641,12 +2642,7 @@ const attributeHandlers: AttributeHandlers = {
           existingDestroy(vnode)
         }
         if (vnode.elm instanceof Element) {
-          const state = onMountStates.get(vnode.elm)
-          if (state) {
-            releaseMount(state)
-            Effect.runFork(Fiber.interrupt(state.fiber))
-            onMountStates.delete(vnode.elm)
-          }
+          cleanupMount(vnode.elm)
         }
       },
     }
@@ -2723,6 +2719,14 @@ const attributeHandlers: AttributeHandlers = {
         notifyEnded,
         owner: resolveMountDispatch.owner,
         ...(instance === undefined ? {} : { instance }),
+      })
+      registerMountCleanup(element, () => {
+        const state = onMountStates.get(element)
+        if (state !== undefined) {
+          releaseMount(state)
+          Effect.runFork(Fiber.interrupt(state.fiber))
+          onMountStates.delete(element)
+        }
       })
     }
   },

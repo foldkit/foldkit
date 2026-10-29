@@ -5,6 +5,11 @@ import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../constant'
 import { HomeComposition, type HomeViewBuilder } from './composition'
 import { Message } from './message'
 import { HOME_ACTIONS, HomeAction, HomeStep, homeActionToLabel } from './model'
+import type {
+  EnterRoomIdHomeStep,
+  EnterUsernameHomeStep,
+  SelectActionHomeStep,
+} from './model'
 
 export const view = HomeComposition.makeView((model, h) => {
   const maybeUsername = HomeStep.match(model.homeStep, {
@@ -36,7 +41,7 @@ export const view = HomeComposition.makeView((model, h) => {
 })
 
 const enterUsername = (
-  { username }: typeof HomeStep.EnterUsername.Type,
+  { username }: EnterUsernameHomeStep,
   h: HomeViewBuilder,
 ): Html =>
   h.form(
@@ -72,7 +77,7 @@ const enterUsername = (
   )
 
 const selectAction = (
-  { selectedAction }: typeof HomeStep.SelectAction.Type,
+  { selectedAction }: SelectActionHomeStep,
   h: HomeViewBuilder,
 ): Html =>
   h.div(
@@ -87,8 +92,8 @@ const selectAction = (
   )
 
 const action =
-  (selectedAction: typeof HomeAction.Type, h: HomeViewBuilder) =>
-  (homeAction: typeof HomeAction.Type): Html =>
+  (selectedAction: HomeAction, h: HomeViewBuilder) =>
+  (homeAction: HomeAction): Html =>
     h.div(
       [h.Class('whitespace-pre-wrap')],
       [
@@ -98,7 +103,7 @@ const action =
     )
 
 const enterRoomId = (
-  { roomId }: typeof HomeStep.EnterRoomId.Type,
+  { roomId }: EnterRoomIdHomeStep,
   h: HomeViewBuilder,
 ): Html =>
   h.form(

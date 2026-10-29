@@ -9,6 +9,7 @@ const Message = defineMessageUnion({
   RequestedWork: {},
   CompletedWork: {},
 })
+type Message = typeof Message.Type
 const makeGenericComplete = <const Id extends string>(id: Id) => {
   const FeatureNamespace = makeNamespace(id)
   const Model = Schema.Struct({ value: Schema.String })
@@ -72,6 +73,7 @@ const makeGenericMissing = <const Id extends string>(id: Id) => {
 
 const complete = makeGenericComplete('GenericComplete')
 const CompleteParentModel = Schema.Struct({ child: complete.Model })
+type CompleteParentModel = typeof CompleteParentModel.Type
 
 const CompleteParent = makeDefinition('GenericCompleteParent', {
   Model: CompleteParentModel,
@@ -89,6 +91,7 @@ it('keeps a complete generic Block connectable after literal instantiation', () 
 if (false) {
   const missing = makeGenericMissing('GenericMissing')
   const MissingParentModel = Schema.Struct({ child: missing.Model })
+  type MissingParentModel = typeof MissingParentModel.Type
   const MissingParent = makeDefinition('GenericMissingParent', {
     Model: MissingParentModel,
     Message: Schema.Never,

@@ -39,9 +39,9 @@ export const update = SkillsComposition.makeUpdate({
     ),
 })
 
-export const hasErrors = (model: typeof Model.Type): boolean =>
+export const hasErrors = (model: Model): boolean =>
   Array.some(model.entries, entryHasErrors)
 
-export const isComplete = (model: typeof Model.Type): boolean =>
+export const isComplete = (model: Model): boolean =>
   Array.isReadonlyArrayNonEmpty(model.entries) &&
   Array.every(model.entries, isEntryComplete)

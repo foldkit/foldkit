@@ -20,9 +20,11 @@ import * as SnippetCopyRenderer from '../snippetCopyRenderer'
 import * as SnippetDisclosureRenderer from '../snippetDisclosureRenderer'
 import * as Blog from './blog'
 
+type HomeBlockModel = typeof HomeBlock.Model.Type
+
 type HomeViewInput = Readonly<{
-  model: typeof Model.Type
-  homeModel: typeof HomeBlock.Model.Type
+  model: Model
+  homeModel: HomeBlockModel
 }>
 
 const homeView = (
@@ -64,7 +66,7 @@ const homeView = (
   )
 }
 
-const newsletterView = (model: typeof Model.Type, h: ApplicationViewBuilder) =>
+const newsletterView = (model: Model, h: ApplicationViewBuilder) =>
   Marketing.view(
     model,
     {

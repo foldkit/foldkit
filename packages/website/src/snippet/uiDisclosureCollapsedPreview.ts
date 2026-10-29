@@ -13,11 +13,12 @@ const Model = Schema.Struct({
   isArticleOpen: Schema.Boolean,
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // A verb-first, past-tense Message carries the new open state:
 const Message = defineMessageUnion({
   ToggledArticle: { isOpen: Schema.Boolean },
 })
+type Message = typeof Message.Type
 
 const ArticlePreviewComposition = Block.makeDefinition('ArticlePreview', {
   Model,
@@ -48,7 +49,7 @@ const view = ArticlePreviewComposition.makeView((model, h) => {
     button,
     panel,
     animatePanel,
-  }: Disclosure.DisclosureAttributes<typeof Message.Type>) =>
+  }: Disclosure.DisclosureAttributes<Message>) =>
     h.article(
       [h.Class('relative overflow-hidden rounded-lg border bg-white')],
       [

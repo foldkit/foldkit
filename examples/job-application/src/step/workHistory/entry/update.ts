@@ -50,10 +50,10 @@ export const update = WorkHistoryEntryComposition.makeUpdate({
   ClickedRemoveSelf: makeOutMessageStep(() => OutMessage.Removed()),
 })
 
-export const hasErrors = (entry: typeof Model.Type): boolean =>
+export const hasErrors = (entry: Model): boolean =>
   anyInvalid([entry.company, entry.title])
 
-export const isComplete = (entry: typeof Model.Type): boolean =>
+export const isComplete = (entry: Model): boolean =>
   allValid([
     [entry.company, companyRules],
     [entry.title, titleRules],

@@ -8,6 +8,7 @@ export const Model = Schema.Struct({
   entries: Schema.Array(Entry.EducationEntryBlock.Model),
   today: Calendar.CalendarDate,
 })
+export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ClickedAddEntry: {},
@@ -16,6 +17,7 @@ export const Message = defineMessageUnion({
   RemovedEntry: { entryId: Schema.String },
   RequestedRevealErrors: {},
 })
+export type Message = typeof Message.Type
 
 export const EducationDefinition = Block.makeDefinition('Education', {
   Model,

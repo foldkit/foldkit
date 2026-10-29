@@ -1,4 +1,4 @@
-const postsView = (model: typeof Model.Type, h: HtmlBuilder<Message>): Html => {
+const postsView = (model: Model, h: HtmlBuilder<Message>): Html => {
   // Read the value through Query's public API.
   const postsAsyncData = postsQuery.read(model.posts)
 

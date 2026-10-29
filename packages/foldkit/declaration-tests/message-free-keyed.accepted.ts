@@ -112,16 +112,15 @@ export const GeneralKeyedBinding = ParentDefinition.makeBinding(SilentBlock, {
 export const ParentComposition = ParentDefinition.makeComposition({
   bindings: [GeneralKeyedBinding],
 })
-export const initializeGeneralStep = ParentDefinition.makeStep(
-  (model, key: string) =>
-    GeneralKeyedBinding.init({
-      key,
-      args: [key],
-      toParentModel: silent =>
-        modifyFields(model, {
-          entries: Array.append(Entry.make({ key, silent })),
-        }),
-    }),
+export const initGeneralStep = ParentDefinition.makeStep((model, key: string) =>
+  GeneralKeyedBinding.init({
+    key,
+    args: [key],
+    toParentModel: silent =>
+      modifyFields(model, {
+        entries: Array.append(Entry.make({ key, silent })),
+      }),
+  }),
 )
 const prepareParentBlock = () =>
   ParentComposition.prepareBlock({
@@ -137,7 +136,7 @@ export const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
 
 type InitializationRequirements = Expect<
   Equal<
-    Update.RequirementsOf<typeof initializeGeneralStep>,
+    Update.RequirementsOf<typeof initGeneralStep>,
     Block.Scoped<'general-silent', Command.HandlerOf<typeof WaitForever>>
   >
 >

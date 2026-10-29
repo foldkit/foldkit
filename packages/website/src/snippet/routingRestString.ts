@@ -6,7 +6,7 @@ const ApplicationRoute = defineRouteUnion({
   VaultIndex: {},
   VaultNote: { path: Schema.String },
 })
-
+type ApplicationRoute = typeof ApplicationRoute.Type
 // Matches: /vault
 const vaultIndexRouter = pipe(
   literal('vault'),

@@ -17,6 +17,7 @@ export const Model = Schema.Struct({
   route: ApplicationRoute,
   count: Schema.Number,
 })
+export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ClickedIncrement: {},
@@ -25,6 +26,7 @@ export const Message = defineMessageUnion({
   CompletedNavigateInternal: {},
   CompletedLoadExternal: {},
 })
+export type Message = typeof Message.Type
 
 export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
@@ -91,7 +93,7 @@ const APP_NAME = 'Foldkit App'
 
 const appendAppName = (page: string): string => `${page} | ${APP_NAME}`
 
-const routeTitle = (route: typeof ApplicationRoute.Type): string =>
+const routeTitle = (route: ApplicationRoute): string =>
   pipe(
     ApplicationRoute.match(route, {
       Home: () => 'Home',
@@ -110,7 +112,7 @@ const navigationView = (h: ApplicationViewBuilder): Html =>
     ],
   )
 
-const pageView = (model: typeof Model.Type, h: ApplicationViewBuilder): Html =>
+const pageView = (model: Model, h: ApplicationViewBuilder): Html =>
   ApplicationRoute.match(model.route, {
     Home: () =>
       h.section(

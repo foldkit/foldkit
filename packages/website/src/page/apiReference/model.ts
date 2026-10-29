@@ -9,16 +9,15 @@ import {
 } from './domain'
 
 export const Disclosures = Schema.Record(Schema.String, Schema.Boolean)
+export type Disclosures = typeof Disclosures.Type
 
 export const Model = Schema.Struct({
   apiData: ApiDataAsyncData.schema,
   disclosures: Disclosures,
 })
-
+export type Model = typeof Model.Type
 /** Initial collapsed disclosure state for signatures exceeding the display limit. */
-export const disclosuresForApiData = (
-  apiData: typeof ApiData.Type,
-): typeof Disclosures.Type =>
+export const disclosuresForApiData = (apiData: ApiData): Disclosures =>
   pipe(
     apiData.parsedApi.modules,
     Array.flatMap(module =>

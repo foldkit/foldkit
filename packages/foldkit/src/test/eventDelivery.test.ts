@@ -15,6 +15,7 @@ const ChildModel = Schema.Struct({
   notes: Schema.Number,
   saves: Schema.Number,
 })
+type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({
   ClickedSave: {},
   ClickedSaveTwice: {},
@@ -22,6 +23,7 @@ const ChildMessage = defineMessageUnion({
   CompletedSave: { id: Schema.String },
   ReceivedReading: { count: Schema.NumberFromString },
 })
+type ChildMessage = typeof ChildMessage.Type
 const ChildDefinition = Block.makeDefinition('TestingFollowupsChild', {
   Model: ChildModel,
   Message: ChildMessage,
@@ -86,11 +88,14 @@ const ChildBlock: Block.FromAssemblyWithView<
 > = Block.assemble(prepareChildBlock)
 
 const ChildInstance = Schema.Struct({ id: Schema.String, child: ChildModel })
+type ChildInstance = typeof ChildInstance.Type
 const ParentModel = Schema.Struct({
   children: Schema.Array(ChildInstance),
   activityCount: Schema.Number,
 })
+type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({ ReceivedActivity: {} })
+type ParentMessage = typeof ParentMessage.Type
 const ParentDefinition = Block.makeDefinition('TestingFollowupsParent', {
   Model: ParentModel,
   Message: ParentMessage,
@@ -184,10 +189,12 @@ const SubscriptionHostModel = Schema.Struct({
   leftCount: Schema.Number,
   rightCount: Schema.Number,
 })
+type SubscriptionHostModel = typeof SubscriptionHostModel.Type
 const SubscriptionHostMessage = defineMessageUnion({
   ReceivedLeftReading: { message: ChildMessage },
   ReceivedRightReading: { message: ChildMessage },
 })
+type SubscriptionHostMessage = typeof SubscriptionHostMessage.Type
 const SubscriptionHostDefinition = Block.makeDefinition(
   'TestingFollowupsSubscriptionHost',
   {
@@ -197,14 +204,14 @@ const SubscriptionHostDefinition = Block.makeDefinition(
 )
 const leftSubscriptions = SubscriptionDefinition.lift({
   leftReadings: childSubscriptions.readings,
-})<typeof SubscriptionHostModel.Type, typeof SubscriptionHostMessage.Type>({
+})<SubscriptionHostModel, SubscriptionHostMessage>({
   read: () => Option.none(),
   toParentMessage: message =>
     SubscriptionHostMessage.ReceivedLeftReading({ message }),
 })
 const rightSubscriptions = SubscriptionDefinition.lift({
   rightReadings: childSubscriptions.readings,
-})<typeof SubscriptionHostModel.Type, typeof SubscriptionHostMessage.Type>({
+})<SubscriptionHostModel, SubscriptionHostMessage>({
   read: () => Option.none(),
   toParentMessage: message =>
     SubscriptionHostMessage.ReceivedRightReading({ message }),
@@ -307,15 +314,14 @@ describe('Scene.Command.keepPending', () => {
 })
 
 const StoryModel = Schema.Struct({ generation: Schema.Number })
+type StoryModel = typeof StoryModel.Type
 const StoryMessage = defineMessageUnion({
   Advanced: {},
   ReceivedGeneration: { generation: Schema.Number },
 })
-const storyUpdate = (
-  model: typeof StoryModel.Type,
-  message: typeof StoryMessage.Type,
-) =>
-  StoryMessage.match<Readonly<{ model: typeof StoryModel.Type }>>(message, {
+type StoryMessage = typeof StoryMessage.Type
+const storyUpdate = (model: StoryModel, message: StoryMessage) =>
+  StoryMessage.match<Readonly<{ model: StoryModel }>>(message, {
     Advanced: () => ({
       model: modifyFields(model, { generation: count => count + 1 }),
     }),
@@ -327,7 +333,7 @@ const storyUpdate = (
 describe('Story.messageWith', () => {
   test('reads the Model held when an inline or extracted step runs', () => {
     const receiveCurrentGeneration = Story.steps(
-      Story.messageWith((model: typeof StoryModel.Type) =>
+      Story.messageWith((model: StoryModel) =>
         StoryMessage.ReceivedGeneration({ generation: model.generation }),
       ),
     )

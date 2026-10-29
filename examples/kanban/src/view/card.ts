@@ -9,7 +9,7 @@ import { Card } from '../domain'
 import type { Model } from '../model'
 
 const cardContent = (
-  card: typeof Card.Card.Type,
+  card: Card.Card,
   h: ApplicationViewBuilder,
 ): ReadonlyArray<Html> => [
   h.span([h.Class('text-sm font-medium text-gray-900')], [card.title]),
@@ -24,8 +24,8 @@ const cardContent = (
 ]
 
 export const cardView = (
-  model: typeof Model.Type,
-  card: typeof Card.Card.Type,
+  model: Model,
+  card: Card.Card,
   columnId: string,
   index: number,
   draggable: RenderInfo['draggable'],
@@ -60,7 +60,7 @@ export const cardView = (
 }
 
 export const ghostCardView = (
-  card: typeof Card.Card.Type,
+  card: Card.Card,
   h: ApplicationViewBuilder,
 ): Html =>
   h.div(

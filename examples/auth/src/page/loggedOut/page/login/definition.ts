@@ -10,6 +10,7 @@ export const Model = Schema.Struct({
   password: Field(Schema.String),
   isSubmitting: Schema.Boolean,
 })
+export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ChangedEmail: { value: Schema.String },
@@ -18,10 +19,12 @@ export const Message = defineMessageUnion({
   SucceededSimulateAuthRequest: { session: Session },
   FailedSimulateAuthRequest: { error: Schema.String },
 })
+export type Message = typeof Message.Type
 
 export const OutMessage = defineMessageUnion({
   SucceededLogin: { session: Session },
 })
+export type OutMessage = typeof OutMessage.Type
 
 export const LoginDefinition = Block.makeDefinition('Login', {
   Model,

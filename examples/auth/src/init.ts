@@ -11,7 +11,7 @@ import type { Flags } from './flags'
 import { ApplicationRoute, urlToApplicationRoute } from './route'
 
 export const init = ApplicationComposition.makeInit(
-  (flags: typeof Flags.Type, url: Url) => {
+  (flags: Flags, url: Url) => {
     const route = urlToApplicationRoute(url)
 
     return Option.match(flags.maybeSession, {

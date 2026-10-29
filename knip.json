@@ -40,10 +40,18 @@
       ]
     },
     "packages/ui": {
-      "entry": ["typedoc-entry.ts", "src/index.ts", "declaration-tests/**/*.ts"]
+      "entry": [
+        "typedoc-entry.ts",
+        "src/index.ts",
+        "declaration-tests/**/*.ts",
+        "e2e/virtualList/fixture/entry.ts"
+      ]
     },
     "packages/devtools": {
       "entry": ["src/vite.ts"]
+    },
+    "packages/node": {
+      "ignoreDependencies": ["@effect/platform-node-shared"]
     },
     "packages/vite-plugin-foldkit": {
       "ignoreFiles": ["test/fixtures/**"],

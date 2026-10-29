@@ -23,8 +23,8 @@ import { type Model } from '../model'
 import { formatCompact, formatFetchedAt, formatInteger } from './format'
 
 export const sidebarView = (
-  model: typeof Model.Type,
-  telemetry: typeof Telemetry.Type,
+  model: Model,
+  telemetry: Telemetry,
   maybeBanner: Option.Option<string>,
   h: ApplicationViewBuilder,
 ): Html =>
@@ -51,7 +51,7 @@ export const sidebarView = (
   )
 
 export const summaryGridView = (
-  telemetry: typeof Telemetry.Type,
+  telemetry: Telemetry,
   h: ApplicationViewBuilder,
 ): Html => {
   const summaries = [
@@ -110,7 +110,7 @@ const radioOptionClassName = (isSelected: boolean): string =>
   )
 
 export const controlPanelView = (
-  model: typeof Model.Type,
+  model: Model,
   h: ApplicationViewBuilder,
 ): Html =>
   h.section(
@@ -193,8 +193,8 @@ export const controlPanelView = (
   )
 
 export const packagePanelView = (
-  model: typeof Model.Type,
-  telemetry: typeof Telemetry.Type,
+  model: Model,
+  telemetry: Telemetry,
   h: ApplicationViewBuilder,
 ): Html =>
   h.section(
@@ -264,7 +264,7 @@ export const packagePanelView = (
   )
 
 export const contributorsView = (
-  telemetry: typeof Telemetry.Type,
+  telemetry: Telemetry,
   h: ApplicationViewBuilder,
 ): Html =>
   h.section(

@@ -7,10 +7,12 @@ import * as Update from '../update/public.js'
 import * as Block from './public.js'
 
 const DialogModel = Schema.Struct({ count: Schema.Number })
+type DialogModel = typeof DialogModel.Type
 const DialogMessage = defineMessageUnion({
   RequestedClose: {},
   CompletedRememberClose: {},
 })
+type DialogMessage = typeof DialogMessage.Type
 const DialogDefinition = Block.makeDefinition('CombinedOutMessageDialog', {
   Model: DialogModel,
   Message: DialogMessage,
@@ -48,12 +50,15 @@ const EditorModel = Schema.Struct({
   dialog: DialogBlock.Model,
   count: Schema.Number,
 })
+type EditorModel = typeof EditorModel.Type
 const EditorMessage = defineMessageUnion({
   RequestedSave: {},
   RequestedNestedSave: {},
   RequestedPlain: {},
 })
+type EditorMessage = typeof EditorMessage.Type
 const EditorOutMessage = defineMessageUnion({ Saved: {}, Plain: {} })
+type EditorOutMessage = typeof EditorOutMessage.Type
 const EditorDefinition = Block.makeDefinition('CombinedOutMessageEditor', {
   Model: EditorModel,
   Message: EditorMessage,
@@ -139,7 +144,9 @@ it('runs the parent OutMessage policy after the nested combination', () => {
     editor: EditorBlock.Model,
     count: Schema.Number,
   })
+  type ParentModel = typeof ParentModel.Type
   const ParentMessage = defineMessageUnion({ RequestedSave: {} })
+  type ParentMessage = typeof ParentMessage.Type
   const ParentDefinition = Block.makeDefinition('CombinedOutMessageParent', {
     Model: ParentModel,
     Message: ParentMessage,

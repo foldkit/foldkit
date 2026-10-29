@@ -28,6 +28,7 @@ import {
 } from './composition'
 import {
   AudioState,
+  type CompletedPlayNote,
   Message,
   Model,
   Note,
@@ -42,7 +43,7 @@ import { prependToLog } from './messageLog'
 
 // CONSTANTS
 
-const NOTE_FREQUENCIES: Record<typeof Note.Type, number> = {
+const NOTE_FREQUENCIES: Record<Note, number> = {
   C: 261.63,
   D: 293.66,
   E: 329.63,
@@ -52,7 +53,7 @@ const NOTE_FREQUENCIES: Record<typeof Note.Type, number> = {
   B: 493.88,
 }
 
-const DURATION_MILLISECONDS: Record<typeof NoteDuration.Type, number> = {
+const DURATION_MILLISECONDS: Record<NoteDuration, number> = {
   Short: 200,
   Medium: 400,
   Long: 800,
@@ -127,8 +128,8 @@ const DelayAdvanceNotePlayerPhase = NotePlayerDemoDefinition.makeCommand(
 )
 
 const enterNoteCommandPhase = (
-  model: typeof Model.Type,
-  noteSequence: ReadonlyArray<typeof Note.Type>,
+  model: Model,
+  noteSequence: ReadonlyArray<Note>,
   noteIndex: number,
 ) => ({
   model: modifyFields(model, {
@@ -389,48 +390,46 @@ const PlayNote = NotePlayerDemoDefinition.makeCommand('PlayNote', {
           audioContext.resume().catch(() => undefined),
         )
 
-        return yield* Effect.callback<typeof Message.CompletedPlayNote.Type>(
-          resume => {
-            if (audioContext.state === 'closed') {
-              resume(Effect.succeed(Message.CompletedPlayNote({ noteIndex })))
-              return
-            }
+        return yield* Effect.callback<CompletedPlayNote>(resume => {
+          if (audioContext.state === 'closed') {
+            resume(Effect.succeed(Message.CompletedPlayNote({ noteIndex })))
+            return
+          }
 
-            const oscillator = audioContext.createOscillator()
-            const gainNode = audioContext.createGain()
-            const durationSeconds = DURATION_MILLISECONDS[duration] / 1000
+          const oscillator = audioContext.createOscillator()
+          const gainNode = audioContext.createGain()
+          const durationSeconds = DURATION_MILLISECONDS[duration] / 1000
 
-            oscillator.type = 'triangle'
-            oscillator.frequency.setValueAtTime(
-              NOTE_FREQUENCIES[note],
-              audioContext.currentTime,
-            )
+          oscillator.type = 'triangle'
+          oscillator.frequency.setValueAtTime(
+            NOTE_FREQUENCIES[note],
+            audioContext.currentTime,
+          )
 
-            const releaseEnd =
-              audioContext.currentTime + durationSeconds - GAIN_RELEASE_TIME
+          const releaseEnd =
+            audioContext.currentTime + durationSeconds - GAIN_RELEASE_TIME
 
-            gainNode.gain.setValueAtTime(0, audioContext.currentTime)
-            gainNode.gain.linearRampToValueAtTime(
-              0.1,
-              audioContext.currentTime + GAIN_ATTACK_TIME,
-            )
-            gainNode.gain.exponentialRampToValueAtTime(
-              GAIN_NEAR_SILENT,
-              releaseEnd,
-            )
+          gainNode.gain.setValueAtTime(0, audioContext.currentTime)
+          gainNode.gain.linearRampToValueAtTime(
+            0.1,
+            audioContext.currentTime + GAIN_ATTACK_TIME,
+          )
+          gainNode.gain.exponentialRampToValueAtTime(
+            GAIN_NEAR_SILENT,
+            releaseEnd,
+          )
 
-            oscillator.connect(gainNode)
-            gainNode.connect(audioContext.destination)
+          oscillator.connect(gainNode)
+          gainNode.connect(audioContext.destination)
 
-            oscillator.start()
-            oscillator.stop(audioContext.currentTime + durationSeconds)
+          oscillator.start()
+          oscillator.stop(audioContext.currentTime + durationSeconds)
 
-            oscillator.onended = () => {
-              gainNode.disconnect()
-              resume(Effect.succeed(Message.CompletedPlayNote({ noteIndex })))
-            }
-          },
-        )
+          oscillator.onended = () => {
+            gainNode.disconnect()
+            resume(Effect.succeed(Message.CompletedPlayNote({ noteIndex })))
+          }
+        })
       }).pipe(
         Effect.catchTag('ResourceNotAvailable', () =>
           Effect.sleep(Duration.millis(DURATION_MILLISECONDS[duration])).pipe(
@@ -479,10 +478,7 @@ export const view = NotePlayerDemoComposition.makeView((model, h) =>
   ),
 )
 
-const appPanel = (
-  model: typeof Model.Type,
-  h: NotePlayerDemoViewBuilder,
-): Html => {
+const appPanel = (model: Model, h: NotePlayerDemoViewBuilder): Html => {
   const isPlaying = model.playbackState._tag === 'Playing'
   const isPaused = model.playbackState._tag === 'Paused'
   const isInputLocked = isPlaying || isPaused
@@ -521,7 +517,7 @@ const appPanel = (
 }
 
 const noteInputView = (
-  model: typeof Model.Type,
+  model: Model,
   isInputLocked: boolean,
   h: NotePlayerDemoViewBuilder,
 ): Html =>
@@ -590,14 +586,10 @@ const noteInputView = (
     h,
   )
 
-const noteDurations: ReadonlyArray<typeof NoteDuration.Type> = [
-  'Short',
-  'Medium',
-  'Long',
-]
+const noteDurations: ReadonlyArray<NoteDuration> = ['Short', 'Medium', 'Long']
 
 const durationSelectorView = (
-  model: typeof Model.Type,
+  model: Model,
   isInputLocked: boolean,
   h: NotePlayerDemoViewBuilder,
 ): Html =>
@@ -648,7 +640,7 @@ const durationSelectorView = (
   )
 
 const playbackControlView = (
-  model: typeof Model.Type,
+  model: Model,
   canPlay: boolean,
   h: NotePlayerDemoViewBuilder,
 ): Html => {
@@ -737,9 +729,7 @@ const playbackControlView = (
   )
 }
 
-const audioUnavailableNoticeView = (
-  audio: typeof AudioState.Type,
-): ReadonlyArray<Html> =>
+const audioUnavailableNoticeView = (audio: AudioState): ReadonlyArray<Html> =>
   Match.value(audio).pipe(
     Match.withReturnType<ReadonlyArray<Html>>(),
     Match.tag('Unavailable', () => [
@@ -767,7 +757,7 @@ const placeholderVisualizerView = (): Html =>
     ),
   )
 
-const noteSequenceView = (model: typeof Model.Type): Html => {
+const noteSequenceView = (model: Model): Html => {
   const notes = parseNotes(model.noteInput.value)
 
   return ih.div(
@@ -785,10 +775,7 @@ const noteSequenceView = (model: typeof Model.Type): Html => {
   )
 }
 
-const noteVisualizerView = (
-  model: typeof Model.Type,
-  notes: ReadonlyArray<typeof Note.Type>,
-): Html => {
+const noteVisualizerView = (model: Model, notes: ReadonlyArray<Note>): Html => {
   const maybeCurrentIndex = Match.value(model.playbackState).pipe(
     Match.tag('Playing', 'Paused', ({ currentNoteIndex }) =>
       Option.some(currentNoteIndex),
@@ -827,7 +814,7 @@ const noteVisualizerView = (
   )
 }
 
-const noteInputLabel = (model: typeof Model.Type): string =>
+const noteInputLabel = (model: Model): string =>
   FieldValidation.match(model.noteInput, {
     onNotValidated: value => `NotValidated("${value}")`,
     onValidating: value => `Validating("${value}")`,
@@ -835,7 +822,7 @@ const noteInputLabel = (model: typeof Model.Type): string =>
     onInvalid: ({ errors }) => `Invalid("${Array.headNonEmpty(errors)}")`,
   })
 
-const playbackStateLabel = (model: typeof Model.Type): string =>
+const playbackStateLabel = (model: Model): string =>
   PlaybackState.match(model.playbackState, {
     Idle: () => 'Idle',
     Playing: ({ currentNoteIndex, noteSequence }) =>
@@ -844,7 +831,7 @@ const playbackStateLabel = (model: typeof Model.Type): string =>
       `PlaybackState.Paused(${currentNoteIndex + 1}/${noteSequence.length})`,
   })
 
-const phaseLabel = (phase: typeof NoteHighlightPhase.Type): string =>
+const phaseLabel = (phase: NoteHighlightPhase): string =>
   Match.value(phase).pipe(
     Match.when('Idle', () => 'Idle'),
     Match.whenOr('PlayMessage', 'PauseMessage', 'NoteMessage', () => 'Message'),
@@ -854,7 +841,7 @@ const phaseLabel = (phase: typeof NoteHighlightPhase.Type): string =>
     Match.exhaustive,
   )
 
-const phaseColorClass = (phase: typeof NoteHighlightPhase.Type): string =>
+const phaseColorClass = (phase: NoteHighlightPhase): string =>
   Match.value(phase).pipe(
     Match.when('Idle', () => 'text-gray-600 dark:text-gray-400'),
     Match.whenOr(
@@ -877,7 +864,7 @@ const phaseColorClass = (phase: typeof NoteHighlightPhase.Type): string =>
     Match.exhaustive,
   )
 
-const phaseIndicatorView = (model: typeof Model.Type): Html =>
+const phaseIndicatorView = (model: Model): Html =>
   DemoView.phaseIndicator(
     phaseLabel(model.highlightPhase),
     phaseColorClass(model.highlightPhase),

@@ -11,13 +11,13 @@ import {
   update,
 } from './application'
 
-const offModel: typeof Model.Type = {
+const offModel: Model = {
   engine: EngineState.Off(),
   computeCount: 0,
   maybeSquareResult: Option.none(),
 }
 
-const readyModel: typeof Model.Type = {
+const readyModel: Model = {
   engine: EngineState.Ready({ engineId: 'engine-1' }),
   computeCount: 2,
   maybeSquareResult: Option.none(),

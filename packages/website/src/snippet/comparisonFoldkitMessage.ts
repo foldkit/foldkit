@@ -19,3 +19,4 @@ const Message = defineMessageUnion({
   ConfirmedGridSizeChange: {},
   CompletedSaveCanvas: {},
 })
+type Message = typeof Message.Type

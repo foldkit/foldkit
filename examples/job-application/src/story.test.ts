@@ -37,30 +37,39 @@ import {
 import { ResumeDropBinding } from './step/attachments/composition'
 import { update } from './update'
 
+type PersonalInfoMessage = typeof PersonalInfoBlock.Message.Type
+type WorkHistoryMessage = typeof WorkHistoryBlock.Message.Type
+type EducationMessage = typeof EducationBlock.Message.Type
+type SkillsMessage = typeof SkillsBlock.Message.Type
+type CoverLetterMessage = typeof CoverLetterBlock.Message.Type
+type AttachmentsMessage = typeof AttachmentsBlock.Message.Type
+type StepMenuMessage = typeof StepMenuBlock.Message.Type
+type StepTabsMessage = typeof StepTabsBlock.Message.Type
+
 const givenInitial = given(initialModel)
 
-const personalInfoMessage = (message: typeof PersonalInfoBlock.Message.Type) =>
+const personalInfoMessage = (message: PersonalInfoMessage) =>
   toParentMessage(PersonalInfoBinding, message)
 
-const workHistoryMessage = (message: typeof WorkHistoryBlock.Message.Type) =>
+const workHistoryMessage = (message: WorkHistoryMessage) =>
   toParentMessage(WorkHistoryBinding, message)
 
-const educationMessage = (message: typeof EducationBlock.Message.Type) =>
+const educationMessage = (message: EducationMessage) =>
   toParentMessage(EducationBinding, message)
 
-const skillsMessage = (message: typeof SkillsBlock.Message.Type) =>
+const skillsMessage = (message: SkillsMessage) =>
   toParentMessage(SkillsBinding, message)
 
-const coverLetterMessage = (message: typeof CoverLetterBlock.Message.Type) =>
+const coverLetterMessage = (message: CoverLetterMessage) =>
   toParentMessage(CoverLetterBinding, message)
 
-const attachmentsMessage = (message: typeof AttachmentsBlock.Message.Type) =>
+const attachmentsMessage = (message: AttachmentsMessage) =>
   toParentMessage(AttachmentsBinding, message)
 
-const stepMenuMessage = (message: typeof StepMenuBlock.Message.Type) =>
+const stepMenuMessage = (message: StepMenuMessage) =>
   toParentMessage(StepMenuBinding, message)
 
-const stepTabsMessage = (message: typeof StepTabsBlock.Message.Type) =>
+const stepTabsMessage = (message: StepTabsMessage) =>
   toParentMessage(StepTabsBinding, message)
 
 const resolveFocusTab = Command.resolve(

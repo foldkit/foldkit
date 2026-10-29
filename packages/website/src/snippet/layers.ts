@@ -5,26 +5,31 @@ import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 
 const User = Schema.Struct({ id: Schema.String, name: Schema.String })
+type User = typeof User.Type
 
 export const Message = defineMessageUnion({
   SucceededLoadUser: { user: User },
   FailedLoadUser: { error: Schema.String },
 })
+export type Message = typeof Message.Type
 
 export const UserState = defineTaggedUnion({
   Loading: {},
   Loaded: { user: User },
   Failed: { error: Schema.String },
 })
+export type UserState = typeof UserState.Type
 
 export const Model = Schema.Struct({ user: UserState })
+export type Model = typeof Model.Type
+
 export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
 
 type ApiClient = Readonly<{
-  getUser: (userId: string) => Effect.Effect<typeof User.Type, unknown>
+  getUser: (userId: string) => Effect.Effect<User, unknown>
 }>
 
 class ApiClientService extends Context.Service<ApiClientService, ApiClient>()(

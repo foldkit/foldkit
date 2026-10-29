@@ -14,9 +14,10 @@ const Model = Schema.Struct({
   uploadedFiles: Schema.Array(File.File),
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // This excerpt has no parent-owned facts. The Composition derives delivery.
 const Message = defineMessageUnion({})
+type Message = typeof Message.Type
 
 const FileDropExampleDefinition = Block.makeDefinition('FileDropExample', {
   Model,

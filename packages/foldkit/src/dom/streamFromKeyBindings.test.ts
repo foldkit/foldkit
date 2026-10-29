@@ -11,7 +11,6 @@ import {
 const Message = defineMessageUnion({
   PressedKeys: { name: Schema.String },
 })
-
 type Message = typeof Message.Type
 
 const tick = (milliseconds = 0): Promise<void> =>

@@ -8,11 +8,15 @@ const Model = Schema.Struct({
   counter: CounterBlock.Model,
   revision: Schema.Number,
 })
+type Model = typeof Model.Type
+
 const Message = defineMessageUnion({
   ClickedResetCounter: {},
   ClickedIncrementRevision: {},
   CompletedSave: {},
 })
+type Message = typeof Message.Type
+
 const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,

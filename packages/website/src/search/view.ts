@@ -18,8 +18,8 @@ const resultItemId = (index: number): string => `search-result-${index}`
 
 const handleSearchInputKeyDown = (
   key: string,
-  model: typeof Model.Type,
-): Option.Option<typeof Message.Type> =>
+  model: Model,
+): Option.Option<Message> =>
   Match.value(key).pipe(
     Match.when('ArrowDown', () =>
       Option.some(Message.PressedArrowKey({ direction: 'Down' })),
@@ -47,10 +47,7 @@ const handleSearchInputKeyDown = (
     Match.orElse(() => Option.none()),
   )
 
-const searchInputView = (
-  model: typeof Model.Type,
-  h: SearchViewBuilder,
-): Html => {
+const searchInputView = (model: Model, h: SearchViewBuilder): Html => {
   const isListboxVisible =
     model.searchState._tag === 'Ok' || model.searchState._tag === 'Loading'
 
@@ -89,9 +86,7 @@ const searchInputView = (
 const labelPillClassName =
   'text-xs text-gray-600 dark:text-gray-400 bg-gray-200/70 dark:bg-gray-700/50 px-1.5 py-px rounded'
 
-const resultLabelText = (
-  result: typeof SearchResult.Type,
-): Option.Option<string> =>
+const resultLabelText = (result: SearchResult): Option.Option<string> =>
   Option.firstSomeOf([
     Option.liftPredicate(result.kind, String.isNonEmpty),
     Option.liftPredicate(
@@ -100,14 +95,14 @@ const resultLabelText = (
     ),
   ])
 
-const resultLabel = (result: typeof SearchResult.Type): ReadonlyArray<Html> =>
+const resultLabel = (result: SearchResult): ReadonlyArray<Html> =>
   Option.match(resultLabelText(result), {
     onSome: text => [ih.span([ih.Class(labelPillClassName)], [text])],
     onNone: () => [],
   })
 
 const resultItemView = (
-  result: typeof SearchResult.Type,
+  result: SearchResult,
   index: number,
   isActive: boolean,
   h: SearchViewBuilder,
@@ -180,7 +175,7 @@ const noResultsView = (query: string): Html =>
   )
 
 const resultListView = (
-  results: ReadonlyArray<typeof SearchResult.Type>,
+  results: ReadonlyArray<SearchResult>,
   activeResultIndex: number,
   h: SearchViewBuilder,
 ): Html =>
@@ -200,10 +195,7 @@ const resultListView = (
       ),
   })
 
-const resultsListView = (
-  model: typeof Model.Type,
-  h: SearchViewBuilder,
-): Html =>
+const resultsListView = (model: Model, h: SearchViewBuilder): Html =>
   SearchState.match<Html>(model.searchState, {
     Idle: () => emptyPrompt,
     Loading: ({ results }) =>
@@ -218,7 +210,7 @@ const resultsListView = (
       }),
   })
 
-const resultCountAnnouncement = (model: typeof Model.Type): Html => {
+const resultCountAnnouncement = (model: Model): Html => {
   const results = resultsFromState(model.searchState)
   const count = results.length
 

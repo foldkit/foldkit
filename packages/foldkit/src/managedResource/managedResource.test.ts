@@ -43,14 +43,17 @@ const ConstructionManagedResourceCommand = Command.define(
 const SessionResource = tag<Readonly<{ token: string }>>()('SessionResource')
 
 const sessionSchema = Schema.Option(Schema.Struct({ token: Schema.String }))
-const annotatedSessionSchema: Schema.Schema<typeof sessionSchema.Type> =
-  sessionSchema
+type sessionSchema = typeof sessionSchema.Type
+const annotatedSessionSchema: Schema.Schema<sessionSchema> = sessionSchema
 const idRequirementsSchema = Schema.Struct({ id: Schema.String })
+type idRequirementsSchema = typeof idRequirementsSchema.Type
 const tokenRequirementsSchema = Schema.Struct({ token: Schema.String })
+type tokenRequirementsSchema = typeof tokenRequirementsSchema.Type
 const unionSessionSchema = Schema.Union([
   Schema.Option(idRequirementsSchema),
   Schema.Option(tokenRequirementsSchema),
 ])
+type unionSessionSchema = typeof unionSessionSchema.Type
 
 const childManagedResources = make<ChildModel, ChildMessage>()(entry => ({
   session: entry('ManageChildSession', sessionSchema, {
@@ -100,6 +103,7 @@ const contextualSessionSchema = Schema.Option(
     label: Schema.optional(Schema.String),
   }),
 )
+type contextualSessionSchema = typeof contextualSessionSchema.Type
 
 const layeredManagedResources = make<ChildModel, ChildMessage>()(entry => ({
   session: entry('ManageSession', sessionSchema, {
@@ -294,18 +298,13 @@ if (false) {
 
   schemaFallbackEntries.annotatedHost.toLayer(
     Effect.succeed({
-      acquire: ({ token }: typeof tokenRequirementsSchema.Type) =>
-        Effect.succeed(token),
+      acquire: ({ token }: tokenRequirementsSchema) => Effect.succeed(token),
       release: () => Effect.void,
     }),
   )
   schemaFallbackEntries.unionHost.toLayer(
     Effect.succeed({
-      acquire: (
-        requirements:
-          | typeof idRequirementsSchema.Type
-          | typeof tokenRequirementsSchema.Type,
-      ) =>
+      acquire: (requirements: idRequirementsSchema | tokenRequirementsSchema) =>
         Effect.succeed(
           'id' in requirements ? requirements.id : requirements.token,
         ),

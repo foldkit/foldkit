@@ -7,6 +7,7 @@ import * as Entry from './entry'
 export const Model = Schema.Struct({
   entries: Schema.Array(Entry.SkillsEntryBlock.Model),
 })
+export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ClickedAddEntry: {},
@@ -15,6 +16,7 @@ export const Message = defineMessageUnion({
   RemovedEntry: { entryId: Schema.String },
   RequestedRevealErrors: {},
 })
+export type Message = typeof Message.Type
 
 export const SkillsDefinition = Block.makeDefinition('Skills', {
   Model,

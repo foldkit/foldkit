@@ -54,17 +54,23 @@ A compact feature destructures its helpers beside its Definition. Keep qualified
 
 For example, `CompletedSave: makeNoopStep()` constructs a Model-preserving Step once and uses it as the handler. Pass the constructed Step, including the factory call's parentheses. The bare `makeNoopStep` factory does not have a handler's signature.
 
-Keep a Step with the behavior it owns. A Block's reusable internal transition can live in `update.ts` or an owning helper module. Parent coordination belongs beside its Bindings and policies. Steps are useful throughout update authoring, not only in composition files or calls to `Update.combineSteps`.
+#### Shared Steps
+
+Keep a Step used by only one responsibility with that code. Put reusable Steps shared by update, composition, or init in the owning Block's `steps.ts`. For a larger module, use responsibility files such as `steps/search.ts` and `steps/quoteLoading.ts`, with an explicit `steps/index.ts` barrel. The owner is the Block whose Model the Step transforms. Keep shared Steps independent of the owning update and completed Block.
+
+`update.ts` maps incoming Messages to handlers and Steps. `composition.ts` registers relationships and maps child OutMessages to parent Steps. `steps.ts` owns the reusable transitions those entry points share. Keep Binding registration and OutMessage policy in composition, and retain the `Step` suffix on named Steps. A Step that closes over a Binding from composition must read it in a deferred producer when the modules depend on one another; module initialization must not invoke that Binding.
 
 When a handler only applies an existing compatible Model-first Step, supply the Step directly as its record value. A no-argument Binding operation returns that Step without applying it. Keep a callback when it consumes the Message payload, derives arguments from the Model, defers argument construction until dispatch, supplies dispatch context, or provides necessary contextual inference. Payload-first `Message.match` branches have a different signature and require their own callbacks.
 
 The retained precision depends on the visible handler and helper return types. A broad annotation or an already-erased helper contract cannot recover narrower Commands or OutMessages.
 
+Inline handlers and Model-aware `makeStep` producers infer the Model and exact Message from their `makeUpdate` entry, including entries returned by `.withContext`. Use `makeStep.fromMessage` when only the Message constructs the Step. An extracted producer needs its own precise parameter contract; operation arguments outside a handler record retain their explicit domain types.
+
 ### Updates with Dispatch Context
 
 Use `FeatureComposition.makeUpdate.withContext(context => handlers)` when local handlers need additional dispatch arguments. The factory receives those arguments and returns the exhaustive local handler record. Its handlers receive the Model and exact Message payload as usual. Required, defaulted, optional, and rest context arguments retain their call shapes.
 
-Creating the update is passive. The factory runs for each local dispatch and does not run for a routed child-only delivery. Context-factory handlers that use a generic Step may need the explicit adapter `model => step(model)` for inference; they do not need a Model annotation.
+Creating the update is passive. The factory runs for each local dispatch and does not run for a routed child-only delivery. Context-factory handlers do not need a Model annotation, and a compatible Step can be a record value directly, as in the plain handler record.
 
 ::Snippet{name="updateCurriedContext" label="Authoring an update with dispatch context"}
 
@@ -76,9 +82,19 @@ Name an extracted handler dedicated to one Message `handle<MessageTag>`, such as
 
 If a single handler mixes connected Binding recipes with local results, use canonical local results. Definition-owned Steps supply those result contracts. Return the connected recipe intact, and use `makeFieldsStep`, `makeCommandsStep`, `makeNoopStep`, or `makeStep` for its local branches. A raw `{ model }` beside a connected recipe is rejected because structural inference can otherwise erase Commands or OutMessages before Composition sees them. Ordinary raw-only handlers remain supported.
 
-::Snippet{name="updateCanonicalLocalResults" label="Preserving local results beside connected operations"}
+The diagnostic **“Local results beside connected operations must use Definition-owned Steps to preserve Commands and OutMessages”** applies to branches within one handler. Another handler returning only `{ model }` does not need a wrapper. These two handlers differ only in the local branch's result contract:
+
+::Snippet{name="updateMixedConnectedBranchesBefore" label="❌ Mixing a raw local result with a connected recipe"}
+
+::Snippet{name="updateMixedConnectedBranchesAfter" label="✅ Preserving a local result beside a connected recipe"}
 
 For other domain unions, use their `match` for exhaustive matching and `matchOrElse` for selected variants with a fallback. Use [Effect's `Match`](https://effect.website/docs/code-style/pattern-matching/) when one handler matches several tags, for partial matching, or for unions without their own matcher.
+
+### Checking Missing Handlers Before Structural Errors
+
+An incomplete handler record can report that a connected `ResultRecipe` has no `model` instead of naming the missing Message tag. First compare the record keys with the owning Definition's local Message union. Add every missing handler, including Command completions that need no further work; `CompletedSave: makeNoopStep()` is appropriate when saving has already been handled. Generated child envelopes do not need local handlers.
+
+After the record is complete, diagnose any remaining result-channel or registration error. Do not add a `model` field to a connected recipe or cast its return to silence this cascade. Missing-tag diagnostic priority is a compiler-reporting limitation; the record remains exhaustive.
 
 ### Calling update as a Step
 
@@ -145,6 +161,14 @@ The graph requirement is intentional: an ordinary `Model` type says nothing abou
 ::Snippet{name="updateConnectedStepBefore" label="❌ Applying a connected Step to a raw Model"}
 
 ::Snippet{name="updateConnectedStepAfter" label="✅ Deferring a connected Step to its Composition"}
+
+The same distinction applies inside a Definition-owned producer. Its `model` argument has the domain fields; it does not gain registration just because the producer belongs to the Definition. `combineSteps(model, steps)` applies immediately and therefore fails there. Return `combineSteps(steps)` instead: the registered Composition supplies its capable Model when it runs the Step.
+
+::Snippet{name="blockAppliedConnectedStep" label="❌ Applying a connected combination inside its producer"}
+
+::Snippet{name="blockDeferredConnectedStep" label="✅ Deferring a connected combination to its Composition"}
+
+Inside `Composition.makeUpdate`, the handler's contextual Model already carries registration, so the data-first combination remains valid there. Deferring pure Step application does not schedule Commands or introduce another Runtime phase.
 
 #### Extracting a Local Edit Before an Emitting Operation
 

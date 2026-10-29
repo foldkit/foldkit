@@ -11,12 +11,12 @@ import { EducationEntryBlock } from './entry'
 import { init } from './init'
 import { update } from './update'
 
+type EducationEntryMessage = typeof EducationEntryBlock.Message.Type
+
 const today = Calendar.make(2026, 4, 16)
 const givenInitial = given(init(today, 'education-entry-1').model)
-const entryMessage = (
-  entryId: string,
-  message: typeof EducationEntryBlock.Message.Type,
-) => toParentMessage(EntriesBinding, entryId, message)
+const entryMessage = (entryId: string, message: EducationEntryMessage) =>
+  toParentMessage(EntriesBinding, entryId, message)
 
 describe('education', () => {
   test('ClickedAddEntry generates an id and appends an entry', () => {

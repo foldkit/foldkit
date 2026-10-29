@@ -14,6 +14,7 @@ const expectSome = <A>(option: Option.Option<A>): A => {
 }
 
 const ChildMessage = defineMessageUnion({ Opened: {}, Closed: {} })
+type ChildMessage = typeof ChildMessage.Type
 
 const Message = defineMessageUnion({
   Completed: {},
@@ -22,6 +23,7 @@ const Message = defineMessageUnion({
   GotChildMessage: { message: ChildMessage },
   WithMaybeNote: { maybeNote: Schema.Option(Schema.String) },
 })
+type Message = typeof Message.Type
 
 const document = Schema.toJsonSchemaDocument(Message)
 
@@ -164,7 +166,9 @@ describe('narrowToVariant', () => {
       message: ChildMessage,
       fallback: ChildMessage,
     })
+    type TwoUnions = typeof TwoUnions.Type
     const unionWithTwoUnions = Schema.Union([TwoUnions])
+    type unionWithTwoUnions = typeof unionWithTwoUnions.Type
     const twoUnionDoc = Schema.toJsonSchemaDocument(unionWithTwoUnions)
     expect(narrowToVariant(twoUnionDoc, 'TwoUnions.Opened')).toEqual(
       Option.none(),
@@ -180,11 +184,13 @@ describe('narrowToVariant', () => {
       Schema.TaggedStruct('Alpha', { value: Schema.String }),
       Schema.TaggedStruct('Beta', { value: Schema.Number }),
     ]).annotate({ identifier: 'SharedUnion' })
+    type SharedUnion = typeof SharedUnion.Type
 
     const SharedDocMessage = Schema.Union([
       Schema.TaggedStruct('UsesA', { shared: SharedUnion }),
       Schema.TaggedStruct('UsesB', { shared: SharedUnion }),
     ])
+    type SharedDocMessage = typeof SharedDocMessage.Type
 
     const sharedDoc = Schema.toJsonSchemaDocument(SharedDocMessage)
     const narrowed = expectSome(narrowToVariant(sharedDoc, 'UsesA'))

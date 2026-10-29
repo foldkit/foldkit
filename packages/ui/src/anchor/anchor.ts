@@ -27,7 +27,6 @@ export const Placement = Schema.Literals([
   'left-start',
   'left-end',
 ])
-
 export type Placement = typeof Placement.Type
 
 /** Schema mirroring `@floating-ui/dom`'s `Padding` type: a uniform number or a
@@ -41,7 +40,6 @@ export const Padding = Schema.Union([
     left: Schema.optionalKey(Schema.Number),
   }),
 ])
-
 export type Padding = typeof Padding.Type
 
 /** Static configuration for anchor-based positioning of a floating element relative to a button. */
@@ -53,7 +51,6 @@ export const AnchorConfig = Schema.Struct({
   portal: Schema.optional(Schema.Boolean),
   isPlacementLocked: Schema.optional(Schema.Boolean),
 })
-
 export type AnchorConfig = typeof AnchorConfig.Type
 
 const PORTAL_ROOT_ID = 'foldkit-portal-root'

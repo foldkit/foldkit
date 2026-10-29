@@ -4,8 +4,8 @@ import { Rpc } from 'effect/rpc'
 import * as Shared from '@typing-game/shared'
 
 type ProgressByGamePlayer = HashMap.HashMap<
-  typeof Shared.GamePlayer.Type,
-  typeof Shared.PlayerProgress.Type
+  Shared.GamePlayer,
+  Shared.PlayerProgress
 >
 
 export const updatePlayerProgress =

@@ -9,8 +9,10 @@ import { Combobox, Dialog } from '@foldkit/ui'
 import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
 const City = Schema.Literals(['Johannesburg', 'Kyiv', 'Oxford', 'Wellington'])
-const CityCombobox = Combobox.create(City)
-const cities: ReadonlyArray<typeof City.Type> = [
+type City = typeof City.Type
+
+const CityCombobox = Combobox.makeBlock(City)
+const cities: ReadonlyArray<City> = [
   'Johannesburg',
   'Kyiv',
   'Oxford',
@@ -26,10 +28,11 @@ const Model = Schema.Struct({
   maybeCity: Schema.Option(City),
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // This excerpt has no parent-owned facts. The two Bindings derive distinct
 // generated delivery for Dialog and Combobox.
 const Message = defineMessageUnion({})
+type Message = typeof Message.Type
 
 const FilterDialogDefinition = Block.makeDefinition('FilterDialog', {
   Model,

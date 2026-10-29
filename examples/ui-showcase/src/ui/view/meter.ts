@@ -4,6 +4,8 @@ import { Meter } from '@foldkit/ui'
 
 import { UiComposition } from '../composition'
 
+type UiMessage = typeof UiComposition.Message.Type
+
 const rowClassName = 'flex flex-col gap-2 w-full max-w-sm'
 const headerClassName = 'flex items-center justify-between text-sm'
 const labelClassName = 'font-medium text-gray-900'
@@ -16,7 +18,7 @@ export const view = UiComposition.makeView((_model, h) => {
     meter,
     label,
     fill,
-  }: Meter.MeterAttributes<typeof UiComposition.Message.Type>): Html =>
+  }: Meter.MeterAttributes<UiMessage>): Html =>
     h.div(
       [h.Class(rowClassName)],
       [
@@ -38,7 +40,7 @@ export const view = UiComposition.makeView((_model, h) => {
     meter,
     label,
     fill,
-  }: Meter.MeterAttributes<typeof UiComposition.Message.Type>): Html =>
+  }: Meter.MeterAttributes<UiMessage>): Html =>
     h.div(
       [h.Class(rowClassName)],
       [

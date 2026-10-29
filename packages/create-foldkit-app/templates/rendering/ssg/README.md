@@ -20,6 +20,12 @@ The build is one `vite build`. `@foldkit/vite-plugin` builds the client bundle,
 builds the server bundle, and generates a page for every path
 `src/entry.server.ts` lists, all from that one command.
 
+Generated pages use directory indexes: `/about` is written to
+`dist/client/about/index.html`. The preview server serves the About document
+at both `/about` and `/about/`, including when JavaScript is disabled. Your
+deployed static host must also resolve directory indexes or redirect to the
+trailing-slash URL.
+
 ## The build id
 
 The build id does not make hydration correct. It makes hydration refuse when it

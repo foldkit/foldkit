@@ -1,5 +1,6 @@
 import { Context, Effect, Schema, Tuple } from 'effect'
 import { Block, Command, Message, Update } from 'foldkit'
+import { modifyFields } from 'foldkit/struct'
 
 type Equal<Left, Right> =
   (<Value>() => Value extends Left ? 1 : 2) extends <
@@ -49,6 +50,77 @@ export const update = CounterComposition.makeUpdate({
   RequestedSave: CounterDefinition.makeCommandsStep(() => [Save()]),
   CompletedSave: CounterDefinition.makeNoopStep(),
 })
+
+export const conditionalUpdate = CounterComposition.makeUpdate({
+  RequestedQuiet: CounterDefinition.makeNoopStep(),
+  RequestedReport: (model, { amount }) => {
+    if (amount > 0) {
+      return {
+        model,
+        commands: [Save()],
+        outMessage: OutMessage.ReportedCount({ count: model.count + amount }),
+      }
+    }
+
+    return { model }
+  },
+  RequestedSave: CounterDefinition.makeCommandsStep(() => [Save()]),
+  CompletedSave: CounterDefinition.makeNoopStep(),
+})
+
+export const conditionalContextUpdate =
+  CounterComposition.makeUpdate.withContext((multiplier: number) => ({
+    RequestedQuiet: CounterDefinition.makeNoopStep(),
+    RequestedReport: (model, { amount }) => {
+      if (amount > 0) {
+        return {
+          model,
+          commands: [Save()],
+          outMessage: OutMessage.ReportedCount({
+            count: (model.count + amount) * multiplier,
+          }),
+        }
+      }
+
+      return { model }
+    },
+    RequestedSave: CounterDefinition.makeCommandsStep(() => [Save()]),
+    CompletedSave: CounterDefinition.makeNoopStep(),
+  }))
+
+export type ConditionalUpdateIsNotAny = Expect<
+  Equal<0 extends 1 & typeof conditionalUpdate ? true : false, false>
+>
+export type ConditionalContextUpdateIsNotAny = Expect<
+  Equal<0 extends 1 & typeof conditionalContextUpdate ? true : false, false>
+>
+export type ConditionalRequirements = Expect<
+  Equal<
+    Update.RequirementsOf<typeof conditionalUpdate>,
+    Command.HandlerOf<typeof Save>
+  >
+>
+export type ConditionalContextRequirements = Expect<
+  Equal<
+    Update.RequirementsOf<typeof conditionalContextUpdate>,
+    Command.HandlerOf<typeof Save>
+  >
+>
+export type ConditionalOutMessage = Expect<
+  Equal<
+    Exclude<ReturnType<typeof conditionalUpdate>['outMessage'], undefined>,
+    typeof OutMessage.Type
+  >
+>
+export type ConditionalContextOutMessage = Expect<
+  Equal<
+    Exclude<
+      ReturnType<typeof conditionalContextUpdate>['outMessage'],
+      undefined
+    >,
+    typeof OutMessage.Type
+  >
+>
 const prepareCounter = () =>
   CounterComposition.prepareBlock({
     init,
@@ -120,6 +192,23 @@ export const contextualUpdate = CounterComposition.makeUpdate.withContext(
     CompletedSave: model => CounterDefinition.makeNoopStep()(model),
   }),
 )
+export const contextualStepUpdate = CounterComposition.makeUpdate.withContext(
+  (multiplier: number) => ({
+    RequestedQuiet: CounterDefinition.makeFieldsStep(() => ({
+      count: count => count + 1,
+    })),
+    RequestedReport: CounterDefinition.makeOutMessageStep((model, message) =>
+      OutMessage.ReportedCount({
+        count: (model.count + message.amount) * multiplier,
+      }),
+    ),
+    RequestedSave: CounterDefinition.makeCommandsStep(() => [Save()]),
+    CompletedSave: CounterDefinition.makeNoopStep(),
+  }),
+)
+export type ContextualStepReturn = Expect<
+  Equal<ReturnType<typeof contextualStepUpdate>, ReturnType<typeof update>>
+>
 const prepareContextCounter = () =>
   CounterComposition.prepareBlock({
     init,
@@ -168,6 +257,98 @@ export const parentUpdate = ParentComposition.makeUpdate({
   RequestedSave: model => ChildBinding.save()(model),
   CompletedSave: ParentDefinition.makeNoopStep(),
 })
+export const contextualParentUpdate = ParentComposition.makeUpdate.withContext(
+  (amount: number) => ({
+    RequestedQuiet: model =>
+      Update.combineSteps(model, [
+        ChildBinding.quiet(),
+        ParentDefinition.makeNoopStep(),
+      ]),
+    RequestedReport: model => ChildBinding.report({ amount })(model),
+    RequestedSave: ChildBinding.save(),
+    CompletedSave: ParentDefinition.makeNoopStep(),
+  }),
+)
+export const mixedConnectedLocalUpdate = ParentComposition.makeUpdate({
+  RequestedQuiet: model =>
+    model.count > 0
+      ? ChildBinding.report({ amount: 1 })(model)
+      : ParentDefinition.makeNoopStep()(model),
+  RequestedReport: model => ChildBinding.report({ amount: 1 })(model),
+  RequestedSave: model => ChildBinding.save()(model),
+  CompletedSave: ParentDefinition.makeNoopStep(),
+})
+export type MixedConnectedLocalNotAny = Expect<
+  Equal<0 extends 1 & typeof mixedConnectedLocalUpdate ? true : false, false>
+>
+export type MixedConnectedLocalOutMessage = Expect<
+  Equal<
+    Exclude<
+      ReturnType<typeof mixedConnectedLocalUpdate>['outMessage'],
+      undefined
+    >,
+    typeof OutMessage.Type
+  >
+>
+export type MixedConnectedLocalRequirements = Expect<
+  Equal<
+    Update.RequirementsOf<typeof mixedConnectedLocalUpdate>,
+    Update.RequirementsOf<typeof parentUpdate>
+  >
+>
+export type ContextualParentParameters = Expect<
+  Equal<
+    Parameters<typeof contextualParentUpdate>,
+    [...Parameters<typeof parentUpdate>, amount: number]
+  >
+>
+export type ContextualParentReturn = Expect<
+  Equal<
+    ReturnType<typeof contextualParentUpdate>,
+    ReturnType<typeof parentUpdate>
+  >
+>
+
+export const StatusModel = Schema.Struct({
+  status: Schema.Literals(['Idle', 'Done']),
+})
+export type StatusModel = typeof StatusModel.Type
+export const StatusMessage = Message.defineMessageUnion({
+  ClickedDone: {},
+  ClickedReset: {},
+})
+export type StatusMessage = typeof StatusMessage.Type
+export const StatusDefinition = Block.makeDefinition('RecordStatus', {
+  Model: StatusModel,
+  Message: StatusMessage,
+})
+export const StatusComposition = StatusDefinition.makeComposition()
+export const statusUpdate = StatusComposition.makeUpdate({
+  ClickedDone: model => ({
+    model: modifyFields(model, { status: () => 'Done' }),
+  }),
+  ClickedReset: model => ({
+    model: modifyFields(model, { status: () => 'Idle' }),
+  }),
+})
+export const contextualStatusUpdate = StatusComposition.makeUpdate.withContext(
+  (isLocked: boolean) => ({
+    ClickedDone: model => ({
+      model: modifyFields(model, {
+        status: status => (isLocked ? status : 'Done'),
+      }),
+    }),
+    ClickedReset: model => ({
+      model: modifyFields(model, { status: () => 'Idle' }),
+    }),
+  }),
+)
+export type ContextualStatusReturn = Expect<
+  Equal<
+    ReturnType<typeof contextualStatusUpdate>,
+    ReturnType<typeof statusUpdate>
+  >
+>
 
 export const makeGenericCounter = <Value>(Value: Schema.Schema<Value>) => {
   const GenericModel = Schema.Struct({ value: Value })

@@ -12,6 +12,7 @@ const Message = defineMessageUnion({
   CompletedWork: {},
   SucceededTask: { taskId: Schema.Number },
 })
+type Message = typeof Message.Type
 
 const provideRegistry =
   (registry: __Registry) =>
@@ -33,10 +34,12 @@ describe('interruptible Command.define', () => {
           label: Schema.String,
           revision: Schema.Number,
         })
+        type Args = typeof Args.Type
         const KeyArgs = Schema.Struct({
           taskId: Args.fields.taskId,
           label: Args.fields.label,
         })
+        type KeyArgs = typeof KeyArgs.Type
         const OwnedHost = Definition.makeCommand('OwnedHost', {
           args: Args.fields,
           messages: [Message.SucceededTask],
@@ -147,16 +150,18 @@ describe('interruptible Command.define', () => {
       taskId: Schema.Number,
       revision: Schema.Number,
     })
+    type Args = typeof Args.Type
     const OptionalRevision = Schema.Struct({
       taskId: Schema.Number,
       revision: Schema.optionalKey(Schema.Number),
     })
+    type OptionalRevision = typeof OptionalRevision.Type
     const RunTask = Command.define('OptionalSelectedTask', {
       args: Args.fields,
       messages: [Message.SucceededTask],
       interrupt: {
         keyFields: ['taskId'],
-        toKey: (keyArgs: typeof OptionalRevision.Type) =>
+        toKey: (keyArgs: OptionalRevision) =>
           `${keyArgs.taskId}:${keyArgs.revision}`,
       },
     })
@@ -173,6 +178,7 @@ describe('interruptible Command.define', () => {
       constructor: Schema.optionalKey(Schema.String),
       toString: Schema.optionalKey(Schema.String),
     })
+    type Args = typeof Args.Type
     const RunTask = Command.define('OwnSelectedTask', {
       args: Args.fields,
       messages: [Message.SucceededTask],

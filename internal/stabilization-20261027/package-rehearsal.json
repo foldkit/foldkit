@@ -1,0 +1,907 @@
+{
+  "status": "Passed",
+  "sourceCommit": "ae2eba84283939f5991a1b0c35c32ba351f9efdc",
+  "sourceDigest": "81aa61f4e66b52f0890c550284b99092a36bd7623764c818663b583fcf334f09",
+  "trackedSourceIdentity": {
+    "status": "Passed",
+    "trackedFileCount": 7019,
+    "allTrackedFilesIncluded": true
+  },
+  "dependencyResolutionControl": {
+    "classification": "fixture-infrastructure-resolution-control",
+    "policyRelaxed": false,
+    "reason": "Fresh no-lock resolution selects transitive releases newer than the active minimumReleaseAge policy; the rehearsal is anchored to the coherent frozen source lock instead.",
+    "overrides": {
+      "@modelcontextprotocol/sdk>hono": "4.13.11",
+      "express-rate-limit>ip-address": "10.7.2",
+      "magic-string@^1.4.0": "1.4.2"
+    },
+    "frozenSourceLock": "foldkit-source/pnpm-lock.yaml",
+    "scope": "scaffolds fixture pnpm workspaces only",
+    "applicationSourceChanged": false,
+    "packedArtifactChanged": false
+  },
+  "packageCount": 9,
+  "coverchart": {
+    "compiler": {
+      "executable": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/coverchart/node_modules/.bin/tsc",
+      "version": "Version 7.1.0-beta"
+    },
+    "results": [
+      {
+        "name": "typecheck",
+        "status": "Passed",
+        "logPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/coverchart-typecheck.log"
+      },
+      {
+        "name": "lint",
+        "status": "Passed",
+        "logPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/coverchart-lint.log"
+      },
+      {
+        "name": "test",
+        "status": "Passed",
+        "logPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/coverchart-test.log"
+      },
+      {
+        "name": "build",
+        "status": "Passed",
+        "logPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/coverchart-build.log"
+      },
+      {
+        "name": "test-count",
+        "status": "Passed",
+        "count": 40
+      }
+    ]
+  },
+  "scaffolds": {
+    "artifactTransport": "local-packed-tarballs",
+    "publishedRegistryAcceptance": false,
+    "compilers": [
+      {
+        "mode": "spa",
+        "executable": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/scaffolds/spa-smoke/node_modules/.bin/tsc",
+        "version": "Version 7.1.0-beta"
+      },
+      {
+        "mode": "ssg",
+        "executable": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/scaffolds/ssg-smoke/node_modules/.bin/tsc",
+        "version": "Version 7.1.0-beta"
+      },
+      {
+        "mode": "ssr",
+        "executable": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/scaffolds/ssr-smoke/node_modules/.bin/tsc",
+        "version": "Version 7.1.0-beta"
+      }
+    ],
+    "results": [
+      {
+        "mode": "spa",
+        "gate": "typecheck",
+        "status": "Passed",
+        "logPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/scaffold-spa-typecheck.log"
+      },
+      {
+        "mode": "spa",
+        "gate": "lint",
+        "status": "Passed",
+        "logPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/scaffold-spa-lint.log"
+      },
+      {
+        "mode": "spa",
+        "gate": "test",
+        "status": "Passed",
+        "logPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/scaffold-spa-test.log"
+      },
+      {
+        "mode": "spa",
+        "gate": "build",
+        "status": "Passed",
+        "logPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/scaffold-spa-build.log"
+      },
+      {
+        "mode": "ssg",
+        "gate": "typecheck",
+        "status": "Passed",
+        "logPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/scaffold-ssg-typecheck.log"
+      },
+      {
+        "mode": "ssg",
+        "gate": "lint",
+        "status": "Passed",
+        "logPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/scaffold-ssg-lint.log"
+      },
+      {
+        "mode": "ssg",
+        "gate": "test",
+        "status": "Passed",
+        "logPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/scaffold-ssg-test.log"
+      },
+      {
+        "mode": "ssg",
+        "gate": "build",
+        "status": "Passed",
+        "logPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/scaffold-ssg-build.log"
+      },
+      {
+        "mode": "ssr",
+        "gate": "typecheck",
+        "status": "Passed",
+        "logPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/scaffold-ssr-typecheck.log"
+      },
+      {
+        "mode": "ssr",
+        "gate": "lint",
+        "status": "Passed",
+        "logPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/scaffold-ssr-lint.log"
+      },
+      {
+        "mode": "ssr",
+        "gate": "test",
+        "status": "Passed",
+        "logPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/scaffold-ssr-test.log"
+      },
+      {
+        "mode": "ssr",
+        "gate": "build",
+        "status": "Passed",
+        "logPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/scaffold-ssr-build.log"
+      }
+    ]
+  },
+  "testingFollowups": {
+    "status": "Passed",
+    "testCount": 4,
+    "installedEntryPoints": [
+      "foldkit/story",
+      "foldkit/test",
+      "foldkit/variantBinding"
+    ],
+    "variantBinding": true,
+    "browserRequired": false,
+    "logPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/testing-followups-contract.log"
+  },
+  "eventDelivery": {
+    "status": "Passed",
+    "typecheckStatus": "Passed",
+    "typecheckLogPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/scaffold-spa-typecheck.log",
+    "runtimeStatus": "Passed",
+    "testCount": 4,
+    "expectedTestCount": 4,
+    "sourceSha256": "7e55325d08e7d8813ba5477bd68ce835fa446e4d101932aca081f32de0849662",
+    "installedSha256": "7e55325d08e7d8813ba5477bd68ce835fa446e4d101932aca081f32de0849662",
+    "hashesMatch": true,
+    "installedEntryPoints": [
+      "foldkit",
+      "foldkit/message",
+      "foldkit/scene",
+      "foldkit/story",
+      "foldkit/struct"
+    ],
+    "browserRequired": false,
+    "logPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/event-delivery-contract.log"
+  },
+  "dynamicInit": {
+    "status": "Passed",
+    "testCount": 2,
+    "expectedTestCount": 2,
+    "sourceSha256": "e6eb3e85e247d082500d97c30edbe82a2a3ea3f54c77ef14c12a69e9c8f48448",
+    "installedSha256": "e6eb3e85e247d082500d97c30edbe82a2a3ea3f54c77ef14c12a69e9c8f48448",
+    "hashesMatch": true,
+    "logPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/dynamic-init-contract.log",
+    "installedEntryPoint": "foldkit/bindingInit"
+  },
+  "initializationFamily": {
+    "status": "Passed",
+    "compiler": {
+      "executable": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/scaffolds/spa-smoke/node_modules/.bin/tsc",
+      "version": "Version 7.1.0-beta"
+    },
+    "installedEntryPoints": ["foldkit", "foldkit/block", "foldkit/bindingInit"],
+    "fixtureCount": 9,
+    "hashesMatch": true,
+    "results": [
+      {
+        "name": "asset-hashes",
+        "status": "Passed"
+      },
+      {
+        "name": "typecheck",
+        "status": "Passed",
+        "logPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/initialization-family-typecheck.log"
+      },
+      {
+        "name": "runtime",
+        "status": "Passed",
+        "logPath": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/initialization-family-runtime.log"
+      },
+      {
+        "name": "five-lifted-Commands",
+        "status": "Passed",
+        "expected": 5,
+        "observed": 5
+      },
+      {
+        "name": "stabilization-runtime-contracts",
+        "status": "Passed"
+      }
+    ],
+    "runtimeProof": {
+      "exports": [
+        "initAndSet",
+        "initAndAppend",
+        "initAndInsert",
+        "makeInitIfMissingStep"
+      ],
+      "stabilization": {
+        "passiveConstruction": true,
+        "recordAndHashMapReuseIdentity": true,
+        "absentChildrenInitializedOnce": true,
+        "retainedCommandMessages": 2,
+        "relativePathBoundary": true
+      },
+      "commandNames": [
+        "requiredChild/Read",
+        "PackedInitializationChild[\"optional\"]/Read",
+        "childrenById[\"record\"]/Read",
+        "childrenByNumber[4]/Read",
+        "appended[\"append\"]/Read"
+      ],
+      "commandMessages": [
+        {
+          "_tag": "GotRequiredChildMessage",
+          "placement": "requiredChild",
+          "generation": 0,
+          "message": {
+            "_tag": "CompletedRead",
+            "count": 1
+          }
+        },
+        {
+          "_tag": "GotPackedInitializationChildMessage",
+          "placement": "PackedInitializationChild",
+          "generation": 0,
+          "key": "optional",
+          "message": {
+            "_tag": "CompletedRead",
+            "count": 2
+          }
+        },
+        {
+          "_tag": "GotChildrenByIdMessage",
+          "placement": "childrenById",
+          "generation": 0,
+          "key": "record",
+          "message": {
+            "_tag": "CompletedRead",
+            "count": 3
+          }
+        },
+        {
+          "_tag": "GotChildrenByNumberMessage",
+          "placement": "childrenByNumber",
+          "generation": 0,
+          "key": 4,
+          "message": {
+            "_tag": "CompletedRead",
+            "count": 4
+          }
+        },
+        {
+          "_tag": "GotAppendedMessage",
+          "placement": "appended",
+          "generation": 0,
+          "key": "append",
+          "message": {
+            "_tag": "CompletedRead",
+            "count": 5
+          }
+        }
+      ],
+      "models": {
+        "direct": {
+          "count": 1
+        },
+        "optional": {
+          "_id": "Option",
+          "_tag": "Some",
+          "value": {
+            "id": "optional",
+            "child": {
+              "count": 2
+            }
+          }
+        },
+        "record": {
+          "record": {
+            "count": 3
+          }
+        },
+        "hashMap": [
+          [
+            4,
+            {
+              "count": 4
+            }
+          ]
+        ],
+        "appended": [
+          {
+            "id": "append",
+            "child": {
+              "count": 5
+            },
+            "label": "append"
+          }
+        ]
+      }
+    }
+  },
+  "stabilization": {
+    "status": "Passed",
+    "compiler": {
+      "executable": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/scaffolds/spa-smoke/node_modules/.bin/tsc",
+      "version": "Version 7.1.0-beta"
+    },
+    "fixtures": [
+      {
+        "file": "route-path.accepted.ts",
+        "sha256": "51d0639268908382f56ce1179f9569913b1b2e5de2b413905a4b7478d350d4fb"
+      },
+      {
+        "file": "route-path.consume.ts",
+        "sha256": "e4764967460de08022da73390191fb4f9ddfdac1aa129d9f3635ce7ad99a0f68"
+      },
+      {
+        "file": "route-path.rejected.ts",
+        "sha256": "9f5b76fab724928a1e3d557be5689e8ea18746dd61404e3ee37625cb48e558d8"
+      }
+    ],
+    "results": [
+      {
+        "name": "source",
+        "status": "Passed"
+      },
+      {
+        "name": "rejected-unbranded-key-control",
+        "status": "Passed"
+      },
+      {
+        "name": "emit",
+        "status": "Passed"
+      },
+      {
+        "name": "relocated",
+        "status": "Passed"
+      },
+      {
+        "name": "relocated-files",
+        "status": "Passed"
+      },
+      {
+        "name": "reuse-identity-negative-control",
+        "status": "Passed"
+      },
+      {
+        "name": "runtime-restored",
+        "status": "Passed"
+      }
+    ],
+    "scope": [
+      "Current initialization-family source accepted/rejected contracts",
+      "Exact init-if-missing registration, args, Commands and Services",
+      "Route relative-path source accepted/rejected contracts",
+      "Removed standalone map subpath rejection",
+      "Emitted declarations consumed from strict relocation without source aliases",
+      "Rejected unbranded key and reuse-identity controls fail as expected",
+      "Record/HashMap reuse, initialization Commands, path decoding runtime"
+    ],
+    "runtimeSha256": "6a527dc75a46366fd2b1ad6ffbc236ac5a2f0b61e2861df57b95b2b67973532a",
+    "reachedFileCount": 469,
+    "publication": false
+  },
+  "publishedRegistryAcceptance": false,
+  "publication": false,
+  "sourceManifestEntries": 7125,
+  "sourceQualification": "7019 tracked paths plus106 generated seed files; exact ae2 implementation snapshot; later internal evidence edits excluded",
+  "artifacts": [
+    {
+      "name": "foldkit",
+      "version": "0.169.0-local.81aa61f4e66b",
+      "sha256": "9ae9bbfb2964f005d581b2f782a20cc09a56de530cfd8e966360980fa6608014",
+      "integrity": "sha512-LwYQHZ5piOwd/eNGTDjb+EkSIunEuyP28tiyLVzdRS4g5GDg5jsd1j2LVvNGCkoLFfXJW1TZCVOHvrtA9l+A1Q=="
+    },
+    {
+      "name": "@foldkit/ui",
+      "version": "0.169.0-local.81aa61f4e66b",
+      "sha256": "067bf2a79085ab5c89aabf99b91f39d4dda1995eb0e5fa730e1b43893ccf4986",
+      "integrity": "sha512-nSabGjPEJEbYyIEfKS4yq4fF44H+Hndw3Tnp2DsUsWN8VG/eG/dLs+LDERP4HJ3v0xjTabEbc5EB4+ge9pig9A=="
+    },
+    {
+      "name": "@foldkit/devtools",
+      "version": "0.169.0-local.81aa61f4e66b",
+      "sha256": "785ce9b71bdb8ab4f451e0fa72da5fdc3439c46c955e4cc466e63a30826d58ea",
+      "integrity": "sha512-Iw51Wn8stMoYy3zmhxK7uqtLhU2aO65Um0VGy7H7i2grBgWAIT4kABV5qMB+32Hmm52xBF+DwBTKBqelEP8fBQ=="
+    },
+    {
+      "name": "@foldkit/devtools-mcp",
+      "version": "0.25.0-local.81aa61f4e66b",
+      "sha256": "413cb1f7b4703938833ac77e7066c192ad943ca822c5e89fd715dcbb616807b0",
+      "integrity": "sha512-OsZUON/V/+lQSef5rrI29SW84ks4XrOK2cNfhJZ1/L9qoAQhWURB8XlyxGfYPjZtao7wTF5/2ovGTfbx4oMidw=="
+    },
+    {
+      "name": "@foldkit/oxlint-plugin",
+      "version": "0.15.3-local.81aa61f4e66b",
+      "sha256": "ccd6c995cc1f56a4cdf94f215c1086a543dae0793a3866d89953127e4b388985",
+      "integrity": "sha512-+vnA2nu7QgKNVjtGlVboaad4Wt0WtH1Or4A5+0hHrg214jk4ODjm6LPhlhnO0ZeyGyqhS2YmrRbQpe3zvnnwbw=="
+    },
+    {
+      "name": "@foldkit/vite-plugin",
+      "version": "0.28.0-local.81aa61f4e66b",
+      "sha256": "3407c91421d9bd98a552d364caf2cd781b4810aa984d824272b9d67d92228fa9",
+      "integrity": "sha512-SC6SrGJjYjPC4ANVxGTtMA6tAJmDd2UUzQPCuHuwFrWZcO1KceXnReyPJBoED+z2MctvCM4dxk9572e4qhUtrg=="
+    },
+    {
+      "name": "@foldkit/node",
+      "version": "0.1.0-local.81aa61f4e66b",
+      "sha256": "04b1479bfc57fa3bcb9b24d7bf67539ab5e7d4da3953ac6ea3c39c4b64512944",
+      "integrity": "sha512-xulQL4YYn/afoJGxwdO4NsYFBJmAHyjc2q9FLQVrHgwtdEolpJhfOGFkIKQD3g1TE3wr01+Oey++R9QXYAOghA=="
+    },
+    {
+      "name": "@foldkit/markdown",
+      "version": "0.14.4-local.81aa61f4e66b",
+      "sha256": "43a9189f25face53b13dc1b13fa16589a0c2cdc0ec735ba187a2c50bdbf931a9",
+      "integrity": "sha512-lfp43unXb1iUKP1T2KI/w+qpgmFxagtkp6G/hC7cJUdFqK0zW4izYlPgSFOEr8a8ee4bicG8+WqbApbejn49fg=="
+    },
+    {
+      "name": "create-foldkit-app",
+      "version": "0.40.0-local.81aa61f4e66b",
+      "sha256": "43f71d0078c6f865e2d8c124306d85e4d6df214eaee633ad77d0aad87b22317d",
+      "integrity": "sha512-VlydsmAZB/fdRKHx+d0Mxr3BXjFAqz97HBxn5+1klpvkSfNtAvJofBNOEGyl025dfcgsPVsdVSw2Zv2XbWlq1g=="
+    }
+  ],
+  "installedProvenance": {
+    "sourceSnapshotDigest": "81aa61f4e66b52f0890c550284b99092a36bd7623764c818663b583fcf334f09",
+    "installations": [
+      {
+        "root": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/scaffolds",
+        "packages": [
+          {
+            "name": "foldkit",
+            "version": "0.169.0-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/ui",
+            "version": "0.169.0-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/devtools",
+            "version": "0.169.0-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/devtools-mcp",
+            "version": "0.25.0-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/oxlint-plugin",
+            "version": "0.15.3-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/vite-plugin",
+            "version": "0.28.0-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/node",
+            "version": "0.1.0-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/markdown",
+            "version": "0.14.4-local.81aa61f4e66b"
+          },
+          {
+            "name": "create-foldkit-app",
+            "version": "0.40.0-local.81aa61f4e66b"
+          }
+        ]
+      },
+      {
+        "root": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/coverchart",
+        "packages": [
+          {
+            "name": "@foldkit/ui",
+            "version": "0.169.0-local.81aa61f4e66b"
+          },
+          {
+            "name": "foldkit",
+            "version": "0.169.0-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/devtools",
+            "version": "0.169.0-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/devtools-mcp",
+            "version": "0.25.0-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/oxlint-plugin",
+            "version": "0.15.3-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/vite-plugin",
+            "version": "0.28.0-local.81aa61f4e66b"
+          }
+        ]
+      },
+      {
+        "root": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/scaffolds/spa-smoke",
+        "packages": [
+          {
+            "name": "@foldkit/ui",
+            "version": "0.169.0-local.81aa61f4e66b"
+          },
+          {
+            "name": "foldkit",
+            "version": "0.169.0-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/devtools",
+            "version": "0.169.0-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/devtools-mcp",
+            "version": "0.25.0-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/oxlint-plugin",
+            "version": "0.15.3-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/vite-plugin",
+            "version": "0.28.0-local.81aa61f4e66b"
+          }
+        ]
+      },
+      {
+        "root": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/scaffolds/ssg-smoke",
+        "packages": [
+          {
+            "name": "foldkit",
+            "version": "0.169.0-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/devtools",
+            "version": "0.169.0-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/devtools-mcp",
+            "version": "0.25.0-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/oxlint-plugin",
+            "version": "0.15.3-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/vite-plugin",
+            "version": "0.28.0-local.81aa61f4e66b"
+          }
+        ]
+      },
+      {
+        "root": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027/scaffolds/ssr-smoke",
+        "packages": [
+          {
+            "name": "@foldkit/node",
+            "version": "0.1.0-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/ui",
+            "version": "0.169.0-local.81aa61f4e66b"
+          },
+          {
+            "name": "foldkit",
+            "version": "0.169.0-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/devtools",
+            "version": "0.169.0-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/devtools-mcp",
+            "version": "0.25.0-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/oxlint-plugin",
+            "version": "0.15.3-local.81aa61f4e66b"
+          },
+          {
+            "name": "@foldkit/vite-plugin",
+            "version": "0.28.0-local.81aa61f4e66b"
+          }
+        ]
+      }
+    ],
+    "actualCoverchart": {
+      "head": "677b804e9aa0d0d1f636067079ae404ead84115a",
+      "status": "?? .claude/\n",
+      "unchangedTrackedFiles": 88
+    }
+  },
+  "browserEvidence": {
+    "coverchart": {
+      "status": "Passed",
+      "completed": [
+        "Loaded a pre-JSON-codec 0.151 library and saved dark theme",
+        "Duplicated a legacy section and persisted generated IDs",
+        "Completed keyboard section reorder and persisted order",
+        "Confirmed section deletion and persisted removal",
+        "Reload retained legacy data, dark theme, duplicate, reorder, and deletion"
+      ],
+      "events": [],
+      "expectedFavicon404s": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "location": {
+            "url": "http://127.0.0.1:53980/favicon.ico",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        }
+      ],
+      "sourceSnapshotDigest": "81aa61f4e66b52f0890c550284b99092a36bd7623764c818663b583fcf334f09",
+      "consumerBaseCommit": "677b804e9aa0d0d1f636067079ae404ead84115a",
+      "artifactTransport": "local-packed-tarballs",
+      "publishedRegistryAcceptance": false,
+      "freshBrowserContext": true
+    },
+    "scaffolds": {
+      "status": "Passed",
+      "sourceSnapshotDigest": "81aa61f4e66b52f0890c550284b99092a36bd7623764c818663b583fcf334f09",
+      "artifactTransport": "local-packed-tarballs",
+      "publishedRegistryAcceptance": false,
+      "independentBrowserContexts": true,
+      "completed": [
+        "SPA: packed Counter scaffold booted; increment/decrement updated Model and document title",
+        "SSG: HTML prerendered About; Home hydrated, incremented, and retained Model across client routes",
+        "SSR: request cookie rendered initial7 with private headers; hydration increment persisted8 and reload rendered8"
+      ],
+      "events": [],
+      "expectedFavicon404s": [
+        {
+          "mode": "spa",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "location": {
+            "url": "http://127.0.0.1:53981/favicon.ico",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "mode": "ssg",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "location": {
+            "url": "http://127.0.0.1:53982/favicon.ico",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "mode": "ssr",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 404 ()",
+          "location": {
+            "url": "http://127.0.0.1:53983/favicon.ico",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        }
+      ],
+      "serverLogs": [
+        {
+          "mode": "spa",
+          "log": "  \u279c  Local:   http://127.0.0.1:53981/\n"
+        },
+        {
+          "mode": "ssg",
+          "log": "  \u279c  Local:   http://127.0.0.1:53982/\n"
+        },
+        {
+          "mode": "ssr",
+          "log": "[11:46:43.554] INFO (#2): Listening on http://[::]:53983\n"
+        }
+      ]
+    },
+    "workspace": {
+      "stats": {
+        "startTime": "2026-10-27T15:48:29.968Z",
+        "duration": 31222.490999999998,
+        "expected": 33,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "errors": [],
+      "tests": [
+        {
+          "title": "loads cleanly",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "a direct issue link opens a standalone editor and closes to All issues",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "saving an issue updates the list and survives navigating away and back",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "a failed save retains its draft and can be retried",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "closing and reopening an issue retains its fields and pending comment",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "issue drafts survive switching issues and browser history",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "dirty issue drafts prompt before reload and saved or discarded fields do not",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "project drafts survive navigation and a pending save settles in its own editor",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "a hidden dirty project editor protects reload and discarding it removes the warning",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "narrow screens open the issue editor directly and close returns to the list",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "project navigation filters canonical data and close returns to that project",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "an unknown project cannot open creation for a nonexistent project",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "creating an issue through the Dialog updates shared data and opens its route",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "creating from a Board column keeps its project and status defaults",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "search and status filters combine without changing shared issues",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "a filtered deep link restores its controls and results after reload",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "Back and Forward restore filters on distinct issue routes",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "issue reload and close preserve the filtered page URL",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "a modified native member issue link opens a new tab without moving the directory",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "malformed filter values use defaults and clear to the canonical URL",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "the command shortcut opens the palette and keyboard selection navigates to an issue",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "background activity waits for the full 20-second interval",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "a saved sidebar view restores its settings and deleting it returns to all issues",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "a saved-view issue panel survives reload without session preset metadata",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "a keyboard cross-column drop updates issue details and returns to the same board",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "keyboard drag reorders project issues and retains the order across navigation",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "posting a comment preserves a dirty issue draft and remains visible after reopening",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "a pointer drop stays in its target column before the save finishes",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "a board move stays in place before the save finishes and preserves keyboard focus",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "a cross-column drop stays in its new status before saving and keeps keyboard focus",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "a retained issue save settles while another issue is open",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "opening a notification preserves unread state and selecting it opens the issue",
+          "ok": true,
+          "testStatuses": ["expected"]
+        },
+        {
+          "title": "assignment and read state stay scoped to their recipient",
+          "ok": true,
+          "testStatuses": ["expected"]
+        }
+      ]
+    }
+  },
+  "originalSummarySha256": "5cd3a0103ee6fa3ad7e31e7148ffe665bae8db6133fc4fc12f5a8b4ba52c4e26",
+  "originalEvidenceDirectory": "/private/tmp/foldkit-stabilization-rehearsal-final-20261027"
+}

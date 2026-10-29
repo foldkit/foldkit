@@ -1,0 +1,202 @@
+{
+  "baseCommit": "14e5d7330eca3bacdef2b6591cc204c8440061af",
+  "stage": "adopted source including public Block.MakeMapBinding export",
+  "primaryEditorEvidence": {
+    "workspace": {
+      "reports": 6,
+      "benchmarkScriptSha256": [
+        "2c30bd15da0d50c5ea7a0c61e9a22727657a3dfeed9b77c5159e5665598668a9"
+      ],
+      "workloadSha256": {
+        "baseline": [
+          "14e1f5de8abbe2bff1723213b8715a6b1c7b6cb00713ccdd00476f939d8f3d0c"
+        ],
+        "verified": [
+          "335e4bc246aab98c146dad64f28e8d6caca25bea53a44bc7c4ae356aecb08e73"
+        ]
+      }
+    },
+    "scale-root": {
+      "reports": 6,
+      "benchmarkScriptSha256": [
+        "e5381a6ccd26e05ede0d062697872f667cf591f94cf187b1ef04812f8da07d79"
+      ],
+      "workloadSha256": {
+        "baseline": [
+          "1daeae60b2a7afda17999a4cbd5ca64545bb53815ba90ecdbad377f62f633300"
+        ],
+        "verified": [
+          "aed3381dd4a17d47a337e7ca467559cc67bd8c6223a002546479ae4963908e41"
+        ]
+      }
+    }
+  },
+  "performancePatchFiles": [
+    "examples/vite.aliases.ts",
+    "examples/workspace/src/composition.ts",
+    "examples/workspace/src/definition.ts",
+    "packages/foldkit/package.json",
+    "packages/foldkit/src/block/definition.ts",
+    "packages/foldkit/src/block/insertInitialization.test.ts",
+    "packages/foldkit/src/block/keyedMapFieldConnection.test.ts",
+    "packages/foldkit/src/block/mapBinding.ts",
+    "packages/foldkit/src/block/public.ts",
+    "packages/oxlint-plugin-foldkit/src/guards.ts",
+    "packages/oxlint-plugin-foldkit/src/rules/no-binding-write-coordination.ts",
+    "packages/oxlint-plugin-foldkit/src/rules/no-child-message-construction-in-root.ts",
+    "packages/oxlint-plugin-foldkit/src/rules/no-direct-block-state-update.ts",
+    "packages/oxlint-plugin-foldkit/src/rules/no-empty-to-parent-out-message.ts",
+    "packages/oxlint-plugin-foldkit/src/rules/no-manual-composition-routing.ts",
+    "packages/website/src/snippet/blockKeyedMapFields.ts"
+  ],
+  "inputs": {
+    "baseline": {
+      "examples/vite.aliases.ts": {
+        "bytes": 7741,
+        "sha256": "a02274de8956bd1c49c307ebd6322bab436d5db769a0b3616e3c103dd21870fc"
+      },
+      "examples/workspace/src/composition.ts": {
+        "bytes": 12113,
+        "sha256": "1ef5ad93b910784a14d698ac3c80bd3a39c23fccc5f271733ddeda04fa296cd9"
+      },
+      "examples/workspace/src/definition.ts": {
+        "bytes": 301,
+        "sha256": "81c3f22e68eebdc00766bef8542c343aa297a748c3abd4220b5bf6e92cb20967"
+      },
+      "packages/foldkit/package.json": {
+        "bytes": 6713,
+        "sha256": "50464432e221eab1361f635d660672e602f1cee6a8f1b93a56e05fda7391cd56"
+      },
+      "packages/foldkit/src/block/definition.ts": {
+        "bytes": 147929,
+        "sha256": "83f046e4aa7053ea329239f7474aebb6e75cc2a7fc2ec9b26aecb9ed0a0661da"
+      },
+      "packages/foldkit/src/block/insertInitialization.test.ts": {
+        "bytes": 10719,
+        "sha256": "193a3d65ab2b4f001244d75d449fe73d7158c154aa4ec66a7f59a2ae975849fa"
+      },
+      "packages/foldkit/src/block/keyedMapFieldConnection.test.ts": {
+        "bytes": 16994,
+        "sha256": "b30337308bc72cc2a73cc1e870451bc3931d1e4f844b0beecd24dd9dd507b4a9"
+      },
+      "packages/foldkit/src/block/mapBinding.ts": {
+        "bytes": 12182,
+        "sha256": "e52ce18e12d7d76fa513f20c3bb8b5bf0b9c1b3404c98c107f260cc30ed28c26"
+      },
+      "packages/foldkit/src/block/public.ts": {
+        "bytes": 3782,
+        "sha256": "a8b621b5b0871994abca8cfdc11f5be590a556087dc372278463f017770ef8a8"
+      },
+      "packages/oxlint-plugin-foldkit/src/guards.ts": {
+        "bytes": 43540,
+        "sha256": "691e5e2c523c6e3a0dab259e013c89a1ec9c3e8b99dedc71019f046c9d505cf8"
+      },
+      "packages/oxlint-plugin-foldkit/src/rules/no-binding-write-coordination.ts": {
+        "bytes": 7958,
+        "sha256": "68fec19c15024cda1f271138de7253b6470d73f5c8cc3bf0e11b57d0201a594e"
+      },
+      "packages/oxlint-plugin-foldkit/src/rules/no-child-message-construction-in-root.ts": {
+        "bytes": 45332,
+        "sha256": "c44c181fed3a16e2cfa6e1db9a7b14c7c727da887b165973ab49ad5f32589e7a"
+      },
+      "packages/oxlint-plugin-foldkit/src/rules/no-direct-block-state-update.ts": {
+        "bytes": 70831,
+        "sha256": "7fbec88bb646364325acc9ed1433ace495a086616acb00837355423fccbc6a1c"
+      },
+      "packages/oxlint-plugin-foldkit/src/rules/no-empty-to-parent-out-message.ts": {
+        "bytes": 9107,
+        "sha256": "a7038ab70af090a2a906559c38ca4bbe96b80ed3fe3e3b4d8289844fbe3e37b8"
+      },
+      "packages/oxlint-plugin-foldkit/src/rules/no-manual-composition-routing.ts": {
+        "bytes": 14931,
+        "sha256": "fa5177e3274256b00941d75f875ab227b869fd9e9b6c4bb25d82ec128925b4ed"
+      },
+      "packages/website/src/snippet/blockKeyedMapFields.ts": {
+        "bytes": 1017,
+        "sha256": "e577d0e9e18c70501435a5aad0d6737c623567b07bb1ef78ab1bda714166a8e7"
+      }
+    },
+    "verified": {
+      "examples/vite.aliases.ts": {
+        "bytes": 7634,
+        "sha256": "578b0da4120f4b60a3bdd2a686fc458b2c6b120e4c55bcef13e2d52107fab2e0"
+      },
+      "examples/workspace/src/composition.ts": {
+        "bytes": 11971,
+        "sha256": "d8d2f07c9e21636fb183a7f2329d9e089b681e42e9624b3be40a774ad4a38db4"
+      },
+      "examples/workspace/src/definition.ts": {
+        "bytes": 326,
+        "sha256": "bde86355be1e645cb8dedfe16ab4f713187b3de4ac7643c0b4c92d90be1aaf6a"
+      },
+      "packages/foldkit/package.json": {
+        "bytes": 6592,
+        "sha256": "ebb4e880023cda2e2440bf4c28b8992bb10707ab3086e54554c5b90e4400feca"
+      },
+      "packages/foldkit/src/block/definition.ts": {
+        "bytes": 149584,
+        "sha256": "2ff533592fb2f20fc637baca6ac40d2d6931db1805657713e1b5f0d9a75cc872"
+      },
+      "packages/foldkit/src/block/insertInitialization.test.ts": {
+        "bytes": 10667,
+        "sha256": "4dc3e5d5339929ffc09326e2ebdd41818d0bbad552aba6303229c7dab229357e"
+      },
+      "packages/foldkit/src/block/keyedMapFieldConnection.test.ts": {
+        "bytes": 18322,
+        "sha256": "14125e1c678f08d14f6e73b53defb9bf3502f5d9599e664aad8c4aa3c380f4ce"
+      },
+      "packages/foldkit/src/block/mapBinding.ts": {
+        "bytes": 9673,
+        "sha256": "c3db1e644ae8e01eb89dac701f3d4c9430aae47f8e120c73b181d3f3ceab252b"
+      },
+      "packages/foldkit/src/block/public.ts": {
+        "bytes": 3836,
+        "sha256": "82a2cb31515ed603585320d9f9d2df059165ad54dcef43ad5d68aef6108e52eb"
+      },
+      "packages/oxlint-plugin-foldkit/src/guards.ts": {
+        "bytes": 45138,
+        "sha256": "b9e78399ba4a5c539d7293c1a19aff85919579e0912522530d7bfc045af4711a"
+      },
+      "packages/oxlint-plugin-foldkit/src/rules/no-binding-write-coordination.ts": {
+        "bytes": 8096,
+        "sha256": "c8493237477ae91d65e98e8edde07cb93f613d5a0c9e8d6b100eb4ca4900d94d"
+      },
+      "packages/oxlint-plugin-foldkit/src/rules/no-child-message-construction-in-root.ts": {
+        "bytes": 45527,
+        "sha256": "15813f8305987bbadd3e3360031969c9c0bbccc76ec9039d91606ededc666b2d"
+      },
+      "packages/oxlint-plugin-foldkit/src/rules/no-direct-block-state-update.ts": {
+        "bytes": 70997,
+        "sha256": "0a76cb98858957ed129da4391de69b7fdd7b5898c98f99b70e18add6b67279a6"
+      },
+      "packages/oxlint-plugin-foldkit/src/rules/no-empty-to-parent-out-message.ts": {
+        "bytes": 9312,
+        "sha256": "2f9834028b6376a065b41ce91558a4e6247fa06135697c4b894ca8543e51cab6"
+      },
+      "packages/oxlint-plugin-foldkit/src/rules/no-manual-composition-routing.ts": {
+        "bytes": 14995,
+        "sha256": "f02e03befef646f5c4250e6ea2106df64d6c41732edc08b276f47fff57e5b1f4"
+      },
+      "packages/website/src/snippet/blockKeyedMapFields.ts": {
+        "bytes": 950,
+        "sha256": "aabbc96e7e221971f683c61b6f500a4ce0e118b618dcea2d1831ef91d1dfb73d"
+      }
+    }
+  },
+  "emissionAndStrictConsumer": "final-scale-emission-manifest.json and final-scale-consumer-results.json",
+  "compilerBudgets": {
+    "originalBudgets": "verified-counts.txt fails original workspace-composition-4 ceilings",
+    "reviewedBudgets": "verified-reviewed-budgets.txt records the lead-approved targeted4-group increase; not an unchanged-budget pass",
+    "changedFixture": "workspace-composition-4",
+    "maxInstantiationsDelta": {
+      "old": 2639574,
+      "new": 2642699
+    },
+    "maxTypesDelta": {
+      "old": 206314,
+      "new": 229173
+    },
+    "otherFixtureSourcesAndCeilingsUnchanged": true
+  },
+  "sourceWorkloadDirtyIsExpected": "Both checkouts derive from the pinned commit with recorded experiment/source edits; workload hashes and patches identify measured inputs."
+}

@@ -23,7 +23,7 @@ import { plusIcon, searchIcon, statusLabel } from './controls'
 const FIELD_CLASS = 'block min-w-0 space-y-1.5 @lg:max-w-40 @4xl:max-w-none'
 const LABEL_CLASS = 'block text-[13px] font-medium text-slate-600'
 
-const STATUS_OPTIONS: ReadonlyArray<typeof StatusFilterListboxOption.Type> = [
+const STATUS_OPTIONS: ReadonlyArray<StatusFilterListboxOption> = [
   { value: 'All', label: 'All statuses' },
   ...Array.map(IssueStatus.literals, status => ({
     value: status,
@@ -31,19 +31,19 @@ const STATUS_OPTIONS: ReadonlyArray<typeof StatusFilterListboxOption.Type> = [
   })),
 ]
 
-const SORT_OPTIONS: ReadonlyArray<typeof SortListboxOption.Type> = [
+const SORT_OPTIONS: ReadonlyArray<SortListboxOption> = [
   { value: 'Identifier', label: 'Issue number' },
   { value: 'Priority', label: 'Priority' },
 ]
 
-const GROUP_OPTIONS: ReadonlyArray<typeof GroupListboxOption.Type> = Array.map(
+const GROUP_OPTIONS: ReadonlyArray<GroupListboxOption> = Array.map(
   GroupBy.literals,
   group => ({ value: group, label: group }),
 )
 
 const statusFilterView = (
-  model: typeof Model.Type,
-  filters: typeof IssueFilters.Type,
+  model: Model,
+  filters: IssueFilters,
   h: IssueListViewBuilder,
 ): Html =>
   h.div(
@@ -69,8 +69,8 @@ const statusFilterView = (
   )
 
 const sortView = (
-  model: typeof Model.Type,
-  filters: typeof IssueFilters.Type,
+  model: Model,
+  filters: IssueFilters,
   h: IssueListViewBuilder,
 ): Html =>
   h.div(
@@ -96,8 +96,8 @@ const sortView = (
   )
 
 const groupView = (
-  model: typeof Model.Type,
-  filters: typeof IssueFilters.Type,
+  model: Model,
+  filters: IssueFilters,
   h: IssueListViewBuilder,
 ): Html =>
   h.div(
@@ -123,8 +123,8 @@ const groupView = (
   )
 
 const savedViewForm = (
-  model: typeof Model.Type,
-  filters: typeof IssueFilters.Type,
+  model: Model,
+  filters: IssueFilters,
   h: IssueListViewBuilder,
 ): Html =>
   h.form(
@@ -168,8 +168,9 @@ const savedViewForm = (
   )
 
 export const filterToolbarView = (
-  model: typeof Model.Type,
-  filters: typeof IssueFilters.Type,
+  model: Model,
+  filters: IssueFilters,
+  isCreationDisabled: boolean,
   h: IssueListViewBuilder,
 ): Html =>
   h.div(
@@ -211,11 +212,15 @@ export const filterToolbarView = (
       groupView(model, filters, h),
       Button.view(
         {
+          isDisabled: isCreationDisabled,
           onClick: Message.ClickedCreateIssue(),
           toView: attributes =>
             h.button(
               [
                 ...attributes.button,
+                ...(isCreationDisabled
+                  ? [h.AriaDescription('No projects are available')]
+                  : []),
                 h.Class(
                   'button-primary-compact ml-auto @lg:col-start-3 @lg:row-start-1 @4xl:col-start-6',
                 ),
@@ -229,8 +234,8 @@ export const filterToolbarView = (
   )
 
 export const listSummaryView = (
-  model: typeof Model.Type,
-  filters: typeof IssueFilters.Type,
+  model: Model,
+  filters: IssueFilters,
   issueCount: number,
   h: IssueListViewBuilder,
 ): Html =>

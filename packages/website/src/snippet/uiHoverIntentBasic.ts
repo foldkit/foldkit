@@ -13,9 +13,10 @@ const Model = Schema.Struct({
   hoverIntent: HoverIntent.HoverIntentBlock.Model,
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // This excerpt has no parent-owned facts. The Composition derives delivery.
 const Message = defineMessageUnion({})
+type Message = typeof Message.Type
 
 const HoverIntentExampleDefinition = Block.makeDefinition(
   'HoverIntentExample',

@@ -5,9 +5,14 @@ import { defineMessageUnion } from 'foldkit/message'
 
 import { Dialog } from '@foldkit/ui'
 
+type DialogBlockModel = typeof Dialog.DialogBlock.Model.Type
+
 const Model = Schema.Struct({ dialog: Dialog.DialogBlock.Model })
+type Model = typeof Model.Type
 
 const Message = defineMessageUnion({})
+type Message = typeof Message.Type
+
 const ConfirmDefinition = Block.makeDefinition('Confirm', { Model, Message })
 
 const { makeNoopStep } = ConfirmDefinition
@@ -27,7 +32,7 @@ const ConfirmComposition = ConfirmDefinition.makeComposition({
 })
 
 const init = ConfirmComposition.makeInit(() => ({ model: {} }))
-export const dialog: typeof Dialog.DialogBlock.Model.Type = init().model.dialog
+export const dialog: DialogBlockModel = init().model.dialog
 
 Scene.Mount.resolve(
   Dialog.test.AcquireResources,

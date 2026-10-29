@@ -31,7 +31,7 @@ import {
 } from './domain'
 import { Message } from './message'
 
-type Highlights = (typeof ApiData.Type)['highlights']
+type Highlights = ApiData['highlights']
 
 const sourceLink = (
   sourceUrl: Option.Option<string>,
@@ -57,7 +57,7 @@ const lazyItem = createKeyedLazy()
 
 const functionView = (
   moduleName: string,
-  apiFunction: typeof ApiFunction.Type,
+  apiFunction: ApiFunction,
   isSignatureDisclosureOpen: boolean | undefined,
   highlights: Highlights,
   renderHeadingLink: RenderHeadingLink,
@@ -107,7 +107,7 @@ const functionView = (
 }
 
 const allParameterDescriptions = (
-  apiFunction: typeof ApiFunction.Type,
+  apiFunction: ApiFunction,
 ): ReadonlyArray<Html> =>
   pipe(
     Array.flatMap(apiFunction.signatures, signature => signature.parameters),
@@ -166,7 +166,7 @@ const disclosurePanelClassName = 'rounded-b-lg overflow-x-auto'
 
 const signaturesView = (
   key: string,
-  apiFunction: typeof ApiFunction.Type,
+  apiFunction: ApiFunction,
   isSignatureDisclosureOpen: boolean | undefined,
   highlights: Highlights,
   h: ApiReferenceViewBuilder,
@@ -242,7 +242,7 @@ const signaturesView = (
 }
 
 const parameterDescriptions = (
-  parameters: ReadonlyArray<typeof ApiParameter.Type>,
+  parameters: ReadonlyArray<ApiParameter>,
 ): ReadonlyArray<Html> =>
   pipe(
     parameters,
@@ -284,9 +284,7 @@ const parameterDescriptions = (
 const punctuation = (text: string): Html =>
   ih.span([ih.Class('text-gray-600')], [text])
 
-const parameterView = (
-  parameter: typeof ApiParameter.Type,
-): ReadonlyArray<Html> => [
+const parameterView = (parameter: ApiParameter): ReadonlyArray<Html> => [
   ...(parameter.isRest ? [punctuation('...')] : []),
   ih.span(
     [ih.Class('font-normal text-gray-900 dark:text-gray-200')],
@@ -298,7 +296,7 @@ const parameterView = (
 ]
 
 const parameterListView = (
-  parameters: ReadonlyArray<typeof ApiParameter.Type>,
+  parameters: ReadonlyArray<ApiParameter>,
 ): ReadonlyArray<Html> =>
   Array.match(parameters, {
     onEmpty: () => [ih.div([ih.Class('mb-2')], [punctuation('()')])],
@@ -341,7 +339,7 @@ const descriptionCommentFallback = (
   })
 
 const signatureChildrenFallback = (signature: {
-  readonly parameters: ReadonlyArray<typeof ApiParameter.Type>
+  readonly parameters: ReadonlyArray<ApiParameter>
   readonly returnType: string
   readonly typeParameters: ReadonlyArray<string>
 }): ReadonlyArray<Html> => [
@@ -360,7 +358,7 @@ const signatureChildrenFallback = (signature: {
 
 const typeView = (
   moduleName: string,
-  type: typeof ApiType.Type,
+  type: ApiType,
   highlights: Highlights,
   renderHeadingLink: RenderHeadingLink,
   h: ApiReferenceViewBuilder,
@@ -433,7 +431,7 @@ const typeView = (
 
 const interfaceView = (
   moduleName: string,
-  apiInterface: typeof ApiInterface.Type,
+  apiInterface: ApiInterface,
   highlights: Highlights,
   renderHeadingLink: RenderHeadingLink,
   h: ApiReferenceViewBuilder,
@@ -506,7 +504,7 @@ const interfaceView = (
 
 const variableView = (
   moduleName: string,
-  variable: typeof ApiVariable.Type,
+  variable: ApiVariable,
   highlights: Highlights,
   renderHeadingLink: RenderHeadingLink,
   h: ApiReferenceViewBuilder,
@@ -599,7 +597,7 @@ const section = <T extends { readonly name: string }>(
   })
 
 type ModuleViewInputs = Readonly<{
-  module: typeof ApiModule.Type
+  module: ApiModule
   highlights: Highlights
   renderHeadingLink: RenderHeadingLink
 }>

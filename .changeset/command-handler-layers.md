@@ -355,7 +355,7 @@ export const view = PanelComposition.makeView((model, h) =>
 
 A child with `ViewInputs` uses its Composition's `makeView.withInputs<ViewInputs>` and receives the builder third. A parent Binding carries the child's Mounts and handler recipe automatically. TypeScript checks that the parent Composition includes the Binding before `h.block(binding.embedView(...))` can embed it.
 
-The Composition's `makeView` or `makeView.withInputs` defines its canonical owned view and infers the primary `h` parameter. Ordinary feature-local helpers are plain functions whose `h` parameter uses an owner-specific alias such as `FeatureViewBuilder`, derived with `Block.ViewBuilderFor<typeof FeatureComposition>`. Declare that alias immediately after its Composition with no blank line and export it only for cross-file use. The alias retains the feature Message, child, and Mount requirements without constructing a runtime builder. Its owner prefix identifies one Composition's capabilities at a plain type import site. Routine application annotations query local Schema values directly, such as `typeof Model.Type`; a child consumer queries `typeof ChildBlock.Model.Type`. Give each helper only the Model, domain, or context parameters it uses. Functions genuinely shared across owners keep the general `HtmlBuilder<Message>`.
+The Composition's `makeView` or `makeView.withInputs` defines its canonical owned view and infers the primary `h` parameter. Ordinary feature-local helpers are plain functions whose `h` parameter uses an owner-specific alias such as `FeatureViewBuilder`, derived with `Block.ViewBuilderFor<typeof FeatureComposition>`. Declare that alias immediately after its Composition with no blank line and export it only for cross-file use. The alias retains the feature Message, child, and Mount requirements without constructing a runtime builder. Its owner prefix identifies one Composition's capabilities at a plain type import site. Routine application annotations use the same-name decoded alias, such as `Model`; a child consumer declares a named alias from `typeof ChildBlock.Model.Type`. Give each helper only the Model, domain, or context parameters it uses. Functions genuinely shared across owners keep the general `HtmlBuilder<Message>`.
 
 Let TypeScript infer Mount registration arrays and composed spreads. An annotation such as `ReadonlyArray<Mount.LayeredMountDefinition>` erases the definition contracts and is rejected at application assembly. If forwarded attribute arrays need an explicit type, preserve the requirements as `Attribute<Message, RequiredMounts>` or `ChildAttribute<RequiredMounts>`. `childAttributes` and `CustomElement.withMessage(h)` preserve the requirements automatically.
 
@@ -379,13 +379,13 @@ export type WidgetBuilder = CustomElement.Builder<typeof Widget, Message>
 ```ts
 import type { CustomElement, Mount } from 'foldkit'
 
-import { Message } from './message'
+import type { Message } from './message'
 import { mounts } from './mount'
 import { Widget } from './widget'
 
 export type WidgetBuilder = CustomElement.Builder<
   typeof Widget,
-  typeof Message.Type,
+  Message,
   // Mounted attributes retain the same contract as the view builder.
   Mount.RequirementsOf<typeof mounts>
 >
@@ -444,6 +444,7 @@ const CameraStream =
 const CameraRequirements = Schema.Option(
   Schema.Struct({ facingMode: Schema.String }),
 )
+type CameraRequirements = typeof CameraRequirements.Type
 
 export const managedResources = CameraDefinition.makeManagedResources(
   entry => ({
@@ -707,7 +708,7 @@ A Command-producing fold can infer its requirements through the owning definitio
 
 Keep definitions and handlers within the feature whose update returns them, alongside update or in a feature-local `command.ts`. Compose attached recipes directly as `Definition.layer` in each owning module's local `EffectsLayer`. When a recipe needs its own exported or reused binding, name it `FooLayer`; name an external alternative `FooTestLayer`. Pass the local bundle to `FeatureComposition.prepareBlock`; child Bindings included in the Composition contribute their recipes automatically. The typed Application Composition owns root assembly and its graph. `ApplicationComposition.prepareBlock` collects the handler recipes into a passive unfinished assembly, while `Block.assemble` creates the completed Block and `ApplicationLayer` supplies ordinary Services through the Program. Import Effect's module as `Layer`; the bundle names avoid an alias.
 
-Foldkit UI components expose completed Blocks. Bind each component through the owning Definition and include it in the Composition's `bindings`; composition carries its Mounts, lifecycle registrations, and handler graph to the root. `Slider.forRoot(getTrackRoot)` and `Toast.make(payloadSchema)` return completed Blocks with refined Model, Message, and operation contracts.
+Foldkit UI components expose completed Blocks. Bind each component through the owning Definition and include it in the Composition's `bindings`; composition carries its Mounts, lifecycle registrations, and handler graph to the root. `Slider.forRoot(getTrackRoot)` and `Toast.makeBlock(payloadSchema)` return completed Blocks with refined Model, Message, and operation contracts.
 
 ### Requirements and definition identities
 

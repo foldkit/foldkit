@@ -1,6 +1,5 @@
 import { Schema } from 'effect'
 import { Machine } from 'foldkit/experimental'
-import { otherwise, to, when } from 'foldkit/experimental/machine'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
@@ -14,7 +13,7 @@ export const CheckoutState = defineTaggedUnion({
   Review: { isShippingRequired: Schema.Boolean },
   Cancelled: {},
 })
-
+export type CheckoutState = typeof CheckoutState.Type
 // MESSAGE
 
 export const Message = defineMessageUnion({
@@ -24,19 +23,26 @@ export const Message = defineMessageUnion({
   ClickedCancel: {},
   ToggledHelp: { isOpen: Schema.Boolean },
 })
-
+export type Message = typeof Message.Type
 // MACHINE
 
-export const checkoutMachine = Machine.define({
-  state: CheckoutState,
-  message: Message,
-})({
+export const CheckoutDefinition = Machine.makeDefinition({
+  State: CheckoutState,
+  Message,
+})
+
+const { makeMachine, makeSharedTransitions, otherwise, to, when } =
+  CheckoutDefinition
+
+export const checkoutMachine = makeMachine({
   initial: CheckoutState.Cart({ isShippingRequired: true }),
   shared: [
-    Machine.forStates(['Cart', 'Shipping', 'Payment', 'Review']).on({
-      ClickedCancel: to('Cancelled', () => ({
-        model: CheckoutState.Cancelled(),
-      })),
+    makeSharedTransitions(['Cart', 'Shipping', 'Payment', 'Review'], {
+      on: {
+        ClickedCancel: to('Cancelled', () => ({
+          model: CheckoutState.Cancelled(),
+        })),
+      },
     }),
   ],
   states: {
@@ -49,7 +55,7 @@ export const checkoutMachine = Machine.define({
         })),
         ClickedContinue: [
           when(
-            state => state.isShippingRequired,
+            ({ state }) => state.isShippingRequired,
             'Shipping',
             () => ({ model: CheckoutState.Shipping() }),
           ),
@@ -82,7 +88,7 @@ export const checkoutMachine = Machine.define({
         })),
         ClickedBack: [
           when(
-            state => state.isShippingRequired,
+            ({ state }) => state.isShippingRequired,
             'Shipping',
             () => ({ model: CheckoutState.Shipping() }),
           ),

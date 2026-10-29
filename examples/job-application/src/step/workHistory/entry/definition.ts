@@ -17,6 +17,7 @@ export const Model = Schema.Struct({
   isCurrentlyEmployed: Schema.Boolean,
   description: Schema.String,
 })
+export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   UpdatedCompany: { value: Schema.String },
@@ -26,10 +27,12 @@ export const Message = defineMessageUnion({
   RequestedRevealErrors: {},
   ClickedRemoveSelf: {},
 })
+export type Message = typeof Message.Type
 
 export const OutMessage = defineMessageUnion({
   Removed: {},
 })
+export type OutMessage = typeof OutMessage.Type
 
 export const WorkHistoryEntryDefinition = Block.makeDefinition(
   'WorkHistoryEntry',

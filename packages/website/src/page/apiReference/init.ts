@@ -6,7 +6,7 @@ import { Model, disclosuresForApiData } from './model'
 import { LoadApiData } from './update'
 
 export const init = ApiReferenceComposition.makeInit(
-  (maybeApiData: Option.Option<typeof ApiData.Type> = Option.none()) => ({
+  (maybeApiData: Option.Option<ApiData> = Option.none()) => ({
     model: Option.match(maybeApiData, {
       onNone: () =>
         Model.make({

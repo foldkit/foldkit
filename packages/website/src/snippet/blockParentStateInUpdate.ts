@@ -4,15 +4,22 @@ import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 const CurrentUser = Schema.Struct({ name: Schema.String })
+type CurrentUser = typeof CurrentUser.Type
+
 const Theme = Schema.Literals(['Light', 'Dark'])
+type Theme = typeof Theme.Type
 
 const AccountSettingsModel = Schema.Struct({
   theme: Theme,
   auditTrail: Schema.Array(Schema.String),
 })
+type AccountSettingsModel = typeof AccountSettingsModel.Type
+
 const AccountSettingsMessage = defineMessageUnion({
   ChangedTheme: { theme: Theme },
 })
+type AccountSettingsMessage = typeof AccountSettingsMessage.Type
+
 const AccountSettingsComposition = Block.makeDefinition('AccountSettings', {
   Model: AccountSettingsModel,
   Message: AccountSettingsMessage,
@@ -25,7 +32,7 @@ const accountSettingsInit = AccountSettingsComposition.makeInit(() => ({
   }),
 }))
 const accountSettingsUpdate = AccountSettingsComposition.makeUpdate.withContext(
-  (currentUser: typeof CurrentUser.Type) => ({
+  (currentUser: CurrentUser) => ({
     ChangedTheme: (model, { theme }) => ({
       model: modifyFields(model, {
         theme: () => theme,
@@ -49,7 +56,11 @@ const ProfileModel = Schema.Struct({
   currentUser: CurrentUser,
   accountSettings: AccountSettingsModel,
 })
+type ProfileModel = typeof ProfileModel.Type
+
 const ProfileMessage = defineMessageUnion({})
+type ProfileMessage = typeof ProfileMessage.Type
+
 const ProfileDefinition = Block.makeDefinition('Profile', {
   Model: ProfileModel,
   Message: ProfileMessage,

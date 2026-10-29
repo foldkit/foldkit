@@ -4,21 +4,21 @@ import type { Html } from 'foldkit/html'
 
 import { type Issue, type IssueFilters, IssueStatus } from '../../domain'
 import type { IssueListViewBuilder } from '../composition'
-import type { ViewInputs } from '../model'
+import type { ViewInputs } from '../viewInputs'
 import { statusLabel } from './controls'
 
 const ROW_CLASS =
   'grid w-full grid-cols-[4.5rem_minmax(0,1fr)_1.75rem] items-center gap-x-3 gap-y-2 px-4 py-4 text-left text-sm font-medium @lg:grid-cols-[4.5rem_6.5rem_minmax(0,1fr)_1.75rem] @lg:px-5 @3xl:grid-cols-[4.5rem_6.5rem_minmax(0,1fr)_4rem_1.75rem]'
 
 const issueRow = (
-  issue: typeof Issue.Type,
-  inputs: typeof ViewInputs.Type,
+  issue: Issue,
+  viewInputs: ViewInputs,
   h: IssueListViewBuilder,
 ): Html => {
-  const maybeAssignee = Option.flatMap(issue.maybeAssigneeId, id =>
-    Array.findFirst(inputs.members, member => member.id === id),
+  const maybeAssignee = Option.flatMap(issue.maybeAssigneeId, memberId =>
+    Array.findFirst(viewInputs.members, member => member.id === memberId),
   )
-  const isActive = Option.contains(inputs.maybeActiveIssueId, issue.id)
+  const isActive = Option.contains(viewInputs.maybeActiveIssueId, issue.id)
 
   const content = [
     h.span(
@@ -72,7 +72,7 @@ const issueRow = (
 
   const accessibleName = `${issue.identifier} ${issue.title}`
 
-  const row = Option.match(Record.get(inputs.issueHrefs, issue.id), {
+  const row = Option.match(Record.get(viewInputs.issueHrefs, issue.id), {
     onNone: () =>
       h.div(
         [
@@ -119,8 +119,8 @@ const issueRow = (
 const issueGroupView = (
   id: string,
   title: string,
-  issues: ReadonlyArray<typeof Issue.Type>,
-  inputs: typeof ViewInputs.Type,
+  issues: ReadonlyArray<Issue>,
+  viewInputs: ViewInputs,
   h: IssueListViewBuilder,
 ): Html =>
   Array.isReadonlyArrayEmpty(issues)
@@ -138,22 +138,22 @@ const issueGroupView = (
           ),
           h.ul(
             [h.Class('m-0 list-none p-0')],
-            Array.map(issues, issue => issueRow(issue, inputs, h)),
+            Array.map(issues, issue => issueRow(issue, viewInputs, h)),
           ),
         ],
       )
 
 export const issueGroupsView = (
-  issues: ReadonlyArray<typeof Issue.Type>,
-  filters: typeof IssueFilters.Type,
-  inputs: typeof ViewInputs.Type,
+  issues: ReadonlyArray<Issue>,
+  filters: IssueFilters,
+  viewInputs: ViewInputs,
   h: IssueListViewBuilder,
 ): Html =>
   Match.value(filters.groupBy).pipe(
     Match.when('None', () =>
       h.ul(
         [h.Class('m-0 list-none p-0')],
-        Array.map(issues, issue => issueRow(issue, inputs, h)),
+        Array.map(issues, issue => issueRow(issue, viewInputs, h)),
       ),
     ),
     Match.when('Status', () =>
@@ -164,7 +164,7 @@ export const issueGroupsView = (
             status,
             statusLabel(status),
             Array.filter(issues, issue => issue.status === status),
-            inputs,
+            viewInputs,
             h,
           ),
         ),
@@ -173,12 +173,12 @@ export const issueGroupsView = (
     Match.when('Project', () =>
       h.div(
         [],
-        Array.map(inputs.projects, project =>
+        Array.map(viewInputs.projects, project =>
           issueGroupView(
             project.id,
             project.name,
             Array.filter(issues, issue => issue.projectId === project.id),
-            inputs,
+            viewInputs,
             h,
           ),
         ),

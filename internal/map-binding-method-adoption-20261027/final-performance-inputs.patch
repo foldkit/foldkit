@@ -1,0 +1,860 @@
+--- a/examples/vite.aliases.ts
++++ b/examples/vite.aliases.ts
+@@ -86,4 +85,0 @@
+-  'foldkit/mapBinding': path.resolve(
+-    dirname,
+-    '../../packages/foldkit/src/block/mapBinding',
+-  ),
+--- a/examples/workspace/src/composition.ts
++++ b/examples/workspace/src/composition.ts
+@@ -3 +2,0 @@
+-import { makeMapBinding } from 'foldkit/mapBinding'
+@@ -13,0 +13 @@
++  makeMapBinding,
+@@ -58,7 +58,3 @@
+-export const IssueDetailBinding = makeMapBinding(
+-  ApplicationDefinition,
+-  IssueDetailBlock,
+-  {
+-    field: 'issueDetails',
+-  },
+-)
++export const IssueDetailBinding = makeMapBinding(IssueDetailBlock, {
++  field: 'issueDetails',
++})
+@@ -326,7 +322,3 @@
+-export const IssueBoardBinding = makeMapBinding(
+-  ApplicationDefinition,
+-  IssueBoardBlock,
+-  {
+-    field: 'boards',
+-  },
+-)
++export const IssueBoardBinding = makeMapBinding(IssueBoardBlock, {
++  field: 'boards',
++})
+@@ -373,7 +365,3 @@
+-export const ProjectSettingsBinding = makeMapBinding(
+-  ApplicationDefinition,
+-  ProjectSettingsBlock,
+-  {
+-    field: 'projectSettings',
+-  },
+-).withOutMessagePolicy({
++export const ProjectSettingsBinding = makeMapBinding(ProjectSettingsBlock, {
++  field: 'projectSettings',
++}).withOutMessagePolicy({
+--- a/examples/workspace/src/definition.ts
++++ b/examples/workspace/src/definition.ts
+@@ -11,2 +11,7 @@
+-export const { makeStep, makeFieldsStep, makeCommandsStep, makeNoopStep } =
+-  ApplicationDefinition
++export const {
++  makeStep,
++  makeFieldsStep,
++  makeCommandsStep,
++  makeNoopStep,
++  makeMapBinding,
++} = ApplicationDefinition
+--- a/packages/foldkit/package.json
++++ b/packages/foldkit/package.json
+@@ -69,4 +68,0 @@
+-    },
+-    "./mapBinding": {
+-      "types": "./dist/block/mapBinding.d.ts",
+-      "import": "./dist/block/mapBinding.js"
+--- a/packages/foldkit/src/block/definition.ts
++++ b/packages/foldkit/src/block/definition.ts
+@@ -107,0 +108 @@
++import { type MakeMapBinding, makeMapBinding } from './mapBinding.js'
+@@ -3749,0 +3751,33 @@
++  /** Creates a keyed child Binding from a parent Definition's required Record or
++   * Effect HashMap field, deriving enumeration, lookup, replacement and identity.
++   *
++   * The field's value Schema must exactly match the child Model. Add `childField`
++   * when each value is a closed Struct wrapping the exact child Model; replacement
++   * preserves the wrapper's other fields. Placement defaults to `field`.
++   *
++   * Record keys must decode to strings. HashMap keys must decode to strings or
++   * numbers, with finite numeric occurrence keys. Literal, template, refined and
++   * branded keys retain their contracts. Numeric Record and composite HashMap
++   * keys are rejected. HashMap enumeration does not promise display order.
++   *
++   * The parent owns membership. Ordinary child operations replace existing values;
++   * removing an entry ends its occurrence's lifecycle. `subscriptions` gates only
++   * Subscription Streams. Initialize and insert direct child values with
++   * `initAndInsert` from `foldkit/bindingInit`; use the returned Binding's explicit
++   * `init({ key, args, toParentModel })` for wrapper metadata or mixed transitions.
++   *
++   * @example
++   * ```ts
++   * const ChildrenBinding = ParentDefinition.makeMapBinding(ChildBlock, {
++   *   field: 'children',
++   * })
++   * ```
++   */
++  makeMapBinding: MakeMapBinding<
++    ModelSchema,
++    MessageSchema,
++    OutMessageSchema,
++    ChildInitContextSchema extends AnySchema
++      ? ChildInitContextSchema['Type']
++      : never
++  >
+@@ -4700,0 +4735 @@
++    makeMapBinding: makeMapBinding(bindChild),
+@@ -4829,0 +4865 @@
++    makeMapBinding: base.makeMapBinding,
+--- a/packages/foldkit/src/block/insertInitialization.test.ts
++++ b/packages/foldkit/src/block/insertInitialization.test.ts
+@@ -15 +14,0 @@
+-import { makeMapBinding } from './mapBinding.js'
+@@ -71 +70 @@
+-const ChildrenByIdBinding = makeMapBinding(ParentDefinition, ChildBlock, {
++const ChildrenByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+@@ -74 +73 @@
+-const ChildrenByNumberBinding = makeMapBinding(ParentDefinition, ChildBlock, {
++const ChildrenByNumberBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+@@ -77 +76 @@
+-const RowsByIdBinding = makeMapBinding(ParentDefinition, ChildBlock, {
++const RowsByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+--- a/packages/foldkit/src/block/keyedMapFieldConnection.test.ts
++++ b/packages/foldkit/src/block/keyedMapFieldConnection.test.ts
+@@ -2 +2 @@
+-import { expect, expectTypeOf, it } from 'vitest'
++import { expect, expectTypeOf, it, vi } from 'vitest'
+@@ -12 +11,0 @@
+-import { makeMapBinding } from './mapBinding.js'
+@@ -83 +82 @@
+-const ChildrenByIdBinding = makeMapBinding(ParentDefinition, ChildBlock, {
++const ChildrenByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+@@ -86 +85 @@
+-const RowsByIdBinding = makeMapBinding(ParentDefinition, ChildBlock, {
++const RowsByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+@@ -90 +89 @@
+-const ChildrenByNumberBinding = makeMapBinding(ParentDefinition, ChildBlock, {
++const ChildrenByNumberBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+@@ -93 +92 @@
+-const HashRowsByIdBinding = makeMapBinding(ParentDefinition, ChildBlock, {
++const HashRowsByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+@@ -97 +96 @@
+-const LowerChildrenBinding = makeMapBinding(ParentDefinition, ChildBlock, {
++const LowerChildrenBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+@@ -102 +101 @@
+-const UpperChildrenBinding = makeMapBinding(ParentDefinition, ChildBlock, {
++const UpperChildrenBinding = ParentDefinition.makeMapBinding(ChildBlock, {
+@@ -179,0 +179,57 @@
++it('keeps extracted map constructors passive and owned by their Definition', () => {
++  const childInit = vi.fn(() => ({
++    model: ChildModel.make({ count: 0 }),
++  }))
++  const ChildComposition = makeDefinition('PassiveMapChild', {
++    Model: ChildModel,
++    Message: ChildMessage,
++  }).makeComposition()
++  const prepare = () =>
++    ChildComposition.prepareBlock({
++      init: ChildComposition.makeInit(() => childInit()),
++      update: ChildComposition.makeUpdate({
++        UpdatedCount: model => ({ model }),
++      }),
++    })
++  const PassiveChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
++    typeof ChildModel,
++    typeof prepare
++  > = Block.assemble(prepare)
++  const { makeMapBinding } = ParentDefinition
++  const DetachedBinding = makeMapBinding(PassiveChildBlock, {
++    field: 'childrenById',
++    placement: 'detachedChildren',
++  })
++  const Composition = ParentDefinition.makeComposition({
++    bindings: [DetachedBinding],
++  })
++  const OtherDefinition = makeDefinition('OtherMapParent', {
++    Model: ParentModel,
++    Message: Schema.Never,
++  })
++
++  expect(() =>
++    Reflect.apply(OtherDefinition.makeComposition, undefined, [
++      { bindings: [DetachedBinding] },
++    ]),
++  ).toThrow('parent')
++  expect(childInit).not.toHaveBeenCalled()
++
++  const init = Composition.makeInit(() =>
++    DetachedBinding.init({
++      key: 'created',
++      args: [],
++      toParentModel: child =>
++        modifyFields(parent, {
++          childrenById: Record.set('created', child),
++        }),
++    }),
++  )
++  const init_ = init()
++
++  expect(childInit).toHaveBeenCalledOnce()
++  expect(Record.get(init_.model.childrenById, 'created')).toEqual(
++    Option.some(ChildModel.make({ count: 0 })),
++  )
++})
++
+@@ -229,2 +285 @@
+-    Reflect.apply(makeMapBinding, undefined, [
+-      ParentDefinition,
++    Reflect.apply(ParentDefinition.makeMapBinding, undefined, [
+@@ -289,2 +344 @@
+-    Reflect.apply(makeMapBinding, undefined, [
+-      ParentDefinition,
++    Reflect.apply(ParentDefinition.makeMapBinding, undefined, [
+@@ -510,2 +564 @@
+-      Reflect.apply(makeMapBinding, undefined, [
+-        InvalidParentDefinition,
++      Reflect.apply(InvalidParentDefinition.makeMapBinding, undefined, [
+@@ -518,2 +571 @@
+-    Reflect.apply(makeMapBinding, undefined, [
+-      ParentDefinition,
++    Reflect.apply(ParentDefinition.makeMapBinding, undefined, [
+@@ -527,12 +579 @@
+-  expect(() =>
+-    Reflect.apply(makeMapBinding, undefined, [
+-      {
+-        Model: ParentModel,
+-        Message: Schema.Never,
+-        makeBinding: () => ({}),
+-      },
+-      ChildBlock,
+-      { field: 'childrenById' },
+-    ]),
+-  ).toThrow('returns a native child Binding')
+-})
++})
+--- a/packages/foldkit/src/block/mapBinding.ts
++++ b/packages/foldkit/src/block/mapBinding.ts
+@@ -1 +1 @@
+-import { Predicate, Schema } from 'effect'
++import type { Schema } from 'effect'
+@@ -5 +4,0 @@
+-import { runtimeBindingOf } from './composition.js'
+@@ -41,29 +39,0 @@
+-
+-type MapBindingDefinition = Readonly<{
+-  Model: AnySchema
+-  Message: AnySchema
+-  OutMessage?: AnySchema
+-  ChildInitContext?: AnySchema
+-}>
+-
+-type OutMessageSchemaOfDefinition<DefinitionValue> =
+-  DefinitionValue extends Readonly<{
+-    OutMessage: infer OutMessageSchema extends AnySchema
+-  }>
+-    ? OutMessageSchema
+-    : undefined
+-
+-type ChildInitContextOfDefinition<DefinitionValue> =
+-  DefinitionValue extends Readonly<{
+-    ChildInitContext: infer ChildInitContextSchema extends AnySchema
+-  }>
+-    ? ChildInitContextSchema['Type']
+-    : never
+-
+-type BindChildOfDefinition<DefinitionValue extends MapBindingDefinition> =
+-  BindChild<
+-    DefinitionValue['Model'],
+-    DefinitionValue['Message'],
+-    OutMessageSchemaOfDefinition<DefinitionValue>,
+-    ChildInitContextOfDefinition<DefinitionValue>
+-  >
+@@ -260,2 +230,8 @@
+-/** Call signature for {@link makeMapBinding}. */
+-export interface MakeMapBinding {
++/** Call signature for `Definition.makeMapBinding`. See {@link Definition} for
++ * the owned constructor's storage and initialization contract. */
++export interface MakeMapBinding<
++  ParentModelSchema extends AnySchema,
++  ParentMessageSchema extends AnySchema,
++  ParentOutMessageSchema extends AnySchema | undefined,
++  ParentChildInitContext = never,
++> {
+@@ -263 +238,0 @@
+-    const DefinitionValue extends MapBindingDefinition,
+@@ -270,2 +244,0 @@
+-    definition: DefinitionValue &
+-      Readonly<{ makeBinding: BindChildOfDefinition<DefinitionValue> }>,
+@@ -278 +251 @@
+-        DefinitionValue['Model'],
++        ParentModelSchema,
+@@ -284 +257 @@
+-          ValidField<BlockValue, DefinitionValue['Model'], Keys, ChildField>
++          ValidField<BlockValue, ParentModelSchema, Keys, ChildField>
+@@ -291,2 +264,2 @@
+-            DefinitionValue['Model']['Type'],
+-            KeyFor<DefinitionValue['Model'], Field>
++            ParentModelSchema['Type'],
++            KeyFor<ParentModelSchema, Field>
+@@ -300,5 +273,5 @@
+-    DefinitionValue['Model'],
+-    DefinitionValue['Message'],
+-    OutMessageSchemaOfDefinition<DefinitionValue>,
+-    ResultConfig<Source, DefinitionValue['Model'], Field>,
+-    ChildInitContextOfDefinition<DefinitionValue>
++    ParentModelSchema,
++    ParentMessageSchema,
++    ParentOutMessageSchema,
++    ResultConfig<Source, ParentModelSchema, Field>,
++    ParentChildInitContext
+@@ -308,32 +281,19 @@
+-/** Creates a keyed child Binding from a parent Definition's required Record or
+- * Effect HashMap field, deriving enumeration, lookup, replacement and identity.
+- *
+- * The field's value Schema must exactly match the child Model. Add `childField`
+- * when each value is a closed Struct wrapping the exact child Model; replacement
+- * preserves the wrapper's other fields. Placement defaults to `field`.
+- *
+- * Record keys must decode to strings. HashMap keys must decode to strings or
+- * numbers, with finite numeric occurrence keys. Literal, template, refined and
+- * branded keys retain their contracts. Numeric Record and composite HashMap
+- * keys are rejected. HashMap enumeration does not promise display order.
+- *
+- * The parent owns membership. Ordinary child operations replace existing values;
+- * removing an entry ends its occurrence's lifecycle. `subscriptions` gates only
+- * Subscription Streams. Initialize and insert direct child values with
+- * `initAndInsert` from `foldkit/bindingInit`; use the returned Binding's explicit
+- * `init({ key, args, toParentModel })` for wrapper metadata or mixed transitions.
+- *
+- * The standalone subpath isolates Schema-heavy typing from ordinary Definition
+- * use. Tested Definition-method encodings increased compiler cost; this is a
+- * measured implementation tradeoff, not a universal TypeScript limitation.
+- *
+- * @example
+- * ```ts
+- * import { makeMapBinding } from 'foldkit/mapBinding'
+- *
+- * const ChildrenBinding = makeMapBinding(ParentDefinition, ChildBlock, {
+- *   field: 'children',
+- * })
+- * ```
+- */
+-export const makeMapBinding = ((): MakeMapBinding =>
++/** @internal Creates a passive parent-owned map Binding constructor. */
++export const makeMapBinding = <
++  ParentModelSchema extends AnySchema,
++  ParentMessageSchema extends AnySchema,
++  ParentOutMessageSchema extends AnySchema | undefined,
++  ParentChildInitContext = never,
++>(
++  makeBinding: BindChild<
++    ParentModelSchema,
++    ParentMessageSchema,
++    ParentOutMessageSchema,
++    ParentChildInitContext
++  >,
++): MakeMapBinding<
++  ParentModelSchema,
++  ParentMessageSchema,
++  ParentOutMessageSchema,
++  ParentChildInitContext
++> =>
+@@ -341,9 +301,2 @@
+-  ((definition: object, block: BindableBlock, config: object): unknown => {
+-    const makeBinding = Reflect.get(definition, 'makeBinding')
+-    if (!Predicate.isFunction(makeBinding)) {
+-      throw new Error(
+-        '[foldkit] makeMapBinding requires a parent Definition with makeBinding.',
+-      )
+-    }
+-
+-    const binding = Reflect.apply(makeBinding, definition, [
++  ((block: BindableBlock, config: object): unknown => {
++    return Reflect.apply(makeBinding, undefined, [
+@@ -353,16 +306,6 @@
+-    if (!Predicate.isObject(binding)) {
+-      throw new Error(
+-        '[foldkit] makeMapBinding requires a parent Definition whose makeBinding method returns a native child Binding.',
+-      )
+-    }
+-
+-    try {
+-      runtimeBindingOf(binding)
+-    } catch {
+-      throw new Error(
+-        '[foldkit] makeMapBinding requires a parent Definition whose makeBinding method returns a native child Binding.',
+-      )
+-    }
+-
+-    return binding
+-  }) as unknown as MakeMapBinding)()
++  }) as unknown as MakeMapBinding<
++    ParentModelSchema,
++    ParentMessageSchema,
++    ParentOutMessageSchema,
++    ParentChildInitContext
++  >
+--- a/packages/foldkit/src/block/public.ts
++++ b/packages/foldkit/src/block/public.ts
+@@ -33,0 +34 @@
++export type { MakeMapBinding } from './mapBinding.js'
+--- a/packages/oxlint-plugin-foldkit/src/guards.ts
++++ b/packages/oxlint-plugin-foldkit/src/guards.ts
+@@ -244,0 +245 @@
++  isImportedHelper?: boolean
+@@ -293 +293,0 @@
+-  'foldkit/mapBinding': 'MapBinding',
+@@ -937,0 +938 @@
++  importerFilename?: string,
+@@ -939 +940 @@
+-  const config = blockBindingConfiguration(node, references)
++  const config = blockBindingConfiguration(node, references, importerFilename)
+@@ -960,0 +962 @@
++  importerFilename?: string,
+@@ -962 +964 @@
+-  const config = blockBindingConfiguration(node, references)
++  const config = blockBindingConfiguration(node, references, importerFilename)
+@@ -989 +991 @@
+-/** Returns the owned `makeBinding` call beneath a direct fluent policy chain. */
++/** Returns the owned Binding constructor call beneath a direct fluent policy chain. */
+@@ -994 +996,2 @@
+-const isMapBindingCall = (
++/** Resolves a Binding constructor to its Definition owner. */
++export const blockBindingOwner = (
+@@ -996,13 +999,22 @@
+-  references: WeakMap<ESTree.Node, Reference> | undefined,
+-): boolean =>
+-  references !== undefined &&
+-  Option.exists(resolveFoldkitApiPath(references, node.callee), path => {
+-    const [namespace, helperName, extraMember] = path
+-    return (
+-      namespace === 'MapBinding' &&
+-      helperName === 'makeMapBinding' &&
+-      extraMember === undefined
+-    )
+-  })
+-
+-/** Recognizes a Definition method or dedicated Foldkit helper Binding call. */
++  references?: WeakMap<ESTree.Node, Reference>,
++  importerFilename?: string,
++): Option.Option<DefinitionMethodOwner> => {
++  const bindingCall = directBindingCall(node)
++  return Option.orElse(
++    ownedDefinitionMethodOwner(
++      bindingCall.callee,
++      'makeMapBinding',
++      references,
++      importerFilename,
++    ),
++    () =>
++      ownedDefinitionMethodOwner(
++        bindingCall.callee,
++        'makeBinding',
++        references,
++        importerFilename,
++      ),
++  )
++}
++
++/** Recognizes a parent-owned Definition Binding constructor. */
+@@ -1012,7 +1024,3 @@
+-): boolean => {
+-  const bindingCall = directBindingCall(node)
+-  return (
+-    isMapBindingCall(bindingCall, references) ||
+-    isOwnedDefinitionCall(bindingCall, 'makeBinding', references)
+-  )
+-}
++  importerFilename?: string,
++): boolean =>
++  Option.isSome(blockBindingOwner(node, references, importerFilename))
+@@ -1023,0 +1032 @@
++  importerFilename?: string,
+@@ -1030,7 +1039 @@
+-      isMapBindingCall(bindingCall, references)
+-        ? 2
+-        : Option.exists(staticMemberPath(bindingCall.callee), path =>
+-              Option.contains(Array.last(path.members), 'makeBinding'),
+-            )
+-          ? 1
+-          : 0,
++      isBlockBindingCall(bindingCall, references, importerFilename) ? 1 : 0,
+@@ -1044,0 +1048 @@
++  importerFilename?: string,
+@@ -1047,25 +1051,3 @@
+-  if (isMapBindingCall(bindingCall, references)) {
+-    return Option.getOrUndefined(Array.get(bindingCall.arguments, 1))
+-  }
+-  if (!isOwnedDefinitionCall(bindingCall, 'makeBinding', references)) {
+-    return undefined
+-  }
+-  return Option.getOrUndefined(Array.head(bindingCall.arguments))
+-}
+-
+-/** Returns the parent Definition supplied to a recognized Binding call. */
+-export const blockBindingParent = (
+-  node: ESTree.CallExpression,
+-  references?: WeakMap<ESTree.Node, Reference>,
+-): unknown => {
+-  const bindingCall = directBindingCall(node)
+-  if (isMapBindingCall(bindingCall, references)) {
+-    return Option.getOrUndefined(Array.head(bindingCall.arguments))
+-  }
+-  if (
+-    !isMemberExpression(bindingCall.callee) ||
+-    !Option.contains(staticMemberName(bindingCall.callee), 'makeBinding')
+-  ) {
+-    return undefined
+-  }
+-  return bindingCall.callee.object
++  return isBlockBindingCall(bindingCall, references, importerFilename)
++    ? Option.getOrUndefined(Array.head(bindingCall.arguments))
++    : undefined
+@@ -1077,0 +1060 @@
++  importerFilename?: string,
+@@ -1080 +1063,8 @@
+-  if (isMapBindingCall(bindingCall, references)) {
++  if (
++    isOwnedDefinitionCall(
++      bindingCall,
++      'makeMapBinding',
++      references,
++      importerFilename,
++    )
++  ) {
+@@ -1083 +1073,8 @@
+-  if (!isOwnedDefinitionCall(bindingCall, 'makeBinding', references)) {
++  if (
++    !isOwnedDefinitionCall(
++      bindingCall,
++      'makeBinding',
++      references,
++      importerFilename,
++    )
++  ) {
+@@ -1088,2 +1085,12 @@
+-    bindingConfigHasProperties(node, ['field', 'key'], references) &&
+-    bindingConfigHasStaticStringProperty(node, 'key', references)
++    bindingConfigHasProperties(
++      node,
++      ['field', 'key'],
++      references,
++      importerFilename,
++    ) &&
++    bindingConfigHasStaticStringProperty(
++      node,
++      'key',
++      references,
++      importerFilename,
++    )
+@@ -1098,0 +1106 @@
++      importerFilename,
+@@ -1105,2 +1113,7 @@
+-    bindingConfigHasProperties(node, ['read', 'write'], references) ||
+-    bindingConfigHasProperties(node, ['field'], references)
++    bindingConfigHasProperties(
++      node,
++      ['read', 'write'],
++      references,
++      importerFilename,
++    ) ||
++    bindingConfigHasProperties(node, ['field'], references, importerFilename)
+@@ -1117,0 +1131 @@
++  importerFilename?: string,
+@@ -1129 +1143,3 @@
+-    return Option.isSome(blockBindingMethod(source, references))
++    return Option.isSome(
++      blockBindingMethod(source, references, importerFilename),
++    )
+@@ -1151,2 +1167,13 @@
+-        Option.isSome(blockBindingMethod(definition.node.init, references)) ||
+-        isBindingPolicyCall(definition.node.init, references, nextVisited)
++        Option.isSome(
++          blockBindingMethod(
++            definition.node.init,
++            references,
++            importerFilename,
++          ),
++        ) ||
++        isBindingPolicyCall(
++          definition.node.init,
++          references,
++          importerFilename,
++          nextVisited,
++        )
+@@ -1323,0 +1351 @@
++        isImportedHelper: true,
+@@ -1465,7 +1493,39 @@
+-    return variable.defs.some(
+-      definition =>
+-        definition.type === 'Variable' &&
+-        isVariableDeclarator(definition.node) &&
+-        isCallExpression(definition.node.init) &&
+-        isOwnedStage(definition.node.init),
+-    )
++    return variable.defs.some(definition => {
++      if (
++        definition.type !== 'Variable' ||
++        !isVariableDeclarator(definition.node)
++      ) {
++        return false
++      }
++      const initializer = definition.node.init
++      if (isCallExpression(initializer)) {
++        return isOwnedStage(initializer)
++      }
++      if (
++        !isVariableDeclaration(definition.node.parent) ||
++        definition.node.parent.kind !== 'const'
++      ) {
++        return false
++      }
++
++      const aliasPath = staticMemberPath(initializer)
++      if (Option.isNone(aliasPath)) {
++        return false
++      }
++      const imported = resolveImportedPath(references, initializer)
++      if (Option.isSome(imported)) {
++        const { source } = imported.value
++        return (
++          source.startsWith('.') ||
++          source.startsWith('@/') ||
++          source.startsWith('~/')
++        )
++      }
++      return (
++        Array.isReadonlyArrayEmpty(aliasPath.value.members) &&
++        Option.exists(
++          resolvedVariable(references, aliasPath.value.root),
++          owner => isOwnedVariable(owner, new Set([...visited, variable])),
++        )
++      )
++    })
+@@ -1483,0 +1544,25 @@
++  if (references !== undefined) {
++    const imported = resolveImportedPath(references, callee)
++    if (
++      Option.isSome(imported) &&
++      Array.length(imported.value.members) === 1 &&
++      Option.contains(Array.head(imported.value.members), method)
++    ) {
++      return Option.gen(function* () {
++        const importedPath = yield* importedDefinitionMethodOwner(
++          references,
++          importerFilename,
++          imported.value,
++          method,
++        )
++        const path = yield* staticMemberPath(callee)
++        return {
++          importedPath,
++          isFromMessageAdapter: false,
++          isImportedHelper: true,
++          path: { root: path.root, members: [] },
++        }
++      })
++    }
++  }
++
+--- a/packages/oxlint-plugin-foldkit/src/rules/no-binding-write-coordination.ts
++++ b/packages/oxlint-plugin-foldkit/src/rules/no-binding-write-coordination.ts
+@@ -14 +14,2 @@
+-  blockBindingParent,
++  blockBindingOwner,
++  blockBindingSourceCall,
+@@ -17 +17,0 @@
+-  isBlockBindingCall,
+@@ -26 +25,0 @@
+-  staticMemberName,
+@@ -248,8 +247,15 @@
+-        const parent = blockBindingParent(node, references.uses)
+-        if (
+-          parent === undefined ||
+-          !isDefinition(parent) ||
+-          (!isBlockBindingCall(node, references.uses) &&
+-            (!isMemberExpression(node.callee) ||
+-              !Option.contains(staticMemberName(node.callee), 'makeBinding')))
+-        ) {
++        const maybeOwner = blockBindingOwner(
++          node,
++          references.uses,
++          ctx.filename,
++        )
++        if (Option.isNone(maybeOwner)) {
++          return Effect.void
++        }
++
++        const owner = maybeOwner.value
++        const source = blockBindingSourceCall(node)
++        const parent = isMemberExpression(source.callee)
++          ? source.callee.object
++          : owner.path.root
++        if (!isDefinition(parent) && owner.isImportedHelper !== true) {
+@@ -259 +265 @@
+-          blockBindingConfiguration(node, references.uses),
++          blockBindingConfiguration(node, references.uses, ctx.filename),
+--- a/packages/oxlint-plugin-foldkit/src/rules/no-child-message-construction-in-root.ts
++++ b/packages/oxlint-plugin-foldkit/src/rules/no-child-message-construction-in-root.ts
+@@ -14 +14 @@
+-  blockBindingParent,
++  blockBindingOwner,
+@@ -16 +15,0 @@
+-  isBlockBindingCall,
+@@ -539,4 +538,7 @@
+-    if (isBlockBindingCall(parent, references)) {
+-      const bindingParent = yield* Option.fromNullishOr(
+-        blockBindingParent(parent, references),
+-      )
++    const maybeBindingOwner = blockBindingOwner(
++      parent,
++      references,
++      importerFilename,
++    )
++    if (Option.isSome(maybeBindingOwner)) {
++      const bindingOwner = maybeBindingOwner.value
+@@ -545 +547 @@
+-        yield* staticMemberPath(bindingParent),
++        bindingOwner.path,
+@@ -547,7 +549,13 @@
+-      const importedBindingParentPath = Option.map(
+-        resolveImportedPathThroughConst(references, bindingParentPath.root),
+-        path => ({
+-          source: path.source,
+-          members: [...path.members, ...bindingParentPath.members],
+-        }),
+-      )
++      const importedBindingParentPath =
++        bindingOwner.importedPath === undefined
++          ? Option.map(
++              resolveImportedPathThroughConst(
++                references,
++                bindingParentPath.root,
++              ),
++              path => ({
++                source: path.source,
++                members: [...path.members, ...bindingParentPath.members],
++              }),
++            )
++          : Option.some(bindingOwner.importedPath)
+--- a/packages/oxlint-plugin-foldkit/src/rules/no-direct-block-state-update.ts
++++ b/packages/oxlint-plugin-foldkit/src/rules/no-direct-block-state-update.ts
+@@ -30 +30 @@
+-  blockBindingParent,
++  blockBindingOwner,
+@@ -347,12 +346,0 @@
+-const definitionOwnerForExpression = (
+-  node: unknown,
+-  references: WeakMap<ESTree.Node, Reference> | undefined,
+-): DefinitionOwner | undefined => {
+-  const maybePath = staticMemberPath(node)
+-  if (Option.isNone(maybePath)) {
+-    return undefined
+-  }
+-
+-  return definitionOwnerForPath(maybePath.value, references)
+-}
+-
+@@ -413,0 +402 @@
++  importerFilename?: string,
+@@ -415 +404 @@
+-  const bindingMethod = blockBindingMethod(node, references)
++  const bindingMethod = blockBindingMethod(node, references, importerFilename)
+@@ -677,0 +667 @@
++  importerFilename?: string,
+@@ -715 +705 @@
+-      const kind = foldKind(declarator.init, references)
++      const kind = foldKind(declarator.init, references, importerFilename)
+@@ -722,0 +713 @@
++        importerFilename,
+@@ -728,2 +719,10 @@
+-      const bindingMethod = blockBindingMethod(declarator.init, references)
+-      const boundChild = blockBindingChild(declarator.init, references)
++      const bindingMethod = blockBindingMethod(
++        declarator.init,
++        references,
++        importerFilename,
++      )
++      const boundChild = blockBindingChild(
++        declarator.init,
++        references,
++        importerFilename,
++      )
+@@ -733,6 +732,11 @@
+-      const owner = Option.isSome(bindingMethod)
+-        ? definitionOwnerForExpression(
+-            blockBindingParent(declarator.init, references),
+-            references,
+-          )
+-        : undefined
++      const owner = Option.getOrUndefined(
++        Option.map(
++          blockBindingOwner(declarator.init, references, importerFilename),
++          bindingOwner => {
++            const owner = definitionOwnerForPath(bindingOwner.path, references)
++            return bindingOwner.importedPath === undefined
++              ? owner
++              : { ...owner, importedPath: bindingOwner.importedPath }
++          },
++        ),
++      )
+@@ -1352 +1356,6 @@
+-  const definitions = foldDefinitions(program, scopes, references)
++  const definitions = foldDefinitions(
++    program,
++    scopes,
++    references,
++    importerFilename,
++  )
+--- a/packages/oxlint-plugin-foldkit/src/rules/no-empty-to-parent-out-message.ts
++++ b/packages/oxlint-plugin-foldkit/src/rules/no-empty-to-parent-out-message.ts
+@@ -113,0 +114 @@
++  importerFilename?: string,
+@@ -128 +129 @@
+-    isBindingPolicyCall(policyProperty, references)
++    isBindingPolicyCall(policyProperty, references, importerFilename)
+@@ -139 +140 @@
+-    Option.isSome(blockBindingMethod(binding, references))
++    Option.isSome(blockBindingMethod(binding, references, importerFilename))
+@@ -170,0 +172 @@
++  importerFilename?: string,
+@@ -177 +179 @@
+-    isBindingForwardProperty(property, references)) &&
++    isBindingForwardProperty(property, references, importerFilename)) &&
+@@ -278 +280 @@
+-              !isEmptyMapperProperty(references, property)
++              !isEmptyMapperProperty(references, property, ctx.filename)
+@@ -285 +287,5 @@
+-              message: isBindingForwardProperty(property, references)
++              message: isBindingForwardProperty(
++                property,
++                references,
++                ctx.filename,
++              )
+--- a/packages/oxlint-plugin-foldkit/src/rules/no-manual-composition-routing.ts
++++ b/packages/oxlint-plugin-foldkit/src/rules/no-manual-composition-routing.ts
+@@ -340 +340,4 @@
+-          if (isCallExpression(node) && isBlockBindingCall(node, references)) {
++          if (
++            isCallExpression(node) &&
++            isBlockBindingCall(node, references, ctx.filename)
++          ) {
+@@ -342 +345 @@
+-              blockBindingConfiguration(node, references),
++              blockBindingConfiguration(node, references, ctx.filename),
+--- a/packages/website/src/snippet/blockKeyedMapFields.ts
++++ b/packages/website/src/snippet/blockKeyedMapFields.ts
+@@ -3 +2,0 @@
+-import { makeMapBinding } from 'foldkit/mapBinding'
+@@ -20,8 +19,4 @@
+-export const EntriesBinding = makeMapBinding(
+-  ApplicationDefinition,
+-  EntryBlock,
+-  {
+-    field: 'entriesById',
+-  },
+-)
+-export const RowsBinding = makeMapBinding(ApplicationDefinition, EntryBlock, {
++export const EntriesBinding = ApplicationDefinition.makeMapBinding(EntryBlock, {
++  field: 'entriesById',
++})
++export const RowsBinding = ApplicationDefinition.makeMapBinding(EntryBlock, {

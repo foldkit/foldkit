@@ -21,7 +21,6 @@ export const Model = Schema.Struct({
   animation: Animation.AnimationBlock.Model,
   maybeFocusSelector: Schema.Option(Schema.String),
 })
-
 export type Model = typeof Model.Type
 
 // MESSAGE
@@ -38,6 +37,7 @@ export const Message = defineMessageUnion({
   Unmounted: {},
   CompletedReleaseDialogResources: {},
 })
+export type Message = typeof Message.Type
 
 export type RequestedOpen = typeof Message.RequestedOpen.Type
 export type RequestedClose = typeof Message.RequestedClose.Type
@@ -51,8 +51,6 @@ export type Unmounted = typeof Message.Unmounted.Type
 export type CompletedReleaseDialogResources =
   typeof Message.CompletedReleaseDialogResources.Type
 
-export type Message = typeof Message.Type
-
 // OUT MESSAGE
 
 /** Union of out-messages the dialog component can produce. */
@@ -61,6 +59,7 @@ export const OutMessage = defineMessageUnion({
   Closed: {},
   CompletedClose: {},
 })
+export type OutMessage = typeof OutMessage.Type
 
 export type Opened = typeof OutMessage.Opened.Type
 export type Closed = typeof OutMessage.Closed.Type

@@ -14,6 +14,7 @@ type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({
   UpdatedCount: { count: Schema.Number },
 })
+type ChildMessage = typeof ChildMessage.Type
 
 const ChildComposition = makeDefinition('BindingInitChild', {
   Model: ChildModel,
@@ -42,6 +43,7 @@ const ParentModel = Schema.Struct({
   optionalChild: Schema.optional(ChildModel),
   label: Schema.String,
 })
+type ParentModel = typeof ParentModel.Type
 
 const Parent = makeDefinition('BindingInitParent', {
   Model: ParentModel,
@@ -155,9 +157,8 @@ const runtimeAccessorBinding = (
     ChildBlock,
     {
       placement: 'runtimeAccessor',
-      read: (parentModel: typeof ParentModel.Type) =>
-        Option.some(parentModel.first),
-      write: (parentModel: typeof ParentModel.Type, nextChild: ChildModel) =>
+      read: (parentModel: ParentModel) => Option.some(parentModel.first),
+      write: (parentModel: ParentModel, nextChild: ChildModel) =>
         modifyFields(parentModel, { first: () => nextChild }),
       init: { contextToArgs: () => [{ count: 1 }], toParentFields },
     },

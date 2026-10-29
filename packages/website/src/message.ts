@@ -50,3 +50,4 @@ export const Message = defineMessageUnion({
   ChangedViewportWidth: { isNarrow: Schema.Boolean },
   ToggledSidebarGroup: { key: GroupKey, isOpen: Schema.Boolean },
 })
+export type Message = typeof Message.Type

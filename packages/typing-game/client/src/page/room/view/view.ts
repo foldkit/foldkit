@@ -91,7 +91,7 @@ export const view = RoomComposition.makeView.withInputs<ViewInputs>(
 )
 
 const content = (
-  { roomAsyncData, maybeSession, userGameText, username }: typeof Model.Type,
+  { roomAsyncData, maybeSession, userGameText, username }: Model,
   h: RoomViewBuilder,
 ): Html =>
   AsyncData.matchData(roomAsyncData, {
@@ -105,8 +105,8 @@ const content = (
   })
 
 const gameContent = (
-  room: typeof Shared.Room.Type,
-  maybeSession: Option.Option<typeof RoomPlayerSession.Type>,
+  room: Shared.Room,
+  maybeSession: Option.Option<RoomPlayerSession>,
   userGameText: string,
   h: RoomViewBuilder,
 ): Html => {

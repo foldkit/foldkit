@@ -41,7 +41,6 @@ export const Model = Schema.Struct({
   maybeFocusedIndex: Schema.Option(Schema.Number),
   activationMode: ActivationMode,
 })
-
 export type Model = typeof Model.Type
 
 // MESSAGE
@@ -55,11 +54,10 @@ export const Message = defineMessageUnion({
   FocusedTab: { index: Schema.Number },
   CompletedFocusTab: {},
 })
+export type Message = typeof Message.Type
 
 export type SelectedTab = typeof Message.SelectedTab.Type
 export type FocusedTab = typeof Message.FocusedTab.Type
-
-export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
@@ -92,7 +90,7 @@ type OutMessageSchema<Value extends string = string> =
     : never
 
 /** Generic over `Value extends string` so consumers using
- *  `Tabs.create<MyUnion>()` receive `value: MyUnion` in the
+ *  `Tabs.makeBlock<MyUnion>()` receive `value: MyUnion` in the
  *  `Selected` OutMessage. Defaults to `string`. */
 export type OutMessage<Value extends string = string> = Selected<Value>
 
@@ -169,7 +167,7 @@ export const update = TabsComposition.makeUpdate({
 // VIEW
 
 /** Per-tab render info passed to the consumer's `toView`. Generic over
- *  `Value extends string`: when `Tabs.create<MyUnion>()` is declared,
+ *  `Value extends string`: when `Tabs.makeBlock<MyUnion>()` is declared,
  *  `tab.value` is typed `MyUnion` so the consumer can switch on it without
  *  casting. */
 export type TabInfo<Value extends string = string> = Readonly<{
@@ -205,7 +203,7 @@ export type PanelMount = typeof PanelMount.Type
 
 /** Per-render view inputs passed to `view` via `h.block`'s `viewInputs` field.
  *  Generic over `Value extends string` so consumers using
- *  `Tabs.create<MyUnion>()` receive `tab.value: MyUnion` in `toView`
+ *  `Tabs.makeBlock<MyUnion>()` receive `tab.value: MyUnion` in `toView`
  *  and `(value: MyUnion, index) => boolean` in `isTabDisabled`, without
  *  casting.
  *
@@ -456,7 +454,7 @@ export interface Completed<
   BlockParts<Value>['implementation']
 > {}
 
-const makeBlock = <Value extends string>(): Completed<Value> => {
+const assembleBlock = <Value extends string>(): Completed<Value> => {
   const { composition, implementation } = makeBlockParts<Value>()
 
   const prepare = () => composition.prepareBlock(implementation)
@@ -470,9 +468,9 @@ const makeBlock = <Value extends string>(): Completed<Value> => {
 
 /**
  * Creates a completed Tabs Block refined to one Value type. Declare
- * `Tabs.create<DemoTab>()` once at module scope, then connect that Block to
+ * `Tabs.makeBlock<DemoTab>()` once at module scope, then connect that Block to
  * the parent. Its view inputs and `Selected.value` share the Value type;
  * the parent Model owns the active tab.
  */
-export const create = <Value extends string = string>(): Completed<Value> =>
-  makeBlock<Value>()
+export const makeBlock = <Value extends string = string>(): Completed<Value> =>
+  assembleBlock<Value>()

@@ -8,7 +8,6 @@ import type * as Update from '../../update/index.js'
 export const Message = defineMessageUnion({
   IgnoredInteraction: {},
 })
-
 export type Message = typeof Message.Type
 
 // MODEL

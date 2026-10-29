@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { Array, Option } from 'effect'
+import { Array, Option, Record } from 'effect'
 import { AsyncData } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
@@ -19,34 +19,34 @@ import {
   NotificationCenterBinding,
   ProjectSettingsBinding,
 } from '../composition'
-import type { Issue, Project, WorkspaceSnapshot } from '../domain'
+import type { Issue, Project, Workspace } from '../domain'
+import { issueHrefs } from '../issueLinks'
 import { listboxViewInputs } from '../listbox'
 import { Message } from '../message'
-import {
-  IssueMoveState,
-  type Model,
-  appliedIssueFilters,
-  maybeActiveBoardInstance,
-  maybeActiveIssueDetailInstance,
-} from '../model'
-import { issueHrefs } from '../navigation'
+import type { Model } from '../model'
+import { IssueMoveState } from '../optimistic'
 import {
   ApplicationRoute,
   issuesRouter,
+  maybeIssueId,
   maybeProjectId,
-  pageRoute,
-  routeFilters,
+  maybeRouteFilters,
 } from '../route'
+import {
+  appliedIssueFilters,
+  maybeActiveIssueDetail,
+  visibleWorkspaceAsyncData,
+} from '../selection'
 import { projectOverview, projectTabs } from './project'
 import { workspaceSettings } from './settings'
 import { sidebarView } from './sidebar'
 
-const maybeSnapshot = (model: typeof Model.Type) =>
-  AsyncData.getData(model.workspaceAsyncData)
+const maybeVisibleWorkspace = (model: Model) =>
+  AsyncData.getData(visibleWorkspaceAsyncData(model))
 
 const memberControl = (
-  model: typeof Model.Type,
-  snapshot: typeof WorkspaceSnapshot.Type,
+  model: Model,
+  workspace: Workspace,
   h: ApplicationViewBuilder,
 ): Html =>
   h.div(
@@ -72,7 +72,7 @@ const memberControl = (
               model: model.activeMemberListbox,
               viewInputs: listboxViewInputs({
                 value: model.activeMemberId,
-                options: Array.map(snapshot.members, member => ({
+                options: Array.map(workspace.members, member => ({
                   value: member.id,
                   label: member.name,
                 })),
@@ -84,14 +84,11 @@ const memberControl = (
     ],
   )
 
-const pageTitle = (
-  model: typeof Model.Type,
-  snapshot: typeof WorkspaceSnapshot.Type,
-): string => {
-  const route = pageRoute(model.route)
+const pageTitle = (model: Model, workspace: Workspace): string => {
+  const { route } = model
   const projectTitle = (projectId: string) =>
     Option.match(
-      Array.findFirst(snapshot.projects, project => project.id === projectId),
+      Array.findFirst(workspace.projects, project => project.id === projectId),
       { onNone: () => 'Project not found', onSome: project => project.name },
     )
 
@@ -109,7 +106,7 @@ const pageTitle = (
         Array.findFirst(model.savedViews, savedView => savedView.id === viewId),
         {
           onNone: () =>
-            Option.isSome(routeFilters(route))
+            Option.isSome(maybeRouteFilters(route))
               ? 'Filtered issues'
               : 'Saved view not found',
           onSome: savedView => savedView.name,
@@ -121,9 +118,9 @@ const pageTitle = (
 }
 
 const issueListView = (
-  model: typeof Model.Type,
-  snapshot: typeof WorkspaceSnapshot.Type,
-  issues: ReadonlyArray<typeof Issue.Type>,
+  model: Model,
+  workspace: Workspace,
+  issues: ReadonlyArray<Issue>,
   h: ApplicationViewBuilder,
 ): Html =>
   h.block(
@@ -134,11 +131,9 @@ const issueListView = (
         filters: appliedIssueFilters(model),
         issueHrefs: issueHrefs(model, issues),
         issues,
-        members: snapshot.members,
-        projects: snapshot.projects,
-        maybeActiveIssueId: ApplicationRoute.guards.Issue(model.route)
-          ? Option.some(model.route.issueId)
-          : Option.none(),
+        members: workspace.members,
+        projects: workspace.projects,
+        maybeActiveIssueId: maybeIssueId(model.route),
       },
     }),
   )
@@ -164,18 +159,18 @@ const missingPage = (
   )
 
 const routeContent = (
-  model: typeof Model.Type,
-  snapshot: typeof WorkspaceSnapshot.Type,
+  model: Model,
+  workspace: Workspace,
   h: ApplicationViewBuilder,
 ): Html => {
-  const route = pageRoute(model.route)
+  const { route } = model
 
   const projectContent = (
     projectId: string,
-    toView: (project: typeof Project.Type) => Html,
+    toView: (project: Project) => Html,
   ) =>
     Option.match(
-      Array.findFirst(snapshot.projects, project => project.id === projectId),
+      Array.findFirst(workspace.projects, project => project.id === projectId),
       {
         onNone: () =>
           missingPage(
@@ -188,12 +183,12 @@ const routeContent = (
     )
 
   return ApplicationRoute.match<Html>(route, {
-    Issues: () => issueListView(model, snapshot, snapshot.issues, h),
+    Issues: () => issueListView(model, workspace, workspace.issues, h),
     MyIssues: () =>
       issueListView(
         model,
-        snapshot,
-        Array.filter(snapshot.issues, issue =>
+        workspace,
+        Array.filter(workspace.issues, issue =>
           Option.contains(issue.maybeAssigneeId, model.activeMemberId),
         ),
         h,
@@ -202,59 +197,56 @@ const routeContent = (
       projectContent(projectId, () =>
         issueListView(
           model,
-          snapshot,
-          Array.filter(snapshot.issues, issue => issue.projectId === projectId),
+          workspace,
+          Array.filter(
+            workspace.issues,
+            issue => issue.projectId === projectId,
+          ),
           h,
         ),
       ),
     ProjectOverview: ({ projectId }) =>
       projectContent(projectId, project =>
-        projectOverview(project, snapshot, h),
+        projectOverview(project, workspace, h),
       ),
     ProjectSettings: ({ projectId }) =>
       projectContent(projectId, () =>
-        Option.match(
-          Array.findFirst(
-            model.projectSettingsInstances,
-            instance => instance.projectId === projectId,
-          ),
-          {
-            onNone: () => h.empty,
-            onSome: instance =>
-              h.block(
-                ProjectSettingsBinding.embedView({
-                  key: projectId,
-                  slotId: `project-settings-${projectId}`,
-                  model: instance.model,
-                }),
-              ),
-          },
-        ),
+        Option.match(Record.get(model.projectSettings, projectId), {
+          onNone: () => h.empty,
+          onSome: settings =>
+            h.block(
+              ProjectSettingsBinding.embedView({
+                key: projectId,
+                slotId: `project-settings-${projectId}`,
+                model: settings,
+              }),
+            ),
+        }),
       ),
     Board: ({ projectId }) =>
       projectContent(projectId, () =>
-        Option.match(maybeActiveBoardInstance(model), {
+        Option.match(Record.get(model.issueBoards, projectId), {
           onNone: () =>
             h.p(
               [h.Class('p-8 text-sm text-slate-500'), h.Role('status')],
               ['Loading board…'],
             ),
-          onSome: instance =>
+          onSome: board =>
             h.block(
               IssueBoardBinding.embedView({
                 key: projectId,
                 slotId: `project-board-${projectId}`,
-                model: instance.model,
+                model: board,
                 viewInputs: {
-                  issueHrefs: issueHrefs(model, snapshot.issues),
+                  issueHrefs: issueHrefs(model, workspace.issues),
                   isSaving: IssueMoveState.guards.MovingIssue(
                     model.issueMoveState,
                   ),
                   issues: Array.filter(
-                    snapshot.issues,
+                    workspace.issues,
                     issue => issue.projectId === projectId,
                   ),
-                  members: snapshot.members,
+                  members: workspace.members,
                 },
               }),
             ),
@@ -266,9 +258,9 @@ const routeContent = (
           slotId: 'member-directory',
           model: model.memberDirectory,
           viewInputs: {
-            members: snapshot.members,
-            issues: snapshot.issues,
-            issueHrefs: issueHrefs(model, snapshot.issues),
+            members: workspace.members,
+            issues: workspace.issues,
+            issueHrefs: issueHrefs(model, workspace.issues),
           },
         }),
       ),
@@ -278,16 +270,17 @@ const routeContent = (
         Array.findFirst(model.savedViews, savedView => savedView.id === viewId),
         {
           onNone: () =>
-            Option.match(routeFilters(route), {
+            Option.match(maybeRouteFilters(route), {
               onNone: () =>
                 missingPage(
                   'This saved view is unavailable',
                   'Save a new set of issue filters to create a view.',
                   h,
                 ),
-              onSome: () => issueListView(model, snapshot, snapshot.issues, h),
+              onSome: () =>
+                issueListView(model, workspace, workspace.issues, h),
             }),
-          onSome: () => issueListView(model, snapshot, snapshot.issues, h),
+          onSome: () => issueListView(model, workspace, workspace.issues, h),
         },
       ),
     Issue: () => h.empty,
@@ -300,10 +293,7 @@ const routeContent = (
   })
 }
 
-const issueMoveFeedback = (
-  model: typeof Model.Type,
-  h: ApplicationViewBuilder,
-): Html => {
+const issueMoveFeedback = (model: Model, h: ApplicationViewBuilder): Html => {
   const failure = (error: string) =>
     h.div(
       [
@@ -338,41 +328,41 @@ const issueMoveFeedback = (
 }
 
 const workspaceView = (
-  model: typeof Model.Type,
-  snapshot: typeof WorkspaceSnapshot.Type,
+  model: Model,
+  workspace: Workspace,
   h: ApplicationViewBuilder,
 ): Html => {
-  const route = pageRoute(model.route)
+  const { route } = model
   const maybeProject = Option.flatMap(maybeProjectId(route), projectId =>
-    Array.findFirst(snapshot.projects, project => project.id === projectId),
+    Array.findFirst(workspace.projects, project => project.id === projectId),
   )
 
   return h.div(
-    [h.Class('min-w-0 flex-1')],
+    [h.Class('flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden')],
     [
       h.header(
         [
           h.Class(
-            'flex min-h-16 flex-wrap items-center justify-between gap-3 px-5 py-3',
+            'flex min-h-16 shrink-0 flex-wrap items-center justify-between gap-3 px-5 py-3',
           ),
         ],
         [
           h.h1(
             [h.Class('text-lg font-semibold text-slate-900')],
-            [pageTitle(model, snapshot)],
+            [pageTitle(model, workspace)],
           ),
           h.div(
             [h.Class('flex items-center gap-3')],
             [
-              memberControl(model, snapshot, h),
+              memberControl(model, workspace, h),
               h.block(
                 NotificationCenterBinding.embedView({
                   slotId: 'workspace-notifications',
                   model: model.notificationCenter,
                   viewInputs: {
                     activeMemberId: model.activeMemberId,
-                    issues: snapshot.issues,
-                    members: snapshot.members,
+                    issues: workspace.issues,
+                    members: workspace.members,
                   },
                 }),
               ),
@@ -388,33 +378,40 @@ const workspaceView = (
       h.div(
         [
           h.Class(
-            'flex min-h-[calc(100vh-64px)] min-w-0 flex-col border-t border-slate-200 xl:flex-row',
+            'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-t border-slate-200 xl:flex-row',
           ),
         ],
         [
-          h.div(
-            [
-              h.Class(
-                clsx('min-w-0 flex-1', {
-                  'hidden xl:block': ApplicationRoute.guards.Issue(model.route),
-                }),
-              ),
-            ],
-            [routeContent(model, snapshot, h)],
-          ),
-          ...(ApplicationRoute.guards.Issue(model.route)
+          ...(!ApplicationRoute.guards.Issue(model.route)
+            ? [
+                h.div(
+                  [
+                    h.Class(
+                      clsx(
+                        'min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain',
+                        {
+                          'hidden xl:block': Option.isSome(
+                            maybeIssueId(model.route),
+                          ),
+                        },
+                      ),
+                    ),
+                  ],
+                  [routeContent(model, workspace, h)],
+                ),
+              ]
+            : []),
+          ...(Option.isSome(maybeIssueId(model.route))
             ? [
                 Option.match(
-                  Option.flatMap(
-                    maybeActiveIssueDetailInstance(model),
-                    instance =>
-                      Option.map(
-                        Array.findFirst(
-                          snapshot.issues,
-                          issue => issue.id === instance.issueId,
-                        ),
-                        issue => ({ instance, issue }),
+                  Option.flatMap(maybeActiveIssueDetail(model), detail =>
+                    Option.map(
+                      Array.findFirst(
+                        workspace.issues,
+                        issue => issue.id === detail.issueId,
                       ),
+                      issue => ({ detail, issue }),
+                    ),
                   ),
                   {
                     onNone: () =>
@@ -423,23 +420,28 @@ const workspaceView = (
                         'Choose another issue from the list.',
                         h,
                       ),
-                    onSome: ({ instance, issue }) =>
+                    onSome: ({ detail, issue }) =>
                       h.aside(
                         [
                           h.Class(
-                            'w-full shrink-0 bg-slate-50/70 xl:w-[430px] xl:border-l xl:border-slate-200',
+                            clsx(
+                              'min-h-0 w-full flex-1 overflow-y-auto overscroll-contain bg-slate-50/70',
+                              ApplicationRoute.guards.Issue(model.route)
+                                ? 'mx-auto max-w-3xl'
+                                : 'xl:w-[430px] xl:flex-none xl:border-l xl:border-slate-200',
+                            ),
                           ),
                         ],
                         [
                           h.block(
                             IssueDetailBinding.embedView({
-                              key: instance.issueId,
-                              slotId: instance.issueId,
-                              model: instance.model,
+                              key: detail.issueId,
+                              slotId: detail.issueId,
+                              model: detail,
                               viewInputs: {
                                 issue,
-                                projects: snapshot.projects,
-                                members: snapshot.members,
+                                projects: workspace.projects,
+                                members: workspace.members,
                                 authorId: model.activeMemberId,
                               },
                             }),
@@ -456,20 +458,17 @@ const workspaceView = (
   )
 }
 
-const overlaysView = (
-  model: typeof Model.Type,
-  h: ApplicationViewBuilder,
-): Html => {
-  const paletteInputs = Option.match(maybeSnapshot(model), {
+const overlaysView = (model: Model, h: ApplicationViewBuilder): Html => {
+  const paletteInputs = Option.match(maybeVisibleWorkspace(model), {
     onNone: () => ({ issues: [], projects: [] }),
-    onSome: snapshot => ({
-      issues: snapshot.issues,
-      projects: snapshot.projects,
+    onSome: workspace => ({
+      issues: workspace.issues,
+      projects: workspace.projects,
     }),
   })
-  const projects = Option.match(maybeSnapshot(model), {
+  const projects = Option.match(maybeVisibleWorkspace(model), {
     onNone: () => [],
-    onSome: snapshot => snapshot.projects,
+    onSome: workspace => workspace.projects,
   })
 
   return h.div(
@@ -493,15 +492,18 @@ const overlaysView = (
   )
 }
 
-const documentTitle = (model: typeof Model.Type): string =>
-  Option.match(maybeSnapshot(model), {
+const documentTitle = (model: Model): string =>
+  Option.match(maybeVisibleWorkspace(model), {
     onNone: () => 'Northstar | Foldkit workspace',
-    onSome: snapshot => {
-      if (ApplicationRoute.guards.Issue(model.route)) {
-        const issueId = model.route.issueId
+    onSome: workspace => {
+      const issueId = maybeIssueId(model.route)
 
+      if (Option.isSome(issueId)) {
         return Option.match(
-          Array.findFirst(snapshot.issues, issue => issue.id === issueId),
+          Array.findFirst(
+            workspace.issues,
+            issue => issue.id === issueId.value,
+          ),
           {
             onNone: () => 'Issue not found | Northstar',
             onSome: issue => `${issue.identifier}: ${issue.title} | Northstar`,
@@ -509,7 +511,7 @@ const documentTitle = (model: typeof Model.Type): string =>
         )
       }
 
-      const title = pageTitle(model, snapshot)
+      const title = pageTitle(model, workspace)
 
       return ApplicationRoute.matchOrElse(
         model.route,
@@ -529,13 +531,13 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   body: h.div(
     [
       h.Class(
-        'min-h-screen bg-slate-50 font-sans text-sm font-medium text-slate-700 antialiased lg:flex',
+        'flex h-dvh flex-col overflow-hidden bg-slate-50 font-sans text-sm font-medium text-slate-700 antialiased lg:flex-row',
       ),
     ],
     [
       sidebarView(model, h),
       h.main(
-        [h.Class('min-w-0 flex-1')],
+        [h.Class('flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto')],
         [
           h.div(
             [h.Role('status'), h.AriaLive('polite'), h.Class('sr-only')],
@@ -555,7 +557,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
                   ),
                 ],
               )
-            : AsyncData.matchDataSplitEmpty(model.workspaceAsyncData, {
+            : AsyncData.matchDataSplitEmpty(visibleWorkspaceAsyncData(model), {
                 onIdle: () =>
                   h.div(
                     [
@@ -606,7 +608,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
                       ),
                     ],
                   ),
-                onData: snapshot => workspaceView(model, snapshot, h),
+                onData: workspace => workspaceView(model, workspace, h),
               }),
         ],
       ),

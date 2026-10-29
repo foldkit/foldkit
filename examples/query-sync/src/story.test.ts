@@ -14,7 +14,9 @@ import { DietListboxBlock, type Model, PeriodListboxBlock } from './model'
 import { ApplicationRoute, Sorting, browseRouter } from './route'
 import { update } from './update'
 
-const browseModel: typeof Model.Type = {
+type DietListboxMessage = typeof DietListboxBlock.Message.Type
+
+const browseModel: Model = {
   route: ApplicationRoute.Browse({
     search: Option.none(),
     sorting: Sorting.Unsorted(),
@@ -25,7 +27,7 @@ const browseModel: typeof Model.Type = {
   periodListbox: PeriodListboxBlock.init({ id: 'period-filter' }).model,
 }
 
-const dietMessage = (message: typeof DietListboxBlock.Message.Type) =>
+const dietMessage = (message: DietListboxMessage) =>
   toParentMessage(DietListboxBinding, message)
 
 const urlOrThrow = (raw: string) =>

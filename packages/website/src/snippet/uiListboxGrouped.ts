@@ -19,7 +19,7 @@ const characterName = (character: Character): string =>
 // Declare the Listbox once at module scope, typed for the source item
 // (`Character`). `view`'s `items` are typed as `ReadonlyArray<Character>`;
 // the OutMessage carries the string returned by `itemToValue`:
-const CharacterListbox = Listbox.create<Character>()
+const CharacterListbox = Listbox.makeBlock<Character>()
 
 // Add a field to your Model for the Listbox Block, plus a field for
 // the selected value your app actually cares about:
@@ -28,9 +28,10 @@ const Model = Schema.Struct({
   listbox: CharacterListbox.Model,
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // This excerpt has no parent-owned facts. The Composition derives delivery.
 const Message = defineMessageUnion({})
+type Message = typeof Message.Type
 
 const CharacterPickerDefinition = Block.makeDefinition('CharacterPicker', {
   Model,

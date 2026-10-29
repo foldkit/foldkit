@@ -191,7 +191,7 @@ export const update = RoomComposition.makeUpdate.withContext(
 )
 
 const handlePressedKey =
-  (model: typeof Model.Type, context: Context) =>
+  (model: Model, context: Context) =>
   ({ key }: { key: string }) =>
     Option.match(AsyncData.getData(model.roomAsyncData), {
       onNone: () => ({ model }),
@@ -204,8 +204,8 @@ const handlePressedKey =
     })
 
 const recordJoinedPlayer = (
-  model: typeof Model.Type,
-  player: typeof Shared.Player.Type,
+  model: Model,
+  player: Shared.Player,
   context: Context,
 ) => {
   const session = RoomPlayerSession.make({
@@ -222,10 +222,10 @@ const recordJoinedPlayer = (
 }
 
 const whenWaiting = (
-  model: typeof Model.Type,
+  model: Model,
   context: Context,
   key: string,
-  room: typeof Shared.Room.Type,
+  room: Shared.Room,
 ) =>
   Match.value(key).pipe(
     Match.when('Backspace', () => leaveRoom(model, context.roomId)),
@@ -234,10 +234,10 @@ const whenWaiting = (
   )
 
 const whenFinished = (
-  model: typeof Model.Type,
+  model: Model,
   context: Context,
   key: string,
-  room: typeof Shared.Room.Type,
+  room: Shared.Room,
 ) =>
   Match.value(key).pipe(
     Match.when('Backspace', () =>
@@ -249,7 +249,7 @@ const whenFinished = (
     Match.orElse(() => ({ model })),
   )
 
-const leaveRoom = (model: typeof Model.Type, roomId: string) => ({
+const leaveRoom = (model: Model, roomId: string) => ({
   model: modifyFields(model, {
     maybeSession: () => Option.none(),
     roomAsyncData: () => RoomAsyncData.Loading(),
@@ -258,8 +258,7 @@ const leaveRoom = (model: typeof Model.Type, roomId: string) => ({
 })
 
 const handleStartGame =
-  (model: typeof Model.Type, roomId: string, room: typeof Shared.Room.Type) =>
-  () =>
+  (model: Model, roomId: string, room: Shared.Room) => () =>
     Option.match(model.maybeSession, {
       onSome: session => {
         const isHost = session.player.id === room.hostId

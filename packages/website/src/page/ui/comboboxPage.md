@@ -6,11 +6,11 @@ A searchable select with input filtering, keyboard navigation, and anchor positi
 
 ### Create a Typed Combobox
 
-Embed Combobox via the [`Combobox.create(Item)` factory](/ui/selection-blocks) at module scope: `const CityCombobox = Combobox.create(City)`. Pass the same string Schema used by the parent Model. The factory returns a completed Block whose view, update, programmatic API, Message, and OutMessage all retain that Schema's exact type, so `Selected` carries a `City`.
+Embed Combobox via the [`Combobox.makeBlock(Item)` factory](/ui/selection-blocks) at module scope: `const CityCombobox = Combobox.makeBlock(City)`. Pass the same string Schema used by the parent Model. The factory returns a completed Block whose view, update, programmatic API, Message, and OutMessage all retain that Schema's exact type, so `Selected` carries a `City`.
 
 What the factory returns is typed [`Completed<Item>` from `@foldkit/ui/combobox`](/ui/selection-blocks#completed-type). The multi-select subpath exports its own `Completed<Item>` type for cases where a created Block has to be named.
 
-Call `ParentDefinition.makeBinding` with the completed Block, its parent Model `field` and an exhaustive OutMessage policy. Use explicit accessors for custom storage. Include the resulting Binding in the parent Composition's `bindings` list to collect the Combobox's handlers and Mounts. `binding.embedView` supplies the canonical view and Message wrapper at the render site. See [Connecting a static placement](/core/block#embedding) for the complete authoring flow. Use `Combobox.create(Schema.String)` for plain strings; `Combobox.create(Item)` requires the Item Schema.
+Call `ParentDefinition.makeBinding` with the completed Block, its parent Model `field` and an exhaustive OutMessage policy. Use explicit accessors for custom storage. Include the resulting Binding in the parent Composition's `bindings` list to collect the Combobox's handlers and Mounts. `binding.embedView` supplies the canonical view and Message wrapper at the render site. See [Connecting a static placement](/core/block#embedding) for the complete authoring flow. Use `Combobox.makeBlock(Schema.String)` for plain strings; `Combobox.makeBlock(Item)` requires the Item Schema.
 
 ### Programmatic API
 
@@ -54,7 +54,7 @@ To make the behavior reproducible at any scroll position, this demo keeps the pa
 
 ### Multi-Select
 
-Use `Combobox.Multi.create(Schema.String)` and `Combobox.Multi.create` for multi-selection. The dropdown stays open on selection and items toggle on/off. The parent stores the selected values and folds each `Selected` OutMessage by toggling the value in its array.
+Use `Combobox.Multi.makeBlock(Schema.String)` and `Combobox.Multi.makeBlock` for multi-selection. The dropdown stays open on selection and items toggle on/off. The parent stores the selected values and folds each `Selected` OutMessage by toggling the value in its array.
 
 ::Demo{name="multi"}
 
@@ -161,7 +161,7 @@ Two view input fields cover the cases a `<label for>` does not. Pass `ariaLabel`
 
 ### InitConfig {#init-config}
 
-Configuration passed to the Binding for the completed Block returned by `Combobox.create(Item)` or `Combobox.Multi.create(Item)`.
+Configuration passed to the Binding for the completed Block returned by `Combobox.makeBlock(Item)` or `Combobox.Multi.makeBlock(Item)`.
 
 The Binding’s `init` accepts the same configuration in its child argument tuple: `ComboboxBinding.init({ args: [config], toParentModel })`. It returns a passive initialization recipe with no `.model` or `.commands` fields. Return that recipe from the registered Composition’s `makeInit` callback or `makeUpdate` handler, or preserve it through a Definition-owned Step; checked execution constructs the parent Model and retains the child Commands.
 
@@ -211,7 +211,7 @@ Pass the child Model as `model` and these fields as `viewInputs` to the composed
 
 ### OutMessage {#out-message}
 
-The child update and programmatic API return these facts through their optional `outMessage` field. Pass the completed Combobox Block to `ParentDefinition.makeOutMessageFold(ComboboxBlock, handlers)` whether the fold is inline or named. The forwarding API remains contextual when inline: use `ParentDefinition.makeOutMessageForward(handlers)` when facts continue to the current Block's parent, and pass the completed Block when extracting the forward. The explicit fold child preserves the exact item type returned by `Combobox.create(Item)` or `Combobox.Multi.create(Item)`.
+The child update and programmatic API return these facts through their optional `outMessage` field. Pass the completed Combobox Block to `ParentDefinition.makeOutMessageFold(ComboboxBlock, handlers)` whether the fold is inline or named. The forwarding API remains contextual when inline: use `ParentDefinition.makeOutMessageForward(handlers)` when facts continue to the current Block's parent, and pass the completed Block when extracting the forward. The explicit fold child preserves the exact item type returned by `Combobox.makeBlock(Item)` or `Combobox.Multi.makeBlock(Item)`.
 
 | Name               | Type              | Default | Description                                                                                                                                                                                                                                                                                                                                                             |
 | ------------------ | ----------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

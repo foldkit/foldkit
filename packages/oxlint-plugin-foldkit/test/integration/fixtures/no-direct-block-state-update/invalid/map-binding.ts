@@ -1,6 +1,5 @@
 import { HashMap, Schema, pipe } from 'effect'
 import { Block } from 'foldkit'
-import { makeMapBinding as bindMap } from 'foldkit/mapBinding'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -20,11 +19,11 @@ const ApplicationDefinition = Block.makeDefinition('MapApplication', {
   Model,
   Message,
 })
-const EntriesBinding = bindMap(ApplicationDefinition, KeyedEntry.Entry, {
+const { makeMapBinding: bindMap } = ApplicationDefinition
+const EntriesBinding = ApplicationDefinition.makeMapBinding(KeyedEntry.Entry, {
   field: 'entriesById',
 })
 const WrappedEntriesBinding = bindMap(
-  ApplicationDefinition,
   KeyedEntry.Entry,
   {
     field: 'wrappedEntriesById',

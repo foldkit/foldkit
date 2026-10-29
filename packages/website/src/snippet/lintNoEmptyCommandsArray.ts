@@ -1,9 +1,7 @@
-declare const model: typeof Model.Type
+declare const model: Model
 declare const commands: ReadonlyArray<Command<Message>>
 declare const optionalCommands: ReadonlyArray<Command<Message>> | undefined
-declare const buildCommands: (
-  model: typeof Model.Type,
-) => ReadonlyArray<Command<Message>>
+declare const buildCommands: (model: Model) => ReadonlyArray<Command<Message>>
 
 // ❌ Bad
 // A producer that statically creates no Commands omits the field.

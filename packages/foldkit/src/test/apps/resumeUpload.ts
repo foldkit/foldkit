@@ -14,7 +14,6 @@ export const Model = Schema.Struct({
   maybePreviewDataUrl: Schema.Option(Schema.String),
   readStatus: Schema.Literals(['Idle', 'Reading', 'Failed']),
 })
-
 export type Model = typeof Model.Type
 
 // MESSAGE
@@ -27,7 +26,6 @@ export const Message = defineMessageUnion({
   FailedReadPreview: {},
   ClickedRemoveResume: {},
 })
-
 export type Message = typeof Message.Type
 
 // COMMAND

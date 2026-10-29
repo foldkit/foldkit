@@ -22,7 +22,7 @@ import { loadingModel, readyModel, sampleTelemetry } from './model.fixture'
 import { ChartModeRadioGroupBlock, PackageRadioGroupBlock } from './radioGroups'
 import { update } from './update'
 
-const selectedChartMode = (chartMode: typeof ChartMode.Type) =>
+const selectedChartMode = (chartMode: ChartMode) =>
   toParentMessage(
     ChartModeRadioGroupBinding,
     ChartModeRadioGroupBlock.Message.SelectedOption({
@@ -31,7 +31,7 @@ const selectedChartMode = (chartMode: typeof ChartMode.Type) =>
     }),
   )
 
-const selectedPackage = (packageId: typeof PackageId.Type) =>
+const selectedPackage = (packageId: PackageId) =>
   toParentMessage(
     PackageRadioGroupBinding,
     PackageRadioGroupBlock.Message.SelectedOption({

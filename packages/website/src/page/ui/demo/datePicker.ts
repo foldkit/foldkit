@@ -39,7 +39,7 @@ const formatTriggerLabel = (
 ) =>
   `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`
 
-export const basicDemo = (model: typeof Model.Type, h: UiViewBuilder) => {
+export const basicDemo = (model: Model, h: UiViewBuilder) => {
   const triggerContent = (
     maybeDate: Option.Option<
       Readonly<{ year: number; month: number; day: number }>

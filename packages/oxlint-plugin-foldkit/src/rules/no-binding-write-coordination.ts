@@ -11,10 +11,10 @@ import {
 import { makeBlockDefinitionProvenance } from '../block-schema-provenance.ts'
 import {
   blockBindingConfiguration,
-  blockBindingParent,
+  blockBindingOwner,
+  blockBindingSourceCall,
   indexReferences,
   isArrowFunction,
-  isBlockBindingCall,
   isCallExpression,
   isIdentifierReference,
   isMemberExpression,
@@ -23,7 +23,6 @@ import {
   resolveImportedPath,
   resolvedVariable,
   staticMemberPath,
-  staticMemberName,
   staticPropertyName,
 } from '../guards.ts'
 
@@ -245,18 +244,25 @@ export const noBindingWriteCoordination = Rule.define({
         if (!isCallExpression(node)) {
           return Effect.void
         }
-        const parent = blockBindingParent(node, references.uses)
-        if (
-          parent === undefined ||
-          !isDefinition(parent) ||
-          (!isBlockBindingCall(node, references.uses) &&
-            (!isMemberExpression(node.callee) ||
-              !Option.contains(staticMemberName(node.callee), 'makeBinding')))
-        ) {
+        const maybeOwner = blockBindingOwner(
+          node,
+          references.uses,
+          ctx.filename,
+        )
+        if (Option.isNone(maybeOwner)) {
+          return Effect.void
+        }
+
+        const owner = maybeOwner.value
+        const source = blockBindingSourceCall(node)
+        const parent = isMemberExpression(source.callee)
+          ? source.callee.object
+          : owner.path.root
+        if (!isDefinition(parent) && owner.isImportedHelper !== true) {
           return Effect.void
         }
         const config = resolvedValue(
-          blockBindingConfiguration(node, references.uses),
+          blockBindingConfiguration(node, references.uses, ctx.filename),
           references,
         )
         return Effect.forEach(

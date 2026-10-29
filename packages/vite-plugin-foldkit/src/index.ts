@@ -62,12 +62,16 @@ import * as NodePath from '@effect/platform-node/NodePath'
 
 import { type FoldkitBuildOptions, foldkitBuild } from './build.js'
 import { foldkitBuildToken } from './buildToken.js'
+import { randomUUIDv4Effect } from './crypto.js'
 import { devToolsOverlayPlugin } from './devToolsOverlay.js'
 import { crawlFoldkitPackages } from './foldkitPackages.js'
 import { publishRelayRecord, retireRelayRecord } from './relayRegistry.js'
 import { relayRegistryTrust } from './relayRegistryTrust.js'
 import { type FoldkitSsrOptions, foldkitSsr } from './ssr.js'
 import { foldkitViewIdentity } from './viewIdentity.js'
+
+type EventConnected = typeof DevToolsEvent.EventConnected.Type
+type EventDisconnected = typeof DevToolsEvent.EventDisconnected.Type
 
 export { type BrandDistResult, brandDistDirectory } from './brandDist.js'
 export {
@@ -250,7 +254,7 @@ type PreservedEntry = Readonly<{
 }>
 
 type ConnectedRuntime = Readonly<{
-  runtime: typeof RuntimeInfo.Type
+  runtime: RuntimeInfo
   sequence: number
   client: WebSocketClient
 }>
@@ -308,6 +312,10 @@ const handlePreserveModelReceived = (state: State, payload: unknown) =>
       ),
     onSuccess: ({ id, model, isReloadFlush }) =>
       Ref.update(state.preservedModels, current => {
+        if (model === undefined) {
+          return HashMap.remove(current, id)
+        }
+
         const existingFlag = Option.exists(
           HashMap.get(current, id),
           ({ isReloadFlush }) => isReloadFlush,
@@ -394,7 +402,7 @@ const handleBrowserEventFrameReceived = (
 
 const handleConnectedEvent = (
   state: State,
-  event: typeof DevToolsEvent.EventConnected.Type,
+  event: EventConnected,
   client: WebSocketClient,
 ) =>
   Effect.gen(function* () {
@@ -416,10 +424,7 @@ const handleConnectedEvent = (
     )
   })
 
-const handleDisconnectedEvent = (
-  state: State,
-  event: typeof DevToolsEvent.EventDisconnected.Type,
-) =>
+const handleDisconnectedEvent = (state: State, event: EventDisconnected) =>
   Effect.gen(function* () {
     yield* Ref.update(
       state.connectedRuntimes,
@@ -469,10 +474,7 @@ const handleBrowserResponseFrameReceived = (state: State, data: unknown) =>
     onSuccess: frame => broadcastResponseToMcpClients(state, frame),
   })
 
-const broadcastResponseToMcpClients = (
-  state: State,
-  frame: typeof ResponseFrame.Type,
-) =>
+const broadcastResponseToMcpClients = (state: State, frame: ResponseFrame) =>
   Effect.gen(function* () {
     const payload = encodeResponseFrameJson(frame)
     yield* Effect.sync(() => {
@@ -524,10 +526,7 @@ const handleMcpRequestReceived = (
       ),
   })
 
-const sendToRequester = (
-  client: WebSocket,
-  responseFrame: typeof ResponseFrame.Type,
-) =>
+const sendToRequester = (client: WebSocket, responseFrame: ResponseFrame) =>
   Effect.sync(() => {
     if (client.readyState === client.OPEN) {
       client.send(encodeResponseFrameJson(responseFrame))
@@ -557,7 +556,7 @@ const routeRequestToRuntime = (
   server: ViteDevServer,
   state: State,
   client: WebSocket,
-  frame: typeof RequestFrame.Type,
+  frame: RequestFrame,
 ) =>
   Effect.gen(function* () {
     const connectedRuntimes = yield* Ref.get(state.connectedRuntimes)
@@ -578,10 +577,7 @@ const routeRequestToRuntime = (
     }
   })
 
-const forwardRequestToBrowsers = (
-  server: ViteDevServer,
-  frame: typeof RequestFrame.Type,
-) =>
+const forwardRequestToBrowsers = (server: ViteDevServer, frame: RequestFrame) =>
   Effect.gen(function* () {
     const encoded = yield* Schema.encodeEffect(RequestFrame)(frame)
     yield* Effect.try({
@@ -709,7 +705,7 @@ type Relay = Readonly<{
 
 const relayId = Effect.gen(function* () {
   const crypto = yield* Crypto.Crypto
-  return yield* crypto.randomUUIDv4.pipe(Effect.orDie)
+  return yield* randomUUIDv4Effect(crypto).pipe(Effect.orDie)
 })
 
 const attachRelayHandlers = (
@@ -1219,16 +1215,25 @@ export const foldkit = (options: FoldkitPluginOptions = {}): Array<Plugin> => {
     closeBundle() {
       return Effect.runPromise(stopMain(this.environment.getTopLevelConfig()))
     },
-    handleHotUpdate: ({
-      server,
-      modules,
-    }: {
-      server: ViteDevServer
-      modules: ReadonlyArray<unknown>
-    }) => {
-      if (modules.length === 0) {
-        return
+    // NOTE: An edit to a client or `ssr` module reloads the whole page, so
+    // Vite's client HMR is suppressed. This hook runs only for the client
+    // environment, so the `ssr` module runner receives Vite's updates, which
+    // run the server entry's `import.meta.hot.dispose` callback.
+    hotUpdate({ type, file, modules, server }) {
+      if (type !== 'update' || this.environment.name !== 'client') {
+        return undefined
       }
+
+      const serverModules =
+        server.environments.ssr?.moduleGraph.getModulesByFile(file)
+
+      if (
+        Array.isArrayEmpty(modules) &&
+        (serverModules === undefined || serverModules.size === 0)
+      ) {
+        return undefined
+      }
+
       server.ws.send({ type: 'full-reload' })
       const run = mainRuns.get(server.config)
       if (run !== undefined) {

@@ -5,7 +5,11 @@ import { defineMessageUnion } from 'foldkit/message'
 const Message = defineMessageUnion({
   MovedPointer: { clientX: Schema.Number, clientY: Schema.Number },
 })
+type Message = typeof Message.Type
+
 const Model = Schema.Struct({})
+type Model = typeof Model.Type
+
 const PanelDefinition = Block.makeDefinition('Panel', { Model, Message })
 
 const TrackPointer = PanelDefinition.makeMountStream('TrackPointer', {

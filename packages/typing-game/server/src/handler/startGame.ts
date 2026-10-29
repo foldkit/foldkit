@@ -20,13 +20,13 @@ import { updateRoom, updateRoomStatus } from '../roomById.ts'
 import { calculateScoreboard } from '../scoring.ts'
 
 type ProgressByGamePlayer = HashMap.HashMap<
-  typeof Shared.GamePlayer.Type,
-  typeof Shared.PlayerProgress.Type
+  Shared.GamePlayer,
+  Shared.PlayerProgress
 >
 
 export const startGame =
   (
-    roomByIdRef: SubscriptionRef.SubscriptionRef<typeof Shared.RoomById.Type>,
+    roomByIdRef: SubscriptionRef.SubscriptionRef<Shared.RoomById>,
     progressByGamePlayerRef: SubscriptionRef.SubscriptionRef<ProgressByGamePlayer>,
   ) =>
   (payload: Rpc.Payload<typeof Shared.startGameRpc>) =>
@@ -86,7 +86,7 @@ export const startGame =
     })
 
 const finalizeGameScoreboard = (
-  roomByIdRef: SubscriptionRef.SubscriptionRef<typeof Shared.RoomById.Type>,
+  roomByIdRef: SubscriptionRef.SubscriptionRef<Shared.RoomById>,
   progressByGamePlayerRef: SubscriptionRef.SubscriptionRef<ProgressByGamePlayer>,
   roomId: string,
 ) =>

@@ -3,7 +3,13 @@ import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest } from 'foldkit/navigation'
 import { Url } from 'foldkit/url'
 
-import { Issue, IssueStatus, WorkspaceSnapshot } from './domain'
+import {
+  Comment,
+  IssueStatus,
+  MovedIssue,
+  SavedIssue,
+  Workspace,
+} from './domain'
 import { RepositoryError } from './repository'
 
 export const Message = defineMessageUnion({
@@ -12,7 +18,7 @@ export const Message = defineMessageUnion({
   CompletedNavigateInternal: {},
   CompletedLoadExternal: {},
   CompletedReplaceInternalUrl: {},
-  SucceededLoadWorkspace: { snapshot: WorkspaceSnapshot },
+  SucceededLoadWorkspace: { workspace: Workspace },
   FailedLoadWorkspace: { error: Schema.String },
   ClickedRetryLoad: {},
   ClickedSimulateSaveFailure: {},
@@ -21,15 +27,15 @@ export const Message = defineMessageUnion({
   ClickedDeleteSavedView: { viewId: Schema.String },
   TickedActivityStream: {},
   ClickedSimulateActivity: {},
-  SucceededAppendActivity: { issue: Issue },
+  SucceededAppendActivity: { issueId: Schema.String, comment: Comment },
   FailedAppendActivity: { error: Schema.String },
   SucceededAssignIssue: {
-    issue: Issue,
+    savedIssue: SavedIssue,
     actorId: Schema.String,
     createdAt: Schema.String,
   },
   FailedAssignIssue: { error: Schema.String },
-  SucceededMoveIssue: { snapshot: WorkspaceSnapshot },
+  SucceededMoveIssue: { movedIssue: MovedIssue },
   FailedMoveIssue: {
     issueId: Schema.String,
     status: IssueStatus,
@@ -38,3 +44,6 @@ export const Message = defineMessageUnion({
   },
   ClickedRetryMove: {},
 })
+export type Message = typeof Message.Type
+export type ChangedUrl = typeof Message.ChangedUrl.Type
+export type ClickedDeleteSavedView = typeof Message.ClickedDeleteSavedView.Type

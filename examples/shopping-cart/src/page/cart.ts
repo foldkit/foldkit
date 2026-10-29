@@ -8,10 +8,7 @@ import { Cart } from '../domain'
 import { Message } from '../message'
 import { checkoutRouter, productsRouter } from '../route'
 
-export const view = (
-  cart: typeof Cart.Cart.Type,
-  h: ApplicationViewBuilder,
-): Html =>
+export const view = (cart: Cart.Cart, h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
     [

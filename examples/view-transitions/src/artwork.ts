@@ -7,8 +7,9 @@ export const Artwork = Schema.Struct({
   description: Schema.String,
   gradientClassName: Schema.String,
 })
+export type Artwork = typeof Artwork.Type
 
-export const artworks: ReadonlyArray<typeof Artwork.Type> = [
+export const artworks: ReadonlyArray<Artwork> = [
   {
     id: 1,
     title: 'Dawn Chorus',
@@ -75,7 +76,5 @@ export const artworks: ReadonlyArray<typeof Artwork.Type> = [
   },
 ]
 
-export const findArtwork = (
-  artworkId: number,
-): Option.Option<typeof Artwork.Type> =>
+export const findArtwork = (artworkId: number): Option.Option<Artwork> =>
   Array.findFirst(artworks, artwork => artwork.id === artworkId)

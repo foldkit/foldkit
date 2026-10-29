@@ -71,16 +71,17 @@ import {
   ThemeSelector,
 } from '../view'
 
+type ApiReferenceBlockModel = typeof ApiReferenceBlock.Model.Type
+type SnippetCopyBlockModel = typeof SnippetCopyBlock.Model.Type
+type SnippetDisclosureBlockModel = typeof SnippetDisclosureBlock.Model.Type
+
 const PagefindBody = ih.DataAttribute('pagefind-body', '')
 const PagefindIgnore = ih.DataAttribute('pagefind-ignore', '')
 const LlmIgnore = ih.DataAttribute('llm-ignore', '')
 
 // DOCS HEADER
 
-export const headerView = (
-  model: typeof Model.Type,
-  h: ApplicationViewBuilder,
-) =>
+export const headerView = (model: Model, h: ApplicationViewBuilder) =>
   h.header(
     [
       h.Class(
@@ -168,10 +169,7 @@ export const headerView = (
 
 // DOCS FOOTER
 
-export const footerView = (
-  model: typeof Model.Type,
-  h: ApplicationViewBuilder,
-): Html =>
+export const footerView = (model: Model, h: ApplicationViewBuilder): Html =>
   h.footer(
     [
       h.Class(
@@ -359,7 +357,7 @@ const withoutTableOfContents = (content: Html): DocsPageView => ({
 })
 
 const renderApiReference = (
-  apiReferenceModel: typeof ApiReferenceBlock.Model.Type,
+  apiReferenceModel: ApiReferenceBlockModel,
   moduleSlug: string,
   h: ApplicationViewBuilder,
 ): Html =>
@@ -387,8 +385,8 @@ type ProseDocPageView = (renderHeadingLink: Prose.RenderHeadingLink) => Html
 
 const renderDocContent = (
   pageView: DocPageView,
-  snippetCopy: typeof SnippetCopyBlock.Model.Type,
-  snippetDisclosure: typeof SnippetDisclosureBlock.Model.Type,
+  snippetCopy: SnippetCopyBlockModel,
+  snippetDisclosure: SnippetDisclosureBlockModel,
   h: ApplicationViewBuilder,
 ): Html => {
   const renderCopyButton = SnippetCopyRenderer.renderer(snippetCopy, config =>
@@ -418,8 +416,8 @@ const memoizedDocContent = createLazy()
 const memoizedProseContent = createLazy()
 
 type DocContentArgs = readonly [
-  typeof SnippetCopyBlock.Model.Type,
-  typeof SnippetDisclosureBlock.Model.Type,
+  SnippetCopyBlockModel,
+  SnippetDisclosureBlockModel,
   ApplicationViewBuilder,
 ]
 
@@ -434,8 +432,8 @@ const lazyProseContent = (
 const lazyApiReference = createLazy()
 
 export const view = (
-  model: typeof Model.Type,
-  docsRoute: typeof DocsRoute.Type,
+  model: Model,
+  docsRoute: DocsRoute,
   h: ApplicationViewBuilder,
 ) => {
   const renderCopyButton = SnippetCopyRenderer.renderer(

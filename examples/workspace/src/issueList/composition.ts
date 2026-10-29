@@ -9,13 +9,15 @@ import {
   StatusFilterValue,
 } from '../listbox'
 import {
-  IssueListDefinition,
+  makeBinding,
+  makeComposition,
   makeNoopStep,
+  makeOutMessageFold,
   makeOutMessageStep,
 } from './definition'
-import { OutMessage } from './message'
+import { OutMessage } from './outMessage'
 
-const changeStatusFilterStep = (value: typeof StatusFilterValue.Type) => {
+const changeStatusFilterStep = (value: StatusFilterValue) => {
   if (value === 'All') {
     return makeOutMessageStep(() =>
       OutMessage.ChangedStatusFilter({
@@ -35,55 +37,46 @@ const changeStatusFilterStep = (value: typeof StatusFilterValue.Type) => {
   return makeNoopStep()
 }
 
-const changeSort = (value: typeof IssueFilters.fields.sort.Type) =>
+const changeSortStep = (value: typeof IssueFilters.fields.sort.Type) =>
   Schema.is(IssueFilters.fields.sort)(value)
     ? makeOutMessageStep(() => OutMessage.ChangedSort({ sort: value }))
     : makeNoopStep()
 
-const changeGrouping = (value: typeof GroupBy.Type) =>
+const changeGroupingStep = (value: GroupBy) =>
   Schema.is(GroupBy)(value)
     ? makeOutMessageStep(() => OutMessage.ChangedGrouping({ groupBy: value }))
     : makeNoopStep()
 
-export const StatusListboxBinding = IssueListDefinition.makeBinding(
-  StatusFilterListboxBlock,
-  {
-    field: 'statusListbox',
-    init: {
-      contextToArgs: () => [{ id: 'issue-list-filter-by-status' }],
-    },
+export const StatusListboxBinding = makeBinding(StatusFilterListboxBlock, {
+  field: 'statusListbox',
+  init: {
+    contextToArgs: () => [{ id: 'issue-list-filter-by-status' }],
   },
-).withOutMessagePolicy({
-  fold: IssueListDefinition.makeOutMessageFold(StatusFilterListboxBlock, {
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(StatusFilterListboxBlock, {
     Selected: ({ value }) => changeStatusFilterStep(value),
   }),
 })
 
-export const SortListboxBinding = IssueListDefinition.makeBinding(
-  SortListboxBlock,
-  {
-    field: 'sortListbox',
-    init: { contextToArgs: () => [{ id: 'issue-list-sort-issues' }] },
-  },
-).withOutMessagePolicy({
-  fold: IssueListDefinition.makeOutMessageFold(SortListboxBlock, {
-    Selected: ({ value }) => changeSort(value),
+export const SortListboxBinding = makeBinding(SortListboxBlock, {
+  field: 'sortListbox',
+  init: { contextToArgs: () => [{ id: 'issue-list-sort-issues' }] },
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(SortListboxBlock, {
+    Selected: ({ value }) => changeSortStep(value),
   }),
 })
 
-export const GroupListboxBinding = IssueListDefinition.makeBinding(
-  GroupListboxBlock,
-  {
-    field: 'groupListbox',
-    init: { contextToArgs: () => [{ id: 'issue-list-group-issues' }] },
-  },
-).withOutMessagePolicy({
-  fold: IssueListDefinition.makeOutMessageFold(GroupListboxBlock, {
-    Selected: ({ value }) => changeGrouping(value),
+export const GroupListboxBinding = makeBinding(GroupListboxBlock, {
+  field: 'groupListbox',
+  init: { contextToArgs: () => [{ id: 'issue-list-group-issues' }] },
+}).withOutMessagePolicy({
+  fold: makeOutMessageFold(GroupListboxBlock, {
+    Selected: ({ value }) => changeGroupingStep(value),
   }),
 })
 
-export const IssueListComposition = IssueListDefinition.makeComposition({
+export const IssueListComposition = makeComposition({
   bindings: [StatusListboxBinding, SortListboxBinding, GroupListboxBinding],
 })
 export type IssueListViewBuilder = Block.ViewBuilderFor<

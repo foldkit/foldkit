@@ -30,12 +30,15 @@ import {
   TWO_PI,
 } from './constant'
 import { makeCommandsStep, makeFieldsStep } from './definition'
-import { Message } from './message'
+import type {
+  CompletedGenerateAmbientParticle,
+  CompletedGenerateBurstParticle,
+} from './message'
 import { Particle, Point } from './model'
 import { fractalNoise } from './noise'
 
 const computeFieldAngle = (
-  point: typeof Point.Type,
+  point: Point,
   elapsedSeconds: number,
   flowStrength: number,
   noiseScaleMultiplier: number,
@@ -65,8 +68,8 @@ const blendAnglesByVector = (a: number, b: number, t: number): number => {
 
 const applyMouseInfluence = (
   baseAngle: number,
-  point: typeof Point.Type,
-  maybeMousePosition: Option.Option<typeof Point.Type>,
+  point: Point,
+  maybeMousePosition: Option.Option<Point>,
 ): number =>
   Option.match(maybeMousePosition, {
     onNone: () => baseAngle,
@@ -94,7 +97,7 @@ const boostFactor = (ageMs: number): number =>
   Math.max(0, 1 - ageMs / BURST_BOOST_DURATION_MS)
 
 const blendWithInitialAngle = (
-  particle: typeof Particle.Type,
+  particle: Particle,
   fieldAngle: number,
 ): number =>
   Option.match(particle.initialAngle, {
@@ -105,13 +108,13 @@ const blendWithInitialAngle = (
     },
   })
 
-const computeSpeed = (particle: typeof Particle.Type): number => {
+const computeSpeed = (particle: Particle): number => {
   const boost = boostFactor(particle.ageMs)
   const scale = 1 + (particle.initialSpeedScale - 1) * boost
   return particle.speed * scale
 }
 
-const isOutsideCanvas = (point: typeof Point.Type): boolean =>
+const isOutsideCanvas = (point: Point): boolean =>
   point.x < -SETTLE_BAND_PX ||
   point.x > CANVAS_WIDTH + SETTLE_BAND_PX ||
   point.y < -SETTLE_BAND_PX ||
@@ -123,9 +126,9 @@ const advanceParticle =
     elapsedSeconds: number,
     flowStrength: number,
     noiseScaleMultiplier: number,
-    maybeMousePosition: Option.Option<typeof Point.Type>,
+    maybeMousePosition: Option.Option<Point>,
   ) =>
-  (particle: typeof Particle.Type): Result.Result<typeof Particle.Type, void> =>
+  (particle: Particle): Result.Result<Particle, void> =>
     Option.match(Array.last(particle.trail), {
       onNone: () => Result.failVoid,
       onSome: currentPosition => {
@@ -144,7 +147,7 @@ const advanceParticle =
         const speed = computeSpeed(particle)
         const nextX = currentPosition.x + Math.cos(angle) * speed * deltaSeconds
         const nextY = currentPosition.y + Math.sin(angle) * speed * deltaSeconds
-        const nextPosition: typeof Point.Type = { x: nextX, y: nextY }
+        const nextPosition: Point = { x: nextX, y: nextY }
         const nextAgeMs = particle.ageMs + deltaSeconds * MS_PER_SECOND
         if (nextAgeMs >= particle.lifespanMs || isOutsideCanvas(nextPosition)) {
           return Result.failVoid
@@ -191,10 +194,10 @@ const appendGeneratedParticleStep = makeFieldsStep(
   (
     model,
     generatedParticle:
-      | typeof Message.CompletedGenerateAmbientParticle.Type
-      | typeof Message.CompletedGenerateBurstParticle.Type,
+      | CompletedGenerateAmbientParticle
+      | CompletedGenerateBurstParticle,
   ) => {
-    const newParticle: typeof Particle.Type = {
+    const newParticle: Particle = {
       id: model.nextId,
       trail: [{ x: generatedParticle.x, y: generatedParticle.y }],
       baseHue: generatedParticle.baseHue,

@@ -1,6 +1,7 @@
 import {
   Command,
   expectNoOutMessage,
+  expectOutMessage,
   given,
   message,
   model,
@@ -12,7 +13,9 @@ import { Dialog, DialogBlock } from '@foldkit/ui'
 
 import { CommandPaletteBlock } from './block'
 import { ScrollActiveResult } from './command'
-import { Message, ResultTarget } from './definition'
+import { Message } from './message'
+import { OutMessage } from './outMessage'
+import { ResultTarget } from './resultTarget'
 import { update } from './update'
 
 describe('CommandPaletteBlock', () => {
@@ -53,7 +56,7 @@ describe('CommandPaletteBlock', () => {
     )
   })
 
-  test('declares public open and close operations and ignores selection while closed', () => {
+  test('declares public open and close operations and selects an issue', () => {
     const paletteInit = CommandPaletteBlock.init()
     const paletteOpen = CommandPaletteBlock.operations.requestOpen(
       paletteInit.model,
@@ -67,13 +70,20 @@ describe('CommandPaletteBlock', () => {
 
     story(
       update,
-      given(paletteInit.model),
+      given(paletteOpen.model),
       message(
         Message.ClickedResult({
           target: ResultTarget.Issue({ issueId: 'issue-101' }),
         }),
       ),
-      expectNoOutMessage(),
+      expectOutMessage(OutMessage.SelectedIssue({ issueId: 'issue-101' })),
+      Command.resolve(
+        Dialog.test.CloseDialog,
+        DialogBlock.Message.CompletedCloseDialog(),
+      ),
+      model(model => {
+        expect(model.dialog.isOpen).toBe(false)
+      }),
       Command.expectNone(),
     )
   })

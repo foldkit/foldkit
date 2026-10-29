@@ -20,7 +20,7 @@ import {
   makeOutMessageStep,
 } from './definition'
 
-export const initModel = (): typeof Model.Type => ({
+export const initModel = (): Model => ({
   email: NotValidated({ value: '' }),
   password: NotValidated({ value: '' }),
   isSubmitting: false,
@@ -40,7 +40,7 @@ const passwordRules = makeRules({
 const validateEmail = validate(emailRules)
 const validatePassword = validate(passwordRules)
 
-export const isFormValid = (model: typeof Model.Type): boolean =>
+export const isFormValid = (model: Model): boolean =>
   allValid([
     [model.email, emailRules],
     [model.password, passwordRules],
@@ -72,7 +72,7 @@ export const SimulateAuthRequest = LoginDefinition.makeCommand(
             Option.getOrElse(() => email),
           )
 
-          const session: typeof Session.Type = { userId: '1', email, name }
+          const session: Session = { userId: '1', email, name }
 
           return Message.SucceededSimulateAuthRequest({ session })
         })

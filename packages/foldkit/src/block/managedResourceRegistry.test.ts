@@ -5,8 +5,10 @@ import * as ManagedResource from '../managedResource/index.js'
 import { makeDefinition } from './define.js'
 
 const Model = Schema.Struct({ active: Schema.Boolean })
+type Model = typeof Model.Type
 const Message = Schema.Struct({ value: Schema.String })
-const message = (value: string): typeof Message.Type => Message.make({ value })
+type Message = typeof Message.Type
+const message = (value: string): Message => Message.make({ value })
 
 class FirstDependency extends Context.Service<
   FirstDependency,
@@ -220,8 +222,8 @@ describe('Definition ManagedResource registry', () => {
     }))
     const aggregated = ManagedResource.aggregate(complete)
     const lifted = ManagedResource.lift(complete)<
-      Readonly<{ child: typeof Model.Type }>,
-      typeof Message.Type
+      Readonly<{ child: Model }>,
+      Message
     >({
       read: model => Option.some(model.child),
       toParentMessage: parentMessage => parentMessage,
@@ -268,8 +270,8 @@ describe('Definition ManagedResource registry', () => {
     })
     const aggregated = ManagedResource.aggregate(complete)
     const lifted = ManagedResource.lift(complete)<
-      Readonly<{ child: typeof Model.Type }>,
-      typeof Message.Type
+      Readonly<{ child: Model }>,
+      Message
     >({
       read: model => Option.some(model.child),
       toParentMessage: parentMessage => parentMessage,
@@ -299,12 +301,7 @@ describe('Definition ManagedResource registry', () => {
   it('rejects layer as an entry key at runtime', () => {
     expect(() =>
       Reflect.apply(RegistryDefinition.makeManagedResources, undefined, [
-        (
-          entry: ManagedResource.EntryBuilder<
-            typeof Model.Type,
-            typeof Message.Type
-          >,
-        ) => ({
+        (entry: ManagedResource.EntryBuilder<Model, Message>) => ({
           layer: entry('ReservedLayer', Schema.Option(Schema.Null), {
             resource: StringResource,
             modelToMaybeRequirements: () => Option.none(),
@@ -322,12 +319,7 @@ describe('Definition ManagedResource registry', () => {
 
     expect(() =>
       Reflect.apply(RegistryDefinition.makeManagedResources, undefined, [
-        (
-          entry: ManagedResource.EntryBuilder<
-            typeof Model.Type,
-            typeof Message.Type
-          >,
-        ) => ({
+        (entry: ManagedResource.EntryBuilder<Model, Message>) => ({
           [SymbolEntry]: entry('SymbolResource', Schema.Option(Schema.Null), {
             resource: StringResource,
             modelToMaybeRequirements: () => Option.none(),
@@ -341,12 +333,7 @@ describe('Definition ManagedResource registry', () => {
 
     expect(() =>
       Reflect.apply(RegistryDefinition.makeManagedResources, undefined, [
-        (
-          entry: ManagedResource.EntryBuilder<
-            typeof Model.Type,
-            typeof Message.Type
-          >,
-        ) =>
+        (entry: ManagedResource.EntryBuilder<Model, Message>) =>
           Object.create({
             inherited: entry('InheritedResource', Schema.Option(Schema.Null), {
               resource: StringResource,
@@ -376,12 +363,7 @@ describe('Definition ManagedResource registry', () => {
   it('rejects an attached entry whose Layer was erased to an invalid value', () => {
     expect(() =>
       Reflect.apply(RegistryDefinition.makeManagedResources, undefined, [
-        (
-          entry: ManagedResource.EntryBuilder<
-            typeof Model.Type,
-            typeof Message.Type
-          >,
-        ) => {
+        (entry: ManagedResource.EntryBuilder<Model, Message>) => {
           const corrupted = entry(
             'CorruptedLayer',
             Schema.Option(Schema.Null),

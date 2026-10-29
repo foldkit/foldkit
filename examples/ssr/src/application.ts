@@ -13,18 +13,21 @@ export const Model = Schema.Struct({
   renderedAt: Schema.String,
   renderedOn: Schema.Literals(['Server', 'Client']),
 })
+export type Model = typeof Model.Type
 
 export const Flags = Schema.Struct({
   initialCount: Schema.Number,
   renderedAt: Schema.String,
   renderedOn: Schema.Literals(['Server', 'Client']),
 })
+export type Flags = typeof Flags.Type
 
 export const Message = defineMessageUnion({
   ClickedDecrement: {},
   ClickedIncrement: {},
   CompletedPersistCount: {},
 })
+export type Message = typeof Message.Type
 
 export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
@@ -74,15 +77,13 @@ export const PersistCount = ApplicationDefinition.makeCommand('PersistCount', {
 
 export const EffectsLayer = PersistCount.layer
 
-export const init = ApplicationComposition.makeInit(
-  (flags: typeof Flags.Type) => ({
-    model: {
-      count: flags.initialCount,
-      renderedAt: flags.renderedAt,
-      renderedOn: flags.renderedOn,
-    },
-  }),
-)
+export const init = ApplicationComposition.makeInit((flags: Flags) => ({
+  model: {
+    count: flags.initialCount,
+    renderedAt: flags.renderedAt,
+    renderedOn: flags.renderedOn,
+  },
+}))
 
 export const view = ApplicationComposition.makeView((model, h) => ({
   title: `Count ${model.count}`,

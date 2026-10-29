@@ -39,7 +39,6 @@ const FoldkitBuildManifest = Schema.Struct({
   serverEntry: Schema.String,
   prerendered: Schema.Array(Schema.String),
 })
-
 type FoldkitBuildManifest = typeof FoldkitBuildManifest.Type
 
 type FetchHandler = {

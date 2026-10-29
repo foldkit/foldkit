@@ -21,6 +21,7 @@ export const Source = Schema.Struct({
   kind: Schema.Literal('Book'),
   id: Schema.String.check(Schema.isNonEmpty()),
 })
+export type Source = typeof Source.Type
 
 export const Model = Schema.Struct({
   sources: Schema.Array(RawSource),
@@ -35,7 +36,6 @@ export const Message = defineMessageUnion({
   SelectedSource: { source: Source },
   SubmittedNewSourceId: { id: Schema.String },
 })
-
 export type Message = typeof Message.Type
 
 // COMMAND

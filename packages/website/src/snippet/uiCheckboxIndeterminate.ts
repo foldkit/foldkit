@@ -14,7 +14,7 @@ const Model = Schema.Struct({
   optionB: Schema.Boolean,
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // One Message per child, plus one for the "Select All" parent. Each carries
 // the new checked state:
 
@@ -23,6 +23,7 @@ const Message = defineMessageUnion({
   ToggledOptionA: { isChecked: Schema.Boolean },
   ToggledOptionB: { isChecked: Schema.Boolean },
 })
+type Message = typeof Message.Type
 
 const NotificationPreferencesComposition = Block.makeDefinition(
   'NotificationPreferences',
@@ -75,9 +76,7 @@ const view = NotificationPreferencesComposition.makeView((model, h) => {
     }
   }
 
-  const selectAllView = (
-    attributes: Checkbox.CheckboxAttributes<typeof Message.Type>,
-  ) =>
+  const selectAllView = (attributes: Checkbox.CheckboxAttributes<Message>) =>
     h.div(
       [h.Class('flex items-center gap-2')],
       [

@@ -10,6 +10,7 @@ import * as Update from './update.js'
 const Model = Schema.Struct({ count: Schema.Number })
 type Model = typeof Model.Type
 const Message = defineMessageUnion({ RequestedIncrement: {} })
+type Message = typeof Message.Type
 const CounterDefinition = makeDefinition('OperationOutputCounter', {
   Model,
   Message,

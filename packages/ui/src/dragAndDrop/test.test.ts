@@ -247,11 +247,13 @@ const NestedSlot = Schema.Struct({
   key: Schema.String,
   parent: ParentModel,
 })
+type NestedSlot = typeof NestedSlot.Type
 
 const NestedModel = Schema.Struct({ slots: Schema.Array(NestedSlot) })
 type NestedModel = typeof NestedModel.Type
 
 const NestedMessage = defineMessageUnion({ RequestedBothMoves: {} })
+type NestedMessage = typeof NestedMessage.Type
 
 const NestedDragAndDropTestParentDefinition = Block.makeDefinition(
   'NestedDragAndDropTestParent',
@@ -332,6 +334,7 @@ const KeyedSlot = Schema.Struct({
   key: Schema.String,
   dragAndDrop: DragAndDropBlock.Model,
 })
+type KeyedSlot = typeof KeyedSlot.Type
 
 const KeyedParentModel = Schema.Struct({ slots: Schema.Array(KeyedSlot) })
 type KeyedParentModel = typeof KeyedParentModel.Type
@@ -339,6 +342,7 @@ type KeyedParentModel = typeof KeyedParentModel.Type
 const KeyedParentMessage = defineMessageUnion({
   RequestedMove: { key: Schema.String },
 })
+type KeyedParentMessage = typeof KeyedParentMessage.Type
 
 const KeyedDragAndDropTestParentDefinition = Block.makeDefinition(
   'KeyedDragAndDropTestParent',

@@ -1,8 +1,4 @@
-const paymentTransitions: Machine.StateTransitions<
-  CheckoutState,
-  Message,
-  'Payment'
-> = {
+const paymentTransitions = CheckoutDefinition.makeTransitions('Payment', {
   on: {
     ClickedBack: to('Cart', ({ state }) => ({
       model: CheckoutState.Cart({
@@ -10,4 +6,4 @@ const paymentTransitions: Machine.StateTransitions<
       }),
     })),
   },
-}
+})

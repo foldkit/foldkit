@@ -66,9 +66,11 @@ const ServiceDecodedString = Schema.String.pipe(
     }),
   ),
 )
+type ServiceDecodedString = typeof ServiceDecodedString.Type
 const ServiceMessage = defineMessageUnion({
   SubmittedValue: { value: ServiceDecodedString },
 })
+type ServiceMessage = typeof ServiceMessage.Type
 
 const update = (model: CounterModel, message: CounterMessage): CounterModel =>
   CounterMessage.match<CounterModel>(message, {

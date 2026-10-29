@@ -7,11 +7,13 @@ import { Button } from '@foldkit/ui'
 const Model = Schema.Struct({
   count: Schema.Number,
 })
+type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
   ClickedDecrement: {},
   ClickedIncrement: {},
 })
+type Message = typeof Message.Type
 const CounterDefinition = Block.makeDefinition('Counter', {
   Model,
   Message,

@@ -11,7 +11,6 @@ export const Model = Schema.Struct({
   lastKey: Schema.String,
   isShifted: Schema.Boolean,
 })
-
 export type Model = typeof Model.Type
 
 // MESSAGE
@@ -20,7 +19,6 @@ export const Message = defineMessageUnion({
   PressedKey: { key: Schema.String },
   PressedShiftKey: { key: Schema.String },
 })
-
 export type Message = typeof Message.Type
 
 // INIT

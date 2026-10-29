@@ -1,0 +1,63 @@
+{
+  "status": "DaybreakPassedPublicationHeld",
+  "sourceCommit": "564adb49e908b3baf4c2e1855c8c6d67631b0c95",
+  "publishedBase": "f3be22cfeefed437164ad614d08b16d9000e0703",
+  "sourceDigest": "e8d49b0478ad9db7fd18341db11aa3cd979f2e97d47692d9fa50b9ad1fc49440",
+  "model": "gpt-daybreak-blue-latest",
+  "provider": "openai",
+  "securityVerdict": "PASS",
+  "mainReviewStartedAt": "2026-10-28T23:57:26.073060+00:00",
+  "mainReviewFinishedAt": "2026-10-29T00:07:30.747784+00:00",
+  "mainReviewExitCode": 0,
+  "frozenSourcePreserved": true,
+  "provenanceAddendumScope": "Correct obsolete pre-approval statement; no new security coverage",
+  "authorization": "Explicit user response preceded review launch in the parent conversation; record file created after launch",
+  "publicationAuthorized": false,
+  "registryAcceptance": false,
+  "deploymentAcceptance": false,
+  "dependencyAudit": {
+    "entries": 30,
+    "distinctAdvisories": 28,
+    "critical": 1,
+    "high": 11,
+    "moderate": 14,
+    "low": 4,
+    "patchedByThisReview": false
+  },
+  "evidence": [
+    {
+      "path": "/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/security/daybreak-report.md",
+      "sha256": "4675719c5c5578613cf41027e6a7a9eea2065d36e1d8da2e3fc62b5313a34d8a"
+    },
+    {
+      "path": "/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/security/daybreak-status.json",
+      "sha256": "d46fbb4024ccc911eb5ddccc0513cca0a2616c18c358ff4e6094a49af8eacfa6"
+    },
+    {
+      "path": "/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/security/daybreak-authorization.json",
+      "sha256": "bd9f94d179989bdfda4cf15ff84789d6bdd55967e7332f070757dd3abf0733f9"
+    },
+    {
+      "path": "/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/security/provenance-addendum/report.md",
+      "sha256": "17528b9003eda5c9c319f0458bf4a2e18402e39cfff6f94a1d8ebd1ef6743c2b"
+    },
+    {
+      "path": "/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/security/provenance-addendum/status.json",
+      "sha256": "c647480d085acb8029279a674074444bcce118a366d082c022d269bedd26ebb4"
+    },
+    {
+      "path": "/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/verification.json",
+      "sha256": "a121c87dbc5f0591445d6a60fe1798af674f2be8203aaaf2636e9693705c997b"
+    },
+    {
+      "path": "/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/artifacts.json",
+      "sha256": "6c32f5739f5e5dd02ee2f90c9683c543df6fa68d5ed9543d861a5f6f97819858"
+    },
+    {
+      "path": "/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/security/post-daybreak-pin-check.log",
+      "sha256": "22269e8b189bba1c79f4f2d65808408442da2c57fb1ce5ab94b353860b2668ec"
+    }
+  ],
+  "recordedAt": "2026-10-29T00:10:12.424476+00:00",
+  "postReviewArtifactGuardPassed": true
+}

@@ -56,6 +56,7 @@ describe('constructors', () => {
 
 describe('Schema', () => {
   const Note = Schema.Struct({ id: Schema.String, body: Schema.String })
+  type Note = typeof Note.Type
   const Notes = AsyncData.Schema(Schema.Array(Note), Schema.String)
 
   const note = { id: '1', body: 'hi' }
@@ -120,6 +121,7 @@ describe('Schema', () => {
 
   it('embeds in a HashMap codec', () => {
     const Cache = Schema.HashMap(Schema.String, Notes.schema)
+    type Cache = typeof Cache.Type
     const encodedEntries: ReadonlyArray<readonly [string, unknown]> = [
       ['notes:1', { _tag: 'Success', data: [{ id: '1', body: 'hi' }] }],
     ]
@@ -147,6 +149,7 @@ describe('type drift', () => {
       taggedStruct('Stale', { error: Schema.String, data: Schema.Number }),
       taggedStruct('Success', { data: Schema.Number }),
     ])
+    type RawUnion = typeof RawUnion.Type
     type RawUnionType = typeof RawUnion.Type
 
     const factoryToModule = (value: FactoryType): State => value
@@ -291,6 +294,7 @@ describe('types', () => {
       taggedStruct('Stale', { error: Schema.String, data: Schema.Number }),
       taggedStruct('Success', { data: Schema.Number }),
     ])
+    type RawUnion = typeof RawUnion.Type
     type RawEncoded = typeof RawUnion.Encoded
     type Wire = AsyncData.AsyncDataEncoded<number, string>
 

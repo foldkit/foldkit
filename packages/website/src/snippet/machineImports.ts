@@ -1,2 +1,8 @@
 import { Machine } from 'foldkit/experimental'
-import { ignore, otherwise, to, when } from 'foldkit/experimental/machine'
+
+const CheckoutDefinition = Machine.makeDefinition({
+  State: CheckoutState,
+  Message,
+})
+
+const { ignore, otherwise, to, when } = CheckoutDefinition

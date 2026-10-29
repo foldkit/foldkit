@@ -10,10 +10,10 @@ import {
   Message,
   Model,
   OutMessage,
-  create,
   findFirstEnabledIndex,
   init,
   keyToIndex,
+  makeBlock,
   update,
   wrapIndex,
 } from './tabs.js'
@@ -25,7 +25,7 @@ const disabledAt =
   (index: number) =>
     indices.includes(index)
 
-const TestTabs = create()
+const TestTabs = makeBlock()
 
 const TabsSceneDefinition = Block.makeDefinition('TabsScene', {
   Model,

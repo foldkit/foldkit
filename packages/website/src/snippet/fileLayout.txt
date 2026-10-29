@@ -12,9 +12,13 @@ src/
 +-- command.ts             Root Commands and a small EffectsLayer
 +-- layer.ts               Substantial mixed or reused EffectsLayer
 +-- route.ts               Route union, URL parsing, and selectors
++-- steps/
+|   +-- index.ts            Explicit shared Steps barrel
+|   +-- search.ts           Shared search transitions
+|   +-- quoteLoading.ts     Shared quote-loading transitions
 +-- update/
 |   +-- index.ts            Explicit barrel
-|   +-- update.ts           Root Message matcher
+|   +-- update.ts           Root Message handlers
 |   +-- changedUrl.ts       Substantial navigation handler
 +-- view/
 |   +-- index.ts
@@ -33,6 +37,7 @@ src/
 |   |   +-- definition.ts   Early Model/Message contract and Definition
 |   |   +-- composition.ts  Bindings and complete registrations
 |   |   +-- init.ts
+|   |   +-- steps.ts        Transitions shared by update, composition, or init
 |   |   +-- update.ts
 |   |   +-- view.ts
 |   |   +-- block.ts        Completed Block and small EffectsLayer

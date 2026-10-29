@@ -31,7 +31,9 @@ afterEach(() => {
 describe('Subscription startup supervision', () => {
   it('reports initial root dependency defects and keeps the crash view until disposal', async () => {
     const Model = Schema.Struct({ count: Schema.Number })
+    type Model = typeof Model.Type
     const Message = defineMessageUnion({ EmittedPulse: {} })
+    type Message = typeof Message.Type
     const ApplicationDefinition = Block.makeDefinition('Application', {
       Model,
       Message,
@@ -101,7 +103,9 @@ describe('Subscription startup supervision', () => {
 
   it('reports dependency defects when an optional child activates after startup', async () => {
     const ChildModel = Schema.Struct({ count: Schema.Number })
+    type ChildModel = typeof ChildModel.Type
     const ChildMessage = defineMessageUnion({ EmittedPulse: {} })
+    type ChildMessage = typeof ChildMessage.Type
     const ChildDefinition = makeDefinition('StartupChild', {
       Model: ChildModel,
       Message: ChildMessage,
@@ -140,9 +144,11 @@ describe('Subscription startup supervision', () => {
       typeof prepareBlock
     > = Block.assemble(prepareBlock)
     const Model = Schema.Struct({ maybeChild: Schema.Option(ChildModel) })
+    type Model = typeof Model.Type
     const Message = defineMessageUnion({
       ClickedActivateChild: {},
     })
+    type Message = typeof Message.Type
     const ApplicationDefinition = Block.makeDefinition('Application', {
       Model,
       Message,

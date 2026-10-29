@@ -51,6 +51,10 @@ const packedSsrConsumer =
     prefixes: [
       'packages/foldkit/',
       'packages/markdown/',
+      'packages/node/',
+      'packages/ui/',
+      'packages/devtools/',
+      'packages/devtools-mcp/',
       'packages/vite-plugin-foldkit/',
       'scripts/fixtures/packed-ssr-consumer/',
     ],

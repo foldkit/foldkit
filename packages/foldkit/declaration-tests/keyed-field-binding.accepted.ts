@@ -334,7 +334,7 @@ const DeclarationInitializedKeyedFieldParentComposition =
   DeclarationInitializedKeyedFieldParentDefinition.makeComposition({
     bindings: [InitializedEntriesBinding],
   })
-export const initializeKeyedParent =
+export const initKeyedParent =
   DeclarationInitializedKeyedFieldParentComposition.makeInit(
     (status: 'Ready') => ({
       childInitContext: status,

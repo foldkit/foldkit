@@ -15,10 +15,7 @@ const onClickOpenSearch = (h: ApplicationViewBuilder) =>
     focusSelector: keyboardWarmupSelector,
   })
 
-export const dialogView = (
-  model: typeof Model.Type,
-  h: ApplicationViewBuilder,
-): Html =>
+export const dialogView = (model: Model, h: ApplicationViewBuilder): Html =>
   h.block(SearchBinding.embedView({ slotId: 'search', model: model.search }))
 
 export const triggerView = (

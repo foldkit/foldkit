@@ -1,0 +1,291 @@
+diff --git a/packages/foldkit/declaration-tests/message-steps.accepted.ts b/packages/foldkit/declaration-tests/message-steps.accepted.ts
+index 525ca74b69..6f0838db8e 100644
+--- a/packages/foldkit/declaration-tests/message-steps.accepted.ts
++++ b/packages/foldkit/declaration-tests/message-steps.accepted.ts
+@@ -70,6 +70,58 @@ export const contextualUpdate = CounterComposition.makeUpdate.withContext(
+   }),
+ )
+
++export const modelAwareUpdate = CounterComposition.makeUpdate({
++  RequestedIncrement: makeStep((model, { amount }) =>
++    Update.combineSteps([
++      makeFieldsStep(() => ({ count: () => model.count + amount })),
++      makeCommandsStep(({ count }) => [Save({ count })]),
++    ]),
++  ),
++  RequestedReport: makeStep((model, { label }) => ({
++    model,
++    outMessage: OutMessage.ReportedCount({ count: model.count, label }),
++  })),
++  CompletedSave: makeNoopStep(),
++})
++
++export const modelAwareContextualUpdate =
++  CounterComposition.makeUpdate.withContext(
++    (multiplier: number = 2, ...offsets: ReadonlyArray<number>) => ({
++      RequestedIncrement: makeStep((model, { amount }) => ({
++        model: { count: model.count + amount * multiplier + offsets.length },
++        commands: [Save({ count: model.count })],
++      })),
++      RequestedReport: makeStep((model, { label }) => ({
++        model,
++        outMessage: OutMessage.ReportedCount({ count: model.count, label }),
++      })),
++      CompletedSave: makeNoopStep(),
++    }),
++  )
++
++export const modelAwareIncrementStep = modelAwareUpdate(
++  Message.RequestedIncrement({ amount: 1 }),
++)
++
++export const modelAwareReportStep = modelAwareUpdate(
++  Message.RequestedReport({ label: 'current' }),
++)
++
++const prepareModelAware = () =>
++  CounterComposition.prepareBlock({
++    init,
++    update: modelAwareUpdate,
++    operations: {
++      increment: Message.RequestedIncrement,
++      report: Message.RequestedReport,
++    },
++    EffectsLayer: Save.layer,
++  })
++export const ModelAwareCounterBlock: Block.FromAssemblyWithOutMessage<
++  typeof Model,
++  typeof prepareModelAware
++> = Block.assemble(prepareModelAware)
++
+ export const reportChildStep = ParentDefinition.makeStep.fromMessage(
+   (_message: typeof ParentMessage.RequestedReport.Type) =>
+     ChildBinding.report({ amount: 1 }),
+@@ -85,6 +137,19 @@ export const connectedUpdate = ParentComposition.makeUpdate({
+   CompletedSave: ParentDefinition.makeNoopStep(),
+ })
+
++export const modelAwareConnectedUpdate = ParentComposition.makeUpdate({
++  RequestedQuiet: ParentDefinition.makeStep((_model, _message) =>
++    ChildBinding.quiet(),
++  ),
++  RequestedReport: ParentDefinition.makeStep((model, _message) =>
++    ChildBinding.report({ amount: model.count }),
++  ),
++  RequestedSave: ParentDefinition.makeStep((_model, _message) =>
++    ChildBinding.save(),
++  ),
++  CompletedSave: ParentDefinition.makeNoopStep(),
++})
++
+ export const makeGenericCounter = <Value>(Value: Schema.Schema<Value>) => {
+   const Model = Schema.Struct({ value: Value })
+   const Message = defineMessageUnion({ RequestedSet: { value: Value } })
+@@ -102,6 +167,23 @@ export const makeGenericCounter = <Value>(Value: Schema.Schema<Value>) => {
+ }
+ export const setString = makeGenericCounter(Schema.String)
+
++export const makeModelAwareCounter = <Value>(Value: Schema.Schema<Value>) => {
++  const Model = Schema.Struct({ value: Value })
++  const Message = defineMessageUnion({ RequestedSet: { value: Value } })
++  const Definition = Block.makeDefinition('ModelAwareGeneric', {
++    Model,
++    Message,
++  })
++  const Composition = Definition.makeComposition()
++
++  return Composition.makeUpdate({
++    RequestedSet: Definition.makeStep((model, { value }) => ({
++      model: { ...model, value },
++    })),
++  })
++}
++export const setModelAwareString = makeModelAwareCounter(Schema.String)
++
+ type Equal<Left, Right> =
+   (<Value>() => Value extends Left ? 1 : 2) extends <
+     Value,
+@@ -145,3 +227,22 @@ export type ExactRegistration = Expect<
+     Block.RequirementOfBinding<typeof ChildBinding>
+   >
+ >
++
++export type ExactModelAwareRequirements = Expect<
++  Equal<
++    Update.RequirementsOf<typeof modelAwareIncrementStep>,
++    Command.HandlerOf<typeof Save>
++  >
++>
++export type ExactModelAwareSilentRequirements = Expect<
++  Equal<
++    Update.RequirementsOf<typeof ModelAwareCounterBlock.operations.report>,
++    never
++  >
++>
++export type ExactModelAwareOutMessage = Expect<
++  Equal<
++    Exclude<ReturnType<typeof modelAwareReportStep>['outMessage'], undefined>,
++    typeof OutMessage.Type
++  >
++>
+diff --git a/packages/foldkit/declaration-tests/message-steps.consume.ts b/packages/foldkit/declaration-tests/message-steps.consume.ts
+index 36dacb1478..0a90df84f6 100644
+--- a/packages/foldkit/declaration-tests/message-steps.consume.ts
++++ b/packages/foldkit/declaration-tests/message-steps.consume.ts
+@@ -3,10 +3,16 @@ import { Command, Update } from 'foldkit'
+ import {
+   Message,
+   Model,
++  ModelAwareCounterBlock,
+   OutMessage,
+   Save,
+   contextualUpdate,
+   incrementAndSaveStep,
++  modelAwareContextualUpdate,
++  modelAwareIncrementStep,
++  modelAwareReportStep,
++  modelAwareUpdate,
++  setModelAwareString,
+   setString,
+   update,
+ } from './message-steps.accepted.js'
+@@ -20,6 +26,20 @@ contextualUpdate(Message.RequestedIncrement({ amount: 2 }))(model, 3, 4, 5)
+ setString({ value: '' }, { _tag: 'RequestedSet', value: 'next' })
+ // @ts-expect-error Generic producer payloads stay precise after relocation.
+ setString({ value: '' }, { _tag: 'RequestedSet', value: 1 })
++modelAwareUpdate(model, Message.RequestedIncrement({ amount: 2 }))
++modelAwareUpdate(Message.RequestedReport({ label: 'current' }))(model)
++ModelAwareCounterBlock.operations.increment(model, { amount: 2 })
++ModelAwareCounterBlock.operations.report(model, { label: 'current' })
++modelAwareContextualUpdate(model, Message.RequestedIncrement({ amount: 2 }))
++modelAwareContextualUpdate(Message.RequestedIncrement({ amount: 2 }))(
++  model,
++  3,
++  4,
++  5,
++)
++setModelAwareString({ value: '' }, { _tag: 'RequestedSet', value: 'next' })
++// @ts-expect-error Model-aware generic payloads remain exact after relocation.
++setModelAwareString({ value: '' }, { _tag: 'RequestedSet', value: 1 })
+ type Equal<Left, Right> =
+   (<Value>() => Value extends Left ? 1 : 2) extends <
+     Value,
+@@ -39,3 +59,21 @@ export type ExactOutMessage = Expect<
+     typeof OutMessage.Type
+   >
+ >
++export type ExactModelAwareRequirements = Expect<
++  Equal<
++    Update.RequirementsOf<typeof modelAwareIncrementStep>,
++    Command.HandlerOf<typeof Save>
++  >
++>
++export type ExactModelAwareSilentRequirements = Expect<
++  Equal<
++    Update.RequirementsOf<typeof ModelAwareCounterBlock.operations.report>,
++    never
++  >
++>
++export type ExactModelAwareOutMessage = Expect<
++  Equal<
++    Exclude<ReturnType<typeof modelAwareReportStep>['outMessage'], undefined>,
++    typeof OutMessage.Type
++  >
++>
+diff --git a/packages/foldkit/declaration-tests/message-steps.rejected.ts b/packages/foldkit/declaration-tests/message-steps.rejected.ts
+index 37abb9c17b..b14706077e 100644
+--- a/packages/foldkit/declaration-tests/message-steps.rejected.ts
++++ b/packages/foldkit/declaration-tests/message-steps.rejected.ts
+@@ -137,3 +137,54 @@ ParentComposition.makeUpdate({
+   RequestedSave: ParentDefinition.makeNoopStep(),
+   CompletedSave: ParentDefinition.makeNoopStep(),
+ })
++
++CounterComposition.makeUpdate({
++  // @ts-expect-error Inline Step inference does not permit an erased Message parameter.
++  RequestedIncrement: makeStep((model, _message: any) => ({ model })),
++  RequestedReport: CounterDefinition.makeNoopStep(),
++  CompletedSave: CounterDefinition.makeNoopStep(),
++})
++CounterComposition.makeUpdate({
++  // @ts-expect-error A handler must accept its complete Message variant.
++  RequestedIncrement: makeStep(
++    (
++      model,
++      _message: typeof Message.RequestedIncrement.Type & { amount: 1 },
++    ) => ({ model }),
++  ),
++  RequestedReport: CounterDefinition.makeNoopStep(),
++  CompletedSave: CounterDefinition.makeNoopStep(),
++})
++CounterComposition.makeUpdate({
++  // @ts-expect-error A handler cannot require an impossible Message.
++  RequestedIncrement: makeStep((model, _message: never) => ({ model })),
++  RequestedReport: CounterDefinition.makeNoopStep(),
++  CompletedSave: CounterDefinition.makeNoopStep(),
++})
++CounterComposition.makeUpdate({
++  // @ts-expect-error Contextual Message inference does not allow erased result channels.
++  RequestedIncrement: makeStep((_model, _message) => erased),
++  RequestedReport: CounterDefinition.makeNoopStep(),
++  CompletedSave: CounterDefinition.makeNoopStep(),
++})
++UnregisteredComposition.makeUpdate({
++  RequestedQuiet: ParentDefinition.makeNoopStep(),
++  // @ts-expect-error Inline Model-aware Steps preserve child registration requirements.
++  RequestedReport: ParentDefinition.makeStep((model, _message) =>
++    ChildBinding.report({ amount: model.count }),
++  ),
++  RequestedSave: ParentDefinition.makeNoopStep(),
++  CompletedSave: ParentDefinition.makeNoopStep(),
++})
++ParentComposition.makeUpdate({
++  RequestedQuiet: ParentDefinition.makeNoopStep(),
++  // @ts-expect-error Inline Model-aware composition cannot discard connected OutMessages.
++  RequestedReport: ParentDefinition.makeStep((model, _message) =>
++    Update.combineSteps([
++      ParentDefinition.makeNoopStep(),
++      ChildBinding.report({ amount: model.count }),
++    ]),
++  ),
++  RequestedSave: ParentDefinition.makeNoopStep(),
++  CompletedSave: ParentDefinition.makeNoopStep(),
++})
+diff --git a/packages/foldkit/src/block/definitionStep.test.ts b/packages/foldkit/src/block/definitionStep.test.ts
+index b8a4c52fda..f65add0db4 100644
+--- a/packages/foldkit/src/block/definitionStep.test.ts
++++ b/packages/foldkit/src/block/definitionStep.test.ts
+@@ -18,6 +18,33 @@ const Save = Definition.makeCommand('Save', {
+   messages: [Message.CompletedSave],
+ })
+
++it('infers the Model and exact Message in inline Model-aware Steps', () => {
++  const update = Composition.makeUpdate({
++    RequestedIncrement: Definition.makeStep((model, message) => {
++      expectTypeOf(model).toEqualTypeOf<typeof Model.Type>()
++      expectTypeOf(message).toEqualTypeOf<
++        typeof Message.RequestedIncrement.Type
++      >()
++
++      return Update.combineSteps([
++        Definition.makeFieldsStep(() => ({
++          count: () => model.count + message.amount,
++        })),
++        Definition.makeCommandsStep(({ count }) => [Save({ count })]),
++      ])
++    }),
++    CompletedSave: Definition.makeNoopStep(),
++  })
++
++  const result = update(
++    Model.make({ count: 1 }),
++    Message.RequestedIncrement({ amount: 3 }),
++  )
++
++  expect(result.model.count).toBe(4)
++  expect(result.commands).toMatchObject([{ args: { count: 4 } }])
++})
++
+ it('contextually types an inline Message-only producer and applies its deferred Steps', () => {
+   const update = Composition.makeUpdate({
+     RequestedIncrement: Definition.makeStep.fromMessage(({ amount }) => {

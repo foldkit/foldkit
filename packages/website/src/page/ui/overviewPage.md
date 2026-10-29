@@ -34,7 +34,7 @@ The example below shows two component Bindings included by one owning Block. Ass
 
 Mounted UI views and attribute slots carry their Mount requirements. Author the parent view through its Composition's `makeView`; its builder derives the component and Mount capabilities. Give ordinary feature-local helpers a `FeatureViewBuilder` parameter derived with `Block.ViewBuilderFor<typeof FeatureComposition>`, declared immediately after the Composition. Use the framework's general `HtmlBuilder<Message>` for a function genuinely shared across owners. TypeScript checks capabilities during composition and handler provision before startup. Foldkit also checks each rendered definition before patching the DOM. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views).
 
-Component factories with instance-specific behavior return completed Blocks. Connect the result of `Slider.forRoot(getTrackRoot)` or `Toast.make(PayloadSchema)` in the Block that owns the instance.
+Component factories with instance-specific behavior return completed Blocks. Connect the result of `Slider.forRoot(getTrackRoot)` or `Toast.makeBlock(PayloadSchema)` in the Block that owns the instance.
 
 ## Components
 

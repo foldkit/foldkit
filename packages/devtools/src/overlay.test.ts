@@ -10,6 +10,7 @@ import {
 } from 'effect'
 import { DEVTOOLS_HOST_ID } from 'foldkit/devtools-host'
 import type { DevToolsStore, StoreState } from 'foldkit/devtools-host'
+import { Storage } from 'happy-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -88,6 +89,8 @@ const startOverlay = (store: DevToolsStore) =>
   )
 
 beforeEach(() => {
+  vi.stubGlobal('localStorage', new Storage())
+
   Object.defineProperty(window, 'matchMedia', {
     configurable: true,
     value: matchMedia,
@@ -99,6 +102,7 @@ afterEach(() => {
   document.body.innerHTML = ''
   document.head.innerHTML = ''
   localStorage.clear()
+  vi.unstubAllGlobals()
 })
 
 describe('DevTools interaction blocker', () => {

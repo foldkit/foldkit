@@ -25,6 +25,7 @@ const nameSchema = Schema.String.pipe(
     ),
   ),
 )
+type nameSchema = typeof nameSchema.Type
 
 const name = Flag.String('name').pipe(
   Flag.withAlias('n'),

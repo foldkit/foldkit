@@ -15,8 +15,8 @@ import {
   RestContextBlock,
   combinedMixedConnectedStep,
   deferredMixedConnectedStep,
+  initPlainStep,
   initialParentModel,
-  initializePlainStep,
   mixedConnectedSteps,
 } from './composition-safety.accepted.js'
 
@@ -114,7 +114,7 @@ PlainBinding.init({ args: [], toParentModel: child => Struct.modifyFields(initia
 const erasedConnectedStep: Update.Step<
   typeof ParentModel.Type,
   typeof ParentMessage.Type
-> = initializePlainStep
+> = initPlainStep
 void erasedConnectedStep
 
 const MissingPlainBindingComposition =
@@ -123,7 +123,7 @@ const MissingPlainBindingComposition =
   })
 MissingPlainBindingComposition.makeInit(() =>
   // @ts-expect-error A connected initializer cannot run without its registered Binding capability.
-  initializePlainStep(initialParentModel),
+  initPlainStep(initialParentModel),
 )
 
 const directConnectedInit = MissingPlainBindingComposition.makeInit(() =>
@@ -138,10 +138,10 @@ MissingPlainBindingComposition.prepareBlock({
   init: directConnectedInit,
   update: MissingPlainBindingComposition.makeUpdate({
     CompletedParentInitialization: model => ({ model }),
-    RequestedInitializeEntry: model => ({ model }),
-    RequestedInitializePlain: model => ({ model }),
-    RequestedInitializePlainWithOwningParentCommand: model => ({ model }),
-    RequestedInitializePlainWithParentCommands: model => ({ model }),
+    RequestedInitEntry: model => ({ model }),
+    RequestedInitPlain: model => ({ model }),
+    RequestedInitPlainWithOwningParentCommand: model => ({ model }),
+    RequestedInitPlainWithParentCommands: model => ({ model }),
   }),
   EffectsLayer: LoadParameterizedChild.layer,
 })

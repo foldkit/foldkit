@@ -14,10 +14,12 @@ const GeocodingResult = Schema.Struct({
   longitude: Schema.Number,
   admin1: Schema.OptionFromOptional(Schema.String),
 })
+type GeocodingResult = typeof GeocodingResult.Type
 
 const GeocodingResponse = Schema.Struct({
   results: Schema.OptionFromOptional(Schema.Array(GeocodingResult)),
 })
+type GeocodingResponse = typeof GeocodingResponse.Type
 
 const WeatherResponse = Schema.Struct({
   current: Schema.Struct({
@@ -27,6 +29,7 @@ const WeatherResponse = Schema.Struct({
     weather_code: Schema.Number,
   }),
 })
+type WeatherResponse = typeof WeatherResponse.Type
 
 const weatherCodeToDescription = (code: number): string =>
   Match.value(code).pipe(

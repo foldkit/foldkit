@@ -47,6 +47,7 @@ const Message = defineMessageUnion({
   BumpedValue: {},
   CompletedSaveCount: {},
 })
+type Message = typeof Message.Type
 
 type TestMessage =
   | typeof Message.IncrementedCount.Type
@@ -464,6 +465,7 @@ const counterUpdate = (
   )
 
 const CounterOutMessage = defineMessageUnion({ ChangedValue: {} })
+type CounterOutMessage = typeof CounterOutMessage.Type
 type ChangedValue = typeof CounterOutMessage.ChangedValue.Type
 
 const counterUpdateWithOutMessage = (

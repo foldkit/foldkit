@@ -16,7 +16,6 @@ export const DayOfWeek = Schema.Literals([
   'Friday',
   'Saturday',
 ])
-
 export type DayOfWeek = typeof DayOfWeek.Type
 
 const dayOfWeekFromIndex = (index: number): DayOfWeek => {

@@ -388,7 +388,7 @@ describe('no-impure-call-at-decision-time', () => {
 
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain(
-      "Crypto.Crypto's randomUUIDv4 Effect with a platform Crypto layer",
+      'Crypto.Crypto with a platform Crypto layer',
     )
   })
 

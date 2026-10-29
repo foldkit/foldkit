@@ -4,10 +4,14 @@ import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 const Model = Schema.Struct({ routeChangeCount: Schema.Number })
+type Model = typeof Model.Type
+
 const Message = defineMessageUnion({
   InformedOfRouteChange: {},
   ClickedReset: {},
 })
+type Message = typeof Message.Type
+
 const RouteAwareComposition = Block.makeDefinition('RouteAware', {
   Model,
   Message,

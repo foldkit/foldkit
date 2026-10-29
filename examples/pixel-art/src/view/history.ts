@@ -21,9 +21,9 @@ const sectionLabel = (text: string, h: ApplicationViewBuilder): Html =>
   )
 
 export const historyPanelView = (
-  undoStack: ReadonlyArray<typeof Grid.Type>,
-  redoStack: ReadonlyArray<typeof Grid.Type>,
-  grid: typeof Grid.Type,
+  undoStack: ReadonlyArray<Grid>,
+  redoStack: ReadonlyArray<Grid>,
+  grid: Grid,
   gridSize: number,
   theme: PaletteTheme,
   h: ApplicationViewBuilder,
@@ -151,11 +151,11 @@ export const historyPanelView = (
 }
 
 const thumbnailEntry = (
-  grid: typeof Grid.Type,
+  grid: Grid,
   gridSize: number,
   isActive: boolean,
   label: string,
-  maybeOnClick: Option.Option<typeof Message.Type>,
+  maybeOnClick: Option.Option<Message>,
   theme: PaletteTheme,
   h: ApplicationViewBuilder,
 ): Html =>

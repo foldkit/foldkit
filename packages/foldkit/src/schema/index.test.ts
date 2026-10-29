@@ -4,10 +4,13 @@ import { describe, expect, it } from 'vitest'
 import { taggedStruct } from './index.js'
 
 const ClickedReset = taggedStruct('ClickedReset')
+type ClickedReset = typeof ClickedReset.Type
 const ClickedItem = taggedStruct('ClickedItem', { id: Schema.String })
+type ClickedItem = typeof ClickedItem.Type
 const ExplicitTagField = taggedStruct('ExplicitTagField', {
   _tag: Schema.Literal('ExplicitTagField'),
 })
+type ExplicitTagField = typeof ExplicitTagField.Type
 
 const expectSameObjectStructure = (actual: object, expected: object): void => {
   expect(Object.getPrototypeOf(actual)).toBe(Object.getPrototypeOf(expected))
@@ -35,6 +38,7 @@ const getError = (construct: () => unknown, cleanup?: () => void): Error => {
 describe('makeCallable', () => {
   it('keeps the wrapped Schema properties and prototype transparent', () => {
     const schema = Schema.TaggedStruct('ClickedItem', { id: Schema.String })
+    type schema = typeof schema.Type
 
     expect('make' in ClickedItem).toBe(true)
     expect(ClickedItem.ast).toBeDefined()
@@ -47,6 +51,7 @@ describe('makeCallable', () => {
     const ChangedCount = taggedStruct('ChangedCount', {
       count: Schema.Number.check(Schema.isGreaterThan(0)),
     })
+    type ChangedCount = typeof ChangedCount.Type
 
     for (const count of [1, 2]) {
       const input = { count }
@@ -92,6 +97,7 @@ describe('makeCallable', () => {
     const ChangedPrototypeLabel = taggedStruct('ChangedPrototypeLabel', {
       ['__proto__']: Schema.String,
     })
+    type ChangedPrototypeLabel = typeof ChangedPrototypeLabel.Type
     const input = { ['__proto__']: 'label' }
     const literal = { _tag: 'ChangedPrototypeLabel', ['__proto__']: 'label' }
     const made = ChangedPrototypeLabel.make(input)
@@ -256,6 +262,7 @@ describe('makeCallable', () => {
 
   it('observes direct properties in the same order as make', () => {
     const ChangedIndex = taggedStruct('ChangedIndex', { 0: Schema.Number })
+    type ChangedIndex = typeof ChangedIndex.Type
     const makeInput = () => {
       const input = { 0: 1, _tag: 'ChangedIndex' }
       return new Proxy(input, {
@@ -468,6 +475,7 @@ describe('makeCallable', () => {
     const ChangedName = taggedStruct('ChangedName', {
       name: Schema.NonEmptyString,
     })
+    type ChangedName = typeof ChangedName.Type
     const input = { name: '' }
 
     expect(() => Reflect.apply(ChangedName.make, undefined, [input])).toThrow(
@@ -482,6 +490,7 @@ describe('makeCallable', () => {
     const ChangedProfile = taggedStruct('ChangedProfile', {
       profile: Schema.Struct({ name: Schema.NonEmptyString }),
     })
+    type ChangedProfile = typeof ChangedProfile.Type
     const input = { profile: { name: '' } }
 
     expect(() =>
@@ -496,12 +505,15 @@ describe('makeCallable', () => {
     const ChangedUnion = taggedStruct('ChangedUnion', {
       value: Schema.Union([Schema.NonEmptyString, Schema.Number]),
     })
+    type ChangedUnion = typeof ChangedUnion.Type
     const ChangedTuple = taggedStruct('ChangedTuple', {
       value: Schema.Tuple([Schema.NonEmptyString]),
     })
+    type ChangedTuple = typeof ChangedTuple.Type
     const ChangedArray = taggedStruct('ChangedArray', {
       value: Schema.Array(Schema.NonEmptyString),
     })
+    type ChangedArray = typeof ChangedArray.Type
 
     expect(() =>
       Reflect.apply(ChangedUnion, undefined, [{ value: '' }]),
@@ -518,6 +530,7 @@ describe('makeCallable', () => {
     const ChangedValue = taggedStruct('ChangedValue', {
       value: Schema.Union([Schema.String, Schema.Number]),
     })
+    type ChangedValue = typeof ChangedValue.Type
     const input = { value: true }
 
     expect(() => Reflect.apply(ChangedValue.make, undefined, [input])).toThrow(
@@ -535,18 +548,23 @@ describe('makeCallable', () => {
     const ChangedSymbol = taggedStruct('ChangedSymbol', {
       value: Schema.Symbol,
     })
+    type ChangedSymbol = typeof ChangedSymbol.Type
     const ChangedUniqueSymbol = taggedStruct('ChangedUniqueSymbol', {
       value: Schema.UniqueSymbol(uniqueSymbol),
     })
+    type ChangedUniqueSymbol = typeof ChangedUniqueSymbol.Type
     const ChangedObject = taggedStruct('ChangedObject', {
       value: Schema.ObjectKeyword,
     })
+    type ChangedObject = typeof ChangedObject.Type
     const ChangedEnum = taggedStruct('ChangedEnum', {
       value: Schema.Enum({ Selected: 'Selected' }),
     })
+    type ChangedEnum = typeof ChangedEnum.Type
     const ChangedTemplate = taggedStruct('ChangedTemplate', {
       value: Schema.TemplateLiteral(['item-', Schema.String]),
     })
+    type ChangedTemplate = typeof ChangedTemplate.Type
 
     expect(
       Reflect.apply(ChangedSymbol, undefined, [{ value: 'not a symbol' }]),
@@ -569,6 +587,7 @@ describe('makeCallable', () => {
     const ChangedValue = taggedStruct('ChangedValue', {
       value: Schema.suspend(() => Schema.String),
     })
+    type ChangedValue = typeof ChangedValue.Type
     const input = { value: 1 }
 
     expect(() => Reflect.apply(ChangedValue.make, undefined, [input])).toThrow(
@@ -584,6 +603,7 @@ describe('makeCallable', () => {
       profile: Schema.Struct({ name: Schema.String }),
       profiles: Schema.Array(Schema.Struct({ name: Schema.String })),
     })
+    type ChangedProfiles = typeof ChangedProfiles.Type
     const profile = { name: 'Ada', extra: true }
     const nestedProfile = { name: 'Grace', extra: true }
     const profiles = [nestedProfile]
@@ -601,6 +621,7 @@ describe('makeCallable', () => {
     const ChangedValue = taggedStruct('ChangedValue', {
       value: Schema.Struct({}),
     })
+    type ChangedValue = typeof ChangedValue.Type
     const value = { extra: true }
     const made = ChangedValue.make({ value })
     const constructed = ChangedValue({ value })
@@ -615,6 +636,7 @@ describe('makeCallable', () => {
     const ChangedProfiles = taggedStruct('ChangedProfiles', {
       profiles: Schema.Array(Schema.Struct({ name: Schema.String })),
     })
+    type ChangedProfiles = typeof ChangedProfiles.Type
     const profiles = new ProfileList()
     profiles.push({ name: 'Ada' })
     const made = ChangedProfiles.make({ profiles })
@@ -628,6 +650,7 @@ describe('makeCallable', () => {
     const ChangedValues = taggedStruct('ChangedValues', {
       values: Schema.Array(Schema.String),
     })
+    type ChangedValues = typeof ChangedValues.Type
     const values = ['first', 'second']
     values[Symbol.iterator] = function* () {
       yield 'iterator value'
@@ -645,6 +668,7 @@ describe('makeCallable', () => {
     const ChangedValues = taggedStruct('ChangedValues', {
       values: Schema.Array(Schema.Unknown),
     })
+    type ChangedValues = typeof ChangedValues.Type
     const makeValues = () => {
       const values = new globalThis.Array<unknown>(3)
       Object.defineProperty(values, 0, {
@@ -668,6 +692,7 @@ describe('makeCallable', () => {
     const ChangedValues = taggedStruct('ChangedValues', {
       values: Schema.Array(Schema.Unknown),
     })
+    type ChangedValues = typeof ChangedValues.Type
     const originalPush = globalThis.Array.prototype.push
     const makeValues = () => {
       const values = ['first', 'second']
@@ -698,6 +723,7 @@ describe('makeCallable', () => {
     const ChangedValues = taggedStruct('ChangedValues', {
       values: Schema.Array(Schema.Unknown),
     })
+    type ChangedValues = typeof ChangedValues.Type
     const originalDescriptor = Object.getOwnPropertyDescriptor(
       globalThis.Array.prototype,
       0,
@@ -742,6 +768,7 @@ describe('makeCallable', () => {
     const ChangedChild = taggedStruct('ChangedChild', {
       child: Schema.Struct({ name: Schema.String }),
     })
+    type ChangedChild = typeof ChangedChild.Type
     const originalDescriptor = Object.getOwnPropertyDescriptor(
       Object.prototype,
       'child',
@@ -783,6 +810,7 @@ describe('makeCallable', () => {
         Schema.Struct({ count: Schema.Number }),
       ]),
     })
+    type ChangedValue = typeof ChangedValue.Type
     const value = { name: 'Ada', extra: true }
     const input = { value }
     const made = ChangedValue.make(input)
@@ -796,6 +824,7 @@ describe('makeCallable', () => {
     const ChangedValue = taggedStruct('ChangedValue', {
       value: Schema.Union([Schema.String, Schema.String], { mode: 'oneOf' }),
     })
+    type ChangedValue = typeof ChangedValue.Type
     const input = { value: 'value' }
 
     expect(() => ChangedValue.make(input)).toThrow('Schema validation failed')
@@ -806,6 +835,7 @@ describe('makeCallable', () => {
     const ChangedValues = taggedStruct('ChangedValues', {
       values: Schema.Record(Schema.String, Schema.String),
     })
+    type ChangedValues = typeof ChangedValues.Type
     const values = { first: 'one' }
     const input = { values }
     const made = ChangedValues.make(input)
@@ -820,12 +850,15 @@ describe('makeCallable', () => {
       (input): input is string => typeof input === 'string',
       { expected: 'string declaration' },
     )
+    type DeclaredString = typeof DeclaredString.Type
     const ChangedDeclaredValue = taggedStruct('ChangedDeclaredValue', {
       value: DeclaredString,
     })
+    type ChangedDeclaredValue = typeof ChangedDeclaredValue.Type
     const SelectedValue = taggedStruct('SelectedValue', {
       value: Schema.Option(Schema.String),
     })
+    type SelectedValue = typeof SelectedValue.Type
     const invalidInput = { value: 1 }
     const option = Option.some('selected')
     const made = SelectedValue.make({ value: option })
@@ -842,6 +875,7 @@ describe('makeCallable', () => {
     const ChangedLabel = taggedStruct('ChangedLabel', {
       label: Schema.optionalKey(Schema.String),
     })
+    type ChangedLabel = typeof ChangedLabel.Type
 
     expect(Reflect.apply(ChangedLabel, undefined, [{}])).toStrictEqual({
       _tag: 'ChangedLabel',
@@ -852,7 +886,9 @@ describe('makeCallable', () => {
     const profile = Schema.Struct({ name: Schema.String }).annotate({
       parseOptions: { onExcessProperty: 'preserve' },
     })
+    type profile = typeof profile.Type
     const ChangedProfile = taggedStruct('ChangedProfile', { profile })
+    type ChangedProfile = typeof ChangedProfile.Type
     const input = { profile: { name: 'Ada', extra: true } }
 
     expect(ChangedProfile(input)).toStrictEqual(ChangedProfile.make(input))
@@ -861,9 +897,11 @@ describe('makeCallable', () => {
 
   it('falls back for child Message fields', () => {
     const ChildMessage = taggedStruct('ChildMessage')
+    type ChildMessage = typeof ChildMessage.Type
     const GotChildMessage = taggedStruct('GotChildMessage', {
       message: ChildMessage,
     })
+    type GotChildMessage = typeof GotChildMessage.Type
     const input = { message: { _tag: 'Bogus' } }
 
     expect(() =>
@@ -876,9 +914,11 @@ describe('makeCallable', () => {
 
   it('applies a missing child Message tag like make', () => {
     const ChildMessage = taggedStruct('ChildMessage')
+    type ChildMessage = typeof ChildMessage.Type
     const GotChildMessage = taggedStruct('GotChildMessage', {
       message: ChildMessage,
     })
+    type GotChildMessage = typeof GotChildMessage.Type
     const input = { message: {} }
 
     expect(GotChildMessage(input)).toStrictEqual(GotChildMessage.make(input))
@@ -896,7 +936,9 @@ describe('makeCallable', () => {
         ),
       ),
     })
+    type CustomChild = typeof CustomChild.Type
     const WrappedChild = taggedStruct('WrappedChild', { child: CustomChild })
+    type WrappedChild = typeof WrappedChild.Type
     const missingTagInput = { child: {} }
     const undefinedTagInput = { child: { _tag: undefined } }
     const bogusTagInput = { child: { _tag: 'Bogus' } }
@@ -917,11 +959,15 @@ describe('makeCallable', () => {
 
   it('falls back for child Message unions', () => {
     const SelectedChild = taggedStruct('SelectedChild', { id: Schema.String })
+    type SelectedChild = typeof SelectedChild.Type
     const ResetChild = taggedStruct('ResetChild')
+    type ResetChild = typeof ResetChild.Type
     const ChildMessage = Schema.Union([SelectedChild, ResetChild])
+    type ChildMessage = typeof ChildMessage.Type
     const GotChildMessage = taggedStruct('GotChildMessage', {
       message: ChildMessage,
     })
+    type GotChildMessage = typeof GotChildMessage.Type
     const missingTagInput = { message: { id: 'child-1', extra: true } }
     const undefinedTagInput = { message: { _tag: undefined } }
     const bogusTagInput = { message: { _tag: 'Bogus' } }
@@ -944,13 +990,17 @@ describe('makeCallable', () => {
 
   it('uses child Message union parsing when omitted tags are ambiguous', () => {
     const SelectedText = taggedStruct('SelectedText', { value: Schema.String })
+    type SelectedText = typeof SelectedText.Type
     const SelectedCount = taggedStruct('SelectedCount', {
       value: Schema.Number,
     })
+    type SelectedCount = typeof SelectedCount.Type
     const ChildMessage = Schema.Union([SelectedText, SelectedCount])
+    type ChildMessage = typeof ChildMessage.Type
     const GotChildMessage = taggedStruct('GotChildMessage', {
       message: ChildMessage,
     })
+    type GotChildMessage = typeof GotChildMessage.Type
     const input = { message: { value: 1 } }
 
     expect(GotChildMessage(input)).toStrictEqual(GotChildMessage.make(input))
@@ -961,14 +1011,19 @@ describe('makeCallable', () => {
     const SelectedCount = taggedStruct('SelectedCount', {
       count: Schema.NumberFromString,
     })
+    type SelectedCount = typeof SelectedCount.Type
     const ResetCount = taggedStruct('ResetCount')
+    type ResetCount = typeof ResetCount.Type
     const ChildMessage = Schema.Union([SelectedCount, ResetCount])
+    type ChildMessage = typeof ChildMessage.Type
     const GotSelectedCountMessage = taggedStruct('GotSelectedCountMessage', {
       message: SelectedCount,
     })
+    type GotSelectedCountMessage = typeof GotSelectedCountMessage.Type
     const GotChildMessage = taggedStruct('GotChildMessage', {
       message: ChildMessage,
     })
+    type GotChildMessage = typeof GotChildMessage.Type
     const input = { message: { _tag: 'Bogus', count: 1 } }
 
     expect(() =>

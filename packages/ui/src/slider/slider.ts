@@ -32,6 +32,7 @@ const DragState = defineTaggedUnion({
   Idle: {},
   Dragging: { originValue: Schema.Number },
 })
+type DragState = typeof DragState.Type
 
 /** Schema for the Slider's private interaction state. The current
  *  value is owned by the parent and passed in via `ViewInputs.value`, so it is
@@ -45,7 +46,6 @@ export const Model = Schema.Struct({
   step: Schema.Number,
   dragState: DragState,
 })
-
 export type Model = typeof Model.Type
 
 // MESSAGE
@@ -73,7 +73,6 @@ export const Message = defineMessageUnion({
     value: Schema.Number,
   },
 })
-
 export type Message = typeof Message.Type
 
 export type PressedThumb = typeof Message.PressedThumb.Type
@@ -284,10 +283,11 @@ export const update = SliderComposition.makeUpdate({
 // SUBSCRIPTION
 
 const DragActivity = Schema.Literals(['Idle', 'Active'])
+type DragActivity = typeof DragActivity.Type
 
-const dragActivityFromModel = (model: Model): typeof DragActivity.Type =>
+const dragActivityFromModel = (model: Model): DragActivity =>
   Match.value(model.dragState).pipe(
-    Match.withReturnType<typeof DragActivity.Type>(),
+    Match.withReturnType<DragActivity>(),
     Match.tag('Dragging', () => 'Active'),
     Match.orElse(() => 'Idle'),
   )

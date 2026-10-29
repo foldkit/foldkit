@@ -15,3 +15,4 @@ export const Message = defineMessageUnion({
   UpdatedDeliveryInstructions: { value: Schema.String },
   ClickedPlaceOrder: {},
 })
+export type Message = typeof Message.Type

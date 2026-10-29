@@ -137,10 +137,7 @@ const headerView = (h: ApplicationViewBuilder): Html =>
     ],
   )
 
-const contentView = (
-  model: typeof Model.Type,
-  h: ApplicationViewBuilder,
-): Html => {
+const contentView = (model: Model, h: ApplicationViewBuilder): Html => {
   const theme = currentPaletteTheme(model)
 
   return h.div(

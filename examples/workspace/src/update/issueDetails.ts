@@ -1,38 +1,45 @@
 import { Array, Option } from 'effect'
 import { AsyncData, Update } from 'foldkit'
 
-import { IssueDetailBinding, applyIssueRevisionStep } from '../composition'
+import { IssueDetailBinding } from '../composition'
 import { makeStep } from '../definition'
-import type { Issue } from '../domain'
+import type { Issue, SavedIssue } from '../domain'
+import { applyIssueSnapshotStep, applySavedIssueStep } from '../steps'
 
-export const applyIncomingIssueStep = (issue: typeof Issue.Type) =>
+export const informIssueChangedStep = (issueId: string) =>
+  makeStep(model =>
+    Option.match(
+      Option.flatMap(AsyncData.getData(model.workspaceAsyncData), workspace =>
+        Array.findFirst(workspace.issues, issue => issue.id === issueId),
+      ),
+      {
+        onNone: () => ({ model }),
+        onSome: issue =>
+          IssueDetailBinding.informIssueChanged(issue.id, { issue }),
+      },
+    ),
+  )
+
+export const receiveIssueSnapshotStep = (issue: Issue) =>
   Update.combineSteps([
-    applyIssueRevisionStep(issue),
-    IssueDetailBinding.informIssueChanged(issue.id, { issue }),
-    IssueDetailBinding.requestReportDraft(issue.id),
+    applyIssueSnapshotStep(issue),
+    informIssueChangedStep(issue.id),
   ])
 
-export const reconcileRetainedIssueDetailsStep = makeStep(model => {
-  const maybeSnapshot = AsyncData.getData(model.workspaceAsyncData)
+export const receiveSavedIssueStep = (savedIssue: SavedIssue) =>
+  Update.combineSteps([
+    applySavedIssueStep(savedIssue),
+    informIssueChangedStep(savedIssue.issueId),
+  ])
 
-  if (Option.isNone(maybeSnapshot)) {
-    return { model }
-  }
-
-  const steps = Array.flatMap(model.issueDetailInstances, ({ issueId }) => {
-    const maybeIssue = Array.findFirst(
-      maybeSnapshot.value.issues,
-      issue => issue.id === issueId,
-    )
-
-    return Option.match(maybeIssue, {
-      onNone: () => [],
-      onSome: issue => [
-        IssueDetailBinding.informIssueChanged(issueId, { issue }),
-        IssueDetailBinding.requestReportDraft(issueId),
-      ],
-    })
-  })
-
-  return Update.combineSteps(steps)
-})
+export const informRetainedIssueDetailsStep = makeStep(model =>
+  Option.match(AsyncData.getData(model.workspaceAsyncData), {
+    onNone: () => ({ model }),
+    onSome: workspace =>
+      Update.combineSteps(
+        Array.map(workspace.issues, issue =>
+          IssueDetailBinding.informIssueChanged(issue.id, { issue }),
+        ),
+      ),
+  }),
+)

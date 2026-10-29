@@ -185,6 +185,7 @@ describe('makeElement', () => {
 
   it('seeds the initial model from flags', async () => {
     const Flags = Schema.Struct({ initialLabel: Schema.String })
+    type Flags = typeof Flags.Type
 
     const element = makeElement({
       Model,

@@ -8,18 +8,21 @@ export const SearchResult = Schema.Struct({
   section: Schema.String,
   kind: Schema.String,
 })
+export type SearchResult = typeof SearchResult.Type
 
 const Results = Schema.Array(SearchResult)
+type Results = typeof Results.Type
 
 export const SearchState = defineTaggedUnion({
   Idle: {},
   Loading: { results: Results },
   Ok: { results: Results },
 })
+export type SearchState = typeof SearchState.Type
 
 export const resultsFromState = (
-  state: typeof SearchState.Type,
-): ReadonlyArray<typeof SearchResult.Type> =>
+  state: SearchState,
+): ReadonlyArray<SearchResult> =>
   Match.value(state).pipe(
     Match.tag('Ok', ({ results }) => results),
     Match.tag('Loading', ({ results }) => results),

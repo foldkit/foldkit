@@ -10,8 +10,9 @@ import type { UiViewBuilder } from '../composition'
 // DEMO CONTENT
 
 const NavDemoSection = Schema.Literals(['Home', 'Search', 'Library', 'Profile'])
+type NavDemoSection = typeof NavDemoSection.Type
 
-const demoSections: ReadonlyArray<typeof NavDemoSection.Type> = [
+const demoSections: ReadonlyArray<NavDemoSection> = [
   'Home',
   'Search',
   'Library',
@@ -20,12 +21,12 @@ const demoSections: ReadonlyArray<typeof NavDemoSection.Type> = [
 
 const NAV_SECTION_QUERY_KEY = 'section'
 
-const defaultSection: typeof NavDemoSection.Type = 'Home'
+const defaultSection: NavDemoSection = 'Home'
 
-const sectionToHref = (section: typeof NavDemoSection.Type): string =>
+const sectionToHref = (section: NavDemoSection): string =>
   `?${NAV_SECTION_QUERY_KEY}=${section.toLowerCase()}`
 
-const sectionFromUrl = (url: Url): typeof NavDemoSection.Type =>
+const sectionFromUrl = (url: Url): NavDemoSection =>
   pipe(
     url.search,
     Option.flatMapNullishOr(search =>
@@ -46,7 +47,7 @@ const navClassName =
 const linkClassName =
   'flex-1 text-center px-2 sm:px-4 py-2 text-sm font-normal rounded-lg cursor-pointer transition text-gray-700 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300 hover:bg-gray-500/10 dark:hover:bg-gray-400/10 data-[current]:bg-cream data-[current]:dark:bg-gray-800 data-[current]:hover:bg-cream data-[current]:dark:hover:bg-gray-800 data-[current]:text-gray-900 data-[current]:dark:text-white data-[current]:shadow-sm'
 
-const urlBar = (currentSection: typeof NavDemoSection.Type): Html =>
+const urlBar = (currentSection: NavDemoSection): Html =>
   ih.div(
     [
       ih.Class(
@@ -78,7 +79,7 @@ export const basicDemo = (url: Url, h: UiViewBuilder) => {
     h.div(
       [h.Class('w-full max-w-lg mx-auto')],
       [
-        Nav.view<typeof NavDemoSection.Type>({
+        Nav.view<NavDemoSection>({
           items: demoSections,
           ariaLabel: 'App sections',
           toHref: sectionToHref,

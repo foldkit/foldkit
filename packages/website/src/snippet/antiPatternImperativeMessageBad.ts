@@ -5,6 +5,7 @@ import { defineMessageUnion } from 'foldkit/message'
 const Message = defineMessageUnion({
   FetchWeather: {},
 })
+type Message = typeof Message.Type
 
 const update = ApplicationComposition.makeUpdate({
   FetchWeather: model => ({ model, commands: [FetchWeather()] }),

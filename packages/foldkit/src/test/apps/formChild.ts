@@ -28,6 +28,7 @@ export const ChildOutMessage = defineMessageUnion({
   RequestedSave: { id: Schema.String },
   RequestedCancel: {},
 })
+export type ChildOutMessage = typeof ChildOutMessage.Type
 
 // CHILD COMMAND
 

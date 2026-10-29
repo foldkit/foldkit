@@ -1,0 +1,68 @@
+--- a/packages/foldkit/scripts/profile-map-binding-scale.ts
++++ b/packages/foldkit/scripts/profile-map-binding-scale.ts
+@@ -117 +117,2 @@
+-const workspaceCompositionPath = 'examples/workspace/src/composition.ts'
++const workspaceCompositionPath =
++  'packages/foldkit/type-performance/workspace-groups-16.ts'
+@@ -120,9 +121,7 @@
+-const workspaceUpdatePath = existsSync(
+-  resolve(workspaceRoot, workspaceInitializationPath),
+-)
+-  ? workspaceInitializationPath
+-  : 'examples/workspace/src/update.ts'
+-const workspaceEntryPath = 'examples/workspace/src/entry.ts'
+-const workspaceDetailUpdatePath = 'examples/workspace/src/issueDetail/update.ts'
+-const workspaceBindingProbe = '\nIssueDetailBinding.init\n'
+-const workspaceBlockAccess = 'ApplicationBlock.Message.ClickedLink'
++const workspaceUpdatePath = workspaceCompositionPath
++const workspaceEntryPath =
++  'packages/foldkit/type-performance/workspace-composition-16.ts'
++const workspaceDetailUpdatePath =
++  'packages/foldkit/type-performance/workspace-composition-16.ts'
++const workspaceBindingProbe = '\nWorkspaceGroup001MapBinding.init\n'
++const workspaceBlockAccess = 'ApplicationBlock.Message'
+@@ -155,8 +154,5 @@
+-  name: 'IssueDetailBinding',
+-  owner: 'IssueDetail',
+-  typeNames: ['Block.BindingWithoutOutMessagePolicy'],
+-  schemaHeaderFragments: [
+-    'AssemblyWithViewAndOutMessage<Struct<{',
+-    'readonly issueId: String;',
+-    'readonly baseline: Struct<{',
+-    'readonly draft: Struct<{',
++  name: 'WorkspaceGroup001MapBinding',
++  owner: 'TypePerformanceWorkspaceEditor',
++  typeNames: [
++    'Block.BindingWithoutOutMessagePolicy',
++    'BindingWithoutOutMessagePolicy',
+@@ -164,2 +160,3 @@
+-  namedBoundaryFragments: ['IssueDetailBlock', 'readonly route: RouteUnion<{'],
+-}
++  namedBoundaryFragments: ['EditorBlock', 'readonly groupId:'],
++}
++
+@@ -1508 +1505 @@
+-      uniqueOccurrence(source.text, 'export const IssueDetailBinding')
++      uniqueOccurrence(source.text, 'const WorkspaceGroup001MapBinding')
+@@ -1515,2 +1512,2 @@
+-        'IssueDetailBinding',
+-        'export const IssueDetailBinding',
++        'WorkspaceGroup001MapBinding',
++        'const WorkspaceGroup001MapBinding',
+@@ -1530 +1527 @@
+-      '\nIssueDetailBinding.'.length,
++      '\nWorkspaceGroup001MapBinding.'.length,
+@@ -1691,0 +1689,2 @@
++      ...filesBelow(join(packageRoot, 'type-performance'), '**/*.ts'),
++      join(packageRoot, 'type-performance/tsconfig.json'),
+@@ -1823,0 +1823,2 @@
++      ':(glob)packages/foldkit/type-performance/**/*.ts',
++      'packages/foldkit/type-performance/tsconfig.json',
+@@ -1886,0 +1888 @@
++      experimentWorkload: '16 groups with 16 map Bindings',
+@@ -1928 +1930 @@
+-              bindingHover: `${workspaceCompositionPath}#IssueDetailBinding`,
++              bindingHover: `${workspaceCompositionPath}#WorkspaceGroup001MapBinding`,
+@@ -1930 +1932 @@
+-              bindingCompletion: `${workspaceUpdatePath}#appended in-memory IssueDetailBinding.|init probe`,
++              bindingCompletion: `${workspaceUpdatePath}#appended in-memory WorkspaceGroup001MapBinding.|init probe`,

@@ -11,6 +11,7 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({
   ToggledDisclosure: { id: Schema.String, isOpen: Schema.Boolean },
 })
+type Message = typeof Message.Type
 
 const DisclosuresComposition = makeDefinition('Disclosures', {
   Model,

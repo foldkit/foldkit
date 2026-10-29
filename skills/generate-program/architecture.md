@@ -100,10 +100,12 @@ const DataState = defineTaggedUnion({
   Error: { error: Schema.String },
   Ok: { data: Data },
 })
+type DataState = typeof DataState.Type
 
 const Model = Schema.Struct({
   dataState: DataState,
 })
+type Model = typeof Model.Type
 ```
 
 With booleans, you can have `isLoading: true` AND `isError: true`, an impossible state. With unions, you're always in exactly one state.
@@ -114,10 +116,12 @@ For **remote data specifically**, don't hand-roll the union. The `AsyncData` mod
 import { AsyncData } from 'foldkit'
 
 const WeatherAsyncData = AsyncData.Schema(WeatherData, Schema.String)
+type WeatherAsyncData = typeof WeatherAsyncData.schema.Type
 
 const Model = Schema.Struct({
   weatherAsyncData: WeatherAsyncData.schema,
 })
+type Model = typeof Model.Type
 ```
 
 That gives six states, not four: `Idle`, `Loading`, `Refreshing`, `Failure`, `Stale`, `Success`. The two extra ones are the reason to use it. `Refreshing` carries the previous data while a reload runs, so a refetch doesn't blank the screen. `Stale` carries both the previous data and the new error, so a failed reload doesn't discard what the user was reading. A hand-rolled `Idle | Loading | Error | Ok` forces both of those regressions.
@@ -157,6 +161,7 @@ const Message = defineMessageUnion({
   SelectedFilter: { filter: Schema.String },
   ClickedOpenModal: {},
 })
+type Message = typeof Message.Type
 ```
 
 ## Update Return Types
@@ -187,7 +192,7 @@ Binding folds and Binding-projected operations return connected Steps whose Mode
 
 Return a keyed startup wrapper as a plain record, preserving the initialized child object in its child field. Do not reconstruct that child through the wrapper's Schema constructor. Composition constructs the full parent Model through its Schema after collecting these records.
 
-Author an exhaustive `Composition.makeUpdate({ Tag: (model, message) => result })` record. Each case receives the contextual Model and exact Message payload, and operations retain the selected case's Command requirements and OutMessage contract. Use `makeUpdate.withContext(context => cases)` for additional dispatch arguments; the factory runs for local dispatch, not routed child-only delivery. Generic Step values inside that context factory may need `model => step(model)` for inference. Ordinary handlers return results directly; do not wrap every case with `makeStep`. A Model-preserving no-op record value is `makeNoopStep()`, not the bare factory.
+Author an exhaustive `Composition.makeUpdate({ Tag: (model, message) => result })` record. Each case receives the contextual Model and exact Message payload, and operations retain the selected case's Command requirements and OutMessage contract. Use `makeUpdate.withContext(context => cases)` for additional dispatch arguments; the factory runs for local dispatch, not routed child-only delivery. Ordinary handlers return results directly; do not wrap every case with `makeStep`. A Model-preserving no-op record value is `makeNoopStep()`, not the bare factory.
 
 `Composition.makeUpdate` accepts only an exhaustive handler record; its callback overload is removed. Use `makeUpdate({})` when there are no local Messages. Each handler receives `(model, message)`; name extracted single-Message handlers `handle<MessageTag>` and pass compatible handlers or Steps directly. Give every named Model-first Step value a descriptive name ending in `Step`, such as `refreshStep`. Give a purposeful transition factory that returns a Step an operation name ending in `Step` too. Factory methods, imported authoring helpers, named OutMessage folds and matchers, direct inline handlers, public operation keys, Message tags, and applied update-like results keep their established names. If one handler mixes connected Binding recipes with local results, author its local branches through Definition-owned Steps. A raw `{ model }` beside a connected recipe is rejected; ordinary raw-only handlers can return results directly. Do not hide errors with casts or broad return annotations: a later wrapper cannot recover channels already erased upstream.
 
@@ -212,6 +217,8 @@ For a child reset, prefer a Message-backed `requestReset` or domain operation an
 Use `FeatureDefinition.makeFieldsStep(producer)` for owning field transformations, `FeatureDefinition.makeCommandsStep(producer)` for Commands with an unchanged Model, and `FeatureDefinition.makeOutMessageStep(producer)` for one declared OutMessage with an unchanged Model.
 
 In a split feature, export the Step helpers used by the implementation from `definition.ts` and named-import them in implementation modules. In a colocated feature, destructure those helpers beside the Definition in the scope that uses them. Keep Definition-qualified calls when several Definitions in one module need visible ownership. Do not re-export authoring helpers from the feature barrel; export the completed Block there.
+
+Put reusable parent Steps shared by update, composition, or init in the owning Block's `steps.ts`, or in responsibility modules such as `steps/search.ts` with an explicit `steps/index.ts` barrel. Ownership follows the Model being transformed. Keep Message routing in update and Binding registration and child OutMessage policy in composition; colocate Steps used by only one responsibility. Preserve the `Step` suffix and defer cyclic Binding access until the producer is applied.
 
 All three take callbacks, evaluated when the Step or handler is applied. An ordinary producer receives the current Model and, when authored as a Message-dependent handler, its exact Message. Use `.fromMessage(message => value)` for payload-only producers and `() => value` for fixed producers. Commands-only and OutMessage-only helpers preserve the incoming Model identity. `makeNoopStep()` stays unchanged; in an OutMessage fold, pass its factory point-free when appropriate.
 
@@ -267,18 +274,19 @@ const unsafeInit = ApplicationComposition.makeInit(() => ({
 const Flags = Schema.Struct({
   createdAt: Schema.Number,
 })
+type Flags = typeof Flags.Type
 
 const flags = Effect.gen(function* () {
   const now = yield* Clock.currentTimeMillis
   return Flags.make({ createdAt: now })
 })
 
-const init = ApplicationComposition.makeInit((flags: typeof Flags.Type) => ({
+const init = ApplicationComposition.makeInit((flags: Flags) => ({
   model: Model.make({ createdAt: flags.createdAt }),
 }))
 ```
 
-For a fresh browser boot, Flags are produced by an `Effect<typeof Flags.Type>`. The runtime executes it once before init and passes the result in. This keeps init pure while still allowing side effects to populate the initial Model. Common uses:
+For a fresh browser boot, Flags are produced by an `Effect<Flags>`. The runtime executes it once before init and passes the result in. This keeps init pure while still allowing side effects to populate the initial Model. Common uses:
 
 - Reading from localStorage/sessionStorage (restoring saved state)
 - Getting the current time
@@ -434,7 +442,7 @@ Build all Subscriptions owned by one Block in one `FeatureDefinition.makeSubscri
 - A `modelToDependencies(model)` function that returns the parameters the stream needs. Wrap an absent dependency in `Option` at the field level. The runtime restarts the stream whenever the dependencies change.
 - A `handler: function* () { return dependencies => stream }` field. Errors should be mapped to a `Failed*` Message inside the stream rather than thrown. Compose the owned registry’s `subscriptions.layer` in the owning module’s `EffectsLayer` when every entry has an attached handler. It preserves all constructor errors and Service requirements. Mixed host contracts have no registry `.layer`; the entry key `layer` is reserved. Individual entry Layers remain valid for selective assembly.
 
-When an external generic Stream helper infers its Message from one callback and rejects another declared variant, annotate the callback that determines its result with the union this entry declares. Use `typeof Message.Type` when the entry declares the full Message union. Keep the entry's exact `messages` declaration; it still checks the resulting Stream.
+When an external generic Stream helper infers its Message from one callback and rejects another declared variant, annotate the callback that determines its result with the union this entry declares. Use the `Message` alias when the entry declares the full Message union. Keep the entry's exact `messages` declaration; it still checks the resulting Stream.
 
 Name the handler for the events or scoped behavior the entry supplies, such as `KeyboardPresses`, `SystemThemeChanges`, or `GameClockTicks`. The handler name identifies the Layer requirement. Keep the record key parallel, such as `keyboardPresses`, `systemThemeChanges`, or `gameClockTicks`; the key identifies the runtime registration and Stream scope. Several lifted registrations can share one definition and handler Layer while retaining distinct keys. The Model dependencies determine when its scope is active. Avoid generic `Watch*` names that identify only the input source. When Subscription declarations are split from Block assembly, that module exports the Block's one registry; compose `Feature.subscriptions.layer` directly in the feature's `EffectsLayer`. When the registry supplies every local handler, pass `EffectsLayer: subscriptions.layer` directly to `prepareBlock`. Create a standalone binding such as `KeyboardPressesLayer` only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly. Use `Subscription.aggregate` at graph, adapter, or test boundaries that join independent records. Subscription lifecycle entries in DevTools are follow-up work.
 
@@ -613,6 +621,8 @@ Runtime.run(program.provide(ApplicationLayer))
 ```
 
 ### With Routing
+
+A URL is an input boundary. Parse it in init or the `ChangedUrl` handler and store a typed Route in the Model. `Route.parseUrlWithFallback` accepts a full `Url`; `Route.parsePathWithFallback` accepts an origin-relative path with query parameters. If a query value holds a return Route, decode and encode it through the query Schema. Keep that codec separate from the plain application Route Schema so rendering, selectors and Model serialization use the decoded Route.
 
 A routing init receives Flags, when declared, and the current URL. Add both Message constructors to `routing`:
 

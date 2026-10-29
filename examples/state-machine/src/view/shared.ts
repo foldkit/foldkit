@@ -19,7 +19,7 @@ export const promoFeedbackClassName =
 export const cancelButtonClassName =
   'cursor-pointer text-sm font-medium text-stone-600 underline decoration-stone-400 underline-offset-4 transition-colors hover:text-orange-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-stone-900'
 
-export const stateEyebrow = (state: typeof CheckoutState.Type): string =>
+export const stateEyebrow = (state: CheckoutState): string =>
   CheckoutState.match(state, {
     Cart: () => 'Bag',
     Shipping: () => 'Delivery',
@@ -30,7 +30,7 @@ export const stateEyebrow = (state: typeof CheckoutState.Type): string =>
     Cancelled: () => 'Checkout',
   })
 
-export const stateTitle = (state: typeof CheckoutState.Type): string =>
+export const stateTitle = (state: CheckoutState): string =>
   CheckoutState.match(state, {
     Cart: () => 'Your order',
     Shipping: () => 'Delivery details',
@@ -41,7 +41,7 @@ export const stateTitle = (state: typeof CheckoutState.Type): string =>
     Cancelled: () => 'Checkout cancelled',
   })
 
-export const stateDescription = (state: typeof CheckoutState.Type): string =>
+export const stateDescription = (state: CheckoutState): string =>
   CheckoutState.match(state, {
     Cart: () => 'Choose your edition before continuing to checkout.',
     Shipping: () => 'Confirm where we should send your hardcover.',
@@ -60,7 +60,7 @@ export const progressSteps: ReadonlyArray<string> = [
 ]
 
 export const stateToMaybeProgressStep = (
-  state: typeof CheckoutState.Type,
+  state: CheckoutState,
 ): Option.Option<string> =>
   Match.value(state).pipe(
     Match.tags({
@@ -73,9 +73,7 @@ export const stateToMaybeProgressStep = (
     Match.option,
   )
 
-export const currentProgressIndex = (
-  state: typeof CheckoutState.Type,
-): number =>
+export const currentProgressIndex = (state: CheckoutState): number =>
   pipe(
     stateToMaybeProgressStep(state),
     Option.flatMap(progressStep =>
@@ -99,7 +97,7 @@ export const roundToCents = (amount: number): number =>
 
 export const orderPricing = (
   isShippingRequired: boolean,
-  maybeDiscount: Option.Option<typeof Discount.Type>,
+  maybeDiscount: Option.Option<Discount>,
 ) => {
   const subtotal = isShippingRequired ? PHYSICAL_PRICE : DIGITAL_PRICE
   const maybeAppliedDiscount = Option.map(maybeDiscount, discount => ({
@@ -123,8 +121,8 @@ export const orderPricing = (
 }
 
 export const stateToMaybeDiscount = (
-  state: typeof CheckoutState.Type,
-): Option.Option<typeof Discount.Type> =>
+  state: CheckoutState,
+): Option.Option<Discount> =>
   Match.value(state).pipe(
     Match.tags({
       Review: reviewState => promoToMaybeDiscount(reviewState.promo),

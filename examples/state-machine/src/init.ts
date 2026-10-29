@@ -10,4 +10,4 @@ export const init = ApplicationComposition.makeInit(() => ({
   },
 }))
 
-export const initialModel: typeof Model.Type = init().model
+export const initialModel: Model = init().model

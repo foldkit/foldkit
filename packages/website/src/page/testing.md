@@ -93,7 +93,7 @@ The scaffolded `tsconfig.json` includes `src/**/*`, which keeps `*.test.ts` file
 
 ### Test Completed UI Blocks Through Public Contracts
 
-Stateful UI components expose their Model, Message, init, operations, and OutMessage through a completed Block. Read the Model type as `typeof FooBlock.Model.Type`. Let the parent Binding and Composition initialize the child so its startup Commands are retained.
+Stateful UI components expose their Model, Message, init, operations, and OutMessage through a completed Block. Derive a named alias such as `type FooModel = typeof FooBlock.Model.Type` once, then use `FooModel` in annotations. Let the parent Binding and Composition initialize the child so its startup Commands are retained.
 
 Command and Mount Definitions intended for Story and Scene live under the component's `test` namespace. Resolve the original public Definition with a result Message from the completed Block.
 

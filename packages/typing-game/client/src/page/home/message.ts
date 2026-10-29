@@ -18,8 +18,10 @@ export const Message = defineMessageUnion({
   FailedJoinRoomFromHome: { error: Schema.String },
   PressedKey: { key: Schema.String },
 })
+export type Message = typeof Message.Type
 
 export const OutMessage = defineMessageUnion({
   CreatedRoom: { roomId: Schema.String, player: Shared.Player },
   JoinedRoom: { roomId: Schema.String, player: Shared.Player },
 })
+export type OutMessage = typeof OutMessage.Type

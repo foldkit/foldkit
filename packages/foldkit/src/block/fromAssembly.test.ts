@@ -19,10 +19,13 @@ type Produced<Producer extends () => AssemblyDraft<object>> =
   ReturnType<Producer>[typeof AssemblyDraftTypeId]
 
 const Model = Schema.Struct({ count: Schema.Number })
+type Model = typeof Model.Type
 const Message = defineMessageUnion({ CompletedObserve: {} })
+type Message = typeof Message.Type
 const OutMessage = defineMessageUnion({
   ReportedCount: { count: Schema.Number },
 })
+type OutMessage = typeof OutMessage.Type
 const Definition = makeDefinition('FromAssemblyRuntime', { Model, Message })
 const ReportingDefinition = makeDefinition('FromAssemblyReportingRuntime', {
   Model,

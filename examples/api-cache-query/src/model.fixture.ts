@@ -10,7 +10,7 @@ export const FIRST_POST_REQUEST_KEY = JSON.stringify({
   postId: 'first-post',
 })
 
-export const fixturePosts: ReadonlyArray<typeof Post.Type> = [
+export const fixturePosts: ReadonlyArray<Post> = [
   {
     id: 'first-post',
     title: 'First Post',
@@ -23,14 +23,14 @@ export const fixturePosts: ReadonlyArray<typeof Post.Type> = [
   },
 ]
 
-export const firstPostDetail: typeof PostDetail.Type = {
+export const firstPostDetail: PostDetail = {
   id: 'first-post',
   title: 'First Post',
   author: 'Grace Hopper',
   body: 'The whole body of the first fixture post.',
 }
 
-export const fixtureStats: typeof Stats.Type = {
+export const fixtureStats: Stats = {
   activeUsers: 120,
   requestsPerSecond: 1234,
   cacheHitRatePercent: 97,

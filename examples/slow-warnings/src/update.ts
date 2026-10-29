@@ -8,10 +8,8 @@ import { PATCH_ROW_COUNT, UPDATE_WORK_MS, burnCpu } from './workload'
 const MAX_WARNING_COUNT = 8
 
 const prependWarning =
-  (warning: typeof SlowWarning.Type) =>
-  (
-    warnings: ReadonlyArray<typeof SlowWarning.Type>,
-  ): ReadonlyArray<typeof SlowWarning.Type> =>
+  (warning: SlowWarning) =>
+  (warnings: ReadonlyArray<SlowWarning>): ReadonlyArray<SlowWarning> =>
     pipe(warnings, Array.prepend(warning), Array.take(MAX_WARNING_COUNT))
 
 export const update = ApplicationComposition.makeUpdate({
@@ -35,7 +33,7 @@ export const update = ApplicationComposition.makeUpdate({
     warnings: () => [],
   })),
   RecordedSlowWarning: makeFieldsStep((model, { report }) => {
-    const warning: typeof SlowWarning.Type = {
+    const warning: SlowWarning = {
       id: model.nextWarningId,
       ...report,
     }

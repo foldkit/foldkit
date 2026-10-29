@@ -8,9 +8,11 @@ import {
 import type { DemoTab } from '../domain/domain'
 import { DemoTabsBlock } from './components'
 
+type DemoTabsBlockModel = typeof DemoTabsBlock.Model.Type
+
 // DEMO CONTENT
 
-const demoTabs: ReadonlyArray<typeof DemoTab.Type> = ['Foldkit', 'React', 'Elm']
+const demoTabs: ReadonlyArray<DemoTab> = ['Foldkit', 'React', 'Elm']
 
 const buttonClassName =
   'px-4 py-2 text-base font-normal cursor-pointer transition rounded-t-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 mb-[-1px] data-[selected]:relative data-[selected]:z-10 data-[selected]:bg-cream data-[selected]:dark:bg-gray-900 data-[selected]:text-gray-900 data-[selected]:dark:text-white data-[selected]:border-b-0'
@@ -25,8 +27,8 @@ const verticalPanelClassName =
   'flex-1 p-6 bg-cream dark:bg-gray-900 rounded-r-lg rounded-bl-lg border border-gray-200 dark:border-gray-700'
 
 export const horizontalDemo = (
-  tabsModel: typeof DemoTabsBlock.Model.Type,
-  selectedTab: typeof DemoTab.Type,
+  tabsModel: DemoTabsBlockModel,
+  selectedTab: DemoTab,
   h: UiViewBuilder,
 ) => {
   const foldkitPanel = h.div(
@@ -95,7 +97,7 @@ export const horizontalDemo = (
     ],
   )
 
-  const panelFor = (tab: typeof DemoTab.Type) =>
+  const panelFor = (tab: DemoTab) =>
     Match.value(tab).pipe(
       Match.when('Foldkit', () => foldkitPanel),
       Match.when('React', () => reactPanel),
@@ -142,8 +144,8 @@ export const horizontalDemo = (
 }
 
 export const verticalDemo = (
-  tabsModel: typeof DemoTabsBlock.Model.Type,
-  selectedTab: typeof DemoTab.Type,
+  tabsModel: DemoTabsBlockModel,
+  selectedTab: DemoTab,
   h: UiViewBuilder,
 ) => {
   const foldkitPanel = h.div(
@@ -212,7 +214,7 @@ export const verticalDemo = (
     ],
   )
 
-  const panelFor = (tab: typeof DemoTab.Type) =>
+  const panelFor = (tab: DemoTab) =>
     Match.value(tab).pipe(
       Match.when('Foldkit', () => foldkitPanel),
       Match.when('React', () => reactPanel),

@@ -1,0 +1,77 @@
+# PASS
+
+**PASS for exact source candidate `564adb49e908b3baf4c2e1855c8c6d67631b0c95`.** I found no release-blocking security defect in the reviewed delta from `f3be22cfeefed437164ad614d08b16d9000e0703`.
+
+This is a scoped security disposition, not a clean dependency audit, publication approval, or registry/deployment verification.
+
+## Candidate and evidence reconciliation
+
+- The checkout is clean, detached at the requested SHA, with `targetIsPublic=false`.
+- [candidate-source.json](/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/candidate-source.json) pins 7,181 tracked files, the requested commit, and source digest `e8d49b0478ad9db7fd18341db11aa3cd979f2e97d47692d9fa50b9ad1fc49440`.
+- All four fresh external evidence files were accessible and read.
+- The [raw audit](/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/security/audit.json) reconciles to **30 entries / 28 distinct advisories: 1 Critical, 11 High, 14 Moderate, 4 Low**. The two duplicate entries are the same two Vitest advisories appearing under both installed majors.
+- The six additional entries are three High and three Moderate advisories against already present locked versions. The dependency diff did not introduce six new vulnerable packages.
+
+## Fresh advisory findings
+
+| Advisory | Reachable precondition and consequence | Disposition and smallest repair |
+|---|---|---|
+| `qs` GHSA-6pq8-jhm2-2vcw, Moderate | Requires `qs.stringify` with comma arrays and hostile coercion. It is inherited through the MCP SDK’s unused Express tree. The executable uses `StdioServerTransport` at [server.ts:8](/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/detached-input/packages/devtools-mcp/src/server.ts:8) and [server.ts:89](/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/detached-input/packages/devtools-mcp/src/server.ts:89). | No current path. Resolve `qs >=6.16.1` or update the SDK before adopting its HTTP stack. |
+| Undici GHSA-4w7w-5xrc-9h26, High | Requires a shared cache plus redirect/cache interceptors. It can poison cached responses across callers. | No such interceptor composition found. Resolve npm Undici `>=8.12.2`. |
+| Undici GHSA-2m5v-pch6-74hx, High | Requires a custom function-valued `checkServerIdentity` supplied through Agent TLS options. Deep cloning drops the extra certificate check. | No custom TLS callback found. Downstream certificate-pinning configurations remain exposed. Resolve `>=8.12.2`, or use the unaffected connection configuration until patched. |
+| Undici GHSA-qrxm-fqhp-jwvm, High | An ordinary Agent request to a malicious or compromised TLS 1.2 endpoint can trigger certificate-changing renegotiation and an uncaught assertion. The installed assertions remain at [client-h1.js:971](/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/detached-input/node_modules/.pnpm/undici@8.11.2/node_modules/undici/lib/dispatcher/client-h1.js:971) and [client-h2.js:597](/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/detached-input/node_modules/.pnpm/undici@8.11.2/node_modules/undici/lib/dispatcher/client-h2.js:597). | Material downstream risk. Resolve `>=8.12.2`; TLS 1.3-only policy is a temporary mitigation where feasible. |
+| Undici GHSA-9fm3-97px-rjf6, Moderate | Requires Undici WebSocket connected to a hostile peer that drives unbounded automatic PONG buffering. | Foldkit’s relay uses `ws`, not Undici WebSocket. Resolve `>=8.12.2` before enabling an affected downstream/jsdom path. |
+| Undici GHSA-55wc-3pg8-jfw6, Moderate | Requires Undici’s decompression interceptor and a downstream handler that throws from an asynchronous decompressor callback, potentially terminating the process. | No affected interceptor chain found. Resolve `>=8.12.2`. Reassess copied jsdom decompression code separately if external resource loading is enabled. |
+
+The TLS renegotiation finding is specifically **not fetch-only**. Effect’s Node client invokes `dispatcher.request` at [NodeHttpClient.ts:159](/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/detached-input/node_modules/.pnpm/@effect+platform-node@4.0.0_effect@4.0.0_redis@6.2.1_@opentelemetry+api@1.9.0_/node_modules/@effect/platform-node/src/NodeHttpClient.ts:159). Its `Effect.tryPromise` boundary does not contain an assertion thrown later by a socket event callback.
+
+No Foldkit-owned executable currently selects that npm client for outbound traffic:
+
+- The Node adapter imports the inbound `NodeHttpServer` and invokes a local Fetch handler at [node.ts:359](/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/detached-input/packages/node/src/node.ts:359).
+- The CLI uses filesystem/process services and argument-array package-manager spawning.
+- Vite SSR imports the configured application entry locally.
+- DevTools MCP uses stdio and the `ws` package.
+- Foldkit’s HTTP Layer uses `FetchHttpClient`.
+
+A downstream application adding `NodeHttpClient.makeUndici` does reach the High-risk path. That residual risk should be disclosed even though it does not block this exact owned configuration.
+
+The npm copy and Node’s bundled copy are separate. Evidence identifies the review Node 26.13.0 binary as bundling patched Undici 8.12.2, but the supported Node range includes older binaries whose bundled versions were not established here. Updating `pnpm-lock.yaml` would not patch those binaries or an older downstream lockfile.
+
+## Monaco-vendored DOMPurify
+
+Vendored-code advisories are separate from the 30 lockfile audit entries.
+
+- Monaco’s wrapper imports its adjacent sanitizer at [domSanitize.js:3](/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/detached-input/node_modules/.pnpm/monaco-editor@0.56.0/node_modules/monaco-editor/esm/vs/base/browser/domSanitize.js:3).
+- The executed vendored module identifies itself as DOMPurify 3.4.8 at [dompurify.js:406](/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/detached-input/node_modules/.pnpm/monaco-editor@0.56.0/node_modules/monaco-editor/esm/vs/base/browser/dompurify/dompurify.js:406).
+- The workspace override at [pnpm-workspace.yaml:61](/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/detached-input/pnpm-workspace.yaml:61) affects Monaco’s external dependency only. It does not patch this vendored module.
+- [monaco-vendored-advisories.json](/private/tmp/foldkit-preview-final-prep-20261028/monaco-vendored-advisories.json) contains nine records: eight active, comprising 1 Critical, 1 High, 2 Moderate and 4 Low, plus withdrawn duplicate GHSA-jxrp-r7gx-q4j8.
+
+The current wrapper does not expose the required vulnerable configurations: `SAFE_FOR_TEMPLATES`, `IN_PLACE`, XHTML parsing, `CUSTOM_ELEMENT_HANDLING`, persistent `setConfig`, `clearConfig`, or a supplied Trusted Types policy. It uses per-call configuration and removes temporary hooks at [domSanitize.js:233](/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/detached-input/node_modules/.pnpm/monaco-editor@0.56.0/node_modules/monaco-editor/esm/vs/base/browser/domSanitize.js:233). No executable exploit path was established.
+
+Smallest durable repair: move the actually imported vendored sanitizer to DOMPurify `>=3.4.17`, through a Monaco update or explicit import patch, then rebuild and verify the emitted editor asset. The override alone is insufficient.
+
+## Source-delta assessment
+
+No new defect was found in the requested high-risk areas:
+
+- Block assembly uses opaque WeakMap-backed drafts and completion identity checks at [assemblyState.ts:28](/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/detached-input/packages/foldkit/src/block/assemblyState.ts:28). Binding parent contracts, operation Messages, handler identities, descendant ownership and Layer construction are validated before execution.
+- Retained/keyed occurrences receive monotonically new generations, wait for prior same-key teardown, and reject duplicate or invalid keys. External generated envelopes are Schema-decoded and rechecked for active placement, key and generation before queued execution.
+- Removing an occurrence suppresses its stale Command results. Runtime disposal interrupts the scope containing Commands, Subscriptions and resources.
+- Subscription entry predicates skip dependency projection while inactive at [subscription.ts:465](/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/detached-input/packages/foldkit/src/subscription/subscription.ts:465). Scene’s inactive `emit` behavior is intentionally a queued-event simulation and is documented at [testingScene.md:290](/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/detached-input/packages/website/src/page/testingScene.md:290).
+- Scene Mount reconciliation follows actual vnode patch identity and ends removed/replaced slots at [scene.ts:553](/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/detached-input/packages/foldkit/src/test/scene.ts:553).
+- Vite prerender paths are same-origin, decoded segment by segment and confined to the client output. Generated module specifiers and assets are JSON-encoded.
+- SSR development requests are held during graph replacement, request-local CORS mutations are restored, and update listeners/gates close at [ssr.ts:1119](/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/detached-input/packages/vite-plugin-foldkit/src/ssr.ts:1119).
+- The Node adapter validates configured origin and manifest, confines static files through real paths, and destroys response streams on disconnect.
+- The scaffold generator rejects path separators and shell-significant project-name characters, uses literal package-manager choices, and spawns with argument arrays. Its dependency-manifest environment override is a privileged local/rehearsal input.
+
+## Inherited limitations
+
+- DevTools MCP is privileged development ingress. Automatic discovery uses a loopback listener, private registry and token/proof handshake. A configured fixed port binds every interface without authentication at [index.ts:932](/private/tmp/foldkit-preview-final-prep-20261028/rehearsal/detached-input/packages/vite-plugin-foldkit/src/index.ts:932). It must not be used on a shared or untrusted network. Inspection and replay remain available without the separate external-dispatch opt-in.
+- Envelope and occurrence guarantees are Runtime-local. They suppress stale delivery but cannot undo network, storage or other external side effects already performed by an in-flight Command before its result is rejected.
+- Application-owned SSR entries execute with build/server privileges and remain trusted code.
+- Package-manager installation executes dependency lifecycle behavior by design; the bundled release manifest and templates are trusted CLI assets.
+- The external Daybreak review was not run because source export lacked authorization. This local static review does not replace it.
+- The consumer receipt proves only local packed-consumer gates. It is **not** public registry acceptance or deployment evidence.
+- Per instruction, I ran no application gates, project code, tests, builds, installs, servers or publication operations.
+
+**No source or repository state was changed.**

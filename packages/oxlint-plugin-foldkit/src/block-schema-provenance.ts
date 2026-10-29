@@ -16,12 +16,14 @@ import {
   sourceFileForModule,
   staticMemberName,
   staticMemberPath,
+  staticPropertyName,
 } from './guards.ts'
 
 type Stage =
   | 'Block'
   | 'Namespace'
   | 'Definition'
+  | 'CompositionFactory'
   | 'Composition'
   | 'Assembly'
   | 'Completed'
@@ -101,6 +103,30 @@ const nextStage = (
     return 'Assembly'
   }
   return undefined
+}
+
+const invokedStage = (stage: Stage | undefined): Stage | undefined => {
+  if (stage === 'Producer') {
+    return 'Assembly'
+  }
+
+  if (stage === 'CompositionFactory') {
+    return 'Composition'
+  }
+
+  return undefined
+}
+
+const widenedStage = (stage: Stage | undefined): Stage | undefined => {
+  if (stage === 'CheckedCompleted') {
+    return 'Completed'
+  }
+
+  if (stage === 'CompositionFactory') {
+    return undefined
+  }
+
+  return stage
 }
 
 const boundaryHelpers = new Set([
@@ -593,6 +619,46 @@ const readModule = (filename: string): Module => {
         continue
       }
       for (const declarator of declaration.declarations) {
+        if (declarator.id.type === 'ObjectPattern') {
+          const owner = sourceExpression(declarator.init)
+
+          if (
+            owner?.kind !== 'Path' ||
+            (declarator.id.typeAnnotation !== undefined &&
+              declarator.id.typeAnnotation !== null)
+          ) {
+            continue
+          }
+
+          for (const property of declarator.id.properties) {
+            if (
+              !isObjectProperty(property) ||
+              !isIdentifierReference(property.value)
+            ) {
+              continue
+            }
+
+            const member = Option.getOrUndefined(staticPropertyName(property))
+
+            if (member === undefined) {
+              continue
+            }
+
+            values.set(property.value.name, {
+              kind: 'Path',
+              names: [...owner.names, member],
+            })
+
+            if (statement.type === 'ExportNamedDeclaration') {
+              exports.set(property.value.name, {
+                names: [property.value.name],
+              })
+            }
+          }
+
+          continue
+        }
+
         if (declarator.id.type !== 'Identifier') {
           continue
         }
@@ -747,8 +813,7 @@ const makeBlockStageResolver = (
       return undefined
     }
     if (expression.kind === 'Widened') {
-      const stage = sourceStage(file, expression.value, visited)
-      return stage === 'CheckedCompleted' ? 'Completed' : stage
+      return widenedStage(sourceStage(file, expression.value, visited))
     }
     if (expression.kind === 'Producer') {
       return sourceStage(file, expression.body, visited) === 'Assembly'
@@ -756,9 +821,7 @@ const makeBlockStageResolver = (
         : undefined
     }
     if (expression.kind === 'Invoke') {
-      return sourceStage(file, expression.producer, visited) === 'Producer'
-        ? 'Assembly'
-        : undefined
+      return invokedStage(sourceStage(file, expression.producer, visited))
     }
     if (expression.kind === 'Complete') {
       return sourceStage(file, expression.receiver, visited) === 'Block'
@@ -823,6 +886,16 @@ const makeBlockStageResolver = (
       return undefined
     }
     if (Array.isArrayNonEmpty(members)) {
+      if (
+        members.length === 1 &&
+        Option.contains(Array.head(members), 'makeComposition')
+      ) {
+        return sourceStage(file, value, new Set([...visited, key])) ===
+          'Definition'
+          ? 'CompositionFactory'
+          : undefined
+      }
+
       return value.kind === 'Path'
         ? sourceStage(
             file,
@@ -995,8 +1068,7 @@ const makeBlockStageResolver = (
   ): Stage | undefined => {
     const changed = typeChangingExpression(input)
     if (changed !== undefined) {
-      const stage = localStage(changed, visited, members)
-      return stage === 'CheckedCompleted' ? 'Completed' : stage
+      return widenedStage(localStage(changed, visited, members))
     }
     if (
       isSyntaxNode(input) &&
@@ -1011,6 +1083,15 @@ const makeBlockStageResolver = (
       return localStage(input.expression, visited, members)
     }
     const node = unwrapSchemaExpression(input)
+    if (
+      members.length === 1 &&
+      Option.contains(Array.head(members), 'makeComposition')
+    ) {
+      return localStage(node, visited) === 'Definition'
+        ? 'CompositionFactory'
+        : undefined
+    }
+
     if (Array.isReadonlyArrayEmpty(members)) {
       const body = unwrapSchemaExpression(producerBody(node))
       if (
@@ -1021,9 +1102,7 @@ const makeBlockStageResolver = (
         return localStage(body, visited) === 'Assembly' ? 'Producer' : undefined
       }
       if (isCallExpression(node) && isIdentifierReference(node.callee)) {
-        return localStage(node.callee, visited) === 'Producer'
-          ? 'Assembly'
-          : undefined
+        return invokedStage(localStage(node.callee, visited))
       }
     }
     if (
@@ -1070,6 +1149,38 @@ const makeBlockStageResolver = (
         definition.parent.kind === 'const' &&
         isVariableDeclarator(definition.node)
       ) {
+        if (definition.node.id.type === 'ObjectPattern') {
+          if (
+            (definition.node.id.typeAnnotation !== undefined &&
+              definition.node.id.typeAnnotation !== null) ||
+            typeChangingExpression(definition.node.init) !== undefined
+          ) {
+            return undefined
+          }
+
+          const property = Array.findFirst(
+            definition.node.id.properties,
+            property =>
+              isObjectProperty(property) &&
+              isIdentifierReference(property.value) &&
+              property.value.name === node.name,
+          )
+
+          const member = Option.flatMap(property, property =>
+            isObjectProperty(property)
+              ? staticPropertyName(property)
+              : Option.none(),
+          )
+
+          return Option.isSome(member)
+            ? localStage(
+                definition.node.init,
+                new Set([...visited, variable.value]),
+                [member.value, ...members],
+              )
+            : undefined
+        }
+
         const stage = localStage(
           definition.node.init,
           new Set([...visited, variable.value]),
@@ -1111,10 +1222,9 @@ const makeBlockStageResolver = (
           }),
         )
         const actualProducer = localStage(helper?.producer) === 'Producer'
-        const preservedStage =
-          stage === 'CheckedCompleted' && hasAnnotation(definition.node.id)
-            ? 'Completed'
-            : stage
+        const preservedStage = hasAnnotation(definition.node.id)
+          ? widenedStage(stage)
+          : stage
         return stage === 'Completed' &&
           plainProducer &&
           actualProducer &&

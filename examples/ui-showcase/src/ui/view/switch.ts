@@ -7,6 +7,8 @@ import { UiComposition } from '../composition'
 import type { UiViewBuilder } from '../composition'
 import { Message } from '../message'
 
+type UiMessage = typeof UiComposition.Message.Type
+
 const SWITCH_DEMO_ID = 'switch-demo'
 
 const wrapperClassName = 'flex items-center gap-3'
@@ -31,9 +33,7 @@ const knob = (isChecked: boolean, h: UiViewBuilder) => {
 }
 
 export const view = UiComposition.makeView((model, h) => {
-  const switchView = (
-    attributes: Switch.SwitchAttributes<typeof UiComposition.Message.Type>,
-  ): Html =>
+  const switchView = (attributes: Switch.SwitchAttributes<UiMessage>): Html =>
     h.div(
       [h.Class(wrapperClassName)],
       [

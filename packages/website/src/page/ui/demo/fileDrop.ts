@@ -42,7 +42,7 @@ const formatFileSize = (bytes: number): string => {
 }
 
 export const basicDemo = (
-  model: typeof Model.Type,
+  model: Model,
   h: UiViewBuilder,
 ): ReadonlyArray<Html> => {
   return [

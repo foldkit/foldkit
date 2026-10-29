@@ -23,7 +23,6 @@ export const Model = Schema.Struct({
   transitionState: TransitionState,
   transitionGeneration: Schema.Number,
 })
-
 export type Model = typeof Model.Type
 
 // MESSAGE

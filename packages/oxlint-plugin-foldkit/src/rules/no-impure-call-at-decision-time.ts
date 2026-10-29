@@ -21,8 +21,8 @@ import {
   isMemberExpression,
   isObjectExpression,
   isObjectProperty,
-  isVariableDeclarator,
   isUnshadowedReference,
+  isVariableDeclarator,
   resolveImportedPath,
   resolvedVariable,
   staticMemberName,
@@ -80,8 +80,7 @@ const impureCallByPath = new Map<string, ImpureOperation>([
     'crypto.randomUUID',
     {
       display: 'crypto.randomUUID()',
-      guidance:
-        "Use Crypto.Crypto's randomUUIDv4 Effect with a platform Crypto layer.",
+      guidance: 'Use Crypto.Crypto with a platform Crypto layer.',
     },
   ],
   [

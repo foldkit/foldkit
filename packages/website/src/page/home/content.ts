@@ -72,7 +72,7 @@ export const contentView = (
   emailSignupView: Html,
   playgroundMenuView: Html,
   maybeGitHubStarCount: Option.Option<number>,
-  resolvedTheme: typeof ResolvedTheme.Type,
+  resolvedTheme: ResolvedTheme,
   isBrowserEnvironmentLoaded: boolean,
   h: HomeViewBuilder,
 ): Html => {
@@ -572,7 +572,7 @@ const includedSection = (): Html =>
 
 // EXAMPLES
 
-const featuredExampleSlugs: ReadonlyArray<typeof ExampleSlug.Type> = [
+const featuredExampleSlugs: ReadonlyArray<ExampleSlug> = [
   'generative-art',
   'state-machine',
   'pixel-art',
@@ -777,7 +777,7 @@ const testingSection = (renderSnippet: CodeBlock.RenderSnippet): Html =>
 
 // DEVTOOLS
 
-const devToolsImage = (resolvedTheme: typeof ResolvedTheme.Type): Html => {
+const devToolsImage = (resolvedTheme: ResolvedTheme): Html => {
   const theme = resolvedTheme === 'Dark' ? 'dark' : 'light'
 
   return ih.img([
@@ -796,7 +796,7 @@ const devToolsImage = (resolvedTheme: typeof ResolvedTheme.Type): Html => {
 }
 
 const devToolsSection = (
-  resolvedTheme: typeof ResolvedTheme.Type,
+  resolvedTheme: ResolvedTheme,
   isBrowserEnvironmentLoaded: boolean,
 ): Html =>
   ih.section(

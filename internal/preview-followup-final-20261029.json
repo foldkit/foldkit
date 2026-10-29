@@ -1,0 +1,155 @@
+{
+  "status": "LocalFollowupGatesPassedPublicationHeld",
+  "sourceCommit": "d35d3ceb7a5e25dce91e6fc72c9fbcd4b75cfd06",
+  "deltaBase": "501dff944fec205ab6dfe958cec8dc6fd76fd433",
+  "daybreak": {
+    "securityVerdict": "PASS",
+    "model": "gpt-daybreak-blue-latest",
+    "provider": "openai",
+    "scope": "Step inference and Scene.unhover delta since 501dff944fec205ab6dfe958cec8dc6fd76fd433",
+    "sourceManifestDigest": "5f7ace0cd1e5efa2fa91259e2ceb1bddd67adc014db8719fef82ae4466c9e06d",
+    "trackedFilesChecked": 7191,
+    "startedAt": "2026-10-29T01:14:31.348936+00:00",
+    "finishedAt": "2026-10-29T01:19:42.773373+00:00",
+    "exitCode": 0,
+    "frozenSourcePreserved": true,
+    "exactSourceTransferApproved": true,
+    "freshDependencyAudit": false
+  },
+  "packageRehearsal": {
+    "sourceDigest": "56a506217b60d9d279d9bbabe818e6157d76d8544a36e7fb8192187bded86546",
+    "trackedSourceManifestDigest": "42c4f3cd04861d3b0e67ad5af36ef78df5c792fd9c98612849b8276b826b5db0",
+    "artifactCount": 9,
+    "artifactManifestSha256": "714623e0dc8e1adf0dfcadcff3662a9eddfdab496073d74027b5cae65bc6b62f",
+    "artifacts": [
+      {
+        "name": "foldkit",
+        "version": "0.169.0-local.56a506217b60",
+        "sha256": "6378423860c6a600d5362e5e62434193e39c8efaa2237aaa7de7da852bf1fca3",
+        "integrity": "sha512-v4vRmh2viuSRFUiF+TDwTNzQ8FMyW6+a8JlQqmM1a0V9keaYwnkzSUN7vs+Eq56poLnAHGc3zdclqNWGeKteXQ=="
+      },
+      {
+        "name": "@foldkit/ui",
+        "version": "0.169.0-local.56a506217b60",
+        "sha256": "64dff8a0a4fb33c3c87482e2aea0f5d3dc376f05e921afe2df4376d854efa1d4",
+        "integrity": "sha512-rjA4g+hFyU7e5T8uX43Yuft2kyxY4o3eFXGZq4YybEmk0grM/FmaC/UMA9BQlDclQACnduDmFJA5o8pjImpoNg=="
+      },
+      {
+        "name": "@foldkit/devtools",
+        "version": "0.169.0-local.56a506217b60",
+        "sha256": "1ab61fe1bc653acf563f684fd2518a446432c4dc08085fcfaa172f44e7bae599",
+        "integrity": "sha512-fuX+py463+eM2gsFuCVvc3extxNf07e5HPCp3/0PVJPS8SXgOVgC3nizN3f6FZ77OGq43IP7fKbhvtEKpja77Q=="
+      },
+      {
+        "name": "@foldkit/devtools-mcp",
+        "version": "0.25.0-local.56a506217b60",
+        "sha256": "96d7d2951a28927b0eb65a0bbee9ce4221775250618ae5db77be9ab1e95b2dff",
+        "integrity": "sha512-PT5l3LK4C1ASHrzwckkGrpn/tOewH9ZY2Pwa6bnR58MyB+03ZAT/tK9aeThQzSJcaCQI1NzrwncPpOnbgSsNZA=="
+      },
+      {
+        "name": "@foldkit/oxlint-plugin",
+        "version": "0.15.3-local.56a506217b60",
+        "sha256": "5853e61dc5aad7b59dc3175c76e37ee4f4d35edafd4ccca5258f47de16830348",
+        "integrity": "sha512-a/o2qHOD/CGCBUAf+Gd8SkN6xYS3IHQ9tHaDB+QErVm9kqRt9wlQV8a+aqlPECf9pWwIA72svir3kuT80x/hog=="
+      },
+      {
+        "name": "@foldkit/vite-plugin",
+        "version": "0.28.0-local.56a506217b60",
+        "sha256": "d6909225064e18aa23e5d778d2c265460640f0b6080b6cf356cd9bfe9ba7f393",
+        "integrity": "sha512-uWJ5FYlRbyekAtD3QbM+8T3QRGMpHqqyFaUskJXbh9blwECgxD4Ur8oFZAZzz7A7zIX6iGN1YRHyOk2ZWa0x2w=="
+      },
+      {
+        "name": "@foldkit/node",
+        "version": "0.1.0-local.56a506217b60",
+        "sha256": "67d97f7d3dd59530bf9e14fe63d403a113aa6e6e4640ccc690f8c8eee36fd7b7",
+        "integrity": "sha512-jDeOrvPA2CxLvX6cJ5yc6kjXeWF9tJlO5iGBr4WaRQEO4K2jhw9iEa0mS7/pmeaa3/opNM3CoM+unVXKRqEM+A=="
+      },
+      {
+        "name": "@foldkit/markdown",
+        "version": "0.14.4-local.56a506217b60",
+        "sha256": "8efaa84565ab7a82754de7aaa75b4ec49795c3e0614f22f0faa6c2c174e3c4ac",
+        "integrity": "sha512-BPj9Z+PZ2GyTtD9Up8R71I0/h/fxtDEfrxh3K6LXUdoQhKvqz2kYzGZynyxtxq955dLOqgTzHHU1t2Q1SjirnA=="
+      },
+      {
+        "name": "create-foldkit-app",
+        "version": "0.40.0-local.56a506217b60",
+        "sha256": "407f8abe53890b2b5e8fe9fabad2d33c929d5b4a7b5d414c4fe6511e476ef9ce",
+        "integrity": "sha512-cpPlxK3s+NBxKJNRbK6U9AFMI/L2vShCwF2mZf8XpI4q3FU0hOeMxMSkc7EqHXO6o0eAbu7sf1HE2lUzze5YmA=="
+      }
+    ],
+    "allArtifactDigestsIndependentlyMatched": true,
+    "consumerTypechecks": [
+      {
+        "consumer": "examples/workspace",
+        "command": "./node_modules/.bin/tsc --noEmit -p tsconfig.json",
+        "result": "passed",
+        "log": "typecheck-workspace.log",
+        "resolution": "built frozen local cohort package links"
+      },
+      {
+        "consumer": "examples/route-transitions",
+        "command": "./node_modules/.bin/tsc --noEmit -p tsconfig.json",
+        "result": "passed",
+        "log": "typecheck-route-transitions.log",
+        "resolution": "built frozen local Foldkit package link"
+      }
+    ],
+    "limitations": [
+      "These representative typechecks resolve the exact frozen cohort through its rewired workspace package links; they do not install the tarballs into an external consumer.",
+      "No browser/runtime app tests or security audit were run, as requested.",
+      "Local package labels and create-foldkit-app file-tarball manifest are rehearsal fixtures only."
+    ]
+  },
+  "packedCorePublicTypes": {
+    "acceptedRejectedAndRelocatedTS7": true,
+    "testedRawTarballSha256": "542921aabb27b01ad10e651dde29556b091401f6ababd0188dac6c4c9ef9c896",
+    "publicJavaScriptAndDeclarationFilesIdenticalToFinalCohort": 586
+  },
+  "rawCliGuidanceAndSourceManifestVerified": true,
+  "independentCommittedDiffReview": "PASS",
+  "previousFullInstalledAppAndBrowserRehearsalSource": "564adb49e908b3baf4c2e1855c8c6d67631b0c95",
+  "dependencyManifestsAndLockfileUnchangedSincePreviousReview": true,
+  "deferredUntilAfterMergeToMain": [1662, 1663],
+  "publishedReadyUnchanged": "f3be22cfeefed437164ad614d08b16d9000e0703",
+  "publicationAuthorized": false,
+  "registryAcceptance": false,
+  "deploymentAcceptance": false,
+  "evidence": [
+    {
+      "path": "/private/tmp/foldkit-step-inference-unhover-20261029/security/report.md",
+      "sha256": "1f76cd13140ba072b8ab3c55a2c8853e72d07134aedd45a9d4dadb0e36b51c06"
+    },
+    {
+      "path": "/private/tmp/foldkit-step-inference-unhover-20261029/security/status.json",
+      "sha256": "52eddae9d2756c2fdd2facd2bf128e4ffc14e6b590f9a0fa128295fb9bbb757b"
+    },
+    {
+      "path": "/private/tmp/foldkit-step-inference-unhover-20261029/security/authorization.json",
+      "sha256": "d7e217aa026a533be76505d5c54f07a7f7318e1ebc052fe2e5d7d633f91816d0"
+    },
+    {
+      "path": "/private/tmp/foldkit-step-inference-unhover-20261029/security/candidate-source.json",
+      "sha256": "f7f36005a912d7a1cf7fb7ffd571ed6537de0b2567ed75d8ef41c19a4463dfb9"
+    },
+    {
+      "path": "/private/tmp/foldkit-step-inference-unhover-20261029/committed-diff-review.md",
+      "sha256": "0504a6170c155b8020449feb5c495c08263ae39f94c53eeac17dd3433bbf581f"
+    },
+    {
+      "path": "/private/tmp/foldkit-step-inference-unhover-20261029/packed-followup.json",
+      "sha256": "73724007be365e3c59d85bef4a8d03c7590c44ca9933bb2ca57cc8eab02c82af"
+    },
+    {
+      "path": "/private/tmp/foldkit-final-cohort-20261029/rehearsal-summary.json",
+      "sha256": "a497c04c3f6817210cb0035a074808d92228c3a7fd0592b0a2a631a19b01ca8b"
+    },
+    {
+      "path": "/private/tmp/foldkit-final-cohort-20261029/artifacts.json",
+      "sha256": "714623e0dc8e1adf0dfcadcff3662a9eddfdab496073d74027b5cae65bc6b62f"
+    },
+    {
+      "path": "/private/tmp/foldkit-final-cohort-20261029/lead-artifact-check.json",
+      "sha256": "778f3fafcca3cfbe859ac633e8dea798e49dc96435435378a94941b6f19d1c0e"
+    }
+  ]
+}

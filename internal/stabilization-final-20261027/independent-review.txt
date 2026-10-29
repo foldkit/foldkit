@@ -1,0 +1,32 @@
+# Independent #1810 source review
+
+## Verdict
+
+PASS for exact commit `13d8c0d0f0b7fb4677a731630d4fae328067826c`, parent `c6831b807218a492ff75b5945e891716a410f47d`.
+
+No actionable correctness findings in the 14-file committed delta. Review used committed objects and excluded uncommitted work. No tests, broad gates, benchmarks or browser sessions were run by this reviewer.
+
+## Source and contract review
+
+- Runtime preservation now consumes the encoder's Exit. Schema encoding failure clears that Runtime's prior preserved entry and warns once per continuous failure episode. Successful encoding resets the warning state and resumes preservation. The callback does not write the live Model or replace its rich-value references.
+- The failure state lives inside each Runtime start. Runtime identity, ownership, disposal and the existing scheduler are unchanged. Scheduling and reload listeners retain their development-only `import.meta.hot` guards; the debounce and synchronous reload-flush callbacks use the same recovery function. Existing scheduler cancellation and scoped lifecycle wiring remain intact.
+- The paired wire change distinguishes omitted or undefined `model` from explicit `null`. The plugin decodes the complete payload before mutation, removes only the matching id for invalidation, and retains existing reload eligibility behavior for present Models. Malformed ids and reload flags do not clear another entry. Recovery can repopulate the same id afterward.
+- The plugin test exercises handlers actually registered by a configured Vite server and its serial event queue. The Runtime tests enter through a completed Block, Program and embed, then invoke the actual configured scheduler callbacks. They cover opaque Date and HashMap failure, unchanged live identity, warning deduplication and rearming, subsequent successful encoding, and declared Date/HashMap JSON restoration without repeating init. They do not claim a full browser/WebSocket/HMR reproduction.
+- The changeset includes both `foldkit` and `@foldkit/vite-plugin`; the required coordinated upgrade is explicit. The altered preservation message is a development transport contract, with no change to public Block authoring methods or their result channels.
+- The new mixed-branch examples differ at the relevant local-result contract. The connected-Step examples preserve the distinction between a Definition producer's domain Model and the Composition's registered contextual Model. Snippet discovery uses the existing glob registry, so the new files require no manual barrel registration. Guidance keeps incomplete-record diagnostic priority as a limitation, explains checking local Message completeness, and does not recommend casts, invented Model fields or weakened registration.
+
+## Evidence and remaining limits
+
+The supplied assessment is explicitly a focused, previously uncommitted verification snapshot. Its three production-source hashes and changeset hash match the exact commit. The two test-file hashes differ from that snapshot after the disclosed final test waiting/query refinements; this review reads the committed test files and does not relabel the earlier execution as an exact-commit run.
+
+Whole browser/HMR behavior was not reproduced by the supplied bounded smoke. The demonstrated integration boundaries are the actual Runtime callbacks and configured plugin queue. Source/emitted declaration evidence and baseline failure controls remain qualified accordingly. The complete final gates and refreshed package rehearsal for this source are separate work; the earlier ae2 acceptance evidence remains pinned to ae2.
+
+`git diff --check` passes for the exact delta. No repository file, commit, remote or publication was changed. Only this requested temporary report was written.
+
+## Test-only follow-up
+
+PASS for exact commit `93c49c77b6d25d9f0aa8213135bb629c1a3e1ff4`, parent `13d8c0d0f0b7fb4677a731630d4fae328067826c`.
+
+The delta changes six queries in the preservation Runtime fixture from the original mounting container to the live Document body and adds an empty changeset. The fixture disables DevTools, cleans the body after each test and disposes its Runtime. Querying the mounted view therefore fixes the detached-target failure without selecting another application or weakening any assertion. The waits, click-driven Model transitions, stale-entry invalidation, identity, recovery and warning-count assertions remain present. All production sources are identical to the previously reviewed commit.
+
+No actionable findings. `git diff --check` passes. The lead reports all three focused integration cases passing; this reviewer performed an exact-diff review without rerunning tests. No repository files or external state were changed.

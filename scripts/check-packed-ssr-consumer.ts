@@ -45,6 +45,9 @@ const FOLDKIT_DIR = 'packages/foldkit'
 const PLUGIN_DIR = 'packages/vite-plugin-foldkit'
 const UI_DIR = 'packages/ui'
 const MARKDOWN_DIR = 'packages/markdown'
+const NODE_DIR = 'packages/node'
+const DEVTOOLS_DIR = 'packages/devtools'
+const DEVTOOLS_MCP_DIR = 'packages/devtools-mcp'
 
 const TYPED_VALUE = 'typed-before-hydration'
 const PACKED_MARKDOWN_TEXT = 'Packed markdown paragraph'
@@ -53,6 +56,7 @@ const ORIGIN = `http://127.0.0.1:${PORT}`
 const DOM_COMMIT_TIMEOUT_MS = 10_000
 
 const isSkipBuild = process.argv.includes('--skip-build')
+const isKeepConsumer = process.argv.includes('--keep-consumer')
 const isCriticalBrowserMatrix = process.argv.includes(
   '--critical-browser-matrix',
 )
@@ -65,6 +69,21 @@ const log = (message: string): void => {
 
 const fail = (message: string): never => {
   throw new ConsumerCheckError(message)
+}
+
+const versionArgument = (name: string): string | undefined => {
+  const prefix = `--${name}=`
+  const argument = process.argv.find(value => value.startsWith(prefix))
+  if (argument === undefined) {
+    return undefined
+  }
+
+  const version = argument.slice(prefix.length)
+  if (!/^\d+\.\d+\.\d+$/.test(version)) {
+    return fail(`${prefix} requires an exact stable version`)
+  }
+
+  return version
 }
 
 const assertConsumer: (
@@ -175,6 +194,8 @@ const CONSUMER_FIXTURES: ReadonlyArray<ConsumerFixture> = [
   },
   { path: 'vite.config.ts' },
   { path: 'scripts/entrypoints.mjs' },
+  { path: 'scripts/effect-runtime.mjs' },
+  { path: 'scripts/dev-relay.mjs' },
   { path: 'src/entry.ts' },
   { path: 'src/entry.server.ts' },
   { path: 'src/document.ts' },
@@ -185,6 +206,7 @@ const CONSUMER_FIXTURES: ReadonlyArray<ConsumerFixture> = [
   },
   { path: 'src/vite-env.d.ts' },
   { path: 'src/packed-types.ts' },
+  { path: 'src/effect-types.ts' },
   { path: 'src/inferred-program.ts' },
   { path: 'src/inferred-machine-edge.ts' },
   { path: 'tsconfig.json' },
@@ -235,13 +257,20 @@ type Manifest = Readonly<{
   devDependencies?: Readonly<Record<string, string>>
 }>
 
+type PackedTarballs = Readonly<{
+  foldkit: string
+  plugin: string
+  ui: string
+  markdown: string
+  node: string
+  devtools: string
+  devtoolsMcp: string
+}>
+
 const writeConsumerProject = (
   projectDir: string,
-  foldkitTarball: string,
-  pluginTarball: string,
-  uiTarball: string,
-  markdownTarball: string,
-): void => {
+  tarballs: PackedTarballs,
+): string => {
   const foldkitManifest = readJson<Manifest>(
     join(REPO_ROOT, FOLDKIT_DIR, 'package.json'),
   )
@@ -249,8 +278,11 @@ const writeConsumerProject = (
     join(REPO_ROOT, 'examples/ssr/package.json'),
   )
   const platformBrowserVersion =
-    foldkitManifest.peerDependencies?.['@effect/platform-browser']
-  const effectVersion = foldkitManifest.peerDependencies?.['effect']
+    versionArgument('platform-browser-version') ??
+    foldkitManifest.devDependencies?.['@effect/platform-browser']
+  const effectVersion =
+    versionArgument('effect-version') ??
+    foldkitManifest.devDependencies?.['effect']
   const viteVersion = exampleManifest.devDependencies?.['vite']
   assertConsumer(
     platformBrowserVersion !== undefined &&
@@ -270,13 +302,16 @@ const writeConsumerProject = (
         scripts: { build: 'vite build' },
         dependencies: {
           '@effect/platform-browser': platformBrowserVersion,
-          '@foldkit/markdown': `file:${markdownTarball}`,
-          '@foldkit/ui': `file:${uiTarball}`,
+          '@foldkit/devtools': `file:${tarballs.devtools}`,
+          '@foldkit/devtools-mcp': `file:${tarballs.devtoolsMcp}`,
+          '@foldkit/markdown': `file:${tarballs.markdown}`,
+          '@foldkit/node': `file:${tarballs.node}`,
+          '@foldkit/ui': `file:${tarballs.ui}`,
           effect: effectVersion,
-          foldkit: `file:${foldkitTarball}`,
+          foldkit: `file:${tarballs.foldkit}`,
         },
         devDependencies: {
-          '@foldkit/vite-plugin': `file:${pluginTarball}`,
+          '@foldkit/vite-plugin': `file:${tarballs.plugin}`,
           typescript: TYPESCRIPT_VERSION,
           vite: viteVersion,
         },
@@ -286,6 +321,10 @@ const writeConsumerProject = (
     )}\n`,
   )
   writeConsumerFixtures(projectDir)
+  log(
+    `Consumer uses Effect ${effectVersion} and platform-browser ${platformBrowserVersion}`,
+  )
+  return effectVersion
 }
 
 // Every name the published documentation says ships from
@@ -1421,8 +1460,12 @@ const withTempDir = async (
   try {
     await useTempDir(tempDir)
   } finally {
-    log('Cleaning up the consumer project...')
-    rmSync(tempDir, { recursive: true, force: true })
+    if (isKeepConsumer) {
+      log(`Retaining the consumer project at ${tempDir}`)
+    } else {
+      log('Cleaning up the consumer project...')
+      rmSync(tempDir, { recursive: true, force: true })
+    }
   }
 }
 
@@ -1431,7 +1474,7 @@ const main = async (): Promise<void> => {
   try {
     if (!isSkipBuild) {
       runRequired(
-        'Building foldkit, @foldkit/ui, @foldkit/markdown, and @foldkit/vite-plugin...',
+        'Building the seven Effect peer packages...',
         'pnpm',
         [
           '--filter',
@@ -1442,45 +1485,47 @@ const main = async (): Promise<void> => {
           '@foldkit/markdown',
           '--filter',
           '@foldkit/vite-plugin',
+          '--filter',
+          '@foldkit/node',
+          '--filter',
+          '@foldkit/devtools',
+          '--filter',
+          '@foldkit/devtools-mcp',
           'build',
         ],
         { inherit: true },
       )
     }
 
-    const foldkitTarball = packPackage('Packing foldkit...', FOLDKIT_DIR)
-    tarballPaths.push(foldkitTarball)
-    const pluginTarball = packPackage(
-      'Packing @foldkit/vite-plugin...',
-      PLUGIN_DIR,
-    )
-    tarballPaths.push(pluginTarball)
-    const uiTarball = packPackage('Packing @foldkit/ui...', UI_DIR)
-    tarballPaths.push(uiTarball)
-    const markdownTarball = packPackage(
-      'Packing @foldkit/markdown...',
-      MARKDOWN_DIR,
-    )
-    tarballPaths.push(markdownTarball)
+    const pack = (name: string, directory: string): string => {
+      const tarball = packPackage(`Packing ${name}...`, directory)
+      tarballPaths.push(tarball)
+      return tarball
+    }
+    const tarballs = {
+      foldkit: pack('foldkit', FOLDKIT_DIR),
+      plugin: pack('@foldkit/vite-plugin', PLUGIN_DIR),
+      ui: pack('@foldkit/ui', UI_DIR),
+      markdown: pack('@foldkit/markdown', MARKDOWN_DIR),
+      node: pack('@foldkit/node', NODE_DIR),
+      devtools: pack('@foldkit/devtools', DEVTOOLS_DIR),
+      devtoolsMcp: pack('@foldkit/devtools-mcp', DEVTOOLS_MCP_DIR),
+    }
 
     await withTempDir('foldkit-packed-ssr-', async projectDir => {
-      writeConsumerProject(
-        projectDir,
-        foldkitTarball,
-        pluginTarball,
-        uiTarball,
-        markdownTarball,
-      )
+      const effectVersion = writeConsumerProject(projectDir, tarballs)
 
-      // NOTE: the plugin's `foldkit` peer floor names the first release that
-      // ships the server export, which the packed workspace copy only reaches
-      // once `changeset version` has run. `check-peer-floors.ts` asserts that
-      // floor against the packed manifest; relaxing it here keeps this gate
-      // about externalization rather than about release ordering.
       runRequired(
         'Installing the packed tarballs outside the monorepo...',
         'npm',
-        ['install', '--no-audit', '--no-fund', '--legacy-peer-deps'],
+        ['install', '--no-audit', '--no-fund', '--strict-peer-deps'],
+        { cwd: projectDir, inherit: true },
+      )
+
+      runRequired(
+        'Checking one Effect runtime and valid platform peers...',
+        'node',
+        ['scripts/effect-runtime.mjs', effectVersion],
         { cwd: projectDir, inherit: true },
       )
 
@@ -1489,6 +1534,13 @@ const main = async (): Promise<void> => {
         'node',
         ['scripts/entrypoints.mjs'],
         { cwd: projectDir },
+      )
+
+      runRequired(
+        'Starting the packed Vite plugin relay...',
+        'node',
+        ['scripts/dev-relay.mjs'],
+        { cwd: projectDir, inherit: true },
       )
 
       const servedDir = join(projectDir, 'build-served')

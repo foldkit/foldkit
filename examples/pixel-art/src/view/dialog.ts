@@ -10,6 +10,8 @@ import {
 } from '../composition'
 import { Message } from '../message'
 
+type DialogModel = typeof DialogBlock.Model.Type
+
 const dialogClassName =
   'bg-transparent p-0 open:flex items-center justify-center'
 const backdropClassName = 'fixed inset-0 bg-black/60'
@@ -17,7 +19,7 @@ const panelClassName =
   'bg-gray-900 border border-gray-700 rounded-lg p-6 max-w-sm relative shadow-xl'
 
 export const errorDialogView = (
-  errorDialog: typeof DialogBlock.Model.Type,
+  errorDialog: DialogModel,
   maybeExportError: Option.Option<string>,
   h: ApplicationViewBuilder,
 ): Html =>
@@ -80,7 +82,7 @@ export const errorDialogView = (
   )
 
 export const gridSizeConfirmDialogView = (
-  gridSizeConfirmDialog: typeof DialogBlock.Model.Type,
+  gridSizeConfirmDialog: DialogModel,
   maybePendingGridSize: Option.Option<number>,
   h: ApplicationViewBuilder,
 ): Html =>

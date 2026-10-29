@@ -12,6 +12,13 @@ import {
 } from '../step'
 import { employmentRange } from './format'
 
+type WorkHistoryEntryModel = typeof WorkHistoryEntryBlock.Model.Type
+type WorkHistoryModel = typeof WorkHistoryBlock.Model.Type
+type EducationEntryModel = typeof EducationEntryBlock.Model.Type
+type EducationModel = typeof EducationBlock.Model.Type
+type SkillsEntryModel = typeof SkillsEntryBlock.Model.Type
+type SkillsModel = typeof SkillsBlock.Model.Type
+
 const COVER_LETTER_PREVIEW_MAX_CHARS = 200
 
 const truncate = (value: string, max: number): string =>
@@ -54,7 +61,7 @@ const headerSection = (
   )
 }
 
-const workEntryView = (entry: typeof WorkHistoryEntryBlock.Model.Type): Html =>
+const workEntryView = (entry: WorkHistoryEntryModel): Html =>
   ih.keyed('div')(
     `work-${entry.id}`,
     [ih.Class('mb-3')],
@@ -91,9 +98,7 @@ const workEntryView = (entry: typeof WorkHistoryEntryBlock.Model.Type): Html =>
     ],
   )
 
-const experienceSection = (
-  workHistory: typeof WorkHistoryBlock.Model.Type,
-): Html =>
+const experienceSection = (workHistory: WorkHistoryModel): Html =>
   ih.section(
     [ih.Class('mb-4')],
     [
@@ -108,7 +113,7 @@ const experienceSection = (
   )
 
 const educationTimelineLine = (
-  entry: typeof EducationEntryBlock.Model.Type,
+  entry: EducationEntryModel,
 ): ReadonlyArray<Html> => {
   if (entry.isCurrentlyEnrolled) {
     return [
@@ -126,9 +131,7 @@ const educationTimelineLine = (
   })
 }
 
-const educationEntryView = (
-  entry: typeof EducationEntryBlock.Model.Type,
-): Html => {
+const educationEntryView = (entry: EducationEntryModel): Html => {
   const degreeLine = Array.filter(
     [entry.degree.value, entry.fieldOfStudy.value],
     String.isNonEmpty,
@@ -148,7 +151,7 @@ const educationEntryView = (
   )
 }
 
-const educationSection = (education: typeof EducationBlock.Model.Type): Html =>
+const educationSection = (education: EducationModel): Html =>
   ih.section(
     [ih.Class('mb-4')],
     [
@@ -178,14 +181,12 @@ const proficiencyOrder = Order.mapInput(
 )
 
 const groupSkillsByProficiency = (
-  entries: ReadonlyArray<typeof SkillsEntryBlock.Model.Type>,
+  entries: ReadonlyArray<SkillsEntryModel>,
 ): SkillsByProficiency =>
   pipe(
     entries,
     Array.filter(entry => String.isNonEmpty(entry.name.value)),
-    Array.groupBy<typeof SkillsEntryBlock.Model.Type, string>(
-      entry => entry.proficiency,
-    ),
+    Array.groupBy<SkillsEntryModel, string>(entry => entry.proficiency),
     Record.toEntries,
     Array.sort(proficiencyOrder),
     Array.map(([level, grouped]) => ({
@@ -205,7 +206,7 @@ const skillGroupView = (
     ],
   )
 
-const skillsSection = (skills: typeof SkillsBlock.Model.Type): Html => {
+const skillsSection = (skills: SkillsModel): Html => {
   const grouped = groupSkillsByProficiency(skills.entries)
   return ih.section(
     [ih.Class('mb-4')],
@@ -239,7 +240,7 @@ export const preview = ({
   education,
   skills,
   coverLetter,
-}: typeof Model.Type): Html => {
+}: Model): Html => {
   const fullName =
     String.isNonEmpty(firstName) || String.isNonEmpty(lastName)
       ? `${firstName} ${lastName}`.trim()

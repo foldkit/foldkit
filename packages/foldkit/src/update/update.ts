@@ -269,19 +269,23 @@ type DirectResultEvidenceChannelOf<Value> = Value extends unknown
     : never
   : never
 
+type ResultCommandsOf<Value> = Value extends unknown
+  ? 'commands' extends keyof Value
+    ? Required<Value> extends Readonly<{ commands: unknown }>
+      ? NonNullable<Value['commands']>
+      : Value extends Readonly<{ commands?: infer CommandValues }>
+        ? NonNullable<CommandValues>
+        : never
+    : never
+  : never
+
 /** @internal Extracts the unfiltered graph evidence retained by an update result. */
 export type ResultEvidenceChannelOf<Value> =
   Value extends DeferredUpdateEvidence<any, any, any, infer Evidence>
     ? Evidence
     :
         | DirectResultEvidenceChannelOf<Value>
-        | (Value extends unknown
-            ? 'commands' extends keyof Value
-              ? Value extends Readonly<{ commands?: infer CommandValues }>
-                ? DirectResultEvidenceChannelOf<NonNullable<CommandValues>>
-                : never
-              : never
-            : never)
+        | DirectResultEvidenceChannelOf<ResultCommandsOf<Value>>
 
 type InvalidResultEvidence<Value> =
   ResultEvidenceChannelOf<Value> extends infer Evidence
@@ -321,15 +325,9 @@ export type RegistrationEvidenceOf<Value> =
     ? ConcreteRegistrationPart<Evidence>
     :
         | ConcreteRegistrationPart<DirectResultEvidenceChannelOf<Value>>
-        | (Value extends unknown
-            ? 'commands' extends keyof Value
-              ? Value extends Readonly<{ commands?: infer CommandValues }>
-                ? ConcreteRegistrationPart<
-                    DirectResultEvidenceChannelOf<NonNullable<CommandValues>>
-                  >
-                : never
-              : never
-            : never)
+        | ConcreteRegistrationPart<
+            DirectResultEvidenceChannelOf<ResultCommandsOf<Value>>
+          >
 
 type RegistrationModelOf<Value> =
   Value extends Readonly<{ model: infer Model }> ? Model : never

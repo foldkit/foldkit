@@ -40,10 +40,7 @@ const initRoomInstanceStep = (roomId: string) =>
     }),
   )
 
-const enterJoinedRoomStep = (
-  roomId: string,
-  player: typeof Shared.Player.Type,
-) =>
+const enterJoinedRoomStep = (roomId: string, player: Shared.Player) =>
   Update.combineSteps([
     initRoomInstanceStep(roomId),
     RoomBinding.informJoined(roomId, { player }, { roomId }),

@@ -3,6 +3,7 @@ import { Option, Schema, pipe } from 'effect'
 export const GOT_MESSAGE_PATTERN = /^Got.+Message$/
 
 const Tagged = Schema.Struct({ _tag: Schema.String })
+type Tagged = typeof Tagged.Type
 export const isTagged = Schema.is(Tagged)
 
 /** Block chain information extracted from a recorded Message. */

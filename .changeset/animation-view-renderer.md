@@ -16,7 +16,7 @@ viewInputs: {
 }
 ```
 
-Toast lifecycle tests now call `test.drainEntry` on the completed value returned by `Toast.make`. Pass the exact parent Binding so the helper retains the factory and composition path. The old module-level `Toast.test` namespace has been removed.
+Toast lifecycle tests now call `test.drainEntry` on the completed value returned by `Toast.makeBlock`. Pass the exact parent Binding so the helper retains the factory and composition path. The old module-level `Toast.test` namespace has been removed.
 
 ```ts
 // Before

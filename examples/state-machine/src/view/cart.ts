@@ -11,12 +11,8 @@ import {
 } from '../composition'
 import * as Icon from '../icon'
 import { Message } from '../message'
-import {
-  CheckoutState,
-  EDITIONS,
-  EditionRadioGroupBlock,
-  editionName,
-} from '../model'
+import { EDITIONS, EditionRadioGroupBlock, editionName } from '../model'
+import type { CartState } from '../model'
 import { bookCoverView } from './header'
 import {
   cancelButtonClassName,
@@ -25,6 +21,8 @@ import {
   formatMoney,
   primaryButtonClassName,
 } from './shared'
+
+type EditionRadioGroupModel = typeof EditionRadioGroupBlock.Model.Type
 
 export const editionOptionView = (
   option: OptionInfo,
@@ -113,8 +111,8 @@ export const cancelCheckoutButton = (h: ApplicationViewBuilder): Html =>
   )
 
 export const cartView = (
-  state: typeof CheckoutState.Cart.Type,
-  editionRadioGroupModel: typeof EditionRadioGroupBlock.Model.Type,
+  state: CartState,
+  editionRadioGroupModel: EditionRadioGroupModel,
   h: ApplicationViewBuilder,
 ): Html => {
   const continueLabel = state.isShippingRequired

@@ -8,7 +8,8 @@ type VNodeQueue = Array<VNode>
 
 const emptyNode = vnode('', {}, [], undefined, undefined)
 
-function sameVnode(vnode1: VNode, vnode2: VNode): boolean {
+/** Returns whether two VNodes represent the same element for patching. */
+export function sameVnode(vnode1: VNode, vnode2: VNode): boolean {
   if (vnode1 === vnode2) {
     return true
   }
@@ -79,6 +80,213 @@ function createKeyToPreviousIndex(
     }
   }
   return map
+}
+
+/** The work done at each step of `pairChildren`. The renderer moves, creates,
+ *  and removes DOM nodes in these steps. Scene records only `patch`, so it
+ *  pairs children exactly as the renderer does without touching the DOM. */
+export type ChildPairingSteps<Context> = Readonly<{
+  patch: (context: Context, previousChild: VNode, nextChild: VNode) => void
+  moveAfter: (
+    context: Context,
+    previousChild: VNode,
+    previousEndVnode: VNode,
+    nextEndIndex: number,
+  ) => void
+  moveBefore: (
+    context: Context,
+    previousChild: VNode,
+    previousStartIndex: number,
+    previousEndIndex: number,
+    nextEndIndex: number,
+  ) => void
+  createBefore: (
+    context: Context,
+    nextChild: VNode,
+    previousStartIndex: number,
+    previousEndIndex: number,
+    nextEndIndex: number,
+  ) => void
+  createAfter: (
+    context: Context,
+    nextChild: VNode,
+    previousEndVnode: VNode,
+    nextEndIndex: number,
+  ) => void
+  indexPreviousKeys: (
+    context: Context,
+    previousStartIndex: number,
+    previousEndIndex: number,
+  ) => void
+  addRest: (
+    context: Context,
+    nextStartIndex: number,
+    nextEndIndex: number,
+  ) => void
+  removeRest: (
+    context: Context,
+    previousStartIndex: number,
+    previousEndIndex: number,
+  ) => void
+}>
+
+/** Pairs children using the renderer's keyed and unkeyed reconciliation rules.
+ *  A next child that no step patches is created, and an unpaired previous
+ *  child is removed. The keyed move path sets its old entry to `undefined`. */
+export function pairChildren<Context>(
+  previousChildren: Array<VNode>,
+  nextChildren: Array<VNode>,
+  steps: ChildPairingSteps<Context>,
+  context: Context,
+): void {
+  let previousStartIndex = 0
+  let nextStartIndex = 0
+  let previousEndIndex = previousChildren.length - 1
+  let nextEndIndex = nextChildren.length - 1
+
+  while (
+    previousStartIndex <= previousEndIndex &&
+    nextStartIndex <= nextEndIndex &&
+    previousChildren[previousStartIndex] === nextChildren[nextStartIndex]
+  ) {
+    steps.patch(
+      context,
+      previousChildren[previousStartIndex]!,
+      nextChildren[nextStartIndex]!,
+    )
+    previousStartIndex += 1
+    nextStartIndex += 1
+  }
+  while (
+    previousStartIndex <= previousEndIndex &&
+    nextStartIndex <= nextEndIndex &&
+    previousChildren[previousEndIndex] === nextChildren[nextEndIndex]
+  ) {
+    steps.patch(
+      context,
+      previousChildren[previousEndIndex]!,
+      nextChildren[nextEndIndex]!,
+    )
+    previousEndIndex -= 1
+    nextEndIndex -= 1
+  }
+
+  let previousStartVnode = previousChildren[previousStartIndex]
+  let previousEndVnode = previousChildren[previousEndIndex]
+  let nextStartVnode = nextChildren[nextStartIndex]
+  let nextEndVnode = nextChildren[nextEndIndex]
+  let previousKeyToIndex: Map<Key, number> | undefined
+  let indexInPreviousChildren: number | undefined
+  let vnodeToMove: VNode
+
+  while (
+    previousStartIndex <= previousEndIndex &&
+    nextStartIndex <= nextEndIndex
+  ) {
+    if (previousStartVnode == null) {
+      previousStartVnode = previousChildren[++previousStartIndex]
+    } else if (previousEndVnode == null) {
+      previousEndVnode = previousChildren[--previousEndIndex]
+    } else if (nextStartVnode == null) {
+      nextStartVnode = nextChildren[++nextStartIndex]
+    } else if (nextEndVnode == null) {
+      nextEndVnode = nextChildren[--nextEndIndex]
+    } else if (sameVnode(previousStartVnode, nextStartVnode)) {
+      steps.patch(context, previousStartVnode, nextStartVnode)
+      previousStartVnode = previousChildren[++previousStartIndex]
+      nextStartVnode = nextChildren[++nextStartIndex]
+    } else if (sameVnode(previousEndVnode, nextEndVnode)) {
+      steps.patch(context, previousEndVnode, nextEndVnode)
+      previousEndVnode = previousChildren[--previousEndIndex]
+      nextEndVnode = nextChildren[--nextEndIndex]
+    } else if (sameVnode(previousStartVnode, nextEndVnode)) {
+      // Vnode moved right
+      steps.patch(context, previousStartVnode, nextEndVnode)
+      steps.moveAfter(
+        context,
+        previousStartVnode,
+        previousEndVnode,
+        nextEndIndex,
+      )
+      previousStartVnode = previousChildren[++previousStartIndex]
+      nextEndVnode = nextChildren[--nextEndIndex]
+    } else if (sameVnode(previousEndVnode, nextStartVnode)) {
+      // Vnode moved left
+      steps.patch(context, previousEndVnode, nextStartVnode)
+      steps.moveBefore(
+        context,
+        previousEndVnode,
+        previousStartIndex,
+        previousEndIndex - 1,
+        nextEndIndex,
+      )
+      previousEndVnode = previousChildren[--previousEndIndex]
+      nextStartVnode = nextChildren[++nextStartIndex]
+    } else {
+      if (previousKeyToIndex === undefined) {
+        previousKeyToIndex = createKeyToPreviousIndex(
+          previousChildren,
+          previousStartIndex,
+          previousEndIndex,
+        )
+        steps.indexPreviousKeys(context, previousStartIndex, previousEndIndex)
+      }
+      const nextStartKey = nextStartVnode.key
+      indexInPreviousChildren =
+        nextStartKey === undefined
+          ? undefined
+          : previousKeyToIndex.get(nextStartKey)
+      if (indexInPreviousChildren === undefined) {
+        // `nextStartVnode` is new, create and insert it in beginning
+        steps.createBefore(
+          context,
+          nextStartVnode,
+          previousStartIndex,
+          previousEndIndex,
+          nextEndIndex,
+        )
+        nextStartVnode = nextChildren[++nextStartIndex]
+      } else if (
+        nextEndVnode.key === undefined ||
+        previousKeyToIndex.get(nextEndVnode.key) === undefined
+      ) {
+        // `nextEndVnode` is new, create and insert it in the end
+        steps.createAfter(context, nextEndVnode, previousEndVnode, nextEndIndex)
+        nextEndVnode = nextChildren[--nextEndIndex]
+      } else {
+        // Neither of the new endpoints are new vnodes, so we make progress by
+        // moving `nextStartVnode` into position
+        vnodeToMove = previousChildren[indexInPreviousChildren]!
+        if (!sameVnode(vnodeToMove, nextStartVnode)) {
+          steps.createBefore(
+            context,
+            nextStartVnode,
+            previousStartIndex,
+            previousEndIndex,
+            nextEndIndex,
+          )
+        } else {
+          steps.patch(context, vnodeToMove, nextStartVnode)
+          previousChildren[indexInPreviousChildren] = undefined as any
+          steps.moveBefore(
+            context,
+            vnodeToMove,
+            previousStartIndex,
+            previousEndIndex,
+            nextEndIndex,
+          )
+        }
+        nextStartVnode = nextChildren[++nextStartIndex]
+      }
+    }
+  }
+
+  if (nextStartIndex <= nextEndIndex) {
+    steps.addRest(context, nextStartIndex, nextEndIndex)
+  }
+  if (previousStartIndex <= previousEndIndex) {
+    steps.removeRest(context, previousStartIndex, previousEndIndex)
+  }
 }
 
 const hooks: Array<ModuleHookName> = [
@@ -521,193 +729,112 @@ export function init(
     }
   }
 
-  function updateChildren(
-    parentElement: Node,
-    previousChildren: Array<VNode>,
-    nextChildren: Array<VNode>,
-    insertedVnodeQueue: VNodeQueue,
-  ) {
-    if (previousChildren.length === 0 && nextChildren.length === 0) {
-      return
-    }
-    warnOnDuplicateKeys(nextChildren, 0, nextChildren.length - 1, parentElement)
-    let previousStartIndex = 0
-    let nextStartIndex = 0
-    let previousEndIndex = previousChildren.length - 1
-    let nextEndIndex = nextChildren.length - 1
+  type ChildPatch = Readonly<{
+    parentElement: Node
+    previousChildren: Array<VNode>
+    nextChildren: Array<VNode>
+    insertedVnodeQueue: VNodeQueue
+  }>
 
-    while (
-      previousStartIndex <= previousEndIndex &&
-      nextStartIndex <= nextEndIndex &&
-      previousChildren[previousStartIndex] === nextChildren[nextStartIndex]
-    ) {
-      previousStartIndex += 1
-      nextStartIndex += 1
-    }
-    while (
-      previousStartIndex <= previousEndIndex &&
-      nextStartIndex <= nextEndIndex &&
-      previousChildren[previousEndIndex] === nextChildren[nextEndIndex]
-    ) {
-      previousEndIndex -= 1
-      nextEndIndex -= 1
-    }
-
-    let previousStartVnode = previousChildren[previousStartIndex]
-    let previousEndVnode = previousChildren[previousEndIndex]
-    let nextStartVnode = nextChildren[nextStartIndex]
-    let nextEndVnode = nextChildren[nextEndIndex]
-    let previousKeyToIndex: Map<Key, number> | undefined
-    let indexInPreviousChildren: number | undefined
-    let vnodeToMove: VNode
-
-    while (
-      previousStartIndex <= previousEndIndex &&
-      nextStartIndex <= nextEndIndex
-    ) {
-      if (previousStartVnode == null) {
-        previousStartVnode = previousChildren[++previousStartIndex]
-      } else if (previousEndVnode == null) {
-        previousEndVnode = previousChildren[--previousEndIndex]
-      } else if (nextStartVnode == null) {
-        nextStartVnode = nextChildren[++nextStartIndex]
-      } else if (nextEndVnode == null) {
-        nextEndVnode = nextChildren[--nextEndIndex]
-      } else if (sameVnode(previousStartVnode, nextStartVnode)) {
-        patchVnode(previousStartVnode, nextStartVnode, insertedVnodeQueue)
-        previousStartVnode = previousChildren[++previousStartIndex]
-        nextStartVnode = nextChildren[++nextStartIndex]
-      } else if (sameVnode(previousEndVnode, nextEndVnode)) {
-        patchVnode(previousEndVnode, nextEndVnode, insertedVnodeQueue)
-        previousEndVnode = previousChildren[--previousEndIndex]
-        nextEndVnode = nextChildren[--nextEndIndex]
-      } else if (sameVnode(previousStartVnode, nextEndVnode)) {
-        // Vnode moved right
-        patchVnode(previousStartVnode, nextEndVnode, insertedVnodeQueue)
-        if (isChildOf(parentElement, previousStartVnode.elm!)) {
-          api.insertBefore(
-            parentElement,
-            previousStartVnode.elm!,
-            referenceAfter(
-              parentElement,
-              previousEndVnode.elm!,
-              nextChildren,
-              nextEndIndex,
-            ),
-          )
-        }
-        previousStartVnode = previousChildren[++previousStartIndex]
-        nextEndVnode = nextChildren[--nextEndIndex]
-      } else if (sameVnode(previousEndVnode, nextStartVnode)) {
-        // Vnode moved left
-        patchVnode(previousEndVnode, nextStartVnode, insertedVnodeQueue)
-        if (isChildOf(parentElement, previousEndVnode.elm!)) {
-          api.insertBefore(
+  const childPatchSteps: ChildPairingSteps<ChildPatch> = {
+    patch: ({ insertedVnodeQueue }, previousChild, nextChild) => {
+      patchVnode(previousChild, nextChild, insertedVnodeQueue)
+    },
+    moveAfter: (
+      { parentElement, nextChildren },
+      previousChild,
+      previousEndVnode,
+      nextEndIndex,
+    ) => {
+      if (isChildOf(parentElement, previousChild.elm!)) {
+        api.insertBefore(
+          parentElement,
+          previousChild.elm!,
+          referenceAfter(
             parentElement,
             previousEndVnode.elm!,
-            referenceBefore(
-              parentElement,
-              previousChildren,
-              previousStartIndex,
-              previousEndIndex - 1,
-              nextChildren,
-              nextEndIndex,
-            ),
-          )
-        }
-        previousEndVnode = previousChildren[--previousEndIndex]
-        nextStartVnode = nextChildren[++nextStartIndex]
-      } else {
-        if (previousKeyToIndex === undefined) {
-          previousKeyToIndex = createKeyToPreviousIndex(
-            previousChildren,
-            previousStartIndex,
-            previousEndIndex,
-          )
-          warnOnDuplicateKeys(
-            previousChildren,
-            previousStartIndex,
-            previousEndIndex,
-            parentElement,
-          )
-        }
-        const nextStartKey = nextStartVnode.key
-        indexInPreviousChildren =
-          nextStartKey === undefined
-            ? undefined
-            : previousKeyToIndex.get(nextStartKey)
-        if (indexInPreviousChildren === undefined) {
-          // `nextStartVnode` is new, create and insert it in beginning
-          api.insertBefore(
-            parentElement,
-            createElm(nextStartVnode, insertedVnodeQueue),
-            referenceBefore(
-              parentElement,
-              previousChildren,
-              previousStartIndex,
-              previousEndIndex,
-              nextChildren,
-              nextEndIndex,
-            ),
-          )
-          nextStartVnode = nextChildren[++nextStartIndex]
-        } else if (
-          nextEndVnode.key === undefined ||
-          previousKeyToIndex.get(nextEndVnode.key) === undefined
-        ) {
-          // `nextEndVnode` is new, create and insert it in the end
-          api.insertBefore(
-            parentElement,
-            createElm(nextEndVnode, insertedVnodeQueue),
-            referenceAfter(
-              parentElement,
-              previousEndVnode.elm!,
-              nextChildren,
-              nextEndIndex,
-            ),
-          )
-          nextEndVnode = nextChildren[--nextEndIndex]
-        } else {
-          // Neither of the new endpoints are new vnodes, so we make progress by
-          // moving `nextStartVnode` into position
-          vnodeToMove = previousChildren[indexInPreviousChildren]!
-          if (!sameVnode(vnodeToMove, nextStartVnode)) {
-            api.insertBefore(
-              parentElement,
-              createElm(nextStartVnode, insertedVnodeQueue),
-              referenceBefore(
-                parentElement,
-                previousChildren,
-                previousStartIndex,
-                previousEndIndex,
-                nextChildren,
-                nextEndIndex,
-              ),
-            )
-          } else {
-            patchVnode(vnodeToMove, nextStartVnode, insertedVnodeQueue)
-            previousChildren[indexInPreviousChildren] = undefined as any
-            if (isChildOf(parentElement, vnodeToMove.elm!)) {
-              api.insertBefore(
-                parentElement,
-                vnodeToMove.elm!,
-                referenceBefore(
-                  parentElement,
-                  previousChildren,
-                  previousStartIndex,
-                  previousEndIndex,
-                  nextChildren,
-                  nextEndIndex,
-                ),
-              )
-            }
-          }
-          nextStartVnode = nextChildren[++nextStartIndex]
-        }
+            nextChildren,
+            nextEndIndex,
+          ),
+        )
       }
-    }
-
-    if (nextStartIndex <= nextEndIndex) {
+    },
+    moveBefore: (
+      { parentElement, previousChildren, nextChildren },
+      previousChild,
+      previousStartIndex,
+      previousEndIndex,
+      nextEndIndex,
+    ) => {
+      if (isChildOf(parentElement, previousChild.elm!)) {
+        api.insertBefore(
+          parentElement,
+          previousChild.elm!,
+          referenceBefore(
+            parentElement,
+            previousChildren,
+            previousStartIndex,
+            previousEndIndex,
+            nextChildren,
+            nextEndIndex,
+          ),
+        )
+      }
+    },
+    createBefore: (
+      { parentElement, previousChildren, nextChildren, insertedVnodeQueue },
+      nextChild,
+      previousStartIndex,
+      previousEndIndex,
+      nextEndIndex,
+    ) => {
+      api.insertBefore(
+        parentElement,
+        createElm(nextChild, insertedVnodeQueue),
+        referenceBefore(
+          parentElement,
+          previousChildren,
+          previousStartIndex,
+          previousEndIndex,
+          nextChildren,
+          nextEndIndex,
+        ),
+      )
+    },
+    createAfter: (
+      { parentElement, nextChildren, insertedVnodeQueue },
+      nextChild,
+      previousEndVnode,
+      nextEndIndex,
+    ) => {
+      api.insertBefore(
+        parentElement,
+        createElm(nextChild, insertedVnodeQueue),
+        referenceAfter(
+          parentElement,
+          previousEndVnode.elm!,
+          nextChildren,
+          nextEndIndex,
+        ),
+      )
+    },
+    indexPreviousKeys: (
+      { parentElement, previousChildren },
+      previousStartIndex,
+      previousEndIndex,
+    ) => {
+      warnOnDuplicateKeys(
+        previousChildren,
+        previousStartIndex,
+        previousEndIndex,
+        parentElement,
+      )
+    },
+    addRest: (
+      { parentElement, nextChildren, insertedVnodeQueue },
+      nextStartIndex,
+      nextEndIndex,
+    ) => {
       addVnodes(
         parentElement,
         firstChildElmIn(
@@ -721,15 +848,37 @@ export function init(
         nextEndIndex,
         insertedVnodeQueue,
       )
-    }
-    if (previousStartIndex <= previousEndIndex) {
+    },
+    removeRest: (
+      { parentElement, previousChildren },
+      previousStartIndex,
+      previousEndIndex,
+    ) => {
       removeVnodes(
         parentElement,
         previousChildren,
         previousStartIndex,
         previousEndIndex,
       )
+    },
+  }
+
+  function updateChildren(
+    parentElement: Node,
+    previousChildren: Array<VNode>,
+    nextChildren: Array<VNode>,
+    insertedVnodeQueue: VNodeQueue,
+  ) {
+    if (previousChildren.length === 0 && nextChildren.length === 0) {
+      return
     }
+    warnOnDuplicateKeys(nextChildren, 0, nextChildren.length - 1, parentElement)
+    pairChildren(previousChildren, nextChildren, childPatchSteps, {
+      parentElement,
+      previousChildren,
+      nextChildren,
+      insertedVnodeQueue,
+    })
   }
 
   function patchVnode(

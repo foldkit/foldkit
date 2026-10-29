@@ -45,7 +45,7 @@ type MountRequirementsOfBindingRequirement<Requirement> =
     ? Requirements
     : never
 
-const TestCombobox = Combobox.create()
+const TestCombobox = Combobox.makeBlock()
 
 const ComboboxMountRequirementsDefinition = Block.makeDefinition(
   'ComboboxMountRequirements',
@@ -82,7 +82,7 @@ const embeddedCombobox = ComboboxBinding.embedView({
   },
 })
 
-const TestListbox = Listbox.create()
+const TestListbox = Listbox.makeBlock()
 
 const ListboxMountRequirementsDefinition = Block.makeDefinition(
   'ListboxMountRequirements',
@@ -117,7 +117,7 @@ const embeddedListbox = ListboxBinding.embedView({
   },
 })
 
-const TestMenu = Menu.create()
+const TestMenu = Menu.makeBlock()
 
 const MenuMountRequirementsDefinition = Block.makeDefinition(
   'MenuMountRequirements',
@@ -150,7 +150,7 @@ const embeddedMenu = MenuBinding.embedView({
   },
 })
 
-const TestVirtualList = VirtualList.create<string>()
+const TestVirtualList = VirtualList.makeBlock<string>()
 
 it('carries each mounted component registry through its view type', () => {
   expectTypeOf<

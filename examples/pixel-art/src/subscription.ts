@@ -3,10 +3,9 @@ import { Dom } from 'foldkit'
 
 import { ApplicationDefinition } from './definition'
 import { Message } from './message'
+import type { ClickedRedo, ClickedUndo, SelectedTool } from './message'
 
-type UndoRedoMessage =
-  | typeof Message.ClickedUndo.Type
-  | typeof Message.ClickedRedo.Type
+type UndoRedoMessage = ClickedUndo | ClickedRedo
 
 const toUndoRedoMessage = (
   event: KeyboardEvent,
@@ -28,15 +27,13 @@ const toUndoRedoMessage = (
   )
 }
 
-const toToolMessage = (
-  event: KeyboardEvent,
-): Option.Option<typeof Message.SelectedTool.Type> => {
+const toToolMessage = (event: KeyboardEvent): Option.Option<SelectedTool> => {
   if (event.ctrlKey || event.metaKey) {
     return Option.none()
   }
 
   return Match.value(event.key.toLowerCase()).pipe(
-    Match.withReturnType<Option.Option<typeof Message.SelectedTool.Type>>(),
+    Match.withReturnType<Option.Option<SelectedTool>>(),
     Match.when('b', () => Option.some(Message.SelectedTool({ tool: 'Brush' }))),
     Match.when('f', () => Option.some(Message.SelectedTool({ tool: 'Fill' }))),
     Match.when('e', () =>

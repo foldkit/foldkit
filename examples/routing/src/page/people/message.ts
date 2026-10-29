@@ -14,3 +14,4 @@ export const Message = defineMessageUnion({
   },
   CompletedPushSearchUrl: {},
 })
+export type Message = typeof Message.Type

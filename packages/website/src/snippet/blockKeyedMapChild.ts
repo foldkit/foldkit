@@ -4,9 +4,13 @@ import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 const Model = Schema.Struct({ title: Schema.String })
+type Model = typeof Model.Type
+
 const Message = defineMessageUnion({
   RequestedRename: { title: Schema.String },
 })
+type Message = typeof Message.Type
+
 const EntryComposition = Block.makeDefinition('Entry', {
   Model,
   Message,

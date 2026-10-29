@@ -19,7 +19,6 @@ export const initialModel: Model = { receivedFiles: [] }
 export const Message = defineMessageUnion({
   ReceivedFiles: { files: Schema.Array(File) },
 })
-
 export type Message = typeof Message.Type
 
 // UPDATE

@@ -11,9 +11,8 @@ import {
 import {
   type ImportedPath,
   type StaticMemberPath,
-  blockBindingParent,
+  blockBindingOwner,
   indexReferences,
-  isBlockBindingCall,
   isCallExpression,
   isIdentifier,
   isIdentifierReference,
@@ -456,7 +455,8 @@ const definitionOperationName = (
         previousMethod =>
           previousMethod === 'makeFieldsStep' ||
           previousMethod === 'makeCommandsStep' ||
-          previousMethod === 'makeOutMessageStep',
+          previousMethod === 'makeOutMessageStep' ||
+          previousMethod === 'makeStep',
       ),
     )
   }
@@ -536,21 +536,30 @@ const definitionOperationForCall = (
   importerFilename?: string,
 ): Option.Option<DefinitionOperation> => {
   return Option.gen(function* () {
-    if (isBlockBindingCall(parent, references)) {
-      const bindingParent = yield* Option.fromNullishOr(
-        blockBindingParent(parent, references),
-      )
+    const maybeBindingOwner = blockBindingOwner(
+      parent,
+      references,
+      importerFilename,
+    )
+    if (Option.isSome(maybeBindingOwner)) {
+      const bindingOwner = maybeBindingOwner.value
       const bindingParentPath = compositionDefinitionPath(
         references,
-        yield* staticMemberPath(bindingParent),
+        bindingOwner.path,
       )
-      const importedBindingParentPath = Option.map(
-        resolveImportedPathThroughConst(references, bindingParentPath.root),
-        path => ({
-          source: path.source,
-          members: [...path.members, ...bindingParentPath.members],
-        }),
-      )
+      const importedBindingParentPath =
+        bindingOwner.importedPath === undefined
+          ? Option.map(
+              resolveImportedPathThroughConst(
+                references,
+                bindingParentPath.root,
+              ),
+              path => ({
+                source: path.source,
+                members: [...path.members, ...bindingParentPath.members],
+              }),
+            )
+          : Option.some(bindingOwner.importedPath)
 
       return {
         importedDefinitionPath: Option.getOrUndefined(
@@ -597,12 +606,13 @@ const definitionOperationForCall = (
     if (operation === undefined) {
       return yield* Option.none()
     }
-    const isFocusedStep =
+    const isStepProducer =
       operation === 'makeFieldsStep' ||
       operation === 'makeCommandsStep' ||
-      operation === 'makeOutMessageStep'
+      operation === 'makeOutMessageStep' ||
+      operation === 'makeStep'
     if (
-      isFocusedStep &&
+      isStepProducer &&
       !isOwnedDefinitionCallee(
         parent.callee,
         operation,
@@ -643,7 +653,7 @@ const definitionOperationForCall = (
     const suffixLength =
       isViewWithInputs ||
       isUpdateWithContext ||
-      (isFocusedStep && method === 'fromMessage')
+      (isStepProducer && method === 'fromMessage')
         ? 2
         : 1
     const definitionPath = Option.match(namedOwner, {
@@ -1207,11 +1217,12 @@ const importedOperationOwnsMessage = (
         operation === 'withInputs' && previousOperation === 'makeView'
       const isUpdateWithContext =
         operation === 'withContext' && previousOperation === 'makeUpdate'
-      const isFocusedStepFromMessage =
+      const isStepFromMessage =
         operation === 'fromMessage' &&
         (previousOperation === 'makeFieldsStep' ||
           previousOperation === 'makeCommandsStep' ||
-          previousOperation === 'makeOutMessageStep')
+          previousOperation === 'makeOutMessageStep' ||
+          previousOperation === 'makeStep')
       const isDefinitionOperation =
         operation !== undefined &&
         definitionOperationName(
@@ -1229,9 +1240,7 @@ const importedOperationOwnsMessage = (
       }
 
       const suffixLength =
-        isViewWithInputs || isUpdateWithContext || isFocusedStepFromMessage
-          ? 2
-          : 1
+        isViewWithInputs || isUpdateWithContext || isStepFromMessage ? 2 : 1
       const members = path.members.slice(0, -suffixLength)
       return (
         Array.isReadonlyArrayNonEmpty(members) &&

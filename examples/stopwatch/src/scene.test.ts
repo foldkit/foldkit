@@ -108,6 +108,7 @@ describe('view', () => {
       },
       given(runningModel),
       expect(text('00:00.00')).toExist(),
+      Subscription.expectActive(subscriptions.stopwatchTicks),
       Subscription.emit(subscriptions.stopwatchTicks, Message.Ticked()),
       Command.expectExact(DetermineTickTime({ startTime })),
       Command.resolve(
@@ -115,6 +116,8 @@ describe('view', () => {
         Message.CompletedDetermineTickTime({ elapsedMs: 4320 }),
       ),
       expect(text('00:04.32')).toExist(),
+      click(role('button', { name: 'Stop' })),
+      Subscription.expectInactive(subscriptions.stopwatchTicks),
     )
   })
 

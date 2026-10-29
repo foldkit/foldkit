@@ -1,0 +1,54 @@
+--- a/packages/foldkit/src/block/definition.ts
++++ b/packages/foldkit/src/block/definition.ts
+@@ -3892,6 +3892,23 @@
+   >
+ }
+ 
++/** @internal Names a registered Composition without changing its contracts. */
++export interface RegisteredComposition<
++  OwnerValue extends Owner<string>,
++  ModelSchema extends AnySchema,
++  MessageSchema extends AnySchema,
++  OutMessageSchema extends AnySchema | undefined,
++  Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
++  Children extends ReadonlyArray<AnyBinding>,
++> extends Composition<
++  OwnerValue,
++  ModelSchema,
++  MessageSchema,
++  OutMessageSchema,
++  Mounts,
++  Children
++> {}
++
+ /** Registers the child and Mount graph after the Block's typed operations are
+  * authored. Both fields default to empty collections. Child OutMessage policies
+  * must return this parent's Steps and declared OutMessages, and every sibling
+@@ -3908,7 +3925,7 @@
+       MessageSchema['Type'],
+       readonly []
+     >
+-  ): Composition<
++  ): RegisteredComposition<
+     OwnerValue,
+     ModelSchema,
+     MessageSchema,
+@@ -3941,7 +3958,7 @@
+         MessageSchema['Type'],
+         OutMessageSchema extends AnySchema ? OutMessageSchema['Type'] : never
+       >,
+-  ): Composition<
++  ): RegisteredComposition<
+     OwnerValue,
+     ModelSchema,
+     MessageSchema,
+--- a/packages/foldkit/src/block/public.ts
++++ b/packages/foldkit/src/block/public.ts
+@@ -55,6 +55,7 @@
+   Base,
+   MakeComposition,
+   Composition,
++  RegisteredComposition,
+   Completed,
+   CompletedUpdate,
+   CompletedBlock,

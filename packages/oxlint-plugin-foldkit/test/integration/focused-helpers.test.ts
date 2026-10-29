@@ -277,6 +277,68 @@ export const update = ParentComposition.makeUpdate({ RequestedChange: childMessa
     ).toHaveLength(1)
   })
 
+  it('rejects child Messages in parent-owned general Message-only Step producers', () => {
+    const source =
+      parentSource +
+      `
+const Receive = ParentDefinition.makeCommand('Receive', {})
+export const messagesStep = ParentDefinition.makeStep.fromMessage(message =>
+  ParentDefinition.makeCommandsStep(() => [Receive({ message: Child.Message.ClickedSave() })]),
+)
+`
+    expect(
+      diagnosticsFor(
+        'parent-general-messages',
+        'no-child-message-construction-in-root',
+        source,
+      ),
+    ).toHaveLength(1)
+  })
+
+  it('recognizes the owning Definition through an imported general Message-only Step helper', () => {
+    const definition = `
+import { Schema } from 'effect'
+import { Block } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
+export const Model = Schema.Struct({ count: Schema.Number })
+export const Message = defineMessageUnion({ ClickedSave: {} })
+export const ChildDefinition = Block.makeDefinition('Child', { Model, Message })
+export const { makeStep } = ChildDefinition
+`
+    const source = `
+import { Message, makeStep } from './general-message-owner-definition'
+const produceStep = message => model => ({ model, commands: [Message.ClickedSave()] })
+export const ownMessagesStep = makeStep.fromMessage(produceStep)
+`
+    expect(
+      diagnosticsForSplitFiles(
+        'general-message-owner',
+        'no-child-message-construction-in-root',
+        source,
+        definition,
+      ),
+    ).toEqual([])
+  })
+
+  it('does not grant Message ownership to a general Step helper lookalike', () => {
+    const source =
+      parentSource +
+      `
+const Foreign = { makeDefinition: () => ({
+  makeStep: Object.assign(callback => callback, { fromMessage: callback => callback }),
+}) }
+const ChildDefinition = Foreign.makeDefinition('Child', { Model: Child.Model, Message: Child.Message })
+export const messagesStep = ChildDefinition.makeStep.fromMessage(message => [Child.Message.ClickedSave()])
+`
+    expect(
+      diagnosticsFor(
+        'foreign-general-messages',
+        'no-child-message-construction-in-root',
+        source,
+      ),
+    ).toHaveLength(1)
+  })
+
   it('accepts the owning child Messages in payload-only Command helpers', () => {
     const source =
       parentSource +

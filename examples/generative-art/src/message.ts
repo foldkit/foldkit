@@ -27,3 +27,8 @@ export const Message = defineMessageUnion({
   ClickedTogglePlay: {},
   ClickedReset: {},
 })
+export type Message = typeof Message.Type
+export type CompletedGenerateAmbientParticle =
+  typeof Message.CompletedGenerateAmbientParticle.Type
+export type CompletedGenerateBurstParticle =
+  typeof Message.CompletedGenerateBurstParticle.Type

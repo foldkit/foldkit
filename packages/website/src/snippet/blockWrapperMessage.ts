@@ -5,7 +5,7 @@ import { defineMessageUnion } from 'foldkit/message'
 export const Message = defineMessageUnion({
   ClickedResetSettings: {},
 })
-
+export type Message = typeof Message.Type
 // composition.ts derives the complete dispatch Codec from registered Bindings.
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [SettingsBinding],

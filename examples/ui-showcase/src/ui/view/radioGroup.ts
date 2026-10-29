@@ -10,19 +10,15 @@ import {
 import type { UiViewBuilder } from '../composition'
 import type { Plan } from '../domain'
 
-const plans: ReadonlyArray<typeof Plan.Type> = [
-  'Startup',
-  'Business',
-  'Enterprise',
-]
+const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']
 
-const planDescriptions: Record<typeof Plan.Type, string> = {
+const planDescriptions: Record<Plan, string> = {
   Startup: '12GB / 6 CPUs. Perfect for small projects',
   Business: '16GB / 8 CPUs. For growing teams',
   Enterprise: '32GB / 12 CPUs. Dedicated infrastructure',
 }
 
-const planPrices: Record<typeof Plan.Type, string> = {
+const planPrices: Record<Plan, string> = {
   Startup: '$40/mo',
   Business: '$80/mo',
   Enterprise: '$160/mo',
@@ -67,7 +63,7 @@ export const view = UiComposition.makeView((model, h) => {
   const verticalPlanOptionsView = ({
     group,
     options,
-  }: RenderInfo<typeof Plan.Type>): Html =>
+  }: RenderInfo<Plan>): Html =>
     h.div(
       [...group, h.Class(verticalGroupClassName)],
       options.map(option => {
@@ -105,7 +101,7 @@ export const view = UiComposition.makeView((model, h) => {
   const horizontalPlanOptionsView = ({
     group,
     options,
-  }: RenderInfo<typeof Plan.Type>): Html =>
+  }: RenderInfo<Plan>): Html =>
     h.div(
       [...group, h.Class(horizontalGroupClassName)],
       options.map(option => {

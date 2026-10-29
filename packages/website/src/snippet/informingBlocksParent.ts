@@ -11,10 +11,12 @@ export const Model = Schema.Struct({
   route: ApplicationRoute,
   people: People.PeopleBlock.Model,
 })
+export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ChangedUrl: { url: Url },
 })
+export type Message = typeof Message.Type
 
 export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
@@ -35,7 +37,7 @@ export const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [PeopleBinding],
 })
 
-const setRouteStep = (nextRoute: typeof ApplicationRoute.Type) =>
+const setRouteStep = (nextRoute: ApplicationRoute) =>
   makeFieldsStep(() => ({ route: () => nextRoute }))
 
 const keepModelStep = makeNoopStep()

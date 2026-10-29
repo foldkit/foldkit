@@ -7,3 +7,4 @@ export const Model = Schema.Struct({
   route: ApplicationRoute,
   uiModel: Ui.UiBlock.Model,
 })
+export type Model = typeof Model.Type

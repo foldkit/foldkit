@@ -46,8 +46,8 @@ ComposedInitOutMessageDefinition.makeComposition().makeInit(() => ({
   steps: [outMessageStep],
 }))
 
+// @ts-expect-error A Definition cannot consume a foreign result Message.
 ComposedInitDefinition.makeStep(model => ({
   model,
-  // @ts-expect-error A Definition cannot consume a foreign result Message.
   commands: [ReadCount()],
 }))

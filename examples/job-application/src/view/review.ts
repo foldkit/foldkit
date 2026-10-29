@@ -15,6 +15,9 @@ import { isComplete as isSkillsComplete } from '../step/skills/update'
 import { isComplete as isWorkHistoryComplete } from '../step/workHistory/update'
 import { employmentRange, pluralize } from './format'
 
+type WorkHistoryEntryModel = typeof WorkHistoryEntryBlock.Model.Type
+type EducationEntryModel = typeof EducationEntryBlock.Model.Type
+
 const reviewSection = (
   title: string,
   content: Html,
@@ -44,7 +47,7 @@ const fieldRow = (
     : h.empty
 
 const personalInfoSection = (
-  personalInfo: (typeof Model.Type)['personalInfo'],
+  personalInfo: Model['personalInfo'],
   pronounLabel: string,
   h: ApplicationViewBuilder,
 ): Html =>
@@ -68,7 +71,7 @@ const personalInfoSection = (
   )
 
 const workEntryReview = (
-  entry: typeof WorkHistoryEntryBlock.Model.Type,
+  entry: WorkHistoryEntryModel,
   h: ApplicationViewBuilder,
 ): Html => {
   const title = entry.company.value
@@ -100,7 +103,7 @@ const workEntryReview = (
 }
 
 const workHistorySection = (
-  workHistory: (typeof Model.Type)['workHistory'],
+  workHistory: Model['workHistory'],
   h: ApplicationViewBuilder,
 ): Html =>
   reviewSection(
@@ -112,9 +115,7 @@ const workHistorySection = (
     h,
   )
 
-const educationTimeline = (
-  entry: typeof EducationEntryBlock.Model.Type,
-): string => {
+const educationTimeline = (entry: EducationEntryModel): string => {
   if (entry.isCurrentlyEnrolled) {
     return ' (Currently enrolled)'
   }
@@ -125,7 +126,7 @@ const educationTimeline = (
 }
 
 const educationEntryReview = (
-  entry: typeof EducationEntryBlock.Model.Type,
+  entry: EducationEntryModel,
   h: ApplicationViewBuilder,
 ): Html => {
   const title = entry.fieldOfStudy.value
@@ -146,7 +147,7 @@ const educationEntryReview = (
 }
 
 const educationSection = (
-  education: (typeof Model.Type)['education'],
+  education: Model['education'],
   h: ApplicationViewBuilder,
 ): Html =>
   reviewSection(
@@ -159,7 +160,7 @@ const educationSection = (
   )
 
 const skillsSection = (
-  skills: (typeof Model.Type)['skills'],
+  skills: Model['skills'],
   h: ApplicationViewBuilder,
 ): Html =>
   reviewSection(
@@ -184,7 +185,7 @@ const skillsSection = (
   )
 
 const coverLetterSection = (
-  coverLetter: (typeof Model.Type)['coverLetter'],
+  coverLetter: Model['coverLetter'],
   h: ApplicationViewBuilder,
 ): Html =>
   reviewSection(
@@ -202,7 +203,7 @@ const coverLetterSection = (
   )
 
 const attachmentsSection = (
-  attachments: (typeof Model.Type)['attachments'],
+  attachments: Model['attachments'],
   h: ApplicationViewBuilder,
 ): Html =>
   reviewSection(
@@ -242,9 +243,7 @@ const attachmentsSection = (
 const submitButtonClass =
   'w-full rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition cursor-pointer'
 
-const blockedNoticeText = (
-  attentionSteps: ReadonlyArray<typeof Step.Step.Type>,
-): string =>
+const blockedNoticeText = (attentionSteps: ReadonlyArray<Step.Step>): string =>
   Array.match(attentionSteps, {
     onEmpty: () => 'Review the required fields before submitting.',
     onNonEmpty: steps =>
@@ -252,7 +251,7 @@ const blockedNoticeText = (
   })
 
 const blockedNotice = (
-  attentionSteps: ReadonlyArray<typeof Step.Step.Type>,
+  attentionSteps: ReadonlyArray<Step.Step>,
   h: ApplicationViewBuilder,
 ): Html =>
   h.p(
@@ -261,9 +260,9 @@ const blockedNotice = (
   )
 
 const submissionSection = (
-  submission: (typeof Model.Type)['submission'],
+  submission: Model['submission'],
   shouldShowBlockedNotice: boolean,
-  attentionSteps: ReadonlyArray<typeof Step.Step.Type>,
+  attentionSteps: ReadonlyArray<Step.Step>,
   h: ApplicationViewBuilder,
 ): Html =>
   Submission.match(submission, {
@@ -359,8 +358,8 @@ const submissionSection = (
   })
 
 export const review = (
-  model: typeof Model.Type,
-  attentionSteps: ReadonlyArray<typeof Step.Step.Type>,
+  model: Model,
+  attentionSteps: ReadonlyArray<Step.Step>,
   h: ApplicationViewBuilder,
 ): Html => {
   const pronounLabel = Option.match(model.personalInfo.maybeSelectedPronoun, {

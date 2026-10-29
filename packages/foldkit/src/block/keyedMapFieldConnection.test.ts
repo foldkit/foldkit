@@ -1,5 +1,5 @@
 import { HashMap, Layer, Option, Predicate, Record, Schema } from 'effect'
-import { expect, expectTypeOf, it } from 'vitest'
+import { expect, expectTypeOf, it, vi } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
@@ -9,13 +9,14 @@ import {
   type IsExactKeyedMapField,
   normalizeKeyedMapFieldConfig,
 } from './keyedMapFieldConnection.js'
-import { makeMapBinding } from './mapBinding.js'
 import * as Block from './public.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
+type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({
   UpdatedCount: { count: Schema.Number },
 })
+type ChildMessage = typeof ChildMessage.Type
 
 const ChildComposition = makeDefinition('KeyedMapFieldChild', {
   Model: ChildModel,
@@ -42,10 +43,12 @@ const Wrapper = Schema.Struct({
   child: ChildModel,
   label: Schema.String,
 })
+type Wrapper = typeof Wrapper.Type
 const Pair = Schema.Struct({
   lower: ChildModel,
   upper: ChildModel,
 })
+type Pair = typeof Pair.Type
 const ParentModel = Schema.Struct({
   childrenById: Schema.Record(Schema.String, ChildModel),
   rowsById: Schema.Record(Schema.String, Wrapper),
@@ -53,6 +56,7 @@ const ParentModel = Schema.Struct({
   hashRowsById: Schema.HashMap(Schema.String, Wrapper),
   pairsById: Schema.Record(Schema.String, Pair),
 })
+type ParentModel = typeof ParentModel.Type
 const ParentDefinition = makeDefinition('KeyedMapFieldParent', {
   Model: ParentModel,
   Message: Schema.Never,
@@ -60,7 +64,7 @@ const ParentDefinition = makeDefinition('KeyedMapFieldParent', {
 type HashMapFieldIsExact = IsExactKeyedMapField<
   typeof ParentModel,
   'childrenByNumber',
-  typeof ChildModel.Type
+  ChildModel
 >
 expectTypeOf<HashMapFieldIsExact>().toEqualTypeOf<true>()
 type HashMapStorage = (typeof ParentModel.fields)['childrenByNumber']
@@ -80,26 +84,26 @@ expectTypeOf<HashMapStorageDetected>().toEqualTypeOf<true>()
 expectTypeOf<HashMapValue>().toEqualTypeOf<typeof ChildModel.Type>()
 expectTypeOf<HashMapKey>().toExtend<string | number>()
 expectTypeOf<HashMapFieldRequired>().toEqualTypeOf<true>()
-const ChildrenByIdBinding = makeMapBinding(ParentDefinition, ChildBlock, {
+const ChildrenByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
   field: 'childrenById',
 })
-const RowsByIdBinding = makeMapBinding(ParentDefinition, ChildBlock, {
+const RowsByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
   field: 'rowsById',
   childField: 'child',
 })
-const ChildrenByNumberBinding = makeMapBinding(ParentDefinition, ChildBlock, {
+const ChildrenByNumberBinding = ParentDefinition.makeMapBinding(ChildBlock, {
   field: 'childrenByNumber',
 })
-const HashRowsByIdBinding = makeMapBinding(ParentDefinition, ChildBlock, {
+const HashRowsByIdBinding = ParentDefinition.makeMapBinding(ChildBlock, {
   field: 'hashRowsById',
   childField: 'child',
 })
-const LowerChildrenBinding = makeMapBinding(ParentDefinition, ChildBlock, {
+const LowerChildrenBinding = ParentDefinition.makeMapBinding(ChildBlock, {
   field: 'pairsById',
   childField: 'lower',
   placement: 'lowerChildren',
 })
-const UpperChildrenBinding = makeMapBinding(ParentDefinition, ChildBlock, {
+const UpperChildrenBinding = ParentDefinition.makeMapBinding(ChildBlock, {
   field: 'pairsById',
   childField: 'upper',
   placement: 'upperChildren',
@@ -133,7 +137,7 @@ const ParentComposition = ParentDefinition.makeComposition({
   ],
 })
 const update = ParentComposition.makeUpdate({})
-const initializeRecordChild = ParentComposition.makeInit(() =>
+const initRecordChild = ParentComposition.makeInit(() =>
   ChildrenByIdBinding.init({
     key: 'created',
     args: [],
@@ -177,11 +181,70 @@ const operationOf = (
   return (...args) => Reflect.apply(operation, undefined, args)
 }
 
+it('keeps extracted map constructors passive and owned by their Definition', () => {
+  const childInit = vi.fn(() => ({
+    model: ChildModel.make({ count: 0 }),
+  }))
+  const ChildComposition = makeDefinition('PassiveMapChild', {
+    Model: ChildModel,
+    Message: ChildMessage,
+  }).makeComposition()
+  const prepare = () =>
+    ChildComposition.prepareBlock({
+      init: ChildComposition.makeInit(() => childInit()),
+      update: ChildComposition.makeUpdate({
+        UpdatedCount: model => ({ model }),
+      }),
+    })
+  const PassiveChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+    typeof ChildModel,
+    typeof prepare
+  > = Block.assemble(prepare)
+  const { makeMapBinding } = ParentDefinition
+  const DetachedBinding = makeMapBinding(PassiveChildBlock, {
+    field: 'childrenById',
+    placement: 'detachedChildren',
+  })
+  const Composition = ParentDefinition.makeComposition({
+    bindings: [DetachedBinding],
+  })
+  const OtherDefinition = makeDefinition('OtherMapParent', {
+    Model: ParentModel,
+    Message: Schema.Never,
+  })
+
+  expect(() =>
+    Reflect.apply(OtherDefinition.makeComposition, undefined, [
+      { bindings: [DetachedBinding] },
+    ]),
+  ).toThrow('parent')
+  expect(childInit).not.toHaveBeenCalled()
+
+  const init = Composition.makeInit(() =>
+    DetachedBinding.init({
+      key: 'created',
+      args: [],
+      toParentModel: child =>
+        modifyFields(parent, {
+          childrenById: Record.set('created', child),
+        }),
+    }),
+  )
+  const init_ = init()
+
+  expect(childInit).toHaveBeenCalledOnce()
+  expect(Record.get(init_.model.childrenById, 'created')).toEqual(
+    Option.some(ChildModel.make({ count: 0 })),
+  )
+})
+
 it('keeps a whole Record child Model in an ordinary direct Binding', () => {
   const FlagsModel = Schema.Record(Schema.String, Schema.Boolean)
+  type FlagsModel = typeof FlagsModel.Type
   const FlagsMessage = defineMessageUnion({
     InformedOfFlagChange: { name: Schema.String, isEnabled: Schema.Boolean },
   })
+  type FlagsMessage = typeof FlagsMessage.Type
   const FlagsComposition = makeDefinition('RecordFlags', {
     Model: FlagsModel,
     Message: FlagsMessage,
@@ -201,6 +264,7 @@ it('keeps a whole Record child Model in an ordinary direct Binding', () => {
     typeof prepare
   > = Block.assemble(prepare)
   const ParentMessage = defineMessageUnion({ UpdatedFlags: {} })
+  type ParentMessage = typeof ParentMessage.Type
   const ParentDefinition = makeDefinition('DirectRecordFlagsParent', {
     Model: Schema.Struct({ flags: FlagsBlock.Model }),
     Message: ParentMessage,
@@ -226,8 +290,7 @@ it('keeps a whole Record child Model in an ordinary direct Binding', () => {
     ready: true,
   })
   expect(() =>
-    Reflect.apply(makeMapBinding, undefined, [
-      ParentDefinition,
+    Reflect.apply(ParentDefinition.makeMapBinding, undefined, [
       FlagsBlock,
       { field: 'flags' },
     ]),
@@ -236,9 +299,11 @@ it('keeps a whole Record child Model in an ordinary direct Binding', () => {
 
 it('keeps a whole HashMap child Model in an ordinary direct Binding', () => {
   const FlagsModel = Schema.HashMap(Schema.String, Schema.Boolean)
+  type FlagsModel = typeof FlagsModel.Type
   const FlagsMessage = defineMessageUnion({
     InformedOfFlagChange: { name: Schema.String, isEnabled: Schema.Boolean },
   })
+  type FlagsMessage = typeof FlagsMessage.Type
   const FlagsComposition = makeDefinition('HashMapFlags', {
     Model: FlagsModel,
     Message: FlagsMessage,
@@ -260,6 +325,7 @@ it('keeps a whole HashMap child Model in an ordinary direct Binding', () => {
     typeof prepare
   > = Block.assemble(prepare)
   const ParentMessage = defineMessageUnion({ UpdatedFlags: {} })
+  type ParentMessage = typeof ParentMessage.Type
   const ParentDefinition = makeDefinition('DirectHashMapFlagsParent', {
     Model: Schema.Struct({ flags: FlagsBlock.Model }),
     Message: ParentMessage,
@@ -286,8 +352,7 @@ it('keeps a whole HashMap child Model in an ordinary direct Binding', () => {
     ),
   ).toEqual(Option.some(true))
   expect(() =>
-    Reflect.apply(makeMapBinding, undefined, [
-      ParentDefinition,
+    Reflect.apply(ParentDefinition.makeMapBinding, undefined, [
       FlagsBlock,
       { field: 'flags' },
     ]),
@@ -322,7 +387,7 @@ it('derives Record keys and replaces only existing exact children', () => {
 })
 
 it('allows explicit Binding initialization to insert one declared occurrence', () => {
-  const initialized = initializeRecordChild()
+  const initialized = initRecordChild()
 
   expect(Reflect.get(initialized.model.childrenById, 'created')).toEqual(
     ChildModel.make({ count: 0 }),
@@ -417,6 +482,7 @@ it('rejects non-finite numeric HashMap occurrence keys at runtime', () => {
   const BroadNumberParentModel = Schema.Struct({
     children: Schema.HashMap(Schema.Number, ChildModel),
   })
+  type BroadNumberParentModel = typeof BroadNumberParentModel.Type
   const adapter = normalizeKeyedMapFieldConfig({
     Model: BroadNumberParentModel,
     ChildModel,
@@ -494,6 +560,7 @@ it('rejects conflicting adapters and unsupported key and value Schemas at runtim
     neverMap: Schema.HashMap(Schema.Never, ChildModel),
     wrongValues: Schema.Record(Schema.String, Schema.String),
   })
+  type InvalidParentModel = typeof InvalidParentModel.Type
   const InvalidParentDefinition = makeDefinition('InvalidKeyedMapFieldParent', {
     Model: InvalidParentModel,
     Message: Schema.Never,
@@ -507,16 +574,14 @@ it('rejects conflicting adapters and unsupported key and value Schemas at runtim
     'wrongValues',
   ]) {
     expect(() =>
-      Reflect.apply(makeMapBinding, undefined, [
-        InvalidParentDefinition,
+      Reflect.apply(InvalidParentDefinition.makeMapBinding, undefined, [
         ChildBlock,
         { field },
       ]),
     ).toThrow()
   }
   expect(() =>
-    Reflect.apply(makeMapBinding, undefined, [
-      ParentDefinition,
+    Reflect.apply(ParentDefinition.makeMapBinding, undefined, [
       ChildBlock,
       {
         field: 'childrenById',
@@ -524,15 +589,4 @@ it('rejects conflicting adapters and unsupported key and value Schemas at runtim
       },
     ]),
   ).toThrow('cannot supply field or presentWhen')
-  expect(() =>
-    Reflect.apply(makeMapBinding, undefined, [
-      {
-        Model: ParentModel,
-        Message: Schema.Never,
-        makeBinding: () => ({}),
-      },
-      ChildBlock,
-      { field: 'childrenById' },
-    ]),
-  ).toThrow('returns a native child Binding')
 })

@@ -3,6 +3,7 @@ import { Schema } from 'effect'
 import { SliderBlock } from '@foldkit/ui'
 
 export const Point = Schema.Struct({ x: Schema.Number, y: Schema.Number })
+export type Point = typeof Point.Type
 
 export const Particle = Schema.Struct({
   id: Schema.Number,
@@ -16,6 +17,7 @@ export const Particle = Schema.Struct({
   initialAngle: Schema.Option(Schema.Number),
   initialSpeedScale: Schema.Number,
 })
+export type Particle = typeof Particle.Type
 
 export const Model = Schema.Struct({
   particles: Schema.Array(Particle),
@@ -28,3 +30,4 @@ export const Model = Schema.Struct({
   noiseScale: Schema.Number,
   noiseScaleSlider: SliderBlock.Model,
 })
+export type Model = typeof Model.Type

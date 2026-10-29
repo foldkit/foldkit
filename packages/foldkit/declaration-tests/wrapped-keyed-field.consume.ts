@@ -23,15 +23,15 @@ import {
   firstChoiceId,
   foldChoice,
   foldTextEntry,
+  init,
   initialParentModel,
-  initialize,
   makePayloadParent,
   payloadParent,
   refreshChoice,
   selectChoice,
   setChoiceValue,
   setLiteralChoiceValue,
-  unassembledInitialize,
+  unassembledInit,
 } from './wrapped-keyed-field.accepted.js'
 
 type Equal<Left, Right> =
@@ -233,9 +233,9 @@ export type InitializedPlacement = Expect<
     'DeclarationWrappedKeyedFieldChoice'
   >
 >
-export type InitializeArguments = Expect<
+export type InitArguments = Expect<
   Equal<
-    Parameters<typeof initialize>,
+    Parameters<typeof init>,
     [
       context: Readonly<{
         id: typeof ChoiceId.Type
@@ -244,9 +244,9 @@ export type InitializeArguments = Expect<
     ]
   >
 >
-export type InitializeRequirements = Expect<
+export type InitRequirements = Expect<
   Equal<
-    Update.RequirementsOf<typeof initialize>,
+    Update.RequirementsOf<typeof init>,
     Block.Qualify<
       'DeclarationWrappedKeyedFieldChoice',
       Command.HandlerOf<typeof Choice.ReadChoice>
@@ -281,7 +281,7 @@ export type Builder = Block.ViewBuilderFor<
   typeof DeclarationWrappedKeyedFieldParentComposition
 >
 
-const initialized = initialize({ id: firstChoiceId, value: 'Two' })
+const initialized = init({ id: firstChoiceId, value: 'Two' })
 export type InitializedModel = Expect<
   Equal<typeof initialized.model, typeof ParentModel.Type>
 >
@@ -392,8 +392,5 @@ export type InitializedSiblingModel = Expect<
   >
 >
 export type UnassembledModelRemainsExact = Expect<
-  Equal<
-    ReturnType<typeof unassembledInitialize>['model']['choices'],
-    Array<never>
-  >
+  Equal<ReturnType<typeof unassembledInit>['model']['choices'], Array<never>>
 >

@@ -1,6 +1,7 @@
-import { Effect, Layer, Number, Option, Schema } from 'effect'
+import { Array, Effect, Layer, Number, Option, Schema } from 'effect'
 
-import type { Html, HtmlBuilder } from '../../html/index.js'
+import { brandViewResult } from '../../brand/index.js'
+import { type Html, type HtmlBuilder, createLazy } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import * as Mount from '../../mount/index.js'
 import { modifyFields } from '../../struct/index.js'
@@ -26,7 +27,6 @@ export const Message = defineMessageUnion({
   ScrolledTo: { offset: Schema.Number },
   Ticked: {},
 })
-
 export type Message = typeof Message.Type
 
 // MOUNT
@@ -170,6 +170,193 @@ export const scrollListView = (
     [h.div([h.Key('list'), h.OnMount(ScrollList({ offset }))])],
   )
 }
+
+export const keyedScrollListView = (
+  model: Model,
+  h: HtmlBuilder<Message, MountRequirements>,
+): Html =>
+  h.div(
+    [],
+    [
+      h.keyed('div')(`list-${model.count}`, [
+        h.OnMount(ScrollList({ offset: model.count })),
+      ]),
+      h.button([h.OnClick(Message.ClickedIncrement())], ['Next']),
+    ],
+  )
+
+export const keyedAncestorScrollListView = (
+  model: Model,
+  h: HtmlBuilder<Message, MountRequirements>,
+): Html =>
+  h.div(
+    [],
+    [
+      h.keyed('section')(
+        `section-${model.count}`,
+        [],
+        [h.div([h.OnMount(ScrollList({ offset: model.count }))])],
+      ),
+      h.button([h.OnClick(Message.ClickedIncrement())], ['Next']),
+    ],
+  )
+
+export const droppedFirstScrollListView = (
+  model: Model,
+  h: HtmlBuilder<Message, MountRequirements>,
+): Html =>
+  h.div(
+    [],
+    [
+      ...Array.map(model.isOpen ? [2] : [1, 2], offset =>
+        h.keyed('div')(`list-${offset}`, [h.OnMount(ScrollList({ offset }))]),
+      ),
+      h.button([h.OnClick(Message.ClickedToggle())], ['Drop']),
+    ],
+  )
+
+export const toggledMountView = (
+  model: Model,
+  h: HtmlBuilder<Message, MountRequirements>,
+): Html =>
+  h.div(
+    [],
+    [
+      h.div(model.isOpen ? [] : [h.OnMount(MeasurePanel())]),
+      h.button([h.OnClick(Message.ClickedToggle())], ['Toggle']),
+    ],
+  )
+
+export const switchedMountView = (
+  model: Model,
+  h: HtmlBuilder<Message, MountRequirements>,
+): Html =>
+  h.div(
+    [],
+    [
+      h.div([h.OnMount(model.isOpen ? FocusButton() : MeasurePanel())]),
+      h.button([h.OnClick(Message.ClickedToggle())], ['Switch']),
+    ],
+  )
+
+export const reorderedScrollListView = (
+  model: Model,
+  h: HtmlBuilder<Message, MountRequirements>,
+): Html => {
+  const offsets = model.isOpen ? [3, 1, 4, 2] : [1, 2, 3, 4]
+
+  return h.div(
+    [],
+    [
+      ...Array.map(offsets, offset =>
+        h.keyed('div')(`list-${offset}`, [h.OnMount(ScrollList({ offset }))]),
+      ),
+      h.button([h.OnClick(Message.ClickedToggle())], ['Shuffle']),
+    ],
+  )
+}
+
+export const sharedPanelView = (
+  model: Model,
+  h: HtmlBuilder<Message, MountRequirements>,
+): Html => {
+  const panel = h.div([h.OnMount(MeasurePanel())], ['Panel'])
+
+  return h.div(
+    [],
+    [
+      panel,
+      panel,
+      h.button(
+        [h.OnClick(Message.ClickedIncrement())],
+        [`count: ${model.count}`],
+      ),
+    ],
+  )
+}
+
+export const makeLazySharedPanelView = () => {
+  const lazySection = createLazy()
+
+  return (model: Model, h: HtmlBuilder<Message, MountRequirements>): Html => {
+    const panel = h.div([h.OnMount(MeasurePanel())], ['Panel'])
+
+    return h.div(
+      [],
+      [
+        lazySection(
+          count => h.section([], [h.div([], [`count: ${count}`]), panel]),
+          [model.count],
+        ),
+        panel,
+        h.button([h.OnClick(Message.ClickedIncrement())], ['Next']),
+      ],
+    )
+  }
+}
+
+export const makeCachedLazyPanelView = () => {
+  const lazyPanel = createLazy()
+  const panelView = (h: HtmlBuilder<Message, MountRequirements>): Html =>
+    h.div([h.OnMount(MeasurePanel())], ['Panel'])
+
+  return (model: Model, h: HtmlBuilder<Message, MountRequirements>): Html =>
+    h.div(
+      [],
+      [
+        h.button([h.OnClick(Message.ClickedIncrement())], ['Insert']),
+        ...(model.count > 0 ? [h.div([], ['Inserted'])] : []),
+        lazyPanel(panelView, [h]),
+      ],
+    )
+}
+
+export const makeReusedScrollListView = () => {
+  let firstRenderList: Html | undefined
+
+  return (model: Model, h: HtmlBuilder<Message, MountRequirements>): Html => {
+    const reused =
+      firstRenderList ??
+      h.div([h.OnMount(ScrollList({ offset: 1 }))], ['Reused'])
+    firstRenderList = reused
+
+    return h.div(
+      [],
+      [
+        h.button([h.OnClick(Message.ClickedIncrement())], ['Insert']),
+        h.button([h.OnClick(Message.ClickedToggle())], ['Remove']),
+        ...(!model.isOpen && model.count > 0
+          ? [h.div([h.OnMount(ScrollList({ offset: 2 }))], ['Inserted'])]
+          : []),
+        ...(model.isOpen ? [] : [reused]),
+      ],
+    )
+  }
+}
+
+const closedPanel = (h: HtmlBuilder<Message, MountRequirements>): Html =>
+  brandViewResult(
+    h.div([h.OnMount(MeasurePanel())], ['Closed']),
+    'mountPanel/closedPanel',
+  )
+
+const openPanel = (h: HtmlBuilder<Message, MountRequirements>): Html =>
+  brandViewResult(
+    h.div([h.OnMount(MeasurePanel())], ['Open']),
+    'mountPanel/openPanel',
+  )
+
+export const branchedPanelView = (
+  model: Model,
+  h: HtmlBuilder<Message, MountRequirements>,
+): Html =>
+  h.div(
+    [],
+    [
+      model.isOpen ? openPanel(h) : closedPanel(h),
+      h.button([h.OnClick(Message.ClickedToggle())], ['Toggle']),
+    ],
+  )
 
 export const EffectsLayer = Layer.mergeAll(
   MeasurePanel.layer,

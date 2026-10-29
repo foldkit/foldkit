@@ -88,7 +88,7 @@ const isSelectionFactoryPath = (path: ReadonlyArray<string>): boolean => {
       second !== undefined &&
       multiSelectComponents.includes(second) &&
       third === 'Multi' &&
-      fourth === 'create'
+      fourth === 'makeBlock'
     )
   }
   if (third !== undefined) {
@@ -96,17 +96,17 @@ const isSelectionFactoryPath = (path: ReadonlyArray<string>): boolean => {
       second === 'Multi' &&
       first !== undefined &&
       multiSelectComponents.includes(first) &&
-      third === 'create'
+      third === 'makeBlock'
     const isUiNamespaceForm =
       first === 'Ui' &&
       second !== undefined &&
       singleSelectComponents.includes(second) &&
-      third === 'create'
+      third === 'makeBlock'
     return isMultiForm || isUiNamespaceForm
   }
   return (
     first !== undefined &&
-    second === 'create' &&
+    second === 'makeBlock' &&
     singleSelectComponents.includes(first)
   )
 }
@@ -206,7 +206,7 @@ const moduleScopeFactoryMessage = (label: string): string =>
 
 /**
  * Requires every Foldkit UI selection component factory call, such as
- * Listbox.create or Combobox.Multi.create, to be the direct initializer of a
+ * Listbox.makeBlock or Combobox.Multi.makeBlock, to be the direct initializer of a
  * module-scope variable.
  */
 export const selectionBlockFactoryAtModuleScope = Rule.define({

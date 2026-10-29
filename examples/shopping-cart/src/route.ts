@@ -10,6 +10,7 @@ export const ApplicationRoute = defineRouteUnion({
   Checkout: {},
   NotFound: { path: Schema.String },
 })
+export type ApplicationRoute = typeof ApplicationRoute.Type
 
 // ROUTERS
 

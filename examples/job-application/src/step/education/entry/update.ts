@@ -56,10 +56,10 @@ export const update = EducationEntryComposition.makeUpdate({
   ClickedRemoveSelf: makeOutMessageStep(() => OutMessage.Removed()),
 })
 
-export const hasErrors = (entry: typeof Model.Type): boolean =>
+export const hasErrors = (entry: Model): boolean =>
   anyInvalid([entry.school, entry.degree, entry.fieldOfStudy])
 
-export const isComplete = (entry: typeof Model.Type): boolean =>
+export const isComplete = (entry: Model): boolean =>
   allValid([
     [entry.school, schoolRules],
     [entry.degree, degreeRules],

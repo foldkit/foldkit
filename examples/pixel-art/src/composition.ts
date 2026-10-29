@@ -1,5 +1,5 @@
 import { Array, Option } from 'effect'
-import { type Block, Update } from 'foldkit'
+import { type Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { DialogBlock } from '@foldkit/ui'
@@ -21,14 +21,13 @@ import {
   makeNoopStep,
   makeStep,
 } from './definition'
-import { createEmptyGrid, isGridEmpty } from './grid'
-import {
-  Model,
-  type PaletteIndex,
-  type Tool,
-  paletteIndexFromValue,
-} from './model'
+import { paletteIndexFromValue } from './model'
 import { PALETTE_THEMES } from './palette'
+import {
+  requestGridSizeChangeStep,
+  selectColorStep,
+  selectToolStep,
+} from './steps'
 
 export const ErrorDialogBinding = ApplicationDefinition.makeBinding(
   DialogBlock,
@@ -64,23 +63,6 @@ export const GridSizeConfirmDialogBinding = ApplicationDefinition.makeBinding(
   }),
 })
 
-export const selectTool = (
-  model: typeof Model.Type,
-  tool: typeof Tool.Type,
-) => ({
-  model: modifyFields(model, { tool: () => tool }),
-})
-
-export const selectColor = (
-  model: typeof Model.Type,
-  colorIndex: typeof PaletteIndex.Type,
-) => {
-  const nextModel = modifyFields(model, {
-    selectedColorIndex: () => colorIndex,
-  })
-  return { model: nextModel, commands: [saveCanvas(nextModel)] }
-}
-
 export const ToolRadioGroupBinding = ApplicationDefinition.makeBinding(
   ToolRadioGroupBlock,
   {
@@ -89,43 +71,9 @@ export const ToolRadioGroupBinding = ApplicationDefinition.makeBinding(
   },
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ToolRadioGroupBlock, {
-    Selected: ({ value }) => makeStep(model => selectTool(model, value)),
+    Selected: ({ value }) => selectToolStep(value),
   }),
 })
-
-export const applyGridSizeChange = (
-  model: typeof Model.Type,
-  size: number,
-) => ({
-  model: modifyFields(model, {
-    grid: () => createEmptyGrid(size),
-    gridSize: () => size,
-    undoStack: () => [],
-    redoStack: () => [],
-    isDrawing: () => false,
-    maybeHoveredCell: () => Option.none(),
-  }),
-})
-
-export const requestGridSizeChangeStep = (size: number) =>
-  makeStep(model => {
-    if (size === model.gridSize) {
-      return { model }
-    }
-
-    if (isGridEmpty(model.grid)) {
-      return applyGridSizeChange(model, size)
-    }
-
-    const rememberGridSizeStep = makeFieldsStep(() => ({
-      maybePendingGridSize: () => Option.some(size),
-    }))
-
-    return Update.combineSteps([
-      rememberGridSizeStep,
-      GridSizeConfirmDialogBinding.requestOpen(),
-    ])
-  })
 
 export const GridSizeRadioGroupBinding = ApplicationDefinition.makeBinding(
   GridSizeRadioGroupBlock,
@@ -149,9 +97,8 @@ export const PaletteRadioGroupBinding = ApplicationDefinition.makeBinding(
   fold: ApplicationDefinition.makeOutMessageFold(PaletteRadioGroupBlock, {
     Selected: ({ value }) =>
       makeStep(model =>
-        selectColor(
+        selectColorStep(paletteIndexFromValue(value, model.selectedColorIndex))(
           model,
-          paletteIndexFromValue(value, model.selectedColorIndex),
         ),
       ),
   }),

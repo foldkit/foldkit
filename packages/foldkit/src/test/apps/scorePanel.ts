@@ -16,7 +16,6 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({
   ClickedIncrement: {},
 })
-
 export type Message = typeof Message.Type
 
 // INIT

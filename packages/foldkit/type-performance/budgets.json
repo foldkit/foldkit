@@ -14,16 +14,20 @@
       "maxTypesDelta": 389460
     },
     "workspace-composition-4": {
-      "maxInstantiationsDelta": 2639574,
-      "maxTypesDelta": 206314
+      "maxInstantiationsDelta": 2642699,
+      "maxTypesDelta": 229173
     },
     "workspace-composition-8": {
       "maxInstantiationsDelta": 4515010,
-      "maxTypesDelta": 280523
+      "maxTypesDelta": 299721
     },
     "wide-subscriptions-100": {
-      "maxInstantiationsDelta": 548398,
-      "maxTypesDelta": 24566
+      "maxInstantiationsDelta": 548740,
+      "maxTypesDelta": 24583
+    },
+    "machine-search": {
+      "maxInstantiationsDelta": 83700,
+      "maxTypesDelta": 18800
     }
   }
 }

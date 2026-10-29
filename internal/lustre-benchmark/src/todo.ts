@@ -50,7 +50,6 @@ export const Message = defineMessageUnion({
   ClearedCompleted: {},
   SelectedFilter: { filter: Filter },
 })
-
 export type Message = typeof Message.Type
 
 // INIT

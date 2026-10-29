@@ -7,19 +7,28 @@ export {
   IssuePriority,
   IssueRevision,
   IssueStatus,
+  MovedIssue,
   Member,
   Notification,
   NotificationActivity,
   NotificationKind,
   Project,
-  RetainedIssueDraft,
   SavedView,
-  WorkspaceSnapshot,
+  SavedIssue,
+  Workspace,
   issueStatusLabel,
   makeNotifications,
-  mergeIssue,
   moveIssue,
   placeIssue,
-  placeIssueAt,
 } from './domain'
-export { initialSnapshot } from './seed'
+export {
+  applyComment,
+  applyMovedIssue,
+  applySavedIssue,
+  draftFromIssue,
+  mergeIssue,
+  mergeIssues,
+  revisionFromIssue,
+  savedIssueFromIssue,
+} from './issue'
+export { initialWorkspace } from './seed'

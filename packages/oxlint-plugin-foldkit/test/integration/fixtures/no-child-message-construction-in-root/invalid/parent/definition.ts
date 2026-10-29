@@ -9,3 +9,5 @@ export const ParentDefinition = Block.makeDefinition('Parent', {
   Model,
   Message,
 })
+
+export const { makeMapBinding } = ParentDefinition

@@ -1,0 +1,16 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "paths": {
+      "foldkit": ["../src/index.ts"],
+      "foldkit/experimental": ["../src/experimental/public.ts"],
+      "foldkit/experimental/machine": ["../src/experimental/machine/public.ts"],
+      "foldkit/message": ["../src/message/public.ts"],
+      "foldkit/schema": ["../src/schema/public.ts"],
+      "foldkit/struct": ["../src/struct/public.ts"]
+    }
+  },
+  "include": ["../src/vite-env.d.ts", "machine.*.ts"]
+}

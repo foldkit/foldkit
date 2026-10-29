@@ -28,8 +28,8 @@ const detectPlaygroundSupport = (): boolean =>
   !navigator.userAgent.includes('Firefox/')
 
 const loadBrowserEnvironment = Effect.gen(function* () {
-  const themePreference: Option.Option<typeof ThemePreference.Type> =
-    yield* Effect.gen(function* () {
+  const themePreference: Option.Option<ThemePreference> = yield* Effect.gen(
+    function* () {
       const store = yield* LocalStorage
       const json = yield* Effect.fromOption(
         Option.fromNullishOr(yield* store.get(THEME_STORAGE_KEY)),
@@ -38,14 +38,11 @@ const loadBrowserEnvironment = Effect.gen(function* () {
         Schema.fromJsonString(ThemePreference),
       )(json)
       return Option.some(theme)
-    }).pipe(
-      Effect.catch(() =>
-        Effect.succeed(Option.none<typeof ThemePreference.Type>()),
-      ),
-    )
+    },
+  ).pipe(Effect.catch(() => Effect.succeed(Option.none<ThemePreference>())))
 
-  const maybeSidebarState: Option.Option<typeof SidebarState.Type> =
-    yield* Effect.gen(function* () {
+  const maybeSidebarState: Option.Option<SidebarState> = yield* Effect.gen(
+    function* () {
       const store = yield* SessionStorage
       const json = yield* Effect.fromOption(
         Option.fromNullishOr(yield* store.get(SIDEBAR_STORAGE_KEY)),
@@ -53,13 +50,10 @@ const loadBrowserEnvironment = Effect.gen(function* () {
       const state = yield* Schema.decodeEffect(SidebarStateJsonString)(json)
 
       return Option.some(state)
-    }).pipe(
-      Effect.catch(() =>
-        Effect.succeed(Option.none<typeof SidebarState.Type>()),
-      ),
-    )
+    },
+  ).pipe(Effect.catch(() => Effect.succeed(Option.none<SidebarState>())))
 
-  const systemTheme: typeof ResolvedTheme.Type = yield* Effect.sync(() =>
+  const systemTheme: ResolvedTheme = yield* Effect.sync(() =>
     window.matchMedia(DARK_COLOR_SCHEME_QUERY).matches ? 'Dark' : 'Light',
   )
 

@@ -1,0 +1,73 @@
+{
+  "baselineCommit": "f71d3db6cceb3c93943e1e1b65b2719e779168dc",
+  "prototype": {
+    "libraryBuild": "passed",
+    "workspaceTypecheck": "passed",
+    "sourceMapContracts": "passed",
+    "externalDeclarations": [
+      {
+        "config": "emit.json",
+        "status": 0,
+        "output": ""
+      },
+      {
+        "config": "reject.json",
+        "status": 0,
+        "output": ""
+      },
+      {
+        "config": "relocated",
+        "status": 0,
+        "output": ""
+      }
+    ],
+    "runtime": {
+      "files": [
+        "src/block/keyedMapFieldConnection.test.ts",
+        "src/block/insertInitialization.test.ts"
+      ],
+      "tests": 28,
+      "passed": 28
+    },
+    "adopted": false,
+    "reason": "Unchanged Workspace4 and Workspace8 compiler budgets exceeded",
+    "encoding": "receiver-contracts"
+  },
+  "retained": {
+    "libraryBuild": "passed",
+    "sourceMapContracts": "passed",
+    "externalDeclarations": [
+      {
+        "config": "emit.json",
+        "status": 0,
+        "output": ""
+      },
+      {
+        "config": "reject.json",
+        "status": 0,
+        "output": ""
+      },
+      {
+        "config": "relocated",
+        "status": 0,
+        "output": ""
+      }
+    ],
+    "documentationExample": "compiled in strict external emitter",
+    "nativeHover": {
+      "import": "passed",
+      "call": "passed",
+      "documentationSha256": "fd279991aea3b95c26b0110771b54f0a3b3f8a3ea702e442bd9abca8a2cc6b03"
+    },
+    "generatedApiDocumentation": {
+      "passed": true,
+      "entry": "MapBinding.makeMapBinding",
+      "documentationSha256": "d1aa7c3ded23037283cb71d50b38a5638757f6902dd5ed059b9bb8dc3f242c07"
+    }
+  },
+  "limits": [
+    "The compiler fixtures were unchanged; candidate safety probes were scoped rather than exhaustive.",
+    "The exact older parent-specialized property patch and paired raw metrics were not recovered.",
+    "Editor results are short native TypeScript sessions, not tsrs, long-session or renderer measurements."
+  ]
+}

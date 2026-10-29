@@ -1,6 +1,107 @@
 # Next preview release handoff
 
-## Latest preparation checkpoint
+## Approved follow-up after the frozen review
+
+The user requested adoption work for Model-aware general `makeStep` Message
+inference and `Scene.unhover` after the `564adb49e9` review. These are currently
+implemented and verified in source, relocated declarations and paired editor
+workflows. [Follow-up evidence](step-inference-unhover-20261029.md). The exact
+`d35d3ceb7a` follow-up now passes independent review, an approved Daybreak
+addendum and a fresh nine-package build/pack rehearsal. [Final scope and receipts](preview-followup-final-20261029.md).
+Earlier full installed-app and browser results retain their source pins.
+
+The user explicitly deferred #1662's OutMessage propagation and #1663's derived
+view slots until after Blocks + Effect Layers merges to main. Neither is a
+requirement for this preview. Publication remains held for separate approval.
+
+## Current release documentation scope, October 28
+
+Include Machine, Query/KeyedQuery and VirtualList in the next preview update,
+PR release notes and announcement handoff. The user has superseded the earlier
+instruction to omit VirtualList from the PR description and next X post.
+
+The next preview also standardizes generic UI Block factories as `makeBlock`.
+Selection components and VirtualList replace `create`; Toast replaces `make`.
+Type parameters and Schema arguments remain unchanged. Include this required
+rename in the upgrade instructions for affected consumers.
+
+Effect peers accept the tested `4.0.0 || 4.0.6` versions, covered by packed
+consumer compatibility checks. Unverified releases are excluded; development
+and application pins are unchanged.
+The Node adapter also pins platform-node-shared 4.0.0 to preserve the Effect
+floor. [Platform constraints and evidence](effect-peer-compatibility-20261028.md).
+
+Active source, examples, scaffold templates and guidance now use same-named
+decoded type aliases immediately after their Schemas. This is an authoring
+convention, not a required consumer API migration. Schema arguments retain
+`typeof Foo`, and generic or recursive contracts retain their precise types.
+[Repo-wide adoption and verification](schema-type-alias-adoption-20261028.md).
+
+Machine's Schema-bound Definition and checked completion test authoring
+consistency with Blocks. Query/KeyedQuery lifecycle capabilities and VirtualList
+history, external scroll ownership and layouts are additional features carried
+on this branch for `foldkit-domains`; they are not prerequisites for adopting
+Blocks + Effect Layers. The domains application migration remains separate.
+
+The [preview upgrade guide](../packages/website/src/page/previewUpgrade.md#upgrade-from-f3be22cfeefe)
+covers the new APIs and affected migrations. Detailed implementation and
+verification are recorded in the [Machine report](machine-authoring-20261027.md),
+[VirtualList report](virtual-list-preview-integration-20261027.md) and
+[Query report](keyed-query-capabilities-20261028.md).
+
+The [October 28 feedback integration](preview-feedback-integration-20261028.md)
+adds contextual update inference repairs, large-Root registration-evidence
+extraction, SSR development reload/disposal, renderer-aligned Scene Mounts,
+Runtime cleanup and entry-owned Subscription gates/activity assertions. The
+mixed-result inferred-`any` report remains unconfirmed after bounded regression
+probes; do not announce it as fixed or close it from this evidence alone.
+
+The [final preparation](preview-final-prep-20261028.md) repairs the Website's
+Playground declaration collection and lazy loading, verifies ordinary development
+SSR, and records the bounded inferred-`any` disposition. The final nine-package
+consumer rehearsal and Website checks pass at reviewed source `564adb49e9`.
+The [completed Daybreak review](preview-daybreak-20261028.md) returns PASS for
+that same source after the user approved the transfer. Dependency findings and
+review limits remain explicit. Publication awaits separate release approval.
+
+Publication stays held for approval. Preserve the PR's three starting paths,
+user-authored content and verified Ready snapshot. Link the updated guide to
+the matching verified deployment when publishing the next preview; local
+documentation changes do not advance the published snapshot.
+
+## Current stabilization preparation, October 27
+
+The subsequent [Message-only Step adapter](message-step-adapter-20261027.md)
+adds optional `makeStep.fromMessage`, repairs invalid-union validation in both
+general Step forms, and migrates the two eligible consumers. Its source,
+declaration, runtime, lint, compiler and editor evidence supplements the earlier
+release checkpoints. Publication and integration remain held for approval.
+
+The [SSG stabilization addendum](preview-stabilization-1811-20261027.md) owns
+the latest #1811 repair at `f15fa164624130f1773be20aac9090a9d1e2a9dc`,
+with affected source, packed-plugin, browser and review verification. The
+[preceding summary](preview-stabilization-final-20261027.md) retains the full
+change inventory and 93c source/performance evidence. The late #1810 report is assessed:
+preservation recovery and paired troubleshooting examples are implemented;
+missing-handler diagnostic priority remains a disclosed limitation.
+Publication and release-branch integration remain held for approval. The
+published snapshot below remains current; older preparation sections retain
+their historical source pins and states.
+
+## Verified published snapshot
+
+The published snapshot is `f3be22cfeefed437164ad614d08b16d9000e0703`.
+Its authoritative nine-package manifest, immutable Website, actual Coverchart
+upgrade and retained qualifications are recorded in the
+[October 26 publication report](preview-publication-20261026.md). The generated
+PR #1655 handoff is posted and read back after this evidence commit.
+
+The release was integrated only into `codex/layers-and-submodels`; Foldkit
+`main` was not changed. Sections below preserve their original preparation
+state, local artifact labels and evidence pins. They are historical context,
+not current installation instructions.
+
+## Historical preparation checkpoint
 
 Use the [October 26 approval summary](preview-approval-20261026.md) for frozen
 implementation `f5506b7e240a4d8987338f22427a2bd1ecdf9cb5` and local package

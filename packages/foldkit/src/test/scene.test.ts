@@ -124,9 +124,20 @@ import {
   Message as MountPanelMessage,
   type Model as MountPanelModel,
   ScrollList,
+  makeCachedLazyPanelView as makeMountCachedLazyPanelView,
+  makeLazySharedPanelView as makeMountLazySharedPanelView,
+  makeReusedScrollListView as makeMountReusedScrollListView,
+  branchedPanelView as mountBranchedPanelView,
+  droppedFirstScrollListView as mountDroppedFirstScrollListView,
   initialModel as mountInitialModel,
+  keyedAncestorScrollListView as mountKeyedAncestorScrollListView,
+  keyedScrollListView as mountKeyedScrollListView,
   Mounts as mountPanelMounts,
+  reorderedScrollListView as mountReorderedScrollListView,
   scrollListView as mountScrollListView,
+  sharedPanelView as mountSharedPanelView,
+  switchedMountView as mountSwitchedMountView,
+  toggledMountView as mountToggledMountView,
   twoPanelView as mountTwoPanelView,
   update as mountUpdate,
   view as mountView,
@@ -2663,15 +2674,51 @@ describe('scene with extra interactions', () => {
     )
   })
 
-  test('hover fires mouseenter handler', () => {
+  test('hover and unhover dispatch their primary handlers within a scope', () => {
     Scene.scene(
       { update: interactionsUpdate, view: interactionsView },
       Scene.given(interactionsInitialModel),
       Scene.hover(Scene.label('action')),
-      Scene.tap(({ html }) => {
-        expect(html).toBeDefined()
-      }),
+      Scene.expect(Scene.label('action')).toContainText('hovered=true'),
+      Scene.inside(
+        Scene.role('region', { name: 'Interaction scope' }),
+        Scene.unhover(Scene.label('action')),
+        Scene.expect(Scene.label('action')).toContainText(
+          'hovered=false source=MouseLeave',
+        ),
+      ),
     )
+  })
+
+  test('unhover falls back to mouseout when the target has no mouseleave handler', () => {
+    Scene.scene(
+      { update: interactionsUpdate, view: interactionsView },
+      Scene.given(interactionsInitialModel),
+      Scene.hover(Scene.label('badge')),
+      Scene.expect(Scene.label('badge')).toContainText('badge hovered=true'),
+      Scene.unhover(Scene.label('badge')),
+      Scene.expect(Scene.label('badge')).toContainText('badge hovered=false'),
+    )
+  })
+
+  test('unhover reports a missing OnMouseLeave attribute when neither handler exists', () => {
+    expect(() =>
+      Scene.scene(
+        { update: interactionsUpdate, view: interactionsView },
+        Scene.given(interactionsInitialModel),
+        Scene.unhover(Scene.label('name')),
+      ),
+    ).toThrow(/no mouseleave handler[\s\S]*OnMouseLeave/)
+  })
+
+  test('unhover reports a missing target before inspecting handlers', () => {
+    expect(() =>
+      Scene.scene(
+        { update: interactionsUpdate, view: interactionsView },
+        Scene.given(interactionsInitialModel),
+        Scene.unhover(Scene.label('missing')),
+      ),
+    ).toThrow('I could not find an element matching label "missing"')
   })
 
   test('focus fires focus handler; blur fires blur handler', () => {
@@ -3309,6 +3356,7 @@ const silentFeedSubscriptions = SubscriptionDefinition.make<
 const PositiveCount = Schema.Int.check(
   Schema.isBetween({ minimum: 1, maximum: 10 }),
 )
+type PositiveCount = typeof PositiveCount.Type
 
 const PayloadMessage = defineMessageUnion({
   ReceivedCount: { count: PositiveCount },
@@ -3333,6 +3381,7 @@ const SmallPositiveReceivedCount = Schema.Struct({
   _tag: Schema.Literal('ReceivedCount'),
   count: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 5 })),
 })
+type SmallPositiveReceivedCount = typeof SmallPositiveReceivedCount.Type
 
 const overlappingPayloadSubscriptions = SubscriptionDefinition.make<
   CounterModel,
@@ -4258,7 +4307,6 @@ const InteractionMessage = defineMessageUnion({
   ReceivedRowSignal: {},
   ObservedBackgroundActivity: {},
 })
-
 type InteractionMessage = typeof InteractionMessage.Type
 
 const InteractionOutMessage = defineMessageUnion({
@@ -4268,7 +4316,6 @@ const InteractionOutMessage = defineMessageUnion({
   RequestedSelection: {},
   RequestedSubmission: {},
 })
-
 type InteractionOutMessage = typeof InteractionOutMessage.Type
 
 const multipleOutMessagesUpdate = (
@@ -4385,7 +4432,7 @@ const multipleMountOutMessagesUpdate = (
 
 describe('Scene OutMessage assertions', () => {
   test('retains the explicit generic call shape', () => {
-    Scene.scene<CounterModel, typeof CounterMessage.Type>(
+    Scene.scene<CounterModel, CounterMessage>(
       { update: counterUpdate, view: counterView },
       Scene.given(counterInitialModel),
     )
@@ -4426,22 +4473,20 @@ describe('Scene OutMessage assertions', () => {
   })
 
   test('validates the data-first update contract', () => {
-    const missingModel = (
-      _model: CounterModel,
-      _message: typeof CounterMessage.Type,
-    ) => ({ status: 'Done' })
-    const wrongModel = (
-      _model: CounterModel,
-      _message: typeof CounterMessage.Type,
-    ) => ({ model: { status: 'Done' } })
+    const missingModel = (_model: CounterModel, _message: CounterMessage) => ({
+      status: 'Done',
+    })
+    const wrongModel = (_model: CounterModel, _message: CounterMessage) => ({
+      model: { status: 'Done' },
+    })
     const requiredContext = (
       model: CounterModel,
-      _message: typeof CounterMessage.Type,
+      _message: CounterMessage,
       _context: string,
     ) => ({ model })
     const optionalContext = (
       model: CounterModel,
-      _message: typeof CounterMessage.Type,
+      _message: CounterMessage,
       _context?: string,
     ) => ({ model })
 
@@ -5611,6 +5656,196 @@ describe('scene mounts', () => {
         Scene.Mount.expectNone(),
       ),
     ).toThrow(/Expected no Mounts/)
+  })
+
+  test('a keyed element whose key changes ends its Mount and starts a new one', () => {
+    Scene.scene(
+      { update: mountUpdate, view: mountKeyedScrollListView },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolve(
+        ScrollList({ offset: 0 }),
+        MountPanelMessage.ScrolledTo({ offset: 0 }),
+      ),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectEnded(ScrollList({ offset: 0 })),
+      Scene.Mount.expectExact(ScrollList({ offset: 1 })),
+      Scene.Mount.resolve(
+        ScrollList({ offset: 1 }),
+        MountPanelMessage.ScrolledTo({ offset: 1 }),
+      ),
+    )
+  })
+
+  test('a Mount under a keyed ancestor whose key changes ends and starts again', () => {
+    Scene.scene(
+      { update: mountUpdate, view: mountKeyedAncestorScrollListView },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolve(
+        ScrollList({ offset: 0 }),
+        MountPanelMessage.ScrolledTo({ offset: 0 }),
+      ),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectEnded(ScrollList({ offset: 0 })),
+      Scene.Mount.expectExact(ScrollList({ offset: 1 })),
+      Scene.Mount.resolve(
+        ScrollList({ offset: 1 }),
+        MountPanelMessage.ScrolledTo({ offset: 1 }),
+      ),
+    )
+  })
+
+  test('removing one keyed same-named Mount ends the removed element', () => {
+    Scene.scene(
+      { update: mountUpdate, view: mountDroppedFirstScrollListView },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolveAll(
+        [
+          ScrollList({ offset: 1 }),
+          MountPanelMessage.ScrolledTo({ offset: 1 }),
+        ],
+        [
+          ScrollList({ offset: 2 }),
+          MountPanelMessage.ScrolledTo({ offset: 2 }),
+        ],
+      ),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectEnded(ScrollList({ offset: 1 })),
+      Scene.Mount.expectNone(),
+    )
+  })
+
+  test('reordering keyed elements keeps each Mount', () => {
+    Scene.scene(
+      { update: mountUpdate, view: mountReorderedScrollListView },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolveAll(
+        [
+          ScrollList({ offset: 1 }),
+          MountPanelMessage.ScrolledTo({ offset: 1 }),
+        ],
+        [
+          ScrollList({ offset: 2 }),
+          MountPanelMessage.ScrolledTo({ offset: 2 }),
+        ],
+        [
+          ScrollList({ offset: 3 }),
+          MountPanelMessage.ScrolledTo({ offset: 3 }),
+        ],
+        [
+          ScrollList({ offset: 4 }),
+          MountPanelMessage.ScrolledTo({ offset: 4 }),
+        ],
+      ),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectNone(),
+    )
+  })
+
+  test('a patched element keeps its Mount when its OnMount is dropped and restored', () => {
+    Scene.scene(
+      { update: mountUpdate, view: mountToggledMountView },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolve(
+        MeasurePanel,
+        MountPanelMessage.MeasuredPanel({ width: 1 }),
+      ),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectNone(),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectNone(),
+    )
+  })
+
+  test('a patched element keeps the Mount it was inserted with when OnMount changes', () => {
+    Scene.scene(
+      { update: mountUpdate, view: mountSwitchedMountView },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolve(
+        MeasurePanel,
+        MountPanelMessage.MeasuredPanel({ width: 1 }),
+      ),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectNone(),
+    )
+  })
+
+  test('switching view functions with the same element tag replaces the Mount', () => {
+    Scene.scene(
+      { update: mountUpdate, view: mountBranchedPanelView },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolve(
+        MeasurePanel,
+        MountPanelMessage.MeasuredPanel({ width: 1 }),
+      ),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectEnded(MeasurePanel),
+      Scene.Mount.expectExact(MeasurePanel),
+      Scene.Mount.resolve(
+        MeasurePanel,
+        MountPanelMessage.MeasuredPanel({ width: 2 }),
+      ),
+    )
+  })
+
+  test('a shared Mount VNode at two positions retains both element instances', () => {
+    Scene.scene(
+      { update: mountUpdate, view: mountSharedPanelView },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolveAll(
+        [MeasurePanel, MountPanelMessage.MeasuredPanel({ width: 1 })],
+        [MeasurePanel, MountPanelMessage.MeasuredPanel({ width: 2 })],
+      ),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectNone(),
+    )
+  })
+
+  test('a shared Mount VNode inside and outside a lazy view retains both instances', () => {
+    Scene.scene(
+      { update: mountUpdate, view: makeMountLazySharedPanelView() },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolveAll(
+        [MeasurePanel, MountPanelMessage.MeasuredPanel({ width: 1 })],
+        [MeasurePanel, MountPanelMessage.MeasuredPanel({ width: 2 })],
+      ),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectNone(),
+    )
+  })
+
+  test('a lazy cache hit keeps its Mount when a sibling is inserted', () => {
+    Scene.scene(
+      { update: mountUpdate, view: makeMountCachedLazyPanelView() },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolve(
+        MeasurePanel,
+        MountPanelMessage.MeasuredPanel({ width: 1 }),
+      ),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectNone(),
+    )
+  })
+
+  test('a VNode reused from a prior render creates a new element when inserted twice', () => {
+    Scene.scene(
+      { update: mountUpdate, view: makeMountReusedScrollListView() },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolve(
+        ScrollList({ offset: 1 }),
+        MountPanelMessage.ScrolledTo({ offset: 1 }),
+      ),
+      Scene.click(Scene.role('button', { name: 'Insert' })),
+      Scene.Mount.expectExact(ScrollList({ offset: 1 })),
+      Scene.Mount.resolve(
+        ScrollList({ offset: 1 }),
+        MountPanelMessage.ScrolledTo({ offset: 1 }),
+      ),
+      Scene.click(Scene.role('button', { name: 'Remove' })),
+      Scene.Mount.expectEnded(
+        ScrollList({ offset: 1 }),
+        ScrollList({ offset: 1 }),
+      ),
+    )
   })
 
   test('resolveMount feeds the result Message through update', () => {

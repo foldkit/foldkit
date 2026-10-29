@@ -74,6 +74,7 @@ const Child: Block.FromAssemblyWithView<
 > = Block.assemble(prepareChild)
 
 const ParentModel = Schema.Struct({ child: ChildModel })
+type ParentModel = typeof ParentModel.Type
 const Parent = makeDefinition('StagedParent', {
   Model: ParentModel,
   Message: Schema.Never,
@@ -150,6 +151,7 @@ if (false) {
   })
 
   const ForeignModel = Schema.Struct({ unrelated: Schema.String })
+  type ForeignModel = typeof ForeignModel.Type
 
   makeNamespace('StagedForeignModelParent')
     .makeDefinition({

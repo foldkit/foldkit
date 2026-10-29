@@ -7,6 +7,7 @@ import { describe, it } from '@effect/vitest'
 import { PopoverBlock } from './block.js'
 
 const Model = Schema.Struct({ popover: PopoverBlock.Model })
+type Model = typeof Model.Type
 const PopoverTriggerClickTestDefinition = Block.makeDefinition(
   'PopoverTriggerClickTest',
   {

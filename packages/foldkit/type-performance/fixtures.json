@@ -23,6 +23,10 @@
     {
       "name": "workspace-composition-8",
       "file": "workspace-composition-8.ts"
+    },
+    {
+      "name": "machine-search",
+      "file": "machine-search.ts"
     }
   ]
 }

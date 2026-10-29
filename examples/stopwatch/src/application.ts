@@ -22,6 +22,7 @@ export const Model = Schema.Struct({
   isRunning: Schema.Boolean,
   startTime: Schema.Number,
 })
+export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ClickedStart: {},
@@ -31,6 +32,7 @@ export const Message = defineMessageUnion({
   Ticked: {},
   CompletedDetermineTickTime: { elapsedMs: Schema.Number },
 })
+export type Message = typeof Message.Type
 
 export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
@@ -122,24 +124,17 @@ export const init = ApplicationComposition.makeInit(() => ({
 }))
 
 export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
-  stopwatchTicks: entry(
-    'StopwatchTicks',
-    { isRunning: Schema.Boolean },
-    {
-      messages: [Message.Ticked],
-      modelToDependencies: model => ({ isRunning: model.isRunning }),
-      handler: function* () {
-        return ({ isRunning }) =>
-          Stream.when(
-            Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
-              Stream.drop(1),
-              Stream.map(Message.Ticked),
-            ),
-            Effect.sync(() => isRunning),
-          )
-      },
+  stopwatchTicks: entry('StopwatchTicks', {
+    messages: [Message.Ticked],
+    when: model => model.isRunning,
+    handler: function* () {
+      return () =>
+        Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
+          Stream.drop(1),
+          Stream.map(Message.Ticked),
+        )
     },
-  ),
+  }),
 }))
 
 export const EffectsLayer = Layer.mergeAll(

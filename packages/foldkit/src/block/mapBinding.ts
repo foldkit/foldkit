@@ -1,8 +1,7 @@
-import { Predicate, Schema } from 'effect'
+import type { Schema } from 'effect'
 
 import type { BindChild, BindChildConstructorResult } from './bindChild.js'
 import type { BindableBlock, BindingStorageEvidence } from './binding.js'
-import { runtimeBindingOf } from './composition.js'
 import type { InstanceKey } from './instanceContext.js'
 import type {
   KeyedMapField,
@@ -38,35 +37,6 @@ type ChildUpdateContext<BlockValue extends BindableBlock> =
   ]
     ? Context
     : readonly []
-
-type MapBindingDefinition = Readonly<{
-  Model: AnySchema
-  Message: AnySchema
-  OutMessage?: AnySchema
-  ChildInitContext?: AnySchema
-}>
-
-type OutMessageSchemaOfDefinition<DefinitionValue> =
-  DefinitionValue extends Readonly<{
-    OutMessage: infer OutMessageSchema extends AnySchema
-  }>
-    ? OutMessageSchema
-    : undefined
-
-type ChildInitContextOfDefinition<DefinitionValue> =
-  DefinitionValue extends Readonly<{
-    ChildInitContext: infer ChildInitContextSchema extends AnySchema
-  }>
-    ? ChildInitContextSchema['Type']
-    : never
-
-type BindChildOfDefinition<DefinitionValue extends MapBindingDefinition> =
-  BindChild<
-    DefinitionValue['Model'],
-    DefinitionValue['Message'],
-    OutMessageSchemaOfDefinition<DefinitionValue>,
-    ChildInitContextOfDefinition<DefinitionValue>
-  >
 
 type MapBindingConfigKey =
   | 'field'
@@ -257,49 +227,42 @@ type ResultConfig<
     }>
   >
 
-/** Creates a keyed child Binding over an exact required Record or Effect
- * HashMap field owned by the supplied parent Definition.
- *
- * Add `childField` when each map value is a closed parent-owned Struct wrapping
- * the exact child Model. Placement defaults to `field`. Map membership controls
- * occurrence presence, while `subscriptions` gates only Subscription Streams.
- * Insertion remains parent-owned through `initAndInsert` from
- * `foldkit/bindingInit` for direct child values, or the returned Binding's
- * explicit `init` operation for wrapper metadata and mixed transitions. This
- * dedicated subpath keeps its Schema-derived generic
- * surface isolated from ordinary Binding type checking. */
-export interface MakeMapBinding {
+/** Call signature for `Definition.makeMapBinding`. See {@link Definition} for
+ * the owned constructor's storage and initialization contract. */
+export interface MakeMapBinding<
+  ParentModelSchema extends AnySchema,
+  ParentMessageSchema extends AnySchema,
+  ParentOutMessageSchema extends AnySchema | undefined,
+  ParentChildInitContext = never,
+> {
   <
-    const DefinitionValue extends MapBindingDefinition,
     const BlockValue extends BindableBlock,
     const Keys extends MapBindingConfigKey,
     const Field extends string,
     const ChildField extends string,
     const Source extends object,
   >(
-    definition: DefinitionValue &
-      Readonly<{ makeBinding: BindChildOfDefinition<DefinitionValue> }>,
     block: BlockValue,
     config: Source &
       Readonly<{ outMessage?: never }> &
       ContextualProperties<
         Keys,
         BlockValue,
-        DefinitionValue['Model'],
+        ParentModelSchema,
         Field,
         ChildField
       > &
       Readonly<{
         field: Field &
-          ValidField<BlockValue, DefinitionValue['Model'], Keys, ChildField>
+          ValidField<BlockValue, ParentModelSchema, Keys, ChildField>
         childField?: ChildField
       }> &
       ([BlockValue['Message']['Type']] extends [never]
         ? Readonly<{ delivery?: never }>
         : DeliveryRequirement<
             BlockValue,
-            DefinitionValue['Model']['Type'],
-            KeyFor<DefinitionValue['Model'], Field>
+            ParentModelSchema['Type'],
+            KeyFor<ParentModelSchema, Field>
           >),
     ...validation: readonly [
       ...ValidateConfig<BlockValue, NoInfer<Keys>, NoInfer<Source>>,
@@ -307,43 +270,42 @@ export interface MakeMapBinding {
     ]
   ): BindChildConstructorResult<
     BlockValue,
-    DefinitionValue['Model'],
-    DefinitionValue['Message'],
-    OutMessageSchemaOfDefinition<DefinitionValue>,
-    ResultConfig<Source, DefinitionValue['Model'], Field>,
-    ChildInitContextOfDefinition<DefinitionValue>
+    ParentModelSchema,
+    ParentMessageSchema,
+    ParentOutMessageSchema,
+    ResultConfig<Source, ParentModelSchema, Field>,
+    ParentChildInitContext
   >
 }
 
-/** Creates a keyed child Binding from a parent Definition's required Record or
- * Effect HashMap field. */
-export const makeMapBinding = ((): MakeMapBinding =>
+/** @internal Creates a passive parent-owned map Binding constructor. */
+export const makeMapBinding = <
+  ParentModelSchema extends AnySchema,
+  ParentMessageSchema extends AnySchema,
+  ParentOutMessageSchema extends AnySchema | undefined,
+  ParentChildInitContext = never,
+>(
+  makeBinding: BindChild<
+    ParentModelSchema,
+    ParentMessageSchema,
+    ParentOutMessageSchema,
+    ParentChildInitContext
+  >,
+): MakeMapBinding<
+  ParentModelSchema,
+  ParentMessageSchema,
+  ParentOutMessageSchema,
+  ParentChildInitContext
+> =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  ((definition: object, block: BindableBlock, config: object): unknown => {
-    const makeBinding = Reflect.get(definition, 'makeBinding')
-    if (!Predicate.isFunction(makeBinding)) {
-      throw new Error(
-        '[foldkit] makeMapBinding requires a parent Definition with makeBinding.',
-      )
-    }
-
-    const binding = Reflect.apply(makeBinding, definition, [
+  ((block: BindableBlock, config: object): unknown => {
+    return Reflect.apply(makeBinding, undefined, [
       block,
       asKeyedMapBindingConfig(config),
     ])
-    if (!Predicate.isObject(binding)) {
-      throw new Error(
-        '[foldkit] makeMapBinding requires a parent Definition whose makeBinding method returns a native child Binding.',
-      )
-    }
-
-    try {
-      runtimeBindingOf(binding)
-    } catch {
-      throw new Error(
-        '[foldkit] makeMapBinding requires a parent Definition whose makeBinding method returns a native child Binding.',
-      )
-    }
-
-    return binding
-  }) as unknown as MakeMapBinding)()
+  }) as unknown as MakeMapBinding<
+    ParentModelSchema,
+    ParentMessageSchema,
+    ParentOutMessageSchema,
+    ParentChildInitContext
+  >

@@ -17,7 +17,7 @@ const urlOrThrow = (raw: string) =>
     () => new Error(`Failed to parse url: ${raw}`),
   )
 
-const modelOn = (route: typeof ApplicationRoute.Type): typeof Model.Type =>
+const modelOn = (route: ApplicationRoute): Model =>
   Model.make({
     route,
     transitionLog: [],

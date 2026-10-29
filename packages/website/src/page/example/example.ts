@@ -33,6 +33,8 @@ import {
   loadSourcesForSlug,
 } from './sources'
 
+type SourceFileTabsBlockModel = typeof SourceFileTabsBlock.Model.Type
+
 export { Message } from './message'
 export { CurrentSourcesAsyncData, Model } from './model'
 
@@ -76,7 +78,7 @@ const isSourceAvailable = (slug: string): boolean =>
     onSome: meta => meta.livePreview !== 'Unavailable',
   })
 
-const maybeFirstSourceFilePath = (sources: typeof ExampleSources.Type) =>
+const maybeFirstSourceFilePath = (sources: ExampleSources) =>
   pipe(
     sources.files,
     Array.head,
@@ -86,9 +88,7 @@ const maybeFirstSourceFilePath = (sources: typeof ExampleSources.Type) =>
 export const init = ExampleDetailComposition.makeInit(
   (
     maybeInitialSlug: Option.Option<string> = Option.none(),
-    maybeExampleSources: Option.Option<
-      typeof ExampleSources.Type
-    > = Option.none(),
+    maybeExampleSources: Option.Option<ExampleSources> = Option.none(),
   ) => {
     const initialFields = {
       maybeActiveSourceFilePath: Option.none(),
@@ -411,8 +411,8 @@ const TAB_BUTTON_INACTIVE =
 
 const sourceCodeView = (
   exampleSlug: string,
-  files: ReadonlyArray<typeof ExampleSourceFile.Type>,
-  tabsModel: typeof SourceFileTabsBlock.Model.Type,
+  files: ReadonlyArray<ExampleSourceFile>,
+  tabsModel: SourceFileTabsBlockModel,
   activeSourceFilePath: string,
   isNarrowViewport: boolean,
   renderSnippet: CodeBlock.RenderSnippet,
@@ -566,7 +566,7 @@ const sourcesFailureView = (error: string): Html =>
   )
 
 const availableExampleContentView = (
-  model: typeof Model.Type,
+  model: Model,
   meta: ExampleMeta,
   slug: string,
   isNarrowViewport: boolean,

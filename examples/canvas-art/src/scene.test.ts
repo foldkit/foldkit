@@ -4,7 +4,7 @@ import { describe, test } from 'vitest'
 
 import { type Model, update, view } from './application'
 
-const emptyModel: typeof Model.Type = {
+const emptyModel: Model = {
   balls: [],
   nextId: 0,
   isRunning: true,
@@ -34,7 +34,7 @@ describe('view', () => {
   })
 
   test('the ball count reflects spawned balls in the Model', () => {
-    const populatedModel: typeof Model.Type = modifyFields(emptyModel, {
+    const populatedModel: Model = modifyFields(emptyModel, {
       balls: () => [
         { id: 0, x: 10, y: 20, vx: 1, vy: 1, radius: 8, color: '#ff2d55' },
         { id: 1, x: 30, y: 40, vx: -1, vy: 1, radius: 12, color: '#5ac8fa' },
@@ -51,7 +51,7 @@ describe('view', () => {
   })
 
   test('Clear empties the rendered ball count', () => {
-    const populatedModel: typeof Model.Type = modifyFields(emptyModel, {
+    const populatedModel: Model = modifyFields(emptyModel, {
       balls: () => [
         { id: 0, x: 10, y: 20, vx: 1, vy: 1, radius: 8, color: '#ff2d55' },
       ],

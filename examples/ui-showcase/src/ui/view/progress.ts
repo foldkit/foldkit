@@ -4,6 +4,8 @@ import { Progress } from '@foldkit/ui'
 
 import { UiComposition } from '../composition'
 
+type UiMessage = typeof UiComposition.Message.Type
+
 const rowClassName = 'flex flex-col gap-2 w-full max-w-sm'
 const headerClassName = 'flex items-center justify-between text-sm'
 const labelClassName = 'font-medium text-gray-900'
@@ -17,7 +19,7 @@ export const view = UiComposition.makeView((_model, h) => {
     label,
     track,
     indicator,
-  }: Progress.ProgressAttributes<typeof UiComposition.Message.Type>): Html =>
+  }: Progress.ProgressAttributes<UiMessage>): Html =>
     h.div(
       [h.Class(rowClassName)],
       [
@@ -44,7 +46,7 @@ export const view = UiComposition.makeView((_model, h) => {
     progress,
     label,
     indicator,
-  }: Progress.ProgressAttributes<typeof UiComposition.Message.Type>): Html =>
+  }: Progress.ProgressAttributes<UiMessage>): Html =>
     h.div(
       [h.Class(rowClassName)],
       [

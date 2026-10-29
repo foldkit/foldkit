@@ -3,32 +3,28 @@ import { Array, Equal, Option, pipe } from 'effect'
 import { MAX_HISTORY } from './constant'
 import type { Cell, Grid, MirrorMode, PaletteIndex } from './model'
 
-export const isGridEmpty = (grid: typeof Grid.Type): boolean =>
+export const isGridEmpty = (grid: Grid): boolean =>
   grid.every(row => row.every(Option.isNone))
 
-export const getCell = (
-  grid: typeof Grid.Type,
-  x: number,
-  y: number,
-): typeof Cell.Type =>
+export const getCell = (grid: Grid, x: number, y: number): Cell =>
   pipe(
     grid,
     Array.get(y),
     Option.flatMap(Array.get(x)),
-    Option.getOrElse(() => Option.none<typeof PaletteIndex.Type>()),
+    Option.getOrElse(() => Option.none<PaletteIndex>()),
   )
 
-export const createEmptyGrid = (size: number): typeof Grid.Type =>
+export const createEmptyGrid = (size: number): Grid =>
   Array.makeBy(size, () =>
-    Array.makeBy(size, () => Option.none<typeof PaletteIndex.Type>()),
+    Array.makeBy(size, () => Option.none<PaletteIndex>()),
   )
 
 export const setPixel = (
-  grid: typeof Grid.Type,
+  grid: Grid,
   x: number,
   y: number,
-  colorIndex: typeof PaletteIndex.Type,
-): typeof Grid.Type =>
+  colorIndex: PaletteIndex,
+): Grid =>
   Array.map(grid, (row, rowIndex) =>
     rowIndex === y
       ? Array.map(row, (cell, colIndex) =>
@@ -38,19 +34,15 @@ export const setPixel = (
   )
 
 export const setPixels = (
-  grid: typeof Grid.Type,
+  grid: Grid,
   positions: ReadonlyArray<readonly [number, number]>,
-  colorIndex: typeof PaletteIndex.Type,
-): typeof Grid.Type =>
+  colorIndex: PaletteIndex,
+): Grid =>
   Array.reduce(positions, grid, (currentGrid, [positionX, positionY]) =>
     setPixel(currentGrid, positionX, positionY, colorIndex),
   )
 
-export const erasePixel = (
-  grid: typeof Grid.Type,
-  x: number,
-  y: number,
-): typeof Grid.Type =>
+export const erasePixel = (grid: Grid, x: number, y: number): Grid =>
   Array.map(grid, (row, rowIndex) =>
     rowIndex === y
       ? Array.map(row, (cell, colIndex) =>
@@ -60,9 +52,9 @@ export const erasePixel = (
   )
 
 export const erasePixels = (
-  grid: typeof Grid.Type,
+  grid: Grid,
   positions: ReadonlyArray<readonly [number, number]>,
-): typeof Grid.Type =>
+): Grid =>
   Array.reduce(positions, grid, (currentGrid, [positionX, positionY]) =>
     erasePixel(currentGrid, positionX, positionY),
   )
@@ -71,7 +63,7 @@ export const getMirroredPositions = (
   x: number,
   y: number,
   gridSize: number,
-  mirrorMode: typeof MirrorMode.Type,
+  mirrorMode: MirrorMode,
 ): ReadonlyArray<readonly [number, number]> => {
   const mirrorX = gridSize - 1 - x
   const mirrorY = gridSize - 1 - y
@@ -100,13 +92,13 @@ export const getMirroredPositions = (
 }
 
 export const floodFill = (
-  grid: typeof Grid.Type,
+  grid: Grid,
   startX: number,
   startY: number,
-  fillColorIndex: typeof PaletteIndex.Type,
-): typeof Grid.Type => {
+  fillColorIndex: PaletteIndex,
+): Grid => {
   const targetCell = getCell(grid, startX, startY)
-  const fillCell: typeof Cell.Type = Option.some(fillColorIndex)
+  const fillCell: Cell = Option.some(fillColorIndex)
   if (Equal.equals(targetCell, fillCell)) {
     return grid
   }
@@ -137,7 +129,6 @@ export const floodFill = (
 }
 
 export const pushHistory = (
-  stack: ReadonlyArray<typeof Grid.Type>,
-  grid: typeof Grid.Type,
-): ReadonlyArray<typeof Grid.Type> =>
-  Array.takeRight([...stack, grid], MAX_HISTORY)
+  stack: ReadonlyArray<Grid>,
+  grid: Grid,
+): ReadonlyArray<Grid> => Array.takeRight([...stack, grid], MAX_HISTORY)

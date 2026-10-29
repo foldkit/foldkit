@@ -1,0 +1,202 @@
+{
+  "sourceCommit": "f15fa164624130f1773be20aac9090a9d1e2a9dc",
+  "sourceTree": "bcfd547940b480fd3f6f8738f08d224a7ac443be",
+  "sourceFiles": [
+    {
+      "path": ".changeset/fix-prerender-preview-paths.md",
+      "sha256": "d0c24440ca8d778d7b2e19c8d7211e9ba62746b6efa74d3b6e6b8ee9f099000b"
+    },
+    {
+      "path": "packages/create-foldkit-app/templates/rendering/ssg/README.md",
+      "sha256": "fdc3a8070ec9ca260d99d39824140f27844c98426b2782811e0017c36f4bdd07"
+    },
+    {
+      "path": "packages/examples-e2e/e2e/ssg.spec.ts",
+      "sha256": "4c206d6466746fdc365170130cb9a386049267ba14a520da764ccd807d6d8b78"
+    },
+    {
+      "path": "packages/vite-plugin-foldkit/src/ssr.ts",
+      "sha256": "5401ba095a7ac4a5a1429e338b22ecee12fcca9ce8db1f01b0177503a6058603"
+    },
+    {
+      "path": "packages/vite-plugin-foldkit/test/prerenderPreview.test.ts",
+      "sha256": "40e76780aa972b479bd1a42890860e4104d3bfad48ce640935935d03d415692f"
+    },
+    {
+      "path": "packages/website/src/page/core/serverRendering.md",
+      "sha256": "0d11a0bbd0249747a26a4683d43f957e081022e6f99d25d42c9bf0d692d4732e"
+    }
+  ],
+  "tests": {
+    "plugin": {
+      "passed": 350,
+      "existingSkips": 3,
+      "actualPreviewCases": 17,
+      "exitCode": 0,
+      "logSha256": "9b36916c9c3ec407d06478ebc9b70b2c41144ca8ec6948dabe1b73926f289ee6"
+    },
+    "ssgBrowser": {
+      "stats": {
+        "startTime": "2026-10-27T18:04:19.689Z",
+        "duration": 4081.215,
+        "expected": 3,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "cases": [
+        {
+          "id": "7da682d5987ac197cc8a-4df033135f970ad7112b",
+          "title": "loads cleanly",
+          "tests": [
+            {
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "retry": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "7da682d5987ac197cc8a-9f5159d260b8b085fcc6",
+          "title": "serves every generated route without JavaScript",
+          "tests": [
+            {
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "retry": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "7da682d5987ac197cc8a-fd5623324e2120846a2c",
+          "title": "hydrates the generated DOM and navigates as an application",
+          "tests": [
+            {
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "retry": 0
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "sourceSha256": "4c206d6466746fdc365170130cb9a386049267ba14a520da764ccd807d6d8b78"
+    },
+    "website": {
+      "passed": 1500,
+      "exitCode": 0,
+      "logSha256": "db8fbd136953f707cab4c2c21ddd3f2149e7788564037a263b937db1a86851db",
+      "scope": "Same guide revision; execution preceded the final client-output expression amendment. No new exact-whole-candidate global-suite claim."
+    },
+    "cliTemplates": {
+      "passed": 18,
+      "exitCode": 0,
+      "scope": "Same scaffold README revision; captured tool stdout. No CLI source implementation change."
+    }
+  },
+  "checks": {
+    "pluginSourceAndTestTypecheck": {
+      "exitCode": 0,
+      "logSha256": "6747a10f3c0478418a9700f0a2707d88fe22e66f56e8eb64e3903523ad31abf8"
+    },
+    "pluginBuild": {
+      "exitCode": 0,
+      "logSha256": "531ecaebb5f29b9e70faa716e0e0f963799a8997297aee0b7f492f19e59dfc8d"
+    },
+    "ssgTypecheck": {
+      "exitCode": 0,
+      "logSha256": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+    },
+    "targetedLint": {
+      "exitCode": 0
+    },
+    "targetedFormatAndWhitespace": {
+      "exitCode": 0
+    }
+  },
+  "rawExampleHttp": [
+    {
+      "path": "/",
+      "status": 200,
+      "title": "Home | Static Generation | Foldkit"
+    },
+    {
+      "path": "/about",
+      "status": 200,
+      "title": "About | Static Generation | Foldkit"
+    },
+    {
+      "path": "/about/",
+      "status": 200,
+      "title": "About | Static Generation | Foldkit"
+    },
+    {
+      "path": "/about/index.html",
+      "status": 200,
+      "title": "About | Static Generation | Foldkit"
+    }
+  ],
+  "security": {
+    "state": "Finished",
+    "startedAt": "2026-10-27T18:03:52.267606+00:00",
+    "base": "d97860167b1df76fff407e16d3456839cd5c7ea3",
+    "target": "f15fa164624130f1773be20aac9090a9d1e2a9dc",
+    "targetIsPublic": false,
+    "command": [
+      "codex",
+      "exec",
+      "-m",
+      "gpt-daybreak-blue-latest",
+      "-s",
+      "read-only",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--cyber-access-program",
+      "daybreak_blue",
+      "-C",
+      "/private/tmp/foldkit-issue1811-20261027/security/source",
+      "--ephemeral",
+      "--color",
+      "never",
+      "--output-last-message",
+      "/private/tmp/foldkit-issue1811-20261027/security/daybreak-report.md",
+      "-"
+    ],
+    "promptSha256": "8a5b19da8d0adfc83fb4f5d6d7800677eb7f9608ecd99efac77233d0d4406158",
+    "exitCode": 0,
+    "finishedAt": "2026-10-27T18:06:04.485456+00:00",
+    "finalHead": "f15fa164624130f1773be20aac9090a9d1e2a9dc",
+    "finalStatus": "",
+    "manifestPreserved": true,
+    "reportSha256": "a9f0ae54b1968fd11b9646deab67158dbb006c6f9b8e66a5687ec7706f24b34d"
+  },
+  "limitations": [
+    "Prior 17 integrated gates, whole-root emission, compiler fixture counts and48timing runs retain93c implementation pin.",
+    "New acceptance is an affected-plugin delta, not a rebuilt nine-package coherent cohort or registry/deployment verification.",
+    "No application authoring API, core Runtime, renderer, compiler fixture, budget or dependency change.",
+    "Deployed static hosts not tested; equivalent routing configuration remains host-owned."
+  ],
+  "infrastructure": [
+    "Initial nested Homebrew pnpm metadata lookup stalled in plugin build and Website test setup; only identified owned processes stopped, same commands pass with prior local pnpm shim.",
+    "First example harness filter matched no package, leaving no build. Original log retained; corrected directory-qualified build and full E2E pass.",
+    "Earlier92source had a reviewed P2 output-directory gap. Finalf15 uses resolved client environment; original default-case packed proof retained separately."
+  ],
+  "feedbackRefresh": {
+    "checkedAt": "2026-10-27T18:05:07Z",
+    "updatedSince": "2026-10-27T17:11:10Z",
+    "issues": [1811],
+    "issue1811Comments": 0
+  },
+  "publication": false
+}

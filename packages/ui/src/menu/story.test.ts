@@ -24,14 +24,14 @@ import {
   ScrollMenuItemIntoView,
   UnlockMenuScroll,
   buttonId,
-  create,
   groupContiguous,
   init,
+  makeBlock,
   resolveTypeaheadMatch,
   update,
 } from './menu.js'
 
-const TestMenu = create()
+const TestMenu = makeBlock()
 
 const MenuStoryDefinition = Block.makeDefinition('MenuStory', {
   Model,
@@ -53,7 +53,7 @@ const MenuStoryComposition = MenuStoryDefinition.makeComposition({
 })
 const sceneUpdate = MenuStoryComposition.makeUpdate({})
 
-const RefinedMenu = create<'Edit' | 'Duplicate' | 'Delete'>()
+const RefinedMenu = makeBlock<'Edit' | 'Duplicate' | 'Delete'>()
 
 const RefinedMenuStoryDefinition = Block.makeDefinition('RefinedMenuStory', {
   Model,

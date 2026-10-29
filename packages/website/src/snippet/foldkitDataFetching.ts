@@ -5,23 +5,27 @@ import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
 const UserSchema = Schema.Struct({ id: Schema.String, name: Schema.String })
+type UserSchema = typeof UserSchema.Type
 
 const UserState = defineTaggedUnion({
   Loading: {},
   Success: { data: UserSchema },
   Failure: { error: Schema.String },
 })
+type UserState = typeof UserState.Type
 
 const Model = Schema.Struct({
   userId: Schema.String,
   user: UserState,
 })
+type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
   ClickedFetchUser: { userId: Schema.String },
   SucceededFetchUser: { data: UserSchema },
   FailedFetchUser: { error: Schema.String },
 })
+type Message = typeof Message.Type
 
 const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,

@@ -23,3 +23,4 @@ export const Message = defineMessageUnion({
   SucceededSaveTodos: { todos: Todos },
   FailedSaveTodos: {},
 })
+export type Message = typeof Message.Type

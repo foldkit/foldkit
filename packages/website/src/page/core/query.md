@@ -22,13 +22,13 @@ A Query retains one resource, such as the current account or a list of posts. A 
 
 ### When to Use Query
 
-Use Query when a request produces one retained resource, or one entry in a retained collection, and the standard loading, refreshing, failure, and stale states describe its lifecycle. Use `AsyncData` directly when the result belongs to a larger application-specific transition, such as advancing a checkout or updating several Model fields. [When to Use AsyncData Directly](#when-to-use-asyncdata-directly) develops that distinction with an example.
+Use Query when a request produces one retained resource, or one entry in a retained collection, and the standard loading, refreshing, failure, and stale states describe its lifecycle. The parent can react to accepted results through completion OutMessages. Use `AsyncData` directly when the application needs to own the request lifecycle together with other state, such as optimistic mutation reconciliation and rollback. [When to Use AsyncData Directly](#when-to-use-asyncdata-directly) shows an application-owned request loop.
 
 ### The Parent Controls Loading and Refreshing
 
-The parent controls when a Query loads or refreshes. In response to one of its Messages—for example, a route change, button click, mutation result, or Subscription tick—it calls `requestLoadIfMissing`, `requestRevalidation`, or `requestRevalidationOrLoad`. The Query operation checks the current `AsyncData` state and returns an update result containing either the unchanged Model or the next Model and a fetch Command.
+The parent controls when a Query loads or refreshes. In response to one of its Messages—for example, a route change, button click, mutation result, or Subscription tick—it calls a loading operation. The Query checks the current `AsyncData` state and returns an update result containing either the unchanged Model or the next Model and a fetch Command.
 
-Query does not react to rendering, expire data after a duration, poll, or refresh related resources on its own. The parent owns those decisions and expresses them through its Messages, update branches, and Subscriptions.
+Query does not react to rendering, poll, or refresh related resources on its own. The parent owns those decisions and expresses them through its Messages, update branches, and Subscriptions. A configured freshness duration informs `requestLoadIfStale` when the parent calls it; elapsed time alone does not dispatch a Message, remove data, or start a request.
 
 ## Define a Query
 
@@ -45,6 +45,8 @@ With no `args`, `Query.define` returns a Query that retains one value. In this d
 - `data` and `error` determine the `AsyncData` and Message Schemas.
 - The `handler` generator constructs the fetch function. The completed Query carries its handler recipe in `EffectsLayer`.
 - `name: 'Posts'` names the Query Block. Its local `Fetch` Command is qualified by the Block and its parent placement.
+
+Set `staleTime` to an Effect `Duration.Input` when the parent should revalidate successful data after a fixed interval. The default is `Duration.infinity`, so successful data remains fresh until the parent explicitly requests revalidation. Query records the successful fetch's completion time from Effect Clock; a failed refresh keeps the previous successful timestamp. The interval does not change `read` or remove retained data.
 
 Bind the completed Query through the parent Definition and include the Binding in the parent's Composition `bindings`. The Binding carries the Query's handler recipe automatically; do not add it to the parent's local `EffectsLayer`. The entry supplies ordinary service providers through `ApplicationLayer`. The handler generator captures stable services when the Runtime builds its Layer, and the fetch function uses those services for each request.
 
@@ -70,6 +72,8 @@ The `field` form tells `makeBinding` which exact field contains the Query Model 
 
 - The parent Composition routes each generated Query delivery through the registered Binding and writes the returned Query Model back to `model.posts`.
 - `PostsBinding.requestLoadIfMissing()`, `PostsBinding.requestRevalidation()`, and `PostsBinding.requestRevalidationOrLoad()` return connected parent Steps that apply their loading rule to the current `AsyncData`. Their connected results expose no `.model` or `.commands` before the Composition consumes them. After checked execution, a requested load produces the readable next parent Model and the Query's `Fetch` Command; otherwise the readable result contains only the unchanged Model.
+- `PostsBinding.requestLoadIfStale(nowMillis)` uses the configured freshness duration. The parent obtains `nowMillis` from an Effect Clock Command and passes it through a Message, so the update remains pure.
+- `PostsBinding.requestCancel()` invalidates a pending request and returns its exact Fetch interrupt Command. It leaves an inactive Query unchanged.
 - `PostsBinding.requestReset()` returns a connected parent Step. After checked execution, the Query value is `Idle` and retains its request identity. Its type still carries Query update's complete Fetch handler requirements even though reset itself returns no Fetch Command.
 
 #### Optional and Nested Queries
@@ -102,6 +106,16 @@ Query provides three operations for loading and refreshing data. Each operation 
 
 The no-change cases return no Command. Calling the same operation again while its Query is pending therefore does not duplicate the request. A KeyedQuery applies this check to the selected entry, so different keys may load concurrently.
 
+### Freshness-Aware Loading
+
+`requestLoadIfStale` adds a time check to `requestRevalidationOrLoad`. `Success` or `Refreshing` data is fresh while `nowMillis` is before the successful completion time plus `staleTime`; the operation returns no new Command. A `Success` value at the deadline requests a refresh. `Idle` and `Failure` request an initial load, and `Stale` requests another refresh. A pending request is not duplicated. The default infinite duration treats `Success` and `Refreshing` as fresh, even when older completions have no recorded timestamp.
+
+Read the current time in a Command using Effect Clock and return it in a Message. Calling `Date.now()` in update would make the same Model and Message yield different results. The parent chooses when to check freshness, such as on screen entry or a Subscription tick:
+
+::Snippet{name="queryFreshnessClock" label="Checking Query freshness after a Clock Command"}
+
+Both forms expose `isFresh` for a read-only freshness check: `query.isFresh(model, nowMillis)` or `keyedQuery.isFresh(model, args, nowMillis)`. It does not update access recency. `requestLoadIfStale(model, args, nowMillis)` is available directly on a KeyedQuery, and a registered Binding projects it as `Binding.requestLoadIfStale(args, nowMillis)`.
+
 ### Settling Completed Requests
 
 #### Accepted Completions
@@ -114,6 +128,16 @@ When the Command finishes, the Runtime dispatches Query's `CompletedFetch` Messa
 - A failed refresh becomes `Stale`, keeping the previous data beside the error.
 
 Query accepts a completion only when it belongs to the currently pending request. A late completion from older work cannot overwrite a newer result.
+
+#### Optional Parent Notifications
+
+Set `notifyOnCompletion: true` when the parent needs to react after Query accepts and settles a fetch. The Query then exposes `OutMessage.CompletedFetch`. A KeyedQuery includes `{ args, generation, result, completedAtMillis? }`; an unkeyed Query omits `args`. The result carries success or failure. The completion time is optional because a Story or Scene test can resolve a Fetch Command manually without it.
+
+Bind the Query with `withOutMessagePolicy({ fold: ... })`. The fold can update parent-owned policy, such as a failure notice, without writing inside the Query Model. This example uses the `postQuery` defined in [Keyed Definition](#keyed-definition) below; its parent Model has a `maybeNotice` field:
+
+::Snippet{name="queryCompletionPolicy" label="Folding an accepted Query completion"}
+
+The fold runs only for a completion accepted by the current Query generation. Canceled, superseded, and duplicate completions do not emit an OutMessage. Loading and cancellation operations themselves emit no OutMessage, so they can be used in `makeInit` or composed as ordinary Steps. Without `notifyOnCompletion`, the Query has no OutMessage contract and needs no parent fold.
 
 #### Development Reloads
 
@@ -141,13 +165,13 @@ The [API Cache Query example](/example-apps/api-cache-query) shows all three sha
 
 Call `requestReset` to clear a live Query. Do not replace a live Query Model with a fresh result from `init()`. Query uses a generation number to reject late completions. `requestReset` clears the data while preserving that request identity, so a request started afterwards cannot share a generation with work started before the reset.
 
-`requestReset` does not interrupt a running Command. A completion that arrives while the reset Query is no longer pending is ignored. If the application needs the work itself to stop, use a hand-managed interruptible Command instead of relying on reset as cancellation.
+`requestReset` does not interrupt a running Command. A completion that arrives while the reset Query is no longer pending is ignored. Use `requestCancel` when the pending work itself should stop: it invalidates the current generation synchronously and returns an interrupt for that exact Fetch invocation. A `Loading` Query becomes `Idle`; a `Refreshing` Query returns to `Success` with its retained data. A late result from the canceled generation is ignored, even if interruption finds no running fiber because cancellation won the startup race.
 
 ## Define a KeyedQuery
 
 ### Keyed Definition
 
-Add a non-empty `args` record to `Query.define` when one definition should retain independent results for dynamic inputs. In this example, `fetchPost(postId)` is an Effect that fetches and decodes one `Post` using the same pattern as `fetchPosts` above:
+Add a non-empty `args` record to `Query.define` when one definition should retain independent results for dynamic inputs. In this example, `fetchPost(postId)` is an Effect that fetches and decodes one `Post` using the same pattern as `fetchPosts` above. This KeyedQuery also configures one-minute freshness, a 100-entry settled cache, and parent completion notifications:
 
 ::Snippet{name="queryKeyedDefine" label="Defining a KeyedQuery for post details"}
 
@@ -159,6 +183,10 @@ Adding `args` makes `Query.define` return a KeyedQuery. Each distinct argument k
 - `PostDetailsBinding.requestLoadIfMissing({ postId })(model)` changes a missing entry to `Loading` and includes its fetch Command in the update result. An entry that already has data is unchanged.
 - `PostDetailsBinding.requestRevalidation({ postId })(model)` changes a data-bearing entry to `Refreshing` and includes its fetch Command. An entry without data is unchanged.
 - `PostDetailsBinding.requestRevalidationOrLoad({ postId })(model)` chooses the loading or refreshing transition from that entry's current state.
+- `PostDetailsBinding.requestLoadIfStale({ postId }, nowMillis)(model)` reuses fresh data and otherwise loads or refreshes that entry.
+- `PostDetailsBinding.requestCancel({ postId })(model)` cancels only that entry's pending Fetch. Restoring a canceled refresh applies the settled-entry limit and may evict retained data; other pending keys are unaffected.
+
+The bound operations also have data-last forms for direct use as Steps in update. `postQuery.pendingArgs(model.postDetails)` returns detached snapshots of the arguments for currently pending entries. A parent can inspect those snapshots when it needs to cancel several requests, while choosing which requests matter remains application policy.
 
 ### Default Keys
 
@@ -176,19 +204,25 @@ The stored args and the handler's args are separate decoded values. This protect
 
 Provide `toKey` when several argument values deliberately identify the same retained resource. Suppose the args are `{ postId: Schema.String, preview: Schema.Boolean }`, but `preview` changes only how the request is made. `toKey: ({ postId }) => postId` makes the preview and non-preview requests share one entry. A collision means sharing data and pending work, so omit a field only when that is the application's intended identity rule.
 
-### Retention Limits
+### Freshness and Retention Limits
 
-A KeyedQuery retains entries until `requestReset` clears all of them. It does not currently expire entries, cap their number, or remove one key. Use it for a set whose lifetime and size fit the parent Model. Manage a different cache shape directly when entries need individual eviction or another retention policy.
+Set `staleTime` to control when a parent-requested freshness check revalidates a successful entry. The duration starts when the fetch succeeds, not when it starts or when an entry is reused. A cache hit does not extend that deadline. An expired entry remains readable while a refresh runs, until a success replaces it, reset clears it, or capacity eviction removes it.
+
+Set `maxSettledEntries` to a positive safe integer to bound retained settled entries. Requests and cache hits update access recency; accepted completions admit settled results and evict the least recently used settled entries above the limit. Canceling a first load removes its empty entry; canceling a refresh restores its retained `Success` and applies the settled-entry limit. Other pending entries are protected, so enough concurrent requests can temporarily put the total entry count above the bound. `read` and `isFresh` do not change recency. The default has no capacity limit. Neither option schedules a timer or removes an entry merely because its freshness duration passes.
+
+The KeyedQuery definition above configures both policies. It keeps at most 100 settled post entries and refreshes a retained post only when the parent checks it after one minute.
+
+The parent still chooses the requested keys, viewport pages, retry timing, and how fetched data is displayed. A bounded KeyedQuery is one cache of per-key `AsyncData` values; it does not merge several keys into one domain collection or decide which key should be visible.
 
 ## Test Query Commands
 
-The generated `Fetch` definition is public so Story and Scene tests can match and resolve the Command. Obtain application fetch Commands through `requestLoadIfMissing`, `requestRevalidation`, or `requestRevalidationOrLoad`; calling `Fetch` directly would skip the Model transition and generation update that make completion handling safe.
+The generated `Fetch` definition is public so Story and Scene tests can match and resolve the Command. Obtain application fetch Commands through a Query loading operation; calling `Fetch` directly would skip the Model transition and generation update that make completion handling safe.
 
-KeyedQuery's generated Fetch args and `CompletedFetch` Message include `requestKey` alongside `args` and `generation`. Loading operations supply it automatically. When manually resolving a Fetch Command, copy its `requestKey` into the completion Message; do not recompute the key. The [API Cache Query example](/example-apps/api-cache-query) includes Story and Scene tests that resolve Query Commands without running their Effects.
+KeyedQuery's generated Fetch args and `CompletedFetch` Message include `requestKey` alongside `args` and `generation`. Loading operations supply it automatically. When manually resolving a Fetch Command, copy its `requestKey` into the completion Message; do not recompute the key. Supply `completedAtMillis` in manually resolved successful completions when a finite `staleTime` matters. The [API Cache Query example](/example-apps/api-cache-query) includes Story and Scene tests that resolve Query Commands without running their Effects.
 
 ## When to Use AsyncData Directly
 
-Query fits a request whose result becomes one retained resource, or one entry in a retained collection, and whose lifecycle follows the standard loading, refreshing, failure, and stale states. Use `AsyncData` directly when the request result belongs to a larger application-specific transition. Common examples include success and failure driving different domain flows, one result updating several Model fields, user-controlled interruption, or a cache with its own eviction rules.
+Query fits a request whose result becomes one retained resource, or one entry in a retained collection, and whose lifecycle follows the standard loading, refreshing, failure, and stale states. A completion OutMessage can also advance a parent workflow or update parent fields. Use `AsyncData` directly when the owning Block must control the request lifecycle and reconcile its result with other state, or when cache admission and eviction rules differ from KeyedQuery's settled-entry recency policy. The checkout below illustrates an application-owned request loop; a Query with a parent completion fold is another option when Query can own the order's retained value.
 
 ### Application-Specific Results
 

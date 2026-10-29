@@ -35,7 +35,7 @@ import {
 import type { Page } from './domain'
 
 const pageTableOfContents: Readonly<
-  globalThis.Record<typeof Page.Type, ReadonlyArray<TableOfContentsEntry>>
+  globalThis.Record<Page, ReadonlyArray<TableOfContentsEntry>>
 > = {
   Anchor: AnchorPageContent.tableOfContents,
   Animation: AnimationPageContent.tableOfContents,
@@ -70,5 +70,4 @@ const pageTableOfContents: Readonly<
   VirtualList: VirtualListPageContent.tableOfContents,
 }
 
-export const tableOfContentsFor = (page: typeof Page.Type) =>
-  pageTableOfContents[page]
+export const tableOfContentsFor = (page: Page) => pageTableOfContents[page]

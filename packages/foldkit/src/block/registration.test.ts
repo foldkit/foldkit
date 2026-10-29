@@ -20,6 +20,7 @@ const ParentMessage = defineMessageUnion({
   Advanced: {},
   Ignored: {},
 })
+type ParentMessage = typeof ParentMessage.Type
 
 const ChildNamespace = makeNamespace('RegistrationChild')
 const ChildDefinition = ChildNamespace.makeDefinition({
@@ -263,11 +264,11 @@ const deferredMixedConnectedUpdate = RegisteredParent.makeUpdate({
 })
 const explicitGenericOrdinaryUpdate = RegisteredParent.makeUpdate({
   Ignored: model =>
-    Update.combineSteps<typeof model, typeof ParentMessage.Type, never>(model, [
+    Update.combineSteps<typeof model, ParentMessage, never>(model, [
       stepModel => ({ model: stepModel }),
     ]),
   Advanced: model =>
-    Update.combineSteps<typeof model, typeof ParentMessage.Type, never>(model, [
+    Update.combineSteps<typeof model, ParentMessage, never>(model, [
       stepModel => ({ model: stepModel }),
     ]),
 })
@@ -583,6 +584,7 @@ const KeyedParentMessage = defineMessageUnion({
   Advanced: {},
   Ignored: {},
 })
+type KeyedParentMessage = typeof KeyedParentMessage.Type
 
 const RegisteredKeyedParentBaseDefinition = makeNamespace(
   'RegisteredPureKeyedChildParent',
@@ -820,6 +822,7 @@ const PolicyParentMessage = defineMessageUnion({
   Advanced: {},
   Ignored: {},
 })
+type PolicyParentMessage = typeof PolicyParentMessage.Type
 const PolicyParentBaseDefinition = makeNamespace(
   'RegisteredPolicyParent',
 ).makeDefinition({
@@ -941,6 +944,7 @@ const KeyedPolicyParentMessage = defineMessageUnion({
   Advanced: {},
   Ignored: {},
 })
+type KeyedPolicyParentMessage = typeof KeyedPolicyParentMessage.Type
 const KeyedPolicyParentBaseDefinition = makeNamespace(
   'RegisteredKeyedPolicyParent',
 ).makeDefinition({

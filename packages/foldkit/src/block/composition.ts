@@ -74,7 +74,7 @@ export type RuntimeBindingStorage =
 /** @internal Enumerates a Binding's active children from one parent Model. */
 export type RuntimeBinding = Readonly<{
   block: BindableBlock
-  initialize: (
+  init: (
     key: InstanceKey | undefined,
     args: ReadonlyArray<any>,
   ) => Readonly<{ model: any; commands?: ReadonlyArray<any> }>

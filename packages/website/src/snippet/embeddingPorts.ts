@@ -13,10 +13,7 @@ export const ports = {
   outbound: { countChanged: Port.outbound(Schema.Number) },
 }
 
-export const createElement = (
-  container: HTMLElement,
-  flags: typeof Flags.Type,
-) =>
+export const createElement = (container: HTMLElement, flags: Flags) =>
   Program.makeElement({
     block: ApplicationBlock,
     Flags,

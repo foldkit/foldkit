@@ -218,9 +218,11 @@ const FullChannelBlock: Block.FromAssemblyWithViewAndOutMessage<
 > = Block.assemble(prepareFullChannelBlock)
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
+type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({
   ChangedCount: { amount: Schema.Number },
 })
+type ChildMessage = typeof ChildMessage.Type
 
 const ChildComposition = makeDefinition('DualUpdateRuntimeChild', {
   Model: ChildModel,
@@ -244,6 +246,7 @@ type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({
   Advanced: {},
 })
+type ParentMessage = typeof ParentMessage.Type
 const Parent = makeDefinition('DualUpdateRuntimeParent', {
   Model: ParentModel,
   Message: ParentMessage,

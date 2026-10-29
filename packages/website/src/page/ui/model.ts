@@ -20,6 +20,7 @@ import {
   ChatVirtualListBlock,
   DemoMenuBlock,
   DemoTabsBlock,
+  HistoryModeRadioGroupBlock,
   ItemListboxBlock,
   ItemMultiListboxBlock,
   PlanRadioGroupBlock,
@@ -31,8 +32,9 @@ import {
   DemoTab,
   ListboxItem,
   Plan,
+  VirtualListChatHistoryLoad,
+  VirtualListChatHistorySource,
   VirtualListChatMessage,
-  VirtualListChatStartProximity,
 } from './domain/domain'
 
 export const Model = Schema.Struct({
@@ -115,5 +117,11 @@ export const Model = Schema.Struct({
   virtualListChatDemo: ChatVirtualListBlock.Model,
   virtualListChatMessages: Schema.Array(VirtualListChatMessage),
   virtualListChatNextId: Schema.Number,
-  virtualListChatStartProximity: VirtualListChatStartProximity,
+  virtualListChatHistorySource: VirtualListChatHistorySource,
+  virtualListChatHistoryModeGroup: HistoryModeRadioGroupBlock.Model,
+  virtualListChatHistoryLoad: VirtualListChatHistoryLoad,
+  virtualListChatHistoryRequestVersion: Schema.Number,
+  virtualListChatLoadedOlderCount: Schema.Number,
+  virtualListChatAnnouncedOlderCount: Schema.Number,
 })
+export type Model = typeof Model.Type

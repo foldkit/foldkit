@@ -43,6 +43,8 @@ import {
 import { SnippetDisclosureBlock } from './snippetDisclosure'
 import { update } from './update'
 import { ThemeMenuBlock } from './view/themeMenu'
+
+type HomeBlockModel = typeof HomeBlock.Model.Type
 const parseUrl = (value: string): Url.Url =>
   pipe(Url.fromString(value), Option.getOrThrow)
 const homeUrl = parseUrl('https://foldkit.dev/')
@@ -69,8 +71,8 @@ const flags = {
   maybeApiData: Option.none(),
   maybeExampleSources: Option.none(),
 }
-const initAt = (url: Url.Url): typeof Model.Type => init(flags, url).model
-const expectHomePresent = (model: typeof Model.Type): void => {
+const initAt = (url: Url.Url): Model => init(flags, url).model
+const expectHomePresent = (model: Model): void => {
   expect(Option.isSome(model.maybeHome)).toBe(true)
   expect(
     Option.isSome(
@@ -80,7 +82,7 @@ const expectHomePresent = (model: typeof Model.Type): void => {
     ),
   ).toBe(true)
 }
-const expectHomeAbsent = (model: typeof Model.Type): void => {
+const expectHomeAbsent = (model: Model): void => {
   expect(Option.isNone(model.maybeHome)).toBe(true)
   expect(
     Option.isNone(
@@ -90,7 +92,7 @@ const expectHomeAbsent = (model: typeof Model.Type): void => {
     ),
   ).toBe(true)
 }
-const expectDefaultHome = (home: typeof HomeBlock.Model.Type): void => {
+const expectDefaultHome = (home: HomeBlockModel): void => {
   expect(home.activeDemoTab).toBe('AsyncCounter')
   expect(home.asyncCounterDemo.count).toBe(0)
   expect(home.notePlayerDemo.noteInput.value).toBe('CDEFGABC')

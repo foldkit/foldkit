@@ -3,6 +3,7 @@
     "strict": true,
     "noEmit": true,
     "declaration": true,
+    "skipLibCheck": false,
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "target": "es2022",
@@ -11,6 +12,7 @@
   },
   "include": [
     "src/packed-types.ts",
+    "src/effect-types.ts",
     "src/inferred-program.ts",
     "src/inferred-machine-edge.ts"
   ]

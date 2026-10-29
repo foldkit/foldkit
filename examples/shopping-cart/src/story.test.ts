@@ -13,10 +13,12 @@ import { ProductsBlock } from './page'
 import { ApplicationRoute } from './route'
 import { update } from './update'
 
+type ProductsMessage = typeof ProductsBlock.Message.Type
+
 const apple = { id: '1', name: 'Apple', price: 1.5 }
 const banana = { id: '2', name: 'Banana', price: 0.75 }
 
-const baseModel: typeof Model.Type = {
+const baseModel: Model = {
   route: ApplicationRoute.Products({ searchText: Option.none() }),
   cart: [],
   deliveryInstructions: '',
@@ -24,7 +26,7 @@ const baseModel: typeof Model.Type = {
   productsPage: ProductsBlock.init(products).model,
 }
 
-const productsMessage = (message: typeof ProductsBlock.Message.Type) =>
+const productsMessage = (message: ProductsMessage) =>
   toParentMessage(ProductsPageBinding, message)
 
 const urlOrThrow = (raw: string) =>

@@ -8,13 +8,16 @@ import * as Block from './public.js'
 
 it('authors records and public operations passively, then preserves results and Commands', async () => {
   const Model = Schema.Struct({ count: Schema.Number })
+  type Model = typeof Model.Type
   const Message = defineMessageUnion({
     RequestedAdd: { amount: Schema.Number },
     CompletedSave: {},
   })
+  type Message = typeof Message.Type
   const OutMessage = defineMessageUnion({
     ReportedCount: { count: Schema.Number },
   })
+  type OutMessage = typeof OutMessage.Type
   const Definition = Block.makeDefinition('RecordRuntime', {
     Model,
     Message,
@@ -87,9 +90,11 @@ it('authors records and public operations passively, then preserves results and 
 
 it('evaluates context factories only for dispatch and preserves direct, curried, and operation contexts', () => {
   const Model = Schema.Struct({ count: Schema.Number })
+  type Model = typeof Model.Type
   const Message = defineMessageUnion({
     RequestedScale: { amount: Schema.Number },
   })
+  type Message = typeof Message.Type
   const Definition = Block.makeDefinition('RecordContextRuntime', {
     Model,
     Message,
@@ -180,10 +185,12 @@ it('does not evaluate context factories for generated child-envelope delivery', 
     count: Schema.Number,
     savedCount: Schema.Number,
   })
+  type ChildModel = typeof ChildModel.Type
   const ChildMessage = defineMessageUnion({
     RequestedAdd: { amount: Schema.Number },
     CompletedSave: { count: Schema.Number },
   })
+  type ChildMessage = typeof ChildMessage.Type
   const ChildDefinition = Block.makeDefinition('RecordContextChild', {
     Model: ChildModel,
     Message: ChildMessage,
@@ -225,9 +232,11 @@ it('does not evaluate context factories for generated child-envelope delivery', 
     child: ChildModel,
     scaledCount: Schema.Number,
   })
+  type ParentModel = typeof ParentModel.Type
   const ParentMessage = defineMessageUnion({
     RequestedScale: { amount: Schema.Number },
   })
+  type ParentMessage = typeof ParentMessage.Type
   const ParentDefinition = Block.makeDefinition('RecordContextParent', {
     Model: ParentModel,
     Message: ParentMessage,
@@ -301,13 +310,16 @@ it('does not evaluate context factories for generated child-envelope delivery', 
 
 it('runs a silent child combination while retaining an emitting operation directly', () => {
   const ChildModel = Schema.Struct({ count: Schema.Number })
+  type ChildModel = typeof ChildModel.Type
   const ChildMessage = defineMessageUnion({
     RequestedIncrement: {},
     RequestedReport: {},
   })
+  type ChildMessage = typeof ChildMessage.Type
   const OutMessage = defineMessageUnion({
     ReportedCount: { count: Schema.Number },
   })
+  type OutMessage = typeof OutMessage.Type
   const ChildDefinition = Block.makeDefinition('RecordConnectedChild', {
     Model: ChildModel,
     Message: ChildMessage,
@@ -338,10 +350,12 @@ it('runs a silent child combination while retaining an emitting operation direct
     typeof prepareChild
   > = Block.assemble(prepareChild)
   const ParentModel = Schema.Struct({ child: ChildModel })
+  type ParentModel = typeof ParentModel.Type
   const ParentMessage = defineMessageUnion({
     RequestedIncrement: {},
     RequestedReport: {},
   })
+  type ParentMessage = typeof ParentMessage.Type
   const ParentDefinition = Block.makeDefinition('RecordConnectedParent', {
     Model: ParentModel,
     Message: ParentMessage,

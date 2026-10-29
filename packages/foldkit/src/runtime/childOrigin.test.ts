@@ -9,6 +9,7 @@ import { defineMessageUnion } from '../message/index.js'
 import { commandResultMapper, liftChildMessage } from './childOrigin.js'
 
 const Message = defineMessageUnion({ ChangedValue: { value: Schema.Number } })
+type Message = typeof Message.Type
 const ParentBinding = {}
 const EntriesBinding = {}
 const LegacyBinding = {}

@@ -12,10 +12,7 @@ import { errorPanel, loadingPanel, toolbarButtonClassName } from './shared'
 const formatFetchedAt = (fetchedAt: number): string =>
   new Date(fetchedAt).toLocaleTimeString()
 
-export const statsTabView = (
-  model: typeof Model.Type,
-  h: ApplicationViewBuilder,
-) => {
+export const statsTabView = (model: Model, h: ApplicationViewBuilder) => {
   const isPending = AsyncData.isPending(model.stats)
 
   return h.div(
@@ -79,7 +76,7 @@ export const statsTabView = (
 }
 
 type StatsCardsInput = Readonly<{
-  stats: typeof Stats.Type
+  stats: Stats
   fetchedAt: number
   isRefreshing: boolean
 }>

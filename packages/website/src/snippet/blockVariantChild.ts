@@ -4,9 +4,12 @@ import { defineMessageUnion } from 'foldkit/message'
 import { taggedStruct } from 'foldkit/schema'
 
 const Model = taggedStruct('EditingProfile', { displayName: Schema.String })
+type Model = typeof Model.Type
 const Message = defineMessageUnion({
   UpdatedDisplayName: { value: Schema.String },
 })
+type Message = typeof Message.Type
+
 const EditorDefinition = Block.makeDefinition('Editor', { Model, Message })
 
 const { makeFieldsStep } = EditorDefinition

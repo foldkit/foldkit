@@ -19,10 +19,7 @@ const infoRow = (label: string, value: string, h: LoggedInViewBuilder): Html =>
     ],
   )
 
-export const view = (
-  session: typeof Session.Type,
-  h: LoggedInViewBuilder,
-): Html =>
+export const view = (session: Session, h: LoggedInViewBuilder): Html =>
   h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
     [

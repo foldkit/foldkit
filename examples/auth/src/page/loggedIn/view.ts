@@ -15,7 +15,7 @@ const navLinkClassName = (isActive: boolean) =>
   })
 
 const navigationView = (
-  session: typeof Session.Type,
+  session: Session,
   currentRouteTag: string,
   h: LoggedInViewBuilder,
 ): Html =>

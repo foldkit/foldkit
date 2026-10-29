@@ -10,10 +10,10 @@ import * as Listbox from './listbox/single.js'
 const Fruit = Schema.Literals(['Apple', 'Pear'])
 type Fruit = typeof Fruit.Type
 
-const FruitCombobox = Combobox.create(Fruit)
-const FruitMultiCombobox = MultiCombobox.create(Fruit)
-const FruitListbox = Listbox.create<Fruit>()
-const FruitMultiListbox = MultiListbox.create<Fruit>()
+const FruitCombobox = Combobox.makeBlock(Fruit)
+const FruitMultiCombobox = MultiCombobox.makeBlock(Fruit)
+const FruitListbox = Listbox.makeBlock<Fruit>()
+const FruitMultiListbox = MultiListbox.makeBlock<Fruit>()
 
 type OutMessageOf<Producer extends (...args: ReadonlyArray<never>) => unknown> =
   ReturnType<Producer> extends Readonly<{ outMessage?: infer OutMessage }>

@@ -8,7 +8,7 @@ import * as Rooms from '../roomById.ts'
 
 const makeUniqueUsername = (
   desiredUsername: string,
-  existingPlayers: ReadonlyArray<typeof Shared.Player.Type>,
+  existingPlayers: ReadonlyArray<Shared.Player>,
 ): string => {
   const existingUsernames = Array.map(
     existingPlayers,
@@ -33,7 +33,7 @@ const makeUniqueUsername = (
 }
 
 export const joinRoom =
-  (roomByIdRef: SubscriptionRef.SubscriptionRef<typeof Shared.RoomById.Type>) =>
+  (roomByIdRef: SubscriptionRef.SubscriptionRef<Shared.RoomById>) =>
   (payload: Rpc.Payload<typeof Shared.joinRoomRpc>) =>
     Effect.gen(function* () {
       const playerId = yield* Effect.sync(() => randomUUID())

@@ -22,7 +22,7 @@ import {
 } from './route'
 
 const navigationView = (
-  currentRoute: typeof ApplicationRoute.Type,
+  currentRoute: ApplicationRoute,
   h: ApplicationViewBuilder,
 ): Html => {
   const navLinkClassName = (isActive: boolean) =>
@@ -312,10 +312,7 @@ const breadcrumbView = (
   )
 }
 
-const fileDetailView = (
-  file: typeof File.Type,
-  h: ApplicationViewBuilder,
-): Html =>
+const fileDetailView = (file: File, h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('bg-gray-50 border border-gray-200 rounded-lg p-6')],
     [
@@ -400,7 +397,7 @@ const notFoundView = (path: string, h: ApplicationViewBuilder): Html =>
     ],
   )
 
-const routeTitle = (route: (typeof Model.Type)['route']): string =>
+const routeTitle = (route: Model['route']): string =>
   Match.value(route).pipe(
     Match.tag('Home', () => 'Routing'),
     Match.tag('Person', ({ personId }) => `Person ${personId} | Routing`),

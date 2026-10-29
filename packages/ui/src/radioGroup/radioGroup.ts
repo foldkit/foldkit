@@ -35,7 +35,6 @@ export const Model = Schema.Struct({
   id: Schema.String,
   maybeFocusedIndex: Schema.Option(Schema.Number),
 })
-
 export type Model = typeof Model.Type
 
 // MESSAGE
@@ -49,11 +48,10 @@ export const Message = defineMessageUnion({
   FocusedOption: { index: Schema.Number },
   CompletedFocusOption: {},
 })
+export type Message = typeof Message.Type
 
 export type SelectedOption = typeof Message.SelectedOption.Type
 export type FocusedOption = typeof Message.FocusedOption.Type
-
-export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
@@ -86,7 +84,7 @@ type OutMessageSchema<Value extends string = string> =
     : never
 
 /** Generic over `Value extends string` so consumers using
- *  `RadioGroup.create<MyUnion>()` receive `value: MyUnion` in the
+ *  `RadioGroup.makeBlock<MyUnion>()` receive `value: MyUnion` in the
  *  `Selected` OutMessage. Defaults to `string`. */
 export type OutMessage<Value extends string = string> = Selected<Value>
 
@@ -206,7 +204,7 @@ export type RenderInfo<Value extends string = string> = Readonly<{
 
 /** Per-render view inputs passed to `view` via `h.block`'s `viewInputs`
  *  field. Generic over `Value extends string` so consumers using
- *  `RadioGroup.create<MyUnion>()` receive `option.value: MyUnion` in `toView`
+ *  `RadioGroup.makeBlock<MyUnion>()` receive `option.value: MyUnion` in `toView`
  *  and `(value: MyUnion, index) => boolean` in `isOptionDisabled`, without
  *  casting.
  *
@@ -530,7 +528,7 @@ export interface Completed<
   BlockParts<Value>['implementation']
 > {}
 
-const makeBlock = <Value extends string>(): Completed<Value> => {
+const assembleBlock = <Value extends string>(): Completed<Value> => {
   const { composition, implementation } = makeBlockParts<Value>()
 
   const prepare = () => composition.prepareBlock(implementation)
@@ -544,9 +542,9 @@ const makeBlock = <Value extends string>(): Completed<Value> => {
 
 /**
  * Creates a completed RadioGroup Block refined to one Value type. Declare
- * `RadioGroup.create<Plan>()` once at module scope, then connect that Block to
+ * `RadioGroup.makeBlock<Plan>()` once at module scope, then connect that Block to
  * the parent. Its view inputs and `Selected.value` share the Value type;
  * the parent Model owns the selected option.
  */
-export const create = <Value extends string = string>(): Completed<Value> =>
-  makeBlock<Value>()
+export const makeBlock = <Value extends string = string>(): Completed<Value> =>
+  assembleBlock<Value>()

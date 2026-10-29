@@ -11,7 +11,10 @@ import {
   pipe,
 } from 'effect'
 
-import type { Subscriptions } from '../subscription/subscription.js'
+import {
+  type Subscriptions,
+  __maybeActiveDependencies as maybeActiveDependencies,
+} from '../subscription/subscription.js'
 import {
   type ResolvedSlowPhaseConfig,
   type SlowSubscriptionDependenciesContext,
@@ -21,10 +24,11 @@ import {
 
 /**
  * Forks one fiber per Subscription into the runtime scope. Each fiber
- * derives the Subscription's dependencies from every Model, restarts its
- * stream when they change under its equivalence, and feeds the Messages
- * the stream emits into the queue. A defect anywhere in that pipeline
- * crashes the runtime instead of dying silently in the fiber.
+ * derives the Subscription's active dependencies from every Model, restarts
+ * its stream when they change under its equivalence, runs no stream while
+ * they are `None`, and feeds the Messages the stream emits into the queue.
+ * A defect anywhere in that pipeline crashes the runtime instead of dying
+ * silently in the fiber.
  */
 export const forkSubscriptionFibers = <Model, Message, Services>({
   subscriptions,
@@ -56,22 +60,22 @@ export const forkSubscriptionFibers = <Model, Message, Services>({
     subscriptions,
     Record.toEntries,
     Effect.forEach(
-      ([
-        key,
-        {
-          dependenciesSchema,
-          modelToDependencies,
-          keepAliveEquivalence,
-          dependenciesToStream,
-        },
-      ]) =>
+      ([key, subscription]) =>
         Effect.gen(function* () {
-          const equivalence =
-            keepAliveEquivalence ?? Schema.toEquivalence(dependenciesSchema)
+          const {
+            dependenciesSchema,
+            keepAliveEquivalence,
+            dependenciesToStream,
+          } = subscription
+          const equivalence = Option.makeEquivalence(
+            keepAliveEquivalence ?? Schema.toEquivalence(dependenciesSchema),
+          )
+          const modelToMaybeDependencies = (model: Model) =>
+            maybeActiveDependencies(subscription, model)
 
-          const [initDependencies, maybeInitDependenciesDuration] =
+          const [maybeInitDependencies, maybeInitDependenciesDuration] =
             measureSlowPhase(maybeSlowSubscriptionDependencies, () =>
-              modelToDependencies(initModel),
+              modelToMaybeDependencies(initModel),
             )
           reportSlowPhase<SlowSubscriptionDependenciesContext<Model>>(
             maybeSlowSubscriptionDependencies,
@@ -85,7 +89,7 @@ export const forkSubscriptionFibers = <Model, Message, Services>({
             }),
           )
 
-          const latestDependenciesRef = yield* Ref.make(initDependencies)
+          const latestDependenciesRef = yield* Ref.make(maybeInitDependencies)
           const modelSubscription = yield* PubSub.subscribe(modelPubSub).pipe(
             Effect.provideService(Scope.Scope, runtimeScope),
           )
@@ -102,9 +106,9 @@ export const forkSubscriptionFibers = <Model, Message, Services>({
             // changes.
             Stream.mapEffect(model =>
               Effect.gen(function* () {
-                const [dependencies, maybeDependenciesDuration] =
+                const [maybeDependencies, maybeDependenciesDuration] =
                   measureSlowPhase(maybeSlowSubscriptionDependencies, () =>
-                    modelToDependencies(model),
+                    modelToMaybeDependencies(model),
                   )
 
                 reportSlowPhase<SlowSubscriptionDependenciesContext<Model>>(
@@ -119,22 +123,29 @@ export const forkSubscriptionFibers = <Model, Message, Services>({
                   }),
                 )
 
-                yield* Ref.set(latestDependenciesRef, dependencies)
-                return dependencies
+                yield* Ref.set(latestDependenciesRef, maybeDependencies)
+                return maybeDependencies
               }),
             ),
           )
 
           yield* Effect.forkIn(runtimeScope)(
             Stream.concat(
-              Stream.make(initDependencies),
+              Stream.make(maybeInitDependencies),
               modelChangesStream,
             ).pipe(
               Stream.changesWith(equivalence),
-              Stream.switchMap(dependencies =>
-                dependenciesToStream(dependencies, () =>
-                  Ref.getUnsafe(latestDependenciesRef),
-                ),
+              Stream.switchMap(maybeDependencies =>
+                Option.match(maybeDependencies, {
+                  onNone: () => Stream.empty,
+                  onSome: dependencies =>
+                    dependenciesToStream(dependencies, () =>
+                      Option.getOrElse(
+                        Ref.getUnsafe(latestDependenciesRef),
+                        () => dependencies,
+                      ),
+                    ),
+                }),
               ),
               Stream.runForEach(message =>
                 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */

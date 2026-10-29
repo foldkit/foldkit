@@ -2,10 +2,10 @@ import { Schema } from 'effect'
 
 import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
 
-const ThemeListbox = Listbox.create<Theme>()
-const ToolRadioGroup = RadioGroup.create<Tool>()
-const GridSizeRadioGroup = RadioGroup.create<number>()
-const PaletteRadioGroup = RadioGroup.create<PaletteIndex>()
+const ThemeListbox = Listbox.makeBlock<Theme>()
+const ToolRadioGroup = RadioGroup.makeBlock<Tool>()
+const GridSizeRadioGroup = RadioGroup.makeBlock<number>()
+const PaletteRadioGroup = RadioGroup.makeBlock<PaletteIndex>()
 
 export const Model = Schema.Struct({
   grid: Grid,
@@ -27,3 +27,4 @@ export const Model = Schema.Struct({
   gridSizeRadioGroup: GridSizeRadioGroup.Model,
   paletteRadioGroup: PaletteRadioGroup.Model,
 })
+export type Model = typeof Model.Type

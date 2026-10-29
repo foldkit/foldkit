@@ -15,7 +15,9 @@ export const LoadWorkspace = ApplicationDefinition.makeCommand(
 
       return () =>
         repository.load.pipe(
-          Effect.map(snapshot => Message.SucceededLoadWorkspace({ snapshot })),
+          Effect.map(workspace =>
+            Message.SucceededLoadWorkspace({ workspace }),
+          ),
           Effect.catch(error =>
             Effect.succeed(
               Message.FailedLoadWorkspace({ error: error.message }),
@@ -87,7 +89,7 @@ export const MoveIssue = ApplicationDefinition.makeCommand('MoveIssue', {
 
     return args =>
       repository.moveIssue(args).pipe(
-        Effect.map(snapshot => Message.SucceededMoveIssue({ snapshot })),
+        Effect.map(movedIssue => Message.SucceededMoveIssue({ movedIssue })),
         Effect.catch(error =>
           Effect.succeed(
             Message.FailedMoveIssue({
@@ -116,7 +118,9 @@ export const AppendActivity = ApplicationDefinition.makeCommand(
 
       return args =>
         repository.addComment(args).pipe(
-          Effect.map(issue => Message.SucceededAppendActivity({ issue })),
+          Effect.map(comment =>
+            Message.SucceededAppendActivity({ issueId: args.issueId, comment }),
+          ),
           Effect.catch(error =>
             Effect.succeed(
               Message.FailedAppendActivity({ error: error.message }),
@@ -141,14 +145,14 @@ export const AssignIssue = ApplicationDefinition.makeCommand('AssignIssue', {
 
     return args =>
       Effect.gen(function* () {
-        const issue = yield* repository.saveIssue(args)
+        const savedIssue = yield* repository.saveIssue(args)
 
         const createdAt = DateTime.formatIso(
           DateTime.makeUnsafe(yield* clock.currentTimeMillis),
         )
 
         return Message.SucceededAssignIssue({
-          issue,
+          savedIssue,
           actorId: args.actorId,
           createdAt,
         })

@@ -11,10 +11,7 @@ import type { Model } from '../model'
 import * as Chart from './chart'
 import { sidebarView } from './sidebar'
 
-export const headerView = (
-  model: typeof Model.Type,
-  h: ApplicationViewBuilder,
-): Html => {
+export const headerView = (model: Model, h: ApplicationViewBuilder): Html => {
   const isRefreshing = AsyncData.isRefreshing(model.telemetry)
   const isLoading = AsyncData.isLoading(model.telemetry)
 
@@ -68,7 +65,7 @@ export const headerView = (
 }
 
 const dashboardBanner = (
-  telemetry: (typeof Model.Type)['telemetry'],
+  telemetry: Model['telemetry'],
 ): Option.Option<string> =>
   AsyncData.match(telemetry, {
     onIdle: () => Option.none(),
@@ -84,7 +81,7 @@ const dashboardBanner = (
   })
 
 export const telemetryStateView = (
-  model: typeof Model.Type,
+  model: Model,
   h: ApplicationViewBuilder,
 ): Html =>
   AsyncData.matchData(model.telemetry, {
@@ -160,8 +157,8 @@ export const failureView = (error: string, h: ApplicationViewBuilder): Html =>
   )
 
 export const dashboardShellView = (
-  model: typeof Model.Type,
-  telemetry: typeof Telemetry.Type,
+  model: Model,
+  telemetry: Telemetry,
   maybeBanner: Option.Option<string>,
   h: ApplicationViewBuilder,
 ): Html =>

@@ -8,7 +8,7 @@ import { Message } from '../message'
 import type { Model } from '../model'
 
 export const workspaceSettings = (
-  model: typeof Model.Type,
+  model: Model,
   h: ApplicationViewBuilder,
 ): Html =>
   h.section(

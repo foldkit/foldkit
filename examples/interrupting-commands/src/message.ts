@@ -13,3 +13,4 @@ export const Message = defineMessageUnion({
     outcome: Command.Interruptible.Outcome,
   },
 })
+export type Message = typeof Message.Type

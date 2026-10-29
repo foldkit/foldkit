@@ -6,7 +6,8 @@ import { Button, Checkbox, Input } from '@foldkit/ui'
 import * as Icon from '../icon'
 import { isReviewReady, promoToMaybeDiscount } from '../machine'
 import { Message } from '../message'
-import { CheckoutState, Promo, editionName } from '../model'
+import { Promo, editionName } from '../model'
+import type { ReviewState } from '../model'
 import { cancelCheckoutButton } from './cart'
 import {
   formatMoney,
@@ -17,7 +18,7 @@ import {
 } from './shared'
 
 export const reviewView = (
-  state: typeof CheckoutState.Review.Type,
+  state: ReviewState,
   h: ApplicationViewBuilder,
 ): Html => {
   const isReadyToPlace = isReviewReady(state)

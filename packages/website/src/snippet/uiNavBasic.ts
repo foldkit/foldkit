@@ -13,7 +13,7 @@ const Model = Schema.Struct({
   route: ApplicationRoute,
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // The nav items are the sections you navigate between. Use the route tags as
 // the item values so toView can switch on them without casting:
 type Section = 'Home' | 'Search' | 'Library' | 'Profile'
@@ -47,7 +47,7 @@ const isSectionCurrent =
 // carries aria-current="page" and a data-current attribute for styling.
 // Browser-native Tab and Enter handle keyboard navigation; Foldkit's runtime
 // turns the link clicks into route changes:
-const view = (model: typeof Model.Type, h: HtmlBuilder<Message>) => {
+const view = (model: Model, h: HtmlBuilder<Message>) => {
   const navView = ({ nav, items }: Nav.RenderInfo<Section>) =>
     h.nav(
       [...nav, h.Class('flex gap-2')],

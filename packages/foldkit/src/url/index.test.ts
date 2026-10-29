@@ -62,6 +62,25 @@ describe('fromString', () => {
     }
   })
 
+  it('preserves subsequent query and fragment delimiters', () => {
+    const result = fromString(
+      'https://example.com/path?query=allowed?rejected#section#nested?fragment',
+    )
+
+    expect(result).toStrictEqual(
+      Option.some(
+        Url.make({
+          protocol: 'https:',
+          host: 'example.com',
+          port: Option.none(),
+          pathname: '/path',
+          search: Option.some('query=allowed?rejected'),
+          hash: Option.some('section#nested?fragment'),
+        }),
+      ),
+    )
+  })
+
   it('returns None for invalid strings', () => {
     const result = fromString('not-a-url')
     expect(Option.isNone(result)).toBe(true)
@@ -123,5 +142,13 @@ describe('round-trip', () => {
     if (Option.isSome(parsed)) {
       expect(toString(parsed.value)).toBe(original)
     }
+  })
+
+  it('round-trips subsequent query and fragment delimiters', () => {
+    const original =
+      'https://example.com/path?query=first?second#section#nested?fragment'
+    const parsed = fromString(original)
+
+    expect(Option.map(parsed, toString)).toStrictEqual(Option.some(original))
   })
 })

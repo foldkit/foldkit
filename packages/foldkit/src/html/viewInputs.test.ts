@@ -312,6 +312,7 @@ const callbackItemBlock = makeGenericBlock<CallbackItem>()
 const stringItemBlock = makeGenericBlock<string>()
 const callbackItemView = makeGenericView<CallbackItem>()
 const ParentModel = Schema.Struct({ child: ViewInputsModel })
+type ParentModel = typeof ParentModel.Type
 const ParentDefinition = makeNamespace(
   'ViewInputsValidationParent',
 ).makeDefinition({

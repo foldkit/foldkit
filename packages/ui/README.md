@@ -44,7 +44,7 @@ Components come in two shapes:
 - **Render helpers** (Button, Input, Textarea, Select, Checkbox, Switch, Disclosure, Fieldset) are stateless. Call their `view` directly with a typed config. The controlled helpers (Checkbox, Switch, Disclosure) take the current value in through their config and dispatch a parent Message when the user changes it; you store that value in your own Model.
 - **Blocks** (Combobox, Dialog, Listbox, Menu, Popover, RadioGroup, and the like) own a Model. Create a Binding through the parent authoring value, such as `const DialogBinding = Application.makeBinding(Dialog.block, config)`, include it in the Composition's `bindings`, and render its `embedView(...)` descriptor with `h.block`. The Binding also folds the child's Messages and OutMessages into the parent.
 
-Component subpaths also expose domain helpers and types. Generic factories are separate exports: `Combobox.create(City)` returns a completed Block with Schema-refined payloads, and `Tabs.create<Tab>()` refines a type-only tab value. Import component ViewInputs and other helper types from their subpaths.
+Component subpaths also expose domain helpers and types. Generic factories are separate exports: `Combobox.makeBlock(City)` returns a completed Block with Schema-refined payloads, and `Tabs.makeBlock<Tab>()` refines a type-only tab value. Import component ViewInputs and other helper types from their subpaths.
 
 Stateless render helpers are also available as subpath namespaces:
 

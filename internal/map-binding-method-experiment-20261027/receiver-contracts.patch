@@ -1,0 +1,103 @@
+--- a/packages/foldkit/src/block/definition.ts
++++ b/packages/foldkit/src/block/definition.ts
+@@ -65,0 +66 @@
++import { type MakeMapBindingMethod, makeMapBindingMethod } from './mapBinding.js'
+@@ -3749,0 +3751,2 @@
++  /** Creates a keyed Binding using this Definition as its receiver. */
++  makeMapBinding: MakeMapBindingMethod
+@@ -4700,0 +4704 @@
++    makeMapBinding: makeMapBindingMethod,
+@@ -4829,0 +4834 @@
++    makeMapBinding: base.makeMapBinding,
+--- a/packages/foldkit/src/block/mapBinding.ts
++++ b/packages/foldkit/src/block/mapBinding.ts
+@@ -349,0 +350,73 @@
++
++/** Receiver-inferred Definition map constructor under investigation. */
++export interface MakeMapBindingMethod {
++  <
++    const ParentModelSchema extends AnySchema,
++    const ParentMessageSchema extends AnySchema,
++    const BlockValue extends BindableBlock,
++    const Keys extends MapBindingConfigKey,
++    const Field extends string,
++    const ChildField extends string,
++    const Source extends object,
++    const ParentOutMessageSchema extends AnySchema | undefined = undefined,
++    const ParentChildInitContextSchema extends AnySchema | undefined = undefined,
++  >(
++    this: Readonly<{
++      Model: ParentModelSchema
++      Message: ParentMessageSchema
++      OutMessage?: ParentOutMessageSchema
++      ChildInitContext?: ParentChildInitContextSchema
++      makeBinding: BindChild<
++        ParentModelSchema,
++        ParentMessageSchema,
++        ParentOutMessageSchema,
++        ParentChildInitContextSchema extends AnySchema
++          ? ParentChildInitContextSchema['Type']
++          : never
++      >
++    }>,
++    block: BlockValue,
++    config: Source &
++      Readonly<{ outMessage?: never }> &
++      ContextualProperties<
++        Keys,
++        BlockValue,
++        ParentModelSchema,
++        Field,
++        ChildField
++      > &
++      Readonly<{
++        field: Field &
++          ValidField<BlockValue, ParentModelSchema, Keys, ChildField>
++        childField?: ChildField
++      }> &
++      ([BlockValue['Message']['Type']] extends [never]
++        ? Readonly<{ delivery?: never }>
++        : DeliveryRequirement<
++            BlockValue,
++            ParentModelSchema['Type'],
++            KeyFor<ParentModelSchema, Field>
++          >),
++    ...validation: readonly [
++      ...ValidateConfig<BlockValue, NoInfer<Keys>, NoInfer<Source>>,
++      ...ValidateConcrete<BlockValue>,
++    ]
++  ): BindChildConstructorResult<
++    BlockValue,
++    ParentModelSchema,
++    ParentMessageSchema,
++    ParentOutMessageSchema,
++    ResultConfig<Source, ParentModelSchema, Field>,
++    ParentChildInitContextSchema extends AnySchema
++      ? ParentChildInitContextSchema['Type']
++      : never
++  >
++}
++
++
++/** Shared runtime adapter for the receiver-inferred constructor. */
++export const makeMapBindingMethod = ((): MakeMapBindingMethod =>
++  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
++  (function (this: object, block: BindableBlock, config: object): unknown {
++    return Reflect.apply(makeMapBinding, undefined, [this, block, config])
++  }) as unknown as MakeMapBindingMethod)()
+--- a/examples/workspace/src/composition.ts
++++ b/examples/workspace/src/composition.ts
+@@ -3 +2,0 @@
+-import { makeMapBinding } from 'foldkit/mapBinding'
+@@ -58,2 +57 @@
+-export const IssueDetailBinding = makeMapBinding(
+-  ApplicationDefinition,
++export const IssueDetailBinding = ApplicationDefinition.makeMapBinding(
+@@ -326,2 +324 @@
+-export const IssueBoardBinding = makeMapBinding(
+-  ApplicationDefinition,
++export const IssueBoardBinding = ApplicationDefinition.makeMapBinding(
+@@ -373,2 +370 @@
+-export const ProjectSettingsBinding = makeMapBinding(
+-  ApplicationDefinition,
++export const ProjectSettingsBinding = ApplicationDefinition.makeMapBinding(

@@ -15,7 +15,7 @@ import { update } from './update'
 const today = Calendar.make(2026, 4, 16)
 const init_ = init(today)
 
-const initialModel: typeof Model.Type = {
+const initialModel: Model = {
   route: ApplicationRoute.Home(),
   uiModel: init_.model,
 }

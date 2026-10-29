@@ -207,6 +207,7 @@ it('retains exact collision checks within literal and generic handler keys', () 
 
 const checkAssemblyTypes = (): void => {
   const Model = Schema.Struct({ text: Schema.String })
+  type Model = typeof Model.Type
 
   const application = Application.__makeFromConfig({
     Model,
@@ -214,7 +215,7 @@ const checkAssemblyTypes = (): void => {
       model: Model.make({ text: '' }),
       commands: [Send({ text: 'hello' })],
     }),
-    update: (model: typeof Model.Type, _message: Message) => ({ model }),
+    update: (model: Model, _message: Message) => ({ model }),
     view: (model, h) => ({ title: 'Handlers', body: h.div([], [model.text]) }),
     container: document.createElement('div'),
   })

@@ -27,6 +27,7 @@ class ValueSource extends Context.Service<
 >()('ConnectionShorthands/ValueSource') {}
 
 const Model = Schema.Struct({ count: Schema.Number })
+type Model = typeof Model.Type
 const Message = defineMessageUnion({
   RequestedRead: {},
   RequestedReadOperation: {},
@@ -37,7 +38,9 @@ const Message = defineMessageUnion({
   ReleasedSession: {},
   FailedAcquireSession: {},
 })
+type Message = typeof Message.Type
 const OutMessage = defineMessageUnion({ ReadRequested: {} })
+type OutMessage = typeof OutMessage.Type
 const Child = makeDefinition('Child', { Model, Message, OutMessage })
 const Read = Child.makeCommand('Read', {
   messages: [Message.CompletedRead],
@@ -119,6 +122,7 @@ const block: Block.FromAssemblyWithViewAndOutMessage<
   typeof prepareBlock
 > = Block.assemble(prepareBlock)
 const Entry = Schema.Struct({ id: Schema.String, child: Model })
+type Entry = typeof Entry.Type
 const ParentModel = Schema.Struct({
   primary: Model,
   secondary: Model,
@@ -135,6 +139,7 @@ const LegacyParentMessage = defineMessageUnion({
   GotChildMessage: { message: Message },
   GotEntryMessage: { id: Schema.String, message: Message },
 })
+type LegacyParentMessage = typeof LegacyParentMessage.Type
 const Parent = makeDefinition('ConnectionShorthandsParent', {
   Model: ParentModel,
   Message: ParentMessage,
@@ -162,14 +167,14 @@ const AccessorBinding = Parent.makeBinding(block, {
   write: (model, nextPrimary) =>
     modifyFields(model, { primary: () => nextPrimary }),
 }).withOutMessagePolicy({ fold: foldChildOutMessage })
-const entryKey = (entry: typeof Entry.Type): string => entry.id
+const entryKey = (entry: Entry): string => entry.id
 const KeyedBinding = Parent.makeBinding(block, {
   placement: 'entries',
   readAll: (model: ParentModel) => model.entries,
   key: entryKey,
   keySchema: Schema.String,
-  read: (entry: typeof Entry.Type) => entry.child,
-  writeAt: (model: ParentModel, id: string, nextChild: typeof Model.Type) =>
+  read: (entry: Entry) => entry.child,
+  writeAt: (model: ParentModel, id: string, nextChild: Model) =>
     modifyFields(model, {
       entries: Array.map(entry =>
         entry.id === id
@@ -178,7 +183,7 @@ const KeyedBinding = Parent.makeBinding(block, {
       ),
     }),
 }).withOutMessagePolicy({
-  fold: (_key: string, outMessage: typeof OutMessage.Type) =>
+  fold: (_key: string, outMessage: OutMessage) =>
     foldChildOutMessage(outMessage),
 })
 const ParentComposition = Parent.makeComposition({
@@ -358,7 +363,7 @@ it('rejects ambiguous mappings before building a Binding', () => {
       Model: ParentModel,
       field: 'primary',
       parentMessage: LegacyParentMessage.GotChildMessage,
-      toParentMessage: (message: typeof Message.Type) =>
+      toParentMessage: (message: Message) =>
         LegacyParentMessage.GotChildMessage({ message }),
     }),
   ).toThrow('exactly one parent Message mapping')

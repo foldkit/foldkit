@@ -6,12 +6,13 @@ export type Directory = Readonly<{
   name: string
   entries: ReadonlyArray<FileTreeEntry>
 }>
-export type FileTreeEntry = typeof File.Type | Directory
+export type FileTreeEntry = File | Directory
 
 export const File = taggedStruct('File', {
   name: Schema.String,
   sizeInBytes: Schema.Number,
 })
+export type File = typeof File.Type
 
 export const Directory = taggedStruct('Directory', {
   name: Schema.String,

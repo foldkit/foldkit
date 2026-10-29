@@ -3,22 +3,22 @@ import { modifyFields } from 'foldkit/struct'
 
 import { AddComment } from './command'
 import { CommentComposerComposition } from './composition'
-import { OutMessage, PostState, makeOutMessageStep } from './definition'
-import { canEditDraft } from './draft'
+import { isDraftEditable } from './draft'
+import { PostState } from './model'
+import { OutMessage } from './outMessage'
 
 export const update = CommentComposerComposition.makeUpdate({
   UpdatedBody: (model, { value }) => {
-    if (!canEditDraft(model)) {
+    if (!isDraftEditable(model)) {
       return { model }
     }
 
     return {
       model: modifyFields(model, { body: () => value }),
-      outMessage: OutMessage.ReportedDraft({ body: value }),
     }
   },
   ClickedDiscardComment: model => {
-    if (!canEditDraft(model)) {
+    if (!isDraftEditable(model)) {
       return { model }
     }
 
@@ -27,12 +27,8 @@ export const update = CommentComposerComposition.makeUpdate({
         body: () => '',
         postState: () => PostState.Idle(),
       }),
-      outMessage: OutMessage.ReportedDraft({ body: '' }),
     }
   },
-  RequestedReportDraft: makeOutMessageStep(model =>
-    OutMessage.ReportedDraft({ body: model.body }),
-  ),
   SubmittedCommentForm: (model, { authorId }) => {
     if (PostState.guards.Posting(model.postState)) {
       return { model }
@@ -56,7 +52,7 @@ export const update = CommentComposerComposition.makeUpdate({
       commands: [AddComment({ issueId: model.issueId, body, authorId })],
     }
   },
-  SucceededAddComment: (model, { issue }) => {
+  SucceededAddComment: (model, { comment }) => {
     if (!PostState.guards.Posting(model.postState)) {
       return { model }
     }
@@ -66,7 +62,7 @@ export const update = CommentComposerComposition.makeUpdate({
         body: () => '',
         postState: () => PostState.Idle(),
       }),
-      outMessage: OutMessage.AddedComment({ issue }),
+      outMessage: OutMessage.AddedComment({ comment }),
     }
   },
   FailedAddComment: (model, { error }) => {

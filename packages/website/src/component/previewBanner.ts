@@ -24,7 +24,7 @@ const command = (value: string): Html =>
     [value],
   )
 
-export const view = (release: typeof PreviewRelease.Type): Html => {
+export const view = (release: PreviewRelease): Html => {
   const shortCommit = release.sourceCommit.slice(0, 7)
   const packageLinks = Object.entries(release.packages)
     .sort(([left], [right]) => left.localeCompare(right))

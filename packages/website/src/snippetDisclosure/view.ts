@@ -33,11 +33,7 @@ const isEstimatedToOverflow = (rawCode: string): boolean =>
   rawCode.split('\n').length * CODE_LINE_HEIGHT_PX + CODE_VERTICAL_PADDING_PX >
   COLLAPSED_PREVIEW_HEIGHT_PX + MINIMUM_EXPANSION_HEIGHT_PX
 
-const isMeasuredToOverflow = (
-  model: typeof Model.Type,
-  id: string,
-  rawCode: string,
-) =>
+const isMeasuredToOverflow = (model: Model, id: string, rawCode: string) =>
   Option.match(HashMap.get(model.snippetSizes, id), {
     onNone: () => isEstimatedToOverflow(rawCode),
     onSome: snippetSize =>

@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vitest'
 
 import { Message, type Model, update } from './application'
 
-const initialModel: typeof Model.Type = {
+const initialModel: Model = {
   content: 'https://foldkit.dev',
   fillColor: '#1e1b4b',
   backgroundColor: '#fef3c7',

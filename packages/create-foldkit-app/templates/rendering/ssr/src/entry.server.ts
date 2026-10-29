@@ -6,7 +6,7 @@ import { readCountCookie } from './cookie'
 
 export const renderDocument = Server.renderDocument
 
-const flagsForRequest = (cookieHeader: string): typeof Flags.Type => ({
+const flagsForRequest = (cookieHeader: string): Flags => ({
   initialCount: readCountCookie(cookieHeader),
   renderedAt: new Date().toISOString(),
   renderedOn: 'Server',

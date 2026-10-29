@@ -7,3 +7,4 @@ export const OrderFlow = defineTaggedUnion({
   CheckingOut: { checkout: CheckoutState },
   Complete: {},
 })
+export type OrderFlow = typeof OrderFlow.Type

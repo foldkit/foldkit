@@ -1,0 +1,155 @@
+{
+  "baseCommit": "14e5d7330eca3bacdef2b6591cc204c8440061af",
+  "stage": "initial candidate before public Block.MakeMapBinding export",
+  "inputs": {
+    "baseline": {
+      "packages/foldkit/src/block/definition.ts": {
+        "bytes": 147929,
+        "sha256": "83f046e4aa7053ea329239f7474aebb6e75cc2a7fc2ec9b26aecb9ed0a0661da"
+      },
+      "packages/foldkit/src/block/mapBinding.ts": {
+        "bytes": 12182,
+        "sha256": "e52ce18e12d7d76fa513f20c3bb8b5bf0b9c1b3404c98c107f260cc30ed28c26"
+      },
+      "examples/workspace/src/definition.ts": {
+        "bytes": 301,
+        "sha256": "81c3f22e68eebdc00766bef8542c343aa297a748c3abd4220b5bf6e92cb20967"
+      },
+      "examples/workspace/src/composition.ts": {
+        "bytes": 12113,
+        "sha256": "1ef5ad93b910784a14d698ac3c80bd3a39c23fccc5f271733ddeda04fa296cd9"
+      },
+      "packages/foldkit/scripts/profile-block-language-service.ts": {
+        "bytes": 57564,
+        "sha256": "2c30bd15da0d50c5ea7a0c61e9a22727657a3dfeed9b77c5159e5665598668a9"
+      },
+      "packages/foldkit/scripts/profile-map-binding-scale.ts": {
+        "bytes": 57745,
+        "sha256": "e5381a6ccd26e05ede0d062697872f667cf591f94cf187b1ef04812f8da07d79"
+      },
+      "packages/foldkit/type-performance/workspace-generate.ts": {
+        "bytes": 13358,
+        "sha256": "9e02b39f5714075742d96d9576bc5a7ef81cce411bd6d43beca95b61ac7b7f8a"
+      },
+      "packages/foldkit/type-performance/workspace-shared.ts": {
+        "bytes": 5775,
+        "sha256": "2347c3c13ae4db17d509db423d8fdc67c25814c6b26daa4661617a962354d6d1"
+      },
+      "packages/foldkit/type-performance/workspace-groups-16.ts": {
+        "bytes": 153443,
+        "sha256": "bf607c23aed02cb7bdbf142a7759c0d5be577bd4d2184e61a4763f2fccac7425"
+      },
+      "packages/foldkit/type-performance/workspace-composition-16.ts": {
+        "bytes": 14348,
+        "sha256": "2e0fddc2d297ad944bfda0b4dee9b760ed7393551aff2885b5dda301b05ac4d9"
+      },
+      "packages/foldkit/type-performance/tsconfig.json": {
+        "bytes": 409,
+        "sha256": "5e0c528e69d60903234d99d44ef489fe98d1f4a6017360354cf18adc6077d1ac"
+      },
+      "pnpm-lock.yaml": {
+        "bytes": 360734,
+        "sha256": "b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47"
+      }
+    },
+    "candidate": {
+      "packages/foldkit/src/block/definition.ts": {
+        "bytes": 149522,
+        "sha256": "255fa6ac384593077b0306c484d377d2dcdefb11f6a4e14cbd21b456213c5869"
+      },
+      "packages/foldkit/src/block/mapBinding.ts": {
+        "bytes": 9547,
+        "sha256": "05b3530974d5686886529c619c2053dfd4bfa4113046972bf5e42a6c23fcad5e"
+      },
+      "examples/workspace/src/definition.ts": {
+        "bytes": 317,
+        "sha256": "e870c32607aef99cbcd48e1a9a4cf2cea2fcf5cad19411f5a894c7025671a191"
+      },
+      "examples/workspace/src/composition.ts": {
+        "bytes": 12004,
+        "sha256": "16963f46b1610b569fcd3ff02a854bb393014784b10119f4ea564cadf04c9c01"
+      },
+      "packages/foldkit/scripts/profile-block-language-service.ts": {
+        "bytes": 57564,
+        "sha256": "2c30bd15da0d50c5ea7a0c61e9a22727657a3dfeed9b77c5159e5665598668a9"
+      },
+      "packages/foldkit/scripts/profile-map-binding-scale.ts": {
+        "bytes": 57745,
+        "sha256": "e5381a6ccd26e05ede0d062697872f667cf591f94cf187b1ef04812f8da07d79"
+      },
+      "packages/foldkit/type-performance/workspace-generate.ts": {
+        "bytes": 13358,
+        "sha256": "9e02b39f5714075742d96d9576bc5a7ef81cce411bd6d43beca95b61ac7b7f8a"
+      },
+      "packages/foldkit/type-performance/workspace-shared.ts": {
+        "bytes": 5775,
+        "sha256": "2347c3c13ae4db17d509db423d8fdc67c25814c6b26daa4661617a962354d6d1"
+      },
+      "packages/foldkit/type-performance/workspace-groups-16.ts": {
+        "bytes": 153375,
+        "sha256": "11cd95d42c2bc2962cf3f0636990adc443621b36c52c8bed702827c41f355d5e"
+      },
+      "packages/foldkit/type-performance/workspace-composition-16.ts": {
+        "bytes": 14348,
+        "sha256": "2e0fddc2d297ad944bfda0b4dee9b760ed7393551aff2885b5dda301b05ac4d9"
+      },
+      "packages/foldkit/type-performance/tsconfig.json": {
+        "bytes": 409,
+        "sha256": "5e0c528e69d60903234d99d44ef489fe98d1f4a6017360354cf18adc6077d1ac"
+      },
+      "pnpm-lock.yaml": {
+        "bytes": 360734,
+        "sha256": "b0b766fbc14e481bcc2d59b53458d6ea15d84287b904f0b01661c2e94847ba47"
+      }
+    }
+  },
+  "measurementSets": {
+    "workspace": {
+      "reports": 6,
+      "benchmarkScriptSha256": [
+        "2c30bd15da0d50c5ea7a0c61e9a22727657a3dfeed9b77c5159e5665598668a9"
+      ],
+      "workloadSha256": {
+        "baseline": [
+          "14e1f5de8abbe2bff1723213b8715a6b1c7b6cb00713ccdd00476f939d8f3d0c"
+        ],
+        "candidate": [
+          "8ec74e33be133cc0b313d7ae98b192e618b436e88d70efe73eed2073819532a3"
+        ]
+      }
+    },
+    "scale-root": {
+      "reports": 6,
+      "benchmarkScriptSha256": [
+        "e5381a6ccd26e05ede0d062697872f667cf591f94cf187b1ef04812f8da07d79"
+      ],
+      "workloadSha256": {
+        "baseline": [
+          "1daeae60b2a7afda17999a4cbd5ca64545bb53815ba90ecdbad377f62f633300"
+        ],
+        "candidate": [
+          "1c6321a83bbf0e1806c8a5ea66db77cdf94cd943d68c69473a209426e6f91d02"
+        ]
+      }
+    },
+    "scale-child": {
+      "reports": 6,
+      "benchmarkScriptSha256": [
+        "d7b2352fe24de4157b53ca3643bd7b37e84202d0355f5410d4db9e940bb47903"
+      ],
+      "workloadSha256": {
+        "baseline": [
+          "37f798be67659587c5c9ba63459d8d8a32b7f19ac7e977569e1caeb8d524e541"
+        ],
+        "candidate": [
+          "150cc3c1c154ae5a36cfadbe66488ab6ff35a4fb91dd0b3747f8191c65f2c059"
+        ]
+      }
+    }
+  },
+  "excludedMeasurements": [
+    "baseline-scale-calibration.json: calibration, possible compiler overlap",
+    "*-scale-child-*.json: preliminary; diagnostic targets shared child, not full root"
+  ],
+  "futureFinalEvidence": "Lead-owned final paired measurements/counts must be separately labeled and must not overwrite initial data."
+}

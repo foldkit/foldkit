@@ -3,7 +3,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { IssueListComposition } from './composition'
 import { makeFieldsStep, makeOutMessageStep } from './definition'
-import { OutMessage } from './message'
+import { OutMessage } from './outMessage'
 
 export const update = IssueListComposition.makeUpdate({
   UpdatedGrouping: makeOutMessageStep.fromMessage(({ value }) =>

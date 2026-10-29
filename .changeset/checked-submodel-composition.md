@@ -46,6 +46,7 @@ import { defineMessageUnion } from 'foldkit/message'
 export const Message = defineMessageUnion({
   ClickedHelp: {},
 })
+export type Message = typeof Message.Type
 
 // composition.ts
 import { ApplicationDefinition } from './definition'
@@ -126,6 +127,7 @@ import { Schema } from 'effect'
 import * as Home from './page/home'
 
 export const Model = Schema.Struct({ home: Home.Model })
+export type Model = typeof Model.Type
 
 // page/index.ts
 export { HomeBlock } from './home'
@@ -158,6 +160,7 @@ import { defineMessageUnion } from 'foldkit/message'
 export const Message = defineMessageUnion({
   RequestedReset: {},
 })
+export type Message = typeof Message.Type
 
 // update.ts
 import { modifyFields } from 'foldkit/struct'
@@ -389,6 +392,7 @@ import { Message } from './message'
 import { Model } from './model'
 import { Post } from './post'
 const Posts = Schema.Array(Post)
+type Posts = typeof Posts.Type
 export const postsQuery = Query.define({
   name: 'Posts',
   data: Posts,
@@ -448,7 +452,7 @@ Then in the feature's helper module:
 ```ts
 import type { Article } from './article'
 import type { ApplicationViewBuilder } from './composition'
-import { Model } from './model'
+import type { Model } from './model'
 
 export const headerView = (h: ApplicationViewBuilder) =>
   h.header([], ['Articles'])
@@ -456,17 +460,14 @@ export const headerView = (h: ApplicationViewBuilder) =>
 export const articleCard = (article: Article, h: ApplicationViewBuilder) =>
   h.article([], [article.title])
 
-export const articleList = (
-  model: typeof Model.Type,
-  h: ApplicationViewBuilder,
-) =>
+export const articleList = (model: Model, h: ApplicationViewBuilder) =>
   h.ul(
     [],
     model.articles.map(article => h.li([], [article.title])),
   )
 ```
 
-`Block.ViewBuilderFor<typeof ApplicationComposition>` carries the root Message type plus its registered child and Mount capabilities. It is a purposeful generic type alias and constructs no runtime builder. Name the alias for its owner, declare it immediately after the Composition with no blank line, and export it only when another file uses it. The owner prefix identifies one Composition's capabilities at the plain type import site. Routine application annotations query their Schema values directly, such as `typeof Model.Type`; a child consumer queries `typeof ChildBlock.Model.Type`. A helper takes only the Model, domain value, or context it actually reads; TypeScript infers one `Html` result or an array. Keep the framework's general `HtmlBuilder<Message>` for functions genuinely shared across owners.
+`Block.ViewBuilderFor<typeof ApplicationComposition>` carries the root Message type plus its registered child and Mount capabilities. It is a purposeful generic type alias and constructs no runtime builder. Name the alias for its owner, declare it immediately after the Composition with no blank line, and export it only when another file uses it. The owner prefix identifies one Composition's capabilities at the plain type import site. Routine application annotations use the same-name decoded alias, such as `Model`; a child consumer declares a named alias from `typeof ChildBlock.Model.Type`. A helper takes only the Model, domain value, or context it actually reads; TypeScript infers one `Html` result or an array. Keep the framework's general `HtmlBuilder<Message>` for functions genuinely shared across owners.
 
 ## Name the Composition view helper type
 
@@ -568,8 +569,10 @@ import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 export const Model = Schema.Struct({ count: Schema.Number })
+export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({ ClickedIncrement: {} })
+export type Message = typeof Message.Type
 
 export const ApplicationComposition = Block.makeDefinition('Application', {
   Model,

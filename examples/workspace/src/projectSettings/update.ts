@@ -3,18 +3,12 @@ import { modifyFields } from 'foldkit/struct'
 
 import { SaveProject } from './command'
 import { ProjectSettingsComposition } from './composition'
-import {
-  type Model,
-  OutMessage,
-  type ProjectDraft,
-  SaveState,
-  makeStep,
-} from './definition'
+import { makeStep } from './definition'
 import { isDirty } from './draft'
+import { type Model, type ProjectDraft, SaveState } from './model'
+import { OutMessage } from './outMessage'
 
-const editDraftStep = (
-  change: (draft: typeof ProjectDraft.Type) => typeof ProjectDraft.Type,
-) =>
+const editDraftStep = (transformDraft: (draft: ProjectDraft) => ProjectDraft) =>
   makeStep(model => {
     if (SaveState.guards.Saving(model.saveState)) {
       return { model }
@@ -22,13 +16,13 @@ const editDraftStep = (
 
     return {
       model: modifyFields(model, {
-        draft: change,
+        draft: transformDraft,
         saveState: () => SaveState.Idle(),
       }),
     }
   })
 
-const saveStep = makeStep(model => {
+const saveProjectStep = makeStep(model => {
   const name = String.trim(model.draft.name)
 
   if (
@@ -52,7 +46,7 @@ const saveStep = makeStep(model => {
   }
 })
 
-const handleClickedDiscardChanges = (model: typeof Model.Type) => {
+const handleClickedDiscardChanges = (model: Model) => {
   if (SaveState.guards.Saving(model.saveState)) {
     return { model }
   }
@@ -75,8 +69,8 @@ export const update = ProjectSettingsComposition.makeUpdate({
     editDraftStep(draft => modifyFields(draft, { description: () => value }))(
       model,
     ),
-  SubmittedProjectSettings: saveStep,
-  ClickedRetrySave: saveStep,
+  SubmittedProjectSettings: saveProjectStep,
+  ClickedRetrySave: saveProjectStep,
   ClickedDiscardChanges: handleClickedDiscardChanges,
   SucceededSaveProject: (model, { project }) => {
     if (

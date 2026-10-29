@@ -14,7 +14,7 @@ import { describe, test } from 'vitest'
 
 import { Model as ModelSchema, update, view } from './application'
 
-const initialModel: typeof ModelSchema.Type = {
+const initialModel: ModelSchema = {
   counters: [
     { id: 'counter-0', counter: { count: 0 } },
     { id: 'counter-1', counter: { count: 0 } },

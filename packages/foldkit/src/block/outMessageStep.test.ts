@@ -6,13 +6,16 @@ import * as Update from '../update/public.js'
 import * as Block from './public.js'
 
 const Model = Schema.Struct({ count: Schema.Number })
+type Model = typeof Model.Type
 const Message = defineMessageUnion({
   RequestedSelect: { value: Schema.String },
 })
+type Message = typeof Message.Type
 const OutMessage = defineMessageUnion({
   Selected: { value: Schema.String },
   Closed: {},
 })
+type OutMessage = typeof OutMessage.Type
 const SelectionDefinition = Block.makeDefinition('OutMessageStepSelection', {
   Model,
   Message,
@@ -41,6 +44,7 @@ it('returns the identical Model and OutMessage without other result channels', (
 
 it('retains refined input Models and literal OutMessage payloads', () => {
   const ExtendedModel = Schema.Struct({ ...Model.fields, label: Schema.String })
+  type ExtendedModel = typeof ExtendedModel.Type
   const model = ExtendedModel.make({ count: 2, label: 'Selected' })
   const selectStep = SelectionDefinition.makeOutMessageStep(() => ({
     _tag: 'Selected',
@@ -87,9 +91,11 @@ it('emits a derived OutMessage from an inferred Binding policy', () => {
     typeof prepareSelection
   > = Block.assemble(prepareSelection)
   const ParentModel = Schema.Struct({ selection: SelectionBlock.Model })
+  type ParentModel = typeof ParentModel.Type
   const ParentOutMessage = defineMessageUnion({
     Chose: { value: Schema.String },
   })
+  type ParentOutMessage = typeof ParentOutMessage.Type
   const ParentDefinition = Block.makeDefinition('OutMessageStepParent', {
     Model: ParentModel,
     Message,
@@ -125,7 +131,7 @@ it('emits a derived OutMessage from an inferred Binding policy', () => {
     ParentComposition,
     [
       {
-        RequestedSelect: (parentModel: typeof ParentModel.Type) => {
+        RequestedSelect: (parentModel: ParentModel) => {
           const combined = Reflect.apply(Update.combineSteps, undefined, [
             [
               ParentDefinition.makeNoopStep(),

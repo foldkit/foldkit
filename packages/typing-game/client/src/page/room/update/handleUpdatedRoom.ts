@@ -14,13 +14,13 @@ import { Model, RoomAsyncData } from '../model'
 const EXIT_COUNTDOWN_SECONDS = 3
 
 export const handleUpdatedRoom =
-  (model: typeof Model.Type) =>
+  (model: Model) =>
   ({
     room,
     maybePlayerProgress,
   }: {
-    room: typeof Shared.Room.Type
-    maybePlayerProgress: Option.Option<typeof Shared.PlayerProgress.Type>
+    room: Shared.Room
+    maybePlayerProgress: Option.Option<Shared.PlayerProgress>
   }) => {
     const maybePreviousRoom = AsyncData.getData(model.roomAsyncData)
     const hadRoom = Option.isSome(maybePreviousRoom)
@@ -89,16 +89,16 @@ export const handleUpdatedRoom =
 type PlayerProgressAction = Data.TaggedEnum<{
   Clear: {}
   Maintain: { userGameText: string; charsTyped: number }
-  Restore: { progress: typeof Shared.PlayerProgress.Type }
+  Restore: { progress: Shared.PlayerProgress }
 }>
 
 const PlayerProgressAction = Data.taggedEnum<PlayerProgressAction>()
 
 const determinePlayerProgressAction = (
-  room: typeof Shared.Room.Type,
+  room: Shared.Room,
   currentUserGameText: string,
   currentCharsTyped: number,
-  maybePlayerProgress: Option.Option<typeof Shared.PlayerProgress.Type>,
+  maybePlayerProgress: Option.Option<Shared.PlayerProgress>,
 ): PlayerProgressAction => {
   if (room.status._tag === 'Finished') {
     return PlayerProgressAction.Clear()

@@ -93,10 +93,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 
-const weatherView = (
-  weather: typeof WeatherData.Type,
-  h: ApplicationViewBuilder,
-): Html =>
+const weatherView = (weather: WeatherData, h: ApplicationViewBuilder): Html =>
   h.article(
     [h.Class('bg-white rounded-xl shadow-lg p-8 w-full')],
     [

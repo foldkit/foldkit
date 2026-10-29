@@ -18,22 +18,20 @@ import { isComplete as isPersonalInfoComplete } from './step/personalInfo/update
 import { isComplete as isSkillsComplete } from './step/skills/update'
 import { isComplete as isWorkHistoryComplete } from './step/workHistory/update'
 
-const isApplicationComplete = (model: typeof Model.Type): boolean =>
+const isApplicationComplete = (model: Model): boolean =>
   isPersonalInfoComplete(model.personalInfo) &&
   isWorkHistoryComplete(model.workHistory) &&
   isEducationComplete(model.education) &&
   isSkillsComplete(model.skills)
 
-const toNextStep = (current: typeof Step.Step.Type): typeof Step.Step.Type =>
+const toNextStep = (current: Step.Step): Step.Step =>
   pipe(
     Step.all,
     Array.get(Step.indexOf(current) + 1),
     Option.getOrElse(() => current),
   )
 
-const toPreviousStep = (
-  current: typeof Step.Step.Type,
-): typeof Step.Step.Type =>
+const toPreviousStep = (current: Step.Step): Step.Step =>
   pipe(
     Step.all,
     Array.get(Step.indexOf(current) - 1),

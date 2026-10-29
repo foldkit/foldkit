@@ -8,6 +8,6 @@ export const PronounOption = Schema.Literals([
   'She/They',
   'Other',
 ])
+export type PronounOption = typeof PronounOption.Type
 
-export const all: ReadonlyArray<typeof PronounOption.Type> =
-  PronounOption.literals
+export const all: ReadonlyArray<PronounOption> = PronounOption.literals

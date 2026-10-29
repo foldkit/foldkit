@@ -15,7 +15,6 @@ export const Model = Schema.Struct({
   username: Schema.String,
   error: Schema.String,
 })
-
 export type Model = typeof Model.Type
 
 // MESSAGE
@@ -28,7 +27,6 @@ export const Message = defineMessageUnion({
   FailedAuthenticate: { error: Schema.String },
   ClickedLogout: {},
 })
-
 export type Message = typeof Message.Type
 
 // COMMAND

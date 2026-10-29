@@ -82,7 +82,7 @@ test('VirtualList exposes the full observed scroll snapshot as an OutMessage', (
   expect(applied.model.scrollTop).toBe(40)
   expect(applied.outMessage).toBeUndefined()
 
-  const RefinedVirtualList = VirtualList.create<{ id: string }>()
+  const RefinedVirtualList = VirtualList.makeBlock<{ id: string }>()
   expectTypeOf(RefinedVirtualList.OutMessage).toEqualTypeOf(
     VirtualList.OutMessage,
   )

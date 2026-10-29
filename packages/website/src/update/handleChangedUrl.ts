@@ -25,34 +25,33 @@ import {
   urlToApplicationRoute,
 } from '../route'
 
-export const handleChangedUrlStep = makeStep(
-  (model, { url }: typeof Message.ChangedUrl.Type) => {
-    const { route: previousRoute } = model
-    const nextRoute = urlToApplicationRoute(url)
-    const transition = Transition.make(previousRoute, nextRoute)
-    const isDifferentPathname = model.url.pathname !== url.pathname
+type ChangedUrlMessage = typeof Message.ChangedUrl.Type
 
-    return Update.combineSteps([
-      makeFieldsStep(stepModel => ({
-        route: () => nextRoute,
-        url: () => url,
-        sidebarGroups: () => nextSidebarGroups(stepModel, nextRoute),
-      })),
-      reconcileHomeStep(transition),
-      reconcilePlaygroundStep(transition),
-      MobileMenuDialogBinding.requestClose(),
-      ThemeMenuBinding.requestClose(),
-      SearchBinding.informRouteChanged(),
-      loadRouteDataStep(transition),
-      scrollAfterUrlChangeStep(url, isDifferentPathname),
-    ])
-  },
-)
+type ChangedUrl = ChangedUrlMessage
 
-const nextSidebarGroups = (
-  model: typeof Model.Type,
-  nextRoute: typeof ApplicationRoute.Type,
-) =>
+export const handleChangedUrlStep = makeStep((model, { url }: ChangedUrl) => {
+  const { route: previousRoute } = model
+  const nextRoute = urlToApplicationRoute(url)
+  const transition = Transition.make(previousRoute, nextRoute)
+  const isDifferentPathname = model.url.pathname !== url.pathname
+
+  return Update.combineSteps([
+    makeFieldsStep(stepModel => ({
+      route: () => nextRoute,
+      url: () => url,
+      sidebarGroups: () => nextSidebarGroups(stepModel, nextRoute),
+    })),
+    reconcileHomeStep(transition),
+    reconcilePlaygroundStep(transition),
+    MobileMenuDialogBinding.requestClose(),
+    ThemeMenuBinding.requestClose(),
+    SearchBinding.informRouteChanged(),
+    loadRouteDataStep(transition),
+    scrollAfterUrlChangeStep(url, isDifferentPathname),
+  ])
+})
+
+const nextSidebarGroups = (model: Model, nextRoute: ApplicationRoute) =>
   Option.match(findActiveSectionKeyForRoute(nextRoute), {
     onNone: () => model.sidebarGroups,
     onSome: activeSectionKey =>

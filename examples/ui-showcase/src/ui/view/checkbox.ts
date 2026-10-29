@@ -7,6 +7,8 @@ import type { UiViewBuilder } from '../composition'
 import { Message } from '../message'
 import type { Model } from '../model'
 
+type UiMessage = typeof UiComposition.Message.Type
+
 const CHECKBOX_BASIC_DEMO_ID = 'checkbox-basic-demo'
 const CHECKBOX_ALL_DEMO_ID = 'checkbox-all-demo'
 const CHECKBOX_OPTION_A_DEMO_ID = 'checkbox-option-a-demo'
@@ -25,7 +27,7 @@ const descriptionClassName = 'text-sm text-gray-500'
 export const view = UiComposition.makeView((model, h) => {
   const checkmark = h.span([h.Class('text-white text-xs')], ['✓'])
   const basicCheckboxView = (
-    attributes: Checkbox.CheckboxAttributes<typeof UiComposition.Message.Type>,
+    attributes: Checkbox.CheckboxAttributes<UiMessage>,
   ): Html =>
     h.div(
       [h.Class('flex flex-col gap-1')],
@@ -80,7 +82,7 @@ export const view = UiComposition.makeView((model, h) => {
   )
 })
 
-const indeterminateDemo = (model: typeof Model.Type, h: UiViewBuilder) => {
+const indeterminateDemo = (model: Model, h: UiViewBuilder) => {
   const checkmark = h.span([h.Class('text-white text-xs')], ['✓'])
   const indeterminateMark = h.span([h.Class('text-white text-xs')], ['—'])
 
@@ -101,7 +103,7 @@ const indeterminateDemo = (model: typeof Model.Type, h: UiViewBuilder) => {
   }
 
   const selectAllView = (
-    attributes: Checkbox.CheckboxAttributes<typeof UiComposition.Message.Type>,
+    attributes: Checkbox.CheckboxAttributes<UiMessage>,
   ): Html =>
     h.div(
       [h.Class(topRowClassName)],
@@ -118,7 +120,7 @@ const indeterminateDemo = (model: typeof Model.Type, h: UiViewBuilder) => {
     )
 
   const emailNotificationsView = (
-    attributes: Checkbox.CheckboxAttributes<typeof UiComposition.Message.Type>,
+    attributes: Checkbox.CheckboxAttributes<UiMessage>,
   ): Html =>
     notificationOptionView(
       attributes,
@@ -127,7 +129,7 @@ const indeterminateDemo = (model: typeof Model.Type, h: UiViewBuilder) => {
     )
 
   const pushNotificationsView = (
-    attributes: Checkbox.CheckboxAttributes<typeof UiComposition.Message.Type>,
+    attributes: Checkbox.CheckboxAttributes<UiMessage>,
   ): Html =>
     notificationOptionView(
       attributes,
@@ -136,7 +138,7 @@ const indeterminateDemo = (model: typeof Model.Type, h: UiViewBuilder) => {
     )
 
   const notificationOptionView = (
-    attributes: Checkbox.CheckboxAttributes<typeof UiComposition.Message.Type>,
+    attributes: Checkbox.CheckboxAttributes<UiMessage>,
     isChecked: boolean,
     label: string,
   ): Html =>

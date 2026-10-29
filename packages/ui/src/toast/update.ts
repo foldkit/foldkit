@@ -49,7 +49,7 @@ const DEFAULT_VARIANT: Variant = 'Info'
 /** Horizontal offset in pixels for an entry's swipe state. `Dragging`
  *  reports the distance travelled from the press point; `Dismissing` reports
  *  the offset the release left behind; `Idle` and `Settling` report zero. */
-export const swipeOffset = (swipeState: typeof SwipeState.Type): number =>
+export const swipeOffset = (swipeState: SwipeState): number =>
   SwipeState.match(swipeState, {
     Idle: () => 0,
     Dragging: dragging => dragging.currentX - dragging.startX,
@@ -93,18 +93,19 @@ const documentStylesWhileSwiping = Stream.callback<never>(() =>
 
 /**
  * Factory that creates Toast's runtime (update fn, helpers, commands) for a
- *  specific payload schema. Called by `make` in `Toast.ts`; inner helpers close
+ *  specific payload schema. Called by `makeFixture` in `toast.ts`; inner helpers close
  *  over the payload-specific Entry / Model / Message types so generics don't
  *  have to propagate through every helper signature.
  *
- *  @internal Consumers should use `Toast.make(PayloadSchema)`. This is
- *  only exported so `Toast.ts` can wire the view into the runtime.
+ *  @internal Consumers should use `Toast.makeBlock(PayloadSchema)`. This is
+ *  only exported so `toast.ts` can wire the view into the runtime.
  */
 export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   const EntrySchema = makeEntry(payloadSchema)
   const ModelSchema = makeModel(payloadSchema)
   const MessageSchema = makeMessage(payloadSchema)
   const OutMessageSchema = makeOutMessage(payloadSchema)
+  type RequestedShow = typeof MessageSchema.RequestedShow.Type
   const ToastDefinition = Block.makeDefinition('Toast', {
     Model: ModelSchema,
     Message: MessageSchema,
@@ -302,12 +303,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
   const createEntry = (
     model: Model,
-    {
-      payload,
-      variant,
-      maybeDuration,
-      isSticky,
-    }: typeof MessageSchema.RequestedShow.Type,
+    { payload, variant, maybeDuration, isSticky }: RequestedShow,
   ): Entry => {
     const entryId = `${model.id}-entry-${model.nextEntryKey}`
 

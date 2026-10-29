@@ -41,6 +41,7 @@ afterEach(() => {
 describe('completed root Block hosting', () => {
   it('derives external dispatch only for an explicit DevTools opt-in', () => {
     const Message = defineMessageUnion({ ClickedIncrement: {} })
+    type Message = typeof Message.Type
 
     expect(resolveProgramDevToolsConfig(undefined, Message)).toBeUndefined()
     expect(resolveProgramDevToolsConfig(false, Message)).toBe(false)
@@ -99,9 +100,11 @@ describe('completed root Block hosting', () => {
         }),
       ),
     )
+    type ServiceDecodedString = typeof ServiceDecodedString.Type
     const Message = defineMessageUnion({
       SubmittedValue: { value: ServiceDecodedString },
     })
+    type Message = typeof Message.Type
     const Definition = Block.makeDefinition('ServiceDecodedRoot', {
       Model: Schema.Struct({ value: Schema.String }),
       Message,
@@ -191,10 +194,12 @@ describe('completed root Block hosting', () => {
     let serviceReads = 0
 
     const Model = Schema.Struct({ value: Schema.String })
+    type Model = typeof Model.Type
     const Message = defineMessageUnion({
       ClickedReadValue: {},
       CompletedReadValue: { value: Schema.String },
     })
+    type Message = typeof Message.Type
     const ProgramRootDefinition = Block.makeDefinition('ProgramRoot', {
       Model,
       Message,
@@ -297,6 +302,7 @@ describe('completed root Block hosting', () => {
       ClickedLink: { request: UrlRequest },
       ChangedUrl: { url: Url.Url },
     })
+    type Message = typeof Message.Type
     const url = Option.getOrThrow(Url.fromString('https://foldkit.dev/docs'))
     const request = UrlRequest.Internal({ url })
     const constructors = normalizeRoutingConfig({

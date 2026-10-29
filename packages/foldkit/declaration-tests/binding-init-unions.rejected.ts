@@ -1,7 +1,11 @@
 import { Option, Schema } from 'effect'
 import { Block, Message, Struct } from 'foldkit'
-import { initAndAppend, initAndInsert, initAndSet } from 'foldkit/bindingInit'
-import { makeMapBinding } from 'foldkit/mapBinding'
+import {
+  initAndAppend,
+  initAndInsert,
+  initAndSet,
+  makeInitIfMissingStep,
+} from 'foldkit/bindingInit'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
 const FirstComposition = Block.makeDefinition('FirstUnionInitChild', {
@@ -115,14 +119,16 @@ const SecondArray = Definition.makeBinding(SecondBlock, {
 const selectedArray = Math.random() > 0.5 ? FirstArray : SecondArray
 // @ts-expect-error Append must select one exact Binding even when its storage is identical.
 initAndAppend(selectedArray, model, { key: 'one', args: [1] })
-const FirstMap = makeMapBinding(Definition, FirstBlock, {
+const FirstMap = Definition.makeMapBinding(FirstBlock, {
   field: 'mapped',
   placement: 'same',
 })
-const SecondMap = makeMapBinding(Definition, SecondBlock, {
+const SecondMap = Definition.makeMapBinding(SecondBlock, {
   field: 'mapped',
   placement: 'same',
 })
 const selectedMap = Math.random() > 0.5 ? FirstMap : SecondMap
 // @ts-expect-error Insert must retain one exact child initializer.
 initAndInsert(selectedMap, model, { key: 'one', args: [1] })
+// @ts-expect-error Identical placement and storage do not make different initializers interchangeable.
+makeInitIfMissingStep(selectedMap, { key: 'one', args: [1] })

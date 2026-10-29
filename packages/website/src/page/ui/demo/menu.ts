@@ -8,6 +8,8 @@ import type { UiViewBuilder } from '../composition'
 import { MenuAnimatedDemoBinding, MenuBasicDemoBinding } from '../composition'
 import { DemoMenuBlock, type MenuItem } from './components'
 
+type DemoMenuBlockModel = typeof DemoMenuBlock.Model.Type
+
 // DEMO CONTENT
 
 const triggerClassName = 'demo-neutral-button inline-flex items-center gap-1.5'
@@ -92,10 +94,7 @@ const menuViewConfig = (itemsClassName: string) => {
   }
 }
 
-export const basicDemo = (
-  menuModel: typeof DemoMenuBlock.Model.Type,
-  h: UiViewBuilder,
-) => {
+export const basicDemo = (menuModel: DemoMenuBlockModel, h: UiViewBuilder) => {
   return [
     h.div(
       [h.Class('demo-field')],
@@ -124,7 +123,7 @@ export const basicDemo = (
 }
 
 export const animatedDemo = (
-  menuModel: typeof DemoMenuBlock.Model.Type,
+  menuModel: DemoMenuBlockModel,
   h: UiViewBuilder,
 ) => {
   return [

@@ -8,3 +8,5 @@ export const NestedDefinition = Block.makeDefinition('Nested', {
   Model,
   Message,
 })
+
+export const { makeMapBinding } = NestedDefinition

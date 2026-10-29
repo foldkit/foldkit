@@ -16,11 +16,11 @@ const ToastPayload = Schema.Struct({
     Schema.Struct({ href: Schema.String, text: Schema.String }),
   ),
 })
-
+type ToastPayload = typeof ToastPayload.Type
 // Bind a Toast module to your payload schema. The factory returns Model,
 // Message, OutMessage, update, view, show/dismiss/dismissAll, and the
 // DismissedToast OutMessage variant:
-export const Toast = UiToast.make(ToastPayload)
+export const Toast = UiToast.makeBlock(ToastPayload)
 
 // Add Toast.Model to your app Model. Track anything you want to lift from
 // a toast's lifecycle alongside it. Here, the last dismissed bodyText so
@@ -30,12 +30,13 @@ const Model = Schema.Struct({
   maybeLastDismissedBody: Schema.Option(Schema.String),
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // Declare the parent-owned domain facts that should push a Toast. The
 // Composition derives Toast delivery from the Binding.
 const Message = defineMessageUnion({
   ClickedSave: {},
 })
+type Message = typeof Message.Type
 
 const NotificationsDefinition = Block.makeDefinition('Notifications', {
   Model,

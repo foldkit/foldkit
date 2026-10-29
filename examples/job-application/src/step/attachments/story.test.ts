@@ -8,14 +8,15 @@ import { AdditionalFilesDropBinding, ResumeDropBinding } from './composition'
 import { init } from './init'
 import { update } from './update'
 
+type FileDropMessage = typeof FileDropBlock.Message.Type
+
 const initialModel = init().model
 
-const resumeDropMessage = (message: typeof FileDropBlock.Message.Type) =>
+const resumeDropMessage = (message: FileDropMessage) =>
   toParentMessage(ResumeDropBinding, message)
 
-const additionalFilesDropMessage = (
-  message: typeof FileDropBlock.Message.Type,
-) => toParentMessage(AdditionalFilesDropBinding, message)
+const additionalFilesDropMessage = (message: FileDropMessage) =>
+  toParentMessage(AdditionalFilesDropBinding, message)
 
 describe('attachments', () => {
   test('a dropped resume is stored as maybeResume', () => {

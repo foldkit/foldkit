@@ -11,7 +11,7 @@ import {
   pipe,
 } from 'effect'
 
-import { Url } from '../url/index.js'
+import { Url, fromString } from '../url/index.js'
 
 /**
  * Error type for route parsing failures.
@@ -734,6 +734,60 @@ export const parseUrlWithFallback =
       ),
       Effect.runSync,
     )
+
+const pathParsingOrigin = 'https://foldkit.invalid'
+
+/**
+ * Parses an origin-relative path and its query parameters, ignoring fragments.
+ * The path must start with one `/`; absolute URLs and network paths starting
+ * with `//`, literal backslashes and ASCII control characters are rejected.
+ * Normalized paths must also retain the local origin and a single leading `/`.
+ * URL normalization, including dot segments and
+ * percent-encoded delimiters, follows `Url.fromString` before route parsing.
+ *
+ * Returns the parsed Route when the parser consumes the entire path. Invalid
+ * inputs and unmatched paths call the fallback constructor with the original
+ * `{ path }`. This synchronous operation does not navigate or make requests.
+ *
+ * @param parser - The parser (typically from `oneOf`) to attempt.
+ * @param notFoundRouteConstructor - Constructor called with the original
+ *   `{ path }` when the input is invalid or no route matches.
+ */
+export const parsePathWithFallback =
+  <A, B>(
+    parser: Parser<A>,
+    notFoundRouteConstructor: { make: (data: { path: string }) => B },
+  ) =>
+  (path: string): A | B => {
+    const fallback = () => notFoundRouteConstructor.make({ path })
+
+    if (
+      !path.startsWith('/') ||
+      path.startsWith('//') ||
+      /[\\\u0000-\u001f\u007f]/.test(path)
+    ) {
+      return fallback()
+    }
+
+    return pipe(
+      fromString(`${pathParsingOrigin}${path}`),
+      Option.match({
+        onNone: fallback,
+        onSome: url => {
+          if (
+            `${url.protocol}//${url.host}` !== pathParsingOrigin ||
+            Option.isSome(url.port) ||
+            !url.pathname.startsWith('/') ||
+            url.pathname.startsWith('//')
+          ) {
+            return fallback()
+          }
+
+          return parseUrlWithFallback(parser, { make: fallback })(url)
+        },
+      }),
+    )
+  }
 
 const buildUrl =
   <A>(parser: Biparser<A>) =>

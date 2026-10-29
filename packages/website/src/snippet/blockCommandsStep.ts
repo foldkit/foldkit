@@ -3,7 +3,10 @@ import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Model = Schema.Struct({ dismissDelayMs: Schema.Number })
+type Model = typeof Model.Type
+
 const Message = defineMessageUnion({ CompletedWaitBeforeDismissal: {} })
+type Message = typeof Message.Type
 
 const NotificationDefinition = Block.makeDefinition('Notification', {
   Model,

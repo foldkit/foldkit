@@ -12,23 +12,30 @@ import { modifyFields } from 'foldkit/struct'
 import { toParentMessage } from 'foldkit/test'
 import { describe, expect, test } from 'vitest'
 
-import { Comment, RetainedIssueDraft, initialSnapshot } from '../domain'
+import {
+  Comment,
+  draftFromIssue,
+  initialWorkspace,
+  revisionFromIssue,
+  savedIssueFromIssue,
+} from '../domain'
 import { WorkspaceListboxBlock } from '../listbox'
 import { RepositoryError } from '../repository'
 import { SaveIssue } from './command'
-import { AssigneeBinding } from './composition'
-import { Message, OutMessage, SaveState } from './definition'
-import { draftFromIssue, revisionFromIssue } from './draft'
+import { AssigneeListboxBinding } from './composition'
 import { init } from './init'
+import { Message } from './message'
+import { SaveState } from './model'
+import { OutMessage } from './outMessage'
 import { update } from './update'
 
-const issue = Option.getOrThrow(Array.head(initialSnapshot.issues))
+const issue = Option.getOrThrow(Array.head(initialWorkspace.issues))
 const initialModel = init(issue).model
 const editedTitle = 'Search every project from the command menu'
 const editedDraft = modifyFields(draftFromIssue(issue), {
   title: () => editedTitle,
 })
-const savedIssue = modifyFields(issue, {
+const savedIssueSnapshot = modifyFields(issue, {
   title: () => editedTitle,
   version: version => version + 1,
 })
@@ -54,7 +61,7 @@ describe('Issue Detail', () => {
       given(initialModel),
       message(
         toParentMessage(
-          AssigneeBinding,
+          AssigneeListboxBinding,
           WorkspaceListboxBlock.Message.RequestedSelectItem({
             item: 'not-an-assignee-selection',
           }),
@@ -85,19 +92,7 @@ describe('Issue Detail', () => {
         expect(model.baseline).toEqual(revisionFromIssue(issue))
         expect(model.draft).toEqual(editedDescriptionDraft)
       }),
-      expectOutMessage(
-        OutMessage.ChangedDraft({
-          issueId: issue.id,
-          maybeDraft: Option.some(
-            RetainedIssueDraft.make({
-              issueId: issue.id,
-              baseline: revisionFromIssue(issue),
-              draft: editedDescriptionDraft,
-              commentBody: '',
-            }),
-          ),
-        }),
-      ),
+      expectNoOutMessage(),
       Command.expectNone(),
     )
   })
@@ -122,16 +117,20 @@ describe('Issue Detail', () => {
       Command.resolve(
         SaveIssue,
         Message.SucceededSaveIssue({
-          issue: savedIssue,
+          savedIssue: savedIssueFromIssue(savedIssueSnapshot),
           expectedVersion: issue.version,
         }),
       ),
       model(model => {
-        expect(model.baseline).toEqual(revisionFromIssue(savedIssue))
-        expect(model.draft).toEqual(draftFromIssue(savedIssue))
+        expect(model.baseline).toEqual(revisionFromIssue(savedIssueSnapshot))
+        expect(model.draft).toEqual(draftFromIssue(savedIssueSnapshot))
         expect(model.saveState._tag).toBe('Idle')
       }),
-      expectOutMessage(OutMessage.Saved({ issue: savedIssue })),
+      expectOutMessage(
+        OutMessage.Saved({
+          savedIssue: savedIssueFromIssue(savedIssueSnapshot),
+        }),
+      ),
     )
   })
 
@@ -169,11 +168,15 @@ describe('Issue Detail', () => {
       Command.resolve(
         SaveIssue,
         Message.SucceededSaveIssue({
-          issue: savedIssue,
+          savedIssue: savedIssueFromIssue(savedIssueSnapshot),
           expectedVersion: issue.version,
         }),
       ),
-      expectOutMessage(OutMessage.Saved({ issue: savedIssue })),
+      expectOutMessage(
+        OutMessage.Saved({
+          savedIssue: savedIssueFromIssue(savedIssueSnapshot),
+        }),
+      ),
     )
   })
 
@@ -254,7 +257,7 @@ describe('Issue Detail', () => {
           error: 'This issue changed since you opened it.',
         })
       }),
-      expectOutMessage(OutMessage.ObservedIssue({ issue: newerIssue })),
+      expectOutMessage(OutMessage.ReceivedIssue({ issue: newerIssue })),
       message(Message.InformedOfIssueChange({ issue: newerIssue })),
       model(model => {
         expect(model.baseline).toEqual(revisionFromIssue(issue))
@@ -269,11 +272,11 @@ describe('Issue Detail', () => {
   })
 
   test('keeps a field save valid while comments arrive', () => {
-    const commented = modifyFields(issue, {
+    const issueWithConcurrentComment = modifyFields(issue, {
       comments: () => commentedIssue.comments,
     })
-    const saved = modifyFields(savedIssue, {
-      comments: () => commented.comments,
+    const savedIssueWithConcurrentComment = modifyFields(savedIssueSnapshot, {
+      comments: () => issueWithConcurrentComment.comments,
     })
 
     story(
@@ -288,7 +291,9 @@ describe('Issue Detail', () => {
           expectedVersion: issue.version,
         }),
       ),
-      message(Message.InformedOfIssueChange({ issue: commented })),
+      message(
+        Message.InformedOfIssueChange({ issue: issueWithConcurrentComment }),
+      ),
       model(model => {
         expect(model.baseline).toEqual(revisionFromIssue(issue))
         expect(model.draft).toEqual(editedDraft)
@@ -307,15 +312,58 @@ describe('Issue Detail', () => {
       Command.resolve(
         SaveIssue,
         Message.SucceededSaveIssue({
-          issue: saved,
+          savedIssue: savedIssueFromIssue(savedIssueWithConcurrentComment),
           expectedVersion: issue.version,
         }),
       ),
       model(model => {
-        expect(model.baseline).toEqual(revisionFromIssue(saved))
+        expect(model.baseline).toEqual(
+          revisionFromIssue(savedIssueWithConcurrentComment),
+        )
         expect(model.saveState).toEqual(SaveState.Idle())
       }),
-      expectOutMessage(OutMessage.Saved({ issue: saved })),
+      expectOutMessage(
+        OutMessage.Saved({
+          savedIssue: savedIssueFromIssue(savedIssueWithConcurrentComment),
+        }),
+      ),
+    )
+  })
+
+  test('keeps a newer incoming revision when an older save completes', () => {
+    const latestIssue = modifyFields(newerIssue, {
+      version: () => savedIssueSnapshot.version + 1,
+    })
+
+    story(
+      update,
+      given(initialModel),
+      message(Message.UpdatedTitle({ value: editedTitle })),
+      message(Message.RequestedSave()),
+      message(Message.InformedOfIssueChange({ issue: latestIssue })),
+      model(model => {
+        expect(model.maybeIncomingRevision).toEqual(
+          Option.some(revisionFromIssue(latestIssue)),
+        )
+      }),
+      Command.resolve(
+        SaveIssue,
+        Message.SucceededSaveIssue({
+          savedIssue: savedIssueFromIssue(savedIssueSnapshot),
+          expectedVersion: issue.version,
+        }),
+      ),
+      model(model => {
+        expect(model.baseline).toEqual(revisionFromIssue(latestIssue))
+        expect(model.draft).toEqual(draftFromIssue(latestIssue))
+        expect(model.maybeIncomingRevision).toEqual(Option.none())
+        expect(model.saveState).toEqual(SaveState.Idle())
+      }),
+      expectOutMessage(
+        OutMessage.Saved({
+          savedIssue: savedIssueFromIssue(savedIssueSnapshot),
+        }),
+      ),
     )
   })
 
@@ -357,7 +405,7 @@ describe('Issue Detail', () => {
       message(Message.InformedOfIssueChange({ issue })),
       message(
         Message.SucceededSaveIssue({
-          issue: savedIssue,
+          savedIssue: savedIssueFromIssue(savedIssueSnapshot),
           expectedVersion: issue.version,
         }),
       ),

@@ -9,8 +9,9 @@ import { RadioGroup } from '@foldkit/ui'
 import type { RenderInfo as RadioGroupRenderInfo } from '@foldkit/ui/radioGroup'
 
 const Plan = Schema.Literals(['Startup', 'Business', 'Enterprise'])
+type Plan = typeof Plan.Type
 
-const PlanRadioGroup = RadioGroup.create<typeof Plan.Type>()
+const PlanRadioGroup = RadioGroup.makeBlock<Plan>()
 
 // Add fields to your Model for the RadioGroup Block and the selected
 // value. The Block keeps private keyboard-focus state; the parent owns
@@ -20,9 +21,10 @@ const Model = Schema.Struct({
   maybePlan: Schema.Option(Plan),
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // This excerpt has no parent-owned facts. The Composition derives delivery.
 const Message = defineMessageUnion({})
+type Message = typeof Message.Type
 
 const PlanPickerDefinition = Block.makeDefinition('PlanPicker', {
   Model,
@@ -31,13 +33,9 @@ const PlanPickerDefinition = Block.makeDefinition('PlanPicker', {
 
 const { makeFieldsStep } = PlanPickerDefinition
 
-const plans: ReadonlyArray<typeof Plan.Type> = [
-  'Startup',
-  'Business',
-  'Enterprise',
-]
+const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']
 
-const descriptions: Record<typeof Plan.Type, string> = {
+const descriptions: Record<Plan, string> = {
   Startup: '12GB / 6 CPUs. Perfect for small projects',
   Business: '16GB / 8 CPUs. For growing teams',
   Enterprise: '32GB / 12 CPUs. Dedicated infrastructure',
@@ -83,10 +81,7 @@ const update = PlanPickerComposition.makeUpdate({})
 // Inside your view function, embed the radio group via h.block and pass
 // the parent-owned selection as selectedValue:
 const view = PlanPickerComposition.makeView((model, h) => {
-  const radioGroupView = ({
-    group,
-    options,
-  }: RadioGroupRenderInfo<typeof Plan.Type>) =>
+  const radioGroupView = ({ group, options }: RadioGroupRenderInfo<Plan>) =>
     h.div(
       [...group, h.Class('flex flex-col gap-3')],
       options.map(option => {

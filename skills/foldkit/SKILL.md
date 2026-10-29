@@ -48,8 +48,14 @@ of a release tag. After an upgrade, use the same command with `pull` in place of
 
 - Keep the Model as the single source of truth. Messages record facts, update
   computes the next Model and Commands, and the Runtime performs effects.
+- Declare each Schema's same-named decoded type on the next line with no blank
+  line, such as `type Model = typeof Model.Type`. Use the alias in explicit
+  value annotations and retain `typeof Model` when an API needs the Schema
+  type. Let owned callbacks infer their parameters.
 - Prefer Foldkit and Effect modules over hand-rolled equivalents or outside
   libraries. Check `create-foldkit-app` and current examples first.
+- Construct generic UI Blocks with `Component.makeBlock` once at module scope,
+  then bind the exact completed result into the parent.
 - Use stateful Foldkit UI Blocks through a parent Binding. Call stateless render
   helpers directly with the caller's builder and Model. Do not turn a render
   helper into a Block merely for structural symmetry.
@@ -76,3 +82,13 @@ with `AsyncData`, and multi-state domain behavior with discriminated unions.
 Use Schema types for Models, Messages, Routes, and domain unions. Keep public
 child state behind the child's operations and accessors; a parent integrates a
 child through its Binding and OutMessages.
+
+Experimental Query can own retained fetch data, freshness, cancellation, and
+per-key retention. Derive displayed data through `read`; avoid a second canonical
+cache in the parent. Use `staleTime` with `requestLoadIfStale` and an Effect Clock
+timestamp supplied in a Message. KeyedQuery's `maxSettledEntries` protects pending
+entries; its `pendingArgs` and `requestCancel` support selected obsolete work.
+Opt into `notifyOnCompletion` and fold accepted results through the Binding when
+coordinating further requests. Keep URL policy, debounce, paging, sorting, and
+provider cooldowns in the application. Read the matching Query guide and source
+before relying on cancellation ordering or retention limits.

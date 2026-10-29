@@ -8,9 +8,11 @@ import { makeCompositionUpdate } from './delivery.js'
 import * as Block from './public.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
+type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({
   ChangedCount: { amount: Schema.Number },
 })
+type ChildMessage = typeof ChildMessage.Type
 
 const ChildComposition = makeDefinition('StrictRoutingRuntimeChild', {
   Model: ChildModel,
@@ -60,6 +62,7 @@ const ContextChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
 > = Block.assemble(prepareContextChildBlock)
 
 const Entry = Schema.Struct({ id: Schema.String, child: ChildModel })
+type Entry = typeof Entry.Type
 const ParentModel = Schema.Struct({
   child: ChildModel,
   contextualChild: ChildModel,
@@ -67,9 +70,11 @@ const ParentModel = Schema.Struct({
   multiplier: Schema.Number,
   resets: Schema.Number,
 })
+type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({
   ClickedReset: {},
 })
+type ParentMessage = typeof ParentMessage.Type
 const Parent = makeDefinition('StrictRoutingRuntimeParent', {
   Model: ParentModel,
   Message: ParentMessage,
@@ -119,7 +124,7 @@ const parentModel = ParentModel.make({
 })
 
 const rawFullMessageUpdate = (
-  model: typeof ParentModel.Type,
+  model: ParentModel,
   message: Parameters<typeof parentUpdate>[1],
 ) => ({
   model: modifyFields(model, {
@@ -239,6 +244,7 @@ it('reserves every Got prefix independent of its payload field name', () => {
     GotEvent: { event: Schema.String },
     ClickedReset: {},
   })
+  type EventMessage = typeof EventMessage.Type
 
   expect(() => makeCompositionUpdate(EventMessage, [], true)).toThrow(
     'Parent Message "GotEvent" is a Got* child wrapper without an owning Binding',

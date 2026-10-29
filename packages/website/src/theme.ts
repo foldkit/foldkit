@@ -8,11 +8,11 @@ import { ThemePreference } from './themePreference'
 export const THEME_STORAGE_KEY = 'theme-preference'
 
 export const resolveTheme = (
-  preference: typeof ThemePreference.Type,
-  systemTheme: typeof ResolvedTheme.Type,
-): typeof ResolvedTheme.Type =>
+  preference: ThemePreference,
+  systemTheme: ResolvedTheme,
+): ResolvedTheme =>
   Match.value(preference).pipe(
-    Match.withReturnType<typeof ResolvedTheme.Type>(),
+    Match.withReturnType<ResolvedTheme>(),
     Match.when('Dark', () => 'Dark'),
     Match.when('Light', () => 'Light'),
     Match.when('System', () => systemTheme),

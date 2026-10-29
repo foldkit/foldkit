@@ -11,6 +11,6 @@ export type Activity = Readonly<{
   hasSummary: boolean
 }>
 
-export const ActivityVirtualListBlock = VirtualList.create<Activity>()
+export const ActivityVirtualListBlock = VirtualList.makeBlock<Activity>()
 
 export const ROW_COUNT = 10_000

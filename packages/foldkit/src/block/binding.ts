@@ -1728,7 +1728,7 @@ const bindRuntime = <
     >,
   )
 
-  const initialize = (...args: ReadonlyArray<any>) => {
+  const initChild = (...args: ReadonlyArray<any>) => {
     assertRegisteredInitialization(binding, placement)
     const childInit = scopeReturn(
       withOperationGraph(runtimeBindingsOf(block), () => block.init(...args)),
@@ -1752,7 +1752,7 @@ const bindRuntime = <
       const commands = [...(initial.commands ?? [])]
 
       return makeBindingInitRecipe(binding, () => {
-        const childInit = initialize(...args)
+        const childInit = initChild(...args)
         const model = toParentModel(childInit.model)
         assertInitializedParentModel(binding, placement, model)
         let maybeStoredChild: Option.Option<unknown>
@@ -1792,7 +1792,7 @@ const bindRuntime = <
 
   registerBinding(binding, {
     block,
-    initialize: (_key, args) => initialize(...args),
+    init: (_key, args) => initChild(...args),
     select: model =>
       Option.match(config.read(model), {
         onNone: () => [],

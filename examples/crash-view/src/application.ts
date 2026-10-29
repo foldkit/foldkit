@@ -6,10 +6,13 @@ import { defineMessageUnion } from 'foldkit/message'
 import { Button } from '@foldkit/ui'
 
 export const Model = Schema.Null
+export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ClickedCrash: {},
 })
+export type Message = typeof Message.Type
+type ClickedCrash = typeof Message.ClickedCrash.Type
 
 export const ApplicationComposition = Block.makeDefinition('Application', {
   Model,
@@ -17,9 +20,9 @@ export const ApplicationComposition = Block.makeDefinition('Application', {
 }).makeComposition()
 
 const handleClickedCrash = (
-  _model: typeof Model.Type,
-  _message: typeof Message.ClickedCrash.Type,
-): { model: typeof Model.Type } => {
+  _model: Model,
+  _message: ClickedCrash,
+): { model: Model } => {
   throw new Error('This is a simulated crash!')
 }
 
@@ -59,7 +62,7 @@ export const view = ApplicationComposition.makeView((_model, h) => ({
 // CRASH
 
 export const crashView = (
-  { error }: Runtime.CrashContext<typeof Model.Type, typeof Message.Type>,
+  { error }: Runtime.CrashContext<Model, Message>,
   h: HtmlBuilder<never>,
 ): Document => ({
   title: 'Crash View Example | crashed',

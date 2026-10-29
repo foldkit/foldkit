@@ -7,6 +7,7 @@ const SearchState = defineTaggedUnion({
   Running: {},
   Cancelling: {},
 })
+type SearchState = typeof SearchState.Type
 
 const update = SearchComposition.makeUpdate({
   UpdatedQuery: (model, { query }) =>

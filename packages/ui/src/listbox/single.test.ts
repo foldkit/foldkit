@@ -24,11 +24,11 @@ import {
   buttonId,
   makeView,
 } from './shared.js'
-import { create, init, update } from './single.js'
+import { init, makeBlock, update } from './single.js'
 import type { Model, ViewInputs } from './single.js'
 
 const render = makeView<Model>({ ariaMultiSelectable: false })<string, string>()
-const TestListbox = create()
+const TestListbox = makeBlock()
 const gotAnimationMessage = ({
   message,
 }: Readonly<{ message: typeof Animation.AnimationBlock.Message.Type }>) =>

@@ -168,12 +168,7 @@ export interface Group extends Readonly<{
  * the painter walks the tree depth-first, applying transforms via
  * `ctx.save` / `ctx.restore`.
  */
-export type Shape =
-  | typeof Rect.Type
-  | typeof Circle.Type
-  | typeof Path.Type
-  | typeof Text.Type
-  | Group
+export type Shape = Rect | Circle | Path | Text | Group
 
 /**
  * Lazy reference to the full `Shape` union. Used inside `Group`'s `shapes`

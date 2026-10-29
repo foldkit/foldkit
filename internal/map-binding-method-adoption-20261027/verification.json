@@ -1,0 +1,124 @@
+{
+  "scope": "Task-only Definition.makeMapBinding adoption against 14e5d7330eca3bacdef2b6591cc204c8440061af; concurrent Workspace/init changes excluded",
+  "checks": {
+    "coreBuild": {
+      "exitCode": 0
+    },
+    "coreSourceTypecheck": {
+      "exitCode": 0
+    },
+    "fullEmittedDeclarationHarness": {
+      "exitCode": 0
+    },
+    "fullCoreRuntime": {
+      "exitCode": 0,
+      "filesPassed": 201,
+      "filesSkipped": 1,
+      "testsPassed": 3813,
+      "testsSkipped": 1
+    },
+    "consumers": {
+      "Workspace": 0,
+      "Website": 0,
+      "TypingGame": 0
+    },
+    "fullLintPlugin": {
+      "exitCode": 0,
+      "filesPassed": 39,
+      "testsPassed": 639
+    },
+    "pluginSourceTypecheck": {
+      "exitCode": 0
+    },
+    "typedRealOxlintFixtures": {
+      "exitCode": 0
+    },
+    "pluginBuild": {
+      "exitCode": 0
+    },
+    "focusedCoreLint": {
+      "exitCode": 0
+    },
+    "affectedConsumerLint": {
+      "exitCode": 0
+    },
+    "compilerOriginalBudgets": {
+      "exitCode": 1,
+      "failedFixtures": ["workspace-composition-4"]
+    },
+    "compilerReviewedBudgets": {
+      "exitCode": 0,
+      "fixturesPassed": 6,
+      "changedCeilings": ["workspace-composition-4"],
+      "fixtureSourcesChanged": false
+    },
+    "nativeEditorPairedRuns": {
+      "exitCode": 0,
+      "sides": 2,
+      "workloads": 2,
+      "freshRunsPerSidePerWorkload": 3,
+      "allMeasurementsValidated": true
+    },
+    "largeDeclarationEmissionAndRelocation": {
+      "exitCode": 0,
+      "fixtureFiles": 3,
+      "bytesPerSide": 3140462,
+      "byteIdenticalBetweenSides": true,
+      "skipLibCheck": false,
+      "sourceMappings": false
+    },
+    "TypeDoc": {
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 282,
+      "methodDocumentationVerified": true,
+      "oldStandaloneNamespaceRemoved": true
+    },
+    "nativeTSDocHovers": {
+      "passed": [
+        "definition-method",
+        "extracted-helper",
+        "destructured-property"
+      ]
+    },
+    "desktopGuideRender": {
+      "passed": true,
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "pages": ["/core/block#keyed-map-fields", "/preview-upgrade"],
+      "browserErrors": 0,
+      "pageOverflow": false,
+      "snippetInternalHorizontalScroll": true,
+      "releaseArtifactVerification": false,
+      "configuration": "Local placeholder preview metadata only; isolated browser and server stopped"
+    },
+    "namespaceHelperProvenanceRegressions": {
+      "passed": true,
+      "fullScopedPluginTests": 639,
+      "forms": [
+        "direct namespace",
+        "method alias",
+        "destructured helper",
+        "namespace alias",
+        "namespace alias plus destructuring",
+        "fluent policy chain"
+      ],
+      "unrelatedHelpersIgnored": true,
+      "canonicalParentOwnerPreserved": true,
+      "concurrentCompositionFilesExcluded": [
+        "src/block-schema-provenance.ts",
+        "test/integration/serialization-boundary.test.ts"
+      ]
+    }
+  },
+  "limits": [
+    "Targeted four-group ceiling increase, not unchanged-budget success",
+    "Approximately 1.7-second larger-root diagnostics remain",
+    "RSS sampled every 250 ms, other machine activity uncontrolled",
+    "Larger-root Block completion median about 10 ms higher",
+    "Subsequent source-only correction sorted import specifiers; no behavior or inference change",
+    "No release publication or Ready snapshot promotion"
+  ]
+}

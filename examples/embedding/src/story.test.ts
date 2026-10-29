@@ -4,7 +4,7 @@ import { describe, expect, test } from 'vitest'
 
 import { Message, type Model, ReportCount, update } from './application'
 
-const initialModel: typeof Model.Type = { count: 10, step: 1 }
+const initialModel: Model = { count: 10, step: 1 }
 
 describe('update', () => {
   describe('counting', () => {

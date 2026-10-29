@@ -1,7 +1,4 @@
-const plainUpdate: Update.Return<typeof Model.Type, Message> = { model }
+const plainUpdate: Update.Return<Model, Message> = { model }
 
-const blockUpdate: Update.ReturnWithOutMessage<
-  typeof Model.Type,
-  Message,
-  OutMessage
-> = plainUpdate
+const blockUpdate: Update.ReturnWithOutMessage<Model, Message, OutMessage> =
+  plainUpdate

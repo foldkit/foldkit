@@ -220,7 +220,7 @@ Use `interrupt: { keyFields, toKey }` when concurrent invocations need separate 
 
 `toKey` receives only those selected own fields on both invocation and interruption. The handler still receives the full decoded args. The selected record has no prototype, so use `Object` helpers rather than inherited methods.
 
-Inline literal tuples preserve exact selected fields. For an extracted policy, preserve the selected key in its annotation, such as `Command.InterruptOption<typeof Args.Type, 'uploadId'>`. A broad key union cannot guarantee that every possible field is present; its callback must handle uncertain fields as optional. Narrow a union of differently keyed policies before constructing the Command.
+Inline literal tuples preserve exact selected fields. For an extracted policy, preserve the selected key in its annotation, such as `Command.InterruptOption<Args, 'uploadId'>`. A broad key union cannot guarantee that every possible field is present; its callback must handle uncertain fields as optional. Narrow a union of differently keyed policies before constructing the Command.
 
 Do not key an upload by its file name. Two rows may upload the same file and still need independent cancellation.
 

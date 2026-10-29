@@ -15,7 +15,7 @@ import {
 } from './definition'
 
 export const init = ProductsComposition.makeInit(
-  (products: ReadonlyArray<typeof Item.Item.Type>) => ({
+  (products: ReadonlyArray<Item.Item>) => ({
     model: Model.make({ products, searchText: '' }),
   }),
 )

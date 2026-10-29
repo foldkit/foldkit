@@ -23,6 +23,7 @@ export const GameState = Schema.Literals([
   'Paused',
   'GameOver',
 ])
+export type GameState = typeof GameState.Type
 
 export const Model = Schema.Struct({
   snake: Snake.Snake,
@@ -33,6 +34,7 @@ export const Model = Schema.Struct({
   points: Schema.Number,
   highScore: Schema.Number,
 })
+export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   TickedClock: {},
@@ -41,6 +43,7 @@ export const Message = defineMessageUnion({
   RestartedGame: {},
   CompletedGenerateApplePosition: { position: Position.Position },
 })
+export type Message = typeof Message.Type
 
 export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
@@ -85,7 +88,7 @@ export const update = ApplicationComposition.makeUpdate({
         'd',
         moveKey => {
           const nextDirection = Match.value(moveKey).pipe(
-            Match.withReturnType<typeof Direction.Direction.Type>(),
+            Match.withReturnType<Direction.Direction>(),
             Match.whenOr('ArrowUp', 'w', () => 'Up'),
             Match.whenOr('ArrowDown', 's', () => 'Down'),
             Match.whenOr('ArrowLeft', 'a', () => 'Left'),
@@ -106,7 +109,7 @@ export const update = ApplicationComposition.makeUpdate({
       ),
       Match.when(' ', () => {
         const nextGameState = Match.value(model.gameState).pipe(
-          Match.withReturnType<typeof GameState.Type>(),
+          Match.withReturnType<GameState>(),
           Match.when('NotStarted', () => 'Playing'),
           Match.when('Playing', () => 'Paused'),
           Match.when('Paused', () => 'Playing'),
@@ -189,7 +192,7 @@ export const update = ApplicationComposition.makeUpdate({
   })),
 
   RestartedGame: model => {
-    const startPosition: typeof Position.Position.Type = { x: 10, y: 10 }
+    const startPosition: Position.Position = { x: 10, y: 10 }
     const nextSnake = Snake.create(startPosition)
 
     return {
@@ -275,7 +278,7 @@ export const EffectsLayer = Layer.mergeAll(
   subscriptions.layer,
 )
 
-const cellClass = (x: number, y: number, model: typeof Model.Type): string => {
+const cellClass = (x: number, y: number, model: Model): string => {
   const isSnakeHead = Position.equivalence(
     { x, y },
     Array.headNonEmpty(model.snake),
@@ -295,7 +298,7 @@ const cellClass = (x: number, y: number, model: typeof Model.Type): string => {
   )
 }
 
-const gridView = (model: typeof Model.Type, h: ApplicationViewBuilder): Html =>
+const gridView = (model: Model, h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('inline-block border-2 border-gray-600')],
     Array.makeBy(GAME.GRID_SIZE, y =>
@@ -308,7 +311,7 @@ const gridView = (model: typeof Model.Type, h: ApplicationViewBuilder): Html =>
     ),
   )
 
-const gameStateView = (gameState: typeof GameState.Type): string =>
+const gameStateView = (gameState: GameState): string =>
   Match.value(gameState).pipe(
     Match.when('NotStarted', () => 'Press SPACE to start'),
     Match.when('Playing', () => 'Playing - SPACE to pause'),

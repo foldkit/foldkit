@@ -15,6 +15,8 @@ import {
 } from './composition'
 import { Message } from './definition'
 
+type UiDatePickerModel = typeof UiDatePickerBlock.Model.Type
+
 export const view = PersonalInfoComposition.makeView((model, h) => {
   const {
     firstName,
@@ -185,7 +187,7 @@ export const view = PersonalInfoComposition.makeView((model, h) => {
 })
 
 const availableDatePickerView = (
-  model: typeof UiDatePickerBlock.Model.Type,
+  model: UiDatePickerModel,
   maybeSelectedDate: Option.Option<CalendarDate>,
   h: PersonalInfoViewBuilder,
 ): Html =>

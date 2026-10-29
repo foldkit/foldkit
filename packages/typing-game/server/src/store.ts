@@ -3,7 +3,7 @@ import { Context, HashMap, HashSet, Layer, Ref, SubscriptionRef } from 'effect'
 import * as Shared from '@typing-game/shared'
 
 type RoomId = string
-type RoomById = HashMap.HashMap<RoomId, typeof Shared.Room.Type>
+type RoomById = HashMap.HashMap<RoomId, Shared.Room>
 
 export class RoomByIdStore extends Context.Service<
   RoomByIdStore,
@@ -12,12 +12,12 @@ export class RoomByIdStore extends Context.Service<
 
 export const RoomByIdStoreLayer = Layer.effect(
   RoomByIdStore,
-  SubscriptionRef.make(HashMap.empty<string, typeof Shared.Room.Type>()),
+  SubscriptionRef.make(HashMap.empty<string, Shared.Room>()),
 )
 
 export type ProgressByGamePlayer = HashMap.HashMap<
-  typeof Shared.GamePlayer.Type,
-  typeof Shared.PlayerProgress.Type
+  Shared.GamePlayer,
+  Shared.PlayerProgress
 >
 
 export class ProgressByGamePlayerStore extends Context.Service<
@@ -28,10 +28,7 @@ export class ProgressByGamePlayerStore extends Context.Service<
 export const ProgressByGamePlayerStoreLayer = Layer.effect(
   ProgressByGamePlayerStore,
   SubscriptionRef.make(
-    HashMap.empty<
-      typeof Shared.GamePlayer.Type,
-      typeof Shared.PlayerProgress.Type
-    >(),
+    HashMap.empty<Shared.GamePlayer, Shared.PlayerProgress>(),
   ),
 )
 

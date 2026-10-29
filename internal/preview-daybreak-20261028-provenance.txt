@@ -1,0 +1,9 @@
+## Provenance addendum
+
+The completed external Daybreak review covered exact candidate `564adb49e908b3baf4c2e1855c8c6d67631b0c95` against published base `f3be22cfeefed437164ad614d08b16d9000e0703`. The session header identifies model `gpt-daybreak-blue-latest`, provider `openai`, and session `01a184f2-7c6d-7d40-b603-3175871cf426`. It finished with exit code 0 and a `PASS` report. The detached source pin remained unchanged, and the corrected final hash loop confirmed all 7,181 tracked files with `mismatches=0`.
+
+The statement “The external Daybreak review was not run because source export lacked authorization” is obsolete pre-approval text copied into the final report. Authorization records explicitly approve transfer to OpenAI’s network-backed Daybreak service, and the completed session proves the review ran.
+
+One chronology limitation remains: the session’s `startedAt` is `2026-10-28T23:57:26.073060Z`, while the authorization artifact was recorded 23 seconds later at `23:57:49.137048Z`. That artifact states the authority was the user’s explicit approval and marks the approved attempt started, but these records alone do not establish the exact pre-launch approval timestamp.
+
+This provenance correction does not change the scoped `PASS` verdict. It adds no review coverage and does not clear the recorded dependency risks, including npm Undici/downstream-version exposure and Monaco’s vendored DOMPurify. Publication remains held; local consumer evidence is not public-registry acceptance or deployment verification.

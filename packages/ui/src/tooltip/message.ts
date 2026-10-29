@@ -15,6 +15,7 @@ export const Message = defineMessageUnion({
   CompletedWaitBeforeShowing: { version: Schema.Number },
   CompletedAnchorTooltip: {},
 })
+export type Message = typeof Message.Type
 
 export type EnteredTrigger = typeof Message.EnteredTrigger.Type
 export type LeftTrigger = typeof Message.LeftTrigger.Type
@@ -24,8 +25,6 @@ export type PressedEscape = typeof Message.PressedEscape.Type
 export type PressedPointerOnTrigger =
   typeof Message.PressedPointerOnTrigger.Type
 
-export type Message = typeof Message.Type
-
 // OUT MESSAGE
 
 /** Union of out-messages the tooltip component can produce. */
@@ -33,7 +32,7 @@ export const OutMessage = defineMessageUnion({
   Shown: {},
   Hidden: {},
 })
+export type OutMessage = typeof OutMessage.Type
 
 export type Shown = typeof OutMessage.Shown.Type
 export type Hidden = typeof OutMessage.Hidden.Type
-export type OutMessage = typeof OutMessage.Type

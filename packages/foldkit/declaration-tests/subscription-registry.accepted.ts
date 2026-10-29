@@ -24,6 +24,7 @@ export const subscriptions =
   DeclarationSubscriptionRegistryDefinition.makeSubscriptions(entry => ({
     clock: entry('Clock', {
       messages: [Message.Ticked],
+      when: model => model.count > 0,
       handler: function* () {
         yield* Clock
         yield* Effect.fail<'ClockUnavailable'>('ClockUnavailable')
@@ -32,6 +33,7 @@ export const subscriptions =
     }),
     logger: entry('Logger', {
       messages: [Message.Logged],
+      when: () => false,
       handler: function* () {
         yield* Logger
         yield* Effect.fail<'LoggerUnavailable'>('LoggerUnavailable')
@@ -82,8 +84,53 @@ export const mixedSubscriptions =
         return () => Stream.empty
       },
     }),
-    hosted: entry('Hosted', { messages: [Message.Logged] }),
+    hosted: entry('Hosted', {
+      messages: [Message.Logged],
+      when: model => model.count > 0,
+    }),
   }))
+
+export const gatedDependencies =
+  DeclarationSubscriptionRegistryDefinition.makeSubscriptions(entry => ({
+    count: entry(
+      'Count',
+      { count: Schema.Number },
+      {
+        messages: [Message.Ticked],
+        when: model => model.count > 0,
+        modelToDependencies: model => ({ count: model.count }),
+        handler: function* () {
+          return () => Stream.empty
+        },
+      },
+    ),
+    retainedCount: entry(
+      'RetainedCount',
+      { count: Schema.Number },
+      {
+        messages: [Message.Ticked],
+        when: model => model.count > 0,
+        modelToDependencies: model => ({ count: model.count }),
+        keepAliveEquivalence: () => true,
+        handler: function* () {
+          return (_dependencies, readDependencies) =>
+            Stream.succeed(Message.Ticked()).pipe(
+              Stream.filter(() => readDependencies().count > 0),
+            )
+        },
+      },
+    ),
+  }))
+
+export const lowLevelGated = Subscription.make<
+  typeof Model.Type,
+  typeof Message.Type
+>()(entry => ({
+  clock: entry('LowLevelGatedClock', {
+    messages: [Message.Ticked],
+    when: model => model.count > 0,
+  }),
+}))
 
 export type RegistryLayer = typeof subscriptions.layer
 export type EmptyRegistryLayer = typeof emptySubscriptions.layer

@@ -148,12 +148,11 @@ export const formatMatcher = (matcher: CommandMatcher): string =>
 export const formatCommand = (command: AnyCommand): string =>
   `${command.name}${formatArgs(command.args)}`
 
-/** A pending Mount in a Scene simulation. Identified by `name` and an
- *  `occurrence` index that disambiguates same-named mounts in the rendered
- *  tree (e.g. two open popovers each contributing an `AnchorPopover`). The
- *  occurrence is the 0-based position among same-named markers in
- *  tree-traversal order. `args` carries the runtime values used to construct
- *  the MountAction when its definition declared an args record. */
+/** A pending Mount in a Scene simulation. `occurrence` is the 0-based
+ *  position among same-named Mounts in tree-traversal order, which error
+ *  messages show to distinguish same-named Mounts. `args` carries the runtime
+ *  values used to construct the MountAction when its definition declared an
+ *  args record. */
 export type PendingMount = Readonly<{
   /** @internal The originating Mount declaration. */
   [InvocationIdentityTypeId]?: DefinitionIdentity | undefined
@@ -944,14 +943,11 @@ const applySubscriptionMappers = (
     (current, toParentMessage) => toParentMessage(current),
   )
 
-/** Validates a Message emitted for a registered Subscription entry and
- *  applies that entry's generated delivery. */
-export const resolveSubscriptionMessage = (
-  stepName: string,
+/** Selects registrations corresponding to a Subscription source. */
+export const sourceSubscriptionDeclarationsOf = (
   declarations: ReadonlyArray<SubscriptionMessageDeclaration>,
   entry: unknown,
-  message: unknown,
-): unknown => {
+): ReadonlyArray<SubscriptionMessageDeclaration> => {
   const exactDeclarations = Array.filter(
     declarations,
     declaration => declaration.entry === entry,
@@ -991,6 +987,58 @@ export const resolveSubscriptionMessage = (
             String.endsWith(`/${name}`)(declarationName))
         )
       })
+  return sourceDeclarations
+}
+
+/** Resolves one selected registration for a Subscription source. */
+export const resolveSubscriptionDeclaration = (
+  stepName: string,
+  declarations: ReadonlyArray<SubscriptionMessageDeclaration>,
+  entry: unknown,
+): SubscriptionMessageDeclaration => {
+  const sourceDeclarations = sourceSubscriptionDeclarationsOf(
+    declarations,
+    entry,
+  )
+
+  return Array.matchLeft(sourceDeclarations, {
+    onEmpty: () => {
+      throw new Error(
+        `${stepName} selected a Subscription not registered in the Scene.`,
+      )
+    },
+    onNonEmpty: (declaration, remainingDeclarations) => {
+      if (Array.isArrayNonEmpty(remainingDeclarations)) {
+        const entryKeys = pipe(
+          sourceDeclarations,
+          Array.map(({ entryKey }) => entryKey),
+          Array.join(', '),
+        )
+
+        throw new Error(
+          `${stepName} selected a Subscription entry ` +
+            `registered under multiple keys: ${entryKeys}.\n\n` +
+            'Select the bound Subscription entry for the intended child placement.',
+        )
+      }
+
+      return declaration
+    },
+  })
+}
+
+/** Validates a Message emitted for a registered Subscription entry and
+ *  applies that entry's generated delivery. */
+export const resolveSubscriptionMessage = (
+  stepName: string,
+  declarations: ReadonlyArray<SubscriptionMessageDeclaration>,
+  entry: unknown,
+  message: unknown,
+): unknown => {
+  const sourceDeclarations = sourceSubscriptionDeclarationsOf(
+    declarations,
+    entry,
+  )
   const matchingDeclarations = Array.filter(sourceDeclarations, declaration =>
     Array.some(declaration.schemas, schema => Schema.is(schema)(message)),
   )

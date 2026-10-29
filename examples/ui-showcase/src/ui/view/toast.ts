@@ -9,7 +9,9 @@ import type { UiViewBuilder } from '../composition'
 import { Message } from '../message'
 import { ToastBlock } from '../toast'
 
-type Entry = (typeof ToastBlock.Model.Type)['entries'][number]
+type ToastModel = typeof ToastBlock.Model.Type
+
+type Entry = ToastModel['entries'][number]
 
 const variantClassName = (variant: Variant): string =>
   Match.value(variant).pipe(

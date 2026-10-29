@@ -9,10 +9,15 @@ import {
   pipe,
 } from 'effect'
 import type { Mount } from 'foldkit'
-import playgroundTypes from 'virtual:playground-types'
 
 import { reasonFromError } from '../playgroundWebContainer'
-import { Message, PlaygroundDefinition } from './definition'
+import {
+  type EditedPlaygroundFile,
+  type FailedMountPlaygroundEditor,
+  Message,
+  PlaygroundDefinition,
+  type SucceededMountPlaygroundEditor,
+} from './definition'
 
 const monacoLanguageForPath = (path: string): string =>
   pipe(
@@ -75,7 +80,10 @@ const defineFoldkitTheme = (monaco: typeof import('monaco-editor')): void => {
 // of `monaco-editor` is cached by the JS module loader, so only the
 // `addExtraLib` loop repeats.
 const configureMonaco = async () => {
-  const monaco = await import('monaco-editor')
+  const [monaco, { default: playgroundTypes }] = await Promise.all([
+    import('monaco-editor'),
+    import('virtual:playground-types'),
+  ])
   defineFoldkitTheme(monaco)
 
   // NOTE: Monaco's `ModuleResolutionKind` enum only exposes `Classic`
@@ -122,9 +130,9 @@ const configureMonaco = async () => {
 }
 
 type PlaygroundEditorMessage =
-  | typeof Message.SucceededMountPlaygroundEditor.Type
-  | typeof Message.FailedMountPlaygroundEditor.Type
-  | typeof Message.EditedPlaygroundFile.Type
+  | SucceededMountPlaygroundEditor
+  | FailedMountPlaygroundEditor
+  | EditedPlaygroundFile
 
 type PlaygroundEditorResource = Readonly<{
   editor: import('monaco-editor').editor.IStandaloneCodeEditor

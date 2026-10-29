@@ -18,6 +18,7 @@ export const Message = defineMessageUnion({
   CompletedWaitBeforeOpening: { version: Schema.Number },
   CompletedWaitBeforeClosing: { version: Schema.Number },
 })
+export type Message = typeof Message.Type
 
 export type EnteredTrigger = typeof Message.EnteredTrigger.Type
 export type LeftTrigger = typeof Message.LeftTrigger.Type
@@ -41,6 +42,7 @@ export const OutMessage = defineMessageUnion({
   Opened: {},
   Closed: {},
 })
+export type OutMessage = typeof OutMessage.Type
 
 export type Opened = typeof OutMessage.Opened.Type
 export type Closed = typeof OutMessage.Closed.Type

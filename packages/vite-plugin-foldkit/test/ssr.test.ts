@@ -1,11 +1,22 @@
-import { Option } from 'effect'
+import { Option, Predicate } from 'effect'
+import {
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import {
   type Server as HttpServer,
   createServer as createHttpServer,
   request as nodeRequest,
 } from 'node:http'
 import type { AddressInfo } from 'node:net'
-import { dirname, resolve } from 'node:path'
+import { tmpdir } from 'node:os'
+import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   type CorsOptions,
@@ -18,7 +29,7 @@ import {
   isRunnableDevEnvironment,
 } from 'vite'
 import { createServer as createHostViteServer } from 'vite-host'
-import { describe, expect, it, onTestFinished } from 'vitest'
+import { describe, expect, it, onTestFinished, vi } from 'vitest'
 
 import { foldkit } from '../src/index.ts'
 import { foldkitSsr } from '../src/ssr.ts'
@@ -103,6 +114,21 @@ const AUTOMATIC_IDENTITY_FIXTURE_ROOT = resolve(
   import.meta.dirname,
   'fixtures/build-config',
 )
+const HOT_DISPOSE_FIXTURE_ROOT = resolve(
+  import.meta.dirname,
+  'fixtures/ssr-hot-dispose',
+)
+const FOLDKIT_PACKAGE_ROOT = resolve(
+  dirname(fileURLToPath(import.meta.resolve('foldkit'))),
+  '..',
+)
+const EFFECT_PACKAGE_ROOT = resolve(
+  dirname(fileURLToPath(import.meta.resolve('effect'))),
+  '..',
+)
+const ENTRY_EVALUATED_EVENT = 'fixture:evaluated-entry'
+const SERVER_UPDATE_SETTLED_EVENT = 'foldkit:server-update-settled'
+const HOT_UPDATE_TIMEOUT_MS = 2_000
 const FOLDKIT_BUILD_TOKEN_URL = `/@fs${resolve(
   dirname(fileURLToPath(import.meta.resolve('foldkit'))),
   'buildToken.js',
@@ -1164,5 +1190,331 @@ describe('foldkitSsr', () => {
 
     expect(response.status).toBe(203)
     expect(await response.text()).toContain('data-foldkit-app')
+  })
+})
+
+const copyHotDisposeFixtureToTemporaryRoot = (): string => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'foldkit-ssr-hot-')))
+  onTestFinished(() => rmSync(root, { recursive: true, force: true }))
+  cpSync(HOT_DISPOSE_FIXTURE_ROOT, root, { recursive: true })
+  mkdirSync(join(root, 'node_modules'))
+  symlinkSync(FOLDKIT_PACKAGE_ROOT, join(root, 'node_modules', 'foldkit'))
+  symlinkSync(EFFECT_PACKAGE_ROOT, join(root, 'node_modules', 'effect'))
+
+  return root
+}
+
+const SHORT_SERVER_UPDATE_DELAY_MS = 100
+const LONG_SERVER_UPDATE_DELAY_MS = 300
+
+const delayFor = (milliseconds: number): Promise<void> =>
+  new Promise(resolveDelay => setTimeout(resolveDelay, milliseconds))
+
+const delaySsrHotUpdates = (
+  delaysByFileName: ReadonlyMap<string, number>,
+): Plugin => ({
+  name: 'test:delay-ssr-hot-updates',
+  async hotUpdate({ file }) {
+    const delay = delaysByFileName.get(basename(file))
+
+    if (this.environment.name === 'ssr' && delay !== undefined) {
+      await delayFor(delay)
+    }
+  },
+})
+
+const HOT_DISPOSE_PLUGIN_SETUPS = [
+  {
+    name: 'the standalone foldkitSsr plugin',
+    plugins: () => [foldkitSsr({ serverEntry: '/entry.server.ts' })],
+  },
+  {
+    name: 'the aggregate foldkit plugin',
+    plugins: () =>
+      foldkit({
+        devToolsMcpPort: false,
+        ssr: { serverEntry: '/entry.server.ts' },
+      }),
+  },
+]
+
+const startHotDisposeServer = async (
+  root: string,
+  plugins: ReadonlyArray<Plugin>,
+  serverOptions: Readonly<{ hmr?: false }> = {},
+): Promise<Readonly<{ origin: string; server: ViteDevServer }>> => {
+  const server = await createViteServer({
+    root,
+    configFile: false,
+    logLevel: 'silent',
+    plugins: [...plugins],
+    // NOTE: File system events are unreliable here. macOS can deliver events
+    // for the fixture files copied just before the server starts, and a write
+    // can land before the watcher finishes its first scan. With the watcher
+    // off, the test reports each edit to Vite itself.
+    server: {
+      host: '127.0.0.1',
+      port: 0,
+      watch: null,
+      ...serverOptions,
+    },
+  })
+  onTestFinished(() => server.close().catch(() => undefined))
+  await server.listen()
+
+  return { origin: originOf(server.httpServer?.address()), server }
+}
+
+const editFile = (
+  root: string,
+  server: ViteDevServer,
+  fileName: string,
+  source: string,
+): void => {
+  const file = join(root, fileName)
+  writeFileSync(file, source)
+  server.watcher.emit('change', file)
+}
+
+const editGeneration = (
+  root: string,
+  server: ViteDevServer,
+  generation: number,
+): Promise<void> =>
+  new Promise((resolveEvaluation, reject) => {
+    const timeout = setTimeout(() => {
+      server.environments.ssr.hot.off(ENTRY_EVALUATED_EVENT, listener)
+      reject(
+        new Error(
+          `The server entry was not hot updated to generation ${generation}`,
+        ),
+      )
+    }, HOT_UPDATE_TIMEOUT_MS)
+    const listener = (data: unknown): void => {
+      if (
+        Predicate.hasProperty(data, 'generation') &&
+        data.generation === generation
+      ) {
+        clearTimeout(timeout)
+        server.environments.ssr.hot.off(ENTRY_EVALUATED_EVENT, listener)
+        resolveEvaluation()
+      }
+    }
+    server.environments.ssr.hot.on(ENTRY_EVALUATED_EVENT, listener)
+
+    editFile(
+      root,
+      server,
+      'generation.ts',
+      `export const generation = ${generation}\n`,
+    )
+  })
+
+describe('server entry hot updates', () => {
+  for (const setup of HOT_DISPOSE_PLUGIN_SETUPS) {
+    it(`finalizes the server entry resource and reevaluates server modules under ${setup.name}`, async () => {
+      const root = copyHotDisposeFixtureToTemporaryRoot()
+      const { origin, server } = await startHotDisposeServer(
+        root,
+        setup.plugins(),
+      )
+      const rendered = async (): Promise<unknown> =>
+        (await fetch(`${origin}/`)).json()
+
+      expect(await rendered()).toEqual({
+        generation: 1,
+        releasedGenerations: [],
+        configurationEvaluations: 1,
+      })
+
+      await editGeneration(root, server, 2)
+      expect(await rendered()).toEqual({
+        generation: 2,
+        releasedGenerations: [1],
+        configurationEvaluations: 2,
+      })
+
+      await editGeneration(root, server, 3)
+      expect(await rendered()).toEqual({
+        generation: 3,
+        releasedGenerations: [1, 2],
+        configurationEvaluations: 3,
+      })
+    })
+  }
+
+  it('reloads the browser when a module only the server imports changes', async () => {
+    const root = copyHotDisposeFixtureToTemporaryRoot()
+    const { origin, server } = await startHotDisposeServer(
+      root,
+      foldkit({
+        devToolsMcpPort: false,
+        ssr: { serverEntry: '/entry.server.ts' },
+      }),
+    )
+    await fetch(`${origin}/`)
+    const send = vi.spyOn(server.ws, 'send')
+    onTestFinished(() => send.mockRestore())
+
+    await editGeneration(root, server, 2)
+
+    expect(send).toHaveBeenCalledWith({ type: 'full-reload' })
+  })
+
+  it('holds a request made during a server update until the module runner applies it', async () => {
+    const root = copyHotDisposeFixtureToTemporaryRoot()
+    const { origin, server } = await startHotDisposeServer(root, [
+      foldkitSsr({ serverEntry: '/entry.server.ts' }),
+      delaySsrHotUpdates(
+        new Map([['generation.ts', SHORT_SERVER_UPDATE_DELAY_MS]]),
+      ),
+    ])
+    const rendered = async (): Promise<unknown> =>
+      (await fetch(`${origin}/`)).json()
+    await rendered()
+
+    const evaluation = editGeneration(root, server, 2)
+    const renderedDuringUpdate = await rendered()
+    await evaluation
+
+    expect(renderedDuringUpdate).toEqual({
+      generation: 2,
+      releasedGenerations: [1],
+      configurationEvaluations: 2,
+    })
+    expect(await rendered()).toEqual(renderedDuringUpdate)
+  })
+
+  it('holds a request until every overlapping server update settles', async () => {
+    const root = copyHotDisposeFixtureToTemporaryRoot()
+    const { origin, server } = await startHotDisposeServer(root, [
+      foldkitSsr({ serverEntry: '/entry.server.ts' }),
+      delaySsrHotUpdates(
+        new Map([['configuration.ts', LONG_SERVER_UPDATE_DELAY_MS]]),
+      ),
+    ])
+    const rendered = async (): Promise<unknown> =>
+      (await fetch(`${origin}/`)).json()
+    await rendered()
+
+    editFile(
+      root,
+      server,
+      'configuration.ts',
+      readFileSync(join(root, 'configuration.ts'), 'utf-8'),
+    )
+    await editGeneration(root, server, 2)
+
+    expect(await rendered()).toMatchObject({
+      generation: 2,
+      releasedGenerations: [1],
+    })
+  })
+
+  it('settles each update when two server files change together', async () => {
+    const root = copyHotDisposeFixtureToTemporaryRoot()
+    const { origin, server } = await startHotDisposeServer(root, [
+      foldkitSsr({ serverEntry: '/entry.server.ts' }),
+      delaySsrHotUpdates(
+        new Map([
+          ['configuration.ts', SHORT_SERVER_UPDATE_DELAY_MS],
+          ['generation.ts', LONG_SERVER_UPDATE_DELAY_MS],
+        ]),
+      ),
+    ])
+    const rendered = async (): Promise<unknown> =>
+      (await fetch(`${origin}/`)).json()
+    await rendered()
+
+    const reportedUpdates: Array<unknown> = []
+    server.environments.ssr.hot.on(SERVER_UPDATE_SETTLED_EVENT, payload => {
+      reportedUpdates.push(payload)
+    })
+
+    editFile(
+      root,
+      server,
+      'configuration.ts',
+      readFileSync(join(root, 'configuration.ts'), 'utf-8'),
+    )
+    editFile(root, server, 'generation.ts', 'export const generation = 2\n')
+
+    expect(await rendered()).toMatchObject({
+      generation: 2,
+      releasedGenerations: [1],
+    })
+    expect(reportedUpdates).toHaveLength(2)
+  })
+
+  it('unregisters the server update listener when the environment closes', async () => {
+    const root = copyHotDisposeFixtureToTemporaryRoot()
+    const { origin, server } = await startHotDisposeServer(root, [
+      foldkitSsr({ serverEntry: '/entry.server.ts' }),
+    ])
+    await fetch(`${origin}/`)
+
+    const off = vi.spyOn(server.environments.ssr.hot, 'off')
+    await server.close()
+
+    expect(off).toHaveBeenCalledWith(
+      SERVER_UPDATE_SETTLED_EVENT,
+      expect.any(Function),
+    )
+  })
+
+  it('disposes the server entry when a module it has not loaded yet changes', async () => {
+    const root = copyHotDisposeFixtureToTemporaryRoot()
+    const { origin, server } = await startHotDisposeServer(root, [
+      foldkitSsr({ serverEntry: '/entry.server.ts' }),
+      delaySsrHotUpdates(new Map([['lazy.ts', SHORT_SERVER_UPDATE_DELAY_MS]])),
+    ])
+    await fetch(`${origin}/`)
+
+    editFile(root, server, 'lazy.ts', 'export const lazyValue = 2\n')
+
+    expect(await (await fetch(`${origin}/`)).json()).toMatchObject({
+      generation: 1,
+      releasedGenerations: [1],
+    })
+  })
+
+  it('releases held requests when a server update never reaches the module runner', async () => {
+    const root = copyHotDisposeFixtureToTemporaryRoot()
+    const { origin, server } = await startHotDisposeServer(root, [
+      foldkitSsr({ serverEntry: '/entry.server.ts' }),
+      {
+        name: 'test:suppress-ssr-hot-updates',
+        hotUpdate() {
+          return this.environment.name === 'ssr' ? [] : undefined
+        },
+      },
+    ])
+    await fetch(`${origin}/`)
+
+    editFile(root, server, 'generation.ts', 'export const generation = 2\n')
+    const requestStart = performance.now()
+    const response = await fetch(`${origin}/`)
+
+    expect(response.status).toBe(200)
+    expect(performance.now() - requestStart).toBeLessThan(HOT_UPDATE_TIMEOUT_MS)
+  })
+
+  it('reloads the server entry on the next request without disposing it when HMR is off', async () => {
+    const root = copyHotDisposeFixtureToTemporaryRoot()
+    const { origin, server } = await startHotDisposeServer(
+      root,
+      [foldkitSsr({ serverEntry: '/entry.server.ts' })],
+      { hmr: false },
+    )
+    const rendered = async (): Promise<unknown> =>
+      (await fetch(`${origin}/`)).json()
+    await rendered()
+
+    editFile(root, server, 'generation.ts', 'export const generation = 2\n')
+
+    expect(await rendered()).toMatchObject({
+      generation: 2,
+      releasedGenerations: [],
+    })
   })
 })

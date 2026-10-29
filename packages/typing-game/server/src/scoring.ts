@@ -14,15 +14,15 @@ import * as Shared from '@typing-game/shared'
 import { CHARS_PER_WORD, PLAYING_SECONDS } from './game.ts'
 
 type ProgressByGamePlayer = HashMap.HashMap<
-  typeof Shared.GamePlayer.Type,
-  typeof Shared.PlayerProgress.Type
+  Shared.GamePlayer,
+  Shared.PlayerProgress
 >
 
 const calculatePlayerScore = (
-  player: typeof Shared.Player.Type,
-  maybePlayerProgress: Option.Option<typeof Shared.PlayerProgress.Type>,
+  player: Shared.Player,
+  maybePlayerProgress: Option.Option<Shared.PlayerProgress>,
   gameDurationSeconds: number,
-): typeof Shared.PlayerScore.Type => {
+): Shared.PlayerScore => {
   const charsTyped = Option.match(maybePlayerProgress, {
     onSome: ({ charsTyped }) => charsTyped,
     onNone: () => 0,
@@ -52,9 +52,9 @@ const calculatePlayerScore = (
 }
 
 export const calculateScoreboard = (
-  room: typeof Shared.Room.Type,
+  room: Shared.Room,
   progressByGamePlayer: ProgressByGamePlayer,
-): typeof Shared.Scoreboard.Type =>
+): Shared.Scoreboard =>
   Effect.gen(function* () {
     const game = yield* Effect.fromOption(room.maybeGame)
 
@@ -77,7 +77,7 @@ export const getPlayerProgress = (
   progressByGamePlayerRef: SubscriptionRef.SubscriptionRef<ProgressByGamePlayer>,
   playerId: string,
   gameId: string,
-): Effect.Effect<Option.Option<typeof Shared.PlayerProgress.Type>> =>
+): Effect.Effect<Option.Option<Shared.PlayerProgress>> =>
   Effect.gen(function* () {
     const progressByGamePlayer = yield* SubscriptionRef.get(
       progressByGamePlayerRef,

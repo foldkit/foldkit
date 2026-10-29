@@ -21,7 +21,7 @@ const DialogDefinition = Block.makeDefinition('CombinedOutMessageDialog', {
 export class Store extends Context.Service<
   Store,
   Readonly<{
-    initialize: Effect.Effect<void, 'StoreUnavailable'>
+    init: Effect.Effect<void, 'StoreUnavailable'>
     remember: (count: number) => Effect.Effect<void>
   }>
 >()('CombinedOutMessage/Store') {}
@@ -30,7 +30,7 @@ export const RememberClose = DialogDefinition.makeCommand('RememberClose', {
   messages: [DialogMessage.CompletedRememberClose],
   handler: function* () {
     const store = yield* Store
-    yield* store.initialize
+    yield* store.init
     return ({ count }) =>
       store
         .remember(count)

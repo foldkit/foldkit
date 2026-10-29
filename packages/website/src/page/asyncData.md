@@ -73,7 +73,7 @@ The error Schema is simplified to `string` here; a real app usually gives each f
 
 ### Store an AsyncData Field or Cache
 
-A single field embeds `.schema` directly. A keyed cache embeds it as the value Schema of an `Schema.HashMap`, which is how `noteById` holds one independent `AsyncData` per `NoteId`. The Model type of a field is `typeof NotesAsyncData.schema.Type`, structurally equal to `AsyncData.AsyncData<ReadonlyArray<Note>, string>`.
+A single field embeds `.schema` directly. A keyed cache embeds it as the value Schema of an `Schema.HashMap`, which is how `noteById` holds one independent `AsyncData` per `NoteId`. Derive a decoded alias from `NotesAsyncData.schema` and use that alias for the Model field type; it is structurally equal to `AsyncData.AsyncData<ReadonlyArray<Note>, string>`.
 
 ### Construct State Values
 

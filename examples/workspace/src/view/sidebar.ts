@@ -1,28 +1,29 @@
 import { clsx } from 'clsx'
-import { Array, Option, String } from 'effect'
+import { Array, Option, Record } from 'effect'
 import { AsyncData } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
-import { Button } from '@foldkit/ui'
+import { Button, Nav } from '@foldkit/ui'
 
 import type { ApplicationViewBuilder } from '../composition'
+import { issueHref } from '../issueLinks'
 import { Message } from '../message'
 import type { Model } from '../model'
-import { issueHref } from '../navigation'
 import {
   ApplicationRoute,
   issuesRouter,
+  maybeIssueId,
   maybeProjectId,
   myIssuesRouter,
-  pageRoute,
   peopleRouter,
   projectRouter,
   savedViewRouter,
   settingsRouter,
 } from '../route'
-import { navigationLink } from './navigation'
+import { unsavedIssueDrafts } from '../selection'
+import { navigationLink } from './navigationLink'
 
-const maybeSnapshot = (model: typeof Model.Type) =>
+const maybeConfirmedWorkspace = (model: Model) =>
   AsyncData.getData(model.workspaceAsyncData)
 
 const SIDEBAR_COLLECTION_CLASS =
@@ -33,17 +34,34 @@ const SAVED_VIEW_LINK_CLASS =
 
 const DRAFT_LINK_CLASS = 'block rounded-lg px-3 py-2'
 
-export const sidebarView = (
-  model: typeof Model.Type,
-  h: ApplicationViewBuilder,
-): Html => {
-  const route = pageRoute(model.route)
+export const sidebarView = (model: Model, h: ApplicationViewBuilder): Html => {
+  const issueDrafts = unsavedIssueDrafts(model)
+  const { route } = model
   const maybeCurrentProjectId = maybeProjectId(route)
+
+  const workspacePages = {
+    'All issues': {
+      href: issuesRouter({}),
+      isCurrent: ApplicationRoute.guards.Issues(route),
+    },
+    'My issues': {
+      href: myIssuesRouter({}),
+      isCurrent: ApplicationRoute.guards.MyIssues(route),
+    },
+    People: {
+      href: peopleRouter({}),
+      isCurrent: ApplicationRoute.guards.People(route),
+    },
+    Settings: {
+      href: settingsRouter({}),
+      isCurrent: ApplicationRoute.guards.Settings(route),
+    },
+  }
 
   return h.aside(
     [
       h.Class(
-        'grid shrink-0 grid-cols-[1fr_auto] items-start gap-4 border-b border-slate-200 bg-slate-100/80 p-4 lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-60 lg:flex-col lg:gap-0 lg:overflow-y-auto lg:border-r lg:border-b-0 lg:p-5',
+        'grid max-h-[40dvh] shrink-0 grid-cols-[1fr_auto] items-start gap-4 overflow-y-auto border-b border-slate-200 bg-slate-100/80 p-4 lg:flex lg:h-full lg:max-h-none lg:w-60 lg:flex-col lg:gap-0 lg:border-r lg:border-b-0 lg:p-5',
       ),
     ],
     [
@@ -94,36 +112,20 @@ export const sidebarView = (
         },
         h,
       ),
-      h.nav(
+      h.div(
+        [h.Class('col-span-2 w-full')],
         [
-          h.AriaLabel('Workspace navigation'),
-          h.Class('col-span-2 flex w-full flex-wrap gap-1 lg:flex-col'),
-        ],
-        [
-          navigationLink(
-            issuesRouter({}),
-            'All issues',
-            ApplicationRoute.guards.Issues(route),
-            h,
-          ),
-          navigationLink(
-            myIssuesRouter({}),
-            'My issues',
-            ApplicationRoute.guards.MyIssues(route),
-            h,
-          ),
-          navigationLink(
-            peopleRouter(),
-            'People',
-            ApplicationRoute.guards.People(route),
-            h,
-          ),
-          navigationLink(
-            settingsRouter(),
-            'Settings',
-            ApplicationRoute.guards.Settings(route),
-            h,
-          ),
+          Nav.view({
+            items: Record.keys(workspacePages),
+            ariaLabel: 'Workspace navigation',
+            toHref: label => workspacePages[label].href,
+            isItemCurrent: label => workspacePages[label].isCurrent,
+            toView: ({ nav, items }) =>
+              h.nav(
+                [...nav, h.Class('flex w-full flex-wrap gap-1 lg:flex-col')],
+                Array.map(items, item => navigationLink(item, item.value, h)),
+              ),
+          }),
           h.p(
             [
               h.Class(
@@ -132,23 +134,27 @@ export const sidebarView = (
             ],
             ['Projects'],
           ),
-          ...Option.match(maybeSnapshot(model), {
+          ...Option.match(maybeConfirmedWorkspace(model), {
             onNone: () => [],
-            onSome: ({ projects }) =>
-              Array.map(projects, project =>
-                h.keyed('div')(
-                  project.id,
-                  [],
-                  [
-                    navigationLink(
-                      projectRouter({ projectId: project.id }),
-                      project.name,
-                      Option.contains(maybeCurrentProjectId, project.id),
-                      h,
+            onSome: ({ projects }) => [
+              Nav.view({
+                items: Array.map(projects, project => project.id),
+                ariaLabel: 'Projects',
+                toHref: projectId => projectRouter({ projectId }),
+                isItemCurrent: projectId =>
+                  Option.contains(maybeCurrentProjectId, projectId),
+                toView: ({ nav, items }) =>
+                  h.nav(
+                    [
+                      ...nav,
+                      h.Class('flex w-full flex-wrap gap-1 lg:flex-col'),
+                    ],
+                    Array.map(Array.zip(items, projects), ([item, project]) =>
+                      navigationLink(item, project.name, h),
                     ),
-                  ],
-                ),
-              ),
+                  ),
+              }),
+            ],
           }),
         ],
       ),
@@ -232,10 +238,9 @@ export const sidebarView = (
         [
           h.Class(
             clsx({
-              hidden: Array.isReadonlyArrayEmpty(model.issueDrafts),
-              [SIDEBAR_COLLECTION_CLASS]: Array.isReadonlyArrayNonEmpty(
-                model.issueDrafts,
-              ),
+              hidden: Array.isReadonlyArrayEmpty(issueDrafts),
+              [SIDEBAR_COLLECTION_CLASS]:
+                Array.isReadonlyArrayNonEmpty(issueDrafts),
             }),
           ),
           h.AriaLabel('Drafts'),
@@ -249,17 +254,19 @@ export const sidebarView = (
             ],
             ['Drafts'],
           ),
-          ...Array.map(model.issueDrafts, retainedDraft => {
-            const title = String.trim(retainedDraft.draft.title)
-            const maybeIssue = Option.flatMap(maybeSnapshot(model), snapshot =>
-              Array.findFirst(
-                snapshot.issues,
-                issue => issue.id === retainedDraft.issueId,
-              ),
+          ...Array.map(issueDrafts, retainedDraft => {
+            const maybeIssue = Option.flatMap(
+              maybeConfirmedWorkspace(model),
+              workspace =>
+                Array.findFirst(
+                  workspace.issues,
+                  issue => issue.id === retainedDraft.issueId,
+                ),
             )
-            const isActive =
-              ApplicationRoute.guards.Issue(model.route) &&
-              model.route.issueId === retainedDraft.issueId
+            const isActive = Option.contains(
+              maybeIssueId(model.route),
+              retainedDraft.issueId,
+            )
 
             return h.keyed('div')(
               retainedDraft.issueId,
@@ -289,11 +296,7 @@ export const sidebarView = (
                     ),
                     h.span(
                       [h.Class('block truncate text-sm font-medium')],
-                      [
-                        String.isEmpty(title)
-                          ? retainedDraft.baseline.fields.title
-                          : title,
-                      ],
+                      [retainedDraft.title],
                     ),
                   ],
                 ),

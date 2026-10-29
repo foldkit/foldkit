@@ -38,8 +38,8 @@ import { foldMenuOutMessage, foldTabsOutMessage } from './outMessage'
 import { Message } from './message'
 import { Model, type Tab } from './model'
 import { menuViewInputs } from './viewInputs'
-const MenuBlock = Menu.create()
-const TabsBlock = Tabs.create<Tab>()
+const MenuBlock = Menu.makeBlock()
+const TabsBlock = Tabs.makeBlock<Tab>()
 const PanelDefinition = Block.makeDefinition('Panel', { Model, Message })
 const MenuBinding = PanelDefinition.makeBinding(MenuBlock, {
   field: 'menu',
@@ -63,7 +63,7 @@ export const view = PanelComposition.makeView((model, h) =>
 
 Register only the components the owner embeds. A Binding makes the parent-child relationship explicit once: the Composition routes received wrapper Messages through the Binding automatically, update uses operations such as `binding.requestOpen()` for parent-driven changes, and view uses `binding.embedView`.
 
-Factories live on the component namespace: `Combobox.create`, `Combobox.Multi.create`, `Listbox.create`, `Listbox.Multi.create`, `Menu.create`, `Tabs.create`, `RadioGroup.create`, `VirtualList.create`, and `Toast.make`. Name completed factory results `FooBlock`. Factory definitions retain stable local names; Binding placement and keys distinguish occurrences. Schema-taking factories such as `Combobox.create(City)` preserve decoded Item payloads and encoded types. Item Codecs must be synchronous and service-free because the component decodes supplied values synchronously. Type-only factories such as `Tabs.create<Tab>()` preserve selected value types. Import ViewInputs and domain helpers from component subpaths; the completed value carries its Model, Message, and declared OutMessage matcher.
+Factories live on the component namespace: `Combobox.makeBlock`, `Combobox.Multi.makeBlock`, `Listbox.makeBlock`, `Listbox.Multi.makeBlock`, `Menu.makeBlock`, `Tabs.makeBlock`, `RadioGroup.makeBlock`, `VirtualList.makeBlock`, and `Toast.makeBlock`. Name completed factory results `FooBlock`. Factory definitions retain stable local names; Binding placement and keys distinguish occurrences. Schema-taking factories such as `Combobox.makeBlock(City)` preserve decoded Item payloads and encoded types. Item Codecs must be synchronous and service-free because the component decodes supplied values synchronously. Type-only factories such as `Tabs.makeBlock<Tab>()` preserve selected value types. Import ViewInputs and domain helpers from component subpaths; the completed value carries its Model, Message, and declared OutMessage matcher.
 
 ```ts
 import { Toast } from '@foldkit/ui'
@@ -73,7 +73,8 @@ import { foldToastOutMessage } from './outMessage'
 import { Message } from './message'
 import { Model } from './model'
 const ToastPayload = Schema.Struct({ message: Schema.String })
-const ToastBlock = Toast.make(ToastPayload)
+type ToastPayload = typeof ToastPayload.Type
+const ToastBlock = Toast.makeBlock(ToastPayload)
 const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,

@@ -16,7 +16,6 @@ export const Message = defineMessageUnion({
   CompletedAction: {},
   ObservedBackgroundActivity: {},
 })
-
 export type Message = typeof Message.Type
 
 // OUT MESSAGE
@@ -24,7 +23,6 @@ export type Message = typeof Message.Type
 export const OutMessage = defineMessageUnion({
   RequestedLogout: {},
 })
-
 export type OutMessage = typeof OutMessage.Type
 
 // INIT

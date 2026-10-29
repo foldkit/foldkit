@@ -6,11 +6,16 @@ import {
   ChildrenByIdBinding,
   ChildrenByNumberBinding,
   Id,
+  InitializingParentBlock,
   ParentBlock,
   ParentModel,
   Read,
   ReadService,
   init,
+  initChildrenStep,
+  initHashMapIfMissingStep,
+  initRecordIfMissingStep,
+  initWithChildren,
   insertHashMap,
   insertRecord,
   insertStep,
@@ -93,4 +98,57 @@ export type InitializedModel = Expect<
 >
 export type ProviderServices = Expect<
   Equal<Layer.Services<typeof ParentBlock.EffectsLayer>, ReadService>
+>
+
+export type ExactInitializationInput = Expect<
+  Equal<
+    Parameters<typeof initRecordIfMissingStep>[0],
+    typeof ParentModel.Type &
+      Update.GraphCapability<
+        typeof ParentModel.Type,
+        Block.RequirementOfBinding<typeof ChildrenByIdBinding>
+      >
+  >
+>
+export type ExactInitializationRecipe = Expect<
+  Equal<
+    ReturnType<typeof initRecordIfMissingStep>,
+    Update.ResultRecipe<
+      typeof ParentModel.Type,
+      ExpectedMessage,
+      never,
+      ExpectedRequirements,
+      Block.RequirementOfBinding<typeof ChildrenByIdBinding>
+    >
+  >
+>
+export type ExactInitializationRequirements = Expect<
+  Equal<
+    Update.RequirementsOf<typeof initRecordIfMissingStep>,
+    ExpectedRequirements
+  >
+>
+export type ExactInitializationEvidence = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<ReturnType<typeof initRecordIfMissingStep>>,
+    Block.RequirementOfBinding<typeof ChildrenByIdBinding>
+  >
+>
+export type ExactHashMapInitializationRequirements = Expect<
+  Equal<
+    Update.RequirementsOf<typeof initHashMapIfMissingStep>,
+    ExpectedHashMapRequirements
+  >
+>
+export type ComposedInitializationRequirements = Expect<
+  Equal<Update.RequirementsOf<typeof initChildrenStep>, ExpectedRequirements>
+>
+export type ReusedInitializedModel = Expect<
+  Equal<ReturnType<typeof initWithChildren>['model'], typeof ParentModel.Type>
+>
+export type InitializationProviderServices = Expect<
+  Equal<
+    Layer.Services<typeof InitializingParentBlock.EffectsLayer>,
+    ReadService
+  >
 >

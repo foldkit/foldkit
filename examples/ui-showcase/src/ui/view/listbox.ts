@@ -19,7 +19,11 @@ import {
   ItemMultiListboxBlock,
 } from '../listbox'
 
-const LISTBOX_ITEMS: ReadonlyArray<typeof ListboxItem.Type> = [
+type ItemListboxModel = typeof ItemListboxBlock.Model.Type
+type ItemMultiListboxModel = typeof ItemMultiListboxBlock.Model.Type
+type CharacterListboxModel = typeof CharacterListboxBlock.Model.Type
+
+const LISTBOX_ITEMS: ReadonlyArray<ListboxItem> = [
   'Michael Bluth',
   'Lindsay Funke',
   'Gob Bluth',
@@ -117,8 +121,8 @@ const field = (
 // DEMOS
 
 const singleSelectDemo = (
-  listboxModel: typeof ItemListboxBlock.Model.Type,
-  maybeSelectedItem: Option.Option<typeof ListboxItem.Type>,
+  listboxModel: ItemListboxModel,
+  maybeSelectedItem: Option.Option<ListboxItem>,
   h: UiViewBuilder,
 ): Html => {
   const buttonLabel = Option.getOrElse(
@@ -151,8 +155,8 @@ const singleSelectDemo = (
 }
 
 const multiSelectDemo = (
-  listboxModel: typeof ItemMultiListboxBlock.Model.Type,
-  selectedItems: ReadonlyArray<typeof ListboxItem.Type>,
+  listboxModel: ItemMultiListboxModel,
+  selectedItems: ReadonlyArray<ListboxItem>,
   h: UiViewBuilder,
 ): Html => {
   const buttonLabel = Array.match(selectedItems, {
@@ -188,7 +192,7 @@ const multiSelectDemo = (
 }
 
 const groupedDemo = (
-  listboxModel: typeof CharacterListboxBlock.Model.Type,
+  listboxModel: CharacterListboxModel,
   maybeSelectedItem: Option.Option<string>,
   h: UiViewBuilder,
 ): Html => {

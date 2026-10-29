@@ -14,13 +14,16 @@ const PostsData = Schema.Struct({
   posts: Schema.Array(Post),
   fetchedAt: Schema.Number,
 })
+type PostsData = typeof PostsData.Type
 
 const PostData = Schema.Struct({
   post: PostDetail,
   fetchedAt: Schema.Number,
 })
+type PostData = typeof PostData.Type
 
 const StatsData = Schema.Struct({ stats: Stats, fetchedAt: Schema.Number })
+type StatsData = typeof StatsData.Type
 
 export const postsQuery = Query.define({
   name: 'Posts',

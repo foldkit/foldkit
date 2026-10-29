@@ -457,7 +457,32 @@ export const makeRuntime = <
           Model as Schema.Codec<Model>,
         )
         const decodePreservedModel = Schema.decodeUnknownExit(ModelJsonCodec)
-        const encodePreservedModel = Schema.encodeUnknownSync(ModelJsonCodec)
+        const encodePreservedModel = Schema.encodeUnknownExit(ModelJsonCodec)
+        let isPreservationFailing = false
+
+        const preserveCurrentModel = (
+          model: Model,
+          isReloadFlush: boolean,
+        ): void =>
+          Exit.match(encodePreservedModel(model), {
+            onFailure: error => {
+              preserveModel(runtimeId, undefined, isReloadFlush)
+
+              if (!isPreservationFailing) {
+                isPreservationFailing = true
+                console.warn(
+                  `[foldkit] Could not preserve Model for runtime "${runtimeId}". ` +
+                    'The live Model is unchanged; the next development reload will initialize fresh. ' +
+                    'Use JSON-capable Schemas for values that must survive a reload.',
+                  error,
+                )
+              }
+            },
+            onSuccess: encodedModel => {
+              isPreservationFailing = false
+              preserveModel(runtimeId, encodedModel, isReloadFlush)
+            },
+          })
 
         const currentUrl: Option.Option<Url> = Option.fromNullishOr(
           routingConfig,
@@ -494,13 +519,9 @@ export const makeRuntime = <
         const preserveScheduler = yield* makePreserveScheduler<Model>(
           {
             onDebounce: model =>
-              Effect.sync(() =>
-                preserveModel(runtimeId, encodePreservedModel(model), false),
-              ),
+              Effect.sync(() => preserveCurrentModel(model, false)),
             onFlush: model =>
-              Effect.sync(() =>
-                preserveModel(runtimeId, encodePreservedModel(model), true),
-              ),
+              Effect.sync(() => preserveCurrentModel(model, true)),
           },
           PRESERVE_DEBOUNCE,
         )

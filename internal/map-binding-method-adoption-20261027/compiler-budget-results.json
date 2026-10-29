@@ -1,0 +1,93 @@
+{
+  "typescriptVersion": "7.1.0-beta",
+  "fixtures": {
+    "deep-composition-8": {
+      "instantiationsDelta": 635409,
+      "typesDelta": 51416,
+      "symbolsDelta": 83445,
+      "status": "ok",
+      "previousCeilings": {
+        "maxInstantiationsDelta": 1152618,
+        "maxTypesDelta": 55843
+      },
+      "reviewedCeilings": {
+        "maxInstantiationsDelta": 1152618,
+        "maxTypesDelta": 55843
+      }
+    },
+    "wide-composition-100": {
+      "instantiationsDelta": 1331305,
+      "typesDelta": 80466,
+      "symbolsDelta": 125082,
+      "status": "ok",
+      "previousCeilings": {
+        "maxInstantiationsDelta": 3132298,
+        "maxTypesDelta": 216662
+      },
+      "reviewedCeilings": {
+        "maxInstantiationsDelta": 3132298,
+        "maxTypesDelta": 216662
+      }
+    },
+    "command-requirements-200": {
+      "instantiationsDelta": 335824,
+      "typesDelta": 62285,
+      "symbolsDelta": 113084,
+      "status": "ok",
+      "previousCeilings": {
+        "maxInstantiationsDelta": 2659415,
+        "maxTypesDelta": 389460
+      },
+      "reviewedCeilings": {
+        "maxInstantiationsDelta": 2659415,
+        "maxTypesDelta": 389460
+      }
+    },
+    "wide-subscriptions-100": {
+      "instantiationsDelta": 548398,
+      "typesDelta": 24566,
+      "symbolsDelta": 58270,
+      "status": "ok",
+      "previousCeilings": {
+        "maxInstantiationsDelta": 548398,
+        "maxTypesDelta": 24566
+      },
+      "reviewedCeilings": {
+        "maxInstantiationsDelta": 548398,
+        "maxTypesDelta": 24566
+      }
+    },
+    "workspace-composition-4": {
+      "instantiationsDelta": 2642699,
+      "typesDelta": 229173,
+      "symbolsDelta": 304270,
+      "status": "ok",
+      "previousCeilings": {
+        "maxInstantiationsDelta": 2639574,
+        "maxTypesDelta": 206314
+      },
+      "reviewedCeilings": {
+        "maxInstantiationsDelta": 2642699,
+        "maxTypesDelta": 229173
+      }
+    },
+    "workspace-composition-8": {
+      "instantiationsDelta": 4265971,
+      "typesDelta": 276909,
+      "symbolsDelta": 394892,
+      "status": "ok",
+      "previousCeilings": {
+        "maxInstantiationsDelta": 4515010,
+        "maxTypesDelta": 280523
+      },
+      "reviewedCeilings": {
+        "maxInstantiationsDelta": 4515010,
+        "maxTypesDelta": 280523
+      }
+    }
+  },
+  "fixtureSourcesChanged": false,
+  "unchangedBudgetsPass": false,
+  "originalFailure": "workspace-composition-4 failed original Instantiations and Types ceilings; see verified-counts.txt",
+  "reviewedBudgetResult": "all6pass with targeted4-group ceiling increase; no other ceilings changed"
+}

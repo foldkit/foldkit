@@ -10,13 +10,13 @@ import {
   update,
 } from './application'
 
-const idleModel: typeof Model.Type = {
+const idleModel: Model = {
   elapsedMs: 0,
   isRunning: false,
   startTime: 0,
 }
 
-const runningModel: typeof Model.Type = {
+const runningModel: Model = {
   elapsedMs: 5000,
   isRunning: true,
   startTime: 1000,

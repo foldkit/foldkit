@@ -23,12 +23,15 @@ import { normalizeKeyedFieldConfig } from './keyedFieldConnection.js'
 import * as Block from './public.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
+type ChildModel = typeof ChildModel.Type
 const Entry = Schema.Struct({
   id: Schema.String,
   child: ChildModel,
   label: Schema.String,
 })
+type Entry = typeof Entry.Type
 const ParentModel = Schema.Struct({ maybeEntry: Schema.Option(Entry) })
+type ParentModel = typeof ParentModel.Type
 
 const normalized = normalizeKeyedFieldConfig({
   Model: ParentModel,
@@ -91,30 +94,38 @@ const OptionalKeyEntry = Schema.Struct({
   id: Schema.optionalKey(Schema.String),
   child: ChildModel,
 })
+type OptionalKeyEntry = typeof OptionalKeyEntry.Type
 const OptionalChildEntry = Schema.Struct({
   id: Schema.String,
   child: Schema.optionalKey(ChildModel),
 })
+type OptionalChildEntry = typeof OptionalChildEntry.Type
 const WrongKeyEntry = Schema.Struct({
   id: Schema.Boolean,
   child: ChildModel,
 })
+type WrongKeyEntry = typeof WrongKeyEntry.Type
 const MissingKeyEntry = Schema.Struct({ child: ChildModel })
+type MissingKeyEntry = typeof MissingKeyEntry.Type
 const MissingChildEntry = Schema.Struct({ id: Schema.String })
+type MissingChildEntry = typeof MissingChildEntry.Type
 const IncompatibleChildEntry = Schema.Struct({
   id: Schema.String,
   child: Schema.String,
 })
+type IncompatibleChildEntry = typeof IncompatibleChildEntry.Type
 const PrimaryEntry = Schema.Struct({
   _tag: Schema.Literal('Primary'),
   id: Schema.String,
   child: ChildModel,
 })
+type PrimaryEntry = typeof PrimaryEntry.Type
 const SecondaryEntry = Schema.Struct({
   _tag: Schema.Literal('Secondary'),
   id: Schema.String,
   child: ChildModel,
 })
+type SecondaryEntry = typeof SecondaryEntry.Type
 const InvalidParentModel = Schema.Struct({
   optionalStorage: Schema.optionalKey(Schema.Option(Entry)),
   optionalKey: Schema.Option(OptionalKeyEntry),
@@ -125,6 +136,7 @@ const InvalidParentModel = Schema.Struct({
   incompatibleChild: Schema.Option(IncompatibleChildEntry),
   ambiguous: Schema.Option(Schema.Union([PrimaryEntry, SecondaryEntry])),
 })
+type InvalidParentModel = typeof InvalidParentModel.Type
 const normalizeErased = (
   Model: unknown,
   field: string,
@@ -207,6 +219,7 @@ const ChildMessage = defineMessageUnion({
   UpdatedCount: { count: Schema.Number },
   CompletedInitialization: { count: Schema.Number },
 })
+type ChildMessage = typeof ChildMessage.Type
 const Child = makeDefinition('OptionalWrappedKeyedChild', {
   Model: ChildModel,
   Message: ChildMessage,
@@ -248,6 +261,7 @@ const ParentMessage = defineMessageUnion({
   IgnoredChildMessage: {},
   RequestedSetCount: { id: Schema.String, count: Schema.Number },
 })
+type ParentMessage = typeof ParentMessage.Type
 const Parent = makeDefinition('OptionalWrappedKeyedParent', {
   Model: ParentModel,
   Message: ParentMessage,
@@ -284,7 +298,7 @@ it('infers the wrapper key and keeps the child Block identity as placement', () 
 })
 
 it('keeps keyed dynamic initialization and lifts its Commands', () => {
-  const initialize = ParentComposition.makeInit(() =>
+  const init = ParentComposition.makeInit(() =>
     ChildBinding.init({
       key: 'created',
       args: [4],
@@ -296,7 +310,7 @@ it('keeps keyed dynamic initialization and lifts its Commands', () => {
         }),
     }),
   )
-  const initialized = initialize()
+  const initialized = init()
   const command = Option.getOrThrow(Array.head(initialized.commands!))
 
   expect(initialized.model).toEqual(
@@ -355,9 +369,7 @@ it('folds generated Messages and exposed operations only into a matching Option 
 
 it('reconciles A to B to A with a fresh generation and rejects the stale origin', async () => {
   const maybeSlowSubscriptionDependencies: Option.Option<
-    ResolvedSlowPhaseConfig<
-      SlowSubscriptionDependenciesContext<typeof ParentModel.Type>
-    >
+    ResolvedSlowPhaseConfig<SlowSubscriptionDependenciesContext<ParentModel>>
   > = Option.none()
 
   await Effect.runPromise(

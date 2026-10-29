@@ -1,0 +1,60 @@
+# Independent stabilization candidate review
+
+## Verdict
+
+PASS for exact commit `5835d220595e4f663cf0ffacb43b0263e801bea9` (tree `ed1fe5421d32c2aa3923bed10b04a5eb2e250700`). No actionable findings.
+
+Reviewed preparation parent: `8b4180822316edd736809ab65136c850be488281`.
+Published comparison: `f3be22cfeefed437164ad614d08b16d9000e0703`.
+
+## Scope and evidence
+
+- Read all 13 files in the exact preparation diff. The eight declaration-fixture repairs only reorder imports, consume the intentionally invalid removed-subpath import, or explain the wildcard lint suppression. Existing assertions and expected-error directives remain present. The removed-subpath rejection remains active. No production implementation changes are introduced by this commit.
+- Reviewed the complete post-publication production-change inventory and public API/export changes, carrying forward this agent's exact reviews of the map-method adoption, conditional initialization and lint-provenance fixes, and Workspace commit `8b4180822316edd736809ab65136c850be488281`. Core and lint production sources in the preparation candidate are identical to that reviewed parent.
+- Checked the additional relative-path API against its implementation, public exports, runtime cases, source/rejection/relocated-consumer fixtures and active routing guide. It preserves the existing full-URL parser contracts, requires an origin-relative input and returns the original path to the fallback. No navigation or network behavior is added.
+- Confirmed `Definition.makeMapBinding` and its detached helper retain the parent-specialized public type and lower to the existing native Binding constructor. The standalone package subpath is absent. Active remaining `foldkit/mapBinding` references are migration instructions or the explicit rejection fixture.
+- Confirmed the public initialization helper is exported from `foldkit/bindingInit`. Its direct Record/HashMap scope, passive capture, current-Model lookup, exact retention identity, registered graph requirement and preserved init Commands agree with active documentation and the prior reviewed implementation. The internal initialization rename remains consistent.
+- Confirmed the Workspace editor initialization uses confirmed Workspace data. The local optimistic projection remains separate from the confirmed store; scoped mutation results preserve unrelated fields. The prior regression fix and test remain present after the naming pass.
+- Read the new feedback and readiness ledgers and checked their scope against source and referenced local assessments. They distinguish a disposition or completed assessment from an implemented feature. They disclose unimplemented proposals, imperfect diagnostics, generic-Service boundaries, declaration scale and performance limits. They explicitly do not manufacture approval to defer reported defects.
+- The readiness ledger accurately lists the only post-publication public API migration as the removed standalone map-binding spelling; conditional initialization and relative-path parsing are optional additions. It does not reannounce already published checked assembly, record-only update or aggregate ManagedResource Layers as new migrations.
+- The four-group compiler ceiling revision is disclosed with its exact values. The five other ceilings remain unchanged. The report does not label this an unchanged-original-budget pass or reuse old timings as current-candidate measurements.
+- The installed-f3be upgrade section preserves existing architecture, points to the required map migration and optional helpers, and derives target versions from the eventual verified manifest. The corrected changeset agrees with the Definition-owned API. No Ready promotion, publication, deployment or main-merge result is claimed.
+- Exact preparation `git diff --check` passed. Repository status was clean during review. Older comparison objects were read through the supplied alternate object directory; no history repair was performed.
+
+## Limits and remaining release work
+
+This is an independent static exact-commit review, not a new execution of the full test, compiler, browser, package, dependency or security gates. No heavy checker, benchmark or server was started. The lead's current gate results remain separately owned evidence. I reviewed the feedback ledger's source-linked dispositions and qualifications; I did not independently repeat its live GitHub pagination or certify its counts as a later feedback snapshot.
+
+Packed-package/Coverchart acceptance, current performance comparisons, final security review and publication approval retain their separate gates. PASS means no actionable issue was found in this candidate's reviewed source/API/migration/preparation scope. It does not mean every proposal was implemented or the release is authorized.
+
+No repository edits, commits, pushes, external comments or publication actions were performed. This report is the only new file written by this review.
+
+## Final test-only addendum
+
+PASS for latest exact commit `dc228c7b641bee0ef4c7b0e911df0ae32b7b4c64` (tree `8ee14a4b264ce3806c00b62d11e0aedab19feac3`), parent `5835d220595e4f663cf0ffacb43b0263e801bea9`.
+
+The sole change is `examples/workspace/src/route.test.ts:238`: the round-trip assertion uses `Schema.decodeSync(ApplicationRoute)` on the value returned by `Schema.encodeSync(ApplicationRoute)`. That input already has the Schema's encoded type, so the precise decoder is appropriate. The decoded-value equality assertion and adjacent encoded-shape/invalid-value checks remain intact. No production source, API, dependency, fixture input or release behavior changed. Exact-delta whitespace checking passes; no tests or heavy jobs were rerun for this static review.
+
+The earlier review and its limits carry forward to this latest commit. Any Daybreak verdict pinned to `5835d220595e4f663cf0ffacb43b0263e801bea9` must retain that exact pin; this independent addendum covers the subsequent test-only delta and does not relabel the security verdict.
+
+## Declaration and input-boundary addendum
+
+PASS for latest exact commit `ae2eba84283939f5991a1b0c35c32ba351f9efdc` (tree `a119b9cd51263c033865220eee43bdf1be5c8da0`). Reviewed the complete six-file delta from `dc228c7b641bee0ef4c7b0e911df0ae32b7b4c64`, comprising `e3953f0679f5e54c64a992ba51f2caf6fa075e9d` and `ae2eba84283939f5991a1b0c35c32ba351f9efdc`. No actionable findings.
+
+### Workspace declaration boundary
+
+The separate full-root emission gate found TS7056 after the earlier static review. The failed `dc228c7` result remains preserved under `workspace-declarations/results.json`; the earlier PASS did not certify that gate.
+
+The fix restores the published exported `ApplicationBindings` exact tuple and private annotated `bindings` value. All nine registered values and their order are unchanged, including the two selected OutMessage-policy Bindings. Ordinary `block.ts`, checked assembly, parent/child contracts and framework type implementation remain unchanged. This is a purposeful serialization boundary, with a repeated type/value inventory, not evidence that arbitrary inferred inline graphs serialize without limits.
+
+I inspected `/private/tmp/foldkit-stabilization-performance-20261027/composition-proof/README.md`, `results.json` and `restored.patch`. The retained patch matches the committed tuple restoration. The isolated original inline graph and both named-framework-interface alternatives retain the same two TS7056 errors; the restored boundary emits 152 declarations totaling 12,272,552 bytes and passes strict relocated consumption with `skipLibCheck: false`. The declaration size remains a limitation. The final exact-head rerun is separately owned by the release lead.
+
+### Route and URL input boundaries
+
+The relative-path helper rejects literal backslashes and ASCII controls before WHATWG normalization, then checks the normalized sentinel origin, absent unexpected port and one leading pathname slash before invoking the existing parser. Fallback receives the original input. Encoded slash/backslash/tab data and ordinary dot-segment handling remain covered positive cases. The new guards do not add navigation, a request or a new API shape.
+
+`Url.fromString` now reads WHATWG `pathname`, `search` and `hash` directly. It removes only their first syntactic delimiter, preserving later question/hash characters for complete query validation and fragment serialization. Protocol/hostname/port handling, empty-path fallback and optional serialization are preserved. The intermediate record transformations that previously split and truncated data are removed; no casts or contract relaxation are introduced.
+
+The added route/URL regressions cover full query Schema validation, subsequent delimiters, raw-control/backslash and normalized-leading-slash rejection, original fallback input and encoded-data preservation. I inspected the supplied `security/boundary-fixes-summary.md`, emitted-results JSON and mutation-results JSON: 107 focused tests pass, 15 new regressions fail on the baseline, strict relocated public-entrypoint contracts pass, and three disposable emitted-JavaScript mutations fail before restoration passes. These are inspected execution records, not new runs by this reviewer.
+
+The patch changeset accurately describes the tightened input handling and preserved complete values. Exact-delta whitespace checking passes and repository status was clean. No source files, tests, benchmarks or servers were changed or run by this review. The final combined gate and any exact-pin Daybreak closeout remain separate; previous security verdicts must retain their original pins.

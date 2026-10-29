@@ -15,10 +15,12 @@ import { withOperationGraph } from './operationGraph.js'
 import * as Block from './public.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
+type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({
   UpdatedCount: { count: Schema.Number },
   CompletedInitialization: { count: Schema.Number },
 })
+type ChildMessage = typeof ChildMessage.Type
 const ChildDefinition = Block.makeDefinition('OptionalInitializationChild', {
   Model: ChildModel,
   Message: ChildMessage,
@@ -65,14 +67,17 @@ const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
 > = Block.assemble(prepareChild)
 
 const Entry = Schema.Struct({ id: Schema.String, child: ChildBlock.Model })
+type Entry = typeof Entry.Type
 const Model = Schema.Struct({
   maybeEntry: Schema.Option(Entry),
   label: Schema.String,
 })
+type Model = typeof Model.Type
 const Message = defineMessageUnion({
-  RequestedInitialize: { id: Schema.String, count: Schema.Number },
+  RequestedInit: { id: Schema.String, count: Schema.Number },
   RequestedSetCount: { id: Schema.String, count: Schema.Number },
 })
+type Message = typeof Message.Type
 const ParentDefinition = Block.makeDefinition('OptionalInitializationParent', {
   Model,
   Message,
@@ -91,14 +96,14 @@ const prepareParent = () =>
       model: { maybeEntry: Option.none(), label: 'initial' },
     })),
     update: Composition.makeUpdate({
-      RequestedInitialize: (model, { id, count }) =>
+      RequestedInit: (model, { id, count }) =>
         initAndSet(EntryBinding, model, { key: id, args: [count] }),
       RequestedSetCount: (model, { id, count }) =>
         EntryBinding.setCount(id, count)(model),
     }),
     operations: {
-      initialize: (id: string, count: number) =>
-        Tuple.make(Message.RequestedInitialize({ id, count })),
+      initEntry: (id: string, count: number) =>
+        Tuple.make(Message.RequestedInit({ id, count })),
       setCount: (id: string, count: number) =>
         Tuple.make(Message.RequestedSetCount({ id, count })),
     },
@@ -146,9 +151,9 @@ describe('initAndSet keyed Option storage', () => {
   })
 
   it('creates an absent instance and replaces present instances for the supplied key', () => {
-    const first = ParentBlock.operations.initialize(noneModel, 'first', 1)
-    const sameKey = ParentBlock.operations.initialize(first.model, 'first', 2)
-    const differentKey = ParentBlock.operations.initialize(
+    const first = ParentBlock.operations.initEntry(noneModel, 'first', 1)
+    const sameKey = ParentBlock.operations.initEntry(first.model, 'first', 2)
+    const differentKey = ParentBlock.operations.initEntry(
       sameKey.model,
       'second',
       3,
@@ -199,9 +204,11 @@ describe('initAndSet keyed Option storage', () => {
       child: ChildBlock.Model,
       label: Schema.String,
     })
+    type LabeledEntry = typeof LabeledEntry.Type
     const LabeledModel = Schema.Struct({
       maybeEntry: Schema.Option(LabeledEntry),
     })
+    type LabeledModel = typeof LabeledModel.Type
     const LabeledParent = Block.makeDefinition(
       'OptionalInitializationLabeledParent',
       { Model: LabeledModel, Message: Schema.Never },
@@ -223,14 +230,12 @@ describe('initAndSet keyed Option storage', () => {
   })
 
   it('reuses a same-key lifecycle and gives A after B a fresh generation', async () => {
-    const first = ParentBlock.operations.initialize(noneModel, 'A', 1).model
-    const sameKey = ParentBlock.operations.initialize(first, 'A', 2).model
-    const second = ParentBlock.operations.initialize(sameKey, 'B', 3).model
-    const replacement = ParentBlock.operations.initialize(second, 'A', 4).model
+    const first = ParentBlock.operations.initEntry(noneModel, 'A', 1).model
+    const sameKey = ParentBlock.operations.initEntry(first, 'A', 2).model
+    const second = ParentBlock.operations.initEntry(sameKey, 'B', 3).model
+    const replacement = ParentBlock.operations.initEntry(second, 'A', 4).model
     const maybeSlowSubscriptionDependencies: Option.Option<
-      ResolvedSlowPhaseConfig<
-        SlowSubscriptionDependenciesContext<typeof Model.Type>
-      >
+      ResolvedSlowPhaseConfig<SlowSubscriptionDependenciesContext<Model>>
     > = Option.none()
 
     await Effect.runPromise(

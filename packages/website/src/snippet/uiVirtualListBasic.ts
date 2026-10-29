@@ -13,8 +13,9 @@ const Activity = Schema.Struct({
   label: Schema.String,
   timeAgo: Schema.String,
 })
+type Activity = typeof Activity.Type
 
-const ActivityList = VirtualList.create<typeof Activity.Type>()
+const ActivityList = VirtualList.makeBlock<Activity>()
 
 // Add a field to your Model for the VirtualList Block. The list items
 // stay in your domain Model (your own `activities`, `messages`, `rows`,
@@ -23,12 +24,13 @@ const Model = Schema.Struct({
   activityList: ActivityList.Model,
   activities: Schema.Array(Activity),
 })
-
+type Model = typeof Model.Type
 // Declare only the parent-owned scrolling fact. The Composition derives
 // VirtualList delivery from the Binding.
 const Message = defineMessageUnion({
   ClickedScrollActivityListToMiddle: {},
 })
+type Message = typeof Message.Type
 
 const ActivityListExampleDefinition = Block.makeDefinition(
   'ActivityListExample',
@@ -43,6 +45,8 @@ const { makeNoopStep } = ActivityListExampleDefinition
 const foldActivityListOutMessage =
   ActivityListExampleDefinition.makeOutMessageFold(ActivityList, {
     ObservedContainerScroll: makeNoopStep,
+    ApproachedLoadedStart: makeNoopStep,
+    EndedContainerScroll: makeNoopStep,
   })
 
 const ActivityListBinding = ActivityListExampleDefinition.makeBinding(

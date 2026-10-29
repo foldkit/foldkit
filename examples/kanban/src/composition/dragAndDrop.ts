@@ -9,7 +9,7 @@ import { ApplicationDefinition, makeFieldsStep, makeStep } from '../definition'
 import { Column } from '../domain'
 
 const findCardTitle = (
-  columns: ReadonlyArray<typeof Column.Column.Type>,
+  columns: ReadonlyArray<Column.Column>,
   cardId: string,
 ): string =>
   pipe(
@@ -23,7 +23,7 @@ const findCardTitle = (
   )
 
 const findColumnName = (
-  columns: ReadonlyArray<typeof Column.Column.Type>,
+  columns: ReadonlyArray<Column.Column>,
   columnId: string,
 ): string =>
   pipe(

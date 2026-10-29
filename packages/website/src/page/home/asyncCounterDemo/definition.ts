@@ -17,6 +17,7 @@ export const AnimationPhase = Schema.Literals([
   'ResetCommandUpdate',
   'ResetModel',
 ])
+export type AnimationPhase = typeof AnimationPhase.Type
 
 export const Model = Schema.Struct({
   count: Schema.Number,
@@ -26,6 +27,7 @@ export const Model = Schema.Struct({
   generation: Schema.Number,
   messageLog: Schema.Array(Schema.String),
 })
+export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ClickedDemoIncrement: {},
@@ -33,6 +35,7 @@ export const Message = defineMessageUnion({
   ClickedDemoReset: {},
   CompletedDelayAdvanceAsyncCounterPhase: { generation: Schema.Number },
 })
+export type Message = typeof Message.Type
 
 export const AsyncCounterDemoDefinition = Block.makeDefinition(
   'AsyncCounterDemo',

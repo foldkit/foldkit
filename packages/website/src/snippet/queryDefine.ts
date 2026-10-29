@@ -1,4 +1,5 @@
 const PostList = Schema.Array(Post)
+type PostList = typeof PostList.Type
 
 const fetchPosts = Effect.gen(function* () {
   const response = yield* Effect.tryPromise({
@@ -24,6 +25,7 @@ const postsQuery = Query.define({
   name: 'Posts',
   data: PostList,
   error: Schema.String,
+  staleTime: '1 minute',
   handler: function* () {
     return () => fetchPosts
   },

@@ -117,11 +117,12 @@ const Message = defineMessageUnion({
   SucceededFetchWeather: { weather: Weather },
   FailedFetchWeather: { error: Schema.String },
 })
+type Message = typeof Message.Type
 ```
 
 ### Variables and Functions
 
-- Name selectors for derived values and pure transitions for the changes they describe. Dedicated Message handlers use `handle<MessageTag>`. Use `initialize...IfMissing` when a Step preserves an existing occurrence and initializes an absent identity. Reserve `sync` and `observe` for actual synchronization or observation; Step construction and application do not execute Commands.
+- Name selectors for derived values and pure transitions for the changes they describe. Dedicated Message handlers use `handle<MessageTag>`. Use `init` for initialization functions, helpers, Steps and filenames. Use `init...IfMissingStep` when a Step preserves an existing occurrence and initializes an absent identity. Reserve `sync` and `observe` for actual synchronization or observation; Step construction and application do not execute Commands.
 - Avoid opaque abbreviations: `signature` not `sig`, `message` not `msg`, `callbacks` not `cbs`
 - Conventional technical shorthand is allowed when it is the normal domain spelling, such as `attrs`, `props`, `args`, `dir`, `ctx`, `fn`, `DOM`, `URL`, and `VNode`; established API and DSL bindings such as `h` are also allowed
 - Use descriptive callback parameters: `(tickCount) => tickCount + 1` not `(t) => t + 1`; prefer `toMessage` over an unexplained `f`
@@ -209,7 +210,7 @@ const foldFormMessage = Message.match<Update.Step<Model, Message>>({
 })
 ```
 
-Author an exhaustive `Composition.makeUpdate({ Tag: (model, message) => result })` record. Each case receives the contextual Model and exact Message payload, and operations retain the selected case's Command requirements and OutMessage contract. Use `makeUpdate.withContext(context => cases)` for additional dispatch arguments; the factory runs for local dispatch, not routed child-only delivery. Generic Step values inside that context factory may need `model => step(model)` for inference. Ordinary handlers return results directly; do not wrap every case with `makeStep`. A Model-preserving no-op record value is `makeNoopStep()`, not the bare factory.
+Author an exhaustive `Composition.makeUpdate({ Tag: (model, message) => result })` record. Each case receives the contextual Model and exact Message payload, and operations retain the selected case's Command requirements and OutMessage contract. Use `makeUpdate.withContext(context => cases)` for additional dispatch arguments; the factory runs for local dispatch, not routed child-only delivery. Ordinary handlers return results directly; do not wrap every case with `makeStep`. A Model-preserving no-op record value is `makeNoopStep()`, not the bare factory.
 
 `Composition.makeUpdate` accepts only an exhaustive handler record; its callback overload is removed. Use `makeUpdate({})` when there are no local Messages. Each handler receives `(model, message)`; name extracted single-Message handlers `handle<MessageTag>` and pass compatible handlers or Steps directly. Give every named Model-first Step value a descriptive name ending in `Step`, such as `refreshStep`. Give a purposeful transition factory that returns a Step an operation name ending in `Step` too. Factory methods, imported authoring helpers, named OutMessage folds and matchers, direct inline handlers, public operation keys, Message tags, and applied update-like results keep their established names. If one handler mixes connected Binding recipes with local results, author its local branches through Definition-owned Steps. A raw `{ model }` beside a connected recipe is rejected; ordinary raw-only handlers can return results directly. Do not hide errors with casts or broad return annotations: a later wrapper cannot recover channels already erased upstream.
 
@@ -241,6 +242,7 @@ Array.take(items, count)              // not .slice(0, n)
 
 ```ts
 const Model = Schema.Struct({ items: Schema.Array(Schema.String) })
+type Model = typeof Model.Type
 
 Array.isArrayEmpty(model.items)
 // Argument of type 'readonly string[]' is not assignable to
@@ -421,7 +423,7 @@ expect(formSubmit.commands ?? []).toHaveLength(1)
 
 When the operation name collides with the function, use a trailing underscore such as `init_`. Do not destructure or rename `model`, `commands`, or `outMessage` from an ordinary update-like result that already contains those fields. Dot access does not prevent someone from ignoring `outMessage`; it keeps the operation and all of its returned fields visible together. Name a child fold's `write` parameter after the next child Model, such as `nextSettings`. Pass optional Commands directly to APIs that accept them, including `Command.mapMessages`. Use `result.commands ?? []` only when the next operation requires a concrete array for spreading, concatenating, execution, or an assertion.
 
-Name each concrete typed authoring value for its stage: `ChildDefinition = Block.makeDefinition('Child', ...)`, `ApplicationDefinition = Block.makeDefinition('Application', ...)`, `ChildComposition`, and `ApplicationComposition`. The runtime Block ID stays `Child` or `Application`. Export ordinary completed values as `ChildBlock` and `ApplicationBlock`; a generic factory returns an exact completed Block that its caller names locally.
+Name each concrete typed authoring value for its stage: `ChildDefinition = Block.makeDefinition('Child', ...)`, `ApplicationDefinition = Block.makeDefinition('Application', ...)`, `ChildComposition`, and `ApplicationComposition`. The runtime Block ID stays `Child` or `Application`. Export ordinary completed values as `ChildBlock` and `ApplicationBlock`; a generic UI factory uses `makeBlock` and returns an exact completed Block that its caller names locally. Declare it once at module scope and bind the returned value into the parent.
 
 Keep the Definition binding only when code uses a Definition authoring member. When `makeComposition` would be its only use, inline the top-level factory call into the Composition declaration. For a split feature, move the contract imports and factory chain to `composition.ts` and remove the empty `definition.ts`. This keeps Definition, Composition, and assembly as distinct passive stages while creating the owner identity once at module evaluation.
 
@@ -476,6 +478,8 @@ Use `FeatureDefinition.makeFieldsStep(producer)` for owning field transformation
 
 In a split feature, export the Step helpers used by the implementation from `definition.ts` and named-import them in implementation modules. In a colocated feature, destructure those helpers beside the Definition in the scope that uses them. Keep Definition-qualified calls when several Definitions in one module need visible ownership. Feature barrels keep authoring helpers private and export the completed Block.
 
+Put reusable parent Steps shared by update, composition, or init in the owning Block's `steps.ts`, or in responsibility modules such as `steps/search.ts` with an explicit `steps/index.ts` barrel. Ownership follows the Model being transformed. Keep Message routing in update and Binding registration and child OutMessage policy in composition; colocate Steps used by only one responsibility. Preserve the `Step` suffix and defer cyclic Binding access until the producer is applied.
+
 All three take callbacks, evaluated when the Step or handler is applied. An ordinary producer receives the current Model and, when authored as a Message-dependent handler, its exact Message. Use `.fromMessage(message => value)` for payload-only producers and `() => value` for fixed producers. Commands-only and OutMessage-only helpers preserve the incoming Model identity. `makeNoopStep()` stays unchanged; in an OutMessage fold, pass its factory point-free when appropriate.
 
 Pass compatible Steps directly as handler-record values. Extracted Message-dependent producers need a precise Message variant contract when no surrounding handler record supplies it. Map payloads explicitly when constructing a different Message or OutMessage; do not pass a constructor that could forward the incoming `_tag`. Keep cohesive mixed transitions as direct results, and use the owning `makeStep` helper for reusable mixed, connected, initialization, delegated, or composed operations. Local branches mixed with connected recipes still need canonical Definition-owned results.
@@ -493,24 +497,32 @@ fields and keyed Option wrappers containing only the key and child fields. A
 custom unkeyed accessor may reuse its existing `init.toParentFields` projection.
 Use `initAndAppend` for keyed arrays already declaring `init.instances` and
 `init.toItem`, or `initAndInsert` for direct-value Record/HashMap storage from
-`makeMapBinding`. Append and insert reject duplicate keys; an
-`initialize...IfMissing` Step owns the presence check. Keep explicit `Binding.init`
+`ParentDefinition.makeMapBinding`. Destructure and export the factory from a split
+feature's `definition.ts`, then import it from that owning module. Append and insert
+reject duplicate keys. Keep explicit `Binding.init`
 for additional wrapper metadata, sibling changes, parent Commands, array/map
 replacement or whole tagged variants. Do not add an unnecessary startup policy
 for a helper. Preserve recipes intact so child Commands and registration survive.
 
+Use `makeInitIfMissingStep(Binding, { key, args })` from `foldkit/bindingInit`
+when a direct-value Record/HashMap child should be retained if already present.
+It derives the field from the Binding and returns a connected Step, preserving
+the exact parent Model and emitting no Commands on reuse. An absent key retains
+the child's init Commands. Both paths require the registered Binding. Pass the
+Step directly to `Update.combineSteps` or a compatible handler; use the owning
+`makeStep` when selecting or combining Steps. Keep URL entity lookup in the app.
+
 ## Schema Constructors
 
-Use direct Schema type queries for routine application annotations. Inside the
-owning feature, write `typeof Model.Type`, `typeof Message.Type`, or
-`typeof OutMessage.Type`. A consumer of a completed child writes
-`typeof ChildBlock.Model.Type`, `typeof ChildBlock.Message.Type`, or
-`typeof ChildBlock.OutMessage.Type`. Parent Schema construction uses the checked completed
-`ChildBlock.Model`; ordinary type annotations keep these completed Block queries. This preserves ownership and avoids an implementation
-import back from the completed Block. Let owned callbacks infer
-their parameters. Keep aliases that intentionally publish library contracts or
-name useful generic, mapped, or conditional types, such as an owner-specific
-`Block.ViewBuilderFor` type.
+Declare each Schema's decoded type immediately below it, using the same name
+and no blank line: `const Foo = Schema.Struct(...)` followed by
+`type Foo = typeof Foo.Type`. Export both when they belong to the module's
+public surface. Prefer `Foo` in decoded-value annotations; use `typeof Foo`
+when an API needs the Schema type. Keep local Model, Message, and OutMessage
+aliases in the owning feature. A consumer can name a type from the completed
+child, such as `type ChildModel = typeof ChildBlock.Model.Type`, without
+importing its implementation. Parent Schema construction uses the checked
+completed `ChildBlock.Model`. Let owned callbacks infer their parameters.
 
 Construct Schema values through their actual constructors, never casts.
 Foldkit union variants are callable. When explicitly constructing a complete
@@ -553,7 +565,9 @@ const Timer = defineTaggedUnion({
   Idle: {},
   Paused: { remainingMs: Schema.Number },
 })
+type Timer = typeof Timer.Type
 const Message = defineMessageUnion({ ClickedSubmit: {} })
+type Message = typeof Message.Type
 
 // WRONG: empty object is redundant and non-idiomatic
 Timer.Work({})
@@ -591,10 +605,12 @@ const FetchState = defineTaggedUnion({
   Error: { error: Schema.String },
   Ok: { data: Data },
 })
+type FetchState = typeof FetchState.Type
 
 const Model = Schema.Struct({
   fetchState: FetchState,
 })
+type Model = typeof Model.Type
 ```
 
 `defineTaggedUnion` names each variant once. It returns a Schema and a namespace:
@@ -608,10 +624,12 @@ For **remote data**, don't write that union at all. `AsyncData` ships it, with t
 
 ```ts
 const DataAsyncData = AsyncData.Schema(Data, Schema.String)
+type DataAsyncData = typeof DataAsyncData.schema.Type
 
 const Model = Schema.Struct({
   dataAsyncData: DataAsyncData.schema,
 })
+type Model = typeof Model.Type
 ```
 
 `Idle | Loading | Refreshing | Failure | Stale | Success`. `Refreshing` holds the previous data during a reload so a refetch doesn't blank the screen; `Stale` holds previous data alongside the new error so a failed reload doesn't throw away what the user was reading. Hand-rolling the four-state version bakes both regressions in. Keep `defineTaggedUnion` for state that isn't remote data: form steps, editor modes, connection phases.
@@ -625,6 +643,7 @@ const ValidationState = defineTaggedUnion({
   Valid: {},
   Invalid: { error: Schema.String },
 })
+type ValidationState = typeof ValidationState.Type
 ```
 
 For multi-step flows:
@@ -635,6 +654,7 @@ const SignupStep = defineTaggedUnion({
   EnterPassword: { email: Schema.String, password: Schema.String },
   Confirming: { email: Schema.String },
 })
+type SignupStep = typeof SignupStep.Type
 ```
 
 Use `taggedStruct` when the variants cannot be declared together:

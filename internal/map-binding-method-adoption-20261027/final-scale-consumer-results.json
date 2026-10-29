@@ -1,0 +1,54 @@
+{
+  "baseline": {
+    "exitCode": 0,
+    "elapsedSeconds": 0.967,
+    "strict": true,
+    "skipLibCheck": false,
+    "sourcePathMappings": false,
+    "reachableFixtureDeclarations": 3,
+    "reachableDeclarationFiles": 454,
+    "nonConsumerSourceFiles": [],
+    "inputDeclarationsUnchanged": true,
+    "fixtureDeclarations": {
+      "workspace-composition-16.d.ts": {
+        "bytes": 1623081,
+        "sha256": "9a25b148551343c697e050e3557b5316985ac93b896a34e2893db585147ee86a"
+      },
+      "workspace-groups-16.d.ts": {
+        "bytes": 1502412,
+        "sha256": "ddae018cd7a04d333315626febbfa60d0a8eb11b5a2263f14a21a042c4152167"
+      },
+      "workspace-shared.d.ts": {
+        "bytes": 14969,
+        "sha256": "e07ba44c82be88a73467c2b32cc10e87f65f193cb6a6869407741358d3649599"
+      }
+    },
+    "packageDistDeclarationCount": 289
+  },
+  "verified": {
+    "exitCode": 0,
+    "elapsedSeconds": 1.012,
+    "strict": true,
+    "skipLibCheck": false,
+    "sourcePathMappings": false,
+    "reachableFixtureDeclarations": 3,
+    "reachableDeclarationFiles": 456,
+    "nonConsumerSourceFiles": [],
+    "inputDeclarationsUnchanged": true,
+    "fixtureDeclarations": {
+      "workspace-composition-16.d.ts": {
+        "bytes": 1623081,
+        "sha256": "9a25b148551343c697e050e3557b5316985ac93b896a34e2893db585147ee86a"
+      },
+      "workspace-groups-16.d.ts": {
+        "bytes": 1502412,
+        "sha256": "ddae018cd7a04d333315626febbfa60d0a8eb11b5a2263f14a21a042c4152167"
+      },
+      "workspace-shared.d.ts": {
+        "bytes": 14969,
+        "sha256": "e07ba44c82be88a73467c2b32cc10e87f65f193cb6a6869407741358d3649599"
+      }
+    },
+    "packageDistDeclarationCount": 289
+  }
+}

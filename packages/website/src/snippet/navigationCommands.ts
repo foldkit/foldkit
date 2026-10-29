@@ -10,6 +10,7 @@ const Message = defineMessageUnion({
   CompletedLoadExternal: {},
   CompletedOpenUrl: {},
 })
+type Message = typeof Message.Type
 
 const NavigateInternal = Command.define('NavigateInternal', {
   args: { url: Schema.String },

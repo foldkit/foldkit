@@ -5,16 +5,18 @@ import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 const SearchResult = Schema.Struct({ id: Schema.String, title: Schema.String })
+type SearchResult = typeof SearchResult.Type
 
 const SearchResultsData = AsyncData.Schema(
   Schema.Array(SearchResult),
   Schema.String,
 )
-
+type SearchResultsData = typeof SearchResultsData.schema.Type
 const Model = Schema.Struct({
   queryInput: Schema.String,
   searchResults: SearchResultsData.schema,
 })
+type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
   UpdatedQuery: { query: Schema.String },
@@ -23,6 +25,7 @@ const Message = defineMessageUnion({
     result: Schema.Result(Schema.Array(SearchResult), Schema.String),
   },
 })
+type Message = typeof Message.Type
 
 const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,

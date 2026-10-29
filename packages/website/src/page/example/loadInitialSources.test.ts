@@ -8,7 +8,7 @@ import { LoadExampleSources, Message, init, update } from './example'
 import { SourceFileTabsBlock } from './fileTabs'
 import type { ExampleSources } from './sources'
 
-const sources: typeof ExampleSources.Type = {
+const sources: ExampleSources = {
   files: [
     {
       path: 'src/application.ts',
@@ -87,7 +87,7 @@ describe('example detail initial sources', () => {
   })
 
   test('initializes an empty supplied source list without a selected file', () => {
-    const emptySources: typeof ExampleSources.Type = { files: [] }
+    const emptySources: ExampleSources = { files: [] }
     const exampleInit = init(Option.some('counter'), Option.some(emptySources))
 
     expect(exampleInit.model.currentSources).toEqual({

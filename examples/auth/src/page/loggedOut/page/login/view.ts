@@ -23,7 +23,7 @@ const fieldView = (
   id: string,
   labelText: string,
   field: Field<string>,
-  onUpdate: (value: string) => typeof Message.Type,
+  onUpdate: (value: string) => Message,
   type: 'text' | 'email' | 'password',
   placeholder: string,
   h: LoginViewBuilder,

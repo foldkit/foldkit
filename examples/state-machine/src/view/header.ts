@@ -131,7 +131,7 @@ export const progressIndicatorClassName = (
 }
 
 export const progressView = (
-  state: typeof CheckoutState.Type,
+  state: CheckoutState,
   h: ApplicationViewBuilder,
 ): Html => {
   const progressIndex = currentProgressIndex(state)

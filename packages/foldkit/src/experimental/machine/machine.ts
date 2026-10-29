@@ -36,7 +36,10 @@ export type MachineReturn<State, Message, R = never> = Update.Return<
 >
 
 declare const NoMachineContextTypeId: unique symbol
-type NoMachineContext = typeof NoMachineContextTypeId
+/** @internal Distinguishes omitted Context from a declared void Context. */
+export interface NoMachineContext {
+  readonly [NoMachineContextTypeId]: true
+}
 
 type IsAny<Value> = 0 extends 1 & Value ? true : false
 type IsNever<Value> = [Value] extends [never] ? true : false
@@ -71,7 +74,7 @@ type MachineContextArguments<Context> =
 
 /**
  * The single argument an Edge handler receives: the source state, the
- * triggering Message, the guard value produced by the Edge's {@link when}
+ * triggering Message, the guard value produced by the Edge's `Definition.when`
  * guard (`void` on unguarded and boolean-guarded Edges), and the read-only
  * context declared for the Machine when one exists. Destructure the fields you
  * need.
@@ -101,11 +104,11 @@ export type EdgeInput<
  * variant and any transition-time Commands as an `Update.Return` record.
  *
  * The correlation between `target` and `handler`'s Model variant is enforced
- * by {@link to}'s signature, not by this type. Keeping this type free of the
+ * by `Definition.to`'s signature, not by this type. Keeping this type free of the
  * target tag is what lets TypeScript infer the source state and trigger
  * Message from the transition-map position.
  *
- * Construct with {@link to}.
+ * Construct with `Definition.to`.
  */
 export type Edge<
   State extends Tagged,
@@ -124,7 +127,7 @@ export type Edge<
   readonly '~foldkit/EdgeGuardValue'?: GuardValue
 }>
 
-/** A guarded Edge that fires only when its guard passes. Construct with {@link when}. */
+/** A guarded Edge that fires only when its guard passes. Construct with `Definition.when`. */
 export type When<
   State extends Tagged,
   Message extends Tagged,
@@ -151,7 +154,7 @@ export type When<
   >
 }>
 
-/** The unconditional fallback Edge at the end of a guard list. Construct with {@link otherwise}. */
+/** The unconditional fallback Edge at the end of a guard list. Construct with `Definition.otherwise`. */
 export type Otherwise<
   State extends Tagged,
   Message extends Tagged,
@@ -164,7 +167,7 @@ export type Otherwise<
   edge: Edge<State, Message, SourceState, TriggerMessage, void, R, Context>
 }>
 
-/** An explicit no-transition fallback at the end of a guard list. Construct with {@link ignore}. */
+/** An explicit no-transition fallback at the end of a guard list. Construct with `Definition.ignore`. */
 export type Ignore = Readonly<{ _tag: 'Ignore' }>
 
 /** One entry in an ordered guard list: a {@link When}, the {@link Otherwise}
@@ -184,7 +187,7 @@ export type GuardedEdge<
 type OptionValue<MaybeValue> =
   MaybeValue extends Option.Option<infer Value> ? Value : never
 
-type GuardValueOf<GuardResult> = [GuardResult] extends [boolean]
+type GuardValueOf<GuardResult> = GuardResult extends boolean
   ? void
   : OptionValue<GuardResult>
 
@@ -232,7 +235,8 @@ export type TransitionTable<
 const ForStatesTypeId: unique symbol = Symbol('foldkit/Machine/ForStates')
 declare const ForStatesVarianceTypeId: unique symbol
 
-type ForStatesFragment<
+/** @internal Checked shared transition defaults. */
+export type ForStatesFragment<
   State extends Tagged,
   Message extends Tagged,
   R,
@@ -244,14 +248,19 @@ type ForStatesFragment<
   sourceTags: SourceTags
   on: unknown
   readonly [ForStatesVarianceTypeId]?: Readonly<{
+    inputs: (
+      state: State,
+      message: Message,
+      context: HasMachineContext<Context> extends true ? Context : unknown,
+    ) => void
     state: State
     message: Message
     requirements: R
-    context: Context
   }>
 }>
 
-type SharedTransitionMap<
+/** @internal Contextual transition map for selected source variants. */
+export type SharedTransitionMap<
   State extends Tagged,
   Message extends Tagged,
   SourceState extends State,
@@ -347,7 +356,7 @@ type ForStatesBuilder<SourceTags extends Array.NonEmptyReadonlyArray<string>> =
  * ]
  * ```
  *
- * @experimental Ships from `foldkit/experimental/machine`; expect breaking changes while the API settles.
+ * @internal Shared implementation for Definition authoring and compiler regressions.
  */
 export const forStates: <
   const SourceTags extends Array.NonEmptyReadonlyArray<string>,
@@ -362,9 +371,9 @@ export const forStates: <
   }),
 })
 
-/** The transition table entry for one source state. Use this alias when
- * extracting an entry from a Machine's `states` record to preserve the source
- * state and triggering Message narrowing inside its Edges.
+/** The transition table entry for one source state. Prefer
+ * `Definition.makeTransitions` for inferred extracted authoring. Retain this
+ * alias when a named domain contract needs an explicitly typed state entry.
  *
  * @experimental Ships from `foldkit/experimental/machine`; expect breaking changes while the API settles.
  */
@@ -430,7 +439,7 @@ const makeEdge = <
  * transition map: the source and trigger types flow in from that position
  * contextually.
  *
- * @experimental Ships from `foldkit/experimental/machine`; expect breaking changes while the API settles.
+ * @internal Shared implementation for Definition authoring and compiler regressions.
  */
 export const to = <
   State extends Tagged,
@@ -470,7 +479,7 @@ export const to = <
  * Message, and context parameters are `NoInfer` so they resolve from the guard
  * list's transition-map position alone.
  *
- * @experimental Ships from `foldkit/experimental/machine`; expect breaking changes while the API settles.
+ * @internal Shared implementation for Definition authoring and compiler regressions.
  */
 export const when = <
   State extends Tagged,
@@ -537,7 +546,7 @@ export const when = <
  * return Commands whose Effects need services, threading their requirements
  * into the Machine's `R` the same way {@link to} and {@link when} do.
  *
- * @experimental Ships from `foldkit/experimental/machine`; expect breaking changes while the API settles.
+ * @internal Shared implementation for Definition authoring and compiler regressions.
  */
 export const otherwise = <
   State extends Tagged,
@@ -559,7 +568,7 @@ export const otherwise = <
  * `Machine.step` reports `ExplicitlyIgnored`. Edges listed after it are
  * reported by `Machine.deadTransitions` as `ShadowedByIgnore`.
  *
- * @experimental Ships from `foldkit/experimental/machine`; expect breaking changes while the API settles.
+ * @internal Shared implementation for Definition authoring and compiler regressions.
  */
 export const ignore = (): Ignore => ({ _tag: 'Ignore' })
 
@@ -586,9 +595,9 @@ export type Transitioned<
  * alphabet, but no Edge for it exists from the current state, whether the
  * state is absent from the table or its `on` record lacks the tag.
  * `GuardsFellThrough` means an Edge entry exists for this state and Message,
- * but every guard declined and no {@link otherwise} or {@link ignore} fallback
+ * but every guard declined and no `Definition.otherwise` or `Definition.ignore` fallback
  * was present.
- * `ExplicitlyIgnored` means evaluation reached an {@link ignore} fallback.
+ * `ExplicitlyIgnored` means evaluation reached a `Definition.ignore` fallback.
  */
 export type IgnoredReason =
   | 'OutOfAlphabet'
@@ -643,7 +652,7 @@ export type EdgeSummary<
  * `UnreachableSource` means no path from the walk roots reaches the Edge's
  * source state, and `ShadowedByOtherwise` means an earlier `otherwise` in the
  * Edge's guard list always fires first. `ShadowedByIgnore` means an earlier
- * {@link ignore} stops evaluation first.
+ * `Definition.ignore` stops evaluation first.
  */
 export type DeadTransitionReason =
   | 'UnreachableSource'
@@ -693,14 +702,14 @@ export type Machine<
   ) => TransitionResult<State, Message, R>
   /**
    * The state tags a walk of the statically selectable declared Edges visits
-   * starting from `tag`. Edges listed after an `otherwise` or {@link ignore}
+   * starting from `tag`. Edges listed after an `otherwise` or `Definition.ignore`
    * are excluded because the runtime can never select them.
    */
   reachableFrom: (tag: TagOf<State>) => ReadonlySet<TagOf<State>>
   /**
    * The state tags a walk of the statically selectable declared Edges never
    * visits, starting from the initial state's tag plus `extraRoots`. Edges
-   * listed after an `otherwise` or {@link ignore} are excluded because the
+   * listed after an `otherwise` or `Definition.ignore` are excluded because the
    * runtime can never select them. The walk sees only declared Edges, so state
    * changes made outside `transition` and `step` are invisible to it, and it
    * always starts at `initial`. Entry points other than `initial`, such as
@@ -993,7 +1002,7 @@ const addSharedTransition = <State extends Tagged, Message extends Tagged, R>(
 
   if (HashSet.has(sharedMessageTags, messageTag)) {
     throw new Error(
-      `Machine.define: shared transitions overlap for state "${sourceTag}" and Message "${messageTag}"`,
+      `Machine.makeMachine: shared transitions overlap for state "${sourceTag}" and Message "${messageTag}"`,
     )
   }
 
@@ -1185,7 +1194,7 @@ const flattenUnionMembers = (
  * machine.transition(model.dialog, message, model.uploadQueues)
  * ```
  *
- * @experimental Ships from `foldkit/experimental/machine`; expect breaking changes while the API settles.
+ * @internal Shared implementation for Definition authoring and compiler regressions.
  */
 export function define<
   State extends Tagged,
@@ -1244,7 +1253,7 @@ function defineImplementation<
           extractMemberTag(member),
           () =>
             new Error(
-              'Machine.define: every member of the state union Schema must be a Struct with a literal _tag field',
+              'Machine.makeMachine: every member of the state union Schema must be a Struct with a literal _tag field',
             ),
         ),
       ),

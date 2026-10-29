@@ -8,6 +8,7 @@ import { Effect, Option, Schema } from 'effect'
 const PreservedScrollPosition = Schema.fromJsonString(
   Schema.Struct({ x: Schema.Number, y: Schema.Number }),
 )
+type PreservedScrollPosition = typeof PreservedScrollPosition.Type
 const encodePreservedScrollPosition = Schema.encodeUnknownSync(
   PreservedScrollPosition,
 )

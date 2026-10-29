@@ -4,6 +4,7 @@ import { Block, Command } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Model = Schema.Struct({ count: Schema.Number })
+type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ClickedResetAfterDelay: {},
@@ -13,6 +14,7 @@ export const Message = defineMessageUnion({
     outcome: Command.Interruptible.Outcome,
   },
 })
+export type Message = typeof Message.Type
 
 const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,

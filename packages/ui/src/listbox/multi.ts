@@ -23,7 +23,6 @@ import {
 export const Model = Schema.Struct({
   ...BaseModel.fields,
 })
-
 export type Model = typeof Model.Type
 
 // INIT
@@ -124,7 +123,10 @@ export interface Completed<
   BlockParts<Item, Value>['implementation']
 > {}
 
-const makeBlock = <Item, Value extends string>(): Completed<Item, Value> => {
+const assembleBlock = <Item, Value extends string>(): Completed<
+  Item,
+  Value
+> => {
   const { composition, implementation } = makeBlockParts<Item, Value>()
 
   const prepare = () => composition.prepareBlock(implementation)
@@ -139,13 +141,13 @@ const makeBlock = <Item, Value extends string>(): Completed<Item, Value> => {
 /** Creates a complete multi-select Listbox Block refined to one Item and
  * Value pair. `Value` defaults to `Item` for string items and to `string` for
  * object items. */
-export const create = <
+export const makeBlock = <
   Item = string,
   Value extends string = Item extends string ? Item : string,
->(): Completed<Item, Value> => makeBlock<Item, Value>()
+>(): Completed<Item, Value> => assembleBlock<Item, Value>()
 
 /** Complete default multi-select Listbox Block definition. */
-export const block = makeBlock<string, string>()
+export const block = assembleBlock<string, string>()
 
 /** Creates the initial multi-select Listbox Model and Commands. Defaults to closed with no active item. */
 export const init = block.init

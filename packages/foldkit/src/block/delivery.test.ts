@@ -15,24 +15,29 @@ import * as Block from './public.js'
 const ChildMessage = defineMessageUnion({
   ChangedCount: { amount: Schema.Number },
 })
+type ChildMessage = typeof ChildMessage.Type
 
 const Message = defineMessageUnion({
   GotFirstMessage: { message: ChildMessage },
   GotSecondMessage: { message: ChildMessage },
   ClickedReset: {},
 })
+type Message = typeof Message.Type
 
 const changedCount = ChildMessage.ChangedCount({ amount: 2 })
 const ParentEnvelope = Schema.Struct({ message: ChildMessage })
+type ParentEnvelope = typeof ParentEnvelope.Type
 const childMessageOf = (message: Readonly<{ _tag: string }>) =>
   Schema.decodeUnknownSync(ParentEnvelope)(message).message
 
 describe('Composition update delivery', () => {
   it('rejects an omitted route for a generated child update with required context', () => {
     const ContextualChildModel = Schema.Struct({ count: Schema.Number })
+    type ContextualChildModel = typeof ContextualChildModel.Type
     const ContextualChildMessage = defineMessageUnion({
       ChangedCount: { amount: Schema.Number },
     })
+    type ContextualChildMessage = typeof ContextualChildMessage.Type
 
     const contextualComposition = makeDefinition('DeliveryContextualChild', {
       Model: ContextualChildModel,
@@ -62,6 +67,7 @@ describe('Composition update delivery', () => {
     const ContextualParentModel = Schema.Struct({
       child: ContextualChildModel,
     })
+    type ContextualParentModel = typeof ContextualParentModel.Type
     const ContextualParent = makeDefinition('DeliveryContextualParent', {
       Model: ContextualParentModel,
       Message: Schema.Never,
@@ -110,6 +116,7 @@ describe('Composition update delivery', () => {
 
   it('routes native keyed tuples through the real fold and ignores stale keys', () => {
     const CounterModel = Schema.Struct({ count: Schema.Number })
+    type CounterModel = typeof CounterModel.Type
 
     const CounterComposition = makeDefinition('DeliveryCounter', {
       Model: CounterModel,
@@ -142,11 +149,13 @@ describe('Composition update delivery', () => {
       id: Schema.String,
       counter: CounterModel,
     })
+    type CounterInstance = typeof CounterInstance.Type
     const ParentModel = Schema.Struct({
       counters: Schema.Array(CounterInstance),
       activeId: Schema.String,
       multiplier: Schema.Number,
     })
+    type ParentModel = typeof ParentModel.Type
     const Parent = makeDefinition('DeliveryCounterParent', {
       Model: ParentModel,
       Message: Schema.Never,

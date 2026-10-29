@@ -10,10 +10,14 @@ const Model = Schema.Struct({
   draft: Schema.String,
   counter: CounterBlock.Model,
 })
+type Model = typeof Model.Type
+
 const Message = defineMessageUnion({
   ClickedReset: {},
   ClickedRestoreBaseline: {},
 })
+type Message = typeof Message.Type
+
 const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,

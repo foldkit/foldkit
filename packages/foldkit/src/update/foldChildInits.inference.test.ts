@@ -46,6 +46,7 @@ const WorkspaceOutMessage = defineMessageUnion({
   RestoredEditor: { documentId: Schema.String },
   RestoredWorkspace: {},
 })
+type WorkspaceOutMessage = typeof WorkspaceOutMessage.Type
 
 const SearchRequirements = Schema.Struct({ searchService: Schema.String })
 type SearchRequirements = typeof SearchRequirements.Type

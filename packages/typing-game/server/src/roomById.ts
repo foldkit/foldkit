@@ -2,17 +2,17 @@ import { Effect, HashMap, Struct, SubscriptionRef } from 'effect'
 
 import * as Shared from '@typing-game/shared'
 
-export const getById = (roomById: typeof Shared.RoomById.Type, id: string) =>
+export const getById = (roomById: Shared.RoomById, id: string) =>
   Effect.fromOption(HashMap.get(roomById, id)).pipe(
     Effect.mapError(() => new Shared.RoomNotFoundError({ roomId: id })),
   )
 
 export const updateRoom =
   (
-    roomByIdRef: SubscriptionRef.SubscriptionRef<typeof Shared.RoomById.Type>,
+    roomByIdRef: SubscriptionRef.SubscriptionRef<Shared.RoomById>,
     roomId: string,
   ) =>
-  (f: (room: typeof Shared.Room.Type) => typeof Shared.Room.Type) =>
+  (f: (room: Shared.Room) => Shared.Room) =>
     SubscriptionRef.updateEffect(roomByIdRef, roomById =>
       Effect.gen(function* () {
         const room = yield* getById(roomById, roomId)
@@ -23,8 +23,8 @@ export const updateRoom =
 
 export const updateRoomStatus =
   (
-    roomByIdRef: SubscriptionRef.SubscriptionRef<typeof Shared.RoomById.Type>,
+    roomByIdRef: SubscriptionRef.SubscriptionRef<Shared.RoomById>,
     roomId: string,
   ) =>
-  (status: typeof Shared.GameStatus.Type) =>
+  (status: Shared.GameStatus) =>
     updateRoom(roomByIdRef, roomId)(Struct.evolve({ status: () => status }))

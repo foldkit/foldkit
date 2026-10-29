@@ -2,8 +2,9 @@ import { Block } from 'foldkit'
 
 import { CreateIssue } from './command'
 import { CreateIssueComposition } from './composition'
-import { Message, type Model } from './definition'
 import { init } from './init'
+import { Message } from './message'
+import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 

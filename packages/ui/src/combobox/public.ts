@@ -1,4 +1,4 @@
-export { create } from './single.js'
+export { makeBlock } from './single.js'
 export { inputId, groupContiguous, ActivationTrigger } from './shared.js'
 export type { Completed, InitConfig, ViewInputs } from './single.js'
 export type {

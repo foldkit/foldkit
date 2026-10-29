@@ -12,10 +12,12 @@ const Model = Schema.Struct({
   hoverMenu: HoverIntent.HoverIntentBlock.Model,
   // ...your other fields
 })
+type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
   ClickedHoverMenuItem: {},
 })
+type Message = typeof Message.Type
 
 const HoverMenuDefinition = Block.makeDefinition('HoverMenu', {
   Model,

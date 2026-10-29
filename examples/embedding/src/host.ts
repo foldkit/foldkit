@@ -63,7 +63,7 @@ export const startHost = (): void => {
   const hostCountDisplay = getElement('host-count')
   const widgetSlot = getElement('widget-slot')
 
-  const flags: typeof Flags.Type = { initialCount: INITIAL_COUNT }
+  const flags: Flags = { initialCount: INITIAL_COUNT }
   const element = Program.makeElement({
     block: ApplicationBlock,
     Flags,

@@ -10,3 +10,4 @@ export const Model = Schema.Struct({
   searchState: SearchState,
   activeResultIndex: Schema.Number,
 })
+export type Model = typeof Model.Type

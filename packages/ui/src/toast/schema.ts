@@ -37,6 +37,7 @@ const SwipeConfig = Schema.Struct({
   direction: SwipeDirection,
   threshold: Schema.Number,
 })
+type SwipeConfig = typeof SwipeConfig.Type
 
 /** Per-entry swipe gesture state. `Dragging` retains the initiating
  *  `pointerId`, so move, release, and cancel Messages update only the entry
@@ -138,6 +139,7 @@ export const Message = defineMessageUnion({
     version: Schema.Number,
   },
 })
+export type Message = typeof Message.Type
 
 export type Dismissed = typeof Message.Dismissed.Type
 export type RequestedDismiss = typeof Message.RequestedDismiss.Type

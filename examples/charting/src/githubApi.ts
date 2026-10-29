@@ -34,35 +34,43 @@ export const GitHubRepositoryResponse = Schema.Struct({
   pushed_at: Schema.String,
   default_branch: Schema.String,
 })
+export type GitHubRepositoryResponse = typeof GitHubRepositoryResponse.Type
 
 export const GitHubContributorResponse = Schema.Struct({
   login: Schema.String,
   contributions: Schema.Number,
   avatar_url: Schema.OptionFromOptional(Schema.String),
 })
+export type GitHubContributorResponse = typeof GitHubContributorResponse.Type
 
 export const GitHubIssueResponse = Schema.Struct({
   pull_request: Schema.OptionFromOptional(Schema.Unknown),
 })
+export type GitHubIssueResponse = typeof GitHubIssueResponse.Type
 
 export const GitHubPullRequestResponse = Schema.Struct({
   id: Schema.Number,
 })
+export type GitHubPullRequestResponse = typeof GitHubPullRequestResponse.Type
 
 export const GitHubReleaseResponse = Schema.Struct({
   published_at: Schema.OptionFromOptional(Schema.String),
 })
+export type GitHubReleaseResponse = typeof GitHubReleaseResponse.Type
 
 export const GitHubStarHistoryResponse = Schema.Struct({
   week: Schema.Number,
   total: Schema.Number,
   days: Schema.Array(Schema.Number),
 })
+export type GitHubStarHistoryResponse = typeof GitHubStarHistoryResponse.Type
 
 export const GitHubCommitActivityResponse = Schema.Struct({
   week: Schema.Number,
   total: Schema.Number,
 })
+export type GitHubCommitActivityResponse =
+  typeof GitHubCommitActivityResponse.Type
 
 // SERVICE
 
@@ -72,30 +80,24 @@ export type GitHubStatResult<A> = Readonly<{
 }>
 
 type GitHubApiShape = Readonly<{
-  fetchRepository: Effect.Effect<typeof GitHubRepositoryResponse.Type, Error>
+  fetchRepository: Effect.Effect<GitHubRepositoryResponse, Error>
   fetchContributors: Effect.Effect<
-    ReadonlyArray<typeof GitHubContributorResponse.Type>,
+    ReadonlyArray<GitHubContributorResponse>,
     Error
   >
-  fetchIssues: Effect.Effect<
-    ReadonlyArray<typeof GitHubIssueResponse.Type>,
-    Error
-  >
+  fetchIssues: Effect.Effect<ReadonlyArray<GitHubIssueResponse>, Error>
   fetchPullRequests: Effect.Effect<
-    ReadonlyArray<typeof GitHubPullRequestResponse.Type>,
+    ReadonlyArray<GitHubPullRequestResponse>,
     Error
   >
   fetchReleases: (
     yearCutoff: DateTime.Utc,
-  ) => Effect.Effect<ReadonlyArray<typeof GitHubReleaseResponse.Type>, Error>
+  ) => Effect.Effect<ReadonlyArray<GitHubReleaseResponse>, Error>
   fetchStarHistory: (
     yearCutoff: DateTime.Utc,
-  ) => Effect.Effect<
-    ReadonlyArray<typeof GitHubStarHistoryResponse.Type>,
-    Error
-  >
+  ) => Effect.Effect<ReadonlyArray<GitHubStarHistoryResponse>, Error>
   fetchCommitActivity: Effect.Effect<
-    GitHubStatResult<ReadonlyArray<typeof GitHubCommitActivityResponse.Type>>,
+    GitHubStatResult<ReadonlyArray<GitHubCommitActivityResponse>>,
     never
   >
 }>
@@ -212,11 +214,8 @@ export const GitHubApiLayer: Layer.Layer<
 
         const fetchFrom = (
           page: number,
-          accumulated: ReadonlyArray<typeof GitHubReleaseResponse.Type>,
-        ): Effect.Effect<
-          ReadonlyArray<typeof GitHubReleaseResponse.Type>,
-          Error
-        > =>
+          accumulated: ReadonlyArray<GitHubReleaseResponse>,
+        ): Effect.Effect<ReadonlyArray<GitHubReleaseResponse>, Error> =>
           fetchPage(page).pipe(
             Effect.flatMap(releases =>
               Array.match(releases, {
@@ -254,11 +253,8 @@ export const GitHubApiLayer: Layer.Layer<
       fetchStarHistory: (yearCutoff: DateTime.Utc) => {
         const fetchFrom = (
           page: number,
-          accumulated: ReadonlyArray<typeof GitHubStarHistoryResponse.Type>,
-        ): Effect.Effect<
-          ReadonlyArray<typeof GitHubStarHistoryResponse.Type>,
-          Error
-        > =>
+          accumulated: ReadonlyArray<GitHubStarHistoryResponse>,
+        ): Effect.Effect<ReadonlyArray<GitHubStarHistoryResponse>, Error> =>
           fetch_(Schema.Array(GitHubStarHistoryResponse))(
             makeUrl(`${GITHUB_REPOSITORY_API}/stargazers/history`, {
               per_page: `${STAR_HISTORY_PAGE_SIZE}`,

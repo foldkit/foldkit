@@ -33,7 +33,6 @@ export const Model = Schema.Struct({
   pendingShowVersion: Schema.Number,
   maybeLastPointerType: Schema.Option(Schema.String),
 })
-
 export type Model = typeof Model.Type
 
 const TooltipDefinition = Block.makeDefinition('Tooltip', {

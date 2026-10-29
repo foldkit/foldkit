@@ -16,23 +16,27 @@ import {
   SortListboxBlock,
   StatusFilterListboxBlock,
 } from '../listbox'
+import { IssueListBlock } from './block'
 import {
   GroupListboxBinding,
   SortListboxBinding,
   StatusListboxBinding,
 } from './composition'
-import { IssueListBlock } from './issueList'
-import { Message, OutMessage } from './message'
+import { Message } from './message'
+import { OutMessage } from './outMessage'
 import { update } from './update'
 
-const statusListboxMessage = (
-  message: typeof StatusFilterListboxBlock.Message.Type,
-) => toParentMessage(StatusListboxBinding, message)
+type StatusFilterListboxMessage = typeof StatusFilterListboxBlock.Message.Type
+type SortListboxMessage = typeof SortListboxBlock.Message.Type
+type GroupListboxMessage = typeof GroupListboxBlock.Message.Type
 
-const sortListboxMessage = (message: typeof SortListboxBlock.Message.Type) =>
+const statusListboxMessage = (message: StatusFilterListboxMessage) =>
+  toParentMessage(StatusListboxBinding, message)
+
+const sortListboxMessage = (message: SortListboxMessage) =>
   toParentMessage(SortListboxBinding, message)
 
-const groupListboxMessage = (message: typeof GroupListboxBlock.Message.Type) =>
+const groupListboxMessage = (message: GroupListboxMessage) =>
   toParentMessage(GroupListboxBinding, message)
 
 describe('IssueListBlock', () => {

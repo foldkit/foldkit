@@ -12,7 +12,7 @@ import {
   makeStep,
 } from './blockDefinition'
 
-const changeThemeStep = makeStep((model, theme: typeof Theme.Type) => ({
+const changeThemeStep = makeStep((model, theme: Theme) => ({
   model: modifyFields(model, { theme: () => theme }),
   commands: [SaveTheme({ theme })],
   outMessage: OutMessage.ChangedTheme({ theme }),

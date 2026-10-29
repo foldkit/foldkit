@@ -16,6 +16,7 @@ const EngineState = defineTaggedUnion({
   Ready: {},
   Failed: {},
 })
+type EngineState = typeof EngineState.Type
 
 const Model = Schema.Struct({
   engine: EngineState,

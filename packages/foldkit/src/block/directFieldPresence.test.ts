@@ -8,10 +8,12 @@ import { makeDefinition } from './define.js'
 import * as Block from './public.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
+type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({
   RequestedSetCount: { count: Schema.Number },
   UpdatedCount: { count: Schema.Number },
 })
+type ChildMessage = typeof ChildMessage.Type
 const Child = makeDefinition('DirectPresenceChild', {
   Model: ChildModel,
   Message: ChildMessage,
@@ -48,6 +50,7 @@ const Message = defineMessageUnion({
   RequestedSetOptionalCount: { count: Schema.Number },
   RequestedSetGatedCount: { count: Schema.Number },
 })
+type Message = typeof Message.Type
 const Parent = makeDefinition('DirectPresenceParent', { Model, Message })
 const OptionalBinding = Parent.makeBinding(childBlock, {
   field: 'maybeChild',
@@ -137,9 +140,11 @@ it('makes direct stored children absent through presentWhen without deleting the
 
 it('distinguishes Option child Models from optional storage wrappers', () => {
   const OptionModel = Schema.Option(Schema.String)
+  type OptionModel = typeof OptionModel.Type
   const OptionMessage = defineMessageUnion({
     UpdatedText: { text: Schema.String },
   })
+  type OptionMessage = typeof OptionMessage.Type
 
   const OptionChildComposition = makeDefinition('DirectPresenceOptionModel', {
     Model: OptionModel,
@@ -164,6 +169,7 @@ it('distinguishes Option child Models from optional storage wrappers', () => {
     required: Schema.Option(Schema.String),
     maybe: Schema.Option(OptionModel),
   })
+  type Model = typeof Model.Type
   const Parent = makeDefinition('DirectPresenceOptionParent', {
     Model,
     Message: Schema.Never,
@@ -239,6 +245,7 @@ it('preserves absence through a suspended Option storage schema', () => {
   const SuspendedModel = Schema.Struct({
     maybeChild: Schema.suspend(() => Schema.Option(ChildModel)),
   })
+  type SuspendedModel = typeof SuspendedModel.Type
   const Suspended = makeDefinition('DirectPresenceSuspended', {
     Model: SuspendedModel,
     Message: Schema.Never,
@@ -277,6 +284,7 @@ it('rejects structurally incompatible storage and invalid wrapper constructors b
     number: Schema.Number,
     wrongOption: Schema.Option(Schema.String),
   })
+  type InvalidModel = typeof InvalidModel.Type
   const Invalid = makeDefinition('DirectPresenceInvalid', {
     Model: InvalidModel,
     Message,
@@ -362,6 +370,7 @@ it('reads direct fields from callable tagged Struct parent Models', () => {
     child: ChildModel,
     maybeChild: Schema.Option(ChildModel),
   })
+  type Model = typeof Model.Type
   const Parent = makeDefinition('DirectPresenceCallableParent', {
     Model,
     Message,

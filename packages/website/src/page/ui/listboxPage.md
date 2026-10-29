@@ -6,7 +6,7 @@ A custom select dropdown with keyboard navigation, typeahead search, and anchor 
 
 ### Create a Typed Listbox
 
-Embed Listbox via the [`Listbox.create<Item, Value?>()` factory](/ui/selection-blocks) at module scope: `const PlanListbox = Listbox.create<Plan>()`. The factory binds the view, update, and programmatic helpers to the same `Item` type, so the `Selected` OutMessage carries a `Plan`.
+Embed Listbox via the [`Listbox.makeBlock<Item, Value?>()` factory](/ui/selection-blocks) at module scope: `const PlanListbox = Listbox.makeBlock<Plan>()`. The factory binds the view, update, and programmatic helpers to the same `Item` type, so the `Selected` OutMessage carries a `Plan`.
 
 What the factory returns is typed [`Completed<Item, Value>` from `@foldkit/ui/listbox`](/ui/selection-blocks#completed-type). The multi-select namespace exports its own `Completed<Item, Value>` type, for the cases where a created Block has to be named rather than called directly.
 
@@ -30,7 +30,7 @@ Pass an `itemToConfig` callback that maps each item to its content. The context 
 
 ### Multi-select
 
-Use `Listbox.Multi.create()` and `Listbox.Multi.create` for multi-selection. The dropdown stays open on selection and items toggle on/off. The parent stores the selected values and folds each `Selected` OutMessage by toggling the value in its array.
+Use `Listbox.Multi.makeBlock()` and `Listbox.Multi.makeBlock` for multi-selection. The dropdown stays open on selection and items toggle on/off. The parent stores the selected values and folds each `Selected` OutMessage by toggling the value in its array.
 
 ::Demo{name="multi-select"}
 
@@ -117,7 +117,7 @@ Two ViewInputs fields cover the cases a `<label for>` does not. Pass `ariaLabel`
 
 ### InitConfig {#init-config}
 
-Configuration passed to the Binding for the completed Block returned by `Listbox.create(Item)` or `Listbox.Multi.create(Item)`.
+Configuration passed to the Binding for the completed Block returned by `Listbox.makeBlock(Item)` or `Listbox.Multi.makeBlock(Item)`.
 
 | Name          | Type                         | Default      | Description                                                                                                                                          |
 | ------------- | ---------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -128,7 +128,7 @@ Configuration passed to the Binding for the completed Block returned by `Listbox
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the composed Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep callback fields at the top level, and use `childAttributes` for handler-bearing attribute inputs; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries). The same structure is used for `Listbox.Multi.create()` except where noted.
+Pass the child Model as `model` and these fields as `viewInputs` to the composed Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep callback fields at the top level, and use `childAttributes` for handler-bearing attribute inputs; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries). The same structure is used for `Listbox.Multi.makeBlock()` except where noted.
 
 | Name                                           | Type                                      | Default | Description                                                                                                                                                                                                                                                                                                                          |
 | ---------------------------------------------- | ----------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -160,7 +160,7 @@ Pass the child Model as `model` and these fields as `viewInputs` to the composed
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s selected `fold` policy. The same shape applies to the completed Block returned by `Listbox.Multi.create()`.
+Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s selected `fold` policy. The same shape applies to the completed Block returned by `Listbox.Multi.makeBlock()`.
 
 | Name       | Type               | Default | Description                                                                                                                                                                                                                                                                                                                                                                   |
 | ---------- | ------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

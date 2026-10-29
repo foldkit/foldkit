@@ -24,3 +24,4 @@ const Model = Schema.Struct({
   email: Field(Schema.String),
   interests: Field(Schema.Array(Schema.String)),
 })
+type Model = typeof Model.Type

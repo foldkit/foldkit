@@ -7,7 +7,7 @@ const Message = defineMessageUnion({
   SucceededMountChart: {},
   FailedMountChart: { reason: Schema.String },
 })
-
+type Message = typeof Message.Type
 // Mount.define gives the action a name and constrains what Messages it can
 // produce, plus an args record so the chart's per-instance data flows through
 // declared values rather than a closure. The runtime calls the handler with the
@@ -15,6 +15,7 @@ const Message = defineMessageUnion({
 // it, and closes the scope on destroy (firing any acquireRelease finalizers).
 
 const ChartData = Schema.Array(Schema.Number)
+type ChartData = typeof ChartData.Type
 
 const MountChart = Mount.define('MountChart', {
   args: { data: ChartData },
@@ -42,7 +43,7 @@ const MountChart = Mount.define('MountChart', {
 })
 
 const chartView = (
-  data: typeof ChartData.Type,
-  h: HtmlBuilder<typeof Message.Type, Mount.RequirementsOf<typeof MountChart>>,
+  data: ChartData,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof MountChart>>,
 ): Html =>
   h.div([h.Class('w-[480px] h-[320px]'), h.OnMount(MountChart({ data }))])

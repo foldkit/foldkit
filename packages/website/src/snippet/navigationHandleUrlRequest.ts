@@ -10,6 +10,7 @@ const ApplicationRoute = defineRouteUnion({
   Person: { personId: Schema.Number },
   NotFound: { path: Schema.String },
 })
+type ApplicationRoute = typeof ApplicationRoute.Type
 
 const homeRouter = pipe(Route.root, Route.mapTo(ApplicationRoute.Home))
 const personRouter = pipe(
@@ -24,6 +25,7 @@ const urlToApplicationRoute = Route.parseUrlWithFallback(
 )
 
 const Model = Schema.Struct({ route: ApplicationRoute })
+type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
   CompletedNavigateInternal: {},
@@ -31,6 +33,7 @@ const Message = defineMessageUnion({
   ClickedLink: { request: Navigation.UrlRequest },
   ChangedUrl: { url: Url.Url },
 })
+type Message = typeof Message.Type
 
 const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,

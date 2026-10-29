@@ -14,13 +14,14 @@ const Model = Schema.Struct({
   confirmDialog: Dialog.DialogBlock.Model,
   // ...your other fields
 })
-
+type Model = typeof Model.Type
 // Declare only the parent-owned coordination fact. Each Binding derives its
 // own generated Dialog delivery.
 const Message = defineMessageUnion({
   ClickedDeleteProject: {},
   ConfirmedDeleteProject: {},
 })
+type Message = typeof Message.Type
 
 const ProjectDialogsDefinition = Block.makeDefinition('ProjectDialogs', {
   Model,
