@@ -64,7 +64,7 @@ export class MountRuntime extends Context.Service<
   MountRuntime,
   {
     readonly captureViewStateChanges: () => Stream.Stream<ViewState>
-    readonly registerFiber: (fiber: Fiber.Fiber<void>) => void
+    readonly registerFiber: (fiber: Fiber.Fiber<unknown, unknown>) => void
     readonly interruptFibers: Effect.Effect<void>
   }
 >()('@foldkit/MountRuntime') {}

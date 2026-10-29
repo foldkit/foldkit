@@ -41,6 +41,11 @@ earlier holds.
       with matching platform providers and the adopted `~4.1.0` policy.
 - [x] Rerun affected framework, application and compiler-performance gates
       against the merged candidate. Retain all seven existing compiler budgets.
+- [x] Reproduce and repair #1853's separate Mount self-removal defect on the
+      isolated preview candidate. Register the fiber and cleanup before setup,
+      retain replacement ordering and suppress delivery after removal. The
+      dependency upgrade alone did not include this repair.
+      [Regression evidence and integration scope](mount-setup-removal-20261029.md).
 
 The user requested this ordering on October 29, after publishing `90746b32d2ca`.
 The next preview still requires separate publication approval.

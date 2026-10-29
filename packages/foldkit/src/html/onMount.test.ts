@@ -450,6 +450,67 @@ describe('OnMount', () => {
     })
   })
 
+  it('releases a Mount destroyed by a reentrant patch during setup and suppresses later emissions', async () => {
+    const h = __htmlBuilder<typeof Message.MountedRoot.Type>()
+    const { dispatch, dispatched } = createCapturingDispatch()
+    let setupCalls = 0
+    let cleanupCalls = 0
+    let externalEmit: () => void = Function.constVoid
+
+    const withoutChild = renderView(() => h.div([]), dispatch)
+    const selfRemovingMount = makeMounted(() =>
+      Stream.callback<typeof Message.MountedRoot.Type>(queue =>
+        Effect.gen(function* () {
+          yield* Effect.acquireRelease(
+            Effect.sync(() => {
+              setupCalls += 1
+            }),
+            () =>
+              Effect.sync(() => {
+                cleanupCalls += 1
+              }),
+          )
+
+          externalEmit = () => Queue.offerUnsafe(queue, Message.MountedRoot())
+          patch(withChild, withoutChild)
+          externalEmit()
+
+          return yield* Effect.never
+        }),
+      ),
+    )
+    const withChild: VNode = renderView(
+      () => h.div([], [h.span([h.OnMount(selfRemovingMount)])]),
+      dispatch,
+    )
+
+    patch(toVNode(makeRootContainer()), withChild)
+
+    try {
+      expect(setupCalls).toBe(1)
+      expect(withoutChild.elm?.childNodes).toHaveLength(0)
+      await vi.waitFor(() => {
+        expect({ cleanupCalls, dispatched }).toEqual({
+          cleanupCalls: 1,
+          dispatched: [],
+        })
+      })
+
+      externalEmit()
+      await new Promise(resolve =>
+        setTimeout(resolve, WAIT_FOR_INTERRUPT_PROPAGATION_MS),
+      )
+
+      expect(cleanupCalls).toBe(1)
+      expect(dispatched).toStrictEqual([])
+    } finally {
+      patch(withChild, withoutChild)
+      await vi.waitFor(() => {
+        expect(cleanupCalls).toBe(1)
+      })
+    }
+  })
+
   it('logs a failing Stream and dispatches nothing', async () => {
     const h = __htmlBuilder<typeof Message.MountedRoot.Type>()
     const { dispatch, dispatched } = createCapturingDispatch()

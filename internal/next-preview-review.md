@@ -1,5 +1,16 @@
 # Next preview review
 
+## Effect 4.1 Mount lifecycle follow-up
+
+The additional [#1853 report](https://github.com/foldkit/foldkit/pull/1853#issuecomment-6502029067)
+reproduces on the dependency-upgraded preview: synchronous host removal during
+setup can leak a resource and dispatch after removal. The isolated candidate
+registers the fiber and cleanup before setup. The regression fails before the
+repair and passes afterward; affected lifecycle, public declaration, packed
+consumer and unchanged compiler checks pass. The packed browser gate does not
+exercise this exact Mount scenario. [Evidence and limits](mount-setup-removal-20261029.md).
+PR #1850 remains draft; publication and the published Ready snapshot are unchanged.
+
 ## Additional stabilization API review
 
 The optional `Definition.makeStep.fromMessage` adapter is verified against the
