@@ -99,7 +99,7 @@ An interaction invokes the matched element's event handler. If the handler produ
 
 | Step                                   | Invokes                                                                                                                       |
 | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `click(target)`                        | `OnClick` (runs target and ancestor handlers until propagation stops)                                                         |
+| `click(target, modifiers?)`            | `OnClick` with optional `{ shiftKey, ctrlKey, altKey, metaKey }` (runs target and ancestor handlers until propagation stops)  |
 | `doubleClick(target)`                  | `OnDoubleClick` (bubbles to ancestors)                                                                                        |
 | `contextMenu(target)`                  | `OnContextMenu` (bubbles to ancestors)                                                                                        |
 | `pointerDown(target, options?)`        | `OnPointerDown` with optional `{ pointerType, button, screenX, screenY, clientX, clientY, pointerId }` (bubbles to ancestors) |

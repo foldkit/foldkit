@@ -1,4 +1,4 @@
-import { Context, Effect } from 'effect'
+import { Context, Effect, Schema } from 'effect'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
@@ -14,6 +14,12 @@ import {
 const Message = defineMessageUnion({
   ClickedFirst: {},
   ClickedSecond: {},
+  ClickedWithModifiers: {
+    shiftKey: Schema.Boolean,
+    ctrlKey: Schema.Boolean,
+    altKey: Schema.Boolean,
+    metaKey: Schema.Boolean,
+  },
 })
 type Message = typeof Message.Type
 
@@ -112,6 +118,50 @@ describe('OnClick', () => {
     expect(document.activeElement).toBe(focusTarget)
     expect(activeElementsAtDispatch).toEqual([focusTarget])
     expect(dispatched).toEqual([Message.ClickedFirst()])
+  })
+
+  it('passes the modifier keys of the click to a function', () => {
+    const h = __htmlBuilder<Message>()
+    const vnode = h.button([
+      h.OnClick(modifiers => Message.ClickedWithModifiers(modifiers)),
+    ])
+    const event = new MouseEvent('click', { shiftKey: true, metaKey: true })
+
+    clickHandlerOf(vnode)(event)
+
+    expect(dispatched).toEqual([
+      Message.ClickedWithModifiers({
+        shiftKey: true,
+        ctrlKey: false,
+        altKey: false,
+        metaKey: true,
+      }),
+    ])
+  })
+
+  it('applies the controls before calling a function', () => {
+    const h = __htmlBuilder<Message>()
+    const vnode = h.button([
+      h.OnClick(
+        ({ ctrlKey }) => {
+          activeElementsAtDispatch.push(document.activeElement)
+          return ctrlKey ? Message.ClickedSecond() : Message.ClickedFirst()
+        },
+        {
+          defaultAction: 'Prevent',
+          propagation: 'Stop',
+          focusSelector: '#click-focus-target',
+        },
+      ),
+    ])
+    const event = new MouseEvent('click', { ctrlKey: true, cancelable: true })
+
+    clickHandlerOf(vnode)(event)
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(event.cancelBubble).toBe(true)
+    expect(activeElementsAtDispatch).toEqual([focusTarget, focusTarget])
+    expect(dispatched).toEqual([Message.ClickedSecond()])
   })
 
   it('runs every handler on the current element after propagation stops', () => {

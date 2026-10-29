@@ -107,6 +107,11 @@ import {
   OutMessage as LogoutOutMessage,
 } from './apps/logoutButton.js'
 import {
+  initialModel as modifierClickInitialModel,
+  update as modifierClickUpdate,
+  view as modifierClickView,
+} from './apps/modifierClick.js'
+import {
   FocusButton,
   MeasurePanel,
   Message as MountPanelMessage,
@@ -2697,6 +2702,17 @@ describe('scene with extra interactions', () => {
       { update: interactionsUpdate, view: interactionsView },
       Scene.given(interactionsInitialModel),
       pipe(Scene.label('fruit'), Scene.change('apple')),
+    )
+  })
+
+  test('click passes held modifier keys to an OnClick function', () => {
+    Scene.scene(
+      { update: modifierClickUpdate, view: modifierClickView },
+      Scene.given(modifierClickInitialModel),
+      Scene.click(Scene.role('button', { name: 'Banana' }), { metaKey: true }),
+      Scene.expect(Scene.label('Selected items')).toHaveText('Apple, Banana'),
+      Scene.click(Scene.role('button', { name: 'Apple' })),
+      Scene.expect(Scene.label('Selected items')).toHaveText('Apple'),
     )
   })
 

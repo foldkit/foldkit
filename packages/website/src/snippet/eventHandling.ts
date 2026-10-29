@@ -1,6 +1,5 @@
-// Event handlers take Messages, not callbacks.
-// When the button is clicked, Foldkit dispatches the Message
-// to your update function.
+// OnClick takes a Message. When the button is clicked,
+// Foldkit dispatches the Message to your update function.
 const buttonExample = (h: HtmlBuilder<Message>) =>
   h.button(
     [h.OnClick(ClickedIncrement()), h.Class('button-primary')],
