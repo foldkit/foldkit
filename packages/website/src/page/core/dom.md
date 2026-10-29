@@ -24,7 +24,13 @@ Wrap the helper in a Command and map its success or failure into one of that Com
 
 ### Commit and Paint Timing
 
-Most helpers that resolve a live element wait until Foldkit has committed the latest render before querying the DOM. This lets update return a Command for an element that the same Message just brought into the view. You do not need to add `Render.afterCommit` before `Dom.focus`, `Dom.showDialog`, `Dom.clickElement`, `Dom.scrollIntoView`, or `Dom.advanceFocus`.
+Most helpers that resolve a live element wait until Foldkit has committed the latest render before querying the DOM. This lets update return a Command for an element that the same Message just brought into the view. You do not need to add `Render.afterCommit` before `Dom.focus`, `Dom.showDialog`, `Dom.clickElement`, `Dom.scrollIntoView`, `Dom.setSelection`, or `Dom.advanceFocus`.
+
+### Caret Placement
+
+When update rewrites a field's value, rendering the new value moves the browser caret to the end. Return a Command that runs `Dom.setSelection` to put the caret or selected range where update decided. It does not focus the field, so compose it with `Dom.focus` when focus may have moved, such as after a click on a list option. The snippet completes a mention, assuming the Model already records where the `@query` starts and where the caret was.
+
+::Snippet{name="domSetSelection" label="Placing the caret after a completed mention"}
 
 ### Dialog Resources
 
@@ -53,6 +59,7 @@ Helpers that require one matching element fail with `ElementNotFound` when the s
 - `Dom.scrollIntoView`
 - `Dom.scrollIntoViewAfterPaint`
 - `Dom.scrollIntoViewIfNotVisible`
+- `Dom.setSelection`
 - `Dom.advanceFocus`
 
 Catch a meaningful failure with `Effect.catch` and turn it into a Message. Use `Effect.ignore` only when a missing target is expected and does not matter, such as a stale focus Command after navigation.

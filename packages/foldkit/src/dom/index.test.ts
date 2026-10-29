@@ -16,6 +16,7 @@ import {
   restoreInert,
   scrollIntoView,
   scrollIntoViewAfterPaint,
+  setSelection,
   showDialog,
   unlockScroll,
 } from './index.js'
@@ -92,6 +93,56 @@ describe('focus', () => {
 
       document.body.innerHTML = ''
     }),
+  )
+})
+
+describe('setSelection', () => {
+  it.effect('sets the selection after the render that writes the value', () =>
+    Effect.gen(function* () {
+      const textarea = document.createElement('textarea')
+      textarea.id = 'note'
+      textarea.value = 'Ask @cen later'
+      document.body.appendChild(textarea)
+
+      const notifier = createCommitNotifier()
+      notifier.markCommitPending()
+
+      const fiber = yield* Effect.forkChild(
+        setSelection('#note', { selectionStart: 12, selectionEnd: 12 }).pipe(
+          Effect.provideService(RenderCommit, notifier.service),
+        ),
+        { startImmediately: true },
+      )
+
+      textarea.value = 'Ask @Census later'
+      notifier.notifyCommitted()
+      yield* Fiber.join(fiber)
+
+      expect(textarea.selectionStart).toBe(12)
+      expect(textarea.selectionEnd).toBe(12)
+
+      document.body.innerHTML = ''
+    }),
+  )
+
+  it.effect(
+    'fails with ElementNotFound for an input type without text selection',
+    () =>
+      Effect.gen(function* () {
+        const input = document.createElement('input')
+        input.id = 'quantity'
+        input.type = 'number'
+        document.body.appendChild(input)
+
+        const error = yield* Effect.flip(
+          setSelection('#quantity', { selectionStart: 0, selectionEnd: 0 }),
+        )
+
+        expect(error).toBeInstanceOf(ElementNotFound)
+        expect(error.selector).toBe('#quantity')
+
+        document.body.innerHTML = ''
+      }),
   )
 })
 

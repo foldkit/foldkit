@@ -660,6 +660,51 @@ export const clickElement = (
     element.click()
   })
 
+const querySelectableTextControl = (
+  selector: string,
+): Effect.Effect<HTMLInputElement | HTMLTextAreaElement, ElementNotFound> =>
+  Effect.suspend(() => {
+    const element = document.querySelector(selector)
+    if (
+      (element instanceof HTMLInputElement ||
+        element instanceof HTMLTextAreaElement) &&
+      element.selectionStart !== null
+    ) {
+      return Effect.succeed(element)
+    } else {
+      return Effect.fail(new ElementNotFound({ selector }))
+    }
+  })
+
+/**
+ * Sets the caret position or selected range of a text control. Resolves the
+ * selector after `Render.afterCommit`, so it runs after rendering a new value
+ * has moved the browser caret to the end. Offsets index the control's value
+ * in UTF-16 code units, like `value.length`. Pass equal offsets to place the
+ * caret without selecting text. It sets only the selection and does not call
+ * `focus()`.
+ *
+ * Fails with `ElementNotFound` if the selector does not match a `textarea`
+ * or a `text`, `search`, `url`, `tel`, or `password` input.
+ *
+ * @example
+ * ```typescript
+ * Dom.setSelection('#note', { selectionStart: 12, selectionEnd: 12 })
+ * ```
+ */
+export const setSelection = (
+  selector: string,
+  {
+    selectionStart,
+    selectionEnd,
+  }: Readonly<{ selectionStart: number; selectionEnd: number }>,
+): Effect.Effect<void, ElementNotFound> =>
+  Effect.gen(function* () {
+    yield* afterCommit
+    const element = yield* querySelectableTextControl(selector)
+    element.setSelectionRange(selectionStart, selectionEnd)
+  })
+
 /**
  * Scrolls an element into view by selector. Resolves the selector after
  * `Render.afterCommit`. Defaults to `{ block: 'nearest' }`; pass a different

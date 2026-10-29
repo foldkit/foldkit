@@ -12,6 +12,7 @@ export {
   scrollIntoView,
   scrollIntoViewAfterPaint,
   scrollIntoViewIfNotVisible,
+  setSelection,
   showDialog,
   streamFromEvent,
   streamFromEventFilterMap,
