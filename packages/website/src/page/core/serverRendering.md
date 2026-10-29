@@ -317,6 +317,24 @@ In development, enable the Vite host in `vite.config.ts`:
 
 Vite continues to serve the client entry, HMR, and assets. Requests that reach Foldkit become Web `Request` values and pass to `renderPage`. The returned Web `Response` provides the status, headers, and body.
 
+#### Releasing resources when the server entry reloads
+
+When you save the server entry or any module it imports, the dev server evaluates a new copy of the entry. The old copy is not stopped, so whatever it started at module level keeps running, such as a `ManagedRuntime` with the fibers it forked, open connections, and timers.
+
+Release those resources in an `import.meta.hot.dispose` callback in the server entry. Vite runs the callback on the old copy before it evaluates the new one:
+
+::Snippet{name="serverRenderingHotDispose" label="Disposing a runtime when the server entry reloads"}
+
+The dev server makes the server entry accept its own updates, so an edit reruns only the edited module and the modules between it and the entry. Create each resource the callback releases in the server entry itself. Vite runs `dispose` callbacks only in modules that accept the update, and a module that an edit does not rerun keeps the resources it created, so a new copy of the entry would receive a resource the old copy released.
+
+A request that arrives while Vite is applying an edit waits for the new copy, for at most a second after the last edit.
+
+Some reloads skip the callback, and the old copy keeps running until the dev server process exits:
+
+- Vite reloads the server modules in full, instead of hot updating the entry, when an update cannot be applied in place.
+- A dev server restart, such as after an edit to `vite.config.ts`, discards the module runner.
+- With `server.hmr` set to `false`, `import.meta.hot` is `undefined`, so the callback is never registered.
+
 #### Testing hydration during development
 
 A development reload does not exercise hydration. Foldkit restores the Model but rebuilds the DOM under the root. That DOM came from code that predates the edit. Refresh the page manually to test hydration itself. The stamped root remains required during a development reload; without it, startup fails as it would on a fresh load.
