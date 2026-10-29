@@ -3,7 +3,7 @@ import { Effect, Number } from 'effect'
 const scrollLockState = {
   count: 0,
   overflow: '',
-  paddingRight: '',
+  scrollbarGutter: '',
 }
 
 const isIOS = (): boolean => {
@@ -45,7 +45,10 @@ const handleTouchMove = (event: TouchEvent): void => {
 
 /**
  * Locks page scroll by setting `overflow: hidden` on the document element.
- * Compensates for scrollbar width with padding to prevent layout shift.
+ * When the page's scrollbar takes up width, a stable `scrollbar-gutter` keeps
+ * that width reserved while the scrollbar is hidden, so neither the page nor
+ * fixed-position elements shift. A root that already has a stable gutter, or
+ * an overlay scrollbar that takes no width, is left as it is.
  * On iOS Safari, intercepts `touchmove` events to prevent page scroll
  * while allowing scrolling within overflow containers.
  * Uses reference counting so nested locks are safe. The page only unlocks
@@ -64,13 +67,18 @@ export const lockScroll: Effect.Effect<void> = Effect.sync(() => {
 
   if (scrollLockState.count === 0) {
     scrollLockState.overflow = style.overflow
-    scrollLockState.paddingRight = style.paddingRight
+    scrollLockState.scrollbarGutter = style.scrollbarGutter
 
+    const isGutterAlreadyStable = window
+      .getComputedStyle(documentElement)
+      .scrollbarGutter.startsWith('stable')
     const scrollbarWidth = window.innerWidth - documentElement.clientWidth
 
     style.overflow = 'hidden'
-    style.paddingRight =
-      scrollbarWidth > 0 ? `${scrollbarWidth}px` : style.paddingRight
+
+    if (!isGutterAlreadyStable && scrollbarWidth > 0) {
+      style.scrollbarGutter = 'stable'
+    }
 
     if (isIOS()) {
       document.addEventListener('touchmove', handleTouchMove, {
@@ -84,7 +92,7 @@ export const lockScroll: Effect.Effect<void> = Effect.sync(() => {
 
 /**
  * Releases one scroll lock. When the last lock is released, restores the
- * original `overflow` and `padding-right` on the document element.
+ * original `overflow` and `scrollbar-gutter` on the document element.
  * On iOS Safari, removes the `touchmove` listener.
  *
  * @example
@@ -100,7 +108,7 @@ export const unlockScroll: Effect.Effect<void> = Effect.sync(() => {
       documentElement: { style },
     } = document
     style.overflow = scrollLockState.overflow
-    style.paddingRight = scrollLockState.paddingRight
+    style.scrollbarGutter = scrollLockState.scrollbarGutter
     document.removeEventListener('touchmove', handleTouchMove)
   }
 })
