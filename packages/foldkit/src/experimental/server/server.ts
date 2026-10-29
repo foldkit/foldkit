@@ -51,7 +51,13 @@ import type { VNode } from '../../snabbdom/vnode.js'
 import { tagNameFromSelector } from '../../tagName.js'
 import type { Return as UpdateReturn } from '../../update/index.js'
 import { Url, fromString } from '../../url/index.js'
-import { type ParsedFragmentModes, parseFragmentModes } from './fragment.js'
+import {
+  type ParsedFragmentModes,
+  distinctFragments,
+  isHtmlNoscript,
+  parseFragmentModes,
+  scriptingModesFor,
+} from './fragment.js'
 import {
   controlledValueContent,
   escapeAttributeValue,
@@ -317,34 +323,32 @@ const DIV_FRAGMENT_CONTEXT = buildDivFragmentContext()
 // markup with a trailing sentinel comment and requires the sentinel to survive
 // as a top-level sibling: if the root consumed it, so would the rest of the page.
 //
-// NOTE: the parse runs twice, because `<noscript>` has two parser modes and the
+// NOTE: the check covers both parser modes, because `<noscript>` has two and the
 // document has to survive both. With scripting enabled, the state a hydrating
 // visitor's browser is in, noscript content is raw text. With scripting
 // disabled, the state noscript exists to serve, the same content parses as HTML,
 // so an unterminated element inside a noscript fallback swallows the rest of the
 // page for exactly the visitors the fallback was written for. Both modes are
 // checked, so a fallback that frames cleanly for one visitor cannot break the
-// document for the other.
+// document for the other. Markup without a `<noscript>` parses identically in
+// both, so one parse covers them.
 const TRAILING_SENTINEL_DATA = 'foldkit-trailing-boundary'
 const TRAILING_SENTINEL = `<!--${TRAILING_SENTINEL_DATA}-->`
 
-const closesCleanly = (html: string, isScriptingEnabled: boolean): boolean => {
-  const fragment = parseFragment(
-    DIV_FRAGMENT_CONTEXT,
-    html + TRAILING_SENTINEL,
-    {
-      scriptingEnabled: isScriptingEnabled,
-    },
+const trailingSentinelOf = (
+  fragment: DefaultTreeAdapterMap['documentFragment'],
+): Option.Option<Parse5ChildNode> =>
+  pipe(
+    fragment.childNodes,
+    Array.filter(node => !isIgnorableText(node)),
+    Array.last,
+    Option.filter(
+      last =>
+        last.nodeName === '#comment' &&
+        'data' in last &&
+        last.data === TRAILING_SENTINEL_DATA,
+    ),
   )
-  const significant = fragment.childNodes.filter(node => !isIgnorableText(node))
-  const last = significant[significant.length - 1]
-  return (
-    last !== undefined &&
-    last.nodeName === '#comment' &&
-    'data' in last &&
-    last.data === TRAILING_SENTINEL_DATA
-  )
-}
 
 // Framing is not the only thing `<noscript>` can break. An element the fallback
 // leaves open does not have to reach the end of the document to do damage: with
@@ -364,14 +368,13 @@ const closesCleanly = (html: string, isScriptingEnabled: boolean): boolean => {
 // `<noscript>` means something to the parser only in the HTML namespace. Inside
 // SVG or MathML an element of that name is an ordinary foreign element whose
 // content parses the same way in both modes, so skipping it there would leave a
-// real HTML `<noscript>` nested below it unchecked. `<template>` holds its
-// children in a separate content fragment rather than in `childNodes`, so its
-// content is traversed explicitly; a fallback inside one is invisible otherwise,
-// and declarative shadow DOM makes that content live in the page.
-const isHtmlNoscript = (element: Parse5Element): boolean =>
-  element.tagName.toLowerCase() === 'noscript' &&
-  element.namespaceURI === HTML_NAMESPACE
-
+// real HTML `<noscript>` nested below it unchecked; `isHtmlNoscript` draws that
+// line.
+//
+// `<template>` holds its children in a separate content fragment rather than in
+// `childNodes`, so its content is traversed explicitly; a fallback inside one is
+// invisible otherwise, and declarative shadow DOM makes that content live in the
+// page.
 const traversableContent = (
   element: Parse5Element,
 ): Readonly<{ childNodes: ReadonlyArray<Parse5ChildNode> }> => {
@@ -507,7 +510,10 @@ const assertInnerHtmlContextMatches = (
 }
 
 const assertNoscriptModesAgree = (fragments: ParsedFragmentModes): void => {
-  if (parsedChildrenAgree(fragments.scripted, fragments.unscripted)) {
+  if (
+    fragments.scripted === fragments.unscripted ||
+    parsedChildrenAgree(fragments.scripted, fragments.unscripted)
+  ) {
     return
   }
   throw new Error(
@@ -563,9 +569,10 @@ const hasDeclarativeShadowRoot = (
 export const __assertNoDeclarativeShadowRoot = (
   fragments: ParsedFragmentModes,
 ): void => {
-  const declaresInEitherMode =
-    hasDeclarativeShadowRoot(fragments.scripted) ||
-    hasDeclarativeShadowRoot(fragments.unscripted)
+  const declaresInEitherMode = Array.some(
+    distinctFragments(fragments),
+    hasDeclarativeShadowRoot,
+  )
 
   if (!declaresInEitherMode) {
     return
@@ -609,9 +616,10 @@ const hasLiveBaseElement = (
 export const __assertNoLiveBaseElement = (
   fragments: ParsedFragmentModes,
 ): void => {
-  const hasBaseInEitherMode =
-    hasLiveBaseElement(fragments.scripted) ||
-    hasLiveBaseElement(fragments.unscripted)
+  const hasBaseInEitherMode = Array.some(
+    distinctFragments(fragments),
+    hasLiveBaseElement,
+  )
 
   if (!hasBaseInEitherMode) {
     return
@@ -682,7 +690,11 @@ const escapesDocumentStructure = (
 }
 
 export const __assertNoDocumentStructureEscape = (html: string): void => {
-  if (![true, false].some(mode => escapesDocumentStructure(html, mode))) {
+  if (
+    !Array.some(scriptingModesFor(html), mode =>
+      escapesDocumentStructure(html, mode),
+    )
+  ) {
     return
   }
   throw new Error(
@@ -696,9 +708,34 @@ export const __assertNoDocumentStructureEscape = (html: string): void => {
   )
 }
 
-const assertRootClosesCleanly = (html: string): void => {
-  if (closesCleanly(html, true) && closesCleanly(html, false)) {
-    return
+// The framing parse doubles as the parse every other root check runs on. A
+// sentinel that survives as the last top-level node was parsed after everything
+// the root opened had closed, so detaching it leaves exactly the tree the root
+// markup parses to on its own. That holds only when the surviving comment is the
+// appended one. Markup that writes the same comment and then leaves a tag
+// unfinished hides the appended copy inside the tag the parser drops, so markup
+// containing the sentinel text is parsed again without it rather than trusted.
+const parseClosedRoot = (html: string): ParsedFragmentModes => {
+  const framed = parseFragmentModes(
+    DIV_FRAGMENT_CONTEXT,
+    html + TRAILING_SENTINEL,
+  )
+  const maybeSentinels = pipe(
+    distinctFragments(framed),
+    Array.map(trailingSentinelOf),
+    Option.all,
+  )
+
+  if (Option.isSome(maybeSentinels)) {
+    if (html.includes(TRAILING_SENTINEL_DATA)) {
+      return parseFragmentModes(DIV_FRAGMENT_CONTEXT, html)
+    } else {
+      for (const sentinel of maybeSentinels.value) {
+        defaultTreeAdapter.detachNode(sentinel)
+      }
+
+      return framed
+    }
   }
   throw new Error(
     '[foldkit] The rendered root does not close cleanly. An unterminated ' +
@@ -808,8 +845,8 @@ const assertNodeDoesNotAuthorReservedContent = (node: VNode): void => {
           ? Parse5Html.NS.MATHML
           : Parse5Html.NS.HTML
     const context = defaultTreeAdapter.createElement(tagName, namespace, [])
-    const parsedFragments = [true, false].map(scriptingEnabled =>
-      parseFragment(context, innerHtml, { scriptingEnabled }),
+    const parsedFragments = distinctFragments(
+      parseFragmentModes(context, innerHtml),
     )
     const marker = parsedFragments
       .map(reservedHandoffAttributeIn)
@@ -1471,8 +1508,7 @@ export function renderToString(
         // Framing is checked for every render, hydratable or not. Static markup
         // is placed into a document the same way, so a root that does not close
         // cleanly swallows whatever the host writes after it either way.
-        assertRootClosesCleanly(html)
-        const fragments = parseFragmentModes(DIV_FRAGMENT_CONTEXT, html)
+        const fragments = parseClosedRoot(html)
         assertNoscriptModesAgree(fragments)
         __assertNoDeclarativeShadowRoot(fragments)
         __assertNoDocumentStructureEscape(html)
