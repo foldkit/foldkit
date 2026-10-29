@@ -209,6 +209,22 @@ describe('portalToContainingRoot', () => {
     cleanup()
     expect(portalRoot?.contains(element)).toBe(false)
   })
+
+  it('cleanup removes the empty portal root when the element is already detached', () => {
+    const element = document.createElement('div')
+    document.body.appendChild(element)
+
+    const cleanup = portalToContainingRoot(element)
+    const portalRoot = document.getElementById(PORTAL_ROOT_ID)
+    expect(portalRoot).not.toBeNull()
+
+    element.remove()
+
+    expect(cleanup).not.toThrow()
+    expect(element.parentNode).toBeNull()
+    expect(portalRoot?.isConnected).toBe(false)
+    expect(document.getElementById(PORTAL_ROOT_ID)).toBeNull()
+  })
 })
 
 describe('portalBackdrop', () => {
