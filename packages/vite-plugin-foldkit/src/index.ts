@@ -3,7 +3,6 @@ import {
   Clock,
   ConfigProvider,
   Console,
-  Crypto,
   Data,
   Duration,
   Effect,
@@ -37,7 +36,12 @@ import {
   RequestModelMessage,
   RestoreModelMessage,
 } from 'foldkit/model-preservation'
-import { createHmac, timingSafeEqual } from 'node:crypto'
+import {
+  createHmac,
+  randomBytes,
+  randomUUID,
+  timingSafeEqual,
+} from 'node:crypto'
 import {
   type IncomingMessage,
   type Server,
@@ -56,7 +60,6 @@ import type {
 import { type WebSocket, WebSocketServer } from 'ws'
 
 import * as NodeChildProcessSpawner from '@effect/platform-node/NodeChildProcessSpawner'
-import * as NodeCrypto from '@effect/platform-node/NodeCrypto'
 import * as NodeFileSystem from '@effect/platform-node/NodeFileSystem'
 import * as NodePath from '@effect/platform-node/NodePath'
 
@@ -706,10 +709,7 @@ type Relay = Readonly<{
   closeListener: () => void
 }>
 
-const relayId = Effect.gen(function* () {
-  const crypto = yield* Crypto.Crypto
-  return yield* crypto.randomUUIDv4.pipe(Effect.orDie)
-})
+const relayId = Effect.sync(() => randomUUID())
 
 const attachRelayHandlers = (
   wss: WebSocketServer,
@@ -741,11 +741,9 @@ const boundPort = (
 const relayHasNoBoundPort = () =>
   new Error('[foldkit:devTools] the MCP relay listener has no bound port')
 
-const relayToken = Effect.gen(function* () {
-  const crypto = yield* Crypto.Crypto
-  const bytes = yield* crypto.randomBytes(RELAY_TOKEN_BYTES).pipe(Effect.orDie)
-  return Buffer.from(bytes).toString('hex')
-})
+const relayToken = Effect.sync(() =>
+  randomBytes(RELAY_TOKEN_BYTES).toString('hex'),
+)
 
 const relayUrlForLog = (url: string): string => {
   const parsed = new URL(url)
@@ -1050,8 +1048,8 @@ const startMcpRelay = (
     )
     // NOTE: A configured port accepts unauthenticated connections on every
     // interface. An assigned port binds to loopback and requires discovery.
-    const acquire: Effect.Effect<Relay, RelayBindFailed, Crypto.Crypto> =
-      Effect.gen(function* () {
+    const acquire: Effect.Effect<Relay, RelayBindFailed> = Effect.gen(
+      function* () {
         const id = yield* relayId
         if (devToolsMcpPort !== undefined) {
           return yield* bindStandaloneRelay(devToolsMcpPort, id, enqueue)
@@ -1060,7 +1058,8 @@ const startMcpRelay = (
         const token = yield* relayToken
 
         return yield* bindLoopbackRelay(id, token, enqueue)
-      })
+      },
+    )
 
     return yield* Effect.acquireRelease(acquire, relay =>
       Effect.gen(function* () {
@@ -1161,7 +1160,7 @@ const main = (
  */
 const relayRegistryLayer = Layer.provideMerge(
   NodeChildProcessSpawner.layer,
-  Layer.mergeAll(NodeFileSystem.layer, NodePath.layer, NodeCrypto.layer),
+  Layer.mergeAll(NodeFileSystem.layer, NodePath.layer),
 )
 
 type MainRun = Readonly<{
