@@ -4,6 +4,8 @@ import { readFile } from 'node:fs/promises'
 import type { ServerResponse } from 'node:http'
 import { resolve } from 'node:path'
 import { Readable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
+import { ReadableStream as NodeReadableStream } from 'node:stream/web'
 import type {
   Connect,
   DevEnvironment,
@@ -664,12 +666,11 @@ const setNegotiatedVary = (nodeResponse: ServerResponse): void => {
   )
 }
 
-const sendWebResponse = async (
+const writeResponseHead = (
   webResponse: Response,
-  nodeRequest: Connect.IncomingMessage,
   nodeResponse: ServerResponse,
   isNegotiated: boolean,
-): Promise<void> => {
+): void => {
   nodeResponse.statusCode = webResponse.status
   if (webResponse.statusText !== '') {
     nodeResponse.statusMessage = webResponse.statusText
@@ -709,12 +710,114 @@ const sendWebResponse = async (
     // the application's own fields, so declaring these does not drop it.
     setNegotiatedVary(nodeResponse)
   }
+}
 
-  if (nodeRequest.method === 'HEAD' || webResponse.body === null) {
+const sendWebResponse = async (
+  webResponse: Response,
+  nodeRequest: Connect.IncomingMessage,
+  nodeResponse: ServerResponse,
+  isNegotiated: boolean,
+): Promise<void> => {
+  const { body } = webResponse
+
+  if (body === null) {
+    writeResponseHead(webResponse, nodeResponse, isNegotiated)
     nodeResponse.end()
+  } else if (nodeRequest.method === 'HEAD') {
+    writeResponseHead(webResponse, nodeResponse, isNegotiated)
+    nodeResponse.end()
+    await body.cancel().catch(() => undefined)
   } else {
-    const body = new Uint8Array(await webResponse.arrayBuffer())
-    nodeResponse.end(body)
+    const webReader = body.getReader()
+    const firstChunk = await readFirstChunk(webReader, nodeResponse)
+
+    if (isResponseClosed(nodeResponse)) {
+      await webReader.cancel().catch(() => undefined)
+    } else {
+      writeResponseHead(webResponse, nodeResponse, isNegotiated)
+
+      if (firstChunk.done) {
+        nodeResponse.end()
+      } else {
+        await writeWebBody(webReader, firstChunk.value, nodeResponse)
+      }
+    }
+  }
+}
+
+// NOTE: under `server.https`, Vite serves through `node:http2`, whose
+// compatibility response has no `destroyed` property. Its closed state lives on
+// the underlying `stream`.
+const isResponseClosed = (nodeResponse: ServerResponse): boolean => {
+  const http2Stream: unknown = Reflect.get(nodeResponse, 'stream')
+
+  return (
+    nodeResponse.destroyed === true ||
+    (Predicate.hasProperty(http2Stream, 'destroyed') &&
+      http2Stream.destroyed === true)
+  )
+}
+
+// NOTE: nothing is written to the node response until the first chunk
+// arrives, so a body that errors before producing any bytes rejects here and
+// reaches Vite's error middleware, which can still send a 500 with the error
+// overlay.
+const readFirstChunk = async (
+  webReader: ReadableStreamDefaultReader<Uint8Array>,
+  nodeResponse: ServerResponse,
+): Promise<ReadableStreamReadResult<Uint8Array>> => {
+  const cancelBody = (): void => {
+    void webReader.cancel().catch(() => undefined)
+  }
+
+  if (isResponseClosed(nodeResponse)) {
+    cancelBody()
+  }
+
+  nodeResponse.once('close', cancelBody)
+
+  try {
+    return await webReader.read()
+  } finally {
+    nodeResponse.off('close', cancelBody)
+  }
+}
+
+const isPrematureClose = (error: unknown): boolean =>
+  Predicate.hasProperty(error, 'code') &&
+  error.code === 'ERR_STREAM_PREMATURE_CLOSE'
+
+const writeWebBody = async (
+  webReader: ReadableStreamDefaultReader<Uint8Array>,
+  firstChunk: Uint8Array,
+  nodeResponse: ServerResponse,
+): Promise<void> => {
+  const nodeBody = Readable.fromWeb(
+    new NodeReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(firstChunk)
+      },
+      async pull(controller) {
+        const chunk = await webReader.read()
+
+        if (chunk.done) {
+          controller.close()
+        } else {
+          controller.enqueue(chunk.value)
+        }
+      },
+      cancel(reason) {
+        return webReader.cancel(reason)
+      },
+    }),
+  )
+
+  try {
+    await pipeline(nodeBody, nodeResponse)
+  } catch (error) {
+    if (!isPrematureClose(error)) {
+      throw error
+    }
   }
 }
 

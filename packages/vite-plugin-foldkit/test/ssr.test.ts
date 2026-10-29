@@ -82,9 +82,12 @@ const requestWithTarget = (
     clientRequest.end()
   })
 
-// A logger that keeps warnings, so a test can assert what the plugin told the
-// developer rather than only what it did.
-const collectingLogger = (warnings: Array<string>): Logger => ({
+// A logger that keeps warnings and errors, so a test can assert what the plugin
+// told the developer rather than only what it did.
+const collectingLogger = (
+  warnings: Array<string>,
+  errors: Array<string>,
+): Logger => ({
   info: () => {},
   warn: message => {
     warnings.push(message)
@@ -92,7 +95,9 @@ const collectingLogger = (warnings: Array<string>): Logger => ({
   warnOnce: message => {
     warnings.push(message)
   },
-  error: () => {},
+  error: message => {
+    errors.push(message)
+  },
   clearScreen: () => {},
   hasErrorLogged: () => false,
   hasWarned: false,
@@ -108,6 +113,7 @@ const FOLDKIT_BUILD_TOKEN_URL = `/@fs${resolve(
   'buildToken.js',
 )}`
 const AGGREGATE_DEV_SERVER_TEST_TIMEOUT_MS = 20_000
+const SILENT_BODY_DISCONNECT_DELAY_MS = 300
 const originOf = (address: AddressInfo | string | null | undefined): string =>
   `http://127.0.0.1:${Option.getOrThrowWith(
     boundPort(address),
@@ -147,6 +153,59 @@ const startProxyTarget = async (): Promise<string> => {
 
   return originOf(server.address())
 }
+
+// NOTE: the fixture entry reports that its live stream was canceled by posting
+// to this server, because the entry runs in Vite's module runner and shares no
+// module state with this test.
+const startCancelRecorder = async (): Promise<
+  Readonly<{ url: string; canceled: Promise<string> }>
+> => {
+  const server = createHttpServer()
+  const canceled = new Promise<string>(resolveCanceled => {
+    server.on('request', (request, response) => {
+      let body = ''
+      request.setEncoding('utf8')
+      request.on('data', chunk => {
+        body += chunk
+      })
+      request.on('end', () => {
+        response.end()
+        resolveCanceled(body)
+      })
+    })
+  })
+  onTestFinished(() => closeHttpServer(server).catch(() => undefined))
+  await new Promise<void>((resolveListen, reject) => {
+    server.once('error', reject)
+    server.listen(0, '127.0.0.1', resolveListen)
+  })
+
+  return { url: originOf(server.address()), canceled }
+}
+
+const firstStreamedChunk = (url: string): Promise<string> =>
+  new Promise((resolveChunk, reject) => {
+    const clientRequest = nodeRequest(url, response => {
+      response.setEncoding('utf8')
+      response.once('data', chunk => {
+        resolveChunk(String(chunk))
+        clientRequest.destroy()
+      })
+    })
+    clientRequest.on('error', reject)
+    clientRequest.end()
+  })
+
+const isResponseCompleted = (url: string): Promise<boolean> =>
+  new Promise(resolveCompleted => {
+    const clientRequest = nodeRequest(url, response => {
+      response.resume()
+      response.once('end', () => resolveCompleted(response.complete))
+      response.once('error', () => resolveCompleted(false))
+    })
+    clientRequest.on('error', () => resolveCompleted(false))
+    clientRequest.end()
+  })
 
 // A field already on the node response when the plugin's middleware runs.
 // The plugin separates Vite-owned CORS from application responses, so the merge
@@ -233,6 +292,7 @@ const startServer = async (
     hostVite?: true
     quietStandDown?: true
     warnings?: Array<string>
+    errors?: Array<string>
   }> = {},
 ) => {
   const createServer =
@@ -242,9 +302,14 @@ const startServer = async (
     ...(options.base === undefined ? {} : { base: options.base }),
     configFile: false,
     logLevel: 'silent',
-    ...(options.warnings === undefined
+    ...(options.warnings === undefined && options.errors === undefined
       ? {}
-      : { customLogger: collectingLogger(options.warnings) }),
+      : {
+          customLogger: collectingLogger(
+            options.warnings ?? [],
+            options.errors ?? [],
+          ),
+        }),
     plugins: [
       ...(options.runnableSsr === false ? [nonRunnableSsrPlugin] : []),
       ...(options.hostVite === true ? [foreignCopyAssertionPlugin] : []),
@@ -426,6 +491,77 @@ describe('foldkitSsr', () => {
     expect(response.status).toBe(202)
     expect(response.headers.get('x-response')).toBe('echo')
     expect(await response.text()).toBe('POST:payload')
+  })
+
+  it('streams a Responded body and cancels it when the client disconnects', async () => {
+    const errors: Array<string> = []
+    const origin = await startServer({ errors })
+    const recorder = await startCancelRecorder()
+    const streamUrl = `${origin}/live-stream?cancelReportUrl=${encodeURIComponent(recorder.url)}`
+
+    await expect(firstStreamedChunk(streamUrl)).resolves.toBe('first\n')
+    await expect(recorder.canceled).resolves.toBe('canceled')
+    expect(errors).toEqual([])
+  })
+
+  it('logs a streamed Responded body error and closes the connection', async () => {
+    const errors: Array<string> = []
+    const origin = await startServer({ errors })
+
+    await expect(isResponseCompleted(`${origin}/failing-stream`)).resolves.toBe(
+      false,
+    )
+    await expect.poll(() => errors.join('\n')).toContain('upstream failed')
+  })
+
+  it('sends a Responded body error before its first chunk to Vite as a 500', async () => {
+    const errors: Array<string> = []
+    const origin = await startServer({ errors })
+    const response = await fetch(`${origin}/failing-before-first-chunk`)
+
+    expect(response.status).toBe(500)
+    expect(response.headers.get('content-type')).not.toBe(
+      'application/x-ndjson',
+    )
+    expect(await response.text()).toContain('failed before first chunk')
+    expect(errors.join('\n')).toContain('failed before first chunk')
+  })
+
+  it('ends a Responded body that closes before its first chunk', async () => {
+    const origin = await startServer()
+    const response = await fetch(`${origin}/empty-stream`)
+
+    expect(response.status).toBe(201)
+    expect(response.headers.get('x-response')).toBe('empty-stream')
+    expect(await response.text()).toBe('')
+  })
+
+  it('cancels a silent Responded body when the client disconnects', async () => {
+    const errors: Array<string> = []
+    const origin = await startServer({ errors })
+    const recorder = await startCancelRecorder()
+    const clientRequest = nodeRequest(
+      `${origin}/live-stream?silent&cancelReportUrl=${encodeURIComponent(recorder.url)}`,
+    )
+    clientRequest.on('error', () => undefined)
+    clientRequest.end()
+    setTimeout(() => clientRequest.destroy(), SILENT_BODY_DISCONNECT_DELAY_MS)
+
+    await expect(recorder.canceled).resolves.toBe('canceled')
+    expect(errors).toEqual([])
+  })
+
+  it('cancels a streamed Responded body for HEAD', async () => {
+    const origin = await startServer()
+    const recorder = await startCancelRecorder()
+    const response = await fetch(
+      `${origin}/live-stream?cancelReportUrl=${encodeURIComponent(recorder.url)}`,
+      { method: 'HEAD' },
+    )
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toBe('application/x-ndjson')
+    await expect(recorder.canceled).resolves.toBe('canceled')
   })
 
   it('passes complete redirect responses through', async () => {
