@@ -1,8 +1,8 @@
 import { Array, Data, Effect, Option, Predicate, Schema, pipe } from 'effect'
 
-import { HYDRATION_BUILD_ATTRIBUTE } from '../buildToken.js'
 import {
   FOLDKIT_APP_ATTRIBUTE,
+  FOLDKIT_BUILD_ATTRIBUTE,
   FOLDKIT_FLAGS_ATTRIBUTE,
 } from '../hydrationMarker.js'
 
@@ -139,7 +139,7 @@ export const buildSkew = (
         'and `renderToString`.',
     )
   }
-  const servedBuild = root.getAttribute(HYDRATION_BUILD_ATTRIBUTE)
+  const servedBuild = root.getAttribute(FOLDKIT_BUILD_ATTRIBUTE)
   if (servedBuild === buildId) {
     return undefined
   }
@@ -315,7 +315,7 @@ export const containRefusedPage = (ownerDocument: Document): void => {
 // refuse and nothing to take out of reach.
 export const hasServerRenderedMarkup = (ownerDocument: Document): boolean =>
   ownerDocument.querySelector(
-    `[${FOLDKIT_APP_ATTRIBUTE}], [${HYDRATION_BUILD_ATTRIBUTE}], ` +
+    `[${FOLDKIT_APP_ATTRIBUTE}], [${FOLDKIT_BUILD_ATTRIBUTE}], ` +
       `[${FOLDKIT_FLAGS_ATTRIBUTE}]`,
   ) !== null
 

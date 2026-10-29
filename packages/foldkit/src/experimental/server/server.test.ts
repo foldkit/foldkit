@@ -11,6 +11,7 @@ import type { RoutingApplicationConfigWithFlags } from '../../runtime/index.js'
 import type * as Update from '../../update/index.js'
 import type { Url } from '../../url/index.js'
 import type { VNode } from '../../vdom.js'
+import { FOLDKIT_BUILD_ATTRIBUTE } from './public.js'
 import {
   FOLDKIT_APP_ATTRIBUTE,
   FOLDKIT_FLAGS_ATTRIBUTE,
@@ -381,7 +382,10 @@ describe('renderToString', () => {
         { buildId: 'release-2026-08-17' },
       )
 
-      expect(rendered.html).toContain('data-foldkit-build="release-2026-08-17"')
+      expect(FOLDKIT_BUILD_ATTRIBUTE).toBe('data-foldkit-build')
+      expect(rendered.html).toContain(
+        `${FOLDKIT_BUILD_ATTRIBUTE}="release-2026-08-17"`,
+      )
     }),
   )
 

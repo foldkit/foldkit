@@ -1,3 +1,5 @@
+import { FOLDKIT_BUILD_ATTRIBUTE } from 'foldkit/experimental/server'
+
 import { expect, test } from '@playwright/test'
 import type { FrameLocator, Page } from '@playwright/test'
 
@@ -67,13 +69,13 @@ const playgroundFrame = async (page: Page, slug: string) => {
   })
   expect(isInert).toBe(false)
   await expect(frameElement).toHaveAttribute('tabindex', '0')
-  expect(await frame.locator('[data-foldkit-build]').count()).toBe(0)
+  expect(await frame.locator(`[${FOLDKIT_BUILD_ATTRIBUTE}]`).count()).toBe(0)
   await assertPlaygroundFrameRemains(page)
   return frame
 }
 
 const waitForHydration = (frame: FrameLocator) =>
-  expect(frame.locator('[data-foldkit-build]')).toHaveCount(0, {
+  expect(frame.locator(`[${FOLDKIT_BUILD_ATTRIBUTE}]`)).toHaveCount(0, {
     timeout: PLAYGROUND_BOOT_TIMEOUT_MILLISECONDS,
   })
 

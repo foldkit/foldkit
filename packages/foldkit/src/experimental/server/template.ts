@@ -1,9 +1,9 @@
 import type { DefaultTreeAdapterMap } from 'parse5'
 import { html as Parse5Html, defaultTreeAdapter, parse } from 'parse5'
 
-import { HYDRATION_BUILD_ATTRIBUTE } from '../../buildToken.js'
 import {
   FOLDKIT_APP_ATTRIBUTE,
+  FOLDKIT_BUILD_ATTRIBUTE,
   FOLDKIT_FLAGS_ATTRIBUTE,
 } from '../../hydrationMarker.js'
 import { type ParsedFragmentModes, parseFragmentModes } from './fragment.js'
@@ -562,7 +562,7 @@ const runtimeIdInMode = (
   )
   const buildMarkers = collectMatchingIncludingTemplateContent(
     parsed,
-    element => attributeValue(element, HYDRATION_BUILD_ATTRIBUTE) !== undefined,
+    element => attributeValue(element, FOLDKIT_BUILD_ATTRIBUTE) !== undefined,
   )
   if (applicationMarkers.length === 0 && flagsMarkers.length === 0) {
     if (buildMarkers.length > 0) {
@@ -600,7 +600,7 @@ const runtimeIdInMode = (
   const buildId =
     root === undefined
       ? undefined
-      : attributeValue(root, HYDRATION_BUILD_ATTRIBUTE)
+      : attributeValue(root, FOLDKIT_BUILD_ATTRIBUTE)
   const isBuildPairValid =
     buildId !== undefined &&
     buildId !== '' &&
