@@ -41,8 +41,8 @@ DragAndDrop supports full keyboard navigation. Space/Enter activates drag mode, 
 | Key                  | Description                                                     |
 | -------------------- | --------------------------------------------------------------- |
 | `Space / Enter`      | Starts a keyboard drag on the focused item.                     |
-| `Arrow Up / Down`    | Moves the item within its container (vertical orientation).     |
-| `Arrow Left / Right` | Moves the item within its container (horizontal orientation).   |
+| `Arrow Down / Right` | Moves the item one position later in its container.             |
+| `Arrow Up / Left`    | Moves the item one position earlier in its container.           |
 | `Tab / Shift+Tab`    | Moves the item to the next / previous container.                |
 | `Space / Enter`      | Drops the dragged item at its current position.                 |
 | `Escape`             | Cancels the drag and returns the item to its original position. |
@@ -50,6 +50,14 @@ DragAndDrop supports full keyboard navigation. Space/Enter activates drag mode, 
 ## Accessibility
 
 Draggable items receive `role="option"` with `aria-roledescription="draggable"`. Drop containers receive `role="listbox"`. Screen reader announcements are emitted for drag start, movement, and drop via a live region.
+
+### Drag Instructions
+
+`dragInstructions(model)` renders a hidden element that tells a screen reader user how to drag with the keyboard. Render it once per DragAndDrop instance and set `hasDragInstructions: true` in each `draggable()` config. Each draggable then gets `aria-describedby` pointing at that element, so a screen reader reads the instructions when the item receives focus.
+
+With no keyboard drag in progress, the text says to press Space or Enter to start dragging. During a keyboard drag, it names the arrow keys, Tab and Shift+Tab, Space or Enter, and Escape. A screen reader reads a description when focus lands on the item, not when its text changes, so the instructions do not replace the announcement your application makes when a drag starts.
+
+To replace either string, for example with a translation, pass `{ idle, keyboardDragging }` as the second argument. Set `hasDragInstructions` only when the view renders `dragInstructions()`, so no draggable points `aria-describedby` at a missing element.
 
 ## Testing
 
@@ -67,22 +75,24 @@ Configuration object passed to `DragAndDrop.init()`.
 | Name                  | Type                         | Default      | Description                                                                                        |
 | --------------------- | ---------------------------- | ------------ | -------------------------------------------------------------------------------------------------- |
 | `id`                  | `string`                     | —            | Unique ID for the drag-and-drop instance.                                                          |
-| `orientation`         | `'Vertical' \| 'Horizontal'` | `'Vertical'` | Item flow direction. Controls arrow key mapping.                                                   |
+| `orientation`         | `'Vertical' \| 'Horizontal'` | `'Vertical'` | Item flow direction. Pointer collision compares vertical or horizontal item midpoints.             |
 | `activationThreshold` | `number`                     | `5`          | Minimum pointer movement in pixels before a drag activates. Prevents accidental drags from clicks. |
 
 ### View Helpers
 
 Functions for attaching drag-and-drop behavior to your elements and reading drag state.
 
-| Name                             | Type                       | Default | Description                                                                                                                                                           |
-| -------------------------------- | -------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `draggable(config)`              | `ReadonlyArray<Attribute>` | —       | Spread onto draggable items. Attaches pointer-down, keyboard activation, and ARIA attributes. Config requires model, toParentMessage, itemId, containerId, and index. |
-| `droppable(containerId, label?)` | `ReadonlyArray<Attribute>` | —       | Spread onto drop containers. Attaches the container ID for collision detection and optional ARIA label.                                                               |
-| `sortable(itemId)`               | `ReadonlyArray<Attribute>` | —       | Spread onto items that are both draggable and sortable targets.                                                                                                       |
-| `ghostStyle(model)`              | `Option<CSSProperties>`    | —       | Returns positioning styles for a ghost element that follows the pointer during drag. Use with Option.match to conditionally render.                                   |
-| `isDragging(model)`              | `boolean`                  | —       | Whether a drag is currently in progress.                                                                                                                              |
-| `maybeDraggedItemId(model)`      | `Option<string>`           | —       | The ID of the item being dragged, if any.                                                                                                                             |
-| `maybeDropTarget(model)`         | `Option<DropTarget>`       | —       | The current drop target (containerId + index), if any.                                                                                                                |
+| Name                             | Type                       | Default | Description                                                                                                                                                                                                                                                   |
+| -------------------------------- | -------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `draggable(config)`              | `ReadonlyArray<Attribute>` | —       | Spread onto draggable items. Attaches pointer-down, keyboard activation, and ARIA attributes. Config requires model, toParentMessage, itemId, containerId, and index. Set optional `hasDragInstructions` to point `aria-describedby` at `dragInstructions()`. |
+| `droppable(containerId, label?)` | `ReadonlyArray<Attribute>` | —       | Spread onto drop containers. Attaches the container ID for collision detection and optional ARIA label.                                                                                                                                                       |
+| `dragInstructions(model, text?)` | `Html`                     | —       | Renders the hidden keyboard instructions element. Render it once per instance. `text` replaces the `idle` and `keyboardDragging` strings.                                                                                                                     |
+| `dragInstructionsId(model)`      | `string`                   | —       | The id of the `dragInstructions` element: the instance id followed by `-drag-instructions`.                                                                                                                                                                   |
+| `sortable(itemId)`               | `ReadonlyArray<Attribute>` | —       | Spread onto items that are both draggable and sortable targets.                                                                                                                                                                                               |
+| `ghostStyle(model)`              | `Option<CSSProperties>`    | —       | Returns positioning styles for a ghost element that follows the pointer during drag. Use with Option.match to conditionally render.                                                                                                                           |
+| `isDragging(model)`              | `boolean`                  | —       | Whether a drag is currently in progress.                                                                                                                                                                                                                      |
+| `maybeDraggedItemId(model)`      | `Option<string>`           | —       | The ID of the item being dragged, if any.                                                                                                                                                                                                                     |
+| `maybeDropTarget(model)`         | `Option<DropTarget>`       | —       | The current drop target (containerId + index), if any.                                                                                                                                                                                                        |
 
 ### OutMessage {#out-message}
 
