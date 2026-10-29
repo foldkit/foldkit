@@ -266,19 +266,38 @@ const isDateDisabled = (model: Model, date: CalendarDate): boolean =>
   model.disabledDaysOfWeek.includes(Calendar.dayOfWeek(date)) ||
   model.disabledDates.some(Calendar.isEqual(date))
 
+const reverseDirection = (direction: 1 | -1): 1 | -1 =>
+  direction === 1 ? -1 : 1
+
 /** Walks from `start` in `direction`, returning the first non-disabled date
- * within `cap` steps. Falls back to `start` if every candidate is disabled. */
+ * within `cap` steps. */
+const findEnabledDate = (
+  model: Model,
+  start: CalendarDate,
+  direction: 1 | -1,
+  cap: number,
+): Option.Option<CalendarDate> =>
+  pipe(
+    cap,
+    Array.makeBy(step => Calendar.addDays(start, step * direction)),
+    Array.findFirst(date => !isDateDisabled(model, date)),
+  )
+
+/** Returns the first non-disabled date from `start` in `direction`. When that
+ * walk finds none, as happens when `start` was clamped onto a disabled
+ * `minDate` or `maxDate`, walks the other way. Returns `Option.none()` when
+ * both walks find only disabled dates. */
 const skipDisabled = (
   model: Model,
   start: CalendarDate,
   direction: 1 | -1,
   cap: number,
-): CalendarDate =>
+): Option.Option<CalendarDate> =>
   pipe(
-    cap,
-    Array.makeBy(step => Calendar.addDays(start, step * direction)),
-    Array.findFirst(date => !isDateDisabled(model, date)),
-    Option.getOrElse(() => start),
+    findEnabledDate(model, start, direction, cap),
+    Option.orElse(() =>
+      findEnabledDate(model, start, reverseDirection(direction), cap),
+    ),
   )
 
 const clampToRange = (model: Model, candidate: CalendarDate): CalendarDate => {
@@ -370,7 +389,8 @@ const commitSelection = (model: Model, date: CalendarDate): UpdateReturn => ({
 
 /** Applies a focus move to the model, clamping to the allowed range and
  * skipping disabled dates. Emits `ChangedViewMonth` if the move crossed a
- * month boundary. */
+ * month boundary. Leaves the model unchanged when no enabled date is within
+ * reach. */
 const applyFocusMove = (
   model: Model,
   candidate: CalendarDate,
@@ -378,31 +398,39 @@ const applyFocusMove = (
   cap: number,
 ): UpdateReturn => {
   const clamped = clampToRange(model, candidate)
-  const nextFocus = skipDisabled(model, clamped, direction, cap)
-  const crossedMonth =
-    nextFocus.year !== model.viewYear || nextFocus.month !== model.viewMonth
-  const nextModel = modifyFields(model, {
-    maybeFocusedDate: () => Option.some(nextFocus),
-    viewYear: () => nextFocus.year,
-    viewMonth: () => nextFocus.month,
+
+  return Option.match(skipDisabled(model, clamped, direction, cap), {
+    onNone: () => ({ model }),
+    onSome: nextFocus => {
+      const crossedMonth =
+        nextFocus.year !== model.viewYear || nextFocus.month !== model.viewMonth
+      const nextModel = modifyFields(model, {
+        maybeFocusedDate: () => Option.some(nextFocus),
+        viewYear: () => nextFocus.year,
+        viewMonth: () => nextFocus.month,
+      })
+
+      if (crossedMonth) {
+        return {
+          model: nextModel,
+          outMessage: OutMessage.ChangedViewMonth({
+            year: nextFocus.year,
+            month: nextFocus.month,
+          }),
+        }
+      } else {
+        return { model: nextModel }
+      }
+    },
   })
-  if (crossedMonth) {
-    return {
-      model: nextModel,
-      outMessage: OutMessage.ChangedViewMonth({
-        year: nextFocus.year,
-        month: nextFocus.month,
-      }),
-    }
-  } else {
-    return { model: nextModel }
-  }
 }
 
 /** Computes the focused-date cursor for a view-month change. Preserves the
  * current day-of-month (clamping to the new month's length when needed),
  * then runs the candidate through min/max clamping and disabled-date skipping
- * so the cursor always lands on a real, navigable cell. */
+ * so the cursor lands on a real, navigable cell. When the walk in `direction`
+ * finds no enabled date, walks the other way and accepts only a date in the
+ * new view month. Falls back to the clamped date otherwise. */
 const moveFocusForViewChange = (
   model: Model,
   year: number,
@@ -416,7 +444,22 @@ const moveFocusForViewChange = (
   const dayInNewMonth = Math.min(currentDay, Calendar.daysInMonth(year, month))
   const candidate = Calendar.make(year, month, dayInNewMonth)
   const clamped = clampToRange(model, candidate)
-  return skipDisabled(model, clamped, direction, DAY_SKIP_CAP)
+
+  return pipe(
+    findEnabledDate(model, clamped, direction, DAY_SKIP_CAP),
+    Option.orElse(() =>
+      pipe(
+        findEnabledDate(
+          model,
+          clamped,
+          reverseDirection(direction),
+          DAY_SKIP_CAP,
+        ),
+        Option.filter(date => date.year === year && date.month === month),
+      ),
+    ),
+    Option.getOrElse(() => clamped),
+  )
 }
 
 const applyViewMonthChange = (
@@ -441,8 +484,8 @@ const applyViewMonthChange = (
 }
 
 /** Direction the user moved when jumping to a new view year/month via grid
- * selection. Used by `skipDisabled` so a forward jump skips forward through
- * disabled dates and a backward jump skips backward. */
+ * selection. Used by `moveFocusForViewChange` so a forward jump skips
+ * forward through disabled dates and a backward jump skips backward. */
 const jumpDirection = (model: Model, year: number, month: number): 1 | -1 => {
   const next = Calendar.make(year, month, 1)
   const current = Calendar.make(model.viewYear, model.viewMonth, 1)
