@@ -16,6 +16,50 @@ sections below retain their original source pins and states as historical
 evidence. The user's publication approval and completed gates supersede the
 earlier holds.
 
+## Next preview: merge main and verify Effect 4.1
+
+- [ ] Merge the latest main into `codex/layers-and-submodels` before the next
+      preview release, including main's Effect 4.1 update once it lands.
+      Preserve the preview APIs and concurrent work when resolving conflicts.
+- [ ] Reassess Effect and related platform-package constraints after the merge.
+      Verify public types, packed consumers, SSR/hydration and one resolved
+      Effect runtime against the adopted 4.1 versions. The published 4.0.0 and
+      4.0.6 evidence does not establish 4.1 compatibility.
+- [ ] Rerun affected framework, application and compiler-performance gates
+      against the merged candidate before preparing its release approval.
+
+The user requested this ordering on October 29, after publishing `90746b32d2ca`.
+The next preview still requires separate publication approval.
+
+## October 29 upgrade feedback
+
+The [new migration report](https://github.com/foldkit/foldkit/pull/1655#issuecomment-6496365991)
+tests the published `90746b32d2ca` snapshot. Track local follow-ups separately
+from that published Ready snapshot.
+
+- [x] Reproduce npm's implicit platform-peer selection. Confirm both a root
+      `ERESOLVE` and a workspace installation containing Effect 4.0.0 and 4.0.6.
+      Verify exact matching pairs and a root transitive-peer override.
+- [x] Reproduce an upgrade retaining an older workspace snapshot. Verify the
+      documented package-tree and physical Effect-location commands against
+      mixed and coherent installs. A healthy old lockfile upgrades normally;
+      the reported irreparable prerelease lockfile needs its original inputs.
+- [x] Add actionable `MissingBuildId` guidance and a named-producer checked
+      assembly diagnostic while preserving their existing rejection contracts.
+- [x] Correct the active Camera snippets' stale Definition imports and
+      document the shared `resource.ts` home in organization and scaffold
+      guidance. Validate the copied split-file example against public types.
+- [x] Reconcile remaining context, test-import, Layer, Struct, Markdown and
+      Schema-alias feedback against the current contracts. Record the mixed
+      connected/local diagnostic limitation without claiming it is fixed.
+- [ ] After main's Effect 4.1 integration, refresh the supported-pair guidance
+      and add an npm workspace install/one-runtime gate against those actual
+      dependency constraints before release sign-off.
+
+The reporter retracted the mixed plain-result inferred-`any` report as a probe
+error. The earlier reports below preserve their original uncertainty.
+[Current assessment and verification](preview-stabilization-20261029.md).
+
 ## Current Blocks + Effect Layers release scope
 
 - [x] Reassess Model-aware general `makeStep` Message inference against the

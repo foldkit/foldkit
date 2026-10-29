@@ -243,6 +243,7 @@ A genuinely compact root lives in `application.ts`. Once the root is split, use 
 - `composition.ts` owns Bindings, parent OutMessage policy, child/Mount registration, `ApplicationComposition`, and its optional builder alias. It does not import root init, update, view, or the completed Block.
 - `block.ts` imports those implementations and assembles `ApplicationBlock`. Remove an emptied `application.ts`; do not retain it as an aggregation wrapper.
 - Commands belong to the feature whose update returns them. Keep small definitions alongside update or use feature-local `command.ts`. Compose local recipes there; extract `layer.ts` when the bundle is substantial or reused.
+- A resource accessor created by `FeatureDefinition.makeResource` belongs in the feature's `resource.ts`, importing its Definition from `definition.ts`. Commands and the lifecycle registry import that same accessor. The accessor module imports neither consumer and does not create a Composition.
 - `services.ts` supplies the root `ApplicationLayer` of ordinary Services. `entry.ts` chooses the Program host options, provides that Layer, and starts the Runtime. A test provider is `ApplicationTestLayer`.
 
 A split child uses the same named files and dependency direction. Keep `FooDefinition` only when its authoring members are used. The final `block.ts` may compose a small local EffectsLayer. Shared Mount definitions live in `mount.ts`. Each feature’s `index.ts` exports its completed Block; internal exports needed by siblings and tests do not widen that barrel.

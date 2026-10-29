@@ -10,6 +10,7 @@ src/
 +-- flags.ts               Startup Flags, when used
 +-- init.ts                Root initialization
 +-- command.ts             Root Commands and a small EffectsLayer
++-- resource.ts            Shared local resource accessors, when used
 +-- layer.ts               Substantial mixed or reused EffectsLayer
 +-- route.ts               Route union, URL parsing, and selectors
 +-- steps/
@@ -56,6 +57,7 @@ src/
 |       |   +-- composition.ts Bindings and complete registrations
 |       |   +-- dialog.ts      Substantial Dialog policy
 |       +-- command.ts
+|       +-- resource.ts      Shared local resource accessors, when used
 |       +-- mount.ts
 |       +-- init.ts
 |       +-- update.ts

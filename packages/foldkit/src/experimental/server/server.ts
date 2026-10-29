@@ -1084,7 +1084,11 @@ export class InvalidHydrationRoot extends Data.TaggedError(
  *
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
  */
-export class MissingBuildId extends Data.TaggedError('MissingBuildId')<{}> {}
+export class MissingBuildId extends Data.TaggedError('MissingBuildId')<{}> {
+  override get message(): string {
+    return 'Hydratable rendering requires a nonempty build id. Build client and server together with @foldkit/vite-plugin. For separate builds, set the same FOLDKIT_BUILD_ID during both builds, or pass the same options.buildId to renderToString and Runtime.hydrate. For output that will not hydrate, pass isHydratable: false.'
+  }
+}
 
 /** Union of the failures {@link renderToString} can produce.
  *

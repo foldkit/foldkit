@@ -25,6 +25,8 @@ Read both `package.json` and the package manager lockfile. `package.json` record
 
 Compare the source hash suffix across `foldkit`, `@foldkit/ui`, and every other Foldkit package the project declares. Their numeric version prefixes can differ because each package has its own version line. The source hash must agree. A project with different source hashes has a mixed snapshot and should be aligned before code migration.
 
+Read migration guidance and [Project Organization](/patterns/project-organization) on the deployment matching the target snapshot. Their rendered Markdown is also available by appending `.md` to the page path. GitHub source contains `::Snippet` references; the deployed Markdown includes those snippets' contents.
+
 ### Install one coherent target
 
 On an uploaded integration preview, the banner identifies the verified release and links to its exact package versions. The manifest's `packages` object is the authority for the exact version of every package in the snapshot. Update every Foldkit dependency the project declares to the corresponding exact version, update the lockfile with the project's package manager, and confirm that the resolved canary suffixes all name the manifest's `sourceCommit`.
@@ -32,6 +34,22 @@ On an uploaded integration preview, the banner identifies the verified release a
 Do not combine candidate packages with packages from the previous preview. Internal package dependencies are tested as one commit-addressed set.
 
 If the project enforces pnpm's `minimumReleaseAge`, a newly uploaded preview may be too recent to install. Preserve that policy and add only the exact `name@version` entries from the verified manifest to `minimumReleaseAgeExclude`. Do not disable the age check globally.
+
+### Verify an npm workspace upgrade
+
+Update the Foldkit declarations in every application and library workspace that shares the preview. An install targeting only one workspace can report "up to date" while another workspace still requests an older snapshot. Run the installation from the workspace root after updating those declarations, then inspect the resolved graph:
+
+::Snippet{name="previewNpmResolvedPackages" label="Inspecting resolved npm packages"}
+
+Compare every installed Foldkit canary suffix with the target manifest's `sourceCommit`, including nested workspace dependencies. A successful `npm ls` exit does not establish that all packages use one snapshot.
+
+Inspect the physical Effect installations too:
+
+::Snippet{name="previewNpmEffectLocations" label="Inspecting Effect installation locations"}
+
+The result lists installed Effect copies and their locations. Check that the application and its Foldkit packages resolve the same installation. A workspace can contain other copies used by separate applications or tools; inspect the dependency tree to establish which copies enter the application graph. Choose matching Effect and platform versions as described in [Effect compatibility](#effect-compatibility), then repeat both checks.
+
+After updating manifests and the lockfile, run `npm ci` to verify that the lockfile reproduces the intended graph. Preserve the existing lockfile while diagnosing an upgrade; an older workspace constraint can explain a retained version without a corrupt lockfile. If a prerelease lockfile still cannot resolve the declared target, retain the npm version, manifests, lockfile and error for a reproduction before attempting a wider lockfile regeneration.
 
 ## Upgrade from f3be22cfeefe
 
@@ -48,6 +66,14 @@ Run [the upgrade checks](#verify-the-upgrade), including public declaration outp
 ### Effect compatibility
 
 The candidate accepts the tested Effect versions through `4.0.0 || 4.0.6` peers. The browser-platform peer accepts the same two versions. Keep one resolved Effect runtime and choose platform releases whose own Effect peer ranges accept it: platform 4.0.6 requires Effect 4.0.6 or newer. Application and development dependencies can stay exactly pinned for reproducibility. Unverified releases are excluded because some upstream APIs are marked unstable and changed between these patches. This does not require a Block API migration.
+
+For an application on Effect 4.0.0, pin an already declared `@effect/platform-browser` dependency to 4.0.0 too, preserving its dependency placement. For Effect 4.0.6, use platform-browser 4.0.6. When only Foldkit requests platform-browser, npm can choose 4.0.6 for an Effect 4.0.0 application. That can fail with `ERESOLVE` or install a second Effect runtime inside a workspace.
+
+An npm workspace root can select the transitive peer with this `overrides` entry, merged into its existing `package.json`. Use it when platform-browser is not already a direct dependency; a direct dependency should carry the matching exact pin itself:
+
+::Snippet{name="previewNpmPlatformOverride" label="Selecting the transitive browser platform version"}
+
+This override selects the compatible 4.0.0 pair. It does not add support for an untested Effect version. Verify the installed graph with the [npm workspace checks](#verify-an-npm-workspace-upgrade).
 
 ### Authoring and lifecycle fixes
 

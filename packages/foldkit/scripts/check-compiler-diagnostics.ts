@@ -26,6 +26,7 @@ const diagnosticFragments = [
   "Types of property 'outMessage' are incompatible",
   'Block primary view must be authored with this Composition.makeView',
   'Block handler requirements must be provided locally or listed in hostHandlers',
+  'Block.assemble requires a FromAssembly annotation with typeof Model and typeof prepare',
 ]
 const invalidInitFragments = [
   "Property 'model' is missing",

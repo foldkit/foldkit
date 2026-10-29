@@ -2,14 +2,16 @@ import { Effect, Layer, Option, Schema, pipe } from 'effect'
 import { Block } from 'foldkit'
 
 import { TakePhoto } from './command'
+import { CameraComposition } from './composition'
+import { CameraDefinition } from './definition'
 import { init } from './init'
 import { Message } from './message'
 import type { Model } from './model'
-import { Camera, CameraComposition, CameraStream } from './resource'
+import { CameraStream } from './resource'
 import { update } from './update'
 import { view } from './view'
 
-const managedResources = Camera.makeManagedResources(entry => ({
+const managedResources = CameraDefinition.makeManagedResources(entry => ({
   camera: entry(
     'ManageCamera',
     Schema.Option(Schema.Struct({ facingMode: Schema.String })),
@@ -47,10 +49,7 @@ const prepare = () =>
     update,
     view,
     managedResources,
-    EffectsLayer: Layer.mergeAll(
-      TakePhoto.layer,
-      managedResources.camera.layer,
-    ),
+    EffectsLayer: Layer.mergeAll(TakePhoto.layer, managedResources.layer),
   })
 export const CameraBlock: Block.FromAssemblyWithView<
   typeof Model,

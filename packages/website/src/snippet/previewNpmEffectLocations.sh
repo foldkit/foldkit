@@ -1,0 +1,1 @@
+npm query '[name="effect"]'

@@ -26,8 +26,8 @@ import {
   Viewed,
 } from './from-assembly.accepted.js'
 
-// @ts-expect-error An inline producer cannot infer the explicit Model boundary.
 Block.assemble(() =>
+  // @ts-expect-error An inline producer cannot infer the explicit Model boundary.
   CountComposition.prepareBlock({ init, update, view, EffectsLayer }),
 )
 

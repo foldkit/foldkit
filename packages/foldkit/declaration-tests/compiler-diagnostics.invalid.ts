@@ -1,4 +1,4 @@
-import { Update } from 'foldkit'
+import { Block, Update } from 'foldkit'
 
 import {
   Binding,
@@ -24,3 +24,6 @@ Update.combineSteps(outMessageSteps)(model)
 
 Composition.prepareBlock({ init, update, view: () => null })
 Composition.prepareBlock({ init, update: saveUpdate, view })
+
+const prepare = () => Composition.prepareBlock({ init, update, view })
+Block.assemble(prepare)
