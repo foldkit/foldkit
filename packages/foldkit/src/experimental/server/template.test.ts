@@ -493,6 +493,50 @@ describe('injectIntoTemplate', () => {
     expect(result).not.toContain('canonical')
   })
 
+  it('replaces the color-scheme content, keeping sibling attributes intact', () => {
+    const template =
+      '<!doctype html><html><head><title>old</title>' +
+      '<meta name="color-scheme" data-source="shell" content="light dark">' +
+      '</head><body><div id="root"></div></body></html>'
+    const result = injectIntoTemplate(
+      template,
+      rendered({ colorScheme: 'dark' }),
+    )
+    expect(result).toContain(
+      '<meta name="color-scheme" data-source="shell" content="dark" />',
+    )
+    expect(result.split('name="color-scheme"')).toHaveLength(2)
+  })
+
+  it('matches the color-scheme name case-insensitively', () => {
+    const template =
+      '<!doctype html><html><head><title>old</title>' +
+      '<meta name="Color-Scheme" content="light">' +
+      '</head><body><div id="root"></div></body></html>'
+    const result = injectIntoTemplate(
+      template,
+      rendered({ colorScheme: 'dark' }),
+    )
+    expect(result).toContain('<meta name="Color-Scheme" content="dark" />')
+  })
+
+  it('leaves a template without a color-scheme meta unchanged at that spot', () => {
+    const result = injectIntoTemplate(
+      TEMPLATE,
+      rendered({ colorScheme: 'dark' }),
+    )
+    expect(result).toBe(injectIntoTemplate(TEMPLATE, rendered()))
+  })
+
+  it('leaves the color-scheme template value in place when the render omits it', () => {
+    const template =
+      '<!doctype html><html><head><title>old</title>' +
+      '<meta name="color-scheme" content="light dark">' +
+      '</head><body><div id="root"></div></body></html>'
+    const result = injectIntoTemplate(template, rendered())
+    expect(result).toContain('<meta name="color-scheme" content="light dark">')
+  })
+
   it('escapes an attribute-breaking canonical value', () => {
     const result = injectIntoTemplate(
       HEAD_TEMPLATE,

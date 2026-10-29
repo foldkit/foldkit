@@ -173,10 +173,10 @@ export type RoutingApplicationInit<
 
 /** Creates a Foldkit application that owns the page and returns a runtime that
  *  can be passed to `run`. The `view` returns a `Document`, so the runtime
- *  manages `document.title` and the canonical / og:url tags. Add a `routing`
- *  config for URL routing. Use one page-owning application per document. To
- *  mount an app scoped to a node without touching the document `<head>`, use
- *  `makeElement`. */
+ *  manages `document.title`, the color-scheme meta, and the canonical / og:url
+ *  tags. Add a `routing` config for URL routing. Use one page-owning
+ *  application per document. To mount an app scoped to a node without touching
+ *  the document `<head>`, use `makeElement`. */
 export function makeApplication<
   Model,
   Message extends { _tag: string },

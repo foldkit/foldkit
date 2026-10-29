@@ -33,10 +33,10 @@ const NEUTRAL_CONTEXT_PREFIX =
 const NEUTRAL_CONTEXT_SUFFIX = '</body></html>'
 
 // NOTE: the template's mutation targets (the container, the <title>, the
-// <html> element, and the canonical/og:url head elements) are located by
-// parsing the template with a real HTML tokenizer and reading each element's
-// source offsets, not by matching regular expressions. A regex cannot model
-// the tokenizer's states, so a `>` inside a quoted attribute, a
+// <html> element, and the color-scheme/canonical/og:url head elements) are
+// located by parsing the template with a real HTML tokenizer and reading each
+// element's source offsets, not by matching regular expressions. A regex cannot
+// model the tokenizer's states, so a `>` inside a quoted attribute, a
 // canonical-looking or container-looking string inside a <script>, the
 // script-data-double-escaped state, and a comment-terminating metadata value
 // all let context-blind matching write request or application text into an
@@ -680,7 +680,8 @@ export type InjectIntoTemplateOptions = Readonly<{
  * `data-foldkit-app` stamp and hydrates in place. The `Document` head fields
  * are stamped into the shell so the served HTML is correct before the runtime
  * boots: `title` replaces the `<title>` text, `lang` and `dir` are set on the
- * `<html>` element, `canonical` replaces the `href` of a
+ * `<html>` element, `colorScheme` replaces the `content` of a
+ * `<meta name="color-scheme">` element, `canonical` replaces the `href` of a
  * `<link rel="canonical">` element, and `ogUrl` replaces the `content` of a
  * `<meta property="og:url">` element. A field the render omits, or a head
  * element the template does not carry, leaves the template untouched at that
@@ -888,6 +889,25 @@ export const injectIntoTemplate = (
       end: startTag.endOffset,
       replacement: renderStartTag('html', attributes),
     })
+  }
+
+  if (rendered.colorScheme !== undefined && head !== undefined) {
+    const colorScheme = firstMatching(
+      head,
+      element =>
+        element.tagName === 'meta' &&
+        attributeValue(element, 'name')?.toLowerCase() === 'color-scheme',
+    )
+    if (colorScheme?.sourceCodeLocation != null) {
+      mutations.push({
+        start: colorScheme.sourceCodeLocation.startOffset,
+        end: colorScheme.sourceCodeLocation.endOffset,
+        replacement: renderVoidElement(
+          'meta',
+          withAttribute(colorScheme.attrs, 'content', rendered.colorScheme),
+        ),
+      })
+    }
   }
 
   if (rendered.canonical !== undefined && head !== undefined) {

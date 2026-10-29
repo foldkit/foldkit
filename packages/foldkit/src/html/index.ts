@@ -265,6 +265,44 @@ export const textDirectionToAttribute = (
   direction: TextDirection,
 ): 'ltr' | 'rtl' | 'auto' => textDirectionAttributes[direction]
 
+/** Color schemes the page supports, written to the `content` of
+ *  `<meta name="color-scheme">`. `Normal` renders the page in the browser's
+ *  default scheme. `LightDark` and `DarkLight` support both schemes, preferring
+ *  the first. `OnlyLight` and `OnlyDark` also stop the browser from forcing
+ *  another scheme on the page. */
+export const ColorScheme = Schema.Literals([
+  'Normal',
+  'Light',
+  'Dark',
+  'LightDark',
+  'DarkLight',
+  'OnlyLight',
+  'OnlyDark',
+])
+/** Color schemes the page supports, written to the `content` of
+ *  `<meta name="color-scheme">`. `Normal` renders the page in the browser's
+ *  default scheme. `LightDark` and `DarkLight` support both schemes, preferring
+ *  the first. `OnlyLight` and `OnlyDark` also stop the browser from forcing
+ *  another scheme on the page. */
+export type ColorScheme = typeof ColorScheme.Type
+
+const colorSchemeContents: Readonly<Record<ColorScheme, string>> = {
+  Normal: 'normal',
+  Light: 'light',
+  Dark: 'dark',
+  LightDark: 'light dark',
+  DarkLight: 'dark light',
+  OnlyLight: 'only light',
+  OnlyDark: 'only dark',
+}
+
+/** Maps a {@link ColorScheme} to the lowercase value written to the `content`
+ *  of `<meta name="color-scheme">`. Shared by the client runtime, which sets
+ *  it after each render, and server rendering, which stamps it into the served
+ *  shell so the scheme is correct on first paint. */
+export const colorSchemeToContent = (colorScheme: ColorScheme): string =>
+  colorSchemeContents[colorScheme]
+
 /** The complete output of a page-owning view. The runtime patches `body` into
  *  the application container, writes `title` to `document.title`, and manages
  *  the optional document metadata.
@@ -289,6 +327,13 @@ export const textDirectionToAttribute = (
  *  Server rendering returns only the canonical supplied by the view. It
  *  returns `ogUrl` when supplied or falls back to an explicit canonical.
  *
+ *  A supplied `colorScheme` is written to the `content` of
+ *  `<meta name="color-scheme">` and follows the same record, restore, and
+ *  remove rule as `canonical`. Server rendering returns it, so the served HTML
+ *  can declare the scheme before any stylesheet loads. A `color-scheme` other
+ *  than `normal` declared on the root element in a stylesheet overrides the
+ *  meta once that stylesheet loads.
+ *
  *  This is the return type of a `makeApplication` view. An application embedded
  *  at a node should use `makeElement`; its view returns `Html` and never changes
  *  the `<head>` or `<html>` element. */
@@ -296,6 +341,7 @@ export type Document = Readonly<{
   title: string
   lang?: string
   dir?: TextDirection
+  colorScheme?: ColorScheme
   canonical?: string
   ogUrl?: string
   body: Html

@@ -27,7 +27,7 @@ With a `routing` config, the program manages the URL bar. The init function rece
 
 The `routing` config has two handlers. `onUrlRequest` turns a clicked link into a Message, giving update the choice between internal and external navigation. `onUrlChange` turns the new URL into a Message so update can store the corresponding route in the Model. See [Routing & Navigation](/core/routing-and-navigation) for the full walkthrough.
 
-The view returns a `Document` rather than bare HTML. A `Document` contains the body plus the document-level state that `makeApplication` reapplies on every render. The tab title, the `<html>` language and direction, and the canonical and og\:url tags therefore stay in sync with the Model. [The Document](/core/view#the-document) lists every field.
+The view returns a `Document` rather than bare HTML. A `Document` contains the body plus the document-level state that `makeApplication` reapplies on every render. The tab title, the `<html>` language and direction, and the color-scheme, canonical, and og\:url tags therefore stay in sync with the Model. [The Document](/core/view#the-document) lists every field.
 
 ## makeElement {#make-element}
 

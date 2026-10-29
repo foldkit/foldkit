@@ -61,6 +61,45 @@ describe('renderDocument', () => {
     )
   })
 
+  it('declares the color scheme after the title and before author head markup and assets', () => {
+    const document = renderDocument(
+      { ...renderedApplication, colorScheme: 'dark' },
+      assets,
+      { head: '<meta name="theme-color" content="#000">' },
+    )
+    const colorSchemeMeta = '<meta name="color-scheme" content="dark" />'
+    const colorSchemeIndex = document.indexOf(colorSchemeMeta)
+
+    expect(document.split('name="color-scheme"')).toHaveLength(2)
+    expect(colorSchemeIndex).toBeGreaterThan(document.indexOf('</title>'))
+    expect(colorSchemeIndex).toBeLessThan(
+      document.indexOf('<meta name="theme-color"'),
+    )
+    expect(colorSchemeIndex).toBeLessThan(
+      document.indexOf('rel="modulepreload"'),
+    )
+    expect(colorSchemeIndex).toBeLessThan(document.indexOf('rel="stylesheet"'))
+  })
+
+  it('places the application color scheme before one in the author head markup', () => {
+    const document = renderDocument(
+      { ...renderedApplication, colorScheme: 'dark' },
+      assets,
+      { head: '<meta name="color-scheme" content="light">' },
+    )
+
+    expect(
+      document.indexOf('<meta name="color-scheme" content="dark" />'),
+    ).toBe(document.indexOf('<meta name="color-scheme"'))
+    expect(document).toContain('<meta name="color-scheme" content="light">')
+  })
+
+  it('declares no color scheme when the application omits it', () => {
+    const document = renderDocument(renderedApplication, assets)
+
+    expect(document).not.toContain('color-scheme')
+  })
+
   it('preserves the rendered root and Flags payload for hydration', () => {
     const application = {
       ...renderedApplication,

@@ -4,7 +4,7 @@ import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import type { Document } from '../../html/index.js'
+import type { ColorScheme, Document } from '../../html/index.js'
 import type { Html } from '../../html/index.js'
 import { __htmlBuilder, customElement } from '../../html/index.js'
 import type { RoutingApplicationConfigWithFlags } from '../../runtime/index.js'
@@ -118,6 +118,65 @@ describe('renderToString', () => {
 
       expect(rendered.lang).toBeUndefined()
       expect(rendered.dir).toBeUndefined()
+    }),
+  )
+
+  it.effect('surfaces the color scheme the view chose from Flags', () =>
+    Effect.gen(function* () {
+      const themedView = (model: Model): Document => ({
+        title: `Page ${model.pathname}`,
+        colorScheme: model.theme === 'dark' ? 'Dark' : 'Light',
+        body: h.div([], [h.h1([], [`At ${model.pathname}`])]),
+      })
+      const rendered = yield* renderToString(
+        { ...routingConfig, view: themedView },
+        { url: 'https://example.com/', flags: { theme: 'dark' } },
+      )
+
+      expect(rendered.colorScheme).toBe('dark')
+    }),
+  )
+
+  it.effect('writes every color scheme as its content value', () =>
+    Effect.gen(function* () {
+      const colorSchemeContents: ReadonlyArray<
+        Readonly<{ colorScheme: ColorScheme; content: string }>
+      > = [
+        { colorScheme: 'Normal', content: 'normal' },
+        { colorScheme: 'Light', content: 'light' },
+        { colorScheme: 'Dark', content: 'dark' },
+        { colorScheme: 'LightDark', content: 'light dark' },
+        { colorScheme: 'DarkLight', content: 'dark light' },
+        { colorScheme: 'OnlyLight', content: 'only light' },
+        { colorScheme: 'OnlyDark', content: 'only dark' },
+      ]
+
+      for (const { colorScheme, content } of colorSchemeContents) {
+        const rendered = yield* renderToString(
+          {
+            ...routingConfig,
+            view: (model: Model): Document => ({
+              title: `Page ${model.pathname}`,
+              colorScheme,
+              body: h.div([], [model.pathname]),
+            }),
+          },
+          { url: 'https://example.com/', flags: { theme: 'dark' } },
+        )
+
+        expect(rendered.colorScheme).toBe(content)
+      }
+    }),
+  )
+
+  it.effect('omits the color scheme when the Document does not set it', () =>
+    Effect.gen(function* () {
+      const rendered = yield* renderToString(routingConfig, {
+        url: 'https://example.com/',
+        flags: { theme: 'dark' },
+      })
+
+      expect(rendered).not.toHaveProperty('colorScheme')
     }),
   )
 

@@ -103,11 +103,11 @@ export type RuntimeConfig<
   view: (model: Model, h: HtmlBuilder<Message>) => Document
   /**
    * Whether the runtime owns document-level state. When `true`, each render
-   * applies the view's `title`, `canonical`, and `og:url` to the document
-   * `<head>`. When `false`, the runtime is scoped to its container and never
-   * touches the `<head>`, so an app can be embedded at a node without
-   * clobbering the host page's metadata. `makeApplication` sets this to `true`;
-   * `makeElement` sets it to `false`.
+   * applies the view's `title`, `colorScheme`, `canonical`, and `og:url` to
+   * the document `<head>`. When `false`, the runtime is scoped to its
+   * container and never touches the `<head>`, so an app can be embedded at a
+   * node without clobbering the host page's metadata. `makeApplication` sets
+   * this to `true`; `makeElement` sets it to `false`.
    */
   manageDocument: boolean
   subscriptions?: Subscriptions<

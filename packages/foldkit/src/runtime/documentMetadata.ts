@@ -1,6 +1,10 @@
-import { Array } from 'effect'
+import { Array, Option } from 'effect'
 
-import { Document, textDirectionToAttribute } from '../html/index.js'
+import {
+  Document,
+  colorSchemeToContent,
+  textDirectionToAttribute,
+} from '../html/index.js'
 
 type OwnedElement =
   | Readonly<{ _tag: 'Created'; element: HTMLElement }>
@@ -10,7 +14,7 @@ type OwnedElement =
       servedValue: string | undefined
     }>
 
-type HeadField = 'canonical' | 'ogUrl'
+type HeadField = 'colorScheme' | 'canonical' | 'ogUrl'
 
 type DocumentMetadataElements = Partial<Record<HeadField, OwnedElement>>
 
@@ -21,6 +25,14 @@ type HeadElementDescriptor = Readonly<{
   identityValue: string
   valueAttribute: string
 }>
+
+const COLOR_SCHEME_ELEMENT: HeadElementDescriptor = {
+  field: 'colorScheme',
+  tagName: 'meta',
+  identityAttribute: 'name',
+  identityValue: 'color-scheme',
+  valueAttribute: 'content',
+}
 
 const CANONICAL_ELEMENT: HeadElementDescriptor = {
   field: 'canonical',
@@ -42,6 +54,7 @@ type ResolvedDocumentMetadata = Readonly<{
   title: string
   lang: string | undefined
   dirAttribute: string | undefined
+  colorScheme: string | undefined
   canonical: string | undefined
   ogUrl: string | undefined
 }>
@@ -67,7 +80,7 @@ const observeDocumentMetadataMutations = (
   const observedHead = document.head
   observer.observe(observedHead, {
     attributes: true,
-    attributeFilter: ['rel', 'href', 'property', 'content'],
+    attributeFilter: ['rel', 'href', 'property', 'name', 'content'],
     childList: true,
     characterData: true,
     subtree: true,
@@ -109,10 +122,14 @@ const findOrCreateHeadElement = (
     return owned.element
   }
 
-  const found = document.head.querySelector<HTMLElement>(
-    `${descriptor.tagName}[${descriptor.identityAttribute}="${descriptor.identityValue}"]`,
+  const maybeFound = Array.findFirst(
+    document.head.querySelectorAll<HTMLElement>(descriptor.tagName),
+    element =>
+      element.getAttribute(descriptor.identityAttribute)?.toLowerCase() ===
+      descriptor.identityValue,
   )
-  if (found !== null) {
+  if (Option.isSome(maybeFound)) {
+    const found = maybeFound.value
     elements[descriptor.field] = {
       _tag: 'Found',
       element: found,
@@ -219,6 +236,7 @@ const reconcileDocumentMetadata = (
     documentElement.dir = nextMetadata.dirAttribute
   }
 
+  syncHeadElement(metadataState, COLOR_SCHEME_ELEMENT, nextMetadata.colorScheme)
   syncHeadElement(metadataState, CANONICAL_ELEMENT, nextMetadata.canonical)
   syncHeadElement(metadataState, OG_URL_ELEMENT, nextMetadata.ogUrl)
 
@@ -249,6 +267,10 @@ export const applyDocumentMetadata = (
     nextDocument.dir === undefined
       ? undefined
       : textDirectionToAttribute(nextDocument.dir)
+  const colorScheme =
+    nextDocument.colorScheme === undefined
+      ? undefined
+      : colorSchemeToContent(nextDocument.colorScheme)
 
   // NOTE: MutationObserver callbacks are asynchronous. Consume queued records
   // synchronously before trusting the unchanged fast path.
@@ -263,6 +285,7 @@ export const applyDocumentMetadata = (
     lastApplied.title === nextDocument.title &&
     lastApplied.lang === nextDocument.lang &&
     lastApplied.dirAttribute === dirAttribute &&
+    lastApplied.colorScheme === colorScheme &&
     lastApplied.canonical === nextDocument.canonical &&
     lastApplied.ogUrl === ogUrl
 
@@ -274,6 +297,7 @@ export const applyDocumentMetadata = (
     title: nextDocument.title,
     lang: nextDocument.lang,
     dirAttribute,
+    colorScheme,
     canonical: nextDocument.canonical,
     ogUrl,
   })

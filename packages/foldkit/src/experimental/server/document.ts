@@ -42,8 +42,9 @@ export type DocumentOptions = Readonly<{
 
 /** Renders a complete document with UTF-8, a viewport, application metadata,
  * stylesheets, module preloads, and the client entry. The application supplies
- * the title, language, direction, canonical URL, and Open Graph URL. Additional
- * head markup belongs to the server entry through {@link DocumentOptions}.
+ * the title, language, direction, color scheme, canonical URL, and Open Graph
+ * URL. Additional head markup belongs to the server entry through
+ * {@link DocumentOptions}.
  *
  * The rendered application's hydration markers and Flags payload are preserved.
  * Ambiguous application roots or handoff markers are rejected.
@@ -63,6 +64,10 @@ export const renderDocument = (
     href =>
       `<link rel="modulepreload" crossorigin href="${escapeAttributeValue(href)}">`,
   )
+  const colorScheme =
+    application.colorScheme === undefined
+      ? ''
+      : '<meta name="color-scheme" content="">'
   const canonical =
     application.canonical === undefined ? '' : '<link rel="canonical" href="">'
   const ogUrl =
@@ -71,6 +76,7 @@ export const renderDocument = (
     '<!doctype html>',
     `<html lang="${escapeAttributeValue(options.lang ?? 'en')}">`,
     '<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title></title>',
+    colorScheme,
     canonical,
     ogUrl,
     options.head ?? '',
