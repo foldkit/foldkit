@@ -16,6 +16,8 @@ import { modifyFields } from '../struct/index.js'
 
 export const INIT_INDEX = -1
 const DEFAULT_KEYFRAME_INTERVAL = 31
+const MIN_KEYFRAME_INTERVAL = 1
+const MIN_SEGMENTS_IN_HISTORY = 2
 const DEFAULT_MAX_ENTRIES = 100
 
 // DIFF
@@ -219,8 +221,13 @@ export const createDevToolsStore = (
 ): Effect.Effect<DevToolsStore> =>
   Effect.gen(function* () {
     const maxEntries = options.maxEntries ?? DEFAULT_MAX_ENTRIES
-    const keyframeInterval =
-      options.keyframeInterval ?? DEFAULT_KEYFRAME_INTERVAL
+    const keyframeInterval = Math.max(
+      MIN_KEYFRAME_INTERVAL,
+      Math.min(
+        options.keyframeInterval ?? DEFAULT_KEYFRAME_INTERVAL,
+        Math.floor(maxEntries / MIN_SEGMENTS_IN_HISTORY),
+      ),
+    )
     const stateRef = yield* SubscriptionRef.make(emptyState)
 
     const replayToIndex = (state: StoreState, index: number): unknown => {
