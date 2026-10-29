@@ -1,8 +1,9 @@
+import { Schema } from 'effect'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import { Circle, Group, Rect } from './shape.js'
+import { Circle, Group, Image, Rect } from './shape.js'
 
 describe('Group', () => {
   it('nests shapes under a transform', () => {
@@ -42,5 +43,79 @@ describe('Group', () => {
     })
     const tags = group.shapes.map(shape => shape._tag)
     expect(tags).toEqual(['Rect', 'Circle', 'Group'])
+  })
+})
+
+describe('Image', () => {
+  it('carries its source, destination box, crop, and rendering', () => {
+    const image = Image({
+      src: '/sprites.png',
+      x: 10,
+      y: 20,
+      width: 64,
+      height: 64,
+      crop: { x: 16, y: 0, width: 16, height: 16 },
+      rendering: 'Pixelated',
+    })
+    expect(image).toEqual({
+      _tag: 'Image',
+      src: '/sprites.png',
+      x: 10,
+      y: 20,
+      width: 64,
+      height: 64,
+      crop: { x: 16, y: 0, width: 16, height: 16 },
+      rendering: 'Pixelated',
+    })
+  })
+
+  it('round-trips through JSON', () => {
+    const image = Image({
+      src: 'data:image/png;base64,AAAA',
+      x: 0,
+      y: 0,
+      width: 8,
+      height: 8,
+      crop: { x: 0, y: 0, width: 4, height: 4 },
+    })
+    const decoded = Schema.decodeUnknownSync(Image)(
+      JSON.parse(JSON.stringify(image)),
+    )
+    expect(decoded).toEqual(image)
+  })
+
+  it('validates as a Group child', () => {
+    const group = Group({
+      shapes: [Image({ src: '/sprites.png', x: 0, y: 0, width: 8, height: 8 })],
+    })
+    expect(group.shapes[0]?._tag).toBe('Image')
+  })
+
+  it('rejects a rendering outside Smooth and Pixelated', () => {
+    expect(() =>
+      Schema.decodeUnknownSync(Image)({
+        _tag: 'Image',
+        src: '/sprites.png',
+        x: 0,
+        y: 0,
+        width: 8,
+        height: 8,
+        rendering: 'CrispEdges',
+      }),
+    ).toThrow()
+  })
+
+  it('rejects a crop missing its size', () => {
+    expect(() =>
+      Schema.decodeUnknownSync(Image)({
+        _tag: 'Image',
+        src: '/sprites.png',
+        x: 0,
+        y: 0,
+        width: 8,
+        height: 8,
+        crop: { x: 0, y: 0 },
+      }),
+    ).toThrow()
   })
 })

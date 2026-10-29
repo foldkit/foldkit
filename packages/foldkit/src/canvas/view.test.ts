@@ -17,11 +17,12 @@ import {
   datasetModule,
   eventListenersModule,
   init,
+  h as snabbdomH,
   styleModule,
   toVNode,
 } from '../snabbdom/index.js'
 import type { VNode } from '../vdom.js'
-import { Circle, Rect } from './shape.js'
+import { Circle, Image, Rect } from './shape.js'
 import { view } from './view.js'
 
 const patch = init([
@@ -109,8 +110,33 @@ const makeMockContext = () => {
     translate: record('translate'),
     rotate: record('rotate'),
     scale: record('scale'),
+    drawImage: (image: unknown, ...args: ReadonlyArray<unknown>) => {
+      calls.push(
+        `drawImage(${image instanceof HTMLImageElement},${args.join(',')})`,
+      )
+    },
+    imageSmoothingEnabled: true,
   } as unknown as CanvasRenderingContext2D
   return { context, calls }
+}
+
+const mockCalls = (): Array<string> =>
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  (globalThis as unknown as { __mockCalls: Array<string> }).__mockCalls
+
+const captureCreatedImages = (): ReadonlyArray<HTMLImageElement> => {
+  const images: Array<HTMLImageElement> = []
+  const createElement = document.createElement.bind(document)
+  vi.spyOn(document, 'createElement').mockImplementation(
+    (tagName: string, options?: ElementCreationOptions) => {
+      const element = createElement(tagName, options)
+      if (element instanceof HTMLImageElement) {
+        images.push(element)
+      }
+      return element
+    },
+  )
+  return images
 }
 
 describe('Canvas.view', () => {
@@ -280,5 +306,78 @@ describe('Canvas.view', () => {
       dispatch,
     )
     expect(vnode.data?.class).toBeUndefined()
+  })
+
+  it('repaints its latest scene when an image it drew finishes loading', () => {
+    const { dispatch } = createCapturingDispatch()
+    const images = captureCreatedImages()
+    const sprite = (x: number) =>
+      Image({
+        src: 'https://example.test/view-repaint.png',
+        x,
+        y: 0,
+        width: 16,
+        height: 16,
+      })
+    const renderScene = (x: number) =>
+      renderView(
+        () => view({ width: 100, height: 100, shapes: [sprite(x)] }, h),
+        dispatch,
+      )
+
+    const container = document.createElement('div')
+    const inserted = patch(toVNode(container), renderScene(10))
+    patch(inserted, renderScene(30))
+
+    const calls = mockCalls()
+    expect(calls.filter(call => call.startsWith('drawImage'))).toEqual([])
+
+    expect(images).toHaveLength(1)
+    const [image] = images
+    image?.dispatchEvent(new Event('load'))
+
+    expect(calls.filter(call => call.startsWith('drawImage'))).toEqual([
+      'drawImage(true,30,0,16,16)',
+    ])
+  })
+
+  it('does not repaint a removed canvas when its image loads', () => {
+    const { dispatch } = createCapturingDispatch()
+    const images = captureCreatedImages()
+    const vnode = renderView(
+      () =>
+        view(
+          {
+            width: 100,
+            height: 100,
+            shapes: [
+              Image({
+                src: 'https://example.test/view-removed.png',
+                x: 0,
+                y: 0,
+                width: 16,
+                height: 16,
+              }),
+            ],
+          },
+          h,
+        ),
+      dispatch,
+    )
+
+    const parent = document.createElement('div')
+    const container = document.createElement('div')
+    parent.appendChild(container)
+    const inserted = patch(toVNode(container), vnode)
+    patch(inserted, snabbdomH('div'))
+    expect(parent.querySelector('canvas')).toBeNull()
+
+    const calls = mockCalls()
+    const callCountBeforeLoad = calls.length
+    expect(images).toHaveLength(1)
+    const [image] = images
+    image?.dispatchEvent(new Event('load'))
+
+    expect(calls).toHaveLength(callCountBeforeLoad)
   })
 })
