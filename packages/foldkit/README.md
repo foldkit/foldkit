@@ -139,6 +139,28 @@ Routing, server rendering, UI components, composition, and browser lifecycles al
 - **Slow Warnings**: Development warnings when update, view, patch, or Subscription extraction exceeds its budget.
 - **Live Reload**: Vite plugin with state-preserving reloads. Save a file, the page reloads, and your Model is restored. Change your view, keep your state.
 
+## Structural DOM Tests
+
+`render` from `foldkit/test/dom` renders an Html or Document view for DOM queries and accessibility checkers. It requires a DOM environment such as happy-dom. Foldkit applies its own patch and shared-Html deduplication, then returns an attached wrapper and a `dispose()` handle.
+
+Pass a callback that calls your view with a fixed Model. For example, with an existing `view`, `model`, and `Message` type:
+
+```ts
+import { render } from 'foldkit/test/dom'
+
+const rendered = render<Message>(h => view(model, h))
+
+try {
+  expect(rendered.container.querySelector('h1')?.textContent).toBe('Settings')
+} finally {
+  rendered.dispose()
+}
+```
+
+A Document sets `document.title` and any supplied `lang` and `dir`; `dispose()` restores their prior values and removes the wrapper. Other head metadata is not applied. Renders share the current document, so dispose them in reverse order and run Document assertions sequentially.
+
+Mounts do not execute, and Foldkit event handlers are not installed. The helper does not run update, Commands, or Subscriptions. Use [Scene](https://foldkit.dev/testing/scene) for state transitions and a browser test for layout, focus, or accessibility that depends on Mount effects. Native custom elements can run their browser callbacks when attached.
+
 ## AI-Assisted Development
 
 Every feature has the same visible structure: a Schema-defined Model, fact-named Messages, exhaustive update, and explicit Commands. AI-generated changes follow code paths a person can inspect and test. Foldkit DevTools and its MCP server expose the same Model and Message history while the application runs.

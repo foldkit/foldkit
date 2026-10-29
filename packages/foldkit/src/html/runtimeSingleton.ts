@@ -1,4 +1,4 @@
-import type { Context } from 'effect'
+import { Array, type Context, Option } from 'effect'
 
 import {
   type BoundaryId,
@@ -14,8 +14,8 @@ import {
 /** Synchronous message dispatcher provided to view-time element constructors. */
 export type DispatchSync = (message: unknown) => void
 
-/** Identifies which kind of render acquired a Mount. */
-export type MountRenderOwner = 'Live' | 'Replay'
+/** Identifies the render policy for Mount dispatch and execution. */
+export type MountRenderOwner = 'Live' | 'Replay' | 'Static'
 
 /** Resolves the render-owned dispatcher for a Mount at insertion time. */
 export type MountDispatchResolver = Readonly<{
@@ -151,7 +151,12 @@ export const requireMountDispatch = (): DispatchSync => {
   return requireFrame().mountOuterDispatch
 }
 
-/** Returns whether the current frame is rendering the live or replayed view. */
+/** @internal Whether the active synchronous render suppresses Mount execution.
+ *  Checked at insertion time so cached Html follows the active renderer's policy. */
+export const isStaticRender = (): boolean =>
+  Option.exists(Array.last(stack), frame => frame.mountRenderOwner === 'Static')
+
+/** Returns whether the current frame is rendering a live, replayed, or static view. */
 export const requireMountRenderOwner = (): MountRenderOwner => {
   return requireFrame().mountRenderOwner
 }

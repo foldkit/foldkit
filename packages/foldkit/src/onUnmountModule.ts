@@ -1,3 +1,4 @@
+import { isStaticRender } from './html/runtimeSingleton.js'
 import {
   type Module,
   type VNode,
@@ -87,6 +88,10 @@ export const onUnmountModule: Module = {
     setOnUnmountData(data, previousOnUnmount)
   },
   destroy: vnode => {
+    if (isStaticRender()) {
+      return
+    }
+
     const onUnmount = getOnUnmountData(vnode)
     if (onUnmount?.owner !== 'Live') {
       return

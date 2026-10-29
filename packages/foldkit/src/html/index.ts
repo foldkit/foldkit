@@ -68,6 +68,7 @@ import {
   type MountRenderOwner,
   type UnmountResolver,
   clearRuntime,
+  isStaticRender,
   requireBoundaryMappers,
   requireDispatch,
   requireMountDispatchResolver,
@@ -2569,6 +2570,10 @@ const attributeHandlers: AttributeHandlers = {
       element: Element,
       previousFiber?: Fiber.Fiber<void>,
     ): void {
+      if (isStaticRender()) {
+        return
+      }
+
       const lifecycle: OnMountLifecycle = {
         isActive: true,
         isStarted: true,
