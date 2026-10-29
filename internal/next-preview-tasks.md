@@ -16,6 +16,83 @@ sections below retain their original source pins and states as historical
 evidence. The user's publication approval and completed gates supersede the
 earlier holds.
 
+## Next preview: merge main and verify Effect 4.1
+
+- [x] Prepare and resolve the current main sync at
+      `b702a5efbb74bebc056b798b414ddb923a82fbd5` on the isolated
+      `codex/preview-main-sync-20261029` branch. The incoming framework and UI
+      fixes already have Block-compatible implementations in the preview.
+      [Merge assessment and verification](preview-main-sync-20261029.md).
+- [x] Prepare main's Effect 4.1 update at
+      `af4b0bc7` on the isolated main-sync candidate, preserving the preview's
+      Block APIs, TypeScript compiler pins and security overrides.
+      [Effect 4.1 integration and verification](preview-effect41-20261029.md).
+- [x] Merge subsequent main `a471adb2`, including #1856's Playground startup
+      fix and #1854's generated package versions. Preserve preview-only APIs,
+      exact release-manifest support, security overrides and the published
+      Ready snapshot. [Latest synchronization](preview-main-sync-20261029.md#latest-main-follow-up).
+- [ ] Integrate the reviewed candidate into `codex/layers-and-submodels` before
+      the next preview release. Publication requires the user's approval.
+- [x] Verify the adopted Effect/platform 4.1.0 pair through public types, packed
+      consumers, SSR/hydration and one physical Effect installation shared by
+      the application and library workspaces. Published ranges accept 4.1 patches;
+      this run does not verify an unreleased patch or a different minor.
+- [x] Address the Effect 4.1 root `Crypto` removal reported in
+      [#1733](https://github.com/foldkit/foldkit/issues/1733#issuecomment-6500513592).
+      The contributor closed [#1851](https://github.com/foldkit/foldkit/pull/1851)
+      in favor of a `SecureRandom`/`NodeCrypto.layerSecureRandom` migration
+      coordinated with the dependency upgrade. The candidate uses those Services,
+      with matching platform providers and the adopted `~4.1.0` policy.
+- [x] Rerun affected framework, application and compiler-performance gates
+      against the merged candidate. Retain all seven existing compiler budgets.
+- [x] Reproduce and repair #1853's separate Mount self-removal defect on the
+      isolated preview candidate. Register the fiber and cleanup before setup,
+      retain replacement ordering and suppress delivery after removal. The
+      dependency upgrade alone did not include this repair.
+      [Regression evidence and integration scope](mount-setup-removal-20261029.md).
+
+The user requested this ordering on October 29, after publishing `90746b32d2ca`.
+The next preview still requires separate publication approval.
+
+## October 29 upgrade feedback
+
+The subsequent [mixed-result diagnostic repair](mixed-update-diagnostics-20261029.md)
+moves the existing check onto the offending handler and names the Step repair.
+The original assessment below retains its checkpoint and earlier limitations.
+
+The [new migration report](https://github.com/foldkit/foldkit/pull/1655#issuecomment-6496365991)
+tests the published `90746b32d2ca` snapshot. Track local follow-ups separately
+from that published Ready snapshot.
+
+- [x] Reproduce npm's implicit platform-peer selection. Confirm both a root
+      `ERESOLVE` and a workspace installation containing Effect 4.0.0 and 4.0.6.
+      Verify exact matching pairs and a root transitive-peer override.
+- [x] Reproduce an upgrade retaining an older workspace snapshot. Verify the
+      documented package-tree and physical Effect-location commands against
+      mixed and coherent installs. A healthy old lockfile upgrades normally;
+      the reported irreparable prerelease lockfile needs its original inputs.
+- [x] Add actionable `MissingBuildId` guidance and a named-producer checked
+      assembly diagnostic while preserving their existing rejection contracts.
+- [x] Improve the reported mixed raw-local/connected handler diagnostic in
+      ordinary and contextual records. Preserve accepted code, exact output
+      contracts, registration rejection and all seven compiler ceilings; verify
+      inline, extracted, source and relocated-declaration consumers.
+      [Scope and enforcement limits](mixed-update-diagnostics-20261029.md).
+- [x] Correct the active Camera snippets' stale Definition imports and
+      document the shared `resource.ts` home in organization and scaffold
+      guidance. Validate the copied split-file example against public types.
+- [x] Reconcile remaining context, test-import, Layer, Struct, Markdown and
+      Schema-alias feedback against the current contracts. Record the mixed
+      connected/local diagnostic limitation without claiming it is fixed.
+- [x] Refresh the current supported-pair guidance for Effect 4.1 and extend the
+      packed consumer gate with an npm application workspace and a shared-Schema
+      library workspace. Strict installation, exact types, shared runtime
+      resolution, execution and three-browser SSR/hydration pass.
+
+The reporter retracted the mixed plain-result inferred-`any` report as a probe
+error. The earlier reports below preserve their original uncertainty.
+[Current assessment and verification](preview-stabilization-20261029.md).
+
 ## Current Blocks + Effect Layers release scope
 
 - [x] Reassess Model-aware general `makeStep` Message inference against the

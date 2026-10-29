@@ -327,6 +327,17 @@ describe('renderToString', () => {
         )
 
         expect(error).toMatchObject({ _tag: 'MissingBuildId' })
+        expect(error.message).toContain(
+          'Hydratable rendering requires a nonempty build id',
+        )
+        expect(error.message).toContain('@foldkit/vite-plugin')
+        expect(error.message).toContain(
+          'same FOLDKIT_BUILD_ID during both builds',
+        )
+        expect(error.message).toContain(
+          'same options.buildId to renderToString and Runtime.hydrate',
+        )
+        expect(error.message).toContain('isHydratable: false')
       }),
   )
 

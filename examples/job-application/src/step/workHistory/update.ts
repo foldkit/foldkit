@@ -4,12 +4,7 @@ import { initAndAppend } from 'foldkit/bindingInit'
 
 import { GenerateWorkHistoryEntryId } from './command'
 import { EntriesBinding, WorkHistoryComposition } from './composition'
-import {
-  type Model,
-  makeCommandsStep,
-  makeFieldsStep,
-  makeNoopStep,
-} from './definition'
+import { type Model, makeCommandsStep, makeFieldsStep } from './definition'
 import {
   hasErrors as entryHasErrors,
   isComplete as isEntryComplete,
@@ -18,13 +13,11 @@ import {
 export const update = WorkHistoryComposition.makeUpdate({
   ClickedAddEntry: makeCommandsStep(() => [GenerateWorkHistoryEntryId()]),
 
-  SucceededGenerateWorkHistoryEntryId: (model, { entryId }) =>
+  CompletedGenerateWorkHistoryEntryId: (model, { entryId }) =>
     initAndAppend(EntriesBinding, model, {
       key: entryId,
       args: [entryId, model.today],
     }),
-
-  FailedGenerateWorkHistoryEntryId: makeNoopStep(),
 
   RemovedEntry: makeFieldsStep.fromMessage(({ entryId }) => ({
     entries: Array.filter(entry => entry.id !== entryId),

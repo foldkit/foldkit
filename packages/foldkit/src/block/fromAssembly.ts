@@ -108,6 +108,12 @@ type MissingAssemblyAnnotation = Readonly<{
   'Block.assemble requires a FromAssembly annotation with typeof Model and typeof prepare': never
 }>
 
+type AnnotatedAssemblyProducer<
+  ModelSchema extends AnySchema,
+  Producer extends AnyProducer,
+> = ([ModelSchema] extends [never] ? MissingAssemblyAnnotation : unknown) &
+  Producer
+
 type CompleteAssemblyArguments<
   ModelSchema extends AnySchema,
   Producer extends AnyProducer,
@@ -115,12 +121,12 @@ type CompleteAssemblyArguments<
 > =
   IsAny<ModelSchema> extends true
     ? readonly [error: never]
-    : [ModelSchema] extends [never]
-      ? readonly [missingFromAssemblyAnnotation: MissingAssemblyAnnotation]
-      : IsAny<Producer> extends true
+    : IsAny<Producer> extends true
+      ? readonly [error: never]
+      : [Producer] extends [never]
         ? readonly [error: never]
-        : [Producer] extends [never]
-          ? readonly [error: never]
+        : [ModelSchema] extends [never]
+          ? readonly []
           : [ProducedBlock<Producer>] extends [never]
             ? readonly [error: never]
             : [ProducedBlock<Producer>] extends [Capabilities]
@@ -301,7 +307,7 @@ export function assemble<
   const ModelSchema extends AnySchema = never,
   Producer extends AssemblyProducer<ModelSchema, Producer> = never,
 >(
-  producer: Producer,
+  producer: AnnotatedAssemblyProducer<ModelSchema, Producer>,
   ...validation: CompleteAssemblyArguments<
     ModelSchema,
     Producer,
@@ -312,7 +318,7 @@ export function assemble<
   const ModelSchema extends AnySchema = never,
   Producer extends AssemblyProducer<ModelSchema, Producer> = never,
 >(
-  producer: Producer,
+  producer: AnnotatedAssemblyProducer<ModelSchema, Producer>,
   ...validation: CompleteAssemblyArguments<
     ModelSchema,
     Producer,
@@ -323,7 +329,7 @@ export function assemble<
   const ModelSchema extends AnySchema = never,
   Producer extends AssemblyProducer<ModelSchema, Producer> = never,
 >(
-  producer: Producer,
+  producer: AnnotatedAssemblyProducer<ModelSchema, Producer>,
   ...validation: CompleteAssemblyArguments<
     ModelSchema,
     Producer,
@@ -334,7 +340,7 @@ export function assemble<
   const ModelSchema extends AnySchema = never,
   Producer extends AssemblyProducer<ModelSchema, Producer> = never,
 >(
-  producer: Producer,
+  producer: AnnotatedAssemblyProducer<ModelSchema, Producer>,
   ...validation: CompleteAssemblyArguments<
     ModelSchema,
     Producer,

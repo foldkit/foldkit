@@ -6,11 +6,11 @@ import {
   Data,
   Duration,
   Effect,
-  type ExecutionPlan,
+  ExecutionPlan,
   Exit,
   Fiber,
   HashMap,
-  type Layer,
+  Layer,
   Metric,
   type Option,
   pipe,
@@ -596,6 +596,27 @@ describe("Effect.catchIf", () => {
     )
     expect(_program).type.toBe<Effect.Effect<string, SimpleError>>()
   })
+
+  it("supports unknown refinement input in data-first usage", () => {
+    const result = Effect.catchIf(
+      mixedEffect,
+      (e: unknown): e is AiError => e instanceof AiError,
+      () => Effect.succeed("ok")
+    )
+    expect(result).type.toBe<Effect.Effect<string, OtherError>>()
+  })
+
+  it("does not widen to unknown with unrelated refinement in data-first usage", () => {
+    const result = Effect.catchIf(
+      mixedEffect,
+      (e: unknown): e is { _tag: "Whatever" } => (e as { _tag: string })._tag === "Whatever",
+      (e) => {
+        expect(e).type.toBe<AiError | OtherError>()
+        return Effect.succeed(12 as const)
+      }
+    )
+    expect(result).type.toBe<Effect.Effect<string | 12, AiError | OtherError>>()
+  })
 })
 
 describe("Effect.catchFilter", () => {
@@ -810,6 +831,29 @@ describe("Effect.unwrapReason", () => {
     expect(result).type.toBe<
       Effect.Effect<string, RateLimitError | QuotaExceededError | UnknownAiModelError | OtherError>
     >()
+  })
+})
+
+describe("Effect.fnUntraced", () => {
+  it("with self", () => {
+    const fn = Effect.fnUntraced({ self: { value: 1 } }, function*(amount: number) {
+      return yield* Effect.fail(this.value + amount)
+    })
+    expect(fn).type.toBe<(amount: number) => Effect.Effect<never, number, never>>()
+  })
+
+  it("with self and pipe arguments", () => {
+    const fn = Effect.fnUntraced(
+      { self: { value: 1 } },
+      function*(amount: number) {
+        return this.value + amount
+      },
+      Effect.map((x) => {
+        expect(x).type.toBe<number>()
+        return String(x)
+      })
+    )
+    expect(fn).type.toBe<(amount: number) => Effect.Effect<string, never, never>>()
   })
 })
 
@@ -1439,6 +1483,44 @@ describe("Effect.withExecutionPlan", () => {
     const result = Effect.withExecutionPlan(self, plan)
     expect(result).type.toBe<Effect.Effect<number, string, "other-dep" | "plan-dep">>()
   })
+
+  it("tracks predicate errors and requirements with an unconditional fallback", () => {
+    class Dep extends Context.Service<Dep, number>()("Dep") {}
+    const predicatePlan = ExecutionPlan.make({
+      provide: Layer.empty,
+      while: () => Effect.flatMap(Dep, () => Effect.fail("predicate-failed" as const))
+    }, { provide: Layer.empty })
+    const result = Effect.withExecutionPlan(Effect.fail("operation-failed" as const), predicatePlan)
+    expect(result).type.toBe<Effect.Effect<never, "operation-failed" | "predicate-failed", Dep>>()
+  })
+
+  it("tracks layer requirements with a context fallback", () => {
+    class Dep extends Context.Service<Dep, number>()("Dep") {}
+    const layerPlan = ExecutionPlan.make({
+      provide: Layer.effect(Dep, Effect.flatMap(Dep, () => Effect.fail("layer-failed" as const)))
+    }, { provide: Context.empty() })
+    const result = Effect.withExecutionPlan(Effect.fail("operation-failed" as const), layerPlan)
+    expect(result).type.toBe<Effect.Effect<never, "operation-failed" | "layer-failed", Dep>>()
+  })
+
+  it("tracks schedule errors and requirements with an unscheduled fallback", () => {
+    class PolicyService extends Context.Service<PolicyService, number>()("PolicyService") {}
+    const schedulePlan = ExecutionPlan.make({
+      provide: Layer.empty,
+      schedule: Schedule.map(
+        Schedule.forever,
+        () => Effect.flatMap(PolicyService, () => Effect.fail("policy-failed" as const))
+      )
+    }, { provide: Layer.empty })
+    const result = Effect.withExecutionPlan(Effect.fail("operation-failed" as const), schedulePlan)
+    expect(result).type.toBe<Effect.Effect<never, "operation-failed" | "policy-failed", PolicyService>>()
+    const capturedResult = Effect.flatMap(schedulePlan.captureRequirements, (captured) => {
+      const result = Effect.withExecutionPlan(Effect.fail("operation-failed" as const), captured)
+      expect(result).type.toBe<Effect.Effect<never, "operation-failed" | "policy-failed">>()
+      return result
+    })
+    expect(capturedResult).type.toBe<Effect.Effect<never, "operation-failed" | "policy-failed", PolicyService>>()
+  })
 })
 
 describe("Effect.cachedWithTTL", () => {
@@ -1458,6 +1540,26 @@ describe("Effect.cachedWithTTL", () => {
     }))
 
     expect(cached).type.toBe<Effect.Effect<Effect.Effect<number, "err-2", "dep-2">>>()
+  })
+})
+
+describe("Effect.cachedInvalidateWithTTL", () => {
+  it("data-first", () => {
+    const cached = Effect.cachedInvalidateWithTTL(number, (exit) => {
+      expect(exit).type.toBe<Exit.Exit<number, "err-2">>()
+      return Exit.isSuccess(exit) ? Duration.seconds(exit.value) : 0
+    })
+
+    expect(cached).type.toBe<Effect.Effect<[Effect.Effect<number, "err-2", "dep-2">, Effect.Effect<void>]>>()
+  })
+
+  it("data-last", () => {
+    const cached = number.pipe(Effect.cachedInvalidateWithTTL((exit) => {
+      expect(exit).type.toBe<Exit.Exit<number, "err-2">>()
+      return Exit.isSuccess(exit) ? "1 second" : 0
+    }))
+
+    expect(cached).type.toBe<Effect.Effect<[Effect.Effect<number, "err-2", "dep-2">, Effect.Effect<void>]>>()
   })
 })
 

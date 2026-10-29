@@ -21,7 +21,7 @@ export type ActiveInstance = {
   binding?: object
   startBarrier?: EffectType<void>
   resources: Context.Context<never>
-  mounts: Set<Fiber.Fiber<void>>
+  mounts: Set<Fiber.Fiber<unknown, unknown>>
   children: Map<object, Map<InstanceKey | undefined, ActiveInstance>>
 }
 

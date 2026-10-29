@@ -82,7 +82,7 @@ Name an extracted handler dedicated to one Message `handle<MessageTag>`, such as
 
 If a single handler mixes connected Binding recipes with local results, use canonical local results. Definition-owned Steps supply those result contracts. Return the connected recipe intact, and use `makeFieldsStep`, `makeCommandsStep`, `makeNoopStep`, or `makeStep` for its local branches. A raw `{ model }` beside a connected recipe is rejected because structural inference can otherwise erase Commands or OutMessages before Composition sees them. Ordinary raw-only handlers remain supported.
 
-The diagnostic **“Local results beside connected operations must use Definition-owned Steps to preserve Commands and OutMessages”** applies to branches within one handler. Another handler returning only `{ model }` does not need a wrapper. These two handlers differ only in the local branch's result contract:
+The diagnostic **“Raw local branches beside connected or Definition-owned Steps must use Definition.makeStep or a focused Step helper”** identifies the handler that mixes those results. It applies to branches within one handler. Another handler returning only `{ model }` does not need a wrapper. These two handlers differ only in the local branch's result contract:
 
 ::Snippet{name="updateMixedConnectedBranchesBefore" label="❌ Mixing a raw local result with a connected recipe"}
 

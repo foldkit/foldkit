@@ -127,6 +127,8 @@ The operation below produces `InformedOfRouteChange`; update owns the resulting 
 
 Use a tuple producer under `operations` when the public inputs need mapping, refinement, defaults, or an exact context tuple. It returns `[Message, ...context]`; inline array literals receive tuple context from `prepareBlock`, and an extracted producer uses `Tuple.make`. Message constructors and tuple producers complete through the same update path. Keep pure helpers for selectors and derived view inputs. Use standalone or Definition-owned Steps for internal composition, and omit `operations` when the Block declares no named operations. See [Calling update as a Step](/core/update#calling-update-as-a-step) for internal curried update composition and the required-context adapter.
 
+An operation must supply the child's required update context even when its selected handler does not read it. The `makeUpdate.withContext` factory runs before selecting the handler and can read that context while constructing the record. A tuple producer can supply a meaningful fixed context or derive it from the operation's inputs. `delivery.toUpdateContext` supplies context for incoming child Messages; it does not supply arguments to an explicitly called operation.
+
 Binding operations retain the exact argument types, Command requirements, Binding requirement, and OutMessage behavior of the child operation.
 
 :::Info{label="Completion inference"}

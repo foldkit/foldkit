@@ -4,12 +4,7 @@ import { initAndAppend } from 'foldkit/bindingInit'
 
 import { GenerateSkillsEntryId } from './command'
 import { EntriesBinding, SkillsComposition } from './composition'
-import {
-  type Model,
-  makeCommandsStep,
-  makeFieldsStep,
-  makeNoopStep,
-} from './definition'
+import { type Model, makeCommandsStep, makeFieldsStep } from './definition'
 import {
   hasErrors as entryHasErrors,
   isComplete as isEntryComplete,
@@ -18,13 +13,11 @@ import {
 export const update = SkillsComposition.makeUpdate({
   ClickedAddEntry: makeCommandsStep(() => [GenerateSkillsEntryId()]),
 
-  SucceededGenerateSkillsEntryId: (model, { entryId }) =>
+  CompletedGenerateSkillsEntryId: (model, { entryId }) =>
     initAndAppend(EntriesBinding, model, {
       key: entryId,
       args: [entryId],
     }),
-
-  FailedGenerateSkillsEntryId: makeNoopStep(),
 
   RemovedEntry: makeFieldsStep.fromMessage(({ entryId }) => ({
     entries: Array.filter(entry => entry.id !== entryId),

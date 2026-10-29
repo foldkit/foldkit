@@ -609,6 +609,13 @@ type AuthoredOutputForm<Output> =
       : 'Raw'
     : 'Connected'
 
+type ValidateMixedAuthoredOutput<Output> =
+  'Connected' | 'Raw' extends AuthoredOutputForm<Output>
+    ? Readonly<{
+        'Raw local branches beside connected or Definition-owned Steps must use Definition.makeStep or a focused Step helper': never
+      }>
+    : unknown
+
 type ValidateAuthoredUpdate<
   Model,
   Message,
@@ -619,19 +626,13 @@ type ValidateAuthoredUpdate<
   ValidateAuthoredRecipeChannels<Model, Message, OutMessage, Output> &
   ValidateMixedRawChannels<Model, Message, OutMessage, Output> &
   ValidateAuthoredEvidence<Output> &
-  ('Connected' | 'Raw' extends AuthoredOutputForm<Output>
+  (HasInvalidCombinedStepsRegistration<
+    Update.RegistrationEvidenceOf<ResolvedAuthoredOutput<Output, Bindings>>
+  > extends true
     ? Readonly<{
-        'Local results beside connected operations must use Definition-owned Steps to preserve Commands and OutMessages': never
+        'Update.combineSteps cannot discard an OutMessage produced by a registered child Binding policy; return that bound operation directly': never
       }>
-    : HasInvalidCombinedStepsRegistration<
-          Update.RegistrationEvidenceOf<
-            ResolvedAuthoredOutput<Output, Bindings>
-          >
-        > extends true
-      ? Readonly<{
-          'Update.combineSteps cannot discard an OutMessage produced by a registered child Binding policy; return that bound operation directly': never
-        }>
-      : unknown)
+    : unknown)
 
 type AuthoredMessageArguments<Message> = [Message] extends [never]
   ? readonly []
@@ -721,7 +722,8 @@ type AuthoredUpdateCases<
               NoInfer<Outputs>[Tag],
               Bindings
             >
-        >
+        > &
+          ValidateMixedAuthoredOutput<NoInfer<Outputs>[Tag]>
 }
 
 type ContextualUpdateCases<
@@ -799,7 +801,8 @@ type ValidatedContextualUpdateCases<
               NoInfer<Outputs>[Tag],
               Bindings
             >
-        >
+        > &
+          ValidateMixedAuthoredOutput<NoInfer<Outputs>[Tag]>
 }
 
 type OutputChannels<Tag, Output> = readonly [

@@ -28,22 +28,10 @@ describe('workHistory', () => {
       Command.expectHas(GenerateWorkHistoryEntryId),
       Command.resolve(
         GenerateWorkHistoryEntryId,
-        Message.SucceededGenerateWorkHistoryEntryId({ entryId: 'test-work-1' }),
+        Message.CompletedGenerateWorkHistoryEntryId({ entryId: 'test-work-1' }),
       ),
       model(model => {
         expect(model.entries).toHaveLength(2)
-      }),
-    )
-  })
-
-  test('FailedGenerateWorkHistoryEntryId leaves the entries unchanged', () => {
-    story(
-      update,
-      givenInitial,
-      message(Message.FailedGenerateWorkHistoryEntryId()),
-      Command.expectNone(),
-      model(model => {
-        expect(model).toEqual(init(today, 'work-history-entry-1').model)
       }),
     )
   })

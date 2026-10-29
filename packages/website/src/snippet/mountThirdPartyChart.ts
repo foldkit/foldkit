@@ -28,6 +28,7 @@ const MountChart = Mount.define('MountChart', {
             Effect.map(({ Chart }) => new Chart(element, { data })),
           ),
           chart => Effect.sync(() => chart.destroy()),
+          { interruptible: true },
         )
         return Message.SucceededMountChart()
       }).pipe(

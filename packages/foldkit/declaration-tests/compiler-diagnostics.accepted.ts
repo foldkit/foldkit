@@ -3,6 +3,7 @@ import { Update } from 'foldkit'
 import {
   Binding,
   Composition,
+  Definition,
   Save,
   connectedSteps,
   deferredConnectedStep,
@@ -28,6 +29,25 @@ export const deferredConnectedUpdate = Composition.makeUpdate({
   Clicked: deferredConnectedStep,
   CompletedSave: deferredConnectedStep,
 })
+
+const keepModelStep = Definition.makeNoopStep()
+const keepModelWithStep = Definition.makeStep(model => ({ model }))
+
+export const mixedConnectedUpdate = Composition.makeUpdate({
+  Clicked: model =>
+    model.child.count > 0
+      ? Binding.requestIncrement()(model)
+      : keepModelStep(model),
+  CompletedSave: model => ({ model }),
+})
+
+export const mixedContextualUpdate = Composition.makeUpdate.withContext(
+  (isEnabled: boolean) => ({
+    Clicked: model =>
+      isEnabled ? Binding.requestIncrement()(model) : keepModelWithStep(model),
+    CompletedSave: model => ({ model }),
+  }),
+)
 
 export const ordinaryBlock = Composition.prepareBlock({ init, update, view })
 export const locallyHandledBlock = Composition.prepareBlock({

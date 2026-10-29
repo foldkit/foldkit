@@ -55,6 +55,8 @@ Commands belong to the feature whose update returns them. Keep small definitions
 
 Put shared local Mount definitions in `mount.ts`. Both Composition and view import them from that module. Defining a Mount inside `view.ts` would make Composition import the view that already imports Composition.
 
+Put a resource accessor created by `FeatureDefinition.makeResource` in the feature's `resource.ts`, importing the Definition from `definition.ts`. The lifecycle registry and Commands import that same accessor from `resource.ts`. The accessor module does not import either consumer or create a Composition. See [Managed Resources](/core/managed-resources#defining-the-lifecycle).
+
 ### Shared Steps
 
 `update.ts` maps incoming Messages to handlers and Steps. `composition.ts` registers relationships and maps child OutMessages to parent Steps. Put a reusable Step shared by those modules or init in the owning Block's `steps.ts`. Keep a Step used by only one responsibility with that code.

@@ -16,7 +16,7 @@ Create the handle accessor from the named feature with `FeatureDefinition.makeRe
 
 Give each entry a stable local handler name and set `config.handler` to a generator constructor that returns both `acquire` and `release`. Both functions are required whenever the handler is supplied. The entry exposes that attached recipe as `.layer`. When every entry has an attached handler, include the owned registry's `managedResources.layer` in the local `EffectsLayer` and pass the registry under `managedResources` to `FeatureComposition.prepareBlock`. `Block.assemble` then creates the Block that carries the lifecycle registrations and handler graph through parent Bindings. The root follows the same producer and finisher sequence, while `program.provide(layer)` supplies any ordinary Services the handler recipes still require. The constructed handler lasts for the application lifetime; each handle it acquires still starts and stops according to the Model.
 
-Put the named authoring value and resource accessor in a shared module. The lifecycle registry and Commands must import the same accessor definition.
+Keep `CameraDefinition` in `definition.ts` and its Composition in `composition.ts`. Put the `CameraStream` accessor in `resource.ts`, importing the Definition. Both the lifecycle registry and Commands import that same accessor from `resource.ts`, which imports neither consumer. This gives them one identity without a cycle through Block assembly.
 
 ::Snippet{name="managedResourcesDefinition" label="Defining a shared resource accessor"}
 

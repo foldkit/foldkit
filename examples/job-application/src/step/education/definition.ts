@@ -12,8 +12,7 @@ export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ClickedAddEntry: {},
-  SucceededGenerateEducationEntryId: { entryId: Schema.String },
-  FailedGenerateEducationEntryId: {},
+  CompletedGenerateEducationEntryId: { entryId: Schema.String },
   RemovedEntry: { entryId: Schema.String },
   RequestedRevealErrors: {},
 })
@@ -28,5 +27,4 @@ export const EducationDefinition = Block.makeDefinition('Education', {
   }),
 })
 
-export const { makeFieldsStep, makeCommandsStep, makeNoopStep } =
-  EducationDefinition
+export const { makeFieldsStep, makeCommandsStep } = EducationDefinition

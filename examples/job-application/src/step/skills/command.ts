@@ -1,26 +1,23 @@
-import { Crypto, Effect } from 'effect'
+import { Effect } from 'effect'
+import { SecureRandom } from 'effect/crypto'
 
 import { Message, SkillsDefinition } from './definition'
 
 export const GenerateSkillsEntryId = SkillsDefinition.makeCommand(
   'GenerateSkillsEntryId',
   {
-    messages: [
-      Message.SucceededGenerateSkillsEntryId,
-      Message.FailedGenerateSkillsEntryId,
-    ],
+    messages: [Message.CompletedGenerateSkillsEntryId],
     handler: function* () {
-      const crypto = yield* Crypto.Crypto
+      const secureRandom = yield* SecureRandom.SecureRandom
 
       return () =>
-        crypto.randomUUIDv4.pipe(
-          Effect.map(entryId =>
-            Message.SucceededGenerateSkillsEntryId({ entryId }),
-          ),
-          Effect.catch(() =>
-            Effect.succeed(Message.FailedGenerateSkillsEntryId()),
-          ),
-        )
+        secureRandom
+          .uuidV4()
+          .pipe(
+            Effect.map(entryId =>
+              Message.CompletedGenerateSkillsEntryId({ entryId }),
+            ),
+          )
     },
   },
 )

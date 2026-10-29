@@ -137,6 +137,7 @@ export const MountMap = ApplicationDefinition.makeMountStream('MountMap', {
               Effect.sync(() => map.remove()).pipe(
                 Effect.ensuring(maps.remove(hostId, map)),
               ),
+            { interruptible: true },
           )
           const { map, maplibre } = mapResource
 
