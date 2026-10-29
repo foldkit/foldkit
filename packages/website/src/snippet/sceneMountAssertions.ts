@@ -9,9 +9,9 @@ Mount.resolve(Popover.AnchorPopover, Popover.Message.CompletedAnchorPopover())
 
 // Multiple Mounts. Opening a modal Listbox renders both the items container
 // (positioning) and a backdrop (portaled to body), so two Mounts fire.
+// resolveAllExact resolves both and throws unless exactly these are pending.
 click(role('button', { name: 'Pick a fruit' }))
-Mount.expectExact(Listbox.AnchorListbox, Listbox.PortalListboxBackdrop)
-Mount.resolveAll(
+Mount.resolveAllExact(
   [Listbox.AnchorListbox, Listbox.Message.CompletedAnchorListbox()],
   [
     Listbox.PortalListboxBackdrop,
