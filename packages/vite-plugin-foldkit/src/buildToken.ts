@@ -14,15 +14,33 @@ import { isFoldkitSingletonPackageSpecifier } from './foldkitPackages.js'
 // and a later builder in the same process gets a fresh value. Separately
 // invoked builds have no shared session and must receive an explicit value.
 //
-// Foldkit's own build-token module contains a placeholder call. This transform
-// replaces that call in both artifacts, which lets Runtime.hydrate and
-// renderToString consume the value without application forwarding. Installed
-// Foldkit must therefore participate in the server build; the aggregate plugin
-// configures that boundary and the post-build check refuses an artifact that
-// still imports Foldkit externally.
+// Foldkit's own build-token module contains a placeholder call. In a build,
+// this transform replaces that call with the id literal in both artifacts,
+// which lets Runtime.hydrate and renderToString consume the value without
+// application forwarding. Installed Foldkit must therefore participate in the
+// server build; the aggregate plugin configures that boundary and the
+// post-build check refuses an artifact that still imports Foldkit externally.
+//
+// A dev server holds one id for all of its environments. In serve mode the
+// transform replaces the placeholder with a binding imported from a virtual
+// module, and that module exports the id of the running dev server.
 
 const BUILD_ID_ENVIRONMENT_VARIABLE = 'FOLDKIT_BUILD_ID'
 const FRAMEWORK_BUILD_ID_PLACEHOLDER = 'foldkitBuildIdPlaceholder()'
+const DEVELOPMENT_BUILD_ID_BINDING = '__foldkitDevelopmentBuildId'
+
+/** The id that Foldkit's build-token module imports in serve mode.
+ *
+ * @internal Exported for tests.
+ */
+export const DEVELOPMENT_BUILD_ID_MODULE_ID =
+  'virtual:foldkit/development-build-id'
+
+/** The id the plugin resolves `DEVELOPMENT_BUILD_ID_MODULE_ID` to.
+ *
+ * @internal Exported for tests.
+ */
+export const RESOLVED_DEVELOPMENT_BUILD_ID_MODULE_ID = `\0${DEVELOPMENT_BUILD_ID_MODULE_ID}`
 
 type BuildIdentitySession = {
   readonly buildId: string | undefined
@@ -129,6 +147,9 @@ const replaceAll = (
   return didReplace
 }
 
+const buildIdLiteral = (buildId: string | undefined): string =>
+  buildId === undefined ? 'undefined' : JSON.stringify(buildId)
+
 const isFoldkitBuildTokenModule = (id: string): boolean => {
   const fileName = (id.split('?', 1)[0] ?? '').replaceAll('\\', '/')
   return (
@@ -161,18 +182,41 @@ const transformBuildIdentity = (
     return undefined
   }
 
-  const buildId = buildIdForConfig(config, configuredBuildId)
-  const replacement =
-    buildId === undefined ? 'undefined' : JSON.stringify(buildId)
   const transformed = new MagicString(code)
-  const transformedFramework = replaceAll(
-    transformed,
-    code,
-    FRAMEWORK_BUILD_ID_PLACEHOLDER,
-    replacement,
-  )
-  if (!transformedFramework) {
-    return undefined
+
+  if (config.command === 'serve') {
+    // NOTE: Vite serves files from node_modules with `?v=<browserHash>` and an
+    // `immutable` Cache-Control header, and the hash does not depend on the
+    // build id. A browser therefore reuses this module from an earlier dev
+    // server. Vite serves a virtual module with `no-cache` and an ETag, so the
+    // browser revalidates the id on each load.
+    const transformedFramework = replaceAll(
+      transformed,
+      code,
+      FRAMEWORK_BUILD_ID_PLACEHOLDER,
+      DEVELOPMENT_BUILD_ID_BINDING,
+    )
+
+    if (!transformedFramework) {
+      return undefined
+    }
+
+    transformed.prepend(
+      `import { buildId as ${DEVELOPMENT_BUILD_ID_BINDING} } from '${DEVELOPMENT_BUILD_ID_MODULE_ID}';\n`,
+    )
+  } else {
+    const buildId = buildIdForConfig(config, configuredBuildId)
+
+    const transformedFramework = replaceAll(
+      transformed,
+      code,
+      FRAMEWORK_BUILD_ID_PLACEHOLDER,
+      buildIdLiteral(buildId),
+    )
+
+    if (!transformedFramework) {
+      return undefined
+    }
   }
 
   return {
@@ -202,7 +246,9 @@ const verifyBuildIdentity = (builder: ViteBuilder): void => {
   )
 }
 
-/** Compiles one build identity into application entries and Foldkit itself.
+/** Supplies one build identity to application entries and Foldkit itself. A
+ *  build inlines the id in Foldkit's build-token module, and a dev server
+ *  serves it from a virtual module that the browser revalidates.
  *
  * @internal
  */
@@ -238,6 +284,25 @@ export const foldkitBuildToken = (
             verifyFrameworkIdentity,
           )
         },
+      },
+      resolveId(id) {
+        if (id === DEVELOPMENT_BUILD_ID_MODULE_ID) {
+          return RESOLVED_DEVELOPMENT_BUILD_ID_MODULE_ID
+        } else {
+          return undefined
+        }
+      },
+      load(id) {
+        if (id !== RESOLVED_DEVELOPMENT_BUILD_ID_MODULE_ID) {
+          return undefined
+        }
+
+        const buildId = buildIdForConfig(
+          this.environment.getTopLevelConfig(),
+          configuredBuildId,
+        )
+
+        return `export const buildId = ${buildIdLiteral(buildId)}\n`
       },
       transform(code, id) {
         const config = this.environment.getTopLevelConfig()

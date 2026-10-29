@@ -29,6 +29,10 @@ import {
 } from 'vite'
 import { describe, expect, it, onTestFinished } from 'vitest'
 
+import {
+  DEVELOPMENT_BUILD_ID_MODULE_ID,
+  RESOLVED_DEVELOPMENT_BUILD_ID_MODULE_ID,
+} from '../src/buildToken.ts'
 import { crawlFoldkitPackages } from '../src/foldkitPackages.ts'
 import { foldkit } from '../src/index.ts'
 import { readForcedEffectEntries } from './forcedEffectEntries.ts'
@@ -382,6 +386,7 @@ const renderServerEntry = async (
   Readonly<{
     serverEntry: typeof ServerEntry.Type
     clientBuildTokenCode: string | undefined
+    clientBuildIdCode: string | undefined
     environment: RunnableDevEnvironment
   }>
 > => {
@@ -397,10 +402,15 @@ const renderServerEntry = async (
     await server.environments.client.transformRequest(
       join(root, 'node_modules/foldkit/dist/buildToken.js'),
     )
+  const clientBuildIdTransform =
+    await server.environments.client.transformRequest(
+      RESOLVED_DEVELOPMENT_BUILD_ID_MODULE_ID,
+    )
 
   return {
     serverEntry,
     clientBuildTokenCode: clientBuildTokenTransform?.code,
+    clientBuildIdCode: clientBuildIdTransform?.code,
     environment,
   }
 }
@@ -428,7 +438,10 @@ const expectClientBuildId = (
 
   expect(typeof injectedBuildId).toBe('string')
   expect(rendered.clientBuildTokenCode).toContain(
-    `injectedBuildId = ${JSON.stringify(injectedBuildId)}`,
+    DEVELOPMENT_BUILD_ID_MODULE_ID,
+  )
+  expect(rendered.clientBuildIdCode).toContain(
+    `export const buildId = ${JSON.stringify(injectedBuildId)}`,
   )
 }
 
