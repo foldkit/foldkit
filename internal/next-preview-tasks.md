@@ -27,6 +27,10 @@ earlier holds.
       `af4b0bc7` on the isolated main-sync candidate, preserving the preview's
       Block APIs, TypeScript compiler pins and security overrides.
       [Effect 4.1 integration and verification](preview-effect41-20261029.md).
+- [x] Merge subsequent main `a471adb2`, including #1856's Playground startup
+      fix and #1854's generated package versions. Preserve preview-only APIs,
+      exact release-manifest support, security overrides and the published
+      Ready snapshot. [Latest synchronization](preview-main-sync-20261029.md#latest-main-follow-up).
 - [ ] Integrate the reviewed candidate into `codex/layers-and-submodels` before
       the next preview release. Publication requires the user's approval.
 - [x] Verify the adopted Effect/platform 4.1.0 pair through public types, packed

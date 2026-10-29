@@ -1,5 +1,38 @@
 # Preview main sync | October 29, 2026
 
+## Latest main follow-up
+
+The candidate also merges main at
+`a471adb24d750ab9e8d8312edad53ff6f26d961b`, after the Mount and mixed-update
+diagnostic repairs. This adds the Playground startup fix from
+[#1856](https://github.com/foldkit/foldkit/pull/1856) and main's generated
+Version Packages commit [#1854](https://github.com/foldkit/foldkit/pull/1854).
+The earlier integration evidence below retains its original source pins.
+
+All nine public package versions and changelogs match this main commit. Other
+manifest fields, including the preview compiler pins and security overrides,
+are unchanged. Main consumed the published Effect changeset; the preview's
+unreleased changesets and published Ready snapshot are preserved.
+
+The Playground now uses Rolldown 1.2.16 and its matching WASI dependency graph.
+Its generated development dependencies follow main's transformation. The
+previous preview-only binding and runtime pins are removed, and the generated
+manifest test checks the new Rolldown pin. The preview's exact release-manifest
+support and test-file exclusion are preserved.
+
+Six affected suites pass 48 tests covering generated manifests, Playground
+coordination, types and preview entry points. Website typechecking and its
+production client build pass, retaining the existing TypeDoc link warnings.
+The nine-package metadata comparison, Changesets status and formatting pass;
+the lockfile is unchanged. The dependency installation was refreshed from that
+lockfile in the isolated checkout. Earlier source/runtime/compiler evidence
+continues to identify its own verified commits; this merge changes no core or
+UI implementation and is not a fresh rendering benchmark or WebContainer
+browser trial.
+
+This synchronization does not publish a preview. PR #1850 remains the draft
+integration vehicle, and publication requires the user's approval.
+
 ## Candidate
 
 The isolated `codex/preview-main-sync-20261029` branch merges main at
