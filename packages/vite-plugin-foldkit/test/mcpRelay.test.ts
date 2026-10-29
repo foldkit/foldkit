@@ -19,7 +19,6 @@ import {
   symlink,
   writeFile,
 } from 'node:fs/promises'
-import { createServer as createNetServer } from 'node:net'
 import { networkInterfaces } from 'node:os'
 import { join, resolve } from 'node:path'
 import {
@@ -45,12 +44,12 @@ import {
   relayRegistryDirectoryRefusal,
   relayRegistryTrust,
 } from '../src/relayRegistryTrust.ts'
-import { boundPort } from './boundPort.ts'
 import {
   POLL_TIMEOUT,
   RELAY_DIRECTORY_VARIABLE,
   RELAY_PATH,
   findListener,
+  holdFreePort,
   listenerOn,
   loggedLines,
   openWebSocket,
@@ -104,22 +103,6 @@ const connectClient = async (port: number) => {
     client.on('error', reject)
   })
   return client
-}
-
-// NOTE: Binds every interface, the way `ws` does. Holding only 127.0.0.1
-// leaves the relay free to bind `::` and the contention never happens.
-const holdFreePort = async (): Promise<number> => {
-  const squatter = createNetServer()
-  onTestFinished(() => new Promise<void>(done => squatter.close(() => done())))
-  await new Promise<void>((resolveListening, reject) => {
-    squatter.on('error', reject)
-    squatter.listen(0, () => resolveListening())
-  })
-
-  return Option.getOrThrowWith(
-    boundPort(squatter.address()),
-    () => new Error('The squatter has no bound port'),
-  )
 }
 
 const requestPreservedModel = async (port: number) => {
