@@ -26,22 +26,10 @@ describe('skills', () => {
       Command.expectHas(GenerateSkillsEntryId),
       Command.resolve(
         GenerateSkillsEntryId,
-        Message.SucceededGenerateSkillsEntryId({ entryId: 'test-skill-1' }),
+        Message.CompletedGenerateSkillsEntryId({ entryId: 'test-skill-1' }),
       ),
       model(model => {
         expect(model.entries).toHaveLength(2)
-      }),
-    )
-  })
-
-  test('FailedGenerateSkillsEntryId leaves the entries unchanged', () => {
-    story(
-      update,
-      givenInitial,
-      message(Message.FailedGenerateSkillsEntryId()),
-      Command.expectNone(),
-      model(model => {
-        expect(model).toEqual(init('skills-entry-1').model)
       }),
     )
   })

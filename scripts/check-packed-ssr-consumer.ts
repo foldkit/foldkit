@@ -209,6 +209,8 @@ const CONSUMER_FIXTURES: ReadonlyArray<ConsumerFixture> = [
   { path: 'src/effect-types.ts' },
   { path: 'src/inferred-program.ts' },
   { path: 'src/inferred-machine-edge.ts' },
+  { path: 'workspaces/shared-model/model.ts' },
+  { path: 'workspaces/application/consumer.ts' },
   { path: 'tsconfig.json' },
 ]
 
@@ -299,6 +301,7 @@ const writeConsumerProject = (
         private: true,
         version: '0.0.0',
         type: 'module',
+        workspaces: ['workspaces/*'],
         scripts: { build: 'vite build' },
         dependencies: {
           '@effect/platform-browser': platformBrowserVersion,
@@ -321,6 +324,42 @@ const writeConsumerProject = (
     )}\n`,
   )
   writeConsumerFixtures(projectDir)
+
+  const workspaceManifests = [
+    {
+      directory: 'shared-model',
+      manifest: {
+        name: '@fixture/shared-model',
+        version: '0.0.0',
+        private: true,
+        type: 'module',
+        exports: './model.ts',
+        peerDependencies: { effect: effectVersion },
+      },
+    },
+    {
+      directory: 'application',
+      manifest: {
+        name: '@fixture/application',
+        version: '0.0.0',
+        private: true,
+        type: 'module',
+        dependencies: {
+          '@fixture/shared-model': '*',
+          effect: effectVersion,
+          foldkit: `file:${tarballs.foldkit}`,
+        },
+      },
+    },
+  ]
+
+  for (const { directory, manifest } of workspaceManifests) {
+    writeFileSync(
+      join(projectDir, 'workspaces', directory, 'package.json'),
+      `${JSON.stringify(manifest, null, 2)}\n`,
+    )
+  }
+
   log(
     `Consumer uses Effect ${effectVersion} and platform-browser ${platformBrowserVersion}`,
   )
@@ -1574,6 +1613,12 @@ const main = async (): Promise<void> => {
       assertServerBundleContainsFoldkitPackages(servedDir)
       assertServerBundleContainsFoldkitPackages(currentDir)
       assertPackedTypesResolve(projectDir)
+      runRequired(
+        'Running the npm workspace consumer with a shared Model Schema...',
+        'node',
+        ['workspaces/application/consumer.ts'],
+        { cwd: projectDir, inherit: true },
+      )
       assertNoSourceOracle(servedDir)
 
       const servedEntry = await loadServerEntry(servedDir)

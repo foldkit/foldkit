@@ -59,7 +59,7 @@ const packages = [
   '@effect/platform-node-shared',
 ]
 
-const resolutions = packages.map(packageName => {
+const packageResolutions = packages.map(packageName => {
   const packageEntry = fileURLToPath(import.meta.resolve(packageName))
   const packageRequire = createRequire(packageEntry)
   const resolvedEffect = realpathSync(
@@ -68,6 +68,19 @@ const resolutions = packages.map(packageName => {
 
   return { packageName, resolvedEffect }
 })
+
+const workspaceResolutions = ['application', 'shared-model'].map(directory => {
+  const workspaceRequire = createRequire(
+    resolve(process.cwd(), 'workspaces', directory, 'package.json'),
+  )
+  const resolvedEffect = realpathSync(
+    workspaceRequire.resolve('effect/package.json'),
+  )
+
+  return { packageName: `workspace:${directory}`, resolvedEffect }
+})
+
+const resolutions = [...packageResolutions, ...workspaceResolutions]
 
 const effectPaths = new Set(
   resolutions.map(({ resolvedEffect }) => resolvedEffect),

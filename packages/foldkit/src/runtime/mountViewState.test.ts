@@ -1,5 +1,6 @@
 import {
   Array,
+  Deferred,
   Effect,
   Exit,
   Fiber,
@@ -1164,7 +1165,9 @@ describe('Mount view-state awareness', () => {
       }
       const replayAcquisition = maybeReplayAcquisition.value
       expect(replayAcquisition.entityId).toBe(0)
-      expect(replayAcquisition.observedViewStates).toEqual(['Paused'])
+      await vi.waitFor(() => {
+        expect(replayAcquisition.observedViewStates).toEqual(['Paused'])
+      })
       const replayEditor = requireElement('#editor')
 
       PubSub.publishUnsafe(subscriptionMessages, Message.ShowedEditor())
@@ -1186,7 +1189,9 @@ describe('Mount view-state awareness', () => {
       }
       const liveAcquisition = maybeLiveAcquisition.value
       expect(liveAcquisition.entityId).toBe(1)
-      expect(liveAcquisition.observedViewStates).toEqual(['Paused', 'Live'])
+      await vi.waitFor(() => {
+        expect(liveAcquisition.observedViewStates).toEqual(['Paused', 'Live'])
+      })
 
       replayAcquisition.emit()
       await waitForMountEmission()
@@ -2322,6 +2327,7 @@ describe('Mount view-state awareness', () => {
     const subscriptionMessages = await Effect.runPromise(
       PubSub.unbounded<Message>(),
     )
+    const subscriptionReady = await Effect.runPromise(Deferred.make<void>())
     const subscriptions = Subscription.make<Model, Message>()(entry => ({
       testMessages: entry('TestMessages', {
         messages: [
@@ -2337,7 +2343,15 @@ describe('Mount view-state awareness', () => {
     }))
 
     const TestMessagesLayer = subscriptions.testMessages.toLayer(
-      Effect.succeed(() => Stream.fromPubSub(subscriptionMessages)),
+      Effect.succeed(() =>
+        Stream.unwrap(
+          Effect.gen(function* () {
+            const subscription = yield* PubSub.subscribe(subscriptionMessages)
+            yield* Deferred.succeed(subscriptionReady, undefined)
+            return Stream.fromSubscription(subscription)
+          }),
+        ),
+      ),
     )
     const observedViewStates: globalThis.Array<Mount.ViewState> = []
     const processedTags: globalThis.Array<Message['_tag']> = []
@@ -2394,6 +2408,7 @@ describe('Mount view-state awareness', () => {
       })
       const store = requireDevToolsStore(maybeStore)
 
+      await Effect.runPromise(Deferred.await(subscriptionReady))
       PubSub.publishUnsafe(subscriptionMessages, Message.Ticked())
       await waitForBodyText('ticks:1')
       const firstTickState = await Effect.runPromise(

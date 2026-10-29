@@ -23,21 +23,24 @@ earlier holds.
       `codex/preview-main-sync-20261029` branch. The incoming framework and UI
       fixes already have Block-compatible implementations in the preview.
       [Merge assessment and verification](preview-main-sync-20261029.md).
-- [ ] Merge the latest main into `codex/layers-and-submodels` before the next
-      preview release, including main's Effect 4.1 update once it lands.
-      Preserve the preview APIs and concurrent work when resolving conflicts.
-- [ ] Reassess Effect and related platform-package constraints after the merge.
-      Verify public types, packed consumers, SSR/hydration and one resolved
-      Effect runtime against the adopted 4.1 versions. The published 4.0.0 and
-      4.0.6 evidence does not establish 4.1 compatibility.
-- [ ] Address the Effect 4.1 root `Crypto` removal reported in
+- [x] Prepare main's Effect 4.1 update at
+      `af4b0bc7` on the isolated main-sync candidate, preserving the preview's
+      Block APIs, TypeScript compiler pins and security overrides.
+      [Effect 4.1 integration and verification](preview-effect41-20261029.md).
+- [ ] Integrate the reviewed candidate into `codex/layers-and-submodels` before
+      the next preview release. Publication requires the user's approval.
+- [x] Verify the adopted Effect/platform 4.1.0 pair through public types, packed
+      consumers, SSR/hydration and one physical Effect installation shared by
+      the application and library workspaces. Published ranges accept 4.1 patches;
+      this run does not verify an unreleased patch or a different minor.
+- [x] Address the Effect 4.1 root `Crypto` removal reported in
       [#1733](https://github.com/foldkit/foldkit/issues/1733#issuecomment-6500513592).
       The contributor closed [#1851](https://github.com/foldkit/foldkit/pull/1851)
       in favor of a `SecureRandom`/`NodeCrypto.layerSecureRandom` migration
-      coordinated with the dependency upgrade. Verify the adopted implementation
-      and constrain unstable API compatibility to the versions actually tested.
-- [ ] Rerun affected framework, application and compiler-performance gates
-      against the merged candidate before preparing its release approval.
+      coordinated with the dependency upgrade. The candidate uses those Services,
+      with matching platform providers and the adopted `~4.1.0` policy.
+- [x] Rerun affected framework, application and compiler-performance gates
+      against the merged candidate. Retain all seven existing compiler budgets.
 
 The user requested this ordering on October 29, after publishing `90746b32d2ca`.
 The next preview still requires separate publication approval.
@@ -63,9 +66,10 @@ from that published Ready snapshot.
 - [x] Reconcile remaining context, test-import, Layer, Struct, Markdown and
       Schema-alias feedback against the current contracts. Record the mixed
       connected/local diagnostic limitation without claiming it is fixed.
-- [ ] After main's Effect 4.1 integration, refresh the supported-pair guidance
-      and add an npm workspace install/one-runtime gate against those actual
-      dependency constraints before release sign-off.
+- [x] Refresh the current supported-pair guidance for Effect 4.1 and extend the
+      packed consumer gate with an npm application workspace and a shared-Schema
+      library workspace. Strict installation, exact types, shared runtime
+      resolution, execution and three-browser SSR/hydration pass.
 
 The reporter retracted the mixed plain-result inferred-`any` report as a probe
 error. The earlier reports below preserve their original uncertainty.

@@ -1,13 +1,5 @@
-import {
-  Context,
-  Crypto,
-  Effect,
-  Layer,
-  Match,
-  Number,
-  Option,
-  Schema,
-} from 'effect'
+import { Context, Effect, Layer, Match, Number, Option, Schema } from 'effect'
+import { SecureRandom } from 'effect/crypto'
 import { Block } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -29,14 +21,15 @@ class ComputeEngineService extends Context.Service<
 const ComputeEngineLayer: Layer.Layer<
   ComputeEngineService,
   never,
-  Crypto.Crypto
+  SecureRandom.SecureRandom
 > = Layer.effect(
   ComputeEngineService,
   Effect.acquireRelease(
     Effect.gen(function* () {
-      const crypto = yield* Crypto.Crypto
-      const id = yield* Effect.orDie(crypto.randomUUIDv4)
+      const secureRandom = yield* SecureRandom.SecureRandom
+      const id = yield* secureRandom.uuidV4()
       const engineId = `engine-${id.slice(0, 8)}`
+
       return { engineId, square: value => value * value }
     }),
     ({ engineId }) => Effect.log(`Tore down ${engineId}`),

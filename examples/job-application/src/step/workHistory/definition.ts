@@ -12,8 +12,7 @@ export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ClickedAddEntry: {},
-  SucceededGenerateWorkHistoryEntryId: { entryId: Schema.String },
-  FailedGenerateWorkHistoryEntryId: {},
+  CompletedGenerateWorkHistoryEntryId: { entryId: Schema.String },
   RemovedEntry: { entryId: Schema.String },
   RequestedRevealErrors: {},
 })
@@ -28,5 +27,4 @@ export const WorkHistoryDefinition = Block.makeDefinition('WorkHistory', {
   }),
 })
 
-export const { makeFieldsStep, makeCommandsStep, makeNoopStep } =
-  WorkHistoryDefinition
+export const { makeFieldsStep, makeCommandsStep } = WorkHistoryDefinition

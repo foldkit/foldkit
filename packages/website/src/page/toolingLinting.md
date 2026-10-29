@@ -218,7 +218,7 @@ The rule reports the call wherever it is written. Assigning its result to a loca
 
 #### Deferred Execution Boundaries
 
-Obtain time or randomness inside the Command handler instead. Use `Clock` or `Random` for time and ordinary randomness. For UUIDs and cryptographic randomness, use the `Crypto.Crypto` service and supply the platform Crypto Layer at the application root. Return the value in the result Message. An effectful handler constructor can capture the service when the application Layer builds; obtain the changing value inside the returned handler.
+Obtain time or randomness inside the Command handler instead. Use `Clock` or `Random` for time and ordinary randomness. For UUIDs and cryptographic randomness, import `SecureRandom` from `effect/crypto`, use its `SecureRandom` service, and supply `BrowserCrypto.layerSecureRandom` at the application root. Return the value in the result Message. An effectful handler constructor can capture the service when the application Layer builds; obtain the changing value inside the returned handler.
 
 The rule recognizes the deferred callback positions in Effect and Stream. It also recognizes Foldkit handler functions:
 

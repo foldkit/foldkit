@@ -80,14 +80,16 @@ const impureCallByPath = new Map<string, ImpureOperation>([
     'crypto.randomUUID',
     {
       display: 'crypto.randomUUID()',
-      guidance: 'Use Crypto.Crypto with a platform Crypto layer.',
+      guidance:
+        "Use SecureRandom.SecureRandom's uuidV4 Effect with the platform SecureRandom layer.",
     },
   ],
   [
     'crypto.getRandomValues',
     {
       display: 'crypto.getRandomValues()',
-      guidance: 'Use Random or Crypto.Crypto with a platform Crypto layer.',
+      guidance:
+        'Use Random or SecureRandom.SecureRandom with the platform SecureRandom layer.',
     },
   ],
 ])

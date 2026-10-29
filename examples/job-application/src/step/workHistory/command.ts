@@ -1,26 +1,23 @@
-import { Crypto, Effect } from 'effect'
+import { Effect } from 'effect'
+import { SecureRandom } from 'effect/crypto'
 
 import { Message, WorkHistoryDefinition } from './definition'
 
 export const GenerateWorkHistoryEntryId = WorkHistoryDefinition.makeCommand(
   'GenerateWorkHistoryEntryId',
   {
-    messages: [
-      Message.SucceededGenerateWorkHistoryEntryId,
-      Message.FailedGenerateWorkHistoryEntryId,
-    ],
+    messages: [Message.CompletedGenerateWorkHistoryEntryId],
     handler: function* () {
-      const crypto = yield* Crypto.Crypto
+      const secureRandom = yield* SecureRandom.SecureRandom
 
       return () =>
-        crypto.randomUUIDv4.pipe(
-          Effect.map(entryId =>
-            Message.SucceededGenerateWorkHistoryEntryId({ entryId }),
-          ),
-          Effect.catch(() =>
-            Effect.succeed(Message.FailedGenerateWorkHistoryEntryId()),
-          ),
-        )
+        secureRandom
+          .uuidV4()
+          .pipe(
+            Effect.map(entryId =>
+              Message.CompletedGenerateWorkHistoryEntryId({ entryId }),
+            ),
+          )
     },
   },
 )

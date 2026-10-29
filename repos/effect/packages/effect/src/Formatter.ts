@@ -7,6 +7,7 @@
  * wraps JSON formatting with redaction and circular-reference handling, and the
  * module also includes helpers for property keys, paths, and dates.
  *
+ * @stability stable
  * @since 4.0.0
  */
 import * as Predicate from "./Predicate.ts"
@@ -35,6 +36,7 @@ import { getRedacted, redact, symbolRedactable } from "./Redactable.ts"
  *
  * @see {@link format}
  * @see {@link formatJson}
+ * @stability stable
  * @category models
  * @since 4.0.0
  */
@@ -102,6 +104,7 @@ export interface Formatter<in Value, out Format = string> {
  *
  * @see {@link formatJson}
  * @see {@link Formatter}
+ * @stability stable
  * @category formatting
  * @since 2.0.0
  */
@@ -298,6 +301,7 @@ function safeGet(input: object, key: PropertyKey): unknown {
  *
  * @see {@link format}
  * @see {@link Formatter}
+ * @stability stable
  * @category serialization
  * @since 4.0.0
  */
@@ -305,10 +309,11 @@ export function formatJson(input: unknown, options?: {
   readonly space?: number | string | undefined
 }): string {
   const ancestors: Array<object> = []
+  const sources = new WeakMap<object, object>()
   return JSON.stringify(
     input,
     function(this: object, key: string, value: unknown) {
-      const original = Object.getOwnPropertyDescriptor(this, key)?.value
+      const original = Object.getOwnPropertyDescriptor(sources.get(this) ?? this, key)?.value
       const redacted = Predicate.hasProperty(original, symbolRedactable)
         ? redact(original)
         : redact(value)
@@ -331,8 +336,59 @@ export function formatJson(input: unknown, options?: {
       if (current !== redacted) {
         ancestors.push(current)
       }
-      return current
+      // Leave boxed primitives intact so JSON.stringify can unbox them natively.
+      if (!hasGetter(current) || isJsonPrimitiveWrapper(current)) {
+        return current
+      }
+      const view = redactingView(current)
+      sources.set(view, current)
+      ancestors.push(view)
+      return view
     },
     options?.space
   ) ?? "null"
+}
+
+function hasGetter(object: object): boolean {
+  for (const key of Object.getOwnPropertyNames(object)) {
+    if (Object.getOwnPropertyDescriptor(object, key)?.get !== undefined) {
+      return true
+    }
+  }
+  return false
+}
+
+// JSON.stringify reads a getter once, then calls toJSON on the result before
+// the replacer sees it, so getter results are redacted at the read. A Proxy
+// would do, but not every engine has one, so each key becomes a getter that
+// reads the source lazily, with the source as receiver.
+function redactingView(object: object): object {
+  const view = Array.isArray(object) ? [] : {}
+  // JSON.stringify reads every array index, regardless of enumerability
+  const keys = Array.isArray(object)
+    ? Array.from({ length: object.length }, (_, i) => String(i))
+    : Object.keys(object)
+  for (const key of keys) {
+    Object.defineProperty(view, key, {
+      enumerable: true,
+      get: () => {
+        const value = Reflect.get(object, key)
+        return Object.getOwnPropertyDescriptor(object, key)?.get !== undefined ? redact(value) : value
+      }
+    })
+  }
+  return view
+}
+
+function isJsonPrimitiveWrapper(object: object): boolean {
+  // Built-in valueOf checks internal slots across realms without calling user code.
+  for (const valueOf of [Number.prototype.valueOf, Boolean.prototype.valueOf, String.prototype.valueOf]) {
+    try {
+      Reflect.apply(valueOf, object, [])
+      return true
+    } catch {
+      // Try the next wrapper type.
+    }
+  }
+  return false
 }

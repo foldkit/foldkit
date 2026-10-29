@@ -577,18 +577,18 @@ Import as `import { Dom } from 'foldkit'` (or `import * as Dom from 'foldkit/dom
 
 ### Effect built-ins
 
-Use these directly from the `effect` package for non-DOM concerns. No Foldkit wrapper is needed.
+Use these Effect APIs for non-DOM concerns. Import `SecureRandom` from `effect/crypto`; import the other Effect modules from `effect`. No Foldkit wrapper is needed.
 
-| Need                  | Use                                                                                                                                           |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Current time (millis) | `yield* Clock.currentTimeMillis`                                                                                                              |
-| Current calendar date | `yield* Calendar.today.local` (returns `CalendarDate`)                                                                                        |
-| Random integer        | `yield* Random.nextIntBetween(min, max)`                                                                                                      |
-| Random float          | `yield* Random.nextBetween(min, max)`                                                                                                         |
-| UUID                  | `yield* Effect.orDie(crypto.randomUUIDv4)` after `const crypto = yield* Crypto.Crypto`; provide `BrowserCrypto.layer` at the application root |
-| Delay                 | `yield* Effect.sleep(Duration.millis(500))`                                                                                                   |
+| Need                  | Use                                                                                                                                                             |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Current time (millis) | `yield* Clock.currentTimeMillis`                                                                                                                                |
+| Current calendar date | `yield* Calendar.today.local` (returns `CalendarDate`)                                                                                                          |
+| Random integer        | `yield* Random.nextIntBetween(min, max)`                                                                                                                        |
+| Random float          | `yield* Random.nextBetween(min, max)`                                                                                                                           |
+| UUID                  | `yield* secureRandom.uuidV4()` after `const secureRandom = yield* SecureRandom.SecureRandom`; provide `BrowserCrypto.layerSecureRandom` at the application root |
+| Delay                 | `yield* Effect.sleep(Duration.millis(500))`                                                                                                                     |
 
-Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, or `Math.random()`. They compose naturally inside a Command's attached handler. For canonical wiring, see `repos/foldkit/examples/kanban/src/command.ts` (`FocusAddCardInput` wraps `Dom.focus`, `GenerateCardId` requires `Crypto.Crypto`), `repos/foldkit/examples/kanban/src/services.ts` (the root composes `BrowserCrypto.layer`), and `repos/foldkit/examples/kanban/src/entry.ts` (the entry supplies `ApplicationLayer`). `repos/foldkit/examples/stopwatch/src/application.ts` shows `Clock.currentTimeMillis` inside an `Effect.gen`.
+Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, or `Math.random()`. They compose naturally inside a Command's attached handler. For canonical wiring, see `repos/foldkit/examples/kanban/src/command.ts` (`FocusAddCardInput` wraps `Dom.focus`, `GenerateCardId` requires `SecureRandom.SecureRandom`), `repos/foldkit/examples/kanban/src/services.ts` (the root composes `BrowserCrypto.layerSecureRandom`), and `repos/foldkit/examples/kanban/src/entry.ts` (the entry supplies `ApplicationLayer`). `repos/foldkit/examples/stopwatch/src/application.ts` shows `Clock.currentTimeMillis` inside an `Effect.gen`.
 
 ## With and Without URL Routing
 

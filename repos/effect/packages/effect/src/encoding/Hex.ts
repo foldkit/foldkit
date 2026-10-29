@@ -1,6 +1,7 @@
 /**
  * Hexadecimal encoding, decoding, and random value helpers.
  *
+ * @stability stable
  * @since 4.0.0
  */
 import * as Result from "../Result.ts"
@@ -26,6 +27,7 @@ import { EncodingError } from "./EncodingError.ts"
  * Hex.encode(bytes) // => "48656c6c6f"
  * ```
  *
+ * @stability stable
  * @category encoding
  * @since 4.0.0
  */
@@ -44,9 +46,11 @@ export const encode: (input: Uint8Array | string) => string = (input) =>
  * coercion rules.
  *
  * This function uses `Math.random()` and is not cryptographically secure. For
- * security-sensitive values, use the `Crypto.Crypto` service's `randomBytes`
- * method and encode the result with {@link encode}.
+ * security-sensitive values, draw bytes with the `randomBytes` method of the
+ * `SecureRandom` service from `effect/crypto/SecureRandom`, and encode them with
+ * {@link encode}.
  *
+ * @stability stable
  * @category encoding
  * @since 4.0.0
  */
@@ -173,6 +177,7 @@ const random32 = (): string => {
  * Hex.decode("48656c6c6f") // => Result.succeed(new Uint8Array([72, 101, 108, 108, 111]))
  * ```
  *
+ * @stability stable
  * @category decoding
  * @since 4.0.0
  */
@@ -233,6 +238,7 @@ export const decode = (str: string): Result.Result<Uint8Array, EncodingError> =>
  * Hex.decodeString("68656c6c6f") // => Result.succeed("hello")
  * ```
  *
+ * @stability stable
  * @category decoding
  * @since 4.0.0
  */

@@ -4,12 +4,7 @@ import { initAndAppend } from 'foldkit/bindingInit'
 
 import { GenerateEducationEntryId } from './command'
 import { EducationComposition, EntriesBinding } from './composition'
-import {
-  type Model,
-  makeCommandsStep,
-  makeFieldsStep,
-  makeNoopStep,
-} from './definition'
+import { type Model, makeCommandsStep, makeFieldsStep } from './definition'
 import {
   hasErrors as entryHasErrors,
   isComplete as isEntryComplete,
@@ -18,13 +13,11 @@ import {
 export const update = EducationComposition.makeUpdate({
   ClickedAddEntry: makeCommandsStep(() => [GenerateEducationEntryId()]),
 
-  SucceededGenerateEducationEntryId: (model, { entryId }) =>
+  CompletedGenerateEducationEntryId: (model, { entryId }) =>
     initAndAppend(EntriesBinding, model, {
       key: entryId,
       args: [entryId],
     }),
-
-  FailedGenerateEducationEntryId: makeNoopStep(),
 
   RemovedEntry: makeFieldsStep.fromMessage(({ entryId }) => ({
     entries: Array.filter(entry => entry.id !== entryId),

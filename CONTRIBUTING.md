@@ -29,6 +29,10 @@ pnpm dev:libs
 pnpm dev:example:counter
 ```
 
+## Effect dependency versions
+
+Pin workspace Effect packages and overrides to the same verified release. Published dependencies and peer dependencies use a tilde range for that release, such as `~4.1.0`, so consumers can receive patch updates. Effect minor releases can change APIs, so verify each minor upgrade before widening the ranges. New projects from `create-foldkit-app` inherit the exact versions in the examples.
+
 ## Vendored Reference Source
 
 The repository includes reference source under `repos/` as git subtrees, so it comes down with the clone. Each snapshot is pinned to the release tag matching the dependency in `package.json`. Re-pin `repos/effect` whenever the Effect dependency changes:

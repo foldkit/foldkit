@@ -6,6 +6,7 @@ This guide covers upgrades from the Block previews listed below to the candidate
 
 | Installed canary source suffix                    | Upgrade path                                                                                                                                                                        |
 | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `90746b32d2ca`                                    | [Upgrade from 90746b32d2ca](#upgrade-from-90746b32d2ca). Keep the Block APIs and upgrade Effect together with its platform packages.                                                |
 | `f3be22cfeefe`                                    | [Upgrade from f3be22cfeefe](#upgrade-from-f3be22cfeefe). Keep the existing Block assembly and update APIs.                                                                          |
 | `1f6776fa7ece`                                    | [Upgrade from 1f6776fa7ece](#upgrade-from-1f6776fa7ece). The preparation, assembly, and Program APIs already match.                                                                 |
 | `1fbeaffe6563`                                    | [Upgrade from 1fbeaffe6563](#upgrade-from-1fbeaffe6563).                                                                                                                            |
@@ -51,6 +52,10 @@ The result lists installed Effect copies and their locations. Check that the app
 
 After updating manifests and the lockfile, run `npm ci` to verify that the lockfile reproduces the intended graph. Preserve the existing lockfile while diagnosing an upgrade; an older workspace constraint can explain a retained version without a corrupt lockfile. If a prerelease lockfile still cannot resolve the declared target, retain the npm version, manifests, lockfile and error for a reproduction before attempting a wider lockfile regeneration.
 
+## Upgrade from 90746b32d2ca
+
+The source snapshot is `90746b32d2ca8bc0476de7a051ace396ca590ae0`. It already includes the current Block, Machine, Query, and UI factory APIs. Keep those APIs and upgrade Effect and its platform packages to the supported 4.1 minor together. Follow [Effect compatibility](#effect-compatibility), including the UUID service migration and dependency-graph checks.
+
 ## Upgrade from f3be22cfeefe
 
 The source snapshot is `f3be22cfeefed437164ad614d08b16d9000e0703`. It already includes checked `Block.assemble(prepare)` exports, record-only `makeUpdate`, focused Step producer callbacks, and aggregate ManagedResource Layers. Keep those APIs and the existing child graph.
@@ -65,15 +70,19 @@ Run [the upgrade checks](#verify-the-upgrade), including public declaration outp
 
 ### Effect compatibility
 
-The candidate accepts the tested Effect versions through `4.0.0 || 4.0.6` peers. The browser-platform peer accepts the same two versions. Keep one resolved Effect runtime and choose platform releases whose own Effect peer ranges accept it: platform 4.0.6 requires Effect 4.0.6 or newer. Application and development dependencies can stay exactly pinned for reproducibility. Unverified releases are excluded because some upstream APIs are marked unstable and changed between these patches. This does not require a Block API migration.
+This candidate requires Effect 4.1. Published peers accept patch updates through `~4.1.0` for `effect` and `@effect/platform-browser`. Repository and generated-app dependencies remain exactly pinned to 4.1.0 for reproducible verification. Effect minor releases can change APIs, so each minor upgrade is reviewed before Foldkit widens its supported range. The 4.0.0 and 4.0.6 pairs supported by earlier previews are outside this candidate's range.
 
-For an application on Effect 4.0.0, pin an already declared `@effect/platform-browser` dependency to 4.0.0 too, preserving its dependency placement. For Effect 4.0.6, use platform-browser 4.0.6. When only Foldkit requests platform-browser, npm can choose 4.0.6 for an Effect 4.0.0 application. That can fail with `ERESOLVE` or install a second Effect runtime inside a workspace.
+The Node adapter, Vite plugin, and DevTools MCP require Node.js 22.19.0 or newer. Keep the scaffolder's separate engine requirement when generating an app.
 
-An npm workspace root can select the transitive peer with this `overrides` entry, merged into its existing `package.json`. Use it when platform-browser is not already a direct dependency; a direct dependency should carry the matching exact pin itself:
+Upgrade Effect and every declared platform package together within the supported minor. Pin an already declared `@effect/platform-browser` dependency to the same tested version as Effect, preserving its dependency placement. Keep one resolved Effect runtime: a successful install can still leave nested copies in a workspace.
+
+Effect 4.1 replaces `Crypto.Crypto` with the services under `effect/crypto`. For UUID generation, import `SecureRandom`, capture `SecureRandom.SecureRandom` in the handler constructor, and call its `uuidV4()` method inside the invocation Effect. Supply `BrowserCrypto.layerSecureRandom` at the application root. UUID generation has no typed error channel, so it no longer needs `Effect.orDie`, a catch, or a paired failure Message. See [deferred execution boundaries](/tooling/linting#deferred-execution-boundaries).
+
+An npm workspace root can select the transitive browser-platform peer with this `overrides` entry, merged into its existing `package.json`. Use it when platform-browser is not already a direct dependency; a direct dependency should carry the matching exact pin itself:
 
 ::Snippet{name="previewNpmPlatformOverride" label="Selecting the transitive browser platform version"}
 
-This override selects the compatible 4.0.0 pair. It does not add support for an untested Effect version. Verify the installed graph with the [npm workspace checks](#verify-an-npm-workspace-upgrade).
+This override selects platform-browser 4.1.0 for an application using Effect 4.1.0. It does not widen Foldkit's supported minor. Verify the installed graph with the [npm workspace checks](#verify-an-npm-workspace-upgrade).
 
 ### Authoring and lifecycle fixes
 

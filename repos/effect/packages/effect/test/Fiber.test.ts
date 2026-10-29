@@ -1,11 +1,31 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Cause, Context, Effect, Exit, Fiber, Latch, References } from "effect"
+import { Cause, Context, Effect, Exit, Fiber, Latch, References, Scope } from "effect"
 
 describe("Fiber", () => {
   it("is a fiber", async () => {
     const result = Effect.runFork(Effect.succeed(1))
     assert.isTrue(Fiber.isFiber(result))
   })
+
+  it("runIn closes the latest registration first when a fiber is registered twice", async () => {
+    const events: Array<string> = []
+    const scope = Scope.makeUnsafe("sequential")
+    const fiber = Effect.runFork(Effect.never.pipe(Effect.ensuring(Effect.sync(() => events.push("interrupted")))))
+    Fiber.runIn(fiber, scope)
+    Effect.runSync(Scope.addFinalizer(scope, Effect.sync(() => events.push("finalizer"))))
+    Fiber.runIn(fiber, scope)
+
+    await Effect.runPromise(Scope.close(scope, Exit.void))
+    assert.deepStrictEqual(events, ["interrupted", "finalizer"])
+  })
+
+  it.effect("runIn does not wait for the fiber that closes the scope", () =>
+    Effect.gen(function*() {
+      const scope = yield* Scope.make()
+      const fiber = yield* Scope.close(scope, Exit.void).pipe(Effect.as("closed"), Effect.forkDetach)
+      Fiber.runIn(fiber, scope)
+      assert.deepStrictEqual(yield* Fiber.await(fiber), Exit.succeed("closed"))
+    }))
 
   it("notifies all observers when an observer cancels during exit", () => {
     const fiber = Effect.runFork(Effect.never)

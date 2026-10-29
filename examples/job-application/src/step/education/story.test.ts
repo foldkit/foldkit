@@ -27,22 +27,10 @@ describe('education', () => {
       Command.expectHas(GenerateEducationEntryId),
       Command.resolve(
         GenerateEducationEntryId,
-        Message.SucceededGenerateEducationEntryId({ entryId: 'test-edu-1' }),
+        Message.CompletedGenerateEducationEntryId({ entryId: 'test-edu-1' }),
       ),
       model(model => {
         expect(model.entries).toHaveLength(2)
-      }),
-    )
-  })
-
-  test('FailedGenerateEducationEntryId leaves the entries unchanged', () => {
-    story(
-      update,
-      givenInitial,
-      message(Message.FailedGenerateEducationEntryId()),
-      Command.expectNone(),
-      model(model => {
-        expect(model).toEqual(init(today, 'education-entry-1').model)
       }),
     )
   })

@@ -112,10 +112,10 @@ const projectContent = Effect.fnUntraced(function*(content: PublicMcpSchema.Cont
 })
 
 const projectStructuredContent = (
-  content: Schema.Json | undefined
-): Schema.JsonObject | undefined => content === undefined || isJsonObject(content) ? content : undefined
+  content: unknown
+): Readonly<Record<string, unknown>> | undefined => content === undefined || isObject(content) ? content : undefined
 
-const isJsonObject = (value: Schema.Json): value is Schema.JsonObject => Predicate.isReadonlyObject(value)
+const isObject = (value: unknown): value is Readonly<Record<string, unknown>> => Predicate.isReadonlyObject(value)
 
 /**
  * @internal
@@ -145,6 +145,7 @@ export const protocol = McpProtocol.make({
               protocolVersion: McpSchema.protocolVersion,
               capabilities: ({
                 experimental: result.capabilities.experimental,
+                extensions: result.capabilities.extensions,
                 logging: result.capabilities.logging ? {} : undefined,
                 completions: result.capabilities.completions ? {} : undefined,
                 prompts: result.capabilities.prompts,
@@ -176,7 +177,7 @@ export const protocol = McpProtocol.make({
       "notifications/roots/list_changed": (_, { client, headers }) =>
         lifecycle.clientNotification(McpCore.ClientNotification.RootsChanged(), client.id, headers),
       "resources/list": () =>
-        PublicMcpSchema.McpServerClient.use((request) => core.resources.list(McpProtocol.profileFromClient(request)))
+        McpProtocol.listForClient(core.resources.list)
           .pipe(
             Effect.map((resources) =>
               McpSchema.ListResourcesResult.make({
@@ -185,9 +186,7 @@ export const protocol = McpProtocol.make({
             )
           ),
       "resources/templates/list": () =>
-        PublicMcpSchema.McpServerClient.use((request) =>
-          core.resources.listTemplates(McpProtocol.profileFromClient(request))
-        ).pipe(
+        McpProtocol.listForClient(core.resources.listTemplates).pipe(
           Effect.map((resourceTemplates) =>
             McpSchema.ListResourceTemplatesResult.make({
               resourceTemplates: resourceTemplates.map((resourceTemplate) =>
@@ -225,7 +224,7 @@ export const protocol = McpProtocol.make({
       "resources/unsubscribe": ({ uri }, { client, headers }) =>
         lifecycle.unsubscribe(uri, client.id, headers).pipe(Effect.as({})),
       "prompts/list": () =>
-        PublicMcpSchema.McpServerClient.use((request) => core.prompts.list(McpProtocol.profileFromClient(request)))
+        McpProtocol.listForClient(core.prompts.list)
           .pipe(
             Effect.map((prompts) =>
               McpSchema.ListPromptsResult.make({
@@ -284,8 +283,7 @@ export const protocol = McpProtocol.make({
         })
       }),
       "tools/list": Effect.fnUntraced(function*() {
-        const request = yield* PublicMcpSchema.McpServerClient
-        const tools = yield* core.tools.list(McpProtocol.profileFromClient(request))
+        const tools = yield* McpProtocol.listForClient(core.tools.list)
         return McpSchema.ListToolsResult.make({
           tools: tools.map((tool) =>
             McpSchema.Tool.make({
