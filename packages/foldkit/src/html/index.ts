@@ -198,6 +198,38 @@ const inputEventValue = (target: EventTarget | null): string => {
   return ''
 }
 
+/** The caret position or selected range of a text control, as offsets into
+ *  its value in the same UTF-16 code units as `value.length` and
+ *  `String.slice`. `selectionStart` equals `selectionEnd` when nothing is
+ *  selected and the caret sits at that offset. */
+export const InputSelection = Schema.Struct({
+  selectionStart: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+  selectionEnd: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+})
+/** The caret position or selected range of a text control, as offsets into
+ *  its value in the same UTF-16 code units as `value.length` and
+ *  `String.slice`. `selectionStart` equals `selectionEnd` when nothing is
+ *  selected and the caret sits at that offset. */
+export type InputSelection = typeof InputSelection.Type
+
+const inputEventSelection = (
+  target: EventTarget | null,
+): Option.Option<InputSelection> => {
+  if (
+    Predicate.hasProperty(target, 'selectionStart') &&
+    Predicate.hasProperty(target, 'selectionEnd') &&
+    Predicate.isNumber(target.selectionStart) &&
+    Predicate.isNumber(target.selectionEnd)
+  ) {
+    return Option.some({
+      selectionStart: target.selectionStart,
+      selectionEnd: target.selectionEnd,
+    })
+  } else {
+    return Option.none()
+  }
+}
+
 const isEventTargetCurrentTarget = (event: Event): boolean =>
   event.target === event.currentTarget
 
@@ -683,7 +715,12 @@ export type Attribute<Message> = Data.TaggedEnum<{
   OnBlur: { readonly message: Message }
   OnFocusEnter: { readonly message: Message }
   OnFocusLeave: { readonly message: Message }
-  OnInput: { readonly f: (value: string) => Message }
+  OnInput: {
+    readonly f: (
+      value: string,
+      maybeSelection: Option.Option<InputSelection>,
+    ) => Message
+  }
   OnChange: { readonly f: (value: string) => Message }
   OnBeforeInput: {
     readonly f: (inputType: string, data: Option.Option<string>) => Message
@@ -1857,7 +1894,12 @@ const attributeHandlers: AttributeHandlers = {
   OnInput: ({ f: toMessage }, ctx: BuildContext) =>
     updateDataOn(ctx, {
       input: (event: Event) =>
-        ctx.dispatch(toMessage(inputEventValue(event.target))),
+        ctx.dispatch(
+          toMessage(
+            inputEventValue(event.target),
+            inputEventSelection(event.target),
+          ),
+        ),
     }),
   OnChange: ({ f: toMessage }, ctx: BuildContext) =>
     updateDataOn(ctx, {
@@ -4016,9 +4058,17 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnFocusLeave'
     readonly message: Message
   }
-  OnInput: (toMessage: (value: string) => Message) => {
+  OnInput: (
+    toMessage: (
+      value: string,
+      maybeSelection: Option.Option<InputSelection>,
+    ) => Message,
+  ) => {
     readonly _tag: 'OnInput'
-    readonly f: (value: string) => Message
+    readonly f: (
+      value: string,
+      maybeSelection: Option.Option<InputSelection>,
+    ) => Message
   }
   OnChange: (toMessage: (value: string) => Message) => {
     readonly _tag: 'OnChange'
@@ -5098,8 +5148,29 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
    * Dispatches the target's textual value on every `input` event. Form
    * controls report their `value`; a `Contenteditable` host reports its
    * rendered text.
+   *
+   * The second argument, which a handler may ignore, is the caret position
+   * or selected range after the edit, read from the target's
+   * `selectionStart` and `selectionEnd`. It is `Some` for a `textarea` and
+   * for `text`, `search`, `url`, `tel`, and `password` inputs. It is `None`
+   * for input types that have no text selection, such as `email` and
+   * `number`, and for a `Contenteditable` host.
+   *
+   * @example
+   * ```typescript
+   * h.OnInput(value => Message.UpdatedTitle({ value }))
+   *
+   * h.OnInput((value, maybeSelection) =>
+   *   Message.UpdatedNote({ value, maybeSelection }),
+   * )
+   * ```
    */
-  OnInput: (toMessage: (value: string) => Message) => OnInput({ f: toMessage }),
+  OnInput: (
+    toMessage: (
+      value: string,
+      maybeSelection: Option.Option<InputSelection>,
+    ) => Message,
+  ) => OnInput({ f: toMessage }),
   /**
    * Dispatches the target's textual value on every `change` event, using the
    * same form-control and `Contenteditable` value semantics as `OnInput`.

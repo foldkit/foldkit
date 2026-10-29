@@ -109,7 +109,7 @@ An interaction invokes the matched element's event handler. If the handler produ
 | `blur(target)`                         | `OnBlur`                                                                                                                      |
 | `focusEnter(target)`                   | `OnFocusEnter`                                                                                                                |
 | `focusLeave(target)`                   | `OnFocusLeave`                                                                                                                |
-| `type(target, text)`                   | `OnInput` with the given text                                                                                                 |
+| `type(target, text, selection?)`       | `OnInput` with the given text and optional `{ selectionStart, selectionEnd }`; the caret defaults to the end of the text      |
 | `typeContentEditable(target, text)`    | `OnInput` on a `Contenteditable` host, with the given rendered text                                                           |
 | `change(target, value)`                | `OnChange` with the given value, for `<select>` and similar                                                                   |
 | `beforeInput(target, inputType, data)` | `OnBeforeInput` or `OnBeforeInputPreventDefault`, with the given `inputType` and `Option` data                                |

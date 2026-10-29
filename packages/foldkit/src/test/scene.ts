@@ -29,6 +29,7 @@ import type {
   Document,
   Html,
   HtmlBuilder,
+  InputSelection,
   KeyboardModifiers,
 } from '../html/index.js'
 import type { Entry as ManagedResourceEntry } from '../managedResource/index.js'
@@ -577,7 +578,11 @@ const maybeCaptureFromElement = <Model, Message, OutMessage>(
   element: VNode,
   description: string,
   eventName: string,
-  invokeHandler: (handler: Function) => void,
+  invokeHandler: (
+    handler: Function,
+    element: VNode,
+    description: string,
+  ) => void,
 ): Option.Option<SceneSimulation<Model, Message, OutMessage>> => {
   const internal = toInternal(simulation)
   const maybeHandler = Option.fromNullishOr(element.data?.on?.[eventName])
@@ -592,7 +597,7 @@ const maybeCaptureFromElement = <Model, Message, OutMessage>(
 
   internal.capturingDispatch.reset()
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  invokeHandler(maybeHandler.value as Function)
+  invokeHandler(maybeHandler.value as Function, element, description)
   const capturedMessages = internal.capturingDispatch.getCapturedMessages()
 
   return Array.match(capturedMessages, {
@@ -757,7 +762,11 @@ const captureFromElement = <Model, Message, OutMessage>(
   element: VNode,
   description: string,
   eventName: string,
-  invokeHandler: (handler: Function) => void,
+  invokeHandler: (
+    handler: Function,
+    element: VNode,
+    description: string,
+  ) => void,
 ): SceneSimulation<Model, Message, OutMessage> =>
   Option.match(
     maybeCaptureFromElement(
@@ -782,7 +791,11 @@ const invokeAndCapture = <Model, Message, OutMessage>(
   simulation: SceneSimulation<Model, Message, OutMessage>,
   target: string | Locator,
   eventName: string,
-  invokeHandler: (handler: Function) => void,
+  invokeHandler: (
+    handler: Function,
+    element: VNode,
+    description: string,
+  ) => void,
 ): SceneSimulation<Model, Message, OutMessage> => {
   const internal = toInternal(simulation)
   const scopedTarget = applyScopeToTarget(internal.scope, target)
@@ -2459,32 +2472,128 @@ export const submit =
       handler({ preventDefault: Function.constVoid })
     })
 
-/** Simulates typing a value into the input matching the target.
- *  Dual: `type(target, value)` or `type(value)` for data-last piping. */
+const INPUT_TYPES_WITH_TEXT_SELECTION: ReadonlySet<string> = new Set([
+  'password',
+  'search',
+  'tel',
+  'text',
+  'url',
+])
+
+const hasTextSelection = (element: VNode): boolean => {
+  const tagName = tagNameFromSelector(element.sel ?? '')
+
+  if (tagName === 'textarea') {
+    return true
+  }
+
+  if (tagName === 'input') {
+    return pipe(
+      lookupStringAttribute(element, 'type'),
+      Option.fromNullishOr,
+      Option.map(String.toLowerCase),
+      Option.match({
+        onNone: () => true,
+        onSome: inputType => INPUT_TYPES_WITH_TEXT_SELECTION.has(inputType),
+      }),
+    )
+  }
+
+  return false
+}
+
+const typedSelection = (
+  element: VNode,
+  description: string,
+  value: string,
+  selection: InputSelection | undefined,
+): Option.Option<InputSelection> => {
+  if (!hasTextSelection(element)) {
+    if (selection !== undefined) {
+      throw new Error(
+        `I found an element matching ${description} but it has no text selection.\n\n` +
+          'Only a textarea and text, search, url, tel, and password inputs have a ' +
+          'caret position. Remove the selection argument from type.',
+      )
+    }
+
+    return Option.none()
+  }
+
+  if (selection === undefined) {
+    return Option.some({
+      selectionStart: value.length,
+      selectionEnd: value.length,
+    })
+  }
+
+  const { selectionStart, selectionEnd } = selection
+
+  if (
+    selectionStart < 0 ||
+    selectionStart > selectionEnd ||
+    selectionEnd > value.length
+  ) {
+    throw new Error(
+      `I cannot place the selection ${selectionStart} to ${selectionEnd} in a ` +
+        `value of length ${value.length}.\n\n` +
+        'Use offsets where 0 <= selectionStart <= selectionEnd <= value.length.',
+    )
+  }
+
+  return Option.some(selection)
+}
+
+/** Simulates typing a value into the input matching the target. Pass a
+ *  `selection` to set the `selectionStart` and `selectionEnd` that `OnInput`
+ *  receives after the edit. Without it, the caret sits at the end of the
+ *  value, where typing leaves it. Input types without text selection, such as
+ *  `email` and `number`, report no selection and do not accept one.
+ *  Dual: `type(target, value, selection?)` or `type(value, selection?)` for
+ *  data-last piping. */
 export { type_ as type }
 const type_: {
   (
     target: string | Locator,
     value: string,
+    selection?: InputSelection,
   ): <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
   ) => SceneSimulation<Model, Message, OutMessage>
   (
     value: string,
+    selection?: InputSelection,
   ): (
     target: string | Locator,
   ) => <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
   ) => SceneSimulation<Model, Message, OutMessage>
 } = dual(
-  2,
-  (target: string | Locator, value: string) =>
+  (args: IArguments) => args.length >= 2 && Predicate.isString(args[1]),
+  (target: string | Locator, value: string, selection?: InputSelection) =>
     <Model, Message, OutMessage = undefined>(
       simulation: SceneSimulation<Model, Message, OutMessage>,
     ): SceneSimulation<Model, Message, OutMessage> =>
-      invokeAndCapture(simulation, target, 'input', handler => {
-        handler({ target: { value } })
-      }),
+      invokeAndCapture(
+        simulation,
+        target,
+        'input',
+        (handler, element, description) => {
+          handler({
+            target: Option.match(
+              typedSelection(element, description, value, selection),
+              {
+                onNone: () => ({ value }),
+                onSome: ({ selectionStart, selectionEnd }) => ({
+                  value,
+                  selectionStart,
+                  selectionEnd,
+                }),
+              },
+            ),
+          })
+        },
+      ),
 )
 
 /** Simulates typing into a contenteditable host matching the target. A
