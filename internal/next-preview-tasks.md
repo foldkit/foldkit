@@ -3,14 +3,18 @@
 ## Release boundary
 
 The verified published snapshot is
-`f3be22cfeefed437164ad614d08b16d9000e0703`, with source tree
-`17ef995528c447cd13604ffcd390a63d73ec6953`. Its nine-package manifest,
-immutable Website and actual Coverchart upgrade pass the
-[publication report's gates](preview-publication-20261026.md).
+`90746b32d2ca8bc0476de7a051ace396ca590ae0`, with source tree
+`3fca10b1dae3f98ce15e8098bc454f9008c0ec7f`. Its manifest, immutable Website,
+public installed-consumer acceptance and actual Coverchart upgrade pass the
+[publication report's gates](preview-publication-20261029.md).
+PR #1655's Ready entry points identify this snapshot.
 
-Preview integration remains on `codex/layers-and-submodels`; Foldkit `main`
-was not changed by this release. The preparation sections below retain their
-original status, source pins and publication holds as historical evidence.
+Preview integration remains on `codex/layers-and-submodels`; PR #1655 remains
+open against Foldkit main. The preceding
+[October 26 publication](preview-publication-20261026.md) and preparation
+sections below retain their original source pins and states as historical
+evidence. The user's publication approval and completed gates supersede the
+earlier holds.
 
 ## Current Blocks + Effect Layers release scope
 
@@ -83,10 +87,10 @@ pin. The affected final verification now covers `d35d3ceb7a`:
       correction, unresolved dependency findings and shared-network limits.
       [Review and execution records](preview-daybreak-20261028.md).
 
-- [ ] Obtain the user's separate release approval before publication. Registry
-      and immutable-deployment acceptance, actual Coverchart upgrade and PR Ready
-      promotion follow that approval. The verified published snapshot remains
-      unchanged. [Prepared candidate](preview-final-prep-20261028.md).
+- [x] Obtain the user's separate release approval and publish through protected
+      integration. Registry signatures, installed consumers, immutable deployment,
+      actual Coverchart upgrade and PR Ready promotion pass for `90746b32d2ca`.
+      [Publication and retained limits](preview-publication-20261029.md).
 
 - [x] Widen published Effect peers to `4.0.0 || 4.0.6` and verify both versions
       through strict packed installs, public types, SSR and hydration. Check

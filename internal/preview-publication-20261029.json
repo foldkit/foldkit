@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "status": "Published",
+  "recordedAt": "2026-10-29T04:02:19.344607+00:00",
+  "sourceCommit": "90746b32d2ca8bc0476de7a051ace396ca590ae0",
+  "sourceTree": "3fca10b1dae3f98ce15e8098bc454f9008c0ec7f",
+  "previousPublishedSource": "f3be22cfeefed437164ad614d08b16d9000e0703",
+  "releasePullRequest": "https://github.com/foldkit/foldkit/pull/1847",
+  "integrationBranch": "codex/layers-and-submodels",
+  "manifest": {
+    "schemaVersion": 1,
+    "channel": "canary",
+    "sourceCommit": "90746b32d2ca8bc0476de7a051ace396ca590ae0",
+    "uploadTag": "foldkit-canary-upload-90746b32d2ca",
+    "packages": {
+      "create-foldkit-app": "0.40.0-canary.90746b32d2ca",
+      "@foldkit/devtools": "0.169.0-canary.90746b32d2ca",
+      "@foldkit/devtools-mcp": "0.25.0-canary.90746b32d2ca",
+      "foldkit": "0.169.0-canary.90746b32d2ca",
+      "@foldkit/markdown": "0.14.4-canary.90746b32d2ca",
+      "@foldkit/node": "0.1.0-canary.90746b32d2ca",
+      "@foldkit/oxlint-plugin": "0.15.3-canary.90746b32d2ca",
+      "@foldkit/ui": "0.169.0-canary.90746b32d2ca",
+      "@foldkit/vite-plugin": "0.28.0-canary.90746b32d2ca"
+    }
+  },
+  "manifestSha256": "fe758db71b3b5bfc51a6660a60c15f653dde2f3d54d5402f79e30b66c48e6e15",
+  "workflow": {
+    "url": "https://github.com/foldkit/foldkit/actions/runs/40810270874",
+    "successfulAttempt": 2,
+    "canaryJob": 123244154199,
+    "websiteJob": 123250486745,
+    "artifactId": 12871547352,
+    "artifactDigest": "sha256:aa868ce972cf72722b0e8eb4e12f5e173d744ceb13fe9a2c0cb571a98c913dad",
+    "recovery": {
+      "firstAttempt": "Failed npm transparency-log entry creation for Markdown (HTTP 409)",
+      "firstAttemptPresentPackages": 4,
+      "firstAttemptMissingPackages": 5,
+      "action": "Reviewed failed-jobs rerun at the same commit",
+      "existingVersions": "Fresh packed SHA-512 must match before skipping",
+      "provenanceRetained": true,
+      "manualNpmPublication": false
+    }
+  },
+  "website": {
+    "url": "https://foldkit-website-preview-pu7rp0p5a-devin-jamesons-projects.vercel.app",
+    "manifestBytesEqual": true,
+    "guideHtmlAndMarkdownRoutes": 34,
+    "apiReferenceRoutes": 3,
+    "legacyLayersRedirect": "/core/layers",
+    "workflowSsrAndSsgBrowserTests": 2,
+    "workspaceExample": "https://foldkit-website-preview-pu7rp0p5a-devin-jamesons-projects.vercel.app/example-apps/workspace",
+    "canonicalReadySummary": "Local reconstruction from exact source, manifest and observed deployment URL; not an observed job-summary body"
+  },
+  "publishedAcceptance": {
+    "packages": 9,
+    "signatureAudits": "Nine-package inventory and separate canonical CLI npm audit signatures passed",
+    "directFileComparisons": 7617,
+    "internalFileComparisons": 21346,
+    "cliProbes": ["npx", "pnpm-dlx"],
+    "cliUniqueExactVersion": true,
+    "consumerModes": ["Coverchart", "SPA", "SSG", "SSR"],
+    "localTarballSubstitution": false,
+    "localMetadataServerFallback": false,
+    "thirdPartyOverrides": false,
+    "globalAgePolicyRelaxed": false
+  },
+  "coverchart": {
+    "repository": "https://github.com/foldkit/coverchart",
+    "baseCommit": "677b804e9aa0d0d1f636067079ae404ead84115a",
+    "commit": "220ccf075b5737a6f13b46ff1b24f460583c3ec3",
+    "remoteMainVerified": true,
+    "changedFiles": 6,
+    "installedFoldkitPackages": 6,
+    "actualInstalledFileComparisons": 1433,
+    "testCount": 40,
+    "browserFlows": 5,
+    "effectVersion": "4.0.0",
+    "effectRuntimeCount": 1,
+    "managedGuidanceSha256": "33bbbcb039e863cb567dd103390b1ea53287d882c396b350271b503449eaa1bc",
+    "projectInstructionsAndConcurrentFilesPreserved": true
+  },
+  "readyPullRequest": {
+    "url": "https://github.com/foldkit/foldkit/pull/1655",
+    "state": "OPEN",
+    "bodySha256": "730d637721b7da94dae7bf49ba69eb756587d3252ea2fa0a2b264280c26b64c4",
+    "startingPoints": 3,
+    "migrationPrompts": 2,
+    "titleAndUserProsePreserved": true,
+    "previousImmutableSnapshotsRetained": true
+  },
+  "retainedLimits": {
+    "broaderDaybreakSource": "564adb49e908b3baf4c2e1855c8c6d67631b0c95",
+    "daybreakAddendumSource": "d35d3ceb7a5e25dce91e6fc72c9fbcd4b75cfd06",
+    "gateCorrections": "Import order, intentional dependency inventory and Node 26 browser-test storage setup only",
+    "newFullDependencyAudit": false,
+    "unconfirmedMixedResultAnyReport": "Not reproduced; not claimed fixed",
+    "afterMainDeferrals": [1662, 1663]
+  },
+  "evidenceSha256": {
+    "publicAcceptanceSummary": "013ae4bb6796f470029d6b257498a92b841b91e1c719651430de6e8cc89cb9ae",
+    "rootPublicAcceptanceVerification": "fc47157ffd1448b74a30303ad1123939c9d815751ef9136c922cfab43cb1b4c5",
+    "independentWebsiteReview": "6d58ddaec08937f71abe5d77df509f681b649434a48e400d369ed1bdddc6d92d",
+    "fullWebsiteVerification": "56532a926f563c0c2d642d0ceae0258d3de8ac8b607c9d7534aef896eab0127e",
+    "rootManifestAndWorkspaceVerification": "72d3cb41d793282df64c5a25283c0b63beecc6cca33694fa0e6927fa035cccfe",
+    "recoveryReview": "ce1e9ca3cf1b849c392088aa19363e53488df20fc6192743f95cd6061c4e89d7",
+    "coverchartActualGates": "0338461f7fad9e8acb0650143ac9fe630344ffc80a4050d453d2eaec1bfde2bb",
+    "coverchartExactCommitReview": "a4a497cb215908ccd2149228678df94bfb4c273e4983e5eb0532e24fc28effa1",
+    "readyBodyIndependentReview": "6305147e6ea2d1b99d59504cc980d19cf14c912fc2e62b79aab4fc67be28dd1e",
+    "readyReadback": "22454644d2cb6ec421503f8021c820616821f2b10dd51d58f214656d56024a6d",
+    "fullWebsiteVerifier": "d30bdfc091908de244566d5925b03731db22be2fa16f70b742095f01daa65503",
+    "canonicalRouteAudit": "99a6ebe7c33f6e2b5b7a04705058d74ede590cfbef599603b061004800b1af66"
+  }
+}

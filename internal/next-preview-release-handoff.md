@@ -1,5 +1,19 @@
 # Next preview release handoff
 
+## Published October 29
+
+The approved preview is published from
+`90746b32d2ca8bc0476de7a051ace396ca590ae0`. Its complete public package cohort,
+immutable Website, installed consumers, PR Ready entry points and actual
+Coverchart upgrade are verified. See the
+[publication report and receipt](preview-publication-20261029.md) for the
+matching links, recovery, checks and retained limits.
+
+PR #1655 remains open against main. The user explicitly deferred #1662 and
+#1663 until after that merge. The following preparation sections preserve
+their original status, source pins and approval holds as historical evidence;
+they do not override this completed publication.
+
 ## Approved follow-up after the frozen review
 
 The user requested adoption work for Model-aware general `makeStep` Message
