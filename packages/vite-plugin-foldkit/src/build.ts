@@ -17,6 +17,8 @@ import type {
   ViteBuilder,
 } from 'vite'
 
+import { installPrerenderPreview } from './preview.js'
+
 /** How a build materializes the URLs a server entry can render. */
 export type FoldkitPrerenderOptions = Readonly<{
   /**
@@ -624,7 +626,11 @@ export const foldkitBuild = (
 
   return {
     name: 'foldkit:build',
-    apply: 'build',
+    apply: (_config, { command, isPreview }) =>
+      command === 'build' || (isPreview === true && prerender !== undefined),
+    ...(prerender === undefined
+      ? {}
+      : { configurePreviewServer: installPrerenderPreview }),
     sharedDuringBuild: true,
     api: {
       serverEntry,
@@ -709,10 +715,14 @@ export const foldkitBuild = (
         )
       },
     },
-    config: userConfig => {
+    config: (userConfig, { isPreview }) => {
       const client: EnvironmentOptions = {
         build: {
-          outDir: clientOutDir,
+          outDir: isPreview
+            ? (userConfig.environments?.['client']?.build?.outDir ??
+              userConfig.build?.outDir ??
+              clientOutDir)
+            : clientOutDir,
           rolldownOptions: { input: { [CLIENT_CHUNK_NAME]: CLIENT_MODULE_ID } },
         },
       }
