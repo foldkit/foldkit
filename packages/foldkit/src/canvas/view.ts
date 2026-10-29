@@ -26,12 +26,29 @@ export type ViewConfig<Message> = Readonly<{
   onPointerUp?: ((point: Point) => Message) | undefined
 }>
 
+type PaintedCanvas = Readonly<{
+  context: CanvasRenderingContext2D
+  width: number
+  height: number
+  shapes: ReadonlyArray<Shape>
+  repaint: () => void
+}>
+
 /**
- * Per-element 2D context cache. Keyed by the live `<canvas>` element so the
- * postpatch hook reads the same context the insert hook captured. `WeakMap`
- * lets the entry be reclaimed if the element is removed.
+ * Per-element paint state. Keyed by the live `<canvas>` element so the
+ * postpatch hook reads the same context the insert hook captured, and so an
+ * `Image` that finishes loading repaints the scene the canvas last rendered.
+ * `WeakMap` lets the entry be reclaimed if the element is removed.
  */
-const contextStore = new WeakMap<HTMLCanvasElement, CanvasRenderingContext2D>()
+const paintedCanvasStore = new WeakMap<HTMLCanvasElement, PaintedCanvas>()
+
+const paintCanvas = ({
+  context,
+  width,
+  height,
+  shapes,
+  repaint,
+}: PaintedCanvas): void => paintScene(context, width, height, shapes, repaint)
 
 const toCanvasPoint = (
   canvas: HTMLCanvasElement,
@@ -58,7 +75,9 @@ const classesFromClassName = (className: string): Classes =>
  * A virtual DOM `<canvas>` element backed by a declarative scene description.
  * The insert hook captures the 2D context and paints the initial scene; the
  * postpatch hook re-paints on every render. The canvas is a pure function of
- * `shapes`. Same shapes produce the same pixels.
+ * `shapes` and of which `Image` sources have loaded. Same shapes produce the
+ * same pixels once their images have loaded, and a canvas repaints its current
+ * scene when an image it drew finishes loading.
  *
  * The trailing `h` fixes `Message` to the calling view's frame; the pointer
  * handlers dispatch through that frame at fire time, so passing the builder
@@ -133,22 +152,34 @@ export const view = <Message>(
         if (Predicate.isNull(context)) {
           return
         }
-        contextStore.set(canvas, context)
-        paintScene(context, width, height, shapes)
+
+        const repaint = (): void => {
+          const latestPaint = paintedCanvasStore.get(canvas)
+          if (latestPaint !== undefined) {
+            paintCanvas(latestPaint)
+          }
+        }
+
+        const paintedCanvas = { context, width, height, shapes, repaint }
+        paintedCanvasStore.set(canvas, paintedCanvas)
+        paintCanvas(paintedCanvas)
       },
       postpatch: (_oldVnode, vnode) => {
         if (!(vnode.elm instanceof HTMLCanvasElement)) {
           return
         }
-        const context = contextStore.get(vnode.elm)
-        if (context === undefined) {
+        const previousPaint = paintedCanvasStore.get(vnode.elm)
+        if (previousPaint === undefined) {
           return
         }
-        paintScene(context, width, height, shapes)
+
+        const paintedCanvas = { ...previousPaint, width, height, shapes }
+        paintedCanvasStore.set(vnode.elm, paintedCanvas)
+        paintCanvas(paintedCanvas)
       },
       destroy: vnode => {
         if (vnode.elm instanceof HTMLCanvasElement) {
-          contextStore.delete(vnode.elm)
+          paintedCanvasStore.delete(vnode.elm)
         }
       },
     },

@@ -147,6 +147,66 @@ export const Text = taggedStruct('Text', {
 export type Text = typeof Text.Type
 
 /**
+ * The region of an `Image` shape's source to draw, in the source image's own
+ * pixels. Use it to draw one frame of a sprite sheet.
+ */
+export const ImageCrop = Schema.Struct({
+  x: Schema.Number,
+  y: Schema.Number,
+  width: Schema.Number,
+  height: Schema.Number,
+})
+/**
+ * The region of an `Image` shape's source to draw, in the source image's own
+ * pixels. Use it to draw one frame of a sprite sheet.
+ */
+export type ImageCrop = typeof ImageCrop.Type
+
+/**
+ * How an `Image` shape samples its source when drawn at a different size.
+ * `Smooth` interpolates between source pixels, the canvas default.
+ * `Pixelated` keeps hard pixel edges, for scaling up pixel art.
+ */
+export const ImageRendering = Schema.Literals(['Smooth', 'Pixelated'])
+/**
+ * How an `Image` shape samples its source when drawn at a different size.
+ * `Smooth` interpolates between source pixels, the canvas default.
+ * `Pixelated` keeps hard pixel edges, for scaling up pixel art.
+ */
+export type ImageRendering = typeof ImageRendering.Type
+
+/**
+ * A bitmap drawn from a URL into a `width` by `height` box at `x`, `y`.
+ * `src` accepts anything an `<img>` element does, including data URLs.
+ * `crop` draws one region of the source, such as a frame of a sprite sheet.
+ *
+ * The painter loads each `src` once and keeps the decoded image for the life
+ * of the page. Until it has loaded, the shape draws nothing; when it loads,
+ * every canvas that drew it repaints its latest scene. A `src` that
+ * fails to load draws nothing.
+ */
+export const Image = taggedStruct('Image', {
+  src: Schema.String,
+  x: Schema.Number,
+  y: Schema.Number,
+  width: Schema.Number,
+  height: Schema.Number,
+  crop: Schema.optional(ImageCrop),
+  rendering: Schema.optional(ImageRendering),
+})
+/**
+ * A bitmap drawn from a URL into a `width` by `height` box at `x`, `y`.
+ * `src` accepts anything an `<img>` element does, including data URLs.
+ * `crop` draws one region of the source, such as a frame of a sprite sheet.
+ *
+ * The painter loads each `src` once and keeps the decoded image for the life
+ * of the page. Until it has loaded, the shape draws nothing; when it loads,
+ * every canvas that drew it repaints its latest scene. A `src` that
+ * fails to load draws nothing.
+ */
+export type Image = typeof Image.Type
+
+/**
  * A scene-graph node that applies a 2D transform and global alpha to a list of
  * child shapes. Transforms compose multiplicatively when groups are nested.
  *
@@ -173,6 +233,7 @@ export type Shape =
   | typeof Circle.Type
   | typeof Path.Type
   | typeof Text.Type
+  | typeof Image.Type
   | Group
 
 /**
@@ -181,7 +242,7 @@ export type Shape =
  * declaration cycle.
  */
 const Shape: Schema.Schema<Shape> = Schema.suspend((): Schema.Schema<Shape> =>
-  Schema.Union([Rect, Circle, Path, Text, Group]),
+  Schema.Union([Rect, Circle, Path, Text, Image, Group]),
 )
 
 /** Construct a `Group` shape that wraps its children in a transformed scope. */
