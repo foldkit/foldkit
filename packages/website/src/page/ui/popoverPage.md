@@ -97,6 +97,8 @@ By default, the panel receives `tabindex="0"` so it can receive focus. Tab navig
 | `Escape`        | Closes the popover and returns focus to the button.                           |
 | `Tab`           | Navigates within the panel. By default, closes the popover when focus leaves. |
 
+The panel leaves an Escape alone when a widget inside it already handled the key. For example, with a Menu open inside the panel, the first Escape closes the Menu and the second closes the popover.
+
 ## Accessibility
 
 ### Disclosure Semantics

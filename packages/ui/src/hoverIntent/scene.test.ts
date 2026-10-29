@@ -46,6 +46,25 @@ describe('HoverIntent', () => {
       )
     })
 
+    it('leaves Escape on the trigger to an ancestor while hidden', () => {
+      Scene.scene(
+        { update, view: sceneView },
+        Scene.given(hiddenModel),
+        Scene.keydown(trigger, 'Escape'),
+        Scene.expectIgnored(),
+      )
+    })
+
+    it('claims Escape on the trigger while visible', () => {
+      Scene.scene(
+        { update, view: sceneView },
+        Scene.given(focusedUpdate.model),
+        Scene.keydown(trigger, 'Escape'),
+        Scene.expectHandled(),
+        Scene.expect(panel).toBeAbsent(),
+      )
+    })
+
     it('leaves panel markup to the consumer while hidden', () => {
       Scene.scene(
         { update, view: sceneView },
