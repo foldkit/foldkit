@@ -223,6 +223,10 @@ const wrapEffectAsStream =
  * Cleanup composes via `Effect.acquireRelease` inside the Effect: registered
  * finalizers run when the element unmounts. The Mount's scope stays open
  * across the element's full lifetime, even after the Effect completes.
+ * Acquisition is uninterruptible by default. For asynchronous setup that
+ * must stop when the element unmounts, pass `{ interruptible: true }` as
+ * the third argument to `Effect.acquireRelease`. Construct the resource
+ * after the interruptible wait so cancellation leaves no handle to release.
  *
  * At least one result Message schema is required. The Effect's success
  * type is `Schema.Schema.Type<Messages[number]>`; without a declared

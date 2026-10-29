@@ -1288,6 +1288,33 @@ describe("Array", () => {
     )
   })
 
+  it("unionWith compares only self elements with that elements in argument order", () => {
+    const isEquivalent = (self: string, that: number) => self.trim() === that.toFixed()
+    deepStrictEqual(Arr.unionWith([" 2 ", " 1 "], [1, 3, 2, 4], isEquivalent), [" 2 ", " 1 ", 3, 4])
+  })
+
+  it("unionWith supports one-shot iterables", () => {
+    const isEquivalent = (self: string, that: number) => self.trim() === that.toFixed()
+    deepStrictEqual(
+      pipe([" 2 ", " 1 "][Symbol.iterator](), Arr.unionWith([1, 3, 2, 4][Symbol.iterator](), isEquivalent)),
+      [" 2 ", " 1 ", 3, 4]
+    )
+  })
+
+  it("unionWith does not call the equivalence when either input is empty", () => {
+    const isEquivalent = (_self: string, _that: number) => {
+      assert.fail("The equivalence must not be called for an empty input")
+    }
+    deepStrictEqual(Arr.unionWith([], [1, 2], isEquivalent), [1, 2])
+    deepStrictEqual(Arr.unionWith(["1", "2"], [], isEquivalent), ["1", "2"])
+    deepStrictEqual(Arr.unionWith([], [], isEquivalent), [])
+  })
+
+  it("unionWith treats holes in self as undefined", () => {
+    const self = globalThis.Array<undefined>(1)
+    deepStrictEqual(Arr.unionWith(self, [undefined], Equivalence.strictEqual<undefined>()), [undefined])
+  })
+
   it("intersectionWith", () => {
     const intersectionWith = Arr.intersectionWith(Equivalence.strictEqual<number>())
     deepStrictEqual(pipe([1, 2], intersectionWith([3, 4])), [])
@@ -1591,6 +1618,31 @@ describe("Array", () => {
     const reducer = Arr.makeReducerConcat<string>()
     deepStrictEqual(reducer.combine(["a"], ["b"]), ["a", "b"])
     deepStrictEqual(reducer.initialValue, [])
+  })
+
+  it("makeReducerConcat does not share mutable empty results between calls or reducers", () => {
+    const reducer = Arr.makeReducerConcat<number>()
+    const xs = reducer.combineAll([])
+    try {
+      xs.push(99)
+      deepStrictEqual(reducer.combineAll([]), [])
+      deepStrictEqual(reducer.combineAll([[1]]), [1])
+      deepStrictEqual(Arr.makeReducerConcat<string>().combineAll([["ok"]]), ["ok"])
+    } finally {
+      // Restore the mutated result so a failing regression does not affect other tests.
+      xs.length = 0
+    }
+  })
+
+  it("getReadonlyReducerConcat isolates identities and empty results", () => {
+    const reducer = Arr.getReadonlyReducerConcat<number>()
+    const first = reducer.combineAll([])
+    const second = reducer.combineAll([])
+    strictEqual(reducer.initialValue === Arr.getReadonlyReducerConcat<number>().initialValue, false)
+    strictEqual(reducer.initialValue === Arr.makeReducerConcat<number>().initialValue, false)
+    strictEqual(first === second, false)
+    strictEqual(first === reducer.initialValue, false)
+    strictEqual(second === reducer.initialValue, false)
   })
 
   it("allocate", () => {

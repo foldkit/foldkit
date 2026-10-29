@@ -5,6 +5,7 @@
  * difference between two JSON documents, serialize that difference, and replay
  * it without mutating the original input.
  *
+ * @stability stable
  * @since 4.0.0
  */
 import * as InternalRecord from "./internal/record.ts"
@@ -56,6 +57,7 @@ import type * as Schema from "./Schema.ts"
  * @see {@link JsonPatch} for the array of operations forming a complete patch
  * @see {@link get} to compute operations automatically from value differences
  * @see {@link apply} to apply operations to transform documents
+ * @stability stable
  * @category models
  * @since 4.0.0
  */
@@ -131,6 +133,7 @@ export type JsonPatchOperation =
  * @see {@link JsonPatchOperation} for individual operation types
  * @see {@link get} to generate patches from value differences
  * @see {@link apply} to execute patches to transform documents
+ * @stability stable
  * @category models
  * @since 4.0.0
  */
@@ -174,6 +177,7 @@ export type JsonPatch = ReadonlyArray<JsonPatchOperation>
  *
  * @see {@link apply} to apply the generated patch to a document
  * @see {@link JsonPatchOperation} for the operation types in the patch
+ * @stability stable
  * @category transforming
  * @since 4.0.0
  */
@@ -276,6 +280,7 @@ function getLoop(
  *
  * @see {@link get} to generate patches from value differences
  * @see {@link JsonPatchOperation} for the operation types being applied
+ * @stability stable
  * @category transforming
  * @since 4.0.0
  */
@@ -298,11 +303,15 @@ function isJsonObject(value: unknown): value is Schema.JsonObject {
  *
  * - `""` (empty pointer) refers to the root and returns `[]`
  * - Non-empty pointers must start with `/`
+ * - `~` must be followed by `0` or `1`
  */
 function tokenize(pointer: string): Array<string> {
   if (pointer === "") return []
   if (pointer.charCodeAt(0) !== 47 /* "/" */) {
     throw new Error(`Invalid JSON Pointer, it must start with "/": ${JSON.stringify(pointer)}`)
+  }
+  if (/~(?![01])/.test(pointer)) {
+    throw new Error(`Invalid JSON Pointer escape: ${JSON.stringify(pointer)}`)
   }
   return pointer.split("/").slice(1).map(unescapeToken)
 }

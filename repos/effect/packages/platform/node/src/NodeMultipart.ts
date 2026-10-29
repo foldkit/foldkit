@@ -8,6 +8,7 @@
  * returns the underlying Node readable stream for file parts produced by this
  * parser.
  *
+ * @stability unstable
  * @since 4.0.0
  */
 import * as Effect from "effect/Effect"
@@ -20,7 +21,7 @@ import type * as Scope from "effect/Scope"
 import * as Stream from "effect/Stream"
 import * as NFS from "node:fs"
 import type { IncomingHttpHeaders } from "node:http"
-import type { Readable } from "node:stream"
+import { finished, type Readable } from "node:stream"
 import * as NodeStreamP from "node:stream/promises"
 import * as MP from "./NodeMultipartParser.ts"
 import * as NodeStream from "./NodeStream.ts"
@@ -30,6 +31,7 @@ import * as NodeStream from "./NodeStream.ts"
  * stream of `Multipart.Part` values, converting parser failures to
  * `MultipartError`.
  *
+ * @stability unstable
  * @category constructors
  * @since 4.0.0
  */
@@ -42,6 +44,11 @@ export const stream = (
       NodeStream.fromReadable<MP.Part, Multipart.MultipartError>({
         evaluate() {
           const parser = MP.make(config)
+          // `pipe` does not forward source errors or a premature close.
+          const cleanup = finished(source, { readable: true, writable: false }, (error) => {
+            cleanup()
+            if (error) parser.destroy(error)
+          })
           source.pipe(parser)
           return parser as any
         },
@@ -56,6 +63,7 @@ export const stream = (
  * Parses multipart data from a Node readable request body and persists file
  * parts using the current `FileSystem`, `Path`, and `Scope` services.
  *
+ * @stability unstable
  * @category constructors
  * @since 4.0.0
  */
@@ -77,6 +85,7 @@ export const persisted = (
  * Returns the underlying Node readable stream for a multipart file produced by
  * the Node multipart parser.
  *
+ * @stability unstable
  * @category converting
  * @since 4.0.0
  */
