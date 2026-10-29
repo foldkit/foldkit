@@ -11,6 +11,8 @@
     "BaseInitConfig",
     "BaseViewInputs",
     "BundleUpdateReturn",
+    "CheckedEntry",
+    "GenerationResolver",
     "ScrollReturn",
     "UpdateReturn",
     "ViewForItem"

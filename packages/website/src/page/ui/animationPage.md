@@ -84,6 +84,22 @@ Animation ignores that late result. Each time `show` or `hide` starts an enter o
 
 ::Snippet{name="uiAnimationCustomLeave" label="Custom leave Command"}
 
+## Testing
+
+Use `Animation.test.paint` and `Animation.test.settled` in Story or Scene tests to resolve Animation's pending paint and settlement Commands. Each step reads the generation from the first matching pending Command and supplies its result Message through the runner. The runner applies the Command's parent Message mapping, so the same steps work with Animation inside a Submodel. You do not need to count transitions or construct Animation result Messages.
+
+For example, the tests below assume a program that exports `init`, `update`, `view`, and a `ClickedToggle` Message. The Scene example also resolves a `FocusButton` Command returned by that program.
+
+::Snippet{name="uiAnimationTest" label="Animation test steps"}
+
+`Animation.test.resolveAll(...entries)` accepts ordinary `[Command, resultMessage]` resolvers and generation steps. It runs ordinary resolvers first, then resolves matching generation steps in pending Command order. After each generation step, ordinary resolvers can resolve Commands produced by that result. Ordinary resolvers carry across calls with the same rules as `Story.Command.resolveAll` and `Scene.Command.resolveAll`.
+
+Each generation entry resolves one dispatch. Include a step twice to resolve two pending Commands of the same kind. Unmatched generation entries are skipped and do not carry to later calls. On their own, `paint` and `settled` throw when their Command is missing and list the pending Commands.
+
+Carried ordinary resolvers run before standalone generation steps too. If a carried resolver consumes the step's pending Command, the step finishes without storing a generation resolver for another dispatch.
+
+`settled` resolves only `Animation.WaitForAnimationSettled`. It handles the standard enter wait and a leave wait returned by `Animation.defaultLeaveCommand`. Supply an ordinary resolver for a custom leave Command.
+
 ## Styling
 
 Animation is headless. You style its lifecycle with CSS transitions or CSS keyframe animations, and the state machine advances after every animation returned by `element.getAnimations()` has settled. With `animateSize: true`, Animation also adds a fixed 200ms CSS grid-row transition and the wrappers it requires.
