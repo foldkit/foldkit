@@ -1,11 +1,21 @@
-import { Effect, Fiber, Option, PubSub, Queue, Schema, Stream } from 'effect'
+import {
+  Array,
+  Effect,
+  Fiber,
+  Option,
+  PubSub,
+  Queue,
+  Schema,
+  Stream,
+} from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as Command from '../command/index.js'
 import { type DevToolsStore, INIT_INDEX } from '../devTools/store.js'
-import { __htmlBuilder } from '../html/index.js'
+import { __htmlBuilder, __requireDispatch } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import { afterCommit } from '../render/render.js'
+import { modifyFields } from '../struct/index.js'
 import * as Subscription from '../subscription/subscription.js'
 import type * as Update from '../update/index.js'
 import { __setDevToolsOverlay } from './devToolsConfig.js'
@@ -1088,4 +1098,434 @@ describe('makeElement with viewTransition', () => {
     // container the teardown has already restored.
     expect(skipCalls).toEqual(['skipped'])
   })
+})
+
+describe('queue-blocked commit opportunities', () => {
+  const PulseModel = Schema.Struct({
+    count: Schema.Number,
+    value: Schema.String,
+  })
+  type PulseModel = typeof PulseModel.Type
+  const PulseMessage = defineMessageUnion({
+    ClickedPulse: { cost: Schema.Number },
+    UpdatedValue: { value: Schema.String },
+    FailedPulse: {},
+    ClickedWait: {},
+    CompletedWaitForCommit: {},
+  })
+  type PulseMessage = typeof PulseMessage.Type
+  const UPDATE_COST_MS = 6
+  const PRODUCER_COUNT = 24
+  let processingTime = 0
+  let frames: Array<FrameRequestCallback> = []
+  let deliveries: Array<() => void> = []
+
+  beforeEach(() => {
+    processingTime = 0
+    frames = []
+    deliveries = []
+    vi.spyOn(performance, 'now').mockImplementation(() => processingTime)
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => {
+      frames.push(callback)
+      return frames.length
+    })
+    vi.stubGlobal(
+      'MessageChannel',
+      class {
+        port1 = {
+          postMessage: () => deliveries.push(() => this.port2.onmessage?.()),
+          close: () => {},
+        }
+        port2: { onmessage?: () => void; close: () => void } = {
+          close: () => {},
+        }
+      },
+    )
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+    __setDevToolsOverlay(undefined)
+    Reflect.deleteProperty(document, 'startViewTransition')
+    document.body.replaceChildren()
+  })
+
+  const runFrame = () => {
+    expect(frames).not.toHaveLength(0)
+    for (const frame of frames.splice(0)) {
+      frame(processingTime)
+    }
+  }
+  const deliver = () => {
+    const delivery = deliveries.shift()
+    expect(delivery).toBeDefined()
+    delivery?.()
+  }
+  const callbackAt = (callbacks: ReadonlyArray<() => void>, index: number) =>
+    Array.get(callbacks, index).pipe(Option.getOrThrow)
+
+  const start = async (isTransition = false, isDevTools = false) => {
+    let dispatch: ((message: PulseMessage) => void) | undefined
+    let maybeStore = Option.none<DevToolsStore>()
+    let isReentrant = false
+    let producerLimit = Infinity
+    let completedWaitCount = 0
+    const processed: Array<number> = []
+    const rendered: Array<PulseModel> = []
+    const callbacks: Array<() => void> = []
+    const observedCommits: Array<string | null | undefined> = []
+    const skipTransition = vi.fn()
+    if (isTransition) {
+      Object.defineProperty(document, 'startViewTransition', {
+        configurable: true,
+        value: (callback: () => void) => {
+          callbacks.push(callback)
+          return { updateCallbackDone: Promise.resolve(), skipTransition }
+        },
+      })
+    }
+    if (isDevTools) {
+      __setDevToolsOverlay(store => {
+        maybeStore = Option.some(store)
+        return Effect.void
+      })
+    }
+    const host = document.createElement('div')
+    host.id = 'queue-opportunity-app'
+    document.body.appendChild(host)
+    const element = makeElement({
+      Model: PulseModel,
+      container: host,
+      devTools: isDevTools ? { show: 'Always' } : false,
+      init: () => ({ model: { count: 0, value: '' } }),
+      update: (model: PulseModel, message: PulseMessage) =>
+        PulseMessage.match<Update.Return<PulseModel, PulseMessage>>(message, {
+          ClickedPulse: ({ cost }) => {
+            processingTime += cost
+            const nextCount = model.count + 1
+            processed.push(nextCount)
+            if (isReentrant && nextCount < producerLimit) {
+              document.getElementById('queue-pulse')?.click()
+            }
+            return { model: modifyFields(model, { count: () => nextCount }) }
+          },
+          UpdatedValue: ({ value }) => ({
+            model: modifyFields(model, { value: () => value }),
+          }),
+          FailedPulse: () => {
+            throw new Error('forced prefix failure')
+          },
+          ClickedWait: () => ({
+            model,
+            commands: [
+              {
+                name: 'WaitForCommit',
+                effect: Effect.gen(function* () {
+                  yield* afterCommit
+                  observedCommits.push(
+                    document.getElementById('queue-count')?.textContent,
+                  )
+                  return PulseMessage.CompletedWaitForCommit()
+                }),
+              },
+            ],
+          }),
+          CompletedWaitForCommit: () => {
+            completedWaitCount += 1
+            return { model }
+          },
+        }),
+      view: (model, h) => {
+        dispatch = __requireDispatch()
+        rendered.push(model)
+        return h.div(
+          [],
+          [
+            h.p([h.Id('queue-count')], [globalThis.String(model.count)]),
+            h.input([
+              h.Id('queue-field'),
+              h.Value(model.value),
+              h.OnInput(value => PulseMessage.UpdatedValue({ value })),
+            ]),
+            h.button(
+              [
+                h.Id('queue-pulse'),
+                h.OnClick(PulseMessage.ClickedPulse({ cost: UPDATE_COST_MS })),
+              ],
+              ['Pulse'],
+            ),
+          ],
+        )
+      },
+      crash: { view: (_context, h) => h.div([], ['queue-crash']) },
+      ...(isTransition ? { viewTransition: () => true } : {}),
+    })
+    const fiber = Effect.runFork(element.start())
+    await vi.waitFor(() => {
+      expect(dispatch).toBeDefined()
+    })
+    await new Promise(resolve => setTimeout(resolve, 0))
+    const send = (message: PulseMessage) => {
+      if (dispatch === undefined) {
+        throw new Error('Runtime has not booted')
+      }
+      dispatch(message)
+    }
+    return {
+      send,
+      rendered,
+      processed,
+      callbacks,
+      observedCommits,
+      skipTransition,
+      store: () => Option.getOrThrow(maybeStore),
+      completedWaitCount: () => completedWaitCount,
+      produce: (limit = Infinity) => {
+        isReentrant = true
+        producerLimit = limit
+        document.getElementById('queue-pulse')?.click()
+      },
+      stopProducing: () => {
+        isReentrant = false
+      },
+      stop: () => {
+        isReentrant = false
+        return Effect.runPromise(Fiber.interrupt(fiber))
+      },
+    }
+  }
+
+  it.each(['Reentrant', 'External'])(
+    'commits intermediate Models for a costly %s producer in FIFO order',
+    async kind => {
+      const app = await start()
+      try {
+        if (kind === 'Reentrant') {
+          app.produce(PRODUCER_COUNT)
+        } else {
+          app.send(PulseMessage.ClickedPulse({ cost: UPDATE_COST_MS }))
+          app.send(PulseMessage.ClickedPulse({ cost: UPDATE_COST_MS }))
+        }
+        while (app.processed.length < PRODUCER_COUNT) {
+          runFrame()
+          if (Array.isArrayNonEmpty(deliveries)) {
+            deliver()
+          }
+          if (kind === 'External' && app.processed.length < PRODUCER_COUNT) {
+            app.send(PulseMessage.ClickedPulse({ cost: UPDATE_COST_MS }))
+            if (
+              Array.isArrayEmpty(deliveries) &&
+              app.processed.length < PRODUCER_COUNT
+            ) {
+              app.send(PulseMessage.ClickedPulse({ cost: UPDATE_COST_MS }))
+            }
+          }
+        }
+        if (Array.isArrayNonEmpty(frames)) {
+          runFrame()
+        }
+        expect(app.rendered.map(model => model.count)).toEqual([
+          0, 5, 10, 15, 20, 24,
+        ])
+        expect(app.processed).toEqual(Array.range(1, PRODUCER_COUNT))
+        expect(document.getElementById('queue-count')?.textContent).toBe('24')
+      } finally {
+        await app.stop()
+      }
+    },
+  )
+
+  it('incorporates queued input on the fourth blocked frame and retains the producer suffix task', async () => {
+    const app = await start()
+    try {
+      app.produce()
+      const field = document.getElementById('queue-field')
+      expect(field).toBeInstanceOf(HTMLInputElement)
+      if (!(field instanceof HTMLInputElement)) {
+        throw new Error('Missing controlled input')
+      }
+      field.value = 'queued value'
+      field.dispatchEvent(new Event('input', { bubbles: true }))
+      for (let turn = 0; turn < 3; turn++) {
+        runFrame()
+        expect(app.rendered).toHaveLength(1)
+      }
+      runFrame()
+      expect(Array.last(app.rendered)).toEqual(
+        Option.some({ count: 2, value: 'queued value' }),
+      )
+      expect(field.value).toBe('queued value')
+      expect(app.processed).toEqual([1, 2])
+      expect(deliveries).toHaveLength(1)
+      expect(frames).toHaveLength(1)
+    } finally {
+      await app.stop()
+    }
+  })
+
+  it('resets the allowance after each successful live patch', async () => {
+    const app = await start()
+    try {
+      app.produce()
+      for (let turn = 1; turn <= 8; turn++) {
+        runFrame()
+        expect(app.rendered).toHaveLength(1 + Math.floor(turn / 4))
+        deliver()
+      }
+    } finally {
+      await app.stop()
+    }
+  })
+
+  it('forces the fourth blocked transition callback despite clear queues at transition start', async () => {
+    const app = await start(true)
+    try {
+      for (let turn = 0; turn < 4; turn++) {
+        processingTime += UPDATE_COST_MS
+        app.send(PulseMessage.ClickedPulse({ cost: 0 }))
+        runFrame()
+        expect(app.callbacks).toHaveLength(turn + 1)
+        app.send(PulseMessage.ClickedPulse({ cost: UPDATE_COST_MS }))
+        app.send(PulseMessage.ClickedPulse({ cost: UPDATE_COST_MS }))
+        callbackAt(app.callbacks, turn)()
+        expect(app.rendered).toHaveLength(turn < 3 ? 1 : 2)
+        while (Array.isArrayNonEmpty(deliveries)) {
+          deliver()
+        }
+      }
+      expect(app.skipTransition).toHaveBeenCalledTimes(4)
+      for (const callback of app.callbacks) {
+        callback()
+        callback()
+      }
+      expect(app.rendered).toHaveLength(2)
+    } finally {
+      await app.stop()
+    }
+  })
+
+  it('shares one refusal allowance between delayed callbacks and frames', async () => {
+    const app = await start(true)
+    try {
+      app.send(PulseMessage.ClickedPulse({ cost: 0 }))
+      runFrame()
+      app.produce()
+      callbackAt(app.callbacks, 0)()
+      runFrame()
+      runFrame()
+      expect(app.rendered).toHaveLength(1)
+      runFrame()
+      expect(app.rendered).toHaveLength(2)
+      expect(app.callbacks).toHaveLength(1)
+    } finally {
+      await app.stop()
+    }
+  })
+
+  it('invalidates an older transition when a forced plain frame commits', async () => {
+    const app = await start(true)
+    try {
+      app.send(PulseMessage.ClickedPulse({ cost: 0 }))
+      runFrame()
+      app.produce()
+      for (let turn = 0; turn < 4; turn++) {
+        runFrame()
+      }
+      expect(app.rendered).toHaveLength(2)
+      expect(app.callbacks).toHaveLength(1)
+      expect(app.skipTransition).toHaveBeenCalledTimes(1)
+      callbackAt(app.callbacks, 0)()
+      callbackAt(app.callbacks, 0)()
+      expect(app.rendered).toHaveLength(2)
+    } finally {
+      await app.stop()
+    }
+  })
+
+  it('keeps afterCommit pending through refusals and completes it once after the forced patch', async () => {
+    const app = await start()
+    try {
+      app.send(PulseMessage.ClickedPulse({ cost: 0 }))
+      app.send(PulseMessage.ClickedWait())
+      await new Promise(resolve => setTimeout(resolve, 0))
+      app.produce()
+      for (let turn = 0; turn < 3; turn++) {
+        runFrame()
+      }
+      await new Promise(resolve => setTimeout(resolve, 0))
+      expect(app.completedWaitCount()).toBe(0)
+      expect(app.observedCommits).toEqual([])
+      runFrame()
+      app.stopProducing()
+      while (Array.isArrayNonEmpty(deliveries)) {
+        deliver()
+      }
+      await vi.waitFor(() => {
+        expect(app.completedWaitCount()).toBe(1)
+      })
+      expect(document.getElementById('queue-count')?.textContent).toBe('3')
+      expect(app.observedCommits).toEqual(['3'])
+    } finally {
+      await app.stop()
+    }
+  })
+
+  it('ignores held frames and transition callbacks after disposal', async () => {
+    const app = await start(true)
+    app.send(PulseMessage.ClickedPulse({ cost: 0 }))
+    runFrame()
+    app.produce()
+    const heldFrames = frames.splice(0)
+    await app.stop()
+    const renderCount = app.rendered.length
+    callbackAt(app.callbacks, 0)()
+    for (const frame of heldFrames) {
+      frame(processingTime)
+    }
+    expect(app.rendered).toHaveLength(renderCount)
+    expect(app.processed).toEqual([1, 2])
+    expect(frames).toHaveLength(0)
+    expect(document.body.textContent).toBe('')
+  })
+
+  it('preserves the crash view when forced prefix processing throws', async () => {
+    const app = await start()
+    try {
+      app.produce()
+      app.send(PulseMessage.FailedPulse())
+      for (let turn = 0; turn < 4; turn++) {
+        runFrame()
+      }
+      expect(document.body.textContent).toBe('queue-crash')
+      expect(app.rendered).toHaveLength(1)
+    } finally {
+      await app.stop()
+    }
+  })
+
+  it.each([0, 1])(
+    'preserves restore intent and the allowance through replay after %s refusals',
+    async priorRefusals => {
+      const app = await start(false, true)
+      try {
+        app.produce()
+        for (let turn = 0; turn < priorRefusals; turn++) {
+          runFrame()
+        }
+        await Effect.runPromise(app.store().jumpTo(INIT_INDEX))
+        runFrame()
+        expect(document.getElementById('queue-count')?.textContent).toBe('0')
+        await Effect.runPromise(app.store().resume)
+        for (let turn = 0; turn < 3 - priorRefusals; turn++) {
+          runFrame()
+          expect(document.getElementById('queue-count')?.textContent).toBe('0')
+        }
+        runFrame()
+        expect(document.getElementById('queue-count')?.textContent).toBe('2')
+      } finally {
+        await app.stop()
+      }
+    },
+  )
 })
