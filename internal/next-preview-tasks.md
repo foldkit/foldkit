@@ -18,6 +18,11 @@ earlier holds.
 
 ## Next preview: merge main and verify Effect 4.1
 
+- [x] Prepare and resolve the current main sync at
+      `b702a5efbb74bebc056b798b414ddb923a82fbd5` on the isolated
+      `codex/preview-main-sync-20261029` branch. The incoming framework and UI
+      fixes already have Block-compatible implementations in the preview.
+      [Merge assessment and verification](preview-main-sync-20261029.md).
 - [ ] Merge the latest main into `codex/layers-and-submodels` before the next
       preview release, including main's Effect 4.1 update once it lands.
       Preserve the preview APIs and concurrent work when resolving conflicts.
@@ -25,6 +30,12 @@ earlier holds.
       Verify public types, packed consumers, SSR/hydration and one resolved
       Effect runtime against the adopted 4.1 versions. The published 4.0.0 and
       4.0.6 evidence does not establish 4.1 compatibility.
+- [ ] Address the Effect 4.1 root `Crypto` removal reported in
+      [#1733](https://github.com/foldkit/foldkit/issues/1733#issuecomment-6500513592).
+      The contributor closed [#1851](https://github.com/foldkit/foldkit/pull/1851)
+      in favor of a `SecureRandom`/`NodeCrypto.layerSecureRandom` migration
+      coordinated with the dependency upgrade. Verify the adopted implementation
+      and constrain unstable API compatibility to the versions actually tested.
 - [ ] Rerun affected framework, application and compiler-performance gates
       against the merged candidate before preparing its release approval.
 

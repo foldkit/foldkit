@@ -187,9 +187,6 @@ describe('server-rendered example build scripts', () => {
 
   it('pins canary playground dependencies to the commit-addressed snapshot', async () => {
     const previousCanaryCommit = process.env['VITE_FOLDKIT_CANARY_COMMIT']
-    delete process.env['VITE_FOLDKIT_CANARY_COMMIT']
-
-    const stableVersions = await loadPlaygroundWorkspacePackageVersions()
     process.env['VITE_FOLDKIT_CANARY_COMMIT'] = CANARY_COMMIT
 
     try {
@@ -218,7 +215,9 @@ describe('server-rendered example build scripts', () => {
           expect(specifier, `${slug}: ${name}`).not.toMatch(/^workspace:/)
         }
 
-        for (const [name, stableVersion] of Object.entries(stableVersions)) {
+        for (const [name, stableVersion] of Object.entries(
+          stableWorkspacePackageVersions,
+        )) {
           if (dependencies[name] !== undefined) {
             expect(dependencies[name], `${slug}: ${name}`).toBe(
               canaryVersion(stableVersion, CANARY_COMMIT),
