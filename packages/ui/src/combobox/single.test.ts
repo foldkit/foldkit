@@ -2,7 +2,7 @@ import { Array, Effect, Option } from 'effect'
 import { Scene, Story } from 'foldkit'
 import { type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
-import { expect } from 'vitest'
+import { expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
@@ -1354,6 +1354,65 @@ describe('Combobox', () => {
           },
           h,
         )
+
+    it('activates the last item on ArrowUp after opening on focus', () => {
+      const input = Scene.selector('#test-input')
+      const date = Scene.selector('#test-item-3')
+      const sceneView = vi.fn((model: Model, h: HtmlBuilder<Message>) =>
+        TestCombobox.view(
+          model,
+          {
+            items: ['Apple', 'Banana', 'Cherry', 'Date'],
+            itemToConfig: () => ({ content: null }),
+            itemToValue: item => item,
+            itemToDisplayText: item => item,
+            maybeSelectedValue: Option.none(),
+            restingInputValue: '',
+            openOnFocus: true,
+          },
+          h,
+        ),
+      )
+
+      Scene.scene(
+        { update: TestCombobox.update, view: sceneView },
+        Scene.given(closedModel()),
+        Scene.focus(input),
+        Scene.tap(() => {
+          expect(sceneView).toHaveBeenLastCalledWith(
+            expect.objectContaining({
+              isOpen: true,
+              maybeActiveItemIndex: Option.none(),
+            }),
+            expect.anything(),
+          )
+        }),
+        Scene.expect(input).toHaveAttr('aria-expanded', 'true'),
+        Scene.expect(input).not.toHaveAttr('aria-activedescendant'),
+        Scene.expectNoOutMessage(),
+        acknowledgeAnchor,
+        acknowledgeBackdrop,
+        Scene.keydown(input, 'ArrowUp'),
+        Scene.Command.resolve(
+          ScrollIntoView,
+          Message.CompletedScrollIntoView(),
+        ),
+        Scene.tap(() => {
+          expect(sceneView).toHaveBeenLastCalledWith(
+            expect.objectContaining({
+              isOpen: true,
+              maybeActiveItemIndex: Option.some(3),
+              inputValue: '',
+            }),
+            expect.anything(),
+          )
+        }),
+        Scene.expect(date).toHaveAttr('data-active', ''),
+        Scene.expect(date).not.toHaveAttr('data-selected'),
+        Scene.expect(input).toHaveAttr('aria-activedescendant', 'test-item-3'),
+        Scene.expectNoOutMessage(),
+      )
+    })
 
     it('renders input with role="combobox" when closed', () => {
       Scene.scene(
