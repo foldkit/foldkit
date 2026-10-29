@@ -8,6 +8,7 @@ export {
   isDragging,
   maybeDraggedItemId,
   maybeDropTarget,
+  maybeActiveDrop,
   subscriptions,
   DragState,
   Model,

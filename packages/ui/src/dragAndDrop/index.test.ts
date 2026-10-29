@@ -13,6 +13,7 @@ import {
   ghostStyle,
   init,
   isDragging,
+  maybeActiveDrop,
   maybeDraggedItemId,
   maybeDropTarget,
   subscriptions,
@@ -488,6 +489,62 @@ describe('DragAndDrop', () => {
         Story.model(model => {
           expect(maybeDropTarget(model)).toStrictEqual(
             Option.some({ containerId: 'list-1', index: 0 }),
+          )
+        }),
+      )
+    })
+  })
+
+  describe('maybeActiveDrop', () => {
+    it('pairs the pointer drag source with its current drop target', () => {
+      Story.story(
+        update,
+        Story.given(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.message(movedPointerAboveThreshold),
+        Story.model(model => {
+          expect(maybeActiveDrop(model)).toStrictEqual(Option.none())
+        }),
+        Story.message(
+          movedPointer({
+            maybeDropTarget: Option.some({ containerId: 'list-2', index: 3 }),
+          }),
+        ),
+        Story.model(model => {
+          expect(maybeActiveDrop(model)).toStrictEqual(
+            Option.some({
+              itemId: 'item-1',
+              fromContainerId: 'list-1',
+              fromIndex: 0,
+              toContainerId: 'list-2',
+              toIndex: 3,
+            }),
+          )
+        }),
+      )
+    })
+
+    it('pairs the keyboard drag source with its resolved position', () => {
+      Story.story(
+        update,
+        Story.given(defaultInit()),
+        Story.message(activatedKeyboardDrag),
+        Story.message(
+          Message.CompletedResolveKeyboardMove({
+            targetContainerId: 'list-2',
+            targetIndex: 1,
+          }),
+        ),
+        Story.Command.resolve(FocusItem, Message.CompletedFocusItem()),
+        Story.model(model => {
+          expect(maybeActiveDrop(model)).toStrictEqual(
+            Option.some({
+              itemId: 'item-1',
+              fromContainerId: 'list-1',
+              fromIndex: 0,
+              toContainerId: 'list-2',
+              toIndex: 1,
+            }),
           )
         }),
       )
