@@ -129,6 +129,8 @@ An SSR build calls the server entry's `renderDocument` export with the rendered 
 
 The plugin supplies `assets.entryScript`, `assets.stylesheets`, and `assets.modulePreloads`. Import stylesheets from the client script; Vite emits their production URLs and keeps lazy imports out of the initial document. Use a root-relative `clientEntry` and an absolute-path or full-URL Vite `base`. Relative bases cannot locate the same assets consistently on nested routes and are rejected.
 
+Under `vite dev`, `assets.stylesheets` is empty. The dev server instead inlines, at the end of the head, each stylesheet the client script imports statically, so the first paint is styled, and Vite's client adopts those elements when it starts. A stylesheet that cannot be inlined, such as one from a virtual module, applies when the script runs, along with every stylesheet after it.
+
 #### Custom document head
 
 Wrap the default renderer to set a default language or add trusted author-owned head markup. For example, this entry adds a favicon:

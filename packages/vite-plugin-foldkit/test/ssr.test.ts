@@ -185,6 +185,14 @@ const allowedHostsConfiguration = (
   }
 }
 
+const virtualThemePlugin: Plugin = {
+  name: 'virtual-theme',
+  resolveId: id =>
+    id === 'virtual:theme.css' ? '\0virtual:theme.css' : undefined,
+  load: id =>
+    id === '\0virtual:theme.css' ? 'body { color: green; }' : undefined,
+}
+
 // A second physical copy of Vite, installed under an alias, so a server it
 // creates carries that copy's `RunnableDevEnvironment` class rather than the
 // one this test and the plugin import. Its `createServer` is nominally typed
@@ -223,11 +231,13 @@ const startServer = async (
     root?: string
     clientEntry?: string
     base?: string
+    cspNonce?: string
     origin?: string
     allowedHosts?: true | ReadonlyArray<string>
     cors?: boolean | CorsOptions
     proxyTarget?: string
     seedVary?: string
+    plugins?: ReadonlyArray<Plugin>
     buildId?: string
     runnableSsr?: false
     hostVite?: true
@@ -240,6 +250,9 @@ const startServer = async (
   const server = await createServer({
     root: options.root ?? FIXTURE_ROOT,
     ...(options.base === undefined ? {} : { base: options.base }),
+    ...(options.cspNonce === undefined
+      ? {}
+      : { html: { cspNonce: options.cspNonce } }),
     configFile: false,
     logLevel: 'silent',
     ...(options.warnings === undefined
@@ -248,6 +261,7 @@ const startServer = async (
     plugins: [
       ...(options.runnableSsr === false ? [nonRunnableSsrPlugin] : []),
       ...(options.hostVite === true ? [foreignCopyAssertionPlugin] : []),
+      ...(options.plugins ?? []),
       ...(options.seedVary === undefined
         ? []
         : [seedVaryPlugin(options.seedVary)]),
@@ -329,6 +343,55 @@ describe('code-rendered documents in development', () => {
     const head = await fetch(`${origin}/app/deep/page`, { method: 'HEAD' })
     expect(head.status).toBe(200)
     expect(await head.text()).toBe('')
+  })
+
+  it('inlines the stylesheets the client entry imports statically, in evaluation order', async () => {
+    const root = resolve(import.meta.dirname, 'fixtures/build-assets')
+    const origin = await startServer({
+      root,
+      clientEntry: '/entry.client.ts',
+      base: '/app/',
+    })
+    const html = await (await fetch(`${origin}/app/deep/page`)).text()
+    const [head = ''] = html.split('</head>')
+    const styles = [
+      ...head.matchAll(/<style data-vite-dev-id="([^"]+)">([^<]*)<\/style>/g),
+    ].map(([, id, css]) => ({ id, css }))
+
+    expect(styles).toEqual([
+      { id: resolve(root, 'leaf.css'), css: expect.stringContaining('red') },
+      {
+        id: resolve(root, 'shared.css'),
+        css: expect.stringContaining('green'),
+      },
+      { id: resolve(root, 'styles.css'), css: expect.stringContaining('blue') },
+    ])
+  })
+
+  it('stops inlining at a stylesheet the client cannot adopt, keeping cascade order', async () => {
+    const root = resolve(import.meta.dirname, 'fixtures/dev-styles')
+    const origin = await startServer({
+      root,
+      clientEntry: '/entry.client.js',
+      plugins: [virtualThemePlugin],
+    })
+    const html = await (await fetch(`${origin}/`)).text()
+    const styleIds = [
+      ...html.matchAll(/<style data-vite-dev-id="([^"]+)"/g),
+    ].map(([, id]) => id)
+
+    expect(styleIds).toEqual([resolve(root, 'before.css')])
+  })
+
+  it('applies the configured CSP nonce to inlined stylesheets', async () => {
+    const origin = await startServer({
+      root: resolve(import.meta.dirname, 'fixtures/build-assets'),
+      clientEntry: '/entry.client.ts',
+      cspNonce: 'dev-nonce',
+    })
+    const html = await (await fetch(`${origin}/`)).text()
+
+    expect(html).toMatch(/<style data-vite-dev-id="[^"]+" nonce="dev-nonce">/)
   })
 
   it('reports a missing document renderer when a script entry is configured', async () => {
