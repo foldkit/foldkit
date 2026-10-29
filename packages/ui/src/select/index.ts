@@ -23,7 +23,15 @@ export type ViewConfig<Message> = Readonly<{
   name?: string
 }>
 
-/** Returns the description element id, derived from the select's base id. */
+/** Returns the description element id, derived from the select's base id.
+ *
+ *  The primary path is to spread `SelectAttributes.description` onto your
+ *  description element in `toView`. This group already carries the id.
+ *  Use this helper when you need the id as a value outside that path.
+ *  For example: a Command that calls `getElementById`, an `aria-describedby`
+ *  reference from another element, or a test.
+ *  Set `ViewConfig.hasDescription` when you render the description.
+ *  Do not hand-roll the id string. */
 export const descriptionId = (id: string): string => `${id}-description`
 
 /** Renders an accessible select by building ARIA attribute groups and delegating layout to the consumer's `toView` callback. */
