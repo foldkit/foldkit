@@ -2,29 +2,26 @@ import { Schema } from 'effect'
 import { describe, expect, test } from 'vitest'
 
 import foldkitPackageJson from '../../../foldkit/package.json?raw'
-import getStartedSource from './getStarted.md?raw'
+import getStartedInstallSource from '../snippet/getStartedInstallFoldkit.sh?raw'
 
-// NOTE: The install instructions pin an exact Effect release. The nightly
-// Effect-bump job rewrites package.json and pnpm-workspace.yaml but not prose,
-// so without this guard the getting-started version silently drifts from what
-// Foldkit ships.
 const FoldkitPackageJson = Schema.Struct({
-  peerDependencies: Schema.Struct({ effect: Schema.String }),
+  peerDependencies: Schema.Struct({
+    effect: Schema.String,
+    '@effect/platform-browser': Schema.String,
+  }),
 })
 
 const { peerDependencies } = Schema.decodeUnknownSync(FoldkitPackageJson)(
   JSON.parse(foldkitPackageJson),
 )
 
-const EFFECT_VERSION_PATTERN =
-  /(?<=effect@|@effect\/platform-browser@)\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?/g
-
 describe('getting started install instructions', () => {
-  test('pin the exact Effect release that Foldkit depends on', () => {
-    const mentionedVersions =
-      getStartedSource.match(EFFECT_VERSION_PATTERN) ?? []
-    const distinctVersions = [...new Set(mentionedVersions)]
+  test('install the Effect peer ranges supported by Foldkit', () => {
+    const installArguments = getStartedInstallSource.trim().split(/\s+/)
 
-    expect(distinctVersions).toEqual([peerDependencies.effect])
+    expect(installArguments).toContain(`effect@${peerDependencies.effect}`)
+    expect(installArguments).toContain(
+      `@effect/platform-browser@${peerDependencies['@effect/platform-browser']}`,
+    )
   })
 })

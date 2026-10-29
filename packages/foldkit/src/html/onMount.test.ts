@@ -590,16 +590,11 @@ describe('OnMount', () => {
   })
 
   it('skips release and dispatches nothing when destroy interrupts an in-flight acquire', async () => {
-    // NOTE: Locks in the v4-beta Effect.acquireRelease contract: if acquire
-    // is interrupted before completing, release is NOT called (no resource
-    // was acquired, so nothing to release). This is the correct semantic
-    // for async Mount setup. For example, a Mount that dynamically imports
-    // a library before constructing a handle: if the element unmounts
-    // during the import, there is no handle to destroy.
     const h = __htmlBuilder<typeof Message.MountedRoot.Type>()
     const { dispatch, dispatched } = createCapturingDispatch()
     let cleanupCalls = 0
-    let acquireCompleted = false
+    let isAcquireStarted = false
+    let isAcquireCompleted = false
 
     let resolveAcquire: (value: void) => void = Function.constVoid
     const acquireGate = new Promise<void>(resolve => {
@@ -616,9 +611,12 @@ describe('OnMount', () => {
                 Stream.callback<typeof Message.MountedRoot.Type>(queue =>
                   Effect.gen(function* () {
                     yield* Effect.acquireRelease(
-                      Effect.promise(() => acquireGate).pipe(
+                      Effect.promise(() => {
+                        isAcquireStarted = true
+                        return acquireGate
+                      }).pipe(
                         Effect.map(() => {
-                          acquireCompleted = true
+                          isAcquireCompleted = true
                           Queue.offerUnsafe(queue, Message.MountedRoot())
                         }),
                       ),
@@ -626,6 +624,7 @@ describe('OnMount', () => {
                         Effect.sync(() => {
                           cleanupCalls += 1
                         }),
+                      { interruptible: true },
                     )
                     return yield* Effect.never
                   }),
@@ -641,6 +640,10 @@ describe('OnMount', () => {
       toVNode(makeRootContainer()),
       renderView(withChild, dispatch),
     )
+    await vi.waitFor(() => {
+      expect(isAcquireStarted).toBe(true)
+    })
+
     patch(mounted, renderView(withoutChild, dispatch))
 
     resolveAcquire()
@@ -649,7 +652,7 @@ describe('OnMount', () => {
       setTimeout(resolve, WAIT_FOR_INTERRUPT_PROPAGATION_MS),
     )
 
-    expect(acquireCompleted).toBe(false)
+    expect(isAcquireCompleted).toBe(false)
     expect(cleanupCalls).toBe(0)
     expect(dispatched).toStrictEqual([])
   })
