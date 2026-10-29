@@ -101,7 +101,7 @@ An interaction invokes the matched element's event handler. If the handler produ
 | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `click(target)`                        | `OnClick` (runs target and ancestor handlers until propagation stops)                                                         |
 | `doubleClick(target)`                  | `OnDoubleClick` (bubbles to ancestors)                                                                                        |
-| `contextMenu(target)`                  | `OnContextMenu` (bubbles to ancestors)                                                                                        |
+| `contextMenu(target, options?)`        | `OnContextMenu` with optional `PointerPosition` fields and `{ shiftKey, ctrlKey, altKey, metaKey }` (bubbles to ancestors)    |
 | `pointerDown(target, options?)`        | `OnPointerDown` with optional `{ pointerType, button, screenX, screenY, clientX, clientY, pointerId }` (bubbles to ancestors) |
 | `pointerUp(target, options?)`          | `OnPointerUp` with optional `{ pointerType, screenX, screenY }` (bubbles to ancestors)                                        |
 | `hover(target)`                        | `OnMouseEnter` (falls back to `OnMouseOver`)                                                                                  |
@@ -119,6 +119,8 @@ An interaction invokes the matched element's event handler. If the handler produ
 ### Input and Inspection Steps
 
 Pass `Option.some(text)` to `beforeInput` for an edit that carries text and `Option.none()` for one that does not, such as a backward deletion.
+
+Scene does not lay out the view, so pass `contextMenu` the `PointerPosition` values the `OnContextMenu` function should receive, measured against the element that handles the event. Omitted numbers are `0` and omitted modifier keys are released.
 
 `tap(fn)` runs a function for side effects (like ad-hoc assertions on raw VNodes or accumulated Commands) without breaking the step chain.
 
