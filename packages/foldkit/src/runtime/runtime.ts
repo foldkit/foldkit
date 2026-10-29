@@ -568,7 +568,8 @@ export const makeRuntime = <
           devTools,
           update,
           maybeFreezeModel,
-          enqueueMessageEffect,
+          enqueueMessagesAndAwaitProcessing:
+            messageQueue.enqueueMessagesAndAwaitProcessing,
         })
         const {
           isRecordingCommands,
