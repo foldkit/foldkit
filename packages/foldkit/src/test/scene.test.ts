@@ -112,9 +112,21 @@ import {
   Message as MountPanelMessage,
   type Model as MountPanelModel,
   ScrollList,
+  makeCachedLazyPanelView as makeMountCachedLazyPanelView,
+  makeLazySharedPanelView as makeMountLazySharedPanelView,
+  makeReusedScrollListView as makeMountReusedScrollListView,
+  branchedPanelView as mountBranchedPanelView,
+  droppedFirstScrollListView as mountDroppedFirstScrollListView,
   initialModel as mountInitialModel,
+  keyedAncestorScrollListView as mountKeyedAncestorScrollListView,
+  keyedScrollListView as mountKeyedScrollListView,
+  reorderedScrollListView as mountReorderedScrollListView,
   scrollListView as mountScrollListView,
+  sharedPanelView as mountSharedPanelView,
+  switchedMountView as mountSwitchedMountView,
+  toggledMountView as mountToggledMountView,
   twoPanelView as mountTwoPanelView,
+  unkeyedScrollListView as mountUnkeyedScrollListView,
   update as mountUpdate,
   view as mountView,
 } from './apps/mountPanel.js'
@@ -5126,6 +5138,213 @@ describe('scene mounts', () => {
         ),
       ),
     ).toThrow(/ScrollList \{"offset":240\}/)
+  })
+
+  test('a keyed element whose key changes ends its Mount and starts a new one', () => {
+    Scene.scene(
+      { update: mountUpdate, view: mountKeyedScrollListView },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolve(
+        ScrollList({ offset: 0 }),
+        MountPanelMessage.ScrolledTo({ offset: 0 }),
+      ),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectEnded(ScrollList({ offset: 0 })),
+      Scene.Mount.expectExact(ScrollList({ offset: 1 })),
+      Scene.Mount.resolve(
+        ScrollList({ offset: 1 }),
+        MountPanelMessage.ScrolledTo({ offset: 1 }),
+      ),
+    )
+  })
+
+  test('a Mount under a keyed ancestor whose key changes ends and starts again', () => {
+    Scene.scene(
+      { update: mountUpdate, view: mountKeyedAncestorScrollListView },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolve(
+        ScrollList({ offset: 0 }),
+        MountPanelMessage.ScrolledTo({ offset: 0 }),
+      ),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectEnded(ScrollList({ offset: 0 })),
+      Scene.Mount.expectExact(ScrollList({ offset: 1 })),
+      Scene.Mount.resolve(
+        ScrollList({ offset: 1 }),
+        MountPanelMessage.ScrolledTo({ offset: 1 }),
+      ),
+    )
+  })
+
+  test('switching between view functions that render the same tag ends the Mount and starts a new one', () => {
+    Scene.scene(
+      { update: mountUpdate, view: mountBranchedPanelView },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolve(
+        MeasurePanel,
+        MountPanelMessage.MeasuredPanel({ width: 100 }),
+      ),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectEnded(MeasurePanel),
+      Scene.Mount.expectExact(MeasurePanel),
+      Scene.Mount.resolve(
+        MeasurePanel,
+        MountPanelMessage.MeasuredPanel({ width: 200 }),
+      ),
+    )
+  })
+
+  test('removing one of several keyed same-named Mounts ends the removed one', () => {
+    Scene.scene(
+      { update: mountUpdate, view: mountDroppedFirstScrollListView },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolveAll(
+        [
+          ScrollList({ offset: 1 }),
+          MountPanelMessage.ScrolledTo({ offset: 1 }),
+        ],
+        [
+          ScrollList({ offset: 2 }),
+          MountPanelMessage.ScrolledTo({ offset: 2 }),
+        ],
+      ),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectEnded(ScrollList({ offset: 1 })),
+      Scene.Mount.expectNone(),
+    )
+  })
+
+  test('reordering keyed elements keeps each Mount', () => {
+    Scene.scene(
+      { update: mountUpdate, view: mountReorderedScrollListView },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolveAll(
+        [
+          ScrollList({ offset: 1 }),
+          MountPanelMessage.ScrolledTo({ offset: 1 }),
+        ],
+        [
+          ScrollList({ offset: 2 }),
+          MountPanelMessage.ScrolledTo({ offset: 2 }),
+        ],
+        [
+          ScrollList({ offset: 3 }),
+          MountPanelMessage.ScrolledTo({ offset: 3 }),
+        ],
+        [
+          ScrollList({ offset: 4 }),
+          MountPanelMessage.ScrolledTo({ offset: 4 }),
+        ],
+      ),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectNone(),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectNone(),
+    )
+  })
+
+  test('one Mount VNode rendered at two positions keeps both Mounts across renders', () => {
+    Scene.scene(
+      { update: mountUpdate, view: mountSharedPanelView },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolveAll(
+        [MeasurePanel, MountPanelMessage.MeasuredPanel({ width: 1 })],
+        [MeasurePanel, MountPanelMessage.MeasuredPanel({ width: 2 })],
+      ),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectNone(),
+    )
+  })
+
+  test('one Mount VNode rendered inside and outside a lazy view keeps both Mounts across renders', () => {
+    Scene.scene(
+      { update: mountUpdate, view: makeMountLazySharedPanelView() },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolveAll(
+        [MeasurePanel, MountPanelMessage.MeasuredPanel({ width: 1 })],
+        [MeasurePanel, MountPanelMessage.MeasuredPanel({ width: 2 })],
+      ),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectNone(),
+    )
+  })
+
+  test('a lazy view cache hit keeps its Mount when a sibling is inserted before it', () => {
+    Scene.scene(
+      { update: mountUpdate, view: makeMountCachedLazyPanelView() },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolve(
+        MeasurePanel,
+        MountPanelMessage.MeasuredPanel({ width: 1 }),
+      ),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectNone(),
+    )
+  })
+
+  test('a VNode reused from the previous render is placed as a new element', () => {
+    Scene.scene(
+      { update: mountUpdate, view: makeMountReusedScrollListView() },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolve(
+        ScrollList({ offset: 1 }),
+        MountPanelMessage.ScrolledTo({ offset: 1 }),
+      ),
+      Scene.click(Scene.role('button', { name: 'Insert' })),
+      Scene.Mount.expectExact(ScrollList({ offset: 1 })),
+      Scene.Mount.resolve(
+        ScrollList({ offset: 1 }),
+        MountPanelMessage.ScrolledTo({ offset: 1 }),
+      ),
+      Scene.click(Scene.role('button', { name: 'Remove' })),
+      Scene.Mount.expectEnded(
+        ScrollList({ offset: 1 }),
+        ScrollList({ offset: 1 }),
+      ),
+    )
+  })
+
+  test('a patched element keeps its Mount when its OnMount switches Definition', () => {
+    Scene.scene(
+      { update: mountUpdate, view: mountSwitchedMountView },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolve(
+        MeasurePanel,
+        MountPanelMessage.MeasuredPanel({ width: 1 }),
+      ),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectNone(),
+    )
+  })
+
+  test('a patched element keeps its Mount when its OnMount is dropped, and regaining it starts nothing', () => {
+    Scene.scene(
+      { update: mountUpdate, view: mountToggledMountView },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolve(
+        MeasurePanel,
+        MountPanelMessage.MeasuredPanel({ width: 1 }),
+      ),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectNone(),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectNone(),
+    )
+  })
+
+  test('an element patched in place keeps its Mount and the args it acquired with', () => {
+    Scene.scene(
+      { update: mountUpdate, view: mountUnkeyedScrollListView },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolve(
+        ScrollList({ offset: 0 }),
+        MountPanelMessage.ScrolledTo({ offset: 0 }),
+      ),
+      Scene.click(Scene.role('button', { name: 'Next' })),
+      Scene.Mount.expectNone(),
+      Scene.click(Scene.role('button', { name: 'Remove' })),
+      Scene.Mount.expectEnded(ScrollList({ offset: 0 })),
+    )
   })
 })
 

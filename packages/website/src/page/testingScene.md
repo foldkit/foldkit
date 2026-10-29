@@ -218,15 +218,17 @@ Each matcher accepts either a Command Definition (matches by name) or a Command 
 
 ## Mounts
 
-When a rendered view contains an `OnMount` attribute, Scene keeps that Mount pending until the test supplies its result Message. If the mounted element later leaves the tree, the test must also acknowledge the unmount with `Mount.expectEnded`.
+When a rendered view contains an `OnMount` attribute, Scene keeps that Mount pending until the test supplies its result Message. If the mounted element is later removed or replaced, the test must also acknowledge the unmount with `Mount.expectEnded`.
 
 This applies to Mounts declared inside `@foldkit/ui` components too. Popovers, dialogs, and other components export their Mount Definitions so a consumer test can name and resolve them.
 
 ### Mount Lifecycle Rules
 
-- Pending mounts persist across re-renders. Resolving a mount does not re-pend it on the next render.
+- A Mount on an element patched in place keeps its status and the args it was acquired with. Resolving a Mount does not re-pend it on the next render.
+- When an update changes the key, tag, `is` value, or view function of a Mount's element or of any ancestor, the renderer replaces the element. View-function identity comes from `@foldkit/vite-plugin`. Scene ends the old Mount and makes the new element's Mount pending, so the test acknowledges the old Mount with `Mount.expectEnded` and resolves the new one with `Mount.resolve`. Unkeyed siblings pair by position, so inserting or removing an earlier sibling can leave a Mount on the element that now renders a different item. Key list items to keep each Mount with its item.
+- The Runtime starts a Mount only when it inserts an element, and Scene does the same. When a patched element's `OnMount` changes Definition or is removed, the element keeps the Mount it was inserted with. An `OnMount` added to a patched element never starts. Key the element when its Mount must re-run with new args or a different Definition.
 - Every mount that fires and unmounts during a scene must be acknowledged with `Mount.expectEnded`, even if it was already resolved. `resolve` handles a mount’s result Message; `expectEnded` handles its unmount. Unacknowledged unmounts throw at the end of the scene.
-- Same-named mounts in the tree are disambiguated by occurrence. `Mount.resolve` resolves the first pending occurrence; a second call resolves the next.
+- When several pending Mounts share a name, `Mount.resolve` resolves the first one in tree order; a second call resolves the next.
 - Interactions throw if there are unresolved mounts or unacknowledged unmounts when they try to dispatch a Message. Same contract as Commands.
 - `scene` throws at the end if any mount remains unresolved.
 
@@ -241,7 +243,7 @@ This applies to Mounts declared inside `@foldkit/ui` components too. Popovers, d
 | `Mount.expectExact(A, B)`                     | The pending mounts are exactly A and B (order-independent, by name).                                                                                                                                                              |
 | `Mount.expectHas(A)`                          | A is among the pending mounts (subset check).                                                                                                                                                                                     |
 | `Mount.expectNone()`                          | There are no pending mounts.                                                                                                                                                                                                      |
-| `Mount.expectEnded(A)`                        | A has disappeared from the rendered tree. Required for every Mount that fires and then unmounts during the scene, regardless of whether it was resolved first; otherwise the scene throws at the end.                             |
+| `Mount.expectEnded(A)`                        | A unmounted because its element was removed or replaced. Required for every Mount that fires and then unmounts during the scene, regardless of whether it was resolved first; otherwise the scene throws at the end.              |
 
 UI components export their Mount definitions (`Popover.AnchorPopover`, `Listbox.AnchorListbox`, and so on) so consumer tests can name them in `Mount.resolve`.
 

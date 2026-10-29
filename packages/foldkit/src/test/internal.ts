@@ -115,12 +115,11 @@ export const formatMatcher = (matcher: CommandMatcher): string =>
 export const formatCommand = (command: AnyCommand): string =>
   `${command.name}${formatArgs(command.args)}`
 
-/** A pending Mount in a Scene simulation. Identified by `name` and an
- *  `occurrence` index that disambiguates same-named mounts in the rendered
- *  tree (e.g. two open popovers each contributing an `AnchorPopover`). The
- *  occurrence is the 0-based position among same-named markers in
- *  tree-traversal order. `args` carries the runtime values used to construct
- *  the MountAction when its definition declared an args record. */
+/** A pending Mount in a Scene simulation. `occurrence` is the 0-based
+ *  position among same-named Mounts in tree-traversal order, which error
+ *  messages show to tell same-named Mounts apart (e.g. two open popovers each
+ *  contributing an `AnchorPopover`). `args` carries the runtime values used to
+ *  construct the MountAction when its definition declared an args record. */
 export type PendingMount = Readonly<{
   name: string
   args?: Record<string, unknown>
