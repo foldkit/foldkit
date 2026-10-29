@@ -2,7 +2,7 @@
 
 ## Overview
 
-Sortable lists and cross-container movement with pointer tracking, keyboard navigation, collision detection, auto-scrolling, and screen reader announcements.
+Sortable lists and cross-container movement with pointer tracking, keyboard navigation, collision detection, auto-scrolling, and the drag state your application needs for screen reader announcements.
 
 ### Integration Model
 
@@ -49,7 +49,21 @@ DragAndDrop supports full keyboard navigation. Space/Enter activates drag mode, 
 
 ## Accessibility
 
-Draggable items receive `role="option"` with `aria-roledescription="draggable"`. Drop containers receive `role="listbox"`. Screen reader announcements are emitted for drag start, movement, and drop via a live region.
+By default, draggable items receive `role="option"` with `aria-roledescription="draggable"`, and drop containers receive `role="listbox"`. That pairing describes a sortable list.
+
+DragAndDrop renders no live region. Your application announces drag start, movement, and drop in its own `aria-live` element. The [kanban example](https://github.com/foldkit/foldkit/tree/main/examples/kanban/src) builds its announcements from the drag state and the `Reordered` and `Cancelled` OutMessages.
+
+### Drop Targets That Are Not Lists
+
+When the drop container already has a role, such as a table cell, a grid cell, or a landmark region, `role="listbox"` would replace it and break the structure around it. Pass `{ role: 'Native' }` as the third argument to `droppable()` to keep the container's own role. The draggables inside are then not in a listbox, so `role="option"` is invalid for them. Give them `role: 'Native'` too, and render each one on an element with its own interactive role, such as a `<button>` with `type="button"`.
+
+Leave out the label for a table cell. An `aria-label` replaces the cell's contents as its accessible name, and the row and column headers already describe the cell.
+
+Screen readers do not reliably announce the row and column headers while a keyboard drag moves an item between cells, so your announcement has to name the cell. Take the drop target's `containerId` from `maybeDropTarget(model)` and look up that cell's row and column in your Model. For example, announce the cell with the id `monday-project-x` as "Monday, Project X".
+
+Keyboard drag and collision detection behave the same with either role. Tab and Shift+Tab move a keyboard drag between containers in document order, which for a table is row by row.
+
+::Snippet{name="uiDragAndDropTableCell" label="Table cells as drop containers"}
 
 ## Testing
 
@@ -74,15 +88,15 @@ Configuration object passed to `DragAndDrop.init()`.
 
 Functions for attaching drag-and-drop behavior to your elements and reading drag state.
 
-| Name                             | Type                       | Default | Description                                                                                                                                                           |
-| -------------------------------- | -------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `draggable(config)`              | `ReadonlyArray<Attribute>` | —       | Spread onto draggable items. Attaches pointer-down, keyboard activation, and ARIA attributes. Config requires model, toParentMessage, itemId, containerId, and index. |
-| `droppable(containerId, label?)` | `ReadonlyArray<Attribute>` | —       | Spread onto drop containers. Attaches the container ID for collision detection and optional ARIA label.                                                               |
-| `sortable(itemId)`               | `ReadonlyArray<Attribute>` | —       | Spread onto items that are both draggable and sortable targets.                                                                                                       |
-| `ghostStyle(model)`              | `Option<CSSProperties>`    | —       | Returns positioning styles for a ghost element that follows the pointer during drag. Use with Option.match to conditionally render.                                   |
-| `isDragging(model)`              | `boolean`                  | —       | Whether a drag is currently in progress.                                                                                                                              |
-| `maybeDraggedItemId(model)`      | `Option<string>`           | —       | The ID of the item being dragged, if any.                                                                                                                             |
-| `maybeDropTarget(model)`         | `Option<DropTarget>`       | —       | The current drop target (containerId + index), if any.                                                                                                                |
+| Name                                       | Type                       | Default | Description                                                                                                                                                                                                                  |
+| ------------------------------------------ | -------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `draggable(config)`                        | `ReadonlyArray<Attribute>` | —       | Spread onto draggable items. Attaches pointer-down, keyboard activation, and ARIA attributes. Config requires model, toParentMessage, itemId, containerId, and index. Optional `role` is `'Option'` (default) or `'Native'`. |
+| `droppable(containerId, label?, options?)` | `ReadonlyArray<Attribute>` | —       | Spread onto drop containers. Attaches the container ID for collision detection, an optional ARIA label, and `role="listbox"` unless `options.role` is `'Native'`.                                                            |
+| `sortable(itemId)`                         | `ReadonlyArray<Attribute>` | —       | Spread onto items that are both draggable and sortable targets.                                                                                                                                                              |
+| `ghostStyle(model)`                        | `Option<CSSProperties>`    | —       | Returns positioning styles for a ghost element that follows the pointer during drag. Use with Option.match to conditionally render.                                                                                          |
+| `isDragging(model)`                        | `boolean`                  | —       | Whether a drag is currently in progress.                                                                                                                                                                                     |
+| `maybeDraggedItemId(model)`                | `Option<string>`           | —       | The ID of the item being dragged, if any.                                                                                                                                                                                    |
+| `maybeDropTarget(model)`                   | `Option<DropTarget>`       | —       | The current drop target (containerId + index), if any.                                                                                                                                                                       |
 
 ### OutMessage {#out-message}
 

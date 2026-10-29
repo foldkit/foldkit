@@ -751,6 +751,25 @@ export type DraggableConfig<ParentMessage> = Readonly<{
   itemId: string
   containerId: string
   index: number
+  role?: DraggableRole
+}>
+
+/** Which role `draggable` gives its element. `'Option'` (the default) sets
+ *  `role="option"`, which pairs with a `'Listbox'` droppable. `'Native'` sets
+ *  no role, so the element keeps its own, such as a `<button>`'s or one you set
+ *  with `h.Role`. */
+export const DraggableRole = Schema.Literals(['Option', 'Native'])
+export type DraggableRole = typeof DraggableRole.Type
+
+/** Which role `droppable` gives its element. `'Listbox'` (the default) sets
+ *  `role="listbox"` for a list of `'Option'` draggables. `'Native'` sets no
+ *  role, so a table cell, grid cell, or region keeps its own. */
+export const DroppableRole = Schema.Literals(['Listbox', 'Native'])
+export type DroppableRole = typeof DroppableRole.Type
+
+/** Options for `droppable`. */
+export type DroppableOptions = Readonly<{
+  role?: DroppableRole
 }>
 
 /** Returns attributes the parent attaches to a draggable element. Handles pointer-down, keyboard activation, and ARIA. */
@@ -783,7 +802,7 @@ export const draggable = <ParentMessage>(
   return [
     h.DataAttribute('draggable-id', config.itemId),
     h.DataAttribute('sortable-id', config.itemId),
-    h.Role('option'),
+    ...(config.role === 'Native' ? [] : [h.Role('option')]),
     h.AriaRoleDescription('draggable'),
     h.Tabindex(0),
     h.OnPointerDown(
@@ -819,14 +838,16 @@ export const draggable = <ParentMessage>(
 }
 
 /** Returns attributes the parent attaches to a droppable container element.
- *  Handler-free, so the bundle is built with `inertHtml` and spreads into
- *  any Message universe's attribute array. */
+ *  Sets `role="listbox"` unless `options.role` is `'Native'`. Handler-free, so
+ *  the bundle is built with `inertHtml` and spreads into any Message
+ *  universe's attribute array. */
 export const droppable = (
   containerId: string,
   label?: string,
+  options: DroppableOptions = {},
 ): ReadonlyArray<Attribute<never>> => [
   ih.DataAttribute('droppable-id', containerId),
-  ih.Role('listbox'),
+  ...(options.role === 'Native' ? [] : [ih.Role('listbox')]),
   ...(label ? [ih.AriaLabel(label)] : []),
 ]
 
