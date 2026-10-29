@@ -48,3 +48,9 @@ Scene can also start at the root or at a child Submodel. `withViewInputs` adapts
 Choose the level by ownership. Test a Submodel's rendering, interactions, Commands, and OutMessages at the Submodel. Test parent folding, lifted Commands, route changes, and parent-computed ViewInputs at the root. Those behaviors cross the boundary and cannot be observed from the child.
 
 ::Snippet{name="sceneWeatherFlow" label="Weather search Scene test"}
+
+## Lazy Cache Reuse
+
+`Lazy.expectAllReused` from `foldkit/test` checks that every lazy call made on a second render reuses its cache. Pass `model` for the first render and an optional `nextModel` for the second. Without `nextModel`, both renders use `model`.
+
+Use `nextModel` to check that an unrelated Model change preserves cached subtrees. A changed lazy argument causes the assertion to throw with the slot, key for keyed calls, and changed argument indices. See [Testing Cache Reuse](/core/view-memoization#testing-cache-reuse) for examples and limits.
