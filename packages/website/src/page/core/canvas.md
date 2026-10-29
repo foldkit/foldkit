@@ -18,6 +18,8 @@ Canvas has five `Shape` variants: `Rect`, `Circle`, `Path`, `Text`, and `Group`.
 
 `Group` applies translation, rotation, scale, or opacity to child shapes. Groups can nest, so transforms compose into a scene graph. `Path` draws a sequence of `MoveTo`, `LineTo`, `QuadTo`, `BezierTo`, and `Close` instructions. Fill, stroke, and line styles stay on the shape that uses them.
 
+Calling `Group` keeps the shapes you pass as they are. It does not validate the subtree again, so wrapping already-built shapes in nested Groups on every frame stays cheap. To validate shapes from an untrusted source, decode them through the `Group` Schema, which checks the whole tree.
+
 ## Animation and Input
 
 For continuous animation, pair `Canvas.view` with [`Subscription.animationFrameEntry`](/core/subscriptions#animation-frames). While active, the entry emits a Message on each `requestAnimationFrame` tick with the inter-frame delta in milliseconds. The update function advances the Model, view derives the next shapes, and Foldkit batches the resulting patches to one per frame.
