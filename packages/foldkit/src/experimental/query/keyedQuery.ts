@@ -18,18 +18,21 @@ import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
 import * as Update from '../../update/index.js'
 import {
+  type FoldLens,
+  type LiftConfig,
+  type ParentFieldConfig,
+  isParentFieldConfig,
+  parentFieldToLens,
+  preserveLensReceiver,
+} from '../childLens.js'
+import {
   type AsyncDataTransition,
   type CompletedFetchOf,
-  type FoldLens,
   type KeyedArgs,
-  type LiftConfig,
   type LiftKeyedQuery,
-  type ParentFieldConfig,
   type QueryStore,
   applyTransition,
-  isParentFieldConfig,
   liftChildFold,
-  parentFieldToLens,
   runExecute,
 } from './internal.js'
 
@@ -381,16 +384,20 @@ export function defineKeyedQuery<
 
   const liftFromLens = <ParentModel, ParentMessage>(
     lens: FoldLens<ParentModel, ParentMessage, Model, Message>,
-  ) => ({
-    fold: Update.foldChild({ update, ...lens }),
-    reset: Update.foldChildStep({
-      update: reset,
-      ...lens,
-    }),
-    revalidate: liftChildFold(revalidate, lens),
-    revalidateOrLoad: liftChildFold(revalidateOrLoad, lens),
-    loadIfMissing: liftChildFold(loadIfMissing, lens),
-  })
+  ) => {
+    const receiverLens = preserveLensReceiver(lens)
+
+    return {
+      fold: Update.foldChild({ update, ...receiverLens }),
+      reset: Update.foldChildStep({
+        update: reset,
+        ...receiverLens,
+      }),
+      revalidate: liftChildFold(revalidate, receiverLens),
+      revalidateOrLoad: liftChildFold(revalidateOrLoad, receiverLens),
+      loadIfMissing: liftChildFold(loadIfMissing, receiverLens),
+    }
+  }
 
   function lift<ParentModel, ParentMessage>(
     config: ParentFieldConfig<ParentModel, ParentMessage, Model, Message>,

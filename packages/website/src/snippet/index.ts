@@ -606,3 +606,13 @@ export { default as asyncDataTypeRaw } from './asyncDataType.ts?raw'
 export { default as asyncDataTypeHighlighted } from './asyncDataType.ts?highlighted'
 export { default as keyingIdentityNotDataRaw } from './keyingIdentityNotData.ts?raw'
 export { default as keyingIdentityNotDataHighlighted } from './keyingIdentityNotData.ts?highlighted'
+
+export { default as formDefineRaw } from './formDefine.ts?raw'
+export { default as formDefineHighlighted } from './formDefine.ts?highlighted'
+export { default as formParentRaw } from './formParent.ts?raw'
+export { default as formParentHighlighted } from './formParent.ts?highlighted'
+export { default as formViewRaw } from './formView.ts?raw'
+export { default as formViewHighlighted } from './formView.ts?highlighted'
+
+export { default as formCompoundValuesRaw } from './formCompoundValues.ts?raw'
+export { default as formCompoundValuesHighlighted } from './formCompoundValues.ts?highlighted'
