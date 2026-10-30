@@ -48,6 +48,12 @@ When the program runs without an embed handle (started with `Runtime.run`), emit
 
 `dispose` ties the runtime to the host’s unmount. It interrupts the runtime and runs all cleanup: Subscriptions, Mounts, and ManagedResources release, in-flight Commands stop, the rendered DOM is removed, and the container element is restored empty in its place, ready for a fresh `embed`. It is idempotent, and sends on a disposed handle are no-ops, so a host that unmounts and remounts in quick succession stays correct. A program can be embedded once at a time; after `dispose`, the same program and container can be embedded again.
 
+### Waiting for Cleanup {#dispose-async}
+
+`dispose` returns right away and the cleanup finishes afterwards. When the host must not start something until the old app is fully gone, such as embedding a different program in the same container, await `disposeAsync` instead. It starts the same disposal and resolves once Subscriptions, ManagedResources, and in-flight Commands have released, including any asynchronous release, and the rendered DOM is removed with the container restored. A Mount is interrupted when its element is removed, but `disposeAsync` does not wait for the Mount's own release. It is safe to call more than once, and after `dispose`.
+
+::Snippet{name="embeddingDisposeAsync" label="Replacing one app with another"}
+
 ## The Schema Boundary
 
 Every value that crosses the boundary passes through its Port’s Schema. The host works with the Schema’s Encoded side, the app with the decoded Type: `send` validates by decoding, and `Port.emit` encodes before delivery. Keep Port Schemas to data that survives encoding, the same discipline as a network payload; functions and DOM references cannot cross. The Model does not cross either: outbound Ports carry facts the app chooses to announce, not state snapshots, so the host never couples to the app’s internal shape.

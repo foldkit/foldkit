@@ -104,6 +104,36 @@ const TrackHost = Mount.define('TrackHost', {
     }),
 })
 
+const SLOW_RELEASE_MS = 40
+let slowReleaseLog: Array<string> = []
+
+const slowReleaseSubscriptions = Subscription.make<Model, Message>()(
+  _entry => ({
+    heldResource: Subscription.persistentEntry(
+      Stream.callback<Message>(() =>
+        Effect.acquireRelease(
+          Effect.sync(() => {
+            slowReleaseLog.push('acquired')
+          }),
+          () =>
+            Effect.promise(
+              () =>
+                new Promise<void>(resolve =>
+                  setTimeout(resolve, SLOW_RELEASE_MS),
+                ),
+            ).pipe(
+              Effect.tap(() =>
+                Effect.sync(() => {
+                  slowReleaseLog.push('released')
+                }),
+              ),
+            ),
+        ).pipe(Effect.flatMap(() => Effect.never)),
+      ),
+    ),
+  }),
+)
+
 const h = __htmlBuilder<Message>()
 
 const view = (model: Model): Html =>
@@ -131,7 +161,18 @@ const makeWidget = (
     container,
   })
 
+const makeSlowReleaseWidget = (label: string) =>
+  makeElement({
+    Model,
+    init: () => ({ model: { count: 0, step: 1 } }),
+    update,
+    view: (): Html => h.div([], [`slow:${label}`]),
+    subscriptions: slowReleaseSubscriptions,
+    container,
+  })
+
 beforeEach(() => {
+  slowReleaseLog = []
   isTickStreamActive = false
   isMountActive = false
   container = document.createElement('div')
@@ -397,6 +438,61 @@ describe('embed', () => {
     expect(Exit.isSuccess(sendExit)).toBe(true)
     const unsubscribe = handle.ports.countChanged.subscribe(() => {})
     unsubscribe()
+  })
+
+  it('disposeAsync resolves only after an asynchronous release has finished', async () => {
+    const handle = embed(makeSlowReleaseWidget('first'))
+
+    await awaitBodyText('slow:first')
+    await vi.waitFor(() => {
+      expect(slowReleaseLog).toEqual(['acquired'])
+    })
+
+    handle.dispose()
+    expect(slowReleaseLog).toEqual(['acquired'])
+
+    await handle.disposeAsync()
+    expect(slowReleaseLog).toEqual(['acquired', 'released'])
+    expect(document.body.textContent).not.toContain('slow:first')
+    expect(container.childNodes.length).toBe(0)
+  })
+
+  it('disposeAsync starts disposal itself and can be called repeatedly', async () => {
+    const handle = embed(makeSlowReleaseWidget('first'))
+
+    await awaitBodyText('slow:first')
+    await vi.waitFor(() => {
+      expect(slowReleaseLog).toEqual(['acquired'])
+    })
+
+    await Promise.all([handle.disposeAsync(), handle.disposeAsync()])
+    expect(slowReleaseLog).toEqual(['acquired', 'released'])
+    expect(container.childNodes.length).toBe(0)
+
+    await handle.disposeAsync()
+    expect(slowReleaseLog).toEqual(['acquired', 'released'])
+  })
+
+  it('lets a different program start in the same container once disposeAsync resolves', async () => {
+    const firstHandle = embed(makeSlowReleaseWidget('first'))
+    await awaitBodyText('slow:first')
+
+    await firstHandle.disposeAsync()
+    expect(slowReleaseLog).toEqual(['acquired', 'released'])
+
+    const secondHandle = embed(makeSlowReleaseWidget('second'))
+    try {
+      await awaitBodyText('slow:second')
+      expect(document.body.textContent).not.toContain('slow:first')
+    } finally {
+      await secondHandle.disposeAsync()
+    }
+    expect(slowReleaseLog).toEqual([
+      'acquired',
+      'released',
+      'acquired',
+      'released',
+    ])
   })
 
   it('throws when a program is embedded twice without disposing', async () => {
