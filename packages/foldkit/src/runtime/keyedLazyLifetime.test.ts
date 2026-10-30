@@ -24,7 +24,7 @@ describe('render-scoped cache lifetime', () => {
     'releases entries while an embed handle is retained (%s)',
     async operation => {
       const registries = new Set<BoundaryRegistry>()
-      const lazyRow = createKeyedLazy({ evict: 'AbsentFromRender' })
+      const lazyRow = createKeyedLazy()
       const container = document.createElement('div')
       container.id = 'keyed-cache-lifetime'
       document.body.append(container)

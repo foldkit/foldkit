@@ -78,9 +78,9 @@ The Mount emits `ObservedContainerScroll` with the scroll position, scroll heigh
 
 ## Memoizing rows
 
-`itemToKey` is the row's DOM identity. Use that same id when memoizing the row view with `createKeyedLazy`, and pass `{ evict: 'AbsentFromRender' }`.
+`itemToKey` is the row's DOM identity. Use that same id when memoizing the row view with `createKeyedLazy`.
 
-The default cache retains every row's VNode and DOM element after the row scrolls out of the window. The eviction option releases entries absent from the completed render. Rows in the window retain their cache hits, including when a memoized parent skips its view.
+The default cache releases entries absent from the completed render, including rows that scroll out of the window. Rows in the window retain their cache hits, including when a memoized parent skips its view.
 
 ::Snippet{name="uiVirtualListMemoizedRows" label="Memoizing visible VirtualList rows"}
 

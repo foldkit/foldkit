@@ -278,7 +278,7 @@ export const createLazy = (): (<Args extends ReadonlyArray<unknown>>(
  *  `AbsentFromRender` releases entries unused by a completed render. */
 export type KeyedLazyEviction = 'None' | 'AbsentFromRender'
 
-/** Options for {@link createKeyedLazy}. `evict` defaults to `None`. */
+/** Options for {@link createKeyedLazy}. `evict` defaults to `AbsentFromRender`. */
 export type KeyedLazyConfig = Readonly<{
   evict?: KeyedLazyEviction
 }>
@@ -364,16 +364,16 @@ const createEvictingKeyedLazy = (): KeyedLazy => {
  *  Each entry holds the cached VNode, and that VNode holds its DOM element on
  *  `.elm`. A key that stays in the map keeps that element alive.
  *
- *  By default, entries are never evicted, so keys are expected to be bounded,
- *  such as an entity registry, a route table, or a fixed set of call sites. A
- *  key drawn from something unbounded, such as a search query or a paged
- *  cursor, grows the map for the lifetime of the page. Pass
- *  `{ evict: 'AbsentFromRender' }` to release entries unused by a completed
- *  render. Use that option for virtual lists and other growing row sets.
- *  Entries beneath a cached parent count as used. Cache writes roll back
- *  if view construction fails. With this option, each runtime or server
- *  render has its own cache, so separate apps and requests cannot evict
- *  each other.
+ *  By default, entries unused by a completed render are released. This bounds
+ *  the keyed cache to entries used by the latest completed render, including
+ *  entries beneath a cached parent. Cache writes roll back if view construction
+ *  fails. Each runtime or server render has its own cache, so separate apps and
+ *  requests cannot evict each other.
+ *
+ *  Pass `{ evict: 'None' }` to retain entries across renders where their keys
+ *  are absent. Use explicit retention only with a bounded set, such as an
+ *  entity registry, a route table, or fixed call sites. Every retained entry
+ *  holds its VNode and DOM element after that element leaves the document.
  *
  *  Like `createLazy`, each key's cached VNode must be rendered at a single
  *  position in the tree. If the same content needs to appear in multiple
@@ -385,7 +385,7 @@ export const createKeyedLazy = (
   fn: (...args: Args) => VNode | null,
   args: Args,
 ) => VNode | null) => {
-  const eviction = config?.evict ?? 'None'
+  const eviction = config?.evict ?? 'AbsentFromRender'
 
   return Match.value(eviction).pipe(
     Match.when('None', () => createRetainingKeyedLazy()),

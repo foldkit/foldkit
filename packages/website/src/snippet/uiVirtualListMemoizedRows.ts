@@ -19,7 +19,7 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 const rowView = (row: Row, h: HtmlBuilder<Message>) => h.span([], [row.label])
-const lazyRow = createKeyedLazy({ evict: 'AbsentFromRender' })
+const lazyRow = createKeyedLazy()
 
 const view = (model: Model, h: HtmlBuilder<Message>) =>
   h.submodel({

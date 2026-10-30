@@ -420,13 +420,13 @@ describe('createKeyedLazy', () => {
     expect(second).not.toBe(first)
   })
 
-  it('keeps a key the latest render did not call', () => {
+  it('retains an absent key when eviction is None', () => {
     const viewFn = vi.fn((label: string) => h('div', {}, [label]))
 
     const registry = createBoundaryRegistry()
     clearRuntime()
     setRuntime(noOpDispatchSync, noOpContext, registry)
-    const lazy = createKeyedLazy()
+    const lazy = createKeyedLazy({ evict: 'None' })
 
     beginRender(registry)
     lazy('a', viewFn, ['hello'])
@@ -471,7 +471,7 @@ describe('createKeyedLazy', () => {
     const registry = createBoundaryRegistry()
     clearRuntime()
     setRuntime(noOpDispatchSync, noOpContext, registry)
-    const lazy = createKeyedLazy({ evict: 'AbsentFromRender' })
+    const lazy = createKeyedLazy()
 
     beginRender(registry)
     const first = lazy('a', viewFn, ['hello'])
@@ -496,7 +496,7 @@ describe('createKeyedLazy', () => {
     const registry = createBoundaryRegistry()
     clearRuntime()
     setRuntime(noOpDispatchSync, noOpContext, registry)
-    const lazy = createKeyedLazy({ evict: 'AbsentFromRender' })
+    const lazy = createKeyedLazy()
 
     beginRender(registry)
     lazy('a', viewFn, ['hello'])
@@ -518,7 +518,7 @@ describe('createKeyedLazy', () => {
     const registry = createBoundaryRegistry()
     clearRuntime()
     setRuntime(noOpDispatchSync, noOpContext, registry)
-    const lazy = createKeyedLazy({ evict: 'AbsentFromRender' })
+    const lazy = createKeyedLazy()
 
     beginRender(registry)
     lazy('a', viewFn, ['hello'])

@@ -35,7 +35,7 @@ A cached VNode can appear at only one position in the tree. Foldkit records its 
 
 ## Keying by Entity Identity {#key-by-entity-identity}
 
-A keyed lazy also separates entities rendered at the same position. A blog page can cache each post by slug, so returning to a previous post can reuse its VNode instead of rebuilding it.
+A keyed lazy also separates entities rendered at the same position. A blog with a bounded post registry can use `{ evict: 'None' }` to cache each post by slug. Returning to a previous post can then reuse its VNode instead of rebuilding it.
 
 Use the same stable Model identifier for memoization and [DOM identity](/best-practices/keying#keys-and-view-identity). A post addressed by `post.slug` uses `post.slug`. A row keyed with `todo.id` uses `todo.id`. One identifier then names the entity in both systems.
 
@@ -45,13 +45,13 @@ Keys can also identify fixed call sites. If one view function renders in two pla
 
 ## Evicting unused keys
 
-`createKeyedLazy()` keeps every key for the lifetime of the page. Use the default with a bounded set, such as a route table or a fixed set of call sites. Each entry holds its VNode and DOM element, including after that element leaves the document.
-
-Pass `{ evict: 'AbsentFromRender' }` for lists whose row identities can grow, such as search results or a virtual list. Foldkit releases unused entries after a completed render. Rows present in the next render retain their cache hits.
+`createKeyedLazy()` releases entries absent from the latest completed render. Removing a row from a list or scrolling it out of a virtual window releases its keyed cache entry. Rows present in the next render retain their cache hits.
 
 ::Snippet{name="createKeyedLazyEviction" label="Releasing unused row entries"}
 
-A cached parent preserves the entries used by its children. Cache writes roll back if view construction fails. With this option, each runtime and server render has its own cache, so rendering another app or request cannot evict the first app's rows.
+A cached parent preserves the entries used by its children. Cache writes roll back if view construction fails. Each runtime and server render has its own cache, so rendering another app or request cannot evict the first app's rows.
+
+Pass `{ evict: 'None' }` when a bounded cache must reuse entries after their keys are absent from a render. A fixed route table or post registry can use this to reuse an entity view on a later visit. Each retained entry holds its VNode and DOM element, including after that element leaves the document. Use the default for lists whose row identities can grow.
 
 ## When to Use Lazy Views {#when-to-use-lazy}
 

@@ -7,7 +7,7 @@ type Contact = typeof Contact.Type
 const contactView = (contact: Contact, h: HtmlBuilder<never>) =>
   h.keyed('li')(contact.id, [], [contact.name])
 
-const lazyContact = createKeyedLazy({ evict: 'AbsentFromRender' })
+const lazyContact = createKeyedLazy()
 
 const contactListView = (
   contacts: ReadonlyArray<Contact>,

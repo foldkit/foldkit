@@ -84,17 +84,25 @@ describe('renderToString', () => {
     'isolates nested keyed caches beneath unchanged memoized parents across requests',
     () =>
       Effect.gen(function* () {
-        for (const isKeyed of [false, true]) {
-          const rows = createKeyedLazy({ evict: 'AbsentFromRender' })
+        for (const parentCache of ['Unkeyed', 'Evicting', 'Retaining']) {
+          const rows = createKeyedLazy()
           const plainParent = createLazy()
-          const keyedParent = createKeyedLazy()
+          const evictingParent = createKeyedLazy()
+          const retainingParent = createKeyedLazy({ evict: 'None' })
           const rowView = vi.fn(() => h.li([], ['row']))
           const parentView = vi.fn(() => h.ul([], [rows('row', rowView, [])]))
+          const cachedBody = () => {
+            if (parentCache === 'Evicting') {
+              return evictingParent('parent', parentView, [])
+            } else if (parentCache === 'Retaining') {
+              return retainingParent('parent', parentView, [])
+            } else {
+              return plainParent(parentView, [])
+            }
+          }
           const cachedView = (_model: Model): Document => ({
             title: 'Cached rows',
-            body: isKeyed
-              ? keyedParent('parent', parentView, [])
-              : plainParent(parentView, []),
+            body: cachedBody(),
           })
           const config = { ...routingConfig, view: cachedView }
           const options = {

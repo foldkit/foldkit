@@ -45,9 +45,29 @@ const requiredVNode = (vnode: VNode | null): VNode => {
 const rowView = (label: string) => h('li', {}, [label])
 
 describe('render-scoped keyed lazy caches', () => {
+  it.each([
+    { configuration: 'omitted', createCache: () => createKeyedLazy() },
+    { configuration: 'empty', createCache: () => createKeyedLazy({}) },
+  ])(
+    'evicts absent keys by default with $configuration configuration',
+    ({ createCache }) => {
+      const registry = createBoundaryRegistry()
+      const lazy = createCache()
+      const view = vi.fn(rowView)
+      const first = render(registry, () => lazy('row', view, ['row']))
+
+      expect(render(registry, () => lazy('row', view, ['row']))).toBe(first)
+      render(registry, () => undefined)
+      const next = render(registry, () => lazy('row', view, ['row']))
+
+      expect(next).not.toBe(first)
+      expect(view).toHaveBeenCalledTimes(2)
+    },
+  )
+
   it('evicts omitted keys and preserves the identity of surviving rows', () => {
     const registry = createBoundaryRegistry()
-    const lazy = createKeyedLazy({ evict: 'AbsentFromRender' })
+    const lazy = createKeyedLazy()
     const view = vi.fn(rowView)
     const first = render(registry, () => {
       lazy('removed', view, ['removed'])
@@ -65,7 +85,7 @@ describe('render-scoped keyed lazy caches', () => {
 
   it('releases every cache state when the next view renders an empty list', () => {
     const registry = createBoundaryRegistry()
-    const lazy = createKeyedLazy({ evict: 'AbsentFromRender' })
+    const lazy = createKeyedLazy()
     const view = vi.fn(rowView)
     render(registry, () => lazy('row', view, ['row']))
     render(registry, () => undefined)
@@ -75,13 +95,14 @@ describe('render-scoped keyed lazy caches', () => {
     expect(view).toHaveBeenCalledTimes(2)
   })
 
-  it.each([false, true])(
-    'preserves nested keys through an unchanged parent (keyed: %s)',
-    isKeyed => {
+  it.each(['Unkeyed', 'Evicting', 'Retaining'])(
+    'preserves nested keys through an unchanged parent (%s)',
+    parentCache => {
       const registry = createBoundaryRegistry()
-      const rows = createKeyedLazy({ evict: 'AbsentFromRender' })
+      const rows = createKeyedLazy()
       const plainParent = createLazy()
-      const keyedParent = createKeyedLazy()
+      const evictingParent = createKeyedLazy()
+      const retainingParent = createKeyedLazy({ evict: 'None' })
       const row = vi.fn(rowView)
       const parent = vi.fn((labels: ReadonlyArray<string>) =>
         h(
@@ -92,8 +113,10 @@ describe('render-scoped keyed lazy caches', () => {
       )
       const show = (labels: ReadonlyArray<string>) =>
         render(registry, () => {
-          if (isKeyed) {
-            return keyedParent('parent', parent, [labels])
+          if (parentCache === 'Evicting') {
+            return evictingParent('parent', parent, [labels])
+          } else if (parentCache === 'Retaining') {
+            return retainingParent('parent', parent, [labels])
           } else {
             return plainParent(parent, [labels])
           }
@@ -108,13 +131,16 @@ describe('render-scoped keyed lazy caches', () => {
       expect(row).toHaveBeenCalledTimes(3)
       expect(parent).toHaveBeenCalledTimes(2)
       show([])
+      show(labels)
+      expect(row).toHaveBeenCalledTimes(5)
+      render(registry, () => undefined)
       expect(registry.keyedLazyStates.size).toBe(0)
     },
   )
 
   it('forwards inner cache-hit usages through multiple lazy ancestors', () => {
     const registry = createBoundaryRegistry()
-    const rows = createKeyedLazy({ evict: 'AbsentFromRender' })
+    const rows = createKeyedLazy()
     const inner = createLazy()
     const outer = createLazy()
     const row = vi.fn(rowView)
@@ -134,7 +160,7 @@ describe('render-scoped keyed lazy caches', () => {
 
   it('evicts null results after their key is absent', () => {
     const registry = createBoundaryRegistry()
-    const lazy = createKeyedLazy({ evict: 'AbsentFromRender' })
+    const lazy = createKeyedLazy()
     const view = vi.fn(() => null)
     render(registry, () => lazy('empty', view, []))
     render(registry, () => lazy('empty', view, []))
@@ -147,7 +173,7 @@ describe('render-scoped keyed lazy caches', () => {
 
   it('discards descendants of a lazy view that returns null', () => {
     const registry = createBoundaryRegistry()
-    const rows = createKeyedLazy({ evict: 'AbsentFromRender' })
+    const rows = createKeyedLazy()
     const parent = createLazy()
     const row = vi.fn(rowView)
     const invisibleView = () => {
@@ -166,7 +192,7 @@ describe('render-scoped keyed lazy caches', () => {
     'restores writes from an abandoned Submodel (%s)',
     failure => {
       const registry = createBoundaryRegistry()
-      const rows = createKeyedLazy({ evict: 'AbsentFromRender' })
+      const rows = createKeyedLazy()
       const parent = createLazy()
       const row = vi.fn(rowView)
       const previous = render(registry, () => rows('row', row, ['original']))
@@ -207,7 +233,7 @@ describe('render-scoped keyed lazy caches', () => {
 
   it('restores a previous entry when a root view throws after replacing it', () => {
     const registry = createBoundaryRegistry()
-    const rows = createKeyedLazy({ evict: 'AbsentFromRender' })
+    const rows = createKeyedLazy()
     const view = vi.fn(rowView)
     const previous = render(registry, () => rows('row', view, ['original']))
 
@@ -231,7 +257,7 @@ describe('render-scoped keyed lazy caches', () => {
     'cleans up a previously registered cache after an abandoned pass (%s)',
     cleanup => {
       const registry = createBoundaryRegistry()
-      const rows = createKeyedLazy({ evict: 'AbsentFromRender' })
+      const rows = createKeyedLazy()
       const view = vi.fn(rowView)
       render(registry, () => rows('row', view, ['row']))
 
@@ -256,7 +282,7 @@ describe('render-scoped keyed lazy caches', () => {
   it('isolates one factory across runtimes and server request registries', () => {
     const firstRegistry = createBoundaryRegistry()
     const secondRegistry = createBoundaryRegistry()
-    const lazy = createKeyedLazy({ evict: 'AbsentFromRender' })
+    const lazy = createKeyedLazy()
     const view = vi.fn(rowView)
     const first = render(firstRegistry, () => lazy('same', view, ['row']))
     const second = render(secondRegistry, () => lazy('same', view, ['row']))
@@ -267,22 +293,25 @@ describe('render-scoped keyed lazy caches', () => {
     expect(view).toHaveBeenCalledTimes(2)
   })
 
-  it.each([false, true])(
-    'isolates enclosing lazy views across registries with shared dispatch (keyed: %s)',
-    isKeyed => {
+  it.each(['Unkeyed', 'Evicting', 'Retaining'])(
+    'isolates enclosing lazy views across registries with shared dispatch (%s)',
+    parentCache => {
       const firstRegistry = createBoundaryRegistry()
       const secondRegistry = createBoundaryRegistry()
-      const rows = createKeyedLazy({ evict: 'AbsentFromRender' })
+      const rows = createKeyedLazy()
       const plainParent = createLazy()
-      const keyedParent = createKeyedLazy()
+      const evictingParent = createKeyedLazy()
+      const retainingParent = createKeyedLazy({ evict: 'None' })
       const row = vi.fn(rowView)
       const parent = vi.fn(() =>
         h('ul', {}, [requiredVNode(rows('row', row, ['row']))]),
       )
       const show = (registry: BoundaryRegistry) =>
         render(registry, () => {
-          if (isKeyed) {
-            return keyedParent('parent', parent, [])
+          if (parentCache === 'Evicting') {
+            return evictingParent('parent', parent, [])
+          } else if (parentCache === 'Retaining') {
+            return retainingParent('parent', parent, [])
           } else {
             return plainParent(parent, [])
           }
@@ -296,7 +325,7 @@ describe('render-scoped keyed lazy caches', () => {
       expect(row).toHaveBeenCalledTimes(2)
       clearKeyedLazyCaches(secondRegistry)
       show(firstRegistry)
-      expect(parent).toHaveBeenCalledTimes(3)
+      expect(parent).toHaveBeenCalledTimes(parentCache === 'Evicting' ? 2 : 3)
       expect(row).toHaveBeenCalledTimes(2)
     },
   )
@@ -304,7 +333,7 @@ describe('render-scoped keyed lazy caches', () => {
   it('clears a released runtime without clearing another runtime', () => {
     const firstRegistry = createBoundaryRegistry()
     const secondRegistry = createBoundaryRegistry()
-    const lazy = createKeyedLazy({ evict: 'AbsentFromRender' })
+    const lazy = createKeyedLazy()
     const view = vi.fn(rowView)
     render(firstRegistry, () => lazy('same', view, ['row']))
     const second = render(secondRegistry, () => lazy('same', view, ['row']))
@@ -320,7 +349,7 @@ describe('render-scoped keyed lazy caches', () => {
 
   it('preserves user hooks when a key receives a replacement VNode', () => {
     const registry = createBoundaryRegistry()
-    const lazy = createKeyedLazy({ evict: 'AbsentFromRender' })
+    const lazy = createKeyedLazy()
     const inserted = vi.fn()
     const destroyed = vi.fn()
     const postdestroyed = vi.fn()
