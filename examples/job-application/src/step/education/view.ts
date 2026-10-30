@@ -7,7 +7,7 @@ import { Button } from '@foldkit/ui'
 import { Message, type Model } from './education'
 import * as Entry from './entry'
 
-const lazyEntry = createKeyedLazy()
+const lazyEntry = createKeyedLazy({ evict: 'AbsentFromRender' })
 
 const entryView = (
   entry: Entry.Model,

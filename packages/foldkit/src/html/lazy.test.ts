@@ -424,16 +424,18 @@ describe('createKeyedLazy', () => {
     const viewFn = vi.fn((label: string) => h('div', {}, [label]))
 
     const registry = createBoundaryRegistry()
+    clearRuntime()
+    setRuntime(noOpDispatchSync, noOpContext, registry)
     const lazy = createKeyedLazy()
 
     beginRender(registry)
     lazy('a', viewFn, ['hello'])
     lazy('b', viewFn, ['world'])
-    endRender()
+    endRender(registry)
 
     beginRender(registry)
     lazy('a', viewFn, ['hello'])
-    endRender()
+    endRender(registry)
     lazy('b', viewFn, ['world'])
 
     expect(viewFn).toHaveBeenCalledTimes(2)
@@ -443,20 +445,22 @@ describe('createKeyedLazy', () => {
     const viewFn = vi.fn((label: string) => h('div', {}, [label]))
 
     const registry = createBoundaryRegistry()
+    clearRuntime()
+    setRuntime(noOpDispatchSync, noOpContext, registry)
     const lazy = createKeyedLazy({ evict: 'AbsentFromRender' })
 
     beginRender(registry)
     const first = lazy('a', viewFn, ['hello'])
     const kept = lazy('b', viewFn, ['world'])
-    endRender()
+    endRender(registry)
 
     beginRender(registry)
     expect(lazy('b', viewFn, ['world'])).toBe(kept)
-    endRender()
+    endRender(registry)
 
     beginRender(registry)
     const again = lazy('a', viewFn, ['hello'])
-    endRender()
+    endRender(registry)
 
     expect(again).not.toBe(first)
     expect(viewFn).toHaveBeenCalledTimes(3)
@@ -465,20 +469,22 @@ describe('createKeyedLazy', () => {
   it('releases the DOM element stored on a VNode when its key is dropped', () => {
     const viewFn = (label: string) => h('div', {}, [label])
     const registry = createBoundaryRegistry()
+    clearRuntime()
+    setRuntime(noOpDispatchSync, noOpContext, registry)
     const lazy = createKeyedLazy({ evict: 'AbsentFromRender' })
 
     beginRender(registry)
     const first = lazy('a', viewFn, ['hello'])
     first!.elm = document.createElement('div')
-    endRender()
+    endRender(registry)
 
     beginRender(registry)
     lazy('b', viewFn, ['world'])
-    endRender()
+    endRender(registry)
 
     beginRender(registry)
     const again = lazy('a', viewFn, ['hello'])
-    endRender()
+    endRender(registry)
 
     expect(again).not.toBe(first)
     expect(again?.elm).toBeUndefined()
@@ -488,18 +494,20 @@ describe('createKeyedLazy', () => {
     const viewFn = vi.fn((label: string) => h('div', {}, [label]))
 
     const registry = createBoundaryRegistry()
+    clearRuntime()
+    setRuntime(noOpDispatchSync, noOpContext, registry)
     const lazy = createKeyedLazy({ evict: 'AbsentFromRender' })
 
     beginRender(registry)
     lazy('a', viewFn, ['hello'])
-    endRender()
+    endRender(registry)
 
     beginRender(registry)
-    endRender()
+    endRender(registry)
 
     beginRender(registry)
     lazy('a', viewFn, ['hello'])
-    endRender()
+    endRender(registry)
 
     expect(viewFn).toHaveBeenCalledTimes(2)
   })
@@ -508,20 +516,22 @@ describe('createKeyedLazy', () => {
     const viewFn = vi.fn((label: string) => h('div', {}, [label]))
 
     const registry = createBoundaryRegistry()
+    clearRuntime()
+    setRuntime(noOpDispatchSync, noOpContext, registry)
     const lazy = createKeyedLazy({ evict: 'AbsentFromRender' })
 
     beginRender(registry)
     lazy('a', viewFn, ['hello'])
     lazy('b', viewFn, ['world'])
-    endRender()
+    endRender(registry)
 
     beginRender(registry)
     lazy('a', viewFn, ['hello'])
-    abandonRender()
+    abandonRender(registry)
 
     beginRender(registry)
     lazy('b', viewFn, ['world'])
-    endRender()
+    endRender(registry)
 
     expect(viewFn).toHaveBeenCalledTimes(2)
   })

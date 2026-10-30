@@ -28,7 +28,7 @@ import {
 } from '../../domReflection.js'
 import {
   abandonRender,
-  beginRender,
+  beginRenderTransaction,
   createBoundaryRegistry,
   endRender,
 } from '../../html/boundary.js'
@@ -1241,17 +1241,17 @@ const runView = <Model>(
   model: Model,
 ): Document => {
   const boundaryRegistry = createBoundaryRegistry()
-  beginRender(boundaryRegistry)
+  beginRenderTransaction(boundaryRegistry)
   setRuntime(noOpDispatch, Context.empty(), boundaryRegistry)
   let didFinishRender = false
   try {
     const document = view(model, htmlBuilderFor())
-    endRender()
+    endRender(boundaryRegistry)
     didFinishRender = true
     return document
   } finally {
     if (!didFinishRender) {
-      abandonRender()
+      abandonRender(boundaryRegistry)
     }
     clearRuntime()
   }

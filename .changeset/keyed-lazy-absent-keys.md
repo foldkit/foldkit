@@ -2,4 +2,4 @@
 'foldkit': minor
 ---
 
-`createKeyedLazy({ evict: 'AbsentFromRender' })` drops keys the latest render did not call. The default still keeps every key. A virtual list memoized by row id needs the new option, because each cached entry holds that row's DOM element and the default map keeps every row that has scrolled past.
+Add `createKeyedLazy({ evict: 'AbsentFromRender' })` to release unused row entries after each completed render. This bounds the keyed cache to rows used by the latest completed render. Cached parents preserve their children's entries, and cache writes roll back if view construction fails. The default retains every key.

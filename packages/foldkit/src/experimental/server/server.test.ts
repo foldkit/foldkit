@@ -1,12 +1,17 @@
 // @vitest-environment node
 import { Effect, Schema, SchemaIssue, SchemaTransformation } from 'effect'
-import { expect } from 'vitest'
+import { expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
 import type { Document } from '../../html/index.js'
 import type { Html } from '../../html/index.js'
-import { __htmlBuilder, customElement } from '../../html/index.js'
+import {
+  __htmlBuilder,
+  createKeyedLazy,
+  createLazy,
+  customElement,
+} from '../../html/index.js'
 import type { RoutingApplicationConfigWithFlags } from '../../runtime/index.js'
 import type * as Update from '../../update/index.js'
 import type { Url } from '../../url/index.js'
@@ -75,6 +80,37 @@ const nestedInDivs = (leaf: Html, levels: number): Html => {
 }
 
 describe('renderToString', () => {
+  it.effect(
+    'isolates nested keyed caches beneath unchanged memoized parents across requests',
+    () =>
+      Effect.gen(function* () {
+        for (const isKeyed of [false, true]) {
+          const rows = createKeyedLazy({ evict: 'AbsentFromRender' })
+          const plainParent = createLazy()
+          const keyedParent = createKeyedLazy()
+          const rowView = vi.fn(() => h.li([], ['row']))
+          const parentView = vi.fn(() => h.ul([], [rows('row', rowView, [])]))
+          const cachedView = (_model: Model): Document => ({
+            title: 'Cached rows',
+            body: isKeyed
+              ? keyedParent('parent', parentView, [])
+              : plainParent(parentView, []),
+          })
+          const config = { ...routingConfig, view: cachedView }
+          const options = {
+            url: 'https://example.com/',
+            flags: { theme: 'light' },
+          }
+
+          yield* renderToString(config, options)
+          yield* renderToString(config, options)
+
+          expect(parentView).toHaveBeenCalledTimes(2)
+          expect(rowView).toHaveBeenCalledTimes(2)
+        }
+      }),
+  )
+
   it.effect('renders a routing application with flags', () =>
     Effect.gen(function* () {
       const rendered = yield* renderToString(routingConfig, {

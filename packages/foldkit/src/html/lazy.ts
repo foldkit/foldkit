@@ -3,12 +3,21 @@ import { Array, Data, Match, Predicate, Result } from 'effect'
 import { type VNode, dedupeMemoizedResult, memoizedVNodes } from '../vdom.js'
 import {
   type BoundaryId,
+  type BoundaryRegistry,
+  type KeyedLazyRenderState,
+  type KeyedLazyUsages,
   type TrackedBoundaryWrap,
+  beginBoundaryWrapTransaction,
+  beginKeyedLazyTracking,
   beginLazyTracking,
+  commitBoundaryWrapTransaction,
+  endKeyedLazyTracking,
   endLazyTracking,
   registerBoundaryWrapTransactionRollback,
-  registerKeyedLazyRenderEvictor,
   restoreBoundaryWrapsForLazyHit,
+  restoreKeyedLazyUsages,
+  rollbackBoundaryWrapTransaction,
+  trackKeyedLazyUsage,
 } from './boundary.js'
 import {
   type DispatchSync,
@@ -82,11 +91,13 @@ type CacheEntry = Readonly<{
   dispatch: DispatchSync
   mountDispatch: DispatchSync
   mountRenderOwner: MountRenderOwner
+  boundaryRegistry: BoundaryRegistry
   vnode: VNode | null
   // NOTE: boundary registrations captured during the wrapped function's run.
   // A cache hit restores evicted wraps and replays their ids into the
   // duplicate-slotId guard even though `h.submodel` did not run.
   trackedBoundaries: ReadonlyMap<BoundaryId, TrackedBoundaryWrap>
+  trackedKeyedUsages: KeyedLazyUsages
 }>
 
 const findMissReason = (
@@ -96,6 +107,7 @@ const findMissReason = (
   dispatch: DispatchSync,
   mountDispatch: DispatchSync,
   mountRenderOwner: MountRenderOwner,
+  registry: BoundaryRegistry,
 ): LazyMissReason => {
   if (previousEntry === undefined) {
     return LazyMissReason.NoCachedEntry()
@@ -108,7 +120,8 @@ const findMissReason = (
   if (
     previousEntry.dispatch !== dispatch ||
     previousEntry.mountDispatch !== mountDispatch ||
-    previousEntry.mountRenderOwner !== mountRenderOwner
+    previousEntry.mountRenderOwner !== mountRenderOwner ||
+    previousEntry.boundaryRegistry !== registry
   ) {
     return LazyMissReason.FrameChanged()
   }
@@ -155,6 +168,7 @@ const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
     previousEntry.dispatch === dispatch &&
     previousEntry.mountDispatch === mountDispatch &&
     previousEntry.mountRenderOwner === mountRenderOwner &&
+    previousEntry.boundaryRegistry === registry &&
     argsEqual(previousEntry.args, args)
 
   if (resolutionObserver !== undefined) {
@@ -170,21 +184,37 @@ const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
             dispatch,
             mountDispatch,
             mountRenderOwner,
+            registry,
           ),
     })
   }
 
   if (isHit) {
     restoreBoundaryWrapsForLazyHit(registry, previousEntry.trackedBoundaries)
+    restoreKeyedLazyUsages(registry, previousEntry.trackedKeyedUsages)
     return previousEntry.vnode
   }
 
+  const transaction = beginBoundaryWrapTransaction(registry)
   const trackedBoundaries = beginLazyTracking(registry)
+  const trackedKeyedUsages = beginKeyedLazyTracking(registry)
   let vnode: VNode | null
   try {
     vnode = fn(...args)
+  } catch (error) {
+    rollbackBoundaryWrapTransaction(registry, transaction)
+    throw error
   } finally {
+    endKeyedLazyTracking(registry)
     endLazyTracking(registry)
+  }
+
+  if (vnode === null) {
+    rollbackBoundaryWrapTransaction(registry, transaction)
+    trackedBoundaries.clear()
+    trackedKeyedUsages.clear()
+  } else {
+    commitBoundaryWrapTransaction(registry, transaction)
   }
   // NOTE: dedupe the freshly built subtree against the per-render seen set so a
   // const shared inside this view, or across memoized siblings, is cloned even
@@ -202,24 +232,25 @@ const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
     dispatch,
     mountDispatch,
     mountRenderOwner,
+    boundaryRegistry: registry,
     vnode: deduped,
     trackedBoundaries,
+    trackedKeyedUsages,
   })
   registerBoundaryWrapTransactionRollback(registry, previousEntry, onCache)
   return deduped
 }
 
-/** Creates a memoization slot for a view function. On each render, if the
- *  function reference, dispatchers, Mount render owner, and all arguments are
- *  equal to the previous call, the cached VNode is returned without
- *  re-running the view function. Snabbdom's `patchVnode` short-circuits when
- *  it sees the same VNode reference, so both VNode construction and subtree
- *  diffing are skipped.
+/** Creates a memoization slot for a view function. A cache hit returns the
+ *  cached VNode without re-running the view. The function reference, runtime
+ *  registry, dispatchers, Mount render owner, and every argument must equal
+ *  the preceding call. Snabbdom's `patchVnode` short-circuits on the same VNode
+ *  reference, skipping both construction and subtree diffing.
  *
- *  Dispatchers and Mount render ownership are part of the cache key because
- *  event handlers and Mounts in the cached VNode close over the frame active
- *  when the VNode was built. Returning a VNode built under a different frame
- *  would silently misroute events or retain the wrong Mount lifecycle owner.
+ *  The runtime frame is part of the cache key because event handlers and
+ *  Mounts close over the frame active when the VNode was built. Reusing a
+ *  VNode from another frame would misroute events or retain the wrong Mount
+ *  lifecycle owner.
  *
  *  The cached VNode must be rendered at a single position in the tree.
  *  Snabbdom tracks the real DOM through each VNode's mutable `.elm` field
@@ -243,9 +274,8 @@ export const createLazy = (): (<Args extends ReadonlyArray<unknown>>(
     })
 }
 
-/** What `createKeyedLazy` does with a key the latest render did not call.
- *  `None` keeps the entry. `AbsentFromRender` drops it when the render
- *  finishes. */
+/** Retention policy for a keyed view cache. `None` retains every key.
+ *  `AbsentFromRender` releases entries unused by a completed render. */
 export type KeyedLazyEviction = 'None' | 'AbsentFromRender'
 
 /** Options for {@link createKeyedLazy}. `evict` defaults to `None`. */
@@ -273,39 +303,48 @@ const writeCacheEntry = (
 
 const createRetainingKeyedLazy = (): KeyedLazy => {
   const cache = new Map<PropertyKey, CacheEntry>()
+  const slot = {}
 
   return (key, fn, args) =>
-    resolveOrCache(cache.get(key), fn, args, entry => {
+    resolveOrCache(slot, key, cache.get(key), fn, args, entry => {
       writeCacheEntry(cache, key, entry)
     })
 }
 
 const createEvictingKeyedLazy = (): KeyedLazy => {
-  const cache = new Map<PropertyKey, CacheEntry>()
-  const seenThisRender = new Set<PropertyKey>()
-
-  registerKeyedLazyRenderEvictor({
-    beginRender: () => {
-      seenThisRender.clear()
-    },
-    finishRender: () => {
-      for (const key of cache.keys()) {
-        if (!seenThisRender.has(key)) {
-          cache.delete(key)
-        }
-      }
-      seenThisRender.clear()
-    },
-    abandonRender: () => {
-      seenThisRender.clear()
-    },
-  })
+  const states = new WeakMap<
+    BoundaryRegistry,
+    Readonly<{
+      cache: Map<PropertyKey, CacheEntry>
+      renderState: KeyedLazyRenderState
+    }>
+  >()
+  const slot = {}
 
   return (key, fn, args) => {
-    seenThisRender.add(key)
-    return resolveOrCache(cache.get(key), fn, args, entry => {
+    const { registry } = requireBoundary()
+    const existingState = states.get(registry)
+    const cache = existingState?.cache ?? new Map<PropertyKey, CacheEntry>()
+    const renderState = existingState?.renderState ?? {
+      keys: () => cache.keys(),
+      delete: (key: PropertyKey) => {
+        cache.delete(key)
+      },
+      clear: () => {
+        cache.clear()
+      },
+      isEmpty: () => cache.size === 0,
+    }
+
+    if (existingState === undefined) {
+      states.set(registry, { cache, renderState })
+    }
+
+    const vnode = resolveOrCache(slot, key, cache.get(key), fn, args, entry => {
       writeCacheEntry(cache, key, entry)
     })
+    trackKeyedLazyUsage(registry, renderState, key)
+    return vnode
   }
 }
 
@@ -329,15 +368,23 @@ const createEvictingKeyedLazy = (): KeyedLazy => {
  *  such as an entity registry, a route table, or a fixed set of call sites. A
  *  key drawn from something unbounded, such as a search query or a paged
  *  cursor, grows the map for the lifetime of the page. Pass
- *  `{ evict: 'AbsentFromRender' }` to drop keys the latest render did not
- *  call. A virtual list should use that option. Its keys are the rows that
- *  have been on screen, and the default map would keep every one of them,
- *  DOM included.
+ *  `{ evict: 'AbsentFromRender' }` to release entries unused by a completed
+ *  render. Use that option for virtual lists and other growing row sets.
+ *  Entries beneath a cached parent count as used. Cache writes roll back
+ *  if view construction fails. With this option, each runtime or server
+ *  render has its own cache, so separate apps and requests cannot evict
+ *  each other.
  *
  *  Like `createLazy`, each key's cached VNode must be rendered at a single
  *  position in the tree. If the same content needs to appear in multiple
  *  positions, give each position its own key. */
-export const createKeyedLazy = (config?: KeyedLazyConfig): KeyedLazy => {
+export const createKeyedLazy = (
+  config?: KeyedLazyConfig,
+): (<Args extends ReadonlyArray<unknown>>(
+  key: PropertyKey,
+  fn: (...args: Args) => VNode | null,
+  args: Args,
+) => VNode | null) => {
   const eviction = config?.evict ?? 'None'
 
   return Match.value(eviction).pipe(

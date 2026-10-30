@@ -43,11 +43,15 @@ Use the same stable Model identifier for memoization and [DOM identity](/best-pr
 
 Keys can also identify fixed call sites. If one view function renders in two places, give those positions distinct keys instead of maintaining two `createLazy` slots.
 
-:::Info{label="Keys and eviction"}
-`createKeyedLazy()` keeps every key for the lifetime of the page. Use it with a bounded set, such as an entity registry, a route table, or a fixed set of call sites. A search query or a paged cursor can produce unbounded keys.
+## Evicting unused keys
 
-Pass `{ evict: 'AbsentFromRender' }` when the keys are the rows on screen, as in a virtual list. That variant drops keys the latest render did not call. A cached entry holds the VNode, and the VNode holds the DOM element, so a key left in the map keeps that element alive after it has left the document.
-:::
+`createKeyedLazy()` keeps every key for the lifetime of the page. Use the default with a bounded set, such as a route table or a fixed set of call sites. Each entry holds its VNode and DOM element, including after that element leaves the document.
+
+Pass `{ evict: 'AbsentFromRender' }` for lists whose row identities can grow, such as search results or a virtual list. Foldkit releases unused entries after a completed render. Rows present in the next render retain their cache hits.
+
+::Snippet{name="createKeyedLazyEviction" label="Releasing unused row entries"}
+
+A cached parent preserves the entries used by its children. Cache writes roll back if view construction fails. With this option, each runtime and server render has its own cache, so rendering another app or request cannot evict the first app's rows.
 
 ## When to Use Lazy Views {#when-to-use-lazy}
 
