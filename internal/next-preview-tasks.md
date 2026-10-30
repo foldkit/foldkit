@@ -16,6 +16,25 @@ sections below retain their original source pins and states as historical
 evidence. The user's publication approval and completed gates supersede the
 earlier holds.
 
+## October 30 feedback stabilization
+
+The user approved this bounded follow-up after the latest feedback check.
+[Implementation, dispositions and verification](preview-feedback-stabilization-20261030.md).
+
+- [x] Reproduce Binding construction's child Schema memory/CPU regression and
+      defer its checks to init without changing validation or custom equivalence.
+- [x] Repair the supported Message-free keyed field forms found by regression
+      coverage, retaining exact never channels and delivery rejection.
+- [x] Repair #1862's external VirtualList offset anchoring while retaining
+      ordinary row anchoring and Self history semantics.
+- [x] Reconcile Work Orders' Program host, missing Binding, container id and
+      Layer assembly reports against the optimized branch. Document existing
+      Message-aware gating through child update context.
+- [x] Complete final integration checks. Require independent review of the
+      exact committed diff before pushing.
+- [ ] Integrate the reviewed candidate into the preview branch through the
+      existing workflow. Do not publish without the user's approval.
+
 ## Next preview: merge main and verify Effect 4.1
 
 - [x] Prepare and resolve the current main sync at

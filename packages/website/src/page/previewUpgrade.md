@@ -205,6 +205,8 @@ The old `ApplicationComposition.assembleApplication` and `ApplicationComposition
 
 Create the browser host in `entry.ts`. Use `Program.make` for a page-owning application or `Program.makeElement` for an application scoped to its container. Pass `ApplicationBlock`, the container, Flags, routing, DevTools, and other browser host options there. Supply ordinary Services with `program.provide(ApplicationLayer)` before starting the Runtime.
 
+`Program.make` needs a `Document` view; `Program.makeElement` needs `Html`. Give a host-created container a unique, nonempty `id` before passing it to the Program constructor. See [the Runtime guide](/core/runtime) for the view and Flags differences.
+
 ::Snippet{name="applicationEntryPoint" label="Starting the browser Program"}
 
 Replace `devTools: { Message: ApplicationBlock.Message }` with `devTools: { dispatch: true }` when an external MCP client should discover and dispatch Messages. Program derives the dispatch Codec from the completed root Block, including generated child envelopes. Omitting `devTools` keeps development inspection enabled with external dispatch disabled. `devTools: false` disables the DevTools store, overlay, and browser bridge.

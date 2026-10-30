@@ -416,6 +416,9 @@ Program.makeElement({
   flags: Effect.succeed(Flags.make({ status: 'ready' })),
 })
 
+// @ts-expect-error Program.make rejects both Html and required view inputs in a root view union.
+Program.make({ block: MaybeInputViewBlock, container: null, Flags })
+
 // @ts-expect-error The Flags Schema output must exactly match the root init input.
 Program.makeElement({
   block: NarrowFlagsBlock,
@@ -520,6 +523,9 @@ const MaybeHeadlessBlock =
 
 // @ts-expect-error Every member of a root Block union must have a default view.
 Program.makeElement({ block: MaybeHeadlessBlock, container: null })
+
+// @ts-expect-error Program.make rejects both Html and missing default views in a root Block union.
+Program.make({ block: MaybeHeadlessBlock, container: null })
 
 const OutMessage = Message.defineMessageUnion({ CompletedRootWork: {} })
 const DeclarationOutMessageRootDefinition = Block.makeDefinition(

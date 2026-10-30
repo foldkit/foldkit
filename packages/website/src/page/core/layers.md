@@ -33,6 +33,14 @@ When the Command belongs to a child Block, pass its local `EffectsLayer` to `Fea
 
 Defining handlers, binding features, completing the Application, and calling `provide` all describe configuration. `Runtime.run` builds the Layers and starts execution. Attaching `handler` makes `.layer` available; the completed graph still needs to include that recipe.
 
+For several local handlers, compose their recipes with Effect's `Layer.mergeAll` and pass the result as `EffectsLayer` to `prepareBlock`:
+
+::Snippet{name="blockLocalHandlerLayers" label="Combining local Command handlers"}
+
+Use `subscriptions.layer` and `managedResources.layer` for a registry whose entries all have attached handlers. There is no aggregate Command registry; merge the individual Command definitions' `.layer` recipes. Registered child Bindings contribute their own handler Layers automatically.
+
+Compose the concrete definitions' `.layer` values, whose types retain their Services and constructor errors, and let `prepareBlock` infer the recipe. The completed Block carries both local and child handler Layers. Do not annotate the recipe as `unknown` or merge child `EffectsLayer` values again at the root.
+
 `ApplicationTestLayer` supplies `ApiTestLayer` beneath the same real handler. The `LoadUser` result mapping and error policy still execute. The replaced API implementation is outside that test path; [Testing Through Service Boundaries](#testing-through-service-boundaries) explains how to choose what a test exercises.
 
 ## Construction and Execution

@@ -282,6 +282,8 @@ A connected Step needs the Composition that registered its Binding. A plain Mode
 
 The Definition helper preserves the Binding requirement; it does not register the Binding. Removing `SettingsBinding` from this Composition still makes completion fail. Do not widen the Step to an ordinary Model-returning function or extract `.model` from its opaque result.
 
+If the compiler reports `Block operations may use only registered child bindings`, add the exact Binding used by the operation to that Composition's `bindings` array. A Binding imported into update, used by an init helper, or embedded in the view is not registered by that use. One omitted Binding can therefore produce errors in several files. Repair the graph in `composition.ts` before changing those consumers; constructing a second Binding does not register the original identity.
+
 At assembly, the compiler distinguishes the primary view owner, missing handler requirements, and the init result. Author the primary view through the same Composition's `makeView`; use a plain function only as an extracted rendering helper. A missing handler needs its attached `.layer` in the local `EffectsLayer` or an explicit `hostHandlers` declaration. An invalid init plan needs every parent-owned field with its declared type; registered initialization supplies only the fields its Bindings own. These are different contracts, so changing a view or casting the assembly object cannot repair a missing handler or init field.
 
 ## Child Delivery Context
@@ -289,6 +291,16 @@ At assembly, the compiler distinguishes the primary view owner, missing handler 
 A Binding already knows the child Message and its captured occurrence. Use `delivery.toUpdateContext` only for additional arguments required by the child's update. Its callback receives the current parent Model; a keyed Binding also supplies the captured key. Return the exact context tuple, without repeating the child Message or key. Optional and defaulted parameters still need an explicit policy; return an empty tuple to use child defaults when that signature permits it.
 
 Use `delivery.when` to ignore incoming child Messages under a parent-owned condition. A false result leaves the parent Model unchanged. This gate does not make the child absent, stop its lifecycle work, or gate an explicitly invoked Binding operation. Use `presentWhen` or a custom reader for whole-child presence, and `subscriptions.when` to gate only Streams.
+
+`delivery.when` does not receive the child Message. When a policy must allow completion Messages while refusing user interaction, pass the current parent policy through `delivery.toUpdateContext` and apply it in the relevant child handlers. Leave completion handlers ungated so in-flight work can settle:
+
+::Snippet{name="blockMessageAwareDelivery" label="Gating interaction through child update context"}
+
+The parent supplies the policy when it binds the completed Reader Block:
+
+::Snippet{name="blockMessageAwareDeliveryBinding" label="Supplying the current interaction policy"}
+
+The context is read for each routed child Message. It is not stored in the child Model, and changing it does not dispatch a Message. A direct child operation must still receive its context explicitly. Authorization for external data remains the server's responsibility.
 
 ## Optional Children
 

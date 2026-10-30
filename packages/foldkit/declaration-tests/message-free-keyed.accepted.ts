@@ -1,4 +1,4 @@
-import { Array, Context, Effect, Layer, Schema } from 'effect'
+import { Array, Context, Effect, Layer, Option, Schema } from 'effect'
 import * as Block from 'foldkit/block'
 import * as Command from 'foldkit/command'
 import { defineMessageUnion } from 'foldkit/message'
@@ -107,6 +107,44 @@ export const GeneralKeyedBinding = ParentDefinition.makeBinding(SilentBlock, {
     })
   },
 })
+
+export const FieldParentModel = Schema.Struct({
+  children: Schema.Array(SilentModel),
+  entries: Schema.Array(Entry),
+  maybeEntry: Schema.Option(Entry),
+})
+export type FieldParentModel = typeof FieldParentModel.Type
+export const FieldParentDefinition = Block.makeDefinition('FieldParent', {
+  Model: FieldParentModel,
+  Message: Schema.Never,
+})
+export const DirectFieldBinding = FieldParentDefinition.makeBinding(
+  SilentBlock,
+  { placement: 'children', field: 'children', key: 'id' },
+)
+export const WrappedFieldBinding = FieldParentDefinition.makeBinding(
+  SilentBlock,
+  { placement: 'entries', field: 'entries', key: 'key', childField: 'silent' },
+)
+export const OptionalFieldBinding = FieldParentDefinition.makeBinding(
+  SilentBlock,
+  {
+    placement: 'maybeEntry',
+    field: 'maybeEntry',
+    key: 'key',
+    childField: 'silent',
+  },
+)
+export const FieldParentComposition = FieldParentDefinition.makeComposition({
+  bindings: [DirectFieldBinding, WrappedFieldBinding, OptionalFieldBinding],
+})
+export const initFields = FieldParentComposition.makeInit(() => ({
+  model: FieldParentModel.make({
+    children: [],
+    entries: [],
+    maybeEntry: Option.none(),
+  }),
+}))
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 export const ParentComposition = ParentDefinition.makeComposition({

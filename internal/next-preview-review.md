@@ -1,5 +1,21 @@
 # Next preview review
 
+## October 30 feedback stabilization
+
+The [current closeout](preview-feedback-stabilization-20261030.md) fixes Binding
+construction allocation and VirtualList #1862, repairs Message-free keyed field
+construction, and clarifies Work Orders' Program, registration, container and
+Layer contracts. No new authoring API or consumer migration is required.
+
+Source/emitted and relocated consumers, repository typechecks, core/UI tests,
+40 targeted browser cases, all seven unchanged compiler budgets, lint, build and
+rendered guide checks pass. Invalid root unions remain rejected after the
+Program diagnostic improvement. Review the exact committed diff before pushing.
+
+This work remains on the isolated main-sync candidate until integration. The
+published Ready snapshot is still `90746b32d2ca`; publication requires the user's
+approval. Earlier sections below retain their own source pins.
+
 ## Mixed update result diagnostic follow-up
 
 The existing mixed-result rejection now identifies the handler and recommends

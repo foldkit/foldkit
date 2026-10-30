@@ -44,6 +44,7 @@ const Message = defineMessageUnion({
   ClickedExpandRow: { index: Schema.Number },
   ClickedExpandPrecedingRow: {},
   ClickedAppendItem: {},
+  ClickedReverseItems: {},
   ClickedUnmountList: {},
 })
 type Message = typeof Message.Type
@@ -159,6 +160,14 @@ const update = ApplicationComposition.makeUpdate({
       index: model.items.length,
       content: RowContent.Compact(),
     })
+
+    return Update.combineSteps([
+      makeFieldsStep(() => ({ items: () => nextItems })),
+      ListBinding.informItemsChanged(Array.map(nextItems, item => item.id)),
+    ])
+  }),
+  ClickedReverseItems: makeStep(model => {
+    const nextItems = Array.reverse(model.items)
 
     return Update.combineSteps([
       makeFieldsStep(() => ({ items: () => nextItems })),
@@ -304,6 +313,10 @@ const view = ApplicationComposition.makeView((model, h) => ({
             ['Expand preceding row'],
           ),
           h.button([h.OnClick(Message.ClickedAppendItem())], ['Append item']),
+          h.button(
+            [h.OnClick(Message.ClickedReverseItems())],
+            ['Reverse items'],
+          ),
           h.button([h.OnClick(Message.ClickedUnmountList())], ['Unmount list']),
         ],
       ),

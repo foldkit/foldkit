@@ -1600,10 +1600,6 @@ const bindRuntime = <
     toParentMessage: trackedMapper.toParentMessage,
   }
   const placement = config.placement ?? block.owner.id
-  const isChildModel = Reflect.apply(Schema.is, undefined, [block.Model])
-  const equivalentChildModel = Reflect.apply(Schema.toEquivalence, undefined, [
-    block.Model,
-  ])
   assertSegment(placement)
   const allowedIdentities = hostIdentitiesOf(block)
   const frame: InstanceFrame = {
@@ -1753,6 +1749,12 @@ const bindRuntime = <
 
       return makeBindingInitRecipe(binding, () => {
         const childInit = initChild(...args)
+        const isChildModel = Reflect.apply(Schema.is, undefined, [block.Model])
+        const equivalentChildModel = Reflect.apply(
+          Schema.toEquivalence,
+          undefined,
+          [block.Model],
+        )
         const model = toParentModel(childInit.model)
         assertInitializedParentModel(binding, placement, model)
         let maybeStoredChild: Option.Option<unknown>

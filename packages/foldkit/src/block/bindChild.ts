@@ -3053,7 +3053,18 @@ export const makeBindChild = <
       const generated = usesGeneratedDelivery(block.Message)
         ? generatedDelivery(block, parentContract.Model, config, true)
         : undefined
-      const sourceConfig = generated?.config ?? config
+      const sourceConfig =
+        generated?.config ??
+        (isNeverSchema(block.Message)
+          ? {
+              ...config,
+              toParentMessage: () => {
+                throw new Error(
+                  '[foldkit] A Message-free child cannot emit a parent Message.',
+                )
+              },
+            }
+          : config)
       const placedConfig = Object.hasOwn(sourceConfig, 'placement')
         ? sourceConfig
         : { ...sourceConfig, placement: block.owner.id }

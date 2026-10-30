@@ -4,6 +4,7 @@ import { defineMessageUnion } from 'foldkit/message'
 
 import {
   Entry,
+  FieldParentDefinition,
   GeneralKeyedBinding,
   ParentDefinition,
   ParentModel,
@@ -19,6 +20,31 @@ ParentDefinition.makeBinding(SilentBlock, {
   writeAt: (model: typeof ParentModel.Type, _key, _nextSilent) => model,
   toParentMessage: () => ({ _tag: 'ClickedParent' }),
 })
+
+const wrappedFieldConfig: Readonly<{
+  field: 'entries'
+  key: 'key'
+  childField: 'silent'
+}> = {
+  field: 'entries',
+  key: 'key',
+  childField: 'silent',
+}
+FieldParentDefinition.makeBinding(SilentBlock, wrappedFieldConfig)
+
+const mappedFieldConfig = {
+  ...wrappedFieldConfig,
+  toParentMessage: () => ({ _tag: 'ClickedParent' }),
+}
+// @ts-expect-error A Message-free keyed field does not accept a parent Message mapper.
+FieldParentDefinition.makeBinding(SilentBlock, mappedFieldConfig)
+
+const deliveredFieldConfig = {
+  ...wrappedFieldConfig,
+  delivery: { when: () => true },
+}
+// @ts-expect-error A Message-free keyed field cannot configure generated Message delivery.
+FieldParentDefinition.makeBinding(SilentBlock, deliveredFieldConfig)
 
 const MessagefulMessage = defineMessageUnion({ ChangedReady: {} })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.

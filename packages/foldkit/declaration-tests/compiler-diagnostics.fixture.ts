@@ -68,3 +68,26 @@ export const outMessageSteps = [
 export const deferredConnected = Definition.makeStep(() =>
   Update.combineSteps(connectedSteps),
 )
+
+export const ProgramFlags = Schema.Struct({ session: Schema.String })
+export type ProgramFlags = typeof ProgramFlags.Type
+const ProgramModel = Schema.Struct({ session: Schema.String })
+type ProgramModel = typeof ProgramModel.Type
+const ProgramComposition = Block.makeDefinition('DiagnosticElement', {
+  Model: ProgramModel,
+  Message: Schema.Never,
+}).makeComposition()
+const prepareElement = () =>
+  ProgramComposition.prepareBlock({
+    init: ProgramComposition.makeInit((flags: ProgramFlags) => ({
+      model: flags,
+    })),
+    update: ProgramComposition.makeUpdate({}),
+    view: ProgramComposition.makeView((_model, h) => h.empty),
+  })
+export const ElementBlock: Block.FromAssemblyWithView<
+  typeof ProgramModel,
+  typeof prepareElement
+> = Block.assemble(prepareElement)
+
+export const UnregisteredComposition = Definition.makeComposition()

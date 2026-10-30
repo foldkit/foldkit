@@ -27,6 +27,8 @@ const diagnosticFragments = [
   'Block primary view must be authored with this Composition.makeView',
   'Block handler requirements must be provided locally or listed in hostHandlers',
   'Block.assemble requires a FromAssembly annotation with typeof Model and typeof prepare',
+  'Program.make requires a Document view; use Program.makeElement for an Html view',
+  'Block operations may use only registered child bindings',
 ]
 const invalidInitFragments = [
   "Property 'model' is missing",

@@ -1,11 +1,17 @@
 import { Block, Update } from 'foldkit'
 
 import {
+  DirectFieldBinding,
+  FieldParentComposition,
+  FieldParentModel,
   GeneralKeyedBinding,
+  OptionalFieldBinding,
   ParentBlock,
   ParentComposition,
   ParentMessage,
   ParentModel,
+  WrappedFieldBinding,
+  initFields,
   initGeneral,
 } from './message-free-keyed.accepted.js'
 
@@ -52,6 +58,20 @@ export type SilentRegistrationHasNoGeneratedSchema = Expect<
     >,
     never
   >
+>
+export type KeyedFieldMessagesStayNever = Expect<
+  Equal<
+    | Parameters<typeof DirectFieldBinding.fold>[2]
+    | Parameters<typeof WrappedFieldBinding.fold>[2]
+    | Parameters<typeof OptionalFieldBinding.fold>[2],
+    never
+  >
+>
+export type KeyedFieldCompositionStaysRouteless = Expect<
+  Equal<typeof FieldParentComposition.Message.Type, never>
+>
+export type KeyedFieldInitializationPreservesModel = Expect<
+  Equal<ReturnType<typeof initFields>['model'], FieldParentModel>
 >
 void ParentModel
 void ParentBlock

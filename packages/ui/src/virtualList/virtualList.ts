@@ -825,6 +825,13 @@ const anchorFromSnapshot = (
   containerHeight: number,
   anchor: ObservedAnchor,
 ): ViewportAnchor => {
+  const isBeforeListStart =
+    model.scrollContainer._tag !== 'Self' && scrollTop < 0
+
+  if (isBeforeListStart) {
+    return ViewportAnchor.Offset({ scrollTop })
+  }
+
   const distanceFromEnd =
     model.history._tag === 'Enabled'
       ? Math.max(0, -scrollTop)

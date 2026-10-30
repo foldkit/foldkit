@@ -24,6 +24,7 @@ import type { CrashConfig, ElementCrashConfig } from './crashUI.js'
 import type { DevToolsConfig, RuntimeDevToolsConfig } from './devToolsConfig.js'
 import type { ValidHandlerContracts } from './handlerContracts.js'
 import {
+  type ProgramViewDiagnostic,
   type ValidateProgramBlock,
   assertDocument,
   assertElementHtml,
@@ -101,7 +102,7 @@ type CommonHostOptions<
   EffectsLayer?: never
   /** Host handlers must be resolved on the completed root Block. */
   hostHandlers?: never
-  /** The DOM element owned by this Program. */
+  /** The DOM element owned by this Program. Set its unique, nonempty id before passing it here. */
   container: HTMLElement | null
   /** Declared inbound and outbound Ports. */
   ports?: PortsValue
@@ -441,7 +442,11 @@ export type Element<
   'Element'
 >
 
-/** Creates a passive page-owning Program from a completed root Block. */
+/**
+ * Creates a passive page-owning Program from a completed root Block whose view
+ * returns a Document. Use `makeElement` for an Html view. Set a unique, nonempty
+ * container id before calling this function.
+ */
 export function make<
   const Config extends object,
   const BlockValue extends AnyBlock,
@@ -538,14 +543,20 @@ export function make<
 >(
   config: Config &
     Readonly<{ block: BlockValue }> &
-    PageHostOptions<NoInfer<BlockValue>, PortsValue> &
-    PageWithRoutingModeFields<
-      NoInfer<BlockValue>,
-      FlagsSchema,
-      ConstructorUrlRoutingConfig<NoInfer<CommonBlockMessage<BlockValue>>>
+    NoInfer<
+      ProgramViewDiagnostic<
+        BlockValue,
+        PageHostOptions<NoInfer<BlockValue>, PortsValue> &
+          PageWithRoutingModeFields<
+            NoInfer<BlockValue>,
+            FlagsSchema,
+            ConstructorUrlRoutingConfig<CommonBlockMessage<BlockValue>>
+          > &
+          NoInfer<ValidateProgramBlock<BlockValue, 'Document'>> &
+          NoInfer<ExactPageHostConfig<Config>>
+      >
     > &
-    NoInfer<ValidateProgramBlock<BlockValue, 'Document'>> &
-    NoInfer<ExactPageHostConfig<Config>>,
+    Readonly<{ Flags?: FlagsSchema; ports?: PortsValue }>,
 ): Program<
   RootPorts<PortsValue>,
   RootFlags<FlagsSchema>,
@@ -596,7 +607,11 @@ type ElementFromBlock<
     >
   : never
 
-/** Creates a passive container-scoped Program from a completed root Block. */
+/**
+ * Creates a passive container-scoped Program from a completed root Block whose
+ * view returns Html. Set a unique, nonempty container id before calling this
+ * function. Supply a Flags Effect in this config when declaring Flags.
+ */
 export function makeElement<
   const Config extends object,
   const BlockValue extends AnyBlock,

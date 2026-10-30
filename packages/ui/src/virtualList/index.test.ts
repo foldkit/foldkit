@@ -1440,6 +1440,41 @@ describe('VirtualList', () => {
   })
 
   describe('ObservedContainerScroll with history', () => {
+    it('uses negative Self offsets for row anchoring and follow-end distance', () => {
+      const anchor = ObservedAnchor.Row({
+        key: 'visible',
+        index: 10,
+        viewportOffset: -5,
+      })
+      const model = init({
+        id: 'test',
+        rowHeightPx: 30,
+        history: { reservePx: 1_000, prefetchViewports: 4 },
+        followEnd: { thresholdPx: 8 },
+      }).model
+      const away = update(
+        model,
+        Message.ObservedContainerScroll({
+          scrollTop: -160,
+          scrollHeight: 2_000,
+          containerHeight: 100,
+          anchor,
+        }),
+      )
+      const nearEnd = update(
+        away.model,
+        Message.ObservedContainerScroll({
+          scrollTop: -4,
+          scrollHeight: 2_000,
+          containerHeight: 100,
+          anchor,
+        }),
+      )
+
+      expect(away.model.viewportAnchor).toEqual(anchor)
+      expect(nearEnd.model.viewportAnchor).toEqual({ _tag: 'End' })
+    })
+
     it('keeps a stable loading buffer throughout repeated page loads', () => {
       const scrolled = update(
         activeHistoryModel(),
@@ -1589,6 +1624,105 @@ describe('VirtualList', () => {
   })
 
   describe('external layout observation', () => {
+    const externalContainers = [
+      ScrollContainer.Window(),
+      ScrollContainer.Ancestor({ selector: '#main' }),
+    ]
+
+    it.each(externalContainers)(
+      'preserves the offset above a $_tag list when visible rows are reordered or removed',
+      scrollContainer => {
+        const observed = update(
+          init({ id: 'test', rowHeightPx: 30, scrollContainer }).model,
+          Message.ObservedContainerScroll({
+            scrollTop: -180,
+            scrollHeight: 1_000,
+            containerHeight: 300,
+            anchor: ObservedAnchor.Row({
+              key: 'first',
+              index: 0,
+              viewportOffset: 180,
+            }),
+          }),
+        )
+        const reordered = informItemsChanged(observed.model, [
+          'second',
+          'first',
+        ])
+        const filtered = informItemsChanged(reordered.model, ['second'])
+
+        expect(observed.model.viewportAnchor).toEqual({
+          _tag: 'Offset',
+          scrollTop: -180,
+        })
+        expect(filtered.model.pendingScroll).toMatchObject({
+          _tag: 'Pending',
+          request: {
+            _tag: 'Anchor',
+            anchor: { _tag: 'Offset', scrollTop: -180 },
+          },
+        })
+      },
+    )
+
+    it.each(externalContainers)(
+      'preserves the offset above an underfilled $_tag list with follow-end enabled',
+      scrollContainer => {
+        const observed = update(
+          init({
+            id: 'test',
+            rowHeightPx: 30,
+            scrollContainer,
+            followEnd: { thresholdPx: 8 },
+          }).model,
+          Message.ObservedContainerScroll({
+            scrollTop: -180,
+            scrollHeight: 100,
+            containerHeight: 300,
+            anchor: ObservedAnchor.Row({
+              key: 'first',
+              index: 0,
+              viewportOffset: 180,
+            }),
+          }),
+        )
+
+        expect(observed.model.viewportAnchor).toEqual({
+          _tag: 'Offset',
+          scrollTop: -180,
+        })
+      },
+    )
+
+    it.each(externalContainers)(
+      'preserves a $_tag row anchor after scrolling into the list',
+      scrollContainer => {
+        const anchor = ObservedAnchor.Row({
+          key: 'second',
+          index: 1,
+          viewportOffset: -10,
+        })
+        const observed = update(
+          init({ id: 'test', rowHeightPx: 30, scrollContainer }).model,
+          Message.ObservedContainerScroll({
+            scrollTop: 40,
+            scrollHeight: 1_000,
+            containerHeight: 300,
+            anchor,
+          }),
+        )
+        const reordered = informItemsChanged(observed.model, [
+          'second',
+          'first',
+        ])
+
+        expect(reordered.model.pendingScroll).toMatchObject({
+          _tag: 'Pending',
+          request: { _tag: 'Anchor', anchor },
+        })
+      },
+    )
+
     it('captures the current row after preceding content moves an idle list', () => {
       const initial = update(
         init({

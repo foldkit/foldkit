@@ -691,10 +691,6 @@ export const bindEach = <const BlockValue extends BindableBlock>(
 
     return items
   }
-  const isChildModel = Reflect.apply(Schema.is, undefined, [block.Model])
-  const equivalentChildModel = Reflect.apply(Schema.toEquivalence, undefined, [
-    block.Model,
-  ])
   assertSegment(placement)
   assertValidBindingOperationNames(block.operations)
   const allowedIdentities = hostIdentitiesOf(block)
@@ -867,6 +863,12 @@ export const bindEach = <const BlockValue extends BindableBlock>(
 
       return makeBindingInitRecipe(binding, () => {
         const childInit = initChild(key, ...args)
+        const isChildModel = Reflect.apply(Schema.is, undefined, [block.Model])
+        const equivalentChildModel = Reflect.apply(
+          Schema.toEquivalence,
+          undefined,
+          [block.Model],
+        )
         const model = toParentModel(childInit.model)
         assertInitializedParentModel(binding, placement, model)
         let matchingKeyCount = 0

@@ -102,7 +102,7 @@ type ValidateViewMember<View, Kind extends RootViewKind> = View extends (
       ? [Output] extends [Document]
         ? unknown
         : Readonly<{
-            'Program.make requires a Document view': View
+            'Program.make requires a Document view; use Program.makeElement for an Html view': View
           }>
       : [Output] extends [import('../vdom.js').VNode | null]
         ? unknown
@@ -151,6 +151,16 @@ type ValidateRootView<
 > = [RootViewFailures<BlockValue, Kind>] extends [never]
   ? unknown
   : RootViewFailures<BlockValue, Kind>
+
+type NeverDiagnostic<Diagnostic> = Diagnostic extends unknown
+  ? Readonly<{ [Key in keyof Diagnostic]: never }>
+  : never
+
+/** @internal Keeps an invalid root view visible after Program overload inference. */
+export type ProgramViewDiagnostic<BlockValue extends AnyBlock, ValidConfig> =
+  unknown extends ValidateRootView<BlockValue, 'Document'>
+    ? ValidConfig
+    : NeverDiagnostic<ValidateRootView<BlockValue, 'Document'>>
 
 type ValidatePresentProgramBlock<BlockValue extends AnyBlock> = [
   BlockValue,

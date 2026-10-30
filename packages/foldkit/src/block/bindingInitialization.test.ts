@@ -103,6 +103,89 @@ const parent: Block.FromAssemblyWithoutViewOrOutMessage<
 
 beforeEach(() => initialized.mockClear())
 
+describe('Binding initialization Schema checks', () => {
+  it('defers child equivalence derivation until init and preserves custom equivalence', () => {
+    const deriveEquivalence = vi.fn(
+      () => (left: ChildModel, right: ChildModel) =>
+        left.count % 10 === right.count % 10,
+    )
+    const Model = Schema.Struct({ count: Schema.Number }).pipe(
+      Schema.overrideToEquivalence(deriveEquivalence),
+    )
+    type Model = typeof Model.Type
+    const ChildDefinition = makeDefinition('LazyInitializationChild', {
+      Model,
+      Message: ChildMessage,
+    })
+    const ChildComposition = ChildDefinition.makeComposition()
+    const prepare = () =>
+      ChildComposition.prepareBlock({
+        init: ChildComposition.makeInit(() => ({ model: { count: 4 } })),
+        update: ChildComposition.makeUpdate({
+          CompletedRead: model => ({ model }),
+        }),
+      })
+    const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+      typeof Model,
+      typeof prepare
+    > = Block.assemble(prepare)
+
+    const ParentModel = Schema.Struct({
+      child: Schema.Option(ChildBlock.Model),
+      items: Schema.Array(
+        Schema.Struct({ id: Schema.String, child: ChildBlock.Model }),
+      ),
+    })
+    type ParentModel = typeof ParentModel.Type
+    const ParentDefinition = makeDefinition('LazyInitializationParent', {
+      Model: ParentModel,
+      Message: Schema.Never,
+    })
+    const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
+      field: 'child',
+    })
+    const ItemsBinding = ParentDefinition.makeBinding(ChildBlock, {
+      field: 'items',
+      key: 'id',
+      childField: 'child',
+    })
+    const ParentComposition = ParentDefinition.makeComposition({
+      bindings: [ChildBinding, ItemsBinding],
+    })
+    const initDirect = (count: number) =>
+      ParentComposition.makeInit(() =>
+        ChildBinding.init({
+          args: [],
+          toParentModel: () => ({ child: Option.some({ count }), items: [] }),
+        }),
+      )
+    const initKeyed = (count: number) =>
+      ParentComposition.makeInit(() =>
+        ItemsBinding.init({
+          key: 'first',
+          args: [],
+          toParentModel: () => ({
+            child: Option.none(),
+            items: [{ id: 'first', child: { count } }],
+          }),
+        }),
+      )
+    const directInit = initDirect(14)
+    const keyedInit = initKeyed(14)
+
+    expect(deriveEquivalence).not.toHaveBeenCalled()
+    expect(directInit().model.child).toEqual(Option.some({ count: 14 }))
+    expect(deriveEquivalence).toHaveBeenCalledTimes(1)
+    expect(keyedInit().model.items).toEqual([
+      { id: 'first', child: { count: 14 } },
+    ])
+    expect(directInit().model.child).toEqual(Option.some({ count: 14 }))
+    expect(deriveEquivalence).toHaveBeenCalledTimes(1)
+    expect(initDirect(5)).toThrow('must preserve the initialized child Model')
+    expect(initKeyed(5)).toThrow('must store exactly one occurrence')
+  })
+})
+
 describe('connected initialization', () => {
   it('constructs a passive noncallable recipe without initializing the child', () => {
     const recipe = ItemsBinding.init({

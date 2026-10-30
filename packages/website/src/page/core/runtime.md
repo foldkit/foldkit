@@ -9,6 +9,10 @@ The Runtime API makes two independent choices:
 - `Program.make` or `Program.makeElement` decides what the app owns. A Program made with `make` owns the page; one made with `makeElement` owns only its container.
 - `Runtime.run` or `Runtime.embed` decides who owns the runtime lifetime. `run` starts it for the page lifetime; `embed` returns a handle the host disposes.
 
+Match the Program to the root view: `Program.make` requires a `Document` with `title` and `body`; `Program.makeElement` requires `Html`. Switching between them also changes the Flags handoff. Pass an Element's Flags Effect as `flags` in its Program config; pass a page Program's Flags Effect to `Runtime.run`.
+
+Set the container's unique, nonempty `id` before passing it to `Program.make` or `Program.makeElement`. A host-created element needs an explicit assignment such as `container.id = 'work-orders'`; a lookup such as `document.getElementById('app')` already selects an element by its id. Foldkit uses the id to identify the Runtime and preserve its Model across development reloads. Hydration uses the server's `data-foldkit-app` stamp instead.
+
 `ApplicationBlock` carries the handler requirements for its Commands, Subscriptions, Mounts, and ManagedResources into the Program. Call `program.provide(layer)` until the remaining service requirements are satisfied, then pass the runnable Program to `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` as appropriate. Each call returns a new passive Program. Program construction has no `resources` field, and the Runtime builds the supplied Layers only when it starts that Program.
 
 A root Block cannot leave an OutMessage for the Program to discard. Handle child OutMessages while composing `ApplicationBlock`, and omit `OutMessage` from the root Definition.

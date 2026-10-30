@@ -1,9 +1,12 @@
-import { Update } from 'foldkit'
+import { Effect } from 'effect'
+import { Program, Update } from 'foldkit'
 
 import {
   Binding,
   Composition,
   Definition,
+  ElementBlock,
+  ProgramFlags,
   Save,
   connectedSteps,
   deferredConnected,
@@ -59,4 +62,11 @@ export const hostHandledBlock = Composition.prepareBlock({
   init,
   update: saveUpdate,
   hostHandlers: [Save],
+})
+
+export const elementProgram = Program.makeElement({
+  block: ElementBlock,
+  Flags: ProgramFlags,
+  flags: Effect.succeed({ session: 'work-orders' }),
+  container: null,
 })

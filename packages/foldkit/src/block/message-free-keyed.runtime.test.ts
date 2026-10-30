@@ -1,4 +1,4 @@
-import { Array, Effect, Layer, Schema } from 'effect'
+import { Array, Effect, Layer, Option, Schema } from 'effect'
 import { expect, expectTypeOf, it } from 'vitest'
 
 import * as Command from '../command/index.js'
@@ -135,6 +135,87 @@ it('keeps local Message-free Steps internal to the child', () => {
   expectTypeOf(result).toExtend<
     Update.Return<SilentModel, never, Command.HandlerOf<typeof WaitForever>>
   >()
+})
+
+it('constructs Message-free keyed field Bindings without Message delivery', () => {
+  const ChildModel = Schema.Struct({ id: Schema.String })
+  type ChildModel = typeof ChildModel.Type
+  const ChildDefinition = makeDefinition('MessageFreeFieldRuntimeChild', {
+    Model: ChildModel,
+    Message: Schema.Never,
+  })
+  const ChildComposition = ChildDefinition.makeComposition()
+  const prepareChild = () =>
+    ChildComposition.prepareBlock({
+      init: ChildComposition.makeInit((id: string) => ({ model: { id } })),
+      update: ChildComposition.makeUpdate({}),
+    })
+  const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+    typeof ChildModel,
+    typeof prepareChild
+  > = Block.assemble(prepareChild)
+  const WrappedChild = Schema.Struct({ key: Schema.String, child: ChildModel })
+  type WrappedChild = typeof WrappedChild.Type
+  const Model = Schema.Struct({
+    children: Schema.Array(ChildModel),
+    entries: Schema.Array(WrappedChild),
+    maybeEntry: Schema.Option(WrappedChild),
+  })
+  type Model = typeof Model.Type
+  const ParentDefinition = makeDefinition('MessageFreeFieldRuntimeParent', {
+    Model,
+    Message: Schema.Never,
+  })
+  const ChildrenBinding = ParentDefinition.makeBinding(ChildBlock, {
+    placement: 'children',
+    field: 'children',
+    key: 'id',
+  })
+  const EntriesBinding = ParentDefinition.makeBinding(ChildBlock, {
+    placement: 'entries',
+    field: 'entries',
+    key: 'key',
+    childField: 'child',
+  })
+  const OptionalEntryBinding = ParentDefinition.makeBinding(ChildBlock, {
+    placement: 'maybeEntry',
+    field: 'maybeEntry',
+    key: 'key',
+    childField: 'child',
+  })
+  const Composition = ParentDefinition.makeComposition({
+    bindings: [ChildrenBinding, EntriesBinding, OptionalEntryBinding],
+  })
+  const init = Composition.makeInit(() => ({
+    model: { children: [], entries: [], maybeEntry: Option.none() },
+  }))
+
+  expect(init().model).toEqual({
+    children: [],
+    entries: [],
+    maybeEntry: Option.none(),
+  })
+  expectTypeOf(ChildrenBinding.fold).parameter(2).toEqualTypeOf<never>()
+  expectTypeOf(EntriesBinding.fold).parameter(2).toEqualTypeOf<never>()
+  expectTypeOf(OptionalEntryBinding.fold).parameter(2).toEqualTypeOf<never>()
+
+  for (const field of ['toParentMessage', 'delivery', 'keySchema']) {
+    expect(() =>
+      Reflect.apply(ParentDefinition.makeBinding, undefined, [
+        ChildBlock,
+        {
+          field: 'entries',
+          key: 'key',
+          childField: 'child',
+          [field]: () => undefined,
+        },
+      ]),
+    ).toThrow(
+      field === 'toParentMessage'
+        ? '[foldkit] Unknown Binding configuration field "toParentMessage".'
+        : '[foldkit] A Message-free child cannot configure Message delivery.',
+    )
+  }
 })
 
 it('rejects generated delivery configuration for a Message-free child', () => {

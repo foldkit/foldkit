@@ -1,9 +1,13 @@
-import { Block, Update } from 'foldkit'
+import { Effect } from 'effect'
+import { Block, Program, Update } from 'foldkit'
 
 import {
   Binding,
   Composition,
   Definition,
+  ElementBlock,
+  ProgramFlags,
+  UnregisteredComposition,
   connectedSteps,
   init,
   model,
@@ -27,3 +31,19 @@ Composition.prepareBlock({ init, update: saveUpdate, view })
 
 const prepare = () => Composition.prepareBlock({ init, update, view })
 Block.assemble(prepare)
+
+Program.make({
+  block: ElementBlock,
+  Flags: ProgramFlags,
+  flags: Effect.succeed({ session: 'work-orders' }),
+  container: null,
+})
+
+const unregisteredUpdate = UnregisteredComposition.makeUpdate({
+  Clicked: model => Binding.requestIncrement()(model),
+  CompletedSave: model => ({ model }),
+})
+UnregisteredComposition.prepareBlock({
+  init: () => ({ model }),
+  update: unregisteredUpdate,
+})
