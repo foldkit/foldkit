@@ -32,6 +32,10 @@ import { groupContiguous } from '../group.js'
 import * as OptionExt from '../internal/optionExtensions.js'
 import { idSelector } from '../internal/selectors.js'
 import {
+  type ValueOutMessageMatch,
+  bindValueOutMessageMatch,
+} from '../internal/valueOutMessageMatch.js'
+import {
   findFirstEnabledIndex,
   isPrintableKey,
   keyToIndex,
@@ -1226,17 +1230,17 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
   },
 )
 
-/** The `view`, `update`, and programmatic helpers that `Menu.create`
- *  returns, bound to one `Item` type. Name it to annotate a value that
- *  holds a created bundle, such as a field on a config object or a
- *  function parameter that takes the bundle rather than calling `create`
- *  itself. */
 type BundleUpdateReturn<Item extends string> = Update.ReturnWithOutMessage<
   Model,
   Message,
   OutMessage<Item>
 >
 
+/** The `view`, `update`, and programmatic helpers that `Menu.create` returns,
+ *  bound to one `Item` type. `OutMessage.match` folds a `Selected` whose
+ *  `value` is that same `Item`. Name it to annotate a value that holds a
+ *  created bundle, such as a field on a config object or a function
+ *  parameter that takes the bundle rather than calling `create` itself. */
 export type Bundle<Item extends string = string> = Readonly<{
   view: SubmodelView<Model, Message, ViewInputs<Item>>
   update: (model: Model, message: Message) => BundleUpdateReturn<Item>
@@ -1247,6 +1251,9 @@ export type Bundle<Item extends string = string> = Readonly<{
   ) => BundleUpdateReturn<Item>
   open: (model: Model) => BundleUpdateReturn<Item>
   close: (model: Model) => BundleUpdateReturn<Item>
+  OutMessage: Readonly<{
+    match: ValueOutMessageMatch<OutMessage<Item>>
+  }>
 }>
 
 /** Pairs the menu's `view` and `update` (and programmatic helpers)
@@ -1260,8 +1267,8 @@ export type Bundle<Item extends string = string> = Readonly<{
  *  // In view:
  *  h.submodel({ view: ActionMenu.view, ... })
  *
- *  // In the parent update, pass ActionMenu.update to Update.foldChild and
- *  // handle Menu.OutMessage<Action> in foldOutMessage.
+ *  // In the parent update, fold Selected with ActionMenu.OutMessage.match so
+ *  // value is Action, and pass ActionMenu.update to Update.foldChild.
  *  ```
  */
 export const create = <Item extends string = string>(): Bundle<Item> => {
@@ -1280,5 +1287,8 @@ export const create = <Item extends string = string>(): Bundle<Item> => {
     selectItem: (model, item, index) => cast(selectItem(model, item, index)),
     open: model => cast(open(model)),
     close: model => cast(close(model)),
+    OutMessage: {
+      match: bindValueOutMessageMatch<OutMessage<Item>>(OutMessage.match),
+    },
   }
 }

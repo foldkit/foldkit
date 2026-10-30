@@ -44,9 +44,8 @@ const Message = defineMessageUnion({
 // comboboxes, so this combobox keeps its selection there and the fold stays
 // exhaustive. Each arm returns an Update.Step over the parent Model, which
 // already has the next Combobox Model written back:
-const foldComboboxMultiOutMessage = Combobox.OutMessage.match<
-  Update.Step<Model, Message>,
-  Combobox.OutMessage<City>
+const foldComboboxMultiOutMessage = CitiesCombobox.OutMessage.match<
+  Update.Step<Model, Message>
 >({
   Selected:
     ({ value }) =>

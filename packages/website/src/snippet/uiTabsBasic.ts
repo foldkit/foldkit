@@ -54,9 +54,8 @@ const descriptions: Record<Framework, string> = {
 // value into your own Model so it flows back in as selectedValue. The arm
 // returns an Update.Step over the parent Model, which already has the next
 // Tabs Model written back:
-const foldTabsOutMessage = Tabs.OutMessage.match<
-  Update.Step<Model, Message>,
-  Tabs.OutMessage<Framework>
+const foldTabsOutMessage = FrameworkTabs.OutMessage.match<
+  Update.Step<Model, Message>
 >({
   // The child has emitted `Selected`. Store the selected value as the new
   // active tab. In this arm the parent can also update its own state or

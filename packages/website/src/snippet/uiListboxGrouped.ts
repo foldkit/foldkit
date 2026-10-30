@@ -48,7 +48,7 @@ const Message = defineMessageUnion({
 // `Selected` variant carries the chosen item's string value (the result of
 // `itemToValue`). The arm returns an Update.Step over the parent Model, which
 // already has the next Listbox Model written back:
-const foldListboxOutMessage = Listbox.OutMessage.match<
+const foldListboxOutMessage = CharacterListbox.OutMessage.match<
   Update.Step<Model, Message>
 >({
   Selected:
