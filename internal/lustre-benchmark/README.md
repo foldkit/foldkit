@@ -1,9 +1,8 @@
 # @foldkit/lustre-benchmark
 
-A Foldkit TodoMVC implementation built to run inside the
-[lustre-labs/benchmark](https://github.com/lustre-labs/benchmark) harness for
-head-to-head performance comparison against other implementations (Alpine, Elm,
-Gren, Lustre, React, Solid, Svelte, Vue).
+A Foldkit TodoMVC workload for local regression testing and profiling in the
+[lustre-labs/benchmark](https://github.com/lustre-labs/benchmark) harness. The
+public rendering comparison uses [js-framework-benchmark](../js-framework-benchmark).
 
 The harness drives every implementation through the same runbook (add 100
 todos, toggle each, destroy the first 100 times) using CSS selectors against

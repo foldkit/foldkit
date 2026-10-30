@@ -36,47 +36,37 @@ Keep `Message.match` anyway. Its signature requires a handler for every tag in t
 
 ## Benchmarks
 
-### Benchmark Workload
+### Workload
 
-Foldkit ships a TodoMVC implementation for the [lustre-labs/benchmark](https://github.com/lustre-labs/benchmark) harness, which drives each implementation through the same TodoMVC workload and required selectors (add 100 todos, toggle each one, destroy the first one 100 times).
+Foldkit uses [js-framework-benchmark](https://github.com/krausest/js-framework-benchmark) for its public rendering comparison. The suite creates, updates, selects, swaps, removes, and clears table rows. Every entry in this comparison is keyed: a row's DOM identity follows its id when the rows move.
 
-Foldkit registers two slots: an unoptimized view that rebuilds the entire tree on every Message with no memoization, and an optimized view that adds `createLazy` slots for the header, the footer, the filters list, and the toggle-all controls, and `createKeyedLazy` per todo item. The Model and update logic are identical in both. The implementation lives [in the Foldkit repo](https://github.com/foldkit/foldkit/tree/main/internal/lustre-benchmark), so you can run the comparison yourself.
+The [Foldkit implementation](https://github.com/foldkit/foldkit/tree/main/internal/js-framework-benchmark) uses a Schema-backed Model, exhaustive Message matching, and `createKeyedLazy({ evict: 'AbsentFromRender' })` for each row. It derives from [Ryan Carniato's contribution](https://github.com/krausest/js-framework-benchmark/pull/2141), with random label generation performed in a Command to preserve a pure update function.
 
 ### Measurement
 
-The reported time adds synchronous event-handler time to time spent inside the harness's wrapped callbacks. The [instrumentation at the tested revision](https://github.com/lustre-labs/benchmark/blob/03fff17ad22407115a91937ddab680e40fe0c7c7/priv/instrumentation.js) wraps `setTimeout`, `requestAnimationFrame`, `queueMicrotask`, and Promise callbacks. Waiting between steps and browser layout and paint outside measured callbacks are excluded.
+The timings come from Chrome traces and include scripting and rendering. The harness applies 4× CPU throttling to partial update, selection, swapping, and clearing, and 2× to removal. The other operations run without throttling. See the [operation definitions at the tested revision](https://github.com/krausest/js-framework-benchmark/blob/ca8715d9ae84916fd24de3a79457d8c328f9b766/webdriver-ts/src/benchmarksCommon.ts).
 
-Coverage depends on how an implementation schedules its work. Native `await` continuations, Promise rejection handlers passed as the second argument to `.then`, and `MessageChannel` callbacks are not wrapped. Read the table as accumulated instrumented execution time for these TodoMVC implementations. It does not measure total browser work or time from an interaction to the next paint.
+The timing batch used harness commit `ca8715d9`, Chrome for Testing 156.0.8078.75 in a visible window, and an Apple M1 Max with 64 GiB of memory running macOS 26.6.2 on AC power. Each operation has 15 samples, except selection, which the upstream runner samples 25 times. Each sample starts from a fresh page and follows the harness's warmup procedure. Frameworks run sequentially within each operation.
 
-### Batch and Results
+The Foldkit column uses an unreleased workspace build with the cache eviction option. These are local measurements, separate from the [official upstream results](https://krausest.github.io/js-framework-benchmark/index.html). The [raw samples and run metadata](https://github.com/foldkit/foldkit/tree/main/internal/js-framework-benchmark/results/2026-10-30) record the entry versions, build details, and commands.
 
-The batch includes the framework variants registered at the pinned harness revision except Lustre 4, plus Foldkit’s two development slots. The medians come from fifteen interleaved runs in one position-balanced batch, so every implementation occupied every ordinal run position once. The batch used harness commit 03fff17 and Chromium 152.0.7977.65. The relative column divides each displayed median by the fastest median from that same batch.
+### Operation timings
 
-Labels follow the harness registration: parentheses distinguish baseline and memoized variants where both are registered. Solid and Alpine each have one registered variant. Absolute times depend on hardware and browser conditions; use the relative values from the same batch when comparing these implementations.
+Values are median milliseconds; lower is faster. Vanilla is the upstream `vanillajs-lite` direct DOM implementation, and React is `react-hooks`. Partial update changes every tenth row of 1,000. Append adds 1,000 rows to an existing 1,000.
 
-| Implementation         | Median instrumented time | Relative to fastest |
-| ---------------------- | ------------------------ | ------------------- |
-| Svelte (optimized)     | 104.5ms                  | 1.00×               |
-| Gren (optimized)       | 114.3ms                  | 1.09×               |
-| Elm (optimized)        | 116.3ms                  | 1.11×               |
-| Svelte (unoptimized)   | 156.2ms                  | 1.49×               |
-| Lustre 5 (optimized)   | 192.8ms                  | 1.84×               |
-| Solid                  | 192.9ms                  | 1.85×               |
-| Foldkit (optimized)    | 210.0ms                  | 2.01×               |
-| Vue (unoptimized)      | 270.6ms                  | 2.59×               |
-| React 19 (optimized)   | 279.1ms                  | 2.67×               |
-| Gren (unoptimized)     | 306.4ms                  | 2.93×               |
-| Elm (unoptimized)      | 309.1ms                  | 2.96×               |
-| Lustre 5 (unoptimized) | 405.2ms                  | 3.88×               |
-| React 19 (unoptimized) | 503.8ms                  | 4.82×               |
-| Alpine                 | 540.3ms                  | 5.17×               |
-| Foldkit (unoptimized)  | 614.0ms                  | 5.88×               |
+::BenchmarkResults{kind="CPU"}
 
-### Reading the numbers
+These table operations measure rendering workloads. They do not establish how a complete application performs, or isolate the cost of Foldkit's architecture.
 
-Foldkit optimized ranks seventh of fifteen in this batch. It takes 2.01 times the fastest row, about 1.09 times optimized Lustre’s time, and 1.09 times Solid’s. Vue takes about 1.29 times Foldkit’s time, while optimized React takes about 1.33 times Foldkit’s.
+### Memory
 
-Elm’s optimized entry also renders a pure view into a virtual DOM with lazy memoization, and Foldkit takes 1.81 times its measured time in this batch. Elm provides a useful comparison when profiling Foldkit. The aggregate timings do not isolate which implementation choices cause the difference.
+Values are median MiB across five samples, measured after garbage collection with the browser's memory measurement API. Memory tests ran separately in seven isolated headless Chrome instances, one per entry, under normal system memory pressure. Each create/clear sample performs five cycles of creating and clearing 1,000 rows.
+
+::BenchmarkResults{kind="Memory"}
+
+The Foldkit entry evicts cached rows whose ids are absent from a successful render. This option addresses the detached DOM retention reported in [issue #1536](https://github.com/foldkit/foldkit/issues/1536). The default `createKeyedLazy()` retains removed keys; apps with changing sets of row ids should opt into eviction.
+
+The [TodoMVC harness](https://github.com/foldkit/foldkit/tree/main/internal/lustre-benchmark) provides a separate workload for local regression testing and profiling.
 
 ## Development mode is not production
 
@@ -98,16 +88,16 @@ All of it is gated behind `import.meta.hot` and eliminated from production bundl
 When something is slow, work through this list in order:
 
 - Let the [Slow Warnings](/core/slow-warnings) tell you which synchronous phase is actually slow before optimizing anything.
-- Memoize expensive subtrees with [createLazy and createKeyedLazy](/core/view-memoization). This is the single highest-leverage tool, and it is what separates the Foldkit (unoptimized) row from the Foldkit (optimized) row in the benchmark table above.
+- Memoize expensive subtrees with [createLazy and createKeyedLazy](/core/view-memoization). Use `createKeyedLazy({ evict: 'AbsentFromRender' })` for changing sets of row ids so removed rows leave the cache.
 - [Key](/best-practices/keying) mapped list items by stable Model ids, the one identity only your data can provide, so the differ moves nodes instead of rebuilding them. Branching views need no keys when built with `@foldkit/vite-plugin`: view functions carry identity, and the differ replaces DOM when a position’s identity changes. Without the plugin, branch identity falls back to positional-plus-key semantics and each branch point needs an explicit key.
 - Cache expensive derived data on the Model when memoization cannot cover it. The view recomputes a derived value on every render whether or not its inputs changed; update can compute it once, in the branches that change those inputs. The price is a derived field every such branch must keep in sync, so reach for this after `createLazy`, not before.
 - Render long lists with [Virtual List](/ui/virtual-list) so only visible items mount.
 
 ## Bundle size and code splitting
 
-### Baseline Bundle
+### Benchmark Bundle
 
-The package is ESM-only, marked side-effect-free, and exposed through subpath exports, so bundlers tree-shake everything an app does not import. A minimal counter app builds to about 270 KB raw and just under 90 KB gzipped, and that includes the Foldkit runtime, its vendored differ, and Effect itself. Effect is the largest share of the baseline, and it is not dead weight: it is the same library your application code uses for Commands, Schemas, and data manipulation.
+The package is ESM-only, marked side-effect-free, and exposed through subpath exports, so bundlers tree-shake everything an app does not import. The production benchmark entry above builds to about 306 kB of JavaScript, or 100 kB gzipped. That includes the table app, the Foldkit runtime, its vendored differ, and Effect. The application also uses Effect for Commands, Schemas, and data manipulation. The exact byte counts and build hash are in the run metadata.
 
 ### What Splits Today
 

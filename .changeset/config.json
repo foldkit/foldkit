@@ -47,6 +47,7 @@
     "@foldkit/performance-harness",
     "@foldkit/examples-e2e",
     "@foldkit/lustre-benchmark",
+    "@foldkit/js-framework-benchmark",
     "charting-example",
     "state-machine-example",
     "personal-blog-example",

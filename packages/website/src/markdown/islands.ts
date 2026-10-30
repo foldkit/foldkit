@@ -4,6 +4,7 @@ import { Html, inertHtml as ih } from 'foldkit/html'
 import * as Markdown from '@foldkit/markdown'
 
 import { CodeBlock } from '../component'
+import * as BenchmarkResults from '../component/benchmarkResults'
 import { ctaLinks, infoCalloutBlocks, warningCalloutBlocks } from '../prose'
 import type { DemoLabels } from './demoLabel'
 import { islandAttributes } from './islandAttributes'
@@ -73,4 +74,6 @@ export const docIslands = (
 
     Faq: ({ id, question }, content) =>
       renderFaqSection(slots, id, question, content),
+
+    BenchmarkResults: ({ kind }) => BenchmarkResults.view(kind),
   })
