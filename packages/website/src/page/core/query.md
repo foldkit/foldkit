@@ -67,6 +67,7 @@ The `parentField` form tells `lift` which field contains an always-present Query
 - `posts.fold(model, message)` delegates the child Message to Query's update and writes the returned Query Model back to `model.posts`.
 - `posts.loadIfMissing`, `posts.revalidate`, and `posts.revalidateOrLoad` apply their loading rule to the current `AsyncData`. When the rule calls for a request, the update result contains the next parent Model and a `FetchPosts` Command. Otherwise it contains only the unchanged Model.
 - `posts.reset(model)` returns an update result whose parent Model contains an `Idle` Query value while preserving the Query's request identity.
+- `posts.setData` and `posts.updateData` write data into the Query without fetching. [Write Data Without Fetching](#write-data-without-fetching) covers them.
 
 #### Optional and Nested Queries
 
@@ -139,6 +140,49 @@ Call `reset` to clear a live Query. Do not replace a live Query Model with a fre
 
 `reset` does not interrupt a running Command. A completion that arrives while the reset Query is no longer pending is ignored. If the application needs the work itself to stop, use a hand-managed interruptible Command instead of relying on reset as cancellation.
 
+## Write Data Without Fetching
+
+### Write a Mutation Result
+
+When a mutation returns the saved resource, the parent can write it into the Query instead of fetching it again. `setData` stores a value as `Success` and returns no Command. A KeyedQuery takes the entry's arguments with the value, `{ args, data }`, and creates the entry when it does not exist yet.
+
+`updateData` transforms the data a Query already holds, for example to insert a created item into a loaded list. A KeyedQuery takes `{ args, toNextData }`. When the Query or entry has no data, `updateData` returns the Model unchanged, so the parent does not have to check first.
+
+In this example, `posts` is the lifted posts Query and `postDetails` is the lifted KeyedQuery of post details from [Define a KeyedQuery](#define-a-keyedquery):
+
+::Snippet{name="queryWriteData" label="Writing mutation results into Queries"}
+
+### Transformed States
+
+`updateData` keeps the meaning of the current state:
+
+- `Success` stays `Success` with the transformed data.
+- `Refreshing` becomes `Success`, because the write replaces the pending refresh.
+- `Stale` stays `Stale` and keeps its error. The rest of the data may still be outdated, so call `revalidate` when the parent wants a fresh copy.
+- `Idle`, `Loading`, and `Failure` hold no data and stay unchanged.
+
+### Writes and Pending Fetches
+
+A write wins over a Fetch that is already running. `setData` and `updateData` advance the request generation, so Query ignores the pending Fetch's result when it arrives. The Fetch itself keeps running until it completes; Query only discards its result.
+
+## React to an Accepted Fetch
+
+### Fold the Accepted Result
+
+Pass `foldOutMessage` to `lift` when the parent needs to act after a Fetch completes. Query calls it with an `AcceptedFetch` OutMessage holding the `result` only when it accepts that result. A late completion, or one superseded by a write or reset, produces no OutMessage. A KeyedQuery's `AcceptedFetch` also carries the entry's `args`.
+
+In this example, the parent loads the first post's details through the `postDetails` KeyedQuery once the post list arrives:
+
+::Snippet{name="queryAcceptedFetch" label="Prefetching after an accepted Fetch"}
+
+Like the `foldOutMessage` of [`Update.foldChild`](/core/submodel#fold-child), it receives the parent Model with the Query's new state already written back, and its Commands follow the Query's. It returns a plain `Update.Step`, so it cannot emit or forward an OutMessage to the parent's own parent. Without `foldOutMessage`, the lifted `fold` settles completions and the parent takes no further action.
+
+When the Step returns Commands that need services, pass those services as the third type argument to `lift`, for example `postsQuery.lift<Model, Message, HttpClient>`. With only two type arguments, TypeScript fixes the requirements to `never` and rejects such a Command.
+
+### Use updateWithOutMessage Without lift
+
+An application that wires Query with `Update.foldChild` directly can use `updateWithOutMessage` as the child `update`. It settles completions like `update` and returns the `AcceptedFetch` OutMessage for accepted results.
+
 ## Define a KeyedQuery
 
 ### Keyed Definition
@@ -175,6 +219,14 @@ A KeyedQuery retains entries until `reset` clears all of them. It does not curre
 The generated `Fetch` definition is public so Story and Scene tests can match and resolve the Command. Obtain application fetch Commands through `loadIfMissing`, `revalidate`, or `revalidateOrLoad`; calling `Fetch` directly would skip the Model transition and generation update that make completion handling safe.
 
 The [API Cache Query example](/example-apps/api-cache-query) includes Story and Scene tests that resolve Query Commands without running their Effects.
+
+### Test Fixtures
+
+`seed` builds a Query Model in any `AsyncData` state, so a test can start from loaded, failed, stale, or refreshing data without knowing how Query stores it. A KeyedQuery's `seed` takes a list of `{ args, data }` entries and keys them the same way the loading operations do.
+
+A seeded Model has request generation 0. Resolve a seeded `Loading` or `Refreshing` value with generation 0. The first Fetch a test starts from a seeded Model has generation 1:
+
+::Snippet{name="querySeedFixtures" label="Starting a Story from a seeded Query"}
 
 ## When to Use AsyncData Directly
 
