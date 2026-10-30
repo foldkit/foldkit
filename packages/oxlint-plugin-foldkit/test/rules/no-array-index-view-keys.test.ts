@@ -108,12 +108,23 @@ describe('no-array-index-view-keys', () => {
     expect(result[0]?.diagnostic.message).toContain('`i`')
   })
 
-  it('flags an index key in a Block slotId', () => {
-    const sink = Testing.callOfMember('h', 'block', [
-      Testing.objectExpr([{ key: 'slotId', value: Testing.id('i') }]),
-    ])
+  it('flags an index key passed to a Block.each instance factory', () => {
+    const arrow = methodMapArrow(itemAndIndexParameters)
+    const factoryDeclarator = Testing.varDeclarator('row', {
+      type: 'YieldExpression',
+      delegate: true,
+      argument: Testing.callOfMember('Counter', 'each', [
+        Testing.strLiteral('rows'),
+      ]),
+    })
+    const sink = Testing.callExpr('row', [Testing.id('i')])
 
-    const result = runMapScenario(methodMapArrow(itemAndIndexParameters), sink)
+    const result = Testing.runRuleMulti(noArrayIndexViewKeys, [
+      ['VariableDeclarator', factoryDeclarator],
+      ['ArrowFunctionExpression', arrow],
+      ['CallExpression', sink],
+      ['ArrowFunctionExpression:exit', arrow],
+    ])
 
     expect(result).toHaveLength(1)
   })
@@ -261,19 +272,6 @@ describe('no-array-index-view-keys', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('allows a static object key that collides with the index name', () => {
-    const sink = Testing.callOfMember('h', 'block', [
-      Testing.objectExpr([
-        { key: 'slotId', value: Testing.memberExpr('item', 'id') },
-        { key: 'i', value: Testing.strLiteral('extra') },
-      ]),
-    ])
-
-    const result = runMapScenario(methodMapArrow(itemAndIndexParameters), sink)
-
-    expect(result).toHaveLength(0)
-  })
-
   it('allows an index name shadowed by a nested arrow parameter', () => {
     const nestedArrow = {
       type: 'ArrowFunctionExpression',
@@ -293,14 +291,6 @@ describe('no-array-index-view-keys', () => {
     const sink = Testing.callOfMember('h', 'Key', [
       { type: 'SpreadElement', argument: Testing.id('i') },
     ])
-
-    const result = runMapScenario(methodMapArrow(itemAndIndexParameters), sink)
-
-    expect(result).toHaveLength(0)
-  })
-
-  it('skips block calls whose first argument is not an object literal', () => {
-    const sink = Testing.callOfMember('h', 'block', [Testing.id('config')])
 
     const result = runMapScenario(methodMapArrow(itemAndIndexParameters), sink)
 

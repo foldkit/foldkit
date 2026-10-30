@@ -6,26 +6,15 @@ import {
   Exit,
   Fiber,
   Layer,
-  Option,
   Schema,
   Stream,
 } from 'effect'
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  expectTypeOf,
-  it,
-  vi,
-} from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as Command from '../command/index.js'
 import type { HtmlBuilder } from '../html/index.js'
-import * as ManagedResource from '../managedResource/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
-import * as Subscription from '../subscription/public.js'
 import * as Update from '../update/index.js'
 import * as Application from './application.js'
 import { makeApplication } from './makeApplication.js'
@@ -67,18 +56,15 @@ const ReadValueLayer = ReadValue.toLayer(
   ),
 )
 
-const update = Update.define((model: Model, message: Message) =>
-  Message.match(message, {
+const update = (model: Model, message: Message) =>
+  Message.match<
+    Update.Return<Model, Message, Command.HandlerOf<typeof ReadValue>>
+  >(message, {
     ClickedReadValue: () => ({ model, commands: [ReadValue()] }),
     SucceededReadValue: ({ value }) => ({
       model: modifyFields(model, { label: label => `${label} ${value}` }),
     }),
-  }),
-)
-
-expectTypeOf<Update.RequirementsOf<typeof update>>().toEqualTypeOf<
-  Command.HandlerOf<typeof ReadValue>
->()
+  })
 
 const documentView = (model: Model, h: HtmlBuilder<Message>) => ({
   title: '',
@@ -382,7 +368,7 @@ describe('Application Layers', () => {
     expect(releaseCount).toBe(1)
   })
 
-  it('shares one scoped service across Flags and Layer-backed runtime handlers', async () => {
+  it('shares one scoped service across Flags, Command handlers, and Subscriptions', async () => {
     const LifecycleMessage = defineMessageUnion({
       CompletedChangePhase: {
         phase: Schema.Literals(['Restart', 'Stop']),
@@ -402,19 +388,6 @@ describe('Application Layers', () => {
       args: { phase: Schema.Literals(['Restart', 'Stop']) },
       messages: [LifecycleMessage.CompletedChangePhase],
     })
-    const subscriptions = Subscription.make<LifecycleModel, LifecycleMessage>()(
-      entry => ({
-        phase: entry(
-          'TrackApplicationPhase',
-          { phase: Schema.Literals(['Initial', 'Restarted', 'Stopped']) },
-          {
-            messages: [],
-            modelToDependencies: model => ({ phase: model.phase }),
-          },
-        ),
-      }),
-    )
-
     const initialStreamAcquired = Deferred.makeUnsafe<void>()
     const restartedStreamAcquired = Deferred.makeUnsafe<void>()
     const restartedStreamReleased = Deferred.makeUnsafe<void>()
@@ -422,7 +395,6 @@ describe('Application Layers', () => {
     let serviceBuilds = 0
     let serviceReleases = 0
     let commandHandlerBuilds = 0
-    let subscriptionHandlerBuilds = 0
     let commandRuns = 0
 
     const ValueLayer = Layer.effect(
@@ -455,12 +427,17 @@ describe('Application Layers', () => {
           })
       }),
     )
-    const TrackApplicationPhaseLayer = subscriptions.phase.toLayer(
-      Effect.gen(function* () {
-        const { value } = yield* ValueService
-        subscriptionHandlerBuilds += 1
-
-        return ({ phase }) => {
+    const subscriptions = {
+      phase: {
+        dependenciesSchema: Schema.Struct({
+          phase: Schema.Literals(['Initial', 'Restarted', 'Stopped']),
+        }),
+        modelToDependencies: (model: LifecycleModel) => ({
+          phase: model.phase,
+        }),
+        dependenciesToStream: ({
+          phase,
+        }: Readonly<{ phase: LifecycleModel['phase'] }>) => {
           if (phase === 'Stopped') {
             return Stream.empty
           }
@@ -470,47 +447,52 @@ describe('Application Layers', () => {
               ? initialStreamAcquired
               : restartedStreamAcquired
 
-          return Stream.scoped(
-            Stream.fromEffect(
-              Effect.acquireRelease(
-                Effect.sync(() => {
-                  streamEvents.push(`acquired ${phase} with ${value}`)
-                  Deferred.doneUnsafe(acquired, Effect.void)
-                }),
-                () =>
-                  Effect.sync(() => {
-                    streamEvents.push(`released ${phase} with ${value}`)
-                    if (phase === 'Restarted') {
-                      Deferred.doneUnsafe(restartedStreamReleased, Effect.void)
-                    }
-                  }),
+          return Stream.unwrap(
+            Effect.map(ValueService, ({ value }) =>
+              Stream.scoped(
+                Stream.fromEffect(
+                  Effect.acquireRelease(
+                    Effect.sync(() => {
+                      streamEvents.push(`acquired ${phase} with ${value}`)
+                      Deferred.doneUnsafe(acquired, Effect.void)
+                    }),
+                    () =>
+                      Effect.sync(() => {
+                        streamEvents.push(`released ${phase} with ${value}`)
+                        if (phase === 'Restarted') {
+                          Deferred.doneUnsafe(
+                            restartedStreamReleased,
+                            Effect.void,
+                          )
+                        }
+                      }),
+                  ),
+                ).pipe(Stream.flatMap(() => Stream.never)),
               ),
-            ).pipe(Stream.flatMap(() => Stream.never)),
+            ),
           )
-        }
-      }),
-    )
-    const update = Update.define(
-      (model: LifecycleModel, message: LifecycleMessage) =>
-        LifecycleMessage.match(message, {
-          CompletedChangePhase: ({ phase, value }) => {
-            const nextModel = modifyFields(model, {
-              label: label => `${label} ${phase}-${value}`,
-              phase: () => (phase === 'Restart' ? 'Restarted' : 'Stopped'),
-              commandRuns: count => count + 1,
-            })
+        },
+      },
+    }
+    const update = (model: LifecycleModel, message: LifecycleMessage) =>
+      LifecycleMessage.match(message, {
+        CompletedChangePhase: ({ phase, value }) => {
+          const nextModel = modifyFields(model, {
+            label: label => `${label} ${phase}-${value}`,
+            phase: () => (phase === 'Restart' ? 'Restarted' : 'Stopped'),
+            commandRuns: count => count + 1,
+          })
 
-            if (phase === 'Restart') {
-              return {
-                model: nextModel,
-                commands: [ChangePhase({ phase: 'Stop' })],
-              }
-            } else {
-              return { model: nextModel }
+          if (phase === 'Restart') {
+            return {
+              model: nextModel,
+              commands: [ChangePhase({ phase: 'Stop' })],
             }
-          },
-        }),
-    )
+          } else {
+            return { model: nextModel }
+          }
+        },
+      })
     const element = Application.__makeElementFromConfig({
       Model: LifecycleModel,
       Flags,
@@ -531,12 +513,8 @@ describe('Application Layers', () => {
       subscriptions,
       container,
     })
-    const HandlersLayer = Layer.mergeAll(
-      ChangePhaseLayer,
-      TrackApplicationPhaseLayer,
-    )
     const provided = element.provide(
-      Layer.provideMerge(HandlersLayer, ValueLayer),
+      Layer.provideMerge(ChangePhaseLayer, ValueLayer),
     )
     const fiber = Effect.runFork(provided.start())
 
@@ -549,7 +527,6 @@ describe('Application Layers', () => {
       expect(serviceBuilds).toBe(1)
       expect(serviceReleases).toBe(0)
       expect(commandHandlerBuilds).toBe(1)
-      expect(subscriptionHandlerBuilds).toBe(1)
       expect(commandRuns).toBe(2)
       expect(streamEvents).toEqual([
         'acquired Initial with service-1',
@@ -741,48 +718,6 @@ const checkApplicationLayerTypes = (): void => {
       const derived = yield* DerivedService
       return { initialLabel: `${value.value} ${derived.value}` }
     }),
-  })
-
-  const Engine = ManagedResource.tag<number>()('FlagsEngine')
-  const managedResources = ManagedResource.make<Model, Message>()(entry => ({
-    engine: entry('ManageFlagsEngine', Schema.Option(Schema.Null), {
-      resource: Engine,
-      modelToMaybeRequirements: () => Option.none(),
-      onAcquired: () => Message.ClickedReadValue(),
-      onReleased: () => Message.ClickedReadValue(),
-      onAcquireError: () => Message.ClickedReadValue(),
-    }),
-  }))
-  const managedApplication = Application.__makeFromConfig({
-    Model,
-    Flags,
-    init: ({ initialLabel }) => ({
-      model: Model.make({ label: initialLabel }),
-    }),
-    update: (model: Model, _message: Message) => ({ model }),
-    view: documentView,
-    managedResources,
-    container,
-  })
-  const runnableManagedApplication = managedApplication.provide(
-    managedResources.engine.toLayer(
-      Effect.succeed({
-        acquire: () => Effect.succeed(1),
-        release: () => Effect.void,
-      }),
-    ),
-  )
-  run(runnableManagedApplication, {
-    flags: Effect.succeed({ initialLabel: 'ready' }),
-  })
-  run(runnableManagedApplication, {
-    // @ts-expect-error Flags resolve before Model-driven ManagedResources can be acquired.
-    flags: Engine.get.pipe(
-      Effect.map(value => ({ initialLabel: `${value}` })),
-      Effect.catchTag('ResourceNotAvailable', () =>
-        Effect.succeed({ initialLabel: 'unavailable' }),
-      ),
-    ),
   })
 
   const staleResourcesConfig = {

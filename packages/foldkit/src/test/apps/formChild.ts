@@ -1,4 +1,4 @@
-import { Array, Effect, Layer, Option, Schema } from 'effect'
+import { Array, Effect, Layer, Schema } from 'effect'
 
 import * as Command from '../../command/index.js'
 import { defineMessageUnion } from '../../message/index.js'
@@ -53,27 +53,32 @@ export const initialChildModel: ChildModel = { status: 'Idle' }
 
 // CHILD UPDATE
 
-export const childUpdate = Update.define(
-  (_model: ChildModel, message: ChildMessage) =>
-    ChildMessage.match(message, {
-      SubmittedForm: () => ({
-        model: ChildModel.make({ status: 'Submitting' }),
-        commands: [SubmitForm()],
-      }),
-      SucceededSubmitForm: ({ id }) => ({
-        model: ChildModel.make({ status: 'Submitted' }),
-        commands: [ResetForm()],
-        outMessage: ChildOutMessage.RequestedSave({ id }),
-      }),
-      CancelledForm: () => ({
-        model: ChildModel.make({ status: 'Idle' }),
-        outMessage: ChildOutMessage.RequestedCancel(),
-      }),
-      CompletedResetForm: () => ({
-        model: ChildModel.make({ status: 'Idle' }),
-      }),
+type ChildUpdateReturn = Update.ReturnWithOutMessage<
+  ChildModel,
+  ChildMessage,
+  ChildOutMessage,
+  Command.HandlerOf<typeof SubmitForm> | Command.HandlerOf<typeof ResetForm>
+>
+
+export const childUpdate = (_model: ChildModel, message: ChildMessage) =>
+  ChildMessage.match<ChildUpdateReturn>(message, {
+    SubmittedForm: () => ({
+      model: ChildModel.make({ status: 'Submitting' }),
+      commands: [SubmitForm()],
     }),
-)
+    SucceededSubmitForm: ({ id }) => ({
+      model: ChildModel.make({ status: 'Submitted' }),
+      commands: [ResetForm()],
+      outMessage: ChildOutMessage.RequestedSave({ id }),
+    }),
+    CancelledForm: () => ({
+      model: ChildModel.make({ status: 'Idle' }),
+      outMessage: ChildOutMessage.RequestedCancel(),
+    }),
+    CompletedResetForm: () => ({
+      model: ChildModel.make({ status: 'Idle' }),
+    }),
+  })
 
 // PARENT MODEL
 
@@ -115,21 +120,34 @@ const foldChildOutMessage = ChildOutMessage.match<
   }),
 })
 
-const foldChildUpdate = Update.foldChild({
-  update: childUpdate,
-  read: (model: ParentModel) => Option.some(model.child),
-  write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
-  toParentMessage: message => ParentMessage.GotChildMessage({ message }),
-  foldOutMessage: foldChildOutMessage,
-})
+const foldChildUpdate = (
+  parentModel: ParentModel,
+  childMessage: ChildMessage,
+) => {
+  const childResult = childUpdate(parentModel.child, childMessage)
+  const commands = Command.mapMessages(childResult.commands ?? [], message =>
+    ParentMessage.GotChildMessage({ message }),
+  )
+  const nextParentModel = modifyFields(parentModel, {
+    child: () => childResult.model,
+  })
 
-export const parentUpdate = Update.define(
-  (parentModel: ParentModel, message: ParentMessage) =>
-    ParentMessage.match(message, {
-      GotChildMessage: ({ message: childMessage }) =>
-        foldChildUpdate(parentModel, childMessage),
-      CompletedParentReset: () => ({ model: parentModel }),
-    }),
-)
+  return childResult.outMessage === undefined
+    ? { model: nextParentModel, commands }
+    : Update.combineSteps(nextParentModel, [
+        stepModel => ({ model: stepModel, commands }),
+        foldChildOutMessage(childResult.outMessage),
+      ])
+}
+
+export const parentUpdate = (
+  parentModel: ParentModel,
+  message: ParentMessage,
+) =>
+  ParentMessage.match(message, {
+    GotChildMessage: ({ message: childMessage }) =>
+      foldChildUpdate(parentModel, childMessage),
+    CompletedParentReset: () => ({ model: parentModel }),
+  })
 
 export const EffectsLayer = Layer.mergeAll(SubmitForm.layer, ResetForm.layer)

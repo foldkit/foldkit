@@ -7,8 +7,6 @@ import { Disclosure } from '@foldkit/ui'
 import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
 import { Shared } from '../component'
-import type { ApplicationViewBuilder } from '../composition'
-import { MobileMenuDialogBinding } from '../composition'
 import {
   DOCS_SIDEBAR_NAV_ID,
   MOBILE_MENU_NAV_ID,
@@ -30,6 +28,7 @@ import {
   maybeExampleSlugForRoute,
 } from '../route'
 import { type GroupKey, type SidebarGroups } from '../sidebarStorage'
+import type { ApplicationViewBuilder } from './builder'
 
 const GROUP_ID: Record<GroupKey, string> = {
   blog: 'blog-group',
@@ -410,34 +409,25 @@ export const mobileView = (model: Model, h: ApplicationViewBuilder): Html => {
       ],
     )
 
-  return h.block(
-    MobileMenuDialogBinding.embedView({
-      slotId: model.mobileMenuDialog.id,
-      model: model.mobileMenuDialog,
-      viewInputs: {
-        hasDescription: true,
-        toView: renderInfo =>
-          h.dialog(
-            [...renderInfo.dialog, h.Class('md:hidden')],
-            renderInfo.isVisible
-              ? [
-                  h.div([
-                    ...renderInfo.backdrop,
-                    h.Class('fixed inset-0 z-[59]'),
-                  ]),
-                  h.div(
-                    [
-                      ...renderInfo.panel,
-                      h.Class(
-                        'fixed inset-0 z-[60] bg-cream dark:bg-gray-900 flex flex-col',
-                      ),
-                    ],
-                    [mobileMenuContent(renderInfo)],
+  return model.mobileMenuDialog.view({
+    hasDescription: true,
+    toView: renderInfo =>
+      h.dialog(
+        [...renderInfo.dialog, h.Class('md:hidden')],
+        renderInfo.isVisible
+          ? [
+              h.div([...renderInfo.backdrop, h.Class('fixed inset-0 z-[59]')]),
+              h.div(
+                [
+                  ...renderInfo.panel,
+                  h.Class(
+                    'fixed inset-0 z-[60] bg-cream dark:bg-gray-900 flex flex-col',
                   ),
-                ]
-              : [],
-          ),
-      },
-    }),
-  )
+                ],
+                [mobileMenuContent(renderInfo)],
+              ),
+            ]
+          : [],
+      ),
+  })
 }

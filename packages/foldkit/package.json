@@ -63,10 +63,6 @@
       "types": "./dist/http/public.d.ts",
       "import": "./dist/http/public.js"
     },
-    "./managedResource": {
-      "types": "./dist/managedResource/public.d.ts",
-      "import": "./dist/managedResource/public.js"
-    },
     "./message": {
       "types": "./dist/message/public.d.ts",
       "import": "./dist/message/public.js"
@@ -128,12 +124,8 @@
       "import": "./dist/struct/public.js"
     },
     "./block": {
-      "types": "./dist/block/public.d.ts",
-      "import": "./dist/block/public.js"
-    },
-    "./subscription": {
-      "types": "./dist/subscription/public.d.ts",
-      "import": "./dist/subscription/public.js"
+      "types": "./dist/blocks/public.d.ts",
+      "import": "./dist/blocks/public.js"
     },
     "./test": {
       "types": "./dist/test/public.d.ts",
@@ -158,14 +150,6 @@
     "./devtools-host": {
       "types": "./dist/devTools/host.d.ts",
       "import": "./dist/devTools/host.js"
-    },
-    "./variantBinding": {
-      "types": "./dist/block/variantBinding.d.ts",
-      "import": "./dist/block/variantBinding.js"
-    },
-    "./bindingInit": {
-      "types": "./dist/block/bindingInit.d.ts",
-      "import": "./dist/block/bindingInit.js"
     }
   },
   "sideEffects": false,
@@ -177,11 +161,8 @@
     "clean": "rimraf dist *.tsbuildinfo",
     "build": "pnpm run clean && tsc -b tsconfig.build.json",
     "check:emitted-declarations": "node scripts/check-emitted-declarations.ts",
-    "check:compiler-diagnostics": "node scripts/check-compiler-diagnostics.ts",
-    "check:block-type-performance": "node scripts/check-block-type-performance.ts",
-    "update:block-type-performance": "node scripts/check-block-type-performance.ts --update",
     "watch": "tsc -b tsconfig.build.json --watch",
-    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p declaration-tests/tsconfig.route-step-program.source.json && tsc -p declaration-tests/tsconfig.route-path.source.json && tsc -p declaration-tests/tsconfig.machine.source.json && tsc -p declaration-tests/tsconfig.scene-routing.source.json && tsc -p declaration-tests/tsconfig.query-policy.source.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p declaration-tests/tsconfig.route-path.source.json && tsc -p declaration-tests/tsconfig.command-args.source.json && tsc -p declaration-tests/tsconfig.story-concurrency.source.json && tsc -p declaration-tests/tsconfig.machine.source.json",
     "test": "vitest run --coverage"
   },
   "dependencies": {

@@ -1,5 +1,12 @@
 export {
   makeBlock,
+  informHistoryPrepended,
+  informItemsChanged,
+  requestScrollTo,
+  requestScrollToIndex,
+  requestScrollToKey,
+  requestScrollToOffset,
+  requestScrollToEnd,
   ScrollAlignment,
   ScrollTarget,
   ScrollContainer,
@@ -16,7 +23,8 @@ export {
   type ScrollToOptions,
   type ViewInputs,
   type Completed,
+  type Instance,
 } from './index.js'
 
-/** Original VirtualList Command and Mount Definitions for Story and Scene test resolution. */
+/** VirtualList Command and Mount Definitions for Story and Scene test resolution. */
 export * as test from './test.js'

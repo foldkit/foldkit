@@ -1,18 +1,21 @@
+import { Effect } from 'effect'
 import { Runtime } from 'foldkit'
 
-import { createElement } from './widget'
+import { createElement } from './embeddingCreateElement'
 
 const container = document.getElementById('widget-slot')
 if (container === null) {
   throw new Error('Missing widget container')
 }
 
-// Flags seed the widget's initial state at mount.
-const element = createElement(container, { initialCount: 10 })
+const element = createElement(container)
 
-// embed starts the runtime and returns the handle. The handle is the whole
-// boundary: the host never reads the Model or dispatches Messages.
-const handle = Runtime.embed(element)
+// embed starts the runtime and returns the handle. Flags seed the widget's
+// starting Model. The handle is the whole boundary: the host never reads
+// the Model or dispatches Messages.
+const handle = Runtime.embed(element, {
+  flags: Effect.succeed({ initialCount: 10 }),
+})
 
 // Host to widget. The value is validated against the Port's Schema; an
 // invalid value never reaches the app and comes back as a typed Exit failure.
@@ -25,8 +28,8 @@ const unsubscribe = handle.ports.countChanged.subscribe(count => {
 })
 
 // On host unmount: dispose interrupts the runtime and runs all cleanup.
-// Subscriptions, Mounts, ManagedResources, and in-flight Commands stop, the
-// rendered DOM is removed, and the container element is restored empty,
-// ready for a fresh embed. dispose is idempotent.
+// Streams, Mounts, and in-flight Commands stop, every Block instance is
+// released, the rendered DOM is removed, and the container element is
+// restored empty, ready for a fresh embed. dispose is idempotent.
 unsubscribe()
 handle.dispose()

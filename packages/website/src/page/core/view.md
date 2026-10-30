@@ -12,7 +12,7 @@ Event attributes complete the loop. They produce Messages for the runtime to dis
 
 In the [restaurant analogy](/core/architecture#the-restaurant-analogy), view is the meal on the table. The Model records the current facts; view presents them.
 
-The Counter's named `ApplicationComposition` supplies the primary view builder, so the view's Model, Message, child, and Mount capabilities come from the same Composition that assembles `ApplicationBlock`. This excerpt remains in the compact Counter's `application.ts` after the Application and Composition declarations.
+A Block's view is the `view` field its constructor returns. The Runtime calls it with the instance's Model and a builder, `h`, typed to the Block's Messages. This version of the Counter extracts its view into a function, which the constructor returns as `view`:
 
 ::Snippet{name="counterView" label="Using view"}
 
@@ -87,9 +87,9 @@ Every view receives `h`, an `HtmlBuilder` typed to the application's Message uni
 
 ::Snippet{name="htmlHelpers" label="HTML helpers"}
 
-The Message type follows the builder. If `h.OnClick` receives a Message outside the application union, TypeScript rejects it. The root Runtime supplies its builder, and each Block Composition's `makeView` supplies one for its child view.
+The Message type follows the builder. If `h.OnClick` receives a Message outside the Block's union, TypeScript rejects it. The Runtime supplies each Block's builder when it renders that Block's view.
 
-The builder also carries the Mount definitions and child Blocks the view may render. A Composition infers them from its local Mounts and child Bindings. `ApplicationComposition.prepareBlock` packages the root registry into the opaque draft, and `Block.assemble` installs it on the completed root Block. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for child views and attribute slots.
+The builder also carries the Mounts the view may attach, taken from the Block's `Mount` list. A child Block renders through its instance, `model.child.view()`, which uses the child's own builder. See [Mount](/core/mount#handler-layers) for typing helpers that attach Mounts.
 
 #### Element Builder Arity
 
@@ -97,29 +97,27 @@ Element builders that accept children take attributes first and optional childre
 
 #### Builder Ownership
 
-Application code cannot construct a builder. The canonical owned view enters through `Composition.makeView` or `makeView.withInputs`, which checks the complete view contract when the Block or Application is completed. Let that primary view's `h` parameter infer. A completed Block retains `block.makeView` for authoring an alternate embed view against that already fixed graph; it cannot change the graph or complete another Block.
+Application code cannot construct a builder. A view receives `h` from the Runtime, and view helpers receive it as a parameter. Let the `h` parameter of the constructor's `view` field infer.
 
-Ordinary feature-local helpers remain plain functions. After establishing `FeatureComposition`, declare `type FeatureViewBuilder = Block.ViewBuilderFor<typeof FeatureComposition>` on the next line with no blank line and use that alias for each helper's `h` parameter. Export it only when another file uses it. The alias carries the owner's Message type and its registered child and Mount capabilities; it creates no runtime value.
+A helper for one Block takes `HtmlBuilder<Message>` with that Block's Message union. Name the alias for its owner, such as `type ArticlesViewBuilder = HtmlBuilder<Message>`, and give each helper only the parameters it uses: a heading helper can take only `h`, a card helper can take its domain value and `h`, and a list helper can take the Model and `h`. Let TypeScript infer whether a helper returns one `Html` value or an array.
 
-The owner prefix identifies the specific Composition at a plain type import site. Structural contracts keep the standard names `Model`, `Message`, and `OutMessage` because a completed value supplies the feature context, such as `SearchBlock.Model`. Give a helper only the other parameters it uses: a heading helper can take only `h`, a card helper can take its domain value and `h`, and a list helper can take the Model and `h`. Let TypeScript infer whether the helper returns one `Html` value or an array.
+::Snippet{name="featureViewHelpers" label="View helpers within a Block"}
 
-::Snippet{name="featureViewHelpers" label="View helpers within a feature"}
+A helper shared across Blocks takes a generic `ParentMessage` and the caller's `HtmlBuilder<ParentMessage>`. Both a root view and a child view can call this heading helper with their own `h`; TypeScript infers the Message type at each call:
 
-A rendering helper shared across Compositions takes a generic `ParentMessage` and the caller's `HtmlBuilder<ParentMessage>`. Both a root view and a child view can call this heading helper with their own `h`; TypeScript infers the Message type at each call:
+::Snippet{name="viewSharedHelper" label="Sharing a view helper across Blocks"}
 
-::Snippet{name="viewSharedHelper" label="Sharing a view helper across Compositions"}
+A shared helper that spreads a child's Mount-bearing attributes needs a builder that allows those Mounts. This helper builds the view input for a `@foldkit/ui` Dialog. Its `dialog` attributes carry the Dialog's Mounts, so the helper's builder declares them with `Mount.RequirementsOf`:
 
-The heading uses only ordinary elements and attributes. Keep helpers tied to one feature on that Composition's `FeatureViewBuilder`.
+::Snippet{name="viewSharedDialog" label="A shared Dialog view input"}
 
-For a shared helper that forwards Mount-bearing child Attributes, let the caller render those Attributes through a typed callback. This Dialog helper uses a generic builder for its ordinary content and accepts `renderDialog` for the native element carrying the Dialog Mount:
+Each caller holds its own Dialog instance and passes its own `h`:
 
-::Snippet{name="viewSharedDialog" label="Shared Dialog content and renderer contract"}
+::Snippet{name="viewSharedDialogCaller" label="Rendering a Dialog with a shared view input"}
 
-Each caller registers its own Dialog Binding and supplies the renderer from its inferred view builder:
+The `Cancel` button's attributes come from the Dialog, so its click goes to the Dialog. The `Confirm` button's `OnClick` is built with the caller's `h`, so `ClickedConfirmDeletion` goes to DeleteIssue.
 
-::Snippet{name="viewSharedDialogCaller" label="Rendering Dialog Attributes with the owning builder"}
-
-The callback keeps the caller's scoped Binding capability. Omitting `DialogBinding` from this Composition makes both the child embedding and the native Attributes fail their checks. Annotating a whole shared builder with a raw Dialog Mount requirement does not describe that capability; keep the native renderer at the owning view instead.
+Thread `h` through view functions and render callbacks. Do not store a builder in module state; its dispatch belongs to the render that supplied it.
 
 ### Inert HTML
 

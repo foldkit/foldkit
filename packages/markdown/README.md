@@ -111,68 +111,48 @@ import { islandAttributes } from './src/islands'
 markdown({ islands: islandAttributes })
 ```
 
-`islandsFor` pairs the same definitions with typed views: attributes arrive decoded through each island's schema, and the record must cover every declared name. State stays in your Model; the markdown only decides placement. The third argument is the zero-based occurrence of that island name in the document, for identifiers that must be unique per instance, like an `h.block` slotId:
+`islandsFor` pairs the same definitions with typed views: attributes arrive decoded through each island's schema, and the record must cover every declared name. State stays in your Model; the markdown only decides placement. The third argument is the zero-based occurrence of that island name in the document, for identifiers that must be unique per occurrence, like an element id. Here a `Counter` child Block instance lives in the Model and renders inside the island:
 
 ```typescript
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
-import type { Html } from 'foldkit/html'
-import { defineMessageUnion } from 'foldkit/message'
 
 import * as Markdown from '@foldkit/markdown'
 
-import * as Counter from './counter'
+import postRaw from './content/post.md'
+import { Counter } from './counter'
 import { islandAttributes } from './islands'
 
-const Model = Schema.Struct({ counter: Counter.Model })
+const post = Markdown.decodeDocument(postRaw)
+
+const Model = Schema.Struct({ counter: Counter })
 type Model = typeof Model.Type
 
-const Message = defineMessageUnion({
-  GotCounterMessage: { message: Counter.Message },
-})
-type Message = typeof Message.Type
-
-export const ApplicationDefinition = Block.makeDefinition('Application', {
+export class Application extends Block<Application>()('Application', {
   Model,
-  Message,
-})
+}) {}
 
-const CounterBinding = ApplicationDefinition.makeBinding(Counter.block, {
-  field: 'counter',
-  parentMessage: Message.GotCounterMessage,
-})
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    const counter = yield* new Counter('counter')
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition({
-  bindings: [CounterBinding],
-})
-type ApplicationViewBuilder = Block.ViewBuilderFor<
-  typeof ApplicationComposition
->
-
-const postView = (
-  model: Model,
-  post: Markdown.MarkdownDocument,
-  h: ApplicationViewBuilder,
-): Html =>
-  Markdown.view(post, {
-    islands: Markdown.islandsFor(islandAttributes, {
-      Counter: ({ label }, _content, occurrenceIndex) =>
-        h.div(
-          [],
-          [
-            h.span([], [label ?? 'Counter']),
-            h.block(
-              counter.embedView({
-                slotId: `counter-${occurrenceIndex}`,
-                model: model.counter,
-              }),
-            ),
-          ],
-        ),
-      Note: (_attributes, content) =>
-        h.aside([h.Class('rounded border p-4')], content),
-    }),
-  })
+    return {
+      model: { counter },
+      view: (model, h) =>
+        Markdown.view(post, {
+          islands: Markdown.islandsFor(islandAttributes, {
+            Counter: ({ label }, _content, occurrenceIndex) =>
+              h.div(
+                [h.Id(`counter-${occurrenceIndex}`)],
+                [h.span([], [label ?? 'Counter']), model.counter.view()],
+              ),
+            Note: (_attributes, content) =>
+              h.aside([h.Class('rounded border p-4')], content),
+          }),
+        }),
+    }
+  }),
+)
 ```
 
 Attribute values are strings on the wire, so transforming field schemas decode past them: `Schema.NumberFromString` turns `::Chart{height="240"}` into `height: number`. A plain `islands` record of untyped views (`Readonly<Record<string, IslandView>>`) also works when you want to skip the schemas.

@@ -120,7 +120,7 @@ const demoCodePlugin = (
 const COUNTER_DEMO_CODE_ID = 'virtual:counter-demo-code'
 
 const DEMO_IMPORTS = `import { Effect, Schema } from 'effect'
-import { Command, Update } from 'foldkit'
+import { Block, Command } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'`
 
@@ -145,45 +145,55 @@ type Message = typeof Message.Type
 
 // COMMAND
 
-const DelayReset = Command.define(
-  'DelayReset',
-  {
-    args: { seconds: Schema.Number },
-    messages: [Message.CompletedDelayReset],
-    handler: function* () {
-      return ({ seconds }) =>
-        Effect.sleep(\`\${seconds} seconds\`).pipe(
-          Effect.as(Message.CompletedDelayReset()),
-        )
-    },
-  },
-)
+const DelayReset = Command.define('DelayReset', {
+  args: { seconds: Schema.Number },
+  messages: [Message.CompletedDelayReset],
+})
 
-const EffectsLayer = DelayReset.layer
+// BLOCK
 
-// UPDATE
+class Counter extends Block<Counter>()('Counter', {
+  Model,
+  Message,
+  Command: [DelayReset],
+}) {}
 
-const update = Update.define((model: Model, message: Message) =>
-  Message.match(message, {
-    ClickedIncrement: () => ({
-      model: modifyFields(model, { count: count => count + 1 }),
-    }),
-    ChangedResetDuration: ({ seconds }) => ({
-      model: modifyFields(model, { resetDuration: () => seconds }),
-    }),
-    ClickedResetAfterDelay: () => ({
-      model: modifyFields(model, { isResetting: () => true }),
-      commands: [DelayReset({ seconds: model.resetDuration })],
-    }),
-    CompletedDelayReset: () => ({
-      model: modifyFields(model, { count: () => 0, isResetting: () => false }),
-    }),
+const CounterLive = Counter.make(
+  Effect.fn(function* () {
+    return {
+      model: { count: 0, isResetting: false, resetDuration: 2 },
+
+      update: {
+        ClickedIncrement: model => ({
+          model: modifyFields(model, { count: count => count + 1 }),
+        }),
+        ChangedResetDuration: (model, { seconds }) => ({
+          model: modifyFields(model, { resetDuration: () => seconds }),
+        }),
+        ClickedResetAfterDelay: model => ({
+          model: modifyFields(model, { isResetting: () => true }),
+          commands: [DelayReset({ seconds: model.resetDuration })],
+        }),
+        CompletedDelayReset: model => ({
+          model: modifyFields(model, { count: () => 0, isResetting: () => false }),
+        }),
+      },
+
+      commands: {
+        DelayReset: ({ seconds }) =>
+          Effect.sleep(\`\${seconds} seconds\`).pipe(
+            Effect.as(Message.CompletedDelayReset()),
+          ),
+      },
+    }
   }),
 )`
 
 const COUNTER_PHASE_REGIONS: PhaseRegions = {
   IncrementMessage: [{ from: '  ClickedIncrement: {},' }],
-  IncrementUpdate: [{ from: '    ClickedIncrement: () => ({', to: '    }),' }],
+  IncrementUpdate: [
+    { from: '        ClickedIncrement: model => ({', to: '        }),' },
+  ],
   IncrementModel: [
     {
       from: 'const Model = Schema.Struct({',
@@ -196,21 +206,26 @@ const COUNTER_PHASE_REGIONS: PhaseRegions = {
     },
   ],
   DurationUpdate: [
-    { from: '    ChangedResetDuration: ({ seconds }) => ({', to: '    }),' },
+    {
+      from: '        ChangedResetDuration: (model, { seconds }) => ({',
+      to: '        }),',
+    },
   ],
   DurationModel: [{ from: '  resetDuration: Schema.Number,' }],
   ResetMessage: [{ from: '  ClickedResetAfterDelay: {},' }],
   ResetUpdate: [
-    { from: '    ClickedResetAfterDelay: () => ({', to: '    }),' },
+    { from: '        ClickedResetAfterDelay: model => ({', to: '        }),' },
   ],
   ResetCommand: [
-    { from: 'const DelayReset = Command.define(', to: ')' },
-    { from: 'const EffectsLayer = DelayReset.layer' },
-    { from: '      commands: [DelayReset({ seconds: model.resetDuration })],' },
+    { from: "const DelayReset = Command.define('DelayReset', {", to: '})' },
+    {
+      from: '          commands: [DelayReset({ seconds: model.resetDuration })],',
+    },
+    { from: '        DelayReset: ({ seconds }) =>', to: '          ),' },
   ],
   ResetCommandMessage: [{ from: '  CompletedDelayReset: {},' }],
   ResetCommandUpdate: [
-    { from: '    CompletedDelayReset: () => ({', to: '    }),' },
+    { from: '        CompletedDelayReset: model => ({', to: '        }),' },
   ],
   ResetModel: [
     {
@@ -232,8 +247,8 @@ export const counterDemoCodePlugin = (): Plugin =>
 
 const NOTE_PLAYER_DEMO_CODE_ID = 'virtual:note-player-demo-code'
 
-const NOTE_PLAYER_DEMO_IMPORTS = `import { Array, Effect, Layer, Option, Schema } from 'effect'
-import { Command, ManagedResource, Update } from 'foldkit'
+const NOTE_PLAYER_DEMO_IMPORTS = `import { Array, Effect, Schema } from 'effect'
+import { Block, Command } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'`
@@ -263,16 +278,20 @@ const Message = defineMessageUnion({
   ClickedPlay: {},
   ClickedPause: {},
   CompletedPlayNote: { noteIndex: Schema.Number },
-  SucceededAcquireAudioContext: {},
-  FailedAcquireAudioContext: {},
-  ReleasedAudioContext: {},
 })
 type Message = typeof Message.Type
 type CompletedPlayNote = typeof Message.CompletedPlayNote.Type
 
+// COMMAND
+
+const PlayNote = Command.define('PlayNote', {
+  args: { note: Note, duration: Schema.Number, noteIndex: Schema.Number },
+  messages: [Message.CompletedPlayNote],
+})
+
 // UPDATE
 
-const playNoteAtStep = Update.defineStep((model: Model, noteIndex: number) => ({
+const playNoteAtStep = (model: Model, noteIndex: number) => ({
   model: modifyFields(model, {
     playbackState: () => PlaybackState.Playing({ currentNoteIndex: noteIndex }),
   }),
@@ -283,85 +302,68 @@ const playNoteAtStep = Update.defineStep((model: Model, noteIndex: number) => ({
       noteIndex,
     }),
   ],
-}))
+})
 
-const update = Update.define((model: Model, message: Message) =>
-  Message.match(message, {
-    ClickedPlay: () =>
-      PlaybackState.match(model.playbackState, {
-        Idle: () => playNoteAtStep(model, 0),
-        Paused: ({ currentNoteIndex }) => playNoteAtStep(model, currentNoteIndex),
-        Playing: () => ({ model }),
-      }),
-    ClickedPause: () =>
-      PlaybackState.match(model.playbackState, {
-        Playing: ({ currentNoteIndex }) => ({
-          model: modifyFields(model, {
-            playbackState: () => PlaybackState.Paused({ currentNoteIndex }),
-          }),
-        }),
-        Idle: () => ({ model }),
-        Paused: () => ({ model }),
-      }),
-    CompletedPlayNote: ({ noteIndex }) => {
-      const { playbackState, noteSequence } = model
-      const nextCurrentNoteIndex = noteIndex + 1
+// BLOCK
 
-      if (playbackState._tag !== 'Playing') {
-        return { model }
-      } else if (nextCurrentNoteIndex >= noteSequence.length) {
-        return { model: modifyFields(model, { playbackState: () => PlaybackState.Idle() }) }
-      } else {
-        return playNoteAtStep(model, nextCurrentNoteIndex)
-      }
-    },
-    SucceededAcquireAudioContext: () => ({ model }),
-    FailedAcquireAudioContext: () => ({ model }),
-    ReleasedAudioContext: () => ({ model }),
-  }),
-)
-
-// MANAGED RESOURCE
-
-const AudioContextResource = ManagedResource.tag<AudioContext>()('AudioContext')
-
-const managedResources = ManagedResource.make<
+class NotePlayer extends Block<NotePlayer>()('NotePlayer', {
   Model,
-  Message
->()(entry => ({
-  audioContext: entry(
-    'ManageAudioContext',
-    Schema.Option(Schema.Null),
-    {
-      resource: AudioContextResource,
-      modelToMaybeRequirements: () => Option.some(null),
-      onAcquired: () => Message.SucceededAcquireAudioContext(),
-      onReleased: () => Message.ReleasedAudioContext(),
-      onAcquireError: () => Message.FailedAcquireAudioContext(),
-      handler: function* () {
-        return {
-          acquire: () => Effect.try(() => new AudioContext()),
-          release: audioContext =>
-            Effect.promise(() => audioContext.close().catch(() => undefined)),
-        }
+  Message,
+  Command: [PlayNote],
+}) {}
+
+const NotePlayerLive = NotePlayer.make(
+  Effect.fn(function* () {
+    const audioContext = yield* Effect.acquireRelease(
+      Effect.sync(() => new AudioContext()),
+      audioContext => Effect.promise(() => audioContext.close()),
+    )
+
+    return {
+      model: {
+        noteSequence: ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C'],
+        noteDuration: 0.4,
+        playbackState: PlaybackState.Idle(),
       },
-    },
-  ),
-}))
 
-// COMMAND
+      update: {
+        ClickedPlay: model =>
+          PlaybackState.match(model.playbackState, {
+            Idle: () => playNoteAtStep(model, 0),
+            Paused: ({ currentNoteIndex }) =>
+              playNoteAtStep(model, currentNoteIndex),
+            Playing: () => ({ model }),
+          }),
+        ClickedPause: model =>
+          PlaybackState.match(model.playbackState, {
+            Playing: ({ currentNoteIndex }) => ({
+              model: modifyFields(model, {
+                playbackState: () => PlaybackState.Paused({ currentNoteIndex }),
+              }),
+            }),
+            Idle: () => ({ model }),
+            Paused: () => ({ model }),
+          }),
+        CompletedPlayNote: (model, { noteIndex }) => {
+          const nextCurrentNoteIndex = noteIndex + 1
 
-const PlayNote = Command.define(
-  'PlayNote',
-  {
-    args: { note: Note, duration: Schema.Number, noteIndex: Schema.Number },
-    messages: [Message.CompletedPlayNote],
-    handler: function* () {
-      return ({ note, duration, noteIndex }) =>
-        Effect.gen(function* () {
-          const audioContext = yield* AudioContextResource.get
+          if (model.playbackState._tag !== 'Playing') {
+            return { model }
+          } else if (nextCurrentNoteIndex >= model.noteSequence.length) {
+            return {
+              model: modifyFields(model, {
+                playbackState: () => PlaybackState.Idle(),
+              }),
+            }
+          } else {
+            return playNoteAtStep(model, nextCurrentNoteIndex)
+          }
+        },
+      },
 
-          return yield* Effect.callback<CompletedPlayNote>(resume => {
+      commands: {
+        PlayNote: ({ note, duration, noteIndex }) =>
+          Effect.callback<CompletedPlayNote>(resume => {
             const oscillator = audioContext.createOscillator()
             oscillator.frequency.setValueAtTime(
               NOTE_FREQUENCIES[note],
@@ -372,29 +374,20 @@ const PlayNote = Command.define(
             oscillator.stop(audioContext.currentTime + duration)
             oscillator.onended = () =>
               resume(Effect.succeed(Message.CompletedPlayNote({ noteIndex })))
-          })
-        }).pipe(
-          Effect.catchTag('ResourceNotAvailable', () =>
-            Effect.succeed(Message.CompletedPlayNote({ noteIndex })),
-          ),
-        )
-    },
-  },
-)
-
-const EffectsLayer = Layer.mergeAll(
-  PlayNote.layer,
-  managedResources.audioContext.layer,
+          }),
+      },
+    }
+  }),
 )`
 
 const NOTE_PLAYER_PHASE_REGIONS: PhaseRegions = {
   PlayMessage: [{ from: '  ClickedPlay: {},' }],
   PauseMessage: [{ from: '  ClickedPause: {},' }],
   PlayUpdate: [
-    { from: '    ClickedPlay: () =>', to: '      }),' },
+    { from: '        ClickedPlay: model =>', to: '          }),' },
     {
-      from: 'const playNoteAtStep = Update.defineStep((model: Model, noteIndex: number) => ({',
-      to: '}))',
+      from: 'const playNoteAtStep = (model: Model, noteIndex: number) => ({',
+      to: '})',
     },
   ],
   PlayModel: [
@@ -409,10 +402,13 @@ const NOTE_PLAYER_PHASE_REGIONS: PhaseRegions = {
   ],
   NoteMessage: [{ from: '  CompletedPlayNote: { noteIndex: Schema.Number },' }],
   NoteUpdate: [
-    { from: '    CompletedPlayNote: ({ noteIndex }) => {', to: '    },' },
     {
-      from: 'const playNoteAtStep = Update.defineStep((model: Model, noteIndex: number) => ({',
-      to: '}))',
+      from: '        CompletedPlayNote: (model, { noteIndex }) => {',
+      to: '        },',
+    },
+    {
+      from: 'const playNoteAtStep = (model: Model, noteIndex: number) => ({',
+      to: '})',
     },
   ],
   NoteModel: [
@@ -426,10 +422,10 @@ const NOTE_PLAYER_PHASE_REGIONS: PhaseRegions = {
     },
   ],
   NoteCommand: [
-    { from: 'const PlayNote = Command.define(', to: ')' },
+    { from: "const PlayNote = Command.define('PlayNote', {", to: '})' },
     {
-      from: 'const EffectsLayer = Layer.mergeAll(',
-      to: ')',
+      from: '        PlayNote: ({ note, duration, noteIndex }) =>',
+      to: '          }),',
     },
   ],
 }

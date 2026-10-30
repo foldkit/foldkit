@@ -1,6 +1,6 @@
-import type { TextDirection } from 'foldkit/html'
+import type { Document, HtmlBuilder, TextDirection } from 'foldkit/html'
 
-import { ApplicationComposition } from './composition'
+type ApplicationViewBuilder = HtmlBuilder<Message>
 
 // TRANSLATION
 
@@ -21,7 +21,7 @@ const textDirection: Readonly<Record<Locale, TextDirection>> = {
   Japanese: 'Ltr',
 }
 
-const view = ApplicationComposition.makeView((model, h) => ({
+export const view = (model: Model, h: ApplicationViewBuilder): Document => ({
   title: translate(model.locale, 'PageTitle'),
   lang: languageTag[model.locale],
   dir: textDirection[model.locale],
@@ -32,4 +32,4 @@ const view = ApplicationComposition.makeView((model, h) => ({
       localePicker(model.locale, h),
     ],
   ),
-}))
+})

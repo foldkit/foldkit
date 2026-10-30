@@ -6,6 +6,8 @@
 
 Scene operates on VNodes directly. It needs no DOM, jsdom, or browser.
 
+`scene` takes the same arguments as `story`: the Block's Layer, the root's constructor args when it has any, and then the steps. The Scene starts from the Model the constructor returns and renders it before the first step.
+
 Import the steps you need from `foldkit/scene`. Use named imports when the file contains only Scene tests. If a file contains both Story and Scene tests, import the namespaces from `foldkit` so `Story.given` and `Scene.given` stay distinct.
 
 ## Locators
@@ -198,62 +200,51 @@ When update returns Commands, Scene keeps them pending until the test supplies t
 - Interactions throw if there are unresolved Commands when they try to dispatch a Message.
 - `scene` throws at the end if any Command remains unresolved.
 
-Use `Command.keepPending(Definition | instance)` when one ordinary Command is still running and the Scene must perform a later interaction or deliver a Subscription Message before its result arrives. The matcher must select one exact pending invocation. An instance can select its args and bound child occurrence.
+Use `Command.keepPending(Definition | instance)` when a Command is still running and the Scene must perform a later interaction or deliver a Message before its result arrives. The matcher must select exactly one pending Command.
 
 ::Snippet{name="testingKeepPendingCommand" label="Keep a Command pending across later events"}
 
-The kept Command remains visible to `expectHas`, `expectExact`, and every resolver. `resolveAllExact` still requires the complete pending set, and the Scene still fails at the end until the Command is resolved. The exemption applies only to Scene's boundary check for later Messages; Runtime behavior and the Command value are unchanged.
+The kept Command stays visible to `expectHas`, `expectExact`, and every resolver. `resolveAllExact` still requires the complete pending set, and the Scene fails at the end if the Command is never resolved. `keepPending` only lifts the rule that interactions throw while Commands are pending.
 
 ### Resolve and Inspect Commands
 
 ::Snippet{name="sceneCommandAssertions" label="Command assertions"}
 
-| Step                                                 | Effect                                                                                                                                                                                                                                          |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Command.argsOf(Def)(pending)`                       | Projects the exact captured args when `pending` has the Definition's source identity. It returns `Option`, leaves the pending value unchanged, and does not select among matching occurrences.                                                  |
-| `Command.resolve(Def, ResultMessage)`                | Resolves the first pending Command from the given Definition by feeding `ResultMessage` through update. For a child Block Command, pass the child’s raw result Message; resolve replays the Command’s own `mapMessages` wrapping automatically. |
-| `Command.resolveAll([Def, ResultMessage], ...)`      | Resolves a batch of pending Commands, walking cascades. Each entry resolves exactly one matching dispatch in declaration order and unmatched entries carry forward; compose with Array.makeBy for N identical responses.                        |
-| `Command.resolveAllExact([Def, ResultMessage], ...)` | Resolves a batch and throws unless every listed resolver matches within the call and no actual Commands remain unresolved. Repeated Definition entries consume repeated dispatches in declaration order.                                        |
-| `Command.expectExact(A, B)`                          | The pending Commands are exactly A and B (order-independent).                                                                                                                                                                                   |
-| `Command.expectHas(A)`                               | A is among the pending Commands (subset check).                                                                                                                                                                                                 |
-| `Command.expectNone()`                               | There are no pending Commands.                                                                                                                                                                                                                  |
-| `Command.keepPending(A)`                             | Lets later Scene Messages arrive while the one exact matching invocation remains pending. Assertions, resolvers, `resolveAllExact`, and final completeness still include it.                                                                    |
+| Step                                                 | Effect                                                                                                                                                                                                                   |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Command.argsOf(Def)(pending)`                       | Returns `Some` of the captured args when `pending` came from the Definition, and `None` otherwise. It leaves the pending Command unchanged and does not choose among several matches.                                    |
+| `Command.at(path, Def)`                              | Narrows a matcher to the Block instance at `path`: an instance id, or `[collection, key]`. Use it when sibling instances have identical pending Commands.                                                                |
+| `Command.resolve(Def, ResultMessage)`                | Resolves the pending Command from the given Definition by feeding `ResultMessage` through update. For a child Block's Command, pass the child’s own result Message; Foldkit routes it back to that instance.             |
+| `Command.resolveAll([Def, ResultMessage], ...)`      | Resolves a batch of pending Commands, walking cascades. Each entry resolves exactly one matching dispatch in declaration order and unmatched entries carry forward; compose with Array.makeBy for N identical responses. |
+| `Command.resolveAllExact([Def, ResultMessage], ...)` | Resolves a batch and throws unless every listed resolver matches within the call and no actual Commands remain unresolved. Repeated Definition entries consume repeated dispatches in declaration order.                 |
+| `Command.expectExact(A, B)`                          | The pending Commands are exactly A and B (order-independent).                                                                                                                                                            |
+| `Command.expectHas(A)`                               | A is among the pending Commands (subset check).                                                                                                                                                                          |
+| `Command.expectNone()`                               | There are no pending Commands.                                                                                                                                                                                           |
+| `Command.keepPending(A)`                             | Lets later Scene Messages arrive while the one exact matching invocation remains pending. Assertions, resolvers, `resolveAllExact`, and final completeness still include it.                                             |
 
 ### Match Command Names and Arguments
 
 Prefer `Command.expectExact` as the default. It catches bugs where an interaction produces unexpected Commands. Use `Command.expectHas` when you only care about a subset of the pending Commands.
 
-Each matcher accepts either a Command Definition or a Command instance. A Definition matches the originating declaration, including after a Binding qualifies its displayed name. An instance also checks structurally equal args, and a bound instance selects its composition path. Pass a Definition when the test only cares that this Command was dispatched; pass an instance when its args are part of what the test is verifying. `Command.expectExact(FetchWeather({ zipCode: '90210' }))` fails if the runtime dispatched `FetchWeather({ zipCode: '99999' })`, where the same call with just `FetchWeather` would pass.
+Each matcher accepts either a Command Definition or a Command instance. A Definition matches any pending Command from that declaration. An instance also checks structurally equal args. Pass a Definition when the test only cares that this Command was dispatched; pass an instance when its args are part of what the test is verifying. `Command.expectExact(FetchWeather({ zipCode: '90210' }))` fails if the runtime dispatched `FetchWeather({ zipCode: '99999' })`, where the same call with just `FetchWeather` would pass.
 
-When a Scene helper needs to read captured args before resolving a Command, use `Command.argsOf` with the original Definition. The [Story example](/testing/story#inspect-captured-command-arguments) shows the same projection over both Story and Scene simulations. Keep occurrence selection explicit; `argsOf` returns every source match when mapped across the pending list.
+When a Scene helper needs to read captured args before resolving a Command, use `Command.argsOf` with the Definition. The [Story example](/testing/story#inspect-captured-command-arguments) shows the same helper for both Story and Scene.
 
-## Navigation
+## URL Changes
 
-`Navigation.changedUrl` delivers a URL through the Scene's configured `routing.onUrlChange`. Scene applies the resulting Message through update and renders the next view. Use the same callback or canonical Message constructor that the Program uses.
+A routed root receives URL changes as Messages, through the `routing.onUrlChange` option of its Program. Scene does not run a Program, so it has no routing configuration. Deliver the URL change Message yourself with `deliver`, and pass the starting URL as the root's `{ url }` constructor arg.
 
-Inside a Scene test, import the named helpers from `foldkit/scene` and the shown Commands, `Message`, initial Model, update, and view from your search feature. The feature increments its request id when input changes; its URL-change handler returns `FetchSearch`.
+::Snippet{name="sceneNavigation" label="Delivering a URL change"}
 
-::Snippet{name="sceneNavigation" label="Search through URL-change delivery"}
+Resolving a navigation Command, such as one that pushes a URL, supplies only its completion Message. It does not change the URL or deliver `ChangedUrl`. Deliver that Message as a separate step when the test should continue through the URL change.
 
-Resolving `ReplaceSearchUrl` supplies its completion Message. It does not execute the navigation Effect or deliver a URL change. The explicit `Navigation.changedUrl` step lets the Scene continue through the routing handler and resulting fetch.
-
-### Pending work
-
-URL delivery uses the same pending-work boundary as an interaction or Subscription emission. Resolve pending Commands and Mounts and acknowledge ended Mounts first. To deliver a URL before a navigation Command completes, use `Command.keepPending` for that exact invocation. The event leaves the Command pending; resolve it afterward. Kept Commands still participate in assertions and final completeness.
-
-Navigation delivery tracks OutMessages and reconciles Mounts through the ordinary Scene machinery. It does not acknowledge an ignored interaction or change the last interaction's handled/ignored outcome.
-
-### URL resolution
-
-Relative references resolve against `http://localhost/` by default, independently of the test host. Set `routing.origin` when origin matters, for example `https://search.example:444`. An origin may have a trailing slash; it must not contain credentials, a path, a query, or a fragment.
-
-Root-relative paths, query references such as `?q=foldkit`, and fragments such as `#results` use that fixed origin root on every step. Absolute URLs retain their own origin. Scene does not remember a current URL or emulate browser history. It rejects invalid URL input and requires routing configuration before navigation steps can be used.
+`deliver` uses the same boundary as an interaction: resolve pending Commands and Mounts first, or keep one pending with `Command.keepPending`.
 
 ## Mounts
 
 Scene follows the renderer's element identity. A Mount starts when Snabbdom inserts its element. While Snabbdom patches that element in place, it keeps the Mount it was inserted with, even if `OnMount` changes or disappears; adding `OnMount` to an already-rendered element does not start a Mount. A Mount ends when its element is removed or replaced, and the test acknowledges that with `Mount.expectEnded`.
 
-This applies to Mounts declared inside `@foldkit/ui` components too. Popovers, dialogs, and other components expose their original Mount Definitions under their public `test` namespaces so a consumer test can name and resolve them.
+This applies to Mounts declared inside `@foldkit/ui` components too. Popovers, dialogs, and other components export their Mount Definitions under their `test` namespaces so a consumer test can name and resolve them.
 
 ### Mount Lifecycle Rules
 
@@ -267,60 +258,26 @@ This applies to Mounts declared inside `@foldkit/ui` components too. Popovers, d
 
 ::Snippet{name="sceneMountAssertions" label="Mount assertions"}
 
-| Step                                          | Effect                                                                                                                                                                                                                               |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Mount.resolve(Def, ResultMessage)`           | Resolves the first pending Mount from the given Definition by feeding `ResultMessage` through update. For a Mount inside a child Block, resolve replays the boundary lift automatically, so you pass the child’s raw result Message. |
-| `Mount.resolveAll([Def, ResultMessage], ...)` | Resolves a batch of pending mounts in order.                                                                                                                                                                                         |
-| `Mount.expectExact(A, B)`                     | The pending mounts are exactly A and B (order-independent, by source identity).                                                                                                                                                      |
-| `Mount.expectHas(A)`                          | A is among the pending mounts by source identity.                                                                                                                                                                                    |
-| `Mount.expectNone()`                          | There are no pending mounts.                                                                                                                                                                                                         |
-| `Mount.expectEnded(A)`                        | A's element was removed or replaced. Required for every Mount that fired before its element was removed or replaced, regardless of whether it was resolved first; otherwise the scene throws at the end.                             |
+| Step                                          | Effect                                                                                                                                                                                                                |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Mount.resolve(Def, ResultMessage)`           | Resolves the first pending Mount from the given Definition by feeding `ResultMessage` through update. For a Mount inside a child Block, pass the child’s own result Message; Foldkit routes it back to that instance. |
+| `Mount.resolveAll([Def, ResultMessage], ...)` | Resolves a batch of pending mounts in order.                                                                                                                                                                          |
+| `Mount.expectExact(A, B)`                     | The pending mounts are exactly A and B (order-independent).                                                                                                                                                           |
+| `Mount.expectHas(A)`                          | A is among the pending mounts.                                                                                                                                                                                        |
+| `Mount.expectNone()`                          | There are no pending mounts.                                                                                                                                                                                          |
+| `Mount.expectEnded(A)`                        | A's element was removed or replaced. Required for every Mount that fired before its element was removed or replaced, regardless of whether it was resolved first; otherwise the scene throws at the end.              |
 
-UI components expose their Mount Definitions as `Popover.test.AnchorPopover`, `Listbox.test.AnchorListbox`, and so on. These are the original declarations, so source-identity matching survives placement-qualified runtime names. The [testing migration cookbook](/testing#migrate-an-existing-test-suite) shows the completed Block and public test namespace together.
+UI components export their Mount Definitions as `Popover.test.AnchorPopover`, `Listbox.test.AnchorListbox`, and so on. Resolve them with the result Message from the component's class, such as `Popover.Popover.Message.CompletedAnchorPopover()`.
 
-## Subscriptions
+## Streams and Subscriptions
 
-`Subscription.emit` supplies a declared Subscription output, such as a timer tick, WebSocket frame, or global listener result. Register the complete application's Subscriptions in the `scene` config, then pass the exact entry and its raw Message to run update and render the next view. `Scene.subscriptions(ApplicationComposition, localSubscriptions?)` combines the root declarations with the registered children's placement-qualified entries without building Layers or running Streams. A completed feature Block already exposes its complete `.subscriptions` registry. A Scene with no `subscriptions` config accepts no Subscription Message.
+Scene does not run a Block's `stream` or `subscriptions`. Deliver the Message the source would produce with `deliver`, such as a timer tick or a WebSocket frame. Scene runs update and renders the next view. For a child instance's source, address the Message with `Block.deliver(Child, path, message)`.
 
-::Snippet{name="testingSubscription" label="Emitting declared Subscription Messages"}
+::Snippet{name="testingSubscription" label="Delivering a Message a Subscription produces"}
 
-Each Subscription entry's `messages` collection is its emission contract. `emit(entry, message)` accepts only a raw Message declared by that registered entry and validates its payload at runtime. An entry with `messages: []` has no Message that Scene can emit.
+`deliver` does not check whether the Subscription would be running for the current Model. A test can deliver a tick to a stopped timer, which represents a tick that was already on its way when the timer stopped. When the test needs to prove the Subscription is active, assert on the Model or the view that its `dependencies` read.
 
-For a lifted Subscription, pass the child Message. Scene replays the entry's generated delivery through every child boundary before calling the update under test. The entry argument always makes the event source explicit, including when several Subscriptions declare the same Message.
-
-`emit` supplies an output from the registered Subscription graph; it does not check whether the current Model activates the entry. This allows a test to represent an event that was already queued when its Subscription became inactive. Assert activity before emitting when the test needs to prove that the Runtime would be listening.
-
-Use `emit` for a Subscription-origin fact. If the same Message can come from a button or another DOM interaction, use that interaction when testing the DOM-origin path. The interaction verifies the handler wiring that `emit` would skip. `emit` throws while Commands, Mounts, or unacknowledged unmounts are pending.
-
-### Subscription Activity
-
-`Subscription.expectActive(entry)` and `Subscription.expectInactive(entry)` check the entry's [`when` predicate](/core/subscriptions#gating-an-entry-on-the-model), every parent lift gate, and the presence of lifted children against the current Model. Pass the registered entry or its original child entry. Select the bound entry when the same child source has multiple registrations. Entries with `messages: []` can also be inspected.
-
-The assertion checks whether the Model permits the Runtime to run the Stream. It does not build handler Layers, start the Stream, or inspect conditions inside its handler. An ungated entry whose handler returns `Stream.empty` reports active.
-
-## Managed Resources
-
-A [ManagedResource](/core/managed-resources) reports three lifecycle outcomes: acquisition succeeded, acquisition failed, or release completed. The `ManagedResource` steps feed the corresponding hook Message through update.
-
-### Match the Model's Resource State
-
-Drive the Model into the matching state before declaring an outcome. `acquire` and `failAcquire` throw unless `modelToMaybeRequirements` returns `Some`. `release` throws until it returns `None`.
-
-These steps dispatch immediately and leave nothing pending. They are optional because Scene sees update and view, not the application's ManagedResources record. A scene may end while the Model still requests a resource, just as the runtime can wait for its acquire Effect to finish. If a lifecycle step contradicts the Model, it throws immediately.
-
-### Supply Lifecycle Results
-
-Pass `acquire` exactly the arguments that `onAcquired` accepts. If `onAcquired` reads the acquired value, the test supplies it. If the hook ignores the value, the test supplies nothing.
-
-::Snippet{name="sceneManagedResourceSteps" label="ManagedResource steps"}
-
-| Step                                        | Effect                                                                              |
-| ------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `ManagedResource.acquire(entry, ...args)`   | Feeds `onAcquired(...args)` through update. The Model must request the resource.    |
-| `ManagedResource.failAcquire(entry, error)` | Feeds `onAcquireError(error)` through update. The Model must request the resource.  |
-| `ManagedResource.release(entry)`            | Feeds `onReleased()` through update. The Model must no longer request the resource. |
-
-Scene does not model a `Some` to structurally different `Some` reacquisition. At runtime, that transition releases and reacquires the resource while the Model continues to request it. There is no Scene step for that transition yet.
+Use `deliver` only for a Message whose real cause is not a user interaction. If the same Message can come from a button, test that path with `click` so the test exercises the handler wiring. `deliver` throws while Commands, Mounts, or unacknowledged unmounts are pending.
 
 ## Custom Elements
 
@@ -332,21 +289,21 @@ The target must be in the rendered tree with that event handler attached. A miss
 
 ## OutMessages
 
-When the update under test can return an OutMessage, Scene tracks every OutMessage produced by the latest update-producing step. `expectOutMessage(expected)` asserts that the step emitted exactly one. `expectOutMessages(first, second, ...rest)` asserts several in runtime order. `expectNoOutMessage()` asserts that it emitted none.
+When the Block under test declares an OutMessage, Scene tracks every OutMessage its update returned during the latest step. Make a child Block the root of its own Scene to assert on the OutMessages it reports to its parent. `expectOutMessage(expected)` asserts that the step emitted exactly one. `expectOutMessages(first, second, ...rest)` asserts several in runtime order. `expectNoOutMessage()` asserts that it emitted none.
 
 ::Snippet{name="sceneOutMessageAssertions" label="OutMessage assertions"}
 
-A single interaction can drive several updates. A click may invoke a target handler, ancestor handlers, and then a form's submit handler. Scene collects their OutMessages in that same order.
+A single interaction can drive several updates. A click may invoke a target handler, ancestor handlers, and then a form's submit handler. Scene collects their OutMessages in that same order, and `expectOutMessages` asserts the whole sequence.
 
 Scene replaces the tracked sequence after every step that drives update. A step whose updates omit `outMessage` clears the previous sequence, so `expectNoOutMessage()` describes the current transition instead of inheriting an earlier result. Assertions and other steps that do not drive update leave the sequence in place.
 
-## Blocks with ViewInputs
+## Blocks with a View Input
 
-To test a completed UI Block with render inputs, embed it through a local parent Binding and supply those inputs in the parent view. Author the parent view with `makeView.withInputs` when tests need to vary its inputs. `withViewInputs(view, defaults)` adapts that parent-owned view to Scene's `(model, h)` signature.
+A Block whose view takes an input from its parent cannot be the root of a Scene, because nothing would supply that input. Test it through a small test-only parent Block. The parent creates the child in its constructor and renders it with an input built from its own constructor args, so each test passes the input it needs as the Scene's args.
 
-::Snippet{name="sceneWithViewInputs" label="Testing an embedded Block with view inputs"}
+::Snippet{name="sceneWithViewInputs" label="Testing a Block with a view input"}
 
-Each test can override the parent view inputs. Keep the embedded Block's `toView` callback in the parent renderer so the same markup and dispatch boundary are used across cases. A feature's own tests may adapt its private authored view directly.
+Keep the child's markup in the child. When the input includes a callback such as `toView`, write it in the test parent the same way the application's parent does, so the test renders the same markup and the same Messages.
 
 ## A Complete Scene
 
@@ -354,7 +311,7 @@ Here’s a Scene test for a weather app. The user types a zip code, requests the
 
 ::Snippet{name="sceneWeatherFlow" label="Weather search Scene test"}
 
-The interactions use a label, a role, and a placeholder. The Command result stays beside the interaction that produced it.
+The interactions use a label and a role. The Command result stays beside the interaction that produced it.
 
 ## Story vs Scene
 

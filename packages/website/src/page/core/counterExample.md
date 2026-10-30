@@ -2,16 +2,18 @@
 
 ## See the Whole Loop {#overview}
 
-### Application Definitions
+### The Application Block {#application-definitions}
 
-This counter puts the core loop from [Architecture](/core/architecture) into one small application. Its Model holds the count. Its Messages record button clicks. Its update function decides the next count, and its view renders the result.
+This counter puts the core loop from [Architecture](/core/architecture) into one small application. Its Model holds the count. Its Messages record button clicks. Its update handlers decide the next count, and its view renders the result.
 
-The example uses two files. `src/application.ts` defines the root through `Block.makeDefinition('Application', ...)`, creates the named graphless `ApplicationComposition`, authors init, update, and the primary view through that Composition, then assembles `ApplicationBlock`. Each `make*` method returns a function or configured value without calling it. `src/entry.ts` passes the Block and browser container to `Program.make`, producing a passive runtime input for `Runtime.run`. Importing the application pieces in a test does not start the browser application. When a larger root extracts one of these responsibilities, split all of its standard pieces into their named files as described in [Project Organization](/patterns/project-organization#root-application-assembly).
-::Snippet{name="counter" label="Counter Application"}
+The example uses two files. `src/application.ts` declares the root Block, `Application`, as a class with its Model and Message Schemas, and implements it with `Application.make`. The constructor passed to `make` returns the starting Model, one update handler per Message, and the view. `make` returns `ApplicationLive`, a Layer. Nothing runs yet: importing the file in a test does not start the application.
+
+::Snippet{name="counter" label="Counter application"}
 
 ### Runtime Entry
 
-The entry imports `ApplicationBlock` and passes it to `Program.make` with the page container. The returned lowercase `program` is passive configuration. `Runtime.run` constructs its Layers and starts the application.
+`src/entry.ts` passes the class, its Layer, and the page container to `Program.make`. The returned `program` describes the application. `Runtime.run` builds the Layer, constructs the root instance from the starting Model, and starts the loop.
+
 ::Snippet{name="counterEntry" label="Counter entry.ts"}
 
 ### Where to Go Next

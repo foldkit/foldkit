@@ -1,23 +1,60 @@
+import { Effect, Option } from 'effect'
 import { Block } from 'foldkit'
 
-import { ApiReferenceComposition } from './composition'
-import { init } from './init'
+import { LoadApiData, loadApiData } from './command'
+import { type ApiData, ApiDataAsyncData } from './domain'
 import { Message } from './message'
-import type { Model } from './model'
-import { EffectsLayer, update } from './update'
-import { view } from './view'
+import { Model, disclosuresForApiData } from './model'
+import {
+  handleFailedLoadApiData,
+  handleSucceededLoadApiData,
+  handleToggledSignature,
+  refreshApiDataStep,
+} from './update'
+import { type ViewInputs, view } from './view'
 
-const prepare = () =>
-  ApiReferenceComposition.prepareBlock({
-    init,
-    update,
-    view,
-    operations: {
-      informRouteChanged: Message.InformedOfRouteChange,
-    },
-    EffectsLayer,
-  })
-export const ApiReferenceBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+type ApiReferenceArgs = Readonly<{
+  maybeApiData: Option.Option<ApiData>
+}>
+
+export class ApiReference extends Block<
+  ApiReference,
+  ApiReferenceArgs,
+  ViewInputs
+>()('ApiReference', {
+  Model,
+  Message,
+  Command: [LoadApiData],
+}) {}
+
+export const ApiReferenceLive = ApiReference.make(
+  Effect.fn(function* (_id, { maybeApiData }) {
+    return {
+      model: Option.match(maybeApiData, {
+        onNone: () => ({
+          apiData: ApiDataAsyncData.Loading(),
+          disclosures: {},
+        }),
+        onSome: apiData => ({
+          apiData: ApiDataAsyncData.Refreshing({ data: apiData }),
+          disclosures: disclosuresForApiData(apiData),
+        }),
+      }),
+
+      start: [LoadApiData()],
+
+      update: {
+        InformedOfRouteChange: refreshApiDataStep,
+        SucceededLoadApiData: handleSucceededLoadApiData,
+        FailedLoadApiData: handleFailedLoadApiData,
+        ToggledSignature: handleToggledSignature,
+      },
+
+      commands: {
+        LoadApiData: () => loadApiData,
+      },
+
+      view,
+    }
+  }),
+)

@@ -8,6 +8,7 @@ import {
   Redacted,
 } from 'effect'
 
+import { isInstance } from '../blocks/engine.js'
 import { extractBlockInfo } from './blockPath.js'
 import type {
   SerializedCommand,
@@ -20,6 +21,7 @@ const inspectableCache = new WeakMap<object, unknown>()
 
 const computeInspectableValue = (value: unknown): unknown =>
   Match.value(value).pipe(
+    Match.when(isInstance, instance => toInspectableValue(instance.model)),
     Match.when(Redacted.isRedacted, globalThis.String),
     Match.when(Match.instanceOf(File), file => ({
       name: file.name,
@@ -39,11 +41,12 @@ const computeInspectableValue = (value: unknown): unknown =>
   )
 
 /**
- * Convert Effect `Redacted` values to their labeled placeholder strings and
- * DOM-class instances (File, Blob, Date, URL) to plain-object
- * representations so the tree renderer's key-enumeration walk can see their
- * meaningful data, which otherwise lives on the prototype as getters and
- * is invisible to `Object.keys`. Recurses through arrays and records so
+ * Replace each Block instance with its own Model, so a Block program's Model
+ * reads as the resolved Model tree. Convert Effect `Redacted` values to their
+ * labeled placeholder strings and DOM-class instances (File, Blob, Date, URL)
+ * to plain-object representations so the tree renderer's key-enumeration
+ * walk can see their meaningful data, which otherwise lives on the prototype
+ * as getters and is invisible to `Object.keys`. Recurses through arrays and records so
  * the transform applies at every level. File is matched before Blob
  * because File extends Blob.
  *

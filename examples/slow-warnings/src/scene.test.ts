@@ -1,10 +1,9 @@
 import { click, expect, given, role, scene, text } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
-import { describe, test } from 'vitest'
 
-import type { Model } from './model'
-import { update } from './update'
-import { view } from './view'
+import { describe, it } from '@effect/vitest'
+
+import { ApplicationLive, type Model } from './application'
 
 const initialModel: Model = {
   activeWorkload: 'Idle',
@@ -15,30 +14,27 @@ const initialModel: Model = {
 }
 
 describe('view', () => {
-  test('renders all workload controls', () => {
+  it.effect('renders all workload controls', () =>
     scene(
-      { update, view },
-      given(initialModel),
+      ApplicationLive,
       expect(text('Slow Warnings Lab')).toExist(),
       expect(role('button', { name: 'Run update work' })).toExist(),
       expect(role('button', { name: 'Run view work' })).toExist(),
       expect(role('button', { name: 'Run patch work' })).toExist(),
-      expect(role('button', { name: 'Run dependency extraction' })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('clicking patch work renders patch rows', () => {
+  it.effect('clicking patch work renders patch rows', () =>
     scene(
-      { update, view },
-      given(initialModel),
+      ApplicationLive,
       click(role('button', { name: 'Run patch work' })),
       expect(text('Patch row 1')).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('clear removes recorded warnings', () => {
+  it.effect('clear removes recorded warnings', () =>
     scene(
-      { update, view },
+      ApplicationLive,
       given(
         modifyFields(initialModel, {
           warnings: () => [
@@ -56,6 +52,6 @@ describe('view', () => {
       expect(text('Update exceeded 4ms')).toExist(),
       click(role('button', { name: 'Clear' })),
       expect(text('Run a workload to record a warning.')).toExist(),
-    )
-  })
+    ),
+  )
 })

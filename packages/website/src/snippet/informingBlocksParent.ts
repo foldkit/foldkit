@@ -1,72 +1,69 @@
-import { Schema } from 'effect'
-import { Block, Update } from 'foldkit'
+import { Effect, Match, Option, Schema } from 'effect'
+import { Block } from 'foldkit'
+import type { Send } from 'foldkit/block'
 import { defineMessageUnion } from 'foldkit/message'
 import { Transition } from 'foldkit/route'
+import { modifyFields } from 'foldkit/struct'
 import { Url } from 'foldkit/url'
 
-import * as People from './informingBlocksIndex'
+import { People } from './informingBlocksChild'
 import { ApplicationRoute, urlToApplicationRoute } from './informingBlocksRoute'
 
-export const Model = Schema.Struct({
-  route: ApplicationRoute,
-  people: People.PeopleBlock.Model,
-})
-export type Model = typeof Model.Type
-
-export const Message = defineMessageUnion({
-  ChangedUrl: { url: Url },
-})
-export type Message = typeof Message.Type
-
-export const ApplicationDefinition = Block.makeDefinition('Application', {
-  Model,
-  Message,
-})
-
-const { makeFieldsStep, makeNoopStep } = ApplicationDefinition
-
-export const PeopleBinding = ApplicationDefinition.makeBinding(
-  People.PeopleBlock,
+export class Application extends Block<Application, Readonly<{ url: Url }>>()(
+  'Application',
   {
-    field: 'people',
-    init: false,
+    Model: Schema.Struct({ route: ApplicationRoute, people: People }),
+    Message: defineMessageUnion({ ChangedUrl: { url: Url } }),
   },
-)
+) {}
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition({
-  bindings: [PeopleBinding],
-})
+export const ApplicationLive = Application.make(
+  Effect.fn(function* (_id, { url }) {
+    const route = urlToApplicationRoute(url)
 
-const setRouteStep = (nextRoute: ApplicationRoute) =>
-  makeFieldsStep(() => ({ route: () => nextRoute }))
+    const initialPeopleRoute = Match.value(route).pipe(
+      Match.tag('People', peopleRoute => peopleRoute),
+      Match.orElse(() =>
+        ApplicationRoute.People({ searchText: Option.none() }),
+      ),
+    )
 
-const keepModelStep = makeNoopStep()
+    const people = yield* new People('people', { route: initialPeopleRoute })
 
-type InformPeopleRouteStep =
-  | typeof keepModelStep
-  | ReturnType<typeof PeopleBinding.informRouteChanged>
+    return {
+      model: { route, people },
 
-export const update = ApplicationComposition.makeUpdate({
-  ChangedUrl: (model, { url }) => {
-    const nextRoute = urlToApplicationRoute(url)
+      update: {
+        ChangedUrl: (model, { url: nextUrl }) => {
+          const nextRoute = urlToApplicationRoute(nextUrl)
 
-    const transition = Transition.make(model.route, nextRoute)
-    const informPeopleRouteStep =
-      Transition.matchOrElse<InformPeopleRouteStep>()(
-        transition,
-        'People',
-        {
-          Entered: peopleRoute =>
-            PeopleBinding.informRouteChanged({ route: peopleRoute }),
-          Stayed: ({ nextRoute }) =>
-            PeopleBinding.informRouteChanged({ route: nextRoute }),
+          const transition = Transition.make(model.route, nextRoute)
+          const peopleMessages = Transition.matchOrElse<ReadonlyArray<Send>>()(
+            transition,
+            'People',
+            {
+              Entered: peopleRoute => [
+                model.people.send(
+                  People.Message.InformedOfRouteChange({ route: peopleRoute }),
+                ),
+              ],
+              Stayed: ({ nextRoute: nextPeopleRoute }) => [
+                model.people.send(
+                  People.Message.InformedOfRouteChange({
+                    route: nextPeopleRoute,
+                  }),
+                ),
+              ],
+            },
+            () => [],
+          )
+
+          return {
+            model: modifyFields(model, { route: () => nextRoute }),
+            messages: peopleMessages,
+          }
         },
-        () => keepModelStep,
-      )
-
-    return Update.combineSteps(model, [
-      setRouteStep(nextRoute),
-      informPeopleRouteStep,
-    ])
-  },
-})
+      },
+    }
+  }),
+)

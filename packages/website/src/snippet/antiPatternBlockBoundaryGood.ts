@@ -1,23 +1,31 @@
+// ✅ Good: the parent sends a request Settings declares for it.
+
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
 
-// ✅ Good: the child declares an operation that runs its update.
+import { Settings } from './blockSettingsContract'
 
-const SettingsComposition = SettingsDefinition.makeComposition()
-const requestThemeChange = Message.RequestedThemeChange
+export class Account extends Block<Account>()('Account', {
+  Model: Schema.Struct({ settings: Settings }),
+  Message: defineMessageUnion({ ClickedResetSettings: {} }),
+}) {}
 
-const prepare = () =>
-  SettingsComposition.prepareBlock({
-    init,
-    update,
-    operations: { requestThemeChange },
-    EffectsLayer,
-  })
-export const block: Block.FromAssemblyWithoutViewOrOutMessage<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const AccountLive = Account.make(
+  Effect.fn(function* () {
+    const settings = yield* new Settings('settings', {
+      initialTheme: 'System',
+    })
 
-const update = ParentComposition.makeUpdate({
-  ClickedResetSettings: model =>
-    SettingsBinding.requestThemeChange({ theme: 'Light' })(model),
-})
+    return {
+      model: { settings },
+
+      update: {
+        ClickedResetSettings: model => ({
+          model,
+          messages: [model.settings.send(Settings.Message.RequestedReset())],
+        }),
+      },
+    }
+  }),
+)

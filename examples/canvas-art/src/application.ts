@@ -1,7 +1,6 @@
 import {
   Array,
   Effect,
-  Layer,
   Number,
   Option,
   Random,
@@ -9,8 +8,8 @@ import {
   Stream,
   pipe,
 } from 'effect'
-import { Block, Canvas, Dom } from 'foldkit'
-import { Html } from 'foldkit/html'
+import { Block, Canvas, Command, Dom } from 'foldkit'
+import type { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -70,53 +69,39 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
-  Model,
-  Message,
-})
-
-const { makeFieldsStep, makeCommandsStep } = ApplicationDefinition
-
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
-type ApplicationViewBuilder = Block.ViewBuilderFor<
-  typeof ApplicationComposition
->
-
-export const init = ApplicationComposition.makeInit(() => ({
-  model: Model.make({ balls: [], nextId: 0, isRunning: true }),
-}))
-
-export const GenerateBall = ApplicationDefinition.makeCommand('GenerateBall', {
+export const GenerateBall = Command.define('GenerateBall', {
   args: { x: Schema.Number, y: Schema.Number },
   messages: [Message.CompletedGenerateBall],
-  handler: function* () {
-    return ({ x, y }) =>
-      Effect.gen(function* () {
-        const angle = yield* Random.nextBetween(0, FULL_CIRCLE_RADIANS)
-        const speed = yield* Random.nextBetween(BALL_SPEED_MIN, BALL_SPEED_MAX)
-        const radius = yield* Random.nextBetween(
-          BALL_RADIUS_MIN,
-          BALL_RADIUS_MAX,
-        )
-        const colorIndex = yield* Random.nextIntBetween(0, PALETTE.length, {
-          halfOpen: true,
-        })
-        const color = pipe(
-          PALETTE,
-          Array.get(colorIndex),
-          Option.getOrElse(() => FALLBACK_COLOR),
-        )
-        return Message.CompletedGenerateBall({
-          x,
-          y,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
-          radius,
-          color,
-        })
-      })
-  },
 })
+
+export class Application extends Block<Application>()('Application', {
+  Model,
+  Message,
+  Command: [GenerateBall],
+}) {}
+
+const generateBall = ({ x, y }: Readonly<{ x: number; y: number }>) =>
+  Effect.gen(function* () {
+    const angle = yield* Random.nextBetween(0, FULL_CIRCLE_RADIANS)
+    const speed = yield* Random.nextBetween(BALL_SPEED_MIN, BALL_SPEED_MAX)
+    const radius = yield* Random.nextBetween(BALL_RADIUS_MIN, BALL_RADIUS_MAX)
+    const colorIndex = yield* Random.nextIntBetween(0, PALETTE.length, {
+      halfOpen: true,
+    })
+    const color = pipe(
+      PALETTE,
+      Array.get(colorIndex),
+      Option.getOrElse(() => FALLBACK_COLOR),
+    )
+    return Message.CompletedGenerateBall({
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      radius,
+      color,
+    })
+  })
 
 const advanceBall =
   (deltaSeconds: number) =>
@@ -136,63 +121,6 @@ const advanceBall =
       vy: vy => (bouncedY ? -vy : vy),
     })
   }
-
-export const update = ApplicationComposition.makeUpdate({
-  TickedFrame: makeFieldsStep.fromMessage(({ deltaTime }) => ({
-    balls: Array.map(advanceBall(deltaTime / MS_PER_SECOND)),
-  })),
-
-  ClickedCanvas: makeCommandsStep.fromMessage(({ x, y }) => [
-    GenerateBall({ x, y }),
-  ]),
-
-  CompletedGenerateBall: makeFieldsStep(
-    (model, { x, y, vx, vy, radius, color }) => ({
-      balls: Array.append({
-        id: model.nextId,
-        x,
-        y,
-        vx,
-        vy,
-        radius,
-        color,
-      }),
-      nextId: Number.increment,
-    }),
-  ),
-
-  ClickedClear: makeFieldsStep(() => ({
-    balls: () => [],
-  })),
-
-  ClickedTogglePlay: makeFieldsStep(() => ({
-    isRunning: running => !running,
-  })),
-})
-
-export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
-  animationFrameTicks: entry(
-    'AnimationFrameTicks',
-    { isActive: Schema.Boolean },
-    {
-      messages: [Message.TickedFrame],
-      modelToDependencies: model => ({ isActive: model.isRunning }),
-      handler: function* () {
-        return ({ isActive }) =>
-          isActive
-            ? Dom.animationFrameTicks.pipe(
-                Stream.map(deltaTime => Message.TickedFrame({ deltaTime })),
-              )
-            : Stream.empty
-      },
-    },
-  ),
-}))
-
-export const EffectsLayer = Layer.mergeAll(
-  GenerateBall.layer,
-  subscriptions.layer,
-)
 
 const backgroundShape = Canvas.Rect({
   x: 0,
@@ -215,7 +143,7 @@ const sceneShapes = (model: Model): ReadonlyArray<Canvas.Shape> => [
   ...Array.map(model.balls, ballShape),
 ]
 
-const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
+const controlsView = (model: Model, h: HtmlBuilder<Message>): Html =>
   h.div(
     [h.Class('flex gap-3 mt-4')],
     [
@@ -264,7 +192,7 @@ const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
     ],
   )
 
-export const view = ApplicationComposition.makeView((model, h) => ({
+const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: `Canvas Art (${model.balls.length} balls)`,
   body: h.div(
     [
@@ -291,17 +219,66 @@ export const view = ApplicationComposition.makeView((model, h) => ({
       controlsView(model, h),
     ],
   ),
-}))
+})
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    subscriptions,
-    EffectsLayer,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    return {
+      model: { balls: [], nextId: 0, isRunning: true },
+
+      update: {
+        TickedFrame: (model, { deltaTime }) => ({
+          model: modifyFields(model, {
+            balls: Array.map(advanceBall(deltaTime / MS_PER_SECOND)),
+          }),
+        }),
+
+        ClickedCanvas: (model, { x, y }) => ({
+          model,
+          commands: [GenerateBall({ x, y })],
+        }),
+
+        CompletedGenerateBall: (model, { x, y, vx, vy, radius, color }) => ({
+          model: modifyFields(model, {
+            balls: Array.append({
+              id: model.nextId,
+              x,
+              y,
+              vx,
+              vy,
+              radius,
+              color,
+            }),
+            nextId: Number.increment,
+          }),
+        }),
+
+        ClickedClear: model => ({
+          model: modifyFields(model, { balls: () => [] }),
+        }),
+
+        ClickedTogglePlay: model => ({
+          model: modifyFields(model, { isRunning: running => !running }),
+        }),
+      },
+
+      commands: {
+        GenerateBall: generateBall,
+      },
+
+      subscriptions: {
+        animationFrameTicks: {
+          dependencies: model => model.isRunning,
+          stream: (isActive: boolean) =>
+            isActive
+              ? Dom.animationFrameTicks.pipe(
+                  Stream.map(deltaTime => Message.TickedFrame({ deltaTime })),
+                )
+              : Stream.empty,
+        },
+      },
+
+      view,
+    }
+  }),
+)

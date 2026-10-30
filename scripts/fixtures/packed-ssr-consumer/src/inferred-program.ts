@@ -1,67 +1,57 @@
-import { Layer, Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block, Program } from 'foldkit'
-import type { Document } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Model = Schema.Struct({ count: Schema.Number })
 type Model = typeof Model.Type
 const Message = defineMessageUnion({ Ticked: {} })
 type Message = typeof Message.Type
-const ApplicationComposition = Block.makeDefinition('Application', {
+
+class Counter extends Block<Counter>()('Counter', {
   Model,
   Message,
-}).makeComposition()
+}) {}
 
-const init = ApplicationComposition.makeInit(() => ({
-  model: Model.make({ count: 0 }),
-}))
-const update = ApplicationComposition.makeUpdate({
-  Ticked: model => ({ model }),
-})
-const elementView = ApplicationComposition.makeView((model, h) =>
-  h.div([], [String(model.count)]),
-)
-const applicationView = ApplicationComposition.makeView(
-  (model, h): Document => ({
-    title: `Count ${model.count}`,
-    body: h.div([], [String(model.count)]),
+const CounterLive = Counter.make(
+  Effect.fn(function* () {
+    return {
+      model: Model.make({ count: 0 }),
+      update: {
+        Ticked: model => ({ model }),
+      },
+      view: (model, h) => h.div([], [String(model.count)]),
+    }
   }),
 )
 
-const EffectsLayer = Layer.empty
+class Application extends Block<Application>()('Application', {
+  Model,
+  Message,
+}) {}
 
-const prepareElement = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    EffectsLayer,
-    view: elementView,
-  })
-const ElementBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepareElement
-> = Block.assemble(prepareElement)
-
-const prepareApplication = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    EffectsLayer,
-    view: applicationView,
-  })
-const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepareApplication
-> = Block.assemble(prepareApplication)
+const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    return {
+      model: Model.make({ count: 0 }),
+      update: {
+        Ticked: model => ({ model }),
+      },
+      view: (model, h) => ({
+        title: `Count ${model.count}`,
+        body: h.div([], [String(model.count)]),
+      }),
+    }
+  }),
+)
 
 export const makeInferredElement = (container: HTMLElement) =>
-  Program.makeElement({
-    block: ElementBlock,
+  Program.makeElement(Counter, {
+    layer: CounterLive,
     container,
   })
 
 export const makeInferredApplication = (container: HTMLElement | null) =>
-  Program.make({
-    block: ApplicationBlock,
+  Program.make(Application, {
+    layer: ApplicationLive,
     container,
   })

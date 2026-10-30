@@ -2,6 +2,4 @@
 'create-foldkit-app': patch
 ---
 
-Name transition Step values with a descriptive `Step` suffix, such as `refreshStep`. Apply the same naming to purposeful functions that construct or select those Steps. Keep ordinary Message handlers, OutMessage folds, operation keys, helper factories and applied results distinct.
-
-The scaffold's Foldkit guidance now documents this convention alongside the feature-local Step helper imports. Current examples and active documentation use it consistently.
+Document update handler naming in the scaffold's `FOLDKIT.md`. Extract a substantial single-Message handler into a function named `handle<MessageTag>` and pass it as the update record value. Name a reusable Model-first transition with a descriptive `Step` suffix, such as `refreshStep`, and sequence pure Steps with `Update.combineSteps`.

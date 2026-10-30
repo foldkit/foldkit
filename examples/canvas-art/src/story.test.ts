@@ -1,8 +1,14 @@
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
-import { describe, expect, test } from 'vitest'
 
-import { GenerateBall, Message, type Model, update } from './application'
+import { describe, expect, it } from '@effect/vitest'
+
+import {
+  ApplicationLive,
+  GenerateBall,
+  Message,
+  type Model,
+} from './application'
 
 const emptyModel: Model = {
   balls: [],
@@ -20,125 +26,132 @@ const populatedModel: Model = modifyFields(emptyModel, {
 
 describe('update', () => {
   describe('spawning balls', () => {
-    test('ClickedCanvas fires GenerateBall with the click coordinates', () => {
-      story(
-        update,
-        given(emptyModel),
-        message(Message.ClickedCanvas({ x: 150, y: 200 })),
-        Command.expectHas(GenerateBall),
-        Command.resolve(
-          GenerateBall,
-          Message.CompletedGenerateBall({
-            x: 150,
-            y: 200,
-            vx: 10,
-            vy: -10,
-            radius: 12,
-            color: '#ff2d55',
+    it.effect(
+      'ClickedCanvas fires GenerateBall with the click coordinates',
+      () =>
+        story(
+          ApplicationLive,
+          given(emptyModel),
+          message(Message.ClickedCanvas({ x: 150, y: 200 })),
+          Command.expectHas(GenerateBall),
+          Command.resolve(
+            GenerateBall,
+            Message.CompletedGenerateBall({
+              x: 150,
+              y: 200,
+              vx: 10,
+              vy: -10,
+              radius: 12,
+              color: '#ff2d55',
+            }),
+          ),
+          model(model => {
+            expect(model.balls).toHaveLength(1)
+            expect(model.balls[0]).toMatchObject({
+              id: 0,
+              x: 150,
+              y: 200,
+              radius: 12,
+              color: '#ff2d55',
+            })
+            expect(model.nextId).toBe(1)
           }),
         ),
-        model(model => {
-          expect(model.balls).toHaveLength(1)
-          expect(model.balls[0]).toMatchObject({
-            id: 0,
-            x: 150,
-            y: 200,
-            radius: 12,
-            color: '#ff2d55',
-          })
-          expect(model.nextId).toBe(1)
-        }),
-      )
-    })
+    )
 
-    test('CompletedGenerateBall increments nextId for each ball added', () => {
-      story(
-        update,
-        given(emptyModel),
-        message(
-          Message.CompletedGenerateBall({
-            x: 10,
-            y: 10,
-            vx: 0,
-            vy: 0,
-            radius: 8,
-            color: '#fff',
+    it.effect(
+      'CompletedGenerateBall increments nextId for each ball added',
+      () =>
+        story(
+          ApplicationLive,
+          given(emptyModel),
+          message(
+            Message.CompletedGenerateBall({
+              x: 10,
+              y: 10,
+              vx: 0,
+              vy: 0,
+              radius: 8,
+              color: '#fff',
+            }),
+          ),
+          message(
+            Message.CompletedGenerateBall({
+              x: 20,
+              y: 20,
+              vx: 0,
+              vy: 0,
+              radius: 8,
+              color: '#fff',
+            }),
+          ),
+          model(model => {
+            expect(model.balls.map(({ id }) => id)).toEqual([0, 1])
+            expect(model.nextId).toBe(2)
           }),
         ),
-        message(
-          Message.CompletedGenerateBall({
-            x: 20,
-            y: 20,
-            vx: 0,
-            vy: 0,
-            radius: 8,
-            color: '#fff',
-          }),
-        ),
-        model(model => {
-          expect(model.balls.map(({ id }) => id)).toEqual([0, 1])
-          expect(model.nextId).toBe(2)
-        }),
-      )
-    })
+    )
   })
 
   describe('TickedFrame', () => {
-    test('advances ball positions based on velocity and delta time', () => {
+    it.effect('advances ball positions based on velocity and delta time', () =>
       story(
-        update,
+        ApplicationLive,
         given(populatedModel),
         message(Message.TickedFrame({ deltaTime: 1000 })),
         model(model => {
           expect(model.balls[0]?.x).toBe(150)
           expect(model.balls[0]?.y).toBe(150)
         }),
-      )
-    })
+      ),
+    )
 
-    test('bounces a ball off the canvas edges, flipping its velocity', () => {
-      const movingRightModel: Model = modifyFields(emptyModel, {
-        balls: () => [
-          {
-            id: 0,
-            x: 595,
-            y: 200,
-            vx: 100,
-            vy: 0,
-            radius: 10,
-            color: '#fff',
-          },
-        ],
-        nextId: () => 1,
-      })
+    it.effect(
+      'bounces a ball off the canvas edges, flipping its velocity',
+      () => {
+        const movingRightModel: Model = modifyFields(emptyModel, {
+          balls: () => [
+            {
+              id: 0,
+              x: 595,
+              y: 200,
+              vx: 100,
+              vy: 0,
+              radius: 10,
+              color: '#fff',
+            },
+          ],
+          nextId: () => 1,
+        })
 
-      story(
-        update,
-        given(movingRightModel),
-        message(Message.TickedFrame({ deltaTime: 1000 })),
-        model(model => {
-          expect(model.balls[0]?.vx).toBe(-100)
-          expect(model.balls[0]?.x).toBe(590)
-        }),
-      )
-    })
+        return story(
+          ApplicationLive,
+          given(movingRightModel),
+          message(Message.TickedFrame({ deltaTime: 1000 })),
+          model(model => {
+            expect(model.balls[0]?.vx).toBe(-100)
+            expect(model.balls[0]?.x).toBe(590)
+          }),
+        )
+      },
+    )
   })
 
   describe('controls', () => {
-    test('ClickedClear empties the balls list', () => {
+    it.effect('ClickedClear empties the balls list', () =>
       story(
-        update,
+        ApplicationLive,
         given(populatedModel),
         message(Message.ClickedClear()),
         model(model => {
           expect(model.balls).toHaveLength(0)
         }),
-      )
-    })
+      ),
+    )
 
-    test('ClickedTogglePlay flips the isRunning flag', () => {
+    it.effect('ClickedTogglePlay flips the isRunning flag', () =>
       story(
-        update,
+        ApplicationLive,
         given(emptyModel),
         message(Message.ClickedTogglePlay()),
         model(model => {
@@ -148,7 +161,7 @@ describe('update', () => {
         model(model => {
           expect(model.isRunning).toBe(true)
         }),
-      )
-    })
+      ),
+    )
   })
 })

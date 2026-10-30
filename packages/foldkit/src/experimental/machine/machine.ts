@@ -764,6 +764,14 @@ export type FoldConfig<
 }> &
   FoldContextField<ParentModel, Context>
 
+/** The dual function {@link fold} returns. Data-first runs the transition
+ * now (`fold(model, message)` returns an `Update.Return`); data-last builds a
+ * Step for `Update.combineSteps` (`fold(message)`). */
+export type Fold<ParentModel, Message, R = never> = {
+  (model: ParentModel, message: Message): Update.Return<ParentModel, Message, R>
+  (message: Message): Update.Step<ParentModel, Message, R>
+}
+
 type AnyFoldConfig = Readonly<{
   machine: any
   read: (model: any) => Option.Option<any>
@@ -820,7 +828,7 @@ export const fold: {
     Context = NoMachineContext,
   >(
     config: FoldConfig<ParentModel, State, Message, R, Context>,
-  ): Update.Fold<ParentModel, Message, Message, R>
+  ): Fold<ParentModel, Message, R>
 } = (config: AnyFoldConfig) =>
   Function.dual(2, (model: any, message: any) => {
     const maybeState = config.read(model)

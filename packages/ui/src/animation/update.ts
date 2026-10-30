@@ -1,72 +1,32 @@
-import { Effect, Layer, Match, Number, Schema } from 'effect'
-import * as Block from 'foldkit/block'
-import * as Dom from 'foldkit/dom'
-import * as Render from 'foldkit/render'
+import { Match, Number, Schema } from 'effect'
+import * as Command from 'foldkit/command'
 import { modifyFields } from 'foldkit/struct'
 
-import { idSelector } from '../internal/selectors.js'
-import {
-  type InitConfig,
-  Message,
-  Model,
-  OutMessage,
-  makeInitialModel,
-} from './schema.js'
+import { Message, type Model, OutMessage } from './schema.js'
 
-/** Authored Animation Block definition shared by its implementation modules. */
-export const AnimationDefinition = Block.makeDefinition('Animation', {
-  Model,
-  Message,
-  OutMessage,
-})
-
-export const AnimationComposition = AnimationDefinition.makeComposition()
-
-/** Creates the initial Animation Model and Commands. Defaults to hidden. */
-export const init = AnimationComposition.makeInit((config: InitConfig) => ({
-  model: makeInitialModel(config),
-}))
-
-// UPDATE
-
-const elementSelector = (id: string): string => idSelector(id)
+// COMMAND
 
 /** Waits for paint via double-rAF, then reports the transition generation that
  *  scheduled the wait. */
-export const WaitForPaint = AnimationDefinition.makeCommand('WaitForPaint', {
+export const WaitForPaint = Command.define('WaitForPaint', {
   args: { generation: Schema.Number },
   messages: [Message.CompletedWaitForPaint],
-  handler: function* () {
-    return ({ generation }) =>
-      Render.afterPaint.pipe(
-        Effect.as(Message.CompletedWaitForPaint({ generation })),
-      )
-  },
 })
 
 /** Waits for all CSS transitions and keyframe animations on the element to
  *  settle, then reports the transition generation that scheduled the wait. */
-export const WaitForAnimationSettled = AnimationDefinition.makeCommand(
+export const WaitForAnimationSettled = Command.define(
   'WaitForAnimationSettled',
   {
     args: { id: Schema.String, generation: Schema.Number },
     messages: [Message.EndedAnimation],
-    handler: function* () {
-      return ({ id, generation }) =>
-        Dom.waitForAnimationSettled(elementSelector(id)).pipe(
-          Effect.as(Message.EndedAnimation({ generation })),
-        )
-    },
   },
 )
 
-/** Effect providers used by the Animation component. */
-export const EffectsLayer = Layer.mergeAll(
-  WaitForPaint.layer,
-  WaitForAnimationSettled.layer,
-)
+// UPDATE
 
-const showTransition = (model: Model) => {
+/** Starts the enter lifecycle unless Animation is already showing. */
+export const showTransition = (model: Model) => {
   if (model.isShowing) {
     return { model }
   }
@@ -83,7 +43,8 @@ const showTransition = (model: Model) => {
   }
 }
 
-const hideTransition = (model: Model) => {
+/** Starts the leave lifecycle unless Animation is hidden or already leaving. */
+export const hideTransition = (model: Model) => {
   const isLeaving =
     model.transitionState === 'LeaveStart' ||
     model.transitionState === 'LeaveAnimating'
@@ -104,7 +65,9 @@ const hideTransition = (model: Model) => {
   }
 }
 
-const finishTransition = (model: Model, generation: number) => {
+/** Completes the current transition generation. A leave completion reports
+ *  `TransitionedOut`. Other generations leave the Model unchanged. */
+export const finishTransition = (model: Model, generation: number) => {
   if (generation !== model.transitionGeneration) {
     return { model }
   }
@@ -123,7 +86,8 @@ const finishTransition = (model: Model, generation: number) => {
   }
 }
 
-const waitForLeaveSettlement = (model: Model) => {
+/** Waits for the leave animation to settle while leave is animating. */
+export const waitForLeaveSettlement = (model: Model) => {
   if (model.transitionState !== 'LeaveAnimating') {
     return { model }
   }
@@ -139,7 +103,8 @@ const waitForLeaveSettlement = (model: Model) => {
   }
 }
 
-const toggleTransition = (model: Model) => {
+/** Shows a hidden Animation or hides a showing one. */
+export const toggleTransition = (model: Model) => {
   if (model.isShowing) {
     return hideTransition(model)
   } else {
@@ -147,7 +112,8 @@ const toggleTransition = (model: Model) => {
   }
 }
 
-const resumeTransition = (model: Model) =>
+/** Requests the wait that the current transition phase is pending on. */
+export const resumeTransition = (model: Model) =>
   Match.value(model.transitionState).pipe(
     Match.when('Idle', () => ({ model })),
     Match.whenOr('EnterStart', 'LeaveStart', () => ({
@@ -166,63 +132,41 @@ const resumeTransition = (model: Model) =>
     Match.exhaustive,
   )
 
-const resetImmediatelyStep = AnimationDefinition.makeFieldsStep(() => ({
-  isShowing: () => false,
-  transitionState: () => 'Idle',
-}))
+/** Hides Animation immediately without completing the current transition. */
+export const resetImmediately = (model: Model) => ({
+  model: modifyFields(model, {
+    isShowing: () => false,
+    transitionState: () => 'Idle',
+  }),
+})
 
-/** Processes an Animation Message and returns the next Model, optional
- *  Commands, and an optional OutMessage. Results from an earlier transition
+/** Advances a transition after paint. Results from an earlier transition
  *  generation leave the Model unchanged. */
-export const update = AnimationComposition.makeUpdate({
-  Showed: showTransition,
+export const completeWaitForPaint = (model: Model, generation: number) => {
+  if (generation !== model.transitionGeneration) {
+    return { model }
+  }
 
-  Hid: hideTransition,
-
-  RequestedShow: showTransition,
-
-  RequestedHide: hideTransition,
-
-  RequestedWaitForLeaveSettlement: waitForLeaveSettlement,
-
-  RequestedFinish: (model, { generation }) =>
-    finishTransition(model, generation),
-
-  RequestedToggle: toggleTransition,
-
-  RequestedResume: resumeTransition,
-
-  RequestedImmediateReset: resetImmediatelyStep,
-
-  CompletedWaitForPaint: (model, { generation }) => {
-    if (generation !== model.transitionGeneration) {
-      return { model }
-    }
-
-    return Match.value(model.transitionState).pipe(
-      Match.when('EnterStart', () => ({
-        model: modifyFields(model, {
-          transitionState: () => 'EnterAnimating',
-        }),
-        commands: [
-          WaitForAnimationSettled({
-            id: model.id,
-            generation: model.transitionGeneration,
-          }),
-        ],
-      })),
-      Match.when('LeaveStart', () => ({
-        model: modifyFields(model, {
-          transitionState: () => 'LeaveAnimating',
-        }),
-        outMessage: OutMessage.StartedLeaveAnimating({
+  return Match.value(model.transitionState).pipe(
+    Match.when('EnterStart', () => ({
+      model: modifyFields(model, {
+        transitionState: () => 'EnterAnimating',
+      }),
+      commands: [
+        WaitForAnimationSettled({
+          id: model.id,
           generation: model.transitionGeneration,
         }),
-      })),
-      Match.orElse(() => ({ model })),
-    )
-  },
-
-  EndedAnimation: (model, { generation }) =>
-    finishTransition(model, generation),
-})
+      ],
+    })),
+    Match.when('LeaveStart', () => ({
+      model: modifyFields(model, {
+        transitionState: () => 'LeaveAnimating',
+      }),
+      outMessage: OutMessage.StartedLeaveAnimating({
+        generation: model.transitionGeneration,
+      }),
+    })),
+    Match.orElse(() => ({ model })),
+  )
+}

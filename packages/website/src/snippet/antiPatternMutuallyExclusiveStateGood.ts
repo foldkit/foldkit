@@ -3,15 +3,15 @@
 import { Schema } from 'effect'
 import { defineTaggedUnion } from 'foldkit/schema'
 
-const LoadState = defineTaggedUnion({
+export const LoadState = defineTaggedUnion({
   Idle: {},
   Loading: {},
   Loaded: { data: Schema.Array(Schema.String) },
   Failed: { error: Schema.String },
 })
-type LoadState = typeof LoadState.Type
+export type LoadState = typeof LoadState.Type
 
-const Model = Schema.Struct({
+export const Model = Schema.Struct({
   loadState: LoadState,
 })
-type Model = typeof Model.Type
+export type Model = typeof Model.Type

@@ -1,20 +1,8 @@
-import {
-  Context,
-  Effect,
-  Fiber,
-  Layer,
-  Option,
-  Schema,
-  Stream,
-  pipe,
-} from 'effect'
+import { Context, Effect, Fiber, Layer, Schema, Stream, pipe } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as Command from '../command/index.js'
-import * as ManagedResource from '../managedResource/index.js'
 import { defineMessageUnion } from '../message/index.js'
-import * as Subscription from '../subscription/subscription.js'
-import * as Update from '../update/index.js'
 import * as Application from './application.js'
 import { __startProgram, run } from './start.js'
 
@@ -64,7 +52,7 @@ const DatabaseLayer = Layer.succeed(Database, {
   store: text => `${text} stored`,
 })
 
-const update = Update.define((model: Model, message: Message) =>
+const update = (model: Model, message: Message) =>
   Message.match(message, {
     ClickedSend: () => ({
       model: { status: 'sending' },
@@ -73,8 +61,7 @@ const update = Update.define((model: Model, message: Message) =>
     CompletedSend: ({ text }) => ({
       model: { status: `${model.status}: ${text}` },
     }),
-  }),
-)
+  })
 
 const updateWithoutRequirements = (model: Model, message: Message) =>
   Message.match(message, {
@@ -107,107 +94,6 @@ const makeTestApplication = () =>
   })
 
 describe('Application', () => {
-  it('rejects distinct Subscription definitions with the same handler name', () => {
-    const subscriptions = Subscription.make<Model, Message>()(entry => ({
-      first: entry(
-        'StatusUpdates',
-        { token: Schema.Null },
-        {
-          messages: [],
-          modelToDependencies: () => ({ token: null }),
-        },
-      ),
-      second: entry(
-        'StatusUpdates',
-        { token: Schema.Null },
-        {
-          messages: [],
-          modelToDependencies: () => ({ token: null }),
-        },
-      ),
-    }))
-
-    expect(() =>
-      Application.__makeFromConfig({
-        Model,
-        init: () => ({ model: { status: 'ready' } }),
-        update: updateWithoutRequirements,
-        view: (model, h) => ({
-          title: 'Duplicate Subscription handlers',
-          body: h.div([], [model.status]),
-        }),
-        subscriptions,
-        container,
-      }),
-    ).toThrow('same name "StatusUpdates" but different definitions')
-  })
-
-  it('allows multiple registrations of the same Subscription definition', () => {
-    const subscriptions = Subscription.make<Model, Message>()(entry => ({
-      first: entry(
-        'StatusUpdates',
-        { token: Schema.Null },
-        {
-          messages: [],
-          modelToDependencies: () => ({ token: null }),
-        },
-      ),
-    }))
-    const sharedSubscriptions = {
-      first: subscriptions.first,
-      second: subscriptions.first,
-    }
-
-    expect(() =>
-      Application.__makeFromConfig({
-        Model,
-        init: () => ({ model: { status: 'ready' } }),
-        update: updateWithoutRequirements,
-        view: (model, h) => ({
-          title: 'Shared Subscription handler',
-          body: h.div([], [model.status]),
-        }),
-        subscriptions: sharedSubscriptions,
-        container,
-      }),
-    ).not.toThrow()
-  })
-
-  it('rejects distinct ManagedResource definitions with the same handler name', () => {
-    const firstResource = ManagedResource.tag<string>()('FirstStatus')
-    const secondResource = ManagedResource.tag<string>()('SecondStatus')
-    const managedResources = ManagedResource.make<Model, Message>()(entry => ({
-      first: entry('ManageStatus', Schema.Option(Schema.Null), {
-        resource: firstResource,
-        modelToMaybeRequirements: () => Option.none(),
-        onAcquired: text => Message.CompletedSend({ text }),
-        onReleased: () => Message.CompletedSend({ text: 'released' }),
-        onAcquireError: () => Message.CompletedSend({ text: 'failed' }),
-      }),
-      second: entry('ManageStatus', Schema.Option(Schema.Null), {
-        resource: secondResource,
-        modelToMaybeRequirements: () => Option.none(),
-        onAcquired: text => Message.CompletedSend({ text }),
-        onReleased: () => Message.CompletedSend({ text: 'released' }),
-        onAcquireError: () => Message.CompletedSend({ text: 'failed' }),
-      }),
-    }))
-
-    expect(() =>
-      Application.__makeFromConfig({
-        Model,
-        init: () => ({ model: { status: 'ready' } }),
-        update: updateWithoutRequirements,
-        view: (model, h) => ({
-          title: 'Duplicate ManagedResource handlers',
-          body: h.div([], [model.status]),
-        }),
-        managedResources,
-        container,
-      }),
-    ).toThrow('same name "ManageStatus" but different definitions')
-  })
-
   it('provides inferred Command handlers for the runtime lifetime', async () => {
     const application = makeTestApplication()
     let handlerBuildCount = 0
@@ -266,17 +152,7 @@ describe('Application', () => {
     expect(databaseReleaseCount).toBe(1)
   })
 
-  it('runs a named Subscription through its application Layer', async () => {
-    const subscriptions = Subscription.make<Model, Message>()(entry => ({
-      ready: entry(
-        'ReadyUpdates',
-        { token: Schema.Null },
-        {
-          messages: [Message.CompletedSend],
-          modelToDependencies: () => ({ token: null }),
-        },
-      ),
-    }))
+  it('runs a Subscription with services from the application Layer', async () => {
     const application = Application.__makeFromConfig({
       Model,
       init: () => ({ model: { status: 'ready' } }),
@@ -289,23 +165,26 @@ describe('Application', () => {
         title: 'Subscription Layer test',
         body: h.div([], [model.status]),
       }),
-      subscriptions,
+      subscriptions: {
+        ready: {
+          dependenciesSchema: Schema.Struct({}),
+          modelToDependencies: () => ({}),
+          dependenciesToStream: () =>
+            Stream.fromEffect(
+              Effect.map(Database, database =>
+                Message.CompletedSend({ text: database.store('watched') }),
+              ),
+            ),
+        },
+      },
       container,
     })
-    const provided = application.provide(
-      subscriptions.ready.toLayer(
-        Effect.succeed(() =>
-          Stream.fromEffect(
-            Effect.succeed(Message.CompletedSend({ text: 'watched' })),
-          ),
-        ),
-      ),
-    )
+    const provided = application.provide(DatabaseLayer)
     const fiber = Effect.runFork(__startProgram(provided, undefined, 'Fresh'))
 
     try {
       await vi.waitFor(() => {
-        expect(document.body.textContent).toContain('watched')
+        expect(document.body.textContent).toContain('watched stored')
       })
     } finally {
       await Effect.runPromise(Fiber.interrupt(fiber))
@@ -492,21 +371,6 @@ const checkApplicationTypes = (): void => {
   run(provided)
   run(withHandler.provide(DatabaseLayer))
 
-  const subscriptions = Subscription.make<Model, Message>()(entry => ({
-    storedValue: entry('StoredValue', {
-      messages: [Message.ClickedSend, Message.CompletedSend],
-    }),
-  }))
-
-  const StoredValueLayer = subscriptions.storedValue.toLayer(
-    Effect.succeed(() =>
-      Stream.fromEffect(
-        Effect.map(Database, database =>
-          Message.CompletedSend({ text: database.store('subscription') }),
-        ),
-      ),
-    ),
-  )
   const applicationWithSubscription = Application.__makeFromConfig({
     Model,
     init: () => ({ model: { status: 'ready' } }),
@@ -515,50 +379,24 @@ const checkApplicationTypes = (): void => {
       title: 'Application with Subscription requirements',
       body: h.div([], [model.status]),
     }),
-    subscriptions,
-    container,
-  })
-
-  // @ts-expect-error The Subscription handler is unsatisfied.
-  run(applicationWithSubscription)
-  const withSubscriptionHandler =
-    applicationWithSubscription.provide(StoredValueLayer)
-
-  // @ts-expect-error Database remains after the Subscription handler is provided.
-  run(withSubscriptionHandler)
-  run(withSubscriptionHandler.provide(DatabaseLayer))
-
-  const layeredSubscriptions = Subscription.make<Model, Message>()(entry => ({
-    storedValue: entry(
-      'StoredValues',
-      { status: Schema.String },
-      {
-        messages: [],
-        modelToDependencies: model => ({ status: model.status }),
+    subscriptions: {
+      storedValue: {
+        dependenciesSchema: Schema.Struct({}),
+        modelToDependencies: () => ({}),
+        dependenciesToStream: () =>
+          Stream.fromEffect(
+            Effect.map(Database, database =>
+              Message.CompletedSend({ text: database.store('subscription') }),
+            ),
+          ),
       },
-    ),
-  }))
-  const applicationWithLayeredSubscription = Application.__makeFromConfig({
-    Model,
-    init: () => ({ model: { status: 'ready' } }),
-    update: updateWithoutRequirements,
-    view: (model, h) => ({
-      title: 'Application with a layered Subscription',
-      body: h.div([], [model.status]),
-    }),
-    subscriptions: layeredSubscriptions,
+    },
     container,
   })
 
-  // @ts-expect-error The named Subscription handler is unsatisfied.
-  run(applicationWithLayeredSubscription)
-  run(
-    applicationWithLayeredSubscription.provide(
-      layeredSubscriptions.storedValue.toLayer(
-        Effect.succeed(() => Stream.empty),
-      ),
-    ),
-  )
+  // @ts-expect-error The Subscription requires Database.
+  run(applicationWithSubscription)
+  run(applicationWithSubscription.provide(DatabaseLayer))
 
   const routingApplication = Application.__makeFromConfig({
     Model,
@@ -630,18 +468,6 @@ const checkApplicationTypes = (): void => {
     flags: Effect.succeed({ initialStatus: 1 }),
   })
 
-  const routingFlagsSubscriptions = Subscription.make<Model, Message>()(
-    entry => ({
-      location: entry(
-        'LocationChanges',
-        { pathname: Schema.String },
-        {
-          messages: [],
-          modelToDependencies: model => ({ pathname: model.status }),
-        },
-      ),
-    }),
-  )
   const routingFlagsApplication = Application.__makeFromConfig({
     Model,
     Flags,
@@ -658,11 +484,10 @@ const checkApplicationTypes = (): void => {
       onUrlRequest: () => Message.ClickedSend(),
       onUrlChange: () => Message.ClickedSend(),
     },
-    subscriptions: routingFlagsSubscriptions,
     container,
   })
 
-  // @ts-expect-error The routing Flags app needs both of its handlers.
+  // @ts-expect-error The routing Flags app needs its Command handler.
   run(routingFlagsApplication, {
     flags: Effect.succeed({ initialStatus: 'configured' }),
   })
@@ -674,18 +499,9 @@ const checkApplicationTypes = (): void => {
     ),
   )
 
-  // @ts-expect-error The named Subscription handler remains required.
   run(withRoutingFlagsCommand, {
     flags: Effect.succeed({ initialStatus: 'configured' }),
   })
-  run(
-    withRoutingFlagsCommand.provide(
-      routingFlagsSubscriptions.location.toLayer(
-        Effect.succeed(() => Stream.empty),
-      ),
-    ),
-    { flags: Effect.succeed({ initialStatus: 'configured' }) },
-  )
 
   Application.__makeFromConfig({
     Model,

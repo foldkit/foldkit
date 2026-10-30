@@ -18,16 +18,16 @@ The Elm snippets and the checked-in app use the two-space indentation shown in [
 
 Most concepts translate directly:
 
-|               | Elm                                           | Foldkit                                                          |
-| ------------- | --------------------------------------------- | ---------------------------------------------------------------- |
-| State         | `Model`                                       | Model declared with Schema                                       |
-| Events        | `Msg` custom type                             | Message Schema union                                             |
-| Transitions   | `update : Msg -> Model -> ( Model, Cmd Msg )` | `update(model, message): Update.Return<Model, Message>`          |
-| Side effects  | `Cmd Msg`                                     | Command for Message-driven work, plus other lifecycle primitives |
-| Event streams | `Sub Msg`                                     | Subscription backed by an Effect Stream                          |
-| Boot data     | Flags decoded or accepted by `init`           | [Flags](/core/init-and-flags) Schema supplied at boot            |
-| JS interop    | Flags, ports, and custom elements             | Direct JavaScript APIs, [Mount](/core/mount), and CustomElement  |
-| Nested state  | Nested Elm Architecture composition           | [Block](/core/block) helpers for the same pattern                |
+|               | Elm                                           | Foldkit                                                           |
+| ------------- | --------------------------------------------- | ----------------------------------------------------------------- |
+| State         | `Model`                                       | Model declared with Schema                                        |
+| Events        | `Msg` custom type                             | Message Schema union                                              |
+| Transitions   | `update : Msg -> Model -> ( Model, Cmd Msg )` | One update handler per Message, returning `{ model, commands }`   |
+| Side effects  | `Cmd Msg`                                     | Command for Message-driven work, plus other lifecycle primitives  |
+| Event streams | `Sub Msg`                                     | `stream` and `subscriptions` backed by Effect Streams             |
+| Boot data     | Flags decoded or accepted by `init`           | [Flags](/core/init-and-flags) decoded at boot, passed to the root |
+| JS interop    | Flags, ports, and custom elements             | Direct JavaScript APIs, [Mount](/core/mount), and CustomElement   |
+| Nested state  | Nested Elm Architecture composition           | Child [Block](/core/block) instances held in the Model            |
 
 ### Elm Msg
 
@@ -41,15 +41,15 @@ The Foldkit application authors 19 local Message variants:
 
 ::Snippet{name="comparisonFoldkitMessage" label="Foldkit Messages"}
 
-The component and effect boundaries differ. Foldkit has `SucceededExportPng` and `CompletedSaveCanvas` for Command completion. Its Composition also derives six child delivery cases for two Dialogs, one Listbox, and three RadioGroups, bringing `ApplicationBlock.Message` to 25 variants. Those generated envelopes route to the child Blocks before the local update callback runs; the application does not declare or match them itself.
+The component and effect boundaries differ. Foldkit has `SucceededExportPng` and `CompletedSaveCanvas` for Command completion. Its two Dialogs, one Listbox, and three RadioGroups are child Block instances with their own Message unions. Foldkit routes a child's Messages to that child, so the application neither declares nor matches them. The application learns what happened in a child through the child's OutMessages, such as a Dialog's `Closed` or a RadioGroup's `Selected`.
 
-The Elm version hand-rolls those controls and represents their application-facing events with four direct Msgs: `ToggledThemePicker`, `SelectedPaletteTheme`, `DismissedErrorDialog`, and `DismissedGridSizeDialog`. Elm’s `Msg` is the complete input to its update. Foldkit separates authored local facts from the complete Message Codec derived by Composition.
+The Elm version hand-rolls those controls and represents their application-facing events with four direct Msgs: `ToggledThemePicker`, `SelectedPaletteTheme`, `DismissedErrorDialog`, and `DismissedGridSizeDialog`. Elm’s `Msg` is the complete input to its update. In Foldkit, a Block's update handles its own Message union plus the OutMessages its children report.
 
 Elm custom-type values and Foldkit Schema values both have runtime tags. Schema also supplies runtime decoding and encoding when a Message is deliberately used at an external boundary. That does not make an application Message union a wire protocol automatically. A network boundary still needs an explicit Schema and compatibility policy.
 
 ## The Update Function
 
-The update functions have the same shape.
+The update logic has the same shape. Foldkit splits it into one handler per Message, declared in the Block's update record.
 
 ### Elm update
 
@@ -59,9 +59,9 @@ The update functions have the same shape.
 
 ::Snippet{name="comparisonFoldkitUpdate" label="Foldkit update"}
 
-`case msg of` becomes `Message.match`. Elm record updates become `modifyFields` transformations. `( model, Cmd.none )` becomes `{ model }`.
+Each `case msg of` branch becomes a named handler in the update record. Elm record updates become `modifyFields` transformations. `( model, Cmd.none )` becomes `{ model }`.
 
-Elm enforces exhaustive pattern matching as part of the language. Foldkit obtains the same compile-time failure at a match written with `Message.match`. That is the required Foldkit update style, but TypeScript itself does not prevent someone from writing a non-exhaustive alternative.
+Elm enforces exhaustive pattern matching as part of the language. Foldkit types the update record from the Block's Message union, so a missing handler is a compile error. That check comes from the Block's types rather than the language, and code outside the update record, such as a helper that switches on a Message tag, gets no such guarantee.
 
 Elm record updates and `modifyFields` both preserve references to unchanged nested values. The rendering section shows how each application uses that reference stability.
 
@@ -77,11 +77,11 @@ This hand-rolled UI stores Dialog visibility through the presence of `exportErro
 
 ### Foldkit Model (Schema struct) {#foldkit-model}
 
-The Foldkit Model uses Effect Schema, `Option`, and child Models for its stateful Foldkit UI controls:
+The Foldkit Model uses Effect Schema, `Option`, and child Block instances for its stateful Foldkit UI controls:
 
 ::Snippet{name="comparisonFoldkitModel" label="Foldkit Model"}
 
-A Schema exists at runtime as well as in TypeScript. Foldkit can use it to validate flags and persisted values, encode selected data, and describe Models to framework tooling. The child component Models expose interaction state that the Elm application implements directly in its parent Model and views.
+A Schema exists at runtime as well as in TypeScript. Foldkit can use it to validate flags and persisted values, encode selected data, and describe Models to framework tooling. Each child Block field holds a UI component instance that owns its own interaction state. The Elm application implements that state directly in its parent Model and views.
 
 Elm’s type system is sound and its custom types are compact. TypeScript is intentionally less strict, while Schema adds runtime boundary tools that a plain TypeScript type does not have.
 
@@ -109,9 +109,9 @@ Foldkit runs in the JavaScript ecosystem, so its Commands can use browser APIs a
 
 ::Snippet{name="comparisonFoldkitCommand" label="Foldkit Commands"}
 
-Each Command declares its arguments and result Messages. Its Effect can use typed failures and recovery operators before returning a Message to update. The application still needs to choose meaningful error behavior. Here `ExportPng` reports failure, while `SaveCanvas` intentionally converts storage failure into the same completion Message as success.
+Each Command declares its arguments and result Messages at module level, and the Block lists it under `Command`. The Block's constructor supplies one handler per listed Command. The handler's Effect can use typed failures and recovery operators before returning a Message to update. The application still needs to choose meaningful error behavior. Here `ExportPng` reports failure, while `SaveCanvas` intentionally converts storage failure into the same completion Message as success.
 
-`SaveCanvas` leaves its storage service in the Effect requirements. The application root binds that tag to localStorage, while a whole-application test can bind it to a deterministic store and retain the real Command handler.
+The constructor yields the storage service once, and the `SaveCanvas` handler closes over it. The program's Layer binds that service to localStorage, while a whole-application test can bind it to a deterministic store and retain the real Command handler.
 
 :::Info{label="The boundary trade-off"}
 Elm prevents application code from calling arbitrary JavaScript and makes interop explicit through ports or custom elements. Foldkit keeps update pure by convention and framework design, while Command bodies can call the host ecosystem directly. TypeScript cannot enforce Elm’s purity boundary.
@@ -137,7 +137,7 @@ Foldkit derives both directions from one `SavedCanvas` Schema:
 
 The Schema centralizes field names and value constraints. Encoding and decoding therefore evolve from the same definition. Version migrations and fallback behavior still belong to the application.
 
-The Flags Effect requires the same storage service as `SaveCanvas`, so one root Layer supplies one app-lifetime instance to both.
+The Flags Effect requires the same storage service as `SaveCanvas`, so one `ApplicationLayer` supplies it to both. The root Block receives the decoded value as its `{ flags }` constructor argument and builds its starting Model from it.
 
 ## Subscriptions
 
@@ -151,9 +151,9 @@ Both frameworks derive external event streams from Model state. The mouse-releas
 
 ::Snippet{name="comparisonFoldkitSubscription" label="Foldkit Subscriptions"}
 
-Elm’s `Sub.batch` and Foldkit’s Subscription registry both describe the active set after each state transition. The runtime handles setup and teardown.
+Elm’s `Sub.batch` recomputes the active set after each state transition. Foldkit splits the two cases. Keyboard shortcuts are always on, so they form the Block's `stream`. The mouse-release listener is a `subscriptions` entry: its `dependencies` function reads `isDrawing` from the Model after every update, and Foldkit restarts the Stream when that value changes. The runtime handles setup and teardown in both frameworks.
 
-Elm uses `Browser.Events` for keyboard and mouse input and an incoming port for export failure. Foldkit Subscriptions use Effect Streams, so the application can construct a Stream from browser APIs or a JavaScript client directly. Export failure does not need a Subscription because it is already a declared Command result.
+Elm uses `Browser.Events` for keyboard and mouse input and an incoming port for export failure. Foldkit uses Effect Streams, so the application can construct a Stream from browser APIs or a JavaScript client directly. Export failure does not need a Subscription because it is already a declared Command result.
 
 ## Rendering Performance
 
@@ -187,7 +187,7 @@ The Elm version implements its Dialogs, RadioGroups, switches, and theme picker 
 
 ### Foldkit UI Blocks
 
-The Foldkit version uses [Foldkit UI](/ui/overview). Its Dialogs, RadioGroups, and Listbox are Blocks, while Switch is a controlled render helper. Selected values remain in the parent Model. Each stateful component reports changes through OutMessages that the parent folds into its own update.
+The Foldkit version uses [Foldkit UI](/ui/overview). Its Dialogs, RadioGroups, and Listbox are Blocks, while Switch is a controlled render helper. Selected values remain in the parent Model. Each stateful component reports changes through OutMessages, which the parent handles with the instance's `.on` handlers in its own update record.
 
 ### State and Behavior Ownership
 
@@ -196,14 +196,14 @@ The Foldkit version uses [Foldkit UI](/ui/overview). Its Dialogs, RadioGroups, a
 | Dialog, RadioGroup, Switch, Listbox | Implemented in the application            | Dialog, Listbox, and RadioGroup Blocks; controlled Switch helper |
 | Accessibility behavior              | Implemented and tested by the application | Implemented and tested by Foldkit UI                             |
 | Selected values                     | Parent Model                              | Parent Model                                                     |
-| Transient interaction state         | Parent Model and view logic               | Child Models in the application Model                            |
-| Composition                         | Nested architecture written by the app    | [Block](/core/block) helpers standardize parent-child delegation |
+| Transient interaction state         | Parent Model and view logic               | Child Block instances in the application Model                   |
+| Composition                         | Nested architecture written by the app    | [Block](/core/block) instances standardize parent-child wiring   |
 
 The comparison is between the two checked-in applications, not the entire Elm package ecosystem. An Elm application can use community UI packages or organize nested state differently.
 
 ## Testing
 
-Both update functions are pure and easy to call directly. Their effect values differ.
+Both update functions are pure. Their effect values differ.
 
 ### Elm update test (pure, but the Cmd is opaque) {#elm-test}
 
@@ -217,7 +217,7 @@ Program-level tools such as [elm-program-test](https://package.elm-lang.org/pack
 
 ::Snippet{name="comparisonFoldkitTest" label="Foldkit test"}
 
-A [Story](/testing/story) receives the named Commands returned by update. `Command.resolve` verifies that `SaveCanvas` is pending, supplies `CompletedSaveCanvas`, and dispatches that result Message. Removing the Command makes this Story fail at the resolution step.
+A [Story](/testing/story) builds the application from its Layer and starts from the Model its constructor returns. It receives the named Commands returned by update and never runs their handlers. `Command.resolve` verifies that `SaveCanvas` is pending, supplies `CompletedSaveCanvas`, and dispatches that result Message. Removing the Command makes this Story fail at the resolution step.
 
 [Scene](/testing/scene) adds interaction through Foldkit virtual DOM. It can query by accessible role, label, or text without starting jsdom.
 
@@ -247,7 +247,7 @@ Foldkit gains direct access to the host ecosystem and additional framework tools
 
 ### JavaScript and npm Access
 
-Browser APIs and compatible JavaScript packages can be imported into a Command, Mount, Subscription, ManagedResource, or CustomElement without a port layer.
+Browser APIs and compatible JavaScript packages can be imported into a Command, Mount, Subscription, Block constructor, or CustomElement without a port layer.
 
 ### TypeScript Integration
 

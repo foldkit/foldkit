@@ -1,5 +1,4 @@
 import { Schema } from 'effect'
-import type * as Update from 'foldkit/update'
 import { expect, expectTypeOf, it } from 'vitest'
 
 import * as MultiListbox from './listbox/multi.js'
@@ -17,7 +16,7 @@ const FruitMenu = Menu.makeBlock<Fruit>()
 const FruitRadioGroup = RadioGroup.makeBlock<Fruit>()
 const FruitTabs = Tabs.makeBlock<Fruit>()
 
-it('preserves refined OutMessage constructors and matchers on completed factories', () => {
+it('preserves refined Message and OutMessage constructors and matchers on factory classes', () => {
   expectTypeOf<typeof FruitListbox.Model.Type>().toEqualTypeOf<Listbox.Model>()
   expectTypeOf<
     typeof FruitMultiListbox.Model.Type
@@ -31,31 +30,15 @@ it('preserves refined OutMessage constructors and matchers on completed factorie
   >().toEqualTypeOf<RadioGroup.Model>()
   expectTypeOf<typeof FruitTabs.Model.Type>().toEqualTypeOf<Tabs.Model>()
 
-  expectTypeOf(FruitListbox.operations.requestSelectItem)
-    .parameter(1)
-    .toEqualTypeOf<Fruit>()
-  expectTypeOf(FruitMultiListbox.operations.requestSelectItem)
-    .parameter(1)
-    .toEqualTypeOf<Fruit>()
-  expectTypeOf(FruitMenu.operations.requestSelectItem)
-    .parameter(1)
-    .toEqualTypeOf<Fruit>()
-
   expectTypeOf<
-    Update.RequirementsOf<typeof FruitListbox.update>
-  >().toEqualTypeOf<Update.RequirementsOf<typeof Listbox.block.update>>()
+    Parameters<typeof FruitListbox.Message.RequestedSelectItem>[0]['item']
+  >().toEqualTypeOf<Fruit>()
   expectTypeOf<
-    Update.RequirementsOf<typeof FruitMultiListbox.update>
-  >().toEqualTypeOf<Update.RequirementsOf<typeof MultiListbox.block.update>>()
-  expectTypeOf<Update.RequirementsOf<typeof FruitMenu.update>>().toEqualTypeOf<
-    Update.RequirementsOf<typeof Menu.block.update>
-  >()
+    Parameters<typeof FruitMultiListbox.Message.RequestedSelectItem>[0]['item']
+  >().toEqualTypeOf<Fruit>()
   expectTypeOf<
-    Update.RequirementsOf<typeof FruitRadioGroup.update>
-  >().toEqualTypeOf<Update.RequirementsOf<typeof RadioGroup.block.update>>()
-  expectTypeOf<Update.RequirementsOf<typeof FruitTabs.update>>().toEqualTypeOf<
-    Update.RequirementsOf<typeof Tabs.block.update>
-  >()
+    Parameters<typeof FruitMenu.Message.RequestedSelectItem>[0]['item']
+  >().toEqualTypeOf<Fruit>()
 
   const matchListbox = FruitListbox.OutMessage.match<Fruit>({
     Selected: ({ value }) => {

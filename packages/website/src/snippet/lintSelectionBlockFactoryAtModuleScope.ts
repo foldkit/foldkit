@@ -1,7 +1,9 @@
 import { Listbox } from '@foldkit/ui'
 
-// ❌ Bad: each call constructs a new component definition.
-const makeSortListbox = () => Listbox.makeBlock()
+// ❌ Bad
+// Each call creates a new Block class with its own identity.
+const makeSortListbox = () => Listbox.makeBlock<string>()
 
-// ✅ Good: configure Bindings with one module-scope definition.
-const SortListbox = Listbox.makeBlock()
+// ✅ Good
+// Create the class once and provide SortListbox.Live to the parent.
+const SortListbox = Listbox.makeBlock<string>()

@@ -4,10 +4,10 @@
 
 A non-interactive floating label anchored to a trigger. Tooltips appear on hover after a short delay, or immediately on keyboard focus. They hide on pointer-leave, blur, or Escape. Use tooltips for short hints about a control. Because they rely on hover and keyboard focus, don’t use them for content that must be reachable on touch; for that, or for rich or interactive content, use `Popover` instead.
 
-Bind `TooltipBlock` in the parent. The positioning engine is shared with `Popover` and `Menu`. Pass `anchor` to control placement and spacing.
+Create a `Tooltip.Tooltip` instance in the parent's constructor, hold it in the parent Model, render it with `model.tooltip.view({ ... })`, and provide `Tooltip.TooltipLive` to the parent's Layer. The positioning engine is shared with `Popover` and `Menu`. Pass `anchor` to control placement and spacing.
 
 :::Info{label="See it in an app"}
-Check out how Tooltip is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/tooltip.ts).
+Check out how Tooltip is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/page/tooltipPage.ts).
 :::
 
 ## Examples
@@ -50,7 +50,7 @@ Two ViewInputs fields cover the cases a `<label for>` does not. Pass `ariaLabel`
 
 ### InitConfig {#init-config}
 
-Configuration passed to the Tooltip Binding's child initializer. Direct completed Block calls use `Tooltip.TooltipBlock.init()`.
+The args a parent passes when it creates an instance with `new`.
 
 | Name        | Type             | Default                | Description                                                                                                                                                                                                         |
 | ----------- | ---------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -59,7 +59,7 @@ Configuration passed to the Tooltip Binding's child initializer. Direct complete
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the Tooltip Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the top level, and spread the published `ChildAttribute` groups unchanged; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+Pass these fields to the instance's `view`, as in `model.tooltip.view({ ... })`. Spread the attribute groups the component passes to your callbacks unchanged; they keep the component's dispatch. See [View input](/core/block#callback-dispatch-boundaries).
 
 | Name             | Type                           | Default | Description                                                                                                                                                                                                                             |
 | ---------------- | ------------------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -79,19 +79,19 @@ Payload delivered to the `toView` callback each render.
 | `panel`     | `ReadonlyArray<ChildAttribute<Mount.RequirementsOf<typeof Tooltip.mounts>>>` | —       | Spread onto the panel element. Carries `role="tooltip"`, the anchor Mount that positions the panel via Floating UI, and a `data-open` attribute when visible. |
 | `isVisible` | `boolean`                                                                    | —       | Whether the tooltip is currently visible. The consumer decides whether to render the panel conditionally on this.                                             |
 
-### Programmatic Helpers
+### Messages a Parent Sends
 
-Call `TooltipBinding.informShowDelayChanged(showDelay)` when parent-owned configuration changes the Tooltip's delay. The Binding call returns a connected parent Step. Its producer accepts every `Duration.Input` form, normalizes the value, and constructs `InformedOfShowDelayChange`; Tooltip update stores the normalized Duration.
+When parent-owned configuration changes the Tooltip's delay, send the instance a Message from the parent's update handler: `messages: [model.tooltip.send(Tooltip.Tooltip.Message.InformedOfShowDelayChange({ showDelay }))]`.
 
-| Binding call                                       | Arguments                   | Description                                                                                                                                                                                            |
-| -------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `TooltipBinding.informShowDelayChanged(showDelay)` | `showDelay: Duration.Input` | Dispatches `InformedOfShowDelayChange` through Tooltip update. A bare number is milliseconds. The update branch returns `{ model }`, emits no OutMessage, and applies the new delay on the next hover. |
+| Message                                    | Payload               | Description                                                                                                                                             |
+| ------------------------------------------ | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `InformedOfShowDelayChange({ showDelay })` | `showDelay: Duration` | Stores the new delay, which applies on the next hover. Reports no OutMessage. Build the value with `Duration.millis` or another `Duration` constructor. |
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the optional `outMessage` field. They fire only on visibility transitions, so consumers don’t see spurious events for Messages that only update internal hover/focus/delay state.
+Facts the Tooltip reports to its parent. Handle them by spreading `...tooltip.on({ ... })` into the parent's update record; variants without a handler are ignored. They fire only on visibility transitions, so consumers don’t see spurious events for Messages that only update internal hover/focus/delay state.
 
-| Name     | Type | Default | Description                                                                                                                                                                                               |
-| -------- | ---- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Shown`  | `{}` | —       | Emitted once the tooltip transitions to visible (isOpen becomes true). Handle it in the Binding's selected `fold` policy. Useful for analytics, instrumentation, or coordinating with other transient UI. |
-| `Hidden` | `{}` | —       | Emitted once the tooltip transitions to hidden (isOpen becomes false).                                                                                                                                    |
+| Name     | Type | Default | Description                                                                                                                                                                                 |
+| -------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Shown`  | `{}` | —       | Emitted once the tooltip transitions to visible (isOpen becomes true). Handle it with the instance's `.on`. Useful for analytics, instrumentation, or coordinating with other transient UI. |
+| `Hidden` | `{}` | —       | Emitted once the tooltip transitions to hidden (isOpen becomes false).                                                                                                                      |

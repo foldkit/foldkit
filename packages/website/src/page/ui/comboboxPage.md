@@ -2,22 +2,28 @@
 
 ## Overview
 
-A searchable select with input filtering, keyboard navigation, and anchor positioning. Unlike Listbox (which uses a button trigger), Combobox has a text input for searching. You control the filtering logic: read `model.inputValue` and pass the filtered items array. The parent owns the selection: it passes the chosen value in as `maybeSelectedValue` (multi-select passes `selectedValues`) along with `restingInputValue` (the text the input rests at when closed), and folds the `Selected` and `ClearedSelection` OutMessages into its own state (single-select stores the value, multi-select toggles the value in its array).
+A searchable select with input filtering, keyboard navigation, and anchor positioning. Unlike Listbox (which uses a button trigger), Combobox has a text input for searching. You control the filtering logic: read the Combobox's `inputValue`, as in `model.combobox.model.inputValue`, and pass the filtered items array. The parent owns the selection: it passes the chosen value in as `maybeSelectedValue` (multi-select passes `selectedValues`) along with `restingInputValue` (the text the input rests at when closed), and stores what the `Selected` and `ClearedSelection` OutMessages report in its own state (single-select stores the value, multi-select toggles the value in its array).
 
 ### Create a Typed Combobox
 
-Embed Combobox via the [`Combobox.makeBlock(Item)` factory](/ui/selection-blocks) at module scope: `const CityCombobox = Combobox.makeBlock(City)`. Pass the same string Schema used by the parent Model. The factory returns a completed Block whose view, update, programmatic API, Message, and OutMessage all retain that Schema's exact type, so `Selected` carries a `City`.
+Call the [`Combobox.makeBlock(Item)` factory](/ui/selection-blocks) once at module scope: `const CityCombobox = Combobox.makeBlock(City)`. Pass the same string Schema used by the parent Model. The factory returns a Block class with its Layer attached as `Live`. Its view, Message, and OutMessage all retain that Schema's exact type, so `Selected` carries a `City`. Use `Combobox.makeBlock(Schema.String)` for plain strings.
 
-What the factory returns is typed [`Completed<Item>` from `@foldkit/ui/combobox`](/ui/selection-blocks#completed-type). The multi-select subpath exports its own `Completed<Item>` type for cases where a created Block has to be named.
+Create an instance in the parent's constructor with `yield* new CityCombobox('combobox', { id: 'city' })` and hold it in the parent Model. Render it with `model.combobox.view({ ... })`, handle its OutMessages with `...combobox.on({ ... })`, and provide `CityCombobox.Live` to the parent's Layer. See [Hold child instances in the Model](/core/block#embedding).
 
-Call `ParentDefinition.makeBinding` with the completed Block, its parent Model `field` and an exhaustive OutMessage policy. Use explicit accessors for custom storage. Include the resulting Binding in the parent Composition's `bindings` list to collect the Combobox's handlers and Mounts. `binding.embedView` supplies the canonical view and Message wrapper at the render site. See [Connecting a static placement](/core/block#embedding) for the complete authoring flow. Use `Combobox.makeBlock(Schema.String)` for plain strings; `Combobox.makeBlock(Item)` requires the Item Schema.
+The class type is [`ComboboxClass<Item>` from `@foldkit/ui/combobox`](/ui/selection-blocks#completed-type), and an instance is `Combobox<Item>`. The multi-select subpath exports its own `ComboboxClass` and `Combobox` types for cases where either has to be named.
 
-### Programmatic API
+### Controlling a Combobox from the Parent
 
-The completed Block exposes `requestOpen`, `requestClose`, and `requestSelectItem` as direct methods on its Binding. Call `cityCombobox.requestOpen()`, `cityCombobox.requestClose(restingInputValue)`, or `cityCombobox.requestSelectItem(item, displayText)` to get a connected parent Step for the owning Composition. Multi-select `requestClose()` takes no input, and its `requestSelectItem(item)` uses the item itself as display text.
+To control the Combobox from a parent update handler, send it one of these Messages:
+
+- `CityCombobox.Message.RequestedOpen()` opens it.
+- `RequestedClose({ restingInputValue, isClearable })` closes it and restores the input to `restingInputValue`. With `isClearable: true`, a nullable Combobox whose input is empty reports `ClearedSelection`.
+- `RequestedSelectItem({ item, displayText })` selects `item` and shows `displayText` in the input.
+
+Multi-select takes the same Messages. Pass `restingInputValue: ''` to `RequestedClose`, and pass the item itself as `displayText`.
 
 :::Info{label="See it in an app"}
-Check out how Combobox is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/combobox.ts).
+Check out how Combobox is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/page/comboboxPage.ts).
 :::
 
 ## Examples
@@ -32,7 +38,7 @@ Pass `itemToValue` and `itemToDisplayText` to control how items map to values an
 
 ### Nullable
 
-Pass `nullable: true` at init to allow clearing the selection by clicking the selected item again, or by emptying the input and closing. Both paths reach the parent as OutMessages (`Selected` toggles, `ClearedSelection` clears), so the parent decides what an empty selection looks like.
+Pass `nullable: true` when you create the instance to allow clearing the selection by clicking the selected item again, or by emptying the input and closing. Both paths reach the parent as OutMessages (`Selected` toggles, `ClearedSelection` clears), so the parent decides what an empty selection looks like.
 
 `nullable` governs the single-select input only. A multi-select never emits `ClearedSelection`, because its input rests empty by design and so an empty input on close carries no intent to clear. Clearing a multi-select is toggling its values off, one `Selected` at a time.
 
@@ -40,7 +46,7 @@ Pass `nullable: true` at init to allow clearing the selection by clicking the se
 
 ### Select on Focus
 
-Pass `selectInputOnFocus: true` at init to highlight the input text when the combobox receives focus. Typing immediately replaces the current value, making it easy to start a new search.
+Pass `selectInputOnFocus: true` when you create the instance to highlight the input text when the combobox receives focus. Typing immediately replaces the current value, making it easy to start a new search.
 
 ::Demo{name="select-on-focus"}
 
@@ -54,7 +60,7 @@ To make the behavior reproducible at any scroll position, this demo keeps the pa
 
 ### Multi-Select
 
-Use `Combobox.Multi.makeBlock(Schema.String)` and `Combobox.Multi.makeBlock` for multi-selection. The dropdown stays open on selection and items toggle on/off. The parent stores the selected values and folds each `Selected` OutMessage by toggling the value in its array.
+Use `Combobox.Multi.makeBlock(Item)` for multi-selection. The dropdown stays open on selection and items toggle on/off. The parent stores the selected values and handles each `Selected` OutMessage by toggling the value in its array.
 
 ::Demo{name="multi"}
 
@@ -72,7 +78,7 @@ What a read-only Combobox never does is commit. Its input carries the native `re
 
 #### Closing Preserves the Selection
 
-Closing does not change the selection either. A nullable Combobox normally reads an empty input on close as the user clearing it and emits `ClearedSelection`; a read-only one never does, so a user who opens and closes it, by `Escape`, blur, the toggle button, or a backdrop click, leaves the parent's selection exactly as it was. This matters most for multi-select, whose input rests empty by design, and for a single-select whose input was never seeded. The programmatic `requestClose` operation is unaffected and clears as before.
+Closing does not change the selection either. A nullable Combobox normally reads an empty input on close as the user clearing it and emits `ClearedSelection`; a read-only one never does, so a user who opens and closes it, by `Escape`, blur, the toggle button, or a backdrop click, leaves the parent's selection exactly as it was. This matters most for multi-select, whose input rests empty by design, and for a single-select whose input was never seeded. A parent that sends `RequestedClose` with `isClearable: true` can still clear the selection.
 
 ### Typing and Opening
 
@@ -82,11 +88,11 @@ Freezing typing removes an open path along with it. An interactive Combobox open
 
 ### Programmatic Changes
 
-`isReadOnly` describes what the user may do, not what the program may do. `requestSelectItem` and a directly dispatched `SelectedItem` Message still select, because the parent owns the selection.
+`isReadOnly` describes what the user may do, not what the program may do. A `RequestedSelectItem` Message from the parent still selects, because the parent owns the selection.
 
 ### Displaying an Existing Selection
 
-A read-only single-select Combobox whose parent holds a preloaded selection renders an empty input until an open and close cycle happens, since `model.inputValue` starts empty and only becomes the selection's display text through a selection or a close. Read-only removes the user's usual recovery path, since they cannot type to surface it. After initializing the child and assembling its parent Model, apply the Binding's `requestSelectItem` Step with the preloaded selection. This sets `inputValue` to the display text. A feature can expose the startup transition as a Message-producing `boot` operation when it is useful to its parent; see [startup Steps](/core/init-and-flags#startup-steps).
+A read-only single-select Combobox whose parent holds a preloaded selection renders an empty input until an open and close cycle happens, since `model.inputValue` starts empty and only becomes the selection's display text through a selection or a close. Read-only removes the user's usual recovery path, since they cannot type to surface it. Send the Combobox `RequestedSelectItem({ item, displayText })` with the preloaded selection when the parent appears. This sets `inputValue` to the display text. Because a constructor cannot send Messages, return a `start` Command whose result Message the parent handles by sending `RequestedSelectItem`, the same shape as [starting with an open Dialog](/ui/dialog#starting-with-an-open-dialog).
 
 Seeding interacts with filtering. You derive `items` from `model.inputValue`, so a read-only Combobox seeded with its selection opens showing only the items matching that text, often just the one. Filter on a separate field, or skip filtering while read-only, when the full list should stay visible.
 
@@ -110,7 +116,7 @@ Use `isReadOnly` when the selection is still information the user needs, such as
 
 Combobox is headless. The `itemToConfig` callback controls all item markup. Style the input, button, items container, and backdrop through their respective attribute props.
 
-The items panel is portaled to the document body and positioned relative to the input wrapper with Floating UI. Ancestor stacking contexts and overflow clipping no longer apply, so a clipped container or a sibling overlay wrapper cannot hide the open panel. The panel still stacks at the document level: give it a z-index above elevated content like sticky headers or toasts, as the demos on this page do with `z-10`. Inside a `<dialog>`, the panel is portaled into that dialog, so it renders above the dialog's content and stays interactive. Keep the outer Combobox wrapper positioned, for example with `className: 'relative'`, so the input paints above the click-outside backdrop. Pass `anchor: { portal: false }` to keep the panel inside the wrapper.
+The items panel is portaled to the document body and positioned relative to the input wrapper with Floating UI. Ancestor stacking contexts and overflow clipping do not apply to it, so a clipped container or a sibling overlay wrapper cannot hide the open panel. The panel still stacks at the document level: give it a z-index above elevated content like sticky headers or toasts, as the demos on this page do with `z-10`. Inside a `<dialog>`, the panel is portaled into that dialog, so it renders above the dialog's content and stays interactive. Keep the outer Combobox wrapper positioned, for example with `className: 'relative'`, so the input paints above the click-outside backdrop. Pass `anchor: { portal: false }` to keep the panel inside the wrapper.
 
 | Attribute        | Condition                                                                                                                                                       |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -161,22 +167,20 @@ Two view input fields cover the cases a `<label for>` does not. Pass `ariaLabel`
 
 ### InitConfig {#init-config}
 
-Configuration passed to the Binding for the completed Block returned by `Combobox.makeBlock(Item)` or `Combobox.Multi.makeBlock(Item)`.
+The args a parent passes when it creates an instance with `new`, for both `Combobox.makeBlock(Item)` and `Combobox.Multi.makeBlock(Item)`.
 
-The Binding’s `init` accepts the same configuration in its child argument tuple: `ComboboxBinding.init({ args: [config], toParentModel })`. It returns a passive initialization recipe with no `.model` or `.commands` fields. Return that recipe from the registered Composition’s `makeInit` callback or `makeUpdate` handler, or preserve it through a Definition-owned Step; checked execution constructs the parent Model and retains the child Commands.
-
-| Name                 | Type      | Default | Description                                                                                                                                                                                                                                                     |
-| -------------------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`                 | `string`  | —       | Unique ID for the combobox instance.                                                                                                                                                                                                                            |
-| `isAnimated`         | `boolean` | `false` | Enables animation coordination.                                                                                                                                                                                                                                 |
-| `isModal`            | `boolean` | `false` | Locks page scroll and marks other elements inert when open.                                                                                                                                                                                                     |
-| `nullable`           | `boolean` | `false` | Allows clearing the selection by clicking the selected item again, or by emptying the single-select input and closing (which emits ClearedSelection). Multi-select never emits ClearedSelection.                                                                |
-| `immediate`          | `boolean` | `false` | Emits Selected on every keyboard activation while open, so arrow keys commit as they move instead of waiting for Enter. Combining immediate with nullable is discouraged: a nullable toggle fold would deselect as the arrows pass back over the selected item. |
-| `selectInputOnFocus` | `boolean` | `false` | Highlights the input text when the combobox receives focus, so typing replaces the current value.                                                                                                                                                               |
+| Name                 | Type      | Default | Description                                                                                                                                                                                                                                                        |
+| -------------------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`                 | `string`  | —       | Unique ID for the combobox instance.                                                                                                                                                                                                                               |
+| `isAnimated`         | `boolean` | `false` | Enables animation coordination.                                                                                                                                                                                                                                    |
+| `isModal`            | `boolean` | `false` | Locks page scroll and marks other elements inert when open.                                                                                                                                                                                                        |
+| `nullable`           | `boolean` | `false` | Allows clearing the selection by clicking the selected item again, or by emptying the single-select input and closing (which emits ClearedSelection). Multi-select never emits ClearedSelection.                                                                   |
+| `immediate`          | `boolean` | `false` | Emits Selected on every keyboard activation while open, so arrow keys commit as they move instead of waiting for Enter. Combining immediate with nullable is discouraged: a nullable toggle handler would deselect as the arrows pass back over the selected item. |
+| `selectInputOnFocus` | `boolean` | `false` | Highlights the input text when the combobox receives focus, so typing replaces the current value.                                                                                                                                                                  |
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the composed Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep callback fields at the top level, and use `childAttributes` for handler-bearing attribute inputs; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+Pass these fields to the instance's `view`, as in `model.combobox.view({ ... })`. Spread the attribute groups the component passes to your callbacks unchanged, and wrap handler-bearing attributes you pass in with `childAttributes`. See [View input](/core/block#callback-dispatch-boundaries).
 
 | Name                                             | Type                                              | Default | Description                                                                                                                                                                                                                                                                                                                                 |
 | ------------------------------------------------ | ------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -211,9 +215,9 @@ Pass the child Model as `model` and these fields as `viewInputs` to the composed
 
 ### OutMessage {#out-message}
 
-The child update and programmatic API return these facts through their optional `outMessage` field. Pass the completed Combobox Block to `ParentDefinition.makeOutMessageFold(ComboboxBlock, handlers)` whether the fold is inline or named. The forwarding API remains contextual when inline: use `ParentDefinition.makeOutMessageForward(handlers)` when facts continue to the current Block's parent, and pass the completed Block when extracting the forward. The explicit fold child preserves the exact item type returned by `Combobox.makeBlock(Item)` or `Combobox.Multi.makeBlock(Item)`.
+Facts the Combobox reports to its parent, whether the user caused them or the parent sent a `Requested*` Message. Handle them by spreading `...combobox.on({ ... })` into the parent's update record; variants without a handler are ignored. To pass a fact further up, return the parent's own OutMessage from the handler. The payloads keep the exact item type of the Schema passed to `Combobox.makeBlock(Item)` or `Combobox.Multi.makeBlock(Item)`.
 
-| Name               | Type              | Default | Description                                                                                                                                                                                                                                                                                                                                                             |
-| ------------------ | ----------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Selected`         | `{ value: Item }` | —       | Emitted when an item is activated. Carries the neutral fact that the item was activated; the parent owns the selection and decides what it means. Single-select stores the value; multi-select toggles the value in and out of its array. Handle it in the Binding's selected `fold` to lift the value into the selection you own. A read-only Combobox never emits it. |
-| `ClearedSelection` | `{}`              | —       | Emitted when a nullable single-select Combobox closes with an empty input, meaning the user cleared it. The parent clears the selection it owns. Multi-select never emits it, since its input rests empty by design. A read-only Combobox never emits it either, so opening and closing one cannot clear the selection.                                                 |
+| Name               | Type              | Default | Description                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------ | ----------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Selected`         | `{ value: Item }` | —       | Emitted when an item is activated. Carries the neutral fact that the item was activated; the parent owns the selection and decides what it means. Single-select stores the value; multi-select toggles the value in and out of its array. Handle it with the instance's `.on` to lift the value into the selection you own. A read-only Combobox never emits it. |
+| `ClearedSelection` | `{}`              | —       | Emitted when a nullable single-select Combobox closes with an empty input, meaning the user cleared it. The parent clears the selection it owns. Multi-select never emits it, since its input rests empty by design. A read-only Combobox never emits it either, so opening and closing one cannot clear the selection.                                          |

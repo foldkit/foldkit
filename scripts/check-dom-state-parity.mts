@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import * as CustomElement from 'foldkit/customElement'
 import { Server } from 'foldkit/experimental'
@@ -15,30 +15,23 @@ import {
   reflectedAttributeName,
 } from '../packages/foldkit/dist/domReflection.js'
 
-const Model = Schema.Null
-const ApplicationComposition = Block.makeDefinition('Application', {
-  Model,
-  Message: Schema.Never,
-}).makeComposition()
-const makeParityBlock = (
-  view: (
-    model: null,
-    h: HtmlBuilder<never>,
-  ) => Readonly<{ title: string; body: Html }>,
-) => {
-  const prepare = () =>
-    ApplicationComposition.prepareBlock({
-      init: ApplicationComposition.makeInit(() => ({ model: null })),
-      update: ApplicationComposition.makeUpdate({}),
-      view: ApplicationComposition.makeView(view),
-      EffectsLayer: Layer.empty,
-    })
-  const ApplicationBlock: Block.FromAssemblyWithView<
-    typeof Model,
-    typeof prepare
-  > = Block.assemble(prepare)
+type ParityView = (
+  h: HtmlBuilder<never>,
+) => Readonly<{ title: string; body: Html }>
 
-  return ApplicationBlock
+const renderParityView = (view: ParityView) => {
+  class Application extends Block<Application>()('Application') {}
+  const ApplicationLive = Application.make(
+    Effect.fn(function* () {
+      return { view: (_model, h) => view(h) }
+    }),
+  )
+
+  return Server.renderToString(
+    Application,
+    { layer: ApplicationLive },
+    { isHydratable: false },
+  )
 }
 
 // The state a served element is in, compared against the state the client puts
@@ -870,18 +863,14 @@ type RenderedCase = Readonly<{
 const renderCase = async (parityCase: ParityCase): Promise<RenderedCase> => {
   let captured: CapturedData = {}
   const rendered = await Effect.runPromise(
-    Server.renderToString(
-      makeParityBlock((_model, h) => {
-        const element = parityCase.build(h)
-        captured = element?.data ?? {}
-        return {
-          title: 'dom state parity',
-          body: containedBy(h, parityCase.container ?? 'Block', element),
-        }
-      }),
-      {},
-      { isHydratable: false },
-    ),
+    renderParityView(h => {
+      const element = parityCase.build(h)
+      captured = element?.data ?? {}
+      return {
+        title: 'dom state parity',
+        body: containedBy(h, parityCase.container ?? 'Block', element),
+      }
+    }),
   )
 
   const attributes: Record<string, string> = {}
@@ -1122,14 +1111,10 @@ const runSerializeRefusals = async (): Promise<void> => {
   for (const refusal of SERIALIZE_REFUSALS) {
     const outcome = await Effect.runPromise(
       Effect.result(
-        Server.renderToString(
-          makeParityBlock((_model, h) => ({
-            title: 'dom state parity',
-            body: h.div([], [refusal.build(h)]),
-          })),
-          {},
-          { isHydratable: false },
-        ),
+        renderParityView(h => ({
+          title: 'dom state parity',
+          body: h.div([], [refusal.build(h)]),
+        })),
       ),
     )
     if (outcome._tag === 'Success') {
@@ -1150,14 +1135,10 @@ const main = async (): Promise<void> => {
   // The builders need a builder instance, which only a render hands out.
   let builder: HtmlBuilder<never> | undefined
   await Effect.runPromise(
-    Server.renderToString(
-      makeParityBlock((_model, h) => {
-        builder = h
-        return { title: 'dom state parity', body: h.div([], ['x']) }
-      }),
-      {},
-      { isHydratable: false },
-    ),
+    renderParityView(h => {
+      builder = h
+      return { title: 'dom state parity', body: h.div([], ['x']) }
+    }),
   )
   if (builder === undefined) {
     fail('the render never called the view')

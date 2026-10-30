@@ -2,9 +2,9 @@
 
 ## Overview
 
-Animation coordinates CSS enter and leave phases with a state machine and data attributes. Bind `AnimationBlock` in the parent. Its Binding projects the child-owned `requestShow`, `requestHide`, and `requestToggle` operations into connected parent Steps. Each operation constructs its matching `RequestedShow`, `RequestedHide`, or `RequestedToggle` Message. Animation update records each lifecycle phase in its Model and returns any Commands through the fold. The transitions stay visible in DevTools and can be tested through update without waiting for a browser animation.
+Animation coordinates CSS enter and leave phases with a state machine and data attributes. Create an `Animation.Animation` instance in the parent's constructor and hold it in the parent Model. The parent starts transitions by sending it `RequestedShow()`, `RequestedHide()`, or `RequestedToggle()`. Animation's own update records each lifecycle phase in its Model and returns the Commands that wait for paint and settlement. The transitions stay visible in DevTools and can be tested through update without waiting for a browser animation.
 
-Animation uses the [OutMessage](/core/block#surfacing-facts) pattern. The Binding’s selected `fold` policy handles `StartedLeaveAnimating` by calling the standard settlement operation or returning a custom Command. It handles `TransitionedOut` when post-animation cleanup can begin. Dialog, Menu, Popover, Listbox, and Combobox use the same Block internally when `isAnimated` is true.
+Animation reports what happens through [OutMessages](/core/block#surfacing-facts). The parent handles `StartedLeaveAnimating` by sending `RequestedWaitForLeaveSettlement()` or by starting its own Command, and handles `TransitionedOut` when post-animation cleanup can begin. Dialog, Menu, Popover, Listbox, and Combobox use the same Block internally when `isAnimated` is true.
 
 ## Lifecycle Coordination {#why}
 
@@ -16,7 +16,7 @@ First, an entering element renders with `data-closed`. Animation waits for paint
 
 ### Leaving Content
 
-Second, browser animation settlement does not enter update on its own. Call the bound `requestWaitForLeaveSettlement()` operation from the `StartedLeaveAnimating` policy. Animation update returns a Command that waits for every transition and keyframe animation reported by the element's Web Animations API, then sends `EndedAnimation`. Animation responds with `TransitionedOut`, which tells the parent that it can unmount content or perform other cleanup.
+Second, browser animation settlement does not enter update on its own. When the parent receives `StartedLeaveAnimating`, it sends the instance `RequestedWaitForLeaveSettlement()`. Animation update returns a Command that waits for every transition and keyframe animation reported by the element's Web Animations API, then sends `EndedAnimation`. Animation responds with `TransitionedOut`, which tells the parent that it can unmount content or perform other cleanup.
 
 ### Animating Size
 
@@ -27,12 +27,12 @@ Third, `animateSize: true` supplies the nested CSS grid structure needed to anim
 Use Animation directly when your own content needs the same lifecycle. Components such as Dialog, Menu, Popover, Listbox, and Combobox already provide it through their `isAnimated` option.
 
 :::Info{label="See it in an app"}
-Check out how Animation is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/animation.ts).
+Check out how Animation is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/page/animationPage.ts).
 :::
 
 ## Examples
 
-Call the Binding’s `requestShow()` operation to start the enter animation and `requestHide()` to start the leave animation. Style with Tailwind data-attribute selectors like `data-[closed]:opacity-0`.
+Send the instance `Animation.Animation.Message.RequestedShow()` to start the enter animation and `RequestedHide()` to start the leave animation. Provide `Animation.AnimationLive` to the parent's Layer. Style with Tailwind data-attribute selectors like `data-[closed]:opacity-0`.
 
 ::Demo{name="animation"}
 
@@ -44,13 +44,13 @@ Call the Binding’s `requestShow()` operation to start the enter animation and 
 
 Animation drives the enter phase to completion on its own. The leave phase hands control back to the parent halfway through so the parent can decide how settlement is detected. For example, Foldkit's [Dialog](/ui/dialog) just waits for CSS, while its [Popover](/ui/popover) races CSS against the anchor button scrolling off-screen. The asymmetry exists because leave detection varies by consumer, while enter detection does not.
 
-The `requestShow`, `requestHide`, and `requestToggle` operations apply `RequestedShow`, `RequestedHide`, and `RequestedToggle` respectively. Animation update decides which transition to start from its current Model.
+`RequestedShow`, `RequestedHide`, and `RequestedToggle` are requests. Animation's update decides which transition to start from its current Model.
 
 ```diagram
 ENTER                                LEAVE
 Animation drives completion          Parent detects settlement
 
-requestShow()                         requestHide()
+RequestedShow                        RequestedHide
    |                                    |
    v                                    v
 EnterStart                           LeaveStart
@@ -72,15 +72,15 @@ The double-rAF timing (one frame to set the start state, another to trigger the 
 
 ### Interrupted Transitions
 
-Say a user closes a panel while it is still sliding in. `requestHide` starts the leave, and the browser reverses the running transition. Reversing cancels the enter transition, so the Command waiting for the enter to settle resolves and returns `EndedAnimation` while Animation is already leaving.
+Say a user closes a panel while it is still sliding in. `RequestedHide` starts the leave, and the browser reverses the running transition. Reversing cancels the enter transition, so the Command waiting for the enter to settle resolves and returns `EndedAnimation` while Animation is already leaving.
 
 #### Ignore Stale Settlement
 
-Animation ignores that late result. Each time `requestShow` or `requestHide` starts an enter or leave transition, Animation increases `transitionGeneration` in its Model. Every paint and settlement Command reports the transition generation that scheduled it, and update ignores a result whose generation is no longer current. The leave keeps running until its own settlement result arrives. The same holds when `requestShow` interrupts a leave.
+Animation ignores that late result. Each time `RequestedShow` or `RequestedHide` starts an enter or leave transition, Animation increases `transitionGeneration` in its Model. Every paint and settlement Command reports the transition generation that scheduled it, and update ignores a result whose generation is no longer current. The leave keeps running until its own settlement result arrives. The same holds when `RequestedShow` interrupts a leave.
 
 #### Build a Custom Leave Command
 
-The standard `requestWaitForLeaveSettlement()` operation reads the current generation inside Animation update. A custom leave Command gets the generation from `StartedLeaveAnimating` and returns it in `EndedAnimation({ generation })`:
+`RequestedWaitForLeaveSettlement()` reads the current generation inside Animation's update. A custom leave is a parent Command that gets the generation from `StartedLeaveAnimating` and reports it in a parent Message. The parent's handler for that Message sends the instance `RequestedFinish({ generation })`:
 
 ::Snippet{name="uiAnimationCustomLeave" label="Custom leave Command"}
 
@@ -111,36 +111,30 @@ The `animateSize` option uses CSS grid (`grid-template-rows: 0fr` → `1fr`) for
 
 ## API Reference
 
-### requestToggle
-
-Call the bound `AnimationBinding.requestToggle()` operation to start the enter or leave lifecycle according to the child Model's `isShowing` value. It returns a connected parent Step that reads and writes the child Model through the Binding. Apply it to the contextual Model and return or compose its opaque result inside the registered Composition.
-
 ### InitConfig {#init-config}
 
-Configuration passed to the Animation Binding's child initializer. Direct completed Block calls use `Animation.AnimationBlock.init()`.
+The args a parent passes when it creates an instance with `new`.
 
 | Name        | Type      | Default | Description                           |
 | ----------- | --------- | ------- | ------------------------------------- |
 | `id`        | `string`  | —       | Unique ID for the animation instance. |
 | `isShowing` | `boolean` | `false` | Initial visibility state.             |
 
-### requestShow and requestHide
+### Messages a Parent Sends {#messages}
 
-Call the bound `AnimationBinding.requestShow()` and `AnimationBinding.requestHide()` operations from the parent. Apply these connected parent Steps to the contextual Model and return or compose their opaque results inside the registered Composition. Checked execution produces the readable next Animation Model and any Commands. Parents invoke the Binding operations; Animation owns the Messages that drive its update.
+Send these to the instance from a parent update handler, as in `messages: [model.animation.send(Animation.Animation.Message.RequestedShow())]`.
 
-### requestWaitForLeaveSettlement
-
-Call the bound `AnimationBinding.requestWaitForLeaveSettlement()` operation from the `StartedLeaveAnimating` OutMessage policy to use Animation's standard leave settlement. The connected Step sends `RequestedWaitForLeaveSettlement` through Animation update. While the child is in `LeaveAnimating`, update returns one `WaitForAnimationSettled` Command with the child's `id` and current transition generation. In any other state, the operation leaves the Model unchanged and returns no Command.
-
-The standard policy does not import a child Command helper, read the child Model, or lift the result Message. A custom Command that returns `EndedAnimation` still uses the fold context's `liftCommand`. When a parent-owned Command reports completion through a parent Message, handle that Message with `AnimationBinding.requestFinish(generation)`.
-
-### requestFinish
-
-Call the Binding-projected `AnimationBinding.requestFinish(generation)` operation when a parent observes that the current animation has ended. It returns a connected parent Step and preserves the Animation's generation check: a result from an older transition does not finish a newer one. A parent-owned Command reports its own completion Message; the parent handles that result by invoking this operation inside its Composition-authored update.
+| Message                             | Description                                                                                                                                                                                                                             |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RequestedShow()`                   | Starts the enter lifecycle.                                                                                                                                                                                                             |
+| `RequestedHide()`                   | Starts the leave lifecycle.                                                                                                                                                                                                             |
+| `RequestedToggle()`                 | Starts the enter or leave lifecycle according to the instance's `isShowing` value.                                                                                                                                                      |
+| `RequestedWaitForLeaveSettlement()` | Uses Animation's standard leave settlement. While the instance is in `LeaveAnimating`, its update returns one `WaitForAnimationSettled` Command with its `id` and current transition generation. In any other state it changes nothing. |
+| `RequestedFinish({ generation })`   | Finishes the current animation when the parent observes that it has ended. A `generation` from an older transition does not finish a newer one.                                                                                         |
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the Animation Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the embedding view boundary so its handlers use the parent dispatcher. Use `childAttributes` for handler-bearing attribute inputs; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+Pass these fields to the instance's `view`, as in `model.animation.view({ ... })`. Spread the attribute groups the component passes to your callbacks unchanged, and wrap handler-bearing attributes you pass in with `childAttributes`. See [View input](/core/block#callback-dispatch-boundaries).
 
 | Name          | Type                            | Default | Description                                                                                                                                        |
 | ------------- | ------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -152,9 +146,9 @@ Pass the child Model as `model` and these fields as `viewInputs` to the Animatio
 
 ### OutMessage
 
-Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s selected `fold` policy.
+Facts the component reports to its parent. Handle them by spreading the instance's `.on({ ... })` into the parent's update record. Variants without a handler are ignored.
 
-| Name                    | Type         | Default | Description                                                                                                                                                                                                                                                   |
-| ----------------------- | ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `StartedLeaveAnimating` | `OutMessage` | —       | Emitted when the leave animation begins. Its `generation` identifies the leave. Call the bound `requestWaitForLeaveSettlement()` operation for standard CSS settlement. A custom leave Command returns `EndedAnimation({ generation })` with this generation. |
-| `TransitionedOut`       | `OutMessage` | —       | Emitted when the leave animation finishes. Use this to unmount content or update your Model.                                                                                                                                                                  |
+| Name                    | Type         | Default | Description                                                                                                                                                                                                                                                        |
+| ----------------------- | ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `StartedLeaveAnimating` | `OutMessage` | —       | Emitted when the leave animation begins. Its `generation` identifies the leave. Send `RequestedWaitForLeaveSettlement()` for standard CSS settlement, or start a custom leave Command that reports this generation back through `RequestedFinish({ generation })`. |
+| `TransitionedOut`       | `OutMessage` | —       | Emitted when the leave animation finishes. Use this to unmount content or update your Model.                                                                                                                                                                       |

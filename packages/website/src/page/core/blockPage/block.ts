@@ -1,18 +1,30 @@
+import { Effect } from 'effect'
 import { Block } from 'foldkit'
+import { modifyFields } from 'foldkit/struct'
 
-import { BlockPageComposition } from './composition'
-import { init } from './init'
-import type { Model } from './model'
-import { update } from './update'
-import { view } from './view'
+import { Message } from './message'
+import { Model } from './model'
+import { type ViewInput, view } from './view'
 
-const prepare = () =>
-  BlockPageComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const BlockPageBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export class BlockPage extends Block<BlockPage, void, ViewInput>()(
+  'BlockPage',
+  { Model, Message },
+) {}
+
+export const BlockPageLive = BlockPage.make(
+  Effect.fn(function* () {
+    return {
+      model: { isMessageRoutingUnderHoodOpen: false },
+
+      update: {
+        ToggledMessageRoutingUnderHood: (model, { isOpen }) => ({
+          model: modifyFields(model, {
+            isMessageRoutingUnderHoodOpen: () => isOpen,
+          }),
+        }),
+      },
+
+      view,
+    }
+  }),
+)

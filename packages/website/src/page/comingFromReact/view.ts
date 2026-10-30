@@ -1,18 +1,16 @@
 import { Option, Record } from 'effect'
-import { Html, inertHtml as ih } from 'foldkit/html'
+import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 
 import { Disclosure } from '@foldkit/ui'
 
 import { type CodeBlock } from '../../component'
 import { Icon } from '../../icon'
 import { type RenderHeadingLink } from '../../prose'
-import {
-  ComingFromReactComposition,
-  type ComingFromReactViewBuilder,
-} from './composition'
 import { ComingFromReactContent } from './content'
 import { Message } from './message'
 import type { Model } from './model'
+
+type ComingFromReactViewBuilder = HtmlBuilder<Message>
 
 // FAQ SHELL
 
@@ -84,24 +82,25 @@ const { tableOfContents, view: renderPage } = ComingFromReactContent
 
 export { tableOfContents }
 
-// NOTE: the code and heading-link renderers arrive as slot callbacks rather
-// than being built here. They establish the shared snippet controls and
-// dispatch the parent's heading-link Message. As top-level `viewInputs`
-// functions they run in the parent's boundary.
-type ViewInputs = Readonly<{
+// NOTE: the code and heading-link renderers arrive in the view input rather
+// than being built here. They render the parent's shared snippet controls and
+// dispatch the parent's heading-link Message, so they run as the parent.
+export type ViewInputs = Readonly<{
   renderCopyButton: CodeBlock.RenderCopyButton
   renderSnippet: CodeBlock.RenderSnippet
   renderHeadingLink: RenderHeadingLink
 }>
 
-export const view = ComingFromReactComposition.makeView.withInputs<ViewInputs>(
-  (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h) =>
-    renderPage({
-      demos: {},
-      renderFaq: (id, question, content) =>
-        faqItem(id, question, content, model, h),
-      renderCopyButton,
-      renderSnippet,
-      renderHeadingLink,
-    }),
-)
+export const view = (
+  model: Model,
+  h: ComingFromReactViewBuilder,
+  { renderCopyButton, renderSnippet, renderHeadingLink }: ViewInputs,
+): Html =>
+  renderPage({
+    demos: {},
+    renderFaq: (id, question, content) =>
+      faqItem(id, question, content, model, h),
+    renderCopyButton,
+    renderSnippet,
+    renderHeadingLink,
+  })

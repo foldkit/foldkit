@@ -1,45 +1,95 @@
-import { Validating } from 'foldkit/fieldValidation'
+import { Array, Effect } from 'effect'
+import { Valid } from 'foldkit/fieldValidation'
 import {
   Command,
   click,
   expect,
-  given,
   inside,
+  label,
   role,
   scene,
   text,
+  type,
 } from 'foldkit/scene'
-import { modifyFields } from 'foldkit/struct'
-import { describe, test } from 'vitest'
 
+import { BrowserCrypto } from '@effect/platform-browser'
+import { describe, it } from '@effect/vitest'
 import { Tabs } from '@foldkit/ui'
 
-import { Submission } from './model'
-import { completeModel, initialModel } from './model.fixture'
-import { StepTabsBlock } from './navigationComponents'
-import { update } from './update'
-import { view } from './view/view'
+import { ApplicationLive, StepTabs } from './application'
+import { args } from './flags.fixture'
+import { Review, SubmitApplication } from './review'
+import { PersonalInfo, ValidateEmailAsync } from './step/personalInfo'
+
+const clickNext = click(role('button', { name: 'Next →' }))
+
+const clickNextTimes = (count: number) => Array.makeBy(count, () => clickNext)
 
 const resolveFocusTab = Command.resolve(
   Tabs.test.FocusTab,
-  StepTabsBlock.Message.CompletedFocusTab(),
+  StepTabs.Message.CompletedFocusTab(),
 )
 
-describe('view', () => {
-  test('initial view shows the page heading and the PersonalInfo step', () => {
-    scene(
-      { update, view },
-      given(initialModel),
-      expect(role('heading', { name: 'Apply to Work on Foldkit' })).toExist(),
-      expect(role('heading', { name: 'Personal Info' })).toExist(),
-      expect(role('button', { name: 'Next →' })).toExist(),
-    )
-  })
+const fillPersonalInfo = [
+  type(label('First Name'), 'Jane'),
+  type(label('Last Name'), 'Doe'),
+  type(label('Email'), 'jane@example.com'),
+]
 
-  test('the step nav lists every step', () => {
+const resolveEmailValidation = Command.resolve(
+  ValidateEmailAsync,
+  PersonalInfo.Message.CompletedValidateEmailAsync({
+    validationId: 1,
+    field: Valid({ value: 'jane@example.com' }),
+  }),
+)
+
+const resolveEmailValidationWithStaleResult = Command.resolve(
+  ValidateEmailAsync,
+  PersonalInfo.Message.CompletedValidateEmailAsync({
+    validationId: 0,
+    field: Valid({ value: 'jane@example.com' }),
+  }),
+)
+
+const fillRemainingStepsToReview = [
+  clickNext,
+  type(label('Company'), 'Foldkit'),
+  type(label('Job Title'), 'Engineer'),
+  clickNext,
+  type(label('School'), 'MIT'),
+  type(label('Degree'), 'BS'),
+  type(label('Field of Study'), 'CS'),
+  clickNext,
+  type(label('Skill'), 'TypeScript'),
+  ...clickNextTimes(3),
+]
+
+const completeApplicationToReview = [
+  ...fillPersonalInfo,
+  resolveEmailValidation,
+  ...fillRemainingStepsToReview,
+]
+
+const clickSubmit = click(role('button', { name: 'Submit Application' }))
+
+describe('view', () => {
+  it.effect(
+    'initial view shows the page heading and the PersonalInfo step',
+    () =>
+      scene(
+        ApplicationLive,
+        args,
+        expect(role('heading', { name: 'Apply to Work on Foldkit' })).toExist(),
+        expect(role('heading', { name: 'Personal Info' })).toExist(),
+        expect(role('button', { name: 'Next →' })).toExist(),
+      ).pipe(Effect.provide(BrowserCrypto.layer)),
+  )
+
+  it.effect('the step nav lists every step', () =>
     scene(
-      { update, view },
-      given(initialModel),
+      ApplicationLive,
+      args,
       inside(
         role('tablist', { name: 'Application steps' }),
         expect(text('Personal Info')).toExist(),
@@ -50,157 +100,159 @@ describe('view', () => {
         expect(text('Attachments')).toExist(),
         expect(text('Review')).toExist(),
       ),
-    )
-  })
+    ).pipe(Effect.provide(BrowserCrypto.layer)),
+  )
 
-  test('tabs can jump directly to any step', () => {
+  it.effect('tabs can jump directly to any step', () =>
     scene(
-      { update, view },
-      given(initialModel),
+      ApplicationLive,
+      args,
       inside(
         role('tablist', { name: 'Application steps' }),
         click(role('tab', { name: /Review$/ })),
       ),
       resolveFocusTab,
       expect(role('heading', { name: 'Review' })).toExist(),
-    )
-  })
+    ).pipe(Effect.provide(BrowserCrypto.layer)),
+  )
 
-  test('clicking Next advances to the Work History step', () => {
+  it.effect('clicking Next advances to the Work History step', () =>
     scene(
-      { update, view },
-      given(initialModel),
-      click(role('button', { name: 'Next →' })),
+      ApplicationLive,
+      args,
+      clickNext,
       expect(role('heading', { name: 'Work History' })).toExist(),
       expect(role('button', { name: '← Previous' })).toExist(),
-    )
-  })
+    ).pipe(Effect.provide(BrowserCrypto.layer)),
+  )
 
-  test('Previous on a later step returns to the prior step', () => {
+  it.effect('Previous on a later step returns to the prior step', () =>
     scene(
-      { update, view },
-      given(modifyFields(initialModel, { currentStep: () => 'Education' })),
+      ApplicationLive,
+      args,
+      ...clickNextTimes(2),
       expect(role('heading', { name: 'Education' })).toExist(),
       click(role('button', { name: '← Previous' })),
       expect(role('heading', { name: 'Work History' })).toExist(),
-    )
-  })
+    ).pipe(Effect.provide(BrowserCrypto.layer)),
+  )
 
-  test('the first step does not render a Previous button', () => {
+  it.effect('the first step does not render a Previous button', () =>
     scene(
-      { update, view },
-      given(initialModel),
+      ApplicationLive,
+      args,
       expect(role('button', { name: '← Previous' })).toBeAbsent(),
-    )
-  })
+    ).pipe(Effect.provide(BrowserCrypto.layer)),
+  )
 
-  test('the Review step exposes a Submit button and hides Next', () => {
+  it.effect('the Review step exposes a Submit button and hides Next', () =>
     scene(
-      { update, view },
-      given(modifyFields(initialModel, { currentStep: () => 'Review' })),
+      ApplicationLive,
+      args,
+      ...clickNextTimes(6),
       expect(role('button', { name: 'Submit Application' })).toExist(),
       expect(role('button', { name: 'Next →' })).toBeAbsent(),
-    )
-  })
+    ).pipe(Effect.provide(BrowserCrypto.layer)),
+  )
 
-  test('clicking Submit on an incomplete application shows a blocking notice', () => {
-    scene(
-      { update, view },
-      given(modifyFields(initialModel, { currentStep: () => 'Review' })),
-      expect(role('button', { name: 'Submit Application' })).toBeEnabled(),
-      expect(
-        text(
-          'Review Personal Info, Work History, Education, Skills before submitting.',
-        ),
-      ).not.toExist(),
-      click(role('button', { name: 'Submit Application' })),
-      expect(
-        text(
-          'Review Personal Info, Work History, Education, Skills before submitting.',
-        ),
-      ).toExist(),
-    )
-  })
+  it.effect(
+    'clicking Submit on an incomplete application shows a blocking notice',
+    () =>
+      scene(
+        ApplicationLive,
+        args,
+        ...clickNextTimes(6),
+        expect(role('button', { name: 'Submit Application' })).toBeEnabled(),
+        expect(
+          text(
+            'Review Personal Info, Work History, Education, Skills before submitting.',
+          ),
+        ).not.toExist(),
+        clickSubmit,
+        expect(
+          text(
+            'Review Personal Info, Work History, Education, Skills before submitting.',
+          ),
+        ).toExist(),
+      ).pipe(Effect.provide(BrowserCrypto.layer)),
+  )
 
-  test('a pending validation notice names the incomplete step', () => {
+  it.effect('a pending validation notice names the incomplete step', () =>
     scene(
-      { update, view },
-      given(
-        modifyFields(completeModel, {
-          currentStep: () => 'Review',
-          personalInfo: modifyFields({
-            email: () => Validating({ value: 'jane@example.com' }),
-          }),
-        }),
-      ),
+      ApplicationLive,
+      args,
+      ...fillPersonalInfo,
+      resolveEmailValidationWithStaleResult,
+      ...fillRemainingStepsToReview,
       expect(role('button', { name: 'Submit Application' })).toBeEnabled(),
-      click(role('button', { name: 'Submit Application' })),
+      clickSubmit,
       expect(text('Review Personal Info before submitting.')).toExist(),
-    )
-  })
+    ).pipe(Effect.provide(BrowserCrypto.layer)),
+  )
 
-  test('submit blocking notices include multiple incomplete required steps', () => {
-    scene(
-      { update, view },
-      given(
-        modifyFields(completeModel, {
-          currentStep: () => 'Review',
-          workHistory: modifyFields({
-            entries: () => [],
-          }),
-          education: modifyFields({
-            entries: () => [],
-          }),
-          skills: modifyFields({
-            entries: () => [],
-          }),
-        }),
-      ),
-      expect(role('button', { name: 'Submit Application' })).toBeEnabled(),
-      click(role('button', { name: 'Submit Application' })),
-      expect(
-        text('Review Work History, Education, Skills before submitting.'),
-      ).toExist(),
-    )
-  })
+  it.effect(
+    'submit blocking notices include multiple incomplete required steps',
+    () =>
+      scene(
+        ApplicationLive,
+        args,
+        ...fillPersonalInfo,
+        resolveEmailValidation,
+        clickNext,
+        click(role('button', { name: 'Remove position' })),
+        clickNext,
+        click(role('button', { name: 'Remove education' })),
+        clickNext,
+        click(role('button', { name: 'Remove skill' })),
+        ...clickNextTimes(3),
+        expect(role('button', { name: 'Submit Application' })).toBeEnabled(),
+        clickSubmit,
+        expect(
+          text('Review Work History, Education, Skills before submitting.'),
+        ).toExist(),
+      ).pipe(Effect.provide(BrowserCrypto.layer)),
+  )
 
-  test('a submitting application shows a Submitting button', () => {
+  it.effect('a submitting application shows a Submitting button', () =>
     scene(
-      { update, view },
-      given(
-        modifyFields(initialModel, {
-          currentStep: () => 'Review',
-          submission: () => Submission.Submitting(),
-        }),
-      ),
+      ApplicationLive,
+      args,
+      ...completeApplicationToReview,
+      clickSubmit,
       expect(role('button', { name: 'Submitting...' })).toExist(),
-    )
-  })
+      Command.resolve(
+        SubmitApplication,
+        Review.Message.SucceededSubmitApplication(),
+      ),
+    ).pipe(Effect.provide(BrowserCrypto.layer)),
+  )
 
-  test('a successful submission swaps the form for a success panel', () => {
+  it.effect('a successful submission swaps the form for a success panel', () =>
     scene(
-      { update, view },
-      given(
-        modifyFields(initialModel, {
-          currentStep: () => 'Review',
-          submission: () => Submission.SubmitSuccess(),
-        }),
+      ApplicationLive,
+      args,
+      ...completeApplicationToReview,
+      clickSubmit,
+      Command.resolve(
+        SubmitApplication,
+        Review.Message.SucceededSubmitApplication(),
       ),
       expect(text('Application Submitted', { exact: false })).toExist(),
-    )
-  })
+    ).pipe(Effect.provide(BrowserCrypto.layer)),
+  )
 
-  test('a failed submission shows the error and a Try Again control', () => {
+  it.effect('a failed submission shows the error and a Try Again control', () =>
     scene(
-      { update, view },
-      given(
-        modifyFields(initialModel, {
-          currentStep: () => 'Review',
-          submission: () => Submission.SubmitError({ error: 'Network down' }),
-        }),
+      ApplicationLive,
+      args,
+      ...completeApplicationToReview,
+      clickSubmit,
+      Command.resolve(
+        SubmitApplication,
+        Review.Message.FailedSubmitApplication({ error: 'Network down' }),
       ),
       expect(text('Network down')).toExist(),
       expect(role('button', { name: 'Try Again' })).toExist(),
-    )
-  })
+    ).pipe(Effect.provide(BrowserCrypto.layer)),
+  )
 })

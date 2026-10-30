@@ -1,1 +1,0 @@
-export { CreateIssueBlock } from './block'

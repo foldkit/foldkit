@@ -1,19 +1,15 @@
 import { clsx } from 'clsx'
 import { Array, Duration, Effect, Match, Number, Schema, pipe } from 'effect'
-import { Block } from 'foldkit'
-import { Html, inertHtml as ih } from 'foldkit/html'
+import { Block, Command } from 'foldkit'
+import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
 import demoCodeHtml from 'virtual:counter-demo-code'
 
 import { Button } from '@foldkit/ui'
 
 import * as DemoView from '../../demoView'
-import {
-  AnimationPhase,
-  AsyncCounterDemoDefinition,
-  Message,
-  Model,
-} from './definition'
+import { Message } from './message'
+import { AnimationPhase, Model } from './model'
 
 // CONSTANTS
 
@@ -28,209 +24,20 @@ const clampResetSeconds = (seconds: number): number =>
     maximum: MAX_RESET_DURATION,
   })
 
-export const AsyncCounterDemoComposition =
-  AsyncCounterDemoDefinition.makeComposition()
-type AsyncCounterDemoViewBuilder = Block.ViewBuilderFor<
-  typeof AsyncCounterDemoComposition
->
+type AsyncCounterDemoViewBuilder = HtmlBuilder<Message>
 
-export const init = AsyncCounterDemoComposition.makeInit(() => ({
-  model: Model.make({
-    count: 0,
-    isResetting: false,
-    resetDuration: 2,
-    phase: 'Idle',
-    generation: 0,
-    messageLog: [],
-  }),
-}))
-
-export const DelayAdvanceAsyncCounterPhase =
-  AsyncCounterDemoDefinition.makeCommand('DelayAdvanceAsyncCounterPhase', {
+export const DelayAdvanceAsyncCounterPhase = Command.define(
+  'DelayAdvanceAsyncCounterPhase',
+  {
     args: { generation: Schema.Number, duration: Schema.DurationFromMillis },
     messages: [Message.CompletedDelayAdvanceAsyncCounterPhase],
-    handler: function* () {
-      return ({ generation, duration }) =>
-        Effect.sleep(duration).pipe(
-          Effect.as(
-            Message.CompletedDelayAdvanceAsyncCounterPhase({ generation }),
-          ),
-        )
-    },
-  })
-
-export const EffectsLayer = DelayAdvanceAsyncCounterPhase.layer
+  },
+)
 
 const prependToLog =
   (entry: string) =>
   (messageLog: ReadonlyArray<string>): ReadonlyArray<string> =>
     pipe([entry, ...messageLog], Array.take(MAX_LOG_ENTRIES))
-
-export const update = AsyncCounterDemoComposition.makeUpdate({
-  ClickedDemoIncrement: model => {
-    const nextModel = modifyFields(model, {
-      count: Number.increment,
-      phase: () => 'IncrementMessage',
-      generation: Number.increment,
-      messageLog: prependToLog('ClickedIncrement'),
-    })
-    return {
-      model: nextModel,
-      commands: [
-        DelayAdvanceAsyncCounterPhase({
-          generation: nextModel.generation,
-          duration: Duration.fromInputUnsafe(PHASE_DURATION),
-        }),
-      ],
-    }
-  },
-
-  ChangedDemoResetDuration: (model, { seconds }) => {
-    const nextModel = modifyFields(model, {
-      resetDuration: () => clampResetSeconds(seconds),
-      phase: () => 'DurationMessage',
-      generation: Number.increment,
-      messageLog: prependToLog(`ChangedResetDuration({ seconds: ${seconds} })`),
-    })
-    return {
-      model: nextModel,
-      commands: [
-        DelayAdvanceAsyncCounterPhase({
-          generation: nextModel.generation,
-          duration: Duration.fromInputUnsafe(PHASE_DURATION),
-        }),
-      ],
-    }
-  },
-
-  ClickedDemoReset: model => {
-    const nextModel = modifyFields(model, {
-      isResetting: () => true,
-      phase: () => 'ResetMessage',
-      generation: Number.increment,
-      messageLog: prependToLog('ClickedResetAfterDelay'),
-    })
-    return {
-      model: nextModel,
-      commands: [
-        DelayAdvanceAsyncCounterPhase({
-          generation: nextModel.generation,
-          duration: Duration.fromInputUnsafe(PHASE_DURATION),
-        }),
-      ],
-    }
-  },
-
-  CompletedDelayAdvanceAsyncCounterPhase: (model, { generation }) => {
-    if (generation !== model.generation) {
-      return { model }
-    } else {
-      return Match.value(model.phase).pipe(
-        Match.when('IncrementMessage', () => ({
-          model: modifyFields(model, { phase: () => 'IncrementUpdate' }),
-          commands: [
-            DelayAdvanceAsyncCounterPhase({
-              generation,
-              duration: Duration.fromInputUnsafe(PHASE_DURATION),
-            }),
-          ],
-        })),
-        Match.when('IncrementUpdate', () => ({
-          model: modifyFields(model, { phase: () => 'IncrementModel' }),
-          commands: [
-            DelayAdvanceAsyncCounterPhase({
-              generation,
-              duration: Duration.fromInputUnsafe(PHASE_DURATION),
-            }),
-          ],
-        })),
-        Match.when('IncrementModel', () => ({
-          model: modifyFields(model, { phase: () => 'Idle' }),
-        })),
-        Match.when('DurationMessage', () => ({
-          model: modifyFields(model, { phase: () => 'DurationUpdate' }),
-          commands: [
-            DelayAdvanceAsyncCounterPhase({
-              generation,
-              duration: Duration.fromInputUnsafe(PHASE_DURATION),
-            }),
-          ],
-        })),
-        Match.when('DurationUpdate', () => ({
-          model: modifyFields(model, { phase: () => 'DurationModel' }),
-          commands: [
-            DelayAdvanceAsyncCounterPhase({
-              generation,
-              duration: Duration.fromInputUnsafe(PHASE_DURATION),
-            }),
-          ],
-        })),
-        Match.when('DurationModel', () => ({
-          model: modifyFields(model, { phase: () => 'Idle' }),
-        })),
-        Match.when('ResetMessage', () => ({
-          model: modifyFields(model, { phase: () => 'ResetUpdate' }),
-          commands: [
-            DelayAdvanceAsyncCounterPhase({
-              generation,
-              duration: Duration.fromInputUnsafe(PHASE_DURATION),
-            }),
-          ],
-        })),
-        Match.when('ResetUpdate', () => ({
-          model: modifyFields(model, { phase: () => 'ResetCommand' }),
-          commands: [
-            DelayAdvanceAsyncCounterPhase({
-              generation,
-              duration: Duration.fromInputUnsafe(
-                `${clampResetSeconds(model.resetDuration)} seconds`,
-              ),
-            }),
-          ],
-        })),
-        Match.when('ResetCommand', () => ({
-          model: modifyFields(model, { phase: () => 'ResetCommandMessage' }),
-          commands: [
-            DelayAdvanceAsyncCounterPhase({
-              generation,
-              duration: Duration.fromInputUnsafe(PHASE_DURATION),
-            }),
-          ],
-        })),
-        Match.when('ResetCommandMessage', () => ({
-          model: modifyFields(model, {
-            phase: () => 'ResetCommandUpdate',
-            messageLog: prependToLog('CompletedDelayReset'),
-          }),
-          commands: [
-            DelayAdvanceAsyncCounterPhase({
-              generation,
-              duration: Duration.fromInputUnsafe(PHASE_DURATION),
-            }),
-          ],
-        })),
-        Match.when('ResetCommandUpdate', () => ({
-          model: modifyFields(model, {
-            count: () => 0,
-            isResetting: () => false,
-            phase: () => 'ResetModel',
-          }),
-          commands: [
-            DelayAdvanceAsyncCounterPhase({
-              generation,
-              duration: Duration.fromInputUnsafe(PHASE_DURATION),
-            }),
-          ],
-        })),
-        Match.when('ResetModel', () => ({
-          model: modifyFields(model, { phase: () => 'Idle' }),
-        })),
-        Match.when('Idle', () => ({ model })),
-        Match.exhaustive,
-      )
-    }
-  },
-})
 
 const phaseLabel = (phase: AnimationPhase): string =>
   Match.value(phase).pipe(
@@ -286,7 +93,7 @@ const phaseColorClass = (phase: AnimationPhase): string =>
     Match.exhaustive,
   )
 
-export const view = AsyncCounterDemoComposition.makeView((model, h) =>
+const view = (model: Model, h: AsyncCounterDemoViewBuilder): Html =>
   DemoView.shell(
     DemoView.codePanel(
       'demo-code-panel',
@@ -295,8 +102,7 @@ export const view = AsyncCounterDemoComposition.makeView((model, h) =>
       demoCodeHtml,
     ),
     appPanel(model, h),
-  ),
-)
+  )
 
 const appPanel = (model: Model, h: AsyncCounterDemoViewBuilder): Html =>
   h.div(
@@ -514,3 +320,206 @@ const progressBarView = (model: Model, isCommand: boolean): Html =>
       ]),
     ],
   )
+
+// BLOCK
+
+export class AsyncCounterDemo extends Block<AsyncCounterDemo>()(
+  'AsyncCounterDemo',
+  { Model, Message, Command: [DelayAdvanceAsyncCounterPhase] },
+) {}
+
+export const AsyncCounterDemoLive = AsyncCounterDemo.make(
+  Effect.fn(function* () {
+    return {
+      model: {
+        count: 0,
+        isResetting: false,
+        resetDuration: 2,
+        phase: 'Idle',
+        generation: 0,
+        messageLog: [],
+      },
+
+      update: {
+        ClickedDemoIncrement: model => {
+          const nextModel = modifyFields(model, {
+            count: Number.increment,
+            phase: () => 'IncrementMessage',
+            generation: Number.increment,
+            messageLog: prependToLog('ClickedIncrement'),
+          })
+          return {
+            model: nextModel,
+            commands: [
+              DelayAdvanceAsyncCounterPhase({
+                generation: nextModel.generation,
+                duration: Duration.fromInputUnsafe(PHASE_DURATION),
+              }),
+            ],
+          }
+        },
+
+        ChangedDemoResetDuration: (model, { seconds }) => {
+          const nextModel = modifyFields(model, {
+            resetDuration: () => clampResetSeconds(seconds),
+            phase: () => 'DurationMessage',
+            generation: Number.increment,
+            messageLog: prependToLog(
+              `ChangedResetDuration({ seconds: ${seconds} })`,
+            ),
+          })
+          return {
+            model: nextModel,
+            commands: [
+              DelayAdvanceAsyncCounterPhase({
+                generation: nextModel.generation,
+                duration: Duration.fromInputUnsafe(PHASE_DURATION),
+              }),
+            ],
+          }
+        },
+
+        ClickedDemoReset: model => {
+          const nextModel = modifyFields(model, {
+            isResetting: () => true,
+            phase: () => 'ResetMessage',
+            generation: Number.increment,
+            messageLog: prependToLog('ClickedResetAfterDelay'),
+          })
+          return {
+            model: nextModel,
+            commands: [
+              DelayAdvanceAsyncCounterPhase({
+                generation: nextModel.generation,
+                duration: Duration.fromInputUnsafe(PHASE_DURATION),
+              }),
+            ],
+          }
+        },
+
+        CompletedDelayAdvanceAsyncCounterPhase: (model, { generation }) => {
+          if (generation !== model.generation) {
+            return { model }
+          } else {
+            return Match.value(model.phase).pipe(
+              Match.when('IncrementMessage', () => ({
+                model: modifyFields(model, { phase: () => 'IncrementUpdate' }),
+                commands: [
+                  DelayAdvanceAsyncCounterPhase({
+                    generation,
+                    duration: Duration.fromInputUnsafe(PHASE_DURATION),
+                  }),
+                ],
+              })),
+              Match.when('IncrementUpdate', () => ({
+                model: modifyFields(model, { phase: () => 'IncrementModel' }),
+                commands: [
+                  DelayAdvanceAsyncCounterPhase({
+                    generation,
+                    duration: Duration.fromInputUnsafe(PHASE_DURATION),
+                  }),
+                ],
+              })),
+              Match.when('IncrementModel', () => ({
+                model: modifyFields(model, { phase: () => 'Idle' }),
+              })),
+              Match.when('DurationMessage', () => ({
+                model: modifyFields(model, { phase: () => 'DurationUpdate' }),
+                commands: [
+                  DelayAdvanceAsyncCounterPhase({
+                    generation,
+                    duration: Duration.fromInputUnsafe(PHASE_DURATION),
+                  }),
+                ],
+              })),
+              Match.when('DurationUpdate', () => ({
+                model: modifyFields(model, { phase: () => 'DurationModel' }),
+                commands: [
+                  DelayAdvanceAsyncCounterPhase({
+                    generation,
+                    duration: Duration.fromInputUnsafe(PHASE_DURATION),
+                  }),
+                ],
+              })),
+              Match.when('DurationModel', () => ({
+                model: modifyFields(model, { phase: () => 'Idle' }),
+              })),
+              Match.when('ResetMessage', () => ({
+                model: modifyFields(model, { phase: () => 'ResetUpdate' }),
+                commands: [
+                  DelayAdvanceAsyncCounterPhase({
+                    generation,
+                    duration: Duration.fromInputUnsafe(PHASE_DURATION),
+                  }),
+                ],
+              })),
+              Match.when('ResetUpdate', () => ({
+                model: modifyFields(model, { phase: () => 'ResetCommand' }),
+                commands: [
+                  DelayAdvanceAsyncCounterPhase({
+                    generation,
+                    duration: Duration.fromInputUnsafe(
+                      `${clampResetSeconds(model.resetDuration)} seconds`,
+                    ),
+                  }),
+                ],
+              })),
+              Match.when('ResetCommand', () => ({
+                model: modifyFields(model, {
+                  phase: () => 'ResetCommandMessage',
+                }),
+                commands: [
+                  DelayAdvanceAsyncCounterPhase({
+                    generation,
+                    duration: Duration.fromInputUnsafe(PHASE_DURATION),
+                  }),
+                ],
+              })),
+              Match.when('ResetCommandMessage', () => ({
+                model: modifyFields(model, {
+                  phase: () => 'ResetCommandUpdate',
+                  messageLog: prependToLog('CompletedDelayReset'),
+                }),
+                commands: [
+                  DelayAdvanceAsyncCounterPhase({
+                    generation,
+                    duration: Duration.fromInputUnsafe(PHASE_DURATION),
+                  }),
+                ],
+              })),
+              Match.when('ResetCommandUpdate', () => ({
+                model: modifyFields(model, {
+                  count: () => 0,
+                  isResetting: () => false,
+                  phase: () => 'ResetModel',
+                }),
+                commands: [
+                  DelayAdvanceAsyncCounterPhase({
+                    generation,
+                    duration: Duration.fromInputUnsafe(PHASE_DURATION),
+                  }),
+                ],
+              })),
+              Match.when('ResetModel', () => ({
+                model: modifyFields(model, { phase: () => 'Idle' }),
+              })),
+              Match.when('Idle', () => ({ model })),
+              Match.exhaustive,
+            )
+          }
+        },
+      },
+
+      commands: {
+        DelayAdvanceAsyncCounterPhase: ({ generation, duration }) =>
+          Effect.sleep(duration).pipe(
+            Effect.as(
+              Message.CompletedDelayAdvanceAsyncCounterPhase({ generation }),
+            ),
+          ),
+      },
+
+      view,
+    }
+  }),
+)

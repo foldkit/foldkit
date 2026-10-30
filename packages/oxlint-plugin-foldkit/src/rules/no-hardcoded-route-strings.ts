@@ -10,10 +10,10 @@ import {
 import {
   helperCalleeName,
   indexReferences,
-  isFoldkitHtmlBuilderMember,
   isStringLiteral,
   resolveFoldkitApiPath,
 } from '../guards.ts'
+import { isFoldkitHtmlBuilderMember } from '../html-builder.ts'
 
 // GUARDS
 

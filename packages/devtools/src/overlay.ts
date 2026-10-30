@@ -17,27 +17,29 @@ import {
   Stream,
   String,
   SubscriptionRef,
-  Tuple,
   pipe,
 } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
-import { Block, Program, Update } from 'foldkit'
+import { Block, Command, Program } from 'foldkit'
 import {
   type CommandRecord,
   DEVTOOLS_HOST_ID,
   type DevToolsStore,
-  GOT_MESSAGE_PATTERN,
   INIT_INDEX,
   type MountRecord,
   type StoreState,
-  extractBlockInfo,
   isTagged,
   latestEntryIndex,
   toInspectableValue,
 } from 'foldkit/devtools-host'
 import * as Dom from 'foldkit/dom'
 import { lockScroll, unlockScroll } from 'foldkit/dom'
-import { type Html, createKeyedLazy, createLazy } from 'foldkit/html'
+import {
+  type Html,
+  type HtmlBuilder,
+  createKeyedLazy,
+  createLazy,
+} from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import type { DevToolsMode, DevToolsPosition } from 'foldkit/runtime'
 import { defineTaggedUnion } from 'foldkit/schema'
@@ -52,7 +54,16 @@ import * as Tabs from '@foldkit/ui/tabs'
 import * as OptionExt from './internal/optionExtensions.js'
 import { overlayStyles } from './overlay-styles.js'
 
-const BlockFilterListboxBlock = Listbox.makeBlock<string>()
+const getDevToolsShadowRoot = (): ShadowRoot => {
+  const shadow = document.getElementById(DEVTOOLS_HOST_ID)?.shadowRoot
+  if (shadow === null || shadow === undefined) {
+    throw new Error('Expected the DevTools shadow root to exist')
+  }
+  return shadow
+}
+
+const BlockFilterListbox = Listbox.makeBlock<string>()
+const ScrubberSlider = Slider.forRoot(getDevToolsShadowRoot)
 
 // MODEL
 
@@ -95,7 +106,7 @@ const SCRUBBER_SLIDER_ID = 'dt-scrubber'
 const InspectorTab = Schema.Literals(['Model', 'Message', 'Commands', 'Mounts'])
 type InspectorTab = typeof InspectorTab.Type
 const INSPECTOR_TABS: ReadonlyArray<InspectorTab> = InspectorTab.literals
-const InspectorTabsBlock = Tabs.makeBlock<InspectorTab>()
+const InspectorTabs = Tabs.makeBlock<InspectorTab>()
 
 /**
  * `Schema.Unknown` whose equivalence is reference equality. Effect 4's default
@@ -146,31 +157,21 @@ const Model = Schema.Struct({
   blockTags: Schema.Array(Schema.String),
   maybeBlockFilter: Schema.Option(Schema.String),
   isFlattened: Schema.Boolean,
-  blockFilterListbox: BlockFilterListboxBlock.Model,
+  blockFilterListbox: BlockFilterListbox,
   expandedPaths: Schema.HashSet(Schema.String),
   changedPaths: Schema.HashSet(Schema.String),
   affectedPaths: Schema.HashSet(Schema.String),
   copyStates: Schema.HashMap(Schema.String, CopyState),
   nextCopyRequestId: Schema.Number,
   maybePendingScrubIndex: Schema.Option(Schema.Number),
-  inspectorTabs: InspectorTabsBlock.Model,
+  inspectorTabs: InspectorTabs,
   activeInspectorTab: InspectorTab,
-  // NOTE: empirically, inlining `Slider.SliderBlock.Model` here throws
-  // "Cannot read properties of undefined (reading 'ast')" when running slider
-  // tests, because slider imports html → runtime → overlay, and overlay
-  // references Slider.SliderBlock.Model mid-cycle. Schema.suspend defers the read until after
-  // the cycle resolves. Inlining the Listbox Model works in practice but goes
-  // through the same import chain; the exact cause of the asymmetry isn't
-  // pinned down. Suspend is the conservative fix until the runtime ↔ overlay
-  // cycle is broken at the source.
-  scrubberSlider: Schema.suspend(
-    (): typeof Slider.SliderBlock.Model => Slider.SliderBlock.Model,
-  ),
+  scrubberSlider: ScrubberSlider,
   scrubberValue: Schema.Number,
 })
 type Model = typeof Model.Type
 
-const Flags = Schema.Struct({
+const InitialState = Schema.Struct({
   position: Position,
   mode: Mode,
   maybeBanner: Schema.Option(Schema.String),
@@ -184,7 +185,7 @@ const Flags = Schema.Struct({
   isPaused: Schema.Boolean,
   pausedAtIndex: Schema.Number,
 })
-type Flags = typeof Flags.Type
+type InitialState = typeof InitialState.Type
 
 // MESSAGE
 
@@ -280,21 +281,25 @@ const sliderValueToHostIndex = (
 
 const SCROLL_FOLLOW_THRESHOLD_PX = 8
 
+const formatBlockPath = (blockPath: ReadonlyArray<string>): string =>
+  Array.join(blockPath, ' › ')
+
+const blockPathKeys = (
+  blockPath: ReadonlyArray<string>,
+): ReadonlyArray<string> =>
+  Array.map(blockPath, (_, index) =>
+    formatBlockPath(Array.take(blockPath, index + 1)),
+  )
+
 const computeBlockTags = (
   entries: ReadonlyArray<DisplayEntry>,
 ): ReadonlyArray<string> =>
   pipe(
     entries,
-    Array.flatMap(({ blockPath }) => blockPath),
+    Array.flatMap(({ blockPath }) => blockPathKeys(blockPath)),
     Array.dedupe,
     Array.sort(Order.String),
   )
-
-const blockSegmentLabel = (tag: string): string =>
-  pipe(tag, String.replace(/^Got/, ''), String.replace(/Message$/, ''))
-
-const formatBlockPath = (blockPath: ReadonlyArray<string>): string =>
-  pipe(blockPath, Array.map(blockSegmentLabel), Array.join(' › '))
 
 const toDisplayCommand = (command: CommandRecord): DisplayCommand => ({
   name: command.name,
@@ -307,12 +312,26 @@ const toDisplayMount = (mount: MountRecord): DisplayMount => ({
   args: Option.fromNullishOr(mount.args),
 })
 
+const toBlockInfo = (
+  message: unknown,
+): Readonly<{
+  blockPath: ReadonlyArray<string>
+  maybeLeafTag: Option.Option<string>
+}> =>
+  Block.isBlockMessage(message)
+    ? {
+        blockPath: message.path,
+        maybeLeafTag: pipe(
+          message.message,
+          Option.liftPredicate(isTagged),
+          Option.map(({ _tag }) => _tag),
+        ),
+      }
+    : { blockPath: [], maybeLeafTag: Option.none() }
+
 const toDisplayEntries = ({ entries }: StoreState) =>
   Array.map(entries, entry => {
-    const { blockPath, maybeLeafTag } = extractBlockInfo(
-      entry.tag,
-      entry.message,
-    )
+    const { blockPath, maybeLeafTag } = toBlockInfo(entry.message)
     return {
       tag: entry.tag,
       blockPath,
@@ -390,109 +409,7 @@ const taggedPayload = (
     onSome: argsValue => ({ ...argsValue, _tag: name }),
   })
 
-// UPDATE
-
-const ApplicationDefinition = Block.makeDefinition('Application', {
-  Model,
-  Message,
-  ChildInitContext: Flags,
-})
-
-const InspectorTabsBinding = ApplicationDefinition.makeBinding(
-  InspectorTabsBlock,
-  {
-    field: 'inspectorTabs',
-    init: { contextToArgs: () => [{ id: INSPECTOR_TABS_ID }] },
-  },
-).withOutMessagePolicy({
-  fold: ApplicationDefinition.makeOutMessageFold(InspectorTabsBlock, {
-    Selected: ({ value }) =>
-      ApplicationDefinition.makeFieldsStep(() => ({
-        activeInspectorTab: () => value,
-      })),
-  }),
-})
-
-const BlockFilterListboxBinding = ApplicationDefinition.makeBinding(
-  BlockFilterListboxBlock,
-  {
-    field: 'blockFilterListbox',
-    init: { contextToArgs: () => [{ id: BLOCK_FILTER_ID }] },
-  },
-).withOutMessagePolicy({
-  fold: ApplicationDefinition.makeOutMessageFold(BlockFilterListboxBlock, {
-    Selected: ({ value }) =>
-      ApplicationDefinition.makeFieldsStep(() => ({
-        maybeBlockFilter: () => Option.liftPredicate(value, String.isNonEmpty),
-      })),
-  }),
-})
-
-type DevToolsScrubberBlock = ReturnType<typeof Slider.forRoot>
-
-const makeApplicationComposition = (
-  scrubberSliderBlock: DevToolsScrubberBlock,
-) => {
-  // NOTE: Pointer Messages update the thumb immediately, but jumping to and
-  // inspecting the corresponding state is expensive. Keep only the latest host
-  // index until TickedScrubFrame flushes one navigation on the next frame.
-  const ScrubberBinding = ApplicationDefinition.makeBinding(
-    scrubberSliderBlock,
-    {
-      field: 'scrubberSlider',
-      init: {
-        contextToArgs: flags => [
-          {
-            id: SCRUBBER_SLIDER_ID,
-            min: 0,
-            max: flags.entries.length,
-            step: 1,
-          },
-        ],
-      },
-    },
-  ).withOutMessagePolicy({
-    fold: ApplicationDefinition.makeOutMessageFold(scrubberSliderBlock, {
-      ChangedValue: ({ value }) =>
-        ApplicationDefinition.makeFieldsStep(model => ({
-          scrubberValue: () => value,
-          maybePendingScrubIndex: () =>
-            Option.some(sliderValueToHostIndex(value, model.startIndex)),
-        })),
-    }),
-  })
-
-  const bindings = {
-    InspectorTabsBinding,
-    BlockFilterListboxBinding,
-    ScrubberBinding,
-  }
-  const ApplicationComposition = ApplicationDefinition.makeComposition({
-    bindings: Tuple.make(
-      InspectorTabsBinding,
-      BlockFilterListboxBinding,
-      ScrubberBinding,
-    ),
-  })
-
-  return Tuple.make(bindings, ApplicationComposition)
-}
-
-const getDevToolsShadowRoot = (): ShadowRoot => {
-  const shadow = document.getElementById(DEVTOOLS_HOST_ID)?.shadowRoot
-  if (shadow === null || shadow === undefined) {
-    throw new Error('Expected the DevTools shadow root to exist')
-  }
-  return shadow
-}
-
-const scrubberSliderBlock = Slider.forRoot(getDevToolsShadowRoot)
-const [bindings, ApplicationComposition] =
-  makeApplicationComposition(scrubberSliderBlock)
-type ApplicationViewBuilder = Block.ViewBuilderFor<
-  typeof ApplicationComposition
->
-type OverlayBindings = typeof bindings
+// COMMAND
 
 class StoreService extends Context.Service<StoreService, DevToolsStore>()(
   'foldkit/DevToolsStore',
@@ -503,63 +420,17 @@ class ShadowRootService extends Context.Service<
   ShadowRoot
 >()('foldkit/DevToolsShadowRoot') {}
 
-const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
-  scrubFrameTicks: entry(
-    'ScrubFrameTicks',
-    { isActive: Schema.Boolean },
-    {
-      messages: [Message.TickedScrubFrame],
-      modelToDependencies: model => ({
-        isActive: Option.isSome(model.maybePendingScrubIndex),
-      }),
-      handler: function* () {
-        return ({ isActive }) =>
-          isActive
-            ? Dom.animationFrameTicks.pipe(
-                Stream.map(() => Message.TickedScrubFrame()),
-              )
-            : Stream.empty
-      },
-    },
-  ),
-  storeUpdates: entry('StoreUpdates', {
-    messages: [Message.ReceivedStoreUpdate],
-    handler: function* () {
-      const store = yield* StoreService
+class InitialStateService extends Context.Service<
+  InitialStateService,
+  InitialState
+>()('foldkit/DevToolsInitialState') {}
 
-      return () =>
-        SubscriptionRef.changes(store.stateRef).pipe(
-          Stream.map(state =>
-            Message.ReceivedStoreUpdate(toDisplayState(state)),
-          ),
-        )
-    },
-  }),
-  mobileBreakpointChanges: entry('MobileBreakpointChanges', {
-    messages: [Message.ObservedMobileBreakpoint],
-    handler: function* () {
-      return () =>
-        Dom.streamFromMediaQuery({
-          query: MOBILE_BREAKPOINT_QUERY,
-          mapMatches: isMobile =>
-            Message.ObservedMobileBreakpoint({ isMobile }),
-        })
-    },
-  }),
-}))
-
-export const LockScroll = ApplicationDefinition.makeCommand('LockScroll', {
+export const LockScroll = Command.define('LockScroll', {
   messages: [Message.CompletedLockScroll],
-  handler: function* () {
-    return () => lockScroll.pipe(Effect.as(Message.CompletedLockScroll()))
-  },
 })
 
-export const UnlockScroll = ApplicationDefinition.makeCommand('UnlockScroll', {
+export const UnlockScroll = Command.define('UnlockScroll', {
   messages: [Message.CompletedUnlockScroll],
-  handler: function* () {
-    return () => unlockScroll.pipe(Effect.as(Message.CompletedUnlockScroll()))
-  },
 })
 
 const scrollLockCommands = (isEnabled: boolean, shouldLock: boolean) =>
@@ -589,30 +460,10 @@ const readPersistedState = Effect.gen(function* () {
   return yield* Schema.decodeEffect(DevToolsPersistedStateJson)(json)
 }).pipe(Effect.catch(() => Effect.succeed(DEFAULT_PERSISTED_STATE)))
 
-export const PersistDevToolsState = ApplicationDefinition.makeCommand(
-  'PersistDevToolsState',
-  {
-    args: { isOpen: Schema.Boolean, isFlattened: Schema.Boolean },
-    messages: [Message.CompletedPersistDevToolsState],
-    handler: function* () {
-      const store = yield* KeyValueStore.KeyValueStore
-
-      return ({ isOpen, isFlattened }) =>
-        Effect.gen(function* () {
-          const json = yield* Schema.encodeEffect(DevToolsPersistedStateJson)({
-            isOpen,
-            isFlattened,
-          })
-          yield* store.set(DEVTOOLS_STORAGE_KEY, json)
-          return Message.CompletedPersistDevToolsState()
-        }).pipe(
-          Effect.catch(() =>
-            Effect.succeed(Message.CompletedPersistDevToolsState()),
-          ),
-        )
-    },
-  },
-)
+export const PersistDevToolsState = Command.define('PersistDevToolsState', {
+  args: { isOpen: Schema.Boolean, isFlattened: Schema.Boolean },
+  messages: [Message.CompletedPersistDevToolsState],
+})
 
 const buildInspectionFromModel = (
   store: DevToolsStore,
@@ -637,456 +488,543 @@ const buildInspectionEffect = (store: DevToolsStore, index: number) =>
 // returns the model it resolved so the inspector reuses that single
 // resolution. Inspect-only navigation (no host pause) still uses
 // `InspectState`, which resolves once on its own.
-export const JumpToAndInspect = ApplicationDefinition.makeCommand(
-  'JumpToAndInspect',
-  {
-    args: { index: Schema.Number },
-    messages: [Message.ReceivedInspectedState],
-    handler: function* () {
-      const store = yield* StoreService
-
-      return ({ index }) =>
-        Effect.gen(function* () {
-          const model = yield* store.jumpTo(index)
-          return yield* buildInspectionFromModel(store, index, model)
-        })
-    },
-  },
-)
-
-export const InspectState = ApplicationDefinition.makeCommand('InspectState', {
+export const JumpToAndInspect = Command.define('JumpToAndInspect', {
   args: { index: Schema.Number },
   messages: [Message.ReceivedInspectedState],
-  handler: function* () {
-    const store = yield* StoreService
-
-    return ({ index }) => buildInspectionEffect(store, index)
-  },
 })
 
-export const InspectLatest = ApplicationDefinition.makeCommand(
-  'InspectLatest',
-  {
-    messages: [Message.ReceivedInspectedState],
-    handler: function* () {
-      const store = yield* StoreService
+export const InspectState = Command.define('InspectState', {
+  args: { index: Schema.Number },
+  messages: [Message.ReceivedInspectedState],
+})
 
-      return () =>
-        Effect.gen(function* () {
-          const state = yield* SubscriptionRef.get(store.stateRef)
-          return yield* buildInspectionEffect(store, latestEntryIndex(state))
-        })
-    },
-  },
-)
+export const InspectLatest = Command.define('InspectLatest', {
+  messages: [Message.ReceivedInspectedState],
+})
 
-export const Resume = ApplicationDefinition.makeCommand('Resume', {
+export const Resume = Command.define('Resume', {
   messages: [Message.CompletedResume],
-  handler: function* () {
-    const store = yield* StoreService
-
-    return () => store.resume.pipe(Effect.as(Message.CompletedResume()))
-  },
 })
 
-export const Clear = ApplicationDefinition.makeCommand('Clear', {
+export const Clear = Command.define('Clear', {
   messages: [Message.CompletedClear],
-  handler: function* () {
-    const store = yield* StoreService
-
-    return () => store.clear.pipe(Effect.as(Message.CompletedClear()))
-  },
 })
 
-export const CopyPayloadToClipboard = ApplicationDefinition.makeCommand(
-  'CopyPayloadToClipboard',
-  {
-    args: {
-      targetId: Schema.String,
-      requestId: Schema.Number,
-      payload: Schema.Unknown,
-    },
-    messages: [
-      Message.SucceededCopyPayloadToClipboard,
-      Message.FailedCopyPayloadToClipboard,
-    ],
-    handler: function* () {
-      return ({ targetId, requestId, payload }) =>
-        Effect.gen(function* () {
-          const text = yield* serializePayload(payload)
-          yield* Effect.tryPromise({
-            try: () => navigator.clipboard.writeText(text),
-            catch: () => new Error('Failed to copy payload to clipboard'),
-          })
-          return Message.SucceededCopyPayloadToClipboard({
-            targetId,
-            requestId,
-          })
-        }).pipe(
-          Effect.catch(() =>
-            Effect.succeed(
-              Message.FailedCopyPayloadToClipboard({ targetId, requestId }),
-            ),
-          ),
-        )
-    },
+export const CopyPayloadToClipboard = Command.define('CopyPayloadToClipboard', {
+  args: {
+    targetId: Schema.String,
+    requestId: Schema.Number,
+    payload: Schema.Unknown,
   },
-)
-/** Provides the DevTools clipboard Command handler. */
-export const CopyPayloadToClipboardLayer = CopyPayloadToClipboard.layer
+  messages: [
+    Message.SucceededCopyPayloadToClipboard,
+    Message.FailedCopyPayloadToClipboard,
+  ],
+})
+
+/** Serializes a payload as JSON and writes it to the clipboard. */
+export const copyPayloadToClipboard = ({
+  targetId,
+  requestId,
+  payload,
+}: Readonly<{ targetId: string; requestId: number; payload: unknown }>) =>
+  Effect.gen(function* () {
+    const text = yield* serializePayload(payload)
+    yield* Effect.tryPromise({
+      try: () => navigator.clipboard.writeText(text),
+      catch: () => new Error('Failed to copy payload to clipboard'),
+    })
+    return Message.SucceededCopyPayloadToClipboard({ targetId, requestId })
+  }).pipe(
+    Effect.catch(() =>
+      Effect.succeed(
+        Message.FailedCopyPayloadToClipboard({ targetId, requestId }),
+      ),
+    ),
+  )
 
 const COPY_INDICATOR_DURATION = '1 second'
 
-export const WaitBeforeHidingCopyIndicator = ApplicationDefinition.makeCommand(
+export const WaitBeforeHidingCopyIndicator = Command.define(
   'WaitBeforeHidingCopyIndicator',
   {
     args: { targetId: Schema.String, requestId: Schema.Number },
     messages: [Message.CompletedWaitBeforeHidingCopyIndicator],
-    handler: function* () {
-      return ({ targetId, requestId }) =>
-        Effect.sleep(COPY_INDICATOR_DURATION).pipe(
-          Effect.as(
-            Message.CompletedWaitBeforeHidingCopyIndicator({
-              targetId,
-              requestId,
-            }),
-          ),
-        )
-    },
   },
 )
 
-export const ScrollToTop = ApplicationDefinition.makeCommand('ScrollToTop', {
+export const ScrollToTop = Command.define('ScrollToTop', {
   messages: [Message.CompletedScrollToTop],
-  handler: function* () {
+})
+
+// BLOCK
+
+class Application extends Block<Application>()('Application', {
+  Model,
+  Message,
+  Command: [
+    LockScroll,
+    UnlockScroll,
+    PersistDevToolsState,
+    JumpToAndInspect,
+    InspectState,
+    InspectLatest,
+    Resume,
+    Clear,
+    CopyPayloadToClipboard,
+    WaitBeforeHidingCopyIndicator,
+    ScrollToTop,
+  ],
+}) {}
+
+const hasCopyState = (
+  model: Model,
+  targetId: string,
+  tag: CopyState['_tag'],
+  requestId: number,
+): boolean =>
+  Option.exists(
+    HashMap.get(model.copyStates, targetId),
+    state => state._tag === tag && state.requestId === requestId,
+  )
+
+const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    const store = yield* StoreService
     const shadow = yield* ShadowRootService
+    const keyValueStore = yield* KeyValueStore.KeyValueStore
+    const initialState = yield* InitialStateService
 
-    return () =>
-      Effect.sync(() => {
-        const messageList = shadow.querySelector(MESSAGE_LIST_SELECTOR)
-        if (messageList instanceof HTMLElement) {
-          messageList.scrollTop = 0
-        }
-        return Message.CompletedScrollToTop()
-      })
-  },
-})
-
-const EffectsLayer = Layer.mergeAll(
-  LockScroll.layer,
-  UnlockScroll.layer,
-  PersistDevToolsState.layer,
-  JumpToAndInspect.layer,
-  InspectState.layer,
-  InspectLatest.layer,
-  Resume.layer,
-  Clear.layer,
-  CopyPayloadToClipboardLayer,
-  WaitBeforeHidingCopyIndicator.layer,
-  ScrollToTop.layer,
-  subscriptions.scrubFrameTicks.layer,
-  subscriptions.storeUpdates.layer,
-  subscriptions.mobileBreakpointChanges.layer,
-)
-
-const init = ApplicationComposition.makeInit((flags: Flags) => {
-  const { isFlattened, ...displayFlags } = flags
-  const sliderMax = flags.entries.length
-  const initialSliderValue = flags.isPaused
-    ? hostIndexToSliderValue(flags.pausedAtIndex, flags.startIndex)
-    : sliderMax
-
-  return {
-    childInitContext: flags,
-    model: {
-      screen: 'Messages',
-      ...displayFlags,
-      isFlattened,
-      selectedIndex: INIT_INDEX,
-      isFollowingLatest: true,
-      isFollowingTop: true,
-      blockTags: computeBlockTags(flags.entries),
-      maybeBlockFilter: Option.none(),
-      maybeInspectedModel: Option.none(),
-      maybeInspectedMessage: Option.none(),
-      expandedPaths: HashSet.empty(),
-      changedPaths: HashSet.empty(),
-      affectedPaths: HashSet.empty(),
-      copyStates: HashMap.empty(),
-      nextCopyRequestId: 0,
-      maybePendingScrubIndex: Option.none(),
-      activeInspectorTab: 'Model',
-      scrubberValue: Slider.snapAndClamp(initialSliderValue, 0, sliderMax, 1),
-    },
-    commands: Array.filter(
-      [LockScroll()],
-      () => flags.isOpen && flags.isMobile,
-    ),
-  }
-})
-
-const update = ApplicationComposition.makeUpdate({
-  ClickedToggle: model => {
-    const nextIsOpen = !model.isOpen
-    return {
-      model: modifyFields(model, { isOpen: () => nextIsOpen }),
-      commands: [
-        ...scrollLockCommands(model.isMobile, nextIsOpen),
-        PersistDevToolsState({
-          isOpen: nextIsOpen,
-          isFlattened: model.isFlattened,
-        }),
-      ],
-    }
-  },
-  ClickedSettingsToggle: model => ({
-    model: modifyFields(model, {
-      screen: currentScreen =>
-        Match.value(currentScreen).pipe(
-          Match.withReturnType<Screen>(),
-          Match.when('Messages', () => 'Settings'),
-          Match.when('Settings', () => 'Messages'),
-          Match.exhaustive,
-        ),
-    }),
-  }),
-  ToggledFlatten: (model, { isFlattened }) => ({
-    model: modifyFields(model, { isFlattened: () => isFlattened }),
-    commands: [PersistDevToolsState({ isOpen: model.isOpen, isFlattened })],
-  }),
-  ObservedMobileBreakpoint: (model, { isMobile }) => {
-    if (isMobile === model.isMobile) {
-      return { model }
-    }
-
-    return {
-      model: modifyFields(model, { isMobile: () => isMobile }),
-      commands: scrollLockCommands(model.isOpen, isMobile),
-    }
-  },
-  ClickedRow: (model, { index }) =>
-    Match.value(model.mode).pipe(
-      Match.when('TimeTravel', () => ({
-        model,
-        commands: [JumpToAndInspect({ index })],
-      })),
-      Match.when('Inspect', () => ({
-        model: modifyFields(model, {
-          selectedIndex: () => index,
-          isFollowingLatest: () => false,
-        }),
-        commands: [InspectState({ index })],
-      })),
-      Match.exhaustive,
-    ),
-  ClickedResume: model => ({
-    model: modifyFields(model, {
-      isFollowingTop: () => true,
-      expandedPaths: () => HashSet.empty<string>(),
-      changedPaths: () => HashSet.empty<string>(),
-      affectedPaths: () => HashSet.empty<string>(),
-    }),
-    commands: [Resume(), InspectLatest(), ScrollToTop()],
-  }),
-  ClickedClear: model => ({
-    model: modifyFields(model, {
-      selectedIndex: () => INIT_INDEX,
-      isFollowingLatest: () => true,
-      isFollowingTop: () => true,
-      maybeBlockFilter: () => Option.none(),
-      expandedPaths: () => HashSet.empty<string>(),
-      changedPaths: () => HashSet.empty<string>(),
-      affectedPaths: () => HashSet.empty<string>(),
-      copyStates: () => HashMap.empty(),
-    }),
-    commands: [Clear(), InspectLatest(), ScrollToTop()],
-  }),
-  ClickedFollowLatest: model => {
-    const latestIndex = Array.match(model.entries, {
-      onEmpty: () => INIT_INDEX,
-      onNonEmpty: () => model.startIndex + model.entries.length - 1,
+    const inspectorTabs = yield* new InspectorTabs('inspectorTabs', {
+      id: INSPECTOR_TABS_ID,
+    })
+    const blockFilterListbox = yield* new BlockFilterListbox(
+      'blockFilterListbox',
+      { id: BLOCK_FILTER_ID },
+    )
+    const scrubberSlider = yield* new ScrubberSlider('scrubberSlider', {
+      id: SCRUBBER_SLIDER_ID,
+      min: 0,
+      max: initialState.entries.length,
+      step: 1,
     })
 
-    return {
-      model: modifyFields(model, {
-        selectedIndex: () => latestIndex,
-        isFollowingLatest: () => true,
-        isFollowingTop: () => true,
-        expandedPaths: () => HashSet.empty<string>(),
-        changedPaths: () => HashSet.empty<string>(),
-        affectedPaths: () => HashSet.empty<string>(),
-      }),
-      commands: [InspectLatest(), ScrollToTop()],
-    }
-  },
-  ClickedScrollToTopPill: model => ({
-    model: modifyFields(model, {
-      isFollowingTop: () => true,
-    }),
-    commands: [ScrollToTop()],
-  }),
-  ScrolledMessageList: (model, { scrollTop }) => {
-    const isAtTop = scrollTop <= SCROLL_FOLLOW_THRESHOLD_PX
-    return isAtTop === model.isFollowingTop
-      ? { model }
-      : { model: modifyFields(model, { isFollowingTop: () => isAtTop }) }
-  },
-  ReceivedInspectedState: (
-    model,
-    { model: inspectedModel, maybeMessage, changedPaths, affectedPaths },
-  ) => ({
-    model: modifyFields(model, {
-      maybeInspectedModel: () => Option.some(inspectedModel),
-      maybeInspectedMessage: () => maybeMessage,
-      changedPaths: () => changedPaths,
-      affectedPaths: () => affectedPaths,
-    }),
-  }),
-  ToggledTreeNode: (model, { path }) => ({
-    model: modifyFields(model, {
-      expandedPaths: paths =>
-        HashSet.has(paths, path)
-          ? HashSet.remove(paths, path)
-          : HashSet.add(paths, path),
-    }),
-  }),
-  ClickedCopyPayload: (model, { targetId, payload }) => {
-    if (Option.isSome(HashMap.get(model.copyStates, targetId))) {
-      return { model }
-    }
-
-    const requestId = model.nextCopyRequestId
-
-    return {
-      model: modifyFields(model, {
-        copyStates: states =>
-          HashMap.set(states, targetId, CopyState.Copying({ requestId })),
-        nextCopyRequestId: current => current + 1,
-      }),
-      commands: [CopyPayloadToClipboard({ targetId, requestId, payload })],
-    }
-  },
-  ReceivedStoreUpdate: (
-    model,
-    {
-      entries,
-      initCommands,
-      initMountStarts,
-      startIndex,
-      isPaused,
-      pausedAtIndex,
-    },
-  ) => {
-    const shouldFollowSelection = Match.value(model.mode).pipe(
-      Match.when('TimeTravel', () => !isPaused),
-      Match.when('Inspect', () => model.isFollowingLatest),
-      Match.exhaustive,
-    )
-
-    const shouldFollowScroll = Match.value(model.mode).pipe(
-      Match.when('TimeTravel', () => !isPaused && model.isFollowingTop),
-      Match.when('Inspect', () => model.isFollowingTop),
-      Match.exhaustive,
-    )
-
-    const latestIndex = Array.match(entries, {
-      onEmpty: () => INIT_INDEX,
-      onNonEmpty: () => startIndex + entries.length - 1,
-    })
-
-    const nextBlockTags = computeBlockTags(entries)
-    const isFilterStale = Option.exists(
-      model.maybeBlockFilter,
-      filterTag => !Array.contains(nextBlockTags, filterTag),
-    )
-
-    const sliderMax = entries.length
-    const targetSliderValue = isPaused
-      ? hostIndexToSliderValue(pausedAtIndex, startIndex)
+    const { isFlattened, ...displayState } = initialState
+    const sliderMax = initialState.entries.length
+    const initialSliderValue = initialState.isPaused
+      ? hostIndexToSliderValue(
+          initialState.pausedAtIndex,
+          initialState.startIndex,
+        )
       : sliderMax
 
-    return Update.combineSteps(model, [
-      ApplicationDefinition.makeStep(stepModel => ({
-        model: modifyFields(stepModel, {
-          entries: () => entries,
-          initCommands: () => initCommands,
-          initMountStarts: () => initMountStarts,
-          startIndex: () => startIndex,
-          isPaused: () => isPaused,
-          pausedAtIndex: () => pausedAtIndex,
-          blockTags: () => nextBlockTags,
-          maybeBlockFilter: current =>
-            isFilterStale ? Option.none() : current,
-          selectedIndex: current =>
-            shouldFollowSelection ? latestIndex : current,
-          scrubberValue: current =>
-            Match.value(model.scrubberSlider.dragState).pipe(
-              Match.tag('Dragging', () =>
-                Slider.snapAndClamp(current, 0, sliderMax, 1),
-              ),
-              Match.orElse(() =>
-                Slider.snapAndClamp(targetSliderValue, 0, sliderMax, 1),
-              ),
-            ),
-        }),
-        commands: [
-          ...Array.filter([InspectLatest()], () => shouldFollowSelection),
-          ...Array.filter([ScrollToTop()], () => shouldFollowScroll),
-        ],
-      })),
-      bindings.ScrubberBinding.informRangeChanged({ min: 0, max: sliderMax }),
-    ])
-  },
-  TickedScrubFrame: model =>
-    Option.match(model.maybePendingScrubIndex, {
-      onNone: () => ({ model }),
-      onSome: hostIndex => ({
-        model: modifyFields(model, {
-          maybePendingScrubIndex: () => Option.none(),
-        }),
-        commands: [JumpToAndInspect({ index: hostIndex })],
-      }),
-    }),
-  CompletedResume: ApplicationDefinition.makeNoopStep(),
-  CompletedClear: ApplicationDefinition.makeNoopStep(),
-  CompletedPersistDevToolsState: ApplicationDefinition.makeNoopStep(),
-  CompletedLockScroll: ApplicationDefinition.makeNoopStep(),
-  CompletedUnlockScroll: ApplicationDefinition.makeNoopStep(),
-  CompletedScrollToTop: ApplicationDefinition.makeNoopStep(),
-  SucceededCopyPayloadToClipboard: (model, { targetId, requestId }) =>
-    Option.exists(
-      HashMap.get(model.copyStates, targetId),
-      state => state._tag === 'Copying' && state.requestId === requestId,
-    )
-      ? {
+    return {
+      model: {
+        screen: 'Messages',
+        ...displayState,
+        isFlattened,
+        selectedIndex: INIT_INDEX,
+        isFollowingLatest: true,
+        isFollowingTop: true,
+        blockTags: computeBlockTags(initialState.entries),
+        maybeBlockFilter: Option.none(),
+        blockFilterListbox,
+        maybeInspectedModel: Option.none(),
+        maybeInspectedMessage: Option.none(),
+        expandedPaths: HashSet.empty(),
+        changedPaths: HashSet.empty(),
+        affectedPaths: HashSet.empty(),
+        copyStates: HashMap.empty(),
+        nextCopyRequestId: 0,
+        maybePendingScrubIndex: Option.none(),
+        inspectorTabs,
+        activeInspectorTab: 'Model',
+        scrubberSlider,
+        scrubberValue: Slider.snapAndClamp(initialSliderValue, 0, sliderMax, 1),
+      },
+
+      start: Array.filter(
+        [LockScroll()],
+        () => initialState.isOpen && initialState.isMobile,
+      ),
+
+      update: {
+        ClickedToggle: model => {
+          const nextIsOpen = !model.isOpen
+          return {
+            model: modifyFields(model, { isOpen: () => nextIsOpen }),
+            commands: [
+              ...scrollLockCommands(model.isMobile, nextIsOpen),
+              PersistDevToolsState({
+                isOpen: nextIsOpen,
+                isFlattened: model.isFlattened,
+              }),
+            ],
+          }
+        },
+        ClickedSettingsToggle: model => ({
           model: modifyFields(model, {
-            copyStates: states =>
-              HashMap.set(states, targetId, CopyState.Copied({ requestId })),
+            screen: currentScreen =>
+              Match.value(currentScreen).pipe(
+                Match.withReturnType<Screen>(),
+                Match.when('Messages', () => 'Settings'),
+                Match.when('Settings', () => 'Messages'),
+                Match.exhaustive,
+              ),
           }),
-          commands: [WaitBeforeHidingCopyIndicator({ targetId, requestId })],
-        }
-      : { model },
-  FailedCopyPayloadToClipboard: (model, { targetId, requestId }) => ({
-    model: Option.exists(
-      HashMap.get(model.copyStates, targetId),
-      state => state._tag === 'Copying' && state.requestId === requestId,
-    )
-      ? modifyFields(model, { copyStates: HashMap.remove(targetId) })
-      : model,
+        }),
+        ToggledFlatten: (model, { isFlattened }) => ({
+          model: modifyFields(model, { isFlattened: () => isFlattened }),
+          commands: [
+            PersistDevToolsState({ isOpen: model.isOpen, isFlattened }),
+          ],
+        }),
+        ObservedMobileBreakpoint: (model, { isMobile }) => {
+          if (isMobile === model.isMobile) {
+            return { model }
+          }
+
+          return {
+            model: modifyFields(model, { isMobile: () => isMobile }),
+            commands: scrollLockCommands(model.isOpen, isMobile),
+          }
+        },
+        ClickedRow: (model, { index }) =>
+          Match.value(model.mode).pipe(
+            Match.when('TimeTravel', () => ({
+              model,
+              commands: [JumpToAndInspect({ index })],
+            })),
+            Match.when('Inspect', () => ({
+              model: modifyFields(model, {
+                selectedIndex: () => index,
+                isFollowingLatest: () => false,
+              }),
+              commands: [InspectState({ index })],
+            })),
+            Match.exhaustive,
+          ),
+        ClickedResume: model => ({
+          model: modifyFields(model, {
+            isFollowingTop: () => true,
+            expandedPaths: () => HashSet.empty<string>(),
+            changedPaths: () => HashSet.empty<string>(),
+            affectedPaths: () => HashSet.empty<string>(),
+          }),
+          commands: [Resume(), InspectLatest(), ScrollToTop()],
+        }),
+        ClickedClear: model => ({
+          model: modifyFields(model, {
+            selectedIndex: () => INIT_INDEX,
+            isFollowingLatest: () => true,
+            isFollowingTop: () => true,
+            maybeBlockFilter: () => Option.none(),
+            expandedPaths: () => HashSet.empty<string>(),
+            changedPaths: () => HashSet.empty<string>(),
+            affectedPaths: () => HashSet.empty<string>(),
+            copyStates: () => HashMap.empty(),
+          }),
+          commands: [Clear(), InspectLatest(), ScrollToTop()],
+        }),
+        ClickedFollowLatest: model => {
+          const latestIndex = Array.match(model.entries, {
+            onEmpty: () => INIT_INDEX,
+            onNonEmpty: () => model.startIndex + model.entries.length - 1,
+          })
+
+          return {
+            model: modifyFields(model, {
+              selectedIndex: () => latestIndex,
+              isFollowingLatest: () => true,
+              isFollowingTop: () => true,
+              expandedPaths: () => HashSet.empty<string>(),
+              changedPaths: () => HashSet.empty<string>(),
+              affectedPaths: () => HashSet.empty<string>(),
+            }),
+            commands: [InspectLatest(), ScrollToTop()],
+          }
+        },
+        ClickedScrollToTopPill: model => ({
+          model: modifyFields(model, {
+            isFollowingTop: () => true,
+          }),
+          commands: [ScrollToTop()],
+        }),
+        ScrolledMessageList: (model, { scrollTop }) => {
+          const isAtTop = scrollTop <= SCROLL_FOLLOW_THRESHOLD_PX
+          return isAtTop === model.isFollowingTop
+            ? { model }
+            : { model: modifyFields(model, { isFollowingTop: () => isAtTop }) }
+        },
+        ReceivedInspectedState: (
+          model,
+          { model: inspectedModel, maybeMessage, changedPaths, affectedPaths },
+        ) => ({
+          model: modifyFields(model, {
+            maybeInspectedModel: () => Option.some(inspectedModel),
+            maybeInspectedMessage: () => maybeMessage,
+            changedPaths: () => changedPaths,
+            affectedPaths: () => affectedPaths,
+          }),
+        }),
+        ToggledTreeNode: (model, { path }) => ({
+          model: modifyFields(model, {
+            expandedPaths: paths =>
+              HashSet.has(paths, path)
+                ? HashSet.remove(paths, path)
+                : HashSet.add(paths, path),
+          }),
+        }),
+        ClickedCopyPayload: (model, { targetId, payload }) => {
+          if (Option.isSome(HashMap.get(model.copyStates, targetId))) {
+            return { model }
+          }
+
+          const requestId = model.nextCopyRequestId
+
+          return {
+            model: modifyFields(model, {
+              copyStates: states =>
+                HashMap.set(states, targetId, CopyState.Copying({ requestId })),
+              nextCopyRequestId: current => current + 1,
+            }),
+            commands: [
+              CopyPayloadToClipboard({ targetId, requestId, payload }),
+            ],
+          }
+        },
+        ReceivedStoreUpdate: (
+          model,
+          {
+            entries,
+            initCommands,
+            initMountStarts,
+            startIndex,
+            isPaused,
+            pausedAtIndex,
+          },
+        ) => {
+          const shouldFollowSelection = Match.value(model.mode).pipe(
+            Match.when('TimeTravel', () => !isPaused),
+            Match.when('Inspect', () => model.isFollowingLatest),
+            Match.exhaustive,
+          )
+
+          const shouldFollowScroll = Match.value(model.mode).pipe(
+            Match.when('TimeTravel', () => !isPaused && model.isFollowingTop),
+            Match.when('Inspect', () => model.isFollowingTop),
+            Match.exhaustive,
+          )
+
+          const latestIndex = Array.match(entries, {
+            onEmpty: () => INIT_INDEX,
+            onNonEmpty: () => startIndex + entries.length - 1,
+          })
+
+          const nextBlockTags = computeBlockTags(entries)
+          const isFilterStale = Option.exists(
+            model.maybeBlockFilter,
+            filterTag => !Array.contains(nextBlockTags, filterTag),
+          )
+
+          const nextSliderMax = entries.length
+          const targetSliderValue = isPaused
+            ? hostIndexToSliderValue(pausedAtIndex, startIndex)
+            : nextSliderMax
+
+          return {
+            model: modifyFields(model, {
+              entries: () => entries,
+              initCommands: () => initCommands,
+              initMountStarts: () => initMountStarts,
+              startIndex: () => startIndex,
+              isPaused: () => isPaused,
+              pausedAtIndex: () => pausedAtIndex,
+              blockTags: () => nextBlockTags,
+              maybeBlockFilter: current =>
+                isFilterStale ? Option.none() : current,
+              selectedIndex: current =>
+                shouldFollowSelection ? latestIndex : current,
+              scrubberValue: current =>
+                Match.value(model.scrubberSlider.model.dragState).pipe(
+                  Match.tag('Dragging', () =>
+                    Slider.snapAndClamp(current, 0, nextSliderMax, 1),
+                  ),
+                  Match.orElse(() =>
+                    Slider.snapAndClamp(targetSliderValue, 0, nextSliderMax, 1),
+                  ),
+                ),
+            }),
+            commands: [
+              ...Array.filter([InspectLatest()], () => shouldFollowSelection),
+              ...Array.filter([ScrollToTop()], () => shouldFollowScroll),
+            ],
+            messages: [
+              model.scrubberSlider.send(
+                ScrubberSlider.Message.InformedOfRangeChange({
+                  min: 0,
+                  max: nextSliderMax,
+                }),
+              ),
+            ],
+          }
+        },
+        TickedScrubFrame: model =>
+          Option.match(model.maybePendingScrubIndex, {
+            onNone: () => ({ model }),
+            onSome: hostIndex => ({
+              model: modifyFields(model, {
+                maybePendingScrubIndex: () => Option.none(),
+              }),
+              commands: [JumpToAndInspect({ index: hostIndex })],
+            }),
+          }),
+        CompletedResume: model => ({ model }),
+        CompletedClear: model => ({ model }),
+        CompletedPersistDevToolsState: model => ({ model }),
+        CompletedLockScroll: model => ({ model }),
+        CompletedUnlockScroll: model => ({ model }),
+        CompletedScrollToTop: model => ({ model }),
+        SucceededCopyPayloadToClipboard: (model, { targetId, requestId }) =>
+          hasCopyState(model, targetId, 'Copying', requestId)
+            ? {
+                model: modifyFields(model, {
+                  copyStates: states =>
+                    HashMap.set(
+                      states,
+                      targetId,
+                      CopyState.Copied({ requestId }),
+                    ),
+                }),
+                commands: [
+                  WaitBeforeHidingCopyIndicator({ targetId, requestId }),
+                ],
+              }
+            : { model },
+        FailedCopyPayloadToClipboard: (model, { targetId, requestId }) => ({
+          model: hasCopyState(model, targetId, 'Copying', requestId)
+            ? modifyFields(model, { copyStates: HashMap.remove(targetId) })
+            : model,
+        }),
+        CompletedWaitBeforeHidingCopyIndicator: (
+          model,
+          { targetId, requestId },
+        ) => ({
+          model: hasCopyState(model, targetId, 'Copied', requestId)
+            ? modifyFields(model, { copyStates: HashMap.remove(targetId) })
+            : model,
+        }),
+        ...inspectorTabs.on<Model>({
+          Selected: (model, { value }) => ({
+            model: modifyFields(model, { activeInspectorTab: () => value }),
+          }),
+        }),
+        ...blockFilterListbox.on<Model>({
+          Selected: (model, { value }) => ({
+            model: modifyFields(model, {
+              maybeBlockFilter: () =>
+                Option.liftPredicate(value, String.isNonEmpty),
+            }),
+          }),
+        }),
+        // NOTE: Pointer Messages update the thumb immediately, but jumping to
+        // and inspecting the corresponding state is expensive. Keep only the
+        // latest host index until TickedScrubFrame flushes one navigation on
+        // the next frame.
+        ...scrubberSlider.on<Model>({
+          ChangedValue: (model, { value }) => ({
+            model: modifyFields(model, {
+              scrubberValue: () => value,
+              maybePendingScrubIndex: () =>
+                Option.some(sliderValueToHostIndex(value, model.startIndex)),
+            }),
+          }),
+        }),
+      },
+
+      commands: {
+        LockScroll: () =>
+          lockScroll.pipe(Effect.as(Message.CompletedLockScroll())),
+        UnlockScroll: () =>
+          unlockScroll.pipe(Effect.as(Message.CompletedUnlockScroll())),
+        PersistDevToolsState: ({ isOpen, isFlattened }) =>
+          Effect.gen(function* () {
+            const json = yield* Schema.encodeEffect(DevToolsPersistedStateJson)(
+              { isOpen, isFlattened },
+            )
+            yield* keyValueStore.set(DEVTOOLS_STORAGE_KEY, json)
+            return Message.CompletedPersistDevToolsState()
+          }).pipe(
+            Effect.catch(() =>
+              Effect.succeed(Message.CompletedPersistDevToolsState()),
+            ),
+          ),
+        JumpToAndInspect: ({ index }) =>
+          Effect.gen(function* () {
+            const model = yield* store.jumpTo(index)
+            return yield* buildInspectionFromModel(store, index, model)
+          }),
+        InspectState: ({ index }) => buildInspectionEffect(store, index),
+        InspectLatest: () =>
+          Effect.gen(function* () {
+            const state = yield* SubscriptionRef.get(store.stateRef)
+            return yield* buildInspectionEffect(store, latestEntryIndex(state))
+          }),
+        Resume: () => store.resume.pipe(Effect.as(Message.CompletedResume())),
+        Clear: () => store.clear.pipe(Effect.as(Message.CompletedClear())),
+        CopyPayloadToClipboard: copyPayloadToClipboard,
+        WaitBeforeHidingCopyIndicator: ({ targetId, requestId }) =>
+          Effect.sleep(COPY_INDICATOR_DURATION).pipe(
+            Effect.as(
+              Message.CompletedWaitBeforeHidingCopyIndicator({
+                targetId,
+                requestId,
+              }),
+            ),
+          ),
+        ScrollToTop: () =>
+          Effect.sync(() => {
+            const messageList = shadow.querySelector(MESSAGE_LIST_SELECTOR)
+            if (messageList instanceof HTMLElement) {
+              messageList.scrollTop = 0
+            }
+            return Message.CompletedScrollToTop()
+          }),
+      },
+
+      stream: Stream.merge(
+        SubscriptionRef.changes(store.stateRef).pipe(
+          Stream.map(state =>
+            Message.ReceivedStoreUpdate(toDisplayState(state)),
+          ),
+        ),
+        Dom.streamFromMediaQuery({
+          query: MOBILE_BREAKPOINT_QUERY,
+          mapMatches: isMobile =>
+            Message.ObservedMobileBreakpoint({ isMobile }),
+        }),
+      ),
+
+      subscriptions: {
+        scrubFrameTicks: {
+          dependencies: model => Option.isSome(model.maybePendingScrubIndex),
+          stream: (isActive: boolean) =>
+            isActive
+              ? Dom.animationFrameTicks.pipe(
+                  Stream.map(() => Message.TickedScrubFrame()),
+                )
+              : Stream.empty,
+        },
+      },
+
+      view: makeView(),
+    }
   }),
-  CompletedWaitBeforeHidingCopyIndicator: (model, { targetId, requestId }) => ({
-    model: Option.exists(
-      HashMap.get(model.copyStates, targetId),
-      state => state._tag === 'Copied' && state.requestId === requestId,
-    )
-      ? modifyFields(model, {
-          copyStates: HashMap.remove(targetId),
-        })
-      : model,
-  }),
-})
+)
 
 // VIEW
+
+type ApplicationViewBuilder = HtmlBuilder<Message>
 
 const indexClass = 'text-2xs text-dt-muted font-mono min-w-5'
 
@@ -1121,9 +1059,7 @@ const PANEL_POSITION_CLASS: Record<DevToolsPosition, string> = {
 // Safe despite the "thread `h`, never store it" rule because each cached view
 // is keyed by the ShadowRoot that owns its root frame, and the builder is the
 // runtime's process-wide singleton.
-const makeView = (
-  bindings: OverlayBindings,
-): ((model: Model, h: ApplicationViewBuilder) => Html) => {
+const makeView = (): ((model: Model, h: ApplicationViewBuilder) => Html) => {
   const views = new WeakMap<ShadowRoot, (model: Model) => Html>()
 
   return (model, h) => {
@@ -1136,9 +1072,7 @@ const makeView = (
     const view = buildOverlayView(
       model.position,
       model.mode,
-      shadow,
       model.maybeBanner,
-      bindings,
       h,
     )
     views.set(shadow, view)
@@ -1146,27 +1080,10 @@ const makeView = (
   }
 }
 
-const view = ApplicationComposition.makeView(makeView(bindings))
-
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    subscriptions,
-    EffectsLayer,
-  })
-const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
-
 const buildOverlayView = (
   position: DevToolsPosition,
   mode: DevToolsMode,
-  shadow: ShadowRoot,
   maybeBanner: Option.Option<string>,
-  bindings: OverlayBindings,
   h: ApplicationViewBuilder,
 ): ((model: Model) => Html) => {
   const lazyTreeNode = createKeyedLazy()
@@ -1647,47 +1564,8 @@ const buildOverlayView = (
       ],
     )
 
-  const unwrapToLeaf = (message: unknown): unknown => {
-    if (
-      isTagged(message) &&
-      GOT_MESSAGE_PATTERN.test(message._tag) &&
-      Predicate.hasProperty(message, 'message') &&
-      Predicate.isNotUndefined(message.message)
-    ) {
-      return unwrapToLeaf(message.message)
-    } else {
-      return message
-    }
-  }
-
-  const unwrapIfFiltered = (
-    message: unknown,
-    maybeBlockFilter: Option.Option<string>,
-  ): unknown => {
-    if (Option.isNone(maybeBlockFilter)) {
-      return message
-    }
-    const { value: filterTag } = maybeBlockFilter
-
-    let current = message
-    let matched = false
-    while (isTagged(current) && GOT_MESSAGE_PATTERN.test(current._tag)) {
-      if (current._tag === filterTag) {
-        matched = true
-      }
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      const inner = (current as Record<string, unknown>)?.['message']
-      if (inner === undefined) {
-        break
-      }
-      current = inner
-      if (matched) {
-        break
-      }
-    }
-
-    return current
-  }
+  const unwrapBlockMessage = (message: unknown): unknown =>
+    Block.isBlockMessage(message) ? message.message : message
 
   const messageTabContent = (
     maybeInspectedMessage: Option.Option<unknown>,
@@ -1701,9 +1579,10 @@ const buildOverlayView = (
     Option.match(maybeInspectedMessage, {
       onNone: noMessageView,
       onSome: rawMessage => {
-        const message = isFlattened
-          ? unwrapToLeaf(rawMessage)
-          : unwrapIfFiltered(rawMessage, maybeBlockFilter)
+        const message =
+          isFlattened || Option.isSome(maybeBlockFilter)
+            ? unwrapBlockMessage(rawMessage)
+            : rawMessage
 
         return h.div(
           [h.Class('flex flex-col flex-1 min-h-0 min-w-0')],
@@ -2078,66 +1957,56 @@ const buildOverlayView = (
         ),
       ],
       [
-        h.block(
-          bindings.InspectorTabsBinding.embedView({
-            slotId: model.inspectorTabs.id,
-            model: model.inspectorTabs,
-            viewInputs: {
-              tabs: INSPECTOR_TABS,
-              selectedValue: model.activeInspectorTab,
-              ariaLabel: 'Inspector tabs',
-              panelMount: 'All',
-              toView: ({ tablist, tabs, activeIndex }) =>
+        model.inspectorTabs.view({
+          tabs: INSPECTOR_TABS,
+          selectedValue: model.activeInspectorTab,
+          ariaLabel: 'Inspector tabs',
+          panelMount: 'All',
+          toView: ({ tablist, tabs, activeIndex }) =>
+            h.div(
+              [h.Class('flex flex-col flex-1 min-h-0')],
+              [
                 h.div(
-                  [h.Class('flex flex-col flex-1 min-h-0')],
-                  [
-                    h.div(
-                      [...tablist, h.Class('flex border-b shrink-0')],
-                      tabs.map(tab =>
-                        h.button(
-                          [
-                            ...tab.tab,
-                            h.Class(
-                              clsx(
-                                'dt-tab-button cursor-pointer text-base font-mono px-3 py-1',
-                                tab.isActive
-                                  ? 'text-dt dt-tab-active'
-                                  : 'text-dt-muted',
-                              ),
-                            ),
-                          ],
-                          [h.span([], [tab.value])],
+                  [...tablist, h.Class('flex border-b shrink-0')],
+                  tabs.map(tab =>
+                    h.button(
+                      [
+                        ...tab.tab,
+                        h.Class(
+                          clsx(
+                            'dt-tab-button cursor-pointer text-base font-mono px-3 py-1',
+                            tab.isActive
+                              ? 'text-dt dt-tab-active'
+                              : 'text-dt-muted',
+                          ),
                         ),
-                      ),
+                      ],
+                      [h.span([], [tab.value])],
                     ),
-                    ...tabs.map(tab =>
-                      h.div(
-                        [
-                          ...tab.panel,
-                          h.Class('flex flex-col flex-1 min-h-0 min-w-0'),
-                          h.Hidden(tab.index !== activeIndex),
-                          ...(tab.index === activeIndex
-                            ? []
-                            : [h.Style({ display: 'none' })]),
-                        ],
-                        [
-                          Option.match(model.maybeInspectedModel, {
-                            onNone: () => emptyInspectorView,
-                            onSome: inspectedModel =>
-                              inspectorTabContent(
-                                model,
-                                tab.value,
-                                inspectedModel,
-                              ),
-                          }),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-            },
-          }),
-        ),
+                ...tabs.map(tab =>
+                  h.div(
+                    [
+                      ...tab.panel,
+                      h.Class('flex flex-col flex-1 min-h-0 min-w-0'),
+                      h.Hidden(tab.index !== activeIndex),
+                      ...(tab.index === activeIndex
+                        ? []
+                        : [h.Style({ display: 'none' })]),
+                    ],
+                    [
+                      Option.match(model.maybeInspectedModel, {
+                        onNone: () => emptyInspectorView,
+                        onSome: inspectedModel =>
+                          inspectorTabContent(model, tab.value, inspectedModel),
+                      }),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+        }),
       ],
     )
 
@@ -2226,7 +2095,7 @@ const buildOverlayView = (
   )
 
   const filterItemLabel = (item: string): string =>
-    String.isNonEmpty(item) ? blockSegmentLabel(item) : 'All Messages'
+    String.isNonEmpty(item) ? item : 'All Messages'
 
   const ARROW_UP = 'M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18'
 
@@ -2259,59 +2128,53 @@ const buildOverlayView = (
     )
 
   const blockFilterView = (model: Model): Html => {
-    const buttonLabel = Option.match(model.maybeBlockFilter, {
-      onNone: () => 'All Messages',
-      onSome: blockSegmentLabel,
-    })
+    const buttonLabel = Option.getOrElse(
+      model.maybeBlockFilter,
+      () => 'All Messages',
+    )
 
-    return h.block(
-      bindings.BlockFilterListboxBinding.embedView({
-        slotId: 'block-filter',
-        model: model.blockFilterListbox,
-        viewInputs: {
-          items: [ALL_MESSAGES_VALUE, ...model.blockTags],
-          maybeSelectedValue: Option.orElseSome(
-            model.maybeBlockFilter,
-            () => ALL_MESSAGES_VALUE,
-          ),
-          itemToConfig: item => ({
-            className: 'dt-filter-item',
-            content: h.div(
-              [h.Class('flex items-center gap-2')],
-              [checkIconView, h.span([], [filterItemLabel(item)])],
-            ),
-          }),
-          buttonContent: h.span(
-            [h.Class('flex flex-1 items-center justify-between')],
+    return model.blockFilterListbox.view({
+      items: [ALL_MESSAGES_VALUE, ...model.blockTags],
+      maybeSelectedValue: Option.orElseSome(
+        model.maybeBlockFilter,
+        () => ALL_MESSAGES_VALUE,
+      ),
+      itemToConfig: item => ({
+        className: 'dt-filter-item',
+        content: h.div(
+          [h.Class('flex items-center gap-2')],
+          [checkIconView, h.span([], [filterItemLabel(item)])],
+        ),
+      }),
+      buttonContent: h.span(
+        [h.Class('flex flex-1 items-center justify-between')],
+        [
+          h.span([], [buttonLabel]),
+          h.svg(
             [
-              h.span([], [buttonLabel]),
-              h.svg(
-                [
-                  h.AriaHidden(true),
-                  h.Class('json-arrow shrink-0'),
-                  h.Xmlns('http://www.w3.org/2000/svg'),
-                  h.Fill('none'),
-                  h.ViewBox('0 0 24 24'),
-                  h.StrokeWidth('2'),
-                  h.Stroke('currentColor'),
-                ],
-                [
-                  h.path([
-                    h.D(CHEVRON_DOWN),
-                    h.StrokeLinecap('round'),
-                    h.StrokeLinejoin('round'),
-                  ]),
-                ],
-              ),
+              h.AriaHidden(true),
+              h.Class('json-arrow shrink-0'),
+              h.Xmlns('http://www.w3.org/2000/svg'),
+              h.Fill('none'),
+              h.ViewBox('0 0 24 24'),
+              h.StrokeWidth('2'),
+              h.Stroke('currentColor'),
+            ],
+            [
+              h.path([
+                h.D(CHEVRON_DOWN),
+                h.StrokeLinecap('round'),
+                h.StrokeLinejoin('round'),
+              ]),
             ],
           ),
-          buttonClassName: 'dt-filter-button',
-          itemsClassName: 'dt-filter-items',
-          className: 'dt-filter-wrapper',
-          backdropClassName: 'dt-filter-backdrop',
-        },
-      }),
-    )
+        ],
+      ),
+      buttonClassName: 'dt-filter-button',
+      itemsClassName: 'dt-filter-items',
+      className: 'dt-filter-wrapper',
+      backdropClassName: 'dt-filter-backdrop',
+    })
   }
 
   // SETTINGS
@@ -2542,21 +2405,31 @@ const buildOverlayView = (
     const leafOrTag = (entry: DisplayEntry): string =>
       Option.getOrElse(entry.maybeLeafTag, () => entry.tag)
 
+    const pathLabel = (
+      blockPath: ReadonlyArray<string>,
+      entry: DisplayEntry,
+    ): string =>
+      Array.match(blockPath, {
+        onEmpty: () => leafOrTag(entry),
+        onNonEmpty: segments =>
+          `${formatBlockPath(segments)} › ${leafOrTag(entry)}`,
+      })
+
     const displayTagFor = (entry: DisplayEntry): string => {
       if (isFlattened) {
         return leafOrTag(entry)
       } else {
         return Option.match(maybeFilterTag, {
-          onNone: () => entry.tag,
-          onSome: filterTag =>
+          onNone: () => pathLabel(entry.blockPath, entry),
+          onSome: filterKey =>
             pipe(
-              entry.blockPath,
-              Array.findFirstIndex(pathTag => pathTag === filterTag),
-              Option.flatMap(filterIndex =>
-                Array.get(entry.blockPath, Number.increment(filterIndex)),
+              blockPathKeys(entry.blockPath),
+              Array.findFirstIndex(pathKey => pathKey === filterKey),
+              Option.map(filterIndex =>
+                Array.drop(entry.blockPath, Number.increment(filterIndex)),
               ),
-              Option.orElse(() => entry.maybeLeafTag),
-              Option.getOrElse(() => entry.tag),
+              Option.getOrElse(() => entry.blockPath),
+              blockPath => pathLabel(blockPath, entry),
             ),
         })
       }
@@ -2575,7 +2448,10 @@ const buildOverlayView = (
       })),
       isFiltered
         ? Array.filter(({ entry }) =>
-            Array.contains(entry.blockPath, maybeFilterTag.value),
+            Array.contains(
+              blockPathKeys(entry.blockPath),
+              maybeFilterTag.value,
+            ),
           )
         : Function.identity,
     )
@@ -2643,54 +2519,44 @@ const buildOverlayView = (
   }
 
   const scrubberView = (model: Model): Html =>
-    h.block(
-      bindings.ScrubberBinding.embedView({
-        slotId: model.scrubberSlider.id,
-        model: model.scrubberSlider,
-        viewInputs: {
-          value: model.scrubberValue,
-          ariaLabel: 'Session scrubber',
-          getTrackRoot: () => shadow,
-          formatValue: value =>
-            value === 0 ? 'init' : `Message ${globalThis.String(value)}`,
-          toView: attributes =>
+    model.scrubberSlider.view({
+      value: model.scrubberValue,
+      ariaLabel: 'Session scrubber',
+      formatValue: value =>
+        value === 0 ? 'init' : `Message ${globalThis.String(value)}`,
+      toView: attributes =>
+        h.div(
+          [h.Class('flex items-center gap-3 flex-1 min-w-0')],
+          [
             h.div(
-              [h.Class('flex items-center gap-3 flex-1 min-w-0')],
+              [
+                ...attributes.root,
+                h.Class('dt-scrubber-control flex-1 flex items-center'),
+              ],
               [
                 h.div(
+                  [...attributes.track, h.Class('dt-scrubber-track')],
                   [
-                    ...attributes.root,
-                    h.Class('dt-scrubber-control flex-1 flex items-center'),
+                    h.div([
+                      ...attributes.filledTrack,
+                      h.Class('dt-scrubber-fill'),
+                    ]),
+                    h.div([...attributes.thumb, h.Class('dt-scrubber-thumb')]),
                   ],
-                  [
-                    h.div(
-                      [...attributes.track, h.Class('dt-scrubber-track')],
-                      [
-                        h.div([
-                          ...attributes.filledTrack,
-                          h.Class('dt-scrubber-fill'),
-                        ]),
-                        h.div([
-                          ...attributes.thumb,
-                          h.Class('dt-scrubber-thumb'),
-                        ]),
-                      ],
-                    ),
-                  ],
-                ),
-                h.span(
-                  [
-                    h.Class(
-                      'dt-scrubber-position text-2xs text-dt-muted font-mono shrink-0 tabular-nums',
-                    ),
-                  ],
-                  [scrubberPositionLabel(model)],
                 ),
               ],
             ),
-        },
-      }),
-    )
+            h.span(
+              [
+                h.Class(
+                  'dt-scrubber-position text-2xs text-dt-muted font-mono shrink-0 tabular-nums',
+                ),
+              ],
+              [scrubberPositionLabel(model)],
+            ),
+          ],
+        ),
+    })
 
   // FOOTER
 
@@ -2976,32 +2842,39 @@ export const createOverlay = (
       BrowserKeyValueStore.layerLocalStorage,
     )
 
-    const flags = Effect.gen(function* () {
-      const store = yield* StoreService
+    const InitialStateLayer = Layer.effect(
+      InitialStateService,
+      Effect.gen(function* () {
+        const storeState = yield* SubscriptionRef.get(store.stateRef)
+        const { isOpen, isFlattened } = yield* readPersistedState
 
-      const storeState = yield* SubscriptionRef.get(store.stateRef)
-      const { isOpen, isFlattened } = yield* readPersistedState
+        return {
+          position,
+          mode,
+          maybeBanner,
+          isOpen,
+          isMobile: window.matchMedia(MOBILE_BREAKPOINT_QUERY).matches,
+          isFlattened,
+          ...toDisplayState(storeState),
+        }
+      }),
+    )
 
-      return {
-        position,
-        mode,
-        maybeBanner,
-        isOpen,
-        isMobile: window.matchMedia(MOBILE_BREAKPOINT_QUERY).matches,
-        isFlattened,
-        ...toDisplayState(storeState),
-      }
-    })
-
-    const program = Program.makeElement({
-      block: ApplicationBlock,
-      Flags,
-      flags,
+    const program = Program.makeElement(Application, {
+      layer: ApplicationLive.pipe(
+        Layer.provide(
+          Layer.mergeAll(
+            InspectorTabs.Live,
+            BlockFilterListbox.Live,
+            ScrubberSlider.Live,
+          ),
+        ),
+        Layer.provide(InitialStateLayer),
+        Layer.provide(ServicesLayer),
+      ),
       container,
       devTools: false,
-      freezeModel: false,
     })
-    const overlay = program.provide(ServicesLayer)
 
-    yield* Effect.forkScoped(overlay.start())
+    yield* Effect.forkScoped(program.start())
   })

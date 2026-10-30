@@ -1,5 +1,6 @@
 import { Effect, Option, Schema, pipe } from 'effect'
-import { AsyncData, Block } from 'foldkit'
+import { HttpClient } from 'effect/http'
+import { AsyncData, Block, Command } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -7,11 +8,6 @@ const Post = Schema.Struct({ id: Schema.String, title: Schema.String })
 type Post = typeof Post.Type
 
 const PostsData = AsyncData.Schema(Schema.Array(Post), Schema.String)
-type PostsData = typeof PostsData.schema.Type
-const Model = Schema.Struct({
-  posts: PostsData.schema,
-})
-type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
   EnteredPostsRoute: {},
@@ -19,40 +15,47 @@ const Message = defineMessageUnion({
     result: Schema.Result(Schema.Array(Post), Schema.String),
   },
 })
-type Message = typeof Message.Type
 
-const ApplicationDefinition = Block.makeDefinition('Application', {
-  Model,
-  Message,
-})
-
-const { makeFieldsStep } = ApplicationDefinition
-
-const ApplicationComposition = ApplicationDefinition.makeComposition()
-
-const FetchPosts = ApplicationDefinition.makeCommand('FetchPosts', {
+const FetchPosts = Command.define('FetchPosts', {
   messages: [Message.CompletedFetchPosts],
-  handler: function* () {
-    return () =>
-      pipe(
-        fetchPosts,
-        Effect.result,
-        Effect.map(result => Message.CompletedFetchPosts({ result })),
-      )
-  },
 })
 
-const update = ApplicationComposition.makeUpdate({
-  EnteredPostsRoute: model =>
-    Option.match(AsyncData.revalidateOrLoad(model.posts), {
-      onNone: () => ({ model }),
-      onSome: nextPosts => ({
-        model: modifyFields(model, { posts: () => nextPosts }),
-        commands: [FetchPosts()],
-      }),
-    }),
+export class Application extends Block<Application>()('Application', {
+  Model: Schema.Struct({ posts: PostsData.schema }),
+  Message,
+  Command: [FetchPosts],
+}) {}
 
-  CompletedFetchPosts: makeFieldsStep.fromMessage(({ result }) => ({
-    posts: AsyncData.settle(result),
-  })),
-})
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    const client = yield* HttpClient.HttpClient
+
+    return {
+      model: { posts: PostsData.Idle() },
+      update: {
+        EnteredPostsRoute: model =>
+          Option.match(AsyncData.revalidateOrLoad(model.posts), {
+            onNone: () => ({ model }),
+            onSome: nextPosts => ({
+              model: modifyFields(model, { posts: () => nextPosts }),
+              commands: [FetchPosts()],
+            }),
+          }),
+        CompletedFetchPosts: (model, { result }) => ({
+          model: modifyFields(model, { posts: AsyncData.settle(result) }),
+        }),
+      },
+      commands: {
+        FetchPosts: () =>
+          pipe(
+            client.get('/api/posts'),
+            Effect.flatMap(response => response.json),
+            Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Post))),
+            Effect.mapError(() => 'Could not load posts'),
+            Effect.result,
+            Effect.map(result => Message.CompletedFetchPosts({ result })),
+          ),
+      },
+    }
+  }),
+)

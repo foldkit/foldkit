@@ -1,49 +1,73 @@
-import { Effect, Schema } from 'effect'
-import { Mount } from 'foldkit'
-import type { Html, HtmlBuilder } from 'foldkit/html'
+import { Context, Effect, Schema } from 'effect'
+import { Block, Mount } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
+
+export type Chart = Readonly<{ destroy: () => void }>
+
+export class ChartLibrary extends Context.Service<
+  ChartLibrary,
+  Readonly<{
+    load: Effect.Effect<
+      Readonly<{
+        create: (element: Element, data: ReadonlyArray<number>) => Chart
+      }>,
+      Error
+    >
+  }>
+>()('ChartLibrary') {}
+
+const ChartData = Schema.Array(Schema.Number)
 
 const Message = defineMessageUnion({
   SucceededMountChart: {},
   FailedMountChart: { reason: Schema.String },
 })
-type Message = typeof Message.Type
-// Mount.define gives the action a name and constrains what Messages it can
-// produce, plus an args record so the chart's per-instance data flows through
-// declared values rather than a closure. The runtime calls the handler with the
-// live element on insert, runs the Effect to produce one Message, dispatches
-// it, and closes the scope on destroy (firing any acquireRelease finalizers).
-
-const ChartData = Schema.Array(Schema.Number)
-type ChartData = typeof ChartData.Type
 
 const MountChart = Mount.define('MountChart', {
   args: { data: ChartData },
   messages: [Message.SucceededMountChart, Message.FailedMountChart],
-  handler: function* () {
-    return ({ element, data }) =>
-      Effect.gen(function* () {
-        yield* Effect.acquireRelease(
-          Effect.tryPromise(() => import('some-chart-library')).pipe(
-            Effect.map(({ Chart }) => new Chart(element, { data })),
-          ),
-          chart => Effect.sync(() => chart.destroy()),
-        )
-        return Message.SucceededMountChart()
-      }).pipe(
-        Effect.catch(error =>
-          Effect.succeed(
-            Message.FailedMountChart({
-              reason: error instanceof Error ? error.message : String(error),
-            }),
-          ),
-        ),
-      )
-  },
 })
 
-const chartView = (
-  data: ChartData,
-  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof MountChart>>,
-): Html =>
-  h.div([h.Class('w-[480px] h-[320px]'), h.OnMount(MountChart({ data }))])
+export class Sales extends Block<Sales>()('Sales', {
+  Model: Schema.Struct({ monthlyTotals: ChartData }),
+  Message,
+  Mount: [MountChart],
+}) {}
+
+export const SalesLive = Sales.make(
+  Effect.fn(function* () {
+    const chartLibrary = yield* ChartLibrary
+
+    return {
+      model: { monthlyTotals: [12, 19, 7, 24] },
+
+      update: {
+        SucceededMountChart: model => ({ model }),
+        FailedMountChart: model => ({ model }),
+      },
+
+      mounts: {
+        MountChart: ({ element, data }) =>
+          Effect.acquireRelease(
+            chartLibrary.load.pipe(
+              Effect.map(library => library.create(element, data)),
+            ),
+            chart => Effect.sync(() => chart.destroy()),
+          ).pipe(
+            Effect.as(Message.SucceededMountChart()),
+            Effect.catch(error =>
+              Effect.succeed(
+                Message.FailedMountChart({ reason: error.message }),
+              ),
+            ),
+          ),
+      },
+
+      view: (model, h) =>
+        h.div([
+          h.Class('w-[480px] h-[320px]'),
+          h.OnMount(MountChart({ data: model.monthlyTotals })),
+        ]),
+    }
+  }),
+)

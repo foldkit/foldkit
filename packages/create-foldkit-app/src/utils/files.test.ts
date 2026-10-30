@@ -70,7 +70,6 @@ describe('rendering templates', () => {
       'src/application.ts',
       'src/entry.server.ts',
       'src/entry.ts',
-      'src/route.ts',
       'src/scene.test.ts',
       'src/vite-env.d.ts',
       'tsconfig.json',
@@ -88,22 +87,18 @@ describe('rendering templates', () => {
     expect(ssgViteConfig).toContain('build: { prerender: true }')
     const ssgServerEntry = readTemplateFile('rendering/ssg/src/entry.server.ts')
     expect(ssgServerEntry).toContain('export const prerenderPaths')
-    expect(ssgServerEntry).toContain('ApplicationBlock')
-    expect(ssgServerEntry).not.toMatch(/\bApplication\s*,/)
+    expect(ssgServerEntry).toContain('ApplicationLive')
     expect(readTemplateFile('rendering/ssg/src/entry.ts')).toContain(
       'Runtime.hydrate',
     )
     expect(readTemplateFile('rendering/ssg/src/application.ts')).toContain(
-      "ApplicationDefinition = Block.makeDefinition('Application', {",
-    )
-    expect(readTemplateFile('rendering/ssg/src/entry.ts')).toContain(
-      'Program.make({',
+      'export class Application extends Block<',
     )
     expect(readTemplateFile('rendering/ssg/src/application.ts')).toContain(
-      'ApplicationComposition = ApplicationDefinition.makeComposition()',
+      'export const ApplicationLive = Application.make(',
     )
-    expect(readTemplateFile('rendering/ssg/src/entry.ts')).not.toContain(
-      '...implementation',
+    expect(readTemplateFile('rendering/ssg/src/entry.ts')).toContain(
+      'Program.make(Application, {',
     )
   })
 
@@ -113,7 +108,6 @@ describe('rendering templates', () => {
       'package.json',
       'scripts/serve.ts',
       'src/application.ts',
-      'src/cookie.ts',
       'src/entry.server.ts',
       'src/entry.ts',
       'src/scene.test.ts',
@@ -131,22 +125,18 @@ describe('rendering templates', () => {
     expect(ssrViteConfig).toContain('build: true')
     const ssrServerEntry = readTemplateFile('rendering/ssr/src/entry.server.ts')
     expect(ssrServerEntry).toContain('flags: flagsForRequest(')
-    expect(ssrServerEntry).toContain('ApplicationBlock')
-    expect(ssrServerEntry).not.toMatch(/\bApplication\s*,/)
+    expect(ssrServerEntry).toContain('ApplicationLive')
     expect(readTemplateFile('rendering/ssr/src/entry.ts')).toContain(
       'Runtime.hydrate',
     )
     expect(readTemplateFile('rendering/ssr/src/application.ts')).toContain(
-      "ApplicationDefinition = Block.makeDefinition('Application', {",
-    )
-    expect(readTemplateFile('rendering/ssr/src/entry.ts')).toContain(
-      'Program.make({',
+      'export class Application extends Block<',
     )
     expect(readTemplateFile('rendering/ssr/src/application.ts')).toContain(
-      'ApplicationComposition = ApplicationDefinition.makeComposition()',
+      'export const ApplicationLive = Application.make(',
     )
-    expect(readTemplateFile('rendering/ssr/src/entry.ts')).not.toContain(
-      '...implementation',
+    expect(readTemplateFile('rendering/ssr/src/entry.ts')).toContain(
+      'Program.make(Application, {',
     )
   })
 

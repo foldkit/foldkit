@@ -1,47 +1,62 @@
+import { Option } from 'effect'
+import type { Resolved } from 'foldkit/block'
 import * as Scene from 'foldkit/scene'
-import { modifyFields } from 'foldkit/struct'
-import { describe, test } from 'vitest'
 
-import * as Dialog from '../../dialog/block.js'
-import { initialModel, update, view, viewWithDialog } from './disabledButton.js'
+import { describe, it } from '@effect/vitest'
+
+import { type DisabledButton, DisabledButtonLive } from './disabledButton.js'
+
+const openDialogModel: Resolved<typeof DisabledButton.Model.Type> = {
+  isEnabled: false,
+  dialog: {
+    id: 'test-dialog',
+    isOpen: true,
+    isAnimated: false,
+    animation: {
+      id: 'test-dialog-panel',
+      isShowing: false,
+      transitionState: 'Idle',
+      transitionGeneration: 0,
+    },
+    maybeFocusSelector: Option.none(),
+  },
+}
 
 describe('disabled button cleanup', () => {
   describe('plain button (no dialog)', () => {
-    test('submit becomes clickable after toggle', () => {
+    it.effect('submit becomes clickable after toggle', () =>
       Scene.scene(
-        { update, view },
-        Scene.given(initialModel),
+        DisabledButtonLive,
+        { isInDialog: false },
         Scene.expect(Scene.text('Submit')).toBeDisabled(),
         Scene.click(Scene.text('Toggle')),
         Scene.expect(Scene.text('Submit')).not.toBeDisabled(),
         Scene.click(Scene.text('Submit')),
-      )
-    })
+      ),
+    )
 
-    test('submit starts enabled when model says so', () => {
+    it.effect('submit starts enabled when model says so', () =>
       Scene.scene(
-        { update, view },
-        Scene.given(modifyFields(initialModel, { isEnabled: () => true })),
+        DisabledButtonLive,
+        { isInDialog: false },
+        Scene.given({ ...openDialogModel, isEnabled: true }),
         Scene.expect(Scene.text('Submit')).not.toBeDisabled(),
         Scene.click(Scene.text('Submit')),
-      )
-    })
+      ),
+    )
   })
 
   describe('button inside Dialog.view', () => {
-    test('submit becomes clickable after toggle', () => {
+    it.effect('submit becomes clickable after toggle', () =>
       Scene.scene(
-        { update, view: viewWithDialog },
-        Scene.given(initialModel),
-        Scene.Mount.resolve(
-          Dialog.AcquireResources,
-          Dialog.Message.SucceededAcquireResources(),
-        ),
+        DisabledButtonLive,
+        { isInDialog: true },
+        Scene.given(openDialogModel),
         Scene.expect(Scene.text('Submit')).toBeDisabled(),
         Scene.click(Scene.text('Toggle')),
         Scene.expect(Scene.text('Submit')).not.toBeDisabled(),
         Scene.click(Scene.text('Submit')),
-      )
-    })
+      ),
+    )
   })
 })

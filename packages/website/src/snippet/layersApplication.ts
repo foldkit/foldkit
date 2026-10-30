@@ -1,47 +1,74 @@
-import { Block } from 'foldkit'
+import { Effect, Schema } from 'effect'
+import { Block, Command } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
+import { defineTaggedUnion } from 'foldkit/schema'
+import { modifyFields } from 'foldkit/struct'
 
-import type { Model } from './layers'
-import {
-  ApplicationDefinition,
-  EffectsLayer,
-  LoadUser,
-  Message,
-  UserState,
-} from './layers'
+import { ApiClient, User } from './layers'
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
-
-export const init = ApplicationComposition.makeInit(() => ({
-  model: { user: UserState.Loading() },
-  commands: [LoadUser({ userId: 'user-1' })],
-}))
-
-export const update = ApplicationComposition.makeUpdate({
-  SucceededLoadUser: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ user }) => ({ user: () => UserState.Loaded({ user }) }),
-  ),
-  FailedLoadUser: ApplicationDefinition.makeFieldsStep.fromMessage(
-    ({ error }) => ({ user: () => UserState.Failed({ error }) }),
-  ),
+const UserState = defineTaggedUnion({
+  Loading: {},
+  Loaded: { user: User },
+  Failed: { error: Schema.String },
 })
 
-export const view = ApplicationComposition.makeView((model, h) => ({
-  title: 'User profile',
-  body: UserState.match(model.user, {
-    Loading: () => h.p([], ['Loading user…']),
-    Loaded: ({ user }) => h.p([], [user.name]),
-    Failed: ({ error }) => h.p([], [error]),
-  }),
-}))
+const Message = defineMessageUnion({
+  SucceededLoadUser: { user: User },
+  FailedLoadUser: { error: Schema.String },
+})
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    EffectsLayer,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const LoadUser = Command.define('LoadUser', {
+  args: { userId: Schema.String },
+  messages: [Message.SucceededLoadUser, Message.FailedLoadUser],
+})
+
+export class Application extends Block<Application>()('Application', {
+  Model: Schema.Struct({ user: UserState }),
+  Message,
+  Command: [LoadUser],
+}) {}
+
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    const apiClient = yield* ApiClient
+
+    return {
+      model: { user: UserState.Loading() },
+      start: [LoadUser({ userId: 'user-1' })],
+
+      update: {
+        SucceededLoadUser: (model, { user }) => ({
+          model: modifyFields(model, {
+            user: () => UserState.Loaded({ user }),
+          }),
+        }),
+        FailedLoadUser: (model, { error }) => ({
+          model: modifyFields(model, {
+            user: () => UserState.Failed({ error }),
+          }),
+        }),
+      },
+
+      commands: {
+        LoadUser: ({ userId }) =>
+          apiClient.getUser(userId).pipe(
+            Effect.map(user => Message.SucceededLoadUser({ user })),
+            Effect.catch(() =>
+              Effect.succeed(
+                Message.FailedLoadUser({ error: 'Request failed' }),
+              ),
+            ),
+          ),
+      },
+
+      view: (model, h) => ({
+        title: 'User profile',
+        body: UserState.match(model.user, {
+          Loading: () => h.p([], ['Loading user…']),
+          Loaded: ({ user }) => h.p([], [user.name]),
+          Failed: ({ error }) => h.p([h.Role('alert')], [error]),
+        }),
+      }),
+    }
+  }),
+)

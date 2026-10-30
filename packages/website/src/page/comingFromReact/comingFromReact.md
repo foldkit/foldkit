@@ -34,11 +34,11 @@ The Effect starts the interval when auto-counting is active and returns the clea
 
 ### Foldkit Subscription
 
-Foldkit adds a Subscription and a `Ticked` Message:
+Foldkit adds a `ticks` Subscription and a `Ticked` Message:
 
 ::Snippet{name="foldkitCounterAutoCount" label="Foldkit counter with auto-count" class="mb-6"}
 
-The Subscription emits `Ticked` while `isAutoCounting` is true. Foldkit scopes the Stream to that Model condition, so the runtime starts and stops it as the condition changes. The interval does not live in the view, and its ticks enter the application through the same update function as button clicks.
+The Subscription emits `Ticked` while `isAutoCounting` is true. Its `dependencies` function reads `isAutoCounting` from the Model after every update, and the runtime starts or stops the Stream when that value changes. The interval does not live in the view, and its ticks enter the application through the same update function as button clicks.
 
 ## Adding a Step Size
 
@@ -70,7 +70,7 @@ React synchronizes an external resource from component state, so the Effect must
 
 #### Test Without a Timer
 
-The Foldkit example can be tested below the view by passing Models and Messages directly to update. A view-level Scene test can exercise the same flow through the buttons and input. Neither test needs to wait for a real interval because `Ticked` is already a value the test can dispatch.
+The Foldkit example can be tested below the view with a Story that dispatches Messages to update and inspects the resulting Model. A view-level Scene test can exercise the same flow through the buttons and input. Neither test needs to wait for a real interval because `Ticked` is already a value the test can dispatch.
 
 ## Translating React Concepts
 
@@ -82,8 +82,8 @@ The mappings below are starting points, not one-to-one replacements:
 | `useReducer`                                     | The update function and Message union                                                                       |
 | Event-driven side effect                         | A Command returned from update                                                                              |
 | External event source tied to state              | A Subscription gated by Model dependencies                                                                  |
-| DOM work tied to an element                      | `FeatureDefinition.makeMount` or `FeatureDefinition.makeMountStream`                                        |
-| Stateful resource shared with Commands           | ManagedResource                                                                                             |
+| DOM work tied to an element                      | A Mount defined with `Mount.define` or `Mount.defineStream`                                                 |
+| Stateful resource shared with Commands           | A child Block that acquires the resource in its constructor and exposes it                                  |
 | Context used for application state               | The Model                                                                                                   |
 | Context used for services                        | Effect services and Layers                                                                                  |
 | `useMemo` / `useCallback`                        | Often no equivalent; `createLazy` and `createKeyedLazy` skip expensive view work when needed                |
@@ -112,7 +112,7 @@ Represent each instance in the Model. Use separate fields for a fixed number of 
 
 ::Snippet{name="multipleInstances" label="Modeling multiple Block instances" class="mb-4"}
 
-Each `Accordion.Model` is a Block. The parent delegates a child Message to the matching instance and writes the child Model back. See the [Shopping Cart example](/example-apps/shopping-cart) for a larger composition.
+`Accordion` is a Block. The parent creates instances with `new Accordion(...)` for fixed fields and an `Accordion.each` factory for the collection, then renders each with `view()`. Foldkit routes each instance's Messages back to that instance, so the parent does not delegate them. See the [Shopping Cart example](/example-apps/shopping-cart) for a larger composition.
 :::
 
 :::Faq{id="faq-routing" question="How does routing work?"}
@@ -136,7 +136,7 @@ The compiler changes how React optimizes renders. It does not choose the applica
 :::Faq{id="faq-data-fetching" question="How do I fetch data?"}
 Return a Command from the update handler for the Message that starts the request. The runtime executes the Effect and dispatches the Command’s result Message. Update then stores the result in the Model, commonly using [AsyncData](/core/async-data).
 
-Independent requests are not ordered or cancelled automatically. When an earlier response could arrive late, include the request context in its result Message and accept it only if it still matches the current Model. [Coming from TanStack Query](/react/coming-from-tanstack-query#out-of-order-responses) shows the complete pattern. See the [Weather example](https://github.com/foldkit/foldkit/blob/main/examples/weather/src/command.ts) for a working request flow.
+Independent requests are not ordered or cancelled automatically. When an earlier response could arrive late, include the request context in its result Message and accept it only if it still matches the current Model. [Coming from TanStack Query](/react/coming-from-tanstack-query#out-of-order-responses) shows the complete pattern. See the [Weather example](https://github.com/foldkit/foldkit/blob/main/examples/weather/src/application.ts) for a working request flow.
 :::
 
 :::Faq{id="faq-ssr" question="Does Foldkit do SSR like Next.js?"}

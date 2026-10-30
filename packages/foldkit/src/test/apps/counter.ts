@@ -4,7 +4,6 @@ import * as Command from '../../command/index.js'
 import type { Html, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
-import * as Update from '../../update/index.js'
 
 // MODEL
 
@@ -55,7 +54,7 @@ export const initialModel: Model = { count: 0, log: [] }
 
 // UPDATE
 
-export const update = Update.define((model: Model, message: Message) =>
+export const update = (model: Model, message: Message) =>
   Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: Number.increment }),
@@ -94,8 +93,7 @@ export const update = Update.define((model: Model, message: Message) =>
       }),
     }),
     FailedFetchCount: () => ({ model }),
-  }),
-)
+  })
 
 // VIEW
 

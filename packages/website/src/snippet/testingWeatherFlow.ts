@@ -1,36 +1,44 @@
-import { Command, given, message, model, story } from 'foldkit/story'
-import { expect, test } from 'vitest'
+import { Layer } from 'effect'
+import { Http } from 'foldkit'
+import { Command, message, model, story } from 'foldkit/story'
 
-test('weather search: success then failure', () => {
+import { expect, it } from '@effect/vitest'
+
+import { ApplicationLive, FetchWeather, Message, type Weather } from './weather'
+
+const application = ApplicationLive.pipe(Layer.provide(Http.layer))
+
+const beverlyHills: Weather = {
+  locationName: 'Beverly Hills',
+  region: 'California',
+  temperature: 72,
+  description: 'Clear sky',
+}
+
+it.effect('shows a forecast, then a failure for an unknown zip code', () =>
   story(
-    update,
-    given(model),
+    application,
 
-    message(UpdatedZipCodeInput({ value: '90210' })),
-    model(model => {
-      expect(model.zipCode).toBe('90210')
-    }),
-    message(SubmittedWeatherForm()),
-    // Instance form: locks in the zipCode the runtime captured.
-    Command.expectHas(FetchWeather({ zipCode: '90210' })),
+    message(Message.UpdatedZipCode({ value: '90210' })),
+    message(Message.SubmittedWeatherForm()),
+    Command.expectExact(FetchWeather({ zipCode: '90210' })),
     Command.resolve(
       FetchWeather,
-      SucceededFetchWeather({ weather: beverlyHillsWeather }),
+      Message.SucceededFetchWeather({ weather: beverlyHills }),
     ),
     model(model => {
-      expect(model.weather._tag).toBe('WeatherSuccess')
-      expect(model.weather.data.temperature).toBe(72)
+      expect(model.weatherAsyncData._tag).toBe('Success')
     }),
 
-    message(UpdatedZipCodeInput({ value: '00000' })),
+    message(Message.UpdatedZipCode({ value: '00000' })),
+    message(Message.SubmittedWeatherForm()),
+    Command.expectExact(FetchWeather({ zipCode: '00000' })),
+    Command.resolve(
+      FetchWeather,
+      Message.FailedFetchWeather({ error: 'Location not found' }),
+    ),
     model(model => {
-      expect(model.zipCode).toBe('00000')
+      expect(model.weatherAsyncData._tag).toBe('Failure')
     }),
-    message(SubmittedWeatherForm()),
-    Command.expectHas(FetchWeather({ zipCode: '00000' })),
-    Command.resolve(FetchWeather, FailedFetchWeather({ error: 'Not found' })),
-    model(model => {
-      expect(model.weather._tag).toBe('WeatherFailure')
-    }),
-  )
-})
+  ),
+)

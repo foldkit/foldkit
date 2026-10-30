@@ -1,6 +1,6 @@
 import { Switch } from '@foldkit/ui'
 
-import type { UiViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../definition'
 import { Message } from '../message'
 
 export const SWITCH_DEMO_ID = 'switch-demo'

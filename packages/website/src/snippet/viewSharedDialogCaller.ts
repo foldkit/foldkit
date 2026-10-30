@@ -1,52 +1,40 @@
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 import * as Dialog from '@foldkit/ui/dialog'
 
-import { confirmDialogInputs } from './viewSharedDialog'
-
-const Model = Schema.Struct({ dialog: Dialog.DialogBlock.Model })
-type Model = typeof Model.Type
+import { confirmDialogInput } from './viewSharedDialog'
 
 const Message = defineMessageUnion({ ClickedConfirmDeletion: {} })
-type Message = typeof Message.Type
 
-const DeleteIssueDefinition = Block.makeDefinition('DeleteIssue', {
-  Model,
+export class DeleteIssue extends Block<DeleteIssue>()('DeleteIssue', {
+  Model: Schema.Struct({ dialog: Dialog.Dialog }),
   Message,
-})
+}) {}
 
-const { makeNoopStep } = DeleteIssueDefinition
+export const DeleteIssueLive = DeleteIssue.make(
+  Effect.fn(function* () {
+    const dialog = yield* new Dialog.Dialog('dialog', { id: 'delete-issue' })
 
-const DialogBinding = DeleteIssueDefinition.makeBinding(Dialog.DialogBlock, {
-  field: 'dialog',
-  init: { contextToArgs: () => [{ id: 'delete-issue' }] },
-}).withOutMessagePolicy({
-  fold: DeleteIssueDefinition.makeOutMessageFold(Dialog.DialogBlock, {
-    Opened: makeNoopStep,
-    Closed: makeNoopStep,
-    CompletedClose: makeNoopStep,
+    return {
+      model: { dialog },
+
+      update: {
+        ClickedConfirmDeletion: model => ({
+          model,
+          messages: [model.dialog.send(Dialog.Dialog.Message.RequestedClose())],
+        }),
+      },
+
+      view: (model, h) =>
+        model.dialog.view(
+          confirmDialogInput(h, {
+            title: 'Delete issue',
+            description: 'This removes the issue from the project.',
+            confirmMessage: Message.ClickedConfirmDeletion(),
+          }),
+        ),
+    }
   }),
-})
-const DeleteIssueComposition = DeleteIssueDefinition.makeComposition({
-  bindings: [DialogBinding],
-})
-
-export const view = DeleteIssueComposition.makeView((model, h) =>
-  h.block(
-    DialogBinding.embedView({
-      slotId: 'delete-issue',
-      model: model.dialog,
-      viewInputs: confirmDialogInputs(
-        h,
-        (attributes, children) => h.dialog(attributes, children),
-        {
-          title: 'Delete issue',
-          description: 'This removes the issue from the project.',
-          confirmMessage: Message.ClickedConfirmDeletion(),
-        },
-      ),
-    }),
-  ),
 )

@@ -1,34 +1,34 @@
-import { Option, Predicate, Schema, Tuple } from 'effect'
-import * as Block from 'foldkit/block'
+import { Effect, Layer, Option, Predicate, Schema } from 'effect'
+import { Block } from 'foldkit'
 import * as Calendar from 'foldkit/calendar'
 import type { CalendarDate } from 'foldkit/calendar'
 import type { ChildAttribute, Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import * as Update from 'foldkit/update'
 
 import type { AnchorConfig } from '../anchor/index.js'
 import * as UiCalendar from '../calendar/index.js'
 import { idSelector } from '../internal/selectors.js'
-import { Model as PopoverModel } from '../popover/block.js'
 import * as Popover from '../popover/index.js'
 
 // MODEL
 
 /** Schema for the date picker component's private interaction state. The
  * selected date is owned by the parent and passed in via
- * `ViewInputs.maybeSelectedDate`. This holds the embedded Calendar block
- * (the visible grid) and the embedded Popover block (the open/close +
+ * `ViewInputs.maybeSelectedDate`. This holds the embedded Calendar instance
+ * (the visible grid) and the embedded Popover instance (the open/close +
  * transition layer). */
 export const Model = Schema.Struct({
   id: Schema.String,
-  calendar: UiCalendar.CalendarBlock.Model,
-  popover: PopoverModel,
+  calendar: UiCalendar.Calendar,
+  popover: Popover.Popover,
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-/** Union of all messages the date picker component can produce. */
+/** Union of all messages the date picker component can produce. Send the
+ *  `Requested*` and `InformedOf*` Messages from the parent to drive the
+ *  DatePicker. */
 export const Message = defineMessageUnion({
   RequestedOpen: {},
   RequestedClose: {},
@@ -70,15 +70,12 @@ export type ChangedViewMonth = typeof OutMessage.ChangedViewMonth.Type
 export type SelectedDate = typeof OutMessage.SelectedDate.Type
 export type ClearedDate = typeof OutMessage.ClearedDate.Type
 
-const DatePickerDefinition = Block.makeDefinition('DatePicker', {
-  Model,
-  Message,
-  OutMessage,
-})
-
 // INIT
 
-/** Configuration for creating a date picker model with `init`. */
+/** Constructor args for a DatePicker instance. `id` is the base DOM id; the
+ *  embedded Calendar and Popover use `${id}-calendar` and `${id}-popover`.
+ *  The selected date is owned by the parent; pass its current value as
+ *  `initialViewDate` to open the calendar onto that month. */
 export type InitConfig = Readonly<{
   id: string
   today: CalendarDate
@@ -91,152 +88,59 @@ export type InitConfig = Readonly<{
   disabledDates?: ReadonlyArray<CalendarDate>
 }>
 
-const makeInitialModel = (config: InitConfig): Model => ({
-  id: config.id,
-  calendar: UiCalendar.CalendarBlock.init({
-    id: `${config.id}-calendar`,
-    today: config.today,
-    ...(config.initialViewDate !== undefined && {
-      initialViewDate: config.initialViewDate,
-    }),
-    ...(config.locale !== undefined && { locale: config.locale }),
-    ...(config.minDate !== undefined && { minDate: config.minDate }),
-    ...(config.maxDate !== undefined && { maxDate: config.maxDate }),
-    ...(config.disabledDaysOfWeek !== undefined && {
-      disabledDaysOfWeek: config.disabledDaysOfWeek,
-    }),
-    ...(config.disabledDates !== undefined && {
-      disabledDates: config.disabledDates,
-    }),
-  }).model,
-  popover: Popover.PopoverBlock.init({
-    id: `${config.id}-popover`,
-    contentFocus: true,
-    ...(config.isAnimated !== undefined && { isAnimated: config.isAnimated }),
-  }).model,
+const toCalendarConfig = (config: InitConfig): UiCalendar.InitConfig => ({
+  id: `${config.id}-calendar`,
+  today: config.today,
+  ...(config.initialViewDate !== undefined && {
+    initialViewDate: config.initialViewDate,
+  }),
+  ...(config.locale !== undefined && { locale: config.locale }),
+  ...(config.minDate !== undefined && { minDate: config.minDate }),
+  ...(config.maxDate !== undefined && { maxDate: config.maxDate }),
+  ...(config.disabledDaysOfWeek !== undefined && {
+    disabledDaysOfWeek: config.disabledDaysOfWeek,
+  }),
+  ...(config.disabledDates !== undefined && {
+    disabledDates: config.disabledDates,
+  }),
+})
+
+const toPopoverArgs = (config: InitConfig): Popover.PopoverArgs => ({
+  id: `${config.id}-popover`,
+  contentFocus: true,
+  ...(config.isAnimated !== undefined && { isAnimated: config.isAnimated }),
 })
 
 // UPDATE
 
-const PopoverBinding = DatePickerDefinition.makeBinding(Popover.PopoverBlock, {
-  field: 'popover',
-  init: false,
-})
+const dropCalendarToDays = (model: Model) =>
+  model.calendar.send(UiCalendar.Calendar.Message.RequestedDropToDays())
 
-const CalendarBinding = DatePickerDefinition.makeBinding(
-  UiCalendar.CalendarBlock,
-  {
-    field: 'calendar',
-    init: false,
-  },
-)
-
-const foldPopoverOutMessage = DatePickerDefinition.makeOutMessageFold(
-  Popover.PopoverBlock,
-  {
-    Opened: () => CalendarBinding.requestDropToDays(),
-    Closed: () => CalendarBinding.requestDropToDays(),
-  },
-)
-
-const foldCalendarOutMessage = DatePickerDefinition.makeOutMessageFold(
-  UiCalendar.CalendarBlock,
-  {
-    ChangedViewMonth: DatePickerDefinition.makeNoopStep,
-    SelectedDate: () => PopoverBinding.requestClose(),
-  },
-)
-
-const forwardCalendarOutMessage = DatePickerDefinition.makeOutMessageForward(
-  UiCalendar.CalendarBlock,
-  {
-    ChangedViewMonth: ({ year, month }) =>
-      OutMessage.ChangedViewMonth({ year, month }),
-    SelectedDate: ({ date }) => OutMessage.SelectedDate({ date }),
-  },
-)
-
-const PopoverBindingWithOutMessagePolicy = PopoverBinding.withOutMessagePolicy({
-  fold: foldPopoverOutMessage,
-})
-
-const CalendarBindingWithOutMessagePolicy =
-  CalendarBinding.withOutMessagePolicy({
-    fold: foldCalendarOutMessage,
-    forward: forwardCalendarOutMessage,
-  })
-
-const DatePickerComposition: Block.Composition<
-  typeof DatePickerDefinition.owner,
-  typeof Model,
-  typeof Message,
-  typeof OutMessage,
-  readonly [],
-  readonly [
-    typeof PopoverBindingWithOutMessagePolicy,
-    typeof CalendarBindingWithOutMessagePolicy,
-  ]
-> = DatePickerDefinition.makeComposition({
-  bindings: [
-    PopoverBindingWithOutMessagePolicy,
-    CalendarBindingWithOutMessagePolicy,
+const openDatePicker = (model: Model) => ({
+  model,
+  messages: [
+    model.popover.send(Popover.Popover.Message.RequestedOpen()),
+    dropCalendarToDays(model),
   ],
 })
 
-/** Creates an initial DatePicker Model and Commands from a config. The selected date is
- * owned by the parent; pass its current value as `initialViewDate` to open the
- * calendar onto that month. The Calendar and Popover Blocks are created
- * with derived ids so their DOM elements stay addressable. The popover is
- * opened in `contentFocus` mode so focus lands on the calendar grid instead of
- * the panel. */
-export const init = DatePickerComposition.makeInit((config: InitConfig) => ({
-  model: makeInitialModel(config),
-}))
-
-/** Mount Definitions rendered by DatePicker's Popover child. */
-export const mounts = DatePickerComposition.mounts
-
-const openDatePickerStep = Update.combineSteps([
-  PopoverBinding.requestOpen(),
-  CalendarBinding.requestDropToDays(),
-])
-const closeDatePickerStep = Update.combineSteps([
-  PopoverBinding.requestClose(),
-  CalendarBinding.requestDropToDays(),
-])
-const clearDatePickerStep = DatePickerDefinition.makeOutMessageStep(() =>
-  OutMessage.ClearedDate(),
-)
-
-/** Processes a DatePicker Message and returns the next Model, optional
- *  Commands, and an optional OutMessage. */
-export const update = DatePickerComposition.makeUpdate({
-  RequestedOpen: openDatePickerStep,
-  RequestedClose: closeDatePickerStep,
-  RequestedClear: clearDatePickerStep,
-  Opened: openDatePickerStep,
-  Closed: closeDatePickerStep,
-
-  RequestedSelectDate: (model, { date }) =>
-    CalendarBinding.requestSelectDate(date)(model),
-
-  Cleared: clearDatePickerStep,
-
-  RequestedFocusDate: (model, { date }) =>
-    CalendarBinding.requestFocusDate(date)(model),
-
-  InformedOfMinDateChange: (model, { maybeMinDate }) =>
-    CalendarBinding.informMinDateChanged(maybeMinDate)(model),
-
-  InformedOfMaxDateChange: (model, { maybeMaxDate }) =>
-    CalendarBinding.informMaxDateChanged(maybeMaxDate)(model),
-
-  InformedOfDisabledDatesChange: (model, { disabledDates }) =>
-    CalendarBinding.informDisabledDatesChanged(disabledDates)(model),
-
-  InformedOfDisabledDaysOfWeekChange: (model, { disabledDaysOfWeek }) =>
-    CalendarBinding.informDisabledDaysOfWeekChanged(disabledDaysOfWeek)(model),
+const closeDatePicker = (model: Model) => ({
+  model,
+  messages: [
+    model.popover.send(Popover.Popover.Message.RequestedClose()),
+    dropCalendarToDays(model),
+  ],
 })
+
+const clearDatePicker = (model: Model) => ({
+  model,
+  outMessage: OutMessage.ClearedDate(),
+})
+
+const sendToCalendar = (
+  model: Model,
+  message: typeof UiCalendar.Calendar.Message.Type,
+) => ({ model, messages: [model.calendar.send(message)] })
 
 // SELECTORS
 
@@ -251,12 +155,12 @@ export const triggerId = (id: string): string => `${id}-popover-button`
 
 const encodeIsoDate = Schema.encodeSync(Calendar.CalendarDateFromIsoString)
 
-/** Per-render view inputs passed to the DatePicker connection's `embedView` method.
+/** The view input a parent passes to `datePicker.view(...)` on each render.
  *
  *  The DatePicker emits a `SelectedDate({ date })` OutMessage when the
- *  user commits a date. Handle it in the DatePicker connection's OutMessage
- *  fold to lift the date into domain
- *  state. Calendar label fields are forwarded to the embedded Calendar. */
+ *  user commits a date. Handle it with `datePicker.on({ SelectedDate })` in
+ *  the parent's update to lift the date into domain state. Calendar label
+ *  fields are forwarded to the embedded Calendar. */
 export type ViewInputs = Readonly<{
   anchor: AnchorConfig
   /** The selected date, read straight from the parent Model. The trigger
@@ -288,97 +192,184 @@ export type ViewInputs = Readonly<{
 }> &
   UiCalendar.ViewLabels
 
-/** Renders an accessible date picker: a trigger button that opens a popover
- * containing an accessible calendar grid. The date picker assembles the
- * embedded Calendar and Popover components into one flat API. Consumers
- * provide the trigger face and the calendar grid layout, DatePicker handles
- * focus choreography, open/close state, and form submission. */
-export const view = DatePickerComposition.makeView.withInputs<ViewInputs>(
-  (model, viewInputs, h) => {
-    const {
-      anchor,
-      maybeSelectedDate,
-      triggerContent,
-      toCalendarView,
-      isDisabled,
-      name,
-      className,
-      attributes = [],
-      triggerClassName,
-      triggerAttributes = [],
-      ariaLabel,
-      ariaLabelledBy,
-      panelClassName,
-      panelAttributes = [],
-      backdropClassName,
-      backdropAttributes = [],
-    } = viewInputs
+// BLOCK
 
-    const resolveTriggerLabel = () => {
-      if (Predicate.isNotUndefined(ariaLabel)) {
-        return [h.AriaLabel(ariaLabel)]
-      } else if (Predicate.isNotUndefined(ariaLabelledBy)) {
-        return [h.AriaLabelledBy(ariaLabelledBy)]
-      } else {
-        return []
-      }
-    }
+/** An accessible date picker: a trigger button that opens a popover
+ *  containing an accessible calendar grid. The parent owns the selected date
+ *  and passes it in through the view input. Send `Message.RequestedOpen`,
+ *  `Message.RequestedSelectDate`, and the other `Requested*` and
+ *  `InformedOf*` Messages to drive it, and handle `SelectedDate`,
+ *  `ChangedViewMonth`, and `ClearedDate` with `.on`. */
+export class DatePicker extends Block<DatePicker, InitConfig, ViewInputs>()(
+  'DatePicker',
+  {
+    Model,
+    Message,
+    OutMessage,
+  },
+) {}
 
-    const triggerLabelAttributes = resolveTriggerLabel()
+/** Implements {@link DatePicker}. Provides `CalendarLive` and `PopoverLive`
+ *  to the instances it creates. The Popover opens in `contentFocus` mode so
+ *  focus lands on the calendar grid instead of the panel. */
+export const DatePickerLive = DatePicker.make(
+  Effect.fn(function* (_instanceId, config) {
+    const calendar = yield* new UiCalendar.Calendar(
+      'calendar',
+      toCalendarConfig(config),
+    )
+    const popover = yield* new Popover.Popover('popover', toPopoverArgs(config))
 
-    const calendarViewLabels: UiCalendar.ViewLabels = {
-      ...(viewInputs.previousMonthLabel !== undefined && {
-        previousMonthLabel: viewInputs.previousMonthLabel,
-      }),
-      ...(viewInputs.nextMonthLabel !== undefined && {
-        nextMonthLabel: viewInputs.nextMonthLabel,
-      }),
-      ...(viewInputs.previousYearsPageLabel !== undefined && {
-        previousYearsPageLabel: viewInputs.previousYearsPageLabel,
-      }),
-      ...(viewInputs.nextYearsPageLabel !== undefined && {
-        nextYearsPageLabel: viewInputs.nextYearsPageLabel,
-      }),
-      ...(viewInputs.daysHeadingButtonLabel !== undefined && {
-        daysHeadingButtonLabel: viewInputs.daysHeadingButtonLabel,
-      }),
-      ...(viewInputs.monthsHeadingButtonLabel !== undefined && {
-        monthsHeadingButtonLabel: viewInputs.monthsHeadingButtonLabel,
-      }),
-      ...(viewInputs.toDaysGridLabel !== undefined && {
-        toDaysGridLabel: viewInputs.toDaysGridLabel,
-      }),
-      ...(viewInputs.toWeekLabel !== undefined && {
-        toWeekLabel: viewInputs.toWeekLabel,
-      }),
-      ...(viewInputs.toMonthsGridLabel !== undefined && {
-        toMonthsGridLabel: viewInputs.toMonthsGridLabel,
-      }),
-      ...(viewInputs.toYearsGridLabel !== undefined && {
-        toYearsGridLabel: viewInputs.toYearsGridLabel,
-      }),
-    }
+    return {
+      model: { id: config.id, calendar, popover },
 
-    const calendarVNode = h.block(
-      CalendarBinding.embedView({
-        slotId: model.calendar.id,
-        model: model.calendar,
-        viewInputs: {
+      update: {
+        RequestedOpen: openDatePicker,
+        RequestedClose: closeDatePicker,
+        RequestedClear: clearDatePicker,
+        Opened: openDatePicker,
+        Closed: closeDatePicker,
+        Cleared: clearDatePicker,
+
+        RequestedSelectDate: (model, { date }) =>
+          sendToCalendar(
+            model,
+            UiCalendar.Calendar.Message.RequestedSelectDate({ date }),
+          ),
+
+        RequestedFocusDate: (model, { date }) =>
+          sendToCalendar(
+            model,
+            UiCalendar.Calendar.Message.RequestedFocusDate({ date }),
+          ),
+
+        InformedOfMinDateChange: (model, { maybeMinDate }) =>
+          sendToCalendar(
+            model,
+            UiCalendar.Calendar.Message.InformedOfMinDateChange({
+              maybeMinDate,
+            }),
+          ),
+
+        InformedOfMaxDateChange: (model, { maybeMaxDate }) =>
+          sendToCalendar(
+            model,
+            UiCalendar.Calendar.Message.InformedOfMaxDateChange({
+              maybeMaxDate,
+            }),
+          ),
+
+        InformedOfDisabledDatesChange: (model, { disabledDates }) =>
+          sendToCalendar(
+            model,
+            UiCalendar.Calendar.Message.InformedOfDisabledDatesChange({
+              disabledDates,
+            }),
+          ),
+
+        InformedOfDisabledDaysOfWeekChange: (model, { disabledDaysOfWeek }) =>
+          sendToCalendar(
+            model,
+            UiCalendar.Calendar.Message.InformedOfDisabledDaysOfWeekChange({
+              disabledDaysOfWeek,
+            }),
+          ),
+
+        ...popover.on({
+          Opened: model => ({ model, messages: [dropCalendarToDays(model)] }),
+          Closed: model => ({ model, messages: [dropCalendarToDays(model)] }),
+        }),
+
+        ...calendar.on({
+          ChangedViewMonth: (model, { year, month }) => ({
+            model,
+            outMessage: OutMessage.ChangedViewMonth({ year, month }),
+          }),
+          SelectedDate: (model, { date }) => ({
+            model,
+            outMessage: OutMessage.SelectedDate({ date }),
+            messages: [
+              model.popover.send(Popover.Popover.Message.RequestedClose()),
+            ],
+          }),
+        }),
+      },
+
+      view: (model, h, viewInputs) => {
+        const {
+          anchor,
+          maybeSelectedDate,
+          triggerContent,
+          toCalendarView,
+          isDisabled,
+          name,
+          className,
+          attributes = [],
+          triggerClassName,
+          triggerAttributes = [],
+          ariaLabel,
+          ariaLabelledBy,
+          panelClassName,
+          panelAttributes = [],
+          backdropClassName,
+          backdropAttributes = [],
+        } = viewInputs
+
+        const resolveTriggerLabel = () => {
+          if (Predicate.isNotUndefined(ariaLabel)) {
+            return [h.AriaLabel(ariaLabel)]
+          } else if (Predicate.isNotUndefined(ariaLabelledBy)) {
+            return [h.AriaLabelledBy(ariaLabelledBy)]
+          } else {
+            return []
+          }
+        }
+
+        const triggerLabelAttributes = resolveTriggerLabel()
+
+        const calendarViewLabels: UiCalendar.ViewLabels = {
+          ...(viewInputs.previousMonthLabel !== undefined && {
+            previousMonthLabel: viewInputs.previousMonthLabel,
+          }),
+          ...(viewInputs.nextMonthLabel !== undefined && {
+            nextMonthLabel: viewInputs.nextMonthLabel,
+          }),
+          ...(viewInputs.previousYearsPageLabel !== undefined && {
+            previousYearsPageLabel: viewInputs.previousYearsPageLabel,
+          }),
+          ...(viewInputs.nextYearsPageLabel !== undefined && {
+            nextYearsPageLabel: viewInputs.nextYearsPageLabel,
+          }),
+          ...(viewInputs.daysHeadingButtonLabel !== undefined && {
+            daysHeadingButtonLabel: viewInputs.daysHeadingButtonLabel,
+          }),
+          ...(viewInputs.monthsHeadingButtonLabel !== undefined && {
+            monthsHeadingButtonLabel: viewInputs.monthsHeadingButtonLabel,
+          }),
+          ...(viewInputs.toDaysGridLabel !== undefined && {
+            toDaysGridLabel: viewInputs.toDaysGridLabel,
+          }),
+          ...(viewInputs.toWeekLabel !== undefined && {
+            toWeekLabel: viewInputs.toWeekLabel,
+          }),
+          ...(viewInputs.toMonthsGridLabel !== undefined && {
+            toMonthsGridLabel: viewInputs.toMonthsGridLabel,
+          }),
+          ...(viewInputs.toYearsGridLabel !== undefined && {
+            toYearsGridLabel: viewInputs.toYearsGridLabel,
+          }),
+        }
+
+        const calendarVNode = model.calendar.view({
           maybeSelectedDate,
           toView: toCalendarView,
           ...calendarViewLabels,
-        },
-      }),
-    )
+        })
 
-    const popoverVNode = h.block(
-      PopoverBinding.embedView({
-        slotId: model.popover.id,
-        model: model.popover,
-        viewInputs: {
+        const popoverVNode = model.popover.view({
           anchor,
           ...(isDisabled !== undefined && { isDisabled }),
-          focusSelector: idSelector(`${model.calendar.id}-grid`),
+          focusSelector: idSelector(`${model.calendar.model.id}-grid`),
           toView: ({ button, panel, backdrop, isVisible }) =>
             h.div(
               [],
@@ -417,64 +408,33 @@ export const view = DatePickerComposition.makeView.withInputs<ViewInputs>(
                   : []),
               ],
             ),
-        },
-      }),
-    )
+        })
 
-    const hiddenInputValue = Option.match(maybeSelectedDate, {
-      onNone: () => '',
-      onSome: encodeIsoDate,
-    })
+        const hiddenInputValue = Option.match(maybeSelectedDate, {
+          onNone: () => '',
+          onSome: encodeIsoDate,
+        })
 
-    const maybeHiddenInput: ReadonlyArray<Html> =
-      name !== undefined
-        ? [h.input([h.Type('hidden'), h.Name(name), h.Value(hiddenInputValue)])]
-        : []
+        const maybeHiddenInput: ReadonlyArray<Html> =
+          name !== undefined
+            ? [
+                h.input([
+                  h.Type('hidden'),
+                  h.Name(name),
+                  h.Value(hiddenInputValue),
+                ]),
+              ]
+            : []
 
-    const wrapperAttributes = [
-      ...(className !== undefined ? [h.Class(className)] : []),
-      ...attributes,
-    ]
+        const wrapperAttributes = [
+          ...(className !== undefined ? [h.Class(className)] : []),
+          ...attributes,
+        ]
 
-    return h.div(wrapperAttributes, [popoverVNode, ...maybeHiddenInput])
-  },
+        return h.div(wrapperAttributes, [popoverVNode, ...maybeHiddenInput])
+      },
+    }
+  }),
+).pipe(
+  Layer.provide(Layer.mergeAll(UiCalendar.CalendarLive, Popover.PopoverLive)),
 )
-
-const implementation = {
-  init,
-  update,
-  view,
-  operations: {
-    requestOpen: Message.RequestedOpen,
-    requestClose: Message.RequestedClose,
-    requestSelectDate: (date: CalendarDate) =>
-      Tuple.make(Message.RequestedSelectDate({ date })),
-    requestClear: Message.RequestedClear,
-    requestFocusDate: (date: CalendarDate) =>
-      Tuple.make(Message.RequestedFocusDate({ date })),
-    informMinDateChanged: (maybeMinDate: Option.Option<CalendarDate>) =>
-      Tuple.make(Message.InformedOfMinDateChange({ maybeMinDate })),
-    informMaxDateChanged: (maybeMaxDate: Option.Option<CalendarDate>) =>
-      Tuple.make(Message.InformedOfMaxDateChange({ maybeMaxDate })),
-    informDisabledDatesChanged: (disabledDates: ReadonlyArray<CalendarDate>) =>
-      Tuple.make(Message.InformedOfDisabledDatesChange({ disabledDates })),
-    informDisabledDaysOfWeekChanged: (
-      disabledDaysOfWeek: ReadonlyArray<Calendar.DayOfWeek>,
-    ) =>
-      Tuple.make(
-        Message.InformedOfDisabledDaysOfWeekChange({ disabledDaysOfWeek }),
-      ),
-  },
-}
-
-const prepare = () => DatePickerComposition.prepareBlock(implementation)
-/** Completed DatePicker Block contract. */
-export interface DatePickerBlock extends Block.FromAssemblyWithViewAndOutMessage<
-  typeof Model,
-  typeof prepare
-> {}
-/** Complete DatePicker Block definition. */
-export const DatePickerBlock: DatePickerBlock = Block.assemble(prepare)
-
-/** Moves the embedded Calendar view and cursor through DatePicker update. */
-export const focusDate = DatePickerBlock.operations.requestFocusDate

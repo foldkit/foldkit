@@ -1,15 +1,18 @@
-import { Subscription, given, model, story } from 'foldkit/story'
+import { message, model, story } from 'foldkit/story'
 
-const feed = Subscription.from(OrderFeedBlock.subscriptions)
+import { expect, it } from '@effect/vitest'
 
-story(
-  OrderFeedBlock.update,
-  given(OrderFeedBlock.init().model),
-  feed.emit(
-    OrderFeedBlock.subscriptions.entries,
-    OrderFeedBlock.Message.ReceivedEntry({ sequence: 13, order }),
+import { Message, TimerLive } from './timer'
+
+it.effect('counts each tick while running', () =>
+  story(
+    TimerLive,
+    message(Message.ClickedStart()),
+    // The tick Stream never runs in a Story. Deliver the Message it produces.
+    message(Message.Ticked()),
+    message(Message.Ticked()),
+    model(model => {
+      expect(model.elapsedSeconds).toBe(2)
+    }),
   ),
-  model(model => {
-    expect(model.latestSequence).toBe(13)
-  }),
 )

@@ -10,12 +10,12 @@ import {
 import {
   indexReferences,
   isCallExpression,
-  isFoldkitHtmlBuilderMember,
   isIdentifier,
   isObjectExpression,
   isStringLiteral,
   staticStringValue,
 } from '../guards.ts'
+import { isFoldkitHtmlBuilderMember } from '../html-builder.ts'
 
 // Standard DOM event handler content-attribute names. Matching a known set
 // instead of an `on\w+` pattern keeps ordinary `on`-prefixed names like

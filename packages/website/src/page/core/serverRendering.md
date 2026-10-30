@@ -10,7 +10,7 @@ Pin the exact version you deploy and test upgrades against your own SSR or SSG h
 The lowest-risk use today is statically generated public content, which is how this site uses it. Please try it and report what breaks.
 :::
 
-Foldkit renders on the server from the same completed root Block the browser Program uses. `renderToString` resolves `init`, runs the pure view, and returns HTML. `Runtime.hydrate` then adopts matching HTML in place and rebuilds mismatches. The same init, view, update, and Model work whether the HTML was rendered during a build (SSG) or while handling a request (SSR).
+Foldkit renders on the server from the same root Block and Layer the browser program uses. `renderToString` constructs the root instance and its children, runs their pure views, and returns HTML. `Runtime.hydrate` then adopts matching HTML in place and rebuilds mismatches. The same constructors, views, update handlers, and Model work whether the HTML was rendered during a build (SSG) or while handling a request (SSR).
 
 ### SSG and SSR
 
@@ -34,13 +34,13 @@ request or build input                 live Foldkit app
        Flags                           adopts matching DOM
          |                                     ^
          v                                     |
-        init                                same view
+   constructors                             same view
          |                                     ^
          v                                     |
        Model                          equivalent Model
          |                                     ^
          v                                     |
-        view                               same init
+        view                           same constructors
          |                                     ^
          v                                     |
 HTML + serialized Flags --------> Runtime.hydrate reads Flags
@@ -56,13 +56,13 @@ For SSG, the build script takes the host's place. It writes the response to a fi
 
 A server entry connects the application to its host. It exports a `renderPage` function that accepts a Web `Request` and returns a `Promise<EntryResult>`:
 
-::Snippet{name="serverRenderingBlockServerEntry" label="Server entry"}
+::Snippet{name="serverRenderingEntry" label="Server entry"}
 
 The outer `Promise` keeps `renderPage` callable from Vite, build scripts, serverless functions, and the emitted `fetch` handler. Those hosts do not need to provide the application's Effect requirements. The entry uses Effect internally; the host sees only the `Promise`.
 
 ### Entry file placement
 
-The entry is application code. Keep it in `src/` (`src/entry.server.ts` in the examples), not in the host's directory. It imports `ApplicationBlock` and, when declared, `Flags`, so the server build must compile those application imports.
+The entry is application code. Keep it in `src/` (`src/entry.server.ts` in the examples), not in the host's directory. It imports `Application`, `ApplicationLive`, and, when declared, `Flags`, so the server build must compile those application imports.
 
 An SSR build also requires `ssr.clientEntry` next to `ssr.serverEntry`, such as `'/src/entry.ts'`. The client entry names the browser script the generated document loads. Import the application's stylesheets from that script so Vite includes them in the browser build.
 
@@ -88,13 +88,15 @@ A delivery host runs the built `fetch` handler. It does not import the applicati
 
 #### Application config on the server
 
-`renderToString` takes three arguments: `ApplicationBlock`, server host configuration, and render options. The server host configuration contains only `Flags` and routing declarations when the Block's init requires them. Render options contain request startup inputs such as `flags` and `url`. The browser entry gives that same `ApplicationBlock` to `Program.make` with its DOM container and browser host options.
+`renderToString` takes three arguments: the root class, a server configuration, and render options. The server configuration contains the root's `layer`, plus `Flags` when the root takes `{ flags }`. Render options contain request startup inputs such as `flags` and `url`. The browser entry gives the same class and Layer to `Program.make` with its DOM container and browser options.
 
-The server renderer has no container. It runs the checked root Block's `init` and view once over the resulting Model. It does not start update, Commands, Subscriptions, ManagedResources, Mount handlers, or the handler graph. There is no DOM to attach to and no Message to dispatch.
+The server renderer has no container. It builds the Layer, constructs the root instance with the request's Flags and URL, and runs the views once over the resulting Model. It does not run update, Commands, `start` Commands, Streams, Subscriptions, or Mount handlers. Every instance is released once the render completes.
+
+Constructors do run on the server, including anything they acquire with `Effect.acquireRelease`. A [resource Block](/core/managed-resources) that opens a `WebSocket` in its constructor would open it on the server too, so keep resource instances out of the starting Model and add them in response to a Message.
 
 #### Request URL
 
-For a routing application, pass the request URL so `init` receives the same value it receives from `window.location` in the browser:
+For a routing application, pass the request URL so the root constructor receives the same `{ url }` it receives from `window.location` in the browser:
 
 ::Snippet{name="serverRenderingRenderToStringUrl" label="Using renderToString with a URL"}
 
@@ -169,7 +171,7 @@ The root stamp must have a nonempty id and name the document's single stamped ro
 
 #### Document ownership
 
-A page-owning `ApplicationBlock` has a `Document` view that controls the document title, language, text direction, canonical URL, and Open Graph URL in both server rendering and a browser Program created by `Program.make`. The browser Program also installs document-wide navigation listeners. With two applications, the last render would own the metadata and the first listener would handle every link. Render one application per page.
+A page-owning root Block has a `Document` view that controls the document title, language, text direction, canonical URL, and Open Graph URL in both server rendering and a browser Program created by `Program.make`. The browser Program also installs document-wide navigation listeners. With two applications, the last render would own the metadata and the first listener would handle every link. Render one application per page.
 
 #### Static body output
 
@@ -237,9 +239,9 @@ Use `run` from a separate client entry when the page must also support a fresh S
 
 #### DOM adoption and mismatches
 
-`Runtime.hydrate` accepts no client Flags producer. It reads the serialized Flags, calls the same `init`, and adopts matching server DOM nodes. Element identity, focus, scroll position, and media state survive while listeners and Mounts attach.
+`Runtime.hydrate` accepts no client Flags producer. It reads the serialized Flags, constructs the root with them, and adopts matching server DOM nodes. It then runs the `start` Commands the server skipped. Element identity, focus, scroll position, and media state survive while listeners and Mounts attach.
 
-A mismatched subtree is rebuilt from its nearest parent. Rebuilding discards the DOM identity and browser state that adoption preserves. Development logs a warning that points to nondeterministic Flags, `init`, or view output. Production rebuilds silently, so test hydration before shipping.
+A mismatched subtree is rebuilt from its nearest parent. Rebuilding discards the DOM identity and browser state that adoption preserves. Development logs a warning that points to nondeterministic Flags, constructor, or view output. Production rebuilds silently, so test hydration before shipping.
 
 #### Invalid handoffs
 
@@ -251,7 +253,7 @@ Calling `hydrate` declares that a complete server handoff exists. If the handoff
 
 ### Flags and what only the browser knows
 
-Hydration requires the server and browser to build the same first Model. Embedded Flags let the browser call `init` with the values the server used.
+Hydration requires the server and browser to build the same first Model. Embedded Flags let the browser construct the root with the values the server used.
 
 #### Request-time and build-time Flags
 
@@ -325,7 +327,7 @@ Release those resources in an `import.meta.hot.dispose` callback in the server e
 
 ::Snippet{name="serverRenderingHotDispose" label="Disposing a runtime when the server entry reloads"}
 
-The dev server reevaluates the server module graph after an edit so Block Definitions are created with their declarations. The server entry accepts the update and releases resources it owns before Vite evaluates its replacement. Create each resource the callback releases in the server entry itself; imported modules should not start resources that rely on the entry's callback for cleanup.
+The dev server reevaluates the server module graph after an edit so Block classes are created with their declarations. The server entry accepts the update and releases resources it owns before Vite evaluates its replacement. Create each resource the callback releases in the server entry itself; imported modules should not start resources that rely on the entry's callback for cleanup.
 
 Requests arriving during an edit wait for Vite to apply the server update. If Vite does not report completion, the wait ends after one second and the request proceeds with the module version Vite has loaded.
 
@@ -505,7 +507,7 @@ Two things happen. Startup stops, and the page is put out of reach.
 
 #### Startup work
 
-Every refusal stops before `init` runs. No Command, Subscription, or ManagedResource from this boot starts.
+Every refusal stops before the root is constructed. No Command, Stream, or Subscription from this boot starts.
 
 For a build-id mismatch, Foldkit compares ids before accessing the Flags payload text, parsing its JSON, or Schema-decoding it. Stale Flags belong to the old deployment. Decoding them first would pass those values to current code before Foldkit noticed the mismatch. Flags-related refusals inspect the payload only far enough to identify the reported error.
 
@@ -597,7 +599,7 @@ Components that measure the DOM before deciding what to render, such as `Ui.Virt
 
 #### Supported applications and markup
 
-`Program.makeElement` and `Runtime.embed` Programs do not hydrate. Server rendering accepts a root Block with a `Document` view, the same `ApplicationBlock` used by `Program.make` in the browser.
+`Program.makeElement` and `Runtime.embed` Programs do not hydrate. Server rendering accepts a root Block with a `Document` view, the same root used by `Program.make` in the browser.
 
 Ordinary element children under `template` cannot be server-rendered because browsers place them in a separate content fragment that the differ does not walk. Element children under `noscript` become raw text while scripting is enabled and cannot hydrate as the declared nodes. Keep template markup in the HTML shell. Use plain text, trusted `h.InnerHTML`, or shell markup for a noscript fallback.
 

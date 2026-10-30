@@ -1,55 +1,37 @@
-import { Array, Option, Record } from 'effect'
-import { Update } from 'foldkit'
-import { initAndSet } from 'foldkit/bindingInit'
+import { Array, Option, Record, pipe } from 'effect'
 import { Transition } from 'foldkit/route'
 import { modifyFields } from 'foldkit/struct'
 import { type Url } from 'foldkit/url'
 
+import { Dialog } from '@foldkit/ui'
+
 import * as Command from '../command'
-import {
-  ApiReferenceBinding,
-  ExampleDetailBinding,
-  HomeBinding,
-  MobileMenuDialogBinding,
-  PlaygroundBinding,
-  SearchBinding,
-  ThemeMenuBinding,
-} from '../composition'
-import { makeCommandsStep, makeFieldsStep, makeStep } from '../definition'
 import { findActiveSectionKeyForRoute } from '../docsNav'
 import type { Message } from '../message'
 import { type Model } from '../model'
+import {
+  ApiReference,
+  ExampleDetail,
+  type Home,
+  type Playground,
+} from '../page'
 import {
   ApplicationRoute,
   type ApplicationTransition,
   urlToApplicationRoute,
 } from '../route'
+import { Search } from '../search'
+import { ThemeMenu } from '../view/themeMenu'
 
-type ChangedUrlMessage = typeof Message.ChangedUrl.Type
+type ChangedUrl = typeof Message.ChangedUrl.Type
 
-type ChangedUrl = ChangedUrlMessage
-
-export const handleChangedUrlStep = makeStep((model, { url }: ChangedUrl) => {
-  const { route: previousRoute } = model
-  const nextRoute = urlToApplicationRoute(url)
-  const transition = Transition.make(previousRoute, nextRoute)
-  const isDifferentPathname = model.url.pathname !== url.pathname
-
-  return Update.combineSteps([
-    makeFieldsStep(stepModel => ({
-      route: () => nextRoute,
-      url: () => url,
-      sidebarGroups: () => nextSidebarGroups(stepModel, nextRoute),
-    })),
-    reconcileHomeStep(transition),
-    reconcilePlaygroundStep(transition),
-    MobileMenuDialogBinding.requestClose(),
-    ThemeMenuBinding.requestClose(),
-    SearchBinding.informRouteChanged(),
-    loadRouteDataStep(transition),
-    scrollAfterUrlChangeStep(url, isDifferentPathname),
-  ])
-})
+export type RouteChildren = Readonly<{
+  home: Home
+  playgroundFor: (
+    slug: string,
+    maybeIsSupported: Option.Option<boolean>,
+  ) => Playground
+}>
 
 const nextSidebarGroups = (model: Model, nextRoute: ApplicationRoute) =>
   Option.match(findActiveSectionKeyForRoute(nextRoute), {
@@ -60,29 +42,30 @@ const nextSidebarGroups = (model: Model, nextRoute: ApplicationRoute) =>
         : Record.set(model.sidebarGroups, activeSectionKey, true),
   })
 
-const reconcileHomeStep = (transition: ApplicationTransition) =>
-  makeStep(model => {
+const reconcileHome =
+  (transition: ApplicationTransition, home: Home) =>
+  (model: Model): Model => {
     if (Transition.isEntering(transition, 'Home')) {
-      return initAndSet(HomeBinding, model, { args: [] })
+      return modifyFields(model, { maybeHome: () => Option.some(home) })
     }
 
     if (Option.isSome(Transition.exited(transition, 'Home'))) {
-      return {
-        model: modifyFields(model, { maybeHome: () => Option.none() }),
-      }
+      return modifyFields(model, { maybeHome: () => Option.none() })
     }
 
-    return { model }
-  })
+    return model
+  }
 
-const reconcilePlaygroundStep = (transition: ApplicationTransition) =>
-  makeStep(model => {
+const reconcilePlayground =
+  (
+    transition: ApplicationTransition,
+    playgroundFor: RouteChildren['playgroundFor'],
+  ) =>
+  (model: Model): Model => {
     const { nextRoute } = transition
 
     if (nextRoute._tag !== 'Playground') {
-      return {
-        model: modifyFields(model, { playground: () => Option.none() }),
-      }
+      return modifyFields(model, { playground: () => Option.none() })
     }
 
     if (
@@ -92,67 +75,96 @@ const reconcilePlaygroundStep = (transition: ApplicationTransition) =>
           previousRoute.exampleSlug === nextRoute.exampleSlug,
       )
     ) {
-      return { model }
+      return model
     }
 
-    return initAndSet(PlaygroundBinding, model, {
-      args: [nextRoute.exampleSlug, model.maybeIsPlaygroundSupported],
+    return modifyFields(model, {
+      playground: () =>
+        Option.some(
+          playgroundFor(
+            nextRoute.exampleSlug,
+            model.maybeIsPlaygroundSupported,
+          ),
+        ),
     })
-  })
+  }
 
-const loadRouteDataStep = (transition: ApplicationTransition) =>
-  makeStep(model =>
-    ApplicationRoute.matchOrElse(
-      transition.nextRoute,
-      {
-        ApiModule: () => {
-          if (
-            Option.exists(
-              Transition.stayed(transition, 'ApiModule'),
-              ({ previousRoute, nextRoute }) =>
-                previousRoute.moduleSlug === nextRoute.moduleSlug,
-            )
-          ) {
-            return { model }
-          }
-
-          return ApiReferenceBinding.informRouteChanged()
-        },
-        ExampleDetail: ({ exampleSlug }) => {
-          if (
-            Option.exists(
-              Transition.stayed(transition, 'ExampleDetail'),
-              ({ previousRoute, nextRoute }) =>
-                previousRoute.exampleSlug === nextRoute.exampleSlug,
-            )
-          ) {
-            return { model }
-          }
-
-          return ExampleDetailBinding.informRouteChanged({ slug: exampleSlug })
-        },
-      },
-      () => ({ model }),
-    ),
+const routeDataMessages = (model: Model, transition: ApplicationTransition) =>
+  ApplicationRoute.matchOrElse(
+    transition.nextRoute,
+    {
+      ApiModule: () =>
+        Option.exists(
+          Transition.stayed(transition, 'ApiModule'),
+          ({ previousRoute, nextRoute }) =>
+            previousRoute.moduleSlug === nextRoute.moduleSlug,
+        )
+          ? []
+          : [
+              model.apiReference.send(
+                ApiReference.Message.InformedOfRouteChange(),
+              ),
+            ],
+      ExampleDetail: ({ exampleSlug }) =>
+        Option.exists(
+          Transition.stayed(transition, 'ExampleDetail'),
+          ({ previousRoute, nextRoute }) =>
+            previousRoute.exampleSlug === nextRoute.exampleSlug,
+        )
+          ? []
+          : [
+              model.exampleDetail.send(
+                ExampleDetail.Message.InformedOfRouteChange({
+                  slug: exampleSlug,
+                }),
+              ),
+            ],
+    },
+    () => [],
   )
 
-const scrollAfterUrlChangeStep = (url: Url, isChangingPathname: boolean) => {
+const scrollCommands = (url: Url, isChangingPathname: boolean) => {
   if (Option.isSome(url.hash)) {
-    const hash = url.hash.value
-
-    return makeCommandsStep(() => [
-      Command.ScrollToAnchor({ hash }),
+    return [
+      Command.ScrollToAnchor({ hash: url.hash.value }),
       ...Array.filter(
         [Command.ScrollSidebarActiveLinkIntoView()],
         () => isChangingPathname,
       ),
-    ])
+    ]
   }
 
-  return makeCommandsStep(() =>
-    Array.filter(
-      [Command.ScrollToTop(), Command.ScrollSidebarActiveLinkIntoView()],
-      () => isChangingPathname,
-    ),
+  return Array.filter(
+    [Command.ScrollToTop(), Command.ScrollSidebarActiveLinkIntoView()],
+    () => isChangingPathname,
   )
 }
+
+export const handleChangedUrl =
+  ({ home, playgroundFor }: RouteChildren) =>
+  (model: Model, { url }: ChangedUrl) => {
+    const nextRoute = urlToApplicationRoute(url)
+    const transition = Transition.make(model.route, nextRoute)
+    const isDifferentPathname = model.url.pathname !== url.pathname
+
+    const nextModel = pipe(
+      modifyFields(model, {
+        route: () => nextRoute,
+        url: () => url,
+        sidebarGroups: () => nextSidebarGroups(model, nextRoute),
+      }),
+      reconcileHome(transition, home),
+      reconcilePlayground(transition, playgroundFor),
+    )
+
+    return {
+      model: nextModel,
+      commands: scrollCommands(url, isDifferentPathname),
+      messages: [
+        nextModel.mobileMenuDialog.send(Dialog.Dialog.Message.RequestedClose()),
+        nextModel.themeMenu.send(ThemeMenu.Message.RequestedClose()),
+        nextModel.search.send(Search.Message.InformedOfRouteChange()),
+        ...routeDataMessages(nextModel, transition),
+      ],
+    }
+  }

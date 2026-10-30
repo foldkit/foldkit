@@ -9,6 +9,7 @@ import {
   type Variable,
 } from 'effect-oxlint'
 
+import { blockImplementationPath } from '../block-implementation.ts'
 import {
   effectConstructorValue,
   generatorConstructorValue,
@@ -1132,6 +1133,42 @@ const isDeferredFunction = (
   isEffectOrStreamCallback(references, fn) ||
   isConstructedHandlerFunction(references, definitions, fn)
 
+type BlockFunctionRole = 'Decision' | 'Execution'
+
+const blockExecutionSlots = new Set(['commands', 'mounts'])
+
+const blockFunctionRole = (
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+  fn: ESTree.ArrowFunctionExpression | ESTree.Function,
+): Option.Option<BlockFunctionRole> =>
+  Option.flatMap(blockImplementationPath(fn, references), path => {
+    const [slot, name, field, extra] = path
+
+    if (slot === 'update' || slot === 'view') {
+      return Option.some('Decision')
+    }
+
+    if (
+      slot !== undefined &&
+      blockExecutionSlots.has(slot) &&
+      name !== undefined &&
+      field === undefined
+    ) {
+      return Option.some('Execution')
+    }
+
+    if (
+      slot === 'subscriptions' &&
+      name !== undefined &&
+      field !== undefined &&
+      extra === undefined
+    ) {
+      return Option.some(field === 'stream' ? 'Execution' : 'Decision')
+    }
+
+    return Option.none()
+  })
+
 const isInsideEffectBoundary = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
   definitions: WeakMap<ESTree.Node, Variable> | undefined,
@@ -1140,6 +1177,12 @@ const isInsideEffectBoundary = (
   const parent = node.parent
   if (parent === null) {
     return false
+  }
+  if (isFunction(parent)) {
+    const maybeBlockRole = blockFunctionRole(references, parent)
+    if (Option.isSome(maybeBlockRole)) {
+      return maybeBlockRole.value === 'Execution'
+    }
   }
   if (
     isFunction(parent) &&
@@ -1173,7 +1216,10 @@ const diagnosticMessage = ({ display, guidance }: ImpureOperation): string =>
 /**
  * Flags direct calls to known nondeterministic globals unless they appear in a
  * recognized deferred Effect, Stream, Command, Mount, Subscription, or
- * ManagedResource callback.
+ * ManagedResource callback. In a Block implementation, `commands` and
+ * `mounts` handlers and Subscription `stream` functions run when the Runtime
+ * executes them; `update` handlers, `view`, and Subscription `dependencies`
+ * are decision time even inside an `Effect.fn` constructor.
  */
 export const noImpureCallAtDecisionTime = Rule.define({
   name: 'no-impure-call-at-decision-time',

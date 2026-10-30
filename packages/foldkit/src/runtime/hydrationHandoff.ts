@@ -519,7 +519,7 @@ export const resolveHydrationHandoff = <Flags, Resources>({
 
     // The build the served page came from is settled here, before the Flags
     // payload text is accessed, parsed, or decoded, before `init` runs, and
-    // therefore before any Command, Subscription, ManagedResource, or port
+    // therefore before any Command, Subscription, Block instance, or port
     // this boot would start. A page from another deployment carries that
     // deployment's Flags, which the current Schema may well accept while
     // every value in them means something else, so deferring the comparison

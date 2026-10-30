@@ -1,18 +1,35 @@
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-const Model = Schema.Struct({})
 const Message = defineMessageUnion({ Rendered: {} })
-const ContextualViewNamespace = Block.makeNamespace('ContextualView')
-const feature = ContextualViewNamespace.makeDefinition({ Model, Message })
 
-const ContextualViewComposition = feature.makeComposition()
+export class ContextualView extends Block<ContextualView>()('ContextualView', {
+  Model: Schema.Struct({}),
+  Message,
+}) {}
 
-export const view = ContextualViewComposition.makeView((_model, h) =>
-  h.div([], []),
+export const ContextualViewLive = ContextualView.make(
+  Effect.fn(function* () {
+    return {
+      model: {},
+      update: { Rendered: model => ({ model }) },
+      view: (_model, h) => h.div([], []),
+    }
+  }),
 )
 
-export const viewWithInputs = ContextualViewComposition.makeView.withInputs<
-  Readonly<{ label: string }>
->((_model, h) => h.span([], []))
+type LabelInput = Readonly<{ label: string }>
+
+export class LabelledView extends Block<LabelledView, void, LabelInput>()(
+  'LabelledView',
+  {},
+) {}
+
+export const LabelledViewLive = LabelledView.make(
+  Effect.fn(function* () {
+    return {
+      view: (_model, h, { label }) => h.span([h.Title(label)], []),
+    }
+  }),
+)

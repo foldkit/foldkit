@@ -1,6 +1,7 @@
 import { HashSet, Option, Redacted } from 'effect'
 import { describe, expect, it } from 'vitest'
 
+import { InstanceTypeId } from '../blocks/engine.js'
 import {
   toInspectableValue,
   toSerializedEntry,
@@ -9,6 +10,25 @@ import {
 import type { HistoryEntry } from './store.js'
 
 describe('toInspectableValue', () => {
+  it('replaces Block instances with their resolved Models', () => {
+    const blockInstance = (id: string, model: unknown) => ({
+      [InstanceTypeId]: true,
+      id,
+      model,
+    })
+    const root = blockInstance('Application', {
+      home: blockInstance('home', { count: 1 }),
+      rows: [blockInstance('row-1', { label: 'First' })],
+      maybeDialog: Option.none(),
+    })
+
+    expect(toInspectableValue(root)).toEqual({
+      home: { count: 1 },
+      rows: [{ label: 'First' }],
+      maybeDialog: toInspectableValue(Option.none()),
+    })
+  })
+
   it('converts a Date to its ISO string', () => {
     const date = new Date('2026-04-26T12:00:00.000Z')
     expect(toInspectableValue(date)).toBe('2026-04-26T12:00:00.000Z')
@@ -144,7 +164,7 @@ describe('toSerializedEntry', () => {
           id: 1,
           name: 'FetchWeather',
           args: { zipCode: '90210' },
-          maybeBlockPath: Option.some(['GotForecastMessage']),
+          maybeBlockPath: Option.some(['forecast']),
         },
         {
           id: 2,
@@ -158,7 +178,7 @@ describe('toSerializedEntry', () => {
       {
         name: 'FetchWeather',
         args: Option.some({ zipCode: '90210' }),
-        maybeBlockPath: Option.some(['GotForecastMessage']),
+        maybeBlockPath: Option.some(['forecast']),
       },
       {
         name: 'LockScroll',
@@ -322,17 +342,18 @@ describe('toSerializedEntry', () => {
     expect(result.maybeLeafTag).toEqual(Option.none())
   })
 
-  it('extracts the block chain and leaf tag for Got*Message entries', () => {
+  it('extracts the instance path and child Message tag for BlockMessage entries', () => {
     const entry: HistoryEntry = {
       ...baseEntry,
-      tag: 'GotProductsMessage',
+      tag: 'BlockMessage',
       message: {
-        _tag: 'GotProductsMessage',
+        _tag: 'BlockMessage',
+        path: ['products', 'row-2'],
         message: { _tag: 'ClickedRow', index: 2 },
       },
     }
     const result = toSerializedEntry(entry, 0)
-    expect(result.blockPath).toEqual(['GotProductsMessage'])
+    expect(result.blockPath).toEqual(['products', 'row-2'])
     expect(result.maybeLeafTag).toEqual(Option.some('ClickedRow'))
   })
 })

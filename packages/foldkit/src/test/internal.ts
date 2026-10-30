@@ -1,15 +1,8 @@
-import {
-  Array,
-  Equal,
-  Option,
-  Order,
-  Predicate,
-  Schema,
-  String,
-  pipe,
-} from 'effect'
-import type { Effect, Stream } from 'effect'
+import { Array, Equal, Option, Order, Predicate, pipe } from 'effect'
+import type { Effect } from 'effect'
 
+import { CommandDefinitionTypeId } from '../command/index.js'
+import type { InterruptDefinitionNoArgs } from '../command/interruptible/index.js'
 import {
   type DefinitionIdentity,
   InvocationIdentityTypeId,
@@ -17,23 +10,14 @@ import {
   identityOf,
   invocationIdentity,
   invocationName,
-} from '../block/identity.js'
-import { isScopedEntry, isScopedInvocation } from '../block/scope.js'
-import type { Scoped } from '../block/scope.js'
-import { CommandDefinitionTypeId } from '../command/index.js'
-import type { InterruptDefinitionNoArgs } from '../command/interruptible/index.js'
+} from '../definitionIdentity.js'
 import { type MountDefinition, MountDefinitionTypeId } from '../mount/index.js'
 import {
-  type Subscription,
-  type MessageDeclaration as SubscriptionMessageDeclaration,
-  __messageMappers as subscriptionMessageMappers,
-} from '../subscription/subscription.js'
-import {
-  bindingMatcherFingerprint,
   commandMatches,
-  isBindingCommandMatcher,
+  matcherBlockPath,
+  matcherPathFingerprint,
   sameOperation,
-} from './bindingMatcher.js'
+} from './commandMatcher.js'
 
 /** A Command in a test simulation. Carries `name` and optionally the `args`
  *  the runtime captured at construction. Instance matchers (Command values
@@ -138,10 +122,15 @@ const formatArgs = (args: Record<string, unknown> | undefined): string =>
 
 /** Formats a Command matcher for display in error messages. Definition
  *  matchers render as just the name; Instance matchers append the args. */
-export const formatMatcher = (matcher: CommandMatcher): string =>
-  isCommandDefinitionMatcher(matcher)
+export const formatMatcher = (matcher: CommandMatcher): string => {
+  const formatted = isCommandDefinitionMatcher(matcher)
     ? matcher.name
     : `${matcher.name}${formatArgs(matcher.args)}`
+  const blockPath = matcherBlockPath(matcher)
+  return blockPath === undefined
+    ? formatted
+    : `${formatted} at ${JSON.stringify(blockPath)}`
+}
 
 /** Formats a pending Command for display in error messages. Same shape as
  *  `formatMatcher` so failure messages diff visually at a glance. */
@@ -230,9 +219,8 @@ export type Resolver<
 
 /** A Mount matcher (Definition or Instance) paired with the raw result Message
  *  to resolve it with. Mirrors `Resolver` for Commands. When the mount lives
- *  inside a Block, the boundary's own `toParentMessage` chain (snapshotted at
- *  render time) is applied to the result, so pass the child's raw result
- *  Message, not a parent-wrapped one. */
+ *  inside a child Block, the Message lift captured at render time is applied
+ *  to the result, so pass the child's raw result Message. */
 export type MountResolver<ResultMessage = unknown> = readonly [
   MountMatcher,
   ResultMessage,
@@ -356,7 +344,7 @@ const matcherFingerprint = (matcher: CommandMatcher): string => {
   if (identity !== undefined) {
     const identityId = matcherIdentities.get(identity) ?? nextMatcherIdentity++
     matcherIdentities.set(identity, identityId)
-    source = `${identityId}:${invocationName(matcher) ?? matcher.name}:${isScopedInvocation(matcher) ? matcher.name : ''}:${bindingMatcherFingerprint(matcher)}`
+    source = `${identityId}:${invocationName(matcher) ?? matcher.name}:${matcherPathFingerprint(matcher)}`
   }
   return isCommandDefinitionMatcher(matcher)
     ? `def:${source}`
@@ -379,17 +367,6 @@ const findNextMatch = (
     )
 
   return Array.findFirst(commands, toMatchedResolver)
-}
-
-const assertBindingResolversUnambiguous = (
-  commands: ReadonlyArray<AnyCommand>,
-  resolvers: ReadonlyArray<ResolverEntry>,
-): void => {
-  for (const { matcher } of resolvers) {
-    if (isBindingCommandMatcher(matcher)) {
-      assertResolveUnambiguous(commands, matcher)
-    }
-  }
 }
 
 /** Resolves all listed Commands, cascading through any Commands produced by
@@ -421,7 +398,6 @@ export const resolveAllInternal = <Model, Message, OutMessage>(
   } as BaseInternal<Model, Message, unknown>
 
   for (let depth = 0; depth < MAX_CASCADE_DEPTH; depth++) {
-    assertBindingResolversUnambiguous(current.commands, current.resolvers)
     const matched = findNextMatch(current.commands, current.resolvers)
 
     if (Option.isNone(matched)) {
@@ -470,7 +446,6 @@ export const resolveAllExactInternal = <Model, Message, OutMessage>(
   let current = internal
 
   for (let depth = 0; depth < MAX_CASCADE_DEPTH; depth++) {
-    assertBindingResolversUnambiguous(current.commands, remainingResolvers)
     const matched = findNextMatch(current.commands, remainingResolvers)
 
     if (Option.isNone(matched)) {
@@ -546,13 +521,10 @@ export const assertResolveUnambiguous = (
   )
 
   if (matches.length > 1) {
-    const resolutionAdvice = isBindingCommandMatcher(matcher)
-      ? 'Include the missing ancestor Binding and keyed occurrence in the component test fixture.'
-      : 'To disambiguate, pass a Command instance with specific args, or use resolveAll for ordered consumption.'
     throw new Error(
       `I tried to resolve "${formatMatcher(matcher)}" but multiple pending Commands match.\n\n` +
         `Matches:\n${formatCommandList(matches)}\n\n` +
-        resolutionAdvice,
+        'To disambiguate, pass a Command instance with specific args, use Command.at to select an instance, or use resolveAll for ordered consumption.',
     )
   }
 }
@@ -908,164 +880,4 @@ export const assertAllUnmountsAcknowledged = (
         'was previously resolved.',
     )
   }
-}
-
-// SUBSCRIPTIONS
-
-type UnscopedSubscriptionRequirements<Requirements> =
-  Requirements extends Scoped<any, infer Contract> ? Contract : Requirements
-
-/** The entry values a test may pass to emit a registered Subscription entry:
- *  the entry itself, or the child entry it was lifted from. */
-export type SubscriptionEmissionSource<Entry> =
-  Entry extends Readonly<{
-    dependenciesToStream: (
-      ...args: ReadonlyArray<any>
-    ) => Stream.Stream<any, never, infer Requirements>
-  }>
-    ?
-        | Subscription<any, any, any, Requirements>
-        | Subscription<
-            any,
-            any,
-            any,
-            UnscopedSubscriptionRequirements<Requirements>
-          >
-    : never
-
-const applySubscriptionMappers = (
-  declaration: SubscriptionMessageDeclaration,
-  message: unknown,
-): unknown =>
-  Array.reduce(
-    declaration.messageMappers,
-    message,
-    (current, toParentMessage) => toParentMessage(current),
-  )
-
-/** Selects registrations corresponding to a Subscription source. */
-export const sourceSubscriptionDeclarationsOf = (
-  declarations: ReadonlyArray<SubscriptionMessageDeclaration>,
-  entry: unknown,
-): ReadonlyArray<SubscriptionMessageDeclaration> => {
-  const exactDeclarations = Array.filter(
-    declarations,
-    declaration => declaration.entry === entry,
-  )
-  const sourceDeclarations = Array.isArrayNonEmpty(exactDeclarations)
-    ? exactDeclarations
-    : Array.filter(declarations, declaration => {
-        if (!Predicate.isObject(entry)) {
-          return false
-        }
-
-        const expected = identityOf(entry)
-        const actual = identityOf(declaration.entry)
-        if (expected === undefined || actual?.token !== expected.token) {
-          return false
-        }
-
-        const sourceMappers = subscriptionMessageMappers(entry)
-        if (
-          !sourceMappers.every(
-            (mapper, index) =>
-              Option.getOrUndefined(
-                Array.get(declaration.messageMappers, index),
-              ) === mapper,
-          )
-        ) {
-          return false
-        }
-
-        const name = Reflect.get(entry, 'name')
-        const declarationName = Reflect.get(declaration.entry, 'name')
-        return (
-          !isScopedEntry(entry) ||
-          declarationName === name ||
-          (Predicate.isString(name) &&
-            Predicate.isString(declarationName) &&
-            String.endsWith(`/${name}`)(declarationName))
-        )
-      })
-  return sourceDeclarations
-}
-
-/** Resolves one selected registration for a Subscription source. */
-export const resolveSubscriptionDeclaration = (
-  stepName: string,
-  declarations: ReadonlyArray<SubscriptionMessageDeclaration>,
-  entry: unknown,
-): SubscriptionMessageDeclaration => {
-  const sourceDeclarations = sourceSubscriptionDeclarationsOf(
-    declarations,
-    entry,
-  )
-
-  return Array.matchLeft(sourceDeclarations, {
-    onEmpty: () => {
-      throw new Error(
-        `${stepName} selected a Subscription not registered in the Scene.`,
-      )
-    },
-    onNonEmpty: (declaration, remainingDeclarations) => {
-      if (Array.isArrayNonEmpty(remainingDeclarations)) {
-        const entryKeys = pipe(
-          sourceDeclarations,
-          Array.map(({ entryKey }) => entryKey),
-          Array.join(', '),
-        )
-
-        throw new Error(
-          `${stepName} selected a Subscription entry ` +
-            `registered under multiple keys: ${entryKeys}.\n\n` +
-            'Select the bound Subscription entry for the intended child placement.',
-        )
-      }
-
-      return declaration
-    },
-  })
-}
-
-/** Validates a Message emitted for a registered Subscription entry and
- *  applies that entry's generated delivery. */
-export const resolveSubscriptionMessage = (
-  stepName: string,
-  declarations: ReadonlyArray<SubscriptionMessageDeclaration>,
-  entry: unknown,
-  message: unknown,
-): unknown => {
-  const sourceDeclarations = sourceSubscriptionDeclarationsOf(
-    declarations,
-    entry,
-  )
-  const matchingDeclarations = Array.filter(sourceDeclarations, declaration =>
-    Array.some(declaration.schemas, schema => Schema.is(schema)(message)),
-  )
-
-  return Array.matchLeft(matchingDeclarations, {
-    onEmpty: () => {
-      throw new Error(
-        `${stepName} received a Message that is not declared by the selected Subscription:\n\n` +
-          `    ${JSON.stringify(message)}`,
-      )
-    },
-    onNonEmpty: (declaration, remainingDeclarations) => {
-      if (Array.isArrayNonEmpty(remainingDeclarations)) {
-        const entryKeys = pipe(
-          matchingDeclarations,
-          Array.map(({ entryKey }) => entryKey),
-          Array.join(', '),
-        )
-
-        throw new Error(
-          `${stepName} selected a Subscription entry ` +
-            `registered under multiple keys: ${entryKeys}.\n\n` +
-            'Select the bound Subscription entry for the intended child placement.',
-        )
-      }
-
-      return applySubscriptionMappers(declaration, message)
-    },
-  })
 }

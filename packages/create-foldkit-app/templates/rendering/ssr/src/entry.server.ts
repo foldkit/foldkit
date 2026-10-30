@@ -1,8 +1,12 @@
 import { Effect } from 'effect'
 import { Server } from 'foldkit/experimental'
 
-import { ApplicationBlock, Flags } from './application'
-import { readCountCookie } from './cookie'
+import {
+  Application,
+  ApplicationLive,
+  Flags,
+  readCountCookie,
+} from './application'
 
 export const renderDocument = Server.renderDocument
 
@@ -14,8 +18,8 @@ const flagsForRequest = (cookieHeader: string): Flags => ({
 
 // NOTE: the Flags built from this request are serialized into the rendered
 // HTML and travel to the browser with it. The hydrating client reads them
-// back and calls init with the exact values this render used; the client
-// computes no Flags of its own.
+// back and constructs the root Block with the exact values this render used;
+// the client computes no Flags of its own.
 // NOTE: a preflight reaches this entry in development and in production alike,
 // so an application's CORS policy goes here rather than in the host: it can
 // allow one origin for one route and refuse it for another. This answer allows
@@ -34,8 +38,8 @@ export const renderPage = (request: Request): Promise<Server.EntryResult> =>
       }
 
       const renderedApplication = yield* Server.renderToString(
-        ApplicationBlock,
-        { Flags },
+        Application,
+        { layer: ApplicationLive, Flags },
         {
           flags: flagsForRequest(request.headers.get('cookie') ?? ''),
         },

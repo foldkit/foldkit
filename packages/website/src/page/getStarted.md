@@ -53,11 +53,11 @@ The Counter starter begins with these files:
 - `AGENTS.md`: your instructions for AI coding assistants working on the project
 - `FOLDKIT.md`: Foldkit's own conventions for those assistants, [replaced from the current template when you upgrade Foldkit](/ai/overview)
 
-In a small starter, `src/application.ts` calls `Block.makeDefinition('Application', { Model, Message })`, creates a named `ApplicationComposition`, and assembles `ApplicationBlock`. The Definition authors Commands, Steps, lifecycle behavior, and Bindings; the Composition owns init, update, and the primary view after its child and Mount graph is fixed. Commands, Subscriptions, Mounts, ManagedResources, and their handler recipes stay on the root Block. Larger examples move substantial pieces into focused files as the application grows.
+In a small starter, `src/application.ts` declares the Model, the Message union, and the root Block class `Application`. `Application.make(...)` implements it and returns `ApplicationLive`, the Layer that provides the root Block. Its constructor returns the starting Model, one update handler per Message, and the view. Commands, Mounts, and Subscriptions the root owns are listed on the class and implemented in the same constructor. Larger examples move substantial pieces into focused files as the application grows.
 
 ### Runtime Entry
 
-For the Counter starter, `src/entry.ts` imports `ApplicationBlock` and passes it with the page container to `Program.make`. The returned lowercase `program` is a passive runtime input. A starter whose handlers need application Services defines `ApplicationLayer` in `services.ts`, then the entry calls `program.provide(ApplicationLayer)`. Importing the Block, creating the Program, and providing a Layer remain passive; startup happens only when the Runtime starts the Program.
+For the Counter starter, `src/entry.ts` passes `Application` to `Program.make` with `ApplicationLive` as its `layer` and the page container, then calls `Runtime.run(program)`. When the root's handlers need application Services, the starter defines `ApplicationLayer` in `services.ts` and the entry provides it with `ApplicationLive.pipe(Layer.provide(ApplicationLayer))`. Creating the Program is passive; the application starts when `Runtime.run` runs it.
 
 ### Project Scripts
 

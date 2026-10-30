@@ -1,41 +1,38 @@
-import { Command, click, role } from 'foldkit/scene'
+import { Command, click, role, within } from 'foldkit/scene'
 
-// Single Command. Click a button, acknowledge its Command result.
+import { Note, Save } from './notes'
+import { FetchWeather, Message, type Weather } from './weather'
+
+declare const weather: Weather
+
+// Assert the pending Commands, then supply a result Message.
 click(role('button', { name: 'Get Weather' }))
 Command.expectExact(FetchWeather)
-Command.resolve(FetchWeather, SucceededFetchWeather({ weather }))
+Command.resolve(FetchWeather, Message.SucceededFetchWeather({ weather }))
 
-// Lock in args. Pass a Command instance instead of a Definition to match by
-// source identity, bound path, AND args. This catches wrong inputs or placement.
+// Pass an instance instead of a Definition to check the arguments too.
 Command.expectExact(FetchWeather({ zipCode: '90210' }))
 
-// Multiple Commands. Resolve a batch in one step; cascading Commands resolve too.
-click(role('button', { name: 'Sign In' }))
-Command.expectExact(RequestAuthentication, TrackSignInAttempt)
-Command.resolveAll(
-  [RequestAuthentication, SucceededRequestAuthentication({ session })],
-  [TrackSignInAttempt, CompletedTrackSignInAttempt()],
-)
+// Resolve and assert a batch. Every listed resolver must match a pending
+// Command, and no Command may remain unresolved.
+Command.resolveAllExact([
+  FetchWeather,
+  Message.SucceededFetchWeather({ weather }),
+])
 
-// Resolve the batch while asserting every listed Command was dispatched.
-click(role('button', { name: 'Sign In' }))
-Command.resolveAllExact(
-  [RequestAuthentication, SucceededRequestAuthentication({ session })],
-  [TrackSignInAttempt, CompletedTrackSignInAttempt()],
-)
-
-// Subset assertion. Use when you only care that a particular Command is pending.
-// Definition or instance: instance form locks in the args.
+// Subset and empty assertions.
 Command.expectHas(FetchWeather)
-Command.expectHas(FetchWeather({ zipCode: '90210' }))
-
-// Negative assertion. Useful before a transition that should produce no Commands.
 Command.expectNone()
 
-// Block Command. When the Command lives in a child component, resolve it
-// with the child's raw result Message. resolve replays the Command's own
-// mapMessages wrapping automatically, so you never restate the lift.
+// A child instance's Command. Resolve it with the child's own result
+// Message; Foldkit routes it back to the instance that returned the Command.
+click(
+  within(role('region', { name: 'note-1' }), role('button', { name: 'Save' })),
+)
+Command.resolve(Save, Note.Message.SucceededSave())
+
+// Sibling instances with identical pending Commands. Select one by path.
 Command.resolve(
-  Search.FetchSuggestions,
-  Search.SucceededFetchSuggestions({ suggestions }),
+  Command.at(['notes', 'note-2'], Save),
+  Note.Message.FailedSave({ reason: 'Offline' }),
 )

@@ -1,31 +1,42 @@
-import { Option, Schema } from 'effect'
+import { Effect, Number, Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
+import { modifyFields } from 'foldkit/struct'
 
-const Model = Schema.Struct({
-  count: Schema.Number,
-  startingCount: Schema.Option(Schema.Number),
-})
-type Model = typeof Model.Type
+import type { Flags } from './flagsDefinition'
 
-const Flags = Schema.Struct({
-  savedCount: Schema.Option(Schema.Number),
-})
-type Flags = typeof Flags.Type
+export class Application extends Block<
+  Application,
+  Readonly<{ flags: Flags }>
+>()('Application', {
+  Model: Schema.Struct({
+    count: Schema.Number,
+    maybeStartingCount: Schema.Option(Schema.Number),
+  }),
+  Message: defineMessageUnion({ ClickedIncrement: {} }),
+}) {}
 
-const Message = defineMessageUnion({
-  ClickedIncrement: {},
-})
-type Message = typeof Message.Type
+export const ApplicationLive = Application.make(
+  Effect.fn(function* (_id, { flags }) {
+    return {
+      model: {
+        count: Option.getOrElse(flags.savedCount, () => 0),
+        maybeStartingCount: flags.savedCount,
+      },
 
-const ApplicationComposition = Block.makeDefinition('Application', {
-  Model,
-  Message,
-}).makeComposition()
+      update: {
+        ClickedIncrement: model => ({
+          model: modifyFields(model, { count: Number.increment }),
+        }),
+      },
 
-const init = ApplicationComposition.makeInit((flags: Flags) => ({
-  model: {
-    count: Option.getOrElse(flags.savedCount, () => 0),
-    startingCount: flags.savedCount,
-  },
-}))
+      view: (model, h) => ({
+        title: `Counter: ${model.count}`,
+        body: h.button(
+          [h.OnClick(Application.Message.ClickedIncrement())],
+          [`${model.count}`],
+        ),
+      }),
+    }
+  }),
+)

@@ -8,7 +8,7 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { basename, dirname, join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { transform } from 'rolldown/experimental'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -77,24 +77,6 @@ const diagnosticsFor = (
 const countDiagnostics = (rule: string, kind: FixtureKind): number =>
   diagnosticsFor(rule, kind).length
 
-const reportedCalleeLabel = (diagnostic: LintDiagnostic): string => {
-  const match = diagnostic.message.match(/`([^`]+)\(\.\.\.\)`/)
-  if (match === null) {
-    throw new Error(
-      `Diagnostic does not contain a callee label: ${diagnostic.message}`,
-    )
-  }
-
-  const [, label] = match
-  if (label === undefined) {
-    throw new Error(
-      `Diagnostic has an empty callee label: ${diagnostic.message}`,
-    )
-  }
-
-  return label
-}
-
 const ruleFixtures = readdirSync(fixturesRoot, { withFileTypes: true })
   .filter(entry => entry.isDirectory())
   .map(entry => entry.name)
@@ -119,61 +101,9 @@ describe('real-oxlint rule fixtures', () => {
     })
   }
 
-  it('reports sibling coordination through proven Binding writers and aliases', () => {
-    const diagnostics = diagnosticsFor(
-      'no-binding-write-coordination',
-      'invalid',
-    )
-    expect(
-      diagnostics.map(diagnostic => basename(diagnostic.filename)).sort(),
-    ).toEqual([
-      'aliases.ts',
-      'direct.ts',
-      'map-binding.ts',
-      'map-namespace-destructured.ts',
-      'map-namespace-direct.ts',
-      'map-namespace-method-alias.ts',
-      'map-namespace-owner-alias.ts',
-      'map-namespace-owner-destructured.ts',
-    ])
-    expect(
-      diagnostics.every(diagnostic =>
-        diagnostic.message.includes('OutMessage'),
-      ),
-    ).toBe(true)
-  })
-
-  it('reports proven completed Block Models only in Schema inputs', () => {
-    const diagnostics = diagnosticsFor(
-      'no-completed-block-model-in-schema',
-      'invalid',
-    )
-    const diagnosticsByFixture = new Map<string, number>()
-    for (const diagnostic of diagnostics) {
-      const fixture = basename(diagnostic.filename)
-      diagnosticsByFixture.set(
-        fixture,
-        (diagnosticsByFixture.get(fixture) ?? 0) + 1,
-      )
-    }
-    expect([...diagnosticsByFixture.entries()].sort()).toEqual([
-      ['block-returning-methods.ts', 12],
-      ['explicit-header.ts', 25],
-      ['imports.ts', 4],
-      ['inline.ts', 1],
-      ['local.ts', 2],
-      ['namespaces-and-literals.ts', 2],
-      ['widened-header.ts', 16],
-      ['wrapped.ts', 6],
-    ])
-    expect(
-      countDiagnostics('no-completed-block-model-in-schema', 'valid'),
-    ).toBe(0)
-  })
-
   it('reports every direct decision-time operation in its invalid fixture', () => {
     expect(countDiagnostics('no-impure-call-at-decision-time', 'invalid')).toBe(
-      31,
+      35,
     )
   })
 
@@ -183,142 +113,12 @@ describe('real-oxlint rule fixtures', () => {
     ).toBe(5)
   })
 
-  it('traces direct, named, and automatically routed child updates', () => {
-    expect(countDiagnostics('no-direct-block-state-update', 'invalid')).toBe(28)
-  })
-
-  it('tracks HashMap child updates across direct, applied, and piped forms', () => {
-    const invalid = diagnosticsFor(
-      'no-direct-block-state-update',
-      'invalid',
-    ).filter(diagnostic => diagnostic.filename.endsWith('map-binding.ts'))
-    const valid = diagnosticsFor(
-      'no-direct-block-state-update',
-      'valid',
-    ).filter(diagnostic => diagnostic.filename.endsWith('map-binding.ts'))
-
-    expect(invalid).toHaveLength(5)
-    expect(valid).toEqual([])
-  })
-
-  it('tracks extracted map Binding policy selection without matching unrelated helpers', () => {
-    const invalid = diagnosticsFor(
-      'no-empty-to-parent-out-message',
-      'invalid',
-    ).filter(diagnostic => diagnostic.filename.endsWith('map-binding.ts'))
-    const valid = diagnosticsFor(
-      'no-empty-to-parent-out-message',
-      'valid',
-    ).filter(diagnostic => diagnostic.filename.endsWith('map-binding.ts'))
-
-    expect(invalid).toHaveLength(4)
-    expect(valid).toEqual([])
-  })
-
-  it('tracks provenance-backed child transform references', () => {
-    const diagnostics = diagnosticsFor(
-      'no-direct-block-state-update',
-      'invalid',
-    ).filter(diagnostic =>
-      diagnostic.filename.endsWith('function-references.ts'),
-    )
-
-    expect(diagnostics).toHaveLength(6)
-  })
-
-  it('tracks registered child Bindings in Composition update callbacks', () => {
-    const diagnostics = diagnosticsFor(
-      'no-direct-block-state-update',
-      'invalid',
-    ).filter(diagnostic =>
-      diagnostic.filename.endsWith('composition-update.ts'),
-    )
-
-    expect(diagnostics).toHaveLength(4)
-  })
-
-  it('reports disabled, missing, and manual child routing', () => {
-    expect(countDiagnostics('no-manual-composition-routing', 'invalid')).toBe(
-      18,
-    )
-  })
-
   it('recognizes root and subpath Program aliases', () => {
     expect(countDiagnostics('no-disabling-dev-guardrails', 'invalid')).toBe(4)
   })
 
-  it('reports direct child Message construction and local constructor aliases', () => {
-    const diagnostics = diagnosticsFor(
-      'no-child-message-construction-in-root',
-      'invalid',
-    )
-
-    expect(diagnostics.map(reportedCalleeLabel).sort()).toEqual(
-      [
-        'ApplicationComposition.Message.ClickedFromShadowedParameters',
-        'Child.Message.ClickedAliasSave',
-        'Child.Message.ClickedBarrelSave',
-        'Child.Message.ClickedDirectBarrelSave',
-        'Child.Message.ClickedFromElementCompletion',
-        'Child.Message.ClickedFromImportedViewBuilder',
-        'Child.Message.ClickedFromLocalViewBuilder',
-        'Child.Message.ClickedFromRootCompletion',
-        'Child.Message.ClickedFromRootViewHelper',
-        'Child.Message.ClickedNestedSave',
-        'Child.Message.ClickedNamespaceAliasSave',
-        'Child.Message.ClickedImportedParentViewSave',
-        'Child.Message.ClickedParentStepSave',
-        'Child.Message.ClickedParentCommandsStepSave',
-        'Child.Message.ClickedParentMapSave',
-        'Child.Message.ClickedParentMapSave',
-        'Child.Message.ClickedParentMapSave',
-        'Child.Message.ClickedParentMapSave',
-        'Child.Message.ClickedParentMapSave',
-        'Child.Message.ClickedParentViewSave',
-        'Child.Message.ClickedFromContextRecord',
-        'Child.Message.ClickedFromDirectRecord',
-        'Child.Message.ClickedFromUnrelatedContextRecord',
-        'Child.Message.ClickedFromUnrelatedRecord',
-        'Child.Message.ClickedTypedParentViewSave',
-        'Child.Message.ClickedWorkspaceSave',
-        'Child.Message.ClickedWorkspaceAliasSave',
-        'Child.server.Message.ClickedServerChildSave',
-        'CommandPalette.Message.OpenedCommandPalette',
-        'DirectChild.Message.ClickedDirectChildSave',
-        'Definition.Message.ClickedChildSave',
-        'Definition.Message.ClickedEntrySave',
-        'Definition.Message.ClickedEntryFromForeignBuilder',
-        'Definition.Message.ClickedFromLocalDefinitionAlias',
-        'Definition.Message.CompletedChildWork',
-        'Definition.Message.GotChildMessage',
-        'Definition.Message.UpdatedEntry',
-        'Definition.Message.UpdatedAncestor',
-        'Feature.Message.ClickedFeatureSave',
-        'Profile.Message.ClickedProfileSave',
-        'Search.Message.ClickedSearchResult',
-        'picker.Message.SelectedValue',
-      ].sort(),
-    )
-  })
-
-  it('tracks Message ownership in Command-only Step callbacks without matching unrelated methods', () => {
-    const invalid = diagnosticsFor(
-      'no-child-message-construction-in-root',
-      'invalid',
-    ).filter(diagnostic => diagnostic.filename.endsWith('commands-step.ts'))
-    const valid = diagnosticsFor(
-      'no-child-message-construction-in-root',
-      'valid',
-    ).filter(diagnostic => diagnostic.filename.endsWith('commands-step.ts'))
-
-    expect(invalid.map(reportedCalleeLabel)).toEqual([
-      'Child.Message.ClickedParentCommandsStepSave',
-    ])
-    expect(valid).toEqual([])
-  })
-
   it('resolves aliased constructors and helpers to their imported APIs', () => {
-    expect(countDiagnostics('block-name-matches-variable', 'invalid')).toBe(14)
+    expect(countDiagnostics('block-name-matches-variable', 'invalid')).toBe(7)
     expect(countDiagnostics('no-hardcoded-route-strings', 'invalid')).toBe(2)
     expect(countDiagnostics('keyed-required-for-mapped-rows', 'invalid')).toBe(
       3,
@@ -346,7 +146,7 @@ describe('real-oxlint rule fixtures', () => {
 
   it('reports every invalid Mount handler', () => {
     expect(countDiagnostics('mount-factory-must-use-element', 'invalid')).toBe(
-      9,
+      11,
     )
   })
 
@@ -354,14 +154,24 @@ describe('real-oxlint rule fixtures', () => {
     expect(countDiagnostics('no-empty-object-tagged-call', 'invalid')).toBe(3)
   })
 
-  it('resolves namespace and aliased Update subpath imports', () => {
-    for (const rule of ['no-direct-block-state-update']) {
-      const diagnostics = diagnosticsFor(rule, 'invalid').filter(diagnostic =>
-        diagnostic.filename.endsWith('subpath-update.ts'),
+  it('recognizes Block implementation shapes', () => {
+    const inBlockFixture = (rule: string, kind: FixtureKind) =>
+      diagnosticsFor(rule, kind).filter(diagnostic =>
+        diagnostic.filename.endsWith('block.ts'),
       )
 
-      expect(diagnostics).toHaveLength(2)
-    }
+    expect(inBlockFixture('no-array-index-view-keys', 'invalid')).toHaveLength(
+      1,
+    )
+    expect(
+      inBlockFixture('mount-factory-must-use-element', 'invalid'),
+    ).toHaveLength(2)
+    expect(
+      inBlockFixture('no-impure-call-at-decision-time', 'invalid'),
+    ).toHaveLength(4)
+    expect(
+      inBlockFixture('block-name-matches-variable', 'invalid'),
+    ).toHaveLength(5)
   })
 
   it('fixes only structurally safe empty commands properties', async () => {
@@ -395,41 +205,6 @@ describe('real-oxlint rule fixtures', () => {
     expect(fixedSource.match(/commands: \[\]/g)).toHaveLength(1)
     expect(fixedSource).toContain('// A comment does not make this a Command.')
     expect(fixedSource).toContain('[propertyName]: dynamicCommands')
-    await expect(getTypeScriptParseErrors(fixedSource)).resolves.toEqual([])
-  })
-
-  it('fixes only structurally safe empty parent OutMessage mappers', async () => {
-    const rule = 'no-empty-to-parent-out-message'
-    const sourcePath = join(fixturesRoot, rule, 'invalid', 'update.ts')
-    const targetPath = join(workDir, `${rule}.fix.ts`)
-    const configPath = join(workDir, `${rule}.fix.oxlintrc.json`)
-    copyFileSync(sourcePath, targetPath)
-    writeFileSync(
-      configPath,
-      JSON.stringify({
-        plugins: ['typescript'],
-        jsPlugins: [
-          { name: 'foldkit', specifier: pathToFileURL(bundlePath).href },
-        ],
-        categories: { correctness: 'off' },
-        rules: { [`foldkit/${rule}`]: 'error' },
-      }),
-    )
-
-    const diagnostics = runOxlint({
-      oxlintBin,
-      cwd: workDir,
-      configPath,
-      target: targetPath,
-      fix: true,
-    })
-    const fixedSource = readFileSync(targetPath, 'utf8')
-
-    expect(diagnostics).toHaveLength(2)
-    expect(fixedSource.match(/toParentOutMessage/g)).toHaveLength(2)
-    expect(fixedSource).toContain(
-      '// This comment must survive an autofix pass.',
-    )
     await expect(getTypeScriptParseErrors(fixedSource)).resolves.toEqual([])
   })
 

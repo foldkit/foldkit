@@ -1,3 +1,9 @@
+import { Effect, Schema } from 'effect'
+import { Query } from 'foldkit/experimental'
+
+export const Post = Schema.Struct({ id: Schema.String, title: Schema.String })
+export type Post = typeof Post.Type
+
 const PostList = Schema.Array(Post)
 type PostList = typeof PostList.Type
 
@@ -21,7 +27,7 @@ const fetchPosts = Effect.gen(function* () {
   )
 })
 
-const postsQuery = Query.define({
+export const PostsQuery = Query.define({
   name: 'Posts',
   data: PostList,
   error: Schema.String,

@@ -3,13 +3,9 @@ import { type Html, childAttributes, inertHtml as ih } from 'foldkit/html'
 
 import type { AnchorConfig as MenuAnchorConfig } from '@foldkit/ui/menu'
 
-import type { ApplicationViewBuilder } from '../composition'
-import { ThemeMenuBinding } from '../composition'
 import { Icon } from '../icon'
+import type { Model } from '../model'
 import { type ThemePreference } from '../themePreference'
-import { ThemeMenuBlock } from './themeMenu'
-
-type ThemeMenuBlockModel = typeof ThemeMenuBlock.Model.Type
 
 const THEME_PREFERENCES: ReadonlyArray<ThemePreference> = [
   'Dark',
@@ -23,8 +19,6 @@ const THEME_MENU_ANCHOR: MenuAnchorConfig = {
   padding: 8,
 }
 
-export { ThemeMenuBlock } from './themeMenu'
-
 const preferenceIcon = (preference: ThemePreference, className: string): Html =>
   Match.value(preference).pipe(
     Match.when('Light', () => Icon.sun(className)),
@@ -34,60 +28,53 @@ const preferenceIcon = (preference: ThemePreference, className: string): Html =>
   )
 
 export const view = (
-  menu: ThemeMenuBlockModel,
+  themeMenu: Model['themeMenu'],
   maybeActivePreference: Option.Option<ThemePreference>,
-  h: ApplicationViewBuilder,
 ): Html => {
   const activePreference: ThemePreference = Option.getOrElse(
     maybeActivePreference,
     () => 'System',
   )
 
-  return h.block(
-    ThemeMenuBinding.embedView({
-      slotId: 'theme-menu',
-      model: menu,
-      viewInputs: {
-        anchor: THEME_MENU_ANCHOR,
-        ariaLabel: `Theme: ${activePreference}`,
-        items: THEME_PREFERENCES,
-        itemToConfig: preference => {
-          const isSelected = preference === activePreference
+  return themeMenu.view({
+    anchor: THEME_MENU_ANCHOR,
+    ariaLabel: `Theme: ${activePreference}`,
+    items: THEME_PREFERENCES,
+    itemToConfig: preference => {
+      const isSelected = preference === activePreference
 
-          return {
-            className:
-              'w-full cursor-pointer rounded-md px-3 py-3 md:py-2 text-left text-sm text-gray-700 transition hover:bg-gray-100 data-[active]:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800 dark:data-[active]:bg-gray-800',
-            content: ih.div(
-              [ih.Class('flex w-full items-center gap-3')],
-              [
-                preferenceIcon(preference, 'w-5 h-5 shrink-0'),
-                ih.span([ih.Class('flex-1')], [preference]),
-                Icon.check(
-                  isSelected
-                    ? 'w-4 h-4 shrink-0 text-accent-700 dark:text-accent-400'
-                    : 'invisible w-4 h-4 shrink-0',
-                ),
-                ...(isSelected
-                  ? [ih.span([ih.Class('sr-only')], ['(selected)'])]
-                  : []),
-              ],
+      return {
+        className:
+          'w-full cursor-pointer rounded-md px-3 py-3 md:py-2 text-left text-sm text-gray-700 transition hover:bg-gray-100 data-[active]:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800 dark:data-[active]:bg-gray-800',
+        content: ih.div(
+          [ih.Class('flex w-full items-center gap-3')],
+          [
+            preferenceIcon(preference, 'w-5 h-5 shrink-0'),
+            ih.span([ih.Class('flex-1')], [preference]),
+            Icon.check(
+              isSelected
+                ? 'w-4 h-4 shrink-0 text-accent-700 dark:text-accent-400'
+                : 'invisible w-4 h-4 shrink-0',
             ),
-          }
-        },
-        buttonContent: preferenceIcon(activePreference, 'w-5 h-5'),
-        buttonAttributes: childAttributes([
-          ih.Class(
-            'inline-flex size-8 cursor-pointer items-center justify-center rounded-md text-gray-600 transition hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:focus-visible:outline-accent-400',
-          ),
-        ]),
-        itemsAttributes: childAttributes([
-          ih.Class(
-            'z-[70] min-w-40 rounded-md border border-gray-200 bg-cream p-2 shadow-lg dark:border-gray-700 dark:bg-gray-900',
-          ),
-        ]),
-        backdropAttributes: childAttributes([ih.Class('fixed inset-0 z-[60]')]),
-        attributes: childAttributes([ih.Class('inline-flex')]),
-      },
-    }),
-  )
+            ...(isSelected
+              ? [ih.span([ih.Class('sr-only')], ['(selected)'])]
+              : []),
+          ],
+        ),
+      }
+    },
+    buttonContent: preferenceIcon(activePreference, 'w-5 h-5'),
+    buttonAttributes: childAttributes([
+      ih.Class(
+        'inline-flex size-8 cursor-pointer items-center justify-center rounded-md text-gray-600 transition hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:focus-visible:outline-accent-400',
+      ),
+    ]),
+    itemsAttributes: childAttributes([
+      ih.Class(
+        'z-[70] min-w-40 rounded-md border border-gray-200 bg-cream p-2 shadow-lg dark:border-gray-700 dark:bg-gray-900',
+      ),
+    ]),
+    backdropAttributes: childAttributes([ih.Class('fixed inset-0 z-[60]')]),
+    attributes: childAttributes([ih.Class('inline-flex')]),
+  })
 }

@@ -6,5 +6,6 @@ export {
   type ViewInputs,
   type RenderInfo,
   type TabInfo,
-  type Completed,
+  type Tabs,
+  type TabsClass,
 } from './tabs.js'

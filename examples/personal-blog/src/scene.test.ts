@@ -1,117 +1,128 @@
+import { Layer, Option } from 'effect'
 import { expect, given, role, scene, text } from 'foldkit/scene'
-import { describe, test } from 'vitest'
+import { fromString } from 'foldkit/url'
 
-import { CounterBlock } from './island'
-import { Model } from './model'
-import { ApplicationRoute } from './route'
-import { update } from './update'
-import { view } from './view'
+import { describe, it } from '@effect/vitest'
 
-const home = Model.make({
-  route: ApplicationRoute.Home(),
-  counter: CounterBlock.init().model,
+import { ApplicationLive, ApplicationRoute } from './application'
+import { CounterLive } from './counter'
+
+const application = ApplicationLive.pipe(Layer.provide(CounterLive))
+
+const startArgs = {
+  url: Option.getOrThrow(fromString('http://localhost/')),
+}
+
+const initialCounter = { count: 0 }
+
+const home = { route: ApplicationRoute.Home(), counter: initialCounter }
+const postsIndex = { route: ApplicationRoute.Posts(), counter: initialCounter }
+const post = (slug: string) => ({
+  route: ApplicationRoute.Post({ slug }),
+  counter: initialCounter,
 })
-const postsIndex = Model.make({
-  route: ApplicationRoute.Posts(),
-  counter: CounterBlock.init().model,
+const notFound = (path: string) => ({
+  route: ApplicationRoute.NotFound({ path }),
+  counter: initialCounter,
 })
-const post = (slug: string) =>
-  Model.make({
-    route: ApplicationRoute.Post({ slug }),
-    counter: CounterBlock.init().model,
-  })
-const notFound = (path: string) =>
-  Model.make({
-    route: ApplicationRoute.NotFound({ path }),
-    counter: CounterBlock.init().model,
-  })
 
 describe('view', () => {
-  test('the header renders the site title and navigation on every route', () => {
-    scene(
-      { update, view },
-      given(home),
-      expect(role('link', { name: 'Devin Jameson' })).toExist(),
-      expect(role('link', { name: 'About' })).toExist(),
-      expect(role('link', { name: 'Posts' })).toExist(),
-    )
-  })
+  it.effect(
+    'the header renders the site title and navigation on every route',
+    () =>
+      scene(
+        application,
+        startArgs,
+        given(home),
+        expect(role('link', { name: 'Devin Jameson' })).toExist(),
+        expect(role('link', { name: 'About' })).toExist(),
+        expect(role('link', { name: 'Posts' })).toExist(),
+      ),
+  )
 
-  test('the Home route renders the about prose from markdown', () => {
+  it.effect('the Home route renders the about prose from markdown', () =>
     scene(
-      { update, view },
+      application,
+      startArgs,
       given(home),
       expect(text('human man living in Boston', { exact: false })).toExist(),
       expect(role('link', { name: 'Foldkit' })).toExist(),
       expect(role('link', { name: 'August Health' })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('the Posts route lists every post with its summary', () => {
+  it.effect('the Posts route lists every post with its summary', () =>
     scene(
-      { update, view },
+      application,
+      startArgs,
       given(postsIndex),
       expect(role('heading', { name: 'Making This Blog' })).toExist(),
       expect(role('heading', { name: 'Shooting Film' })).toExist(),
       expect(text('why film is pleasing', { exact: false })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('a post renders markdown headings, code, and blockquotes', () => {
+  it.effect('a post renders markdown headings, code, and blockquotes', () =>
     scene(
-      { update, view },
+      application,
+      startArgs,
       given(post('making-this-blog')),
       expect(role('heading', { name: 'Making This Blog' })).toExist(),
       expect(role('heading', { name: 'Why bother' })).toExist(),
       expect(role('heading', { name: 'The fold' })).toExist(),
       expect(text('proseView', { exact: false })).toExist(),
       expect(text('an app wearing prose', { exact: false })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('the Counter island renders live inside the post prose', () => {
+  it.effect('the Counter island renders live inside the post prose', () =>
     scene(
-      { update, view },
+      application,
+      startArgs,
       given(post('making-this-blog')),
       expect(text('Clicks while reading this post')).toExist(),
       expect(role('button', { name: '+' })).toExist(),
       expect(role('button', { name: '-' })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('the Note island wraps nested markdown content', () => {
+  it.effect('the Note island wraps nested markdown content', () =>
     scene(
-      { update, view },
+      application,
+      startArgs,
       given(post('making-this-blog')),
       expect(text('Islands can wrap markdown too', { exact: false })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('a post renders markdown tables and ordered lists', () => {
+  it.effect('a post renders markdown tables and ordered lists', () =>
     scene(
-      { update, view },
+      application,
+      startArgs,
       given(post('shooting-film')),
       expect(role('table')).toExist(),
       expect(text('Low light, pushed')).toExist(),
       expect(text('Ektar 100 for daylight and saturated color')).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('an unknown post slug renders the missing panel', () => {
+  it.effect('an unknown post slug renders the missing panel', () =>
     scene(
-      { update, view },
+      application,
+      startArgs,
       given(post('missing-post')),
       expect(role('heading', { name: 'Post Not Found' })).toExist(),
       expect(text('There is no post named "missing-post".')).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('an unmatched URL renders the NotFound view', () => {
+  it.effect('an unmatched URL renders the NotFound view', () =>
     scene(
-      { update, view },
+      application,
+      startArgs,
       given(notFound('/missing')),
       expect(role('heading', { name: '404' })).toExist(),
       expect(role('link', { name: '← Go home' })).toExist(),
-    )
-  })
+    ),
+  )
 })

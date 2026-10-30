@@ -73,8 +73,8 @@ export const entered = <
  *  next route's, `None` on a cold load or when the transition stayed
  *  within one route. For one-shot Commands on the way out, saving a
  *  draft, recording that a visit ended. Things that live while a route is
- *  active, listeners, timers, handles, belong to a Subscription or
- *  ManagedResource condition on the Model instead, which also ends them
+ *  active, listeners, timers, handles, belong to a Subscription or a child
+ *  Block held in the Model instead, which also ends them
  *  when the route state disappears for reasons other than navigation.
  *  {@link exited} narrows to a single tag. */
 export const exitedAny = <Route extends Readonly<{ _tag: string }>>({

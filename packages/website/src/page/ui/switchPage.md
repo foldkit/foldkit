@@ -5,7 +5,7 @@
 An on/off toggle. Switch represents an immediate action, such as turning on a light. Checkbox represents a form value that gets submitted. Switch is a stateless controlled render helper with the same wiring as Checkbox: your Model owns the value passed as `isChecked`, and `onToggle` turns an interaction into a Message for update to store.
 
 :::Info{label="See it in an app"}
-Check out how Switch is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/switch.ts).
+Check out how Switch is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/page/switchPage.ts).
 :::
 
 ## Examples

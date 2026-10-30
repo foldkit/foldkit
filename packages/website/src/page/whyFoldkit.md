@@ -24,9 +24,9 @@ Every Foldkit app has the same architecture. Not by convention. By design.
 
 ### One Architecture
 
-State lives in the Model. Events are Messages. Every state change flows through update. Side effects are described as data and executed by the runtime: Commands for one-shot effects, Mount for imperative DOM work bound to a live element, Subscriptions for Streams gated by a slice of your Model, ManagedResources for stateful handles gated by a slice of your Model. These aren’t conventions. This is the only path. You can’t scatter state across components because there are no component-local state hooks. You can’t hide side effects in the view because the view is a pure function.
+State lives in the Model. Events are Messages. Every state change flows through update. Side effects are described as data and executed by the runtime: Commands for one-shot effects, Mount for imperative DOM work bound to a live element, Subscriptions for Streams gated by a slice of your Model, and child Blocks for stateful handles that live while they are in the Model. These aren’t conventions. This is the only path. You can’t scatter state across components because there are no component-local state hooks. You can’t hide side effects in the view because the view is a pure function.
 
-Features package their effect handlers in [Layers](/core/layers). The application root supplies the services those handlers need, and TypeScript checks the remaining requirements before the app can run. Adding a dependency to a Command implementation changes its Layer's requirements without making update or its parent folds depend on that service. Update declares the operation it needs; assembly supplies its implementation and dependencies.
+Each Block is implemented by a [Layer](/core/layers). Its constructor yields the services its Command handlers need, and TypeScript checks that every requirement is provided before the app can run. Adding a dependency to a Command handler changes that Block's Layer requirements without making update or its parent depend on that service. Update returns the Command it needs; the Block's Layer supplies the implementation and its dependencies.
 
 ### Focus on Behavior
 

@@ -22,8 +22,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "effect-oxlint": "^0.3.4 || ^0.4.0",
-    "oxc-parser": "0.150.0"
+    "effect-oxlint": "^0.3.4 || ^0.4.0"
   },
   "devDependencies": {
     "@types/node": "26.4.0",

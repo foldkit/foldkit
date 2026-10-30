@@ -11,9 +11,7 @@
     "*.ts",
     "*.mts",
     "fixtures/**/*.ts",
-    "../packages/foldkit/scripts/check-block-type-performance.ts",
     "../packages/foldkit/scripts/check-emitted-declarations.ts",
-    "../packages/foldkit/scripts/profile-block-language-service.ts",
     "../packages/ui/scripts/check-emitted-declarations.ts"
   ],
   "exclude": ["fixtures/packed-ssr-consumer"]

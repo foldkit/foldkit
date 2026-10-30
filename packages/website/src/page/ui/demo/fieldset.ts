@@ -2,7 +2,7 @@ import type { Html } from 'foldkit/html'
 
 import { Checkbox, Fieldset, Input, Textarea } from '@foldkit/ui'
 
-import type { UiViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../definition'
 import { Message } from '../message'
 import type { Model } from '../model'
 

@@ -1,1 +1,0 @@
-export { AttachmentsBlock } from './block'

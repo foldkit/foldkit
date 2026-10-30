@@ -22,141 +22,126 @@ Skip, reset, cancel, undo. Trace what each does to counters and derived state. D
 
 For every discriminated-union state: can the code transition INTO every state? OUT of every state? Are there dead states (created, never entered)? States that should be reachable but aren't?
 
-When the answer takes real tracing, that is the signal to reach for `Machine` (`foldkit/experimental`). Bind `State` and `Message` once with `Machine.makeDefinition`, then use its `to` / `when` / `otherwise` / `ignore` helpers. Writing transitions as a table makes the edge set enumerable data instead of control flow spread across update handlers, and the Machine then answers this blind spot by computation rather than by reading:
+When the answer takes real tracing, that is the signal to reach for experimental `Machine` from `foldkit/experimental/machine`. Writing transitions as a table makes the edge set enumerable data instead of control flow spread across update handlers, and the Machine then answers this blind spot by computation rather than by reading:
 
 - `unreachableStates(extraRoots?)` returns the state tags the declared Edge set does not reach from `initial` plus any extra roots.
 - `deadTransitions(extraRoots?)` reports Edges whose source that same walk does not reach, tagged `UnreachableSource`, plus Edges shadowed by an earlier `otherwise` or `ignore()`, tagged `ShadowedByOtherwise` or `ShadowedByIgnore`.
 - `reachableFrom(tag)` gives the closure from any state, and `toMermaid()` renders the diagram for review.
 
-Use `ignore()` as the final entry in an ordered guard list when the Message should intentionally produce no transition after every preceding `when` guard declines. `step()` then reports `ExplicitlyIgnored`, which keeps that deliberate outcome distinct from an accidental guard fallthrough.
+Use `ignore()` as the final entry in an ordered guard list when the Message should intentionally produce no transition after every preceding `when` guard declines. When identical transitions apply from several states, declare the shared default once with the definition's `makeSharedTransitions`; never overlap two shared groups for the same state and Message.
 
-When identical transitions apply from several states, declare the shared default with `Definition.makeSharedTransitions(['First', 'Second'], { on: { ... } })` in the definition's `shared` array. The handler's `state` is the union of the selected variants, so only fields common to every selected state are available. A transition in a state's own `on` record replaces the shared default for that state and Message; never overlap two shared groups for the same pair.
+The walk cannot see state changes made outside the Machine. Pass every restored, deep-linked, hydrated, or otherwise externally entered state as an extra root before treating `UnreachableSource` findings as application defects.
 
-The walk cannot see state changes made outside `transition` and `step`. Pass every restored, deep-linked, hydrated, or otherwise externally entered state as an extra root before treating `UnreachableSource` findings as application defects.
-
-Recommend it when a flow has several states, guarded transitions, or edges that are easy to get wrong (checkout, onboarding, multi-step approval, connection lifecycles). `repos/foldkit/examples/state-machine/` is the reference. Don't push it on a three-state union that one exhaustive `match` already handles legibly; the table costs more than it saves there. The module is under `experimental/`, so say so when recommending it.
+Recommend it when a flow has several states, guarded transitions, or edges that are easy to get wrong (checkout, onboarding, multi-step approval, connection lifecycles). `repos/foldkit/examples/state-machine/` is the reference. Don't push it on a three-state union that one exhaustive `match` already handles legibly. The module is experimental, so say so when recommending it.
 
 ### `derived-data-in-model`
 
-Fields computable from other fields. `endTime` AND `remainingMs` on the same state, where one can drift from the other. Flag unless there's a documented reason (view needs pure data, etc.).
+Fields computable from other fields. `endTime` AND `remainingMs` on the same state, where one can drift from the other. A parent field that copies a child's state (`searchQuery` beside `search: Search`) instead of reading `model.search.model.query`. Flag unless there's a documented reason.
 
 ### `dead-variants-and-noop-commands`
 
-Variants set but never observed by the view or other updates. Fields written but never read. Commands whose result Message handler is `{ model }`.
+Variants set but never observed by the view or other updates. Fields written but never read. Commands whose result Message handler is `{ model }` and that exist for no effect the user can observe.
 
-The **no-op startup Command**: `init` returns `{ model: DEFAULT_MODEL, commands: [triggerApplicationStarted] }`, the Command resolves to `ApplicationStarted()`, and the handler is `ApplicationStarted: () => ({ model })`. Give the Command real work (load preferences, fetch initial data, focus first input, restore session) or delete the Command and the Message together.
+The **no-op startup Command**: `start: [AnnounceStarted()]` resolves to `CompletedAnnounceStarted()`, and the handler is `CompletedAnnounceStarted: model => ({ model })`. Give the `start` Command real work (load preferences, fetch initial data, focus the first input, restore a session) or delete the Command and the Message together.
 
-The **navigate-before-save**: a handler returning BOTH a save Command and a navigation Command races the save against the navigation. (`pushUrl` is an `Effect`, not a Command; define `PushUrl` with its args, result Message, and `handler: function* () { return ({ url }) => pushUrl(url).pipe(Effect.as(Message.CompletedPushUrl())) }`, then include `PushUrl.layer` in the feature's `EffectsLayer`.) Which one lands first is timing, not something the handler decides, and a navigation is local while a save is a round trip, so the route has almost always changed by the time the save resolves. The failure Message still arrives and the handler still runs; the error just renders on a route the user didn't submit from, or on one whose view doesn't render it at all. Idiomatic: emit the save only, then navigate in the `Succeeded*` handler, so errors surface on the page the user is still looking at.
+The **navigate-before-save**: a handler returning BOTH a save Command and a navigation Command races the save against the navigation. Which one lands first is timing, not something the handler decides, and a navigation is local while a save is a round trip, so the route has almost always changed by the time the save resolves. The failure Message still arrives and the handler still runs; the error just renders on a route the user didn't submit from, or on one whose view doesn't render it at all. Return the save only, then return the navigation Command from the `Succeeded*` handler, so errors surface on the page the user is still looking at.
 
 For every union variant, trace whether the view branches on it and whether that branch is reachable. For every Model field, trace whether anything reads it besides its own writes.
 
+## Blocks and composition
+
+### `parent-writes-child-state`
+
+A parent changes a child only by sending it a Message (`messages: [model.search.send(Search.Message.RequestedClear())]`) and reads it through `model.search.model`. Flag a parent that rebuilds or spreads `model.search.model`, replaces a child instance to reset its state when the child has a reset Message, or computes the child's next state in its own update. Each one moves a transition out of the child's update, where its Commands, OutMessages, and invariants live.
+
+The fix is a truthful Message on the child: `RequestedClear`, `RequestedReset`, `InformedOfRouteChange`. Putting the same declared instance back into the Model constructs it fresh, so swapping an instance out and in is a lifecycle decision (the auth example does it on logout), not a substitute for a reset Message.
+
+### `parent-wrapped-child-messages`
+
+A parent Message that wraps a child's Message (`GotSearchMessage: { message: SearchMessage }`) and calls the child's logic from the parent's update, or a parent union that copies the child's Message tags. Instances route their own Messages: the child's view dispatches to the child, its Command results return to it, and the parent sends with `send` and listens with `.on`. Delete the wrapper and the forwarding branch.
+
+The analogous test smell is a Story that dispatches a parent wrapper to reach a child. Deliver the child's Message directly with `message(Block.deliver(Search, 'search', Search.Message.SubmittedQuery({ query })))`.
+
+### `missing-child-layer`
+
+Every Block the graph creates needs its Live Layer provided to the parent Layer that creates it. A missing Layer usually fails typecheck at `Program.make` or `story`, but two variants slip through review:
+
+- The Layer is provided in `entry.ts` but not in the test Layer, so the test file reaches for `Layer.merge`, casts, or skips the child. Tests provide children with `Layer.provide`, exactly as the entry does.
+- A component's dependencies are provided twice: `Layer.mergeAll(Dialog.DialogLive, AnimationLive)` when `DialogLive` already provides Animation. Provide only the components you construct.
+
+When a feature always creates the same children, provide them inside its own Live (`EditorLive = Editor.make(...).pipe(Layer.provide(DatePicker.DatePickerLive))`) so every parent and test provides only `EditorLive`. Flag a graph where each parent repeats the same child Layer list.
+
+### `async-constructor-work`
+
+A constructor that fetches, reads storage, reads the clock, or waits on anything. Constructors run synchronously when the instance enters the Model; asynchronous work there is wrong in kind. Startup work goes in a Command listed in `start`, whose result Message update handles. Values the root needs before its first render come from Flags.
+
+The subtler version captures per-invocation values in the constructor: `const now = yield* clock.currentTimeMillis` at the top of the constructor, then used inside a Command handler. Constructor-yielded values last as long as the instance. Read time, randomness, and UUIDs inside the handler Effect.
+
+### `unstable-instance-keys`
+
+`Child.each(collection, args)` factories must be called with a stable domain key: `row(todo.id)`, `editor(issueId)`. Flag a key built from an array index, a counter that can be reused after removal, displayed text, or a value generated during update without being stored. A key that changes for the same conceptual item constructs a fresh instance and discards its state; a key reused for a different item hands one item's state to another. Render the collection keyed by `instance.id`.
+
+### `instances-outside-the-model`
+
+The parent Model is the only record of which instances exist. Flag instances stored in a `Ref`, a Service, or a module variable, and instances stored in a HashMap, HashSet, or class instance inside the Model. Convert maps and sets to a Record or an array. Flag a `HashMap` of instances being spread or rebuilt to "update" one entry: send that instance a Message instead.
+
+### `mirrored-parent-data`
+
+A child that keeps a copy of parent data only to read it, kept in sync by `InformedOf*` Messages on every parent change. Pass current render data through the view input instead, and reserve `InformedOf*` for external events that require the child to transition, return a Command, or emit an OutMessage. Also flag the reverse: a parent sending a child a Message about a change the child already applied and reported.
+
 ## Structure and decomposition
+
+### `split-block-file`
+
+One Block spread across `message.ts`, `model.ts`, `update.ts`, `command.ts`, `view.ts`, `subscription.ts`, or `flags.ts`, or reached through an `index.ts` barrel. Each Block lives in one file named for it in camelCase, holding its Messages, Model, Command and Mount definitions, class, and `Live` Layer. Also flag a large Block whose fix was slicing it into sibling files: extract a feature that owns its own state or effects into a child Block in its own file instead. Pure functions shared by several Blocks belong in `domain/`, not in a sibling helper file of one Block.
 
 ### `repeated-scaffolding`
 
 Three or four handlers sharing the same 5-line scaffold (`Match.tag` + `Match.orElse`, `Option.match` + fallback) want a named helper. Genuinely duplicated decision logic, not coincidentally similar shape.
 
-Specific case: an `UpdateReturn` alias used only by one standalone pure `Message.match`. Inline the type at that matcher:
-
-```ts
-const foldFormMessage = Message.match<Update.Step<Model, Message>>({
-  ClickedSubmit: () => model => ({ model }),
-  UpdatedEmail:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { email: () => value }),
-    }),
-})
-```
-
-`Update.Return` and `Update.Step` default their Command requirement parameter to `never`, so the inline annotation is safe only when the matcher is pure. It also gives nested literal tags a contextual type before TypeScript can widen them. Inside a `Composition.makeUpdate` handler, `Definition.makeStep`, or `Definition.makeOutMessageFold`, omit the matcher return generic so the owner infers Command requirements, OutMessages, and graph evidence. Wrap a standalone Command-producing update or Step in `Update.define` or `Update.defineStep`; create a named return alias only when another matcher, helper, or exported signature reuses it, and include the complete requirement type.
-
-**Flag needless scaffolding, repeated types, fixed `R = never` on a Command-producing owner, and a missing guard.** Use `Update.Return<Model, Message>` when an update cannot emit an OutMessage and has no Command requirements, or provide its actual requirement type at a standalone boundary. A missing `outMessage` field means that update emitted nothing. The `outMessage?: never` guard also prevents a result containing an OutMessage from entering code that would keep only its Model and Commands. Code expecting `Update.ReturnWithOutMessage<Model, Message, OutMessage>` can accept either outcome. A hand-written plain-return alias must preserve the same guard. Also flag a full record repeated at the update signature and again inside `Message.match<UpdateReturn>(message, handlers)`, or `: UpdateReturn` repeated on an update already constrained by that match.
+Specific cases: the same `.on` handler body repeated across several OutMessage tags, which wants one named Step; several handlers that each rebuild the same `messages` array for a child collection, which wants a named helper returning `ReadonlyArray<Send>`; and an `UpdateRecord` type written out in more than one place for the same Block, which wants one alias.
 
 ### `manual-update-return-unpacking`
 
-Do not destructure or rename `model`, `commands`, or `outMessage` from an ordinary update-like result that already contains those fields. Bind the whole result to an operation-named value and access its fields through that value. For example, pass `homeInit.commands` directly to `Command.mapMessages` instead of extracting or renaming it. Use `result.commands ?? []` only when the next operation requires a concrete array.
+Do not destructure or rename `model`, `commands`, or `outMessage` from an update-like result that already contains those fields. Bind the whole result to an operation-named value and access its fields through that value, so the operation and all of its returned fields stay visible together.
 
-Author an exhaustive `Composition.makeUpdate({ Tag: (model, message) => result })` record. Each case receives the contextual Model and exact Message payload, and operations retain the selected case's Command requirements and OutMessage contract. Use `makeUpdate.withContext(context => cases)` for additional dispatch arguments; the factory runs for local dispatch, not routed child-only delivery. Ordinary handlers return results directly; do not wrap every case with `makeStep`. A Model-preserving no-op record value is `makeNoopStep()`, not the bare factory.
+Flag a parent that calls a child's update logic directly and unpacks its result. A parent never runs a child's handlers: it sends the child a Message under `messages`, and the child's result, including its Commands and OutMessage, stays inside the child. Flag an `.on` handler that drops a Command or OutMessage it should have returned because it rebuilt the result field by field.
 
-`Composition.makeUpdate` accepts only an exhaustive handler record; its callback overload is removed. Use `makeUpdate({})` when there are no local Messages. Each handler receives `(model, message)`; name extracted single-Message handlers `handle<MessageTag>` and pass compatible handlers or Steps directly. Give every named Model-first Step value a descriptive name ending in `Step`, such as `refreshStep`. Give a purposeful transition factory that returns a Step an operation name ending in `Step` too. Factory methods, imported authoring helpers, named OutMessage folds and matchers, direct inline handlers, public operation keys, Message tags, and applied update-like results keep their established names. If one handler mixes connected Binding recipes with local results, author its local branches through Definition-owned Steps. A raw `{ model }` beside a connected recipe is rejected; ordinary raw-only handlers can return results directly. Do not hide errors with casts or broad return annotations: a later wrapper cannot recover channels already erased upstream.
-
-Dot access does not prevent someone from ignoring `outMessage`; it keeps the operation and all of its returned fields visible together. When the result belongs to a child Block, manual unpacking is usually the deeper problem. Use the child Binding's `fold` or named operation so the child Model, mapped Commands, and OutMessage policy remain part of one boundary. `Binding.init` returns a passive recipe with no result fields. Return it intact from `Composition.makeInit` or `Composition.makeUpdate`, or preserve it through a Definition-owned Step, and flag any `.model` or `.commands` projection from it.
-
-A Binding fold or named operation returns a connected Step whose Model input requires the exact graph. Flag typed raw-Model calls, useful `{ model }` narrowing, and `.model` or `.commands` access on its opaque result. Return or compose that result intact for `Composition.makeUpdate` or `Composition.makeInit` to consume. The raw recipe exposes only direct channels; the Composition-authored update exposes the final parent channels after registered policy is resolved. A completed operation accepts its raw Block Model, dispatches its produced Message through update, and returns the readable executed result; ordinary pure Steps also remain callable. Do not claim every structural erasure fails compilation: TypeScript may accept a connected Binding function as a method returning `void`, but calling it outside the graph only constructs and discards passive configuration and executes no child work.
-
-When the OutMessage is already known while constructing a new result, include it directly. Use `Update.withOutMessage` when attaching an OutMessage to an existing plain return or when the value has the type `OutMessage | undefined`. Pipe an existing return into the helper, and pass a new result literal first. Flag local attachment helpers and conditional object spreads that duplicate it.
-
-A child with OutMessages needs an explicit `withOutMessagePolicy` selection. Flag a missing policy, an old `outMessage` field inside `makeBinding` config, and a policy-selected value omitted from Composition registration. A local fold may handle variants that also continue upward; its derived OutMessage takes precedence for that dispatch.
-
-Inline an ordinary unkeyed policy as
-`makeBinding(WholeChildBlock, ...).withOutMessagePolicy({ fold: FeatureDefinition.makeOutMessageFold(WholeChildBlock, handlers) })`.
-Flag a raw child matcher, repeated Step or refined payload generics, and a
-wrapper that data-first matches inside the fold. Every fold passes the whole
-completed child explicitly, whether inline, extracted, adapted for keyed policy,
-or staged for reciprocal composition.
-Returned Steps retain inferred Command requirements and sibling Binding
-evidence for Composition to check. Every handler record names every variant,
-including a singleton union. A handler takes the inferred `FoldContext` second
-argument only when it uses `liftCommand` or `modelBeforeUpdate`.
-
-Inline forwarding as `FeatureDefinition.makeOutMessageForward(handlers)` under
-an ordinary unkeyed Binding policy. Pass the whole completed child explicitly
-when extracting the forward, adapting keyed policy, or staging reciprocal
-composition. Flag a raw child matcher, missing or extra variant, return outside
-the declared parent OutMessage union, and a record whose handlers all return
-`undefined`. Register the full policy-selected Binding. Do not add casts,
-annotations, generic argument lists, or a raw matcher as a recursion workaround.
-
-Use `FeatureDefinition.makeFieldsStep(producer)` for owning field transformations, `FeatureDefinition.makeCommandsStep(producer)` for Commands with an unchanged Model, and `FeatureDefinition.makeOutMessageStep(producer)` for one declared OutMessage with an unchanged Model.
-
-In a split feature, export the Step helpers used by the implementation from `definition.ts` and named-import them in implementation modules. In a colocated feature, destructure those helpers beside the Definition in the scope that uses them. Keep Definition-qualified calls when several Definitions in one module need visible ownership. Feature barrels keep authoring helpers private and export the completed Block.
-
-Put reusable parent Steps shared by update, composition, or init in the owning Block's `steps.ts`, or in responsibility modules such as `steps/search.ts` with an explicit `steps/index.ts` barrel. Ownership follows the Model being transformed. Keep Message routing in update and Binding registration and child OutMessage policy in composition; colocate Steps used by only one responsibility. Preserve the `Step` suffix and defer cyclic Binding access until the producer is applied.
-
-All three take callbacks, evaluated when the Step or handler is applied. An ordinary producer receives the current Model and, when authored as a Message-dependent handler, its exact Message. Use `.fromMessage(message => value)` for payload-only producers and `() => value` for fixed producers. Commands-only and OutMessage-only helpers preserve the incoming Model identity. `makeNoopStep()` stays unchanged; in an OutMessage fold, pass its factory point-free when appropriate.
-
-Pass compatible Steps directly as handler-record values. Extracted Message-dependent producers need a precise Message variant contract when no surrounding handler record supplies it. Map payloads explicitly when constructing a different Message or OutMessage; do not pass a constructor that could forward the incoming `_tag`. Keep cohesive mixed transitions as direct results, and use the owning `makeStep` helper for reusable mixed, connected, initialization, delegated, or composed operations. Local branches mixed with connected recipes still need canonical Definition-owned results.
-
-`Update.combineSteps` accepts unary non-emitting Steps and preserves its OutMessage rejection. Use `Update.withOutMessage` for an existing plain result or an optional OutMessage. Do not construct and immediately invoke local Steps solely for uniformity.
-
-When several operations update the same Model in sequence, use `Update.combineSteps`. Initialize each child through its registered Binding recipe so Composition assembles the parent Model and mapped Commands.
+When the OutMessage is already known while constructing a new result, include it directly. Use `Update.withOutMessage` when attaching an OutMessage to an existing result or when the value has the type `OutMessage | undefined`. Flag local attachment helpers and conditional object spreads that duplicate it.
 
 ### `duplicate-foldkit-module-instance`
 
-A client or server module graph must resolve one `foldkit` module instance. Linked packages, local aliases, and nested installs can make the view or a definition use one copy while the Runtime uses another. Private definition checks and render state then fail at runtime even when type checking succeeds.
+A client or server module graph must resolve one `foldkit` module instance. Linked packages, local aliases, and nested installs can make the view or a Block use one copy while the Runtime uses another. Private definition checks and render state then fail at runtime even when type checking succeeds.
 
-Run `pnpm why foldkit` from the application workspace. A reusable package that imports Foldkit should declare it as a peer dependency and keep a development dependency only for its own build. The application must declare the linked package, use `@foldkit/vite-plugin`, and avoid aliases that resolve Foldkit through different paths. When the plugin's dependency crawl cannot reach that package, add the package to `resolve.noExternal`. Do not work around the failure by recreating resource tags or casting identities.
+Run `pnpm why foldkit` from the application workspace. A reusable package that imports Foldkit should declare it as a peer dependency and keep a development dependency only for its own build. The application must declare the linked package, use `@foldkit/vite-plugin`, and avoid aliases that resolve Foldkit through different paths. When the plugin's dependency crawl cannot reach that package, add the package to `resolve.noExternal`. Do not work around the failure with casts.
 
 ### `functions-doing-two-things`
 
-Orchestrators mixing "decide what to do" with "do it." Helpers whose `if` branches into unrelated behaviors. Handlers that conflate the state decision with the command decision.
+Orchestrators mixing "decide what to do" with "do it." Helpers whose `if` branches into unrelated behaviors. Handlers that conflate the state decision with the Command decision.
 
 ### `manual-cache-orchestration`
 
-Handlers that hand-thread several cache writes and refetches after a mutation succeeds. `Update.combineSteps(model, [step, step, ...])` sequences update steps over one Model, and `Update.refresh({ read, revalidate, write, load })` builds a step that reloads a cache only when it actually holds data. A `Succeeded*` handler doing this by hand with nested `modifyFields` calls and conditional Command arrays should use them.
+Handlers that hand-thread several cache writes and refetches after a mutation succeeds. `Update.combineSteps(model, [step, step, ...])` sequences Steps over one Model, and `Update.refresh({ read, revalidate, write, load })` builds a Step that reloads a cache only when it holds data. A `Succeeded*` handler doing this by hand with nested `modifyFields` calls and conditional Command arrays should use them.
 
 ## Naming
 
 ### `naming-drift`
 
-`Updated*` here, `Changed*` there for the same kind of event. `whenX` here, `handleX` there for analogous cases. One file, one idiom.
+`Updated*` here, `Changed*` there for the same kind of event. `handleX` here, `onX` there for analogous cases. `SearchLive` in one feature, `SearchLayer` in another. One codebase, one idiom.
 
 ### `messages-naming-the-effect`
 
-A Message named `Incremented` describes the resulting state change, not the user action. The convention is verb-first past-tense for the EVENT that caused the update: `ClickedIncrement`. Same trap with `Saved`, `Deleted`, `Added`. The right names: `ClickedSave`, `ClickedDelete`, `ClickedAdd`, `SucceededSave`. Look for Messages that read like state mutations rather than user actions or external events.
+A Message named `Incremented` describes the resulting state change, not the user action. The convention is verb-first past-tense for the EVENT that caused the update: `ClickedIncrement`. Same trap with `Saved`, `Deleted`, `Added`. The right names: `ClickedSave`, `ClickedDelete`, `ClickedAdd`, `SucceededSave`. Parent-sent Messages are facts too: `RequestedClear`, not `Clear`.
 
 ### `view-named-after-namespace`
 
-Name the feature's primary implementation `view`, rather than repeating its feature name as `counter`, `home`, or `room`. Pass that implementation to `prepareBlock`. Parents render the completed child through `ChildBinding.embedView`; do not export a parallel loose view solely for parent embedding.
+Name a Block's primary view function `view`, rather than repeating its feature name as `searchView`, `homeView`, or `roomView`, and pass it as `view` in the constructor return. Parents render the child with `model.search.view()`; do not export a parallel loose view function for parents to call with the child's Model.
 
 ### `schema-type-aliases`
 
-Declare a Schema's same-named decoded type immediately below it, with no blank line: `export const Model = Schema.Struct({...})` followed by `export type Model = typeof Model.Type`. Prefer the alias in explicit value annotations. These aliases are the normal authoring convention; do not flag them for being routine. Use `typeof Model` when an API needs the Schema type, and let owned callbacks infer their parameters.
+Declare a Schema's same-named decoded type immediately below it, with no blank line: `export const Model = Schema.Struct({...})` followed by `export type Model = typeof Model.Type`. Prefer the alias in explicit value annotations. These aliases are the normal authoring convention; do not flag them for being routine. Use `typeof Model` when an API needs the Schema type.
 
-Inside a feature, use its local aliases. Across a child boundary, derive a named alias from the completed Block, such as `type ChildModel = typeof ChildBlock.Model.Type`, without importing the child implementation. Keep the checked assembly producer/header boundary when composing a parent Schema from `ChildBlock.Model`. A decoded type alias does not replace that boundary. The local Message alias describes authored facts; the completed Block's Message also includes generated child envelopes.
-
-For ordinary source features, require one private zero-argument producer named `prepare`, followed immediately with no blank line by the matching four-shape export header, before composing parent state from `ChildBlock.Model`. Accept a descriptive producer name only when one file genuinely contains multiple preparation producers. The feature barrel exports the completed Block and keeps its Model internal. Flag casts, broad Block annotations, fake helper names, `satisfies`-only boundaries or an unannotated producer used to evade the inference guard. Keep independently public domain Schemas and published generic contracts. Never create another Definition or repeat a generic factory call to obtain a Model. Local Message stays internal because it omits generated child envelopes.
+Across a child boundary, derive a named alias from the class, such as `type SearchMessage = typeof Search.Message.Type`. In a parent Model Schema, the child field is the class itself (`search: Search`), not `Search.Model`; flag `Search.Model` used as a parent field Schema.
 
 ## Effect and Foldkit idiom
 
@@ -166,45 +151,41 @@ Mixing `items.map(f)` and `Array.map(items, f)` in the same file. Mixing `Option
 
 ### `stuttery-modifyFields-setters`
 
-A `modifyFields` setter that only transforms that same field should be point-free: `selectedEntryIds: Array.filter(id => id !== removedEntryId)` or `count: Number.increment`. Flag `selectedEntryIds: () => Array.filter(model.selectedEntryIds, id => id !== removedEntryId)` and friends. Replacement values from Messages, child updates, Commands, or other Model fields still use `() => value`. A parent must not pass a child Block helper as a field transformer. Call the child Binding's named operation, and use `Update.combineSteps` when applying operations to several children, so each child update owns its transition.
+A `modifyFields` setter that only transforms that same field should be point-free: `selectedEntryIds: Array.filter(id => id !== removedEntryId)` or `count: Number.increment`. Flag `selectedEntryIds: () => Array.filter(model.selectedEntryIds, id => id !== removedEntryId)` and friends. Replacement values from Messages, Command results, or other Model fields still use `() => value`. A `modifyFields` setter on a field holding a child instance only places, replaces, or removes instances; it never changes the child's state (see `parent-writes-child-state`).
 
 ### `empty-object-constructors`
 
-`foldkit/no-empty-object-tagged-call` catches `Idle({})`, calls through Message, Route, and State namespaces, and unions declared in the same file with Foldkit's union helpers. It cannot recognize an imported domain union such as `Todo` from its name alone, so check those calls by eye.
+`foldkit/no-empty-object-tagged-call` catches `Idle({})`, calls through Message, Route, and State namespaces, and unions declared in the same file. It cannot recognize an imported domain union from its name alone, so check those calls by eye.
 
-No-field tagged structs called with `({})`: `Idle({})`, `Work({})`, `Message.ClickedSubmit({})`. Should be `Idle()`, `Work()`, `Message.ClickedSubmit()`. Both compile; exemplars are uniform on the no-arg form.
+No-field tagged structs called with `({})`: `Idle({})`, `Message.ClickedSubmit({})`, `Search.Message.RequestedClear({})`. Should be `Idle()`, `Message.ClickedSubmit()`, `Search.Message.RequestedClear()`.
 
 ### `hand-rolled-async-state`
 
-A hand-written `Idle | Loading | Error | Ok` union for remote data, when `AsyncData` ships it: `AsyncData.Schema(DataSchema, ErrorSchema)` yields the schema plus constructors for `Idle`, `Loading`, `Refreshing`, `Failure`, `Stale`, and `Success`, with `isPending`, `hasData`, `match`, `revalidate`, and the rest of the module's operations. `repos/foldkit/examples/weather/src/model.ts` declares the AsyncData contract; its `update.ts` demonstrates state transitions.
+A hand-written `Idle | Loading | Error | Ok` union for remote data, when `AsyncData` ships it: `AsyncData.Schema(DataSchema, ErrorSchema)` yields the Schema plus constructors for `Idle`, `Loading`, `Refreshing`, `Failure`, `Stale`, and `Success`, with `isPending`, `hasData`, `match`, `revalidate`, and the rest of the module's operations.
 
 The two states a hand-rolled union usually lacks are the ones that matter: `Refreshing` (data on screen while a reload runs) and `Stale` (data on screen after a reload failed). A union without them forces a refetch to blank the screen or an error to discard good data. Flag a hand-rolled union unless the states genuinely aren't remote-data states.
 
 ### `array-type-syntax`
 
-`readonly Command<Message>[]` and `MyType[]` should be `ReadonlyArray<Command<Message>>` and `Array<MyType>`. Cosmetic, but every exemplar is uniform.
+`Command[]` and `MyType[]` should be `ReadonlyArray<Command>` and `Array<MyType>`. Cosmetic, but every exemplar is uniform.
 
 ## Routing and views
 
 ### `hard-coded-route-paths`
 
-`foldkit/no-hardcoded-route-strings` covers `Href`, `pushUrl`, and `replaceUrl`. Anything routing through another helper needs your eyes.
+`foldkit/no-hardcoded-route-strings` covers `Href`, `pushUrl`, and `replaceUrl`. Anything routing through another helper, including Command args such as `NavigateInternal({ url: '/people' })`, needs your eyes.
 
 `Href('/')`, `pushUrl('/new')`, ``Href(`/tag/${name}`)``. Routers are bidirectional; call them as printers: `Href(homeRouter())`, `pushUrl(newLinkRouter())`, `Href(tagFilterRouter({ tag: name }))`.
 
 ### `unkeyed-list-rows`
 
-`foldkit/keyed-required-for-mapped-rows` and `foldkit/no-array-index-view-keys` cover part of this, but the first is narrow: it fires only when the callback references `.id` and the row element is one of li/div/tr/article/section. Rows keyed on a slug or name, and rows returning `h.a`, `h.button`, or a component call, pass it silently. A green lint does not clear this one; read the map sites.
+`foldkit/keyed-required-for-mapped-rows` and `foldkit/no-array-index-view-keys` cover part of this, but the first is narrow: it fires only when the callback references `.id` and the row element is one of li/div/tr/article/section. Rows keyed on a slug or name, rows returning `h.a`, `h.button`, or a component call, and rows rendering a child instance's `.view()` pass it silently. A green lint does not clear this one; read the map sites.
 
-Rows in `Array.map(items, ...)` carrying `OnClick` handlers bound to specific item ids, without `keyed('li')(item.id, ...)`, are a snabbdom patching bug. Delete from the middle and the OLD row's click handler patches onto a different row: the user clicks "Delete B" and A is deleted. Invisible until a delete or reorder happens mid-list.
+Rows in `Array.map(items, ...)` carrying `OnClick` handlers bound to specific item ids, without `h.keyed('li')(item.id, ...)`, are a patching bug. Delete from the middle and the old row's click handler patches onto a different row: the user clicks "Delete B" and A is deleted. Invisible until a delete or reorder happens mid-list. Child instances are keyed by `instance.id`.
 
 ### `data-derived-keys`
 
-A `keyed(...)` whose key is built from displayed data (concatenated booleans, a formatted summary string, a restated field the subtree renders) is keying used as change detection. The key changes while the same conceptual thing stays on screen, so every content change tears the subtree down, discarding focus, scroll position, and open `details` elements. Keys carry identity: a branch tag, a route tag, a stable id. If removing the key leaves the same structure rendering at that position, remove it.
-
-### `authored-child-delivery-message`
-
-Flattening a child's Message variants into the parent's `defineMessageUnion()` record makes every parent handler know the child's tag names, and an authored `GotChildMessage` wrapper duplicates routing metadata that the Binding already owns. The canonical Block pattern keeps the authored parent Message local and lets `makeBinding` derive a generated envelope from the completed child Block. The parent Composition's complete Message Schema adds that envelope and routes it to the exact placement, key, and live generation. Use `delivery.when`, `delivery.toUpdateContext`, and `keySchema` for parent policy instead of adding child variants or mappers to the authored union.
+A `keyed(...)` whose key is built from displayed data (concatenated booleans, a formatted summary string, a restated field the subtree renders) is keying used as change detection. The key changes while the same conceptual thing stays on screen, so every content change tears the subtree down, discarding focus, scroll position, and open `details` elements. Keys carry identity: a stable id, an entity id, an instance id. If removing the key leaves the same structure rendering at that position, remove it.
 
 ## Accessibility
 
@@ -227,3 +208,7 @@ Checkboxes use `Role('checkbox')` + `AriaChecked(boolean)`; screen readers annou
 `scene.test.ts` is REQUIRED at Tier 3+. Absent is a BLOCKER, not a QUALITY item.
 
 Present but with no `expect(...)` and no interactive resolution in a block is the same finding. A `scene(...)` that only does `given(model)` verifies that the view doesn't throw and nothing else.
+
+### `test-layer-wiring`
+
+A Story or Scene receives exactly one root Block's Layer, with children attached through `Layer.provide` and constructor Services through `.pipe(Effect.provide(TestLayer))` on the returned Effect. Flag `Layer.merge` or `Layer.mergeAll` of a parent and its children at the top level, a test that stubs a child Block instead of providing its Live, and a test that uses `given` to add or remove instances (it can only set state; send the Message that creates or removes the instance). Flag a test that asserts `start` Commands of the starting Model; they are not in the ledger.

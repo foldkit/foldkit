@@ -1,9 +1,12 @@
 import { clsx } from 'clsx'
 import { HashSet } from 'effect'
+import type { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Icon } from '../icon'
-import { SnippetCopyComposition } from './composition'
 import { Message } from './message'
+import type { Model } from './model'
+
+type SnippetCopyViewBuilder = HtmlBuilder<Message>
 
 export type ViewInputs = Readonly<{
   snippetId: string
@@ -13,72 +16,74 @@ export type ViewInputs = Readonly<{
   variant: 'Header' | 'Overlay'
 }>
 
-export const view = SnippetCopyComposition.makeView.withInputs<ViewInputs>(
-  (model, viewInputs, h) => {
-    const isCopied = HashSet.has(model.copiedSnippetIds, viewInputs.snippetId)
+export const view = (
+  model: Model,
+  h: SnippetCopyViewBuilder,
+  viewInputs: ViewInputs,
+): Html => {
+  const isCopied = HashSet.has(model.copiedSnippetIds, viewInputs.snippetId)
 
-    const renderCopiedIndicator = () => {
-      if (!isCopied) {
-        return h.empty
-      }
+  const renderCopiedIndicator = () => {
+    if (!isCopied) {
+      return h.empty
+    }
 
-      if (viewInputs.variant === 'Header') {
-        return h.span(
-          [
-            h.Class(
-              'pointer-events-none absolute top-1/2 right-full z-10 mr-1 -translate-y-1/2 whitespace-nowrap rounded-md border border-gray-300 bg-[var(--code-background)] px-2 py-1 text-xs font-medium text-gray-700 shadow-sm dark:border-gray-600 dark:text-gray-200',
-            ),
-          ],
-          ['Copied'],
-        )
-      }
-
-      return h.div(
+    if (viewInputs.variant === 'Header') {
+      return h.span(
         [
           h.Class(
-            'absolute bottom-full left-1/2 -translate-x-1/2 mb-1 text-sm rounded py-1 px-2 font-normal bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 whitespace-nowrap',
+            'pointer-events-none absolute top-1/2 right-full z-10 mr-1 -translate-y-1/2 whitespace-nowrap rounded-md border border-gray-300 bg-[var(--code-background)] px-2 py-1 text-xs font-medium text-gray-700 shadow-sm dark:border-gray-600 dark:text-gray-200',
           ),
         ],
         ['Copied'],
       )
     }
 
-    const liveAnnouncement = h.span(
-      [h.Role('status'), h.AriaLive('polite'), h.Class('sr-only')],
-      [isCopied ? 'Copied to clipboard' : ''],
-    )
-    const buttonClassName = clsx(
-      'cursor-pointer text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white',
-      viewInputs.variant === 'Header'
-        ? 'flex size-8 items-center justify-center transition-colors focus-visible:rounded focus-visible:outline-2 focus-visible:outline-accent-600 dark:focus-visible:outline-accent-400'
-        : 'rounded border border-gray-300 bg-[var(--code-background)] p-2 transition hover:border-gray-400 hover:bg-gray-200 dark:border-gray-700/50 dark:hover:border-gray-500 dark:hover:bg-gray-700/30',
-    )
-    const wrapperClassName = clsx(
-      'code-embed-copy',
-      viewInputs.variant === 'Header'
-        ? 'relative flex shrink-0 items-center'
-        : 'absolute',
-      viewInputs.variant === 'Overlay' && viewInputs.positionClass,
-    )
-
-    const copyButton = h.button(
+    return h.div(
       [
-        h.Class(buttonClassName),
-        h.Type('button'),
-        h.AriaLabel(viewInputs.ariaLabel),
-        h.OnClick(
-          Message.ClickedCopySnippet({
-            snippetId: viewInputs.snippetId,
-            text: viewInputs.text,
-          }),
+        h.Class(
+          'absolute bottom-full left-1/2 -translate-x-1/2 mb-1 text-sm rounded py-1 px-2 font-normal bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 whitespace-nowrap',
         ),
       ],
-      [Icon.copy('size-[1.125rem]')],
+      ['Copied'],
     )
+  }
 
-    return h.div(
-      [h.Class(wrapperClassName)],
-      [renderCopiedIndicator(), liveAnnouncement, copyButton],
-    )
-  },
-)
+  const liveAnnouncement = h.span(
+    [h.Role('status'), h.AriaLive('polite'), h.Class('sr-only')],
+    [isCopied ? 'Copied to clipboard' : ''],
+  )
+  const buttonClassName = clsx(
+    'cursor-pointer text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white',
+    viewInputs.variant === 'Header'
+      ? 'flex size-8 items-center justify-center transition-colors focus-visible:rounded focus-visible:outline-2 focus-visible:outline-accent-600 dark:focus-visible:outline-accent-400'
+      : 'rounded border border-gray-300 bg-[var(--code-background)] p-2 transition hover:border-gray-400 hover:bg-gray-200 dark:border-gray-700/50 dark:hover:border-gray-500 dark:hover:bg-gray-700/30',
+  )
+  const wrapperClassName = clsx(
+    'code-embed-copy',
+    viewInputs.variant === 'Header'
+      ? 'relative flex shrink-0 items-center'
+      : 'absolute',
+    viewInputs.variant === 'Overlay' && viewInputs.positionClass,
+  )
+
+  const copyButton = h.button(
+    [
+      h.Class(buttonClassName),
+      h.Type('button'),
+      h.AriaLabel(viewInputs.ariaLabel),
+      h.OnClick(
+        Message.ClickedCopySnippet({
+          snippetId: viewInputs.snippetId,
+          text: viewInputs.text,
+        }),
+      ),
+    ],
+    [Icon.copy('size-[1.125rem]')],
+  )
+
+  return h.div(
+    [h.Class(wrapperClassName)],
+    [renderCopiedIndicator(), liveAnnouncement, copyButton],
+  )
+}

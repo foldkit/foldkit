@@ -5,5 +5,6 @@ export {
   type ViewInputs,
   type RenderInfo,
   type OptionInfo,
-  type Completed,
+  type RadioGroup,
+  type RadioGroupClass,
 } from './radioGroup.js'

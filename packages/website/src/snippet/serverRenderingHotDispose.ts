@@ -1,9 +1,12 @@
 import { Effect, Layer, ManagedRuntime, Schedule } from 'effect'
 import { Server } from 'foldkit/experimental'
 
-import { ApplicationBlock } from './block'
-import { readCountCookie } from './cookie'
-import { Flags } from './flags'
+import {
+  Application,
+  ApplicationLive,
+  Flags,
+  readCountCookie,
+} from './serverRenderingApplication'
 
 const HEARTBEAT_URL = 'https://status.example/heartbeat'
 const HEARTBEAT_INTERVAL = '2 minutes'
@@ -31,11 +34,9 @@ export const renderPage = (request: Request): Promise<Server.EntryResult> =>
   runtime.runPromise(
     Effect.gen(function* () {
       const renderedApplication = yield* Server.renderToString(
-        ApplicationBlock,
-        { Flags },
-        {
-          flags: flagsForRequest(request),
-        },
+        Application,
+        { layer: ApplicationLive, Flags },
+        { flags: flagsForRequest(request) },
       )
 
       return Server.Rendered(renderedApplication, {

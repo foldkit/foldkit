@@ -1,1 +1,1 @@
-export { ComingFromReactBlock } from './block'
+export { ComingFromReact, ComingFromReactLive } from './block'

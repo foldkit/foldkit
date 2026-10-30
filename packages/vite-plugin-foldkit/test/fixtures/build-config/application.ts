@@ -1,4 +1,4 @@
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -14,33 +14,27 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const ApplicationComposition = Block.makeDefinition('Application', {
+export class Application extends Block<
+  Application,
+  Readonly<{ flags: Flags }>
+>()('Application', {
   Model,
   Message,
-}).makeComposition()
+}) {}
 
-export const init = ApplicationComposition.makeInit((flags: Flags) => ({
-  model: Model.make({ count: flags.start }),
-}))
-
-export const update = ApplicationComposition.makeUpdate({
-  ClickedIncrement: model => ({
-    model: modifyFields(model, { count: count => count + 1 }),
+export const ApplicationLive = Application.make(
+  Effect.fn(function* (_id, { flags }) {
+    return {
+      model: { count: flags.start },
+      update: {
+        ClickedIncrement: model => ({
+          model: modifyFields(model, { count: count => count + 1 }),
+        }),
+      },
+      view: (model, h) => ({
+        title: `Count ${model.count}`,
+        body: h.main([h.Id('counter')], [model.count.toString()]),
+      }),
+    }
   }),
-})
-
-export const view = ApplicationComposition.makeView((model, h) => ({
-  title: `Count ${model.count}`,
-  body: h.main([h.Id('counter')], [model.count.toString()]),
-}))
-
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+)

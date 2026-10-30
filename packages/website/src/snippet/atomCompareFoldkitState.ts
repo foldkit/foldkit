@@ -1,40 +1,59 @@
-import { Array, Schema } from 'effect'
+import { Array, Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
+import { modifyFields } from 'foldkit/struct'
+
+const Todo = Schema.Struct({
+  id: Schema.String,
+  text: Schema.String,
+  done: Schema.Boolean,
+})
+type Todo = typeof Todo.Type
 
 const Filter = Schema.Literals(['All', 'Active', 'Done'])
 type Filter = typeof Filter.Type
 
-export const Model = Schema.Struct({
+const Model = Schema.Struct({
   todos: Schema.Array(Todo),
+  draft: Schema.String,
   filter: Filter,
 })
-export type Model = typeof Model.Type
+type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
-  AddedTodo: {},
+  AddedTodo: { id: Schema.String },
   ClearedDoneTodos: {},
   SelectedFilter: { filter: Filter },
 })
 type Message = typeof Message.Type
 
-const ApplicationDefinition = Block.makeDefinition('Application', {
+export class Application extends Block<Application>()('Application', {
   Model,
   Message,
-})
+}) {}
 
-const { makeFieldsStep } = ApplicationDefinition
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    return {
+      model: { todos: [], draft: '', filter: 'All' },
 
-const ApplicationComposition = ApplicationDefinition.makeComposition()
-
-export const update = ApplicationComposition.makeUpdate({
-  AddedTodo: makeFieldsStep(() => ({
-    todos: Array.append(emptyTodo()),
-  })),
-  ClearedDoneTodos: makeFieldsStep(() => ({
-    todos: Array.filter(todo => !todo.done),
-  })),
-  SelectedFilter: makeFieldsStep.fromMessage(({ filter }) => ({
-    filter: () => filter,
-  })),
-})
+      // Every way the Model can change, one handler per Message
+      update: {
+        AddedTodo: (model, { id }) => ({
+          model: modifyFields(model, {
+            todos: Array.append({ id, text: model.draft, done: false }),
+            draft: () => '',
+          }),
+        }),
+        ClearedDoneTodos: model => ({
+          model: modifyFields(model, {
+            todos: Array.filter(todo => !todo.done),
+          }),
+        }),
+        SelectedFilter: (model, { filter }) => ({
+          model: modifyFields(model, { filter: () => filter }),
+        }),
+      },
+    }
+  }),
+)

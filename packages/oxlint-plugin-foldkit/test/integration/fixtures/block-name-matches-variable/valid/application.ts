@@ -1,29 +1,20 @@
-import { Block as RootBlock } from 'foldkit'
-import * as Block from 'foldkit/block'
-import { makeDefinition as makeBlockDefinition } from 'foldkit/block'
+import { Effect, Schema } from 'effect'
+import { Block } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
 
-const makeFromNamespaceImport = () => {
-  const ApplicationDefinition = Block.makeDefinition('Application', {
-    Model,
-    Message,
-  })
-  return ApplicationDefinition
-}
+const Message = defineMessageUnion({ ClickedLink: {} })
 
-const makeFromAliasedImport = () => {
-  const ApplicationDefinition = makeBlockDefinition('Application', {
-    Model,
-    Message,
-  })
-  return ApplicationDefinition
-}
-
-const ApplicationDefinition = RootBlock.makeDefinition('Application', {
-  Model,
+export class Application extends Block<Application>()('Application', {
+  Model: Schema.Struct({}),
   Message,
-})
-const ApplicationComposition = ApplicationDefinition.makeComposition()
+}) {}
 
-void makeFromNamespaceImport
-void makeFromAliasedImport
-void ApplicationComposition
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    return {
+      model: {},
+      update: { ClickedLink: model => ({ model }) },
+      view: (_model, h) => ({ title: 'Home', body: h.main([]) }),
+    }
+  }),
+)

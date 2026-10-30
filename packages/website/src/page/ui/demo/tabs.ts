@@ -1,14 +1,10 @@
 import { Match } from 'effect'
 
-import type { UiViewBuilder } from '../composition'
-import {
-  HorizontalTabsDemoBinding,
-  VerticalTabsDemoBinding,
-} from '../composition'
+import type { UiViewBuilder } from '../definition'
 import type { DemoTab } from '../domain/domain'
-import { DemoTabsBlock } from './components'
+import { DemoTabs } from './components'
 
-type DemoTabsBlockModel = typeof DemoTabsBlock.Model.Type
+type DemoTabsModel = typeof DemoTabs.Type
 
 // DEMO CONTENT
 
@@ -27,7 +23,7 @@ const verticalPanelClassName =
   'flex-1 p-6 bg-cream dark:bg-gray-900 rounded-r-lg rounded-bl-lg border border-gray-200 dark:border-gray-700'
 
 export const horizontalDemo = (
-  tabsModel: DemoTabsBlockModel,
+  tabsModel: DemoTabsModel,
   selectedTab: DemoTab,
   h: UiViewBuilder,
 ) => {
@@ -106,45 +102,39 @@ export const horizontalDemo = (
     )
 
   return [
-    h.block(
-      HorizontalTabsDemoBinding.embedView({
-        slotId: tabsModel.id,
-        model: tabsModel,
-        viewInputs: {
-          tabs: demoTabs,
-          selectedValue: selectedTab,
-          ariaLabel: 'Framework comparison tabs',
-          toView: ({ tablist, tabs, activeIndex }) =>
+    tabsModel.view({
+      tabs: demoTabs,
+      selectedValue: selectedTab,
+      ariaLabel: 'Framework comparison tabs',
+      toView: ({ tablist, tabs, activeIndex }) =>
+        h.div(
+          [],
+          [
             h.div(
-              [],
-              [
-                h.div(
-                  [...tablist, h.Class('flex')],
-                  tabs.map(tab =>
-                    h.button(
-                      [...tab.tab, h.Class(buttonClassName)],
-                      [h.span([], [tab.value])],
-                    ),
-                  ),
+              [...tablist, h.Class('flex')],
+              tabs.map(tab =>
+                h.button(
+                  [...tab.tab, h.Class(buttonClassName)],
+                  [h.span([], [tab.value])],
                 ),
-                ...tabs
-                  .filter(tab => tab.index === activeIndex)
-                  .map(tab =>
-                    h.div(
-                      [...tab.panel, h.Class(panelClassName)],
-                      [panelFor(tab.value)],
-                    ),
-                  ),
-              ],
+              ),
             ),
-        },
-      }),
-    ),
+            ...tabs
+              .filter(tab => tab.index === activeIndex)
+              .map(tab =>
+                h.div(
+                  [...tab.panel, h.Class(panelClassName)],
+                  [panelFor(tab.value)],
+                ),
+              ),
+          ],
+        ),
+    }),
   ]
 }
 
 export const verticalDemo = (
-  tabsModel: DemoTabsBlockModel,
+  tabsModel: DemoTabsModel,
   selectedTab: DemoTab,
   h: UiViewBuilder,
 ) => {
@@ -223,40 +213,34 @@ export const verticalDemo = (
     )
 
   return [
-    h.block(
-      VerticalTabsDemoBinding.embedView({
-        slotId: tabsModel.id,
-        model: tabsModel,
-        viewInputs: {
-          tabs: demoTabs,
-          selectedValue: selectedTab,
-          ariaLabel: 'Framework comparison tabs',
-          orientation: 'Vertical',
-          toView: ({ tablist, tabs, activeIndex }) =>
+    tabsModel.view({
+      tabs: demoTabs,
+      selectedValue: selectedTab,
+      ariaLabel: 'Framework comparison tabs',
+      orientation: 'Vertical',
+      toView: ({ tablist, tabs, activeIndex }) =>
+        h.div(
+          [h.Class('flex')],
+          [
             h.div(
-              [h.Class('flex')],
-              [
-                h.div(
-                  [...tablist, h.Class('flex flex-col')],
-                  tabs.map(tab =>
-                    h.button(
-                      [...tab.tab, h.Class(verticalButtonClassName)],
-                      [h.span([], [tab.value])],
-                    ),
-                  ),
+              [...tablist, h.Class('flex flex-col')],
+              tabs.map(tab =>
+                h.button(
+                  [...tab.tab, h.Class(verticalButtonClassName)],
+                  [h.span([], [tab.value])],
                 ),
-                ...tabs
-                  .filter(tab => tab.index === activeIndex)
-                  .map(tab =>
-                    h.div(
-                      [...tab.panel, h.Class(verticalPanelClassName)],
-                      [panelFor(tab.value)],
-                    ),
-                  ),
-              ],
+              ),
             ),
-        },
-      }),
-    ),
+            ...tabs
+              .filter(tab => tab.index === activeIndex)
+              .map(tab =>
+                h.div(
+                  [...tab.panel, h.Class(verticalPanelClassName)],
+                  [panelFor(tab.value)],
+                ),
+              ),
+          ],
+        ),
+    }),
   ]
 }

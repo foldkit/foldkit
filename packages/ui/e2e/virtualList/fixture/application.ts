@@ -1,6 +1,6 @@
-import { Array, Option, Schema, Tuple } from 'effect'
-import { Block, Update } from 'foldkit'
-import { childAttributes } from 'foldkit/html'
+import { Array, Effect, Layer, Option, Schema } from 'effect'
+import { Block } from 'foldkit'
+import { type HtmlBuilder, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
@@ -22,10 +22,10 @@ const Item = Schema.Struct({
   content: RowContent,
 })
 type Item = typeof Item.Type
-const ItemVirtualListBlock = VirtualList.makeBlock<Item>()
+const ItemVirtualList = VirtualList.makeBlock<Item>()
 const Model = Schema.Struct({
   config: FixtureConfig,
-  maybeList: Schema.Option(ItemVirtualListBlock.Model),
+  maybeList: Schema.Option(ItemVirtualList),
   items: Schema.Array(Item),
   precedingHeight: Schema.Number,
   containerHeight: Schema.Number,
@@ -47,12 +47,13 @@ const Message = defineMessageUnion({
   ClickedUnmountList: {},
 })
 type Message = typeof Message.Type
-const ApplicationDefinition = Block.makeDefinition('Application', {
-  Model,
-  Message,
-  ChildInitContext: FixtureConfig,
-})
-const { makeFieldsStep, makeNoopStep, makeStep } = ApplicationDefinition
+
+export class Application extends Block<
+  Application,
+  Readonly<{ flags: FixtureConfig }>
+>()('Application', { Model, Message }) {}
+
+type ApplicationViewBuilder = HtmlBuilder<Message>
 
 const scrollContainerFor = (config: FixtureConfig) => {
   if (config.scrollMode === 'Self') {
@@ -64,111 +65,14 @@ const scrollContainerFor = (config: FixtureConfig) => {
   }
 }
 
-const ListBinding = ApplicationDefinition.makeBinding(ItemVirtualListBlock, {
-  field: 'maybeList',
-  init: {
-    contextToArgs: config =>
-      Option.some(
-        Tuple.make({
-          id: 'virtual-list',
-          rowHeightPx: ROW_HEIGHT_PX,
-          scrollContainer: scrollContainerFor(config),
-        }),
-      ),
-  },
-}).withOutMessagePolicy({
-  fold: ApplicationDefinition.makeOutMessageFold(ItemVirtualListBlock, {
-    ObservedContainerScroll: makeNoopStep,
-    ApproachedLoadedStart: makeNoopStep,
-    EndedContainerScroll: makeNoopStep,
-  }),
-})
-const ApplicationComposition = ApplicationDefinition.makeComposition({
-  bindings: [ListBinding],
-})
-type ApplicationViewBuilder = Block.ViewBuilderFor<
-  typeof ApplicationComposition
->
-
-const init = ApplicationComposition.makeInit((config: FixtureConfig) => ({
-  model: {
-    config,
-    items: Array.makeBy(
-      config.isShort ? SHORT_ROW_COUNT : ROW_COUNT,
-      index => ({
-        id: `item-${index}`,
-        index,
-        content: RowContent.Compact(),
-      }),
-    ),
-    precedingHeight: 800,
-    containerHeight: 420,
-  },
-  childInitContext: config,
-}))
-
-const update = ApplicationComposition.makeUpdate({
-  ClickedJumpToIndex: ListBinding.requestScrollToIndex(120, {
-    alignment: 'Start',
-  }),
-  ClickedJumpToKey: ListBinding.requestScrollToKey('item-180', {
-    alignment: 'Center',
-  }),
-  ClickedJumpToOffset: ListBinding.requestScrollToOffset(2_025),
-  ClickedJumpToNegativeOffset: ListBinding.requestScrollToOffset(-100),
-  ClickedJumpToHugeOffset: ListBinding.requestScrollToOffset(1_000_000),
-  ClickedJumpToNearestFirst: ListBinding.requestScrollToIndex(0, {
-    alignment: 'Nearest',
-  }),
-  ClickedJumpToEnd: ListBinding.requestScrollToEnd(),
-  ClickedExpandPreceding: makeFieldsStep(() => ({
-    precedingHeight: height => height + 160,
-  })),
-  ClickedResizeViewport: makeFieldsStep(() => ({
-    containerHeight: height => height - 80,
-  })),
-  ClickedExpandRow: (model, { index }) => ({
-    model: modifyFields(model, {
-      items: Array.map(item =>
-        item.index === index
-          ? modifyFields(item, { content: () => RowContent.Expanded() })
-          : item,
-      ),
+const sendToList =
+  (listMessage: typeof ItemVirtualList.Message.Type) => (model: Model) => ({
+    model,
+    messages: Option.match(model.maybeList, {
+      onNone: () => [],
+      onSome: list => [list.send(listMessage)],
     }),
-  }),
-  ClickedExpandPrecedingRow: model => {
-    const maybePrecedingIndex = Option.flatMap(model.maybeList, list =>
-      list.viewportAnchor._tag === 'Row'
-        ? Option.some(Math.max(0, list.viewportAnchor.index - 1))
-        : Option.none(),
-    )
-
-    return {
-      model: modifyFields(model, {
-        items: Array.map(item =>
-          Option.contains(maybePrecedingIndex, item.index)
-            ? modifyFields(item, { content: () => RowContent.Expanded() })
-            : item,
-        ),
-      }),
-    }
-  },
-  ClickedAppendItem: makeStep(model => {
-    const nextItems = Array.append(model.items, {
-      id: `item-${model.items.length}`,
-      index: model.items.length,
-      content: RowContent.Compact(),
-    })
-
-    return Update.combineSteps([
-      makeFieldsStep(() => ({ items: () => nextItems })),
-      ListBinding.informItemsChanged(Array.map(nextItems, item => item.id)),
-    ])
-  }),
-  ClickedUnmountList: makeFieldsStep(() => ({
-    maybeList: () => Option.none(),
-  })),
-})
+  })
 
 const rowContent = (
   item: Item,
@@ -229,45 +133,33 @@ const virtualListView = (model: Model, h: ApplicationViewBuilder) =>
                 ),
               ],
             ),
-            h.block(
-              ListBinding.embedView({
-                slotId: list.id,
-                model: list,
-                viewInputs: {
-                  ...commonInputs,
-                  containerElement: 'tbody',
-                  rowElement: 'tr',
-                  tableColumns: 2,
-                  itemToAttributes: (_item, index) =>
-                    childAttributes([h.AriaRowindex(index + 2)]),
-                  itemToView: item => [
-                    h.td([], [rowContent(item, model.config.isDynamic, h)]),
-                    h.td([], [`Value ${item.index}`]),
-                  ],
-                },
-              }),
-            ),
+            list.view({
+              ...commonInputs,
+              containerElement: 'tbody',
+              rowElement: 'tr',
+              tableColumns: 2,
+              itemToAttributes: (_item, index) =>
+                childAttributes([h.AriaRowindex(index + 2)]),
+              itemToView: item => [
+                h.td([], [rowContent(item, model.config.isDynamic, h)]),
+                h.td([], [`Value ${item.index}`]),
+              ],
+            }),
           ],
         )
       } else {
-        return h.block(
-          ListBinding.embedView({
-            slotId: list.id,
-            model: list,
-            viewInputs: {
-              ...commonInputs,
-              containerElement: 'div',
-              rowElement: 'div',
-              rowLayout: model.config.layout,
-              itemToView: item => rowContent(item, model.config.isDynamic, h),
-            },
-          }),
-        )
+        return list.view({
+          ...commonInputs,
+          containerElement: 'div',
+          rowElement: 'div',
+          rowLayout: model.config.layout,
+          itemToView: item => rowContent(item, model.config.isDynamic, h),
+        })
       }
     },
   })
 
-const view = ApplicationComposition.makeView((model, h) => ({
+const view = (model: Model, h: ApplicationViewBuilder) => ({
   title: 'VirtualList browser fixture',
   body: h.div(
     [],
@@ -315,14 +207,14 @@ const view = ApplicationComposition.makeView((model, h) => ({
             'scroll-state',
             Option.match(model.maybeList, {
               onNone: () => 'unmounted',
-              onSome: list => list.pendingScroll._tag,
+              onSome: list => list.model.pendingScroll._tag,
             }),
           ),
           h.DataAttribute(
             'scroll-top',
             Option.match(model.maybeList, {
               onNone: () => 'unmounted',
-              onSome: list => String(list.scrollTop),
+              onSome: list => String(list.model.scrollTop),
             }),
           ),
           h.DataAttribute(
@@ -330,8 +222,8 @@ const view = ApplicationComposition.makeView((model, h) => ({
             Option.match(model.maybeList, {
               onNone: () => 'unmounted',
               onSome: list =>
-                list.measurement._tag === 'Measured'
-                  ? String(list.measurement.containerHeight)
+                list.model.measurement._tag === 'Measured'
+                  ? String(list.model.measurement.containerHeight)
                   : 'unmeasured',
             }),
           ),
@@ -340,14 +232,14 @@ const view = ApplicationComposition.makeView((model, h) => ({
             Option.match(model.maybeList, {
               onNone: () => '0',
               onSome: list =>
-                String(Object.keys(list.measuredRowHeights).length),
+                String(Object.keys(list.model.measuredRowHeights).length),
             }),
           ),
           h.DataAttribute(
             'model',
             Option.match(model.maybeList, {
               onNone: () => 'unmounted',
-              onSome: list => JSON.stringify(list),
+              onSome: list => JSON.stringify(list.model),
             }),
           ),
         ],
@@ -377,11 +269,109 @@ const view = ApplicationComposition.makeView((model, h) => ({
       ),
     ],
   ),
-}))
+})
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({ init, update, view })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationLive = Application.make(
+  Effect.fn(function* (_id, { flags }) {
+    const list = yield* new ItemVirtualList('list', {
+      id: 'virtual-list',
+      rowHeightPx: ROW_HEIGHT_PX,
+      scrollContainer: scrollContainerFor(flags),
+    })
+
+    return {
+      model: {
+        config: flags,
+        maybeList: Option.some(list),
+        items: Array.makeBy(
+          flags.isShort ? SHORT_ROW_COUNT : ROW_COUNT,
+          index => ({
+            id: `item-${index}`,
+            index,
+            content: RowContent.Compact(),
+          }),
+        ),
+        precedingHeight: 800,
+        containerHeight: 420,
+      },
+
+      update: {
+        ClickedJumpToIndex: sendToList(
+          VirtualList.requestScrollToIndex(120, { alignment: 'Start' }),
+        ),
+        ClickedJumpToKey: sendToList(
+          VirtualList.requestScrollToKey('item-180', { alignment: 'Center' }),
+        ),
+        ClickedJumpToOffset: sendToList(
+          VirtualList.requestScrollToOffset(2_025),
+        ),
+        ClickedJumpToNegativeOffset: sendToList(
+          VirtualList.requestScrollToOffset(-100),
+        ),
+        ClickedJumpToHugeOffset: sendToList(
+          VirtualList.requestScrollToOffset(1_000_000),
+        ),
+        ClickedJumpToNearestFirst: sendToList(
+          VirtualList.requestScrollToIndex(0, { alignment: 'Nearest' }),
+        ),
+        ClickedJumpToEnd: sendToList(VirtualList.requestScrollToEnd()),
+        ClickedExpandPreceding: model => ({
+          model: modifyFields(model, {
+            precedingHeight: height => height + 160,
+          }),
+        }),
+        ClickedResizeViewport: model => ({
+          model: modifyFields(model, {
+            containerHeight: height => height - 80,
+          }),
+        }),
+        ClickedExpandRow: (model, { index }) => ({
+          model: modifyFields(model, {
+            items: Array.map(item =>
+              item.index === index
+                ? modifyFields(item, { content: () => RowContent.Expanded() })
+                : item,
+            ),
+          }),
+        }),
+        ClickedExpandPrecedingRow: model => {
+          const maybePrecedingIndex = Option.flatMap(model.maybeList, list =>
+            list.model.viewportAnchor._tag === 'Row'
+              ? Option.some(Math.max(0, list.model.viewportAnchor.index - 1))
+              : Option.none(),
+          )
+
+          return {
+            model: modifyFields(model, {
+              items: Array.map(item =>
+                Option.contains(maybePrecedingIndex, item.index)
+                  ? modifyFields(item, {
+                      content: () => RowContent.Expanded(),
+                    })
+                  : item,
+              ),
+            }),
+          }
+        },
+        ClickedAppendItem: model => {
+          const nextItems = Array.append(model.items, {
+            id: `item-${model.items.length}`,
+            index: model.items.length,
+            content: RowContent.Compact(),
+          })
+
+          return sendToList(
+            VirtualList.informItemsChanged(
+              Array.map(nextItems, item => item.id),
+            ),
+          )(modifyFields(model, { items: () => nextItems }))
+        },
+        ClickedUnmountList: model => ({
+          model: modifyFields(model, { maybeList: () => Option.none() }),
+        }),
+      },
+
+      view,
+    }
+  }),
+).pipe(Layer.provide(ItemVirtualList.Live))

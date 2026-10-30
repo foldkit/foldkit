@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { __htmlBuilder } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
-import * as Subscription from '../subscription/subscription.js'
 import type * as Update from '../update/index.js'
 import * as Application from './application.js'
 import {
@@ -55,19 +54,13 @@ const sameModelReferenceView = (model: Model) => {
   )
 }
 
-const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  count: entry(
-    'MeasureCountDependencies',
-    { count: Schema.Number },
-    {
-      messages: [],
-      modelToDependencies: model => ({ count: model.count }),
-    },
-  ),
-}))
-const MeasureCountDependenciesLayer = subscriptions.count.toLayer(
-  Effect.succeed(() => Stream.empty),
-)
+const subscriptions = {
+  count: {
+    dependenciesSchema: Schema.Struct({ count: Schema.Number }),
+    modelToDependencies: (model: Model) => ({ count: model.count }),
+    dependenciesToStream: () => Stream.empty,
+  },
+}
 
 let container: HTMLElement
 const FORCE_SLOW_WARNING_THRESHOLD_MS = -1
@@ -192,7 +185,7 @@ describe('slow warnings', () => {
       },
     })
 
-    const provided = element.provide(MeasureCountDependenciesLayer)
+    const provided = element
     const fiber = Effect.runFork(provided.start())
 
     try {
@@ -251,7 +244,7 @@ describe('slow warnings', () => {
       },
     })
 
-    const provided = element.provide(MeasureCountDependenciesLayer)
+    const provided = element
     const fiber = Effect.runFork(provided.start())
 
     try {
@@ -290,7 +283,7 @@ describe('slow warnings', () => {
       },
     })
 
-    const provided = element.provide(MeasureCountDependenciesLayer)
+    const provided = element
     const fiber = Effect.runFork(provided.start())
 
     try {

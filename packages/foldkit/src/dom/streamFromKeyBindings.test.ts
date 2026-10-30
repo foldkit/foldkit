@@ -2,7 +2,7 @@ import { Duration, Effect, Fiber, Predicate, Schema, Stream } from 'effect'
 import { afterEach, describe, expect, expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
-import { make } from '../subscription/subscription.js'
+import type { Subscription } from '../runtime/subscription.js'
 import {
   type StreamFromKeyBindingsConfig,
   streamFromKeyBindings,
@@ -96,20 +96,17 @@ describe('streamFromKeyBindings', () => {
 
       expectTypeOf(rawEventStream).toEqualTypeOf<Stream.Stream<KeyboardEvent>>()
 
-      const subscriptions = make<{ isActive: boolean }, Message>()(entry => ({
-        keyboard: entry(
-          'RawBindingKeyboardEvents',
-          { isActive: Schema.Boolean },
-          {
-            messages: [Message.PressedKeys],
-            modelToDependencies: model => ({ isActive: model.isActive }),
-          },
-        ),
-      }))
-      subscriptions.keyboard.toLayer(
+      const keyboard: Subscription<
+        { isActive: boolean },
+        Message,
+        { isActive: boolean }
+      > = {
+        dependenciesSchema: Schema.Struct({ isActive: Schema.Boolean }),
+        modelToDependencies: model => ({ isActive: model.isActive }),
         // @ts-expect-error a raw KeyboardEvent is not an application Message
-        Effect.succeed(() => rawEventStream),
-      )
+        dependenciesToStream: () => rawEventStream,
+      }
+      expect(keyboard).toBeDefined()
     }
   })
 

@@ -1,5 +1,7 @@
 import { Schema } from 'effect'
 
+export const SESSION_STORAGE_KEY = 'auth_session'
+
 export const Session = Schema.Struct({
   userId: Schema.String,
   email: Schema.String,

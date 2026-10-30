@@ -1,1 +1,0 @@
-export { IssueListBlock } from './block'

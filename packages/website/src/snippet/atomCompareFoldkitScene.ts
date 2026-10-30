@@ -1,23 +1,35 @@
+import { Effect, Layer } from 'effect'
 import {
   Command,
   click,
   expect,
-  given,
   inside,
   role,
   scene,
   text,
 } from 'foldkit/scene'
-import { test } from 'vitest'
 
-test('click load, resolve the fetch, see the profile', () => {
+import { it } from '@effect/vitest'
+
+import {
+  Api,
+  ApplicationLive,
+  FetchUser,
+  Message,
+  type User,
+} from './atomCompareFoldkitAsync'
+
+const ada: User = { id: 'ada', name: 'Ada Lovelace' }
+
+const TestApi = Layer.succeed(Api, { getUser: () => Effect.succeed(ada) })
+
+it.effect('click load, resolve the fetch, see the profile', () =>
   scene(
-    { update, view },
-    given(model),
+    ApplicationLive.pipe(Layer.provide(TestApi)),
     click(role('button', { name: 'Load user' })),
     expect(text('Loading…')).toExist(),
     Command.expectExact(FetchUser),
-    Command.resolve(FetchUser, SucceededLoadUser({ user: ada })),
+    Command.resolve(FetchUser, Message.SucceededLoadUser({ user: ada })),
     inside(role('article'), expect(text('Ada Lovelace')).toExist()),
-  )
-})
+  ),
+)

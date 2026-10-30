@@ -3,6 +3,7 @@ import {
   Context,
   Data,
   Effect,
+  Layer,
   Option,
   Predicate,
   Schema,
@@ -17,8 +18,16 @@ import {
   parseFragment,
 } from 'parse5'
 
-import type { AnyBlock } from '../../block/definition.js'
-import { lowerBlock } from '../../block/lowering.js'
+import { runtimeBlockOf } from '../../blocks/block.js'
+import {
+  type RuntimeInstance,
+  constructSync,
+  disposeGraph,
+  makeGraph,
+  renderRoot,
+  toDocument,
+} from '../../blocks/engine.js'
+import type { ArgsOf, RootInstance } from '../../blocks/program.js'
 import {
   HYDRATION_BUILD_ATTRIBUTE,
   buildIdOrInjected,
@@ -50,11 +59,6 @@ import {
 } from '../../hydrationMarkers.js'
 import type { AnyMountHandler } from '../../mount/index.js'
 import { hasTrustedInnerHtml } from '../../propertyProvenance.js'
-import {
-  type ValidateProgramBlock,
-  assertDocument,
-  assertProgramConfig,
-} from '../../runtime/programRoot.js'
 import type { VNode } from '../../snabbdom/vnode.js'
 import { tagNameFromSelector } from '../../tagName.js'
 import type { Return as UpdateReturn } from '../../update/index.js'
@@ -1142,73 +1146,41 @@ type NativeApplicationConfig<Model, Message> = Readonly<{
   view: (model: Model, h: HtmlBuilder<Message, AnyMountHandler>) => Document
 }>
 
-type InvalidServerInit<
-  BlockValue extends AnyBlock,
-  Args extends ReadonlyArray<unknown>,
-> = BlockValue extends AnyBlock
-  ? Readonly<Parameters<BlockValue['init']>> extends Args
-    ? Args extends Readonly<Parameters<BlockValue['init']>>
-      ? never
-      : Parameters<BlockValue['init']>
-    : Parameters<BlockValue['init']>
-  : never
-
-type ValidateServerInit<
-  BlockValue extends AnyBlock,
-  Args extends ReadonlyArray<unknown>,
-> = [InvalidServerInit<BlockValue, Args>] extends [never]
-  ? unknown
-  : Readonly<{
-      'Server Flags and routing must match every root Block initializer': InvalidServerInit<
-        BlockValue,
-        Args
-      >
-    }>
-
-type ServerFlagsSchema = Schema.Codec<any, any, never, never>
-
-type ExactServerHostConfig<Config> = Readonly<{
-  [Key in Exclude<keyof Config, 'Flags' | 'routing'>]: never
-}>
-
-/** Server host configuration for a root Block initialized with Flags and a URL.
- * The Block already contains its init, update, view, and handler recipes. */
-export type RoutingApplicationConfigWithFlags<
-  BlockValue extends AnyBlock,
-  Flags,
-> = Readonly<{
-  /** Encodes the request's Flags for the browser hydration handoff. */
-  Flags: Schema.Codec<Flags, any, never, never>
-  /** Enables URL initialization. Browser routing callbacks are not run on the server. */
-  routing: object
+/** Server configuration for a root Block: the Layer that provides it, every
+ *  Block it creates, and their services, plus the Flags Schema when the root
+ *  constructor takes `flags`. Browser routing callbacks play no part in a
+ *  server render; a root that takes `url` receives the request URL from the
+ *  render options.
+ *
+ * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
+ */
+export type ServerConfig<Root, E, R> = Readonly<{
+  layer: Layer.Layer<Root, E, R>
 }> &
-  NoInfer<ValidateServerInit<BlockValue, readonly [Flags, Url]>>
+  (ArgsOf<Root> extends Readonly<{ flags: infer Flags }>
+    ? Readonly<{
+        /** Encodes the request's Flags for the browser hydration handoff. */
+        Flags: Schema.Codec<Flags, any, never, never>
+      }>
+    : Readonly<{ Flags?: never }>)
 
-/** Server host configuration for a root Block initialized with a URL. */
-export type RoutingApplicationConfig<BlockValue extends AnyBlock> = Readonly<{
-  /** Enables URL initialization. Pass an empty object when callbacks are unnecessary. */
-  routing: object
-  Flags?: never
-}> &
-  NoInfer<ValidateServerInit<BlockValue, readonly [Url]>>
+/** Render options for a root Block. A root that takes `url` requires the
+ *  request `url`, and a root that takes `flags` requires the request `flags`.
+ *
+ * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
+ */
+export type ServerRenderOptions<Root> = RenderOptions &
+  (ArgsOf<Root> extends Readonly<{ url: Url }>
+    ? Readonly<{ url: string }>
+    : Readonly<{ url?: never }>) &
+  (ArgsOf<Root> extends Readonly<{ flags: infer Flags }>
+    ? Readonly<{ flags: Flags }>
+    : Readonly<{ flags?: never }>)
 
-/** Server host configuration for a root Block initialized with Flags. */
-export type ApplicationConfigWithFlags<
-  BlockValue extends AnyBlock,
-  Flags,
-> = Readonly<{
-  /** Encodes the request's Flags for the browser hydration handoff. */
-  Flags: Schema.Codec<Flags, any, never, never>
-  routing?: never
-}> &
-  NoInfer<ValidateServerInit<BlockValue, readonly [Flags]>>
-
-/** Server host configuration for a root Block whose init takes no arguments. */
-export type ApplicationConfig<BlockValue extends AnyBlock> = Readonly<{
-  Flags?: never
-  routing?: never
-}> &
-  NoInfer<ValidateServerInit<BlockValue, readonly []>>
+type ServerRenderArguments<Root> =
+  ArgsOf<Root> extends Readonly<{ url: Url }> | Readonly<{ flags: unknown }>
+    ? [options: ServerRenderOptions<Root>]
+    : [options?: ServerRenderOptions<Root>]
 
 // Shared by both render shapes. `runtimeId` names the application in the root
 // stamp and Flags payload; it defaults to `'app'` and must be non-empty. It
@@ -1402,20 +1374,23 @@ const validateHydrationRoot = (
 }
 
 /**
- * Renders a completed root Block to an HTML string on the server.
+ * Renders a root Block to an HTML string on the server.
  *
- * Resolves `init` for the request (with the given Flags and URL when the
- * config declares them), runs the pure `view` under a no-op dispatch frame,
- * and serializes the resulting `Document` body. For hydratable output, the
- * root element is stamped with {@link FOLDKIT_APP_ATTRIBUTE} and, when the
- * config declares `Flags`, the Schema-encoded Flags ride along in a JSON script
- * tag so a hydrating client boots from the same Model.
+ * Builds the Layer, constructs the root Block with the request's Flags and URL
+ * the way `Program.make` does in the browser, runs the pure views under a
+ * no-op dispatch frame, and serializes the resulting `Document` body. A root
+ * view that returns Html renders as the body of a Document titled with the
+ * root Block id, matching the browser. For hydratable output, the root
+ * element is stamped with {@link FOLDKIT_APP_ATTRIBUTE} and, when the config
+ * declares `Flags`, the Schema-encoded Flags ride along in a JSON script tag
+ * so a hydrating client constructs the same Model.
  *
- * Commands returned by `init` are not run: the rendered HTML is the
- * post-`init` state, and the client runs those Commands after hydration.
+ * No Command, Mount, Stream, or Subscription runs: the rendered HTML is the
+ * constructed Model, and the client runs the `start` Commands after
+ * hydration. Every instance is closed once the render completes.
  *
- * A hydratable Flags render calls `init` with the encode-then-decode round
- * trip of the given Flags, the exact value the hydrating client will
+ * A hydratable Flags render constructs the root with the encode-then-decode
+ * round trip of the given Flags, the exact value the hydrating client will
  * reconstruct, so the served DOM and the client's first render agree by
  * construction even for codecs whose round trip is not the identity.
  *
@@ -1425,119 +1400,83 @@ const validateHydrationRoot = (
  * field is absent from the result, `injectIntoTemplate` leaves the
  * corresponding tag in the template unchanged.
  *
- * Derive the canonical URL from the typed route in the Model. `Request.url`
- * gives routing applications the request to parse, but only the application
- * knows which route and query values identify the page.
- *
  * @example
  * ```typescript
  * const renderedApplication = yield* Server.renderToString(
- *   ApplicationBlock,
- *   { Flags, routing: {} },
+ *   Application,
+ *   { layer: ApplicationLive, Flags },
  *   { url: request.url, flags: { theme } },
  * )
  * ```
  *
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
  */
-export function renderToString<
-  const BlockValue extends AnyBlock,
-  const Config extends Readonly<{
-    Flags: ServerFlagsSchema
-    routing: object
-  }>,
->(
-  block: BlockValue & NoInfer<ValidateProgramBlock<BlockValue, 'Document'>>,
-  config: Config &
-    NoInfer<
-      RoutingApplicationConfigWithFlags<BlockValue, Config['Flags']['Type']>
-    > &
-    NoInfer<ExactServerHostConfig<Config>>,
-  options: RenderUrlFlagsOptions<NoInfer<Config['Flags']['Type']>>,
-): Effect.Effect<RenderedApplication, RenderError>
-export function renderToString<
-  const BlockValue extends AnyBlock,
-  const Config extends Readonly<{ routing: object; Flags?: never }>,
->(
-  block: BlockValue & NoInfer<ValidateProgramBlock<BlockValue, 'Document'>>,
-  config: Config &
-    NoInfer<RoutingApplicationConfig<BlockValue>> &
-    NoInfer<ExactServerHostConfig<Config>>,
-  options: RenderUrlOptions,
-): Effect.Effect<RenderedApplication, RenderError>
-export function renderToString<
-  const BlockValue extends AnyBlock,
-  const Config extends Readonly<{
-    Flags: ServerFlagsSchema
-    routing?: never
-  }>,
->(
-  block: BlockValue & NoInfer<ValidateProgramBlock<BlockValue, 'Document'>>,
-  config: Config &
-    NoInfer<ApplicationConfigWithFlags<BlockValue, Config['Flags']['Type']>> &
-    NoInfer<ExactServerHostConfig<Config>>,
-  options: RenderFlagsOptions<NoInfer<Config['Flags']['Type']>>,
-): Effect.Effect<RenderedApplication, RenderError>
-export function renderToString<
-  const BlockValue extends AnyBlock,
-  const Config extends object,
->(
-  block: BlockValue & NoInfer<ValidateProgramBlock<BlockValue, 'Document'>>,
-  config: Config &
-    NoInfer<ApplicationConfig<BlockValue>> &
-    NoInfer<ExactServerHostConfig<Config>>,
-  options?: RenderOptions,
-): Effect.Effect<RenderedApplication, RenderError>
-export function renderToString(
-  block: AnyBlock,
-  config: Readonly<{
-    Flags?: Schema.Codec<any, any, never, never>
-    routing?: unknown
-  }>,
-  options?: RenderOptions & Readonly<{ url?: string; flags?: unknown }>,
-): Effect.Effect<RenderedApplication, RenderError> {
-  assertProgramConfig({ block, container: null }, 'Document')
-
-  if (!Predicate.isObject(config)) {
-    throw new Error('[foldkit] Server host configuration must be an object.')
-  }
-
-  for (const field of Object.keys(config)) {
-    if (field !== 'Flags' && field !== 'routing') {
-      throw new Error(
-        `[foldkit] Server host configuration does not support "${field}". Supply implementations on the completed root Block.`,
-      )
-    }
-  }
-
-  const { Flags, routing } = config
-  if (Reflect.has(config, 'Flags') && !Schema.isSchema(Flags)) {
-    throw new Error('[foldkit] Server Flags must be an Effect Schema.')
-  }
-
-  if (Reflect.has(config, 'routing') && !Predicate.isObject(routing)) {
+export const renderToString = <Root extends RootInstance, E, R>(
+  root: abstract new (...args: ReadonlyArray<any>) => Root,
+  config: ServerConfig<NoInfer<Root>, E, R>,
+  ...[options]: ServerRenderArguments<NoInfer<Root>>
+): Effect.Effect<RenderedApplication, RenderError | E, R> => {
+  if (!Predicate.isObject(config) || !Layer.isLayer(config.layer)) {
     throw new Error(
-      '[foldkit] Server routing must be a configuration object. Pass an empty object to enable URL initialization.',
+      '[foldkit] Server configuration must include the root Block `layer`.',
     )
   }
 
-  const { init, view: blockView } = lowerBlock(block)
-  const view = (...args: ReadonlyArray<any>) => {
-    const output = Reflect.apply(blockView, undefined, args)
-    assertDocument(output)
-    return output
+  const { Flags } = config
+  if (Flags !== undefined && !Schema.isSchema(Flags)) {
+    throw new Error('[foldkit] Server Flags must be an Effect Schema.')
   }
 
-  return __renderFromConfig(
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    {
-      ...(Flags === undefined ? {} : { Flags }),
-      ...(routing === undefined ? {} : { routing }),
-      init,
-      view,
-    } as never,
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    options as never,
+  const block = runtimeBlockOf(root)
+  const renderOptions: RenderOptions &
+    Readonly<{ url?: string; flags?: unknown }> = options ?? {}
+  const hasRouting = renderOptions.url !== undefined
+  const hasFlags = Flags !== undefined
+
+  const rootArgs = (initArguments: ReadonlyArray<unknown>): unknown => {
+    const [first, second] = initArguments
+    if (hasFlags && hasRouting) {
+      return { flags: first, url: second }
+    } else if (hasRouting) {
+      return { url: first }
+    } else if (hasFlags) {
+      return { flags: first }
+    } else {
+      return undefined
+    }
+  }
+
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const layer = config.layer as Layer.Layer<unknown, E, R>
+
+  return Effect.scoped(
+    Effect.gen(function* () {
+      const context = yield* Layer.build(layer)
+      const graph = makeGraph({ isSimulation: true })
+      yield* Effect.addFinalizer(() => disposeGraph(graph))
+
+      return yield* __renderFromConfig(
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        {
+          ...(hasFlags ? { Flags } : {}),
+          ...(hasRouting ? { routing: {} } : {}),
+          init: (...initArguments: ReadonlyArray<unknown>) => ({
+            model: constructSync(
+              graph,
+              block,
+              [],
+              block.id,
+              rootArgs(initArguments),
+              context,
+            ),
+          }),
+          view: (model: RuntimeInstance) =>
+            toDocument(block.id, renderRoot(graph, model)),
+        } as never,
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        renderOptions as never,
+      )
+    }),
   )
 }
 

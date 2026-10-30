@@ -1,7 +1,4 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update and view definitions.
-import { Schema, Tuple } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -17,79 +14,46 @@ type Activity = typeof Activity.Type
 
 const ActivityList = VirtualList.makeBlock<Activity>()
 
-// Add a field to your Model for the VirtualList Block. The list items
-// stay in your domain Model (your own `activities`, `messages`, `rows`,
-// whatever you call them); only scroll and measurement state live here:
-const Model = Schema.Struct({
-  activityList: ActivityList.Model,
-  activities: Schema.Array(Activity),
-})
-type Model = typeof Model.Type
-// Declare only the parent-owned scrolling fact. The Composition derives
-// VirtualList delivery from the Binding.
 const Message = defineMessageUnion({
   ClickedScrollActivityListToMiddle: {},
 })
-type Message = typeof Message.Type
 
-const ActivityListExampleDefinition = Block.makeDefinition(
-  'ActivityListExample',
-  {
-    Model,
-    Message,
-  },
-)
+// The list items stay in your domain Model. Only scroll and measurement state
+// live in the VirtualList instance.
+export class ActivityFeed extends Block<ActivityFeed>()('ActivityFeed', {
+  Model: Schema.Struct({
+    activityList: ActivityList,
+    activities: Schema.Array(Activity),
+  }),
+  Message,
+}) {}
 
-const { makeNoopStep } = ActivityListExampleDefinition
+export const ActivityFeedLive = ActivityFeed.make(
+  Effect.fn(function* () {
+    // Give the list a unique id and a row height in pixels. All rows share
+    // this height.
+    const activityList = yield* new ActivityList('activityList', {
+      id: 'activity-list',
+      rowHeightPx: 56,
+    })
 
-const foldActivityListOutMessage =
-  ActivityListExampleDefinition.makeOutMessageFold(ActivityList, {
-    ObservedContainerScroll: makeNoopStep,
-    ApproachedLoadedStart: makeNoopStep,
-    EndedContainerScroll: makeNoopStep,
-  })
+    return {
+      model: { activityList, activities: [] },
 
-const ActivityListBinding = ActivityListExampleDefinition.makeBinding(
-  ActivityList,
-  {
-    field: 'activityList',
-    init: {
-      contextToArgs: () => Tuple.make({ id: 'activity-list', rowHeightPx: 56 }),
-    },
-  },
-).withOutMessagePolicy({ fold: foldActivityListOutMessage })
+      update: {
+        ClickedScrollActivityListToMiddle: model => ({
+          model,
+          messages: [
+            model.activityList.send(VirtualList.requestScrollToIndex(500)),
+          ],
+        }),
+      },
 
-const ActivityListExampleComposition =
-  ActivityListExampleDefinition.makeComposition({
-    bindings: [ActivityListBinding],
-  })
-
-// In your init function, give the list a unique id and a row height in
-// pixels. All rows share this height:
-const init = ActivityListExampleComposition.makeInit(() => ({
-  model: {
-    activities: [],
-  },
-}))
-
-const update = ActivityListExampleComposition.makeUpdate({
-  ClickedScrollActivityListToMiddle: model =>
-    ActivityListBinding.requestScrollToIndex(500)(model),
-})
-
-// Inside your view, render the list. Pass `items` from your Model, key
-// each row by a stable identifier (the data id, not its array position),
-// and give the container a fixed height. Note `h-96` below: without a
-// fixed height the container grows to fit its children and never scrolls.
-// The component sets only `overflow: auto` inline; everything else is
-// yours:
-const view = ActivityListExampleComposition.makeView(
-  (model, h) =>
-    h.block(
-      ActivityListBinding.embedView({
-        slotId: 'activity-list',
-        model: model.activityList,
-        viewInputs: {
+      // Pass `items` from your Model, key each row by a stable identifier, and
+      // give the container a fixed height. Without a fixed height (`h-96`
+      // below) the container grows to fit its children and never scrolls.
+      view: (model, h) =>
+        model.activityList.view({
           items: model.activities,
           itemToKey: activity => String(activity.id),
           itemToView: activity =>
@@ -117,12 +81,7 @@ const view = ActivityListExampleComposition.makeView(
             ),
           containerClassName:
             'h-96 w-full rounded-lg bg-white ring-1 ring-gray-200',
-        },
-      }),
-    ),
-
-  // The programmatic scroll uses the same child fold as ordinary Messages. Its
-  // completion Command stays inside the VirtualList Message boundary. The
-  // component's container Mount owns scroll and resize observation, so no
-  // Subscription wiring is required.
-)
+        }),
+    }
+  }),
+).pipe(Layer.provide(ActivityList.Live))

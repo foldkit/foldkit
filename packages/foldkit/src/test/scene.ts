@@ -13,13 +13,6 @@ import {
 } from 'effect'
 import { dual } from 'effect/Function'
 
-import {
-  type AggregatedChildren,
-  type AnyBinding,
-  type BindingRequirement,
-  aggregateChildren,
-} from '../block/binding.js'
-import { LocalMountsTypeId, isComposition } from '../block/definition.js'
 import { kebabToPascal } from '../customElement/index.js'
 import type { CustomElementSpec, EventSchema } from '../customElement/index.js'
 import { serializedStylePropertyName } from '../domReflection.js'
@@ -39,13 +32,8 @@ import type {
   HtmlBuilder,
   KeyboardModifiers,
 } from '../html/index.js'
-import type { Entry as ManagedResourceEntry } from '../managedResource/index.js'
 import { MountTracker } from '../mount/index.js'
-import type {
-  AnyMountHandler,
-  LayeredMountDefinition,
-  MountDefinition,
-} from '../mount/index.js'
+import type { AnyMountHandler, MountDefinition } from '../mount/index.js'
 import {
   type RoutingConfig,
   type RoutingInputConfig,
@@ -58,19 +46,10 @@ import {
   sameVnode,
 } from '../snabbdom/init.js'
 import { vnode as makeVNode } from '../snabbdom/vnode.js'
-import {
-  type Registrations as RuntimeRegistrations,
-  type RegistryEntries as RuntimeRegistryEntries,
-  type Subscription as RuntimeSubscription,
-  type MessageDeclaration as SubscriptionMessageDeclaration,
-  aggregate as aggregateSubscriptions,
-  __maybeActiveDependencies as maybeActiveDependencies,
-  __messageDeclarations as subscriptionMessageDeclarations,
-} from '../subscription/subscription.js'
 import { tagNameFromSelector } from '../tagName.js'
 import { type Url, fromString as urlFromString } from '../url/index.js'
 import { type VNode, dedupeSharedVNodes, memoizedVNodes } from '../vdom.js'
-import { commandArgs, commandMatches } from './bindingMatcher.js'
+import { atBlockPath, commandArgs, commandMatches } from './commandMatcher.js'
 import type {
   AnyCommand,
   AnyCommandInstance,
@@ -86,7 +65,6 @@ import type {
   Resolver,
   ResolverEntry,
   SimulationUpdateReturn,
-  SubscriptionEmissionSource,
 } from './internal.js'
 import {
   assertAllCommandsResolved,
@@ -111,8 +89,6 @@ import {
   resolveAllInternal,
   resolveByMatcher,
   resolveMountByMatcher,
-  resolveSubscriptionDeclaration,
-  resolveSubscriptionMessage,
 } from './internal.js'
 import type { Locator, LocatorAll } from './query.js'
 import {
@@ -221,19 +197,6 @@ type GivenStep<Model> = Readonly<{ _phantomModel: Model }> &
     simulation: SceneSimulation<M, Message, OutMessage>,
   ) => SceneSimulation<M, Message, OutMessage>)
 
-/** A typed Subscription Message step. */
-export type SubscriptionMessageStep<Message, Entry = undefined> = Readonly<{
-  _tag: 'SubscriptionMessageStep'
-  entry: Entry
-  message: Message
-}>
-
-type SubscriptionActivityStep<Entry> = Readonly<{
-  _tag: 'SubscriptionActivityStep'
-  entry: Entry
-  expected: 'Active' | 'Inactive'
-}>
-
 /** URL-change delivery configuration. Uses the same callback or canonical
  * Message constructor accepted by Program routing. Relative references resolve
  * against origin (default http://localhost), never the test host or prior step. */
@@ -250,6 +213,12 @@ type SceneRoutingCallback<Message> = Pick<
   Readonly<{ origin?: string }>
 
 /** An explicit URL-change event delivered through the Scene's routing callback. */
+/** A Message delivered to the Scene from outside the rendered view. */
+export type DeliveredMessageStep<Message> = Readonly<{
+  _tag: 'DeliveredMessageStep'
+  message: Message
+}>
+
 export type ChangedUrlStep = Readonly<{
   _tag: 'ChangedUrlStep'
   url: string
@@ -274,143 +243,15 @@ export type OutMessagesStep<OutMessage> = Readonly<{
   expected: readonly [OutMessage, OutMessage, ...ReadonlyArray<OutMessage>]
 }>
 
-type AnySubscriptions = RuntimeRegistrations<any, any, any>
-
-type RegisteredSubscriptions<Model, Message> = RuntimeRegistrations<
-  Model,
-  Message,
-  any
->
-
-type AnyComposition = Readonly<{
-  Model: Schema.Top
-  Message: Schema.Top
-  [LocalMountsTypeId]: ReadonlyArray<LayeredMountDefinition>
-  bindings: ReadonlyArray<AnyBinding>
-  makeView: (...args: ReadonlyArray<any>) => any
-}>
-
-type ModelSchemaOf<CompositionValue> =
-  CompositionValue extends Readonly<{
-    Model: infer ModelSchema extends Schema.Top
-  }>
-    ? ModelSchema
-    : never
-
-type MessageSchemaOf<CompositionValue> =
-  CompositionValue extends Readonly<{
-    Message: infer MessageSchema extends Schema.Top
-  }>
-    ? MessageSchema
-    : never
-
-type ChildrenOf<CompositionValue> =
-  CompositionValue extends Readonly<{
-    bindings: infer Children extends ReadonlyArray<AnyBinding>
-  }>
-    ? Children
-    : never
-
-type ChildSubscriptions<CompositionValue extends AnyComposition> =
-  AggregatedChildren<ChildrenOf<CompositionValue>>['subscriptions']
-
-/**
- * Collects a Block Composition's registered child Subscriptions for
- * Scene emission steps. Local declarations may be supplied as the second
- * argument. The result retains placement-qualified keys, exact Message
- * declarations, and the same lift paths used by the Runtime.
- *
- * This only prepares test configuration. It does not initialize Models,
- * construct handler Layers, or start Streams. Completed feature Blocks already
- * expose their aggregated `subscriptions` directly.
- *
- * @param composition - The Block Composition whose child graph is tested.
- * @param localSubscriptions - Optional Subscriptions declared by that Block.
- * Duplicate registration keys are rejected rather than overwritten.
- */
-export function subscriptions<const CompositionValue extends AnyComposition>(
-  composition: CompositionValue,
-): ChildSubscriptions<CompositionValue>
-export function subscriptions<
-  const CompositionValue extends AnyComposition,
-  const LocalSubscriptions extends RegisteredSubscriptions<
-    ModelSchemaOf<NoInfer<CompositionValue>>['Type'],
-    MessageSchemaOf<NoInfer<CompositionValue>>['Type']
-  >,
->(
-  composition: CompositionValue,
-  localSubscriptions: LocalSubscriptions,
-): RuntimeRegistryEntries<LocalSubscriptions> &
-  ChildSubscriptions<CompositionValue>
-export function subscriptions(
-  composition: AnyComposition,
-  localSubscriptions: AnySubscriptions = {},
-): AnySubscriptions {
-  if (!isComposition(composition)) {
-    throw new Error(
-      '[foldkit] Scene.subscriptions Composition must come from Block.makeDefinition(...).makeComposition(...).',
-    )
-  }
-
-  const children = aggregateChildren(composition.bindings)
-  return aggregateSubscriptions(localSubscriptions, children.subscriptions)
-}
-
-type TestBindingDefinition = Readonly<{
-  mounts: ReadonlyArray<LayeredMountDefinition>
-}>
-
-type TestMountRequirements =
-  | AnyMountHandler
-  | BindingRequirement<string, TestBindingDefinition, Schema.Top>
-
-type TestHtmlBuilder<Message> = HtmlBuilder<Message, TestMountRequirements>
+type TestHtmlBuilder<Message> = HtmlBuilder<Message, AnyMountHandler>
 
 /** A single step in a scene: a `given` step, typed Message or OutMessage step,
  *  or scene simulation transform. */
-export type SceneStep<
-  Model,
-  Message,
-  OutMessage,
-  Subscriptions = undefined,
-  Routing = undefined,
-> =
+export type SceneStep<Model, Message, OutMessage, Routing = undefined> =
   | GivenStep<NoInfer<Model>>
+  | DeliveredMessageStep<NoInfer<Message>>
   | ([Routing] extends [SceneRouting<NoInfer<Message>>]
       ? ChangedUrlStep
-      : never)
-  | (RuntimeRegistryEntries<NoInfer<Subscriptions>> extends Readonly<
-      Record<string, RuntimeSubscription<any, any, any, any>>
-    >
-      ? {
-          readonly [
-            Key in keyof RuntimeRegistryEntries<NoInfer<Subscriptions>>
-          ]: RuntimeRegistryEntries<
-            NoInfer<Subscriptions>
-          >[Key] extends Readonly<{
-            messages: infer Messages extends ReadonlyArray<Schema.Top>
-          }>
-            ? SubscriptionMessageStep<
-                Schema.Schema.Type<Messages[number]>,
-                SubscriptionEmissionSource<
-                  RuntimeRegistryEntries<NoInfer<Subscriptions>>[Key]
-                >
-              >
-            : never
-        }[keyof RuntimeRegistryEntries<NoInfer<Subscriptions>>]
-      : never)
-  | (RuntimeRegistryEntries<NoInfer<Subscriptions>> extends Readonly<
-      Record<string, RuntimeSubscription<any, any, any, any>>
-    >
-      ? {
-          readonly [
-            Key in keyof RuntimeRegistryEntries<NoInfer<Subscriptions>>
-          ]: SubscriptionActivityStep<
-            SubscriptionEmissionSource<
-              RuntimeRegistryEntries<NoInfer<Subscriptions>>[Key]
-            >
-          >
-        }[keyof RuntimeRegistryEntries<NoInfer<Subscriptions>>]
       : never)
   | InsideStep<
       ReadonlyArray<
@@ -418,7 +259,6 @@ export type SceneStep<
           NoInfer<Model>,
           NoInfer<Message>,
           NoInfer<OutMessage>,
-          NoInfer<Subscriptions>,
           NoInfer<Routing>
         >
       >
@@ -508,7 +348,6 @@ type InternalSceneSimulation<
     outMessageRevision: number
     lastInteractionOutcome: InteractionOutcome
     maybeUnacknowledgedIgnored: Option.Option<IgnoredInteraction>
-    subscriptionDeclarations: ReadonlyArray<SubscriptionMessageDeclaration>
     keptPendingCommands: ReadonlyArray<AnyCommand>
     routing:
       | Readonly<{
@@ -821,7 +660,7 @@ const renderView = <Model, Message>(
   )
   let result: Html | Document
   try {
-    result = viewFn(model, htmlBuilderFor<Message, TestMountRequirements>())
+    result = viewFn(model, htmlBuilderFor<Message, AnyMountHandler>())
   } finally {
     clearHtmlRuntime()
   }
@@ -991,57 +830,6 @@ const applyExternalMessages = <Model, Message, OutMessage>(
   assertExternalMessageBoundary(simulation, context)
 
   return Array.reduce(messages, simulation, applyMessageWithoutBoundaryChecks)
-}
-
-const applySubscriptionMessage = <Model, Message, OutMessage>(
-  simulation: SceneSimulation<Model, Message, OutMessage>,
-  step: SubscriptionMessageStep<unknown, unknown>,
-): SceneSimulation<Model, Message, OutMessage> => {
-  const internal = toInternal(simulation)
-  const context = 'when a Subscription emitted a new Message'
-
-  assertExternalMessageBoundary(simulation, context)
-
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  const message = resolveSubscriptionMessage(
-    'Scene.Subscription.emit',
-    internal.subscriptionDeclarations,
-    step.entry,
-    step.message,
-  ) as Message
-  const messageUpdate = internal.updateFn(internal.model, message)
-
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  return {
-    ...internal,
-    model: messageUpdate.model,
-    message,
-    commands: Array.appendAll(internal.commands, messageUpdate.commands ?? []),
-    outMessage: messageUpdate.outMessage,
-  } as SceneSimulation<Model, Message, OutMessage>
-}
-
-const applySubscriptionActivity = <Model, Message, OutMessage>(
-  simulation: SceneSimulation<Model, Message, OutMessage>,
-  step: SubscriptionActivityStep<unknown>,
-): SceneSimulation<Model, Message, OutMessage> => {
-  const internal = toInternal(simulation)
-  const declaration = resolveSubscriptionDeclaration(
-    `Scene.Subscription.expect${step.expected}`,
-    internal.subscriptionDeclarations,
-    step.entry,
-  )
-  const isActive = Option.isSome(
-    maybeActiveDependencies(declaration.entry, internal.model),
-  )
-
-  if (isActive !== (step.expected === 'Active')) {
-    throw new Error(
-      `Scene.Subscription.expect${step.expected} expected the selected Subscription to be ${step.expected.toLowerCase()}.`,
-    )
-  }
-
-  return simulation
 }
 
 const DEFAULT_SCENE_ORIGIN = 'http://localhost'
@@ -1393,7 +1181,7 @@ export const given = <Model>(model: Model): GivenStep<Model> => {
 
 /** Resolves a pending Command with its raw result Message. A Definition matches
  *  its originating identity; an instance also matches its complete args.
- *  A scoped instance selects its composition occurrence. */
+ *  A matcher narrowed with `Command.at` selects that instance's Command. */
 const resolveCommand: {
   <Name extends string, ResultMessage>(
     definition: ResolvableCommandDefinition<Name, ResultMessage>,
@@ -1476,7 +1264,7 @@ const resolveAllExactCommands =
 
 /** Asserts that every matcher selects a pending Command. Definitions select
  *  their originating identity; instances also compare complete args and any
- *  explicitly scoped composition occurrence. */
+ *  the instance path a matcher was narrowed to with `Command.at`. */
 const expectHasCommandsStep =
   (...matchers: ReadonlyArray<CommandMatcher>) =>
   <Model, Message, OutMessage = undefined>(
@@ -1488,7 +1276,7 @@ const expectHasCommandsStep =
 
 /** Asserts that the pending Commands match the given matchers exactly
  *  (order-independent). Definitions select their originating identity;
- *  instances also compare complete args and any scoped occurrence. */
+ *  instances also compare complete args and any instance path from `Command.at`. */
 const expectExactCommandsStep =
   (...matchers: ReadonlyArray<CommandMatcher>) =>
   <Model, Message, OutMessage = undefined>(
@@ -1510,11 +1298,10 @@ const expectNoCommandsStep =
 
 /** Resolves a specific pending Mount with the given result Message. A
  *  Definition selects its originating identity; an instance also compares
- *  complete args and any explicitly scoped composition occurrence. The
- *  first pending mount that matches is resolved. Mirrors `resolve` for
- *  Commands: when the mount lives inside a Block, the boundary's own
- *  `toParentMessage` lift (snapshotted at render time) is applied to
- *  `resultMessage`, so pass the child's raw lifecycle result Message. */
+ *  complete args. The first pending mount that matches is resolved. Mirrors
+ *  `resolve` for Commands: when the mount lives inside a child Block, the
+ *  Message lift captured at render time is applied to `resultMessage`, so
+ *  pass the child's raw result Message. */
 const resolveMount: {
   <Name extends string, ResultMessage>(
     matcher: MountDefinition<Name, ResultMessage> | AnyMount,
@@ -1580,7 +1367,7 @@ const resolveAllMounts =
 
 /** Asserts that every matcher selects a pending Mount. Definitions select
  *  their originating identity; instances also compare complete args and any
- *  explicitly scoped composition occurrence. */
+ *  the instance path a matcher was narrowed to with `Command.at`. */
 const expectHasMountsStep =
   (...matchers: ReadonlyArray<MountMatcher>) =>
   <Model, Message, OutMessage = undefined>(
@@ -1592,7 +1379,7 @@ const expectHasMountsStep =
 
 /** Asserts that the pending Mounts match the given matchers exactly
  *  (order-independent). Definitions select their originating identity;
- *  instances also compare complete args and any scoped occurrence. */
+ *  instances also compare complete args and any instance path from `Command.at`. */
 const expectExactMountsStep =
   (...matchers: ReadonlyArray<MountMatcher>) =>
   <Model, Message, OutMessage = undefined>(
@@ -1659,166 +1446,6 @@ const expectEndedMountsStep =
       mountSlots: updatedSlots,
     } as unknown as SceneSimulation<Model, Message, OutMessage>
     /* eslint-enable @typescript-eslint/consistent-type-assertions */
-  }
-
-const applyExternalMessage = <Model, Message, OutMessage>(
-  simulation: SceneSimulation<Model, Message, OutMessage>,
-  message: unknown,
-  context: string,
-): SceneSimulation<Model, Message, OutMessage> => {
-  return applyExternalMessages(simulation, [message], context)
-}
-
-/**
- * Feeds a declared Message through update as if a registered Subscription
- *  emitted it, then re-renders. A lifted Subscription accepts its raw child
- *  Message and applies the same `toParentMessage` chain as production.
- */
-const emitSubscriptionMessage = <
-  Entry extends Readonly<{
-    messages: ReadonlyArray<Schema.Top>
-  }>,
->(
-  entry: Entry,
-  message: NoInfer<Schema.Schema.Type<Entry['messages'][number]>>,
-): SubscriptionMessageStep<
-  Schema.Schema.Type<Entry['messages'][number]>,
-  Entry
-> => ({
-  _tag: 'SubscriptionMessageStep',
-  entry,
-  message,
-})
-
-const expectSubscriptionActivity =
-  (expected: SubscriptionActivityStep<unknown>['expected']) =>
-  <Entry>(entry: Entry): SubscriptionActivityStep<Entry> => ({
-    _tag: 'SubscriptionActivityStep',
-    entry,
-    expected,
-  })
-
-const MANAGED_RESOURCE_CONTEXT =
-  'when a ManagedResource dispatched a new Message'
-
-/** A ManagedResource entry a scene can drive: the Option-shaped requirements
- *  are what the runtime watches, so the steps can check the current Model
- *  against them before dispatching a lifecycle Message. */
-type SceneManagedResourceEntry<
-  EntryModel,
-  EntryMessage,
-  Value,
-  OnAcquired extends (...args: any) => EntryMessage = (
-    value: Value,
-  ) => EntryMessage,
-> = ManagedResourceEntry<
-  EntryModel,
-  EntryMessage,
-  Option.Option<any>,
-  Value,
-  any,
-  OnAcquired,
-  any
->
-
-/** Declares that a ManagedResource's acquire succeeded, feeding the entry's
- *  `onAcquired` Message through update the way the runtime would. The step
- *  takes exactly the arguments the entry's `onAcquired` declares: a handler
- *  that consumes the acquired value needs one here, and a handler that
- *  ignores it needs none. Requires the current Model to request the
- *  resource: the runtime only acquires while `modelToMaybeRequirements`
- *  returns Some, so drive the Model into that state through real steps
- *  first. */
-const acquireManagedResource =
-  <EntryModel, EntryMessage, Value, Args extends ReadonlyArray<any>>(
-    entry: SceneManagedResourceEntry<
-      EntryModel,
-      EntryMessage,
-      Value,
-      (...args: Args) => EntryMessage
-    >,
-    ...args: NoInfer<Args>
-  ) =>
-  <Message, OutMessage = undefined>(
-    simulation: SceneSimulation<EntryModel, Message, OutMessage>,
-  ): SceneSimulation<EntryModel, Message, OutMessage> => {
-    const internal = toInternal(simulation)
-    const maybeRequirements = entry.modelToMaybeRequirements(internal.model)
-
-    if (Option.isNone(maybeRequirements)) {
-      throw new Error(
-        `I tried to acquire the ManagedResource "${entry.resource.key}" but the current Model does not request it.\n\n` +
-          'modelToMaybeRequirements returned None. The runtime only acquires while the Model requests the resource, so drive that transition through real steps first.',
-      )
-    }
-
-    return applyExternalMessage(
-      simulation,
-      entry.onAcquired(...args),
-      MANAGED_RESOURCE_CONTEXT,
-    )
-  }
-
-/** Declares that a ManagedResource's acquire failed, feeding the entry's
- *  `onAcquireError(error)` Message through update the way the runtime
- *  would. Requires the current Model to request the resource, the same as
- *  `ManagedResource.acquire`: the runtime only attempts acquisition
- *  while `modelToMaybeRequirements` returns Some. */
-const failAcquireManagedResource =
-  <EntryModel, EntryMessage, Value>(
-    entry: SceneManagedResourceEntry<EntryModel, EntryMessage, Value>,
-    error: unknown,
-  ) =>
-  <Message, OutMessage = undefined>(
-    simulation: SceneSimulation<EntryModel, Message, OutMessage>,
-  ): SceneSimulation<EntryModel, Message, OutMessage> => {
-    const internal = toInternal(simulation)
-    const maybeRequirements = entry.modelToMaybeRequirements(internal.model)
-
-    if (Option.isNone(maybeRequirements)) {
-      throw new Error(
-        `I tried to fail acquiring the ManagedResource "${entry.resource.key}" but the current Model does not request it.\n\n` +
-          'modelToMaybeRequirements returned None. The runtime only attempts acquisition while the Model requests the resource, so drive that transition through real steps first.',
-      )
-    }
-
-    return applyExternalMessage(
-      simulation,
-      entry.onAcquireError(error),
-      MANAGED_RESOURCE_CONTEXT,
-    )
-  }
-
-/** Declares that a ManagedResource was released, feeding the entry's
- *  `onReleased()` Message through update. Models the runtime's Some to
- *  None transition, which releases and then dispatches `onReleased()`, so
- *  it requires the current Model to no longer request the resource: drive
- *  the Model out of the requesting state through real steps first. The
- *  runtime's Some to Some re-acquire (structurally changed requirements),
- *  which also dispatches `onReleased()` and then `onAcquired(value)` while
- *  the Model still requests the resource, has no step yet. */
-const releaseManagedResource =
-  <EntryModel, EntryMessage, Value>(
-    entry: SceneManagedResourceEntry<EntryModel, EntryMessage, Value>,
-  ) =>
-  <Message, OutMessage = undefined>(
-    simulation: SceneSimulation<EntryModel, Message, OutMessage>,
-  ): SceneSimulation<EntryModel, Message, OutMessage> => {
-    const internal = toInternal(simulation)
-    const maybeRequirements = entry.modelToMaybeRequirements(internal.model)
-
-    if (Option.isSome(maybeRequirements)) {
-      throw new Error(
-        `I tried to release the ManagedResource "${entry.resource.key}" but the current Model still requests it.\n\n` +
-          'modelToMaybeRequirements returned Some. This step models the Some to None transition, so drive the Model out of the requesting state through real steps first.',
-      )
-    }
-
-    return applyExternalMessage(
-      simulation,
-      entry.onReleased(),
-      MANAGED_RESOURCE_CONTEXT,
-    )
   }
 
 /** Dispatches a CustomEvent a rendered custom element declares, feeding the
@@ -1956,7 +1583,7 @@ const keepPendingCommandStep =
  *  Destructure as `const { Command } = Scene` for concise call sites. */
 export const Command = {
   /** Projects captured args by reference when the pending Command has this
-   * Definition's source identity, across all Binding and keyed occurrences.
+   * Definition's source identity, from any Block instance.
    * An argless match returns `Some(undefined)`; other sources and name-only
    * metadata return `None`. This does not decode args, narrow the pending value,
    * run Effects, or choose among matching occurrences. */
@@ -1964,6 +1591,12 @@ export const Command = {
     definition: Definition,
   ): ((pending: AnyCommand) => Option.Option<CommandArgs<Definition>>) =>
     commandArgs(definition),
+  /** Restricts a Command matcher to the Block instance at `path`, given as
+   *  in `Block.deliver`: an instance id, or `[collection, key]` and deeper
+   *  segments from the root. `[]` selects the root. Use it when sibling
+   *  instances have identical pending Commands:
+   *  `Command.resolve(Command.at('left', SaveCount), message)`. */
+  at: atBlockPath,
   /** Resolves a specific pending Command with the given result Message. */
   resolve: resolveCommand,
   /** Resolves listed Commands with their result Messages, cascading through any
@@ -2006,25 +1639,17 @@ export const Mount = {
   expectEnded: expectEndedMountsStep,
 } as const
 
-/** Steps that model Messages arriving from a Subscription.
- *  Destructure as `const { Subscription } = Scene` for concise call sites. */
-export const Subscription = {
-  /**
-   * Feeds a Message declared by the Scene's registered Subscriptions through
-   *  update, then re-renders. Pass the raw child Message for a lifted
-   *  Subscription; Scene applies its `toParentMessage` chain. The originating
-   *  definition must have one matching registration in the Scene config and
-   *  declare the Message. When reused across placements, select its bound entry.
-   *  Silent Subscriptions accept no Messages. Use this only for Messages whose
-   *  real cause is a Subscription;
-   *  interact with the rendered DOM for DOM Messages.
-   */
-  emit: emitSubscriptionMessage,
-  /** Asserts that the registered Subscription's current Model dependencies are active. */
-  expectActive: expectSubscriptionActivity('Active'),
-  /** Asserts that the registered Subscription is inactive for the current Model. */
-  expectInactive: expectSubscriptionActivity('Inactive'),
-} as const
+/** Delivers a Message from outside the rendered view, then runs update and
+ *  re-renders. Use it for Messages whose real cause is not a user
+ *  interaction: a Block's Stream or Subscription, a child instance's
+ *  Message addressed with `Block.deliver`, or a host event. Pending Commands
+ *  and Mounts must be resolved first. */
+export const deliver = <Message>(
+  message: Message,
+): DeliveredMessageStep<Message> => ({
+  _tag: 'DeliveredMessageStep',
+  message,
+})
 
 /** Explicit Program routing events. No navigation Effect or browser history
  * is executed. Resolving a navigation Command does not deliver this event. */
@@ -2042,26 +1667,6 @@ export const Navigation = {
     url,
   }),
 }
-
-/** Steps that model the lifecycle Messages of a ManagedResource. The test
- *  declares the lifecycle outcome the way `Scene.Command.resolve` declares a
- *  Command result, and each step checks the current Model against the
- *  entry's `modelToMaybeRequirements` gate first, mirroring the runtime's
- *  None to Some and Some to None transitions. The Some to Some re-acquire
- *  transition has no step yet. Destructure as
- *  `const { ManagedResource } = Scene` for concise call sites. */
-export const ManagedResource = {
-  /** Declares a successful acquire, feeding the entry's `onAcquired` Message
-   *  through update. Takes exactly the arguments `onAcquired` declares. The
-   *  current Model must request the resource. */
-  acquire: acquireManagedResource,
-  /** Declares a failed acquire, feeding `onAcquireError(error)` through
-   *  update. The current Model must request the resource. */
-  failAcquire: failAcquireManagedResource,
-  /** Declares a release, feeding `onReleased()` through update. The current
-   *  Model must no longer request the resource. */
-  release: releaseManagedResource,
-} as const
 
 /** Steps that model CustomEvents arriving from a rendered custom element.
  *  Destructure as `const { CustomElement } = Scene` for concise call sites. */
@@ -2254,9 +1859,9 @@ export const tap =
     return simulation
   }
 
-const applySceneStep = <Model, Message, OutMessage, Subscriptions, Routing>(
+const applySceneStep = <Model, Message, OutMessage, Routing>(
   simulation: SceneSimulation<Model, Message, OutMessage>,
-  step: SceneStep<Model, Message, OutMessage, Subscriptions, Routing>,
+  step: SceneStep<Model, Message, OutMessage, Routing>,
 ): SceneSimulation<Model, Message, OutMessage> => {
   if (Predicate.isTagged(step, 'InsideStep')) {
     return applyInsideStep(simulation, step)
@@ -2266,12 +1871,12 @@ const applySceneStep = <Model, Message, OutMessage, Subscriptions, Routing>(
     return applyChangedUrl(simulation, step)
   }
 
-  if (Predicate.isTagged(step, 'SubscriptionMessageStep')) {
-    return applySubscriptionMessage(simulation, step)
-  }
-
-  if (Predicate.isTagged(step, 'SubscriptionActivityStep')) {
-    return applySubscriptionActivity(simulation, step)
+  if (Predicate.isTagged(step, 'DeliveredMessageStep')) {
+    return applyExternalMessages(
+      simulation,
+      [step.message],
+      'when a Message was delivered',
+    )
   }
 
   if (Predicate.isTagged(step, 'OutMessageStep')) {
@@ -2291,11 +1896,9 @@ const applySceneStep = <Model, Message, OutMessage, Subscriptions, Routing>(
   return simulation
 }
 
-const runSteps = <Model, Message, OutMessage, Subscriptions, Routing>(
+const runSteps = <Model, Message, OutMessage, Routing>(
   seed: SceneSimulation<Model, Message, OutMessage>,
-  steps: ReadonlyArray<
-    SceneStep<Model, Message, OutMessage, Subscriptions, Routing>
-  >,
+  steps: ReadonlyArray<SceneStep<Model, Message, OutMessage, Routing>>,
 ): SceneSimulation<Model, Message, OutMessage> =>
   /* eslint-disable @typescript-eslint/consistent-type-assertions */
   Array.reduce(steps, seed, (current, step) => {
@@ -2347,10 +1950,10 @@ const runSteps = <Model, Message, OutMessage, Subscriptions, Routing>(
   })
 /* eslint-enable @typescript-eslint/consistent-type-assertions */
 
-const applyInsideStep = <Model, Message, OutMessage, Subscriptions, Routing>(
+const applyInsideStep = <Model, Message, OutMessage, Routing>(
   simulation: SceneSimulation<Model, Message, OutMessage>,
   step: InsideStep<
-    ReadonlyArray<SceneStep<Model, Message, OutMessage, Subscriptions, Routing>>
+    ReadonlyArray<SceneStep<Model, Message, OutMessage, Routing>>
   >,
 ): SceneSimulation<Model, Message, OutMessage> => {
   const internal = toInternal(simulation)
@@ -2364,13 +1967,10 @@ const applyInsideStep = <Model, Message, OutMessage, Subscriptions, Routing>(
     ...internal,
     scope: Option.some(nextScope),
   } as unknown as SceneSimulation<Model, Message, OutMessage>
-  const afterSteps = runSteps<
-    Model,
-    Message,
-    OutMessage,
-    Subscriptions,
-    Routing
-  >(scopedEntry, step.steps)
+  const afterSteps = runSteps<Model, Message, OutMessage, Routing>(
+    scopedEntry,
+    step.steps,
+  )
   const afterInternal = toInternal(afterSteps)
   return {
     ...afterInternal,
@@ -2385,7 +1985,7 @@ const applyInsideStep = <Model, Message, OutMessage, Subscriptions, Routing>(
  *  prefer `within(parent, child)` directly. Nested `inside` calls compose scopes
  *  via `within(outer, inner)`. */
 export const inside = <
-  const Steps extends ReadonlyArray<SceneStep<any, any, any, any, any>>,
+  const Steps extends ReadonlyArray<SceneStep<any, any, any, any>>,
 >(
   parent: Locator,
   ...steps: Steps
@@ -3586,44 +3186,14 @@ export const expectAll = (locatorAll: LocatorAll) => ({
 
 // VIEW ADAPTERS
 
-/** Adapts a Block view that declares `ViewInputs` to the `(model, h)`
- *  shape `Scene.scene` takes. `defaults` supplies the full `ViewInputs`
- *  once; the returned factory accepts per-test overrides for everything
- *  except `toView`, so tests vary value inputs while the renderer stays
- *  pinned:
- *
- *  ```ts
- *  const sceneView = Scene.withViewInputs(view, {
- *    value: 5,
- *    toView: testToView,
- *  })
- *
- *  Scene.scene({ update, view: sceneView() }, ...)
- *  Scene.scene({ update, view: sceneView({ isDisabled: true }) }, ...)
- *  ```
- */
-export const withViewInputs =
-  <Model, Message, ViewInputs extends object>(
-    view: (
-      model: Model,
-      viewInputs: ViewInputs,
-      h: TestHtmlBuilder<Message>,
-    ) => Html,
-    defaults: NoInfer<ViewInputs>,
-  ) =>
-  (overrides?: Omit<Partial<NoInfer<ViewInputs>>, 'toView'>) =>
-  (model: Model, h: TestHtmlBuilder<Message>): Html =>
-    view(model, { ...defaults, ...overrides }, h)
-
 // SCENE
 
-/** Configuration for a deterministic Scene. Routing and Subscription entries
- * declare the external causes the Scene may deliver; no Effects are executed. */
+/** Configuration for a deterministic Scene. Routing declares the URL changes
+ * the Scene may deliver; no Effects are executed. */
 export type SceneConfig<
   Model,
   Message,
   OutMessage = undefined,
-  Subscriptions = undefined,
   Routing = undefined,
 > = Readonly<{
   update: (
@@ -3635,31 +3205,22 @@ export type SceneConfig<
     outMessage?: OutMessage
   }>
   view: (model: Model, h: TestHtmlBuilder<Message>) => Html | Document
-  subscriptions?: Subscriptions
   routing?: Routing
 }>
 
 /** Runs update and view against deterministic Scene steps. Register
- * subscriptions for Subscription.emit and routing.onUrlChange for
- * Navigation.changedUrl. Routing accepts the same callback or canonical
- * Message constructor as Program; Navigation delivery remains explicit.
+ * routing.onUrlChange for Navigation.changedUrl. Routing accepts the same
+ * callback or canonical Message constructor as Program; Navigation delivery
+ * remains explicit.
  *
  * Throws if Commands or Mounts remain unresolved, unmounts remain
  * unacknowledged, or an interaction fell through without acknowledgement. */
 export const scene: {
-  <
-    Model,
-    Message,
-    OutMessage = never,
-    const Subscriptions extends
-      | RegisteredSubscriptions<Model, Message>
-      | undefined = undefined,
-  >(
+  <Model, Message, OutMessage = never>(
     config: SceneConfig<
       Model,
       Message,
       OutMessage,
-      Subscriptions,
       SceneRoutingCallback<NoInfer<Message>>
     > &
       Readonly<{ routing: SceneRoutingCallback<NoInfer<Message>> }>,
@@ -3668,23 +3229,15 @@ export const scene: {
         NoInfer<Model>,
         NoInfer<Message>,
         NoInfer<OutMessage>,
-        NoInfer<Subscriptions>,
         SceneRouting<NoInfer<Message>>
       >
     >
   ): void
-  <
-    Model,
-    Message,
-    const Subscriptions extends
-      | RegisteredSubscriptions<Model, Message>
-      | undefined = undefined,
-  >(
+  <Model, Message>(
     config: SceneConfig<
       Model,
       Message,
       never,
-      Subscriptions,
       SceneRoutingCallback<NoInfer<Message>>
     > &
       Readonly<{ routing: SceneRoutingCallback<NoInfer<Message>> }>,
@@ -3693,24 +3246,15 @@ export const scene: {
         NoInfer<Model>,
         NoInfer<Message>,
         undefined,
-        NoInfer<Subscriptions>,
         SceneRouting<NoInfer<Message>>
       >
     >
   ): void
-  <
-    Model,
-    Message,
-    OutMessage = never,
-    const Subscriptions extends
-      | RegisteredSubscriptions<Model, Message>
-      | undefined = undefined,
-  >(
+  <Model, Message, OutMessage = never>(
     config: SceneConfig<
       Model,
       Message,
       OutMessage,
-      Subscriptions,
       SceneRouting<NoInfer<Message>>
     > &
       Readonly<{ routing: SceneRouting<NoInfer<Message>> }>,
@@ -3719,49 +3263,27 @@ export const scene: {
         NoInfer<Model>,
         NoInfer<Message>,
         NoInfer<OutMessage>,
-        NoInfer<Subscriptions>,
         SceneRouting<NoInfer<Message>>
       >
     >
   ): void
-  <
-    Model,
-    Message,
-    const Subscriptions extends
-      | RegisteredSubscriptions<Model, Message>
-      | undefined = undefined,
-  >(
-    config: SceneConfig<
-      Model,
-      Message,
-      never,
-      Subscriptions,
-      SceneRouting<NoInfer<Message>>
-    > &
+  <Model, Message>(
+    config: SceneConfig<Model, Message, never, SceneRouting<NoInfer<Message>>> &
       Readonly<{ routing: SceneRouting<NoInfer<Message>> }>,
     ...steps: ReadonlyArray<
       SceneStep<
         NoInfer<Model>,
         NoInfer<Message>,
         undefined,
-        NoInfer<Subscriptions>,
         SceneRouting<NoInfer<Message>>
       >
     >
   ): void
-  <
-    Model,
-    Message,
-    OutMessage = never,
-    const Subscriptions extends
-      | RegisteredSubscriptions<Model, Message>
-      | undefined = undefined,
-  >(
+  <Model, Message, OutMessage = never>(
     config: SceneConfig<
       Model,
       Message,
       OutMessage,
-      Subscriptions,
       SceneRouting<NoInfer<Message>> | undefined
     >,
     ...steps: ReadonlyArray<
@@ -3769,40 +3291,25 @@ export const scene: {
         NoInfer<Model>,
         NoInfer<Message>,
         NoInfer<OutMessage>,
-        NoInfer<Subscriptions>,
         undefined
       >
     >
   ): void
-  <
-    Model,
-    Message,
-    const Subscriptions extends
-      | RegisteredSubscriptions<Model, Message>
-      | undefined = undefined,
-  >(
+  <Model, Message>(
     config: SceneConfig<
       Model,
       Message,
       never,
-      Subscriptions,
       SceneRouting<NoInfer<Message>> | undefined
     >,
     ...steps: ReadonlyArray<
-      SceneStep<
-        NoInfer<Model>,
-        NoInfer<Message>,
-        undefined,
-        NoInfer<Subscriptions>,
-        undefined
-      >
+      SceneStep<NoInfer<Model>, NoInfer<Message>, undefined, undefined>
     >
   ): void
 } = <
   Model,
   Message,
   OutMessage = undefined,
-  Subscriptions extends AnySubscriptions | undefined = undefined,
   Routing extends SceneRouting<Message> | undefined = undefined,
 >(
   config: Readonly<{
@@ -3811,12 +3318,9 @@ export const scene: {
       message: Message,
     ) => SimulationUpdateReturn<Model, OutMessage>
     view: (model: Model, h: TestHtmlBuilder<Message>) => Html | Document
-    subscriptions?: Subscriptions
     routing?: Routing
   }>,
-  ...steps: ReadonlyArray<
-    SceneStep<Model, Message, OutMessage, Subscriptions, Routing>
-  >
+  ...steps: ReadonlyArray<SceneStep<Model, Message, OutMessage, Routing>>
 ): void => {
   const capturingDispatch = createCapturingDispatch()
 
@@ -3838,9 +3342,6 @@ export const scene: {
     scope: Option.none(),
     lastInteractionOutcome: NotRun,
     maybeUnacknowledgedIgnored: Option.none(),
-    subscriptionDeclarations: subscriptionMessageDeclarations(
-      config.subscriptions ?? {},
-    ),
     keptPendingCommands: [],
     routing: normalizeSceneRouting(config.routing),
   } as unknown as SceneSimulation<Model, Message, OutMessage>

@@ -1,1 +1,0 @@
-export { PeopleBlock } from './informingBlocksChild'

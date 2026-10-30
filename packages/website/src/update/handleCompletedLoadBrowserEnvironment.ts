@@ -1,36 +1,37 @@
 import { Option } from 'effect'
-import { Update } from 'foldkit'
-import { initAndSet } from 'foldkit/bindingInit'
+import type { CalendarDate } from 'foldkit/calendar'
 import { modifyFields } from 'foldkit/struct'
 
-import { PlaygroundBinding, UiPagesBinding } from '../composition'
-import { makeStep } from '../definition'
 import { findActiveSectionKeyForRoute } from '../docsNav'
 import type { Message, ThemePreference } from '../message'
+import type { Model } from '../model'
+import { Playground, type Ui } from '../page'
 import { initialSidebarGroups } from '../sidebarStorage'
 import { ApplyTheme, resolveTheme } from '../theme'
 
-type CompletedLoadBrowserEnvironmentMessage =
+type CompletedLoadBrowserEnvironment =
   typeof Message.CompletedLoadBrowserEnvironment.Type
 
-type CompletedLoadBrowserEnvironment = CompletedLoadBrowserEnvironmentMessage
-
-export const handleCompletedLoadBrowserEnvironmentStep = makeStep.fromMessage(
-  ({
-    maybeThemePreference,
-    maybeSidebarState,
-    systemTheme,
-    isPlaygroundSupported,
-    currentYear,
-    today,
-  }: CompletedLoadBrowserEnvironment) => {
+export const handleCompletedLoadBrowserEnvironment =
+  (uiPagesFor: (today: CalendarDate) => Ui) =>
+  (
+    model: Model,
+    {
+      maybeThemePreference,
+      maybeSidebarState,
+      systemTheme,
+      isPlaygroundSupported,
+      currentYear,
+      today,
+    }: CompletedLoadBrowserEnvironment,
+  ) => {
     const themePreference: ThemePreference = Option.getOrElse(
       maybeThemePreference,
       () => 'System',
     )
     const resolvedTheme = resolveTheme(themePreference, systemTheme)
 
-    const applyBrowserEnvironmentStep = makeStep(model => ({
+    return {
       model: modifyFields(model, {
         currentYear: () => currentYear,
         maybeIsPlaygroundSupported: () => Option.some(isPlaygroundSupported),
@@ -42,18 +43,17 @@ export const handleCompletedLoadBrowserEnvironmentStep = makeStep.fromMessage(
         maybeThemePreference: () => Option.some(themePreference),
         systemTheme: () => systemTheme,
         resolvedTheme: () => resolvedTheme,
+        uiPages: () => uiPagesFor(today),
       }),
       commands: [ApplyTheme({ theme: resolvedTheme })],
-    }))
-
-    const initUiPagesStep = makeStep(model =>
-      initAndSet(UiPagesBinding, model, { args: [today] }),
-    )
-
-    return Update.combineSteps([
-      applyBrowserEnvironmentStep,
-      PlaygroundBinding.informSupport({ isSupported: isPlaygroundSupported }),
-      initUiPagesStep,
-    ])
-  },
-)
+      messages: Option.toArray(
+        Option.map(model.playground, playground =>
+          playground.send(
+            Playground.Message.InformedOfSupport({
+              isSupported: isPlaygroundSupported,
+            }),
+          ),
+        ),
+      ),
+    }
+  }

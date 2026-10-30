@@ -1,19 +1,34 @@
-import { Program } from 'foldkit'
+import { Effect, Schema } from 'effect'
+import { Block, Program } from 'foldkit'
 
-import { ApplicationBlock } from './block'
+class Application extends Block<Application>()('Application', {
+  Model: Schema.Struct({ count: Schema.Number }),
+}) {}
+
+const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    return {
+      model: { count: 0 },
+      view: (model, h) => ({
+        title: 'Counter',
+        body: h.p([], [`${model.count}`]),
+      }),
+    }
+  }),
+)
 
 // ❌ Bad
-// Turning off freezeModel silences the dev warning instead of fixing the
-// mutation it caught.
-const badProgram = Program.make({
-  block: ApplicationBlock,
+// Turning off slow silences the warning instead of fixing the slow phase.
+const badProgram = Program.make(Application, {
+  layer: ApplicationLive,
   container: document.getElementById('root'),
-  freezeModel: false,
+  slow: false,
 })
 
 // ✅ Good
-// Leave the guardrail on and fix the in-place mutation it flags.
-const goodProgram = Program.make({
-  block: ApplicationBlock,
+// Keep the guardrail and tune its thresholds when a phase is expected to be slow.
+const goodProgram = Program.make(Application, {
+  layer: ApplicationLive,
   container: document.getElementById('root'),
+  slow: { thresholdOverrides: { View: 32 } },
 })

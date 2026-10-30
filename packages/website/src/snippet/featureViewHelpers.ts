@@ -1,5 +1,6 @@
-import { Schema } from 'effect'
+import { Array, Effect, Schema } from 'effect'
 import { Block } from 'foldkit'
+import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Article = Schema.Struct({ id: Schema.String, title: Schema.String })
@@ -11,13 +12,9 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({ ClickedArticle: { id: Schema.String } })
 type Message = typeof Message.Type
 
-const ArticlesComposition = Block.makeDefinition('Articles', {
-  Model,
-  Message,
-}).makeComposition()
-type ArticlesViewBuilder = Block.ViewBuilderFor<typeof ArticlesComposition>
+type ArticlesViewBuilder = HtmlBuilder<Message>
 
-const headerView = (h: ArticlesViewBuilder) => h.h2([], ['ArticlesDefinition'])
+const headerView = (h: ArticlesViewBuilder) => h.h2([], ['Articles'])
 
 const articleCard = (article: Article, h: ArticlesViewBuilder) =>
   h.keyed('li')(
@@ -32,8 +29,24 @@ const articleCard = (article: Article, h: ArticlesViewBuilder) =>
   )
 
 const articleItems = (model: Model, h: ArticlesViewBuilder) =>
-  model.articles.map(article => articleCard(article, h))
+  Array.map(model.articles, article => articleCard(article, h))
 
-export const view = ArticlesComposition.makeView((model, h) =>
-  h.section([], [headerView(h), h.ul([], articleItems(model, h))]),
+export class Articles extends Block<Articles>()('Articles', {
+  Model,
+  Message,
+}) {}
+
+export const ArticlesLive = Articles.make(
+  Effect.fn(function* () {
+    return {
+      model: { articles: [] },
+
+      update: {
+        ClickedArticle: model => ({ model }),
+      },
+
+      view: (model, h) =>
+        h.section([], [headerView(h), h.ul([], articleItems(model, h))]),
+    }
+  }),
 )

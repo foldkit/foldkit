@@ -1,5 +1,6 @@
 export {
-  HoverIntentBlock,
+  HoverIntent,
+  HoverIntentLive,
   type InitConfig,
   type RenderInfo,
   type ViewInputs,

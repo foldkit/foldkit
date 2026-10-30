@@ -1,55 +1,17 @@
-import { Effect, Option, Record, Result, Schema } from 'effect'
+import { Option, Record, Result } from 'effect'
 import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { ApiReferenceComposition } from './composition'
-import { ApiReferenceDefinition, makeFieldsStep, makeStep } from './definition'
-import { ApiDataAsyncData, ParsedApiReference } from './domain'
-import { Message } from './message'
-import { disclosuresForApiData } from './model'
+import { LoadApiData } from './command'
+import { ApiDataAsyncData } from './domain'
+import type { Message } from './message'
+import { type Model, disclosuresForApiData } from './model'
 
-/** Loads the complete reference, including modules omitted from hydration data. */
-export const LoadApiData = ApiReferenceDefinition.makeCommand('LoadApiData', {
-  messages: [Message.SucceededLoadApiData, Message.FailedLoadApiData],
-  handler: function* () {
-    return () =>
-      Effect.gen(function* () {
-        const [parsedApiModule, highlightsModule] = yield* Effect.tryPromise({
-          try: () =>
-            Promise.all([
-              import('virtual:parsed-api'),
-              import('virtual:api-highlights'),
-            ]),
-          catch: error =>
-            error instanceof Error ? error.message : 'Unknown error',
-        })
+type SucceededLoadApiData = typeof Message.SucceededLoadApiData.Type
+type FailedLoadApiData = typeof Message.FailedLoadApiData.Type
+type ToggledSignature = typeof Message.ToggledSignature.Type
 
-        const parsedApi = yield* Schema.decodeUnknownEffect(ParsedApiReference)(
-          parsedApiModule.default,
-        )
-
-        return Message.SucceededLoadApiData({
-          apiData: {
-            parsedApi,
-            highlights: highlightsModule.default,
-          },
-        })
-      }).pipe(
-        Effect.catch(error =>
-          Effect.succeed(
-            Message.FailedLoadApiData({
-              error:
-                typeof error === 'string' ? error : 'Failed to load API data',
-            }),
-          ),
-        ),
-      )
-  },
-})
-
-export const EffectsLayer = LoadApiData.layer
-
-const refreshApiDataStep = makeStep(model =>
+export const refreshApiDataStep = (model: Model) =>
   Option.match(
     AsyncData.isStale(model.apiData)
       ? AsyncData.revalidate(model.apiData)
@@ -61,13 +23,13 @@ const refreshApiDataStep = makeStep(model =>
         commands: [LoadApiData()],
       }),
     },
-  ),
-)
+  )
 
-export const update = ApiReferenceComposition.makeUpdate({
-  InformedOfRouteChange: model => refreshApiDataStep(model),
-
-  SucceededLoadApiData: makeFieldsStep.fromMessage(({ apiData }) => ({
+export const handleSucceededLoadApiData = (
+  model: Model,
+  { apiData }: SucceededLoadApiData,
+) => ({
+  model: modifyFields(model, {
     apiData: () => ApiDataAsyncData.Success({ data: apiData }),
     disclosures: disclosures =>
       Record.union(
@@ -75,13 +37,23 @@ export const update = ApiReferenceComposition.makeUpdate({
         disclosuresForApiData(apiData),
         isOpen => isOpen,
       ),
-  })),
+  }),
+})
 
-  FailedLoadApiData: makeFieldsStep.fromMessage(({ error }) => ({
+export const handleFailedLoadApiData = (
+  model: Model,
+  { error }: FailedLoadApiData,
+) => ({
+  model: modifyFields(model, {
     apiData: apiData => AsyncData.settle(apiData, Result.fail(error)),
-  })),
+  }),
+})
 
-  ToggledSignature: makeFieldsStep.fromMessage(({ id, isOpen }) => ({
+export const handleToggledSignature = (
+  model: Model,
+  { id, isOpen }: ToggledSignature,
+) => ({
+  model: modifyFields(model, {
     disclosures: disclosures => Record.set(disclosures, id, isOpen),
-  })),
+  }),
 })

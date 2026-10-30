@@ -6,10 +6,10 @@ VirtualList renders large lists by mounting only items inside the viewport plus 
 
 VirtualList supports fixed, known-variable, and measured row heights. Logical scroll targets can address an index, stable item key, pixel offset, or the end. End following and stable-key anchoring cover chat, logs, and reverse infinite feeds while keeping DOM and visual row order aligned.
 
-Create a typed completed Block once at module scope with `VirtualList.makeBlock<Item>()`, then connect it in the parent.
+Call `VirtualList.makeBlock<Item>()` once at module scope. It returns a Block class typed for your items, with its Layer attached as `Live`. Create an instance in the parent's constructor, hold it in the parent Model, and provide the class's `Live` to the parent's Layer. Each scrolling and notification helper below returns a Message the parent sends to the instance, as in `messages: [model.activityList.send(VirtualList.requestScrollToIndex(500))]`.
 
 :::Info{label="See it in an app"}
-Check out how VirtualList is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/virtualList.ts).
+Check out how VirtualList is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/page/virtualListPage.ts).
 :::
 
 ## Example
@@ -34,13 +34,13 @@ Pass `itemToRowHeightPx` when the application already knows each row's exact hei
 
 ## Scroll containers and row layouts
 
-VirtualList observes its own scroll container by default. Set `scrollContainer` in the Binding’s init configuration when the list belongs inside an existing scrolling region or uses page scrolling:
+VirtualList observes its own scroll container by default. Set `scrollContainer` when you create the instance if the list belongs inside an existing scrolling region or uses page scrolling:
 
 - `ScrollContainer.Self()` keeps scrolling on the list itself. Constrain its height through `containerClassName` or `containerAttributes`.
 - `ScrollContainer.Ancestor({ selector })` selects the nearest matching ancestor, starting at the list’s parent. The parent owns that element’s height and overflow styles.
 - `ScrollContainer.Window()` uses the page viewport and document scrolling.
 
-For an external scroll container, VirtualList measures the list’s position within that viewport. Content before the list contributes to its position. Scrolling operations target the selected owner, and VirtualList preserves the owner’s layout and overflow styles. The `ObservedContainerScroll` OutMessage reports offsets relative to the list; its `scrollTop` can be negative while the list begins below the viewport’s top edge.
+For an external scroll container, VirtualList measures the list’s position within that viewport. Content before the list contributes to its position. Scroll requests target the selected owner, and VirtualList preserves the owner’s layout and overflow styles. The `ObservedContainerScroll` OutMessage reports offsets relative to the list; its `scrollTop` can be negative while the list begins below the viewport’s top edge.
 
 ### Page scrolling with absolute rows
 
@@ -81,17 +81,17 @@ For chat, logs, and reverse infinite feeds, combine an initial `End` target, `fo
 
 Dynamic mode treats `rowHeightPx` as the default estimate. Rendered rows are measured with `ResizeObserver`. Keep the stable-key and height-estimate functions stable across renders so VirtualList can reuse row offsets as the user scrolls.
 
-Call the Binding’s `informItemsChanged` operation in the same parent update for ordinary item changes. Appends follow the end while the user is within the configured threshold. When the user scrolls away, VirtualList preserves the visible keyed row.
+For ordinary item changes, send `VirtualList.informItemsChanged(keys)` to the instance from the same parent update that changes the items. Appends follow the end while the user is within the configured threshold. When the user scrolls away, VirtualList preserves the visible keyed row.
 
 ### Requesting older history
 
-Set `history` in the VirtualList Binding’s init configuration with a loading buffer (`reservePx`) and a prefetch distance (`prefetchViewports`). VirtualList emits an `ApproachedLoadedStart` OutMessage as an upward scroll nears the first loaded row. The parent owns the request, loading state, items, and fetch Command. Ignore repeated requests while a page is loading.
+Set `history` when you create the instance, with a loading buffer (`reservePx`) and a prefetch distance (`prefetchViewports`). VirtualList emits an `ApproachedLoadedStart` OutMessage as an upward scroll nears the first loaded row. The parent owns the request, loading state, items, and fetch Command. Ignore repeated requests while a page is loading.
 
 Choose the buffer and prefetch distance for the expected request latency and scroll speed. If a gesture reaches the end of the available scroll range before a response arrives, the browser can stop there.
 
 ### Prepending a page
 
-In the update that prepends fetched items to the parent Model, call the Binding’s `informHistoryPrepended` operation with the complete loaded array, the new page, the same `itemToKey` function used by the view, and `HistoryPage.More()`. VirtualList extends the upward scroll range without a position write, so an ongoing gesture can continue through the new rows. The parent controls how many items remain loaded; VirtualList bounds the mounted DOM rows.
+In the update that prepends fetched items to the parent Model, send `VirtualList.informHistoryPrepended(...)` to the instance with the complete loaded array, the new page, the same `itemToKey` function used by the view, and `HistoryPage.More()`. VirtualList extends the upward scroll range without a position write, so an ongoing gesture can continue through the new rows. The parent controls how many items remain loaded; VirtualList bounds the mounted DOM rows.
 
 ### Completing history
 
@@ -109,19 +109,19 @@ Rows report their position and set size to assistive technology. The default `Ac
 
 ### Choose a target
 
-The Binding’s `requestScrollToIndex`, `requestScrollToKey`, `requestScrollToOffset`, and `requestScrollToEnd` operations return logical scroll requests. The next view selects the target window, then the Command aligns the live rendered row or applies the live maximum offset.
+`VirtualList.requestScrollToIndex`, `requestScrollToKey`, `requestScrollToOffset`, and `requestScrollToEnd` build logical scroll request Messages for the parent to send. The next view selects the target window, then the Command aligns the live rendered row or applies the live maximum offset.
 
-An initial index, key, offset, or end target remains pending if the list mounts before its items arrive. Notify VirtualList when the parent loads the items; it applies the target once a row can be rendered. A later scrolling operation supersedes the initial target.
+An initial index, key, offset, or end target remains pending if the list mounts before its items arrive. Notify VirtualList when the parent loads the items; it applies the target once a row can be rendered. A later scroll request supersedes the initial target.
 
-Index and key operations accept `Start`, `Center`, `End`, or `Nearest` alignment. `Nearest` leaves a fully visible row in place and otherwise reveals its closest edge. Missing keys produce no movement. Negative and oversized pixel offsets clamp to the list’s live scroll range. With an external owner, `End` aligns the list’s end rather than the end of the page or ancestor; content after the list remains outside that target.
+Index and key requests accept `Start`, `Center`, `End`, or `Nearest` alignment. `Nearest` leaves a fully visible row in place and otherwise reveals its closest edge. Missing keys produce no movement. Negative and oversized pixel offsets clamp to the list’s live scroll range. With an external owner, `End` aligns the list’s end rather than the end of the page or ancestor; content after the list remains outside that target.
 
-Use the same scrolling operations for every sizing mode. The VirtualList Block’s canonical view resolves each row’s offset from its current height inputs. While dynamic measurements settle, VirtualList retains the logical target so updated estimates do not leave End or row alignment short. Native scrolling or an ordinary item change releases a settled target; `followEnd` remains a separate option.
+Use the same scroll requests for every sizing mode. The VirtualList view resolves each row’s offset from its current height inputs. While dynamic measurements settle, VirtualList retains the logical target so updated estimates do not leave End or row alignment short. Native scrolling or an ordinary item change releases a settled target; `followEnd` remains a separate option.
 
 ## Lifecycle
 
 ### Observe the container
 
-VirtualList renders an `ObserveVirtualList` Mount on its list element. The Mount owns the scroll listener, container `ResizeObserver`, dynamic-row `ResizeObserver`, and descendant observation. Delete `VirtualList.subscriptions.containerEvents` from existing Subscription wiring. VirtualList no longer exports `subscriptions`, so TypeScript will identify any remaining callers.
+VirtualList renders an `ObserveVirtualList` Mount on its list element. The Mount owns the scroll listener, container `ResizeObserver`, dynamic-row `ResizeObserver`, and descendant observation. The parent writes no Subscription wiring for it.
 
 ### Run scroll Commands
 
@@ -129,7 +129,7 @@ The Mount also supplies the live list and its selected scroll owner to scroll Co
 
 ### Handle observations
 
-The Mount reports the scroll position and container dimensions through the Block’s Messages. The Binding routes those Messages to the child update. Handle the `ObservedContainerScroll`, `ApproachedLoadedStart`, and `EndedContainerScroll` OutMessages in the parent’s exhaustive OutMessage policy.
+The Mount reports the scroll position and container dimensions as VirtualList Messages, which go to the VirtualList instance. VirtualList reports what the parent may need through the `ObservedContainerScroll`, `ApproachedLoadedStart`, and `EndedContainerScroll` OutMessages. Handle the ones you need with `...list.on({ ... })`.
 
 ## Styling
 
@@ -139,7 +139,7 @@ With `ScrollContainer.Self()`, the container needs a constrained height. Without
 
 ### Select the container
 
-The configured `id` stays on the Self viewport or, with external scrolling, the list surface. Self absolute layout adds an inner content surface while keeping the `id` and container attributes on the outer viewport. Use that for selectors instead of the removed `data-virtual-list-id` attribute.
+The configured `id` stays on the Self viewport or, with external scrolling, the list surface. Self absolute layout adds an inner content surface while keeping the `id` and container attributes on the outer viewport. Select the container by that `id`.
 
 Keep VirtualList’s surface padding, row sizing and positioning intact. Use classes for decoration; a replacement Style attribute can overwrite the inline geometry styles.
 
@@ -176,7 +176,7 @@ History-enabled lists use `flex-direction: column-reverse` with explicit row ord
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the VirtualList Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep callback fields at the top level, and use `childAttributes` for handler-bearing `containerAttributes`; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+Pass these fields to the instance's `view`, as in `model.activityList.view({ ... })`. Spread the attribute groups the component passes to your callbacks unchanged, and wrap handler-bearing attributes you pass in with `childAttributes`. See [View input](/core/block#callback-dispatch-boundaries).
 
 | Name                         | Type                                                           | Default                  | Description                                                                                                            |
 | ---------------------------- | -------------------------------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
@@ -199,7 +199,7 @@ Pass the child Model as `model` and these fields as `viewInputs` to the VirtualL
 
 ### History loading
 
-The `ApproachedLoadedStart` OutMessage includes `distanceToLoadedStartPx` and `containerHeight`. Handle it in the Binding’s OutMessage policy and return a parent-owned fetch Command when a page is needed. Call the Binding’s `informHistoryPrepended` operation in the update that puts fetched rows in the parent Model. Pass `{ items, prependedItems, itemToKey, page }`, using the same stable key function as the view. Pass `HistoryPage.Complete()` on the last page so the real beginning becomes reachable.
+The `ApproachedLoadedStart` OutMessage includes `distanceToLoadedStartPx` and `containerHeight`. Handle it with the instance's `.on` and return a parent-owned fetch Command when a page is needed. Send `VirtualList.informHistoryPrepended(...)` to the instance from the update that puts fetched rows in the parent Model. Pass `{ items, prependedItems, itemToKey, page }`, using the same stable key function as the view. Pass `HistoryPage.Complete()` on the last page so the real beginning becomes reachable.
 
 ### ScrollTarget {#scroll-target}
 

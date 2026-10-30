@@ -9,11 +9,11 @@ import {
   scene,
   text,
 } from 'foldkit/scene'
-import { describe, test } from 'vitest'
 
-import { Tabs } from '@foldkit/ui'
+import { describe, it } from '@effect/vitest'
+import * as Tabs from '@foldkit/ui/tabs'
 
-import { AppTabsBlock } from './model'
+import { AppTabs, ApplicationLive } from './application'
 import {
   FETCHED_AT,
   FIRST_POST_REQUEST_KEY,
@@ -22,40 +22,39 @@ import {
   fixtureStats,
   loadedPostsModel,
   loadingPostsModel,
-} from './model.fixture'
-import { postQuery, statsQuery } from './query'
-import { update } from './update'
-import { view } from './view'
+} from './application.fixture'
+import { PostQuery } from './postsTab'
+import { StatsQuery } from './statsTab'
 
 const FIRST_REQUEST_GENERATION = 1
 
 const resolveFocusTab = Command.resolve(
   Tabs.test.FocusTab,
-  AppTabsBlock.Message.CompletedFocusTab(),
+  AppTabs.Message.CompletedFocusTab(),
 )
 
 describe('view', () => {
-  test('the posts tab renders its loading state and navigation', () => {
+  it.effect('the posts tab renders its loading state and navigation', () =>
     scene(
-      { update, view },
+      ApplicationLive,
       given(loadingPostsModel),
       expect(text('Loading posts…')).toExist(),
       expect(role('button', { name: 'Refresh' })).toExist(),
       expect(role('tab', { name: 'Posts' })).toExist(),
       expect(role('tab', { name: 'Stats' })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('clicking a post fetches its detail and renders it', () => {
+  it.effect('clicking a post fetches its detail and renders it', () =>
     scene(
-      { update, view },
+      ApplicationLive,
       given(loadedPostsModel),
       click(role('button', { name: /First Post/ })),
       expect(text('Loading post…')).toExist(),
-      Command.expectExact(postQuery.Fetch),
+      Command.expectExact(PostQuery.Fetch),
       Command.resolve(
-        postQuery.Fetch,
-        postQuery.Message.CompletedFetch({
+        PostQuery.Fetch,
+        PostQuery.Message.CompletedFetch({
           args: { postId: 'first-post' },
           generation: FIRST_REQUEST_GENERATION,
           requestKey: FIRST_POST_REQUEST_KEY,
@@ -71,28 +70,28 @@ describe('view', () => {
         expect(text('The whole body of the first fixture post.')).toExist(),
       ),
       expect(role('button', { name: 'Back to posts' })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('opening a cached post skips the fetch', () => {
+  it.effect('opening a cached post skips the fetch', () =>
     scene(
-      { update, view },
+      ApplicationLive,
       given(cachedFirstPostModel),
       expect(text('Cached')).toExist(),
       click(role('button', { name: /First Post/ })),
       Command.expectNone(),
       expect(text('By Grace Hopper')).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('a failed post fetch shows the error with a Retry button', () => {
+  it.effect('a failed post fetch shows the error with a Retry button', () =>
     scene(
-      { update, view },
+      ApplicationLive,
       given(loadedPostsModel),
       click(role('button', { name: /First Post/ })),
       Command.resolve(
-        postQuery.Fetch,
-        postQuery.Message.CompletedFetch({
+        PostQuery.Fetch,
+        PostQuery.Message.CompletedFetch({
           args: { postId: 'first-post' },
           generation: FIRST_REQUEST_GENERATION,
           requestKey: FIRST_POST_REQUEST_KEY,
@@ -101,20 +100,20 @@ describe('view', () => {
       ),
       expect(text('The connection dropped.')).toExist(),
       expect(role('button', { name: 'Retry' })).toExist(),
-    )
-  })
+    ),
+  )
 
-  test('switching to the Stats tab fetches and renders stats', () => {
+  it.effect('switching to the Stats tab fetches and renders stats', () =>
     scene(
-      { update, view },
+      ApplicationLive,
       given(loadedPostsModel),
       click(role('tab', { name: 'Stats' })),
       expect(text('Loading stats…')).toExist(),
       resolveFocusTab,
-      Command.expectExact(statsQuery.Fetch),
+      Command.expectExact(StatsQuery.Fetch),
       Command.resolve(
-        statsQuery.Fetch,
-        statsQuery.Message.CompletedFetch({
+        StatsQuery.Fetch,
+        StatsQuery.Message.CompletedFetch({
           generation: FIRST_REQUEST_GENERATION,
           result: Result.succeed({
             stats: fixtureStats,
@@ -125,6 +124,6 @@ describe('view', () => {
       expect(text('Active users')).toExist(),
       expect(text('97%')).toExist(),
       expect(text('Updated at', { exact: false })).toExist(),
-    )
-  })
+    ),
+  )
 })

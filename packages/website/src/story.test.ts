@@ -1,50 +1,44 @@
-import { HashSet, Option, pipe } from 'effect'
+import { HashSet, Layer, Option, pipe } from 'effect'
 import { Block, Calendar } from 'foldkit'
-import { Command, given, message, model, story } from 'foldkit/story'
-import { toParentMessage } from 'foldkit/test'
+import { Command, message, model, story } from 'foldkit/story'
 import * as Url from 'foldkit/url'
-import { describe, expect, test } from 'vitest'
 
-import { DialogBlock } from '@foldkit/ui'
+import { describe, expect, it } from '@effect/vitest'
+import { Dialog } from '@foldkit/ui'
 import { test as DialogTest } from '@foldkit/ui/dialog'
 
+import { ApplicationLive } from './block'
 import {
   LoadPlayground,
   ScrollSidebarActiveLinkIntoView,
   ScrollToAnchor,
   ScrollToTop,
 } from './command'
-import {
-  ApiReferenceBinding,
-  ExampleDetailBinding,
-  HomeBinding,
-  SnippetCopyBinding,
-  SnippetDisclosureBinding,
-} from './composition'
 import { Deployment } from './deployment'
-import { init } from './init'
+import { type Flags } from './flags'
 import { Message } from './message'
-import { type Model } from './model'
-import { ApiReferenceBlock, ExampleDetailBlock } from './page'
-import * as ApiReference from './page/apiReference/domain'
-import { HomeBlock } from './page/home'
-import {
-  NotePlayerDemoBinding,
-  PlaygroundMenuBinding,
-} from './page/home/composition'
-import { NotePlayerDemoBlock } from './page/home/notePlayerDemo'
-import { SearchBlock } from './search'
-import { FocusSearchInput } from './search/update'
-import { SnippetCopyBlock } from './snippetCopy'
+import { ApiReference, ExampleDetail, Home, Playground } from './page'
+import { LoadApiData } from './page/apiReference/command'
+import * as ApiReferenceDomain from './page/apiReference/domain'
+import { LoadExampleSources } from './page/example/example'
+import { NotePlayerDemo } from './page/home/notePlayerDemo'
+import { AcquireAudioContext } from './page/home/notePlayerDemo/notePlayerDemo'
+import { PlaygroundMenu } from './page/home/playgroundMenu'
+import { Search } from './search'
+import { FocusSearchInput } from './search/command'
+import { ApplicationServerLayer } from './services'
+import { SnippetCopy } from './snippetCopy'
 import {
   CopySnippet,
   WaitBeforeHidingCopiedIndicator,
-} from './snippetCopy/update'
-import { SnippetDisclosureBlock } from './snippetDisclosure'
-import { update } from './update'
-import { ThemeMenuBlock } from './view/themeMenu'
+} from './snippetCopy/command'
+import { SnippetDisclosure } from './snippetDisclosure'
+import { ApplyTheme } from './theme'
 
-type HomeBlockModel = typeof HomeBlock.Model.Type
+const ApplicationTest = ApplicationLive.pipe(
+  Layer.provide(ApplicationServerLayer),
+)
+
 const parseUrl = (value: string): Url.Url =>
   pipe(Url.fromString(value), Option.getOrThrow)
 const homeUrl = parseUrl('https://foldkit.dev/')
@@ -64,218 +58,246 @@ const commandApiUrlWithHash = parseUrl(
 const counterExampleUrlWithHash = parseUrl(
   'https://foldkit.dev/example-apps/counter#application',
 )
-const flags = {
+const flags: Flags = {
   currentYear: 2026,
   today: Calendar.make(2026, 8, 30),
   deployment: Deployment.Canary({ commit: 'test' }),
   maybeApiData: Option.none(),
   maybeExampleSources: Option.none(),
 }
-const initAt = (url: Url.Url): Model => init(flags, url).model
-const expectHomePresent = (model: Model): void => {
-  expect(Option.isSome(model.maybeHome)).toBe(true)
-  expect(
-    Option.isSome(
-      Block.inspectBinding(HomeBinding).managedResources[
-        'notePlayerDemo/audioContext'
-      ].modelToMaybeRequirements(model),
-    ),
-  ).toBe(true)
-}
-const expectHomeAbsent = (model: Model): void => {
-  expect(Option.isNone(model.maybeHome)).toBe(true)
-  expect(
-    Option.isNone(
-      Block.inspectBinding(HomeBinding).managedResources[
-        'notePlayerDemo/audioContext'
-      ].modelToMaybeRequirements(model),
-    ),
-  ).toBe(true)
-}
-const expectDefaultHome = (home: HomeBlockModel): void => {
-  expect(home.activeDemoTab).toBe('AsyncCounter')
-  expect(home.asyncCounterDemo.count).toBe(0)
-  expect(home.notePlayerDemo.noteInput.value).toBe('CDEFGABC')
-  expect(home.notePlayerDemo.playbackState._tag).toBe('Idle')
-}
-const resolvePathChangeCommands = () => [
+const startAt = (url: Url.Url) => ({ flags, url })
+
+const resolvePathChangeCommands = [
   Command.resolve(ScrollToTop, Message.CompletedScrollToTop()),
   Command.resolve(
     ScrollSidebarActiveLinkIntoView,
     Message.CompletedScrollSidebarActiveLinkIntoView(),
   ),
 ]
-describe('application', () => {
-  test('cold startup collects root Commands before initialized child Commands', () => {
-    const initialization = init(
-      { ...flags, deployment: Deployment.Production() },
-      counterExampleUrl,
-    )
-    expect(initialization.commands?.map(command => command.name)).toEqual([
-      'Application/LoadBrowserEnvironment',
-      'Application/InjectAnalytics',
-      'Application/InjectSpeedInsights',
-      'Application/ScrollSidebarActiveLinkIntoView',
-      'apiReference/LoadApiData',
-      'exampleDetail/LoadExampleSources',
-    ])
-  })
-  test('startup includes the initial anchor in its root Commands', () => {
-    const initialization = init(flags, counterExampleUrlWithHash)
 
-    expect(initialization.commands?.map(command => command.name)).toEqual([
-      'Application/LoadBrowserEnvironment',
-      ScrollSidebarActiveLinkIntoView.name,
-      ScrollToAnchor.name,
-      'apiReference/LoadApiData',
-      'exampleDetail/LoadExampleSources',
-    ])
-    expect(initialization.commands).toContainEqual(
-      expect.objectContaining({
-        name: ScrollToAnchor.name,
-        args: { hash: 'application' },
+const resolveAcquireAudioContext = Command.resolve(
+  AcquireAudioContext,
+  NotePlayerDemo.Message.SucceededAcquireAudioContext(),
+)
+
+const resolveCloseDialog = Command.resolve(
+  DialogTest.CloseDialog,
+  Dialog.Dialog.Message.CompletedCloseDialog(),
+)
+
+const deliverToNotePlayer = (
+  notePlayerMessage: typeof NotePlayerDemo.Message.Type,
+) =>
+  message(
+    Block.deliver(
+      NotePlayerDemo,
+      ['maybeHome', 'notePlayerDemo'],
+      notePlayerMessage,
+    ),
+  )
+
+const expectDefaultHome = (
+  maybeHome: Option.Option<
+    Readonly<{
+      activeDemoTab: string
+      asyncCounterDemo: Readonly<{ count: number }>
+      notePlayerDemo: Readonly<{
+        noteInput: Readonly<{ value: string }>
+        playbackState: Readonly<{ _tag: string }>
+      }>
+    }>
+  >,
+): void => {
+  const home = Option.getOrThrow(maybeHome)
+  expect(home.activeDemoTab).toBe('AsyncCounter')
+  expect(home.asyncCounterDemo.count).toBe(0)
+  expect(home.notePlayerDemo.noteInput.value).toBe('CDEFGABC')
+  expect(home.notePlayerDemo.playbackState._tag).toBe('Idle')
+}
+
+describe('application', () => {
+  it.effect('navigation opens an existing closed sidebar group', () => {
+    const initialGroups: Array<boolean> = []
+
+    return story(
+      ApplicationTest,
+      startAt(homeUrl),
+      model(model => {
+        expect(model.sidebarGroups.apiReference).toBe(false)
+        initialGroups.push(model.sidebarGroups.examples)
       }),
+      message(Message.ChangedUrl({ url: commandApiUrl })),
+      model(model => {
+        expect(model.sidebarGroups.apiReference).toBe(true)
+        expect([model.sidebarGroups.examples]).toEqual(initialGroups)
+      }),
+      ...resolvePathChangeCommands,
+      Command.expectNone(),
     )
   })
-  test('navigation opens an existing closed sidebar group', () => {
-    const initialModel = initAt(homeUrl)
-    expect(initialModel.sidebarGroups.apiReference).toBe(false)
-    const routeChange = update(
-      initialModel,
-      Message.ChangedUrl({ url: commandApiUrl }),
-    )
-    expect(routeChange.model.sidebarGroups.apiReference).toBe(true)
-    expect(routeChange.model.sidebarGroups.examples).toBe(
-      initialModel.sidebarGroups.examples,
-    )
-  })
-  test('navigation within an open sidebar group preserves its state', () => {
-    const initialModel = initAt(commandApiUrl)
-    expect(initialModel.sidebarGroups.apiReference).toBe(true)
-    const routeChange = update(
-      initialModel,
-      Message.ChangedUrl({ url: updateApiUrl }),
-    )
-    expect(routeChange.model.sidebarGroups).toBe(initialModel.sidebarGroups)
-  })
-  test('prerendered API startup retains its slice through failure and route retry', () => {
-    const seededData = ApiReference.ApiData.make({
-      parsedApi: { modules: [] },
-      highlights: {},
-    })
-    const initialization = init(
-      { ...flags, maybeApiData: Option.some(seededData) },
-      commandApiUrl,
-    )
-    expect(initialization.model.apiReference.apiData).toEqual(
-      ApiReference.ApiDataAsyncData.Refreshing({ data: seededData }),
-    )
-    expect(initialization.commands?.map(command => command.name)).toContain(
-      'apiReference/LoadApiData',
-    )
-    const failedLoad = update(
-      initialization.model,
-      toParentMessage(
-        ApiReferenceBinding,
-        ApiReferenceBlock.Message.FailedLoadApiData({ error: 'Offline' }),
+
+  it.effect('navigation within an open sidebar group preserves its state', () =>
+    story(
+      ApplicationTest,
+      startAt(commandApiUrl),
+      model(model => {
+        expect(model.sidebarGroups.apiReference).toBe(true)
+      }),
+      message(Message.ChangedUrl({ url: updateApiUrl })),
+      model(model => {
+        expect(model.sidebarGroups.apiReference).toBe(true)
+      }),
+      ...resolvePathChangeCommands,
+    ),
+  )
+
+  it.effect(
+    'prerendered API startup retains its slice through failure and route retry',
+    () => {
+      const seededData = ApiReferenceDomain.ApiData.make({
+        parsedApi: { modules: [] },
+        highlights: {},
+      })
+
+      return story(
+        ApplicationTest,
+        {
+          flags: { ...flags, maybeApiData: Option.some(seededData) },
+          url: commandApiUrl,
+        },
+        model(model => {
+          expect(model.apiReference.apiData).toEqual(
+            ApiReferenceDomain.ApiDataAsyncData.Refreshing({
+              data: seededData,
+            }),
+          )
+        }),
+        message(
+          Block.deliver(
+            ApiReference,
+            'apiReference',
+            ApiReference.Message.FailedLoadApiData({ error: 'Offline' }),
+          ),
+        ),
+        model(model => {
+          expect(model.apiReference.apiData).toEqual(
+            ApiReferenceDomain.ApiDataAsyncData.Stale({
+              data: seededData,
+              error: 'Offline',
+            }),
+          )
+        }),
+        message(Message.ChangedUrl({ url: updateApiUrl })),
+        model(model => {
+          expect(model.apiReference.apiData).toEqual(
+            ApiReferenceDomain.ApiDataAsyncData.Refreshing({
+              data: seededData,
+            }),
+          )
+        }),
+        Command.expectHas(LoadApiData),
+        Command.resolve(
+          LoadApiData,
+          ApiReference.Message.FailedLoadApiData({ error: 'Offline' }),
+        ),
+        ...resolvePathChangeCommands,
+      )
+    },
+  )
+
+  it.effect('remaining on a Playground slug preserves its Model', () =>
+    story(
+      ApplicationTest,
+      startAt(playgroundCounterUrl),
+      message(
+        Block.deliver(
+          Playground,
+          ['playground', 'counter'],
+          Playground.Message.EditedPlaygroundFile({
+            path: 'src/application.ts',
+            content: 'edited',
+          }),
+        ),
       ),
-    )
-    const routeChange = update(
-      failedLoad.model,
-      Message.ChangedUrl({ url: updateApiUrl }),
-    )
-    expect(failedLoad.model.apiReference.apiData).toEqual(
-      ApiReference.ApiDataAsyncData.Stale({
-        data: seededData,
-        error: 'Offline',
+      message(
+        Message.ChangedUrl({
+          url: parseUrl(
+            'https://foldkit.dev/playground/counter#src/application.ts',
+          ),
+        }),
+      ),
+      model(model => {
+        expect(
+          Option.getOrThrow(model.playground).files['src/application.ts'],
+        ).toBe('edited')
       }),
-    )
-    expect(routeChange.model.apiReference.apiData).toEqual(
-      ApiReference.ApiDataAsyncData.Refreshing({ data: seededData }),
-    )
-    expect(routeChange.commands?.map(command => command.name)).toContain(
-      'apiReference/LoadApiData',
-    )
-  })
-  test('remaining on a Playground slug preserves its Model', () => {
-    const initialModel = initAt(playgroundCounterUrl)
-    const initialPlayground = Option.getOrThrow(initialModel.playground)
-    const urlWithHash = parseUrl(
-      'https://foldkit.dev/playground/counter#src/application.ts',
-    )
-    const routeChange = update(
-      initialModel,
-      Message.ChangedUrl({
-        url: urlWithHash,
+      Command.expectExact(ScrollToAnchor),
+      Command.resolve(ScrollToAnchor, Message.CompletedScrollToAnchor()),
+    ),
+  )
+
+  it.effect('changing Playground slugs initializes a fresh Model', () =>
+    story(
+      ApplicationTest,
+      startAt(playgroundCounterUrl),
+      message(Message.ChangedUrl({ url: playgroundCountersUrl })),
+      model(model => {
+        expect(Option.getOrThrow(model.playground).slug).toBe('counters')
       }),
-    )
-    expect(Option.getOrThrow(routeChange.model.playground)).toBe(
-      initialPlayground,
-    )
-    expect(routeChange.commands?.map(command => command.name)).toEqual([
-      'Application/ScrollToAnchor',
-    ])
-  })
-  test('changing Playground slugs initializes a fresh Model', () => {
-    const initialModel = initAt(playgroundCounterUrl)
-    const initialPlayground = Option.getOrThrow(initialModel.playground)
-    const routeChange = update(
-      initialModel,
-      Message.ChangedUrl({ url: playgroundCountersUrl }),
-    )
-    const nextPlayground = Option.getOrThrow(routeChange.model.playground)
-    expect(nextPlayground).not.toBe(initialPlayground)
-    expect(nextPlayground.slug).toBe('counters')
-  })
-  test.each([
+      ...resolvePathChangeCommands,
+    ),
+  )
+
+  it.effect.each([
     { isPlaygroundSupported: true },
     { isPlaygroundSupported: false },
   ])(
     'entering Playground reuses cached browser support ($isPlaygroundSupported)',
-    ({ isPlaygroundSupported }) => {
-      const loadedBrowserEnvironment = update(
-        initAt(newsletterUrl),
-        Message.CompletedLoadBrowserEnvironment({
-          maybeThemePreference: Option.none(),
-          maybeSidebarState: Option.none(),
-          systemTheme: 'Light',
-          isPlaygroundSupported,
-          currentYear: flags.currentYear,
-          today: flags.today,
+    ({ isPlaygroundSupported }) =>
+      story(
+        ApplicationTest,
+        startAt(newsletterUrl),
+        message(
+          Message.CompletedLoadBrowserEnvironment({
+            maybeThemePreference: Option.none(),
+            maybeSidebarState: Option.none(),
+            systemTheme: 'Light',
+            isPlaygroundSupported,
+            currentYear: flags.currentYear,
+            today: flags.today,
+          }),
+        ),
+        Command.resolve(ApplyTheme, Message.CompletedApplyTheme()),
+        message(Message.ChangedUrl({ url: playgroundCounterUrl })),
+        model(model => {
+          expect(Option.getOrThrow(model.playground).maybeIsSupported).toEqual(
+            Option.some(isPlaygroundSupported),
+          )
         }),
-      )
-      const enteredPlayground = update(
-        loadedBrowserEnvironment.model,
-        Message.ChangedUrl({ url: playgroundCounterUrl }),
-      )
-      expect(
-        Option.getOrThrow(enteredPlayground.model.playground).maybeIsSupported,
-      ).toEqual(Option.some(isPlaygroundSupported))
-    },
+        ...resolvePathChangeCommands,
+      ),
   )
-  test('entering and exiting Playground adds and removes its Model', () => {
-    const enteredPlayground = update(
-      initAt(newsletterUrl),
-      Message.ChangedUrl({ url: playgroundCounterUrl }),
-    )
-    expect(Option.getOrThrow(enteredPlayground.model.playground).slug).toBe(
-      'counter',
-    )
-    expect(enteredPlayground.commands?.map(command => command.name)).toEqual([
-      'Application/ScrollToTop',
-      'Application/ScrollSidebarActiveLinkIntoView',
-    ])
-    const exitedPlayground = update(
-      enteredPlayground.model,
-      Message.ChangedUrl({ url: newsletterUrl }),
-    )
-    expect(Option.isNone(exitedPlayground.model.playground)).toBe(true)
-    expect(exitedPlayground.commands?.map(command => command.name)).toEqual([
-      'Application/ScrollToTop',
-      'Application/ScrollSidebarActiveLinkIntoView',
-    ])
-  })
-  test.each([
+
+  it.effect('entering and exiting Playground adds and removes its Model', () =>
+    story(
+      ApplicationTest,
+      startAt(newsletterUrl),
+      message(Message.ChangedUrl({ url: playgroundCounterUrl })),
+      model(model => {
+        expect(Option.getOrThrow(model.playground).slug).toBe('counter')
+      }),
+      Command.expectExact(ScrollToTop, ScrollSidebarActiveLinkIntoView),
+      ...resolvePathChangeCommands,
+      message(Message.ChangedUrl({ url: newsletterUrl })),
+      model(model => {
+        expect(Option.isNone(model.playground)).toBe(true)
+      }),
+      Command.expectExact(ScrollToTop, ScrollSidebarActiveLinkIntoView),
+      ...resolvePathChangeCommands,
+    ),
+  )
+
+  it.effect.each([
     {
       routeName: 'API module',
       initialUrl: commandApiUrl,
@@ -288,146 +310,183 @@ describe('application', () => {
     },
   ])(
     'remaining on the same $routeName slug does not reload route data',
-    ({ initialUrl, urlWithHash }) => {
-      const routeChange = update(
-        initAt(initialUrl),
-        Message.ChangedUrl({ url: urlWithHash }),
-      )
-      expect(routeChange.commands?.map(command => command.name)).toEqual([
-        'Application/ScrollToAnchor',
-      ])
-    },
+    ({ initialUrl, urlWithHash }) =>
+      story(
+        ApplicationTest,
+        startAt(initialUrl),
+        message(Message.ChangedUrl({ url: urlWithHash })),
+        Command.expectExact(ScrollToAnchor),
+        Command.resolve(ScrollToAnchor, Message.CompletedScrollToAnchor()),
+      ),
   )
-  test('route cleanup precedes scrolling to an anchor on a new path', () => {
-    const openedSearch = update(
-      initAt(newsletterUrl),
-      Message.ClickedOpenSearch(),
-    )
-    const routeChange = update(
-      openedSearch.model,
-      Message.ChangedUrl({ url: homeUrlWithHash }),
-    )
-    expect(routeChange.model.search.dialog.isOpen).toBe(false)
-    expect(routeChange.commands?.map(command => command.name)).toEqual([
-      'search/dialog/CloseDialog',
-      'Application/ScrollToAnchor',
-      'Application/ScrollSidebarActiveLinkIntoView',
-    ])
-  })
-  test('changing API module slugs retries missing API data', () => {
-    const failedLoad = update(
-      initAt(commandApiUrl),
-      toParentMessage(
-        ApiReferenceBinding,
-        ApiReferenceBlock.Message.FailedLoadApiData({ error: 'failed' }),
-      ),
-    )
-    const routeChange = update(
-      failedLoad.model,
-      Message.ChangedUrl({ url: updateApiUrl }),
-    )
-    expect(routeChange.model.apiReference.apiData._tag).toBe('Loading')
-    expect(routeChange.commands?.map(command => command.name)).toContain(
-      'apiReference/LoadApiData',
-    )
-  })
-  test('changing example slugs requests the next example sources', () => {
-    const failedLoad = update(
-      initAt(counterExampleUrl),
-      toParentMessage(
-        ExampleDetailBinding,
-        ExampleDetailBlock.Message.FailedLoadExampleSources({
-          error: 'failed',
-        }),
-      ),
-    )
-    const routeChange = update(
-      failedLoad.model,
-      Message.ChangedUrl({ url: countersExampleUrl }),
-    )
-    expect(routeChange.model.exampleDetail.currentSources._tag).toBe('Loading')
-    expect(routeChange.commands?.map(command => command.name)).toContain(
-      'exampleDetail/LoadExampleSources',
-    )
-  })
-  test('newsletter email follows navigation between Home and Newsletter', () => {
+
+  it.effect('route cleanup precedes scrolling to an anchor on a new path', () =>
     story(
-      update,
-      given(initAt(homeUrl)),
+      ApplicationTest,
+      startAt(newsletterUrl),
+      message(Message.ClickedOpenSearch()),
+      Command.resolve(
+        FocusSearchInput,
+        Search.Message.CompletedFocusSearchInput(),
+      ),
+      Command.resolve(
+        DialogTest.ShowDialog,
+        Dialog.Dialog.Message.SucceededShowDialog(),
+      ),
+      message(Message.ChangedUrl({ url: homeUrlWithHash })),
+      model(model => {
+        expect(model.search.dialog.isOpen).toBe(false)
+      }),
+      Command.expectHas(
+        DialogTest.CloseDialog,
+        ScrollToAnchor,
+        ScrollSidebarActiveLinkIntoView,
+      ),
+      resolveCloseDialog,
+      Command.resolve(ScrollToAnchor, Message.CompletedScrollToAnchor()),
+      Command.resolve(
+        ScrollSidebarActiveLinkIntoView,
+        Message.CompletedScrollSidebarActiveLinkIntoView(),
+      ),
+      resolveAcquireAudioContext,
+    ),
+  )
+
+  it.effect('changing API module slugs retries missing API data', () =>
+    story(
+      ApplicationTest,
+      startAt(commandApiUrl),
       message(
-        toParentMessage(
-          HomeBinding,
-          HomeBlock.Message.UpdatedNewsletterEmail({
-            value: 'alice@example.com',
-          }),
+        Block.deliver(
+          ApiReference,
+          'apiReference',
+          ApiReference.Message.FailedLoadApiData({ error: 'failed' }),
         ),
       ),
+      message(Message.ChangedUrl({ url: updateApiUrl })),
       model(model => {
-        expect(model.newsletterEmail).toBe('alice@example.com')
+        expect(model.apiReference.apiData._tag).toBe('Loading')
       }),
-      message(Message.ChangedUrl({ url: newsletterUrl })),
-      ...resolvePathChangeCommands(),
-      model(model => {
-        expect(model.newsletterEmail).toBe('alice@example.com')
-      }),
-      message(Message.UpdatedNewsletterEmail({ value: 'bob@example.com' })),
-      model(model => {
-        expect(model.newsletterEmail).toBe('bob@example.com')
-      }),
-      message(Message.ChangedUrl({ url: homeUrl })),
-      ...resolvePathChangeCommands(),
-      model(model => {
-        expect(model.newsletterEmail).toBe('bob@example.com')
-      }),
-    )
-  })
-  test('entering Home initializes fresh state', () => {
+      Command.expectHas(LoadApiData),
+      Command.resolve(
+        LoadApiData,
+        ApiReference.Message.FailedLoadApiData({ error: 'failed' }),
+      ),
+      ...resolvePathChangeCommands,
+    ),
+  )
+
+  it.effect('changing example slugs requests the next example sources', () =>
     story(
-      update,
-      given(initAt(newsletterUrl)),
-      model(expectHomeAbsent),
-      message(Message.ChangedUrl({ url: homeUrl })),
-      model(model => {
-        expectHomePresent(model)
-        expectDefaultHome(Option.getOrThrow(model.maybeHome))
-      }),
-      ...resolvePathChangeCommands(),
-    )
-  })
-  test('leaving Home removes the Home Block', () => {
-    story(
-      update,
-      given(initAt(homeUrl)),
-      model(expectHomePresent),
-      message(Message.ChangedUrl({ url: newsletterUrl })),
-      model(expectHomeAbsent),
-      ...resolvePathChangeCommands(),
-    )
-  })
-  test('remaining on Home preserves the existing Home Model', () => {
-    const initialModel = initAt(homeUrl)
-    const initialHome = Option.getOrThrow(initialModel.maybeHome)
-    story(
-      update,
-      given(initialModel),
-      message(Message.ChangedUrl({ url: homeUrl })),
-      model(model => {
-        expect(Option.getOrThrow(model.maybeHome)).toBe(initialHome)
-      }),
-    )
-  })
-  test('returning to Home initializes fresh default state', () => {
-    story(
-      update,
-      given(initAt(homeUrl)),
+      ApplicationTest,
+      startAt(counterExampleUrl),
       message(
-        toParentMessage(
-          HomeBinding,
-          toParentMessage(
-            NotePlayerDemoBinding,
-            NotePlayerDemoBlock.Message.ChangedNoteInput({ value: 'ABC' }),
+        Block.deliver(
+          ExampleDetail,
+          'exampleDetail',
+          ExampleDetail.Message.FailedLoadExampleSources({ error: 'failed' }),
+        ),
+      ),
+      message(Message.ChangedUrl({ url: countersExampleUrl })),
+      model(model => {
+        expect(model.exampleDetail.currentSources._tag).toBe('Loading')
+      }),
+      Command.expectHas(LoadExampleSources),
+      Command.resolve(
+        LoadExampleSources,
+        ExampleDetail.Message.FailedLoadExampleSources({ error: 'failed' }),
+      ),
+      ...resolvePathChangeCommands,
+    ),
+  )
+
+  it.effect(
+    'newsletter email follows navigation between Home and Newsletter',
+    () =>
+      story(
+        ApplicationTest,
+        startAt(homeUrl),
+        message(
+          Block.deliver(
+            Home,
+            'maybeHome',
+            Home.Message.UpdatedNewsletterEmail({ value: 'alice@example.com' }),
           ),
         ),
+        model(model => {
+          expect(model.newsletterEmail).toBe('alice@example.com')
+        }),
+        message(Message.ChangedUrl({ url: newsletterUrl })),
+        ...resolvePathChangeCommands,
+        model(model => {
+          expect(model.newsletterEmail).toBe('alice@example.com')
+        }),
+        message(Message.UpdatedNewsletterEmail({ value: 'bob@example.com' })),
+        model(model => {
+          expect(model.newsletterEmail).toBe('bob@example.com')
+        }),
+        message(Message.ChangedUrl({ url: homeUrl })),
+        ...resolvePathChangeCommands,
+        resolveAcquireAudioContext,
+        model(model => {
+          expect(model.newsletterEmail).toBe('bob@example.com')
+        }),
+      ),
+  )
+
+  it.effect('entering Home initializes fresh state', () =>
+    story(
+      ApplicationTest,
+      startAt(newsletterUrl),
+      model(model => {
+        expect(Option.isNone(model.maybeHome)).toBe(true)
+      }),
+      message(Message.ChangedUrl({ url: homeUrl })),
+      model(model => {
+        expectDefaultHome(model.maybeHome)
+      }),
+      ...resolvePathChangeCommands,
+      resolveAcquireAudioContext,
+    ),
+  )
+
+  it.effect('leaving Home removes the Home Block', () =>
+    story(
+      ApplicationTest,
+      startAt(homeUrl),
+      model(model => {
+        expect(Option.isSome(model.maybeHome)).toBe(true)
+      }),
+      message(Message.ChangedUrl({ url: newsletterUrl })),
+      model(model => {
+        expect(Option.isNone(model.maybeHome)).toBe(true)
+      }),
+      ...resolvePathChangeCommands,
+    ),
+  )
+
+  it.effect('remaining on Home preserves the existing Home Model', () =>
+    story(
+      ApplicationTest,
+      startAt(homeUrl),
+      deliverToNotePlayer(
+        NotePlayerDemo.Message.ChangedNoteInput({ value: 'ABC' }),
+      ),
+      message(Message.ChangedUrl({ url: homeUrl })),
+      model(model => {
+        expect(
+          Option.getOrThrow(model.maybeHome).notePlayerDemo.noteInput.value,
+        ).toBe('ABC')
+      }),
+    ),
+  )
+
+  it.effect('returning to Home initializes fresh default state', () =>
+    story(
+      ApplicationTest,
+      startAt(homeUrl),
+      deliverToNotePlayer(
+        NotePlayerDemo.Message.ChangedNoteInput({ value: 'ABC' }),
       ),
       model(model => {
         expect(
@@ -435,80 +494,76 @@ describe('application', () => {
         ).toBe('ABC')
       }),
       message(Message.ChangedUrl({ url: newsletterUrl })),
-      ...resolvePathChangeCommands(),
+      ...resolvePathChangeCommands,
       message(Message.ChangedUrl({ url: homeUrl })),
       model(model => {
-        expectHomePresent(model)
-        expectDefaultHome(Option.getOrThrow(model.maybeHome))
+        expectDefaultHome(model.maybeHome)
       }),
-      ...resolvePathChangeCommands(),
-    )
-  })
-  test('late Home Messages are ignored while Home is absent', () => {
+      ...resolvePathChangeCommands,
+      resolveAcquireAudioContext,
+    ),
+  )
+
+  it.effect('late Home Messages are ignored while Home is absent', () =>
     story(
-      update,
-      given(initAt(newsletterUrl)),
-      message(
-        toParentMessage(
-          HomeBinding,
-          toParentMessage(
-            NotePlayerDemoBinding,
-            NotePlayerDemoBlock.Message.ChangedNoteInput({ value: 'ABC' }),
-          ),
-        ),
+      ApplicationTest,
+      startAt(newsletterUrl),
+      deliverToNotePlayer(
+        NotePlayerDemo.Message.ChangedNoteInput({ value: 'ABC' }),
       ),
       model(model => {
-        expectHomeAbsent(model)
+        expect(Option.isNone(model.maybeHome)).toBe(true)
       }),
       Command.expectNone(),
-    )
-  })
-  test('Home playground selections load a fresh document', () => {
+    ),
+  )
+
+  it.effect('Home playground selections load a fresh document', () =>
     story(
-      update,
-      given(initAt(homeUrl)),
+      ApplicationTest,
+      startAt(homeUrl),
       message(
-        toParentMessage(
-          HomeBinding,
-          toParentMessage(
-            PlaygroundMenuBinding,
-            ThemeMenuBlock.Message.SelectedItem({
-              index: 0,
-              item: 'counter',
-            }),
-          ),
+        Block.deliver(
+          PlaygroundMenu,
+          ['maybeHome', 'playgroundMenu'],
+          PlaygroundMenu.Message.SelectedItem({ index: 0, item: 'counter' }),
         ),
       ),
+      Command.expectHas(LoadPlayground),
       Command.resolve(LoadPlayground, Message.CompletedLoadPlayground()),
-    )
-  })
-  test('the parent opens Search through its child update capability', () => {
+    ),
+  )
+
+  it.effect('the parent opens Search by sending it a Message', () =>
     story(
-      update,
-      given(initAt(homeUrl)),
+      ApplicationTest,
+      startAt(homeUrl),
       message(Message.ClickedOpenSearch()),
       model(model => {
         expect(model.search.dialog.isOpen).toBe(true)
       }),
       Command.resolve(
         DialogTest.ShowDialog,
-        DialogBlock.Message.SucceededShowDialog(),
+        Dialog.Dialog.Message.SucceededShowDialog(),
       ),
       Command.resolve(
         FocusSearchInput,
-        SearchBlock.Message.CompletedFocusSearchInput(),
+        Search.Message.CompletedFocusSearchInput(),
       ),
-    )
-  })
-  test('the parent delegates snippet copying to the child Block', () => {
+    ),
+  )
+
+  it.effect('the snippet copy child owns copied snippet state', () => {
     const snippetId = 'root-story-snippet'
-    story(
-      update,
-      given(initAt(homeUrl)),
+
+    return story(
+      ApplicationTest,
+      startAt(homeUrl),
       message(
-        toParentMessage(
-          SnippetCopyBinding,
-          SnippetCopyBlock.Message.ClickedCopySnippet({
+        Block.deliver(
+          SnippetCopy,
+          'snippetCopy',
+          SnippetCopy.Message.ClickedCopySnippet({
             snippetId,
             text: 'const count = 0',
           }),
@@ -516,7 +571,7 @@ describe('application', () => {
       ),
       Command.resolve(
         CopySnippet,
-        SnippetCopyBlock.Message.SucceededCopySnippet({ snippetId }),
+        SnippetCopy.Message.SucceededCopySnippet({ snippetId }),
       ),
       model(model => {
         expect(HashSet.has(model.snippetCopy.copiedSnippetIds, snippetId)).toBe(
@@ -525,21 +580,24 @@ describe('application', () => {
       }),
       Command.resolve(
         WaitBeforeHidingCopiedIndicator,
-        SnippetCopyBlock.Message.CompletedWaitBeforeHidingCopiedIndicator({
+        SnippetCopy.Message.CompletedWaitBeforeHidingCopiedIndicator({
           snippetId,
         }),
       ),
     )
   })
-  test('the parent owns each snippet disclosure state', () => {
+
+  it.effect('the snippet disclosure child owns each disclosure state', () => {
     const disclosureId = 'root-story-snippet'
-    story(
-      update,
-      given(initAt(homeUrl)),
+
+    return story(
+      ApplicationTest,
+      startAt(homeUrl),
       message(
-        toParentMessage(
-          SnippetDisclosureBinding,
-          SnippetDisclosureBlock.Message.ToggledCodeDisclosure({
+        Block.deliver(
+          SnippetDisclosure,
+          'snippetDisclosure',
+          SnippetDisclosure.Message.ToggledCodeDisclosure({
             disclosureId,
             isOpen: true,
           }),

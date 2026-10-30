@@ -1,22 +1,20 @@
-import { Context, Option, Stream } from 'effect'
+import { Context, Effect, Layer, Option, Schema, Stream } from 'effect'
 import { afterEach, beforeEach, expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
+import { Block, deliver, runtimeBlockOf } from '../blocks/block.js'
+import {
+  constructSync,
+  makeGraph,
+  reconcile,
+  renderRoot,
+} from '../blocks/engine.js'
+import { defineMessageUnion } from '../message/index.js'
 import { MountTracker } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
 import { h as snabbdomH } from '../snabbdom/index.js'
-import {
-  type AnyBlockView,
-  type BlockConfig,
-  block as blockImpl,
-  defineView,
-} from './block.js'
-import {
-  type BoundaryRegistry,
-  beginRender,
-  createBoundaryRegistry,
-} from './boundary.js'
+import { createBoundaryRegistry } from './boundary.js'
 import { type ChildAttribute, childAttributes } from './childAttribute.js'
 import { type Html, __htmlBuilder } from './index.js'
 import {
@@ -25,14 +23,7 @@ import {
   setRuntime,
 } from './runtimeSingleton.js'
 
-const block = <View extends AnyBlockView>(
-  config: BlockConfig<View, unknown>,
-): Html => blockImpl(config, __htmlBuilder())
-
-const setUpRuntime = (
-  registry: BoundaryRegistry,
-  dispatched: Array<unknown>,
-): void => {
+const setUpRuntime = (dispatched: Array<unknown>): void => {
   const dispatchSync: DispatchSync = message => {
     dispatched.push(message)
   }
@@ -50,27 +41,83 @@ const setUpRuntime = (
       ended: () => {},
     }),
   )
-  setRuntime(dispatchSync, context, registry)
+  setRuntime(dispatchSync, context, createBoundaryRegistry())
 }
 
-type ChildClicked = Readonly<{ _tag: 'ChildClicked' }>
-type ParentDirect = Readonly<{ _tag: 'ParentDirect' }>
-type GotChild = Readonly<{ _tag: 'GotChild'; message: ChildClicked }>
+const renderRootBlock = <Self>(
+  root: abstract new (...args: ReadonlyArray<never>) => Self,
+  layer: Layer.Layer<Self>,
+): Effect.Effect<Html> =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const context = yield* Layer.build(layer)
+      const block = runtimeBlockOf(root)
+      const graph = makeGraph({ isSimulation: false })
+      const instance = constructSync(
+        graph,
+        block,
+        [],
+        block.id,
+        undefined,
+        context,
+      )
+      reconcile(graph, instance)
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      return renderRoot(graph, instance) as Html
+    }),
+  )
 
-const GotChild = (args: { message: ChildClicked }): GotChild => ({
-  _tag: 'GotChild',
-  ...args,
+const clickHandlerOf = (html: Html): (() => void) => {
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const onClick = html?.data?.on?.click as (() => void) | undefined
+  if (onClick === undefined) {
+    throw new Error('Expected the element to have a click handler')
+  }
+  return onClick
+}
+
+const ChildMessage = defineMessageUnion({ ClickedChild: {} })
+const ParentMessage = defineMessageUnion({
+  ClickedParent: {},
+  PressedParentKey: {},
 })
 
+// CHECKBOX
+
+type CheckboxViewInput = Readonly<{
+  toView: (attributes: { checkbox: ReadonlyArray<ChildAttribute> }) => Html
+}>
+
+class Checkbox extends Block<Checkbox, void, CheckboxViewInput>()('Checkbox', {
+  Message: ChildMessage,
+}) {}
+
+const CheckboxLive = Checkbox.make(
+  Effect.fn(function* () {
+    return {
+      update: { ClickedChild: model => ({ model }) },
+      view: (_model, h, { toView }) =>
+        toView({
+          checkbox: childAttributes([
+            h.OnClick(Checkbox.Message.ClickedChild()),
+          ]),
+        }),
+    }
+  }),
+)
+
+const childClicked = deliver(
+  Checkbox,
+  'checkbox',
+  Checkbox.Message.ClickedChild(),
+)
+
 describe('childAttributes', () => {
-  let registry: BoundaryRegistry
   let dispatched: Array<unknown>
 
   beforeEach(() => {
-    registry = createBoundaryRegistry()
     dispatched = []
-    setUpRuntime(registry, dispatched)
-    beginRender(registry)
+    setUpRuntime(dispatched)
   })
 
   afterEach(() => {
@@ -78,9 +125,9 @@ describe('childAttributes', () => {
   })
 
   it('captures a Mount dispatch resolver only for groups containing OnMount', () => {
-    const h = __htmlBuilder<ChildClicked>()
+    const h = __htmlBuilder<typeof ChildMessage.Type>()
     const clickAttributes = childAttributes([
-      h.OnClick({ _tag: 'ChildClicked' }),
+      h.OnClick(ChildMessage.ClickedChild()),
     ])
     const mountAttributes = childAttributes([
       h.OnMount({
@@ -101,373 +148,319 @@ describe('childAttributes', () => {
     ).toBe(true)
   })
 
-  it('keeps a later OnMount group bound to the child boundary after an event-only group', async () => {
-    type CheckboxViewInputs = Readonly<{
-      toView: (attributes: {
-        event: ReadonlyArray<ChildAttribute>
-        mount: ReadonlyArray<ChildAttribute>
-      }) => Html
-    }>
+  it.effect(
+    'keeps a later OnMount group bound to the child after an event-only group',
+    () =>
+      Effect.gen(function* () {
+        type ObserverViewInput = Readonly<{
+          toView: (attributes: {
+            event: ReadonlyArray<ChildAttribute>
+            mount: ReadonlyArray<ChildAttribute>
+          }) => Html
+        }>
 
-    const fakeCheckboxView = defineView<
-      object,
-      ChildClicked,
-      CheckboxViewInputs
-    >((_model, viewInputs) => {
-      const h = __htmlBuilder<ChildClicked>()
-      return viewInputs.toView({
-        event: childAttributes([h.OnClick({ _tag: 'ChildClicked' })]),
-        mount: childAttributes([
-          h.OnMount({
-            name: 'ObserveChild',
-            f: (_element, _viewStateChanges) =>
-              Stream.make({ _tag: 'ChildClicked' }),
+        class Observer extends Block<Observer, void, ObserverViewInput>()(
+          'Observer',
+          { Message: ChildMessage },
+        ) {}
+
+        const ObserverLive = Observer.make(
+          Effect.fn(function* () {
+            return {
+              update: { ClickedChild: model => ({ model }) },
+              view: (_model, h, { toView }) =>
+                toView({
+                  event: childAttributes([
+                    h.OnClick(Observer.Message.ClickedChild()),
+                  ]),
+                  mount: childAttributes([
+                    h.OnMount({
+                      name: 'ObserveChild',
+                      f: (_element, _viewStateChanges) =>
+                        Stream.make(Observer.Message.ClickedChild()),
+                    }),
+                  ]),
+                }),
+            }
           }),
-        ]),
-      })
-    })
+        )
 
-    const result = block({
-      slotId: 'fake-checkbox',
-      model: {},
-      view: fakeCheckboxView,
-      viewInputs: {
-        toView: attributes => {
-          const hParent = __htmlBuilder<ParentDirect>()
-          return hParent.div([...attributes.event, ...attributes.mount])
-        },
-      },
-      toParentMessage: message => GotChild({ message }),
-    })
-    if (result === null) {
-      throw new Error('Expected the Block to render an element')
-    }
-    result.elm = document.createElement('div')
-    result.data?.hook?.insert?.(result)
+        class Parent extends Block<Parent>()('Parent', {
+          Model: Schema.Struct({ observer: Observer }),
+        }) {}
 
-    await vi.waitFor(() => {
-      expect(dispatched).toContainEqual({
-        _tag: 'GotChild',
-        message: { _tag: 'ChildClicked' },
-      })
-    })
-  })
+        const ParentLive = Parent.make(
+          Effect.fn(function* () {
+            const observer = yield* new Observer('observer')
+            return {
+              model: { observer },
+              update: {},
+              view: (model, h) =>
+                model.observer.view({
+                  toView: attributes =>
+                    h.div([...attributes.event, ...attributes.mount]),
+                }),
+            }
+          }),
+        ).pipe(Layer.provide(ObserverLive))
 
-  it('routes a published OnClick through the Block boundary even when the consumer builds the element in the parent boundary', () => {
-    // This is the scenario the ChildAttribute design solves. The
-    // Block publishes attribute records that the consumer spreads
-    // into its own `h.div(...)` in the parent's boundary. Without
-    // childAttributes, the handler would close over the parent's
-    // dispatcher at vnode-construction time and bypass the Block's
-    // wrap. With childAttributes, the published attribute carries
-    // the child's dispatcher and the runtime routes the handler
-    // through Checkbox's wrap.
-    type CheckboxViewInputs = Readonly<{
-      toView: (attributes: { checkbox: ReadonlyArray<ChildAttribute> }) => Html
-    }>
-
-    const fakeCheckboxView = defineView<
-      object,
-      ChildClicked,
-      CheckboxViewInputs
-    >((_model, viewInputs) => {
-      const h = __htmlBuilder<ChildClicked>()
-      const checkboxAttributes = [h.OnClick({ _tag: 'ChildClicked' })]
-      return viewInputs.toView({
-        checkbox: childAttributes(checkboxAttributes),
-      })
-    })
-
-    const result = block({
-      slotId: 'fake-checkbox',
-      model: {},
-      view: fakeCheckboxView,
-      viewInputs: {
-        toView: attributes => {
-          const hParent = __htmlBuilder<ParentDirect>()
-          return hParent.div([...attributes.checkbox])
-        },
-      },
-      toParentMessage: message => GotChild({ message }),
-    })
-
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    const onClick = result?.data?.on?.click as () => void
-    onClick()
-
-    expect(dispatched).toEqual([
-      {
-        _tag: 'GotChild',
-        message: { _tag: 'ChildClicked' },
-      },
-    ])
-  })
-
-  it('keeps child-owned attribute producers in the Block boundary when a parent slot invokes them', () => {
-    const producerInvocations: Array<unknown> = []
-    const selection = Option.some({ label: 'checkbox' })
-    type ProducerViewInputs = Readonly<{
-      toView: (
-        attributes: {
-          checkbox: (
-            this: Readonly<{ owner: string }>,
-            label: string,
-          ) => ReadonlyArray<ChildAttribute>
-        },
-        selection: Option.Option<Readonly<{ label: string }>>,
-      ) => Html
-    }>
-
-    const producerView = defineView<object, ChildClicked, ProducerViewInputs>(
-      (_model, viewInputs, h) => {
-        const renderInfo = {
-          checkbox: function (label: string) {
-            producerInvocations.push(this, label)
-            return childAttributes([h.OnClick({ _tag: 'ChildClicked' })])
-          },
+        const html = yield* renderRootBlock(Parent, ParentLive)
+        if (html === null) {
+          throw new Error('Expected the Block to render an element')
         }
-        Object.defineProperty(renderInfo, 'metadata', {
-          value: 'preserved',
-          enumerable: false,
-          writable: false,
-        })
+        html.elm = document.createElement('div')
+        html.data?.hook?.insert?.(html)
 
-        return viewInputs.toView(renderInfo, selection)
-      },
-    )
-
-    const result = block({
-      slotId: 'attribute-producer',
-      model: {},
-      view: producerView,
-      viewInputs: {
-        toView: (attributes, selected) => {
-          producerInvocations.push(
-            selected,
-            Option.getOrThrow(selected).label,
-            Object.getPrototypeOf(attributes),
-            Object.getOwnPropertyDescriptor(attributes, 'metadata'),
-          )
-          const hParent = __htmlBuilder<ParentDirect>()
-          return hParent.button([
-            ...attributes.checkbox.call({ owner: 'parent-slot' }, 'checkbox'),
-          ])
-        },
-      },
-      toParentMessage: message => GotChild({ message }),
-    })
-
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    const onClick = result?.data?.on?.click as () => void
-    onClick()
-
-    expect(producerInvocations).toEqual([
-      selection,
-      'checkbox',
-      Object.prototype,
-      {
-        value: 'preserved',
-        writable: false,
-        enumerable: false,
-        configurable: false,
-      },
-      { owner: 'parent-slot' },
-      'checkbox',
-    ])
-    expect(dispatched).toEqual([
-      {
-        _tag: 'GotChild',
-        message: { _tag: 'ChildClicked' },
-      },
-    ])
-  })
-
-  it("preserves the consumer's own OnClick alongside published ChildAttributes", () => {
-    // The consumer can mix its own attributes with the published
-    // ones. Each routes through the correct dispatcher: the consumer's
-    // OnClick goes unwrapped (parent boundary), the published one
-    // routes through the Block's wrap.
-    type CheckboxViewInputs = Readonly<{
-      toView: (attributes: { checkbox: ReadonlyArray<ChildAttribute> }) => Html
-    }>
-
-    const fakeCheckboxView = defineView<
-      object,
-      ChildClicked,
-      CheckboxViewInputs
-    >((_model, viewInputs) => {
-      const h = __htmlBuilder<ChildClicked>()
-      const checkboxAttributes = [h.OnClick({ _tag: 'ChildClicked' })]
-      return viewInputs.toView({
-        checkbox: childAttributes(checkboxAttributes),
-      })
-    })
-
-    const result = block({
-      slotId: 'fake-checkbox',
-      model: {},
-      view: fakeCheckboxView,
-      viewInputs: {
-        toView: attributes => {
-          const hParent = __htmlBuilder<ParentDirect>()
-          // Consumer wraps Checkbox's checkbox attributes in a button,
-          // adding their own keyup handler. The keyup should dispatch
-          // ParentDirect (no wrap); the click should dispatch
-          // GotChild({ ChildClicked }).
-          return hParent.button([
-            ...attributes.checkbox,
-            hParent.OnKeyPress(() => ({
-              _tag: 'ParentDirect' as const,
-            })),
-          ])
-        },
-      },
-      toParentMessage: message => GotChild({ message }),
-    })
-
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    const onClick = result?.data?.on?.click as () => void
-    onClick()
-
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    const onKeyPress = result?.data?.on?.keypress as (e: KeyboardEvent) => void
-    onKeyPress(
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      {
-        key: 'a',
-        shiftKey: false,
-        ctrlKey: false,
-        altKey: false,
-        metaKey: false,
-      } as KeyboardEvent,
-    )
-
-    expect(dispatched).toEqual([
-      {
-        _tag: 'GotChild',
-        message: { _tag: 'ChildClicked' },
-      },
-      { _tag: 'ParentDirect' },
-    ])
-  })
-
-  it('binds each attribute group to the boundary that called childAttributes', () => {
-    // Two Blocks publish separate attribute groups. Each group's
-    // handlers route through its own Block's wrap, not the other's.
-    // When both publish a handler for the same DOM event (here, click),
-    // both fire in spread order with their own wrap applied.
-    type FirstChild = Readonly<{ _tag: 'FirstChild' }>
-    type SecondChild = Readonly<{ _tag: 'SecondChild' }>
-    type GotFirst = Readonly<{ _tag: 'GotFirst'; message: FirstChild }>
-    type GotSecond = Readonly<{ _tag: 'GotSecond'; message: SecondChild }>
-
-    const GotFirst = (args: { message: FirstChild }): GotFirst => ({
-      _tag: 'GotFirst',
-      ...args,
-    })
-    const GotSecond = (args: { message: SecondChild }): GotSecond => ({
-      _tag: 'GotSecond',
-      ...args,
-    })
-
-    type CaptureInputs = Readonly<{
-      capture: (attributes: ReadonlyArray<ChildAttribute>) => void
-    }>
-
-    let firstAttributes: ReadonlyArray<ChildAttribute> = []
-    let secondAttributes: ReadonlyArray<ChildAttribute> = []
-
-    block({
-      slotId: 'first',
-      model: {},
-      view: defineView<object, FirstChild, CaptureInputs>((_, viewInputs) => {
-        const h = __htmlBuilder<FirstChild>()
-        firstAttributes = childAttributes([h.OnClick({ _tag: 'FirstChild' })])
-        viewInputs.capture(firstAttributes)
-        return snabbdomH('span')
+        yield* Effect.promise(() =>
+          vi.waitFor(() => {
+            expect(dispatched).toContainEqual(
+              deliver(Observer, 'observer', Observer.Message.ClickedChild()),
+            )
+          }),
+        )
       }),
-      viewInputs: {
-        capture: attributes => {
-          firstAttributes = attributes
-        },
-      },
-      toParentMessage: message => GotFirst({ message }),
-    })
+  )
 
-    block({
-      slotId: 'second',
-      model: {},
-      view: defineView<object, SecondChild, CaptureInputs>((_, viewInputs) => {
-        const h = __htmlBuilder<SecondChild>()
-        secondAttributes = childAttributes([h.OnClick({ _tag: 'SecondChild' })])
-        viewInputs.capture(secondAttributes)
-        return snabbdomH('span')
+  it.effect(
+    'routes a published OnClick to the child when the parent builds the element',
+    () =>
+      Effect.gen(function* () {
+        class Parent extends Block<Parent>()('Parent', {
+          Model: Schema.Struct({ checkbox: Checkbox }),
+        }) {}
+
+        const ParentLive = Parent.make(
+          Effect.fn(function* () {
+            const checkbox = yield* new Checkbox('checkbox')
+            return {
+              model: { checkbox },
+              update: {},
+              view: (model, h) =>
+                model.checkbox.view({
+                  toView: attributes => h.div([...attributes.checkbox]),
+                }),
+            }
+          }),
+        ).pipe(Layer.provide(CheckboxLive))
+
+        const html = yield* renderRootBlock(Parent, ParentLive)
+        clickHandlerOf(html)()
+
+        expect(dispatched).toEqual([childClicked])
       }),
-      viewInputs: {
-        capture: attributes => {
-          secondAttributes = attributes
-        },
-      },
-      toParentMessage: message => GotSecond({ message }),
-    })
+  )
 
-    // Build a parent vnode using both attribute sets and verify each
-    // routes correctly.
-    const hParent = __htmlBuilder<ParentDirect>()
-    const merged = hParent.div([...firstAttributes, ...secondAttributes])
+  it.effect(
+    'keeps child-owned attribute producers in the child when a parent view input invokes them',
+    () =>
+      Effect.gen(function* () {
+        const producerInvocations: Array<unknown> = []
+        const selection = Option.some({ label: 'checkbox' })
 
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    const onClick = merged?.data?.on?.click as () => void
-    onClick()
+        type ProducerViewInput = Readonly<{
+          toView: (
+            attributes: {
+              checkbox: (label: string) => ReadonlyArray<ChildAttribute>
+            },
+            selection: Option.Option<Readonly<{ label: string }>>,
+          ) => Html
+        }>
 
-    expect(dispatched).toEqual([
-      { _tag: 'GotFirst', message: { _tag: 'FirstChild' } },
-      { _tag: 'GotSecond', message: { _tag: 'SecondChild' } },
-    ])
-  })
+        class Producer extends Block<Producer, void, ProducerViewInput>()(
+          'Producer',
+          { Message: ChildMessage },
+        ) {}
 
-  it("fires both the published ChildAttribute OnClick and the consumer's own OnClick on the same element", () => {
-    // Regression for the same-event overwrite bug. Previously
-    // `updateDataOn` used `Object.assign`, so a consumer spreading a
-    // published ChildAttribute OnClick alongside their own OnClick
-    // would silently drop one of the two. The chained behavior fires
-    // both in spread order, each through the correct dispatch chain.
-    type FakeViewInputs = Readonly<{
-      toView: (inputs: { attributes: ReadonlyArray<ChildAttribute> }) => Html
-    }>
+        const ProducerLive = Producer.make(
+          Effect.fn(function* () {
+            return {
+              update: { ClickedChild: model => ({ model }) },
+              view: (_model, h, { toView }) => {
+                return toView(
+                  {
+                    checkbox: label => {
+                      producerInvocations.push(label)
+                      return childAttributes([
+                        h.OnClick(Producer.Message.ClickedChild()),
+                      ])
+                    },
+                  },
+                  selection,
+                )
+              },
+            }
+          }),
+        )
 
-    const fakeView = defineView<object, ChildClicked, FakeViewInputs>(
-      (_model, viewInputs) => {
-        const h = __htmlBuilder<ChildClicked>()
-        return viewInputs.toView({
-          attributes: childAttributes([h.OnClick({ _tag: 'ChildClicked' })]),
-        })
-      },
-    )
+        class Parent extends Block<Parent>()('Parent', {
+          Model: Schema.Struct({ producer: Producer }),
+        }) {}
 
-    const result = block({
-      slotId: 'fake',
-      model: {},
-      view: fakeView,
-      viewInputs: {
-        toView: inputs => {
-          const hParent = __htmlBuilder<ParentDirect>()
-          return hParent.button([
-            ...inputs.attributes,
-            hParent.OnClick({ _tag: 'ParentDirect' }),
-          ])
-        },
-      },
-      toParentMessage: message => GotChild({ message }),
-    })
+        const ParentLive = Parent.make(
+          Effect.fn(function* () {
+            const producer = yield* new Producer('producer')
+            return {
+              model: { producer },
+              update: {},
+              view: (model, h) =>
+                model.producer.view({
+                  toView: (attributes, selected) => {
+                    producerInvocations.push(
+                      selected,
+                      Option.getOrThrow(selected).label,
+                    )
+                    return h.button([...attributes.checkbox('checkbox')])
+                  },
+                }),
+            }
+          }),
+        ).pipe(Layer.provide(ProducerLive))
 
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    const onClick = result?.data?.on?.click as () => void
-    onClick()
+        const html = yield* renderRootBlock(Parent, ParentLive)
+        clickHandlerOf(html)()
 
-    expect(dispatched).toEqual([
-      { _tag: 'GotChild', message: { _tag: 'ChildClicked' } },
-      { _tag: 'ParentDirect' },
-    ])
-  })
+        expect(producerInvocations).toEqual([selection, 'checkbox', 'checkbox'])
+        expect(dispatched).toEqual([
+          deliver(Producer, 'producer', Producer.Message.ClickedChild()),
+        ])
+      }),
+  )
+
+  it.effect(
+    "routes the parent's own handlers to the parent alongside published ChildAttributes",
+    () =>
+      Effect.gen(function* () {
+        class Parent extends Block<Parent>()('Parent', {
+          Model: Schema.Struct({ checkbox: Checkbox }),
+          Message: ParentMessage,
+        }) {}
+
+        const ParentLive = Parent.make(
+          Effect.fn(function* () {
+            const checkbox = yield* new Checkbox('checkbox')
+            return {
+              model: { checkbox },
+              update: {
+                ClickedParent: model => ({ model }),
+                PressedParentKey: model => ({ model }),
+              },
+              view: (model, h) =>
+                model.checkbox.view({
+                  toView: attributes =>
+                    h.button([
+                      ...attributes.checkbox,
+                      h.OnKeyPress(() => Parent.Message.PressedParentKey()),
+                      h.OnClick(Parent.Message.ClickedParent()),
+                    ]),
+                }),
+            }
+          }),
+        ).pipe(Layer.provide(CheckboxLive))
+
+        const html = yield* renderRootBlock(Parent, ParentLive)
+        clickHandlerOf(html)()
+
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        const onKeyPress = html?.data?.on?.keypress as (
+          event: KeyboardEvent,
+        ) => void
+        onKeyPress(
+          new KeyboardEvent('keypress', {
+            key: 'a',
+            shiftKey: false,
+            ctrlKey: false,
+            altKey: false,
+            metaKey: false,
+          }),
+        )
+
+        expect(dispatched).toEqual([
+          childClicked,
+          Parent.Message.ClickedParent(),
+          Parent.Message.PressedParentKey(),
+        ])
+      }),
+  )
+
+  it.effect('binds each attribute group to the child that created it', () =>
+    Effect.gen(function* () {
+      type CaptureViewInput = Readonly<{
+        capture: (attributes: ReadonlyArray<ChildAttribute>) => void
+      }>
+
+      class First extends Block<First, void, CaptureViewInput>()('First', {
+        Message: ChildMessage,
+      }) {}
+
+      class Second extends Block<Second, void, CaptureViewInput>()('Second', {
+        Message: ChildMessage,
+      }) {}
+
+      const FirstLive = First.make(
+        Effect.fn(function* () {
+          return {
+            update: { ClickedChild: model => ({ model }) },
+            view: (_model, h, { capture }) => {
+              capture(
+                childAttributes([h.OnClick(First.Message.ClickedChild())]),
+              )
+              return snabbdomH('span')
+            },
+          }
+        }),
+      )
+
+      const SecondLive = Second.make(
+        Effect.fn(function* () {
+          return {
+            update: { ClickedChild: model => ({ model }) },
+            view: (_model, h, { capture }) => {
+              capture(
+                childAttributes([h.OnClick(Second.Message.ClickedChild())]),
+              )
+              return snabbdomH('span')
+            },
+          }
+        }),
+      )
+
+      class Parent extends Block<Parent>()('Parent', {
+        Model: Schema.Struct({ first: First, second: Second }),
+      }) {}
+
+      const ParentLive = Parent.make(
+        Effect.fn(function* () {
+          const first = yield* new First('first')
+          const second = yield* new Second('second')
+          return {
+            model: { first, second },
+            update: {},
+            view: (model, h) => {
+              let firstAttributes: ReadonlyArray<ChildAttribute> = []
+              let secondAttributes: ReadonlyArray<ChildAttribute> = []
+              model.first.view({
+                capture: attributes => {
+                  firstAttributes = attributes
+                },
+              })
+              model.second.view({
+                capture: attributes => {
+                  secondAttributes = attributes
+                },
+              })
+              return h.div([...firstAttributes, ...secondAttributes])
+            },
+          }
+        }),
+      ).pipe(Layer.provide(Layer.mergeAll(FirstLive, SecondLive)))
+
+      const html = yield* renderRootBlock(Parent, ParentLive)
+      clickHandlerOf(html)()
+
+      expect(dispatched).toEqual([
+        deliver(First, 'first', First.Message.ClickedChild()),
+        deliver(Second, 'second', Second.Message.ClickedChild()),
+      ])
+    }),
+  )
 })

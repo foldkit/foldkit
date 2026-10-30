@@ -1,8 +1,9 @@
 export {
-  PopoverBlock,
-  buttonId,
+  Popover,
+  PopoverLive,
   arrowId,
-  type InitConfig,
+  buttonId,
+  type PopoverArgs,
   type RenderInfo,
-  type ViewInputs,
+  type ViewInput,
 } from './block.js'

@@ -1,37 +1,61 @@
-import { Duration, Schema, Stream } from 'effect'
+import { Duration, Effect, Number, Schema, Stream } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
+import { modifyFields } from 'foldkit/struct'
 
 const Message = defineMessageUnion({
-  ClickedIncrement: {},
-  ToggledAutoCounting: {},
+  ClickedToggleAutoCount: {},
   Ticked: {},
 })
-type Message = typeof Message.Type
 
-const Model = Schema.Struct({
-  count: Schema.Number,
-  isAutoCounting: Schema.Boolean,
-})
-type Model = typeof Model.Type
-
-export const ApplicationDefinition = Block.makeDefinition('Application', {
-  Model,
-  Message,
-})
-
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
-
-export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
-  gameClockTicks: entry('GameClockTicks', {
-    messages: [Message.Ticked],
-    when: model => model.isAutoCounting,
-    handler: function* () {
-      return () =>
-        Stream.tick(Duration.seconds(1)).pipe(
-          Stream.drop(1),
-          Stream.map(Message.Ticked),
-        )
-    },
+export class Application extends Block<Application>()('Application', {
+  Model: Schema.Struct({
+    count: Schema.Number,
+    isAutoCounting: Schema.Boolean,
   }),
-}))
+  Message,
+}) {}
+
+const ticks = Stream.tick(Duration.seconds(1)).pipe(
+  Stream.drop(1),
+  Stream.as(Message.Ticked()),
+)
+
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    return {
+      model: { count: 0, isAutoCounting: false },
+
+      update: {
+        ClickedToggleAutoCount: model => ({
+          model: modifyFields(model, { isAutoCounting: isOn => !isOn }),
+        }),
+        Ticked: model => ({
+          model: modifyFields(model, { count: Number.increment }),
+        }),
+      },
+
+      subscriptions: {
+        gameClockTicks: {
+          dependencies: model => model.isAutoCounting,
+          stream: (isAutoCounting: boolean) =>
+            isAutoCounting ? ticks : Stream.empty,
+        },
+      },
+
+      view: (model, h) => ({
+        title: `Counter: ${model.count}`,
+        body: h.main(
+          [],
+          [
+            h.p([], [`Count: ${model.count}`]),
+            h.button(
+              [h.OnClick(Application.Message.ClickedToggleAutoCount())],
+              [model.isAutoCounting ? 'Stop' : 'Start'],
+            ),
+          ],
+        ),
+      }),
+    }
+  }),
+)

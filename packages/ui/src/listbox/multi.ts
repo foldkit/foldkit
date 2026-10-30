@@ -1,38 +1,37 @@
-import { Schema, Tuple } from 'effect'
-import * as Block from 'foldkit/block'
-import type { Html } from 'foldkit/html'
+import { Effect, Layer } from 'effect'
+import { Block } from 'foldkit'
+import type * as BlockTypes from 'foldkit/block'
 
+import * as Animation from '../animation/index.js'
 import {
   type BaseInitConfig,
   BaseModel,
   type BaseViewInputs,
-  EffectsLayer,
-  ListboxNamespace,
-  Message,
-  OutMessage,
-  type OutMessageSchema,
+  type Contract,
+  animationId,
   baseInit,
-  makeUpdateHandlers,
+  commandHandlers,
+  makeContract,
+  makeUpdate,
   makeView,
-  mounts,
+  mountHandlers,
+  selected,
 } from './shared.js'
 
 // MODEL
 
 /** Schema for the multi-select listbox's private interaction state (open/closed status, active item, activation trigger, typeahead search). The selection is owned by the parent and passed in via `ViewInputs.selectedValues`. */
-export const Model = Schema.Struct({
-  ...BaseModel.fields,
-})
+export const Model = BaseModel
 export type Model = typeof Model.Type
 
 // INIT
 
-/** Configuration for creating a multi-select listbox model with `init`. `isAnimated` enables CSS transition coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). */
+/** Constructor args for a multi-select Listbox instance. `id` is the base DOM id. `isAnimated` enables CSS transition coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). */
 export type InitConfig = BaseInitConfig
 
 // VIEW
 
-/** Per-render view inputs passed to the view through a Listbox connection. */
+/** Per-render view input a parent passes to `model.listbox.view(...)`. */
 export type ViewInputs<Item, Value extends string = string> = BaseViewInputs<
   Item,
   Value
@@ -40,141 +39,79 @@ export type ViewInputs<Item, Value extends string = string> = BaseViewInputs<
 
 const internalView = makeView<Model>({ ariaMultiSelectable: true })
 
-const makeBlockParts = <Item, Value extends string>() => {
-  const RefinedOutMessage =
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    OutMessage as unknown as OutMessageSchema<Value>
-  const ListboxDefinition = ListboxNamespace.makeDefinition({
-    Model,
-    Message,
-    OutMessage: RefinedOutMessage,
-  })
-  const itemUpdate = makeUpdateHandlers(
-    ListboxDefinition.makeBinding,
-    ListboxDefinition.makeOutMessageFold,
-    ListboxDefinition.makeStep,
-    ListboxDefinition.makeFieldsStep,
-    ListboxDefinition.makeNoopStep,
-    ListboxDefinition.makeCommandsStep,
-    'KeepOpen',
-    (model, item) => ({
-      model,
-      outMessage:
-        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-        OutMessage.Selected({ value: item }) as OutMessage<Value>,
-    }),
-  )
-  const ListboxComposition = ListboxDefinition.makeComposition({
-    mounts,
-    bindings: [itemUpdate.AnimationBinding],
-  })
-  const update = ListboxComposition.makeUpdate(itemUpdate.handlers)
-  const init = ListboxComposition.makeInit((config: InitConfig) => ({
-    model: baseInit(config),
-  }))
-  const refinedView =
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    internalView<
-      Item,
-      Value,
-      typeof ListboxComposition.Message.Type
-    >() as unknown as (
-      model: Model,
-      viewInputs: ViewInputs<Item, Value>,
-      h: Parameters<
-        ReturnType<
-          typeof internalView<
-            unknown,
-            string,
-            typeof ListboxComposition.Message.Type
-          >
-        >
-      >[2],
-    ) => Html
-  const view = ListboxComposition.makeView.withInputs<ViewInputs<Item, Value>>(
-    (model, viewInputs, h) => refinedView(model, viewInputs, h),
-  )
-  const requestOpen = Message.RequestedOpen
-  const requestClose = Message.RequestedClose
-  const requestSelectItem = (item: Value) =>
-    Tuple.make(Message.RequestedSelectItem({ item }))
-  return {
-    composition: ListboxComposition,
-    implementation: {
-      init,
-      update,
-      view,
-      operations: { requestOpen, requestClose, requestSelectItem },
-      EffectsLayer,
-    },
-  }
-}
+// BLOCK
 
-type BlockParts<Item, Value extends string> = ReturnType<
-  typeof makeBlockParts<Item, Value>
->
-
-/** A completed multi-select Listbox Block refined to one Item and Value pair. */
-export interface Completed<
+/** A multi-select Listbox instance refined to one Item and Value pair.
+ *  Store it in the parent Model and render it with
+ *  `model.listbox.view(viewInputs)`. */
+export interface Listbox<
   Item = string,
   Value extends string = Item extends string ? Item : string,
-> extends Block.CompletedWithViewAndOutMessage<
-  BlockParts<Item, Value>['composition'],
-  BlockParts<Item, Value>['implementation']
+> extends BlockTypes.Instance<
+  Listbox<Item, Value>,
+  Contract<Value>,
+  InitConfig,
+  ViewInputs<Item, Value>
 > {}
 
-const assembleBlock = <Item, Value extends string>(): Completed<
-  Item,
-  Value
-> => {
-  const { composition, implementation } = makeBlockParts<Item, Value>()
+/** A multi-select Listbox class refined to one Item and Value pair, with its
+ *  Layer as `Live`. */
+export type ListboxClass<
+  Item = string,
+  Value extends string = Item extends string ? Item : string,
+> = BlockTypes.BlockClass<
+  Listbox<Item, Value>,
+  'Listbox',
+  InitConfig,
+  ViewInputs<Item, Value>,
+  never,
+  Contract<Value>
+> &
+  Readonly<{ Live: Layer.Layer<Listbox<Item, Value>> }>
 
-  const prepare = () => composition.prepareBlock(implementation)
-  const completedBlock: Block.FromAssemblyWithViewAndOutMessage<
-    typeof Model,
-    typeof prepare
-  > = Block.assemble(prepare)
-
-  return completedBlock
-}
-
-/** Creates a complete multi-select Listbox Block refined to one Item and
- * Value pair. `Value` defaults to `Item` for string items and to `string` for
- * object items. */
+/**
+ * Creates a multi-select Listbox class refined to one Item and Value pair,
+ * with its Layer attached as `Live`. `Value` defaults to `Item` for string
+ * items and to `string` for object items. Selection leaves the Listbox open
+ * and reports `Selected({ value })` for the parent to handle by toggling
+ * membership. Send `RequestedOpen`, `RequestedClose`, and
+ * `RequestedSelectItem({ item })` to drive it from the parent.
+ */
 export const makeBlock = <
   Item = string,
   Value extends string = Item extends string ? Item : string,
->(): Completed<Item, Value> => assembleBlock<Item, Value>()
+>(): ListboxClass<Item, Value> => {
+  const ListboxClass = Block<
+    Listbox<Item, Value>,
+    InitConfig,
+    ViewInputs<Item, Value>
+  >()('Listbox', makeContract<Value>())
+  const arrayBasedView = internalView<unknown, Value>()
 
-/** Complete default multi-select Listbox Block definition. */
-export const block = assembleBlock<string, string>()
+  const ListboxLive = ListboxClass.make(
+    Effect.fn(function* (_instanceId, config) {
+      const animation = yield* new Animation.Animation('animation', {
+        id: animationId(config.id),
+      })
 
-/** Creates the initial multi-select Listbox Model and Commands. Defaults to closed with no active item. */
-export const init = block.init
+      return {
+        model: baseInit(config, animation),
+        update: makeUpdate<Value>(animation, 'KeepOpen', (model, item) => ({
+          model,
+          outMessage: selected<Value>(item),
+        })),
+        commands: commandHandlers,
+        mounts: mountHandlers,
+        view: (model, h, viewInputs) =>
+          arrayBasedView(
+            model,
+            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+            viewInputs as ViewInputs<unknown, Value>,
+            h,
+          ),
+      }
+    }),
+  ).pipe(Layer.provide(Animation.AnimationLive))
 
-// UPDATE
-
-/** Processes a Listbox Message and returns the next Model, optional Commands,
- *  and an optional OutMessage. Selection leaves the multi-select Listbox open
- *  and emits `Selected({ value })` for the parent to fold by toggling
- *  membership. */
-export const update = block.update
-
-type UpdateReturn = ReturnType<typeof update>
-
-/** Programmatically opens the Listbox, updating the Model and returning focus
- *  and modal Commands. When it is already open, returns the Model unchanged
- *  with no Commands. Use this in domain-event handlers. */
-export const open = (model: Model): UpdateReturn =>
-  block.operations.requestOpen(model)
-
-/** Programmatically closes the listbox. If it is open, returns the closed Model
- *  with focus and modal Commands. If it is already closed, returns the Model
- *  unchanged with no Commands. Use this in domain-event handlers to close the
- *  listbox. */
-export const close = (model: Model): UpdateReturn =>
-  block.operations.requestClose(model)
-
-/** Programmatically activates an item in the multi-select listbox. Emits `Selected({ value })`; the parent toggles the value's membership. */
-export const selectItem = (model: Model, item: string): UpdateReturn =>
-  block.operations.requestSelectItem(model, item)
+  return Object.assign(ListboxClass, { Live: ListboxLive })
+}

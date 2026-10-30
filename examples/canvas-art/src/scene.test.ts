@@ -1,8 +1,9 @@
 import { click, expect, given, role, scene, text } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
-import { describe, test } from 'vitest'
 
-import { type Model, update, view } from './application'
+import { describe, it } from '@effect/vitest'
+
+import { ApplicationLive, type Model } from './application'
 
 const emptyModel: Model = {
   balls: [],
@@ -11,29 +12,31 @@ const emptyModel: Model = {
 }
 
 describe('view', () => {
-  test('initial view shows the heading, prompt, and Pause + Clear controls', () => {
-    scene(
-      { update, view },
-      given(emptyModel),
-      expect(role('heading', { name: 'Canvas Art' })).toExist(),
-      expect(text('Click the canvas to spawn a ball.')).toExist(),
-      expect(role('button', { name: 'Pause' })).toExist(),
-      expect(role('button', { name: 'Clear' })).toExist(),
-      expect(text('0 balls')).toExist(),
-    )
-  })
+  it.effect(
+    'initial view shows the heading, prompt, and Pause + Clear controls',
+    () =>
+      scene(
+        ApplicationLive,
+        given(emptyModel),
+        expect(role('heading', { name: 'Canvas Art' })).toExist(),
+        expect(text('Click the canvas to spawn a ball.')).toExist(),
+        expect(role('button', { name: 'Pause' })).toExist(),
+        expect(role('button', { name: 'Clear' })).toExist(),
+        expect(text('0 balls')).toExist(),
+      ),
+  )
 
-  test('Pause toggles to Play when the simulation is stopped', () => {
+  it.effect('Pause toggles to Play when the simulation is stopped', () =>
     scene(
-      { update, view },
+      ApplicationLive,
       given(emptyModel),
       click(role('button', { name: 'Pause' })),
       expect(role('button', { name: 'Play' })).toExist(),
       expect(role('button', { name: 'Pause' })).toBeAbsent(),
-    )
-  })
+    ),
+  )
 
-  test('the ball count reflects spawned balls in the Model', () => {
+  it.effect('the ball count reflects spawned balls in the Model', () => {
     const populatedModel: Model = modifyFields(emptyModel, {
       balls: () => [
         { id: 0, x: 10, y: 20, vx: 1, vy: 1, radius: 8, color: '#ff2d55' },
@@ -43,14 +46,14 @@ describe('view', () => {
       nextId: () => 3,
     })
 
-    scene(
-      { update, view },
+    return scene(
+      ApplicationLive,
       given(populatedModel),
       expect(text('3 balls')).toExist(),
     )
   })
 
-  test('Clear empties the rendered ball count', () => {
+  it.effect('Clear empties the rendered ball count', () => {
     const populatedModel: Model = modifyFields(emptyModel, {
       balls: () => [
         { id: 0, x: 10, y: 20, vx: 1, vy: 1, radius: 8, color: '#ff2d55' },
@@ -58,8 +61,8 @@ describe('view', () => {
       nextId: () => 1,
     })
 
-    scene(
-      { update, view },
+    return scene(
+      ApplicationLive,
       given(populatedModel),
       expect(text('1 balls')).toExist(),
       click(role('button', { name: 'Clear' })),

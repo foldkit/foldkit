@@ -1,0 +1,534 @@
+import clsx from 'clsx'
+import { Array, Effect, Option, Schema } from 'effect'
+import { Block } from 'foldkit'
+import { type Html, type HtmlBuilder, childAttributes } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
+
+import { Button, Listbox, RadioGroup, Switch } from '@foldkit/ui'
+import type { AnchorConfig } from '@foldkit/ui/listbox'
+
+import { type MirrorMode, PaletteIndex } from './domain/grid'
+import {
+  EMPTY_COLOR,
+  PALETTE_THEMES,
+  type PaletteTheme,
+} from './domain/palette'
+import { Tool } from './domain/tool'
+
+export const ThemeListbox = Listbox.makeBlock()
+export type ThemeListbox = Listbox.Listbox
+export const ToolRadioGroup = RadioGroup.makeBlock<Tool>()
+export type ToolRadioGroup = RadioGroup.RadioGroup<Tool>
+export const GridSizeRadioGroup = RadioGroup.makeBlock()
+export type GridSizeRadioGroup = RadioGroup.RadioGroup
+export const PaletteRadioGroup = RadioGroup.makeBlock()
+export type PaletteRadioGroup = RadioGroup.RadioGroup
+
+const TOOL_RADIO_GROUP_ID = 'tool-picker'
+const GRID_SIZE_RADIO_GROUP_ID = 'grid-size-picker'
+const PALETTE_RADIO_GROUP_ID = 'palette-picker'
+const MIRROR_HORIZONTAL_SWITCH_ID = 'mirror-horizontal'
+const MIRROR_VERTICAL_SWITCH_ID = 'mirror-vertical'
+
+const TOOLS: ReadonlyArray<Tool> = ['Brush', 'Fill', 'Eraser']
+
+const TOOL_SHORTCUTS: Record<Tool, string> = {
+  Brush: 'B',
+  Fill: 'F',
+  Eraser: 'E',
+}
+
+const GRID_SIZES: ReadonlyArray<number> = [8, 16, 24, 32]
+const GRID_SIZE_STRINGS: ReadonlyArray<string> = GRID_SIZES.map(size =>
+  size.toString(),
+)
+
+const THEME_INDEX_STRINGS = Array.makeBy(PALETTE_THEMES.length, String)
+
+const THEME_LISTBOX_ANCHOR: AnchorConfig = {
+  placement: 'bottom-start',
+  gap: 4,
+  padding: 8,
+}
+
+const Model = Schema.Struct({
+  themeListbox: ThemeListbox,
+  toolRadioGroup: ToolRadioGroup,
+  gridSizeRadioGroup: GridSizeRadioGroup,
+  paletteRadioGroup: PaletteRadioGroup,
+})
+type Model = typeof Model.Type
+
+const Message = defineMessageUnion({
+  ToggledMirrorHorizontal: {},
+  ToggledMirrorVertical: {},
+  ClickedClear: {},
+})
+type Message = typeof Message.Type
+
+const OutMessage = defineMessageUnion({
+  SelectedTool: { tool: Tool },
+  SelectedGridSize: { size: Schema.Number },
+  SelectedColor: { colorIndex: PaletteIndex },
+  SelectedPaletteTheme: { themeIndex: Schema.Number },
+  ToggledMirrorHorizontal: {},
+  ToggledMirrorVertical: {},
+  ClickedClear: {},
+})
+
+type ViewInput = Readonly<{
+  mirrorMode: MirrorMode
+  tool: Tool
+  gridSize: number
+  selectedColorIndex: PaletteIndex
+  isCanvasEmpty: boolean
+  theme: PaletteTheme
+  paletteThemeIndex: number
+}>
+
+export class Toolbar extends Block<Toolbar, void, ViewInput>()('Toolbar', {
+  Model,
+  Message,
+  OutMessage,
+}) {}
+
+const decodePaletteIndex = Schema.decodeUnknownOption(PaletteIndex)
+
+type ToolbarViewBuilder = HtmlBuilder<Message>
+
+const sectionLabel = (text: string, h: ToolbarViewBuilder): Html =>
+  h.div(
+    [
+      h.Class(
+        'text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2',
+      ),
+    ],
+    [text],
+  )
+
+const trashIcon = (className: string, h: ToolbarViewBuilder): Html =>
+  h.svg(
+    [
+      h.AriaHidden(true),
+      h.Class(className),
+      h.Xmlns('http://www.w3.org/2000/svg'),
+      h.Fill('none'),
+      h.ViewBox('0 0 24 24'),
+      h.StrokeWidth('1.5'),
+      h.Stroke('currentColor'),
+    ],
+    [
+      h.path([
+        h.StrokeLinecap('round'),
+        h.StrokeLinejoin('round'),
+        h.D(
+          'M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0',
+        ),
+      ]),
+    ],
+  )
+
+const chevronDownIcon = (className: string, h: ToolbarViewBuilder): Html =>
+  h.svg(
+    [
+      h.AriaHidden(true),
+      h.Class(className),
+      h.Xmlns('http://www.w3.org/2000/svg'),
+      h.Fill('none'),
+      h.ViewBox('0 0 24 24'),
+      h.StrokeWidth('1.5'),
+      h.Stroke('currentColor'),
+    ],
+    [
+      h.path([
+        h.StrokeLinecap('round'),
+        h.StrokeLinejoin('round'),
+        h.D('M19.5 8.25l-7.5 7.5-7.5-7.5'),
+      ]),
+    ],
+  )
+
+const toolSectionView = (
+  selectedTool: Tool,
+  toolRadioGroup: ToolRadioGroup,
+  h: ToolbarViewBuilder,
+): Html =>
+  h.div(
+    [],
+    [
+      sectionLabel('Tools', h),
+      toolRadioGroup.view({
+        selectedValue: Option.some(selectedTool),
+        options: TOOLS,
+        ariaLabel: 'Drawing tool',
+        toView: ({ group, options }) =>
+          h.div(
+            [...group, h.Class('flex flex-col gap-1.5')],
+            options.map(option => {
+              const tool = option.value
+              return h.button(
+                [
+                  ...option.option,
+                  h.Class(
+                    clsx(
+                      'flex items-center justify-between px-3 py-1.5 rounded text-sm transition motion-reduce:transition-none w-full cursor-pointer',
+                      {
+                        'bg-indigo-600 text-white': option.isSelected,
+                        'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200':
+                          !option.isSelected,
+                      },
+                    ),
+                  ),
+                ],
+                [
+                  h.span([], [tool]),
+                  h.span(
+                    [h.Class('text-xs text-gray-400')],
+                    [TOOL_SHORTCUTS[tool]],
+                  ),
+                ],
+              )
+            }),
+          ),
+      }),
+    ],
+  )
+
+const mirrorSwitchView = (
+  id: string,
+  label: string,
+  buttonText: string,
+  isChecked: boolean,
+  onToggle: Message,
+  h: ToolbarViewBuilder,
+): Html =>
+  Switch.view(
+    {
+      id,
+      isChecked,
+      onToggle: () => onToggle,
+      toView: ({ button, label: labelAttributes }) =>
+        h.div(
+          [h.Class('flex-1')],
+          [
+            h.span([...labelAttributes, h.Class('sr-only')], [label]),
+            h.button(
+              [
+                ...button,
+                h.Class(
+                  clsx(
+                    'w-full px-3 py-1.5 rounded text-sm transition motion-reduce:transition-none cursor-pointer',
+                    {
+                      'bg-indigo-600 text-white': isChecked,
+                      'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200':
+                        !isChecked,
+                    },
+                  ),
+                ),
+              ],
+              [buttonText],
+            ),
+          ],
+        ),
+    },
+    h,
+  )
+
+const mirrorSectionView = (
+  mirrorMode: MirrorMode,
+  h: ToolbarViewBuilder,
+): Html => {
+  const isMirrorHorizontal =
+    mirrorMode === 'Horizontal' || mirrorMode === 'Both'
+  const isMirrorVertical = mirrorMode === 'Vertical' || mirrorMode === 'Both'
+
+  return h.div(
+    [],
+    [
+      sectionLabel('Mirror', h),
+      h.div(
+        [h.Class('flex gap-2')],
+        [
+          mirrorSwitchView(
+            MIRROR_HORIZONTAL_SWITCH_ID,
+            'Mirror horizontal',
+            'H',
+            isMirrorHorizontal,
+            Message.ToggledMirrorHorizontal(),
+            h,
+          ),
+          mirrorSwitchView(
+            MIRROR_VERTICAL_SWITCH_ID,
+            'Mirror vertical',
+            'V',
+            isMirrorVertical,
+            Message.ToggledMirrorVertical(),
+            h,
+          ),
+        ],
+      ),
+    ],
+  )
+}
+
+const sizeSectionView = (
+  gridSize: number,
+  gridSizeRadioGroup: GridSizeRadioGroup,
+  h: ToolbarViewBuilder,
+): Html =>
+  h.div(
+    [],
+    [
+      sectionLabel('Grid Size', h),
+      gridSizeRadioGroup.view({
+        selectedValue: Option.some(gridSize.toString()),
+        options: GRID_SIZE_STRINGS,
+        ariaLabel: 'Grid size',
+        orientation: 'Horizontal',
+        toView: ({ group, options }) =>
+          h.div(
+            [...group, h.Class('flex gap-1')],
+            options.map(option =>
+              h.button(
+                [
+                  ...option.option,
+                  h.Class(
+                    clsx(
+                      'flex-1 px-2 py-1.5 rounded text-sm transition motion-reduce:transition-none cursor-pointer',
+                      {
+                        'bg-indigo-600 text-white': option.isSelected,
+                        'bg-gray-800 text-gray-400 hover:text-gray-200':
+                          !option.isSelected,
+                      },
+                    ),
+                  ),
+                ],
+                [option.value],
+              ),
+            ),
+          ),
+      }),
+    ],
+  )
+
+const themeListboxView = (
+  themeListbox: ThemeListbox,
+  theme: PaletteTheme,
+  paletteThemeIndex: number,
+  h: ToolbarViewBuilder,
+): Html =>
+  themeListbox.view({
+    anchor: THEME_LISTBOX_ANCHOR,
+    items: THEME_INDEX_STRINGS,
+    maybeSelectedValue: Option.some(paletteThemeIndex.toString()),
+    itemToConfig: (indexString, { isSelected }) => {
+      const themeName = PALETTE_THEMES[Number(indexString)]?.name ?? indexString
+      return {
+        className: clsx(
+          'px-3 py-2 text-sm cursor-pointer transition motion-reduce:transition-none',
+          isSelected
+            ? 'bg-indigo-600 text-white'
+            : 'text-gray-300 hover:bg-gray-700',
+        ),
+        content: h.div(
+          [h.Class('flex items-center justify-between')],
+          [
+            h.span([], [themeName]),
+            ...(isSelected ? [h.span([h.Class('text-xs')], ['✓'])] : []),
+          ],
+        ),
+      }
+    },
+    buttonContent: h.div(
+      [h.Class('flex items-center justify-between w-full')],
+      [h.span([], [theme.name]), chevronDownIcon('w-4 h-4 text-gray-400', h)],
+    ),
+    buttonAttributes: childAttributes([
+      h.Class(
+        'w-full px-3 py-1.5 rounded text-sm bg-gray-800 text-gray-200 hover:bg-gray-700 cursor-pointer transition motion-reduce:transition-none',
+      ),
+    ]),
+    itemsAttributes: childAttributes([
+      h.Class(
+        'w-[var(--button-width)] rounded-lg border border-gray-700 bg-gray-800 shadow-lg overflow-hidden z-10 outline-none',
+      ),
+    ]),
+    backdropAttributes: childAttributes([h.Class('fixed inset-0 z-0')]),
+    attributes: childAttributes([h.Class('relative w-full mt-3')]),
+  })
+
+const paletteSectionView = (
+  model: Model,
+  selectedColorIndex: PaletteIndex,
+  theme: PaletteTheme,
+  paletteThemeIndex: number,
+  h: ToolbarViewBuilder,
+): Html => {
+  const paletteIndexStrings = theme.colors.map((_, index) => index.toString())
+  const selectedHexColor = theme.colors[selectedColorIndex] ?? EMPTY_COLOR
+
+  return h.div(
+    [],
+    [
+      sectionLabel('Color', h),
+      h.div(
+        [h.Class('text-xs text-gray-400 font-mono pb-3')],
+        [selectedHexColor],
+      ),
+      model.paletteRadioGroup.view({
+        selectedValue: Option.some(selectedColorIndex.toString()),
+        options: paletteIndexStrings,
+        ariaLabel: 'Color palette',
+        orientation: 'Horizontal',
+        toView: ({ group, options }) =>
+          h.div(
+            [...group, h.Class('grid grid-cols-4 gap-2.5')],
+            options.map(option => {
+              const hexColor = theme.colors[Number(option.value)] ?? EMPTY_COLOR
+              return h.button(
+                [
+                  ...option.option,
+                  h.Class(
+                    clsx(
+                      'aspect-square rounded-sm transition motion-reduce:transition-none cursor-pointer',
+                      {
+                        'ring-2 ring-white ring-offset-2 ring-offset-gray-900':
+                          option.isSelected,
+                        'hover:scale-105 motion-reduce:hover:scale-100':
+                          !option.isSelected,
+                      },
+                    ),
+                  ),
+                  h.Style({ backgroundColor: hexColor }),
+                ],
+                [h.span([...option.label, h.Class('sr-only')], [hexColor])],
+              )
+            }),
+          ),
+      }),
+      themeListboxView(model.themeListbox, theme, paletteThemeIndex, h),
+    ],
+  )
+}
+
+const clearCanvasView = (isCanvasEmpty: boolean, h: ToolbarViewBuilder): Html =>
+  Button.view(
+    {
+      onClick: Message.ClickedClear(),
+      isDisabled: isCanvasEmpty,
+      toView: attributes =>
+        h.button(
+          [
+            ...attributes.button,
+            h.Class(
+              clsx(
+                'w-full flex items-center gap-2 px-3 py-1.5 rounded text-sm bg-gray-800 text-gray-200 transition motion-reduce:transition-none',
+                {
+                  'hover:bg-gray-700 cursor-pointer': !isCanvasEmpty,
+                  'opacity-40 cursor-not-allowed': isCanvasEmpty,
+                },
+              ),
+            ),
+          ],
+          [trashIcon('w-4 h-4', h), h.span([], ['Clear Canvas'])],
+        ),
+    },
+    h,
+  )
+
+export const ToolbarLive = Toolbar.make(
+  Effect.fn(function* () {
+    const themeListbox = yield* new ThemeListbox('themeListbox', {
+      id: 'theme-picker',
+    })
+    const toolRadioGroup = yield* new ToolRadioGroup('toolRadioGroup', {
+      id: TOOL_RADIO_GROUP_ID,
+    })
+    const gridSizeRadioGroup = yield* new GridSizeRadioGroup(
+      'gridSizeRadioGroup',
+      { id: GRID_SIZE_RADIO_GROUP_ID },
+    )
+    const paletteRadioGroup = yield* new PaletteRadioGroup(
+      'paletteRadioGroup',
+      { id: PALETTE_RADIO_GROUP_ID },
+    )
+
+    return {
+      model: {
+        themeListbox,
+        toolRadioGroup,
+        gridSizeRadioGroup,
+        paletteRadioGroup,
+      },
+
+      update: {
+        ToggledMirrorHorizontal: model => ({
+          model,
+          outMessage: OutMessage.ToggledMirrorHorizontal(),
+        }),
+
+        ToggledMirrorVertical: model => ({
+          model,
+          outMessage: OutMessage.ToggledMirrorVertical(),
+        }),
+
+        ClickedClear: model => ({
+          model,
+          outMessage: OutMessage.ClickedClear(),
+        }),
+
+        ...toolRadioGroup.on({
+          Selected: (model, { value }) => ({
+            model,
+            outMessage: OutMessage.SelectedTool({ tool: value }),
+          }),
+        }),
+
+        ...gridSizeRadioGroup.on({
+          Selected: (model, { value }) => ({
+            model,
+            outMessage: OutMessage.SelectedGridSize({ size: Number(value) }),
+          }),
+        }),
+
+        ...paletteRadioGroup.on({
+          Selected: (model, { value }) =>
+            Option.match(decodePaletteIndex(Number(value)), {
+              onNone: () => ({ model }),
+              onSome: colorIndex => ({
+                model,
+                outMessage: OutMessage.SelectedColor({ colorIndex }),
+              }),
+            }),
+        }),
+
+        ...themeListbox.on({
+          Selected: (model, { value }) => ({
+            model,
+            outMessage: OutMessage.SelectedPaletteTheme({
+              themeIndex: Number(value),
+            }),
+          }),
+        }),
+      },
+
+      view: (model, h, input) =>
+        h.div(
+          [h.Class('w-full md:w-44 flex flex-col gap-5 flex-shrink-0')],
+          [
+            toolSectionView(input.tool, model.toolRadioGroup, h),
+            mirrorSectionView(input.mirrorMode, h),
+            sizeSectionView(input.gridSize, model.gridSizeRadioGroup, h),
+            paletteSectionView(
+              model,
+              input.selectedColorIndex,
+              input.theme,
+              input.paletteThemeIndex,
+              h,
+            ),
+            clearCanvasView(input.isCanvasEmpty, h),
+          ],
+        ),
+    }
+  }),
+)

@@ -1,5 +1,6 @@
 export {
-  SliderBlock,
+  Slider,
+  SliderLive,
   forRoot,
   fractionOfValue,
   snapAndClamp,
@@ -9,4 +10,5 @@ export {
   type InitConfig,
   type ViewInputs,
   type SliderAttributes,
+  type SliderClass,
 } from './index.js'

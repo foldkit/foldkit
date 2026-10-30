@@ -28,7 +28,7 @@ describe('slugify', () => {
   test('lowercases and dashes non-alphanumeric runs', () => {
     expect(slugify('HTTP Requests')).toBe('http-requests')
     expect(slugify('Commands with Args')).toBe('commands-with-args')
-    expect(slugify('h.block')).toBe('h-block')
+    expect(slugify('h.keyed')).toBe('h-keyed')
     expect(slugify('Build Your Product, Not Your Architecture')).toBe(
       'build-your-product-not-your-architecture',
     )

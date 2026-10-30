@@ -4,7 +4,7 @@
 
 HoverIntent keeps a related panel open while the pointer or focus moves between it and a trigger. Pointer entry and departure use configurable delays. Focus opens the panel immediately; if focus is the last thing keeping it open, moving focus away closes it without the pointer grace period. Escape also closes immediately and prevents reopening until the pointer and focus have both left.
 
-HoverIntent is headless. Bind `HoverIntentBlock` in the parent. It does not render elements, position the panel, assign ARIA roles, or choose styles. Use it when those choices belong to the component you are building. For example, a Hover Card can pair HoverIntent with [Anchor](/ui/anchor), while a hover menu can keep its items available as the pointer moves from the trigger into the panel.
+HoverIntent is headless. Create a `HoverIntent.HoverIntent` instance in the parent's constructor, hold it in the parent Model, and provide `HoverIntent.HoverIntentLive` to the parent's Layer. It does not render elements, position the panel, assign ARIA roles, or choose styles. Use it when those choices belong to the component you are building. For example, a Hover Card can pair HoverIntent with [Anchor](/ui/anchor), while a hover menu can keep its items available as the pointer moves from the trigger into the panel.
 
 ## Examples
 
@@ -24,7 +24,7 @@ Hover over or focus the “Actions” trigger, then move the pointer into the me
 
 ::Snippet{name="uiHoverIntentMenu" label="Hover menu"}
 
-Spread `trigger` onto the trigger element and `panel` onto the panel element. Each bundle supplies the hover, focus, and Escape handlers for that element. The `h.block` boundary routes the resulting child Messages back to the parent.
+Spread `trigger` onto the trigger element and `panel` onto the panel element. Each bundle supplies the hover, focus, and Escape handlers for that element. Those handlers keep HoverIntent's dispatch, so their Messages go to the HoverIntent instance even though the parent renders the elements.
 
 ## Timing and Dismissal
 
@@ -42,40 +42,22 @@ Escape closes immediately. When panel content can hold focus, set `focusTriggerS
 
 ## API Reference
 
-### init
-
-`(config?: InitConfig) => Model`
-
-Creates a closed HoverIntent Model. `init` takes no `id` because HoverIntent owns no DOM identity.
-
 ### InitConfig {#init-config}
+
+The args a parent passes when it creates an instance with `new`. HoverIntent takes no `id` because it owns no DOM identity; pass `{}` for the default delays.
 
 | Name         | Type             | Default                | Description                                     |
 | ------------ | ---------------- | ---------------------- | ----------------------------------------------- |
 | `openDelay`  | `Duration.Input` | `Duration.millis(200)` | Delay between pointer entry and opening.        |
 | `closeDelay` | `Duration.Input` | `Duration.millis(300)` | Grace period after the final pointer departure. |
 
-### close
+### RequestedClose {#requested-close}
 
-`(model: Model) => Update.ReturnWithOutMessage<Model, Message, OutMessage>`
-
-Closes HoverIntent immediately, for example after the parent handles a hover-menu item click. It invalidates pending waits and emits `Closed` only when visibility changes. If the trigger is still hovered or focused, the panel stays closed until both hover and focus leave it.
-
-### update
-
-`(model: Model, message: Message) => Update.ReturnWithOutMessage<Model, Message, OutMessage>`
-
-Processes pointer, focus, Escape, and wait-completion Messages. `Opened` and `Closed` are emitted only when visibility changes.
-
-### view
-
-`(model: Model, viewInputs: ViewInputs, h: HtmlBuilder<Message>) => Html`
-
-Builds headless trigger and panel event bundles, then calls `ViewInputs.toView`. It does not assign markup, semantics, positioning, or styling.
+Send `HoverIntent.HoverIntent.Message.RequestedClose()` to close HoverIntent immediately, for example after the parent handles a hover-menu item click. It invalidates pending waits and reports `Closed` only when visibility changes. If the trigger is still hovered or focused, the panel stays closed until both hover and focus leave it.
 
 ### ViewInputs {#view-inputs}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the HoverIntent Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the top level, and spread the published `ChildAttribute` groups unchanged; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+Pass these fields to the instance's `view`, as in `model.hoverIntent.view({ ... })`. Spread the attribute groups the component passes to your callbacks unchanged; they keep the component's dispatch. See [View input](/core/block#callback-dispatch-boundaries).
 
 | Name                   | Type                           | Description                                                                    |
 | ---------------------- | ------------------------------ | ------------------------------------------------------------------------------ |
@@ -92,9 +74,11 @@ Pass the child Model as `model` and these fields as `viewInputs` to the HoverInt
 
 ### Message
 
-`EnteredTrigger`, `LeftTrigger`, `EnteredPanel`, and `LeftPanel` describe pointer movement. `FocusedTrigger`, `BlurredTrigger`, `FocusedPanel`, and `BlurredPanel` describe focus movement. `PressedEscape` records whether Escape came from the trigger or panel. `CompletedWaitBeforeOpening` and `CompletedWaitBeforeClosing` are produced only by the exported wait Commands.
+`RequestedClose` is the Message a parent sends. The rest come from the view and the wait Commands. `EnteredTrigger`, `LeftTrigger`, `EnteredPanel`, and `LeftPanel` describe pointer movement. `FocusedTrigger`, `BlurredTrigger`, `FocusedPanel`, and `BlurredPanel` describe focus movement. `PressedEscape` records whether Escape came from the trigger or panel. `CompletedWaitBeforeOpening` and `CompletedWaitBeforeClosing` are produced only by the exported wait Commands.
 
 ### OutMessage {#out-message}
+
+Handle these by spreading `...hoverIntent.on({ ... })` into the parent's update record. Both are reported only when visibility changes.
 
 | Name     | Description                                             |
 | -------- | ------------------------------------------------------- |
@@ -103,4 +87,4 @@ Pass the child Model as `model` and these fields as `viewInputs` to the HoverInt
 
 ### WaitBeforeOpening and WaitBeforeClosing {#wait-commands}
 
-These Commands wait for the configured delay and emit their matching completion Message with the version that scheduled the wait. `update` ignores stale versions. The Commands are exported for Story tests; application code should let `update` issue and resolve them through the normal Runtime.
+These Commands wait for the configured delay and emit their matching completion Message with the version that scheduled the wait. `update` ignores stale versions. The Commands are exported for Story tests. In application code, HoverIntent's update returns them and the Runtime performs them.

@@ -2,7 +2,7 @@ import { defineConfig } from 'vitest/config'
 
 import { markdown } from '@foldkit/markdown/vite'
 
-import { islandAttributes } from './src/island/islandAttributes'
+import { islandAttributes } from './src/domain/islandAttributes'
 
 export default defineConfig({
   plugins: [markdown({ islands: islandAttributes })],

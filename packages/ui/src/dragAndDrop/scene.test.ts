@@ -1,4 +1,4 @@
-import { Option, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block } from 'foldkit'
 import type { Attribute, ChildAttribute } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
@@ -6,72 +6,48 @@ import { expectTypeOf } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import { DragAndDropBlock, type RenderInfo } from './block.js'
+import { DragAndDrop, DragAndDropLive, type RenderInfo } from './block.js'
 
-const DragAndDropSceneDefinition = Block.makeDefinition('DragAndDropScene', {
-  Model: DragAndDropBlock.Model,
-  Message: Schema.Never,
-})
+class DragAndDropScene extends Block<DragAndDropScene>()('DragAndDropScene', {
+  Model: Schema.Struct({ dragAndDrop: DragAndDrop }),
+}) {}
 
-const foldDragAndDropOutMessage = DragAndDropSceneDefinition.makeOutMessageFold(
-  DragAndDropBlock,
-  {
-    StartedKeyboardDrag: () => model => ({ model }),
-    ChangedKeyboardTarget: () => model => ({ model }),
-    Reordered: () => model => ({ model }),
-    Cancelled: () => model => ({ model }),
-  },
-)
+const DragAndDropSceneLive = DragAndDropScene.make(
+  Effect.fn(function* () {
+    const dragAndDrop = yield* new DragAndDrop('board', {})
 
-const DragAndDropBinding = DragAndDropSceneDefinition.makeBinding(
-  DragAndDropBlock,
-  {
-    read: model => Option.some(model),
-    write: (_model, nextDragAndDrop) => nextDragAndDrop,
-  },
-).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
+    return {
+      model: { dragAndDrop },
+      view: (model, h) =>
+        h.div(
+          [],
+          [
+            model.dragAndDrop.view({
+              toView: ({ draggable, droppable }) =>
+                h.div(
+                  [...droppable('todo', 'Todo')],
+                  [
+                    h.div(
+                      [
+                        h.Id('card'),
+                        ...draggable({
+                          itemId: 'card-1',
+                          containerId: 'todo',
+                          index: 0,
+                        }),
+                      ],
+                      ['Card'],
+                    ),
+                  ],
+                ),
+            }),
+            h.p([h.Id('drag-state')], [model.dragAndDrop.model.dragState._tag]),
+          ],
+        ),
+    }
+  }),
+).pipe(Layer.provide(DragAndDropLive))
 
-const DragAndDropSceneComposition = DragAndDropSceneDefinition.makeComposition({
-  bindings: [DragAndDropBinding],
-})
-
-const update = DragAndDropSceneComposition.makeUpdate({})
-
-const view = DragAndDropSceneComposition.makeView((model, h) =>
-  h.div(
-    [],
-    [
-      h.block(
-        DragAndDropBinding.embedView({
-          slotId: 'drag-and-drop',
-          model,
-          viewInputs: {
-            toView: ({ draggable, droppable }) =>
-              h.div(
-                [...droppable('todo', 'Todo')],
-                [
-                  h.div(
-                    [
-                      h.Id('card'),
-                      ...draggable({
-                        itemId: 'card-1',
-                        containerId: 'todo',
-                        index: 0,
-                      }),
-                    ],
-                    ['Card'],
-                  ),
-                ],
-              ),
-          },
-        }),
-      ),
-      h.p([h.Id('drag-state')], [model.dragState._tag]),
-    ],
-  ),
-)
-
-const initialModel = DragAndDropBlock.init({ id: 'board' }).model
 const card = Scene.selector('#card')
 
 describe('DragAndDrop view', () => {
@@ -84,14 +60,13 @@ describe('DragAndDrop view', () => {
     >()
   })
 
-  it('routes consumer-placed handlers through the embedded Block boundary', () => {
+  it.effect('routes consumer-placed handlers to the embedded instance', () =>
     Scene.scene(
-      { update, view },
-      Scene.given(initialModel),
+      DragAndDropSceneLive,
       Scene.expect(card).toHaveAttr('data-draggable-id', 'card-1'),
       Scene.expect(card).toHaveHandler('pointerdown'),
       Scene.pointerDown(card, { screenX: 40, screenY: 60 }),
       Scene.expect(Scene.selector('#drag-state')).toHaveText('Pending'),
-    )
-  })
+    ),
+  )
 })

@@ -4,23 +4,23 @@
 
 A dropdown menu for actions, like a macOS context menu. Menu is fire-and-forget: each activation is an action, not a choice that persists (use Listbox for selection, where the parent owns the selected value). It supports typeahead search, drag-to-select, keyboard navigation, grouped items, and anchor positioning.
 
-### Programmatic API and Completed Type
+### Creating and Controlling a Menu
 
-Programmatic operations are exposed through the Binding. Call `menu.requestOpen()` and `menu.requestClose()`. Call `menu.requestSelectItem(item, index)` with the selected item and index.
+`Menu.makeBlock<Item>()` returns a Block class with its Layer attached as `Live`. Call it once at module scope, create an instance in the parent's constructor with `yield* new ActionMenu('menu', { id })`, and provide `ActionMenu.Live` to the parent's Layer. Use `Menu.makeBlock()` for plain strings.
 
-What `Menu.makeBlock<Item>()` returns is typed [`Completed<Item>` from `@foldkit/ui/menu`](/ui/selection-blocks#completed-type), for the cases where a created Block has to be named rather than called directly.
+To control the Menu from a parent update handler, send it `ActionMenu.Message.RequestedOpen()`, `RequestedClose()`, or `RequestedSelectItem({ index, item })`. The `item` field has the Menu's `Item` type, so `ActionMenu.Message.RequestedSelectItem` accepts an `Action`.
 
-Use `Menu.makeBlock()` for plain strings. Connect the completed Block returned by `Menu.makeBlock<Item>()` when the item type is narrower.
+The class type is [`MenuClass<Item>` from `@foldkit/ui/menu`](/ui/selection-blocks#completed-type), and an instance is `Menu<Item>`, for the cases where either has to be named.
 
 :::Info{label="See it in an app"}
-Check out how Menu is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/menu.ts).
+Check out how Menu is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/page/menuPage.ts).
 :::
 
 ## Examples
 
 ### Basic
 
-Pair `view` and `update` behind `Menu.makeBlock<Item>()` at module scope. The factory threads your item union through both, so `Selected({ value, index })` carries the picked value directly. Menu closes automatically after selection. It emits `Closed()` when it closes without a selection, allowing the parent to coordinate related state without inspecting child Messages.
+`Menu.makeBlock<Item>()` threads your item union through the view and the OutMessages, so `Selected({ value, index })` carries the picked value directly. Handle it with `...menu.on({ Selected })`. Menu closes automatically after selection. It reports `Closed()` when it closes without a selection, so the parent can coordinate related state without inspecting the Menu's Messages.
 
 ::Demo{name="basic"}
 
@@ -28,7 +28,7 @@ Pair `view` and `update` behind `Menu.makeBlock<Item>()` at module scope. The fa
 
 ### Animated
 
-Pass `isAnimated: true` at init for animation coordination.
+Pass `isAnimated: true` when you create the instance to coordinate animations.
 
 ::Demo{name="animated"}
 
@@ -40,7 +40,7 @@ Menu is headless. The `itemToConfig` callback controls all item markup. Group it
 
 ### Portaled Panels
 
-The items panel is portaled to the document body and positioned relative to the trigger button with Floating UI. Ancestor stacking contexts and overflow clipping no longer apply, so a clipped container or a sibling overlay wrapper cannot hide an open menu. The panel still stacks at the document level: give it a z-index above elevated content like sticky headers or toasts, as the demos on this page do with `z-10`. Inside a `<dialog>`, the panel is portaled into that dialog, so it renders above the dialog's content and stays interactive. Pass `anchor: { portal: false }` to keep the panel inside the wrapper.
+The items panel is portaled to the document body and positioned relative to the trigger button with Floating UI. Ancestor stacking contexts and overflow clipping do not apply to it, so a clipped container or a sibling overlay wrapper cannot hide an open menu. The panel still stacks at the document level: give it a z-index above elevated content like sticky headers or toasts, as the demos on this page do with `z-10`. Inside a `<dialog>`, the panel is portaled into that dialog, so it renders above the dialog's content and stays interactive. Pass `anchor: { portal: false }` to keep the panel inside the wrapper.
 
 ### Animated Panels
 
@@ -81,7 +81,7 @@ Two ViewInputs fields cover the cases a `<label for>` does not. Pass `ariaLabel`
 
 ### InitConfig {#init-config}
 
-Configuration passed to the Binding for the completed Block returned by `Menu.makeBlock()`.
+The args a parent passes when it creates an instance with `new`.
 
 | Name         | Type      | Default | Description                                                 |
 | ------------ | --------- | ------- | ----------------------------------------------------------- |
@@ -91,7 +91,7 @@ Configuration passed to the Binding for the completed Block returned by `Menu.ma
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the Menu Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep callback fields at the top level, and use `childAttributes` for handler-bearing attribute inputs; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+Pass these fields to the instance's `view`, as in `model.menu.view({ ... })`. Spread the attribute groups the component passes to your callbacks unchanged, and wrap handler-bearing attributes you pass in with `childAttributes`. See [View input](/core/block#callback-dispatch-boundaries).
 
 | Name                    | Type                                                     | Default | Description                                                                                                                                                                                                                                                                                                                          |
 | ----------------------- | -------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -123,9 +123,9 @@ Pass the child Model as `model` and these fields as `viewInputs` to the Menu Bin
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s selected `fold` policy.
+Facts the component reports to its parent. Handle them by spreading the instance's `.on({ ... })` into the parent's update record. Variants without a handler are ignored.
 
-| Name       | Type                             | Default | Description                                                                                                                                                                                                                                                                                                                                                              |
-| ---------- | -------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Selected` | `{ value: Item; index: number }` | —       | Emitted when a menu item is selected. Carries both the value (typed as your `Item` union via `Menu.makeBlock<Item>()`) and its index into the items array supplied at view time. Menu closes itself on selection; the parent does not need to call `menu.requestClose()`. Handle it in the Binding's selected `fold` policy to dispatch the corresponding domain action. |
-| `Closed`   | `{}`                             | —       | Emitted when an open Menu closes without selection, including keyboard, button, backdrop, blur, pointer, and programmatic close paths. It is emitted by the update that changes the Menu Model to closed, before animation and cleanup Commands complete. A close request against an already closed Menu emits nothing.                                                  |
+| Name       | Type                             | Default | Description                                                                                                                                                                                                                                                                                                                                             |
+| ---------- | -------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Selected` | `{ value: Item; index: number }` | —       | Emitted when a menu item is selected. Carries both the value (typed as your `Item` union via `Menu.makeBlock<Item>()`) and its index into the items array supplied at view time. Menu closes itself on selection; the parent does not need to send `RequestedClose()`. Handle it with the instance's `.on` to dispatch the corresponding domain action. |
+| `Closed`   | `{}`                             | —       | Emitted when an open Menu closes without selection, including keyboard, button, backdrop, blur, pointer, and programmatic close paths. It is emitted by the update that changes the Menu Model to closed, before animation and cleanup Commands complete. A close request against an already closed Menu emits nothing.                                 |

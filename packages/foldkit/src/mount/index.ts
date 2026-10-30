@@ -14,9 +14,9 @@ import {
 import {
   InvocationIdentityTypeId,
   InvocationNameTypeId,
+  type ValidateConstructionRequirements,
   registerIdentity,
-} from '../block/identity.js'
-import type { ValidateConstructionRequirements } from '../block/scope.js'
+} from '../definitionIdentity.js'
 import {
   type AnyHandler,
   type Handler,
@@ -434,15 +434,12 @@ const wrapEffectAsStream =
  * Defines a one-shot Mount. Every input is a named field: `args` declares the
  * args Schema, and `messages` lists the Messages this Mount can produce.
  * `handler` is a generator function that constructs the handler. Foldkit
- * applies `Effect.gen` to the generator. Include the Definition in the owning
- * Block's `makeComposition({ mounts: [...] })` call and include its `layer`
- * recipe in the local Effects Layer passed to `prepareBlock`. The returned
- * handler receives the live `Element` as `element` and the runtime's
+ * applies `Effect.gen` to the generator. A Block lists the Definition under
+ * `Mount: [...]` and implements it under `mounts` in its constructor. The
+ * returned handler receives the live `Element` as `element` and the runtime's
  * `viewStateChanges` Stream alongside the declared args, and returns an
- * `Effect<Message>` that runs once when the element mounts.
- * The completed Block carries the recipe without building it; a Runtime builds
- * it once for the application, while each element controls its own Mount
- * acquisition and release.
+ * `Effect<Message>` that runs once when the element mounts. Each element
+ * controls its own Mount acquisition and release.
  *
  * Omit `handler` to declare a host contract. A host contract has no
  * `layer`; use its `toLayer` method to supply an implementation at the
@@ -740,11 +737,8 @@ export function define<
  * `Mount.define`: `args` declares the args Schema, and `messages` lists the
  * Messages this Mount can produce. `handler` is a generator function that
  * constructs a Stream handler. Foldkit applies `Effect.gen` to the generator.
- * Include the Definition in the owning Block's
- * `makeComposition({ mounts: [...] })` call and include its `layer` recipe in the
- * local Effects Layer passed to `prepareBlock`. The completed Block carries the
- * recipe without building it; a Runtime builds it once for the application.
- * The returned handler receives the
+ * A Block lists the Definition under `Mount: [...]` and implements it under
+ * `mounts` in its constructor. The returned handler receives the
  * live `Element` as `element` and the runtime's
  * `viewStateChanges` Stream alongside the declared args, and returns a
  * `Stream<Message>` whose lifetime is bound to the element's lifetime: each
@@ -1001,9 +995,7 @@ export function defineStream<
 }
 
 /** Lifts a `MountAction` from one Message universe to another by mapping its
- *  dispatched Messages through a transform. Used by Block components to
- *  emit lifecycle action results into the parent's Message union via the
- *  consumer-supplied `toParentMessage` lift. Preserves `name` and `args`. */
+ *  dispatched Messages through a transform. Preserves `name` and `args`. */
 export const mapMessage: {
   <A, B>(
     f: (message: A) => B,

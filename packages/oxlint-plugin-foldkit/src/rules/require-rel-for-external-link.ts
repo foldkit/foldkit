@@ -11,11 +11,11 @@ import {
   indexReferences,
   isArrayExpression,
   isCallExpression,
-  isFoldkitHtmlBuilderMember,
   isSpreadElement,
   isStringLiteral,
   staticStringValue,
 } from '../guards.ts'
+import { isFoldkitHtmlBuilderMember } from '../html-builder.ts'
 
 const protectiveRelSubstrings = ['noopener', 'noreferrer']
 

@@ -5,7 +5,7 @@ import type { Url } from 'foldkit/url'
 import { Nav } from '@foldkit/ui'
 
 import { Icon } from '../../../icon'
-import type { UiViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../definition'
 
 // DEMO CONTENT
 

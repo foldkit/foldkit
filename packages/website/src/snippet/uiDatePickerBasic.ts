@@ -1,10 +1,7 @@
-// Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt. Fit them into your own Model, init, Message,
-// update, and view definitions.
-import { Effect, Match, Option, Schema, Tuple } from 'effect'
+import { Effect, Layer, Match, Option, Schema } from 'effect'
 import { Block, Calendar } from 'foldkit'
-import type { ChildAttribute, Html } from 'foldkit/html'
-import { defineMessageUnion } from 'foldkit/message'
+import type { ChildAttribute, Html, HtmlBuilder } from 'foldkit/html'
+import { modifyFields } from 'foldkit/struct'
 
 import { DatePicker } from '@foldkit/ui'
 import type {
@@ -16,110 +13,28 @@ import type {
 } from '@foldkit/ui/calendar'
 import { triggerId as DatePickerTriggerId } from '@foldkit/ui/datePicker'
 
-// Add a field to your Model for the DatePicker Block, plus a field the
-// parent owns for the selected date. The picker no longer stores the
-// selection; the parent holds it and passes it back in as `maybeSelectedDate`.
-const Model = Schema.Struct({
-  datePickerDemo: DatePicker.DatePickerBlock.Model,
-  maybeSelectedDate: Schema.Option(Calendar.CalendarDate),
-  // ...your other fields
-})
-type Model = typeof Model.Type
-// Fetch `today` once at the app boundary via flags so init stays pure:
-const Flags = Schema.Struct({
-  today: Calendar.CalendarDate,
-  // ...your other flags
-})
-type Flags = typeof Flags.Type
-
-const flags = Effect.gen(function* () {
+// Read `today` once at the app boundary, for example through Flags, and pass
+// it in as constructor args so the constructor stays pure
+export const flags = Effect.gen(function* () {
   const today = yield* Calendar.today.local
-  return { today /* ...your other flags */ }
+  return { today }
 })
 
-// This excerpt has no parent-owned facts. DatePicker handles its Calendar and
-// Popover children internally, and the parent Composition derives delivery.
-const Message = defineMessageUnion({})
-type Message = typeof Message.Type
+type DatePickerExampleArgs = Readonly<{ today: Calendar.CalendarDate }>
 
-const DatePickerExampleDefinition = Block.makeDefinition('DatePickerExample', {
-  Model,
-  Message,
-  ChildInitContext: Flags,
-})
+// The parent owns the selected date and passes it back in as
+// `maybeSelectedDate`
+export class DatePickerExample extends Block<
+  DatePickerExample,
+  DatePickerExampleArgs
+>()('DatePickerExample', {
+  Model: Schema.Struct({
+    datePickerDemo: DatePicker.DatePicker,
+    maybeSelectedDate: Schema.Option(Calendar.CalendarDate),
+  }),
+}) {}
 
-const { makeFieldsStep, makeNoopStep } = DatePickerExampleDefinition
-
-// At module scope, fold the OutMessage into your own Model. `SelectedDate`
-// carries the committed date. The popover has already closed by the time it
-// fires; lift the date into your domain state and pass it back as
-// `maybeSelectedDate`. `ClearedDate` fires when the user clears the selection.
-// `ChangedViewMonth` fires when calendar navigation shifts the visible month
-// without selecting a date. Each arm returns an Update.Step over the parent
-// Model, which already has the next DatePicker Model written back. Pass the
-// completed child Block so the parent Definition infers both contracts:
-const foldDatePickerOutMessage = DatePickerExampleDefinition.makeOutMessageFold(
-  DatePicker.DatePickerBlock,
-  {
-    // The child has emitted `SelectedDate`. This is where the parent lifts
-    // the committed date into its own field, which is then passed back to
-    // the picker as `maybeSelectedDate`, so the parent stays the single
-    // source of truth for the selection.
-    SelectedDate: ({ date }) =>
-      makeFieldsStep(() => ({
-        maybeSelectedDate: () => Option.some(date),
-      })),
-    // The user cleared the selection. Reset the parent's field.
-    ClearedDate: () =>
-      makeFieldsStep(() => ({
-        maybeSelectedDate: () => Option.none(),
-      })),
-    // The child has emitted `ChangedViewMonth`. In this arm the parent can
-    // update its own state or dispatch its own Commands, for example
-    // prefetch month data, fire analytics, or trigger a downstream Command.
-    ChangedViewMonth: makeNoopStep,
-  },
-)
-
-// The Binding wires the completed child Block into the parent: it delegates navigation,
-// focus, and popover messages to DatePicker.DatePickerBlock.update, writes the next DatePicker
-// Model back, routes generated delivery and Command results, and hands
-// any OutMessage to the OutMessage fold.
-const DatePickerBinding = DatePickerExampleDefinition.makeBinding(
-  DatePicker.DatePickerBlock,
-  {
-    field: 'datePickerDemo',
-    init: {
-      contextToArgs: flags =>
-        Tuple.make({
-          id: 'date-picker-demo',
-          today: flags.today,
-          minDate: flags.today,
-          maxDate: Calendar.addMonths(flags.today, 3),
-        }),
-    },
-  },
-).withOutMessagePolicy({ fold: foldDatePickerOutMessage })
-
-const DatePickerExampleComposition =
-  DatePickerExampleDefinition.makeComposition({
-    bindings: [DatePickerBinding],
-  })
-type DatePickerExampleViewBuilder = Block.ViewBuilderFor<
-  typeof DatePickerExampleComposition
->
-
-// Pass the flags-resolved date through the child init context. The Composition
-// supplies it to DatePickerBinding and initializes the bound Model.
-const init = DatePickerExampleComposition.makeInit((flags: Flags) => ({
-  childInitContext: flags,
-  model: {
-    maybeSelectedDate: Option.none(),
-    // ...your other fields
-  },
-}))
-
-const update = DatePickerExampleComposition.makeUpdate({})
+type DatePickerExampleViewBuilder = HtmlBuilder<never>
 
 // Class names live at module scope, and each view mode gets its own view
 // function below. The calendar panel has no border of its own: the
@@ -294,55 +209,75 @@ const yearsView = (
     ],
   )
 
-// Inside your view function, embed the DatePicker via h.block. The
-// `toCalendarView` callback receives a discriminated `CalendarAttributes`
-// whose variant matches the calendar's current `viewMode`, so the match hands
-// each grid to its own view function.
-//
-// The trigger is a form field, so give it an accessible name. Pass
-// `ariaLabelledBy` with the id of a visible label element, and render that
-// label targeting the trigger id with
-// `triggerId('date-picker-demo')` from `@foldkit/ui/datePicker` for a native `<label for>`. The
-// attribute is only emitted when provided, so the trigger never carries a
-// dangling `aria-labelledby`.
-const view = DatePickerExampleComposition.makeView((model, h) => {
-  const labelId = 'date-picker-label'
+export const DatePickerExampleLive = DatePickerExample.make(
+  Effect.fn(function* (_id, { today }) {
+    // DatePicker holds its own Calendar and Popover instances
+    const datePickerDemo = yield* new DatePicker.DatePicker('datePickerDemo', {
+      id: 'date-picker-demo',
+      today,
+      minDate: today,
+      maxDate: Calendar.addMonths(today, 3),
+    })
 
-  return h.div(
-    [h.Class('flex flex-col gap-1.5')],
-    [
-      h.label(
-        [h.Id(labelId), h.For(DatePickerTriggerId('date-picker-demo'))],
-        ['Date'],
-      ),
-      h.block(
-        DatePickerBinding.embedView({
-          slotId: 'date-picker-demo',
-          model: model.datePickerDemo,
-          viewInputs: {
-            ariaLabelledBy: labelId,
-            anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
-            // The parent-owned selection. The trigger content, the calendar's
-            // selected-day marker, and the hidden form input all derive from it.
-            maybeSelectedDate: model.maybeSelectedDate,
-            triggerContent: maybeDate =>
-              Option.match(maybeDate, {
-                onNone: () => h.span([], ['Pick a date']),
-                onSome: date =>
-                  h.span([], [`${date.year}-${date.month}-${date.day}`]),
-              }),
-            toCalendarView: Match.type<UiCalendarCalendarAttributes>().pipe(
-              Match.tagsExhaustive({
-                Days: days => daysView(days, h),
-                Months: months => monthsView(months, h),
-                Years: years => yearsView(years, h),
-              }),
-            ),
-            // Optional: enable hidden form input for native <form> submission:
-            name: 'appointment-date',
-          },
+    return {
+      model: { datePickerDemo, maybeSelectedDate: Option.none() },
+
+      update: {
+        // `SelectedDate` carries the committed date; the popover has already
+        // closed. `ClearedDate` fires when the user clears the selection.
+        ...datePickerDemo.on({
+          SelectedDate: (model, { date }) => ({
+            model: modifyFields(model, {
+              maybeSelectedDate: () => Option.some(date),
+            }),
+          }),
+          ClearedDate: model => ({
+            model: modifyFields(model, {
+              maybeSelectedDate: () => Option.none(),
+            }),
+          }),
         }),
-      ),
-    ],
-  )
-})
+      },
+
+      // `toCalendarView` receives a discriminated `CalendarAttributes` whose
+      // variant matches the calendar's current `viewMode`. The trigger is a
+      // form field, so name it with a visible label: target the trigger id
+      // with `triggerId('date-picker-demo')` and pass `ariaLabelledBy`.
+      view: (model, h) => {
+        const labelId = 'date-picker-label'
+
+        return h.div(
+          [h.Class('flex flex-col gap-1.5')],
+          [
+            h.label(
+              [h.Id(labelId), h.For(DatePickerTriggerId('date-picker-demo'))],
+              ['Date'],
+            ),
+            model.datePickerDemo.view({
+              ariaLabelledBy: labelId,
+              anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+              // The parent-owned selection. The trigger content, the calendar's
+              // selected-day marker, and the hidden form input all derive from it.
+              maybeSelectedDate: model.maybeSelectedDate,
+              triggerContent: maybeDate =>
+                Option.match(maybeDate, {
+                  onNone: () => h.span([], ['Pick a date']),
+                  onSome: date =>
+                    h.span([], [`${date.year}-${date.month}-${date.day}`]),
+                }),
+              toCalendarView: Match.type<UiCalendarCalendarAttributes>().pipe(
+                Match.tagsExhaustive({
+                  Days: days => daysView(days, h),
+                  Months: months => monthsView(months, h),
+                  Years: years => yearsView(years, h),
+                }),
+              ),
+              // Optional: enable hidden form input for native <form> submission:
+              name: 'appointment-date',
+            }),
+          ],
+        )
+      },
+    }
+  }),
+).pipe(Layer.provide(DatePicker.DatePickerLive))

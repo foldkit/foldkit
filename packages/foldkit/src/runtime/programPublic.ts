@@ -1,8 +1,7 @@
 export {
   make,
   makeElement,
-  type Element,
-  type Pending,
+  type ElementOptions,
   type Program,
-  type Runnable,
-} from './program.js'
+  type ProgramOptions,
+} from '../blocks/program.js'

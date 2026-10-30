@@ -1,4 +1,6 @@
-const germanLocale: Calendar.LocaleConfig = {
+import { Calendar } from 'foldkit'
+
+export const germanLocale: Calendar.LocaleConfig = {
   firstDayOfWeek: 'Monday',
   monthNames: [
     'Januar',

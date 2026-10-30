@@ -49,13 +49,11 @@ The `devTools` field accepts an object with the following optional properties, o
 
 ### dispatch
 
-`false` by default. Set `dispatch: true` to let external DevTools clients discover and dispatch Messages. Foldkit derives the dispatch Schema from the completed root Block, including generated envelopes for registered child Blocks. Incoming values are decoded against that Codec before they reach update.
+`false` by default. Set `dispatch: true` to let external DevTools clients discover and dispatch Messages. Foldkit derives the dispatch Schema from the root Block's Message Schema, plus the `BlockMessage` envelope that addresses a child instance by its path. Incoming values are decoded against that Schema before they reach update.
 
 Inspection and replay remain available when `dispatch` is omitted or `false`. Message Schema discovery returns `None`, and dispatch requests are rejected.
 
-Enable dispatch only for trusted development clients. Schema decoding validates Message data; it does not authenticate its sender. Generated child envelopes carry runtime-local generations and are not a portable live-dispatch protocol between applications or sessions. See [generated child delivery](/core/block#debugging-in-devtools) for their admission contract.
-
-When the completed root Message Codec needs Services for decoding, `dispatch: true` adds them to the Program's requirements. Supply any remaining decoding Services through `program.provide(...)`. Leaving dispatch disabled adds no Message decoding requirements.
+Enable dispatch only for trusted development clients. Schema decoding validates Message data; it does not authenticate its sender. A `BlockMessage` addresses an instance by its path in this running program, so it is not a protocol for sending Messages between applications or sessions. See [Debugging in DevTools](/core/block#debugging-in-devtools) for how child Messages appear.
 
 ### show
 
@@ -69,7 +67,7 @@ Controls where the badge and panel appear on screen. One of `'BottomRight'` (def
 
 #### TimeTravel
 
-`'TimeTravel'` (the default) renders the state at an earlier Message and pauses that historical view. The live Model, history, Commands, Subscriptions, ManagedResources, and live-acquired Mounts continue normally. Their Messages and state changes keep appearing in the panel even though the historical DOM stays in place. Foldkit event handlers and Mounts created by the historical render cannot dispatch, and the overlay blocks pointer interaction. A surviving live Mount observes its `viewStateChanges` Stream and must make its imperative integration read-only while paused so keyboard or programmatic DOM interaction cannot produce Messages. Select `Resume` to patch the latest live view back into the DOM; a replay-created Mount whose element is reused is released before the live action starts.
+`'TimeTravel'` (the default) renders the state at an earlier Message and pauses that historical view. The live Model, history, Commands, Subscriptions, and live-acquired Mounts continue normally. Their Messages and state changes keep appearing in the panel even though the historical DOM stays in place. Foldkit event handlers and Mounts created by the historical render cannot dispatch, and the overlay blocks pointer interaction. A surviving live Mount observes its `viewStateChanges` Stream and must make its imperative integration read-only while paused so keyboard or programmatic DOM interaction cannot produce Messages. Select `Resume` to patch the latest live view back into the DOM; a replay-created Mount whose element is reused is released before the live action starts.
 
 #### Inspect
 
@@ -101,7 +99,7 @@ Do not use `excludeFromHistory` to hide sensitive data. The current Model and th
 
 #### History Storage
 
-When the list contains at least one tag, DevTools stores a full Model snapshot for every recorded entry. That preserves changes made by excluded Messages when you travel to a recorded state. Excluded Messages also update the `Live` Model view, but they do not append a history entry or compute a diff.
+DevTools stores a full Model snapshot for every recorded entry, so traveling to a recorded state includes changes made by excluded Messages. Excluded Messages also update the `Live` Model view, but they do not append a history entry or compute a diff.
 
 ::Snippet{name="devtoolsExcludeFromHistory" label="Excluding high-frequency Messages from history"}
 
@@ -109,20 +107,10 @@ When the list contains at least one tag, DevTools stores a full Model snapshot f
 
 The maximum number of recorded Messages retained before DevTools evicts the oldest entry. The default is `100`, and values are clamped between `20` and `500`.
 
-Smaller values reduce work under high Message rates. Larger values provide more history. Memory use grows with `maxEntries` and Model size, especially when `excludeFromHistory` makes every recorded entry store a full Model snapshot.
+Smaller values reduce work under high Message rates. Larger values provide more history. Every recorded entry stores a full Model snapshot, so memory use grows with `maxEntries` and Model size.
 
 ::Snippet{name="devtoolsMaxEntries" label="Raising the DevTools history cap"}
 
 ### keyframeInterval {#keyframe-interval}
 
-The number of recorded Messages between full Model snapshots. The default is `31`, and the minimum is `1`.
-
-#### Replay Tradeoff
-
-To reconstruct an entry, DevTools starts at the nearest earlier snapshot and replays update. A smaller interval stores more snapshots but shortens that replay. Set the interval to `1` when update is expensive and time-travel feels slow. Every entry then has its own snapshot, so no replay is needed.
-
-#### Excluded Messages
-
-DevTools automatically uses `1` when `excludeFromHistory` is active because excluded Messages are not available for replay.
-
-::Snippet{name="devtoolsKeyframeInterval" label="Snapshotting every entry for constant-time jumps"}
+A Block program stores a full Model snapshot for every recorded entry and ignores `keyframeInterval`. Rebuilding a past Model by replaying update would construct and release live Block instances, so DevTools jumps straight to the stored snapshot instead. Every jump is constant-time, and memory use grows with `maxEntries` and Model size.

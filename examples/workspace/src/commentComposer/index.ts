@@ -1,1 +1,0 @@
-export { CommentComposerBlock } from './block'

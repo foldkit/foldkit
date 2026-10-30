@@ -1,62 +1,68 @@
-import { Schema } from 'effect'
-import { Block } from 'foldkit'
+import { Context, Effect, Schema } from 'effect'
+import { Block, Command } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
-const SaveState = defineTaggedUnion({
-  Idle: {},
-  Saving: {},
-  Saved: {},
-  Failed: { reason: Schema.String },
-})
-type SaveState = typeof SaveState.Type
-
-const Model = Schema.Struct({ contents: Schema.String, save: SaveState })
-type Model = typeof Model.Type
+export class DocumentStore extends Context.Service<
+  DocumentStore,
+  Readonly<{
+    save: (contents: string) => Effect.Effect<void, Error>
+  }>
+>()('DocumentStore') {}
 
 const Message = defineMessageUnion({
+  UpdatedContents: { contents: Schema.String },
   ClickedSave: {},
   SucceededSaveDocument: {},
   FailedSaveDocument: { reason: Schema.String },
 })
-type Message = typeof Message.Type
 
-const EditorDefinition = Block.makeDefinition('Editor', { Model, Message })
-
-const { makeFieldsStep } = EditorDefinition
-
-const EditorComposition = EditorDefinition.makeComposition()
-
-const SaveDocument = EditorDefinition.makeCommand('SaveDocument', {
+const SaveDocument = Command.define('SaveDocument', {
   args: { contents: Schema.String },
   messages: [Message.SucceededSaveDocument, Message.FailedSaveDocument],
 })
 
-const init = EditorComposition.makeInit((contents: string) => ({
-  model: { contents, save: SaveState.Idle() },
-}))
+export class Editor extends Block<Editor>()('Editor', {
+  Model: Schema.Struct({ contents: Schema.String, isSaved: Schema.Boolean }),
+  Message,
+  Command: [SaveDocument],
+}) {}
 
-const update = EditorComposition.makeUpdate({
-  ClickedSave: model => ({
-    model: modifyFields(model, { save: () => SaveState.Saving() }),
-    commands: [SaveDocument({ contents: model.contents })],
+export const EditorLive = Editor.make(
+  Effect.fn(function* () {
+    const documentStore = yield* DocumentStore
+
+    return {
+      model: { contents: '', isSaved: true },
+
+      update: {
+        UpdatedContents: (model, { contents }) => ({
+          model: modifyFields(model, {
+            contents: () => contents,
+            isSaved: () => false,
+          }),
+        }),
+        ClickedSave: model => ({
+          model,
+          commands: [SaveDocument({ contents: model.contents })],
+        }),
+        SucceededSaveDocument: model => ({
+          model: modifyFields(model, { isSaved: () => true }),
+        }),
+        FailedSaveDocument: model => ({ model }),
+      },
+
+      commands: {
+        SaveDocument: ({ contents }) =>
+          documentStore.save(contents).pipe(
+            Effect.as(Message.SucceededSaveDocument()),
+            Effect.catch(error =>
+              Effect.succeed(
+                Message.FailedSaveDocument({ reason: error.message }),
+              ),
+            ),
+          ),
+      },
+    }
   }),
-  SucceededSaveDocument: makeFieldsStep(() => ({
-    save: () => SaveState.Saved(),
-  })),
-  FailedSaveDocument: makeFieldsStep.fromMessage(({ reason }) => ({
-    save: () => SaveState.Failed({ reason }),
-  })),
-})
-
-const prepare = () =>
-  EditorComposition.prepareBlock({
-    init,
-    update,
-    hostHandlers: [SaveDocument],
-  })
-export const EditorBlock: Block.FromAssemblyWithoutViewOrOutMessage<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+)

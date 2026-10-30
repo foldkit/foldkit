@@ -1,6 +1,6 @@
 import { Meter } from '@foldkit/ui'
 
-import type { UiViewBuilder } from '../composition'
+import type { UiViewBuilder } from '../definition'
 
 // DEMO CONTENT
 

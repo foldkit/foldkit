@@ -2,23 +2,20 @@ import {
   Array,
   Effect,
   Equal,
-  Function,
   Layer,
   Match,
   Option,
   Predicate,
   Schema,
   String,
-  Tuple,
   pipe,
 } from 'effect'
-import * as Block from 'foldkit/block'
+import { Block, Command, Mount } from 'foldkit'
+import type * as BlockTypes from 'foldkit/block'
 import * as Dom from 'foldkit/dom'
-import type { ChildAttribute, Html } from 'foldkit/html'
+import type { ChildAttribute, Html, HtmlBuilder } from 'foldkit/html'
 import { type MessageUnion, defineMessageUnion } from 'foldkit/message'
-import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
-import * as Update from 'foldkit/update'
 
 import { AnchorConfig, anchorSetup, portalBackdrop } from '../anchor/index.js'
 import * as Animation from '../animation/index.js'
@@ -31,7 +28,6 @@ import {
   keyToIndex,
 } from '../keyboard.js'
 import { resolveTypeaheadMatch } from '../typeahead.js'
-import { MenuNamespace } from './definition.js'
 
 // MODEL
 
@@ -52,7 +48,7 @@ export const Model = Schema.Struct({
   isOpen: Schema.Boolean,
   isAnimated: Schema.Boolean,
   isModal: Schema.Boolean,
-  animation: Animation.AnimationBlock.Model,
+  animation: Animation.Animation,
   maybeActiveItemIndex: Schema.Option(Schema.Number),
   activationTrigger: ActivationTrigger,
   searchQuery: Schema.String,
@@ -121,17 +117,34 @@ export type RequestedOpen = typeof Message.RequestedOpen.Type
 export type RequestedClose = typeof Message.RequestedClose.Type
 export type RequestedSelectItem = typeof Message.RequestedSelectItem.Type
 
+/** A string Schema whose decoded type and constructor input are both
+ *  narrowed to a Menu's Item type. */
+type ItemSchema<Item extends string> = Schema.Codec<Item, Item> &
+  Readonly<{ '~type.make': Item }>
+
+/** The Message union on a Menu class, refined so the item a parent sends
+ *  with `RequestedSelectItem` carries the Menu's Item type. */
+type MessageSchema<Item extends string = string> =
+  typeof Message extends MessageUnion<infer Cases>
+    ? MessageUnion<
+        Omit<Cases, 'RequestedSelectItem'> &
+          Readonly<{
+            RequestedSelectItem: Omit<Cases['RequestedSelectItem'], 'item'> &
+              Readonly<{ item: ItemSchema<Item> }>
+          }>
+      >
+    : never
+
 // OUT MESSAGE
 
 /** Union of OutMessages the menu component can produce. The parent handles
- *  them through the Menu connection's OutMessage fold. */
+ *  them with `menu.on(...)`. */
 export const OutMessage = defineMessageUnion({
   Selected: { value: Schema.String, index: Schema.Number },
   Closed: {},
 })
 
-/** The OutMessage union interface on a completed Menu, refined to its Item
- * type. */
+/** The OutMessage union on a Menu class, refined to its Item type. */
 type OutMessageSchema<Item extends string = string> =
   typeof OutMessage extends MessageUnion<infer Cases>
     ? MessageUnion<
@@ -175,12 +188,6 @@ export type SuppressedSpaceScroll = typeof Message.SuppressedSpaceScroll.Type
 export type PressedPointerOnButton = typeof Message.PressedPointerOnButton.Type
 export type ReleasedPointerOnItems = typeof Message.ReleasedPointerOnItems.Type
 
-const MenuDefinition = MenuNamespace.makeDefinition({
-  Model,
-  Message,
-  OutMessage,
-})
-
 // INIT
 
 const SEARCH_DEBOUNCE_MILLISECONDS = 350
@@ -188,27 +195,131 @@ const LEFT_MOUSE_BUTTON = 0
 const POINTER_HOLD_THRESHOLD_MILLISECONDS = 200
 const POINTER_MOVEMENT_THRESHOLD_PIXELS = 5
 
-/** Configuration for creating a menu model with `init`. `isAnimated` enables animation coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). */
+/** Constructor args for a Menu instance. `id` prefixes the DOM ids of the
+ *  button, items, and item elements. `isAnimated` enables animation
+ *  coordination (default `false`). `isModal` locks page scroll and inerts
+ *  other elements when open (default `false`). */
 export type InitConfig = Readonly<{
   id: string
   isAnimated?: boolean
   isModal?: boolean
 }>
 
-const makeInitialModel = (config: InitConfig): Model => ({
-  id: config.id,
-  isOpen: false,
-  isAnimated: config.isAnimated ?? false,
-  isModal: config.isModal ?? false,
-  animation: Animation.AnimationBlock.init({ id: `${config.id}-items` }).model,
-  maybeActiveItemIndex: Option.none(),
-  activationTrigger: 'Keyboard',
-  searchQuery: '',
-  searchVersion: 0,
-  maybeLastPointerPosition: Option.none(),
-  maybeLastButtonPointerType: Option.none(),
-  maybePointerOrigin: Option.none(),
+// SELECTORS
+
+/** Returns the bare DOM id of the menu trigger button, derived from the
+ *  menu's base id. Use this to associate an external label with the trigger
+ *  via a native `<label for={Menu.buttonId(id)}>` or an `aria-labelledby`
+ *  reference. */
+export const buttonId = (id: string): string => `${id}-button`
+
+const buttonSelector = (id: string): string => idSelector(`${id}-button`)
+const itemsSelector = (id: string): string => idSelector(`${id}-items`)
+const itemSelector = (id: string, index: number): string =>
+  idSelector(`${id}-item-${index}`)
+
+// COMMAND
+
+/** Prevents page scrolling while the menu is open. */
+export const LockMenuScroll = Command.define('LockMenuScroll', {
+  messages: [Message.CompletedLockMenuScroll],
 })
+/** Re-enables page scrolling after the menu closes. */
+export const UnlockMenuScroll = Command.define('UnlockMenuScroll', {
+  messages: [Message.CompletedUnlockMenuScroll],
+})
+/** Marks all elements outside the menu as inert for modal behavior. */
+export const InertMenuOthers = Command.define('InertMenuOthers', {
+  args: { id: Schema.String },
+  messages: [Message.CompletedInertMenuOthers],
+})
+/** Removes the inert attribute from elements outside the Menu. */
+export const RestoreMenuInert = Command.define('RestoreMenuInert', {
+  args: { id: Schema.String },
+  messages: [Message.CompletedRestoreMenuInert],
+})
+/** Moves focus to the menu items container after opening. */
+export const FocusMenuItems = Command.define('FocusMenuItems', {
+  args: { id: Schema.String },
+  messages: [Message.CompletedFocusMenuItems],
+})
+/** Moves focus back to the menu button after closing. */
+export const FocusMenuButton = Command.define('FocusMenuButton', {
+  args: { id: Schema.String },
+  messages: [Message.CompletedFocusMenuButton],
+})
+/** Scrolls the active menu item into view after keyboard navigation. */
+export const ScrollMenuItemIntoView = Command.define('ScrollMenuItemIntoView', {
+  args: { id: Schema.String, index: Schema.Number },
+  messages: [Message.CompletedScrollMenuItemIntoView],
+})
+/** Programmatically clicks the active menu item's DOM element. */
+export const ClickMenuItem = Command.define('ClickMenuItem', {
+  args: { id: Schema.String, index: Schema.Number },
+  messages: [Message.CompletedClickMenuItem],
+})
+/** Waits for the typeahead search debounce period before clearing the query. */
+export const DelayClearMenuSearch = Command.define('DelayClearMenuSearch', {
+  args: { version: Schema.Number },
+  messages: [Message.CompletedDelayClearMenuSearch],
+})
+/** Detects whether the menu button moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation block that leave is complete. */
+export const DetectMenuMovementOrAnimationEnd = Command.define(
+  'DetectMenuMovementOrAnimationEnd',
+  {
+    args: { id: Schema.String, generation: Schema.Number },
+    messages: [Message.CompletedDetectMenuMovementOrAnimationEnd],
+  },
+)
+
+const commands = [
+  LockMenuScroll,
+  UnlockMenuScroll,
+  InertMenuOthers,
+  RestoreMenuInert,
+  FocusMenuItems,
+  FocusMenuButton,
+  ScrollMenuItemIntoView,
+  ClickMenuItem,
+  DelayClearMenuSearch,
+  DetectMenuMovementOrAnimationEnd,
+]
+
+// MOUNT
+
+/**
+ * The anchor-positioning Mount this Menu renders on its panel. The panel is
+ *  always anchored to the button via Floating UI and portaled to the document
+ *  body, or into the enclosing `<dialog>` when there is one (opt out of
+ *  portaling with `anchor.portal: false`), so it escapes ancestor stacking
+ *  contexts and overflow clipping.
+ *
+ *  It also carries the open-focus for the anchored panel. An anchored panel
+ *  renders `visibility: hidden` until Floating UI resolves its first position,
+ *  and `.focus()` does not land on a hidden element, so `FocusMenuItems` alone
+ *  cannot focus it. `focusAfterPosition` focuses the panel as part of that
+ *  first reveal. `FocusMenuItems` still focuses the panel when no anchor is
+ *  configured, where the panel is visible as soon as the render commits.
+ *
+ *  Exposed so Scene tests can call
+ *  `Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu())`.
+ */
+export const AnchorMenu = Mount.define('AnchorMenu', {
+  args: { buttonId: Schema.String, anchor: AnchorConfig },
+  messages: [Message.CompletedAnchorMenu],
+})
+
+/** The backdrop-portaling Mount this Menu renders. Exposed so Scene tests can
+ *  call `Scene.Mount.resolve(PortalMenuBackdrop, Message.CompletedPortalMenuBackdrop())` to
+ *  acknowledge the mount produced by the rendered backdrop. */
+export const PortalMenuBackdrop = Mount.define('PortalMenuBackdrop', {
+  messages: [Message.CompletedPortalMenuBackdrop],
+})
+
+/** Mount definitions rendered by Menu. */
+export const mounts = [AnchorMenu, PortalMenuBackdrop]
+
+type MountRequirements = Mount.RequirementsOf<typeof mounts>
 
 // UPDATE
 
@@ -223,163 +334,16 @@ const closedModel = (model: Model): Model =>
     maybePointerOrigin: () => Option.none(),
   })
 
-/** Returns the bare DOM id of the menu trigger button, derived from the
- *  menu's base id. Use this to associate an external label with the trigger
- *  via a native `<label for={Menu.buttonId(id)}>` or an `aria-labelledby`
- *  reference. */
-export const buttonId = (id: string): string => `${id}-button`
+const showAnimation = (model: Model) =>
+  model.animation.send(Animation.Animation.Message.RequestedShow())
 
-const buttonSelector = (id: string): string => idSelector(`${id}-button`)
-const itemsSelector = (id: string): string => idSelector(`${id}-items`)
-const itemSelector = (id: string, index: number): string =>
-  idSelector(`${id}-item-${index}`)
+const hideAnimation = (model: Model) =>
+  model.animation.send(Animation.Animation.Message.RequestedHide())
 
-/** Prevents page scrolling while the menu is open. */
-export const LockMenuScroll = MenuNamespace.makeCommand('LockMenuScroll', {
-  messages: [Message.CompletedLockMenuScroll],
-  handler: function* () {
-    return () =>
-      Dom.lockScroll.pipe(Effect.as(Message.CompletedLockMenuScroll()))
-  },
-})
-/** Re-enables page scrolling after the menu closes. */
-export const UnlockMenuScroll = MenuNamespace.makeCommand('UnlockMenuScroll', {
-  messages: [Message.CompletedUnlockMenuScroll],
-  handler: function* () {
-    return () =>
-      Dom.unlockScroll.pipe(Effect.as(Message.CompletedUnlockMenuScroll()))
-  },
-})
-/** Marks all elements outside the menu as inert for modal behavior. */
-export const InertMenuOthers = MenuNamespace.makeCommand('InertMenuOthers', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedInertMenuOthers],
-  handler: function* () {
-    return ({ id }) =>
-      Dom.inertOthers(id, [buttonSelector(id), itemsSelector(id)]).pipe(
-        Effect.as(Message.CompletedInertMenuOthers()),
-      )
-  },
-})
-/** Removes the inert attribute from elements outside the Menu. */
-export const RestoreMenuInert = MenuNamespace.makeCommand('RestoreMenuInert', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedRestoreMenuInert],
-  handler: function* () {
-    return ({ id }) =>
-      Dom.restoreInert(id).pipe(Effect.as(Message.CompletedRestoreMenuInert()))
-  },
-})
-/** Moves focus to the menu items container after opening. */
-export const FocusMenuItems = MenuNamespace.makeCommand('FocusMenuItems', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedFocusMenuItems],
-  handler: function* () {
-    return ({ id }) =>
-      Dom.focus(itemsSelector(id)).pipe(
-        Effect.ignore,
-        Effect.as(Message.CompletedFocusMenuItems()),
-      )
-  },
-})
-/** Moves focus back to the menu button after closing. */
-export const FocusMenuButton = MenuNamespace.makeCommand('FocusMenuButton', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedFocusMenuButton],
-  handler: function* () {
-    return ({ id }) =>
-      Dom.focus(buttonSelector(id)).pipe(
-        Effect.ignore,
-        Effect.as(Message.CompletedFocusMenuButton()),
-      )
-  },
-})
-/** Scrolls the active menu item into view after keyboard navigation. */
-export const ScrollMenuItemIntoView = MenuNamespace.makeCommand(
-  'ScrollMenuItemIntoView',
-  {
-    args: { id: Schema.String, index: Schema.Number },
-    messages: [Message.CompletedScrollMenuItemIntoView],
-    handler: function* () {
-      return ({ id, index }) =>
-        Dom.scrollIntoView(itemSelector(id, index)).pipe(
-          Effect.ignore,
-          Effect.as(Message.CompletedScrollMenuItemIntoView()),
-        )
-    },
-  },
-)
-/** Programmatically clicks the active menu item's DOM element. */
-export const ClickMenuItem = MenuNamespace.makeCommand('ClickMenuItem', {
-  args: { id: Schema.String, index: Schema.Number },
-  messages: [Message.CompletedClickMenuItem],
-  handler: function* () {
-    return ({ id, index }) =>
-      Dom.clickElement(itemSelector(id, index)).pipe(
-        Effect.ignore,
-        Effect.as(Message.CompletedClickMenuItem()),
-      )
-  },
-})
-/** Waits for the typeahead search debounce period before clearing the query. */
-export const DelayClearMenuSearch = MenuNamespace.makeCommand(
-  'DelayClearMenuSearch',
-  {
-    args: { version: Schema.Number },
-    messages: [Message.CompletedDelayClearMenuSearch],
-    handler: function* () {
-      return ({ version }) =>
-        Effect.sleep(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
-          Effect.as(Message.CompletedDelayClearMenuSearch({ version })),
-        )
-    },
-  },
-)
-/** Detects whether the menu button moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation block that leave is complete. */
-export const DetectMenuMovementOrAnimationEnd = MenuNamespace.makeCommand(
-  'DetectMenuMovementOrAnimationEnd',
-  {
-    args: { id: Schema.String, generation: Schema.Number },
-    messages: [Message.CompletedDetectMenuMovementOrAnimationEnd],
-    handler: function* () {
-      return ({ id, generation }) =>
-        Effect.raceFirst(
-          Dom.detectElementMovement(buttonSelector(id)).pipe(
-            Effect.as(
-              Message.CompletedDetectMenuMovementOrAnimationEnd({ generation }),
-            ),
-          ),
-          Dom.waitForAnimationSettled(itemsSelector(id)).pipe(
-            Effect.as(
-              Message.CompletedDetectMenuMovementOrAnimationEnd({ generation }),
-            ),
-          ),
-        )
-    },
-  },
-)
-
-const detectMenuMovementOrAnimationEndStep = (generation: number) =>
-  MenuDefinition.makeCommandsStep(model => [
-    DetectMenuMovementOrAnimationEnd({ id: model.id, generation }),
-  ])
-
-const foldAnimationOutMessage = MenuDefinition.makeOutMessageFold(
-  Animation.AnimationBlock,
-  {
-    StartedLeaveAnimating: ({ generation }) =>
-      detectMenuMovementOrAnimationEndStep(generation),
-    TransitionedOut: MenuDefinition.makeNoopStep,
-  },
-)
-
-const AnimationBinding = MenuDefinition.makeBinding(Animation.AnimationBlock, {
-  field: 'animation',
-  init: false,
-}).withOutMessagePolicy({ fold: foldAnimationOutMessage })
-
-const internalUpdate =
-  (animationBinding: typeof AnimationBinding) =>
+const makeUpdate =
+  <Item extends string>(
+    selected: (value: string, index: number) => OutMessage<Item>,
+  ) =>
   (model: Model, message: Message) => {
     const modalOpenCommands = Array.filter(
       [LockMenuScroll(), InertMenuOthers({ id: model.id })],
@@ -402,48 +366,41 @@ const internalUpdate =
     ]
 
     const openMenu = (baseModel: Model) => {
+      const nextModel = modifyFields(baseModel, { isOpen: () => true })
+
       if (model.isAnimated) {
-        return Update.combineSteps([
-          MenuDefinition.makeStep(() => ({
-            model: baseModel,
-            commands: openCommands,
-          })),
-          animationBinding.requestShow(),
-          MenuDefinition.makeFieldsStep(() => ({ isOpen: () => true })),
-        ])
+        return {
+          model: nextModel,
+          commands: openCommands,
+          messages: [showAnimation(nextModel)],
+        }
       }
 
-      return {
-        model: modifyFields(baseModel, { isOpen: () => true }),
-        commands: openCommands,
-      }
+      return { model: nextModel, commands: openCommands }
     }
 
     const closeMenu = (
       baseModel: Model,
       commands: typeof closeWithFocusCommands,
-      outMessage?: OutMessage,
+      outMessage?: OutMessage<Item>,
     ) => {
       if (!baseModel.isOpen) {
-        return Update.withOutMessage({ model: baseModel }, outMessage)
+        return { model: baseModel, outMessage }
       }
 
       const closed = closedModel(baseModel)
       const closeOutMessage = outMessage ?? OutMessage.Closed()
 
       if (model.isAnimated) {
-        return MenuDefinition.makeStep(() =>
-          Function.compose(
-            Update.combineSteps([
-              MenuDefinition.makeStep(() => ({ model: closed, commands })),
-              animationBinding.requestHide(),
-            ]),
-            Update.withOutMessage(closeOutMessage),
-          ),
-        )
+        return {
+          model: closed,
+          commands,
+          outMessage: closeOutMessage,
+          messages: [hideAnimation(closed)],
+        }
       }
 
-      return Update.withOutMessage({ model: closed, commands }, closeOutMessage)
+      return { model: closed, commands, outMessage: closeOutMessage }
     }
 
     const openWithActiveItem = (
@@ -469,11 +426,7 @@ const internalUpdate =
     }
 
     const selectItem = (index: number, item: string) =>
-      closeMenu(
-        model,
-        closeWithFocusCommands,
-        OutMessage.Selected({ value: item, index }),
-      )
+      closeMenu(model, closeWithFocusCommands, selected(item, index))
 
     return Message.match(message, {
       CompletedFocusMenuItems: () => ({ model }),
@@ -579,8 +532,14 @@ const internalUpdate =
         return { model: modifyFields(model, { searchQuery: () => '' }) }
       },
 
-      CompletedDetectMenuMovementOrAnimationEnd: ({ generation }) =>
-        animationBinding.requestFinish(generation),
+      CompletedDetectMenuMovementOrAnimationEnd: ({ generation }) => ({
+        model,
+        messages: [
+          model.animation.send(
+            Animation.Animation.Message.RequestedFinish({ generation }),
+          ),
+        ],
+      }),
 
       PressedPointerOnButton: ({
         pointerType,
@@ -603,18 +562,12 @@ const internalUpdate =
           })
 
           if (model.isAnimated) {
-            return MenuDefinition.makeStep(() =>
-              Function.compose(
-                Update.combineSteps([
-                  MenuDefinition.makeStep(() => ({
-                    model: closed,
-                    commands: closeWithFocusCommands,
-                  })),
-                  animationBinding.requestHide(),
-                ]),
-                Update.withOutMessage(OutMessage.Closed()),
-              ),
-            )
+            return {
+              model: closed,
+              commands: closeWithFocusCommands,
+              outMessage: OutMessage.Closed(),
+              messages: [hideAnimation(closed)],
+            }
           }
 
           return {
@@ -702,133 +655,6 @@ const internalUpdate =
     })
   }
 
-/**
- * The anchor-positioning Mount this Menu renders on its panel. The panel is
- *  always anchored to the button via Floating UI and portaled to the document
- *  body, or into the enclosing `<dialog>` when there is one (opt out of
- *  portaling with `anchor.portal: false`), so it escapes ancestor stacking
- *  contexts and overflow clipping.
- *
- *  It also carries the open-focus for the anchored panel. An anchored panel
- *  renders `visibility: hidden` until Floating UI resolves its first position,
- *  and `.focus()` does not land on a hidden element, so `FocusMenuItems` alone
- *  cannot focus it. `focusAfterPosition` focuses the panel as part of that
- *  first reveal. `FocusMenuItems` still focuses the panel when no anchor is
- *  configured, where the panel is visible as soon as the render commits.
- *
- *  Exposed so Scene tests can call
- *  `Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu())`.
- */
-export const AnchorMenu = MenuNamespace.makeMount('AnchorMenu', {
-  args: { buttonId: Schema.String, anchor: AnchorConfig },
-  messages: [Message.CompletedAnchorMenu],
-  handler: function* () {
-    return ({ element, buttonId, anchor }) =>
-      Effect.gen(function* () {
-        yield* Effect.acquireRelease(
-          Effect.sync(() =>
-            anchorSetup(element, {
-              buttonId,
-              anchor,
-              focusAfterPosition: true,
-            }),
-          ),
-          cleanup => Effect.sync(cleanup),
-        )
-        return Message.CompletedAnchorMenu()
-      })
-  },
-})
-
-/** The backdrop-portaling Mount this Menu renders. Exposed so Scene tests can
- *  call `Scene.Mount.resolve(PortalMenuBackdrop, Message.CompletedPortalMenuBackdrop())` to
- *  acknowledge the mount produced by the rendered backdrop. */
-export const PortalMenuBackdrop = MenuNamespace.makeMount(
-  'PortalMenuBackdrop',
-  {
-    messages: [Message.CompletedPortalMenuBackdrop],
-    handler: function* () {
-      return ({ element }) =>
-        Effect.gen(function* () {
-          yield* Effect.acquireRelease(
-            Effect.sync(() => portalBackdrop(element)),
-            cleanup => Effect.sync(cleanup),
-          )
-          return Message.CompletedPortalMenuBackdrop()
-        })
-    },
-  },
-)
-
-/** Mount definitions rendered by Menu. */
-export const mounts = [AnchorMenu, PortalMenuBackdrop]
-
-type MountRequirements = Mount.RequirementsOf<typeof mounts>
-
-const MenuComposition = MenuDefinition.makeComposition({
-  mounts,
-  bindings: [AnimationBinding],
-})
-/** Creates an initial menu Model and Commands from a config. Defaults to closed with no active item. */
-export const init = MenuComposition.makeInit((config: InitConfig) => ({
-  model: makeInitialModel(config),
-}))
-type MenuViewBuilder = Block.ViewBuilderFor<typeof MenuComposition>
-const defaultUpdate = internalUpdate(AnimationBinding)
-const authoredUpdateStep = MenuDefinition.makeStep(
-  (model, message: Parameters<typeof defaultUpdate>[1]) =>
-    defaultUpdate(model, message),
-)
-
-/** Processes a Menu Message and returns the next Model, optional Commands, and
- *  an optional OutMessage. */
-export const update = MenuComposition.makeUpdate({
-  RequestedOpen: authoredUpdateStep,
-  RequestedClose: authoredUpdateStep,
-  RequestedSelectItem: authoredUpdateStep,
-  Opened: authoredUpdateStep,
-  Closed: authoredUpdateStep,
-  BlurredItems: authoredUpdateStep,
-  ActivatedItem: authoredUpdateStep,
-  DeactivatedItem: authoredUpdateStep,
-  SelectedItem: authoredUpdateStep,
-  RequestedItemClick: authoredUpdateStep,
-  Searched: authoredUpdateStep,
-  CompletedDelayClearMenuSearch: authoredUpdateStep,
-  MovedPointerOverItem: authoredUpdateStep,
-  CompletedFocusMenuItems: authoredUpdateStep,
-  CompletedFocusMenuButton: authoredUpdateStep,
-  CompletedLockMenuScroll: authoredUpdateStep,
-  CompletedUnlockMenuScroll: authoredUpdateStep,
-  CompletedInertMenuOthers: authoredUpdateStep,
-  CompletedRestoreMenuInert: authoredUpdateStep,
-  CompletedScrollMenuItemIntoView: authoredUpdateStep,
-  CompletedClickMenuItem: authoredUpdateStep,
-  ClickedButton: authoredUpdateStep,
-  IgnoredMouseClick: authoredUpdateStep,
-  SuppressedSpaceScroll: authoredUpdateStep,
-  CompletedAnchorMenu: authoredUpdateStep,
-  CompletedPortalMenuBackdrop: authoredUpdateStep,
-  CompletedDetectMenuMovementOrAnimationEnd: authoredUpdateStep,
-  PressedPointerOnButton: authoredUpdateStep,
-  ReleasedPointerOnItems: authoredUpdateStep,
-})
-
-const EffectsLayer = Layer.mergeAll(
-  LockMenuScroll.layer,
-  UnlockMenuScroll.layer,
-  InertMenuOthers.layer,
-  RestoreMenuInert.layer,
-  FocusMenuItems.layer,
-  FocusMenuButton.layer,
-  ScrollMenuItemIntoView.layer,
-  ClickMenuItem.layer,
-  DelayClearMenuSearch.layer,
-  DetectMenuMovementOrAnimationEnd.layer,
-  AnchorMenu.layer,
-  PortalMenuBackdrop.layer,
-)
-
 // VIEW
 
 /** Configuration for an individual menu item's appearance. */
@@ -843,13 +669,12 @@ export type GroupHeading = Readonly<{
   className?: string
 }>
 
-/** Per-render view inputs passed to the Menu connection's `embedView` method.
+/** Per-render view input a parent passes to `model.menu.view(...)`.
  *
  *  The Menu emits `OutMessage.Selected({ value, index })` on commit and
  *  `OutMessage.Closed()` when an open Menu closes without selection. `Closed`
  *  is emitted by the update that closes the Menu, before any animation or
- *  cleanup Commands complete. Handle each variant in the Menu connection's
- *  OutMessage fold. */
+ *  cleanup Commands complete. Handle each variant with `menu.on(...)`. */
 export type ViewInputs<Item extends string> = Readonly<{
   items: ReadonlyArray<Item>
   itemToConfig: (
@@ -885,40 +710,21 @@ export { groupContiguous, resolveTypeaheadMatch }
 
 const itemId = (id: string, index: number): string => `${id}-item-${index}`
 
-/** Headless menu view with typeahead search, keyboard navigation,
- *  and aria-activedescendant focus management. Obtained from
- *  `Menu.makeBlock<MyItem>().view`; not exported directly. */
-type ViewForItem<Item extends string> = Block.View<
-  Model,
-  Message,
-  ViewInputs<Item>,
-  MountRequirements
->
+type MenuHtmlBuilder = HtmlBuilder<Message, MountRequirements>
 
-const internalView = <Item extends string>() =>
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  menuViewImpl as unknown as ViewForItem<Item>
-
-type MenuInputs = ViewInputs<string>
-
-const menuViewImpl = (
+const menuView = <Item extends string>(
   model: Model,
-  viewInputs: MenuInputs,
-  h: MenuViewBuilder,
-) => {
-  const {
-    id,
-    isOpen,
-    animation: { transitionState },
-    maybeActiveItemIndex,
-    searchQuery,
-  } = model
+  h: MenuHtmlBuilder,
+  viewInputs: ViewInputs<Item>,
+): Html => {
+  const { id, isOpen, maybeActiveItemIndex, searchQuery } = model
+  const { transitionState } = model.animation.model
 
   const {
     items,
     itemToConfig,
     isItemDisabled,
-    itemToSearchText = (item: string) => item,
+    itemToSearchText = (item: Item) => item,
     isButtonDisabled,
     buttonContent,
     buttonClassName,
@@ -942,35 +748,13 @@ const menuViewImpl = (
     ariaLabelledBy,
   } = viewInputs
 
-  const dispatchSelectedItem = (item: string, index: number) =>
+  const dispatchSelectedItem = (item: Item, index: number) =>
     Message.SelectedItem({ index, item })
 
-  const isLeaving =
-    transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
+  const isLeaving = Animation.isLeaving(transitionState)
   const isVisible = isOpen || isLeaving
 
-  const animationAttributes: ReadonlyArray<ReturnType<typeof h.DataAttribute>> =
-    Match.value(transitionState).pipe(
-      Match.when('EnterStart', () => [
-        h.DataAttribute('closed', ''),
-        h.DataAttribute('enter', ''),
-        h.DataAttribute('transition', ''),
-      ]),
-      Match.when('EnterAnimating', () => [
-        h.DataAttribute('enter', ''),
-        h.DataAttribute('transition', ''),
-      ]),
-      Match.when('LeaveStart', () => [
-        h.DataAttribute('leave', ''),
-        h.DataAttribute('transition', ''),
-      ]),
-      Match.when('LeaveAnimating', () => [
-        h.DataAttribute('closed', ''),
-        h.DataAttribute('leave', ''),
-        h.DataAttribute('transition', ''),
-      ]),
-      Match.orElse(() => []),
-    )
+  const animationAttributes = Animation.transitionAttributes(h, transitionState)
 
   const isDisabled = (index: number): boolean =>
     Predicate.isNotUndefined(isItemDisabled) &&
@@ -1333,180 +1117,221 @@ const menuViewImpl = (
   ])
 }
 
-const view = MenuComposition.makeView.withInputs<MenuInputs>(menuViewImpl)
+// BLOCK
 
-const operations = {
-  requestOpen: Message.RequestedOpen,
-  requestClose: Message.RequestedClose,
-  requestSelectItem: (item: string, index: number) =>
-    Tuple.make(Message.RequestedSelectItem({ index, item })),
-}
+type Contract<Item extends string> = Readonly<{
+  Model: typeof Model
+  Message: MessageSchema<Item>
+  OutMessage: OutMessageSchema<Item>
+  Command: typeof commands
+  Mount: typeof mounts
+}>
 
-type RefineOutMessage<Return, OutMessage> =
-  Return extends Update.ResultRecipe<
-    infer Model,
-    infer Message,
-    unknown,
-    infer R,
-    infer Evidence
-  >
-    ? Update.ResultRecipe<Model, Message, OutMessage, R, Evidence>
-    : Return extends (...args: infer Args) => infer Output
-      ? (...args: Args) => RefineOutMessage<Output, OutMessage>
-      : Return extends unknown
-        ? Omit<Return, 'outMessage'> & Readonly<{ outMessage?: OutMessage }>
-        : never
-
-const prepareMenuBlock = () =>
-  MenuComposition.prepareBlock({
-    init,
-    update,
-    view,
-    operations,
-    EffectsLayer,
-  })
-/** Complete default Menu Block definition. */
-export const block: Block.FromAssemblyWithViewAndOutMessage<
-  typeof Model,
-  typeof prepareMenuBlock
-> = Block.assemble(prepareMenuBlock)
-
-/** Programmatically opens the Menu through Menu update. */
-export const open = block.operations.requestOpen
-
-/** Programmatically closes the Menu through Menu update. */
-export const close = block.operations.requestClose
-
-/** Programmatically selects a Menu item through Menu update. */
-export const selectItem = block.operations.requestSelectItem
-
-const makeBlockParts = <Item extends string>() => {
-  const RefinedOutMessage =
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    OutMessage as unknown as OutMessageSchema<Item>
-  const MenuDefinition = MenuNamespace.makeDefinition({
-    Model,
-    Message,
-    OutMessage: RefinedOutMessage,
-  })
-  const foldItemAnimationOutMessage = MenuDefinition.makeOutMessageFold(
-    Animation.AnimationBlock,
-    {
-      StartedLeaveAnimating: ({ generation }) =>
-        detectMenuMovementOrAnimationEndStep(generation),
-      TransitionedOut: MenuDefinition.makeNoopStep,
-    },
-  )
-  const ItemAnimationBinding = MenuDefinition.makeBinding(
-    Animation.AnimationBlock,
-    {
-      field: 'animation',
-      init: false,
-    },
-  ).withOutMessagePolicy({ fold: foldItemAnimationOutMessage })
-  const itemUpdate = internalUpdate(ItemAnimationBinding)
-  type GenericReturn = RefineOutMessage<
-    ReturnType<typeof itemUpdate>,
-    OutMessage<Item>
-  >
-
-  const castReturn = (result: ReturnType<typeof itemUpdate>): GenericReturn =>
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    result as unknown as GenericReturn
-  const MenuComposition = MenuDefinition.makeComposition({
-    mounts,
-    bindings: [ItemAnimationBinding],
-  })
-  const init = MenuComposition.makeInit((config: InitConfig) => ({
-    model: makeInitialModel(config),
-  }))
-  const authoredUpdateStep = MenuDefinition.makeStep(
-    (model, message: Parameters<typeof itemUpdate>[1]) =>
-      castReturn(itemUpdate(model, message)),
-  )
-  const refinedUpdate = MenuComposition.makeUpdate({
-    RequestedOpen: authoredUpdateStep,
-    RequestedClose: authoredUpdateStep,
-    RequestedSelectItem: authoredUpdateStep,
-    Opened: authoredUpdateStep,
-    Closed: authoredUpdateStep,
-    BlurredItems: authoredUpdateStep,
-    ActivatedItem: authoredUpdateStep,
-    DeactivatedItem: authoredUpdateStep,
-    SelectedItem: authoredUpdateStep,
-    RequestedItemClick: authoredUpdateStep,
-    Searched: authoredUpdateStep,
-    CompletedDelayClearMenuSearch: authoredUpdateStep,
-    MovedPointerOverItem: authoredUpdateStep,
-    CompletedFocusMenuItems: authoredUpdateStep,
-    CompletedFocusMenuButton: authoredUpdateStep,
-    CompletedLockMenuScroll: authoredUpdateStep,
-    CompletedUnlockMenuScroll: authoredUpdateStep,
-    CompletedInertMenuOthers: authoredUpdateStep,
-    CompletedRestoreMenuInert: authoredUpdateStep,
-    CompletedScrollMenuItemIntoView: authoredUpdateStep,
-    CompletedClickMenuItem: authoredUpdateStep,
-    ClickedButton: authoredUpdateStep,
-    IgnoredMouseClick: authoredUpdateStep,
-    SuppressedSpaceScroll: authoredUpdateStep,
-    CompletedAnchorMenu: authoredUpdateStep,
-    CompletedPortalMenuBackdrop: authoredUpdateStep,
-    CompletedDetectMenuMovementOrAnimationEnd: authoredUpdateStep,
-    PressedPointerOnButton: authoredUpdateStep,
-    ReleasedPointerOnItems: authoredUpdateStep,
-  })
-  const refinedView =
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    internalView<Item>() as unknown as (
-      model: Model,
-      viewInputs: ViewInputs<Item>,
-      h: Parameters<typeof menuViewImpl>[2],
-    ) => Html
-  const view = MenuComposition.makeView.withInputs<ViewInputs<Item>>(
-    (model, viewInputs, h) => refinedView(model, viewInputs, h),
-  )
-  const requestOpen = Message.RequestedOpen
-  const requestClose = Message.RequestedClose
-  const requestSelectItem = (item: Item, index: number) =>
-    Tuple.make(Message.RequestedSelectItem({ index, item }))
-  return {
-    composition: MenuComposition,
-    implementation: {
-      init,
-      update: refinedUpdate,
-      view,
-      operations: { requestOpen, requestClose, requestSelectItem },
-      EffectsLayer,
-    },
-  }
-}
-
-type BlockParts<Item extends string> = ReturnType<typeof makeBlockParts<Item>>
-
-/** A completed Menu Block refined to one Item type. */
-export interface Completed<
-  Item extends string = string,
-> extends Block.CompletedWithViewAndOutMessage<
-  BlockParts<Item>['composition'],
-  BlockParts<Item>['implementation']
+/** A Menu instance refined to one Item type. Store it in the parent Model
+ *  and render it with `model.menu.view(viewInputs)`. */
+export interface Menu<Item extends string = string> extends BlockTypes.Instance<
+  Menu<Item>,
+  Contract<Item>,
+  InitConfig,
+  ViewInputs<Item>
 > {}
 
-const assembleBlock = <Item extends string>(): Completed<Item> => {
-  const { composition, implementation } = makeBlockParts<Item>()
-
-  const prepare = () => composition.prepareBlock(implementation)
-  const completedBlock: Block.FromAssemblyWithViewAndOutMessage<
-    typeof Model,
-    typeof prepare
-  > = Block.assemble(prepare)
-
-  return completedBlock
-}
+/** A Menu class refined to one Item type, with its Layer as `Live`. */
+export type MenuClass<Item extends string = string> = BlockTypes.BlockClass<
+  Menu<Item>,
+  'Menu',
+  InitConfig,
+  ViewInputs<Item>,
+  never,
+  Contract<Item>
+> &
+  Readonly<{ Live: Layer.Layer<Menu<Item>> }>
 
 /**
- * Creates a completed Menu Block refined to one Item type. Declare
- * `Menu.makeBlock<Action>()` once at module scope, then connect that Block to
- * the parent. Its view inputs and `Selected.value` share the Item type.
+ * Creates a Menu class refined to one Item type, with its Layer attached as
+ * `Live`. Declare `Menu.makeBlock<Action>()` once at module scope, create
+ * instances with `yield* new ActionMenu('menu', { id })` in a parent
+ * constructor, and provide `ActionMenu.Live` to the parent's Layer. Its view
+ * input and `Selected.value` share the Item type.
+ *
+ * Send `Message.RequestedOpen`, `Message.RequestedClose`, and
+ * `Message.RequestedSelectItem({ index, item })` to drive the Menu from the
+ * parent.
  */
-export const makeBlock = <Item extends string = string>(): Completed<Item> =>
-  assembleBlock<Item>()
+export const makeBlock = <Item extends string = string>(): MenuClass<Item> => {
+  const contract: Contract<Item> = {
+    Model,
+    /* eslint-disable @typescript-eslint/consistent-type-assertions */
+    Message: Message as unknown as MessageSchema<Item>,
+    OutMessage: OutMessage as unknown as OutMessageSchema<Item>,
+    /* eslint-enable @typescript-eslint/consistent-type-assertions */
+    Command: commands,
+    Mount: mounts,
+  }
+
+  const MenuClass = Block<Menu<Item>, InitConfig, ViewInputs<Item>>()(
+    'Menu',
+    contract,
+  )
+
+  const selected = (value: string, index: number): Selected<Item> =>
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    contract.OutMessage.Selected({ value: value as Item, index })
+
+  const menuUpdate = makeUpdate(selected)
+
+  const MenuLive = MenuClass.make(
+    Effect.fn(function* (_instanceId, config) {
+      const animation = yield* new Animation.Animation('animation', {
+        id: `${config.id}-items`,
+      })
+
+      return {
+        model: {
+          id: config.id,
+          isOpen: false,
+          isAnimated: config.isAnimated ?? false,
+          isModal: config.isModal ?? false,
+          animation,
+          maybeActiveItemIndex: Option.none(),
+          activationTrigger: 'Keyboard',
+          searchQuery: '',
+          searchVersion: 0,
+          maybeLastPointerPosition: Option.none(),
+          maybeLastButtonPointerType: Option.none(),
+          maybePointerOrigin: Option.none(),
+        },
+
+        update: {
+          RequestedOpen: menuUpdate,
+          RequestedClose: menuUpdate,
+          RequestedSelectItem: menuUpdate,
+          Opened: menuUpdate,
+          Closed: menuUpdate,
+          BlurredItems: menuUpdate,
+          ActivatedItem: menuUpdate,
+          DeactivatedItem: menuUpdate,
+          SelectedItem: menuUpdate,
+          RequestedItemClick: menuUpdate,
+          Searched: menuUpdate,
+          CompletedDelayClearMenuSearch: menuUpdate,
+          MovedPointerOverItem: menuUpdate,
+          CompletedFocusMenuItems: menuUpdate,
+          CompletedFocusMenuButton: menuUpdate,
+          CompletedLockMenuScroll: menuUpdate,
+          CompletedUnlockMenuScroll: menuUpdate,
+          CompletedInertMenuOthers: menuUpdate,
+          CompletedRestoreMenuInert: menuUpdate,
+          CompletedScrollMenuItemIntoView: menuUpdate,
+          CompletedClickMenuItem: menuUpdate,
+          ClickedButton: menuUpdate,
+          IgnoredMouseClick: menuUpdate,
+          SuppressedSpaceScroll: menuUpdate,
+          CompletedAnchorMenu: menuUpdate,
+          CompletedPortalMenuBackdrop: menuUpdate,
+          CompletedDetectMenuMovementOrAnimationEnd: menuUpdate,
+          PressedPointerOnButton: menuUpdate,
+          ReleasedPointerOnItems: menuUpdate,
+          ...animation.on({
+            StartedLeaveAnimating: (model: Model, { generation }) => ({
+              model,
+              commands: [
+                DetectMenuMovementOrAnimationEnd({ id: model.id, generation }),
+              ],
+            }),
+            TransitionedOut: (model: Model) => ({ model }),
+          }),
+        },
+
+        commands: {
+          LockMenuScroll: () =>
+            Dom.lockScroll.pipe(Effect.as(Message.CompletedLockMenuScroll())),
+          UnlockMenuScroll: () =>
+            Dom.unlockScroll.pipe(
+              Effect.as(Message.CompletedUnlockMenuScroll()),
+            ),
+          InertMenuOthers: ({ id }) =>
+            Dom.inertOthers(id, [buttonSelector(id), itemsSelector(id)]).pipe(
+              Effect.as(Message.CompletedInertMenuOthers()),
+            ),
+          RestoreMenuInert: ({ id }) =>
+            Dom.restoreInert(id).pipe(
+              Effect.as(Message.CompletedRestoreMenuInert()),
+            ),
+          FocusMenuItems: ({ id }) =>
+            Dom.focus(itemsSelector(id)).pipe(
+              Effect.ignore,
+              Effect.as(Message.CompletedFocusMenuItems()),
+            ),
+          FocusMenuButton: ({ id }) =>
+            Dom.focus(buttonSelector(id)).pipe(
+              Effect.ignore,
+              Effect.as(Message.CompletedFocusMenuButton()),
+            ),
+          ScrollMenuItemIntoView: ({ id, index }) =>
+            Dom.scrollIntoView(itemSelector(id, index)).pipe(
+              Effect.ignore,
+              Effect.as(Message.CompletedScrollMenuItemIntoView()),
+            ),
+          ClickMenuItem: ({ id, index }) =>
+            Dom.clickElement(itemSelector(id, index)).pipe(
+              Effect.ignore,
+              Effect.as(Message.CompletedClickMenuItem()),
+            ),
+          DelayClearMenuSearch: ({ version }) =>
+            Effect.sleep(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
+              Effect.as(Message.CompletedDelayClearMenuSearch({ version })),
+            ),
+          DetectMenuMovementOrAnimationEnd: ({ id, generation }) =>
+            Effect.raceFirst(
+              Dom.detectElementMovement(buttonSelector(id)).pipe(
+                Effect.as(
+                  Message.CompletedDetectMenuMovementOrAnimationEnd({
+                    generation,
+                  }),
+                ),
+              ),
+              Dom.waitForAnimationSettled(itemsSelector(id)).pipe(
+                Effect.as(
+                  Message.CompletedDetectMenuMovementOrAnimationEnd({
+                    generation,
+                  }),
+                ),
+              ),
+            ),
+        },
+
+        mounts: {
+          AnchorMenu: ({ element, buttonId, anchor }) =>
+            Effect.gen(function* () {
+              yield* Effect.acquireRelease(
+                Effect.sync(() =>
+                  anchorSetup(element, {
+                    buttonId,
+                    anchor,
+                    focusAfterPosition: true,
+                  }),
+                ),
+                cleanup => Effect.sync(cleanup),
+              )
+              return Message.CompletedAnchorMenu()
+            }),
+          PortalMenuBackdrop: ({ element }) =>
+            Effect.gen(function* () {
+              yield* Effect.acquireRelease(
+                Effect.sync(() => portalBackdrop(element)),
+                cleanup => Effect.sync(cleanup),
+              )
+              return Message.CompletedPortalMenuBackdrop()
+            }),
+        },
+
+        view: (model, h, viewInputs) =>
+          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+          menuView(model, h as unknown as MenuHtmlBuilder, viewInputs),
+      }
+    }),
+  ).pipe(Layer.provide(Animation.AnimationLive))
+
+  return Object.assign(MenuClass, { Live: MenuLive })
+}

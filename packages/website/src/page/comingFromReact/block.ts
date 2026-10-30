@@ -1,18 +1,32 @@
+import { Array, Effect, Record, pipe } from 'effect'
 import { Block } from 'foldkit'
 
-import { ComingFromReactComposition } from './composition'
-import { init } from './init'
-import type { Model } from './model'
-import { update } from './update'
-import { view } from './view'
+import { FAQ_IDS } from './faq'
+import { Message } from './message'
+import { Model } from './model'
+import { type ViewInputs, view } from './view'
 
-const prepare = () =>
-  ComingFromReactComposition.prepareBlock({
-    init,
-    update,
-    view,
-  })
-export const ComingFromReactBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export class ComingFromReact extends Block<ComingFromReact, void, ViewInputs>()(
+  'ComingFromReact',
+  { Model, Message },
+) {}
+
+export const ComingFromReactLive = ComingFromReact.make(
+  Effect.fn(function* () {
+    return {
+      model: pipe(
+        FAQ_IDS,
+        Array.map(id => [id, false] as const),
+        Record.fromEntries,
+      ),
+
+      update: {
+        ToggledFaq: (model, { id, isOpen }) => ({
+          model: Record.set(model, id, isOpen),
+        }),
+      },
+
+      view,
+    }
+  }),
+)

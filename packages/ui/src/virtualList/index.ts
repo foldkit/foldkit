@@ -1,5 +1,12 @@
 export {
   makeBlock,
+  informHistoryPrepended,
+  informItemsChanged,
+  requestScrollTo,
+  requestScrollToIndex,
+  requestScrollToKey,
+  requestScrollToOffset,
+  requestScrollToEnd,
   ScrollAlignment,
   ScrollTarget,
   ScrollContainer,
@@ -16,4 +23,5 @@ export {
   type ScrollToOptions,
   type ViewInputs,
   type Completed,
+  type Instance,
 } from './virtualList.js'

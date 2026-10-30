@@ -4,11 +4,11 @@ import {
   WaitBeforeReset,
 } from './commandInterruptible'
 
-const CancelWaitBeforeReset = WaitBeforeReset.Interrupt(outcome =>
+export const CancelWaitBeforeReset = WaitBeforeReset.Interrupt(outcome =>
   CounterMessage.CompletedCancelWaitBeforeReset({ outcome }),
 )
 
-const CancelUploadFile = (uploadId: number) =>
+export const CancelUploadFile = (uploadId: number) =>
   UploadFile.Interrupt({ uploadId }, outcome =>
     UploadMessage.CompletedCancelUploadFile({ uploadId, outcome }),
   )

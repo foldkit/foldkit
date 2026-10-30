@@ -171,7 +171,7 @@ When one Vite app build produces the client and server artifacts, the plugin gen
 
 ```typescript
 // src/entry.server.ts
-Server.renderToString(ApplicationBlock, { Flags }, { flags })
+Server.renderToString(Application, { layer: ApplicationLive, Flags }, { flags })
 
 // src/entry.ts
 Runtime.hydrate(program)

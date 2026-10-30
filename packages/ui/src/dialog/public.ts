@@ -1,5 +1,6 @@
 export {
-  DialogBlock,
+  Dialog,
+  DialogLive,
   titleId,
   descriptionId,
   initialFocusMarkerAttribute,
@@ -9,5 +10,5 @@ export {
   type RenderInfo,
 } from './index.js'
 
-/** Original Dialog Command Definitions for Story and Scene test resolution. */
+/** Dialog Command and Mount Definitions for Story and Scene test resolution. */
 export * as test from './test.js'

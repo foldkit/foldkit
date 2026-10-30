@@ -1,20 +1,118 @@
-import { Array, Effect, Layer, Option, Schema, String } from 'effect'
-import { Block, Runtime } from 'foldkit'
-import { Html } from 'foldkit/html'
+import { Array, Effect, Option, Schema, String, pipe } from 'effect'
+import { Block, Command, Route, Runtime } from 'foldkit'
+import type { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
-import { Transition } from 'foldkit/route'
+import {
+  Transition,
+  defineRouteUnion,
+  int,
+  literal,
+  slash,
+} from 'foldkit/route'
+import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
-import { Artwork, artworks, findArtwork } from './artwork'
-import {
-  ApplicationRoute,
-  artworkRouter,
-  galleryRouter,
-  urlToApplicationRoute,
-} from './route'
+const Artwork = Schema.Struct({
+  id: Schema.Number,
+  title: Schema.String,
+  medium: Schema.String,
+  description: Schema.String,
+  gradientClassName: Schema.String,
+})
+type Artwork = typeof Artwork.Type
 
-export { ApplicationRoute } from './route'
+const artworks: ReadonlyArray<Artwork> = [
+  {
+    id: 1,
+    title: 'Dawn Chorus',
+    medium: 'Gradient on canvas',
+    description:
+      'A warm wash of first light. The rose bleeds into amber the way a sunrise refuses a hard edge.',
+    gradientClassName: 'from-rose-400 to-amber-300',
+  },
+  {
+    id: 2,
+    title: 'Deep Water',
+    medium: 'Gradient on linen',
+    description:
+      'Open ocean past the shelf, where the blue stops describing depth and starts describing weight.',
+    gradientClassName: 'from-sky-500 to-indigo-700',
+  },
+  {
+    id: 3,
+    title: 'Moss Study',
+    medium: 'Gradient on paper',
+    description:
+      'Forest floor after a week of rain. Every green in the study is borrowed from something alive.',
+    gradientClassName: 'from-lime-400 to-emerald-600',
+  },
+  {
+    id: 4,
+    title: 'Violet Hour',
+    medium: 'Gradient on canvas',
+    description:
+      'The ten minutes after sunset when streetlights and sky briefly agree on a color.',
+    gradientClassName: 'from-purple-500 to-fuchsia-400',
+  },
+  {
+    id: 5,
+    title: 'Kiln',
+    medium: 'Gradient on steel',
+    description:
+      'Heat rendered literally. Orange at the mouth of the furnace, red where the eye gives up.',
+    gradientClassName: 'from-orange-500 to-red-600',
+  },
+  {
+    id: 6,
+    title: 'Glacier Milk',
+    medium: 'Gradient on linen',
+    description:
+      'Meltwater carries rock flour that turns whole rivers this improbable, chalky turquoise.',
+    gradientClassName: 'from-cyan-300 to-teal-500',
+  },
+  {
+    id: 7,
+    title: 'Graphite',
+    medium: 'Gradient on paper',
+    description:
+      'A monochrome argument that gray is not one color. Pencil shading scaled up to a weather system.',
+    gradientClassName: 'from-slate-400 to-zinc-700',
+  },
+  {
+    id: 8,
+    title: 'Pollen',
+    medium: 'Gradient on canvas',
+    description:
+      'Late spring in a single field. The yellow is loud on purpose; so is the season.',
+    gradientClassName: 'from-yellow-300 to-lime-500',
+  },
+]
+
+const findArtwork = (artworkId: number): Option.Option<Artwork> =>
+  Array.findFirst(artworks, artwork => artwork.id === artworkId)
+
+export const ApplicationRoute = defineRouteUnion({
+  Gallery: {},
+  Artwork: { artworkId: Schema.Number },
+  NotFound: { path: Schema.String },
+})
+export type ApplicationRoute = typeof ApplicationRoute.Type
+
+const galleryRouter = pipe(Route.root, Route.mapTo(ApplicationRoute.Gallery))
+
+const artworkRouter = pipe(
+  literal('artwork'),
+  slash(int('artworkId')),
+  Route.mapTo(ApplicationRoute.Artwork),
+)
+
+const routeParser = Route.oneOf(artworkRouter, galleryRouter)
+
+const urlToApplicationRoute = Route.parseUrlWithFallback(
+  routeParser,
+  ApplicationRoute.NotFound,
+)
 
 export const Model = Schema.Struct({
   route: ApplicationRoute,
@@ -31,79 +129,39 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = Block.makeDefinition('Application', {
-  Model,
-  Message,
-})
-
-const { makeFieldsStep, makeNoopStep } = ApplicationDefinition
-
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
-type ApplicationViewBuilder = Block.ViewBuilderFor<
-  typeof ApplicationComposition
->
-
-export const init = ApplicationComposition.makeInit((url: Url) => ({
-  model: Model.make({ route: urlToApplicationRoute(url), filterText: '' }),
-}))
-
-const NavigateInternal = ApplicationDefinition.makeCommand('NavigateInternal', {
+const NavigateInternal = Command.define('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
-  handler: function* () {
-    return ({ url }) =>
-      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
-  },
 })
 
-const LoadExternal = ApplicationDefinition.makeCommand('LoadExternal', {
+const LoadExternal = Command.define('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
-  handler: function* () {
-    return ({ href }) =>
-      load(href).pipe(Effect.as(Message.CompletedLoadExternal()))
+})
+
+export class Application extends Block<Application, Readonly<{ url: Url }>>()(
+  'Application',
+  {
+    Model,
+    Message,
+    Command: [NavigateInternal, LoadExternal],
   },
-})
+) {}
 
-export const EffectsLayer = Layer.mergeAll(
-  NavigateInternal.layer,
-  LoadExternal.layer,
-)
-
-export const update = ApplicationComposition.makeUpdate({
-  CompletedNavigateInternal: makeNoopStep(),
-  CompletedLoadExternal: makeNoopStep(),
-
-  ClickedLink: (model, { request }) =>
-    UrlRequest.match(request, {
-      Internal: ({ url }) => ({
-        model,
-        commands: [NavigateInternal({ url: urlToString(url) })],
-      }),
-      External: ({ href }) => ({
-        model,
-        commands: [LoadExternal({ href })],
-      }),
-    }),
-
-  ChangedUrl: makeFieldsStep.fromMessage(({ url }) => ({
-    route: () => urlToApplicationRoute(url),
-  })),
-
-  UpdatedFilterText: makeFieldsStep.fromMessage(({ filterText }) => ({
-    filterText: () => filterText,
-  })),
-})
+type ApplicationViewBuilder = HtmlBuilder<Message>
 
 // NOTE: every arm past the guard is a navigation, so none return `false`.
 // `true` is "animate, with no direction to declare": the root fade in
 // `styles.css` is not type-scoped, so an untyped transition still cross-fades,
 // it just does not slide.
-export const viewTransition: Runtime.ViewTransitionConfig<Model, Message> = ({
+export const decideViewTransition = ({
   previousModel,
   model,
   message,
-}) => {
+}: Runtime.ViewTransitionContext<
+  Model,
+  Message
+>): Runtime.ViewTransitionDecision => {
   if (message._tag !== 'ChangedUrl') {
     return false
   }
@@ -118,6 +176,26 @@ export const viewTransition: Runtime.ViewTransitionConfig<Model, Message> = ({
       NotFound: () => true,
     }),
   })
+}
+
+const isApplication = Schema.is(Application)
+
+// NOTE: the runtime hands the predicate the root Application instances, so the
+// decision reads the Model each instance holds.
+export const viewTransition: Runtime.ViewTransitionConfig<unknown, Message> = ({
+  previousModel,
+  model,
+  message,
+}) => {
+  if (isApplication(previousModel) && isApplication(model)) {
+    return decideViewTransition({
+      previousModel: previousModel.model,
+      model: model.model,
+      message,
+    })
+  } else {
+    return false
+  }
 }
 
 const transitionNameFor = (artworkId: number): string => `artwork-${artworkId}`
@@ -309,7 +387,7 @@ const routeTitle = (route: ApplicationRoute): string =>
     NotFound: () => 'Page Not Found | View Transitions',
   })
 
-export const view = ApplicationComposition.makeView((model, h) => {
+const view = (model: Model, h: ApplicationViewBuilder): Document => {
   const routeContent = ApplicationRoute.match(model.route, {
     Gallery: () => galleryView(model.filterText, h),
     Artwork: ({ artworkId }) => artworkDetailView(artworkId, h),
@@ -350,16 +428,50 @@ export const view = ApplicationComposition.makeView((model, h) => {
       ],
     ),
   }
-})
+}
 
-const prepare = () =>
-  ApplicationComposition.prepareBlock({
-    init,
-    update,
-    view,
-    EffectsLayer,
-  })
-export const ApplicationBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof prepare
-> = Block.assemble(prepare)
+export const ApplicationLive = Application.make(
+  Effect.fn(function* (_id, { url }) {
+    return {
+      model: { route: urlToApplicationRoute(url), filterText: '' },
+
+      update: {
+        CompletedNavigateInternal: model => ({ model }),
+        CompletedLoadExternal: model => ({ model }),
+
+        ClickedLink: (model, { request }) =>
+          UrlRequest.match(request, {
+            Internal: ({ url: internalUrl }) => ({
+              model,
+              commands: [NavigateInternal({ url: urlToString(internalUrl) })],
+            }),
+            External: ({ href }) => ({
+              model,
+              commands: [LoadExternal({ href })],
+            }),
+          }),
+
+        ChangedUrl: (model, { url: nextUrl }) => ({
+          model: modifyFields(model, {
+            route: () => urlToApplicationRoute(nextUrl),
+          }),
+        }),
+
+        UpdatedFilterText: (model, { filterText }) => ({
+          model: modifyFields(model, { filterText: () => filterText }),
+        }),
+      },
+
+      commands: {
+        NavigateInternal: ({ url: internalUrl }) =>
+          pushUrl(internalUrl).pipe(
+            Effect.as(Message.CompletedNavigateInternal()),
+          ),
+        LoadExternal: ({ href }) =>
+          load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+      },
+
+      view,
+    }
+  }),
+)

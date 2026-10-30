@@ -1,94 +1,64 @@
-import { Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Block, Program, Runtime } from 'foldkit'
 import { afterEach, expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import { PopoverBlock } from './block.js'
+import { Popover, PopoverLive } from './block.js'
 
-const Model = Schema.Struct({ popover: PopoverBlock.Model })
-type Model = typeof Model.Type
-const PopoverTriggerClickTestDefinition = Block.makeDefinition(
+class PopoverTriggerClickTest extends Block<PopoverTriggerClickTest>()(
   'PopoverTriggerClickTest',
   {
-    Model,
-    Message: Schema.Never,
+    Model: Schema.Struct({ popover: Popover }),
   },
-)
-const foldPopoverOutMessage =
-  PopoverTriggerClickTestDefinition.makeOutMessageFold(PopoverBlock, {
-    Opened: () => PopoverTriggerClickTestDefinition.makeNoopStep(),
-    Closed: () => PopoverTriggerClickTestDefinition.makeNoopStep(),
-  })
-const PopoverBinding = PopoverTriggerClickTestDefinition.makeBinding(
-  PopoverBlock,
-  {
-    field: 'popover',
-    init: false,
-  },
-).withOutMessagePolicy({ fold: foldPopoverOutMessage })
-const PopoverTriggerClickTestComposition =
-  PopoverTriggerClickTestDefinition.makeComposition({
-    bindings: [PopoverBinding],
-  })
-const view = PopoverTriggerClickTestComposition.makeView((model, h) =>
-  h.div(
-    [],
-    [
-      h.block(
-        PopoverBinding.embedView({
-          slotId: 'popover',
-          model: model.popover,
-          viewInputs: {
-            anchor: { placement: 'bottom-start' },
-            toView: ({ button, panel, backdrop, isVisible }) =>
-              h.div(
-                [],
-                [
-                  h.button([...button], ['Sort']),
-                  ...(isVisible
-                    ? [
-                        h.div([...backdrop]),
-                        h.div(
-                          [...panel],
-                          [
-                            h.button(
-                              [h.Id('item'), h.Type('button')],
-                              ['Name'],
+) {}
+
+const makePopoverTriggerClickTestLive = (isModal: boolean) =>
+  PopoverTriggerClickTest.make(
+    Effect.fn(function* () {
+      const popover = yield* new Popover('popover', { id: 'sort', isModal })
+
+      return {
+        model: { popover },
+        view: (model, h) =>
+          h.div(
+            [],
+            [
+              model.popover.view({
+                anchor: { placement: 'bottom-start' },
+                toView: ({ button, panel, backdrop, isVisible }) =>
+                  h.div(
+                    [],
+                    [
+                      h.button([...button], ['Sort']),
+                      ...(isVisible
+                        ? [
+                            h.div([...backdrop]),
+                            h.div(
+                              [...panel],
+                              [
+                                h.button(
+                                  [h.Id('item'), h.Type('button')],
+                                  ['Name'],
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ]
-                    : []),
-                ],
-              ),
-          },
-        }),
-      ),
-    ],
-  ),
-)
+                          ]
+                        : []),
+                    ],
+                  ),
+              }),
+            ],
+          ),
+      }
+    }),
+  ).pipe(Layer.provide(PopoverLive))
 
-const makeProgram = (container: HTMLElement, isModal: boolean) => {
-  const prepare = () =>
-    PopoverTriggerClickTestComposition.prepareBlock({
-      init: PopoverTriggerClickTestComposition.makeInit(() =>
-        PopoverBinding.init({
-          args: [{ id: 'sort', isModal }],
-          toParentModel: popover => ({ popover }),
-        }),
-      ),
-      update: PopoverTriggerClickTestComposition.makeUpdate({}),
-      view,
-    })
-  const block: Block.FromAssemblyWithView<typeof Model, typeof prepare> =
-    Block.assemble(prepare)
-
-  return Program.makeElement({
-    block,
+const makeProgram = (container: HTMLElement, isModal: boolean) =>
+  Program.makeElement(PopoverTriggerClickTest, {
+    layer: makePopoverTriggerClickTestLive(isModal),
     container,
   })
-}
 
 const requireElement = (id: string): HTMLElement => {
   const element = document.getElementById(id)

@@ -1,8 +1,9 @@
+import { Layer } from 'effect'
+import { Http } from 'foldkit'
 import {
   Command,
   click,
   expect,
-  given,
   inside,
   label,
   role,
@@ -10,28 +11,39 @@ import {
   text,
   type,
 } from 'foldkit/scene'
-import { test } from 'vitest'
 
-test('type a zip code, click get weather, see the forecast', () => {
+import { it } from '@effect/vitest'
+
+import { ApplicationLive, FetchWeather, Message, type Weather } from './weather'
+
+const application = ApplicationLive.pipe(Layer.provide(Http.layer))
+
+const beverlyHills: Weather = {
+  locationName: 'Beverly Hills',
+  region: 'California',
+  temperature: 72,
+  description: 'Clear sky',
+}
+
+it.effect('type a zip code, click Get Weather, see the forecast', () =>
   scene(
-    { update, view },
-    given(model),
+    application,
 
     type(label('Zip code'), '90210'),
     click(role('button', { name: 'Get Weather' })),
     expect(role('button', { name: 'Loading...' })).toExist(),
 
-    // Instance form: locks in the zipCode the runtime captured.
     Command.expectExact(FetchWeather({ zipCode: '90210' })),
     Command.resolve(
       FetchWeather,
-      SucceededFetchWeather({ weather: beverlyHillsWeather }),
+      Message.SucceededFetchWeather({ weather: beverlyHills }),
     ),
+
     inside(
       role('article'),
       expect(text('Beverly Hills, California')).toExist(),
-      expect(text('72\u00B0F')).toExist(),
+      expect(text('72°F')).toExist(),
       expect(text('Clear sky')).toExist(),
     ),
-  )
-})
+  ),
+)

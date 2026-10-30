@@ -1,12 +1,9 @@
 import { Context, Effect, Layer, Schema } from 'effect'
 import { expectTypeOf, it } from 'vitest'
 
-import type { Scoped } from '../block/scope.js'
 import * as Command from '../command/index.js'
-import type { Handler as ManagedResourceHandler } from '../managedResource/handler.js'
 import { defineMessageUnion } from '../message/index.js'
 import type { Handler as MountHandler } from '../mount/handler.js'
-import type { Handler as SubscriptionHandler } from '../subscription/handler.js'
 import * as Application from './application.js'
 import type { ValidHandlerContracts } from './handlerContracts.js'
 import { run } from './start.js'
@@ -76,22 +73,8 @@ type ScaleKey =
 
 type ScaledHandlerContracts = {
   readonly [Key in ScaleKey]:
-    | Scoped<
-        `child-${Key}`,
-        Command.Handler<'Load', Readonly<{ id: Key }>, Message>
-      >
-    | Scoped<
-        `child-${Key}`,
-        SubscriptionHandler<'Observe', Readonly<{ id: Key }>, Message>
-      >
-    | Scoped<
-        `child-${Key}`,
-        MountHandler<'Attach', Readonly<{ id: Key }>, Message>
-      >
-    | Scoped<
-        `child-${Key}`,
-        ManagedResourceHandler<'Open', Readonly<{ id: Key }>, Key>
-      >
+    | Command.Handler<`Load-${Key}`, Readonly<{ id: Key }>, Message>
+    | MountHandler<`Attach-${Key}`, Readonly<{ id: Key }>, Message>
 }[ScaleKey]
 
 it('groups exact handler contracts by primitive and name', () => {
@@ -105,14 +88,6 @@ it('groups exact handler contracts by primitive and name', () => {
   >()
   expectTypeOf<
     ValidHandlerContracts<
-      | SubscriptionHandler<'Ticks', string, string>
-      | SubscriptionHandler<'Ticks', string, number>
-    >
-  >().toEqualTypeOf<
-    Readonly<{ 'Conflicting Foldkit handler contracts': 'Subscription/Ticks' }>
-  >()
-  expectTypeOf<
-    ValidHandlerContracts<
       | MountHandler<'Focus', string, string>
       | MountHandler<'Focus', number, string>
     >
@@ -121,22 +96,10 @@ it('groups exact handler contracts by primitive and name', () => {
   >()
   expectTypeOf<
     ValidHandlerContracts<
-      | ManagedResourceHandler<'Session', string, string>
-      | ManagedResourceHandler<'Session', string, number>
-    >
-  >().toEqualTypeOf<
-    Readonly<{
-      'Conflicting Foldkit handler contracts': 'ManagedResource/Session'
-    }>
-  >()
-  expectTypeOf<
-    ValidHandlerContracts<
       | Cache
       | Command.Handler<'Read', string, string>
       | Command.Handler<'Write', string, string>
-      | SubscriptionHandler<'Read', number, string>
       | MountHandler<'Read', number, string>
-      | ManagedResourceHandler<'Read', number, string>
     >
   >().toEqualTypeOf<unknown>()
   expectTypeOf<
@@ -188,20 +151,6 @@ it('retains exact collision checks within literal and generic handler keys', () 
     >
   >().toEqualTypeOf<
     Readonly<{ 'Conflicting Foldkit handler contracts': 'Command/Read' }>
-  >()
-  expectTypeOf<
-    ValidHandlerContracts<
-      | Scoped<'First', Command.Handler<'Read', string, string>>
-      | Scoped<'Second', Command.Handler<'Read', number, string>>
-    >
-  >().toEqualTypeOf<unknown>()
-  expectTypeOf<
-    ValidHandlerContracts<
-      | Scoped<'First', Command.Handler<'Read', string, string>>
-      | Scoped<'First', Command.Handler<'Read', number, string>>
-    >
-  >().toEqualTypeOf<
-    Readonly<{ 'Conflicting Foldkit handler contracts': 'First/Command/Read' }>
   >()
 })
 
