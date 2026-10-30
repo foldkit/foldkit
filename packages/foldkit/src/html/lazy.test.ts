@@ -1,5 +1,5 @@
 import { Context } from 'effect'
-import { afterEach, beforeEach, expect } from 'vitest'
+import { afterEach, beforeEach, expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
@@ -9,8 +9,10 @@ import { h } from '../snabbdom/index.js'
 import { type VNode, dedupeSharedVNodes, memoizedVNodes } from '../vdom.js'
 import {
   type BoundaryRegistry,
+  abandonRender,
   beginRender,
   createBoundaryRegistry,
+  endRender,
 } from './boundary.js'
 import {
   type LazyResolution,
@@ -172,30 +174,22 @@ describe('createLazy', () => {
   })
 
   it('calls the view function on first render', () => {
-    let callCount = 0
-    const viewFn = (label: string) => {
-      callCount++
-      return h('div', {}, [label])
-    }
+    const viewFn = vi.fn((label: string) => h('div', {}, [label]))
 
     const lazy = createLazy()
     lazy(viewFn, ['hello'])
 
-    expect(callCount).toBe(1)
+    expect(viewFn).toHaveBeenCalledOnce()
   })
 
   it('returns cached VNode when function and args are the same reference', () => {
-    let callCount = 0
-    const viewFn = (label: string) => {
-      callCount++
-      return h('div', {}, [label])
-    }
+    const viewFn = vi.fn((label: string) => h('div', {}, [label]))
 
     const lazy = createLazy()
     const firstVNode = lazy(viewFn, ['hello'])
     const secondVNode = lazy(viewFn, ['hello'])
 
-    expect(callCount).toBe(1)
+    expect(viewFn).toHaveBeenCalledOnce()
     expect(secondVNode).toBe(firstVNode)
   })
 
@@ -216,128 +210,102 @@ describe('createLazy', () => {
   })
 
   it('recomputes when args change by reference', () => {
-    let callCount = 0
-    const viewFn = (count: number) => {
-      callCount++
-      return h('div', {}, [`count: ${count}`])
-    }
+    const viewFn = vi.fn((count: number) => h('div', {}, [`count: ${count}`]))
 
     const lazy = createLazy()
     const firstVNode = lazy(viewFn, [1])
     const secondVNode = lazy(viewFn, [2])
 
-    expect(callCount).toBe(2)
+    expect(viewFn).toHaveBeenCalledTimes(2)
     expect(secondVNode).not.toBe(firstVNode)
   })
 
   it('recomputes when function reference changes', () => {
-    let callCount = 0
-    const makeViewFn = () => (label: string) => {
-      callCount++
-      return h('div', {}, [label])
-    }
+    const firstViewFn = vi.fn((label: string) => h('div', {}, [label]))
+    const secondViewFn = vi.fn((label: string) => h('div', {}, [label]))
 
     const lazy = createLazy()
-    lazy(makeViewFn(), ['hello'])
-    lazy(makeViewFn(), ['hello'])
+    lazy(firstViewFn, ['hello'])
+    lazy(secondViewFn, ['hello'])
 
-    expect(callCount).toBe(2)
+    expect(firstViewFn).toHaveBeenCalledOnce()
+    expect(secondViewFn).toHaveBeenCalledOnce()
   })
 
   it('returns cached VNode when multiple args are the same reference', () => {
-    let callCount = 0
-    const viewFn = (label: string, count: number) => {
-      callCount++
-      return h('div', {}, [`${label}: ${count}`])
-    }
+    const viewFn = vi.fn((label: string, count: number) =>
+      h('div', {}, [`${label}: ${count}`]),
+    )
 
     const lazy = createLazy()
     lazy(viewFn, ['hello', 42])
     lazy(viewFn, ['hello', 42])
 
-    expect(callCount).toBe(1)
+    expect(viewFn).toHaveBeenCalledOnce()
   })
 
   it('recomputes when any arg in the array changes', () => {
-    let callCount = 0
-    const viewFn = (label: string, count: number) => {
-      callCount++
-      return h('div', {}, [`${label}: ${count}`])
-    }
+    const viewFn = vi.fn((label: string, count: number) =>
+      h('div', {}, [`${label}: ${count}`]),
+    )
 
     const lazy = createLazy()
     lazy(viewFn, ['hello', 1])
     lazy(viewFn, ['hello', 2])
 
-    expect(callCount).toBe(2)
+    expect(viewFn).toHaveBeenCalledTimes(2)
   })
 
   it('uses referential equality for object args', () => {
-    let callCount = 0
-    const viewFn = (model: Readonly<{ value: number }>) => {
-      callCount++
-      return h('div', {}, [`${model.value}`])
-    }
+    const viewFn = vi.fn((model: Readonly<{ value: number }>) =>
+      h('div', {}, [`${model.value}`]),
+    )
 
     const model = { value: 1 }
     const lazy = createLazy()
     lazy(viewFn, [model])
     lazy(viewFn, [model])
 
-    expect(callCount).toBe(1)
+    expect(viewFn).toHaveBeenCalledOnce()
   })
 
   it('recomputes when object arg is a new reference with same value', () => {
-    let callCount = 0
-    const viewFn = (model: Readonly<{ value: number }>) => {
-      callCount++
-      return h('div', {}, [`${model.value}`])
-    }
+    const viewFn = vi.fn((model: Readonly<{ value: number }>) =>
+      h('div', {}, [`${model.value}`]),
+    )
 
     const lazy = createLazy()
     lazy(viewFn, [{ value: 1 }])
     lazy(viewFn, [{ value: 1 }])
 
-    expect(callCount).toBe(2)
+    expect(viewFn).toHaveBeenCalledTimes(2)
   })
 
   it('independent lazy instances do not share cache', () => {
-    let callCount = 0
-    const viewFn = (label: string) => {
-      callCount++
-      return h('div', {}, [label])
-    }
+    const viewFn = vi.fn((label: string) => h('div', {}, [label]))
 
     const lazyA = createLazy()
     const lazyB = createLazy()
     lazyA(viewFn, ['hello'])
     lazyB(viewFn, ['hello'])
 
-    expect(callCount).toBe(2)
+    expect(viewFn).toHaveBeenCalledTimes(2)
   })
 
   it('handles null VNode from view function', () => {
-    let callCount = 0
-    const viewFn = () => {
-      callCount++
-      return null
-    }
+    const viewFn = vi.fn(() => null)
 
     const lazy = createLazy()
     const firstResult = lazy(viewFn, [])
     const secondResult = lazy(viewFn, [])
 
-    expect(callCount).toBe(1)
+    expect(viewFn).toHaveBeenCalledOnce()
     expect(firstResult).toBeNull()
     expect(secondResult).toBeNull()
   })
 
   it('recomputes when dispatch changes between renders', () => {
-    let callCount = 0
-    const viewFn = (label: string) => {
-      callCount++
-      return h('div', {}, [label])
-    }
+    const viewFn = vi.fn((label: string) => h('div', {}, [label]))
 
     const otherDispatchSync: DispatchSync = () => {}
     const otherContext = Context.make(Dispatch, noOpDispatchService).pipe(
@@ -353,15 +321,11 @@ describe('createLazy', () => {
     setRuntime(otherDispatchSync, otherContext)
     lazy(viewFn, ['hello'])
 
-    expect(callCount).toBe(2)
+    expect(viewFn).toHaveBeenCalledTimes(2)
   })
 
   it('recomputes when Mount render ownership changes with the same dispatch', () => {
-    let callCount = 0
-    const viewFn = (label: string) => {
-      callCount++
-      return h('div', {}, [label])
-    }
+    const viewFn = vi.fn((label: string) => h('div', {}, [label]))
 
     const lazy = createLazy()
     lazy(viewFn, ['hello'])
@@ -369,7 +333,7 @@ describe('createLazy', () => {
     setRuntime(noOpDispatchSync, noOpContext, undefined, 'Replay')
     lazy(viewFn, ['hello'])
 
-    expect(callCount).toBe(2)
+    expect(viewFn).toHaveBeenCalledTimes(2)
   })
 })
 
@@ -382,25 +346,17 @@ describe('createKeyedLazy', () => {
   })
 
   it('calls the view function on first render for each key', () => {
-    let callCount = 0
-    const viewFn = (label: string) => {
-      callCount++
-      return h('div', {}, [label])
-    }
+    const viewFn = vi.fn((label: string) => h('div', {}, [label]))
 
     const lazy = createKeyedLazy()
     lazy('a', viewFn, ['hello'])
     lazy('b', viewFn, ['world'])
 
-    expect(callCount).toBe(2)
+    expect(viewFn).toHaveBeenCalledTimes(2)
   })
 
   it('caches independently per key', () => {
-    let callCount = 0
-    const viewFn = (label: string) => {
-      callCount++
-      return h('div', {}, [label])
-    }
+    const viewFn = vi.fn((label: string) => h('div', {}, [label]))
 
     const lazy = createKeyedLazy()
     lazy('a', viewFn, ['hello'])
@@ -408,15 +364,11 @@ describe('createKeyedLazy', () => {
     lazy('a', viewFn, ['hello'])
     lazy('b', viewFn, ['world'])
 
-    expect(callCount).toBe(2)
+    expect(viewFn).toHaveBeenCalledTimes(2)
   })
 
   it('caches PropertyKeys by identity', () => {
-    let callCount = 0
-    const viewFn = (label: string) => {
-      callCount++
-      return h('div', {}, [label])
-    }
+    const viewFn = vi.fn((label: string) => h('div', {}, [label]))
 
     const firstSymbol = Symbol('1')
     const secondSymbol = Symbol('1')
@@ -430,15 +382,11 @@ describe('createKeyedLazy', () => {
     lazy(firstSymbol, viewFn, ['first symbol'])
     lazy(secondSymbol, viewFn, ['second symbol'])
 
-    expect(callCount).toBe(4)
+    expect(viewFn).toHaveBeenCalledTimes(4)
   })
 
   it('recomputes only the key whose args changed', () => {
-    const calls: Array<string> = []
-    const viewFn = (label: string) => {
-      calls.push(label)
-      return h('div', {}, [label])
-    }
+    const viewFn = vi.fn((label: string) => h('div', {}, [label]))
 
     const lazy = createKeyedLazy()
     lazy('a', viewFn, ['hello'])
@@ -446,7 +394,10 @@ describe('createKeyedLazy', () => {
     lazy('a', viewFn, ['hello'])
     lazy('b', viewFn, ['changed'])
 
-    expect(calls).toStrictEqual(['hello', 'world', 'changed'])
+    expect(viewFn).toHaveBeenCalledTimes(3)
+    expect(viewFn).toHaveBeenNthCalledWith(1, 'hello')
+    expect(viewFn).toHaveBeenNthCalledWith(2, 'world')
+    expect(viewFn).toHaveBeenNthCalledWith(3, 'changed')
   })
 
   it('returns cached VNode reference on cache hit', () => {
@@ -469,12 +420,124 @@ describe('createKeyedLazy', () => {
     expect(second).not.toBe(first)
   })
 
+  it('retains an absent key when eviction is None', () => {
+    const viewFn = vi.fn((label: string) => h('div', {}, [label]))
+
+    const registry = createBoundaryRegistry()
+    clearRuntime()
+    setRuntime(noOpDispatchSync, noOpContext, registry)
+    const lazy = createKeyedLazy({ evict: 'None' })
+
+    beginRender(registry)
+    lazy('a', viewFn, ['hello'])
+    lazy('b', viewFn, ['world'])
+    endRender(registry)
+
+    beginRender(registry)
+    lazy('a', viewFn, ['hello'])
+    endRender(registry)
+    lazy('b', viewFn, ['world'])
+
+    expect(viewFn).toHaveBeenCalledTimes(2)
+  })
+
+  it('drops a key the latest render did not call when eviction is AbsentFromRender', () => {
+    const viewFn = vi.fn((label: string) => h('div', {}, [label]))
+
+    const registry = createBoundaryRegistry()
+    clearRuntime()
+    setRuntime(noOpDispatchSync, noOpContext, registry)
+    const lazy = createKeyedLazy({ evict: 'AbsentFromRender' })
+
+    beginRender(registry)
+    const first = lazy('a', viewFn, ['hello'])
+    const kept = lazy('b', viewFn, ['world'])
+    endRender(registry)
+
+    beginRender(registry)
+    expect(lazy('b', viewFn, ['world'])).toBe(kept)
+    endRender(registry)
+
+    beginRender(registry)
+    const again = lazy('a', viewFn, ['hello'])
+    endRender(registry)
+
+    expect(again).not.toBe(first)
+    expect(viewFn).toHaveBeenCalledTimes(3)
+  })
+
+  it('releases the DOM element stored on a VNode when its key is dropped', () => {
+    const viewFn = (label: string) => h('div', {}, [label])
+    const registry = createBoundaryRegistry()
+    clearRuntime()
+    setRuntime(noOpDispatchSync, noOpContext, registry)
+    const lazy = createKeyedLazy()
+
+    beginRender(registry)
+    const first = lazy('a', viewFn, ['hello'])
+    first!.elm = document.createElement('div')
+    endRender(registry)
+
+    beginRender(registry)
+    lazy('b', viewFn, ['world'])
+    endRender(registry)
+
+    beginRender(registry)
+    const again = lazy('a', viewFn, ['hello'])
+    endRender(registry)
+
+    expect(again).not.toBe(first)
+    expect(again?.elm).toBeUndefined()
+  })
+
+  it('drops every key when a later render never calls the lazy', () => {
+    const viewFn = vi.fn((label: string) => h('div', {}, [label]))
+
+    const registry = createBoundaryRegistry()
+    clearRuntime()
+    setRuntime(noOpDispatchSync, noOpContext, registry)
+    const lazy = createKeyedLazy()
+
+    beginRender(registry)
+    lazy('a', viewFn, ['hello'])
+    endRender(registry)
+
+    beginRender(registry)
+    endRender(registry)
+
+    beginRender(registry)
+    lazy('a', viewFn, ['hello'])
+    endRender(registry)
+
+    expect(viewFn).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps unvisited keys when the render is abandoned', () => {
+    const viewFn = vi.fn((label: string) => h('div', {}, [label]))
+
+    const registry = createBoundaryRegistry()
+    clearRuntime()
+    setRuntime(noOpDispatchSync, noOpContext, registry)
+    const lazy = createKeyedLazy()
+
+    beginRender(registry)
+    lazy('a', viewFn, ['hello'])
+    lazy('b', viewFn, ['world'])
+    endRender(registry)
+
+    beginRender(registry)
+    lazy('a', viewFn, ['hello'])
+    abandonRender(registry)
+
+    beginRender(registry)
+    lazy('b', viewFn, ['world'])
+    endRender(registry)
+
+    expect(viewFn).toHaveBeenCalledTimes(2)
+  })
+
   it('recomputes when dispatch changes between renders', () => {
-    let callCount = 0
-    const viewFn = (label: string) => {
-      callCount++
-      return h('div', {}, [label])
-    }
+    const viewFn = vi.fn((label: string) => h('div', {}, [label]))
 
     const otherDispatchSync: DispatchSync = () => {}
     const otherContext = Context.make(Dispatch, noOpDispatchService).pipe(
@@ -490,7 +553,7 @@ describe('createKeyedLazy', () => {
     setRuntime(otherDispatchSync, otherContext)
     lazy('a', viewFn, ['hello'])
 
-    expect(callCount).toBe(2)
+    expect(viewFn).toHaveBeenCalledTimes(2)
   })
 })
 

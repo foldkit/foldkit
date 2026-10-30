@@ -44,6 +44,17 @@ export type TrackedBoundaryWrap = Readonly<{
   mountOuterDispatch: DispatchSync
 }>
 
+/** @internal Operations on one runtime's render-scoped keyed cache. */
+export type KeyedLazyRenderState = Readonly<{
+  keys: () => Iterable<PropertyKey>
+  delete: (key: PropertyKey) => void
+  clear: () => void
+  isEmpty: () => boolean
+}>
+
+/** @internal Nested keyed-cache uses captured by a memoized view. */
+export type KeyedLazyUsages = Map<KeyedLazyRenderState, Set<PropertyKey>>
+
 export const ROOT_BOUNDARY: BoundaryId = ''
 
 export const composeBoundary = (
@@ -130,6 +141,9 @@ export type BoundaryRegistry = {
   readonly mountWrapOwners: Map<BoundaryId, Set<DispatchSync>>
   readonly seenThisRender: Map<BoundaryId, string>
   readonly lazyTrackingStack: Array<Map<BoundaryId, TrackedBoundaryWrap>>
+  readonly keyedLazyStates: KeyedLazyUsages
+  readonly keyedLazyTrackingStack: Array<KeyedLazyUsages>
+  renderTransaction: BoundaryWrapTransaction | undefined
   readonly boundaryWrapTransactionLog: Array<BoundaryWrapTransactionEntry>
   activeBoundaryWrapTransaction: BoundaryWrapTransaction | undefined
   // NOTE: per-render set of VNode objects already placed in the tree, shared
@@ -145,6 +159,9 @@ export const createBoundaryRegistry = (): BoundaryRegistry => ({
   mountWrapOwners: new Map(),
   seenThisRender: new Map(),
   lazyTrackingStack: [],
+  keyedLazyStates: new Map(),
+  keyedLazyTrackingStack: [],
+  renderTransaction: undefined,
   boundaryWrapTransactionLog: [],
   activeBoundaryWrapTransaction: undefined,
   dedupeSeen: new Set(),
@@ -252,10 +269,42 @@ const writeBoundaryWrap = (
     registry.mountWrapOwners.set(boundaryId, mountWrapOwners)
   }
   mountWrapOwners.add(mountOuterDispatch)
-  registry.seenThisRender.set(boundaryId, callSite)
+  markBoundarySeen(registry, boundaryId, callSite)
   for (const tracked of registry.lazyTrackingStack) {
-    tracked.set(boundaryId, { callSite, descriptor, mountOuterDispatch })
+    trackBoundaryWrap(registry, tracked, boundaryId, {
+      callSite,
+      descriptor,
+      mountOuterDispatch,
+    })
   }
+}
+
+const markBoundarySeen = (
+  registry: BoundaryRegistry,
+  boundaryId: BoundaryId,
+  callSite: string,
+): void => {
+  registry.seenThisRender.set(boundaryId, callSite)
+  registerBoundaryWrapTransactionRollback(registry, undefined, () => {
+    registry.seenThisRender.delete(boundaryId)
+  })
+}
+
+const trackBoundaryWrap = (
+  registry: BoundaryRegistry,
+  tracked: Map<BoundaryId, TrackedBoundaryWrap>,
+  boundaryId: BoundaryId,
+  value: TrackedBoundaryWrap,
+): void => {
+  const previous = tracked.get(boundaryId)
+  tracked.set(boundaryId, value)
+  registerBoundaryWrapTransactionRollback(registry, previous, restored => {
+    if (restored === undefined) {
+      tracked.delete(boundaryId)
+    } else {
+      tracked.set(boundaryId, restored)
+    }
+  })
 }
 
 /** Starts capturing boundary registrations on a fresh set pushed onto
@@ -284,6 +333,73 @@ export const endLazyTracking = (registry: BoundaryRegistry): void => {
   registry.lazyTrackingStack.pop()
 }
 
+/** @internal Captures nested render-scoped cache uses while a lazy runs. */
+export const beginKeyedLazyTracking = (
+  registry: BoundaryRegistry,
+): KeyedLazyUsages => {
+  const usages: KeyedLazyUsages = new Map()
+  registry.keyedLazyTrackingStack.push(usages)
+  return usages
+}
+
+/** @internal Ends the matching nested keyed-cache tracking scope. */
+export const endKeyedLazyTracking = (registry: BoundaryRegistry): void => {
+  if (registry.keyedLazyTrackingStack.length === 0) {
+    throw new Error('Foldkit: keyed lazy tracking scopes must end in order.')
+  }
+
+  registry.keyedLazyTrackingStack.pop()
+}
+
+const recordKeyedLazyUsage = (
+  registry: BoundaryRegistry,
+  usages: KeyedLazyUsages,
+  state: KeyedLazyRenderState,
+  key: PropertyKey,
+): void => {
+  const previousKeys = usages.get(state)
+  const keys = previousKeys ?? new Set<PropertyKey>()
+
+  if (keys.has(key)) {
+    return
+  }
+
+  usages.set(state, keys)
+  keys.add(key)
+  registerBoundaryWrapTransactionRollback(registry, undefined, () => {
+    keys.delete(key)
+
+    if (keys.size === 0 && previousKeys === undefined) {
+      usages.delete(state)
+    }
+  })
+}
+
+/** @internal Marks a keyed entry and forwards its use into enclosing lazies. */
+export const trackKeyedLazyUsage = (
+  registry: BoundaryRegistry,
+  state: KeyedLazyRenderState,
+  key: PropertyKey,
+): void => {
+  recordKeyedLazyUsage(registry, registry.keyedLazyStates, state, key)
+
+  for (const usages of registry.keyedLazyTrackingStack) {
+    recordKeyedLazyUsage(registry, usages, state, key)
+  }
+}
+
+/** @internal Replays nested keyed uses when an enclosing view is cached. */
+export const restoreKeyedLazyUsages = (
+  registry: BoundaryRegistry,
+  usages: KeyedLazyUsages,
+): void => {
+  for (const [state, keys] of usages) {
+    for (const key of keys) {
+      trackKeyedLazyUsage(registry, state, key)
+    }
+  }
+}
+
 /** Restores boundary registrations captured during a previous lazy run and
  *  replays their ids into `seenThisRender` so the duplicate-slotId guard sees
  *  them. Also forwards them into active tracking maps so an outer lazy
@@ -301,10 +417,10 @@ export const restoreBoundaryWrapsForLazyHit = (
     const { callSite, descriptor, mountOuterDispatch } = trackedBoundary
     assertBoundaryNotSeen(registry, boundaryId)
 
-    registry.seenThisRender.set(boundaryId, callSite)
+    markBoundarySeen(registry, boundaryId, callSite)
     for (const outerTracked of registry.lazyTrackingStack) {
       if (!outerTracked.has(boundaryId)) {
-        outerTracked.set(boundaryId, trackedBoundary)
+        trackBoundaryWrap(registry, outerTracked, boundaryId, trackedBoundary)
       }
     }
 
@@ -753,12 +869,65 @@ export const resolveMountBoundaryDispatch = (
   return dispatch
 }
 
-/** Called at the start of each top-level render. Clears the
- *  per-render duplicate-slotId tracking map so siblings inside the
- *  same parent boundary can be re-validated. Does not touch the wrap
- *  or dispatcher tables. Those persist across renders and are evicted
- *  by VNode `postdestroy` hooks instead. */
+/** Starts one top-level view pass without changing registered boundaries. */
 export const beginRender = (registry: BoundaryRegistry): void => {
   registry.seenThisRender.clear()
   registry.dedupeSeen.clear()
+
+  for (const keys of registry.keyedLazyStates.values()) {
+    keys.clear()
+  }
+}
+
+/** @internal Starts a view pass whose cache writes can be rolled back. */
+export const beginRenderTransaction = (registry: BoundaryRegistry): void => {
+  if (registry.renderTransaction !== undefined) {
+    throw new Error('Foldkit: the previous render transaction has not ended.')
+  }
+
+  beginRender(registry)
+  registry.renderTransaction = beginBoundaryWrapTransaction(registry)
+}
+
+/** Commits a completed render and releases unused keyed-cache entries. */
+export const endRender = (registry: BoundaryRegistry): void => {
+  const transaction = registry.renderTransaction
+
+  if (transaction !== undefined) {
+    commitBoundaryWrapTransaction(registry, transaction)
+    registry.renderTransaction = undefined
+  }
+
+  for (const [state, keys] of registry.keyedLazyStates) {
+    for (const key of state.keys()) {
+      if (!keys.has(key)) {
+        state.delete(key)
+      }
+    }
+
+    if (state.isEmpty()) {
+      registry.keyedLazyStates.delete(state)
+    }
+  }
+}
+
+/** Restores cache writes from an incomplete view without pruning entries. */
+export const abandonRender = (registry: BoundaryRegistry): void => {
+  const transaction = registry.renderTransaction
+
+  if (transaction !== undefined) {
+    rollbackBoundaryWrapTransaction(registry, transaction)
+    registry.renderTransaction = undefined
+  }
+}
+
+/** @internal Releases every render-scoped cache owned by a runtime. */
+export const clearKeyedLazyCaches = (registry: BoundaryRegistry): void => {
+  abandonRender(registry)
+
+  for (const state of registry.keyedLazyStates.keys()) {
+    state.clear()
+  }
+
+  registry.keyedLazyStates.clear()
 }

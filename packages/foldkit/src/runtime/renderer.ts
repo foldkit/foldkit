@@ -1,13 +1,15 @@
 import { Cause, Context, Effect, Exit, Option, type Scope } from 'effect'
 
 import {
-  type BoundaryRegistry,
   type Document,
   type HtmlBuilder,
-  __beginRender as beginHtmlRender,
+  __abandonRender as abandonHtmlRender,
+  __beginRenderTransaction as beginHtmlRender,
   __beginReplayRender as beginReplayHtmlRender,
   __clearRuntime as clearHtmlRuntime,
+  __clearKeyedLazyCaches as clearKeyedLazyCaches,
   __createBoundaryRegistry as createHtmlBoundaryRegistry,
+  __endRender as endHtmlRender,
   __endReplayRender as endReplayHtmlRender,
   __flushReplayUnmountsAfterPatchFailure as flushReplayUnmountsAfterPatchFailure,
   __setRuntime as setHtmlRuntime,
@@ -224,6 +226,7 @@ export const makeRenderer = <Model, Message>({
     // rendering, the dispose finalizer, the replay render) read the same
     // slot synchronously, so no Ref is needed.
     const vnodeSlot: VNodeSlot = { maybeCurrentVNode: Option.none() }
+    const boundaryRegistry = createHtmlBoundaryRegistry()
 
     const patchRuntimeVNode = (
       maybeCurrentVNode: Option.Option<VNode>,
@@ -294,7 +297,11 @@ export const makeRenderer = <Model, Message>({
               }
             }),
         })
-      }),
+      }).pipe(
+        Effect.ensuring(
+          Effect.sync(() => clearKeyedLazyCaches(boundaryRegistry)),
+        ),
+      ),
     )
 
     // NOTE: shared by every crash path: the init render, the plain
@@ -324,14 +331,18 @@ export const makeRenderer = <Model, Message>({
         const squashed = Cause.squash(cause)
         const error =
           squashed instanceof Error ? squashed : new Error(String(squashed))
-        renderCrashView(
-          { error, model, message: maybeMessage },
-          crash,
-          container,
-          vnodeSlot,
-          manageDocument,
-        )
-        settlePendingCommit()
+        try {
+          renderCrashView(
+            { error, model, message: maybeMessage },
+            crash,
+            container,
+            vnodeSlot,
+            manageDocument,
+          )
+        } finally {
+          clearKeyedLazyCaches(boundaryRegistry)
+          settlePendingCommit()
+        }
       })
 
     // NOTE: `maybeLastDirtyMessage` holds the most recent dirtying Message,
@@ -364,7 +375,6 @@ export const makeRenderer = <Model, Message>({
     // unmounted Submodels (e.g. an entry removed from a list) are
     // dropped from the registry via snabbdom `postdestroy` hooks
     // attached by `h.submodel` to each child vnode.
-    const boundaryRegistry: BoundaryRegistry = createHtmlBoundaryRegistry()
 
     // NOTE: callers set `isRenderingFrame` before calling this and clear
     // it after. Without it, a Message dispatched while the patch is still
@@ -403,83 +413,92 @@ export const makeRenderer = <Model, Message>({
 
           try {
             return view(model, htmlBuilder)
+          } catch (error) {
+            abandonHtmlRender(boundaryRegistry)
+            throw error
           } finally {
             clearHtmlRuntime()
           }
         },
       )
-      const { body: nextVNode } = nextDocument
+      try {
+        const { body: nextVNode } = nextDocument
 
-      reportSlowPhase<SlowViewContext<Model, Message>>(
-        maybeLiveSlowView,
-        maybeViewDuration,
-        (durationMs, thresholdMs) => ({
-          _tag: 'View',
-          model,
-          message: maybeMessage,
-          durationMs,
-          thresholdMs,
-        }),
-      )
+        reportSlowPhase<SlowViewContext<Model, Message>>(
+          maybeLiveSlowView,
+          maybeViewDuration,
+          (durationMs, thresholdMs) => ({
+            _tag: 'View',
+            model,
+            message: maybeMessage,
+            durationMs,
+            thresholdMs,
+          }),
+        )
 
-      const { maybeCurrentVNode } = vnodeSlot
+        const { maybeCurrentVNode } = vnodeSlot
 
-      const [patchedVNode, maybePatchDuration] = measureSlowPhase(
-        maybeLiveSlowPatch,
-        () => {
-          if (
-            Option.isNone(maybeCurrentVNode) &&
-            pendingHydrationRoot !== null
-          ) {
-            const hydrationRoot = pendingHydrationRoot
-            pendingHydrationRoot = null
-            // NOTE: strip the stamp before the patch, not after, so the
-            // patch is the sole owner of the root's attributes. It has
-            // already served its purpose of locating the root, and
-            // removing it after would delete a `data-foldkit-app` the view
-            // itself declares, which a later equal-vnode patch would not
-            // restore. Removing it here also stops a later boot on the same
-            // container (a dispose-then-embed remount) from re-detecting
-            // this now-consumed root as hydratable.
-            hydrationRoot.removeAttribute(FOLDKIT_APP_ATTRIBUTE)
-            // An empty id reaches the adoption step's own check as a
-            // value that matches nothing. Boot already refused a
-            // hydration without an id, so this stands in only for a
-            // caller that reached here another way.
-            return __hydrateVNode(
-              hydrationRoot,
+        const [patchedVNode, maybePatchDuration] = measureSlowPhase(
+          maybeLiveSlowPatch,
+          () => {
+            if (
+              Option.isNone(maybeCurrentVNode) &&
+              pendingHydrationRoot !== null
+            ) {
+              const hydrationRoot = pendingHydrationRoot
+              pendingHydrationRoot = null
+              // NOTE: strip the stamp before the patch, not after, so the
+              // patch is the sole owner of the root's attributes. It has
+              // already served its purpose of locating the root, and
+              // removing it after would delete a `data-foldkit-app` the view
+              // itself declares, which a later equal-vnode patch would not
+              // restore. Removing it here also stops a later boot on the same
+              // container (a dispose-then-embed remount) from re-detecting
+              // this now-consumed root as hydratable.
+              hydrationRoot.removeAttribute(FOLDKIT_APP_ATTRIBUTE)
+              // An empty id reaches the adoption step's own check as a
+              // value that matches nothing. Boot already refused a
+              // hydration without an id, so this stands in only for a
+              // caller that reached here another way.
+              return __hydrateVNode(
+                hydrationRoot,
+                nextVNode,
+                boundaryRegistry.dedupeSeen,
+                buildId ?? '',
+              )
+            }
+            return patchRuntimeVNode(
+              maybeCurrentVNode,
               nextVNode,
               boundaryRegistry.dedupeSeen,
-              buildId ?? '',
             )
-          }
-          return patchRuntimeVNode(
-            maybeCurrentVNode,
-            nextVNode,
-            boundaryRegistry.dedupeSeen,
-          )
-        },
-      )
-      vnodeSlot.maybeCurrentVNode = Option.some(patchedVNode)
+          },
+        )
+        vnodeSlot.maybeCurrentVNode = Option.some(patchedVNode)
 
-      reportSlowPhase<SlowPatchContext<Model, Message>>(
-        maybeLiveSlowPatch,
-        maybePatchDuration,
-        (durationMs, thresholdMs) => ({
-          _tag: 'Patch',
-          model,
-          message: maybeMessage,
-          durationMs,
-          thresholdMs,
-        }),
-      )
+        reportSlowPhase<SlowPatchContext<Model, Message>>(
+          maybeLiveSlowPatch,
+          maybePatchDuration,
+          (durationMs, thresholdMs) => ({
+            _tag: 'Patch',
+            model,
+            message: maybeMessage,
+            durationMs,
+            thresholdMs,
+          }),
+        )
 
-      if (manageDocument) {
-        applyDocumentMetadata(nextDocument, patchedVNode.elm)
-      }
+        if (manageDocument) {
+          applyDocumentMetadata(nextDocument, patchedVNode.elm)
+        }
 
-      if (import.meta.hot) {
-        duplicateIdScanner?.schedule(patchedVNode.elm)
+        if (import.meta.hot) {
+          duplicateIdScanner?.schedule(patchedVNode.elm)
+        }
+        endHtmlRender(boundaryRegistry)
+      } catch (error) {
+        abandonHtmlRender(boundaryRegistry)
+        throw error
       }
     }
 
