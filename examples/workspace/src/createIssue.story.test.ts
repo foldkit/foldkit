@@ -28,7 +28,7 @@ import {
   type IssueStatus,
 } from './domain/domain'
 import { PriorityListbox, StatusListbox, WorkspaceListbox } from './listbox'
-import { WorkspaceRepositoryLayer } from './services'
+import { ApplicationLayer } from './services'
 
 const showDialog = Command.resolve(
   Dialog.test.ShowDialog,
@@ -109,7 +109,7 @@ describe('CreateIssue update', () => {
             Command.expectNone(),
           ),
         ),
-        Effect.provide(WorkspaceRepositoryLayer),
+        Effect.provide(ApplicationLayer),
       ),
   )
 
@@ -129,7 +129,7 @@ describe('CreateIssue update', () => {
         }),
         expectNoOutMessage(),
         Command.expectNone(),
-      ).pipe(Effect.provide(WorkspaceRepositoryLayer)),
+      ).pipe(Effect.provide(ApplicationLayer)),
   )
 
   it.effect('rejects a whitespace title without scheduling creation', () =>
@@ -150,7 +150,7 @@ describe('CreateIssue update', () => {
       }),
       expectNoOutMessage(),
       Command.expectNone(),
-    ).pipe(Effect.provide(WorkspaceRepositoryLayer)),
+    ).pipe(Effect.provide(ApplicationLayer)),
   )
 
   it.effect('retains a failed draft and emits the issue after retry', () => {
@@ -209,7 +209,7 @@ describe('CreateIssue update', () => {
         expect(model.createState).toEqual(CreateState.Idle())
       }),
       Command.expectNone(),
-    ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+    ).pipe(Effect.provide(ApplicationLayer))
   })
 
   it.effect('preserves a pending form across close and reopen requests', () => {
@@ -249,7 +249,7 @@ describe('CreateIssue update', () => {
         Message.FailedCreateNewIssue({ error: 'Creation failed.' }),
       ),
       Command.expectNone(),
-    ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+    ).pipe(Effect.provide(ApplicationLayer))
   })
 
   it.effect('ignores every draft edit while creation is pending', () => {
@@ -297,6 +297,6 @@ describe('CreateIssue update', () => {
         Message.FailedCreateNewIssue({ error: 'Creation failed.' }),
       ),
       showDialog,
-    ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+    ).pipe(Effect.provide(ApplicationLayer))
   })
 })

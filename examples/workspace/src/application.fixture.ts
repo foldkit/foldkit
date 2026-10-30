@@ -15,7 +15,7 @@ import { WorkspaceListbox } from './listbox'
 import { NotificationCenter } from './notificationCenter'
 import { ProjectSettings } from './projectSettings'
 import { ApplicationRoute, maybeIssueId } from './route'
-import { WorkspaceRepositoryLayer } from './services'
+import { ApplicationLayer } from './services'
 import { Sidebar } from './sidebar'
 import { TeammateActivity } from './teammateActivity'
 import { WorkspacePage } from './workspacePage'
@@ -23,9 +23,7 @@ import { WorkspaceSettings } from './workspaceSettings'
 
 export type ResolvedModel = Resolved<Model>
 
-export const application = ApplicationLive.pipe(
-  Layer.provide(WorkspaceRepositoryLayer),
-)
+export const application = ApplicationLive.pipe(Layer.provide(ApplicationLayer))
 
 export const url = (path: string) =>
   Option.getOrThrow(Url.fromString(`https://workspace.test${path}`))

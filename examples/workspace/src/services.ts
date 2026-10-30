@@ -546,6 +546,4 @@ export const makeWorkspaceRepositoryLayer = (
   }> = {},
 ) => Layer.effect(WorkspaceRepository, makeWorkspaceRepository(options))
 
-export const WorkspaceRepositoryLayer = makeWorkspaceRepositoryLayer()
-
-export const ApplicationLayer = WorkspaceRepositoryLayer
+export const ApplicationLayer = makeWorkspaceRepositoryLayer()

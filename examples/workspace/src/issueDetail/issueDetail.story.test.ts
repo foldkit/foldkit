@@ -19,7 +19,7 @@ import {
 } from '../domain/issue'
 import { initialWorkspace } from '../domain/seed'
 import { WorkspaceListbox } from '../listbox'
-import { RepositoryError, WorkspaceRepositoryLayer } from '../services'
+import { ApplicationLayer, RepositoryError } from '../services'
 import { Message, OutMessage, SaveIssue, SaveState } from './issueDetail'
 import { makeIssueDetailHost } from './issueDetail.fixture'
 
@@ -62,7 +62,7 @@ describe('Issue Detail', () => {
       }),
       expectNoOutMessage(),
       Command.expectNone(),
-    ).pipe(Effect.provide(WorkspaceRepositoryLayer)),
+    ).pipe(Effect.provide(ApplicationLayer)),
   )
 
   it.effect(
@@ -87,7 +87,7 @@ describe('Issue Detail', () => {
         }),
         expectNoOutMessage(),
         Command.expectNone(),
-      ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+      ).pipe(Effect.provide(ApplicationLayer))
     },
   )
 
@@ -108,7 +108,7 @@ describe('Issue Detail', () => {
       }),
       expectNoOutMessage(),
       Command.expectNone(),
-    ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+    ).pipe(Effect.provide(ApplicationLayer))
   })
 
   it.effect(
@@ -148,7 +148,7 @@ describe('Issue Detail', () => {
             savedIssue: savedIssueFromIssue(savedIssueSnapshot),
           }),
         ),
-      ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+      ).pipe(Effect.provide(ApplicationLayer))
     },
   )
 
@@ -196,7 +196,7 @@ describe('Issue Detail', () => {
             savedIssue: savedIssueFromIssue(savedIssueSnapshot),
           }),
         ),
-      ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+      ).pipe(Effect.provide(ApplicationLayer))
     },
   )
 
@@ -233,7 +233,7 @@ describe('Issue Detail', () => {
           expect(issueDetail.maybeIncomingRevision).toEqual(Option.none())
         }),
         Command.expectNone(),
-      ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+      ).pipe(Effect.provide(ApplicationLayer))
     },
   )
 
@@ -248,7 +248,7 @@ describe('Issue Detail', () => {
           expect(issueDetail.draft).toEqual(draftFromIssue(newerIssue))
           expect(issueDetail.saveState._tag).toBe('Idle')
         }),
-      ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+      ).pipe(Effect.provide(ApplicationLayer))
     },
   )
 
@@ -295,7 +295,7 @@ describe('Issue Detail', () => {
         }),
         expectNoOutMessage(),
         Command.expectNone(),
-      ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+      ).pipe(Effect.provide(ApplicationLayer))
     },
   )
 
@@ -354,7 +354,7 @@ describe('Issue Detail', () => {
           savedIssue: savedIssueFromIssue(savedIssueWithConcurrentComment),
         }),
       ),
-    ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+    ).pipe(Effect.provide(ApplicationLayer))
   })
 
   it.effect(
@@ -392,7 +392,7 @@ describe('Issue Detail', () => {
             savedIssue: savedIssueFromIssue(savedIssueSnapshot),
           }),
         ),
-      ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+      ).pipe(Effect.provide(ApplicationLayer))
     },
   )
 
@@ -420,7 +420,7 @@ describe('Issue Detail', () => {
           expect(issueDetail.maybeIncomingRevision).toEqual(Option.none())
           expect(issueDetail.saveState._tag).toBe('Idle')
         }),
-      ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+      ).pipe(Effect.provide(ApplicationLayer))
     },
   )
 
@@ -449,7 +449,7 @@ describe('Issue Detail', () => {
           expect(issueDetail.saveState).toEqual(SaveState.Idle())
         }),
         expectNoOutMessage(),
-      ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+      ).pipe(Effect.provide(ApplicationLayer))
     },
   )
 
@@ -460,6 +460,6 @@ describe('Issue Detail', () => {
       send(Message.ClickedClose()),
       expectOutMessage(OutMessage.Closed()),
       Command.expectNone(),
-    ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+    ).pipe(Effect.provide(ApplicationLayer))
   })
 })

@@ -27,7 +27,7 @@ import {
 import { Issue, IssueDraft } from './domain/domain'
 import { initialWorkspace } from './domain/seed'
 import { WorkspaceListbox } from './listbox'
-import { WorkspaceRepositoryLayer } from './services'
+import { ApplicationLayer } from './services'
 
 const SceneMessage = defineMessageUnion({
   ClickedOpen: {},
@@ -131,7 +131,7 @@ describe('Create Issue view', () => {
       expect(role('button', { name: 'Create issue' })).toBeEnabled(),
       expectNoOutMessage(),
       Command.expectNone(),
-    ).pipe(Effect.provide(WorkspaceRepositoryLayer)),
+    ).pipe(Effect.provide(ApplicationLayer)),
   )
 
   it.effect(
@@ -198,7 +198,7 @@ describe('Create Issue view', () => {
         expectOutMessage(OutMessage.Created({ issue })),
         closeDialog,
         expect(label('Title')).not.toExist(),
-      ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+      ).pipe(Effect.provide(ApplicationLayer))
     },
   )
 
@@ -250,7 +250,7 @@ describe('Create Issue view', () => {
       ),
       expect(role('alert')).toContainText('Retry also failed.'),
       Command.expectNone(),
-    ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+    ).pipe(Effect.provide(ApplicationLayer))
   })
 
   it.effect('cancels through its Dialog without creating an issue', () =>
@@ -264,6 +264,6 @@ describe('Create Issue view', () => {
       expect(label('Title')).not.toExist(),
       expectNoOutMessage(),
       Command.expectNone(),
-    ).pipe(Effect.provide(WorkspaceRepositoryLayer)),
+    ).pipe(Effect.provide(ApplicationLayer)),
   )
 })

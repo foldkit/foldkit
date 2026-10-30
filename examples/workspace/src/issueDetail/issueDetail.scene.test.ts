@@ -19,7 +19,7 @@ import { Listbox } from '@foldkit/ui'
 import { draftFromIssue, savedIssueFromIssue } from '../domain/issue'
 import { initialWorkspace } from '../domain/seed'
 import { WorkspaceListbox } from '../listbox'
-import { RepositoryError, WorkspaceRepositoryLayer } from '../services'
+import { ApplicationLayer, RepositoryError } from '../services'
 import { AddComment, CommentComposer } from './commentComposer'
 import { Message, OutMessage, SaveIssue } from './issueDetail'
 import { makeIssueDetailHost } from './issueDetail.fixture'
@@ -87,7 +87,7 @@ describe('Issue Detail view', () => {
         ),
         expect(label('Assignee')).toHaveText('Unassigned'),
         expect(role('button', { name: 'Retry save' })).toExist(),
-      ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+      ).pipe(Effect.provide(ApplicationLayer))
     },
   )
 
@@ -119,7 +119,7 @@ describe('Issue Detail view', () => {
         expectOutMessage(
           OutMessage.AddedComment({ issueId: issue.id, comment }),
         ),
-      ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+      ).pipe(Effect.provide(ApplicationLayer))
     },
   )
 
@@ -203,7 +203,7 @@ describe('Issue Detail view', () => {
         ),
         expect(role('status')).toContainText('All changes saved'),
         expect(role('button', { name: 'Save changes' })).toBeDisabled(),
-      ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+      ).pipe(Effect.provide(ApplicationLayer))
     },
   )
 })

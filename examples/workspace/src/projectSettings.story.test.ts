@@ -21,7 +21,7 @@ import {
   SaveProject,
   SaveState,
 } from './projectSettings'
-import { WorkspaceRepositoryLayer } from './services'
+import { ApplicationLayer } from './services'
 
 const project = Option.getOrThrow(Array.head(initialWorkspace.projects))
 const initialModel: Model = {
@@ -39,7 +39,7 @@ describe('Project Settings', () => {
         expect(model).toEqual(initialModel)
       }),
       expectNoOutMessage(),
-    ).pipe(Effect.provide(WorkspaceRepositoryLayer)),
+    ).pipe(Effect.provide(ApplicationLayer)),
   )
 
   it.effect(
@@ -67,7 +67,7 @@ describe('Project Settings', () => {
             expectNoOutMessage(),
           ),
         { discard: true },
-      ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+      ).pipe(Effect.provide(ApplicationLayer))
     },
   )
 
@@ -103,7 +103,7 @@ describe('Project Settings', () => {
           Message.SucceededSaveProject({ project: savedProject }),
         ),
         expectOutMessage(OutMessage.Saved({ project: savedProject })),
-      ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+      ).pipe(Effect.provide(ApplicationLayer))
     },
   )
 
@@ -142,7 +142,7 @@ describe('Project Settings', () => {
           }),
           expectNoOutMessage(),
         ),
-      ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+      ).pipe(Effect.provide(ApplicationLayer))
     },
   )
 
@@ -167,7 +167,7 @@ describe('Project Settings', () => {
           expect(model.baseline).toEqual(savedProject)
           expect(model.draft.name).toBe(savedProject.name)
         }),
-      ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+      ).pipe(Effect.provide(ApplicationLayer))
     },
   )
 })

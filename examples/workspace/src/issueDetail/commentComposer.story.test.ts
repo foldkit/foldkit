@@ -13,7 +13,7 @@ import { describe, expect, it } from '@effect/vitest'
 
 import { Comment } from '../domain/domain'
 import { initialWorkspace } from '../domain/seed'
-import { WorkspaceRepositoryLayer } from '../services'
+import { ApplicationLayer } from '../services'
 import {
   AddComment,
   CommentComposerLive,
@@ -44,7 +44,7 @@ describe('CommentComposer update', () => {
         expect(model.postState).toEqual(PostState.Idle())
       }),
       Command.expectNone(),
-    ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+    ).pipe(Effect.provide(ApplicationLayer))
   })
 
   it.effect('keeps a posting draft locked', () => {
@@ -69,7 +69,7 @@ describe('CommentComposer update', () => {
       expectNoOutMessage(),
       model(model => expect(model).toBe(postingModel)),
       Command.expectNone(),
-    ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+    ).pipe(Effect.provide(ApplicationLayer))
   })
 
   it.effect.each([PostState.Idle(), PostState.Failed({ error: 'Try again.' })])(
@@ -92,7 +92,7 @@ describe('CommentComposer update', () => {
         expectNoOutMessage(),
         model(model => expect(model).toBe(currentModel)),
         Command.expectNone(),
-      ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+      ).pipe(Effect.provide(ApplicationLayer))
     },
   )
 
@@ -131,6 +131,6 @@ describe('CommentComposer update', () => {
         expect(model.postState).toEqual(PostState.Idle())
       }),
       Command.expectNone(),
-    ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+    ).pipe(Effect.provide(ApplicationLayer))
   })
 })

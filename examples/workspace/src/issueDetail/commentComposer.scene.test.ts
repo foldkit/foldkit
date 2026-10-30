@@ -15,7 +15,7 @@ import {
 import { describe, it } from '@effect/vitest'
 
 import { initialWorkspace } from '../domain/seed'
-import { WorkspaceRepositoryLayer } from '../services'
+import { ApplicationLayer } from '../services'
 import {
   AddComment,
   CommentComposer,
@@ -82,7 +82,7 @@ describe('Comment Composer view', () => {
       expect(label('Write a comment')).toHaveValue(''),
       expect(role('button', { name: 'Discard comment' })).not.toExist(),
       expect(text('Comment draft kept for this session')).not.toExist(),
-    ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+    ).pipe(Effect.provide(ApplicationLayer))
   })
 
   it.effect('keeps the comment available after failure and retries it', () => {
@@ -116,6 +116,6 @@ describe('Comment Composer view', () => {
           error: 'The workspace is temporarily unavailable.',
         }),
       ),
-    ).pipe(Effect.provide(WorkspaceRepositoryLayer))
+    ).pipe(Effect.provide(ApplicationLayer))
   })
 })

@@ -10,7 +10,7 @@ import {
   ProjectSettings,
   ProjectSettingsLive,
 } from './projectSettings'
-import { WorkspaceRepositoryLayer } from './services'
+import { ApplicationLayer } from './services'
 
 class ProjectSettingsScene extends Block<ProjectSettingsScene>()(
   'ProjectSettingsScene',
@@ -48,5 +48,5 @@ it.effect('discard restores the last saved project fields', () =>
     click(role('button', { name: 'Discard changes' })),
     expect(label('Project name')).toHaveValue(project.name),
     expect(role('button', { name: 'Save changes' })).toBeDisabled(),
-  ).pipe(Effect.provide(WorkspaceRepositoryLayer)),
+  ).pipe(Effect.provide(ApplicationLayer)),
 )
