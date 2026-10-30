@@ -107,16 +107,16 @@ const detailedChildView = ChildComposition.makeView.withInputs<
   Readonly<{ prefix: string }>
 >((model, viewInputs, h) => h.div([], [`${viewInputs.prefix} ${model.count}`]))
 
-const saveStep = ChildBaseDefinition.makeStep(model => ({
+const save = ChildBaseDefinition.makeStep(model => ({
   model,
   commands: [Save()],
 }))
 
-const resetStep = ChildBaseDefinition.makeStep(model => ({
+const reset = ChildBaseDefinition.makeStep(model => ({
   model: modifyFields(model, { count: () => 0 }),
 }))
 
-const addForRoomStep = ChildBaseDefinition.makeStep(
+const addForRoom = ChildBaseDefinition.makeStep(
   (model, amount: number, context: Readonly<{ roomId: string }>) => ({
     model: modifyFields(model, {
       count: () => model.count + amount + context.roomId.length,
@@ -124,7 +124,7 @@ const addForRoomStep = ChildBaseDefinition.makeStep(
   }),
 )
 
-const reportStep = ChildBaseDefinition.makeStep(model => ({
+const report = ChildBaseDefinition.makeStep(model => ({
   model,
   outMessage: ChildOutMessage.Reported({ value: model.count }),
 }))
@@ -135,11 +135,11 @@ const childUpdate = ChildComposition.makeUpdate.withContext(
       roomId: string
     }>,
   ) => ({
-    RequestedSave: model => saveStep(model),
-    RequestedReset: model => resetStep(model),
+    RequestedSave: model => save(model),
+    RequestedReset: model => reset(model),
     RequestedAddForRoom: (model, { amount }) =>
-      addForRoomStep(model, amount, context),
-    RequestedReport: model => reportStep(model),
+      addForRoom(model, amount, context),
+    RequestedReport: model => report(model),
     ChangedCount: (model, { amount }) => ({
       model: modifyFields(model, {
         count: () => model.count + amount + context.roomId.length,
@@ -411,20 +411,20 @@ const foldForwardOnlyHome = ForwardOnlyComposition.makeUpdate({
     model,
   }),
 })
-const resetHomeStep = Parent.makeStep(_model => HomeBinding.reset())
-const addHomeForRoomStep = Parent.makeStep(
+const resetHome = Parent.makeStep(_model => HomeBinding.reset())
+const addHomeForRoom = Parent.makeStep(
   (_model, amount: number, context: Readonly<{ roomId: string }>) =>
     HomeBinding.addForRoom(amount, context),
 )
-const reportHomeStep = Parent.makeStep(_model => HomeBinding.report())
+const reportHome = Parent.makeStep(_model => HomeBinding.report())
 const prepareParentRuntime = () =>
   ParentComposition.prepareBlock({
     init: () => ({ model: initialParent }),
     update: ParentComposition.makeUpdate({
-      RequestedResetHome: model => resetHomeStep(model),
+      RequestedResetHome: model => resetHome(model),
       RequestedAddHomeForRoom: (model, { amount, roomId }) =>
-        addHomeForRoomStep(model, amount, { roomId }),
-      RequestedReportHome: model => reportHomeStep(model),
+        addHomeForRoom(model, amount, { roomId }),
+      RequestedReportHome: model => reportHome(model),
       RecordedReport: model => Parent.makeNoopStep()(model),
     }),
     operations: {
@@ -448,15 +448,15 @@ const ParentRuntime: Block.FromAssemblyWithOutMessage<
 const ParentPolicyComposition = ParentPolicyDefinition.makeComposition({
   bindings: [ParentCommandHomeBinding],
 })
-const resetParentCommandHomeStep = ParentPolicyDefinition.makeStep(_model =>
+const resetParentCommandHome = ParentPolicyDefinition.makeStep(_model =>
   ParentCommandHomeBinding.reset(),
 )
-const reportParentCommandHomeStep = ParentPolicyDefinition.makeStep(_model =>
+const reportParentCommandHome = ParentPolicyDefinition.makeStep(_model =>
   ParentCommandHomeBinding.report(),
 )
 const foldParentPolicy = ParentPolicyComposition.makeUpdate({
-  RequestedResetHome: model => resetParentCommandHomeStep(model),
-  RequestedReportHome: model => reportParentCommandHomeStep(model),
+  RequestedResetHome: model => resetParentCommandHome(model),
+  RequestedReportHome: model => reportParentCommandHome(model),
   CompletedPolicyWork: model => ParentPolicyDefinition.makeNoopStep()(model),
 })
 const prepareParentPolicyRuntime = () =>
@@ -477,10 +477,10 @@ const ParentPolicyRuntime: Block.FromAssemblyWithOutMessage<
   typeof prepareParentPolicyRuntime
 > = Block.assemble(prepareParentPolicyRuntime)
 
-const callFoldDataLastStep = () =>
+const applyFoldDataLast = () =>
   // @ts-expect-error fold executes immediately and requires the parent Model
   HomeBinding.fold(ChildMessage.ChangedCount({ amount: 3 }), { roomId: 'room' })
-void callFoldDataLastStep
+void applyFoldDataLast
 
 const ArityModel = Schema.Struct({ count: Schema.Number })
 type ArityModel = typeof ArityModel.Type
@@ -529,12 +529,12 @@ const WrappedArityDefinition = WrappedArityNamespace.makeDefinition({
   Message: ArityMessage,
 })
 const WrappedArityComposition = WrappedArityDefinition.makeComposition()
-const defaultIncrementStep = WrappedArityDefinition.makeStep(
+const defaultIncrement = WrappedArityDefinition.makeStep(
   (model: ArityModel, amount: number = 1) => ({
     model: modifyFields(model, { count: count => count + amount }),
   }),
 )
-const addManyStep = WrappedArityDefinition.makeStep(
+const addMany = WrappedArityDefinition.makeStep(
   (model: ArityModel, ...amounts: ReadonlyArray<number>) => ({
     model: modifyFields(model, {
       count: count =>
@@ -542,14 +542,14 @@ const addManyStep = WrappedArityDefinition.makeStep(
     }),
   }),
 )
-const resetArityStep = WrappedArityDefinition.makeStep((model: ArityModel) => ({
+const resetArity = WrappedArityDefinition.makeStep((model: ArityModel) => ({
   model: modifyFields(model, { count: () => 0 }),
 }))
 const wrappedArityUpdate = WrappedArityComposition.makeUpdate.withContext(
   (context: Readonly<{ amount: number }>) => ({
     RequestedDefaultIncrement: (model, { amount }) =>
-      defaultIncrementStep(model, amount),
-    RequestedAddMany: (model, { amounts }) => addManyStep(model, ...amounts),
+      defaultIncrement(model, amount),
+    RequestedAddMany: (model, { amounts }) => addMany(model, ...amounts),
     RequestedAddWithRequiredPrefix: (model, { first, labels }) => ({
       model: modifyFields(model, {
         count: count => count + first + labels.length,
@@ -565,7 +565,7 @@ const wrappedArityUpdate = WrappedArityComposition.makeUpdate.withContext(
         count: count => count + values.length,
       }),
     }),
-    RequestedReset: model => resetArityStep(model),
+    RequestedReset: model => resetArity(model),
     IncreasedCount: model => ({
       model: modifyFields(model, {
         count: count => count + context.amount,
@@ -822,7 +822,7 @@ const foldWrappedArity = WrappedArityParentComposition.makeUpdate({
     model,
   }),
 })
-const runDefaultIncrementStep = WrappedArityParent.makeStep(
+const runDefaultIncrement = WrappedArityParent.makeStep(
   (_model, amount?: number) => {
     if (amount === undefined) {
       return WrappedArityBinding.defaultIncrement()
@@ -831,11 +831,11 @@ const runDefaultIncrementStep = WrappedArityParent.makeStep(
     }
   },
 )
-const runAddManyStep = WrappedArityParent.makeStep(
+const runAddMany = WrappedArityParent.makeStep(
   (_model, ...amounts: ReadonlyArray<number>) =>
     WrappedArityBinding.addMany(...amounts),
 )
-const runResetArityStep = WrappedArityParent.makeStep(_model =>
+const runResetArity = WrappedArityParent.makeStep(_model =>
   WrappedArityBinding.resetArity(),
 )
 const prepareWrappedArityRuntime = () =>
@@ -843,10 +843,9 @@ const prepareWrappedArityRuntime = () =>
     init: () => ({ model: initialArityParent }),
     update: WrappedArityParentComposition.makeUpdate({
       RequestedDefaultIncrement: (model, { amount }) =>
-        runDefaultIncrementStep(model, amount),
-      RequestedAddMany: (model, { amounts }) =>
-        runAddManyStep(model, ...amounts),
-      RequestedReset: model => runResetArityStep(model),
+        runDefaultIncrement(model, amount),
+      RequestedAddMany: (model, { amounts }) => runAddMany(model, ...amounts),
+      RequestedReset: model => runResetArity(model),
     }),
     operations: {
       runDefaultIncrement: (amount?: number) =>
@@ -1380,8 +1379,8 @@ describe('Block binding arity', () => {
       child: ArityModel.make({ count: 8 }),
     })
 
-    expect(defaultIncrementStep.length).toBe(1)
-    expect(addManyStep.length).toBe(1)
+    expect(defaultIncrement.length).toBe(1)
+    expect(addMany.length).toBe(1)
     expect(defaultResult.model.child.count).toBe(1)
     expect(explicitDefaultResult.model.child.count).toBe(4)
     expect(restResult.model.child.count).toBe(5)
@@ -1551,12 +1550,12 @@ describe('generic block refinement', () => {
       OutMessage,
     })
     const Composition = ChoiceDefinition.makeComposition()
-    const finishStep = ChoiceDefinition.makeStep(model => ({
+    const finish = ChoiceDefinition.makeStep(model => ({
       model,
       commands: [FinishChoice()],
     }))
     const update = Composition.makeUpdate({
-      RequestedFinish: model => finishStep(model),
+      RequestedFinish: model => finish(model),
       SelectedValue: (_model, { value }) => ({
         model: Model.make({ value }),
         outMessage: OutMessage.make({ value }),

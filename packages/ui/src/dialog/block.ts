@@ -266,7 +266,7 @@ const AnimationBinding = DialogDefinition.makeBinding(
   },
 )
 
-const foldTransitionedOutStep = DialogDefinition.makeCommandsStep(model => [
+const closeNativeDialog = DialogDefinition.makeCommandsStep(model => [
   CloseDialog({ id: model.id }),
 ])
 
@@ -275,17 +275,17 @@ const foldAnimationOutMessage = DialogDefinition.makeOutMessageFold(
   {
     StartedLeaveAnimating: () =>
       AnimationBinding.requestWaitForLeaveSettlement(),
-    TransitionedOut: () => foldTransitionedOutStep,
+    TransitionedOut: () => closeNativeDialog,
   },
 )
 
-const resumeAnimationAfterAcquisitionStep = AnimationBinding.requestResume()
-const resetAnimationImmediatelyStep = AnimationBinding.requestImmediateReset()
-const closeDialogModelStep = DialogDefinition.makeFieldsStep(() => ({
+const resumeAnimationAfterAcquisition = AnimationBinding.requestResume()
+const resetAnimationImmediately = AnimationBinding.requestImmediateReset()
+const markDialogClosed = DialogDefinition.makeFieldsStep(() => ({
   isOpen: () => false,
 }))
-const resetToClosedStep = DialogDefinition.makeStep(() =>
-  Update.combineSteps([closeDialogModelStep, resetAnimationImmediatelyStep]),
+const resetToClosed = DialogDefinition.makeStep(() =>
+  Update.combineSteps([markDialogClosed, resetAnimationImmediately]),
 )
 
 const DialogComposition = DialogDefinition.makeComposition({
@@ -300,8 +300,8 @@ export const init = DialogComposition.makeInit((config: InitConfig) => ({
   model: makeInitialModel(config),
 }))
 
-const leaveDialogUnchangedStep = DialogDefinition.makeNoopStep()
-const completeCloseStep = DialogDefinition.makeOutMessageStep(() =>
+const leaveDialogUnchanged = DialogDefinition.makeNoopStep()
+const reportCompletedClose = DialogDefinition.makeOutMessageStep(() =>
   OutMessage.CompletedClose(),
 )
 
@@ -339,13 +339,13 @@ export const update = DialogComposition.makeUpdate({
 
   RequestedClose: model => {
     if (isLeaving(model)) {
-      return leaveDialogUnchangedStep(model)
+      return leaveDialogUnchanged(model)
     }
 
     const wasOpen = model.isOpen
     if (model.isAnimated) {
       const dialogClose = Update.combineSteps(model, [
-        closeDialogModelStep,
+        markDialogClosed,
         AnimationBinding.requestHide(),
       ])
 
@@ -370,19 +370,19 @@ export const update = DialogComposition.makeUpdate({
   Unmounted: model => {
     if (isOpenOrAnimating(model)) {
       return Update.combineSteps(model, [
-        resetToClosedStep,
+        resetToClosed,
         DialogDefinition.makeCommandsStep(stepModel => [
           ReleaseDialogResources({ id: stepModel.id }),
         ]),
       ])
     } else {
-      return leaveDialogUnchangedStep(model)
+      return leaveDialogUnchanged(model)
     }
   },
 
   SucceededShowDialog: model => {
     if (model.isOpen || isLeaving(model)) {
-      return leaveDialogUnchangedStep(model)
+      return leaveDialogUnchanged(model)
     } else {
       return DialogDefinition.makeCommandsStep(stepModel => [
         CloseDialog({ id: stepModel.id }),
@@ -392,15 +392,15 @@ export const update = DialogComposition.makeUpdate({
 
   FailedShowDialog: model => {
     if (isOpenOrAnimating(model)) {
-      return resetToClosedStep(model)
+      return resetToClosed(model)
     } else {
-      return leaveDialogUnchangedStep(model)
+      return leaveDialogUnchanged(model)
     }
   },
 
   SucceededAcquireResources: model => {
     if (model.isOpen || isLeaving(model)) {
-      return resumeAnimationAfterAcquisitionStep(model)
+      return resumeAnimationAfterAcquisition(model)
     } else {
       return DialogDefinition.makeCommandsStep(stepModel => [
         CloseDialog({ id: stepModel.id }),
@@ -410,14 +410,14 @@ export const update = DialogComposition.makeUpdate({
 
   FailedAcquireResources: model => {
     if (isOpenOrAnimating(model)) {
-      return resetToClosedStep(model)
+      return resetToClosed(model)
     } else {
-      return leaveDialogUnchangedStep(model)
+      return leaveDialogUnchanged(model)
     }
   },
 
-  CompletedCloseDialog: completeCloseStep,
-  CompletedReleaseDialogResources: leaveDialogUnchangedStep,
+  CompletedCloseDialog: reportCompletedClose,
+  CompletedReleaseDialogResources: leaveDialogUnchanged,
 })
 
 // VIEW

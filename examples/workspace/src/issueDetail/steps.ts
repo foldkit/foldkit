@@ -4,9 +4,7 @@ import { IssueDraft } from '../domain'
 import { makeStep } from './definition'
 import { SaveState } from './model'
 
-export const editDraftStep = (
-  transformDraft: (draft: IssueDraft) => IssueDraft,
-) =>
+export const editDraft = (transformDraft: (draft: IssueDraft) => IssueDraft) =>
   makeStep(model => ({
     model: SaveState.guards.Saving(model.saveState)
       ? model

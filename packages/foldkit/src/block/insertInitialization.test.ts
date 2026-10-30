@@ -178,12 +178,12 @@ describe('makeInitIfMissingStep', () => {
     const { model } = makeModel()
     const args: [number] = [4]
     const config = { key: secondId, args }
-    const initChildStep = makeInitIfMissingStep(ChildrenByIdBinding, config)
+    const initChild = makeInitIfMissingStep(ChildrenByIdBinding, config)
 
     args.splice(0, 1, 99)
     config.key = EntryId.make('changed')
 
-    const recipe = Reflect.apply(initChildStep, undefined, [model])
+    const recipe = Reflect.apply(initChild, undefined, [model])
 
     expect(initialized).not.toHaveBeenCalled()
     expect(recipe).not.toHaveProperty('model')
@@ -283,11 +283,11 @@ describe('makeInitIfMissingStep', () => {
     'requires the registered Binding even when key %s already exists',
     key => {
       const { model } = makeModel()
-      const initChildStep = makeInitIfMissingStep(ChildrenByIdBinding, {
+      const initChild = makeInitIfMissingStep(ChildrenByIdBinding, {
         key,
         args: [4],
       })
-      const recipe = Reflect.apply(initChildStep, undefined, [model])
+      const recipe = Reflect.apply(initChild, undefined, [model])
 
       expect(() =>
         withOperationGraph([], () => resolveOperationOutput(recipe, model)),
@@ -298,19 +298,19 @@ describe('makeInitIfMissingStep', () => {
 
   it('rechecks storage when the same Step is applied after the parent removes a key', () => {
     const { model } = makeModel()
-    const initChildStep = makeInitIfMissingStep(ChildrenByIdBinding, {
+    const initChild = makeInitIfMissingStep(ChildrenByIdBinding, {
       key: firstId,
       args: [4],
     })
-    const applyStep = (model: Model) =>
+    const apply = (model: Model) =>
       withOperationGraph([ChildrenByIdBinding], () =>
         resolveOperationOutput(
-          Reflect.apply(initChildStep, undefined, [model]),
+          Reflect.apply(initChild, undefined, [model]),
           model,
         ),
       )
 
-    const retained = applyStep(model)
+    const retained = apply(model)
 
     expect(retained.model).toBe(model)
     expect(initialized).not.toHaveBeenCalled()
@@ -318,7 +318,7 @@ describe('makeInitIfMissingStep', () => {
     const removedModel = modifyFields(model, {
       childrenById: () => ({}),
     })
-    const inserted = applyStep(removedModel)
+    const inserted = apply(removedModel)
 
     expect(Reflect.get(inserted.model.childrenById, firstId)).toEqual({
       count: 4,

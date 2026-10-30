@@ -207,7 +207,7 @@ describe('connected initialization', () => {
   it('preserves other occurrences when inserting a child', () => {
     const existing = { id: 'other', child: ChildModel.make({ count: 8 }) }
     const initialModel = { items: [existing] }
-    const createChildStep = Parent.makeStep(model =>
+    const createChild = Parent.makeStep(model =>
       ItemsBinding.init({
         key: 'first',
         args: [4],
@@ -219,7 +219,7 @@ describe('connected initialization', () => {
       ParentComposition.prepareBlock({
         init: () => ({ model: initialModel }),
         update: ParentComposition.makeUpdate({
-          RequestedCreateChild: model => createChildStep(model),
+          RequestedCreateChild: model => createChild(model),
           CompletedRecord: model => Parent.makeNoopStep()(model),
           RequestedCreateKeyedChild: model => Parent.makeNoopStep()(model),
           RequestedCreateIncompleteKeyedChild: model =>
@@ -243,7 +243,7 @@ describe('connected initialization', () => {
   })
 
   it('threads a derived Model through registered keyed initialization Steps', () => {
-    const initFirstStep = Parent.makeStep(model =>
+    const initFirst = Parent.makeStep(model =>
       ItemsBinding.init({
         key: 'first',
         args: [1],
@@ -253,7 +253,7 @@ describe('connected initialization', () => {
           }),
       }),
     )
-    const initSecondStep = Parent.makeStep(model =>
+    const initSecond = Parent.makeStep(model =>
       ItemsBinding.init({
         key: 'second',
         args: [2],
@@ -274,10 +274,7 @@ describe('connected initialization', () => {
                 child: ChildModel.make({ count: 8 }),
               }),
             })
-            return Update.combineSteps(nextModel, [
-              initFirstStep,
-              initSecondStep,
-            ])
+            return Update.combineSteps(nextModel, [initFirst, initSecond])
           },
           CompletedRecord: model => Parent.makeNoopStep()(model),
           RequestedCreateKeyedChild: model => Parent.makeNoopStep()(model),
@@ -399,14 +396,14 @@ const DirectBinding = Direct.makeBinding(child, {
 const DirectComposition = Direct.makeComposition({
   bindings: [DirectBinding],
 })
-const createDirectChildStep = Direct.makeStep((_model, label: string) =>
+const createDirectChild = Direct.makeStep((_model, label: string) =>
   DirectBinding.init({
     args: [5],
     toParentModel: child => ({ child: Option.some(child), label }),
   }),
 )
-const createIncompleteDirectChildStep = Direct.makeStep(
-  (_model): ReturnType<typeof createDirectChildStep> =>
+const createIncompleteDirectChild = Direct.makeStep(
+  (_model): ReturnType<typeof createDirectChild> =>
     Reflect.apply(DirectBinding.init, undefined, [
       {
         args: [5],
@@ -423,9 +420,9 @@ const prepareDynamicDirect = () =>
     })),
     update: DirectComposition.makeUpdate({
       RequestedCreateChild: (model, { label }) =>
-        createDirectChildStep(model, label),
+        createDirectChild(model, label),
       RequestedCreateIncompleteChild: model =>
-        createIncompleteDirectChildStep(model),
+        createIncompleteDirectChild(model),
     }),
     operations: {
       createDirectChild: (label: string) =>
@@ -564,7 +561,7 @@ const SecondSequencedBinding = SequencedParent.makeBinding(child, {
   placement: 'second',
   field: 'second',
 })
-const initFirstSequencedChildStep = SequencedParent.makeStep(model =>
+const initFirstSequencedChild = SequencedParent.makeStep(model =>
   FirstSequencedBinding.init({
     args: [1],
     toParentModel: child =>
@@ -572,7 +569,7 @@ const initFirstSequencedChildStep = SequencedParent.makeStep(model =>
     commands: [RecordSequencedInitialization()],
   }),
 )
-const initSecondSequencedChildStep = SequencedParent.makeStep(model =>
+const initSecondSequencedChild = SequencedParent.makeStep(model =>
   SecondSequencedBinding.init({
     args: [2],
     toParentModel: child =>
@@ -600,8 +597,8 @@ const prepareSequencedParent = () =>
       RequestedOpen: model => {
         const nextModel = modifyFields(model, { route: () => 'Play' })
         return Update.combineSteps(nextModel, [
-          initFirstSequencedChildStep,
-          initSecondSequencedChildStep,
+          initFirstSequencedChild,
+          initSecondSequencedChild,
         ])
       },
       CompletedRecord: model => SequencedParent.makeNoopStep()(model),
@@ -667,7 +664,7 @@ const CompleteItemsBinding = CompleteKeyed.makeBinding(child, {
 const CompleteKeyedComposition = CompleteKeyed.makeComposition({
   bindings: [CompleteItemsBinding],
 })
-const createKeyedChildStep = CompleteKeyed.makeStep((_model, label: string) =>
+const createKeyedChild = CompleteKeyed.makeStep((_model, label: string) =>
   CompleteItemsBinding.init({
     key: 'first',
     args: [6],
@@ -677,8 +674,8 @@ const createKeyedChildStep = CompleteKeyed.makeStep((_model, label: string) =>
     }),
   }),
 )
-const createIncompleteKeyedChildStep = CompleteKeyed.makeStep(
-  (_model): ReturnType<typeof createKeyedChildStep> =>
+const createIncompleteKeyedChild = CompleteKeyed.makeStep(
+  (_model): ReturnType<typeof createKeyedChild> =>
     Reflect.apply(CompleteItemsBinding.init, undefined, [
       {
         key: 'first',
@@ -696,9 +693,9 @@ const prepareDynamicKeyed = () =>
     })),
     update: CompleteKeyedComposition.makeUpdate({
       RequestedCreateKeyedChild: (model, { label }) =>
-        createKeyedChildStep(model, label),
+        createKeyedChild(model, label),
       RequestedCreateIncompleteKeyedChild: model =>
-        createIncompleteKeyedChildStep(model),
+        createIncompleteKeyedChild(model),
       CompletedRecord: model => CompleteKeyed.makeNoopStep()(model),
       RequestedCreateChild: model => CompleteKeyed.makeNoopStep()(model),
     }),

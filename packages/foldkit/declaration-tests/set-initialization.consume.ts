@@ -9,6 +9,7 @@ import {
   ReadService,
   RequiredBinding,
   init,
+  set,
   setDefault,
   setDisabledStartup,
   setExplicitDefault,
@@ -19,7 +20,6 @@ import {
   setRequired,
   setRequiredWithOptional,
   setRequiredWithRest,
-  setStep,
 } from './set-initialization.accepted.js'
 
 type Equal<Left, Right> =
@@ -93,7 +93,7 @@ export type ExactEvidence = Expect<
   >
 >
 export type StepRequirements = Expect<
-  Equal<Update.RequirementsOf<typeof setStep>, ExpectedRequirements>
+  Equal<Update.RequirementsOf<typeof set>, ExpectedRequirements>
 >
 export type InitializedModel = Expect<
   Equal<ReturnType<typeof init>['model'], typeof ParentModel.Type>

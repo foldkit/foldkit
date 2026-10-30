@@ -23,7 +23,7 @@ const foldSettings = Update.foldChild({
   toParentMessage: message => message,
 })
 
-const foldSettingsStep = Update.foldChildStep({
+const foldSettingsWithoutMessage = Update.foldChildStep({
   update: (settings: SettingsModel) => ({ model: settings }),
   read: readSettings,
   write: writeSettings,
@@ -75,9 +75,9 @@ export const update = (model: Model, message: unknown) => {
   }
 }
 
-export const updateNamedStep = (model: Model, message: unknown) => {
-  const foldSettingsStep = Update.combineSteps([foldSettings(message)])
-  const settingsUpdate = foldSettingsStep(model)
+export const updateNamed = (model: Model, message: unknown) => {
+  const foldSettingsMessage = Update.combineSteps([foldSettings(message)])
+  const settingsUpdate = foldSettingsMessage(model)
 
   return {
     model: modifyFields(model, {
@@ -87,8 +87,8 @@ export const updateNamedStep = (model: Model, message: unknown) => {
   }
 }
 
-export const updateFoldChildStep = (model: Model) => {
-  const settingsUpdate = foldSettingsStep(model)
+export const updateFoldChild = (model: Model) => {
+  const settingsUpdate = foldSettingsWithoutMessage(model)
 
   return {
     model: modifyFields(model, {
@@ -98,9 +98,9 @@ export const updateFoldChildStep = (model: Model) => {
   }
 }
 
-export const updateCombineFoldChildStep = (model: Model) => {
+export const updateCombineFoldChild = (model: Model) => {
   const settingsUpdate = Update.combineSteps(model, [
-    foldSettingsStep,
+    foldSettingsWithoutMessage,
     stepModel => ({ model: stepModel }),
   ])
 

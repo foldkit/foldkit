@@ -33,14 +33,11 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [CounterBinding],
 })
 
-const clearDraftStep = makeFieldsStep(() => ({
+const clearDraft = makeFieldsStep(() => ({
   draft: () => '',
 }))
-const resetStep = Update.combineSteps([
-  clearDraftStep,
-  CounterBinding.requestReset(),
-])
-const restoreBaselineStep = makeStep(model =>
+const reset = Update.combineSteps([clearDraft, CounterBinding.requestReset()])
+const restoreBaseline = makeStep(model =>
   CounterBinding.init({
     args: [0],
     toParentModel: counter =>
@@ -57,6 +54,6 @@ export const init = ApplicationComposition.makeInit(
   }),
 )
 export const update = ApplicationComposition.makeUpdate({
-  ClickedReset: resetStep,
-  ClickedRestoreBaseline: restoreBaselineStep,
+  ClickedReset: reset,
+  ClickedRestoreBaseline: restoreBaseline,
 })

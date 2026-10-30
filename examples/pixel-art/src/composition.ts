@@ -23,11 +23,7 @@ import {
 } from './definition'
 import { paletteIndexFromValue } from './model'
 import { PALETTE_THEMES } from './palette'
-import {
-  requestGridSizeChangeStep,
-  selectColorStep,
-  selectToolStep,
-} from './steps'
+import { requestGridSizeChange, selectColor, selectTool } from './steps'
 
 export const ErrorDialogBinding = ApplicationDefinition.makeBinding(
   DialogBlock,
@@ -71,7 +67,7 @@ export const ToolRadioGroupBinding = ApplicationDefinition.makeBinding(
   },
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ToolRadioGroupBlock, {
-    Selected: ({ value }) => selectToolStep(value),
+    Selected: ({ value }) => selectTool(value),
   }),
 })
 
@@ -83,7 +79,7 @@ export const GridSizeRadioGroupBinding = ApplicationDefinition.makeBinding(
   },
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(GridSizeRadioGroupBlock, {
-    Selected: ({ value }) => requestGridSizeChangeStep(Number(value)),
+    Selected: ({ value }) => requestGridSizeChange(Number(value)),
   }),
 })
 
@@ -97,7 +93,7 @@ export const PaletteRadioGroupBinding = ApplicationDefinition.makeBinding(
   fold: ApplicationDefinition.makeOutMessageFold(PaletteRadioGroupBlock, {
     Selected: ({ value }) =>
       makeStep(model =>
-        selectColorStep(paletteIndexFromValue(value, model.selectedColorIndex))(
+        selectColor(paletteIndexFromValue(value, model.selectedColorIndex))(
           model,
         ),
       ),

@@ -19,8 +19,8 @@ import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './demo/virtualListData'
 import {
   VirtualListChatDemoBinding,
   handleCompletedFetchVirtualListChatHistory,
-  prependVirtualListChatMessagesStep,
-  updateVirtualListChatMessagesStep,
+  prependVirtualListChatMessages,
+  updateVirtualListChatMessages,
 } from './virtualListChat'
 
 export const update = UiComposition.makeUpdate({
@@ -150,7 +150,7 @@ export const update = UiComposition.makeUpdate({
       Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
     ),
 
-  ClickedVirtualListChatPrepend: prependVirtualListChatMessagesStep,
+  ClickedVirtualListChatPrepend: prependVirtualListChatMessages,
 
   CompletedFetchVirtualListChatHistory:
     handleCompletedFetchVirtualListChatHistory,
@@ -167,7 +167,7 @@ export const update = UiComposition.makeUpdate({
       body: `New message ${nextId} arrived at the end.`,
       isExpanded: nextId % 3 === 0,
     })
-    return updateVirtualListChatMessagesStep(nextMessages, nextId + 1)(model)
+    return updateVirtualListChatMessages(nextMessages, nextId + 1)(model)
   },
 
   ClickedVirtualListChatToggleMessage: (model, { messageId }) => {
@@ -178,6 +178,6 @@ export const update = UiComposition.makeUpdate({
           })
         : message,
     )
-    return updateVirtualListChatMessagesStep(nextMessages)(model)
+    return updateVirtualListChatMessages(nextMessages)(model)
   },
 })

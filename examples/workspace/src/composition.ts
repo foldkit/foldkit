@@ -35,10 +35,10 @@ import {
 } from './route'
 import { appliedIssueFilters } from './selection'
 import {
-  applyIssueCommentStep,
-  applyIssueSnapshotStep,
-  applySavedIssueStep,
-  requestIssueMoveStep,
+  applyIssueComment,
+  applyIssueSnapshot,
+  applySavedIssue,
+  requestIssueMove,
 } from './steps'
 
 export const ActiveMemberBinding = makeBinding(WorkspaceListboxBlock, {
@@ -55,7 +55,7 @@ export const IssueDetailBinding = makeMapBinding(IssueDetailBlock, {
   field: 'issueDetails',
 })
 
-const openIssueStep = (issueId: string) =>
+const openIssue = (issueId: string) =>
   makeCommandsStep(model => [
     NavigateInternal({ url: issueHref(model, issueId) }),
   ])
@@ -74,7 +74,7 @@ export const CreateIssueBinding = makeBinding(CreateIssueBlock, {
           ),
           maybeNotice: () => Option.some(`${issue.identifier} created`),
         })),
-        openIssueStep(issue.id),
+        openIssue(issue.id),
       ]),
   }),
 })
@@ -83,21 +83,20 @@ export const NotificationCenterBinding = makeBinding(NotificationCenterBlock, {
   field: 'notificationCenter',
 }).withOutMessagePolicy({
   fold: makeOutMessageFold(NotificationCenterBlock, {
-    SelectedIssue: ({ issueId }) => openIssueStep(issueId),
+    SelectedIssue: ({ issueId }) => openIssue(issueId),
   }),
 })
 
 const foldIssueDetailOutMessage = makeOutMessageFold(IssueDetailBlock, {
   Saved: ({ savedIssue }) =>
     Update.combineSteps([
-      applySavedIssueStep(savedIssue),
+      applySavedIssue(savedIssue),
       makeFieldsStep(() => ({
         maybeNotice: () => Option.some(`${savedIssue.identifier} saved`),
       })),
     ]),
-  AddedComment: ({ issueId, comment }) =>
-    applyIssueCommentStep(issueId, comment),
-  ReceivedIssue: ({ issue }) => applyIssueSnapshotStep(issue),
+  AddedComment: ({ issueId, comment }) => applyIssueComment(issueId, comment),
+  ReceivedIssue: ({ issue }) => applyIssueSnapshot(issue),
   Closed: () =>
     makeCommandsStep(model => {
       const { route } = model
@@ -114,7 +113,7 @@ const foldIssueDetailOutMessage = makeOutMessageFold(IssueDetailBlock, {
     }),
 })
 
-const navigateIssueFiltersStep = (
+const navigateIssueFilters = (
   change: (filters: IssueFilters) => IssueFilters,
 ) =>
   makeCommandsStep(model => [
@@ -149,19 +148,19 @@ export const IssueListBinding = makeBinding(IssueListBlock, {
         }),
       ]),
     ChangedStatusFilter: ({ maybeStatus }) =>
-      navigateIssueFiltersStep(filters =>
+      navigateIssueFilters(filters =>
         modifyFields(filters, { maybeStatus: () => maybeStatus }),
       ),
     ChangedSort: ({ sort }) =>
-      navigateIssueFiltersStep(filters =>
+      navigateIssueFilters(filters =>
         modifyFields(filters, { sort: () => sort }),
       ),
     ChangedGrouping: ({ groupBy }) =>
-      navigateIssueFiltersStep(filters =>
+      navigateIssueFilters(filters =>
         modifyFields(filters, { groupBy: () => groupBy }),
       ),
     RequestedClearFilters: () =>
-      navigateIssueFiltersStep(filters =>
+      navigateIssueFilters(filters =>
         modifyFields(filters, {
           query: () => '',
           maybeStatus: () => Option.none(),
@@ -205,7 +204,7 @@ const IssueBoardBindingWithOutMessagePolicy =
         RequestedCreation: ({ status }) =>
           CreateIssueBinding.requestOpen({ projectId, status }),
         RequestedMove: ({ issueId, status, insertionIndex }) =>
-          requestIssueMoveStep(issueId, status, insertionIndex),
+          requestIssueMove(issueId, status, insertionIndex),
       })(outMessage),
   })
 

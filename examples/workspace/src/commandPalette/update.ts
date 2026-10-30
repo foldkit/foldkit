@@ -10,9 +10,9 @@ import type { Model } from './model'
 import { OutMessage } from './outMessage'
 import { ResultTarget } from './resultTarget'
 
-const keepModelStep = makeNoopStep()
+const keepModel = makeNoopStep()
 
-const closeDialogStep = DialogBinding.requestClose()
+const closeDialog = DialogBinding.requestClose()
 
 const handleUpdatedQuery = (model: Model, { value }: UpdatedQuery) => ({
   model: modifyFields(model, {
@@ -22,10 +22,7 @@ const handleUpdatedQuery = (model: Model, { value }: UpdatedQuery) => ({
   commands: [ScrollActiveResult({ index: 0 })],
 })
 
-const moveActiveResultStep = (
-  nextActiveResultIndex: number,
-  resultCount: number,
-) =>
+const moveActiveResult = (nextActiveResultIndex: number, resultCount: number) =>
   makeStep(model => ({
     model: modifyFields(model, {
       activeResultIndex: () => nextActiveResultIndex,
@@ -36,7 +33,7 @@ const moveActiveResultStep = (
     ),
   }))
 
-const openPaletteStep = makeStep(model => {
+const openPalette = makeStep(model => {
   if (model.dialog.isOpen) {
     return { model }
   }
@@ -51,10 +48,10 @@ const openPaletteStep = makeStep(model => {
 })
 
 const selectResult = (
-  model: Parameters<typeof closeDialogStep>[0],
+  model: Parameters<typeof closeDialog>[0],
   target: ResultTarget,
 ) => {
-  const dialogClose = closeDialogStep(model)
+  const dialogClose = closeDialog(model)
 
   const outMessage = ResultTarget.match(target, {
     Issue: ({ issueId }) => OutMessage.SelectedIssue({ issueId }),
@@ -65,15 +62,15 @@ const selectResult = (
 }
 
 export const update = CommandPaletteComposition.makeUpdate({
-  RequestedOpen: openPaletteStep,
-  PressedOpenShortcut: openPaletteStep,
-  RequestedClose: closeDialogStep,
+  RequestedOpen: openPalette,
+  PressedOpenShortcut: openPalette,
+  RequestedClose: closeDialog,
   UpdatedQuery: handleUpdatedQuery,
   PressedNextResult: (model, { resultCount }) => {
     const nextActiveResultIndex =
       resultCount > 0 ? (model.activeResultIndex + 1) % resultCount : 0
 
-    return moveActiveResultStep(nextActiveResultIndex, resultCount)(model)
+    return moveActiveResult(nextActiveResultIndex, resultCount)(model)
   },
   PressedPreviousResult: (model, { resultCount }) => {
     const nextActiveResultIndex =
@@ -81,13 +78,13 @@ export const update = CommandPaletteComposition.makeUpdate({
         ? (model.activeResultIndex - 1 + resultCount) % resultCount
         : 0
 
-    return moveActiveResultStep(nextActiveResultIndex, resultCount)(model)
+    return moveActiveResult(nextActiveResultIndex, resultCount)(model)
   },
   PressedEnter: (model, { maybeTarget }) =>
     Option.match(maybeTarget, {
-      onNone: () => keepModelStep(model),
+      onNone: () => keepModel(model),
       onSome: target => selectResult(model, target),
     }),
   ClickedResult: (model, { target }) => selectResult(model, target),
-  CompletedScrollActiveResult: keepModelStep,
+  CompletedScrollActiveResult: keepModel,
 })

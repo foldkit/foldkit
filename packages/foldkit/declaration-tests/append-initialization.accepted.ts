@@ -96,7 +96,7 @@ export const append = (model: typeof ParentModel.Type, id: typeof Id.Type) =>
   })
 export const appendWithRequiredArgs = (model: typeof ParentModel.Type) =>
   initAndAppend(BaseEntriesBinding, model, { key: firstId, args: [1] })
-export const appendStep = ParentDefinition.makeStep(model =>
+export const appendChild = ParentDefinition.makeStep(model =>
   append(model, firstId),
 )
 export const update = ParentComposition.makeUpdate({
@@ -115,7 +115,7 @@ export const explicitInitialization = () =>
   })
 export const init = ParentComposition.makeInit(() => ({
   model: { label: 'current' },
-  steps: [appendStep],
+  steps: [appendChild],
 }))
 const prepareParent = () => ParentComposition.prepareBlock({ init, update })
 export const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<

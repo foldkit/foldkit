@@ -64,40 +64,37 @@ const loadNotes = makeLoad('LoadNotes')
 const loadTags = makeLoad('LoadTags')
 const loadFolders = makeLoad('LoadFolders')
 
-const incrementCountStep: Step<TestModel, TestMessage> = model => ({
+const incrementCount: Step<TestModel, TestMessage> = model => ({
   model: modifyFields(model, { count: Number.increment }),
 })
 
-const doubleCountStep: Step<TestModel, TestMessage> = model => ({
+const doubleCount: Step<TestModel, TestMessage> = model => ({
   model: modifyFields(model, { count: Number.multiply(2) }),
 })
 
-const emitLoadNotesStep: Step<TestModel, TestMessage> = model => ({
+const emitLoadNotes: Step<TestModel, TestMessage> = model => ({
   model,
   commands: [loadNotes],
 })
 
-const emitLoadTagsAndFoldersStep: Step<TestModel, TestMessage> = model => ({
+const emitLoadTagsAndFolders: Step<TestModel, TestMessage> = model => ({
   model,
   commands: [loadTags, loadFolders],
 })
 
-const incrementAndEmitLoadNotesStep: Step<TestModel, TestMessage> = model => ({
+const incrementAndEmitLoadNotes: Step<TestModel, TestMessage> = model => ({
   model: modifyFields(model, { count: Number.increment }),
   commands: [loadNotes],
 })
 
 describe('combineSteps', () => {
   it('threads the model through the steps in order', () => {
-    const combinedUpdate = combineSteps([incrementCountStep, doubleCountStep])({
+    const combinedUpdate = combineSteps([incrementCount, doubleCount])({
       count: 1,
     })
     expect(combinedUpdate.model).toEqual({ count: 4 })
 
-    const doubleThenIncrement = combineSteps([
-      doubleCountStep,
-      incrementCountStep,
-    ])({
+    const doubleThenIncrement = combineSteps([doubleCount, incrementCount])({
       count: 1,
     })
     expect(doubleThenIncrement.model).toEqual({ count: 3 })
@@ -105,8 +102,8 @@ describe('combineSteps', () => {
 
   it('concatenates the commands of every step in step order', () => {
     const combinedCommands = combineSteps([
-      emitLoadNotesStep,
-      emitLoadTagsAndFoldersStep,
+      emitLoadNotes,
+      emitLoadTagsAndFolders,
     ])({
       count: 0,
     })
@@ -140,19 +137,19 @@ describe('combineSteps', () => {
       }),
     }
     const childEvidence = (): 'Child' => 'Child'
-    const localStep = defineStep((model: TestModel) => ({
+    const changeLocalModel = defineStep((model: TestModel) => ({
       model,
       commands: [firstCommand],
     }))
-    const registeredStep = (model: TestModel) => ({
+    const registered = (model: TestModel) => ({
       model,
       commands: [secondCommand],
       [RegistrationEvidenceTypeId]: childEvidence,
     })
 
     const result = combineSteps({ count: 0 }, [
-      localStep,
-      registeredStep,
+      changeLocalModel,
+      registered,
       defineStep((model: TestModel) => ({ model })),
     ])
 
@@ -166,7 +163,7 @@ describe('combineSteps', () => {
 
     const rawTupleResult = combineSteps({ count: 0 }, [
       model => ({ model, commands: [firstCommand] }),
-      registeredStep,
+      registered,
       model => ({ model }),
     ])
 
@@ -177,8 +174,8 @@ describe('combineSteps', () => {
       RegistrationEvidenceOf<typeof rawTupleResult>
     >().toEqualTypeOf<'Child'>()
 
-    const dynamicRegisteredSteps: ReadonlyArray<typeof registeredStep> = [
-      registeredStep,
+    const dynamicRegisteredSteps: ReadonlyArray<typeof registered> = [
+      registered,
     ]
     const dynamicResult = combineSteps({ count: 0 }, dynamicRegisteredSteps)
 
@@ -190,8 +187,8 @@ describe('combineSteps', () => {
     >().toEqualTypeOf<'Child'>()
     expect(dynamicResult.commands).toEqual([secondCommand])
 
-    const dynamicCombinedStep = combineSteps(dynamicRegisteredSteps)
-    const dynamicStepResult = dynamicCombinedStep({ count: 0 })
+    const dynamicCombined = combineSteps(dynamicRegisteredSteps)
+    const dynamicStepResult = dynamicCombined({ count: 0 })
 
     expectTypeOf<
       RequirementsOf<() => typeof dynamicStepResult>
@@ -210,19 +207,17 @@ describe('combineSteps', () => {
 
   it('preserves a single step and returns its computed Commands collection', () => {
     const model: TestModel = { count: 2 }
-    const doubledCount = combineSteps([doubleCountStep])(model)
+    const doubledCount = combineSteps([doubleCount])(model)
     expect(doubledCount.model).toEqual({ count: 4 })
     expect(doubledCount.commands).toEqual([])
-    expect(combineSteps([emitLoadNotesStep])(model)).toEqual(
-      emitLoadNotesStep(model),
-    )
+    expect(combineSteps([emitLoadNotes])(model)).toEqual(emitLoadNotes(model))
   })
 
   it('lets steps with no commands contribute nothing to the batch', () => {
     const mixedCommands = combineSteps([
-      incrementCountStep,
-      emitLoadNotesStep,
-      doubleCountStep,
+      incrementCount,
+      emitLoadNotes,
+      doubleCount,
     ])({ count: 1 })
     expect(mixedCommands.model).toEqual({ count: 4 })
     expect(mixedCommands.commands ?? []).toEqual([loadNotes])
@@ -230,9 +225,9 @@ describe('combineSteps', () => {
 
   it('collects a step that both edits the model and emits a command, threading the edit forward', () => {
     const multiCommandUpdate = combineSteps([
-      incrementAndEmitLoadNotesStep,
-      emitLoadTagsAndFoldersStep,
-      doubleCountStep,
+      incrementAndEmitLoadNotes,
+      emitLoadTagsAndFolders,
+      doubleCount,
     ])({ count: 1 })
     expect(multiCommandUpdate.model).toEqual({ count: 4 })
     expect(multiCommandUpdate.commands ?? []).toEqual([
@@ -244,9 +239,9 @@ describe('combineSteps', () => {
 
   it('runs the steps against the model when called data-first', () => {
     const steps = [
-      incrementAndEmitLoadNotesStep,
-      emitLoadTagsAndFoldersStep,
-      doubleCountStep,
+      incrementAndEmitLoadNotes,
+      emitLoadTagsAndFolders,
+      doubleCount,
     ]
     const model: TestModel = { count: 1 }
     expect(combineSteps(model, steps)).toEqual(combineSteps(steps)(model))
@@ -347,21 +342,21 @@ const makeCacheModel = (
   notesById: HashMap.empty<string, AsyncData.AsyncData<number, string>>(),
 })
 
-const refreshNotesStep: Step<CacheModel, TestMessage> = refresh({
+const refreshNotes: Step<CacheModel, TestMessage> = refresh({
   read: (model: CacheModel) => Option.some(model.notes),
   revalidate: AsyncData.revalidate,
   write: (model, nextNotes) => modifyFields(model, { notes: () => nextNotes }),
   load: loadNotes,
 })
 
-const refreshOrLoadNotesStep: Step<CacheModel, TestMessage> = refresh({
+const refreshOrLoadNotes: Step<CacheModel, TestMessage> = refresh({
   read: (model: CacheModel) => Option.some(model.notes),
   revalidate: AsyncData.revalidateOrLoad,
   write: (model, nextNotes) => modifyFields(model, { notes: () => nextNotes }),
   load: loadNotes,
 })
 
-const refreshNoteByIdStep = (noteId: string): Step<CacheModel, TestMessage> =>
+const refreshNoteById = (noteId: string): Step<CacheModel, TestMessage> =>
   refresh({
     read: (model: CacheModel) => HashMap.get(model.notesById, noteId),
     revalidate: AsyncData.revalidate,
@@ -375,7 +370,7 @@ const refreshNoteByIdStep = (noteId: string): Step<CacheModel, TestMessage> =>
 describe('refresh', () => {
   it('is a no-op when read misses the keyed cache', () => {
     const model = makeCacheModel(AsyncData.Success({ data: 1 }))
-    const missingRefresh = refreshNoteByIdStep('missing')(model)
+    const missingRefresh = refreshNoteById('missing')(model)
     expect(missingRefresh.model).toBe(model)
     expect(missingRefresh.commands ?? []).toEqual([])
   })
@@ -391,7 +386,7 @@ describe('refresh', () => {
 
     for (const state of statesWithoutData) {
       const model = makeCacheModel(state)
-      const notesRefresh = refreshNotesStep(model)
+      const notesRefresh = refreshNotes(model)
       expect(notesRefresh.model).toBe(model)
       expect(notesRefresh.commands ?? []).toEqual([])
     }
@@ -404,7 +399,7 @@ describe('refresh', () => {
     ]
 
     for (const state of loadedStates) {
-      const loadedRefresh = refreshNotesStep(makeCacheModel(state))
+      const loadedRefresh = refreshNotes(makeCacheModel(state))
       expect(loadedRefresh.model.notes).toEqual(
         AsyncData.Refreshing({ data: 1 }),
       )
@@ -421,7 +416,7 @@ describe('refresh', () => {
       notesById: HashMap.fromIterable(entries),
     }
 
-    const keyedRefresh = refreshNoteByIdStep('note:1')(model)
+    const keyedRefresh = refreshNoteById('note:1')(model)
 
     expect(HashMap.get(keyedRefresh.model.notesById, 'note:1')).toEqual(
       Option.some(AsyncData.Refreshing({ data: 1 })),
@@ -432,7 +427,7 @@ describe('refresh', () => {
 
   it('loads a cold cache on entry when revalidate is revalidateOrLoad', () => {
     const model = makeCacheModel(AsyncData.Idle())
-    const notesRefreshOrLoad = refreshOrLoadNotesStep(model)
+    const notesRefreshOrLoad = refreshOrLoadNotes(model)
     expect(notesRefreshOrLoad.model.notes).toEqual(AsyncData.Loading())
     expect(notesRefreshOrLoad.commands ?? []).toEqual([loadNotes])
   })
@@ -870,12 +865,12 @@ describe('foldChild', () => {
   })
 
   it('composes data-last with combineSteps as an ordinary Step', () => {
-    const reportThenBumpStep = combineSteps([
+    const reportThenBump = combineSteps([
       foldReportingCounter(Message.BumpedValue()),
       foldCounter(Message.BumpedValue()),
     ])
 
-    const reportedThenBumped = reportThenBumpStep(dashboardModel)
+    const reportedThenBumped = reportThenBump(dashboardModel)
     expect(reportedThenBumped.model.counter).toEqual({ value: 5 })
     expect(reportedThenBumped.model.lastReportedValue).toBe(4)
     expect(
@@ -1372,7 +1367,7 @@ describe('foldChildAt', () => {
 })
 
 describe('foldChildStep', () => {
-  const foldCounterResetStep = foldChildStep({
+  const foldCounterReset = foldChildStep({
     update: resetCounter,
     read: (model: DashboardModel) => Option.some(model.counter),
     write: (model, nextCounter) =>
@@ -1381,7 +1376,7 @@ describe('foldChildStep', () => {
   })
 
   it('folds an entry point that takes nothing but the child Model', () => {
-    const counterResetFold = foldCounterResetStep(dashboardModel)
+    const counterResetFold = foldCounterReset(dashboardModel)
 
     expect(counterResetFold.model.counter).toEqual({ value: 0 })
     expect(
@@ -1393,7 +1388,7 @@ describe('foldChildStep', () => {
     type ReportedValue = Readonly<{ _tag: 'ReportedValue' }>
     const ReportedValue = (): ReportedValue => ({ _tag: 'ReportedValue' })
 
-    const foldCounterResetInBlockStep = foldChildStep({
+    const foldCounterResetInBlock = foldChildStep({
       update: resetCounterWithOutMessage,
       read: (model: DashboardModel) => Option.some(model.counter),
       write: (model, nextCounter) =>
@@ -1402,11 +1397,11 @@ describe('foldChildStep', () => {
       toParentOutMessage: () => ReportedValue(),
     })
 
-    expectTypeOf(foldCounterResetInBlockStep).toEqualTypeOf<
+    expectTypeOf(foldCounterResetInBlock).toEqualTypeOf<
       StepWithOutMessage<DashboardModel, GotCounterMessage, ReportedValue>
     >()
 
-    const counterResetBlockFold = foldCounterResetInBlockStep(dashboardModel)
+    const counterResetBlockFold = foldCounterResetInBlock(dashboardModel)
 
     expect(counterResetBlockFold.model.counter).toEqual({ value: 0 })
     expect(
@@ -1435,7 +1430,7 @@ describe('foldChildStep', () => {
       }),
     })
 
-    const foldCounterResetStep = foldChildStep({
+    const foldCounterReset = foldChildStep({
       update: resetCounterWithOutMessage,
       read: (model: DashboardModel) => Option.some(model.counter),
       write: (model, nextCounter) =>
@@ -1445,16 +1440,16 @@ describe('foldChildStep', () => {
       foldOutMessage: foldCounterResetOutMessage,
     })
 
-    expectTypeOf(foldCounterResetStep).toEqualTypeOf<
+    expectTypeOf(foldCounterReset).toEqualTypeOf<
       StepWithOutMessage<DashboardModel, GotCounterMessage, DashboardOutMessage>
     >()
 
-    const counterResetFold = foldCounterResetStep(dashboardModel)
+    const counterResetFold = foldCounterReset(dashboardModel)
     expect(counterResetFold.outMessage).toEqual(ResetDashboard())
   })
 
   it('lets a local child Step flow into an OutMessage-aware parent without an adapter', () => {
-    const foldReportingCounterResetInBlockStep = foldChildStep({
+    const foldReportingCounterResetInBlock = foldChildStep({
       update: resetCounterWithOutMessage,
       read: (model: DashboardModel) => Option.some(model.counter),
       write: (model, nextCounter) =>
@@ -1467,13 +1462,13 @@ describe('foldChildStep', () => {
       }),
     })
 
-    const parentStep: StepWithOutMessage<
+    const changeParentModel: StepWithOutMessage<
       DashboardModel,
       GotCounterMessage,
       NotifiedValueChanged
-    > = foldReportingCounterResetInBlockStep
+    > = foldReportingCounterResetInBlock
 
-    const reportingCounterResetFold = parentStep(
+    const reportingCounterResetFold = changeParentModel(
       modifyFields(dashboardModel, { lastReportedValue: () => 9 }),
     )
 
@@ -1499,7 +1494,7 @@ describe('foldChildStep', () => {
       }),
     })
 
-    const foldDerivingCounterResetStep = foldChildStep({
+    const foldDerivingCounterReset = foldChildStep({
       update: resetCounterWithOutMessage,
       read: (model: DashboardModel) => Option.some(model.counter),
       write: (model, nextCounter) =>
@@ -1508,11 +1503,11 @@ describe('foldChildStep', () => {
       foldOutMessage: foldCounterResetOutMessage,
     })
 
-    expectTypeOf(foldDerivingCounterResetStep).toEqualTypeOf<
+    expectTypeOf(foldDerivingCounterReset).toEqualTypeOf<
       StepWithOutMessage<DashboardModel, DashboardMessage, ResetDashboard>
     >()
 
-    const derivingCounterReset = foldDerivingCounterResetStep(dashboardModel)
+    const derivingCounterReset = foldDerivingCounterReset(dashboardModel)
     expect(derivingCounterReset.model.lastReportedValue).toBe(0)
     expect(
       (derivingCounterReset.commands ?? []).map(command => command.name),
@@ -1521,13 +1516,13 @@ describe('foldChildStep', () => {
   })
 
   it('is an ordinary Step that composes with combineSteps', () => {
-    expectTypeOf(foldCounterResetStep).toEqualTypeOf<
+    expectTypeOf(foldCounterReset).toEqualTypeOf<
       Step<DashboardModel, GotCounterMessage>
     >()
 
     const combinedReset = combineSteps(dashboardModel, [
       foldCounter(Message.BumpedValue()),
-      foldCounterResetStep,
+      foldCounterReset,
     ])
 
     expect(combinedReset.model.counter).toEqual({ value: 0 })
@@ -1537,7 +1532,7 @@ describe('foldChildStep', () => {
   })
 
   it('is a no-op when read finds no mounted child', () => {
-    const foldGatedCounterResetStep = foldChildStep({
+    const foldGatedCounterReset = foldChildStep({
       update: resetCounter,
       read: (model: GatedDashboardModel) => model.maybeCounter,
       write: (model, nextCounter) =>
@@ -1546,14 +1541,14 @@ describe('foldChildStep', () => {
     })
 
     const model: GatedDashboardModel = { maybeCounter: Option.none() }
-    const gatedCounterResetFold = foldGatedCounterResetStep(model)
+    const gatedCounterResetFold = foldGatedCounterReset(model)
 
     expect(gatedCounterResetFold.model).toBe(model)
     expect(gatedCounterResetFold.commands ?? []).toEqual([])
   })
 
   it('runs foldOutMessage against the Model with the child already written', () => {
-    const foldReportingCounterResetStep = foldChildStep({
+    const foldReportingCounterReset = foldChildStep({
       update: (model: CounterModel) => ({
         model: modifyFields(model, { value: () => 0 }),
         commands: [saveCount],
@@ -1571,8 +1566,7 @@ describe('foldChildStep', () => {
       }),
     })
 
-    const reportingCounterResetFold =
-      foldReportingCounterResetStep(dashboardModel)
+    const reportingCounterResetFold = foldReportingCounterReset(dashboardModel)
 
     expect(reportingCounterResetFold.model.counter).toEqual({ value: 0 })
     expect(reportingCounterResetFold.model.lastReportedValue).toBe(0)
@@ -1582,7 +1576,7 @@ describe('foldChildStep', () => {
   })
 
   it('lifts a Command the OutMessage Step returns through toParentMessage', () => {
-    const foldSettlingCounterResetStep = foldChildStep({
+    const foldSettlingCounterReset = foldChildStep({
       update: resetCounterWithOutMessage,
       read: (model: DashboardModel) => Option.some(model.counter),
       write: (model, nextCounter) =>
@@ -1591,8 +1585,7 @@ describe('foldChildStep', () => {
       foldOutMessage: foldSettlingCounterOutMessage,
     })
 
-    const settlingCounterResetFold =
-      foldSettlingCounterResetStep(dashboardModel)
+    const settlingCounterResetFold = foldSettlingCounterReset(dashboardModel)
 
     expect(
       (settlingCounterResetFold.commands ?? []).map(command => command.name),
@@ -1800,14 +1793,14 @@ describe('types', () => {
   })
 
   it('prevents an OutMessage Step from flowing into combineSteps', () => {
-    const emitOutMessageStep: StepWithOutMessage<
+    const emitOutMessage: StepWithOutMessage<
       TestModel,
       TestMessage,
       TestOutMessage
     > = model => ({ model, outMessage: { _tag: 'ClosedEditor' } })
 
     // @ts-expect-error combineSteps would lose this OutMessage.
-    combineSteps([emitOutMessageStep])
+    combineSteps([emitOutMessage])
   })
 
   it('Step maps a Model to a Return over the same Model', () => {
@@ -1817,13 +1810,15 @@ describe('types', () => {
   })
 
   it('combineSteps infers Model and Message from the steps array', () => {
-    const combinedStep = combineSteps([incrementCountStep, emitLoadNotesStep])
-    expectTypeOf(combinedStep).toEqualTypeOf<Step<TestModel, TestMessage>>()
+    const applyCombinedChanges = combineSteps([incrementCount, emitLoadNotes])
+    expectTypeOf(applyCombinedChanges).toEqualTypeOf<
+      Step<TestModel, TestMessage>
+    >()
   })
 
   it('combineSteps data-first returns a Return of the steps Model and Message', () => {
     expectTypeOf(
-      combineSteps(baseModel, [incrementCountStep, emitLoadNotesStep]),
+      combineSteps(baseModel, [incrementCount, emitLoadNotes]),
     ).toEqualTypeOf<Return<TestModel, TestMessage>>()
   })
 
@@ -1938,7 +1933,7 @@ describe('types', () => {
   })
 
   it('foldChildStep combines child and OutMessage Step service requirements', () => {
-    const foldStepWithServicesStep = foldChildStep({
+    const foldChildWithServices = foldChildStep({
       update: resetCounterWithServices,
       read: (model: FoldInferenceModel) => Option.some(model.counter),
       write: (model, nextCounter) =>
@@ -1947,7 +1942,7 @@ describe('types', () => {
       foldOutMessage: foldChangedValueWithPersistence,
     })
 
-    expectTypeOf(foldStepWithServicesStep).toEqualTypeOf<
+    expectTypeOf(foldChildWithServices).toEqualTypeOf<
       Step<
         FoldInferenceModel,
         GotCounterMessage | TestMessage,
@@ -1957,7 +1952,7 @@ describe('types', () => {
   })
 
   it('foldChildStep combines requirements when lifting the OutMessage', () => {
-    const foldStepWithServicesStep = foldChildStep({
+    const foldChildWithServices = foldChildStep({
       update: resetCounterWithServices,
       read: (model: FoldInferenceModel) => Option.some(model.counter),
       write: (model, nextCounter) =>
@@ -1967,7 +1962,7 @@ describe('types', () => {
       foldOutMessage: foldChangedValueWithPersistence,
     })
 
-    expectTypeOf(foldStepWithServicesStep).toEqualTypeOf<
+    expectTypeOf(foldChildWithServices).toEqualTypeOf<
       StepWithOutMessage<
         FoldInferenceModel,
         GotCounterMessage | TestMessage,

@@ -109,7 +109,7 @@ export const MobileMenuDialogBinding = ApplicationDefinition.makeBinding(
   }),
 })
 
-const applyThemePreferenceStep = (preference: ThemePreference) =>
+const applyThemePreference = (preference: ThemePreference) =>
   makeStep(model => {
     const resolvedTheme = resolveTheme(preference, model.systemTheme)
 
@@ -133,7 +133,7 @@ export const ThemeMenuBinding = ApplicationDefinition.makeBinding(
   },
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ThemeMenu.ThemeMenuBlock, {
-    Selected: ({ value }) => applyThemePreferenceStep(value),
+    Selected: ({ value }) => applyThemePreference(value),
     Closed: makeNoopStep,
   }),
 })

@@ -32,12 +32,12 @@ const update = ContextualRefreshComposition.makeUpdate.withContext(
   }),
 )
 
-const refreshStep = (model: Model) =>
+const refresh = (model: Model) =>
   update(Message.RequestedRefresh())(model, { requestId: 'current' })
 
-const countRefreshStep = makeFieldsStep(() => ({
+const countRefresh = makeFieldsStep(() => ({
   refreshCount: count => count + 1,
 }))
 
-export const requestRefreshStep = (model: Model) =>
-  Update.combineSteps(model, [refreshStep, countRefreshStep])
+export const requestRefresh = (model: Model) =>
+  Update.combineSteps(model, [refresh, countRefresh])

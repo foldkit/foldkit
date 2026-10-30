@@ -12,8 +12,8 @@ import {
   ParentComposition,
   ParentOutMessage,
   PrimitiveDefinition,
-  emitClosedStep,
-  emitPrimitiveStep,
+  emitClosed,
+  emitPrimitive,
 } from './outmessage-steps.accepted.js'
 
 // @ts-expect-error Old callback authoring cannot bypass the registered Binding policy guard.
@@ -53,17 +53,17 @@ OutMessageStepsDefinition.makeOutMessageStep(() => erasedOutMessage)
 // @ts-expect-error Optional callback results are not definite OutMessages.
 OutMessageStepsDefinition.makeOutMessageStep(() => maybeOutMessage)
 // @ts-expect-error The Step checks the owning Model.
-emitClosedStep({ count: 'invalid', status: 'Idle' })
+emitClosed({ count: 'invalid', status: 'Idle' })
 // @ts-expect-error The Step accepts only its incoming Model.
-emitClosedStep(Model.make({ count: 0, status: 'Idle' }), 1)
+emitClosed(Model.make({ count: 0, status: 'Idle' }), 1)
 // @ts-expect-error Primitive Models retain their declared type.
-emitPrimitiveStep(1)
+emitPrimitive(1)
 // @ts-expect-error A plain Step combination cannot discard an OutMessage.
-Update.combineSteps([emitClosedStep])
+Update.combineSteps([emitClosed])
 // @ts-expect-error A preceding Model-only Step cannot hide a later OutMessage.
-Update.combineSteps([OutMessageStepsDefinition.makeNoopStep(), emitClosedStep])
+Update.combineSteps([OutMessageStepsDefinition.makeNoopStep(), emitClosed])
 // @ts-expect-error The data-first combination cannot discard an OutMessage.
-Update.combineSteps(Model.make({ count: 0, status: 'Idle' }), [emitClosedStep])
+Update.combineSteps(Model.make({ count: 0, status: 'Idle' }), [emitClosed])
 
 const ObserveSelection = OutMessageStepsDefinition.makeCommand(
   'ObserveSelection',
@@ -88,38 +88,36 @@ const erasedCommands: Block.OutMessageStep<
 > = emitWithCommands
 void erasedCommands
 
-const preserveStep = OutMessageStepsDefinition.makeNoopStep()
-const fieldsStep = OutMessageStepsDefinition.makeFieldsStep(() => ({}))
-const noopAndOutMessage = [preserveStep, emitClosedStep]
-const fieldsAndOutMessage = [fieldsStep, emitClosedStep]
+const preserve = OutMessageStepsDefinition.makeNoopStep()
+const changeFields = OutMessageStepsDefinition.makeFieldsStep(() => ({}))
+const noopAndOutMessage = [preserve, emitClosed]
+const fieldsAndOutMessage = [changeFields, emitClosed]
 // @ts-expect-error Extracted lists cannot erase an emitting Step behind a no-op.
 Update.combineSteps(noopAndOutMessage)
 // @ts-expect-error Extracted lists cannot erase an emitting Step behind field transforms.
 Update.combineSteps(fieldsAndOutMessage)
 // @ts-expect-error A later no-op cannot erase an earlier emitting Step.
-Update.combineSteps([emitClosedStep, preserveStep])
+Update.combineSteps([emitClosed, preserve])
 // @ts-expect-error A no-op cannot be annotated to conceal an OutMessage.
-const emittingNoopStep: typeof preserveStep = emitClosedStep
+const emittingNoop: typeof preserve = emitClosed
 // @ts-expect-error A field Step cannot be annotated to conceal an OutMessage.
-const emittingFieldsStep: typeof fieldsStep = emitClosedStep
-void emittingNoopStep
-void emittingFieldsStep
+const emittingFields: typeof changeFields = emitClosed
+void emittingNoop
+void emittingFields
 
-const commandsOnlyStep = <Current extends typeof Model.Type>(
-  model: Current,
-) => ({
+const commandsOnly = <Current extends typeof Model.Type>(model: Current) => ({
   model,
   commands: [ObserveSelection()],
 })
 // @ts-expect-error A no-op cannot be annotated to conceal Commands.
-const commandsNoopStep: typeof preserveStep = commandsOnlyStep
+const commandsNoop: typeof preserve = commandsOnly
 // @ts-expect-error A field Step cannot be annotated to conceal Commands.
-const commandsFieldsStep: typeof fieldsStep = commandsOnlyStep
-void commandsNoopStep
-void commandsFieldsStep
+const commandsFields: typeof changeFields = commandsOnly
+void commandsNoop
+void commandsFields
 
 OutMessageStepsComposition.makeInit(() => ({
   model: Model.make({ count: 0, status: 'Idle' }),
   // @ts-expect-error Initialization cannot discard a Step's OutMessage.
-  steps: [emitClosedStep],
+  steps: [emitClosed],
 }))

@@ -166,7 +166,7 @@ const resumeTransition = (model: Model) =>
     Match.exhaustive,
   )
 
-const resetImmediatelyStep = AnimationDefinition.makeFieldsStep(() => ({
+const resetImmediately = AnimationDefinition.makeFieldsStep(() => ({
   isShowing: () => false,
   transitionState: () => 'Idle',
 }))
@@ -192,7 +192,7 @@ export const update = AnimationComposition.makeUpdate({
 
   RequestedResume: resumeTransition,
 
-  RequestedImmediateReset: resetImmediatelyStep,
+  RequestedImmediateReset: resetImmediately,
 
   CompletedWaitForPaint: (model, { generation }) => {
     if (generation !== model.transitionGeneration) {

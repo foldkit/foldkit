@@ -246,7 +246,7 @@ export const SilentBinding = SilentParentDefinition.makeBinding(SilentBlock, {
 export const SilentParentComposition = SilentParentDefinition.makeComposition({
   bindings: [SilentBinding],
 })
-export const initSilentStep = SilentParentDefinition.makeStep(model =>
+export const initSilent = SilentParentDefinition.makeStep(model =>
   SilentBinding.init({
     args: [],
     toParentModel: silent => modifyFields(model, { silent: () => silent }),
@@ -292,7 +292,7 @@ void silentUpdateParametersProof
 
 type SilentOperationRequirements = Expect<
   Equal<
-    Update.RequirementsOf<typeof initSilentStep>,
+    Update.RequirementsOf<typeof initSilent>,
     Block.Scoped<'silent', Command.HandlerOf<typeof WaitForever>>
   >
 >

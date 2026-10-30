@@ -54,12 +54,12 @@ export const directHandler = Composition.makeUpdate({
 export const extractedHandler = Composition.makeUpdate({
   RequestedFinish: (model, { generation }) => rawHelper(model, generation),
 })
-const canonicalWrapperStep = Definition.makeStep((model, generation: number) =>
+const canonicalWrapper = Definition.makeStep((model, generation: number) =>
   rawHelper(model, generation),
 )
 export const wrappedHandler = Composition.makeUpdate({
   RequestedFinish: (model, { generation }) =>
-    canonicalWrapperStep(model, generation),
+    canonicalWrapper(model, generation),
 })
 export type AlreadyErased = ExpectNever<
   OutMessageOf<ReturnType<typeof rawHelper>>

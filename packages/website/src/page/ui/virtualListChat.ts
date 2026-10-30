@@ -148,7 +148,7 @@ export const VirtualListChatDemoBinding = UiDefinition.makeBinding(
   },
 )
 
-export const requestVirtualListChatHistoryStep = (
+export const requestVirtualListChatHistory = (
   requestedCount: number,
   trigger: 'Scroll' | 'Button',
 ) =>
@@ -199,7 +199,7 @@ export const requestVirtualListChatHistoryStep = (
     }
   })
 
-const markVirtualListChatHistoryAnnouncedStep = makeStep(model => {
+const markVirtualListChatHistoryAnnounced = makeStep(model => {
   const nextAnnouncedOlderCount = model.virtualListChatLoadedOlderCount
 
   if (nextAnnouncedOlderCount <= model.virtualListChatAnnouncedOlderCount) {
@@ -234,9 +234,9 @@ const foldVirtualListChatOutMessage = UiDefinition.makeOutMessageFold(
           Math.ceil(neededHeight / COLLAPSED_HISTORY_MESSAGE_HEIGHT_PX),
         )
 
-        return requestVirtualListChatHistoryStep(requestedCount, 'Scroll')
+        return requestVirtualListChatHistory(requestedCount, 'Scroll')
       }),
-    EndedContainerScroll: () => markVirtualListChatHistoryAnnouncedStep,
+    EndedContainerScroll: () => markVirtualListChatHistoryAnnounced,
   },
 )
 
@@ -245,9 +245,7 @@ export const VirtualListChatDemoBindingWithOutMessagePolicy =
     fold: foldVirtualListChatOutMessage,
   })
 
-const selectVirtualListChatHistoryModeStep = (
-  mode: VirtualListChatHistoryMode,
-) =>
+const selectVirtualListChatHistoryMode = (mode: VirtualListChatHistoryMode) =>
   makeStep(model => {
     if (mode === historyModeForSource(model.virtualListChatHistorySource)) {
       return makeNoopStep()
@@ -290,35 +288,34 @@ export const VirtualListChatHistoryModeGroupBinding = UiDefinition.makeBinding(
   },
 ).withOutMessagePolicy({
   fold: UiDefinition.makeOutMessageFold(HistoryModeRadioGroupBlock, {
-    Selected: ({ value }) => selectVirtualListChatHistoryModeStep(value),
+    Selected: ({ value }) => selectVirtualListChatHistoryMode(value),
   }),
 })
 
-export const updateVirtualListChatMessagesStep = (
+export const updateVirtualListChatMessages = (
   nextMessages: ReadonlyArray<VirtualListChatMessage>,
   nextId?: number,
 ) =>
   makeStep(model => {
     const nextVirtualListChatNextId =
       nextId === undefined ? model.virtualListChatNextId : nextId
-    const updateMessagesStep = makeFieldsStep(() => ({
+    const updateMessages = makeFieldsStep(() => ({
       virtualListChatMessages: () => nextMessages,
       virtualListChatNextId: () => nextVirtualListChatNextId,
     }))
 
     return Update.combineSteps([
-      updateMessagesStep,
+      updateMessages,
       VirtualListChatDemoBinding.informItemsChanged(
         Array.map(nextMessages, chatMessageKey),
       ),
     ])
   })
 
-export const prependVirtualListChatMessagesStep =
-  requestVirtualListChatHistoryStep(
-    VIRTUAL_LIST_CHAT_HISTORY_BATCH_SIZE,
-    'Button',
-  )
+export const prependVirtualListChatMessages = requestVirtualListChatHistory(
+  VIRTUAL_LIST_CHAT_HISTORY_BATCH_SIZE,
+  'Button',
+)
 
 export const handleCompletedFetchVirtualListChatHistory = makeStep(
   (
@@ -340,7 +337,7 @@ export const handleCompletedFetchVirtualListChatHistory = makeStep(
     const shouldAnnounceLoaded =
       model.virtualListChatHistoryLoad.trigger === 'Button'
     const nextMessages = [...messages, ...model.virtualListChatMessages]
-    const updateMessagesStep = makeFieldsStep(() => ({
+    const updateMessages = makeFieldsStep(() => ({
       virtualListChatMessages: () => nextMessages,
       virtualListChatHistorySource: () => source,
       virtualListChatHistoryLoad: () => VirtualListChatHistoryLoad.Idle(),
@@ -349,7 +346,7 @@ export const handleCompletedFetchVirtualListChatHistory = makeStep(
     }))
 
     return Update.combineSteps([
-      updateMessagesStep,
+      updateMessages,
       VirtualListChatDemoBinding.informHistoryPrepended({
         items: nextMessages,
         prependedItems: messages,
@@ -357,7 +354,7 @@ export const handleCompletedFetchVirtualListChatHistory = makeStep(
         page,
       }),
       shouldAnnounceLoaded
-        ? markVirtualListChatHistoryAnnouncedStep
+        ? markVirtualListChatHistoryAnnounced
         : makeNoopStep(),
     ])
   },

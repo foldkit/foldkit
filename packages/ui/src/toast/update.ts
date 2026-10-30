@@ -238,7 +238,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     }
   }
 
-  const settleSnapBackStep = (entry: Entry) =>
+  const settleSnapBack = (entry: Entry) =>
     ToastDefinition.makeStep(model => {
       const nextSwipeVersion = Number.increment(entry.swipeVersion)
       const nextEntry = modifyFields(entry, {
@@ -295,10 +295,10 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     ],
   })
 
-  const foldEntryAnimationShowStep = (entry: Entry) =>
+  const showEntryAnimation = (entry: Entry) =>
     EntryAnimationBinding.requestShow(entry.id)
 
-  const foldEntryAnimationHideStep = (entry: Entry) =>
+  const hideEntryAnimation = (entry: Entry) =>
     EntryAnimationBinding.requestHide(entry.id)
 
   const createEntry = (
@@ -349,12 +349,12 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     model: makeInitialModel(config),
   }))
 
-  const addEntryStep = (entry: Entry) => {
-    const appendEntryStep = ToastDefinition.makeFieldsStep(() => ({
+  const addEntry = (entry: Entry) => {
+    const appendEntry = ToastDefinition.makeFieldsStep(() => ({
       entries: entries => Array.append(entries, entry),
       nextEntryKey: Number.increment,
     }))
-    const scheduleDismissalStep = ToastDefinition.makeCommandsStep(model =>
+    const scheduleDismissal = ToastDefinition.makeCommandsStep(model =>
       pipe(
         Array.findFirst(model.entries, ({ id }) => id === entry.id),
         Option.flatMap(scheduleWaitBeforeDismissal),
@@ -363,26 +363,26 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     )
 
     return Update.combineSteps([
-      appendEntryStep,
-      foldEntryAnimationShowStep(entry),
-      scheduleDismissalStep,
+      appendEntry,
+      showEntryAnimation(entry),
+      scheduleDismissal,
     ])
   }
 
-  const dismissEntriesStep = (entries: ReadonlyArray<Entry>) =>
-    Update.combineSteps(Array.map(entries, foldEntryAnimationHideStep))
+  const dismissEntries = (entries: ReadonlyArray<Entry>) =>
+    Update.combineSteps(Array.map(entries, hideEntryAnimation))
 
-  const leaveToastUnchangedStep = ToastDefinition.makeNoopStep()
-  const dismissEntryStep = (entryId: string) =>
+  const leaveToastUnchanged = ToastDefinition.makeNoopStep()
+  const dismissEntry = (entryId: string) =>
     ToastDefinition.makeStep(model => {
       const dismiss = Option.match(
         Array.findFirst(model.entries, ({ id }) => id === entryId),
         {
-          onNone: () => leaveToastUnchangedStep,
+          onNone: () => leaveToastUnchanged,
           onSome: entry =>
             isEntryLeaving(entry)
-              ? leaveToastUnchangedStep
-              : foldEntryAnimationHideStep(entry),
+              ? leaveToastUnchanged
+              : hideEntryAnimation(entry),
         },
       )
 
@@ -393,24 +393,23 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
    *  and an optional `DismissedToast` OutMessage emitted once an entry has
    *  finished its leave animation. */
   const update = ToastComposition.makeUpdate({
-    RequestedShow: (model, input) =>
-      addEntryStep(createEntry(model, input))(model),
+    RequestedShow: (model, input) => addEntry(createEntry(model, input))(model),
 
-    Added: (model, { entry }) => addEntryStep(entry)(model),
+    Added: (model, { entry }) => addEntry(entry)(model),
 
-    RequestedDismiss: (model, { entryId }) => dismissEntryStep(entryId)(model),
+    RequestedDismiss: (model, { entryId }) => dismissEntry(entryId)(model),
 
     RequestedDismissAll: model => {
       const dismissVisibleEntries = pipe(
         model.entries,
         Array.filter(entry => !isEntryLeaving(entry)),
-        dismissEntriesStep,
+        dismissEntries,
       )
 
       return dismissVisibleEntries(model)
     },
 
-    Dismissed: (model, { entryId }) => dismissEntryStep(entryId)(model),
+    Dismissed: (model, { entryId }) => dismissEntry(entryId)(model),
 
     CompletedWaitBeforeDismissal: (model, { entryId, version }) => {
       const maybeEntry = Array.findFirst(
@@ -419,13 +418,13 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       )
 
       return Option.match(maybeEntry, {
-        onNone: () => leaveToastUnchangedStep(model),
+        onNone: () => leaveToastUnchanged(model),
         onSome: entry => {
           const isStale = version !== entry.pendingDismissVersion
           if (isStale || isEntryLeaving(entry)) {
-            return leaveToastUnchangedStep(model)
+            return leaveToastUnchanged(model)
           } else {
-            return foldEntryAnimationHideStep(entry)(model)
+            return hideEntryAnimation(entry)(model)
           }
         },
       })
@@ -503,7 +502,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           draggingEntry: findDraggingEntry(model, pointerId),
         }),
         {
-          onNone: () => leaveToastUnchangedStep(model),
+          onNone: () => leaveToastUnchanged(model),
           onSome: ({ swipeConfig, draggingEntry: { entry, startX } }) => ({
             model: updateEntry(model, entry.id, currentEntry =>
               modifyFields(currentEntry, {
@@ -530,14 +529,14 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           draggingEntry: findDraggingEntry(model, pointerId),
         }),
         {
-          onNone: () => leaveToastUnchangedStep(model),
+          onNone: () => leaveToastUnchanged(model),
           onSome: ({ swipeConfig, draggingEntry: { entry, startX } }) => {
             const offset =
               clampSwipeClientX(startX, clientX, swipeConfig.direction) - startX
             const isPastSwipeThreshold =
               Math.abs(offset) > swipeConfig.threshold
             if (!isPastSwipeThreshold) {
-              return settleSnapBackStep(entry)(model)
+              return settleSnapBack(entry)(model)
             }
 
             const nextSwipeVersion = Number.increment(entry.swipeVersion)
@@ -557,7 +556,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
             } else {
               return Update.combineSteps(model, [
                 ToastDefinition.makeStep(() => ({ model: nextModel })),
-                foldEntryAnimationHideStep(entry),
+                hideEntryAnimation(entry),
               ])
             }
           },
@@ -566,8 +565,8 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
     CancelledSwipe: (model, { pointerId }) =>
       Option.match(findDraggingEntry(model, pointerId), {
-        onNone: () => leaveToastUnchangedStep(model),
-        onSome: ({ entry }) => settleSnapBackStep(entry)(model),
+        onNone: () => leaveToastUnchanged(model),
+        onSome: ({ entry }) => settleSnapBack(entry)(model),
       }),
 
     PressedEscape: model => {
@@ -577,7 +576,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
       return Update.combineSteps(
         model,
-        Array.map(draggingEntries, settleSnapBackStep),
+        Array.map(draggingEntries, settleSnapBack),
       )
     },
 

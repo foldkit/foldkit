@@ -26,4 +26,4 @@ const EndDatePickerBinding = DateRangeDefinition.makeBinding(
   }),
 })
 
-const restoreEndDateStep = makeStep(() => EndDatePickerBinding.requestRestore())
+const restoreEndDate = makeStep(() => EndDatePickerBinding.requestRestore())

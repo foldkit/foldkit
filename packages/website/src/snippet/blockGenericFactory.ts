@@ -33,7 +33,7 @@ export const make = <Value extends string>(Value: ValueSchema<Value>) => {
   })
   const RefinedPickerComposition = RefinedPickerDefinition.makeComposition()
 
-  const selectValueStep = RefinedPickerDefinition.makeStep(
+  const selectValue = RefinedPickerDefinition.makeStep(
     (model, value: Value) => ({
       model: modifyFields(model, { selected: () => Option.some(value) }),
       outMessage: OutMessage.Selected({ value }),
@@ -41,8 +41,8 @@ export const make = <Value extends string>(Value: ValueSchema<Value>) => {
   )
 
   const update = RefinedPickerComposition.makeUpdate({
-    SelectedValue: (model, { value }) => selectValueStep(model, value),
-    RequestedSelectValue: (model, { value }) => selectValueStep(model, value),
+    SelectedValue: (model, { value }) => selectValue(model, value),
+    RequestedSelectValue: (model, { value }) => selectValue(model, value),
   })
 
   const view = RefinedPickerComposition.makeView.withInputs<ViewInputs<Value>>(
@@ -116,7 +116,7 @@ const PickerBinding = FruitSelectionDefinition.makeBinding(FruitPicker, {
   }),
 })
 
-export const selectAppleStep = PickerBinding.requestSelectValue('Apple')
+export const selectApple = PickerBinding.requestSelectValue('Apple')
 
 const FruitSelectionComposition = FruitSelectionDefinition.makeComposition({
   bindings: [PickerBinding],

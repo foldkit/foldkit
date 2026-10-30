@@ -23,32 +23,32 @@ import {
   update,
 } from './record-update.accepted.js'
 
-const quietStep = CounterDefinition.makeNoopStep()
+const keepCount = CounterDefinition.makeNoopStep()
 const validCases = {
-  RequestedQuiet: quietStep,
-  RequestedReport: quietStep,
-  RequestedSave: quietStep,
-  CompletedSave: quietStep,
+  RequestedQuiet: keepCount,
+  RequestedReport: keepCount,
+  RequestedSave: keepCount,
+  CompletedSave: keepCount,
 }
 
-const largeNoopStep = LargeContextDefinition.makeNoopStep()
+const keepLargeModel = LargeContextDefinition.makeNoopStep()
 const validLargeCases = {
-  PressedKey: largeNoopStep,
-  ChangedCount: largeNoopStep,
-  BlurredInput: largeNoopStep,
-  SubmittedSave: largeNoopStep,
-  RequestedReport: largeNoopStep,
-  UpdatedRemote: largeNoopStep,
-  FailedRemote: largeNoopStep,
-  CompletedLoad: largeNoopStep,
-  SucceededFetch: largeNoopStep,
-  FailedFetch: largeNoopStep,
-  ClickedCopy: largeNoopStep,
-  SucceededCopy: largeNoopStep,
-  CompletedWait: largeNoopStep,
-  InformedJoin: largeNoopStep,
-  SucceededJoin: largeNoopStep,
-  CompletedSave: largeNoopStep,
+  PressedKey: keepLargeModel,
+  ChangedCount: keepLargeModel,
+  BlurredInput: keepLargeModel,
+  SubmittedSave: keepLargeModel,
+  RequestedReport: keepLargeModel,
+  UpdatedRemote: keepLargeModel,
+  FailedRemote: keepLargeModel,
+  CompletedLoad: keepLargeModel,
+  SucceededFetch: keepLargeModel,
+  FailedFetch: keepLargeModel,
+  ClickedCopy: keepLargeModel,
+  SucceededCopy: keepLargeModel,
+  CompletedWait: keepLargeModel,
+  InformedJoin: keepLargeModel,
+  SucceededJoin: keepLargeModel,
+  CompletedSave: keepLargeModel,
 }
 
 // @ts-expect-error Large contextual records retain the owning Model contract.
@@ -68,20 +68,20 @@ LargeContextComposition.makeUpdate.withContext((_context: LargeContext) => ({
 }))
 
 // @ts-expect-error Every local Message needs a handler.
-CounterComposition.makeUpdate({ RequestedQuiet: quietStep })
+CounterComposition.makeUpdate({ RequestedQuiet: keepCount })
 // @ts-expect-error Extra handlers are rejected even when extracted.
-CounterComposition.makeUpdate({ ...validCases, Undeclared: quietStep })
-const extraCases = { ...validCases, Undeclared: quietStep }
+CounterComposition.makeUpdate({ ...validCases, Undeclared: keepCount })
+const extraCases = { ...validCases, Undeclared: keepCount }
 // @ts-expect-error Structural assignment cannot hide an extra handler.
 CounterComposition.makeUpdate(extraCases)
 // @ts-expect-error Every local Message needs a contextual handler.
 CounterComposition.makeUpdate.withContext((_amount: number) => ({
-  RequestedQuiet: quietStep,
+  RequestedQuiet: keepCount,
 }))
 // @ts-expect-error Extra contextual handlers are rejected.
 CounterComposition.makeUpdate.withContext((_amount: number) => ({
   ...validCases,
-  Undeclared: quietStep,
+  Undeclared: keepCount,
 }))
 // @ts-expect-error Structural assignment cannot hide an extra contextual handler.
 CounterComposition.makeUpdate.withContext((_amount: number) => extraCases)
@@ -255,12 +255,12 @@ CounterComposition.makeUpdate({
   RequestedQuiet: () => erasedRegistration,
 })
 
-const parentQuietStep = ParentDefinition.makeNoopStep()
+const keepParentModel = ParentDefinition.makeNoopStep()
 const parentCases = {
-  RequestedQuiet: parentQuietStep,
-  RequestedReport: parentQuietStep,
-  RequestedSave: parentQuietStep,
-  CompletedSave: parentQuietStep,
+  RequestedQuiet: keepParentModel,
+  RequestedReport: keepParentModel,
+  RequestedSave: keepParentModel,
+  CompletedSave: keepParentModel,
 }
 ParentDefinition.makeComposition().makeUpdate({
   ...parentCases,
@@ -276,7 +276,7 @@ ParentComposition.makeUpdate({
       ParentDefinition.makeNoopStep(),
     ]),
 })
-const emittedStep = ParentDefinition.makeStep(() =>
+const emitted = ParentDefinition.makeStep(() =>
   Update.combineSteps([
     ChildBinding.report({ amount: 1 }),
     ParentDefinition.makeNoopStep(),
@@ -285,7 +285,7 @@ const emittedStep = ParentDefinition.makeStep(() =>
 ParentComposition.makeUpdate({
   ...parentCases,
   // @ts-expect-error Extracting a combination through a Definition Step preserves the obligation.
-  RequestedReport: model => emittedStep(model),
+  RequestedReport: model => emitted(model),
 })
 ParentDefinition.makeComposition().makeUpdate.withContext(
   (_amount: number) => ({
@@ -339,9 +339,13 @@ CounterComposition.makeUpdate.withContext((_context: number) => ({
   }),
 }))
 // @ts-expect-error Emitting results cannot masquerade as a silent ordinary Step.
-const _silentStep: Update.Step<typeof Model.Type, typeof LocalMessage.Type> = (
-  model: typeof Model.Type,
-) => ({ model, outMessage: OutMessage.ReportedCount({ count: 1 }) })
+const _reportCountSilently: Update.Step<
+  typeof Model.Type,
+  typeof LocalMessage.Type
+> = (model: typeof Model.Type) => ({
+  model,
+  outMessage: OutMessage.ReportedCount({ count: 1 }),
+})
 // @ts-expect-error Owned result constructors do not accept foreign result Messages.
 CounterDefinition.makeCommandsStep(() => [wrongCommand])
 

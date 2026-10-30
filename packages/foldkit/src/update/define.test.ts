@@ -109,14 +109,12 @@ const modelOnlyUpdate = define((model: Model) => ({ model }))
 
 const noMessageUpdate = define((model: Model, _message: never) => ({ model }))
 
-const loadProfileStep = defineStep(
-  (model: Model, _context?: DispatchContext) => ({
-    model,
-    commands: [LoadProfile()],
-  }),
-)
+const loadProfile = defineStep((model: Model, _context?: DispatchContext) => ({
+  model,
+  commands: [LoadProfile()],
+}))
 
-const outwardStep = defineStep(
+const outward = defineStep(
   (model: Model, ..._contexts: ReadonlyArray<DispatchContext>) => ({
     model,
     commands: [LoadPreferences()],
@@ -124,9 +122,9 @@ const outwardStep = defineStep(
   }),
 )
 
-const modelOnlyStep = defineStep((model: Model) => ({ model }))
+const modelOnly = defineStep((model: Model) => ({ model }))
 
-const loadPreferencesStep = defineStep((model: Model) => ({
+const requestPreferences = defineStep((model: Model) => ({
   model,
   commands: [LoadPreferences()],
 }))
@@ -271,7 +269,7 @@ describe('define', () => {
 
 describe('defineStep', () => {
   it('infers Message, requirements, OutMessage, and context parameters', () => {
-    expectTypeOf(loadProfileStep).toEqualTypeOf<
+    expectTypeOf(loadProfile).toEqualTypeOf<
       (
         model: Model,
         context?: DispatchContext,
@@ -281,7 +279,7 @@ describe('defineStep', () => {
         Command.HandlerOf<typeof LoadProfile>
       >
     >()
-    expectTypeOf(outwardStep).toEqualTypeOf<
+    expectTypeOf(outward).toEqualTypeOf<
       (
         model: Model,
         ...contexts: ReadonlyArray<DispatchContext>
@@ -292,7 +290,7 @@ describe('defineStep', () => {
         Command.HandlerOf<typeof LoadPreferences>
       >
     >()
-    expectTypeOf(modelOnlyStep).toEqualTypeOf<
+    expectTypeOf(modelOnly).toEqualTypeOf<
       (model: Model) => Return<Model, never>
     >()
   })
@@ -300,7 +298,7 @@ describe('defineStep', () => {
   it('returns the Step unchanged at runtime', () => {
     const model = Model.make({ count: 0 })
 
-    expect(loadProfileStep(model).commands?.map(({ name }) => name)).toEqual([
+    expect(loadProfile(model).commands?.map(({ name }) => name)).toEqual([
       'LoadProfile',
     ])
   })
@@ -324,11 +322,11 @@ describe('defineStep', () => {
 
 describe('combineSteps inference', () => {
   it('unions Message and handler requirements across heterogeneous Steps', () => {
-    const combinedStep = combineSteps([loadProfileStep, loadPreferencesStep])
+    const applyCombinedChanges = combineSteps([loadProfile, requestPreferences])
     const model = Model.make({ count: 0 })
-    const result = combineSteps(model, [loadProfileStep, loadPreferencesStep])
+    const result = combineSteps(model, [loadProfile, requestPreferences])
 
-    expectTypeOf(combinedStep).toEqualTypeOf<
+    expectTypeOf(applyCombinedChanges).toEqualTypeOf<
       Step<
         Model,
         | typeof Message.CompletedLoadProfile.Type
@@ -346,24 +344,23 @@ describe('combineSteps inference', () => {
         | Command.HandlerOf<typeof LoadPreferences>
       >
     >()
-    expect(combinedStep(model).commands?.map(({ name }) => name)).toEqual([
-      'LoadProfile',
-      'LoadPreferences',
-    ])
+    expect(
+      applyCombinedChanges(model).commands?.map(({ name }) => name),
+    ).toEqual(['LoadProfile', 'LoadPreferences'])
   })
 
   it('validates every Model return and rejects OutMessages', () => {
     if (false) {
       combineSteps([
-        loadProfileStep,
+        loadProfile,
         // @ts-expect-error Every Step must return the shared Model.
         (_model: Model) => ({ model: 'wrong' }),
       ])
 
       combineSteps([
-        loadProfileStep,
+        loadProfile,
         // @ts-expect-error combineSteps cannot discard an OutMessage.
-        outwardStep,
+        outward,
       ])
     }
   })

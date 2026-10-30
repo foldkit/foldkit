@@ -65,6 +65,6 @@ export const outMessageSteps = [
   Definition.makeOutMessageStep(() => OutMessage.Changed()),
 ]
 
-export const deferredConnectedStep = Definition.makeStep(() =>
+export const deferredConnected = Definition.makeStep(() =>
   Update.combineSteps(connectedSteps),
 )

@@ -45,11 +45,11 @@ export const SettingsBinding = ApplicationDefinition.makeBinding(
   }),
 })
 
-const changeThemeStep = (theme: Theme) => {
-  const requestThemeChangeStep = SettingsBinding.requestThemeChange({ theme })
+const changeTheme = (theme: Theme) => {
+  const requestThemeChange = SettingsBinding.requestThemeChange({ theme })
 
-  return (model: Parameters<typeof requestThemeChangeStep>[0]) =>
-    requestThemeChangeStep(
+  return (model: Parameters<typeof requestThemeChange>[0]) =>
+    requestThemeChange(
       modifyFields(model, { themeChangeCount: Number.increment }),
     )
 }
@@ -59,5 +59,5 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
 })
 
 export const update = ApplicationComposition.makeUpdate({
-  RequestedDarkTheme: changeThemeStep('Dark'),
+  RequestedDarkTheme: changeTheme('Dark'),
 })

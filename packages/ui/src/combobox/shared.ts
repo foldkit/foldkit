@@ -447,14 +447,14 @@ export const makeUpdateHandlers = <
 ) => {
   type Model = BaseModel
 
-  const detectMovementOrAnimationEndStep = (generation: number) =>
+  const detectMovementOrAnimationEnd = (generation: number) =>
     commandsStep(model => [
       DetectMovementOrAnimationEnd({ id: model.id, generation }),
     ])
 
   const foldAnimationOutMessage = makeOutMessageFold(Animation.AnimationBlock, {
     StartedLeaveAnimating: ({ generation }) =>
-      detectMovementOrAnimationEndStep(generation),
+      detectMovementOrAnimationEnd(generation),
     TransitionedOut: stepNoop,
   })
 
@@ -511,7 +511,7 @@ export const makeUpdateHandlers = <
     }
   }
 
-  const openComboboxStep = (model: Model, baseModel: Model) => {
+  const openCombobox = (model: Model, baseModel: Model) => {
     if (model.isAnimated) {
       return Update.combineSteps([
         step(() => ({ model: baseModel, commands: openCommands(model) })),
@@ -526,7 +526,7 @@ export const makeUpdateHandlers = <
     }))
   }
 
-  const closeComboboxStep = (
+  const closeCombobox = (
     model: Model,
     baseModel: Model,
     commands: ReturnType<typeof closeWithFocusCommands>,
@@ -567,7 +567,7 @@ export const makeUpdateHandlers = <
       return stepNoop()
     }
 
-    return openComboboxStep(
+    return openCombobox(
       model,
       modifyBaseFields(model, {
         maybeActiveItemIndex: () => maybeActiveItemIndex,
@@ -588,13 +588,7 @@ export const makeUpdateHandlers = <
     isClearable: boolean,
   ) =>
     model.isOpen
-      ? closeComboboxStep(
-          model,
-          model,
-          commands,
-          restingInputValue,
-          isClearable,
-        )
+      ? closeCombobox(model, model, commands, restingInputValue, isClearable)
       : stepNoop()
 
   const selectItem = (
@@ -750,7 +744,7 @@ export const makeUpdateHandlers = <
         }))
       }
 
-      return openComboboxStep(
+      return openCombobox(
         model,
         modifyBaseFields(model, {
           inputValue: () => value,
@@ -763,7 +757,7 @@ export const makeUpdateHandlers = <
 
     PressedToggleButton: (model, { restingInputValue, isClearable }) => {
       if (model.isOpen) {
-        return closeComboboxStep(
+        return closeCombobox(
           model,
           model,
           closeWithFocusCommands(model),

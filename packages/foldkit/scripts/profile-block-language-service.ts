@@ -116,11 +116,12 @@ const compositionPath = 'packages/website/src/composition/composition.ts'
 const changedUrlPath = 'packages/website/src/update/handleChangedUrl.ts'
 const workspaceCompositionPath = 'examples/workspace/src/composition.ts'
 const workspaceInitializationPath =
-  'examples/workspace/src/update/initChildrenStep.ts'
+  'examples/workspace/src/update/initChildren.ts'
 const workspaceUpdatePath = Option.getOrElse(
   EffectArray.findFirst(
     [
       workspaceInitializationPath,
+      'examples/workspace/src/update/initChildrenStep.ts',
       'examples/workspace/src/update/initChildBlocksStep.ts',
       'examples/workspace/src/update/initializeRouteChildren.ts',
       'examples/workspace/src/update/initializeActiveChildren.ts',

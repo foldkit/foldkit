@@ -70,12 +70,9 @@ const DialogBinding = EditorDefinition.makeBinding(DialogBlock, {
 const EditorComposition = EditorDefinition.makeComposition({
   bindings: [DialogBinding],
 })
-const closeDialogStep = DialogBinding.requestClose()
-const steps: ReadonlyArray<typeof closeDialogStep> = [
-  closeDialogStep,
-  closeDialogStep,
-]
-const leaveStep = EditorDefinition.makeFieldsStep(() => ({
+const closeDialog = DialogBinding.requestClose()
+const steps: ReadonlyArray<typeof closeDialog> = [closeDialog, closeDialog]
+const leave = EditorDefinition.makeFieldsStep(() => ({
   count: Number.increment,
 }))
 const update = EditorComposition.makeUpdate({
@@ -86,11 +83,7 @@ const update = EditorComposition.makeUpdate({
     ),
   RequestedNestedSave: model =>
     pipe(
-      Update.combineSteps(model, [
-        leaveStep,
-        Update.combineSteps(steps),
-        leaveStep,
-      ]),
+      Update.combineSteps(model, [leave, Update.combineSteps(steps), leave]),
       Update.withOutMessage(EditorOutMessage.Saved()),
     ),
   RequestedPlain: EditorDefinition.makeOutMessageStep(() =>

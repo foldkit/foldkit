@@ -12,7 +12,7 @@ import type {
 } from './message'
 import { OutMessage } from './outMessage'
 
-const handleInformedOfActivityStep = makeFieldsStep.fromMessage(
+const handleInformedOfActivity = makeFieldsStep.fromMessage(
   ({ activity }: InformedOfActivity) => ({
     notifications: notifications => {
       const incomingNotifications = makeNotifications(activity)
@@ -31,7 +31,7 @@ const handleInformedOfActivityStep = makeFieldsStep.fromMessage(
   }),
 )
 
-const handleClickedMarkAllAsReadStep = makeFieldsStep.fromMessage(
+const handleClickedMarkAllAsRead = makeFieldsStep.fromMessage(
   ({ recipientId }: ClickedMarkAllAsRead) => ({
     notifications: Array.map(notification =>
       notification.recipientId === recipientId
@@ -41,7 +41,7 @@ const handleClickedMarkAllAsReadStep = makeFieldsStep.fromMessage(
   }),
 )
 
-const handleClickedNotificationReadStateStep = makeFieldsStep.fromMessage(
+const handleClickedNotificationReadState = makeFieldsStep.fromMessage(
   ({ notificationId }: ClickedNotificationReadState) => ({
     notifications: Array.map(notification =>
       notification.id === notificationId
@@ -53,7 +53,7 @@ const handleClickedNotificationReadStateStep = makeFieldsStep.fromMessage(
   }),
 )
 
-const markAsReadStep = (notificationId: string) =>
+const markAsRead = (notificationId: string) =>
   makeFieldsStep(() => ({
     notifications: Array.map(notification =>
       notification.id === notificationId
@@ -63,12 +63,12 @@ const markAsReadStep = (notificationId: string) =>
   }))
 
 export const update = NotificationCenterComposition.makeUpdate({
-  InformedOfActivity: handleInformedOfActivityStep,
+  InformedOfActivity: handleInformedOfActivity,
   TickedClock: makeFieldsStep.fromMessage(({ timestamp }) => ({
     now: () => timestamp,
   })),
-  ClickedMarkAllAsRead: handleClickedMarkAllAsReadStep,
-  ClickedNotificationReadState: handleClickedNotificationReadStateStep,
+  ClickedMarkAllAsRead: handleClickedMarkAllAsRead,
+  ClickedNotificationReadState: handleClickedNotificationReadState,
   ClickedNotification: (model, { notificationId }) =>
     Option.match(
       Array.findFirst(
@@ -79,7 +79,7 @@ export const update = NotificationCenterComposition.makeUpdate({
         onNone: () => makeNoopStep()(model),
         onSome: notification => {
           const notificationSelection = Update.combineSteps(model, [
-            markAsReadStep(notificationId),
+            markAsRead(notificationId),
             PopoverBinding.requestClose(),
           ])
 

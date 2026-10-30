@@ -6,7 +6,7 @@ import {
   Definition,
   Save,
   connectedSteps,
-  deferredConnectedStep,
+  deferredConnected,
   init,
   saveUpdate,
   update,
@@ -26,25 +26,25 @@ export const curriedConnectedUpdate = Composition.makeUpdate({
   Clicked: model => Update.combineSteps(connectedSteps)(model),
 })
 export const deferredConnectedUpdate = Composition.makeUpdate({
-  Clicked: deferredConnectedStep,
-  CompletedSave: deferredConnectedStep,
+  Clicked: deferredConnected,
+  CompletedSave: deferredConnected,
 })
 
-const keepModelStep = Definition.makeNoopStep()
-const keepModelWithStep = Definition.makeStep(model => ({ model }))
+const keepModel = Definition.makeNoopStep()
+const preserveModel = Definition.makeStep(model => ({ model }))
 
 export const mixedConnectedUpdate = Composition.makeUpdate({
   Clicked: model =>
     model.child.count > 0
       ? Binding.requestIncrement()(model)
-      : keepModelStep(model),
+      : keepModel(model),
   CompletedSave: model => ({ model }),
 })
 
 export const mixedContextualUpdate = Composition.makeUpdate.withContext(
   (isEnabled: boolean) => ({
     Clicked: model =>
-      isEnabled ? Binding.requestIncrement()(model) : keepModelWithStep(model),
+      isEnabled ? Binding.requestIncrement()(model) : preserveModel(model),
     CompletedSave: model => ({ model }),
   }),
 )

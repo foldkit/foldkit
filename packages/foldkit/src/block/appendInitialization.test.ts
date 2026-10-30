@@ -81,7 +81,7 @@ const EntriesBinding = ParentDefinition.makeBinding(ChildBlock, {
 const Composition = ParentDefinition.makeComposition({
   bindings: [EntriesBinding],
 })
-const appendStep = (key: string, count: number) =>
+const appendChild = (key: string, count: number) =>
   ParentDefinition.makeStep(model =>
     initAndAppend(EntriesBinding, model, { key, args: [count] }),
   )
@@ -92,7 +92,10 @@ const prepareParent = () =>
       RequestedAppend: (model, { key, count }) =>
         initAndAppend(EntriesBinding, model, { key, args: [count] }),
       RequestedAppendPair: ParentDefinition.makeStep(() =>
-        Update.combineSteps([appendStep('first', 1), appendStep('second', 2)]),
+        Update.combineSteps([
+          appendChild('first', 1),
+          appendChild('second', 2),
+        ]),
       ),
     }),
     operations: {

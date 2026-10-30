@@ -29,7 +29,7 @@ type ChangedUrlMessage = typeof Message.ChangedUrl.Type
 
 type ChangedUrl = ChangedUrlMessage
 
-export const handleChangedUrlStep = makeStep((model, { url }: ChangedUrl) => {
+export const handleChangedUrl = makeStep((model, { url }: ChangedUrl) => {
   const { route: previousRoute } = model
   const nextRoute = urlToApplicationRoute(url)
   const transition = Transition.make(previousRoute, nextRoute)
@@ -41,13 +41,13 @@ export const handleChangedUrlStep = makeStep((model, { url }: ChangedUrl) => {
       url: () => url,
       sidebarGroups: () => nextSidebarGroups(stepModel, nextRoute),
     })),
-    reconcileHomeStep(transition),
-    reconcilePlaygroundStep(transition),
+    reconcileHome(transition),
+    reconcilePlayground(transition),
     MobileMenuDialogBinding.requestClose(),
     ThemeMenuBinding.requestClose(),
     SearchBinding.informRouteChanged(),
-    loadRouteDataStep(transition),
-    scrollAfterUrlChangeStep(url, isDifferentPathname),
+    loadRouteData(transition),
+    scrollAfterUrlChange(url, isDifferentPathname),
   ])
 })
 
@@ -60,7 +60,7 @@ const nextSidebarGroups = (model: Model, nextRoute: ApplicationRoute) =>
         : Record.set(model.sidebarGroups, activeSectionKey, true),
   })
 
-const reconcileHomeStep = (transition: ApplicationTransition) =>
+const reconcileHome = (transition: ApplicationTransition) =>
   makeStep(model => {
     if (Transition.isEntering(transition, 'Home')) {
       return initAndSet(HomeBinding, model, { args: [] })
@@ -75,7 +75,7 @@ const reconcileHomeStep = (transition: ApplicationTransition) =>
     return { model }
   })
 
-const reconcilePlaygroundStep = (transition: ApplicationTransition) =>
+const reconcilePlayground = (transition: ApplicationTransition) =>
   makeStep(model => {
     const { nextRoute } = transition
 
@@ -100,7 +100,7 @@ const reconcilePlaygroundStep = (transition: ApplicationTransition) =>
     })
   })
 
-const loadRouteDataStep = (transition: ApplicationTransition) =>
+const loadRouteData = (transition: ApplicationTransition) =>
   makeStep(model =>
     ApplicationRoute.matchOrElse(
       transition.nextRoute,
@@ -136,7 +136,7 @@ const loadRouteDataStep = (transition: ApplicationTransition) =>
     ),
   )
 
-const scrollAfterUrlChangeStep = (url: Url, isChangingPathname: boolean) => {
+const scrollAfterUrlChange = (url: Url, isChangingPathname: boolean) => {
   if (Option.isSome(url.hash)) {
     const hash = url.hash.value
 

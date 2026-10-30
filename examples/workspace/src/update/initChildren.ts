@@ -10,7 +10,7 @@ import {
 import { makeNoopStep, makeStep } from '../definition'
 import { ApplicationRoute, maybeIssueId } from '../route'
 
-export const initChildrenStep = makeStep(model => {
+export const initChildren = makeStep(model => {
   const maybeWorkspace = AsyncData.getData(model.workspaceAsyncData)
 
   if (Option.isNone(maybeWorkspace)) {
@@ -20,7 +20,7 @@ export const initChildrenStep = makeStep(model => {
   const workspace = maybeWorkspace.value
   const { route } = model
 
-  const initIssueDetailStep = pipe(
+  const initIssueDetail = pipe(
     maybeIssueId(route),
     Option.flatMap(issueId =>
       Array.findFirst(workspace.issues, issue => issue.id === issueId),
@@ -38,7 +38,7 @@ export const initChildrenStep = makeStep(model => {
   const findProject = (projectId: string) =>
     Array.findFirst(workspace.projects, project => project.id === projectId)
 
-  const initChildrenForRouteStep = ApplicationRoute.matchOrElse(
+  const initChildrenForRoute = ApplicationRoute.matchOrElse(
     route,
     {
       Board: ({ projectId }) =>
@@ -63,5 +63,5 @@ export const initChildrenStep = makeStep(model => {
     makeNoopStep,
   )
 
-  return Update.combineSteps([initIssueDetailStep, initChildrenForRouteStep])
+  return Update.combineSteps([initIssueDetail, initChildrenForRoute])
 })

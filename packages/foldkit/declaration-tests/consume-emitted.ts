@@ -50,7 +50,7 @@ import {
   childInspection,
   childLiteralInit,
   childParameterizedInit,
-  contextualRefreshChildStep,
+  contextualRefreshChild,
   directResultInit,
   makePageProgram,
   makeProgram,
@@ -67,7 +67,7 @@ import {
   recordApplicationUpdate,
   recordUpdate,
   refinedChoiceParentUpdate,
-  refreshDirectValueStep,
+  refreshDirectValue,
   renderPage,
   wrappedOverloadedChildInit,
 } from './accepted.js'
@@ -331,7 +331,7 @@ type EmittedInspectionMountsAreExact = Expect<
 >
 type EmittedProducerParametersAreExact = Expect<
   Equal<
-    Parameters<typeof contextualRefreshChildStep>,
+    Parameters<typeof contextualRefreshChild>,
     [
       model: ParentModel &
         Update.GraphCapability<
@@ -344,13 +344,13 @@ type EmittedProducerParametersAreExact = Expect<
 >
 type EmittedProducerRequirementsAreExact = Expect<
   Equal<
-    Update.RequirementsOf<typeof contextualRefreshChildStep>,
+    Update.RequirementsOf<typeof contextualRefreshChild>,
     Block.Scoped<'child', Command.HandlerOf<typeof ReadCount>>
   >
 >
 type EmittedDirectRequirementsAreExact = Expect<
   Equal<
-    Update.RequirementsOf<typeof refreshDirectValueStep>,
+    Update.RequirementsOf<typeof refreshDirectValue>,
     Command.HandlerOf<typeof ReadDirectValue>
   >
 >

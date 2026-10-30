@@ -38,11 +38,11 @@ const toPreviousStep = (current: Step.Step): Step.Step =>
     Option.getOrElse(() => current),
   )
 
-const markSubmitAttemptedStep = makeFieldsStep(() => ({
+const markSubmitAttempted = makeFieldsStep(() => ({
   isSubmitAttempted: () => true,
 }))
 
-const submitWhenCompleteStep = makeStep(model => {
+const submitWhenComplete = makeStep(model => {
   if (isApplicationComplete(model)) {
     return {
       model: modifyFields(model, {
@@ -70,12 +70,12 @@ export const update = ApplicationComposition.makeUpdate({
 
   ClickedSubmit: model =>
     Update.combineSteps(model, [
-      markSubmitAttemptedStep,
+      markSubmitAttempted,
       PersonalInfoBinding.requestRevealErrors(),
       WorkHistoryBinding.requestRevealErrors(),
       EducationBinding.requestRevealErrors(),
       SkillsBinding.requestRevealErrors(),
-      submitWhenCompleteStep,
+      submitWhenComplete,
     ]),
 
   SucceededSubmitApplication: makeFieldsStep(() => ({

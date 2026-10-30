@@ -17,7 +17,7 @@ import {
 } from './definition'
 import { OutMessage } from './outMessage'
 
-const changeStatusFilterStep = (value: StatusFilterValue) => {
+const changeStatusFilter = (value: StatusFilterValue) => {
   if (value === 'All') {
     return makeOutMessageStep(() =>
       OutMessage.ChangedStatusFilter({
@@ -37,12 +37,12 @@ const changeStatusFilterStep = (value: StatusFilterValue) => {
   return makeNoopStep()
 }
 
-const changeSortStep = (value: typeof IssueFilters.fields.sort.Type) =>
+const changeSort = (value: typeof IssueFilters.fields.sort.Type) =>
   Schema.is(IssueFilters.fields.sort)(value)
     ? makeOutMessageStep(() => OutMessage.ChangedSort({ sort: value }))
     : makeNoopStep()
 
-const changeGroupingStep = (value: GroupBy) =>
+const changeGrouping = (value: GroupBy) =>
   Schema.is(GroupBy)(value)
     ? makeOutMessageStep(() => OutMessage.ChangedGrouping({ groupBy: value }))
     : makeNoopStep()
@@ -54,7 +54,7 @@ export const StatusListboxBinding = makeBinding(StatusFilterListboxBlock, {
   },
 }).withOutMessagePolicy({
   fold: makeOutMessageFold(StatusFilterListboxBlock, {
-    Selected: ({ value }) => changeStatusFilterStep(value),
+    Selected: ({ value }) => changeStatusFilter(value),
   }),
 })
 
@@ -63,7 +63,7 @@ export const SortListboxBinding = makeBinding(SortListboxBlock, {
   init: { contextToArgs: () => [{ id: 'issue-list-sort-issues' }] },
 }).withOutMessagePolicy({
   fold: makeOutMessageFold(SortListboxBlock, {
-    Selected: ({ value }) => changeSortStep(value),
+    Selected: ({ value }) => changeSort(value),
   }),
 })
 
@@ -72,7 +72,7 @@ export const GroupListboxBinding = makeBinding(GroupListboxBlock, {
   init: { contextToArgs: () => [{ id: 'issue-list-group-issues' }] },
 }).withOutMessagePolicy({
   fold: makeOutMessageFold(GroupListboxBlock, {
-    Selected: ({ value }) => changeGroupingStep(value),
+    Selected: ({ value }) => changeGrouping(value),
   }),
 })
 

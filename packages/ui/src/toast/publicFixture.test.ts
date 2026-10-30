@@ -74,7 +74,7 @@ const ToastFixtureParentComposition =
     bindings: [LeftToastBinding, RightToastBinding, OtherToastBinding],
   })
 
-const requestShowAllStep = Update.combineSteps([
+const requestShowAll = Update.combineSteps([
   LeftToastBinding.requestShow({
     payload: { body: 'Left' },
     duration: 100,
@@ -90,7 +90,7 @@ const requestShowAllStep = Update.combineSteps([
 ])
 
 const update = ToastFixtureParentComposition.makeUpdate({
-  RequestedShowAll: model => requestShowAllStep(model),
+  RequestedShowAll: model => requestShowAll(model),
 })
 
 const initialModel: ParentModel = {

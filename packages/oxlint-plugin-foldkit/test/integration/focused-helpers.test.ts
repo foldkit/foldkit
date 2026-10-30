@@ -115,9 +115,9 @@ export const update = ParentComposition.makeUpdate({
   [
     'model-message-applied',
     `
-const changeChildStep = ParentDefinition.makeFieldsStep((model, message) => ({ child: ${childTransform} }))
+const changeChild = ParentDefinition.makeFieldsStep((model, message) => ({ child: ${childTransform} }))
 export const update = ParentComposition.makeUpdate({
-  RequestedChange: (model, message) => changeChildStep(model, message),
+  RequestedChange: (model, message) => changeChild(model, message),
 })`,
   ],
   [
@@ -136,21 +136,21 @@ export const update = ParentComposition.makeUpdate({
 function changeFields(message) {
   return { child: ${childTransform} }
 }
-const changeChildStep = ParentDefinition.makeFieldsStep.fromMessage(changeFields)
-export const update = ParentComposition.makeUpdate({ RequestedChange: changeChildStep })`,
+const changeChild = ParentDefinition.makeFieldsStep.fromMessage(changeFields)
+export const update = ParentComposition.makeUpdate({ RequestedChange: changeChild })`,
   ],
   [
     'model-message-extracted',
     `
-const changeChildStep = ParentDefinition.makeFieldsStep((model, message) => ({ child: ${childTransform} }))
-const changeAliasStep = changeChildStep
-export const update = ParentComposition.makeUpdate({ RequestedChange: changeAliasStep })`,
+const changeChild = ParentDefinition.makeFieldsStep((model, message) => ({ child: ${childTransform} }))
+const changeAlias = changeChild
+export const update = ParentComposition.makeUpdate({ RequestedChange: changeAlias })`,
   ],
   [
     'payload-extracted',
     `
-const changeChildStep = ParentDefinition.makeFieldsStep.fromMessage(message => ({ child: Child.revealErrors }))
-const cases = { RequestedChange: changeChildStep }
+const changeChild = ParentDefinition.makeFieldsStep.fromMessage(message => ({ child: Child.revealErrors }))
+const cases = { RequestedChange: changeChild }
 export const update = ParentComposition.makeUpdate(cases)`,
   ],
   [
@@ -164,9 +164,9 @@ export const update = ParentComposition.makeUpdate.withContext(makeCases)`,
   [
     'unary-combined',
     `
-const changeChildStep = ParentDefinition.makeFieldsStep(() => ({ child: ${childTransform} }))
+const changeChild = ParentDefinition.makeFieldsStep(() => ({ child: ${childTransform} }))
 export const update = ParentComposition.makeUpdate({
-  RequestedChange: (model, message) => Update.combineSteps(model, [changeChildStep, ChildBinding.requestChange()]),
+  RequestedChange: (model, message) => Update.combineSteps(model, [changeChild, ChildBinding.requestChange()]),
 })`,
   ],
 ] satisfies ReadonlyArray<readonly [string, string]>
@@ -195,19 +195,19 @@ describe('focused helper ownership through real oxlint', () => {
 const ForeignDefinition = {
   makeFieldsStep: Object.assign(callback => callback, { fromMessage: callback => callback }),
 }
-const foreignStep = ForeignDefinition.makeFieldsStep.fromMessage(message => ({ child: ${childTransform} }))
-const renameStep = ParentDefinition.makeFieldsStep.fromMessage(message => ({
+const changeForeignChild = ForeignDefinition.makeFieldsStep.fromMessage(message => ({ child: ${childTransform} }))
+const renameChild = ParentDefinition.makeFieldsStep.fromMessage(message => ({
   label: () => message.label,
   preferences: preferences => modifyFields(preferences, { theme: () => message.label }),
 }))
 const otherModel = Schema.Struct({ child: Child.Model })
 const OtherDefinition = Block.makeDefinition('Other', { Model: otherModel, Message })
-const otherStep = OtherDefinition.makeFieldsStep.fromMessage(message => ({ child: ${childTransform} }))
+const changeOtherChild = OtherDefinition.makeFieldsStep.fromMessage(message => ({ child: ${childTransform} }))
 export const update = ParentComposition.makeUpdate({
-  RequestedChange: renameStep,
+  RequestedChange: renameChild,
 })
-export const foreignUpdate = ParentComposition.makeUpdate({ RequestedChange: foreignStep })
-export const unrelatedUpdate = ParentComposition.makeUpdate({ RequestedChange: otherStep })
+export const foreignUpdate = ParentComposition.makeUpdate({ RequestedChange: changeForeignChild })
+export const unrelatedUpdate = ParentComposition.makeUpdate({ RequestedChange: changeOtherChild })
 `
     expect(
       diagnosticsFor(
@@ -263,10 +263,10 @@ export const update = ParentComposition.makeUpdate({
       parentSource +
       `
 const Receive = ParentDefinition.makeCommand('Receive', {})
-const childMessagesStep = ParentDefinition.makeCommandsStep.fromMessage(message => [
+const produceChildMessages = ParentDefinition.makeCommandsStep.fromMessage(message => [
   Receive({ message: Child.Message.ClickedSave() }),
 ])
-export const update = ParentComposition.makeUpdate({ RequestedChange: childMessagesStep })
+export const update = ParentComposition.makeUpdate({ RequestedChange: produceChildMessages })
 `
     expect(
       diagnosticsFor(
@@ -282,7 +282,7 @@ export const update = ParentComposition.makeUpdate({ RequestedChange: childMessa
       parentSource +
       `
 const Receive = ParentDefinition.makeCommand('Receive', {})
-export const messagesStep = ParentDefinition.makeStep.fromMessage(message =>
+export const produceMessages = ParentDefinition.makeStep.fromMessage(message =>
   ParentDefinition.makeCommandsStep(() => [Receive({ message: Child.Message.ClickedSave() })]),
 )
 `
@@ -307,8 +307,8 @@ export const { makeStep } = ChildDefinition
 `
     const source = `
 import { Message, makeStep } from './general-message-owner-definition'
-const produceStep = message => model => ({ model, commands: [Message.ClickedSave()] })
-export const ownMessagesStep = makeStep.fromMessage(produceStep)
+const produceSave = message => model => ({ model, commands: [Message.ClickedSave()] })
+export const produceOwnMessages = makeStep.fromMessage(produceSave)
 `
     expect(
       diagnosticsForSplitFiles(
@@ -328,7 +328,7 @@ const Foreign = { makeDefinition: () => ({
   makeStep: Object.assign(callback => callback, { fromMessage: callback => callback }),
 }) }
 const ChildDefinition = Foreign.makeDefinition('Child', { Model: Child.Model, Message: Child.Message })
-export const messagesStep = ChildDefinition.makeStep.fromMessage(message => [Child.Message.ClickedSave()])
+export const produceMessages = ChildDefinition.makeStep.fromMessage(message => [Child.Message.ClickedSave()])
 `
     expect(
       diagnosticsFor(
@@ -345,7 +345,7 @@ export const messagesStep = ChildDefinition.makeStep.fromMessage(message => [Chi
       `
 const ChildDefinition = Block.makeDefinition('Child', { Model: Child.Model, Message: Child.Message })
 const Deliver = ChildDefinition.makeCommand('Deliver', {})
-export const ownMessagesStep = ChildDefinition.makeCommandsStep.fromMessage(message => [
+export const produceOwnMessages = ChildDefinition.makeCommandsStep.fromMessage(message => [
   Deliver({ message: Child.Message.ClickedSave() }),
 ])
 `
@@ -365,7 +365,7 @@ export const ownMessagesStep = ChildDefinition.makeCommandsStep.fromMessage(mess
 const ChildDefinition = Block.makeDefinition('Child', { Model: Child.Model, Message: Child.Message })
 const Deliver = ChildDefinition.makeCommand('Deliver', {})
 const commands = message => [Deliver({ message: Child.Message.ClickedSave() })]
-export const ownMessagesStep = ChildDefinition.makeCommandsStep.fromMessage(commands)
+export const produceOwnMessages = ChildDefinition.makeCommandsStep.fromMessage(commands)
 `
     expect(
       diagnosticsFor(
@@ -383,8 +383,8 @@ export const ownMessagesStep = ChildDefinition.makeCommandsStep.fromMessage(comm
 const ChildDefinition = Block.makeDefinition('Child', { Model: Child.Model, Message: Child.Message })
 const Deliver = ChildDefinition.makeCommand('Deliver', {})
 const commands = message => [Deliver({ message: Child.Message.ClickedSave() })]
-export const parentMessagesStep = ParentDefinition.makeCommandsStep.fromMessage(commands)
-export const ownMessagesStep = ChildDefinition.makeCommandsStep.fromMessage(commands)
+export const produceParentMessages = ParentDefinition.makeCommandsStep.fromMessage(commands)
+export const produceOwnMessages = ChildDefinition.makeCommandsStep.fromMessage(commands)
 `
     expect(
       diagnosticsFor(
@@ -398,7 +398,7 @@ export const ownMessagesStep = ChildDefinition.makeCommandsStep.fromMessage(comm
   it('accepts Messages owned by an imported focused helper', () => {
     const source = `
 import { ChildDefinition, Deliver, Message } from './child'
-export const ownMessagesStep = ChildDefinition.makeCommandsStep.fromMessage(message => [
+export const produceOwnMessages = ChildDefinition.makeCommandsStep.fromMessage(message => [
   Deliver({ message: Message.ClickedSave() }),
 ])
 `
@@ -451,8 +451,8 @@ const changeFields = message => ({
   child: child => modifyFields(child, { theme: () => 'Light' }),
 })
 const fieldsFromMessage = fieldsStep.fromMessage
-const changeChildStep = fieldsFromMessage(changeFields)
-export const update = ParentComposition.makeUpdate({ RequestedChange: changeChildStep })
+const changeChild = fieldsFromMessage(changeFields)
+export const update = ParentComposition.makeUpdate({ RequestedChange: changeChild })
 `
 
     expect(
@@ -471,8 +471,8 @@ export const update = ParentComposition.makeUpdate({ RequestedChange: changeChil
       `
 const { makeFieldsStep } = ParentDefinition
 const changeFields = message => ({ child: ${childTransform} })
-const changeChildStep = makeFieldsStep.fromMessage(changeFields)
-export const update = ParentComposition.makeUpdate({ RequestedChange: changeChildStep })
+const changeChild = makeFieldsStep.fromMessage(changeFields)
+export const update = ParentComposition.makeUpdate({ RequestedChange: changeChild })
 `
 
     expect(
@@ -520,14 +520,14 @@ const Message = defineMessageUnion({
       `
 const fieldsFromMessage = ParentDefinition.makeFieldsStep.fromMessage
 const adapterAlias = fieldsFromMessage
-const changeChildStep = adapterAlias(message => {
+const changeChild = adapterAlias(message => {
   const changedMessage = modifyFields(message, { child: ${childTransform} })
   return {
     label: () => changedMessage.label,
     preferences: () => message.child,
   }
 })
-export const update = ParentComposition.makeUpdate({ RequestedChange: changeChildStep })
+export const update = ParentComposition.makeUpdate({ RequestedChange: changeChild })
 `
 
     expect(
@@ -544,11 +544,11 @@ export const update = ParentComposition.makeUpdate({ RequestedChange: changeChil
       parentSource +
       `
 const fieldsStep = ParentDefinition.makeFieldsStep
-const changeChildStep = fieldsStep(model => {
+const changeChild = fieldsStep(model => {
   const changedModel = modifyFields(model, { child: ${childTransform} })
   return { label: () => changedModel.label }
 })
-export const update = ParentComposition.makeUpdate({ RequestedChange: changeChildStep })
+export const update = ParentComposition.makeUpdate({ RequestedChange: changeChild })
 `
 
     expect(
@@ -622,10 +622,10 @@ import * as Child from './child'
 import { ParentDefinition, makeFieldsStep } from './wrong-fields-definition'
 const ChildBinding = ParentDefinition.makeBinding(Child.ChildBlock, { field: 'child' })
 const ParentComposition = ParentDefinition.makeComposition({ bindings: [ChildBinding] })
-const changeChildStep = makeFieldsStep(() => ({
+const changeChild = makeFieldsStep(() => ({
   child: child => modifyFields(child, { theme: () => 'Light' }),
 }))
-export const update = ParentComposition.makeUpdate({ RequestedChange: changeChildStep })
+export const update = ParentComposition.makeUpdate({ RequestedChange: changeChild })
 `
 
     expect(
@@ -679,7 +679,7 @@ export const { makeCommandsStep } = ChildDefinition
 import { Message, makeCommandsStep as commandsStep } from './imported-commands-definition'
 const commands = message => [Message.ClickedSave()]
 const commandsFromMessage = commandsStep.fromMessage
-export const ownMessagesStep = commandsFromMessage(commands)
+export const produceOwnMessages = commandsFromMessage(commands)
 `
 
     expect(
@@ -699,7 +699,7 @@ export const ownMessagesStep = commandsFromMessage(commands)
 const ChildDefinition = Block.makeDefinition('Child', { Model: Child.Model, Message: Child.Message })
 const { makeCommandsStep } = ChildDefinition
 const commands = message => [Child.Message.ClickedSave()]
-export const ownMessagesStep = makeCommandsStep.fromMessage(commands)
+export const produceOwnMessages = makeCommandsStep.fromMessage(commands)
 `
 
     expect(
@@ -719,8 +719,8 @@ const ChildDefinition = Block.makeDefinition('Child', { Model: Child.Model, Mess
 const commandsStep = ChildDefinition.makeCommandsStep
 const commandsFromMessage = ChildDefinition.makeCommandsStep.fromMessage
 const commands = message => [Child.Message.ClickedSave()]
-export const helperStep = commandsStep.fromMessage(commands)
-export const adapterStep = commandsFromMessage(commands)
+export const produceCommands = commandsStep.fromMessage(commands)
+export const produceAdaptedCommands = commandsFromMessage(commands)
 `
 
     expect(
@@ -745,7 +745,7 @@ export const { makeStep } = ChildDefinition
     const source = `
 import { Message, makeStep } from './imported-step-definition'
 const save = model => ({ model, commands: [Message.ClickedSave()] })
-export const saveStep = makeStep(save)
+export const saveChanges = makeStep(save)
 `
 
     expect(
@@ -765,7 +765,7 @@ export const saveStep = makeStep(save)
 const ChildDefinition = Block.makeDefinition('Child', { Model: Child.Model, Message: Child.Message })
 const step = ChildDefinition.makeStep
 const save = model => ({ model, commands: [Child.Message.ClickedSave()] })
-export const ownMessagesStep = step(save)
+export const produceOwnMessages = step(save)
 `
 
     expect(
@@ -791,7 +791,7 @@ export const { makeCommandsStep } = ParentDefinition
 import * as Child from './child'
 import { makeCommandsStep } from './parent-commands-definition'
 const commands = message => [Child.Message.ClickedSave()]
-export const childMessagesStep = makeCommandsStep.fromMessage(commands)
+export const produceChildMessages = makeCommandsStep.fromMessage(commands)
 `
 
     expect(

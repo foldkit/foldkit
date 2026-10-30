@@ -8,7 +8,7 @@ import { isDirty } from './draft'
 import { type Model, type ProjectDraft, SaveState } from './model'
 import { OutMessage } from './outMessage'
 
-const editDraftStep = (transformDraft: (draft: ProjectDraft) => ProjectDraft) =>
+const editDraft = (transformDraft: (draft: ProjectDraft) => ProjectDraft) =>
   makeStep(model => {
     if (SaveState.guards.Saving(model.saveState)) {
       return { model }
@@ -22,7 +22,7 @@ const editDraftStep = (transformDraft: (draft: ProjectDraft) => ProjectDraft) =>
     }
   })
 
-const saveProjectStep = makeStep(model => {
+const saveProject = makeStep(model => {
   const name = String.trim(model.draft.name)
 
   if (
@@ -64,13 +64,13 @@ const handleClickedDiscardChanges = (model: Model) => {
 
 export const update = ProjectSettingsComposition.makeUpdate({
   UpdatedProjectName: (model, { value }) =>
-    editDraftStep(draft => modifyFields(draft, { name: () => value }))(model),
+    editDraft(draft => modifyFields(draft, { name: () => value }))(model),
   UpdatedProjectDescription: (model, { value }) =>
-    editDraftStep(draft => modifyFields(draft, { description: () => value }))(
+    editDraft(draft => modifyFields(draft, { description: () => value }))(
       model,
     ),
-  SubmittedProjectSettings: saveProjectStep,
-  ClickedRetrySave: saveProjectStep,
+  SubmittedProjectSettings: saveProject,
+  ClickedRetrySave: saveProject,
   ClickedDiscardChanges: handleClickedDiscardChanges,
   SucceededSaveProject: (model, { project }) => {
     if (

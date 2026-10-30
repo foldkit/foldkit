@@ -32,7 +32,7 @@ import {
   parentUpdate,
 } from './exposed-message.accepted.js'
 
-const directModelStep = ChildDefinition.makeStep((model, value: string) => ({
+const directModel = ChildDefinition.makeStep((model, value: string) => ({
   model: modifyFields(model, { value: () => value }),
 }))
 
@@ -41,7 +41,7 @@ ChildComposition.prepareBlock({
   update: childUpdate,
   operations: {
     // @ts-expect-error Exposed operations produce child update inputs, not Model transitions.
-    setDirectly: directModelStep,
+    setDirectly: directModel,
   },
   EffectsLayer: Layer.empty,
   hostHandlers: [RecordValue],

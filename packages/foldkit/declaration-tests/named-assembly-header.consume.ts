@@ -18,7 +18,7 @@ const consumesApplicationUpdate = ApplicationBlock.update(
   applicationModel,
   applicationMessage,
 )
-const consumesApplicationStep =
+const consumesApplication =
   ApplicationBlock.update(applicationMessage)(applicationModel)
 const consumesApplicationEncodedModel: typeof ApplicationBlock.Model.Encoded = {
   child: { count: '3' },
@@ -40,7 +40,7 @@ const consumesEncodedModel: typeof ViewedBlock.Model.Encoded = {
 export {
   consumesApplicationEncodedModel,
   consumesApplicationOperation,
-  consumesApplicationStep,
+  consumesApplication as consumesApplicationStep,
   consumesApplicationType,
   consumesApplicationUpdate,
   consumesDocumentProgram,

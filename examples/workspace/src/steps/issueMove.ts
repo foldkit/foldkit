@@ -8,7 +8,7 @@ import { makeStep } from '../definition'
 import { type Issue, type IssueStatus } from '../domain'
 import { IssueMoveState } from '../optimistic'
 
-const beginIssueMoveStep = (
+const beginIssueMove = (
   issue: Issue,
   status: IssueStatus,
   insertionIndex: number,
@@ -33,7 +33,7 @@ const beginIssueMoveStep = (
     ],
   }))
 
-export const requestIssueMoveStep = (
+export const requestIssueMove = (
   issueId: string,
   status: IssueStatus,
   insertionIndex: number,
@@ -52,7 +52,7 @@ export const requestIssueMoveStep = (
             onNone: () => ({ model }),
             onSome: issue =>
               Update.combineSteps([
-                beginIssueMoveStep(issue, status, insertionIndex),
+                beginIssueMove(issue, status, insertionIndex),
                 IssueBoardBinding.informIssueMoved(issue.projectId, {
                   status,
                   insertionIndex,

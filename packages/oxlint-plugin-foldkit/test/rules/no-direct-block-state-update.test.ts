@@ -140,7 +140,7 @@ const foldSettings = Testing.varDecl(
 
 const foldSettingsStep = Testing.varDecl(
   'const',
-  'foldSettingsStep',
+  'foldSettingsWithoutMessage',
   foldChildStep(readSettings, writeSettings),
 )
 
@@ -235,7 +235,7 @@ const foldSettingsDataLastCombine = (model: string) => ({
 
 const foldSettingsReturnedStep = Testing.varDecl(
   'const',
-  'foldSettingsStep',
+  'foldSettingsMessage',
   Testing.callOfMember('Update', 'combineSteps', [
     {
       type: 'ArrayExpression',
@@ -245,7 +245,7 @@ const foldSettingsReturnedStep = Testing.varDecl(
 )
 
 const applyFoldSettingsStep = (model: string) =>
-  Testing.callExpr('foldSettingsStep', [Testing.id(model)])
+  Testing.callExpr('foldSettingsMessage', [Testing.id(model)])
 
 const foldSettingsNestedCombine = () =>
   Testing.callOfMember('Update', 'combineSteps', [
@@ -763,7 +763,7 @@ describe('no-direct-block-state-update', () => {
   it('flags a direct foldChildStep application', () => {
     const result = runRule([
       foldSettingsStep,
-      Testing.callExpr('foldSettingsStep', [Testing.id('model')]),
+      Testing.callExpr('foldSettingsWithoutMessage', [Testing.id('model')]),
       directSettingsUpdate('model'),
     ])
 
@@ -775,7 +775,10 @@ describe('no-direct-block-state-update', () => {
       foldSettingsStep,
       Testing.callOfMember('Update', 'combineSteps', [
         Testing.id('model'),
-        { type: 'ArrayExpression', elements: [Testing.id('foldSettingsStep')] },
+        {
+          type: 'ArrayExpression',
+          elements: [Testing.id('foldSettingsWithoutMessage')],
+        },
       ]),
       directSettingsUpdate('model'),
     ])

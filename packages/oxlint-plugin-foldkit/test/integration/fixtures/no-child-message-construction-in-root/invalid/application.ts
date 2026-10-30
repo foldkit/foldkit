@@ -91,7 +91,7 @@ export const typedParentView = TypedParentViewComposition.makeView((_model, h) =
   h.button([h.OnClick(Child.Message.ClickedTypedParentViewSave())]),
 )
 
-export const parentStep = parentView.makeStep(model => ({
+export const applyParentChange = parentView.makeStep(model => ({
   model,
   message: Child.Message.ClickedParentStepSave(),
 }))

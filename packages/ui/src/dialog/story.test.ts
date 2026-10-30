@@ -83,7 +83,7 @@ const LoadParentData = DialogParentTestDefinition.makeCommand(
   },
 )
 
-const loadParentDataStep = DialogParentTestDefinition.makeCommandsStep(() => [
+const loadParentData = DialogParentTestDefinition.makeCommandsStep(() => [
   LoadParentData(),
 ])
 
@@ -98,7 +98,7 @@ const DialogParentTestComposition = DialogParentTestDefinition.makeComposition({
 
 const parentInit = DialogParentTestComposition.makeInit(() => ({
   model: { dialogEvents: [] },
-  steps: [loadParentDataStep, DialogBinding.requestOpen()],
+  steps: [loadParentData, DialogBinding.requestOpen()],
 }))
 
 const openDialog = (config: InitConfig) =>

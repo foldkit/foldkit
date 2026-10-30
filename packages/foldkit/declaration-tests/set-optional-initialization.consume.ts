@@ -10,8 +10,8 @@ import {
   Read,
   ReadService,
   init,
+  initOptionalEntry,
   setEntry,
-  setEntryStep,
   setEntryWithOptional,
   setEntryWithRest,
   setGenericEntry,
@@ -64,7 +64,7 @@ export type ExactEvidence = Expect<
   >
 >
 export type StepRequirements = Expect<
-  Equal<Update.RequirementsOf<typeof setEntryStep>, ExpectedRequirements>
+  Equal<Update.RequirementsOf<typeof initOptionalEntry>, ExpectedRequirements>
 >
 export type InitializedModel = Expect<
   Equal<ReturnType<typeof init>['model'], typeof ParentModel.Type>

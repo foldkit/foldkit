@@ -19,10 +19,10 @@ import {
 } from './grid'
 import { Model } from './model'
 import {
-  applyGridSizeChangeStep,
-  requestGridSizeChangeStep,
-  selectColorStep,
-  selectToolStep,
+  applyGridSizeChange,
+  requestGridSizeChange,
+  selectColor,
+  selectTool,
 } from './steps'
 
 const applyEraser = (model: Model, x: number, y: number) => {
@@ -104,11 +104,11 @@ export const update = ApplicationComposition.makeUpdate({
     return { model: nextModel, commands: [saveCanvas(nextModel)] }
   },
 
-  SelectedColor: (model, { colorIndex }) => selectColorStep(colorIndex)(model),
+  SelectedColor: (model, { colorIndex }) => selectColor(colorIndex)(model),
 
-  SelectedTool: (model, { tool }) => selectToolStep(tool)(model),
+  SelectedTool: (model, { tool }) => selectTool(tool)(model),
 
-  SelectedGridSize: (model, { size }) => requestGridSizeChangeStep(size)(model),
+  SelectedGridSize: (model, { size }) => requestGridSizeChange(size)(model),
 
   ToggledMirrorHorizontal: makeFieldsStep(model => {
     const nextMirrorMode = Match.value(model.mirrorMode).pipe(
@@ -237,7 +237,7 @@ export const update = ApplicationComposition.makeUpdate({
       onNone: () => makeNoopStep()(model),
       onSome: pendingSize =>
         Update.combineSteps(model, [
-          applyGridSizeChangeStep(pendingSize),
+          applyGridSizeChange(pendingSize),
           GridSizeConfirmDialogBinding.requestClose(),
           makeCommandsStep(stepModel => [saveCanvas(stepModel)]),
         ]),

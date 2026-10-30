@@ -4,15 +4,14 @@ import { Update } from 'foldkit'
 import { makeFieldsStep, makeStep } from '../definition'
 import type { ChangedUrl } from '../message'
 import { urlToApplicationRoute } from '../route'
-import { initChildrenStep } from './initChildrenStep'
+import { initChildren } from './initChildren'
 
-export const handleChangedUrlStep = makeStep.fromMessage(
-  ({ url }: ChangedUrl) =>
-    Update.combineSteps([
-      makeFieldsStep(() => ({
-        route: () => urlToApplicationRoute(url),
-        maybeNotice: () => Option.none(),
-      })),
-      initChildrenStep,
-    ]),
+export const handleChangedUrl = makeStep.fromMessage(({ url }: ChangedUrl) =>
+  Update.combineSteps([
+    makeFieldsStep(() => ({
+      route: () => urlToApplicationRoute(url),
+      maybeNotice: () => Option.none(),
+    })),
+    initChildren,
+  ]),
 )

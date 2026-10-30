@@ -12,13 +12,11 @@ const SettingsBinding = ApplicationDefinition.makeBinding(
 )
 
 // ❌ Bad: the parent changes a child field without running Settings.update.
-const badResetStep = (model: Model) => ({
+const badReset = (model: Model) => ({
   model: modifyFields(model, {
     settings: current => modifyFields(current, { theme: () => 'Light' }),
   }),
 })
 
 // ✅ Good: the child decides the transition and the Binding preserves it.
-const goodResetStep = makeStep(() =>
-  SettingsBinding.requestThemeChange('Light'),
-)
+const goodReset = makeStep(() => SettingsBinding.requestThemeChange('Light'))

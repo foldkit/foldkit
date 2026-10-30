@@ -65,7 +65,7 @@ const FinishIncrement = Child.makeCommand('FinishIncrement', {
 
 const calls: globalThis.Array<string> = []
 const single = (value: number): [number] => [value]
-const incrementStep = Child.makeStep(model => {
+const increment = Child.makeStep(model => {
   calls.push('child-step')
   return {
     model: modifyFields(model, { count: count => count + 100 }),
@@ -83,7 +83,7 @@ const prepareChildBlock = () =>
       }
     }),
     update: ChildComposition.makeUpdate({
-      RequestedIncrement: model => incrementStep(model),
+      RequestedIncrement: model => increment(model),
       CompletedInitialization: (model, { count }) => ({
         model: modifyFields(model, { count: () => count }),
       }),
@@ -163,7 +163,7 @@ const SecondBinding = Parent.makeBinding(ChildBlock, {
 const ParentComposition = Parent.makeComposition({
   bindings: [FirstBinding, SecondBinding],
 })
-const finishParentStep = Parent.makeStep(model => {
+const finishParent = Parent.makeStep(model => {
   calls.push('parent-step')
   return {
     model: modifyFields(model, { status: () => 'Stepped' }),
@@ -178,7 +178,7 @@ const init = ParentComposition.makeInit(
       childInitContext: { firstCount, maybeSecondCount },
       model: { status: 'Ready' },
       commands: [FinishParentInitialization()],
-      steps: [FirstBinding.increment(), finishParentStep],
+      steps: [FirstBinding.increment(), finishParent],
     }
   },
 )
@@ -263,8 +263,8 @@ it('stays passive, initializes in Binding order, applies Steps sequentially, and
 })
 
 it('preserves a combined Binding operation and Command-producing Definition Step in init', () => {
-  const finishCombinedStep = Parent.makeStep(() =>
-    Update.combineSteps([FirstBinding.increment(), finishParentStep]),
+  const finishCombined = Parent.makeStep(() =>
+    Update.combineSteps([FirstBinding.increment(), finishParent]),
   )
   const initCombined = ParentComposition.makeInit((count: number) => ({
     childInitContext: {
@@ -272,7 +272,7 @@ it('preserves a combined Binding operation and Command-producing Definition Step
       maybeSecondCount: Option.none<number>(),
     },
     model: { status: 'Ready' },
-    steps: [finishCombinedStep],
+    steps: [finishCombined],
   }))
 
   expectTypeOf<Parameters<typeof initCombined>>().toEqualTypeOf<
@@ -686,7 +686,7 @@ it('runs initialization callbacks and Steps under the exact registered operation
   const ProjectedComposition = ProjectedParent.makeComposition({
     bindings: [ProjectedBinding],
   })
-  const initWithForeignStep = ParentComposition.makeInit(() => ({
+  const initWithForeign = ParentComposition.makeInit(() => ({
     childInitContext: {
       firstCount: 1,
       maybeSecondCount: Option.none<number>(),
@@ -716,7 +716,7 @@ it('runs initialization callbacks and Steps under the exact registered operation
     model: { first: ChildModel.make({ count: 0 }) },
   }))
 
-  expect(() => initWithForeignStep()).toThrow(
+  expect(() => initWithForeign()).toThrow(
     'is not registered in the current Block graph',
   )
   expect(() => initWithForeignInit()).toThrow(

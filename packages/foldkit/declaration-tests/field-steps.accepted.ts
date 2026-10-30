@@ -15,22 +15,22 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message: Schema.Never,
 })
-export const incrementStep = FieldStepsDefinition.makeFieldsStep(() => ({
+export const increment = FieldStepsDefinition.makeFieldsStep(() => ({
   count: Number.increment,
 }))
-export const readyStep = FieldStepsDefinition.makeFieldsStep(model => ({
+export const ready = FieldStepsDefinition.makeFieldsStep(model => ({
   label: () => `${model.label}: ready`,
   status: () => 'Ready',
 }))
-export const preserveStep = FieldStepsDefinition.makeNoopStep()
-export const applicationIncrementStep = ApplicationDefinition.makeFieldsStep(
+export const preserve = FieldStepsDefinition.makeNoopStep()
+export const applicationIncrement = ApplicationDefinition.makeFieldsStep(
   () => ({
     count: Number.increment,
   }),
 )
-export const combinedStep = Update.combineSteps([
-  incrementStep,
-  applicationIncrementStep,
+export const applyCombinedChanges = Update.combineSteps([
+  increment,
+  applicationIncrement,
 ])
 export const extractedTransforms: FieldTransforms<typeof Model.Type> = {
   count: Number.increment,
@@ -40,7 +40,7 @@ export const transformedModel = modifyFields(
   Model.make({ count: 0, label: '', status: 'Idle' }),
   extractedTransforms,
 )
-export const editFieldsStep = <
+export const editFields = <
   const Fields extends FieldTransforms<typeof Model.Type>,
 >(
   fields: Fields &
@@ -49,7 +49,7 @@ export const editFieldsStep = <
   FieldStepsDefinition.makeFieldsStep(model =>
     model.status === 'Ready' ? fields : {},
   )
-export const guardedIncrement = editFieldsStep({ count: count => count + 1 })
+export const guardedIncrement = editFields({ count: count => count + 1 })
 export const FieldStepsComposition = FieldStepsDefinition.makeComposition()
 const prepareFieldStepsBlock = () =>
   FieldStepsComposition.prepareBlock({
@@ -78,16 +78,14 @@ export const VariantFieldStepsDefinition = Block.makeDefinition(
   'VariantFieldSteps',
   { Model: VariantModel, Message: Schema.Never },
 )
-export const renameVariantStep = VariantFieldStepsDefinition.makeFieldsStep(
-  () => ({
-    id: () => 'next',
-  }),
-)
+export const renameVariant = VariantFieldStepsDefinition.makeFieldsStep(() => ({
+  id: () => 'next',
+}))
 export const TextFieldStepsDefinition = Block.makeDefinition('TextFieldSteps', {
   Model: Schema.String,
   Message: Schema.Never,
 })
-export const preserveTextStep = TextFieldStepsDefinition.makeNoopStep()
+export const preserveText = TextFieldStepsDefinition.makeNoopStep()
 
 type Equal<Left, Right> =
   (<Value>() => Value extends Left ? 1 : 2) extends <
@@ -98,11 +96,11 @@ type Equal<Left, Right> =
 type Expect<Value extends true> = Value
 
 export type RefinedStatus = Expect<
-  Equal<ReturnType<typeof readyStep>['model']['status'], 'Ready'>
+  Equal<ReturnType<typeof ready>['model']['status'], 'Ready'>
 >
 export type NoCommands = Expect<
-  Equal<Update.RequirementsOf<typeof combinedStep>, never>
+  Equal<Update.RequirementsOf<typeof applyCombinedChanges>, never>
 >
 export type ExactArguments = Expect<
-  Equal<Parameters<typeof incrementStep>, [model: typeof Model.Type]>
+  Equal<Parameters<typeof increment>, [model: typeof Model.Type]>
 >

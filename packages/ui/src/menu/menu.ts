@@ -359,7 +359,7 @@ export const DetectMenuMovementOrAnimationEnd = MenuNamespace.makeCommand(
   },
 )
 
-const detectMenuMovementOrAnimationEndStep = (generation: number) =>
+const detectMenuMovementOrAnimationEnd = (generation: number) =>
   MenuDefinition.makeCommandsStep(model => [
     DetectMenuMovementOrAnimationEnd({ id: model.id, generation }),
   ])
@@ -368,7 +368,7 @@ const foldAnimationOutMessage = MenuDefinition.makeOutMessageFold(
   Animation.AnimationBlock,
   {
     StartedLeaveAnimating: ({ generation }) =>
-      detectMenuMovementOrAnimationEndStep(generation),
+      detectMenuMovementOrAnimationEnd(generation),
     TransitionedOut: MenuDefinition.makeNoopStep,
   },
 )
@@ -775,7 +775,7 @@ export const init = MenuComposition.makeInit((config: InitConfig) => ({
 }))
 type MenuViewBuilder = Block.ViewBuilderFor<typeof MenuComposition>
 const defaultUpdate = internalUpdate(AnimationBinding)
-const authoredUpdateStep = MenuDefinition.makeStep(
+const applyMenuMessage = MenuDefinition.makeStep(
   (model, message: Parameters<typeof defaultUpdate>[1]) =>
     defaultUpdate(model, message),
 )
@@ -783,35 +783,35 @@ const authoredUpdateStep = MenuDefinition.makeStep(
 /** Processes a Menu Message and returns the next Model, optional Commands, and
  *  an optional OutMessage. */
 export const update = MenuComposition.makeUpdate({
-  RequestedOpen: authoredUpdateStep,
-  RequestedClose: authoredUpdateStep,
-  RequestedSelectItem: authoredUpdateStep,
-  Opened: authoredUpdateStep,
-  Closed: authoredUpdateStep,
-  BlurredItems: authoredUpdateStep,
-  ActivatedItem: authoredUpdateStep,
-  DeactivatedItem: authoredUpdateStep,
-  SelectedItem: authoredUpdateStep,
-  RequestedItemClick: authoredUpdateStep,
-  Searched: authoredUpdateStep,
-  CompletedDelayClearMenuSearch: authoredUpdateStep,
-  MovedPointerOverItem: authoredUpdateStep,
-  CompletedFocusMenuItems: authoredUpdateStep,
-  CompletedFocusMenuButton: authoredUpdateStep,
-  CompletedLockMenuScroll: authoredUpdateStep,
-  CompletedUnlockMenuScroll: authoredUpdateStep,
-  CompletedInertMenuOthers: authoredUpdateStep,
-  CompletedRestoreMenuInert: authoredUpdateStep,
-  CompletedScrollMenuItemIntoView: authoredUpdateStep,
-  CompletedClickMenuItem: authoredUpdateStep,
-  ClickedButton: authoredUpdateStep,
-  IgnoredMouseClick: authoredUpdateStep,
-  SuppressedSpaceScroll: authoredUpdateStep,
-  CompletedAnchorMenu: authoredUpdateStep,
-  CompletedPortalMenuBackdrop: authoredUpdateStep,
-  CompletedDetectMenuMovementOrAnimationEnd: authoredUpdateStep,
-  PressedPointerOnButton: authoredUpdateStep,
-  ReleasedPointerOnItems: authoredUpdateStep,
+  RequestedOpen: applyMenuMessage,
+  RequestedClose: applyMenuMessage,
+  RequestedSelectItem: applyMenuMessage,
+  Opened: applyMenuMessage,
+  Closed: applyMenuMessage,
+  BlurredItems: applyMenuMessage,
+  ActivatedItem: applyMenuMessage,
+  DeactivatedItem: applyMenuMessage,
+  SelectedItem: applyMenuMessage,
+  RequestedItemClick: applyMenuMessage,
+  Searched: applyMenuMessage,
+  CompletedDelayClearMenuSearch: applyMenuMessage,
+  MovedPointerOverItem: applyMenuMessage,
+  CompletedFocusMenuItems: applyMenuMessage,
+  CompletedFocusMenuButton: applyMenuMessage,
+  CompletedLockMenuScroll: applyMenuMessage,
+  CompletedUnlockMenuScroll: applyMenuMessage,
+  CompletedInertMenuOthers: applyMenuMessage,
+  CompletedRestoreMenuInert: applyMenuMessage,
+  CompletedScrollMenuItemIntoView: applyMenuMessage,
+  CompletedClickMenuItem: applyMenuMessage,
+  ClickedButton: applyMenuMessage,
+  IgnoredMouseClick: applyMenuMessage,
+  SuppressedSpaceScroll: applyMenuMessage,
+  CompletedAnchorMenu: applyMenuMessage,
+  CompletedPortalMenuBackdrop: applyMenuMessage,
+  CompletedDetectMenuMovementOrAnimationEnd: applyMenuMessage,
+  PressedPointerOnButton: applyMenuMessage,
+  ReleasedPointerOnItems: applyMenuMessage,
 })
 
 const EffectsLayer = Layer.mergeAll(
@@ -1393,7 +1393,7 @@ const makeBlockParts = <Item extends string>() => {
     Animation.AnimationBlock,
     {
       StartedLeaveAnimating: ({ generation }) =>
-        detectMenuMovementOrAnimationEndStep(generation),
+        detectMenuMovementOrAnimationEnd(generation),
       TransitionedOut: MenuDefinition.makeNoopStep,
     },
   )
@@ -1420,40 +1420,40 @@ const makeBlockParts = <Item extends string>() => {
   const init = MenuComposition.makeInit((config: InitConfig) => ({
     model: makeInitialModel(config),
   }))
-  const authoredUpdateStep = MenuDefinition.makeStep(
+  const applyMenuMessage = MenuDefinition.makeStep(
     (model, message: Parameters<typeof itemUpdate>[1]) =>
       castReturn(itemUpdate(model, message)),
   )
   const refinedUpdate = MenuComposition.makeUpdate({
-    RequestedOpen: authoredUpdateStep,
-    RequestedClose: authoredUpdateStep,
-    RequestedSelectItem: authoredUpdateStep,
-    Opened: authoredUpdateStep,
-    Closed: authoredUpdateStep,
-    BlurredItems: authoredUpdateStep,
-    ActivatedItem: authoredUpdateStep,
-    DeactivatedItem: authoredUpdateStep,
-    SelectedItem: authoredUpdateStep,
-    RequestedItemClick: authoredUpdateStep,
-    Searched: authoredUpdateStep,
-    CompletedDelayClearMenuSearch: authoredUpdateStep,
-    MovedPointerOverItem: authoredUpdateStep,
-    CompletedFocusMenuItems: authoredUpdateStep,
-    CompletedFocusMenuButton: authoredUpdateStep,
-    CompletedLockMenuScroll: authoredUpdateStep,
-    CompletedUnlockMenuScroll: authoredUpdateStep,
-    CompletedInertMenuOthers: authoredUpdateStep,
-    CompletedRestoreMenuInert: authoredUpdateStep,
-    CompletedScrollMenuItemIntoView: authoredUpdateStep,
-    CompletedClickMenuItem: authoredUpdateStep,
-    ClickedButton: authoredUpdateStep,
-    IgnoredMouseClick: authoredUpdateStep,
-    SuppressedSpaceScroll: authoredUpdateStep,
-    CompletedAnchorMenu: authoredUpdateStep,
-    CompletedPortalMenuBackdrop: authoredUpdateStep,
-    CompletedDetectMenuMovementOrAnimationEnd: authoredUpdateStep,
-    PressedPointerOnButton: authoredUpdateStep,
-    ReleasedPointerOnItems: authoredUpdateStep,
+    RequestedOpen: applyMenuMessage,
+    RequestedClose: applyMenuMessage,
+    RequestedSelectItem: applyMenuMessage,
+    Opened: applyMenuMessage,
+    Closed: applyMenuMessage,
+    BlurredItems: applyMenuMessage,
+    ActivatedItem: applyMenuMessage,
+    DeactivatedItem: applyMenuMessage,
+    SelectedItem: applyMenuMessage,
+    RequestedItemClick: applyMenuMessage,
+    Searched: applyMenuMessage,
+    CompletedDelayClearMenuSearch: applyMenuMessage,
+    MovedPointerOverItem: applyMenuMessage,
+    CompletedFocusMenuItems: applyMenuMessage,
+    CompletedFocusMenuButton: applyMenuMessage,
+    CompletedLockMenuScroll: applyMenuMessage,
+    CompletedUnlockMenuScroll: applyMenuMessage,
+    CompletedInertMenuOthers: applyMenuMessage,
+    CompletedRestoreMenuInert: applyMenuMessage,
+    CompletedScrollMenuItemIntoView: applyMenuMessage,
+    CompletedClickMenuItem: applyMenuMessage,
+    ClickedButton: applyMenuMessage,
+    IgnoredMouseClick: applyMenuMessage,
+    SuppressedSpaceScroll: applyMenuMessage,
+    CompletedAnchorMenu: applyMenuMessage,
+    CompletedPortalMenuBackdrop: applyMenuMessage,
+    CompletedDetectMenuMovementOrAnimationEnd: applyMenuMessage,
+    PressedPointerOnButton: applyMenuMessage,
+    ReleasedPointerOnItems: applyMenuMessage,
   })
   const refinedView =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */

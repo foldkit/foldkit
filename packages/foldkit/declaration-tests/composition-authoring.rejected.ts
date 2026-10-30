@@ -70,13 +70,13 @@ const forwardSettingsOutMessage = (
       ParentOutMessage.SelectedSettingsTheme({ theme }),
   })
 
-const rawRefreshStep = SettingsBinding.refresh(
+const rawRefresh = SettingsBinding.refresh(
   CurrentUser.make({ accountId: 'raw-completion' }),
 )
 const uncompletedRawRefreshUpdate = (
-  model: Parameters<typeof rawRefreshStep>[0],
+  model: Parameters<typeof rawRefresh>[0],
   _message: typeof ParentMessage.Type,
-) => rawRefreshStep(model)
+) => rawRefresh(model)
 
 ParentComposition.prepareBlock({
   init: parentInit,
@@ -350,7 +350,7 @@ type RefreshStep = ReturnType<typeof SettingsBinding.refresh>
 type DirectRefreshRequirements = Update.RequirementsOf<RefreshStep>
 type SettingsRegistration = Block.RequirementOfBinding<typeof SettingsBinding>
 
-const exactRefreshStep: (
+const exactRefresh: (
   model: Parameters<RefreshStep>[0],
 ) => Update.ResultRecipe<
   typeof ParentModel.Type,
@@ -360,7 +360,7 @@ const exactRefreshStep: (
   SettingsRegistration
 > = SettingsBinding.refresh(CurrentUser.make({ accountId: 'exact-erasure' }))
 
-const changedThemeStep = ParentDefinition.makeStep(
+const changedTheme = ParentDefinition.makeStep(
   () => (model: Parameters<typeof SettingsBinding.fold>[0]) =>
     SettingsBinding.fold(
       model,
@@ -368,7 +368,7 @@ const changedThemeStep = ParentDefinition.makeStep(
       CurrentUser.make({ accountId: 'emitting-policy' }),
     ),
 )
-type ChangedThemeStep = typeof changedThemeStep
+type ChangedThemeStep = typeof changedTheme
 type ChangedThemeRequirements = Update.RequirementsOf<ChangedThemeStep>
 
 // @ts-expect-error Init cannot consume a Step whose selected handler forwards an OutMessage.
@@ -379,11 +379,11 @@ ParentComposition.makeInit((childInitContext: ParentChildInitContext) => ({
     route: childInitContext.route,
     maybeRoom: Option.none(),
   },
-  steps: [changedThemeStep],
+  steps: [changedTheme],
 }))
 
 // @ts-expect-error A recipe cannot erase its selected handler's forwarded OutMessage policy while retaining only direct registration.
-const erasedChangedThemeStep: (
+const erasedChangedTheme: (
   model: Parameters<ChangedThemeStep>[0],
 ) => Update.ResultRecipe<
   typeof ParentModel.Type,
@@ -391,9 +391,9 @@ const erasedChangedThemeStep: (
   never,
   ChangedThemeRequirements,
   SettingsRegistration
-> = changedThemeStep
+> = changedTheme
 
-const widenedRefreshStep: (
+const widenedRefresh: (
   model: Parameters<RefreshStep>[0],
 ) => Update.ResultRecipe<
   typeof ParentModel.Type,
@@ -403,12 +403,12 @@ const widenedRefreshStep: (
   unknown
 > = SettingsBinding.refresh(CurrentUser.make({ accountId: 'unknown-erasure' }))
 
-const combinedWidenedRefreshStep = Update.combineSteps([
-  widenedRefreshStep,
+const combinedWidenedRefresh = Update.combineSteps([
+  widenedRefresh,
   ParentDefinition.makeStep(model => ({ model })),
 ])
 
-const erasedAnyRefreshStep: (
+const erasedAnyRefresh: (
   model: Parameters<RefreshStep>[0],
 ) => Update.ResultRecipe<
   typeof ParentModel.Type,
@@ -427,7 +427,7 @@ ParentComposition.makeInit((childInitContext: ParentChildInitContext) => ({
     route: childInitContext.route,
     maybeRoom: Option.none(),
   },
-  steps: [widenedRefreshStep],
+  steps: [widenedRefresh],
 }))
 
 // @ts-expect-error Combining Steps cannot erase their policy obligations.
@@ -438,21 +438,21 @@ ParentComposition.makeInit((childInitContext: ParentChildInitContext) => ({
     route: childInitContext.route,
     maybeRoom: Option.none(),
   },
-  steps: [combinedWidenedRefreshStep],
+  steps: [combinedWidenedRefresh],
 }))
 
 ParentComposition.makeUpdate({
   // @ts-expect-error Update rejects unknown-erased policy obligations.
-  OpenedDashboard: (model, _message) => widenedRefreshStep(model),
+  OpenedDashboard: (model, _message) => widenedRefresh(model),
 })
 ParentComposition.makeUpdate({
   // @ts-expect-error Update rejects any-erased policy obligations.
-  OpenedDashboard: (model, _message) => erasedAnyRefreshStep(model),
+  OpenedDashboard: (model, _message) => erasedAnyRefresh(model),
 })
 
 void exactRefreshInit
-void exactRefreshStep
-void erasedChangedThemeStep
+void exactRefresh
+void erasedChangedTheme
 
 // @ts-expect-error The removed command authoring name has no compatibility alias.
 ParentDefinition.command

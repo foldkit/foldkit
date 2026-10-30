@@ -776,7 +776,7 @@ export type ScrollToOptions = Readonly<{
   alignment?: ScrollAlignment
 }>
 
-const buildScrollRequestStep = (request: ScrollRequest) =>
+const applyScrollRequest = (request: ScrollRequest) =>
   VirtualListDefinition.makeStep(model => {
     const nextVersion = Number.increment(model.pendingScrollVersion)
     return {
@@ -814,8 +814,8 @@ const currentScrollRequest = (model: Model): ScrollRequest =>
     Pending: ({ request }) => request,
   })
 
-const reconcileLayoutStep = VirtualListDefinition.makeStep(model =>
-  buildScrollRequestStep(currentScrollRequest(model)),
+const reconcileLayout = VirtualListDefinition.makeStep(model =>
+  applyScrollRequest(currentScrollRequest(model)),
 )
 
 const anchorFromSnapshot = (
@@ -887,7 +887,7 @@ const measureContainer = (
     Unmeasured: () => false,
     Measured: measurement => measurement.containerWidth !== containerWidth,
   })
-  const recordContainerMeasurementStep = VirtualListDefinition.makeFieldsStep(
+  const recordContainerMeasurement = VirtualListDefinition.makeFieldsStep(
     () => ({
       measurement: () =>
         Measurement.Measured({ containerWidth, containerHeight }),
@@ -901,8 +901,8 @@ const measureContainer = (
   const { initialScroll } = model
   if (initialScroll._tag === 'Pending') {
     return Update.combineSteps(model, [
-      recordContainerMeasurementStep,
-      buildScrollRequestStep(
+      recordContainerMeasurement,
+      applyScrollRequest(
         ScrollRequest.Target({
           target: initialScroll.target,
           alignment: initialScroll.alignment,
@@ -912,12 +912,12 @@ const measureContainer = (
   }
 
   if (wasUnmeasured) {
-    return recordContainerMeasurementStep(model)
+    return recordContainerMeasurement(model)
   }
 
   return Update.combineSteps(model, [
-    recordContainerMeasurementStep,
-    reconcileLayoutStep,
+    recordContainerMeasurement,
+    reconcileLayout,
   ])
 }
 
@@ -992,7 +992,7 @@ const applyRowMeasurements = (
     }
   }
 
-  return reconcileLayoutStep(nextModel)
+  return reconcileLayout(nextModel)
 }
 
 type RowOffsets = Readonly<{
@@ -1009,7 +1009,7 @@ const requestScroll = (
     VirtualListDefinition.makeFieldsStep(() => ({
       initialScroll: () => InitialScroll.Applied(),
     })),
-    buildScrollRequestStep(
+    applyScrollRequest(
       ScrollRequest.Target({
         target,
         alignment: Option.getOrElse(maybeAlignment, () => 'Start'),
@@ -1031,7 +1031,7 @@ const applyItemsChange = (model: Model, itemKeys: ReadonlyArray<string>) => {
           ? current
           : Option.none(),
     })),
-    reconcileLayoutStep,
+    reconcileLayout,
   ])
 }
 
@@ -2030,7 +2030,7 @@ export const update = VirtualListComposition.makeUpdate({
         ) > 1
       ) {
         return Update.withOutMessage(
-          buildScrollRequestStep(
+          applyScrollRequest(
             ScrollRequest.Anchor({
               anchor: nextModel.pendingScroll.request.anchor,
               baselineScrollTop: snapshot.scrollTop,
@@ -2067,7 +2067,7 @@ export const update = VirtualListComposition.makeUpdate({
           }),
           Anchor: () =>
             Update.withOutMessage(
-              buildScrollRequestStep(
+              applyScrollRequest(
                 ScrollRequest.Anchor({
                   anchor: nextModel.viewportAnchor,
                   baselineScrollTop: nextModel.scrollTop,

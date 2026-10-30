@@ -196,31 +196,31 @@ export const init = DatePickerComposition.makeInit((config: InitConfig) => ({
 /** Mount Definitions rendered by DatePicker's Popover child. */
 export const mounts = DatePickerComposition.mounts
 
-const openDatePickerStep = Update.combineSteps([
+const openDatePicker = Update.combineSteps([
   PopoverBinding.requestOpen(),
   CalendarBinding.requestDropToDays(),
 ])
-const closeDatePickerStep = Update.combineSteps([
+const closeDatePicker = Update.combineSteps([
   PopoverBinding.requestClose(),
   CalendarBinding.requestDropToDays(),
 ])
-const clearDatePickerStep = DatePickerDefinition.makeOutMessageStep(() =>
+const clearDatePicker = DatePickerDefinition.makeOutMessageStep(() =>
   OutMessage.ClearedDate(),
 )
 
 /** Processes a DatePicker Message and returns the next Model, optional
  *  Commands, and an optional OutMessage. */
 export const update = DatePickerComposition.makeUpdate({
-  RequestedOpen: openDatePickerStep,
-  RequestedClose: closeDatePickerStep,
-  RequestedClear: clearDatePickerStep,
-  Opened: openDatePickerStep,
-  Closed: closeDatePickerStep,
+  RequestedOpen: openDatePicker,
+  RequestedClose: closeDatePicker,
+  RequestedClear: clearDatePicker,
+  Opened: openDatePicker,
+  Closed: closeDatePicker,
 
   RequestedSelectDate: (model, { date }) =>
     CalendarBinding.requestSelectDate(date)(model),
 
-  Cleared: clearDatePickerStep,
+  Cleared: clearDatePicker,
 
   RequestedFocusDate: (model, { date }) =>
     CalendarBinding.requestFocusDate(date)(model),

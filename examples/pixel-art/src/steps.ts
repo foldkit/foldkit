@@ -8,10 +8,10 @@ import { makeFieldsStep, makeStep } from './definition'
 import { createEmptyGrid, isGridEmpty } from './grid'
 import { type PaletteIndex, type Tool } from './model'
 
-export const selectToolStep = (tool: Tool) =>
+export const selectTool = (tool: Tool) =>
   makeFieldsStep(() => ({ tool: () => tool }))
 
-export const selectColorStep = (colorIndex: PaletteIndex) =>
+export const selectColor = (colorIndex: PaletteIndex) =>
   makeStep(model => {
     const nextModel = modifyFields(model, {
       selectedColorIndex: () => colorIndex,
@@ -19,7 +19,7 @@ export const selectColorStep = (colorIndex: PaletteIndex) =>
     return { model: nextModel, commands: [saveCanvas(nextModel)] }
   })
 
-export const applyGridSizeChangeStep = (size: number) =>
+export const applyGridSizeChange = (size: number) =>
   makeStep(model => ({
     model: modifyFields(model, {
       grid: () => createEmptyGrid(size),
@@ -31,22 +31,22 @@ export const applyGridSizeChangeStep = (size: number) =>
     }),
   }))
 
-export const requestGridSizeChangeStep = (size: number) =>
+export const requestGridSizeChange = (size: number) =>
   makeStep(model => {
     if (size === model.gridSize) {
       return { model }
     }
 
     if (isGridEmpty(model.grid)) {
-      return applyGridSizeChangeStep(size)(model)
+      return applyGridSizeChange(size)(model)
     }
 
-    const rememberGridSizeStep = makeFieldsStep(() => ({
+    const rememberGridSize = makeFieldsStep(() => ({
       maybePendingGridSize: () => Option.some(size),
     }))
 
     return Update.combineSteps([
-      rememberGridSizeStep,
+      rememberGridSize,
       GridSizeConfirmDialogBinding.requestOpen(),
     ])
   })

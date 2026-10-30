@@ -17,8 +17,8 @@ import {
   PlainBlock,
   RestContextBlock,
   StrictBlock,
-  combinedMixedConnectedStep,
-  deferredMixedConnectedStep,
+  combinedMixedConnected,
+  deferredMixedConnected,
   deferredMixedConnectedUpdate,
   emptyPlainSteps,
   explicitGenericOrdinaryUpdate,
@@ -26,13 +26,13 @@ import {
   foldStableProjected,
   init,
   initDerivedModel,
-  initDerivedStepsStep,
-  initEntryStep,
-  initPlainStep,
-  initPlainWithParentCommandsStep,
+  initDerivedSteps,
+  initEntry,
+  initPlain,
+  initPlainWithParentCommands,
   initialParentModel,
   makeParentCommandInitRecipe,
-  mixedConnectedCommandsStep,
+  mixedConnectedCommands,
   mixedConnectedCommandsUpdate,
   mixedConnectedSteps,
   mixedConnectedUpdate,
@@ -80,14 +80,14 @@ type RecipeMessage<Value> =
 
 type EmittedMixedConnectedRecipeIsExact = Expect<
   Equal<
-    ReturnType<typeof combinedMixedConnectedStep>,
+    ReturnType<typeof combinedMixedConnected>,
     ReturnType<ReturnType<typeof PlainBinding.increment>>
   >
 >
 type EmittedDeferredMixedRecipeIsExact = Expect<
   Equal<
-    ReturnType<typeof deferredMixedConnectedStep>,
-    ReturnType<typeof combinedMixedConnectedStep>
+    ReturnType<typeof deferredMixedConnected>,
+    ReturnType<typeof combinedMixedConnected>
   >
 >
 type EmittedMixedRegistrationIsExact = Expect<
@@ -127,28 +127,26 @@ type EmittedExplicitGenericOrdinaryRequirementsAreExact = Expect<
 >
 type EmittedMixedCommandsModelIsExact = Expect<
   Equal<
-    RecipeModel<ReturnType<typeof mixedConnectedCommandsStep>>,
+    RecipeModel<ReturnType<typeof mixedConnectedCommands>>,
     typeof ParentModel.Type
   >
 >
 type EmittedMixedCommandsMessageIsExact = Expect<
   Equal<
-    RecipeMessage<ReturnType<typeof mixedConnectedCommandsStep>>,
+    RecipeMessage<ReturnType<typeof mixedConnectedCommands>>,
     | RecipeMessage<ReturnType<ReturnType<typeof PlainBinding.increment>>>
     | typeof ParentMessage.CompletedParentInitialization.Type
   >
 >
 type EmittedMixedCommandsRequirementsAreExact = Expect<
   EveryMemberEqual<
-    Update.RequirementsOf<typeof mixedConnectedCommandsStep>,
+    Update.RequirementsOf<typeof mixedConnectedCommands>,
     Command.HandlerOf<typeof CompleteParentInitialization>
   >
 >
 type EmittedMixedCommandsRegistrationIsExact = Expect<
   EveryMemberEqual<
-    Update.RegistrationEvidenceOf<
-      ReturnType<typeof mixedConnectedCommandsStep>
-    >,
+    Update.RegistrationEvidenceOf<ReturnType<typeof mixedConnectedCommands>>,
     Block.RequirementOfBinding<typeof PlainBinding>
   >
 >
@@ -182,12 +180,12 @@ const rejectRawMixedConnectedSteps = () => {
   // @ts-expect-error An emitted predeclared tuple retains the connected graph requirement.
   Update.combineSteps(initialParentModel, mixedConnectedSteps)
   // @ts-expect-error An emitted deferred combination still requires its registered Composition.
-  deferredMixedConnectedStep(initialParentModel)
+  deferredMixedConnected(initialParentModel)
 }
 const rejectReadableMixedRecipe = (
-  model: Parameters<typeof combinedMixedConnectedStep>[0],
+  model: Parameters<typeof combinedMixedConnected>[0],
 ) => {
-  const combined = combinedMixedConnectedStep(model)
+  const combined = combinedMixedConnected(model)
 
   // @ts-expect-error The emitted connected combination remains opaque.
   combined.model
@@ -210,13 +208,13 @@ appliedDerivedInitialization.model.first.count
 
 type EmittedEntryInitRequirementsAreExact = Expect<
   Equal<
-    Update.RequirementsOf<typeof initEntryStep>,
+    Update.RequirementsOf<typeof initEntry>,
     Block.Qualify<'entries', Command.HandlerOf<typeof LoadParameterizedChild>>
   >
 >
 type EmittedParentCommandRequirementsAreExact = Expect<
   Equal<
-    Update.RequirementsOf<typeof initPlainWithParentCommandsStep>,
+    Update.RequirementsOf<typeof initPlainWithParentCommands>,
     | Block.Qualify<'entries', Command.HandlerOf<typeof LoadParameterizedChild>>
     | Command.HandlerOf<typeof CompleteParentInitialization>
   >
@@ -224,30 +222,27 @@ type EmittedParentCommandRequirementsAreExact = Expect<
 type EmittedParentCommandRegistrationIsExact = Expect<
   Equal<
     Update.RegistrationEvidenceOf<
-      ReturnType<typeof initPlainWithParentCommandsStep>
+      ReturnType<typeof initPlainWithParentCommands>
     >,
     | Block.RequirementOfBinding<typeof ParentCommandsBinding>
     | Block.RequirementOfBinding<typeof EntryBinding>
   >
 >
 type EmittedEntryInitModelIsExact = Expect<
-  Equal<RecipeModel<ReturnType<typeof initEntryStep>>, typeof ParentModel.Type>
+  Equal<RecipeModel<ReturnType<typeof initEntry>>, typeof ParentModel.Type>
 >
 type EmittedEntryInitMessageIsExact = Expect<
-  Equal<
-    RecipeMessage<ReturnType<typeof initEntryStep>>,
-    typeof ParentMessage.Type
-  >
+  Equal<RecipeMessage<ReturnType<typeof initEntry>>, typeof ParentMessage.Type>
 >
 type EmittedEntryInitRegistrationIsExact = Expect<
   Equal<
-    Update.RegistrationEvidenceOf<ReturnType<typeof initEntryStep>>,
+    Update.RegistrationEvidenceOf<ReturnType<typeof initEntry>>,
     Block.RequirementOfBinding<typeof EntryBinding>
   >
 >
 type EmittedPlainInitRegistrationIsExact = Expect<
   Equal<
-    Update.RegistrationEvidenceOf<ReturnType<typeof initPlainStep>>,
+    Update.RegistrationEvidenceOf<ReturnType<typeof initPlain>>,
     Block.RequirementOfBinding<typeof PlainBinding>
   >
 >
@@ -274,7 +269,7 @@ type EmittedDerivedModelRequirementsAreExact = Expect<
 >
 type EmittedDerivedModelRegistrationIsExact = Expect<
   Equal<
-    Update.RegistrationEvidenceOf<ReturnType<typeof initDerivedStepsStep>>,
+    Update.RegistrationEvidenceOf<ReturnType<typeof initDerivedSteps>>,
     | Block.RequirementOfBinding<typeof EntryBinding>
     | Block.RequirementOfBinding<typeof ParentCommandsBinding>
   >
@@ -345,11 +340,11 @@ declare const unknownParentCommandRequirements: Update.Commands<
 PlainBinding.init({ args: [], toParentModel: child => Struct.modifyFields(initialParentModel, { plain: () => child }), commands: unknownParentCommandRequirements })
 
 // @ts-expect-error Emitted explicit Steps cannot erase connected registration evidence.
-const erasedEmittedConnectedStep: Update.Step<
+const erasedEmittedConnected: Update.Step<
   typeof ParentModel.Type,
   typeof ParentMessage.Type
-> = initPlainStep
-void erasedEmittedConnectedStep
+> = initPlain
+void erasedEmittedConnected
 
 const EmittedMissingPlainBindingComposition =
   CompositionSafetyParentDefinition.makeComposition({
@@ -357,7 +352,7 @@ const EmittedMissingPlainBindingComposition =
   })
 EmittedMissingPlainBindingComposition.makeInit(() =>
   // @ts-expect-error A connected initializer cannot run without its registered Binding capability.
-  initPlainStep(initialParentModel),
+  initPlain(initialParentModel),
 )
 
 const emittedDirectConnectedInit =

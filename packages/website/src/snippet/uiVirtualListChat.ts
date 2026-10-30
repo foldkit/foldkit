@@ -80,7 +80,7 @@ const FetchHistory = MessageListExampleDefinition.makeCommand('FetchHistory', {
   },
 })
 
-const requestHistoryStep = makeStep(model => {
+const requestHistory = makeStep(model => {
   if (
     model.historyLoad._tag === 'Loading' ||
     model.historyLoad._tag === 'Complete'
@@ -119,7 +119,7 @@ const MessageListBinding = MessageListExampleDefinition.makeBinding(
 ).withOutMessagePolicy({
   fold: MessageListExampleDefinition.makeOutMessageFold(MessageListBlock, {
     ObservedContainerScroll: makeNoopStep,
-    ApproachedLoadedStart: () => requestHistoryStep,
+    ApproachedLoadedStart: () => requestHistory,
     EndedContainerScroll: makeNoopStep,
   }),
 })
@@ -144,7 +144,7 @@ const update = MessageListExampleComposition.makeUpdate({
       ),
     ])
   },
-  ClickedRetryHistory: requestHistoryStep,
+  ClickedRetryHistory: requestHistory,
   SucceededFetchHistory: (model, { response }) => {
     const nextMessages = [...response.messages, ...model.messages]
 

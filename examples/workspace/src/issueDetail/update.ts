@@ -13,7 +13,7 @@ import type {
 } from './message'
 import { type Model, SaveState } from './model'
 import { OutMessage } from './outMessage'
-import { editDraftStep } from './steps'
+import { editDraft } from './steps'
 
 const resetDraftFields = (model: Model) => {
   const nextBaseline = latestRevision(model)
@@ -26,7 +26,7 @@ const resetDraftFields = (model: Model) => {
   }
 }
 
-const resetDraftStep = makeStep(model => {
+const resetDraft = makeStep(model => {
   if (SaveState.guards.Saving(model.saveState)) {
     return { model }
   }
@@ -34,7 +34,7 @@ const resetDraftStep = makeStep(model => {
   return { model: modifyFields(model, resetDraftFields(model)) }
 })
 
-const saveIssueStep = makeStep(model => {
+const saveIssue = makeStep(model => {
   if (
     SaveState.guards.Saving(model.saveState) ||
     Option.isSome(model.maybeIncomingRevision) ||
@@ -143,17 +143,17 @@ const handleFailedSaveIssue = (
 
 export const update = IssueDetailComposition.makeUpdate({
   UpdatedTitle: (model, { value }) =>
-    editDraftStep(draft => modifyFields(draft, { title: () => value }))(model),
+    editDraft(draft => modifyFields(draft, { title: () => value }))(model),
   UpdatedDescription: (model, { value }) =>
-    editDraftStep(draft => modifyFields(draft, { description: () => value }))(
+    editDraft(draft => modifyFields(draft, { description: () => value }))(
       model,
     ),
-  SubmittedIssueForm: saveIssueStep,
-  ClickedRetrySave: saveIssueStep,
-  RequestedSave: saveIssueStep,
+  SubmittedIssueForm: saveIssue,
+  ClickedRetrySave: saveIssue,
+  RequestedSave: saveIssue,
   InformedOfIssueChange: handleInformedOfIssueChange,
-  ClickedReloadIssue: resetDraftStep,
-  ClickedDiscardChanges: resetDraftStep,
+  ClickedReloadIssue: resetDraft,
+  ClickedDiscardChanges: resetDraft,
   ClickedClose: makeOutMessageStep(() => OutMessage.Closed()),
   SucceededSaveIssue: handleSucceededSaveIssue,
   FailedSaveIssue: handleFailedSaveIssue,

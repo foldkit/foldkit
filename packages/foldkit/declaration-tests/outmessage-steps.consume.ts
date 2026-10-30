@@ -10,11 +10,11 @@ import {
   ParentOutMessage,
   RefinedOutMessage,
   applyToGenericModel,
-  emitClosedStep,
-  emitPrimitiveStep,
-  emitRefinedStep,
-  emitSelectedStep,
-  emitUnionStep,
+  emitClosed,
+  emitPrimitive,
+  emitRefined,
+  emitSelected,
+  emitUnion,
 } from './outmessage-steps.accepted.js'
 
 type Equal<Left, Right> =
@@ -35,16 +35,16 @@ const model = RefinedModel.make({
   status: 'Ready',
   identity: 'Preserved',
 })
-const refined = emitRefinedStep(model)
+const refined = emitRefined(model)
 const generic = applyToGenericModel(model)
-const primitive = emitPrimitiveStep('Ready')
+const primitive = emitPrimitive('Ready')
 declare const outMessage: typeof OutMessage.Type
-const union = emitUnionStep(outMessage)(model)
+const union = emitUnion(outMessage)(model)
 
 export type EmittedOutMessageStepAssertions = readonly [
   Expect<
     Equal<
-      typeof emitSelectedStep,
+      typeof emitSelected,
       Block.OutMessageStep<
         typeof Model.Type,
         typeof OutMessage.SelectedChoice.Type
@@ -67,16 +67,16 @@ export type EmittedOutMessageStepAssertions = readonly [
   Expect<Equal<typeof union.outMessage, typeof OutMessage.Type>>,
   Expect<
     Equal<
-      ReturnType<typeof emitClosedStep>['outMessage'],
+      ReturnType<typeof emitClosed>['outMessage'],
       typeof OutMessage.ClosedPicker.Type
     >
   >,
-  Expect<Equal<Parameters<typeof emitRefinedStep>, [model: typeof Model.Type]>>,
+  Expect<Equal<Parameters<typeof emitRefined>, [model: typeof Model.Type]>>,
   Expect<Equal<keyof typeof refined, 'model' | 'outMessage' | 'commands'>>,
   Expect<Equal<typeof refined.commands, undefined>>,
-  Expect<Equal<keyof typeof emitRefinedStep, never>>,
-  Expect<Equal<Update.RequirementsOf<typeof emitRefinedStep>, never>>,
-  Expect<Equal<Update.RequirementsOf<ReturnType<typeof emitUnionStep>>, never>>,
+  Expect<Equal<keyof typeof emitRefined, never>>,
+  Expect<Equal<Update.RequirementsOf<typeof emitRefined>, never>>,
+  Expect<Equal<Update.RequirementsOf<ReturnType<typeof emitUnion>>, never>>,
   Expect<Equal<Update.RegistrationEvidenceOf<typeof refined>, never>>,
   Expect<Equal<Update.RegistrationEvidenceOf<typeof union>, never>>,
   Expect<
@@ -94,7 +94,7 @@ export type EmittedOutMessageStepAssertions = readonly [
 ]
 
 // @ts-expect-error An emitted Step still checks its owning Model.
-emitRefinedStep({ count: 'invalid', status: 'Idle' })
+emitRefined({ count: 'invalid', status: 'Idle' })
 // @ts-expect-error The refined emitted OutMessage keeps its literal payload.
 const widenedPayload: 'Pear' = refined.outMessage.value
 void widenedPayload

@@ -5,7 +5,7 @@ import { ProjectSettingsBinding } from './composition'
 import { makeStep } from './definition'
 import { Project } from './domain'
 
-const initProjectSettingsIfMissingStep = (project: Project) =>
+const initProjectSettingsIfMissing = (project: Project) =>
   makeStep(model => {
     if (
       Array.some(

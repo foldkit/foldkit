@@ -18,7 +18,7 @@ import {
 } from './definition'
 import { decodeAssigneeSelection } from './field'
 import { OutMessage } from './outMessage'
-import { editDraftStep } from './steps'
+import { editDraft } from './steps'
 
 export const CommentComposerBinding = makeBinding(CommentComposerBlock, {
   field: 'commentComposer',
@@ -46,7 +46,7 @@ export const StatusListboxBinding = makeBinding(StatusListboxBlock, {
   fold: makeOutMessageFold(StatusListboxBlock, {
     Selected: ({ value }) =>
       Schema.is(IssueStatus)(value)
-        ? editDraftStep(draft => modifyFields(draft, { status: () => value }))
+        ? editDraft(draft => modifyFields(draft, { status: () => value }))
         : makeNoopStep(),
   }),
 })
@@ -60,7 +60,7 @@ export const PriorityListboxBinding = makeBinding(PriorityListboxBlock, {
   fold: makeOutMessageFold(PriorityListboxBlock, {
     Selected: ({ value }) =>
       Schema.is(IssuePriority)(value)
-        ? editDraftStep(draft => modifyFields(draft, { priority: () => value }))
+        ? editDraft(draft => modifyFields(draft, { priority: () => value }))
         : makeNoopStep(),
   }),
 })
@@ -73,7 +73,7 @@ export const ProjectListboxBinding = makeBinding(WorkspaceListboxBlock, {
 }).withOutMessagePolicy({
   fold: makeOutMessageFold(WorkspaceListboxBlock, {
     Selected: ({ value }) =>
-      editDraftStep(draft => modifyFields(draft, { projectId: () => value })),
+      editDraft(draft => modifyFields(draft, { projectId: () => value })),
   }),
 })
 
@@ -88,7 +88,7 @@ export const AssigneeListboxBinding = makeBinding(WorkspaceListboxBlock, {
       Option.match(decodeAssigneeSelection(value), {
         onNone: makeNoopStep,
         onSome: maybeAssigneeId =>
-          editDraftStep(draft =>
+          editDraft(draft =>
             modifyFields(draft, { maybeAssigneeId: () => maybeAssigneeId }),
           ),
       }),

@@ -16,8 +16,8 @@ type Equal<Left, Right> =
     : false
 type Expect<Value extends true> = Value
 
-export const changedUrlStep = Navigation.changedUrl('/?q=foldkit#results')
-export type ExactStep = Expect<Equal<typeof changedUrlStep, ChangedUrlStep>>
+export const changedUrl = Navigation.changedUrl('/?q=foldkit#results')
+export type ExactStep = Expect<Equal<typeof changedUrl, ChangedUrlStep>>
 export const runRoutedScenes = () => {
   canonicalScene()
   callbackScene()

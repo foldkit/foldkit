@@ -21,7 +21,7 @@ const WaitForever = Silent.makeCommand('WaitForever', {
     return () => Effect.never
   },
 })
-const markReadyStep = Silent.makeStep(model => ({
+const markReady = Silent.makeStep(model => ({
   model: modifyFields(model, { ready: () => true }),
   commands: [WaitForever()],
 }))
@@ -51,7 +51,7 @@ if (false) {
       commands: [WaitForever()],
     }),
     update: silentUpdate,
-    operations: { markReady: markReadyStep },
+    operations: { markReady: markReady },
     EffectsLayer: WaitForever.layer,
   }
   // @ts-expect-error A Message-free Block cannot expose a mutating operation.
@@ -126,7 +126,7 @@ it('keeps a Message-free general keyed child routeless across every channel', ()
 
 it('keeps local Message-free Steps internal to the child', () => {
   const initial = SilentBlock.init().model
-  const result = markReadyStep(initial)
+  const result = markReady(initial)
 
   expect(result.model).toEqual({ ready: true })
   expect(result.commands?.map(command => command.name)).toEqual([

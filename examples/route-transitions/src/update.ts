@@ -10,7 +10,7 @@ import { ApplicationComposition } from './composition'
 import { makeFieldsStep, makeNoopStep } from './definition'
 import { PaintingStatus } from './model'
 import { urlToApplicationRoute } from './route'
-import { handleTransitionStep } from './steps'
+import { handleTransition } from './steps'
 
 export const update = ApplicationComposition.makeUpdate({
   CompletedNavigateInternal: makeNoopStep(),
@@ -33,7 +33,7 @@ export const update = ApplicationComposition.makeUpdate({
     const transition = Transition.make(model.route, nextRoute)
     return Update.combineSteps(model, [
       makeFieldsStep(() => ({ route: () => nextRoute })),
-      handleTransitionStep(transition),
+      handleTransition(transition),
     ])
   },
 

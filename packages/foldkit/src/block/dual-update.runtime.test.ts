@@ -342,16 +342,16 @@ it('retains branch Commands and OutMessage beside a pure return', () => {
 
 it('keeps a generic no-op Step and Command Step precise in either order', () => {
   const model = Model.make({ count: 3 })
-  const commandsStep = Counter.makeCommandsStep(() => [Save()])
+  const produceCommands = Counter.makeCommandsStep(() => [Save()])
   const commandsLast = Update.combineSteps(model, [
     Counter.makeNoopStep(),
-    commandsStep,
+    produceCommands,
   ])
   const commandsFirst = Update.combineSteps(model, [
-    commandsStep,
+    produceCommands,
     Counter.makeNoopStep(),
   ])
-  const genericCommands = combineGenericSteps(model, [commandsStep])
+  const genericCommands = combineGenericSteps(model, [produceCommands])
 
   expect(commandsLast.model).toBe(model)
   expect(commandsFirst.model).toBe(model)
@@ -446,11 +446,11 @@ it('keeps graph evidence while authored and removes it after completion', () => 
       }),
     }),
   ])
-  const completedStep = ParentBlock.update(parentMessage)
+  const applyCompletedMessage = ParentBlock.update(parentMessage)
 
   expect(direct).toEqual(curried)
   expect(combined.model).toEqual({ child: { count: 4 }, updates: 1 })
-  expect(completedStep(parentModel).model).toEqual({
+  expect(applyCompletedMessage(parentModel).model).toEqual({
     child: { count: 4 },
     updates: 0,
   })
@@ -460,5 +460,7 @@ it('keeps graph evidence while authored and removes it after completion', () => 
   expectTypeOf<
     Update.RegistrationEvidenceOf<ReturnType<typeof ParentBlock.update>>
   >().toEqualTypeOf<never>()
-  expectTypeOf(completedStep).parameters.toEqualTypeOf<[model: ParentModel]>()
+  expectTypeOf(applyCompletedMessage).parameters.toEqualTypeOf<
+    [model: ParentModel]
+  >()
 })

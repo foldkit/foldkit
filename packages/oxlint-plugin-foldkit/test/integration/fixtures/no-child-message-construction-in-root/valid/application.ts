@@ -12,14 +12,14 @@ import { Message as AliasMessage } from '@/message'
 
 // UPDATE
 
-const foldChildSaveStep = Update.foldChildStep({
+const foldChildSave = Update.foldChildStep({
   update: Child.save,
   read: (model: Model) => Option.some(model.child),
   write: (model, child) => modifyFields(model, { child: () => child }),
   toParentMessage: message => GotChildMessage({ message }),
 })
 
-export const update = (model: Model) => foldChildSaveStep(model)
+export const update = (model: Model) => foldChildSave(model)
 
 // CHILD VIEW
 
@@ -69,7 +69,7 @@ export const typedChildView = TypedChildViewComposition.makeView((_model, h) =>
   h.button([h.OnClick(Child.Message.ClickedTypedChildViewSave())]),
 )
 
-export const childStep = childView.makeStep(model => ({
+export const applyChildChange = childView.makeStep(model => ({
   model,
   message: Child.Message.ClickedStepSave(),
 }))

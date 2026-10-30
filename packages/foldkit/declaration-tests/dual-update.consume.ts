@@ -36,17 +36,17 @@ type Equal<Left, Right> =
     : false
 type Expect<Value extends true> = Value
 
-const changedCountStep = update(changedCount)
+const applyChangedCount = update(changedCount)
 const initial = Model.make({ count: 0 })
 const combined = Update.combineSteps(initial, [
-  changedCountStep,
+  applyChangedCount,
   update(changedCount),
 ])
-const genericCombined = combineGenericSteps(initial, [changedCountStep])
+const genericCombined = combineGenericSteps(initial, [applyChangedCount])
 const contextual = requiredContextUpdate(changedCount)(initial, {
   multiplier: 2,
 })
-const fullStep = GraphFullBlock.update(graphFullMessage)
+const applyFullMessage = GraphFullBlock.update(graphFullMessage)
 const view = (model: typeof Model.Type, h: HtmlBuilder<typeof Message.Type>) =>
   h.button(
     [h.OnClick(changedCount), h.Type('button')],
@@ -76,7 +76,7 @@ export type ExactContextualModel = Expect<
   Equal<typeof contextual.model, typeof Model.Type>
 >
 export type ExactCompletedModel = Expect<
-  Equal<Parameters<typeof fullStep>[0], typeof GraphFullModel.Type>
+  Equal<Parameters<typeof applyFullMessage>[0], typeof GraphFullModel.Type>
 >
 export type ExactMixedRequirements = Expect<
   Equal<
@@ -153,4 +153,4 @@ const rejectMissingBranchHandlers = () => {
   })
 }
 void rejectMissingBranchHandlers
-void changedCountStep
+void applyChangedCount
