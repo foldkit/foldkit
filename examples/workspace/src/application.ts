@@ -184,7 +184,6 @@ export const ApplicationLive = Application.make(
     const issuePane = yield* new IssuePane('issuePane')
     const issueBoard = yield* IssueBoard.each('issueBoards')
     const projectSettings = yield* ProjectSettings.each('projectSettings')
-    const initChildren = initChildrenStep(issueBoard, projectSettings)
 
     return {
       model: {
@@ -222,19 +221,22 @@ export const ApplicationLive = Application.make(
           }),
         }),
         ChangedUrl: (model, { url: nextUrl }) =>
-          initChildren(
-            modifyFields(model, {
-              route: () => urlToApplicationRoute(nextUrl),
-              maybeNotice: () => Option.none(),
+          combineSteps(model, [
+            stepModel => ({
+              model: modifyFields(stepModel, {
+                route: () => urlToApplicationRoute(nextUrl),
+                maybeNotice: () => Option.none(),
+              }),
             }),
-          ),
+            initChildrenStep(issueBoard, projectSettings),
+          ]),
         CompletedNavigateInternal: model => ({ model }),
         CompletedLoadExternal: model => ({ model }),
         CompletedReplaceInternalUrl: model => ({ model }),
         SucceededLoadWorkspace: (model, { workspace }) =>
           combineSteps(model, [
             applyWorkspaceSnapshotStep(workspace),
-            initChildren,
+            initChildrenStep(issueBoard, projectSettings),
             informRetainedIssueDetailsStep,
           ]),
         FailedLoadWorkspace: (model, { error }) => ({
