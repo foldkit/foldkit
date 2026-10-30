@@ -66,11 +66,25 @@ export type PortHandles<P extends Ports | undefined> = P extends Ports
  * `dispose` is idempotent. It interrupts the runtime and runs all cleanup:
  * Subscriptions, ManagedResources, Mounts, listeners, and in-flight Commands
  * stop, and the rendered DOM is removed with the container element restored
- * empty in its place, ready for a fresh `embed`.
+ * empty in its place, ready for a fresh `embed`. It returns before that
+ * cleanup has finished. `disposeAsync` starts the same disposal and returns a
+ * Promise that resolves once the cleanup has finished.
  */
 export type EmbedHandle<P extends Ports | undefined = undefined> = Readonly<{
   ports: PortHandles<P>
   dispose: () => void
+  /** Starts disposal exactly like `dispose`, then resolves once the runtime
+   *  has finished shutting down: Subscriptions, ManagedResources, and
+   *  in-flight Commands have released (including any asynchronous release),
+   *  and the rendered DOM is removed with the container restored. Await it
+   *  before starting something that must not overlap with this app's cleanup,
+   *  such as embedding a different program in the same container. A Mount is
+   *  interrupted when its element is removed, but the Promise does not wait
+   *  for the Mount's own release. A Subscription or ManagedResource release
+   *  that never completes keeps the Promise pending. Safe to call more than
+   *  once, and after `dispose`. It never rejects: runtime failures are logged
+   *  by the runtime's error reporting, as they are for `dispose`. */
+  disposeAsync: () => Promise<void>
 }>
 
 export type HostConnector = Readonly<{
