@@ -6,7 +6,7 @@ The adapted `src/main.ts`, HTML entry, and build configuration are covered by th
 
 The entry uses a Schema-backed Model, exhaustive Message matching, keyed rows, and `createKeyedLazy` for each row. Random labels are generated in a Command through Effect's Random service. The update function reserves monotonically increasing row ids and applies the generated rows when the Command completes.
 
-Row memoization uses `createKeyedLazy({ evict: 'AbsentFromRender' })` so removed row ids leave the cache after a successful render. The default `createKeyedLazy()` retains removed keys. The eviction option addresses the retention reported in [issue #1536](https://github.com/foldkit/foldkit/issues/1536).
+Row memoization uses `createKeyedLazy({ evict: 'AbsentFromRender' })` so removed row ids leave the cache after a successful render. The entry records its retention policy explicitly for reproducible measurements.
 
 ## Build and install
 
