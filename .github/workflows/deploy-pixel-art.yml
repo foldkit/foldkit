@@ -7,6 +7,8 @@ on:
     paths:
       - 'examples/pixel-art/**'
       - 'packages/foldkit/**'
+      - 'packages/ui/**'
+      - 'packages/devtools/**'
       - 'packages/vite-plugin-foldkit/**'
       - 'pnpm-lock.yaml'
       - '.github/workflows/deploy-pixel-art.yml'
