@@ -97,7 +97,7 @@ const DashboardLive = Dashboard.make(
 
 describe('Block instance lifecycle', () => {
   it('drops the result of a Command whose instance left the Model', async () => {
-    const gate = Effect.runSync(Deferred.make<void>())
+    const gate = Deferred.makeUnsafe<void>()
     const program = makeElement(Dashboard, {
       container: mountContainer('dashboard'),
       layer: DashboardLive.pipe(Layer.provide(makeReportLive(gate))),
@@ -134,7 +134,7 @@ describe('Block instance lifecycle', () => {
 const runCommand = (
   command: Engine.AnyCommand,
 ): Promise<Exit.Exit<unknown, unknown>> =>
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context, effecttsgo/unsafe-effect-type-assertion, typescript/consistent-type-assertions
   Effect.runPromiseExit(command.effect as Effect.Effect<unknown, unknown>)
 
 describe('Block Command results', () => {
