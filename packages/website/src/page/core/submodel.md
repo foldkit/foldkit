@@ -155,7 +155,7 @@ Keep state in the child Model and per-render configuration in `viewInputs`. The 
 A top-level slot callback such as `toView` lets the parent choose markup while the child supplies state and attributes. Foldkit runs top-level `viewInputs` functions in the parent's boundary. A handler the parent builds inside the callback therefore dispatches a parent Message. [childAttributes](#child-attributes) handles the opposite case, when child-owned attributes cross into that markup.
 
 :::Warning{label="Keep slot callbacks at the top level"}
-Functions nested inside an object or array in `viewInputs` throw when Foldkit builds the view. The error names the path, such as `viewInputs.config.onSubmit`. Move the function to the top level so Foldkit can run it in the parent's boundary.
+In development, functions nested inside an object or array in `viewInputs` throw when Foldkit builds the view. The error names the path, such as `viewInputs.config.onSubmit`. Production builds skip this check, so a nested function's handlers dispatch through the child's boundary instead of the parent's, with no error. Move the function to the top level so Foldkit can run it in the parent's boundary.
 :::
 
 ## Boundary Id and Model Identity
@@ -439,7 +439,7 @@ The configuration record passed to `h.submodel`.
 | `slotId`          | `string`                                                      | —       | DOM-slot identity for this embed site under the current boundary. Must be distinct from every other h.submodel slotId under the same parent boundary. For lists, use a per-item id (row.id); for fixed slots, name by position. |
 | `model`           | `View extends SubmodelView<infer Model, ...> ? Model : never` | —       | The child Submodel’s slice of the parent Model. Type is inferred from the branded view.                                                                                                                                         |
 | `view`            | `SubmodelView<Model, Message, ViewInputs?>`                   | —       | The child’s exported view, branded via Submodel.defineView so the embed site can infer the child’s Message type.                                                                                                                |
-| `viewInputs`      | `ViewInputs \| undefined`                                     | —       | Optional per-render data threaded into the view’s second argument. Top-level functions are auto-wrapped to execute in the parent’s boundary; nested functions throw at view-build time.                                         |
+| `viewInputs`      | `ViewInputs \| undefined`                                     | —       | Optional per-render data threaded into the view’s second argument. Top-level functions are auto-wrapped to execute in the parent’s boundary; nested functions throw at view-build time in development.                          |
 | `toParentMessage` | `(message: ChildMessage) => ParentMessage`                    | —       | Lifts each child Message into the parent’s wrapper Message type, typically a closure over the Got\*Message constructor.                                                                                                         |
 
 ### Submodel.defineView {#api-define-view}
