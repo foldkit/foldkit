@@ -39,24 +39,6 @@ export class IssuePane extends Block<IssuePane, void, ViewInput>()(
   { Model, Message, OutMessage },
 ) {}
 
-export const unsavedIssueDrafts = (model: Model) =>
-  pipe(
-    model.issueDetails,
-    Record.values,
-    Array.map(detail =>
-      maybeDraftSummary(detail.model, detail.model.commentComposer.model),
-    ),
-    Array.getSomes,
-  )
-
-const informIssueChanged = (model: Model, issue: Issue) =>
-  Option.match(Record.get(model.issueDetails, issue.id), {
-    onNone: () => [],
-    onSome: detail => [
-      detail.send(IssueDetail.Message.InformedOfIssueChange({ issue })),
-    ],
-  })
-
 export const IssuePaneLive = IssuePane.make(
   Effect.fn(function* () {
     const issueDetail = yield* IssueDetail.each('issueDetails')
@@ -151,3 +133,21 @@ export const IssuePaneLive = IssuePane.make(
     }
   }),
 ).pipe(Layer.provide(IssueDetailLive))
+
+export const unsavedIssueDrafts = (model: Model) =>
+  pipe(
+    model.issueDetails,
+    Record.values,
+    Array.map(detail =>
+      maybeDraftSummary(detail.model, detail.model.commentComposer.model),
+    ),
+    Array.getSomes,
+  )
+
+const informIssueChanged = (model: Model, issue: Issue) =>
+  Option.match(Record.get(model.issueDetails, issue.id), {
+    onNone: () => [],
+    onSome: detail => [
+      detail.send(IssueDetail.Message.InformedOfIssueChange({ issue })),
+    ],
+  })

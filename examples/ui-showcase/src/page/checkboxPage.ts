@@ -26,6 +26,47 @@ export class CheckboxPage extends Block<CheckboxPage>()('CheckboxPage', {
   Message,
 }) {}
 
+export const CheckboxPageLive = CheckboxPage.make(
+  Effect.fn(function* () {
+    return {
+      model: {
+        isCheckboxBasicDemoChecked: false,
+        isCheckboxOptionADemoChecked: false,
+        isCheckboxOptionBDemoChecked: false,
+      },
+
+      update: {
+        ToggledCheckboxBasicDemo: (model, { isChecked }) => ({
+          model: modifyFields(model, {
+            isCheckboxBasicDemoChecked: () => isChecked,
+          }),
+        }),
+
+        ToggledCheckboxAllDemo: (model, { isChecked }) => ({
+          model: modifyFields(model, {
+            isCheckboxOptionADemoChecked: () => isChecked,
+            isCheckboxOptionBDemoChecked: () => isChecked,
+          }),
+        }),
+
+        ToggledCheckboxOptionADemo: (model, { isChecked }) => ({
+          model: modifyFields(model, {
+            isCheckboxOptionADemoChecked: () => isChecked,
+          }),
+        }),
+
+        ToggledCheckboxOptionBDemo: (model, { isChecked }) => ({
+          model: modifyFields(model, {
+            isCheckboxOptionBDemoChecked: () => isChecked,
+          }),
+        }),
+      },
+
+      view,
+    }
+  }),
+)
+
 const CHECKBOX_BASIC_DEMO_ID = 'checkbox-basic-demo'
 const CHECKBOX_ALL_DEMO_ID = 'checkbox-all-demo'
 const CHECKBOX_OPTION_A_DEMO_ID = 'checkbox-option-a-demo'
@@ -214,44 +255,3 @@ const indeterminateDemo = (model: Model, h: HtmlBuilder<Message>) => {
     ),
   ]
 }
-
-export const CheckboxPageLive = CheckboxPage.make(
-  Effect.fn(function* () {
-    return {
-      model: {
-        isCheckboxBasicDemoChecked: false,
-        isCheckboxOptionADemoChecked: false,
-        isCheckboxOptionBDemoChecked: false,
-      },
-
-      update: {
-        ToggledCheckboxBasicDemo: (model, { isChecked }) => ({
-          model: modifyFields(model, {
-            isCheckboxBasicDemoChecked: () => isChecked,
-          }),
-        }),
-
-        ToggledCheckboxAllDemo: (model, { isChecked }) => ({
-          model: modifyFields(model, {
-            isCheckboxOptionADemoChecked: () => isChecked,
-            isCheckboxOptionBDemoChecked: () => isChecked,
-          }),
-        }),
-
-        ToggledCheckboxOptionADemo: (model, { isChecked }) => ({
-          model: modifyFields(model, {
-            isCheckboxOptionADemoChecked: () => isChecked,
-          }),
-        }),
-
-        ToggledCheckboxOptionBDemo: (model, { isChecked }) => ({
-          model: modifyFields(model, {
-            isCheckboxOptionBDemoChecked: () => isChecked,
-          }),
-        }),
-      },
-
-      view,
-    }
-  }),
-)

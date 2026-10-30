@@ -56,6 +56,45 @@ export class ReviewStep extends Block<ReviewStep, void, ViewInput>()(
   },
 ) {}
 
+export const ReviewStepLive = ReviewStep.make(
+  Effect.fn(function* () {
+    return {
+      update: {
+        ClickedBack: model => ({
+          model,
+          outMessage: OutMessage.RequestedBack(),
+        }),
+        ClickedCancel: model => ({
+          model,
+          outMessage: OutMessage.RequestedCancel(),
+        }),
+        ClickedPlaceOrder: model => ({
+          model,
+          outMessage: OutMessage.RequestedPlaceOrder(),
+        }),
+        ToggledPaymentMethod: (model, { isSelected }) => ({
+          model,
+          outMessage: OutMessage.ToggledPaymentMethod({ isSelected }),
+        }),
+        ToggledTermsAccepted: (model, { isAccepted }) => ({
+          model,
+          outMessage: OutMessage.ToggledTermsAccepted({ isAccepted }),
+        }),
+        UpdatedPromoCode: (model, { value }) => ({
+          model,
+          outMessage: OutMessage.UpdatedPromoCode({ value }),
+        }),
+        SubmittedPromoCode: model => ({
+          model,
+          outMessage: OutMessage.SubmittedPromoCode(),
+        }),
+      },
+
+      view: (_model, h, { state }) => reviewView(state, h),
+    }
+  }),
+)
+
 type ReviewStepViewBuilder = HtmlBuilder<Message>
 
 const reviewView = (state: ReviewState, h: ReviewStepViewBuilder): Html => {
@@ -361,42 +400,3 @@ const reviewView = (state: ReviewState, h: ReviewStepViewBuilder): Html => {
     ],
   )
 }
-
-export const ReviewStepLive = ReviewStep.make(
-  Effect.fn(function* () {
-    return {
-      update: {
-        ClickedBack: model => ({
-          model,
-          outMessage: OutMessage.RequestedBack(),
-        }),
-        ClickedCancel: model => ({
-          model,
-          outMessage: OutMessage.RequestedCancel(),
-        }),
-        ClickedPlaceOrder: model => ({
-          model,
-          outMessage: OutMessage.RequestedPlaceOrder(),
-        }),
-        ToggledPaymentMethod: (model, { isSelected }) => ({
-          model,
-          outMessage: OutMessage.ToggledPaymentMethod({ isSelected }),
-        }),
-        ToggledTermsAccepted: (model, { isAccepted }) => ({
-          model,
-          outMessage: OutMessage.ToggledTermsAccepted({ isAccepted }),
-        }),
-        UpdatedPromoCode: (model, { value }) => ({
-          model,
-          outMessage: OutMessage.UpdatedPromoCode({ value }),
-        }),
-        SubmittedPromoCode: model => ({
-          model,
-          outMessage: OutMessage.SubmittedPromoCode(),
-        }),
-      },
-
-      view: (_model, h, { state }) => reviewView(state, h),
-    }
-  }),
-)

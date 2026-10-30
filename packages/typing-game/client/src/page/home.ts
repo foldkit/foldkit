@@ -98,6 +98,95 @@ export class Home extends Block<Home>()('Home', {
   Command: [CreateRoom, JoinRoomFromHome, FocusUsernameInput, FocusRoomIdInput],
 }) {}
 
+// LIVE
+
+export const HomeLive = Home.make(
+  Effect.fn(function* () {
+    const client = yield* RoomsClient
+
+    return {
+      model: {
+        homeStep: HomeStep.EnterUsername({ username: '' }),
+        formError: Option.none(),
+      },
+
+      start: [FocusUsernameInput()],
+
+      update: {
+        CompletedFocusUsernameInput: model => ({ model }),
+        CompletedFocusRoomIdInput: model => ({ model }),
+        SubmittedUsernameForm: submittedUsernameFormStep,
+        PressedKey: (model, { key }) => pressedKeyStep(model, key),
+        ChangedUsername: (model, { value }) =>
+          changedUsernameStep(model, value),
+        BlurredUsernameInput: model => ({
+          model,
+          commands: [FocusUsernameInput()],
+        }),
+        BlurredRoomIdInput: model => ({
+          model,
+          commands: [FocusRoomIdInput()],
+        }),
+        ChangedRoomId: (model, { value }) => changedRoomIdStep(model, value),
+        SubmittedJoinRoomForm: submittedJoinRoomFormStep,
+        SucceededCreateRoom: (model, { roomId, player }) => ({
+          model,
+          outMessage: OutMessage.CreatedRoom({ roomId, player }),
+        }),
+        SucceededJoinRoomFromHome: (model, { roomId, player }) => ({
+          model,
+          outMessage: OutMessage.JoinedRoom({ roomId, player }),
+        }),
+        FailedCreateRoom: (model, { error }) => ({
+          model: modifyFields(model, { formError: () => Option.some(error) }),
+        }),
+        FailedJoinRoomFromHome: (model, { error }) => ({
+          model: modifyFields(model, { formError: () => Option.some(error) }),
+        }),
+      },
+
+      commands: {
+        CreateRoom: ({ username }) =>
+          client.createRoom({ username }).pipe(
+            Effect.map(({ player, room }) =>
+              Message.SucceededCreateRoom({ roomId: room.id, player }),
+            ),
+            Effect.catch(error =>
+              Effect.succeed(
+                Message.FailedCreateRoom({ error: globalThis.String(error) }),
+              ),
+            ),
+          ),
+        JoinRoomFromHome: ({ username, roomId }) =>
+          client.joinRoom({ username, roomId }).pipe(
+            Effect.map(({ player, room }) =>
+              Message.SucceededJoinRoomFromHome({ roomId: room.id, player }),
+            ),
+            Effect.catch(error =>
+              Effect.succeed(
+                Message.FailedJoinRoomFromHome({
+                  error: globalThis.String(error),
+                }),
+              ),
+            ),
+          ),
+        FocusUsernameInput: () =>
+          Dom.focus(`#${USERNAME_INPUT_ID}`).pipe(
+            Effect.ignore,
+            Effect.as(Message.CompletedFocusUsernameInput()),
+          ),
+        FocusRoomIdInput: () =>
+          Dom.focus(`#${ROOM_ID_INPUT_ID}`).pipe(
+            Effect.ignore,
+            Effect.as(Message.CompletedFocusRoomIdInput()),
+          ),
+      },
+
+      view,
+    }
+  }),
+)
+
 // UPDATE
 
 const cycleAction =
@@ -394,92 +483,3 @@ const view = (model: Model, h: HomeViewBuilder): Html => {
     ],
   )
 }
-
-// LIVE
-
-export const HomeLive = Home.make(
-  Effect.fn(function* () {
-    const client = yield* RoomsClient
-
-    return {
-      model: {
-        homeStep: HomeStep.EnterUsername({ username: '' }),
-        formError: Option.none(),
-      },
-
-      start: [FocusUsernameInput()],
-
-      update: {
-        CompletedFocusUsernameInput: model => ({ model }),
-        CompletedFocusRoomIdInput: model => ({ model }),
-        SubmittedUsernameForm: submittedUsernameFormStep,
-        PressedKey: (model, { key }) => pressedKeyStep(model, key),
-        ChangedUsername: (model, { value }) =>
-          changedUsernameStep(model, value),
-        BlurredUsernameInput: model => ({
-          model,
-          commands: [FocusUsernameInput()],
-        }),
-        BlurredRoomIdInput: model => ({
-          model,
-          commands: [FocusRoomIdInput()],
-        }),
-        ChangedRoomId: (model, { value }) => changedRoomIdStep(model, value),
-        SubmittedJoinRoomForm: submittedJoinRoomFormStep,
-        SucceededCreateRoom: (model, { roomId, player }) => ({
-          model,
-          outMessage: OutMessage.CreatedRoom({ roomId, player }),
-        }),
-        SucceededJoinRoomFromHome: (model, { roomId, player }) => ({
-          model,
-          outMessage: OutMessage.JoinedRoom({ roomId, player }),
-        }),
-        FailedCreateRoom: (model, { error }) => ({
-          model: modifyFields(model, { formError: () => Option.some(error) }),
-        }),
-        FailedJoinRoomFromHome: (model, { error }) => ({
-          model: modifyFields(model, { formError: () => Option.some(error) }),
-        }),
-      },
-
-      commands: {
-        CreateRoom: ({ username }) =>
-          client.createRoom({ username }).pipe(
-            Effect.map(({ player, room }) =>
-              Message.SucceededCreateRoom({ roomId: room.id, player }),
-            ),
-            Effect.catch(error =>
-              Effect.succeed(
-                Message.FailedCreateRoom({ error: globalThis.String(error) }),
-              ),
-            ),
-          ),
-        JoinRoomFromHome: ({ username, roomId }) =>
-          client.joinRoom({ username, roomId }).pipe(
-            Effect.map(({ player, room }) =>
-              Message.SucceededJoinRoomFromHome({ roomId: room.id, player }),
-            ),
-            Effect.catch(error =>
-              Effect.succeed(
-                Message.FailedJoinRoomFromHome({
-                  error: globalThis.String(error),
-                }),
-              ),
-            ),
-          ),
-        FocusUsernameInput: () =>
-          Dom.focus(`#${USERNAME_INPUT_ID}`).pipe(
-            Effect.ignore,
-            Effect.as(Message.CompletedFocusUsernameInput()),
-          ),
-        FocusRoomIdInput: () =>
-          Dom.focus(`#${ROOM_ID_INPUT_ID}`).pipe(
-            Effect.ignore,
-            Effect.as(Message.CompletedFocusRoomIdInput()),
-          ),
-      },
-
-      view,
-    }
-  }),
-)

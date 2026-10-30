@@ -52,6 +52,54 @@ export class Products extends Block<
   Command: [ReplaceSearchUrl],
 }) {}
 
+export const ProductsLive = Products.make(
+  Effect.fn(function* (_id, { products }) {
+    return {
+      model: { products, searchText: '' },
+
+      update: {
+        CompletedReplaceSearchUrl: model => ({ model }),
+
+        ChangedSearchInput: (model, { value }) => ({
+          model: modifyFields(model, { searchText: () => value }),
+          commands: [
+            ReplaceSearchUrl({
+              url: productsRouter({
+                searchText: Option.filter(
+                  Option.some(value),
+                  value => value !== '',
+                ),
+              }),
+            }),
+          ],
+        }),
+
+        ClickedAddToCart: (model, { item }) => ({
+          model,
+          outMessage: OutMessage.AddedToCart({ item }),
+        }),
+
+        ClickedIncrementQuantity: (model, { itemId }) => ({
+          model,
+          outMessage: OutMessage.IncrementedQuantity({ itemId }),
+        }),
+
+        ClickedDecrementQuantity: (model, { itemId }) => ({
+          model,
+          outMessage: OutMessage.DecrementedQuantity({ itemId }),
+        }),
+      },
+
+      commands: {
+        ReplaceSearchUrl: ({ url }) =>
+          replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceSearchUrl())),
+      },
+
+      view,
+    }
+  }),
+)
+
 const view = (
   model: Model,
   h: HtmlBuilder<Message>,
@@ -211,51 +259,3 @@ const view = (
     ],
   )
 }
-
-export const ProductsLive = Products.make(
-  Effect.fn(function* (_id, { products }) {
-    return {
-      model: { products, searchText: '' },
-
-      update: {
-        CompletedReplaceSearchUrl: model => ({ model }),
-
-        ChangedSearchInput: (model, { value }) => ({
-          model: modifyFields(model, { searchText: () => value }),
-          commands: [
-            ReplaceSearchUrl({
-              url: productsRouter({
-                searchText: Option.filter(
-                  Option.some(value),
-                  value => value !== '',
-                ),
-              }),
-            }),
-          ],
-        }),
-
-        ClickedAddToCart: (model, { item }) => ({
-          model,
-          outMessage: OutMessage.AddedToCart({ item }),
-        }),
-
-        ClickedIncrementQuantity: (model, { itemId }) => ({
-          model,
-          outMessage: OutMessage.IncrementedQuantity({ itemId }),
-        }),
-
-        ClickedDecrementQuantity: (model, { itemId }) => ({
-          model,
-          outMessage: OutMessage.DecrementedQuantity({ itemId }),
-        }),
-      },
-
-      commands: {
-        ReplaceSearchUrl: ({ url }) =>
-          replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceSearchUrl())),
-      },
-
-      view,
-    }
-  }),
-)

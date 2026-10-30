@@ -40,6 +40,33 @@ export class HistoryPanel extends Block<HistoryPanel, void, ViewInput>()(
   { Message, OutMessage },
 ) {}
 
+export const HistoryPanelLive = HistoryPanel.make(
+  Effect.fn(function* () {
+    return {
+      update: {
+        ClickedUndo: model => ({
+          model,
+          outMessage: OutMessage.ClickedUndo(),
+        }),
+        ClickedRedo: model => ({
+          model,
+          outMessage: OutMessage.ClickedRedo(),
+        }),
+        ClickedHistoryStep: (model, { stepIndex }) => ({
+          model,
+          outMessage: OutMessage.ClickedHistoryStep({ stepIndex }),
+        }),
+        ClickedRedoStep: (model, { stepIndex }) => ({
+          model,
+          outMessage: OutMessage.ClickedRedoStep({ stepIndex }),
+        }),
+      },
+
+      view: (_model, h, input) => view(input, h),
+    }
+  }),
+)
+
 type HistoryPanelViewBuilder = HtmlBuilder<Message>
 
 const sectionLabel = (text: string, h: HistoryPanelViewBuilder): Html =>
@@ -220,30 +247,3 @@ const view = (
     ],
   )
 }
-
-export const HistoryPanelLive = HistoryPanel.make(
-  Effect.fn(function* () {
-    return {
-      update: {
-        ClickedUndo: model => ({
-          model,
-          outMessage: OutMessage.ClickedUndo(),
-        }),
-        ClickedRedo: model => ({
-          model,
-          outMessage: OutMessage.ClickedRedo(),
-        }),
-        ClickedHistoryStep: (model, { stepIndex }) => ({
-          model,
-          outMessage: OutMessage.ClickedHistoryStep({ stepIndex }),
-        }),
-        ClickedRedoStep: (model, { stepIndex }) => ({
-          model,
-          outMessage: OutMessage.ClickedRedoStep({ stepIndex }),
-        }),
-      },
-
-      view: (_model, h, input) => view(input, h),
-    }
-  }),
-)

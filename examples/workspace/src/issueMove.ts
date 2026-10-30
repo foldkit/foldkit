@@ -77,21 +77,6 @@ export class IssueMove extends Block<IssueMove>()('IssueMove', {
   Command: [MoveIssue],
 }) {}
 
-export const workspaceWithPendingMove = (
-  workspace: Workspace,
-  issueMoveState: IssueMoveState,
-) =>
-  IssueMoveState.matchOrElse(
-    issueMoveState,
-    {
-      MovingIssue: ({ issueId, status, insertionIndex }) =>
-        modifyFields(workspace, {
-          issues: issues => moveIssue(issues, issueId, status, insertionIndex),
-        }),
-    },
-    () => workspace,
-  )
-
 export const IssueMoveLive = IssueMove.make(
   Effect.fn(function* () {
     const repository = yield* WorkspaceRepository
@@ -205,3 +190,18 @@ export const IssueMoveLive = IssueMove.make(
     }
   }),
 )
+
+export const workspaceWithPendingMove = (
+  workspace: Workspace,
+  issueMoveState: IssueMoveState,
+) =>
+  IssueMoveState.matchOrElse(
+    issueMoveState,
+    {
+      MovingIssue: ({ issueId, status, insertionIndex }) =>
+        modifyFields(workspace, {
+          issues: issues => moveIssue(issues, issueId, status, insertionIndex),
+        }),
+    },
+    () => workspace,
+  )

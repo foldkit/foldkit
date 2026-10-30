@@ -27,31 +27,6 @@ export class Application extends Block<Application>()('Application', {
   Message,
 }) {}
 
-const counterInstanceView = (counter: Counter, h: HtmlBuilder<Message>): Html =>
-  h.keyed('div')(
-    counter.id,
-    [h.Class('flex items-center gap-2')],
-    [
-      h.div([h.Class('flex-1')], [counter.view()]),
-      Button.view(
-        {
-          onClick: Message.ClickedRemoveCounter({ id: counter.id }),
-          toView: attributes =>
-            h.button(
-              [
-                ...attributes.button,
-                h.Class(
-                  'rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:border-red-300 hover:text-red-600 transition cursor-pointer',
-                ),
-              ],
-              ['Remove'],
-            ),
-        },
-        h,
-      ),
-    ],
-  )
-
 export const ApplicationLive = Application.make(
   Effect.fn(function* () {
     const counter = yield* Counter.each('counters')
@@ -127,3 +102,28 @@ export const ApplicationLive = Application.make(
     }
   }),
 )
+
+const counterInstanceView = (counter: Counter, h: HtmlBuilder<Message>): Html =>
+  h.keyed('div')(
+    counter.id,
+    [h.Class('flex items-center gap-2')],
+    [
+      h.div([h.Class('flex-1')], [counter.view()]),
+      Button.view(
+        {
+          onClick: Message.ClickedRemoveCounter({ id: counter.id }),
+          toView: attributes =>
+            h.button(
+              [
+                ...attributes.button,
+                h.Class(
+                  'rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:border-red-300 hover:text-red-600 transition cursor-pointer',
+                ),
+              ],
+              ['Remove'],
+            ),
+        },
+        h,
+      ),
+    ],
+  )

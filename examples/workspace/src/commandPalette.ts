@@ -62,6 +62,157 @@ export class CommandPalette extends Block<CommandPalette, void, ViewInput>()(
   { Model, Message, OutMessage, Command: [ScrollActiveResult] },
 ) {}
 
+export const CommandPaletteLive = CommandPalette.make(
+  Effect.fn(function* () {
+    const dialog = yield* new Dialog.Dialog('dialog', {
+      id: 'workspace-command-palette',
+    })
+
+    return {
+      model: { query: '', activeResultIndex: 0, dialog },
+
+      update: {
+        RequestedOpen: openPalette,
+        PressedOpenShortcut: openPalette,
+        RequestedClose: closeDialog,
+        UpdatedQuery: (model, { value }) => ({
+          model: modifyFields(model, {
+            query: () => value,
+            activeResultIndex: () => 0,
+          }),
+          commands: [ScrollActiveResult({ index: 0 })],
+        }),
+        PressedNextResult: (model, { resultCount }) =>
+          moveActiveResult(
+            model,
+            resultCount > 0 ? (model.activeResultIndex + 1) % resultCount : 0,
+            resultCount,
+          ),
+        PressedPreviousResult: (model, { resultCount }) =>
+          moveActiveResult(
+            model,
+            resultCount > 0
+              ? (model.activeResultIndex - 1 + resultCount) % resultCount
+              : 0,
+            resultCount,
+          ),
+        PressedEnter: (model, { maybeTarget }) =>
+          Option.match(maybeTarget, {
+            onNone: () => ({ model }),
+            onSome: target => selectResult(model, target),
+          }),
+        ClickedResult: (model, { target }) => selectResult(model, target),
+        CompletedScrollActiveResult: model => ({ model }),
+        ...dialog.on({
+          Closed: model => ({
+            model: { ...model, query: '', activeResultIndex: 0 },
+          }),
+        }),
+      },
+
+      commands: {
+        ScrollActiveResult: ({ index }) =>
+          Dom.scrollIntoView(
+            `[data-command-palette-result-index="${index}"]`,
+          ).pipe(
+            Effect.ignore,
+            Effect.as(Message.CompletedScrollActiveResult()),
+          ),
+      },
+
+      stream: openShortcut,
+
+      view: (model, h, { issues, projects }) => {
+        const results = searchResults(model.query, issues, projects)
+
+        return model.dialog.view({
+          toView: ({
+            dialog,
+            backdrop,
+            panel,
+            title,
+            closeButton,
+            initialFocus,
+            isVisible,
+          }) =>
+            h.dialog(
+              [
+                ...dialog,
+                h.Class(
+                  'fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none border-0 bg-transparent p-0 text-slate-700',
+                ),
+              ],
+              isVisible
+                ? [
+                    h.div([
+                      ...backdrop,
+                      h.Class('fixed inset-0 bg-slate-950/35 backdrop-blur-xs'),
+                    ]),
+                    h.div(
+                      [
+                        ...panel,
+                        h.Class(
+                          'dialog-surface relative mx-auto mt-[max(1.5rem,10dvh)] w-[calc(100vw-2rem)] max-w-xl overflow-hidden text-sm font-medium',
+                        ),
+                      ],
+                      [
+                        h.header(
+                          [
+                            h.Class(
+                              'flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4',
+                            ),
+                          ],
+                          [
+                            h.h2(
+                              [
+                                ...title,
+                                h.Class(
+                                  'text-base font-semibold text-slate-700',
+                                ),
+                              ],
+                              ['Go to…'],
+                            ),
+                            h.button(
+                              [...closeButton, h.Class('button-compact')],
+                              ['Close search'],
+                            ),
+                          ],
+                        ),
+                        searchInput(model, results, initialFocus, h),
+                        resultList(model, results, h),
+                        ...Array.match(results, {
+                          onEmpty: () => [
+                            h.p(
+                              [
+                                h.Role('status'),
+                                h.Class(
+                                  'px-5 py-10 text-center text-sm text-slate-500',
+                                ),
+                              ],
+                              ['No matching issues or projects.'],
+                            ),
+                          ],
+                          onNonEmpty: () => [],
+                        }),
+                        h.p(
+                          [
+                            h.Class(
+                              'border-t border-slate-100 bg-slate-50 px-5 py-3 text-xs font-medium text-slate-500',
+                            ),
+                          ],
+                          ['↑ ↓ to navigate · Enter to open · Esc to close'],
+                        ),
+                      ],
+                    ),
+                  ]
+                : [],
+            ),
+        })
+      },
+    }
+  }),
+).pipe(Layer.provide(Dialog.DialogLive))
+
 const SearchResult = Schema.Struct({
   id: Schema.String,
   title: Schema.String,
@@ -274,154 +425,3 @@ const resultList = (
       ),
     ),
   )
-
-export const CommandPaletteLive = CommandPalette.make(
-  Effect.fn(function* () {
-    const dialog = yield* new Dialog.Dialog('dialog', {
-      id: 'workspace-command-palette',
-    })
-
-    return {
-      model: { query: '', activeResultIndex: 0, dialog },
-
-      update: {
-        RequestedOpen: openPalette,
-        PressedOpenShortcut: openPalette,
-        RequestedClose: closeDialog,
-        UpdatedQuery: (model, { value }) => ({
-          model: modifyFields(model, {
-            query: () => value,
-            activeResultIndex: () => 0,
-          }),
-          commands: [ScrollActiveResult({ index: 0 })],
-        }),
-        PressedNextResult: (model, { resultCount }) =>
-          moveActiveResult(
-            model,
-            resultCount > 0 ? (model.activeResultIndex + 1) % resultCount : 0,
-            resultCount,
-          ),
-        PressedPreviousResult: (model, { resultCount }) =>
-          moveActiveResult(
-            model,
-            resultCount > 0
-              ? (model.activeResultIndex - 1 + resultCount) % resultCount
-              : 0,
-            resultCount,
-          ),
-        PressedEnter: (model, { maybeTarget }) =>
-          Option.match(maybeTarget, {
-            onNone: () => ({ model }),
-            onSome: target => selectResult(model, target),
-          }),
-        ClickedResult: (model, { target }) => selectResult(model, target),
-        CompletedScrollActiveResult: model => ({ model }),
-        ...dialog.on({
-          Closed: model => ({
-            model: { ...model, query: '', activeResultIndex: 0 },
-          }),
-        }),
-      },
-
-      commands: {
-        ScrollActiveResult: ({ index }) =>
-          Dom.scrollIntoView(
-            `[data-command-palette-result-index="${index}"]`,
-          ).pipe(
-            Effect.ignore,
-            Effect.as(Message.CompletedScrollActiveResult()),
-          ),
-      },
-
-      stream: openShortcut,
-
-      view: (model, h, { issues, projects }) => {
-        const results = searchResults(model.query, issues, projects)
-
-        return model.dialog.view({
-          toView: ({
-            dialog,
-            backdrop,
-            panel,
-            title,
-            closeButton,
-            initialFocus,
-            isVisible,
-          }) =>
-            h.dialog(
-              [
-                ...dialog,
-                h.Class(
-                  'fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none border-0 bg-transparent p-0 text-slate-700',
-                ),
-              ],
-              isVisible
-                ? [
-                    h.div([
-                      ...backdrop,
-                      h.Class('fixed inset-0 bg-slate-950/35 backdrop-blur-xs'),
-                    ]),
-                    h.div(
-                      [
-                        ...panel,
-                        h.Class(
-                          'dialog-surface relative mx-auto mt-[max(1.5rem,10dvh)] w-[calc(100vw-2rem)] max-w-xl overflow-hidden text-sm font-medium',
-                        ),
-                      ],
-                      [
-                        h.header(
-                          [
-                            h.Class(
-                              'flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4',
-                            ),
-                          ],
-                          [
-                            h.h2(
-                              [
-                                ...title,
-                                h.Class(
-                                  'text-base font-semibold text-slate-700',
-                                ),
-                              ],
-                              ['Go to…'],
-                            ),
-                            h.button(
-                              [...closeButton, h.Class('button-compact')],
-                              ['Close search'],
-                            ),
-                          ],
-                        ),
-                        searchInput(model, results, initialFocus, h),
-                        resultList(model, results, h),
-                        ...Array.match(results, {
-                          onEmpty: () => [
-                            h.p(
-                              [
-                                h.Role('status'),
-                                h.Class(
-                                  'px-5 py-10 text-center text-sm text-slate-500',
-                                ),
-                              ],
-                              ['No matching issues or projects.'],
-                            ),
-                          ],
-                          onNonEmpty: () => [],
-                        }),
-                        h.p(
-                          [
-                            h.Class(
-                              'border-t border-slate-100 bg-slate-50 px-5 py-3 text-xs font-medium text-slate-500',
-                            ),
-                          ],
-                          ['↑ ↓ to navigate · Enter to open · Esc to close'],
-                        ),
-                      ],
-                    ),
-                  ]
-                : [],
-            ),
-        })
-      },
-    }
-  }),
-).pipe(Layer.provide(Dialog.DialogLive))

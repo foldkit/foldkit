@@ -108,6 +108,209 @@ export class Application extends Block<
   Command: [GenerateTodo, SaveTodos],
 }) {}
 
+export const ApplicationLive = Application.make(
+  Effect.fn(function* (_id, { flags }) {
+    const clock = yield* Clock.Clock
+    const store = yield* KeyValueStore.KeyValueStore
+
+    return {
+      model: {
+        todos: Option.getOrElse(flags.todos, () => []),
+        newTodoText: '',
+        filter: 'All',
+        editing: EditingState.NotEditing(),
+      },
+
+      update: {
+        UpdatedNewTodo: (model, { text }) => ({
+          model: modifyFields(model, { newTodoText: () => text }),
+        }),
+
+        UpdatedEditingTodo: (model, { text }) => ({
+          model: modifyFields(model, {
+            editing: () =>
+              EditingState.match(model.editing, {
+                NotEditing: () => model.editing,
+                Editing: ({ id }) => EditingState.Editing({ id, text }),
+              }),
+          }),
+        }),
+
+        AddedTodo: model => {
+          if (String.isEmpty(String.trim(model.newTodoText))) {
+            return { model }
+          }
+
+          return {
+            model,
+            commands: [GenerateTodo({ text: String.trim(model.newTodoText) })],
+          }
+        },
+
+        CompletedGenerateTodo: (model, { id, timestamp, text }) => {
+          const newTodo: Todo = {
+            id,
+            text,
+            completed: false,
+            createdAt: timestamp,
+          }
+
+          const updatedTodos = [...model.todos, newTodo]
+
+          return {
+            model: modifyFields(model, {
+              todos: () => updatedTodos,
+              newTodoText: () => '',
+            }),
+            commands: [SaveTodos({ todos: updatedTodos })],
+          }
+        },
+
+        DeletedTodo: (model, { id }) => {
+          const updatedTodos = Array.filter(model.todos, todo => todo.id !== id)
+
+          return {
+            model: modifyFields(model, {
+              todos: () => updatedTodos,
+            }),
+            commands: [SaveTodos({ todos: updatedTodos })],
+          }
+        },
+
+        ToggledTodo: (model, { id }) => {
+          const updatedTodos = Array.map(model.todos, todo =>
+            todo.id === id
+              ? modifyFields(todo, { completed: completed => !completed })
+              : todo,
+          )
+
+          return {
+            model: modifyFields(model, {
+              todos: () => updatedTodos,
+            }),
+            commands: [SaveTodos({ todos: updatedTodos })],
+          }
+        },
+
+        StartedEditing: (model, { id }) => {
+          const maybeTodo = Array.findFirst(model.todos, todo => todo.id === id)
+          return {
+            model: modifyFields(model, {
+              editing: () =>
+                EditingState.Editing({
+                  id,
+                  text: Option.match(maybeTodo, {
+                    onNone: () => '',
+                    onSome: todo => todo.text,
+                  }),
+                }),
+            }),
+          }
+        },
+
+        SavedEdit: model =>
+          EditingState.match(model.editing, {
+            NotEditing: () => ({ model }),
+
+            Editing: ({ id, text }) => {
+              if (String.isEmpty(String.trim(text))) {
+                return {
+                  model: modifyFields(model, {
+                    editing: () => EditingState.NotEditing(),
+                  }),
+                }
+              }
+
+              const updatedTodos = Array.map(model.todos, todo =>
+                todo.id === id
+                  ? modifyFields(todo, { text: () => String.trim(text) })
+                  : todo,
+              )
+
+              return {
+                model: modifyFields(model, {
+                  todos: () => updatedTodos,
+                  editing: () => EditingState.NotEditing(),
+                }),
+                commands: [SaveTodos({ todos: updatedTodos })],
+              }
+            },
+          }),
+
+        CancelledEdit: model => ({
+          model: modifyFields(model, {
+            editing: () => EditingState.NotEditing(),
+          }),
+        }),
+
+        ToggledAll: model => {
+          const allCompleted = Array.every(model.todos, todo => todo.completed)
+          const updatedTodos = Array.map(model.todos, todo =>
+            modifyFields(todo, {
+              completed: () => !allCompleted,
+            }),
+          )
+
+          return {
+            model: modifyFields(model, {
+              todos: () => updatedTodos,
+            }),
+            commands: [SaveTodos({ todos: updatedTodos })],
+          }
+        },
+
+        ClearedCompleted: model => {
+          const updatedTodos = Array.filter(
+            model.todos,
+            todo => !todo.completed,
+          )
+
+          return {
+            model: modifyFields(model, {
+              todos: () => updatedTodos,
+            }),
+            commands: [SaveTodos({ todos: updatedTodos })],
+          }
+        },
+
+        SelectedFilter: (model, { filter }) => ({
+          model: modifyFields(model, { filter: () => filter }),
+        }),
+
+        SucceededSaveTodos: (model, { todos }) => ({
+          model: modifyFields(model, { todos: () => todos }),
+        }),
+
+        FailedSaveTodos: model => ({ model }),
+      },
+
+      commands: {
+        GenerateTodo: ({ text }) =>
+          Effect.gen(function* () {
+            const id = yield* Random.nextIntBetween(
+              0,
+              Number.MAX_SAFE_INTEGER,
+            ).pipe(Effect.map(value => value.toString(36)))
+            const timestamp = yield* clock.currentTimeMillis
+
+            return Message.CompletedGenerateTodo({ id, timestamp, text })
+          }),
+        SaveTodos: ({ todos }) =>
+          Effect.gen(function* () {
+            const encodedTodos =
+              yield* Schema.encodeEffect(TodosJsonString)(todos)
+            yield* store.set(TODOS_STORAGE_KEY, encodedTodos)
+            return Message.SucceededSaveTodos({ todos })
+          }).pipe(
+            Effect.catch(() => Effect.succeed(Message.FailedSaveTodos())),
+          ),
+      },
+
+      view,
+    }
+  }),
+)
+
 type ApplicationViewBuilder = HtmlBuilder<Message>
 
 const editingTextFor = (
@@ -455,206 +658,3 @@ const view = (model: Model, h: ApplicationViewBuilder): Document => {
 
   return { title: `Todos (${activeCount})`, body }
 }
-
-export const ApplicationLive = Application.make(
-  Effect.fn(function* (_id, { flags }) {
-    const clock = yield* Clock.Clock
-    const store = yield* KeyValueStore.KeyValueStore
-
-    return {
-      model: {
-        todos: Option.getOrElse(flags.todos, () => []),
-        newTodoText: '',
-        filter: 'All',
-        editing: EditingState.NotEditing(),
-      },
-
-      update: {
-        UpdatedNewTodo: (model, { text }) => ({
-          model: modifyFields(model, { newTodoText: () => text }),
-        }),
-
-        UpdatedEditingTodo: (model, { text }) => ({
-          model: modifyFields(model, {
-            editing: () =>
-              EditingState.match(model.editing, {
-                NotEditing: () => model.editing,
-                Editing: ({ id }) => EditingState.Editing({ id, text }),
-              }),
-          }),
-        }),
-
-        AddedTodo: model => {
-          if (String.isEmpty(String.trim(model.newTodoText))) {
-            return { model }
-          }
-
-          return {
-            model,
-            commands: [GenerateTodo({ text: String.trim(model.newTodoText) })],
-          }
-        },
-
-        CompletedGenerateTodo: (model, { id, timestamp, text }) => {
-          const newTodo: Todo = {
-            id,
-            text,
-            completed: false,
-            createdAt: timestamp,
-          }
-
-          const updatedTodos = [...model.todos, newTodo]
-
-          return {
-            model: modifyFields(model, {
-              todos: () => updatedTodos,
-              newTodoText: () => '',
-            }),
-            commands: [SaveTodos({ todos: updatedTodos })],
-          }
-        },
-
-        DeletedTodo: (model, { id }) => {
-          const updatedTodos = Array.filter(model.todos, todo => todo.id !== id)
-
-          return {
-            model: modifyFields(model, {
-              todos: () => updatedTodos,
-            }),
-            commands: [SaveTodos({ todos: updatedTodos })],
-          }
-        },
-
-        ToggledTodo: (model, { id }) => {
-          const updatedTodos = Array.map(model.todos, todo =>
-            todo.id === id
-              ? modifyFields(todo, { completed: completed => !completed })
-              : todo,
-          )
-
-          return {
-            model: modifyFields(model, {
-              todos: () => updatedTodos,
-            }),
-            commands: [SaveTodos({ todos: updatedTodos })],
-          }
-        },
-
-        StartedEditing: (model, { id }) => {
-          const maybeTodo = Array.findFirst(model.todos, todo => todo.id === id)
-          return {
-            model: modifyFields(model, {
-              editing: () =>
-                EditingState.Editing({
-                  id,
-                  text: Option.match(maybeTodo, {
-                    onNone: () => '',
-                    onSome: todo => todo.text,
-                  }),
-                }),
-            }),
-          }
-        },
-
-        SavedEdit: model =>
-          EditingState.match(model.editing, {
-            NotEditing: () => ({ model }),
-
-            Editing: ({ id, text }) => {
-              if (String.isEmpty(String.trim(text))) {
-                return {
-                  model: modifyFields(model, {
-                    editing: () => EditingState.NotEditing(),
-                  }),
-                }
-              }
-
-              const updatedTodos = Array.map(model.todos, todo =>
-                todo.id === id
-                  ? modifyFields(todo, { text: () => String.trim(text) })
-                  : todo,
-              )
-
-              return {
-                model: modifyFields(model, {
-                  todos: () => updatedTodos,
-                  editing: () => EditingState.NotEditing(),
-                }),
-                commands: [SaveTodos({ todos: updatedTodos })],
-              }
-            },
-          }),
-
-        CancelledEdit: model => ({
-          model: modifyFields(model, {
-            editing: () => EditingState.NotEditing(),
-          }),
-        }),
-
-        ToggledAll: model => {
-          const allCompleted = Array.every(model.todos, todo => todo.completed)
-          const updatedTodos = Array.map(model.todos, todo =>
-            modifyFields(todo, {
-              completed: () => !allCompleted,
-            }),
-          )
-
-          return {
-            model: modifyFields(model, {
-              todos: () => updatedTodos,
-            }),
-            commands: [SaveTodos({ todos: updatedTodos })],
-          }
-        },
-
-        ClearedCompleted: model => {
-          const updatedTodos = Array.filter(
-            model.todos,
-            todo => !todo.completed,
-          )
-
-          return {
-            model: modifyFields(model, {
-              todos: () => updatedTodos,
-            }),
-            commands: [SaveTodos({ todos: updatedTodos })],
-          }
-        },
-
-        SelectedFilter: (model, { filter }) => ({
-          model: modifyFields(model, { filter: () => filter }),
-        }),
-
-        SucceededSaveTodos: (model, { todos }) => ({
-          model: modifyFields(model, { todos: () => todos }),
-        }),
-
-        FailedSaveTodos: model => ({ model }),
-      },
-
-      commands: {
-        GenerateTodo: ({ text }) =>
-          Effect.gen(function* () {
-            const id = yield* Random.nextIntBetween(
-              0,
-              Number.MAX_SAFE_INTEGER,
-            ).pipe(Effect.map(value => value.toString(36)))
-            const timestamp = yield* clock.currentTimeMillis
-
-            return Message.CompletedGenerateTodo({ id, timestamp, text })
-          }),
-        SaveTodos: ({ todos }) =>
-          Effect.gen(function* () {
-            const encodedTodos =
-              yield* Schema.encodeEffect(TodosJsonString)(todos)
-            yield* store.set(TODOS_STORAGE_KEY, encodedTodos)
-            return Message.SucceededSaveTodos({ todos })
-          }).pipe(
-            Effect.catch(() => Effect.succeed(Message.FailedSaveTodos())),
-          ),
-      },
-
-      view,
-    }
-  }),
-)

@@ -36,6 +36,116 @@ export class ToastPage extends Block<ToastPage>()('ToastPage', {
   Message,
 }) {}
 
+export const ToastPageLive = ToastPage.make(
+  Effect.fn(function* () {
+    const toastDemo = yield* new DemoToast('toastDemo', {
+      id: 'toast-demo',
+      swipeToDismiss: {},
+    })
+
+    return {
+      model: { toastDemo },
+
+      update: {
+        ClickedShowInfoToast: model => ({
+          model,
+          messages: [
+            model.toastDemo.send(
+              DemoToast.requestShow({
+                variant: 'Info',
+                payload: {
+                  title: 'Changes saved',
+                  maybeDescription: Option.some(
+                    'Your preferences have been updated.',
+                  ),
+                },
+              }),
+            ),
+          ],
+        }),
+
+        ClickedShowSuccessToast: model => ({
+          model,
+          messages: [
+            model.toastDemo.send(
+              DemoToast.requestShow({
+                variant: 'Success',
+                payload: {
+                  title: 'Uploaded successfully',
+                  maybeDescription: Option.some(
+                    'kit-manual.pdf is now available.',
+                  ),
+                },
+              }),
+            ),
+          ],
+        }),
+
+        ClickedShowWarningToast: model => ({
+          model,
+          messages: [
+            model.toastDemo.send(
+              DemoToast.requestShow({
+                variant: 'Warning',
+                payload: {
+                  title: 'Network slow',
+                  maybeDescription: Option.some(
+                    'Some assets are loading over a weak connection.',
+                  ),
+                },
+              }),
+            ),
+          ],
+        }),
+
+        ClickedShowErrorToast: model => ({
+          model,
+          messages: [
+            model.toastDemo.send(
+              DemoToast.requestShow({
+                variant: 'Error',
+                payload: {
+                  title: 'Failed to save',
+                  maybeDescription: Option.some(
+                    'Check your connection and try again.',
+                  ),
+                },
+              }),
+            ),
+          ],
+        }),
+
+        ClickedShowStickyToast: model => ({
+          model,
+          messages: [
+            model.toastDemo.send(
+              DemoToast.requestShow({
+                variant: 'Info',
+                payload: {
+                  title: 'Review pending',
+                  maybeDescription: Option.some(
+                    'Action required. This stays until dismissed.',
+                  ),
+                },
+                sticky: true,
+              }),
+            ),
+          ],
+        }),
+
+        ClickedDismissAllToasts: model => ({
+          model,
+          messages: [
+            model.toastDemo.send(DemoToast.Message.RequestedDismissAll()),
+          ],
+        }),
+      },
+
+      view,
+    }
+  }),
+).pipe(Layer.provide(DemoToast.Live))
+
 type Entry = Model['toastDemo']['model']['entries'][number]
 
 const variantClassName = (variant: Variant): string =>
@@ -197,113 +307,3 @@ const view = (model: Model, h: HtmlBuilder<Message>): Html => {
     ],
   )
 }
-
-export const ToastPageLive = ToastPage.make(
-  Effect.fn(function* () {
-    const toastDemo = yield* new DemoToast('toastDemo', {
-      id: 'toast-demo',
-      swipeToDismiss: {},
-    })
-
-    return {
-      model: { toastDemo },
-
-      update: {
-        ClickedShowInfoToast: model => ({
-          model,
-          messages: [
-            model.toastDemo.send(
-              DemoToast.requestShow({
-                variant: 'Info',
-                payload: {
-                  title: 'Changes saved',
-                  maybeDescription: Option.some(
-                    'Your preferences have been updated.',
-                  ),
-                },
-              }),
-            ),
-          ],
-        }),
-
-        ClickedShowSuccessToast: model => ({
-          model,
-          messages: [
-            model.toastDemo.send(
-              DemoToast.requestShow({
-                variant: 'Success',
-                payload: {
-                  title: 'Uploaded successfully',
-                  maybeDescription: Option.some(
-                    'kit-manual.pdf is now available.',
-                  ),
-                },
-              }),
-            ),
-          ],
-        }),
-
-        ClickedShowWarningToast: model => ({
-          model,
-          messages: [
-            model.toastDemo.send(
-              DemoToast.requestShow({
-                variant: 'Warning',
-                payload: {
-                  title: 'Network slow',
-                  maybeDescription: Option.some(
-                    'Some assets are loading over a weak connection.',
-                  ),
-                },
-              }),
-            ),
-          ],
-        }),
-
-        ClickedShowErrorToast: model => ({
-          model,
-          messages: [
-            model.toastDemo.send(
-              DemoToast.requestShow({
-                variant: 'Error',
-                payload: {
-                  title: 'Failed to save',
-                  maybeDescription: Option.some(
-                    'Check your connection and try again.',
-                  ),
-                },
-              }),
-            ),
-          ],
-        }),
-
-        ClickedShowStickyToast: model => ({
-          model,
-          messages: [
-            model.toastDemo.send(
-              DemoToast.requestShow({
-                variant: 'Info',
-                payload: {
-                  title: 'Review pending',
-                  maybeDescription: Option.some(
-                    'Action required. This stays until dismissed.',
-                  ),
-                },
-                sticky: true,
-              }),
-            ),
-          ],
-        }),
-
-        ClickedDismissAllToasts: model => ({
-          model,
-          messages: [
-            model.toastDemo.send(DemoToast.Message.RequestedDismissAll()),
-          ],
-        }),
-      },
-
-      view,
-    }
-  }),
-).pipe(Layer.provide(DemoToast.Live))

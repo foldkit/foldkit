@@ -64,6 +64,109 @@ export class PostsTab extends Block<PostsTab>()('PostsTab', {
   Command: [FetchPosts, FetchPostDetail],
 }) {}
 
+export const PostsTabLive = PostsTab.make(
+  Effect.fn(function* () {
+    const clock = yield* Clock.Clock
+
+    return {
+      model: {
+        posts: PostsData.Loading(),
+        postDetailById: HashMap.empty(),
+        maybeSelectedPostId: Option.none(),
+      },
+
+      start: [FetchPosts()],
+
+      update: {
+        RequestedLoadIfMissing: model =>
+          applyPostsTransition(model, AsyncData.loadIfMissing(model.posts)),
+
+        ClickedPost: (model, { postId }) => {
+          const selectedModel = modifyFields(model, {
+            maybeSelectedPostId: () => Option.some(postId),
+          })
+
+          return Option.match(HashMap.get(model.postDetailById, postId), {
+            onNone: () => ({
+              model: modifyFields(selectedModel, {
+                postDetailById: setPostDetail(postId, PostDetailData.Loading()),
+              }),
+              commands: [FetchPostDetail({ postId })],
+            }),
+            onSome: () => ({ model: selectedModel }),
+          })
+        },
+
+        ClickedBackToPosts: model => ({
+          model: modifyFields(model, {
+            maybeSelectedPostId: () => Option.none(),
+          }),
+        }),
+
+        ClickedInvalidatePosts: model =>
+          applyPostsTransition(model, AsyncData.revalidateOrLoad(model.posts)),
+
+        ClickedRetryPosts: model =>
+          applyPostsTransition(model, AsyncData.revalidateOrLoad(model.posts)),
+
+        ClickedRetryPostDetail: (model, { postId }) => ({
+          model: modifyFields(model, {
+            postDetailById: setPostDetail(postId, PostDetailData.Loading()),
+          }),
+          commands: [FetchPostDetail({ postId })],
+        }),
+
+        CompletedFetchPosts: (model, { result }) => ({
+          model: modifyFields(model, { posts: AsyncData.settle(result) }),
+        }),
+
+        CompletedFetchPostDetail: (model, { postId, result }) => ({
+          model: modifyFields(model, {
+            postDetailById: HashMap.modify(postId, AsyncData.settle(result)),
+          }),
+        }),
+      },
+
+      commands: {
+        FetchPosts: () =>
+          pipe(
+            Effect.gen(function* () {
+              const posts = yield* fetchPosts
+              const fetchedAt = yield* clock.currentTimeMillis
+
+              return FetchedPosts.make({ posts, fetchedAt })
+            }),
+            Effect.result,
+            Effect.map(result => Message.CompletedFetchPosts({ result })),
+          ),
+        FetchPostDetail: ({ postId }) =>
+          pipe(
+            Effect.gen(function* () {
+              const detail = yield* fetchPostDetail(postId)
+              const fetchedAt = yield* clock.currentTimeMillis
+
+              return FetchedPostDetail.make({ detail, fetchedAt })
+            }),
+            Effect.result,
+            Effect.map(result =>
+              Message.CompletedFetchPostDetail({ postId, result }),
+            ),
+          ),
+      },
+
+      view: (model, h) =>
+        Option.match(model.maybeSelectedPostId, {
+          onNone: () =>
+            h.section(
+              [h.Class('flex flex-col gap-4')],
+              [postsListView(model, h)],
+            ),
+          onSome: postId => postDetailSection({ model, postId }, h),
+        }),
+    }
+  }),
+)
+
 type PostsTabViewBuilder = HtmlBuilder<Message>
 
 const applyPostsTransition = (
@@ -313,106 +416,3 @@ const postDetailCard = (
       ),
     ],
   )
-
-export const PostsTabLive = PostsTab.make(
-  Effect.fn(function* () {
-    const clock = yield* Clock.Clock
-
-    return {
-      model: {
-        posts: PostsData.Loading(),
-        postDetailById: HashMap.empty(),
-        maybeSelectedPostId: Option.none(),
-      },
-
-      start: [FetchPosts()],
-
-      update: {
-        RequestedLoadIfMissing: model =>
-          applyPostsTransition(model, AsyncData.loadIfMissing(model.posts)),
-
-        ClickedPost: (model, { postId }) => {
-          const selectedModel = modifyFields(model, {
-            maybeSelectedPostId: () => Option.some(postId),
-          })
-
-          return Option.match(HashMap.get(model.postDetailById, postId), {
-            onNone: () => ({
-              model: modifyFields(selectedModel, {
-                postDetailById: setPostDetail(postId, PostDetailData.Loading()),
-              }),
-              commands: [FetchPostDetail({ postId })],
-            }),
-            onSome: () => ({ model: selectedModel }),
-          })
-        },
-
-        ClickedBackToPosts: model => ({
-          model: modifyFields(model, {
-            maybeSelectedPostId: () => Option.none(),
-          }),
-        }),
-
-        ClickedInvalidatePosts: model =>
-          applyPostsTransition(model, AsyncData.revalidateOrLoad(model.posts)),
-
-        ClickedRetryPosts: model =>
-          applyPostsTransition(model, AsyncData.revalidateOrLoad(model.posts)),
-
-        ClickedRetryPostDetail: (model, { postId }) => ({
-          model: modifyFields(model, {
-            postDetailById: setPostDetail(postId, PostDetailData.Loading()),
-          }),
-          commands: [FetchPostDetail({ postId })],
-        }),
-
-        CompletedFetchPosts: (model, { result }) => ({
-          model: modifyFields(model, { posts: AsyncData.settle(result) }),
-        }),
-
-        CompletedFetchPostDetail: (model, { postId, result }) => ({
-          model: modifyFields(model, {
-            postDetailById: HashMap.modify(postId, AsyncData.settle(result)),
-          }),
-        }),
-      },
-
-      commands: {
-        FetchPosts: () =>
-          pipe(
-            Effect.gen(function* () {
-              const posts = yield* fetchPosts
-              const fetchedAt = yield* clock.currentTimeMillis
-
-              return FetchedPosts.make({ posts, fetchedAt })
-            }),
-            Effect.result,
-            Effect.map(result => Message.CompletedFetchPosts({ result })),
-          ),
-        FetchPostDetail: ({ postId }) =>
-          pipe(
-            Effect.gen(function* () {
-              const detail = yield* fetchPostDetail(postId)
-              const fetchedAt = yield* clock.currentTimeMillis
-
-              return FetchedPostDetail.make({ detail, fetchedAt })
-            }),
-            Effect.result,
-            Effect.map(result =>
-              Message.CompletedFetchPostDetail({ postId, result }),
-            ),
-          ),
-      },
-
-      view: (model, h) =>
-        Option.match(model.maybeSelectedPostId, {
-          onNone: () =>
-            h.section(
-              [h.Class('flex flex-col gap-4')],
-              [postsListView(model, h)],
-            ),
-          onSome: postId => postDetailSection({ model, postId }, h),
-        }),
-    }
-  }),
-)

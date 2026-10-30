@@ -19,6 +19,23 @@ export class TooltipPage extends Block<TooltipPage>()('TooltipPage', {
   Model,
 }) {}
 
+export const TooltipPageLive = TooltipPage.make(
+  Effect.fn(function* () {
+    const tooltipBasicDemo = yield* new Tooltip.Tooltip('tooltipBasicDemo', {
+      id: 'tooltip-basic-demo',
+    })
+    const tooltipNoDelayDemo = yield* new Tooltip.Tooltip(
+      'tooltipNoDelayDemo',
+      { id: 'tooltip-no-delay-demo', showDelay: 0 },
+    )
+
+    return {
+      model: { tooltipBasicDemo, tooltipNoDelayDemo },
+      view,
+    }
+  }),
+).pipe(Layer.provide(Tooltip.TooltipLive))
+
 const triggerClassName =
   'inline-flex items-center gap-1.5 px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
 
@@ -125,20 +142,3 @@ const view = (model: Model, h: HtmlBuilder<never, unknown>): Html => {
     ],
   )
 }
-
-export const TooltipPageLive = TooltipPage.make(
-  Effect.fn(function* () {
-    const tooltipBasicDemo = yield* new Tooltip.Tooltip('tooltipBasicDemo', {
-      id: 'tooltip-basic-demo',
-    })
-    const tooltipNoDelayDemo = yield* new Tooltip.Tooltip(
-      'tooltipNoDelayDemo',
-      { id: 'tooltip-no-delay-demo', showDelay: 0 },
-    )
-
-    return {
-      model: { tooltipBasicDemo, tooltipNoDelayDemo },
-      view,
-    }
-  }),
-).pipe(Layer.provide(Tooltip.TooltipLive))

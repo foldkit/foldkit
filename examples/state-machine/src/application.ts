@@ -82,6 +82,105 @@ export class Application extends Block<Application>()('Application', {
   Command: [PlaceOrder],
 }) {}
 
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    const cartStep = yield* new CartStep('cartStep')
+    const shippingStep = yield* new ShippingStep('shippingStep')
+    const paymentStep = yield* new PaymentStep('paymentStep')
+    const reviewStep = yield* new ReviewStep('reviewStep')
+    const orderStatus = yield* new OrderStatus('orderStatus')
+    const orderSummary = yield* new OrderSummary('orderSummary')
+    const inspector = yield* new Inspector('inspector', MACHINE_DESCRIPTION)
+
+    return {
+      model: {
+        checkout: checkoutMachine.initial,
+        transitionLog: [],
+        nextTransitionLogId: 0,
+        cartStep,
+        shippingStep,
+        paymentStep,
+        reviewStep,
+        orderStatus,
+        orderSummary,
+        inspector,
+      },
+
+      update: {
+        ClickedContinue: handleMachineMessage,
+        ClickedBack: handleMachineMessage,
+        ClickedCancel: handleMachineMessage,
+        ClickedPlaceOrder: handleMachineMessage,
+        ClickedStartOver: handleMachineMessage,
+        ToggledPaymentMethod: handleMachineMessage,
+        SelectedEdition: handleMachineMessage,
+        ToggledTermsAccepted: handleMachineMessage,
+        UpdatedPromoCode: handleMachineMessage,
+        SubmittedPromoCode: handleMachineMessage,
+        CompletedPlaceOrder: handleMachineMessage,
+        ...cartStep.on<Model>({
+          RequestedCancel: stepMachine(Message.ClickedCancel()),
+          RequestedContinue: stepMachine(Message.ClickedContinue()),
+          SelectedEdition: (model, { isShippingRequired }) =>
+            stepMachine(Message.SelectedEdition({ isShippingRequired }))(model),
+        }),
+        ...shippingStep.on<Model>({
+          RequestedBack: stepMachine(Message.ClickedBack()),
+          RequestedCancel: stepMachine(Message.ClickedCancel()),
+          RequestedContinue: stepMachine(Message.ClickedContinue()),
+        }),
+        ...paymentStep.on<Model>({
+          RequestedBack: stepMachine(Message.ClickedBack()),
+          RequestedCancel: stepMachine(Message.ClickedCancel()),
+          RequestedContinue: stepMachine(Message.ClickedContinue()),
+          ToggledPaymentMethod: (model, { isSelected }) =>
+            stepMachine(Message.ToggledPaymentMethod({ isSelected }))(model),
+        }),
+        ...reviewStep.on<Model>({
+          RequestedBack: stepMachine(Message.ClickedBack()),
+          RequestedCancel: stepMachine(Message.ClickedCancel()),
+          RequestedPlaceOrder: stepMachine(Message.ClickedPlaceOrder()),
+          ToggledPaymentMethod: (model, { isSelected }) =>
+            stepMachine(Message.ToggledPaymentMethod({ isSelected }))(model),
+          ToggledTermsAccepted: (model, { isAccepted }) =>
+            stepMachine(Message.ToggledTermsAccepted({ isAccepted }))(model),
+          UpdatedPromoCode: (model, { value }) =>
+            stepMachine(Message.UpdatedPromoCode({ value }))(model),
+          SubmittedPromoCode: stepMachine(Message.SubmittedPromoCode()),
+        }),
+        ...orderStatus.on<Model>({
+          RequestedStartOver: stepMachine(Message.ClickedStartOver()),
+        }),
+      },
+
+      commands: {
+        PlaceOrder: ({ isShippingRequired }) =>
+          Effect.sleep(PLACE_ORDER_DELAY).pipe(
+            Effect.as(
+              Message.CompletedPlaceOrder({
+                orderId: isShippingRequired ? 'SHIP-1001' : 'DIGI-1001',
+              }),
+            ),
+          ),
+      },
+
+      view,
+    }
+  }),
+).pipe(
+  Layer.provide(
+    Layer.mergeAll(
+      CartStepLive,
+      ShippingStepLive,
+      PaymentStepLive,
+      ReviewStepLive,
+      OrderStatusLive,
+      OrderSummaryLive,
+      InspectorLive,
+    ),
+  ),
+)
+
 // MACHINE
 
 const PROMO_DISCOUNTS: ReadonlyArray<Discount> = [
@@ -652,102 +751,3 @@ const PLACE_ORDER_DELAY = Duration.seconds(1)
 
 const handleMachineMessage = (model: Model, message: Message) =>
   stepMachine(message)(model)
-
-export const ApplicationLive = Application.make(
-  Effect.fn(function* () {
-    const cartStep = yield* new CartStep('cartStep')
-    const shippingStep = yield* new ShippingStep('shippingStep')
-    const paymentStep = yield* new PaymentStep('paymentStep')
-    const reviewStep = yield* new ReviewStep('reviewStep')
-    const orderStatus = yield* new OrderStatus('orderStatus')
-    const orderSummary = yield* new OrderSummary('orderSummary')
-    const inspector = yield* new Inspector('inspector', MACHINE_DESCRIPTION)
-
-    return {
-      model: {
-        checkout: checkoutMachine.initial,
-        transitionLog: [],
-        nextTransitionLogId: 0,
-        cartStep,
-        shippingStep,
-        paymentStep,
-        reviewStep,
-        orderStatus,
-        orderSummary,
-        inspector,
-      },
-
-      update: {
-        ClickedContinue: handleMachineMessage,
-        ClickedBack: handleMachineMessage,
-        ClickedCancel: handleMachineMessage,
-        ClickedPlaceOrder: handleMachineMessage,
-        ClickedStartOver: handleMachineMessage,
-        ToggledPaymentMethod: handleMachineMessage,
-        SelectedEdition: handleMachineMessage,
-        ToggledTermsAccepted: handleMachineMessage,
-        UpdatedPromoCode: handleMachineMessage,
-        SubmittedPromoCode: handleMachineMessage,
-        CompletedPlaceOrder: handleMachineMessage,
-        ...cartStep.on<Model>({
-          RequestedCancel: stepMachine(Message.ClickedCancel()),
-          RequestedContinue: stepMachine(Message.ClickedContinue()),
-          SelectedEdition: (model, { isShippingRequired }) =>
-            stepMachine(Message.SelectedEdition({ isShippingRequired }))(model),
-        }),
-        ...shippingStep.on<Model>({
-          RequestedBack: stepMachine(Message.ClickedBack()),
-          RequestedCancel: stepMachine(Message.ClickedCancel()),
-          RequestedContinue: stepMachine(Message.ClickedContinue()),
-        }),
-        ...paymentStep.on<Model>({
-          RequestedBack: stepMachine(Message.ClickedBack()),
-          RequestedCancel: stepMachine(Message.ClickedCancel()),
-          RequestedContinue: stepMachine(Message.ClickedContinue()),
-          ToggledPaymentMethod: (model, { isSelected }) =>
-            stepMachine(Message.ToggledPaymentMethod({ isSelected }))(model),
-        }),
-        ...reviewStep.on<Model>({
-          RequestedBack: stepMachine(Message.ClickedBack()),
-          RequestedCancel: stepMachine(Message.ClickedCancel()),
-          RequestedPlaceOrder: stepMachine(Message.ClickedPlaceOrder()),
-          ToggledPaymentMethod: (model, { isSelected }) =>
-            stepMachine(Message.ToggledPaymentMethod({ isSelected }))(model),
-          ToggledTermsAccepted: (model, { isAccepted }) =>
-            stepMachine(Message.ToggledTermsAccepted({ isAccepted }))(model),
-          UpdatedPromoCode: (model, { value }) =>
-            stepMachine(Message.UpdatedPromoCode({ value }))(model),
-          SubmittedPromoCode: stepMachine(Message.SubmittedPromoCode()),
-        }),
-        ...orderStatus.on<Model>({
-          RequestedStartOver: stepMachine(Message.ClickedStartOver()),
-        }),
-      },
-
-      commands: {
-        PlaceOrder: ({ isShippingRequired }) =>
-          Effect.sleep(PLACE_ORDER_DELAY).pipe(
-            Effect.as(
-              Message.CompletedPlaceOrder({
-                orderId: isShippingRequired ? 'SHIP-1001' : 'DIGI-1001',
-              }),
-            ),
-          ),
-      },
-
-      view,
-    }
-  }),
-).pipe(
-  Layer.provide(
-    Layer.mergeAll(
-      CartStepLive,
-      ShippingStepLive,
-      PaymentStepLive,
-      ReviewStepLive,
-      OrderStatusLive,
-      OrderSummaryLive,
-      InspectorLive,
-    ),
-  ),
-)

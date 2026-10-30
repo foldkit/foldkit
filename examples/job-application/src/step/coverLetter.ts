@@ -19,9 +19,6 @@ export class CoverLetter extends Block<CoverLetter>()('CoverLetter', {
   Message,
 }) {}
 
-const MAX_COVER_LETTER_LENGTH = 2000
-const WARNING_THRESHOLD_CHARS = 200
-
 export const CoverLetterLive = CoverLetter.make(
   Effect.fn(function* () {
     return {
@@ -96,3 +93,6 @@ export const CoverLetterLive = CoverLetter.make(
     }
   }),
 )
+
+const MAX_COVER_LETTER_LENGTH = 2000
+const WARNING_THRESHOLD_CHARS = 200

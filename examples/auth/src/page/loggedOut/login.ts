@@ -78,6 +78,86 @@ export class Login extends Block<Login>()('Login', {
   Command: [SimulateAuthRequest],
 }) {}
 
+export const LoginLive = Login.make(
+  Effect.fn(function* () {
+    return {
+      model: initModel(),
+
+      update: {
+        ChangedEmail: (model, { value }) => ({
+          model: modifyFields(model, { email: () => validateEmail(value) }),
+        }),
+
+        ChangedPassword: (model, { value }) => ({
+          model: modifyFields(model, {
+            password: () => validatePassword(value),
+          }),
+        }),
+
+        SubmittedForm: model => {
+          if (model.isSubmitting) {
+            return { model }
+          }
+
+          if (!isFormValid(model)) {
+            return { model }
+          }
+
+          return {
+            model: modifyFields(model, { isSubmitting: () => true }),
+            commands: [
+              SimulateAuthRequest({
+                email: model.email.value,
+                password: model.password.value,
+              }),
+            ],
+          }
+        },
+
+        SucceededSimulateAuthRequest: (model, { session }) => ({
+          model,
+          outMessage: OutMessage.SucceededLogin({ session }),
+        }),
+
+        FailedSimulateAuthRequest: (model, { error }) => ({
+          model: modifyFields(model, {
+            password: () =>
+              Invalid({
+                value: model.password.value,
+                errors: [error],
+              }),
+            isSubmitting: () => false,
+          }),
+        }),
+      },
+
+      commands: {
+        SimulateAuthRequest: ({ email, password }) =>
+          Effect.gen(function* () {
+            yield* Effect.sleep(Duration.seconds(1))
+
+            if (password !== 'password') {
+              return Message.FailedSimulateAuthRequest({
+                error: 'Invalid credentials',
+              })
+            }
+
+            const name = pipe(
+              email,
+              String.split('@'),
+              Array.head,
+              Option.getOrElse(() => email),
+            )
+            const session: Session = { userId: '1', email, name }
+            return Message.SucceededSimulateAuthRequest({ session })
+          }),
+      },
+
+      view,
+    }
+  }),
+)
+
 type LoginViewBuilder = HtmlBuilder<Message>
 
 const fieldToBorderClass = (field: Field<string>) =>
@@ -241,83 +321,3 @@ const view = (model: Model, h: LoginViewBuilder): Html => {
     ],
   )
 }
-
-export const LoginLive = Login.make(
-  Effect.fn(function* () {
-    return {
-      model: initModel(),
-
-      update: {
-        ChangedEmail: (model, { value }) => ({
-          model: modifyFields(model, { email: () => validateEmail(value) }),
-        }),
-
-        ChangedPassword: (model, { value }) => ({
-          model: modifyFields(model, {
-            password: () => validatePassword(value),
-          }),
-        }),
-
-        SubmittedForm: model => {
-          if (model.isSubmitting) {
-            return { model }
-          }
-
-          if (!isFormValid(model)) {
-            return { model }
-          }
-
-          return {
-            model: modifyFields(model, { isSubmitting: () => true }),
-            commands: [
-              SimulateAuthRequest({
-                email: model.email.value,
-                password: model.password.value,
-              }),
-            ],
-          }
-        },
-
-        SucceededSimulateAuthRequest: (model, { session }) => ({
-          model,
-          outMessage: OutMessage.SucceededLogin({ session }),
-        }),
-
-        FailedSimulateAuthRequest: (model, { error }) => ({
-          model: modifyFields(model, {
-            password: () =>
-              Invalid({
-                value: model.password.value,
-                errors: [error],
-              }),
-            isSubmitting: () => false,
-          }),
-        }),
-      },
-
-      commands: {
-        SimulateAuthRequest: ({ email, password }) =>
-          Effect.gen(function* () {
-            yield* Effect.sleep(Duration.seconds(1))
-
-            if (password !== 'password') {
-              return Message.FailedSimulateAuthRequest({
-                error: 'Invalid credentials',
-              })
-            }
-
-            const name = pipe(
-              email,
-              String.split('@'),
-              Array.head,
-              Option.getOrElse(() => email),
-            )
-            const session: Session = { userId: '1', email, name }
-            return Message.SucceededSimulateAuthRequest({ session })
-          }),
-      },
-
-      view,
-    }
-  }),
-)

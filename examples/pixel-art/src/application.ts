@@ -166,6 +166,124 @@ export class Application extends Block<
   Command: [SaveCanvas, ExportPng],
 }) {}
 
+export const ApplicationLive = Application.make(
+  Effect.fn(function* (_id, { flags }) {
+    const store = yield* KeyValueStore.KeyValueStore
+
+    const header = yield* new Header('header')
+    const toolbar = yield* new Toolbar('toolbar')
+    const historyPanel = yield* new HistoryPanel('historyPanel')
+    const errorDialog = yield* new ErrorDialog('errorDialog')
+    const gridSizeConfirmDialog = yield* new GridSizeConfirmDialog(
+      'gridSizeConfirmDialog',
+    )
+
+    return {
+      model: {
+        grid: Option.match(flags.maybeSavedCanvas, {
+          onNone: () => createEmptyGrid(DEFAULT_GRID_SIZE),
+          onSome: savedCanvas => savedCanvas.grid,
+        }),
+        undoStack: [],
+        redoStack: [],
+        selectedColorIndex: Option.match(flags.maybeSavedCanvas, {
+          onNone: () => DEFAULT_COLOR_INDEX,
+          onSome: savedCanvas => savedCanvas.selectedColorIndex,
+        }),
+        gridSize: Option.match(flags.maybeSavedCanvas, {
+          onNone: () => DEFAULT_GRID_SIZE,
+          onSome: savedCanvas => savedCanvas.gridSize,
+        }),
+        tool: 'Brush',
+        mirrorMode: 'None',
+        isDrawing: false,
+        maybeHoveredCell: Option.none(),
+        paletteThemeIndex: Option.match(flags.maybeSavedCanvas, {
+          onNone: () => DEFAULT_PALETTE_THEME_INDEX,
+          onSome: savedCanvas => savedCanvas.paletteThemeIndex,
+        }),
+        header,
+        toolbar,
+        historyPanel,
+        errorDialog,
+        gridSizeConfirmDialog,
+      },
+
+      stream: keyPresses,
+
+      subscriptions: { mouseReleases },
+
+      update: {
+        ...canvasUpdate,
+
+        SelectedGridSize: (model, { size }) =>
+          requestGridSizeChangeStep(model, size),
+
+        FailedExportPng: (model, { error }) => ({
+          model,
+          messages: [
+            model.errorDialog.send(
+              ErrorDialog.Message.RequestedShowError({ error }),
+            ),
+          ],
+        }),
+
+        ...header.on({ ClickedExport: exportStep }),
+
+        ...toolbar.on({
+          SelectedTool: (model, { tool }) => selectToolStep(model, tool),
+          SelectedGridSize: (model, { size }) =>
+            requestGridSizeChangeStep(model, size),
+          SelectedColor: (model, { colorIndex }) =>
+            selectColorStep(model, colorIndex),
+          SelectedPaletteTheme: (model, { themeIndex }) =>
+            selectPaletteThemeStep(model, themeIndex),
+          ToggledMirrorHorizontal: toggleMirrorHorizontalStep,
+          ToggledMirrorVertical: toggleMirrorVerticalStep,
+          ClickedClear: clearCanvasStep,
+        }),
+
+        ...historyPanel.on({
+          ClickedUndo: canvasUpdate.ClickedUndo,
+          ClickedRedo: canvasUpdate.ClickedRedo,
+          ClickedHistoryStep: (model, { stepIndex }) =>
+            restoreHistoryStep(model, stepIndex),
+          ClickedRedoStep: (model, { stepIndex }) =>
+            restoreRedoStep(model, stepIndex),
+        }),
+
+        ...gridSizeConfirmDialog.on({
+          ConfirmedGridSizeChange: (model, { size }) => {
+            const nextModel = applyGridSizeChange(model, size)
+
+            return { model: nextModel, commands: [saveCanvas(nextModel)] }
+          },
+        }),
+      },
+
+      commands: {
+        SaveCanvas: canvas => writeCanvas(store, canvas),
+        ExportPng: exportPng,
+      },
+
+      view: (model, h) => ({
+        title: 'Pixel Art',
+        body: h.div(
+          [h.Class('min-h-screen bg-gray-900 text-gray-100 flex flex-col')],
+          [
+            lazyHeader(headerView, [model.header]),
+            contentView(model, h),
+            lazyErrorDialog(errorDialogView, [model.errorDialog]),
+            lazyGridSizeConfirmDialog(gridSizeConfirmDialogView, [
+              model.gridSizeConfirmDialog,
+            ]),
+          ],
+        ),
+      }),
+    }
+  }),
+)
+
 const saveCanvas = (model: Canvas) =>
   SaveCanvas({
     grid: model.grid,
@@ -772,121 +890,3 @@ const contentView = (model: Model, h: ApplicationViewBuilder): Html => {
     ],
   )
 }
-
-export const ApplicationLive = Application.make(
-  Effect.fn(function* (_id, { flags }) {
-    const store = yield* KeyValueStore.KeyValueStore
-
-    const header = yield* new Header('header')
-    const toolbar = yield* new Toolbar('toolbar')
-    const historyPanel = yield* new HistoryPanel('historyPanel')
-    const errorDialog = yield* new ErrorDialog('errorDialog')
-    const gridSizeConfirmDialog = yield* new GridSizeConfirmDialog(
-      'gridSizeConfirmDialog',
-    )
-
-    return {
-      model: {
-        grid: Option.match(flags.maybeSavedCanvas, {
-          onNone: () => createEmptyGrid(DEFAULT_GRID_SIZE),
-          onSome: savedCanvas => savedCanvas.grid,
-        }),
-        undoStack: [],
-        redoStack: [],
-        selectedColorIndex: Option.match(flags.maybeSavedCanvas, {
-          onNone: () => DEFAULT_COLOR_INDEX,
-          onSome: savedCanvas => savedCanvas.selectedColorIndex,
-        }),
-        gridSize: Option.match(flags.maybeSavedCanvas, {
-          onNone: () => DEFAULT_GRID_SIZE,
-          onSome: savedCanvas => savedCanvas.gridSize,
-        }),
-        tool: 'Brush',
-        mirrorMode: 'None',
-        isDrawing: false,
-        maybeHoveredCell: Option.none(),
-        paletteThemeIndex: Option.match(flags.maybeSavedCanvas, {
-          onNone: () => DEFAULT_PALETTE_THEME_INDEX,
-          onSome: savedCanvas => savedCanvas.paletteThemeIndex,
-        }),
-        header,
-        toolbar,
-        historyPanel,
-        errorDialog,
-        gridSizeConfirmDialog,
-      },
-
-      stream: keyPresses,
-
-      subscriptions: { mouseReleases },
-
-      update: {
-        ...canvasUpdate,
-
-        SelectedGridSize: (model, { size }) =>
-          requestGridSizeChangeStep(model, size),
-
-        FailedExportPng: (model, { error }) => ({
-          model,
-          messages: [
-            model.errorDialog.send(
-              ErrorDialog.Message.RequestedShowError({ error }),
-            ),
-          ],
-        }),
-
-        ...header.on({ ClickedExport: exportStep }),
-
-        ...toolbar.on({
-          SelectedTool: (model, { tool }) => selectToolStep(model, tool),
-          SelectedGridSize: (model, { size }) =>
-            requestGridSizeChangeStep(model, size),
-          SelectedColor: (model, { colorIndex }) =>
-            selectColorStep(model, colorIndex),
-          SelectedPaletteTheme: (model, { themeIndex }) =>
-            selectPaletteThemeStep(model, themeIndex),
-          ToggledMirrorHorizontal: toggleMirrorHorizontalStep,
-          ToggledMirrorVertical: toggleMirrorVerticalStep,
-          ClickedClear: clearCanvasStep,
-        }),
-
-        ...historyPanel.on({
-          ClickedUndo: canvasUpdate.ClickedUndo,
-          ClickedRedo: canvasUpdate.ClickedRedo,
-          ClickedHistoryStep: (model, { stepIndex }) =>
-            restoreHistoryStep(model, stepIndex),
-          ClickedRedoStep: (model, { stepIndex }) =>
-            restoreRedoStep(model, stepIndex),
-        }),
-
-        ...gridSizeConfirmDialog.on({
-          ConfirmedGridSizeChange: (model, { size }) => {
-            const nextModel = applyGridSizeChange(model, size)
-
-            return { model: nextModel, commands: [saveCanvas(nextModel)] }
-          },
-        }),
-      },
-
-      commands: {
-        SaveCanvas: canvas => writeCanvas(store, canvas),
-        ExportPng: exportPng,
-      },
-
-      view: (model, h) => ({
-        title: 'Pixel Art',
-        body: h.div(
-          [h.Class('min-h-screen bg-gray-900 text-gray-100 flex flex-col')],
-          [
-            lazyHeader(headerView, [model.header]),
-            contentView(model, h),
-            lazyErrorDialog(errorDialogView, [model.errorDialog]),
-            lazyGridSizeConfirmDialog(gridSizeConfirmDialogView, [
-              model.gridSizeConfirmDialog,
-            ]),
-          ],
-        ),
-      }),
-    }
-  }),
-)

@@ -50,13 +50,6 @@ export class WorkHistory extends Block<WorkHistory, WorkHistoryArgs>()(
   },
 ) {}
 
-export const workHistoryHasErrors = (model: Model): boolean =>
-  Array.some(model.entries, entry => workHistoryEntryHasErrors(entry.model))
-
-export const isWorkHistoryComplete = (model: Model): boolean =>
-  Array.isReadonlyArrayNonEmpty(model.entries) &&
-  Array.every(model.entries, entry => isWorkHistoryEntryComplete(entry.model))
-
 export const WorkHistoryLive = WorkHistory.make(
   Effect.fn(function* (_id, { today, initialEntryId }) {
     const crypto = yield* Crypto.Crypto
@@ -150,3 +143,10 @@ export const WorkHistoryLive = WorkHistory.make(
     }
   }),
 ).pipe(Layer.provide(WorkHistoryEntryLive))
+
+export const workHistoryHasErrors = (model: Model): boolean =>
+  Array.some(model.entries, entry => workHistoryEntryHasErrors(entry.model))
+
+export const isWorkHistoryComplete = (model: Model): boolean =>
+  Array.isReadonlyArrayNonEmpty(model.entries) &&
+  Array.every(model.entries, entry => isWorkHistoryEntryComplete(entry.model))

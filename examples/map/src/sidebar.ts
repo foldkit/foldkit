@@ -47,6 +47,107 @@ export class Sidebar extends Block<Sidebar, void, ViewInput>()('Sidebar', {
   Command: [FocusSearchInput],
 }) {}
 
+export const SidebarLive = Sidebar.make(
+  Effect.fn(function* () {
+    return {
+      model: { searchQuery: '' },
+
+      start: [FocusSearchInput()],
+
+      update: {
+        UpdatedSearchQuery: (model, { value }) => ({
+          model: modifyFields(model, {
+            searchQuery: () => value,
+          }),
+        }),
+
+        ClickedLocation: (model, { locationId }) => ({
+          model,
+          outMessage: OutMessage.SelectedLocation({ locationId }),
+        }),
+
+        ClickedFindMe: model => ({
+          model,
+          outMessage: OutMessage.RequestedGeolocate(),
+        }),
+
+        CompletedFocusSearchInput: model => ({ model }),
+      },
+
+      commands: {
+        FocusSearchInput: () =>
+          Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
+            Effect.ignore,
+            Effect.as(Message.CompletedFocusSearchInput()),
+          ),
+      },
+
+      view: (model, h, input) => {
+        const visible = filterLocations(input.locations, model.searchQuery)
+
+        return h.aside(
+          [
+            h.Class(
+              'w-80 shrink-0 border-r border-slate-200 bg-white flex flex-col h-full',
+            ),
+          ],
+          [
+            h.header(
+              [h.Class('px-5 py-4 border-b border-slate-200')],
+              [
+                h.h1(
+                  [h.Class('text-lg font-semibold tracking-tight')],
+                  ['Foldkit Map'],
+                ),
+                h.p(
+                  [h.Class('text-xs text-slate-500 mt-1')],
+                  ['Pan, zoom, and click a marker.'],
+                ),
+              ],
+            ),
+            h.div(
+              [h.Class('px-5 py-3 border-b border-slate-200')],
+              [
+                Input.view(
+                  {
+                    id: SEARCH_INPUT_ID,
+                    type: 'search',
+                    value: model.searchQuery,
+                    placeholder: 'Filter locations',
+                    onInput: value => Message.UpdatedSearchQuery({ value }),
+                    toView: attributes =>
+                      h.input([
+                        ...attributes.input,
+                        h.AriaLabel('Filter locations'),
+                        h.Class(
+                          'w-full px-3 py-2 text-sm rounded-md border border-slate-300 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200',
+                        ),
+                      ]),
+                  },
+                  h,
+                ),
+              ],
+            ),
+            h.ul(
+              [h.Class('flex-1 overflow-y-auto'), h.AriaLabel('Locations')],
+              Array.match(visible, {
+                onEmpty: () => [emptyListView(model.searchQuery, h)],
+                onNonEmpty: Array.map(location =>
+                  locationListItemView(input.maybeSelectedLocationId)(
+                    location,
+                    h,
+                  ),
+                ),
+              }),
+            ),
+            footerView(input, h),
+          ],
+        )
+      },
+    }
+  }),
+)
+
 type SidebarViewBuilder = HtmlBuilder<Message>
 
 const filterLocations = (
@@ -149,104 +250,3 @@ const footerView = (
       }),
     ],
   )
-
-export const SidebarLive = Sidebar.make(
-  Effect.fn(function* () {
-    return {
-      model: { searchQuery: '' },
-
-      start: [FocusSearchInput()],
-
-      update: {
-        UpdatedSearchQuery: (model, { value }) => ({
-          model: modifyFields(model, {
-            searchQuery: () => value,
-          }),
-        }),
-
-        ClickedLocation: (model, { locationId }) => ({
-          model,
-          outMessage: OutMessage.SelectedLocation({ locationId }),
-        }),
-
-        ClickedFindMe: model => ({
-          model,
-          outMessage: OutMessage.RequestedGeolocate(),
-        }),
-
-        CompletedFocusSearchInput: model => ({ model }),
-      },
-
-      commands: {
-        FocusSearchInput: () =>
-          Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
-            Effect.ignore,
-            Effect.as(Message.CompletedFocusSearchInput()),
-          ),
-      },
-
-      view: (model, h, input) => {
-        const visible = filterLocations(input.locations, model.searchQuery)
-
-        return h.aside(
-          [
-            h.Class(
-              'w-80 shrink-0 border-r border-slate-200 bg-white flex flex-col h-full',
-            ),
-          ],
-          [
-            h.header(
-              [h.Class('px-5 py-4 border-b border-slate-200')],
-              [
-                h.h1(
-                  [h.Class('text-lg font-semibold tracking-tight')],
-                  ['Foldkit Map'],
-                ),
-                h.p(
-                  [h.Class('text-xs text-slate-500 mt-1')],
-                  ['Pan, zoom, and click a marker.'],
-                ),
-              ],
-            ),
-            h.div(
-              [h.Class('px-5 py-3 border-b border-slate-200')],
-              [
-                Input.view(
-                  {
-                    id: SEARCH_INPUT_ID,
-                    type: 'search',
-                    value: model.searchQuery,
-                    placeholder: 'Filter locations',
-                    onInput: value => Message.UpdatedSearchQuery({ value }),
-                    toView: attributes =>
-                      h.input([
-                        ...attributes.input,
-                        h.AriaLabel('Filter locations'),
-                        h.Class(
-                          'w-full px-3 py-2 text-sm rounded-md border border-slate-300 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200',
-                        ),
-                      ]),
-                  },
-                  h,
-                ),
-              ],
-            ),
-            h.ul(
-              [h.Class('flex-1 overflow-y-auto'), h.AriaLabel('Locations')],
-              Array.match(visible, {
-                onEmpty: () => [emptyListView(model.searchQuery, h)],
-                onNonEmpty: Array.map(location =>
-                  locationListItemView(input.maybeSelectedLocationId)(
-                    location,
-                    h,
-                  ),
-                ),
-              }),
-            ),
-            footerView(input, h),
-          ],
-        )
-      },
-    }
-  }),
-)

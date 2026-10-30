@@ -30,6 +30,45 @@ export class DatePickerPage extends Block<
   Readonly<{ today: CalendarDate }>
 >()('DatePickerPage', { Model }) {}
 
+export const DatePickerPageLive = DatePickerPage.make(
+  Effect.fn(function* (_id, { today }) {
+    const datePickerBasicDemo = yield* new DatePicker.DatePicker(
+      'datePickerBasicDemo',
+      {
+        id: 'date-picker-basic-demo',
+        today,
+        minDate: FoldkitCalendar.subtractYears(today, 1),
+        maxDate: FoldkitCalendar.addYears(today, 1),
+      },
+    )
+
+    return {
+      model: {
+        datePickerBasicDemo,
+        maybeDatePickerBasicDemoSelectedDate: Option.none(),
+      },
+
+      update: {
+        ...datePickerBasicDemo.on({
+          SelectedDate: (model, { date }) => ({
+            model: modifyFields(model, {
+              maybeDatePickerBasicDemoSelectedDate: () => Option.some(date),
+            }),
+          }),
+          ClearedDate: model => ({
+            model: modifyFields(model, {
+              maybeDatePickerBasicDemoSelectedDate: () => Option.none(),
+            }),
+          }),
+          ChangedViewMonth: model => ({ model }),
+        }),
+      },
+
+      view,
+    }
+  }),
+).pipe(Layer.provide(DatePicker.DatePickerLive))
+
 const triggerClassName =
   'inline-flex items-center justify-between gap-2 min-w-48 px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
 
@@ -259,42 +298,3 @@ const view = (model: Model, h: HtmlBuilder<never>): Html => {
     ],
   )
 }
-
-export const DatePickerPageLive = DatePickerPage.make(
-  Effect.fn(function* (_id, { today }) {
-    const datePickerBasicDemo = yield* new DatePicker.DatePicker(
-      'datePickerBasicDemo',
-      {
-        id: 'date-picker-basic-demo',
-        today,
-        minDate: FoldkitCalendar.subtractYears(today, 1),
-        maxDate: FoldkitCalendar.addYears(today, 1),
-      },
-    )
-
-    return {
-      model: {
-        datePickerBasicDemo,
-        maybeDatePickerBasicDemoSelectedDate: Option.none(),
-      },
-
-      update: {
-        ...datePickerBasicDemo.on({
-          SelectedDate: (model, { date }) => ({
-            model: modifyFields(model, {
-              maybeDatePickerBasicDemoSelectedDate: () => Option.some(date),
-            }),
-          }),
-          ClearedDate: model => ({
-            model: modifyFields(model, {
-              maybeDatePickerBasicDemoSelectedDate: () => Option.none(),
-            }),
-          }),
-          ChangedViewMonth: model => ({ model }),
-        }),
-      },
-
-      view,
-    }
-  }),
-).pipe(Layer.provide(DatePicker.DatePickerLive))

@@ -80,6 +80,68 @@ export class Application extends Block<Application>()('Application', {
   Command: [GenerateBall],
 }) {}
 
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    return {
+      model: { balls: [], nextId: 0, isRunning: true },
+
+      update: {
+        TickedFrame: (model, { deltaTime }) => ({
+          model: modifyFields(model, {
+            balls: Array.map(advanceBall(deltaTime / MS_PER_SECOND)),
+          }),
+        }),
+
+        ClickedCanvas: (model, { x, y }) => ({
+          model,
+          commands: [GenerateBall({ x, y })],
+        }),
+
+        CompletedGenerateBall: (model, { x, y, vx, vy, radius, color }) => ({
+          model: modifyFields(model, {
+            balls: Array.append({
+              id: model.nextId,
+              x,
+              y,
+              vx,
+              vy,
+              radius,
+              color,
+            }),
+            nextId: Number.increment,
+          }),
+        }),
+
+        ClickedClear: model => ({
+          model: modifyFields(model, { balls: () => [] }),
+        }),
+
+        ClickedTogglePlay: model => ({
+          model: modifyFields(model, { isRunning: running => !running }),
+        }),
+      },
+
+      commands: {
+        GenerateBall: generateBall,
+      },
+
+      subscriptions: {
+        animationFrameTicks: {
+          dependencies: model => model.isRunning,
+          stream: (isActive: boolean) =>
+            isActive
+              ? Dom.animationFrameTicks.pipe(
+                  Stream.map(deltaTime => Message.TickedFrame({ deltaTime })),
+                )
+              : Stream.empty,
+        },
+      },
+
+      view,
+    }
+  }),
+)
+
 const generateBall = ({ x, y }: Readonly<{ x: number; y: number }>) =>
   Effect.gen(function* () {
     const angle = yield* Random.nextBetween(0, FULL_CIRCLE_RADIANS)
@@ -220,65 +282,3 @@ const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
     ],
   ),
 })
-
-export const ApplicationLive = Application.make(
-  Effect.fn(function* () {
-    return {
-      model: { balls: [], nextId: 0, isRunning: true },
-
-      update: {
-        TickedFrame: (model, { deltaTime }) => ({
-          model: modifyFields(model, {
-            balls: Array.map(advanceBall(deltaTime / MS_PER_SECOND)),
-          }),
-        }),
-
-        ClickedCanvas: (model, { x, y }) => ({
-          model,
-          commands: [GenerateBall({ x, y })],
-        }),
-
-        CompletedGenerateBall: (model, { x, y, vx, vy, radius, color }) => ({
-          model: modifyFields(model, {
-            balls: Array.append({
-              id: model.nextId,
-              x,
-              y,
-              vx,
-              vy,
-              radius,
-              color,
-            }),
-            nextId: Number.increment,
-          }),
-        }),
-
-        ClickedClear: model => ({
-          model: modifyFields(model, { balls: () => [] }),
-        }),
-
-        ClickedTogglePlay: model => ({
-          model: modifyFields(model, { isRunning: running => !running }),
-        }),
-      },
-
-      commands: {
-        GenerateBall: generateBall,
-      },
-
-      subscriptions: {
-        animationFrameTicks: {
-          dependencies: model => model.isRunning,
-          stream: (isActive: boolean) =>
-            isActive
-              ? Dom.animationFrameTicks.pipe(
-                  Stream.map(deltaTime => Message.TickedFrame({ deltaTime })),
-                )
-              : Stream.empty,
-        },
-      },
-
-      view,
-    }
-  }),
-)

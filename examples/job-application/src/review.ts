@@ -77,6 +77,84 @@ export class Review extends Block<Review, void, ReviewViewInput>()('Review', {
   Command: [SubmitApplication],
 }) {}
 
+export const ReviewLive = Review.make(
+  Effect.fn(function* () {
+    return {
+      model: {
+        submission: Submission.NotSubmitted(),
+        isSubmitAttempted: false,
+      },
+
+      update: {
+        ClickedSubmit: model => ({
+          model,
+          outMessage: OutMessage.AttemptedSubmit(),
+        }),
+
+        RequestedSubmit: (model, { isApplicationComplete }) => {
+          if (isApplicationComplete) {
+            return {
+              model: modifyFields(model, {
+                isSubmitAttempted: () => true,
+                submission: () => Submission.Submitting(),
+              }),
+              commands: [SubmitApplication()],
+            }
+          } else {
+            return {
+              model: modifyFields(model, { isSubmitAttempted: () => true }),
+            }
+          }
+        },
+
+        SucceededSubmitApplication: model => ({
+          model: modifyFields(model, {
+            submission: () => Submission.SubmitSuccess(),
+          }),
+        }),
+
+        FailedSubmitApplication: (model, { error }) => ({
+          model: modifyFields(model, {
+            submission: () => Submission.SubmitError({ error }),
+          }),
+        }),
+      },
+
+      commands: {
+        SubmitApplication: submitApplication,
+      },
+
+      view: (model, h, input) => {
+        const { personalInfo, attentionSteps, isApplicationComplete } = input
+
+        const pronounLabel = Option.match(personalInfo.maybeSelectedPronoun, {
+          onNone: () => '',
+          onSome: value =>
+            value === 'Other' ? personalInfo.customPronouns : value,
+        })
+
+        return h.div(
+          [h.Class('space-y-4')],
+          [
+            personalInfoSection(personalInfo, pronounLabel, h),
+            workHistorySection(input.workHistory, h),
+            educationSection(input.education, h),
+            skillsSection(input.skills, h),
+            coverLetterSection(input.coverLetter, h),
+            attachmentsSection(input.attachments, h),
+            submissionSection(
+              model.submission,
+              model.isSubmitAttempted && !isApplicationComplete,
+              attentionSteps,
+              h,
+            ),
+          ],
+        )
+      },
+    }
+  }),
+)
+
 const FAKE_SUBMIT_DELAY_MS = 1500
 
 const submitApplication = () =>
@@ -419,81 +497,3 @@ const submissionSection = (
         ],
       ),
   })
-
-export const ReviewLive = Review.make(
-  Effect.fn(function* () {
-    return {
-      model: {
-        submission: Submission.NotSubmitted(),
-        isSubmitAttempted: false,
-      },
-
-      update: {
-        ClickedSubmit: model => ({
-          model,
-          outMessage: OutMessage.AttemptedSubmit(),
-        }),
-
-        RequestedSubmit: (model, { isApplicationComplete }) => {
-          if (isApplicationComplete) {
-            return {
-              model: modifyFields(model, {
-                isSubmitAttempted: () => true,
-                submission: () => Submission.Submitting(),
-              }),
-              commands: [SubmitApplication()],
-            }
-          } else {
-            return {
-              model: modifyFields(model, { isSubmitAttempted: () => true }),
-            }
-          }
-        },
-
-        SucceededSubmitApplication: model => ({
-          model: modifyFields(model, {
-            submission: () => Submission.SubmitSuccess(),
-          }),
-        }),
-
-        FailedSubmitApplication: (model, { error }) => ({
-          model: modifyFields(model, {
-            submission: () => Submission.SubmitError({ error }),
-          }),
-        }),
-      },
-
-      commands: {
-        SubmitApplication: submitApplication,
-      },
-
-      view: (model, h, input) => {
-        const { personalInfo, attentionSteps, isApplicationComplete } = input
-
-        const pronounLabel = Option.match(personalInfo.maybeSelectedPronoun, {
-          onNone: () => '',
-          onSome: value =>
-            value === 'Other' ? personalInfo.customPronouns : value,
-        })
-
-        return h.div(
-          [h.Class('space-y-4')],
-          [
-            personalInfoSection(personalInfo, pronounLabel, h),
-            workHistorySection(input.workHistory, h),
-            educationSection(input.education, h),
-            skillsSection(input.skills, h),
-            coverLetterSection(input.coverLetter, h),
-            attachmentsSection(input.attachments, h),
-            submissionSection(
-              model.submission,
-              model.isSubmitAttempted && !isApplicationComplete,
-              attentionSteps,
-              h,
-            ),
-          ],
-        )
-      },
-    }
-  }),
-)

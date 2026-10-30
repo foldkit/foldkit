@@ -148,6 +148,52 @@ export class Application extends Block<Application, Readonly<{ url: Url }>>()(
   },
 ) {}
 
+export const ApplicationLive = Application.make(
+  Effect.fn(function* (_id, { url }) {
+    return {
+      model: { route: urlToApplicationRoute(url), filterText: '' },
+
+      update: {
+        CompletedNavigateInternal: model => ({ model }),
+        CompletedLoadExternal: model => ({ model }),
+
+        ClickedLink: (model, { request }) =>
+          UrlRequest.match(request, {
+            Internal: ({ url: internalUrl }) => ({
+              model,
+              commands: [NavigateInternal({ url: urlToString(internalUrl) })],
+            }),
+            External: ({ href }) => ({
+              model,
+              commands: [LoadExternal({ href })],
+            }),
+          }),
+
+        ChangedUrl: (model, { url: nextUrl }) => ({
+          model: modifyFields(model, {
+            route: () => urlToApplicationRoute(nextUrl),
+          }),
+        }),
+
+        UpdatedFilterText: (model, { filterText }) => ({
+          model: modifyFields(model, { filterText: () => filterText }),
+        }),
+      },
+
+      commands: {
+        NavigateInternal: ({ url: internalUrl }) =>
+          pushUrl(internalUrl).pipe(
+            Effect.as(Message.CompletedNavigateInternal()),
+          ),
+        LoadExternal: ({ href }) =>
+          load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+      },
+
+      view,
+    }
+  }),
+)
+
 type ApplicationViewBuilder = HtmlBuilder<Message>
 
 // NOTE: every arm past the guard is a navigation, so none return `false`.
@@ -429,49 +475,3 @@ const view = (model: Model, h: ApplicationViewBuilder): Document => {
     ),
   }
 }
-
-export const ApplicationLive = Application.make(
-  Effect.fn(function* (_id, { url }) {
-    return {
-      model: { route: urlToApplicationRoute(url), filterText: '' },
-
-      update: {
-        CompletedNavigateInternal: model => ({ model }),
-        CompletedLoadExternal: model => ({ model }),
-
-        ClickedLink: (model, { request }) =>
-          UrlRequest.match(request, {
-            Internal: ({ url: internalUrl }) => ({
-              model,
-              commands: [NavigateInternal({ url: urlToString(internalUrl) })],
-            }),
-            External: ({ href }) => ({
-              model,
-              commands: [LoadExternal({ href })],
-            }),
-          }),
-
-        ChangedUrl: (model, { url: nextUrl }) => ({
-          model: modifyFields(model, {
-            route: () => urlToApplicationRoute(nextUrl),
-          }),
-        }),
-
-        UpdatedFilterText: (model, { filterText }) => ({
-          model: modifyFields(model, { filterText: () => filterText }),
-        }),
-      },
-
-      commands: {
-        NavigateInternal: ({ url: internalUrl }) =>
-          pushUrl(internalUrl).pipe(
-            Effect.as(Message.CompletedNavigateInternal()),
-          ),
-        LoadExternal: ({ href }) =>
-          load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
-      },
-
-      view,
-    }
-  }),
-)

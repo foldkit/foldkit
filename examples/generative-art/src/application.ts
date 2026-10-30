@@ -160,6 +160,138 @@ export class Application extends Block<Application>()('Application', {
   Command: [GenerateAmbientParticle, GenerateBurstParticle],
 }) {}
 
+// LIVE
+
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    const controls = yield* new Controls('controls')
+
+    return {
+      model: {
+        particles: [],
+        nextId: 0,
+        elapsedSeconds: 0,
+        maybeMousePosition: Option.none(),
+        isRunning: true,
+        controls,
+      },
+
+      start: Array.makeBy(INITIAL_PARTICLE_COUNT, () =>
+        GenerateAmbientParticle(),
+      ),
+
+      update: {
+        TickedFrame: (model, { deltaTimeMs }) => {
+          const deltaSeconds = cappedDeltaSeconds(deltaTimeMs)
+          const nextElapsedSeconds = model.elapsedSeconds + deltaSeconds
+          const { flowStrength, noiseScale } = model.controls.model
+          const advancedParticles = Array.filterMap(
+            model.particles,
+            advanceParticle(
+              deltaSeconds,
+              nextElapsedSeconds,
+              flowStrength,
+              noiseScale,
+              model.maybeMousePosition,
+            ),
+          )
+          const nextModel = modifyFields(model, {
+            particles: () => advancedParticles,
+            elapsedSeconds: () => nextElapsedSeconds,
+          })
+          return {
+            model: nextModel,
+            commands: spawnAmbientParticles(advancedParticles.length),
+          }
+        },
+
+        CompletedGenerateAmbientParticle: appendGeneratedParticle,
+
+        CompletedGenerateBurstParticle: appendGeneratedParticle,
+
+        PressedCanvas: (model, { x, y }) => ({
+          model,
+          commands: spawnBurstParticles(
+            x,
+            y,
+            computeBurstHueAnchor(model.elapsedSeconds),
+          ),
+        }),
+
+        MovedPointer: (model, { x, y }) => ({
+          model: modifyFields(model, {
+            maybeMousePosition: () => Option.some(Point.make({ x, y })),
+          }),
+        }),
+
+        ...controls.on({
+          RequestedTogglePlay: (model: Model) => ({
+            model: modifyFields(model, { isRunning: isRunning => !isRunning }),
+          }),
+          RequestedReset: (model: Model) => ({
+            model: modifyFields(model, {
+              particles: () => [],
+              maybeMousePosition: () => Option.none(),
+            }),
+          }),
+        }),
+      },
+
+      commands: {
+        GenerateAmbientParticle: generateAmbientParticle,
+        GenerateBurstParticle: generateBurstParticle,
+      },
+
+      subscriptions: {
+        animationFrameTicks: {
+          dependencies: model => model.isRunning,
+          stream: (isRunning: boolean) =>
+            isRunning
+              ? Dom.animationFrameTicks.pipe(
+                  Stream.map(deltaTimeMs =>
+                    Message.TickedFrame({ deltaTimeMs }),
+                  ),
+                )
+              : Stream.empty,
+        },
+      },
+
+      view: (model, h) => ({
+        title: `Prism Field · ${model.particles.length} particles`,
+        body: h.div(
+          [
+            h.Class(
+              'flex flex-col items-center justify-center min-h-screen p-8 ' +
+                'bg-[radial-gradient(ellipse_at_top,_#1a0a2c_0%,_#04010a_55%,_#000_100%)] ' +
+                'text-white font-mono select-none',
+            ),
+          ],
+          [
+            headerView(h),
+            Canvas.view(
+              {
+                width: CANVAS_WIDTH,
+                height: CANVAS_HEIGHT,
+                shapes: sceneShapes(model),
+                className:
+                  'rounded-2xl shadow-[0_0_120px_rgba(80,30,140,0.35)] ' +
+                  'border border-white/10 cursor-crosshair',
+                onPointerDown: ({ x, y }) => Message.PressedCanvas({ x, y }),
+                onPointerMove: ({ x, y }) => Message.MovedPointer({ x, y }),
+              },
+              h,
+            ),
+            model.controls.view({
+              isRunning: model.isRunning,
+              particleCount: model.particles.length,
+            }),
+          ],
+        ),
+      }),
+    }
+  }),
+)
+
 type ApplicationViewBuilder = HtmlBuilder<Message>
 
 // NOISE
@@ -764,135 +896,3 @@ const headerView = (h: ApplicationViewBuilder): Html =>
       ),
     ],
   )
-
-// EFFECTS LAYER
-
-export const ApplicationLive = Application.make(
-  Effect.fn(function* () {
-    const controls = yield* new Controls('controls')
-
-    return {
-      model: {
-        particles: [],
-        nextId: 0,
-        elapsedSeconds: 0,
-        maybeMousePosition: Option.none(),
-        isRunning: true,
-        controls,
-      },
-
-      start: Array.makeBy(INITIAL_PARTICLE_COUNT, () =>
-        GenerateAmbientParticle(),
-      ),
-
-      update: {
-        TickedFrame: (model, { deltaTimeMs }) => {
-          const deltaSeconds = cappedDeltaSeconds(deltaTimeMs)
-          const nextElapsedSeconds = model.elapsedSeconds + deltaSeconds
-          const { flowStrength, noiseScale } = model.controls.model
-          const advancedParticles = Array.filterMap(
-            model.particles,
-            advanceParticle(
-              deltaSeconds,
-              nextElapsedSeconds,
-              flowStrength,
-              noiseScale,
-              model.maybeMousePosition,
-            ),
-          )
-          const nextModel = modifyFields(model, {
-            particles: () => advancedParticles,
-            elapsedSeconds: () => nextElapsedSeconds,
-          })
-          return {
-            model: nextModel,
-            commands: spawnAmbientParticles(advancedParticles.length),
-          }
-        },
-
-        CompletedGenerateAmbientParticle: appendGeneratedParticle,
-
-        CompletedGenerateBurstParticle: appendGeneratedParticle,
-
-        PressedCanvas: (model, { x, y }) => ({
-          model,
-          commands: spawnBurstParticles(
-            x,
-            y,
-            computeBurstHueAnchor(model.elapsedSeconds),
-          ),
-        }),
-
-        MovedPointer: (model, { x, y }) => ({
-          model: modifyFields(model, {
-            maybeMousePosition: () => Option.some(Point.make({ x, y })),
-          }),
-        }),
-
-        ...controls.on({
-          RequestedTogglePlay: (model: Model) => ({
-            model: modifyFields(model, { isRunning: isRunning => !isRunning }),
-          }),
-          RequestedReset: (model: Model) => ({
-            model: modifyFields(model, {
-              particles: () => [],
-              maybeMousePosition: () => Option.none(),
-            }),
-          }),
-        }),
-      },
-
-      commands: {
-        GenerateAmbientParticle: generateAmbientParticle,
-        GenerateBurstParticle: generateBurstParticle,
-      },
-
-      subscriptions: {
-        animationFrameTicks: {
-          dependencies: model => model.isRunning,
-          stream: (isRunning: boolean) =>
-            isRunning
-              ? Dom.animationFrameTicks.pipe(
-                  Stream.map(deltaTimeMs =>
-                    Message.TickedFrame({ deltaTimeMs }),
-                  ),
-                )
-              : Stream.empty,
-        },
-      },
-
-      view: (model, h) => ({
-        title: `Prism Field · ${model.particles.length} particles`,
-        body: h.div(
-          [
-            h.Class(
-              'flex flex-col items-center justify-center min-h-screen p-8 ' +
-                'bg-[radial-gradient(ellipse_at_top,_#1a0a2c_0%,_#04010a_55%,_#000_100%)] ' +
-                'text-white font-mono select-none',
-            ),
-          ],
-          [
-            headerView(h),
-            Canvas.view(
-              {
-                width: CANVAS_WIDTH,
-                height: CANVAS_HEIGHT,
-                shapes: sceneShapes(model),
-                className:
-                  'rounded-2xl shadow-[0_0_120px_rgba(80,30,140,0.35)] ' +
-                  'border border-white/10 cursor-crosshair',
-                onPointerDown: ({ x, y }) => Message.PressedCanvas({ x, y }),
-                onPointerMove: ({ x, y }) => Message.MovedPointer({ x, y }),
-              },
-              h,
-            ),
-            model.controls.view({
-              isRunning: model.isRunning,
-              particleCount: model.particles.length,
-            }),
-          ],
-        ),
-      }),
-    }
-  }),
-)

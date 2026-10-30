@@ -55,16 +55,6 @@ export class Application extends Block<
   Command: [PersistCount],
 }) {}
 
-type ApplicationViewBuilder = HtmlBuilder<Message>
-
-const persistCount = (count: number) =>
-  Effect.try(() => {
-    document.cookie = `${COUNT_COOKIE}=${count}; path=/; max-age=${COUNT_COOKIE_MAX_AGE_SECONDS}`
-  }).pipe(
-    Effect.map(() => Message.CompletedPersistCount()),
-    Effect.catch(() => Effect.succeed(Message.CompletedPersistCount())),
-  )
-
 export const ApplicationLive = Application.make(
   Effect.fn(function* (_id, { flags }) {
     return {
@@ -158,6 +148,16 @@ export const ApplicationLive = Application.make(
     }
   }),
 )
+
+type ApplicationViewBuilder = HtmlBuilder<Message>
+
+const persistCount = (count: number) =>
+  Effect.try(() => {
+    document.cookie = `${COUNT_COOKIE}=${count}; path=/; max-age=${COUNT_COOKIE_MAX_AGE_SECONDS}`
+  }).pipe(
+    Effect.map(() => Message.CompletedPersistCount()),
+    Effect.catch(() => Effect.succeed(Message.CompletedPersistCount())),
+  )
 
 // NOTE: elements whose served markup and whose freshly built DOM are easy to
 // get subtly different. A browser gives a later `selected` option ownership

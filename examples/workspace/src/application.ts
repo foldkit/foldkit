@@ -165,6 +165,346 @@ export class Application extends Block<Application, Readonly<{ url: Url }>>()(
   },
 ) {}
 
+export const ApplicationLive = Application.make(
+  Effect.fn(function* (_id, { url }) {
+    const repository = yield* WorkspaceRepository
+    const sidebar = yield* new Sidebar('sidebar')
+    const workspacePage = yield* new WorkspacePage('workspacePage')
+    const memberSwitcher = yield* new MemberSwitcher('memberSwitcher')
+    const issueList = yield* new IssueList('issueList')
+    const createIssue = yield* new CreateIssue('createIssue')
+    const issueMove = yield* new IssueMove('issueMove')
+    const commandPalette = yield* new CommandPalette('commandPalette')
+    const memberDirectory = yield* new MemberDirectory('memberDirectory')
+    const notificationCenter = yield* new NotificationCenter(
+      'notificationCenter',
+    )
+    const workspaceSettings = yield* new WorkspaceSettings('workspaceSettings')
+    const teammateActivity = yield* new TeammateActivity('teammateActivity')
+    const issuePane = yield* new IssuePane('issuePane')
+    const issueBoard = yield* IssueBoard.each('issueBoards')
+    const projectSettings = yield* ProjectSettings.each('projectSettings')
+    const initChildren = initChildrenStep(issueBoard, projectSettings)
+
+    return {
+      model: {
+        route: urlToApplicationRoute(url),
+        workspaceAsyncData: WorkspaceAsyncData.Loading(),
+        sidebar,
+        workspacePage,
+        memberSwitcher,
+        issueList,
+        createIssue,
+        issueBoards: {},
+        issueMove,
+        commandPalette,
+        memberDirectory,
+        notificationCenter,
+        workspaceSettings,
+        teammateActivity,
+        issuePane,
+        maybeNotice: Option.none(),
+        savedViews: [],
+        nextSavedViewId: 1,
+        projectSettings: {},
+      },
+
+      start: [LoadWorkspace()],
+
+      update: {
+        ClickedLink: (model, { request }) => ({
+          model,
+          commands: UrlRequest.match(request, {
+            Internal: ({ url: internalUrl }) => [
+              NavigateInternal({ url: urlToString(internalUrl) }),
+            ],
+            External: ({ href }) => [LoadExternal({ href })],
+          }),
+        }),
+        ChangedUrl: (model, { url: nextUrl }) =>
+          initChildren(
+            modifyFields(model, {
+              route: () => urlToApplicationRoute(nextUrl),
+              maybeNotice: () => Option.none(),
+            }),
+          ),
+        CompletedNavigateInternal: model => ({ model }),
+        CompletedLoadExternal: model => ({ model }),
+        CompletedReplaceInternalUrl: model => ({ model }),
+        SucceededLoadWorkspace: (model, { workspace }) =>
+          combineSteps(model, [
+            applyWorkspaceSnapshotStep(workspace),
+            initChildren,
+            informRetainedIssueDetailsStep,
+          ]),
+        FailedLoadWorkspace: (model, { error }) => ({
+          model: modifyFields(model, {
+            workspaceAsyncData: workspaceAsyncData =>
+              AsyncData.settle(workspaceAsyncData, Result.fail(error)),
+          }),
+        }),
+        TickedActivityStream: requestActivity,
+        ...teammateActivity.on<Model>({
+          AddedComment: (model, { issueId, comment }) =>
+            applyIssueCommentStep(issueId, comment)(model),
+          AssignedIssue: (model, { savedIssue, actorId, createdAt }) => {
+            const isNewAssignment = pipe(
+              findIssue(model, savedIssue.issueId),
+              Option.exists(
+                previousIssue =>
+                  savedIssue.revision.version > previousIssue.version &&
+                  Option.exists(
+                    savedIssue.revision.fields.maybeAssigneeId,
+                    recipientId =>
+                      !Option.contains(
+                        previousIssue.maybeAssigneeId,
+                        recipientId,
+                      ),
+                  ),
+              ),
+            )
+
+            return combineSteps(model, [
+              receiveSavedIssueStep(savedIssue),
+              ...Array.filter(
+                [informAssignmentStep(savedIssue.issueId, actorId, createdAt)],
+                () => isNewAssignment,
+              ),
+            ])
+          },
+        }),
+        ...workspacePage.on<Model>({
+          RequestedRetryLoad: retryLoad,
+        }),
+        ...sidebar.on<Model>({
+          RequestedCommandPalette: model => ({
+            model,
+            messages: [
+              model.commandPalette.send(CommandPalette.Message.RequestedOpen()),
+            ],
+          }),
+          RequestedDeleteSavedView: (model, { viewId }) =>
+            deleteSavedView(model, viewId),
+        }),
+        ...workspaceSettings.on<Model>({
+          RequestedActivity: requestActivity,
+          ScheduledSaveFailure: showNoticeStep(
+            'The next save will fail. Your draft will be kept so you can retry.',
+          ),
+        }),
+        ...createIssue.on<Model>({
+          Created: (model, { issue }) =>
+            openIssue(
+              modifyFields(model, {
+                workspaceAsyncData: AsyncData.map(workspace =>
+                  modifyFields(workspace, { issues: Array.append(issue) }),
+                ),
+                maybeNotice: () => Option.some(`${issue.identifier} created`),
+              }),
+              issue.id,
+            ),
+        }),
+        ...notificationCenter.on<Model>({
+          SelectedIssue: (model, { issueId }) => openIssue(model, issueId),
+        }),
+        ...issuePane.on<Model>({
+          Saved: (model, { savedIssue }) =>
+            combineSteps(model, [
+              applySavedIssueStep(savedIssue),
+              showNoticeStep(`${savedIssue.identifier} saved`),
+            ]),
+          AddedComment: (model, { issueId, comment }) =>
+            applyIssueCommentStep(issueId, comment)(model),
+          ReceivedIssue: (model, { issue }) =>
+            applyIssueSnapshotStep(issue)(model),
+          Closed: closeIssue,
+        }),
+        ...issueList.on<Model>({
+          SavedFilter: (model, { name, filters }) => ({
+            model: modifyFields(model, {
+              savedViews: Array.append(
+                SavedView.make({
+                  id: `view-${model.nextSavedViewId}`,
+                  name,
+                  filters,
+                }),
+              ),
+              nextSavedViewId: Number.increment,
+              maybeNotice: () => Option.some(`Saved view “${name}”`),
+            }),
+          }),
+          ChangedQuery: (model, { query }) => ({
+            model,
+            commands: [
+              ReplaceInternalUrl({
+                url: issueFiltersHref(
+                  model,
+                  modifyFields(appliedIssueFilters(model), {
+                    query: () => query,
+                  }),
+                ),
+              }),
+            ],
+          }),
+          ChangedStatusFilter: (model, { maybeStatus }) =>
+            navigateIssueFilters(model, filters =>
+              modifyFields(filters, { maybeStatus: () => maybeStatus }),
+            ),
+          ChangedSort: (model, { sort }) =>
+            navigateIssueFilters(model, filters =>
+              modifyFields(filters, { sort: () => sort }),
+            ),
+          ChangedGrouping: (model, { groupBy }) =>
+            navigateIssueFilters(model, filters =>
+              modifyFields(filters, { groupBy: () => groupBy }),
+            ),
+          RequestedClearFilters: model =>
+            navigateIssueFilters(model, filters =>
+              modifyFields(filters, {
+                query: () => '',
+                maybeStatus: () => Option.none(),
+              }),
+            ),
+          RequestedCreation: requestCreation,
+        }),
+        ...issueBoard.on<Model>({
+          RequestedCreation: (model, { status }, board) => ({
+            model,
+            messages: [
+              model.createIssue.send(
+                CreateIssue.Message.RequestedOpen({
+                  projectId: board.id,
+                  status,
+                }),
+              ),
+            ],
+          }),
+          RequestedMove: (model, { issueId, status, insertionIndex }) =>
+            requestIssueMoveStep(issueId, status, insertionIndex)(model),
+        }),
+        ...issueMove.on<Model>({
+          Moved: (model, { movedIssue }) =>
+            combineSteps(model, [
+              applyMovedIssueStep(movedIssue),
+              showNoticeStep('Issue moved'),
+              informIssueChangedStep(movedIssue.issueId),
+            ]),
+          FailedMove: (model, { issueId, error }) =>
+            RepositoryError.guards.Conflict(error)
+              ? combineSteps(model, [
+                  receiveIssueSnapshotStep(error.latestIssue),
+                  informBoardMoveFailureStep(issueId),
+                ])
+              : informBoardMoveFailureStep(issueId)(model),
+          RequestedRetry: (model, { issueId, status, insertionIndex }) =>
+            requestIssueMoveStep(issueId, status, insertionIndex)(model),
+        }),
+        ...commandPalette.on<Model>({
+          SelectedIssue: (model, { issueId }) => openIssue(model, issueId),
+          SelectedProject: (model, { projectId }) => ({
+            model,
+            commands: [NavigateInternal({ url: projectRouter({ projectId }) })],
+          }),
+        }),
+        ...projectSettings.on<Model>({
+          Saved: (model, { project }) =>
+            updateWorkspaceStep(workspace =>
+              modifyFields(workspace, {
+                projects: Array.map(currentProject =>
+                  currentProject.id === project.id ? project : currentProject,
+                ),
+              }),
+            )(model),
+        }),
+      },
+
+      commands: {
+        LoadWorkspace: () =>
+          repository.load.pipe(
+            Effect.map(workspace =>
+              Message.SucceededLoadWorkspace({ workspace }),
+            ),
+            Effect.catch(error =>
+              Effect.succeed(
+                Message.FailedLoadWorkspace({ error: error.message }),
+              ),
+            ),
+          ),
+        NavigateInternal: ({ url: internalUrl }) =>
+          pushUrl(internalUrl).pipe(
+            Effect.as(Message.CompletedNavigateInternal()),
+          ),
+        LoadExternal: ({ href }) =>
+          load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+        ReplaceInternalUrl: ({ url: internalUrl }) =>
+          replaceUrl(internalUrl).pipe(
+            Effect.as(Message.CompletedReplaceInternalUrl()),
+          ),
+      },
+
+      subscriptions: {
+        activity: {
+          dependencies: model => AsyncData.hasData(model.workspaceAsyncData),
+          stream: (hasWorkspace: boolean): Stream.Stream<Message> =>
+            hasWorkspace
+              ? Stream.tick(ACTIVITY_TICK_INTERVAL).pipe(
+                  Stream.drop(1),
+                  Stream.map(() => Message.TickedActivityStream()),
+                )
+              : Stream.empty,
+        },
+      },
+
+      view: (model, h) => ({
+        title: documentTitle(
+          model.route,
+          model.savedViews,
+          maybeVisibleWorkspace(model),
+        ),
+        body: h.div(
+          [
+            h.Class(
+              'flex h-dvh flex-col overflow-hidden bg-slate-50 font-sans text-sm font-medium text-slate-700 antialiased lg:flex-row',
+            ),
+          ],
+          [
+            model.sidebar.view({
+              route: model.route,
+              savedViews: model.savedViews,
+              maybeConfirmedWorkspace: AsyncData.getData(
+                model.workspaceAsyncData,
+              ),
+              issueDrafts: unsavedIssueDrafts(model.issuePane.model),
+              toIssueHref: issueId => issueHref(model, issueId),
+            }),
+            workspacePageView(model),
+            overlaysView(model, h),
+          ],
+        ),
+      }),
+    }
+  }),
+).pipe(
+  Layer.provide(
+    Layer.mergeAll(
+      SidebarLive,
+      WorkspacePageLive,
+      MemberSwitcherLive,
+      IssueListLive,
+      CreateIssueLive,
+      IssueMoveLive,
+      CommandPaletteLive,
+      MemberDirectoryLive,
+      NotificationCenterLive,
+      WorkspaceSettingsLive,
+      TeammateActivityLive,
+      IssuePaneLive,
+      IssueBoardLive,
+      ProjectSettingsLive,
+    ),
+  ),
+)
+
 type ApplicationStep = (model: Model) => Readonly<{
   model: Model
   commands?: ReadonlyArray<ApplicationCommand> | undefined
@@ -173,25 +513,11 @@ type ApplicationStep = (model: Model) => Readonly<{
 
 type ApplicationViewBuilder = HtmlBuilder<Message, unknown>
 
-const makeChildren = Effect.gen(function* () {
-  return {
-    sidebar: yield* new Sidebar('sidebar'),
-    workspacePage: yield* new WorkspacePage('workspacePage'),
-    memberSwitcher: yield* new MemberSwitcher('memberSwitcher'),
-    issueList: yield* new IssueList('issueList'),
-    createIssue: yield* new CreateIssue('createIssue'),
-    issueMove: yield* new IssueMove('issueMove'),
-    commandPalette: yield* new CommandPalette('commandPalette'),
-    memberDirectory: yield* new MemberDirectory('memberDirectory'),
-    notificationCenter: yield* new NotificationCenter('notificationCenter'),
-    workspaceSettings: yield* new WorkspaceSettings('workspaceSettings'),
-    teammateActivity: yield* new TeammateActivity('teammateActivity'),
-    issuePane: yield* new IssuePane('issuePane'),
-    issueBoard: yield* IssueBoard.each('issueBoards'),
-    projectSettings: yield* ProjectSettings.each('projectSettings'),
-  }
-})
-type Children = Effect.Success<typeof makeChildren>
+type IssueBoardFactory = (projectId: string) => Model['issueBoards'][string]
+type ProjectSettingsFactory = (
+  projectId: string,
+  args: Readonly<{ project: Project }>,
+) => Model['projectSettings'][string]
 
 // SELECTORS
 
@@ -475,21 +801,21 @@ const informAssignmentStep =
 // NAVIGATION
 
 const initIssueBoardIfMissingStep =
-  (children: Children, project: Project): ApplicationStep =>
+  (issueBoard: IssueBoardFactory, project: Project): ApplicationStep =>
   model =>
     Record.has(model.issueBoards, project.id)
       ? { model }
       : {
           model: modifyFields(model, {
-            issueBoards: Record.set(
-              project.id,
-              children.issueBoard(project.id),
-            ),
+            issueBoards: Record.set(project.id, issueBoard(project.id)),
           }),
         }
 
 const initProjectSettingsIfMissingStep =
-  (children: Children, project: Project): ApplicationStep =>
+  (
+    projectSettings: ProjectSettingsFactory,
+    project: Project,
+  ): ApplicationStep =>
   model =>
     Record.has(model.projectSettings, project.id)
       ? { model }
@@ -497,7 +823,7 @@ const initProjectSettingsIfMissingStep =
           model: modifyFields(model, {
             projectSettings: Record.set(
               project.id,
-              children.projectSettings(project.id, { project }),
+              projectSettings(project.id, { project }),
             ),
           }),
         }
@@ -505,7 +831,10 @@ const initProjectSettingsIfMissingStep =
 const noopStep: ApplicationStep = model => ({ model })
 
 const initChildrenStep =
-  (children: Children): ApplicationStep =>
+  (
+    issueBoard: IssueBoardFactory,
+    projectSettings: ProjectSettingsFactory,
+  ): ApplicationStep =>
   model => {
     const maybeWorkspace = AsyncData.getData(model.workspaceAsyncData)
 
@@ -543,13 +872,13 @@ const initChildrenStep =
         Board: ({ projectId }) =>
           Option.match(findProject(projectId), {
             onNone: () => noopStep,
-            onSome: project => initIssueBoardIfMissingStep(children, project),
+            onSome: project => initIssueBoardIfMissingStep(issueBoard, project),
           }),
         ProjectSettings: ({ projectId }) =>
           Option.match(findProject(projectId), {
             onNone: () => noopStep,
             onSome: project =>
-              initProjectSettingsIfMissingStep(children, project),
+              initProjectSettingsIfMissingStep(projectSettings, project),
           }),
       },
       () => noopStep,
@@ -758,327 +1087,3 @@ const overlaysView = (model: Model, h: ApplicationViewBuilder): Html => {
     ],
   )
 }
-
-// LIVE
-
-const ChildrenLive = Layer.mergeAll(
-  SidebarLive,
-  WorkspacePageLive,
-  MemberSwitcherLive,
-  IssueListLive,
-  CreateIssueLive,
-  IssueMoveLive,
-  CommandPaletteLive,
-  MemberDirectoryLive,
-  NotificationCenterLive,
-  WorkspaceSettingsLive,
-  TeammateActivityLive,
-  IssuePaneLive,
-  IssueBoardLive,
-  ProjectSettingsLive,
-)
-
-export const ApplicationLive = Application.make(
-  Effect.fn(function* (_id, { url }) {
-    const repository = yield* WorkspaceRepository
-    const children = yield* makeChildren
-
-    return {
-      model: {
-        route: urlToApplicationRoute(url),
-        workspaceAsyncData: WorkspaceAsyncData.Loading(),
-        sidebar: children.sidebar,
-        workspacePage: children.workspacePage,
-        memberSwitcher: children.memberSwitcher,
-        issueList: children.issueList,
-        createIssue: children.createIssue,
-        issueBoards: {},
-        issueMove: children.issueMove,
-        commandPalette: children.commandPalette,
-        memberDirectory: children.memberDirectory,
-        notificationCenter: children.notificationCenter,
-        workspaceSettings: children.workspaceSettings,
-        teammateActivity: children.teammateActivity,
-        issuePane: children.issuePane,
-        maybeNotice: Option.none(),
-        savedViews: [],
-        nextSavedViewId: 1,
-        projectSettings: {},
-      },
-
-      start: [LoadWorkspace()],
-
-      update: {
-        ClickedLink: (model, { request }) => ({
-          model,
-          commands: UrlRequest.match(request, {
-            Internal: ({ url: internalUrl }) => [
-              NavigateInternal({ url: urlToString(internalUrl) }),
-            ],
-            External: ({ href }) => [LoadExternal({ href })],
-          }),
-        }),
-        ChangedUrl: (model, { url: nextUrl }) =>
-          initChildrenStep(children)(
-            modifyFields(model, {
-              route: () => urlToApplicationRoute(nextUrl),
-              maybeNotice: () => Option.none(),
-            }),
-          ),
-        CompletedNavigateInternal: model => ({ model }),
-        CompletedLoadExternal: model => ({ model }),
-        CompletedReplaceInternalUrl: model => ({ model }),
-        SucceededLoadWorkspace: (model, { workspace }) =>
-          combineSteps(model, [
-            applyWorkspaceSnapshotStep(workspace),
-            initChildrenStep(children),
-            informRetainedIssueDetailsStep,
-          ]),
-        FailedLoadWorkspace: (model, { error }) => ({
-          model: modifyFields(model, {
-            workspaceAsyncData: workspaceAsyncData =>
-              AsyncData.settle(workspaceAsyncData, Result.fail(error)),
-          }),
-        }),
-        TickedActivityStream: requestActivity,
-        ...children.teammateActivity.on<Model>({
-          AddedComment: (model, { issueId, comment }) =>
-            applyIssueCommentStep(issueId, comment)(model),
-          AssignedIssue: (model, { savedIssue, actorId, createdAt }) => {
-            const isNewAssignment = pipe(
-              findIssue(model, savedIssue.issueId),
-              Option.exists(
-                previousIssue =>
-                  savedIssue.revision.version > previousIssue.version &&
-                  Option.exists(
-                    savedIssue.revision.fields.maybeAssigneeId,
-                    recipientId =>
-                      !Option.contains(
-                        previousIssue.maybeAssigneeId,
-                        recipientId,
-                      ),
-                  ),
-              ),
-            )
-
-            return combineSteps(model, [
-              receiveSavedIssueStep(savedIssue),
-              ...Array.filter(
-                [informAssignmentStep(savedIssue.issueId, actorId, createdAt)],
-                () => isNewAssignment,
-              ),
-            ])
-          },
-        }),
-        ...children.workspacePage.on<Model>({
-          RequestedRetryLoad: retryLoad,
-        }),
-        ...children.sidebar.on<Model>({
-          RequestedCommandPalette: model => ({
-            model,
-            messages: [
-              model.commandPalette.send(CommandPalette.Message.RequestedOpen()),
-            ],
-          }),
-          RequestedDeleteSavedView: (model, { viewId }) =>
-            deleteSavedView(model, viewId),
-        }),
-        ...children.workspaceSettings.on<Model>({
-          RequestedActivity: requestActivity,
-          ScheduledSaveFailure: showNoticeStep(
-            'The next save will fail. Your draft will be kept so you can retry.',
-          ),
-        }),
-        ...children.createIssue.on<Model>({
-          Created: (model, { issue }) =>
-            openIssue(
-              modifyFields(model, {
-                workspaceAsyncData: AsyncData.map(workspace =>
-                  modifyFields(workspace, { issues: Array.append(issue) }),
-                ),
-                maybeNotice: () => Option.some(`${issue.identifier} created`),
-              }),
-              issue.id,
-            ),
-        }),
-        ...children.notificationCenter.on<Model>({
-          SelectedIssue: (model, { issueId }) => openIssue(model, issueId),
-        }),
-        ...children.issuePane.on<Model>({
-          Saved: (model, { savedIssue }) =>
-            combineSteps(model, [
-              applySavedIssueStep(savedIssue),
-              showNoticeStep(`${savedIssue.identifier} saved`),
-            ]),
-          AddedComment: (model, { issueId, comment }) =>
-            applyIssueCommentStep(issueId, comment)(model),
-          ReceivedIssue: (model, { issue }) =>
-            applyIssueSnapshotStep(issue)(model),
-          Closed: closeIssue,
-        }),
-        ...children.issueList.on<Model>({
-          SavedFilter: (model, { name, filters }) => ({
-            model: modifyFields(model, {
-              savedViews: Array.append(
-                SavedView.make({
-                  id: `view-${model.nextSavedViewId}`,
-                  name,
-                  filters,
-                }),
-              ),
-              nextSavedViewId: Number.increment,
-              maybeNotice: () => Option.some(`Saved view “${name}”`),
-            }),
-          }),
-          ChangedQuery: (model, { query }) => ({
-            model,
-            commands: [
-              ReplaceInternalUrl({
-                url: issueFiltersHref(
-                  model,
-                  modifyFields(appliedIssueFilters(model), {
-                    query: () => query,
-                  }),
-                ),
-              }),
-            ],
-          }),
-          ChangedStatusFilter: (model, { maybeStatus }) =>
-            navigateIssueFilters(model, filters =>
-              modifyFields(filters, { maybeStatus: () => maybeStatus }),
-            ),
-          ChangedSort: (model, { sort }) =>
-            navigateIssueFilters(model, filters =>
-              modifyFields(filters, { sort: () => sort }),
-            ),
-          ChangedGrouping: (model, { groupBy }) =>
-            navigateIssueFilters(model, filters =>
-              modifyFields(filters, { groupBy: () => groupBy }),
-            ),
-          RequestedClearFilters: model =>
-            navigateIssueFilters(model, filters =>
-              modifyFields(filters, {
-                query: () => '',
-                maybeStatus: () => Option.none(),
-              }),
-            ),
-          RequestedCreation: requestCreation,
-        }),
-        ...children.issueBoard.on<Model>({
-          RequestedCreation: (model, { status }, board) => ({
-            model,
-            messages: [
-              model.createIssue.send(
-                CreateIssue.Message.RequestedOpen({
-                  projectId: board.id,
-                  status,
-                }),
-              ),
-            ],
-          }),
-          RequestedMove: (model, { issueId, status, insertionIndex }) =>
-            requestIssueMoveStep(issueId, status, insertionIndex)(model),
-        }),
-        ...children.issueMove.on<Model>({
-          Moved: (model, { movedIssue }) =>
-            combineSteps(model, [
-              applyMovedIssueStep(movedIssue),
-              showNoticeStep('Issue moved'),
-              informIssueChangedStep(movedIssue.issueId),
-            ]),
-          FailedMove: (model, { issueId, error }) =>
-            RepositoryError.guards.Conflict(error)
-              ? combineSteps(model, [
-                  receiveIssueSnapshotStep(error.latestIssue),
-                  informBoardMoveFailureStep(issueId),
-                ])
-              : informBoardMoveFailureStep(issueId)(model),
-          RequestedRetry: (model, { issueId, status, insertionIndex }) =>
-            requestIssueMoveStep(issueId, status, insertionIndex)(model),
-        }),
-        ...children.commandPalette.on<Model>({
-          SelectedIssue: (model, { issueId }) => openIssue(model, issueId),
-          SelectedProject: (model, { projectId }) => ({
-            model,
-            commands: [NavigateInternal({ url: projectRouter({ projectId }) })],
-          }),
-        }),
-        ...children.projectSettings.on<Model>({
-          Saved: (model, { project }) =>
-            updateWorkspaceStep(workspace =>
-              modifyFields(workspace, {
-                projects: Array.map(currentProject =>
-                  currentProject.id === project.id ? project : currentProject,
-                ),
-              }),
-            )(model),
-        }),
-      },
-
-      commands: {
-        LoadWorkspace: () =>
-          repository.load.pipe(
-            Effect.map(workspace =>
-              Message.SucceededLoadWorkspace({ workspace }),
-            ),
-            Effect.catch(error =>
-              Effect.succeed(
-                Message.FailedLoadWorkspace({ error: error.message }),
-              ),
-            ),
-          ),
-        NavigateInternal: ({ url: internalUrl }) =>
-          pushUrl(internalUrl).pipe(
-            Effect.as(Message.CompletedNavigateInternal()),
-          ),
-        LoadExternal: ({ href }) =>
-          load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
-        ReplaceInternalUrl: ({ url: internalUrl }) =>
-          replaceUrl(internalUrl).pipe(
-            Effect.as(Message.CompletedReplaceInternalUrl()),
-          ),
-      },
-
-      subscriptions: {
-        activity: {
-          dependencies: model => AsyncData.hasData(model.workspaceAsyncData),
-          stream: (hasWorkspace: boolean): Stream.Stream<Message> =>
-            hasWorkspace
-              ? Stream.tick(ACTIVITY_TICK_INTERVAL).pipe(
-                  Stream.drop(1),
-                  Stream.map(() => Message.TickedActivityStream()),
-                )
-              : Stream.empty,
-        },
-      },
-
-      view: (model, h) => ({
-        title: documentTitle(
-          model.route,
-          model.savedViews,
-          maybeVisibleWorkspace(model),
-        ),
-        body: h.div(
-          [
-            h.Class(
-              'flex h-dvh flex-col overflow-hidden bg-slate-50 font-sans text-sm font-medium text-slate-700 antialiased lg:flex-row',
-            ),
-          ],
-          [
-            model.sidebar.view({
-              route: model.route,
-              savedViews: model.savedViews,
-              maybeConfirmedWorkspace: AsyncData.getData(
-                model.workspaceAsyncData,
-              ),
-              issueDrafts: unsavedIssueDrafts(model.issuePane.model),
-              toIssueHref: issueId => issueHref(model, issueId),
-            }),
-            workspacePageView(model),
-            overlaysView(model, h),
-          ],
-        ),
-      }),
-    }
-  }),
-).pipe(Layer.provide(ChildrenLive))

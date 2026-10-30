@@ -52,40 +52,6 @@ export class EducationEntry extends Block<EducationEntry, EducationEntryArgs>()(
   { Model, Message, OutMessage },
 ) {}
 
-const schoolRules = makeRules({
-  required: 'School is required',
-})
-
-const degreeRules = makeRules({
-  required: 'Degree is required',
-})
-
-const fieldOfStudyRules = makeRules({
-  required: 'Field of study is required',
-})
-
-const validateSchool = validate(schoolRules)
-const validateDegree = validate(degreeRules)
-const validateFieldOfStudy = validate(fieldOfStudyRules)
-
-export const educationEntryHasErrors = (entry: Model): boolean =>
-  anyInvalid([entry.school, entry.degree, entry.fieldOfStudy])
-
-export const isEducationEntryComplete = (entry: Model): boolean =>
-  allValid([
-    [entry.school, schoolRules],
-    [entry.degree, degreeRules],
-    [entry.fieldOfStudy, fieldOfStudyRules],
-  ])
-
-const GRADUATION_YEAR_WINDOW_SIZE = 30
-const GRADUATION_YEAR_FORWARD_OFFSET = 6
-
-const graduationYears = (today: CalendarDate): ReadonlyArray<string> =>
-  Array.makeBy(GRADUATION_YEAR_WINDOW_SIZE, index =>
-    String(today.year + GRADUATION_YEAR_FORWARD_OFFSET - index),
-  )
-
 export const EducationEntryLive = EducationEntry.make(
   Effect.fn(function* (entryId, { today }) {
     const graduationYearListbox = yield* new GraduationYearListbox(
@@ -274,3 +240,37 @@ export const EducationEntryLive = EducationEntry.make(
     }
   }),
 ).pipe(Layer.provide(GraduationYearListbox.Live))
+
+const schoolRules = makeRules({
+  required: 'School is required',
+})
+
+const degreeRules = makeRules({
+  required: 'Degree is required',
+})
+
+const fieldOfStudyRules = makeRules({
+  required: 'Field of study is required',
+})
+
+const validateSchool = validate(schoolRules)
+const validateDegree = validate(degreeRules)
+const validateFieldOfStudy = validate(fieldOfStudyRules)
+
+export const educationEntryHasErrors = (entry: Model): boolean =>
+  anyInvalid([entry.school, entry.degree, entry.fieldOfStudy])
+
+export const isEducationEntryComplete = (entry: Model): boolean =>
+  allValid([
+    [entry.school, schoolRules],
+    [entry.degree, degreeRules],
+    [entry.fieldOfStudy, fieldOfStudyRules],
+  ])
+
+const GRADUATION_YEAR_WINDOW_SIZE = 30
+const GRADUATION_YEAR_FORWARD_OFFSET = 6
+
+const graduationYears = (today: CalendarDate): ReadonlyArray<string> =>
+  Array.makeBy(GRADUATION_YEAR_WINDOW_SIZE, index =>
+    String(today.year + GRADUATION_YEAR_FORWARD_OFFSET - index),
+  )

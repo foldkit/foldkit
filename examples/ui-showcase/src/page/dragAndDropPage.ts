@@ -37,6 +37,65 @@ export class DragAndDropPage extends Block<DragAndDropPage>()(
   { Model },
 ) {}
 
+export const DragAndDropPageLive = DragAndDropPage.make(
+  Effect.fn(function* () {
+    const dragAndDropDemo = yield* new DragAndDrop.DragAndDrop(
+      'dragAndDropDemo',
+      { id: 'drag-and-drop-demo' },
+    )
+
+    return {
+      model: {
+        dragAndDropDemo,
+        dragAndDropDemoColumns: [
+          {
+            id: 'backlog',
+            label: 'Backlog',
+            cards: [
+              { id: 'card-1', label: 'Design API' },
+              { id: 'card-2', label: 'Write tests' },
+              { id: 'card-3', label: 'Build docs' },
+            ],
+          },
+          {
+            id: 'done',
+            label: 'Done',
+            cards: [
+              { id: 'card-4', label: 'Set up repo' },
+              { id: 'card-5', label: 'Add CI' },
+            ],
+          },
+        ],
+      },
+
+      update: {
+        ...dragAndDropDemo.on({
+          Reordered: (
+            model,
+            { itemId, fromContainerId, toContainerId, toIndex },
+          ) => ({
+            model: modifyFields(model, {
+              dragAndDropDemoColumns: dragAndDropDemoColumns =>
+                reorderColumns(
+                  dragAndDropDemoColumns,
+                  itemId,
+                  fromContainerId,
+                  toContainerId,
+                  toIndex,
+                ),
+            }),
+          }),
+          StartedKeyboardDrag: model => ({ model }),
+          ChangedKeyboardTarget: model => ({ model }),
+          Cancelled: model => ({ model }),
+        }),
+      },
+
+      view,
+    }
+  }),
+).pipe(Layer.provide(DragAndDrop.DragAndDropLive))
+
 const reorderColumns = (
   columns: ReadonlyArray<DemoColumn>,
   itemId: string,
@@ -302,62 +361,3 @@ const view = (model: Model, h: HtmlBuilder<never>): Html => {
     ],
   )
 }
-
-export const DragAndDropPageLive = DragAndDropPage.make(
-  Effect.fn(function* () {
-    const dragAndDropDemo = yield* new DragAndDrop.DragAndDrop(
-      'dragAndDropDemo',
-      { id: 'drag-and-drop-demo' },
-    )
-
-    return {
-      model: {
-        dragAndDropDemo,
-        dragAndDropDemoColumns: [
-          {
-            id: 'backlog',
-            label: 'Backlog',
-            cards: [
-              { id: 'card-1', label: 'Design API' },
-              { id: 'card-2', label: 'Write tests' },
-              { id: 'card-3', label: 'Build docs' },
-            ],
-          },
-          {
-            id: 'done',
-            label: 'Done',
-            cards: [
-              { id: 'card-4', label: 'Set up repo' },
-              { id: 'card-5', label: 'Add CI' },
-            ],
-          },
-        ],
-      },
-
-      update: {
-        ...dragAndDropDemo.on({
-          Reordered: (
-            model,
-            { itemId, fromContainerId, toContainerId, toIndex },
-          ) => ({
-            model: modifyFields(model, {
-              dragAndDropDemoColumns: dragAndDropDemoColumns =>
-                reorderColumns(
-                  dragAndDropDemoColumns,
-                  itemId,
-                  fromContainerId,
-                  toContainerId,
-                  toIndex,
-                ),
-            }),
-          }),
-          StartedKeyboardDrag: model => ({ model }),
-          ChangedKeyboardTarget: model => ({ model }),
-          Cancelled: model => ({ model }),
-        }),
-      },
-
-      view,
-    }
-  }),
-).pipe(Layer.provide(DragAndDrop.DragAndDropLive))

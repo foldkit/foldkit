@@ -26,6 +26,60 @@ export class Attachments extends Block<Attachments>()('Attachments', {
   Message,
 }) {}
 
+export const AttachmentsLive = Attachments.make(
+  Effect.fn(function* () {
+    const resumeDrop = yield* new FileDrop.FileDrop('resumeDrop', {
+      id: 'attachments-resume',
+    })
+    const additionalFilesDrop = yield* new FileDrop.FileDrop(
+      'additionalFilesDrop',
+      { id: 'attachments-additional' },
+    )
+
+    return {
+      model: {
+        resumeDrop,
+        maybeResume: Option.none(),
+        additionalFilesDrop,
+        additionalFiles: [],
+      },
+
+      update: {
+        RemovedResume: model => ({
+          model: modifyFields(model, { maybeResume: () => Option.none() }),
+        }),
+
+        RemovedAdditionalFile: (model, { fileIndex }) => ({
+          model: modifyFields(model, {
+            additionalFiles: Array.remove(fileIndex),
+          }),
+        }),
+
+        ...resumeDrop.on({
+          ReceivedFiles: (model, { files }) => ({
+            model: modifyFields(model, {
+              maybeResume: maybeResume =>
+                Option.orElse(Array.head(files), () => maybeResume),
+            }),
+          }),
+          RejectedNonFiles: model => ({ model }),
+        }),
+
+        ...additionalFilesDrop.on({
+          ReceivedFiles: (model, { files }) => ({
+            model: modifyFields(model, {
+              additionalFiles: Array.appendAll(files),
+            }),
+          }),
+          RejectedNonFiles: model => ({ model }),
+        }),
+      },
+
+      view,
+    }
+  }),
+).pipe(Layer.provide(FileDrop.FileDropLive))
+
 const BYTES_PER_KB = 1024
 const BYTES_PER_MB = BYTES_PER_KB * BYTES_PER_KB
 
@@ -207,57 +261,3 @@ const view = (model: Model, h: HtmlBuilder<Message>): Html => {
 
   return h.div([h.Class('space-y-6')], [resumeSection, additionalSection])
 }
-
-export const AttachmentsLive = Attachments.make(
-  Effect.fn(function* () {
-    const resumeDrop = yield* new FileDrop.FileDrop('resumeDrop', {
-      id: 'attachments-resume',
-    })
-    const additionalFilesDrop = yield* new FileDrop.FileDrop(
-      'additionalFilesDrop',
-      { id: 'attachments-additional' },
-    )
-
-    return {
-      model: {
-        resumeDrop,
-        maybeResume: Option.none(),
-        additionalFilesDrop,
-        additionalFiles: [],
-      },
-
-      update: {
-        RemovedResume: model => ({
-          model: modifyFields(model, { maybeResume: () => Option.none() }),
-        }),
-
-        RemovedAdditionalFile: (model, { fileIndex }) => ({
-          model: modifyFields(model, {
-            additionalFiles: Array.remove(fileIndex),
-          }),
-        }),
-
-        ...resumeDrop.on({
-          ReceivedFiles: (model, { files }) => ({
-            model: modifyFields(model, {
-              maybeResume: maybeResume =>
-                Option.orElse(Array.head(files), () => maybeResume),
-            }),
-          }),
-          RejectedNonFiles: model => ({ model }),
-        }),
-
-        ...additionalFilesDrop.on({
-          ReceivedFiles: (model, { files }) => ({
-            model: modifyFields(model, {
-              additionalFiles: Array.appendAll(files),
-            }),
-          }),
-          RejectedNonFiles: model => ({ model }),
-        }),
-      },
-
-      view,
-    }
-  }),
-).pipe(Layer.provide(FileDrop.FileDropLive))

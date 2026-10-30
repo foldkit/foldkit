@@ -144,6 +144,123 @@ export class Room extends Block<Room, RoomArgs>()('Room', {
   ],
 }) {}
 
+// LIVE
+
+export const RoomLive = Room.make(
+  Effect.fn(function* (roomId, { isRestoring }) {
+    const client = yield* RoomsClient
+    const store = yield* KeyValueStore.KeyValueStore
+    const joinForm = yield* new JoinForm('joinForm', { roomId })
+    const copyableRoomId = yield* new CopyableRoomId('copyableRoomId', {
+      roomId,
+    })
+    const typing = yield* new Typing('typing')
+
+    return {
+      model: {
+        roomAsyncData: RoomAsyncData.Idle(),
+        maybeSession: Option.none(),
+        typing,
+        joinForm,
+        copyableRoomId,
+        exitCountdownSecondsLeft: 0,
+      },
+
+      start: Array.filter(
+        [LoadSession({ roomId }), FetchRoom({ roomId })],
+        () => isRestoring,
+      ),
+
+      update: {
+        PressedKey: (model, { key }) => pressedKeyStep(model, roomId, key),
+        UpdatedRoom: updatedRoomStep,
+        FailedStreamRoom: model => ({ model }),
+        CompletedLoadSession: (model, { maybeSession }) =>
+          completedLoadSessionStep(model, maybeSession),
+        SucceededFetchRoom: (model, { room }) =>
+          succeededFetchRoomStep(model, room),
+        FailedFetchRoom: model => ({
+          model: modifyFields(model, {
+            roomAsyncData: () =>
+              RoomAsyncData.Failure({ error: 'Room not found' }),
+          }),
+        }),
+        CompletedWaitForExitCountdownInterval:
+          completedWaitForExitCountdownIntervalStep,
+        InformedOfJoin: (model, { player }) =>
+          recordJoinedPlayerStep(model, roomId, player),
+        CompletedNavigateHome: model => ({ model }),
+        SucceededStartGame: model => ({ model }),
+        FailedStartGame: model => ({ model }),
+        CompletedSavePlayerSession: model => ({ model }),
+        CompletedClearSession: model => ({ model }),
+        ...joinForm.on({
+          JoinedRoom: (model, { player }) =>
+            recordJoinedPlayerStep(model, roomId, player),
+        }),
+      },
+
+      commands: {
+        ...makeSessionCommands(store),
+        FetchRoom: ({ roomId }) =>
+          client.getRoomById({ roomId }).pipe(
+            Effect.map(room => Message.SucceededFetchRoom({ room })),
+            Effect.catch(() => Effect.succeed(Message.FailedFetchRoom())),
+          ),
+        StartGame: ({ roomId, playerId }) =>
+          client.startGame({ roomId, playerId }).pipe(
+            Effect.as(Message.SucceededStartGame()),
+            Effect.catch(() => Effect.succeed(Message.FailedStartGame())),
+          ),
+        WaitForExitCountdownInterval: () =>
+          Effect.sleep(EXIT_COUNTDOWN_INTERVAL).pipe(
+            Effect.as(Message.CompletedWaitForExitCountdownInterval()),
+          ),
+        NavigateHome: () =>
+          pushUrl(homeRouter()).pipe(
+            Effect.as(Message.CompletedNavigateHome()),
+          ),
+      },
+
+      subscriptions: {
+        roomUpdates: {
+          dependencies: model =>
+            Option.map(model.maybeSession, ({ roomId, player }) => ({
+              roomId,
+              playerId: player.id,
+            })),
+          stream: (
+            maybeSubscription: Option.Option<
+              Readonly<{ roomId: string; playerId: string }>
+            >,
+          ) =>
+            Option.match(maybeSubscription, {
+              onNone: () => Stream.empty,
+              onSome: ({ roomId, playerId }) =>
+                client.subscribeToRoom({ roomId, playerId }).pipe(
+                  Stream.map(({ room, maybePlayerProgress }) =>
+                    Message.UpdatedRoom({ room, maybePlayerProgress }),
+                  ),
+                  Stream.catchCause(cause =>
+                    Stream.make(
+                      Message.FailedStreamRoom({
+                        error: Option.match(Cause.findErrorOption(cause), {
+                          onNone: () => 'Unknown stream error',
+                          onSome: globalThis.String,
+                        }),
+                      }),
+                    ),
+                  ),
+                ),
+            }),
+        },
+      },
+
+      view: (model, h) => view(model, roomId, h),
+    }
+  }),
+)
+
 // SESSION
 
 const roomPlayerSessionKey = (roomId: string): string =>
@@ -640,120 +757,3 @@ const view = (model: Model, roomId: string, h: RoomViewBuilder): Html =>
       h.div([], [leaveRoomView(model, h)]),
     ],
   )
-
-// LIVE
-
-export const RoomLive = Room.make(
-  Effect.fn(function* (roomId, { isRestoring }) {
-    const client = yield* RoomsClient
-    const store = yield* KeyValueStore.KeyValueStore
-    const joinForm = yield* new JoinForm('joinForm', { roomId })
-    const copyableRoomId = yield* new CopyableRoomId('copyableRoomId', {
-      roomId,
-    })
-    const typing = yield* new Typing('typing')
-
-    return {
-      model: {
-        roomAsyncData: RoomAsyncData.Idle(),
-        maybeSession: Option.none(),
-        typing,
-        joinForm,
-        copyableRoomId,
-        exitCountdownSecondsLeft: 0,
-      },
-
-      start: Array.filter(
-        [LoadSession({ roomId }), FetchRoom({ roomId })],
-        () => isRestoring,
-      ),
-
-      update: {
-        PressedKey: (model, { key }) => pressedKeyStep(model, roomId, key),
-        UpdatedRoom: updatedRoomStep,
-        FailedStreamRoom: model => ({ model }),
-        CompletedLoadSession: (model, { maybeSession }) =>
-          completedLoadSessionStep(model, maybeSession),
-        SucceededFetchRoom: (model, { room }) =>
-          succeededFetchRoomStep(model, room),
-        FailedFetchRoom: model => ({
-          model: modifyFields(model, {
-            roomAsyncData: () =>
-              RoomAsyncData.Failure({ error: 'Room not found' }),
-          }),
-        }),
-        CompletedWaitForExitCountdownInterval:
-          completedWaitForExitCountdownIntervalStep,
-        InformedOfJoin: (model, { player }) =>
-          recordJoinedPlayerStep(model, roomId, player),
-        CompletedNavigateHome: model => ({ model }),
-        SucceededStartGame: model => ({ model }),
-        FailedStartGame: model => ({ model }),
-        CompletedSavePlayerSession: model => ({ model }),
-        CompletedClearSession: model => ({ model }),
-        ...joinForm.on({
-          JoinedRoom: (model, { player }) =>
-            recordJoinedPlayerStep(model, roomId, player),
-        }),
-      },
-
-      commands: {
-        ...makeSessionCommands(store),
-        FetchRoom: ({ roomId }) =>
-          client.getRoomById({ roomId }).pipe(
-            Effect.map(room => Message.SucceededFetchRoom({ room })),
-            Effect.catch(() => Effect.succeed(Message.FailedFetchRoom())),
-          ),
-        StartGame: ({ roomId, playerId }) =>
-          client.startGame({ roomId, playerId }).pipe(
-            Effect.as(Message.SucceededStartGame()),
-            Effect.catch(() => Effect.succeed(Message.FailedStartGame())),
-          ),
-        WaitForExitCountdownInterval: () =>
-          Effect.sleep(EXIT_COUNTDOWN_INTERVAL).pipe(
-            Effect.as(Message.CompletedWaitForExitCountdownInterval()),
-          ),
-        NavigateHome: () =>
-          pushUrl(homeRouter()).pipe(
-            Effect.as(Message.CompletedNavigateHome()),
-          ),
-      },
-
-      subscriptions: {
-        roomUpdates: {
-          dependencies: model =>
-            Option.map(model.maybeSession, ({ roomId, player }) => ({
-              roomId,
-              playerId: player.id,
-            })),
-          stream: (
-            maybeSubscription: Option.Option<
-              Readonly<{ roomId: string; playerId: string }>
-            >,
-          ) =>
-            Option.match(maybeSubscription, {
-              onNone: () => Stream.empty,
-              onSome: ({ roomId, playerId }) =>
-                client.subscribeToRoom({ roomId, playerId }).pipe(
-                  Stream.map(({ room, maybePlayerProgress }) =>
-                    Message.UpdatedRoom({ room, maybePlayerProgress }),
-                  ),
-                  Stream.catchCause(cause =>
-                    Stream.make(
-                      Message.FailedStreamRoom({
-                        error: Option.match(Cause.findErrorOption(cause), {
-                          onNone: () => 'Unknown stream error',
-                          onSome: globalThis.String,
-                        }),
-                      }),
-                    ),
-                  ),
-                ),
-            }),
-        },
-      },
-
-      view: (model, h) => view(model, roomId, h),
-    }
-  }),
-)

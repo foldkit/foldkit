@@ -93,6 +93,198 @@ export class CreateIssue extends Block<CreateIssue, void, ViewInput>()(
   { Model, Message, OutMessage, Command: [CreateNewIssue] },
 ) {}
 
+export const CreateIssueLive = CreateIssue.make(
+  Effect.fn(function* () {
+    const repository = yield* WorkspaceRepository
+    const dialog = yield* new Dialog.Dialog('dialog', {
+      id: 'workspace-create-issue-dialog',
+    })
+    const projectListbox = yield* new WorkspaceListbox('projectListbox', {
+      id: 'create-issue-project',
+    })
+    const statusListbox = yield* new StatusListbox('statusListbox', {
+      id: 'create-issue-status',
+    })
+    const priorityListbox = yield* new PriorityListbox('priorityListbox', {
+      id: 'create-issue-priority',
+    })
+
+    return {
+      model: {
+        title: '',
+        description: '',
+        projectId: 'platform',
+        status: 'Todo',
+        priority: 'Medium',
+        createState: CreateState.Idle(),
+        dialog,
+        projectListbox,
+        statusListbox,
+        priorityListbox,
+      },
+
+      update: {
+        RequestedOpen: (model, { projectId, status = 'Todo' }) => {
+          if (CreateState.guards.Creating(model.createState)) {
+            return { model, messages: [openDialog(model)] }
+          }
+
+          return {
+            model: modifyFields(model, {
+              title: () => '',
+              description: () => '',
+              projectId: () => projectId,
+              status: () => status,
+              priority: () => 'Medium',
+              createState: () => CreateState.Idle(),
+            }),
+            messages: [openDialog(model)],
+          }
+        },
+        RequestedClose: model => ({ model, messages: [closeDialog(model)] }),
+        UpdatedTitle: (model, { value }) =>
+          editDraftStep((draft: Model) =>
+            modifyFields(draft, { title: () => value }),
+          )(model),
+        UpdatedDescription: (model, { value }) =>
+          editDraftStep((draft: Model) =>
+            modifyFields(draft, { description: () => value }),
+          )(model),
+        SubmittedIssueForm: createIssue,
+        SucceededCreateNewIssue: (model, { issue }) => ({
+          model: modifyFields(model, { createState: () => CreateState.Idle() }),
+          messages: [closeDialog(model)],
+          outMessage: OutMessage.Created({ issue }),
+        }),
+        FailedCreateNewIssue: (model, { error }) => ({
+          model: modifyFields(model, {
+            createState: () => CreateState.Failed({ error }),
+          }),
+          messages: [openDialog(model)],
+        }),
+        ...projectListbox.on({
+          Selected: (model, { value }) =>
+            editDraftStep((draft: Model) =>
+              modifyFields(draft, { projectId: () => value }),
+            )(model),
+        }),
+        ...statusListbox.on({
+          Selected: (model, { value }) =>
+            Schema.is(IssueStatus)(value)
+              ? editDraftStep((draft: Model) =>
+                  modifyFields(draft, { status: () => value }),
+                )(model)
+              : { model },
+        }),
+        ...priorityListbox.on({
+          Selected: (model, { value }) =>
+            Schema.is(IssuePriority)(value)
+              ? editDraftStep((draft: Model) =>
+                  modifyFields(draft, { priority: () => value }),
+                )(model)
+              : { model },
+        }),
+      },
+
+      commands: {
+        CreateNewIssue: ({ draft }) =>
+          repository.createIssue(draft).pipe(
+            Effect.map(issue => Message.SucceededCreateNewIssue({ issue })),
+            Effect.catch(error =>
+              Effect.succeed(
+                Message.FailedCreateNewIssue({ error: error.message }),
+              ),
+            ),
+          ),
+      },
+
+      view: (model, h, viewInput) =>
+        model.dialog.view({
+          toView: ({
+            dialog,
+            backdrop,
+            panel,
+            title,
+            closeButton,
+            initialFocus,
+            isVisible,
+          }) =>
+            h.dialog(
+              [
+                ...dialog,
+                h.Class(
+                  'overflow-y-auto open:flex open:items-start open:justify-center',
+                ),
+              ],
+              isVisible
+                ? [
+                    h.div([
+                      ...backdrop,
+                      h.Class('fixed inset-0 bg-slate-950/35 backdrop-blur-xs'),
+                    ]),
+                    h.div(
+                      [
+                        ...panel,
+                        h.Class(
+                          'dialog-surface relative z-10 my-8 w-[calc(100vw-2rem)] max-w-lg p-6 text-sm font-medium sm:my-[10vh] sm:p-8',
+                        ),
+                      ],
+                      [
+                        h.h2(
+                          [
+                            ...title,
+                            h.Class(
+                              'mb-6 text-xl font-semibold tracking-tight text-slate-800',
+                            ),
+                          ],
+                          ['Create issue'],
+                        ),
+                        h.form(
+                          [h.OnSubmit(Message.SubmittedIssueForm())],
+                          [
+                            fields(model, viewInput, initialFocus, h),
+                            ...feedback(model, h),
+                            h.div(
+                              [
+                                h.Class(
+                                  'mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-slate-100 pt-5',
+                                ),
+                              ],
+                              [
+                                h.button(
+                                  [...closeButton, h.Class('button')],
+                                  [
+                                    CreateState.guards.Creating(
+                                      model.createState,
+                                    )
+                                      ? 'Close'
+                                      : 'Cancel',
+                                  ],
+                                ),
+                                submitButton(model, h),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ]
+                : [],
+            ),
+        }),
+    }
+  }),
+).pipe(
+  Layer.provide(
+    Layer.mergeAll(
+      Dialog.DialogLive,
+      WorkspaceListbox.Live,
+      StatusListbox.Live,
+      PriorityListbox.Live,
+    ),
+  ),
+)
+
 type DraftState = Readonly<{ createState: CreateState }>
 
 const isDraftEditable = (model: DraftState) =>
@@ -339,195 +531,3 @@ const submitButton = (model: Model, h: HtmlBuilder<Message, unknown>): Html => {
     h,
   )
 }
-
-export const CreateIssueLive = CreateIssue.make(
-  Effect.fn(function* () {
-    const repository = yield* WorkspaceRepository
-    const dialog = yield* new Dialog.Dialog('dialog', {
-      id: 'workspace-create-issue-dialog',
-    })
-    const projectListbox = yield* new WorkspaceListbox('projectListbox', {
-      id: 'create-issue-project',
-    })
-    const statusListbox = yield* new StatusListbox('statusListbox', {
-      id: 'create-issue-status',
-    })
-    const priorityListbox = yield* new PriorityListbox('priorityListbox', {
-      id: 'create-issue-priority',
-    })
-
-    return {
-      model: {
-        title: '',
-        description: '',
-        projectId: 'platform',
-        status: 'Todo',
-        priority: 'Medium',
-        createState: CreateState.Idle(),
-        dialog,
-        projectListbox,
-        statusListbox,
-        priorityListbox,
-      },
-
-      update: {
-        RequestedOpen: (model, { projectId, status = 'Todo' }) => {
-          if (CreateState.guards.Creating(model.createState)) {
-            return { model, messages: [openDialog(model)] }
-          }
-
-          return {
-            model: modifyFields(model, {
-              title: () => '',
-              description: () => '',
-              projectId: () => projectId,
-              status: () => status,
-              priority: () => 'Medium',
-              createState: () => CreateState.Idle(),
-            }),
-            messages: [openDialog(model)],
-          }
-        },
-        RequestedClose: model => ({ model, messages: [closeDialog(model)] }),
-        UpdatedTitle: (model, { value }) =>
-          editDraftStep((draft: Model) =>
-            modifyFields(draft, { title: () => value }),
-          )(model),
-        UpdatedDescription: (model, { value }) =>
-          editDraftStep((draft: Model) =>
-            modifyFields(draft, { description: () => value }),
-          )(model),
-        SubmittedIssueForm: createIssue,
-        SucceededCreateNewIssue: (model, { issue }) => ({
-          model: modifyFields(model, { createState: () => CreateState.Idle() }),
-          messages: [closeDialog(model)],
-          outMessage: OutMessage.Created({ issue }),
-        }),
-        FailedCreateNewIssue: (model, { error }) => ({
-          model: modifyFields(model, {
-            createState: () => CreateState.Failed({ error }),
-          }),
-          messages: [openDialog(model)],
-        }),
-        ...projectListbox.on({
-          Selected: (model, { value }) =>
-            editDraftStep((draft: Model) =>
-              modifyFields(draft, { projectId: () => value }),
-            )(model),
-        }),
-        ...statusListbox.on({
-          Selected: (model, { value }) =>
-            Schema.is(IssueStatus)(value)
-              ? editDraftStep((draft: Model) =>
-                  modifyFields(draft, { status: () => value }),
-                )(model)
-              : { model },
-        }),
-        ...priorityListbox.on({
-          Selected: (model, { value }) =>
-            Schema.is(IssuePriority)(value)
-              ? editDraftStep((draft: Model) =>
-                  modifyFields(draft, { priority: () => value }),
-                )(model)
-              : { model },
-        }),
-      },
-
-      commands: {
-        CreateNewIssue: ({ draft }) =>
-          repository.createIssue(draft).pipe(
-            Effect.map(issue => Message.SucceededCreateNewIssue({ issue })),
-            Effect.catch(error =>
-              Effect.succeed(
-                Message.FailedCreateNewIssue({ error: error.message }),
-              ),
-            ),
-          ),
-      },
-
-      view: (model, h, viewInput) =>
-        model.dialog.view({
-          toView: ({
-            dialog,
-            backdrop,
-            panel,
-            title,
-            closeButton,
-            initialFocus,
-            isVisible,
-          }) =>
-            h.dialog(
-              [
-                ...dialog,
-                h.Class(
-                  'overflow-y-auto open:flex open:items-start open:justify-center',
-                ),
-              ],
-              isVisible
-                ? [
-                    h.div([
-                      ...backdrop,
-                      h.Class('fixed inset-0 bg-slate-950/35 backdrop-blur-xs'),
-                    ]),
-                    h.div(
-                      [
-                        ...panel,
-                        h.Class(
-                          'dialog-surface relative z-10 my-8 w-[calc(100vw-2rem)] max-w-lg p-6 text-sm font-medium sm:my-[10vh] sm:p-8',
-                        ),
-                      ],
-                      [
-                        h.h2(
-                          [
-                            ...title,
-                            h.Class(
-                              'mb-6 text-xl font-semibold tracking-tight text-slate-800',
-                            ),
-                          ],
-                          ['Create issue'],
-                        ),
-                        h.form(
-                          [h.OnSubmit(Message.SubmittedIssueForm())],
-                          [
-                            fields(model, viewInput, initialFocus, h),
-                            ...feedback(model, h),
-                            h.div(
-                              [
-                                h.Class(
-                                  'mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-slate-100 pt-5',
-                                ),
-                              ],
-                              [
-                                h.button(
-                                  [...closeButton, h.Class('button')],
-                                  [
-                                    CreateState.guards.Creating(
-                                      model.createState,
-                                    )
-                                      ? 'Close'
-                                      : 'Cancel',
-                                  ],
-                                ),
-                                submitButton(model, h),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ]
-                : [],
-            ),
-        }),
-    }
-  }),
-).pipe(
-  Layer.provide(
-    Layer.mergeAll(
-      Dialog.DialogLive,
-      WorkspaceListbox.Live,
-      StatusListbox.Live,
-      PriorityListbox.Live,
-    ),
-  ),
-)

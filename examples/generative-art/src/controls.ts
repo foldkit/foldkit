@@ -42,93 +42,6 @@ export class Controls extends Block<Controls, void, ViewInput>()('Controls', {
   OutMessage,
 }) {}
 
-type ControlsViewBuilder = HtmlBuilder<Message>
-
-const buttonClass =
-  'min-w-20 px-4 py-2 text-sm font-medium tracking-wide uppercase rounded-md ' +
-  'border border-white/15 bg-white/5 hover:bg-white/10 hover:border-white/25 ' +
-  'text-white/85 transition-colors duration-200'
-
-const sliderRowClass = 'flex flex-col gap-2 min-w-44'
-
-const sliderHeaderClass =
-  'flex items-baseline justify-between text-xs uppercase tracking-widest text-white/60'
-
-const sliderLabelClass = 'cursor-pointer select-none'
-
-const sliderValueClass = 'text-white/40 tabular-nums'
-
-const sliderRootClass =
-  'relative h-5 w-full flex items-center select-none touch-none'
-
-const sliderTrackClass =
-  'h-5 w-full rounded-full bg-white/10 py-2 bg-clip-content cursor-pointer'
-
-const sliderFilledTrackClass =
-  'h-full rounded-full bg-fuchsia-400 py-2 bg-clip-content'
-
-const sliderThumbClass =
-  'h-3 w-3 rounded-full bg-white border border-fuchsia-400 shadow cursor-grab focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300 focus-visible:ring-offset-1 focus-visible:ring-offset-black/40 data-[dragging]:cursor-grabbing'
-
-const playPauseLabel = (isRunning: boolean): string =>
-  isRunning ? 'Pause' : 'Play'
-
-const slider = (
-  label: string,
-  value: number,
-  render: (viewInputs: Slider.ViewInputs) => Html,
-  h: ControlsViewBuilder,
-): Html =>
-  render({
-    value,
-    formatValue: value => value.toFixed(2),
-    toView: attributes =>
-      h.div(
-        [h.Class(sliderRowClass)],
-        [
-          h.div(
-            [h.Class(sliderHeaderClass)],
-            [
-              h.label(
-                [...attributes.label, h.Class(sliderLabelClass)],
-                [label],
-              ),
-              h.span([h.Class(sliderValueClass)], [value.toFixed(2)]),
-            ],
-          ),
-          h.div(
-            [...attributes.root, h.Class(sliderRootClass)],
-            [
-              h.div(
-                [...attributes.track, h.Class(sliderTrackClass)],
-                [
-                  h.div([
-                    ...attributes.filledTrack,
-                    h.Class(sliderFilledTrackClass),
-                  ]),
-                ],
-              ),
-              h.div([...attributes.thumb, h.Class(sliderThumbClass)]),
-            ],
-          ),
-        ],
-      ),
-  })
-
-const controlButton = (
-  label: string,
-  onClick: Message,
-  h: ControlsViewBuilder,
-): Html =>
-  Button.view(
-    {
-      onClick,
-      toView: attributes =>
-        h.button([...attributes.button, h.Class(buttonClass)], [label]),
-    },
-    h,
-  )
-
 export const ControlsLive = Controls.make(
   Effect.fn(function* () {
     const flowStrengthSlider = yield* new Slider.Slider('flowStrengthSlider', {
@@ -234,3 +147,90 @@ export const ControlsLive = Controls.make(
     }
   }),
 ).pipe(Layer.provide(SliderLive))
+
+type ControlsViewBuilder = HtmlBuilder<Message>
+
+const buttonClass =
+  'min-w-20 px-4 py-2 text-sm font-medium tracking-wide uppercase rounded-md ' +
+  'border border-white/15 bg-white/5 hover:bg-white/10 hover:border-white/25 ' +
+  'text-white/85 transition-colors duration-200'
+
+const sliderRowClass = 'flex flex-col gap-2 min-w-44'
+
+const sliderHeaderClass =
+  'flex items-baseline justify-between text-xs uppercase tracking-widest text-white/60'
+
+const sliderLabelClass = 'cursor-pointer select-none'
+
+const sliderValueClass = 'text-white/40 tabular-nums'
+
+const sliderRootClass =
+  'relative h-5 w-full flex items-center select-none touch-none'
+
+const sliderTrackClass =
+  'h-5 w-full rounded-full bg-white/10 py-2 bg-clip-content cursor-pointer'
+
+const sliderFilledTrackClass =
+  'h-full rounded-full bg-fuchsia-400 py-2 bg-clip-content'
+
+const sliderThumbClass =
+  'h-3 w-3 rounded-full bg-white border border-fuchsia-400 shadow cursor-grab focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300 focus-visible:ring-offset-1 focus-visible:ring-offset-black/40 data-[dragging]:cursor-grabbing'
+
+const playPauseLabel = (isRunning: boolean): string =>
+  isRunning ? 'Pause' : 'Play'
+
+const slider = (
+  label: string,
+  value: number,
+  render: (viewInputs: Slider.ViewInputs) => Html,
+  h: ControlsViewBuilder,
+): Html =>
+  render({
+    value,
+    formatValue: value => value.toFixed(2),
+    toView: attributes =>
+      h.div(
+        [h.Class(sliderRowClass)],
+        [
+          h.div(
+            [h.Class(sliderHeaderClass)],
+            [
+              h.label(
+                [...attributes.label, h.Class(sliderLabelClass)],
+                [label],
+              ),
+              h.span([h.Class(sliderValueClass)], [value.toFixed(2)]),
+            ],
+          ),
+          h.div(
+            [...attributes.root, h.Class(sliderRootClass)],
+            [
+              h.div(
+                [...attributes.track, h.Class(sliderTrackClass)],
+                [
+                  h.div([
+                    ...attributes.filledTrack,
+                    h.Class(sliderFilledTrackClass),
+                  ]),
+                ],
+              ),
+              h.div([...attributes.thumb, h.Class(sliderThumbClass)]),
+            ],
+          ),
+        ],
+      ),
+  })
+
+const controlButton = (
+  label: string,
+  onClick: Message,
+  h: ControlsViewBuilder,
+): Html =>
+  Button.view(
+    {
+      onClick,
+      toView: attributes =>
+        h.button([...attributes.button, h.Class(buttonClass)], [label]),
+    },
+    h,
+  )

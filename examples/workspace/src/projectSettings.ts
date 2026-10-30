@@ -65,6 +65,121 @@ export class ProjectSettings extends Block<
   Command: [SaveProject],
 }) {}
 
+export const ProjectSettingsLive = ProjectSettings.make(
+  Effect.fn(function* (_id, { project }) {
+    const repository = yield* WorkspaceRepository
+
+    return {
+      model: {
+        baseline: project,
+        draft: { name: project.name, description: project.description },
+        saveState: SaveState.Idle(),
+      },
+      update: {
+        UpdatedProjectName: (model, { value }) =>
+          editDraftStep(draft => modifyFields(draft, { name: () => value }))(
+            model,
+          ),
+        UpdatedProjectDescription: (model, { value }) =>
+          editDraftStep(draft =>
+            modifyFields(draft, { description: () => value }),
+          )(model),
+        SubmittedProjectSettings: saveProject,
+        ClickedRetrySave: saveProject,
+        ClickedDiscardChanges: handleClickedDiscardChanges,
+        SucceededSaveProject: (model, { project }) => {
+          if (
+            !SaveState.guards.Saving(model.saveState) ||
+            project.id !== model.baseline.id
+          ) {
+            return { model }
+          }
+
+          return {
+            model: modifyFields(model, {
+              baseline: () => project,
+              draft: () => ({
+                name: project.name,
+                description: project.description,
+              }),
+              saveState: () => SaveState.Saved(),
+            }),
+            outMessage: OutMessage.Saved({ project }),
+          }
+        },
+        FailedSaveProject: (model, { error }) => {
+          if (!SaveState.guards.Saving(model.saveState)) {
+            return { model }
+          }
+
+          return {
+            model: modifyFields(model, {
+              saveState: () => SaveState.Failed({ error }),
+            }),
+          }
+        },
+      },
+      commands: {
+        SaveProject: ({ project }) =>
+          repository.saveProject(project).pipe(
+            Effect.map(project => Message.SucceededSaveProject({ project })),
+            Effect.catch(error =>
+              Effect.succeed(
+                Message.FailedSaveProject({ error: error.message }),
+              ),
+            ),
+          ),
+      },
+      subscriptions: {
+        draftExitGuard: {
+          dependencies: isDirty,
+          stream: (isProtecting: boolean) =>
+            protectUnsavedChanges({ isProtecting }),
+        },
+      },
+      view: (model, h) =>
+        h.section(
+          [h.Class('max-w-2xl p-5 lg:p-8')],
+          [
+            h.form(
+              [
+                h.OnSubmit(Message.SubmittedProjectSettings()),
+                h.Class('rounded-xl border border-slate-200 bg-white p-6'),
+              ],
+              [
+                h.h2(
+                  [h.Class('mb-5 text-base font-semibold text-slate-800')],
+                  ['Project details'],
+                ),
+                saveFeedback(model, h),
+                Fieldset.view(
+                  {
+                    id: 'workspace-project-fields',
+                    isDisabled: SaveState.guards.Saving(model.saveState),
+                    toView: attributes =>
+                      h.fieldset(
+                        [...attributes.fieldset, h.Class('space-y-5')],
+                        [
+                          h.legend(
+                            [...attributes.legend, h.Class('sr-only')],
+                            ['Project settings'],
+                          ),
+                          projectNameField(model, h),
+                          projectDescriptionField(model, h),
+                          formActions(model, h),
+                        ],
+                      ),
+                  },
+                  h,
+                ),
+              ],
+            ),
+          ],
+        ),
+    }
+  }),
+)
+
 const isDirty = (model: Model) =>
   String.trim(model.draft.name) !== model.baseline.name ||
   model.draft.description !== model.baseline.description
@@ -267,118 +382,3 @@ const formActions = (model: Model, h: HtmlBuilder<Message, unknown>): Html => {
     ],
   )
 }
-
-export const ProjectSettingsLive = ProjectSettings.make(
-  Effect.fn(function* (_id, { project }) {
-    const repository = yield* WorkspaceRepository
-
-    return {
-      model: {
-        baseline: project,
-        draft: { name: project.name, description: project.description },
-        saveState: SaveState.Idle(),
-      },
-      update: {
-        UpdatedProjectName: (model, { value }) =>
-          editDraftStep(draft => modifyFields(draft, { name: () => value }))(
-            model,
-          ),
-        UpdatedProjectDescription: (model, { value }) =>
-          editDraftStep(draft =>
-            modifyFields(draft, { description: () => value }),
-          )(model),
-        SubmittedProjectSettings: saveProject,
-        ClickedRetrySave: saveProject,
-        ClickedDiscardChanges: handleClickedDiscardChanges,
-        SucceededSaveProject: (model, { project }) => {
-          if (
-            !SaveState.guards.Saving(model.saveState) ||
-            project.id !== model.baseline.id
-          ) {
-            return { model }
-          }
-
-          return {
-            model: modifyFields(model, {
-              baseline: () => project,
-              draft: () => ({
-                name: project.name,
-                description: project.description,
-              }),
-              saveState: () => SaveState.Saved(),
-            }),
-            outMessage: OutMessage.Saved({ project }),
-          }
-        },
-        FailedSaveProject: (model, { error }) => {
-          if (!SaveState.guards.Saving(model.saveState)) {
-            return { model }
-          }
-
-          return {
-            model: modifyFields(model, {
-              saveState: () => SaveState.Failed({ error }),
-            }),
-          }
-        },
-      },
-      commands: {
-        SaveProject: ({ project }) =>
-          repository.saveProject(project).pipe(
-            Effect.map(project => Message.SucceededSaveProject({ project })),
-            Effect.catch(error =>
-              Effect.succeed(
-                Message.FailedSaveProject({ error: error.message }),
-              ),
-            ),
-          ),
-      },
-      subscriptions: {
-        draftExitGuard: {
-          dependencies: isDirty,
-          stream: (isProtecting: boolean) =>
-            protectUnsavedChanges({ isProtecting }),
-        },
-      },
-      view: (model, h) =>
-        h.section(
-          [h.Class('max-w-2xl p-5 lg:p-8')],
-          [
-            h.form(
-              [
-                h.OnSubmit(Message.SubmittedProjectSettings()),
-                h.Class('rounded-xl border border-slate-200 bg-white p-6'),
-              ],
-              [
-                h.h2(
-                  [h.Class('mb-5 text-base font-semibold text-slate-800')],
-                  ['Project details'],
-                ),
-                saveFeedback(model, h),
-                Fieldset.view(
-                  {
-                    id: 'workspace-project-fields',
-                    isDisabled: SaveState.guards.Saving(model.saveState),
-                    toView: attributes =>
-                      h.fieldset(
-                        [...attributes.fieldset, h.Class('space-y-5')],
-                        [
-                          h.legend(
-                            [...attributes.legend, h.Class('sr-only')],
-                            ['Project settings'],
-                          ),
-                          projectNameField(model, h),
-                          projectDescriptionField(model, h),
-                          formActions(model, h),
-                        ],
-                      ),
-                  },
-                  h,
-                ),
-              ],
-            ),
-          ],
-        ),
-    }
-  }),
-)

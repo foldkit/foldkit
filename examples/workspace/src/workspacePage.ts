@@ -50,6 +50,38 @@ export class WorkspacePage extends Block<WorkspacePage, void, ViewInput>()(
   { Message, OutMessage },
 ) {}
 
+export const WorkspacePageLive = WorkspacePage.make(
+  Effect.fn(function* () {
+    return {
+      update: {
+        ClickedRetryLoad: model => ({
+          model,
+          outMessage: OutMessage.RequestedRetryLoad(),
+        }),
+      },
+
+      view: (_model, h, input) =>
+        h.main(
+          [h.Class('flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto')],
+          [
+            h.div(
+              [h.Role('status'), h.AriaLive('polite'), h.Class('sr-only')],
+              [Option.getOrElse(input.maybeNotice, () => '')],
+            ),
+            ApplicationRoute.guards.NotFound(input.route)
+              ? notFoundView(h)
+              : AsyncData.matchDataSplitEmpty(input.workspaceAsyncData, {
+                  onIdle: () => workspaceLoadingView(h),
+                  onLoading: () => workspaceLoadingView(h),
+                  onFailure: error => workspaceFailureView(error, h),
+                  onData: workspace => workspaceView(input, workspace, h),
+                }),
+          ],
+        ),
+    }
+  }),
+)
+
 type WorkspacePageViewBuilder = HtmlBuilder<Message>
 
 const projectTabs = (
@@ -398,35 +430,3 @@ const notFoundView = (h: WorkspacePageViewBuilder): Html =>
       ),
     ],
   )
-
-export const WorkspacePageLive = WorkspacePage.make(
-  Effect.fn(function* () {
-    return {
-      update: {
-        ClickedRetryLoad: model => ({
-          model,
-          outMessage: OutMessage.RequestedRetryLoad(),
-        }),
-      },
-
-      view: (_model, h, input) =>
-        h.main(
-          [h.Class('flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto')],
-          [
-            h.div(
-              [h.Role('status'), h.AriaLive('polite'), h.Class('sr-only')],
-              [Option.getOrElse(input.maybeNotice, () => '')],
-            ),
-            ApplicationRoute.guards.NotFound(input.route)
-              ? notFoundView(h)
-              : AsyncData.matchDataSplitEmpty(input.workspaceAsyncData, {
-                  onIdle: () => workspaceLoadingView(h),
-                  onLoading: () => workspaceLoadingView(h),
-                  onFailure: error => workspaceFailureView(error, h),
-                  onData: workspace => workspaceView(input, workspace, h),
-                }),
-          ],
-        ),
-    }
-  }),
-)

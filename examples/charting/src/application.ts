@@ -99,6 +99,115 @@ export class Application extends Block<Application>()('Application', {
   Mount: [MountChart],
 }) {}
 
+// LIVE
+
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    const github = yield* GitHubApi
+    const npm = yield* NpmApi
+    const clock = yield* Clock.Clock
+    const charts = yield* ChartRegistry
+
+    const sidebar = yield* new Sidebar('sidebar')
+
+    return {
+      model: {
+        telemetry: TelemetryAsyncData.Loading(),
+        sidebar,
+        maybeChartHostId: Option.none(),
+        maybeChartError: Option.none(),
+        maybeSelectedDatumId: Option.none(),
+      },
+
+      start: [FetchTelemetry()],
+
+      update: {
+        ClickedRefresh: refetchTelemetry,
+        ClickedRetry: refetchTelemetry,
+
+        ClickedChartDatum: (model, { datumId }) => {
+          const nextModel = modifyFields(model, {
+            maybeSelectedDatumId: () => Option.some(datumId),
+          })
+
+          return { model: nextModel, commands: syncChart(nextModel) }
+        },
+
+        SucceededFetchTelemetry: (model, { telemetry }) => {
+          const nextModel = modifyFields(model, {
+            telemetry: () => TelemetryAsyncData.Success({ data: telemetry }),
+          })
+
+          return { model: nextModel, commands: syncChart(nextModel) }
+        },
+
+        FailedFetchTelemetry: (model, { error }) => ({
+          model: modifyFields(model, {
+            telemetry: () =>
+              AsyncData.settle(model.telemetry, Result.fail(error)),
+          }),
+        }),
+
+        SucceededMountChart: (model, { hostId }) => {
+          const nextModel = modifyFields(model, {
+            maybeChartHostId: () => Option.some(hostId),
+            maybeChartError: () => Option.none(),
+          })
+
+          return { model: nextModel, commands: syncChart(nextModel) }
+        },
+
+        FailedMountChart: (model, { reason }) => ({
+          model: modifyFields(model, {
+            maybeChartError: () => Option.some(reason),
+          }),
+        }),
+
+        SucceededSyncChart: model => ({
+          model: modifyFields(model, { maybeChartError: () => Option.none() }),
+        }),
+
+        FailedSyncChart: (model, { reason }) => ({
+          model: modifyFields(model, {
+            maybeChartError: () => Option.some(reason),
+          }),
+        }),
+
+        ...sidebar.on({
+          UpdatedChartControls: clearSelectedDatumStep,
+        }),
+      },
+
+      commands: {
+        FetchTelemetry: () => fetchTelemetry({ github, npm, clock }),
+        SyncChart: args => syncChartOption(charts, args),
+      },
+
+      mounts: {
+        MountChart: ({ element, hostId }) =>
+          mountChart(charts, element, hostId),
+      },
+
+      view: (model, h) => ({
+        title: 'Foldkit Adoption Observatory',
+        body: h.div(
+          [h.Class('min-h-screen bg-zinc-50 text-zinc-950')],
+          [
+            h.main(
+              [
+                h.Class(
+                  'mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8',
+                ),
+              ],
+              [headerView(model, h), telemetryStateView(model, h)],
+            ),
+          ],
+        ),
+      }),
+    }
+  }),
+)
+
 // UPDATE
 
 const syncChart = (model: Model) =>
@@ -531,112 +640,3 @@ const chartStatusView = (model: Model, h: ApplicationViewBuilder): Html =>
     onSome: error =>
       h.div([h.Class('max-w-md text-xs font-medium text-rose-700')], [error]),
   })
-
-// BLOCK
-
-export const ApplicationLive = Application.make(
-  Effect.fn(function* () {
-    const github = yield* GitHubApi
-    const npm = yield* NpmApi
-    const clock = yield* Clock.Clock
-    const charts = yield* ChartRegistry
-
-    const sidebar = yield* new Sidebar('sidebar')
-
-    return {
-      model: {
-        telemetry: TelemetryAsyncData.Loading(),
-        sidebar,
-        maybeChartHostId: Option.none(),
-        maybeChartError: Option.none(),
-        maybeSelectedDatumId: Option.none(),
-      },
-
-      start: [FetchTelemetry()],
-
-      update: {
-        ClickedRefresh: refetchTelemetry,
-        ClickedRetry: refetchTelemetry,
-
-        ClickedChartDatum: (model, { datumId }) => {
-          const nextModel = modifyFields(model, {
-            maybeSelectedDatumId: () => Option.some(datumId),
-          })
-
-          return { model: nextModel, commands: syncChart(nextModel) }
-        },
-
-        SucceededFetchTelemetry: (model, { telemetry }) => {
-          const nextModel = modifyFields(model, {
-            telemetry: () => TelemetryAsyncData.Success({ data: telemetry }),
-          })
-
-          return { model: nextModel, commands: syncChart(nextModel) }
-        },
-
-        FailedFetchTelemetry: (model, { error }) => ({
-          model: modifyFields(model, {
-            telemetry: () =>
-              AsyncData.settle(model.telemetry, Result.fail(error)),
-          }),
-        }),
-
-        SucceededMountChart: (model, { hostId }) => {
-          const nextModel = modifyFields(model, {
-            maybeChartHostId: () => Option.some(hostId),
-            maybeChartError: () => Option.none(),
-          })
-
-          return { model: nextModel, commands: syncChart(nextModel) }
-        },
-
-        FailedMountChart: (model, { reason }) => ({
-          model: modifyFields(model, {
-            maybeChartError: () => Option.some(reason),
-          }),
-        }),
-
-        SucceededSyncChart: model => ({
-          model: modifyFields(model, { maybeChartError: () => Option.none() }),
-        }),
-
-        FailedSyncChart: (model, { reason }) => ({
-          model: modifyFields(model, {
-            maybeChartError: () => Option.some(reason),
-          }),
-        }),
-
-        ...sidebar.on({
-          UpdatedChartControls: clearSelectedDatumStep,
-        }),
-      },
-
-      commands: {
-        FetchTelemetry: () => fetchTelemetry({ github, npm, clock }),
-        SyncChart: args => syncChartOption(charts, args),
-      },
-
-      mounts: {
-        MountChart: ({ element, hostId }) =>
-          mountChart(charts, element, hostId),
-      },
-
-      view: (model, h) => ({
-        title: 'Foldkit Adoption Observatory',
-        body: h.div(
-          [h.Class('min-h-screen bg-zinc-50 text-zinc-950')],
-          [
-            h.main(
-              [
-                h.Class(
-                  'mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8',
-                ),
-              ],
-              [headerView(model, h), telemetryStateView(model, h)],
-            ),
-          ],
-        ),
-      }),
-    }
-  }),
-)

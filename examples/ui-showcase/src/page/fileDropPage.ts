@@ -23,6 +23,41 @@ export class FileDropPage extends Block<FileDropPage>()('FileDropPage', {
   Message,
 }) {}
 
+export const FileDropPageLive = FileDropPage.make(
+  Effect.fn(function* () {
+    const fileDropBasicDemo = yield* new FileDrop.FileDrop(
+      'fileDropBasicDemo',
+      { id: 'file-drop-basic-demo' },
+    )
+
+    return {
+      model: {
+        fileDropBasicDemo,
+        fileDropBasicDemoFiles: [],
+      },
+
+      update: {
+        ClickedRemoveFileDropDemoFile: (model, { fileIndex }) => ({
+          model: modifyFields(model, {
+            fileDropBasicDemoFiles: Array.remove(fileIndex),
+          }),
+        }),
+
+        ...fileDropBasicDemo.on({
+          ReceivedFiles: (model, { files }) => ({
+            model: modifyFields(model, {
+              fileDropBasicDemoFiles: Array.appendAll(files),
+            }),
+          }),
+          RejectedNonFiles: model => ({ model }),
+        }),
+      },
+
+      view,
+    }
+  }),
+).pipe(Layer.provide(FileDrop.FileDropLive))
+
 const dropZoneClassName =
   'flex flex-col items-center gap-2 cursor-pointer rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center hover:border-accent-400 select-none data-[drag-over]:border-accent-500 data-[drag-over]:bg-accent-50'
 
@@ -120,38 +155,3 @@ const view = (model: Model, h: HtmlBuilder<Message>): Html => {
     ],
   )
 }
-
-export const FileDropPageLive = FileDropPage.make(
-  Effect.fn(function* () {
-    const fileDropBasicDemo = yield* new FileDrop.FileDrop(
-      'fileDropBasicDemo',
-      { id: 'file-drop-basic-demo' },
-    )
-
-    return {
-      model: {
-        fileDropBasicDemo,
-        fileDropBasicDemoFiles: [],
-      },
-
-      update: {
-        ClickedRemoveFileDropDemoFile: (model, { fileIndex }) => ({
-          model: modifyFields(model, {
-            fileDropBasicDemoFiles: Array.remove(fileIndex),
-          }),
-        }),
-
-        ...fileDropBasicDemo.on({
-          ReceivedFiles: (model, { files }) => ({
-            model: modifyFields(model, {
-              fileDropBasicDemoFiles: Array.appendAll(files),
-            }),
-          }),
-          RejectedNonFiles: model => ({ model }),
-        }),
-      },
-
-      view,
-    }
-  }),
-).pipe(Layer.provide(FileDrop.FileDropLive))

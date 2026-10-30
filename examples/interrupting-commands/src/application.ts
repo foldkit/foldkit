@@ -81,22 +81,6 @@ export class Application extends Block<Application>()('Application', {
   Command: [UploadFile],
 }) {}
 
-const MILLISECONDS_PER_MEGABYTE = 100
-
-const fakeFileForUpload = (uploadId: number): FakeFile =>
-  pipe(
-    FAKE_FILES,
-    Array.get(uploadId % Array.length(FAKE_FILES)),
-    Option.getOrElse(() => Array.headNonEmpty(FAKE_FILES)),
-  )
-
-const setStatusForId = (uploadId: number, status: UploadStatus) =>
-  Array.map((upload: Upload) =>
-    upload.id === uploadId
-      ? modifyFields(upload, { status: () => status })
-      : upload,
-  )
-
 export const ApplicationLive = Application.make(
   Effect.fn(function* () {
     return {
@@ -184,6 +168,22 @@ export const ApplicationLive = Application.make(
     }
   }),
 )
+
+const MILLISECONDS_PER_MEGABYTE = 100
+
+const fakeFileForUpload = (uploadId: number): FakeFile =>
+  pipe(
+    FAKE_FILES,
+    Array.get(uploadId % Array.length(FAKE_FILES)),
+    Option.getOrElse(() => Array.headNonEmpty(FAKE_FILES)),
+  )
+
+const setStatusForId = (uploadId: number, status: UploadStatus) =>
+  Array.map((upload: Upload) =>
+    upload.id === uploadId
+      ? modifyFields(upload, { status: () => status })
+      : upload,
+  )
 
 const badgeClass = (status: UploadStatus): string =>
   Match.value(status).pipe(

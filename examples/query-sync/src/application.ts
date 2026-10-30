@@ -48,6 +48,60 @@ export class Application extends Block<Application, Readonly<{ url: Url }>>()(
   },
 ) {}
 
+export const ApplicationLive = Application.make(
+  Effect.fn(function* (_id, { url }) {
+    const route = urlToApplicationRoute(url)
+    const browse = yield* new Browse('browse', {
+      fields: routeToBrowseFields(route),
+    })
+
+    return {
+      model: { route, browse },
+
+      update: {
+        CompletedNavigateInternal: model => ({ model }),
+        CompletedLoadExternal: model => ({ model }),
+
+        ClickedLink: (model, { request }) =>
+          UrlRequest.match(request, {
+            Internal: ({ url }) => ({
+              model,
+              commands: [NavigateInternal({ url: urlToString(url) })],
+            }),
+            External: ({ href }) => ({
+              model,
+              commands: [LoadExternal({ href })],
+            }),
+          }),
+
+        ChangedUrl: (model, { url }) => {
+          const nextRoute = urlToApplicationRoute(url)
+
+          return {
+            model: modifyFields(model, { route: () => nextRoute }),
+            messages: [
+              model.browse.send(
+                Browse.Message.InformedOfRouteChange({
+                  fields: routeToBrowseFields(nextRoute),
+                }),
+              ),
+            ],
+          }
+        },
+      },
+
+      commands: {
+        NavigateInternal: ({ url }) =>
+          pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+        LoadExternal: ({ href }) =>
+          load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+      },
+
+      view,
+    }
+  }),
+)
+
 type ApplicationViewBuilder = HtmlBuilder<Message>
 
 const notFoundView = (path: string, h: ApplicationViewBuilder): Html =>
@@ -108,57 +162,3 @@ const view = (model: Model, h: ApplicationViewBuilder): Document => {
 
   return { title: routeTitle(model.route), body }
 }
-
-export const ApplicationLive = Application.make(
-  Effect.fn(function* (_id, { url }) {
-    const route = urlToApplicationRoute(url)
-    const browse = yield* new Browse('browse', {
-      fields: routeToBrowseFields(route),
-    })
-
-    return {
-      model: { route, browse },
-
-      update: {
-        CompletedNavigateInternal: model => ({ model }),
-        CompletedLoadExternal: model => ({ model }),
-
-        ClickedLink: (model, { request }) =>
-          UrlRequest.match(request, {
-            Internal: ({ url }) => ({
-              model,
-              commands: [NavigateInternal({ url: urlToString(url) })],
-            }),
-            External: ({ href }) => ({
-              model,
-              commands: [LoadExternal({ href })],
-            }),
-          }),
-
-        ChangedUrl: (model, { url }) => {
-          const nextRoute = urlToApplicationRoute(url)
-
-          return {
-            model: modifyFields(model, { route: () => nextRoute }),
-            messages: [
-              model.browse.send(
-                Browse.Message.InformedOfRouteChange({
-                  fields: routeToBrowseFields(nextRoute),
-                }),
-              ),
-            ],
-          }
-        },
-      },
-
-      commands: {
-        NavigateInternal: ({ url }) =>
-          pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
-        LoadExternal: ({ href }) =>
-          load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
-      },
-
-      view,
-    }
-  }),
-)

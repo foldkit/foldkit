@@ -21,6 +21,36 @@ export class PopoverPage extends Block<PopoverPage>()('PopoverPage', {
   Model,
 }) {}
 
+export const PopoverPageLive = PopoverPage.make(
+  Effect.fn(function* () {
+    const popoverBasicDemo = yield* new Popover.Popover('popoverBasicDemo', {
+      id: 'popover-basic-demo',
+    })
+    const popoverAnimatedDemo = yield* new Popover.Popover(
+      'popoverAnimatedDemo',
+      { id: 'popover-animated-demo', isAnimated: true },
+    )
+    const popoverNestedParentDemo = yield* new Popover.Popover(
+      'popoverNestedParentDemo',
+      { id: 'popover-nested-parent-demo', contentFocus: true },
+    )
+    const popoverNestedChildDemo = yield* new Popover.Popover(
+      'popoverNestedChildDemo',
+      { id: 'popover-nested-child-demo' },
+    )
+
+    return {
+      model: {
+        popoverBasicDemo,
+        popoverAnimatedDemo,
+        popoverNestedParentDemo,
+        popoverNestedChildDemo,
+      },
+      view,
+    }
+  }),
+).pipe(Layer.provide(Popover.PopoverLive))
+
 type PopoverModel = Model['popoverBasicDemo']
 
 const triggerClassName =
@@ -255,33 +285,3 @@ const view = (model: Model, h: HtmlBuilder<never, unknown>): Html => {
     ],
   )
 }
-
-export const PopoverPageLive = PopoverPage.make(
-  Effect.fn(function* () {
-    const popoverBasicDemo = yield* new Popover.Popover('popoverBasicDemo', {
-      id: 'popover-basic-demo',
-    })
-    const popoverAnimatedDemo = yield* new Popover.Popover(
-      'popoverAnimatedDemo',
-      { id: 'popover-animated-demo', isAnimated: true },
-    )
-    const popoverNestedParentDemo = yield* new Popover.Popover(
-      'popoverNestedParentDemo',
-      { id: 'popover-nested-parent-demo', contentFocus: true },
-    )
-    const popoverNestedChildDemo = yield* new Popover.Popover(
-      'popoverNestedChildDemo',
-      { id: 'popover-nested-child-demo' },
-    )
-
-    return {
-      model: {
-        popoverBasicDemo,
-        popoverAnimatedDemo,
-        popoverNestedParentDemo,
-        popoverNestedChildDemo,
-      },
-      view,
-    }
-  }),
-).pipe(Layer.provide(Popover.PopoverLive))

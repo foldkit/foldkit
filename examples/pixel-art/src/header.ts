@@ -20,6 +20,21 @@ export class Header extends Block<Header>()('Header', {
   OutMessage,
 }) {}
 
+export const HeaderLive = Header.make(
+  Effect.fn(function* () {
+    return {
+      update: {
+        ClickedExport: model => ({
+          model,
+          outMessage: OutMessage.ClickedExport(),
+        }),
+      },
+
+      view: (_model, h) => headerView(h),
+    }
+  }),
+)
+
 type HeaderViewBuilder = HtmlBuilder<Message>
 
 const downloadIcon = (className: string, h: HeaderViewBuilder): Html =>
@@ -116,18 +131,3 @@ const headerView = (h: HeaderViewBuilder): Html =>
       ),
     ],
   )
-
-export const HeaderLive = Header.make(
-  Effect.fn(function* () {
-    return {
-      update: {
-        ClickedExport: model => ({
-          model,
-          outMessage: OutMessage.ClickedExport(),
-        }),
-      },
-
-      view: (_model, h) => headerView(h),
-    }
-  }),
-)

@@ -28,6 +28,40 @@ export class CalendarPage extends Block<
   Readonly<{ today: CalendarDate }>
 >()('CalendarPage', { Model }) {}
 
+export const CalendarPageLive = CalendarPage.make(
+  Effect.fn(function* (_id, { today }) {
+    const calendarBasicDemo = yield* new Calendar.Calendar(
+      'calendarBasicDemo',
+      {
+        id: 'calendar-basic-demo',
+        today,
+        minDate: FoldkitCalendar.subtractYears(today, 1),
+        maxDate: FoldkitCalendar.addYears(today, 1),
+      },
+    )
+
+    return {
+      model: {
+        calendarBasicDemo,
+        maybeCalendarBasicDemoSelectedDate: Option.none(),
+      },
+
+      update: {
+        ...calendarBasicDemo.on({
+          SelectedDate: (model, { date }) => ({
+            model: modifyFields(model, {
+              maybeCalendarBasicDemoSelectedDate: () => Option.some(date),
+            }),
+          }),
+          ChangedViewMonth: model => ({ model }),
+        }),
+      },
+
+      view,
+    }
+  }),
+).pipe(Layer.provide(Calendar.CalendarLive))
+
 const containerClassName =
   'inline-flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm select-none min-w-[304px] min-h-[324px]'
 
@@ -202,37 +236,3 @@ const view = (model: Model, h: HtmlBuilder<never>): Html => {
     ],
   )
 }
-
-export const CalendarPageLive = CalendarPage.make(
-  Effect.fn(function* (_id, { today }) {
-    const calendarBasicDemo = yield* new Calendar.Calendar(
-      'calendarBasicDemo',
-      {
-        id: 'calendar-basic-demo',
-        today,
-        minDate: FoldkitCalendar.subtractYears(today, 1),
-        maxDate: FoldkitCalendar.addYears(today, 1),
-      },
-    )
-
-    return {
-      model: {
-        calendarBasicDemo,
-        maybeCalendarBasicDemoSelectedDate: Option.none(),
-      },
-
-      update: {
-        ...calendarBasicDemo.on({
-          SelectedDate: (model, { date }) => ({
-            model: modifyFields(model, {
-              maybeCalendarBasicDemoSelectedDate: () => Option.some(date),
-            }),
-          }),
-          ChangedViewMonth: model => ({ model }),
-        }),
-      },
-
-      view,
-    }
-  }),
-).pipe(Layer.provide(Calendar.CalendarLive))

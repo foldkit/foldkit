@@ -15,6 +15,20 @@ export class HoverIntentPage extends Block<HoverIntentPage>()(
   { Model },
 ) {}
 
+export const HoverIntentPageLive = HoverIntentPage.make(
+  Effect.fn(function* () {
+    const hoverIntentDemo = yield* new HoverIntent.HoverIntent(
+      'hoverIntentDemo',
+      {},
+    )
+
+    return {
+      model: { hoverIntentDemo },
+      view,
+    }
+  }),
+).pipe(Layer.provide(HoverIntent.HoverIntentLive))
+
 const triggerClassName =
   'inline-flex cursor-pointer items-center rounded-lg bg-accent-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600'
 
@@ -80,17 +94,3 @@ const view = (model: Model, h: HtmlBuilder<never>): Html => {
     ],
   )
 }
-
-export const HoverIntentPageLive = HoverIntentPage.make(
-  Effect.fn(function* () {
-    const hoverIntentDemo = yield* new HoverIntent.HoverIntent(
-      'hoverIntentDemo',
-      {},
-    )
-
-    return {
-      model: { hoverIntentDemo },
-      view,
-    }
-  }),
-).pipe(Layer.provide(HoverIntent.HoverIntentLive))

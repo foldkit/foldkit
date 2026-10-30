@@ -19,13 +19,6 @@ export class Application extends Block<Application>()('Application', {
   Message,
 }) {}
 
-const handleClickedCrash = (
-  _model: Model,
-  _message: ClickedCrash,
-): { model: Model } => {
-  throw new Error('This is a simulated crash!')
-}
-
 export const ApplicationLive = Application.make(
   Effect.fn(function* () {
     return {
@@ -62,6 +55,13 @@ export const ApplicationLive = Application.make(
     }
   }),
 )
+
+const handleClickedCrash = (
+  _model: Model,
+  _message: ClickedCrash,
+): { model: Model } => {
+  throw new Error('This is a simulated crash!')
+}
 
 // CRASH
 

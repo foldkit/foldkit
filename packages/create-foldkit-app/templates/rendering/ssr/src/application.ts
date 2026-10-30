@@ -52,10 +52,6 @@ export class Application extends Block<
   Command: [PersistCount],
 }) {}
 
-const COUNT_COOKIE_MAX_AGE_SECONDS = 31536000
-
-const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
-
 export const ApplicationLive = Application.make(
   Effect.fn(function* (_id, { flags }) {
     return {
@@ -154,3 +150,7 @@ export const ApplicationLive = Application.make(
     }
   }),
 )
+
+const COUNT_COOKIE_MAX_AGE_SECONDS = 31536000
+
+const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'

@@ -70,6 +70,87 @@ export class Typing extends Block<Typing, void, TypingViewInput>()('Typing', {
   Command: [UpdatePlayerProgress, FocusUserGameTextInput],
 }) {}
 
+export const TypingLive = Typing.make(
+  Effect.fn(function* () {
+    const client = yield* RoomsClient
+
+    return {
+      model: EMPTY_MODEL,
+
+      update: {
+        ChangedUserText: changedUserTextStep,
+        InformedOfGameStart: () => ({
+          model: EMPTY_MODEL,
+          commands: [FocusUserGameTextInput()],
+        }),
+        InformedOfGameEnd: () => ({ model: EMPTY_MODEL }),
+        ReceivedPlayerProgress: (model, { maybePlayerProgress }) =>
+          receivedPlayerProgressStep(model, maybePlayerProgress),
+        CompletedFocusUserGameTextInput: model => ({ model }),
+        CompletedUpdatePlayerProgress: model => ({ model }),
+      },
+
+      commands: {
+        UpdatePlayerProgress: ({
+          playerId,
+          gameId,
+          userGameText,
+          charsTyped,
+        }) =>
+          client
+            .updatePlayerProgress({
+              playerId,
+              gameId,
+              userText: userGameText,
+              charsTyped,
+            })
+            .pipe(
+              Effect.ignore,
+              Effect.as(Message.CompletedUpdatePlayerProgress()),
+            ),
+        FocusUserGameTextInput: () =>
+          Dom.focus(`#${USER_GAME_TEXT_INPUT_ID}`).pipe(
+            Effect.ignore,
+            Effect.as(Message.CompletedFocusUserGameTextInput()),
+          ),
+      },
+
+      view: ({ userGameText }, h, { game, playerId }) => {
+        const maybeWrongCharIndex = findFirstWrongCharIndex(userGameText)(
+          game.text,
+        )
+
+        return h.div(
+          [h.Class('relative')],
+          [
+            h.textarea([
+              h.Id(USER_GAME_TEXT_INPUT_ID),
+              h.Value(userGameText),
+              h.Class('absolute inset-0 opacity-0 z-10 resize-none'),
+              h.OnInput(value =>
+                Message.ChangedUserText({ value, game, playerId }),
+              ),
+              h.Spellcheck(false),
+              h.Autocorrect('off'),
+              h.Autocapitalize('none'),
+            ]),
+            h.div(
+              [h.Class('whitespace-pre-wrap')],
+              pipe(
+                game.text,
+                String.split(''),
+                Array.map(
+                  gameTextCharView(userGameText, maybeWrongCharIndex, h),
+                ),
+              ),
+            ),
+          ],
+        )
+      },
+    }
+  }),
+)
+
 const EMPTY_MODEL: Model = { userGameText: '', charsTyped: 0 }
 
 const findFirstWrongCharIndex =
@@ -189,84 +270,3 @@ const gameTextCharView =
       [isNext && char === '\n' ? '↵' : char],
     )
   }
-
-export const TypingLive = Typing.make(
-  Effect.fn(function* () {
-    const client = yield* RoomsClient
-
-    return {
-      model: EMPTY_MODEL,
-
-      update: {
-        ChangedUserText: changedUserTextStep,
-        InformedOfGameStart: () => ({
-          model: EMPTY_MODEL,
-          commands: [FocusUserGameTextInput()],
-        }),
-        InformedOfGameEnd: () => ({ model: EMPTY_MODEL }),
-        ReceivedPlayerProgress: (model, { maybePlayerProgress }) =>
-          receivedPlayerProgressStep(model, maybePlayerProgress),
-        CompletedFocusUserGameTextInput: model => ({ model }),
-        CompletedUpdatePlayerProgress: model => ({ model }),
-      },
-
-      commands: {
-        UpdatePlayerProgress: ({
-          playerId,
-          gameId,
-          userGameText,
-          charsTyped,
-        }) =>
-          client
-            .updatePlayerProgress({
-              playerId,
-              gameId,
-              userText: userGameText,
-              charsTyped,
-            })
-            .pipe(
-              Effect.ignore,
-              Effect.as(Message.CompletedUpdatePlayerProgress()),
-            ),
-        FocusUserGameTextInput: () =>
-          Dom.focus(`#${USER_GAME_TEXT_INPUT_ID}`).pipe(
-            Effect.ignore,
-            Effect.as(Message.CompletedFocusUserGameTextInput()),
-          ),
-      },
-
-      view: ({ userGameText }, h, { game, playerId }) => {
-        const maybeWrongCharIndex = findFirstWrongCharIndex(userGameText)(
-          game.text,
-        )
-
-        return h.div(
-          [h.Class('relative')],
-          [
-            h.textarea([
-              h.Id(USER_GAME_TEXT_INPUT_ID),
-              h.Value(userGameText),
-              h.Class('absolute inset-0 opacity-0 z-10 resize-none'),
-              h.OnInput(value =>
-                Message.ChangedUserText({ value, game, playerId }),
-              ),
-              h.Spellcheck(false),
-              h.Autocorrect('off'),
-              h.Autocapitalize('none'),
-            ]),
-            h.div(
-              [h.Class('whitespace-pre-wrap')],
-              pipe(
-                game.text,
-                String.split(''),
-                Array.map(
-                  gameTextCharView(userGameText, maybeWrongCharIndex, h),
-                ),
-              ),
-            ),
-          ],
-        )
-      },
-    }
-  }),
-)

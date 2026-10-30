@@ -50,6 +50,90 @@ export class Application extends Block<Application>()('Application', {
   Command: [DetermineStartTime, DetermineTickTime],
 }) {}
 
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    const clock = yield* Clock.Clock
+
+    return {
+      model: {
+        elapsedMs: 0,
+        isRunning: false,
+        startTime: 0,
+      },
+
+      update: {
+        ClickedStart: model => ({
+          model,
+          commands: [DetermineStartTime({ elapsedMs: model.elapsedMs })],
+        }),
+
+        CompletedDetermineStartTime: (model, { startTime }) => ({
+          model: modifyFields(model, {
+            isRunning: () => true,
+            startTime: () => startTime,
+          }),
+        }),
+
+        ClickedStop: model => ({
+          model: modifyFields(model, { isRunning: () => false }),
+        }),
+
+        ClickedReset: model => ({
+          model: modifyFields(model, {
+            elapsedMs: () => 0,
+            isRunning: () => false,
+            startTime: () => 0,
+          }),
+        }),
+
+        Ticked: model => ({
+          model,
+          commands: [DetermineTickTime({ startTime: model.startTime })],
+        }),
+
+        CompletedDetermineTickTime: (model, { elapsedMs }) => ({
+          model: modifyFields(model, { elapsedMs: () => elapsedMs }),
+        }),
+      },
+
+      commands: {
+        DetermineStartTime: ({ elapsedMs }) =>
+          Effect.gen(function* () {
+            const now = yield* clock.currentTimeMillis
+
+            return Message.CompletedDetermineStartTime({
+              startTime: now - elapsedMs,
+            })
+          }),
+
+        DetermineTickTime: ({ startTime }) =>
+          Effect.gen(function* () {
+            const now = yield* clock.currentTimeMillis
+
+            return Message.CompletedDetermineTickTime({
+              elapsedMs: now - startTime,
+            })
+          }),
+      },
+
+      subscriptions: {
+        stopwatchTicks: {
+          dependencies: model => model.isRunning,
+          stream: (isRunning: boolean) =>
+            isRunning
+              ? Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
+                  Stream.drop(1),
+                  Stream.as(Message.Ticked()),
+                )
+              : Stream.empty,
+        },
+      },
+
+      view,
+    }
+  }),
+)
+
 const formatTime = (ms: number): string => {
   const minutes = pipe(Duration.millis(ms), Duration.toMinutes, floorAndPad)
 
@@ -144,87 +228,3 @@ const startStopButton = (isRunning: boolean, h: HtmlBuilder<Message>): Html =>
 
 const buttonStyle =
   'px-6 py-4 flex-1 font-semibold text-white transition-colors'
-
-export const ApplicationLive = Application.make(
-  Effect.fn(function* () {
-    const clock = yield* Clock.Clock
-
-    return {
-      model: {
-        elapsedMs: 0,
-        isRunning: false,
-        startTime: 0,
-      },
-
-      update: {
-        ClickedStart: model => ({
-          model,
-          commands: [DetermineStartTime({ elapsedMs: model.elapsedMs })],
-        }),
-
-        CompletedDetermineStartTime: (model, { startTime }) => ({
-          model: modifyFields(model, {
-            isRunning: () => true,
-            startTime: () => startTime,
-          }),
-        }),
-
-        ClickedStop: model => ({
-          model: modifyFields(model, { isRunning: () => false }),
-        }),
-
-        ClickedReset: model => ({
-          model: modifyFields(model, {
-            elapsedMs: () => 0,
-            isRunning: () => false,
-            startTime: () => 0,
-          }),
-        }),
-
-        Ticked: model => ({
-          model,
-          commands: [DetermineTickTime({ startTime: model.startTime })],
-        }),
-
-        CompletedDetermineTickTime: (model, { elapsedMs }) => ({
-          model: modifyFields(model, { elapsedMs: () => elapsedMs }),
-        }),
-      },
-
-      commands: {
-        DetermineStartTime: ({ elapsedMs }) =>
-          Effect.gen(function* () {
-            const now = yield* clock.currentTimeMillis
-
-            return Message.CompletedDetermineStartTime({
-              startTime: now - elapsedMs,
-            })
-          }),
-
-        DetermineTickTime: ({ startTime }) =>
-          Effect.gen(function* () {
-            const now = yield* clock.currentTimeMillis
-
-            return Message.CompletedDetermineTickTime({
-              elapsedMs: now - startTime,
-            })
-          }),
-      },
-
-      subscriptions: {
-        stopwatchTicks: {
-          dependencies: model => model.isRunning,
-          stream: (isRunning: boolean) =>
-            isRunning
-              ? Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
-                  Stream.drop(1),
-                  Stream.as(Message.Ticked()),
-                )
-              : Stream.empty,
-        },
-      },
-
-      view,
-    }
-  }),
-)

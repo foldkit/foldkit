@@ -16,6 +16,48 @@ type Model = typeof Model.Type
 
 export class SliderPage extends Block<SliderPage>()('SliderPage', { Model }) {}
 
+export const SliderPageLive = SliderPage.make(
+  Effect.fn(function* () {
+    const sliderRatingDemo = yield* new Slider.Slider('sliderRatingDemo', {
+      id: 'slider-rating-demo',
+      min: 0,
+      max: 10,
+      step: 1,
+    })
+    const sliderVolumeDemo = yield* new Slider.Slider('sliderVolumeDemo', {
+      id: 'slider-volume-demo',
+      min: 0,
+      max: 1,
+      step: 0.05,
+    })
+
+    return {
+      model: {
+        sliderRatingDemo,
+        sliderRatingValue: 3,
+        sliderVolumeDemo,
+        sliderVolumeValue: 0.5,
+      },
+
+      update: {
+        ...sliderRatingDemo.on({
+          ChangedValue: (model, { value }) => ({
+            model: modifyFields(model, { sliderRatingValue: () => value }),
+          }),
+        }),
+
+        ...sliderVolumeDemo.on({
+          ChangedValue: (model, { value }) => ({
+            model: modifyFields(model, { sliderVolumeValue: () => value }),
+          }),
+        }),
+      },
+
+      view,
+    }
+  }),
+).pipe(Layer.provide(Slider.SliderLive))
+
 const horizontalRowClassName = 'flex flex-col gap-2 w-full max-w-sm'
 
 const horizontalHeaderClassName =
@@ -144,45 +186,3 @@ const view = (model: Model, h: HtmlBuilder<never>): Html => {
     ],
   )
 }
-
-export const SliderPageLive = SliderPage.make(
-  Effect.fn(function* () {
-    const sliderRatingDemo = yield* new Slider.Slider('sliderRatingDemo', {
-      id: 'slider-rating-demo',
-      min: 0,
-      max: 10,
-      step: 1,
-    })
-    const sliderVolumeDemo = yield* new Slider.Slider('sliderVolumeDemo', {
-      id: 'slider-volume-demo',
-      min: 0,
-      max: 1,
-      step: 0.05,
-    })
-
-    return {
-      model: {
-        sliderRatingDemo,
-        sliderRatingValue: 3,
-        sliderVolumeDemo,
-        sliderVolumeValue: 0.5,
-      },
-
-      update: {
-        ...sliderRatingDemo.on({
-          ChangedValue: (model, { value }) => ({
-            model: modifyFields(model, { sliderRatingValue: () => value }),
-          }),
-        }),
-
-        ...sliderVolumeDemo.on({
-          ChangedValue: (model, { value }) => ({
-            model: modifyFields(model, { sliderVolumeValue: () => value }),
-          }),
-        }),
-      },
-
-      view,
-    }
-  }),
-).pipe(Layer.provide(Slider.SliderLive))

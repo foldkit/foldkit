@@ -25,6 +25,36 @@ export class FieldsetPage extends Block<FieldsetPage>()('FieldsetPage', {
   Message,
 }) {}
 
+export const FieldsetPageLive = FieldsetPage.make(
+  Effect.fn(function* () {
+    return {
+      model: {
+        fieldsetInputValue: '',
+        fieldsetTextareaValue: '',
+        isFieldsetCheckboxDemoChecked: false,
+      },
+
+      update: {
+        UpdatedFieldsetInputValue: (model, { value }) => ({
+          model: modifyFields(model, { fieldsetInputValue: () => value }),
+        }),
+
+        UpdatedFieldsetTextareaValue: (model, { value }) => ({
+          model: modifyFields(model, { fieldsetTextareaValue: () => value }),
+        }),
+
+        ToggledFieldsetCheckboxDemo: (model, { isChecked }) => ({
+          model: modifyFields(model, {
+            isFieldsetCheckboxDemoChecked: () => isChecked,
+          }),
+        }),
+      },
+
+      view,
+    }
+  }),
+)
+
 const FIELDSET_CHECKBOX_DEMO_ID = 'fieldset-checkbox-demo'
 const FIELDSET_DISABLED_CHECKBOX_ID = 'fieldset-disabled-checkbox'
 
@@ -330,33 +360,3 @@ const view = (model: Model, h: HtmlBuilder<Message>): Html => {
     ],
   )
 }
-
-export const FieldsetPageLive = FieldsetPage.make(
-  Effect.fn(function* () {
-    return {
-      model: {
-        fieldsetInputValue: '',
-        fieldsetTextareaValue: '',
-        isFieldsetCheckboxDemoChecked: false,
-      },
-
-      update: {
-        UpdatedFieldsetInputValue: (model, { value }) => ({
-          model: modifyFields(model, { fieldsetInputValue: () => value }),
-        }),
-
-        UpdatedFieldsetTextareaValue: (model, { value }) => ({
-          model: modifyFields(model, { fieldsetTextareaValue: () => value }),
-        }),
-
-        ToggledFieldsetCheckboxDemo: (model, { isChecked }) => ({
-          model: modifyFields(model, {
-            isFieldsetCheckboxDemoChecked: () => isChecked,
-          }),
-        }),
-      },
-
-      view,
-    }
-  }),
-)

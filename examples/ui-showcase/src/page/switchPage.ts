@@ -22,6 +22,22 @@ export class SwitchPage extends Block<SwitchPage>()('SwitchPage', {
   Message,
 }) {}
 
+export const SwitchPageLive = SwitchPage.make(
+  Effect.fn(function* () {
+    return {
+      model: { isSwitchDemoChecked: false },
+
+      update: {
+        ToggledSwitchDemo: (model, { isChecked }) => ({
+          model: modifyFields(model, { isSwitchDemoChecked: () => isChecked }),
+        }),
+      },
+
+      view,
+    }
+  }),
+)
+
 const SWITCH_DEMO_ID = 'switch-demo'
 
 const wrapperClassName = 'flex items-center gap-3'
@@ -92,19 +108,3 @@ const view = (model: Model, h: HtmlBuilder<Message>): Html => {
     ],
   )
 }
-
-export const SwitchPageLive = SwitchPage.make(
-  Effect.fn(function* () {
-    return {
-      model: { isSwitchDemoChecked: false },
-
-      update: {
-        ToggledSwitchDemo: (model, { isChecked }) => ({
-          model: modifyFields(model, { isSwitchDemoChecked: () => isChecked }),
-        }),
-      },
-
-      view,
-    }
-  }),
-)

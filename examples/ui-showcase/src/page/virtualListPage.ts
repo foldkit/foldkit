@@ -38,6 +38,45 @@ export class VirtualListPage extends Block<VirtualListPage>()(
   { Model, Message },
 ) {}
 
+export const VirtualListPageLive = VirtualListPage.make(
+  Effect.fn(function* () {
+    const virtualListDemo = yield* new ActivityVirtualList('virtualListDemo', {
+      id: 'virtual-list-demo',
+      rowHeightPx: 56,
+    })
+    const virtualListVariableDemo = yield* new ActivityVirtualList(
+      'virtualListVariableDemo',
+      { id: 'virtual-list-variable-demo', rowHeightPx: 56 },
+    )
+
+    return {
+      model: { virtualListDemo, virtualListVariableDemo },
+
+      update: {
+        ClickedVirtualListScrollToMiddle: model => ({
+          model,
+          messages: [
+            model.virtualListDemo.send(
+              VirtualList.requestScrollToIndex(MIDDLE_INDEX),
+            ),
+          ],
+        }),
+
+        ClickedVirtualListVariableScrollToMiddle: model => ({
+          model,
+          messages: [
+            model.virtualListVariableDemo.send(
+              VirtualList.requestScrollToIndex(MIDDLE_INDEX),
+            ),
+          ],
+        }),
+      },
+
+      view,
+    }
+  }),
+).pipe(Layer.provide(ActivityVirtualList.Live))
+
 const actorNames = [
   'Sarah Chen',
   'Marcus Davies',
@@ -358,42 +397,3 @@ const view = (model: Model, h: HtmlBuilder<Message>): Html => {
     ],
   )
 }
-
-export const VirtualListPageLive = VirtualListPage.make(
-  Effect.fn(function* () {
-    const virtualListDemo = yield* new ActivityVirtualList('virtualListDemo', {
-      id: 'virtual-list-demo',
-      rowHeightPx: 56,
-    })
-    const virtualListVariableDemo = yield* new ActivityVirtualList(
-      'virtualListVariableDemo',
-      { id: 'virtual-list-variable-demo', rowHeightPx: 56 },
-    )
-
-    return {
-      model: { virtualListDemo, virtualListVariableDemo },
-
-      update: {
-        ClickedVirtualListScrollToMiddle: model => ({
-          model,
-          messages: [
-            model.virtualListDemo.send(
-              VirtualList.requestScrollToIndex(MIDDLE_INDEX),
-            ),
-          ],
-        }),
-
-        ClickedVirtualListVariableScrollToMiddle: model => ({
-          model,
-          messages: [
-            model.virtualListVariableDemo.send(
-              VirtualList.requestScrollToIndex(MIDDLE_INDEX),
-            ),
-          ],
-        }),
-      },
-
-      view,
-    }
-  }),
-).pipe(Layer.provide(ActivityVirtualList.Live))

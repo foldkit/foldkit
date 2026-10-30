@@ -46,6 +46,63 @@ export class ChatSocket extends Block<
   Command: [WaitForOpen],
 }) {}
 
+export const ChatSocketLive = ChatSocket.make(
+  Effect.fn(function* () {
+    const makeWebSocket = yield* Socket.WebSocketConstructor
+
+    const socket = yield* Effect.acquireRelease(
+      Effect.sync(() => makeWebSocket(WS_URL)),
+      socket =>
+        Effect.sync(() => {
+          socket.close()
+        }),
+    )
+
+    return {
+      model: SocketState.Opening(),
+
+      start: [WaitForOpen()],
+
+      update: {
+        SucceededWaitForOpen: () => ({
+          model: SocketState.Open(),
+          outMessage: ChatSocket.OutMessage.Connected(),
+        }),
+        FailedWaitForOpen: (model, { error }) => ({
+          model,
+          outMessage: ChatSocket.OutMessage.FailedConnect({ error }),
+        }),
+        ReceivedSocketMessage: (model, { text }) => ({
+          model,
+          outMessage: ChatSocket.OutMessage.ReceivedMessage({ text }),
+        }),
+        ClosedSocket: model => ({
+          model,
+          outMessage: ChatSocket.OutMessage.Disconnected(),
+        }),
+        ErroredSocket: (model, { error }) => ({
+          model,
+          outMessage: ChatSocket.OutMessage.Failed({ error }),
+        }),
+      },
+
+      commands: {
+        WaitForOpen: () => waitForOpen(socket),
+      },
+
+      subscriptions: {
+        socketEvents: {
+          dependencies: model => model._tag === 'Open',
+          stream: (isOpen: boolean) =>
+            isOpen ? streamSocketEvents(socket) : Stream.empty,
+        },
+      },
+
+      expose: socket,
+    }
+  }),
+)
+
 const waitForOpen = (socket: Socket.WebSocketLike) =>
   Effect.callback<void, Error>(resume => {
     const removeListeners = () => {
@@ -114,60 +171,3 @@ const streamSocketEvents = (socket: Socket.WebSocketLike) =>
         }),
     ).pipe(Effect.flatMap(() => Effect.never)),
   )
-
-export const ChatSocketLive = ChatSocket.make(
-  Effect.fn(function* () {
-    const makeWebSocket = yield* Socket.WebSocketConstructor
-
-    const socket = yield* Effect.acquireRelease(
-      Effect.sync(() => makeWebSocket(WS_URL)),
-      socket =>
-        Effect.sync(() => {
-          socket.close()
-        }),
-    )
-
-    return {
-      model: SocketState.Opening(),
-
-      start: [WaitForOpen()],
-
-      update: {
-        SucceededWaitForOpen: () => ({
-          model: SocketState.Open(),
-          outMessage: ChatSocket.OutMessage.Connected(),
-        }),
-        FailedWaitForOpen: (model, { error }) => ({
-          model,
-          outMessage: ChatSocket.OutMessage.FailedConnect({ error }),
-        }),
-        ReceivedSocketMessage: (model, { text }) => ({
-          model,
-          outMessage: ChatSocket.OutMessage.ReceivedMessage({ text }),
-        }),
-        ClosedSocket: model => ({
-          model,
-          outMessage: ChatSocket.OutMessage.Disconnected(),
-        }),
-        ErroredSocket: (model, { error }) => ({
-          model,
-          outMessage: ChatSocket.OutMessage.Failed({ error }),
-        }),
-      },
-
-      commands: {
-        WaitForOpen: () => waitForOpen(socket),
-      },
-
-      subscriptions: {
-        socketEvents: {
-          dependencies: model => model._tag === 'Open',
-          stream: (isOpen: boolean) =>
-            isOpen ? streamSocketEvents(socket) : Stream.empty,
-        },
-      },
-
-      expose: socket,
-    }
-  }),
-)

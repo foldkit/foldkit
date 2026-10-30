@@ -52,72 +52,6 @@ export class StatsTab extends Block<StatsTab>()('StatsTab', {
   Message,
 }) {}
 
-type StatsTabViewBuilder = HtmlBuilder<Message>
-
-export const hasStatsData = (model: Model): boolean =>
-  AsyncData.hasData(StatsQuery.read(model.stats.model))
-
-const statCard = (
-  { label, value }: Readonly<{ label: string; value: string }>,
-  h: StatsTabViewBuilder,
-) =>
-  h.div(
-    [h.Class('bg-white rounded-xl shadow p-4 flex flex-col gap-1')],
-    [
-      h.div([h.Class('text-sm text-slate-500')], [label]),
-      h.div([h.Class('text-2xl font-bold text-slate-900')], [value]),
-    ],
-  )
-
-const statsCards = (
-  {
-    stats,
-    fetchedAt,
-    isRefreshing,
-  }: Readonly<{
-    stats: Stats
-    fetchedAt: number
-    isRefreshing: boolean
-  }>,
-  h: StatsTabViewBuilder,
-) =>
-  h.div(
-    [h.Class('flex flex-col gap-3')],
-    [
-      h.div(
-        [h.Class('grid grid-cols-3 gap-4')],
-        [
-          statCard({ label: 'Active users', value: `${stats.activeUsers}` }, h),
-          statCard(
-            {
-              label: 'Requests per second',
-              value: `${stats.requestsPerSecond}`,
-            },
-            h,
-          ),
-          statCard(
-            { label: 'Cache hit rate', value: `${stats.cacheHitRatePercent}%` },
-            h,
-          ),
-        ],
-      ),
-      h.div(
-        [h.Class('flex items-center gap-3 text-sm text-slate-500')],
-        [
-          h.span([], [`Updated at ${formatFetchedAt(fetchedAt)}`]),
-          ...(isRefreshing
-            ? [
-                h.span(
-                  [h.Class('text-indigo-600 font-semibold')],
-                  ['Refreshing'],
-                ),
-              ]
-            : []),
-        ],
-      ),
-    ],
-  )
-
 export const StatsTabLive = StatsTab.make(
   Effect.fn(function* () {
     const stats = yield* new StatsQuery('stats', {})
@@ -220,3 +154,69 @@ export const StatsTabLive = StatsTab.make(
     }
   }),
 ).pipe(Layer.provide(StatsQuery.Live))
+
+type StatsTabViewBuilder = HtmlBuilder<Message>
+
+export const hasStatsData = (model: Model): boolean =>
+  AsyncData.hasData(StatsQuery.read(model.stats.model))
+
+const statCard = (
+  { label, value }: Readonly<{ label: string; value: string }>,
+  h: StatsTabViewBuilder,
+) =>
+  h.div(
+    [h.Class('bg-white rounded-xl shadow p-4 flex flex-col gap-1')],
+    [
+      h.div([h.Class('text-sm text-slate-500')], [label]),
+      h.div([h.Class('text-2xl font-bold text-slate-900')], [value]),
+    ],
+  )
+
+const statsCards = (
+  {
+    stats,
+    fetchedAt,
+    isRefreshing,
+  }: Readonly<{
+    stats: Stats
+    fetchedAt: number
+    isRefreshing: boolean
+  }>,
+  h: StatsTabViewBuilder,
+) =>
+  h.div(
+    [h.Class('flex flex-col gap-3')],
+    [
+      h.div(
+        [h.Class('grid grid-cols-3 gap-4')],
+        [
+          statCard({ label: 'Active users', value: `${stats.activeUsers}` }, h),
+          statCard(
+            {
+              label: 'Requests per second',
+              value: `${stats.requestsPerSecond}`,
+            },
+            h,
+          ),
+          statCard(
+            { label: 'Cache hit rate', value: `${stats.cacheHitRatePercent}%` },
+            h,
+          ),
+        ],
+      ),
+      h.div(
+        [h.Class('flex items-center gap-3 text-sm text-slate-500')],
+        [
+          h.span([], [`Updated at ${formatFetchedAt(fetchedAt)}`]),
+          ...(isRefreshing
+            ? [
+                h.span(
+                  [h.Class('text-indigo-600 font-semibold')],
+                  ['Refreshing'],
+                ),
+              ]
+            : []),
+        ],
+      ),
+    ],
+  )

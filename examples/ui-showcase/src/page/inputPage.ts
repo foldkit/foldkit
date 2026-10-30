@@ -21,6 +21,22 @@ export class InputPage extends Block<InputPage>()('InputPage', {
   Message,
 }) {}
 
+export const InputPageLive = InputPage.make(
+  Effect.fn(function* () {
+    return {
+      model: { inputDemoValue: '' },
+
+      update: {
+        UpdatedInputDemoValue: (model, { value }) => ({
+          model: modifyFields(model, { inputDemoValue: () => value }),
+        }),
+      },
+
+      view,
+    }
+  }),
+)
+
 const inputClassName =
   'block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-base text-gray-900 transition-colors placeholder:text-gray-400 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50'
 
@@ -100,19 +116,3 @@ const view = (model: Model, h: HtmlBuilder<Message>): Html => {
     ],
   )
 }
-
-export const InputPageLive = InputPage.make(
-  Effect.fn(function* () {
-    return {
-      model: { inputDemoValue: '' },
-
-      update: {
-        UpdatedInputDemoValue: (model, { value }) => ({
-          model: modifyFields(model, { inputDemoValue: () => value }),
-        }),
-      },
-
-      view,
-    }
-  }),
-)

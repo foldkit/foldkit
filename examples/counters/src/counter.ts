@@ -19,9 +19,6 @@ export class Counter extends Block<Counter>()('Counter', {
   Message,
 }) {}
 
-const buttonStyle =
-  'h-9 w-9 rounded bg-gray-900 text-white text-lg leading-none hover:bg-gray-700 transition cursor-pointer'
-
 export const CounterLive = Counter.make(
   Effect.fn(function* () {
     return {
@@ -69,3 +66,6 @@ export const CounterLive = Counter.make(
     }
   }),
 )
+
+const buttonStyle =
+  'h-9 w-9 rounded bg-gray-900 text-white text-lg leading-none hover:bg-gray-700 transition cursor-pointer'

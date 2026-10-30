@@ -105,6 +105,132 @@ export class Application extends Block<
   Command: [NavigateInternal, LoadExternal],
 }) {}
 
+export const ApplicationLive = Application.make(
+  Effect.fn(function* (_id, { flags: { today }, url }) {
+    const navigation = yield* new Navigation('navigation')
+
+    return {
+      model: {
+        route: urlToApplicationRoute(url),
+        navigation,
+        animationPage: yield* new AnimationPage('animationPage'),
+        buttonPage: yield* new ButtonPage('buttonPage'),
+        calendarPage: yield* new CalendarPage('calendarPage', { today }),
+        checkboxPage: yield* new CheckboxPage('checkboxPage'),
+        comboboxPage: yield* new ComboboxPage('comboboxPage'),
+        datePickerPage: yield* new DatePickerPage('datePickerPage', { today }),
+        dialogPage: yield* new DialogPage('dialogPage'),
+        disclosurePage: yield* new DisclosurePage('disclosurePage'),
+        dragAndDropPage: yield* new DragAndDropPage('dragAndDropPage'),
+        fieldsetPage: yield* new FieldsetPage('fieldsetPage'),
+        fileDropPage: yield* new FileDropPage('fileDropPage'),
+        hoverIntentPage: yield* new HoverIntentPage('hoverIntentPage'),
+        inputPage: yield* new InputPage('inputPage'),
+        listboxPage: yield* new ListboxPage('listboxPage'),
+        menuPage: yield* new MenuPage('menuPage'),
+        popoverPage: yield* new PopoverPage('popoverPage'),
+        radioGroupPage: yield* new RadioGroupPage('radioGroupPage'),
+        selectPage: yield* new SelectPage('selectPage'),
+        sliderPage: yield* new SliderPage('sliderPage'),
+        switchPage: yield* new SwitchPage('switchPage'),
+        tabsPage: yield* new TabsPage('tabsPage'),
+        textareaPage: yield* new TextareaPage('textareaPage'),
+        toastPage: yield* new ToastPage('toastPage'),
+        tooltipPage: yield* new TooltipPage('tooltipPage'),
+        virtualListPage: yield* new VirtualListPage('virtualListPage'),
+      },
+
+      update: {
+        CompletedNavigateInternal: model => ({ model }),
+        CompletedLoadExternal: model => ({ model }),
+
+        ClickedLink: (model, { request }) =>
+          UrlRequest.match(request, {
+            Internal: ({ url }) => ({
+              model,
+              commands: [NavigateInternal({ url: urlToString(url) })],
+            }),
+            External: ({ href }) => ({
+              model,
+              commands: [LoadExternal({ href })],
+            }),
+          }),
+
+        ChangedUrl: (model, { url }) => ({
+          model: modifyFields(model, {
+            route: () => urlToApplicationRoute(url),
+          }),
+          messages: [
+            model.navigation.send(
+              Navigation.Message.RequestedCloseMobileMenu(),
+            ),
+          ],
+        }),
+      },
+
+      commands: {
+        NavigateInternal: ({ url }) =>
+          pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+        LoadExternal: ({ href }) =>
+          load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+      },
+
+      view: (model, h) => ({
+        title: routeTitle(model.route),
+        body: h.div(
+          [h.Class('flex flex-col md:flex-row min-h-screen bg-white')],
+          [
+            model.navigation.view({ _tag: 'MobileHeader' }),
+            model.navigation.view({
+              _tag: 'MobileMenu',
+              currentRoute: model.route,
+            }),
+            model.navigation.view({
+              _tag: 'Sidebar',
+              currentRoute: model.route,
+            }),
+            h.main(
+              [h.Class('flex-1 p-4 md:p-8 overflow-auto')],
+              [contentView(model, h)],
+            ),
+          ],
+        ),
+      }),
+    }
+  }),
+).pipe(
+  Layer.provide(
+    Layer.mergeAll(
+      NavigationLive,
+      AnimationPageLive,
+      ButtonPageLive,
+      CalendarPageLive,
+      CheckboxPageLive,
+      ComboboxPageLive,
+      DatePickerPageLive,
+      DialogPageLive,
+      DisclosurePageLive,
+      DragAndDropPageLive,
+      FieldsetPageLive,
+      FileDropPageLive,
+      HoverIntentPageLive,
+      InputPageLive,
+      ListboxPageLive,
+      MenuPageLive,
+      PopoverPageLive,
+      RadioGroupPageLive,
+      SelectPageLive,
+      SliderPageLive,
+      SwitchPageLive,
+      TabsPageLive,
+      TextareaPageLive,
+      ToastPageLive,
+      TooltipPageLive,
+      VirtualListPageLive,
+    ),
+  ),
+)
+
 const rowClassName = 'flex flex-col gap-2 w-full max-w-sm'
 const headerClassName = 'flex items-center justify-between text-sm'
 const labelClassName = 'font-medium text-gray-900'
@@ -358,129 +484,3 @@ const routeTitle = (route: ApplicationRoute): string =>
     Match.tag('Home', () => 'Foldkit UI Showcase'),
     Match.orElse(({ _tag }) => `${_tag} | Foldkit UI Showcase`),
   )
-
-export const ApplicationLive = Application.make(
-  Effect.fn(function* (_id, { flags: { today }, url }) {
-    const navigation = yield* new Navigation('navigation')
-
-    return {
-      model: {
-        route: urlToApplicationRoute(url),
-        navigation,
-        animationPage: yield* new AnimationPage('animationPage'),
-        buttonPage: yield* new ButtonPage('buttonPage'),
-        calendarPage: yield* new CalendarPage('calendarPage', { today }),
-        checkboxPage: yield* new CheckboxPage('checkboxPage'),
-        comboboxPage: yield* new ComboboxPage('comboboxPage'),
-        datePickerPage: yield* new DatePickerPage('datePickerPage', { today }),
-        dialogPage: yield* new DialogPage('dialogPage'),
-        disclosurePage: yield* new DisclosurePage('disclosurePage'),
-        dragAndDropPage: yield* new DragAndDropPage('dragAndDropPage'),
-        fieldsetPage: yield* new FieldsetPage('fieldsetPage'),
-        fileDropPage: yield* new FileDropPage('fileDropPage'),
-        hoverIntentPage: yield* new HoverIntentPage('hoverIntentPage'),
-        inputPage: yield* new InputPage('inputPage'),
-        listboxPage: yield* new ListboxPage('listboxPage'),
-        menuPage: yield* new MenuPage('menuPage'),
-        popoverPage: yield* new PopoverPage('popoverPage'),
-        radioGroupPage: yield* new RadioGroupPage('radioGroupPage'),
-        selectPage: yield* new SelectPage('selectPage'),
-        sliderPage: yield* new SliderPage('sliderPage'),
-        switchPage: yield* new SwitchPage('switchPage'),
-        tabsPage: yield* new TabsPage('tabsPage'),
-        textareaPage: yield* new TextareaPage('textareaPage'),
-        toastPage: yield* new ToastPage('toastPage'),
-        tooltipPage: yield* new TooltipPage('tooltipPage'),
-        virtualListPage: yield* new VirtualListPage('virtualListPage'),
-      },
-
-      update: {
-        CompletedNavigateInternal: model => ({ model }),
-        CompletedLoadExternal: model => ({ model }),
-
-        ClickedLink: (model, { request }) =>
-          UrlRequest.match(request, {
-            Internal: ({ url }) => ({
-              model,
-              commands: [NavigateInternal({ url: urlToString(url) })],
-            }),
-            External: ({ href }) => ({
-              model,
-              commands: [LoadExternal({ href })],
-            }),
-          }),
-
-        ChangedUrl: (model, { url }) => ({
-          model: modifyFields(model, {
-            route: () => urlToApplicationRoute(url),
-          }),
-          messages: [
-            model.navigation.send(
-              Navigation.Message.RequestedCloseMobileMenu(),
-            ),
-          ],
-        }),
-      },
-
-      commands: {
-        NavigateInternal: ({ url }) =>
-          pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
-        LoadExternal: ({ href }) =>
-          load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
-      },
-
-      view: (model, h) => ({
-        title: routeTitle(model.route),
-        body: h.div(
-          [h.Class('flex flex-col md:flex-row min-h-screen bg-white')],
-          [
-            model.navigation.view({ _tag: 'MobileHeader' }),
-            model.navigation.view({
-              _tag: 'MobileMenu',
-              currentRoute: model.route,
-            }),
-            model.navigation.view({
-              _tag: 'Sidebar',
-              currentRoute: model.route,
-            }),
-            h.main(
-              [h.Class('flex-1 p-4 md:p-8 overflow-auto')],
-              [contentView(model, h)],
-            ),
-          ],
-        ),
-      }),
-    }
-  }),
-).pipe(
-  Layer.provide(
-    Layer.mergeAll(
-      NavigationLive,
-      AnimationPageLive,
-      ButtonPageLive,
-      CalendarPageLive,
-      CheckboxPageLive,
-      ComboboxPageLive,
-      DatePickerPageLive,
-      DialogPageLive,
-      DisclosurePageLive,
-      DragAndDropPageLive,
-      FieldsetPageLive,
-      FileDropPageLive,
-      HoverIntentPageLive,
-      InputPageLive,
-      ListboxPageLive,
-      MenuPageLive,
-      PopoverPageLive,
-      RadioGroupPageLive,
-      SelectPageLive,
-      SliderPageLive,
-      SwitchPageLive,
-      TabsPageLive,
-      TextareaPageLive,
-      ToastPageLive,
-      TooltipPageLive,
-      VirtualListPageLive,
-    ),
-  ),
-)

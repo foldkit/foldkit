@@ -30,6 +30,45 @@ export class LoggedIn extends Block<LoggedIn, void, ViewInput>()('LoggedIn', {
   OutMessage,
 }) {}
 
+export const LoggedInLive = LoggedIn.make(
+  Effect.fn(function* () {
+    return {
+      update: {
+        ClickedLogout: model => ({
+          model,
+          outMessage: OutMessage.RequestedLogout(),
+        }),
+      },
+
+      view: (_model, h, { route, session }) =>
+        h.div(
+          [h.Class('min-h-screen')],
+          [
+            navigationView(session, route._tag, h),
+            h.main(
+              [h.Class('py-8')],
+              [
+                Match.value(route).pipe(
+                  Match.tagsExhaustive({
+                    Dashboard: () => dashboardView(session, h),
+                    Settings: () => settingsView(session, h),
+                    NotFound: ({ path }) =>
+                      notFoundView(
+                        path,
+                        dashboardRouter(),
+                        'Go to Dashboard',
+                        h,
+                      ),
+                  }),
+                ),
+              ],
+            ),
+          ],
+        ),
+    }
+  }),
+)
+
 type LoggedInViewBuilder = HtmlBuilder<Message>
 
 const navLinkClassName = (isActive: boolean) =>
@@ -179,42 +218,3 @@ const settingsView = (session: Session, h: LoggedInViewBuilder): Html =>
       ),
     ],
   )
-
-export const LoggedInLive = LoggedIn.make(
-  Effect.fn(function* () {
-    return {
-      update: {
-        ClickedLogout: model => ({
-          model,
-          outMessage: OutMessage.RequestedLogout(),
-        }),
-      },
-
-      view: (_model, h, { route, session }) =>
-        h.div(
-          [h.Class('min-h-screen')],
-          [
-            navigationView(session, route._tag, h),
-            h.main(
-              [h.Class('py-8')],
-              [
-                Match.value(route).pipe(
-                  Match.tagsExhaustive({
-                    Dashboard: () => dashboardView(session, h),
-                    Settings: () => settingsView(session, h),
-                    NotFound: ({ path }) =>
-                      notFoundView(
-                        path,
-                        dashboardRouter(),
-                        'Go to Dashboard',
-                        h,
-                      ),
-                  }),
-                ),
-              ],
-            ),
-          ],
-        ),
-    }
-  }),
-)

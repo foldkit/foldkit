@@ -164,82 +164,6 @@ export class Application extends Block<Application>()('Application', {
   Command: [GenerateApplePosition],
 }) {}
 
-const cellClass = (x: number, y: number, model: Model): string => {
-  const isSnakeHead = positionEquivalence(
-    { x, y },
-    Array.headNonEmpty(model.snake),
-  )
-  const isSnakeTail = pipe(
-    model.snake,
-    Array.tailNonEmpty,
-    Array.some(segment => positionEquivalence({ x, y }, segment)),
-  )
-  const isApple = positionEquivalence({ x, y }, model.apple)
-
-  return Match.value({ isSnakeHead, isSnakeTail, isApple }).pipe(
-    Match.when({ isSnakeHead: true }, () => 'bg-green-700'),
-    Match.when({ isSnakeTail: true }, () => 'bg-green-500'),
-    Match.when({ isApple: true }, () => 'bg-red-500'),
-    Match.orElse(() => 'bg-gray-800'),
-  )
-}
-
-const gridView = (model: Model, h: ApplicationViewBuilder): Html =>
-  h.div(
-    [h.Class('inline-block border-2 border-gray-600')],
-    Array.makeBy(GRID_SIZE, y =>
-      h.div(
-        [h.Class('flex')],
-        Array.makeBy(GRID_SIZE, x =>
-          h.div([h.Class(`w-6 h-6 ${cellClass(x, y, model)}`)]),
-        ),
-      ),
-    ),
-  )
-
-const gameStateView = (gameState: GameState): string =>
-  Match.value(gameState).pipe(
-    Match.when('NotStarted', () => 'Press SPACE to start'),
-    Match.when('Playing', () => 'Playing - SPACE to pause'),
-    Match.when('Paused', () => 'Paused - SPACE to continue'),
-    Match.when('GameOver', () => 'Game Over - Press R to restart'),
-    Match.exhaustive,
-  )
-
-const instructionsView = (h: ApplicationViewBuilder): Html =>
-  h.div(
-    [h.Class('mt-4 text-sm text-gray-400')],
-    [
-      h.p([], ['Use ARROW KEYS or WASD to move']),
-      h.p([], ['SPACE to pause/start']),
-      h.p([], ['R to restart']),
-    ],
-  )
-
-const view = (model: Model, h: ApplicationViewBuilder): Document => ({
-  title: `Snake | ${model.points} pts`,
-  body: h.div(
-    [
-      h.Class(
-        'flex flex-col items-center justify-center min-h-screen bg-black text-white p-8',
-      ),
-    ],
-    [
-      h.h1([h.Class('text-4xl font-bold mb-4')], ['Snake Game']),
-      h.div(
-        [h.Class('flex gap-8 mb-4')],
-        [
-          h.p([h.Class('text-xl')], [`Score: ${model.points}`]),
-          h.p([h.Class('text-xl')], [`High Score: ${model.highScore}`]),
-        ],
-      ),
-      h.p([h.Class('text-lg mb-4')], [gameStateView(model.gameState)]),
-      gridView(model, h),
-      instructionsView(h),
-    ],
-  ),
-})
-
 export const ApplicationLive = Application.make(
   Effect.fn(function* () {
     const snake = createSnake(INITIAL_POSITION)
@@ -441,3 +365,79 @@ export const ApplicationLive = Application.make(
     }
   }),
 )
+
+const cellClass = (x: number, y: number, model: Model): string => {
+  const isSnakeHead = positionEquivalence(
+    { x, y },
+    Array.headNonEmpty(model.snake),
+  )
+  const isSnakeTail = pipe(
+    model.snake,
+    Array.tailNonEmpty,
+    Array.some(segment => positionEquivalence({ x, y }, segment)),
+  )
+  const isApple = positionEquivalence({ x, y }, model.apple)
+
+  return Match.value({ isSnakeHead, isSnakeTail, isApple }).pipe(
+    Match.when({ isSnakeHead: true }, () => 'bg-green-700'),
+    Match.when({ isSnakeTail: true }, () => 'bg-green-500'),
+    Match.when({ isApple: true }, () => 'bg-red-500'),
+    Match.orElse(() => 'bg-gray-800'),
+  )
+}
+
+const gridView = (model: Model, h: ApplicationViewBuilder): Html =>
+  h.div(
+    [h.Class('inline-block border-2 border-gray-600')],
+    Array.makeBy(GRID_SIZE, y =>
+      h.div(
+        [h.Class('flex')],
+        Array.makeBy(GRID_SIZE, x =>
+          h.div([h.Class(`w-6 h-6 ${cellClass(x, y, model)}`)]),
+        ),
+      ),
+    ),
+  )
+
+const gameStateView = (gameState: GameState): string =>
+  Match.value(gameState).pipe(
+    Match.when('NotStarted', () => 'Press SPACE to start'),
+    Match.when('Playing', () => 'Playing - SPACE to pause'),
+    Match.when('Paused', () => 'Paused - SPACE to continue'),
+    Match.when('GameOver', () => 'Game Over - Press R to restart'),
+    Match.exhaustive,
+  )
+
+const instructionsView = (h: ApplicationViewBuilder): Html =>
+  h.div(
+    [h.Class('mt-4 text-sm text-gray-400')],
+    [
+      h.p([], ['Use ARROW KEYS or WASD to move']),
+      h.p([], ['SPACE to pause/start']),
+      h.p([], ['R to restart']),
+    ],
+  )
+
+const view = (model: Model, h: ApplicationViewBuilder): Document => ({
+  title: `Snake | ${model.points} pts`,
+  body: h.div(
+    [
+      h.Class(
+        'flex flex-col items-center justify-center min-h-screen bg-black text-white p-8',
+      ),
+    ],
+    [
+      h.h1([h.Class('text-4xl font-bold mb-4')], ['Snake Game']),
+      h.div(
+        [h.Class('flex gap-8 mb-4')],
+        [
+          h.p([h.Class('text-xl')], [`Score: ${model.points}`]),
+          h.p([h.Class('text-xl')], [`High Score: ${model.highScore}`]),
+        ],
+      ),
+      h.p([h.Class('text-lg mb-4')], [gameStateView(model.gameState)]),
+      gridView(model, h),
+      instructionsView(h),
+    ],
+  ),
+})

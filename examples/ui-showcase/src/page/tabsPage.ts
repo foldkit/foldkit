@@ -21,6 +21,42 @@ type Model = typeof Model.Type
 
 export class TabsPage extends Block<TabsPage>()('TabsPage', { Model }) {}
 
+export const TabsPageLive = TabsPage.make(
+  Effect.fn(function* () {
+    const horizontalTabsDemo = yield* new DemoTabs('horizontalTabsDemo', {
+      id: 'horizontal-tabs-demo',
+    })
+    const verticalTabsDemo = yield* new DemoTabs('verticalTabsDemo', {
+      id: 'vertical-tabs-demo',
+    })
+
+    return {
+      model: {
+        horizontalTabsDemo,
+        horizontalTabsDemoTab: 'Foldkit',
+        verticalTabsDemo,
+        verticalTabsDemoTab: 'Foldkit',
+      },
+
+      update: {
+        ...horizontalTabsDemo.on({
+          Selected: (model, { value }) => ({
+            model: modifyFields(model, { horizontalTabsDemoTab: () => value }),
+          }),
+        }),
+
+        ...verticalTabsDemo.on({
+          Selected: (model, { value }) => ({
+            model: modifyFields(model, { verticalTabsDemoTab: () => value }),
+          }),
+        }),
+      },
+
+      view,
+    }
+  }),
+).pipe(Layer.provide(DemoTabs.Live))
+
 const demoTabs: ReadonlyArray<DemoTab> = ['Foldkit', 'React', 'Elm']
 
 const horizontalButtonClassName =
@@ -193,39 +229,3 @@ const view = (model: Model, h: HtmlBuilder<never>): Html => {
     ],
   )
 }
-
-export const TabsPageLive = TabsPage.make(
-  Effect.fn(function* () {
-    const horizontalTabsDemo = yield* new DemoTabs('horizontalTabsDemo', {
-      id: 'horizontal-tabs-demo',
-    })
-    const verticalTabsDemo = yield* new DemoTabs('verticalTabsDemo', {
-      id: 'vertical-tabs-demo',
-    })
-
-    return {
-      model: {
-        horizontalTabsDemo,
-        horizontalTabsDemoTab: 'Foldkit',
-        verticalTabsDemo,
-        verticalTabsDemoTab: 'Foldkit',
-      },
-
-      update: {
-        ...horizontalTabsDemo.on({
-          Selected: (model, { value }) => ({
-            model: modifyFields(model, { horizontalTabsDemoTab: () => value }),
-          }),
-        }),
-
-        ...verticalTabsDemo.on({
-          Selected: (model, { value }) => ({
-            model: modifyFields(model, { verticalTabsDemoTab: () => value }),
-          }),
-        }),
-      },
-
-      view,
-    }
-  }),
-).pipe(Layer.provide(DemoTabs.Live))

@@ -243,6 +243,151 @@ export class Application extends Block<
   Command: [GenerateCardId, SaveBoard],
 }) {}
 
+// LIVE
+
+export const ApplicationLive = Application.make(
+  Effect.fn(function* (_id, { flags }) {
+    const crypto = yield* Crypto.Crypto
+    const store = yield* KeyValueStore.KeyValueStore
+    const dragAndDrop = yield* new DragAndDrop.DragAndDrop('dragAndDrop', {
+      id: 'kanban',
+    })
+    const newCardForm = yield* new NewCardForm('newCardForm')
+
+    const columns = Option.match(flags.maybeSavedBoard, {
+      onNone: () => DEFAULT_COLUMNS,
+      onSome: savedBoard => savedBoard.columns,
+    })
+
+    return {
+      model: {
+        columns,
+        dragAndDrop,
+        newCardForm,
+        announcement: '',
+      },
+
+      update: {
+        ClickedAddCard: (model, { columnId }) => ({
+          model,
+          messages: [
+            model.newCardForm.send(
+              NewCardForm.Message.RequestedOpen({ columnId }),
+            ),
+          ],
+        }),
+
+        CompletedGenerateCardId: (model, { cardId, columnId, title }) => {
+          const nextColumns = Array.map(model.columns, column => {
+            if (column.id !== columnId) {
+              return column
+            }
+
+            return Column.appendCard(column, {
+              id: cardId,
+              title,
+              description: '',
+              sortKey: '',
+            })
+          })
+
+          return {
+            model: modifyFields(model, { columns: () => nextColumns }),
+            commands: [SaveBoard({ columns: nextColumns })],
+            messages: [
+              model.newCardForm.send(NewCardForm.Message.RequestedClose()),
+            ],
+          }
+        },
+
+        CompletedSaveBoard: model => ({ model }),
+
+        ...newCardForm.on({
+          SubmittedCard: (model, { columnId, title }) => ({
+            model,
+            commands: [GenerateCardId({ columnId, title })],
+          }),
+        }),
+
+        ...dragAndDrop.on({
+          StartedKeyboardDrag: (model, { itemId }) => ({
+            model: modifyFields(model, {
+              announcement: () =>
+                `Picked up ${findCardTitle(model.columns, itemId)}. Use arrow keys to move within column, Tab to move between columns, Space to drop, Escape to cancel.`,
+            }),
+          }),
+
+          ChangedKeyboardTarget: (
+            model,
+            { fromContainerId, toContainerId, toIndex },
+          ) => {
+            const columnName = findColumnName(model.columns, toContainerId)
+
+            return {
+              model: modifyFields(model, {
+                announcement: () =>
+                  fromContainerId !== toContainerId
+                    ? `Moved to ${columnName}, position ${toIndex + 1}.`
+                    : `Position ${toIndex + 1} in ${columnName}.`,
+              }),
+            }
+          },
+
+          Reordered: (
+            model,
+            { itemId, fromContainerId, toContainerId, toIndex },
+          ) => {
+            const nextColumns = Column.reorder(
+              model.columns,
+              itemId,
+              fromContainerId,
+              toContainerId,
+              toIndex,
+            )
+
+            return {
+              model: modifyFields(model, {
+                columns: () => nextColumns,
+                announcement: () =>
+                  `Dropped ${findCardTitle(model.columns, itemId)} in position ${toIndex + 1} of ${findColumnName(model.columns, toContainerId)}.`,
+              }),
+              commands: [SaveBoard({ columns: nextColumns })],
+            }
+          },
+
+          Cancelled: (model, { itemId }) => ({
+            model: modifyFields(model, {
+              announcement: () =>
+                `Drag cancelled, ${findCardTitle(model.columns, itemId)} returned to original position.`,
+            }),
+          }),
+        }),
+      },
+
+      commands: {
+        GenerateCardId: ({ columnId, title }) =>
+          Effect.gen(function* () {
+            const cardId = yield* Effect.orDie(crypto.randomUUIDv4)
+            return Message.CompletedGenerateCardId({ cardId, columnId, title })
+          }),
+
+        SaveBoard: ({ columns: nextColumns }) =>
+          Effect.gen(function* () {
+            const encodedBoard = yield* Schema.encodeEffect(
+              SavedBoardJsonString,
+            )({ columns: nextColumns })
+            yield* store.set(STORAGE_KEY, encodedBoard)
+            return Message.CompletedSaveBoard()
+          }).pipe(
+            Effect.catch(() => Effect.succeed(Message.CompletedSaveBoard())),
+          ),
+      },
+
+      view,
+    }
+  }),
+)
+
 // ANNOUNCEMENT
 
 const findCardTitle = (
@@ -576,148 +721,3 @@ const view = (model: Model, h: ApplicationViewBuilder) => ({
     ],
   ),
 })
-
-// LIVE
-
-export const ApplicationLive = Application.make(
-  Effect.fn(function* (_id, { flags }) {
-    const crypto = yield* Crypto.Crypto
-    const store = yield* KeyValueStore.KeyValueStore
-    const dragAndDrop = yield* new DragAndDrop.DragAndDrop('dragAndDrop', {
-      id: 'kanban',
-    })
-    const newCardForm = yield* new NewCardForm('newCardForm')
-
-    const columns = Option.match(flags.maybeSavedBoard, {
-      onNone: () => DEFAULT_COLUMNS,
-      onSome: savedBoard => savedBoard.columns,
-    })
-
-    return {
-      model: {
-        columns,
-        dragAndDrop,
-        newCardForm,
-        announcement: '',
-      },
-
-      update: {
-        ClickedAddCard: (model, { columnId }) => ({
-          model,
-          messages: [
-            model.newCardForm.send(
-              NewCardForm.Message.RequestedOpen({ columnId }),
-            ),
-          ],
-        }),
-
-        CompletedGenerateCardId: (model, { cardId, columnId, title }) => {
-          const nextColumns = Array.map(model.columns, column => {
-            if (column.id !== columnId) {
-              return column
-            }
-
-            return Column.appendCard(column, {
-              id: cardId,
-              title,
-              description: '',
-              sortKey: '',
-            })
-          })
-
-          return {
-            model: modifyFields(model, { columns: () => nextColumns }),
-            commands: [SaveBoard({ columns: nextColumns })],
-            messages: [
-              model.newCardForm.send(NewCardForm.Message.RequestedClose()),
-            ],
-          }
-        },
-
-        CompletedSaveBoard: model => ({ model }),
-
-        ...newCardForm.on({
-          SubmittedCard: (model, { columnId, title }) => ({
-            model,
-            commands: [GenerateCardId({ columnId, title })],
-          }),
-        }),
-
-        ...dragAndDrop.on({
-          StartedKeyboardDrag: (model, { itemId }) => ({
-            model: modifyFields(model, {
-              announcement: () =>
-                `Picked up ${findCardTitle(model.columns, itemId)}. Use arrow keys to move within column, Tab to move between columns, Space to drop, Escape to cancel.`,
-            }),
-          }),
-
-          ChangedKeyboardTarget: (
-            model,
-            { fromContainerId, toContainerId, toIndex },
-          ) => {
-            const columnName = findColumnName(model.columns, toContainerId)
-
-            return {
-              model: modifyFields(model, {
-                announcement: () =>
-                  fromContainerId !== toContainerId
-                    ? `Moved to ${columnName}, position ${toIndex + 1}.`
-                    : `Position ${toIndex + 1} in ${columnName}.`,
-              }),
-            }
-          },
-
-          Reordered: (
-            model,
-            { itemId, fromContainerId, toContainerId, toIndex },
-          ) => {
-            const nextColumns = Column.reorder(
-              model.columns,
-              itemId,
-              fromContainerId,
-              toContainerId,
-              toIndex,
-            )
-
-            return {
-              model: modifyFields(model, {
-                columns: () => nextColumns,
-                announcement: () =>
-                  `Dropped ${findCardTitle(model.columns, itemId)} in position ${toIndex + 1} of ${findColumnName(model.columns, toContainerId)}.`,
-              }),
-              commands: [SaveBoard({ columns: nextColumns })],
-            }
-          },
-
-          Cancelled: (model, { itemId }) => ({
-            model: modifyFields(model, {
-              announcement: () =>
-                `Drag cancelled, ${findCardTitle(model.columns, itemId)} returned to original position.`,
-            }),
-          }),
-        }),
-      },
-
-      commands: {
-        GenerateCardId: ({ columnId, title }) =>
-          Effect.gen(function* () {
-            const cardId = yield* Effect.orDie(crypto.randomUUIDv4)
-            return Message.CompletedGenerateCardId({ cardId, columnId, title })
-          }),
-
-        SaveBoard: ({ columns: nextColumns }) =>
-          Effect.gen(function* () {
-            const encodedBoard = yield* Schema.encodeEffect(
-              SavedBoardJsonString,
-            )({ columns: nextColumns })
-            yield* store.set(STORAGE_KEY, encodedBoard)
-            return Message.CompletedSaveBoard()
-          }).pipe(
-            Effect.catch(() => Effect.succeed(Message.CompletedSaveBoard())),
-          ),
-      },
-
-      view,
-    }
-  }),
-)

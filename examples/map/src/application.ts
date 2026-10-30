@@ -115,6 +115,141 @@ export class Application extends Block<Application>()('Application', {
   Mount: [MountMap],
 }) {}
 
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    const maps = yield* MapRegistry
+    const sidebar = yield* new Sidebar('sidebar')
+
+    return {
+      model: {
+        sidebar,
+        locations: featuredLocations,
+        maybeMapHostId: Option.none(),
+        maybeMapError: Option.none(),
+        maybeBounds: Option.none(),
+        maybeSelectedLocationId: Option.none(),
+        maybeUserLocation: Option.none(),
+        geolocateState: GeolocateState.Idle(),
+      },
+
+      update: {
+        ...sidebar.on({
+          SelectedLocation: (model, { locationId }) =>
+            Option.match(findLocation(model, locationId), {
+              onNone: () => ({ model }),
+              onSome: ({ lng, lat }) => ({
+                model: modifyFields(model, {
+                  maybeSelectedLocationId: () => Option.some(locationId),
+                }),
+                commands: [
+                  FlyTo({
+                    maybeHostId: model.maybeMapHostId,
+                    lng,
+                    lat,
+                    zoom: SELECTED_LOCATION_ZOOM,
+                  }),
+                ],
+              }),
+            }),
+
+          RequestedGeolocate: model => ({
+            model: modifyFields(model, {
+              geolocateState: () => GeolocateState.Locating(),
+            }),
+            commands: [LockBodyScroll(), Geolocate()],
+          }),
+        }),
+
+        SucceededMountMap: (model, { hostId }) => ({
+          model: modifyFields(model, {
+            maybeMapHostId: () => Option.some(hostId),
+          }),
+        }),
+
+        FailedMountMap: (model, { reason }) => ({
+          model: modifyFields(model, {
+            maybeMapError: () => Option.some(reason),
+          }),
+        }),
+
+        MovedMap: (model, { bounds }) => ({
+          model: modifyFields(model, {
+            maybeBounds: () => Option.some(bounds),
+          }),
+        }),
+
+        ClickedMarker: (model, { locationId }) => ({
+          model: modifyFields(model, {
+            maybeSelectedLocationId: () => Option.some(locationId),
+          }),
+        }),
+
+        DismissedGeolocate: model => ({
+          model: modifyFields(model, {
+            geolocateState: () => GeolocateState.Idle(),
+          }),
+          commands: [UnlockBodyScroll()],
+        }),
+
+        SucceededGeolocate: (model, { lng, lat }) => ({
+          model: modifyFields(model, {
+            maybeUserLocation: () => Option.some({ lng, lat }),
+            geolocateState: () => GeolocateState.Idle(),
+          }),
+          commands: [
+            UnlockBodyScroll(),
+            FlyTo({
+              maybeHostId: model.maybeMapHostId,
+              lng,
+              lat,
+              zoom: USER_LOCATION_ZOOM,
+            }),
+          ],
+        }),
+
+        FailedGeolocate: (model, { reason }) => ({
+          model: modifyFields(model, {
+            geolocateState: () => GeolocateState.Failed({ reason }),
+          }),
+        }),
+
+        SucceededFlyTo: model => ({ model }),
+        FailedFlyTo: model => ({ model }),
+        CompletedLockBodyScroll: model => ({ model }),
+        CompletedUnlockBodyScroll: model => ({ model }),
+      },
+
+      commands: {
+        FlyTo: flyTo(maps),
+        Geolocate: geolocate,
+        LockBodyScroll: lockBodyScroll,
+        UnlockBodyScroll: unlockBodyScroll,
+      },
+
+      mounts: {
+        MountMap: mountMap(maps),
+      },
+
+      view: (model, h) => ({
+        title: 'Foldkit Map',
+        body: h.div(
+          [h.Class('h-screen w-screen flex bg-slate-100 text-slate-900')],
+          [
+            model.sidebar.view({
+              locations: model.locations,
+              maybeSelectedLocationId: model.maybeSelectedLocationId,
+              maybeUserLocation: model.maybeUserLocation,
+              isLocating: model.geolocateState._tag === 'Locating',
+            }),
+            mapPaneView(model, h),
+            geolocateOverlayView(model.geolocateState, h),
+          ],
+        ),
+      }),
+    }
+  }),
+)
+
 // COMMAND HANDLERS
 
 const flyToMap = (
@@ -533,138 +668,3 @@ const findLocation = (
   locationId: string,
 ): Option.Option<Location> =>
   Array.findFirst(model.locations, ({ id }) => Equal.equals(id, locationId))
-
-export const ApplicationLive = Application.make(
-  Effect.fn(function* () {
-    const maps = yield* MapRegistry
-    const sidebar = yield* new Sidebar('sidebar')
-
-    return {
-      model: {
-        sidebar,
-        locations: featuredLocations,
-        maybeMapHostId: Option.none(),
-        maybeMapError: Option.none(),
-        maybeBounds: Option.none(),
-        maybeSelectedLocationId: Option.none(),
-        maybeUserLocation: Option.none(),
-        geolocateState: GeolocateState.Idle(),
-      },
-
-      update: {
-        ...sidebar.on({
-          SelectedLocation: (model, { locationId }) =>
-            Option.match(findLocation(model, locationId), {
-              onNone: () => ({ model }),
-              onSome: ({ lng, lat }) => ({
-                model: modifyFields(model, {
-                  maybeSelectedLocationId: () => Option.some(locationId),
-                }),
-                commands: [
-                  FlyTo({
-                    maybeHostId: model.maybeMapHostId,
-                    lng,
-                    lat,
-                    zoom: SELECTED_LOCATION_ZOOM,
-                  }),
-                ],
-              }),
-            }),
-
-          RequestedGeolocate: model => ({
-            model: modifyFields(model, {
-              geolocateState: () => GeolocateState.Locating(),
-            }),
-            commands: [LockBodyScroll(), Geolocate()],
-          }),
-        }),
-
-        SucceededMountMap: (model, { hostId }) => ({
-          model: modifyFields(model, {
-            maybeMapHostId: () => Option.some(hostId),
-          }),
-        }),
-
-        FailedMountMap: (model, { reason }) => ({
-          model: modifyFields(model, {
-            maybeMapError: () => Option.some(reason),
-          }),
-        }),
-
-        MovedMap: (model, { bounds }) => ({
-          model: modifyFields(model, {
-            maybeBounds: () => Option.some(bounds),
-          }),
-        }),
-
-        ClickedMarker: (model, { locationId }) => ({
-          model: modifyFields(model, {
-            maybeSelectedLocationId: () => Option.some(locationId),
-          }),
-        }),
-
-        DismissedGeolocate: model => ({
-          model: modifyFields(model, {
-            geolocateState: () => GeolocateState.Idle(),
-          }),
-          commands: [UnlockBodyScroll()],
-        }),
-
-        SucceededGeolocate: (model, { lng, lat }) => ({
-          model: modifyFields(model, {
-            maybeUserLocation: () => Option.some({ lng, lat }),
-            geolocateState: () => GeolocateState.Idle(),
-          }),
-          commands: [
-            UnlockBodyScroll(),
-            FlyTo({
-              maybeHostId: model.maybeMapHostId,
-              lng,
-              lat,
-              zoom: USER_LOCATION_ZOOM,
-            }),
-          ],
-        }),
-
-        FailedGeolocate: (model, { reason }) => ({
-          model: modifyFields(model, {
-            geolocateState: () => GeolocateState.Failed({ reason }),
-          }),
-        }),
-
-        SucceededFlyTo: model => ({ model }),
-        FailedFlyTo: model => ({ model }),
-        CompletedLockBodyScroll: model => ({ model }),
-        CompletedUnlockBodyScroll: model => ({ model }),
-      },
-
-      commands: {
-        FlyTo: flyTo(maps),
-        Geolocate: geolocate,
-        LockBodyScroll: lockBodyScroll,
-        UnlockBodyScroll: unlockBodyScroll,
-      },
-
-      mounts: {
-        MountMap: mountMap(maps),
-      },
-
-      view: (model, h) => ({
-        title: 'Foldkit Map',
-        body: h.div(
-          [h.Class('h-screen w-screen flex bg-slate-100 text-slate-900')],
-          [
-            model.sidebar.view({
-              locations: model.locations,
-              maybeSelectedLocationId: model.maybeSelectedLocationId,
-              maybeUserLocation: model.maybeUserLocation,
-              isLocating: model.geolocateState._tag === 'Locating',
-            }),
-            mapPaneView(model, h),
-            geolocateOverlayView(model.geolocateState, h),
-          ],
-        ),
-      }),
-    }
-  }),
-)

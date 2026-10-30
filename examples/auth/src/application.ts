@@ -116,28 +116,6 @@ export class Application extends Block<
   ],
 }) {}
 
-const title = (model: Model): string =>
-  Match.value(model.route).pipe(
-    Match.tag('Home', () => 'Auth'),
-    Match.orElse(({ _tag }) => `${_tag} | Auth`),
-  )
-
-const view = (model: Model, h: HtmlBuilder<Message>) => ({
-  title: title(model),
-  body: h.div(
-    [h.Class('min-h-screen bg-gray-100')],
-    [
-      Match.value(model).pipe(
-        Match.tagsExhaustive({
-          LoggedOut: ({ route, loggedOut }) => loggedOut.view({ route }),
-          LoggedIn: ({ route, session, loggedIn }) =>
-            loggedIn.view({ route, session }),
-        }),
-      ),
-    ],
-  ),
-})
-
 export const ApplicationLive = Application.make(
   Effect.fn(function* (_id, { flags, url }) {
     const store = yield* KeyValueStore.KeyValueStore
@@ -332,3 +310,25 @@ export const ApplicationLive = Application.make(
     }
   }),
 )
+
+const title = (model: Model): string =>
+  Match.value(model.route).pipe(
+    Match.tag('Home', () => 'Auth'),
+    Match.orElse(({ _tag }) => `${_tag} | Auth`),
+  )
+
+const view = (model: Model, h: HtmlBuilder<Message>) => ({
+  title: title(model),
+  body: h.div(
+    [h.Class('min-h-screen bg-gray-100')],
+    [
+      Match.value(model).pipe(
+        Match.tagsExhaustive({
+          LoggedOut: ({ route, loggedOut }) => loggedOut.view({ route }),
+          LoggedIn: ({ route, session, loggedIn }) =>
+            loggedIn.view({ route, session }),
+        }),
+      ),
+    ],
+  ),
+})

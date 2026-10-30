@@ -47,13 +47,6 @@ export class Education extends Block<Education, EducationArgs>()('Education', {
   Command: [GenerateEducationEntryId],
 }) {}
 
-export const educationHasErrors = (model: Model): boolean =>
-  Array.some(model.entries, entry => educationEntryHasErrors(entry.model))
-
-export const isEducationComplete = (model: Model): boolean =>
-  Array.isReadonlyArrayNonEmpty(model.entries) &&
-  Array.every(model.entries, entry => isEducationEntryComplete(entry.model))
-
 export const EducationLive = Education.make(
   Effect.fn(function* (_id, { today, initialEntryId }) {
     const crypto = yield* Crypto.Crypto
@@ -143,3 +136,10 @@ export const EducationLive = Education.make(
     }
   }),
 ).pipe(Layer.provide(EducationEntryLive))
+
+export const educationHasErrors = (model: Model): boolean =>
+  Array.some(model.entries, entry => educationEntryHasErrors(entry.model))
+
+export const isEducationComplete = (model: Model): boolean =>
+  Array.isReadonlyArrayNonEmpty(model.entries) &&
+  Array.every(model.entries, entry => isEducationEntryComplete(entry.model))

@@ -91,6 +91,113 @@ export class Application extends Block<
   Message,
 }) {}
 
+export const ApplicationLive = Application.make(
+  Effect.fn(function* (_id, { flags }) {
+    const {
+      today,
+      initialWorkHistoryEntryId,
+      initialEducationEntryId,
+      initialSkillsEntryId,
+    } = flags
+
+    const personalInfo = yield* new PersonalInfo('personalInfo', { today })
+    const workHistory = yield* new WorkHistory('workHistory', {
+      today,
+      initialEntryId: initialWorkHistoryEntryId,
+    })
+    const education = yield* new Education('education', {
+      today,
+      initialEntryId: initialEducationEntryId,
+    })
+    const skills = yield* new Skills('skills', {
+      initialEntryId: initialSkillsEntryId,
+    })
+    const coverLetter = yield* new CoverLetter('coverLetter')
+    const attachments = yield* new Attachments('attachments')
+    const review = yield* new Review('review')
+    const preview = yield* new Preview('preview')
+    const stepMenu = yield* new StepMenu('stepMenu', { id: 'step-menu' })
+    const stepTabs = yield* new StepTabs('stepTabs', { id: 'step-tabs' })
+
+    return {
+      model: {
+        currentStep: 'PersonalInfo',
+        personalInfo,
+        workHistory,
+        education,
+        skills,
+        coverLetter,
+        attachments,
+        review,
+        preview,
+        stepMenu,
+        stepTabs,
+      },
+
+      update: {
+        ClickedNext: model => ({
+          model: modifyFields(model, { currentStep: toNextStep }),
+        }),
+
+        ClickedPrevious: model => ({
+          model: modifyFields(model, { currentStep: toPreviousStep }),
+        }),
+
+        ...review.on({
+          AttemptedSubmit: model => ({
+            model,
+            messages: [
+              model.personalInfo.send(
+                PersonalInfo.Message.RequestedRevealErrors(),
+              ),
+              model.workHistory.send(
+                WorkHistory.Message.RequestedRevealErrors(),
+              ),
+              model.education.send(Education.Message.RequestedRevealErrors()),
+              model.skills.send(Skills.Message.RequestedRevealErrors()),
+              model.review.send(
+                Review.Message.RequestedSubmit({
+                  isApplicationComplete: isApplicationComplete(model),
+                }),
+              ),
+            ],
+          }),
+        }),
+
+        ...stepMenu.on({
+          Selected: (model, { value }) => ({
+            model: modifyFields(model, { currentStep: () => value }),
+          }),
+          Closed: model => ({ model }),
+        }),
+
+        ...stepTabs.on({
+          Selected: (model, { value }) => ({
+            model: modifyFields(model, { currentStep: () => value }),
+          }),
+        }),
+      },
+
+      view,
+    }
+  }),
+).pipe(
+  Layer.provide(
+    Layer.mergeAll(
+      PersonalInfoLive,
+      WorkHistoryLive,
+      EducationLive,
+      SkillsLive,
+      CoverLetterLive,
+      AttachmentsLive,
+      ReviewLive,
+      PreviewLive,
+      StepMenu.Live,
+      StepTabs.Live,
+    ),
+  ),
+)
+
 const isApplicationComplete = (model: Model): boolean =>
   isPersonalInfoComplete(model.personalInfo.model) &&
   isWorkHistoryComplete(model.workHistory.model) &&
@@ -503,110 +610,3 @@ const toPreviousStep = (current: Step.Step): Step.Step =>
     Array.get(Step.indexOf(current) - 1),
     Option.getOrElse(() => current),
   )
-
-export const ApplicationLive = Application.make(
-  Effect.fn(function* (_id, { flags }) {
-    const {
-      today,
-      initialWorkHistoryEntryId,
-      initialEducationEntryId,
-      initialSkillsEntryId,
-    } = flags
-
-    const personalInfo = yield* new PersonalInfo('personalInfo', { today })
-    const workHistory = yield* new WorkHistory('workHistory', {
-      today,
-      initialEntryId: initialWorkHistoryEntryId,
-    })
-    const education = yield* new Education('education', {
-      today,
-      initialEntryId: initialEducationEntryId,
-    })
-    const skills = yield* new Skills('skills', {
-      initialEntryId: initialSkillsEntryId,
-    })
-    const coverLetter = yield* new CoverLetter('coverLetter')
-    const attachments = yield* new Attachments('attachments')
-    const review = yield* new Review('review')
-    const preview = yield* new Preview('preview')
-    const stepMenu = yield* new StepMenu('stepMenu', { id: 'step-menu' })
-    const stepTabs = yield* new StepTabs('stepTabs', { id: 'step-tabs' })
-
-    return {
-      model: {
-        currentStep: 'PersonalInfo',
-        personalInfo,
-        workHistory,
-        education,
-        skills,
-        coverLetter,
-        attachments,
-        review,
-        preview,
-        stepMenu,
-        stepTabs,
-      },
-
-      update: {
-        ClickedNext: model => ({
-          model: modifyFields(model, { currentStep: toNextStep }),
-        }),
-
-        ClickedPrevious: model => ({
-          model: modifyFields(model, { currentStep: toPreviousStep }),
-        }),
-
-        ...review.on({
-          AttemptedSubmit: model => ({
-            model,
-            messages: [
-              model.personalInfo.send(
-                PersonalInfo.Message.RequestedRevealErrors(),
-              ),
-              model.workHistory.send(
-                WorkHistory.Message.RequestedRevealErrors(),
-              ),
-              model.education.send(Education.Message.RequestedRevealErrors()),
-              model.skills.send(Skills.Message.RequestedRevealErrors()),
-              model.review.send(
-                Review.Message.RequestedSubmit({
-                  isApplicationComplete: isApplicationComplete(model),
-                }),
-              ),
-            ],
-          }),
-        }),
-
-        ...stepMenu.on({
-          Selected: (model, { value }) => ({
-            model: modifyFields(model, { currentStep: () => value }),
-          }),
-          Closed: model => ({ model }),
-        }),
-
-        ...stepTabs.on({
-          Selected: (model, { value }) => ({
-            model: modifyFields(model, { currentStep: () => value }),
-          }),
-        }),
-      },
-
-      view,
-    }
-  }),
-).pipe(
-  Layer.provide(
-    Layer.mergeAll(
-      PersonalInfoLive,
-      WorkHistoryLive,
-      EducationLive,
-      SkillsLive,
-      CoverLetterLive,
-      AttachmentsLive,
-      ReviewLive,
-      PreviewLive,
-      StepMenu.Live,
-      StepTabs.Live,
-    ),
-  ),
-)

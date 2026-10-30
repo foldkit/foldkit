@@ -20,6 +20,14 @@ export class OrderSummary extends Block<OrderSummary, void, ViewInput>()(
   {},
 ) {}
 
+export const OrderSummaryLive = OrderSummary.make(
+  Effect.fn(function* () {
+    return {
+      view: (_model, h, { state }) => orderSummaryView(state, h),
+    }
+  }),
+)
+
 type OrderSummaryViewBuilder = HtmlBuilder<never>
 
 const stateToMaybeDiscount = (state: CheckoutState): Option.Option<Discount> =>
@@ -161,11 +169,3 @@ const orderSummaryView = (
     ],
   )
 }
-
-export const OrderSummaryLive = OrderSummary.make(
-  Effect.fn(function* () {
-    return {
-      view: (_model, h, { state }) => orderSummaryView(state, h),
-    }
-  }),
-)

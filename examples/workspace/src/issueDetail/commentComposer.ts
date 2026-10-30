@@ -65,85 +65,6 @@ export class CommentComposer extends Block<
   Command: [AddComment],
 }) {}
 
-const isDraftEditable = (model: Model) =>
-  !PostState.guards.Posting(model.postState)
-
-const commentView = (
-  comment: Comment,
-  members: ReadonlyArray<Member>,
-  h: HtmlBuilder<Message, unknown>,
-): Html => {
-  const maybeAuthor = Array.findFirst(
-    members,
-    member => member.id === comment.authorId,
-  )
-
-  return h.keyed('article')(
-    comment.id,
-    [h.Class('flex gap-3 py-2 text-sm font-normal leading-6 text-slate-500')],
-    [
-      h.span(
-        [
-          h.Class(
-            'inline-grid size-7 shrink-0 place-items-center rounded-full bg-indigo-100 text-xs font-medium text-indigo-700',
-          ),
-          h.AriaHidden(true),
-        ],
-        [
-          Option.match(maybeAuthor, {
-            onNone: () => '?',
-            onSome: ({ initials }) => initials,
-          }),
-        ],
-      ),
-      h.div(
-        [h.Class('min-w-0')],
-        [
-          h.strong(
-            [h.Class('font-semibold text-slate-700')],
-            [
-              Option.match(maybeAuthor, {
-                onNone: () => 'Former member',
-                onSome: ({ name }) => name,
-              }),
-            ],
-          ),
-          h.p(
-            [h.Class('mt-1 whitespace-pre-wrap break-words')],
-            [comment.body],
-          ),
-        ],
-      ),
-    ],
-  )
-}
-
-const feedback = (model: Model, h: HtmlBuilder<Message, unknown>): Html =>
-  PostState.match(model.postState, {
-    Idle: () =>
-      String.isEmpty(model.body)
-        ? h.empty
-        : h.p(
-            [h.Role('status'), h.Class('text-xs font-medium text-slate-500')],
-            ['Comment draft kept for this session'],
-          ),
-    Posting: () =>
-      h.p(
-        [h.Role('status'), h.Class('mb-3 text-xs font-medium text-slate-500')],
-        ['Posting comment…'],
-      ),
-    Failed: ({ error }) =>
-      h.p(
-        [
-          h.Role('alert'),
-          h.Class(
-            'mb-3 rounded-md border border-[#efc8ce] bg-[#fff6f6] p-3 text-sm leading-6 text-[#a94d60]',
-          ),
-        ],
-        [error],
-      ),
-  })
-
 export const CommentComposerLive = CommentComposer.make(
   Effect.fn(function* (_id, { issueId }) {
     const repository = yield* WorkspaceRepository
@@ -358,3 +279,82 @@ export const CommentComposerLive = CommentComposer.make(
     }
   }),
 )
+
+const isDraftEditable = (model: Model) =>
+  !PostState.guards.Posting(model.postState)
+
+const commentView = (
+  comment: Comment,
+  members: ReadonlyArray<Member>,
+  h: HtmlBuilder<Message, unknown>,
+): Html => {
+  const maybeAuthor = Array.findFirst(
+    members,
+    member => member.id === comment.authorId,
+  )
+
+  return h.keyed('article')(
+    comment.id,
+    [h.Class('flex gap-3 py-2 text-sm font-normal leading-6 text-slate-500')],
+    [
+      h.span(
+        [
+          h.Class(
+            'inline-grid size-7 shrink-0 place-items-center rounded-full bg-indigo-100 text-xs font-medium text-indigo-700',
+          ),
+          h.AriaHidden(true),
+        ],
+        [
+          Option.match(maybeAuthor, {
+            onNone: () => '?',
+            onSome: ({ initials }) => initials,
+          }),
+        ],
+      ),
+      h.div(
+        [h.Class('min-w-0')],
+        [
+          h.strong(
+            [h.Class('font-semibold text-slate-700')],
+            [
+              Option.match(maybeAuthor, {
+                onNone: () => 'Former member',
+                onSome: ({ name }) => name,
+              }),
+            ],
+          ),
+          h.p(
+            [h.Class('mt-1 whitespace-pre-wrap break-words')],
+            [comment.body],
+          ),
+        ],
+      ),
+    ],
+  )
+}
+
+const feedback = (model: Model, h: HtmlBuilder<Message, unknown>): Html =>
+  PostState.match(model.postState, {
+    Idle: () =>
+      String.isEmpty(model.body)
+        ? h.empty
+        : h.p(
+            [h.Role('status'), h.Class('text-xs font-medium text-slate-500')],
+            ['Comment draft kept for this session'],
+          ),
+    Posting: () =>
+      h.p(
+        [h.Role('status'), h.Class('mb-3 text-xs font-medium text-slate-500')],
+        ['Posting comment…'],
+      ),
+    Failed: ({ error }) =>
+      h.p(
+        [
+          h.Role('alert'),
+          h.Class(
+            'mb-3 rounded-md border border-[#efc8ce] bg-[#fff6f6] p-3 text-sm leading-6 text-[#a94d60]',
+          ),
+        ],
+        [error],
+      ),
+  })

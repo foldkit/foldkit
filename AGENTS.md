@@ -179,6 +179,7 @@ Don't add inline or block comments to explain code. If code needs explanation, r
 ## File Organization
 
 - One file, one Block. A Block's file holds everything that defines it: its Message and OutMessage unions, Model Schema, Command and Mount definitions, the class, and its `Live` Layer with update, Command handlers, and view. Name the file for the Block in camelCase (`counter.ts`, `issueBoard.ts`); the root is `application.ts`. Never split one Block across `message.ts`, `model.ts`, `update.ts`, `command.ts`, or `view.ts`.
+- Order the file so it reads top to bottom: the contract (Messages, Model, Commands, Mounts, and the class), then the `Live` Layer directly after the class, then the Steps, selectors, and view helpers the Layer uses. Create child instances with `yield*` at the top of the Layer constructor, not in a separate helper.
 - When a Block grows too large to read in one file, extract a feature into a child Block in its own file. Do not slice the parent's responsibilities into sibling files.
 - The only source files that are not Blocks are entries (`entry.ts`, `entry.server.ts`), `services.ts` for the root `ApplicationLayer`, `route.ts` when several Blocks share `ApplicationRoute`, and `domain/` modules of Schemas and pure functions used by more than one Block. Tests and fixtures sit beside the Block they test.
 - Group a page with the child Blocks only it uses in a folder named for the page: `page/settings/settings.ts` and `page/settings/themePicker.ts`.

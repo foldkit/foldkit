@@ -69,6 +69,80 @@ export class TeammateActivity extends Block<TeammateActivity>()(
   },
 ) {}
 
+export const TeammateActivityLive = TeammateActivity.make(
+  Effect.fn(function* () {
+    const repository = yield* WorkspaceRepository
+
+    return {
+      model: { activityTick: 0, maybeActivityError: Option.none() },
+
+      update: {
+        RequestedActivity: simulateActivity,
+        SucceededAppendActivity: (model, { issueId, comment }) => ({
+          model: modifyFields(model, {
+            maybeActivityError: () => Option.none(),
+          }),
+          outMessage: OutMessage.AddedComment({ issueId, comment }),
+        }),
+        FailedAppendActivity: (model, { error }) => ({
+          model: modifyFields(model, {
+            maybeActivityError: () => Option.some(error),
+          }),
+        }),
+        SucceededAssignIssue: (model, { savedIssue, actorId, createdAt }) => ({
+          model: modifyFields(model, {
+            maybeActivityError: () => Option.none(),
+          }),
+          outMessage: OutMessage.AssignedIssue({
+            savedIssue,
+            actorId,
+            createdAt,
+          }),
+        }),
+        FailedAssignIssue: (model, { error }) => ({
+          model: modifyFields(model, {
+            maybeActivityError: () => Option.some(error),
+          }),
+        }),
+      },
+
+      commands: {
+        AppendActivity: args =>
+          repository.addComment(args).pipe(
+            Effect.map(comment =>
+              Message.SucceededAppendActivity({
+                issueId: args.issueId,
+                comment,
+              }),
+            ),
+            Effect.catch(error =>
+              Effect.succeed(
+                Message.FailedAppendActivity({ error: error.message }),
+              ),
+            ),
+          ),
+        AssignIssue: args =>
+          Effect.gen(function* () {
+            const savedIssue = yield* repository.saveIssue(args)
+            const createdAt = DateTime.formatIso(yield* DateTime.now)
+
+            return Message.SucceededAssignIssue({
+              savedIssue,
+              actorId: args.actorId,
+              createdAt,
+            })
+          }).pipe(
+            Effect.catch(error =>
+              Effect.succeed(
+                Message.FailedAssignIssue({ error: error.message }),
+              ),
+            ),
+          ),
+      },
+    }
+  }),
+)
+
 const ACTIVITY_EVENTS_PER_ASSIGNMENT = 3
 const ACTIVITY_COMMENT_BODIES = [
   'I checked the latest changes. This is ready for another look.',
@@ -171,77 +245,3 @@ const simulateActivity = (
     ],
   }
 }
-
-export const TeammateActivityLive = TeammateActivity.make(
-  Effect.fn(function* () {
-    const repository = yield* WorkspaceRepository
-
-    return {
-      model: { activityTick: 0, maybeActivityError: Option.none() },
-
-      update: {
-        RequestedActivity: simulateActivity,
-        SucceededAppendActivity: (model, { issueId, comment }) => ({
-          model: modifyFields(model, {
-            maybeActivityError: () => Option.none(),
-          }),
-          outMessage: OutMessage.AddedComment({ issueId, comment }),
-        }),
-        FailedAppendActivity: (model, { error }) => ({
-          model: modifyFields(model, {
-            maybeActivityError: () => Option.some(error),
-          }),
-        }),
-        SucceededAssignIssue: (model, { savedIssue, actorId, createdAt }) => ({
-          model: modifyFields(model, {
-            maybeActivityError: () => Option.none(),
-          }),
-          outMessage: OutMessage.AssignedIssue({
-            savedIssue,
-            actorId,
-            createdAt,
-          }),
-        }),
-        FailedAssignIssue: (model, { error }) => ({
-          model: modifyFields(model, {
-            maybeActivityError: () => Option.some(error),
-          }),
-        }),
-      },
-
-      commands: {
-        AppendActivity: args =>
-          repository.addComment(args).pipe(
-            Effect.map(comment =>
-              Message.SucceededAppendActivity({
-                issueId: args.issueId,
-                comment,
-              }),
-            ),
-            Effect.catch(error =>
-              Effect.succeed(
-                Message.FailedAppendActivity({ error: error.message }),
-              ),
-            ),
-          ),
-        AssignIssue: args =>
-          Effect.gen(function* () {
-            const savedIssue = yield* repository.saveIssue(args)
-            const createdAt = DateTime.formatIso(yield* DateTime.now)
-
-            return Message.SucceededAssignIssue({
-              savedIssue,
-              actorId: args.actorId,
-              createdAt,
-            })
-          }).pipe(
-            Effect.catch(error =>
-              Effect.succeed(
-                Message.FailedAssignIssue({ error: error.message }),
-              ),
-            ),
-          ),
-      },
-    }
-  }),
-)

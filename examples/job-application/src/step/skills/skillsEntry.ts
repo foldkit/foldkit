@@ -45,18 +45,6 @@ export class SkillsEntry extends Block<SkillsEntry>()('SkillsEntry', {
   OutMessage,
 }) {}
 
-const nameRules = makeRules({
-  required: 'Skill name is required',
-})
-
-const validateName = validate(nameRules)
-
-export const skillsEntryHasErrors = (entry: Model): boolean =>
-  anyInvalid([entry.name])
-
-export const isSkillsEntryComplete = (entry: Model): boolean =>
-  allValid([[entry.name, nameRules]])
-
 export const SkillsEntryLive = SkillsEntry.make(
   Effect.fn(function* (entryId) {
     const proficiencyRadioGroup = yield* new ProficiencyRadioGroup(
@@ -177,3 +165,15 @@ export const SkillsEntryLive = SkillsEntry.make(
     }
   }),
 ).pipe(Layer.provide(ProficiencyRadioGroup.Live))
+
+const nameRules = makeRules({
+  required: 'Skill name is required',
+})
+
+const validateName = validate(nameRules)
+
+export const skillsEntryHasErrors = (entry: Model): boolean =>
+  anyInvalid([entry.name])
+
+export const isSkillsEntryComplete = (entry: Model): boolean =>
+  allValid([[entry.name, nameRules]])

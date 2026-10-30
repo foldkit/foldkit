@@ -137,6 +137,249 @@ export class IssueDetail extends Block<
   Command: [SaveIssue],
 }) {}
 
+// LIVE
+
+export const IssueDetailLive = IssueDetail.make(
+  Effect.fn(function* (issueId, { issue }) {
+    const repository = yield* WorkspaceRepository
+
+    const commentComposer = yield* new CommentComposer('commentComposer', {
+      issueId: issueId,
+    })
+    const statusListbox = yield* new StatusListbox('statusListbox', {
+      id: `issue-${issueId}-status`,
+    })
+    const priorityListbox = yield* new PriorityListbox('priorityListbox', {
+      id: `issue-${issueId}-priority`,
+    })
+    const projectListbox = yield* new WorkspaceListbox('projectListbox', {
+      id: `issue-${issueId}-project`,
+    })
+    const assigneeListbox = yield* new WorkspaceListbox('assigneeListbox', {
+      id: `issue-${issueId}-assignee`,
+    })
+
+    return {
+      model: {
+        issueId,
+        baseline: revisionFromIssue(issue),
+        draft: draftFromIssue(issue),
+        maybeIncomingRevision: Option.none(),
+        saveState: SaveState.Idle(),
+        commentComposer,
+        statusListbox,
+        priorityListbox,
+        projectListbox,
+        assigneeListbox,
+      },
+
+      update: {
+        UpdatedTitle: (model, { value }) =>
+          editDraftStep(draft => modifyFields(draft, { title: () => value }))(
+            model,
+          ),
+        UpdatedDescription: (model, { value }) =>
+          editDraftStep(draft =>
+            modifyFields(draft, { description: () => value }),
+          )(model),
+        SubmittedIssueForm: saveIssueStep,
+        ClickedRetrySave: saveIssueStep,
+        RequestedSave: saveIssueStep,
+        InformedOfIssueChange: (model, { issue }) => ({
+          model: reconcileIssue(model, issue),
+        }),
+        ClickedReloadIssue: resetDraftStep,
+        ClickedDiscardChanges: resetDraftStep,
+        ClickedClose: model => ({ model, outMessage: OutMessage.Closed() }),
+        SucceededSaveIssue: (model, { savedIssue, expectedVersion }) => {
+          if (!isCurrentSave(model, savedIssue.issueId, expectedVersion)) {
+            return { model }
+          }
+
+          const savedRevision = savedIssue.revision
+          const latestKnownRevision = latestRevision(model)
+
+          const nextBaseline =
+            latestKnownRevision.version > savedRevision.version
+              ? latestKnownRevision
+              : savedRevision
+
+          return {
+            model: modifyFields(model, {
+              baseline: () => nextBaseline,
+              draft: () => nextBaseline.fields,
+              maybeIncomingRevision: () => Option.none(),
+              saveState: () => SaveState.Idle(),
+            }),
+            outMessage: OutMessage.Saved({ savedIssue }),
+          }
+        },
+        FailedSaveIssue: (model, { issueId, expectedVersion, error }) => {
+          if (!isCurrentSave(model, issueId, expectedVersion)) {
+            return { model }
+          }
+
+          return RepositoryError.matchOrElse(
+            error,
+            {
+              Conflict: ({ latestIssue }) => {
+                const reconciledModel = reconcileIssue(model, latestIssue)
+
+                return {
+                  model: modifyFields(reconciledModel, {
+                    saveState: () => SaveState.Failed({ error: error.message }),
+                  }),
+                  outMessage: OutMessage.ReceivedIssue({ issue: latestIssue }),
+                }
+              },
+            },
+            () => ({
+              model: modifyFields(model, {
+                saveState: () =>
+                  SaveState.Failed({
+                    error: error.message,
+                  }),
+              }),
+            }),
+          )
+        },
+        ...commentComposer.on({
+          AddedComment: (model, { comment }) => ({
+            model,
+            outMessage: OutMessage.AddedComment({
+              issueId: model.issueId,
+              comment,
+            }),
+          }),
+        }),
+        ...statusListbox.on({
+          Selected: (model, { value }) =>
+            editDraftStep(draft =>
+              modifyFields(draft, { status: () => value }),
+            )(model),
+        }),
+        ...priorityListbox.on({
+          Selected: (model, { value }) =>
+            editDraftStep(draft =>
+              modifyFields(draft, { priority: () => value }),
+            )(model),
+        }),
+        ...projectListbox.on({
+          Selected: (model, { value }) =>
+            editDraftStep(draft =>
+              modifyFields(draft, { projectId: () => value }),
+            )(model),
+        }),
+        ...assigneeListbox.on({
+          Selected: (model, { value }) =>
+            Option.match(decodeAssigneeSelection(value), {
+              onNone: () => ({ model }),
+              onSome: maybeAssigneeId =>
+                editDraftStep(draft =>
+                  modifyFields(draft, {
+                    maybeAssigneeId: () => maybeAssigneeId,
+                  }),
+                )(model),
+            }),
+        }),
+      },
+
+      commands: {
+        SaveIssue: args =>
+          repository.saveIssue(args).pipe(
+            Effect.map(savedIssue =>
+              Message.SucceededSaveIssue({
+                savedIssue,
+                expectedVersion: args.expectedVersion,
+              }),
+            ),
+            Effect.catch(error =>
+              Effect.succeed(
+                Message.FailedSaveIssue({
+                  issueId: args.issueId,
+                  expectedVersion: args.expectedVersion,
+                  error,
+                }),
+              ),
+            ),
+          ),
+      },
+
+      view: (model, h, viewInput) =>
+        h.section(
+          [
+            h.Class('w-full min-w-0 bg-slate-50/70 text-slate-700'),
+            h.AriaLabel(`${viewInput.issue.identifier} details`),
+          ],
+          [
+            h.header(
+              [
+                h.Class(
+                  'flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6',
+                ),
+              ],
+              [
+                h.span(
+                  [
+                    h.Class(
+                      'text-xs font-medium whitespace-nowrap text-slate-500',
+                    ),
+                  ],
+                  [viewInput.issue.identifier],
+                ),
+                secondaryButton('Close issue', Message.ClickedClose(), h),
+              ],
+            ),
+            h.div(
+              [h.Class('px-5 py-6 sm:px-6')],
+              [
+                h.form(
+                  [h.OnSubmit(Message.SubmittedIssueForm())],
+                  [
+                    fields(model, viewInput, h),
+                    h.div(
+                      [h.Class('mt-5 flex flex-col items-end gap-3')],
+                      [
+                        h.div(
+                          [
+                            h.Class(
+                              'flex flex-wrap items-center justify-end gap-2',
+                            ),
+                          ],
+                          [
+                            ...(isDirty(model)
+                              ? [discardChangesButton(model, h)]
+                              : []),
+                            submitButton(model, h),
+                          ],
+                        ),
+                        saveFeedback(model, h),
+                      ],
+                    ),
+                  ],
+                ),
+                model.commentComposer.view({
+                  members: viewInput.members,
+                  comments: viewInput.issue.comments,
+                  authorId: viewInput.authorId,
+                }),
+              ],
+            ),
+          ],
+        ),
+    }
+  }),
+).pipe(
+  Layer.provide(
+    Layer.mergeAll(
+      CommentComposerLive,
+      StatusListbox.Live,
+      PriorityListbox.Live,
+      WorkspaceListbox.Live,
+    ),
+  ),
+)
+
 // UPDATE
 
 const encodeAssigneeSelection = (maybeMemberId: Option.Option<string>) =>
@@ -601,246 +844,3 @@ const discardChangesButton = (
     },
     h,
   )
-
-// LIVE
-
-export const IssueDetailLive = IssueDetail.make(
-  Effect.fn(function* (issueId, { issue }) {
-    const repository = yield* WorkspaceRepository
-
-    const commentComposer = yield* new CommentComposer('commentComposer', {
-      issueId: issueId,
-    })
-    const statusListbox = yield* new StatusListbox('statusListbox', {
-      id: `issue-${issueId}-status`,
-    })
-    const priorityListbox = yield* new PriorityListbox('priorityListbox', {
-      id: `issue-${issueId}-priority`,
-    })
-    const projectListbox = yield* new WorkspaceListbox('projectListbox', {
-      id: `issue-${issueId}-project`,
-    })
-    const assigneeListbox = yield* new WorkspaceListbox('assigneeListbox', {
-      id: `issue-${issueId}-assignee`,
-    })
-
-    return {
-      model: {
-        issueId,
-        baseline: revisionFromIssue(issue),
-        draft: draftFromIssue(issue),
-        maybeIncomingRevision: Option.none(),
-        saveState: SaveState.Idle(),
-        commentComposer,
-        statusListbox,
-        priorityListbox,
-        projectListbox,
-        assigneeListbox,
-      },
-
-      update: {
-        UpdatedTitle: (model, { value }) =>
-          editDraftStep(draft => modifyFields(draft, { title: () => value }))(
-            model,
-          ),
-        UpdatedDescription: (model, { value }) =>
-          editDraftStep(draft =>
-            modifyFields(draft, { description: () => value }),
-          )(model),
-        SubmittedIssueForm: saveIssueStep,
-        ClickedRetrySave: saveIssueStep,
-        RequestedSave: saveIssueStep,
-        InformedOfIssueChange: (model, { issue }) => ({
-          model: reconcileIssue(model, issue),
-        }),
-        ClickedReloadIssue: resetDraftStep,
-        ClickedDiscardChanges: resetDraftStep,
-        ClickedClose: model => ({ model, outMessage: OutMessage.Closed() }),
-        SucceededSaveIssue: (model, { savedIssue, expectedVersion }) => {
-          if (!isCurrentSave(model, savedIssue.issueId, expectedVersion)) {
-            return { model }
-          }
-
-          const savedRevision = savedIssue.revision
-          const latestKnownRevision = latestRevision(model)
-
-          const nextBaseline =
-            latestKnownRevision.version > savedRevision.version
-              ? latestKnownRevision
-              : savedRevision
-
-          return {
-            model: modifyFields(model, {
-              baseline: () => nextBaseline,
-              draft: () => nextBaseline.fields,
-              maybeIncomingRevision: () => Option.none(),
-              saveState: () => SaveState.Idle(),
-            }),
-            outMessage: OutMessage.Saved({ savedIssue }),
-          }
-        },
-        FailedSaveIssue: (model, { issueId, expectedVersion, error }) => {
-          if (!isCurrentSave(model, issueId, expectedVersion)) {
-            return { model }
-          }
-
-          return RepositoryError.matchOrElse(
-            error,
-            {
-              Conflict: ({ latestIssue }) => {
-                const reconciledModel = reconcileIssue(model, latestIssue)
-
-                return {
-                  model: modifyFields(reconciledModel, {
-                    saveState: () => SaveState.Failed({ error: error.message }),
-                  }),
-                  outMessage: OutMessage.ReceivedIssue({ issue: latestIssue }),
-                }
-              },
-            },
-            () => ({
-              model: modifyFields(model, {
-                saveState: () =>
-                  SaveState.Failed({
-                    error: error.message,
-                  }),
-              }),
-            }),
-          )
-        },
-        ...commentComposer.on({
-          AddedComment: (model, { comment }) => ({
-            model,
-            outMessage: OutMessage.AddedComment({
-              issueId: model.issueId,
-              comment,
-            }),
-          }),
-        }),
-        ...statusListbox.on({
-          Selected: (model, { value }) =>
-            editDraftStep(draft =>
-              modifyFields(draft, { status: () => value }),
-            )(model),
-        }),
-        ...priorityListbox.on({
-          Selected: (model, { value }) =>
-            editDraftStep(draft =>
-              modifyFields(draft, { priority: () => value }),
-            )(model),
-        }),
-        ...projectListbox.on({
-          Selected: (model, { value }) =>
-            editDraftStep(draft =>
-              modifyFields(draft, { projectId: () => value }),
-            )(model),
-        }),
-        ...assigneeListbox.on({
-          Selected: (model, { value }) =>
-            Option.match(decodeAssigneeSelection(value), {
-              onNone: () => ({ model }),
-              onSome: maybeAssigneeId =>
-                editDraftStep(draft =>
-                  modifyFields(draft, {
-                    maybeAssigneeId: () => maybeAssigneeId,
-                  }),
-                )(model),
-            }),
-        }),
-      },
-
-      commands: {
-        SaveIssue: args =>
-          repository.saveIssue(args).pipe(
-            Effect.map(savedIssue =>
-              Message.SucceededSaveIssue({
-                savedIssue,
-                expectedVersion: args.expectedVersion,
-              }),
-            ),
-            Effect.catch(error =>
-              Effect.succeed(
-                Message.FailedSaveIssue({
-                  issueId: args.issueId,
-                  expectedVersion: args.expectedVersion,
-                  error,
-                }),
-              ),
-            ),
-          ),
-      },
-
-      view: (model, h, viewInput) =>
-        h.section(
-          [
-            h.Class('w-full min-w-0 bg-slate-50/70 text-slate-700'),
-            h.AriaLabel(`${viewInput.issue.identifier} details`),
-          ],
-          [
-            h.header(
-              [
-                h.Class(
-                  'flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6',
-                ),
-              ],
-              [
-                h.span(
-                  [
-                    h.Class(
-                      'text-xs font-medium whitespace-nowrap text-slate-500',
-                    ),
-                  ],
-                  [viewInput.issue.identifier],
-                ),
-                secondaryButton('Close issue', Message.ClickedClose(), h),
-              ],
-            ),
-            h.div(
-              [h.Class('px-5 py-6 sm:px-6')],
-              [
-                h.form(
-                  [h.OnSubmit(Message.SubmittedIssueForm())],
-                  [
-                    fields(model, viewInput, h),
-                    h.div(
-                      [h.Class('mt-5 flex flex-col items-end gap-3')],
-                      [
-                        h.div(
-                          [
-                            h.Class(
-                              'flex flex-wrap items-center justify-end gap-2',
-                            ),
-                          ],
-                          [
-                            ...(isDirty(model)
-                              ? [discardChangesButton(model, h)]
-                              : []),
-                            submitButton(model, h),
-                          ],
-                        ),
-                        saveFeedback(model, h),
-                      ],
-                    ),
-                  ],
-                ),
-                model.commentComposer.view({
-                  members: viewInput.members,
-                  comments: viewInput.issue.comments,
-                  authorId: viewInput.authorId,
-                }),
-              ],
-            ),
-          ],
-        ),
-    }
-  }),
-).pipe(
-  Layer.provide(
-    Layer.mergeAll(
-      CommentComposerLive,
-      StatusListbox.Live,
-      PriorityListbox.Live,
-      WorkspaceListbox.Live,
-    ),
-  ),
-)

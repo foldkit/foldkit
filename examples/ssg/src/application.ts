@@ -58,6 +58,57 @@ export class Application extends Block<Application, { readonly url: Url }>()(
   },
 ) {}
 
+export const ApplicationLive = Application.make(
+  Effect.fn(function* (_id, { url }) {
+    return {
+      model: { route: urlToApplicationRoute(url), count: 0 },
+
+      update: {
+        ClickedIncrement: model => ({
+          model: modifyFields(model, { count: Number.increment }),
+        }),
+        ClickedLink: (model, { request }) =>
+          UrlRequest.match(request, {
+            Internal: ({ url }) => ({
+              model,
+              commands: [NavigateInternal({ url: urlToString(url) })],
+            }),
+            External: ({ href }) => ({
+              model,
+              commands: [LoadExternal({ href })],
+            }),
+          }),
+        ChangedUrl: (model, { url }) => ({
+          model: modifyFields(model, {
+            route: () => urlToApplicationRoute(url),
+          }),
+        }),
+        CompletedNavigateInternal: model => ({ model }),
+        CompletedLoadExternal: model => ({ model }),
+      },
+
+      commands: {
+        NavigateInternal: ({ url }) =>
+          pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+        LoadExternal: ({ href }) =>
+          load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+      },
+
+      view: (model, h) => ({
+        title: routeTitle(model.route),
+        body: h.main(
+          [
+            h.Class(
+              'mx-auto grid min-h-screen max-w-3xl content-center gap-10 p-8',
+            ),
+          ],
+          [navigationView(h), pageView(model, h)],
+        ),
+      }),
+    }
+  }),
+)
+
 type ApplicationViewBuilder = HtmlBuilder<Message>
 
 const routeTitle = (route: ApplicationRoute): string =>
@@ -127,54 +178,3 @@ const pageView = (model: Model, h: ApplicationViewBuilder): Html =>
         ],
       ),
   })
-
-export const ApplicationLive = Application.make(
-  Effect.fn(function* (_id, { url }) {
-    return {
-      model: { route: urlToApplicationRoute(url), count: 0 },
-
-      update: {
-        ClickedIncrement: model => ({
-          model: modifyFields(model, { count: Number.increment }),
-        }),
-        ClickedLink: (model, { request }) =>
-          UrlRequest.match(request, {
-            Internal: ({ url }) => ({
-              model,
-              commands: [NavigateInternal({ url: urlToString(url) })],
-            }),
-            External: ({ href }) => ({
-              model,
-              commands: [LoadExternal({ href })],
-            }),
-          }),
-        ChangedUrl: (model, { url }) => ({
-          model: modifyFields(model, {
-            route: () => urlToApplicationRoute(url),
-          }),
-        }),
-        CompletedNavigateInternal: model => ({ model }),
-        CompletedLoadExternal: model => ({ model }),
-      },
-
-      commands: {
-        NavigateInternal: ({ url }) =>
-          pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
-        LoadExternal: ({ href }) =>
-          load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
-      },
-
-      view: (model, h) => ({
-        title: routeTitle(model.route),
-        body: h.main(
-          [
-            h.Class(
-              'mx-auto grid min-h-screen max-w-3xl content-center gap-10 p-8',
-            ),
-          ],
-          [navigationView(h), pageView(model, h)],
-        ),
-      }),
-    }
-  }),
-)

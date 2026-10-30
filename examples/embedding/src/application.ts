@@ -46,6 +46,40 @@ export class Application extends Block<
   Command: [ReportCount],
 }) {}
 
+export const ApplicationLive = Application.make(
+  Effect.fn(function* (_id, { flags }) {
+    return {
+      model: { count: flags.initialCount, step: 1 },
+
+      update: {
+        Ticked: advance,
+        ClickedAdvance: advance,
+        ChangedStep: (model, { step }) => ({
+          model: modifyFields(model, { step: () => step }),
+        }),
+        CompletedReportCount: model => ({ model }),
+      },
+
+      commands: {
+        ReportCount: ({ count }) =>
+          Port.emit(ports.outbound.countChanged, count).pipe(
+            Effect.as(Message.CompletedReportCount()),
+          ),
+      },
+
+      subscriptions: {
+        widgetTicks: { dependencies: () => null, stream: () => widgetTicks },
+        hostStepChanges: {
+          dependencies: () => null,
+          stream: () => hostStepChanges,
+        },
+      },
+
+      view,
+    }
+  }),
+)
+
 const advance = (model: Model) => {
   const count = model.count + model.step
   return {
@@ -109,37 +143,3 @@ const view = (model: Model, h: HtmlBuilder<Message>) =>
       ),
     ],
   )
-
-export const ApplicationLive = Application.make(
-  Effect.fn(function* (_id, { flags }) {
-    return {
-      model: { count: flags.initialCount, step: 1 },
-
-      update: {
-        Ticked: advance,
-        ClickedAdvance: advance,
-        ChangedStep: (model, { step }) => ({
-          model: modifyFields(model, { step: () => step }),
-        }),
-        CompletedReportCount: model => ({ model }),
-      },
-
-      commands: {
-        ReportCount: ({ count }) =>
-          Port.emit(ports.outbound.countChanged, count).pipe(
-            Effect.as(Message.CompletedReportCount()),
-          ),
-      },
-
-      subscriptions: {
-        widgetTicks: { dependencies: () => null, stream: () => widgetTicks },
-        hostStepChanges: {
-          dependencies: () => null,
-          stream: () => hostStepChanges,
-        },
-      },
-
-      view,
-    }
-  }),
-)

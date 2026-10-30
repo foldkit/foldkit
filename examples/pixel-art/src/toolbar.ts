@@ -92,6 +92,103 @@ export class Toolbar extends Block<Toolbar, void, ViewInput>()('Toolbar', {
   OutMessage,
 }) {}
 
+export const ToolbarLive = Toolbar.make(
+  Effect.fn(function* () {
+    const themeListbox = yield* new ThemeListbox('themeListbox', {
+      id: 'theme-picker',
+    })
+    const toolRadioGroup = yield* new ToolRadioGroup('toolRadioGroup', {
+      id: TOOL_RADIO_GROUP_ID,
+    })
+    const gridSizeRadioGroup = yield* new GridSizeRadioGroup(
+      'gridSizeRadioGroup',
+      { id: GRID_SIZE_RADIO_GROUP_ID },
+    )
+    const paletteRadioGroup = yield* new PaletteRadioGroup(
+      'paletteRadioGroup',
+      { id: PALETTE_RADIO_GROUP_ID },
+    )
+
+    return {
+      model: {
+        themeListbox,
+        toolRadioGroup,
+        gridSizeRadioGroup,
+        paletteRadioGroup,
+      },
+
+      update: {
+        ToggledMirrorHorizontal: model => ({
+          model,
+          outMessage: OutMessage.ToggledMirrorHorizontal(),
+        }),
+
+        ToggledMirrorVertical: model => ({
+          model,
+          outMessage: OutMessage.ToggledMirrorVertical(),
+        }),
+
+        ClickedClear: model => ({
+          model,
+          outMessage: OutMessage.ClickedClear(),
+        }),
+
+        ...toolRadioGroup.on({
+          Selected: (model, { value }) => ({
+            model,
+            outMessage: OutMessage.SelectedTool({ tool: value }),
+          }),
+        }),
+
+        ...gridSizeRadioGroup.on({
+          Selected: (model, { value }) => ({
+            model,
+            outMessage: OutMessage.SelectedGridSize({ size: Number(value) }),
+          }),
+        }),
+
+        ...paletteRadioGroup.on({
+          Selected: (model, { value }) =>
+            Option.match(decodePaletteIndex(Number(value)), {
+              onNone: () => ({ model }),
+              onSome: colorIndex => ({
+                model,
+                outMessage: OutMessage.SelectedColor({ colorIndex }),
+              }),
+            }),
+        }),
+
+        ...themeListbox.on({
+          Selected: (model, { value }) => ({
+            model,
+            outMessage: OutMessage.SelectedPaletteTheme({
+              themeIndex: Number(value),
+            }),
+          }),
+        }),
+      },
+
+      view: (model, h, input) =>
+        h.div(
+          [h.Class('w-full md:w-44 flex flex-col gap-5 flex-shrink-0')],
+          [
+            toolSectionView(input.tool, model.toolRadioGroup, h),
+            mirrorSectionView(input.mirrorMode, h),
+            sizeSectionView(input.gridSize, model.gridSizeRadioGroup, h),
+            paletteSectionView(
+              model,
+              input.selectedColorIndex,
+              input.theme,
+              input.paletteThemeIndex,
+              h,
+            ),
+            clearCanvasView(input.isCanvasEmpty, h),
+          ],
+        ),
+    }
+  }),
+)
+
 const decodePaletteIndex = Schema.decodeUnknownOption(PaletteIndex)
 
 type ToolbarViewBuilder = HtmlBuilder<Message>
@@ -435,100 +532,3 @@ const clearCanvasView = (isCanvasEmpty: boolean, h: ToolbarViewBuilder): Html =>
     },
     h,
   )
-
-export const ToolbarLive = Toolbar.make(
-  Effect.fn(function* () {
-    const themeListbox = yield* new ThemeListbox('themeListbox', {
-      id: 'theme-picker',
-    })
-    const toolRadioGroup = yield* new ToolRadioGroup('toolRadioGroup', {
-      id: TOOL_RADIO_GROUP_ID,
-    })
-    const gridSizeRadioGroup = yield* new GridSizeRadioGroup(
-      'gridSizeRadioGroup',
-      { id: GRID_SIZE_RADIO_GROUP_ID },
-    )
-    const paletteRadioGroup = yield* new PaletteRadioGroup(
-      'paletteRadioGroup',
-      { id: PALETTE_RADIO_GROUP_ID },
-    )
-
-    return {
-      model: {
-        themeListbox,
-        toolRadioGroup,
-        gridSizeRadioGroup,
-        paletteRadioGroup,
-      },
-
-      update: {
-        ToggledMirrorHorizontal: model => ({
-          model,
-          outMessage: OutMessage.ToggledMirrorHorizontal(),
-        }),
-
-        ToggledMirrorVertical: model => ({
-          model,
-          outMessage: OutMessage.ToggledMirrorVertical(),
-        }),
-
-        ClickedClear: model => ({
-          model,
-          outMessage: OutMessage.ClickedClear(),
-        }),
-
-        ...toolRadioGroup.on({
-          Selected: (model, { value }) => ({
-            model,
-            outMessage: OutMessage.SelectedTool({ tool: value }),
-          }),
-        }),
-
-        ...gridSizeRadioGroup.on({
-          Selected: (model, { value }) => ({
-            model,
-            outMessage: OutMessage.SelectedGridSize({ size: Number(value) }),
-          }),
-        }),
-
-        ...paletteRadioGroup.on({
-          Selected: (model, { value }) =>
-            Option.match(decodePaletteIndex(Number(value)), {
-              onNone: () => ({ model }),
-              onSome: colorIndex => ({
-                model,
-                outMessage: OutMessage.SelectedColor({ colorIndex }),
-              }),
-            }),
-        }),
-
-        ...themeListbox.on({
-          Selected: (model, { value }) => ({
-            model,
-            outMessage: OutMessage.SelectedPaletteTheme({
-              themeIndex: Number(value),
-            }),
-          }),
-        }),
-      },
-
-      view: (model, h, input) =>
-        h.div(
-          [h.Class('w-full md:w-44 flex flex-col gap-5 flex-shrink-0')],
-          [
-            toolSectionView(input.tool, model.toolRadioGroup, h),
-            mirrorSectionView(input.mirrorMode, h),
-            sizeSectionView(input.gridSize, model.gridSizeRadioGroup, h),
-            paletteSectionView(
-              model,
-              input.selectedColorIndex,
-              input.theme,
-              input.paletteThemeIndex,
-              h,
-            ),
-            clearCanvasView(input.isCanvasEmpty, h),
-          ],
-        ),
-    }
-  }),
-)

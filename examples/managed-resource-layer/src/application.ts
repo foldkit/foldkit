@@ -47,6 +47,82 @@ export class Application extends Block<Application>()('Application', {
   Command: [Compute],
 }) {}
 
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    const computeEngine = yield* new Engine('computeEngine')
+
+    return {
+      model: {
+        engine: EngineState.Off(),
+        maybeComputeEngine: Option.none(),
+        computeCount: 0,
+        maybeSquareResult: Option.none(),
+      },
+
+      update: {
+        ClickedStartEngine: model => ({
+          model: modifyFields(model, {
+            engine: () => EngineState.Booting(),
+            maybeComputeEngine: Option.orElseSome(() => computeEngine),
+          }),
+        }),
+
+        ClickedStopEngine: model => ({
+          model: modifyFields(model, {
+            engine: () => EngineState.Off(),
+            maybeComputeEngine: () => Option.none(),
+          }),
+        }),
+
+        ClickedCompute: model => {
+          const nextComputeCount = Number.increment(model.computeCount)
+          return {
+            model: modifyFields(model, {
+              computeCount: () => nextComputeCount,
+            }),
+            commands: [Compute({ value: nextComputeCount })],
+          }
+        },
+
+        SucceededCompute: (model, { result }) => ({
+          model: modifyFields(model, {
+            maybeSquareResult: () => Option.some(result),
+          }),
+        }),
+
+        FailedCompute: model => ({ model }),
+
+        ...computeEngine.on<Model>({
+          Started: (model, { engineId }) => ({
+            model: modifyFields(model, {
+              engine: () => EngineState.Ready({ engineId }),
+            }),
+          }),
+          FailedStart: (model, { reason }) => ({
+            model: modifyFields(model, {
+              engine: () => EngineState.Failed({ reason }),
+              maybeComputeEngine: () => Option.none(),
+            }),
+          }),
+        }),
+      },
+
+      commands: {
+        Compute: ({ value }) =>
+          computeEngine.use.pipe(
+            Effect.flatten,
+            Effect.map(engine =>
+              Message.SucceededCompute({ result: engine.square(value) }),
+            ),
+            Effect.catchCause(() => Effect.succeed(Message.FailedCompute())),
+          ),
+      },
+
+      view,
+    }
+  }),
+)
+
 const buttonClassName =
   'px-6 py-3 font-semibold text-white transition-colors data-[disabled]:opacity-40 data-[disabled]:cursor-not-allowed'
 
@@ -176,79 +252,3 @@ const view = (model: Model, h: ApplicationViewBuilder) => {
     ),
   }
 }
-
-export const ApplicationLive = Application.make(
-  Effect.fn(function* () {
-    const computeEngine = yield* new Engine('computeEngine')
-
-    return {
-      model: {
-        engine: EngineState.Off(),
-        maybeComputeEngine: Option.none(),
-        computeCount: 0,
-        maybeSquareResult: Option.none(),
-      },
-
-      update: {
-        ClickedStartEngine: model => ({
-          model: modifyFields(model, {
-            engine: () => EngineState.Booting(),
-            maybeComputeEngine: Option.orElseSome(() => computeEngine),
-          }),
-        }),
-
-        ClickedStopEngine: model => ({
-          model: modifyFields(model, {
-            engine: () => EngineState.Off(),
-            maybeComputeEngine: () => Option.none(),
-          }),
-        }),
-
-        ClickedCompute: model => {
-          const nextComputeCount = Number.increment(model.computeCount)
-          return {
-            model: modifyFields(model, {
-              computeCount: () => nextComputeCount,
-            }),
-            commands: [Compute({ value: nextComputeCount })],
-          }
-        },
-
-        SucceededCompute: (model, { result }) => ({
-          model: modifyFields(model, {
-            maybeSquareResult: () => Option.some(result),
-          }),
-        }),
-
-        FailedCompute: model => ({ model }),
-
-        ...computeEngine.on<Model>({
-          Started: (model, { engineId }) => ({
-            model: modifyFields(model, {
-              engine: () => EngineState.Ready({ engineId }),
-            }),
-          }),
-          FailedStart: (model, { reason }) => ({
-            model: modifyFields(model, {
-              engine: () => EngineState.Failed({ reason }),
-              maybeComputeEngine: () => Option.none(),
-            }),
-          }),
-        }),
-      },
-
-      commands: {
-        Compute: ({ value }) =>
-          computeEngine.use.pipe(
-            Effect.flatten,
-            Effect.map(engine =>
-              Message.SucceededCompute({ result: engine.square(value) }),
-            ),
-            Effect.catchCause(() => Effect.succeed(Message.FailedCompute())),
-          ),
-      },
-
-      view,
-    }
-  }),
-)

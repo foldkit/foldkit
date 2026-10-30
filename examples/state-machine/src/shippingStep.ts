@@ -31,6 +31,29 @@ export class ShippingStep extends Block<ShippingStep>()('ShippingStep', {
   OutMessage,
 }) {}
 
+export const ShippingStepLive = ShippingStep.make(
+  Effect.fn(function* () {
+    return {
+      update: {
+        ClickedBack: model => ({
+          model,
+          outMessage: OutMessage.RequestedBack(),
+        }),
+        ClickedCancel: model => ({
+          model,
+          outMessage: OutMessage.RequestedCancel(),
+        }),
+        ClickedContinue: model => ({
+          model,
+          outMessage: OutMessage.RequestedContinue(),
+        }),
+      },
+
+      view: (_model, h) => shippingView(h),
+    }
+  }),
+)
+
 type ShippingStepViewBuilder = HtmlBuilder<Message>
 
 const shippingView = (h: ShippingStepViewBuilder): Html =>
@@ -204,26 +227,3 @@ const shippingView = (h: ShippingStepViewBuilder): Html =>
       ),
     ],
   )
-
-export const ShippingStepLive = ShippingStep.make(
-  Effect.fn(function* () {
-    return {
-      update: {
-        ClickedBack: model => ({
-          model,
-          outMessage: OutMessage.RequestedBack(),
-        }),
-        ClickedCancel: model => ({
-          model,
-          outMessage: OutMessage.RequestedCancel(),
-        }),
-        ClickedContinue: model => ({
-          model,
-          outMessage: OutMessage.RequestedContinue(),
-        }),
-      },
-
-      view: (_model, h) => shippingView(h),
-    }
-  }),
-)

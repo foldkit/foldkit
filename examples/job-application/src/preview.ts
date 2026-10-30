@@ -48,6 +48,92 @@ export class Preview extends Block<Preview, void, PreviewViewInput>()(
   { Model, Message },
 ) {}
 
+export const PreviewLive = Preview.make(
+  Effect.fn(function* () {
+    return {
+      model: { isVisible: false },
+
+      update: {
+        ToggledPreview: model => ({
+          model: modifyFields(model, { isVisible: isVisible => !isVisible }),
+        }),
+      },
+
+      view: (model, h, input) =>
+        h.div(
+          [h.Class('contents')],
+          [
+            h.div(
+              [h.Class('hidden w-80 shrink-0 xl:block')],
+              [
+                h.div(
+                  [h.Class('sticky top-8')],
+                  [
+                    h.div(
+                      [h.Class('mb-2 flex items-center justify-between')],
+                      [
+                        h.h2(
+                          [h.Class('text-sm font-semibold text-gray-700')],
+                          ['Live Preview'],
+                        ),
+                      ],
+                    ),
+                    h.div(
+                      [
+                        h.Class(
+                          'rounded-xl border border-gray-200 bg-white p-6 shadow-sm',
+                        ),
+                      ],
+                      [resume(input)],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            h.div(
+              [h.Class('fixed top-4 right-4 xl:hidden')],
+              [
+                Button.view(
+                  {
+                    onClick: Message.ToggledPreview(),
+                    toView: attributes =>
+                      h.button(
+                        [
+                          ...attributes.button,
+                          h.Class(
+                            clsx(
+                              'rounded-full px-4 py-2 text-sm font-medium shadow-lg transition cursor-pointer',
+                              model.isVisible
+                                ? 'bg-gray-800 text-white'
+                                : 'bg-indigo-600 text-white',
+                            ),
+                          ),
+                        ],
+                        [model.isVisible ? 'Hide Preview' : 'Preview'],
+                      ),
+                  },
+                  h,
+                ),
+              ],
+            ),
+            ...(model.isVisible
+              ? [
+                  h.div(
+                    [
+                      h.Class(
+                        'fixed inset-x-4 top-16 bottom-4 overflow-y-auto rounded-xl border border-gray-200 bg-white p-6 shadow-2xl xl:hidden',
+                      ),
+                    ],
+                    [resume(input)],
+                  ),
+                ]
+              : []),
+          ],
+        ),
+    }
+  }),
+)
+
 type WorkHistoryEntryModel = WorkHistoryEntry['model']
 type EducationEntryModel = EducationEntry['model']
 type SkillsEntryModel = SkillsEntry['model']
@@ -320,89 +406,3 @@ const resume = (input: PreviewViewInput): Html => {
     ],
   )
 }
-
-export const PreviewLive = Preview.make(
-  Effect.fn(function* () {
-    return {
-      model: { isVisible: false },
-
-      update: {
-        ToggledPreview: model => ({
-          model: modifyFields(model, { isVisible: isVisible => !isVisible }),
-        }),
-      },
-
-      view: (model, h, input) =>
-        h.div(
-          [h.Class('contents')],
-          [
-            h.div(
-              [h.Class('hidden w-80 shrink-0 xl:block')],
-              [
-                h.div(
-                  [h.Class('sticky top-8')],
-                  [
-                    h.div(
-                      [h.Class('mb-2 flex items-center justify-between')],
-                      [
-                        h.h2(
-                          [h.Class('text-sm font-semibold text-gray-700')],
-                          ['Live Preview'],
-                        ),
-                      ],
-                    ),
-                    h.div(
-                      [
-                        h.Class(
-                          'rounded-xl border border-gray-200 bg-white p-6 shadow-sm',
-                        ),
-                      ],
-                      [resume(input)],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            h.div(
-              [h.Class('fixed top-4 right-4 xl:hidden')],
-              [
-                Button.view(
-                  {
-                    onClick: Message.ToggledPreview(),
-                    toView: attributes =>
-                      h.button(
-                        [
-                          ...attributes.button,
-                          h.Class(
-                            clsx(
-                              'rounded-full px-4 py-2 text-sm font-medium shadow-lg transition cursor-pointer',
-                              model.isVisible
-                                ? 'bg-gray-800 text-white'
-                                : 'bg-indigo-600 text-white',
-                            ),
-                          ),
-                        ],
-                        [model.isVisible ? 'Hide Preview' : 'Preview'],
-                      ),
-                  },
-                  h,
-                ),
-              ],
-            ),
-            ...(model.isVisible
-              ? [
-                  h.div(
-                    [
-                      h.Class(
-                        'fixed inset-x-4 top-16 bottom-4 overflow-y-auto rounded-xl border border-gray-200 bg-white p-6 shadow-2xl xl:hidden',
-                      ),
-                    ],
-                    [resume(input)],
-                  ),
-                ]
-              : []),
-          ],
-        ),
-    }
-  }),
-)

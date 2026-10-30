@@ -43,20 +43,6 @@ export class Application extends Block<Application>()('Application', {
   Message,
 }) {}
 
-const tabButtonClassName =
-  'px-4 py-2 rounded-lg bg-white text-slate-600 font-semibold hover:bg-slate-50 transition cursor-pointer data-[selected]:bg-indigo-600 data-[selected]:text-white data-[selected]:hover:bg-indigo-600'
-
-const loadTab = (model: Model, tab: Tab) =>
-  Match.value(tab).pipe(
-    Match.when('Posts', () =>
-      model.postsTab.send(PostsTab.Message.RequestedLoadIfMissing()),
-    ),
-    Match.when('Stats', () =>
-      model.statsTab.send(StatsTab.Message.RequestedLoadIfMissing()),
-    ),
-    Match.exhaustive,
-  )
-
 export const ApplicationLive = Application.make(
   Effect.fn(function* () {
     const tabs = yield* new ApplicationTabs('tabs', { id: TABS_ID })
@@ -183,3 +169,17 @@ export const ApplicationLive = Application.make(
     Layer.mergeAll(ApplicationTabs.Live, PostsTabLive, StatsTabLive),
   ),
 )
+
+const tabButtonClassName =
+  'px-4 py-2 rounded-lg bg-white text-slate-600 font-semibold hover:bg-slate-50 transition cursor-pointer data-[selected]:bg-indigo-600 data-[selected]:text-white data-[selected]:hover:bg-indigo-600'
+
+const loadTab = (model: Model, tab: Tab) =>
+  Match.value(tab).pipe(
+    Match.when('Posts', () =>
+      model.postsTab.send(PostsTab.Message.RequestedLoadIfMissing()),
+    ),
+    Match.when('Stats', () =>
+      model.statsTab.send(StatsTab.Message.RequestedLoadIfMissing()),
+    ),
+    Match.exhaustive,
+  )

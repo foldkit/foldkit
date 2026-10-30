@@ -21,6 +21,22 @@ export class TextareaPage extends Block<TextareaPage>()('TextareaPage', {
   Message,
 }) {}
 
+export const TextareaPageLive = TextareaPage.make(
+  Effect.fn(function* () {
+    return {
+      model: { textareaDemoValue: '' },
+
+      update: {
+        UpdatedTextareaDemoValue: (model, { value }) => ({
+          model: modifyFields(model, { textareaDemoValue: () => value }),
+        }),
+      },
+
+      view,
+    }
+  }),
+)
+
 const textareaClassName =
   'block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 transition-colors placeholder:text-gray-400 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50'
 
@@ -105,19 +121,3 @@ const view = (model: Model, h: HtmlBuilder<Message>): Html => {
     ],
   )
 }
-
-export const TextareaPageLive = TextareaPage.make(
-  Effect.fn(function* () {
-    return {
-      model: { textareaDemoValue: '' },
-
-      update: {
-        UpdatedTextareaDemoValue: (model, { value }) => ({
-          model: modifyFields(model, { textareaDemoValue: () => value }),
-        }),
-      },
-
-      view,
-    }
-  }),
-)

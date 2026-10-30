@@ -40,13 +40,6 @@ export class Skills extends Block<Skills, SkillsArgs>()('Skills', {
   Command: [GenerateSkillsEntryId],
 }) {}
 
-export const skillsHasErrors = (model: Model): boolean =>
-  Array.some(model.entries, entry => skillsEntryHasErrors(entry.model))
-
-export const isSkillsComplete = (model: Model): boolean =>
-  Array.isReadonlyArrayNonEmpty(model.entries) &&
-  Array.every(model.entries, entry => isSkillsEntryComplete(entry.model))
-
 export const SkillsLive = Skills.make(
   Effect.fn(function* (_id, { initialEntryId }) {
     const crypto = yield* Crypto.Crypto
@@ -136,3 +129,10 @@ export const SkillsLive = Skills.make(
     }
   }),
 ).pipe(Layer.provide(SkillsEntryLive))
+
+export const skillsHasErrors = (model: Model): boolean =>
+  Array.some(model.entries, entry => skillsEntryHasErrors(entry.model))
+
+export const isSkillsComplete = (model: Model): boolean =>
+  Array.isReadonlyArrayNonEmpty(model.entries) &&
+  Array.every(model.entries, entry => isSkillsEntryComplete(entry.model))

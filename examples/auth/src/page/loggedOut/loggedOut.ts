@@ -26,6 +26,40 @@ export class LoggedOut extends Block<LoggedOut, void, ViewInput>()(
   },
 ) {}
 
+export const LoggedOutLive = LoggedOut.make(
+  Effect.fn(function* () {
+    const login = yield* new Login('login')
+
+    return {
+      model: { login },
+
+      update: {
+        ...login.on({
+          SucceededLogin: (model, { session }) => ({
+            model,
+            outMessage: OutMessage.SucceededLogin({ session }),
+          }),
+        }),
+      },
+
+      view: (model, h, { route }) =>
+        h.div(
+          [h.Class('py-8')],
+          [
+            Match.value(route).pipe(
+              Match.tagsExhaustive({
+                Home: () => homeView(h),
+                Login: () => model.login.view(),
+                NotFound: ({ path }) =>
+                  notFoundView(path, homeRouter(), 'Go Home', h),
+              }),
+            ),
+          ],
+        ),
+    }
+  }),
+)
+
 type LoggedOutViewBuilder = HtmlBuilder<never>
 
 const featureCard = (
@@ -91,37 +125,3 @@ const homeView = (h: LoggedOutViewBuilder): Html =>
       ),
     ],
   )
-
-export const LoggedOutLive = LoggedOut.make(
-  Effect.fn(function* () {
-    const login = yield* new Login('login')
-
-    return {
-      model: { login },
-
-      update: {
-        ...login.on({
-          SucceededLogin: (model, { session }) => ({
-            model,
-            outMessage: OutMessage.SucceededLogin({ session }),
-          }),
-        }),
-      },
-
-      view: (model, h, { route }) =>
-        h.div(
-          [h.Class('py-8')],
-          [
-            Match.value(route).pipe(
-              Match.tagsExhaustive({
-                Home: () => homeView(h),
-                Login: () => model.login.view(),
-                NotFound: ({ path }) =>
-                  notFoundView(path, homeRouter(), 'Go Home', h),
-              }),
-            ),
-          ],
-        ),
-    }
-  }),
-)

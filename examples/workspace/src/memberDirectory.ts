@@ -36,6 +36,132 @@ export class MemberDirectory extends Block<MemberDirectory, void, ViewInput>()(
   { Model, Message },
 ) {}
 
+export const MemberDirectoryLive = MemberDirectory.make(
+  Effect.fn(function* () {
+    return {
+      model: { query: '', maybeSelectedMemberId: Option.none() },
+
+      update: {
+        UpdatedQuery: (model, { value }) => ({
+          model: modifyFields(model, {
+            query: () => value,
+            maybeSelectedMemberId: () => Option.none(),
+          }),
+        }),
+        ClickedMember: (model, { memberId }) => ({
+          model: modifyFields(model, {
+            maybeSelectedMemberId: () => Option.some(memberId),
+          }),
+        }),
+      },
+
+      view: (model, h, viewInputs) => {
+        const searchText = model.query.trim().toLowerCase()
+
+        const matchingMembers = Array.filter(viewInputs.members, member =>
+          `${member.name} ${member.initials}`
+            .toLowerCase()
+            .includes(searchText),
+        )
+
+        const maybeSelectedMember = Option.flatMap(
+          model.maybeSelectedMemberId,
+          memberId =>
+            Array.findFirst(
+              viewInputs.members,
+              member => member.id === memberId,
+            ),
+        )
+
+        return h.section(
+          [h.Class('space-y-6 p-5 lg:p-8'), h.AriaLabel('Member directory')],
+          [
+            h.div(
+              [h.Class('flex flex-wrap items-center justify-between gap-3')],
+              [
+                Input.view(
+                  {
+                    id: 'workspace-member-search',
+                    type: 'search',
+                    value: model.query,
+                    placeholder: 'Search members…',
+                    onInput: value => Message.UpdatedQuery({ value }),
+                    toView: attributes =>
+                      h.div(
+                        [h.Class('w-full max-w-md')],
+                        [
+                          h.label(
+                            [...attributes.label, h.Class('sr-only')],
+                            ['Search members'],
+                          ),
+                          h.input([
+                            ...attributes.input,
+                            h.Class('input-control'),
+                          ]),
+                        ],
+                      ),
+                  },
+                  h,
+                ),
+                h.span(
+                  [h.Class('text-xs font-medium leading-6 text-slate-500')],
+                  [`${matchingMembers.length} members`],
+                ),
+              ],
+            ),
+            h.div(
+              [
+                h.Class(
+                  'grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]',
+                ),
+              ],
+              [
+                Array.match(matchingMembers, {
+                  onEmpty: () =>
+                    h.p(
+                      [
+                        h.Class(
+                          'rounded-xl border border-dashed border-slate-200 px-5 py-10 text-center text-sm leading-7 text-slate-500',
+                        ),
+                        h.Role('status'),
+                      ],
+                      ['No matching members.'],
+                    ),
+                  onNonEmpty: members =>
+                    h.ul(
+                      [h.Class('grid gap-3 sm:grid-cols-2 2xl:grid-cols-3')],
+                      Array.map(members, member =>
+                        memberCard(member, model, viewInputs.issues, h),
+                      ),
+                    ),
+                }),
+                Option.match(maybeSelectedMember, {
+                  onNone: () =>
+                    h.p(
+                      [
+                        h.Class(
+                          'rounded-xl border border-dashed border-slate-200 px-5 py-10 text-center text-sm leading-7 text-slate-500',
+                        ),
+                      ],
+                      ['Select a teammate to see their assigned issues.'],
+                    ),
+                  onSome: member =>
+                    memberProfile(
+                      member,
+                      viewInputs.issues,
+                      viewInputs.issueHrefs,
+                      h,
+                    ),
+                }),
+              ],
+            ),
+          ],
+        )
+      },
+    }
+  }),
+)
+
 const issuesAssignedToMember = (
   memberId: string,
   issues: ReadonlyArray<Issue>,
@@ -227,129 +353,3 @@ const memberProfile = (
     ],
   )
 }
-
-export const MemberDirectoryLive = MemberDirectory.make(
-  Effect.fn(function* () {
-    return {
-      model: { query: '', maybeSelectedMemberId: Option.none() },
-
-      update: {
-        UpdatedQuery: (model, { value }) => ({
-          model: modifyFields(model, {
-            query: () => value,
-            maybeSelectedMemberId: () => Option.none(),
-          }),
-        }),
-        ClickedMember: (model, { memberId }) => ({
-          model: modifyFields(model, {
-            maybeSelectedMemberId: () => Option.some(memberId),
-          }),
-        }),
-      },
-
-      view: (model, h, viewInputs) => {
-        const searchText = model.query.trim().toLowerCase()
-
-        const matchingMembers = Array.filter(viewInputs.members, member =>
-          `${member.name} ${member.initials}`
-            .toLowerCase()
-            .includes(searchText),
-        )
-
-        const maybeSelectedMember = Option.flatMap(
-          model.maybeSelectedMemberId,
-          memberId =>
-            Array.findFirst(
-              viewInputs.members,
-              member => member.id === memberId,
-            ),
-        )
-
-        return h.section(
-          [h.Class('space-y-6 p-5 lg:p-8'), h.AriaLabel('Member directory')],
-          [
-            h.div(
-              [h.Class('flex flex-wrap items-center justify-between gap-3')],
-              [
-                Input.view(
-                  {
-                    id: 'workspace-member-search',
-                    type: 'search',
-                    value: model.query,
-                    placeholder: 'Search members…',
-                    onInput: value => Message.UpdatedQuery({ value }),
-                    toView: attributes =>
-                      h.div(
-                        [h.Class('w-full max-w-md')],
-                        [
-                          h.label(
-                            [...attributes.label, h.Class('sr-only')],
-                            ['Search members'],
-                          ),
-                          h.input([
-                            ...attributes.input,
-                            h.Class('input-control'),
-                          ]),
-                        ],
-                      ),
-                  },
-                  h,
-                ),
-                h.span(
-                  [h.Class('text-xs font-medium leading-6 text-slate-500')],
-                  [`${matchingMembers.length} members`],
-                ),
-              ],
-            ),
-            h.div(
-              [
-                h.Class(
-                  'grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]',
-                ),
-              ],
-              [
-                Array.match(matchingMembers, {
-                  onEmpty: () =>
-                    h.p(
-                      [
-                        h.Class(
-                          'rounded-xl border border-dashed border-slate-200 px-5 py-10 text-center text-sm leading-7 text-slate-500',
-                        ),
-                        h.Role('status'),
-                      ],
-                      ['No matching members.'],
-                    ),
-                  onNonEmpty: members =>
-                    h.ul(
-                      [h.Class('grid gap-3 sm:grid-cols-2 2xl:grid-cols-3')],
-                      Array.map(members, member =>
-                        memberCard(member, model, viewInputs.issues, h),
-                      ),
-                    ),
-                }),
-                Option.match(maybeSelectedMember, {
-                  onNone: () =>
-                    h.p(
-                      [
-                        h.Class(
-                          'rounded-xl border border-dashed border-slate-200 px-5 py-10 text-center text-sm leading-7 text-slate-500',
-                        ),
-                      ],
-                      ['Select a teammate to see their assigned issues.'],
-                    ),
-                  onSome: member =>
-                    memberProfile(
-                      member,
-                      viewInputs.issues,
-                      viewInputs.issueHrefs,
-                      h,
-                    ),
-                }),
-              ],
-            ),
-          ],
-        )
-      },
-    }
-  }),
-)

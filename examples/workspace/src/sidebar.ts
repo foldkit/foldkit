@@ -44,169 +44,6 @@ export class Sidebar extends Block<Sidebar, void, ViewInput>()('Sidebar', {
   OutMessage,
 }) {}
 
-type SidebarViewBuilder = HtmlBuilder<Message>
-
-const SIDEBAR_COLLECTION_CLASS =
-  'col-span-2 w-full border-t border-slate-200 pt-5 lg:mt-6'
-
-const SAVED_VIEW_LINK_CLASS =
-  'min-w-0 flex-1 truncate rounded-lg px-3 py-2 text-left text-sm'
-
-const DRAFT_LINK_CLASS = 'block rounded-lg px-3 py-2'
-
-const savedViewsSection = (
-  { route, savedViews }: ViewInput,
-  h: SidebarViewBuilder,
-): Html =>
-  h.section(
-    [
-      h.Class(
-        clsx({
-          hidden: Array.isReadonlyArrayEmpty(savedViews),
-          [SIDEBAR_COLLECTION_CLASS]: Array.isReadonlyArrayNonEmpty(savedViews),
-        }),
-      ),
-      h.AriaLabel('Saved views'),
-    ],
-    [
-      h.h2(
-        [
-          h.Class(
-            'mb-2 px-3 text-xs font-semibold tracking-wider text-slate-600 uppercase',
-          ),
-        ],
-        ['Saved views'],
-      ),
-      ...Array.match(savedViews, {
-        onEmpty: () => [],
-        onNonEmpty: nonEmptySavedViews =>
-          Array.map(nonEmptySavedViews, savedView =>
-            h.keyed('div')(
-              savedView.id,
-              [h.Class('flex items-center gap-1')],
-              [
-                h.a(
-                  [
-                    h.Href(
-                      savedViewRouter({
-                        viewId: savedView.id,
-                        filters: savedView.filters,
-                      }),
-                    ),
-                    h.Class(
-                      clsx(SAVED_VIEW_LINK_CLASS, {
-                        'bg-white font-semibold text-indigo-700':
-                          ApplicationRoute.guards.SavedView(route) &&
-                          route.viewId === savedView.id,
-                        'font-medium text-slate-600 hover:bg-white/60':
-                          !ApplicationRoute.guards.SavedView(route) ||
-                          route.viewId !== savedView.id,
-                      }),
-                    ),
-                  ],
-                  [savedView.name],
-                ),
-                Button.view(
-                  {
-                    type: 'button',
-                    onClick: Message.ClickedDeleteSavedView({
-                      viewId: savedView.id,
-                    }),
-                    toView: attributes =>
-                      h.button(
-                        [
-                          ...attributes.button,
-                          h.AriaLabel(`Delete view ${savedView.name}`),
-                          h.Class(
-                            'inline-grid size-7 cursor-pointer place-items-center rounded text-sm font-medium text-slate-600 outline-offset-2 hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-2 focus-visible:outline-indigo-500',
-                          ),
-                        ],
-                        ['×'],
-                      ),
-                  },
-                  h,
-                ),
-              ],
-            ),
-          ),
-      }),
-    ],
-  )
-
-const draftsSection = (
-  { route, maybeConfirmedWorkspace, issueDrafts, toIssueHref }: ViewInput,
-  h: SidebarViewBuilder,
-): Html =>
-  h.section(
-    [
-      h.Class(
-        clsx({
-          hidden: Array.isReadonlyArrayEmpty(issueDrafts),
-          [SIDEBAR_COLLECTION_CLASS]:
-            Array.isReadonlyArrayNonEmpty(issueDrafts),
-        }),
-      ),
-      h.AriaLabel('Drafts'),
-    ],
-    [
-      h.h2(
-        [
-          h.Class(
-            'mb-2 px-3 text-xs font-semibold tracking-wider text-slate-600 uppercase',
-          ),
-        ],
-        ['Drafts'],
-      ),
-      ...Array.map(issueDrafts, retainedDraft => {
-        const maybeIssue = Option.flatMap(maybeConfirmedWorkspace, workspace =>
-          Array.findFirst(
-            workspace.issues,
-            issue => issue.id === retainedDraft.issueId,
-          ),
-        )
-        const isActive = Option.contains(
-          maybeIssueId(route),
-          retainedDraft.issueId,
-        )
-
-        return h.keyed('div')(
-          retainedDraft.issueId,
-          [],
-          [
-            h.a(
-              [
-                h.Href(toIssueHref(retainedDraft.issueId)),
-                h.Class(
-                  clsx(DRAFT_LINK_CLASS, {
-                    'bg-white text-indigo-700 shadow-xs': isActive,
-                    'text-slate-500 transition hover:bg-white/60 hover:text-slate-800':
-                      !isActive,
-                  }),
-                ),
-                ...(isActive ? [h.AriaCurrent('page')] : []),
-              ],
-              [
-                h.span(
-                  [h.Class('block text-xs font-semibold')],
-                  [
-                    Option.match(maybeIssue, {
-                      onNone: () => retainedDraft.issueId,
-                      onSome: issue => issue.identifier,
-                    }),
-                  ],
-                ),
-                h.span(
-                  [h.Class('block truncate text-sm font-medium')],
-                  [retainedDraft.title],
-                ),
-              ],
-            ),
-          ],
-        )
-      }),
-    ],
-  )
-
 export const SidebarLive = Sidebar.make(
   Effect.fn(function* () {
     return {
@@ -370,3 +207,166 @@ export const SidebarLive = Sidebar.make(
     }
   }),
 )
+
+type SidebarViewBuilder = HtmlBuilder<Message>
+
+const SIDEBAR_COLLECTION_CLASS =
+  'col-span-2 w-full border-t border-slate-200 pt-5 lg:mt-6'
+
+const SAVED_VIEW_LINK_CLASS =
+  'min-w-0 flex-1 truncate rounded-lg px-3 py-2 text-left text-sm'
+
+const DRAFT_LINK_CLASS = 'block rounded-lg px-3 py-2'
+
+const savedViewsSection = (
+  { route, savedViews }: ViewInput,
+  h: SidebarViewBuilder,
+): Html =>
+  h.section(
+    [
+      h.Class(
+        clsx({
+          hidden: Array.isReadonlyArrayEmpty(savedViews),
+          [SIDEBAR_COLLECTION_CLASS]: Array.isReadonlyArrayNonEmpty(savedViews),
+        }),
+      ),
+      h.AriaLabel('Saved views'),
+    ],
+    [
+      h.h2(
+        [
+          h.Class(
+            'mb-2 px-3 text-xs font-semibold tracking-wider text-slate-600 uppercase',
+          ),
+        ],
+        ['Saved views'],
+      ),
+      ...Array.match(savedViews, {
+        onEmpty: () => [],
+        onNonEmpty: nonEmptySavedViews =>
+          Array.map(nonEmptySavedViews, savedView =>
+            h.keyed('div')(
+              savedView.id,
+              [h.Class('flex items-center gap-1')],
+              [
+                h.a(
+                  [
+                    h.Href(
+                      savedViewRouter({
+                        viewId: savedView.id,
+                        filters: savedView.filters,
+                      }),
+                    ),
+                    h.Class(
+                      clsx(SAVED_VIEW_LINK_CLASS, {
+                        'bg-white font-semibold text-indigo-700':
+                          ApplicationRoute.guards.SavedView(route) &&
+                          route.viewId === savedView.id,
+                        'font-medium text-slate-600 hover:bg-white/60':
+                          !ApplicationRoute.guards.SavedView(route) ||
+                          route.viewId !== savedView.id,
+                      }),
+                    ),
+                  ],
+                  [savedView.name],
+                ),
+                Button.view(
+                  {
+                    type: 'button',
+                    onClick: Message.ClickedDeleteSavedView({
+                      viewId: savedView.id,
+                    }),
+                    toView: attributes =>
+                      h.button(
+                        [
+                          ...attributes.button,
+                          h.AriaLabel(`Delete view ${savedView.name}`),
+                          h.Class(
+                            'inline-grid size-7 cursor-pointer place-items-center rounded text-sm font-medium text-slate-600 outline-offset-2 hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-2 focus-visible:outline-indigo-500',
+                          ),
+                        ],
+                        ['×'],
+                      ),
+                  },
+                  h,
+                ),
+              ],
+            ),
+          ),
+      }),
+    ],
+  )
+
+const draftsSection = (
+  { route, maybeConfirmedWorkspace, issueDrafts, toIssueHref }: ViewInput,
+  h: SidebarViewBuilder,
+): Html =>
+  h.section(
+    [
+      h.Class(
+        clsx({
+          hidden: Array.isReadonlyArrayEmpty(issueDrafts),
+          [SIDEBAR_COLLECTION_CLASS]:
+            Array.isReadonlyArrayNonEmpty(issueDrafts),
+        }),
+      ),
+      h.AriaLabel('Drafts'),
+    ],
+    [
+      h.h2(
+        [
+          h.Class(
+            'mb-2 px-3 text-xs font-semibold tracking-wider text-slate-600 uppercase',
+          ),
+        ],
+        ['Drafts'],
+      ),
+      ...Array.map(issueDrafts, retainedDraft => {
+        const maybeIssue = Option.flatMap(maybeConfirmedWorkspace, workspace =>
+          Array.findFirst(
+            workspace.issues,
+            issue => issue.id === retainedDraft.issueId,
+          ),
+        )
+        const isActive = Option.contains(
+          maybeIssueId(route),
+          retainedDraft.issueId,
+        )
+
+        return h.keyed('div')(
+          retainedDraft.issueId,
+          [],
+          [
+            h.a(
+              [
+                h.Href(toIssueHref(retainedDraft.issueId)),
+                h.Class(
+                  clsx(DRAFT_LINK_CLASS, {
+                    'bg-white text-indigo-700 shadow-xs': isActive,
+                    'text-slate-500 transition hover:bg-white/60 hover:text-slate-800':
+                      !isActive,
+                  }),
+                ),
+                ...(isActive ? [h.AriaCurrent('page')] : []),
+              ],
+              [
+                h.span(
+                  [h.Class('block text-xs font-semibold')],
+                  [
+                    Option.match(maybeIssue, {
+                      onNone: () => retainedDraft.issueId,
+                      onSome: issue => issue.identifier,
+                    }),
+                  ],
+                ),
+                h.span(
+                  [h.Class('block truncate text-sm font-medium')],
+                  [retainedDraft.title],
+                ),
+              ],
+            ),
+          ],
+        )
+      }),
+    ],
+  )

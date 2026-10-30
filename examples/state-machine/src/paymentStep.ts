@@ -39,6 +39,33 @@ export class PaymentStep extends Block<PaymentStep, void, ViewInput>()(
   },
 ) {}
 
+export const PaymentStepLive = PaymentStep.make(
+  Effect.fn(function* () {
+    return {
+      update: {
+        ClickedBack: model => ({
+          model,
+          outMessage: OutMessage.RequestedBack(),
+        }),
+        ClickedCancel: model => ({
+          model,
+          outMessage: OutMessage.RequestedCancel(),
+        }),
+        ClickedContinue: model => ({
+          model,
+          outMessage: OutMessage.RequestedContinue(),
+        }),
+        ToggledPaymentMethod: (model, { isSelected }) => ({
+          model,
+          outMessage: OutMessage.ToggledPaymentMethod({ isSelected }),
+        }),
+      },
+
+      view: (_model, h, { state }) => paymentView(state, h),
+    }
+  }),
+)
+
 type PaymentStepViewBuilder = HtmlBuilder<Message>
 
 const paymentView = (state: PaymentState, h: PaymentStepViewBuilder): Html =>
@@ -205,30 +232,3 @@ const paymentView = (state: PaymentState, h: PaymentStepViewBuilder): Html =>
       ),
     ],
   )
-
-export const PaymentStepLive = PaymentStep.make(
-  Effect.fn(function* () {
-    return {
-      update: {
-        ClickedBack: model => ({
-          model,
-          outMessage: OutMessage.RequestedBack(),
-        }),
-        ClickedCancel: model => ({
-          model,
-          outMessage: OutMessage.RequestedCancel(),
-        }),
-        ClickedContinue: model => ({
-          model,
-          outMessage: OutMessage.RequestedContinue(),
-        }),
-        ToggledPaymentMethod: (model, { isSelected }) => ({
-          model,
-          outMessage: OutMessage.ToggledPaymentMethod({ isSelected }),
-        }),
-      },
-
-      view: (_model, h, { state }) => paymentView(state, h),
-    }
-  }),
-)

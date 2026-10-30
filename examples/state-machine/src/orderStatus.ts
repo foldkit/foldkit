@@ -36,6 +36,26 @@ export class OrderStatus extends Block<OrderStatus, void, ViewInput>()(
   },
 ) {}
 
+export const OrderStatusLive = OrderStatus.make(
+  Effect.fn(function* () {
+    return {
+      update: {
+        ClickedStartOver: model => ({
+          model,
+          outMessage: OutMessage.RequestedStartOver(),
+        }),
+      },
+
+      view: (_model, h, { state }) =>
+        CheckoutState.match(state, {
+          Placing: () => placingView(h),
+          Confirmed: confirmedState => confirmedView(confirmedState, h),
+          Cancelled: () => cancelledView(h),
+        }),
+    }
+  }),
+)
+
 type OrderStatusViewBuilder = HtmlBuilder<Message>
 
 const placingView = (h: OrderStatusViewBuilder): Html =>
@@ -158,23 +178,3 @@ const cancelledView = (h: OrderStatusViewBuilder): Html =>
       ),
     ],
   )
-
-export const OrderStatusLive = OrderStatus.make(
-  Effect.fn(function* () {
-    return {
-      update: {
-        ClickedStartOver: model => ({
-          model,
-          outMessage: OutMessage.RequestedStartOver(),
-        }),
-      },
-
-      view: (_model, h, { state }) =>
-        CheckoutState.match(state, {
-          Placing: () => placingView(h),
-          Confirmed: confirmedState => confirmedView(confirmedState, h),
-          Cancelled: () => cancelledView(h),
-        }),
-    }
-  }),
-)

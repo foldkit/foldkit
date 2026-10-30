@@ -28,6 +28,32 @@ export class Application extends Block<Application>()('Application', {
   Message,
 }) {}
 
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    return {
+      model: {
+        content: DEFAULT_CONTENT,
+        fillColor: DEFAULT_FILL_COLOR,
+        backgroundColor: DEFAULT_BACKGROUND_COLOR,
+      },
+
+      update: {
+        UpdatedContent: (model, { value }) => ({
+          model: modifyFields(model, { content: () => value }),
+        }),
+        ChangedFillColor: (model, { value }) => ({
+          model: modifyFields(model, { fillColor: () => value }),
+        }),
+        ChangedBackgroundColor: (model, { value }) => ({
+          model: modifyFields(model, { backgroundColor: () => value }),
+        }),
+      },
+
+      view,
+    }
+  }),
+)
+
 type ApplicationViewBuilder = HtmlBuilder<Message>
 
 const DEFAULT_CONTENT = 'https://foldkit.dev'
@@ -297,29 +323,3 @@ const previewView = (model: Model, h: ApplicationViewBuilder): Html => {
     ],
   )
 }
-
-export const ApplicationLive = Application.make(
-  Effect.fn(function* () {
-    return {
-      model: {
-        content: DEFAULT_CONTENT,
-        fillColor: DEFAULT_FILL_COLOR,
-        backgroundColor: DEFAULT_BACKGROUND_COLOR,
-      },
-
-      update: {
-        UpdatedContent: (model, { value }) => ({
-          model: modifyFields(model, { content: () => value }),
-        }),
-        ChangedFillColor: (model, { value }) => ({
-          model: modifyFields(model, { fillColor: () => value }),
-        }),
-        ChangedBackgroundColor: (model, { value }) => ({
-          model: modifyFields(model, { backgroundColor: () => value }),
-        }),
-      },
-
-      view,
-    }
-  }),
-)

@@ -54,107 +54,6 @@ export class Application extends Block<Application, ApplicationArgs>()(
   },
 ) {}
 
-const activeRoom = (model: Model): Option.Option<Room> =>
-  Option.filter(
-    model.maybeRoom,
-    room =>
-      ApplicationRoute.guards.Room(model.route) &&
-      model.route.roomId === room.id,
-  )
-
-const isCapturingKeyboard = (model: Model): boolean =>
-  ApplicationRoute.matchOrElse(
-    model.route,
-    {
-      Home: () => homeCapturesKeyboard(model.home.model),
-      Room: () =>
-        Option.exists(activeRoom(model), room =>
-          roomCapturesKeyboard(room.model),
-        ),
-    },
-    () => false,
-  )
-
-const deliverPressedKey = (model: Model, key: string) =>
-  ApplicationRoute.matchOrElse(
-    model.route,
-    {
-      Home: () => [model.home.send(Home.Message.PressedKey({ key }))],
-      Room: () =>
-        Array.map(Option.toArray(activeRoom(model)), room =>
-          room.send(Room.Message.PressedKey({ key })),
-        ),
-    },
-    () => [],
-  )
-
-const capturedKeyDownStream: Stream.Stream<Message> =
-  Dom.streamFromEventFilterMapPreventDefault({
-    target: document,
-    type: 'keydown',
-    filterMapEvent: ({ key }) => Option.some(Message.PressedKey({ key })),
-  })
-
-type ApplicationViewBuilder = HtmlBuilder<Message>
-type NotFoundRoute = typeof ApplicationRoute.NotFound.Type
-
-const routeTitle = (route: ApplicationRoute): string =>
-  ApplicationRoute.match(route, {
-    Home: () => 'Typing Game',
-    Room: ({ roomId }) => `Room ${roomId} | Typing Game`,
-    NotFound: () => 'Not Found | Typing Game',
-  })
-
-const notFound = ({ path }: NotFoundRoute, h: ApplicationViewBuilder): Html =>
-  h.section(
-    [h.Class('max-w-4xl')],
-    [
-      h.h1([h.Class('mb-6 uppercase')], ['404 - Not Found']),
-      h.p([h.Class('mb-6')], [`The path "${path}" was not found.`]),
-      h.div([], ['> Enter to go home']),
-    ],
-  )
-
-const footer = (h: ApplicationViewBuilder): Html =>
-  h.footer(
-    [h.Class('mt-auto pt-8')],
-    [
-      'Made with ',
-      h.span([h.Class('text-terminal-red')], ['♥']),
-      ' with ',
-      h.a(
-        [
-          h.Href('https://foldkit.dev/example-apps/typing-terminal'),
-          h.Class('underline'),
-        ],
-        ['Foldkit'],
-      ),
-      ' and ',
-      h.a([h.Href('https://effect.website'), h.Class('underline')], ['Effect']),
-      '.',
-    ],
-  )
-
-const view = (model: Model, h: ApplicationViewBuilder): Document => {
-  const content = ApplicationRoute.match(model.route, {
-    Home: () => model.home.view(),
-    Room: () =>
-      Option.match(activeRoom(model), {
-        onNone: () => h.empty,
-        onSome: room => room.view(),
-      }),
-    NotFound: route => notFound(route, h),
-  })
-
-  return {
-    title: routeTitle(model.route),
-    body: h.div(
-      [h.Class('min-h-screen flex flex-col p-16')],
-      [h.main([h.Class('flex-1 flex flex-col')], [content]), footer(h)],
-    ),
-  }
-}
-
 export const ApplicationLive = Application.make(
   Effect.fn(function* (_id, { url }) {
     const home = yield* new Home('home')
@@ -265,3 +164,104 @@ export const ApplicationLive = Application.make(
     }
   }),
 )
+
+const activeRoom = (model: Model): Option.Option<Room> =>
+  Option.filter(
+    model.maybeRoom,
+    room =>
+      ApplicationRoute.guards.Room(model.route) &&
+      model.route.roomId === room.id,
+  )
+
+const isCapturingKeyboard = (model: Model): boolean =>
+  ApplicationRoute.matchOrElse(
+    model.route,
+    {
+      Home: () => homeCapturesKeyboard(model.home.model),
+      Room: () =>
+        Option.exists(activeRoom(model), room =>
+          roomCapturesKeyboard(room.model),
+        ),
+    },
+    () => false,
+  )
+
+const deliverPressedKey = (model: Model, key: string) =>
+  ApplicationRoute.matchOrElse(
+    model.route,
+    {
+      Home: () => [model.home.send(Home.Message.PressedKey({ key }))],
+      Room: () =>
+        Array.map(Option.toArray(activeRoom(model)), room =>
+          room.send(Room.Message.PressedKey({ key })),
+        ),
+    },
+    () => [],
+  )
+
+const capturedKeyDownStream: Stream.Stream<Message> =
+  Dom.streamFromEventFilterMapPreventDefault({
+    target: document,
+    type: 'keydown',
+    filterMapEvent: ({ key }) => Option.some(Message.PressedKey({ key })),
+  })
+
+type ApplicationViewBuilder = HtmlBuilder<Message>
+type NotFoundRoute = typeof ApplicationRoute.NotFound.Type
+
+const routeTitle = (route: ApplicationRoute): string =>
+  ApplicationRoute.match(route, {
+    Home: () => 'Typing Game',
+    Room: ({ roomId }) => `Room ${roomId} | Typing Game`,
+    NotFound: () => 'Not Found | Typing Game',
+  })
+
+const notFound = ({ path }: NotFoundRoute, h: ApplicationViewBuilder): Html =>
+  h.section(
+    [h.Class('max-w-4xl')],
+    [
+      h.h1([h.Class('mb-6 uppercase')], ['404 - Not Found']),
+      h.p([h.Class('mb-6')], [`The path "${path}" was not found.`]),
+      h.div([], ['> Enter to go home']),
+    ],
+  )
+
+const footer = (h: ApplicationViewBuilder): Html =>
+  h.footer(
+    [h.Class('mt-auto pt-8')],
+    [
+      'Made with ',
+      h.span([h.Class('text-terminal-red')], ['♥']),
+      ' with ',
+      h.a(
+        [
+          h.Href('https://foldkit.dev/example-apps/typing-terminal'),
+          h.Class('underline'),
+        ],
+        ['Foldkit'],
+      ),
+      ' and ',
+      h.a([h.Href('https://effect.website'), h.Class('underline')], ['Effect']),
+      '.',
+    ],
+  )
+
+const view = (model: Model, h: ApplicationViewBuilder): Document => {
+  const content = ApplicationRoute.match(model.route, {
+    Home: () => model.home.view(),
+    Room: () =>
+      Option.match(activeRoom(model), {
+        onNone: () => h.empty,
+        onSome: room => room.view(),
+      }),
+    NotFound: route => notFound(route, h),
+  })
+
+  return {
+    title: routeTitle(model.route),
+    body: h.div(
+      [h.Class('min-h-screen flex flex-col p-16')],
+      [h.main([h.Class('flex-1 flex flex-col')], [content]), footer(h)],
+    ),
+  }
+}

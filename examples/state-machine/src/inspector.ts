@@ -24,6 +24,15 @@ export class Inspector extends Block<
   ViewInput
 >()('Inspector', {}) {}
 
+export const InspectorLive = Inspector.make(
+  Effect.fn(function* (_id, machineDescription) {
+    return {
+      view: (_model, h, viewInput) =>
+        inspectorView(machineDescription, viewInput, h),
+    }
+  }),
+)
+
 type InspectorViewBuilder = HtmlBuilder<never>
 
 const formatTags = (tags: ReadonlyArray<string>): string =>
@@ -186,12 +195,3 @@ const inspectorView = (
       ),
     ],
   )
-
-export const InspectorLive = Inspector.make(
-  Effect.fn(function* (_id, machineDescription) {
-    return {
-      view: (_model, h, viewInput) =>
-        inspectorView(machineDescription, viewInput, h),
-    }
-  }),
-)

@@ -61,6 +61,44 @@ export class Navigation extends Block<Navigation, void, NavigationViewInput>()(
   { Model, Message },
 ) {}
 
+export const NavigationLive = Navigation.make(
+  Effect.fn(function* () {
+    const mobileMenuDialog = yield* new Dialog.Dialog('mobileMenuDialog', {
+      id: 'mobile-menu',
+    })
+
+    return {
+      model: { mobileMenuDialog },
+
+      update: {
+        ClickedOpenMobileMenu: model => ({
+          model,
+          messages: [
+            model.mobileMenuDialog.send(Dialog.Dialog.Message.RequestedOpen()),
+          ],
+        }),
+
+        RequestedCloseMobileMenu: model => ({
+          model,
+          messages: [
+            model.mobileMenuDialog.send(Dialog.Dialog.Message.RequestedClose()),
+          ],
+        }),
+      },
+
+      view: (model, h, input) =>
+        Match.value(input).pipe(
+          Match.tagsExhaustive({
+            MobileHeader: () => mobileHeaderView(model, h),
+            MobileMenu: ({ currentRoute }) =>
+              mobileMenuView(model, currentRoute, h),
+            Sidebar: ({ currentRoute }) => sidebarView(currentRoute, h),
+          }),
+        ),
+    }
+  }),
+).pipe(Layer.provide(Dialog.DialogLive))
+
 type NavItem = Readonly<{
   label: string
   routeTag: string
@@ -343,41 +381,3 @@ const mobileHeaderView = (
       ),
     ],
   )
-
-export const NavigationLive = Navigation.make(
-  Effect.fn(function* () {
-    const mobileMenuDialog = yield* new Dialog.Dialog('mobileMenuDialog', {
-      id: 'mobile-menu',
-    })
-
-    return {
-      model: { mobileMenuDialog },
-
-      update: {
-        ClickedOpenMobileMenu: model => ({
-          model,
-          messages: [
-            model.mobileMenuDialog.send(Dialog.Dialog.Message.RequestedOpen()),
-          ],
-        }),
-
-        RequestedCloseMobileMenu: model => ({
-          model,
-          messages: [
-            model.mobileMenuDialog.send(Dialog.Dialog.Message.RequestedClose()),
-          ],
-        }),
-      },
-
-      view: (model, h, input) =>
-        Match.value(input).pipe(
-          Match.tagsExhaustive({
-            MobileHeader: () => mobileHeaderView(model, h),
-            MobileMenu: ({ currentRoute }) =>
-              mobileMenuView(model, currentRoute, h),
-            Sidebar: ({ currentRoute }) => sidebarView(currentRoute, h),
-          }),
-        ),
-    }
-  }),
-).pipe(Layer.provide(Dialog.DialogLive))

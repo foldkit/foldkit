@@ -28,6 +28,40 @@ export class DisclosurePage extends Block<DisclosurePage>()('DisclosurePage', {
   Message,
 }) {}
 
+export const DisclosurePageLive = DisclosurePage.make(
+  Effect.fn(function* () {
+    return {
+      model: {
+        isDisclosureBasicDemoOpen: false,
+        isDisclosureAnimatedDemoOpen: false,
+        isDisclosureCollapsedPreviewDemoOpen: false,
+      },
+
+      update: {
+        ToggledDisclosureBasicDemo: (model, { isOpen }) => ({
+          model: modifyFields(model, {
+            isDisclosureBasicDemoOpen: () => isOpen,
+          }),
+        }),
+
+        ToggledDisclosureAnimatedDemo: (model, { isOpen }) => ({
+          model: modifyFields(model, {
+            isDisclosureAnimatedDemoOpen: () => isOpen,
+          }),
+        }),
+
+        ToggledDisclosureCollapsedPreviewDemo: (model, { isOpen }) => ({
+          model: modifyFields(model, {
+            isDisclosureCollapsedPreviewDemoOpen: () => isOpen,
+          }),
+        }),
+      },
+
+      view,
+    }
+  }),
+)
+
 const DISCLOSURE_BASIC_DEMO_ID = 'disclosure-basic-demo'
 const DISCLOSURE_ANIMATED_DEMO_ID = 'disclosure-animated-demo'
 const DISCLOSURE_COLLAPSED_PREVIEW_DEMO_ID = 'disclosure-collapsed-preview-demo'
@@ -271,37 +305,3 @@ const view = (model: Model, h: HtmlBuilder<Message>): Html => {
     ],
   )
 }
-
-export const DisclosurePageLive = DisclosurePage.make(
-  Effect.fn(function* () {
-    return {
-      model: {
-        isDisclosureBasicDemoOpen: false,
-        isDisclosureAnimatedDemoOpen: false,
-        isDisclosureCollapsedPreviewDemoOpen: false,
-      },
-
-      update: {
-        ToggledDisclosureBasicDemo: (model, { isOpen }) => ({
-          model: modifyFields(model, {
-            isDisclosureBasicDemoOpen: () => isOpen,
-          }),
-        }),
-
-        ToggledDisclosureAnimatedDemo: (model, { isOpen }) => ({
-          model: modifyFields(model, {
-            isDisclosureAnimatedDemoOpen: () => isOpen,
-          }),
-        }),
-
-        ToggledDisclosureCollapsedPreviewDemo: (model, { isOpen }) => ({
-          model: modifyFields(model, {
-            isDisclosureCollapsedPreviewDemoOpen: () => isOpen,
-          }),
-        }),
-      },
-
-      view,
-    }
-  }),
-)

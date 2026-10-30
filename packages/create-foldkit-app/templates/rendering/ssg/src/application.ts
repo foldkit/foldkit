@@ -58,6 +58,59 @@ export class Application extends Block<Application, Readonly<{ url: Url }>>()(
   },
 ) {}
 
+export const ApplicationLive = Application.make(
+  Effect.fn(function* (_id, { url }) {
+    return {
+      model: { route: urlToApplicationRoute(url), count: 0 },
+
+      update: {
+        ClickedIncrement: model => ({
+          model: modifyFields(model, { count: count => count + 1 }),
+        }),
+        ClickedLink: (model, { request }) =>
+          UrlRequest.match(request, {
+            Internal: ({ url: internalUrl }) => ({
+              model,
+              commands: [NavigateInternal({ url: urlToString(internalUrl) })],
+            }),
+            External: ({ href }) => ({
+              model,
+              commands: [LoadExternal({ href })],
+            }),
+          }),
+        ChangedUrl: (model, { url: nextUrl }) => ({
+          model: modifyFields(model, {
+            route: () => urlToApplicationRoute(nextUrl),
+          }),
+        }),
+        CompletedNavigateInternal: model => ({ model }),
+        CompletedLoadExternal: model => ({ model }),
+      },
+
+      commands: {
+        NavigateInternal: ({ url: internalUrl }) =>
+          pushUrl(internalUrl).pipe(
+            Effect.as(Message.CompletedNavigateInternal()),
+          ),
+        LoadExternal: ({ href }) =>
+          load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+      },
+
+      view: (model, h) => ({
+        title: routeTitle(model.route),
+        body: h.main(
+          [
+            h.Class(
+              'mx-auto grid min-h-screen max-w-3xl content-center gap-10 p-8',
+            ),
+          ],
+          [navigationView(h), pageView(model, h)],
+        ),
+      }),
+    }
+  }),
+)
+
 type ApplicationViewBuilder = HtmlBuilder<Message>
 
 const APP_NAME = 'Foldkit App'
@@ -134,56 +187,3 @@ const pageView = (model: Model, h: ApplicationViewBuilder): Html =>
         ],
       ),
   })
-
-export const ApplicationLive = Application.make(
-  Effect.fn(function* (_id, { url }) {
-    return {
-      model: { route: urlToApplicationRoute(url), count: 0 },
-
-      update: {
-        ClickedIncrement: model => ({
-          model: modifyFields(model, { count: count => count + 1 }),
-        }),
-        ClickedLink: (model, { request }) =>
-          UrlRequest.match(request, {
-            Internal: ({ url: internalUrl }) => ({
-              model,
-              commands: [NavigateInternal({ url: urlToString(internalUrl) })],
-            }),
-            External: ({ href }) => ({
-              model,
-              commands: [LoadExternal({ href })],
-            }),
-          }),
-        ChangedUrl: (model, { url: nextUrl }) => ({
-          model: modifyFields(model, {
-            route: () => urlToApplicationRoute(nextUrl),
-          }),
-        }),
-        CompletedNavigateInternal: model => ({ model }),
-        CompletedLoadExternal: model => ({ model }),
-      },
-
-      commands: {
-        NavigateInternal: ({ url: internalUrl }) =>
-          pushUrl(internalUrl).pipe(
-            Effect.as(Message.CompletedNavigateInternal()),
-          ),
-        LoadExternal: ({ href }) =>
-          load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
-      },
-
-      view: (model, h) => ({
-        title: routeTitle(model.route),
-        body: h.main(
-          [
-            h.Class(
-              'mx-auto grid min-h-screen max-w-3xl content-center gap-10 p-8',
-            ),
-          ],
-          [navigationView(h), pageView(model, h)],
-        ),
-      }),
-    }
-  }),
-)

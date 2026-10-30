@@ -55,6 +55,85 @@ export class Sidebar extends Block<Sidebar, void, ViewInput>()('Sidebar', {
   OutMessage,
 }) {}
 
+export const SidebarLive = Sidebar.make(
+  Effect.fn(function* () {
+    const chartModeRadioGroup = yield* new ChartModeRadioGroup(
+      'chartModeRadioGroup',
+      { id: CHART_MODE_RADIO_GROUP_ID },
+    )
+    const periodRadioGroup = yield* new PeriodRadioGroup('periodRadioGroup', {
+      id: PERIOD_RADIO_GROUP_ID,
+    })
+    const packageRadioGroup = yield* new PackageRadioGroup(
+      'packageRadioGroup',
+      { id: PACKAGE_RADIO_GROUP_ID },
+    )
+
+    return {
+      model: {
+        chartMode: 'Adoption',
+        chartModeRadioGroup,
+        selectedPackageId: 'Core',
+        packageRadioGroup,
+        period: 'LastSixteenWeeks',
+        periodRadioGroup,
+      },
+
+      update: {
+        ...chartModeRadioGroup.on({
+          Selected: (model, { value }) =>
+            updatedChartControls(
+              modifyFields(model, { chartMode: () => value }),
+            ),
+        }),
+
+        ...periodRadioGroup.on({
+          Selected: (model, { value }) =>
+            updatedChartControls(modifyFields(model, { period: () => value })),
+        }),
+
+        ...packageRadioGroup.on({
+          Selected: (model, { value }) =>
+            updatedChartControls(
+              modifyFields(model, { selectedPackageId: () => value }),
+            ),
+        }),
+      },
+
+      view: (model, h, { telemetry, maybeBanner }) =>
+        h.aside(
+          [h.Class('flex flex-col gap-4')],
+          [
+            Option.match(maybeBanner, {
+              onNone: () => h.empty,
+              onSome: banner =>
+                h.div(
+                  [
+                    h.Class(
+                      'rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950',
+                    ),
+                  ],
+                  [banner],
+                ),
+            }),
+            summaryGridView(telemetry, h),
+            controlPanelView(model, h),
+            packagePanelView(model, telemetry, h),
+            contributorsView(telemetry, h),
+          ],
+        ),
+    }
+  }),
+).pipe(
+  Layer.provide(
+    Layer.mergeAll(
+      ChartModeRadioGroup.Live,
+      PeriodRadioGroup.Live,
+      PackageRadioGroup.Live,
+    ),
+  ),
+)
+
 type SidebarViewBuilder = HtmlBuilder<never>
 
 const updatedChartControls = (model: Model) => ({
@@ -291,82 +370,3 @@ const contributorsView = (telemetry: Telemetry, h: SidebarViewBuilder): Html =>
       ),
     ],
   )
-
-export const SidebarLive = Sidebar.make(
-  Effect.fn(function* () {
-    const chartModeRadioGroup = yield* new ChartModeRadioGroup(
-      'chartModeRadioGroup',
-      { id: CHART_MODE_RADIO_GROUP_ID },
-    )
-    const periodRadioGroup = yield* new PeriodRadioGroup('periodRadioGroup', {
-      id: PERIOD_RADIO_GROUP_ID,
-    })
-    const packageRadioGroup = yield* new PackageRadioGroup(
-      'packageRadioGroup',
-      { id: PACKAGE_RADIO_GROUP_ID },
-    )
-
-    return {
-      model: {
-        chartMode: 'Adoption',
-        chartModeRadioGroup,
-        selectedPackageId: 'Core',
-        packageRadioGroup,
-        period: 'LastSixteenWeeks',
-        periodRadioGroup,
-      },
-
-      update: {
-        ...chartModeRadioGroup.on({
-          Selected: (model, { value }) =>
-            updatedChartControls(
-              modifyFields(model, { chartMode: () => value }),
-            ),
-        }),
-
-        ...periodRadioGroup.on({
-          Selected: (model, { value }) =>
-            updatedChartControls(modifyFields(model, { period: () => value })),
-        }),
-
-        ...packageRadioGroup.on({
-          Selected: (model, { value }) =>
-            updatedChartControls(
-              modifyFields(model, { selectedPackageId: () => value }),
-            ),
-        }),
-      },
-
-      view: (model, h, { telemetry, maybeBanner }) =>
-        h.aside(
-          [h.Class('flex flex-col gap-4')],
-          [
-            Option.match(maybeBanner, {
-              onNone: () => h.empty,
-              onSome: banner =>
-                h.div(
-                  [
-                    h.Class(
-                      'rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950',
-                    ),
-                  ],
-                  [banner],
-                ),
-            }),
-            summaryGridView(telemetry, h),
-            controlPanelView(model, h),
-            packagePanelView(model, telemetry, h),
-            contributorsView(telemetry, h),
-          ],
-        ),
-    }
-  }),
-).pipe(
-  Layer.provide(
-    Layer.mergeAll(
-      ChartModeRadioGroup.Live,
-      PeriodRadioGroup.Live,
-      PackageRadioGroup.Live,
-    ),
-  ),
-)

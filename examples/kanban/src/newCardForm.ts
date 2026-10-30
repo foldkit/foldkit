@@ -37,11 +37,6 @@ export class NewCardForm extends Block<NewCardForm>()('NewCardForm', {
   Command: [FocusAddCardInput],
 }) {}
 
-const closedModel: Model = {
-  maybeColumnId: Option.none(),
-  title: '',
-}
-
 export const NewCardFormLive = NewCardForm.make(
   Effect.fn(function* () {
     return {
@@ -167,3 +162,8 @@ export const NewCardFormLive = NewCardForm.make(
     }
   }),
 )
+
+const closedModel: Model = {
+  maybeColumnId: Option.none(),
+  title: '',
+}

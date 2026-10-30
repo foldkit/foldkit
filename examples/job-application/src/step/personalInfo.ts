@@ -82,6 +82,134 @@ export class PersonalInfo extends Block<PersonalInfo, PersonalInfoArgs>()(
   { Model, Message, Command: [ValidateEmailAsync] },
 ) {}
 
+// LIVE
+
+export const PersonalInfoLive = PersonalInfo.make(
+  Effect.fn(function* (_id, { today }) {
+    const pronouns = yield* new PronounsListbox('pronouns', { id: 'pronouns' })
+    const availableDate = yield* new DatePicker.DatePicker('availableDate', {
+      id: 'available-date',
+      today,
+      minDate: today,
+    })
+
+    return {
+      model: {
+        firstName: NotValidated({ value: '' }),
+        lastName: NotValidated({ value: '' }),
+        email: NotValidated({ value: '' }),
+        emailValidationId: 0,
+        phone: NotValidated({ value: '' }),
+        pronouns,
+        maybeSelectedPronoun: Option.none(),
+        customPronouns: '',
+        portfolioUrl: NotValidated({ value: '' }),
+        availableDate,
+        maybeAvailableDate: Option.none(),
+      },
+
+      update: {
+        UpdatedFirstName: (model, { value }) => ({
+          model: modifyFields(model, {
+            firstName: () => validateFirstName(value),
+          }),
+        }),
+
+        UpdatedLastName: (model, { value }) => ({
+          model: modifyFields(model, {
+            lastName: () => validateLastName(value),
+          }),
+        }),
+
+        UpdatedEmail: (model, { value }) => {
+          const validationId = Number.increment(model.emailValidationId)
+          return Match.value(validateEmail(value)).pipe(
+            Match.tag('Valid', () => ({
+              model: modifyFields(model, {
+                email: () => Validating({ value }),
+                emailValidationId: () => validationId,
+              }),
+              commands: [
+                ValidateEmailAsync({ emailInput: value, validationId }),
+              ],
+            })),
+            Match.orElse(syncResult => ({
+              model: modifyFields(model, {
+                email: () => syncResult,
+                emailValidationId: () => validationId,
+              }),
+            })),
+          )
+        },
+
+        CompletedValidateEmailAsync: (model, { validationId, field }) => {
+          if (validationId === model.emailValidationId) {
+            return { model: modifyFields(model, { email: () => field }) }
+          } else {
+            return { model }
+          }
+        },
+
+        UpdatedPhone: (model, { value }) => ({
+          model: modifyFields(model, { phone: () => validatePhone(value) }),
+        }),
+
+        RequestedRevealErrors: model => ({
+          model: modifyFields(model, {
+            firstName: revealFieldErrors(firstNameRules),
+            lastName: revealFieldErrors(lastNameRules),
+            email: revealFieldErrors(emailRules),
+            phone: revealFieldErrors(phoneRules),
+            portfolioUrl: revealFieldErrors(portfolioUrlRules),
+          }),
+        }),
+
+        UpdatedCustomPronouns: (model, { value }) => ({
+          model: modifyFields(model, { customPronouns: () => value }),
+        }),
+
+        UpdatedPortfolioUrl: (model, { value }) => ({
+          model: modifyFields(model, {
+            portfolioUrl: () => validatePortfolioUrl(value),
+          }),
+        }),
+
+        ...pronouns.on({
+          Selected: (model, { value }) => ({
+            model: modifyFields(model, {
+              maybeSelectedPronoun: () => Option.some(value),
+            }),
+          }),
+        }),
+
+        ...availableDate.on({
+          SelectedDate: (model, { date }) => ({
+            model: modifyFields(model, {
+              maybeAvailableDate: () => Option.some(date),
+            }),
+          }),
+          ClearedDate: model => ({
+            model: modifyFields(model, {
+              maybeAvailableDate: () => Option.none(),
+            }),
+          }),
+          ChangedViewMonth: model => ({ model }),
+        }),
+      },
+
+      commands: {
+        ValidateEmailAsync: validateEmailAsync,
+      },
+
+      view,
+    }
+  }),
+).pipe(
+  Layer.provide(
+    Layer.mergeAll(PronounsListbox.Live, DatePicker.DatePickerLive),
+  ),
+)
+
 // VALIDATION
 
 const firstNameRules = makeRules({
@@ -366,131 +494,3 @@ const view = (model: Model, h: PersonalInfoViewBuilder): Html => {
     ],
   )
 }
-
-// LIVE
-
-export const PersonalInfoLive = PersonalInfo.make(
-  Effect.fn(function* (_id, { today }) {
-    const pronouns = yield* new PronounsListbox('pronouns', { id: 'pronouns' })
-    const availableDate = yield* new DatePicker.DatePicker('availableDate', {
-      id: 'available-date',
-      today,
-      minDate: today,
-    })
-
-    return {
-      model: {
-        firstName: NotValidated({ value: '' }),
-        lastName: NotValidated({ value: '' }),
-        email: NotValidated({ value: '' }),
-        emailValidationId: 0,
-        phone: NotValidated({ value: '' }),
-        pronouns,
-        maybeSelectedPronoun: Option.none(),
-        customPronouns: '',
-        portfolioUrl: NotValidated({ value: '' }),
-        availableDate,
-        maybeAvailableDate: Option.none(),
-      },
-
-      update: {
-        UpdatedFirstName: (model, { value }) => ({
-          model: modifyFields(model, {
-            firstName: () => validateFirstName(value),
-          }),
-        }),
-
-        UpdatedLastName: (model, { value }) => ({
-          model: modifyFields(model, {
-            lastName: () => validateLastName(value),
-          }),
-        }),
-
-        UpdatedEmail: (model, { value }) => {
-          const validationId = Number.increment(model.emailValidationId)
-          return Match.value(validateEmail(value)).pipe(
-            Match.tag('Valid', () => ({
-              model: modifyFields(model, {
-                email: () => Validating({ value }),
-                emailValidationId: () => validationId,
-              }),
-              commands: [
-                ValidateEmailAsync({ emailInput: value, validationId }),
-              ],
-            })),
-            Match.orElse(syncResult => ({
-              model: modifyFields(model, {
-                email: () => syncResult,
-                emailValidationId: () => validationId,
-              }),
-            })),
-          )
-        },
-
-        CompletedValidateEmailAsync: (model, { validationId, field }) => {
-          if (validationId === model.emailValidationId) {
-            return { model: modifyFields(model, { email: () => field }) }
-          } else {
-            return { model }
-          }
-        },
-
-        UpdatedPhone: (model, { value }) => ({
-          model: modifyFields(model, { phone: () => validatePhone(value) }),
-        }),
-
-        RequestedRevealErrors: model => ({
-          model: modifyFields(model, {
-            firstName: revealFieldErrors(firstNameRules),
-            lastName: revealFieldErrors(lastNameRules),
-            email: revealFieldErrors(emailRules),
-            phone: revealFieldErrors(phoneRules),
-            portfolioUrl: revealFieldErrors(portfolioUrlRules),
-          }),
-        }),
-
-        UpdatedCustomPronouns: (model, { value }) => ({
-          model: modifyFields(model, { customPronouns: () => value }),
-        }),
-
-        UpdatedPortfolioUrl: (model, { value }) => ({
-          model: modifyFields(model, {
-            portfolioUrl: () => validatePortfolioUrl(value),
-          }),
-        }),
-
-        ...pronouns.on({
-          Selected: (model, { value }) => ({
-            model: modifyFields(model, {
-              maybeSelectedPronoun: () => Option.some(value),
-            }),
-          }),
-        }),
-
-        ...availableDate.on({
-          SelectedDate: (model, { date }) => ({
-            model: modifyFields(model, {
-              maybeAvailableDate: () => Option.some(date),
-            }),
-          }),
-          ClearedDate: model => ({
-            model: modifyFields(model, {
-              maybeAvailableDate: () => Option.none(),
-            }),
-          }),
-          ChangedViewMonth: model => ({ model }),
-        }),
-      },
-
-      commands: {
-        ValidateEmailAsync: validateEmailAsync,
-      },
-
-      view,
-    }
-  }),
-).pipe(
-  Layer.provide(
-    Layer.mergeAll(PronounsListbox.Live, DatePicker.DatePickerLive),
-  ),
-)

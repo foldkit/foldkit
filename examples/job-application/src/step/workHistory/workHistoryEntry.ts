@@ -55,32 +55,6 @@ export class WorkHistoryEntry extends Block<
   WorkHistoryEntryArgs
 >()('WorkHistoryEntry', { Model, Message, OutMessage }) {}
 
-const companyRules = makeRules({
-  required: 'Company is required',
-})
-
-const titleRules = makeRules({
-  required: 'Job title is required',
-})
-
-const validateCompany = validate(companyRules)
-const validateTitle = validate(titleRules)
-
-export const workHistoryEntryHasErrors = (entry: Model): boolean =>
-  anyInvalid([entry.company, entry.title])
-
-export const isWorkHistoryEntryComplete = (entry: Model): boolean =>
-  allValid([
-    [entry.company, companyRules],
-    [entry.title, titleRules],
-  ])
-
-const DATE_PICKER_ANCHOR: AnchorConfig = {
-  placement: 'bottom-start',
-  gap: 4,
-  padding: 8,
-}
-
 export const WorkHistoryEntryLive = WorkHistoryEntry.make(
   Effect.fn(function* (entryId, { today }) {
     const startDate = yield* new DatePicker.DatePicker('startDate', {
@@ -315,3 +289,29 @@ export const WorkHistoryEntryLive = WorkHistoryEntry.make(
     }
   }),
 ).pipe(Layer.provide(DatePicker.DatePickerLive))
+
+const companyRules = makeRules({
+  required: 'Company is required',
+})
+
+const titleRules = makeRules({
+  required: 'Job title is required',
+})
+
+const validateCompany = validate(companyRules)
+const validateTitle = validate(titleRules)
+
+export const workHistoryEntryHasErrors = (entry: Model): boolean =>
+  anyInvalid([entry.company, entry.title])
+
+export const isWorkHistoryEntryComplete = (entry: Model): boolean =>
+  allValid([
+    [entry.company, companyRules],
+    [entry.title, titleRules],
+  ])
+
+const DATE_PICKER_ANCHOR: AnchorConfig = {
+  placement: 'bottom-start',
+  gap: 4,
+  padding: 8,
+}

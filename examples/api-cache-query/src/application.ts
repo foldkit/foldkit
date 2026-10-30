@@ -45,6 +45,67 @@ export class Application extends Block<Application>()('Application', {
   Message,
 }) {}
 
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    const tabs = yield* new AppTabs('tabs', { id: TABS_ID })
+    const postsTab = yield* new PostsTab('postsTab')
+    const statsTab = yield* new StatsTab('statsTab')
+
+    return {
+      model: {
+        tabs,
+        activeTab: 'Posts',
+        postsTab,
+        statsTab,
+      },
+
+      update: {
+        TickedStatsRefreshInterval: model => ({
+          model,
+          messages: [
+            model.statsTab.send(StatsTab.Message.RequestedRevalidation()),
+          ],
+        }),
+        ...tabs.on<Model>({
+          Selected: (model, { value }) => ({
+            model: modifyFields(model, { activeTab: () => value }),
+            messages: [loadTab(model, value)],
+          }),
+        }),
+      },
+
+      subscriptions: {
+        statsRefreshTicks: {
+          dependencies: model =>
+            model.activeTab === 'Stats' && hasStatsData(model.statsTab.model),
+          stream: statsRefreshTicks,
+        },
+      },
+
+      view: (model, h) => ({
+        title: 'API Cache Query',
+        body: h.div(
+          [h.Class('min-h-screen bg-slate-100 flex justify-center p-6')],
+          [
+            h.div(
+              [h.Class('w-full max-w-2xl flex flex-col gap-6')],
+              [
+                headerView(h),
+                model.tabs.view({
+                  tabs: Tab.literals,
+                  selectedValue: model.activeTab,
+                  ariaLabel: 'API cache sections',
+                  toView: renderInfo => tabsView({ model, renderInfo }, h),
+                }),
+              ],
+            ),
+          ],
+        ),
+      }),
+    }
+  }),
+).pipe(Layer.provide(Layer.mergeAll(AppTabs.Live, PostsTabLive, StatsTabLive)))
+
 type ApplicationViewBuilder = HtmlBuilder<Message>
 
 const tabButtonClassName =
@@ -126,64 +187,3 @@ const tabsView = (
       ),
     ],
   )
-
-export const ApplicationLive = Application.make(
-  Effect.fn(function* () {
-    const tabs = yield* new AppTabs('tabs', { id: TABS_ID })
-    const postsTab = yield* new PostsTab('postsTab')
-    const statsTab = yield* new StatsTab('statsTab')
-
-    return {
-      model: {
-        tabs,
-        activeTab: 'Posts',
-        postsTab,
-        statsTab,
-      },
-
-      update: {
-        TickedStatsRefreshInterval: model => ({
-          model,
-          messages: [
-            model.statsTab.send(StatsTab.Message.RequestedRevalidation()),
-          ],
-        }),
-        ...tabs.on<Model>({
-          Selected: (model, { value }) => ({
-            model: modifyFields(model, { activeTab: () => value }),
-            messages: [loadTab(model, value)],
-          }),
-        }),
-      },
-
-      subscriptions: {
-        statsRefreshTicks: {
-          dependencies: model =>
-            model.activeTab === 'Stats' && hasStatsData(model.statsTab.model),
-          stream: statsRefreshTicks,
-        },
-      },
-
-      view: (model, h) => ({
-        title: 'API Cache Query',
-        body: h.div(
-          [h.Class('min-h-screen bg-slate-100 flex justify-center p-6')],
-          [
-            h.div(
-              [h.Class('w-full max-w-2xl flex flex-col gap-6')],
-              [
-                headerView(h),
-                model.tabs.view({
-                  tabs: Tab.literals,
-                  selectedValue: model.activeTab,
-                  ariaLabel: 'API cache sections',
-                  toView: renderInfo => tabsView({ model, renderInfo }, h),
-                }),
-              ],
-            ),
-          ],
-        ),
-      }),
-    }
-  }),
-).pipe(Layer.provide(Layer.mergeAll(AppTabs.Live, PostsTabLive, StatsTabLive)))

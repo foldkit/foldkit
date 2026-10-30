@@ -106,6 +106,111 @@ export class Application extends Block<Application>()('Application', {
   Command: [TimestampSentMessage, TimestampReceivedMessage, SendMessage],
 }) {}
 
+export const ApplicationLive = Application.make(
+  Effect.fn(function* () {
+    const chatSocket = yield* new ChatSocket('chatSocket')
+
+    return {
+      model: {
+        connection: ConnectionState.Disconnected(),
+        maybeChatSocket: Option.none(),
+        messages: [],
+        messageInput: '',
+      },
+
+      update: {
+        ClickedConnect: model => ({
+          model: modifyFields(model, {
+            connection: () => ConnectionState.Connecting(),
+            maybeChatSocket: Option.orElseSome(() => chatSocket),
+          }),
+        }),
+
+        FailedSendMessage: (model, { error }) => ({
+          model: modifyFields(model, {
+            connection: () => ConnectionState.Error({ error }),
+            maybeChatSocket: () => Option.none(),
+          }),
+        }),
+
+        UpdatedMessageInput: (model, { value }) => ({
+          model: modifyFields(model, { messageInput: () => value }),
+        }),
+
+        SubmittedMessage: model => {
+          const trimmedMessage = model.messageInput.trim()
+
+          if (String.isEmpty(trimmedMessage)) {
+            return { model }
+          }
+
+          return Match.value(model.connection).pipe(
+            Match.tag('Connected', () => ({
+              model: modifyFields(model, { messageInput: () => '' }),
+              commands: [SendMessage({ text: trimmedMessage })],
+            })),
+            Match.orElse(() => ({ model })),
+          )
+        },
+
+        SucceededSendMessage: (model, { text }) => ({
+          model,
+          commands: [TimestampSentMessage({ text })],
+        }),
+
+        TimestampedMessage: (model, { text, zoned, isSent }) => {
+          const nextMessage = ChatMessage.make({ text, zoned, isSent })
+
+          return {
+            model: modifyFields(model, {
+              messages: messages => [...messages, nextMessage],
+            }),
+          }
+        },
+
+        ...chatSocket.on<Model>({
+          Connected: model => ({
+            model: modifyFields(model, {
+              connection: () => ConnectionState.Connected(),
+            }),
+          }),
+          FailedConnect: (model, { error }) => ({
+            model: modifyFields(model, {
+              connection: () => ConnectionState.Error({ error }),
+              maybeChatSocket: () => Option.none(),
+            }),
+          }),
+          ReceivedMessage: (model, { text }) => ({
+            model,
+            commands: [TimestampReceivedMessage({ text })],
+          }),
+          Disconnected: model => ({
+            model: modifyFields(model, {
+              connection: () => ConnectionState.Disconnected(),
+              maybeChatSocket: () => Option.none(),
+              messages: () => [],
+            }),
+          }),
+          Failed: (model, { error }) => ({
+            model: modifyFields(model, {
+              connection: () => ConnectionState.Error({ error }),
+              maybeChatSocket: () => Option.none(),
+            }),
+          }),
+        }),
+      },
+
+      commands: {
+        TimestampSentMessage: timestampMessage(true),
+        TimestampReceivedMessage: timestampMessage(false),
+        SendMessage: sendMessage(chatSocket),
+      },
+
+      view,
+    }
+  }),
+)
+
 type ApplicationViewBuilder = HtmlBuilder<Message>
 
 const view = (model: Model, h: ApplicationViewBuilder) => ({
@@ -372,108 +477,3 @@ const errorView = (error: string, h: ApplicationViewBuilder): Html =>
       ),
     ],
   )
-
-export const ApplicationLive = Application.make(
-  Effect.fn(function* () {
-    const chatSocket = yield* new ChatSocket('chatSocket')
-
-    return {
-      model: {
-        connection: ConnectionState.Disconnected(),
-        maybeChatSocket: Option.none(),
-        messages: [],
-        messageInput: '',
-      },
-
-      update: {
-        ClickedConnect: model => ({
-          model: modifyFields(model, {
-            connection: () => ConnectionState.Connecting(),
-            maybeChatSocket: Option.orElseSome(() => chatSocket),
-          }),
-        }),
-
-        FailedSendMessage: (model, { error }) => ({
-          model: modifyFields(model, {
-            connection: () => ConnectionState.Error({ error }),
-            maybeChatSocket: () => Option.none(),
-          }),
-        }),
-
-        UpdatedMessageInput: (model, { value }) => ({
-          model: modifyFields(model, { messageInput: () => value }),
-        }),
-
-        SubmittedMessage: model => {
-          const trimmedMessage = model.messageInput.trim()
-
-          if (String.isEmpty(trimmedMessage)) {
-            return { model }
-          }
-
-          return Match.value(model.connection).pipe(
-            Match.tag('Connected', () => ({
-              model: modifyFields(model, { messageInput: () => '' }),
-              commands: [SendMessage({ text: trimmedMessage })],
-            })),
-            Match.orElse(() => ({ model })),
-          )
-        },
-
-        SucceededSendMessage: (model, { text }) => ({
-          model,
-          commands: [TimestampSentMessage({ text })],
-        }),
-
-        TimestampedMessage: (model, { text, zoned, isSent }) => {
-          const nextMessage = ChatMessage.make({ text, zoned, isSent })
-
-          return {
-            model: modifyFields(model, {
-              messages: messages => [...messages, nextMessage],
-            }),
-          }
-        },
-
-        ...chatSocket.on<Model>({
-          Connected: model => ({
-            model: modifyFields(model, {
-              connection: () => ConnectionState.Connected(),
-            }),
-          }),
-          FailedConnect: (model, { error }) => ({
-            model: modifyFields(model, {
-              connection: () => ConnectionState.Error({ error }),
-              maybeChatSocket: () => Option.none(),
-            }),
-          }),
-          ReceivedMessage: (model, { text }) => ({
-            model,
-            commands: [TimestampReceivedMessage({ text })],
-          }),
-          Disconnected: model => ({
-            model: modifyFields(model, {
-              connection: () => ConnectionState.Disconnected(),
-              maybeChatSocket: () => Option.none(),
-              messages: () => [],
-            }),
-          }),
-          Failed: (model, { error }) => ({
-            model: modifyFields(model, {
-              connection: () => ConnectionState.Error({ error }),
-              maybeChatSocket: () => Option.none(),
-            }),
-          }),
-        }),
-      },
-
-      commands: {
-        TimestampSentMessage: timestampMessage(true),
-        TimestampReceivedMessage: timestampMessage(false),
-        SendMessage: sendMessage(chatSocket),
-      },
-
-      view,
-    }
-  }),
-)

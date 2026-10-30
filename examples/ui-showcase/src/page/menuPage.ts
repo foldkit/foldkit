@@ -23,6 +23,23 @@ type Model = typeof Model.Type
 
 export class MenuPage extends Block<MenuPage>()('MenuPage', { Model }) {}
 
+export const MenuPageLive = MenuPage.make(
+  Effect.fn(function* () {
+    const menuBasicDemo = yield* new DemoMenu('menuBasicDemo', {
+      id: 'menu-basic-demo',
+    })
+    const menuAnimatedDemo = yield* new DemoMenu('menuAnimatedDemo', {
+      id: 'menu-animated-demo',
+      isAnimated: true,
+    })
+
+    return {
+      model: { menuBasicDemo, menuAnimatedDemo },
+      view,
+    }
+  }),
+).pipe(Layer.provide(DemoMenu.Live))
+
 const triggerClassName =
   'inline-flex items-center gap-1.5 px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
 
@@ -162,20 +179,3 @@ const view = (model: Model, h: HtmlBuilder<never>): Html => {
     ],
   )
 }
-
-export const MenuPageLive = MenuPage.make(
-  Effect.fn(function* () {
-    const menuBasicDemo = yield* new DemoMenu('menuBasicDemo', {
-      id: 'menu-basic-demo',
-    })
-    const menuAnimatedDemo = yield* new DemoMenu('menuAnimatedDemo', {
-      id: 'menu-animated-demo',
-      isAnimated: true,
-    })
-
-    return {
-      model: { menuBasicDemo, menuAnimatedDemo },
-      view,
-    }
-  }),
-).pipe(Layer.provide(DemoMenu.Live))
